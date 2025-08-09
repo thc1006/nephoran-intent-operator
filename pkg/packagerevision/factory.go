@@ -62,37 +62,37 @@ type systemFactory struct {
 
 // SystemComponents holds all the core system components
 type SystemComponents struct {
-	PorchClient        porch.PorchClient
-	LifecycleManager   porch.LifecycleManager
-	TemplateEngine     templates.TemplateEngine
-	YANGValidator      yang.YANGValidator
-	PackageManager     PackageRevisionManager
+	PorchClient      porch.PorchClient
+	LifecycleManager porch.LifecycleManager
+	TemplateEngine   templates.TemplateEngine
+	YANGValidator    yang.YANGValidator
+	PackageManager   PackageRevisionManager
 }
 
 // SystemConfig contains configuration for the complete system
 type SystemConfig struct {
 	// Component configurations
-	PorchConfig         *porch.ClientConfig               `yaml:"porch"`
-	LifecycleConfig     *porch.LifecycleManagerConfig     `yaml:"lifecycle"`
-	TemplateConfig      *templates.EngineConfig           `yaml:"templates"`
-	YANGConfig          *yang.ValidatorConfig             `yaml:"yang"`
-	PackageManagerConfig *ManagerConfig                   `yaml:"packageManager"`
-	IntegrationConfig   *IntegrationConfig                `yaml:"integration"`
+	PorchConfig          *porch.ClientConfig           `yaml:"porch"`
+	LifecycleConfig      *porch.LifecycleManagerConfig `yaml:"lifecycle"`
+	TemplateConfig       *templates.EngineConfig       `yaml:"templates"`
+	YANGConfig           *yang.ValidatorConfig         `yaml:"yang"`
+	PackageManagerConfig *ManagerConfig                `yaml:"packageManager"`
+	IntegrationConfig    *IntegrationConfig            `yaml:"integration"`
 
 	// System-level configuration
-	SystemName          string                            `yaml:"systemName"`
-	Environment         string                            `yaml:"environment"`
-	LogLevel            string                            `yaml:"logLevel"`
-	EnableMetrics       bool                              `yaml:"enableMetrics"`
-	MetricsPort         int                               `yaml:"metricsPort"`
-	HealthCheckPort     int                               `yaml:"healthCheckPort"`
-	GracefulShutdownTimeout time.Duration                 `yaml:"gracefulShutdownTimeout"`
+	SystemName              string        `yaml:"systemName"`
+	Environment             string        `yaml:"environment"`
+	LogLevel                string        `yaml:"logLevel"`
+	EnableMetrics           bool          `yaml:"enableMetrics"`
+	MetricsPort             int           `yaml:"metricsPort"`
+	HealthCheckPort         int           `yaml:"healthCheckPort"`
+	GracefulShutdownTimeout time.Duration `yaml:"gracefulShutdownTimeout"`
 
 	// Feature flags
-	Features            *FeatureFlags                     `yaml:"features"`
+	Features *FeatureFlags `yaml:"features"`
 
 	// External integrations
-	Integrations        *ExternalIntegrations             `yaml:"integrations"`
+	Integrations *ExternalIntegrations `yaml:"integrations"`
 }
 
 // FeatureFlags controls optional system features
@@ -110,115 +110,115 @@ type FeatureFlags struct {
 
 // ExternalIntegrations defines external system integrations
 type ExternalIntegrations struct {
-	GitOps              *GitOpsIntegration       `yaml:"gitops"`
-	CICD                *CICDIntegration         `yaml:"cicd"`
-	Monitoring          *MonitoringIntegration   `yaml:"monitoring"`
-	SecretManagement    *SecretIntegration       `yaml:"secretManagement"`
+	GitOps                *GitOpsIntegration     `yaml:"gitops"`
+	CICD                  *CICDIntegration       `yaml:"cicd"`
+	Monitoring            *MonitoringIntegration `yaml:"monitoring"`
+	SecretManagement      *SecretIntegration     `yaml:"secretManagement"`
 	CertificateManagement *CertIntegration       `yaml:"certificateManagement"`
-	NetworkTelemetry    *TelemetryIntegration    `yaml:"networkTelemetry"`
+	NetworkTelemetry      *TelemetryIntegration  `yaml:"networkTelemetry"`
 }
 
 // Integration configuration types
 
 type GitOpsIntegration struct {
-	Provider        string            `yaml:"provider"` // argocd, flux, tekton
-	Endpoint        string            `yaml:"endpoint"`
-	Repository      string            `yaml:"repository"`
-	Branch          string            `yaml:"branch"`
-	Credentials     map[string]string `yaml:"credentials"`
-	AutoSync        bool              `yaml:"autoSync"`
-	SyncWave        int               `yaml:"syncWave"`
+	Provider    string            `yaml:"provider"` // argocd, flux, tekton
+	Endpoint    string            `yaml:"endpoint"`
+	Repository  string            `yaml:"repository"`
+	Branch      string            `yaml:"branch"`
+	Credentials map[string]string `yaml:"credentials"`
+	AutoSync    bool              `yaml:"autoSync"`
+	SyncWave    int               `yaml:"syncWave"`
 }
 
 type CICDIntegration struct {
-	Provider        string            `yaml:"provider"` // jenkins, gitlab, github-actions, tekton
-	Endpoint        string            `yaml:"endpoint"`
-	Credentials     map[string]string `yaml:"credentials"`
-	PipelineTemplates []string        `yaml:"pipelineTemplates"`
-	TriggerOnEvents []string          `yaml:"triggerOnEvents"`
+	Provider          string            `yaml:"provider"` // jenkins, gitlab, github-actions, tekton
+	Endpoint          string            `yaml:"endpoint"`
+	Credentials       map[string]string `yaml:"credentials"`
+	PipelineTemplates []string          `yaml:"pipelineTemplates"`
+	TriggerOnEvents   []string          `yaml:"triggerOnEvents"`
 }
 
 type MonitoringIntegration struct {
-	Prometheus      *PrometheusConfig `yaml:"prometheus"`
-	Grafana         *GrafanaConfig    `yaml:"grafana"`
-	Jaeger          *JaegerConfig     `yaml:"jaeger"`
-	Fluentd         *FluentdConfig    `yaml:"fluentd"`
+	Prometheus *PrometheusConfig `yaml:"prometheus"`
+	Grafana    *GrafanaConfig    `yaml:"grafana"`
+	Jaeger     *JaegerConfig     `yaml:"jaeger"`
+	Fluentd    *FluentdConfig    `yaml:"fluentd"`
 }
 
 type PrometheusConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	Endpoint        string `yaml:"endpoint"`
-	Namespace       string `yaml:"namespace"`
-	ScrapeInterval  string `yaml:"scrapeInterval"`
+	Enabled        bool   `yaml:"enabled"`
+	Endpoint       string `yaml:"endpoint"`
+	Namespace      string `yaml:"namespace"`
+	ScrapeInterval string `yaml:"scrapeInterval"`
 }
 
 type GrafanaConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	Endpoint        string `yaml:"endpoint"`
-	DashboardRepo   string `yaml:"dashboardRepo"`
-	AutoProvisioning bool  `yaml:"autoProvisioning"`
+	Enabled          bool   `yaml:"enabled"`
+	Endpoint         string `yaml:"endpoint"`
+	DashboardRepo    string `yaml:"dashboardRepo"`
+	AutoProvisioning bool   `yaml:"autoProvisioning"`
 }
 
 type JaegerConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	Endpoint        string `yaml:"endpoint"`
-	SamplingRate    float64 `yaml:"samplingRate"`
+	Enabled      bool    `yaml:"enabled"`
+	Endpoint     string  `yaml:"endpoint"`
+	SamplingRate float64 `yaml:"samplingRate"`
 }
 
 type FluentdConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	Endpoint        string `yaml:"endpoint"`
-	IndexPattern    string `yaml:"indexPattern"`
+	Enabled      bool   `yaml:"enabled"`
+	Endpoint     string `yaml:"endpoint"`
+	IndexPattern string `yaml:"indexPattern"`
 }
 
 type SecretIntegration struct {
-	Provider        string            `yaml:"provider"` // vault, k8s-secrets, aws-secrets-manager
-	Endpoint        string            `yaml:"endpoint"`
-	Credentials     map[string]string `yaml:"credentials"`
-	VaultPath       string            `yaml:"vaultPath,omitempty"`
-	KeyRotation     *KeyRotationConfig `yaml:"keyRotation"`
+	Provider    string             `yaml:"provider"` // vault, k8s-secrets, aws-secrets-manager
+	Endpoint    string             `yaml:"endpoint"`
+	Credentials map[string]string  `yaml:"credentials"`
+	VaultPath   string             `yaml:"vaultPath,omitempty"`
+	KeyRotation *KeyRotationConfig `yaml:"keyRotation"`
 }
 
 type KeyRotationConfig struct {
-	Enabled         bool              `yaml:"enabled"`
-	Interval        time.Duration     `yaml:"interval"`
-	PreRotationHook string            `yaml:"preRotationHook"`
-	PostRotationHook string           `yaml:"postRotationHook"`
+	Enabled          bool          `yaml:"enabled"`
+	Interval         time.Duration `yaml:"interval"`
+	PreRotationHook  string        `yaml:"preRotationHook"`
+	PostRotationHook string        `yaml:"postRotationHook"`
 }
 
 type CertIntegration struct {
-	Provider        string            `yaml:"provider"` // cert-manager, vault, external-ca
-	Issuer          string            `yaml:"issuer"`
-	CABundle        string            `yaml:"caBundle"`
-	AutoRenewal     bool              `yaml:"autoRenewal"`
-	RenewalBefore   time.Duration     `yaml:"renewalBefore"`
+	Provider      string        `yaml:"provider"` // cert-manager, vault, external-ca
+	Issuer        string        `yaml:"issuer"`
+	CABundle      string        `yaml:"caBundle"`
+	AutoRenewal   bool          `yaml:"autoRenewal"`
+	RenewalBefore time.Duration `yaml:"renewalBefore"`
 }
 
 type TelemetryIntegration struct {
-	ONAPIntegration *ONAPConfig       `yaml:"onap"`
-	OSMIntegration  *OSMConfig        `yaml:"osm"`
+	ONAPIntegration *ONAPConfig          `yaml:"onap"`
+	OSMIntegration  *OSMConfig           `yaml:"osm"`
 	CustomEndpoints []*TelemetryEndpoint `yaml:"customEndpoints"`
 }
 
 type ONAPConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	DCCAEEndpoint   string `yaml:"dccaeEndpoint"`
-	PolicyEndpoint  string `yaml:"policyEndpoint"`
-	SDCEndpoint     string `yaml:"sdcEndpoint"`
+	Enabled        bool   `yaml:"enabled"`
+	DCCAEEndpoint  string `yaml:"dccaeEndpoint"`
+	PolicyEndpoint string `yaml:"policyEndpoint"`
+	SDCEndpoint    string `yaml:"sdcEndpoint"`
 }
 
 type OSMConfig struct {
-	Enabled         bool   `yaml:"enabled"`
-	NBI_Endpoint    string `yaml:"nbiEndpoint"`
-	KeystoneURL     string `yaml:"keystoneUrl"`
+	Enabled      bool   `yaml:"enabled"`
+	NBI_Endpoint string `yaml:"nbiEndpoint"`
+	KeystoneURL  string `yaml:"keystoneUrl"`
 }
 
 type TelemetryEndpoint struct {
-	Name            string            `yaml:"name"`
-	URL             string            `yaml:"url"`
-	Type            string            `yaml:"type"` // metrics, logs, traces, events
-	Credentials     map[string]string `yaml:"credentials"`
-	Format          string            `yaml:"format"` // json, xml, protobuf
+	Name        string            `yaml:"name"`
+	URL         string            `yaml:"url"`
+	Type        string            `yaml:"type"` // metrics, logs, traces, events
+	Credentials map[string]string `yaml:"credentials"`
+	Format      string            `yaml:"format"` // json, xml, protobuf
 }
 
 // PackageRevisionSystem represents a complete configured system
@@ -233,40 +233,40 @@ type PackageRevisionSystem struct {
 
 // SystemHealth represents the overall system health
 type SystemHealth struct {
-	Status          string                    `json:"status"` // healthy, degraded, unhealthy
-	Components      map[string]ComponentHealth `json:"components"`
-	LastCheck       time.Time                 `json:"lastCheck"`
-	Uptime          time.Duration             `json:"uptime"`
-	Version         string                    `json:"version"`
-	BuildInfo       *BuildInfo                `json:"buildInfo,omitempty"`
-	FeatureStatus   map[string]bool           `json:"featureStatus"`
+	Status            string                       `json:"status"` // healthy, degraded, unhealthy
+	Components        map[string]ComponentHealth   `json:"components"`
+	LastCheck         time.Time                    `json:"lastCheck"`
+	Uptime            time.Duration                `json:"uptime"`
+	Version           string                       `json:"version"`
+	BuildInfo         *BuildInfo                   `json:"buildInfo,omitempty"`
+	FeatureStatus     map[string]bool              `json:"featureStatus"`
 	IntegrationStatus map[string]IntegrationHealth `json:"integrationStatus"`
-	Metrics         *SystemMetrics            `json:"metrics,omitempty"`
+	Metrics           *SystemMetrics               `json:"metrics,omitempty"`
 }
 
 type ComponentHealth struct {
-	Status      string        `json:"status"`
-	LastCheck   time.Time     `json:"lastCheck"`
-	Error       string        `json:"error,omitempty"`
-	Latency     time.Duration `json:"latency,omitempty"`
-	Uptime      time.Duration `json:"uptime,omitempty"`
-	Version     string        `json:"version,omitempty"`
+	Status    string        `json:"status"`
+	LastCheck time.Time     `json:"lastCheck"`
+	Error     string        `json:"error,omitempty"`
+	Latency   time.Duration `json:"latency,omitempty"`
+	Uptime    time.Duration `json:"uptime,omitempty"`
+	Version   string        `json:"version,omitempty"`
 }
 
 type IntegrationHealth struct {
-	Status          string        `json:"status"`
-	LastCheck       time.Time     `json:"lastCheck"`
-	Error           string        `json:"error,omitempty"`
-	ResponseTime    time.Duration `json:"responseTime,omitempty"`
-	Available       bool          `json:"available"`
+	Status       string        `json:"status"`
+	LastCheck    time.Time     `json:"lastCheck"`
+	Error        string        `json:"error,omitempty"`
+	ResponseTime time.Duration `json:"responseTime,omitempty"`
+	Available    bool          `json:"available"`
 }
 
 type BuildInfo struct {
-	Version     string    `json:"version"`
-	GitCommit   string    `json:"gitCommit"`
-	BuildDate   time.Time `json:"buildDate"`
-	GoVersion   string    `json:"goVersion"`
-	Platform    string    `json:"platform"`
+	Version   string    `json:"version"`
+	GitCommit string    `json:"gitCommit"`
+	BuildDate time.Time `json:"buildDate"`
+	GoVersion string    `json:"goVersion"`
+	Platform  string    `json:"platform"`
 }
 
 type SystemMetrics struct {
@@ -358,8 +358,8 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 	if err != nil {
 		f.logger.Error(err, "Initial health check failed, but system created")
 		health = &SystemHealth{
-			Status:    "unhealthy",
-			LastCheck: time.Now(),
+			Status:     "unhealthy",
+			LastCheck:  time.Now(),
 			Components: map[string]ComponentHealth{},
 		}
 	}
@@ -481,7 +481,7 @@ func (f *systemFactory) CreateNetworkIntentIntegration(ctx context.Context, k8sC
 // SetupWithManager sets up the complete system with a controller manager
 func SetupWithManager(mgr manager.Manager, systemConfig *SystemConfig) error {
 	factory := NewSystemFactory()
-	
+
 	// Create the complete system
 	system, err := factory.CreateCompleteSystem(context.Background(), systemConfig)
 	if err != nil {
@@ -553,12 +553,12 @@ func (f *systemFactory) applyDefaults(config *SystemConfig) *SystemConfig {
 		config.YANGConfig = &yang.ValidatorConfig{
 			EnableConstraintValidation: true,
 			EnableDataTypeValidation:   true,
-			EnableMandatoryCheck:      true,
-			ValidationTimeout:         30 * time.Second,
-			MaxValidationDepth:        100,
-			EnableO_RANModels:         true,
-			Enable3GPPModels:          true,
-			EnableMetrics:             true,
+			EnableMandatoryCheck:       true,
+			ValidationTimeout:          30 * time.Second,
+			MaxValidationDepth:         100,
+			EnableO_RANModels:          true,
+			Enable3GPPModels:           true,
+			EnableMetrics:              true,
 		}
 	}
 
@@ -791,22 +791,22 @@ func (f *systemFactory) shutdownSingleSystem(ctx context.Context, system *Packag
 // Close gracefully shuts down the factory
 func (f *systemFactory) Close() error {
 	f.logger.Info("Shutting down system factory")
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	return f.ShutdownSystem(ctx, 25*time.Second)
 }
 
 // GetDefaultSystemConfig returns a default system configuration
 func GetDefaultSystemConfig() *SystemConfig {
 	return &SystemConfig{
-		SystemName:  "nephoran-packagerevision-system",
-		Environment: "development",
-		LogLevel:    "info",
-		EnableMetrics: true,
-		MetricsPort: 8080,
-		HealthCheckPort: 8081,
+		SystemName:              "nephoran-packagerevision-system",
+		Environment:             "development",
+		LogLevel:                "info",
+		EnableMetrics:           true,
+		MetricsPort:             8080,
+		HealthCheckPort:         8081,
 		GracefulShutdownTimeout: 30 * time.Second,
 		PorchConfig: &porch.ClientConfig{
 			Endpoint: "http://porch-server:8080",

@@ -22,16 +22,16 @@ type SMOIntegrationLayer struct {
 	serviceDiscovery       *ServiceDiscoveryManager
 	hierarchicalManager    *HierarchicalManagementService
 	multiVendorSupport     *MultiVendorSupportEngine
-	oamInterface          *OAMInterfaceManager
-	eventBroker           *O1EventBroker
-	policyManager         *PolicyManagementService
-	topologyManager       *TopologyManager
-	configSynchronizer    *ConfigurationSynchronizer
-	serviceOrchestrator   *ServiceOrchestrator
-	metrics               *SMOMetrics
-	running               bool
-	stopChan              chan struct{}
-	mutex                 sync.RWMutex
+	oamInterface           *OAMInterfaceManager
+	eventBroker            *O1EventBroker
+	policyManager          *PolicyManagementService
+	topologyManager        *TopologyManager
+	configSynchronizer     *ConfigurationSynchronizer
+	serviceOrchestrator    *ServiceOrchestrator
+	metrics                *SMOMetrics
+	running                bool
+	stopChan               chan struct{}
+	mutex                  sync.RWMutex
 }
 
 // SMOIntegrationConfig holds SMO integration configuration
@@ -53,44 +53,44 @@ type SMOIntegrationConfig struct {
 
 // O1AdapterRegistry manages O1 interface adapters
 type O1AdapterRegistry struct {
-	adapters       map[string]*O1AdapterInstance
-	adapterTypes   map[string]*O1AdapterType
-	registry       map[string]*AdapterRegistration
-	healthMonitor  *AdapterHealthMonitor
-	loadBalancer   *AdapterLoadBalancer
-	failoverMgr    *AdapterFailoverManager
-	mutex          sync.RWMutex
+	adapters      map[string]*O1AdapterInstance
+	adapterTypes  map[string]*O1AdapterType
+	registry      map[string]*AdapterRegistration
+	healthMonitor *AdapterHealthMonitor
+	loadBalancer  *AdapterLoadBalancer
+	failoverMgr   *AdapterFailoverManager
+	mutex         sync.RWMutex
 }
 
 // O1AdapterInstance represents an O1 adapter instance
 type O1AdapterInstance struct {
-	ID              string                 `json:"id"`
-	Type            string                 `json:"type"`
-	Version         string                 `json:"version"`
-	VendorID        string                 `json:"vendor_id"`
-	SupportedElements []string             `json:"supported_elements"`
-	Endpoint        string                 `json:"endpoint"`
-	Status          string                 `json:"status"` // ACTIVE, INACTIVE, ERROR, MAINTENANCE
-	Capabilities    *AdapterCapabilities   `json:"capabilities"`
-	Config          map[string]interface{} `json:"config"`
-	Metrics         *AdapterMetrics        `json:"metrics"`
-	LastHeartbeat   time.Time              `json:"last_heartbeat"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
+	ID                string                 `json:"id"`
+	Type              string                 `json:"type"`
+	Version           string                 `json:"version"`
+	VendorID          string                 `json:"vendor_id"`
+	SupportedElements []string               `json:"supported_elements"`
+	Endpoint          string                 `json:"endpoint"`
+	Status            string                 `json:"status"` // ACTIVE, INACTIVE, ERROR, MAINTENANCE
+	Capabilities      *AdapterCapabilities   `json:"capabilities"`
+	Config            map[string]interface{} `json:"config"`
+	Metrics           *AdapterMetrics        `json:"metrics"`
+	LastHeartbeat     time.Time              `json:"last_heartbeat"`
+	CreatedAt         time.Time              `json:"created_at"`
+	UpdatedAt         time.Time              `json:"updated_at"`
 }
 
 // O1AdapterType defines adapter type specifications
 type O1AdapterType struct {
-	TypeID          string                 `json:"type_id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	VendorID        string                 `json:"vendor_id"`
-	SupportedInterfaces []string           `json:"supported_interfaces"`
-	RequiredCapabilities []string          `json:"required_capabilities"`
-	ConfigSchema    map[string]interface{} `json:"config_schema"`
-	DefaultConfig   map[string]interface{} `json:"default_config"`
-	HealthChecks    []*HealthCheckConfig   `json:"health_checks"`
-	LoadBalancing   *LoadBalancingConfig   `json:"load_balancing"`
+	TypeID               string                 `json:"type_id"`
+	Name                 string                 `json:"name"`
+	Description          string                 `json:"description"`
+	VendorID             string                 `json:"vendor_id"`
+	SupportedInterfaces  []string               `json:"supported_interfaces"`
+	RequiredCapabilities []string               `json:"required_capabilities"`
+	ConfigSchema         map[string]interface{} `json:"config_schema"`
+	DefaultConfig        map[string]interface{} `json:"default_config"`
+	HealthChecks         []*HealthCheckConfig   `json:"health_checks"`
+	LoadBalancing        *LoadBalancingConfig   `json:"load_balancing"`
 }
 
 // AdapterCapabilities defines adapter capabilities
@@ -106,64 +106,64 @@ type AdapterCapabilities struct {
 
 // AdapterMetrics holds adapter performance metrics
 type AdapterMetrics struct {
-	RequestCount         int64     `json:"request_count"`
-	ErrorCount           int64     `json:"error_count"`
-	AverageResponseTime  float64   `json:"average_response_time"`
-	ActiveSessions       int       `json:"active_sessions"`
-	ManagedElements      int       `json:"managed_elements"`
-	MemoryUsage          float64   `json:"memory_usage"`
-	CPUUsage             float64   `json:"cpu_usage"`
-	LastUpdate           time.Time `json:"last_update"`
+	RequestCount        int64     `json:"request_count"`
+	ErrorCount          int64     `json:"error_count"`
+	AverageResponseTime float64   `json:"average_response_time"`
+	ActiveSessions      int       `json:"active_sessions"`
+	ManagedElements     int       `json:"managed_elements"`
+	MemoryUsage         float64   `json:"memory_usage"`
+	CPUUsage            float64   `json:"cpu_usage"`
+	LastUpdate          time.Time `json:"last_update"`
 }
 
 // AdapterRegistration represents adapter registration information
 type AdapterRegistration struct {
-	AdapterID       string                 `json:"adapter_id"`
-	RegistrationID  string                 `json:"registration_id"`
-	RegisteredAt    time.Time              `json:"registered_at"`
-	ExpiresAt       time.Time              `json:"expires_at"`
+	AdapterID        string                 `json:"adapter_id"`
+	RegistrationID   string                 `json:"registration_id"`
+	RegisteredAt     time.Time              `json:"registered_at"`
+	ExpiresAt        time.Time              `json:"expires_at"`
 	RegistrationData map[string]interface{} `json:"registration_data"`
-	Status          string                 `json:"status"`
+	Status           string                 `json:"status"`
 }
 
 // AdapterHealthMonitor monitors adapter health
 type AdapterHealthMonitor struct {
-	healthChecks    map[string]*AdapterHealthCheck
-	checkScheduler  *HealthCheckScheduler
-	alertManager    *HealthAlertManager
-	config          *HealthMonitorConfig
-	running         bool
-	mutex           sync.RWMutex
+	healthChecks   map[string]*AdapterHealthCheck
+	checkScheduler *HealthCheckScheduler
+	alertManager   *HealthAlertManager
+	config         *HealthMonitorConfig
+	running        bool
+	mutex          sync.RWMutex
 }
 
 // AdapterHealthCheck represents a health check
 type AdapterHealthCheck struct {
-	AdapterID      string                 `json:"adapter_id"`
-	CheckType      string                 `json:"check_type"` // PING, HTTP, CUSTOM
-	CheckConfig    map[string]interface{} `json:"check_config"`
-	Status         string                 `json:"status"` // HEALTHY, UNHEALTHY, UNKNOWN
-	LastCheck      time.Time              `json:"last_check"`
-	ResponseTime   time.Duration          `json:"response_time"`
-	ConsecutiveFails int                  `json:"consecutive_fails"`
-	ErrorMessage   string                 `json:"error_message,omitempty"`
+	AdapterID        string                 `json:"adapter_id"`
+	CheckType        string                 `json:"check_type"` // PING, HTTP, CUSTOM
+	CheckConfig      map[string]interface{} `json:"check_config"`
+	Status           string                 `json:"status"` // HEALTHY, UNHEALTHY, UNKNOWN
+	LastCheck        time.Time              `json:"last_check"`
+	ResponseTime     time.Duration          `json:"response_time"`
+	ConsecutiveFails int                    `json:"consecutive_fails"`
+	ErrorMessage     string                 `json:"error_message,omitempty"`
 }
 
 // HealthCheckConfig defines health check configuration
 type HealthCheckConfig struct {
-	Type           string                 `json:"type"`
-	Interval       time.Duration          `json:"interval"`
-	Timeout        time.Duration          `json:"timeout"`
-	FailThreshold  int                    `json:"fail_threshold"`
-	Parameters     map[string]interface{} `json:"parameters"`
-	Enabled        bool                   `json:"enabled"`
+	Type          string                 `json:"type"`
+	Interval      time.Duration          `json:"interval"`
+	Timeout       time.Duration          `json:"timeout"`
+	FailThreshold int                    `json:"fail_threshold"`
+	Parameters    map[string]interface{} `json:"parameters"`
+	Enabled       bool                   `json:"enabled"`
 }
 
 // AdapterLoadBalancer manages load balancing across adapters
 type AdapterLoadBalancer struct {
-	algorithms     map[string]LoadBalancingAlgorithm
-	pools          map[string]*AdapterPool
-	healthAware    bool
-	config         *LoadBalancingConfig
+	algorithms  map[string]LoadBalancingAlgorithm
+	pools       map[string]*AdapterPool
+	healthAware bool
+	config      *LoadBalancingConfig
 }
 
 // LoadBalancingAlgorithm defines load balancing algorithms
@@ -174,23 +174,23 @@ type LoadBalancingAlgorithm interface {
 
 // AdapterPool represents a pool of adapters
 type AdapterPool struct {
-	ID            string
-	Name          string
-	Adapters      []*O1AdapterInstance
-	Algorithm     string
-	HealthChecks  bool
-	Weights       map[string]int
+	ID             string
+	Name           string
+	Adapters       []*O1AdapterInstance
+	Algorithm      string
+	HealthChecks   bool
+	Weights        map[string]int
 	MaxConnections int
-	CreatedAt     time.Time
+	CreatedAt      time.Time
 }
 
 // LoadBalancingConfig holds load balancing configuration
 type LoadBalancingConfig struct {
-	Algorithm      string                 `json:"algorithm"` // ROUND_ROBIN, WEIGHTED, LEAST_CONNECTIONS, HEALTH_AWARE
-	HealthChecks   bool                   `json:"health_checks"`
-	Weights        map[string]int         `json:"weights"`
-	Sticky         bool                   `json:"sticky"`
-	Parameters     map[string]interface{} `json:"parameters"`
+	Algorithm    string                 `json:"algorithm"` // ROUND_ROBIN, WEIGHTED, LEAST_CONNECTIONS, HEALTH_AWARE
+	HealthChecks bool                   `json:"health_checks"`
+	Weights      map[string]int         `json:"weights"`
+	Sticky       bool                   `json:"sticky"`
+	Parameters   map[string]interface{} `json:"parameters"`
 }
 
 // AdapterFailoverManager handles adapter failover
@@ -204,130 +204,130 @@ type AdapterFailoverManager struct {
 
 // FailoverPolicy defines failover policies
 type FailoverPolicy struct {
-	ID                 string        `json:"id"`
-	TriggerConditions  []string      `json:"trigger_conditions"`
-	FailoverType       string        `json:"failover_type"` // AUTOMATIC, MANUAL
-	BackupStrategy     string        `json:"backup_strategy"` // HOT_STANDBY, COLD_STANDBY, ACTIVE_ACTIVE
-	FailoverTimeout    time.Duration `json:"failover_timeout"`
-	RollbackConditions []string      `json:"rollback_conditions"`
-	NotificationChannels []string    `json:"notification_channels"`
-	Enabled            bool          `json:"enabled"`
+	ID                   string        `json:"id"`
+	TriggerConditions    []string      `json:"trigger_conditions"`
+	FailoverType         string        `json:"failover_type"`   // AUTOMATIC, MANUAL
+	BackupStrategy       string        `json:"backup_strategy"` // HOT_STANDBY, COLD_STANDBY, ACTIVE_ACTIVE
+	FailoverTimeout      time.Duration `json:"failover_timeout"`
+	RollbackConditions   []string      `json:"rollback_conditions"`
+	NotificationChannels []string      `json:"notification_channels"`
+	Enabled              bool          `json:"enabled"`
 }
 
 // ActiveFailover represents an active failover operation
 type ActiveFailover struct {
-	ID              string    `json:"id"`
-	PrimaryAdapter  string    `json:"primary_adapter"`
-	BackupAdapter   string    `json:"backup_adapter"`
-	Status          string    `json:"status"` // INITIATED, IN_PROGRESS, COMPLETED, FAILED, ROLLED_BACK
-	StartTime       time.Time `json:"start_time"`
-	EndTime         time.Time `json:"end_time"`
-	Reason          string    `json:"reason"`
-	ImpactedElements []string `json:"impacted_elements"`
+	ID               string    `json:"id"`
+	PrimaryAdapter   string    `json:"primary_adapter"`
+	BackupAdapter    string    `json:"backup_adapter"`
+	Status           string    `json:"status"` // INITIATED, IN_PROGRESS, COMPLETED, FAILED, ROLLED_BACK
+	StartTime        time.Time `json:"start_time"`
+	EndTime          time.Time `json:"end_time"`
+	Reason           string    `json:"reason"`
+	ImpactedElements []string  `json:"impacted_elements"`
 }
 
 // NetworkFunctionManager manages O-RAN network functions
 type NetworkFunctionManager struct {
-	networkFunctions  map[string]*NetworkFunction
-	functionTypes     map[string]*FunctionType
+	networkFunctions    map[string]*NetworkFunction
+	functionTypes       map[string]*FunctionType
 	deploymentTemplates map[string]*DeploymentTemplate
-	lifecycleManager  *FunctionLifecycleManager
-	dependencyMgr     *DependencyManager
-	scalingManager    *ScalingManager
-	mutex             sync.RWMutex
+	lifecycleManager    *FunctionLifecycleManager
+	dependencyMgr       *DependencyManager
+	scalingManager      *ScalingManager
+	mutex               sync.RWMutex
 }
 
 // NetworkFunction represents an O-RAN network function
 type NetworkFunction struct {
-	ID               string                 `json:"id"`
-	Name             string                 `json:"name"`
-	Type             string                 `json:"type"` // O-RU, O-DU, O-CU-CP, O-CU-UP, Near-RT-RIC, Non-RT-RIC
-	Version          string                 `json:"version"`
-	VendorID         string                 `json:"vendor_id"`
-	Status           string                 `json:"status"` // DEPLOYED, RUNNING, STOPPED, ERROR, MAINTENANCE
-	HealthStatus     string                 `json:"health_status"` // HEALTHY, DEGRADED, UNHEALTHY
-	Interfaces       map[string]*O1Interface `json:"interfaces"`
-	Configuration    map[string]interface{} `json:"configuration"`
-	Metrics          *FunctionMetrics       `json:"metrics"`
-	Dependencies     []string               `json:"dependencies"`
-	ManagedElements  []string               `json:"managed_elements"`
-	DeploymentInfo   *DeploymentInfo        `json:"deployment_info"`
-	CreatedAt        time.Time              `json:"created_at"`
-	UpdatedAt        time.Time              `json:"updated_at"`
+	ID              string                  `json:"id"`
+	Name            string                  `json:"name"`
+	Type            string                  `json:"type"` // O-RU, O-DU, O-CU-CP, O-CU-UP, Near-RT-RIC, Non-RT-RIC
+	Version         string                  `json:"version"`
+	VendorID        string                  `json:"vendor_id"`
+	Status          string                  `json:"status"`        // DEPLOYED, RUNNING, STOPPED, ERROR, MAINTENANCE
+	HealthStatus    string                  `json:"health_status"` // HEALTHY, DEGRADED, UNHEALTHY
+	Interfaces      map[string]*O1Interface `json:"interfaces"`
+	Configuration   map[string]interface{}  `json:"configuration"`
+	Metrics         *FunctionMetrics        `json:"metrics"`
+	Dependencies    []string                `json:"dependencies"`
+	ManagedElements []string                `json:"managed_elements"`
+	DeploymentInfo  *DeploymentInfo         `json:"deployment_info"`
+	CreatedAt       time.Time               `json:"created_at"`
+	UpdatedAt       time.Time               `json:"updated_at"`
 }
 
 // FunctionType defines network function types
 type FunctionType struct {
-	TypeID          string                 `json:"type_id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Category        string                 `json:"category"`
-	SupportedInterfaces []string           `json:"supported_interfaces"`
-	RequiredCapabilities []string          `json:"required_capabilities"`
-	ConfigurationSchema map[string]interface{} `json:"configuration_schema"`
-	MetricDefinitions   []*MetricDefinition `json:"metric_definitions"`
-	HealthCheckConfig   *HealthCheckConfig  `json:"health_check_config"`
+	TypeID               string                 `json:"type_id"`
+	Name                 string                 `json:"name"`
+	Description          string                 `json:"description"`
+	Category             string                 `json:"category"`
+	SupportedInterfaces  []string               `json:"supported_interfaces"`
+	RequiredCapabilities []string               `json:"required_capabilities"`
+	ConfigurationSchema  map[string]interface{} `json:"configuration_schema"`
+	MetricDefinitions    []*MetricDefinition    `json:"metric_definitions"`
+	HealthCheckConfig    *HealthCheckConfig     `json:"health_check_config"`
 }
 
 // O1Interface represents an O1 interface
 type O1Interface struct {
-	InterfaceID   string                 `json:"interface_id"`
-	Type          string                 `json:"type"` // NETCONF, RESTCONF, HTTP
-	Endpoint      string                 `json:"endpoint"`
-	Protocol      string                 `json:"protocol"`
-	Version       string                 `json:"version"`
-	Capabilities  []string               `json:"capabilities"`
+	InterfaceID    string                 `json:"interface_id"`
+	Type           string                 `json:"type"` // NETCONF, RESTCONF, HTTP
+	Endpoint       string                 `json:"endpoint"`
+	Protocol       string                 `json:"protocol"`
+	Version        string                 `json:"version"`
+	Capabilities   []string               `json:"capabilities"`
 	Authentication map[string]interface{} `json:"authentication"`
-	Security      map[string]interface{} `json:"security"`
-	Status        string                 `json:"status"`
-	LastActivity  time.Time              `json:"last_activity"`
+	Security       map[string]interface{} `json:"security"`
+	Status         string                 `json:"status"`
+	LastActivity   time.Time              `json:"last_activity"`
 }
 
 // FunctionMetrics holds network function metrics
 type FunctionMetrics struct {
-	CPUUsage         float64   `json:"cpu_usage"`
-	MemoryUsage      float64   `json:"memory_usage"`
-	NetworkIO        float64   `json:"network_io"`
-	RequestRate      float64   `json:"request_rate"`
-	ErrorRate        float64   `json:"error_rate"`
-	Availability     float64   `json:"availability"`
-	ResponseTime     float64   `json:"response_time"`
-	ActiveSessions   int       `json:"active_sessions"`
-	LastUpdate       time.Time `json:"last_update"`
+	CPUUsage       float64   `json:"cpu_usage"`
+	MemoryUsage    float64   `json:"memory_usage"`
+	NetworkIO      float64   `json:"network_io"`
+	RequestRate    float64   `json:"request_rate"`
+	ErrorRate      float64   `json:"error_rate"`
+	Availability   float64   `json:"availability"`
+	ResponseTime   float64   `json:"response_time"`
+	ActiveSessions int       `json:"active_sessions"`
+	LastUpdate     time.Time `json:"last_update"`
 }
 
 // DeploymentTemplate defines deployment templates
 type DeploymentTemplate struct {
-	ID             string                 `json:"id"`
-	Name           string                 `json:"name"`
-	FunctionType   string                 `json:"function_type"`
-	Version        string                 `json:"version"`
-	Template       map[string]interface{} `json:"template"`
-	Parameters     []*TemplateParameter   `json:"parameters"`
-	Requirements   *DeploymentRequirements `json:"requirements"`
-	Constraints    []*DeploymentConstraint `json:"constraints"`
-	CreatedAt      time.Time              `json:"created_at"`
+	ID           string                  `json:"id"`
+	Name         string                  `json:"name"`
+	FunctionType string                  `json:"function_type"`
+	Version      string                  `json:"version"`
+	Template     map[string]interface{}  `json:"template"`
+	Parameters   []*TemplateParameter    `json:"parameters"`
+	Requirements *DeploymentRequirements `json:"requirements"`
+	Constraints  []*DeploymentConstraint `json:"constraints"`
+	CreatedAt    time.Time               `json:"created_at"`
 }
 
 // TemplateParameter defines template parameters
 type TemplateParameter struct {
-	Name         string      `json:"name"`
-	Type         string      `json:"type"`
-	Description  string      `json:"description"`
-	Required     bool        `json:"required"`
-	DefaultValue interface{} `json:"default_value"`
+	Name         string                 `json:"name"`
+	Type         string                 `json:"type"`
+	Description  string                 `json:"description"`
+	Required     bool                   `json:"required"`
+	DefaultValue interface{}            `json:"default_value"`
 	Constraints  map[string]interface{} `json:"constraints"`
 }
 
 // DeploymentRequirements defines deployment requirements
 type DeploymentRequirements struct {
-	MinCPU        string            `json:"min_cpu"`
-	MinMemory     string            `json:"min_memory"`
-	MinStorage    string            `json:"min_storage"`
-	NetworkBandwidth string         `json:"network_bandwidth"`
-	SpecialHardware []string        `json:"special_hardware"`
-	Labels        map[string]string `json:"labels"`
-	Tolerations   []string          `json:"tolerations"`
+	MinCPU           string            `json:"min_cpu"`
+	MinMemory        string            `json:"min_memory"`
+	MinStorage       string            `json:"min_storage"`
+	NetworkBandwidth string            `json:"network_bandwidth"`
+	SpecialHardware  []string          `json:"special_hardware"`
+	Labels           map[string]string `json:"labels"`
+	Tolerations      []string          `json:"tolerations"`
 }
 
 // DeploymentConstraint defines deployment constraints
@@ -340,23 +340,23 @@ type DeploymentConstraint struct {
 
 // DeploymentInfo holds deployment information
 type DeploymentInfo struct {
-	Environment     string                 `json:"environment"`
-	Cluster         string                 `json:"cluster"`
-	Namespace       string                 `json:"namespace"`
-	ResourceNames   map[string]string      `json:"resource_names"`
-	Status          string                 `json:"status"`
-	Resources       map[string]interface{} `json:"resources"`
-	Events          []*DeploymentEvent     `json:"events"`
-	DeployedAt      time.Time              `json:"deployed_at"`
+	Environment   string                 `json:"environment"`
+	Cluster       string                 `json:"cluster"`
+	Namespace     string                 `json:"namespace"`
+	ResourceNames map[string]string      `json:"resource_names"`
+	Status        string                 `json:"status"`
+	Resources     map[string]interface{} `json:"resources"`
+	Events        []*DeploymentEvent     `json:"events"`
+	DeployedAt    time.Time              `json:"deployed_at"`
 }
 
 // DeploymentEvent represents deployment events
 type DeploymentEvent struct {
-	Type        string    `json:"type"`
-	Reason      string    `json:"reason"`
-	Message     string    `json:"message"`
-	Timestamp   time.Time `json:"timestamp"`
-	Component   string    `json:"component"`
+	Type      string    `json:"type"`
+	Reason    string    `json:"reason"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
+	Component string    `json:"component"`
 }
 
 // ServiceDiscoveryManager manages service discovery
@@ -422,10 +422,10 @@ type ServiceEvent struct {
 
 // ServiceRegistry maintains service registry
 type ServiceRegistry struct {
-	services    map[string]*RegisteredService
-	indexes     map[string]map[string][]string
-	watchers    map[string]*ServiceWatcher
-	mutex       sync.RWMutex
+	services map[string]*RegisteredService
+	indexes  map[string]map[string][]string
+	watchers map[string]*ServiceWatcher
+	mutex    sync.RWMutex
 }
 
 // RegisteredService represents a registered service
@@ -447,49 +447,49 @@ type ServiceWatcher struct {
 
 // HierarchicalManagementService manages hierarchical O1 relationships
 type HierarchicalManagementService struct {
-	hierarchy       *ManagementHierarchy
-	relationships   map[string]*ManagementRelationship
-	parentManagers  map[string]*ParentManager
-	childManagers   map[string]*ChildManager
-	delegationMgr   *DelegationManager
-	aggregationMgr  *AggregationManager
-	config          *HierarchicalConfig
-	mutex           sync.RWMutex
+	hierarchy      *ManagementHierarchy
+	relationships  map[string]*ManagementRelationship
+	parentManagers map[string]*ParentManager
+	childManagers  map[string]*ChildManager
+	delegationMgr  *DelegationManager
+	aggregationMgr *AggregationManager
+	config         *HierarchicalConfig
+	mutex          sync.RWMutex
 }
 
 // ManagementHierarchy represents the management hierarchy
 type ManagementHierarchy struct {
-	RootNodes   []*HierarchyNode
-	NodeIndex   map[string]*HierarchyNode
-	Levels      map[int][]*HierarchyNode
-	MaxDepth    int
-	UpdatedAt   time.Time
+	RootNodes []*HierarchyNode
+	NodeIndex map[string]*HierarchyNode
+	Levels    map[int][]*HierarchyNode
+	MaxDepth  int
+	UpdatedAt time.Time
 }
 
 // HierarchyNode represents a node in the management hierarchy
 type HierarchyNode struct {
-	ID          string                 `json:"id"`
-	Type        string                 `json:"type"` // SMO, DOMAIN, CLUSTER, ELEMENT
-	Name        string                 `json:"name"`
-	Level       int                    `json:"level"`
-	Parent      string                 `json:"parent,omitempty"`
-	Children    []string               `json:"children"`
-	Attributes  map[string]interface{} `json:"attributes"`
-	Status      string                 `json:"status"`
-	CreatedAt   time.Time              `json:"created_at"`
+	ID         string                 `json:"id"`
+	Type       string                 `json:"type"` // SMO, DOMAIN, CLUSTER, ELEMENT
+	Name       string                 `json:"name"`
+	Level      int                    `json:"level"`
+	Parent     string                 `json:"parent,omitempty"`
+	Children   []string               `json:"children"`
+	Attributes map[string]interface{} `json:"attributes"`
+	Status     string                 `json:"status"`
+	CreatedAt  time.Time              `json:"created_at"`
 }
 
 // ManagementRelationship defines management relationships
 type ManagementRelationship struct {
-	ID                string                 `json:"id"`
-	ParentID          string                 `json:"parent_id"`
-	ChildID           string                 `json:"child_id"`
-	RelationshipType  string                 `json:"relationship_type"` // MANAGES, MONITORS, COORDINATES
-	Permissions       []string               `json:"permissions"`
-	Constraints       map[string]interface{} `json:"constraints"`
-	DelegatedFunctions []string              `json:"delegated_functions"`
-	Status            string                 `json:"status"`
-	CreatedAt         time.Time              `json:"created_at"`
+	ID                 string                 `json:"id"`
+	ParentID           string                 `json:"parent_id"`
+	ChildID            string                 `json:"child_id"`
+	RelationshipType   string                 `json:"relationship_type"` // MANAGES, MONITORS, COORDINATES
+	Permissions        []string               `json:"permissions"`
+	Constraints        map[string]interface{} `json:"constraints"`
+	DelegatedFunctions []string               `json:"delegated_functions"`
+	Status             string                 `json:"status"`
+	CreatedAt          time.Time              `json:"created_at"`
 }
 
 // MultiVendorSupportEngine provides multi-vendor support
@@ -504,23 +504,23 @@ type MultiVendorSupportEngine struct {
 
 // VendorAdapter provides vendor-specific adaptations
 type VendorAdapter struct {
-	VendorID         string                 `json:"vendor_id"`
-	VendorName       string                 `json:"vendor_name"`
-	SupportedModels  []string               `json:"supported_models"`
-	Adaptations      *VendorAdaptations     `json:"adaptations"`
-	Certifications   []*VendorCertification `json:"certifications"`
-	InteropResults   []*InteropResult       `json:"interop_results"`
-	Status           string                 `json:"status"`
-	CreatedAt        time.Time              `json:"created_at"`
+	VendorID        string                 `json:"vendor_id"`
+	VendorName      string                 `json:"vendor_name"`
+	SupportedModels []string               `json:"supported_models"`
+	Adaptations     *VendorAdaptations     `json:"adaptations"`
+	Certifications  []*VendorCertification `json:"certifications"`
+	InteropResults  []*InteropResult       `json:"interop_results"`
+	Status          string                 `json:"status"`
+	CreatedAt       time.Time              `json:"created_at"`
 }
 
 // VendorAdaptations defines vendor-specific adaptations
 type VendorAdaptations struct {
-	YANGModelMappings    map[string]string      `json:"yang_model_mappings"`
-	OperationMappings    map[string]string      `json:"operation_mappings"`
-	AttributeTransforms  []*AttributeTransform  `json:"attribute_transforms"`
-	ErrorCodeMappings    map[string]string      `json:"error_code_mappings"`
-	CustomExtensions     map[string]interface{} `json:"custom_extensions"`
+	YANGModelMappings   map[string]string      `json:"yang_model_mappings"`
+	OperationMappings   map[string]string      `json:"operation_mappings"`
+	AttributeTransforms []*AttributeTransform  `json:"attribute_transforms"`
+	ErrorCodeMappings   map[string]string      `json:"error_code_mappings"`
+	CustomExtensions    map[string]interface{} `json:"custom_extensions"`
 }
 
 // AttributeTransform defines attribute transformations
@@ -546,33 +546,33 @@ type O1EventBroker struct {
 
 // EventStream represents an event stream
 type EventStream struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	EventTypes   []string               `json:"event_types"`
-	Sources      []string               `json:"sources"`
-	Format       string                 `json:"format"` // JSON, XML, PROTOBUF
-	BufferSize   int                    `json:"buffer_size"`
-	Subscribers  []string               `json:"subscribers"`
-	EventBuffer  chan *O1Event          `json:"-"`
-	Statistics   *StreamStatistics      `json:"statistics"`
-	Status       string                 `json:"status"`
-	CreatedAt    time.Time              `json:"created_at"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	EventTypes  []string          `json:"event_types"`
+	Sources     []string          `json:"sources"`
+	Format      string            `json:"format"` // JSON, XML, PROTOBUF
+	BufferSize  int               `json:"buffer_size"`
+	Subscribers []string          `json:"subscribers"`
+	EventBuffer chan *O1Event     `json:"-"`
+	Statistics  *StreamStatistics `json:"statistics"`
+	Status      string            `json:"status"`
+	CreatedAt   time.Time         `json:"created_at"`
 }
 
 // EventSubscriber represents an event subscriber
 type EventSubscriber struct {
-	ID            string                 `json:"id"`
-	Name          string                 `json:"name"`
-	StreamIDs     []string               `json:"stream_ids"`
-	EventFilters  []*EventFilter         `json:"event_filters"`
-	DeliveryMode  string                 `json:"delivery_mode"` // PUSH, PULL, WEBSOCKET
-	Endpoint      string                 `json:"endpoint,omitempty"`
-	BufferSize    int                    `json:"buffer_size"`
-	RetryPolicy   *RetryPolicy           `json:"retry_policy"`
-	EventBuffer   chan *O1Event          `json:"-"`
-	Statistics    *SubscriberStatistics  `json:"statistics"`
-	Status        string                 `json:"status"`
-	CreatedAt     time.Time              `json:"created_at"`
+	ID           string                `json:"id"`
+	Name         string                `json:"name"`
+	StreamIDs    []string              `json:"stream_ids"`
+	EventFilters []*EventFilter        `json:"event_filters"`
+	DeliveryMode string                `json:"delivery_mode"` // PUSH, PULL, WEBSOCKET
+	Endpoint     string                `json:"endpoint,omitempty"`
+	BufferSize   int                   `json:"buffer_size"`
+	RetryPolicy  *RetryPolicy          `json:"retry_policy"`
+	EventBuffer  chan *O1Event         `json:"-"`
+	Statistics   *SubscriberStatistics `json:"statistics"`
+	Status       string                `json:"status"`
+	CreatedAt    time.Time             `json:"created_at"`
 }
 
 // O1Event represents an O1 event
@@ -592,14 +592,14 @@ type O1Event struct {
 
 // SMOMetrics holds Prometheus metrics for SMO integration
 type SMOMetrics struct {
-	RegisteredAdapters   prometheus.Gauge
-	ActiveAdapters       prometheus.Gauge
-	AdapterRequests      *prometheus.CounterVec
-	AdapterErrors        *prometheus.CounterVec
-	NetworkFunctions     prometheus.Gauge
-	ServiceDiscoveries   prometheus.Counter
-	EventsProcessed      prometheus.Counter
-	HierarchyNodes       prometheus.Gauge
+	RegisteredAdapters prometheus.Gauge
+	ActiveAdapters     prometheus.Gauge
+	AdapterRequests    *prometheus.CounterVec
+	AdapterErrors      *prometheus.CounterVec
+	NetworkFunctions   prometheus.Gauge
+	ServiceDiscoveries prometheus.Counter
+	EventsProcessed    prometheus.Counter
+	HierarchyNodes     prometheus.Gauge
 }
 
 // NewSMOIntegrationLayer creates a new SMO integration layer
@@ -644,9 +644,9 @@ func NewSMOIntegrationLayer(config *SMOIntegrationConfig) *SMOIntegrationLayer {
 
 	if config.EnableEventStreaming {
 		sil.eventBroker = NewO1EventBroker(&EventBrokerConfig{
-			BufferSize:      config.EventBufferSize,
-			MaxStreams:      100,
-			MaxSubscribers:  1000,
+			BufferSize:     config.EventBufferSize,
+			MaxStreams:     100,
+			MaxSubscribers: 1000,
 		})
 	}
 
@@ -804,13 +804,13 @@ func (sil *SMOIntegrationLayer) GetManagedElements(ctx context.Context) ([]*neph
 // GetSMOStatistics returns SMO integration statistics
 func (sil *SMOIntegrationLayer) GetSMOStatistics(ctx context.Context) (*SMOStatistics, error) {
 	stats := &SMOStatistics{
-		RegisteredAdapters:    sil.o1AdapterRegistry.GetAdapterCount(),
-		ActiveAdapters:        sil.o1AdapterRegistry.GetActiveAdapterCount(),
-		NetworkFunctions:      sil.networkFunctionManager.GetFunctionCount(),
-		EventStreams:          sil.getEventStreamCount(),
-		HierarchyNodes:        sil.getHierarchyNodeCount(),
-		SystemHealth:          sil.assessSystemHealth(),
-		Timestamp:            time.Now(),
+		RegisteredAdapters: sil.o1AdapterRegistry.GetAdapterCount(),
+		ActiveAdapters:     sil.o1AdapterRegistry.GetActiveAdapterCount(),
+		NetworkFunctions:   sil.networkFunctionManager.GetFunctionCount(),
+		EventStreams:       sil.getEventStreamCount(),
+		HierarchyNodes:     sil.getHierarchyNodeCount(),
+		SystemHealth:       sil.assessSystemHealth(),
+		Timestamp:          time.Now(),
 	}
 
 	return stats, nil
@@ -910,7 +910,7 @@ func NewO1AdapterRegistry() *O1AdapterRegistry {
 }
 
 func (oar *O1AdapterRegistry) Start(ctx context.Context) error { return nil }
-func (oar *O1AdapterRegistry) Stop(ctx context.Context) error { return nil }
+func (oar *O1AdapterRegistry) Stop(ctx context.Context) error  { return nil }
 func (oar *O1AdapterRegistry) RegisterAdapter(ctx context.Context, adapter *O1AdapterInstance) error {
 	oar.mutex.Lock()
 	defer oar.mutex.Unlock()
@@ -937,8 +937,8 @@ func NewNetworkFunctionManager() *NetworkFunctionManager {
 }
 
 func (nfm *NetworkFunctionManager) Start(ctx context.Context) error { return nil }
-func (nfm *NetworkFunctionManager) Stop(ctx context.Context) error { return nil }
-func (nfm *NetworkFunctionManager) GetFunctionCount() int { return len(nfm.networkFunctions) }
+func (nfm *NetworkFunctionManager) Stop(ctx context.Context) error  { return nil }
+func (nfm *NetworkFunctionManager) GetFunctionCount() int           { return len(nfm.networkFunctions) }
 
 func NewServiceDiscoveryManager(method string) *ServiceDiscoveryManager {
 	return &ServiceDiscoveryManager{
@@ -948,7 +948,7 @@ func NewServiceDiscoveryManager(method string) *ServiceDiscoveryManager {
 }
 
 func (sdm *ServiceDiscoveryManager) Start(ctx context.Context) error { return nil }
-func (sdm *ServiceDiscoveryManager) Stop(ctx context.Context) error { return nil }
+func (sdm *ServiceDiscoveryManager) Stop(ctx context.Context) error  { return nil }
 func (sdm *ServiceDiscoveryManager) DiscoverServices(ctx context.Context, query *ServiceQuery) ([]*DiscoveredService, error) {
 	return []*DiscoveredService{}, nil
 }
@@ -962,8 +962,8 @@ func NewHierarchicalManagementService(config *HierarchicalConfig) *HierarchicalM
 }
 
 func (hms *HierarchicalManagementService) Start(ctx context.Context) error { return nil }
-func (hms *HierarchicalManagementService) Stop(ctx context.Context) error { return nil }
-func (hms *HierarchicalManagementService) GetNodeCount() int { return len(hms.hierarchy.NodeIndex) }
+func (hms *HierarchicalManagementService) Stop(ctx context.Context) error  { return nil }
+func (hms *HierarchicalManagementService) GetNodeCount() int               { return len(hms.hierarchy.NodeIndex) }
 
 func NewMultiVendorSupportEngine(config *MultiVendorConfig) *MultiVendorSupportEngine {
 	return &MultiVendorSupportEngine{
@@ -984,10 +984,10 @@ func NewO1EventBroker(config *EventBrokerConfig) *O1EventBroker {
 	}
 }
 
-func (oeb *O1EventBroker) Start(ctx context.Context) error { oeb.running = true; return nil }
-func (oeb *O1EventBroker) Stop(ctx context.Context) error { oeb.running = false; return nil }
+func (oeb *O1EventBroker) Start(ctx context.Context) error                        { oeb.running = true; return nil }
+func (oeb *O1EventBroker) Stop(ctx context.Context) error                         { oeb.running = false; return nil }
 func (oeb *O1EventBroker) PublishEvent(ctx context.Context, event *O1Event) error { return nil }
-func (oeb *O1EventBroker) GetStreamCount() int { return len(oeb.eventStreams) }
+func (oeb *O1EventBroker) GetStreamCount() int                                    { return len(oeb.eventStreams) }
 
 func NewPolicyManagementService() *PolicyManagementService {
 	return &PolicyManagementService{}
@@ -1008,52 +1008,52 @@ func NewServiceOrchestrator() *ServiceOrchestrator {
 // Configuration types and additional structures
 
 type HierarchicalConfig struct {
-	MaxDepth         int
-	NodeTypes        []string
+	MaxDepth          int
+	NodeTypes         []string
 	RelationshipTypes []string
-	EnableDelegation bool
+	EnableDelegation  bool
 	EnableAggregation bool
 }
 
 type MultiVendorConfig struct {
-	EnableTranslation    bool
+	EnableTranslation     bool
 	CertificationRequired bool
 	InteropTestingEnabled bool
-	SupportedVendors     []string
+	SupportedVendors      []string
 }
 
 type EventBrokerConfig struct {
-	BufferSize       int
-	MaxStreams       int
-	MaxSubscribers   int
-	RetryAttempts    int
-	RetryInterval    time.Duration
+	BufferSize        int
+	MaxStreams        int
+	MaxSubscribers    int
+	RetryAttempts     int
+	RetryInterval     time.Duration
 	EnablePersistence bool
 }
 
 type ServiceDiscoveryConfig struct {
-	Method           string
-	RefreshInterval  time.Duration
+	Method              string
+	RefreshInterval     time.Duration
 	HealthCheckInterval time.Duration
-	Timeout          time.Duration
-	EnableCaching    bool
-	CacheTTL         time.Duration
+	Timeout             time.Duration
+	EnableCaching       bool
+	CacheTTL            time.Duration
 }
 
 type HealthMonitorConfig struct {
-	CheckInterval     time.Duration
-	Timeout           time.Duration
-	MaxFailures       int
-	RecoveryThreshold int
+	CheckInterval      time.Duration
+	Timeout            time.Duration
+	MaxFailures        int
+	RecoveryThreshold  int
 	EnableAutoRecovery bool
 }
 
 type FailoverConfig struct {
-	EnableAutoFailover   bool
-	FailoverTimeout      time.Duration
-	HealthCheckInterval  time.Duration
-	BackupHealthCheck    bool
-	RollbackConditions   []string
+	EnableAutoFailover  bool
+	FailoverTimeout     time.Duration
+	HealthCheckInterval time.Duration
+	BackupHealthCheck   bool
+	RollbackConditions  []string
 }
 
 // Placeholder types for components not fully implemented

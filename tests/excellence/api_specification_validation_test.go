@@ -64,7 +64,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 				// Validate CRD structure
 				Expect(crdData["apiVersion"]).ToNot(BeNil(), "CRD should have apiVersion: %s", crdFile)
 				Expect(crdData["kind"]).To(Equal("CustomResourceDefinition"), "Should be a CustomResourceDefinition: %s", crdFile)
-				
+
 				metadata, ok := crdData["metadata"].(map[string]interface{})
 				Expect(ok).To(BeTrue(), "CRD should have metadata: %s", crdFile)
 				Expect(metadata["name"]).ToNot(BeNil(), "CRD should have name in metadata: %s", crdFile)
@@ -82,7 +82,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 				for _, version := range versions {
 					versionMap, ok := version.(map[string]interface{})
 					Expect(ok).To(BeTrue(), "Version should be an object: %s", crdFile)
-					
+
 					Expect(versionMap["name"]).ToNot(BeNil(), "Version should have name: %s", crdFile)
 					Expect(versionMap["served"]).ToNot(BeNil(), "Version should have served field: %s", crdFile)
 					Expect(versionMap["storage"]).ToNot(BeNil(), "Version should have storage field: %s", crdFile)
@@ -91,7 +91,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 					if schema, exists := versionMap["schema"]; exists {
 						schemaMap, ok := schema.(map[string]interface{})
 						Expect(ok).To(BeTrue(), "Schema should be an object: %s", crdFile)
-						
+
 						if openAPIV3Schema, exists := schemaMap["openAPIV3Schema"]; exists {
 							openAPIMap, ok := openAPIV3Schema.(map[string]interface{})
 							Expect(ok).To(BeTrue(), "OpenAPI schema should be an object: %s", crdFile)
@@ -180,7 +180,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 				// Use kubectl to validate the CRD
 				cmd := exec.Command("kubectl", "apply", "--dry-run=client", "-f", crdFile)
 				output, err := cmd.CombinedOutput()
-				
+
 				if err != nil {
 					// If kubectl fails, at least check basic YAML structure
 					content, readErr := ioutil.ReadFile(crdFile)
@@ -253,16 +253,16 @@ var _ = Describe("API Specification Validation Tests", func() {
 
 				for _, typeMatch := range types {
 					typeName := typeMatch[1]
-					
+
 					// Check for documentation comment
 					commentPattern := fmt.Sprintf(`(?m)//.*%s.*\ntype\s+%s`, typeName, typeName)
 					commentRegex := regexp.MustCompile(commentPattern)
-					
+
 					if !commentRegex.MatchString(goContent) {
 						// Allow some exceptions for generated or common patterns
 						if !strings.HasSuffix(typeName, "List") &&
-						   !strings.HasSuffix(typeName, "Status") &&
-						   !strings.HasSuffix(typeName, "Spec") {
+							!strings.HasSuffix(typeName, "Status") &&
+							!strings.HasSuffix(typeName, "Spec") {
 							GinkgoWriter.Printf("Warning: Type %s in %s may lack documentation comment\n", typeName, goFile)
 						}
 					}
@@ -277,7 +277,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 
 					for _, marker := range requiredMarkers {
 						if strings.Contains(goContent, "CustomResource") {
-							Expect(goContent).To(ContainSubstring(marker), 
+							Expect(goContent).To(ContainSubstring(marker),
 								"API file should contain required kubebuilder marker %s: %s", marker, goFile)
 						}
 					}
@@ -338,7 +338,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 								if len(jsonName) > 0 {
 									firstChar := jsonName[0]
 									if firstChar >= 'A' && firstChar <= 'Z' {
-										GinkgoWriter.Printf("Warning: JSON tag should use camelCase: %s -> %s in %s\n", 
+										GinkgoWriter.Printf("Warning: JSON tag should use camelCase: %s -> %s in %s\n",
 											jsonName, strings.ToLower(string(firstChar))+jsonName[1:], goFile)
 									}
 								}
@@ -377,7 +377,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 						}
 
 						goContent := string(content)
-						
+
 						// Look for HTTP handler patterns
 						httpPatterns := []string{
 							"http.Handler",
@@ -395,8 +395,8 @@ var _ = Describe("API Specification Validation Tests", func() {
 
 								// Check for API documentation comments
 								if strings.Contains(goContent, "// @Summary") ||
-								   strings.Contains(goContent, "// @Description") ||
-								   strings.Contains(goContent, "swagger:") {
+									strings.Contains(goContent, "// @Description") ||
+									strings.Contains(goContent, "swagger:") {
 									GinkgoWriter.Printf("✓ Found API documentation in: %s\n", path)
 								}
 								break
@@ -443,7 +443,7 @@ var _ = Describe("API Specification Validation Tests", func() {
 			// 4. Check for consistent error response formats
 
 			GinkgoWriter.Printf("API response schema validation would be implemented here\n")
-			
+
 			// For now, just verify that if there's an API spec, it's valid YAML/JSON
 			specPaths := []string{
 				filepath.Join(projectRoot, "swagger.yaml"),
@@ -487,18 +487,18 @@ var _ = Describe("API Specification Validation Tests", func() {
 				"test_type": "api_specification_validation",
 				"results": map[string]interface{}{
 					"crd_validation": map[string]interface{}{
-						"total_crds":     2,
-						"valid_crds":     2,
+						"total_crds":        2,
+						"valid_crds":        2,
 						"validation_errors": []string{},
 					},
 					"go_types_validation": map[string]interface{}{
-						"total_types":          5,
-						"documented_types":     4,
+						"total_types":           5,
+						"documented_types":      4,
 						"missing_documentation": []string{},
 					},
 					"api_schema_validation": map[string]interface{}{
-						"openapi_valid":    true,
-						"schema_errors":    []string{},
+						"openapi_valid":     true,
+						"schema_errors":     []string{},
 						"consistency_score": 95,
 					},
 					"overall_score": 90,

@@ -24,56 +24,56 @@ type AutomationRunner struct {
 
 // CIPipelineConfig defines CI/CD pipeline configuration for validation
 type CIPipelineConfig struct {
-	Triggers         []TriggerConfig         `yaml:"triggers"`
-	Stages           []StageConfig           `yaml:"stages"`
-	Notifications    NotificationConfig      `yaml:"notifications"`
-	Artifacts        ArtifactConfig          `yaml:"artifacts"`
-	Gates            []QualityGate           `yaml:"gates"`
-	Environments     []EnvironmentConfig     `yaml:"environments"`
-	Scheduling       ScheduleConfig          `yaml:"scheduling"`
+	Triggers      []TriggerConfig     `yaml:"triggers"`
+	Stages        []StageConfig       `yaml:"stages"`
+	Notifications NotificationConfig  `yaml:"notifications"`
+	Artifacts     ArtifactConfig      `yaml:"artifacts"`
+	Gates         []QualityGate       `yaml:"gates"`
+	Environments  []EnvironmentConfig `yaml:"environments"`
+	Scheduling    ScheduleConfig      `yaml:"scheduling"`
 }
 
 // TriggerConfig defines when validation should run
 type TriggerConfig struct {
-	Type        string   `yaml:"type"`     // "push", "pull_request", "schedule", "manual"
-	Branches    []string `yaml:"branches,omitempty"`
-	Paths       []string `yaml:"paths,omitempty"`
-	Schedule    string   `yaml:"schedule,omitempty"` // Cron expression
-	Conditions  []string `yaml:"conditions,omitempty"`
+	Type       string   `yaml:"type"` // "push", "pull_request", "schedule", "manual"
+	Branches   []string `yaml:"branches,omitempty"`
+	Paths      []string `yaml:"paths,omitempty"`
+	Schedule   string   `yaml:"schedule,omitempty"` // Cron expression
+	Conditions []string `yaml:"conditions,omitempty"`
 }
 
 // StageConfig defines pipeline stages
 type StageConfig struct {
-	Name         string            `yaml:"name"`
-	Type         string            `yaml:"type"` // "validation", "baseline", "regression", "report"
-	DependsOn    []string          `yaml:"depends_on,omitempty"`
-	Environment  string            `yaml:"environment"`
-	Parallel     bool              `yaml:"parallel"`
-	Timeout      string            `yaml:"timeout"`
-	Parameters   map[string]interface{} `yaml:"parameters,omitempty"`
-	Conditions   []string          `yaml:"conditions,omitempty"`
+	Name        string                 `yaml:"name"`
+	Type        string                 `yaml:"type"` // "validation", "baseline", "regression", "report"
+	DependsOn   []string               `yaml:"depends_on,omitempty"`
+	Environment string                 `yaml:"environment"`
+	Parallel    bool                   `yaml:"parallel"`
+	Timeout     string                 `yaml:"timeout"`
+	Parameters  map[string]interface{} `yaml:"parameters,omitempty"`
+	Conditions  []string               `yaml:"conditions,omitempty"`
 }
 
 // NotificationConfig defines notification settings
 type NotificationConfig struct {
-	OnSuccess []NotificationTarget `yaml:"on_success"`
-	OnFailure []NotificationTarget `yaml:"on_failure"`
+	OnSuccess    []NotificationTarget `yaml:"on_success"`
+	OnFailure    []NotificationTarget `yaml:"on_failure"`
 	OnRegression []NotificationTarget `yaml:"on_regression"`
 }
 
 // NotificationTarget defines notification destinations
 type NotificationTarget struct {
-	Type       string            `yaml:"type"` // "email", "slack", "teams", "webhook"
-	Recipients []string          `yaml:"recipients,omitempty"`
-	URL        string            `yaml:"url,omitempty"`
-	Template   string            `yaml:"template,omitempty"`
-	Conditions []string          `yaml:"conditions,omitempty"`
+	Type       string   `yaml:"type"` // "email", "slack", "teams", "webhook"
+	Recipients []string `yaml:"recipients,omitempty"`
+	URL        string   `yaml:"url,omitempty"`
+	Template   string   `yaml:"template,omitempty"`
+	Conditions []string `yaml:"conditions,omitempty"`
 }
 
 // ArtifactConfig defines artifact management
 type ArtifactConfig struct {
-	Retention      string   `yaml:"retention"`        // Duration like "30d", "6m"
-	Storage        string   `yaml:"storage"`          // "local", "s3", "gcs", "azure"
+	Retention      string   `yaml:"retention"` // Duration like "30d", "6m"
+	Storage        string   `yaml:"storage"`   // "local", "s3", "gcs", "azure"
 	Compression    bool     `yaml:"compression"`
 	Encryption     bool     `yaml:"encryption"`
 	PublishResults bool     `yaml:"publish_results"`
@@ -82,11 +82,11 @@ type ArtifactConfig struct {
 
 // QualityGate defines quality gates that must pass
 type QualityGate struct {
-	Name        string                 `yaml:"name"`
-	Type        string                 `yaml:"type"` // "performance", "coverage", "security"
-	Metrics     []QualityMetric        `yaml:"metrics"`
-	Action      string                 `yaml:"action"` // "fail", "warn", "report"
-	Conditions  []string               `yaml:"conditions,omitempty"`
+	Name       string          `yaml:"name"`
+	Type       string          `yaml:"type"` // "performance", "coverage", "security"
+	Metrics    []QualityMetric `yaml:"metrics"`
+	Action     string          `yaml:"action"` // "fail", "warn", "report"
+	Conditions []string        `yaml:"conditions,omitempty"`
 }
 
 // QualityMetric defines specific quality metrics
@@ -99,47 +99,47 @@ type QualityMetric struct {
 
 // EnvironmentConfig defines environment-specific settings
 type EnvironmentConfig struct {
-	Name         string                 `yaml:"name"`
-	Type         string                 `yaml:"type"` // "development", "staging", "production"
-	Kubeconfig   string                 `yaml:"kubeconfig,omitempty"`
-	Namespace    string                 `yaml:"namespace,omitempty"`
-	Resources    map[string]string      `yaml:"resources,omitempty"`
-	Variables    map[string]interface{} `yaml:"variables,omitempty"`
+	Name       string                 `yaml:"name"`
+	Type       string                 `yaml:"type"` // "development", "staging", "production"
+	Kubeconfig string                 `yaml:"kubeconfig,omitempty"`
+	Namespace  string                 `yaml:"namespace,omitempty"`
+	Resources  map[string]string      `yaml:"resources,omitempty"`
+	Variables  map[string]interface{} `yaml:"variables,omitempty"`
 }
 
 // ScheduleConfig defines scheduled validation runs
 type ScheduleConfig struct {
-	Daily       string `yaml:"daily,omitempty"`        // "HH:MM"
-	Weekly      string `yaml:"weekly,omitempty"`       // "day HH:MM"
-	Monthly     string `yaml:"monthly,omitempty"`      // "day HH:MM"
-	Regression  string `yaml:"regression,omitempty"`   // Cron for regression tests
-	Baseline    string `yaml:"baseline,omitempty"`     // Cron for baseline updates
+	Daily      string `yaml:"daily,omitempty"`      // "HH:MM"
+	Weekly     string `yaml:"weekly,omitempty"`     // "day HH:MM"
+	Monthly    string `yaml:"monthly,omitempty"`    // "day HH:MM"
+	Regression string `yaml:"regression,omitempty"` // Cron for regression tests
+	Baseline   string `yaml:"baseline,omitempty"`   // Cron for baseline updates
 }
 
 // ValidationResult represents the result of an automated validation run
 type ValidationResult struct {
-	ID             string                 `json:"id"`
-	StartTime      time.Time              `json:"start_time"`
-	EndTime        time.Time              `json:"end_time"`
-	Duration       time.Duration          `json:"duration"`
-	Status         string                 `json:"status"` // "passed", "failed", "warning"
-	Environment    string                 `json:"environment"`
-	CommitHash     string                 `json:"commit_hash,omitempty"`
-	Branch         string                 `json:"branch,omitempty"`
-	Claims         map[string]ClaimResult `json:"claims"`
-	QualityGates   []QualityGateResult    `json:"quality_gates"`
-	Artifacts      []string               `json:"artifacts"`
-	Notifications  []NotificationSent     `json:"notifications"`
-	Metadata       map[string]interface{} `json:"metadata"`
+	ID            string                 `json:"id"`
+	StartTime     time.Time              `json:"start_time"`
+	EndTime       time.Time              `json:"end_time"`
+	Duration      time.Duration          `json:"duration"`
+	Status        string                 `json:"status"` // "passed", "failed", "warning"
+	Environment   string                 `json:"environment"`
+	CommitHash    string                 `json:"commit_hash,omitempty"`
+	Branch        string                 `json:"branch,omitempty"`
+	Claims        map[string]ClaimResult `json:"claims"`
+	QualityGates  []QualityGateResult    `json:"quality_gates"`
+	Artifacts     []string               `json:"artifacts"`
+	Notifications []NotificationSent     `json:"notifications"`
+	Metadata      map[string]interface{} `json:"metadata"`
 }
 
 // QualityGateResult represents quality gate evaluation results
 type QualityGateResult struct {
-	Name       string                `json:"name"`
-	Status     string                `json:"status"` // "passed", "failed", "warning"
-	Metrics    []MetricResult        `json:"metrics"`
-	Message    string                `json:"message"`
-	Action     string                `json:"action"`
+	Name    string         `json:"name"`
+	Status  string         `json:"status"` // "passed", "failed", "warning"
+	Metrics []MetricResult `json:"metrics"`
+	Message string         `json:"message"`
+	Action  string         `json:"action"`
 }
 
 // MetricResult represents individual metric evaluation
@@ -153,12 +153,12 @@ type MetricResult struct {
 
 // NotificationSent tracks sent notifications
 type NotificationSent struct {
-	Type        string    `json:"type"`
-	Recipients  []string  `json:"recipients"`
-	Subject     string    `json:"subject"`
-	SentAt      time.Time `json:"sent_at"`
-	Status      string    `json:"status"`
-	MessageID   string    `json:"message_id,omitempty"`
+	Type       string    `json:"type"`
+	Recipients []string  `json:"recipients"`
+	Subject    string    `json:"subject"`
+	SentAt     time.Time `json:"sent_at"`
+	Status     string    `json:"status"`
+	MessageID  string    `json:"message_id,omitempty"`
 }
 
 // NewAutomationRunner creates a new automation runner
@@ -175,70 +175,70 @@ func NewAutomationRunner(config *ValidationConfig, environment string) *Automati
 func (ar *AutomationRunner) RunAutomatedValidation(ctx context.Context) (*ValidationResult, error) {
 	startTime := time.Now()
 	runID := fmt.Sprintf("val-%s-%s", ar.environment, startTime.Format("20060102-150405"))
-	
+
 	log.Printf("Starting automated validation run: %s", runID)
-	
+
 	result := &ValidationResult{
-		ID:          runID,
-		StartTime:   startTime,
-		Status:      "running",
-		Environment: ar.environment,
-		Claims:      make(map[string]ClaimResult),
-		QualityGates: []QualityGateResult{},
-		Artifacts:   []string{},
+		ID:            runID,
+		StartTime:     startTime,
+		Status:        "running",
+		Environment:   ar.environment,
+		Claims:        make(map[string]ClaimResult),
+		QualityGates:  []QualityGateResult{},
+		Artifacts:     []string{},
 		Notifications: []NotificationSent{},
-		Metadata:    make(map[string]interface{}),
+		Metadata:      make(map[string]interface{}),
 	}
-	
+
 	// Gather environment metadata
 	ar.gatherMetadata(result)
-	
+
 	// Load CI pipeline configuration
 	pipelineConfig, err := ar.loadPipelineConfig()
 	if err != nil {
 		log.Printf("Warning: Could not load pipeline config: %v", err)
 		pipelineConfig = ar.getDefaultPipelineConfig()
 	}
-	
+
 	// Execute validation stages
 	for _, stage := range pipelineConfig.Stages {
 		if !ar.shouldExecuteStage(stage, result) {
 			continue
 		}
-		
+
 		log.Printf("Executing stage: %s", stage.Name)
-		
+
 		stageCtx, cancel := context.WithTimeout(ctx, ar.parseTimeout(stage.Timeout))
 		err := ar.executeStage(stageCtx, stage, result)
 		cancel()
-		
+
 		if err != nil {
 			result.Status = "failed"
 			log.Printf("Stage %s failed: %v", stage.Name, err)
 			break
 		}
 	}
-	
+
 	// Evaluate quality gates
 	ar.evaluateQualityGates(pipelineConfig.Gates, result)
-	
+
 	// Finalize result
 	result.EndTime = time.Now()
 	result.Duration = result.EndTime.Sub(result.StartTime)
-	
+
 	if result.Status != "failed" {
 		result.Status = ar.determineOverallStatus(result)
 	}
-	
+
 	// Save artifacts
 	ar.saveArtifacts(result, pipelineConfig.Artifacts)
-	
+
 	// Send notifications
 	ar.sendNotifications(pipelineConfig.Notifications, result)
-	
-	log.Printf("Automated validation completed: %s (status: %s, duration: %v)", 
+
+	log.Printf("Automated validation completed: %s (status: %s, duration: %v)",
 		runID, result.Status, result.Duration)
-	
+
 	return result, nil
 }
 
@@ -265,86 +265,86 @@ func (ar *AutomationRunner) executeValidationStage(ctx context.Context, stage St
 	if stageConfig, ok := stage.Parameters["config"].(map[string]interface{}); ok {
 		config = ar.mergeConfig(config, stageConfig)
 	}
-	
+
 	validationSuite := NewValidationSuite(config)
-	
+
 	// Run validation
 	validationResults, err := validationSuite.ValidateAllClaims(ctx)
 	if err != nil {
 		return fmt.Errorf("validation failed: %w", err)
 	}
-	
+
 	// Merge results
 	for claimName, claimResult := range validationResults.ClaimResults {
 		result.Claims[claimName] = *claimResult
 	}
-	
+
 	// Update overall status based on validation results
 	if !validationResults.Summary.OverallSuccess {
 		result.Status = "failed"
 	}
-	
+
 	return nil
 }
 
 // executeBaselineStage updates performance baselines
 func (ar *AutomationRunner) executeBaselineStage(ctx context.Context, stage StageConfig, result *ValidationResult) error {
 	log.Printf("Updating performance baselines...")
-	
+
 	// This would implement baseline update logic
 	// For now, we'll simulate it
 	time.Sleep(2 * time.Second)
-	
+
 	result.Metadata["baseline_updated"] = true
 	result.Metadata["baseline_timestamp"] = time.Now()
-	
+
 	return nil
 }
 
 // executeRegressionStage performs regression detection
 func (ar *AutomationRunner) executeRegressionStage(ctx context.Context, stage StageConfig, result *ValidationResult) error {
 	log.Printf("Performing regression analysis...")
-	
+
 	// This would implement regression detection logic
 	// For now, we'll simulate it
 	time.Sleep(3 * time.Second)
-	
+
 	result.Metadata["regression_analysis"] = true
 	result.Metadata["regressions_detected"] = 0
-	
+
 	return nil
 }
 
 // executeReportStage generates comprehensive reports
 func (ar *AutomationRunner) executeReportStage(ctx context.Context, stage StageConfig, result *ValidationResult) error {
 	log.Printf("Generating comprehensive reports...")
-	
+
 	// Generate HTML report
 	htmlReport, err := ar.generateHTMLReport(result)
 	if err != nil {
 		return fmt.Errorf("failed to generate HTML report: %w", err)
 	}
-	
+
 	htmlPath := filepath.Join(ar.outputDir, "validation-report.html")
 	if err := os.WriteFile(htmlPath, []byte(htmlReport), 0644); err != nil {
 		return fmt.Errorf("failed to save HTML report: %w", err)
 	}
-	
+
 	result.Artifacts = append(result.Artifacts, htmlPath)
-	
+
 	// Generate JSON report
 	jsonPath := filepath.Join(ar.outputDir, "validation-results.json")
 	jsonData, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON report: %w", err)
 	}
-	
+
 	if err := os.WriteFile(jsonPath, jsonData, 0644); err != nil {
 		return fmt.Errorf("failed to save JSON report: %w", err)
 	}
-	
+
 	result.Artifacts = append(result.Artifacts, jsonPath)
-	
+
 	return nil
 }
 
@@ -353,7 +353,7 @@ func (ar *AutomationRunner) evaluateQualityGates(gates []QualityGate, result *Va
 	for _, gate := range gates {
 		gateResult := ar.evaluateQualityGate(gate, result)
 		result.QualityGates = append(result.QualityGates, gateResult)
-		
+
 		if gateResult.Status == "failed" && gateResult.Action == "fail" {
 			result.Status = "failed"
 		}
@@ -368,22 +368,22 @@ func (ar *AutomationRunner) evaluateQualityGate(gate QualityGate, result *Valida
 		Metrics: []MetricResult{},
 		Action:  gate.Action,
 	}
-	
+
 	for _, metric := range gate.Metrics {
 		metricResult := ar.evaluateMetric(metric, result)
 		gateResult.Metrics = append(gateResult.Metrics, metricResult)
-		
+
 		if metricResult.Status == "failed" {
 			gateResult.Status = "failed"
 		}
 	}
-	
+
 	if gateResult.Status == "failed" {
 		gateResult.Message = fmt.Sprintf("Quality gate '%s' failed", gate.Name)
 	} else {
 		gateResult.Message = fmt.Sprintf("Quality gate '%s' passed", gate.Name)
 	}
-	
+
 	return gateResult
 }
 
@@ -391,15 +391,15 @@ func (ar *AutomationRunner) evaluateQualityGate(gate QualityGate, result *Valida
 func (ar *AutomationRunner) evaluateMetric(metric QualityMetric, result *ValidationResult) MetricResult {
 	// Extract metric value from validation results
 	value := ar.extractMetricValue(metric.Name, result)
-	
+
 	// Evaluate threshold
 	passed := ar.evaluateThreshold(value, metric.Threshold, metric.Operator)
-	
+
 	status := "passed"
 	if !passed {
 		status = "failed"
 	}
-	
+
 	return MetricResult{
 		Name:      metric.Name,
 		Value:     value,
@@ -416,20 +416,20 @@ func (ar *AutomationRunner) shouldExecuteStage(stage StageConfig, result *Valida
 	if stage.Environment != "" && stage.Environment != ar.environment {
 		return false
 	}
-	
+
 	// Check dependencies
 	for _, dep := range stage.DependsOn {
 		// This would check if dependent stages have completed successfully
 		_ = dep // Placeholder
 	}
-	
+
 	// Check conditions
 	for _, condition := range stage.Conditions {
 		if !ar.evaluateCondition(condition, result) {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -437,12 +437,12 @@ func (ar *AutomationRunner) parseTimeout(timeout string) time.Duration {
 	if timeout == "" {
 		return 30 * time.Minute // Default timeout
 	}
-	
+
 	d, err := time.ParseDuration(timeout)
 	if err != nil {
 		return 30 * time.Minute
 	}
-	
+
 	return d
 }
 
@@ -515,11 +515,11 @@ func (ar *AutomationRunner) determineOverallStatus(result *ValidationResult) str
 			break
 		}
 	}
-	
+
 	// Check quality gates
 	hasFailedGates := false
 	hasWarningGates := false
-	
+
 	for _, gate := range result.QualityGates {
 		if gate.Status == "failed" {
 			hasFailedGates = true
@@ -527,13 +527,13 @@ func (ar *AutomationRunner) determineOverallStatus(result *ValidationResult) str
 			hasWarningGates = true
 		}
 	}
-	
+
 	if !allPassed || hasFailedGates {
 		return "failed"
 	} else if hasWarningGates {
 		return "warning"
 	}
-	
+
 	return "passed"
 }
 
@@ -542,16 +542,16 @@ func (ar *AutomationRunner) gatherMetadata(result *ValidationResult) {
 	if gitHash, err := ar.getGitCommitHash(); err == nil {
 		result.CommitHash = gitHash
 	}
-	
+
 	if gitBranch, err := ar.getGitBranch(); err == nil {
 		result.Branch = gitBranch
 	}
-	
+
 	// Gather environment information
 	result.Metadata["go_version"] = ar.getGoVersion()
 	result.Metadata["kubernetes_version"] = ar.getKubernetesVersion()
 	result.Metadata["ci_mode"] = ar.ciMode
-	
+
 	// CI-specific metadata
 	if ar.ciMode {
 		result.Metadata["ci_build_id"] = os.Getenv("BUILD_ID")
@@ -603,21 +603,21 @@ func (ar *AutomationRunner) loadPipelineConfig() (*CIPipelineConfig, error) {
 	if envPath := os.Getenv("VALIDATION_PIPELINE_CONFIG"); envPath != "" {
 		configPath = envPath
 	}
-	
+
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return ar.getDefaultPipelineConfig(), nil
 	}
-	
+
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read pipeline config: %w", err)
 	}
-	
+
 	var config CIPipelineConfig
 	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse pipeline config: %w", err)
 	}
-	
+
 	return &config, nil
 }
 
@@ -675,13 +675,13 @@ func getOutputDir() string {
 
 func isRunningInCI() bool {
 	ciEnvVars := []string{"CI", "CONTINUOUS_INTEGRATION", "GITHUB_ACTIONS", "GITLAB_CI", "JENKINS_URL"}
-	
+
 	for _, envVar := range ciEnvVars {
 		if os.Getenv(envVar) != "" {
 			return true
 		}
 	}
-	
+
 	return false
 }
 

@@ -337,12 +337,12 @@ func TestConfig_Validate_FeatureCombinations(t *testing.T) {
 			name: "multiple validation errors",
 			setupConfig: func() *Config {
 				cfg := DefaultConfig()
-				cfg.OpenAIAPIKey = ""                                  // Missing required field
-				cfg.GitRepoURL = ""                                    // Missing when git enabled
-				cfg.GitToken = "github_token_123"                     // This enables git features
-				cfg.LLMProcessorURL = ""                               // LLM disabled (OK)
-				cfg.RAGAPIURLInternal = ""                             // Missing when RAG enabled
-				cfg.WeaviateURL = "http://weaviate:8080"               // This enables RAG features
+				cfg.OpenAIAPIKey = ""                    // Missing required field
+				cfg.GitRepoURL = ""                      // Missing when git enabled
+				cfg.GitToken = "github_token_123"        // This enables git features
+				cfg.LLMProcessorURL = ""                 // LLM disabled (OK)
+				cfg.RAGAPIURLInternal = ""               // Missing when RAG enabled
+				cfg.WeaviateURL = "http://weaviate:8080" // This enables RAG features
 				return cfg
 			},
 			description: "Multiple validation errors should be reported",
@@ -624,20 +624,20 @@ func TestLoadFromEnv_EdgeCasesAndErrorHandling(t *testing.T) {
 func TestConfig_Validate_DescriptiveErrorMessages(t *testing.T) {
 	// Test that error messages are descriptive and helpful
 	cfg := DefaultConfig()
-	cfg.OpenAIAPIKey = ""                       // Missing required
-	cfg.GitToken = "token"                       // Enables git but URL missing
-	cfg.WeaviateURL = "http://weaviate:8080"     // Enables RAG but internal URL missing
+	cfg.OpenAIAPIKey = ""                    // Missing required
+	cfg.GitToken = "token"                   // Enables git but URL missing
+	cfg.WeaviateURL = "http://weaviate:8080" // Enables RAG but internal URL missing
 
 	err := cfg.Validate()
 	require.Error(t, err)
 
 	errMsg := err.Error()
-	
+
 	// Check that all expected errors are present
 	assert.Contains(t, errMsg, "OPENAI_API_KEY is required")
 	assert.Contains(t, errMsg, "GIT_REPO_URL is required when Git features are enabled")
 	assert.Contains(t, errMsg, "RAG_API_URL_INTERNAL is required when RAG features are enabled")
-	
+
 	// Check that the error message indicates it's a validation failure
 	assert.Contains(t, errMsg, "configuration validation failed")
 }

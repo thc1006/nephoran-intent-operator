@@ -193,10 +193,10 @@ func CreateTestNamespace(ctx context.Context, client client.Client, namespace st
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
 			Labels: map[string]string{
-				"security.nephoran.io/test":           "true",
-				"pod-security.kubernetes.io/enforce":  "restricted",
-				"pod-security.kubernetes.io/audit":    "restricted",
-				"pod-security.kubernetes.io/warn":     "restricted",
+				"security.nephoran.io/test":          "true",
+				"pod-security.kubernetes.io/enforce": "restricted",
+				"pod-security.kubernetes.io/audit":   "restricted",
+				"pod-security.kubernetes.io/warn":    "restricted",
 			},
 		},
 	}
@@ -269,7 +269,7 @@ func (h *SecurityTestHelper) ValidatePodSecurityContext(pod *corev1.Pod) []strin
 		violations = append(violations, "Pod missing security context")
 	} else {
 		secCtx := pod.Spec.SecurityContext
-		
+
 		if secCtx.RunAsNonRoot == nil || !*secCtx.RunAsNonRoot {
 			violations = append(violations, "Pod not configured to run as non-root")
 		}
@@ -416,7 +416,7 @@ func (h *SecurityTestHelper) GetSecurityViolations(ctx context.Context) (map[str
 
 		// Check pod template
 		podTemplate := &deployment.Spec.Template
-		
+
 		// Validate security contexts
 		podViolations := h.ValidatePodSecurityContext(&corev1.Pod{
 			Spec: podTemplate.Spec,
@@ -474,10 +474,10 @@ func RunSecurityTestSuite(t *testing.T, suite TestSuite, helper *SecurityTestHel
 
 // Benchmark utilities
 type BenchmarkResult struct {
-	Name      string
-	Duration  time.Duration
-	Success   bool
-	Error     error
+	Name     string
+	Duration time.Duration
+	Success  bool
+	Error    error
 }
 
 // RunBenchmark runs a benchmark test

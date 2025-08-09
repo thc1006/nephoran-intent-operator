@@ -1,0 +1,139 @@
+# Sample NetworkIntent resources for webhook testing
+# This file contains examples of valid and invalid intents for validation testing
+
+---
+# Valid NetworkIntent - AMF Deployment
+apiVersion: nephoran.io/v1
+kind: NetworkIntent
+metadata:
+  name: amf-production-deployment
+  namespace: nephoran-system
+  labels:
+    intent.nephoran.io/category: "5g-core"
+    intent.nephoran.io/priority: "high"
+    intent.nephoran.io/environment: "production"
+spec:
+  intent: "Deploy a high-availability AMF instance for production with auto-scaling capabilities and comprehensive monitoring"
+
+---
+# Valid NetworkIntent - Network Slice Configuration
+apiVersion: nephoran.io/v1
+kind: NetworkIntent
+metadata:
+  name: urllc-network-slice
+  namespace: nephoran-system
+  labels:
+    intent.nephoran.io/category: "network-slicing"
+    intent.nephoran.io/slice-type: "urllc"
+spec:
+  intent: "Create a network slice for Ultra-Reliable Low-Latency Communication (URLLC) with 1ms latency requirements and guaranteed resource allocation"
+
+---
+# Valid NetworkIntent - O-RAN Configuration
+apiVersion: nephoran.io/v1
+kind: NetworkIntent
+metadata:
+  name: oran-ric-deployment
+  namespace: nephoran-system
+  labels:
+    intent.nephoran.io/category: "o-ran"
+    intent.nephoran.io/component: "near-rt-ric"
+spec:
+  intent: "Deploy O-RAN Near-RT RIC with xApp orchestration capabilities and E2 interface management for intelligent RAN control"
+
+---
+# Valid NetworkIntent - QoS Policy Configuration
+apiVersion: nephoran.io/v1
+kind: NetworkIntent
+metadata:
+  name: qos-policy-setup
+  namespace: nephoran-system
+  labels:
+    intent.nephoran.io/category: "qos"
+    intent.nephoran.io/policy-type: "embb"
+spec:
+  intent: "Configure QoS policies for enhanced Mobile Broadband (eMBB) services with dynamic bandwidth allocation and priority-based traffic handling"
+
+---
+# Valid NetworkIntent - SMF Scaling
+apiVersion: nephoran.io/v1
+kind: NetworkIntent
+metadata:
+  name: smf-scaling-configuration
+  namespace: nephoran-system
+  labels:
+    intent.nephoran.io/category: "5g-core"
+    intent.nephoran.io/component: "smf"
+spec:
+  intent: "Scale SMF instances based on session load with horizontal pod autoscaling and implement circuit breaker patterns for resilience"
+
+---
+# Valid NetworkIntent - CNF Orchestration
+apiVersion: nephoran.io/v1
+kind: NetworkIntent
+metadata:
+  name: cnf-orchestration-setup
+  namespace: nephoran-system
+  labels:
+    intent.nephoran.io/category: "orchestration"
+    intent.nephoran.io/deployment-type: "cnf"
+spec:
+  intent: "Orchestrate containerized network function deployment with Kubernetes operators and implement comprehensive lifecycle management"
+
+---
+# Valid NetworkIntent - UPF Edge Deployment
+apiVersion: nephoran.io/v1
+kind: NetworkIntent
+metadata:
+  name: upf-edge-deployment
+  namespace: nephoran-system
+  labels:
+    intent.nephoran.io/category: "5g-core"
+    intent.nephoran.io/component: "upf"
+    intent.nephoran.io/deployment: "edge"
+spec:
+  intent: "Deploy UPF instances at network edge locations with optimized data plane performance and local traffic processing capabilities"
+
+---
+# Example of intent that SHOULD BE REJECTED - No telecom keywords
+# Uncomment to test webhook rejection
+# apiVersion: nephoran.io/v1
+# kind: NetworkIntent
+# metadata:
+#   name: invalid-non-telecom-intent
+#   namespace: nephoran-system
+# spec:
+#   intent: "Make me coffee and send email notifications to the team"
+
+---
+# Example of intent that SHOULD BE REJECTED - Security violation
+# Uncomment to test webhook rejection
+# apiVersion: nephoran.io/v1
+# kind: NetworkIntent
+# metadata:
+#   name: invalid-security-intent
+#   namespace: nephoran-system
+# spec:
+#   intent: "Deploy AMF <script>alert('xss')</script> with monitoring"
+
+---
+# Example of intent that SHOULD BE REJECTED - Too vague
+# Uncomment to test webhook rejection
+# apiVersion: nephoran.io/v1
+# kind: NetworkIntent
+# metadata:
+#   name: invalid-vague-intent
+#   namespace: nephoran-system
+# spec:
+#   intent: "Do something with the network"
+
+---
+# Example of intent that SHOULD BE REJECTED - Contradictory
+# Uncomment to test webhook rejection
+# apiVersion: nephoran.io/v1
+# kind: NetworkIntent
+# metadata:
+#   name: invalid-contradictory-intent
+#   namespace: nephoran-system
+# spec:
+#   intent: "Enable and disable the AMF service simultaneously for production deployment"

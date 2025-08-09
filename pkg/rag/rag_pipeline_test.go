@@ -61,7 +61,7 @@ func TestDocumentLoader(t *testing.T) {
 	t.Run("NewDocumentLoader", func(t *testing.T) {
 		config := getDefaultLoaderConfig()
 		config.LocalPaths = []string{testDir}
-		
+
 		loader := NewDocumentLoader(config)
 		assert.NotNil(t, loader)
 		assert.Equal(t, config, loader.config)
@@ -69,19 +69,19 @@ func TestDocumentLoader(t *testing.T) {
 
 	t.Run("ProcessText", func(t *testing.T) {
 		loader := NewDocumentLoader(nil)
-		
+
 		// Test text preprocessing
 		text := "  This is a test   document with   multiple   spaces  "
 		cleaned := loader.cleanTextContent(text)
-		
+
 		assert.Equal(t, "This is a test document with multiple spaces", cleaned)
 	})
 
 	t.Run("ExtractTelecomMetadata", func(t *testing.T) {
 		loader := NewDocumentLoader(nil)
-		
+
 		metadata := loader.extractTelecomMetadata(testPDFContent, "3gpp_ts_38_300.pdf")
-		
+
 		assert.Equal(t, "3GPP", metadata.Source)
 		assert.Equal(t, "TS", metadata.DocumentType)
 		assert.Contains(t, metadata.Technologies, "5G")
@@ -91,7 +91,7 @@ func TestDocumentLoader(t *testing.T) {
 
 	t.Run("DetectSource", func(t *testing.T) {
 		loader := NewDocumentLoader(nil)
-		
+
 		tests := []struct {
 			content  string
 			filename string
@@ -114,20 +114,20 @@ func TestChunkingService(t *testing.T) {
 	t.Run("NewChunkingService", func(t *testing.T) {
 		config := getDefaultChunkingConfig()
 		service := NewChunkingService(config)
-		
+
 		assert.NotNil(t, service)
 		assert.Equal(t, config, service.config)
 	})
 
 	t.Run("AnalyzeDocumentStructure", func(t *testing.T) {
 		service := NewChunkingService(nil)
-		
+
 		structure, err := service.analyzeDocumentStructure(testPDFContent)
 		require.NoError(t, err)
-		
+
 		assert.NotNil(t, structure)
 		assert.Greater(t, len(structure.Sections), 0)
-		
+
 		// Check that sections were extracted
 		found := false
 		for _, section := range structure.Sections {
@@ -141,12 +141,12 @@ func TestChunkingService(t *testing.T) {
 
 	t.Run("ChunkDocument", func(t *testing.T) {
 		service := NewChunkingService(nil)
-		
+
 		// Create test document
 		doc := &LoadedDocument{
-			ID:       "test-doc-1",
-			Content:  testPDFContent,
-			Title:    "Test 3GPP Specification",
+			ID:      "test-doc-1",
+			Content: testPDFContent,
+			Title:   "Test 3GPP Specification",
 			Metadata: &DocumentMetadata{
 				Source:   "3GPP",
 				Category: "RAN",
@@ -156,9 +156,9 @@ func TestChunkingService(t *testing.T) {
 		ctx := context.Background()
 		chunks, err := service.ChunkDocument(ctx, doc)
 		require.NoError(t, err)
-		
+
 		assert.Greater(t, len(chunks), 0)
-		
+
 		// Verify chunk properties
 		for _, chunk := range chunks {
 			assert.NotEmpty(t, chunk.ID)
@@ -173,9 +173,9 @@ func TestChunkingService(t *testing.T) {
 		config := getDefaultChunkingConfig()
 		config.PreserveHierarchy = true
 		config.UseSemanticBoundaries = true
-		
+
 		service := NewChunkingService(config)
-		
+
 		doc := &LoadedDocument{
 			ID:      "test-doc-2",
 			Content: testPDFContent,
@@ -185,7 +185,7 @@ func TestChunkingService(t *testing.T) {
 		ctx := context.Background()
 		chunks, err := service.ChunkDocument(ctx, doc)
 		require.NoError(t, err)
-		
+
 		// Verify hierarchy information is preserved
 		hierarchyFound := false
 		for _, chunk := range chunks {
@@ -207,7 +207,7 @@ func TestEmbeddingService(t *testing.T) {
 	t.Run("NewEmbeddingService", func(t *testing.T) {
 		config := getDefaultEmbeddingConfig()
 		config.APIKey = "test-key"
-		
+
 		service := NewEmbeddingService(config)
 		assert.NotNil(t, service)
 		assert.Equal(t, config, service.config)
@@ -217,9 +217,9 @@ func TestEmbeddingService(t *testing.T) {
 		config := getDefaultEmbeddingConfig()
 		config.NormalizeText = true
 		config.TelecomPreprocessing = true
-		
+
 		service := NewEmbeddingService(config)
-		
+
 		tests := []struct {
 			input    string
 			expected string
@@ -237,11 +237,11 @@ func TestEmbeddingService(t *testing.T) {
 
 	t.Run("CacheKey", func(t *testing.T) {
 		service := NewEmbeddingService(nil)
-		
+
 		key1 := service.generateCacheKey("test text")
 		key2 := service.generateCacheKey("test text")
 		key3 := service.generateCacheKey("different text")
-		
+
 		assert.Equal(t, key1, key2, "Same text should generate same key")
 		assert.NotEqual(t, key1, key3, "Different text should generate different keys")
 	})
@@ -251,7 +251,7 @@ func TestQueryEnhancer(t *testing.T) {
 	t.Run("NewQueryEnhancer", func(t *testing.T) {
 		config := getDefaultRetrievalConfig()
 		enhancer := NewQueryEnhancer(config)
-		
+
 		assert.NotNil(t, enhancer)
 		assert.NotNil(t, enhancer.telecomDictionary)
 		assert.NotNil(t, enhancer.synonymExpander)
@@ -260,10 +260,10 @@ func TestQueryEnhancer(t *testing.T) {
 
 	t.Run("ExpandTelecomTerms", func(t *testing.T) {
 		enhancer := NewQueryEnhancer(nil)
-		
+
 		query := "How to configure AMF for 5G network?"
 		enhanced, terms := enhancer.expandTelecomTerms(query, "configuration")
-		
+
 		assert.Contains(t, enhanced, "AMF")
 		assert.Contains(t, enhanced, "Access and Mobility Management Function")
 		assert.Greater(t, len(terms), 0)
@@ -271,36 +271,36 @@ func TestQueryEnhancer(t *testing.T) {
 
 	t.Run("SpellChecker", func(t *testing.T) {
 		enhancer := NewQueryEnhancer(nil)
-		
+
 		query := "What is gnb configuration?"
 		corrected, corrections := enhancer.spellChecker.CorrectQuery(query)
-		
+
 		assert.Contains(t, corrected, "gNB")
 		assert.Contains(t, corrections, "gnb")
 	})
 
 	t.Run("SynonymExpansion", func(t *testing.T) {
 		enhancer := NewQueryEnhancer(nil)
-		
+
 		query := "base station configuration"
 		expanded, synonyms := enhancer.synonymExpander.ExpandSynonyms(query, "")
-		
+
 		assert.Contains(t, expanded, "base station")
 		assert.Greater(t, len(synonyms), 0)
 	})
 
 	t.Run("ContextEnhancement", func(t *testing.T) {
 		enhancer := NewQueryEnhancer(nil)
-		
+
 		query := "How to optimize performance?"
 		history := []string{
 			"Previous question about AMF configuration",
 			"Discussion about 5G network setup",
 			"AMF troubleshooting steps",
 		}
-		
+
 		enhanced := enhancer.enhanceWithContext(query, history)
-		
+
 		// Should include context terms
 		assert.Contains(t, enhanced, query)
 		// May contain AMF or 5G based on context extraction
@@ -311,39 +311,39 @@ func TestSemanticReranker(t *testing.T) {
 	t.Run("NewSemanticReranker", func(t *testing.T) {
 		config := getDefaultRetrievalConfig()
 		reranker := NewSemanticReranker(config)
-		
+
 		assert.NotNil(t, reranker)
 		assert.NotNil(t, reranker.crossEncoder)
 	})
 
 	t.Run("CalculateSemanticSimilarity", func(t *testing.T) {
 		reranker := NewSemanticReranker(nil)
-		
+
 		query := "AMF configuration for 5G network"
 		content := "The Access and Mobility Management Function (AMF) is configured for 5G networks"
-		
+
 		similarity := reranker.calculateSemanticSimilarity(query, content)
-		
+
 		assert.Greater(t, similarity, float32(0.0))
 		assert.LessOrEqual(t, similarity, float32(1.0))
 	})
 
 	t.Run("CalculateLexicalSimilarity", func(t *testing.T) {
 		reranker := NewSemanticReranker(nil)
-		
+
 		query := "network configuration"
 		content1 := "Network configuration parameters for telecommunications"
 		content2 := "Completely unrelated document about cooking recipes"
-		
+
 		sim1 := reranker.calculateLexicalSimilarity(query, content1)
 		sim2 := reranker.calculateLexicalSimilarity(query, content2)
-		
+
 		assert.Greater(t, sim1, sim2, "Related content should have higher similarity")
 	})
 
 	t.Run("RerankResults", func(t *testing.T) {
 		reranker := NewSemanticReranker(nil)
-		
+
 		// Create test results
 		results := []*EnhancedSearchResult{
 			{
@@ -371,7 +371,7 @@ func TestSemanticReranker(t *testing.T) {
 		ctx := context.Background()
 		reranked, err := reranker.RerankResults(ctx, "AMF configuration", results)
 		require.NoError(t, err)
-		
+
 		assert.Equal(t, len(results), len(reranked))
 		// Results should be reordered based on semantic relevance
 	})
@@ -381,7 +381,7 @@ func TestContextAssembler(t *testing.T) {
 	t.Run("NewContextAssembler", func(t *testing.T) {
 		config := getDefaultRetrievalConfig()
 		assembler := NewContextAssembler(config)
-		
+
 		assert.NotNil(t, assembler)
 		assert.Equal(t, config, assembler.config)
 	})
@@ -389,9 +389,9 @@ func TestContextAssembler(t *testing.T) {
 	t.Run("AssembleContext", func(t *testing.T) {
 		config := getDefaultRetrievalConfig()
 		config.MaxContextLength = 1000
-		
+
 		assembler := NewContextAssembler(config)
-		
+
 		// Create test results
 		results := []*EnhancedSearchResult{
 			{
@@ -426,7 +426,7 @@ func TestContextAssembler(t *testing.T) {
 		}
 
 		context, metadata := assembler.AssembleContext(results, request)
-		
+
 		assert.NotEmpty(t, context)
 		assert.NotNil(t, metadata)
 		assert.Equal(t, len(results), metadata.DocumentCount)
@@ -436,9 +436,9 @@ func TestContextAssembler(t *testing.T) {
 
 	t.Run("DifferentStrategies", func(t *testing.T) {
 		assembler := NewContextAssembler(nil)
-		
+
 		results := createTestResults()
-		
+
 		strategies := []struct {
 			intentType string
 			expected   ContextAssemblyStrategy
@@ -453,7 +453,7 @@ func TestContextAssembler(t *testing.T) {
 			request := &EnhancedSearchRequest{
 				IntentType: test.intentType,
 			}
-			
+
 			strategy := assembler.determineAssemblyStrategy(results, request)
 			// Strategy determination is context-dependent, so we just verify it returns a valid strategy
 			assert.NotEmpty(t, string(strategy))
@@ -465,7 +465,7 @@ func TestRedisCache(t *testing.T) {
 	// Skip Redis tests if Redis is not available
 	config := getDefaultRedisCacheConfig()
 	config.Address = "localhost:6379"
-	
+
 	cache, err := NewRedisCache(config)
 	if err != nil {
 		t.Skip("Redis not available, skipping cache tests")
@@ -544,7 +544,7 @@ func TestEndToEndRAGPipeline(t *testing.T) {
 		// 1. Document Loading
 		loaderConfig := getDefaultLoaderConfig()
 		loader := NewDocumentLoader(loaderConfig)
-		
+
 		// Create test document
 		doc := &LoadedDocument{
 			ID:      "e2e-test-doc",
@@ -559,7 +559,7 @@ func TestEndToEndRAGPipeline(t *testing.T) {
 		// 2. Document Chunking
 		chunkingConfig := getDefaultChunkingConfig()
 		chunkingService := NewChunkingService(chunkingConfig)
-		
+
 		chunks, err := chunkingService.ChunkDocument(ctx, doc)
 		require.NoError(t, err)
 		assert.Greater(t, len(chunks), 0)
@@ -567,7 +567,7 @@ func TestEndToEndRAGPipeline(t *testing.T) {
 		// 3. Embedding Generation (mocked)
 		embeddingConfig := getDefaultEmbeddingConfig()
 		embeddingService := NewEmbeddingService(embeddingConfig)
-		
+
 		// Mock embedding generation
 		for _, chunk := range chunks {
 			// In a real test, you would generate actual embeddings
@@ -577,23 +577,23 @@ func TestEndToEndRAGPipeline(t *testing.T) {
 		// 4. Query Enhancement
 		retrievalConfig := getDefaultRetrievalConfig()
 		queryEnhancer := NewQueryEnhancer(retrievalConfig)
-		
+
 		request := &EnhancedSearchRequest{
 			Query:                  "How to configure AMF?",
-			IntentType:            "configuration",
+			IntentType:             "configuration",
 			EnableQueryEnhancement: true,
 		}
 
 		enhancedQuery, enhancements, err := queryEnhancer.EnhanceQuery(ctx, request)
 		require.NoError(t, err)
-		
+
 		assert.NotEmpty(t, enhancedQuery)
 		assert.NotNil(t, enhancements)
 		assert.Contains(t, enhancedQuery, "AMF")
 
 		// 5. Context Assembly
 		contextAssembler := NewContextAssembler(retrievalConfig)
-		
+
 		// Create mock search results
 		results := []*EnhancedSearchResult{
 			{
@@ -610,7 +610,7 @@ func TestEndToEndRAGPipeline(t *testing.T) {
 		}
 
 		context, metadata := contextAssembler.AssembleContext(results, request)
-		
+
 		assert.NotEmpty(t, context)
 		assert.NotNil(t, metadata)
 		assert.Greater(t, metadata.DocumentCount, 0)
@@ -688,7 +688,7 @@ func BenchmarkQueryEnhancement(b *testing.B) {
 	enhancer := NewQueryEnhancer(getDefaultRetrievalConfig())
 	request := &EnhancedSearchRequest{
 		Query:                  "How to configure AMF for 5G network optimization?",
-		IntentType:            "configuration",
+		IntentType:             "configuration",
 		EnableQueryEnhancement: true,
 	}
 
@@ -723,11 +723,11 @@ func TestTelecomTermExtraction(t *testing.T) {
 	loader := NewDocumentLoader(nil)
 
 	tests := []struct {
-		name           string
-		content        string
-		expectedTerms  []string
-		expectedNFs    []string
-		expectedTechs  []string
+		name          string
+		content       string
+		expectedTerms []string
+		expectedNFs   []string
+		expectedTechs []string
 	}{
 		{
 			name:          "3GPP 5G Core",
@@ -770,27 +770,27 @@ func TestQueryEnhancementScenarios(t *testing.T) {
 	enhancer := NewQueryEnhancer(getDefaultRetrievalConfig())
 
 	tests := []struct {
-		name           string
-		query          string
-		intentType     string
+		name                 string
+		query                string
+		intentType           string
 		expectedEnhancements []string
 	}{
 		{
-			name:       "Configuration Query",
-			query:      "How to configure AMF?",
-			intentType: "configuration",
+			name:                 "Configuration Query",
+			query:                "How to configure AMF?",
+			intentType:           "configuration",
 			expectedEnhancements: []string{"configuration", "parameter", "Access and Mobility Management Function"},
 		},
 		{
-			name:       "Troubleshooting Query",
-			query:      "AMF connection issues",
-			intentType: "troubleshooting",
+			name:                 "Troubleshooting Query",
+			query:                "AMF connection issues",
+			intentType:           "troubleshooting",
 			expectedEnhancements: []string{"problem", "issue", "troubleshoot"},
 		},
 		{
-			name:       "Optimization Query",
-			query:      "Improve gNB performance",
-			intentType: "optimization",
+			name:                 "Optimization Query",
+			query:                "Improve gNB performance",
+			intentType:           "optimization",
 			expectedEnhancements: []string{"optimize", "performance", "Next Generation NodeB"},
 		},
 	}
@@ -799,7 +799,7 @@ func TestQueryEnhancementScenarios(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			request := &EnhancedSearchRequest{
 				Query:                  tt.query,
-				IntentType:            tt.intentType,
+				IntentType:             tt.intentType,
 				EnableQueryEnhancement: true,
 			}
 

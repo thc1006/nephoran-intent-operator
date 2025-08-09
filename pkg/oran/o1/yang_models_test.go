@@ -9,23 +9,23 @@ import (
 
 func TestNewYANGModelRegistry(t *testing.T) {
 	registry := NewYANGModelRegistry()
-	
+
 	assert.NotNil(t, registry)
 	assert.NotNil(t, registry.models)
 	assert.NotNil(t, registry.modelsByNS)
 	assert.NotNil(t, registry.validators)
 	assert.NotNil(t, registry.loadedModules)
-	
+
 	// Check that standard O-RAN models are loaded
 	models := registry.ListModels()
 	assert.Greater(t, len(models), 0)
-	
+
 	// Verify specific O-RAN models are present
 	modelNames := make([]string, len(models))
 	for i, model := range models {
 		modelNames[i] = model.Name
 	}
-	
+
 	expectedModels := []string{
 		"o-ran-hardware",
 		"o-ran-software-management",
@@ -33,7 +33,7 @@ func TestNewYANGModelRegistry(t *testing.T) {
 		"o-ran-fault-management",
 		"ietf-interfaces",
 	}
-	
+
 	for _, expectedModel := range expectedModels {
 		assert.Contains(t, modelNames, expectedModel)
 	}
@@ -41,7 +41,7 @@ func TestNewYANGModelRegistry(t *testing.T) {
 
 func TestYANGModelRegistry_RegisterModel(t *testing.T) {
 	registry := NewYANGModelRegistry()
-	
+
 	tests := []struct {
 		name    string
 		model   *YANGModel
@@ -50,12 +50,12 @@ func TestYANGModelRegistry_RegisterModel(t *testing.T) {
 		{
 			name: "valid model",
 			model: &YANGModel{
-				Name:      "test-model",
-				Namespace: "urn:test:model:1.0",
-				Version:   "1.0",
-				Revision:  "2024-01-15",
+				Name:        "test-model",
+				Namespace:   "urn:test:model:1.0",
+				Version:     "1.0",
+				Revision:    "2024-01-15",
 				Description: "Test YANG model",
-				Schema:    make(map[string]interface{}),
+				Schema:      make(map[string]interface{}),
 			},
 			wantErr: false,
 		},
@@ -89,12 +89,12 @@ func TestYANGModelRegistry_RegisterModel(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := registry.RegisterModel(tt.model)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify model was registered
 				retrievedModel, err := registry.GetModel(tt.model.Name)
 				assert.NoError(t, err)
@@ -107,7 +107,7 @@ func TestYANGModelRegistry_RegisterModel(t *testing.T) {
 
 func TestYANGModelRegistry_GetModel(t *testing.T) {
 	registry := NewYANGModelRegistry()
-	
+
 	tests := []struct {
 		name      string
 		modelName string
@@ -128,7 +128,7 @@ func TestYANGModelRegistry_GetModel(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			model, err := registry.GetModel(tt.modelName)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, model)
@@ -143,7 +143,7 @@ func TestYANGModelRegistry_GetModel(t *testing.T) {
 
 func TestYANGModelRegistry_GetModelByNamespace(t *testing.T) {
 	registry := NewYANGModelRegistry()
-	
+
 	tests := []struct {
 		name      string
 		namespace string
@@ -164,7 +164,7 @@ func TestYANGModelRegistry_GetModelByNamespace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			model, err := registry.GetModelByNamespace(tt.namespace)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, model)
@@ -179,7 +179,7 @@ func TestYANGModelRegistry_GetModelByNamespace(t *testing.T) {
 
 func TestYANGModelRegistry_GetSchemaNode(t *testing.T) {
 	registry := NewYANGModelRegistry()
-	
+
 	tests := []struct {
 		name      string
 		modelName string
@@ -221,7 +221,7 @@ func TestYANGModelRegistry_GetSchemaNode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			node, err := registry.GetSchemaNode(tt.modelName, tt.path)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, node)
@@ -237,7 +237,7 @@ func TestYANGModelRegistry_GetSchemaNode(t *testing.T) {
 func TestYANGModelRegistry_ValidateConfig(t *testing.T) {
 	registry := NewYANGModelRegistry()
 	ctx := context.Background()
-	
+
 	tests := []struct {
 		name      string
 		data      interface{}
@@ -287,7 +287,7 @@ func TestYANGModelRegistry_ValidateConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := registry.ValidateConfig(ctx, tt.data, tt.modelName)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -300,7 +300,7 @@ func TestYANGModelRegistry_ValidateConfig(t *testing.T) {
 func TestStandardYANGValidator_ValidateData(t *testing.T) {
 	registry := NewYANGModelRegistry()
 	validator := &StandardYANGValidator{registry: registry}
-	
+
 	tests := []struct {
 		name      string
 		data      interface{}
@@ -308,8 +308,8 @@ func TestStandardYANGValidator_ValidateData(t *testing.T) {
 		wantErr   bool
 	}{
 		{
-			name: "valid JSON string",
-			data: `{"hardware": {"component": [{"name": "cpu-1", "class": "cpu"}]}}`,
+			name:      "valid JSON string",
+			data:      `{"hardware": {"component": [{"name": "cpu-1", "class": "cpu"}]}}`,
 			modelName: "o-ran-hardware",
 			wantErr:   false,
 		},
@@ -345,7 +345,7 @@ func TestStandardYANGValidator_ValidateData(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validator.ValidateData(tt.data, tt.modelName)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -358,7 +358,7 @@ func TestStandardYANGValidator_ValidateData(t *testing.T) {
 func TestStandardYANGValidator_ValidateXPath(t *testing.T) {
 	registry := NewYANGModelRegistry()
 	validator := &StandardYANGValidator{registry: registry}
-	
+
 	tests := []struct {
 		name      string
 		xpath     string
@@ -394,7 +394,7 @@ func TestStandardYANGValidator_ValidateXPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validator.ValidateXPath(tt.xpath, tt.modelName)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -406,37 +406,37 @@ func TestStandardYANGValidator_ValidateXPath(t *testing.T) {
 
 func TestYANGModelRegistry_GetStatistics(t *testing.T) {
 	registry := NewYANGModelRegistry()
-	
+
 	stats := registry.GetStatistics()
-	
+
 	assert.NotNil(t, stats)
 	assert.Contains(t, stats, "total_models")
 	assert.Contains(t, stats, "loaded_modules")
 	assert.Contains(t, stats, "validators")
 	assert.Contains(t, stats, "models")
-	
+
 	// Verify statistics values
 	totalModels, ok := stats["total_models"].(int)
 	assert.True(t, ok)
 	assert.Greater(t, totalModels, 0)
-	
+
 	loadedModules, ok := stats["loaded_modules"].(int)
 	assert.True(t, ok)
 	assert.Equal(t, totalModels, loadedModules)
-	
+
 	validators, ok := stats["validators"].(int)
 	assert.True(t, ok)
 	assert.Greater(t, validators, 0)
-	
+
 	models, ok := stats["models"].(map[string]interface{})
 	assert.True(t, ok)
 	assert.Greater(t, len(models), 0)
-	
+
 	// Check individual model statistics
 	for modelName, modelInfo := range models {
 		modelInfoMap, ok := modelInfo.(map[string]interface{})
 		assert.True(t, ok, "Model info should be a map for %s", modelName)
-		
+
 		assert.Contains(t, modelInfoMap, "version")
 		assert.Contains(t, modelInfoMap, "revision")
 		assert.Contains(t, modelInfoMap, "namespace")
@@ -454,7 +454,7 @@ func TestYANGNode(t *testing.T) {
 		Config:      true,
 		Children:    make(map[string]*YANGNode),
 	}
-	
+
 	assert.Equal(t, "test-node", node.Name)
 	assert.Equal(t, "container", node.Type)
 	assert.True(t, node.Mandatory)
@@ -473,13 +473,13 @@ func TestConvertYANGChildren(t *testing.T) {
 			Type: "container",
 		},
 	}
-	
+
 	result := convertYANGChildren(children)
-	
+
 	assert.Len(t, result, 2)
 	assert.Contains(t, result, "child1")
 	assert.Contains(t, result, "child2")
-	
+
 	child1, ok := result["child1"].(*YANGNode)
 	assert.True(t, ok)
 	assert.Equal(t, "child1", child1.Name)
@@ -490,7 +490,7 @@ func TestConvertYANGChildren(t *testing.T) {
 func BenchmarkYANGModelRegistry_ValidateConfig(b *testing.B) {
 	registry := NewYANGModelRegistry()
 	ctx := context.Background()
-	
+
 	data := map[string]interface{}{
 		"hardware": map[string]interface{}{
 			"component": []interface{}{
@@ -504,7 +504,7 @@ func BenchmarkYANGModelRegistry_ValidateConfig(b *testing.B) {
 			},
 		},
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = registry.ValidateConfig(ctx, data, "o-ran-hardware")
@@ -515,7 +515,7 @@ func BenchmarkStandardYANGValidator_ValidateXPath(b *testing.B) {
 	registry := NewYANGModelRegistry()
 	validator := &StandardYANGValidator{registry: registry}
 	xpath := "/hardware/component[name='cpu-1']"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = validator.ValidateXPath(xpath, "o-ran-hardware")

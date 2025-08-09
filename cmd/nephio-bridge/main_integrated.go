@@ -12,22 +12,25 @@
 // - Graceful degradation when authentication is disabled
 //
 // Environment Variables for Authentication:
-//   AUTH_ENABLED - Enable/disable authentication (default: false)
-//   AUTH_CONFIG_FILE - Path to authentication configuration file
-//   JWT_SECRET_KEY - JWT signing key (required if auth enabled)
-//   RBAC_ENABLED - Enable role-based access control (default: true)
-//   ADMIN_USERS - Comma-separated list of admin users
-//   OPERATOR_USERS - Comma-separated list of operator users
+//
+//	AUTH_ENABLED - Enable/disable authentication (default: false)
+//	AUTH_CONFIG_FILE - Path to authentication configuration file
+//	JWT_SECRET_KEY - JWT signing key (required if auth enabled)
+//	RBAC_ENABLED - Enable role-based access control (default: true)
+//	ADMIN_USERS - Comma-separated list of admin users
+//	OPERATOR_USERS - Comma-separated list of operator users
 //
 // OAuth2 Providers (when configured):
-//   AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID - Azure AD
-//   GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET - Google OAuth2
-//   OKTA_CLIENT_ID, OKTA_CLIENT_SECRET, OKTA_DOMAIN - Okta
-//   KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET, KEYCLOAK_BASE_URL - Keycloak
+//
+//	AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_TENANT_ID - Azure AD
+//	GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET - Google OAuth2
+//	OKTA_CLIENT_ID, OKTA_CLIENT_SECRET, OKTA_DOMAIN - Okta
+//	KEYCLOAK_CLIENT_ID, KEYCLOAK_CLIENT_SECRET, KEYCLOAK_BASE_URL - Keycloak
 //
 // LDAP Providers (when configured):
-//   LDAP_HOST, LDAP_PORT, LDAP_BIND_DN, LDAP_BIND_PASSWORD - LDAP config
-//   AD_HOST, AD_DOMAIN - Active Directory specific config
+//
+//	LDAP_HOST, LDAP_PORT, LDAP_BIND_DN, LDAP_BIND_PASSWORD - LDAP config
+//	AD_HOST, AD_DOMAIN - Active Directory specific config
 //
 // The application maintains backward compatibility - when authentication is
 // disabled, it operates in the same manner as the original implementation.
@@ -45,8 +48,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/tools/record"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -84,7 +87,7 @@ func (a *llmClientAdapter) ProcessIntent(ctx context.Context, prompt string) (st
 			ctx = context.WithValue(ctx, "authenticated_request", true)
 		}
 	}
-	
+
 	return a.client.ProcessIntent(ctx, prompt)
 }
 
@@ -95,13 +98,13 @@ func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt strin
 			ctx = context.WithValue(ctx, "authenticated_request", true)
 		}
 	}
-	
+
 	// For now, fall back to non-streaming
 	result, err := a.client.ProcessIntent(ctx, prompt)
 	if err != nil {
 		return err
 	}
-	
+
 	if chunks != nil {
 		chunks <- &shared.StreamingChunk{
 			Content: result,
@@ -197,14 +200,14 @@ func main() {
 	// Initialize structured logger early for better logging throughout initialization
 	logger := slog.Default()
 	setupLog = ctrl.Log.WithName("setup")
-	
+
 	// Load configuration from environment variables
 	cfg, err := config.LoadFromEnv()
 	if err != nil {
 		setupLog.Error(err, "failed to load configuration")
 		os.Exit(1)
 	}
-	
+
 	// Load authentication configuration
 	authConfigPath := os.Getenv("AUTH_CONFIG_FILE")
 	authConfig, err := auth.LoadAuthConfig(authConfigPath)
@@ -212,15 +215,15 @@ func main() {
 		setupLog.Error(err, "failed to load authentication configuration")
 		os.Exit(1)
 	}
-	
+
 	// Log authentication status
 	if authConfig.Enabled {
-		setupLog.Info("Authentication enabled", 
+		setupLog.Info("Authentication enabled",
 			"providers", getEnabledProviders(authConfig),
 			"rbac_enabled", authConfig.RBAC.Enabled,
 			"admin_users", len(authConfig.AdminUsers),
 			"operator_users", len(authConfig.OperatorUsers))
-		
+
 		// Validate that at least one provider is properly configured
 		enabledProviders := getEnabledProviders(authConfig)
 		if len(enabledProviders) == 1 && enabledProviders[0] == "configured-but-none-enabled" {
@@ -269,12 +272,12 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-	
+
 	// Initialize authentication integration if enabled
 	var authIntegration *auth.NephoranAuthIntegration
 	if authConfig.Enabled {
 		setupLog.Info("Initializing authentication integration")
-		
+
 		// Create Nephoran auth configuration
 		nephoranAuthConfig := &auth.NephoranAuthConfig{
 			AuthConfig: authConfig,
@@ -288,7 +291,7 @@ func main() {
 				Enabled: authConfig.RBAC.Enabled,
 			},
 		}
-		
+
 		// Initialize authentication integration
 		authIntegration, err = auth.NewNephoranAuthIntegration(
 			nephoranAuthConfig,
@@ -299,7 +302,7 @@ func main() {
 			setupLog.Error(err, "failed to initialize authentication integration")
 			os.Exit(1)
 		}
-		
+
 		setupLog.Info("Authentication integration initialized successfully")
 	} else {
 		setupLog.Info("Skipping authentication integration - auth disabled")
@@ -307,7 +310,7 @@ func main() {
 
 	// Initialize clients with configuration
 	llmClient := llm.NewClient(cfg.LLMProcessorURL)
-	
+
 	// Create Git client with token file support
 	var gitClient *git.Client
 	if cfg.GitTokenPath != "" || cfg.GitToken != "" {
@@ -345,18 +348,18 @@ func main() {
 		authIntegration: authIntegration,
 		authEnabled:     authConfig.Enabled,
 	}
-	
+
 	// Create dependencies struct that implements Dependencies interface with auth integration
 	deps := &dependencyImpl{
-		gitClient:        gitClient,
-		llmClient:        llmClientAdapter,
-		packageGen:       packageGen,
-		httpClient:       &http.Client{Timeout: 30 * time.Second},
-		eventRecorder:    mgr.GetEventRecorderFor("network-intent-controller"),
-		authIntegration:  authIntegration,
-		authEnabled:      authConfig.Enabled,
+		gitClient:       gitClient,
+		llmClient:       llmClientAdapter,
+		packageGen:      packageGen,
+		httpClient:      &http.Client{Timeout: 30 * time.Second},
+		eventRecorder:   mgr.GetEventRecorderFor("network-intent-controller"),
+		authIntegration: authIntegration,
+		authEnabled:     authConfig.Enabled,
 	}
-	
+
 	// Create controller configuration
 	controllerConfig := &controllers.Config{
 		MaxRetries:      3,
@@ -368,7 +371,7 @@ func main() {
 		LLMProcessorURL: cfg.LLMProcessorURL,
 		UseNephioPorch:  useNephioPorch,
 	}
-	
+
 	// Setup NetworkIntent controller with optional authentication decoration
 	// Create base controller
 	networkIntentController, err := controllers.NewNetworkIntentReconciler(
@@ -381,19 +384,19 @@ func main() {
 		setupLog.Error(err, "unable to create NetworkIntent controller")
 		os.Exit(1)
 	}
-	
+
 	// Setup controller with manager
 	if err = networkIntentController.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to setup controller", "controller", "NetworkIntent")
 		os.Exit(1)
 	}
-	
+
 	// Log authentication status for NetworkIntent controller
 	if authConfig.Enabled && authIntegration != nil {
 		setupLog.Info("NetworkIntent controller configured with authentication support",
 			"auth_enabled", true,
 			"rbac_enabled", authConfig.RBAC.Enabled)
-		
+
 		// Note: Authentication decoration is applied through the dependency injection
 		// system and authentication context in the controller operations
 	} else {
@@ -407,11 +410,11 @@ func main() {
 		Scheme:    mgr.GetScheme(),
 		GitClient: gitClient,
 	}
-	
+
 	// Apply authentication decoration if enabled
 	if authConfig.Enabled && authIntegration != nil {
 		setupLog.Info("E2NodeSet controller will use authentication context (applied via base reconciler)")
-		
+
 		// Note: E2NodeSet controller will inherit authentication context through
 		// the shared client and manager. For more granular control, we could
 		// create a similar decorator pattern as NetworkIntent, but for now
@@ -419,7 +422,7 @@ func main() {
 	} else {
 		setupLog.Info("E2NodeSet controller running without authentication")
 	}
-	
+
 	if err = e2NodeSetController.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "E2NodeSet")
 		os.Exit(1)
@@ -435,11 +438,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting manager", 
+	setupLog.Info("starting manager",
 		"authentication_enabled", authConfig.Enabled,
 		"rbac_enabled", authConfig.RBAC.Enabled,
 		"providers_configured", getEnabledProviders(authConfig))
-	
+
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
@@ -451,7 +454,7 @@ func getEnabledProviders(authConfig *auth.AuthConfig) []string {
 	if !authConfig.Enabled {
 		return []string{"none"}
 	}
-	
+
 	var providers []string
 	for name, provider := range authConfig.Providers {
 		if provider.Enabled {
@@ -476,7 +479,7 @@ func createAuthAwareHealthCheck(authEnabled bool, authIntegration *auth.Nephoran
 		if err := healthz.Ping(req); err != nil {
 			return err
 		}
-		
+
 		// Additional auth health check if enabled
 		if authEnabled && authIntegration != nil {
 			// Could add specific auth system health checks here
@@ -485,19 +488,19 @@ func createAuthAwareHealthCheck(authEnabled bool, authIntegration *auth.Nephoran
 				return fmt.Errorf("authentication integration not available")
 			}
 		}
-		
+
 		return nil
 	}
 }
 
-// createAuthAwareReadinessCheck creates readiness check that includes auth status  
+// createAuthAwareReadinessCheck creates readiness check that includes auth status
 func createAuthAwareReadinessCheck(authEnabled bool, authIntegration *auth.NephoranAuthIntegration) healthz.Checker {
 	return func(req *http.Request) error {
 		// Base readiness check
 		if err := healthz.Ping(req); err != nil {
 			return err
 		}
-		
+
 		// Additional auth readiness check if enabled
 		if authEnabled && authIntegration != nil {
 			// Verify auth integration is ready
@@ -506,7 +509,7 @@ func createAuthAwareReadinessCheck(authEnabled bool, authIntegration *auth.Nepho
 			}
 			// Could add more comprehensive auth system readiness checks
 		}
-		
+
 		return nil
 	}
 }

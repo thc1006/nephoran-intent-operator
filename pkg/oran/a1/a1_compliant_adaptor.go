@@ -32,19 +32,19 @@ type A1ErrorResponse struct {
 
 // EnrichmentInfoType represents A1-EI type definition
 type EnrichmentInfoType struct {
-	EiTypeID           string                 `json:"ei_type_id"`
-	EiJobDataSchema    map[string]interface{} `json:"ei_job_data_schema"`
-	EiJobResultSchema  map[string]interface{} `json:"ei_job_result_schema,omitempty"`
+	EiTypeID          string                 `json:"ei_type_id"`
+	EiJobDataSchema   map[string]interface{} `json:"ei_job_data_schema"`
+	EiJobResultSchema map[string]interface{} `json:"ei_job_result_schema,omitempty"`
 }
 
 // EnrichmentInfoJob represents A1-EI job definition
 type EnrichmentInfoJob struct {
-	EiJobID       string                 `json:"ei_job_id"`
-	EiTypeID      string                 `json:"ei_type_id"`
-	EiJobData     map[string]interface{} `json:"ei_job_data"`
-	TargetURI     string                 `json:"target_uri"`
-	JobOwner      string                 `json:"job_owner"`
-	JobStatusURL  string                 `json:"job_status_url,omitempty"`
+	EiJobID      string                 `json:"ei_job_id"`
+	EiTypeID     string                 `json:"ei_type_id"`
+	EiJobData    map[string]interface{} `json:"ei_job_data"`
+	TargetURI    string                 `json:"target_uri"`
+	JobOwner     string                 `json:"job_owner"`
+	JobStatusURL string                 `json:"job_status_url,omitempty"`
 }
 
 // O-RAN Compliant A1-P Interface Methods
@@ -53,7 +53,7 @@ type EnrichmentInfoJob struct {
 func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A1PolicyType) error {
 	// O-RAN compliant URL format
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyType.PolicyTypeID)
-	
+
 	// Convert to O-RAN compliant format
 	oranPolicyType := A1PolicyTypeResponse{
 		PolicyTypeID: policyType.PolicyTypeID,
@@ -62,27 +62,27 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 		Schema:       policyType.PolicySchema,
 		CreateSchema: policyType.CreateSchema,
 	}
-	
+
 	body, err := json.Marshal(oranPolicyType)
 	if err != nil {
 		return fmt.Errorf("failed to marshal policy type: %w", err)
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// O-RAN compliant headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, application/problem+json")
-	
+
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	// O-RAN compliant status code handling
 	switch resp.StatusCode {
 	case http.StatusCreated:
@@ -103,20 +103,20 @@ func (a *A1Adaptor) CreatePolicyTypeCompliant(ctx context.Context, policyType *A
 // GetPolicyTypeCompliant retrieves a policy type using O-RAN compliant format
 func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int) (*A1PolicyTypeResponse, error) {
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyTypeID)
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Accept", "application/json, application/problem+json")
-	
+
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	switch resp.StatusCode {
 	case http.StatusOK:
 		var policyType A1PolicyTypeResponse
@@ -134,49 +134,49 @@ func (a *A1Adaptor) GetPolicyTypeCompliant(ctx context.Context, policyTypeID int
 // ListPolicyTypesCompliant lists all policy types in O-RAN compliant format
 func (a *A1Adaptor) ListPolicyTypesCompliant(ctx context.Context) ([]int, error) {
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes", a.ricURL)
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Accept", "application/json, application/problem+json")
-	
+
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, a.handleErrorResponse(resp, "Failed to list policy types")
 	}
-	
+
 	var policyTypeIDs []int
 	if err := json.NewDecoder(resp.Body).Decode(&policyTypeIDs); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	return policyTypeIDs, nil
 }
 
 // DeletePolicyTypeCompliant deletes a policy type using O-RAN compliant format
 func (a *A1Adaptor) DeletePolicyTypeCompliant(ctx context.Context, policyTypeID int) error {
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d", a.ricURL, policyTypeID)
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, url, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Accept", "application/json, application/problem+json")
-	
+
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	switch resp.StatusCode {
 	case http.StatusNoContent:
 		return nil // Successfully deleted
@@ -195,28 +195,28 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 	if err := a.validatePolicyData(ctx, policyTypeID, policyData); err != nil {
 		return fmt.Errorf("policy validation failed: %w", err)
 	}
-	
+
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s", a.ricURL, policyTypeID, instanceID)
-	
+
 	body, err := json.Marshal(policyData)
 	if err != nil {
 		return fmt.Errorf("failed to marshal policy data: %w", err)
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPut, url, bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json, application/problem+json")
-	
+
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	switch resp.StatusCode {
 	case http.StatusCreated:
 		return nil // Policy instance created
@@ -236,20 +236,20 @@ func (a *A1Adaptor) CreatePolicyInstanceCompliant(ctx context.Context, policyTyp
 // GetPolicyStatusCompliant retrieves policy status with detailed information
 func (a *A1Adaptor) GetPolicyStatusCompliant(ctx context.Context, policyTypeID int, instanceID string) (*A1PolicyStatusCompliant, error) {
 	url := fmt.Sprintf("%s/A1-P/v2/policytypes/%d/policies/%s/status", a.ricURL, policyTypeID, instanceID)
-	
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Accept", "application/json, application/problem+json")
-	
+
 	resp, err := a.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	switch resp.StatusCode {
 	case http.StatusOK:
 		var status A1PolicyStatusCompliant
@@ -282,7 +282,7 @@ func (a *A1Adaptor) validatePolicyData(ctx context.Context, policyTypeID int, po
 	if err != nil {
 		return fmt.Errorf("failed to get policy type: %w", err)
 	}
-	
+
 	// Implement JSON schema validation here
 	// This is a simplified version - in production, use a proper JSON schema validator
 	if policyType.Schema != nil {
@@ -297,14 +297,14 @@ func (a *A1Adaptor) validatePolicyData(ctx context.Context, policyTypeID int, po
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 // handleErrorResponse handles O-RAN compliant error responses
 func (a *A1Adaptor) handleErrorResponse(resp *http.Response, defaultMessage string) error {
 	bodyBytes, _ := io.ReadAll(resp.Body)
-	
+
 	// Try to parse as O-RAN error response (RFC 7807 format)
 	if resp.Header.Get("Content-Type") == "application/problem+json" {
 		var errorResp A1ErrorResponse
@@ -312,7 +312,7 @@ func (a *A1Adaptor) handleErrorResponse(resp *http.Response, defaultMessage stri
 			return fmt.Errorf("A1 error: %s - %s", errorResp.Title, errorResp.Detail)
 		}
 	}
-	
+
 	// Fallback to generic error
 	return fmt.Errorf("%s: status=%d, body=%s", defaultMessage, resp.StatusCode, string(bodyBytes))
 }

@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -16,16 +17,15 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // GRPCWeaviateClient provides high-performance gRPC-based Weaviate client
 type GRPCWeaviateClient struct {
-	config      *GRPCClientConfig
-	logger      *slog.Logger
-	connPool    *GRPCConnectionPool
-	metrics     *GRPCMetrics
-	codec       *OptimizedCodec
+	config       *GRPCClientConfig
+	logger       *slog.Logger
+	connPool     *GRPCConnectionPool
+	metrics      *GRPCMetrics
+	codec        *OptimizedCodec
 	interceptors *GRPCInterceptors
 }
 
@@ -35,32 +35,32 @@ type GRPCClientConfig struct {
 	MaxConnections    int           `json:"max_connections"`
 	ConnectionTimeout time.Duration `json:"connection_timeout"`
 	RequestTimeout    time.Duration `json:"request_timeout"`
-	
+
 	// gRPC specific settings
-	EnableCompression     bool          `json:"enable_compression"`
-	CompressionAlgorithm  string        `json:"compression_algorithm"`
-	MaxMessageSize        int           `json:"max_message_size"`
-	EnableKeepalive       bool          `json:"enable_keepalive"`
-	KeepaliveTime         time.Duration `json:"keepalive_time"`
-	KeepaliveTimeout      time.Duration `json:"keepalive_timeout"`
-	KeepalivePermitWithoutStream bool   `json:"keepalive_permit_without_stream"`
-	
+	EnableCompression            bool          `json:"enable_compression"`
+	CompressionAlgorithm         string        `json:"compression_algorithm"`
+	MaxMessageSize               int           `json:"max_message_size"`
+	EnableKeepalive              bool          `json:"enable_keepalive"`
+	KeepaliveTime                time.Duration `json:"keepalive_time"`
+	KeepaliveTimeout             time.Duration `json:"keepalive_timeout"`
+	KeepalivePermitWithoutStream bool          `json:"keepalive_permit_without_stream"`
+
 	// Performance optimizations
 	EnableConnectionPooling bool          `json:"enable_connection_pooling"`
-	EnableBatching         bool          `json:"enable_batching"`
-	BatchTimeout           time.Duration `json:"batch_timeout"`
-	MaxBatchSize           int           `json:"max_batch_size"`
-	
+	EnableBatching          bool          `json:"enable_batching"`
+	BatchTimeout            time.Duration `json:"batch_timeout"`
+	MaxBatchSize            int           `json:"max_batch_size"`
+
 	// Security settings
-	EnableTLS      bool   `json:"enable_tls"`
-	CertFile       string `json:"cert_file"`
-	KeyFile        string `json:"key_file"`
-	CAFile         string `json:"ca_file"`
-	ServerName     string `json:"server_name"`
-	
+	EnableTLS  bool   `json:"enable_tls"`
+	CertFile   string `json:"cert_file"`
+	KeyFile    string `json:"key_file"`
+	CAFile     string `json:"ca_file"`
+	ServerName string `json:"server_name"`
+
 	// Authentication
-	APIKey         string `json:"api_key"`
-	Token          string `json:"token"`
+	APIKey string `json:"api_key"`
+	Token  string `json:"token"`
 }
 
 // GRPCConnectionPool manages a pool of gRPC connections
@@ -74,34 +74,34 @@ type GRPCConnectionPool struct {
 
 // GRPCMetrics tracks gRPC client performance metrics
 type GRPCMetrics struct {
-	TotalRequests        int64         `json:"total_requests"`
-	SuccessfulRequests   int64         `json:"successful_requests"`
-	FailedRequests       int64         `json:"failed_requests"`
-	AverageLatency       time.Duration `json:"average_latency"`
-	ConnectionsActive    int32         `json:"connections_active"`
-	ConnectionsCreated   int64         `json:"connections_created"`
-	ConnectionsFailed    int64         `json:"connections_failed"`
-	BytesSent            int64         `json:"bytes_sent"`
-	BytesReceived        int64         `json:"bytes_received"`
-	CompressionSavings   float64       `json:"compression_savings"`
-	BatchedRequests      int64         `json:"batched_requests"`
-	BatchEfficiency      float64       `json:"batch_efficiency"`
-	mutex                sync.RWMutex
+	TotalRequests      int64         `json:"total_requests"`
+	SuccessfulRequests int64         `json:"successful_requests"`
+	FailedRequests     int64         `json:"failed_requests"`
+	AverageLatency     time.Duration `json:"average_latency"`
+	ConnectionsActive  int32         `json:"connections_active"`
+	ConnectionsCreated int64         `json:"connections_created"`
+	ConnectionsFailed  int64         `json:"connections_failed"`
+	BytesSent          int64         `json:"bytes_sent"`
+	BytesReceived      int64         `json:"bytes_received"`
+	CompressionSavings float64       `json:"compression_savings"`
+	BatchedRequests    int64         `json:"batched_requests"`
+	BatchEfficiency    float64       `json:"batch_efficiency"`
+	mutex              sync.RWMutex
 }
 
 // OptimizedCodec provides optimized encoding/decoding
 type OptimizedCodec struct {
 	enableCompression bool
 	compressionLevel  int
-	bufferPool       sync.Pool
-	encoderPool      sync.Pool
-	decoderPool      sync.Pool
+	bufferPool        sync.Pool
+	encoderPool       sync.Pool
+	decoderPool       sync.Pool
 }
 
 // GRPCInterceptors provides performance-focused interceptors
 type GRPCInterceptors struct {
-	metrics    *GRPCMetrics
-	logger     *slog.Logger
+	metrics     *GRPCMetrics
+	logger      *slog.Logger
 	rateLimiter *GRPCRateLimiter
 }
 
@@ -109,9 +109,9 @@ type GRPCInterceptors struct {
 type GRPCRateLimiter struct {
 	requestsPerSecond float64
 	burstSize         int
-	tokens           float64
-	lastUpdate       time.Time
-	mutex            sync.Mutex
+	tokens            float64
+	lastUpdate        time.Time
+	mutex             sync.Mutex
 }
 
 // Batch request structures for gRPC batching
@@ -121,11 +121,11 @@ type BatchSearchRequest struct {
 }
 
 type VectorSearchRequest struct {
-	Query     string                 `json:"query"`
-	Vector    []float32              `json:"vector"`
-	Limit     int                    `json:"limit"`
-	Filters   map[string]interface{} `json:"filters"`
-	Metadata  map[string]string      `json:"metadata"`
+	Query    string                 `json:"query"`
+	Vector   []float32              `json:"vector"`
+	Limit    int                    `json:"limit"`
+	Filters  map[string]interface{} `json:"filters"`
+	Metadata map[string]string      `json:"metadata"`
 }
 
 type BatchSearchResponse struct {
@@ -169,7 +169,7 @@ func NewGRPCWeaviateClient(config *GRPCClientConfig) (*GRPCWeaviateClient, error
 		logger:  logger,
 		rateLimiter: &GRPCRateLimiter{
 			requestsPerSecond: 1000.0,
-			burstSize:        100,
+			burstSize:         100,
 		},
 	}
 
@@ -192,20 +192,20 @@ func getDefaultGRPCConfig() *GRPCClientConfig {
 		MaxConnections:    10,
 		ConnectionTimeout: 30 * time.Second,
 		RequestTimeout:    10 * time.Second,
-		
-		EnableCompression:    true,
-		CompressionAlgorithm: "gzip",
-		MaxMessageSize:       4 * 1024 * 1024, // 4MB
-		EnableKeepalive:      true,
-		KeepaliveTime:        30 * time.Second,
-		KeepaliveTimeout:     5 * time.Second,
+
+		EnableCompression:            true,
+		CompressionAlgorithm:         "gzip",
+		MaxMessageSize:               4 * 1024 * 1024, // 4MB
+		EnableKeepalive:              true,
+		KeepaliveTime:                30 * time.Second,
+		KeepaliveTimeout:             5 * time.Second,
 		KeepalivePermitWithoutStream: true,
-		
+
 		EnableConnectionPooling: true,
-		EnableBatching:         true,
-		BatchTimeout:           50 * time.Millisecond,
-		MaxBatchSize:          20,
-		
+		EnableBatching:          true,
+		BatchTimeout:            50 * time.Millisecond,
+		MaxBatchSize:            20,
+
 		EnableTLS: false,
 	}
 }
@@ -284,10 +284,10 @@ func (p *GRPCConnectionPool) createConnection() (*grpc.ClientConn, error) {
 func (p *GRPCConnectionPool) GetConnection() *grpc.ClientConn {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	
+
 	conn := p.connections[p.current]
 	p.current = (p.current + 1) % len(p.connections)
-	
+
 	return conn
 }
 
@@ -295,7 +295,7 @@ func (p *GRPCConnectionPool) GetConnection() *grpc.ClientConn {
 func (p *GRPCConnectionPool) Close() error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	
+
 	var lastErr error
 	for i, conn := range p.connections {
 		if conn != nil {
@@ -305,7 +305,7 @@ func (p *GRPCConnectionPool) Close() error {
 			}
 		}
 	}
-	
+
 	return lastErr
 }
 
@@ -422,10 +422,10 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorSearchRequest) (*VectorSearchResponse, error) {
 	// Get connection from pool
 	conn := c.connPool.GetConnection()
-	
+
 	// Add authentication metadata
 	ctx = c.addAuthenticationContext(ctx)
-	
+
 	// Add timeout
 	ctx, cancel := context.WithTimeout(ctx, c.config.RequestTimeout)
 	defer cancel()
@@ -433,10 +433,10 @@ func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorS
 	// This is a placeholder - in a real implementation, you would call the actual gRPC service
 	// client := vectorsearch.NewVectorSearchServiceClient(conn)
 	// response, err := client.Search(ctx, req)
-	
+
 	// For now, simulate a gRPC call
 	time.Sleep(10 * time.Millisecond) // Simulate network latency
-	
+
 	// Return mock response
 	return &VectorSearchResponse{
 		Results: []*VectorResult{
@@ -460,17 +460,17 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *Ba
 	// Get connection from pool
 	conn := c.connPool.GetConnection()
 	_ = conn // Use the connection
-	
+
 	// Add authentication metadata
 	ctx = c.addAuthenticationContext(ctx)
-	
+
 	// Add timeout
 	ctx, cancel := context.WithTimeout(ctx, c.config.RequestTimeout*time.Duration(len(req.Requests)))
 	defer cancel()
 
 	// This is a placeholder for actual gRPC batch call
 	time.Sleep(20 * time.Millisecond) // Simulate batch processing time
-	
+
 	// Return mock batch response
 	responses := make([]*VectorSearchResponse, len(req.Requests))
 	for i := range req.Requests {
@@ -487,7 +487,7 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *Ba
 			},
 		}
 	}
-	
+
 	return &BatchSearchResponse{
 		Responses: responses,
 		Metadata: map[string]string{
@@ -499,27 +499,27 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *Ba
 // addAuthenticationContext adds authentication to the gRPC context
 func (c *GRPCWeaviateClient) addAuthenticationContext(ctx context.Context) context.Context {
 	md := metadata.New(map[string]string{})
-	
+
 	if c.config.APIKey != "" {
 		md.Set("api-key", c.config.APIKey)
 	}
-	
+
 	if c.config.Token != "" {
 		md.Set("authorization", "Bearer "+c.config.Token)
 	}
-	
+
 	return metadata.NewOutgoingContext(ctx, md)
 }
 
 // convertToSearchResponse converts gRPC response to standard SearchResponse
 func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchResponse, query string) *SearchResponse {
 	results := make([]*shared.SearchResult, len(grpcResp.Results))
-	
+
 	for i, result := range grpcResp.Results {
 		doc := &shared.TelecomDocument{
 			ID: result.ID,
 		}
-		
+
 		// Extract document fields from the map
 		if content, ok := result.Document["content"].(string); ok {
 			doc.Content = content
@@ -527,13 +527,13 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 		if title, ok := result.Document["title"].(string); ok {
 			doc.Title = title
 		}
-		
+
 		results[i] = &shared.SearchResult{
 			Document: doc,
 			Score:    result.Score,
 		}
 	}
-	
+
 	return &SearchResponse{
 		Results:     results,
 		Query:       query,
@@ -548,23 +548,23 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 func (c *GRPCWeaviateClient) updateMetrics(success bool, latency time.Duration, resultCount, batchSize int) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
-	
+
 	c.metrics.TotalRequests++
-	
+
 	if success {
 		c.metrics.SuccessfulRequests++
 	} else {
 		c.metrics.FailedRequests++
 	}
-	
+
 	// Update average latency
 	if c.metrics.TotalRequests == 1 {
 		c.metrics.AverageLatency = latency
 	} else {
-		c.metrics.AverageLatency = (c.metrics.AverageLatency*time.Duration(c.metrics.TotalRequests-1) + 
+		c.metrics.AverageLatency = (c.metrics.AverageLatency*time.Duration(c.metrics.TotalRequests-1) +
 			latency) / time.Duration(c.metrics.TotalRequests)
 	}
-	
+
 	// Update batch metrics
 	if batchSize > 1 {
 		c.metrics.BatchedRequests++
@@ -575,21 +575,21 @@ func (c *GRPCWeaviateClient) updateMetrics(success bool, latency time.Duration, 
 // StreamingSearch provides streaming search results
 func (c *GRPCWeaviateClient) StreamingSearch(ctx context.Context, queries []*SearchQuery, resultChan chan<- *SearchResponse) error {
 	defer close(resultChan)
-	
+
 	for _, query := range queries {
 		result, err := c.Search(ctx, query)
 		if err != nil {
 			c.logger.Error("Streaming search failed", "error", err, "query", query.Query)
 			continue
 		}
-		
+
 		select {
 		case resultChan <- result:
 		case <-ctx.Done():
 			return ctx.Err()
 		}
 	}
-	
+
 	return nil
 }
 
@@ -597,7 +597,7 @@ func (c *GRPCWeaviateClient) StreamingSearch(ctx context.Context, queries []*Sea
 func (c *GRPCWeaviateClient) GetMetrics() *GRPCMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
-	
+
 	metrics := *c.metrics
 	return &metrics
 }
@@ -606,18 +606,18 @@ func (c *GRPCWeaviateClient) GetMetrics() *GRPCMetrics {
 func (c *GRPCWeaviateClient) GetConnectionPoolStatus() map[string]interface{} {
 	c.connPool.mutex.RLock()
 	defer c.connPool.mutex.RUnlock()
-	
+
 	activeConns := 0
 	for _, conn := range c.connPool.connections {
 		if conn != nil && conn.GetState().String() == "READY" {
 			activeConns++
 		}
 	}
-	
+
 	return map[string]interface{}{
 		"total_connections":  len(c.connPool.connections),
 		"active_connections": activeConns,
-		"current_index":     c.connPool.current,
+		"current_index":      c.connPool.current,
 	}
 }
 

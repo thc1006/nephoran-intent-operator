@@ -27,14 +27,14 @@ type BenchmarkSuite struct {
 
 // PerformanceBaseline represents expected performance characteristics
 type PerformanceBaseline struct {
-	Name               string
-	MaxLatencyP50      time.Duration
-	MaxLatencyP95      time.Duration
-	MaxLatencyP99      time.Duration
-	MinThroughput      float64
-	MaxMemoryMB        float64
-	MaxCPUPercent      float64
-	MaxGoroutines      int
+	Name                string
+	MaxLatencyP50       time.Duration
+	MaxLatencyP95       time.Duration
+	MaxLatencyP99       time.Duration
+	MinThroughput       float64
+	MaxMemoryMB         float64
+	MaxCPUPercent       float64
+	MaxGoroutines       int
 	RegressionTolerance float64 // Percentage tolerance for regression
 }
 
@@ -66,12 +66,12 @@ type BenchmarkResult struct {
 
 // ResourceMetrics tracks resource usage during benchmarks
 type ResourceMetrics struct {
-	CPUSamples      []float64
-	MemorySamples   []uint64
+	CPUSamples       []float64
+	MemorySamples    []uint64
 	GoroutineSamples []int
-	GCStats         runtime.MemStats
-	NetworkIO       NetworkMetrics
-	DiskIO          DiskMetrics
+	GCStats          runtime.MemStats
+	NetworkIO        NetworkMetrics
+	DiskIO           DiskMetrics
 }
 
 // NetworkMetrics tracks network I/O during benchmarks
@@ -106,58 +106,58 @@ func NewBenchmarkSuite() *BenchmarkSuite {
 func getDefaultBaselines() map[string]PerformanceBaseline {
 	return map[string]PerformanceBaseline{
 		"single_intent": {
-			Name:               "Single Intent Processing",
-			MaxLatencyP50:      15 * time.Second,
-			MaxLatencyP95:      25 * time.Second,
-			MaxLatencyP99:      30 * time.Second,
-			MinThroughput:      1.0,
-			MaxMemoryMB:        500,
-			MaxCPUPercent:      80,
-			MaxGoroutines:      100,
+			Name:                "Single Intent Processing",
+			MaxLatencyP50:       15 * time.Second,
+			MaxLatencyP95:       25 * time.Second,
+			MaxLatencyP99:       30 * time.Second,
+			MinThroughput:       1.0,
+			MaxMemoryMB:         500,
+			MaxCPUPercent:       80,
+			MaxGoroutines:       100,
 			RegressionTolerance: 10.0,
 		},
 		"concurrent_10": {
-			Name:               "10 Concurrent Users",
-			MaxLatencyP50:      3 * time.Second,
-			MaxLatencyP95:      5 * time.Second,
-			MaxLatencyP99:      8 * time.Second,
-			MinThroughput:      8.0,
-			MaxMemoryMB:        1000,
-			MaxCPUPercent:      150,
-			MaxGoroutines:      200,
+			Name:                "10 Concurrent Users",
+			MaxLatencyP50:       3 * time.Second,
+			MaxLatencyP95:       5 * time.Second,
+			MaxLatencyP99:       8 * time.Second,
+			MinThroughput:       8.0,
+			MaxMemoryMB:         1000,
+			MaxCPUPercent:       150,
+			MaxGoroutines:       200,
 			RegressionTolerance: 15.0,
 		},
 		"e2nodeset_scaling": {
-			Name:               "E2NodeSet Scaling to 100 Nodes",
-			MaxLatencyP50:      60 * time.Second,
-			MaxLatencyP95:      80 * time.Second,
-			MaxLatencyP99:      90 * time.Second,
-			MinThroughput:      1.1, // nodes per second
-			MaxMemoryMB:        2000,
-			MaxCPUPercent:      200,
-			MaxGoroutines:      500,
+			Name:                "E2NodeSet Scaling to 100 Nodes",
+			MaxLatencyP50:       60 * time.Second,
+			MaxLatencyP95:       80 * time.Second,
+			MaxLatencyP99:       90 * time.Second,
+			MinThroughput:       1.1, // nodes per second
+			MaxMemoryMB:         2000,
+			MaxCPUPercent:       200,
+			MaxGoroutines:       500,
 			RegressionTolerance: 20.0,
 		},
 		"memory_stability": {
-			Name:               "10-Minute Memory Stability",
-			MaxLatencyP50:      5 * time.Second,
-			MaxLatencyP95:      10 * time.Second,
-			MaxLatencyP99:      15 * time.Second,
-			MinThroughput:      5.0,
-			MaxMemoryMB:        1500,
-			MaxCPUPercent:      100,
-			MaxGoroutines:      300,
+			Name:                "10-Minute Memory Stability",
+			MaxLatencyP50:       5 * time.Second,
+			MaxLatencyP95:       10 * time.Second,
+			MaxLatencyP99:       15 * time.Second,
+			MinThroughput:       5.0,
+			MaxMemoryMB:         1500,
+			MaxCPUPercent:       100,
+			MaxGoroutines:       300,
 			RegressionTolerance: 5.0,
 		},
 		"high_throughput": {
-			Name:               "High Throughput (50 intents/sec)",
-			MaxLatencyP50:      2 * time.Second,
-			MaxLatencyP95:      5 * time.Second,
-			MaxLatencyP99:      10 * time.Second,
-			MinThroughput:      50.0,
-			MaxMemoryMB:        3000,
-			MaxCPUPercent:      400,
-			MaxGoroutines:      1000,
+			Name:                "High Throughput (50 intents/sec)",
+			MaxLatencyP50:       2 * time.Second,
+			MaxLatencyP95:       5 * time.Second,
+			MaxLatencyP99:       10 * time.Second,
+			MinThroughput:       50.0,
+			MaxMemoryMB:         3000,
+			MaxCPUPercent:       400,
+			MaxGoroutines:       1000,
 			RegressionTolerance: 10.0,
 		},
 	}
@@ -195,7 +195,7 @@ func (bs *BenchmarkSuite) RunSingleIntentBenchmark(ctx context.Context, intentFu
 
 	// Calculate metrics
 	bs.calculateMetrics(result)
-	
+
 	// Check against baseline
 	result.Passed = bs.checkBaseline(result, baseline)
 
@@ -230,13 +230,13 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 	var errorCount int64
 	latencyChan := make(chan time.Duration, 10000)
 	errorChan := make(chan error, 1000)
-	
+
 	// Create worker pool
 	for i := 0; i < users; i++ {
 		wg.Add(1)
 		go func(workerID int) {
 			defer wg.Done()
-			
+
 			endTime := time.Now().Add(duration)
 			for time.Now().Before(endTime) {
 				select {
@@ -245,14 +245,14 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 				default:
 					// Apply rate limiting
 					bs.rateLimiter.When("request")
-					
+
 					start := time.Now()
 					err := workload()
 					latency := time.Since(start)
-					
+
 					atomic.AddInt64(&totalRequests, 1)
 					latencyChan <- latency
-					
+
 					if err != nil {
 						atomic.AddInt64(&errorCount, 1)
 						select {
@@ -292,7 +292,7 @@ func (bs *BenchmarkSuite) RunConcurrentBenchmark(ctx context.Context, users int,
 
 	// Calculate metrics
 	bs.calculateMetrics(result)
-	
+
 	// Check against baseline
 	result.Passed = bs.checkBaseline(result, baseline)
 
@@ -338,7 +338,7 @@ func (bs *BenchmarkSuite) RunE2NodeSetScalingBenchmark(ctx context.Context, node
 
 	// Calculate other metrics
 	bs.calculateMetrics(result)
-	
+
 	// Check against baseline
 	result.Passed = bs.checkBaseline(result, baseline)
 
@@ -370,7 +370,7 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 	var totalRequests int64
 	var successCount int64
 	var errorCount int64
-	
+
 	endTime := time.Now().Add(duration)
 	for time.Now().Before(endTime) {
 		select {
@@ -380,17 +380,17 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 			start := time.Now()
 			err := workload()
 			latency := time.Since(start)
-			
+
 			totalRequests++
 			result.Latencies = append(result.Latencies, latency)
-			
+
 			if err != nil {
 				errorCount++
 				result.Errors = append(result.Errors, err)
 			} else {
 				successCount++
 			}
-			
+
 			// Periodic GC to check for leaks
 			if totalRequests%100 == 0 {
 				runtime.GC()
@@ -417,7 +417,7 @@ func (bs *BenchmarkSuite) RunMemoryStabilityBenchmark(ctx context.Context, durat
 
 	// Calculate metrics
 	bs.calculateMetrics(result)
-	
+
 	// Check against baseline
 	result.Passed = bs.checkBaseline(result, baseline)
 
@@ -445,17 +445,17 @@ func (bs *BenchmarkSuite) RunRealisticTelecomWorkload(ctx context.Context, scena
 		start := time.Now()
 		err := step.Execute()
 		latency := time.Since(start)
-		
+
 		result.TotalRequests++
 		result.Latencies = append(result.Latencies, latency)
-		
+
 		if err != nil {
 			result.ErrorCount++
 			result.Errors = append(result.Errors, fmt.Errorf("step %s failed: %w", step.Name, err))
 		} else {
 			result.SuccessCount++
 		}
-		
+
 		// Wait between steps if specified
 		if step.Delay > 0 {
 			time.Sleep(step.Delay)
@@ -496,11 +496,11 @@ type ScenarioStep struct {
 // startResourceMonitoring starts monitoring resources during benchmark
 func (bs *BenchmarkSuite) startResourceMonitoring(ctx context.Context, result *BenchmarkResult) func() {
 	stopChan := make(chan struct{})
-	
+
 	go func() {
 		ticker := time.NewTicker(100 * time.Millisecond)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -511,16 +511,16 @@ func (bs *BenchmarkSuite) startResourceMonitoring(ctx context.Context, result *B
 				// Collect CPU usage
 				cpuPercent := bs.metrics.GetCPUUsage()
 				result.ResourceUsage.CPUSamples = append(result.ResourceUsage.CPUSamples, cpuPercent)
-				
+
 				// Collect memory usage
 				var memStats runtime.MemStats
 				runtime.ReadMemStats(&memStats)
 				result.ResourceUsage.MemorySamples = append(result.ResourceUsage.MemorySamples, memStats.Alloc)
-				
+
 				// Collect goroutine count
 				goroutineCount := runtime.NumGoroutine()
 				result.ResourceUsage.GoroutineSamples = append(result.ResourceUsage.GoroutineSamples, goroutineCount)
-				
+
 				// Update peaks
 				memoryMB := float64(memStats.Alloc) / (1024 * 1024)
 				if memoryMB > result.PeakMemoryMB {
@@ -535,7 +535,7 @@ func (bs *BenchmarkSuite) startResourceMonitoring(ctx context.Context, result *B
 			}
 		}
 	}()
-	
+
 	return func() {
 		close(stopChan)
 	}
@@ -585,45 +585,45 @@ func (bs *BenchmarkSuite) checkBaseline(result *BenchmarkResult, baseline Perfor
 	// Check latency
 	if result.LatencyP50 > baseline.MaxLatencyP50 {
 		passed = false
-		regressions = append(regressions, fmt.Sprintf("P50 latency %.2fs exceeds baseline %.2fs", 
+		regressions = append(regressions, fmt.Sprintf("P50 latency %.2fs exceeds baseline %.2fs",
 			result.LatencyP50.Seconds(), baseline.MaxLatencyP50.Seconds()))
 	}
 	if result.LatencyP95 > baseline.MaxLatencyP95 {
 		passed = false
-		regressions = append(regressions, fmt.Sprintf("P95 latency %.2fs exceeds baseline %.2fs", 
+		regressions = append(regressions, fmt.Sprintf("P95 latency %.2fs exceeds baseline %.2fs",
 			result.LatencyP95.Seconds(), baseline.MaxLatencyP95.Seconds()))
 	}
 	if result.LatencyP99 > baseline.MaxLatencyP99 {
 		passed = false
-		regressions = append(regressions, fmt.Sprintf("P99 latency %.2fs exceeds baseline %.2fs", 
+		regressions = append(regressions, fmt.Sprintf("P99 latency %.2fs exceeds baseline %.2fs",
 			result.LatencyP99.Seconds(), baseline.MaxLatencyP99.Seconds()))
 	}
 
 	// Check throughput
 	if result.Throughput < baseline.MinThroughput {
 		passed = false
-		regressions = append(regressions, fmt.Sprintf("Throughput %.2f below baseline %.2f", 
+		regressions = append(regressions, fmt.Sprintf("Throughput %.2f below baseline %.2f",
 			result.Throughput, baseline.MinThroughput))
 	}
 
 	// Check memory
 	if result.PeakMemoryMB > baseline.MaxMemoryMB {
 		passed = false
-		regressions = append(regressions, fmt.Sprintf("Peak memory %.2fMB exceeds baseline %.2fMB", 
+		regressions = append(regressions, fmt.Sprintf("Peak memory %.2fMB exceeds baseline %.2fMB",
 			result.PeakMemoryMB, baseline.MaxMemoryMB))
 	}
 
 	// Check CPU
 	if result.PeakCPUPercent > baseline.MaxCPUPercent {
 		passed = false
-		regressions = append(regressions, fmt.Sprintf("Peak CPU %.2f%% exceeds baseline %.2f%%", 
+		regressions = append(regressions, fmt.Sprintf("Peak CPU %.2f%% exceeds baseline %.2f%%",
 			result.PeakCPUPercent, baseline.MaxCPUPercent))
 	}
 
 	// Check goroutines
 	if result.MaxGoroutines > baseline.MaxGoroutines {
 		passed = false
-		regressions = append(regressions, fmt.Sprintf("Max goroutines %d exceeds baseline %d", 
+		regressions = append(regressions, fmt.Sprintf("Max goroutines %d exceeds baseline %d",
 			result.MaxGoroutines, baseline.MaxGoroutines))
 	}
 
@@ -647,7 +647,7 @@ func (bs *BenchmarkSuite) GenerateReport() string {
 	defer bs.mu.RUnlock()
 
 	report := "=== Nephoran Intent Operator Performance Report ===\n\n"
-	
+
 	for _, result := range bs.results {
 		report += fmt.Sprintf("Benchmark: %s\n", result.Name)
 		report += fmt.Sprintf("  Status: %s\n", getStatusString(result.Passed))
@@ -663,18 +663,18 @@ func (bs *BenchmarkSuite) GenerateReport() string {
 		report += fmt.Sprintf("  Avg CPU: %.2f%%\n", result.AvgCPUPercent)
 		report += fmt.Sprintf("  Peak CPU: %.2f%%\n", result.PeakCPUPercent)
 		report += fmt.Sprintf("  Max Goroutines: %d\n", result.MaxGoroutines)
-		
+
 		if result.RegressionInfo != "" {
 			report += fmt.Sprintf("  Regression Info: %s\n", result.RegressionInfo)
 		}
-		
+
 		if len(result.Errors) > 0 {
 			report += fmt.Sprintf("  Errors: %d\n", len(result.Errors))
 		}
-		
+
 		report += "\n"
 	}
-	
+
 	return report
 }
 
@@ -702,11 +702,11 @@ func (bs *BenchmarkSuite) ExportMetrics(registry *prometheus.Registry) {
 			Name: "benchmark_latency_seconds",
 			Help: "Benchmark latency in seconds",
 		}, []string{"benchmark", "status", "percentile"})
-		
+
 		latencyGauge.With(prometheus.Labels{"benchmark": result.Name, "status": getStatusString(result.Passed), "percentile": "p50"}).Set(result.LatencyP50.Seconds())
 		latencyGauge.With(prometheus.Labels{"benchmark": result.Name, "status": getStatusString(result.Passed), "percentile": "p95"}).Set(result.LatencyP95.Seconds())
 		latencyGauge.With(prometheus.Labels{"benchmark": result.Name, "status": getStatusString(result.Passed), "percentile": "p99"}).Set(result.LatencyP99.Seconds())
-		
+
 		registry.MustRegister(latencyGauge)
 
 		// Export throughput

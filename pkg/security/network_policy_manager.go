@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	networkingv1 "k8s.io/api/networking/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,17 +30,17 @@ func NewNetworkPolicyManager(client client.Client, namespace string) *NetworkPol
 type PolicyType string
 
 const (
-	PolicyTypeDenyAll          PolicyType = "deny-all"
-	PolicyTypeAllowIngress     PolicyType = "allow-ingress"
-	PolicyTypeAllowEgress      PolicyType = "allow-egress"
+	PolicyTypeDenyAll           PolicyType = "deny-all"
+	PolicyTypeAllowIngress      PolicyType = "allow-ingress"
+	PolicyTypeAllowEgress       PolicyType = "allow-egress"
 	PolicyTypeComponentSpecific PolicyType = "component-specific"
-	PolicyTypeORANInterface    PolicyType = "oran-interface"
+	PolicyTypeORANInterface     PolicyType = "oran-interface"
 )
 
 // CreateDefaultDenyAllPolicy creates a default deny-all network policy (zero-trust baseline)
 func (m *NetworkPolicyManager) CreateDefaultDenyAllPolicy(ctx context.Context) error {
 	logger := log.FromContext(ctx)
-	
+
 	policy := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "default-deny-all",
@@ -63,12 +63,12 @@ func (m *NetworkPolicyManager) CreateDefaultDenyAllPolicy(ctx context.Context) e
 			Egress:  []networkingv1.NetworkPolicyEgressRule{},
 		},
 	}
-	
+
 	if err := m.client.Create(ctx, policy); err != nil {
 		logger.Error(err, "Failed to create default deny-all policy")
 		return fmt.Errorf("failed to create default deny-all policy: %w", err)
 	}
-	
+
 	logger.Info("Created default deny-all network policy")
 	return nil
 }
@@ -76,7 +76,7 @@ func (m *NetworkPolicyManager) CreateDefaultDenyAllPolicy(ctx context.Context) e
 // CreateControllerNetworkPolicy creates network policy for the operator controller
 func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context) error {
 	logger := log.FromContext(ctx)
-	
+
 	policy := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "nephoran-controller-policy",
@@ -202,12 +202,12 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 			},
 		},
 	}
-	
+
 	if err := m.client.Create(ctx, policy); err != nil {
 		logger.Error(err, "Failed to create controller network policy")
 		return fmt.Errorf("failed to create controller network policy: %w", err)
 	}
-	
+
 	logger.Info("Created controller network policy")
 	return nil
 }
@@ -215,7 +215,7 @@ func (m *NetworkPolicyManager) CreateControllerNetworkPolicy(ctx context.Context
 // CreateLLMServiceNetworkPolicy creates network policy for LLM service
 func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context) error {
 	logger := log.FromContext(ctx)
-	
+
 	policy := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "nephoran-llm-policy",
@@ -324,12 +324,12 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 			},
 		},
 	}
-	
+
 	if err := m.client.Create(ctx, policy); err != nil {
 		logger.Error(err, "Failed to create LLM service network policy")
 		return fmt.Errorf("failed to create LLM service network policy: %w", err)
 	}
-	
+
 	logger.Info("Created LLM service network policy")
 	return nil
 }
@@ -337,9 +337,9 @@ func (m *NetworkPolicyManager) CreateLLMServiceNetworkPolicy(ctx context.Context
 // CreateORANInterfacePolicy creates network policies for O-RAN interfaces
 func (m *NetworkPolicyManager) CreateORANInterfacePolicy(ctx context.Context, interfaceType string) error {
 	logger := log.FromContext(ctx)
-	
+
 	var policy *networkingv1.NetworkPolicy
-	
+
 	switch interfaceType {
 	case "A1":
 		policy = m.createA1InterfacePolicy()
@@ -352,12 +352,12 @@ func (m *NetworkPolicyManager) CreateORANInterfacePolicy(ctx context.Context, in
 	default:
 		return fmt.Errorf("unknown O-RAN interface type: %s", interfaceType)
 	}
-	
+
 	if err := m.client.Create(ctx, policy); err != nil {
 		logger.Error(err, "Failed to create O-RAN interface policy", "interface", interfaceType)
 		return fmt.Errorf("failed to create O-RAN interface policy %s: %w", interfaceType, err)
 	}
-	
+
 	logger.Info("Created O-RAN interface network policy", "interface", interfaceType)
 	return nil
 }
@@ -569,7 +569,7 @@ func (m *NetworkPolicyManager) createE2InterfacePolicy() *networkingv1.NetworkPo
 // CreateExternalAccessPolicy creates policy for external service access
 func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, serviceName string, allowedCIDRs []string) error {
 	logger := log.FromContext(ctx)
-	
+
 	// Build IPBlock peers
 	var peers []networkingv1.NetworkPolicyPeer
 	for _, cidr := range allowedCIDRs {
@@ -579,7 +579,7 @@ func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, s
 			},
 		})
 	}
-	
+
 	policy := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-external-access", serviceName),
@@ -612,12 +612,12 @@ func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, s
 			},
 		},
 	}
-	
+
 	if err := m.client.Create(ctx, policy); err != nil {
 		logger.Error(err, "Failed to create external access policy", "service", serviceName)
 		return fmt.Errorf("failed to create external access policy for %s: %w", serviceName, err)
 	}
-	
+
 	logger.Info("Created external access policy", "service", serviceName)
 	return nil
 }
@@ -625,22 +625,22 @@ func (m *NetworkPolicyManager) CreateExternalAccessPolicy(ctx context.Context, s
 // ValidateNetworkPolicies validates that network policies are effective
 func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*NetworkPolicyValidationReport, error) {
 	logger := log.FromContext(ctx)
-	
+
 	report := &NetworkPolicyValidationReport{
 		Timestamp: metav1.Now(),
 		Namespace: m.namespace,
 		Issues:    []string{},
 		Warnings:  []string{},
 	}
-	
+
 	// List all network policies
 	policies := &networkingv1.NetworkPolicyList{}
 	if err := m.client.List(ctx, policies, client.InNamespace(m.namespace)); err != nil {
 		return nil, fmt.Errorf("failed to list network policies: %w", err)
 	}
-	
+
 	report.PolicyCount = len(policies.Items)
-	
+
 	// Check for default deny-all policy
 	hasDenyAll := false
 	for _, policy := range policies.Items {
@@ -649,17 +649,17 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 			break
 		}
 	}
-	
+
 	if !hasDenyAll {
 		report.Issues = append(report.Issues, "Missing default deny-all policy (zero-trust baseline)")
 	}
-	
+
 	// List all pods
 	pods := &corev1.PodList{}
 	if err := m.client.List(ctx, pods, client.InNamespace(m.namespace)); err != nil {
 		return nil, fmt.Errorf("failed to list pods: %w", err)
 	}
-	
+
 	// Check pod coverage
 	coveredPods := make(map[string]bool)
 	for _, policy := range policies.Items {
@@ -669,15 +669,15 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 			}
 		}
 	}
-	
+
 	report.CoveredPods = len(coveredPods)
 	report.TotalPods = len(pods.Items)
-	
+
 	if report.CoveredPods < report.TotalPods {
 		uncoveredCount := report.TotalPods - report.CoveredPods
 		report.Warnings = append(report.Warnings, fmt.Sprintf("%d pods not covered by network policies", uncoveredCount))
 	}
-	
+
 	// Validate individual policies
 	for _, policy := range policies.Items {
 		// Check for overly permissive rules
@@ -686,12 +686,12 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 				report.Warnings = append(report.Warnings, fmt.Sprintf("Policy %s has ingress rule with no source restrictions", policy.Name))
 			}
 		}
-		
+
 		for _, egress := range policy.Spec.Egress {
 			if len(egress.To) == 0 {
 				report.Warnings = append(report.Warnings, fmt.Sprintf("Policy %s has egress rule with no destination restrictions", policy.Name))
 			}
-			
+
 			// Check for overly broad CIDR blocks
 			for _, peer := range egress.To {
 				if peer.IPBlock != nil && peer.IPBlock.CIDR == "0.0.0.0/0" {
@@ -703,26 +703,26 @@ func (m *NetworkPolicyManager) ValidateNetworkPolicies(ctx context.Context) (*Ne
 			}
 		}
 	}
-	
+
 	report.Compliant = len(report.Issues) == 0
-	logger.Info("Network policy validation completed", 
+	logger.Info("Network policy validation completed",
 		"compliant", report.Compliant,
 		"policies", report.PolicyCount,
 		"coverage", fmt.Sprintf("%d/%d", report.CoveredPods, report.TotalPods))
-	
+
 	return report, nil
 }
 
 // NetworkPolicyValidationReport contains network policy validation results
 type NetworkPolicyValidationReport struct {
-	Timestamp    metav1.Time
-	Namespace    string
-	Compliant    bool
-	PolicyCount  int
-	CoveredPods  int
-	TotalPods    int
-	Issues       []string
-	Warnings     []string
+	Timestamp   metav1.Time
+	Namespace   string
+	Compliant   bool
+	PolicyCount int
+	CoveredPods int
+	TotalPods   int
+	Issues      []string
+	Warnings    []string
 }
 
 // isPodSelected checks if a pod matches a label selector
@@ -731,18 +731,18 @@ func (m *NetworkPolicyManager) isPodSelected(pod corev1.Pod, selector metav1.Lab
 		// Empty selector matches all pods
 		return true
 	}
-	
+
 	// Check MatchLabels
 	for key, value := range selector.MatchLabels {
 		if podValue, exists := pod.Labels[key]; !exists || podValue != value {
 			return false
 		}
 	}
-	
+
 	// Check MatchExpressions (simplified)
 	for _, expr := range selector.MatchExpressions {
 		podValue, exists := pod.Labels[expr.Key]
-		
+
 		switch expr.Operator {
 		case metav1.LabelSelectorOpIn:
 			if !exists || !contains(expr.Values, podValue) {
@@ -762,28 +762,28 @@ func (m *NetworkPolicyManager) isPodSelected(pod corev1.Pod, selector metav1.Lab
 			}
 		}
 	}
-	
+
 	return true
 }
 
 // EnforceZeroTrustNetworking applies comprehensive zero-trust networking
 func (m *NetworkPolicyManager) EnforceZeroTrustNetworking(ctx context.Context) error {
 	logger := log.FromContext(ctx)
-	
+
 	// Create default deny-all policy
 	if err := m.CreateDefaultDenyAllPolicy(ctx); err != nil {
 		return fmt.Errorf("failed to create deny-all policy: %w", err)
 	}
-	
+
 	// Create component-specific policies
 	if err := m.CreateControllerNetworkPolicy(ctx); err != nil {
 		return fmt.Errorf("failed to create controller policy: %w", err)
 	}
-	
+
 	if err := m.CreateLLMServiceNetworkPolicy(ctx); err != nil {
 		return fmt.Errorf("failed to create LLM service policy: %w", err)
 	}
-	
+
 	// Create O-RAN interface policies
 	interfaces := []string{"A1", "O1", "O2", "E2"}
 	for _, iface := range interfaces {
@@ -792,7 +792,7 @@ func (m *NetworkPolicyManager) EnforceZeroTrustNetworking(ctx context.Context) e
 			// Continue with other interfaces
 		}
 	}
-	
+
 	logger.Info("Zero-trust networking enforced")
 	return nil
 }

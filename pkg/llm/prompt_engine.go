@@ -43,13 +43,13 @@ type NetworkFunction struct {
 
 // NetworkSlice represents a network slice configuration
 type NetworkSlice struct {
-	ID              string  `json:"id"`
-	Type            string  `json:"type"`
-	Status          string  `json:"status"`
-	Throughput      float64 `json:"throughput"`
-	Latency         float64 `json:"latency"`
-	Reliability     float64 `json:"reliability"`
-	ConnectedUEs    int     `json:"connected_ues"`
+	ID           string  `json:"id"`
+	Type         string  `json:"type"`
+	Status       string  `json:"status"`
+	Throughput   float64 `json:"throughput"`
+	Latency      float64 `json:"latency"`
+	Reliability  float64 `json:"reliability"`
+	ConnectedUEs int     `json:"connected_ues"`
 }
 
 // E2Node represents an E2 interface node
@@ -77,11 +77,11 @@ func NewTelecomPromptEngine() *TelecomPromptEngine {
 		userPrompts:   make(map[string]string),
 		examples:      make(map[string][]PromptExample),
 	}
-	
+
 	engine.initializeSystemPrompts()
 	engine.initializeUserPrompts()
 	engine.initializeExamples()
-	
+
 	return engine
 }
 

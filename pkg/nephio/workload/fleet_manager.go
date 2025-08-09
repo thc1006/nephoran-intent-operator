@@ -17,133 +17,133 @@ import (
 
 // FleetManager manages fleets of Nephio workload clusters
 type FleetManager struct {
-	registry        *ClusterRegistry
-	fleets          map[string]*Fleet
-	policies        map[string]*FleetPolicy
-	scheduler       *WorkloadScheduler
-	loadBalancer    *LoadBalancer
-	analytics       *FleetAnalytics
-	logger          logr.Logger
-	metrics         *fleetMetrics
-	mu              sync.RWMutex
-	stopCh          chan struct{}
+	registry     *ClusterRegistry
+	fleets       map[string]*Fleet
+	policies     map[string]*FleetPolicy
+	scheduler    *WorkloadScheduler
+	loadBalancer *LoadBalancer
+	analytics    *FleetAnalytics
+	logger       logr.Logger
+	metrics      *fleetMetrics
+	mu           sync.RWMutex
+	stopCh       chan struct{}
 }
 
 // Fleet represents a group of clusters managed together
 type Fleet struct {
-	ID          string                `json:"id"`
-	Name        string                `json:"name"`
-	Description string                `json:"description"`
-	ClusterIDs  []string              `json:"cluster_ids"`
-	Selector    labels.Selector       `json:"-"`
-	Policy      *FleetPolicy          `json:"policy"`
-	Metadata    map[string]string     `json:"metadata"`
-	Status      FleetStatus           `json:"status"`
-	CreatedAt   time.Time             `json:"created_at"`
-	UpdatedAt   time.Time             `json:"updated_at"`
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	ClusterIDs  []string          `json:"cluster_ids"`
+	Selector    labels.Selector   `json:"-"`
+	Policy      *FleetPolicy      `json:"policy"`
+	Metadata    map[string]string `json:"metadata"`
+	Status      FleetStatus       `json:"status"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
 // FleetStatus represents the status of a fleet
 type FleetStatus struct {
-	State           string                `json:"state"`
-	ClusterCount    int                   `json:"cluster_count"`
-	HealthyClusters int                   `json:"healthy_clusters"`
-	TotalResources  ResourceCapacity      `json:"total_resources"`
-	UsedResources   ResourceCapacity      `json:"used_resources"`
-	Workloads       []WorkloadDeployment  `json:"workloads"`
-	LastSync        time.Time             `json:"last_sync"`
-	Message         string                `json:"message"`
+	State           string               `json:"state"`
+	ClusterCount    int                  `json:"cluster_count"`
+	HealthyClusters int                  `json:"healthy_clusters"`
+	TotalResources  ResourceCapacity     `json:"total_resources"`
+	UsedResources   ResourceCapacity     `json:"used_resources"`
+	Workloads       []WorkloadDeployment `json:"workloads"`
+	LastSync        time.Time            `json:"last_sync"`
+	Message         string               `json:"message"`
 }
 
 // FleetPolicy defines policies for fleet management
 type FleetPolicy struct {
-	ID                 string                    `json:"id"`
-	Name               string                    `json:"name"`
-	ScalingPolicy      ScalingPolicy             `json:"scaling_policy"`
-	PlacementPolicy    PlacementPolicy           `json:"placement_policy"`
-	LoadBalancingPolicy LoadBalancingPolicy      `json:"load_balancing_policy"`
-	FailoverPolicy     FailoverPolicy            `json:"failover_policy"`
-	SecurityPolicy     SecurityPolicy            `json:"security_policy"`
-	CompliancePolicy   CompliancePolicy          `json:"compliance_policy"`
-	CostPolicy         CostPolicy                `json:"cost_policy"`
-	Constraints        []FleetConstraint         `json:"constraints"`
+	ID                  string              `json:"id"`
+	Name                string              `json:"name"`
+	ScalingPolicy       ScalingPolicy       `json:"scaling_policy"`
+	PlacementPolicy     PlacementPolicy     `json:"placement_policy"`
+	LoadBalancingPolicy LoadBalancingPolicy `json:"load_balancing_policy"`
+	FailoverPolicy      FailoverPolicy      `json:"failover_policy"`
+	SecurityPolicy      SecurityPolicy      `json:"security_policy"`
+	CompliancePolicy    CompliancePolicy    `json:"compliance_policy"`
+	CostPolicy          CostPolicy          `json:"cost_policy"`
+	Constraints         []FleetConstraint   `json:"constraints"`
 }
 
 // ScalingPolicy defines scaling rules for the fleet
 type ScalingPolicy struct {
-	MinClusters      int                `json:"min_clusters"`
-	MaxClusters      int                `json:"max_clusters"`
-	AutoScale        bool               `json:"auto_scale"`
-	ScaleUpTriggers  []ScaleTrigger     `json:"scale_up_triggers"`
-	ScaleDownTriggers []ScaleTrigger    `json:"scale_down_triggers"`
-	CooldownPeriod   time.Duration      `json:"cooldown_period"`
+	MinClusters       int            `json:"min_clusters"`
+	MaxClusters       int            `json:"max_clusters"`
+	AutoScale         bool           `json:"auto_scale"`
+	ScaleUpTriggers   []ScaleTrigger `json:"scale_up_triggers"`
+	ScaleDownTriggers []ScaleTrigger `json:"scale_down_triggers"`
+	CooldownPeriod    time.Duration  `json:"cooldown_period"`
 }
 
 // ScaleTrigger defines a trigger for scaling operations
 type ScaleTrigger struct {
-	Metric    string  `json:"metric"`
-	Threshold float64 `json:"threshold"`
+	Metric    string        `json:"metric"`
+	Threshold float64       `json:"threshold"`
 	Duration  time.Duration `json:"duration"`
-	Action    string  `json:"action"`
+	Action    string        `json:"action"`
 }
 
 // PlacementPolicy defines workload placement rules
 type PlacementPolicy struct {
-	Strategy          PlacementStrategy         `json:"strategy"`
-	AffinityRules     []AffinityRule            `json:"affinity_rules"`
-	AntiAffinityRules []AntiAffinityRule        `json:"anti_affinity_rules"`
-	SpreadConstraints []SpreadConstraint        `json:"spread_constraints"`
-	Preferences       []PlacementPreference     `json:"preferences"`
+	Strategy          PlacementStrategy     `json:"strategy"`
+	AffinityRules     []AffinityRule        `json:"affinity_rules"`
+	AntiAffinityRules []AntiAffinityRule    `json:"anti_affinity_rules"`
+	SpreadConstraints []SpreadConstraint    `json:"spread_constraints"`
+	Preferences       []PlacementPreference `json:"preferences"`
 }
 
 // PlacementStrategy defines the strategy for workload placement
 type PlacementStrategy string
 
 const (
-	PlacementStrategyBinPacking     PlacementStrategy = "bin-packing"
-	PlacementStrategySpread         PlacementStrategy = "spread"
-	PlacementStrategyCostOptimized  PlacementStrategy = "cost-optimized"
+	PlacementStrategyBinPacking       PlacementStrategy = "bin-packing"
+	PlacementStrategySpread           PlacementStrategy = "spread"
+	PlacementStrategyCostOptimized    PlacementStrategy = "cost-optimized"
 	PlacementStrategyLatencyOptimized PlacementStrategy = "latency-optimized"
-	PlacementStrategyBalanced       PlacementStrategy = "balanced"
+	PlacementStrategyBalanced         PlacementStrategy = "balanced"
 )
 
 // AffinityRule defines affinity requirements
 type AffinityRule struct {
-	Type      string            `json:"type"`
-	Selector  labels.Selector   `json:"-"`
-	Weight    int               `json:"weight"`
-	Topology  string            `json:"topology"`
+	Type     string          `json:"type"`
+	Selector labels.Selector `json:"-"`
+	Weight   int             `json:"weight"`
+	Topology string          `json:"topology"`
 }
 
 // AntiAffinityRule defines anti-affinity requirements
 type AntiAffinityRule struct {
-	Type      string            `json:"type"`
-	Selector  labels.Selector   `json:"-"`
-	Weight    int               `json:"weight"`
-	Topology  string            `json:"topology"`
+	Type     string          `json:"type"`
+	Selector labels.Selector `json:"-"`
+	Weight   int             `json:"weight"`
+	Topology string          `json:"topology"`
 }
 
 // SpreadConstraint defines spread requirements
 type SpreadConstraint struct {
-	MaxSkew           int               `json:"max_skew"`
-	TopologyKey       string            `json:"topology_key"`
-	WhenUnsatisfiable string            `json:"when_unsatisfiable"`
+	MaxSkew           int    `json:"max_skew"`
+	TopologyKey       string `json:"topology_key"`
+	WhenUnsatisfiable string `json:"when_unsatisfiable"`
 }
 
 // PlacementPreference defines placement preferences
 type PlacementPreference struct {
-	Type     string  `json:"type"`
-	Weight   int     `json:"weight"`
-	Value    string  `json:"value"`
+	Type   string `json:"type"`
+	Weight int    `json:"weight"`
+	Value  string `json:"value"`
 }
 
 // LoadBalancingPolicy defines load balancing rules
 type LoadBalancingPolicy struct {
-	Algorithm        LoadBalancingAlgorithm `json:"algorithm"`
-	HealthCheckPath  string                 `json:"health_check_path"`
-	HealthCheckInterval time.Duration        `json:"health_check_interval"`
-	SessionAffinity  bool                   `json:"session_affinity"`
-	WeightedTargets  map[string]int         `json:"weighted_targets"`
+	Algorithm           LoadBalancingAlgorithm `json:"algorithm"`
+	HealthCheckPath     string                 `json:"health_check_path"`
+	HealthCheckInterval time.Duration          `json:"health_check_interval"`
+	SessionAffinity     bool                   `json:"session_affinity"`
+	WeightedTargets     map[string]int         `json:"weighted_targets"`
 }
 
 // LoadBalancingAlgorithm defines the load balancing algorithm
@@ -159,44 +159,44 @@ const (
 
 // FailoverPolicy defines failover rules
 type FailoverPolicy struct {
-	Enabled              bool          `json:"enabled"`
-	FailoverThreshold    int           `json:"failover_threshold"`
-	FailbackDelay        time.Duration `json:"failback_delay"`
-	PreferredClusters    []string      `json:"preferred_clusters"`
-	BackupClusters       []string      `json:"backup_clusters"`
-	DataReplicationMode  string        `json:"data_replication_mode"`
+	Enabled             bool          `json:"enabled"`
+	FailoverThreshold   int           `json:"failover_threshold"`
+	FailbackDelay       time.Duration `json:"failback_delay"`
+	PreferredClusters   []string      `json:"preferred_clusters"`
+	BackupClusters      []string      `json:"backup_clusters"`
+	DataReplicationMode string        `json:"data_replication_mode"`
 }
 
 // SecurityPolicy defines security requirements for the fleet
 type SecurityPolicy struct {
-	NetworkPolicies     []string          `json:"network_policies"`
-	PodSecurityStandard string            `json:"pod_security_standard"`
-	EncryptionRequired  bool              `json:"encryption_required"`
-	MutualTLS           bool              `json:"mutual_tls"`
-	ComplianceStandards []string          `json:"compliance_standards"`
+	NetworkPolicies     []string `json:"network_policies"`
+	PodSecurityStandard string   `json:"pod_security_standard"`
+	EncryptionRequired  bool     `json:"encryption_required"`
+	MutualTLS           bool     `json:"mutual_tls"`
+	ComplianceStandards []string `json:"compliance_standards"`
 }
 
 // CompliancePolicy defines compliance requirements
 type CompliancePolicy struct {
-	DataResidency    []string          `json:"data_residency"`
-	Standards        []string          `json:"standards"`
-	AuditLogging     bool              `json:"audit_logging"`
-	RetentionPeriod  time.Duration     `json:"retention_period"`
+	DataResidency   []string      `json:"data_residency"`
+	Standards       []string      `json:"standards"`
+	AuditLogging    bool          `json:"audit_logging"`
+	RetentionPeriod time.Duration `json:"retention_period"`
 }
 
 // CostPolicy defines cost management rules
 type CostPolicy struct {
-	MaxMonthlyCost      float64           `json:"max_monthly_cost"`
-	PreferredProviders  []CloudProvider   `json:"preferred_providers"`
-	SpotInstancesAllowed bool             `json:"spot_instances_allowed"`
-	ReservedInstances   bool              `json:"reserved_instances"`
-	CostAlerts          []CostAlert       `json:"cost_alerts"`
+	MaxMonthlyCost       float64         `json:"max_monthly_cost"`
+	PreferredProviders   []CloudProvider `json:"preferred_providers"`
+	SpotInstancesAllowed bool            `json:"spot_instances_allowed"`
+	ReservedInstances    bool            `json:"reserved_instances"`
+	CostAlerts           []CostAlert     `json:"cost_alerts"`
 }
 
 // CostAlert defines a cost alert threshold
 type CostAlert struct {
-	Threshold float64 `json:"threshold"`
-	Type      string  `json:"type"`
+	Threshold float64  `json:"threshold"`
+	Type      string   `json:"type"`
 	Actions   []string `json:"actions"`
 }
 
@@ -209,31 +209,31 @@ type FleetConstraint struct {
 
 // WorkloadDeployment represents a workload deployed across the fleet
 type WorkloadDeployment struct {
-	ID           string                      `json:"id"`
-	Name         string                      `json:"name"`
-	Type         string                      `json:"type"`
-	Replicas     int                         `json:"replicas"`
-	Distribution map[string]int              `json:"distribution"`
-	Resources    resource.Requirements       `json:"resources"`
-	Status       WorkloadStatus              `json:"status"`
-	CreatedAt    time.Time                   `json:"created_at"`
+	ID           string                `json:"id"`
+	Name         string                `json:"name"`
+	Type         string                `json:"type"`
+	Replicas     int                   `json:"replicas"`
+	Distribution map[string]int        `json:"distribution"`
+	Resources    resource.Requirements `json:"resources"`
+	Status       WorkloadStatus        `json:"status"`
+	CreatedAt    time.Time             `json:"created_at"`
 }
 
 // WorkloadStatus represents the status of a workload
 type WorkloadStatus struct {
-	State          string    `json:"state"`
-	ReadyReplicas  int       `json:"ready_replicas"`
-	TotalReplicas  int       `json:"total_replicas"`
-	Message        string    `json:"message"`
-	LastUpdate     time.Time `json:"last_update"`
+	State         string    `json:"state"`
+	ReadyReplicas int       `json:"ready_replicas"`
+	TotalReplicas int       `json:"total_replicas"`
+	Message       string    `json:"message"`
+	LastUpdate    time.Time `json:"last_update"`
 }
 
 // WorkloadScheduler handles workload scheduling across clusters
 type WorkloadScheduler struct {
-	registry     *ClusterRegistry
-	policies     map[string]*PlacementPolicy
-	optimizer    *PlacementOptimizer
-	logger       logr.Logger
+	registry  *ClusterRegistry
+	policies  map[string]*PlacementPolicy
+	optimizer *PlacementOptimizer
+	logger    logr.Logger
 }
 
 // LoadBalancer handles load balancing across clusters
@@ -246,12 +246,12 @@ type LoadBalancer struct {
 
 // LoadBalancerBackend represents a backend for load balancing
 type LoadBalancerBackend struct {
-	ClusterID    string    `json:"cluster_id"`
-	Endpoint     string    `json:"endpoint"`
-	Weight       int       `json:"weight"`
-	Healthy      bool      `json:"healthy"`
-	Connections  int       `json:"connections"`
-	LastCheck    time.Time `json:"last_check"`
+	ClusterID   string    `json:"cluster_id"`
+	Endpoint    string    `json:"endpoint"`
+	Weight      int       `json:"weight"`
+	Healthy     bool      `json:"healthy"`
+	Connections int       `json:"connections"`
+	LastCheck   time.Time `json:"last_check"`
 }
 
 // HealthCheck represents a health check configuration
@@ -264,39 +264,39 @@ type HealthCheck struct {
 
 // FleetAnalytics provides analytics for fleet operations
 type FleetAnalytics struct {
-	metrics      map[string]*FleetMetrics
-	trends       map[string]*FleetTrends
-	predictions  map[string]*FleetPredictions
-	mu           sync.RWMutex
+	metrics     map[string]*FleetMetrics
+	trends      map[string]*FleetTrends
+	predictions map[string]*FleetPredictions
+	mu          sync.RWMutex
 }
 
 // FleetMetrics contains metrics for a fleet
 type FleetMetrics struct {
-	ResourceUtilization float64           `json:"resource_utilization"`
-	CostPerWorkload     float64           `json:"cost_per_workload"`
-	AvailabilityScore   float64           `json:"availability_score"`
-	PerformanceScore    float64           `json:"performance_score"`
-	ComplianceScore     float64           `json:"compliance_score"`
-	WorkloadCount       int               `json:"workload_count"`
-	ErrorRate           float64           `json:"error_rate"`
-	Throughput          float64           `json:"throughput"`
+	ResourceUtilization float64 `json:"resource_utilization"`
+	CostPerWorkload     float64 `json:"cost_per_workload"`
+	AvailabilityScore   float64 `json:"availability_score"`
+	PerformanceScore    float64 `json:"performance_score"`
+	ComplianceScore     float64 `json:"compliance_score"`
+	WorkloadCount       int     `json:"workload_count"`
+	ErrorRate           float64 `json:"error_rate"`
+	Throughput          float64 `json:"throughput"`
 }
 
 // FleetTrends contains trend analysis for a fleet
 type FleetTrends struct {
-	GrowthRate          float64   `json:"growth_rate"`
-	CostTrend           string    `json:"cost_trend"`
-	UtilizationTrend    string    `json:"utilization_trend"`
-	PredictedDemand     float64   `json:"predicted_demand"`
-	RecommendedActions  []string  `json:"recommended_actions"`
+	GrowthRate         float64  `json:"growth_rate"`
+	CostTrend          string   `json:"cost_trend"`
+	UtilizationTrend   string   `json:"utilization_trend"`
+	PredictedDemand    float64  `json:"predicted_demand"`
+	RecommendedActions []string `json:"recommended_actions"`
 }
 
 // FleetPredictions contains predictions for fleet operations
 type FleetPredictions struct {
-	FutureCapacityNeeds ResourceCapacity  `json:"future_capacity_needs"`
-	ExpectedCost        float64           `json:"expected_cost"`
-	ScalingEvents       []ScalingEvent    `json:"scaling_events"`
-	MaintenanceWindows  []time.Time       `json:"maintenance_windows"`
+	FutureCapacityNeeds ResourceCapacity `json:"future_capacity_needs"`
+	ExpectedCost        float64          `json:"expected_cost"`
+	ScalingEvents       []ScalingEvent   `json:"scaling_events"`
+	MaintenanceWindows  []time.Time      `json:"maintenance_windows"`
 }
 
 // ScalingEvent represents a predicted scaling event
@@ -318,20 +318,20 @@ type PlacementFunction func(workload *WorkloadDeployment, clusters []*ClusterEnt
 
 // PlacementDecision represents a placement decision
 type PlacementDecision struct {
-	ClusterDistribution map[string]int    `json:"cluster_distribution"`
-	Score               float64           `json:"score"`
-	Constraints         []string          `json:"constraints"`
-	Reasons             []string          `json:"reasons"`
+	ClusterDistribution map[string]int `json:"cluster_distribution"`
+	Score               float64        `json:"score"`
+	Constraints         []string       `json:"constraints"`
+	Reasons             []string       `json:"reasons"`
 }
 
 // fleetMetrics contains Prometheus metrics for fleet operations
 type fleetMetrics struct {
-	fleetsTotal          *prometheus.GaugeVec
-	workloadsTotal       *prometheus.GaugeVec
-	placementDuration    *prometheus.HistogramVec
-	scalingOperations    *prometheus.CounterVec
+	fleetsTotal            *prometheus.GaugeVec
+	workloadsTotal         *prometheus.GaugeVec
+	placementDuration      *prometheus.HistogramVec
+	scalingOperations      *prometheus.CounterVec
 	loadBalancingDecisions *prometheus.CounterVec
-	failoverEvents       *prometheus.CounterVec
+	failoverEvents         *prometheus.CounterVec
 }
 
 // NewFleetManager creates a new fleet manager
@@ -728,7 +728,7 @@ func (fm *FleetManager) BalanceFleet(ctx context.Context, fleetID string) error 
 	// Rebalance each workload
 	for i := range fleet.Status.Workloads {
 		workload := &fleet.Status.Workloads[i]
-		
+
 		decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, fleet.Policy.PlacementPolicy)
 		if err != nil {
 			fm.logger.Error(err, "Failed to rebalance workload", "workload", workload.ID)
@@ -797,11 +797,11 @@ func (fm *FleetManager) syncFleets(ctx context.Context) {
 func (fm *FleetManager) syncSingleFleet(ctx context.Context, fleet *Fleet) {
 	// Update cluster membership
 	clusters := fm.getFleetClusters(fleet)
-	
+
 	fm.mu.Lock()
 	fleet.Status.ClusterCount = len(clusters)
 	fleet.Status.HealthyClusters = 0
-	
+
 	for _, cluster := range clusters {
 		if cluster.Status == ClusterStatusHealthy {
 			fleet.Status.HealthyClusters++
@@ -810,7 +810,7 @@ func (fm *FleetManager) syncSingleFleet(ctx context.Context, fleet *Fleet) {
 
 	// Update resource totals
 	fleet.Status.TotalResources = fm.calculateFleetResources(fleet.ClusterIDs)
-	
+
 	// Update workload status
 	for i := range fleet.Status.Workloads {
 		workload := &fleet.Status.Workloads[i]
@@ -929,7 +929,7 @@ func (fm *FleetManager) monitorFleetHealth(ctx context.Context) {
 
 func (fm *FleetManager) checkFleetHealth(ctx context.Context, fleet *Fleet) {
 	clusters := fm.getFleetClusters(fleet)
-	
+
 	// Check for failover conditions
 	if fleet.Policy != nil && fleet.Policy.FailoverPolicy.Enabled {
 		unhealthyCount := 0
@@ -1004,14 +1004,14 @@ func (fm *FleetManager) updateFleetAnalytics(ctx context.Context, fleet *Fleet) 
 
 func (fm *FleetManager) calculateFleetMetrics(fleet *Fleet) *FleetMetrics {
 	clusters := fm.getFleetClusters(fleet)
-	
+
 	metrics := &FleetMetrics{
 		WorkloadCount: len(fleet.Status.Workloads),
 	}
 
 	// Calculate resource utilization
 	if fleet.Status.TotalResources.TotalCPU > 0 {
-		metrics.ResourceUtilization = float64(fleet.Status.TotalResources.TotalCPU-fleet.Status.TotalResources.AvailableCPU) / 
+		metrics.ResourceUtilization = float64(fleet.Status.TotalResources.TotalCPU-fleet.Status.TotalResources.AvailableCPU) /
 			float64(fleet.Status.TotalResources.TotalCPU)
 	}
 
@@ -1072,7 +1072,7 @@ func (fm *FleetManager) predictFleetNeeds(fleet *Fleet, metrics *FleetMetrics, t
 			TotalCPU:    int64(float64(fleet.Status.TotalResources.TotalCPU) * 1.3),
 			TotalMemory: int64(float64(fleet.Status.TotalResources.TotalMemory) * 1.3),
 		}
-		
+
 		predictions.ScalingEvents = append(predictions.ScalingEvents, ScalingEvent{
 			Time:      time.Now().Add(7 * 24 * time.Hour),
 			Type:      "scale-up",
@@ -1089,7 +1089,7 @@ func (fm *FleetManager) predictFleetNeeds(fleet *Fleet, metrics *FleetMetrics, t
 
 func (fm *FleetManager) getFleetClusters(fleet *Fleet) []*ClusterEntry {
 	clusters := make([]*ClusterEntry, 0, len(fleet.ClusterIDs))
-	
+
 	for _, clusterID := range fleet.ClusterIDs {
 		if cluster, err := fm.registry.GetCluster(clusterID); err == nil {
 			clusters = append(clusters, cluster)
@@ -1136,7 +1136,7 @@ func (fm *FleetManager) calculateFleetResources(clusterIDs []string) ResourceCap
 
 func (fm *FleetManager) updateWorkloadStatus(ctx context.Context, workload *WorkloadDeployment, clusters []*ClusterEntry) {
 	readyReplicas := 0
-	
+
 	for clusterID, replicas := range workload.Distribution {
 		// Check cluster health
 		for _, cluster := range clusters {
@@ -1343,7 +1343,7 @@ func (po *PlacementOptimizer) binPackingStrategy(workload *WorkloadDeployment, c
 
 func (po *PlacementOptimizer) spreadStrategy(workload *WorkloadDeployment, clusters []*ClusterEntry) (*PlacementDecision, error) {
 	distribution := make(map[string]int)
-	
+
 	// Spread replicas evenly across all clusters
 	replicasPerCluster := workload.Replicas / len(clusters)
 	remainder := workload.Replicas % len(clusters)
@@ -1442,14 +1442,14 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 	scores := make(map[string]float64)
 	for _, cluster := range clusters {
 		score := 0.0
-		
+
 		// Resource availability (40%)
 		resourceScore := (1 - cluster.Metadata.Resources.Utilization) * 0.4
-		
+
 		// Cost efficiency (30%)
 		maxCost := 100.0 // Assume max hourly cost
 		costScore := (1 - cluster.Metadata.Cost.HourlyCost/maxCost) * 0.3
-		
+
 		// Health and reliability (30%)
 		healthScore := 0.3
 		if cluster.Status == ClusterStatusHealthy {

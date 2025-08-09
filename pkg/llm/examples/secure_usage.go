@@ -1,3 +1,4 @@
+//go:build ignore
 // +build ignore
 
 // Package main demonstrates secure usage patterns for the LLM client
@@ -40,16 +41,16 @@ func productionExample() {
 	// This is the simplest and most secure way to create an LLM client
 	// It uses secure defaults with TLS verification enabled
 	client := llm.NewClient("https://api.openai.com/v1/chat/completions")
-	
+
 	fmt.Println("✓ Created secure client with default settings")
 	fmt.Println("  - TLS verification: ENABLED")
 	fmt.Println("  - Minimum TLS version: 1.2")
 	fmt.Println("  - Secure cipher suites: ENABLED")
-	
+
 	// Use the client for processing (example)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	
+
 	// In a real application, you would process intents here
 	_ = ctx
 	_ = client
@@ -67,12 +68,12 @@ func secureConfigExample() {
 	}
 
 	client := llm.NewClientWithConfig("https://api.openai.com/v1/chat/completions", config)
-	
+
 	fmt.Println("✓ Created secure client with explicit configuration")
 	fmt.Println("  - API Key: Loaded from environment")
 	fmt.Println("  - TLS verification: ENABLED (default)")
 	fmt.Println("  - Timeout: 60 seconds")
-	
+
 	_ = client
 }
 
@@ -80,7 +81,7 @@ func secureConfigExample() {
 func developmentExample() {
 	// SECURITY WARNING: This is for development environments only!
 	// Never use this in production!
-	
+
 	// Step 1: Check if we're in a development environment
 	if os.Getenv("ENVIRONMENT") == "production" {
 		log.Fatal("ERROR: Cannot use insecure TLS in production environment")
@@ -103,12 +104,12 @@ func developmentExample() {
 
 	// This will succeed but log a security warning
 	client := llm.NewClientWithConfig("https://dev-server.local:8443", config)
-	
+
 	fmt.Println("✓ Created development client with TLS verification disabled")
 	fmt.Println("  - SECURITY WARNING: TLS verification is DISABLED")
 	fmt.Println("  - This should ONLY be used in development environments")
 	fmt.Println("  - With self-signed certificates or internal CAs")
-	
+
 	_ = client
 }
 
@@ -138,7 +139,7 @@ func securityViolationExample() {
 
 	// This WILL panic due to security violation
 	_ = llm.NewClientWithConfig("https://example.com", config)
-	
+
 	// We should never reach this line
 	fmt.Println("✗ ERROR: Security violation was not caught!")
 }

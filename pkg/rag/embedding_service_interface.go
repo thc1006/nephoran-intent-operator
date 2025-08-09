@@ -11,19 +11,19 @@ import (
 type EmbeddingServiceInterface interface {
 	// GetEmbedding generates a single embedding for the given text
 	GetEmbedding(ctx context.Context, text string) ([]float64, error)
-	
+
 	// CalculateSimilarity calculates semantic similarity between two texts
 	CalculateSimilarity(ctx context.Context, text1, text2 string) (float64, error)
-	
+
 	// GenerateEmbeddings generates multiple embeddings in batch
 	GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error)
-	
+
 	// HealthCheck verifies the service is operational
 	HealthCheck(ctx context.Context) error
-	
+
 	// GetMetrics returns service metrics
 	GetMetrics() *EmbeddingMetrics
-	
+
 	// Close releases resources
 	Close() error
 }
@@ -187,17 +187,17 @@ func sqrt(x float64) float64 {
 	if x < 0 {
 		return 0
 	}
-	
+
 	// Simple Newton-Raphson method for square root
 	if x == 0 {
 		return 0
 	}
-	
+
 	z := x
 	for i := 0; i < 10; i++ {
 		z = (z + x/z) / 2
 	}
-	
+
 	return z
 }
 
@@ -247,4 +247,3 @@ func (e *EmbeddingServiceError) Error() string {
 func (e *EmbeddingServiceError) Unwrap() error {
 	return e.cause
 }
-

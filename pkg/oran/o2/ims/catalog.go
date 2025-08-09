@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 	"time"
-	
+
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
@@ -18,19 +18,19 @@ type CatalogService struct {
 	// Resource type management
 	resourceTypes map[string]*models.ResourceType
 	rtMutex       sync.RWMutex
-	
+
 	// Deployment template management
 	deploymentTemplates map[string]*models.DeploymentTemplate
-	dtMutex            sync.RWMutex
-	
+	dtMutex             sync.RWMutex
+
 	// Template validation and processing
-	templateValidator   TemplateValidator
-	templateProcessor   TemplateProcessor
-	
+	templateValidator TemplateValidator
+	templateProcessor TemplateProcessor
+
 	// Background services
 	backgroundCtx    context.Context
 	backgroundCancel context.CancelFunc
-	
+
 	// Statistics and metrics
 	stats *CatalogStatistics
 }
@@ -52,34 +52,34 @@ type TemplateProcessor interface {
 
 // ProcessedTemplate represents a processed deployment template ready for deployment
 type ProcessedTemplate struct {
-	RenderedContent   string                 `json:"renderedContent"`
-	Resources        []TemplateResource     `json:"resources"`
-	Dependencies     []string               `json:"dependencies"`
-	Parameters       map[string]interface{} `json:"parameters"`
-	Outputs          map[string]interface{} `json:"outputs"`
-	Metadata         map[string]string      `json:"metadata"`
+	RenderedContent string                 `json:"renderedContent"`
+	Resources       []TemplateResource     `json:"resources"`
+	Dependencies    []string               `json:"dependencies"`
+	Parameters      map[string]interface{} `json:"parameters"`
+	Outputs         map[string]interface{} `json:"outputs"`
+	Metadata        map[string]string      `json:"metadata"`
 }
 
 // TemplateResource represents a resource defined in a template
 type TemplateResource struct {
-	Name         string                 `json:"name"`
-	Type         string                 `json:"type"`
-	APIVersion   string                 `json:"apiVersion"`
-	Kind         string                 `json:"kind"`
-	Namespace    string                 `json:"namespace,omitempty"`
+	Name          string                 `json:"name"`
+	Type          string                 `json:"type"`
+	APIVersion    string                 `json:"apiVersion"`
+	Kind          string                 `json:"kind"`
+	Namespace     string                 `json:"namespace,omitempty"`
 	Specification map[string]interface{} `json:"specification"`
-	Dependencies []string               `json:"dependencies"`
+	Dependencies  []string               `json:"dependencies"`
 }
 
 // TemplateParameter represents a parameter in a deployment template
 type TemplateParameter struct {
-	Name         string      `json:"name"`
-	Type         string      `json:"type"`
-	Description  string      `json:"description"`
-	Required     bool        `json:"required"`
-	DefaultValue interface{} `json:"defaultValue,omitempty"`
-	AllowedValues []interface{} `json:"allowedValues,omitempty"`
-	Validation   *ParameterValidation `json:"validation,omitempty"`
+	Name          string               `json:"name"`
+	Type          string               `json:"type"`
+	Description   string               `json:"description"`
+	Required      bool                 `json:"required"`
+	DefaultValue  interface{}          `json:"defaultValue,omitempty"`
+	AllowedValues []interface{}        `json:"allowedValues,omitempty"`
+	Validation    *ParameterValidation `json:"validation,omitempty"`
 }
 
 // ParameterValidation represents validation rules for template parameters
@@ -93,13 +93,13 @@ type ParameterValidation struct {
 
 // TemplateDocumentation represents generated documentation for a template
 type TemplateDocumentation struct {
-	Overview     string                `json:"overview"`
-	Description  string                `json:"description"`
-	Parameters   []TemplateParameter   `json:"parameters"`
-	Resources    []TemplateResource    `json:"resources"`
-	Examples     []TemplateExample     `json:"examples"`
-	Changelog    []TemplateChange      `json:"changelog"`
-	GeneratedAt  time.Time             `json:"generatedAt"`
+	Overview    string              `json:"overview"`
+	Description string              `json:"description"`
+	Parameters  []TemplateParameter `json:"parameters"`
+	Resources   []TemplateResource  `json:"resources"`
+	Examples    []TemplateExample   `json:"examples"`
+	Changelog   []TemplateChange    `json:"changelog"`
+	GeneratedAt time.Time           `json:"generatedAt"`
 }
 
 // TemplateExample represents an example usage of a template
@@ -122,19 +122,19 @@ type TemplateChange struct {
 
 // CatalogStatistics represents catalog service statistics
 type CatalogStatistics struct {
-	ResourceTypeCount       int       `json:"resourceTypeCount"`
-	DeploymentTemplateCount int       `json:"deploymentTemplateCount"`
+	ResourceTypeCount       int            `json:"resourceTypeCount"`
+	DeploymentTemplateCount int            `json:"deploymentTemplateCount"`
 	TemplatesByCategory     map[string]int `json:"templatesByCategory"`
 	TemplatesByType         map[string]int `json:"templatesByType"`
-	ValidationCount         int64     `json:"validationCount"`
-	ProcessingCount         int64     `json:"processingCount"`
-	LastUpdated             time.Time `json:"lastUpdated"`
+	ValidationCount         int64          `json:"validationCount"`
+	ProcessingCount         int64          `json:"processingCount"`
+	LastUpdated             time.Time      `json:"lastUpdated"`
 }
 
 // NewCatalogService creates a new catalog service
 func NewCatalogService() *CatalogService {
 	backgroundCtx, backgroundCancel := context.WithCancel(context.Background())
-	
+
 	service := &CatalogService{
 		resourceTypes:       make(map[string]*models.ResourceType),
 		deploymentTemplates: make(map[string]*models.DeploymentTemplate),
@@ -148,13 +148,13 @@ func NewCatalogService() *CatalogService {
 			LastUpdated:         time.Now(),
 		},
 	}
-	
+
 	// Initialize default resource types
 	service.initializeDefaultResourceTypes()
-	
+
 	// Start background maintenance
 	go service.startBackgroundMaintenance()
-	
+
 	return service
 }
 
@@ -164,24 +164,24 @@ func NewCatalogService() *CatalogService {
 func (c *CatalogService) RegisterResourceType(ctx context.Context, resourceType *models.ResourceType) error {
 	logger := log.FromContext(ctx)
 	logger.Info("registering resource type", "typeID", resourceType.ResourceTypeID, "name", resourceType.Name)
-	
+
 	// Validate resource type
 	if err := c.validateResourceType(resourceType); err != nil {
 		return fmt.Errorf("resource type validation failed: %w", err)
 	}
-	
+
 	// Set timestamps
 	resourceType.CreatedAt = time.Now()
 	resourceType.UpdatedAt = time.Now()
-	
+
 	// Store resource type
 	c.rtMutex.Lock()
 	c.resourceTypes[resourceType.ResourceTypeID] = resourceType
 	c.rtMutex.Unlock()
-	
+
 	// Update statistics
 	c.updateResourceTypeStats()
-	
+
 	logger.Info("resource type registered successfully", "typeID", resourceType.ResourceTypeID)
 	return nil
 }
@@ -190,12 +190,12 @@ func (c *CatalogService) RegisterResourceType(ctx context.Context, resourceType 
 func (c *CatalogService) GetResourceType(ctx context.Context, resourceTypeID string) (*models.ResourceType, error) {
 	c.rtMutex.RLock()
 	defer c.rtMutex.RUnlock()
-	
+
 	resourceType, exists := c.resourceTypes[resourceTypeID]
 	if !exists {
 		return nil, fmt.Errorf("resource type not found: %s", resourceTypeID)
 	}
-	
+
 	// Return a copy to prevent modification
 	return c.copyResourceType(resourceType), nil
 }
@@ -204,18 +204,18 @@ func (c *CatalogService) GetResourceType(ctx context.Context, resourceTypeID str
 func (c *CatalogService) ListResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error) {
 	c.rtMutex.RLock()
 	defer c.rtMutex.RUnlock()
-	
+
 	var resourceTypes []*models.ResourceType
-	
+
 	for _, rt := range c.resourceTypes {
 		if c.matchesResourceTypeFilter(rt, filter) {
 			resourceTypes = append(resourceTypes, c.copyResourceType(rt))
 		}
 	}
-	
+
 	// Apply sorting and pagination
 	resourceTypes = c.sortAndPaginateResourceTypes(resourceTypes, filter)
-	
+
 	return resourceTypes, nil
 }
 
@@ -223,28 +223,28 @@ func (c *CatalogService) ListResourceTypes(ctx context.Context, filter *models.R
 func (c *CatalogService) UpdateResourceType(ctx context.Context, resourceTypeID string, updates map[string]interface{}) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating resource type", "typeID", resourceTypeID)
-	
+
 	c.rtMutex.Lock()
 	defer c.rtMutex.Unlock()
-	
+
 	resourceType, exists := c.resourceTypes[resourceTypeID]
 	if !exists {
 		return fmt.Errorf("resource type not found: %s", resourceTypeID)
 	}
-	
+
 	// Apply updates
 	if err := c.applyResourceTypeUpdates(resourceType, updates); err != nil {
 		return fmt.Errorf("failed to apply updates: %w", err)
 	}
-	
+
 	// Validate updated resource type
 	if err := c.validateResourceType(resourceType); err != nil {
 		return fmt.Errorf("updated resource type validation failed: %w", err)
 	}
-	
+
 	// Update timestamp
 	resourceType.UpdatedAt = time.Now()
-	
+
 	logger.Info("resource type updated successfully", "typeID", resourceTypeID)
 	return nil
 }
@@ -253,22 +253,22 @@ func (c *CatalogService) UpdateResourceType(ctx context.Context, resourceTypeID 
 func (c *CatalogService) UnregisterResourceType(ctx context.Context, resourceTypeID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("unregistering resource type", "typeID", resourceTypeID)
-	
+
 	c.rtMutex.Lock()
 	defer c.rtMutex.Unlock()
-	
+
 	if _, exists := c.resourceTypes[resourceTypeID]; !exists {
 		return fmt.Errorf("resource type not found: %s", resourceTypeID)
 	}
-	
+
 	// TODO: Check if resource type is in use by any resources
 	// For now, allow removal
-	
+
 	delete(c.resourceTypes, resourceTypeID)
-	
+
 	// Update statistics
 	c.updateResourceTypeStats()
-	
+
 	logger.Info("resource type unregistered successfully", "typeID", resourceTypeID)
 	return nil
 }
@@ -279,24 +279,24 @@ func (c *CatalogService) UnregisterResourceType(ctx context.Context, resourceTyp
 func (c *CatalogService) RegisterDeploymentTemplate(ctx context.Context, template *models.DeploymentTemplate) error {
 	logger := log.FromContext(ctx)
 	logger.Info("registering deployment template", "templateID", template.DeploymentTemplateID, "name", template.Name)
-	
+
 	// Validate template
 	if err := c.templateValidator.ValidateTemplate(ctx, template); err != nil {
 		return fmt.Errorf("template validation failed: %w", err)
 	}
-	
+
 	// Set timestamps
 	template.CreatedAt = time.Now()
 	template.UpdatedAt = time.Now()
-	
+
 	// Store template
 	c.dtMutex.Lock()
 	c.deploymentTemplates[template.DeploymentTemplateID] = template
 	c.dtMutex.Unlock()
-	
+
 	// Update statistics
 	c.updateTemplateStats()
-	
+
 	logger.Info("deployment template registered successfully", "templateID", template.DeploymentTemplateID)
 	return nil
 }
@@ -305,12 +305,12 @@ func (c *CatalogService) RegisterDeploymentTemplate(ctx context.Context, templat
 func (c *CatalogService) GetDeploymentTemplate(ctx context.Context, templateID string) (*models.DeploymentTemplate, error) {
 	c.dtMutex.RLock()
 	defer c.dtMutex.RUnlock()
-	
+
 	template, exists := c.deploymentTemplates[templateID]
 	if !exists {
 		return nil, fmt.Errorf("deployment template not found: %s", templateID)
 	}
-	
+
 	// Return a copy to prevent modification
 	return c.copyDeploymentTemplate(template), nil
 }
@@ -319,18 +319,18 @@ func (c *CatalogService) GetDeploymentTemplate(ctx context.Context, templateID s
 func (c *CatalogService) ListDeploymentTemplates(ctx context.Context, filter *models.DeploymentTemplateFilter) ([]*models.DeploymentTemplate, error) {
 	c.dtMutex.RLock()
 	defer c.dtMutex.RUnlock()
-	
+
 	var templates []*models.DeploymentTemplate
-	
+
 	for _, template := range c.deploymentTemplates {
 		if c.matchesTemplateFilter(template, filter) {
 			templates = append(templates, c.copyDeploymentTemplate(template))
 		}
 	}
-	
+
 	// Apply sorting and pagination
 	templates = c.sortAndPaginateTemplates(templates, filter)
-	
+
 	return templates, nil
 }
 
@@ -338,28 +338,28 @@ func (c *CatalogService) ListDeploymentTemplates(ctx context.Context, filter *mo
 func (c *CatalogService) UpdateDeploymentTemplate(ctx context.Context, templateID string, updates map[string]interface{}) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating deployment template", "templateID", templateID)
-	
+
 	c.dtMutex.Lock()
 	defer c.dtMutex.Unlock()
-	
+
 	template, exists := c.deploymentTemplates[templateID]
 	if !exists {
 		return fmt.Errorf("deployment template not found: %s", templateID)
 	}
-	
+
 	// Apply updates
 	if err := c.applyTemplateUpdates(template, updates); err != nil {
 		return fmt.Errorf("failed to apply updates: %w", err)
 	}
-	
+
 	// Validate updated template
 	if err := c.templateValidator.ValidateTemplate(context.Background(), template); err != nil {
 		return fmt.Errorf("updated template validation failed: %w", err)
 	}
-	
+
 	// Update timestamp
 	template.UpdatedAt = time.Now()
-	
+
 	logger.Info("deployment template updated successfully", "templateID", templateID)
 	return nil
 }
@@ -368,22 +368,22 @@ func (c *CatalogService) UpdateDeploymentTemplate(ctx context.Context, templateI
 func (c *CatalogService) UnregisterDeploymentTemplate(ctx context.Context, templateID string) error {
 	logger := log.FromContext(ctx)
 	logger.Info("unregistering deployment template", "templateID", templateID)
-	
+
 	c.dtMutex.Lock()
 	defer c.dtMutex.Unlock()
-	
+
 	if _, exists := c.deploymentTemplates[templateID]; !exists {
 		return fmt.Errorf("deployment template not found: %s", templateID)
 	}
-	
+
 	// TODO: Check if template is in use by any deployments
 	// For now, allow removal
-	
+
 	delete(c.deploymentTemplates, templateID)
-	
+
 	// Update statistics
 	c.updateTemplateStats()
-	
+
 	logger.Info("deployment template unregistered successfully", "templateID", templateID)
 	return nil
 }
@@ -399,22 +399,22 @@ func (c *CatalogService) ValidateTemplate(ctx context.Context, template *models.
 func (c *CatalogService) ProcessTemplate(ctx context.Context, templateID string, parameters map[string]interface{}) (*ProcessedTemplate, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("processing deployment template", "templateID", templateID)
-	
+
 	// Get template
 	template, err := c.GetDeploymentTemplate(ctx, templateID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}
-	
+
 	// Process template
 	processed, err := c.templateProcessor.ProcessTemplate(ctx, template, parameters)
 	if err != nil {
 		return nil, fmt.Errorf("template processing failed: %w", err)
 	}
-	
+
 	// Update statistics
 	c.stats.ProcessingCount++
-	
+
 	logger.Info("deployment template processed successfully", "templateID", templateID)
 	return processed, nil
 }
@@ -425,7 +425,7 @@ func (c *CatalogService) GetTemplateParameters(ctx context.Context, templateID s
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}
-	
+
 	return c.templateProcessor.ExtractParameters(ctx, template)
 }
 
@@ -435,7 +435,7 @@ func (c *CatalogService) GenerateTemplateDocumentation(ctx context.Context, temp
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template: %w", err)
 	}
-	
+
 	return c.templateProcessor.GenerateDocumentation(ctx, template)
 }
 
@@ -445,7 +445,7 @@ func (c *CatalogService) GenerateTemplateDocumentation(ctx context.Context, temp
 func (c *CatalogService) GetStatistics(ctx context.Context) *CatalogStatistics {
 	// Update statistics before returning
 	c.updateStats()
-	
+
 	// Return a copy to prevent modification
 	statsCopy := *c.stats
 	return &statsCopy
@@ -455,10 +455,10 @@ func (c *CatalogService) GetStatistics(ctx context.Context) *CatalogStatistics {
 func (c *CatalogService) Shutdown(ctx context.Context) error {
 	logger := log.FromContext(ctx)
 	logger.Info("shutting down catalog service")
-	
+
 	// Cancel background services
 	c.backgroundCancel()
-	
+
 	logger.Info("catalog service shutdown completed")
 	return nil
 }
@@ -527,7 +527,7 @@ func (c *CatalogService) initializeDefaultResourceTypes() {
 			UpdatedAt:        time.Now(),
 		},
 	}
-	
+
 	// Register default types
 	for _, resourceType := range defaultTypes {
 		c.resourceTypes[resourceType.ResourceTypeID] = resourceType
@@ -547,7 +547,7 @@ func (c *CatalogService) validateResourceType(resourceType *models.ResourceType)
 	if resourceType.Specifications.Category == "" {
 		return fmt.Errorf("resource type category is required")
 	}
-	
+
 	// Validate category
 	validCategories := []string{
 		models.ResourceCategoryCompute,
@@ -555,7 +555,7 @@ func (c *CatalogService) validateResourceType(resourceType *models.ResourceType)
 		models.ResourceCategoryNetwork,
 		models.ResourceCategoryAccelerator,
 	}
-	
+
 	validCategory := false
 	for _, category := range validCategories {
 		if resourceType.Specifications.Category == category {
@@ -563,11 +563,11 @@ func (c *CatalogService) validateResourceType(resourceType *models.ResourceType)
 			break
 		}
 	}
-	
+
 	if !validCategory {
 		return fmt.Errorf("invalid resource type category: %s", resourceType.Specifications.Category)
 	}
-	
+
 	return nil
 }
 
@@ -575,7 +575,7 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 	if filter == nil {
 		return true
 	}
-	
+
 	// Check names filter
 	if len(filter.Names) > 0 {
 		found := false
@@ -589,7 +589,7 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 			return false
 		}
 	}
-	
+
 	// Check categories filter
 	if len(filter.Categories) > 0 && rt.Specifications != nil {
 		found := false
@@ -603,7 +603,7 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 			return false
 		}
 	}
-	
+
 	// Check vendors filter
 	if len(filter.Vendors) > 0 {
 		found := false
@@ -617,7 +617,7 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 			return false
 		}
 	}
-	
+
 	// Check models filter
 	if len(filter.Models) > 0 {
 		found := false
@@ -631,7 +631,7 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 			return false
 		}
 	}
-	
+
 	// Check versions filter
 	if len(filter.Versions) > 0 {
 		found := false
@@ -645,7 +645,7 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -653,7 +653,7 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 	if filter == nil {
 		return true
 	}
-	
+
 	// Check names filter
 	if len(filter.Names) > 0 {
 		found := false
@@ -667,7 +667,7 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 			return false
 		}
 	}
-	
+
 	// Check categories filter
 	if len(filter.Categories) > 0 {
 		found := false
@@ -681,7 +681,7 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 			return false
 		}
 	}
-	
+
 	// Check types filter
 	if len(filter.Types) > 0 {
 		found := false
@@ -695,7 +695,7 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 			return false
 		}
 	}
-	
+
 	// Check versions filter
 	if len(filter.Versions) > 0 {
 		found := false
@@ -709,7 +709,7 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 			return false
 		}
 	}
-	
+
 	// Check authors filter
 	if len(filter.Authors) > 0 {
 		found := false
@@ -723,7 +723,7 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -810,18 +810,18 @@ func (c *CatalogService) updateStats() {
 	c.rtMutex.RLock()
 	resourceTypeCount := len(c.resourceTypes)
 	c.rtMutex.RUnlock()
-	
+
 	c.dtMutex.RLock()
 	templateCount := len(c.deploymentTemplates)
 	templatesByCategory := make(map[string]int)
 	templatesByType := make(map[string]int)
-	
+
 	for _, template := range c.deploymentTemplates {
 		templatesByCategory[template.Category]++
 		templatesByType[template.Type]++
 	}
 	c.dtMutex.RUnlock()
-	
+
 	c.stats.ResourceTypeCount = resourceTypeCount
 	c.stats.DeploymentTemplateCount = templateCount
 	c.stats.TemplatesByCategory = templatesByCategory
@@ -840,7 +840,7 @@ func (c *CatalogService) updateTemplateStats() {
 func (c *CatalogService) startBackgroundMaintenance() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-c.backgroundCtx.Done():
@@ -854,7 +854,7 @@ func (c *CatalogService) startBackgroundMaintenance() {
 func (c *CatalogService) performMaintenance() {
 	// Update statistics
 	c.updateStats()
-	
+
 	// Perform any cleanup operations
 	// This could include removing expired templates, validating integrity, etc.
 }
@@ -887,7 +887,7 @@ func (v *DefaultTemplateValidator) ValidateTemplate(ctx context.Context, templat
 	if template.Content == nil {
 		return fmt.Errorf("template content is required")
 	}
-	
+
 	// Validate template type
 	validTypes := []string{
 		models.TemplateTypeHelm,
@@ -895,7 +895,7 @@ func (v *DefaultTemplateValidator) ValidateTemplate(ctx context.Context, templat
 		models.TemplateTypeTerraform,
 		models.TemplateTypeAnsible,
 	}
-	
+
 	validType := false
 	for _, validT := range validTypes {
 		if template.Type == validT {
@@ -903,11 +903,11 @@ func (v *DefaultTemplateValidator) ValidateTemplate(ctx context.Context, templat
 			break
 		}
 	}
-	
+
 	if !validType {
 		return fmt.Errorf("invalid template type: %s", template.Type)
 	}
-	
+
 	return nil
 }
 
@@ -916,7 +916,7 @@ func (v *DefaultTemplateValidator) ValidateTemplateContent(ctx context.Context, 
 	if content == "" {
 		return fmt.Errorf("template content cannot be empty")
 	}
-	
+
 	// Type-specific validation would be implemented here
 	return nil
 }
@@ -945,12 +945,12 @@ func (p *DefaultTemplateProcessor) ProcessTemplate(ctx context.Context, template
 		RenderedContent: string(template.Content.Raw),
 		Parameters:      parameters,
 		Metadata: map[string]string{
-			"template_id": template.DeploymentTemplateID,
+			"template_id":   template.DeploymentTemplateID,
 			"template_type": template.Type,
-			"processed_at": time.Now().Format(time.RFC3339),
+			"processed_at":  time.Now().Format(time.RFC3339),
 		},
 	}
-	
+
 	return processed, nil
 }
 
@@ -958,13 +958,13 @@ func (p *DefaultTemplateProcessor) ExtractParameters(ctx context.Context, templa
 	// Extract parameters from template schema
 	// This would parse the input schema and extract parameter definitions
 	var parameters []TemplateParameter
-	
+
 	// Basic implementation - would be enhanced for production
 	if template.InputSchema != nil {
 		// Parse JSON schema and extract parameters
 		// For now, return empty list
 	}
-	
+
 	return parameters, nil
 }
 
@@ -975,13 +975,13 @@ func (p *DefaultTemplateProcessor) GenerateDocumentation(ctx context.Context, te
 		Description: template.Description,
 		GeneratedAt: time.Now(),
 	}
-	
+
 	// Extract parameters
 	parameters, err := p.ExtractParameters(ctx, template)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract parameters: %w", err)
 	}
 	doc.Parameters = parameters
-	
+
 	return doc, nil
 }

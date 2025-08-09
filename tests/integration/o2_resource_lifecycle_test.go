@@ -25,13 +25,13 @@ import (
 
 var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 	var (
-		namespace         *corev1.Namespace
-		testCtx          context.Context
-		o2Server         *o2.O2APIServer
-		httpTestServer   *httptest.Server
-		testClient       *http.Client
-		metricsRegistry  *prometheus.Registry
-		testLogger       *logging.StructuredLogger
+		namespace       *corev1.Namespace
+		testCtx         context.Context
+		o2Server        *o2.O2APIServer
+		httpTestServer  *httptest.Server
+		testClient      *http.Client
+		metricsRegistry *prometheus.Registry
+		testLogger      *logging.StructuredLogger
 	)
 
 	BeforeEach(func() {
@@ -44,9 +44,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 		metricsRegistry = prometheus.NewRegistry()
 
 		config := &o2.O2IMSConfig{
-			ServerAddress:    "127.0.0.1",
-			ServerPort:       0,
-			TLSEnabled:       false,
+			ServerAddress: "127.0.0.1",
+			ServerPort:    0,
+			TLSEnabled:    false,
 			DatabaseConfig: map[string]interface{}{
 				"type":     "memory",
 				"database": "o2_lifecycle_test_db",
@@ -61,7 +61,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				},
 			},
 			LifecycleConfig: map[string]interface{}{
-				"enabled": true,
+				"enabled":        true,
 				"defaultTimeout": "300s",
 				"retryPolicy": map[string]interface{}{
 					"maxRetries":    3,
@@ -95,16 +95,16 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 		Context("when creating resources with dependencies", func() {
 			It("should handle resource creation with proper dependency resolution", func() {
 				baseTimestamp := time.Now().UnixNano()
-				
+
 				// Create dependent resources in correct order
 				By("creating base infrastructure resource pool")
 				poolID := fmt.Sprintf("base-pool-%d", baseTimestamp)
 				basePool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          "Base Infrastructure Pool",
-					Description:   "Foundation pool for dependent resources",
-					Provider:      "kubernetes",
-					OCloudID:      "test-ocloud",
+					Name:           "Base Infrastructure Pool",
+					Description:    "Foundation pool for dependent resources",
+					Provider:       "kubernetes",
+					OCloudID:       "test-ocloud",
 					Status: &models.ResourcePoolStatus{
 						State:  "AVAILABLE",
 						Health: "HEALTHY",
@@ -136,9 +136,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				computeTypeID := fmt.Sprintf("compute-type-%d", baseTimestamp)
 				computeType := &models.ResourceType{
 					ResourceTypeID: computeTypeID,
-					Name:          "Compute Node Type",
-					Description:   "Compute resource type dependent on base pool",
-					Category:      "COMPUTE",
+					Name:           "Compute Node Type",
+					Description:    "Compute resource type dependent on base pool",
+					Category:       "COMPUTE",
 					Specifications: &models.ResourceTypeSpec{
 						Category: "COMPUTE",
 						MinResources: map[string]string{
@@ -150,7 +150,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 							"memory": "64Gi",
 						},
 						Properties: map[string]interface{}{
-							"dependsOn": []string{poolID},
+							"dependsOn":    []string{poolID},
 							"architecture": "x86_64",
 						},
 					},
@@ -172,14 +172,14 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				By("creating actual compute resource instance")
 				resourceID := fmt.Sprintf("compute-resource-%d", baseTimestamp)
 				computeResource := map[string]interface{}{
-					"resourceId":       resourceID,
-					"resourceName":     "Test Compute Resource",
-					"resourceTypeId":   computeTypeID,
-					"resourcePoolId":   poolID,
-					"description":      "Compute resource for lifecycle testing",
-					"resourceState":    "CREATED",
+					"resourceId":          resourceID,
+					"resourceName":        "Test Compute Resource",
+					"resourceTypeId":      computeTypeID,
+					"resourcePoolId":      poolID,
+					"description":         "Compute resource for lifecycle testing",
+					"resourceState":       "CREATED",
 					"administrativeState": "UNLOCKED",
-					"operationalState": "ENABLED",
+					"operationalState":    "ENABLED",
 					"resourceSpec": map[string]interface{}{
 						"cpu":     "4",
 						"memory":  "8Gi",
@@ -304,9 +304,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				By("creating initial resource for updates")
 				initialPool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          "Update Test Pool",
-					Provider:      "kubernetes",
-					OCloudID:      "test-ocloud",
+					Name:           "Update Test Pool",
+					Provider:       "kubernetes",
+					OCloudID:       "test-ocloud",
 					Capacity: &models.ResourceCapacity{
 						CPU: &models.ResourceMetric{
 							Total:       "50",
@@ -355,7 +355,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				}
 
 				updateRequest := map[string]interface{}{
-					"capacity": updatedCapacity,
+					"capacity":    updatedCapacity,
 					"description": "Updated pool with increased capacity",
 				}
 
@@ -458,9 +458,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				By("creating resource pool with constraints")
 				constraintPool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          "Constraint Test Pool",
-					Provider:      "kubernetes",
-					OCloudID:      "test-ocloud",
+					Name:           "Constraint Test Pool",
+					Provider:       "kubernetes",
+					OCloudID:       "test-ocloud",
 					Capacity: &models.ResourceCapacity{
 						CPU: &models.ResourceMetric{
 							Total:       "10",
@@ -472,8 +472,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					},
 					Extensions: map[string]interface{}{
 						"constraints": map[string]interface{}{
-							"maxCPU": 20,
-							"minCPU": 5,
+							"maxCPU":          20,
+							"minCPU":          5,
 							"immutableFields": []string{"provider", "oCloudId"},
 						},
 					},
@@ -582,9 +582,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				By("creating scalable resource pool")
 				scalingPool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          "Scaling Test Pool",
-					Provider:      "kubernetes",
-					OCloudID:      "test-ocloud",
+					Name:           "Scaling Test Pool",
+					Provider:       "kubernetes",
+					OCloudID:       "test-ocloud",
 					Capacity: &models.ResourceCapacity{
 						CPU: &models.ResourceMetric{
 							Total:       "10",
@@ -598,13 +598,13 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 						"scaling": map[string]interface{}{
 							"enabled": true,
 							"horizontal": map[string]interface{}{
-								"minInstances": 1,
-								"maxInstances": 10,
+								"minInstances":     1,
+								"maxInstances":     10,
 								"currentInstances": 1,
 							},
 							"vertical": map[string]interface{}{
-								"minCPU": "1",
-								"maxCPU": "100",
+								"minCPU":     "1",
+								"maxCPU":     "100",
 								"currentCPU": "10",
 							},
 						},
@@ -624,8 +624,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("performing horizontal scale out")
 				scaleOutRequest := map[string]interface{}{
-					"scaleType": "SCALE_OUT",
-					"aspectId": "instances",
+					"scaleType":     "SCALE_OUT",
+					"aspectId":      "instances",
 					"numberOfSteps": 2,
 					"additionalParams": map[string]interface{}{
 						"targetInstances": 3,
@@ -670,8 +670,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("performing vertical scale up")
 				scaleUpRequest := map[string]interface{}{
-					"scaleType": "SCALE_UP",
-					"aspectId": "cpu",
+					"scaleType":     "SCALE_UP",
+					"aspectId":      "cpu",
 					"numberOfSteps": 1,
 					"additionalParams": map[string]interface{}{
 						"targetCPU": "20",
@@ -709,8 +709,8 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("testing scaling limits and constraints")
 				excessiveScaleRequest := map[string]interface{}{
-					"scaleType": "SCALE_OUT",
-					"aspectId": "instances",
+					"scaleType":     "SCALE_OUT",
+					"aspectId":      "instances",
 					"numberOfSteps": 20, // Exceeds maxInstances
 					"additionalParams": map[string]interface{}{
 						"targetInstances": 15,
@@ -753,9 +753,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				By("creating parent resource pool")
 				parentPool := &models.ResourcePool{
 					ResourcePoolID: parentPoolID,
-					Name:          "Parent Pool for Deletion Test",
-					Provider:      "kubernetes",
-					OCloudID:      "test-ocloud",
+					Name:           "Parent Pool for Deletion Test",
+					Provider:       "kubernetes",
+					OCloudID:       "test-ocloud",
 				}
 
 				poolJSON, err := json.Marshal(parentPool)
@@ -775,7 +775,7 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 					"resourceName":   "Child Resource",
 					"resourcePoolId": parentPoolID,
 					"resourceState":  "ACTIVE",
-					"dependencies": []string{parentPoolID},
+					"dependencies":   []string{parentPoolID},
 				}
 
 				resourceJSON, err := json.Marshal(childResource)
@@ -843,9 +843,9 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				By("creating resource with graceful shutdown configuration")
 				gracefulPool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          "Graceful Shutdown Pool",
-					Provider:      "kubernetes",
-					OCloudID:      "test-ocloud",
+					Name:           "Graceful Shutdown Pool",
+					Provider:       "kubernetes",
+					OCloudID:       "test-ocloud",
 					Extensions: map[string]interface{}{
 						"lifecycle": map[string]interface{}{
 							"gracefulShutdownTimeout": "60s",
@@ -871,10 +871,10 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 
 				By("initiating graceful deletion")
 				deletionRequest := map[string]interface{}{
-					"deletionType": "GRACEFUL",
+					"deletionType":               "GRACEFUL",
 					"gracefulTerminationTimeout": 30,
 					"additionalParams": map[string]interface{}{
-						"drainTimeout": "15s",
+						"drainTimeout":     "15s",
 						"skipPreStopHooks": false,
 					},
 				}
@@ -927,16 +927,16 @@ var _ = Describe("O2 Resource Lifecycle Management Integration Tests", func() {
 				By("creating resource to track state transitions")
 				stateTrackingPool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          "State Tracking Pool",
-					Provider:      "kubernetes",
-					OCloudID:      "test-ocloud",
+					Name:           "State Tracking Pool",
+					Provider:       "kubernetes",
+					OCloudID:       "test-ocloud",
 					Status: &models.ResourcePoolStatus{
 						State:  "CREATING",
 						Health: "UNKNOWN",
 					},
 					Extensions: map[string]interface{}{
 						"stateTracking": map[string]interface{}{
-							"enabled": true,
+							"enabled":          true,
 							"trackTransitions": true,
 						},
 					},

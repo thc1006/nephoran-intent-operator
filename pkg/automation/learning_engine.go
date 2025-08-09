@@ -19,34 +19,34 @@ type LearningEngine struct {
 
 // RemediationOutcome represents the outcome of a remediation action
 type RemediationOutcome struct {
-	SessionID     string                 `json:"session_id"`
-	Component     string                 `json:"component"`
-	Strategy      string                 `json:"strategy"`
-	Success       bool                   `json:"success"`
-	Duration      time.Duration          `json:"duration"`
-	Timestamp     time.Time              `json:"timestamp"`
-	Metrics       map[string]float64     `json:"metrics"`
-	Context       map[string]interface{} `json:"context"`
-	ErrorDetails  string                 `json:"error_details,omitempty"`
+	SessionID    string                 `json:"session_id"`
+	Component    string                 `json:"component"`
+	Strategy     string                 `json:"strategy"`
+	Success      bool                   `json:"success"`
+	Duration     time.Duration          `json:"duration"`
+	Timestamp    time.Time              `json:"timestamp"`
+	Metrics      map[string]float64     `json:"metrics"`
+	Context      map[string]interface{} `json:"context"`
+	ErrorDetails string                 `json:"error_details,omitempty"`
 }
 
 // AccuracyMetric tracks the accuracy of prediction models
 type AccuracyMetric struct {
-	Component        string    `json:"component"`
-	ModelType        string    `json:"model_type"`
-	TotalPredictions int       `json:"total_predictions"`
-	CorrectPredictions int     `json:"correct_predictions"`
-	Accuracy         float64   `json:"accuracy"`
-	LastUpdated      time.Time `json:"last_updated"`
+	Component          string    `json:"component"`
+	ModelType          string    `json:"model_type"`
+	TotalPredictions   int       `json:"total_predictions"`
+	CorrectPredictions int       `json:"correct_predictions"`
+	Accuracy           float64   `json:"accuracy"`
+	LastUpdated        time.Time `json:"last_updated"`
 }
 
 // ModelUpdate represents an update to a prediction model
 type ModelUpdate struct {
-	Component   string                 `json:"component"`
-	ModelType   string                 `json:"model_type"`
-	Parameters  map[string]interface{} `json:"parameters"`
-	Accuracy    float64                `json:"accuracy"`
-	Timestamp   time.Time              `json:"timestamp"`
+	Component  string                 `json:"component"`
+	ModelType  string                 `json:"model_type"`
+	Parameters map[string]interface{} `json:"parameters"`
+	Accuracy   float64                `json:"accuracy"`
+	Timestamp  time.Time              `json:"timestamp"`
 }
 
 // RollbackManager manages rollback operations
@@ -72,10 +72,10 @@ type RollbackPlan struct {
 // RollbackStep represents a single step in a rollback plan
 type RollbackStep struct {
 	ID          string                 `json:"id"`
-	Type        string                 `json:"type"`        // RESTORE, SCALE, RESTART, etc.
+	Type        string                 `json:"type"` // RESTORE, SCALE, RESTART, etc.
 	Description string                 `json:"description"`
 	Parameters  map[string]interface{} `json:"parameters"`
-	Status      string                 `json:"status"`      // PENDING, RUNNING, COMPLETED, FAILED
+	Status      string                 `json:"status"` // PENDING, RUNNING, COMPLETED, FAILED
 	StartTime   *time.Time             `json:"start_time,omitempty"`
 	EndTime     *time.Time             `json:"end_time,omitempty"`
 	Error       string                 `json:"error,omitempty"`
@@ -223,9 +223,9 @@ func (rm *RollbackManager) CreateRollbackPlan(session *RemediationSession) *Roll
 // createRollbackStep creates a rollback step for a completed action
 func (rm *RollbackManager) createRollbackStep(action *RemediationAction) RollbackStep {
 	step := RollbackStep{
-		ID:          "step-" + action.Type + "-rollback",
-		Status:      "PENDING",
-		Parameters:  make(map[string]interface{}),
+		ID:         "step-" + action.Type + "-rollback",
+		Status:     "PENDING",
+		Parameters: make(map[string]interface{}),
 	}
 
 	switch action.Type {

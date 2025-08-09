@@ -33,9 +33,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
+	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
 // MockAlertHandler implements AlertHandler for testing
@@ -75,54 +74,54 @@ func (m *MockAlertHandler) Reset() {
 func createTestClusterManager(t *testing.T) *ClusterManager {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	return NewClusterManager(client, logger)
 }
 
 func createTestPackagePropagator(t *testing.T) *PackagePropagator {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	clusterMgr := NewClusterManager(client, logger)
 	syncEngine := NewSyncEngine(client, logger)
 	customizer := NewCustomizer(client, logger)
-	
+
 	return NewPackagePropagator(client, logger, clusterMgr, syncEngine, customizer)
 }
 
 func createTestHealthMonitor(t *testing.T) *HealthMonitor {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	return NewHealthMonitor(client, logger)
 }
 
 func createTestSyncEngine(t *testing.T) *SyncEngine {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	return NewSyncEngine(client, logger)
 }
 
 func createTestCustomizer(t *testing.T) *Customizer {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	return NewCustomizer(client, logger)
 }
 
@@ -159,12 +158,12 @@ func createTestClusterName(name, namespace string) types.NamespacedName {
 // ClusterManager Tests
 func TestClusterManager_RegisterCluster(t *testing.T) {
 	tests := []struct {
-		name           string
-		clusterName    types.NamespacedName
-		clusterConfig  *rest.Config
-		expectedError  bool
-		setupFunc      func(*ClusterManager)
-		validateFunc   func(*testing.T, *ClusterManager, *ClusterInfo)
+		name          string
+		clusterName   types.NamespacedName
+		clusterConfig *rest.Config
+		expectedError bool
+		setupFunc     func(*ClusterManager)
+		validateFunc  func(*testing.T, *ClusterManager, *ClusterInfo)
 	}{
 		{
 			name:          "successful cluster registration",
@@ -186,7 +185,7 @@ func TestClusterManager_RegisterCluster(t *testing.T) {
 			setupFunc: func(cm *ClusterManager) {
 				// Register the cluster first
 				ctx := context.Background()
-				cm.RegisterCluster(ctx, createTestClusterConfig(), 
+				cm.RegisterCluster(ctx, createTestClusterConfig(),
 					createTestClusterName("duplicate-cluster", "default"))
 			},
 			validateFunc: func(t *testing.T, cm *ClusterManager, ci *ClusterInfo) {
@@ -205,7 +204,7 @@ func TestClusterManager_RegisterCluster(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cm := createTestClusterManager(t)
-			
+
 			if tt.setupFunc != nil {
 				tt.setupFunc(cm)
 			}
@@ -246,7 +245,7 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 				// Register test clusters
 				ctx := context.Background()
 				config := createTestClusterConfig()
-				
+
 				clusterInfo1 := &ClusterInfo{
 					Name:            createTestClusterName("cluster-1", "default"),
 					Kubeconfig:      config,
@@ -257,7 +256,7 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 						MemoryTotal: 16 * 1024 * 1024 * 1024, // 16GB
 					},
 				}
-				
+
 				clusterInfo2 := &ClusterInfo{
 					Name:            createTestClusterName("cluster-2", "default"),
 					Kubeconfig:      config,
@@ -268,7 +267,7 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 						MemoryTotal: 8 * 1024 * 1024 * 1024, // 8GB
 					},
 				}
-				
+
 				cm.clusters[createTestClusterName("cluster-1", "default")] = clusterInfo1
 				cm.clusters[createTestClusterName("cluster-2", "default")] = clusterInfo2
 			},
@@ -295,7 +294,7 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cm := createTestClusterManager(t)
-			
+
 			if tt.setupFunc != nil {
 				tt.setupFunc(cm)
 			}
@@ -315,30 +314,30 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 
 func TestClusterManager_HealthMonitoring(t *testing.T) {
 	cm := createTestClusterManager(t)
-	
+
 	// Register test clusters
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	config := createTestClusterConfig()
-	
+
 	// Register a cluster
 	clusterName := createTestClusterName("health-test-cluster", "default")
 	clusterInfo, err := cm.RegisterCluster(ctx, config, clusterName)
 	require.NoError(t, err)
 	require.NotNil(t, clusterInfo)
-	
+
 	// Start health monitoring with short interval
 	cm.StartHealthMonitoring(ctx, 100*time.Millisecond)
-	
+
 	// Wait for at least one health check cycle
 	time.Sleep(200 * time.Millisecond)
-	
+
 	// Verify health check was performed
 	cm.clusterLock.RLock()
 	updatedCluster := cm.clusters[clusterName]
 	cm.clusterLock.RUnlock()
-	
+
 	assert.True(t, updatedCluster.LastHealthCheck.After(clusterInfo.LastHealthCheck))
 }
 
@@ -346,16 +345,16 @@ func TestClusterManager_HealthMonitoring(t *testing.T) {
 func TestPackagePropagator_DeployPackage_Sequential(t *testing.T) {
 	propagator := createTestPackagePropagator(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
-	
+
 	targetClusters := []types.NamespacedName{
 		createTestClusterName("cluster-1", "default"),
 		createTestClusterName("cluster-2", "default"),
 	}
-	
+
 	// Setup clusters in cluster manager
 	ctx := context.Background()
 	config := createTestClusterConfig()
-	
+
 	for _, clusterName := range targetClusters {
 		clusterInfo := &ClusterInfo{
 			Name:            clusterName,
@@ -369,16 +368,16 @@ func TestPackagePropagator_DeployPackage_Sequential(t *testing.T) {
 		}
 		propagator.clusterMgr.clusters[clusterName] = clusterInfo
 	}
-	
+
 	deploymentOptions := DeploymentOptions{
 		Strategy:          StrategySequential,
 		MaxConcurrentDepl: 1,
 		Timeout:           5 * time.Minute,
 		RollbackOnFailure: false,
 	}
-	
+
 	status, err := propagator.DeployPackage(ctx, packageRevision, targetClusters, deploymentOptions)
-	
+
 	// For now, expect error since sync engine is not fully mocked
 	// This test validates the flow and structure
 	assert.Error(t, err)
@@ -388,17 +387,17 @@ func TestPackagePropagator_DeployPackage_Sequential(t *testing.T) {
 func TestPackagePropagator_DeployPackage_Parallel(t *testing.T) {
 	propagator := createTestPackagePropagator(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
-	
+
 	targetClusters := []types.NamespacedName{
 		createTestClusterName("cluster-1", "default"),
 		createTestClusterName("cluster-2", "default"),
 		createTestClusterName("cluster-3", "default"),
 	}
-	
+
 	// Setup clusters in cluster manager
 	ctx := context.Background()
 	config := createTestClusterConfig()
-	
+
 	for _, clusterName := range targetClusters {
 		clusterInfo := &ClusterInfo{
 			Name:            clusterName,
@@ -412,16 +411,16 @@ func TestPackagePropagator_DeployPackage_Parallel(t *testing.T) {
 		}
 		propagator.clusterMgr.clusters[clusterName] = clusterInfo
 	}
-	
+
 	deploymentOptions := DeploymentOptions{
 		Strategy:          StrategyParallel,
 		MaxConcurrentDepl: 2,
 		Timeout:           5 * time.Minute,
 		RollbackOnFailure: true,
 	}
-	
+
 	status, err := propagator.DeployPackage(ctx, packageRevision, targetClusters, deploymentOptions)
-	
+
 	// For now, expect error since sync engine is not fully mocked
 	assert.Error(t, err)
 	assert.Nil(t, status)
@@ -429,7 +428,7 @@ func TestPackagePropagator_DeployPackage_Parallel(t *testing.T) {
 
 func TestPackagePropagator_ValidateDeploymentOptions(t *testing.T) {
 	propagator := createTestPackagePropagator(t)
-	
+
 	tests := []struct {
 		name     string
 		options  DeploymentOptions
@@ -467,7 +466,7 @@ func TestPackagePropagator_ValidateDeploymentOptions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := propagator.validateDeploymentOptions(&tt.options)
-			
+
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected.Strategy, tt.options.Strategy)
 			assert.Equal(t, tt.expected.MaxConcurrentDepl, tt.options.MaxConcurrentDepl)
@@ -482,10 +481,10 @@ func TestSyncEngine_SyncPackageToCluster(t *testing.T) {
 	syncEngine := createTestSyncEngine(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 	targetCluster := createTestClusterName("target-cluster", "default")
-	
+
 	ctx := context.Background()
 	status, err := syncEngine.SyncPackageToCluster(ctx, packageRevision, targetCluster)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, status)
 	assert.Equal(t, targetCluster.String(), status.ClusterName)
@@ -495,7 +494,7 @@ func TestSyncEngine_SyncPackageToCluster(t *testing.T) {
 func TestSyncEngine_ValidatePackage(t *testing.T) {
 	syncEngine := createTestSyncEngine(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
-	
+
 	tests := []struct {
 		name    string
 		mode    ValidationMode
@@ -529,9 +528,9 @@ func TestSyncEngine_ValidatePackage(t *testing.T) {
 			opts := SyncOptions{
 				ValidationMode: tt.mode,
 			}
-			
+
 			err := syncEngine.validatePackage(ctx, packageRevision, opts)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -545,7 +544,7 @@ func TestSyncEngine_ExecuteSyncMethod(t *testing.T) {
 	syncEngine := createTestSyncEngine(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 	targetCluster := createTestClusterName("target-cluster", "default")
-	
+
 	tests := []struct {
 		name       string
 		syncMethod SyncMethod
@@ -579,9 +578,9 @@ func TestSyncEngine_ExecuteSyncMethod(t *testing.T) {
 			opts := SyncOptions{
 				SyncMethod: tt.syncMethod,
 			}
-			
+
 			status, err := syncEngine.executeSyncMethod(ctx, packageRevision, targetCluster, opts)
-			
+
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, status)
@@ -597,7 +596,7 @@ func TestSyncEngine_ExecuteSyncMethod(t *testing.T) {
 // HealthMonitor Tests
 func TestHealthMonitor_StartHealthMonitoring(t *testing.T) {
 	healthMonitor := createTestHealthMonitor(t)
-	
+
 	// Register a cluster for monitoring
 	clusterName := createTestClusterName("monitored-cluster", "default")
 	healthMonitor.clusters[clusterName] = &ClusterHealthState{
@@ -605,38 +604,38 @@ func TestHealthMonitor_StartHealthMonitoring(t *testing.T) {
 		LastHealthCheck: time.Now().Add(-time.Hour), // Old timestamp
 		OverallStatus:   HealthStatusHealthy,
 	}
-	
+
 	// Start health monitoring
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
-	
+
 	healthMonitor.StartHealthMonitoring(ctx, 100*time.Millisecond)
-	
+
 	// Wait for monitoring cycles
 	time.Sleep(300 * time.Millisecond)
-	
+
 	// Verify health checks were performed
 	healthMonitor.clusterLock.RLock()
 	cluster := healthMonitor.clusters[clusterName]
 	healthMonitor.clusterLock.RUnlock()
-	
+
 	assert.True(t, cluster.LastHealthCheck.After(time.Now().Add(-time.Minute)))
 }
 
 func TestHealthMonitor_RegisterHealthChannel(t *testing.T) {
 	healthMonitor := createTestHealthMonitor(t)
 	clusterName := createTestClusterName("test-cluster", "default")
-	
+
 	// Register health channel
 	healthChan := healthMonitor.RegisterHealthChannel(clusterName)
 	assert.NotNil(t, healthChan)
-	
+
 	// Verify channel is registered
 	healthMonitor.clusterLock.RLock()
 	_, exists := healthMonitor.healthChannels[clusterName]
 	healthMonitor.clusterLock.RUnlock()
 	assert.True(t, exists)
-	
+
 	// Clean up
 	healthMonitor.UnregisterHealthChannel(clusterName)
 }
@@ -644,10 +643,10 @@ func TestHealthMonitor_RegisterHealthChannel(t *testing.T) {
 func TestHealthMonitor_AlertHandling(t *testing.T) {
 	healthMonitor := createTestHealthMonitor(t)
 	mockHandler := &MockAlertHandler{}
-	
+
 	// Register alert handler
 	healthMonitor.RegisterAlertHandler(mockHandler)
-	
+
 	// Create test alerts
 	alerts := []Alert{
 		{
@@ -663,10 +662,10 @@ func TestHealthMonitor_AlertHandling(t *testing.T) {
 			Timestamp: time.Now(),
 		},
 	}
-	
+
 	// Process alerts
 	healthMonitor.processAlerts(alerts)
-	
+
 	// Verify alerts were handled
 	handledAlerts := mockHandler.GetAlerts()
 	assert.Len(t, handledAlerts, 2)
@@ -676,10 +675,10 @@ func TestHealthMonitor_AlertHandling(t *testing.T) {
 func TestHealthMonitor_NotifyHealthChannels(t *testing.T) {
 	healthMonitor := createTestHealthMonitor(t)
 	clusterName := createTestClusterName("test-cluster", "default")
-	
+
 	// Register health channel
 	healthChan := healthMonitor.RegisterHealthChannel(clusterName)
-	
+
 	// Create health update
 	update := HealthUpdate{
 		ClusterName: clusterName,
@@ -693,10 +692,10 @@ func TestHealthMonitor_NotifyHealthChannels(t *testing.T) {
 			},
 		},
 	}
-	
+
 	// Notify health channels
 	go healthMonitor.notifyHealthChannels(update)
-	
+
 	// Read from channel
 	select {
 	case receivedUpdate := <-healthChan:
@@ -706,7 +705,7 @@ func TestHealthMonitor_NotifyHealthChannels(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		t.Fatal("Health update not received within timeout")
 	}
-	
+
 	// Clean up
 	healthMonitor.UnregisterHealthChannel(clusterName)
 }
@@ -716,10 +715,10 @@ func TestCustomizer_ExtractCustomizationOptions(t *testing.T) {
 	customizer := createTestCustomizer(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 	targetCluster := createTestClusterName("target-cluster", "default")
-	
+
 	ctx := context.Background()
 	options, err := customizer.extractCustomizationOptions(ctx, packageRevision, targetCluster)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, options)
 	assert.Equal(t, StrategyOverlay, options.Strategy)
@@ -732,10 +731,10 @@ func TestCustomizer_CustomizePackage(t *testing.T) {
 	customizer := createTestCustomizer(t)
 	packageRevision := createTestPackageRevision("test-package", "v1.0.0")
 	targetCluster := createTestClusterName("target-cluster", "default")
-	
+
 	ctx := context.Background()
 	customizedPackage, err := customizer.CustomizePackage(ctx, packageRevision, targetCluster)
-	
+
 	// Expected to fail since customization methods are not fully implemented
 	assert.Error(t, err)
 	assert.Nil(t, customizedPackage)
@@ -746,25 +745,25 @@ func TestMultiCluster_IntegrationFlow(t *testing.T) {
 	// Create all components
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	clusterMgr := NewClusterManager(client, logger)
 	syncEngine := NewSyncEngine(client, logger)
 	customizer := NewCustomizer(client, logger)
 	healthMonitor := NewHealthMonitor(client, logger)
 	propagator := NewPackagePropagator(client, logger, clusterMgr, syncEngine, customizer)
-	
+
 	// Register test clusters
 	ctx := context.Background()
 	config := createTestClusterConfig()
-	
+
 	clusters := []types.NamespacedName{
 		createTestClusterName("cluster-1", "default"),
 		createTestClusterName("cluster-2", "default"),
 	}
-	
+
 	for _, clusterName := range clusters {
 		clusterInfo := &ClusterInfo{
 			Name:            clusterName,
@@ -782,36 +781,36 @@ func TestMultiCluster_IntegrationFlow(t *testing.T) {
 			OverallStatus: HealthStatusHealthy,
 		}
 	}
-	
+
 	// Test cluster selection
 	packageRevision := createTestPackageRevision("integration-test-package", "v1.0.0")
 	selectedClusters, err := clusterMgr.SelectTargetClusters(ctx, clusters, packageRevision)
-	
+
 	assert.NoError(t, err)
 	assert.Len(t, selectedClusters, 2)
-	
+
 	// Test package propagation (expected to fail due to incomplete mocking)
 	deploymentOptions := DeploymentOptions{
 		Strategy:          StrategySequential,
 		MaxConcurrentDepl: 1,
 		Timeout:           1 * time.Minute,
 	}
-	
+
 	_, err = propagator.DeployPackage(ctx, packageRevision, selectedClusters, deploymentOptions)
 	assert.Error(t, err) // Expected due to incomplete sync engine implementation
-	
+
 	// Test health monitoring
 	mockHandler := &MockAlertHandler{}
 	healthMonitor.RegisterAlertHandler(mockHandler)
-	
+
 	// Start health monitoring briefly
 	healthCtx, cancel := context.WithTimeout(ctx, 500*time.Millisecond)
 	defer cancel()
 	healthMonitor.StartHealthMonitoring(healthCtx, 100*time.Millisecond)
-	
+
 	// Wait for monitoring cycles
 	time.Sleep(200 * time.Millisecond)
-	
+
 	// Should complete without panics
 	assert.True(t, true) // Placeholder assertion for integration flow completion
 }
@@ -820,34 +819,34 @@ func TestMultiCluster_IntegrationFlow(t *testing.T) {
 func TestMultiCluster_ConcurrentOperations(t *testing.T) {
 	clusterMgr := createTestClusterManager(t)
 	config := createTestClusterConfig()
-	
+
 	// Test concurrent cluster registrations
 	var wg sync.WaitGroup
 	numClusters := 10
-	
+
 	for i := 0; i < numClusters; i++ {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()
-			
+
 			ctx := context.Background()
 			clusterName := createTestClusterName(
-				fmt.Sprintf("concurrent-cluster-%d", index), 
+				fmt.Sprintf("concurrent-cluster-%d", index),
 				"default",
 			)
-			
+
 			_, err := clusterMgr.RegisterCluster(ctx, config, clusterName)
 			assert.NoError(t, err)
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Verify all clusters were registered
 	clusterMgr.clusterLock.RLock()
 	clusterCount := len(clusterMgr.clusters)
 	clusterMgr.clusterLock.RUnlock()
-	
+
 	assert.Equal(t, numClusters, clusterCount)
 }
 
@@ -856,7 +855,7 @@ func BenchmarkClusterManager_SelectTargetClusters(b *testing.B) {
 	cm := &ClusterManager{
 		clusters: make(map[types.NamespacedName]*ClusterInfo),
 	}
-	
+
 	// Setup test clusters
 	config := &rest.Config{Host: "https://test.example.com"}
 	for i := 0; i < 100; i++ {
@@ -864,7 +863,7 @@ func BenchmarkClusterManager_SelectTargetClusters(b *testing.B) {
 			Name:      fmt.Sprintf("bench-cluster-%d", i),
 			Namespace: "default",
 		}
-		
+
 		cm.clusters[clusterName] = &ClusterInfo{
 			Name:       clusterName,
 			Kubeconfig: config,
@@ -874,7 +873,7 @@ func BenchmarkClusterManager_SelectTargetClusters(b *testing.B) {
 			},
 		}
 	}
-	
+
 	packageRevision := createTestPackageRevision("bench-package", "v1.0.0")
 	candidates := make([]types.NamespacedName, 100)
 	for i := 0; i < 100; i++ {
@@ -883,9 +882,9 @@ func BenchmarkClusterManager_SelectTargetClusters(b *testing.B) {
 			Namespace: "default",
 		}
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := cm.SelectTargetClusters(ctx, candidates, packageRevision)
@@ -899,7 +898,7 @@ func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
 	hm := createTestHealthMonitor(b)
 	mockHandler := &MockAlertHandler{}
 	hm.RegisterAlertHandler(mockHandler)
-	
+
 	alerts := []Alert{
 		{
 			Severity:  SeverityWarning,
@@ -908,7 +907,7 @@ func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
 			Timestamp: time.Now(),
 		},
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		hm.processAlerts(alerts)

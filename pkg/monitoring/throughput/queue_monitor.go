@@ -23,10 +23,10 @@ type QueueMonitor struct {
 
 // QueueTracker monitors individual queue performance
 type QueueTracker struct {
-	name               string
-	depth              int
-	maxDepth           int
-	waitTimes          []time.Duration
+	name                 string
+	depth                int
+	maxDepth             int
+	waitTimes            []time.Duration
 	priorityDistribution map[Priority]int
 }
 
@@ -62,7 +62,7 @@ func NewQueueMonitor() *QueueMonitor {
 
 // RegisterQueue adds a new queue to monitoring
 func (m *QueueMonitor) RegisterQueue(
-	name string, 
+	name string,
 	maxDepth int,
 ) *QueueTracker {
 	m.mu.Lock()
@@ -80,8 +80,8 @@ func (m *QueueMonitor) RegisterQueue(
 
 // Enqueue adds an item to the queue
 func (m *QueueMonitor) Enqueue(
-	queueName string, 
-	priority Priority, 
+	queueName string,
+	priority Priority,
 	enqueuedAt time.Time,
 ) error {
 	m.mu.Lock()
@@ -109,9 +109,9 @@ func (m *QueueMonitor) Enqueue(
 
 // Dequeue removes an item from the queue
 func (m *QueueMonitor) Dequeue(
-	queueName string, 
-	priority Priority, 
-	enqueuedAt time.Time, 
+	queueName string,
+	priority Priority,
+	enqueuedAt time.Time,
 	status string,
 ) error {
 	m.mu.Lock()
@@ -161,19 +161,19 @@ func (m *QueueMonitor) GetQueueStats(queueName string) (*QueueStats, error) {
 	avgWaitTime := totalWait / time.Duration(len(queue.waitTimes))
 
 	return &QueueStats{
-		CurrentDepth:          queue.depth,
-		MaxDepth:              queue.maxDepth,
-		AverageWaitTime:       avgWaitTime,
-		PriorityDistribution:  queue.priorityDistribution,
+		CurrentDepth:         queue.depth,
+		MaxDepth:             queue.maxDepth,
+		AverageWaitTime:      avgWaitTime,
+		PriorityDistribution: queue.priorityDistribution,
 	}, nil
 }
 
 // QueueStats represents detailed queue performance metrics
 type QueueStats struct {
-	CurrentDepth          int
-	MaxDepth              int
-	AverageWaitTime       time.Duration
-	PriorityDistribution  map[Priority]int
+	CurrentDepth         int
+	MaxDepth             int
+	AverageWaitTime      time.Duration
+	PriorityDistribution map[Priority]int
 }
 
 // String converts priority to readable string
@@ -195,7 +195,7 @@ func (p Priority) String() string {
 // BackpressureController manages queue flow control
 type BackpressureController struct {
 	mu sync.Mutex
-	
+
 	// Thresholds for backpressure activation
 	maxQueueDepth      int
 	backpressureActive bool
@@ -217,7 +217,7 @@ func NewBackpressureController(maxDepth int) *BackpressureController {
 
 // ShouldApplyBackpressure checks if backpressure is needed
 func (bc *BackpressureController) ShouldApplyBackpressure(
-	currentDepth int, 
+	currentDepth int,
 	queueName string,
 ) bool {
 	bc.mu.Lock()

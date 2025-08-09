@@ -43,12 +43,12 @@ type QualityMetrics struct {
 }
 
 type CyclomaticMetrics struct {
-	Average            float64            `json:"average"`
-	Maximum            int                `json:"maximum"`
-	TotalComplexity    int                `json:"total_complexity"`
-	ComplexFunctions   []ComplexFunction  `json:"complex_functions"`
-	ComplexityByFile   map[string]int     `json:"complexity_by_file"`
-	ComplexityDistribution map[string]int `json:"complexity_distribution"`
+	Average                float64           `json:"average"`
+	Maximum                int               `json:"maximum"`
+	TotalComplexity        int               `json:"total_complexity"`
+	ComplexFunctions       []ComplexFunction `json:"complex_functions"`
+	ComplexityByFile       map[string]int    `json:"complexity_by_file"`
+	ComplexityDistribution map[string]int    `json:"complexity_distribution"`
 }
 
 type ComplexFunction struct {
@@ -59,10 +59,10 @@ type ComplexFunction struct {
 }
 
 type DuplicationMetrics struct {
-	Percentage        float64                `json:"percentage"`
-	DuplicatedLines   int                    `json:"duplicated_lines"`
-	DuplicationBlocks []DuplicationBlock     `json:"duplication_blocks"`
-	DuplicationByFile map[string]int         `json:"duplication_by_file"`
+	Percentage        float64            `json:"percentage"`
+	DuplicatedLines   int                `json:"duplicated_lines"`
+	DuplicationBlocks []DuplicationBlock `json:"duplication_blocks"`
+	DuplicationByFile map[string]int     `json:"duplication_by_file"`
 }
 
 type DuplicationBlock struct {
@@ -74,20 +74,20 @@ type DuplicationBlock struct {
 }
 
 type TestCoverageMetrics struct {
-	Percentage       float64            `json:"percentage"`
-	CoveredLines     int                `json:"covered_lines"`
-	TotalLines       int                `json:"total_lines"`
-	CoverageByFile   map[string]float64 `json:"coverage_by_file"`
-	UncoveredFiles   []string           `json:"uncovered_files"`
-	TestToCodeRatio  float64            `json:"test_to_code_ratio"`
+	Percentage      float64            `json:"percentage"`
+	CoveredLines    int                `json:"covered_lines"`
+	TotalLines      int                `json:"total_lines"`
+	CoverageByFile  map[string]float64 `json:"coverage_by_file"`
+	UncoveredFiles  []string           `json:"uncovered_files"`
+	TestToCodeRatio float64            `json:"test_to_code_ratio"`
 }
 
 type TechnicalDebtMetrics struct {
-	DebtRatio        float64           `json:"debt_ratio"`
-	DebtIndex        float64           `json:"debt_index"`
-	Issues           []TechnicalDebtIssue `json:"issues"`
-	DebtByCategory   map[string]int    `json:"debt_by_category"`
-	EstimatedHours   float64           `json:"estimated_hours"`
+	DebtRatio      float64              `json:"debt_ratio"`
+	DebtIndex      float64              `json:"debt_index"`
+	Issues         []TechnicalDebtIssue `json:"issues"`
+	DebtByCategory map[string]int       `json:"debt_by_category"`
+	EstimatedHours float64              `json:"estimated_hours"`
 }
 
 type TechnicalDebtIssue struct {
@@ -100,55 +100,55 @@ type TechnicalDebtIssue struct {
 }
 
 type MaintainabilityMetrics struct {
-	Index               float64 `json:"index"`
-	Grade               string  `json:"grade"`
-	HalsteadComplexity  float64 `json:"halstead_complexity"`
-	CouplingIndex       float64 `json:"coupling_index"`
-	CohesionIndex       float64 `json:"cohesion_index"`
-	DocumentationIndex  float64 `json:"documentation_index"`
+	Index              float64 `json:"index"`
+	Grade              string  `json:"grade"`
+	HalsteadComplexity float64 `json:"halstead_complexity"`
+	CouplingIndex      float64 `json:"coupling_index"`
+	CohesionIndex      float64 `json:"cohesion_index"`
+	DocumentationIndex float64 `json:"documentation_index"`
 }
 
 type QualityRecommendation struct {
-	Category    string `json:"category"`
-	Priority    string `json:"priority"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Impact      string `json:"impact"`
-	Effort      string `json:"effort"`
+	Category    string   `json:"category"`
+	Priority    string   `json:"priority"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Impact      string   `json:"impact"`
+	Effort      string   `json:"effort"`
 	Files       []string `json:"files,omitempty"`
 }
 
 type TrendAnalysis struct {
-	QualityTrend     string  `json:"quality_trend"`
-	CoverageTrend    string  `json:"coverage_trend"`
-	ComplexityTrend  string  `json:"complexity_trend"`
-	DebtTrend        string  `json:"debt_trend"`
-	PreviousScore    float64 `json:"previous_score"`
-	ScoreChange      float64 `json:"score_change"`
+	QualityTrend    string  `json:"quality_trend"`
+	CoverageTrend   string  `json:"coverage_trend"`
+	ComplexityTrend string  `json:"complexity_trend"`
+	DebtTrend       string  `json:"debt_trend"`
+	PreviousScore   float64 `json:"previous_score"`
+	ScoreChange     float64 `json:"score_change"`
 }
 
 type FileMetrics struct {
-	Lines           int     `json:"lines"`
-	CodeLines       int     `json:"code_lines"`
-	CommentLines    int     `json:"comment_lines"`
-	BlankLines      int     `json:"blank_lines"`
-	Functions       int     `json:"functions"`
-	Complexity      int     `json:"complexity"`
-	TestCoverage    float64 `json:"test_coverage"`
-	QualityScore    float64 `json:"quality_score"`
-	Issues          int     `json:"issues"`
-	TechnicalDebt   int     `json:"technical_debt_minutes"`
+	Lines         int     `json:"lines"`
+	CodeLines     int     `json:"code_lines"`
+	CommentLines  int     `json:"comment_lines"`
+	BlankLines    int     `json:"blank_lines"`
+	Functions     int     `json:"functions"`
+	Complexity    int     `json:"complexity"`
+	TestCoverage  float64 `json:"test_coverage"`
+	QualityScore  float64 `json:"quality_score"`
+	Issues        int     `json:"issues"`
+	TechnicalDebt int     `json:"technical_debt_minutes"`
 }
 
 type PackageMetrics struct {
-	Files           int     `json:"files"`
-	Lines           int     `json:"lines"`
-	Functions       int     `json:"functions"`
-	Complexity      int     `json:"complexity"`
-	TestCoverage    float64 `json:"test_coverage"`
-	CouplingIndex   float64 `json:"coupling_index"`
-	CohesionIndex   float64 `json:"cohesion_index"`
-	QualityScore    float64 `json:"quality_score"`
+	Files         int     `json:"files"`
+	Lines         int     `json:"lines"`
+	Functions     int     `json:"functions"`
+	Complexity    int     `json:"complexity"`
+	TestCoverage  float64 `json:"test_coverage"`
+	CouplingIndex float64 `json:"coupling_index"`
+	CohesionIndex float64 `json:"cohesion_index"`
+	QualityScore  float64 `json:"quality_score"`
 }
 
 func main() {
@@ -466,16 +466,22 @@ func calculateMaintainabilityMetrics(metrics *QualityMetrics) {
 	commentRatio := float64(metrics.CommentLines) / float64(metrics.TotalLines)
 
 	// Simplified maintainability calculation
-	complexityScore := 10 - (avgComplexity / 10 * 5)    // 0-10 scale
-	sizeScore := 10 - (linesOfCode / 10000 * 5)         // Penalty for large codebase
-	documentationScore := commentRatio * 10             // 0-10 scale based on comment ratio
+	complexityScore := 10 - (avgComplexity / 10 * 5) // 0-10 scale
+	sizeScore := 10 - (linesOfCode / 10000 * 5)      // Penalty for large codebase
+	documentationScore := commentRatio * 10          // 0-10 scale based on comment ratio
 
-	if complexityScore < 0 { complexityScore = 0 }
-	if sizeScore < 0 { sizeScore = 0 }
-	if documentationScore > 10 { documentationScore = 10 }
+	if complexityScore < 0 {
+		complexityScore = 0
+	}
+	if sizeScore < 0 {
+		sizeScore = 0
+	}
+	if documentationScore > 10 {
+		documentationScore = 10
+	}
 
 	metrics.Maintainability.Index = (complexityScore + sizeScore + documentationScore) / 3 * 10
-	
+
 	// Assign grade based on maintainability index
 	if metrics.Maintainability.Index >= 85 {
 		metrics.Maintainability.Grade = "A"
@@ -515,7 +521,7 @@ func calculateTechnicalDebt(metrics *QualityMetrics) {
 	// Large file penalty
 	for _, fileMetrics := range metrics.FileMetrics {
 		if fileMetrics.Lines > 500 {
-			largeFileDebt := float64(fileMetrics.Lines - 500) * 0.1 // 0.1 min per excess line
+			largeFileDebt := float64(fileMetrics.Lines-500) * 0.1 // 0.1 min per excess line
 			debtMinutes += largeFileDebt
 		}
 	}
@@ -532,7 +538,7 @@ func calculateTechnicalDebt(metrics *QualityMetrics) {
 	// Categorize debt
 	metrics.TechnicalDebt.DebtByCategory["complexity"] = highComplexityPenalty
 	metrics.TechnicalDebt.DebtByCategory["coverage"] = int((80 - testCoverage) * 2)
-	metrics.TechnicalDebt.DebtByCategory["size"] = int(debtMinutes) - highComplexityPenalty - int((80 - testCoverage) * 2)
+	metrics.TechnicalDebt.DebtByCategory["size"] = int(debtMinutes) - highComplexityPenalty - int((80-testCoverage)*2)
 }
 
 func calculateQualityScore(metrics *QualityMetrics) {
@@ -541,22 +547,30 @@ func calculateQualityScore(metrics *QualityMetrics) {
 
 	// Test coverage component (30% weight)
 	coverageScore := metrics.TestCoverage.TestToCodeRatio * 100
-	if coverageScore > 100 { coverageScore = 100 }
+	if coverageScore > 100 {
+		coverageScore = 100
+	}
 	score += (coverageScore / 100) * 3.0
 
 	// Complexity component (25% weight)
 	complexityScore := 10 - (metrics.CyclomaticComplexity.Average / 10 * 10)
-	if complexityScore < 0 { complexityScore = 0 }
+	if complexityScore < 0 {
+		complexityScore = 0
+	}
 	score += (complexityScore / 10) * 2.5
 
 	// Duplication component (20% weight)
 	duplicationScore := 10 - (metrics.Duplication.Percentage / 10 * 10)
-	if duplicationScore < 0 { duplicationScore = 0 }
+	if duplicationScore < 0 {
+		duplicationScore = 0
+	}
 	score += (duplicationScore / 10) * 2.0
 
 	// Documentation component (15% weight)
 	docScore := metrics.Maintainability.DocumentationIndex / 10
-	if docScore > 10 { docScore = 10 }
+	if docScore > 10 {
+		docScore = 10
+	}
 	score += (docScore / 10) * 1.5
 
 	// Size/maintainability component (10% weight)
@@ -590,7 +604,7 @@ func generateRecommendations(metrics *QualityMetrics) {
 			Category:    "Testing",
 			Priority:    "High",
 			Title:       "Improve Test Coverage",
-			Description: fmt.Sprintf("Current test coverage is %.1f%%. Target is 80%% or higher.", metrics.TestCoverage.TestToCodeRatio * 100),
+			Description: fmt.Sprintf("Current test coverage is %.1f%%. Target is 80%% or higher.", metrics.TestCoverage.TestToCodeRatio*100),
 			Impact:      "Reduces bug risk and improves confidence in refactoring",
 			Effort:      "Medium to High",
 		})
@@ -654,7 +668,7 @@ func calculateTrendAnalysis(metrics *QualityMetrics) {
 		QualityTrend:    "stable",
 		CoverageTrend:   "improving",
 		ComplexityTrend: "stable",
-		DebtTrend:      "stable",
+		DebtTrend:       "stable",
 		PreviousScore:   metrics.QualityScore, // Placeholder
 		ScoreChange:     0.0,
 	}
@@ -664,7 +678,7 @@ func calculateFileQualityScore(fileMetrics FileMetrics) float64 {
 	score := 10.0
 
 	// Penalty for high complexity
-	if fileMetrics.Complexity > fileMetrics.Functions * 2 {
+	if fileMetrics.Complexity > fileMetrics.Functions*2 {
 		score -= 2.0
 	}
 
@@ -728,7 +742,7 @@ func printSummary(metrics *QualityMetrics) {
 	fmt.Printf("  • Functions: %d\n\n", metrics.Functions)
 
 	fmt.Printf("🔍 Quality Metrics:\n")
-	fmt.Printf("  • Test Coverage Ratio: %.1f%%\n", metrics.TestCoverage.TestToCodeRatio * 100)
+	fmt.Printf("  • Test Coverage Ratio: %.1f%%\n", metrics.TestCoverage.TestToCodeRatio*100)
 	fmt.Printf("  • Avg Cyclomatic Complexity: %.1f\n", metrics.CyclomaticComplexity.Average)
 	fmt.Printf("  • Code Duplication: %.1f%%\n", metrics.Duplication.Percentage)
 	fmt.Printf("  • Documentation Coverage: %.1f%%\n", metrics.Maintainability.DocumentationIndex)
@@ -741,7 +755,9 @@ func printSummary(metrics *QualityMetrics) {
 	if len(metrics.Recommendations) > 0 {
 		fmt.Printf("💡 Top Recommendations:\n")
 		for i, rec := range metrics.Recommendations {
-			if i >= 3 { break } // Show only top 3
+			if i >= 3 {
+				break
+			} // Show only top 3
 			fmt.Printf("  %d. [%s] %s\n", i+1, rec.Priority, rec.Title)
 			fmt.Printf("     %s\n", rec.Description)
 		}
@@ -765,7 +781,7 @@ func addCommas(n int) string {
 	if len(str) <= 3 {
 		return str
 	}
-	
+
 	var result []string
 	for i, r := range reverseString(str) {
 		if i > 0 && i%3 == 0 {
@@ -773,7 +789,7 @@ func addCommas(n int) string {
 		}
 		result = append(result, string(r))
 	}
-	
+
 	return reverseString(strings.Join(result, ""))
 }
 

@@ -33,61 +33,61 @@ import (
 
 // PackageRequest represents a request to create or modify a package
 type PackageRequest struct {
-	PackageName   string            `json:"package_name"`
-	Repository    string            `json:"repository,omitempty"`
-	Revision      string            `json:"revision,omitempty"`
-	Description   string            `json:"description,omitempty"`
-	Labels        map[string]string `json:"labels,omitempty"`
-	Annotations   map[string]string `json:"annotations,omitempty"`
+	PackageName string            `json:"package_name"`
+	Repository  string            `json:"repository,omitempty"`
+	Revision    string            `json:"revision,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // PackageResponse represents a comprehensive package response
 type PackageResponse struct {
 	*porch.PackageRevision
-	LifecycleStatus    *packagerevision.LifecycleStatus    `json:"lifecycle_status,omitempty"`
-	ValidationResults  []*packagerevision.ValidationResult `json:"validation_results,omitempty"`
-	ApprovalStatus     *packagerevision.ApprovalResult     `json:"approval_status,omitempty"`
+	LifecycleStatus   *packagerevision.LifecycleStatus    `json:"lifecycle_status,omitempty"`
+	ValidationResults []*packagerevision.ValidationResult `json:"validation_results,omitempty"`
+	ApprovalStatus    *packagerevision.ApprovalResult     `json:"approval_status,omitempty"`
 	Metrics           *packagerevision.PackageMetrics     `json:"metrics,omitempty"`
 	DeploymentTargets []DeploymentTargetInfo              `json:"deployment_targets,omitempty"`
 }
 
 // DeploymentTargetInfo represents deployment target information
 type DeploymentTargetInfo struct {
-	ClusterName   string    `json:"cluster_name"`
-	Status        string    `json:"status"`
-	LastDeployed  *metav1.Time `json:"last_deployed,omitempty"`
-	Health        string    `json:"health,omitempty"`
-	Version       string    `json:"version,omitempty"`
-	ErrorMessage  string    `json:"error_message,omitempty"`
+	ClusterName  string       `json:"cluster_name"`
+	Status       string       `json:"status"`
+	LastDeployed *metav1.Time `json:"last_deployed,omitempty"`
+	Health       string       `json:"health,omitempty"`
+	Version      string       `json:"version,omitempty"`
+	ErrorMessage string       `json:"error_message,omitempty"`
 }
 
 // TransitionRequest represents a lifecycle transition request
 type TransitionRequest struct {
-	TargetStage           string                                   `json:"target_stage"`
-	SkipValidation        bool                                     `json:"skip_validation,omitempty"`
-	SkipApproval          bool                                     `json:"skip_approval,omitempty"`
-	CreateRollbackPoint   bool                                     `json:"create_rollback_point,omitempty"`
-	RollbackDescription   string                                   `json:"rollback_description,omitempty"`
-	ForceTransition       bool                                     `json:"force_transition,omitempty"`
-	ValidationPolicy      *packagerevision.ValidationPolicy       `json:"validation_policy,omitempty"`
-	ApprovalPolicy        *packagerevision.ApprovalPolicy         `json:"approval_policy,omitempty"`
-	NotificationTargets   []string                                 `json:"notification_targets,omitempty"`
-	Metadata              map[string]string                        `json:"metadata,omitempty"`
-	DryRun                bool                                     `json:"dry_run,omitempty"`
+	TargetStage         string                            `json:"target_stage"`
+	SkipValidation      bool                              `json:"skip_validation,omitempty"`
+	SkipApproval        bool                              `json:"skip_approval,omitempty"`
+	CreateRollbackPoint bool                              `json:"create_rollback_point,omitempty"`
+	RollbackDescription string                            `json:"rollback_description,omitempty"`
+	ForceTransition     bool                              `json:"force_transition,omitempty"`
+	ValidationPolicy    *packagerevision.ValidationPolicy `json:"validation_policy,omitempty"`
+	ApprovalPolicy      *packagerevision.ApprovalPolicy   `json:"approval_policy,omitempty"`
+	NotificationTargets []string                          `json:"notification_targets,omitempty"`
+	Metadata            map[string]string                 `json:"metadata,omitempty"`
+	DryRun              bool                              `json:"dry_run,omitempty"`
 }
 
 // PackageStatusUpdate represents a package status update for streaming
 type PackageStatusUpdate struct {
-	PackageName     string                           `json:"package_name"`
-	Repository      string                           `json:"repository"`
-	Revision        string                           `json:"revision"`
-	CurrentStage    porch.PackageRevisionLifecycle   `json:"current_stage"`
-	PreviousStage   porch.PackageRevisionLifecycle   `json:"previous_stage,omitempty"`
-	Progress        int                              `json:"progress"` // 0-100
-	Message         string                           `json:"message,omitempty"`
-	Timestamp       time.Time                        `json:"timestamp"`
-	EventType       string                           `json:"event_type"` // created, transition, validation, approval, error
-	Conditions      []metav1.Condition               `json:"conditions,omitempty"`
+	PackageName   string                         `json:"package_name"`
+	Repository    string                         `json:"repository"`
+	Revision      string                         `json:"revision"`
+	CurrentStage  porch.PackageRevisionLifecycle `json:"current_stage"`
+	PreviousStage porch.PackageRevisionLifecycle `json:"previous_stage,omitempty"`
+	Progress      int                            `json:"progress"` // 0-100
+	Message       string                         `json:"message,omitempty"`
+	Timestamp     time.Time                      `json:"timestamp"`
+	EventType     string                         `json:"event_type"` // created, transition, validation, approval, error
+	Conditions    []metav1.Condition             `json:"conditions,omitempty"`
 }
 
 // setupPackageRoutes sets up package management API routes
@@ -170,7 +170,7 @@ func (s *NephoranAPIServer) listPackages(w http.ResponseWriter, r *http.Request)
 
 	// Get packages through package manager if available
 	if s.packageManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable",
 			"Package management service is not available")
 		return
 	}
@@ -253,7 +253,7 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if s.packageManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable",
 			"Package management service is not available")
 		return
 	}
@@ -269,7 +269,7 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 	lifecycleStatus, err := s.packageManager.GetLifecycleStatus(ctx, packageRef)
 	if err != nil {
 		s.logger.Error(err, "Failed to get lifecycle status", "package", name, "repository", repository)
-		s.writeErrorResponse(w, http.StatusInternalServerError, "get_lifecycle_failed", 
+		s.writeErrorResponse(w, http.StatusInternalServerError, "get_lifecycle_failed",
 			"Failed to retrieve package lifecycle status")
 		return
 	}
@@ -285,7 +285,7 @@ func (s *NephoranAPIServer) getPackage(w http.ResponseWriter, r *http.Request) {
 	// Build comprehensive response
 	response := PackageResponse{
 		LifecycleStatus: lifecycleStatus,
-		Metrics:        metrics,
+		Metrics:         metrics,
 		// PackageRevision will be populated from actual porch data
 		DeploymentTargets: s.getDeploymentTargetInfo(ctx, packageRef),
 	}
@@ -304,7 +304,7 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 
 	// Check permissions for package transitions
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionUpdateIntent) {
-		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions", 
+		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"Update intent permission required for package transitions")
 		return
 	}
@@ -329,7 +329,7 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 	}
 
 	if s.packageManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable",
 			"Package management service is not available")
 		return
 	}
@@ -343,15 +343,15 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 
 	// Create transition options
 	opts := &packagerevision.TransitionOptions{
-		SkipValidation:        req.SkipValidation,
-		SkipApproval:         req.SkipApproval,
-		CreateRollbackPoint:  req.CreateRollbackPoint,
-		RollbackDescription:  req.RollbackDescription,
-		ForceTransition:      req.ForceTransition,
-		ValidationPolicy:     req.ValidationPolicy,
-		ApprovalPolicy:       req.ApprovalPolicy,
-		NotificationTargets:  req.NotificationTargets,
-		DryRun:               req.DryRun,
+		SkipValidation:      req.SkipValidation,
+		SkipApproval:        req.SkipApproval,
+		CreateRollbackPoint: req.CreateRollbackPoint,
+		RollbackDescription: req.RollbackDescription,
+		ForceTransition:     req.ForceTransition,
+		ValidationPolicy:    req.ValidationPolicy,
+		ApprovalPolicy:      req.ApprovalPolicy,
+		NotificationTargets: req.NotificationTargets,
+		DryRun:              req.DryRun,
 	}
 
 	if req.Metadata != nil {
@@ -362,7 +362,7 @@ func (s *NephoranAPIServer) proposePackage(w http.ResponseWriter, r *http.Reques
 	result, err := s.packageManager.TransitionToProposed(ctx, packageRef, opts)
 	if err != nil {
 		s.logger.Error(err, "Failed to propose package", "package", name, "repository", repository)
-		s.writeErrorResponse(w, http.StatusInternalServerError, "transition_failed", 
+		s.writeErrorResponse(w, http.StatusInternalServerError, "transition_failed",
 			fmt.Sprintf("Failed to propose package: %v", err))
 		return
 	}
@@ -395,7 +395,7 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 
 	// Check admin permissions for package approval
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionManageSystem) {
-		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions", 
+		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"System management permission required for package approval")
 		return
 	}
@@ -420,7 +420,7 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 	}
 
 	if s.packageManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable",
 			"Package management service is not available")
 		return
 	}
@@ -434,15 +434,15 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 
 	// Create transition options
 	opts := &packagerevision.TransitionOptions{
-		SkipValidation:        req.SkipValidation,
-		SkipApproval:         req.SkipApproval,
-		CreateRollbackPoint:  req.CreateRollbackPoint,
-		RollbackDescription:  req.RollbackDescription,
-		ForceTransition:      req.ForceTransition,
-		ValidationPolicy:     req.ValidationPolicy,
-		ApprovalPolicy:       req.ApprovalPolicy,
-		NotificationTargets:  req.NotificationTargets,
-		DryRun:               req.DryRun,
+		SkipValidation:      req.SkipValidation,
+		SkipApproval:        req.SkipApproval,
+		CreateRollbackPoint: req.CreateRollbackPoint,
+		RollbackDescription: req.RollbackDescription,
+		ForceTransition:     req.ForceTransition,
+		ValidationPolicy:    req.ValidationPolicy,
+		ApprovalPolicy:      req.ApprovalPolicy,
+		NotificationTargets: req.NotificationTargets,
+		DryRun:              req.DryRun,
 	}
 
 	if req.Metadata != nil {
@@ -453,7 +453,7 @@ func (s *NephoranAPIServer) approvePackage(w http.ResponseWriter, r *http.Reques
 	result, err := s.packageManager.TransitionToPublished(ctx, packageRef, opts)
 	if err != nil {
 		s.logger.Error(err, "Failed to approve package", "package", name, "repository", repository)
-		s.writeErrorResponse(w, http.StatusInternalServerError, "transition_failed", 
+		s.writeErrorResponse(w, http.StatusInternalServerError, "transition_failed",
 			fmt.Sprintf("Failed to approve package: %v", err))
 		return
 	}
@@ -495,7 +495,7 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 	}
 
 	if s.packageManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "package_manager_unavailable",
 			"Package management service is not available")
 		return
 	}
@@ -511,7 +511,7 @@ func (s *NephoranAPIServer) validatePackage(w http.ResponseWriter, r *http.Reque
 	result, err := s.packageManager.ValidateConfiguration(ctx, packageRef)
 	if err != nil {
 		s.logger.Error(err, "Failed to validate package", "package", name, "repository", repository)
-		s.writeErrorResponse(w, http.StatusInternalServerError, "validation_failed", 
+		s.writeErrorResponse(w, http.StatusInternalServerError, "validation_failed",
 			fmt.Sprintf("Failed to validate package: %v", err))
 		return
 	}
@@ -558,7 +558,7 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 	}
 
 	if s.clusterManager == nil {
-		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable", 
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
 			"Multi-cluster management service is not available")
 		return
 	}
@@ -567,17 +567,17 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 	status, err := s.clusterManager.GetMultiClusterStatus(ctx, name)
 	if err != nil {
 		s.logger.Error(err, "Failed to get package deployment status", "package", name, "repository", repository)
-		s.writeErrorResponse(w, http.StatusInternalServerError, "get_status_failed", 
+		s.writeErrorResponse(w, http.StatusInternalServerError, "get_status_failed",
 			"Failed to retrieve package deployment status")
 		return
 	}
 
 	// Convert to API response format
 	deploymentStatus := map[string]interface{}{
-		"package_name":    status.PackageName,
-		"overall_status":  status.OverallStatus,
-		"last_updated":    status.LastUpdated,
-		"cluster_status":  status.ClusterStatuses,
+		"package_name":   status.PackageName,
+		"overall_status": status.OverallStatus,
+		"last_updated":   status.LastUpdated,
+		"cluster_status": status.ClusterStatuses,
 	}
 
 	// Cache the result

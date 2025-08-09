@@ -21,15 +21,15 @@ import (
 
 // ClusterProvisioner handles cluster provisioning across multiple cloud providers
 type ClusterProvisioner struct {
-	providers       map[CloudProvider]CloudProviderInterface
-	templates       map[string]*ProvisioningTemplate
+	providers        map[CloudProvider]CloudProviderInterface
+	templates        map[string]*ProvisioningTemplate
 	lifecycleManager *ClusterLifecycleManager
-	costOptimizer   *CostOptimizer
-	backupManager   *BackupManager
-	logger          logr.Logger
-	metrics         *provisionerMetrics
-	client          client.Client
-	mu              sync.RWMutex
+	costOptimizer    *CostOptimizer
+	backupManager    *BackupManager
+	logger           logr.Logger
+	metrics          *provisionerMetrics
+	client           client.Client
+	mu               sync.RWMutex
 }
 
 // CloudProviderInterface defines the interface for cloud providers
@@ -45,19 +45,19 @@ type CloudProviderInterface interface {
 
 // ClusterSpec defines the specification for cluster provisioning
 type ClusterSpec struct {
-	Name            string                   `json:"name"`
-	Provider        CloudProvider            `json:"provider"`
-	Region          string                   `json:"region"`
-	Zones           []string                 `json:"zones"`
-	NodePools       []NodePoolSpec           `json:"node_pools"`
-	Networking      NetworkingSpec           `json:"networking"`
-	Security        SecuritySpec             `json:"security"`
-	Addons          []AddonSpec              `json:"addons"`
-	Backup          BackupSpec               `json:"backup"`
-	Monitoring      MonitoringSpec           `json:"monitoring"`
-	Autoscaling     AutoscalingSpec          `json:"autoscaling"`
-	CostOptimization CostOptimizationSpec    `json:"cost_optimization"`
-	Tags            map[string]string        `json:"tags"`
+	Name             string               `json:"name"`
+	Provider         CloudProvider        `json:"provider"`
+	Region           string               `json:"region"`
+	Zones            []string             `json:"zones"`
+	NodePools        []NodePoolSpec       `json:"node_pools"`
+	Networking       NetworkingSpec       `json:"networking"`
+	Security         SecuritySpec         `json:"security"`
+	Addons           []AddonSpec          `json:"addons"`
+	Backup           BackupSpec           `json:"backup"`
+	Monitoring       MonitoringSpec       `json:"monitoring"`
+	Autoscaling      AutoscalingSpec      `json:"autoscaling"`
+	CostOptimization CostOptimizationSpec `json:"cost_optimization"`
+	Tags             map[string]string    `json:"tags"`
 }
 
 // NodePoolSpec defines a node pool specification
@@ -91,28 +91,28 @@ type GPUConfig struct {
 
 // NetworkingSpec defines networking configuration
 type NetworkingSpec struct {
-	VPCName          string   `json:"vpc_name"`
-	SubnetCIDR       string   `json:"subnet_cidr"`
-	PodCIDR          string   `json:"pod_cidr"`
-	ServiceCIDR      string   `json:"service_cidr"`
-	EnablePrivateIP  bool     `json:"enable_private_ip"`
-	EnableNATGateway bool     `json:"enable_nat_gateway"`
-	DNSZone          string   `json:"dns_zone"`
-	LoadBalancerType string   `json:"load_balancer_type"`
-	IngressController string  `json:"ingress_controller"`
+	VPCName           string `json:"vpc_name"`
+	SubnetCIDR        string `json:"subnet_cidr"`
+	PodCIDR           string `json:"pod_cidr"`
+	ServiceCIDR       string `json:"service_cidr"`
+	EnablePrivateIP   bool   `json:"enable_private_ip"`
+	EnableNATGateway  bool   `json:"enable_nat_gateway"`
+	DNSZone           string `json:"dns_zone"`
+	LoadBalancerType  string `json:"load_balancer_type"`
+	IngressController string `json:"ingress_controller"`
 }
 
 // SecuritySpec defines security configuration
 type SecuritySpec struct {
-	EnableRBAC            bool              `json:"enable_rbac"`
-	EnablePodSecurity     bool              `json:"enable_pod_security"`
-	NetworkPolicyProvider string            `json:"network_policy_provider"`
-	EncryptionAtRest      bool              `json:"encryption_at_rest"`
-	KMSKeyID              string            `json:"kms_key_id"`
-	IAMRoles              []string          `json:"iam_roles"`
-	ServiceAccounts       []ServiceAccount  `json:"service_accounts"`
-	SecretManagement      string            `json:"secret_management"`
-	ComplianceMode        string            `json:"compliance_mode"`
+	EnableRBAC            bool             `json:"enable_rbac"`
+	EnablePodSecurity     bool             `json:"enable_pod_security"`
+	NetworkPolicyProvider string           `json:"network_policy_provider"`
+	EncryptionAtRest      bool             `json:"encryption_at_rest"`
+	KMSKeyID              string           `json:"kms_key_id"`
+	IAMRoles              []string         `json:"iam_roles"`
+	ServiceAccounts       []ServiceAccount `json:"service_accounts"`
+	SecretManagement      string           `json:"secret_management"`
+	ComplianceMode        string           `json:"compliance_mode"`
 }
 
 // ServiceAccount defines a service account configuration
@@ -131,21 +131,21 @@ type AddonSpec struct {
 
 // BackupSpec defines backup configuration
 type BackupSpec struct {
-	Enabled           bool          `json:"enabled"`
-	Schedule          string        `json:"schedule"`
-	RetentionDays     int           `json:"retention_days"`
-	BackupLocation    string        `json:"backup_location"`
-	SnapshotFrequency string        `json:"snapshot_frequency"`
-	DisasterRecovery  DRConfig      `json:"disaster_recovery"`
+	Enabled           bool     `json:"enabled"`
+	Schedule          string   `json:"schedule"`
+	RetentionDays     int      `json:"retention_days"`
+	BackupLocation    string   `json:"backup_location"`
+	SnapshotFrequency string   `json:"snapshot_frequency"`
+	DisasterRecovery  DRConfig `json:"disaster_recovery"`
 }
 
 // DRConfig defines disaster recovery configuration
 type DRConfig struct {
-	Enabled           bool   `json:"enabled"`
-	SecondaryRegion   string `json:"secondary_region"`
-	RPO               string `json:"rpo"`
-	RTO               string `json:"rto"`
-	ReplicationMode   string `json:"replication_mode"`
+	Enabled         bool   `json:"enabled"`
+	SecondaryRegion string `json:"secondary_region"`
+	RPO             string `json:"rpo"`
+	RTO             string `json:"rto"`
+	ReplicationMode string `json:"replication_mode"`
 }
 
 // MonitoringSpec defines monitoring configuration
@@ -159,48 +159,48 @@ type MonitoringSpec struct {
 
 // AutoscalingSpec defines autoscaling configuration
 type AutoscalingSpec struct {
-	Enabled              bool                 `json:"enabled"`
-	MinNodes             int                  `json:"min_nodes"`
-	MaxNodes             int                  `json:"max_nodes"`
-	TargetCPU            int                  `json:"target_cpu"`
-	TargetMemory         int                  `json:"target_memory"`
-	ScaleDownDelay       string               `json:"scale_down_delay"`
-	CustomMetrics        []CustomMetric       `json:"custom_metrics"`
+	Enabled        bool           `json:"enabled"`
+	MinNodes       int            `json:"min_nodes"`
+	MaxNodes       int            `json:"max_nodes"`
+	TargetCPU      int            `json:"target_cpu"`
+	TargetMemory   int            `json:"target_memory"`
+	ScaleDownDelay string         `json:"scale_down_delay"`
+	CustomMetrics  []CustomMetric `json:"custom_metrics"`
 }
 
 // CustomMetric defines a custom autoscaling metric
 type CustomMetric struct {
-	Name      string  `json:"name"`
-	Target    float64 `json:"target"`
-	Type      string  `json:"type"`
+	Name   string  `json:"name"`
+	Target float64 `json:"target"`
+	Type   string  `json:"type"`
 }
 
 // CostOptimizationSpec defines cost optimization settings
 type CostOptimizationSpec struct {
-	UseSpotInstances     bool     `json:"use_spot_instances"`
-	SpotInstanceRatio    float64  `json:"spot_instance_ratio"`
-	UseReservedInstances bool     `json:"use_reserved_instances"`
-	AutoShutdown         bool     `json:"auto_shutdown"`
-	ShutdownSchedule     string   `json:"shutdown_schedule"`
-	RightSizing          bool     `json:"right_sizing"`
+	UseSpotInstances      bool    `json:"use_spot_instances"`
+	SpotInstanceRatio     float64 `json:"spot_instance_ratio"`
+	UseReservedInstances  bool    `json:"use_reserved_instances"`
+	AutoShutdown          bool    `json:"auto_shutdown"`
+	ShutdownSchedule      string  `json:"shutdown_schedule"`
+	RightSizing           bool    `json:"right_sizing"`
 	UnusedResourceCleanup bool    `json:"unused_resource_cleanup"`
 }
 
 // ProvisionedCluster represents a provisioned cluster
 type ProvisionedCluster struct {
-	ID               string           `json:"id"`
-	Name             string           `json:"name"`
-	Provider         CloudProvider    `json:"provider"`
-	Region           string           `json:"region"`
-	Status           ProvisionStatus  `json:"status"`
-	Endpoint         string           `json:"endpoint"`
-	Version          string           `json:"version"`
-	NodeCount        int              `json:"node_count"`
-	CreatedAt        time.Time        `json:"created_at"`
-	UpdatedAt        time.Time        `json:"updated_at"`
-	Cost             CostInfo         `json:"cost"`
-	Health           HealthInfo       `json:"health"`
-	Metadata         map[string]string `json:"metadata"`
+	ID        string            `json:"id"`
+	Name      string            `json:"name"`
+	Provider  CloudProvider     `json:"provider"`
+	Region    string            `json:"region"`
+	Status    ProvisionStatus   `json:"status"`
+	Endpoint  string            `json:"endpoint"`
+	Version   string            `json:"version"`
+	NodeCount int               `json:"node_count"`
+	CreatedAt time.Time         `json:"created_at"`
+	UpdatedAt time.Time         `json:"updated_at"`
+	Cost      CostInfo          `json:"cost"`
+	Health    HealthInfo        `json:"health"`
+	Metadata  map[string]string `json:"metadata"`
 }
 
 // ProvisionStatus represents the provisioning status
@@ -225,28 +225,28 @@ type CostInfo struct {
 
 // HealthInfo contains health information
 type HealthInfo struct {
-	Status  string    `json:"status"`
-	Message string    `json:"message"`
+	Status    string    `json:"status"`
+	Message   string    `json:"message"`
 	LastCheck time.Time `json:"last_check"`
 }
 
 // CostEstimate represents a cost estimate
 type CostEstimate struct {
-	HourlyCost      float64           `json:"hourly_cost"`
-	MonthlyCost     float64           `json:"monthly_cost"`
-	YearlyCost      float64           `json:"yearly_cost"`
+	HourlyCost      float64            `json:"hourly_cost"`
+	MonthlyCost     float64            `json:"monthly_cost"`
+	YearlyCost      float64            `json:"yearly_cost"`
 	Breakdown       map[string]float64 `json:"breakdown"`
-	Recommendations []string          `json:"recommendations"`
+	Recommendations []string           `json:"recommendations"`
 }
 
 // ProvisioningTemplate represents a cluster provisioning template
 type ProvisioningTemplate struct {
-	Name         string            `json:"name"`
-	Provider     CloudProvider     `json:"provider"`
-	Description  string            `json:"description"`
-	Template     string            `json:"template"`
-	Variables    map[string]string `json:"variables"`
-	Defaults     ClusterSpec       `json:"defaults"`
+	Name        string            `json:"name"`
+	Provider    CloudProvider     `json:"provider"`
+	Description string            `json:"description"`
+	Template    string            `json:"template"`
+	Variables   map[string]string `json:"variables"`
+	Defaults    ClusterSpec       `json:"defaults"`
 }
 
 // ClusterLifecycleManager manages cluster lifecycle operations
@@ -287,22 +287,22 @@ type CostRecommendation struct {
 
 // BackupManager manages cluster backups
 type BackupManager struct {
-	backups  map[string][]*ClusterBackup
+	backups   map[string][]*ClusterBackup
 	schedules map[string]*BackupSchedule
-	logger   logr.Logger
-	mu       sync.RWMutex
+	logger    logr.Logger
+	mu        sync.RWMutex
 }
 
 // ClusterBackup represents a cluster backup
 type ClusterBackup struct {
-	ID           string    `json:"id"`
-	ClusterID    string    `json:"cluster_id"`
-	Type         string    `json:"type"`
-	Status       string    `json:"status"`
-	Location     string    `json:"location"`
-	SizeBytes    int64     `json:"size_bytes"`
-	CreatedAt    time.Time `json:"created_at"`
-	ExpiresAt    time.Time `json:"expires_at"`
+	ID        string    `json:"id"`
+	ClusterID string    `json:"cluster_id"`
+	Type      string    `json:"type"`
+	Status    string    `json:"status"`
+	Location  string    `json:"location"`
+	SizeBytes int64     `json:"size_bytes"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 // BackupSchedule represents a backup schedule
@@ -594,7 +594,7 @@ func (cp *ClusterProvisioner) initializeProviders() {
 func (cp *ClusterProvisioner) loadTemplates() {
 	// Load templates from ConfigMaps or files
 	templatesDir := "/etc/nephio/cluster-templates"
-	
+
 	files, err := os.ReadDir(templatesDir)
 	if err != nil {
 		cp.logger.Error(err, "Failed to read templates directory", "dir", templatesDir)
@@ -696,7 +696,7 @@ func (cp *ClusterProvisioner) selectOptimalMachineType(pool *NodePoolSpec) strin
 func (cp *ClusterProvisioner) generateIaC(spec *ClusterSpec) (string, error) {
 	// Select template based on provider
 	templateName := fmt.Sprintf("%s-cluster", strings.ToLower(string(spec.Provider)))
-	
+
 	cp.mu.RLock()
 	tmpl, exists := cp.templates[templateName]
 	cp.mu.RUnlock()
@@ -749,7 +749,7 @@ func (cp *ClusterProvisioner) setupMonitoring(ctx context.Context, cluster *Prov
 // UpgradeCluster upgrades a cluster to a new version
 func (clm *ClusterLifecycleManager) UpgradeCluster(ctx context.Context, clusterID string, targetVersion string, rollbackOnFail bool) error {
 	clm.mu.Lock()
-	
+
 	// Check if upgrade is already in progress
 	if upgrade, exists := clm.upgrades[clusterID]; exists && upgrade.Status == "in-progress" {
 		clm.mu.Unlock()

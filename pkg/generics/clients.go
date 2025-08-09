@@ -22,13 +22,13 @@ import (
 type ClientInterface[TRequest, TResponse any] interface {
 	// Execute performs the client operation
 	Execute(ctx context.Context, request TRequest) Result[TResponse, error]
-	
+
 	// ExecuteWithRetry performs the operation with retry logic
 	ExecuteWithRetry(ctx context.Context, request TRequest, retries int) Result[TResponse, error]
-	
+
 	// IsHealthy performs a health check
 	IsHealthy(ctx context.Context) Result[bool, error]
-	
+
 	// Close gracefully closes the client
 	Close() error
 }
@@ -36,10 +36,10 @@ type ClientInterface[TRequest, TResponse any] interface {
 // AsyncClientInterface defines the contract for asynchronous clients.
 type AsyncClientInterface[TRequest, TResponse any] interface {
 	ClientInterface[TRequest, TResponse]
-	
+
 	// ExecuteAsync performs the operation asynchronously
 	ExecuteAsync(ctx context.Context, request TRequest) <-chan Result[TResponse, error]
-	
+
 	// ExecuteBatch processes multiple requests concurrently
 	ExecuteBatch(ctx context.Context, requests []TRequest) <-chan Result[TResponse, error]
 }
@@ -93,11 +93,11 @@ type JSONResponseDecoder[T any] struct{}
 func (d JSONResponseDecoder[T]) Decode(ctx context.Context, resp *http.Response) Result[T, error] {
 	var result T
 	decoder := json.NewDecoder(resp.Body)
-	
+
 	if err := decoder.Decode(&result); err != nil {
 		return Err[T, error](fmt.Errorf("failed to decode response: %w", err))
 	}
-	
+
 	return Ok[T, error](result)
 }
 
@@ -106,27 +106,27 @@ func NewHTTPClient[TRequest, TResponse any](config HTTPClientConfig[TRequest, TR
 	httpClient := &http.Client{
 		Timeout: config.Timeout,
 	}
-	
+
 	if config.Timeout == 0 {
 		httpClient.Timeout = 30 * time.Second
 	}
-	
+
 	// Set default transformer and decoder if not provided
 	var transformer RequestTransformer[TRequest]
 	var decoder ResponseDecoder[TResponse]
-	
+
 	if config.Transformer != nil {
 		transformer = config.Transformer
 	} else {
 		transformer = JSONRequestTransformer[TRequest]{}
 	}
-	
+
 	if config.Decoder != nil {
 		decoder = config.Decoder
 	} else {
 		decoder = JSONResponseDecoder[TResponse]{}
 	}
-	
+
 	return &HTTPClient[TRequest, TResponse]{
 		client:      httpClient,
 		baseURL:     config.BaseURL,
@@ -146,7 +146,7 @@ func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request T
 		var zero TResponse
 		return Err[TResponse, error](bodyResult.Error())
 	}
-	
+
 	// Create HTTP request
 	url := c.baseURL + c.endpoint
 	httpReq, err := http.NewRequestWithContext(ctx, c.method, url, bodyResult.Value())
@@ -154,17 +154,17 @@ func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request T
 		var zero TResponse
 		return Err[TResponse, error](fmt.Errorf("failed to create HTTP request: %w", err))
 	}
-	
+
 	// Set headers
 	for key, value := range c.headers {
 		httpReq.Header.Set(key, value)
 	}
-	
+
 	// Set default content type for JSON
 	if httpReq.Header.Get("Content-Type") == "" {
 		httpReq.Header.Set("Content-Type", "application/json")
 	}
-	
+
 	// Execute request
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
@@ -172,14 +172,14 @@ func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request T
 		return Err[TResponse, error](fmt.Errorf("HTTP request failed: %w", err))
 	}
 	defer resp.Body.Close()
-	
+
 	// Check status code
 	if resp.StatusCode >= 400 {
 		var zero TResponse
 		body, _ := io.ReadAll(resp.Body)
 		return Err[TResponse, error](fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body)))
 	}
-	
+
 	// Decode response
 	return c.decoder.Decode(ctx, resp)
 }
@@ -187,15 +187,15 @@ func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request T
 // ExecuteWithRetry performs the HTTP request with retry logic.
 func (c *HTTPClient[TRequest, TResponse]) ExecuteWithRetry(ctx context.Context, request TRequest, retries int) Result[TResponse, error] {
 	var lastErr error
-	
+
 	for attempt := 0; attempt <= retries; attempt++ {
 		result := c.Execute(ctx, request)
 		if result.IsOk() {
 			return result
 		}
-		
+
 		lastErr = result.Error()
-		
+
 		if attempt < retries {
 			// Exponential backoff
 			backoff := time.Duration(1<<uint(attempt)) * time.Second
@@ -210,7 +210,7 @@ func (c *HTTPClient[TRequest, TResponse]) ExecuteWithRetry(ctx context.Context, 
 			}
 		}
 	}
-	
+
 	var zero TResponse
 	return Err[TResponse, error](fmt.Errorf("all retry attempts failed, last error: %w", lastErr))
 }
@@ -222,13 +222,13 @@ func (c *HTTPClient[TRequest, TResponse]) IsHealthy(ctx context.Context) Result[
 	if err != nil {
 		return Err[bool, error](err)
 	}
-	
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return Err[bool, error](err)
 	}
 	defer resp.Body.Close()
-	
+
 	healthy := resp.StatusCode >= 200 && resp.StatusCode < 300
 	return Ok[bool, error](healthy)
 }
@@ -242,23 +242,23 @@ func (c *HTTPClient[TRequest, TResponse]) Close() error {
 // ExecuteAsync performs the HTTP request asynchronously.
 func (c *HTTPClient[TRequest, TResponse]) ExecuteAsync(ctx context.Context, request TRequest) <-chan Result[TResponse, error] {
 	resultChan := make(chan Result[TResponse, error], 1)
-	
+
 	go func() {
 		defer close(resultChan)
 		result := c.Execute(ctx, request)
 		resultChan <- result
 	}()
-	
+
 	return resultChan
 }
 
 // ExecuteBatch processes multiple requests concurrently.
 func (c *HTTPClient[TRequest, TResponse]) ExecuteBatch(ctx context.Context, requests []TRequest) <-chan Result[TResponse, error] {
 	resultChan := make(chan Result[TResponse, error], len(requests))
-	
+
 	go func() {
 		defer close(resultChan)
-		
+
 		for _, req := range requests {
 			go func(request TRequest) {
 				result := c.Execute(ctx, request)
@@ -266,7 +266,7 @@ func (c *HTTPClient[TRequest, TResponse]) ExecuteBatch(ctx context.Context, requ
 			}(req)
 		}
 	}()
-	
+
 	return resultChan
 }
 
@@ -291,12 +291,12 @@ func NewKubernetesClient[T client.Object](config KubernetesClientConfig, obj T) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
-	
+
 	gvk, err := config.Scheme.ObjectKinds(obj)
 	if err != nil || len(gvk) == 0 {
 		return nil, fmt.Errorf("failed to determine GVK for object type: %w", err)
 	}
-	
+
 	return &KubernetesClient[T]{
 		client:    k8sClient,
 		scheme:    config.Scheme,
@@ -321,12 +321,12 @@ func (c *KubernetesClient[T]) Get(ctx context.Context, name string) Result[T, er
 		Name:      name,
 		Namespace: c.namespace,
 	}
-	
+
 	if err := c.client.Get(ctx, namespacedName, obj); err != nil {
 		var zero T
 		return Err[T, error](fmt.Errorf("failed to get object: %w", err))
 	}
-	
+
 	return Ok[T, error](obj)
 }
 
@@ -351,16 +351,16 @@ func (c *KubernetesClient[T]) Delete(ctx context.Context, obj T) Result[bool, er
 func (c *KubernetesClient[T]) List(ctx context.Context, opts ...client.ListOption) Result[[]T, error] {
 	var list T
 	listObj := client.ObjectList(list)
-	
+
 	// Apply namespace option if set
 	if c.namespace != "" {
 		opts = append(opts, client.InNamespace(c.namespace))
 	}
-	
+
 	if err := c.client.List(ctx, listObj, opts...); err != nil {
 		return Err[[]T, error](fmt.Errorf("failed to list objects: %w", err))
 	}
-	
+
 	// Extract items from the list (this is simplified for the example)
 	var items []T
 	return Ok[[]T, error](items)
@@ -468,17 +468,17 @@ func (p *ClientPool[TRequest, TResponse]) Execute(ctx context.Context, request T
 		var zero TResponse
 		return Err[TResponse, error](fmt.Errorf("no clients available"))
 	}
-	
+
 	client := p.clients[p.current]
 	p.current = (p.current + 1) % len(p.clients)
-	
+
 	return client.Execute(ctx, request)
 }
 
 // ExecuteWithFailover executes a request with automatic failover.
 func (p *ClientPool[TRequest, TResponse]) ExecuteWithFailover(ctx context.Context, request TRequest) Result[TResponse, error] {
 	var lastErr error
-	
+
 	for _, client := range p.clients {
 		result := client.Execute(ctx, request)
 		if result.IsOk() {
@@ -486,7 +486,7 @@ func (p *ClientPool[TRequest, TResponse]) ExecuteWithFailover(ctx context.Contex
 		}
 		lastErr = result.Error()
 	}
-	
+
 	var zero TResponse
 	return Err[TResponse, error](fmt.Errorf("all clients failed, last error: %w", lastErr))
 }
@@ -509,7 +509,7 @@ func (p *ClientPool[TRequest, TResponse]) RemoveClient(index int) {
 // HealthCheck performs health checks on all clients.
 func (p *ClientPool[TRequest, TResponse]) HealthCheck(ctx context.Context) Result[[]bool, error] {
 	results := make([]bool, len(p.clients))
-	
+
 	for i, client := range p.clients {
 		health := client.IsHealthy(ctx)
 		if health.IsOk() {
@@ -518,23 +518,23 @@ func (p *ClientPool[TRequest, TResponse]) HealthCheck(ctx context.Context) Resul
 			results[i] = false
 		}
 	}
-	
+
 	return Ok[[]bool, error](results)
 }
 
 // Close closes all clients in the pool.
 func (p *ClientPool[TRequest, TResponse]) Close() error {
 	var errs []error
-	
+
 	for _, client := range p.clients {
 		if err := client.Close(); err != nil {
 			errs = append(errs, err)
 		}
 	}
-	
+
 	if len(errs) > 0 {
 		return fmt.Errorf("errors closing clients: %v", errs)
 	}
-	
+
 	return nil
 }

@@ -20,10 +20,10 @@ func TestSessionManager_CreateSession(t *testing.T) {
 	uf := testutil.NewUserFactory()
 
 	tests := []struct {
-		name        string
-		userInfo    interface{}
-		metadata    map[string]interface{}
-		expectError bool
+		name         string
+		userInfo     interface{}
+		metadata     map[string]interface{}
+		expectError  bool
 		checkSession func(*testing.T, *Session)
 	}{
 		{
@@ -45,9 +45,9 @@ func TestSessionManager_CreateSession(t *testing.T) {
 			},
 		},
 		{
-			name:     "Session with minimal metadata",
-			userInfo: uf.CreateBasicUser(),
-			metadata: nil,
+			name:        "Session with minimal metadata",
+			userInfo:    uf.CreateBasicUser(),
+			metadata:    nil,
 			expectError: false,
 			checkSession: func(t *testing.T, session *Session) {
 				assert.NotNil(t, session.Metadata)
@@ -160,7 +160,7 @@ func TestSessionManager_ValidateSession(t *testing.T) {
 	sf := testutil.NewSessionFactory()
 
 	user := uf.CreateBasicUser()
-	
+
 	// Create valid session
 	validSession, err := manager.CreateSession(context.Background(), user, nil)
 	require.NoError(t, err)
@@ -282,9 +282,9 @@ func TestSessionManager_RevokeSession(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name        string
-		sessionID   string
-		expectError bool
+		name         string
+		sessionID    string
+		expectError  bool
 		checkRevoked func(*testing.T, string)
 	}{
 		{
@@ -337,11 +337,11 @@ func TestSessionManager_RevokeAllUserSessions(t *testing.T) {
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
-	
+
 	// Create multiple sessions for the user
 	session1, err := manager.CreateSession(context.Background(), user, nil)
 	require.NoError(t, err)
-	
+
 	session2, err := manager.CreateSession(context.Background(), user, nil)
 	require.NoError(t, err)
 
@@ -362,14 +362,14 @@ func TestSessionManager_RevokeAllUserSessions(t *testing.T) {
 			expectError: false,
 			checkRevoked: func(t *testing.T, userID string) {
 				ctx := context.Background()
-				
+
 				// Check that user's sessions are revoked
 				isValid1, _ := manager.ValidateSession(ctx, session1.ID)
 				assert.False(t, isValid1)
-				
+
 				isValid2, _ := manager.ValidateSession(ctx, session2.ID)
 				assert.False(t, isValid2)
-				
+
 				// Check that other user's session is still valid
 				isValidOther, err := manager.ValidateSession(ctx, otherSession.ID)
 				assert.NoError(t, err)
@@ -415,7 +415,7 @@ func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
 	sf := testutil.NewSessionFactory()
 
 	user := uf.CreateBasicUser()
-	
+
 	// Create valid session
 	validSession, err := manager.CreateSession(context.Background(), user, nil)
 	require.NoError(t, err)
@@ -428,8 +428,8 @@ func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
 	// For this test, we'll assume the cleanup method exists and works
 
 	tests := []struct {
-		name             string
-		expectError      bool
+		name              string
+		expectError       bool
 		checkAfterCleanup func(*testing.T)
 	}{
 		{
@@ -437,12 +437,12 @@ func TestSessionManager_CleanupExpiredSessions(t *testing.T) {
 			expectError: false,
 			checkAfterCleanup: func(t *testing.T) {
 				ctx := context.Background()
-				
+
 				// Valid session should still exist
 				isValid, err := manager.ValidateSession(ctx, validSession.ID)
 				assert.NoError(t, err)
 				assert.True(t, isValid)
-				
+
 				// Expired sessions should be removed (would need access to storage to verify)
 			},
 		},
@@ -473,13 +473,13 @@ func TestSessionManager_HTTPIntegration(t *testing.T) {
 	uf := testutil.NewUserFactory()
 
 	user := uf.CreateBasicUser()
-	
+
 	tests := []struct {
-		name           string
-		setupRequest   func() (*http.Request, *httptest.ResponseRecorder)
-		expectError    bool
-		expectCookie   bool
-		checkResponse  func(*testing.T, *httptest.ResponseRecorder)
+		name          string
+		setupRequest  func() (*http.Request, *httptest.ResponseRecorder)
+		expectError   bool
+		expectCookie  bool
+		checkResponse func(*testing.T, *httptest.ResponseRecorder)
 	}{
 		{
 			name: "Set session cookie",
@@ -493,7 +493,7 @@ func TestSessionManager_HTTPIntegration(t *testing.T) {
 			checkResponse: func(t *testing.T, w *httptest.ResponseRecorder) {
 				cookies := w.Result().Cookies()
 				assert.Len(t, cookies, 1)
-				
+
 				cookie := cookies[0]
 				assert.Equal(t, "test-session", cookie.Name)
 				assert.NotEmpty(t, cookie.Value)
@@ -507,7 +507,7 @@ func TestSessionManager_HTTPIntegration(t *testing.T) {
 				// First create a session
 				session, err := manager.CreateSession(context.Background(), user, nil)
 				require.NoError(t, err)
-				
+
 				req := httptest.NewRequest("GET", "/", nil)
 				req.AddCookie(&http.Cookie{
 					Name:  "test-session",
@@ -532,7 +532,7 @@ func TestSessionManager_HTTPIntegration(t *testing.T) {
 					assert.Error(t, err)
 					return
 				}
-				
+
 				require.NoError(t, err)
 				manager.SetSessionCookie(w, session.ID)
 			} else {
@@ -542,7 +542,7 @@ func TestSessionManager_HTTPIntegration(t *testing.T) {
 					assert.Error(t, err)
 					return
 				}
-				
+
 				assert.NoError(t, err)
 				assert.NotEmpty(t, sessionID)
 			}
@@ -608,7 +608,7 @@ func TestSessionManager_UpdateSessionMetadata(t *testing.T) {
 				assert.Equal(t, "new_value", updatedSession.Metadata["new_key"])
 				assert.Equal(t, 5, updatedSession.Metadata["login_count"])
 				assert.Contains(t, updatedSession.Metadata, "last_activity")
-				
+
 				// Original metadata should still exist unless overwritten
 				assert.Contains(t, updatedSession.Metadata, "initial_key")
 			},
@@ -679,10 +679,10 @@ func TestSessionManager_GetUserSessions(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name         string
-		userID       string
-		expectError  bool
-		expectCount  int
+		name          string
+		userID        string
+		expectError   bool
+		expectCount   int
 		checkSessions func(*testing.T, []*Session)
 	}{
 		{
@@ -692,12 +692,12 @@ func TestSessionManager_GetUserSessions(t *testing.T) {
 			expectCount: 2,
 			checkSessions: func(t *testing.T, sessions []*Session) {
 				assert.Len(t, sessions, 2)
-				
+
 				// Verify all sessions belong to the user
 				for _, session := range sessions {
 					assert.Equal(t, user.Subject, session.UserID)
 				}
-				
+
 				// Check that we have both desktop and mobile sessions
 				deviceTypes := make([]string, 0, len(sessions))
 				for _, session := range sessions {
@@ -831,7 +831,7 @@ func TestSessionManager_ConcurrentAccess(t *testing.T) {
 	const numOperations = 100
 
 	errChan := make(chan error, numGoroutines*numOperations)
-	
+
 	// Test concurrent validation
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
@@ -876,12 +876,12 @@ func TestSessionManager_SecurityFeatures(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				user := uf.CreateBasicUser()
 				sessionIDs := make(map[string]bool)
-				
+
 				// Create multiple sessions and verify uniqueness
 				for i := 0; i < 100; i++ {
 					session, err := manager.CreateSession(context.Background(), user, nil)
 					require.NoError(t, err)
-					
+
 					assert.False(t, sessionIDs[session.ID], "Duplicate session ID detected")
 					sessionIDs[session.ID] = true
 				}
@@ -893,7 +893,7 @@ func TestSessionManager_SecurityFeatures(t *testing.T) {
 				user := uf.CreateBasicUser()
 				session, err := manager.CreateSession(context.Background(), user, nil)
 				require.NoError(t, err)
-				
+
 				// Session ID should be sufficiently long and random
 				assert.GreaterOrEqual(t, len(session.ID), 32, "Session ID should be at least 32 characters")
 				assert.NotEqual(t, "00000000000000000000000000000000", session.ID, "Session ID should not be all zeros")
@@ -903,15 +903,15 @@ func TestSessionManager_SecurityFeatures(t *testing.T) {
 			name: "Session expiration enforcement",
 			testFunc: func(t *testing.T) {
 				user := uf.CreateBasicUser()
-				
+
 				// Create session with very short TTL
 				manager.config.SessionTTL = time.Millisecond
 				session, err := manager.CreateSession(context.Background(), user, nil)
 				require.NoError(t, err)
-				
+
 				// Wait for expiration
 				time.Sleep(10 * time.Millisecond)
-				
+
 				// Session should be invalid
 				isValid, err := manager.ValidateSession(context.Background(), session.ID)
 				assert.False(t, isValid)

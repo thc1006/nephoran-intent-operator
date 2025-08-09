@@ -31,29 +31,29 @@ const (
 
 // AuditEvent represents a security audit event
 type AuditEvent struct {
-	Timestamp   time.Time              `json:"timestamp"`
-	Level       AuditLevel             `json:"level"`
-	Event       string                 `json:"event"`
-	Component   string                 `json:"component"`
-	UserID      string                 `json:"user_id,omitempty"`
-	SessionID   string                 `json:"session_id,omitempty"`
-	IPAddress   string                 `json:"ip_address,omitempty"`
-	UserAgent   string                 `json:"user_agent,omitempty"`
-	Data        map[string]interface{} `json:"data,omitempty"`
-	Result      string                 `json:"result"`
-	Error       string                 `json:"error,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Level     AuditLevel             `json:"level"`
+	Event     string                 `json:"event"`
+	Component string                 `json:"component"`
+	UserID    string                 `json:"user_id,omitempty"`
+	SessionID string                 `json:"session_id,omitempty"`
+	IPAddress string                 `json:"ip_address,omitempty"`
+	UserAgent string                 `json:"user_agent,omitempty"`
+	Data      map[string]interface{} `json:"data,omitempty"`
+	Result    string                 `json:"result"`
+	Error     string                 `json:"error,omitempty"`
 }
 
 // NewAuditLogger creates a new audit logger
 func NewAuditLogger(logFilePath string, minLevel AuditLevel) (*AuditLogger, error) {
 	logger := log.Log.WithName("audit-logger")
-	
+
 	al := &AuditLogger{
 		logger:   logger,
 		enabled:  true,
 		minLevel: minLevel,
 	}
-	
+
 	// If log file path is provided, open the file
 	if logFilePath != "" {
 		file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0600)
@@ -62,7 +62,7 @@ func NewAuditLogger(logFilePath string, minLevel AuditLevel) (*AuditLogger, erro
 		}
 		al.logFile = file
 	}
-	
+
 	return al, nil
 }
 
@@ -81,12 +81,12 @@ func (al *AuditLogger) LogSecretAccess(secretType, source, userID, sessionID str
 		},
 		Result: getResultString(success),
 	}
-	
+
 	if err != nil {
 		event.Level = AuditLevelError
 		event.Error = err.Error()
 	}
-	
+
 	al.log(event)
 }
 
@@ -105,12 +105,12 @@ func (al *AuditLogger) LogAuthenticationAttempt(provider, userID, ipAddress, use
 		},
 		Result: getResultString(success),
 	}
-	
+
 	if err != nil {
 		event.Level = AuditLevelWarn
 		event.Error = err.Error()
 	}
-	
+
 	al.log(event)
 }
 
@@ -120,20 +120,20 @@ func (al *AuditLogger) LogSecretRotation(secretName, rotationType string, userID
 		Timestamp: time.Now().UTC(),
 		Level:     AuditLevelInfo,
 		Event:     "secret_rotation",
-		Component: "secret_manager",  
+		Component: "secret_manager",
 		UserID:    userID,
 		Data: map[string]interface{}{
-			"secret_name":     secretName,
-			"rotation_type":   rotationType,
+			"secret_name":   secretName,
+			"rotation_type": rotationType,
 		},
 		Result: getResultString(success),
 	}
-	
+
 	if err != nil {
 		event.Level = AuditLevelError
 		event.Error = err.Error()
 	}
-	
+
 	al.log(event)
 }
 
@@ -150,12 +150,12 @@ func (al *AuditLogger) LogAPIKeyValidation(keyType, provider string, success boo
 		},
 		Result: getResultString(success),
 	}
-	
+
 	if err != nil {
 		event.Level = AuditLevelWarn
 		event.Error = err.Error()
 	}
-	
+
 	al.log(event)
 }
 
@@ -175,7 +175,7 @@ func (al *AuditLogger) LogUnauthorizedAccess(resource, userID, ipAddress, userAg
 		},
 		Result: "denied",
 	}
-	
+
 	al.log(event)
 }
 
@@ -194,7 +194,7 @@ func (al *AuditLogger) LogSecurityViolation(violationType, description, userID, 
 		},
 		Result: "violation_detected",
 	}
-	
+
 	al.log(event)
 }
 
@@ -203,7 +203,7 @@ func (al *AuditLogger) log(event *AuditEvent) {
 	if !al.enabled || event.Level < al.minLevel {
 		return
 	}
-	
+
 	// Log to structured logger
 	logFunc := al.logger.Info
 	switch event.Level {
@@ -218,7 +218,7 @@ func (al *AuditLogger) log(event *AuditEvent) {
 			al.logger.Error(nil, msg, keysAndValues...)
 		}
 	}
-	
+
 	logFunc("AUDIT: "+event.Event,
 		"component", event.Component,
 		"user_id", event.UserID,
@@ -228,7 +228,7 @@ func (al *AuditLogger) log(event *AuditEvent) {
 		"error", event.Error,
 		"data", event.Data,
 	)
-	
+
 	// Write to audit log file if configured
 	if al.logFile != nil {
 		jsonData, err := json.Marshal(event)
@@ -236,7 +236,7 @@ func (al *AuditLogger) log(event *AuditEvent) {
 			al.logger.Error(err, "Failed to marshal audit event to JSON")
 			return
 		}
-		
+
 		_, err = al.logFile.WriteString(string(jsonData) + "\n")
 		if err != nil {
 			al.logger.Error(err, "Failed to write audit event to file")

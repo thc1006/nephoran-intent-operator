@@ -165,21 +165,21 @@ func (nc *NetconfClient) Connect(endpoint string, auth *AuthConfig) error {
 
 	// Establish connection (SSH over TLS if TLS config is provided)
 	address := net.JoinHostPort(host, strconv.Itoa(port))
-	
+
 	// If TLS config is provided, establish TLS connection first
 	if auth.TLSConfig != nil {
 		tlsConn, err := tls.Dial("tcp", address, auth.TLSConfig)
 		if err != nil {
 			return fmt.Errorf("failed to establish TLS connection: %w", err)
 		}
-		
+
 		// Create SSH connection over TLS
 		sshConn, chans, reqs, err := ssh.NewClientConn(tlsConn, address, sshConfig)
 		if err != nil {
 			tlsConn.Close()
 			return fmt.Errorf("failed to create SSH connection over TLS: %w", err)
 		}
-		
+
 		nc.sshClient = ssh.NewClient(sshConn, chans, reqs)
 		nc.conn = tlsConn
 	} else {

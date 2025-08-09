@@ -34,16 +34,16 @@ type EnhancedOAuth2ManagerConfig struct {
 	MaxRequestSize   int64
 
 	// Public endpoint configuration
-	ExposeMetricsPublicly bool
-	MetricsAllowedCIDRs   []string
+	ExposeMetricsPublicly  bool
+	MetricsAllowedCIDRs    []string
 	HealthEndpointsEnabled bool // Allow disabling health endpoints in specific contexts
 }
 
 // PublicRouteHandlers holds handlers for public (non-authenticated) routes
 type PublicRouteHandlers struct {
-	Health   http.HandlerFunc
-	Ready    http.HandlerFunc
-	Metrics  http.HandlerFunc
+	Health  http.HandlerFunc
+	Ready   http.HandlerFunc
+	Metrics http.HandlerFunc
 }
 
 // ProtectedRouteHandlers holds handlers for protected (authenticated) routes
@@ -75,16 +75,16 @@ func NewEnhancedOAuth2Manager(config *EnhancedOAuth2ManagerConfig, logger *slog.
 			StreamingEnabled: config.StreamingEnabled,
 			MaxRequestSize:   config.MaxRequestSize,
 		}
-		
+
 		oauth2Manager, err := NewOAuth2Manager(oauth2ManagerConfig, logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create OAuth2Manager: %w", err)
 		}
-		
+
 		// Extract the middleware and handlers from the OAuth2Manager
 		// This is a temporary solution to maintain compatibility
 		manager.authMiddleware = oauth2Manager.authMiddleware
-		
+
 		logger.Info("OAuth2 authentication enabled (using simplified approach)")
 	} else {
 		logger.Info("OAuth2 authentication disabled")
@@ -114,7 +114,7 @@ func (eom *EnhancedOAuth2Manager) ConfigureAllRoutes(
 		slog.Bool("require_auth", eom.config.RequireAuth),
 		slog.Bool("health_endpoints", eom.config.HealthEndpointsEnabled),
 		slog.Bool("metrics_public", eom.config.ExposeMetricsPublicly))
-	
+
 	return nil
 }
 
@@ -128,7 +128,7 @@ func (eom *EnhancedOAuth2Manager) configureOAuth2Routes(router *mux.Router) {
 	// OAuth2Manager implementation has issues with NewAuthMiddleware
 	// The main goal is to centralize route configuration which is achieved
 	// through ConfigureAllRoutes method
-	
+
 	eom.logger.Info("OAuth2 routes configuration skipped (pending auth middleware fix)")
 }
 
@@ -369,13 +369,13 @@ func NewEnhancedConfigFromLLMConfig(llmConfig interface{}, authEnabled, requireA
 	// This assumes the config has the necessary fields - in a real implementation,
 	// you might want to use reflection or interface methods
 	return &EnhancedOAuth2ManagerConfig{
-		Enabled:               authEnabled,
-		RequireAuth:           requireAuth,
-		JWTSecretKey:         jwtSecret,
-		StreamingEnabled:     true, // You'll need to extract this from your config
-		MaxRequestSize:       1024 * 1024, // Default 1MB, extract from config
-		ExposeMetricsPublicly: false, // Extract from config
-		MetricsAllowedCIDRs:   []string{"127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}, // Extract from config
-		HealthEndpointsEnabled: true, // Usually always enabled
+		Enabled:                authEnabled,
+		RequireAuth:            requireAuth,
+		JWTSecretKey:           jwtSecret,
+		StreamingEnabled:       true,                                                                     // You'll need to extract this from your config
+		MaxRequestSize:         1024 * 1024,                                                              // Default 1MB, extract from config
+		ExposeMetricsPublicly:  false,                                                                    // Extract from config
+		MetricsAllowedCIDRs:    []string{"127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"}, // Extract from config
+		HealthEndpointsEnabled: true,                                                                     // Usually always enabled
 	}
 }

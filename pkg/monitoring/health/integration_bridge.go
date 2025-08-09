@@ -16,239 +16,239 @@ import (
 // SLAIntegrationBridge provides seamless integration between health monitoring and SLA tracking
 type SLAIntegrationBridge struct {
 	// Core configuration
-	logger          *slog.Logger
-	serviceName     string
-	
+	logger      *slog.Logger
+	serviceName string
+
 	// Health system components
-	enhancedChecker *EnhancedHealthChecker
-	aggregator      *HealthAggregator
-	predictor       *HealthPredictor
+	enhancedChecker   *EnhancedHealthChecker
+	aggregator        *HealthAggregator
+	predictor         *HealthPredictor
 	dependencyTracker *DependencyHealthTracker
-	
+
 	// SLA configuration
-	slaConfig       *SLAIntegrationConfig
-	slaTargets      map[string]*SLATarget
-	slaTargetsMu    sync.RWMutex
-	
+	slaConfig    *SLAIntegrationConfig
+	slaTargets   map[string]*SLATarget
+	slaTargetsMu sync.RWMutex
+
 	// Health-SLA correlation
 	correlationEngine *HealthSLACorrelationEngine
-	
+
 	// Availability calculation
 	availabilityCalc *HealthBasedAvailabilityCalculator
-	
+
 	// Performance impact tracking
 	performanceImpact *HealthPerformanceImpactTracker
-	
+
 	// Composite scoring
-	compositeScorer  *CompositeHealthSLAScorer
-	
+	compositeScorer *CompositeHealthSLAScorer
+
 	// Alert integration
 	alertIntegration *HealthSLAAlertIntegration
-	
+
 	// Dashboard integration
-	dashboardBridge  *HealthSLADashboardBridge
-	
+	dashboardBridge *HealthSLADashboardBridge
+
 	// Metrics
-	bridgeMetrics    *SLABridgeMetrics
+	bridgeMetrics *SLABridgeMetrics
 }
 
 // SLAIntegrationConfig holds configuration for SLA integration
 type SLAIntegrationConfig struct {
 	// Integration settings
-	Enabled                  bool          `json:"enabled"`
-	UpdateInterval           time.Duration `json:"update_interval"`
-	CorrelationWindow        time.Duration `json:"correlation_window"`
-	
+	Enabled           bool          `json:"enabled"`
+	UpdateInterval    time.Duration `json:"update_interval"`
+	CorrelationWindow time.Duration `json:"correlation_window"`
+
 	// Health-based SLA adjustments
-	HealthBasedAdjustments   bool          `json:"health_based_adjustments"`
-	AdjustmentFactor         float64       `json:"adjustment_factor"`
-	MinimumHealthThreshold   float64       `json:"minimum_health_threshold"`
-	
+	HealthBasedAdjustments bool    `json:"health_based_adjustments"`
+	AdjustmentFactor       float64 `json:"adjustment_factor"`
+	MinimumHealthThreshold float64 `json:"minimum_health_threshold"`
+
 	// Availability calculation
-	AvailabilityCalculation  AvailabilityCalculationMethod `json:"availability_calculation"`
-	HealthWeightInAvailability float64       `json:"health_weight_in_availability"`
-	
+	AvailabilityCalculation    AvailabilityCalculationMethod `json:"availability_calculation"`
+	HealthWeightInAvailability float64                       `json:"health_weight_in_availability"`
+
 	// Performance correlation
-	PerformanceCorrelation   bool          `json:"performance_correlation"`
-	LatencyHealthImpact      float64       `json:"latency_health_impact"`
-	ThroughputHealthImpact   float64       `json:"throughput_health_impact"`
-	
+	PerformanceCorrelation bool    `json:"performance_correlation"`
+	LatencyHealthImpact    float64 `json:"latency_health_impact"`
+	ThroughputHealthImpact float64 `json:"throughput_health_impact"`
+
 	// Error budget integration
-	ErrorBudgetIntegration   bool          `json:"error_budget_integration"`
-	HealthFailureContribution float64      `json:"health_failure_contribution"`
-	
+	ErrorBudgetIntegration    bool    `json:"error_budget_integration"`
+	HealthFailureContribution float64 `json:"health_failure_contribution"`
+
 	// Alerting integration
-	AlertingIntegration      bool          `json:"alerting_integration"`
-	HealthBasedAlerts        bool          `json:"health_based_alerts"`
-	SLAViolationHealthThreshold float64    `json:"sla_violation_health_threshold"`
+	AlertingIntegration         bool    `json:"alerting_integration"`
+	HealthBasedAlerts           bool    `json:"health_based_alerts"`
+	SLAViolationHealthThreshold float64 `json:"sla_violation_health_threshold"`
 }
 
 // AvailabilityCalculationMethod defines how health impacts availability calculation
 type AvailabilityCalculationMethod string
 
 const (
-	AvailabilityHealthWeighted    AvailabilityCalculationMethod = "health_weighted"
-	AvailabilityHealthGated       AvailabilityCalculationMethod = "health_gated"
-	AvailabilityHealthAdjusted    AvailabilityCalculationMethod = "health_adjusted"
-	AvailabilityTraditional       AvailabilityCalculationMethod = "traditional"
+	AvailabilityHealthWeighted AvailabilityCalculationMethod = "health_weighted"
+	AvailabilityHealthGated    AvailabilityCalculationMethod = "health_gated"
+	AvailabilityHealthAdjusted AvailabilityCalculationMethod = "health_adjusted"
+	AvailabilityTraditional    AvailabilityCalculationMethod = "traditional"
 )
 
 // SLATarget represents an SLA target with health correlation
 type SLATarget struct {
-	ID                    string            `json:"id"`
-	Name                  string            `json:"name"`
-	MetricType            SLAMetricType     `json:"metric_type"`
-	Target                float64           `json:"target"`
-	Threshold             float64           `json:"threshold"`
-	
+	ID         string        `json:"id"`
+	Name       string        `json:"name"`
+	MetricType SLAMetricType `json:"metric_type"`
+	Target     float64       `json:"target"`
+	Threshold  float64       `json:"threshold"`
+
 	// Health correlation
-	HealthCorrelation     *HealthCorrelation `json:"health_correlation"`
-	HealthImpactWeight    float64           `json:"health_impact_weight"`
-	
+	HealthCorrelation  *HealthCorrelation `json:"health_correlation"`
+	HealthImpactWeight float64            `json:"health_impact_weight"`
+
 	// Current state
-	CurrentValue          float64           `json:"current_value"`
-	HealthAdjustedValue   float64           `json:"health_adjusted_value"`
-	ComplianceStatus      SLAComplianceStatus `json:"compliance_status"`
-	
+	CurrentValue        float64             `json:"current_value"`
+	HealthAdjustedValue float64             `json:"health_adjusted_value"`
+	ComplianceStatus    SLAComplianceStatus `json:"compliance_status"`
+
 	// Historical tracking
-	LastUpdated           time.Time         `json:"last_updated"`
-	ComplianceHistory     []ComplianceDataPoint `json:"compliance_history"`
-	
+	LastUpdated       time.Time             `json:"last_updated"`
+	ComplianceHistory []ComplianceDataPoint `json:"compliance_history"`
+
 	// Metadata
-	Components            []string          `json:"components"`
-	BusinessImpact        BusinessImpactLevel `json:"business_impact"`
+	Components     []string            `json:"components"`
+	BusinessImpact BusinessImpactLevel `json:"business_impact"`
 }
 
 // SLAMetricType defines different types of SLA metrics
 type SLAMetricType string
 
 const (
-	SLAMetricAvailability    SLAMetricType = "availability"
-	SLAMetricLatency         SLAMetricType = "latency"
-	SLAMetricThroughput      SLAMetricType = "throughput"
-	SLAMetricErrorRate       SLAMetricType = "error_rate"
-	SLAMetricUptime          SLAMetricType = "uptime"
-	SLAMetricResponseTime    SLAMetricType = "response_time"
+	SLAMetricAvailability SLAMetricType = "availability"
+	SLAMetricLatency      SLAMetricType = "latency"
+	SLAMetricThroughput   SLAMetricType = "throughput"
+	SLAMetricErrorRate    SLAMetricType = "error_rate"
+	SLAMetricUptime       SLAMetricType = "uptime"
+	SLAMetricResponseTime SLAMetricType = "response_time"
 )
 
 // SLAComplianceStatus represents SLA compliance status
 type SLAComplianceStatus string
 
 const (
-	ComplianceGood        SLAComplianceStatus = "good"
-	ComplianceWarning     SLAComplianceStatus = "warning"
-	ComplianceBreach      SLAComplianceStatus = "breach"
-	ComplianceCritical    SLAComplianceStatus = "critical"
-	ComplianceUnknown     SLAComplianceStatus = "unknown"
+	ComplianceGood     SLAComplianceStatus = "good"
+	ComplianceWarning  SLAComplianceStatus = "warning"
+	ComplianceBreach   SLAComplianceStatus = "breach"
+	ComplianceCritical SLAComplianceStatus = "critical"
+	ComplianceUnknown  SLAComplianceStatus = "unknown"
 )
 
 // HealthCorrelation defines how health correlates with SLA metrics
 type HealthCorrelation struct {
-	Components            []string          `json:"components"`
-	CorrelationStrength   float64           `json:"correlation_strength"`
-	CorrelationType       CorrelationType   `json:"correlation_type"`
-	ImpactFunction        ImpactFunction    `json:"impact_function"`
-	ThresholdMapping      []ThresholdMapping `json:"threshold_mapping"`
+	Components          []string           `json:"components"`
+	CorrelationStrength float64            `json:"correlation_strength"`
+	CorrelationType     CorrelationType    `json:"correlation_type"`
+	ImpactFunction      ImpactFunction     `json:"impact_function"`
+	ThresholdMapping    []ThresholdMapping `json:"threshold_mapping"`
 }
 
 // CorrelationType defines types of correlation between health and SLA
 type CorrelationType string
 
 const (
-	CorrelationDirect     CorrelationType = "direct"      // Health directly impacts SLA
-	CorrelationInverse    CorrelationType = "inverse"     // Poor health reduces SLA
-	CorrelationThreshold  CorrelationType = "threshold"   // Health threshold affects SLA
-	CorrelationWeighted   CorrelationType = "weighted"    // Weighted health impact
+	CorrelationDirect    CorrelationType = "direct"    // Health directly impacts SLA
+	CorrelationInverse   CorrelationType = "inverse"   // Poor health reduces SLA
+	CorrelationThreshold CorrelationType = "threshold" // Health threshold affects SLA
+	CorrelationWeighted  CorrelationType = "weighted"  // Weighted health impact
 )
 
 // ImpactFunction defines how health impacts SLA calculations
 type ImpactFunction string
 
 const (
-	ImpactLinear          ImpactFunction = "linear"
-	ImpactExponential     ImpactFunction = "exponential"
-	ImpactLogarithmic     ImpactFunction = "logarithmic"
-	ImpactStep            ImpactFunction = "step"
-	ImpactCustom          ImpactFunction = "custom"
+	ImpactLinear      ImpactFunction = "linear"
+	ImpactExponential ImpactFunction = "exponential"
+	ImpactLogarithmic ImpactFunction = "logarithmic"
+	ImpactStep        ImpactFunction = "step"
+	ImpactCustom      ImpactFunction = "custom"
 )
 
 // ThresholdMapping maps health ranges to SLA impact
 type ThresholdMapping struct {
-	HealthRange       HealthRange       `json:"health_range"`
-	SLAImpact         float64           `json:"sla_impact"`
-	ComplianceStatus  SLAComplianceStatus `json:"compliance_status"`
+	HealthRange      HealthRange         `json:"health_range"`
+	SLAImpact        float64             `json:"sla_impact"`
+	ComplianceStatus SLAComplianceStatus `json:"compliance_status"`
 }
 
 // HealthRange defines a range of health values
 type HealthRange struct {
-	Min         float64 `json:"min"`
-	Max         float64 `json:"max"`
-	Inclusive   bool    `json:"inclusive"`
+	Min       float64 `json:"min"`
+	Max       float64 `json:"max"`
+	Inclusive bool    `json:"inclusive"`
 }
 
 // ComplianceDataPoint represents a point in SLA compliance history
 type ComplianceDataPoint struct {
-	Timestamp             time.Time           `json:"timestamp"`
-	Value                 float64             `json:"value"`
-	HealthAdjustedValue   float64             `json:"health_adjusted_value"`
-	HealthScore           float64             `json:"health_score"`
-	ComplianceStatus      SLAComplianceStatus `json:"compliance_status"`
-	AffectingComponents   []string            `json:"affecting_components"`
+	Timestamp           time.Time           `json:"timestamp"`
+	Value               float64             `json:"value"`
+	HealthAdjustedValue float64             `json:"health_adjusted_value"`
+	HealthScore         float64             `json:"health_score"`
+	ComplianceStatus    SLAComplianceStatus `json:"compliance_status"`
+	AffectingComponents []string            `json:"affecting_components"`
 }
 
 // HealthSLACorrelationEngine analyzes correlations between health and SLA metrics
 type HealthSLACorrelationEngine struct {
-	logger              *slog.Logger
-	correlationModels   map[string]*CorrelationModel
-	historicalData      map[string]*CorrelationHistory
-	mu                  sync.RWMutex
+	logger            *slog.Logger
+	correlationModels map[string]*CorrelationModel
+	historicalData    map[string]*CorrelationHistory
+	mu                sync.RWMutex
 }
 
 // CorrelationModel represents a model for health-SLA correlation
 type CorrelationModel struct {
-	SLAMetric           SLAMetricType     `json:"sla_metric"`
-	HealthComponents    []string          `json:"health_components"`
-	CorrelationCoeff    float64           `json:"correlation_coefficient"`
-	RSquared            float64           `json:"r_squared"`
-	PValue              float64           `json:"p_value"`
-	SignificanceLevel   float64           `json:"significance_level"`
-	ModelType           CorrelationModelType `json:"model_type"`
-	LastUpdated         time.Time         `json:"last_updated"`
-	DataPoints          int               `json:"data_points"`
+	SLAMetric         SLAMetricType        `json:"sla_metric"`
+	HealthComponents  []string             `json:"health_components"`
+	CorrelationCoeff  float64              `json:"correlation_coefficient"`
+	RSquared          float64              `json:"r_squared"`
+	PValue            float64              `json:"p_value"`
+	SignificanceLevel float64              `json:"significance_level"`
+	ModelType         CorrelationModelType `json:"model_type"`
+	LastUpdated       time.Time            `json:"last_updated"`
+	DataPoints        int                  `json:"data_points"`
 }
 
 // CorrelationModelType defines types of correlation models
 type CorrelationModelType string
 
 const (
-	ModelPearson          CorrelationModelType = "pearson"
-	ModelSpearman         CorrelationModelType = "spearman"
-	ModelRegression       CorrelationModelType = "regression"
-	ModelTimeSeriesLag    CorrelationModelType = "timeseries_lag"
+	ModelPearson       CorrelationModelType = "pearson"
+	ModelSpearman      CorrelationModelType = "spearman"
+	ModelRegression    CorrelationModelType = "regression"
+	ModelTimeSeriesLag CorrelationModelType = "timeseries_lag"
 )
 
 // CorrelationHistory tracks historical correlation data
 type CorrelationHistory struct {
-	HealthValues        []TimestampedValue `json:"health_values"`
-	SLAValues           []TimestampedValue `json:"sla_values"`
-	CorrelationEvents   []CorrelationEvent `json:"correlation_events"`
-	LastUpdated         time.Time          `json:"last_updated"`
+	HealthValues      []TimestampedValue `json:"health_values"`
+	SLAValues         []TimestampedValue `json:"sla_values"`
+	CorrelationEvents []CorrelationEvent `json:"correlation_events"`
+	LastUpdated       time.Time          `json:"last_updated"`
 }
 
 // TimestampedValue represents a timestamped value
 type TimestampedValue struct {
-	Timestamp   time.Time `json:"timestamp"`
-	Value       float64   `json:"value"`
-	Component   string    `json:"component,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
+	Value     float64   `json:"value"`
+	Component string    `json:"component,omitempty"`
 }
 
 // CorrelationEvent represents a significant correlation event
 type CorrelationEvent struct {
-	Timestamp           time.Time         `json:"timestamp"`
-	HealthChange        float64           `json:"health_change"`
-	SLAImpact           float64           `json:"sla_impact"`
-	CorrelationStrength float64           `json:"correlation_strength"`
-	AffectedComponents  []string          `json:"affected_components"`
+	Timestamp           time.Time            `json:"timestamp"`
+	HealthChange        float64              `json:"health_change"`
+	SLAImpact           float64              `json:"sla_impact"`
+	CorrelationStrength float64              `json:"correlation_strength"`
+	AffectedComponents  []string             `json:"affected_components"`
 	EventType           CorrelationEventType `json:"event_type"`
 }
 
@@ -256,57 +256,57 @@ type CorrelationEvent struct {
 type CorrelationEventType string
 
 const (
-	EventHealthDegradation    CorrelationEventType = "health_degradation"
-	EventHealthImprovement    CorrelationEventType = "health_improvement"
-	EventSLAViolation         CorrelationEventType = "sla_violation"
-	EventSLARecovery          CorrelationEventType = "sla_recovery"
+	EventHealthDegradation CorrelationEventType = "health_degradation"
+	EventHealthImprovement CorrelationEventType = "health_improvement"
+	EventSLAViolation      CorrelationEventType = "sla_violation"
+	EventSLARecovery       CorrelationEventType = "sla_recovery"
 )
 
 // HealthBasedAvailabilityCalculator calculates availability incorporating health metrics
 type HealthBasedAvailabilityCalculator struct {
-	logger              *slog.Logger
-	calculationMethod   AvailabilityCalculationMethod
-	healthWeight        float64
-	traditionalWeight   float64
+	logger            *slog.Logger
+	calculationMethod AvailabilityCalculationMethod
+	healthWeight      float64
+	traditionalWeight float64
 }
 
 // AvailabilityResult represents the result of availability calculation
 type AvailabilityResult struct {
-	TraditionalAvailability   float64           `json:"traditional_availability"`
-	HealthBasedAvailability   float64           `json:"health_based_availability"`
-	CompositeAvailability     float64           `json:"composite_availability"`
-	HealthContribution        float64           `json:"health_contribution"`
-	CalculationMethod         AvailabilityCalculationMethod `json:"calculation_method"`
-	
+	TraditionalAvailability float64                       `json:"traditional_availability"`
+	HealthBasedAvailability float64                       `json:"health_based_availability"`
+	CompositeAvailability   float64                       `json:"composite_availability"`
+	HealthContribution      float64                       `json:"health_contribution"`
+	CalculationMethod       AvailabilityCalculationMethod `json:"calculation_method"`
+
 	// Breakdown by component
-	ComponentAvailability     map[string]ComponentAvailabilityResult `json:"component_availability"`
-	
+	ComponentAvailability map[string]ComponentAvailabilityResult `json:"component_availability"`
+
 	// Time period information
-	TimeWindow                time.Duration     `json:"time_window"`
-	CalculationTimestamp      time.Time         `json:"calculation_timestamp"`
-	
+	TimeWindow           time.Duration `json:"time_window"`
+	CalculationTimestamp time.Time     `json:"calculation_timestamp"`
+
 	// Quality metrics
-	DataQuality               DataQualityMetrics `json:"data_quality"`
-	ConfidenceLevel           float64           `json:"confidence_level"`
+	DataQuality     DataQualityMetrics `json:"data_quality"`
+	ConfidenceLevel float64            `json:"confidence_level"`
 }
 
 // ComponentAvailabilityResult represents availability for a specific component
 type ComponentAvailabilityResult struct {
-	Component                 string    `json:"component"`
-	TraditionalAvailability   float64   `json:"traditional_availability"`
-	HealthScore               float64   `json:"health_score"`
-	WeightedAvailability      float64   `json:"weighted_availability"`
-	UptimeMinutes             float64   `json:"uptime_minutes"`
-	DowntimeMinutes           float64   `json:"downtime_minutes"`
-	HealthDegradationMinutes  float64   `json:"health_degradation_minutes"`
+	Component                string  `json:"component"`
+	TraditionalAvailability  float64 `json:"traditional_availability"`
+	HealthScore              float64 `json:"health_score"`
+	WeightedAvailability     float64 `json:"weighted_availability"`
+	UptimeMinutes            float64 `json:"uptime_minutes"`
+	DowntimeMinutes          float64 `json:"downtime_minutes"`
+	HealthDegradationMinutes float64 `json:"health_degradation_minutes"`
 }
 
 // HealthPerformanceImpactTracker tracks how health impacts performance metrics
 type HealthPerformanceImpactTracker struct {
-	logger                  *slog.Logger
-	performanceModels       map[string]*PerformanceImpactModel
-	impactHistory           map[string]*PerformanceImpactHistory
-	mu                      sync.RWMutex
+	logger            *slog.Logger
+	performanceModels map[string]*PerformanceImpactModel
+	impactHistory     map[string]*PerformanceImpactHistory
+	mu                sync.RWMutex
 }
 
 // PerformanceImpactModel models how health affects performance
@@ -323,261 +323,261 @@ type PerformanceImpactModel struct {
 type PerformanceMetricType string
 
 const (
-	PerformanceLatency        PerformanceMetricType = "latency"
-	PerformanceThroughput     PerformanceMetricType = "throughput"
-	PerformanceResponseTime   PerformanceMetricType = "response_time"
-	PerformanceErrorRate      PerformanceMetricType = "error_rate"
-	PerformanceConcurrency    PerformanceMetricType = "concurrency"
+	PerformanceLatency      PerformanceMetricType = "latency"
+	PerformanceThroughput   PerformanceMetricType = "throughput"
+	PerformanceResponseTime PerformanceMetricType = "response_time"
+	PerformanceErrorRate    PerformanceMetricType = "error_rate"
+	PerformanceConcurrency  PerformanceMetricType = "concurrency"
 )
 
 // PerformanceImpactHistory tracks historical performance impact data
 type PerformanceImpactHistory struct {
-	ImpactEvents            []PerformanceImpactEvent `json:"impact_events"`
-	BaselineMetrics         []BaselineMetric         `json:"baseline_metrics"`
-	LastUpdated             time.Time                `json:"last_updated"`
+	ImpactEvents    []PerformanceImpactEvent `json:"impact_events"`
+	BaselineMetrics []BaselineMetric         `json:"baseline_metrics"`
+	LastUpdated     time.Time                `json:"last_updated"`
 }
 
 // PerformanceImpactEvent represents a performance impact event
 type PerformanceImpactEvent struct {
-	Timestamp               time.Time             `json:"timestamp"`
-	HealthScore             float64               `json:"health_score"`
-	PerformanceValue        float64               `json:"performance_value"`
-	PerformanceImpact       float64               `json:"performance_impact"`
-	AffectedComponents      []string              `json:"affected_components"`
+	Timestamp          time.Time `json:"timestamp"`
+	HealthScore        float64   `json:"health_score"`
+	PerformanceValue   float64   `json:"performance_value"`
+	PerformanceImpact  float64   `json:"performance_impact"`
+	AffectedComponents []string  `json:"affected_components"`
 }
 
 // BaselineMetric represents a baseline performance metric
 type BaselineMetric struct {
-	Timestamp               time.Time             `json:"timestamp"`
-	MetricType              PerformanceMetricType `json:"metric_type"`
-	Value                   float64               `json:"value"`
-	HealthScore             float64               `json:"health_score"`
+	Timestamp   time.Time             `json:"timestamp"`
+	MetricType  PerformanceMetricType `json:"metric_type"`
+	Value       float64               `json:"value"`
+	HealthScore float64               `json:"health_score"`
 }
 
 // CompositeHealthSLAScorer provides composite scoring combining health and SLA metrics
 type CompositeHealthSLAScorer struct {
-	logger                  *slog.Logger
-	scoringModels           map[string]*CompositeScoringModel
-	weightConfigurations    map[string]*ScoringWeightConfig
-	mu                      sync.RWMutex
+	logger               *slog.Logger
+	scoringModels        map[string]*CompositeScoringModel
+	weightConfigurations map[string]*ScoringWeightConfig
+	mu                   sync.RWMutex
 }
 
 // CompositeScoringModel defines how to combine health and SLA metrics
 type CompositeScoringModel struct {
-	ID                      string                `json:"id"`
-	Name                    string                `json:"name"`
-	HealthWeight            float64               `json:"health_weight"`
-	SLAWeight               float64               `json:"sla_weight"`
-	PerformanceWeight       float64               `json:"performance_weight"`
-	AvailabilityWeight      float64               `json:"availability_weight"`
-	CombinationMethod       ScoreCombinationMethod `json:"combination_method"`
-	NormalizationMethod     ScoreNormalizationMethod `json:"normalization_method"`
+	ID                  string                   `json:"id"`
+	Name                string                   `json:"name"`
+	HealthWeight        float64                  `json:"health_weight"`
+	SLAWeight           float64                  `json:"sla_weight"`
+	PerformanceWeight   float64                  `json:"performance_weight"`
+	AvailabilityWeight  float64                  `json:"availability_weight"`
+	CombinationMethod   ScoreCombinationMethod   `json:"combination_method"`
+	NormalizationMethod ScoreNormalizationMethod `json:"normalization_method"`
 }
 
 // ScoreCombinationMethod defines how scores are combined
 type ScoreCombinationMethod string
 
 const (
-	CombinationWeightedAverage   ScoreCombinationMethod = "weighted_average"
-	CombinationGeometricMean     ScoreCombinationMethod = "geometric_mean"
-	CombinationHarmonicMean      ScoreCombinationMethod = "harmonic_mean"
-	CombinationMinimum           ScoreCombinationMethod = "minimum"
-	CombinationCustomFunction    ScoreCombinationMethod = "custom_function"
+	CombinationWeightedAverage ScoreCombinationMethod = "weighted_average"
+	CombinationGeometricMean   ScoreCombinationMethod = "geometric_mean"
+	CombinationHarmonicMean    ScoreCombinationMethod = "harmonic_mean"
+	CombinationMinimum         ScoreCombinationMethod = "minimum"
+	CombinationCustomFunction  ScoreCombinationMethod = "custom_function"
 )
 
 // ScoreNormalizationMethod defines how scores are normalized
 type ScoreNormalizationMethod string
 
 const (
-	NormalizationMinMax          ScoreNormalizationMethod = "minmax"
-	NormalizationZScore          ScoreNormalizationMethod = "zscore"
-	NormalizationPercentile      ScoreNormalizationMethod = "percentile"
-	NormalizationNone            ScoreNormalizationMethod = "none"
+	NormalizationMinMax     ScoreNormalizationMethod = "minmax"
+	NormalizationZScore     ScoreNormalizationMethod = "zscore"
+	NormalizationPercentile ScoreNormalizationMethod = "percentile"
+	NormalizationNone       ScoreNormalizationMethod = "none"
 )
 
 // ScoringWeightConfig configures scoring weights for different scenarios
 type ScoringWeightConfig struct {
-	Scenario                string            `json:"scenario"`
-	Weights                 map[string]float64 `json:"weights"`
-	DynamicAdjustment       bool              `json:"dynamic_adjustment"`
-	AdjustmentTriggers      []string          `json:"adjustment_triggers"`
+	Scenario           string             `json:"scenario"`
+	Weights            map[string]float64 `json:"weights"`
+	DynamicAdjustment  bool               `json:"dynamic_adjustment"`
+	AdjustmentTriggers []string           `json:"adjustment_triggers"`
 }
 
 // CompositeScore represents a composite health and SLA score
 type CompositeScore struct {
-	OverallScore            float64           `json:"overall_score"`
-	HealthScore             float64           `json:"health_score"`
-	SLAScore                float64           `json:"sla_score"`
-	PerformanceScore        float64           `json:"performance_score"`
-	AvailabilityScore       float64           `json:"availability_score"`
-	
+	OverallScore      float64 `json:"overall_score"`
+	HealthScore       float64 `json:"health_score"`
+	SLAScore          float64 `json:"sla_score"`
+	PerformanceScore  float64 `json:"performance_score"`
+	AvailabilityScore float64 `json:"availability_score"`
+
 	// Component breakdown
-	ComponentScores         map[string]float64 `json:"component_scores"`
-	
+	ComponentScores map[string]float64 `json:"component_scores"`
+
 	// Metadata
-	ScoringModel            string            `json:"scoring_model"`
-	CalculationTimestamp    time.Time         `json:"calculation_timestamp"`
-	ConfidenceLevel         float64           `json:"confidence_level"`
-	DataQuality             DataQualityMetrics `json:"data_quality"`
+	ScoringModel         string             `json:"scoring_model"`
+	CalculationTimestamp time.Time          `json:"calculation_timestamp"`
+	ConfidenceLevel      float64            `json:"confidence_level"`
+	DataQuality          DataQualityMetrics `json:"data_quality"`
 }
 
 // HealthSLAAlertIntegration integrates health monitoring with SLA alerting
 type HealthSLAAlertIntegration struct {
-	logger                  *slog.Logger
-	alertRules              map[string]*HealthSLAAlertRule
-	activeAlerts            map[string]*IntegratedAlert
-	alertHistory            []IntegratedAlert
-	mu                      sync.RWMutex
+	logger       *slog.Logger
+	alertRules   map[string]*HealthSLAAlertRule
+	activeAlerts map[string]*IntegratedAlert
+	alertHistory []IntegratedAlert
+	mu           sync.RWMutex
 }
 
 // HealthSLAAlertRule defines rules for integrated health-SLA alerts
 type HealthSLAAlertRule struct {
-	ID                      string                `json:"id"`
-	Name                    string                `json:"name"`
-	Condition               AlertCondition        `json:"condition"`
-	HealthThreshold         float64               `json:"health_threshold"`
-	SLAThreshold            float64               `json:"sla_threshold"`
-	Severity                AlertSeverity         `json:"severity"`
-	Enabled                 bool                  `json:"enabled"`
-	
+	ID              string         `json:"id"`
+	Name            string         `json:"name"`
+	Condition       AlertCondition `json:"condition"`
+	HealthThreshold float64        `json:"health_threshold"`
+	SLAThreshold    float64        `json:"sla_threshold"`
+	Severity        AlertSeverity  `json:"severity"`
+	Enabled         bool           `json:"enabled"`
+
 	// Correlation settings
-	RequiresBoth            bool                  `json:"requires_both"`  // Requires both health and SLA conditions
-	CorrelationWindow       time.Duration         `json:"correlation_window"`
-	
+	RequiresBoth      bool          `json:"requires_both"` // Requires both health and SLA conditions
+	CorrelationWindow time.Duration `json:"correlation_window"`
+
 	// Alert management
-	SuppressionRules        []SuppressionRule     `json:"suppression_rules"`
-	EscalationRules         []EscalationRule      `json:"escalation_rules"`
-	NotificationChannels    []string              `json:"notification_channels"`
+	SuppressionRules     []SuppressionRule `json:"suppression_rules"`
+	EscalationRules      []EscalationRule  `json:"escalation_rules"`
+	NotificationChannels []string          `json:"notification_channels"`
 }
 
 // AlertCondition defines conditions for triggering alerts
 type AlertCondition struct {
-	HealthCondition         string                `json:"health_condition"`
-	SLACondition            string                `json:"sla_condition"`
-	LogicalOperator         LogicalOperator       `json:"logical_operator"`
-	TimeWindow              time.Duration         `json:"time_window"`
+	HealthCondition string          `json:"health_condition"`
+	SLACondition    string          `json:"sla_condition"`
+	LogicalOperator LogicalOperator `json:"logical_operator"`
+	TimeWindow      time.Duration   `json:"time_window"`
 }
 
 // LogicalOperator defines logical operators for alert conditions
 type LogicalOperator string
 
 const (
-	OperatorAND             LogicalOperator = "AND"
-	OperatorOR              LogicalOperator = "OR"
-	OperatorNOT             LogicalOperator = "NOT"
-	OperatorXOR             LogicalOperator = "XOR"
+	OperatorAND LogicalOperator = "AND"
+	OperatorOR  LogicalOperator = "OR"
+	OperatorNOT LogicalOperator = "NOT"
+	OperatorXOR LogicalOperator = "XOR"
 )
 
 // SuppressionRule defines when alerts should be suppressed
 type SuppressionRule struct {
-	Condition               string                `json:"condition"`
-	Duration                time.Duration         `json:"duration"`
-	Reason                  string                `json:"reason"`
+	Condition string        `json:"condition"`
+	Duration  time.Duration `json:"duration"`
+	Reason    string        `json:"reason"`
 }
 
 // IntegratedAlert represents an alert that considers both health and SLA
 type IntegratedAlert struct {
-	ID                      string                `json:"id"`
-	RuleID                  string                `json:"rule_id"`
-	Title                   string                `json:"title"`
-	Description             string                `json:"description"`
-	
+	ID          string `json:"id"`
+	RuleID      string `json:"rule_id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+
 	// Health information
-	HealthScore             float64               `json:"health_score"`
-	HealthStatus            health.Status         `json:"health_status"`
-	AffectedComponents      []string              `json:"affected_components"`
-	
+	HealthScore        float64       `json:"health_score"`
+	HealthStatus       health.Status `json:"health_status"`
+	AffectedComponents []string      `json:"affected_components"`
+
 	// SLA information
-	SLAMetric               SLAMetricType         `json:"sla_metric"`
-	SLAValue                float64               `json:"sla_value"`
-	SLAThreshold            float64               `json:"sla_threshold"`
-	SLAComplianceStatus     SLAComplianceStatus   `json:"sla_compliance_status"`
-	
+	SLAMetric           SLAMetricType       `json:"sla_metric"`
+	SLAValue            float64             `json:"sla_value"`
+	SLAThreshold        float64             `json:"sla_threshold"`
+	SLAComplianceStatus SLAComplianceStatus `json:"sla_compliance_status"`
+
 	// Alert metadata
-	Severity                AlertSeverity         `json:"severity"`
-	CreatedAt               time.Time             `json:"created_at"`
-	LastUpdated             time.Time             `json:"last_updated"`
-	Status                  AlertStatus           `json:"status"`
-	
+	Severity    AlertSeverity `json:"severity"`
+	CreatedAt   time.Time     `json:"created_at"`
+	LastUpdated time.Time     `json:"last_updated"`
+	Status      AlertStatus   `json:"status"`
+
 	// Context and correlation
-	CorrelationStrength     float64               `json:"correlation_strength"`
-	RootCauseAnalysis       *RootCauseAnalysis    `json:"root_cause_analysis,omitempty"`
-	RecommendedActions      []RecommendedAction   `json:"recommended_actions"`
+	CorrelationStrength float64             `json:"correlation_strength"`
+	RootCauseAnalysis   *RootCauseAnalysis  `json:"root_cause_analysis,omitempty"`
+	RecommendedActions  []RecommendedAction `json:"recommended_actions"`
 }
 
 // AlertStatus represents the status of an integrated alert
 type AlertStatus string
 
 const (
-	AlertStatusFiring       AlertStatus = "firing"
-	AlertStatusResolved     AlertStatus = "resolved"
-	AlertStatusSuppressed   AlertStatus = "suppressed"
-	AlertStatusEscalated    AlertStatus = "escalated"
+	AlertStatusFiring     AlertStatus = "firing"
+	AlertStatusResolved   AlertStatus = "resolved"
+	AlertStatusSuppressed AlertStatus = "suppressed"
+	AlertStatusEscalated  AlertStatus = "escalated"
 )
 
 // HealthSLADashboardBridge provides dashboard integration for health and SLA visualization
 type HealthSLADashboardBridge struct {
-	logger                  *slog.Logger
-	dashboardConfig         *DashboardIntegrationConfig
-	visualizations          map[string]*HealthSLAVisualization
-	realTimeDataStreams     map[string]*RealTimeDataStream
-	mu                      sync.RWMutex
+	logger              *slog.Logger
+	dashboardConfig     *DashboardIntegrationConfig
+	visualizations      map[string]*HealthSLAVisualization
+	realTimeDataStreams map[string]*RealTimeDataStream
+	mu                  sync.RWMutex
 }
 
 // DashboardIntegrationConfig configures dashboard integration
 type DashboardIntegrationConfig struct {
-	Enabled                 bool                  `json:"enabled"`
-	RefreshInterval         time.Duration         `json:"refresh_interval"`
-	HistoryRetention        time.Duration         `json:"history_retention"`
-	RealTimeUpdates         bool                  `json:"real_time_updates"`
-	
+	Enabled          bool          `json:"enabled"`
+	RefreshInterval  time.Duration `json:"refresh_interval"`
+	HistoryRetention time.Duration `json:"history_retention"`
+	RealTimeUpdates  bool          `json:"real_time_updates"`
+
 	// Visualization settings
-	DefaultTimeRange        time.Duration         `json:"default_time_range"`
-	MaxDataPoints           int                   `json:"max_data_points"`
-	AggregationInterval     time.Duration         `json:"aggregation_interval"`
-	
+	DefaultTimeRange    time.Duration `json:"default_time_range"`
+	MaxDataPoints       int           `json:"max_data_points"`
+	AggregationInterval time.Duration `json:"aggregation_interval"`
+
 	// Access control
-	RequiresAuthentication  bool                  `json:"requires_authentication"`
-	AllowedRoles            []string              `json:"allowed_roles"`
+	RequiresAuthentication bool     `json:"requires_authentication"`
+	AllowedRoles           []string `json:"allowed_roles"`
 }
 
 // HealthSLAVisualization represents a visualization combining health and SLA data
 type HealthSLAVisualization struct {
-	ID                      string                `json:"id"`
-	Name                    string                `json:"name"`
-	Type                    VisualizationType     `json:"type"`
-	DataSources             []DataSource          `json:"data_sources"`
-	Configuration           map[string]interface{} `json:"configuration"`
-	LastUpdated             time.Time             `json:"last_updated"`
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Type          VisualizationType      `json:"type"`
+	DataSources   []DataSource           `json:"data_sources"`
+	Configuration map[string]interface{} `json:"configuration"`
+	LastUpdated   time.Time              `json:"last_updated"`
 }
 
 // DataSource represents a data source for visualizations
 type DataSource struct {
-	Type                    DataSourceType        `json:"type"`
-	Component               string                `json:"component"`
-	Metric                  string                `json:"metric"`
-	Aggregation             string                `json:"aggregation"`
-	TimeRange               time.Duration         `json:"time_range"`
+	Type        DataSourceType `json:"type"`
+	Component   string         `json:"component"`
+	Metric      string         `json:"metric"`
+	Aggregation string         `json:"aggregation"`
+	TimeRange   time.Duration  `json:"time_range"`
 }
 
 // DataSourceType defines types of data sources
 type DataSourceType string
 
 const (
-	DataSourceHealth        DataSourceType = "health"
-	DataSourceSLA           DataSourceType = "sla"
-	DataSourceComposite     DataSourceType = "composite"
-	DataSourceCorrelation   DataSourceType = "correlation"
+	DataSourceHealth      DataSourceType = "health"
+	DataSourceSLA         DataSourceType = "sla"
+	DataSourceComposite   DataSourceType = "composite"
+	DataSourceCorrelation DataSourceType = "correlation"
 )
 
 // RealTimeDataStream provides real-time data streaming for dashboards
 type RealTimeDataStream struct {
-	ID                      string                `json:"id"`
-	DataType                DataSourceType        `json:"data_type"`
-	UpdateInterval          time.Duration         `json:"update_interval"`
-	BufferSize              int                   `json:"buffer_size"`
-	LastUpdate              time.Time             `json:"last_update"`
-	Subscribers             []string              `json:"subscribers"`
+	ID             string         `json:"id"`
+	DataType       DataSourceType `json:"data_type"`
+	UpdateInterval time.Duration  `json:"update_interval"`
+	BufferSize     int            `json:"buffer_size"`
+	LastUpdate     time.Time      `json:"last_update"`
+	Subscribers    []string       `json:"subscribers"`
 }
 
 // SLABridgeMetrics contains Prometheus metrics for the SLA integration bridge
@@ -596,7 +596,7 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 	if logger == nil {
 		logger = slog.Default()
 	}
-	
+
 	bridge := &SLAIntegrationBridge{
 		logger:            logger.With("component", "sla_integration_bridge"),
 		serviceName:       serviceName,
@@ -608,14 +608,14 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 		slaTargets:        make(map[string]*SLATarget),
 		bridgeMetrics:     initializeSLABridgeMetrics(),
 	}
-	
+
 	// Initialize correlation engine
 	bridge.correlationEngine = &HealthSLACorrelationEngine{
 		logger:            logger.With("component", "correlation_engine"),
 		correlationModels: make(map[string]*CorrelationModel),
 		historicalData:    make(map[string]*CorrelationHistory),
 	}
-	
+
 	// Initialize availability calculator
 	bridge.availabilityCalc = &HealthBasedAvailabilityCalculator{
 		logger:            logger.With("component", "availability_calculator"),
@@ -623,28 +623,28 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 		healthWeight:      bridge.slaConfig.HealthWeightInAvailability,
 		traditionalWeight: 1.0 - bridge.slaConfig.HealthWeightInAvailability,
 	}
-	
+
 	// Initialize performance impact tracker
 	bridge.performanceImpact = &HealthPerformanceImpactTracker{
 		logger:            logger.With("component", "performance_impact_tracker"),
 		performanceModels: make(map[string]*PerformanceImpactModel),
 		impactHistory:     make(map[string]*PerformanceImpactHistory),
 	}
-	
+
 	// Initialize composite scorer
 	bridge.compositeScorer = &CompositeHealthSLAScorer{
 		logger:               logger.With("component", "composite_scorer"),
 		scoringModels:        make(map[string]*CompositeScoringModel),
 		weightConfigurations: make(map[string]*ScoringWeightConfig),
 	}
-	
+
 	// Initialize alert integration
 	bridge.alertIntegration = &HealthSLAAlertIntegration{
 		logger:       logger.With("component", "alert_integration"),
 		alertRules:   make(map[string]*HealthSLAAlertRule),
 		activeAlerts: make(map[string]*IntegratedAlert),
 	}
-	
+
 	// Initialize dashboard bridge
 	bridge.dashboardBridge = &HealthSLADashboardBridge{
 		logger:              logger.With("component", "dashboard_bridge"),
@@ -652,16 +652,16 @@ func NewSLAIntegrationBridge(serviceName string, enhancedChecker *EnhancedHealth
 		visualizations:      make(map[string]*HealthSLAVisualization),
 		realTimeDataStreams: make(map[string]*RealTimeDataStream),
 	}
-	
+
 	// Configure default SLA targets
 	bridge.configureDefaultSLATargets()
-	
+
 	// Configure default scoring models
 	bridge.configureDefaultScoringModels()
-	
+
 	// Configure default alert rules
 	bridge.configureDefaultAlertRules()
-	
+
 	return bridge
 }
 
@@ -690,15 +690,15 @@ func defaultSLAIntegrationConfig() *SLAIntegrationConfig {
 // defaultDashboardIntegrationConfig returns default dashboard integration configuration
 func defaultDashboardIntegrationConfig() *DashboardIntegrationConfig {
 	return &DashboardIntegrationConfig{
-		Enabled:                 true,
-		RefreshInterval:         30 * time.Second,
-		HistoryRetention:        7 * 24 * time.Hour,
-		RealTimeUpdates:         true,
-		DefaultTimeRange:        24 * time.Hour,
-		MaxDataPoints:           1000,
-		AggregationInterval:     time.Minute,
-		RequiresAuthentication:  false,
-		AllowedRoles:            []string{"admin", "operator", "viewer"},
+		Enabled:                true,
+		RefreshInterval:        30 * time.Second,
+		HistoryRetention:       7 * 24 * time.Hour,
+		RealTimeUpdates:        true,
+		DefaultTimeRange:       24 * time.Hour,
+		MaxDataPoints:          1000,
+		AggregationInterval:    time.Minute,
+		RequiresAuthentication: false,
+		AllowedRoles:           []string{"admin", "operator", "viewer"},
 	}
 }
 
@@ -709,32 +709,32 @@ func initializeSLABridgeMetrics() *SLABridgeMetrics {
 			Name: "health_sla_correlation_coefficient",
 			Help: "Correlation coefficient between health and SLA metrics",
 		}, []string{"component", "sla_metric", "correlation_type"}),
-		
+
 		SLAComplianceStatus: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "sla_compliance_status",
 			Help: "SLA compliance status (0=breach, 1=warning, 2=good)",
 		}, []string{"sla_target", "metric_type"}),
-		
+
 		HealthBasedAvailability: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "health_based_availability_percentage",
 			Help: "Availability percentage incorporating health metrics",
 		}, []string{"component", "calculation_method"}),
-		
+
 		CompositeScores: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "composite_health_sla_score",
 			Help: "Composite score combining health and SLA metrics",
 		}, []string{"component", "scoring_model"}),
-		
+
 		IntegratedAlerts: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "integrated_health_sla_alerts_total",
 			Help: "Total number of integrated health-SLA alerts",
 		}, []string{"alert_type", "severity", "sla_metric"}),
-		
+
 		CorrelationAccuracy: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "correlation_model_accuracy",
 			Help: "Accuracy of health-SLA correlation models",
 		}, []string{"component", "model_type"}),
-		
+
 		BridgeOperationLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Name:    "sla_bridge_operation_latency_seconds",
 			Help:    "Latency of SLA bridge operations",
@@ -746,24 +746,24 @@ func initializeSLABridgeMetrics() *SLABridgeMetrics {
 // UpdateSLATargets updates SLA targets with current health correlation
 func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 	start := time.Now()
-	
+
 	if !sib.slaConfig.Enabled {
 		return nil
 	}
-	
+
 	// Get current health data
 	healthData := sib.aggregator.AggregateHealth(ctx)
 	if healthData == nil {
 		return fmt.Errorf("failed to get health data")
 	}
-	
+
 	// Get current dependency health
 	dependencyHealth := sib.dependencyTracker.GetAllDependencyHealth(ctx)
-	
+
 	// Update each SLA target
 	sib.slaTargetsMu.Lock()
 	defer sib.slaTargetsMu.Unlock()
-	
+
 	for targetID, target := range sib.slaTargets {
 		// Calculate health-adjusted SLA value
 		adjustedValue, err := sib.calculateHealthAdjustedSLA(target, healthData, dependencyHealth)
@@ -773,12 +773,12 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 				"error", err)
 			continue
 		}
-		
+
 		// Update target
 		target.HealthAdjustedValue = adjustedValue
 		target.ComplianceStatus = sib.determineComplianceStatus(target, adjustedValue)
 		target.LastUpdated = time.Now()
-		
+
 		// Add to compliance history
 		dataPoint := ComplianceDataPoint{
 			Timestamp:           time.Now(),
@@ -788,18 +788,18 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 			ComplianceStatus:    target.ComplianceStatus,
 			AffectingComponents: target.Components,
 		}
-		
+
 		target.ComplianceHistory = append(target.ComplianceHistory, dataPoint)
-		
+
 		// Keep only last 1000 points
 		if len(target.ComplianceHistory) > 1000 {
 			target.ComplianceHistory = target.ComplianceHistory[len(target.ComplianceHistory)-1000:]
 		}
-		
+
 		// Update metrics
 		statusValue := sib.complianceStatusToFloat(target.ComplianceStatus)
 		sib.bridgeMetrics.SLAComplianceStatus.WithLabelValues(target.Name, string(target.MetricType)).Set(statusValue)
-		
+
 		// Update correlation metrics if available
 		if target.HealthCorrelation != nil {
 			sib.bridgeMetrics.HealthSLACorrelation.WithLabelValues(
@@ -808,18 +808,18 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 				string(target.HealthCorrelation.CorrelationType),
 			).Set(target.HealthCorrelation.CorrelationStrength)
 		}
-		
+
 		sib.logger.Debug("Updated SLA target",
 			"target", target.Name,
 			"current_value", target.CurrentValue,
 			"health_adjusted", adjustedValue,
 			"compliance", target.ComplianceStatus)
 	}
-	
+
 	// Record operation latency
 	duration := time.Since(start)
 	sib.bridgeMetrics.BridgeOperationLatency.Observe(duration.Seconds())
-	
+
 	return nil
 }
 
@@ -828,10 +828,10 @@ func (sib *SLAIntegrationBridge) calculateHealthAdjustedSLA(target *SLATarget, h
 	if !sib.slaConfig.HealthBasedAdjustments || target.HealthCorrelation == nil {
 		return target.CurrentValue, nil
 	}
-	
+
 	// Calculate effective health score for components affecting this SLA
 	effectiveHealthScore := sib.calculateEffectiveHealthScore(target.HealthCorrelation.Components, healthData, dependencyHealth)
-	
+
 	// Apply health-based adjustment based on correlation type
 	switch target.HealthCorrelation.CorrelationType {
 	case CorrelationDirect:
@@ -852,14 +852,14 @@ func (sib *SLAIntegrationBridge) calculateEffectiveHealthScore(components []stri
 	if len(components) == 0 {
 		return healthData.OverallScore
 	}
-	
+
 	totalScore := 0.0
 	totalWeight := 0.0
-	
+
 	for _, component := range components {
 		score := 0.0
 		weight := 1.0
-		
+
 		// Check if component exists in aggregated health data
 		if componentResult, exists := healthData.ComponentScores[component]; exists {
 			score = componentResult.Score
@@ -881,15 +881,15 @@ func (sib *SLAIntegrationBridge) calculateEffectiveHealthScore(components []stri
 			score = healthData.OverallScore
 			weight = 0.5
 		}
-		
+
 		totalScore += score * weight
 		totalWeight += weight
 	}
-	
+
 	if totalWeight == 0 {
 		return healthData.OverallScore
 	}
-	
+
 	return totalScore / totalWeight
 }
 
@@ -898,7 +898,7 @@ func (sib *SLAIntegrationBridge) applyDirectCorrelation(target *SLATarget, healt
 	// Direct correlation: higher health score improves SLA metric
 	healthImpact := (healthScore - 0.5) * sib.slaConfig.AdjustmentFactor * target.HealthImpactWeight
 	adjustedValue := target.CurrentValue * (1 + healthImpact)
-	
+
 	return math.Max(0, adjustedValue), nil
 }
 
@@ -907,7 +907,7 @@ func (sib *SLAIntegrationBridge) applyInverseCorrelation(target *SLATarget, heal
 	// Inverse correlation: lower health score degrades SLA metric
 	healthImpact := (0.5 - healthScore) * sib.slaConfig.AdjustmentFactor * target.HealthImpactWeight
 	adjustedValue := target.CurrentValue * (1 + healthImpact)
-	
+
 	return math.Max(0, adjustedValue), nil
 }
 
@@ -919,13 +919,13 @@ func (sib *SLAIntegrationBridge) applyThresholdCorrelation(target *SLATarget, he
 			return target.CurrentValue * (1 + mapping.SLAImpact), nil
 		}
 	}
-	
+
 	// Default behavior if no threshold mapping matches
 	if healthScore < sib.slaConfig.MinimumHealthThreshold {
 		degradationFactor := (sib.slaConfig.MinimumHealthThreshold - healthScore) * sib.slaConfig.AdjustmentFactor
 		return target.CurrentValue * (1 - degradationFactor), nil
 	}
-	
+
 	return target.CurrentValue, nil
 }
 
@@ -935,7 +935,7 @@ func (sib *SLAIntegrationBridge) applyWeightedCorrelation(target *SLATarget, hea
 	correlationStrength := target.HealthCorrelation.CorrelationStrength
 	baseImpact := (healthScore - 0.5) * sib.slaConfig.AdjustmentFactor
 	weightedImpact := baseImpact * correlationStrength * target.HealthImpactWeight
-	
+
 	adjustedValue := target.CurrentValue * (1 + weightedImpact)
 	return math.Max(0, adjustedValue), nil
 }
@@ -953,13 +953,13 @@ func (sib *SLAIntegrationBridge) determineComplianceStatus(target *SLATarget, ad
 	// Calculate distance from target
 	distance := math.Abs(adjustedValue - target.Target)
 	thresholdDistance := math.Abs(target.Threshold - target.Target)
-	
+
 	if thresholdDistance == 0 {
 		return ComplianceGood
 	}
-	
+
 	ratio := distance / thresholdDistance
-	
+
 	if ratio <= 0.1 {
 		return ComplianceGood
 	} else if ratio <= 0.5 {
@@ -993,19 +993,19 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 	if !exists {
 		return nil, fmt.Errorf("scoring model %s not found", modelID)
 	}
-	
+
 	// Get current health data
 	healthData := sib.aggregator.AggregateHealth(ctx)
 	if healthData == nil {
 		return nil, fmt.Errorf("failed to get health data")
 	}
-	
+
 	// Calculate availability
 	availabilityResult := sib.availabilityCalc.CalculateHealthBasedAvailability(ctx, 24*time.Hour)
-	
+
 	// Get SLA scores (simplified - in practice would get from SLA monitoring system)
 	slaScore := sib.calculateCurrentSLAScore()
-	
+
 	// Calculate composite score
 	score := &CompositeScore{
 		HealthScore:          healthData.OverallScore,
@@ -1018,7 +1018,7 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 		ConfidenceLevel:      0.8, // Simplified
 		DataQuality:          healthData.AggregationMetadata.DataQuality,
 	}
-	
+
 	// Calculate overall score based on combination method
 	switch scoringModel.CombinationMethod {
 	case CombinationWeightedAverage:
@@ -1050,34 +1050,34 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 			scoringModel,
 		)
 	}
-	
+
 	// Calculate component scores
 	for component, componentHealth := range healthData.ComponentScores {
 		score.ComponentScores[component] = componentHealth.Score
 	}
-	
+
 	// Record metrics
 	sib.bridgeMetrics.CompositeScores.WithLabelValues("overall", modelID).Set(score.OverallScore)
 	sib.bridgeMetrics.CompositeScores.WithLabelValues("health", modelID).Set(score.HealthScore)
 	sib.bridgeMetrics.CompositeScores.WithLabelValues("sla", modelID).Set(score.SLAScore)
-	
+
 	return score, nil
 }
 
 // CalculateHealthBasedAvailability calculates availability incorporating health metrics
 func (hbac *HealthBasedAvailabilityCalculator) CalculateHealthBasedAvailability(ctx context.Context, timeWindow time.Duration) *AvailabilityResult {
 	result := &AvailabilityResult{
-		TimeWindow:           timeWindow,
-		CalculationTimestamp: time.Now(),
-		CalculationMethod:    hbac.calculationMethod,
+		TimeWindow:            timeWindow,
+		CalculationTimestamp:  time.Now(),
+		CalculationMethod:     hbac.calculationMethod,
 		ComponentAvailability: make(map[string]ComponentAvailabilityResult),
-		ConfidenceLevel:      0.8, // Simplified
+		ConfidenceLevel:       0.8, // Simplified
 	}
-	
+
 	// Simplified calculation - in practice would integrate with actual availability data
-	result.TraditionalAvailability = 99.5 // Example value
+	result.TraditionalAvailability = 99.5                                  // Example value
 	result.HealthBasedAvailability = result.TraditionalAvailability * 0.95 // Health factor
-	
+
 	// Calculate composite availability based on method
 	switch hbac.calculationMethod {
 	case AvailabilityHealthWeighted:
@@ -1095,9 +1095,9 @@ func (hbac *HealthBasedAvailabilityCalculator) CalculateHealthBasedAvailability(
 	default:
 		result.CompositeAvailability = result.TraditionalAvailability
 	}
-	
+
 	result.HealthContribution = result.CompositeAvailability - result.TraditionalAvailability
-	
+
 	return result
 }
 
@@ -1107,7 +1107,7 @@ func (sib *SLAIntegrationBridge) calculateWeightedAverage(health, sla, performan
 	if totalWeight == 0 {
 		return 0
 	}
-	
+
 	return (health*model.HealthWeight +
 		sla*model.SLAWeight +
 		performance*model.PerformanceWeight +
@@ -1127,10 +1127,10 @@ func (sib *SLAIntegrationBridge) calculateCurrentSLAScore() float64 {
 	// In practice, this would integrate with actual SLA monitoring
 	totalScore := 0.0
 	totalWeight := 0.0
-	
+
 	sib.slaTargetsMu.RLock()
 	defer sib.slaTargetsMu.RUnlock()
-	
+
 	for _, target := range sib.slaTargets {
 		score := 0.0
 		switch target.ComplianceStatus {
@@ -1145,16 +1145,16 @@ func (sib *SLAIntegrationBridge) calculateCurrentSLAScore() float64 {
 		default:
 			score = 0.5
 		}
-		
+
 		weight := target.HealthImpactWeight
 		totalScore += score * weight
 		totalWeight += weight
 	}
-	
+
 	if totalWeight == 0 {
 		return 0.5
 	}
-	
+
 	return totalScore / totalWeight
 }
 
@@ -1178,7 +1178,7 @@ func (sib *SLAIntegrationBridge) configureDefaultSLATargets() {
 		BusinessImpact:     BusinessImpactCritical,
 		ComplianceHistory:  []ComplianceDataPoint{},
 	}
-	
+
 	// Latency SLA
 	sib.slaTargets["latency"] = &SLATarget{
 		ID:         "latency",
@@ -1203,26 +1203,26 @@ func (sib *SLAIntegrationBridge) configureDefaultSLATargets() {
 func (sib *SLAIntegrationBridge) configureDefaultScoringModels() {
 	// Balanced scoring model
 	sib.compositeScorer.scoringModels["balanced"] = &CompositeScoringModel{
-		ID:                    "balanced",
-		Name:                  "Balanced Health-SLA Score",
-		HealthWeight:          0.3,
-		SLAWeight:             0.3,
-		PerformanceWeight:     0.2,
-		AvailabilityWeight:    0.2,
-		CombinationMethod:     CombinationWeightedAverage,
-		NormalizationMethod:   NormalizationMinMax,
+		ID:                  "balanced",
+		Name:                "Balanced Health-SLA Score",
+		HealthWeight:        0.3,
+		SLAWeight:           0.3,
+		PerformanceWeight:   0.2,
+		AvailabilityWeight:  0.2,
+		CombinationMethod:   CombinationWeightedAverage,
+		NormalizationMethod: NormalizationMinMax,
 	}
-	
+
 	// Business-focused scoring model
 	sib.compositeScorer.scoringModels["business"] = &CompositeScoringModel{
-		ID:                    "business",
-		Name:                  "Business-Focused Score",
-		HealthWeight:          0.2,
-		SLAWeight:             0.4,
-		PerformanceWeight:     0.1,
-		AvailabilityWeight:    0.3,
-		CombinationMethod:     CombinationWeightedAverage,
-		NormalizationMethod:   NormalizationMinMax,
+		ID:                  "business",
+		Name:                "Business-Focused Score",
+		HealthWeight:        0.2,
+		SLAWeight:           0.4,
+		PerformanceWeight:   0.1,
+		AvailabilityWeight:  0.3,
+		CombinationMethod:   CombinationWeightedAverage,
+		NormalizationMethod: NormalizationMinMax,
 	}
 }
 
@@ -1246,7 +1246,7 @@ func (sib *SLAIntegrationBridge) configureDefaultAlertRules() {
 			TimeWindow:      2 * time.Minute,
 		},
 	}
-	
+
 	// Health degradation warning
 	sib.alertIntegration.alertRules["health_degradation"] = &HealthSLAAlertRule{
 		ID:                   "health_degradation",
@@ -1271,14 +1271,14 @@ func (sib *SLAIntegrationBridge) configureDefaultAlertRules() {
 func (sib *SLAIntegrationBridge) GetSLATargets() map[string]*SLATarget {
 	sib.slaTargetsMu.RLock()
 	defer sib.slaTargetsMu.RUnlock()
-	
+
 	result := make(map[string]*SLATarget)
 	for id, target := range sib.slaTargets {
 		// Return a copy to avoid race conditions
 		targetCopy := *target
 		result[id] = &targetCopy
 	}
-	
+
 	return result
 }
 
@@ -1286,13 +1286,13 @@ func (sib *SLAIntegrationBridge) GetSLATargets() map[string]*SLATarget {
 func (sib *SLAIntegrationBridge) GetActiveIntegratedAlerts() []IntegratedAlert {
 	sib.alertIntegration.mu.RLock()
 	defer sib.alertIntegration.mu.RUnlock()
-	
+
 	var alerts []IntegratedAlert
 	for _, alert := range sib.alertIntegration.activeAlerts {
 		if alert.Status == AlertStatusFiring {
 			alerts = append(alerts, *alert)
 		}
 	}
-	
+
 	return alerts
 }

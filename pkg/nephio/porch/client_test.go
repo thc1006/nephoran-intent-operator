@@ -273,18 +273,18 @@ func createTestPackageRevision() *PackageRevision {
 func createTestClient() *Client {
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
-	
+
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
 	fakeDynamic := dynamicfake.NewSimpleDynamicClient(scheme)
-	
+
 	config := NewConfig().WithDefaults()
-	
+
 	return &Client{
-		client:   fakeClient,
-		dynamic:  fakeDynamic,
-		config:   config,
-		cache:    newClientCache(config),
-		metrics:  initClientMetrics(),
+		client:  fakeClient,
+		dynamic: fakeDynamic,
+		config:  config,
+		cache:   newClientCache(config),
+		metrics: initClientMetrics(),
 	}
 }
 
@@ -292,7 +292,7 @@ func createTestClient() *Client {
 
 func TestNewClient(t *testing.T) {
 	config := NewConfig().WithDefaults()
-	
+
 	client, err := NewClient(config)
 	require.NoError(t, err)
 	assert.NotNil(t, client)
@@ -310,7 +310,7 @@ func TestClientRepositoryOperations(t *testing.T) {
 			name: "CreateRepository",
 			fn: func(t *testing.T, client *Client) {
 				repo := createTestRepository()
-				
+
 				created, err := client.CreateRepository(context.Background(), repo)
 				assert.NoError(t, err)
 				assert.NotNil(t, created)
@@ -321,11 +321,11 @@ func TestClientRepositoryOperations(t *testing.T) {
 			name: "GetRepository",
 			fn: func(t *testing.T, client *Client) {
 				repo := createTestRepository()
-				
+
 				// Create first
 				_, err := client.CreateRepository(context.Background(), repo)
 				require.NoError(t, err)
-				
+
 				// Get
 				retrieved, err := client.GetRepository(context.Background(), repo.Name)
 				assert.NoError(t, err)
@@ -337,11 +337,11 @@ func TestClientRepositoryOperations(t *testing.T) {
 			name: "ListRepositories",
 			fn: func(t *testing.T, client *Client) {
 				repo := createTestRepository()
-				
+
 				// Create first
 				_, err := client.CreateRepository(context.Background(), repo)
 				require.NoError(t, err)
-				
+
 				// List
 				list, err := client.ListRepositories(context.Background(), &ListOptions{})
 				assert.NoError(t, err)
@@ -353,11 +353,11 @@ func TestClientRepositoryOperations(t *testing.T) {
 			name: "UpdateRepository",
 			fn: func(t *testing.T, client *Client) {
 				repo := createTestRepository()
-				
+
 				// Create first
 				created, err := client.CreateRepository(context.Background(), repo)
 				require.NoError(t, err)
-				
+
 				// Update
 				created.Spec.Branch = "develop"
 				updated, err := client.UpdateRepository(context.Background(), created)
@@ -370,18 +370,18 @@ func TestClientRepositoryOperations(t *testing.T) {
 			name: "DeleteRepository",
 			fn: func(t *testing.T, client *Client) {
 				repo := createTestRepository()
-				
+
 				// Create first
 				_, err := client.CreateRepository(context.Background(), repo)
 				require.NoError(t, err)
-				
+
 				// Delete
 				err = client.DeleteRepository(context.Background(), repo.Name)
 				assert.NoError(t, err)
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := createTestClient()
@@ -399,7 +399,7 @@ func TestClientPackageRevisionOperations(t *testing.T) {
 			name: "CreatePackageRevision",
 			fn: func(t *testing.T, client *Client) {
 				pkg := createTestPackageRevision()
-				
+
 				created, err := client.CreatePackageRevision(context.Background(), pkg)
 				assert.NoError(t, err)
 				assert.NotNil(t, created)
@@ -410,11 +410,11 @@ func TestClientPackageRevisionOperations(t *testing.T) {
 			name: "GetPackageRevision",
 			fn: func(t *testing.T, client *Client) {
 				pkg := createTestPackageRevision()
-				
+
 				// Create first
 				_, err := client.CreatePackageRevision(context.Background(), pkg)
 				require.NoError(t, err)
-				
+
 				// Get
 				retrieved, err := client.GetPackageRevision(context.Background(), pkg.Name)
 				assert.NoError(t, err)
@@ -426,11 +426,11 @@ func TestClientPackageRevisionOperations(t *testing.T) {
 			name: "ListPackageRevisions",
 			fn: func(t *testing.T, client *Client) {
 				pkg := createTestPackageRevision()
-				
+
 				// Create first
 				_, err := client.CreatePackageRevision(context.Background(), pkg)
 				require.NoError(t, err)
-				
+
 				// List
 				list, err := client.ListPackageRevisions(context.Background(), &ListOptions{})
 				assert.NoError(t, err)
@@ -439,7 +439,7 @@ func TestClientPackageRevisionOperations(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := createTestClient()
@@ -450,21 +450,21 @@ func TestClientPackageRevisionOperations(t *testing.T) {
 
 func TestClientFunctionOperations(t *testing.T) {
 	client := createTestClient()
-	
+
 	t.Run("ValidateFunction", func(t *testing.T) {
 		validation, err := client.ValidateFunction(context.Background(), "gcr.io/kpt-fn/apply-setters:v0.1.1")
 		assert.NoError(t, err)
 		assert.NotNil(t, validation)
 		assert.True(t, validation.Valid)
 	})
-	
+
 	t.Run("ListFunctions", func(t *testing.T) {
 		functions, err := client.ListFunctions(context.Background())
 		assert.NoError(t, err)
 		assert.NotNil(t, functions)
 		assert.Greater(t, len(functions), 0)
 	})
-	
+
 	t.Run("ExecuteFunction", func(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
@@ -472,7 +472,7 @@ func TestClientFunctionOperations(t *testing.T) {
 			},
 			Resources: []KRMResource{},
 		}
-		
+
 		response, err := client.ExecuteFunction(context.Background(), req)
 		assert.NoError(t, err)
 		assert.NotNil(t, response)
@@ -485,31 +485,31 @@ func TestClientPerformance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance tests in short mode")
 	}
-	
+
 	client := createTestClient()
-	
+
 	t.Run("RepositoryOperationLatency", func(t *testing.T) {
 		repo := createTestRepository()
-		
+
 		start := time.Now()
 		_, err := client.CreateRepository(context.Background(), repo)
 		duration := time.Since(start)
-		
+
 		assert.NoError(t, err)
 		assert.Less(t, duration, 500*time.Millisecond, "Repository creation should complete in <500ms")
 	})
-	
+
 	t.Run("PackageRevisionOperationLatency", func(t *testing.T) {
 		pkg := createTestPackageRevision()
-		
+
 		start := time.Now()
 		_, err := client.CreatePackageRevision(context.Background(), pkg)
 		duration := time.Since(start)
-		
+
 		assert.NoError(t, err)
 		assert.Less(t, duration, 500*time.Millisecond, "Package revision creation should complete in <500ms")
 	})
-	
+
 	t.Run("FunctionExecutionLatency", func(t *testing.T) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
@@ -517,11 +517,11 @@ func TestClientPerformance(t *testing.T) {
 			},
 			Resources: []KRMResource{},
 		}
-		
+
 		start := time.Now()
 		_, err := client.ExecuteFunction(context.Background(), req)
 		duration := time.Since(start)
-		
+
 		assert.NoError(t, err)
 		assert.Less(t, duration, 500*time.Millisecond, "Function execution should complete in <500ms")
 	})
@@ -531,61 +531,61 @@ func TestClientConcurrency(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping concurrency tests in short mode")
 	}
-	
+
 	client := createTestClient()
 	concurrency := 100
-	
+
 	t.Run("ConcurrentRepositoryOperations", func(t *testing.T) {
 		var wg sync.WaitGroup
 		results := make([]error, concurrency)
-		
+
 		start := time.Now()
-		
+
 		for i := 0; i < concurrency; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				
+
 				repo := createTestRepository()
 				repo.Name = fmt.Sprintf("test-repo-%d", index)
-				
+
 				_, err := client.CreateRepository(context.Background(), repo)
 				results[index] = err
 			}(i)
 		}
-		
+
 		wg.Wait()
 		duration := time.Since(start)
-		
+
 		// Check all operations succeeded
 		for i, err := range results {
 			assert.NoError(t, err, "Operation %d should succeed", i)
 		}
-		
+
 		// Check throughput
 		opsPerSecond := float64(concurrency) / duration.Seconds()
 		assert.Greater(t, opsPerSecond, 10.0, "Should handle >10 operations per second")
 	})
-	
+
 	t.Run("ConcurrentPackageRevisionOperations", func(t *testing.T) {
 		var wg sync.WaitGroup
 		results := make([]error, concurrency)
-		
+
 		for i := 0; i < concurrency; i++ {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()
-				
+
 				pkg := createTestPackageRevision()
 				pkg.Name = fmt.Sprintf("test-package-v%d", index)
-				
+
 				_, err := client.CreatePackageRevision(context.Background(), pkg)
 				results[index] = err
 			}(i)
 		}
-		
+
 		wg.Wait()
-		
+
 		// Check all operations succeeded
 		for i, err := range results {
 			assert.NoError(t, err, "Operation %d should succeed", i)
@@ -597,41 +597,41 @@ func TestClientMemoryUsage(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping memory tests in short mode")
 	}
-	
+
 	client := createTestClient()
-	
+
 	// Force garbage collection before measuring
 	runtime.GC()
 	runtime.GC()
-	
+
 	var m1 runtime.MemStats
 	runtime.ReadMemStats(&m1)
-	
+
 	// Perform a series of operations
 	for i := 0; i < 100; i++ {
 		repo := createTestRepository()
 		repo.Name = fmt.Sprintf("test-repo-%d", i)
-		
+
 		_, err := client.CreateRepository(context.Background(), repo)
 		require.NoError(t, err)
-		
+
 		pkg := createTestPackageRevision()
 		pkg.Name = fmt.Sprintf("test-package-v%d", i)
-		
+
 		_, err = client.CreatePackageRevision(context.Background(), pkg)
 		require.NoError(t, err)
 	}
-	
+
 	// Force garbage collection after operations
 	runtime.GC()
 	runtime.GC()
-	
+
 	var m2 runtime.MemStats
 	runtime.ReadMemStats(&m2)
-	
+
 	memoryUsed := m2.Alloc - m1.Alloc
 	memoryUsedMB := float64(memoryUsed) / (1024 * 1024)
-	
+
 	assert.Less(t, memoryUsedMB, 50.0, "Memory usage should be <50MB for 200 operations")
 }
 
@@ -639,20 +639,20 @@ func TestClientMemoryUsage(t *testing.T) {
 
 func BenchmarkClientRepositoryOperations(b *testing.B) {
 	client := createTestClient()
-	
+
 	b.Run("CreateRepository", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			repo := createTestRepository()
 			repo.Name = fmt.Sprintf("bench-repo-%d", i)
-			
+
 			_, err := client.CreateRepository(context.Background(), repo)
 			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
-	
+
 	b.Run("GetRepository", func(b *testing.B) {
 		// Setup
 		repo := createTestRepository()
@@ -660,7 +660,7 @@ func BenchmarkClientRepositoryOperations(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := client.GetRepository(context.Background(), repo.Name)
@@ -669,7 +669,7 @@ func BenchmarkClientRepositoryOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("ListRepositories", func(b *testing.B) {
 		// Setup
 		for i := 0; i < 10; i++ {
@@ -677,7 +677,7 @@ func BenchmarkClientRepositoryOperations(b *testing.B) {
 			repo.Name = fmt.Sprintf("setup-repo-%d", i)
 			client.CreateRepository(context.Background(), repo)
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := client.ListRepositories(context.Background(), &ListOptions{})
@@ -690,20 +690,20 @@ func BenchmarkClientRepositoryOperations(b *testing.B) {
 
 func BenchmarkClientPackageRevisionOperations(b *testing.B) {
 	client := createTestClient()
-	
+
 	b.Run("CreatePackageRevision", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			pkg := createTestPackageRevision()
 			pkg.Name = fmt.Sprintf("bench-package-v%d", i)
-			
+
 			_, err := client.CreatePackageRevision(context.Background(), pkg)
 			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
-	
+
 	b.Run("GetPackageRevision", func(b *testing.B) {
 		// Setup
 		pkg := createTestPackageRevision()
@@ -711,7 +711,7 @@ func BenchmarkClientPackageRevisionOperations(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := client.GetPackageRevision(context.Background(), pkg.Name)
@@ -724,7 +724,7 @@ func BenchmarkClientPackageRevisionOperations(b *testing.B) {
 
 func BenchmarkClientFunctionOperations(b *testing.B) {
 	client := createTestClient()
-	
+
 	b.Run("ValidateFunction", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -734,7 +734,7 @@ func BenchmarkClientFunctionOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("ExecuteFunction", func(b *testing.B) {
 		req := &FunctionRequest{
 			FunctionConfig: FunctionConfig{
@@ -742,7 +742,7 @@ func BenchmarkClientFunctionOperations(b *testing.B) {
 			},
 			Resources: []KRMResource{},
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_, err := client.ExecuteFunction(context.Background(), req)
@@ -757,29 +757,29 @@ func BenchmarkClientFunctionOperations(b *testing.B) {
 
 func TestClientErrorHandling(t *testing.T) {
 	client := createTestClient()
-	
+
 	t.Run("GetNonexistentRepository", func(t *testing.T) {
 		_, err := client.GetRepository(context.Background(), "nonexistent")
 		assert.Error(t, err)
 	})
-	
+
 	t.Run("CreateDuplicateRepository", func(t *testing.T) {
 		repo := createTestRepository()
-		
+
 		// Create first time
 		_, err := client.CreateRepository(context.Background(), repo)
 		assert.NoError(t, err)
-		
+
 		// Try to create again
 		_, err = client.CreateRepository(context.Background(), repo)
 		assert.Error(t, err)
 	})
-	
+
 	t.Run("DeleteNonexistentRepository", func(t *testing.T) {
 		err := client.DeleteRepository(context.Background(), "nonexistent")
 		assert.Error(t, err)
 	})
-	
+
 	t.Run("InvalidFunctionValidation", func(t *testing.T) {
 		validation, err := client.ValidateFunction(context.Background(), "invalid-function")
 		assert.NoError(t, err) // Validation doesn't error, but returns invalid result
@@ -793,23 +793,23 @@ func TestClientErrorHandling(t *testing.T) {
 
 func TestClientContextCancellation(t *testing.T) {
 	client := createTestClient()
-	
+
 	t.Run("CancelledContext", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 		cancel() // Cancel immediately
-		
+
 		repo := createTestRepository()
 		_, err := client.CreateRepository(ctx, repo)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "context canceled")
 	})
-	
+
 	t.Run("TimeoutContext", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 1*time.Nanosecond)
 		defer cancel()
-		
+
 		time.Sleep(1 * time.Millisecond) // Ensure timeout
-		
+
 		repo := createTestRepository()
 		_, err := client.CreateRepository(ctx, repo)
 		assert.Error(t, err)
@@ -821,22 +821,22 @@ func TestClientContextCancellation(t *testing.T) {
 
 func TestClientMetrics(t *testing.T) {
 	client := createTestClient()
-	
+
 	// Perform some operations
 	repo := createTestRepository()
 	_, err := client.CreateRepository(context.Background(), repo)
 	require.NoError(t, err)
-	
+
 	_, err = client.GetRepository(context.Background(), repo.Name)
 	require.NoError(t, err)
-	
+
 	// Check that metrics are recorded
 	assert.NotNil(t, client.metrics)
-	
+
 	// Verify metrics are registered with Prometheus
 	metricFamilies, err := prometheus.DefaultGatherer.Gather()
 	require.NoError(t, err)
-	
+
 	var found bool
 	for _, mf := range metricFamilies {
 		if strings.Contains(*mf.Name, "porch_client") {

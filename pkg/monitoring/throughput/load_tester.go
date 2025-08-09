@@ -23,10 +23,10 @@ type LoadTester struct {
 	currentTest *LoadTestRun
 
 	// Metrics
-	throughputMetric    *prometheus.HistogramVec
-	latencyMetric       *prometheus.HistogramVec
-	errorRateMetric     *prometheus.CounterVec
-	concurrencyMetric   prometheus.Gauge
+	throughputMetric  *prometheus.HistogramVec
+	latencyMetric     *prometheus.HistogramVec
+	errorRateMetric   *prometheus.CounterVec
+	concurrencyMetric prometheus.Gauge
 }
 
 // LoadTestConfig defines parameters for load testing
@@ -76,7 +76,7 @@ type LoadTestRun struct {
 // NewLoadTester creates a new load tester
 func NewLoadTester(config LoadTestConfig) *LoadTester {
 	return &LoadTester{
-		config: config,
+		config:  config,
 		results: make([]LoadTestResult, 0, 1000),
 		throughputMetric: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "nephoran_load_test_throughput",
@@ -158,7 +158,7 @@ func (lt *LoadTester) generateRampUpLoad(ctx context.Context) error {
 		// Calculate current phase's intents per minute
 		currentRate := lt.config.IntentsPerMinute * phase / 4
 		ticker := time.NewTicker(time.Minute / time.Duration(currentRate))
-		
+
 		phaseCtx, cancel := context.WithTimeout(ctx, rampDuration)
 		defer cancel()
 
@@ -209,12 +209,12 @@ func (lt *LoadTester) generateRandomSpikeLoad(ctx context.Context) error {
 			return ctx.Err()
 		default:
 			// Random spike between 50-200% of base rate
-			spikeMultiplier := 0.5 + rand.Float64() * 1.5
+			spikeMultiplier := 0.5 + rand.Float64()*1.5
 			currentRate := int(float64(lt.config.IntentsPerMinute) * spikeMultiplier)
-			
+
 			ticker := time.NewTicker(time.Minute / time.Duration(currentRate))
 			spikeCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
-			
+
 			for {
 				select {
 				case <-spikeCtx.Done():
@@ -224,7 +224,7 @@ func (lt *LoadTester) generateRandomSpikeLoad(ctx context.Context) error {
 					go lt.simulateIntentProcessing(lt.config.LoadProfile)
 				}
 			}
-			NextSpike:
+		NextSpike:
 		}
 	}
 }
@@ -268,7 +268,7 @@ func (lt *LoadTester) simulateIntentProcessing(profile LoadProfile) {
 	}
 
 	// Calculate latency with some randomness
-	latency := time.Duration(50 + rand.Intn(200)) * time.Millisecond
+	latency := time.Duration(50+rand.Intn(200)) * time.Millisecond
 
 	// Record result
 	result := LoadTestResult{
@@ -282,7 +282,7 @@ func (lt *LoadTester) simulateIntentProcessing(profile LoadProfile) {
 
 	lt.mu.Lock()
 	lt.results = append(lt.results, result)
-	
+
 	// Track test outcomes
 	if success {
 		lt.currentTest.Successful++
@@ -294,7 +294,7 @@ func (lt *LoadTester) simulateIntentProcessing(profile LoadProfile) {
 	// Update Prometheus metrics
 	lt.throughputMetric.WithLabelValues(string(profile), fmt.Sprintf("%v", success)).Observe(result.Throughput)
 	lt.latencyMetric.WithLabelValues(string(profile), fmt.Sprintf("%v", success)).Observe(result.Latency.Seconds())
-	
+
 	if processingError != nil {
 		lt.errorRateMetric.WithLabelValues(string(profile), "simulated").Inc()
 	}
@@ -311,7 +311,7 @@ func (lt *LoadTester) AnalyzeTestResults() map[string]interface{} {
 	successRate := float64(lt.currentTest.Successful) / float64(lt.currentTest.CompletedTests)
 	totalThroughput := 0.0
 	latencyTotal := time.Duration(0)
-	
+
 	for _, result := range lt.results {
 		totalThroughput += result.Throughput
 		latencyTotal += result.Latency

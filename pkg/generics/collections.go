@@ -496,7 +496,7 @@ func ChunkSlice[T any](s *Slice[T], size int) []*Slice[T] {
 	if size <= 0 {
 		return nil
 	}
-	
+
 	var chunks []*Slice[T]
 	for i := 0; i < len(s.items); i += size {
 		end := i + size
@@ -583,11 +583,11 @@ func (t Triple[T, U, V]) String() string {
 func ZipSlices[T, U any](slice1 *Slice[T], slice2 *Slice[U]) *Slice[Tuple[T, U]] {
 	minLen := min(slice1.Len(), slice2.Len())
 	result := make([]Tuple[T, U], minLen)
-	
+
 	for i := 0; i < minLen; i++ {
 		result[i] = NewTuple(slice1.items[i], slice2.items[i])
 	}
-	
+
 	return FromSlice(result)
 }
 
@@ -597,11 +597,11 @@ func FlattenSlices[T any](slices []*Slice[T]) *Slice[T] {
 	for _, s := range slices {
 		totalLen += s.Len()
 	}
-	
+
 	result := make([]T, 0, totalLen)
 	for _, s := range slices {
 		result = append(result, s.items...)
 	}
-	
+
 	return FromSlice(result)
 }

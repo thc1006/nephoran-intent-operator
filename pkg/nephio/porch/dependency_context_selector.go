@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 // ContextAwareDependencySelector selects dependencies based on deployment context
@@ -41,18 +41,18 @@ type ContextAwareDependencySelector struct {
 
 // ClusterProfile represents a cluster's capabilities and characteristics
 type ClusterProfile struct {
-	ClusterID        string
-	Name             string
-	Type             ClusterType
-	Region           string
-	Zone             string
-	Capabilities     *ClusterCapabilities
-	Resources        *ClusterResources
-	NetworkProfile   *NetworkProfile
-	SecurityProfile  *SecurityProfile
-	ComplianceLevel  ComplianceLevel
-	Tags             map[string]string
-	LastUpdated      time.Time
+	ClusterID       string
+	Name            string
+	Type            ClusterType
+	Region          string
+	Zone            string
+	Capabilities    *ClusterCapabilities
+	Resources       *ClusterResources
+	NetworkProfile  *NetworkProfile
+	SecurityProfile *SecurityProfile
+	ComplianceLevel ComplianceLevel
+	Tags            map[string]string
+	LastUpdated     time.Time
 }
 
 // ClusterCapabilities defines what a cluster can support
@@ -102,48 +102,48 @@ type NetworkProfile struct {
 
 // TelcoProfile represents telecommunications-specific requirements
 type TelcoProfile struct {
-	NetworkFunction  string
-	DeploymentType   TelcoDeploymentType
-	RANType          RANType
-	CoreType         CoreType
-	SliceType        SliceType
-	QoSRequirements  *QoSRequirements
-	SLARequirements  *SLARequirements
-	Regulatory       *RegulatoryRequirements
+	NetworkFunction string
+	DeploymentType  TelcoDeploymentType
+	RANType         RANType
+	CoreType        CoreType
+	SliceType       SliceType
+	QoSRequirements *QoSRequirements
+	SLARequirements *SLARequirements
+	Regulatory      *RegulatoryRequirements
 }
 
 // QoSRequirements defines Quality of Service requirements
 type QoSRequirements struct {
-	Latency          time.Duration
-	Throughput       int64
-	PacketLoss       float64
-	Jitter           time.Duration
-	Availability     float64
-	Reliability      float64
-	PriorityLevel    int
-	FiveGQI          int // 5G QoS Identifier
+	Latency       time.Duration
+	Throughput    int64
+	PacketLoss    float64
+	Jitter        time.Duration
+	Availability  float64
+	Reliability   float64
+	PriorityLevel int
+	FiveGQI       int // 5G QoS Identifier
 }
 
 // SLARequirements defines Service Level Agreement requirements
 type SLARequirements struct {
-	UptimePercent    float64
-	MTTR             time.Duration // Mean Time To Recovery
-	MTBF             time.Duration // Mean Time Between Failures
-	RPO              time.Duration // Recovery Point Objective
-	RTO              time.Duration // Recovery Time Objective
+	UptimePercent     float64
+	MTTR              time.Duration // Mean Time To Recovery
+	MTBF              time.Duration // Mean Time Between Failures
+	RPO               time.Duration // Recovery Point Objective
+	RTO               time.Duration // Recovery Time Objective
 	MaintenanceWindow *MaintenanceWindow
 }
 
 // ContextualDependencies represents dependencies selected based on context
 type ContextualDependencies struct {
-	PrimaryDependencies   []*ContextualDependency
-	OptionalDependencies  []*ContextualDependency
-	ExcludedDependencies  []*ExcludedDependency
-	Substitutions         map[string]*DependencySubstitution
-	PlacementConstraints  []*PlacementConstraint
-	DeploymentOrder       []string
-	ContextScore          float64
-	SelectionReasons      []string
+	PrimaryDependencies  []*ContextualDependency
+	OptionalDependencies []*ContextualDependency
+	ExcludedDependencies []*ExcludedDependency
+	Substitutions        map[string]*DependencySubstitution
+	PlacementConstraints []*PlacementConstraint
+	DeploymentOrder      []string
+	ContextScore         float64
+	SelectionReasons     []string
 }
 
 // ContextualDependency represents a dependency with context
@@ -161,11 +161,11 @@ type ContextualDependency struct {
 
 // DependencySubstitution represents a context-based substitution
 type DependencySubstitution struct {
-	Original    *PackageReference
-	Substitute  *PackageReference
-	Reason      string
-	Conditions  []SubstitutionCondition
-	Reversible  bool
+	Original   *PackageReference
+	Substitute *PackageReference
+	Reason     string
+	Conditions []SubstitutionCondition
+	Reversible bool
 }
 
 // PlacementConstraint defines where dependencies can be deployed
@@ -562,7 +562,7 @@ func (cads *ContextAwareDependencySelector) optimizeForThroughput(
 	for _, dep := range deps.PrimaryDependencies {
 		if dep.ResourceRequests != nil {
 			// Increase CPU and memory for throughput
-			dep.ResourceRequests.Requests[corev1.ResourceCPU] = 
+			dep.ResourceRequests.Requests[corev1.ResourceCPU] =
 				dep.ResourceRequests.Requests[corev1.ResourceCPU]
 		}
 	}
@@ -587,7 +587,7 @@ func (cads *ContextAwareDependencySelector) optimizeForScale(
 	for _, dep := range deps.PrimaryDependencies {
 		if dep.ResourceRequests != nil {
 			// Optimize for memory efficiency
-			dep.ResourceRequests.Limits[corev1.ResourceMemory] = 
+			dep.ResourceRequests.Limits[corev1.ResourceMemory] =
 				dep.ResourceRequests.Requests[corev1.ResourceMemory]
 		}
 	}

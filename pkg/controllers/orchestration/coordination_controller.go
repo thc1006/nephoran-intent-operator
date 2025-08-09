@@ -46,10 +46,10 @@ type CoordinationController struct {
 
 	// Orchestration components
 	IntentOrchestrator *IntentOrchestrator
-	EventBus          *EventBus
-	WorkQueueManager  *WorkQueueManager
-	StateMachine      *StateMachine
-	LockManager       *IntentLockManager
+	EventBus           *EventBus
+	WorkQueueManager   *WorkQueueManager
+	StateMachine       *StateMachine
+	LockManager        *IntentLockManager
 
 	// Phase controllers
 	IntentProcessingController   *IntentProcessingController
@@ -58,10 +58,10 @@ type CoordinationController struct {
 	GitOpsDeploymentController   *GitOpsDeploymentController
 
 	// Coordination state
-	activeIntents   sync.Map // map[string]*CoordinationContext
-	phaseTracker   *PhaseTracker
+	activeIntents    sync.Map // map[string]*CoordinationContext
+	phaseTracker     *PhaseTracker
 	conflictResolver *ConflictResolver
-	recoveryManager *RecoveryManager
+	recoveryManager  *RecoveryManager
 
 	// Configuration
 	Config *CoordinationConfig
@@ -72,40 +72,40 @@ type CoordinationController struct {
 
 // CoordinationConfig contains configuration for coordination
 type CoordinationConfig struct {
-	MaxConcurrentIntents      int           `json:"maxConcurrentIntents"`
-	PhaseTimeout              time.Duration `json:"phaseTimeout"`
-	MaxRetries                int           `json:"maxRetries"`
-	RetryBackoff              time.Duration `json:"retryBackoff"`
-	EnableParallelProcessing  bool          `json:"enableParallelProcessing"`
-	EnableConflictResolution  bool          `json:"enableConflictResolution"`
-	EnableAutoRecovery        bool          `json:"enableAutoRecovery"`
-	HealthCheckInterval       time.Duration `json:"healthCheckInterval"`
-	RecoveryTimeout           time.Duration `json:"recoveryTimeout"`
+	MaxConcurrentIntents     int           `json:"maxConcurrentIntents"`
+	PhaseTimeout             time.Duration `json:"phaseTimeout"`
+	MaxRetries               int           `json:"maxRetries"`
+	RetryBackoff             time.Duration `json:"retryBackoff"`
+	EnableParallelProcessing bool          `json:"enableParallelProcessing"`
+	EnableConflictResolution bool          `json:"enableConflictResolution"`
+	EnableAutoRecovery       bool          `json:"enableAutoRecovery"`
+	HealthCheckInterval      time.Duration `json:"healthCheckInterval"`
+	RecoveryTimeout          time.Duration `json:"recoveryTimeout"`
 }
 
 // CoordinationContext tracks the context for an intent's coordination
 type CoordinationContext struct {
-	IntentID          string
-	CorrelationID     string
-	StartTime         time.Time
-	CurrentPhase      interfaces.ProcessingPhase
-	PhaseHistory      []PhaseExecution
-	Locks             []ResourceLock
-	Conflicts         []Conflict
-	RetryCount        int
-	LastActivity      time.Time
-	mutex             sync.RWMutex
+	IntentID      string
+	CorrelationID string
+	StartTime     time.Time
+	CurrentPhase  interfaces.ProcessingPhase
+	PhaseHistory  []PhaseExecution
+	Locks         []ResourceLock
+	Conflicts     []Conflict
+	RetryCount    int
+	LastActivity  time.Time
+	mutex         sync.RWMutex
 }
 
 // PhaseExecution tracks the execution of a phase
 type PhaseExecution struct {
-	Phase         interfaces.ProcessingPhase
-	StartTime     time.Time
+	Phase          interfaces.ProcessingPhase
+	StartTime      time.Time
 	CompletionTime *time.Time
-	Status        string // Pending, InProgress, Completed, Failed
-	Error         error
-	RetryCount    int
-	ResourceRefs  []ResourceReference
+	Status         string // Pending, InProgress, Completed, Failed
+	Error          error
+	RetryCount     int
+	ResourceRefs   []ResourceReference
 }
 
 // ResourceLock represents a lock on a resource
@@ -119,14 +119,14 @@ type ResourceLock struct {
 
 // Conflict represents a resource conflict
 type Conflict struct {
-	ID            string
-	Type          string // ResourceConflict, DependencyConflict, etc.
-	Description   string
+	ID              string
+	Type            string // ResourceConflict, DependencyConflict, etc.
+	Description     string
 	InvolvedIntents []string
-	Severity      string // Low, Medium, High, Critical
-	DetectedAt    time.Time
-	ResolvedAt    *time.Time
-	Resolution    string
+	Severity        string // Low, Medium, High, Critical
+	DetectedAt      time.Time
+	ResolvedAt      *time.Time
+	Resolution      string
 }
 
 // ResourceReference represents a reference to a created resource
@@ -148,22 +148,22 @@ func NewCoordinationController(
 	config *CoordinationConfig,
 ) *CoordinationController {
 	logger := log.Log.WithName("coordination-controller")
-	
+
 	return &CoordinationController{
-		Client:           client,
-		Scheme:          scheme,
-		Recorder:        recorder,
-		Logger:          logger,
+		Client:             client,
+		Scheme:             scheme,
+		Recorder:           recorder,
+		Logger:             logger,
 		IntentOrchestrator: orchestrator,
-		EventBus:        orchestrator.EventBus,
-		WorkQueueManager: orchestrator.WorkQueueManager,
-		StateMachine:    orchestrator.StateMachine,
-		LockManager:     orchestrator.LockManager,
-		Config:          config,
-		phaseTracker:    NewPhaseTracker(),
-		conflictResolver: NewConflictResolver(client, logger),
-		recoveryManager: NewRecoveryManager(client, logger),
-		MetricsCollector: NewMetricsCollector(),
+		EventBus:           orchestrator.EventBus,
+		WorkQueueManager:   orchestrator.WorkQueueManager,
+		StateMachine:       orchestrator.StateMachine,
+		LockManager:        orchestrator.LockManager,
+		Config:             config,
+		phaseTracker:       NewPhaseTracker(),
+		conflictResolver:   NewConflictResolver(client, logger),
+		recoveryManager:    NewRecoveryManager(client, logger),
+		MetricsCollector:   NewMetricsCollector(),
 	}
 }
 
@@ -357,10 +357,10 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 		result.Success = true
 		result.NextPhase = interfaces.PhaseResourcePlanning
 		result.Data = map[string]interface{}{
-			"llm_response": intentProcessing.Status.LLMResponse,
+			"llm_response":         intentProcessing.Status.LLMResponse,
 			"processed_parameters": intentProcessing.Status.ProcessedParameters,
-			"extracted_entities": intentProcessing.Status.ExtractedEntities,
-			"quality_score": intentProcessing.Status.QualityScore,
+			"extracted_entities":   intentProcessing.Status.ExtractedEntities,
+			"quality_score":        intentProcessing.Status.QualityScore,
 		}
 
 		// Add resource reference
@@ -443,10 +443,10 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 					Namespace: intentProcessing.Namespace,
 					UID:       string(intentProcessing.UID),
 				},
-				RequirementsInput:       intentProcessing.Status.LLMResponse,
-				TargetComponents:        networkIntent.Spec.TargetComponents,
-				ResourceConstraints:     networkIntent.Spec.ResourceConstraints,
-				Priority:               networkIntent.Spec.Priority,
+				RequirementsInput:   intentProcessing.Status.LLMResponse,
+				TargetComponents:    networkIntent.Spec.TargetComponents,
+				ResourceConstraints: networkIntent.Spec.ResourceConstraints,
+				Priority:            networkIntent.Spec.Priority,
 			},
 		}
 
@@ -463,10 +463,10 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 		result.Success = true
 		result.NextPhase = interfaces.PhaseManifestGeneration
 		result.Data = map[string]interface{}{
-			"resource_plan": resourcePlan.Status.ResourceAllocation,
+			"resource_plan":     resourcePlan.Status.ResourceAllocation,
 			"planned_resources": resourcePlan.Status.PlannedResources,
-			"cost_estimate": resourcePlan.Status.CostEstimate,
-			"quality_score": resourcePlan.Status.QualityScore,
+			"cost_estimate":     resourcePlan.Status.CostEstimate,
+			"quality_score":     resourcePlan.Status.QualityScore,
 		}
 	} else if resourcePlan.IsPlanningFailed() {
 		result.Success = false
@@ -509,7 +509,7 @@ func (r *CoordinationController) coordinateGitOpsDeployment(ctx context.Context,
 		Success:   true,
 		NextPhase: interfaces.PhaseDeploymentVerification,
 		Data: map[string]interface{}{
-			"commit_hash": "abc123def456",
+			"commit_hash":       "abc123def456",
 			"deployment_status": "committed",
 		},
 	}
@@ -526,7 +526,7 @@ func (r *CoordinationController) coordinateDeploymentVerification(ctx context.Co
 		NextPhase: interfaces.PhaseCompleted,
 		Data: map[string]interface{}{
 			"verification_status": "verified",
-			"deployed_resources": []string{"deployment/example", "service/example"},
+			"deployed_resources":  []string{"deployment/example", "service/example"},
 		},
 	}
 
@@ -569,8 +569,8 @@ func (r *CoordinationController) detectConflicts(ctx context.Context, networkInt
 func (r *CoordinationController) hasNamespaceConflict(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, otherIntentID string) bool {
 	// Simplified conflict detection - check if targeting same namespace with same component
 	// In practice, this would be more sophisticated
-	return networkIntent.Spec.TargetNamespace != "" && 
-		   len(networkIntent.Spec.TargetComponents) > 0
+	return networkIntent.Spec.TargetNamespace != "" &&
+		len(networkIntent.Spec.TargetComponents) > 0
 }
 
 // handleConflicts handles detected conflicts
@@ -610,14 +610,14 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 			if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseIntentReceived, EventConflictResolved,
 				coordCtx.IntentID, true, map[string]interface{}{
 					"conflict_id": conflict.ID,
-					"resolution": conflict.Resolution,
+					"resolution":  conflict.Resolution,
 				}); err != nil {
 				log.Error(err, "Failed to publish conflict resolution event")
 			}
 		} else {
 			log.Warn("Conflict could not be resolved automatically", "conflictId", conflict.ID)
 			// Manual intervention required
-			r.Recorder.Event(networkIntent, "Warning", "ConflictDetected", 
+			r.Recorder.Event(networkIntent, "Warning", "ConflictDetected",
 				fmt.Sprintf("Conflict detected and requires manual intervention: %s", conflict.Description))
 		}
 	}
@@ -706,7 +706,7 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseCompleted, EventIntentCompleted,
 		coordCtx.IntentID, true, map[string]interface{}{
 			"processing_duration": networkIntent.Status.ProcessingDuration.Duration.String(),
-			"completed_phases": len(coordCtx.PhaseHistory),
+			"completed_phases":    len(coordCtx.PhaseHistory),
 		}); err != nil {
 		log.Error(err, "Failed to publish completion event")
 	}
@@ -740,9 +740,9 @@ func (r *CoordinationController) handlePhaseFailure(ctx context.Context, network
 	// Check if we should retry
 	if retryCount < r.Config.MaxRetries {
 		backoffDuration := r.calculateBackoff(retryCount)
-		
+
 		log.Info("Scheduling retry", "attempt", retryCount+1, "backoff", backoffDuration)
-		r.Recorder.Event(networkIntent, "Warning", "PhaseRetry", 
+		r.Recorder.Event(networkIntent, "Warning", "PhaseRetry",
 			fmt.Sprintf("Retrying phase %s (attempt %d/%d): %s", phase, retryCount, r.Config.MaxRetries, result.ErrorMessage))
 
 		return ctrl.Result{RequeueAfter: backoffDuration}, nil
@@ -759,7 +759,7 @@ func (r *CoordinationController) shouldAttemptRecovery(phase interfaces.Processi
 		interfaces.PhaseLLMProcessing:          true,
 		interfaces.PhaseResourcePlanning:       true,
 		interfaces.PhaseManifestGeneration:     true,
-		interfaces.PhaseGitOpsCommit:          false, // Git operations are not easily recoverable
+		interfaces.PhaseGitOpsCommit:           false, // Git operations are not easily recoverable
 		interfaces.PhaseDeploymentVerification: true,
 	}
 
@@ -775,9 +775,9 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 	// Publish recovery initiation event
 	if err := r.EventBus.PublishPhaseEvent(ctx, phase, EventRecoveryInitiated,
 		coordCtx.IntentID, false, map[string]interface{}{
-			"failed_phase": phase,
+			"failed_phase":  phase,
 			"error_message": result.ErrorMessage,
-			"retry_count": coordCtx.RetryCount,
+			"retry_count":   coordCtx.RetryCount,
 		}); err != nil {
 		log.Error(err, "Failed to publish recovery initiation event")
 	}
@@ -791,13 +791,13 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 
 	if recovered {
 		log.Info("Recovery successful", "actions", recoveryActions)
-		r.Recorder.Event(networkIntent, "Normal", "RecoverySuccessful", 
+		r.Recorder.Event(networkIntent, "Normal", "RecoverySuccessful",
 			fmt.Sprintf("Successfully recovered from %s failure: %s", phase, strings.Join(recoveryActions, ", ")))
 
 		// Publish recovery completion event
 		if err := r.EventBus.PublishPhaseEvent(ctx, phase, EventRecoveryCompleted,
 			coordCtx.IntentID, true, map[string]interface{}{
-				"recovered_phase": phase,
+				"recovered_phase":  phase,
 				"recovery_actions": recoveryActions,
 			}); err != nil {
 			log.Error(err, "Failed to publish recovery completion event")
@@ -816,7 +816,7 @@ func (r *CoordinationController) handleRecoveryFailure(ctx context.Context, netw
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
 	log.Warn("Recovery failed, falling back to normal retry logic")
-	r.Recorder.Event(networkIntent, "Warning", "RecoveryFailed", 
+	r.Recorder.Event(networkIntent, "Warning", "RecoveryFailed",
 		fmt.Sprintf("Failed to recover from %s failure, falling back to retry", phase))
 
 	// Calculate backoff and retry
@@ -851,15 +851,15 @@ func (r *CoordinationController) handleIntentFailure(ctx context.Context, networ
 	}
 
 	// Record failure event
-	r.Recorder.Event(networkIntent, "Warning", "IntentFailed", 
+	r.Recorder.Event(networkIntent, "Warning", "IntentFailed",
 		fmt.Sprintf("Network intent processing failed at phase %s: %s", phase, result.ErrorMessage))
 
 	// Publish failure event
 	if err := r.EventBus.PublishPhaseEvent(ctx, phase, EventIntentFailed,
 		coordCtx.IntentID, false, map[string]interface{}{
-			"failed_phase": phase,
+			"failed_phase":  phase,
 			"error_message": result.ErrorMessage,
-			"retry_count": coordCtx.RetryCount,
+			"retry_count":   coordCtx.RetryCount,
 		}); err != nil {
 		log.Error(err, "Failed to publish failure event")
 	}
@@ -1080,13 +1080,13 @@ func (r *CoordinationController) performCleanup(ctx context.Context) {
 func DefaultCoordinationConfig() *CoordinationConfig {
 	return &CoordinationConfig{
 		MaxConcurrentIntents:     10,
-		PhaseTimeout:            300 * time.Second,
-		MaxRetries:              3,
-		RetryBackoff:            30 * time.Second,
+		PhaseTimeout:             300 * time.Second,
+		MaxRetries:               3,
+		RetryBackoff:             30 * time.Second,
 		EnableParallelProcessing: true,
 		EnableConflictResolution: true,
-		EnableAutoRecovery:      true,
-		HealthCheckInterval:     60 * time.Second,
-		RecoveryTimeout:         120 * time.Second,
+		EnableAutoRecovery:       true,
+		HealthCheckInterval:      60 * time.Second,
+		RecoveryTimeout:          120 * time.Second,
 	}
 }

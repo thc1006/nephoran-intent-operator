@@ -23,42 +23,42 @@ type QueryEnhancer struct {
 
 // TelecomDictionary contains telecom-specific terminology and expansions
 type TelecomDictionary struct {
-	Acronyms          map[string][]string            `json:"acronyms"`           // AMF -> ["Access and Mobility Management Function"]
-	Synonyms          map[string][]string            `json:"synonyms"`           // "base station" -> ["gNB", "eNB", "node"]
-	TechnicalTerms    map[string]TechnicalTermInfo   `json:"technical_terms"`    // Detailed term information
-	DomainMapping     map[string][]string            `json:"domain_mapping"`     // "RAN" -> related terms
-	IntentPatterns    map[string][]string            `json:"intent_patterns"`    // Common query patterns
-	ContextualTerms   map[string]map[string][]string `json:"contextual_terms"`   // Context-specific expansions
-	mutex             sync.RWMutex
+	Acronyms        map[string][]string            `json:"acronyms"`         // AMF -> ["Access and Mobility Management Function"]
+	Synonyms        map[string][]string            `json:"synonyms"`         // "base station" -> ["gNB", "eNB", "node"]
+	TechnicalTerms  map[string]TechnicalTermInfo   `json:"technical_terms"`  // Detailed term information
+	DomainMapping   map[string][]string            `json:"domain_mapping"`   // "RAN" -> related terms
+	IntentPatterns  map[string][]string            `json:"intent_patterns"`  // Common query patterns
+	ContextualTerms map[string]map[string][]string `json:"contextual_terms"` // Context-specific expansions
+	mutex           sync.RWMutex
 }
 
 // TechnicalTermInfo contains detailed information about technical terms
 type TechnicalTermInfo struct {
-	FullForm        string   `json:"full_form"`
-	Abbreviations   []string `json:"abbreviations"`
-	RelatedTerms    []string `json:"related_terms"`
-	Domain          string   `json:"domain"`
-	Definition      string   `json:"definition"`
-	UsageExamples   []string `json:"usage_examples"`
-	Weight          float64  `json:"weight"`        // Importance weight for boosting
-	Popularity      float64  `json:"popularity"`    // How often used in domain
+	FullForm      string   `json:"full_form"`
+	Abbreviations []string `json:"abbreviations"`
+	RelatedTerms  []string `json:"related_terms"`
+	Domain        string   `json:"domain"`
+	Definition    string   `json:"definition"`
+	UsageExamples []string `json:"usage_examples"`
+	Weight        float64  `json:"weight"`     // Importance weight for boosting
+	Popularity    float64  `json:"popularity"` // How often used in domain
 }
 
 // SynonymExpander handles synonym expansion for queries
 type SynonymExpander struct {
-	synonymSets       [][]string           // Groups of synonymous terms
-	contextualSynonyms map[string][]string  // Context-dependent synonyms
-	telecomSynonyms   map[string][]string  // Telecom-specific synonyms
-	mutex             sync.RWMutex
+	synonymSets        [][]string          // Groups of synonymous terms
+	contextualSynonyms map[string][]string // Context-dependent synonyms
+	telecomSynonyms    map[string][]string // Telecom-specific synonyms
+	mutex              sync.RWMutex
 }
 
 // SpellChecker provides spell checking and correction for telecom terms
 type SpellChecker struct {
-	dictionary     map[string]bool      // Valid telecom terms
-	corrections    map[string]string    // Common misspellings -> corrections
-	soundexMap     map[string][]string  // Phonetic similarity mapping
-	maxEditDistance   int                  // Maximum edit distance for suggestions
-	mutex          sync.RWMutex
+	dictionary      map[string]bool     // Valid telecom terms
+	corrections     map[string]string   // Common misspellings -> corrections
+	soundexMap      map[string][]string // Phonetic similarity mapping
+	maxEditDistance int                 // Maximum edit distance for suggestions
+	mutex           sync.RWMutex
 }
 
 // NewQueryEnhancer creates a new query enhancer
@@ -186,11 +186,11 @@ func (qe *QueryEnhancer) expandTelecomTerms(query, intentType string) (string, [
 				if strings.Contains(strings.ToLower(query), strings.ToLower(term)) {
 					continue // Already present
 				}
-				
+
 				// Add related terms with lower weight
 				expandedQuery += " " + term
 				expandedTerms = append(expandedTerms, term)
-				
+
 				// Limit expansion to avoid over-expansion
 				if len(expandedTerms) >= qe.config.QueryExpansionTerms {
 					break
@@ -210,7 +210,7 @@ func (qe *QueryEnhancer) rewriteForIntent(query string, request *EnhancedSearchR
 	}
 
 	lowerQuery := strings.ToLower(query)
-	
+
 	switch intentType {
 	case "configuration":
 		// Add configuration-specific terms
@@ -268,11 +268,11 @@ func (qe *QueryEnhancer) enhanceWithContext(query string, history []string) stri
 
 	// Extract important terms from recent conversation
 	contextTerms := qe.extractContextTerms(history)
-	
+
 	// Add relevant context terms that aren't already in the query
 	enhanced := query
 	lowerQuery := strings.ToLower(query)
-	
+
 	for _, term := range contextTerms {
 		lowerTerm := strings.ToLower(term)
 		if !strings.Contains(lowerQuery, lowerTerm) && len(strings.Split(enhanced, " ")) < 20 { // Limit total query length
@@ -295,13 +295,13 @@ func (qe *QueryEnhancer) extractContextTerms(history []string) []string {
 	}
 
 	text := strings.Join(recentHistory, " ")
-	
+
 	// Extract technical terms using patterns
 	patterns := []string{
-		`\b[A-Z]{2,}\b`,                    // Acronyms
-		`\b\d+G\b`,                        // Technology generations
-		`\b(?:gNB|eNB|AMF|SMF|UPF)\b`,     // Network functions
-		`\b\d+\.\d+\.\d+\b`,               // Specification numbers
+		`\b[A-Z]{2,}\b`,               // Acronyms
+		`\b\d+G\b`,                    // Technology generations
+		`\b(?:gNB|eNB|AMF|SMF|UPF)\b`, // Network functions
+		`\b\d+\.\d+\.\d+\b`,           // Specification numbers
 	}
 
 	for _, pattern := range patterns {
@@ -317,7 +317,7 @@ func (qe *QueryEnhancer) extractContextTerms(history []string) []string {
 		term  string
 		count int
 	}
-	
+
 	var terms []termCount
 	for term, count := range termFreq {
 		if count >= 2 { // Must appear at least twice
@@ -417,26 +417,26 @@ func (td *TelecomDictionary) initializeAcronyms() {
 // initializeSynonyms sets up synonym mappings
 func (td *TelecomDictionary) initializeSynonyms() {
 	td.Synonyms = map[string][]string{
-		"base station":     {"node", "cell", "site", "tower"},
-		"mobile device":    {"UE", "user equipment", "handset", "phone"},
-		"network":          {"system", "infrastructure", "platform"},
-		"configuration":    {"config", "setup", "settings", "parameters"},
-		"optimization":     {"tuning", "improvement", "enhancement"},
-		"monitoring":       {"surveillance", "tracking", "observation"},
-		"performance":      {"throughput", "capacity", "efficiency"},
-		"latency":          {"delay", "response time", "lag"},
-		"bandwidth":        {"capacity", "data rate", "speed"},
-		"coverage":         {"signal strength", "reach", "footprint"},
-		"interference":     {"noise", "disturbance", "crosstalk"},
-		"handover":         {"handoff", "mobility", "transition"},
-		"authentication":   {"auth", "verification", "validation"},
-		"encryption":       {"security", "protection", "cipher"},
-		"protocol":         {"standard", "specification", "procedure"},
-		"interface":        {"connection", "link", "API"},
-		"deployment":       {"installation", "setup", "rollout"},
-		"maintenance":      {"upkeep", "service", "support"},
-		"troubleshooting":  {"debugging", "diagnosis", "problem solving"},
-		"fault":            {"error", "failure", "issue", "problem"},
+		"base station":    {"node", "cell", "site", "tower"},
+		"mobile device":   {"UE", "user equipment", "handset", "phone"},
+		"network":         {"system", "infrastructure", "platform"},
+		"configuration":   {"config", "setup", "settings", "parameters"},
+		"optimization":    {"tuning", "improvement", "enhancement"},
+		"monitoring":      {"surveillance", "tracking", "observation"},
+		"performance":     {"throughput", "capacity", "efficiency"},
+		"latency":         {"delay", "response time", "lag"},
+		"bandwidth":       {"capacity", "data rate", "speed"},
+		"coverage":        {"signal strength", "reach", "footprint"},
+		"interference":    {"noise", "disturbance", "crosstalk"},
+		"handover":        {"handoff", "mobility", "transition"},
+		"authentication":  {"auth", "verification", "validation"},
+		"encryption":      {"security", "protection", "cipher"},
+		"protocol":        {"standard", "specification", "procedure"},
+		"interface":       {"connection", "link", "API"},
+		"deployment":      {"installation", "setup", "rollout"},
+		"maintenance":     {"upkeep", "service", "support"},
+		"troubleshooting": {"debugging", "diagnosis", "problem solving"},
+		"fault":           {"error", "failure", "issue", "problem"},
 	}
 }
 
@@ -444,39 +444,39 @@ func (td *TelecomDictionary) initializeSynonyms() {
 func (td *TelecomDictionary) initializeTechnicalTerms() {
 	td.TechnicalTerms = map[string]TechnicalTermInfo{
 		"AMF": {
-			FullForm:        "Access and Mobility Management Function",
-			Abbreviations:   []string{"AMF"},
-			RelatedTerms:    []string{"5GC", "authentication", "mobility", "registration"},
-			Domain:          "Core",
-			Definition:      "5G Core network function responsible for access and mobility management",
-			UsageExamples:   []string{"AMF handles UE registration", "AMF manages mobility procedures"},
-			Weight:          1.2,
-			Popularity:      0.9,
+			FullForm:      "Access and Mobility Management Function",
+			Abbreviations: []string{"AMF"},
+			RelatedTerms:  []string{"5GC", "authentication", "mobility", "registration"},
+			Domain:        "Core",
+			Definition:    "5G Core network function responsible for access and mobility management",
+			UsageExamples: []string{"AMF handles UE registration", "AMF manages mobility procedures"},
+			Weight:        1.2,
+			Popularity:    0.9,
 		},
 		"gNB": {
-			FullForm:        "Next Generation NodeB",
-			Abbreviations:   []string{"gNB", "gNodeB"},
-			RelatedTerms:    []string{"5G", "NR", "base station", "RAN"},
-			Domain:          "RAN",
-			Definition:      "5G base station that provides radio access",
-			UsageExamples:   []string{"gNB connects UEs to 5G network", "gNB handles radio resources"},
-			Weight:          1.3,
-			Popularity:      0.95,
+			FullForm:      "Next Generation NodeB",
+			Abbreviations: []string{"gNB", "gNodeB"},
+			RelatedTerms:  []string{"5G", "NR", "base station", "RAN"},
+			Domain:        "RAN",
+			Definition:    "5G base station that provides radio access",
+			UsageExamples: []string{"gNB connects UEs to 5G network", "gNB handles radio resources"},
+			Weight:        1.3,
+			Popularity:    0.95,
 		},
 		"URLLC": {
-			FullForm:        "Ultra-Reliable Low Latency Communication",
-			Abbreviations:   []string{"URLLC"},
-			RelatedTerms:    []string{"5G", "latency", "reliability", "use case"},
-			Domain:          "Service",
-			Definition:      "5G use case requiring ultra-low latency and high reliability",
-			UsageExamples:   []string{"URLLC for industrial automation", "URLLC latency requirements"},
-			Weight:          1.1,
-			Popularity:      0.7,
+			FullForm:      "Ultra-Reliable Low Latency Communication",
+			Abbreviations: []string{"URLLC"},
+			RelatedTerms:  []string{"5G", "latency", "reliability", "use case"},
+			Domain:        "Service",
+			Definition:    "5G use case requiring ultra-low latency and high reliability",
+			UsageExamples: []string{"URLLC for industrial automation", "URLLC latency requirements"},
+			Weight:        1.1,
+			Popularity:    0.7,
 		},
 	}
 }
 
-// initializeDomainMappings sets up domain-specific term mappings  
+// initializeDomainMappings sets up domain-specific term mappings
 func (td *TelecomDictionary) initializeDomainMappings() {
 	td.DomainMapping = map[string][]string{
 		"RAN": {
@@ -543,7 +543,7 @@ func (td *TelecomDictionary) initializeIntentPatterns() {
 func (td *TelecomDictionary) getAcronymExpansions(acronym string) ([]string, bool) {
 	td.mutex.RLock()
 	defer td.mutex.RUnlock()
-	
+
 	expansions, exists := td.Acronyms[strings.ToUpper(acronym)]
 	return expansions, exists
 }
@@ -552,7 +552,7 @@ func (td *TelecomDictionary) getAcronymExpansions(acronym string) ([]string, boo
 func (td *TelecomDictionary) getDomainTerms(domain string) ([]string, bool) {
 	td.mutex.RLock()
 	defer td.mutex.RUnlock()
-	
+
 	terms, exists := td.DomainMapping[strings.ToLower(domain)]
 	return terms, exists
 }
@@ -562,9 +562,9 @@ func (td *TelecomDictionary) getDomainTerms(domain string) ([]string, bool) {
 // NewSynonymExpander creates a new synonym expander
 func NewSynonymExpander() *SynonymExpander {
 	se := &SynonymExpander{
-		synonymSets:       [][]string{},
+		synonymSets:        [][]string{},
 		contextualSynonyms: make(map[string][]string),
-		telecomSynonyms:   make(map[string][]string),
+		telecomSynonyms:    make(map[string][]string),
 	}
 
 	se.initializeSynonymSets()
@@ -593,14 +593,14 @@ func (se *SynonymExpander) initializeSynonymSets() {
 // initializeTelecomSynonyms sets up telecom-specific synonyms
 func (se *SynonymExpander) initializeTelecomSynonyms() {
 	se.telecomSynonyms = map[string][]string{
-		"5G": {"NR", "New Radio", "fifth generation"},
-		"4G": {"LTE", "LTE-A", "fourth generation"},
-		"handover": {"handoff", "mobility", "cell change"},
-		"QoS": {"quality of service", "service quality"},
-		"beamforming": {"beam steering", "antenna beamforming"},
-		"MIMO": {"multiple input multiple output", "spatial multiplexing"},
+		"5G":           {"NR", "New Radio", "fifth generation"},
+		"4G":           {"LTE", "LTE-A", "fourth generation"},
+		"handover":     {"handoff", "mobility", "cell change"},
+		"QoS":          {"quality of service", "service quality"},
+		"beamforming":  {"beam steering", "antenna beamforming"},
+		"MIMO":         {"multiple input multiple output", "spatial multiplexing"},
 		"interference": {"noise", "crosstalk", "signal degradation"},
-		"spectrum": {"frequency", "radio frequency", "RF"},
+		"spectrum":     {"frequency", "radio frequency", "RF"},
 	}
 }
 
@@ -655,9 +655,9 @@ func (se *SynonymExpander) ExpandSynonyms(query, intentType string) (string, map
 // NewSpellChecker creates a new spell checker
 func NewSpellChecker() *SpellChecker {
 	sc := &SpellChecker{
-		dictionary:   make(map[string]bool),
-		corrections:  make(map[string]string),
-		soundexMap:   make(map[string][]string),
+		dictionary:      make(map[string]bool),
+		corrections:     make(map[string]string),
+		soundexMap:      make(map[string][]string),
 		maxEditDistance: 2,
 	}
 
@@ -676,13 +676,13 @@ func (sc *SpellChecker) initializeDictionary() {
 		"AUSF", "NRF", "NSSF", "NEF", "gNB", "eNB", "DU", "CU", "RU",
 		"RAN", "EPC", "5GC", "QoS", "SLA", "KPI", "OAM", "SON",
 		"NFV", "SDN", "MANO", "VNF", "CNF", "URLLC", "eMBB", "mMTC",
-		
+
 		// Full terms
 		"beamforming", "handover", "throughput", "latency", "bandwidth",
 		"coverage", "interference", "spectrum", "authentication",
 		"configuration", "optimization", "monitoring", "troubleshooting",
 		"performance", "deployment", "maintenance", "orchestration",
-		
+
 		// Technology terms
 		"MIMO", "OFDM", "LTE", "NR", "WiFi", "Bluetooth", "Ethernet",
 		"fiber", "backhaul", "fronthaul", "xhaul", "virtualization",
@@ -697,48 +697,48 @@ func (sc *SpellChecker) initializeDictionary() {
 func (sc *SpellChecker) initializeCorrections() {
 	sc.corrections = map[string]string{
 		// Common misspellings of telecom terms
-		"5g":           "5G",
-		"4g":           "4G",
-		"gnb":          "gNB",
-		"enb":          "eNB",
-		"amf":          "AMF",
-		"smf":          "SMF",
-		"upf":          "UPF",
-		"pcf":          "PCF",
-		"udm":          "UDM",
-		"udr":          "UDR",
-		"ausf":         "AUSF",
-		"nrf":          "NRF",
-		"nssf":         "NSSF",
-		"nef":          "NEF",
-		"ran":          "RAN",
-		"epc":          "EPC",
-		"qos":          "QoS",
-		"sla":          "SLA",
-		"kpi":          "KPI",
-		"oam":          "OAM",
-		"son":          "SON",
-		"nfv":          "NFV",
-		"sdn":          "SDN",
-		"mano":         "MANO",
-		"vnf":          "VNF",
-		"cnf":          "CNF",
-		"urllc":        "URLLC",
-		"embb":         "eMBB",
-		"mmtc":         "mMTC",
-		
+		"5g":    "5G",
+		"4g":    "4G",
+		"gnb":   "gNB",
+		"enb":   "eNB",
+		"amf":   "AMF",
+		"smf":   "SMF",
+		"upf":   "UPF",
+		"pcf":   "PCF",
+		"udm":   "UDM",
+		"udr":   "UDR",
+		"ausf":  "AUSF",
+		"nrf":   "NRF",
+		"nssf":  "NSSF",
+		"nef":   "NEF",
+		"ran":   "RAN",
+		"epc":   "EPC",
+		"qos":   "QoS",
+		"sla":   "SLA",
+		"kpi":   "KPI",
+		"oam":   "OAM",
+		"son":   "SON",
+		"nfv":   "NFV",
+		"sdn":   "SDN",
+		"mano":  "MANO",
+		"vnf":   "VNF",
+		"cnf":   "CNF",
+		"urllc": "URLLC",
+		"embb":  "eMBB",
+		"mmtc":  "mMTC",
+
 		// Common typos
-		"confguration": "configuration",
-		"optimizaton":  "optimization",
-		"performace":   "performance",
-		"throuhgput":   "throughput",
-		"lateny":       "latency",
-		"bandwith":     "bandwidth",
-		"interferance": "interference",
+		"confguration":    "configuration",
+		"optimizaton":     "optimization",
+		"performace":      "performance",
+		"throuhgput":      "throughput",
+		"lateny":          "latency",
+		"bandwith":        "bandwidth",
+		"interferance":    "interference",
 		"authentifcation": "authentication",
-		"troubleshoot": "troubleshooting",
-		"deployement":  "deployment",
-		"maintainence": "maintenance",
+		"troubleshoot":    "troubleshooting",
+		"deployement":     "deployment",
+		"maintainence":    "maintenance",
 	}
 }
 
@@ -798,23 +798,23 @@ func (sc *SpellChecker) findBestSuggestion(word string) string {
 func (sc *SpellChecker) editDistance(s1, s2 string) int {
 	len1, len2 := len(s1), len(s2)
 	matrix := make([][]int, len1+1)
-	
+
 	for i := range matrix {
 		matrix[i] = make([]int, len2+1)
 		matrix[i][0] = i
 	}
-	
+
 	for j := 1; j <= len2; j++ {
 		matrix[0][j] = j
 	}
-	
+
 	for i := 1; i <= len1; i++ {
 		for j := 1; j <= len2; j++ {
 			cost := 0
 			if s1[i-1] != s2[j-1] {
 				cost = 1
 			}
-			
+
 			matrix[i][j] = min3(
 				matrix[i-1][j]+1,      // deletion
 				matrix[i][j-1]+1,      // insertion
@@ -822,7 +822,7 @@ func (sc *SpellChecker) editDistance(s1, s2 string) int {
 			)
 		}
 	}
-	
+
 	return matrix[len1][len2]
 }
 

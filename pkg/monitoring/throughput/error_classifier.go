@@ -14,9 +14,9 @@ type ErrorClassifier struct {
 	mu sync.RWMutex
 
 	// Error tracking
-	errorCounts     map[ErrorCategory]int
-	errorHistory    []ErrorEvent
-	categoryCounts  map[ErrorCategory]map[ErrorType]int
+	errorCounts    map[ErrorCategory]int
+	errorHistory   []ErrorEvent
+	categoryCounts map[ErrorCategory]map[ErrorType]int
 
 	// Prometheus metrics
 	errorRateMetric *prometheus.CounterVec
@@ -44,27 +44,27 @@ const (
 	ErrorTypeConfigurationError  ErrorType = "configuration_error"
 
 	// User Errors
-	ErrorTypeInvalidIntent    ErrorType = "invalid_intent"
+	ErrorTypeInvalidIntent       ErrorType = "invalid_intent"
 	ErrorTypeAuthorizationFailed ErrorType = "authorization_failed"
-	ErrorTypeValidationError  ErrorType = "validation_error"
+	ErrorTypeValidationError     ErrorType = "validation_error"
 
 	// External Errors
-	ErrorTypeLLMServiceFailure ErrorType = "llm_service_failure"
+	ErrorTypeLLMServiceFailure   ErrorType = "llm_service_failure"
 	ErrorTypeNetworkConnectivity ErrorType = "network_connectivity"
-	ErrorTypeExternalAPIError  ErrorType = "external_api_error"
+	ErrorTypeExternalAPIError    ErrorType = "external_api_error"
 
 	// Transient Errors
-	ErrorTypeTimeout         ErrorType = "timeout"
+	ErrorTypeTimeout           ErrorType = "timeout"
 	ErrorTypeRateLimitExceeded ErrorType = "rate_limit_exceeded"
-	ErrorTypeTemporaryFailure ErrorType = "temporary_failure"
+	ErrorTypeTemporaryFailure  ErrorType = "temporary_failure"
 )
 
 // ErrorEvent represents a detailed error occurrence
 type ErrorEvent struct {
-	Timestamp     time.Time
-	Category      ErrorCategory
-	Type          ErrorType
-	Message       string
+	Timestamp      time.Time
+	Category       ErrorCategory
+	Type           ErrorType
+	Message        string
 	BusinessImpact float64
 }
 
@@ -91,8 +91,8 @@ func NewErrorClassifier() *ErrorClassifier {
 
 // RecordError logs and classifies an error
 func (ec *ErrorClassifier) RecordError(
-	category ErrorCategory, 
-	errorType ErrorType, 
+	category ErrorCategory,
+	errorType ErrorType,
 	message string,
 ) ErrorEvent {
 	ec.mu.Lock()
@@ -112,7 +112,7 @@ func (ec *ErrorClassifier) RecordError(
 
 	// Update counts
 	ec.errorCounts[category]++
-	
+
 	if ec.categoryCounts[category] == nil {
 		ec.categoryCounts[category] = make(map[ErrorType]int)
 	}
@@ -134,30 +134,30 @@ func (ec *ErrorClassifier) RecordError(
 
 // calculateBusinessImpact determines the severity of an error
 func (ec *ErrorClassifier) calculateBusinessImpact(
-	category ErrorCategory, 
+	category ErrorCategory,
 	errorType ErrorType,
 ) float64 {
 	// Impact scoring matrix
 	impactScores := map[ErrorCategory]map[ErrorType]float64{
 		CategorySystem: {
-			ErrorTypeInternalServerError:   0.9,
-			ErrorTypeResourceExhaustion:    0.8,
-			ErrorTypeConfigurationError:    0.7,
+			ErrorTypeInternalServerError: 0.9,
+			ErrorTypeResourceExhaustion:  0.8,
+			ErrorTypeConfigurationError:  0.7,
 		},
 		CategoryUser: {
-			ErrorTypeInvalidIntent:         0.3,
-			ErrorTypeAuthorizationFailed:   0.6,
-			ErrorTypeValidationError:       0.4,
+			ErrorTypeInvalidIntent:       0.3,
+			ErrorTypeAuthorizationFailed: 0.6,
+			ErrorTypeValidationError:     0.4,
 		},
 		CategoryExternal: {
-			ErrorTypeLLMServiceFailure:     0.7,
-			ErrorTypeNetworkConnectivity:   0.8,
-			ErrorTypeExternalAPIError:      0.6,
+			ErrorTypeLLMServiceFailure:   0.7,
+			ErrorTypeNetworkConnectivity: 0.8,
+			ErrorTypeExternalAPIError:    0.6,
 		},
 		CategoryTransient: {
-			ErrorTypeTimeout:               0.5,
-			ErrorTypeRateLimitExceeded:     0.4,
-			ErrorTypeTemporaryFailure:      0.3,
+			ErrorTypeTimeout:           0.5,
+			ErrorTypeRateLimitExceeded: 0.4,
+			ErrorTypeTemporaryFailure:  0.3,
 		},
 	}
 
@@ -257,7 +257,7 @@ func NewRetryStrategy() *RetryStrategy {
 
 // ShouldRetry determines if an error should be retried
 func (rs *RetryStrategy) ShouldRetry(
-	errorType ErrorType, 
+	errorType ErrorType,
 	currentAttempt int,
 ) bool {
 	rs.mu.Lock()
@@ -265,11 +265,11 @@ func (rs *RetryStrategy) ShouldRetry(
 
 	// Retry configuration based on error type
 	retryConfig := map[ErrorType]int{
-		ErrorTypeTimeout:            3,
-		ErrorTypeRateLimitExceeded:  2,
-		ErrorTypeTemporaryFailure:   2,
+		ErrorTypeTimeout:             3,
+		ErrorTypeRateLimitExceeded:   2,
+		ErrorTypeTemporaryFailure:    2,
 		ErrorTypeNetworkConnectivity: 3,
-		ErrorTypeLLMServiceFailure:  2,
+		ErrorTypeLLMServiceFailure:   2,
 	}
 
 	// Check if retry is configured for this error type
@@ -287,7 +287,7 @@ func (rs *RetryStrategy) ShouldRetry(
 
 // RecordRetryOutcome logs the result of a retry attempt
 func (rs *RetryStrategy) RecordRetryOutcome(
-	errorType ErrorType, 
+	errorType ErrorType,
 	successful bool,
 ) {
 	rs.mu.Lock()

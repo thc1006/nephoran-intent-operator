@@ -50,10 +50,10 @@ type IntentProcessingController struct {
 	// Services
 	LLMService *llm.Service
 	RAGService *rag.Service
-	
+
 	// Configuration
 	Config *IntentProcessingConfig
-	
+
 	// Event bus for coordination
 	EventBus *EventBus
 
@@ -64,12 +64,12 @@ type IntentProcessingController struct {
 // IntentProcessingConfig contains configuration for the controller
 type IntentProcessingConfig struct {
 	MaxConcurrentProcessing int           `json:"maxConcurrentProcessing"`
-	DefaultTimeout         time.Duration `json:"defaultTimeout"`
-	MaxRetries             int           `json:"maxRetries"`
-	RetryBackoff           time.Duration `json:"retryBackoff"`
-	QualityThreshold       float64       `json:"qualityThreshold"`
-	EnableRAG              bool          `json:"enableRAG"`
-	ValidationEnabled      bool          `json:"validationEnabled"`
+	DefaultTimeout          time.Duration `json:"defaultTimeout"`
+	MaxRetries              int           `json:"maxRetries"`
+	RetryBackoff            time.Duration `json:"retryBackoff"`
+	QualityThreshold        float64       `json:"qualityThreshold"`
+	EnableRAG               bool          `json:"enableRAG"`
+	ValidationEnabled       bool          `json:"validationEnabled"`
 }
 
 // NewIntentProcessingController creates a new IntentProcessingController
@@ -84,13 +84,13 @@ func NewIntentProcessingController(
 ) *IntentProcessingController {
 	return &IntentProcessingController{
 		Client:           client,
-		Scheme:          scheme,
-		Recorder:        recorder,
-		Logger:          log.Log.WithName("intent-processing-controller"),
-		LLMService:      llmService,
-		RAGService:      ragService,
-		EventBus:        eventBus,
-		Config:          config,
+		Scheme:           scheme,
+		Recorder:         recorder,
+		Logger:           log.Log.WithName("intent-processing-controller"),
+		LLMService:       llmService,
+		RAGService:       ragService,
+		EventBus:         eventBus,
+		Config:           config,
 		MetricsCollector: NewMetricsCollector(),
 	}
 }
@@ -153,9 +153,9 @@ func (r *IntentProcessingController) processIntent(ctx context.Context, intentPr
 	}
 
 	// Publish processing start event
-	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingStarted, 
+	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingStarted,
 		string(intentProcessing.UID), false, map[string]interface{}{
-			"intent": intentProcessing.Spec.OriginalIntent,
+			"intent":   intentProcessing.Spec.OriginalIntent,
 			"priority": intentProcessing.Spec.Priority,
 		}); err != nil {
 		log.Error(err, "Failed to publish processing start event")
@@ -225,7 +225,7 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	// Create processing result
 	result := &LLMProcessingResult{
-		Response:          response,
+		Response:         response,
 		QualityScore:     qualityScore,
 		ValidationErrors: validationErrors,
 		TokenUsage:       response.TokenUsage,
@@ -280,10 +280,10 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 
 	// Create enhanced context
 	enhancedContext := map[string]interface{}{
-		"original_intent": intent,
+		"original_intent":     intent,
 		"retrieved_documents": response.Documents,
-		"knowledge_base": request.KnowledgeBase,
-		"retrieval_metadata": response.Metadata,
+		"knowledge_base":      request.KnowledgeBase,
+		"retrieval_metadata":  response.Metadata,
 	}
 
 	// Create RAG metrics
@@ -292,8 +292,8 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 		RetrievalDuration:     metav1.Duration{Duration: response.Duration},
 		AverageRelevanceScore: response.AverageRelevanceScore,
 		TopRelevanceScore:     response.TopRelevanceScore,
-		KnowledgeBase:        request.KnowledgeBase,
-		QueryEnhancement:     response.QueryWasEnhanced,
+		KnowledgeBase:         request.KnowledgeBase,
+		QueryEnhancement:      response.QueryWasEnhanced,
 	}
 
 	return enhancedContext, ragMetrics, nil
@@ -482,8 +482,8 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 	// Publish completion event
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventLLMProcessingCompleted,
 		string(intentProcessing.UID), true, map[string]interface{}{
-			"quality_score": result.QualityScore,
-			"token_usage": result.TokenUsage,
+			"quality_score":       result.QualityScore,
+			"token_usage":         result.TokenUsage,
 			"processing_duration": intentProcessing.Status.ProcessingDuration.Duration.String(),
 		}); err != nil {
 		log.Error(err, "Failed to publish completion event")
@@ -510,24 +510,24 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 	// Check if we should retry
 	if intentProcessing.CanRetry() {
 		intentProcessing.Status.Phase = nephoranv1.IntentProcessingPhaseRetrying
-		
+
 		// Calculate backoff duration
 		backoffDuration := r.calculateBackoff(intentProcessing.Status.RetryCount)
-		
+
 		if err := r.updateStatus(ctx, intentProcessing); err != nil {
 			return ctrl.Result{}, err
 		}
 
 		// Record retry event
-		r.Recorder.Event(intentProcessing, "Warning", "ProcessingRetry", 
-			fmt.Sprintf("Retrying intent processing (attempt %d/%d): %v", 
+		r.Recorder.Event(intentProcessing, "Warning", "ProcessingRetry",
+			fmt.Sprintf("Retrying intent processing (attempt %d/%d): %v",
 				intentProcessing.Status.RetryCount, *intentProcessing.Spec.MaxRetries, err))
 
 		// Publish retry event
 		if pubErr := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseLLMProcessing, EventRetryRequired,
 			string(intentProcessing.UID), false, map[string]interface{}{
-				"retry_count": intentProcessing.Status.RetryCount,
-				"error": err.Error(),
+				"retry_count":      intentProcessing.Status.RetryCount,
+				"error":            err.Error(),
 				"backoff_duration": backoffDuration.String(),
 			}); pubErr != nil {
 			log.Error(pubErr, "Failed to publish retry event")
@@ -556,8 +556,8 @@ func (r *IntentProcessingController) handleProcessingError(ctx context.Context, 
 	}
 
 	// Record failure event
-	r.Recorder.Event(intentProcessing, "Warning", "ProcessingFailed", 
-		fmt.Sprintf("Intent processing failed permanently after %d attempts: %v", 
+	r.Recorder.Event(intentProcessing, "Warning", "ProcessingFailed",
+		fmt.Sprintf("Intent processing failed permanently after %d attempts: %v",
 			intentProcessing.Status.RetryCount, err))
 
 	// Publish failure event
@@ -621,24 +621,24 @@ func (r *IntentProcessingController) SetupWithManager(mgr ctrl.Manager) error {
 
 // LLMProcessingResult contains the result of LLM processing
 type LLMProcessingResult struct {
-	Response             *llm.ProcessingResponse
-	ProcessedParameters  *nephoranv1.ProcessedParameters
-	ExtractedEntities    map[string]string
-	QualityScore         float64
-	ValidationErrors     []string
-	TokenUsage           *nephoranv1.TokenUsageInfo
-	RAGMetrics           *nephoranv1.RAGMetrics
+	Response            *llm.ProcessingResponse
+	ProcessedParameters *nephoranv1.ProcessedParameters
+	ExtractedEntities   map[string]string
+	QualityScore        float64
+	ValidationErrors    []string
+	TokenUsage          *nephoranv1.TokenUsageInfo
+	RAGMetrics          *nephoranv1.RAGMetrics
 }
 
 // Default configuration values
 func DefaultIntentProcessingConfig() *IntentProcessingConfig {
 	return &IntentProcessingConfig{
 		MaxConcurrentProcessing: 10,
-		DefaultTimeout:         120 * time.Second,
-		MaxRetries:            3,
-		RetryBackoff:          30 * time.Second,
-		QualityThreshold:      0.7,
-		EnableRAG:             true,
-		ValidationEnabled:     true,
+		DefaultTimeout:          120 * time.Second,
+		MaxRetries:              3,
+		RetryBackoff:            30 * time.Second,
+		QualityThreshold:        0.7,
+		EnableRAG:               true,
+		ValidationEnabled:       true,
 	}
 }

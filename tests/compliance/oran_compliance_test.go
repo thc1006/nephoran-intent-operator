@@ -47,13 +47,13 @@ func (s *ORANComplianceTestSuite) TestA1InterfaceCompliance() {
 		// Test policy type creation
 		policyType := map[string]interface{}{
 			"policy_type_id": 1001,
-			"name":          "QoS_Policy",
-			"description":   "QoS optimization policy",
+			"name":           "QoS_Policy",
+			"description":    "QoS optimization policy",
 			"policy_schema": map[string]interface{}{
 				"type": "object",
 				"properties": map[string]interface{}{
 					"max_throughput": map[string]interface{}{
-						"type": "integer",
+						"type":    "integer",
 						"minimum": 0,
 					},
 				},
@@ -201,8 +201,8 @@ func (s *ORANComplianceTestSuite) TestO2InterfaceCompliance() {
 			"description": "Test network function deployment",
 			"nf_type":     "DU",
 			"resources": map[string]interface{}{
-				"cpu":    "4",
-				"memory": "8Gi",
+				"cpu":     "4",
+				"memory":  "8Gi",
 				"storage": "100Gi",
 			},
 		}
@@ -234,12 +234,12 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 		// Test E2 setup request
 		setup := map[string]interface{}{
 			"global_e2_node_id": map[string]interface{}{
-				"gnb_id": "001",
+				"gnb_id":  "001",
 				"plmn_id": "00101",
 			},
 			"ran_functions": []map[string]interface{}{
 				{
-					"ran_function_id": 1,
+					"ran_function_id":         1,
 					"ran_function_definition": "KPM Service Model",
 				},
 			},
@@ -259,7 +259,7 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 			},
 			"action_list": []map[string]interface{}{
 				{
-					"action_id": 1,
+					"action_id":   1,
 					"action_type": "REPORT",
 				},
 			},
@@ -281,7 +281,7 @@ func (s *ORANComplianceTestSuite) TestE2InterfaceCompliance() {
 		// Verify required service models
 		requiredModels := []string{"E2SM-KPM", "E2SM-RC", "E2SM-NI"}
 		modelList := models["service_models"].([]interface{})
-		
+
 		for _, required := range requiredModels {
 			found := false
 			for _, model := range modelList {
@@ -316,12 +316,12 @@ func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 		policy := map[string]interface{}{
 			"policy_id": "coord_policy_001",
 			"scope": map[string]interface{}{
-				"ric_ids": []string{"ric_001", "ric_002"},
+				"ric_ids":  []string{"ric_001", "ric_002"},
 				"cell_ids": []string{"cell_001", "cell_002"},
 			},
 			"objectives": map[string]interface{}{
 				"throughput_optimization": true,
-				"energy_efficiency": true,
+				"energy_efficiency":       true,
 			},
 		}
 
@@ -333,17 +333,17 @@ func (s *ORANComplianceTestSuite) TestSMOIntegrationCompliance() {
 		// Test workflow creation
 		workflow := map[string]interface{}{
 			"workflow_id": "wf_001",
-			"name": "Network Slice Deployment",
+			"name":        "Network Slice Deployment",
 			"steps": []map[string]interface{}{
 				{
 					"step_id": "1",
-					"action": "deploy_nf",
-					"target": "AMF",
+					"action":  "deploy_nf",
+					"target":  "AMF",
 				},
 				{
 					"step_id": "2",
-					"action": "configure_policy",
-					"target": "QoS_Policy",
+					"action":  "configure_policy",
+					"target":  "QoS_Policy",
 				},
 			},
 		}
@@ -390,7 +390,7 @@ func (s *ORANComplianceTestSuite) TestPerformanceCompliance() {
 	s.Run("Performance_Latency", func() {
 		// Test API latency requirements
 		endpoints := []struct {
-			path      string
+			path       string
 			maxLatency time.Duration
 		}{
 			{"/A1-P/v2/policies", 500 * time.Millisecond},
@@ -405,7 +405,7 @@ func (s *ORANComplianceTestSuite) TestPerformanceCompliance() {
 			latency := time.Since(start)
 
 			s.Assert().Equal(200, resp.StatusCode)
-			s.Assert().Less(latency, ep.maxLatency, 
+			s.Assert().Less(latency, ep.maxLatency,
 				"Endpoint %s exceeded latency requirement", ep.path)
 		}
 	})
@@ -426,9 +426,9 @@ func (s *ORANComplianceTestSuite) TestPerformanceCompliance() {
 		duration := time.Since(start)
 		throughput := float64(successCount) / duration.Seconds()
 
-		s.Assert().Greater(throughput, 100.0, 
+		s.Assert().Greater(throughput, 100.0,
 			"Throughput should exceed 100 requests/second")
-		s.Assert().Greater(successCount, 990, 
+		s.Assert().Greater(successCount, 990,
 			"Success rate should exceed 99%")
 	})
 }
@@ -441,7 +441,7 @@ func (s *ORANComplianceTestSuite) makeRequest(method, path string, body interfac
 
 func (s *ORANComplianceTestSuite) makeRequestWithAuth(method, path string, body interface{}, apiKey string) *http.Response {
 	url := s.baseURL + path
-	
+
 	var bodyBytes []byte
 	if body != nil {
 		var err error
@@ -463,7 +463,7 @@ func (s *ORANComplianceTestSuite) makeRequestWithAuth(method, path string, body 
 
 func (s *ORANComplianceTestSuite) makeRequestWithoutAuth(method, path string, body interface{}) *http.Response {
 	url := s.baseURL + path
-	
+
 	req, err := http.NewRequestWithContext(s.ctx, method, url, nil)
 	s.Require().NoError(err)
 
@@ -484,13 +484,13 @@ func TestORANCompliance(t *testing.T) {
 
 // ComplianceReport generates a compliance report
 type ComplianceReport struct {
-	Timestamp      time.Time                `json:"timestamp"`
-	Version        string                   `json:"version"`
-	TotalTests     int                      `json:"total_tests"`
-	PassedTests    int                      `json:"passed_tests"`
-	FailedTests    int                      `json:"failed_tests"`
-	ComplianceRate float64                  `json:"compliance_rate"`
-	Details        map[string]TestResult    `json:"details"`
+	Timestamp      time.Time             `json:"timestamp"`
+	Version        string                `json:"version"`
+	TotalTests     int                   `json:"total_tests"`
+	PassedTests    int                   `json:"passed_tests"`
+	FailedTests    int                   `json:"failed_tests"`
+	ComplianceRate float64               `json:"compliance_rate"`
+	Details        map[string]TestResult `json:"details"`
 }
 
 type TestResult struct {

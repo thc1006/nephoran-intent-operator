@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/mock"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
@@ -98,53 +98,53 @@ func (m *MockAWSProvider) GetQuotas(ctx context.Context, region string) (*provid
 // NewMockAWSProvider creates a new mock AWS provider with default behaviors
 func NewMockAWSProvider() *MockAWSProvider {
 	provider := &MockAWSProvider{}
-	
+
 	// Setup default behaviors
 	provider.On("GetRegions", mock.Anything).Return([]providers.Region{
 		{ID: "us-east-1", Name: "US East (N. Virginia)", Location: "Virginia, USA"},
 		{ID: "us-west-2", Name: "US West (Oregon)", Location: "Oregon, USA"},
 		{ID: "eu-west-1", Name: "Europe (Ireland)", Location: "Dublin, Ireland"},
 	}, nil)
-	
+
 	provider.On("GetAvailabilityZones", mock.Anything, "us-east-1").Return([]providers.AvailabilityZone{
 		{ID: "us-east-1a", Name: "us-east-1a", Region: "us-east-1", Status: "available"},
 		{ID: "us-east-1b", Name: "us-east-1b", Region: "us-east-1", Status: "available"},
 		{ID: "us-east-1c", Name: "us-east-1c", Region: "us-east-1", Status: "available"},
 	}, nil)
-	
+
 	provider.On("GetInstanceTypes", mock.Anything, mock.AnythingOfType("string")).Return([]providers.InstanceType{
 		{
-			Name: "c5.large", 
-			CPU: "2", 
-			Memory: "4Gi", 
-			Network: "up to 10 Gbps",
+			Name:         "c5.large",
+			CPU:          "2",
+			Memory:       "4Gi",
+			Network:      "up to 10 Gbps",
 			PricePerHour: 0.096,
 		},
 		{
-			Name: "c5.xlarge", 
-			CPU: "4", 
-			Memory: "8Gi", 
-			Network: "up to 10 Gbps",
+			Name:         "c5.xlarge",
+			CPU:          "4",
+			Memory:       "8Gi",
+			Network:      "up to 10 Gbps",
 			PricePerHour: 0.192,
 		},
 		{
-			Name: "c5.2xlarge", 
-			CPU: "8", 
-			Memory: "16Gi", 
-			Network: "up to 10 Gbps",
+			Name:         "c5.2xlarge",
+			CPU:          "8",
+			Memory:       "16Gi",
+			Network:      "up to 10 Gbps",
 			PricePerHour: 0.384,
 		},
 	}, nil)
-	
+
 	provider.On("ValidateCredentials", mock.Anything).Return(nil)
-	
+
 	provider.On("GetQuotas", mock.Anything, mock.AnythingOfType("string")).Return(&providers.QuotaInfo{
 		ComputeInstances: 100,
-		VCPUs:           200,
-		Memory:          "800Gi",
-		Storage:         "10Ti",
+		VCPUs:            200,
+		Memory:           "800Gi",
+		Storage:          "10Ti",
 	}, nil)
-	
+
 	return provider
 }
 
@@ -235,53 +235,53 @@ func (m *MockAzureProvider) GetQuotas(ctx context.Context, region string) (*prov
 // NewMockAzureProvider creates a new mock Azure provider with default behaviors
 func NewMockAzureProvider() *MockAzureProvider {
 	provider := &MockAzureProvider{}
-	
+
 	// Setup default behaviors
 	provider.On("GetRegions", mock.Anything).Return([]providers.Region{
 		{ID: "eastus", Name: "East US", Location: "Virginia, USA"},
-		{ID: "westus2", Name: "West US 2", Location: "Washington, USA"}, 
+		{ID: "westus2", Name: "West US 2", Location: "Washington, USA"},
 		{ID: "westeurope", Name: "West Europe", Location: "Netherlands"},
 	}, nil)
-	
+
 	provider.On("GetAvailabilityZones", mock.Anything, "eastus").Return([]providers.AvailabilityZone{
 		{ID: "eastus-1", Name: "eastus-1", Region: "eastus", Status: "available"},
 		{ID: "eastus-2", Name: "eastus-2", Region: "eastus", Status: "available"},
 		{ID: "eastus-3", Name: "eastus-3", Region: "eastus", Status: "available"},
 	}, nil)
-	
+
 	provider.On("GetInstanceTypes", mock.Anything, mock.AnythingOfType("string")).Return([]providers.InstanceType{
 		{
-			Name: "Standard_D2s_v3", 
-			CPU: "2", 
-			Memory: "8Gi", 
-			Network: "moderate",
+			Name:         "Standard_D2s_v3",
+			CPU:          "2",
+			Memory:       "8Gi",
+			Network:      "moderate",
 			PricePerHour: 0.096,
 		},
 		{
-			Name: "Standard_D4s_v3", 
-			CPU: "4", 
-			Memory: "16Gi", 
-			Network: "moderate", 
+			Name:         "Standard_D4s_v3",
+			CPU:          "4",
+			Memory:       "16Gi",
+			Network:      "moderate",
 			PricePerHour: 0.192,
 		},
 		{
-			Name: "Standard_D8s_v3", 
-			CPU: "8", 
-			Memory: "32Gi", 
-			Network: "high",
+			Name:         "Standard_D8s_v3",
+			CPU:          "8",
+			Memory:       "32Gi",
+			Network:      "high",
 			PricePerHour: 0.384,
 		},
 	}, nil)
-	
+
 	provider.On("ValidateCredentials", mock.Anything).Return(nil)
-	
+
 	provider.On("GetQuotas", mock.Anything, mock.AnythingOfType("string")).Return(&providers.QuotaInfo{
 		ComputeInstances: 100,
-		VCPUs:           200,
-		Memory:          "800Gi", 
-		Storage:         "10Ti",
+		VCPUs:            200,
+		Memory:           "800Gi",
+		Storage:          "10Ti",
 	}, nil)
-	
+
 	return provider
 }
 
@@ -372,53 +372,53 @@ func (m *MockGCPProvider) GetQuotas(ctx context.Context, region string) (*provid
 // NewMockGCPProvider creates a new mock GCP provider with default behaviors
 func NewMockGCPProvider() *MockGCPProvider {
 	provider := &MockGCPProvider{}
-	
+
 	// Setup default behaviors
 	provider.On("GetRegions", mock.Anything).Return([]providers.Region{
 		{ID: "us-central1", Name: "us-central1", Location: "Iowa, USA"},
 		{ID: "us-east1", Name: "us-east1", Location: "South Carolina, USA"},
 		{ID: "europe-west1", Name: "europe-west1", Location: "Belgium"},
 	}, nil)
-	
+
 	provider.On("GetAvailabilityZones", mock.Anything, "us-central1").Return([]providers.AvailabilityZone{
 		{ID: "us-central1-a", Name: "us-central1-a", Region: "us-central1", Status: "UP"},
 		{ID: "us-central1-b", Name: "us-central1-b", Region: "us-central1", Status: "UP"},
 		{ID: "us-central1-c", Name: "us-central1-c", Region: "us-central1", Status: "UP"},
 	}, nil)
-	
+
 	provider.On("GetInstanceTypes", mock.Anything, mock.AnythingOfType("string")).Return([]providers.InstanceType{
 		{
-			Name: "n1-standard-2", 
-			CPU: "2", 
-			Memory: "7.5Gi", 
-			Network: "up to 10 Gbps",
+			Name:         "n1-standard-2",
+			CPU:          "2",
+			Memory:       "7.5Gi",
+			Network:      "up to 10 Gbps",
 			PricePerHour: 0.095,
 		},
 		{
-			Name: "n1-standard-4", 
-			CPU: "4", 
-			Memory: "15Gi", 
-			Network: "up to 10 Gbps",
+			Name:         "n1-standard-4",
+			CPU:          "4",
+			Memory:       "15Gi",
+			Network:      "up to 10 Gbps",
 			PricePerHour: 0.190,
 		},
 		{
-			Name: "n1-standard-8", 
-			CPU: "8", 
-			Memory: "30Gi", 
-			Network: "up to 16 Gbps",
+			Name:         "n1-standard-8",
+			CPU:          "8",
+			Memory:       "30Gi",
+			Network:      "up to 16 Gbps",
 			PricePerHour: 0.380,
 		},
 	}, nil)
-	
+
 	provider.On("ValidateCredentials", mock.Anything).Return(nil)
-	
+
 	provider.On("GetQuotas", mock.Anything, mock.AnythingOfType("string")).Return(&providers.QuotaInfo{
 		ComputeInstances: 100,
-		VCPUs:           200, 
-		Memory:          "800Gi",
-		Storage:         "10Ti",
+		VCPUs:            200,
+		Memory:           "800Gi",
+		Storage:          "10Ti",
 	}, nil)
-	
+
 	return provider
 }
 
@@ -428,17 +428,17 @@ type CloudProviderTestHelpers struct{}
 // CreateTestResourcePool creates a test resource pool with realistic data
 func (h *CloudProviderTestHelpers) CreateTestResourcePool(provider, region string) *models.ResourcePool {
 	poolID := fmt.Sprintf("test-pool-%s-%s-%d", provider, region, time.Now().UnixNano())
-	
+
 	return &models.ResourcePool{
 		ResourcePoolID: poolID,
-		Name:          fmt.Sprintf("Test Pool %s %s", provider, region),
-		Description:   fmt.Sprintf("Integration test resource pool for %s in %s", provider, region),
-		Location:      region,
-		OCloudID:      fmt.Sprintf("test-ocloud-%s", provider),
-		Provider:      provider,
-		Region:        region,
-		Zone:          region + "a", // Default to first zone
-		State:         "AVAILABLE",
+		Name:           fmt.Sprintf("Test Pool %s %s", provider, region),
+		Description:    fmt.Sprintf("Integration test resource pool for %s in %s", provider, region),
+		Location:       region,
+		OCloudID:       fmt.Sprintf("test-ocloud-%s", provider),
+		Provider:       provider,
+		Region:         region,
+		Zone:           region + "a", // Default to first zone
+		State:          "AVAILABLE",
 		Capacity: &models.ResourceCapacity{
 			CPU: &models.ResourceMetric{
 				Total:       "100",
@@ -449,7 +449,7 @@ func (h *CloudProviderTestHelpers) CreateTestResourcePool(provider, region strin
 			},
 			Memory: &models.ResourceMetric{
 				Total:       "400Gi",
-				Available:   "320Gi", 
+				Available:   "320Gi",
 				Used:        "80Gi",
 				Unit:        "bytes",
 				Utilization: 20.0,
@@ -457,7 +457,7 @@ func (h *CloudProviderTestHelpers) CreateTestResourcePool(provider, region strin
 			Storage: &models.ResourceMetric{
 				Total:       "10Ti",
 				Available:   "8Ti",
-				Used:        "2Ti", 
+				Used:        "2Ti",
 				Unit:        "bytes",
 				Utilization: 20.0,
 			},
@@ -470,19 +470,19 @@ func (h *CloudProviderTestHelpers) CreateTestResourcePool(provider, region strin
 // CreateTestComputeInstance creates a test compute instance
 func (h *CloudProviderTestHelpers) CreateTestComputeInstance(provider, instanceType string) *models.ResourceInstance {
 	instanceID := fmt.Sprintf("test-instance-%s-%d", provider, time.Now().UnixNano())
-	
+
 	return &models.ResourceInstance{
 		ResourceInstanceID:   instanceID,
-		ResourceTypeID:      fmt.Sprintf("%s-compute", provider),
-		ResourcePoolID:      fmt.Sprintf("test-pool-%s", provider),
-		Name:                fmt.Sprintf("Test Instance %s", provider),
-		Description:         fmt.Sprintf("Test compute instance for %s", provider),
-		State:               "INSTANTIATED",
-		OperationalStatus:   "ENABLED",
+		ResourceTypeID:       fmt.Sprintf("%s-compute", provider),
+		ResourcePoolID:       fmt.Sprintf("test-pool-%s", provider),
+		Name:                 fmt.Sprintf("Test Instance %s", provider),
+		Description:          fmt.Sprintf("Test compute instance for %s", provider),
+		State:                "INSTANTIATED",
+		OperationalStatus:    "ENABLED",
 		AdministrativeStatus: "UNLOCKED",
-		UsageStatus:         "ACTIVE",
-		CreatedAt:           time.Now(),
-		UpdatedAt:           time.Now(),
+		UsageStatus:          "ACTIVE",
+		CreatedAt:            time.Now(),
+		UpdatedAt:            time.Now(),
 		Metadata: map[string]interface{}{
 			"instanceType": instanceType,
 			"provider":     provider,
@@ -495,16 +495,16 @@ func (h *CloudProviderTestHelpers) CreateTestComputeInstance(provider, instanceT
 // SimulateProviderDelay simulates realistic cloud provider API delays
 func (h *CloudProviderTestHelpers) SimulateProviderDelay(operation string) {
 	delays := map[string]time.Duration{
-		"create_instance":    2 * time.Second,
-		"delete_instance":    1500 * time.Millisecond,
-		"list_instances":     500 * time.Millisecond,
-		"get_instance":       200 * time.Millisecond,
-		"create_pool":        3 * time.Second,
-		"delete_pool":        2 * time.Second,
-		"list_pools":         300 * time.Millisecond,
-		"get_metrics":        100 * time.Millisecond,
+		"create_instance": 2 * time.Second,
+		"delete_instance": 1500 * time.Millisecond,
+		"list_instances":  500 * time.Millisecond,
+		"get_instance":    200 * time.Millisecond,
+		"create_pool":     3 * time.Second,
+		"delete_pool":     2 * time.Second,
+		"list_pools":      300 * time.Millisecond,
+		"get_metrics":     100 * time.Millisecond,
 	}
-	
+
 	if delay, exists := delays[operation]; exists {
 		time.Sleep(delay)
 	}
@@ -534,7 +534,7 @@ func (h *CloudProviderTestHelpers) ValidateResourcePool(pool *models.ResourcePoo
 		return fmt.Errorf("resource pool CPU capacity is required")
 	}
 	if pool.Capacity.Memory == nil {
-		return fmt.Errorf("resource pool memory capacity is required") 
+		return fmt.Errorf("resource pool memory capacity is required")
 	}
 	return nil
 }

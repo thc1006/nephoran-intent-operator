@@ -389,8 +389,8 @@ func TestSecretsManagement(t *testing.T) {
 					Name:      "encrypted-secret",
 					Namespace: "nephoran-system",
 					Annotations: map[string]string{
-						"encryption.nephoran.io/algorithm": "AES-256-GCM",
-						"encryption.nephoran.io/key-id":    "vault-key-123",
+						"encryption.nephoran.io/algorithm":  "AES-256-GCM",
+						"encryption.nephoran.io/key-id":     "vault-key-123",
 						"rotation.nephoran.io/last-rotated": time.Now().Format(time.RFC3339),
 					},
 				},
@@ -647,7 +647,7 @@ func TestORANSecurityCompliance(t *testing.T) {
 			config: ORANSecurityConfig{
 				Interface: "A1",
 				Authentication: AuthConfig{
-					Type: "mutual_tls",
+					Type:                  "mutual_tls",
 					CertificateValidation: true,
 				},
 				Encryption: EncryptionConfig{
@@ -667,7 +667,7 @@ func TestORANSecurityCompliance(t *testing.T) {
 					Type: "public_key",
 				},
 				Encryption: EncryptionConfig{
-					Enabled:   true,
+					Enabled:    true,
 					TLSVersion: "1.3",
 				},
 			},
@@ -710,7 +710,7 @@ func TestORANSecurityCompliance(t *testing.T) {
 			config: ORANSecurityConfig{
 				Interface: "F1",
 				IPSec: &IPSecConfig{
-					Enabled:   false,
+					Enabled: false,
 				},
 			},
 			wantError: true,
@@ -734,21 +734,21 @@ func TestORANSecurityCompliance(t *testing.T) {
 // TestComplianceValidation validates compliance with security standards
 func TestComplianceValidation(t *testing.T) {
 	tests := []struct {
-		name       string
-		standard   string
-		config     ComplianceConfig
-		wantError  bool
-		errorMsg   string
+		name      string
+		standard  string
+		config    ComplianceConfig
+		wantError bool
+		errorMsg  string
 	}{
 		{
 			name:     "SOC2 Type 2 compliance",
 			standard: "SOC2",
 			config: ComplianceConfig{
-				LogicalAccessControls:  true,
-				SystemMonitoring:       true,
-				IncidentManagement:     true,
-				ChangeManagement:       true,
-				RiskAssessment:         true,
+				LogicalAccessControls: true,
+				SystemMonitoring:      true,
+				IncidentManagement:    true,
+				ChangeManagement:      true,
+				RiskAssessment:        true,
 			},
 			wantError: false,
 		},
@@ -756,12 +756,12 @@ func TestComplianceValidation(t *testing.T) {
 			name:     "ISO 27001 compliance",
 			standard: "ISO27001",
 			config: ComplianceConfig{
-				AccessControl:           true,
-				OperationsSecurity:      true,
-				CommunicationsSecurity:  true,
-				SystemSecurity:          true,
-				IncidentManagement:      true,
-				BusinessContinuity:      true,
+				AccessControl:          true,
+				OperationsSecurity:     true,
+				CommunicationsSecurity: true,
+				SystemSecurity:         true,
+				IncidentManagement:     true,
+				BusinessContinuity:     true,
 			},
 			wantError: false,
 		},
@@ -782,12 +782,12 @@ func TestComplianceValidation(t *testing.T) {
 			name:     "GDPR compliance",
 			standard: "GDPR",
 			config: ComplianceConfig{
-				DataClassification:  true,
-				PrivacyByDesign:     true,
-				RightToErasure:      true,
-				DataPortability:     true,
-				ConsentManagement:   true,
-				BreachNotification:  true,
+				DataClassification: true,
+				PrivacyByDesign:    true,
+				RightToErasure:     true,
+				DataPortability:    true,
+				ConsentManagement:  true,
+				BreachNotification: true,
 			},
 			wantError: false,
 		},
@@ -822,14 +822,14 @@ func TestComplianceValidation(t *testing.T) {
 
 func validateRBACPolicy(role *rbacv1.Role, clusterRole *rbacv1.ClusterRole) error {
 	rules := []rbacv1.PolicyRule{}
-	
+
 	if role != nil {
 		rules = append(rules, role.Rules...)
 	}
 	if clusterRole != nil {
 		rules = append(rules, clusterRole.Rules...)
 	}
-	
+
 	for _, rule := range rules {
 		// Check for wildcard permissions
 		for _, apiGroup := range rule.APIGroups {
@@ -847,20 +847,20 @@ func validateRBACPolicy(role *rbacv1.Role, clusterRole *rbacv1.ClusterRole) erro
 				return fmt.Errorf("wildcard permissions not allowed")
 			}
 		}
-		
+
 		// Check for escalate/bind privileges
 		if containsString(rule.Verbs, "escalate") || containsString(rule.Verbs, "bind") {
 			if clusterRole == nil || !strings.Contains(clusterRole.Name, "admin") {
 				return fmt.Errorf("escalate/bind privileges require admin role")
 			}
 		}
-		
+
 		// Check for service account token creation
 		if containsString(rule.Resources, "serviceaccounts/token") && containsString(rule.Verbs, "create") {
 			return fmt.Errorf("service account token creation restricted")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -873,14 +873,14 @@ func validateNetworkPolicy(policy *networkingv1.NetworkPolicy) error {
 			}
 		}
 	}
-	
+
 	// Validate mTLS annotations
 	if tlsMode, ok := policy.Annotations["security.istio.io/tlsMode"]; ok {
 		if tlsMode != "STRICT" {
 			return fmt.Errorf("mTLS must be set to STRICT mode")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -888,29 +888,29 @@ func validateContainerSecurity(container corev1.Container) error {
 	if container.SecurityContext == nil {
 		return fmt.Errorf("security context required")
 	}
-	
+
 	sc := container.SecurityContext
-	
+
 	// Check non-root user
 	if sc.RunAsUser != nil && *sc.RunAsUser == 0 {
 		return fmt.Errorf("container must not run as root")
 	}
-	
+
 	// Check RunAsNonRoot
 	if sc.RunAsNonRoot == nil || !*sc.RunAsNonRoot {
 		return fmt.Errorf("RunAsNonRoot must be true")
 	}
-	
+
 	// Check read-only root filesystem
 	if sc.ReadOnlyRootFilesystem == nil || !*sc.ReadOnlyRootFilesystem {
 		return fmt.Errorf("read-only root filesystem required")
 	}
-	
+
 	// Check privilege escalation
 	if sc.AllowPrivilegeEscalation != nil && *sc.AllowPrivilegeEscalation {
 		return fmt.Errorf("privilege escalation not allowed")
 	}
-	
+
 	// Check capabilities
 	if sc.Capabilities != nil {
 		if len(sc.Capabilities.Add) > 0 {
@@ -920,12 +920,12 @@ func validateContainerSecurity(container corev1.Container) error {
 			return fmt.Errorf("all capabilities must be dropped")
 		}
 	}
-	
+
 	// Check seccomp profile
 	if sc.SeccompProfile == nil || sc.SeccompProfile.Type != corev1.SeccompProfileTypeRuntimeDefault {
 		return fmt.Errorf("seccomp profile required")
 	}
-	
+
 	return nil
 }
 
@@ -937,7 +937,7 @@ func validateSecretsManagement(secret *corev1.Secret) error {
 				return fmt.Errorf("plaintext passwords not allowed")
 			}
 		}
-		
+
 		// Check for API keys
 		if strings.Contains(key, "api-key") || strings.Contains(key, "api_key") {
 			if strings.HasPrefix(string(value), "sk-") || strings.HasPrefix(string(value), "pk-") {
@@ -945,14 +945,14 @@ func validateSecretsManagement(secret *corev1.Secret) error {
 			}
 		}
 	}
-	
+
 	// Check encryption annotations
 	if algo, ok := secret.Annotations["encryption.nephoran.io/algorithm"]; ok {
 		if algo != "AES-256-GCM" {
 			return fmt.Errorf("AES-256-GCM encryption required")
 		}
 	}
-	
+
 	// Check rotation
 	if lastRotated, ok := secret.Annotations["rotation.nephoran.io/last-rotated"]; ok {
 		rotationTime, err := time.Parse(time.RFC3339, lastRotated)
@@ -962,7 +962,7 @@ func validateSecretsManagement(secret *corev1.Secret) error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -971,7 +971,7 @@ func validateTLSConfiguration(tlsConfig *tls.Config) error {
 	if tlsConfig.MinVersion < tls.VersionTLS13 {
 		return fmt.Errorf("TLS 1.3 minimum required")
 	}
-	
+
 	// Check cipher suites
 	weakCiphers := []uint16{
 		tls.TLS_RSA_WITH_RC4_128_SHA,
@@ -979,7 +979,7 @@ func validateTLSConfiguration(tlsConfig *tls.Config) error {
 		tls.TLS_RSA_WITH_AES_128_CBC_SHA,
 		tls.TLS_RSA_WITH_AES_256_CBC_SHA,
 	}
-	
+
 	for _, cipher := range tlsConfig.CipherSuites {
 		for _, weak := range weakCiphers {
 			if cipher == weak {
@@ -987,17 +987,17 @@ func validateTLSConfiguration(tlsConfig *tls.Config) error {
 			}
 		}
 	}
-	
+
 	// Check certificate validation
 	if tlsConfig.InsecureSkipVerify {
 		return fmt.Errorf("certificate validation required")
 	}
-	
+
 	// Check client authentication for mTLS
 	if tlsConfig.ClientAuth < tls.RequireAndVerifyClientCert {
 		return fmt.Errorf("client certificate verification required for mTLS")
 	}
-	
+
 	return nil
 }
 
@@ -1007,7 +1007,7 @@ func validateAPISecurity(request *http.Request) error {
 	if authHeader == "" {
 		return fmt.Errorf("authentication required")
 	}
-	
+
 	// Check for SQL injection attempts
 	if request.URL != nil && request.URL.RawQuery != "" {
 		sqlPatterns := []string{
@@ -1017,14 +1017,14 @@ func validateAPISecurity(request *http.Request) error {
 			"INSERT.*INTO",
 			"DELETE.*FROM",
 		}
-		
+
 		for _, pattern := range sqlPatterns {
 			if matched, _ := regexp.MatchString(pattern, request.URL.RawQuery); matched {
 				return fmt.Errorf("potential SQL injection detected")
 			}
 		}
 	}
-	
+
 	// Check for XSS attempts
 	if request.Body != nil {
 		body, _ := io.ReadAll(request.Body)
@@ -1034,14 +1034,14 @@ func validateAPISecurity(request *http.Request) error {
 			"onerror=",
 			"onclick=",
 		}
-		
+
 		for _, pattern := range xssPatterns {
 			if strings.Contains(string(body), pattern) {
 				return fmt.Errorf("potential XSS detected")
 			}
 		}
 	}
-	
+
 	// Check CORS
 	origin := request.Header.Get("Origin")
 	if origin != "" {
@@ -1049,7 +1049,7 @@ func validateAPISecurity(request *http.Request) error {
 			"https://nephoran.io",
 			"https://*.nephoran.io",
 		}
-		
+
 		allowed := false
 		for _, allowedOrigin := range allowedOrigins {
 			if matched, _ := regexp.MatchString(allowedOrigin, origin); matched {
@@ -1057,12 +1057,12 @@ func validateAPISecurity(request *http.Request) error {
 				break
 			}
 		}
-		
+
 		if !allowed {
 			return fmt.Errorf("invalid CORS origin")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -1115,14 +1115,14 @@ type ComplianceConfig struct {
 	IncidentManagement    bool
 	ChangeManagement      bool
 	RiskAssessment        bool
-	
+
 	// ISO 27001
 	AccessControl          bool
 	OperationsSecurity     bool
 	CommunicationsSecurity bool
 	SystemSecurity         bool
 	BusinessContinuity     bool
-	
+
 	// PCI-DSS
 	NetworkSegmentation     bool
 	StrongAccessControl     bool
@@ -1130,7 +1130,7 @@ type ComplianceConfig struct {
 	VulnerabilityManagement bool
 	LoggingAndMonitoring    bool
 	SecurityTesting         bool
-	
+
 	// GDPR
 	DataClassification bool
 	PrivacyByDesign    bool
@@ -1138,7 +1138,7 @@ type ComplianceConfig struct {
 	DataPortability    bool
 	ConsentManagement  bool
 	BreachNotification bool
-	
+
 	// O-RAN
 	ZeroTrustArchitecture   bool
 	InterfaceSecurity       bool
@@ -1152,7 +1152,7 @@ func validateORANSecurity(config ORANSecurityConfig) error {
 	if config.Interface == "F1" && (config.IPSec == nil || !config.IPSec.Enabled) {
 		return fmt.Errorf("IPsec required for CU-DU interface")
 	}
-	
+
 	// Add more O-RAN specific validations as needed
 	return nil
 }
@@ -1179,11 +1179,11 @@ func isPlaintext(s string) bool {
 	if len(s) < 20 {
 		return true
 	}
-	
+
 	// Check if it looks like base64
 	if matched, _ := regexp.MatchString(`^[A-Za-z0-9+/]+={0,2}$`, s); !matched {
 		return true
 	}
-	
+
 	return false
 }

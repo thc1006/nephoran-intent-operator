@@ -29,19 +29,19 @@ const (
 	AuditTrailFinalizer = "audittrail.nephoran.io/finalizer"
 
 	// ConditionTypes for AuditTrail status
-	ConditionTypeReady        = "Ready"
-	ConditionTypeProgressing  = "Progressing"
-	ConditionTypeBackendsReady = "BackendsReady"
+	ConditionTypeReady          = "Ready"
+	ConditionTypeProgressing    = "Progressing"
+	ConditionTypeBackendsReady  = "BackendsReady"
 	ConditionTypeIntegrityReady = "IntegrityReady"
 
 	// Event reasons
-	EventReasonCreated          = "Created"
-	EventReasonUpdated          = "Updated"
-	EventReasonStarted          = "Started"
-	EventReasonStopped          = "Stopped"
-	EventReasonBackendFailed    = "BackendFailed"
-	EventReasonIntegrityFailed  = "IntegrityFailed"
-	EventReasonConfigChanged    = "ConfigChanged"
+	EventReasonCreated         = "Created"
+	EventReasonUpdated         = "Updated"
+	EventReasonStarted         = "Started"
+	EventReasonStopped         = "Stopped"
+	EventReasonBackendFailed   = "BackendFailed"
+	EventReasonIntegrityFailed = "IntegrityFailed"
+	EventReasonConfigChanged   = "ConfigChanged"
 )
 
 // AuditTrailController reconciles a AuditTrail object
@@ -77,7 +77,7 @@ func NewAuditTrailController(client client.Client, log logr.Logger, scheme *runt
 // move the current state of the cluster closer to the desired state.
 func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("audittrail", req.NamespacedName)
-	
+
 	// Fetch the AuditTrail instance
 	auditTrail := &nephv1.AuditTrail{}
 	if err := r.Get(ctx, req.NamespacedName, auditTrail); err != nil {
@@ -143,11 +143,11 @@ func (r *AuditTrailController) handleDeletion(ctx context.Context, auditTrail *n
 // reconcileAuditSystem creates or updates the audit system based on the AuditTrail spec
 func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTrail *nephv1.AuditTrail, log logr.Logger) (ctrl.Result, error) {
 	key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
-	
+
 	// Check if audit system exists and if configuration has changed
 	existingSystem, exists := r.auditSystems[key]
 	needsRecreation := false
-	
+
 	if exists {
 		// Compare current configuration with desired configuration
 		// This is a simplified check - in practice, you'd compare more thoroughly
@@ -156,7 +156,7 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 			needsRecreation = true
 		}
 	}
-	
+
 	if needsRecreation {
 		// Stop existing system
 		if err := existingSystem.Stop(); err != nil {
@@ -165,23 +165,23 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 		delete(r.auditSystems, key)
 		exists = false
 	}
-	
+
 	if !exists || needsRecreation {
 		// Create new audit system
 		log.Info("Creating new audit system")
-		
+
 		// Convert AuditTrail spec to audit system configuration
 		config, err := r.buildAuditSystemConfig(ctx, auditTrail, log)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to build audit system config: %w", err)
 		}
-		
+
 		// Create audit system
 		auditSystem, err := audit.NewAuditSystem(config)
 		if err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to create audit system: %w", err)
 		}
-		
+
 		// Start audit system if enabled
 		if auditTrail.Spec.Enabled {
 			if err := auditSystem.Start(); err != nil {
@@ -190,7 +190,7 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 			r.Recorder.Event(auditTrail, corev1.EventTypeNormal, EventReasonStarted,
 				"Audit system started successfully")
 		}
-		
+
 		r.auditSystems[key] = auditSystem
 		r.Recorder.Event(auditTrail, corev1.EventTypeNormal, EventReasonCreated,
 			"Audit system created successfully")
@@ -212,7 +212,7 @@ func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTr
 			}
 		}
 	}
-	
+
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
@@ -227,7 +227,7 @@ func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, audit
 		EnableIntegrity: auditTrail.Spec.EnableIntegrity,
 		ComplianceMode:  r.convertComplianceMode(auditTrail.Spec.ComplianceMode),
 	}
-	
+
 	// Set defaults if not specified
 	if config.BatchSize == 0 {
 		config.BatchSize = 100
@@ -238,7 +238,7 @@ func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, audit
 	if config.MaxQueueSize == 0 {
 		config.MaxQueueSize = 10000
 	}
-	
+
 	// Build backend configurations
 	backendConfigs := make([]backends.BackendConfig, 0, len(auditTrail.Spec.Backends))
 	for _, backend := range auditTrail.Spec.Backends {
@@ -249,7 +249,7 @@ func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, audit
 		backendConfigs = append(backendConfigs, *backendConfig)
 	}
 	config.Backends = backendConfigs
-	
+
 	return config, nil
 }
 
@@ -264,7 +264,7 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 		BufferSize:  spec.BufferSize,
 		Timeout:     time.Duration(spec.Timeout) * time.Second,
 	}
-	
+
 	// Set defaults
 	if config.BufferSize == 0 {
 		config.BufferSize = 1000
@@ -275,7 +275,7 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 	if config.Format == "" {
 		config.Format = "json"
 	}
-	
+
 	// Convert settings from RawExtension
 	if spec.Settings.Raw != nil {
 		settings := make(map[string]interface{})
@@ -284,7 +284,7 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 		settings["raw_config"] = string(spec.Settings.Raw)
 		config.Settings = settings
 	}
-	
+
 	// Convert retry policy
 	if spec.RetryPolicy != nil {
 		config.RetryPolicy = backends.RetryPolicy{
@@ -296,7 +296,7 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 	} else {
 		config.RetryPolicy = backends.DefaultRetryPolicy()
 	}
-	
+
 	// Convert TLS config
 	if spec.TLS != nil {
 		config.TLS = backends.TLSConfig{
@@ -308,7 +308,7 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 			InsecureSkipVerify: spec.TLS.InsecureSkipVerify,
 		}
 	}
-	
+
 	// Convert filter config
 	if spec.Filter != nil {
 		config.Filter = backends.FilterConfig{
@@ -322,18 +322,18 @@ func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrai
 	} else {
 		config.Filter = backends.DefaultFilterConfig()
 	}
-	
+
 	return config, nil
 }
 
 // updateStatus updates the AuditTrail status with current information
 func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nephv1.AuditTrail, log logr.Logger) error {
 	key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
-	
+
 	// Get current status from audit system
 	var stats audit.AuditStats
 	var phase string = "Pending"
-	
+
 	if auditSystem, exists := r.auditSystems[key]; exists {
 		stats = auditSystem.GetStats()
 		if auditTrail.Spec.Enabled {
@@ -344,7 +344,7 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 	} else {
 		phase = "Initializing"
 	}
-	
+
 	// Build status
 	now := metav1.Now()
 	status := nephv1.AuditTrailStatus{
@@ -358,7 +358,7 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 			BackendCount:    stats.BackendCount,
 		},
 	}
-	
+
 	// Build conditions
 	conditions := []metav1.Condition{
 		{
@@ -369,21 +369,21 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 			LastTransitionTime: now,
 		},
 	}
-	
+
 	if phase != "Running" {
 		conditions[0].Status = metav1.ConditionFalse
 		conditions[0].Reason = "SystemNotRunning"
 		conditions[0].Message = fmt.Sprintf("Audit system is in phase: %s", phase)
 	}
-	
+
 	status.Conditions = conditions
-	
+
 	// Update status if changed
 	if !reflect.DeepEqual(auditTrail.Status, status) {
 		auditTrail.Status = status
 		return r.Status().Update(ctx, auditTrail)
 	}
-	
+
 	return nil
 }
 
@@ -401,15 +401,15 @@ func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail
 			LastTransitionTime: now,
 		},
 	}
-	
+
 	r.Recorder.Event(auditTrail, corev1.EventTypeWarning, "ReconcileError",
 		fmt.Sprintf("Failed to reconcile: %v", err))
-	
+
 	if updateErr := r.Status().Update(ctx, auditTrail); updateErr != nil {
 		log.Error(updateErr, "Failed to update status")
 		return updateErr
 	}
-	
+
 	return err
 }
 

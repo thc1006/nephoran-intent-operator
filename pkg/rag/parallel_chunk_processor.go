@@ -15,13 +15,13 @@ import (
 
 // ParallelChunkProcessor provides high-performance parallel chunk processing
 type ParallelChunkProcessor struct {
-	logger         *zap.Logger
-	workerPool     *ChunkWorkerPool
-	loadBalancer   ParallelLoadBalancer
-	memoryPool     *sync.Pool
-	metrics        *parallelMetrics
-	maxRetries     int
-	retryDelay     time.Duration
+	logger       *zap.Logger
+	workerPool   *ChunkWorkerPool
+	loadBalancer ParallelLoadBalancer
+	memoryPool   *sync.Pool
+	metrics      *parallelMetrics
+	maxRetries   int
+	retryDelay   time.Duration
 }
 
 // ChunkWorkerPool manages a pool of chunk processing workers
@@ -105,11 +105,11 @@ type workerMetrics struct {
 
 // ParallelConfig holds configuration for parallel processing
 type ParallelConfig struct {
-	MaxWorkers       int
-	QueueSize        int
-	LoadBalancer     string // "round-robin", "least-loaded", "work-stealing"
-	MaxRetries       int
-	RetryDelay       time.Duration
+	MaxWorkers         int
+	QueueSize          int
+	LoadBalancer       string // "round-robin", "least-loaded", "work-stealing"
+	MaxRetries         int
+	RetryDelay         time.Duration
 	EnableWorkStealing bool
 }
 
@@ -492,7 +492,7 @@ func (b *LeastLoadedBalancer) SelectWorker(workers []*ChunkWorker, task *ChunkTa
 func (b *LeastLoadedBalancer) UpdateStats(workerID int, duration time.Duration, success bool) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
-	
+
 	if load, ok := b.workerLoads[workerID]; ok {
 		load.Add(-1)
 	}
@@ -539,13 +539,13 @@ func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, do
 	chunkSize := 1000 // Default chunk size
 	content := doc.Content
 	var chunks []*DocumentChunk
-	
+
 	for i := 0; i < len(content); i += chunkSize {
 		end := i + chunkSize
 		if end > len(content) {
 			end = len(content)
 		}
-		
+
 		chunk := &DocumentChunk{
 			ID:       fmt.Sprintf("%s-chunk-%d", doc.ID, i/chunkSize),
 			Text:     content[i:end],
@@ -554,7 +554,7 @@ func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, do
 		}
 		chunks = append(chunks, chunk)
 	}
-	
+
 	return chunks, nil
 }
 
@@ -562,7 +562,7 @@ func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, do
 func (pcp *ParallelChunkProcessor) GetMetrics() interface{} {
 	return map[string]interface{}{
 		"processed_chunks": pcp.metrics.ProcessedChunks,
-		"failed_chunks":   pcp.metrics.FailedChunks,
-		"active_workers":  pcp.workerPool.activeWorkers,
+		"failed_chunks":    pcp.metrics.FailedChunks,
+		"active_workers":   pcp.workerPool.activeWorkers,
 	}
 }

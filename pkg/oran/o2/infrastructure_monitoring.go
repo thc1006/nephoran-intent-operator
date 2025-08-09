@@ -19,25 +19,25 @@ import (
 
 // InfrastructureMonitoringService provides comprehensive infrastructure monitoring
 type InfrastructureMonitoringService struct {
-	config     *InfrastructureMonitoringConfig
-	logger     *logging.StructuredLogger
-	
+	config *InfrastructureMonitoringConfig
+	logger *logging.StructuredLogger
+
 	// Provider registry for multi-cloud monitoring
 	providerRegistry *providers.ProviderRegistry
-	
+
 	// Monitoring components
-	metrics          *InfrastructureMetrics
-	healthChecker    *InfrastructureHealthChecker
-	slaMonitor      *SLAMonitor
-	eventProcessor  *EventProcessor
-	
+	metrics        *InfrastructureMetrics
+	healthChecker  *InfrastructureHealthChecker
+	slaMonitor     *SLAMonitor
+	eventProcessor *EventProcessor
+
 	// Data collection and storage
 	resourceMonitors map[string]*ResourceMonitor
 	collectors       []MetricsCollector
-	
+
 	// Synchronization
 	mu sync.RWMutex
-	
+
 	// Lifecycle management
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -47,85 +47,85 @@ type InfrastructureMonitoringService struct {
 // InfrastructureMonitoringConfig configuration for infrastructure monitoring
 type InfrastructureMonitoringConfig struct {
 	// Collection intervals
-	MetricsCollectionInterval    time.Duration `json:"metricsCollectionInterval,omitempty"`
-	HealthCheckInterval         time.Duration `json:"healthCheckInterval,omitempty"`
-	SLAEvaluationInterval       time.Duration `json:"slaEvaluationInterval,omitempty"`
-	
+	MetricsCollectionInterval time.Duration `json:"metricsCollectionInterval,omitempty"`
+	HealthCheckInterval       time.Duration `json:"healthCheckInterval,omitempty"`
+	SLAEvaluationInterval     time.Duration `json:"slaEvaluationInterval,omitempty"`
+
 	// Thresholds and limits
-	CPUAlertThreshold          float64       `json:"cpuAlertThreshold,omitempty"`
-	MemoryAlertThreshold       float64       `json:"memoryAlertThreshold,omitempty"`
-	StorageAlertThreshold      float64       `json:"storageAlertThreshold,omitempty"`
-	NetworkLatencyThreshold    time.Duration `json:"networkLatencyThreshold,omitempty"`
-	
+	CPUAlertThreshold       float64       `json:"cpuAlertThreshold,omitempty"`
+	MemoryAlertThreshold    float64       `json:"memoryAlertThreshold,omitempty"`
+	StorageAlertThreshold   float64       `json:"storageAlertThreshold,omitempty"`
+	NetworkLatencyThreshold time.Duration `json:"networkLatencyThreshold,omitempty"`
+
 	// Retention policies
-	MetricsRetentionPeriod     time.Duration `json:"metricsRetentionPeriod,omitempty"`
-	AlertRetentionPeriod       time.Duration `json:"alertRetentionPeriod,omitempty"`
-	EventRetentionPeriod       time.Duration `json:"eventRetentionPeriod,omitempty"`
-	
+	MetricsRetentionPeriod time.Duration `json:"metricsRetentionPeriod,omitempty"`
+	AlertRetentionPeriod   time.Duration `json:"alertRetentionPeriod,omitempty"`
+	EventRetentionPeriod   time.Duration `json:"eventRetentionPeriod,omitempty"`
+
 	// Integration settings
-	PrometheusEnabled          bool          `json:"prometheusEnabled,omitempty"`
-	GrafanaEnabled             bool          `json:"grafanaEnabled,omitempty"`
-	AlertmanagerEnabled        bool          `json:"alertmanagerEnabled,omitempty"`
-	JaegerEnabled              bool          `json:"jaegerEnabled,omitempty"`
-	
+	PrometheusEnabled   bool `json:"prometheusEnabled,omitempty"`
+	GrafanaEnabled      bool `json:"grafanaEnabled,omitempty"`
+	AlertmanagerEnabled bool `json:"alertmanagerEnabled,omitempty"`
+	JaegerEnabled       bool `json:"jaegerEnabled,omitempty"`
+
 	// Telecommunications-specific settings
-	TelcoKPIEnabled            bool          `json:"telcoKPIEnabled,omitempty"`
-	5GCoreMonitoringEnabled    bool          `json:"5gCoreMonitoringEnabled,omitempty"`
-	ORANInterfaceMonitoring    bool          `json:"oranInterfaceMonitoring,omitempty"`
-	NetworkSliceMonitoring     bool          `json:"networkSliceMonitoring,omitempty"`
+	TelcoKPIEnabled            bool `json:"telcoKPIEnabled,omitempty"`
+	FiveGCoreMonitoringEnabled bool `json:"5gCoreMonitoringEnabled,omitempty"`
+	ORANInterfaceMonitoring    bool `json:"oranInterfaceMonitoring,omitempty"`
+	NetworkSliceMonitoring     bool `json:"networkSliceMonitoring,omitempty"`
 }
 
 // InfrastructureMetrics contains Prometheus metrics for infrastructure monitoring
 type InfrastructureMetrics struct {
 	// Resource utilization metrics
-	CPUUtilization         *prometheus.GaugeVec
-	MemoryUtilization      *prometheus.GaugeVec
-	StorageUtilization     *prometheus.GaugeVec
-	NetworkUtilization     *prometheus.GaugeVec
-	
+	CPUUtilization     *prometheus.GaugeVec
+	MemoryUtilization  *prometheus.GaugeVec
+	StorageUtilization *prometheus.GaugeVec
+	NetworkUtilization *prometheus.GaugeVec
+
 	// Infrastructure health metrics
-	ResourceHealth         *prometheus.GaugeVec
-	NodeHealth             *prometheus.GaugeVec
-	ServiceHealth          *prometheus.GaugeVec
-	
+	ResourceHealth *prometheus.GaugeVec
+	NodeHealth     *prometheus.GaugeVec
+	ServiceHealth  *prometheus.GaugeVec
+
 	// Performance metrics
-	NetworkLatency         *prometheus.HistogramVec
-	StorageIOPS            *prometheus.GaugeVec
-	StorageThroughput      *prometheus.GaugeVec
-	NetworkThroughput      *prometheus.GaugeVec
-	
+	NetworkLatency    *prometheus.HistogramVec
+	StorageIOPS       *prometheus.GaugeVec
+	StorageThroughput *prometheus.GaugeVec
+	NetworkThroughput *prometheus.GaugeVec
+
 	// SLA compliance metrics
-	SLACompliance          *prometheus.GaugeVec
-	SLAViolations          *prometheus.CounterVec
-	ServiceAvailability    *prometheus.GaugeVec
-	
+	SLACompliance       *prometheus.GaugeVec
+	SLAViolations       *prometheus.CounterVec
+	ServiceAvailability *prometheus.GaugeVec
+
 	// Telecommunications-specific KPIs
-	PRBUtilization         *prometheus.GaugeVec
-	HandoverSuccessRate    *prometheus.GaugeVec
-	SessionSetupTime       *prometheus.HistogramVec
-	PacketLossRate         *prometheus.GaugeVec
-	ThroughputPerSlice     *prometheus.GaugeVec
-	
+	PRBUtilization      *prometheus.GaugeVec
+	HandoverSuccessRate *prometheus.GaugeVec
+	SessionSetupTime    *prometheus.HistogramVec
+	PacketLossRate      *prometheus.GaugeVec
+	ThroughputPerSlice  *prometheus.GaugeVec
+
 	// Alert and event metrics
-	ActiveAlerts           *prometheus.GaugeVec
-	AlertsResolved         *prometheus.CounterVec
-	EventsProcessed        *prometheus.CounterVec
-	
+	ActiveAlerts    *prometheus.GaugeVec
+	AlertsResolved  *prometheus.CounterVec
+	EventsProcessed *prometheus.CounterVec
+
 	// Cost optimization metrics
-	ResourceCost           *prometheus.GaugeVec
-	UnusedResources        *prometheus.GaugeVec
+	ResourceCost            *prometheus.GaugeVec
+	UnusedResources         *prometheus.GaugeVec
 	CostOptimizationSavings *prometheus.GaugeVec
 }
 
 // ResourceMonitor monitors a specific resource
 type ResourceMonitor struct {
-	Resource     *models.Resource
-	Provider     providers.CloudProvider
-	LastUpdate   time.Time
-	Status       *models.ResourceStatus
-	Metrics      map[string]interface{}
-	Alerts       []Alert
-	mu           sync.RWMutex
+	Resource   *models.Resource
+	Provider   providers.CloudProvider
+	LastUpdate time.Time
+	Status     *models.ResourceStatus
+	Metrics    map[string]interface{}
+	Alerts     []Alert
+	mu         sync.RWMutex
 }
 
 // Alert represents an infrastructure alert
@@ -157,28 +157,28 @@ func NewInfrastructureMonitoringService(
 	if config == nil {
 		config = DefaultInfrastructureMonitoringConfig()
 	}
-	
+
 	if logger == nil {
 		logger = logging.NewStructuredLogger(
 			logging.WithService("infrastructure-monitoring"),
 			logging.WithVersion("1.0.0"),
 		)
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// Initialize metrics
 	metrics := newInfrastructureMetrics()
-	
+
 	// Initialize health checker
 	healthChecker := NewInfrastructureHealthChecker(config, logger)
-	
+
 	// Initialize SLA monitor
 	slaMonitor := NewSLAMonitor(config, logger)
-	
+
 	// Initialize event processor
 	eventProcessor := NewEventProcessor(config, logger)
-	
+
 	service := &InfrastructureMonitoringService{
 		config:           config,
 		logger:           logger,
@@ -192,37 +192,37 @@ func NewInfrastructureMonitoringService(
 		ctx:              ctx,
 		cancel:           cancel,
 	}
-	
+
 	// Initialize collectors
 	if err := service.initializeCollectors(); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to initialize collectors: %w", err)
 	}
-	
+
 	return service, nil
 }
 
 // DefaultInfrastructureMonitoringConfig returns default configuration
 func DefaultInfrastructureMonitoringConfig() *InfrastructureMonitoringConfig {
 	return &InfrastructureMonitoringConfig{
-		MetricsCollectionInterval:    30 * time.Second,
-		HealthCheckInterval:         60 * time.Second,
-		SLAEvaluationInterval:       300 * time.Second,
-		CPUAlertThreshold:           80.0,
-		MemoryAlertThreshold:        85.0,
-		StorageAlertThreshold:       90.0,
-		NetworkLatencyThreshold:     100 * time.Millisecond,
-		MetricsRetentionPeriod:      7 * 24 * time.Hour,
-		AlertRetentionPeriod:        30 * 24 * time.Hour,
-		EventRetentionPeriod:        14 * 24 * time.Hour,
-		PrometheusEnabled:           true,
-		GrafanaEnabled:              true,
-		AlertmanagerEnabled:         true,
-		JaegerEnabled:               true,
-		TelcoKPIEnabled:             true,
-		5GCoreMonitoringEnabled:     true,
-		ORANInterfaceMonitoring:     true,
-		NetworkSliceMonitoring:      true,
+		MetricsCollectionInterval:  30 * time.Second,
+		HealthCheckInterval:        60 * time.Second,
+		SLAEvaluationInterval:      300 * time.Second,
+		CPUAlertThreshold:          80.0,
+		MemoryAlertThreshold:       85.0,
+		StorageAlertThreshold:      90.0,
+		NetworkLatencyThreshold:    100 * time.Millisecond,
+		MetricsRetentionPeriod:     7 * 24 * time.Hour,
+		AlertRetentionPeriod:       30 * 24 * time.Hour,
+		EventRetentionPeriod:       14 * 24 * time.Hour,
+		PrometheusEnabled:          true,
+		GrafanaEnabled:             true,
+		AlertmanagerEnabled:        true,
+		JaegerEnabled:              true,
+		TelcoKPIEnabled:            true,
+		FiveGCoreMonitoringEnabled: true,
+		ORANInterfaceMonitoring:    true,
+		NetworkSliceMonitoring:     true,
 	}
 }
 
@@ -233,125 +233,125 @@ func newInfrastructureMetrics() *InfrastructureMetrics {
 			Name: "nephoran_infrastructure_cpu_utilization_percent",
 			Help: "CPU utilization percentage by resource",
 		}, []string{"resource_id", "resource_type", "provider", "region", "zone"}),
-		
+
 		MemoryUtilization: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_memory_utilization_percent",
 			Help: "Memory utilization percentage by resource",
 		}, []string{"resource_id", "resource_type", "provider", "region", "zone"}),
-		
+
 		StorageUtilization: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_storage_utilization_percent",
 			Help: "Storage utilization percentage by resource",
 		}, []string{"resource_id", "resource_type", "provider", "region", "zone", "volume_type"}),
-		
+
 		NetworkUtilization: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_network_utilization_percent",
 			Help: "Network utilization percentage by resource",
 		}, []string{"resource_id", "resource_type", "provider", "region", "zone", "interface"}),
-		
+
 		ResourceHealth: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_resource_health",
 			Help: "Resource health status (0=unhealthy, 1=degraded, 2=healthy)",
 		}, []string{"resource_id", "resource_type", "provider", "region", "zone"}),
-		
+
 		NodeHealth: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_node_health",
 			Help: "Node health status (0=not_ready, 1=degraded, 2=ready)",
 		}, []string{"node_id", "node_type", "provider", "region", "zone"}),
-		
+
 		ServiceHealth: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_service_health",
 			Help: "Service health status (0=down, 1=degraded, 2=up)",
 		}, []string{"service_name", "service_type", "provider", "region", "zone"}),
-		
+
 		NetworkLatency: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "nephoran_infrastructure_network_latency_seconds",
 			Help:    "Network latency between infrastructure components",
 			Buckets: []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0},
 		}, []string{"source", "destination", "provider", "region"}),
-		
+
 		StorageIOPS: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_storage_iops",
 			Help: "Storage IOPS by resource",
 		}, []string{"resource_id", "provider", "region", "zone", "volume_type"}),
-		
+
 		StorageThroughput: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_storage_throughput_bytes_per_second",
 			Help: "Storage throughput in bytes per second",
 		}, []string{"resource_id", "provider", "region", "zone", "volume_type", "operation"}),
-		
+
 		NetworkThroughput: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_network_throughput_bytes_per_second",
 			Help: "Network throughput in bytes per second",
 		}, []string{"resource_id", "provider", "region", "zone", "interface", "direction"}),
-		
+
 		SLACompliance: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_sla_compliance_percent",
 			Help: "SLA compliance percentage",
 		}, []string{"sla_type", "service", "provider", "region"}),
-		
+
 		SLAViolations: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_infrastructure_sla_violations_total",
 			Help: "Total number of SLA violations",
 		}, []string{"sla_type", "service", "provider", "region", "violation_type"}),
-		
+
 		ServiceAvailability: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_service_availability_percent",
 			Help: "Service availability percentage",
 		}, []string{"service_name", "service_type", "provider", "region"}),
-		
+
 		// Telecommunications-specific KPIs
 		PRBUtilization: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_telco_prb_utilization_percent",
 			Help: "Physical Resource Block utilization percentage",
 		}, []string{"cell_id", "frequency_band", "provider", "region"}),
-		
+
 		HandoverSuccessRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_telco_handover_success_rate_percent",
 			Help: "Handover success rate percentage",
 		}, []string{"source_cell", "target_cell", "handover_type", "provider"}),
-		
+
 		SessionSetupTime: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "nephoran_telco_session_setup_time_seconds",
 			Help:    "Session setup time in seconds",
 			Buckets: []float64{0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0, 2.0, 5.0},
 		}, []string{"session_type", "network_function", "provider", "region"}),
-		
+
 		PacketLossRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_telco_packet_loss_rate_percent",
 			Help: "Packet loss rate percentage",
 		}, []string{"network_function", "interface", "provider", "region"}),
-		
+
 		ThroughputPerSlice: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_telco_throughput_per_slice_mbps",
 			Help: "Throughput per network slice in Mbps",
 		}, []string{"slice_id", "slice_type", "provider", "region"}),
-		
+
 		ActiveAlerts: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_active_alerts",
 			Help: "Number of active alerts",
 		}, []string{"severity", "alert_type", "provider", "region"}),
-		
+
 		AlertsResolved: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_infrastructure_alerts_resolved_total",
 			Help: "Total number of resolved alerts",
 		}, []string{"severity", "alert_type", "provider", "region"}),
-		
+
 		EventsProcessed: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "nephoran_infrastructure_events_processed_total",
 			Help: "Total number of processed events",
 		}, []string{"event_type", "source", "provider"}),
-		
+
 		ResourceCost: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_resource_cost_usd_per_hour",
 			Help: "Resource cost in USD per hour",
 		}, []string{"resource_id", "resource_type", "provider", "region", "zone"}),
-		
+
 		UnusedResources: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_unused_resources",
 			Help: "Number of unused resources",
 		}, []string{"resource_type", "provider", "region", "zone"}),
-		
+
 		CostOptimizationSavings: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "nephoran_infrastructure_cost_optimization_savings_usd",
 			Help: "Cost optimization savings in USD",
@@ -362,7 +362,7 @@ func newInfrastructureMetrics() *InfrastructureMetrics {
 // initializeCollectors initializes metrics collectors for different providers
 func (s *InfrastructureMonitoringService) initializeCollectors() error {
 	s.logger.Info("initializing metrics collectors")
-	
+
 	// Initialize collectors for each registered provider
 	for _, provider := range s.providerRegistry.GetAllProviders() {
 		collector, err := s.createCollectorForProvider(provider)
@@ -372,13 +372,13 @@ func (s *InfrastructureMonitoringService) initializeCollectors() error {
 				"error", err)
 			continue
 		}
-		
+
 		s.collectors = append(s.collectors, collector)
 		s.logger.Info("initialized collector for provider",
 			"provider", provider.GetProviderType(),
 			"collector_type", collector.GetCollectorType())
 	}
-	
+
 	return nil
 }
 
@@ -403,35 +403,35 @@ func (s *InfrastructureMonitoringService) createCollectorForProvider(provider pr
 // Start starts the infrastructure monitoring service
 func (s *InfrastructureMonitoringService) Start(ctx context.Context) error {
 	s.logger.Info("starting infrastructure monitoring service")
-	
+
 	// Start background goroutines
 	s.wg.Add(4)
-	
+
 	// Start metrics collection
 	go s.metricsCollectionLoop()
-	
+
 	// Start health checking
 	go s.healthCheckLoop()
-	
+
 	// Start SLA monitoring
 	go s.slaMonitoringLoop()
-	
+
 	// Start event processing
 	go s.eventProcessingLoop()
-	
+
 	return nil
 }
 
 // Stop stops the infrastructure monitoring service
 func (s *InfrastructureMonitoringService) Stop() error {
 	s.logger.Info("stopping infrastructure monitoring service")
-	
+
 	// Cancel context
 	s.cancel()
-	
+
 	// Wait for all goroutines to complete
 	s.wg.Wait()
-	
+
 	s.logger.Info("infrastructure monitoring service stopped")
 	return nil
 }
@@ -439,10 +439,10 @@ func (s *InfrastructureMonitoringService) Stop() error {
 // metricsCollectionLoop runs the metrics collection loop
 func (s *InfrastructureMonitoringService) metricsCollectionLoop() {
 	defer s.wg.Done()
-	
+
 	ticker := time.NewTicker(s.config.MetricsCollectionInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -456,10 +456,10 @@ func (s *InfrastructureMonitoringService) metricsCollectionLoop() {
 // healthCheckLoop runs the health checking loop
 func (s *InfrastructureMonitoringService) healthCheckLoop() {
 	defer s.wg.Done()
-	
+
 	ticker := time.NewTicker(s.config.HealthCheckInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -473,10 +473,10 @@ func (s *InfrastructureMonitoringService) healthCheckLoop() {
 // slaMonitoringLoop runs the SLA monitoring loop
 func (s *InfrastructureMonitoringService) slaMonitoringLoop() {
 	defer s.wg.Done()
-	
+
 	ticker := time.NewTicker(s.config.SLAEvaluationInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -490,7 +490,7 @@ func (s *InfrastructureMonitoringService) slaMonitoringLoop() {
 // eventProcessingLoop runs the event processing loop
 func (s *InfrastructureMonitoringService) eventProcessingLoop() {
 	defer s.wg.Done()
-	
+
 	for {
 		select {
 		case <-s.ctx.Done():
@@ -505,14 +505,14 @@ func (s *InfrastructureMonitoringService) eventProcessingLoop() {
 // collectAllMetrics collects metrics from all collectors
 func (s *InfrastructureMonitoringService) collectAllMetrics() {
 	s.logger.Debug("collecting infrastructure metrics")
-	
+
 	for _, collector := range s.collectors {
 		if !collector.IsHealthy() {
 			s.logger.Warn("skipping unhealthy collector",
 				"collector_type", collector.GetCollectorType())
 			continue
 		}
-		
+
 		metrics, err := collector.CollectMetrics(s.ctx)
 		if err != nil {
 			s.logger.Error("failed to collect metrics",
@@ -520,7 +520,7 @@ func (s *InfrastructureMonitoringService) collectAllMetrics() {
 				"error", err)
 			continue
 		}
-		
+
 		s.processCollectedMetrics(collector.GetCollectorType(), metrics)
 	}
 }
@@ -528,7 +528,7 @@ func (s *InfrastructureMonitoringService) collectAllMetrics() {
 // processCollectedMetrics processes collected metrics and updates Prometheus metrics
 func (s *InfrastructureMonitoringService) processCollectedMetrics(collectorType string, metricsData map[string]interface{}) {
 	// Process different types of metrics
-	
+
 	// CPU utilization metrics
 	if cpuMetrics, ok := metricsData["cpu"]; ok {
 		if cpuMap, ok := cpuMetrics.(map[string]interface{}); ok {
@@ -540,7 +540,7 @@ func (s *InfrastructureMonitoringService) processCollectedMetrics(collectorType 
 			}
 		}
 	}
-	
+
 	// Memory utilization metrics
 	if memoryMetrics, ok := metricsData["memory"]; ok {
 		if memoryMap, ok := memoryMetrics.(map[string]interface{}); ok {
@@ -552,7 +552,7 @@ func (s *InfrastructureMonitoringService) processCollectedMetrics(collectorType 
 			}
 		}
 	}
-	
+
 	// Storage utilization metrics
 	if storageMetrics, ok := metricsData["storage"]; ok {
 		if storageMap, ok := storageMetrics.(map[string]interface{}); ok {
@@ -564,7 +564,7 @@ func (s *InfrastructureMonitoringService) processCollectedMetrics(collectorType 
 			}
 		}
 	}
-	
+
 	// Network utilization metrics
 	if networkMetrics, ok := metricsData["network"]; ok {
 		if networkMap, ok := networkMetrics.(map[string]interface{}); ok {
@@ -576,7 +576,7 @@ func (s *InfrastructureMonitoringService) processCollectedMetrics(collectorType 
 			}
 		}
 	}
-	
+
 	// Telecommunications-specific metrics
 	if s.config.TelcoKPIEnabled {
 		s.processTelcoMetrics(collectorType, metricsData)
@@ -596,7 +596,7 @@ func (s *InfrastructureMonitoringService) processTelcoMetrics(collectorType stri
 			}
 		}
 	}
-	
+
 	// Handover success rate
 	if handoverMetrics, ok := metricsData["handover_success_rate"]; ok {
 		if handoverMap, ok := handoverMetrics.(map[string]interface{}); ok {
@@ -608,7 +608,7 @@ func (s *InfrastructureMonitoringService) processTelcoMetrics(collectorType stri
 			}
 		}
 	}
-	
+
 	// Packet loss rate
 	if packetLossMetrics, ok := metricsData["packet_loss_rate"]; ok {
 		if packetLossMap, ok := packetLossMetrics.(map[string]interface{}); ok {
@@ -625,10 +625,10 @@ func (s *InfrastructureMonitoringService) processTelcoMetrics(collectorType stri
 // performHealthChecks performs health checks on all monitored resources
 func (s *InfrastructureMonitoringService) performHealthChecks() {
 	s.logger.Debug("performing infrastructure health checks")
-	
+
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	for resourceID, monitor := range s.resourceMonitors {
 		go s.checkResourceHealth(resourceID, monitor)
 	}
@@ -638,26 +638,26 @@ func (s *InfrastructureMonitoringService) performHealthChecks() {
 func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string, monitor *ResourceMonitor) {
 	monitor.mu.Lock()
 	defer monitor.mu.Unlock()
-	
+
 	// Perform health check through provider
 	healthy, details, err := monitor.Provider.CheckResourceHealth(s.ctx, resourceID)
 	if err != nil {
 		s.logger.Error("failed to check resource health",
 			"resource_id", resourceID,
 			"error", err)
-		
+
 		// Update metrics to indicate unhealthy state
 		s.metrics.ResourceHealth.WithLabelValues(
 			resourceID, monitor.Resource.ResourceTypeID,
 			monitor.Provider.GetProviderType(), "default", "default").Set(0)
 		return
 	}
-	
+
 	// Update resource status
 	if monitor.Resource.Status == nil {
 		monitor.Resource.Status = &models.ResourceStatus{}
 	}
-	
+
 	if healthy {
 		monitor.Resource.Status.Health = models.HealthStateHealthy
 		s.metrics.ResourceHealth.WithLabelValues(
@@ -668,7 +668,7 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 		s.metrics.ResourceHealth.WithLabelValues(
 			resourceID, monitor.Resource.ResourceTypeID,
 			monitor.Provider.GetProviderType(), "default", "default").Set(0)
-		
+
 		// Create alert for unhealthy resource
 		alert := Alert{
 			ID:          fmt.Sprintf("health-%s-%d", resourceID, time.Now().Unix()),
@@ -681,12 +681,12 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 			Status:      "active",
 			Metadata:    details,
 		}
-		
+
 		monitor.Alerts = append(monitor.Alerts, alert)
 		s.metrics.ActiveAlerts.WithLabelValues("critical", "resource_health",
 			monitor.Provider.GetProviderType(), "default").Inc()
 	}
-	
+
 	monitor.Resource.Status.LastHealthCheck = time.Now()
 	monitor.LastUpdate = time.Now()
 }
@@ -694,16 +694,16 @@ func (s *InfrastructureMonitoringService) checkResourceHealth(resourceID string,
 // evaluateSLACompliance evaluates SLA compliance for all services
 func (s *InfrastructureMonitoringService) evaluateSLACompliance() {
 	s.logger.Debug("evaluating SLA compliance")
-	
+
 	// This would typically evaluate SLA compliance based on collected metrics
 	// and predefined SLA thresholds
-	
+
 	// Example: Service availability SLA
 	s.evaluateServiceAvailabilitySLA()
-	
+
 	// Example: Network latency SLA
 	s.evaluateNetworkLatencySLA()
-	
+
 	// Example: Resource utilization SLA
 	s.evaluateResourceUtilizationSLA()
 }
@@ -712,24 +712,24 @@ func (s *InfrastructureMonitoringService) evaluateSLACompliance() {
 func (s *InfrastructureMonitoringService) evaluateServiceAvailabilitySLA() {
 	// Example implementation - in practice this would query actual service metrics
 	services := []string{"amf", "smf", "upf", "nssf", "udr", "udm"}
-	
+
 	for _, service := range services {
 		// Simulate availability calculation
 		availability := 99.95 // This would be calculated from actual metrics
-		
+
 		s.metrics.ServiceAvailability.WithLabelValues(
 			service, "5g_core", "kubernetes", "default").Set(availability)
-		
+
 		// Check SLA compliance (assuming 99.9% SLA)
 		slaTarget := 99.9
 		compliance := (availability / slaTarget) * 100
 		if compliance > 100 {
 			compliance = 100
 		}
-		
+
 		s.metrics.SLACompliance.WithLabelValues(
 			"availability", service, "kubernetes", "default").Set(compliance)
-		
+
 		if availability < slaTarget {
 			s.metrics.SLAViolations.WithLabelValues(
 				"availability", service, "kubernetes", "default", "below_threshold").Inc()
@@ -759,7 +759,7 @@ func (s *InfrastructureMonitoringService) processEvents() {
 func (s *InfrastructureMonitoringService) AddResourceMonitor(resource *models.Resource, provider providers.CloudProvider) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	monitor := &ResourceMonitor{
 		Resource:   resource,
 		Provider:   provider,
@@ -768,14 +768,14 @@ func (s *InfrastructureMonitoringService) AddResourceMonitor(resource *models.Re
 		Metrics:    make(map[string]interface{}),
 		Alerts:     []Alert{},
 	}
-	
+
 	s.resourceMonitors[resource.ResourceID] = monitor
-	
+
 	s.logger.Info("added resource to monitoring",
 		"resource_id", resource.ResourceID,
 		"resource_type", resource.ResourceTypeID,
 		"provider", provider.GetProviderType())
-	
+
 	return nil
 }
 
@@ -783,15 +783,15 @@ func (s *InfrastructureMonitoringService) AddResourceMonitor(resource *models.Re
 func (s *InfrastructureMonitoringService) RemoveResourceMonitor(resourceID string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	if monitor, exists := s.resourceMonitors[resourceID]; exists {
 		delete(s.resourceMonitors, resourceID)
-		
+
 		s.logger.Info("removed resource from monitoring",
 			"resource_id", resourceID,
 			"provider", monitor.Provider.GetProviderType())
 	}
-	
+
 	return nil
 }
 
@@ -799,15 +799,15 @@ func (s *InfrastructureMonitoringService) RemoveResourceMonitor(resourceID strin
 func (s *InfrastructureMonitoringService) GetResourceHealth(resourceID string) (*models.ResourceStatus, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	monitor, exists := s.resourceMonitors[resourceID]
 	if !exists {
 		return nil, fmt.Errorf("resource %s not found in monitoring", resourceID)
 	}
-	
+
 	monitor.mu.RLock()
 	defer monitor.mu.RUnlock()
-	
+
 	return monitor.Resource.Status, nil
 }
 
@@ -815,9 +815,9 @@ func (s *InfrastructureMonitoringService) GetResourceHealth(resourceID string) (
 func (s *InfrastructureMonitoringService) GetActiveAlerts() []Alert {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	var alerts []Alert
-	
+
 	for _, monitor := range s.resourceMonitors {
 		monitor.mu.RLock()
 		for _, alert := range monitor.Alerts {
@@ -827,7 +827,7 @@ func (s *InfrastructureMonitoringService) GetActiveAlerts() []Alert {
 		}
 		monitor.mu.RUnlock()
 	}
-	
+
 	return alerts
 }
 
@@ -835,14 +835,14 @@ func (s *InfrastructureMonitoringService) GetActiveAlerts() []Alert {
 func (s *InfrastructureMonitoringService) GetResourceMetrics(resourceID string) (map[string]interface{}, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	monitor, exists := s.resourceMonitors[resourceID]
 	if !exists {
 		return nil, fmt.Errorf("resource %s not found in monitoring", resourceID)
 	}
-	
+
 	monitor.mu.RLock()
 	defer monitor.mu.RUnlock()
-	
+
 	return monitor.Metrics, nil
 }

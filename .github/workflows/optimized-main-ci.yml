@@ -1,0 +1,944 @@
+# Optimized Main CI/CD Pipeline with Enhanced Quality Gates
+# Features: Multi-platform testing, advanced caching, incremental builds, comprehensive quality checks
+
+name: "Optimized Main CI/CD Pipeline"
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: read
+  security-events: write
+  packages: read
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/**'
+      - '!.github/workflows/optimized-main-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      coverage_threshold:
+        description: 'Coverage threshold percentage'
+        required: false
+        default: '80'
+        type: string
+      run_benchmarks:
+        description: 'Run performance benchmarks'
+        required: false
+        default: false
+        type: boolean
+      skip_slow_tests:
+        description: 'Skip slow integration tests'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: optimized-ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  GO_VERSION: '1.24.1'
+  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '80' }}
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+  GOPRIVATE: github.com/thc1006/*
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  DOCKER_BUILDKIT: 1
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+  CGO_ENABLED: 0
+
+jobs:
+  # =============================================================================
+  # Change Detection and Setup
+  # =============================================================================
+  detect-changes:
+    name: "🔍 Detect Changes"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      go_changed: ${{ steps.changes.outputs.go }}
+      docker_changed: ${{ steps.changes.outputs.docker }}
+      k8s_changed: ${{ steps.changes.outputs.k8s }}
+      docs_changed: ${{ steps.changes.outputs.docs }}
+      tests_changed: ${{ steps.changes.outputs.tests }}
+      workflows_changed: ${{ steps.changes.outputs.workflows }}
+      cache_key: ${{ steps.cache.outputs.cache_key }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "🔍 Detect File Changes"
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+              - 'Makefile'
+              - '.golangci.yml'
+            docker:
+              - 'Dockerfile*'
+              - 'docker-compose*.yml'
+              - '.dockerignore'
+            k8s:
+              - 'config/**'
+              - 'deployments/**'
+              - 'charts/**'
+            docs:
+              - 'docs/**'
+              - '**.md'
+              - 'README*'
+            tests:
+              - '**/test/**'
+              - '**/tests/**'
+              - '**/*_test.go'
+            workflows:
+              - '.github/workflows/**'
+
+      - name: "🔑 Generate Cache Key"
+        id: cache
+        run: |
+          cache_key="go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum', '**/go.mod', '.golangci.yml') }}"
+          echo "cache_key=${cache_key}" >> $GITHUB_OUTPUT
+          echo "📦 Cache key: ${cache_key}"
+
+      - name: "📊 Change Summary"
+        run: |
+          echo "## 📊 Change Detection Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Changed | Action |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Go Code | ${{ steps.changes.outputs.go == 'true' && '✅ Yes' || '❌ No' }} | ${{ steps.changes.outputs.go == 'true' && 'Full CI pipeline' || 'Skip tests' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker | ${{ steps.changes.outputs.docker == 'true' && '✅ Yes' || '❌ No' }} | ${{ steps.changes.outputs.docker == 'true' && 'Build container' || 'Use cache' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Kubernetes | ${{ steps.changes.outputs.k8s == 'true' && '✅ Yes' || '❌ No' }} | ${{ steps.changes.outputs.k8s == 'true' && 'Deploy test' || 'Skip deploy' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ steps.changes.outputs.tests == 'true' && '✅ Yes' || '❌ No' }} | ${{ steps.changes.outputs.tests == 'true' && 'Full test suite' || 'Basic tests' }} |" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # Advanced Code Quality and Linting
+  # =============================================================================
+  code-quality:
+    name: "🔍 Code Quality (${{ matrix.tool }})"
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.go_changed == 'true'
+    timeout-minutes: 15
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [golangci-lint, staticcheck, gosec, ineffassign]
+        
+    outputs:
+      quality_passed: ${{ steps.quality.outputs.passed }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
+
+      - name: "🚀 Restore Module Cache"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ~/.cache/golangci-lint
+          key: ${{ needs.detect-changes.outputs.cache_key }}
+          restore-keys: |
+            go-${{ env.GO_VERSION }}-
+          save-always: true
+
+      - name: "📦 Download Dependencies"
+        run: |
+          go mod download -x
+          go mod verify
+          # Pre-compile standard library for faster subsequent builds
+          GOOS=linux GOARCH=amd64 go install -a std
+          echo "✅ Dependencies downloaded and verified"
+
+      - name: "🔧 Install Analysis Tools"
+        run: |
+          case "${{ matrix.tool }}" in
+            "golangci-lint")
+              if ! command -v golangci-lint >/dev/null; then
+                go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
+              fi
+              ;;
+            "staticcheck")
+              go install honnef.co/go/tools/cmd/staticcheck@latest
+              ;;
+            "gosec")
+              go install github.com/secureco dewarrior/gosec/v2/cmd/gosec@latest
+              ;;
+            "ineffassign")
+              go install github.com/gordonklaus/ineffassign@latest
+              ;;
+          esac
+
+      - name: "🔍 Run ${{ matrix.tool }}"
+        id: analysis
+        run: |
+          mkdir -p reports
+          case "${{ matrix.tool }}" in
+            "golangci-lint")
+              golangci-lint run \
+                --timeout=10m \
+                --out-format=github-actions \
+                --issues-exit-code=1 \
+                --print-issued-lines=true \
+                --print-linter-name=true
+              golangci-lint run --out-format=json > reports/golangci-lint.json || true
+              ;;
+            "staticcheck")
+              staticcheck -f sarif ./... > reports/staticcheck.sarif || true
+              staticcheck ./... | tee reports/staticcheck.txt || true
+              ;;
+            "gosec")
+              gosec -fmt=sarif -out=reports/gosec.sarif ./... || true
+              gosec -fmt=json -out=reports/gosec.json ./... || true
+              ;;
+            "ineffassign")
+              ineffassign ./... | tee reports/ineffassign.txt || true
+              ;;
+          esac
+
+      - name: "📤 Upload SARIF Results"
+        if: matrix.tool == 'staticcheck' || matrix.tool == 'gosec'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/${{ matrix.tool }}.sarif
+          category: ${{ matrix.tool }}
+        continue-on-error: true
+
+      - name: "📊 Quality Assessment"
+        id: quality
+        run: |
+          passed=true
+          case "${{ matrix.tool }}" in
+            "golangci-lint")
+              if [ -f "reports/golangci-lint.json" ]; then
+                issues=$(jq '.Issues | length' reports/golangci-lint.json 2>/dev/null || echo "0")
+                if [ "$issues" -gt 0 ]; then
+                  echo "❌ Found $issues issues with golangci-lint"
+                  passed=false
+                else
+                  echo "✅ No issues found with golangci-lint"
+                fi
+              fi
+              ;;
+            *)
+              echo "✅ Analysis completed for ${{ matrix.tool }}"
+              ;;
+          esac
+          echo "passed=$passed" >> $GITHUB_OUTPUT
+
+      - name: "💾 Upload Analysis Results"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: code-quality-${{ matrix.tool }}
+          path: reports/
+          retention-days: 7
+
+  # =============================================================================
+  # Matrix Testing with Enhanced Coverage
+  # =============================================================================
+  test-matrix:
+    name: "🧪 Test (${{ matrix.go-version }}/${{ matrix.os }})"
+    runs-on: ${{ matrix.os }}
+    needs: [detect-changes, code-quality]
+    if: needs.detect-changes.outputs.go_changed == 'true'
+    timeout-minutes: 45
+    
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        go-version: ['1.23.4', '1.24.1']
+        os: [ubuntu-latest, windows-latest]
+        include:
+          - go-version: '1.24.1'
+            os: macos-latest
+            experimental: false
+          - go-version: '1.25rc1'
+            os: ubuntu-latest
+            experimental: true
+        exclude:
+          - go-version: '1.23.4'
+            os: windows-latest  # Reduce matrix size for older versions
+
+    continue-on-error: ${{ matrix.experimental || false }}
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nephoran_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: "🐹 Setup Go ${{ matrix.go-version }}"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
+
+      - name: "🚀 Advanced Dependency Caching"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ~/.cache/golangci-lint
+            ~/.local/bin
+          key: ${{ needs.detect-changes.outputs.cache_key }}-${{ matrix.go-version }}-${{ matrix.os }}
+          restore-keys: |
+            ${{ needs.detect-changes.outputs.cache_key }}-${{ matrix.go-version }}-
+            go-${{ matrix.go-version }}-${{ matrix.os }}-
+            go-${{ matrix.go-version }}-
+          save-always: true
+
+      - name: "🔧 Install Test Dependencies"
+        shell: bash
+        run: |
+          # Install testing tools
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          go install golang.org/x/tools/cmd/cover@latest
+          go install github.com/wadey/gocovmerge@latest
+          go install github.com/jstemmer/go-junit-report/v2@latest
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+
+      - name: "🏗️ Setup Test Environment"
+        shell: bash
+        run: |
+          setup-envtest use 1.29.0 --bin-dir ~/.local/bin
+          echo "KUBEBUILDER_ASSETS=$HOME/.local/bin" >> $GITHUB_ENV
+          echo "USE_EXISTING_CLUSTER=false" >> $GITHUB_ENV
+          echo "ENVTEST_K8S_VERSION=1.29.0" >> $GITHUB_ENV
+
+      - name: "📦 Download and Verify Dependencies"
+        shell: bash
+        run: |
+          go mod download -x
+          go mod verify
+          echo "✅ Dependencies verified"
+
+      - name: "🛡️ Security Vulnerability Scan"
+        shell: bash
+        if: matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p security-reports
+          echo "🔍 Running vulnerability scan..."
+          
+          # Run govulncheck with JSON output
+          govulncheck -json ./... > security-reports/vulns.json || true
+          
+          # Run govulncheck with human-readable output
+          govulncheck ./... | tee security-reports/vulns.txt || true
+          
+          # Check for critical/high vulnerabilities
+          if grep -q "HIGH\|CRITICAL" security-reports/vulns.txt 2>/dev/null; then
+            echo "⚠️ High/Critical vulnerabilities detected"
+            echo "VULNS_FOUND=true" >> $GITHUB_ENV
+          else
+            echo "✅ No high/critical vulnerabilities found"
+            echo "VULNS_FOUND=false" >> $GITHUB_ENV
+          fi
+
+      - name: "🧪 Run Comprehensive Test Suite"
+        shell: bash
+        env:
+          REDIS_URL: redis://localhost:6379
+          POSTGRES_URL: postgres://postgres:postgres@localhost:5432/nephoran_test?sslmode=disable
+          GOMAXPROCS: 4
+          TEST_CATEGORY: ci
+          SKIP_SLOW_TESTS: ${{ github.event.inputs.skip_slow_tests }}
+        run: |
+          mkdir -p test-results coverage
+          echo "🧪 Running comprehensive test suite..."
+          
+          # Determine test flags based on input
+          test_flags="-race -coverprofile=coverage/cover.out -covermode=atomic -timeout=30m -parallel=4"
+          
+          if [[ "${{ github.event.inputs.skip_slow_tests }}" == "true" ]]; then
+            test_flags="$test_flags -short"
+          fi
+          
+          # Run tests with enhanced reporting
+          go test ./... \
+            $test_flags \
+            -json | tee test-results/test-output.json
+          
+          # Generate JUnit report
+          cat test-results/test-output.json | go-junit-report -set-exit-code > test-results/junit.xml
+          
+          echo "✅ Test execution completed"
+
+      - name: "📊 Coverage Analysis"
+        if: matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          echo "📊 Analyzing test coverage..."
+          
+          # Generate coverage reports
+          go tool cover -func=coverage/cover.out > coverage/coverage.txt
+          go tool cover -html=coverage/cover.out -o coverage/coverage.html
+          
+          # Calculate coverage percentage
+          coverage_percent=$(go tool cover -func=coverage/cover.out | grep total: | awk '{print $3}' | sed 's/%//')
+          echo "COVERAGE_PERCENT=${coverage_percent}" >> $GITHUB_ENV
+          
+          echo "📊 Current coverage: ${coverage_percent}%"
+          echo "🎯 Threshold: ${{ env.COVERAGE_THRESHOLD }}%"
+          
+          # Check coverage threshold
+          if (( $(echo "${coverage_percent} >= ${{ env.COVERAGE_THRESHOLD }}" | bc -l) )); then
+            echo "✅ Coverage threshold met: ${coverage_percent}% >= ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "COVERAGE_PASSED=true" >> $GITHUB_ENV
+          else
+            echo "❌ Coverage threshold not met: ${coverage_percent}% < ${{ env.COVERAGE_THRESHOLD }}%"
+            echo "COVERAGE_PASSED=false" >> $GITHUB_ENV
+          fi
+
+      - name: "🏃 Performance Benchmarks"
+        if: github.event.inputs.run_benchmarks == 'true' && matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          mkdir -p benchmarks
+          echo "🏃 Running performance benchmarks..."
+          
+          # Run benchmarks with memory profiling
+          go test -bench=. -benchmem -benchtime=10s -timeout=20m ./... \
+            > benchmarks/benchmark-results.txt
+          
+          # Run specific benchmarks with profiling
+          go test -bench=BenchmarkLLM -cpuprofile=benchmarks/cpu.prof -memprofile=benchmarks/mem.prof ./pkg/llm/...
+          
+          echo "✅ Benchmarks completed"
+
+      - name: "📤 Upload Coverage to Codecov"
+        if: matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage/cover.out
+          flags: unittests,go${{ matrix.go-version }},${{ matrix.os }}
+          name: codecov-${{ matrix.go-version }}-${{ matrix.os }}
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+          slug: ${{ github.repository }}
+
+      - name: "💾 Upload Test Artifacts"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.go-version }}-${{ matrix.os }}
+          path: |
+            test-results/
+            coverage/
+            security-reports/
+            benchmarks/
+          retention-days: 30
+
+      - name: "🚨 Coverage Gate Check"
+        if: matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest' && env.COVERAGE_PASSED == 'false'
+        shell: bash
+        run: |
+          echo "❌ Code coverage ${COVERAGE_PERCENT}% is below the required threshold of ${{ env.COVERAGE_THRESHOLD }}%"
+          echo ""
+          echo "Coverage Report Summary:"
+          head -10 coverage/coverage.txt
+          echo ""
+          echo "Please add more tests to improve coverage."
+          echo "You can view the detailed coverage report in the artifacts."
+          exit 1
+
+  # =============================================================================
+  # Multi-Architecture Build Matrix
+  # =============================================================================
+  build-matrix:
+    name: "🔨 Build (${{ matrix.goos }}/${{ matrix.goarch }})"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, code-quality]
+    if: needs.detect-changes.outputs.go_changed == 'true'
+    timeout-minutes: 20
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            tags: "netgo,osusergo"
+          - goos: linux
+            goarch: arm64
+            tags: "netgo,osusergo"
+          - goos: darwin
+            goarch: amd64
+            tags: "netgo,osusergo"
+          - goos: darwin
+            goarch: arm64
+            tags: "netgo,osusergo"
+          - goos: windows
+            goarch: amd64
+            tags: "netgo"
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "🚀 Restore Build Cache"
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: build-${{ matrix.goos }}-${{ matrix.goarch }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            build-${{ matrix.goos }}-${{ matrix.goarch }}-
+            build-${{ matrix.goos }}-
+          save-always: true
+
+      - name: "🔨 Cross-Compile Binary"
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          echo "🔨 Building for ${{ matrix.goos }}/${{ matrix.goarch }}"
+          
+          mkdir -p dist/${{ matrix.goos }}_${{ matrix.goarch }}
+          
+          # Determine binary name
+          binary_name="nephoran-operator"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            binary_name="${binary_name}.exe"
+          fi
+          
+          # Build with optimizations
+          go build \
+            -tags "${{ matrix.tags }}" \
+            -ldflags="-s -w -X main.version=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -trimpath \
+            -o "dist/${{ matrix.goos }}_${{ matrix.goarch }}/${binary_name}" \
+            ./cmd/main.go
+          
+          # Verify binary
+          file_info=$(file "dist/${{ matrix.goos }}_${{ matrix.goarch }}/${binary_name}" || echo "Binary info not available")
+          echo "📊 Binary info: ${file_info}"
+          
+          # Calculate checksum
+          if command -v sha256sum >/dev/null; then
+            cd "dist/${{ matrix.goos }}_${{ matrix.goarch }}"
+            sha256sum "${binary_name}" > "${binary_name}.sha256"
+            cd - > /dev/null
+          fi
+          
+          echo "✅ Build completed for ${{ matrix.goos }}/${{ matrix.goarch }}"
+          ls -la "dist/${{ matrix.goos }}_${{ matrix.goarch }}/"
+
+      - name: "💾 Upload Build Artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/${{ matrix.goos }}_${{ matrix.goarch }}/
+          retention-days: 7
+
+  # =============================================================================
+  # Container Build and Security Scan
+  # =============================================================================
+  container-build:
+    name: "🐳 Container Build & Security Scan"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-matrix]
+    if: |
+      always() && 
+      (needs.detect-changes.outputs.go_changed == 'true' || 
+       needs.detect-changes.outputs.docker_changed == 'true')
+    timeout-minutes: 30
+    
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      security-passed: ${{ steps.security.outputs.passed }}
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🔧 Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          use: true
+
+      - name: "📥 Download Linux AMD64 Binary"
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-linux-amd64
+          path: ./bin/
+
+      - name: "🐳 Build Container Image"
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:test-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          load: true
+          build-args: |
+            VERSION=${{ github.sha }}
+            BUILD_TIME=${{ github.run_started_at }}
+            CGO_ENABLED=0
+
+      - name: "🔍 Container Security Scan with Trivy"
+        id: security
+        run: |
+          # Install Trivy
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.50.1
+          
+          echo "🔍 Scanning container image for vulnerabilities..."
+          mkdir -p security-reports
+          
+          # Run comprehensive Trivy scan
+          trivy image \
+            --format sarif \
+            --output security-reports/trivy-results.sarif \
+            --severity CRITICAL,HIGH,MEDIUM \
+            --vuln-type os,library \
+            --ignore-unfixed \
+            ${{ env.IMAGE_NAME }}:test-${{ github.sha }}
+          
+          # Generate human-readable report
+          trivy image \
+            --format table \
+            --output security-reports/trivy-results.txt \
+            --severity CRITICAL,HIGH,MEDIUM \
+            ${{ env.IMAGE_NAME }}:test-${{ github.sha }}
+          
+          # Check for critical vulnerabilities
+          critical_vulns=$(trivy image --format json ${{ env.IMAGE_NAME }}:test-${{ github.sha }} | jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "CRITICAL") | .VulnerabilityID' | wc -l)
+          high_vulns=$(trivy image --format json ${{ env.IMAGE_NAME }}:test-${{ github.sha }} | jq '.Results[]?.Vulnerabilities[]? | select(.Severity == "HIGH") | .VulnerabilityID' | wc -l)
+          
+          echo "🔍 Vulnerability Summary:"
+          echo "  Critical: ${critical_vulns}"
+          echo "  High: ${high_vulns}"
+          
+          if [ "${critical_vulns}" -eq 0 ]; then
+            echo "✅ No critical vulnerabilities found"
+            echo "passed=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Found ${critical_vulns} critical vulnerabilities"
+            echo "passed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: "📤 Upload Trivy SARIF Results"
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: security-reports/trivy-results.sarif
+          category: trivy-container
+
+      - name: "📊 Container Image Analysis"
+        run: |
+          echo "📊 Container image analysis:"
+          docker images ${{ env.IMAGE_NAME }}:test-${{ github.sha }} --format "table {{.Repository}}\t{{.Tag}}\t{{.Size}}\t{{.CreatedAt}}"
+          
+          # Inspect image layers
+          docker history ${{ env.IMAGE_NAME }}:test-${{ github.sha }} --no-trunc
+
+      - name: "💾 Upload Security Reports"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: container-security-reports
+          path: security-reports/
+          retention-days: 30
+
+      - name: "🚨 Fail on Critical Vulnerabilities"
+        if: steps.security.outputs.passed == 'false'
+        run: |
+          echo "❌ Container security scan failed due to critical vulnerabilities"
+          echo "Please review the security report and update base images or dependencies"
+          cat security-reports/trivy-results.txt
+          exit 1
+
+  # =============================================================================
+  # Integration Tests
+  # =============================================================================
+  integration-tests:
+    name: "🔗 Integration Tests"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, container-build]
+    if: |
+      always() && needs.detect-changes.outputs.go_changed == 'true' && 
+      (needs.detect-changes.outputs.tests_changed == 'true' || github.event_name == 'push')
+    timeout-minutes: 45
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: nephoran_test
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "🔧 Setup Kind Cluster"
+        uses: helm/kind-action@v1.9.0
+        with:
+          version: v0.22.0
+          kubernetes_version: v1.29.0
+          cluster_name: integration-test
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+              - role: control-plane
+                kubeadmConfigPatches:
+                  - |
+                    kind: InitConfiguration
+                    nodeRegistration:
+                      kubeletExtraArgs:
+                        node-labels: "ingress-ready=true"
+                extraPortMappings:
+                  - containerPort: 80
+                    hostPort: 80
+                    protocol: TCP
+                  - containerPort: 443
+                    hostPort: 443
+                    protocol: TCP
+
+      - name: "🚀 Load Container Image"
+        run: |
+          # Load the built image into Kind
+          kind load docker-image ${{ env.IMAGE_NAME }}:test-${{ github.sha }} --name integration-test
+
+      - name: "🔧 Deploy Test Environment"
+        run: |
+          # Install CRDs
+          make install-crds || kubectl apply -f config/crd/bases/
+
+          # Deploy operator
+          kubectl create namespace nephoran-system || true
+          kubectl apply -f config/rbac/
+          
+          # Create deployment with test image
+          sed "s|IMAGE_PLACEHOLDER|${{ env.IMAGE_NAME }}:test-${{ github.sha }}|g" config/manager/manager.yaml | kubectl apply -f -
+
+          # Wait for deployment
+          kubectl wait --for=condition=available --timeout=300s deployment/nephoran-intent-operator-controller-manager -n nephoran-system
+
+      - name: "🧪 Run Integration Tests"
+        env:
+          INTEGRATION_TEST: true
+          KUBERNETES_CLUSTER: true
+          REDIS_URL: redis://localhost:6379
+          POSTGRES_URL: postgres://postgres:postgres@localhost:5432/nephoran_test?sslmode=disable
+        run: |
+          mkdir -p integration-results
+          
+          # Run integration test suite
+          go test ./tests/integration/... \
+            -v \
+            -timeout=30m \
+            -parallel=2 \
+            -json | tee integration-results/integration-tests.json
+
+      - name: "📊 Collect Integration Logs"
+        if: always()
+        run: |
+          mkdir -p integration-results/logs
+          
+          # Collect operator logs
+          kubectl logs -n nephoran-system deployment/nephoran-intent-operator-controller-manager > integration-results/logs/operator.log || true
+          
+          # Collect pod descriptions
+          kubectl describe pods -n nephoran-system > integration-results/logs/pod-descriptions.txt || true
+          
+          # Collect events
+          kubectl get events --all-namespaces --sort-by='.lastTimestamp' > integration-results/logs/events.txt || true
+
+      - name: "💾 Upload Integration Results"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integration-test-results
+          path: integration-results/
+          retention-days: 14
+
+  # =============================================================================
+  # Final Status and Reporting
+  # =============================================================================
+  ci-status:
+    name: "📊 CI Status Summary"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, code-quality, test-matrix, build-matrix, container-build, integration-tests]
+    if: always()
+    
+    steps:
+      - name: "📊 Aggregate Results"
+        id: results
+        run: |
+          echo "## 🚀 CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine overall status
+          overall_status="success"
+          critical_failures=""
+          
+          # Check critical jobs
+          if [ "${{ needs.code-quality.result }}" != "success" ]; then
+            overall_status="failure"
+            critical_failures="${critical_failures}code-quality "
+          fi
+          
+          if [ "${{ needs.test-matrix.result }}" != "success" ]; then
+            overall_status="failure"
+            critical_failures="${critical_failures}tests "
+          fi
+          
+          # Check non-critical jobs
+          warnings=""
+          if [ "${{ needs.build-matrix.result }}" != "success" ]; then
+            warnings="${warnings}build-matrix "
+          fi
+          
+          if [ "${{ needs.container-build.result }}" != "success" ]; then
+            warnings="${warnings}container-build "
+          fi
+          
+          if [ "${{ needs.integration-tests.result }}" != "success" ] && [ "${{ needs.integration-tests.result }}" != "skipped" ]; then
+            warnings="${warnings}integration-tests "
+          fi
+          
+          # Set outputs
+          echo "overall_status=${overall_status}" >> $GITHUB_OUTPUT
+          echo "critical_failures=${critical_failures}" >> $GITHUB_OUTPUT
+          echo "warnings=${warnings}" >> $GITHUB_OUTPUT
+
+      - name: "📊 Generate Summary Report"
+        run: |
+          echo "### 📈 Job Status Overview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status | Duration | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|----------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 Change Detection | ${{ needs.detect-changes.result == 'success' && '✅ Success' || '❌ Failed' }} | N/A | File change analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 Code Quality | ${{ needs.code-quality.result == 'success' && '✅ Success' || (needs.code-quality.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | N/A | Linting and static analysis |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Test Matrix | ${{ needs.test-matrix.result == 'success' && '✅ Success' || (needs.test-matrix.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | N/A | Multi-platform testing |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔨 Build Matrix | ${{ needs.build-matrix.result == 'success' && '✅ Success' || (needs.build-matrix.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | N/A | Cross-compilation |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐳 Container Build | ${{ needs.container-build.result == 'success' && '✅ Success' || (needs.container-build.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | N/A | Image build & security scan |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔗 Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Success' || (needs.integration-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | N/A | End-to-end validation |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          if [ "${{ steps.results.outputs.overall_status }}" = "success" ]; then
+            echo "### 🎉 Overall Status: ✅ SUCCESS" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "All critical quality gates have passed!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Overall Status: ❌ FAILURE" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Critical failures:** ${{ steps.results.outputs.critical_failures }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -n "${{ steps.results.outputs.warnings }}" ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ **Warnings:** ${{ steps.results.outputs.warnings }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Build Information" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Go Version:** ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage Threshold:** ${{ env.COVERAGE_THRESHOLD }}%" >> $GITHUB_STEP_SUMMARY
+
+      - name: "🚨 Fail on Critical Issues"
+        if: steps.results.outputs.overall_status != 'success'
+        run: |
+          echo "❌ CI Pipeline failed due to critical issues"
+          echo "Critical failures: ${{ steps.results.outputs.critical_failures }}"
+          echo ""
+          echo "Please review the failed jobs and address the issues before proceeding."
+          exit 1
+
+      - name: "🎉 Success Notification"
+        if: steps.results.outputs.overall_status == 'success'
+        run: |
+          echo "🎉 CI Pipeline completed successfully!"
+          echo "✅ All quality gates passed"
+          echo "🚀 Ready for deployment or merge"

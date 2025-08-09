@@ -42,22 +42,22 @@ type GoogleUserInfo struct {
 
 // GoogleIDToken represents Google ID token claims
 type GoogleIDToken struct {
-	Issuer           string `json:"iss"`
-	Subject          string `json:"sub"`
-	Audience         string `json:"aud"`
-	ExpiresAt        int64  `json:"exp"`
-	IssuedAt         int64  `json:"iat"`
-	AuthTime         int64  `json:"auth_time,omitempty"`
-	Nonce            string `json:"nonce,omitempty"`
-	Name             string `json:"name"`
-	GivenName        string `json:"given_name"`
-	FamilyName       string `json:"family_name"`
-	Picture          string `json:"picture"`
-	Email            string `json:"email"`
-	EmailVerified    bool   `json:"email_verified"`
-	Locale           string `json:"locale"`
-	HostedDomain     string `json:"hd,omitempty"`
-	AtHash           string `json:"at_hash,omitempty"`
+	Issuer        string `json:"iss"`
+	Subject       string `json:"sub"`
+	Audience      string `json:"aud"`
+	ExpiresAt     int64  `json:"exp"`
+	IssuedAt      int64  `json:"iat"`
+	AuthTime      int64  `json:"auth_time,omitempty"`
+	Nonce         string `json:"nonce,omitempty"`
+	Name          string `json:"name"`
+	GivenName     string `json:"given_name"`
+	FamilyName    string `json:"family_name"`
+	Picture       string `json:"picture"`
+	Email         string `json:"email"`
+	EmailVerified bool   `json:"email_verified"`
+	Locale        string `json:"locale"`
+	HostedDomain  string `json:"hd,omitempty"`
+	AtHash        string `json:"at_hash,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -132,7 +132,7 @@ func (p *GoogleProvider) GetProviderName() string {
 // GetAuthorizationURL generates OAuth2 authorization URL with PKCE support
 func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options ...AuthOption) (string, *PKCEChallenge, error) {
 	opts := ApplyOptions(options...)
-	
+
 	// Update redirect URI if provided
 	config := *p.oauth2Cfg
 	if redirectURI != "" {
@@ -144,13 +144,13 @@ func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options 
 
 	var challenge *PKCEChallenge
 	var err error
-	
+
 	if opts.UsePKCE {
 		challenge, err = GeneratePKCEChallenge()
 		if err != nil {
 			return "", nil, fmt.Errorf("failed to generate PKCE challenge: %w", err)
 		}
-		
+
 		authOpts = append(authOpts,
 			oauth2.SetAuthURLParam("code_challenge", challenge.CodeChallenge),
 			oauth2.SetAuthURLParam("code_challenge_method", challenge.Method),
@@ -166,15 +166,15 @@ func (p *GoogleProvider) GetAuthorizationURL(state, redirectURI string, options 
 	if opts.Prompt != "" {
 		authOpts = append(authOpts, oauth2.SetAuthURLParam("prompt", opts.Prompt))
 	}
-	
+
 	if opts.LoginHint != "" {
 		authOpts = append(authOpts, oauth2.SetAuthURLParam("login_hint", opts.LoginHint))
 	}
-	
+
 	if opts.MaxAge > 0 {
 		authOpts = append(authOpts, oauth2.SetAuthURLParam("max_age", fmt.Sprintf("%d", opts.MaxAge)))
 	}
-	
+
 	for key, value := range opts.CustomParams {
 		authOpts = append(authOpts, oauth2.SetAuthURLParam(key, value))
 	}
@@ -198,7 +198,7 @@ func (p *GoogleProvider) ExchangeCodeForToken(ctx context.Context, code, redirec
 
 	token, err := config.Exchange(ctx, code, opts...)
 	if err != nil {
-		return nil, NewProviderError(p.GetProviderName(), "token_exchange_failed", 
+		return nil, NewProviderError(p.GetProviderName(), "token_exchange_failed",
 			"Failed to exchange authorization code for token", err)
 	}
 
@@ -223,7 +223,7 @@ func (p *GoogleProvider) RefreshToken(ctx context.Context, refreshToken string) 
 	token := &oauth2.Token{
 		RefreshToken: refreshToken,
 	}
-	
+
 	tokenSource := p.oauth2Cfg.TokenSource(ctx, token)
 	newToken, err := tokenSource.Token()
 	if err != nil {
@@ -253,21 +253,21 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 	if err != nil {
 		return nil, fmt.Errorf("failed to create user info request: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user info: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, NewProviderError(p.GetProviderName(), "userinfo_failed",
 			fmt.Sprintf("Google API returned status %d", resp.StatusCode), nil)
 	}
-	
+
 	var googleUser GoogleUserInfo
 	if err := json.NewDecoder(resp.Body).Decode(&googleUser); err != nil {
 		return nil, fmt.Errorf("failed to decode user info: %w", err)
@@ -276,7 +276,7 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 	// Validate hosted domain if required
 	if p.hostedDomain != "" && googleUser.HostedDomain != p.hostedDomain {
 		return nil, NewProviderError(p.GetProviderName(), "invalid_hosted_domain",
-			fmt.Sprintf("User domain %s does not match required domain %s", 
+			fmt.Sprintf("User domain %s does not match required domain %s",
 				googleUser.HostedDomain, p.hostedDomain), nil)
 	}
 
@@ -292,8 +292,8 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 		Provider:      p.GetProviderName(),
 		ProviderID:    googleUser.ID,
 		Attributes: map[string]interface{}{
-			"google_id":      googleUser.ID,
-			"hosted_domain":  googleUser.HostedDomain,
+			"google_id":     googleUser.ID,
+			"hosted_domain": googleUser.HostedDomain,
 		},
 	}
 
@@ -317,12 +317,12 @@ func (p *GoogleProvider) GetUserInfo(ctx context.Context, accessToken string) (*
 func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) (*TokenValidation, error) {
 	// Use Google's tokeninfo endpoint for validation
 	tokenInfoURL := fmt.Sprintf("https://oauth2.googleapis.com/tokeninfo?access_token=%s", accessToken)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "GET", tokenInfoURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create token validation request: %w", err)
 	}
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return &TokenValidation{
@@ -331,21 +331,21 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 		}, nil
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode == http.StatusBadRequest {
 		return &TokenValidation{
 			Valid: false,
 			Error: "Token is invalid or expired",
 		}, nil
 	}
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return &TokenValidation{
 			Valid: false,
 			Error: fmt.Sprintf("Unexpected status code: %d", resp.StatusCode),
 		}, nil
 	}
-	
+
 	var tokenInfo map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&tokenInfo); err != nil {
 		return &TokenValidation{
@@ -370,11 +370,11 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 	if clientID, ok := tokenInfo["aud"].(string); ok {
 		validation.ClientID = clientID
 	}
-	
+
 	if scope, ok := tokenInfo["scope"].(string); ok {
 		validation.Scopes = strings.Split(scope, " ")
 	}
-	
+
 	if expiresIn, ok := tokenInfo["expires_in"].(float64); ok {
 		validation.ExpiresAt = time.Now().Add(time.Duration(expiresIn) * time.Second)
 	}
@@ -385,23 +385,23 @@ func (p *GoogleProvider) ValidateToken(ctx context.Context, accessToken string) 
 // RevokeToken revokes an access token
 func (p *GoogleProvider) RevokeToken(ctx context.Context, token string) error {
 	revokeURL := "https://oauth2.googleapis.com/revoke"
-	
+
 	data := url.Values{}
 	data.Set("token", token)
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", revokeURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return fmt.Errorf("failed to create revoke request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to revoke token: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return NewProviderError(p.GetProviderName(), "token_revocation_failed",
 			fmt.Sprintf("Token revocation failed with status %d", resp.StatusCode), nil)
@@ -437,17 +437,17 @@ func (p *GoogleProvider) DiscoverConfiguration(ctx context.Context) (*OIDCConfig
 	if err != nil {
 		return nil, fmt.Errorf("failed to create discovery request: %w", err)
 	}
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover OIDC configuration: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("OIDC discovery failed with status %d", resp.StatusCode)
 	}
-	
+
 	var config OIDCConfiguration
 	if err := json.NewDecoder(resp.Body).Decode(&config); err != nil {
 		return nil, fmt.Errorf("failed to decode OIDC configuration: %w", err)
@@ -522,19 +522,19 @@ func (p *GoogleProvider) ValidateIDToken(ctx context.Context, idToken string) (*
 
 	// Convert to standard IDTokenClaims
 	standardClaims := &IDTokenClaims{
-		Issuer:            claims.Issuer,
-		Subject:           claims.Subject,
-		Audience:          claims.Audience,
-		ExpiresAt:         claims.ExpiresAt,
-		IssuedAt:          claims.IssuedAt,
-		AuthTime:          claims.AuthTime,
-		Nonce:             claims.Nonce,
-		Name:              claims.Name,
-		GivenName:         claims.GivenName,
-		FamilyName:        claims.FamilyName,
-		Picture:           claims.Picture,
-		Email:             claims.Email,
-		EmailVerified:     claims.EmailVerified,
+		Issuer:        claims.Issuer,
+		Subject:       claims.Subject,
+		Audience:      claims.Audience,
+		ExpiresAt:     claims.ExpiresAt,
+		IssuedAt:      claims.IssuedAt,
+		AuthTime:      claims.AuthTime,
+		Nonce:         claims.Nonce,
+		Name:          claims.Name,
+		GivenName:     claims.GivenName,
+		FamilyName:    claims.FamilyName,
+		Picture:       claims.Picture,
+		Email:         claims.Email,
+		EmailVerified: claims.EmailVerified,
 		Extra: map[string]interface{}{
 			"locale":        claims.Locale,
 			"hosted_domain": claims.HostedDomain,
@@ -560,17 +560,17 @@ func (p *GoogleProvider) GetJWKS(ctx context.Context) (*JWKS, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create JWKS request: %w", err)
 	}
-	
+
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get JWKS: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("JWKS request failed with status %d", resp.StatusCode)
 	}
-	
+
 	var jwks JWKS
 	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
 		return nil, fmt.Errorf("failed to decode JWKS: %w", err)
@@ -662,19 +662,19 @@ func (p *GoogleProvider) CheckGroupMembership(ctx context.Context, accessToken s
 	if err != nil {
 		return nil, err
 	}
-	
+
 	userGroupMap := make(map[string]bool)
 	for _, group := range userGroups {
 		userGroupMap[group] = true
 	}
-	
+
 	var memberGroups []string
 	for _, group := range groups {
 		if userGroupMap[group] {
 			memberGroups = append(memberGroups, group)
 		}
 	}
-	
+
 	return memberGroups, nil
 }
 
@@ -684,18 +684,18 @@ func (p *GoogleProvider) ValidateUserAccess(ctx context.Context, accessToken str
 	if err != nil {
 		return fmt.Errorf("failed to get user info for access validation: %w", err)
 	}
-	
+
 	// Basic validation - ensure user has verified email
 	if !userInfo.EmailVerified {
 		return fmt.Errorf("user email is not verified")
 	}
-	
+
 	// Check hosted domain if required
 	if p.hostedDomain != "" {
 		if hostedDomain, ok := userInfo.Attributes["hosted_domain"].(string); !ok || hostedDomain != p.hostedDomain {
 			return fmt.Errorf("user is not from required hosted domain")
 		}
 	}
-	
+
 	return nil
 }

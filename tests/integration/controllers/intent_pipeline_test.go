@@ -27,12 +27,12 @@ import (
 )
 
 var (
-	cfg           *rest.Config
-	k8sClient     client.Client
-	testEnv       *envtest.Environment
-	ctx           context.Context
-	cancel        context.CancelFunc
-	mgr           ctrl.Manager
+	cfg       *rest.Config
+	k8sClient client.Client
+	testEnv   *envtest.Environment
+	ctx       context.Context
+	cancel    context.CancelFunc
+	mgr       ctrl.Manager
 )
 
 func TestIntentPipeline(t *testing.T) {
@@ -74,7 +74,7 @@ var _ = BeforeSuite(func() {
 
 	// Setup controllers with mock dependencies
 	mockDeps := testutils.NewMockDependencies()
-	
+
 	// Configure NetworkIntent controller
 	networkIntentController := &controllers.NetworkIntentReconciler{
 		Client: mgr.GetClient(),
@@ -127,21 +127,21 @@ var _ = AfterSuite(func() {
 
 var _ = Describe("Intent Pipeline Integration", func() {
 	var (
-		namespace     string
-		testFixtures  *testutils.TestFixtures
+		namespace    string
+		testFixtures *testutils.TestFixtures
 	)
 
 	BeforeEach(func() {
 		namespace = fmt.Sprintf("test-ns-%d", time.Now().UnixNano())
-		
+
 		// Create test namespace
 		ns := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{Name: namespace},
 		}
 		Expect(k8sClient.Create(ctx, ns)).To(Succeed())
-		
+
 		testFixtures = testutils.NewTestFixtures()
-		
+
 		DeferCleanup(func() {
 			// Cleanup namespace
 			Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
@@ -207,7 +207,7 @@ var _ = Describe("Intent Pipeline Integration", func() {
 				if createdIntent.Status.Phase == nephoranv1.NetworkIntentPhaseDeployed {
 					// Verify successful deployment conditions
 					Expect(createdIntent.Status.Message).To(ContainSubstring("deployed"))
-					
+
 					// Check for Ready condition
 					hasReadyCondition := false
 					for _, condition := range createdIntent.Status.Conditions {
@@ -234,12 +234,12 @@ var _ = Describe("Intent Pipeline Integration", func() {
 			It("should handle multiple intents concurrently", func() {
 				numIntents := 5
 				intents := make([]*nephoranv1.NetworkIntent, numIntents)
-				
+
 				By("creating multiple NetworkIntents")
 				for i := 0; i < numIntents; i++ {
 					intent := testutils.NetworkIntentFixture.CreateBasicNetworkIntent(
 						fmt.Sprintf("concurrent-intent-%d", i), namespace)
-					intent.Spec.Intent = fmt.Sprintf("Deploy 5G %s function with HA", 
+					intent.Spec.Intent = fmt.Sprintf("Deploy 5G %s function with HA",
 						[]string{"AMF", "SMF", "UPF", "NSSF", "UDM"}[i])
 					intents[i] = intent
 					Expect(k8sClient.Create(ctx, intent)).To(Succeed())
@@ -274,10 +274,10 @@ var _ = Describe("Intent Pipeline Integration", func() {
 						if err != nil {
 							return false
 						}
-						
+
 						return currentIntent.Status.Phase == nephoranv1.NetworkIntentPhaseDeployed ||
-							   currentIntent.Status.Phase == nephoranv1.NetworkIntentPhaseFailed
-					}, 90*time.Second, 2*time.Second).Should(BeTrue(), 
+							currentIntent.Status.Phase == nephoranv1.NetworkIntentPhaseFailed
+					}, 90*time.Second, 2*time.Second).Should(BeTrue(),
 						fmt.Sprintf("Intent %d should reach final state", i))
 
 					// Count successful deployments
@@ -292,7 +292,7 @@ var _ = Describe("Intent Pipeline Integration", func() {
 
 				By("verifying reasonable success rate")
 				// In integration tests with mocks, we expect high success rate
-				Expect(successfulIntents).To(BeNumerically(">=", 3), 
+				Expect(successfulIntents).To(BeNumerically(">=", 3),
 					"At least 60% of intents should succeed in integration test")
 			})
 		})
@@ -388,11 +388,11 @@ var _ = Describe("Intent Pipeline Integration", func() {
 					if err != nil {
 						return false
 					}
-					
+
 					// Should reach final state within reasonable time
 					return currentIntent.Status.Phase == nephoranv1.NetworkIntentPhaseDeployed ||
-						   currentIntent.Status.Phase == nephoranv1.NetworkIntentPhaseFailed ||
-						   currentIntent.Status.RetryCount > 0
+						currentIntent.Status.Phase == nephoranv1.NetworkIntentPhaseFailed ||
+						currentIntent.Status.RetryCount > 0
 				}, 60*time.Second, 2*time.Second).Should(BeTrue())
 
 				// Verify retry mechanism was used if needed
@@ -444,15 +444,15 @@ var _ = Describe("Intent Pipeline Integration", func() {
 
 							// Record processing phases
 							if currentIntent.Status.ProcessingPhase != "" {
-								if len(observedProcessingPhases) == 0 || 
-								   observedProcessingPhases[len(observedProcessingPhases)-1] != currentIntent.Status.ProcessingPhase {
+								if len(observedProcessingPhases) == 0 ||
+									observedProcessingPhases[len(observedProcessingPhases)-1] != currentIntent.Status.ProcessingPhase {
 									observedProcessingPhases = append(observedProcessingPhases, currentIntent.Status.ProcessingPhase)
 								}
 							}
 
 							// Stop when reaching final state
 							if currentIntent.Status.Phase == nephoranv1.NetworkIntentPhaseDeployed ||
-							   currentIntent.Status.Phase == nephoranv1.NetworkIntentPhaseFailed {
+								currentIntent.Status.Phase == nephoranv1.NetworkIntentPhaseFailed {
 								return
 							}
 						}
@@ -493,7 +493,7 @@ var _ = Describe("Intent Pipeline Integration", func() {
 				}
 
 				if pendingIndex >= 0 && processingIndex >= 0 {
-					Expect(pendingIndex).To(BeNumerically("<", processingIndex), 
+					Expect(pendingIndex).To(BeNumerically("<", processingIndex),
 						"Pending phase should come before Processing phase")
 				}
 
@@ -521,10 +521,10 @@ var _ = Describe("Intent Pipeline Integration", func() {
 				// Count ConfigMaps, Secrets, or other resources that might be created
 				configMaps := &corev1.ConfigMapList{}
 				k8sClient.List(ctx, configMaps, client.InNamespace(namespace))
-				
+
 				secrets := &corev1.SecretList{}
 				k8sClient.List(ctx, secrets, client.InNamespace(namespace))
-				
+
 				return len(configMaps.Items) + len(secrets.Items)
 			}, 30*time.Second, 2*time.Second).Should(BeNumerically(">=", initialResourceCount))
 
@@ -552,7 +552,7 @@ var _ = Describe("Intent Pipeline Integration", func() {
 			finalResourceCount = len(configMaps.Items) + len(secrets.Items)
 
 			// Should have reasonable resource count (not excessive)
-			Expect(finalResourceCount).To(BeNumerically("<=", 20), 
+			Expect(finalResourceCount).To(BeNumerically("<=", 20),
 				"Should not create excessive resources")
 		})
 	})

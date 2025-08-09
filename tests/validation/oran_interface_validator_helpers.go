@@ -31,7 +31,7 @@ func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{
 			return false
 		}
 	}
-	
+
 	// Validate schema structure
 	if schema, exists := model["schema"]; exists {
 		if schemaMap, ok := schema.(map[string]interface{}); ok {
@@ -44,7 +44,7 @@ func (oiv *ORANInterfaceValidator) ValidateYANGModel(model map[string]interface{
 			}
 		}
 	}
-	
+
 	return true
 }
 
@@ -55,27 +55,27 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 		"sessionId": "netconf-session-001",
 		"capabilities": []string{
 			"urn:ietf:params:netconf:base:1.0",
-			"urn:ietf:params:netconf:base:1.1", 
+			"urn:ietf:params:netconf:base:1.1",
 			"urn:o-ran:netconf:capability:1.0",
 		},
 		"transport": "SSH",
-		"status":   "active",
+		"status":    "active",
 	}
-	
+
 	// Test get operation
 	getConfig := map[string]interface{}{
 		"operation": "get-config",
-		"source":   "running",
+		"source":    "running",
 		"filter": map[string]interface{}{
 			"type":  "xpath",
 			"xpath": "/ric-config",
 		},
 	}
-	
+
 	// Test edit-config operation
 	editConfig := map[string]interface{}{
 		"operation": "edit-config",
-		"target":   "candidate",
+		"target":    "candidate",
 		"config": map[string]interface{}{
 			"ric-config": map[string]interface{}{
 				"ric-id":         "ric-001",
@@ -83,12 +83,12 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 			},
 		},
 	}
-	
+
 	// Test commit operation
 	commit := map[string]interface{}{
 		"operation": "commit",
 	}
-	
+
 	// Simulate NETCONF operations execution
 	operations := []map[string]interface{}{getConfig, editConfig, commit}
 	for _, op := range operations {
@@ -104,7 +104,7 @@ func (oiv *ORANInterfaceValidator) TestNETCONFOperations(ctx context.Context) bo
 			}
 		}
 	}
-	
+
 	return true
 }
 
@@ -117,7 +117,7 @@ func (oiv *ORANInterfaceValidator) ValidateTerraformTemplate(template map[string
 			return false
 		}
 	}
-	
+
 	// Validate terraform section
 	if terraform, exists := template["terraform"]; exists {
 		if tfMap, ok := terraform.(map[string]interface{}); ok {
@@ -126,7 +126,7 @@ func (oiv *ORANInterfaceValidator) ValidateTerraformTemplate(template map[string
 			}
 		}
 	}
-	
+
 	return true
 }
 
@@ -138,7 +138,7 @@ func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string
 			return false
 		}
 	}
-	
+
 	// Validate resources section
 	if resources, exists := config["resources"]; exists {
 		if resourceMap, ok := resources.(map[string]interface{}); ok {
@@ -147,6 +147,6 @@ func (oiv *ORANInterfaceValidator) ValidateCloudProviderConfig(config map[string
 			}
 		}
 	}
-	
+
 	return true
 }

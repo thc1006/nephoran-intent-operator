@@ -2075,13 +2075,13 @@ func NewE2TestDataGenerator(config *TestDataConfig) *E2TestDataGenerator {
 }
 
 func (gen *E2TestDataGenerator) GenerateTestNodes() []*E2NodeInfo {
-    rand.Seed(gen.randomSeed)
+    rng := rand.New(rand.NewSource(gen.randomSeed))
     nodes := make([]*E2NodeInfo, gen.nodeCount)
     
     nodeTypes := []string{"gNB", "eNB", "ng-eNB", "en-gNB"}
     
     for i := 0; i < gen.nodeCount; i++ {
-        nodeType := nodeTypes[rand.Intn(len(nodeTypes))]
+        nodeType := nodeTypes[rng.Intn(len(nodeTypes))]
         
         node := &E2NodeInfo{
             NodeID: fmt.Sprintf("test-%s-%03d", strings.ToLower(nodeType), i+1),
@@ -2091,13 +2091,13 @@ func (gen *E2TestDataGenerator) GenerateTestNodes() []*E2NodeInfo {
             },
             ConnectionStatus: E2ConnectionStatus{
                 State:     "CONNECTED",
-                Timestamp: time.Now().Add(-time.Duration(rand.Intn(3600)) * time.Second),
+                Timestamp: time.Now().Add(-time.Duration(rng.Intn(3600)) * time.Second),
             },
             RANFunctions: gen.generateRanFunctions(nodeType),
             Configuration: map[string]interface{}{
-                "cell_count":     rand.Intn(16) + 1,
-                "max_ue_count":   rand.Intn(1000) + 100,
-                "frequency_band": fmt.Sprintf("n%d", rand.Intn(100)+1),
+                "cell_count":     rng.Intn(16) + 1,
+                "max_ue_count":   rng.Intn(1000) + 100,
+                "frequency_band": fmt.Sprintf("n%d", rng.Intn(100)+1),
             },
         }
         
@@ -2120,7 +2120,7 @@ func (gen *E2TestDataGenerator) generateRanFunctions(nodeType string) []RanFunct
     })
     
     // 70% of nodes support RC
-    if rand.Float32() < 0.7 {
+    if rng.Float32() < 0.7 {
         functions = append(functions, RanFunction{
             FunctionID:         2,
             FunctionDefinition: fmt.Sprintf("%s-RC", nodeType),
@@ -2134,7 +2134,7 @@ func (gen *E2TestDataGenerator) generateRanFunctions(nodeType string) []RanFunct
 }
 
 func (gen *E2TestDataGenerator) GenerateTestSubscriptions(nodeIDs []string) []*E2Subscription {
-    rand.Seed(gen.randomSeed)
+    rng := rand.New(rand.NewSource(gen.randomSeed))
     subscriptions := make([]*E2Subscription, 0, gen.subscriptionCount)
     
     actionTypes := []string{"REPORT", "INSERT", "POLICY"}
@@ -2146,29 +2146,29 @@ func (gen *E2TestDataGenerator) GenerateTestSubscriptions(nodeIDs []string) []*E
     }
     
     for i := 0; i < gen.subscriptionCount; i++ {
-        nodeID := nodeIDs[rand.Intn(len(nodeIDs))]
+        nodeID := nodeIDs[rng.Intn(len(nodeIDs))]
         
         subscription := &E2Subscription{
             SubscriptionID:  fmt.Sprintf("test-sub-%04d", i+1),
-            RequestorID:     fmt.Sprintf("test-requestor-%d", rand.Intn(10)+1),
-            RanFunctionID:   1 + rand.Intn(2), // 1 or 2
-            ReportingPeriod: time.Duration(1+rand.Intn(60)) * time.Second,
+            RequestorID:     fmt.Sprintf("test-requestor-%d", rng.Intn(10)+1),
+            RanFunctionID:   1 + rng.Intn(2), // 1 or 2
+            ReportingPeriod: time.Duration(1+rng.Intn(60)) * time.Second,
             EventTriggers: []E2EventTrigger{
                 {
-                    TriggerType:     triggerTypes[rand.Intn(len(triggerTypes))],
-                    ReportingPeriod: time.Duration(1+rand.Intn(60)) * time.Second,
+                    TriggerType:     triggerTypes[rng.Intn(len(triggerTypes))],
+                    ReportingPeriod: time.Duration(1+rng.Intn(60)) * time.Second,
                     Conditions: map[string]interface{}{
-                        "measurement_period": fmt.Sprintf("%dms", (1+rand.Intn(60))*1000),
+                        "measurement_period": fmt.Sprintf("%dms", (1+rng.Intn(60))*1000),
                     },
                 },
             },
             Actions: []E2Action{
                 {
-                    ActionID:   1 + rand.Intn(5),
-                    ActionType: actionTypes[rand.Intn(len(actionTypes))],
+                    ActionID:   1 + rng.Intn(5),
+                    ActionType: actionTypes[rng.Intn(len(actionTypes))],
                     ActionDefinition: map[string]interface{}{
-                        "measurement_type": measurementTypes[rand.Intn(len(measurementTypes))],
-                        "granularity_period": (1 + rand.Intn(10)) * 1000,
+                        "measurement_type": measurementTypes[rng.Intn(len(measurementTypes))],
+                        "granularity_period": (1 + rng.Intn(10)) * 1000,
                     },
                 },
             },

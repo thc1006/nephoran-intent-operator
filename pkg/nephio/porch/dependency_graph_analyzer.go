@@ -40,16 +40,16 @@ type DependencyGraphAnalyzer struct {
 
 // GraphAlgorithms contains various graph algorithm implementations
 type GraphAlgorithms struct {
-	tarjan           *TarjanSCC
-	kosaraju         *KosarajuSCC
-	dijkstra         *DijkstraShortestPath
-	bellmanFord      *BellmanFordShortestPath
-	floydWarshall    *FloydWarshallAllPairs
-	kruskal          *KruskalMST
-	prim             *PrimMST
-	pageRank         *PageRankAlgorithm
-	betweenness      *BetweennessCentrality
-	communityDetect  *CommunityDetection
+	tarjan          *TarjanSCC
+	kosaraju        *KosarajuSCC
+	dijkstra        *DijkstraShortestPath
+	bellmanFord     *BellmanFordShortestPath
+	floydWarshall   *FloydWarshallAllPairs
+	kruskal         *KruskalMST
+	prim            *PrimMST
+	pageRank        *PageRankAlgorithm
+	betweenness     *BetweennessCentrality
+	communityDetect *CommunityDetection
 }
 
 // TarjanSCC implements Tarjan's strongly connected components algorithm
@@ -64,15 +64,15 @@ type TarjanSCC struct {
 
 // GraphAnalysisResult contains comprehensive graph analysis results
 type GraphAnalysisResult struct {
-	TopologicalOrder     []*DependencyNode
-	StronglyConnected    [][]*DependencyNode
-	CriticalPath         []*DependencyNode
-	Bottlenecks          []*DependencyNode
-	CentralityScores     map[string]float64
-	Communities          [][]*DependencyNode
-	GraphMetrics         *GraphMetrics
-	Anomalies            []*GraphAnomaly
-	OptimizationHints    []*OptimizationHint
+	TopologicalOrder  []*DependencyNode
+	StronglyConnected [][]*DependencyNode
+	CriticalPath      []*DependencyNode
+	Bottlenecks       []*DependencyNode
+	CentralityScores  map[string]float64
+	Communities       [][]*DependencyNode
+	GraphMetrics      *GraphMetrics
+	Anomalies         []*GraphAnomaly
+	OptimizationHints []*OptimizationHint
 }
 
 // GraphMetrics contains various graph metrics
@@ -863,9 +863,9 @@ type AnomalyType string
 
 const (
 	AnomalyTypeCircularDependency AnomalyType = "circular_dependency"
-	AnomalyTypeOrphanedNode        AnomalyType = "orphaned_node"
-	AnomalyTypeDeepChain           AnomalyType = "deep_chain"
-	AnomalyTypeVersionConflict     AnomalyType = "version_conflict"
+	AnomalyTypeOrphanedNode       AnomalyType = "orphaned_node"
+	AnomalyTypeDeepChain          AnomalyType = "deep_chain"
+	AnomalyTypeVersionConflict    AnomalyType = "version_conflict"
 )
 
 type AnomalySeverity string

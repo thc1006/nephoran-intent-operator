@@ -28,17 +28,17 @@ const (
 	SeverityInfo      = types.SeverityInfo
 	SeverityDebug     = types.SeverityDebug
 
-	EventTypeAuthentication       = types.EventTypeAuthentication
-	EventTypeAuthenticationFailed = types.EventTypeAuthenticationFailed
+	EventTypeAuthentication        = types.EventTypeAuthentication
+	EventTypeAuthenticationFailed  = types.EventTypeAuthenticationFailed
 	EventTypeAuthenticationSuccess = types.EventTypeAuthenticationSuccess
-	EventTypeAuthorization        = types.EventTypeAuthorization
-	EventTypeAuthorizationFailed  = types.EventTypeAuthorizationFailed
-	EventTypeAuthorizationSuccess = types.EventTypeAuthorizationSuccess
-	EventTypeSessionStart         = types.EventTypeSessionStart
-	EventTypeSessionEnd           = types.EventTypeSessionEnd
-	EventTypePasswordChange       = types.EventTypePasswordChange
-	EventTypeTokenIssuance        = types.EventTypeTokenIssuance
-	EventTypeTokenRevocation      = types.EventTypeTokenRevocation
+	EventTypeAuthorization         = types.EventTypeAuthorization
+	EventTypeAuthorizationFailed   = types.EventTypeAuthorizationFailed
+	EventTypeAuthorizationSuccess  = types.EventTypeAuthorizationSuccess
+	EventTypeSessionStart          = types.EventTypeSessionStart
+	EventTypeSessionEnd            = types.EventTypeSessionEnd
+	EventTypePasswordChange        = types.EventTypePasswordChange
+	EventTypeTokenIssuance         = types.EventTypeTokenIssuance
+	EventTypeTokenRevocation       = types.EventTypeTokenRevocation
 
 	EventTypeDataAccess     = types.EventTypeDataAccess
 	EventTypeDataCreate     = types.EventTypeDataCreate
@@ -51,16 +51,16 @@ const (
 	EventTypeDataRestore    = types.EventTypeDataRestore
 	EventTypeDataProcessing = types.EventTypeDataProcessing
 
-	EventTypeSystemChange     = types.EventTypeSystemChange
-	EventTypeConfigChange     = types.EventTypeConfigChange
-	EventTypeUserManagement   = types.EventTypeUserManagement
-	EventTypeRoleManagement   = types.EventTypeRoleManagement
-	EventTypePolicyChange     = types.EventTypePolicyChange
-	EventTypeSystemStartup    = types.EventTypeSystemStartup
-	EventTypeSystemShutdown   = types.EventTypeSystemShutdown
-	EventTypeServiceStart     = types.EventTypeServiceStart
-	EventTypeServiceStop      = types.EventTypeServiceStop
-	EventTypeMaintenanceMode  = types.EventTypeMaintenanceMode
+	EventTypeSystemChange    = types.EventTypeSystemChange
+	EventTypeConfigChange    = types.EventTypeConfigChange
+	EventTypeUserManagement  = types.EventTypeUserManagement
+	EventTypeRoleManagement  = types.EventTypeRoleManagement
+	EventTypePolicyChange    = types.EventTypePolicyChange
+	EventTypeSystemStartup   = types.EventTypeSystemStartup
+	EventTypeSystemShutdown  = types.EventTypeSystemShutdown
+	EventTypeServiceStart    = types.EventTypeServiceStart
+	EventTypeServiceStop     = types.EventTypeServiceStop
+	EventTypeMaintenanceMode = types.EventTypeMaintenanceMode
 
 	EventTypeSecurityViolation = types.EventTypeSecurityViolation
 	EventTypeIntrusionAttempt  = types.EventTypeIntrusionAttempt
@@ -70,12 +70,12 @@ const (
 	EventTypeVulnerability     = types.EventTypeVulnerability
 	EventTypeIncidentResponse  = types.EventTypeIncidentResponse
 
-	EventTypeNetworkAccess     = types.EventTypeNetworkAccess
-	EventTypeFirewallRule      = types.EventTypeFirewallRule
-	EventTypeNetworkAnomaly    = types.EventTypeNetworkAnomaly
-	EventTypeResourceAccess    = types.EventTypeResourceAccess
-	EventTypeCapacityChange    = types.EventTypeCapacityChange
-	EventTypePerformanceAlert  = types.EventTypePerformanceAlert
+	EventTypeNetworkAccess    = types.EventTypeNetworkAccess
+	EventTypeFirewallRule     = types.EventTypeFirewallRule
+	EventTypeNetworkAnomaly   = types.EventTypeNetworkAnomaly
+	EventTypeResourceAccess   = types.EventTypeResourceAccess
+	EventTypeCapacityChange   = types.EventTypeCapacityChange
+	EventTypePerformanceAlert = types.EventTypePerformanceAlert
 
 	EventTypeAPICall           = types.EventTypeAPICall
 	EventTypeWorkflowExecution = types.EventTypeWorkflowExecution
@@ -84,13 +84,13 @@ const (
 	EventTypeRollback          = types.EventTypeRollback
 	EventTypeHealthCheck       = types.EventTypeHealthCheck
 
-	EventTypeIntentProcessing  = types.EventTypeIntentProcessing
-	EventTypeNetworkFunction   = types.EventTypeNetworkFunction
-	EventTypeRICManagement     = types.EventTypeRICManagement
-	EventTypeA1Interface       = types.EventTypeA1Interface
-	EventTypeO1Interface       = types.EventTypeO1Interface
-	EventTypeE2Interface       = types.EventTypeE2Interface
-	EventTypeSliceManagement   = types.EventTypeSliceManagement
+	EventTypeIntentProcessing = types.EventTypeIntentProcessing
+	EventTypeNetworkFunction  = types.EventTypeNetworkFunction
+	EventTypeRICManagement    = types.EventTypeRICManagement
+	EventTypeA1Interface      = types.EventTypeA1Interface
+	EventTypeO1Interface      = types.EventTypeO1Interface
+	EventTypeE2Interface      = types.EventTypeE2Interface
+	EventTypeSliceManagement  = types.EventTypeSliceManagement
 
 	ResultSuccess = types.ResultSuccess
 	ResultFailure = types.ResultFailure
@@ -111,10 +111,10 @@ const (
 
 // Function aliases for backward compatibility
 var (
-	NewEventBuilder             = types.NewEventBuilder
-	AuthenticationEvent         = types.AuthenticationEvent
-	DataAccessEvent             = types.DataAccessEvent
-	SecurityViolationEvent      = types.SecurityViolationEvent
-	SystemChangeEvent           = types.SystemChangeEvent
-	FromJSON                    = types.FromJSON
+	NewEventBuilder        = types.NewEventBuilder
+	AuthenticationEvent    = types.AuthenticationEvent
+	DataAccessEvent        = types.DataAccessEvent
+	SecurityViolationEvent = types.SecurityViolationEvent
+	SystemChangeEvent      = types.SystemChangeEvent
+	FromJSON               = types.FromJSON
 )

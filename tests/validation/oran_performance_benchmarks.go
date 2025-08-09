@@ -17,54 +17,54 @@ import (
 
 // ORANPerformanceBenchmarker provides comprehensive performance testing for O-RAN interfaces
 type ORANPerformanceBenchmarker struct {
-	oranValidator  *ORANInterfaceValidator
-	testFactory    *ORANTestFactory
-	k8sClient      client.Client
-	
+	oranValidator *ORANInterfaceValidator
+	testFactory   *ORANTestFactory
+	k8sClient     client.Client
+
 	// Performance metrics
-	benchmarkResults map[string]*BenchmarkResult
+	benchmarkResults  map[string]*BenchmarkResult
 	concurrencyLimits map[string]int
-	
+
 	// Test configuration
-	testDuration     time.Duration
-	warmupDuration   time.Duration
-	maxConcurrency   int
+	testDuration   time.Duration
+	warmupDuration time.Duration
+	maxConcurrency int
 }
 
 // BenchmarkResult contains performance benchmark results for an interface
 type BenchmarkResult struct {
-	InterfaceName     string        `json:"interfaceName"`
-	TotalRequests     int64         `json:"totalRequests"`
-	SuccessfulRequests int64        `json:"successfulRequests"`
-	FailedRequests    int64         `json:"failedRequests"`
-	AverageLatency    time.Duration `json:"averageLatency"`
-	MedianLatency     time.Duration `json:"medianLatency"`
-	P95Latency        time.Duration `json:"p95Latency"`
-	P99Latency        time.Duration `json:"p99Latency"`
-	MinLatency        time.Duration `json:"minLatency"`
-	MaxLatency        time.Duration `json:"maxLatency"`
-	ThroughputRPS     float64       `json:"throughputRps"`
-	ErrorRate         float64       `json:"errorRate"`
-	
+	InterfaceName      string        `json:"interfaceName"`
+	TotalRequests      int64         `json:"totalRequests"`
+	SuccessfulRequests int64         `json:"successfulRequests"`
+	FailedRequests     int64         `json:"failedRequests"`
+	AverageLatency     time.Duration `json:"averageLatency"`
+	MedianLatency      time.Duration `json:"medianLatency"`
+	P95Latency         time.Duration `json:"p95Latency"`
+	P99Latency         time.Duration `json:"p99Latency"`
+	MinLatency         time.Duration `json:"minLatency"`
+	MaxLatency         time.Duration `json:"maxLatency"`
+	ThroughputRPS      float64       `json:"throughputRps"`
+	ErrorRate          float64       `json:"errorRate"`
+
 	// Latency distribution
 	LatencyDistribution []time.Duration `json:"latencyDistribution"`
-	
+
 	// Resource utilization
-	MemoryUsageMB     float64 `json:"memoryUsageMb"`
-	CPUUsagePercent   float64 `json:"cpuUsagePercent"`
-	
+	MemoryUsageMB   float64 `json:"memoryUsageMb"`
+	CPUUsagePercent float64 `json:"cpuUsagePercent"`
+
 	// Test metadata
-	TestDuration      time.Duration `json:"testDuration"`
-	ConcurrencyLevel  int          `json:"concurrencyLevel"`
-	StartTime         time.Time    `json:"startTime"`
-	EndTime           time.Time    `json:"endTime"`
+	TestDuration     time.Duration `json:"testDuration"`
+	ConcurrencyLevel int           `json:"concurrencyLevel"`
+	StartTime        time.Time     `json:"startTime"`
+	EndTime          time.Time     `json:"endTime"`
 }
 
 // NewORANPerformanceBenchmarker creates a new performance benchmarker
 func NewORANPerformanceBenchmarker(validator *ORANInterfaceValidator, factory *ORANTestFactory) *ORANPerformanceBenchmarker {
 	return &ORANPerformanceBenchmarker{
 		oranValidator:    validator,
-		testFactory:     factory,
+		testFactory:      factory,
 		benchmarkResults: make(map[string]*BenchmarkResult),
 		concurrencyLimits: map[string]int{
 			"A1": 50,  // A1 interface can handle 50 concurrent operations
@@ -86,28 +86,28 @@ func (opb *ORANPerformanceBenchmarker) SetK8sClient(client client.Client) {
 // RunComprehensivePerformanceBenchmarks runs benchmarks for all O-RAN interfaces
 func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx context.Context) map[string]*BenchmarkResult {
 	ginkgo.By("Running Comprehensive O-RAN Performance Benchmarks")
-	
+
 	// Run benchmarks for each interface
 	interfaces := []string{"A1", "E2", "O1", "O2"}
-	
+
 	for _, interfaceName := range interfaces {
 		ginkgo.By(fmt.Sprintf("Benchmarking %s Interface Performance", interfaceName))
 		result := opb.runInterfaceBenchmark(ctx, interfaceName)
 		opb.benchmarkResults[interfaceName] = result
-		
-		ginkgo.By(fmt.Sprintf("%s Interface Results: %.2f RPS, %.2fms avg latency, %.1f%% error rate", 
+
+		ginkgo.By(fmt.Sprintf("%s Interface Results: %.2f RPS, %.2fms avg latency, %.1f%% error rate",
 			interfaceName, result.ThroughputRPS, float64(result.AverageLatency.Nanoseconds())/1e6, result.ErrorRate))
 	}
-	
+
 	// Run load testing scenarios
 	opb.runLoadTestingScenarios(ctx)
-	
+
 	// Run concurrency testing
 	opb.runConcurrencyTesting(ctx)
-	
+
 	// Generate performance report
 	opb.generatePerformanceReport()
-	
+
 	return opb.benchmarkResults
 }
 
@@ -115,41 +115,41 @@ func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx
 func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context, interfaceName string) *BenchmarkResult {
 	result := &BenchmarkResult{
 		InterfaceName:       interfaceName,
-		StartTime:          time.Now(),
-		ConcurrencyLevel:   opb.concurrencyLimits[interfaceName],
+		StartTime:           time.Now(),
+		ConcurrencyLevel:    opb.concurrencyLimits[interfaceName],
 		LatencyDistribution: make([]time.Duration, 0, 10000),
 	}
-	
+
 	// Warmup period
 	ginkgo.By(fmt.Sprintf("Warming up %s interface", interfaceName))
 	opb.runWarmup(ctx, interfaceName)
-	
+
 	// Main benchmark
 	var totalRequests, successfulRequests, failedRequests int64
 	var latencies []time.Duration
 	var latencyMutex sync.Mutex
-	
+
 	concurrency := opb.concurrencyLimits[interfaceName]
 	sem := make(chan struct{}, concurrency)
 	var wg sync.WaitGroup
-	
+
 	benchmarkStart := time.Now()
 	deadline := benchmarkStart.Add(opb.testDuration)
-	
+
 	// Worker goroutines
 	for i := 0; i < concurrency; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			
+
 			for time.Now().Before(deadline) {
 				sem <- struct{}{}
-				
+
 				// Execute interface operation
 				startTime := time.Now()
 				success := opb.executeInterfaceOperation(ctx, interfaceName)
 				latency := time.Since(startTime)
-				
+
 				// Record metrics
 				atomic.AddInt64(&totalRequests, 1)
 				if success {
@@ -157,24 +157,24 @@ func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context
 				} else {
 					atomic.AddInt64(&failedRequests, 1)
 				}
-				
+
 				// Record latency
 				latencyMutex.Lock()
 				latencies = append(latencies, latency)
 				latencyMutex.Unlock()
-				
+
 				<-sem
-				
+
 				// Small delay to prevent overwhelming
 				time.Sleep(1 * time.Millisecond)
 			}
 		}()
 	}
-	
+
 	wg.Wait()
 	result.EndTime = time.Now()
 	actualDuration := result.EndTime.Sub(result.StartTime)
-	
+
 	// Calculate metrics
 	result.TotalRequests = totalRequests
 	result.SuccessfulRequests = successfulRequests
@@ -182,7 +182,7 @@ func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context
 	result.TestDuration = actualDuration
 	result.ThroughputRPS = float64(totalRequests) / actualDuration.Seconds()
 	result.ErrorRate = float64(failedRequests) / float64(totalRequests) * 100
-	
+
 	// Calculate latency statistics
 	if len(latencies) > 0 {
 		result.LatencyDistribution = latencies
@@ -191,14 +191,14 @@ func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context
 		result.P95Latency = opb.calculatePercentile(latencies, 0.95)
 		result.P99Latency = opb.calculatePercentile(latencies, 0.99)
 	}
-	
+
 	return result
 }
 
 // runWarmup performs warmup operations for consistent benchmarking
 func (opb *ORANPerformanceBenchmarker) runWarmup(ctx context.Context, interfaceName string) {
 	warmupDeadline := time.Now().Add(opb.warmupDuration)
-	
+
 	for time.Now().Before(warmupDeadline) {
 		opb.executeInterfaceOperation(ctx, interfaceName)
 		time.Sleep(10 * time.Millisecond)
@@ -225,31 +225,31 @@ func (opb *ORANPerformanceBenchmarker) executeInterfaceOperation(ctx context.Con
 func (opb *ORANPerformanceBenchmarker) executeA1Operation(ctx context.Context) bool {
 	// Create and manage A1 policy
 	policy := opb.testFactory.CreateA1Policy("traffic-steering")
-	
+
 	// Create policy
 	if err := opb.oranValidator.ricMockService.CreatePolicy(policy); err != nil {
 		return false
 	}
-	
+
 	// Read policy
 	_, err := opb.oranValidator.ricMockService.GetPolicy(policy.PolicyID)
 	if err != nil {
 		opb.oranValidator.ricMockService.DeletePolicy(policy.PolicyID)
 		return false
 	}
-	
+
 	// Update policy
 	policy.PolicyData["primaryPathWeight"] = 0.8
 	if err := opb.oranValidator.ricMockService.UpdatePolicy(policy); err != nil {
 		opb.oranValidator.ricMockService.DeletePolicy(policy.PolicyID)
 		return false
 	}
-	
+
 	// Delete policy
 	if err := opb.oranValidator.ricMockService.DeletePolicy(policy.PolicyID); err != nil {
 		return false
 	}
-	
+
 	return true
 }
 
@@ -257,19 +257,19 @@ func (opb *ORANPerformanceBenchmarker) executeA1Operation(ctx context.Context) b
 func (opb *ORANPerformanceBenchmarker) executeE2Operation(ctx context.Context) bool {
 	// Register E2 node and create subscription
 	node := opb.testFactory.CreateE2Node("gnodeb")
-	
+
 	// Register node
 	if err := opb.oranValidator.e2MockService.RegisterNode(node); err != nil {
 		return false
 	}
-	
+
 	// Create subscription
 	subscription := opb.testFactory.CreateE2Subscription("KPM", node.NodeID)
 	if err := opb.oranValidator.e2MockService.CreateSubscription(subscription); err != nil {
 		opb.oranValidator.e2MockService.UnregisterNode(node.NodeID)
 		return false
 	}
-	
+
 	// Update subscription
 	subscription.EventTrigger["reportingPeriod"] = 2000
 	if err := opb.oranValidator.e2MockService.UpdateSubscription(subscription); err != nil {
@@ -277,18 +277,18 @@ func (opb *ORANPerformanceBenchmarker) executeE2Operation(ctx context.Context) b
 		opb.oranValidator.e2MockService.UnregisterNode(node.NodeID)
 		return false
 	}
-	
+
 	// Send heartbeat
 	if err := opb.oranValidator.e2MockService.SendHeartbeat(node.NodeID); err != nil {
 		opb.oranValidator.e2MockService.DeleteSubscription(subscription.SubscriptionID)
 		opb.oranValidator.e2MockService.UnregisterNode(node.NodeID)
 		return false
 	}
-	
+
 	// Cleanup
 	opb.oranValidator.e2MockService.DeleteSubscription(subscription.SubscriptionID)
 	opb.oranValidator.e2MockService.UnregisterNode(node.NodeID)
-	
+
 	return true
 }
 
@@ -296,43 +296,43 @@ func (opb *ORANPerformanceBenchmarker) executeE2Operation(ctx context.Context) b
 func (opb *ORANPerformanceBenchmarker) executeO1Operation(ctx context.Context) bool {
 	// Manage O1 configuration
 	element := opb.testFactory.CreateManagedElement("AMF")
-	
+
 	// Add managed element
 	if err := opb.oranValidator.smoMockService.AddManagedElement(element); err != nil {
 		return false
 	}
-	
+
 	// Apply configuration
 	config := opb.testFactory.CreateO1Configuration("FCAPS", element.ElementID)
 	if err := opb.oranValidator.smoMockService.ApplyConfiguration(config); err != nil {
 		opb.oranValidator.smoMockService.RemoveManagedElement(element.ElementID)
 		return false
 	}
-	
+
 	// Get configuration
 	_, err := opb.oranValidator.smoMockService.GetConfiguration(config.ConfigID)
 	if err != nil {
 		opb.oranValidator.smoMockService.RemoveManagedElement(element.ElementID)
 		return false
 	}
-	
+
 	// Get managed element
 	_, err = opb.oranValidator.smoMockService.GetManagedElement(element.ElementID)
 	if err != nil {
 		opb.oranValidator.smoMockService.RemoveManagedElement(element.ElementID)
 		return false
 	}
-	
+
 	// Cleanup
 	opb.oranValidator.smoMockService.RemoveManagedElement(element.ElementID)
-	
+
 	return true
 }
 
-// executeO2Operation executes an O2 interface operation  
+// executeO2Operation executes an O2 interface operation
 func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) bool {
 	// Simulate cloud infrastructure operations
-	
+
 	// Validate Terraform template
 	terraformTemplate := map[string]interface{}{
 		"terraform": map[string]interface{}{
@@ -353,35 +353,35 @@ func (opb *ORANPerformanceBenchmarker) executeO2Operation(ctx context.Context) b
 			},
 		},
 	}
-	
+
 	if !opb.oranValidator.ValidateTerraformTemplate(terraformTemplate) {
 		return false
 	}
-	
+
 	// Validate cloud provider config
 	cloudConfig := map[string]interface{}{
 		"provider": "aws",
 		"region":   "us-west-2",
 		"resources": map[string]interface{}{
 			"ec2_instances": 2,
-			"s3_buckets":   1,
+			"s3_buckets":    1,
 		},
 	}
-	
+
 	if !opb.oranValidator.ValidateCloudProviderConfig(cloudConfig) {
 		return false
 	}
-	
+
 	// Simulate resource lifecycle
 	time.Sleep(5 * time.Millisecond) // Simulate cloud API call
-	
+
 	return true
 }
 
 // runLoadTestingScenarios runs various load testing scenarios
 func (opb *ORANPerformanceBenchmarker) runLoadTestingScenarios(ctx context.Context) {
 	ginkgo.By("Running Load Testing Scenarios")
-	
+
 	scenarios := []struct {
 		name        string
 		concurrency int
@@ -397,24 +397,24 @@ func (opb *ORANPerformanceBenchmarker) runLoadTestingScenarios(ctx context.Conte
 		{"Steady State O1", 15, 2 * time.Minute, "O1"},
 		{"Peak Load O2", 5, 30 * time.Second, "O2"},
 	}
-	
+
 	for _, scenario := range scenarios {
 		ginkgo.By(fmt.Sprintf("Running %s scenario", scenario.name))
-		
+
 		// Adjust concurrency for scenario
 		originalLimit := opb.concurrencyLimits[scenario.interface_]
 		opb.concurrencyLimits[scenario.interface_] = scenario.concurrency
 		originalDuration := opb.testDuration
 		opb.testDuration = scenario.duration
-		
+
 		result := opb.runInterfaceBenchmark(ctx, scenario.interface_)
 		opb.benchmarkResults[scenario.name] = result
-		
+
 		// Restore original settings
 		opb.concurrencyLimits[scenario.interface_] = originalLimit
 		opb.testDuration = originalDuration
-		
-		ginkgo.By(fmt.Sprintf("%s completed: %.2f RPS, %.2fms latency", 
+
+		ginkgo.By(fmt.Sprintf("%s completed: %.2f RPS, %.2fms latency",
 			scenario.name, result.ThroughputRPS, float64(result.AverageLatency.Nanoseconds())/1e6))
 	}
 }
@@ -422,27 +422,27 @@ func (opb *ORANPerformanceBenchmarker) runLoadTestingScenarios(ctx context.Conte
 // runConcurrencyTesting tests different concurrency levels
 func (opb *ORANPerformanceBenchmarker) runConcurrencyTesting(ctx context.Context) {
 	ginkgo.By("Running Concurrency Testing")
-	
+
 	testInterface := "E2" // Use E2 as it has good concurrency characteristics
 	originalLimit := opb.concurrencyLimits[testInterface]
 	originalDuration := opb.testDuration
 	opb.testDuration = 30 * time.Second
-	
+
 	concurrencyLevels := []int{1, 5, 10, 25, 50, 75, 100}
-	
+
 	for _, concurrency := range concurrencyLevels {
 		ginkgo.By(fmt.Sprintf("Testing concurrency level: %d", concurrency))
-		
+
 		opb.concurrencyLimits[testInterface] = concurrency
 		result := opb.runInterfaceBenchmark(ctx, testInterface)
-		
+
 		scenarioName := fmt.Sprintf("Concurrency-%d", concurrency)
 		opb.benchmarkResults[scenarioName] = result
-		
-		ginkgo.By(fmt.Sprintf("Concurrency %d: %.2f RPS, %.2fms latency", 
+
+		ginkgo.By(fmt.Sprintf("Concurrency %d: %.2f RPS, %.2fms latency",
 			concurrency, result.ThroughputRPS, float64(result.AverageLatency.Nanoseconds())/1e6))
 	}
-	
+
 	// Restore original settings
 	opb.concurrencyLimits[testInterface] = originalLimit
 	opb.testDuration = originalDuration
@@ -453,11 +453,11 @@ func (opb *ORANPerformanceBenchmarker) calculateLatencyStats(latencies []time.Du
 	if len(latencies) == 0 {
 		return
 	}
-	
+
 	min = latencies[0]
 	max = latencies[0]
 	var total int64
-	
+
 	for _, latency := range latencies {
 		if latency < min {
 			min = latency
@@ -467,7 +467,7 @@ func (opb *ORANPerformanceBenchmarker) calculateLatencyStats(latencies []time.Du
 		}
 		total += latency.Nanoseconds()
 	}
-	
+
 	avg = time.Duration(total / int64(len(latencies)))
 	return
 }
@@ -477,22 +477,22 @@ func (opb *ORANPerformanceBenchmarker) calculatePercentile(latencies []time.Dura
 	if len(latencies) == 0 {
 		return 0
 	}
-	
+
 	// Simple percentile calculation (would use sort in production)
 	index := int(float64(len(latencies)) * percentile)
 	if index >= len(latencies) {
 		index = len(latencies) - 1
 	}
-	
+
 	return latencies[index]
 }
 
 // generatePerformanceReport generates a comprehensive performance report
 func (opb *ORANPerformanceBenchmarker) generatePerformanceReport() {
 	ginkgo.By("Generating Performance Report")
-	
+
 	ginkgo.By("=== O-RAN Interface Performance Benchmark Results ===")
-	
+
 	// Interface summary
 	interfaces := []string{"A1", "E2", "O1", "O2"}
 	for _, interfaceName := range interfaces {
@@ -506,7 +506,7 @@ func (opb *ORANPerformanceBenchmarker) generatePerformanceReport() {
 			ginkgo.By("")
 		}
 	}
-	
+
 	// Performance targets validation
 	opb.validatePerformanceTargets()
 }
@@ -514,7 +514,7 @@ func (opb *ORANPerformanceBenchmarker) generatePerformanceReport() {
 // validatePerformanceTargets validates that interfaces meet performance targets
 func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 	ginkgo.By("Validating Performance Targets")
-	
+
 	targets := map[string]struct {
 		minThroughput float64
 		maxLatency    time.Duration
@@ -525,48 +525,48 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 		"O1": {minThroughput: 10.0, maxLatency: 200 * time.Millisecond, maxErrorRate: 1.0},
 		"O2": {minThroughput: 2.0, maxLatency: 5 * time.Second, maxErrorRate: 3.0},
 	}
-	
+
 	allTargetsMet := true
-	
+
 	for interfaceName, target := range targets {
 		if result, exists := opb.benchmarkResults[interfaceName]; exists {
 			targetsMet := true
-			
+
 			if result.ThroughputRPS < target.minThroughput {
-				ginkgo.By(fmt.Sprintf("❌ %s Throughput: %.2f RPS < %.2f RPS (target)", 
+				ginkgo.By(fmt.Sprintf("❌ %s Throughput: %.2f RPS < %.2f RPS (target)",
 					interfaceName, result.ThroughputRPS, target.minThroughput))
 				targetsMet = false
 			} else {
-				ginkgo.By(fmt.Sprintf("✅ %s Throughput: %.2f RPS >= %.2f RPS (target)", 
+				ginkgo.By(fmt.Sprintf("✅ %s Throughput: %.2f RPS >= %.2f RPS (target)",
 					interfaceName, result.ThroughputRPS, target.minThroughput))
 			}
-			
+
 			if result.AverageLatency > target.maxLatency {
-				ginkgo.By(fmt.Sprintf("❌ %s Latency: %.2fms > %.2fms (target)", 
-					interfaceName, float64(result.AverageLatency.Nanoseconds())/1e6, 
+				ginkgo.By(fmt.Sprintf("❌ %s Latency: %.2fms > %.2fms (target)",
+					interfaceName, float64(result.AverageLatency.Nanoseconds())/1e6,
 					float64(target.maxLatency.Nanoseconds())/1e6))
 				targetsMet = false
 			} else {
-				ginkgo.By(fmt.Sprintf("✅ %s Latency: %.2fms <= %.2fms (target)", 
-					interfaceName, float64(result.AverageLatency.Nanoseconds())/1e6, 
+				ginkgo.By(fmt.Sprintf("✅ %s Latency: %.2fms <= %.2fms (target)",
+					interfaceName, float64(result.AverageLatency.Nanoseconds())/1e6,
 					float64(target.maxLatency.Nanoseconds())/1e6))
 			}
-			
+
 			if result.ErrorRate > target.maxErrorRate {
-				ginkgo.By(fmt.Sprintf("❌ %s Error Rate: %.1f%% > %.1f%% (target)", 
+				ginkgo.By(fmt.Sprintf("❌ %s Error Rate: %.1f%% > %.1f%% (target)",
 					interfaceName, result.ErrorRate, target.maxErrorRate))
 				targetsMet = false
 			} else {
-				ginkgo.By(fmt.Sprintf("✅ %s Error Rate: %.1f%% <= %.1f%% (target)", 
+				ginkgo.By(fmt.Sprintf("✅ %s Error Rate: %.1f%% <= %.1f%% (target)",
 					interfaceName, result.ErrorRate, target.maxErrorRate))
 			}
-			
+
 			if !targetsMet {
 				allTargetsMet = false
 			}
 		}
 	}
-	
+
 	if allTargetsMet {
 		ginkgo.By("🎯 All Performance Targets Met!")
 	} else {

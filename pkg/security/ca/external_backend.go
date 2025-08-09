@@ -25,40 +25,40 @@ type ExternalBackend struct {
 // ExternalBackendConfig holds external backend configuration
 type ExternalBackendConfig struct {
 	// Connection settings
-	BaseURL       string            `yaml:"base_url"`
-	APIVersion    string            `yaml:"api_version"`
-	Timeout       time.Duration     `yaml:"timeout"`
-	RetryAttempts int               `yaml:"retry_attempts"`
-	RetryDelay    time.Duration     `yaml:"retry_delay"`
+	BaseURL       string        `yaml:"base_url"`
+	APIVersion    string        `yaml:"api_version"`
+	Timeout       time.Duration `yaml:"timeout"`
+	RetryAttempts int           `yaml:"retry_attempts"`
+	RetryDelay    time.Duration `yaml:"retry_delay"`
 
 	// Authentication
-	AuthType      AuthenticationType `yaml:"auth_type"`
-	AuthConfig    interface{}        `yaml:"auth_config"`
+	AuthType   AuthenticationType `yaml:"auth_type"`
+	AuthConfig interface{}        `yaml:"auth_config"`
 
 	// TLS settings
-	TLSConfig     *ExternalTLSConfig `yaml:"tls_config"`
+	TLSConfig *ExternalTLSConfig `yaml:"tls_config"`
 
 	// API endpoints
-	Endpoints     *APIEndpoints      `yaml:"endpoints"`
+	Endpoints *APIEndpoints `yaml:"endpoints"`
 
 	// Certificate profiles
-	Profiles      map[string]*CertificateProfile `yaml:"profiles"`
+	Profiles map[string]*CertificateProfile `yaml:"profiles"`
 
 	// Feature flags
-	Features      *FeatureConfig     `yaml:"features"`
+	Features *FeatureConfig `yaml:"features"`
 }
 
 // AuthenticationType represents different authentication types
 type AuthenticationType string
 
 const (
-	AuthTypeNone       AuthenticationType = "none"
-	AuthTypeAPIKey     AuthenticationType = "api_key"
-	AuthTypeBearer     AuthenticationType = "bearer"
-	AuthTypeBasic      AuthenticationType = "basic"
-	AuthTypeMTLS       AuthenticationType = "mtls"
-	AuthTypeOAuth2     AuthenticationType = "oauth2"
-	AuthTypeCustom     AuthenticationType = "custom"
+	AuthTypeNone   AuthenticationType = "none"
+	AuthTypeAPIKey AuthenticationType = "api_key"
+	AuthTypeBearer AuthenticationType = "bearer"
+	AuthTypeBasic  AuthenticationType = "basic"
+	AuthTypeMTLS   AuthenticationType = "mtls"
+	AuthTypeOAuth2 AuthenticationType = "oauth2"
+	AuthTypeCustom AuthenticationType = "custom"
 )
 
 // ExternalTLSConfig holds TLS configuration for external connections
@@ -74,26 +74,26 @@ type ExternalTLSConfig struct {
 
 // APIEndpoints defines external API endpoints
 type APIEndpoints struct {
-	Issue           string `yaml:"issue"`
-	Revoke          string `yaml:"revoke"`
-	Renew           string `yaml:"renew"`
-	GetCertificate  string `yaml:"get_certificate"`
-	GetCAChain      string `yaml:"get_ca_chain"`
-	GetCRL          string `yaml:"get_crl"`
-	Health          string `yaml:"health"`
-	Profiles        string `yaml:"profiles"`
+	Issue          string `yaml:"issue"`
+	Revoke         string `yaml:"revoke"`
+	Renew          string `yaml:"renew"`
+	GetCertificate string `yaml:"get_certificate"`
+	GetCAChain     string `yaml:"get_ca_chain"`
+	GetCRL         string `yaml:"get_crl"`
+	Health         string `yaml:"health"`
+	Profiles       string `yaml:"profiles"`
 }
 
 // CertificateProfile defines certificate issuance profiles
 type CertificateProfile struct {
-	Name             string        `yaml:"name"`
-	Template         string        `yaml:"template"`
-	MaxValidityDays  int           `yaml:"max_validity_days"`
-	KeyUsages        []string      `yaml:"key_usages"`
-	ExtKeyUsages     []string      `yaml:"ext_key_usages"`
-	AllowedSANTypes  []string      `yaml:"allowed_san_types"`
-	RequireApproval  bool          `yaml:"require_approval"`
-	CustomFields     map[string]interface{} `yaml:"custom_fields"`
+	Name            string                 `yaml:"name"`
+	Template        string                 `yaml:"template"`
+	MaxValidityDays int                    `yaml:"max_validity_days"`
+	KeyUsages       []string               `yaml:"key_usages"`
+	ExtKeyUsages    []string               `yaml:"ext_key_usages"`
+	AllowedSANTypes []string               `yaml:"allowed_san_types"`
+	RequireApproval bool                   `yaml:"require_approval"`
+	CustomFields    map[string]interface{} `yaml:"custom_fields"`
 }
 
 // FeatureConfig defines supported features
@@ -109,9 +109,9 @@ type FeatureConfig struct {
 
 // Authentication configurations
 type APIKeyAuth struct {
-	Key       string `yaml:"key"`
-	Value     string `yaml:"value"`
-	Location  string `yaml:"location"` // header, query
+	Key      string `yaml:"key"`
+	Value    string `yaml:"value"`
+	Location string `yaml:"location"` // header, query
 }
 
 type BearerAuth struct {
@@ -139,18 +139,18 @@ type CustomAuth struct {
 
 // External API request/response structures
 type ExternalIssueRequest struct {
-	Profile         string                 `json:"profile,omitempty"`
-	Template        string                 `json:"template,omitempty"`
-	Subject         map[string]string      `json:"subject"`
-	SANs            *SubjectAlternateNames `json:"sans,omitempty"`
-	ValidityDays    int                    `json:"validity_days,omitempty"`
-	KeySize         int                    `json:"key_size,omitempty"`
-	KeyType         string                 `json:"key_type,omitempty"`
-	KeyUsages       []string               `json:"key_usages,omitempty"`
-	ExtKeyUsages    []string               `json:"ext_key_usages,omitempty"`
-	CustomFields    map[string]interface{} `json:"custom_fields,omitempty"`
-	RequestID       string                 `json:"request_id,omitempty"`
-	Metadata        map[string]string      `json:"metadata,omitempty"`
+	Profile      string                 `json:"profile,omitempty"`
+	Template     string                 `json:"template,omitempty"`
+	Subject      map[string]string      `json:"subject"`
+	SANs         *SubjectAlternateNames `json:"sans,omitempty"`
+	ValidityDays int                    `json:"validity_days,omitempty"`
+	KeySize      int                    `json:"key_size,omitempty"`
+	KeyType      string                 `json:"key_type,omitempty"`
+	KeyUsages    []string               `json:"key_usages,omitempty"`
+	ExtKeyUsages []string               `json:"ext_key_usages,omitempty"`
+	CustomFields map[string]interface{} `json:"custom_fields,omitempty"`
+	RequestID    string                 `json:"request_id,omitempty"`
+	Metadata     map[string]string      `json:"metadata,omitempty"`
 }
 
 type SubjectAlternateNames struct {
@@ -189,12 +189,12 @@ type ExternalRevokeResponse struct {
 }
 
 type ExternalHealthResponse struct {
-	Status      string                 `json:"status"`
-	Version     string                 `json:"version"`
-	Timestamp   string                 `json:"timestamp"`
-	Components  map[string]interface{} `json:"components,omitempty"`
-	Features    []string               `json:"features,omitempty"`
-	Metrics     map[string]interface{} `json:"metrics,omitempty"`
+	Status     string                 `json:"status"`
+	Version    string                 `json:"version"`
+	Timestamp  string                 `json:"timestamp"`
+	Components map[string]interface{} `json:"components,omitempty"`
+	Features   []string               `json:"features,omitempty"`
+	Metrics    map[string]interface{} `json:"metrics,omitempty"`
 }
 
 // NewExternalBackend creates a new external PKI backend
@@ -339,17 +339,17 @@ func (b *ExternalBackend) IssueCertificate(ctx context.Context, req *Certificate
 
 	// Build response
 	response := &CertificateResponse{
-		RequestID:        req.ID,
-		Certificate:      cert,
-		CertificatePEM:   extResp.Certificate,
-		PrivateKeyPEM:    extResp.PrivateKey,
-		SerialNumber:     extResp.SerialNumber,
-		Fingerprint:      extResp.Fingerprint,
-		IssuedBy:         string(BackendExternal),
-		Status:           StatusIssued,
+		RequestID:      req.ID,
+		Certificate:    cert,
+		CertificatePEM: extResp.Certificate,
+		PrivateKeyPEM:  extResp.PrivateKey,
+		SerialNumber:   extResp.SerialNumber,
+		Fingerprint:    extResp.Fingerprint,
+		IssuedBy:       string(BackendExternal),
+		Status:         StatusIssued,
 		Metadata: map[string]string{
 			"external_request_id": extResp.RequestID,
-			"tenant_id":          req.TenantID,
+			"tenant_id":           req.TenantID,
 		},
 		CreatedAt: time.Now(),
 	}
@@ -740,11 +740,11 @@ func (b *ExternalBackend) makeRequest(ctx context.Context, method, endpoint stri
 func (b *ExternalBackend) buildURL(endpoint string) string {
 	baseURL := strings.TrimRight(b.config.BaseURL, "/")
 	endpoint = strings.TrimLeft(endpoint, "/")
-	
+
 	if b.config.APIVersion != "" {
 		return fmt.Sprintf("%s/%s/%s", baseURL, strings.Trim(b.config.APIVersion, "/"), endpoint)
 	}
-	
+
 	return fmt.Sprintf("%s/%s", baseURL, endpoint)
 }
 
@@ -856,7 +856,7 @@ func (b *ExternalBackend) buildCertificateResponse(extResp *ExternalIssueRespons
 		Status:         StatusIssued,
 		Metadata: map[string]string{
 			"external_request_id": extResp.RequestID,
-			"tenant_id":          req.TenantID,
+			"tenant_id":           req.TenantID,
 		},
 		CreatedAt: time.Now(),
 	}
@@ -929,15 +929,15 @@ func (b *ExternalBackend) parseCRL(crlData string) (*pkix.CertificateList, error
 
 func (b *ExternalBackend) getRevocationReasonText(reason int) string {
 	reasons := map[int]string{
-		0: "unspecified",
-		1: "keyCompromise",
-		2: "caCompromise",
-		3: "affiliationChanged",
-		4: "superseded",
-		5: "cessationOfOperation",
-		6: "certificateHold",
-		8: "removeFromCRL",
-		9: "privilegeWithdrawn",
+		0:  "unspecified",
+		1:  "keyCompromise",
+		2:  "caCompromise",
+		3:  "affiliationChanged",
+		4:  "superseded",
+		5:  "cessationOfOperation",
+		6:  "certificateHold",
+		8:  "removeFromCRL",
+		9:  "privilegeWithdrawn",
 		10: "aaCompromise",
 	}
 

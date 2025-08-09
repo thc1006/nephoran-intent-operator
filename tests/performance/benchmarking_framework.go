@@ -13,8 +13,8 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // BenchmarkFramework provides comprehensive performance benchmarking
@@ -31,31 +31,31 @@ type BenchmarkFramework struct {
 // BenchmarkConfig holds benchmarking configuration
 type BenchmarkConfig struct {
 	// Test configuration
-	TestDuration        time.Duration `json:"test_duration"`
-	ConcurrencyLevels   []int         `json:"concurrency_levels"`
-	RequestRates        []int         `json:"request_rates"` // requests per second
-	DatasetSizes        []int         `json:"dataset_sizes"` // number of documents
-	
+	TestDuration      time.Duration `json:"test_duration"`
+	ConcurrencyLevels []int         `json:"concurrency_levels"`
+	RequestRates      []int         `json:"request_rates"` // requests per second
+	DatasetSizes      []int         `json:"dataset_sizes"` // number of documents
+
 	// Query configuration
-	TestQueries         []TestQuery   `json:"test_queries"`
-	QueryTypes          []string      `json:"query_types"`
-	DocumentTypes       []string      `json:"document_types"`
-	
+	TestQueries   []TestQuery `json:"test_queries"`
+	QueryTypes    []string    `json:"query_types"`
+	DocumentTypes []string    `json:"document_types"`
+
 	// Performance targets
-	LatencyTargets      LatencyTargets `json:"latency_targets"`
-	ThroughputTargets   map[string]int `json:"throughput_targets"`
-	ResourceTargets     ResourceTargets `json:"resource_targets"`
-	
+	LatencyTargets    LatencyTargets  `json:"latency_targets"`
+	ThroughputTargets map[string]int  `json:"throughput_targets"`
+	ResourceTargets   ResourceTargets `json:"resource_targets"`
+
 	// Output configuration
-	OutputFormat        string        `json:"output_format"`
-	OutputPath          string        `json:"output_path"`
-	EnableContinuous    bool          `json:"enable_continuous"`
-	ReportInterval      time.Duration `json:"report_interval"`
-	
+	OutputFormat     string        `json:"output_format"`
+	OutputPath       string        `json:"output_path"`
+	EnableContinuous bool          `json:"enable_continuous"`
+	ReportInterval   time.Duration `json:"report_interval"`
+
 	// Regression detection
-	EnableRegression    bool          `json:"enable_regression"`
-	RegressionThreshold float64       `json:"regression_threshold"`
-	BaselinePath        string        `json:"baseline_path"`
+	EnableRegression    bool    `json:"enable_regression"`
+	RegressionThreshold float64 `json:"regression_threshold"`
+	BaselinePath        string  `json:"baseline_path"`
 }
 
 // LatencyTargets defines latency performance targets
@@ -75,51 +75,51 @@ type ResourceTargets struct {
 
 // TestQuery represents a benchmark query
 type TestQuery struct {
-	ID          string                 `json:"id"`
-	Query       string                 `json:"query"`
-	IntentType  string                 `json:"intent_type"`
-	Context     map[string]interface{} `json:"context"`
-	Weight      float64                `json:"weight"`
-	Expected    ExpectedResult         `json:"expected"`
+	ID         string                 `json:"id"`
+	Query      string                 `json:"query"`
+	IntentType string                 `json:"intent_type"`
+	Context    map[string]interface{} `json:"context"`
+	Weight     float64                `json:"weight"`
+	Expected   ExpectedResult         `json:"expected"`
 }
 
 // ExpectedResult defines expected benchmark results
 type ExpectedResult struct {
-	MinLatency      time.Duration `json:"min_latency"`
-	MaxLatency      time.Duration `json:"max_latency"`
-	MinConfidence   float64       `json:"min_confidence"`
-	MinSourceCount  int           `json:"min_source_count"`
+	MinLatency     time.Duration `json:"min_latency"`
+	MaxLatency     time.Duration `json:"max_latency"`
+	MinConfidence  float64       `json:"min_confidence"`
+	MinSourceCount int           `json:"min_source_count"`
 }
 
 // BenchmarkResults stores comprehensive benchmark results
 type BenchmarkResults struct {
-	Timestamp         time.Time              `json:"timestamp"`
-	Configuration     *BenchmarkConfig       `json:"configuration"`
-	TestDuration      time.Duration          `json:"test_duration"`
-	TotalRequests     int                    `json:"total_requests"`
-	SuccessfulRequests int                   `json:"successful_requests"`
-	FailedRequests    int                    `json:"failed_requests"`
-	
+	Timestamp          time.Time        `json:"timestamp"`
+	Configuration      *BenchmarkConfig `json:"configuration"`
+	TestDuration       time.Duration    `json:"test_duration"`
+	TotalRequests      int              `json:"total_requests"`
+	SuccessfulRequests int              `json:"successful_requests"`
+	FailedRequests     int              `json:"failed_requests"`
+
 	// Latency metrics
-	LatencyMetrics    LatencyMetrics         `json:"latency_metrics"`
-	
+	LatencyMetrics LatencyMetrics `json:"latency_metrics"`
+
 	// Throughput metrics
-	ThroughputMetrics ThroughputMetrics      `json:"throughput_metrics"`
-	
+	ThroughputMetrics ThroughputMetrics `json:"throughput_metrics"`
+
 	// Resource utilization
-	ResourceMetrics   ResourceMetrics        `json:"resource_metrics"`
-	
+	ResourceMetrics ResourceMetrics `json:"resource_metrics"`
+
 	// Component-specific metrics
-	ComponentMetrics  map[string]ComponentMetrics `json:"component_metrics"`
-	
+	ComponentMetrics map[string]ComponentMetrics `json:"component_metrics"`
+
 	// Error analysis
-	ErrorAnalysis     ErrorAnalysis          `json:"error_analysis"`
-	
+	ErrorAnalysis ErrorAnalysis `json:"error_analysis"`
+
 	// Regression analysis
-	RegressionAnalysis *RegressionAnalysis   `json:"regression_analysis,omitempty"`
-	
+	RegressionAnalysis *RegressionAnalysis `json:"regression_analysis,omitempty"`
+
 	// Test environment
-	Environment       EnvironmentInfo        `json:"environment"`
+	Environment EnvironmentInfo `json:"environment"`
 }
 
 // LatencyMetrics contains latency performance data
@@ -138,12 +138,12 @@ type LatencyMetrics struct {
 
 // ThroughputMetrics contains throughput performance data
 type ThroughputMetrics struct {
-	RequestsPerSecond     float64            `json:"requests_per_second"`
-	PeakThroughput        float64            `json:"peak_throughput"`
-	SustainedThroughput   float64            `json:"sustained_throughput"`
-	ThroughputVariance    float64            `json:"throughput_variance"`
-	ByQuery               map[string]float64 `json:"by_query"`
-	ByComponent           map[string]float64 `json:"by_component"`
+	RequestsPerSecond   float64            `json:"requests_per_second"`
+	PeakThroughput      float64            `json:"peak_throughput"`
+	SustainedThroughput float64            `json:"sustained_throughput"`
+	ThroughputVariance  float64            `json:"throughput_variance"`
+	ByQuery             map[string]float64 `json:"by_query"`
+	ByComponent         map[string]float64 `json:"by_component"`
 }
 
 // ResourceMetrics contains resource utilization data
@@ -156,78 +156,78 @@ type ResourceMetrics struct {
 
 // ResourceUtilization represents resource usage statistics
 type ResourceUtilization struct {
-	Average    float64 `json:"average"`
-	Peak       float64 `json:"peak"`
-	P95        float64 `json:"p95"`
-	Variance   float64 `json:"variance"`
-	Timeline   []TimePoint `json:"timeline"`
+	Average  float64     `json:"average"`
+	Peak     float64     `json:"peak"`
+	P95      float64     `json:"p95"`
+	Variance float64     `json:"variance"`
+	Timeline []TimePoint `json:"timeline"`
 }
 
 // NetworkUtilization represents network usage statistics
 type NetworkUtilization struct {
-	BytesIn     ResourceUtilization `json:"bytes_in"`
-	BytesOut    ResourceUtilization `json:"bytes_out"`
-	PacketsIn   ResourceUtilization `json:"packets_in"`
-	PacketsOut  ResourceUtilization `json:"packets_out"`
+	BytesIn    ResourceUtilization `json:"bytes_in"`
+	BytesOut   ResourceUtilization `json:"bytes_out"`
+	PacketsIn  ResourceUtilization `json:"packets_in"`
+	PacketsOut ResourceUtilization `json:"packets_out"`
 }
 
 // ComponentMetrics contains component-specific performance data
 type ComponentMetrics struct {
-	Name              string        `json:"name"`
-	RequestCount      int           `json:"request_count"`
-	AverageLatency    time.Duration `json:"average_latency"`
-	ErrorRate         float64       `json:"error_rate"`
-	CacheHitRate      float64       `json:"cache_hit_rate"`
-	ResourceUsage     ResourceMetrics `json:"resource_usage"`
+	Name           string          `json:"name"`
+	RequestCount   int             `json:"request_count"`
+	AverageLatency time.Duration   `json:"average_latency"`
+	ErrorRate      float64         `json:"error_rate"`
+	CacheHitRate   float64         `json:"cache_hit_rate"`
+	ResourceUsage  ResourceMetrics `json:"resource_usage"`
 }
 
 // ErrorAnalysis contains error analysis data
 type ErrorAnalysis struct {
-	TotalErrors       int                    `json:"total_errors"`
-	ErrorRate         float64                `json:"error_rate"`
-	ErrorsByType      map[string]int         `json:"errors_by_type"`
-	ErrorsByComponent map[string]int         `json:"errors_by_component"`
-	ErrorDistribution map[string]ErrorStats  `json:"error_distribution"`
+	TotalErrors       int                   `json:"total_errors"`
+	ErrorRate         float64               `json:"error_rate"`
+	ErrorsByType      map[string]int        `json:"errors_by_type"`
+	ErrorsByComponent map[string]int        `json:"errors_by_component"`
+	ErrorDistribution map[string]ErrorStats `json:"error_distribution"`
 }
 
 // ErrorStats contains statistics for specific error types
 type ErrorStats struct {
-	Count      int           `json:"count"`
-	Rate       float64       `json:"rate"`
-	FirstSeen  time.Time     `json:"first_seen"`
-	LastSeen   time.Time     `json:"last_seen"`
-	Duration   time.Duration `json:"duration"`
+	Count     int           `json:"count"`
+	Rate      float64       `json:"rate"`
+	FirstSeen time.Time     `json:"first_seen"`
+	LastSeen  time.Time     `json:"last_seen"`
+	Duration  time.Duration `json:"duration"`
 }
 
 // RegressionAnalysis contains regression detection results
 type RegressionAnalysis struct {
-	HasRegression     bool                   `json:"has_regression"`
-	RegressionScore   float64                `json:"regression_score"`
-	Baseline          *BaselineMetrics       `json:"baseline"`
-	Changes           map[string]float64     `json:"changes"`
-	Recommendations   []string               `json:"recommendations"`
+	HasRegression   bool               `json:"has_regression"`
+	RegressionScore float64            `json:"regression_score"`
+	Baseline        *BaselineMetrics   `json:"baseline"`
+	Changes         map[string]float64 `json:"changes"`
+	Recommendations []string           `json:"recommendations"`
 }
 
 // BaselineMetrics contains baseline performance metrics
 type BaselineMetrics struct {
-	Timestamp         time.Time              `json:"timestamp"`
-	Version           string                 `json:"version"`
-	LatencyBaseline   LatencyMetrics         `json:"latency_baseline"`
-	ThroughputBaseline ThroughputMetrics     `json:"throughput_baseline"`
-	ResourceBaseline  ResourceMetrics        `json:"resource_baseline"`
+	Timestamp          time.Time                   `json:"timestamp"`
+	Version            string                      `json:"version"`
+	LatencyBaseline    LatencyMetrics              `json:"latency_baseline"`
+	ThroughputBaseline ThroughputMetrics           `json:"throughput_baseline"`
+	ResourceBaseline   ResourceMetrics             `json:"resource_baseline"`
 	ComponentBaselines map[string]ComponentMetrics `json:"component_baselines"`
 }
 
 // EnvironmentInfo contains test environment information
 type EnvironmentInfo struct {
-	OS               string                 `json:"os"`
-	Architecture     string                 `json:"architecture"`
-	CPUCores         int                    `json:"cpu_cores"`
-	Memory           int64                  `json:"memory_mb"`
-	GoVersion        string                 `json:"go_version"`
-	KubernetesVersion string                `json:"kubernetes_version"`
-	ClusterNodes     int                    `json:"cluster_nodes"`
-	Configuration    map[string]interface{} `json:"configuration"`
+	OS                string                 `json:"os"`
+	Architecture      string                 `json:"architecture"`
+	CPUCores          int                    `json:"cpu_cores"`
+	Memory            int64                  `json:"memory_mb"`
+	GoVersion         string                 `json:"go_version"`
+	KubernetesVersion string                 `json:"kubernetes_version"`
+	ClusterNodes      int                    `json:"cluster_nodes"`
+	Configuration     map[string]interface{} `json:"configuration"`
 }
 
 // TimePoint represents a data point in time series
@@ -269,23 +269,23 @@ func (bf *BenchmarkFramework) RunBenchmark(ctx context.Context) (*BenchmarkResul
 
 	// Initialize results
 	bf.results = &BenchmarkResults{
-		Timestamp:         time.Now(),
-		Configuration:     bf.config,
-		ComponentMetrics:  make(map[string]ComponentMetrics),
-		Environment:       bf.collectEnvironmentInfo(),
+		Timestamp:        time.Now(),
+		Configuration:    bf.config,
+		ComponentMetrics: make(map[string]ComponentMetrics),
+		Environment:      bf.collectEnvironmentInfo(),
 	}
 
 	// Run benchmark scenarios
 	for _, concurrency := range bf.config.ConcurrencyLevels {
 		for _, rate := range bf.config.RequestRates {
 			log.Printf("Running benchmark: concurrency=%d, rate=%d rps", concurrency, rate)
-			
+
 			scenarioResults, err := bf.runScenario(ctx, concurrency, rate)
 			if err != nil {
 				log.Printf("Scenario failed: %v", err)
 				continue
 			}
-			
+
 			bf.aggregateResults(scenarioResults)
 		}
 	}
@@ -365,16 +365,16 @@ func (bf *BenchmarkFramework) runScenario(ctx context.Context, concurrency int, 
 			close(requestChan)
 			wg.Wait()
 			close(resultsChan)
-			
+
 			scenario.EndTime = time.Now()
 			scenario.Duration = scenario.EndTime.Sub(scenario.StartTime)
 			return scenario, nil
-			
+
 		case <-rateLimiter.C:
 			if queryIndex >= len(bf.config.TestQueries) {
 				queryIndex = 0
 			}
-			
+
 			select {
 			case requestChan <- bf.config.TestQueries[queryIndex]:
 				queryIndex++
@@ -389,15 +389,15 @@ func (bf *BenchmarkFramework) runScenario(ctx context.Context, concurrency int, 
 func (bf *BenchmarkFramework) benchmarkWorker(ctx context.Context, requests <-chan TestQuery, results chan<- RequestResult) {
 	for query := range requests {
 		start := time.Now()
-		
+
 		response, err := bf.ragService.ProcessQuery(ctx, &rag.QueryRequest{
 			Query:      query.Query,
 			IntentType: query.IntentType,
 			Context:    query.Context,
 		})
-		
+
 		latency := time.Since(start)
-		
+
 		results <- RequestResult{
 			Query:     query,
 			Response:  response,
@@ -412,16 +412,16 @@ func (bf *BenchmarkFramework) benchmarkWorker(ctx context.Context, requests <-ch
 func (bf *BenchmarkFramework) collectFinalMetrics(ctx context.Context) {
 	// Collect latency metrics from Prometheus
 	bf.collectLatencyMetrics(ctx)
-	
+
 	// Collect throughput metrics
 	bf.collectThroughputMetrics(ctx)
-	
+
 	// Collect resource metrics
 	bf.collectResourceMetrics(ctx)
-	
+
 	// Collect component metrics
 	bf.collectComponentMetrics(ctx)
-	
+
 	// Collect error metrics
 	bf.collectErrorMetrics(ctx)
 }
@@ -430,15 +430,15 @@ func (bf *BenchmarkFramework) collectFinalMetrics(ctx context.Context) {
 func (bf *BenchmarkFramework) collectLatencyMetrics(ctx context.Context) {
 	// Query Prometheus for latency data
 	queries := map[string]string{
-		"p50": `histogram_quantile(0.50, rate(rag_query_latency_seconds_bucket[5m]))`,
-		"p95": `histogram_quantile(0.95, rate(rag_query_latency_seconds_bucket[5m]))`,
-		"p99": `histogram_quantile(0.99, rate(rag_query_latency_seconds_bucket[5m]))`,
+		"p50":  `histogram_quantile(0.50, rate(rag_query_latency_seconds_bucket[5m]))`,
+		"p95":  `histogram_quantile(0.95, rate(rag_query_latency_seconds_bucket[5m]))`,
+		"p99":  `histogram_quantile(0.99, rate(rag_query_latency_seconds_bucket[5m]))`,
 		"mean": `rate(rag_query_latency_seconds_sum[5m]) / rate(rag_query_latency_seconds_count[5m])`,
 	}
 
 	latencyMetrics := LatencyMetrics{
-		ByQuery:     make(map[string]time.Duration),
-		ByComponent: make(map[string]time.Duration),
+		ByQuery:      make(map[string]time.Duration),
+		ByComponent:  make(map[string]time.Duration),
 		Distribution: make(map[string]int),
 	}
 
@@ -463,7 +463,7 @@ func (bf *BenchmarkFramework) collectLatencyMetrics(ctx context.Context) {
 // collectThroughputMetrics collects throughput performance data
 func (bf *BenchmarkFramework) collectThroughputMetrics(ctx context.Context) {
 	query := `rate(rag_queries_total[5m])`
-	
+
 	result, _, err := bf.prometheusClient.Query(ctx, query, time.Now())
 	if err != nil {
 		log.Printf("Failed to query throughput metrics: %v", err)
@@ -524,7 +524,7 @@ func (bf *BenchmarkFramework) collectComponentMetrics(ctx context.Context) {
 // collectErrorMetrics collects error analysis data
 func (bf *BenchmarkFramework) collectErrorMetrics(ctx context.Context) {
 	errorQuery := `rate(rag_errors_total[5m])`
-	
+
 	result, _, err := bf.prometheusClient.Query(ctx, errorQuery, time.Now())
 	if err != nil {
 		log.Printf("Failed to query error metrics: %v", err)
@@ -558,11 +558,11 @@ func (bf *BenchmarkFramework) performRegressionAnalysis() {
 	// Compare current results with baseline
 	currentP95 := bf.results.LatencyMetrics.P95
 	baselineP95 := bf.baselines.LatencyBaseline.P95
-	
+
 	if baselineP95 > 0 {
 		latencyChange := float64(currentP95-baselineP95) / float64(baselineP95)
 		analysis.Changes["latency_p95"] = latencyChange
-		
+
 		if latencyChange > bf.config.RegressionThreshold {
 			analysis.HasRegression = true
 			analysis.RegressionScore += latencyChange
@@ -575,11 +575,11 @@ func (bf *BenchmarkFramework) performRegressionAnalysis() {
 	// Compare throughput
 	currentThroughput := bf.results.ThroughputMetrics.RequestsPerSecond
 	baselineThroughput := bf.baselines.ThroughputBaseline.RequestsPerSecond
-	
+
 	if baselineThroughput > 0 {
 		throughputChange := (currentThroughput - baselineThroughput) / baselineThroughput
 		analysis.Changes["throughput"] = throughputChange
-		
+
 		if throughputChange < -bf.config.RegressionThreshold {
 			analysis.HasRegression = true
 			analysis.RegressionScore += -throughputChange
@@ -639,7 +639,7 @@ func (bf *BenchmarkFramework) saveResults() error {
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
-	
+
 	if err := encoder.Encode(bf.results); err != nil {
 		return fmt.Errorf("failed to encode results: %w", err)
 	}
@@ -694,11 +694,11 @@ type ScenarioResults struct {
 
 // RequestResult contains the result of a single request
 type RequestResult struct {
-	Query     TestQuery         `json:"query"`
-	Response  *rag.RAGResponse  `json:"response"`
-	Latency   time.Duration     `json:"latency"`
-	Error     error             `json:"error"`
-	Timestamp time.Time         `json:"timestamp"`
+	Query     TestQuery        `json:"query"`
+	Response  *rag.RAGResponse `json:"response"`
+	Latency   time.Duration    `json:"latency"`
+	Error     error            `json:"error"`
+	Timestamp time.Time        `json:"timestamp"`
 }
 
 // ComponentDataPoint represents a data point for component metrics

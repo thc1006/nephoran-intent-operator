@@ -107,13 +107,13 @@ func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx c
 		QualityRequired: 0.8,
 		LatencyBudget:   5 * time.Second,
 	}
-	
+
 	// Call the actual service
 	response, err := caesa.service.GetEmbeddings(ctx, embeddingRequest)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Convert response format
 	embeddings := make([][]float32, len(request.Texts))
 	for i := range request.Texts {
@@ -122,7 +122,7 @@ func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx c
 			embeddings[i][j] = float32(val)
 		}
 	}
-	
+
 	return &EmbeddingResponseExt{
 		Embeddings: embeddings,
 		TokenUsage: &TokenUsage{EstimatedCost: response.Cost},

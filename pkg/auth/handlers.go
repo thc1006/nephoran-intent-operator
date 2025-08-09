@@ -20,14 +20,14 @@ type AuthHandlers struct {
 
 // HandlersConfig represents handlers configuration
 type HandlersConfig struct {
-	BaseURL          string `json:"base_url"`
-	DefaultRedirect  string `json:"default_redirect"`
-	LoginPath        string `json:"login_path"`
-	CallbackPath     string `json:"callback_path"`
-	LogoutPath       string `json:"logout_path"`
-	UserInfoPath     string `json:"userinfo_path"`
-	EnableAPITokens  bool   `json:"enable_api_tokens"`
-	TokenPath        string `json:"token_path"`
+	BaseURL         string `json:"base_url"`
+	DefaultRedirect string `json:"default_redirect"`
+	LoginPath       string `json:"login_path"`
+	CallbackPath    string `json:"callback_path"`
+	LogoutPath      string `json:"logout_path"`
+	UserInfoPath    string `json:"userinfo_path"`
+	EnableAPITokens bool   `json:"enable_api_tokens"`
+	TokenPath       string `json:"token_path"`
 }
 
 // NewAuthHandlers creates new authentication handlers
@@ -64,7 +64,7 @@ func (ah *AuthHandlers) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/auth/session", ah.GetSessionHandler).Methods("GET")
 	router.HandleFunc("/auth/sessions", ah.ListSessionsHandler).Methods("GET")
 	router.HandleFunc("/auth/sessions/{sessionId}", ah.RevokeSessionHandler).Methods("DELETE")
-	
+
 	// Token endpoints (if enabled)
 	if ah.config.EnableAPITokens {
 		router.HandleFunc("/auth/token", ah.GenerateTokenHandler).Methods("POST")
@@ -87,7 +87,7 @@ func (ah *AuthHandlers) RegisterRoutes(router *mux.Router) {
 // GetProvidersHandler returns available OAuth2 providers
 func (ah *AuthHandlers) GetProvidersHandler(w http.ResponseWriter, r *http.Request) {
 	providers := make(map[string]interface{})
-	
+
 	for name, provider := range ah.sessionManager.providers {
 		config := provider.GetConfiguration()
 		providers[name] = map[string]interface{}{
@@ -119,7 +119,7 @@ func (ah *AuthHandlers) InitiateLoginHandler(w http.ResponseWriter, r *http.Requ
 		loginReq.RedirectURI = r.URL.Query().Get("redirect_uri")
 		loginReq.State = r.URL.Query().Get("state")
 		loginReq.Options = make(map[string]string)
-		
+
 		// Extract custom parameters
 		for key, values := range r.URL.Query() {
 			if len(values) > 0 && !isReservedParam(key) {
@@ -239,16 +239,16 @@ func (ah *AuthHandlers) GetUserInfoHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	userInfo := map[string]interface{}{
-		"user_id":    authContext.UserID,
-		"session_id": authContext.SessionID,
-		"provider":   authContext.Provider,
-		"roles":      authContext.Roles,
-		"permissions": authContext.Permissions,
-		"is_admin":   authContext.IsAdmin,
-		"user_info":  sessionInfo.UserInfo,
-		"created_at": sessionInfo.CreatedAt,
+		"user_id":       authContext.UserID,
+		"session_id":    authContext.SessionID,
+		"provider":      authContext.Provider,
+		"roles":         authContext.Roles,
+		"permissions":   authContext.Permissions,
+		"is_admin":      authContext.IsAdmin,
+		"user_info":     sessionInfo.UserInfo,
+		"created_at":    sessionInfo.CreatedAt,
 		"last_activity": sessionInfo.LastActivity,
-		"expires_at": sessionInfo.ExpiresAt,
+		"expires_at":    sessionInfo.ExpiresAt,
 	}
 
 	ah.writeJSONResponse(w, http.StatusOK, userInfo)
@@ -652,14 +652,14 @@ func (ah *AuthHandlers) writeJSONResponse(w http.ResponseWriter, status int, dat
 func (ah *AuthHandlers) writeErrorResponse(w http.ResponseWriter, status int, code, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	
+
 	errorResponse := map[string]interface{}{
-		"error": code,
+		"error":             code,
 		"error_description": message,
-		"status": status,
-		"timestamp": time.Now().Unix(),
+		"status":            status,
+		"timestamp":         time.Now().Unix(),
 	}
-	
+
 	json.NewEncoder(w).Encode(errorResponse)
 }
 

@@ -74,41 +74,41 @@ const (
 
 // ClusterMetadata contains metadata about a cluster
 type ClusterMetadata struct {
-	Name         string                       `json:"name"`
-	ID           string                       `json:"id"`
-	Type         ClusterType                  `json:"type"`
-	Provider     CloudProvider                `json:"provider"`
-	Region       string                       `json:"region"`
-	Zone         string                       `json:"zone"`
-	Environment  string                       `json:"environment"`
-	Version      string                       `json:"version"`
-	Capabilities []ClusterCapability          `json:"capabilities"`
-	Tags         map[string]string            `json:"tags"`
-	Labels       map[string]string            `json:"labels"`
-	Annotations  map[string]string            `json:"annotations"`
-	Resources    ResourceCapacity             `json:"resources"`
-	Network      NetworkConfiguration         `json:"network"`
-	Security     SecurityConfiguration        `json:"security"`
-	Cost         CostMetadata                 `json:"cost"`
-	Compliance   ComplianceMetadata           `json:"compliance"`
-	CreatedAt    time.Time                    `json:"created_at"`
-	UpdatedAt    time.Time                    `json:"updated_at"`
+	Name         string                `json:"name"`
+	ID           string                `json:"id"`
+	Type         ClusterType           `json:"type"`
+	Provider     CloudProvider         `json:"provider"`
+	Region       string                `json:"region"`
+	Zone         string                `json:"zone"`
+	Environment  string                `json:"environment"`
+	Version      string                `json:"version"`
+	Capabilities []ClusterCapability   `json:"capabilities"`
+	Tags         map[string]string     `json:"tags"`
+	Labels       map[string]string     `json:"labels"`
+	Annotations  map[string]string     `json:"annotations"`
+	Resources    ResourceCapacity      `json:"resources"`
+	Network      NetworkConfiguration  `json:"network"`
+	Security     SecurityConfiguration `json:"security"`
+	Cost         CostMetadata          `json:"cost"`
+	Compliance   ComplianceMetadata    `json:"compliance"`
+	CreatedAt    time.Time             `json:"created_at"`
+	UpdatedAt    time.Time             `json:"updated_at"`
 }
 
 // ResourceCapacity represents the resource capacity of a cluster
 type ResourceCapacity struct {
-	TotalCPU        int64   `json:"total_cpu"`
-	AvailableCPU    int64   `json:"available_cpu"`
-	TotalMemory     int64   `json:"total_memory"`
-	AvailableMemory int64   `json:"available_memory"`
-	TotalStorage    int64   `json:"total_storage"`
-	AvailableStorage int64  `json:"available_storage"`
-	TotalGPU        int     `json:"total_gpu,omitempty"`
-	AvailableGPU    int     `json:"available_gpu,omitempty"`
-	NodeCount       int     `json:"node_count"`
-	PodCapacity     int     `json:"pod_capacity"`
-	AvailablePods   int     `json:"available_pods"`
-	Utilization     float64 `json:"utilization"`
+	TotalCPU         int64   `json:"total_cpu"`
+	AvailableCPU     int64   `json:"available_cpu"`
+	TotalMemory      int64   `json:"total_memory"`
+	AvailableMemory  int64   `json:"available_memory"`
+	TotalStorage     int64   `json:"total_storage"`
+	AvailableStorage int64   `json:"available_storage"`
+	TotalGPU         int     `json:"total_gpu,omitempty"`
+	AvailableGPU     int     `json:"available_gpu,omitempty"`
+	NodeCount        int     `json:"node_count"`
+	PodCapacity      int     `json:"pod_capacity"`
+	AvailablePods    int     `json:"available_pods"`
+	Utilization      float64 `json:"utilization"`
 }
 
 // NetworkConfiguration contains network configuration for a cluster
@@ -124,13 +124,13 @@ type NetworkConfiguration struct {
 
 // SecurityConfiguration contains security configuration for a cluster
 type SecurityConfiguration struct {
-	AuthProvider     string            `json:"auth_provider"`
-	TLSEnabled       bool              `json:"tls_enabled"`
-	NetworkPolicies  bool              `json:"network_policies"`
-	PodSecurityLevel string            `json:"pod_security_level"`
-	Encryption       EncryptionConfig  `json:"encryption"`
-	Compliance       []string          `json:"compliance_standards"`
-	AuditLogging     bool              `json:"audit_logging"`
+	AuthProvider     string           `json:"auth_provider"`
+	TLSEnabled       bool             `json:"tls_enabled"`
+	NetworkPolicies  bool             `json:"network_policies"`
+	PodSecurityLevel string           `json:"pod_security_level"`
+	Encryption       EncryptionConfig `json:"encryption"`
+	Compliance       []string         `json:"compliance_standards"`
+	AuditLogging     bool             `json:"audit_logging"`
 }
 
 // EncryptionConfig contains encryption configuration
@@ -142,43 +142,43 @@ type EncryptionConfig struct {
 
 // CostMetadata contains cost information for a cluster
 type CostMetadata struct {
-	HourlyCost   float64           `json:"hourly_cost"`
-	MonthlyCost  float64           `json:"monthly_cost"`
-	CostCenter   string            `json:"cost_center"`
-	Budget       float64           `json:"budget"`
-	BillingTags  map[string]string `json:"billing_tags"`
+	HourlyCost  float64           `json:"hourly_cost"`
+	MonthlyCost float64           `json:"monthly_cost"`
+	CostCenter  string            `json:"cost_center"`
+	Budget      float64           `json:"budget"`
+	BillingTags map[string]string `json:"billing_tags"`
 }
 
 // ComplianceMetadata contains compliance information
 type ComplianceMetadata struct {
-	Standards    []string          `json:"standards"`
-	Certifications []string        `json:"certifications"`
-	LastAudit    time.Time         `json:"last_audit"`
-	NextAudit    time.Time         `json:"next_audit"`
-	ComplianceScore float64        `json:"compliance_score"`
+	Standards       []string  `json:"standards"`
+	Certifications  []string  `json:"certifications"`
+	LastAudit       time.Time `json:"last_audit"`
+	NextAudit       time.Time `json:"next_audit"`
+	ComplianceScore float64   `json:"compliance_score"`
 }
 
 // ClusterEntry represents a registered cluster in the registry
 type ClusterEntry struct {
-	Metadata     ClusterMetadata    `json:"metadata"`
-	Status       ClusterStatus      `json:"status"`
-	Health       ClusterHealth      `json:"health"`
-	Credentials  ClusterCredentials `json:"-"` // Never serialize credentials
-	Config       *rest.Config       `json:"-"`
-	Client       client.Client      `json:"-"`
+	Metadata     ClusterMetadata      `json:"metadata"`
+	Status       ClusterStatus        `json:"status"`
+	Health       ClusterHealth        `json:"health"`
+	Credentials  ClusterCredentials   `json:"-"` // Never serialize credentials
+	Config       *rest.Config         `json:"-"`
+	Client       client.Client        `json:"-"`
 	Clientset    kubernetes.Interface `json:"-"`
-	LastSeen     time.Time          `json:"last_seen"`
-	RegisteredAt time.Time          `json:"registered_at"`
+	LastSeen     time.Time            `json:"last_seen"`
+	RegisteredAt time.Time            `json:"registered_at"`
 }
 
 // ClusterHealth represents the health status of a cluster
 type ClusterHealth struct {
-	Status          ClusterStatus     `json:"status"`
-	Message         string            `json:"message"`
-	LastCheck       time.Time         `json:"last_check"`
-	Components      []ComponentHealth `json:"components"`
-	Metrics         HealthMetrics     `json:"metrics"`
-	Issues          []HealthIssue     `json:"issues"`
+	Status     ClusterStatus     `json:"status"`
+	Message    string            `json:"message"`
+	LastCheck  time.Time         `json:"last_check"`
+	Components []ComponentHealth `json:"components"`
+	Metrics    HealthMetrics     `json:"metrics"`
+	Issues     []HealthIssue     `json:"issues"`
 }
 
 // ComponentHealth represents health of a cluster component
@@ -208,15 +208,15 @@ type HealthIssue struct {
 
 // ClusterCredentials contains credentials for accessing a cluster
 type ClusterCredentials struct {
-	Kubeconfig   []byte            `json:"-"`
-	Token        string            `json:"-"`
-	Certificate  []byte            `json:"-"`
-	Key          []byte            `json:"-"`
-	CACert       []byte            `json:"-"`
-	Endpoint     string            `json:"endpoint"`
-	AuthType     string            `json:"auth_type"`
-	SecretRef    string            `json:"secret_ref,omitempty"`
-	RotationTime time.Time         `json:"rotation_time"`
+	Kubeconfig   []byte    `json:"-"`
+	Token        string    `json:"-"`
+	Certificate  []byte    `json:"-"`
+	Key          []byte    `json:"-"`
+	CACert       []byte    `json:"-"`
+	Endpoint     string    `json:"endpoint"`
+	AuthType     string    `json:"auth_type"`
+	SecretRef    string    `json:"secret_ref,omitempty"`
+	RotationTime time.Time `json:"rotation_time"`
 }
 
 // ClusterQuery represents a query for filtering clusters
@@ -235,26 +235,26 @@ type ClusterQuery struct {
 
 // ClusterRegistry manages cluster registration and discovery
 type ClusterRegistry struct {
-	mu              sync.RWMutex
-	clusters        map[string]*ClusterEntry
-	clustersByType  map[ClusterType][]*ClusterEntry
+	mu               sync.RWMutex
+	clusters         map[string]*ClusterEntry
+	clustersByType   map[ClusterType][]*ClusterEntry
 	clustersByRegion map[string][]*ClusterEntry
-	discoveryConfig DiscoveryConfig
-	credentialStore CredentialStore
-	logger          logr.Logger
-	metrics         *registryMetrics
-	stopCh          chan struct{}
-	client          client.Client
+	discoveryConfig  DiscoveryConfig
+	credentialStore  CredentialStore
+	logger           logr.Logger
+	metrics          *registryMetrics
+	stopCh           chan struct{}
+	client           client.Client
 }
 
 // DiscoveryConfig contains configuration for cluster discovery
 type DiscoveryConfig struct {
-	AutoDiscovery    bool              `json:"auto_discovery"`
-	DiscoveryInterval time.Duration    `json:"discovery_interval"`
-	Namespaces       []string          `json:"namespaces"`
-	LabelSelector    labels.Selector   `json:"label_selector"`
-	CloudProviders   []CloudProvider   `json:"cloud_providers"`
-	Regions          []string          `json:"regions"`
+	AutoDiscovery     bool            `json:"auto_discovery"`
+	DiscoveryInterval time.Duration   `json:"discovery_interval"`
+	Namespaces        []string        `json:"namespaces"`
+	LabelSelector     labels.Selector `json:"label_selector"`
+	CloudProviders    []CloudProvider `json:"cloud_providers"`
+	Regions           []string        `json:"regions"`
 }
 
 // CredentialStore interface for managing cluster credentials

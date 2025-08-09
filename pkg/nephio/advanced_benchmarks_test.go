@@ -16,39 +16,39 @@ import (
 // BenchmarkNephioSystemSuite provides comprehensive Nephio package benchmarks using Go 1.24+ features
 func BenchmarkNephioSystemSuite(b *testing.B) {
 	ctx := context.Background()
-	
+
 	// Setup enhanced Nephio system for benchmarking
 	nephioSystem := setupBenchmarkNephioSystem()
 	defer nephioSystem.Cleanup()
-	
+
 	b.Run("PackageGeneration", func(b *testing.B) {
 		benchmarkPackageGeneration(b, ctx, nephioSystem)
 	})
-	
+
 	b.Run("KRMFunctionExecution", func(b *testing.B) {
 		benchmarkKRMFunctionExecution(b, ctx, nephioSystem)
 	})
-	
+
 	b.Run("PorchIntegration", func(b *testing.B) {
 		benchmarkPorchIntegration(b, ctx, nephioSystem)
 	})
-	
+
 	b.Run("GitOpsOperations", func(b *testing.B) {
 		benchmarkGitOpsOperations(b, ctx, nephioSystem)
 	})
-	
+
 	b.Run("MultiClusterDeployment", func(b *testing.B) {
 		benchmarkMultiClusterDeployment(b, ctx, nephioSystem)
 	})
-	
+
 	b.Run("ConfigSyncPerformance", func(b *testing.B) {
 		benchmarkConfigSyncPerformance(b, ctx, nephioSystem)
 	})
-	
+
 	b.Run("PolicyEnforcement", func(b *testing.B) {
 		benchmarkPolicyEnforcement(b, ctx, nephioSystem)
 	})
-	
+
 	b.Run("ResourceManagement", func(b *testing.B) {
 		benchmarkResourceManagement(b, ctx, nephioSystem)
 	})
@@ -70,68 +70,68 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 		{"HA_NSSF", "nssf", "high-availability", 20, 8, 6},
 		{"Edge_Deployment", "upf-edge", "edge-optimized", 25, 10, 8},
 	}
-	
+
 	for _, scenario := range packageScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			packageSpec := PackageSpec{
-				Name:         fmt.Sprintf("test-%s", scenario.nfType),
-				NFType:       scenario.nfType,
-				Version:      "v1.0.0",
-				Namespace:    "telecom-core",
-				Replicas:     3,
+				Name:      fmt.Sprintf("test-%s", scenario.nfType),
+				NFType:    scenario.nfType,
+				Version:   "v1.0.0",
+				Namespace: "telecom-core",
+				Replicas:  3,
 				Resources: ResourceRequirements{
 					CPU:    "500m",
 					Memory: "1Gi",
 				},
 				Configuration: map[string]interface{}{
-					"complexity":      scenario.complexity,
-					"resourceCount":   scenario.resourceCount,
-					"configMapCount":  scenario.configMapCount,
-					"secretCount":     scenario.secretCount,
+					"complexity":     scenario.complexity,
+					"resourceCount":  scenario.resourceCount,
+					"configMapCount": scenario.configMapCount,
+					"secretCount":    scenario.secretCount,
 				},
 			}
-			
+
 			var totalGenTime, validationTime int64
 			var manifestCount int64
 			var generationErrors int64
-			
+
 			// Enhanced memory tracking
 			var startMemStats, peakMemStats runtime.MemStats
 			runtime.GC()
 			runtime.ReadMemStats(&startMemStats)
 			peakMemory := int64(startMemStats.Alloc)
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				// Generate unique package name for each iteration
 				packageSpec.Name = fmt.Sprintf("test-%s-%d", scenario.nfType, i)
-				
+
 				genStart := time.Now()
 				packageResult, err := nephioSystem.GeneratePackage(ctx, packageSpec)
 				genLatency := time.Since(genStart)
-				
+
 				atomic.AddInt64(&totalGenTime, genLatency.Nanoseconds())
-				
+
 				if err != nil {
 					atomic.AddInt64(&generationErrors, 1)
 					b.Errorf("Package generation failed: %v", err)
 				} else {
 					atomic.AddInt64(&manifestCount, int64(len(packageResult.Manifests)))
-					
+
 					// Validate generated package
 					valStart := time.Now()
 					err := nephioSystem.ValidatePackage(packageResult)
 					valLatency := time.Since(valStart)
-					
+
 					atomic.AddInt64(&validationTime, valLatency.Nanoseconds())
-					
+
 					if err != nil {
 						b.Errorf("Package validation failed: %v", err)
 					}
 				}
-				
+
 				// Track peak memory usage
 				var currentMemStats runtime.MemStats
 				runtime.ReadMemStats(&currentMemStats)
@@ -141,7 +141,7 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 					peakMemStats = currentMemStats
 				}
 			}
-			
+
 			// Calculate generation metrics
 			avgGenLatency := time.Duration(totalGenTime / int64(b.N))
 			avgValLatency := time.Duration(validationTime / int64(b.N))
@@ -149,7 +149,7 @@ func benchmarkPackageGeneration(b *testing.B, ctx context.Context, nephioSystem 
 			genThroughput := float64(b.N) / b.Elapsed().Seconds()
 			errorRate := float64(generationErrors) / float64(b.N) * 100
 			memoryGrowth := float64(peakMemory-int64(startMemStats.Alloc)) / 1024 / 1024 // MB
-			
+
 			b.ReportMetric(float64(avgGenLatency.Milliseconds()), "avg_generation_latency_ms")
 			b.ReportMetric(float64(avgValLatency.Milliseconds()), "avg_validation_latency_ms")
 			b.ReportMetric(genThroughput, "packages_per_sec")
@@ -174,37 +174,37 @@ func benchmarkKRMFunctionExecution(b *testing.B, ctx context.Context, nephioSyst
 		{"ComplexValidation", "validator", "large", 1},
 		{"BatchProcessing", "batch-processor", "xlarge", 10},
 	}
-	
+
 	for _, scenario := range krmScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			functionSpec := KRMFunctionSpec{
-				Name:     scenario.functionType,
-				Version:  "v1.0.0",
-				Image:    fmt.Sprintf("nephio/%s:latest", scenario.functionType),
+				Name:    scenario.functionType,
+				Version: "v1.0.0",
+				Image:   fmt.Sprintf("nephio/%s:latest", scenario.functionType),
 				Config: map[string]interface{}{
 					"inputSize":      scenario.inputSize,
 					"transformCount": scenario.transformCount,
 				},
 			}
-			
+
 			// Generate test input resources
 			inputResources := generateKRMTestResources(scenario.inputSize, scenario.transformCount)
-			
+
 			var executionLatency, inputProcessingTime, outputGenerationTime int64
 			var successCount, errorCount int64
 			var totalInputSize, totalOutputSize int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				execStart := time.Now()
-				
+
 				result, err := nephioSystem.ExecuteKRMFunction(ctx, functionSpec, inputResources)
-				
+
 				execLatency := time.Since(execStart)
 				atomic.AddInt64(&executionLatency, execLatency.Nanoseconds())
-				
+
 				if err != nil {
 					atomic.AddInt64(&errorCount, 1)
 				} else {
@@ -215,7 +215,7 @@ func benchmarkKRMFunctionExecution(b *testing.B, ctx context.Context, nephioSyst
 					atomic.AddInt64(&totalOutputSize, int64(result.OutputSize))
 				}
 			}
-			
+
 			// Calculate KRM function metrics
 			avgExecLatency := time.Duration(executionLatency / int64(b.N))
 			avgInputProcessing := time.Duration(inputProcessingTime / int64(b.N))
@@ -224,7 +224,7 @@ func benchmarkKRMFunctionExecution(b *testing.B, ctx context.Context, nephioSyst
 			successRate := float64(successCount) / float64(b.N) * 100
 			avgInputSize := float64(totalInputSize) / float64(b.N)
 			avgOutputSize := float64(totalOutputSize) / float64(b.N)
-			
+
 			b.ReportMetric(float64(avgExecLatency.Milliseconds()), "avg_execution_latency_ms")
 			b.ReportMetric(float64(avgInputProcessing.Milliseconds()), "avg_input_processing_ms")
 			b.ReportMetric(float64(avgOutputGeneration.Milliseconds()), "avg_output_generation_ms")
@@ -240,10 +240,10 @@ func benchmarkKRMFunctionExecution(b *testing.B, ctx context.Context, nephioSyst
 // benchmarkPorchIntegration tests Nephio Porch integration performance
 func benchmarkPorchIntegration(b *testing.B, ctx context.Context, nephioSystem *EnhancedNephioSystem) {
 	porchScenarios := []struct {
-		name           string
-		operationType  string
-		packageSize    string
-		concurrency    int
+		name          string
+		operationType string
+		packageSize   string
+		concurrency   int
 	}{
 		{"CreatePackage", "create", "small", 1},
 		{"UpdatePackage", "update", "medium", 1},
@@ -251,32 +251,32 @@ func benchmarkPorchIntegration(b *testing.B, ctx context.Context, nephioSystem *
 		{"ConcurrentCreate", "create", "medium", 5},
 		{"ConcurrentUpdate", "update", "large", 3},
 	}
-	
+
 	for _, scenario := range porchScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			var operationLatency int64
 			var successCount, errorCount int64
 			var apiCallCount int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			semaphore := make(chan struct{}, scenario.concurrency)
-			
+
 			for i := 0; i < b.N; i++ {
 				semaphore <- struct{}{}
-				
+
 				go func(iteration int) {
 					defer func() { <-semaphore }()
-					
+
 					packageRef := PackageReference{
 						Name:      fmt.Sprintf("test-package-%d", iteration),
 						Namespace: "nephio-system",
 						Version:   "v1.0.0",
 					}
-					
+
 					opStart := time.Now()
-					
+
 					var err error
 					switch scenario.operationType {
 					case "create":
@@ -286,11 +286,11 @@ func benchmarkPorchIntegration(b *testing.B, ctx context.Context, nephioSystem *
 					case "delete":
 						err = nephioSystem.DeletePorchPackage(ctx, packageRef)
 					}
-					
+
 					opLatency := time.Since(opStart)
 					atomic.AddInt64(&operationLatency, opLatency.Nanoseconds())
 					atomic.AddInt64(&apiCallCount, 1)
-					
+
 					if err != nil {
 						atomic.AddInt64(&errorCount, 1)
 					} else {
@@ -298,17 +298,17 @@ func benchmarkPorchIntegration(b *testing.B, ctx context.Context, nephioSystem *
 					}
 				}(i)
 			}
-			
+
 			// Wait for all operations to complete
 			for i := 0; i < scenario.concurrency; i++ {
 				semaphore <- struct{}{}
 			}
-			
+
 			// Calculate Porch integration metrics
 			avgOpLatency := time.Duration(operationLatency / apiCallCount)
 			operationThroughput := float64(apiCallCount) / b.Elapsed().Seconds()
 			successRate := float64(successCount) / float64(apiCallCount) * 100
-			
+
 			b.ReportMetric(float64(avgOpLatency.Milliseconds()), "avg_operation_latency_ms")
 			b.ReportMetric(operationThroughput, "operations_per_sec")
 			b.ReportMetric(successRate, "success_rate_percent")
@@ -333,7 +333,7 @@ func benchmarkGitOpsOperations(b *testing.B, ctx context.Context, nephioSystem *
 		{"Pull", "pull", 0, 0},
 		{"Merge", "merge", 20, 200},
 	}
-	
+
 	for _, scenario := range gitOpsScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			repoConfig := GitRepoConfig{
@@ -341,25 +341,25 @@ func benchmarkGitOpsOperations(b *testing.B, ctx context.Context, nephioSystem *
 				Branch: "main",
 				Path:   "deployments",
 			}
-			
+
 			var gitOpLatency int64
 			var gitCommandCount int64
 			var bytesTransferred int64
 			var operationErrors int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				opStart := time.Now()
-				
+
 				var result *GitOperationResult
 				var err error
-				
+
 				switch scenario.operation {
 				case "commit":
 					files := generateGitTestFiles(scenario.fileCount, scenario.totalSizeKB*1024/scenario.fileCount)
-					result, err = nephioSystem.GitCommit(ctx, repoConfig, files, 
+					result, err = nephioSystem.GitCommit(ctx, repoConfig, files,
 						fmt.Sprintf("Benchmark commit %d", i))
 				case "push":
 					result, err = nephioSystem.GitPush(ctx, repoConfig)
@@ -368,24 +368,24 @@ func benchmarkGitOpsOperations(b *testing.B, ctx context.Context, nephioSystem *
 				case "merge":
 					result, err = nephioSystem.GitMerge(ctx, repoConfig, "feature-branch")
 				}
-				
+
 				opLatency := time.Since(opStart)
 				atomic.AddInt64(&gitOpLatency, opLatency.Nanoseconds())
 				atomic.AddInt64(&gitCommandCount, 1)
-				
+
 				if err != nil {
 					atomic.AddInt64(&operationErrors, 1)
 				} else if result != nil {
 					atomic.AddInt64(&bytesTransferred, int64(result.BytesTransferred))
 				}
 			}
-			
+
 			// Calculate GitOps metrics
 			avgLatency := time.Duration(gitOpLatency / gitCommandCount)
 			gitThroughput := float64(gitCommandCount) / b.Elapsed().Seconds()
 			errorRate := float64(operationErrors) / float64(gitCommandCount) * 100
 			avgBytesTransferred := float64(bytesTransferred) / float64(gitCommandCount)
-			
+
 			b.ReportMetric(float64(avgLatency.Milliseconds()), "avg_git_operation_latency_ms")
 			b.ReportMetric(gitThroughput, "git_operations_per_sec")
 			b.ReportMetric(errorRate, "git_error_rate_percent")
@@ -410,7 +410,7 @@ func benchmarkMultiClusterDeployment(b *testing.B, ctx context.Context, nephioSy
 		{"EdgeClusters", 10, "small", "edge"},
 		{"HADeployment", 3, "large", "high-availability"},
 	}
-	
+
 	for _, scenario := range deploymentScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			clusters := generateTestClusters(scenario.clusterCount, scenario.deployType)
@@ -420,30 +420,30 @@ func benchmarkMultiClusterDeployment(b *testing.B, ctx context.Context, nephioSy
 				Clusters:    clusters,
 				Strategy:    scenario.deployType,
 			}
-			
+
 			var deploymentLatency int64
 			var clusterSuccesses, clusterFailures int64
 			var totalResourcesDeployed int64
 			var rollbackCount int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				deployStart := time.Now()
-				
+
 				result, err := nephioSystem.DeployToMultipleClusters(ctx, deploymentSpec)
-				
+
 				deployLatency := time.Since(deployStart)
 				atomic.AddInt64(&deploymentLatency, deployLatency.Nanoseconds())
-				
+
 				if err != nil {
 					// Check if partial deployment succeeded
 					if result != nil {
 						atomic.AddInt64(&clusterSuccesses, int64(result.SuccessfulClusters))
 						atomic.AddInt64(&clusterFailures, int64(result.FailedClusters))
 						atomic.AddInt64(&totalResourcesDeployed, int64(result.ResourcesDeployed))
-						
+
 						if result.RollbackRequired {
 							atomic.AddInt64(&rollbackCount, 1)
 						}
@@ -453,7 +453,7 @@ func benchmarkMultiClusterDeployment(b *testing.B, ctx context.Context, nephioSy
 					atomic.AddInt64(&totalResourcesDeployed, int64(result.ResourcesDeployed))
 				}
 			}
-			
+
 			// Calculate multi-cluster deployment metrics
 			totalDeployments := int64(b.N)
 			avgDeployLatency := time.Duration(deploymentLatency / totalDeployments)
@@ -461,7 +461,7 @@ func benchmarkMultiClusterDeployment(b *testing.B, ctx context.Context, nephioSy
 			clusterSuccessRate := float64(clusterSuccesses) / float64(clusterSuccesses+clusterFailures) * 100
 			avgResourcesPerDeployment := float64(totalResourcesDeployed) / float64(totalDeployments)
 			rollbackRate := float64(rollbackCount) / float64(totalDeployments) * 100
-			
+
 			b.ReportMetric(float64(avgDeployLatency.Milliseconds()), "avg_deployment_latency_ms")
 			b.ReportMetric(deploymentThroughput, "deployments_per_sec")
 			b.ReportMetric(clusterSuccessRate, "cluster_success_rate_percent")
@@ -485,7 +485,7 @@ func benchmarkConfigSyncPerformance(b *testing.B, ctx context.Context, nephioSys
 		{"LargeConfig", 200, 10, "high"},
 		{"MassiveConfig", 1000, 20, "high"},
 	}
-	
+
 	for _, scenario := range configSyncScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			configSyncSpec := ConfigSyncSpec{
@@ -496,26 +496,26 @@ func benchmarkConfigSyncPerformance(b *testing.B, ctx context.Context, nephioSys
 				NamespaceCount: scenario.namespaceCount,
 				UpdateFreq:     scenario.updateFreq,
 			}
-			
+
 			var syncLatency int64
 			var resourcesSynced, syncErrors int64
 			var reconcileTime, applyTime int64
-			
+
 			// Enhanced GC tracking for ConfigSync operations
 			var initialGCStats, finalGCStats debug.GCStats
 			debug.ReadGCStats(&initialGCStats)
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				syncStart := time.Now()
-				
+
 				result, err := nephioSystem.PerformConfigSync(ctx, configSyncSpec)
-				
+
 				syncLatency := time.Since(syncStart)
 				atomic.AddInt64(&syncLatency, syncLatency.Nanoseconds())
-				
+
 				if err != nil {
 					atomic.AddInt64(&syncErrors, 1)
 				} else {
@@ -524,9 +524,9 @@ func benchmarkConfigSyncPerformance(b *testing.B, ctx context.Context, nephioSys
 					atomic.AddInt64(&applyTime, int64(result.ApplyTime.Nanoseconds()))
 				}
 			}
-			
+
 			debug.ReadGCStats(&finalGCStats)
-			
+
 			// Calculate ConfigSync metrics
 			avgSyncLatency := time.Duration(syncLatency / int64(b.N))
 			avgReconcileTime := time.Duration(reconcileTime / int64(b.N))
@@ -535,7 +535,7 @@ func benchmarkConfigSyncPerformance(b *testing.B, ctx context.Context, nephioSys
 			errorRate := float64(syncErrors) / float64(b.N) * 100
 			avgResourcesPerSync := float64(resourcesSynced) / float64(b.N)
 			gcPressure := float64(finalGCStats.NumGC - initialGCStats.NumGC)
-			
+
 			b.ReportMetric(float64(avgSyncLatency.Milliseconds()), "avg_sync_latency_ms")
 			b.ReportMetric(float64(avgReconcileTime.Milliseconds()), "avg_reconcile_time_ms")
 			b.ReportMetric(float64(avgApplyTime.Milliseconds()), "avg_apply_time_ms")
@@ -562,7 +562,7 @@ func benchmarkPolicyEnforcement(b *testing.B, ctx context.Context, nephioSystem 
 		{"ResourceQuota", "resource", "complex", "namespace", 15},
 		{"NetworkPolicy", "network", "complex", "pod", 20},
 	}
-	
+
 	for _, scenario := range policyScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			policySpec := PolicySpec{
@@ -572,38 +572,38 @@ func benchmarkPolicyEnforcement(b *testing.B, ctx context.Context, nephioSystem 
 				ResourceType: scenario.resourceType,
 				Rules:        generatePolicyRules(scenario.ruleCount),
 			}
-			
+
 			testResource := generateTestResource(scenario.resourceType)
-			
+
 			var validationLatency, enforcementLatency int64
 			var policyViolations, policyPasses int64
 			var ruleEvaluations int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				// Policy validation phase
 				valStart := time.Now()
 				validationResult, err := nephioSystem.ValidatePolicy(ctx, policySpec, testResource)
 				valLatency := time.Since(valStart)
-				
+
 				atomic.AddInt64(&validationLatency, valLatency.Nanoseconds())
-				
+
 				if err != nil {
 					b.Errorf("Policy validation failed: %v", err)
 					continue
 				}
-				
+
 				atomic.AddInt64(&ruleEvaluations, int64(validationResult.RulesEvaluated))
-				
+
 				// Policy enforcement phase
 				enfStart := time.Now()
 				enforcementResult, err := nephioSystem.EnforcePolicy(ctx, policySpec, testResource)
 				enfLatency := time.Since(enfStart)
-				
+
 				atomic.AddInt64(&enforcementLatency, enfLatency.Nanoseconds())
-				
+
 				if err != nil {
 					b.Errorf("Policy enforcement failed: %v", err)
 				} else {
@@ -614,7 +614,7 @@ func benchmarkPolicyEnforcement(b *testing.B, ctx context.Context, nephioSystem 
 					}
 				}
 			}
-			
+
 			// Calculate policy enforcement metrics
 			avgValLatency := time.Duration(validationLatency / int64(b.N))
 			avgEnfLatency := time.Duration(enforcementLatency / int64(b.N))
@@ -622,7 +622,7 @@ func benchmarkPolicyEnforcement(b *testing.B, ctx context.Context, nephioSystem 
 			policyThroughput := float64(b.N) / b.Elapsed().Seconds()
 			violationRate := float64(policyViolations) / float64(b.N) * 100
 			avgRulesEvaluated := float64(ruleEvaluations) / float64(b.N)
-			
+
 			b.ReportMetric(float64(avgValLatency.Milliseconds()), "avg_validation_latency_ms")
 			b.ReportMetric(float64(avgEnfLatency.Milliseconds()), "avg_enforcement_latency_ms")
 			b.ReportMetric(float64(totalLatency.Milliseconds()), "total_policy_latency_ms")
@@ -637,10 +637,10 @@ func benchmarkPolicyEnforcement(b *testing.B, ctx context.Context, nephioSystem 
 // benchmarkResourceManagement tests resource quota and lifecycle management
 func benchmarkResourceManagement(b *testing.B, ctx context.Context, nephioSystem *EnhancedNephioSystem) {
 	resourceScenarios := []struct {
-		name           string
-		operation      string
-		resourceType   string
-		resourceCount  int
+		name          string
+		operation     string
+		resourceType  string
+		resourceCount int
 	}{
 		{"CreateResources", "create", "deployment", 10},
 		{"UpdateResources", "update", "deployment", 10},
@@ -648,7 +648,7 @@ func benchmarkResourceManagement(b *testing.B, ctx context.Context, nephioSystem
 		{"DeleteResources", "delete", "deployment", 10},
 		{"QuotaEnforcement", "quota", "namespace", 1},
 	}
-	
+
 	for _, scenario := range resourceScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			resourceSpec := ResourceManagementSpec{
@@ -657,42 +657,42 @@ func benchmarkResourceManagement(b *testing.B, ctx context.Context, nephioSystem
 				ResourceCount: scenario.resourceCount,
 				Namespace:     "nephio-test",
 			}
-			
+
 			var operationLatency int64
 			var successfulOps, failedOps int64
 			var resourcesProcessed int64
 			var quotaViolations int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				opStart := time.Now()
-				
+
 				result, err := nephioSystem.ManageResources(ctx, resourceSpec)
-				
+
 				opLatency := time.Since(opStart)
 				atomic.AddInt64(&operationLatency, opLatency.Nanoseconds())
-				
+
 				if err != nil {
 					atomic.AddInt64(&failedOps, 1)
 				} else {
 					atomic.AddInt64(&successfulOps, 1)
 					atomic.AddInt64(&resourcesProcessed, int64(result.ResourcesProcessed))
-					
+
 					if result.QuotaViolation {
 						atomic.AddInt64(&quotaViolations, 1)
 					}
 				}
 			}
-			
+
 			// Calculate resource management metrics
 			avgOpLatency := time.Duration(operationLatency / int64(b.N))
 			opThroughput := float64(b.N) / b.Elapsed().Seconds()
 			successRate := float64(successfulOps) / float64(b.N) * 100
 			avgResourcesPerOp := float64(resourcesProcessed) / float64(b.N)
 			quotaViolationRate := float64(quotaViolations) / float64(b.N) * 100
-			
+
 			b.ReportMetric(float64(avgOpLatency.Milliseconds()), "avg_operation_latency_ms")
 			b.ReportMetric(opThroughput, "operations_per_sec")
 			b.ReportMetric(successRate, "success_rate_percent")
@@ -707,7 +707,7 @@ func benchmarkResourceManagement(b *testing.B, ctx context.Context, nephioSystem
 
 func generateKRMTestResources(size string, count int) []KRMResource {
 	resources := make([]KRMResource, count)
-	
+
 	baseSize := 1024 // 1KB
 	switch size {
 	case "medium":
@@ -717,7 +717,7 @@ func generateKRMTestResources(size string, count int) []KRMResource {
 	case "xlarge":
 		baseSize = 51200 // 50KB
 	}
-	
+
 	for i := range resources {
 		resources[i] = KRMResource{
 			APIVersion: "apps/v1",
@@ -729,7 +729,7 @@ func generateKRMTestResources(size string, count int) []KRMResource {
 			Spec: generateResourceSpec(baseSize),
 		}
 	}
-	
+
 	return resources
 }
 
@@ -761,38 +761,38 @@ func generateResourceSpec(sizeBytes int) map[string]interface{} {
 			},
 		},
 	}
-	
+
 	// Add padding data to reach target size
 	padding := make([]byte, sizeBytes-500) // Approximate current spec size
 	for i := range padding {
 		padding[i] = byte('a' + (i % 26))
 	}
-	
+
 	spec["padding"] = string(padding)
 	return spec
 }
 
 func generateGitTestFiles(count int, sizePerFile int) []GitFile {
 	files := make([]GitFile, count)
-	
+
 	for i := range files {
 		content := make([]byte, sizePerFile)
 		for j := range content {
 			content[j] = byte('a' + (j % 26))
 		}
-		
+
 		files[i] = GitFile{
 			Path:    fmt.Sprintf("manifests/test-file-%d.yaml", i),
 			Content: string(content),
 		}
 	}
-	
+
 	return files
 }
 
 func generateTestClusters(count int, deployType string) []ClusterConfig {
 	clusters := make([]ClusterConfig, count)
-	
+
 	for i := range clusters {
 		clusters[i] = ClusterConfig{
 			Name:     fmt.Sprintf("cluster-%d", i),
@@ -801,22 +801,22 @@ func generateTestClusters(count int, deployType string) []ClusterConfig {
 			Type:     deployType,
 		}
 	}
-	
+
 	return clusters
 }
 
 func generatePolicyRules(count int) []PolicyRule {
 	rules := make([]PolicyRule, count)
-	
+
 	for i := range rules {
 		rules[i] = PolicyRule{
-			Name:        fmt.Sprintf("rule-%d", i),
-			Type:        "validation",
-			Expression:  fmt.Sprintf("spec.replicas <= %d", 10+i),
-			Severity:    "medium",
+			Name:       fmt.Sprintf("rule-%d", i),
+			Type:       "validation",
+			Expression: fmt.Sprintf("spec.replicas <= %d", 10+i),
+			Severity:   "medium",
 		}
 	}
-	
+
 	return rules
 }
 
@@ -872,14 +872,14 @@ func setupBenchmarkNephioSystem() *EnhancedNephioSystem {
 			{Name: "test-cluster", Endpoint: "https://test.example.com"},
 		},
 	}
-	
+
 	return NewEnhancedNephioSystem(config)
 }
 
 // Enhanced Nephio System types and interfaces
 
 type EnhancedNephioSystem struct {
-	packageGenerator  PackageGenerator
+	packageGenerator PackageGenerator
 	krmRuntime       KRMFunctionRuntime
 	porchClient      PorchClient
 	gitClient        GitClient
@@ -925,8 +925,8 @@ type KRMResource struct {
 }
 
 type KRMFunctionResult struct {
-	InputProcessingTime   time.Duration
-	OutputGenerationTime  time.Duration
+	InputProcessingTime  time.Duration
+	OutputGenerationTime time.Duration
 	InputSize            int
 	OutputSize           int
 }
@@ -1054,10 +1054,10 @@ func (n *EnhancedNephioSystem) ValidatePackage(result *PackageResult) error {
 func (n *EnhancedNephioSystem) ExecuteKRMFunction(ctx context.Context, spec KRMFunctionSpec, resources []KRMResource) (*KRMFunctionResult, error) {
 	processingTime := time.Duration(len(resources)*10) * time.Millisecond
 	time.Sleep(processingTime)
-	
+
 	return &KRMFunctionResult{
-		InputProcessingTime:   processingTime / 2,
-		OutputGenerationTime:  processingTime / 2,
+		InputProcessingTime:  processingTime / 2,
+		OutputGenerationTime: processingTime / 2,
 		InputSize:            len(resources) * 1024,
 		OutputSize:           len(resources) * 1200,
 	}, nil
@@ -1084,7 +1084,7 @@ func (n *EnhancedNephioSystem) GitCommit(ctx context.Context, config GitRepoConf
 		totalSize += len(file.Content)
 	}
 	time.Sleep(time.Duration(totalSize/1024) * time.Millisecond)
-	
+
 	return &GitOperationResult{
 		BytesTransferred: totalSize,
 		FilesChanged:     len(files),
@@ -1109,7 +1109,7 @@ func (n *EnhancedNephioSystem) GitMerge(ctx context.Context, config GitRepoConfi
 func (n *EnhancedNephioSystem) DeployToMultipleClusters(ctx context.Context, spec DeploymentSpec) (*MultiClusterDeploymentResult, error) {
 	clusterCount := len(spec.Clusters)
 	time.Sleep(time.Duration(clusterCount*200) * time.Millisecond)
-	
+
 	return &MultiClusterDeploymentResult{
 		SuccessfulClusters: clusterCount,
 		FailedClusters:     0,
@@ -1121,17 +1121,17 @@ func (n *EnhancedNephioSystem) DeployToMultipleClusters(ctx context.Context, spe
 func (n *EnhancedNephioSystem) PerformConfigSync(ctx context.Context, spec ConfigSyncSpec) (*ConfigSyncResult, error) {
 	syncTime := time.Duration(spec.ResourceCount*2) * time.Millisecond
 	time.Sleep(syncTime)
-	
+
 	return &ConfigSyncResult{
 		ResourcesSynced: spec.ResourceCount,
 		ReconcileTime:   syncTime / 2,
-		ApplyTime:      syncTime / 2,
+		ApplyTime:       syncTime / 2,
 	}, nil
 }
 
 func (n *EnhancedNephioSystem) ValidatePolicy(ctx context.Context, spec PolicySpec, resource KRMResource) (*PolicyValidationResult, error) {
 	time.Sleep(time.Duration(len(spec.Rules)*5) * time.Millisecond)
-	
+
 	return &PolicyValidationResult{
 		RulesEvaluated: len(spec.Rules),
 		Violations:     []string{},
@@ -1140,7 +1140,7 @@ func (n *EnhancedNephioSystem) ValidatePolicy(ctx context.Context, spec PolicySp
 
 func (n *EnhancedNephioSystem) EnforcePolicy(ctx context.Context, spec PolicySpec, resource KRMResource) (*PolicyEnforcementResult, error) {
 	time.Sleep(10 * time.Millisecond)
-	
+
 	return &PolicyEnforcementResult{
 		Violated: false,
 		Actions:  []string{"allow"},
@@ -1149,7 +1149,7 @@ func (n *EnhancedNephioSystem) EnforcePolicy(ctx context.Context, spec PolicySpe
 
 func (n *EnhancedNephioSystem) ManageResources(ctx context.Context, spec ResourceManagementSpec) (*ResourceManagementResult, error) {
 	time.Sleep(time.Duration(spec.ResourceCount*20) * time.Millisecond)
-	
+
 	return &ResourceManagementResult{
 		ResourcesProcessed: spec.ResourceCount,
 		QuotaViolation:     false,

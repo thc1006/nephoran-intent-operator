@@ -15,15 +15,15 @@ import (
 type PerformanceCache struct {
 	logger *logging.StructuredLogger
 	config *PerformanceCacheConfig
-	
+
 	// Multi-level caches
-	l1Cache    *L1Cache    // In-memory hot cache
-	l2Cache    *L2Cache    // Larger in-memory cache
+	l1Cache      *L1Cache              // In-memory hot cache
+	l2Cache      *L2Cache              // Larger in-memory cache
 	preProvCache *PreProvisioningCache // Pre-provisioned certificates
-	
+
 	// Cache statistics
 	stats *CacheStatistics
-	
+
 	// Control
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -32,48 +32,48 @@ type PerformanceCache struct {
 
 // PerformanceCacheConfig configures the performance cache
 type PerformanceCacheConfig struct {
-	L1CacheSize          int           `yaml:"l1_cache_size"`
-	L1CacheTTL          time.Duration `yaml:"l1_cache_ttl"`
-	L2CacheSize          int           `yaml:"l2_cache_size"`
-	L2CacheTTL          time.Duration `yaml:"l2_cache_ttl"`
-	PreProvisioningEnabled bool        `yaml:"pre_provisioning_enabled"`
-	PreProvisioningSize   int          `yaml:"pre_provisioning_size"`
-	PreProvisioningTTL    time.Duration `yaml:"pre_provisioning_ttl"`
-	BatchOperationsEnabled bool        `yaml:"batch_operations_enabled"`
-	BatchSize             int          `yaml:"batch_size"`
-	BatchTimeout          time.Duration `yaml:"batch_timeout"`
-	MetricsEnabled        bool         `yaml:"metrics_enabled"`
-	CleanupInterval       time.Duration `yaml:"cleanup_interval"`
+	L1CacheSize            int           `yaml:"l1_cache_size"`
+	L1CacheTTL             time.Duration `yaml:"l1_cache_ttl"`
+	L2CacheSize            int           `yaml:"l2_cache_size"`
+	L2CacheTTL             time.Duration `yaml:"l2_cache_ttl"`
+	PreProvisioningEnabled bool          `yaml:"pre_provisioning_enabled"`
+	PreProvisioningSize    int           `yaml:"pre_provisioning_size"`
+	PreProvisioningTTL     time.Duration `yaml:"pre_provisioning_ttl"`
+	BatchOperationsEnabled bool          `yaml:"batch_operations_enabled"`
+	BatchSize              int           `yaml:"batch_size"`
+	BatchTimeout           time.Duration `yaml:"batch_timeout"`
+	MetricsEnabled         bool          `yaml:"metrics_enabled"`
+	CleanupInterval        time.Duration `yaml:"cleanup_interval"`
 }
 
 // CacheStatistics tracks cache performance metrics
 type CacheStatistics struct {
-	L1Hits              int64 `json:"l1_hits"`
-	L1Misses            int64 `json:"l1_misses"`
-	L2Hits              int64 `json:"l2_hits"`
-	L2Misses            int64 `json:"l2_misses"`
-	PreProvisioningHits int64 `json:"pre_provisioning_hits"`
+	L1Hits                int64 `json:"l1_hits"`
+	L1Misses              int64 `json:"l1_misses"`
+	L2Hits                int64 `json:"l2_hits"`
+	L2Misses              int64 `json:"l2_misses"`
+	PreProvisioningHits   int64 `json:"pre_provisioning_hits"`
 	PreProvisioningMisses int64 `json:"pre_provisioning_misses"`
-	TotalRequests       int64 `json:"total_requests"`
-	EvictionCount       int64 `json:"eviction_count"`
-	mu                  sync.RWMutex
+	TotalRequests         int64 `json:"total_requests"`
+	EvictionCount         int64 `json:"eviction_count"`
+	mu                    sync.RWMutex
 }
 
 // L1Cache is the hot in-memory cache
 type L1Cache struct {
-	cache    map[string]*CacheEntry
-	order    []string
-	maxSize  int
-	ttl      time.Duration
-	mu       sync.RWMutex
+	cache   map[string]*CacheEntry
+	order   []string
+	maxSize int
+	ttl     time.Duration
+	mu      sync.RWMutex
 }
 
 // L2Cache is the larger in-memory cache
 type L2Cache struct {
-	cache    map[string]*CacheEntry
-	maxSize  int
-	ttl      time.Duration
-	mu       sync.RWMutex
+	cache   map[string]*CacheEntry
+	maxSize int
+	ttl     time.Duration
+	mu      sync.RWMutex
 }
 
 // PreProvisioningCache stores pre-provisioned certificates
@@ -87,12 +87,12 @@ type PreProvisioningCache struct {
 
 // CacheEntry represents a cached item
 type CacheEntry struct {
-	Key         string      `json:"key"`
-	Value       interface{} `json:"value"`
-	CreatedAt   time.Time   `json:"created_at"`
-	AccessedAt  time.Time   `json:"accessed_at"`
-	AccessCount int64       `json:"access_count"`
-	Size        int64       `json:"size"`
+	Key         string        `json:"key"`
+	Value       interface{}   `json:"value"`
+	CreatedAt   time.Time     `json:"created_at"`
+	AccessedAt  time.Time     `json:"accessed_at"`
+	AccessCount int64         `json:"access_count"`
+	Size        int64         `json:"size"`
 	TTL         time.Duration `json:"ttl"`
 }
 
@@ -110,13 +110,13 @@ type PreProvisionedCertificate struct {
 
 // BatchOperation represents a batched operation
 type BatchOperation struct {
-	ID          string                 `json:"id"`
-	Type        BatchOperationType     `json:"type"`
-	Requests    []interface{}          `json:"requests"`
-	Results     []interface{}          `json:"results"`
-	CreatedAt   time.Time              `json:"created_at"`
-	CompletedAt time.Time              `json:"completed_at,omitempty"`
-	Status      BatchOperationStatus   `json:"status"`
+	ID          string               `json:"id"`
+	Type        BatchOperationType   `json:"type"`
+	Requests    []interface{}        `json:"requests"`
+	Results     []interface{}        `json:"results"`
+	CreatedAt   time.Time            `json:"created_at"`
+	CompletedAt time.Time            `json:"completed_at,omitempty"`
+	Status      BatchOperationStatus `json:"status"`
 }
 
 // BatchOperationType represents the type of batch operation
@@ -144,7 +144,7 @@ func NewPerformanceCache(
 	config *PerformanceCacheConfig,
 ) *PerformanceCache {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	pc := &PerformanceCache{
 		logger: logger,
 		config: config,
@@ -152,7 +152,7 @@ func NewPerformanceCache(
 		ctx:    ctx,
 		cancel: cancel,
 	}
-	
+
 	// Initialize L1 cache
 	pc.l1Cache = &L1Cache{
 		cache:   make(map[string]*CacheEntry),
@@ -160,14 +160,14 @@ func NewPerformanceCache(
 		maxSize: config.L1CacheSize,
 		ttl:     config.L1CacheTTL,
 	}
-	
+
 	// Initialize L2 cache
 	pc.l2Cache = &L2Cache{
 		cache:   make(map[string]*CacheEntry),
 		maxSize: config.L2CacheSize,
 		ttl:     config.L2CacheTTL,
 	}
-	
+
 	// Initialize pre-provisioning cache
 	if config.PreProvisioningEnabled {
 		pc.preProvCache = &PreProvisioningCache{
@@ -177,7 +177,7 @@ func NewPerformanceCache(
 			ttl:          config.PreProvisioningTTL,
 		}
 	}
-	
+
 	return pc
 }
 
@@ -191,19 +191,19 @@ func (pc *PerformanceCache) Start(ctx context.Context) error {
 	// Start cache cleanup
 	pc.wg.Add(1)
 	go pc.runCacheCleanup()
-	
+
 	// Start pre-provisioning if enabled
 	if pc.config.PreProvisioningEnabled {
 		pc.wg.Add(1)
 		go pc.runPreProvisioning()
 	}
-	
+
 	// Start batch processor if enabled
 	if pc.config.BatchOperationsEnabled {
 		pc.wg.Add(1)
 		go pc.runBatchProcessor()
 	}
-	
+
 	// Start metrics collector if enabled
 	if pc.config.MetricsEnabled {
 		pc.wg.Add(1)
@@ -230,7 +230,7 @@ func (pc *PerformanceCache) Get(key string) (interface{}, bool) {
 	pc.stats.mu.Lock()
 	pc.stats.TotalRequests++
 	pc.stats.mu.Unlock()
-	
+
 	// Try L1 cache first
 	if value, found := pc.getFromL1(key); found {
 		pc.stats.mu.Lock()
@@ -238,26 +238,26 @@ func (pc *PerformanceCache) Get(key string) (interface{}, bool) {
 		pc.stats.mu.Unlock()
 		return value, true
 	}
-	
+
 	pc.stats.mu.Lock()
 	pc.stats.L1Misses++
 	pc.stats.mu.Unlock()
-	
+
 	// Try L2 cache
 	if value, found := pc.getFromL2(key); found {
 		// Promote to L1
 		pc.setToL1(key, value)
-		
+
 		pc.stats.mu.Lock()
 		pc.stats.L2Hits++
 		pc.stats.mu.Unlock()
 		return value, true
 	}
-	
+
 	pc.stats.mu.Lock()
 	pc.stats.L2Misses++
 	pc.stats.mu.Unlock()
-	
+
 	return nil, false
 }
 
@@ -272,27 +272,27 @@ func (pc *PerformanceCache) GetPreProvisionedCertificate(template string) (*PreP
 	if pc.preProvCache == nil {
 		return nil, false
 	}
-	
+
 	pc.preProvCache.mu.RLock()
 	defer pc.preProvCache.mu.RUnlock()
-	
+
 	for _, cert := range pc.preProvCache.certificates {
 		if cert.Template == template && time.Since(cert.CreatedAt) < pc.preProvCache.ttl {
 			pc.stats.mu.Lock()
 			pc.stats.PreProvisioningHits++
 			pc.stats.mu.Unlock()
-			
+
 			// Remove from cache since it's now being used
 			delete(pc.preProvCache.certificates, cert.ID)
-			
+
 			return cert, true
 		}
 	}
-	
+
 	pc.stats.mu.Lock()
 	pc.stats.PreProvisioningMisses++
 	pc.stats.mu.Unlock()
-	
+
 	return nil, false
 }
 
@@ -301,17 +301,17 @@ func (pc *PerformanceCache) AddPreProvisionedCertificate(cert *PreProvisionedCer
 	if pc.preProvCache == nil {
 		return
 	}
-	
+
 	pc.preProvCache.mu.Lock()
 	defer pc.preProvCache.mu.Unlock()
-	
+
 	// Check if we need to make room
 	if len(pc.preProvCache.certificates) >= pc.preProvCache.maxSize {
 		pc.evictOldestPreProvisioned()
 	}
-	
+
 	pc.preProvCache.certificates[cert.ID] = cert
-	
+
 	pc.logger.Debug("added pre-provisioned certificate",
 		"cert_id", cert.ID,
 		"template", cert.Template,
@@ -322,7 +322,7 @@ func (pc *PerformanceCache) AddPreProvisionedCertificate(cert *PreProvisionedCer
 func (pc *PerformanceCache) GetStatistics() *CacheStatistics {
 	pc.stats.mu.RLock()
 	defer pc.stats.mu.RUnlock()
-	
+
 	// Return a copy
 	return &CacheStatistics{
 		L1Hits:                pc.stats.L1Hits,
@@ -341,35 +341,35 @@ func (pc *PerformanceCache) GetStatistics() *CacheStatistics {
 func (pc *PerformanceCache) getFromL1(key string) (interface{}, bool) {
 	pc.l1Cache.mu.RLock()
 	defer pc.l1Cache.mu.RUnlock()
-	
+
 	entry, exists := pc.l1Cache.cache[key]
 	if !exists {
 		return nil, false
 	}
-	
+
 	// Check TTL
 	if time.Since(entry.CreatedAt) > entry.TTL {
 		// Entry expired, remove it
 		go pc.removeFromL1(key)
 		return nil, false
 	}
-	
+
 	// Update access information
 	entry.AccessedAt = time.Now()
 	entry.AccessCount++
-	
+
 	return entry.Value, true
 }
 
 func (pc *PerformanceCache) setToL1(key string, value interface{}) {
 	pc.l1Cache.mu.Lock()
 	defer pc.l1Cache.mu.Unlock()
-	
+
 	// Check if we need to make room
 	if len(pc.l1Cache.cache) >= pc.l1Cache.maxSize {
 		pc.evictFromL1()
 	}
-	
+
 	entry := &CacheEntry{
 		Key:         key,
 		Value:       value,
@@ -379,7 +379,7 @@ func (pc *PerformanceCache) setToL1(key string, value interface{}) {
 		Size:        pc.calculateSize(value),
 		TTL:         pc.l1Cache.ttl,
 	}
-	
+
 	pc.l1Cache.cache[key] = entry
 	pc.l1Cache.order = append(pc.l1Cache.order, key)
 }
@@ -387,10 +387,10 @@ func (pc *PerformanceCache) setToL1(key string, value interface{}) {
 func (pc *PerformanceCache) removeFromL1(key string) {
 	pc.l1Cache.mu.Lock()
 	defer pc.l1Cache.mu.Unlock()
-	
+
 	if _, exists := pc.l1Cache.cache[key]; exists {
 		delete(pc.l1Cache.cache, key)
-		
+
 		// Remove from order slice
 		for i, k := range pc.l1Cache.order {
 			if k == key {
@@ -405,12 +405,12 @@ func (pc *PerformanceCache) evictFromL1() {
 	if len(pc.l1Cache.order) == 0 {
 		return
 	}
-	
+
 	// Evict oldest entry (LRU)
 	oldestKey := pc.l1Cache.order[0]
 	delete(pc.l1Cache.cache, oldestKey)
 	pc.l1Cache.order = pc.l1Cache.order[1:]
-	
+
 	pc.stats.mu.Lock()
 	pc.stats.EvictionCount++
 	pc.stats.mu.Unlock()
@@ -421,35 +421,35 @@ func (pc *PerformanceCache) evictFromL1() {
 func (pc *PerformanceCache) getFromL2(key string) (interface{}, bool) {
 	pc.l2Cache.mu.RLock()
 	defer pc.l2Cache.mu.RUnlock()
-	
+
 	entry, exists := pc.l2Cache.cache[key]
 	if !exists {
 		return nil, false
 	}
-	
+
 	// Check TTL
 	if time.Since(entry.CreatedAt) > entry.TTL {
 		// Entry expired, remove it
 		go pc.removeFromL2(key)
 		return nil, false
 	}
-	
+
 	// Update access information
 	entry.AccessedAt = time.Now()
 	entry.AccessCount++
-	
+
 	return entry.Value, true
 }
 
 func (pc *PerformanceCache) setToL2(key string, value interface{}) {
 	pc.l2Cache.mu.Lock()
 	defer pc.l2Cache.mu.Unlock()
-	
+
 	// Check if we need to make room
 	if len(pc.l2Cache.cache) >= pc.l2Cache.maxSize {
 		pc.evictFromL2()
 	}
-	
+
 	entry := &CacheEntry{
 		Key:         key,
 		Value:       value,
@@ -459,14 +459,14 @@ func (pc *PerformanceCache) setToL2(key string, value interface{}) {
 		Size:        pc.calculateSize(value),
 		TTL:         pc.l2Cache.ttl,
 	}
-	
+
 	pc.l2Cache.cache[key] = entry
 }
 
 func (pc *PerformanceCache) removeFromL2(key string) {
 	pc.l2Cache.mu.Lock()
 	defer pc.l2Cache.mu.Unlock()
-	
+
 	delete(pc.l2Cache.cache, key)
 }
 
@@ -474,17 +474,17 @@ func (pc *PerformanceCache) evictFromL2() {
 	// Find least recently used entry
 	var oldestKey string
 	var oldestTime time.Time = time.Now()
-	
+
 	for key, entry := range pc.l2Cache.cache {
 		if entry.AccessedAt.Before(oldestTime) {
 			oldestTime = entry.AccessedAt
 			oldestKey = key
 		}
 	}
-	
+
 	if oldestKey != "" {
 		delete(pc.l2Cache.cache, oldestKey)
-		
+
 		pc.stats.mu.Lock()
 		pc.stats.EvictionCount++
 		pc.stats.mu.Unlock()
@@ -496,14 +496,14 @@ func (pc *PerformanceCache) evictFromL2() {
 func (pc *PerformanceCache) evictOldestPreProvisioned() {
 	var oldestKey string
 	var oldestTime time.Time = time.Now()
-	
+
 	for key, cert := range pc.preProvCache.certificates {
 		if cert.CreatedAt.Before(oldestTime) {
 			oldestTime = cert.CreatedAt
 			oldestKey = key
 		}
 	}
-	
+
 	if oldestKey != "" {
 		delete(pc.preProvCache.certificates, oldestKey)
 	}
@@ -513,10 +513,10 @@ func (pc *PerformanceCache) evictOldestPreProvisioned() {
 
 func (pc *PerformanceCache) runCacheCleanup() {
 	defer pc.wg.Done()
-	
+
 	ticker := time.NewTicker(pc.config.CleanupInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-pc.ctx.Done():
@@ -529,7 +529,7 @@ func (pc *PerformanceCache) runCacheCleanup() {
 
 func (pc *PerformanceCache) performCleanup() {
 	now := time.Now()
-	
+
 	// Cleanup L1 cache
 	pc.l1Cache.mu.Lock()
 	for key, entry := range pc.l1Cache.cache {
@@ -545,7 +545,7 @@ func (pc *PerformanceCache) performCleanup() {
 		}
 	}
 	pc.l1Cache.mu.Unlock()
-	
+
 	// Cleanup L2 cache
 	pc.l2Cache.mu.Lock()
 	for key, entry := range pc.l2Cache.cache {
@@ -554,7 +554,7 @@ func (pc *PerformanceCache) performCleanup() {
 		}
 	}
 	pc.l2Cache.mu.Unlock()
-	
+
 	// Cleanup pre-provisioning cache
 	if pc.preProvCache != nil {
 		pc.preProvCache.mu.Lock()
@@ -565,16 +565,16 @@ func (pc *PerformanceCache) performCleanup() {
 		}
 		pc.preProvCache.mu.Unlock()
 	}
-	
+
 	pc.logger.Debug("performed cache cleanup")
 }
 
 func (pc *PerformanceCache) runPreProvisioning() {
 	defer pc.wg.Done()
-	
+
 	ticker := time.NewTicker(5 * time.Minute) // Check every 5 minutes
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-pc.ctx.Done():
@@ -589,33 +589,33 @@ func (pc *PerformanceCache) performPreProvisioning() {
 	if pc.preProvCache == nil {
 		return
 	}
-	
+
 	// Check current cache size
 	pc.preProvCache.mu.RLock()
 	currentSize := len(pc.preProvCache.certificates)
 	targetSize := pc.preProvCache.maxSize / 2 // Keep cache half full
 	pc.preProvCache.mu.RUnlock()
-	
+
 	if currentSize >= targetSize {
 		return
 	}
-	
+
 	needed := targetSize - currentSize
 	pc.logger.Debug("pre-provisioning certificates",
 		"current_size", currentSize,
 		"target_size", targetSize,
 		"needed", needed)
-	
+
 	// This would integrate with the CA manager to pre-provision certificates
 	// For now, we'll just log the intent
 }
 
 func (pc *PerformanceCache) runBatchProcessor() {
 	defer pc.wg.Done()
-	
+
 	ticker := time.NewTicker(pc.config.BatchTimeout)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-pc.ctx.Done():
@@ -633,10 +633,10 @@ func (pc *PerformanceCache) processBatches() {
 
 func (pc *PerformanceCache) runMetricsCollector() {
 	defer pc.wg.Done()
-	
+
 	ticker := time.NewTicker(1 * time.Minute)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-pc.ctx.Done():
@@ -649,11 +649,11 @@ func (pc *PerformanceCache) runMetricsCollector() {
 
 func (pc *PerformanceCache) collectMetrics() {
 	stats := pc.GetStatistics()
-	
+
 	// Calculate cache hit rates
 	totalL1Requests := stats.L1Hits + stats.L1Misses
 	totalL2Requests := stats.L2Hits + stats.L2Misses
-	
+
 	var l1HitRate, l2HitRate float64
 	if totalL1Requests > 0 {
 		l1HitRate = float64(stats.L1Hits) / float64(totalL1Requests) * 100
@@ -661,7 +661,7 @@ func (pc *PerformanceCache) collectMetrics() {
 	if totalL2Requests > 0 {
 		l2HitRate = float64(stats.L2Hits) / float64(totalL2Requests) * 100
 	}
-	
+
 	pc.logger.Debug("cache metrics",
 		"l1_hit_rate", fmt.Sprintf("%.2f%%", l1HitRate),
 		"l2_hit_rate", fmt.Sprintf("%.2f%%", l2HitRate),

@@ -29,13 +29,13 @@ import (
 
 var _ = Describe("O2 Infrastructure Management Service Integration Tests", func() {
 	var (
-		namespace         *corev1.Namespace
-		testCtx          context.Context
-		o2Server         *o2.O2APIServer
-		httpTestServer   *httptest.Server
-		testClient       *http.Client
-		metricsRegistry  *prometheus.Registry
-		testLogger       *logging.StructuredLogger
+		namespace       *corev1.Namespace
+		testCtx         context.Context
+		o2Server        *o2.O2APIServer
+		httpTestServer  *httptest.Server
+		testClient      *http.Client
+		metricsRegistry *prometheus.Registry
+		testLogger      *logging.StructuredLogger
 	)
 
 	BeforeEach(func() {
@@ -52,9 +52,9 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 
 		// Setup O2 IMS service with test configuration
 		config := &o2.O2IMSConfig{
-			ServerAddress:    "127.0.0.1",
-			ServerPort:       0, // Use dynamic port for testing
-			TLSEnabled:       false,
+			ServerAddress: "127.0.0.1",
+			ServerPort:    0, // Use dynamic port for testing
+			TLSEnabled:    false,
 			DatabaseConfig: map[string]interface{}{
 				"type":     "memory",
 				"database": "o2_test_db",
@@ -68,7 +68,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				},
 			},
 			MonitoringConfig: map[string]interface{}{
-				"enabled": true,
+				"enabled":  true,
 				"interval": "30s",
 			},
 		}
@@ -160,17 +160,17 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 		Context("when managing resource pools", func() {
 			It("should support complete CRUD operations for resource pools", func() {
 				poolID := "test-pool-" + strconv.FormatInt(time.Now().UnixNano(), 10)
-				
+
 				By("creating a new resource pool")
 				newPool := &models.ResourcePool{
-					ResourcePoolID:   poolID,
-					Name:            "Test Resource Pool",
-					Description:     "Integration test resource pool",
-					Location:        "test-location",
-					OCloudID:        "test-ocloud",
-					Provider:        "kubernetes",
-					Region:          "us-west-2",
-					Zone:            "us-west-2a",
+					ResourcePoolID: poolID,
+					Name:           "Test Resource Pool",
+					Description:    "Integration test resource pool",
+					Location:       "test-location",
+					OCloudID:       "test-ocloud",
+					Provider:       "kubernetes",
+					Region:         "us-west-2",
+					Zone:           "us-west-2a",
 					Capacity: &models.ResourceCapacity{
 						CPU: &models.ResourceMetric{
 							Total:       "100",
@@ -220,7 +220,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				updatedPoolJSON, err := json.Marshal(retrievedPool)
 				Expect(err).NotTo(HaveOccurred())
 
-				req, err := http.NewRequest("PUT", 
+				req, err := http.NewRequest("PUT",
 					httpTestServer.URL+"/o2ims/v1/resourcePools/"+poolID,
 					bytes.NewBuffer(updatedPoolJSON))
 				Expect(err).NotTo(HaveOccurred())
@@ -244,7 +244,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				Expect(updatedPool.Description).To(Equal("Updated description"))
 
 				By("deleting the resource pool")
-				req, err = http.NewRequest("DELETE", 
+				req, err = http.NewRequest("DELETE",
 					httpTestServer.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -266,13 +266,13 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				for i := 0; i < 5; i++ {
 					poolID := fmt.Sprintf("filter-test-pool-%d-%d", i, time.Now().UnixNano())
 					createdPools = append(createdPools, poolID)
-					
+
 					pool := &models.ResourcePool{
 						ResourcePoolID: poolID,
-						Name:          fmt.Sprintf("Filter Test Pool %d", i),
-						Provider:      "kubernetes",
-						Location:      fmt.Sprintf("location-%d", i%2),
-						OCloudID:      "test-ocloud",
+						Name:           fmt.Sprintf("Filter Test Pool %d", i),
+						Provider:       "kubernetes",
+						Location:       fmt.Sprintf("location-%d", i%2),
+						OCloudID:       "test-ocloud",
 					}
 
 					poolJSON, err := json.Marshal(pool)
@@ -290,7 +290,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 
 				DeferCleanup(func() {
 					for _, poolID := range createdPools {
-						req, _ := http.NewRequest("DELETE", 
+						req, _ := http.NewRequest("DELETE",
 							httpTestServer.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 						testClient.Do(req)
 					}
@@ -333,15 +333,15 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 		Context("when managing resource types", func() {
 			It("should support resource type operations", func() {
 				typeID := "test-type-" + strconv.FormatInt(time.Now().UnixNano(), 10)
-				
+
 				By("creating a new resource type")
 				newResourceType := &models.ResourceType{
 					ResourceTypeID: typeID,
-					Name:          "Test Compute Resource",
-					Description:   "Test compute resource type for integration testing",
-					Vendor:        "Nephoran",
-					Model:         "Standard-Compute-v1",
-					Version:       "1.0.0",
+					Name:           "Test Compute Resource",
+					Description:    "Test compute resource type for integration testing",
+					Vendor:         "Nephoran",
+					Model:          "Standard-Compute-v1",
+					Version:        "1.0.0",
 					Specifications: &models.ResourceTypeSpec{
 						Category: "COMPUTE",
 						MinResources: map[string]string{
@@ -388,7 +388,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				Expect(retrievedType.SupportedActions).To(ContainElement("CREATE"))
 
 				By("cleaning up the resource type")
-				req, err := http.NewRequest("DELETE", 
+				req, err := http.NewRequest("DELETE",
 					httpTestServer.URL+"/o2ims/v1/resourceTypes/"+typeID, nil)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -404,19 +404,19 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 		Context("when managing alarms", func() {
 			It("should support alarm lifecycle operations", func() {
 				alarmID := "test-alarm-" + strconv.FormatInt(time.Now().UnixNano(), 10)
-				
+
 				By("creating a test alarm")
 				alarm := map[string]interface{}{
-					"alarmEventRecordId": alarmID,
-					"resourceTypeID":     "test-resource-type",
-					"resourceID":         "test-resource-1",
-					"alarmDefinitionID":  "cpu-high-utilization",
-					"probableCause":      "High CPU utilization detected",
-					"specificProblem":    "CPU usage exceeded 90% threshold",
-					"perceivedSeverity":  "MAJOR",
-					"alarmRaisedTime":    time.Now().Format(time.RFC3339),
-					"alarmChangedTime":   time.Now().Format(time.RFC3339),
-					"alarmAcknowledged":  false,
+					"alarmEventRecordId":    alarmID,
+					"resourceTypeID":        "test-resource-type",
+					"resourceID":            "test-resource-1",
+					"alarmDefinitionID":     "cpu-high-utilization",
+					"probableCause":         "High CPU utilization detected",
+					"specificProblem":       "CPU usage exceeded 90% threshold",
+					"perceivedSeverity":     "MAJOR",
+					"alarmRaisedTime":       time.Now().Format(time.RFC3339),
+					"alarmChangedTime":      time.Now().Format(time.RFC3339),
+					"alarmAcknowledged":     false,
 					"alarmAcknowledgedTime": nil,
 				}
 
@@ -447,14 +447,14 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 
 				By("acknowledging the alarm")
 				ackData := map[string]interface{}{
-					"alarmAcknowledged": true,
+					"alarmAcknowledged":     true,
 					"alarmAcknowledgedTime": time.Now().Format(time.RFC3339),
 				}
 
 				ackJSON, err := json.Marshal(ackData)
 				Expect(err).NotTo(HaveOccurred())
 
-				req, err := http.NewRequest("PATCH", 
+				req, err := http.NewRequest("PATCH",
 					httpTestServer.URL+"/o2ims/v1/alarms/"+alarmID,
 					bytes.NewBuffer(ackJSON))
 				Expect(err).NotTo(HaveOccurred())
@@ -481,13 +481,13 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 		Context("when managing subscriptions", func() {
 			It("should support subscription CRUD operations", func() {
 				subscriptionID := "test-subscription-" + strconv.FormatInt(time.Now().UnixNano(), 10)
-				
+
 				By("creating a monitoring subscription")
 				subscription := map[string]interface{}{
-					"subscriptionId": subscriptionID,
+					"subscriptionId":         subscriptionID,
 					"consumerSubscriptionId": "consumer-" + subscriptionID,
-					"filter": "(eq,resourceTypeId,compute-node);(eq,perceivedSeverity,MAJOR)",
-					"callback": "http://example.com/notifications",
+					"filter":                 "(eq,resourceTypeId,compute-node);(eq,perceivedSeverity,MAJOR)",
+					"callback":               "http://example.com/notifications",
 					"consumerSubscriptionId": "external-consumer-123",
 				}
 
@@ -517,7 +517,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				Expect(retrievedSub["callback"]).To(Equal("http://example.com/notifications"))
 
 				By("deleting the subscription")
-				req, err := http.NewRequest("DELETE", 
+				req, err := http.NewRequest("DELETE",
 					httpTestServer.URL+"/o2ims/v1/subscriptions/"+subscriptionID, nil)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -597,13 +597,13 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 					wg.Add(1)
 					go func(index int) {
 						defer wg.Done()
-						
+
 						poolID := fmt.Sprintf("concurrent-pool-%d-%d", index, time.Now().UnixNano())
 						pool := &models.ResourcePool{
 							ResourcePoolID: poolID,
-							Name:          fmt.Sprintf("Concurrent Test Pool %d", index),
-							Provider:      "kubernetes",
-							OCloudID:      "test-ocloud",
+							Name:           fmt.Sprintf("Concurrent Test Pool %d", index),
+							Provider:       "kubernetes",
+							OCloudID:       "test-ocloud",
 						}
 
 						poolJSON, err := json.Marshal(pool)
@@ -638,13 +638,13 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				// Verify that most operations succeeded
 				errorCount := len(errors)
 				successCount := len(successes)
-				
+
 				Expect(errorCount).To(BeNumerically("<=", 2), "Too many concurrent operation errors")
 				Expect(successCount).To(BeNumerically(">=", 8), "Too few successful concurrent operations")
 
 				// Cleanup created pools
 				for poolID := range successes {
-					req, _ := http.NewRequest("DELETE", 
+					req, _ := http.NewRequest("DELETE",
 						httpTestServer.URL+"/o2ims/v1/resourcePools/"+poolID, nil)
 					testClient.Do(req) // Best effort cleanup
 				}
@@ -662,7 +662,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 					resp, err := testClient.Get(httpTestServer.URL + "/o2ims/v1/")
 					duration := time.Since(start)
 					measurements[i] = duration
-					
+
 					Expect(err).NotTo(HaveOccurred())
 					Expect(resp.StatusCode).To(Equal(http.StatusOK))
 					resp.Body.Close()
@@ -676,7 +676,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 				average := total / time.Duration(len(measurements))
 
 				// Verify performance requirements
-				Expect(average).To(BeNumerically("<", 500*time.Millisecond), 
+				Expect(average).To(BeNumerically("<", 500*time.Millisecond),
 					fmt.Sprintf("Average response time %v exceeds 500ms SLA", average))
 
 				// Verify 95th percentile
@@ -689,7 +689,7 @@ var _ = Describe("O2 Infrastructure Management Service Integration Tests", func(
 					}
 				}
 				violationRate := float64(violationCount) / float64(len(measurements))
-				Expect(violationRate).To(BeNumerically("<=", 0.05), 
+				Expect(violationRate).To(BeNumerically("<=", 0.05),
 					fmt.Sprintf("%.1f%% of requests exceeded 1s (should be ≤5%%)", violationRate*100))
 			})
 		})
@@ -705,10 +705,10 @@ func CreateTestNamespace() *corev1.Namespace {
 		},
 	}
 	Expect(k8sClient.Create(context.Background(), namespace)).To(Succeed())
-	
+
 	DeferCleanup(func() {
 		k8sClient.Delete(context.Background(), namespace)
 	})
-	
+
 	return namespace
 }

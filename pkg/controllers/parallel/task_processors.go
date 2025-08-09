@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
@@ -41,20 +41,20 @@ func NewIntentProcessor(logger logr.Logger) *IntentProcessor {
 // ProcessTask processes an intent task
 func (ip *IntentProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResult, error) {
 	ip.logger.Info("Processing intent task", "taskId", task.ID, "intentId", task.IntentID)
-	
+
 	// Simulate intent processing work
 	time.Sleep(100 * time.Millisecond)
-	
+
 	result := &TaskResult{
-		TaskID:      task.ID,
-		Success:     true,
+		TaskID:  task.ID,
+		Success: true,
 		OutputData: map[string]interface{}{
-			"processed":     true,
-			"intent_type":   task.Intent.Spec.IntentType,
-			"intent_text":   task.Intent.Spec.Intent,
+			"processed":   true,
+			"intent_type": task.Intent.Spec.IntentType,
+			"intent_text": task.Intent.Spec.Intent,
 		},
 	}
-	
+
 	return result, nil
 }
 
@@ -92,31 +92,31 @@ func NewLLMProcessor(logger logr.Logger) *LLMProcessor {
 // ProcessTask processes an LLM task
 func (lp *LLMProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResult, error) {
 	lp.logger.Info("Processing LLM task", "taskId", task.ID, "intentId", task.IntentID)
-	
+
 	// Simulate LLM processing work
 	time.Sleep(500 * time.Millisecond)
-	
+
 	// Extract intent text from input data
 	intentText, ok := task.InputData["intent"].(string)
 	if !ok {
 		return nil, fmt.Errorf("missing intent text in input data")
 	}
-	
+
 	// Simulate LLM response
 	llmResponse := map[string]interface{}{
-		"network_functions": []string{"AMF", "SMF", "UPF"},
+		"network_functions":  []string{"AMF", "SMF", "UPF"},
 		"deployment_pattern": "high_availability",
 		"resources": map[string]interface{}{
 			"cpu":    "2000m",
 			"memory": "4Gi",
 		},
 		"confidence": 0.95,
-		"reasoning": fmt.Sprintf("Analyzed intent: %s", intentText),
+		"reasoning":  fmt.Sprintf("Analyzed intent: %s", intentText),
 	}
-	
+
 	result := &TaskResult{
-		TaskID:      task.ID,
-		Success:     true,
+		TaskID:  task.ID,
+		Success: true,
 		OutputData: map[string]interface{}{
 			"llm_response": llmResponse,
 			"tokens_used":  150,
@@ -127,13 +127,13 @@ func (lp *LLMProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 			NextPhase: interfaces.PhaseResourcePlanning,
 			Data:      llmResponse,
 			Metrics: map[string]float64{
-				"confidence":    0.95,
-				"tokens_used":   150,
-				"latency_ms":    500,
+				"confidence":  0.95,
+				"tokens_used": 150,
+				"latency_ms":  500,
 			},
 		},
 	}
-	
+
 	return result, nil
 }
 
@@ -172,16 +172,16 @@ func NewRAGProcessor(logger logr.Logger) *RAGProcessor {
 // ProcessTask processes a RAG task
 func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResult, error) {
 	rp.logger.Info("Processing RAG task", "taskId", task.ID, "intentId", task.IntentID)
-	
+
 	// Simulate RAG retrieval work
 	time.Sleep(300 * time.Millisecond)
-	
+
 	// Extract query from input data
 	query, ok := task.InputData["query"].(string)
 	if !ok {
 		return nil, fmt.Errorf("missing query in input data")
 	}
-	
+
 	// Simulate RAG response
 	ragResponse := map[string]interface{}{
 		"documents": []map[string]interface{}{
@@ -198,19 +198,19 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 				"source":     "ETSI NFV Guidelines",
 			},
 		},
-		"chunk_count":     5,
-		"max_similarity":  0.92,
-		"avg_similarity":  0.86,
+		"chunk_count":    5,
+		"max_similarity": 0.92,
+		"avg_similarity": 0.86,
 		"query_metadata": map[string]interface{}{
 			"query":           query,
 			"embedding_model": "text-embedding-3-large",
 			"search_type":     "hybrid",
 		},
 	}
-	
+
 	result := &TaskResult{
-		TaskID:      task.ID,
-		Success:     true,
+		TaskID:  task.ID,
+		Success: true,
 		OutputData: map[string]interface{}{
 			"rag_response":    ragResponse,
 			"documents_found": 5,
@@ -228,7 +228,7 @@ func (rp *RAGProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResul
 			},
 		},
 	}
-	
+
 	return result, nil
 }
 
@@ -267,10 +267,10 @@ func NewResourceProcessor(logger logr.Logger) *ResourceProcessor {
 // ProcessTask processes a resource planning task
 func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResult, error) {
 	rsp.logger.Info("Processing resource planning task", "taskId", task.ID, "intentId", task.IntentID)
-	
+
 	// Simulate resource planning work
 	time.Sleep(400 * time.Millisecond)
-	
+
 	// Create resource plan based on previous processing results
 	resourcePlan := map[string]interface{}{
 		"network_functions": []map[string]interface{}{
@@ -314,12 +314,12 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 			"zone_distribution",
 		},
 	}
-	
+
 	result := &TaskResult{
-		TaskID:      task.ID,
-		Success:     true,
+		TaskID:  task.ID,
+		Success: true,
 		OutputData: map[string]interface{}{
-			"resource_plan":     resourcePlan,
+			"resource_plan":      resourcePlan,
 			"optimization_score": 0.87,
 			"planning_time_ms":   400,
 		},
@@ -334,7 +334,7 @@ func (rsp *ResourceProcessor) ProcessTask(ctx context.Context, task *Task) (*Tas
 			},
 		},
 	}
-	
+
 	return result, nil
 }
 
@@ -372,10 +372,10 @@ func NewManifestProcessor(logger logr.Logger) *ManifestProcessor {
 // ProcessTask processes a manifest generation task
 func (mp *ManifestProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResult, error) {
 	mp.logger.Info("Processing manifest generation task", "taskId", task.ID, "intentId", task.IntentID)
-	
+
 	// Simulate manifest generation work
 	time.Sleep(350 * time.Millisecond)
-	
+
 	// Generate Kubernetes manifests
 	manifests := map[string]string{
 		"amf-deployment.yaml": `apiVersion: apps/v1
@@ -406,7 +406,7 @@ spec:
         ports:
         - containerPort: 8080
           name: sbi`,
-		
+
 		"smf-deployment.yaml": `apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -432,7 +432,7 @@ spec:
           limits:
             cpu: "1500m"
             memory: "3Gi"`,
-		
+
 		"services.yaml": `apiVersion: v1
 kind: Service
 metadata:
@@ -459,10 +459,10 @@ spec:
     targetPort: 8080
     name: sbi`,
 	}
-	
+
 	result := &TaskResult{
-		TaskID:      task.ID,
-		Success:     true,
+		TaskID:  task.ID,
+		Success: true,
 		OutputData: map[string]interface{}{
 			"manifests":          manifests,
 			"manifest_count":     len(manifests),
@@ -479,7 +479,7 @@ spec:
 			},
 		},
 	}
-	
+
 	return result, nil
 }
 
@@ -517,28 +517,28 @@ func NewGitOpsProcessor(logger logr.Logger) *GitOpsProcessor {
 // ProcessTask processes a GitOps commit task
 func (gp *GitOpsProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResult, error) {
 	gp.logger.Info("Processing GitOps task", "taskId", task.ID, "intentId", task.IntentID)
-	
+
 	// Simulate GitOps operations
 	time.Sleep(600 * time.Millisecond)
-	
+
 	// Simulate Git operations
 	commitResult := map[string]interface{}{
 		"commit_hash":    "abc123def456",
 		"commit_message": fmt.Sprintf("Deploy intent %s: 5G Core network functions", task.IntentID),
 		"branch":         "main",
 		"repository":     "git@github.com:telecom/deployments.git",
-		"files":          []string{
+		"files": []string{
 			"clusters/prod/5g-core/amf-deployment.yaml",
 			"clusters/prod/5g-core/smf-deployment.yaml",
 			"clusters/prod/5g-core/services.yaml",
 		},
-		"pr_created":     false,
-		"auto_merge":     true,
+		"pr_created": false,
+		"auto_merge": true,
 	}
-	
+
 	result := &TaskResult{
-		TaskID:      task.ID,
-		Success:     true,
+		TaskID:  task.ID,
+		Success: true,
 		OutputData: map[string]interface{}{
 			"commit_result":  commitResult,
 			"commit_time_ms": 600,
@@ -554,7 +554,7 @@ func (gp *GitOpsProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskRe
 			},
 		},
 	}
-	
+
 	return result, nil
 }
 
@@ -593,10 +593,10 @@ func NewDeploymentProcessor(logger logr.Logger) *DeploymentProcessor {
 // ProcessTask processes a deployment verification task
 func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskResult, error) {
 	dp.logger.Info("Processing deployment verification task", "taskId", task.ID, "intentId", task.IntentID)
-	
+
 	// Simulate deployment verification work
 	time.Sleep(800 * time.Millisecond)
-	
+
 	// Simulate verification results
 	verificationResult := map[string]interface{}{
 		"deployment_status": "success",
@@ -610,14 +610,14 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 		},
 		"health_checks": map[string]interface{}{
 			"amf": map[string]interface{}{
-				"status":       "healthy",
+				"status":        "healthy",
 				"response_time": "45ms",
-				"uptime":       "100%",
+				"uptime":        "100%",
 			},
 			"smf": map[string]interface{}{
-				"status":       "healthy",
+				"status":        "healthy",
 				"response_time": "38ms",
-				"uptime":       "100%",
+				"uptime":        "100%",
 			},
 		},
 		"sla_compliance": map[string]interface{}{
@@ -628,14 +628,14 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 		"verification_time": "800ms",
 		"all_checks_passed": true,
 	}
-	
+
 	result := &TaskResult{
-		TaskID:      task.ID,
-		Success:     true,
+		TaskID:  task.ID,
+		Success: true,
 		OutputData: map[string]interface{}{
-			"verification_result": verificationResult,
+			"verification_result":  verificationResult,
 			"verification_time_ms": 800,
-			"all_healthy":         true,
+			"all_healthy":          true,
 		},
 		ProcessingResult: &interfaces.ProcessingResult{
 			Success:   true,
@@ -648,7 +648,7 @@ func (dp *DeploymentProcessor) ProcessTask(ctx context.Context, task *Task) (*Ta
 			},
 		},
 	}
-	
+
 	return result, nil
 }
 

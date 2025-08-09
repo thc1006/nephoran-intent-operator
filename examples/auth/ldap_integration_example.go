@@ -99,15 +99,15 @@ func setupAuthRoutes(router *mux.Router, authManager *auth.AuthManager) {
 	if ldapMiddleware := authManager.GetLDAPMiddleware(); ldapMiddleware != nil {
 		router.HandleFunc("/auth/ldap/login", ldapMiddleware.HandleLDAPLogin).Methods("POST")
 		router.HandleFunc("/auth/ldap/logout", ldapMiddleware.HandleLDAPLogout).Methods("POST")
-		
+
 		// LDAP user info endpoint (for admin purposes)
-		router.HandleFunc("/auth/ldap/user/{username}", 
+		router.HandleFunc("/auth/ldap/user/{username}",
 			authManager.GetMiddleware().RequirePermissionMiddleware("users:manage")(
 				http.HandlerFunc(handleLDAPUserInfo(ldapMiddleware))),
 		).Methods("GET")
-		
+
 		// LDAP test connection endpoint
-		router.HandleFunc("/auth/ldap/test", 
+		router.HandleFunc("/auth/ldap/test",
 			authManager.GetMiddleware().RequireAdminMiddleware(
 				http.HandlerFunc(handleLDAPTest(ldapMiddleware))),
 		).Methods("GET")
@@ -137,7 +137,7 @@ func setupOAuth2Routes(router *mux.Router, oauth2Manager *auth.OAuth2Manager) {
 func setupProtectedRoutes(router *mux.Router, authManager *auth.AuthManager) {
 	// Apply authentication middleware to protected routes
 	protected := router.PathPrefix("/api").Subrouter()
-	
+
 	// LDAP authentication middleware for direct LDAP auth
 	if ldapMiddleware := authManager.GetLDAPMiddleware(); ldapMiddleware != nil {
 		protected.Use(ldapMiddleware.LDAPAuthenticateMiddleware)
@@ -148,18 +148,18 @@ func setupProtectedRoutes(router *mux.Router, authManager *auth.AuthManager) {
 
 	// Example protected endpoints
 	protected.HandleFunc("/profile", handleUserProfile).Methods("GET")
-	protected.HandleFunc("/intents", 
+	protected.HandleFunc("/intents",
 		authManager.GetMiddleware().RequirePermissionMiddleware("intent:read")(
 			http.HandlerFunc(handleIntentsList)),
 	).Methods("GET")
-	
-	protected.HandleFunc("/intents", 
+
+	protected.HandleFunc("/intents",
 		authManager.GetMiddleware().RequirePermissionMiddleware("intent:create")(
 			http.HandlerFunc(handleIntentCreate)),
 	).Methods("POST")
-	
+
 	// Admin-only endpoints
-	protected.HandleFunc("/admin/users", 
+	protected.HandleFunc("/admin/users",
 		authManager.GetMiddleware().RequireAdminMiddleware(
 			http.HandlerFunc(handleAdminUsers)),
 	).Methods("GET")
@@ -170,21 +170,21 @@ func setupProtectedRoutes(router *mux.Router, authManager *auth.AuthManager) {
 func handleAuthInfo(authManager *auth.AuthManager) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		providers := authManager.ListProviders()
-		
+
 		info := map[string]interface{}{
 			"enabled":   true,
 			"providers": providers,
 			"features": map[string]bool{
-				"ldap":         len(providers["ldap"].(map[string]interface{})) > 0,
-				"oauth2":       len(providers["oauth2"].(map[string]interface{})) > 0,
-				"session":      true,
-				"jwt":          true,
-				"rbac":         true,
-				"csrf":         true,
-				"pkce":         true,
+				"ldap":    len(providers["ldap"].(map[string]interface{})) > 0,
+				"oauth2":  len(providers["oauth2"].(map[string]interface{})) > 0,
+				"session": true,
+				"jwt":     true,
+				"rbac":    true,
+				"csrf":    true,
+				"pkce":    true,
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(info)
 	}
@@ -195,13 +195,13 @@ func handleLDAPUserInfo(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFun
 		vars := mux.Vars(r)
 		username := vars["username"]
 		provider := r.URL.Query().Get("provider")
-		
+
 		userInfo, err := ldapMiddleware.GetUserInfo(r.Context(), username, provider)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("Failed to get user info: %v", err), http.StatusNotFound)
 			return
 		}
-		
+
 		// Remove sensitive information
 		response := map[string]interface{}{
 			"username":     userInfo.Username,
@@ -213,7 +213,7 @@ func handleLDAPUserInfo(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFun
 			"roles":        userInfo.Roles,
 			"provider":     userInfo.Provider,
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}
@@ -222,11 +222,11 @@ func handleLDAPUserInfo(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFun
 func handleLDAPTest(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		results := ldapMiddleware.TestLDAPConnection(r.Context())
-		
+
 		response := map[string]interface{}{
 			"results": make(map[string]interface{}),
 		}
-		
+
 		allHealthy := true
 		for provider, err := range results {
 			if err != nil {
@@ -241,13 +241,13 @@ func handleLDAPTest(ldapMiddleware *auth.LDAPAuthMiddleware) http.HandlerFunc {
 				}
 			}
 		}
-		
+
 		response["overall_status"] = "healthy"
 		if !allHealthy {
 			response["overall_status"] = "unhealthy"
 			w.WriteHeader(http.StatusServiceUnavailable)
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}
@@ -260,7 +260,7 @@ func handleOAuth2Providers(oauth2Manager *auth.OAuth2Manager) http.HandlerFunc {
 			"providers": []string{},
 			"message":   "OAuth2 providers endpoint - implementation depends on OAuth2Manager interface",
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(providers)
 	}
@@ -291,25 +291,25 @@ func handleTokenRefresh(authManager *auth.AuthManager) http.HandlerFunc {
 		var request struct {
 			RefreshToken string `json:"refresh_token"`
 		}
-		
+
 		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 			http.Error(w, "Invalid request", http.StatusBadRequest)
 			return
 		}
-		
+
 		accessToken, refreshToken, err := authManager.RefreshTokens(r.Context(), request.RefreshToken)
 		if err != nil {
 			http.Error(w, "Token refresh failed", http.StatusUnauthorized)
 			return
 		}
-		
+
 		response := map[string]interface{}{
 			"access_token":  accessToken,
 			"refresh_token": refreshToken,
 			"token_type":    "Bearer",
 			"expires_in":    3600,
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}
@@ -323,13 +323,13 @@ func handleSessionInfo(authManager *auth.AuthManager) http.HandlerFunc {
 			http.Error(w, "No session found", http.StatusUnauthorized)
 			return
 		}
-		
+
 		sessionInfo, err := authManager.ValidateSession(r.Context(), sessionID)
 		if err != nil {
 			http.Error(w, "Invalid session", http.StatusUnauthorized)
 			return
 		}
-		
+
 		response := map[string]interface{}{
 			"session_id":   sessionInfo.ID,
 			"user_id":      sessionInfo.UserID,
@@ -342,7 +342,7 @@ func handleSessionInfo(authManager *auth.AuthManager) http.HandlerFunc {
 			"created_at":   sessionInfo.CreatedAt,
 			"expires_at":   sessionInfo.ExpiresAt,
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}
@@ -355,13 +355,13 @@ func handleSessionInvalidate(authManager *auth.AuthManager) http.HandlerFunc {
 			http.Error(w, "No session found", http.StatusBadRequest)
 			return
 		}
-		
+
 		sessionManager := authManager.GetSessionManager()
 		if err := sessionManager.InvalidateSession(r.Context(), sessionID); err != nil {
 			http.Error(w, "Failed to invalidate session", http.StatusInternalServerError)
 			return
 		}
-		
+
 		// Clear session cookie
 		http.SetCookie(w, &http.Cookie{
 			Name:     "nephoran_session",
@@ -371,7 +371,7 @@ func handleSessionInvalidate(authManager *auth.AuthManager) http.HandlerFunc {
 			HttpOnly: true,
 			Secure:   r.TLS != nil,
 		})
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{
 			"message": "Session invalidated successfully",
@@ -385,7 +385,7 @@ func handleUserProfile(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Authentication required", http.StatusUnauthorized)
 		return
 	}
-	
+
 	profile := map[string]interface{}{
 		"user_id":     authContext.UserID,
 		"provider":    authContext.Provider,
@@ -394,14 +394,14 @@ func handleUserProfile(w http.ResponseWriter, r *http.Request) {
 		"is_admin":    authContext.IsAdmin,
 		"attributes":  authContext.Attributes,
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(profile)
 }
 
 func handleIntentsList(w http.ResponseWriter, r *http.Request) {
 	authContext := auth.GetAuthContext(r.Context())
-	
+
 	// Example intents list - in real implementation, this would query the database
 	intents := []map[string]interface{}{
 		{
@@ -412,37 +412,37 @@ func handleIntentsList(w http.ResponseWriter, r *http.Request) {
 			"created_at":  time.Now().Add(-2 * time.Hour),
 		},
 		{
-			"id":          "intent-002", 
+			"id":          "intent-002",
 			"description": "Scale UPF instances for increased traffic",
 			"status":      "pending",
 			"created_by":  authContext.UserID,
 			"created_at":  time.Now().Add(-1 * time.Hour),
 		},
 	}
-	
+
 	response := map[string]interface{}{
 		"intents": intents,
 		"total":   len(intents),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 
 func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 	authContext := auth.GetAuthContext(r.Context())
-	
+
 	var request struct {
-		Description string `json:"description"`
-		Type        string `json:"type"`
+		Description string                 `json:"description"`
+		Type        string                 `json:"type"`
 		Parameters  map[string]interface{} `json:"parameters"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Example intent creation - in real implementation, this would create the intent
 	intent := map[string]interface{}{
 		"id":          fmt.Sprintf("intent-%d", time.Now().Unix()),
@@ -453,7 +453,7 @@ func handleIntentCreate(w http.ResponseWriter, r *http.Request) {
 		"created_by":  authContext.UserID,
 		"created_at":  time.Now(),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(intent)
@@ -473,7 +473,7 @@ func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 		},
 		{
 			"user_id":      "operator1",
-			"username":     "operator1", 
+			"username":     "operator1",
 			"email":        "operator1@company.com",
 			"display_name": "Network Operator",
 			"roles":        []string{"network-operator"},
@@ -481,12 +481,12 @@ func handleAdminUsers(w http.ResponseWriter, r *http.Request) {
 			"active":       true,
 		},
 	}
-	
+
 	response := map[string]interface{}{
 		"users": users,
 		"total": len(users),
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
@@ -499,7 +499,7 @@ func getSessionID(r *http.Request) string {
 	if err == nil && cookie.Value != "" {
 		return cookie.Value
 	}
-	
+
 	// Try header
 	return r.Header.Get("X-Session-ID")
 }
@@ -507,12 +507,12 @@ func getSessionID(r *http.Request) string {
 // ExampleLDAPIntegrationTest demonstrates how to test LDAP integration
 func ExampleLDAPIntegrationTest() {
 	fmt.Println("Example LDAP Integration Test")
-	
+
 	// Create logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}))
-	
+
 	// Create LDAP configuration
 	ldapConfig := &providers.LDAPConfig{
 		Host:              "localhost",
@@ -531,30 +531,30 @@ func ExampleLDAPIntegrationTest() {
 		},
 		DefaultRoles: []string{"user"},
 	}
-	
+
 	// Create LDAP provider
 	ldapProvider := providers.NewLDAPProvider(ldapConfig, logger)
-	
+
 	// Test connection
 	ctx := context.Background()
 	if err := ldapProvider.TestConnection(ctx); err != nil {
 		fmt.Printf("LDAP connection failed: %v\n", err)
 		return
 	}
-	
+
 	fmt.Println("LDAP connection successful")
-	
+
 	// Test authentication
 	userInfo, err := ldapProvider.Authenticate(ctx, "testuser", "testpass")
 	if err != nil {
 		fmt.Printf("LDAP authentication failed: %v\n", err)
 		return
 	}
-	
+
 	fmt.Printf("User authenticated: %s (%s)\n", userInfo.Username, userInfo.Email)
 	fmt.Printf("Groups: %v\n", userInfo.Groups)
 	fmt.Printf("Roles: %v\n", userInfo.Roles)
-	
+
 	// Clean up
 	ldapProvider.Close()
 }

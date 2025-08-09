@@ -36,21 +36,21 @@ import (
 
 // IntentRequest represents a request to create or update an intent
 type IntentRequest struct {
-	Name                string                       `json:"name"`
-	Namespace           string                       `json:"namespace,omitempty"`
-	Intent              string                       `json:"intent"`
-	IntentType          nephoranv1.IntentType        `json:"intent_type"`
-	Priority            nephoranv1.Priority          `json:"priority,omitempty"`
-	TargetComponents    []nephoranv1.TargetComponent `json:"target_components,omitempty"`
+	Name                string                          `json:"name"`
+	Namespace           string                          `json:"namespace,omitempty"`
+	Intent              string                          `json:"intent"`
+	IntentType          nephoranv1.IntentType           `json:"intent_type"`
+	Priority            nephoranv1.Priority             `json:"priority,omitempty"`
+	TargetComponents    []nephoranv1.TargetComponent    `json:"target_components,omitempty"`
 	ResourceConstraints *nephoranv1.ResourceConstraints `json:"resource_constraints,omitempty"`
-	TargetNamespace     string                       `json:"target_namespace,omitempty"`
-	TargetCluster       string                       `json:"target_cluster,omitempty"`
-	NetworkSlice        string                       `json:"network_slice,omitempty"`
-	Region              string                       `json:"region,omitempty"`
-	TimeoutSeconds      *int32                       `json:"timeout_seconds,omitempty"`
-	MaxRetries          *int32                       `json:"max_retries,omitempty"`
-	Labels              map[string]string            `json:"labels,omitempty"`
-	Annotations         map[string]string            `json:"annotations,omitempty"`
+	TargetNamespace     string                          `json:"target_namespace,omitempty"`
+	TargetCluster       string                          `json:"target_cluster,omitempty"`
+	NetworkSlice        string                          `json:"network_slice,omitempty"`
+	Region              string                          `json:"region,omitempty"`
+	TimeoutSeconds      *int32                          `json:"timeout_seconds,omitempty"`
+	MaxRetries          *int32                          `json:"max_retries,omitempty"`
+	Labels              map[string]string               `json:"labels,omitempty"`
+	Annotations         map[string]string               `json:"annotations,omitempty"`
 }
 
 // IntentResponse represents an intent response with extended information
@@ -63,47 +63,47 @@ type IntentResponse struct {
 
 // ProcessingMetrics contains intent processing performance metrics
 type ProcessingMetrics struct {
-	ProcessingDuration    *metav1.Duration `json:"processing_duration,omitempty"`
-	DeploymentDuration    *metav1.Duration `json:"deployment_duration,omitempty"`
-	TotalDuration         *metav1.Duration `json:"total_duration,omitempty"`
-	QueueTime             *metav1.Duration `json:"queue_time,omitempty"`
-	LLMProcessingTime     *metav1.Duration `json:"llm_processing_time,omitempty"`
-	PackageCreationTime   *metav1.Duration `json:"package_creation_time,omitempty"`
-	GitOpsDeploymentTime  *metav1.Duration `json:"gitops_deployment_time,omitempty"`
+	ProcessingDuration   *metav1.Duration `json:"processing_duration,omitempty"`
+	DeploymentDuration   *metav1.Duration `json:"deployment_duration,omitempty"`
+	TotalDuration        *metav1.Duration `json:"total_duration,omitempty"`
+	QueueTime            *metav1.Duration `json:"queue_time,omitempty"`
+	LLMProcessingTime    *metav1.Duration `json:"llm_processing_time,omitempty"`
+	PackageCreationTime  *metav1.Duration `json:"package_creation_time,omitempty"`
+	GitOpsDeploymentTime *metav1.Duration `json:"gitops_deployment_time,omitempty"`
 }
 
 // DeploymentStatus contains deployment status information
 type DeploymentStatus struct {
-	PackageName         string                       `json:"package_name,omitempty"`
-	PackageRevision     string                       `json:"package_revision,omitempty"`
-	PackageStatus       string                       `json:"package_status,omitempty"`
-	DeployedClusters    []string                     `json:"deployed_clusters,omitempty"`
-	FailedClusters      []string                     `json:"failed_clusters,omitempty"`
-	ResourcesCreated    int                          `json:"resources_created"`
-	ResourcesFailed     int                          `json:"resources_failed"`
-	HealthStatus        string                       `json:"health_status,omitempty"`
-	LastHealthCheck     *metav1.Time                 `json:"last_health_check,omitempty"`
+	PackageName      string       `json:"package_name,omitempty"`
+	PackageRevision  string       `json:"package_revision,omitempty"`
+	PackageStatus    string       `json:"package_status,omitempty"`
+	DeployedClusters []string     `json:"deployed_clusters,omitempty"`
+	FailedClusters   []string     `json:"failed_clusters,omitempty"`
+	ResourcesCreated int          `json:"resources_created"`
+	ResourcesFailed  int          `json:"resources_failed"`
+	HealthStatus     string       `json:"health_status,omitempty"`
+	LastHealthCheck  *metav1.Time `json:"last_health_check,omitempty"`
 }
 
 // ValidationSummary contains validation result summary
 type ValidationSummary struct {
-	Valid           bool     `json:"valid"`
-	Errors          []string `json:"errors,omitempty"`
-	Warnings        []string `json:"warnings,omitempty"`
-	ValidationTime  *metav1.Time `json:"validation_time,omitempty"`
-	ValidatedBy     string   `json:"validated_by,omitempty"`
+	Valid          bool         `json:"valid"`
+	Errors         []string     `json:"errors,omitempty"`
+	Warnings       []string     `json:"warnings,omitempty"`
+	ValidationTime *metav1.Time `json:"validation_time,omitempty"`
+	ValidatedBy    string       `json:"validated_by,omitempty"`
 }
 
 // IntentStatusUpdate represents a status update for streaming
 type IntentStatusUpdate struct {
-	IntentName      string                      `json:"intent_name"`
-	IntentNamespace string                      `json:"intent_namespace"`
-	Phase           string                      `json:"phase"`
-	Conditions      []metav1.Condition          `json:"conditions,omitempty"`
-	Progress        int                         `json:"progress"` // 0-100
-	Message         string                      `json:"message,omitempty"`
-	Timestamp       time.Time                   `json:"timestamp"`
-	EventType       string                      `json:"event_type"` // created, updated, deleted, error
+	IntentName      string             `json:"intent_name"`
+	IntentNamespace string             `json:"intent_namespace"`
+	Phase           string             `json:"phase"`
+	Conditions      []metav1.Condition `json:"conditions,omitempty"`
+	Progress        int                `json:"progress"` // 0-100
+	Message         string             `json:"message,omitempty"`
+	Timestamp       time.Time          `json:"timestamp"`
+	EventType       string             `json:"event_type"` // created, updated, deleted, error
 }
 
 // setupIntentRoutes sets up intent management API routes
@@ -150,7 +150,7 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 	ctx := r.Context()
 	pagination := s.parsePaginationParams(r)
 	filters := s.parseFilterParams(r)
-	
+
 	namespace := r.URL.Query().Get("namespace")
 	if namespace == "" {
 		namespace = "default"
@@ -169,7 +169,7 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 
 	// Get intents from Kubernetes
 	listOptions := metav1.ListOptions{}
-	
+
 	// Apply filters
 	if filters.Status != "" {
 		listOptions.LabelSelector = fmt.Sprintf("status=%s", filters.Status)
@@ -198,7 +198,7 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 	// Apply additional filtering and pagination
 	filteredItems := s.filterIntents(intentList.Items, filters)
 	totalItems := len(filteredItems)
-	
+
 	// Calculate pagination
 	startIndex := (pagination.Page - 1) * pagination.PageSize
 	endIndex := startIndex + pagination.PageSize
@@ -256,17 +256,17 @@ func (s *NephoranAPIServer) listIntents(w http.ResponseWriter, r *http.Request) 
 // createIntent handles POST /api/v1/intents
 func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	// Check create permission
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionCreateIntent) {
-		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions", 
+		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"Create intent permission required")
 		return
 	}
 
 	var req IntentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_json", 
+		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_json",
 			"Invalid JSON in request body")
 		return
 	}
@@ -334,7 +334,7 @@ func (s *NephoranAPIServer) createIntent(w http.ResponseWriter, r *http.Request)
 
 	if err != nil {
 		if errors.IsAlreadyExists(err) {
-			s.writeErrorResponse(w, http.StatusConflict, "intent_exists", 
+			s.writeErrorResponse(w, http.StatusConflict, "intent_exists",
 				fmt.Sprintf("Intent '%s' already exists", req.Name))
 			return
 		}
@@ -401,7 +401,7 @@ func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			s.writeErrorResponse(w, http.StatusNotFound, "intent_not_found", 
+			s.writeErrorResponse(w, http.StatusNotFound, "intent_not_found",
 				fmt.Sprintf("Intent '%s' not found", name))
 			return
 		}
@@ -418,7 +418,7 @@ func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := s.buildIntentResponse(&intent)
-	
+
 	// Cache the result
 	if s.cache != nil {
 		s.cache.Set(cacheKey, response)
@@ -430,10 +430,10 @@ func (s *NephoranAPIServer) getIntent(w http.ResponseWriter, r *http.Request) {
 // updateIntent handles PUT /api/v1/intents/{name}
 func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	// Check update permission
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionUpdateIntent) {
-		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions", 
+		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"Update intent permission required")
 		return
 	}
@@ -447,7 +447,7 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 
 	var req IntentRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_json", 
+		s.writeErrorResponse(w, http.StatusBadRequest, "invalid_json",
 			"Invalid JSON in request body")
 		return
 	}
@@ -468,7 +468,7 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			s.writeErrorResponse(w, http.StatusNotFound, "intent_not_found", 
+			s.writeErrorResponse(w, http.StatusNotFound, "intent_not_found",
 				fmt.Sprintf("Intent '%s' not found", name))
 			return
 		}
@@ -563,10 +563,10 @@ func (s *NephoranAPIServer) updateIntent(w http.ResponseWriter, r *http.Request)
 // deleteIntent handles DELETE /api/v1/intents/{name}
 func (s *NephoranAPIServer) deleteIntent(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	// Check delete permission
 	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionDeleteIntent) {
-		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions", 
+		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
 			"Delete intent permission required")
 		return
 	}
@@ -588,7 +588,7 @@ func (s *NephoranAPIServer) deleteIntent(w http.ResponseWriter, r *http.Request)
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			s.writeErrorResponse(w, http.StatusNotFound, "intent_not_found", 
+			s.writeErrorResponse(w, http.StatusNotFound, "intent_not_found",
 				fmt.Sprintf("Intent '%s' not found", name))
 			return
 		}
@@ -635,7 +635,7 @@ func (s *NephoranAPIServer) getIntentStatus(w http.ResponseWriter, r *http.Reque
 
 	if err != nil {
 		if errors.IsNotFound(err) {
-			s.writeErrorResponse(w, http.StatusNotFound, "intent_not_found", 
+			s.writeErrorResponse(w, http.StatusNotFound, "intent_not_found",
 				fmt.Sprintf("Intent '%s' not found", name))
 			return
 		}
@@ -653,22 +653,22 @@ func (s *NephoranAPIServer) getIntentStatus(w http.ResponseWriter, r *http.Reque
 
 	// Build detailed status response
 	status := map[string]interface{}{
-		"name":                     intent.Name,
-		"namespace":                intent.Namespace,
-		"phase":                    intent.Status.Phase,
-		"conditions":               intent.Status.Conditions,
-		"processing_start_time":    intent.Status.ProcessingStartTime,
+		"name":                       intent.Name,
+		"namespace":                  intent.Namespace,
+		"phase":                      intent.Status.Phase,
+		"conditions":                 intent.Status.Conditions,
+		"processing_start_time":      intent.Status.ProcessingStartTime,
 		"processing_completion_time": intent.Status.ProcessingCompletionTime,
-		"deployment_start_time":    intent.Status.DeploymentStartTime,
+		"deployment_start_time":      intent.Status.DeploymentStartTime,
 		"deployment_completion_time": intent.Status.DeploymentCompletionTime,
-		"git_commit_hash":          intent.Status.GitCommitHash,
-		"retry_count":              intent.Status.RetryCount,
-		"validation_errors":        intent.Status.ValidationErrors,
-		"deployed_components":      intent.Status.DeployedComponents,
-		"processing_duration":      intent.Status.ProcessingDuration,
-		"deployment_duration":      intent.Status.DeploymentDuration,
-		"last_retry_time":          intent.Status.LastRetryTime,
-		"observed_generation":      intent.Status.ObservedGeneration,
+		"git_commit_hash":            intent.Status.GitCommitHash,
+		"retry_count":                intent.Status.RetryCount,
+		"validation_errors":          intent.Status.ValidationErrors,
+		"deployed_components":        intent.Status.DeployedComponents,
+		"processing_duration":        intent.Status.ProcessingDuration,
+		"deployment_duration":        intent.Status.DeploymentDuration,
+		"last_retry_time":            intent.Status.LastRetryTime,
+		"observed_generation":        intent.Status.ObservedGeneration,
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, status)
@@ -789,8 +789,8 @@ func (s *NephoranAPIServer) buildIntentResponse(intent *nephoranv1.NetworkIntent
 	// Add validation summary if available
 	if len(intent.Status.ValidationErrors) > 0 {
 		response.ValidationResult = &ValidationSummary{
-			Valid:   len(intent.Status.ValidationErrors) == 0,
-			Errors:  intent.Status.ValidationErrors,
+			Valid:       len(intent.Status.ValidationErrors) == 0,
+			Errors:      intent.Status.ValidationErrors,
 			ValidatedBy: "nephoran-controller",
 		}
 	}

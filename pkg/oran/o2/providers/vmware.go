@@ -95,19 +95,19 @@ func (v *VMwareProvider) GetProviderInfo() *ProviderInfo {
 // GetSupportedResourceTypes returns the resource types supported by VMware
 func (v *VMwareProvider) GetSupportedResourceTypes() []string {
 	return []string{
-		"virtualmachine",   // Virtual machines
-		"template",         // VM templates
-		"resourcepool",     // Resource pools
-		"datastore",        // Datastores
-		"network",          // Networks (standard and distributed)
-		"folder",           // VM folders
-		"cluster",          // Compute clusters
-		"host",             // ESXi hosts
-		"dvportgroup",      // Distributed port groups
-		"dvswitch",         // Distributed switches
-		"snapshot",         // VM snapshots
-		"vapp",             // vApps
-		"contentlibrary",   // Content libraries
+		"virtualmachine", // Virtual machines
+		"template",       // VM templates
+		"resourcepool",   // Resource pools
+		"datastore",      // Datastores
+		"network",        // Networks (standard and distributed)
+		"folder",         // VM folders
+		"cluster",        // Compute clusters
+		"host",           // ESXi hosts
+		"dvportgroup",    // Distributed port groups
+		"dvswitch",       // Distributed switches
+		"snapshot",       // VM snapshots
+		"vapp",           // vApps
+		"contentlibrary", // Content libraries
 	}
 }
 
@@ -119,12 +119,12 @@ func (v *VMwareProvider) GetCapabilities() *ProviderCapabilities {
 		NetworkTypes:     []string{"network", "dvportgroup", "dvswitch"},
 		AcceleratorTypes: []string{"gpu", "vgpu"},
 
-		AutoScaling:     true,  // Via DRS
-		LoadBalancing:   true,  // Via DRS
-		Monitoring:      true,  // vCenter monitoring
-		Logging:         true,  // vCenter logging
-		Networking:      true,  // NSX-T integration
-		StorageClasses:  true,  // Storage policies
+		AutoScaling:    true, // Via DRS
+		LoadBalancing:  true, // Via DRS
+		Monitoring:     true, // vCenter monitoring
+		Logging:        true, // vCenter logging
+		Networking:     true, // NSX-T integration
+		StorageClasses: true, // Storage policies
 
 		HorizontalPodAutoscaling: false, // Not applicable
 		VerticalPodAutoscaling:   false, // Not applicable
@@ -133,12 +133,12 @@ func (v *VMwareProvider) GetCapabilities() *ProviderCapabilities {
 		Namespaces:      false, // Folders instead
 		ResourceQuotas:  true,  // Resource pools
 		NetworkPolicies: true,  // NSX-T policies
-		RBAC:           true,  // vCenter RBAC
+		RBAC:            true,  // vCenter RBAC
 
-		MultiZone:        true,  // Clusters as zones
-		MultiRegion:      true,  // Multiple datacenters
-		BackupRestore:    true,  // VM snapshots and backups
-		DisasterRecovery: true,  // Site Recovery Manager
+		MultiZone:        true, // Clusters as zones
+		MultiRegion:      true, // Multiple datacenters
+		BackupRestore:    true, // VM snapshots and backups
+		DisasterRecovery: true, // Site Recovery Manager
 
 		Encryption:       true,  // VM encryption
 		SecretManagement: false, // Not built-in

@@ -36,11 +36,11 @@ type MockPorchClient struct {
 	mutex           sync.RWMutex
 
 	// Behavior control flags
-	simulateErrors       bool
-	simulateLatency      time.Duration
-	circuitBreakerOpen   bool
-	rateLimited          bool
-	healthCheckFails     bool
+	simulateErrors     bool
+	simulateLatency    time.Duration
+	circuitBreakerOpen bool
+	rateLimited        bool
+	healthCheckFails   bool
 
 	// Call tracking for assertions
 	calls map[string]int
@@ -61,7 +61,7 @@ func NewMockPorchClient() *MockPorchClient {
 
 func (m *MockPorchClient) GetRepository(ctx context.Context, name string) (*porch.Repository, error) {
 	m.trackCall("GetRepository")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func (m *MockPorchClient) GetRepository(ctx context.Context, name string) (*porc
 
 func (m *MockPorchClient) ListRepositories(ctx context.Context, opts *porch.ListOptions) (*porch.RepositoryList, error) {
 	m.trackCall("ListRepositories")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func (m *MockPorchClient) ListRepositories(ctx context.Context, opts *porch.List
 
 func (m *MockPorchClient) CreateRepository(ctx context.Context, repo *porch.Repository) (*porch.Repository, error) {
 	m.trackCall("CreateRepository")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (m *MockPorchClient) CreateRepository(ctx context.Context, repo *porch.Repo
 
 func (m *MockPorchClient) UpdateRepository(ctx context.Context, repo *porch.Repository) (*porch.Repository, error) {
 	m.trackCall("UpdateRepository")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -154,7 +154,7 @@ func (m *MockPorchClient) UpdateRepository(ctx context.Context, repo *porch.Repo
 
 func (m *MockPorchClient) DeleteRepository(ctx context.Context, name string) error {
 	m.trackCall("DeleteRepository")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return err
 	}
@@ -172,7 +172,7 @@ func (m *MockPorchClient) DeleteRepository(ctx context.Context, name string) err
 
 func (m *MockPorchClient) SyncRepository(ctx context.Context, name string) error {
 	m.trackCall("SyncRepository")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (m *MockPorchClient) SyncRepository(ctx context.Context, name string) error
 	now := metav1.Now()
 	repo.Status.LastSyncTime = &now
 	repo.Status.SyncError = ""
-	
+
 	return nil
 }
 
@@ -196,7 +196,7 @@ func (m *MockPorchClient) SyncRepository(ctx context.Context, name string) error
 
 func (m *MockPorchClient) GetPackageRevision(ctx context.Context, name string, revision string) (*porch.PackageRevision, error) {
 	m.trackCall("GetPackageRevision")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -214,7 +214,7 @@ func (m *MockPorchClient) GetPackageRevision(ctx context.Context, name string, r
 
 func (m *MockPorchClient) ListPackageRevisions(ctx context.Context, opts *porch.ListOptions) (*porch.PackageRevisionList, error) {
 	m.trackCall("ListPackageRevisions")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -240,7 +240,7 @@ func (m *MockPorchClient) ListPackageRevisions(ctx context.Context, opts *porch.
 
 func (m *MockPorchClient) CreatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*porch.PackageRevision, error) {
 	m.trackCall("CreatePackageRevision")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -269,7 +269,7 @@ func (m *MockPorchClient) CreatePackageRevision(ctx context.Context, pkg *porch.
 
 func (m *MockPorchClient) UpdatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*porch.PackageRevision, error) {
 	m.trackCall("UpdatePackageRevision")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (m *MockPorchClient) UpdatePackageRevision(ctx context.Context, pkg *porch.
 
 func (m *MockPorchClient) DeletePackageRevision(ctx context.Context, name string, revision string) error {
 	m.trackCall("DeletePackageRevision")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return err
 	}
@@ -308,7 +308,7 @@ func (m *MockPorchClient) DeletePackageRevision(ctx context.Context, name string
 
 func (m *MockPorchClient) ApprovePackageRevision(ctx context.Context, name string, revision string) error {
 	m.trackCall("ApprovePackageRevision")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return err
 	}
@@ -330,13 +330,13 @@ func (m *MockPorchClient) ApprovePackageRevision(ctx context.Context, name strin
 	pkg.Spec.Lifecycle = porch.PackageRevisionLifecyclePublished
 	now := metav1.Now()
 	pkg.Status.PublishTime = &now
-	
+
 	return nil
 }
 
 func (m *MockPorchClient) ProposePackageRevision(ctx context.Context, name string, revision string) error {
 	m.trackCall("ProposePackageRevision")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return err
 	}
@@ -361,7 +361,7 @@ func (m *MockPorchClient) ProposePackageRevision(ctx context.Context, name strin
 
 func (m *MockPorchClient) RejectPackageRevision(ctx context.Context, name string, revision string, reason string) error {
 	m.trackCall("RejectPackageRevision")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return err
 	}
@@ -382,7 +382,7 @@ func (m *MockPorchClient) RejectPackageRevision(ctx context.Context, name string
 		Reason:  "PackageRejected",
 		Message: reason,
 	})
-	
+
 	return nil
 }
 
@@ -390,7 +390,7 @@ func (m *MockPorchClient) RejectPackageRevision(ctx context.Context, name string
 
 func (m *MockPorchClient) GetPackageContents(ctx context.Context, name string, revision string) (map[string][]byte, error) {
 	m.trackCall("GetPackageContents")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -415,7 +415,7 @@ func (m *MockPorchClient) GetPackageContents(ctx context.Context, name string, r
 
 func (m *MockPorchClient) UpdatePackageContents(ctx context.Context, name string, revision string, contents map[string][]byte) error {
 	m.trackCall("UpdatePackageContents")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return err
 	}
@@ -424,7 +424,7 @@ func (m *MockPorchClient) UpdatePackageContents(ctx context.Context, name string
 	defer m.mutex.Unlock()
 
 	key := fmt.Sprintf("%s@%s", name, revision)
-	
+
 	// Check if package exists
 	if _, exists := m.packages[key]; !exists {
 		return fmt.Errorf("package revision %s not found", key)
@@ -436,14 +436,14 @@ func (m *MockPorchClient) UpdatePackageContents(ctx context.Context, name string
 		copied[k] = make([]byte, len(v))
 		copy(copied[k], v)
 	}
-	
+
 	m.packageContents[key] = copied
 	return nil
 }
 
 func (m *MockPorchClient) RenderPackage(ctx context.Context, name string, revision string) (*porch.RenderResult, error) {
 	m.trackCall("RenderPackage")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -469,7 +469,7 @@ func (m *MockPorchClient) RenderPackage(ctx context.Context, name string, revisi
 
 func (m *MockPorchClient) RunFunction(ctx context.Context, req *porch.FunctionRequest) (*porch.FunctionResponse, error) {
 	m.trackCall("RunFunction")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -495,7 +495,7 @@ func (m *MockPorchClient) RunFunction(ctx context.Context, req *porch.FunctionRe
 
 func (m *MockPorchClient) ValidatePackage(ctx context.Context, name string, revision string) (*porch.ValidationResult, error) {
 	m.trackCall("ValidatePackage")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -511,8 +511,8 @@ func (m *MockPorchClient) ValidatePackage(ctx context.Context, name string, revi
 			Valid: false,
 			Errors: []porch.ValidationError{
 				{
-					Path:    fmt.Sprintf("packages/%s", key),
-					Message: "Package not found",
+					Path:     fmt.Sprintf("packages/%s", key),
+					Message:  "Package not found",
 					Severity: "error",
 				},
 			},
@@ -530,7 +530,7 @@ func (m *MockPorchClient) ValidatePackage(ctx context.Context, name string, revi
 				Severity: "error",
 			}
 		}
-		
+
 		return &porch.ValidationResult{
 			Valid:  false,
 			Errors: validationErrors,
@@ -546,7 +546,7 @@ func (m *MockPorchClient) ValidatePackage(ctx context.Context, name string, revi
 
 func (m *MockPorchClient) GetWorkflow(ctx context.Context, name string) (*porch.Workflow, error) {
 	m.trackCall("GetWorkflow")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -563,7 +563,7 @@ func (m *MockPorchClient) GetWorkflow(ctx context.Context, name string) (*porch.
 
 func (m *MockPorchClient) ListWorkflows(ctx context.Context, opts *porch.ListOptions) (*porch.WorkflowList, error) {
 	m.trackCall("ListWorkflows")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -589,7 +589,7 @@ func (m *MockPorchClient) ListWorkflows(ctx context.Context, opts *porch.ListOpt
 
 func (m *MockPorchClient) CreateWorkflow(ctx context.Context, workflow *porch.Workflow) (*porch.Workflow, error) {
 	m.trackCall("CreateWorkflow")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -618,7 +618,7 @@ func (m *MockPorchClient) CreateWorkflow(ctx context.Context, workflow *porch.Wo
 
 func (m *MockPorchClient) UpdateWorkflow(ctx context.Context, workflow *porch.Workflow) (*porch.Workflow, error) {
 	m.trackCall("UpdateWorkflow")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -637,7 +637,7 @@ func (m *MockPorchClient) UpdateWorkflow(ctx context.Context, workflow *porch.Wo
 
 func (m *MockPorchClient) DeleteWorkflow(ctx context.Context, name string) error {
 	m.trackCall("DeleteWorkflow")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return err
 	}
@@ -657,7 +657,7 @@ func (m *MockPorchClient) DeleteWorkflow(ctx context.Context, name string) error
 
 func (m *MockPorchClient) Health(ctx context.Context) (*porch.HealthStatus, error) {
 	m.trackCall("Health")
-	
+
 	if m.healthCheckFails {
 		return &porch.HealthStatus{
 			Status:    "unhealthy",
@@ -686,7 +686,7 @@ func (m *MockPorchClient) Health(ctx context.Context) (*porch.HealthStatus, erro
 
 func (m *MockPorchClient) Version(ctx context.Context) (*porch.VersionInfo, error) {
 	m.trackCall("Version")
-	
+
 	if err := m.simulateConditions(); err != nil {
 		return nil, err
 	}
@@ -837,25 +837,25 @@ func (m *MockPorchClient) clonePackageRevision(pkg *porch.PackageRevision) *porc
 	// Since PackageRevision doesn't have DeepCopy in the actual types file,
 	// we'll do a manual deep copy for the mock
 	clone := *pkg
-	
+
 	// Deep copy resources
 	if pkg.Spec.Resources != nil {
 		clone.Spec.Resources = make([]porch.KRMResource, len(pkg.Spec.Resources))
 		copy(clone.Spec.Resources, pkg.Spec.Resources)
 	}
-	
+
 	// Deep copy functions
 	if pkg.Spec.Functions != nil {
 		clone.Spec.Functions = make([]porch.FunctionConfig, len(pkg.Spec.Functions))
 		copy(clone.Spec.Functions, pkg.Spec.Functions)
 	}
-	
+
 	// Deep copy conditions
 	if pkg.Status.Conditions != nil {
 		clone.Status.Conditions = make([]metav1.Condition, len(pkg.Status.Conditions))
 		copy(clone.Status.Conditions, pkg.Status.Conditions)
 	}
-	
+
 	return &clone
 }
 
@@ -865,24 +865,24 @@ func (m *MockPorchClient) cloneWorkflow(workflow *porch.Workflow) *porch.Workflo
 	}
 	// Manual deep copy for workflow
 	clone := *workflow
-	
+
 	// Deep copy stages
 	if workflow.Spec.Stages != nil {
 		clone.Spec.Stages = make([]porch.WorkflowStage, len(workflow.Spec.Stages))
 		copy(clone.Spec.Stages, workflow.Spec.Stages)
 	}
-	
+
 	// Deep copy approvers
 	if workflow.Spec.Approvers != nil {
 		clone.Spec.Approvers = make([]porch.Approver, len(workflow.Spec.Approvers))
 		copy(clone.Spec.Approvers, workflow.Spec.Approvers)
 	}
-	
+
 	// Deep copy conditions
 	if workflow.Status.Conditions != nil {
 		clone.Status.Conditions = make([]metav1.Condition, len(workflow.Status.Conditions))
 		copy(clone.Status.Conditions, workflow.Status.Conditions)
 	}
-	
+
 	return &clone
 }

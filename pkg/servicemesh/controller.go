@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/consul"    // Register consul provider
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/istio"     // Register istio provider
-	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/linkerd"   // Register linkerd provider
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
+	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/linkerd" // Register linkerd provider
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,13 +28,13 @@ import (
 // ServiceMeshController manages service mesh integration
 type ServiceMeshController struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	kubeClient   kubernetes.Interface
-	restConfig   *rest.Config
-	meshFactory  *abstraction.ServiceMeshFactory
-	mesh         abstraction.ServiceMeshInterface
-	meshConfig   *abstraction.ServiceMeshConfig
-	logger       log.Logger
+	Scheme      *runtime.Scheme
+	kubeClient  kubernetes.Interface
+	restConfig  *rest.Config
+	meshFactory *abstraction.ServiceMeshFactory
+	mesh        abstraction.ServiceMeshInterface
+	meshConfig  *abstraction.ServiceMeshConfig
+	logger      log.Logger
 }
 
 // NewServiceMeshController creates a new service mesh controller
@@ -44,13 +44,13 @@ func NewServiceMeshController(
 	meshConfig *abstraction.ServiceMeshConfig,
 ) (*ServiceMeshController, error) {
 	return &ServiceMeshController{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		kubeClient:   kubeClient,
-		restConfig:   mgr.GetConfig(),
-		meshFactory:  abstraction.NewServiceMeshFactory(kubeClient, mgr.GetClient(), mgr.GetConfig()),
-		meshConfig:   meshConfig,
-		logger:       log.Log.WithName("service-mesh-controller"),
+		Client:      mgr.GetClient(),
+		Scheme:      mgr.GetScheme(),
+		kubeClient:  kubeClient,
+		restConfig:  mgr.GetConfig(),
+		meshFactory: abstraction.NewServiceMeshFactory(kubeClient, mgr.GetClient(), mgr.GetConfig()),
+		meshConfig:  meshConfig,
+		logger:      log.Log.WithName("service-mesh-controller"),
 	}, nil
 }
 
@@ -278,7 +278,7 @@ func (r *ServiceMeshController) updateServiceAnnotations(ctx context.Context, se
 // checkCertificateStatus checks certificate status for a service
 func (r *ServiceMeshController) checkCertificateStatus(ctx context.Context, service *corev1.Service) error {
 	certProvider := r.mesh.GetCertificateProvider()
-	
+
 	// Check if certificate is expiring soon
 	cert, err := certProvider.IssueCertificate(ctx, service.Name, service.Namespace)
 	if err != nil {
@@ -289,7 +289,7 @@ func (r *ServiceMeshController) checkCertificateStatus(ctx context.Context, serv
 	daysUntilExpiry := time.Until(cert.NotAfter).Hours() / 24
 	if daysUntilExpiry < 30 {
 		r.logger.Info("Certificate expiring soon", "service", service.Name, "daysUntilExpiry", daysUntilExpiry)
-		
+
 		// Trigger rotation if less than 7 days
 		if daysUntilExpiry < 7 {
 			if err := r.mesh.RotateCertificates(ctx, service.Namespace); err != nil {
@@ -371,7 +371,7 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 
 		if !result.Valid {
 			totalIssues++
-			r.logger.Warn("Policy validation failed", 
+			r.logger.Warn("Policy validation failed",
 				"namespace", ns.Name,
 				"errors", len(result.Errors),
 				"warnings", len(result.Warnings),

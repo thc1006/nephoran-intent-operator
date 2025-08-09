@@ -38,10 +38,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 		testConfig.MockExternalAPIs = true
 		testSuite = framework.NewTestSuite(testConfig)
 		testSuite.SetupSuite()
-		
+
 		ctx, cancel = context.WithTimeout(context.Background(), 30*time.Minute)
 		k8sClient = testSuite.GetK8sClient()
-		
+
 		// Initialize security validator
 		config := DefaultValidationConfig()
 		config.EnableSecurityTesting = true
@@ -58,7 +58,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 	ginkgo.Context("Authentication & Authorization Testing (5/5 points)", func() {
 		ginkgo.It("should validate OAuth2/OIDC integration with multiple providers", func() {
 			ginkgo.By("Testing OAuth2/OIDC multi-provider support")
-			
+
 			// Create OAuth2 configuration secrets for multiple providers
 			providers := []struct {
 				name     string
@@ -110,21 +110,21 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					Type: corev1.SecretTypeOpaque,
 					Data: make(map[string][]byte),
 				}
-				
+
 				for key, value := range provider.config {
 					secret.Data[key] = []byte(value)
 				}
-				
+
 				err := k8sClient.Create(ctx, secret)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				
+
 				// Verify secret creation
 				createdSecret := &corev1.Secret{}
 				err = k8sClient.Get(ctx, client.ObjectKeyFromObject(secret), createdSecret)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 				gomega.Expect(createdSecret.Data).To(gomega.HaveLen(4))
 			}
-			
+
 			// Validate OAuth2 integration
 			score := secValidator.ValidateAuthentication(ctx)
 			gomega.Expect(score).To(gomega.BeNumerically(">=", 4), "OAuth2/OIDC integration should score at least 4/5")
@@ -132,7 +132,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should enforce service account authentication with minimal privileges", func() {
 			ginkgo.By("Creating service account with least privilege principle")
-			
+
 			// Create service account
 			serviceAccount := &corev1.ServiceAccount{
 				ObjectMeta: metav1.ObjectMeta{
@@ -145,10 +145,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 				},
 				AutomountServiceAccountToken: func(b bool) *bool { return &b }(false), // Security best practice
 			}
-			
+
 			err := k8sClient.Create(ctx, serviceAccount)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create ClusterRole with minimal permissions
 			clusterRole := &rbacv1.ClusterRole{
 				ObjectMeta: metav1.ObjectMeta{
@@ -172,10 +172,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, clusterRole)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create ClusterRoleBinding
 			clusterRoleBinding := &rbacv1.ClusterRoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
@@ -194,10 +194,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, clusterRoleBinding)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Validate RBAC configuration
 			validated := secValidator.validateRBACPolicyEnforcement(ctx)
 			gomega.Expect(validated).To(gomega.BeTrue(), "RBAC policies should be properly enforced")
@@ -205,7 +205,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should implement multi-factor authentication validation", func() {
 			ginkgo.By("Testing MFA configuration and enforcement")
-			
+
 			// Create MFA configuration
 			mfaConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -224,10 +224,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"totp_digits":   "6",
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, mfaConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create MFA secrets for users
 			mfaSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -243,10 +243,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"operator-totp-secret": []byte("KRSXG5CTMVRXEZLU"),
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, mfaSecret)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Verify MFA configuration
 			retrievedConfig := &corev1.ConfigMap{}
 			err = k8sClient.Get(ctx, client.ObjectKeyFromObject(mfaConfig), retrievedConfig)
@@ -256,14 +256,14 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should validate token lifecycle management with rotation", func() {
 			ginkgo.By("Testing token rotation and expiration policies")
-			
+
 			// Create token lifecycle configuration
 			tokenConfig := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "token-lifecycle-config",
 					Namespace: "default",
 					Annotations: map[string]string{
-						"nephoran.io/token-expiry":        "24h",
+						"nephoran.io/token-expiry":         "24h",
 						"nephoran.io/refresh-token-expiry": "7d",
 						"nephoran.io/rotation-enabled":     "true",
 						"nephoran.io/rotation-interval":    "12h",
@@ -279,10 +279,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"last_rotated":  []byte(time.Now().Format(time.RFC3339)),
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, tokenConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Validate token lifecycle management
 			validated := secValidator.validateTokenLifecycleManagement(ctx)
 			gomega.Expect(validated).To(gomega.BeTrue(), "Token lifecycle should be properly managed")
@@ -292,7 +292,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 	ginkgo.Context("Data Encryption Testing (4/4 points)", func() {
 		ginkgo.It("should validate TLS/mTLS configuration with strong cipher suites", func() {
 			ginkgo.By("Testing TLS 1.3 configuration with strong ciphers")
-			
+
 			// Create TLS certificate secret
 			tlsSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -310,10 +310,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"ca.crt":  []byte(testCACertPEM),
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, tlsSecret)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create mTLS client certificate
 			clientCertSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -329,10 +329,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"tls.key": []byte(testClientKeyPEM),
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, clientCertSecret)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Validate TLS/mTLS configuration
 			score := secValidator.ValidateEncryption(ctx)
 			gomega.Expect(score).To(gomega.BeNumerically(">=", 3), "TLS/mTLS should score at least 3/4")
@@ -340,7 +340,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should verify encryption at rest for sensitive data", func() {
 			ginkgo.By("Testing etcd encryption and persistent volume encryption")
-			
+
 			// Create encryption configuration
 			encryptionConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -358,10 +358,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"encryption_provider": "AES256",
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, encryptionConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Test encryption at rest
 			validated := secValidator.validateEncryptionAtRest(ctx)
 			gomega.Expect(validated).To(gomega.BeTrue(), "Encryption at rest should be properly configured")
@@ -369,7 +369,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should implement comprehensive key management system", func() {
 			ginkgo.By("Testing KMS integration and key rotation")
-			
+
 			// Create KMS configuration
 			kmsConfig := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -379,10 +379,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 						"nephoran.io/kms": "enabled",
 					},
 					Annotations: map[string]string{
-						"nephoran.io/key-rotation":         "enabled",
-						"nephoran.io/rotation-period":      "90d",
-						"nephoran.io/last-rotation":        time.Now().Format(time.RFC3339),
-						"nephoran.io/next-rotation":        time.Now().Add(90*24*time.Hour).Format(time.RFC3339),
+						"nephoran.io/key-rotation":    "enabled",
+						"nephoran.io/rotation-period": "90d",
+						"nephoran.io/last-rotation":   time.Now().Format(time.RFC3339),
+						"nephoran.io/next-rotation":   time.Now().Add(90 * 24 * time.Hour).Format(time.RFC3339),
 					},
 				},
 				Type: corev1.SecretTypeOpaque,
@@ -392,10 +392,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"key_version":        []byte("1"),
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, kmsConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create certificate lifecycle management
 			certManager := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -413,10 +413,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"auto_renewal":      "true",
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, certManager)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Validate key management
 			validated := secValidator.validateKeyManagementAndCertificateLifecycle(ctx)
 			gomega.Expect(validated).To(gomega.BeTrue(), "Key management and certificate lifecycle should be properly managed")
@@ -424,7 +424,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should validate data integrity with checksums and signatures", func() {
 			ginkgo.By("Testing data integrity validation mechanisms")
-			
+
 			// Create data integrity configuration
 			integrityConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -435,16 +435,16 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 				Data: map[string]string{
-					"checksum_algorithm": "SHA256",
+					"checksum_algorithm":  "SHA256",
 					"signature_algorithm": "RSA-PSS",
-					"verify_on_read":     "true",
-					"verify_on_write":    "true",
+					"verify_on_read":      "true",
+					"verify_on_write":     "true",
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, integrityConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create sample data with integrity checks
 			dataWithIntegrity := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -461,7 +461,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"sensitive_data": []byte("critical-application-data"),
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, dataWithIntegrity)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -470,7 +470,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 	ginkgo.Context("Network Security Testing (3/3 points)", func() {
 		ginkgo.It("should enforce comprehensive network policies with zero-trust", func() {
 			ginkgo.By("Testing network policy enforcement and zero-trust architecture")
-			
+
 			// Create default deny-all NetworkPolicy
 			defaultDenyPolicy := &networkingv1.NetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
@@ -485,10 +485,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, defaultDenyPolicy)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create specific allow policies for nephoran components
 			nephoranPolicy := &networkingv1.NetworkPolicy{
 				ObjectMeta: metav1.ObjectMeta{
@@ -545,10 +545,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, nephoranPolicy)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Validate network security
 			score := secValidator.ValidateNetworkSecurity(ctx)
 			gomega.Expect(score).To(gomega.BeNumerically(">=", 2), "Network security should score at least 2/3")
@@ -556,26 +556,26 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should implement network segmentation with security zones", func() {
 			ginkgo.By("Testing network segmentation and security zone isolation")
-			
+
 			// Create namespace for each security zone
 			zones := []string{"dmz", "internal", "management", "data"}
-			
+
 			for _, zone := range zones {
 				namespace := &corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: fmt.Sprintf("zone-%s", zone),
 						Labels: map[string]string{
-							"security-zone":          zone,
+							"security-zone":                      zone,
 							"pod-security.kubernetes.io/enforce": "restricted",
 							"pod-security.kubernetes.io/audit":   "restricted",
 							"pod-security.kubernetes.io/warn":    "restricted",
 						},
 					},
 				}
-				
+
 				err := k8sClient.Create(ctx, namespace)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				
+
 				// Create zone-specific network policy
 				zonePolicy := &networkingv1.NetworkPolicy{
 					ObjectMeta: metav1.ObjectMeta{
@@ -616,11 +616,11 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 						},
 					},
 				}
-				
+
 				err = k8sClient.Create(ctx, zonePolicy)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			}
-			
+
 			// Validate network segmentation
 			validated := secValidator.validateNetworkSegmentationAndControls(ctx)
 			gomega.Expect(validated).To(gomega.BeTrue(), "Network segmentation should be properly configured")
@@ -628,7 +628,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should validate firewall rules and VPN tunnel security", func() {
 			ginkgo.By("Testing firewall configuration and VPN security")
-			
+
 			// Create firewall configuration
 			firewallConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -639,19 +639,19 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 				Data: map[string]string{
-					"default_action":     "deny",
-					"logging_enabled":    "true",
-					"stateful_tracking":  "true",
-					"ddos_protection":    "enabled",
-					"rate_limiting":      "1000/second",
-					"allowed_protocols":  "tcp,udp",
-					"blocked_ports":      "135,139,445",
+					"default_action":    "deny",
+					"logging_enabled":   "true",
+					"stateful_tracking": "true",
+					"ddos_protection":   "enabled",
+					"rate_limiting":     "1000/second",
+					"allowed_protocols": "tcp,udp",
+					"blocked_ports":     "135,139,445",
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, firewallConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create VPN configuration
 			vpnConfig := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
@@ -671,7 +671,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"rekey_interval": []byte("3600"),
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, vpnConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -680,7 +680,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 	ginkgo.Context("Vulnerability Management Testing (2/2 points)", func() {
 		ginkgo.It("should perform container image security scanning", func() {
 			ginkgo.By("Testing container image vulnerability scanning and compliance")
-			
+
 			// Create image scan policy
 			scanPolicy := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -700,10 +700,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"scan_frequency":       "daily",
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, scanPolicy)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create admission webhook configuration for image scanning
 			webhookConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -714,16 +714,16 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 				Data: map[string]string{
-					"webhook_url":      "https://image-scanner.default.svc:443/scan",
-					"failure_policy":   "Fail",
-					"timeout_seconds":  "30",
-					"namespaces":       "default,production",
+					"webhook_url":     "https://image-scanner.default.svc:443/scan",
+					"failure_policy":  "Fail",
+					"timeout_seconds": "30",
+					"namespaces":      "default,production",
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, webhookConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Validate container security
 			validated := secValidator.validateContainerImageSecurityAndRuntime(ctx)
 			gomega.Expect(validated).To(gomega.BeTrue(), "Container image security should be properly configured")
@@ -731,7 +731,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should assess dependencies and ensure security compliance", func() {
 			ginkgo.By("Testing dependency vulnerability assessment and compliance checking")
-			
+
 			// Create dependency scan configuration
 			depScanConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -742,19 +742,19 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 				Data: map[string]string{
-					"scanner":           "snyk",
-					"languages":         "go,python,javascript",
-					"scan_frequency":    "on-commit",
+					"scanner":            "snyk",
+					"languages":          "go,python,javascript",
+					"scan_frequency":     "on-commit",
 					"severity_threshold": "medium",
-					"auto_fix":          "true",
-					"license_check":     "enabled",
-					"sbom_generation":   "true",
+					"auto_fix":           "true",
+					"license_check":      "enabled",
+					"sbom_generation":    "true",
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, depScanConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create security compliance configuration
 			complianceConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -765,17 +765,17 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 				Data: map[string]string{
-					"frameworks":        "NIST,ISO27001,SOC2,GDPR",
-					"scan_interval":     "weekly",
-					"report_format":     "json,pdf",
-					"auto_remediation":  "true",
+					"frameworks":         "NIST,ISO27001,SOC2,GDPR",
+					"scan_interval":      "weekly",
+					"report_format":      "json,pdf",
+					"auto_remediation":   "true",
 					"alert_on_violation": "true",
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, complianceConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Create runtime security monitoring
 			runtimeConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -793,10 +793,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					"alert_channels":    "slack,email,pagerduty",
 				},
 			}
-			
+
 			err = k8sClient.Create(ctx, runtimeConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Validate vulnerability management
 			score := secValidator.ValidateVulnerabilityScanning(ctx)
 			gomega.Expect(score).To(gomega.Equal(2), "Vulnerability management should score 2/2")
@@ -804,7 +804,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should simulate penetration testing scenarios", func() {
 			ginkgo.By("Testing penetration testing simulation and vulnerability detection")
-			
+
 			// Create penetration test configuration
 			penTestConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -815,18 +815,18 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 					},
 				},
 				Data: map[string]string{
-					"test_type":        "automated",
-					"tools":            "metasploit,nmap,burp",
-					"frequency":        "quarterly",
-					"scope":            "full",
-					"report_findings":  "true",
-					"fix_tracking":     "jira",
+					"test_type":       "automated",
+					"tools":           "metasploit,nmap,burp",
+					"frequency":       "quarterly",
+					"scope":           "full",
+					"report_findings": "true",
+					"fix_tracking":    "jira",
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, penTestConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
-			
+
 			// Simulate common attack patterns
 			attackPatterns := []string{
 				"sql-injection",
@@ -835,7 +835,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 				"privilege-escalation",
 				"container-escape",
 			}
-			
+
 			for _, pattern := range attackPatterns {
 				// Create test result for each pattern
 				testResult := &corev1.ConfigMap{
@@ -853,7 +853,7 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 						"timestamp":  time.Now().Format(time.RFC3339),
 					},
 				}
-				
+
 				err = k8sClient.Create(ctx, testResult)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			}
@@ -863,10 +863,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 	ginkgo.Context("O-RAN Security Compliance Testing", func() {
 		ginkgo.It("should validate O-RAN WG11 security specifications", func() {
 			ginkgo.By("Testing O-RAN interface security (A1, O1, O2, E2)")
-			
+
 			// Create O-RAN interface security configurations
 			interfaces := []string{"a1", "o1", "o2", "e2"}
-			
+
 			for _, iface := range interfaces {
 				// Create interface-specific TLS configuration
 				ifaceSecret := &corev1.Secret{
@@ -874,9 +874,9 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 						Name:      fmt.Sprintf("oran-%s-tls", iface),
 						Namespace: "default",
 						Labels: map[string]string{
-							"oran.interface":     iface,
-							"oran.security":      "wg11",
-							"oran.compliance":    "v3.0",
+							"oran.interface":  iface,
+							"oran.security":   "wg11",
+							"oran.compliance": "v3.0",
 						},
 					},
 					Type: corev1.SecretTypeTLS,
@@ -886,10 +886,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 						"ca.crt":  []byte(testCACertPEM),
 					},
 				}
-				
+
 				err := k8sClient.Create(ctx, ifaceSecret)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				
+
 				// Create interface security policy
 				ifacePolicy := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
@@ -908,11 +908,11 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 						"session_management": "stateful",
 					},
 				}
-				
+
 				err = k8sClient.Create(ctx, ifacePolicy)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			}
-			
+
 			// Validate O-RAN security compliance
 			score := secValidator.ValidateORANSecurityCompliance(ctx)
 			gomega.Expect(score).To(gomega.BeNumerically(">=", 1), "O-RAN security should score at least 1/2")
@@ -920,10 +920,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should implement zero-trust for multi-vendor O-RAN deployments", func() {
 			ginkgo.By("Testing zero-trust architecture in multi-vendor environment")
-			
+
 			// Create vendor-specific security configurations
 			vendors := []string{"vendor-a", "vendor-b", "vendor-c"}
-			
+
 			for _, vendor := range vendors {
 				// Create vendor authentication configuration
 				vendorAuth := &corev1.Secret{
@@ -931,8 +931,8 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 						Name:      fmt.Sprintf("%s-auth", vendor),
 						Namespace: "default",
 						Labels: map[string]string{
-							"oran.vendor":       vendor,
-							"oran.zero-trust":   "enabled",
+							"oran.vendor":     vendor,
+							"oran.zero-trust": "enabled",
 						},
 					},
 					Type: corev1.SecretTypeOpaque,
@@ -943,10 +943,10 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 						"trust_anchors": []byte(testCACertPEM),
 					},
 				}
-				
+
 				err := k8sClient.Create(ctx, vendorAuth)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
-				
+
 				// Create vendor-specific network policy
 				vendorPolicy := &networkingv1.NetworkPolicy{
 					ObjectMeta: metav1.ObjectMeta{
@@ -978,11 +978,11 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 						},
 					},
 				}
-				
+
 				err = k8sClient.Create(ctx, vendorPolicy)
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 			}
-			
+
 			// Validate multi-vendor zero-trust
 			validated := secValidator.validateMultiVendorZeroTrust(ctx)
 			gomega.Expect(validated).To(gomega.BeTrue(), "Multi-vendor zero-trust should be properly configured")
@@ -990,28 +990,28 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 
 		ginkgo.It("should validate 3GPP security requirements integration", func() {
 			ginkgo.By("Testing 3GPP Release 16/17 security requirements")
-			
+
 			// Create 3GPP security configuration
 			tgppConfig := &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "3gpp-security-config",
 					Namespace: "default",
 					Labels: map[string]string{
-						"3gpp.release":     "17",
-						"3gpp.security":    "enabled",
+						"3gpp.release":  "17",
+						"3gpp.security": "enabled",
 					},
 				},
 				Data: map[string]string{
-					"aka_enabled":           "true",
-					"5g_aka":                "enabled",
-					"eap_aka_prime":         "supported",
-					"subscriber_privacy":    "concealed",
-					"home_control":          "enabled",
-					"security_edge_proxy":   "deployed",
-					"n3iwf_security":        "ipsec",
+					"aka_enabled":         "true",
+					"5g_aka":              "enabled",
+					"eap_aka_prime":       "supported",
+					"subscriber_privacy":  "concealed",
+					"home_control":        "enabled",
+					"security_edge_proxy": "deployed",
+					"n3iwf_security":      "ipsec",
 				},
 			}
-			
+
 			err := k8sClient.Create(ctx, tgppConfig)
 			gomega.Expect(err).NotTo(gomega.HaveOccurred())
 		})
@@ -1020,38 +1020,38 @@ var _ = ginkgo.Describe("Security Compliance Validation Suite", ginkgo.Ordered, 
 	ginkgo.Context("Security Compliance Reporting", func() {
 		ginkgo.It("should generate comprehensive security compliance report", func() {
 			ginkgo.By("Generating and validating security compliance report")
-			
+
 			// Run comprehensive security validation
 			ctx := context.Background()
 			score := 0
-			
+
 			// Authentication & Authorization (5 points)
 			authScore := secValidator.ValidateAuthentication(ctx)
 			score += authScore
 			gomega.Expect(authScore).To(gomega.BeNumerically(">=", 4), "Authentication should score at least 4/5")
-			
+
 			// Data Encryption (4 points)
 			encryptionScore := secValidator.ValidateEncryption(ctx)
 			score += encryptionScore
 			gomega.Expect(encryptionScore).To(gomega.BeNumerically(">=", 3), "Encryption should score at least 3/4")
-			
+
 			// Network Security (3 points)
 			networkScore := secValidator.ValidateNetworkSecurity(ctx)
 			score += networkScore
 			gomega.Expect(networkScore).To(gomega.BeNumerically(">=", 2), "Network security should score at least 2/3")
-			
+
 			// Vulnerability Management (2 points)
 			vulnScore := secValidator.ValidateVulnerabilityScanning(ctx)
 			score += vulnScore
 			gomega.Expect(vulnScore).To(gomega.BeNumerically(">=", 2), "Vulnerability management should score at least 2/2")
-			
+
 			// Total score validation
 			gomega.Expect(score).To(gomega.BeNumerically(">=", 14), "Total security score should be at least 14/15")
-			
+
 			// Generate detailed report
 			report := secValidator.GenerateSecurityReport()
 			gomega.Expect(report).To(gomega.ContainSubstring("SECURITY COMPLIANCE REPORT"))
-			
+
 			ginkgo.By(fmt.Sprintf("Security Compliance Score: %d/15 points", score))
 		})
 	})

@@ -57,47 +57,47 @@ type PerformanceManagerConfig struct {
 
 // MeasurementRegistry manages measurement object definitions
 type MeasurementRegistry struct {
-	objects          map[string]*MeasurementObject
-	types            map[string]*MeasurementType
-	objectGroups     map[string]*MeasurementObjectGroup
-	capabilities     *MeasurementCapabilities
-	mutex            sync.RWMutex
+	objects      map[string]*MeasurementObject
+	types        map[string]*MeasurementType
+	objectGroups map[string]*MeasurementObjectGroup
+	capabilities *MeasurementCapabilities
+	mutex        sync.RWMutex
 }
 
 // MeasurementObject represents an O-RAN measurement object
 type MeasurementObject struct {
-	ID                    string                    `json:"id"`
-	Name                  string                    `json:"name"`
-	Description           string                    `json:"description"`
-	ObjectUnit            string                    `json:"object_unit"`
-	Function              string                    `json:"function"` // O-RU, O-DU, O-CU, etc.
-	ObjectInstanceID      string                    `json:"object_instance_id"`
-	MeasurementTypes      map[string]*MeasurementType `json:"measurement_types"`
-	SupportedGranularities []time.Duration          `json:"supported_granularities"`
-	CreatedAt             time.Time                 `json:"created_at"`
-	UpdatedAt             time.Time                 `json:"updated_at"`
-	Status                string                    `json:"status"` // ACTIVE, INACTIVE, DEPRECATED
+	ID                     string                      `json:"id"`
+	Name                   string                      `json:"name"`
+	Description            string                      `json:"description"`
+	ObjectUnit             string                      `json:"object_unit"`
+	Function               string                      `json:"function"` // O-RU, O-DU, O-CU, etc.
+	ObjectInstanceID       string                      `json:"object_instance_id"`
+	MeasurementTypes       map[string]*MeasurementType `json:"measurement_types"`
+	SupportedGranularities []time.Duration             `json:"supported_granularities"`
+	CreatedAt              time.Time                   `json:"created_at"`
+	UpdatedAt              time.Time                   `json:"updated_at"`
+	Status                 string                      `json:"status"` // ACTIVE, INACTIVE, DEPRECATED
 }
 
 // MeasurementType defines a specific measurement within an object
 type MeasurementType struct {
-	ID                    string                 `json:"id"`
-	Name                  string                 `json:"name"`
-	Description           string                 `json:"description"`
-	MeasurementFamily     string                 `json:"measurement_family"`
-	CollectionMethod      string                 `json:"collection_method"` // CC, SI, DER, GAUGE
-	Units                 string                 `json:"units"`
-	Scale                 string                 `json:"scale"` // NANO, MICRO, MILLI, UNIT, KILO, etc.
-	DataType              string                 `json:"data_type"` // INTEGER, FLOAT, BOOLEAN
-	InitialValue          interface{}            `json:"initial_value"`
-	Aggregation           []string               `json:"aggregation"` // SUM, AVG, MIN, MAX, COUNT
-	Condition             string                 `json:"condition,omitempty"`
-	SupportedIntervals    []time.Duration        `json:"supported_intervals"`
-	Thresholds            map[string]*Threshold  `json:"thresholds"`
-	Reset                 string                 `json:"reset"` // MANUAL, AUTOMATIC, CONDITIONAL
-	Multiplicity          int                    `json:"multiplicity"` // 1 for scalar, >1 for vector
-	IsReadOnly            bool                   `json:"is_read_only"`
-	PerformanceMetricGroupRef string             `json:"performance_metric_group_ref,omitempty"`
+	ID                        string                `json:"id"`
+	Name                      string                `json:"name"`
+	Description               string                `json:"description"`
+	MeasurementFamily         string                `json:"measurement_family"`
+	CollectionMethod          string                `json:"collection_method"` // CC, SI, DER, GAUGE
+	Units                     string                `json:"units"`
+	Scale                     string                `json:"scale"`     // NANO, MICRO, MILLI, UNIT, KILO, etc.
+	DataType                  string                `json:"data_type"` // INTEGER, FLOAT, BOOLEAN
+	InitialValue              interface{}           `json:"initial_value"`
+	Aggregation               []string              `json:"aggregation"` // SUM, AVG, MIN, MAX, COUNT
+	Condition                 string                `json:"condition,omitempty"`
+	SupportedIntervals        []time.Duration       `json:"supported_intervals"`
+	Thresholds                map[string]*Threshold `json:"thresholds"`
+	Reset                     string                `json:"reset"`        // MANUAL, AUTOMATIC, CONDITIONAL
+	Multiplicity              int                   `json:"multiplicity"` // 1 for scalar, >1 for vector
+	IsReadOnly                bool                  `json:"is_read_only"`
+	PerformanceMetricGroupRef string                `json:"performance_metric_group_ref,omitempty"`
 }
 
 // MeasurementObjectGroup groups related measurement objects
@@ -113,55 +113,55 @@ type MeasurementObjectGroup struct {
 
 // MeasurementCapabilities describes system measurement capabilities
 type MeasurementCapabilities struct {
-	SupportedMeasurementGroups    []string        `json:"supported_measurement_groups"`
-	MaxBinCount                   int             `json:"max_bin_count"`
-	MaxMeasurementObjectCount     int             `json:"max_measurement_object_count"`
-	MaxMeasurementTypeCount       int             `json:"max_measurement_type_count"`
-	SupportedGranularities        []time.Duration `json:"supported_granularities"`
-	SupportedAggregationMethods   []string        `json:"supported_aggregation_methods"`
-	SupportedCollectionMethods    []string        `json:"supported_collection_methods"`
-	MaxConcurrentCollections      int             `json:"max_concurrent_collections"`
-	SupportedCompressionMethods   []string        `json:"supported_compression_methods"`
-	SupportedReportingFormats     []string        `json:"supported_reporting_formats"`
+	SupportedMeasurementGroups  []string        `json:"supported_measurement_groups"`
+	MaxBinCount                 int             `json:"max_bin_count"`
+	MaxMeasurementObjectCount   int             `json:"max_measurement_object_count"`
+	MaxMeasurementTypeCount     int             `json:"max_measurement_type_count"`
+	SupportedGranularities      []time.Duration `json:"supported_granularities"`
+	SupportedAggregationMethods []string        `json:"supported_aggregation_methods"`
+	SupportedCollectionMethods  []string        `json:"supported_collection_methods"`
+	MaxConcurrentCollections    int             `json:"max_concurrent_collections"`
+	SupportedCompressionMethods []string        `json:"supported_compression_methods"`
+	SupportedReportingFormats   []string        `json:"supported_reporting_formats"`
 }
 
 // PerformanceDataCollector collects measurement data from network elements
 type PerformanceDataCollector struct {
-	config             *PerformanceManagerConfig
-	activeCollections  map[string]*MeasurementCollection
-	collectorPool      *CollectorWorkerPool
-	dataBuffer         *CircularDataBuffer
-	mutex              sync.RWMutex
-	prometheusClient   api.Client
-	netconfClients     map[string]*NetconfClient
+	config            *PerformanceManagerConfig
+	activeCollections map[string]*MeasurementCollection
+	collectorPool     *CollectorWorkerPool
+	dataBuffer        *CircularDataBuffer
+	mutex             sync.RWMutex
+	prometheusClient  api.Client
+	netconfClients    map[string]*NetconfClient
 }
 
 // MeasurementCollection represents an active measurement collection
 type MeasurementCollection struct {
-	ID                 string                    `json:"id"`
-	ObjectID           string                    `json:"object_id"`
-	MeasurementTypes   []string                  `json:"measurement_types"`
-	Granularity        time.Duration             `json:"granularity"`
-	ReportingPeriod    time.Duration             `json:"reporting_period"`
-	CollectionInterval time.Duration             `json:"collection_interval"`
-	Status             string                    `json:"status"` // ACTIVE, PAUSED, STOPPED, ERROR
-	StartTime          time.Time                 `json:"start_time"`
-	EndTime            time.Time                 `json:"end_time,omitempty"`
-	ElementID          string                    `json:"element_id"`
-	Filter             *MeasurementFilter        `json:"filter,omitempty"`
-	Configuration      map[string]interface{}    `json:"configuration"`
-	LastCollection     time.Time                 `json:"last_collection"`
-	CollectionCount    int64                     `json:"collection_count"`
-	ErrorCount         int64                     `json:"error_count"`
-	cancel             context.CancelFunc        `json:"-"`
+	ID                 string                 `json:"id"`
+	ObjectID           string                 `json:"object_id"`
+	MeasurementTypes   []string               `json:"measurement_types"`
+	Granularity        time.Duration          `json:"granularity"`
+	ReportingPeriod    time.Duration          `json:"reporting_period"`
+	CollectionInterval time.Duration          `json:"collection_interval"`
+	Status             string                 `json:"status"` // ACTIVE, PAUSED, STOPPED, ERROR
+	StartTime          time.Time              `json:"start_time"`
+	EndTime            time.Time              `json:"end_time,omitempty"`
+	ElementID          string                 `json:"element_id"`
+	Filter             *MeasurementFilter     `json:"filter,omitempty"`
+	Configuration      map[string]interface{} `json:"configuration"`
+	LastCollection     time.Time              `json:"last_collection"`
+	CollectionCount    int64                  `json:"collection_count"`
+	ErrorCount         int64                  `json:"error_count"`
+	cancel             context.CancelFunc     `json:"-"`
 }
 
 // MeasurementFilter defines filtering criteria for data collection
 type MeasurementFilter struct {
-	TimeRange       *TimeRange                 `json:"time_range,omitempty"`
-	ValueFilters    map[string]*ValueFilter    `json:"value_filters,omitempty"`
-	AttributeFilters map[string]string         `json:"attribute_filters,omitempty"`
-	SamplingRate    float64                    `json:"sampling_rate,omitempty"`
+	TimeRange        *TimeRange              `json:"time_range,omitempty"`
+	ValueFilters     map[string]*ValueFilter `json:"value_filters,omitempty"`
+	AttributeFilters map[string]string       `json:"attribute_filters,omitempty"`
+	SamplingRate     float64                 `json:"sampling_rate,omitempty"`
 }
 
 // TimeRange defines a time range for filtering
@@ -172,54 +172,54 @@ type TimeRange struct {
 
 // ValueFilter defines value-based filtering criteria
 type ValueFilter struct {
-	Operator  string      `json:"operator"` // GT, LT, EQ, NE, BETWEEN
-	Value     interface{} `json:"value"`
-	Value2    interface{} `json:"value2,omitempty"` // For BETWEEN operator
+	Operator string      `json:"operator"` // GT, LT, EQ, NE, BETWEEN
+	Value    interface{} `json:"value"`
+	Value2   interface{} `json:"value2,omitempty"` // For BETWEEN operator
 }
 
 // MeasurementCollector collects data for a specific measurement collection
 type MeasurementCollector struct {
-	collection      *MeasurementCollection
-	measurementObj  *MeasurementObject
-	dataCollector   *PerformanceDataCollector
-	ticker          *time.Ticker
-	running         bool
-	lastValue       map[string]interface{}
-	errorCount      int64
-	successCount    int64
-	avgLatency      time.Duration
-	mutex           sync.RWMutex
+	collection     *MeasurementCollection
+	measurementObj *MeasurementObject
+	dataCollector  *PerformanceDataCollector
+	ticker         *time.Ticker
+	running        bool
+	lastValue      map[string]interface{}
+	errorCount     int64
+	successCount   int64
+	avgLatency     time.Duration
+	mutex          sync.RWMutex
 }
 
 // CircularDataBuffer provides efficient storage for measurement data
 type CircularDataBuffer struct {
-	data        []*MeasurementData
-	size        int
-	head        int
-	tail        int
-	count       int
-	mutex       sync.RWMutex
-	maxSize     int
+	data    []*MeasurementData
+	size    int
+	head    int
+	tail    int
+	count   int
+	mutex   sync.RWMutex
+	maxSize int
 }
 
 // MeasurementData represents a single measurement data point
 type MeasurementData struct {
-	Timestamp        time.Time              `json:"timestamp"`
-	ObjectID         string                 `json:"object_id"`
-	ElementID        string                 `json:"element_id"`
-	MeasurementType  string                 `json:"measurement_type"`
-	Value            interface{}            `json:"value"`
-	Quality          string                 `json:"quality"` // GOOD, QUESTIONABLE, BAD
-	Attributes       map[string]interface{} `json:"attributes"`
-	CollectionID     string                 `json:"collection_id"`
-	Granularity      time.Duration          `json:"granularity"`
+	Timestamp       time.Time              `json:"timestamp"`
+	ObjectID        string                 `json:"object_id"`
+	ElementID       string                 `json:"element_id"`
+	MeasurementType string                 `json:"measurement_type"`
+	Value           interface{}            `json:"value"`
+	Quality         string                 `json:"quality"` // GOOD, QUESTIONABLE, BAD
+	Attributes      map[string]interface{} `json:"attributes"`
+	CollectionID    string                 `json:"collection_id"`
+	Granularity     time.Duration          `json:"granularity"`
 }
 
 // DataAggregationEngine performs data aggregation and calculations
 type DataAggregationEngine struct {
-	aggregators    map[string]AggregationFunction
-	binManagers    map[time.Duration]*BinManager
-	mutex          sync.RWMutex
+	aggregators map[string]AggregationFunction
+	binManagers map[time.Duration]*BinManager
+	mutex       sync.RWMutex
 }
 
 // AggregationFunction interface for different aggregation methods
@@ -288,28 +288,28 @@ type PerformanceThreshold struct {
 
 // Threshold represents a configurable threshold value
 type Threshold struct {
-	Value     float64 `json:"value"`
-	Direction string  `json:"direction"` // RISING, FALLING
+	Value      float64 `json:"value"`
+	Direction  string  `json:"direction"` // RISING, FALLING
 	Hysteresis float64 `json:"hysteresis"`
 }
 
 // ThresholdCrossing represents a threshold crossing event
 type ThresholdCrossing struct {
-	Timestamp       time.Time   `json:"timestamp"`
-	ThresholdID     string      `json:"threshold_id"`
-	CrossingType    string      `json:"crossing_type"` // RISING, FALLING
-	MeasuredValue   float64     `json:"measured_value"`
-	ThresholdValue  float64     `json:"threshold_value"`
-	Severity        string      `json:"severity"`
-	Cleared         bool        `json:"cleared"`
-	ClearTimestamp  time.Time   `json:"clear_timestamp,omitempty"`
+	Timestamp      time.Time `json:"timestamp"`
+	ThresholdID    string    `json:"threshold_id"`
+	CrossingType   string    `json:"crossing_type"` // RISING, FALLING
+	MeasuredValue  float64   `json:"measured_value"`
+	ThresholdValue float64   `json:"threshold_value"`
+	Severity       string    `json:"severity"`
+	Cleared        bool      `json:"cleared"`
+	ClearTimestamp time.Time `json:"clear_timestamp,omitempty"`
 }
 
 // ThresholdAlertManager manages threshold-based alerts
 type ThresholdAlertManager struct {
-	alertChannels map[string]AlertChannel
+	alertChannels   map[string]AlertChannel
 	escalationRules []*AlertEscalationRule
-	mutex         sync.RWMutex
+	mutex           sync.RWMutex
 }
 
 // AlertChannel interface for different alert delivery methods
@@ -320,11 +320,11 @@ type AlertChannel interface {
 
 // AlertEscalationRule defines alert escalation policies
 type AlertEscalationRule struct {
-	ID           string        `json:"id"`
-	Conditions   []string      `json:"conditions"`
+	ID              string        `json:"id"`
+	Conditions      []string      `json:"conditions"`
 	EscalationDelay time.Duration `json:"escalation_delay"`
-	TargetChannel string        `json:"target_channel"`
-	Enabled      bool          `json:"enabled"`
+	TargetChannel   string        `json:"target_channel"`
+	Enabled         bool          `json:"enabled"`
 }
 
 // RealTimeStreamingManager handles real-time data streaming
@@ -337,31 +337,31 @@ type RealTimeStreamingManager struct {
 
 // DataStream represents a real-time data stream
 type DataStream struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	ObjectIDs       []string               `json:"object_ids"`
+	ID               string                `json:"id"`
+	Name             string                `json:"name"`
+	ObjectIDs        []string              `json:"object_ids"`
 	MeasurementTypes []string              `json:"measurement_types"`
-	Granularity     time.Duration          `json:"granularity"`
-	BufferSize      int                    `json:"buffer_size"`
-	Format          string                 `json:"format"` // JSON, PROTOBUF, AVRO
-	Compression     string                 `json:"compression"` // NONE, GZIP, LZ4
-	Active          bool                   `json:"active"`
-	CreatedAt       time.Time              `json:"created_at"`
-	Subscribers     []string               `json:"subscribers"`
-	DataBuffer      chan *MeasurementData  `json:"-"`
+	Granularity      time.Duration         `json:"granularity"`
+	BufferSize       int                   `json:"buffer_size"`
+	Format           string                `json:"format"`      // JSON, PROTOBUF, AVRO
+	Compression      string                `json:"compression"` // NONE, GZIP, LZ4
+	Active           bool                  `json:"active"`
+	CreatedAt        time.Time             `json:"created_at"`
+	Subscribers      []string              `json:"subscribers"`
+	DataBuffer       chan *MeasurementData `json:"-"`
 }
 
 // StreamSubscriber represents a client subscribed to data streams
 type StreamSubscriber struct {
-	ID            string                 `json:"id"`
-	StreamIDs     []string               `json:"stream_ids"`
-	Endpoint      string                 `json:"endpoint"`
-	Protocol      string                 `json:"protocol"` // HTTP, WEBSOCKET, GRPC
-	FilterRules   []*StreamFilter        `json:"filter_rules"`
-	BufferSize    int                    `json:"buffer_size"`
-	LastActivity  time.Time              `json:"last_activity"`
-	Active        bool                   `json:"active"`
-	SendBuffer    chan *MeasurementData  `json:"-"`
+	ID           string                `json:"id"`
+	StreamIDs    []string              `json:"stream_ids"`
+	Endpoint     string                `json:"endpoint"`
+	Protocol     string                `json:"protocol"` // HTTP, WEBSOCKET, GRPC
+	FilterRules  []*StreamFilter       `json:"filter_rules"`
+	BufferSize   int                   `json:"buffer_size"`
+	LastActivity time.Time             `json:"last_activity"`
+	Active       bool                  `json:"active"`
+	SendBuffer   chan *MeasurementData `json:"-"`
 }
 
 // StreamFilter defines filtering rules for stream data
@@ -411,26 +411,26 @@ type HistoricalQuery struct {
 
 // DeletionCriteria defines criteria for data deletion
 type DeletionCriteria struct {
-	ObjectIDs   []string  `json:"object_ids,omitempty"`
-	OlderThan   time.Time `json:"older_than,omitempty"`
-	Quality     string    `json:"quality,omitempty"`
+	ObjectIDs []string  `json:"object_ids,omitempty"`
+	OlderThan time.Time `json:"older_than,omitempty"`
+	Quality   string    `json:"quality,omitempty"`
 }
 
 // StorageStatistics provides storage usage statistics
 type StorageStatistics struct {
-	TotalRecords       int64     `json:"total_records"`
-	StorageSize        int64     `json:"storage_size_bytes"`
-	OldestRecord       time.Time `json:"oldest_record"`
-	NewestRecord       time.Time `json:"newest_record"`
-	CompressionRatio   float64   `json:"compression_ratio"`
+	TotalRecords     int64     `json:"total_records"`
+	StorageSize      int64     `json:"storage_size_bytes"`
+	OldestRecord     time.Time `json:"oldest_record"`
+	NewestRecord     time.Time `json:"newest_record"`
+	CompressionRatio float64   `json:"compression_ratio"`
 }
 
 // DataIndexManager manages data indexing for fast queries
 type DataIndexManager struct {
-	timeIndex       map[time.Time][]string
-	objectIndex     map[string][]string
+	timeIndex        map[time.Time][]string
+	objectIndex      map[string][]string
 	measurementIndex map[string][]string
-	mutex           sync.RWMutex
+	mutex            sync.RWMutex
 }
 
 // RetentionPolicy defines data retention policies
@@ -495,19 +495,19 @@ type AnomalyPrediction struct {
 
 // AnomalyFeedback provides feedback for model improvement
 type AnomalyFeedback struct {
-	PredictionID   string    `json:"prediction_id"`
-	ActualAnomaly  bool      `json:"actual_anomaly"`
-	Explanation    string    `json:"explanation"`
-	Timestamp      time.Time `json:"timestamp"`
+	PredictionID  string    `json:"prediction_id"`
+	ActualAnomaly bool      `json:"actual_anomaly"`
+	Explanation   string    `json:"explanation"`
+	Timestamp     time.Time `json:"timestamp"`
 }
 
 // ModelInfo provides information about anomaly detection models
 type ModelInfo struct {
-	ModelType     string                 `json:"model_type"`
-	TrainingData  int                    `json:"training_data_points"`
-	Accuracy      float64                `json:"accuracy"`
-	LastTrained   time.Time              `json:"last_trained"`
-	Parameters    map[string]interface{} `json:"parameters"`
+	ModelType    string                 `json:"model_type"`
+	TrainingData int                    `json:"training_data_points"`
+	Accuracy     float64                `json:"accuracy"`
+	LastTrained  time.Time              `json:"last_trained"`
+	Parameters   map[string]interface{} `json:"parameters"`
 }
 
 // BaselineManager manages performance baselines
@@ -518,25 +518,25 @@ type BaselineManager struct {
 
 // PerformanceBaseline represents normal performance characteristics
 type PerformanceBaseline struct {
-	ObjectID        string                 `json:"object_id"`
-	MeasurementType string                 `json:"measurement_type"`
-	BaselineData    *StatisticalSummary    `json:"baseline_data"`
-	CreatedAt       time.Time              `json:"created_at"`
-	UpdatedAt       time.Time              `json:"updated_at"`
-	ValidUntil      time.Time              `json:"valid_until"`
-	Confidence      float64                `json:"confidence"`
+	ObjectID        string              `json:"object_id"`
+	MeasurementType string              `json:"measurement_type"`
+	BaselineData    *StatisticalSummary `json:"baseline_data"`
+	CreatedAt       time.Time           `json:"created_at"`
+	UpdatedAt       time.Time           `json:"updated_at"`
+	ValidUntil      time.Time           `json:"valid_until"`
+	Confidence      float64             `json:"confidence"`
 }
 
 // StatisticalSummary provides statistical summary of measurement data
 type StatisticalSummary struct {
-	Mean         float64   `json:"mean"`
-	Median       float64   `json:"median"`
-	StdDev       float64   `json:"std_dev"`
-	Min          float64   `json:"min"`
-	Max          float64   `json:"max"`
-	Percentiles  map[int]float64 `json:"percentiles"`
-	SampleCount  int64     `json:"sample_count"`
-	Timestamp    time.Time `json:"timestamp"`
+	Mean        float64         `json:"mean"`
+	Median      float64         `json:"median"`
+	StdDev      float64         `json:"std_dev"`
+	Min         float64         `json:"min"`
+	Max         float64         `json:"max"`
+	Percentiles map[int]float64 `json:"percentiles"`
+	SampleCount int64           `json:"sample_count"`
+	Timestamp   time.Time       `json:"timestamp"`
 }
 
 // AnomalyAlertManager manages anomaly-based alerts
@@ -549,25 +549,25 @@ type AnomalyAlertManager struct {
 
 // AnomalyAlert represents an anomaly alert
 type AnomalyAlert struct {
-	ID            string                 `json:"id"`
-	Timestamp     time.Time              `json:"timestamp"`
-	ObjectID      string                 `json:"object_id"`
-	MeasurementType string               `json:"measurement_type"`
-	Prediction    *AnomalyPrediction     `json:"prediction"`
-	Severity      string                 `json:"severity"`
-	Status        string                 `json:"status"` // OPEN, ACKNOWLEDGED, RESOLVED
-	Acknowledged  bool                   `json:"acknowledged"`
-	ResolvedAt    time.Time              `json:"resolved_at,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	ID              string                 `json:"id"`
+	Timestamp       time.Time              `json:"timestamp"`
+	ObjectID        string                 `json:"object_id"`
+	MeasurementType string                 `json:"measurement_type"`
+	Prediction      *AnomalyPrediction     `json:"prediction"`
+	Severity        string                 `json:"severity"`
+	Status          string                 `json:"status"` // OPEN, ACKNOWLEDGED, RESOLVED
+	Acknowledged    bool                   `json:"acknowledged"`
+	ResolvedAt      time.Time              `json:"resolved_at,omitempty"`
+	Metadata        map[string]interface{} `json:"metadata"`
 }
 
 // AnomalyEscalationRule defines anomaly alert escalation
 type AnomalyEscalationRule struct {
-	ID                string        `json:"id"`
-	AnomalyScoreThreshold float64  `json:"anomaly_score_threshold"`
-	EscalationDelay   time.Duration `json:"escalation_delay"`
-	TargetChannel     string        `json:"target_channel"`
-	Enabled           bool          `json:"enabled"`
+	ID                    string        `json:"id"`
+	AnomalyScoreThreshold float64       `json:"anomaly_score_threshold"`
+	EscalationDelay       time.Duration `json:"escalation_delay"`
+	TargetChannel         string        `json:"target_channel"`
+	Enabled               bool          `json:"enabled"`
 }
 
 // AnomalyDetectionConfig holds anomaly detection configuration
@@ -581,36 +581,36 @@ type AnomalyDetectionConfig struct {
 
 // PerformanceReportGenerator generates performance reports
 type PerformanceReportGenerator struct {
-	templates     map[string]*ReportTemplate
-	generators    map[string]ReportGenerator
-	scheduler     *ReportScheduler
-	distribution  *ReportDistribution
+	templates    map[string]*ReportTemplate
+	generators   map[string]ReportGenerator
+	scheduler    *ReportScheduler
+	distribution *ReportDistribution
 }
 
 // ReportTemplate defines report structure and content
 type ReportTemplate struct {
-	ID               string                 `json:"id"`
-	Name             string                 `json:"name"`
-	Description      string                 `json:"description"`
-	ReportType       string                 `json:"report_type"` // SUMMARY, DETAILED, TREND, SLA
-	ObjectFilters    []string               `json:"object_filters"`
-	MeasurementFilters []string             `json:"measurement_filters"`
-	TimeRange        *ReportTimeRange       `json:"time_range"`
-	Aggregations     []string               `json:"aggregations"`
-	Visualizations   []*Visualization       `json:"visualizations"`
-	OutputFormats    []string               `json:"output_formats"` // PDF, HTML, CSV, JSON
-	Schedule         *ReportSchedule        `json:"schedule,omitempty"`
-	Recipients       []string               `json:"recipients"`
-	CreatedAt        time.Time              `json:"created_at"`
-	UpdatedAt        time.Time              `json:"updated_at"`
+	ID                 string           `json:"id"`
+	Name               string           `json:"name"`
+	Description        string           `json:"description"`
+	ReportType         string           `json:"report_type"` // SUMMARY, DETAILED, TREND, SLA
+	ObjectFilters      []string         `json:"object_filters"`
+	MeasurementFilters []string         `json:"measurement_filters"`
+	TimeRange          *ReportTimeRange `json:"time_range"`
+	Aggregations       []string         `json:"aggregations"`
+	Visualizations     []*Visualization `json:"visualizations"`
+	OutputFormats      []string         `json:"output_formats"` // PDF, HTML, CSV, JSON
+	Schedule           *ReportSchedule  `json:"schedule,omitempty"`
+	Recipients         []string         `json:"recipients"`
+	CreatedAt          time.Time        `json:"created_at"`
+	UpdatedAt          time.Time        `json:"updated_at"`
 }
 
 // ReportTimeRange defines time range for reports
 type ReportTimeRange struct {
-	Type       string        `json:"type"` // RELATIVE, ABSOLUTE
-	StartTime  time.Time     `json:"start_time,omitempty"`
-	EndTime    time.Time     `json:"end_time,omitempty"`
-	Duration   time.Duration `json:"duration,omitempty"`
+	Type        string        `json:"type"` // RELATIVE, ABSOLUTE
+	StartTime   time.Time     `json:"start_time,omitempty"`
+	EndTime     time.Time     `json:"end_time,omitempty"`
+	Duration    time.Duration `json:"duration,omitempty"`
 	Granularity time.Duration `json:"granularity"`
 }
 
@@ -643,14 +643,14 @@ type ReportGenerator interface {
 
 // GeneratedReport represents a generated performance report
 type GeneratedReport struct {
-	ID           string                 `json:"id"`
-	TemplateID   string                 `json:"template_id"`
-	GeneratedAt  time.Time              `json:"generated_at"`
-	Format       string                 `json:"format"`
-	Content      []byte                 `json:"content"`
-	Size         int64                  `json:"size"`
-	Metadata     map[string]interface{} `json:"metadata"`
-	Status       string                 `json:"status"`
+	ID          string                 `json:"id"`
+	TemplateID  string                 `json:"template_id"`
+	GeneratedAt time.Time              `json:"generated_at"`
+	Format      string                 `json:"format"`
+	Content     []byte                 `json:"content"`
+	Size        int64                  `json:"size"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	Status      string                 `json:"status"`
 }
 
 // ReportScheduler manages scheduled report generation
@@ -664,11 +664,11 @@ type ReportScheduler struct {
 
 // ScheduledReport represents a scheduled report
 type ScheduledReport struct {
-	Template  *ReportTemplate
-	NextRun   time.Time
-	Enabled   bool
-	LastRun   time.Time
-	RunCount  int64
+	Template   *ReportTemplate
+	NextRun    time.Time
+	Enabled    bool
+	LastRun    time.Time
+	RunCount   int64
 	ErrorCount int64
 }
 
@@ -693,31 +693,31 @@ type KPICalculator struct {
 
 // KPIDefinition defines a Key Performance Indicator
 type KPIDefinition struct {
-	ID              string                 `json:"id"`
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description"`
-	Formula         string                 `json:"formula"`
-	InputMeasurements []string             `json:"input_measurements"`
-	Units           string                 `json:"units"`
-	Category        string                 `json:"category"` // AVAILABILITY, PERFORMANCE, QUALITY
-	CalculationMethod string               `json:"calculation_method"`
-	AggregationPeriod time.Duration        `json:"aggregation_period"`
-	Targets         map[string]float64     `json:"targets"` // SLA targets
-	Thresholds      map[string]float64     `json:"thresholds"`
-	Weight          float64                `json:"weight"`
-	Enabled         bool                   `json:"enabled"`
+	ID                string             `json:"id"`
+	Name              string             `json:"name"`
+	Description       string             `json:"description"`
+	Formula           string             `json:"formula"`
+	InputMeasurements []string           `json:"input_measurements"`
+	Units             string             `json:"units"`
+	Category          string             `json:"category"` // AVAILABILITY, PERFORMANCE, QUALITY
+	CalculationMethod string             `json:"calculation_method"`
+	AggregationPeriod time.Duration      `json:"aggregation_period"`
+	Targets           map[string]float64 `json:"targets"` // SLA targets
+	Thresholds        map[string]float64 `json:"thresholds"`
+	Weight            float64            `json:"weight"`
+	Enabled           bool               `json:"enabled"`
 }
 
 // CalculatedKPI represents a calculated KPI value
 type CalculatedKPI struct {
-	DefinitionID    string                 `json:"definition_id"`
-	Value           float64                `json:"value"`
-	Timestamp       time.Time              `json:"timestamp"`
-	Period          time.Duration          `json:"period"`
-	InputData       map[string]interface{} `json:"input_data"`
-	Quality         string                 `json:"quality"`
-	TargetMet       bool                   `json:"target_met"`
-	Confidence      float64                `json:"confidence"`
+	DefinitionID string                 `json:"definition_id"`
+	Value        float64                `json:"value"`
+	Timestamp    time.Time              `json:"timestamp"`
+	Period       time.Duration          `json:"period"`
+	InputData    map[string]interface{} `json:"input_data"`
+	Quality      string                 `json:"quality"`
+	TargetMet    bool                   `json:"target_met"`
+	Confidence   float64                `json:"confidence"`
 }
 
 // KPICalculationEngine performs KPI calculations
@@ -734,11 +734,11 @@ type KPIFunction interface {
 
 // GrafanaIntegration integrates with Grafana for visualization
 type GrafanaIntegration struct {
-	client        *GrafanaClient
-	dashboards    map[string]*GrafanaDashboard
-	datasources   map[string]*GrafanaDatasource
-	alertRules    map[string]*GrafanaAlertRule
-	config        *GrafanaConfig
+	client      *GrafanaClient
+	dashboards  map[string]*GrafanaDashboard
+	datasources map[string]*GrafanaDatasource
+	alertRules  map[string]*GrafanaAlertRule
+	config      *GrafanaConfig
 }
 
 // GrafanaClient provides Grafana API client functionality
@@ -750,14 +750,14 @@ type GrafanaClient struct {
 
 // GrafanaDashboard represents a Grafana dashboard
 type GrafanaDashboard struct {
-	ID          int                    `json:"id"`
-	UID         string                 `json:"uid"`
-	Title       string                 `json:"title"`
-	Tags        []string               `json:"tags"`
-	Dashboard   map[string]interface{} `json:"dashboard"`
-	FolderID    int                    `json:"folder_id"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID        int                    `json:"id"`
+	UID       string                 `json:"uid"`
+	Title     string                 `json:"title"`
+	Tags      []string               `json:"tags"`
+	Dashboard map[string]interface{} `json:"dashboard"`
+	FolderID  int                    `json:"folder_id"`
+	CreatedAt time.Time              `json:"created_at"`
+	UpdatedAt time.Time              `json:"updated_at"`
 }
 
 // GrafanaDatasource represents a Grafana datasource
@@ -771,22 +771,22 @@ type GrafanaDatasource struct {
 
 // GrafanaAlertRule represents a Grafana alert rule
 type GrafanaAlertRule struct {
-	ID          int                    `json:"id"`
-	Title       string                 `json:"title"`
-	Condition   string                 `json:"condition"`
-	Datasource  string                 `json:"datasource"`
-	Settings    map[string]interface{} `json:"settings"`
-	Frequency   time.Duration          `json:"frequency"`
-	Enabled     bool                   `json:"enabled"`
+	ID         int                    `json:"id"`
+	Title      string                 `json:"title"`
+	Condition  string                 `json:"condition"`
+	Datasource string                 `json:"datasource"`
+	Settings   map[string]interface{} `json:"settings"`
+	Frequency  time.Duration          `json:"frequency"`
+	Enabled    bool                   `json:"enabled"`
 }
 
 // GrafanaConfig holds Grafana integration configuration
 type GrafanaConfig struct {
-	URL                string `json:"url"`
-	APIKey             string `json:"api_key"`
-	Organization       string `json:"organization"`
-	DefaultDatasource  string `json:"default_datasource"`
-	DashboardFolder    string `json:"dashboard_folder"`
+	URL               string `json:"url"`
+	APIKey            string `json:"api_key"`
+	Organization      string `json:"organization"`
+	DefaultDatasource string `json:"default_datasource"`
+	DashboardFolder   string `json:"dashboard_folder"`
 }
 
 // PerformanceMetrics holds Prometheus metrics for performance management
@@ -802,31 +802,31 @@ type PerformanceMetrics struct {
 
 // CollectorWorkerPool manages collector worker goroutines
 type CollectorWorkerPool struct {
-	workers       int
-	taskQueue     chan *CollectionTask
-	resultQueue   chan *CollectionResult
-	workerWg      sync.WaitGroup
-	running       bool
-	stopChan      chan struct{}
+	workers     int
+	taskQueue   chan *CollectionTask
+	resultQueue chan *CollectionResult
+	workerWg    sync.WaitGroup
+	running     bool
+	stopChan    chan struct{}
 }
 
 // CollectionTask represents a data collection task
 type CollectionTask struct {
-	CollectionID string
-	ObjectID     string
-	ElementID    string
+	CollectionID     string
+	ObjectID         string
+	ElementID        string
 	MeasurementTypes []string
-	Timestamp    time.Time
+	Timestamp        time.Time
 }
 
 // CollectionResult represents the result of a collection task
 type CollectionResult struct {
-	TaskID       string
-	Success      bool
-	Data         []*MeasurementData
-	Error        error
-	Timestamp    time.Time
-	Duration     time.Duration
+	TaskID    string
+	Success   bool
+	Data      []*MeasurementData
+	Error     error
+	Timestamp time.Time
+	Duration  time.Duration
 }
 
 // NewCompletePerformanceManager creates a new complete performance manager
@@ -854,11 +854,11 @@ func NewCompletePerformanceManager(config *PerformanceManagerConfig) *CompletePe
 	}
 
 	cpm := &CompletePerformanceManager{
-		config:            config,
+		config:              config,
 		measurementRegistry: NewMeasurementRegistry(),
-		collectors:        make(map[string]*MeasurementCollector),
-		metrics:           initializePerformanceMetrics(),
-		stopChan:          make(chan struct{}),
+		collectors:          make(map[string]*MeasurementCollector),
+		metrics:             initializePerformanceMetrics(),
+		stopChan:            make(chan struct{}),
 	}
 
 	// Initialize core components
@@ -1103,11 +1103,11 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 	}
 
 	result := &MeasurementQueryResult{
-		Query:           query,
-		RawData:         allData,
-		AggregatedData:  aggregatedData,
-		QueryTime:       time.Now(),
-		DataPointCount:  len(allData),
+		Query:          query,
+		RawData:        allData,
+		AggregatedData: aggregatedData,
+		QueryTime:      time.Now(),
+		DataPointCount: len(allData),
 		TimeRange: &TimeRange{
 			StartTime: query.StartTime,
 			EndTime:   query.EndTime,
@@ -1133,12 +1133,12 @@ func (cpm *CompletePerformanceManager) GetPerformanceStatistics(ctx context.Cont
 	cpm.collectorsMux.RUnlock()
 
 	stats := &PerformanceStatistics{
-		ActiveCollectors:     activeCollectors,
+		ActiveCollectors:        activeCollectors,
 		TotalMeasurementObjects: len(cpm.measurementRegistry.objects),
-		DataPointsPerSecond:  cpm.calculateDataRate(),
-		StorageUtilization:   cpm.calculateStorageUtilization(),
-		SystemHealth:         cpm.assessSystemHealth(),
-		Timestamp:           time.Now(),
+		DataPointsPerSecond:     cpm.calculateDataRate(),
+		StorageUtilization:      cpm.calculateStorageUtilization(),
+		SystemHealth:            cpm.assessSystemHealth(),
+		Timestamp:               time.Now(),
 	}
 
 	if cpm.thresholdManager != nil {
@@ -1239,57 +1239,57 @@ type MeasurementCollectionRequest struct {
 
 // MeasurementQuery represents a query for measurement data
 type MeasurementQuery struct {
-	ObjectIDs        []string      `json:"object_ids,omitempty"`
-	MeasurementTypes []string      `json:"measurement_types,omitempty"`
-	StartTime        time.Time     `json:"start_time"`
-	EndTime          time.Time     `json:"end_time"`
-	Granularity      time.Duration `json:"granularity,omitempty"`
-	Aggregation      string        `json:"aggregation,omitempty"`
+	ObjectIDs        []string               `json:"object_ids,omitempty"`
+	MeasurementTypes []string               `json:"measurement_types,omitempty"`
+	StartTime        time.Time              `json:"start_time"`
+	EndTime          time.Time              `json:"end_time"`
+	Granularity      time.Duration          `json:"granularity,omitempty"`
+	Aggregation      string                 `json:"aggregation,omitempty"`
 	Filters          map[string]interface{} `json:"filters,omitempty"`
-	Limit            int           `json:"limit,omitempty"`
+	Limit            int                    `json:"limit,omitempty"`
 }
 
 // MeasurementQueryResult represents the result of a measurement query
 type MeasurementQueryResult struct {
-	Query           *MeasurementQuery  `json:"query"`
-	RawData         []*MeasurementData `json:"raw_data,omitempty"`
-	AggregatedData  []*AggregatedData  `json:"aggregated_data,omitempty"`
-	QueryTime       time.Time          `json:"query_time"`
-	DataPointCount  int                `json:"data_point_count"`
-	TimeRange       *TimeRange         `json:"time_range"`
-	ExecutionTime   time.Duration      `json:"execution_time"`
+	Query          *MeasurementQuery  `json:"query"`
+	RawData        []*MeasurementData `json:"raw_data,omitempty"`
+	AggregatedData []*AggregatedData  `json:"aggregated_data,omitempty"`
+	QueryTime      time.Time          `json:"query_time"`
+	DataPointCount int                `json:"data_point_count"`
+	TimeRange      *TimeRange         `json:"time_range"`
+	ExecutionTime  time.Duration      `json:"execution_time"`
 }
 
 // PerformanceStatistics provides comprehensive performance statistics
 type PerformanceStatistics struct {
-	ActiveCollectors        int                     `json:"active_collectors"`
-	TotalMeasurementObjects int                     `json:"total_measurement_objects"`
-	DataPointsPerSecond     float64                 `json:"data_points_per_second"`
-	StorageUtilization      float64                 `json:"storage_utilization"`
-	SystemHealth            string                  `json:"system_health"`
-	ThresholdStatistics     *ThresholdStatistics    `json:"threshold_statistics,omitempty"`
-	AnomalyStatistics       *AnomalyStatistics      `json:"anomaly_statistics,omitempty"`
-	StreamingStatistics     *StreamingStatistics    `json:"streaming_statistics,omitempty"`
-	Timestamp               time.Time               `json:"timestamp"`
+	ActiveCollectors        int                  `json:"active_collectors"`
+	TotalMeasurementObjects int                  `json:"total_measurement_objects"`
+	DataPointsPerSecond     float64              `json:"data_points_per_second"`
+	StorageUtilization      float64              `json:"storage_utilization"`
+	SystemHealth            string               `json:"system_health"`
+	ThresholdStatistics     *ThresholdStatistics `json:"threshold_statistics,omitempty"`
+	AnomalyStatistics       *AnomalyStatistics   `json:"anomaly_statistics,omitempty"`
+	StreamingStatistics     *StreamingStatistics `json:"streaming_statistics,omitempty"`
+	Timestamp               time.Time            `json:"timestamp"`
 }
 
 // Placeholder statistics structures
 type ThresholdStatistics struct {
-	ActiveThresholds   int `json:"active_thresholds"`
-	CrossingsLastHour  int `json:"crossings_last_hour"`
-	CrossingsLastDay   int `json:"crossings_last_day"`
+	ActiveThresholds  int `json:"active_thresholds"`
+	CrossingsLastHour int `json:"crossings_last_hour"`
+	CrossingsLastDay  int `json:"crossings_last_day"`
 }
 
 type AnomalyStatistics struct {
-	ModelsActive       int     `json:"models_active"`
-	AnomaliesLastHour  int     `json:"anomalies_last_hour"`
-	AnomaliesLastDay   int     `json:"anomalies_last_day"`
-	AverageAccuracy    float64 `json:"average_accuracy"`
+	ModelsActive      int     `json:"models_active"`
+	AnomaliesLastHour int     `json:"anomalies_last_hour"`
+	AnomaliesLastDay  int     `json:"anomalies_last_day"`
+	AverageAccuracy   float64 `json:"average_accuracy"`
 }
 
 type StreamingStatistics struct {
-	ActiveStreams     int `json:"active_streams"`
-	ActiveSubscribers int `json:"active_subscribers"`
+	ActiveStreams     int     `json:"active_streams"`
+	ActiveSubscribers int     `json:"active_subscribers"`
 	MessagesPerSecond float64 `json:"messages_per_second"`
 }
 
@@ -1317,7 +1317,7 @@ func NewMeasurementRegistry() *MeasurementRegistry {
 func (mr *MeasurementRegistry) GetObject(objectID string) (*MeasurementObject, error) {
 	mr.mutex.RLock()
 	defer mr.mutex.RUnlock()
-	
+
 	obj, exists := mr.objects[objectID]
 	if !exists {
 		return nil, fmt.Errorf("measurement object not found: %s", objectID)
@@ -1327,11 +1327,11 @@ func (mr *MeasurementRegistry) GetObject(objectID string) (*MeasurementObject, e
 
 func NewPerformanceDataCollector(config *PerformanceManagerConfig, registry *MeasurementRegistry) *PerformanceDataCollector {
 	return &PerformanceDataCollector{
-		config:             config,
-		activeCollections:  make(map[string]*MeasurementCollection),
-		collectorPool:      NewCollectorWorkerPool(config.MaxConcurrentCollectors),
-		dataBuffer:         NewCircularDataBuffer(config.MaxDataPoints),
-		netconfClients:     make(map[string]*NetconfClient),
+		config:            config,
+		activeCollections: make(map[string]*MeasurementCollection),
+		collectorPool:     NewCollectorWorkerPool(config.MaxConcurrentCollectors),
+		dataBuffer:        NewCircularDataBuffer(config.MaxDataPoints),
+		netconfClients:    make(map[string]*NetconfClient),
 	}
 }
 
@@ -1357,7 +1357,7 @@ func NewCircularDataBuffer(maxSize int) *CircularDataBuffer {
 func (cdb *CircularDataBuffer) Query(query *MeasurementQuery) []*MeasurementData {
 	cdb.mutex.RLock()
 	defer cdb.mutex.RUnlock()
-	
+
 	var result []*MeasurementData
 	// Simplified query logic - would implement proper filtering
 	for i := 0; i < cdb.count; i++ {
@@ -1397,7 +1397,7 @@ func (cwp *CollectorWorkerPool) Stop(ctx context.Context) error {
 
 func (cwp *CollectorWorkerPool) worker(ctx context.Context) {
 	defer cwp.workerWg.Done()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -1428,17 +1428,17 @@ func (cwp *CollectorWorkerPool) processTask(ctx context.Context, task *Collectio
 
 func NewMeasurementCollector(collection *MeasurementCollection, obj *MeasurementObject, dataCollector *PerformanceDataCollector) *MeasurementCollector {
 	return &MeasurementCollector{
-		collection:    collection,
+		collection:     collection,
 		measurementObj: obj,
-		dataCollector: dataCollector,
-		lastValue:     make(map[string]interface{}),
+		dataCollector:  dataCollector,
+		lastValue:      make(map[string]interface{}),
 	}
 }
 
 func (mc *MeasurementCollector) Start(ctx context.Context) error {
 	mc.running = true
 	mc.ticker = time.NewTicker(mc.collection.CollectionInterval)
-	
+
 	go mc.collectionLoop(ctx)
 	return nil
 }
@@ -1490,7 +1490,7 @@ func NewPerformanceThresholdManager() *PerformanceThresholdManager {
 	return &PerformanceThresholdManager{
 		thresholds:      make(map[string]*PerformanceThreshold),
 		crossingHistory: make(map[string][]*ThresholdCrossing),
-		alertManager:    &ThresholdAlertManager{
+		alertManager: &ThresholdAlertManager{
 			alertChannels:   make(map[string]AlertChannel),
 			escalationRules: make([]*AlertEscalationRule, 0),
 		},
@@ -1498,9 +1498,13 @@ func NewPerformanceThresholdManager() *PerformanceThresholdManager {
 }
 
 func (ptm *PerformanceThresholdManager) Start(ctx context.Context) error { return nil }
-func (ptm *PerformanceThresholdManager) Stop(ctx context.Context) error { return nil }
-func (ptm *PerformanceThresholdManager) SetThreshold(ctx context.Context, threshold *PerformanceThreshold) error { return nil }
-func (ptm *PerformanceThresholdManager) GetStatistics() *ThresholdStatistics { return &ThresholdStatistics{} }
+func (ptm *PerformanceThresholdManager) Stop(ctx context.Context) error  { return nil }
+func (ptm *PerformanceThresholdManager) SetThreshold(ctx context.Context, threshold *PerformanceThreshold) error {
+	return nil
+}
+func (ptm *PerformanceThresholdManager) GetStatistics() *ThresholdStatistics {
+	return &ThresholdStatistics{}
+}
 
 func NewRealTimeStreamingManager() *RealTimeStreamingManager {
 	return &RealTimeStreamingManager{
@@ -1510,8 +1514,10 @@ func NewRealTimeStreamingManager() *RealTimeStreamingManager {
 }
 
 func (rtsm *RealTimeStreamingManager) Start(ctx context.Context) error { return nil }
-func (rtsm *RealTimeStreamingManager) Stop(ctx context.Context) error { return nil }
-func (rtsm *RealTimeStreamingManager) GetStatistics() *StreamingStatistics { return &StreamingStatistics{} }
+func (rtsm *RealTimeStreamingManager) Stop(ctx context.Context) error  { return nil }
+func (rtsm *RealTimeStreamingManager) GetStatistics() *StreamingStatistics {
+	return &StreamingStatistics{}
+}
 
 func NewHistoricalDataManager() *HistoricalDataManager {
 	return &HistoricalDataManager{
@@ -1532,8 +1538,10 @@ func NewPerformanceAnomalyDetector(config *AnomalyDetectionConfig) *PerformanceA
 }
 
 func (pad *PerformanceAnomalyDetector) Start(ctx context.Context) error { return nil }
-func (pad *PerformanceAnomalyDetector) Stop(ctx context.Context) error { return nil }
-func (pad *PerformanceAnomalyDetector) GetStatistics() *AnomalyStatistics { return &AnomalyStatistics{} }
+func (pad *PerformanceAnomalyDetector) Stop(ctx context.Context) error  { return nil }
+func (pad *PerformanceAnomalyDetector) GetStatistics() *AnomalyStatistics {
+	return &AnomalyStatistics{}
+}
 
 func NewPerformanceReportGenerator() *PerformanceReportGenerator {
 	return &PerformanceReportGenerator{
@@ -1543,7 +1551,7 @@ func NewPerformanceReportGenerator() *PerformanceReportGenerator {
 }
 
 func (prg *PerformanceReportGenerator) Start(ctx context.Context) error { return nil }
-func (prg *PerformanceReportGenerator) Stop(ctx context.Context) error { return nil }
+func (prg *PerformanceReportGenerator) Stop(ctx context.Context) error  { return nil }
 
 func NewKPICalculator() *KPICalculator {
 	return &KPICalculator{

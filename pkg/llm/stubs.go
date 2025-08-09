@@ -132,11 +132,11 @@ func (sp *StreamingProcessor) Shutdown(ctx context.Context) error {
 
 // ContextBuilder provides RAG context building capabilities
 type ContextBuilder struct {
-	weaviatePool   *rag.WeaviateConnectionPool
-	logger         *slog.Logger
-	config         *ContextBuilderConfig
-	metrics        *ContextBuilderMetrics
-	mutex          sync.RWMutex
+	weaviatePool *rag.WeaviateConnectionPool
+	logger       *slog.Logger
+	config       *ContextBuilderConfig
+	metrics      *ContextBuilderMetrics
+	mutex        sync.RWMutex
 }
 
 // ContextBuilderConfig holds configuration for the context builder
@@ -197,7 +197,7 @@ func NewContextBuilderWithPool(pool *rag.WeaviateConnectionPool) *ContextBuilder
 // BuildContext retrieves and builds context from the RAG system using semantic search
 func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDocs int) ([]map[string]any, error) {
 	startTime := time.Now()
-	
+
 	// Update metrics
 	cb.updateMetrics(func(m *ContextBuilderMetrics) {
 		m.TotalQueries++
@@ -339,7 +339,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 		}
 
 		doc := result.Document
-		
+
 		// Check content length limits
 		if totalContentLength+len(doc.Content) > cb.config.MaxContextLength {
 			cb.logger.Debug("Context length limit reached, truncating results",
@@ -351,17 +351,17 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 
 		// Build context document
 		contextDoc := map[string]any{
-			"id":           doc.ID,
-			"title":        doc.Title,
-			"content":      doc.Content,
-			"source":       doc.Source,
-			"category":     doc.Category,
-			"version":      doc.Version,
-			"language":     doc.Language,
+			"id":            doc.ID,
+			"title":         doc.Title,
+			"content":       doc.Content,
+			"source":        doc.Source,
+			"category":      doc.Category,
+			"version":       doc.Version,
+			"language":      doc.Language,
 			"document_type": doc.DocumentType,
-			"confidence":   doc.Confidence,
-			"score":        result.Score,
-			"distance":     result.Distance,
+			"confidence":    doc.Confidence,
+			"score":         result.Score,
+			"distance":      result.Distance,
 		}
 
 		// Add array fields if they exist
@@ -417,7 +417,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 func (cb *ContextBuilder) expandQuery(query string) string {
 	// Convert to lowercase for matching
 	lowerQuery := strings.ToLower(query)
-	
+
 	// Find relevant telecom keywords that might enhance the query
 	var relevantKeywords []string
 	for _, keyword := range cb.config.TelecomKeywords {
@@ -452,15 +452,15 @@ func (cb *ContextBuilder) expandQuery(query string) string {
 func (cb *ContextBuilder) isRelatedKeyword(query, keyword string) bool {
 	// Define keyword relationships for telecom domain
 	relations := map[string][]string{
-		"deploy":     {"orchestration", "5G", "Core", "RAN"},
-		"create":     {"deployment", "network", "function"},
-		"configure":  {"QoS", "bearer", "session", "interface"},
-		"network":    {"5G", "4G", "Core", "RAN", "slice"},
-		"function":   {"AMF", "SMF", "UPF", "network"},
-		"slice":      {"network slice", "slicing", "QoS", "orchestration"},
-		"amf":        {"5G", "Core", "session", "mobility"},
-		"smf":        {"5G", "Core", "PDU", "session"},
-		"upf":        {"5G", "Core", "user plane", "bearer"},
+		"deploy":    {"orchestration", "5G", "Core", "RAN"},
+		"create":    {"deployment", "network", "function"},
+		"configure": {"QoS", "bearer", "session", "interface"},
+		"network":   {"5G", "4G", "Core", "RAN", "slice"},
+		"function":  {"AMF", "SMF", "UPF", "network"},
+		"slice":     {"network slice", "slicing", "QoS", "orchestration"},
+		"amf":       {"5G", "Core", "session", "mobility"},
+		"smf":       {"5G", "Core", "PDU", "session"},
+		"upf":       {"5G", "Core", "user plane", "bearer"},
 	}
 
 	lowerKeyword := strings.ToLower(keyword)
@@ -489,21 +489,21 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	defer cb.mutex.RUnlock()
 
 	return map[string]interface{}{
-		"context_builder_enabled":     true,
-		"status":                     "active",
-		"total_queries":              cb.metrics.TotalQueries,
-		"successful_queries":         cb.metrics.SuccessfulQueries,
-		"failed_queries":             cb.metrics.FailedQueries,
-		"success_rate":               cb.getSuccessRate(),
-		"average_query_duration_ms":  cb.metrics.AverageQueryDuration.Milliseconds(),
-		"average_documents_found":    cb.metrics.AverageDocumentsFound,
+		"context_builder_enabled":   true,
+		"status":                    "active",
+		"total_queries":             cb.metrics.TotalQueries,
+		"successful_queries":        cb.metrics.SuccessfulQueries,
+		"failed_queries":            cb.metrics.FailedQueries,
+		"success_rate":              cb.getSuccessRate(),
+		"average_query_duration_ms": cb.metrics.AverageQueryDuration.Milliseconds(),
+		"average_documents_found":   cb.metrics.AverageDocumentsFound,
 		"cache_hit_rate":            cb.getCacheHitRate(),
 		"config": map[string]interface{}{
-			"default_max_docs":         cb.config.DefaultMaxDocs,
-			"max_context_length":       cb.config.MaxContextLength,
-			"min_confidence_score":     cb.config.MinConfidenceScore,
-			"enable_hybrid_search":     cb.config.EnableHybridSearch,
-			"query_expansion_enabled":  cb.config.QueryExpansionEnabled,
+			"default_max_docs":        cb.config.DefaultMaxDocs,
+			"max_context_length":      cb.config.MaxContextLength,
+			"min_confidence_score":    cb.config.MinConfidenceScore,
+			"enable_hybrid_search":    cb.config.EnableHybridSearch,
+			"query_expansion_enabled": cb.config.QueryExpansionEnabled,
 		},
 	}
 }
@@ -662,12 +662,12 @@ type RAGPromptBuilderConfig struct {
 
 // RAGPromptBuilderMetrics tracks prompt building metrics
 type RAGPromptBuilderMetrics struct {
-	TotalPrompts         int64         `json:"total_prompts"`
-	ContextDocsUsed      int64         `json:"context_docs_used"`
-	TruncatedPrompts     int64         `json:"truncated_prompts"`
-	AverageTokens        float64       `json:"average_tokens"`
+	TotalPrompts          int64         `json:"total_prompts"`
+	ContextDocsUsed       int64         `json:"context_docs_used"`
+	TruncatedPrompts      int64         `json:"truncated_prompts"`
+	AverageTokens         float64       `json:"average_tokens"`
 	AverageProcessingTime time.Duration `json:"average_processing_time"`
-	mutex               sync.RWMutex
+	mutex                 sync.RWMutex
 }
 
 func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder {
@@ -707,7 +707,7 @@ func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder {
 // Build creates a comprehensive prompt using intent and context documents from RAG system
 func (rpb *RAGAwarePromptBuilder) Build(intent string, ctxDocs []map[string]any) string {
 	startTime := time.Now()
-	
+
 	// Update metrics
 	rpb.updateMetrics(func(m *RAGPromptBuilderMetrics) {
 		m.TotalPrompts++
@@ -726,51 +726,51 @@ func (rpb *RAGAwarePromptBuilder) Build(intent string, ctxDocs []map[string]any)
 
 	// Process and rank context documents
 	processedContext := rpb.processContextDocuments(ctxDocs)
-	
+
 	// Build structured prompt template
 	promptBuilder := strings.Builder{}
-	
+
 	// 1. System prompt with telecommunications expertise
 	systemPrompt := rpb.buildSystemPrompt()
 	promptBuilder.WriteString(systemPrompt)
 	promptBuilder.WriteString("\n\n")
-	
+
 	// 2. Context section with relevant RAG documents
 	if len(processedContext) > 0 {
 		contextSection := rpb.buildContextSection(processedContext)
 		promptBuilder.WriteString(contextSection)
 		promptBuilder.WriteString("\n\n")
 	}
-	
+
 	// 3. Telecommunications domain guidance
 	domainGuidance := rpb.buildDomainGuidance(intent)
 	promptBuilder.WriteString(domainGuidance)
 	promptBuilder.WriteString("\n\n")
-	
+
 	// 4. Intent processing instructions
 	intentInstructions := rpb.buildIntentInstructions(intent)
 	promptBuilder.WriteString(intentInstructions)
-	
+
 	// 5. Apply intelligent truncation if needed
 	finalPrompt := promptBuilder.String()
 	finalPrompt = rpb.applyTokenTruncation(finalPrompt)
-	
+
 	// Update metrics
 	processingTime := time.Since(startTime)
 	tokenCount := rpb.estimateTokenCount(finalPrompt)
-	
+
 	rpb.updateMetrics(func(m *RAGPromptBuilderMetrics) {
 		m.ContextDocsUsed += int64(len(processedContext))
 		m.AverageProcessingTime = (m.AverageProcessingTime*time.Duration(m.TotalPrompts-1) + processingTime) / time.Duration(m.TotalPrompts)
 		m.AverageTokens = (m.AverageTokens*float64(m.TotalPrompts-1) + float64(tokenCount)) / float64(m.TotalPrompts)
 	})
-	
+
 	rpb.logger.Info("RAG-aware prompt built successfully",
 		"token_count", tokenCount,
 		"context_sources", len(processedContext),
 		"processing_time", processingTime,
 	)
-	
+
 	return finalPrompt
 }
 
@@ -779,7 +779,7 @@ func (rpb *RAGAwarePromptBuilder) processContextDocuments(ctxDocs []map[string]a
 	if len(ctxDocs) == 0 {
 		return nil
 	}
-	
+
 	// Filter documents by relevance threshold
 	relevantDocs := make([]map[string]any, 0)
 	for _, doc := range ctxDocs {
@@ -787,22 +787,22 @@ func (rpb *RAGAwarePromptBuilder) processContextDocuments(ctxDocs []map[string]a
 			relevantDocs = append(relevantDocs, doc)
 		}
 	}
-	
+
 	// Sort by relevance score (highest first)
 	rpb.sortDocumentsByRelevance(relevantDocs)
-	
+
 	// Limit to maximum sources
 	maxSources := rpb.config.MaxContextSources
 	if len(relevantDocs) > maxSources {
 		relevantDocs = relevantDocs[:maxSources]
 	}
-	
+
 	rpb.logger.Debug("Processed context documents",
 		"total_docs", len(ctxDocs),
 		"relevant_docs", len(relevantDocs),
 		"max_sources", maxSources,
 	)
-	
+
 	return relevantDocs
 }
 
@@ -816,7 +816,7 @@ func (rpb *RAGAwarePromptBuilder) isRelevantDocument(doc map[string]any) bool {
 			}
 		}
 	}
-	
+
 	// Check confidence field
 	if confidence, exists := doc["confidence"]; exists {
 		if confidenceFloat, ok := confidence.(float64); ok {
@@ -825,7 +825,7 @@ func (rpb *RAGAwarePromptBuilder) isRelevantDocument(doc map[string]any) bool {
 			}
 		}
 	}
-	
+
 	// Check that document has content
 	if content, exists := doc["content"]; exists {
 		if contentStr, ok := content.(string); ok {
@@ -838,7 +838,7 @@ func (rpb *RAGAwarePromptBuilder) isRelevantDocument(doc map[string]any) bool {
 	} else {
 		return false
 	}
-	
+
 	return true
 }
 
@@ -867,7 +867,7 @@ func (rpb *RAGAwarePromptBuilder) getDocumentScore(doc map[string]any) float64 {
 			return float64(scoreFloat32)
 		}
 	}
-	
+
 	// Try confidence field
 	if confidence, exists := doc["confidence"]; exists {
 		if confidenceFloat, ok := confidence.(float64); ok {
@@ -877,7 +877,7 @@ func (rpb *RAGAwarePromptBuilder) getDocumentScore(doc map[string]any) float64 {
 			return float64(confidenceFloat32)
 		}
 	}
-	
+
 	// Default score
 	return 0.5
 }
@@ -892,38 +892,38 @@ func (rpb *RAGAwarePromptBuilder) buildContextSection(docs []map[string]any) str
 	if len(docs) == 0 {
 		return ""
 	}
-	
+
 	var contextBuilder strings.Builder
 	contextBuilder.WriteString("## Technical Documentation Context\n\n")
 	contextBuilder.WriteString("The following technical documentation is relevant to your request:\n\n")
-	
+
 	for i, doc := range docs {
 		contextBuilder.WriteString(rpb.formatContextDocument(doc, i+1))
 		if i < len(docs)-1 {
 			contextBuilder.WriteString(rpb.config.ContextSeparator)
 		}
 	}
-	
+
 	return contextBuilder.String()
 }
 
 // formatContextDocument formats a single context document for the prompt
 func (rpb *RAGAwarePromptBuilder) formatContextDocument(doc map[string]any, index int) string {
 	var docBuilder strings.Builder
-	
+
 	// Document header with attribution
 	score := rpb.getDocumentScore(doc)
 	source := rpb.getStringValue(doc, "source", "Unknown Source")
 	title := rpb.getStringValue(doc, "title", "Untitled Document")
-	
+
 	attribution := strings.ReplaceAll(rpb.config.SourceAttributionFormat, "{index}", fmt.Sprintf("%d", index))
 	attribution = strings.ReplaceAll(attribution, "{source}", source)
 	attribution = strings.ReplaceAll(attribution, "{title}", title)
 	attribution = strings.ReplaceAll(attribution, "{score:.3f}", fmt.Sprintf("%.3f", score))
-	
+
 	docBuilder.WriteString(attribution)
 	docBuilder.WriteString("\n\n")
-	
+
 	// Document metadata
 	if category := rpb.getStringValue(doc, "category", ""); category != "" {
 		docBuilder.WriteString(fmt.Sprintf("**Category:** %s\n", category))
@@ -934,7 +934,7 @@ func (rpb *RAGAwarePromptBuilder) formatContextDocument(doc map[string]any, inde
 	if documentType := rpb.getStringValue(doc, "document_type", ""); documentType != "" {
 		docBuilder.WriteString(fmt.Sprintf("**Type:** %s\n", documentType))
 	}
-	
+
 	// Technology and network function tags
 	if technologies := rpb.getStringArrayValue(doc, "technology"); len(technologies) > 0 {
 		docBuilder.WriteString(fmt.Sprintf("**Technologies:** %s\n", strings.Join(technologies, ", ")))
@@ -942,9 +942,9 @@ func (rpb *RAGAwarePromptBuilder) formatContextDocument(doc map[string]any, inde
 	if networkFunctions := rpb.getStringArrayValue(doc, "network_function"); len(networkFunctions) > 0 {
 		docBuilder.WriteString(fmt.Sprintf("**Network Functions:** %s\n", strings.Join(networkFunctions, ", ")))
 	}
-	
+
 	docBuilder.WriteString("\n")
-	
+
 	// Document content
 	content := rpb.getStringValue(doc, "content", "")
 	if content != "" {
@@ -959,7 +959,7 @@ func (rpb *RAGAwarePromptBuilder) formatContextDocument(doc map[string]any, inde
 		docBuilder.WriteString("**Content:**\n")
 		docBuilder.WriteString(content)
 	}
-	
+
 	return docBuilder.String()
 }
 
@@ -967,10 +967,10 @@ func (rpb *RAGAwarePromptBuilder) formatContextDocument(doc map[string]any, inde
 func (rpb *RAGAwarePromptBuilder) buildDomainGuidance(intent string) string {
 	var guidanceBuilder strings.Builder
 	guidanceBuilder.WriteString("## Telecommunications Domain Guidance\n\n")
-	
+
 	// Classify intent domain
 	domain := rpb.classifyIntentDomain(intent)
-	
+
 	switch domain {
 	case "RAN":
 		guidanceBuilder.WriteString("**Radio Access Network (RAN) Focus:**\n")
@@ -978,28 +978,28 @@ func (rpb *RAGAwarePromptBuilder) buildDomainGuidance(intent string) string {
 		guidanceBuilder.WriteString("- Address mobility management, handover procedures, and interference\n")
 		guidanceBuilder.WriteString("- Include O-RAN interfaces (A1, O1, E2) and disaggregated architecture\n")
 		guidanceBuilder.WriteString("- Reference 3GPP TS 38.xxx series specifications\n")
-		
+
 	case "Core":
 		guidanceBuilder.WriteString("**5G Core Network Focus:**\n")
 		guidanceBuilder.WriteString("- Focus on network functions: AMF, SMF, UPF, AUSF, UDM, PCF, NSSF\n")
 		guidanceBuilder.WriteString("- Address service-based architecture and NF interactions\n")
 		guidanceBuilder.WriteString("- Include network slicing, QoS flows, and session management\n")
 		guidanceBuilder.WriteString("- Reference 3GPP TS 23.xxx and TS 29.xxx specifications\n")
-		
+
 	case "Transport":
 		guidanceBuilder.WriteString("**Transport Network Focus:**\n")
 		guidanceBuilder.WriteString("- Address IP/MPLS backbone, routing protocols, and QoS mechanisms\n")
 		guidanceBuilder.WriteString("- Include fronthaul/backhaul connectivity and latency requirements\n")
 		guidanceBuilder.WriteString("- Consider network synchronization and timing distribution\n")
 		guidanceBuilder.WriteString("- Reference transport-specific standards and best practices\n")
-		
+
 	case "Management":
 		guidanceBuilder.WriteString("**Network Management & Orchestration Focus:**\n")
 		guidanceBuilder.WriteString("- Address FCAPS (Fault, Configuration, Accounting, Performance, Security)\n")
 		guidanceBuilder.WriteString("- Include automation, orchestration, and lifecycle management\n")
 		guidanceBuilder.WriteString("- Consider cloud-native principles and Kubernetes deployment\n")
 		guidanceBuilder.WriteString("- Reference ETSI NFV MANO and cloud management standards\n")
-		
+
 	default:
 		guidanceBuilder.WriteString("**General Telecommunications Focus:**\n")
 		guidanceBuilder.WriteString("- Consider the complete network architecture and end-to-end flows\n")
@@ -1007,7 +1007,7 @@ func (rpb *RAGAwarePromptBuilder) buildDomainGuidance(intent string) string {
 		guidanceBuilder.WriteString("- Include standards compliance and best practices\n")
 		guidanceBuilder.WriteString("- Consider both technical and operational aspects\n")
 	}
-	
+
 	return guidanceBuilder.String()
 }
 
@@ -1015,11 +1015,11 @@ func (rpb *RAGAwarePromptBuilder) buildDomainGuidance(intent string) string {
 func (rpb *RAGAwarePromptBuilder) buildIntentInstructions(intent string) string {
 	var instructionsBuilder strings.Builder
 	instructionsBuilder.WriteString("## Intent Processing Instructions\n\n")
-	
+
 	instructionsBuilder.WriteString("**User Intent:** ")
 	instructionsBuilder.WriteString(intent)
 	instructionsBuilder.WriteString("\n\n")
-	
+
 	instructionsBuilder.WriteString("**Processing Guidelines:**\n")
 	instructionsBuilder.WriteString("1. **Analyze the intent** for specific requirements, constraints, and objectives\n")
 	instructionsBuilder.WriteString("2. **Apply technical context** from the provided documentation\n")
@@ -1028,7 +1028,7 @@ func (rpb *RAGAwarePromptBuilder) buildIntentInstructions(intent string) string 
 	instructionsBuilder.WriteString("5. **Address potential risks** and mitigation strategies\n")
 	instructionsBuilder.WriteString("6. **Validate against standards** and industry best practices\n")
 	instructionsBuilder.WriteString("7. **Provide measurable outcomes** and success criteria\n\n")
-	
+
 	// Intent-specific instructions
 	intentType := rpb.classifyIntentType(intent)
 	switch intentType {
@@ -1038,21 +1038,21 @@ func (rpb *RAGAwarePromptBuilder) buildIntentInstructions(intent string) string 
 		instructionsBuilder.WriteString("- Include configuration parameters and initial settings\n")
 		instructionsBuilder.WriteString("- Address scaling, redundancy, and high availability\n")
 		instructionsBuilder.WriteString("- Provide validation and testing procedures\n")
-		
+
 	case "configuration":
 		instructionsBuilder.WriteString("**Configuration-Specific Instructions:**\n")
 		instructionsBuilder.WriteString("- Provide specific parameter values and ranges\n")
 		instructionsBuilder.WriteString("- Include validation commands and verification steps\n")
 		instructionsBuilder.WriteString("- Address configuration dependencies and order of operations\n")
 		instructionsBuilder.WriteString("- Mention rollback procedures if changes fail\n")
-		
+
 	case "troubleshooting":
 		instructionsBuilder.WriteString("**Troubleshooting-Specific Instructions:**\n")
 		instructionsBuilder.WriteString("- Provide systematic diagnostic procedures\n")
 		instructionsBuilder.WriteString("- Include specific KPIs and metrics to check\n")
 		instructionsBuilder.WriteString("- Address common root causes and resolution steps\n")
 		instructionsBuilder.WriteString("- Suggest preventive measures and monitoring\n")
-		
+
 	case "optimization":
 		instructionsBuilder.WriteString("**Optimization-Specific Instructions:**\n")
 		instructionsBuilder.WriteString("- Identify performance bottlenecks and improvement opportunities\n")
@@ -1060,14 +1060,14 @@ func (rpb *RAGAwarePromptBuilder) buildIntentInstructions(intent string) string 
 		instructionsBuilder.WriteString("- Include measurement baselines and target metrics\n")
 		instructionsBuilder.WriteString("- Address trade-offs and potential side effects\n")
 	}
-	
+
 	return instructionsBuilder.String()
 }
 
 // Helper methods for domain and intent classification
 func (rpb *RAGAwarePromptBuilder) classifyIntentDomain(intent string) string {
 	intentLower := strings.ToLower(intent)
-	
+
 	// RAN keywords
 	ranKeywords := []string{"gnb", "enb", "cell", "radio", "antenna", "handover", "mobility", "rf", "o-ran", "oran"}
 	for _, keyword := range ranKeywords {
@@ -1075,7 +1075,7 @@ func (rpb *RAGAwarePromptBuilder) classifyIntentDomain(intent string) string {
 			return "RAN"
 		}
 	}
-	
+
 	// Core keywords
 	coreKeywords := []string{"amf", "smf", "upf", "ausf", "udm", "pcf", "nrf", "nssf", "core", "5gc", "session", "slice"}
 	for _, keyword := range coreKeywords {
@@ -1083,7 +1083,7 @@ func (rpb *RAGAwarePromptBuilder) classifyIntentDomain(intent string) string {
 			return "Core"
 		}
 	}
-	
+
 	// Transport keywords
 	transportKeywords := []string{"transport", "ip", "mpls", "routing", "switching", "backhaul", "fronthaul"}
 	for _, keyword := range transportKeywords {
@@ -1091,7 +1091,7 @@ func (rpb *RAGAwarePromptBuilder) classifyIntentDomain(intent string) string {
 			return "Transport"
 		}
 	}
-	
+
 	// Management keywords
 	managementKeywords := []string{"orchestration", "management", "monitoring", "automation", "lifecycle", "mano"}
 	for _, keyword := range managementKeywords {
@@ -1099,13 +1099,13 @@ func (rpb *RAGAwarePromptBuilder) classifyIntentDomain(intent string) string {
 			return "Management"
 		}
 	}
-	
+
 	return "General"
 }
 
 func (rpb *RAGAwarePromptBuilder) classifyIntentType(intent string) string {
 	intentLower := strings.ToLower(intent)
-	
+
 	if strings.Contains(intentLower, "deploy") || strings.Contains(intentLower, "install") || strings.Contains(intentLower, "create") {
 		return "deployment"
 	}
@@ -1118,7 +1118,7 @@ func (rpb *RAGAwarePromptBuilder) classifyIntentType(intent string) string {
 	if strings.Contains(intentLower, "optimize") || strings.Contains(intentLower, "improve") || strings.Contains(intentLower, "tune") || strings.Contains(intentLower, "enhance") {
 		return "optimization"
 	}
-	
+
 	return "general"
 }
 
@@ -1126,17 +1126,17 @@ func (rpb *RAGAwarePromptBuilder) classifyIntentType(intent string) string {
 func (rpb *RAGAwarePromptBuilder) applyTokenTruncation(prompt string) string {
 	tokenCount := rpb.estimateTokenCount(prompt)
 	maxTokens := rpb.config.MaxPromptTokens
-	
+
 	if tokenCount <= maxTokens {
 		return prompt
 	}
-	
+
 	rpb.logger.Debug("Applying token truncation",
 		"current_tokens", tokenCount,
 		"max_tokens", maxTokens,
 		"strategy", rpb.config.TruncationStrategy,
 	)
-	
+
 	switch rpb.config.TruncationStrategy {
 	case "smart":
 		return rpb.smartTruncation(prompt, maxTokens)
@@ -1154,17 +1154,17 @@ func (rpb *RAGAwarePromptBuilder) smartTruncation(prompt string, maxTokens int) 
 	if len(sections) <= 1 {
 		return rpb.simpleTruncation(prompt, maxTokens)
 	}
-	
+
 	// Preserve system prompt and intent instructions
 	var preservedSections []string
 	var optionalSections []string
-	
+
 	for i, section := range sections {
 		if i == 0 {
 			preservedSections = append(preservedSections, section) // System prompt
 			continue
 		}
-		
+
 		sectionHeader := strings.ToLower(section)
 		if strings.HasPrefix(sectionHeader, "intent processing") {
 			preservedSections = append(preservedSections, "## "+section)
@@ -1172,18 +1172,18 @@ func (rpb *RAGAwarePromptBuilder) smartTruncation(prompt string, maxTokens int) 
 			optionalSections = append(optionalSections, "## "+section)
 		}
 	}
-	
+
 	// Build truncated prompt
 	var builder strings.Builder
 	for _, section := range preservedSections {
 		builder.WriteString(section)
 		builder.WriteString("\n\n")
 	}
-	
+
 	// Add optional sections if they fit
 	reservedTokens := rpb.estimateTokenCount(builder.String())
 	availableTokens := maxTokens - reservedTokens
-	
+
 	for _, section := range optionalSections {
 		sectionTokens := rpb.estimateTokenCount(section)
 		if sectionTokens <= availableTokens {
@@ -1192,12 +1192,12 @@ func (rpb *RAGAwarePromptBuilder) smartTruncation(prompt string, maxTokens int) 
 			availableTokens -= sectionTokens
 		}
 	}
-	
+
 	result := strings.TrimSpace(builder.String())
 	rpb.updateMetrics(func(m *RAGPromptBuilderMetrics) {
 		m.TruncatedPrompts++
 	})
-	
+
 	return result
 }
 
@@ -1206,15 +1206,15 @@ func (rpb *RAGAwarePromptBuilder) tailTruncation(prompt string, maxTokens int) s
 	// Simple character-based truncation (rough approximation)
 	avgCharsPerToken := 4
 	maxChars := maxTokens * avgCharsPerToken
-	
+
 	if len(prompt) <= maxChars {
 		return prompt
 	}
-	
+
 	rpb.updateMetrics(func(m *RAGPromptBuilderMetrics) {
 		m.TruncatedPrompts++
 	})
-	
+
 	return prompt[:maxChars] + "...[truncated]"
 }
 
@@ -1232,7 +1232,7 @@ func (rpb *RAGAwarePromptBuilder) estimateTokenCount(text string) int {
 // buildBasicPrompt creates a basic prompt when no context is available
 func (rpb *RAGAwarePromptBuilder) buildBasicPrompt(intent string) string {
 	var builder strings.Builder
-	
+
 	builder.WriteString(rpb.buildSystemPrompt())
 	builder.WriteString("\n\n")
 	builder.WriteString("## User Intent\n\n")
@@ -1241,7 +1241,7 @@ func (rpb *RAGAwarePromptBuilder) buildBasicPrompt(intent string) string {
 	} else {
 		builder.WriteString("No specific intent provided.")
 	}
-	
+
 	return builder.String()
 }
 
@@ -1286,20 +1286,20 @@ func (rpb *RAGAwarePromptBuilder) updateMetrics(updater func(*RAGPromptBuilderMe
 func (rpb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
 	rpb.mutex.RLock()
 	defer rpb.mutex.RUnlock()
-	
+
 	return map[string]interface{}{
-		"prompt_builder_enabled":    true,
-		"status":                   "active",
-		"total_prompts":            rpb.metrics.TotalPrompts,
-		"context_docs_used":        rpb.metrics.ContextDocsUsed,
-		"truncated_prompts":        rpb.metrics.TruncatedPrompts,
-		"average_tokens":           rpb.metrics.AverageTokens,
+		"prompt_builder_enabled":     true,
+		"status":                     "active",
+		"total_prompts":              rpb.metrics.TotalPrompts,
+		"context_docs_used":          rpb.metrics.ContextDocsUsed,
+		"truncated_prompts":          rpb.metrics.TruncatedPrompts,
+		"average_tokens":             rpb.metrics.AverageTokens,
 		"average_processing_time_ms": rpb.metrics.AverageProcessingTime.Milliseconds(),
 		"config": map[string]interface{}{
-			"max_prompt_tokens":      rpb.config.MaxPromptTokens,
-			"max_context_tokens":     rpb.config.MaxContextTokens,
-			"max_context_sources":    rpb.config.MaxContextSources,
-			"truncation_strategy":    rpb.config.TruncationStrategy,
+			"max_prompt_tokens":   rpb.config.MaxPromptTokens,
+			"max_context_tokens":  rpb.config.MaxContextTokens,
+			"max_context_sources": rpb.config.MaxContextSources,
+			"truncation_strategy": rpb.config.TruncationStrategy,
 		},
 	}
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging" 
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 	"github.com/thc1006/nephoran-intent-operator/tests/o2/mocks"
@@ -54,7 +54,7 @@ func (suite *MultiCloudTestSuite) TestAWSProviderOperations() {
 		suite.Require().NoError(err)
 		suite.Assert().NotEmpty(regions)
 		suite.Assert().Contains([]string{"us-east-1", "us-west-2", "eu-west-1"}, regions[0].ID)
-		
+
 		for _, region := range regions {
 			suite.Assert().NotEmpty(region.ID)
 			suite.Assert().NotEmpty(region.Name)
@@ -73,7 +73,7 @@ func (suite *MultiCloudTestSuite) TestAWSProviderOperations() {
 	suite.Run("AWS Resource Pool Operations", func() {
 		// Create resource pool
 		testPool := suite.helpers.CreateTestResourcePool("aws", "us-east-1")
-		
+
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:        testPool.Name,
 			Description: testPool.Description,
@@ -87,7 +87,7 @@ func (suite *MultiCloudTestSuite) TestAWSProviderOperations() {
 		suite.Require().NoError(err)
 		suite.Assert().Equal(testPool.ResourcePoolID, createdPool.ResourcePoolID)
 		suite.Assert().Equal("aws", createdPool.Provider)
-		
+
 		// Validate the created pool
 		err = suite.helpers.ValidateResourcePool(createdPool)
 		suite.Require().NoError(err)
@@ -104,7 +104,7 @@ func (suite *MultiCloudTestSuite) TestAWSProviderOperations() {
 		}
 		updatedPool := *testPool
 		updatedPool.Description = updateReq.Description
-		
+
 		suite.awsProvider.On("UpdateResourcePool", ctx, testPool.ResourcePoolID, updateReq).Return(&updatedPool, nil).Once()
 		result, err := suite.awsProvider.UpdateResourcePool(ctx, testPool.ResourcePoolID, updateReq)
 		suite.Require().NoError(err)
@@ -120,7 +120,7 @@ func (suite *MultiCloudTestSuite) TestAWSProviderOperations() {
 
 	suite.Run("AWS Compute Instance Operations", func() {
 		testInstance := suite.helpers.CreateTestComputeInstance("aws", "c5.large")
-		
+
 		createReq := &providers.CreateComputeInstanceRequest{
 			Name:           testInstance.Name,
 			InstanceType:   "c5.large",
@@ -132,7 +132,7 @@ func (suite *MultiCloudTestSuite) TestAWSProviderOperations() {
 		createdInstance, err := suite.awsProvider.CreateComputeInstance(ctx, createReq)
 		suite.Require().NoError(err)
 		suite.Assert().Equal(testInstance.ResourceInstanceID, createdInstance.ResourceInstanceID)
-		
+
 		// Validate the created instance
 		err = suite.helpers.ValidateComputeInstance(createdInstance)
 		suite.Require().NoError(err)
@@ -159,7 +159,7 @@ func (suite *MultiCloudTestSuite) TestAzureProviderOperations() {
 		config := map[string]interface{}{
 			"subscriptionId": "test-subscription-id",
 			"clientId":       "test-client-id",
-			"clientSecret":   "test-client-secret", 
+			"clientSecret":   "test-client-secret",
 			"tenantId":       "test-tenant-id",
 		}
 
@@ -182,7 +182,7 @@ func (suite *MultiCloudTestSuite) TestAzureProviderOperations() {
 			"resourceGroup": "test-rg",
 			"vnet":          "test-vnet",
 		}
-		
+
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:        testPool.Name,
 			Description: testPool.Description,
@@ -197,7 +197,7 @@ func (suite *MultiCloudTestSuite) TestAzureProviderOperations() {
 		suite.Require().NoError(err)
 		suite.Assert().Equal("azure", createdPool.Provider)
 		suite.Assert().Equal("eastus", createdPool.Region)
-		
+
 		// Check Azure-specific extensions
 		suite.Assert().Contains(createdPool.Extensions, "resourceGroup")
 		suite.Assert().Contains(createdPool.Extensions, "vnet")
@@ -213,7 +213,7 @@ func (suite *MultiCloudTestSuite) TestAzureProviderOperations() {
 		instanceTypes, err := suite.azureProvider.GetInstanceTypes(ctx, "eastus")
 		suite.Require().NoError(err)
 		suite.Assert().NotEmpty(instanceTypes)
-		
+
 		// Verify Azure-specific instance types
 		typeNames := make([]string, len(instanceTypes))
 		for i, instanceType := range instanceTypes {
@@ -222,7 +222,7 @@ func (suite *MultiCloudTestSuite) TestAzureProviderOperations() {
 			suite.Assert().NotEmpty(instanceType.Memory)
 			suite.Assert().Greater(instanceType.PricePerHour, 0.0)
 		}
-		
+
 		suite.Assert().Contains(typeNames, "Standard_D2s_v3")
 		suite.Assert().Contains(typeNames, "Standard_D4s_v3")
 	})
@@ -233,9 +233,9 @@ func (suite *MultiCloudTestSuite) TestGCPProviderOperations() {
 
 	suite.Run("GCP Provider Initialization", func() {
 		config := map[string]interface{}{
-			"projectId":      "test-project-id",
+			"projectId":       "test-project-id",
 			"credentialsFile": "/path/to/service-account.json",
-			"region":         "us-central1",
+			"region":          "us-central1",
 		}
 
 		suite.gcpProvider.On("Initialize", ctx, config).Return(nil).Once()
@@ -254,11 +254,11 @@ func (suite *MultiCloudTestSuite) TestGCPProviderOperations() {
 	suite.Run("GCP Resource Pool with Custom Networking", func() {
 		testPool := suite.helpers.CreateTestResourcePool("gcp", "us-central1")
 		testPool.Extensions = map[string]interface{}{
-			"network":     "default",
-			"subnetwork":  "default",
-			"projectId":   "test-project",
+			"network":    "default",
+			"subnetwork": "default",
+			"projectId":  "test-project",
 		}
-		
+
 		createReq := &providers.CreateResourcePoolRequest{
 			Name:        testPool.Name,
 			Description: testPool.Description,
@@ -271,7 +271,7 @@ func (suite *MultiCloudTestSuite) TestGCPProviderOperations() {
 		createdPool, err := suite.gcpProvider.CreateResourcePool(ctx, createReq)
 		suite.Require().NoError(err)
 		suite.Assert().Equal("gcp", createdPool.Provider)
-		
+
 		// Check GCP-specific extensions
 		suite.Assert().Contains(createdPool.Extensions, "network")
 		suite.Assert().Contains(createdPool.Extensions, "projectId")
@@ -287,7 +287,7 @@ func (suite *MultiCloudTestSuite) TestGCPProviderOperations() {
 		zones, err := suite.gcpProvider.GetAvailabilityZones(ctx, "us-central1")
 		suite.Require().NoError(err)
 		suite.Assert().Len(zones, 3)
-		
+
 		for _, zone := range zones {
 			suite.Assert().Contains(zone.ID, "us-central1")
 			suite.Assert().Equal("UP", zone.Status)
@@ -367,7 +367,7 @@ func (suite *MultiCloudTestSuite) TestCrossCloudComparison() {
 
 		for providerName, region := range regions {
 			testPool := suite.helpers.CreateTestResourcePool(providerName, region)
-			
+
 			// Verify consistent resource pool structure across providers
 			suite.Assert().Equal(providerName, testPool.Provider)
 			suite.Assert().Equal(region, testPool.Region)
@@ -394,7 +394,7 @@ func (suite *MultiCloudTestSuite) TestProviderFailureHandling() {
 		suite.Assert().Error(err)
 		suite.Assert().Contains(err.Error(), "invalid AWS credentials")
 
-		// Test Azure credential failures 
+		// Test Azure credential failures
 		suite.azureProvider.On("ValidateCredentials", ctx).Return(fmt.Errorf("azure authentication failed")).Once()
 		err = suite.azureProvider.ValidateCredentials(ctx)
 		suite.Assert().Error(err)
@@ -413,7 +413,7 @@ func (suite *MultiCloudTestSuite) TestProviderFailureHandling() {
 
 	suite.Run("Handle Resource Operation Failures", func() {
 		poolID := "non-existent-pool"
-		
+
 		// Test resource not found across all providers
 		suite.awsProvider.On("GetResourcePool", ctx, poolID).Return((*models.ResourcePool)(nil), fmt.Errorf("resource pool not found")).Once()
 		_, err := suite.awsProvider.GetResourcePool(ctx, poolID)
@@ -438,18 +438,18 @@ func (suite *MultiCloudTestSuite) TestResourceMetrics() {
 
 	suite.Run("Collect Metrics from All Providers", func() {
 		resourceID := "test-resource-123"
-		
+
 		expectedMetrics := &models.ResourceMetrics{
 			Timestamp: time.Now(),
 			CPU: &models.MetricData{
-				Value:       45.5,
-				Unit:        "percent",
-				Timestamp:   time.Now(),
+				Value:     45.5,
+				Unit:      "percent",
+				Timestamp: time.Now(),
 			},
 			Memory: &models.MetricData{
-				Value:       67.2,
-				Unit:        "percent", 
-				Timestamp:   time.Now(),
+				Value:     67.2,
+				Unit:      "percent",
+				Timestamp: time.Now(),
 			},
 			NetworkIO: &models.NetworkIOMetrics{
 				BytesIn:  1024 * 1024 * 100, // 100MB
@@ -514,9 +514,9 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 		// Test Azure-specific functionality like managed disks, availability sets, etc.
 		testPool := suite.helpers.CreateTestResourcePool("azure", "eastus")
 		testPool.Extensions = map[string]interface{}{
-			"availabilitySet":       "avset-1",
-			"managedDiskType":       "Premium_LRS",
-			"acceleratedNetworking": true,
+			"availabilitySet":         "avset-1",
+			"managedDiskType":         "Premium_LRS",
+			"acceleratedNetworking":   true,
 			"proximityPlacementGroup": "ppg-1",
 		}
 
@@ -545,7 +545,7 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 			"preemptibleInstances": true,
 			"customMachineType":    true,
 			"localSSDCount":        2,
-			"nodeGroup":           "test-node-group",
+			"nodeGroup":            "test-node-group",
 		}
 
 		createReq := &providers.CreateResourcePoolRequest{

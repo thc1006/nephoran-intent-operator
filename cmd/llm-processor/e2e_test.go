@@ -35,11 +35,11 @@ type NetworkIntentRequest struct {
 }
 
 type NetworkIntentResponse struct {
-	Type             string      `json:"type"`
-	Name             string      `json:"name"`
-	Namespace        string      `json:"namespace"`
-	OriginalIntent   string      `json:"originalIntent"`
-	Spec             interface{} `json:"spec"`
+	Type               string      `json:"type"`
+	Name               string      `json:"name"`
+	Namespace          string      `json:"namespace"`
+	OriginalIntent     string      `json:"originalIntent"`
+	Spec               interface{} `json:"spec"`
 	ProcessingMetadata struct {
 		ModelUsed       string  `json:"modelUsed"`
 		ConfidenceScore float64 `json:"confidenceScore"`
@@ -111,14 +111,14 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			GracefulShutdown: 5 * time.Second,
 
 			LLMBackendType: "openai",
-			LLMAPIKey:      "test-key", 
+			LLMAPIKey:      "test-key",
 			LLMModelName:   "test-model",
 			LLMTimeout:     10 * time.Second,
 			LLMMaxTokens:   1000,
 
-			RAGEnabled:  false,
-			RAGAPIURL:   mockLLM.URL,
-			RAGTimeout:  10 * time.Second,
+			RAGEnabled: false,
+			RAGAPIURL:  mockLLM.URL,
+			RAGTimeout: 10 * time.Second,
 
 			CircuitBreakerEnabled:   true,
 			CircuitBreakerThreshold: 5,
@@ -128,9 +128,9 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			RetryDelay:   100 * time.Millisecond,
 			RetryBackoff: "exponential",
 
-			CORSEnabled:    true,
-			AuthEnabled:    false,
-			RequireAuth:    false,
+			CORSEnabled: true,
+			AuthEnabled: false,
+			RequireAuth: false,
 
 			RequestTimeout: 30 * time.Second,
 		}

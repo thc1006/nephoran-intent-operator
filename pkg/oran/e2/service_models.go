@@ -26,10 +26,10 @@ func (r *E2ServiceModelRegistry) registerServiceModel(serviceModel *E2ServiceMod
 	registered := &RegisteredServiceModel{
 		E2ServiceModel:   *serviceModel,
 		RegistrationTime: time.Now(),
-		Version:         serviceModel.ServiceModelVersion,
-		Plugin:          plugin,
-		ValidationRules: r.getValidationRules(serviceModel.ServiceModelName),
-		Compatibility:   r.getCompatibilityList(serviceModel.ServiceModelName),
+		Version:          serviceModel.ServiceModelVersion,
+		Plugin:           plugin,
+		ValidationRules:  r.getValidationRules(serviceModel.ServiceModelName),
+		Compatibility:    r.getCompatibilityList(serviceModel.ServiceModelName),
 	}
 
 	r.serviceModels[serviceModel.ServiceModelID] = registered
@@ -165,24 +165,24 @@ func (r *E2ServiceModelRegistry) validateKPMMeasurementTypes(serviceModel *E2Ser
 
 	// Validate known measurement types
 	validTypes := map[string]bool{
-		"DRB.RlcSduDelayDl":         true,
-		"DRB.RlcSduDelayUl":         true,
-		"DRB.RlcSduVolumeDl":        true,
-		"DRB.RlcSduVolumeUl":        true,
-		"DRB.UEThpDl":               true,
-		"DRB.UEThpUl":               true,
-		"RRU.PrbTotDl":              true,
-		"RRU.PrbTotUl":              true,
-		"RRU.PrbUsedDl":             true,
-		"RRU.PrbUsedUl":             true,
-		"TB.TotNbrDl":               true,
-		"TB.TotNbrUl":               true,
-		"TB.ErrTotNbrDl":            true,
-		"TB.ErrTotNbrUl":            true,
-		"MAC.UESchedDlInitialTx":    true,
-		"MAC.UESchedUlInitialTx":    true,
-		"CARR.PDSCHMCSDist":         true,
-		"CARR.PUSCHMCSDist":         true,
+		"DRB.RlcSduDelayDl":      true,
+		"DRB.RlcSduDelayUl":      true,
+		"DRB.RlcSduVolumeDl":     true,
+		"DRB.RlcSduVolumeUl":     true,
+		"DRB.UEThpDl":            true,
+		"DRB.UEThpUl":            true,
+		"RRU.PrbTotDl":           true,
+		"RRU.PrbTotUl":           true,
+		"RRU.PrbUsedDl":          true,
+		"RRU.PrbUsedUl":          true,
+		"TB.TotNbrDl":            true,
+		"TB.TotNbrUl":            true,
+		"TB.ErrTotNbrDl":         true,
+		"TB.ErrTotNbrUl":         true,
+		"MAC.UESchedDlInitialTx": true,
+		"MAC.UESchedUlInitialTx": true,
+		"CARR.PDSCHMCSDist":      true,
+		"CARR.PUSCHMCSDist":      true,
 	}
 
 	for _, measurementType := range types {
@@ -251,12 +251,12 @@ func (r *E2ServiceModelRegistry) validateRCControlActions(serviceModel *E2Servic
 
 	// Validate known control actions
 	validActions := map[string]bool{
-		"QoS_flow_mapping":   true,
-		"Traffic_steering":   true,
-		"Dual_connectivity":  true,
-		"Mobility_control":   true,
+		"QoS_flow_mapping":    true,
+		"Traffic_steering":    true,
+		"Dual_connectivity":   true,
+		"Mobility_control":    true,
 		"Carrier_aggregation": true,
-		"RRM_optimization":   true,
+		"RRM_optimization":    true,
 		"Beamforming_control": true,
 	}
 
@@ -355,16 +355,16 @@ func CreateEnhancedKPMServiceModel() *E2ServiceModel {
 				"CARR.PDSCHMCSDist",
 				"CARR.PUSCHMCSDist",
 			},
-			"granularity_period": "1000ms",
-			"collection_start_time": "2025-07-29T10:00:00Z",
-			"collection_duration": "continuous",
-			"reporting_format": "CHOICE",
-			"supported_cell_types": []string{"NR", "LTE"},
+			"granularity_period":           "1000ms",
+			"collection_start_time":        "2025-07-29T10:00:00Z",
+			"collection_duration":          "continuous",
+			"reporting_format":             "CHOICE",
+			"supported_cell_types":         []string{"NR", "LTE"},
 			"supported_aggregation_levels": []string{"cell", "ue", "slice"},
-			"max_concurrent_measurements": 100,
+			"max_concurrent_measurements":  100,
 			"measurement_filtering": map[string]interface{}{
 				"threshold_based": true,
-				"time_based": true,
+				"time_based":      true,
 				"condition_based": true,
 			},
 		},
@@ -400,13 +400,13 @@ func CreateEnhancedRCServiceModel() *E2ServiceModel {
 				"partial",
 				"timeout",
 			},
-			"control_granularity": []string{"cell", "ue", "slice", "beam"},
-			"control_frequency": "on_demand",
-			"supported_ran_types": []string{"gNB", "ng-eNB", "en-gNB"},
+			"control_granularity":     []string{"cell", "ue", "slice", "beam"},
+			"control_frequency":       "on_demand",
+			"supported_ran_types":     []string{"gNB", "ng-eNB", "en-gNB"},
 			"max_concurrent_controls": 50,
-			"control_timeout": "5s",
+			"control_timeout":         "5s",
 			"acknowledgment_required": true,
-			"rollback_supported": true,
+			"rollback_supported":      true,
 			"batch_control_supported": false,
 		},
 	}
@@ -433,13 +433,13 @@ func CreateReportServiceModel() *E2ServiceModel {
 				"security_management",
 				"custom_analytics",
 			},
-			"data_formats": []string{"JSON", "XML", "BINARY", "ASN1_PER"},
-			"reporting_frequency": []string{"on_demand", "periodic", "event_driven"},
-			"aggregation_supported": true,
-			"filtering_supported": true,
-			"compression_supported": true,
-			"encryption_supported": false,
-			"max_report_size": "1MB",
+			"data_formats":           []string{"JSON", "XML", "BINARY", "ASN1_PER"},
+			"reporting_frequency":    []string{"on_demand", "periodic", "event_driven"},
+			"aggregation_supported":  true,
+			"filtering_supported":    true,
+			"compression_supported":  true,
+			"encryption_supported":   false,
+			"max_report_size":        "1MB",
 			"max_concurrent_reports": 200,
 		},
 	}
@@ -449,10 +449,10 @@ func CreateReportServiceModel() *E2ServiceModel {
 
 // KMPServiceModelPlugin implements KMP-specific processing
 type KMPServiceModelPlugin struct {
-	name        string
-	version     string
-	processors  map[string]func(context.Context, interface{}) (interface{}, error)
-	mutex       sync.RWMutex
+	name       string
+	version    string
+	processors map[string]func(context.Context, interface{}) (interface{}, error)
+	mutex      sync.RWMutex
 }
 
 // NewKMPServiceModelPlugin creates a new KMP service model plugin
@@ -540,8 +540,8 @@ func (p *KMPServiceModelPlugin) processSubscription(ctx context.Context, request
 
 	// Return processed subscription response
 	return &RICSubscriptionResponse{
-		RICRequestID:  req.RICRequestID,
-		RANFunctionID: req.RANFunctionID,
+		RICRequestID:          req.RICRequestID,
+		RANFunctionID:         req.RANFunctionID,
 		RICActionAdmittedList: []RICActionID{1}, // Assume action 1 is admitted
 	}, nil
 }

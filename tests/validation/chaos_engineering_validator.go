@@ -26,43 +26,43 @@ import (
 // ChaosEngineeringValidator implements comprehensive chaos engineering validation
 // Tests system resilience under various failure conditions
 type ChaosEngineeringValidator struct {
-	client      client.Client
-	clientset   *kubernetes.Clientset
-	config      *ValidationConfig
-	
+	client    client.Client
+	clientset *kubernetes.Clientset
+	config    *ValidationConfig
+
 	// Chaos metrics and state
-	metrics     *ChaosMetrics
-	scenarios   []*ChaosScenario
-	mu          sync.RWMutex
+	metrics   *ChaosMetrics
+	scenarios []*ChaosScenario
+	mu        sync.RWMutex
 }
 
 // ChaosMetrics tracks chaos engineering validation results
 type ChaosMetrics struct {
 	// Scenario execution metrics
-	TotalScenarios        int
-	PassedScenarios       int
-	FailedScenarios       int
-	AverageRecoveryTime   time.Duration
-	MaxRecoveryTime       time.Duration
-	
-	// System resilience metrics  
-	SystemAvailability    float64
-	ErrorRecoveryRate     float64
-	CircuitBreakerTrips   int
-	AutoHealingEvents     int
-	
+	TotalScenarios      int
+	PassedScenarios     int
+	FailedScenarios     int
+	AverageRecoveryTime time.Duration
+	MaxRecoveryTime     time.Duration
+
+	// System resilience metrics
+	SystemAvailability  float64
+	ErrorRecoveryRate   float64
+	CircuitBreakerTrips int
+	AutoHealingEvents   int
+
 	// Specific test results
-	NetworkPartitionHandled   bool
-	NodeFailureRecovered      bool
-	PodFailureRecovered       bool
-	DatabaseFailureHandled    bool
-	ServiceMeshResilience     bool
-	LoadBalancerResilience    bool
-	
+	NetworkPartitionHandled bool
+	NodeFailureRecovered    bool
+	PodFailureRecovered     bool
+	DatabaseFailureHandled  bool
+	ServiceMeshResilience   bool
+	LoadBalancerResilience  bool
+
 	// Performance under chaos
-	LatencyIncrease          float64  // Percentage increase during chaos
-	ThroughputDecrease       float64  // Percentage decrease during chaos
-	ResourceUtilizationSpike float64  // Peak resource usage during chaos
+	LatencyIncrease          float64 // Percentage increase during chaos
+	ThroughputDecrease       float64 // Percentage decrease during chaos
+	ResourceUtilizationSpike float64 // Peak resource usage during chaos
 }
 
 // ChaosScenario defines a chaos engineering test scenario
@@ -73,20 +73,20 @@ type ChaosScenario struct {
 	Duration        time.Duration
 	ImpactRadius    ImpactRadius
 	ExpectedOutcome ExpectedOutcome
-	
+
 	// Target selection
-	TargetSelector  *TargetSelector
-	
+	TargetSelector *TargetSelector
+
 	// Monitoring and validation
 	HealthChecks    []HealthCheck
 	RecoveryTimeout time.Duration
-	
+
 	// Results
-	Started         time.Time
-	Ended           time.Time
-	Passed          bool
-	RecoveryTime    time.Duration
-	ErrorMessage    string
+	Started      time.Time
+	Ended        time.Time
+	Passed       bool
+	RecoveryTime time.Duration
+	ErrorMessage string
 }
 
 // ChaosType defines the type of chaos experiment
@@ -107,19 +107,19 @@ const (
 type ImpactRadius string
 
 const (
-	ImpactRadiusPod         ImpactRadius = "pod"
-	ImpactRadiusNode        ImpactRadius = "node"
-	ImpactRadiusNamespace   ImpactRadius = "namespace"
-	ImpactRadiusCluster     ImpactRadius = "cluster"
+	ImpactRadiusPod       ImpactRadius = "pod"
+	ImpactRadiusNode      ImpactRadius = "node"
+	ImpactRadiusNamespace ImpactRadius = "namespace"
+	ImpactRadiusCluster   ImpactRadius = "cluster"
 )
 
 // ExpectedOutcome defines what should happen during/after chaos
 type ExpectedOutcome struct {
-	SystemShouldRecover     bool
-	MaxRecoveryTime         time.Duration
-	ServiceShouldContinue   bool
-	DataShouldBePreserved   bool
-	AlertsShouldFire        bool
+	SystemShouldRecover   bool
+	MaxRecoveryTime       time.Duration
+	ServiceShouldContinue bool
+	DataShouldBePreserved bool
+	AlertsShouldFire      bool
 }
 
 // TargetSelector defines how to select chaos targets
@@ -133,12 +133,12 @@ type TargetSelector struct {
 
 // HealthCheck defines how to validate system health
 type HealthCheck struct {
-	Name            string
-	Type            HealthCheckType
-	Endpoint        string
-	ExpectedStatus  int
-	Timeout         time.Duration
-	Interval        time.Duration
+	Name           string
+	Type           HealthCheckType
+	Endpoint       string
+	ExpectedStatus int
+	Timeout        time.Duration
+	Interval       time.Duration
 }
 
 // HealthCheckType defines the type of health check
@@ -160,10 +160,10 @@ func NewChaosEngineeringValidator(client client.Client, clientset *kubernetes.Cl
 		metrics:   &ChaosMetrics{},
 		scenarios: []*ChaosScenario{},
 	}
-	
+
 	// Initialize chaos scenarios
 	cev.initializeChaosScenarios()
-	
+
 	return cev
 }
 
@@ -171,45 +171,45 @@ func NewChaosEngineeringValidator(client client.Client, clientset *kubernetes.Cl
 // Returns score out of 3 points for fault tolerance
 func (cev *ChaosEngineeringValidator) ValidateFaultTolerance(ctx context.Context) (int, error) {
 	ginkgo.By("Starting Chaos Engineering Validation Suite")
-	
+
 	totalScore := 0
 	maxScore := 3
-	
+
 	// Execute all chaos scenarios
 	for _, scenario := range cev.scenarios {
 		if err := cev.executeScenario(ctx, scenario); err != nil {
 			ginkgo.By(fmt.Sprintf("⚠ Chaos scenario '%s' failed: %v", scenario.Name, err))
 			continue
 		}
-		
+
 		if scenario.Passed {
 			totalScore++
-			ginkgo.By(fmt.Sprintf("✓ Chaos scenario '%s' passed (Recovery: %v)", 
+			ginkgo.By(fmt.Sprintf("✓ Chaos scenario '%s' passed (Recovery: %v)",
 				scenario.Name, scenario.RecoveryTime))
 		} else {
-			ginkgo.By(fmt.Sprintf("✗ Chaos scenario '%s' failed: %s", 
+			ginkgo.By(fmt.Sprintf("✗ Chaos scenario '%s' failed: %s",
 				scenario.Name, scenario.ErrorMessage))
 		}
-		
+
 		// Cap score at maxScore
 		if totalScore >= maxScore {
 			break
 		}
 	}
-	
+
 	// Update metrics
 	cev.mu.Lock()
 	cev.metrics.TotalScenarios = len(cev.scenarios)
 	cev.metrics.PassedScenarios = totalScore
 	cev.metrics.FailedScenarios = len(cev.scenarios) - totalScore
 	cev.mu.Unlock()
-	
+
 	// Calculate final score based on passed scenarios
 	finalScore := min(totalScore, maxScore)
-	
-	ginkgo.By(fmt.Sprintf("Chaos Engineering Validation: %d/%d scenarios passed (Score: %d/%d)", 
+
+	ginkgo.By(fmt.Sprintf("Chaos Engineering Validation: %d/%d scenarios passed (Score: %d/%d)",
 		totalScore, len(cev.scenarios), finalScore, maxScore))
-	
+
 	return finalScore, nil
 }
 
@@ -217,21 +217,21 @@ func (cev *ChaosEngineeringValidator) ValidateFaultTolerance(ctx context.Context
 func (cev *ChaosEngineeringValidator) initializeChaosScenarios() {
 	cev.scenarios = []*ChaosScenario{
 		{
-			Name:        "Pod Failure Recovery",
-			Description: "Test system recovery from random pod failures",
-			Type:        ChaosTypePodFailure,
-			Duration:    2 * time.Minute,
+			Name:         "Pod Failure Recovery",
+			Description:  "Test system recovery from random pod failures",
+			Type:         ChaosTypePodFailure,
+			Duration:     2 * time.Minute,
 			ImpactRadius: ImpactRadiusPod,
 			ExpectedOutcome: ExpectedOutcome{
 				SystemShouldRecover:   true,
-				MaxRecoveryTime:      30 * time.Second,
+				MaxRecoveryTime:       30 * time.Second,
 				ServiceShouldContinue: true,
 				DataShouldBePreserved: true,
-				AlertsShouldFire:     true,
+				AlertsShouldFire:      true,
 			},
 			TargetSelector: &TargetSelector{
 				Namespace:      "nephoran-system",
-				LabelSelector: map[string]string{"app": "nephoran-intent-operator"},
+				LabelSelector:  map[string]string{"app": "nephoran-intent-operator"},
 				PercentagePods: 50.0,
 			},
 			RecoveryTimeout: 5 * time.Minute,
@@ -247,45 +247,45 @@ func (cev *ChaosEngineeringValidator) initializeChaosScenarios() {
 			},
 		},
 		{
-			Name:        "Network Partition Resilience", 
-			Description: "Test system behavior during network partitions",
-			Type:        ChaosTypeNetworkPartition,
-			Duration:    3 * time.Minute,
+			Name:         "Network Partition Resilience",
+			Description:  "Test system behavior during network partitions",
+			Type:         ChaosTypeNetworkPartition,
+			Duration:     3 * time.Minute,
 			ImpactRadius: ImpactRadiusNamespace,
 			ExpectedOutcome: ExpectedOutcome{
 				SystemShouldRecover:   true,
-				MaxRecoveryTime:      60 * time.Second,
+				MaxRecoveryTime:       60 * time.Second,
 				ServiceShouldContinue: false, // Expected during partition
 				DataShouldBePreserved: true,
-				AlertsShouldFire:     true,
+				AlertsShouldFire:      true,
 			},
 			TargetSelector: &TargetSelector{
 				Namespace:       "nephoran-system",
-				LabelSelector:  map[string]string{"component": "network"},
+				LabelSelector:   map[string]string{"component": "network"},
 				PercentageNodes: 30.0,
 			},
 			RecoveryTimeout: 10 * time.Minute,
 			HealthChecks: []HealthCheck{
 				{
-					Name:           "Kubernetes API Health",
-					Type:           HealthCheckTypeKubernetes,
-					Timeout:        30 * time.Second,
-					Interval:       10 * time.Second,
+					Name:     "Kubernetes API Health",
+					Type:     HealthCheckTypeKubernetes,
+					Timeout:  30 * time.Second,
+					Interval: 10 * time.Second,
 				},
 			},
 		},
 		{
-			Name:        "High CPU Stress Test",
-			Description: "Test system behavior under high CPU load",
-			Type:        ChaosTypeCPUStress,
-			Duration:    2 * time.Minute,
+			Name:         "High CPU Stress Test",
+			Description:  "Test system behavior under high CPU load",
+			Type:         ChaosTypeCPUStress,
+			Duration:     2 * time.Minute,
 			ImpactRadius: ImpactRadiusNode,
 			ExpectedOutcome: ExpectedOutcome{
 				SystemShouldRecover:   true,
-				MaxRecoveryTime:      45 * time.Second,
+				MaxRecoveryTime:       45 * time.Second,
 				ServiceShouldContinue: true, // Should continue with degraded performance
 				DataShouldBePreserved: true,
-				AlertsShouldFire:     true,
+				AlertsShouldFire:      true,
 			},
 			TargetSelector: &TargetSelector{
 				Namespace:       "nephoran-system",
@@ -294,11 +294,11 @@ func (cev *ChaosEngineeringValidator) initializeChaosScenarios() {
 			RecoveryTimeout: 3 * time.Minute,
 			HealthChecks: []HealthCheck{
 				{
-					Name:           "Resource Metrics Check",
-					Type:           HealthCheckTypeMetrics,
-					Endpoint:       "/metrics",
-					Timeout:        15 * time.Second,
-					Interval:       5 * time.Second,
+					Name:     "Resource Metrics Check",
+					Type:     HealthCheckTypeMetrics,
+					Endpoint: "/metrics",
+					Timeout:  15 * time.Second,
+					Interval: 5 * time.Second,
 				},
 			},
 		},
@@ -308,18 +308,18 @@ func (cev *ChaosEngineeringValidator) initializeChaosScenarios() {
 // executeScenario executes a single chaos engineering scenario
 func (cev *ChaosEngineeringValidator) executeScenario(ctx context.Context, scenario *ChaosScenario) error {
 	ginkgo.By(fmt.Sprintf("Executing chaos scenario: %s", scenario.Name))
-	
+
 	scenario.Started = time.Now()
-	
+
 	// Pre-chaos health check
 	if !cev.performHealthChecks(ctx, scenario.HealthChecks) {
 		return fmt.Errorf("system not healthy before chaos injection")
 	}
-	
+
 	// Inject chaos based on scenario type
 	chaosCtx, cancel := context.WithTimeout(ctx, scenario.Duration)
 	defer cancel()
-	
+
 	switch scenario.Type {
 	case ChaosTypePodFailure:
 		err := cev.injectPodFailure(chaosCtx, scenario)
@@ -339,62 +339,62 @@ func (cev *ChaosEngineeringValidator) executeScenario(ctx context.Context, scena
 	default:
 		return fmt.Errorf("unsupported chaos type: %s", scenario.Type)
 	}
-	
+
 	// Monitor recovery
 	recoveryStart := time.Now()
 	recovered := cev.waitForRecovery(ctx, scenario)
-	
+
 	scenario.Ended = time.Now()
 	scenario.RecoveryTime = time.Since(recoveryStart)
 	scenario.Passed = recovered && scenario.RecoveryTime <= scenario.ExpectedOutcome.MaxRecoveryTime
-	
+
 	if !recovered {
 		scenario.ErrorMessage = fmt.Sprintf("System did not recover within timeout: %v", scenario.RecoveryTimeout)
 	} else if scenario.RecoveryTime > scenario.ExpectedOutcome.MaxRecoveryTime {
-		scenario.ErrorMessage = fmt.Sprintf("Recovery took too long: %v > %v", 
+		scenario.ErrorMessage = fmt.Sprintf("Recovery took too long: %v > %v",
 			scenario.RecoveryTime, scenario.ExpectedOutcome.MaxRecoveryTime)
 	}
-	
+
 	// Update metrics
 	cev.updateScenarioMetrics(scenario)
-	
+
 	return nil
 }
 
 // injectPodFailure simulates pod failures
 func (cev *ChaosEngineeringValidator) injectPodFailure(ctx context.Context, scenario *ChaosScenario) error {
 	ginkgo.By("Injecting pod failures")
-	
+
 	// Get target pods
 	pods := &corev1.PodList{}
 	listOpts := []client.ListOption{}
-	
+
 	if scenario.TargetSelector.Namespace != "" {
 		listOpts = append(listOpts, client.InNamespace(scenario.TargetSelector.Namespace))
 	}
-	
+
 	if len(scenario.TargetSelector.LabelSelector) > 0 {
 		selector := client.MatchingLabels(scenario.TargetSelector.LabelSelector)
 		listOpts = append(listOpts, selector)
 	}
-	
+
 	if err := cev.client.List(ctx, pods, listOpts...); err != nil {
 		return fmt.Errorf("failed to list target pods: %w", err)
 	}
-	
+
 	if len(pods.Items) == 0 {
 		return fmt.Errorf("no target pods found")
 	}
-	
+
 	// Calculate number of pods to delete based on percentage
 	numPodsToDelete := int(float64(len(pods.Items)) * scenario.TargetSelector.PercentagePods / 100.0)
 	if numPodsToDelete == 0 {
 		numPodsToDelete = 1 // Delete at least one pod
 	}
-	
+
 	// Randomly select pods to delete
 	selectedPods := cev.selectRandomPods(pods.Items, numPodsToDelete)
-	
+
 	// Delete selected pods
 	for _, pod := range selectedPods {
 		ginkgo.By(fmt.Sprintf("Deleting pod: %s/%s", pod.Namespace, pod.Name))
@@ -402,9 +402,9 @@ func (cev *ChaosEngineeringValidator) injectPodFailure(ctx context.Context, scen
 			return fmt.Errorf("failed to delete pod %s/%s: %w", pod.Namespace, pod.Name, err)
 		}
 	}
-	
+
 	ginkgo.By(fmt.Sprintf("Deleted %d pods", len(selectedPods)))
-	
+
 	// Wait for the chaos duration
 	select {
 	case <-ctx.Done():
@@ -417,7 +417,7 @@ func (cev *ChaosEngineeringValidator) injectPodFailure(ctx context.Context, scen
 // injectNetworkPartition simulates network partitions using network policies
 func (cev *ChaosEngineeringValidator) injectNetworkPartition(ctx context.Context, scenario *ChaosScenario) error {
 	ginkgo.By("Injecting network partition")
-	
+
 	// Create a network policy that blocks ingress/egress traffic
 	partitionPolicy := &networkingv1.NetworkPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -441,23 +441,23 @@ func (cev *ChaosEngineeringValidator) injectNetworkPartition(ctx context.Context
 			Egress:  []networkingv1.NetworkPolicyEgressRule{},
 		},
 	}
-	
+
 	// Apply the network policy
 	if err := cev.client.Create(ctx, partitionPolicy); err != nil {
 		return fmt.Errorf("failed to create network partition policy: %w", err)
 	}
-	
+
 	// Wait for the chaos duration
 	select {
 	case <-ctx.Done():
 	case <-time.After(scenario.Duration):
 	}
-	
+
 	// Clean up the network policy
 	if err := cev.client.Delete(ctx, partitionPolicy); err != nil {
 		return fmt.Errorf("failed to delete network partition policy: %w", err)
 	}
-	
+
 	ginkgo.By("Network partition chaos completed")
 	return nil
 }
@@ -465,25 +465,25 @@ func (cev *ChaosEngineeringValidator) injectNetworkPartition(ctx context.Context
 // injectCPUStress creates CPU stress on target nodes
 func (cev *ChaosEngineeringValidator) injectCPUStress(ctx context.Context, scenario *ChaosScenario) error {
 	ginkgo.By("Injecting CPU stress")
-	
+
 	// Get target nodes
 	nodes := &corev1.NodeList{}
 	if err := cev.client.List(ctx, nodes); err != nil {
 		return fmt.Errorf("failed to list nodes: %w", err)
 	}
-	
+
 	if len(nodes.Items) == 0 {
 		return fmt.Errorf("no nodes found")
 	}
-	
+
 	// Select nodes based on percentage
 	numNodes := int(float64(len(nodes.Items)) * scenario.TargetSelector.PercentageNodes / 100.0)
 	if numNodes == 0 {
 		numNodes = 1
 	}
-	
+
 	selectedNodes := cev.selectRandomNodes(nodes.Items, numNodes)
-	
+
 	// Create stress test pods on selected nodes
 	stressPods := []*corev1.Pod{}
 	for _, node := range selectedNodes {
@@ -493,20 +493,20 @@ func (cev *ChaosEngineeringValidator) injectCPUStress(ctx context.Context, scena
 		}
 		stressPods = append(stressPods, stressPod)
 	}
-	
+
 	// Wait for the chaos duration
 	select {
 	case <-ctx.Done():
 	case <-time.After(scenario.Duration):
 	}
-	
+
 	// Clean up stress pods
 	for _, pod := range stressPods {
 		if err := cev.client.Delete(ctx, pod); err != nil {
 			ginkgo.By(fmt.Sprintf("Warning: failed to delete stress pod %s: %v", pod.Name, err))
 		}
 	}
-	
+
 	ginkgo.By(fmt.Sprintf("CPU stress chaos completed on %d nodes", len(selectedNodes)))
 	return nil
 }
@@ -519,7 +519,7 @@ func (cev *ChaosEngineeringValidator) createStressPod(namespace, nodeName string
 			Namespace: namespace,
 			Labels: map[string]string{
 				"chaos-engineering": "true",
-				"type":             "cpu-stress",
+				"type":              "cpu-stress",
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -561,7 +561,7 @@ func (cev *ChaosEngineeringValidator) performHealthChecks(ctx context.Context, c
 func (cev *ChaosEngineeringValidator) executeHealthCheck(ctx context.Context, check HealthCheck) bool {
 	checkCtx, cancel := context.WithTimeout(ctx, check.Timeout)
 	defer cancel()
-	
+
 	switch check.Type {
 	case HealthCheckTypeKubernetes:
 		return cev.kubernetesHealthCheck(checkCtx)
@@ -590,7 +590,7 @@ func (cev *ChaosEngineeringValidator) httpHealthCheck(ctx context.Context, check
 	if err := cev.client.List(ctx, services, client.InNamespace("nephoran-system")); err != nil {
 		return false
 	}
-	
+
 	// Consider healthy if we have at least one service
 	return len(services.Items) > 0
 }
@@ -604,11 +604,11 @@ func (cev *ChaosEngineeringValidator) metricsHealthCheck(ctx context.Context, ch
 		Version: "v1",
 		Kind:    "ServiceMonitorList",
 	})
-	
+
 	if err := cev.client.List(ctx, serviceMonitors, client.InNamespace("nephoran-system")); err != nil {
 		return false
 	}
-	
+
 	return len(serviceMonitors.Items) > 0
 }
 
@@ -616,10 +616,10 @@ func (cev *ChaosEngineeringValidator) metricsHealthCheck(ctx context.Context, ch
 func (cev *ChaosEngineeringValidator) waitForRecovery(ctx context.Context, scenario *ChaosScenario) bool {
 	recoveryCtx, cancel := context.WithTimeout(ctx, scenario.RecoveryTimeout)
 	defer cancel()
-	
+
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-recoveryCtx.Done():
@@ -642,15 +642,15 @@ func (cev *ChaosEngineeringValidator) validateRecoveryState(ctx context.Context,
 	listOpts := []client.ListOption{
 		client.InNamespace(scenario.TargetSelector.Namespace),
 	}
-	
+
 	if len(scenario.TargetSelector.LabelSelector) > 0 {
 		listOpts = append(listOpts, client.MatchingLabels(scenario.TargetSelector.LabelSelector))
 	}
-	
+
 	if err := cev.client.List(ctx, pods, listOpts...); err != nil {
 		return false
 	}
-	
+
 	runningPods := 0
 	for _, pod := range pods.Items {
 		if pod.Status.Phase == corev1.PodRunning {
@@ -667,7 +667,7 @@ func (cev *ChaosEngineeringValidator) validateRecoveryState(ctx context.Context,
 			}
 		}
 	}
-	
+
 	// Consider recovered if at least one pod is running
 	return runningPods > 0
 }
@@ -677,14 +677,14 @@ func (cev *ChaosEngineeringValidator) selectRandomPods(pods []corev1.Pod, count 
 	if count >= len(pods) {
 		return pods
 	}
-	
+
 	selected := make([]corev1.Pod, 0, count)
 	indices := rand.Perm(len(pods))
-	
+
 	for i := 0; i < count; i++ {
 		selected = append(selected, pods[indices[i]])
 	}
-	
+
 	return selected
 }
 
@@ -693,14 +693,14 @@ func (cev *ChaosEngineeringValidator) selectRandomNodes(nodes []corev1.Node, cou
 	if count >= len(nodes) {
 		return nodes
 	}
-	
+
 	selected := make([]corev1.Node, 0, count)
 	indices := rand.Perm(len(nodes))
-	
+
 	for i := 0; i < count; i++ {
 		selected = append(selected, nodes[indices[i]])
 	}
-	
+
 	return selected
 }
 
@@ -708,16 +708,16 @@ func (cev *ChaosEngineeringValidator) selectRandomNodes(nodes []corev1.Node, cou
 func (cev *ChaosEngineeringValidator) updateScenarioMetrics(scenario *ChaosScenario) {
 	cev.mu.Lock()
 	defer cev.mu.Unlock()
-	
+
 	// Update recovery time metrics
 	if cev.metrics.MaxRecoveryTime < scenario.RecoveryTime {
 		cev.metrics.MaxRecoveryTime = scenario.RecoveryTime
 	}
-	
+
 	// Calculate average recovery time
 	totalRecoveryTime := cev.metrics.AverageRecoveryTime*time.Duration(cev.metrics.TotalScenarios) + scenario.RecoveryTime
 	cev.metrics.AverageRecoveryTime = totalRecoveryTime / time.Duration(cev.metrics.TotalScenarios+1)
-	
+
 	// Update specific test results based on scenario type
 	switch scenario.Type {
 	case ChaosTypePodFailure:
@@ -741,7 +741,7 @@ func (cev *ChaosEngineeringValidator) GetChaosMetrics() *ChaosMetrics {
 func (cev *ChaosEngineeringValidator) GenerateChaosReport() string {
 	cev.mu.RLock()
 	defer cev.mu.RUnlock()
-	
+
 	report := fmt.Sprintf(`
 =============================================================================
 CHAOS ENGINEERING VALIDATION REPORT
@@ -794,7 +794,7 @@ PERFORMANCE IMPACT:
 		cev.metrics.ThroughputDecrease,
 		cev.metrics.ResourceUtilizationSpike,
 	)
-	
+
 	return report
 }
 

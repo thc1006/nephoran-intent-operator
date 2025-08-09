@@ -39,7 +39,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 
 		// Initialize fake Weaviate server
 		fakeWeaviate = NewFakeWeaviateServer()
-		
+
 		// Initialize request tracker
 		requestTracker = NewRequestTracker()
 
@@ -58,7 +58,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 				By("querying fake Weaviate for AMF-related knowledge")
 				query := "Deploy AMF with high availability"
 				vector := fakeWeaviate.generateMockEmbedding(query)
-				
+
 				results, err := fakeWeaviate.VectorSearch("TelecomDocument", vector, 5, 0.7)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(results).NotTo(BeNil())
@@ -81,7 +81,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 				By("executing hybrid search for O-RAN components")
 				query := "O-RAN Near-RT RIC deployment"
 				vector := fakeWeaviate.generateMockEmbedding(query)
-				
+
 				results, err := fakeWeaviate.HybridSearch("TelecomDocument", query, vector, 10)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(results.Objects).To(HaveLen(BeNumerically(">", 0)))
@@ -90,14 +90,14 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 				for _, obj := range results.Objects {
 					Expect(obj.Score).To(BeNumerically(">", 0))
 					Expect(obj.Certainty).To(Equal(obj.Score))
-					
+
 					// Check if result contains O-RAN related content
 					content, ok := obj.Properties["content"].(string)
 					if ok {
 						contentLower := strings.ToLower(content)
 						hasORANKeywords := strings.Contains(contentLower, "o-ran") ||
-										   strings.Contains(contentLower, "ric") ||
-										   strings.Contains(contentLower, "near-rt")
+							strings.Contains(contentLower, "ric") ||
+							strings.Contains(contentLower, "near-rt")
 						if hasORANKeywords {
 							Expect(obj.Score).To(BeNumerically(">", 0.5))
 						}
@@ -107,7 +107,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 
 			It("should retrieve network function deployment knowledge", func() {
 				By("searching for network function deployment patterns")
-				results, err := fakeWeaviate.VectorSearch("NetworkFunction", 
+				results, err := fakeWeaviate.VectorSearch("NetworkFunction",
 					fakeWeaviate.generateMockEmbedding("deployment requirements scaling"), 5, 0.6)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(results.Objects).To(HaveLen(BeNumerically(">", 0)))
@@ -119,7 +119,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 						Expect(deploymentReqs).NotTo(BeEmpty())
 						Expect(strings.ToLower(deploymentReqs)).To(ContainSubstring("deployment"))
 					}
-					
+
 					scalingPolicy, ok := obj.Properties["scalingPolicy"].(string)
 					if ok {
 						Expect(scalingPolicy).NotTo(BeEmpty())
@@ -191,31 +191,31 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 
 			It("should handle different intent types with appropriate LLM responses", func() {
 				testCases := []struct {
-					name           string
-					intent         string
-					intentType     nephoranv1.IntentType
-					targetComponent nephoranv1.TargetComponent
+					name             string
+					intent           string
+					intentType       nephoranv1.IntentType
+					targetComponent  nephoranv1.TargetComponent
 					expectedKeywords []string
 				}{
 					{
-						name:           "SMF deployment",
-						intent:         "Deploy Session Management Function with PDU session management",
-						intentType:     nephoranv1.IntentTypeDeployment,
-						targetComponent: nephoranv1.TargetComponentSMF,
+						name:             "SMF deployment",
+						intent:           "Deploy Session Management Function with PDU session management",
+						intentType:       nephoranv1.IntentTypeDeployment,
+						targetComponent:  nephoranv1.TargetComponentSMF,
 						expectedKeywords: []string{"smf", "session", "pdu"},
 					},
 					{
-						name:           "UPF scaling",
-						intent:         "Scale User Plane Function for increased throughput",
-						intentType:     nephoranv1.IntentTypeScaling,
-						targetComponent: nephoranv1.TargetComponentUPF,
+						name:             "UPF scaling",
+						intent:           "Scale User Plane Function for increased throughput",
+						intentType:       nephoranv1.IntentTypeScaling,
+						targetComponent:  nephoranv1.TargetComponentUPF,
 						expectedKeywords: []string{"upf", "scale", "throughput"},
 					},
 					{
-						name:           "Near-RT RIC optimization",
-						intent:         "Optimize Near-RT RIC performance for ML workloads",
-						intentType:     nephoranv1.IntentTypeOptimization,
-						targetComponent: nephoranv1.TargetComponentNearRTRIC,
+						name:             "Near-RT RIC optimization",
+						intent:           "Optimize Near-RT RIC performance for ML workloads",
+						intentType:       nephoranv1.IntentTypeOptimization,
+						targetComponent:  nephoranv1.TargetComponentNearRTRIC,
 						expectedKeywords: []string{"ric", "optimize", "ml"},
 					},
 				}
@@ -305,7 +305,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 
 				By("resetting error mode and verifying recovery")
 				requestTracker.SetErrorMode("/llm/process", false)
-				
+
 				// Trigger reconciliation by updating intent
 				createdIntent.Annotations["nephoran.com/retry"] = "true"
 				Expect(k8sClient.Update(testCtx, createdIntent)).To(Succeed())
@@ -334,12 +334,12 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 				customNF := &WeaviateObject{
 					Class: "NetworkFunction",
 					Properties: map[string]interface{}{
-						"name":        "Custom-AMF",
-						"description": "Custom Access and Mobility Management Function with enhanced features",
-						"type":        "5GC",
-						"interfaces":  []string{"N1", "N2", "N8", "N11", "N12", "N14", "N15"},
+						"name":                   "Custom-AMF",
+						"description":            "Custom Access and Mobility Management Function with enhanced features",
+						"type":                   "5GC",
+						"interfaces":             []string{"N1", "N2", "N8", "N11", "N12", "N14", "N15"},
 						"deploymentRequirements": "Requires persistent storage, high availability setup with 5 replicas minimum",
-						"scalingPolicy": "Auto-scale based on N1/N2 interface load, maximum 20 replicas",
+						"scalingPolicy":          "Auto-scale based on N1/N2 interface load, maximum 20 replicas",
 					},
 				}
 
@@ -439,7 +439,7 @@ var _ = Describe("LLM RAG Integration Tests", func() {
 					duration := time.Since(start)
 
 					Expect(err).NotTo(HaveOccurred())
-					
+
 					searchResults[i] = SearchPerformanceMetric{
 						Query:       query,
 						Duration:    duration,
@@ -623,7 +623,7 @@ func handleRAGSearchRequest(w http.ResponseWriter, r *http.Request, weaviate *Fa
 // generateMockLLMResponse creates a realistic LLM response based on intent
 func generateMockLLMResponse(intent string) *shared.LLMResponse {
 	intentLower := strings.ToLower(intent)
-	
+
 	// Determine intent type and parameters based on content
 	var intentType, networkFunction string
 	var parameters map[string]interface{}
@@ -633,14 +633,14 @@ func generateMockLLMResponse(intent string) *shared.LLMResponse {
 		intentType = "5G-Core-AMF"
 		networkFunction = "AMF"
 		parameters = map[string]interface{}{
-			"replicas":        3,
-			"scaling":         true,
-			"ha_enabled":      true,
-			"cpu_request":     "500m",
-			"memory_request":  "1Gi",
-			"cpu_limit":       "2000m",
-			"memory_limit":    "4Gi",
-			"monitoring":      true,
+			"replicas":          3,
+			"scaling":           true,
+			"ha_enabled":        true,
+			"cpu_request":       "500m",
+			"memory_request":    "1Gi",
+			"cpu_limit":         "2000m",
+			"memory_limit":      "4Gi",
+			"monitoring":        true,
 			"security_policies": true,
 		}
 		manifests = generateAMFManifests()
@@ -659,21 +659,21 @@ func generateMockLLMResponse(intent string) *shared.LLMResponse {
 		intentType = "5G-Core-UPF"
 		networkFunction = "UPF"
 		parameters = map[string]interface{}{
-			"replicas":       2,
-			"dpdk_enabled":   true,
+			"replicas":        2,
+			"dpdk_enabled":    true,
 			"edge_deployment": true,
-			"cpu_request":    "1000m",
-			"memory_request": "2Gi",
+			"cpu_request":     "1000m",
+			"memory_request":  "2Gi",
 		}
 		manifests = generateUPFManifests()
 	} else if strings.Contains(intentLower, "ric") {
 		intentType = "O-RAN-Near-RT-RIC"
 		networkFunction = "Near-RT-RIC"
 		parameters = map[string]interface{}{
-			"replicas":      1,
-			"xapp_runtime":  true,
-			"ml_inference":  true,
-			"cpu_request":   "2000m",
+			"replicas":       1,
+			"xapp_runtime":   true,
+			"ml_inference":   true,
+			"cpu_request":    "2000m",
 			"memory_request": "4Gi",
 		}
 		manifests = generateRICManifests()
@@ -698,7 +698,7 @@ func generateMockLLMResponse(intent string) *shared.LLMResponse {
 		Manifests:       manifests,
 		ProcessingTime:  1200, // 1.2 seconds
 		TokensUsed:      180,
-		Model:          "gpt-4o-mini",
+		Model:           "gpt-4o-mini",
 	}
 }
 
@@ -711,7 +711,7 @@ func generateAMFManifests() map[string]interface{} {
 			"metadata": map[string]interface{}{
 				"name": "amf-deployment",
 				"labels": map[string]interface{}{
-					"app": "amf",
+					"app":       "amf",
 					"component": "5g-core",
 				},
 			},

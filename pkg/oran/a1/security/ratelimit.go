@@ -17,25 +17,25 @@ import (
 
 // RateLimitConfig holds rate limiting configuration
 type RateLimitConfig struct {
-	Enabled              bool                       `json:"enabled"`
-	Type                 RateLimitType              `json:"type"`
-	DefaultLimits        *RateLimitPolicy           `json:"default_limits"`
-	PolicyLimits         map[string]*RateLimitPolicy `json:"policy_limits"`
-	UserLimits           map[string]*RateLimitPolicy `json:"user_limits"`
-	IPLimits             map[string]*RateLimitPolicy `json:"ip_limits"`
-	EndpointLimits       map[string]*RateLimitPolicy `json:"endpoint_limits"`
-	GlobalLimit          *RateLimitPolicy           `json:"global_limit"`
-	BurstMultiplier      float64                    `json:"burst_multiplier"`
-	WindowType           WindowType                 `json:"window_type"`
-	DistributedConfig    *DistributedConfig         `json:"distributed_config"`
-	AdaptiveConfig       *AdaptiveConfig            `json:"adaptive_config"`
-	WhitelistEnabled     bool                       `json:"whitelist_enabled"`
-	Whitelist            []string                   `json:"whitelist"`
-	BlacklistEnabled     bool                       `json:"blacklist_enabled"`
-	Blacklist            []string                   `json:"blacklist"`
-	BypassHeaders        []string                   `json:"bypass_headers"`
-	ResponseHeaders      bool                       `json:"response_headers"`
-	DDoSProtection       *DDoSProtectionConfig      `json:"ddos_protection"`
+	Enabled           bool                        `json:"enabled"`
+	Type              RateLimitType               `json:"type"`
+	DefaultLimits     *RateLimitPolicy            `json:"default_limits"`
+	PolicyLimits      map[string]*RateLimitPolicy `json:"policy_limits"`
+	UserLimits        map[string]*RateLimitPolicy `json:"user_limits"`
+	IPLimits          map[string]*RateLimitPolicy `json:"ip_limits"`
+	EndpointLimits    map[string]*RateLimitPolicy `json:"endpoint_limits"`
+	GlobalLimit       *RateLimitPolicy            `json:"global_limit"`
+	BurstMultiplier   float64                     `json:"burst_multiplier"`
+	WindowType        WindowType                  `json:"window_type"`
+	DistributedConfig *DistributedConfig          `json:"distributed_config"`
+	AdaptiveConfig    *AdaptiveConfig             `json:"adaptive_config"`
+	WhitelistEnabled  bool                        `json:"whitelist_enabled"`
+	Whitelist         []string                    `json:"whitelist"`
+	BlacklistEnabled  bool                        `json:"blacklist_enabled"`
+	Blacklist         []string                    `json:"blacklist"`
+	BypassHeaders     []string                    `json:"bypass_headers"`
+	ResponseHeaders   bool                        `json:"response_headers"`
+	DDoSProtection    *DDoSProtectionConfig       `json:"ddos_protection"`
 }
 
 // RateLimitType represents the type of rate limiting
@@ -51,27 +51,27 @@ const (
 type WindowType string
 
 const (
-	WindowTypeFixed    WindowType = "fixed"
-	WindowTypeSliding  WindowType = "sliding"
-	WindowTypeToken    WindowType = "token"
-	WindowTypeLeaky    WindowType = "leaky"
+	WindowTypeFixed   WindowType = "fixed"
+	WindowTypeSliding WindowType = "sliding"
+	WindowTypeToken   WindowType = "token"
+	WindowTypeLeaky   WindowType = "leaky"
 )
 
 // RateLimitPolicy defines a rate limit policy
 type RateLimitPolicy struct {
-	Name             string        `json:"name"`
-	RequestsPerMin   int           `json:"requests_per_min"`
-	RequestsPerHour  int           `json:"requests_per_hour"`
-	RequestsPerDay   int           `json:"requests_per_day"`
-	BurstSize        int           `json:"burst_size"`
-	WindowSize       time.Duration `json:"window_size"`
-	Priority         int           `json:"priority"`
-	CostPerRequest   int           `json:"cost_per_request"`
-	MaxConcurrent    int           `json:"max_concurrent"`
-	QueueSize        int           `json:"queue_size"`
-	QueueTimeout     time.Duration `json:"queue_timeout"`
-	BackoffFactor    float64       `json:"backoff_factor"`
-	BackoffMax       time.Duration `json:"backoff_max"`
+	Name             string            `json:"name"`
+	RequestsPerMin   int               `json:"requests_per_min"`
+	RequestsPerHour  int               `json:"requests_per_hour"`
+	RequestsPerDay   int               `json:"requests_per_day"`
+	BurstSize        int               `json:"burst_size"`
+	WindowSize       time.Duration     `json:"window_size"`
+	Priority         int               `json:"priority"`
+	CostPerRequest   int               `json:"cost_per_request"`
+	MaxConcurrent    int               `json:"max_concurrent"`
+	QueueSize        int               `json:"queue_size"`
+	QueueTimeout     time.Duration     `json:"queue_timeout"`
+	BackoffFactor    float64           `json:"backoff_factor"`
+	BackoffMax       time.Duration     `json:"backoff_max"`
 	ThrottleResponse *ThrottleResponse `json:"throttle_response"`
 }
 
@@ -113,75 +113,75 @@ type RedisConfig struct {
 type FailoverMode string
 
 const (
-	FailoverLocal    FailoverMode = "local"
-	FailoverReject   FailoverMode = "reject"
-	FailoverDegrade  FailoverMode = "degrade"
+	FailoverLocal   FailoverMode = "local"
+	FailoverReject  FailoverMode = "reject"
+	FailoverDegrade FailoverMode = "degrade"
 )
 
 // ConsistencyLevel represents the consistency level
 type ConsistencyLevel string
 
 const (
-	ConsistencyStrong    ConsistencyLevel = "strong"
-	ConsistencyEventual  ConsistencyLevel = "eventual"
-	ConsistencyWeak      ConsistencyLevel = "weak"
+	ConsistencyStrong   ConsistencyLevel = "strong"
+	ConsistencyEventual ConsistencyLevel = "eventual"
+	ConsistencyWeak     ConsistencyLevel = "weak"
 )
 
 // AdaptiveConfig holds adaptive rate limiting configuration
 type AdaptiveConfig struct {
-	Enabled           bool          `json:"enabled"`
-	TargetLatency     time.Duration `json:"target_latency"`
-	TargetErrorRate   float64       `json:"target_error_rate"`
-	AdjustmentFactor  float64       `json:"adjustment_factor"`
-	MinLimit          int           `json:"min_limit"`
-	MaxLimit          int           `json:"max_limit"`
-	SampleWindow      time.Duration `json:"sample_window"`
-	AdjustInterval    time.Duration `json:"adjust_interval"`
+	Enabled          bool          `json:"enabled"`
+	TargetLatency    time.Duration `json:"target_latency"`
+	TargetErrorRate  float64       `json:"target_error_rate"`
+	AdjustmentFactor float64       `json:"adjustment_factor"`
+	MinLimit         int           `json:"min_limit"`
+	MaxLimit         int           `json:"max_limit"`
+	SampleWindow     time.Duration `json:"sample_window"`
+	AdjustInterval   time.Duration `json:"adjust_interval"`
 }
 
 // DDoSProtectionConfig holds DDoS protection configuration
 type DDoSProtectionConfig struct {
-	Enabled              bool          `json:"enabled"`
-	ThresholdMultiplier  float64       `json:"threshold_multiplier"`
-	DetectionWindow      time.Duration `json:"detection_window"`
-	BlockDuration        time.Duration `json:"block_duration"`
-	SynFloodProtection   bool          `json:"syn_flood_protection"`
-	UDPFloodProtection   bool          `json:"udp_flood_protection"`
-	HTTPFloodProtection  bool          `json:"http_flood_protection"`
-	ChallengeEnabled     bool          `json:"challenge_enabled"`
-	ChallengeType        ChallengeType `json:"challenge_type"`
+	Enabled             bool          `json:"enabled"`
+	ThresholdMultiplier float64       `json:"threshold_multiplier"`
+	DetectionWindow     time.Duration `json:"detection_window"`
+	BlockDuration       time.Duration `json:"block_duration"`
+	SynFloodProtection  bool          `json:"syn_flood_protection"`
+	UDPFloodProtection  bool          `json:"udp_flood_protection"`
+	HTTPFloodProtection bool          `json:"http_flood_protection"`
+	ChallengeEnabled    bool          `json:"challenge_enabled"`
+	ChallengeType       ChallengeType `json:"challenge_type"`
 }
 
 // ChallengeType represents the type of challenge for DDoS protection
 type ChallengeType string
 
 const (
-	ChallengeCaptcha    ChallengeType = "captcha"
+	ChallengeCaptcha     ChallengeType = "captcha"
 	ChallengeProofOfWork ChallengeType = "proof_of_work"
-	ChallengeJavaScript ChallengeType = "javascript"
+	ChallengeJavaScript  ChallengeType = "javascript"
 )
 
 // ThrottleResponse defines how to respond when rate limited
 type ThrottleResponse struct {
-	StatusCode       int               `json:"status_code"`
-	Message          string            `json:"message"`
-	Headers          map[string]string `json:"headers"`
-	RetryAfter       bool              `json:"retry_after"`
-	IncludeDetails   bool              `json:"include_details"`
+	StatusCode     int               `json:"status_code"`
+	Message        string            `json:"message"`
+	Headers        map[string]string `json:"headers"`
+	RetryAfter     bool              `json:"retry_after"`
+	IncludeDetails bool              `json:"include_details"`
 }
 
 // RateLimiter manages rate limiting
 type RateLimiter struct {
-	config          *RateLimitConfig
-	logger          *logging.StructuredLogger
-	localLimiters   map[string]*rate.Limiter
+	config           *RateLimitConfig
+	logger           *logging.StructuredLogger
+	localLimiters    map[string]*rate.Limiter
 	distributedStore DistributedStore
-	adaptiveManager *AdaptiveManager
-	ddosProtector   *DDoSProtector
-	mu              sync.RWMutex
-	stats           *RateLimitStats
-	whitelist       map[string]bool
-	blacklist       map[string]bool
+	adaptiveManager  *AdaptiveManager
+	ddosProtector    *DDoSProtector
+	mu               sync.RWMutex
+	stats            *RateLimitStats
+	whitelist        map[string]bool
+	blacklist        map[string]bool
 }
 
 // DistributedStore interface for distributed rate limiting
@@ -204,21 +204,21 @@ type AdaptiveManager struct {
 
 // AdaptiveMetrics tracks metrics for adaptive rate limiting
 type AdaptiveMetrics struct {
-	mu              sync.RWMutex
-	RequestCount    int64
-	ErrorCount      int64
-	TotalLatency    time.Duration
-	CurrentLimit    int
-	LastAdjustment  time.Time
+	mu             sync.RWMutex
+	RequestCount   int64
+	ErrorCount     int64
+	TotalLatency   time.Duration
+	CurrentLimit   int
+	LastAdjustment time.Time
 }
 
 // DDoSProtector provides DDoS protection
 type DDoSProtector struct {
-	config         *DDoSProtectionConfig
-	logger         *logging.StructuredLogger
-	blockedIPs     map[string]time.Time
-	requestCounts  map[string]*RequestCounter
-	mu             sync.RWMutex
+	config        *DDoSProtectionConfig
+	logger        *logging.StructuredLogger
+	blockedIPs    map[string]time.Time
+	requestCounts map[string]*RequestCounter
+	mu            sync.RWMutex
 }
 
 // RequestCounter tracks request counts for DDoS detection
@@ -231,26 +231,26 @@ type RequestCounter struct {
 
 // RateLimitStats tracks rate limiting statistics
 type RateLimitStats struct {
-	mu               sync.RWMutex
-	TotalRequests    int64
-	AllowedRequests  int64
+	mu                sync.RWMutex
+	TotalRequests     int64
+	AllowedRequests   int64
 	ThrottledRequests int64
-	BlockedRequests  int64
-	CurrentActive    int64
-	ThrottlesByKey   map[string]int64
-	LastReset        time.Time
+	BlockedRequests   int64
+	CurrentActive     int64
+	ThrottlesByKey    map[string]int64
+	LastReset         time.Time
 }
 
 // RateLimitResult represents the result of rate limit check
 type RateLimitResult struct {
-	Allowed         bool          `json:"allowed"`
-	Reason          string        `json:"reason,omitempty"`
-	Limit           int           `json:"limit"`
-	Remaining       int           `json:"remaining"`
-	Reset           time.Time     `json:"reset"`
-	RetryAfter      time.Duration `json:"retry_after,omitempty"`
-	Key             string        `json:"key"`
-	Cost            int           `json:"cost"`
+	Allowed    bool          `json:"allowed"`
+	Reason     string        `json:"reason,omitempty"`
+	Limit      int           `json:"limit"`
+	Remaining  int           `json:"remaining"`
+	Reset      time.Time     `json:"reset"`
+	RetryAfter time.Duration `json:"retry_after,omitempty"`
+	Key        string        `json:"key"`
+	Cost       int           `json:"cost"`
 }
 
 // NewRateLimiter creates a new rate limiter
@@ -820,7 +820,7 @@ func (rs *RedisStore) Increment(ctx context.Context, key string, window time.Dur
 	pipe := rs.client.Pipeline()
 	incr := pipe.Incr(ctx, key)
 	pipe.Expire(ctx, key, window)
-	
+
 	if _, err := pipe.Exec(ctx); err != nil {
 		return 0, err
 	}

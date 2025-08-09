@@ -394,13 +394,13 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 			By("Processing deletions concurrently")
 			var results []ctrl.Result
 			var errors []error
-			
+
 			for _, ni := range networkIntents {
 				req := ctrl.Request{NamespacedName: types.NamespacedName{
 					Name:      ni.Name,
 					Namespace: ni.Namespace,
 				}}
-				
+
 				result, err := reconciler.Reconcile(ctx, req)
 				results = append(results, result)
 				errors = append(errors, err)
@@ -447,7 +447,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Integration Tests", func() {
 
 			By("Measuring cleanup performance")
 			start := time.Now()
-			
+
 			req := ctrl.Request{NamespacedName: types.NamespacedName{
 				Name:      networkIntent.Name,
 				Namespace: networkIntent.Namespace,

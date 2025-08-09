@@ -67,8 +67,8 @@ func (eus *ExampleUsageScenarios) Scenario1_Basic5GCoreDeployment(ctx context.Co
 			TargetComponent: "amf",
 			Description:     "Deploy 5G AMF with high availability for production",
 			Configuration: map[string]interface{}{
-				"replicas":        3,
-				"resources.cpu":   "1000m",
+				"replicas":         3,
+				"resources.cpu":    "1000m",
 				"resources.memory": "2Gi",
 				"highAvailability": true,
 				"autoScaling": map[string]interface{}{
@@ -114,9 +114,9 @@ func (eus *ExampleUsageScenarios) Scenario2_ORANRICDeployment(ctx context.Contex
 			Name:      "deploy-oran-ric-near-rt",
 			Namespace: "oran-system",
 			Labels: map[string]string{
-				"scenario":    "oran-ric",
-				"ric-type":    "near-rt",
-				"compliance":  "o-ran",
+				"scenario":   "oran-ric",
+				"ric-type":   "near-rt",
+				"compliance": "o-ran",
 			},
 		},
 		Spec: v1.NetworkIntentSpec{
@@ -124,8 +124,8 @@ func (eus *ExampleUsageScenarios) Scenario2_ORANRICDeployment(ctx context.Contex
 			TargetComponent: "ric",
 			Description:     "Deploy Near-RT RIC with O-RAN compliance",
 			Configuration: map[string]interface{}{
-				"ricType":     "near-rt",
-				"ricVersion":  "1.0.0",
+				"ricType":    "near-rt",
+				"ricVersion": "1.0.0",
 				"xAppPlatform": map[string]interface{}{
 					"enabled": true,
 					"resources": map[string]interface{}{
@@ -159,7 +159,7 @@ func (eus *ExampleUsageScenarios) Scenario2_ORANRICDeployment(ctx context.Contex
 						},
 						{
 							"name":    "E2",
-							"version": "2.0", 
+							"version": "2.0",
 							"enabled": true,
 						},
 						{
@@ -233,8 +233,8 @@ func (eus *ExampleUsageScenarios) Scenario3_NetworkSliceConfiguration(ctx contex
 						"priority": 1,
 						"qci":      1,
 						"arp": map[string]interface{}{
-							"priorityLevel":        1,
-							"preemptionCapability": true,
+							"priorityLevel":           1,
+							"preemptionCapability":    true,
 							"preemptionVulnerability": false,
 						},
 						"gbr": "100Mbps",
@@ -426,7 +426,7 @@ func (eus *ExampleUsageScenarios) Scenario4_MultiClusterDeployment(ctx context.C
 				"deploymentStrategy": "multi-cluster",
 				"clusterTargets": []map[string]interface{}{
 					{
-						"cluster": "edge-cluster-east",
+						"cluster":    "edge-cluster-east",
 						"components": []string{"upf", "amf"},
 						"resources": map[string]interface{}{
 							"upf": map[string]interface{}{
@@ -446,7 +446,7 @@ func (eus *ExampleUsageScenarios) Scenario4_MultiClusterDeployment(ctx context.C
 						},
 					},
 					{
-						"cluster": "edge-cluster-west",
+						"cluster":    "edge-cluster-west",
 						"components": []string{"upf", "amf"},
 						"resources": map[string]interface{}{
 							"upf": map[string]interface{}{
@@ -466,7 +466,7 @@ func (eus *ExampleUsageScenarios) Scenario4_MultiClusterDeployment(ctx context.C
 						},
 					},
 					{
-						"cluster": "central-cluster",
+						"cluster":    "central-cluster",
 						"components": []string{"nrf", "nssf", "udm", "ausf"},
 						"resources": map[string]interface{}{
 							"nrf": map[string]interface{}{
@@ -490,22 +490,22 @@ func (eus *ExampleUsageScenarios) Scenario4_MultiClusterDeployment(ctx context.C
 					"interconnect": map[string]interface{}{
 						"type": "service-mesh",
 						"security": map[string]interface{}{
-							"mTLS": true,
+							"mTLS":       true,
 							"encryption": "AES-256",
 						},
 					},
 					"loadBalancing": map[string]interface{}{
-						"enabled": true,
-						"algorithm": "round-robin",
+						"enabled":     true,
+						"algorithm":   "round-robin",
 						"healthCheck": true,
 					},
 				},
 				"monitoring": map[string]interface{}{
-					"enabled": true,
+					"enabled":     true,
 					"centralized": true,
 					"metricsCollection": map[string]interface{}{
 						"prometheus": true,
-						"grafana": true,
+						"grafana":    true,
 					},
 				},
 			},
@@ -539,8 +539,8 @@ func (eus *ExampleUsageScenarios) Scenario5_AutoScalingConfiguration(ctx context
 			Name:      "configure-auto-scaling-upf",
 			Namespace: "scaling-system",
 			Labels: map[string]string{
-				"scenario":   "auto-scaling",
-				"component":  "upf",
+				"scenario":     "auto-scaling",
+				"component":    "upf",
 				"scaling-type": "horizontal",
 			},
 		},
@@ -647,7 +647,7 @@ func (eus *ExampleUsageScenarios) Scenario5_AutoScalingConfiguration(ctx context
 					},
 				},
 				"predictiveScaling": map[string]interface{}{
-					"enabled": true,
+					"enabled":   true,
 					"algorithm": "machine-learning",
 					"trainingData": map[string]interface{}{
 						"historicalPeriod": "30d",
@@ -662,21 +662,21 @@ func (eus *ExampleUsageScenarios) Scenario5_AutoScalingConfiguration(ctx context
 						},
 					},
 					"predictionHorizon": "30m",
-					"scaleUpThreshold": 0.8,
+					"scaleUpThreshold":  0.8,
 				},
 				"monitoring": map[string]interface{}{
-					"enabled": true,
+					"enabled":   true,
 					"dashboard": true,
 					"alerts": []map[string]interface{}{
 						{
-							"name": "HighScalingActivity",
+							"name":      "HighScalingActivity",
 							"condition": "scaling_events_per_hour > 10",
-							"severity": "warning",
+							"severity":  "warning",
 						},
 						{
-							"name": "ScalingAtMaxCapacity",
+							"name":      "ScalingAtMaxCapacity",
 							"condition": "current_replicas >= max_replicas",
-							"severity": "critical",
+							"severity":  "critical",
 						},
 					},
 				},
@@ -790,9 +790,9 @@ func (eus *ExampleUsageScenarios) DemoCustomWorkflow(ctx context.Context) error 
 		},
 		Phases: []WorkflowPhase{
 			{
-				Name:        "edge-requirements-validation",
-				Description: "Validate edge deployment requirements",
-				Type:        WorkflowPhaseTypeValidation,
+				Name:         "edge-requirements-validation",
+				Description:  "Validate edge deployment requirements",
+				Type:         WorkflowPhaseTypeValidation,
 				Dependencies: []string{},
 				Actions: []WorkflowAction{
 					{
@@ -813,9 +813,9 @@ func (eus *ExampleUsageScenarios) DemoCustomWorkflow(ctx context.Context) error 
 				ContinueOnError: false,
 			},
 			{
-				Name:        "edge-blueprint-selection",
-				Description: "Select edge-optimized blueprint",
-				Type:        WorkflowPhaseTypeBlueprintSelection,
+				Name:         "edge-blueprint-selection",
+				Description:  "Select edge-optimized blueprint",
+				Type:         WorkflowPhaseTypeBlueprintSelection,
 				Dependencies: []string{"edge-requirements-validation"},
 				Actions: []WorkflowAction{
 					{
@@ -825,7 +825,7 @@ func (eus *ExampleUsageScenarios) DemoCustomWorkflow(ctx context.Context) error 
 						Timeout:  5 * time.Minute,
 						Config: map[string]interface{}{
 							"blueprintFilter": map[string]interface{}{
-								"category": "edge",
+								"category":         "edge",
 								"latencyOptimized": true,
 							},
 						},
@@ -835,9 +835,9 @@ func (eus *ExampleUsageScenarios) DemoCustomWorkflow(ctx context.Context) error 
 				ContinueOnError: false,
 			},
 			{
-				Name:        "edge-package-optimization",
-				Description: "Optimize package for edge deployment",
-				Type:        WorkflowPhaseTypePackageSpecialization,
+				Name:         "edge-package-optimization",
+				Description:  "Optimize package for edge deployment",
+				Type:         WorkflowPhaseTypePackageSpecialization,
 				Dependencies: []string{"edge-blueprint-selection"},
 				Actions: []WorkflowAction{
 					{
@@ -858,9 +858,9 @@ func (eus *ExampleUsageScenarios) DemoCustomWorkflow(ctx context.Context) error 
 				ContinueOnError: false,
 			},
 			{
-				Name:        "edge-deployment",
-				Description: "Deploy to edge clusters with proximity optimization",
-				Type:        WorkflowPhaseTypeDeployment,
+				Name:         "edge-deployment",
+				Description:  "Deploy to edge clusters with proximity optimization",
+				Type:         WorkflowPhaseTypeDeployment,
 				Dependencies: []string{"edge-package-optimization"},
 				Actions: []WorkflowAction{
 					{
@@ -881,9 +881,9 @@ func (eus *ExampleUsageScenarios) DemoCustomWorkflow(ctx context.Context) error 
 				ContinueOnError: false,
 			},
 			{
-				Name:        "edge-performance-validation",
-				Description: "Validate edge deployment performance",
-				Type:        WorkflowPhaseTypeMonitoring,
+				Name:         "edge-performance-validation",
+				Description:  "Validate edge deployment performance",
+				Type:         WorkflowPhaseTypeMonitoring,
 				Dependencies: []string{"edge-deployment"},
 				Actions: []WorkflowAction{
 					{
@@ -898,9 +898,9 @@ func (eus *ExampleUsageScenarios) DemoCustomWorkflow(ctx context.Context) error 
 								"resource-utilization-test",
 							},
 							"thresholds": map[string]interface{}{
-								"maxLatency": "10ms",
+								"maxLatency":    "10ms",
 								"minThroughput": "1Gbps",
-								"maxCpuUsage": "70%",
+								"maxCpuUsage":   "70%",
 							},
 						},
 					},
@@ -980,18 +980,18 @@ func (eus *ExampleUsageScenarios) RunAllScenarios(ctx context.Context) error {
 
 	for _, scenario := range scenarios {
 		logger.Info("Running scenario", "scenario", scenario.name)
-		
+
 		scenarioCtx, cancel := context.WithTimeout(ctx, 2*time.Hour)
-		
+
 		if err := scenario.fn(scenarioCtx); err != nil {
 			cancel()
 			logger.Error(err, "Scenario failed", "scenario", scenario.name)
 			return fmt.Errorf("scenario %s failed: %w", scenario.name, err)
 		}
-		
+
 		cancel()
 		logger.Info("Scenario completed successfully", "scenario", scenario.name)
-		
+
 		// Brief pause between scenarios
 		time.Sleep(5 * time.Second)
 	}

@@ -613,7 +613,7 @@ func TestA1Adaptor_NonRetryableErrorHandling(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	
+
 	// Non-retryable error should fail immediately
 	err = adaptor.executeWithRetry(ctx, func() error {
 		return fmt.Errorf("non-retryable error")
@@ -630,7 +630,7 @@ func TestA1Adaptor_ConcurrentPolicyAccess(t *testing.T) {
 	require.NoError(t, err)
 
 	done := make(chan bool, 100)
-	
+
 	// Concurrent writes to policy types
 	for i := 0; i < 50; i++ {
 		go func(id int) {
@@ -694,7 +694,7 @@ func TestA1PolicyStructures(t *testing.T) {
 
 	t.Run("A1PolicyInstance validation", func(t *testing.T) {
 		now := time.Now()
-		
+
 		instance := A1PolicyInstance{
 			PolicyInstanceID: "test-instance",
 			PolicyTypeID:     1,

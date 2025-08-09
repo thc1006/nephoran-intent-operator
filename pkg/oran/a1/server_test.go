@@ -325,7 +325,7 @@ func TestA1Server_ConcurrentStartStop(t *testing.T) {
 			defer wg.Done()
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
-			
+
 			if err := server.Start(ctx); err != nil && err != http.ErrServerClosed {
 				errors <- err
 			}
@@ -334,14 +334,14 @@ func TestA1Server_ConcurrentStartStop(t *testing.T) {
 
 	// Wait a bit then stop
 	time.Sleep(100 * time.Millisecond)
-	
+
 	for i := 0; i < 5; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 			defer cancel()
-			
+
 			if err := server.Stop(ctx); err != nil {
 				errors <- err
 			}
@@ -556,9 +556,9 @@ func TestA1Server_RouteSetup(t *testing.T) {
 		expectedRoutes []string
 	}{
 		{
-			name:      "all interfaces enabled",
-			enableA1P: true,
-			enableA1C: true,
+			name:       "all interfaces enabled",
+			enableA1P:  true,
+			enableA1C:  true,
 			enableA1EI: true,
 			expectedRoutes: []string{
 				"/health",
@@ -570,9 +570,9 @@ func TestA1Server_RouteSetup(t *testing.T) {
 			},
 		},
 		{
-			name:      "only A1-P enabled",
-			enableA1P: true,
-			enableA1C: false,
+			name:       "only A1-P enabled",
+			enableA1P:  true,
+			enableA1C:  false,
 			enableA1EI: false,
 			expectedRoutes: []string{
 				"/health",
@@ -791,7 +791,7 @@ func BenchmarkCircuitBreaker_Execute(b *testing.B) {
 
 	cb := NewCircuitBreaker("bench", config)
 	ctx := context.Background()
-	
+
 	req := func(context.Context) (interface{}, error) {
 		return "result", nil
 	}

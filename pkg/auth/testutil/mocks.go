@@ -186,11 +186,11 @@ func (m *MockLDAPProvider) Close() error {
 
 // MockLDAPServer provides an in-memory LDAP server for testing
 type MockLDAPServer struct {
-	users    map[string]*LDAPUser
-	groups   map[string]*LDAPGroup
-	binds    map[string]string // username -> password
-	mutex    sync.RWMutex
-	closed   bool
+	users  map[string]*LDAPUser
+	groups map[string]*LDAPGroup
+	binds  map[string]string // username -> password
+	mutex  sync.RWMutex
+	closed bool
 }
 
 type LDAPUser struct {
@@ -217,7 +217,7 @@ func NewMockLDAPServer() *MockLDAPServer {
 		groups: make(map[string]*LDAPGroup),
 		binds:  make(map[string]string),
 	}
-	
+
 	// Add default test users
 	server.AddUser(&LDAPUser{
 		DN:        "cn=testuser,ou=users,dc=example,dc=com",
@@ -233,7 +233,7 @@ func NewMockLDAPServer() *MockLDAPServer {
 		},
 	})
 	server.SetPassword("testuser", "password123")
-	
+
 	server.AddUser(&LDAPUser{
 		DN:        "cn=admin,ou=users,dc=example,dc=com",
 		Username:  "admin",
@@ -248,7 +248,7 @@ func NewMockLDAPServer() *MockLDAPServer {
 		},
 	})
 	server.SetPassword("admin", "admin123")
-	
+
 	// Add default test groups
 	server.AddGroup(&LDAPGroup{
 		DN:          "cn=users,ou=groups,dc=example,dc=com",
@@ -256,21 +256,21 @@ func NewMockLDAPServer() *MockLDAPServer {
 		Description: "All users",
 		Members:     []string{"testuser", "admin"},
 	})
-	
+
 	server.AddGroup(&LDAPGroup{
 		DN:          "cn=developers,ou=groups,dc=example,dc=com",
 		Name:        "developers",
 		Description: "Software developers",
 		Members:     []string{"testuser"},
 	})
-	
+
 	server.AddGroup(&LDAPGroup{
 		DN:          "cn=admins,ou=groups,dc=example,dc=com",
 		Name:        "admins",
 		Description: "System administrators",
 		Members:     []string{"admin"},
 	})
-	
+
 	return server
 }
 
@@ -307,7 +307,7 @@ func (s *MockLDAPServer) GetGroup(name string) *LDAPGroup {
 func (s *MockLDAPServer) Authenticate(username, password string) bool {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
-	
+
 	expectedPassword, exists := s.binds[username]
 	return exists && expectedPassword == password
 }
@@ -327,12 +327,12 @@ func (s *MockLDAPServer) IsClosed() bool {
 
 // OAuth2 Mock Server for different providers
 type OAuth2MockServer struct {
-	Server       *httptest.Server
-	Provider     string
-	Users        map[string]*providers.UserInfo
-	Tokens       map[string]*providers.TokenResponse
+	Server        *httptest.Server
+	Provider      string
+	Users         map[string]*providers.UserInfo
+	Tokens        map[string]*providers.TokenResponse
 	InvalidTokens map[string]bool
-	mutex        sync.RWMutex
+	mutex         sync.RWMutex
 }
 
 func NewOAuth2MockServer(provider string) *OAuth2MockServer {
@@ -342,15 +342,15 @@ func NewOAuth2MockServer(provider string) *OAuth2MockServer {
 		Tokens:        make(map[string]*providers.TokenResponse),
 		InvalidTokens: make(map[string]bool),
 	}
-	
+
 	// Setup default test data
 	ms.setupDefaultData()
-	
+
 	// Create HTTP server
 	mux := http.NewServeMux()
 	ms.setupEndpoints(mux)
 	ms.Server = httptest.NewServer(mux)
-	
+
 	return ms
 }
 
@@ -369,7 +369,7 @@ func (ms *OAuth2MockServer) setupDefaultData() {
 		Groups:        []string{"users", "testers"},
 		Roles:         []string{"viewer"},
 	}
-	
+
 	adminUser := &providers.UserInfo{
 		Subject:       "admin-user-456",
 		Email:         "admin@example.com",
@@ -383,10 +383,10 @@ func (ms *OAuth2MockServer) setupDefaultData() {
 		Groups:        []string{"users", "admins"},
 		Roles:         []string{"admin"},
 	}
-	
+
 	ms.Users["test-access-token"] = testUser
 	ms.Users["admin-access-token"] = adminUser
-	
+
 	// Add token responses
 	ms.Tokens["test-auth-code"] = &providers.TokenResponse{
 		AccessToken:  "test-access-token",
@@ -396,7 +396,7 @@ func (ms *OAuth2MockServer) setupDefaultData() {
 		Scope:        "openid email profile",
 		IssuedAt:     time.Now(),
 	}
-	
+
 	ms.Tokens["admin-auth-code"] = &providers.TokenResponse{
 		AccessToken:  "admin-access-token",
 		RefreshToken: "admin-refresh-token",
@@ -411,19 +411,19 @@ func (ms *OAuth2MockServer) setupEndpoints(mux *http.ServeMux) {
 	// Authorization endpoint
 	mux.HandleFunc("/oauth/authorize", ms.handleAuthorize)
 	mux.HandleFunc("/auth", ms.handleAuthorize) // Alternative path
-	
+
 	// Token endpoint
 	mux.HandleFunc("/oauth/token", ms.handleToken)
 	mux.HandleFunc("/token", ms.handleToken) // Alternative path
-	
+
 	// User info endpoint
 	mux.HandleFunc("/user", ms.handleUserInfo)
 	mux.HandleFunc("/userinfo", ms.handleUserInfo) // OIDC standard
-	
+
 	// OIDC endpoints
 	mux.HandleFunc("/.well-known/openid_configuration", ms.handleOIDCDiscovery)
 	mux.HandleFunc("/.well-known/jwks.json", ms.handleJWKS)
-	
+
 	// Token revocation
 	mux.HandleFunc("/oauth/revoke", ms.handleRevoke)
 }
@@ -432,18 +432,18 @@ func (ms *OAuth2MockServer) handleAuthorize(w http.ResponseWriter, r *http.Reque
 	query := r.URL.Query()
 	redirectURI := query.Get("redirect_uri")
 	state := query.Get("state")
-	
+
 	if redirectURI == "" {
 		http.Error(w, "Missing redirect_uri", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Generate mock authorization code
 	code := "test-auth-code"
 	if query.Get("error") == "access_denied" {
 		code = "denied-auth-code"
 	}
-	
+
 	// Redirect with code
 	redirectURL, _ := url.Parse(redirectURI)
 	q := redirectURL.Query()
@@ -452,7 +452,7 @@ func (ms *OAuth2MockServer) handleAuthorize(w http.ResponseWriter, r *http.Reque
 		q.Set("state", state)
 	}
 	redirectURL.RawQuery = q.Encode()
-	
+
 	http.Redirect(w, r, redirectURL.String(), http.StatusFound)
 }
 
@@ -461,14 +461,14 @@ func (ms *OAuth2MockServer) handleToken(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
-	
+
 	grantType := r.FormValue("grant_type")
-	
+
 	switch grantType {
 	case "authorization_code":
 		ms.handleAuthorizationCodeGrant(w, r)
@@ -481,23 +481,23 @@ func (ms *OAuth2MockServer) handleToken(w http.ResponseWriter, r *http.Request) 
 
 func (ms *OAuth2MockServer) handleAuthorizationCodeGrant(w http.ResponseWriter, r *http.Request) {
 	code := r.FormValue("code")
-	
+
 	ms.mutex.RLock()
 	tokenResponse, exists := ms.Tokens[code]
 	ms.mutex.RUnlock()
-	
+
 	if !exists {
 		http.Error(w, "Invalid authorization code", http.StatusBadRequest)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tokenResponse)
 }
 
 func (ms *OAuth2MockServer) handleRefreshTokenGrant(w http.ResponseWriter, r *http.Request) {
 	refreshToken := r.FormValue("refresh_token")
-	
+
 	// Find token by refresh token
 	ms.mutex.RLock()
 	var tokenResponse *providers.TokenResponse
@@ -515,12 +515,12 @@ func (ms *OAuth2MockServer) handleRefreshTokenGrant(w http.ResponseWriter, r *ht
 		}
 	}
 	ms.mutex.RUnlock()
-	
+
 	if tokenResponse == nil {
 		http.Error(w, "Invalid refresh token", http.StatusBadRequest)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(tokenResponse)
 }
@@ -531,37 +531,37 @@ func (ms *OAuth2MockServer) handleUserInfo(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "Missing or invalid authorization header", http.StatusUnauthorized)
 		return
 	}
-	
+
 	token := strings.TrimPrefix(authHeader, "Bearer ")
-	
+
 	ms.mutex.RLock()
 	user, exists := ms.Users[token]
 	isInvalid := ms.InvalidTokens[token]
 	ms.mutex.RUnlock()
-	
+
 	if isInvalid {
 		http.Error(w, "Token has been revoked", http.StatusUnauthorized)
 		return
 	}
-	
+
 	if !exists {
 		http.Error(w, "Invalid access token", http.StatusUnauthorized)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user)
 }
 
 func (ms *OAuth2MockServer) handleOIDCDiscovery(w http.ResponseWriter, r *http.Request) {
 	baseURL := ms.Server.URL
-	
+
 	config := map[string]interface{}{
 		"issuer":                 baseURL,
 		"authorization_endpoint": baseURL + "/oauth/authorize",
 		"token_endpoint":         baseURL + "/oauth/token",
 		"userinfo_endpoint":      baseURL + "/userinfo",
-		"jwks_uri":              baseURL + "/.well-known/jwks.json",
+		"jwks_uri":               baseURL + "/.well-known/jwks.json",
 		"scopes_supported": []string{
 			"openid", "email", "profile",
 		},
@@ -581,7 +581,7 @@ func (ms *OAuth2MockServer) handleOIDCDiscovery(w http.ResponseWriter, r *http.R
 			"S256",
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(config)
 }
@@ -599,7 +599,7 @@ func (ms *OAuth2MockServer) handleJWKS(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(jwks)
 }
@@ -609,22 +609,22 @@ func (ms *OAuth2MockServer) handleRevoke(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	if err := r.ParseForm(); err != nil {
 		http.Error(w, "Invalid form data", http.StatusBadRequest)
 		return
 	}
-	
+
 	token := r.FormValue("token")
 	if token == "" {
 		http.Error(w, "Missing token", http.StatusBadRequest)
 		return
 	}
-	
+
 	ms.mutex.Lock()
 	ms.InvalidTokens[token] = true
 	ms.mutex.Unlock()
-	
+
 	w.WriteHeader(http.StatusOK)
 }
 

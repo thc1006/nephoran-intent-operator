@@ -13,11 +13,11 @@ var _ = Describe("ChunkingService", func() {
 
 	BeforeEach(func() {
 		config = &ChunkingConfig{
-			ChunkSize:      500,
-			OverlapSize:    50,
-			MinChunkSize:   100,
-			MaxChunkSize:   1000,
-			SeparatorType:  "sentence",
+			ChunkSize:         500,
+			OverlapSize:       50,
+			MinChunkSize:      100,
+			MaxChunkSize:      1000,
+			SeparatorType:     "sentence",
 			PreserveStructure: true,
 		}
 		service = NewChunkingService(config)
@@ -147,8 +147,8 @@ The RAN includes:
 - CU (Central Unit)
 - DU (Distributed Unit)
 `,
-					Title:   "5G Architecture Guide",
-					Source:  "O-RAN Alliance",
+					Title:  "5G Architecture Guide",
+					Source: "O-RAN Alliance",
 				}
 
 				chunks, err := service.ChunkDocument(document)
@@ -200,7 +200,7 @@ The RAN includes:
 			for _, text := range texts {
 				tokens := service.EstimateTokens(text)
 				words := len(splitWords(text))
-				
+
 				// Token count should be reasonable compared to word count
 				Expect(tokens).To(BeNumerically(">", 0))
 				Expect(tokens).To(BeNumerically(">=", words/2)) // At least half the word count
@@ -262,14 +262,14 @@ The RAN includes:
 	Describe("Configuration Validation", func() {
 		It("should handle invalid chunk sizes", func() {
 			invalidConfig := &ChunkingConfig{
-				ChunkSize:    0,   // Invalid
-				OverlapSize:  -1,  // Invalid
+				ChunkSize:    0,    // Invalid
+				OverlapSize:  -1,   // Invalid
 				MinChunkSize: 1000, // Invalid (larger than chunk size)
 				MaxChunkSize: 100,  // Invalid (smaller than chunk size)
 			}
 
 			service := NewChunkingService(invalidConfig)
-			
+
 			// Service should correct invalid values
 			Expect(service.config.ChunkSize).To(BeNumerically(">", 0))
 			Expect(service.config.OverlapSize).To(BeNumerically(">=", 0))
@@ -327,7 +327,7 @@ func containsAny(text string, substrings []string) bool {
 func splitWords(text string) []string {
 	words := []string{}
 	current := ""
-	
+
 	for _, char := range text {
 		if char == ' ' || char == '\t' || char == '\n' {
 			if current != "" {
@@ -338,11 +338,11 @@ func splitWords(text string) []string {
 			current += string(char)
 		}
 	}
-	
+
 	if current != "" {
 		words = append(words, current)
 	}
-	
+
 	return words
 }
 
@@ -350,7 +350,7 @@ func generateText(length int) string {
 	text := ""
 	words := []string{"the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog"}
 	wordIndex := 0
-	
+
 	for len(text) < length {
 		if len(text) > 0 {
 			text += " "
@@ -358,10 +358,10 @@ func generateText(length int) string {
 		text += words[wordIndex]
 		wordIndex = (wordIndex + 1) % len(words)
 	}
-	
+
 	if len(text) > length {
 		text = text[:length]
 	}
-	
+
 	return text
 }

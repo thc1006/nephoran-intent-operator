@@ -37,25 +37,25 @@ func NewTaskScheduler(engine *ParallelProcessingEngine, logger logr.Logger) *Tas
 		logger:          logger.WithName("task-scheduler"),
 		stopChan:        make(chan struct{}),
 	}
-	
+
 	// Register scheduling strategies
 	scheduler.strategies["priority_first"] = NewPriorityFirstStrategy()
 	scheduler.strategies["load_balanced"] = NewLoadBalancedStrategy()
 	scheduler.strategies["dependency_aware"] = NewDependencyAwareStrategy()
-	
+
 	return scheduler
 }
 
 // Start starts the task scheduler
 func (ts *TaskScheduler) Start(ctx context.Context) {
 	ts.logger.Info("Starting task scheduler")
-	
+
 	// Start dependency resolver
 	go ts.dependencyResolver(ctx)
-	
+
 	// Start task scheduler
 	go ts.taskScheduler(ctx)
-	
+
 	// Start ready task dispatcher
 	go ts.readyTaskDispatcher(ctx)
 }
@@ -69,16 +69,16 @@ func (ts *TaskScheduler) Stop() {
 // dependencyResolver resolves task dependencies
 func (ts *TaskScheduler) dependencyResolver(ctx context.Context) {
 	ts.logger.Info("Dependency resolver started")
-	
+
 	for {
 		select {
 		case task := <-ts.schedulingQueue:
 			ts.processDependencies(task)
-			
+
 		case <-ts.stopChan:
 			ts.logger.Info("Dependency resolver stopping")
 			return
-			
+
 		case <-ctx.Done():
 			ts.logger.Info("Dependency resolver context cancelled")
 			return
@@ -89,15 +89,15 @@ func (ts *TaskScheduler) dependencyResolver(ctx context.Context) {
 // processDependencies processes task dependencies
 func (ts *TaskScheduler) processDependencies(task *Task) {
 	ts.logger.Info("Processing dependencies", "taskId", task.ID, "dependencies", len(task.Dependencies))
-	
+
 	// Check if all dependencies are satisfied
 	if ts.dependencyGraph.AreDependenciesSatisfied(task.ID) {
 		ts.logger.Info("Dependencies satisfied, task ready", "taskId", task.ID)
-		
+
 		// Mark as scheduled
 		now := time.Now()
 		task.ScheduledAt = &now
-		
+
 		// Send to ready queue
 		select {
 		case ts.readyTasks <- task:
@@ -114,16 +114,16 @@ func (ts *TaskScheduler) processDependencies(task *Task) {
 // taskScheduler schedules ready tasks to appropriate worker pools
 func (ts *TaskScheduler) taskScheduler(ctx context.Context) {
 	ts.logger.Info("Task scheduler started")
-	
+
 	for {
 		select {
 		case task := <-ts.readyTasks:
 			ts.scheduleTask(task)
-			
+
 		case <-ts.stopChan:
 			ts.logger.Info("Task scheduler stopping")
 			return
-			
+
 		case <-ctx.Done():
 			ts.logger.Info("Task scheduler context cancelled")
 			return
@@ -135,7 +135,7 @@ func (ts *TaskScheduler) taskScheduler(ctx context.Context) {
 func (ts *TaskScheduler) scheduleTask(task *Task) {
 	// Get available worker pools
 	availableWorkers := ts.getAvailableWorkers()
-	
+
 	// Use strategy to select pool
 	strategy := ts.strategies[ts.currentStrategy]
 	poolName, err := strategy.ScheduleTask(task, availableWorkers)
@@ -143,7 +143,7 @@ func (ts *TaskScheduler) scheduleTask(task *Task) {
 		ts.logger.Error(err, "Failed to schedule task", "taskId", task.ID)
 		return
 	}
-	
+
 	// Submit task to selected pool
 	if err := ts.submitToPool(poolName, task); err != nil {
 		ts.logger.Error(err, "Failed to submit task to pool", "taskId", task.ID, "pool", poolName)
@@ -163,21 +163,21 @@ func (ts *TaskScheduler) getAvailableWorkers() map[string]int {
 		"gitops":     ts.engine.gitopsPool,
 		"deployment": ts.engine.deploymentPool,
 	}
-	
+
 	available := make(map[string]int)
 	for name, pool := range pools {
 		queueCapacity := cap(pool.taskQueue)
 		queueLength := len(pool.taskQueue)
 		available[name] = queueCapacity - queueLength
 	}
-	
+
 	return available
 }
 
 // submitToPool submits a task to the specified worker pool
 func (ts *TaskScheduler) submitToPool(poolName string, task *Task) error {
 	var pool *WorkerPool
-	
+
 	switch poolName {
 	case "intent":
 		pool = ts.engine.intentPool
@@ -196,26 +196,26 @@ func (ts *TaskScheduler) submitToPool(poolName string, task *Task) error {
 	default:
 		return fmt.Errorf("unknown pool: %s", poolName)
 	}
-	
+
 	return pool.SubmitTask(task)
 }
 
 // readyTaskDispatcher dispatches ready tasks
 func (ts *TaskScheduler) readyTaskDispatcher(ctx context.Context) {
 	ts.logger.Info("Ready task dispatcher started")
-	
+
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
 			ts.checkForReadyTasks()
-			
+
 		case <-ts.stopChan:
 			ts.logger.Info("Ready task dispatcher stopping")
 			return
-			
+
 		case <-ctx.Done():
 			ts.logger.Info("Ready task dispatcher context cancelled")
 			return
@@ -227,7 +227,7 @@ func (ts *TaskScheduler) readyTaskDispatcher(ctx context.Context) {
 func (ts *TaskScheduler) checkForReadyTasks() {
 	// This would implement logic to check for tasks whose dependencies
 	// have been satisfied and make them ready for scheduling
-	
+
 	// For now, this is a placeholder as dependency satisfaction
 	// is handled in the dependency resolver
 }
@@ -250,19 +250,19 @@ func NewPriorityFirstStrategy() *PriorityFirstStrategy {
 func (pfs *PriorityFirstStrategy) ScheduleTask(task *Task, availableWorkers map[string]int) (string, error) {
 	// Map task type to pool name
 	poolName := ts.getPoolNameForTaskType(task.Type)
-	
+
 	// Check if pool has capacity
 	if available, exists := availableWorkers[poolName]; exists && available > 0 {
 		return poolName, nil
 	}
-	
+
 	// If preferred pool is full, try to find alternative
 	for name, available := range availableWorkers {
 		if available > 0 {
 			return name, nil
 		}
 	}
-	
+
 	return "", fmt.Errorf("no available workers for task %s", task.ID)
 }
 
@@ -295,14 +295,14 @@ func (lbs *LoadBalancedStrategy) ScheduleTask(task *Task, availableWorkers map[s
 	// Find pool with most available capacity
 	maxAvailable := 0
 	bestPool := ""
-	
+
 	// First try the preferred pool for this task type
 	preferredPool := getPoolNameForTaskType(task.Type)
 	if available, exists := availableWorkers[preferredPool]; exists && available > 0 {
 		maxAvailable = available
 		bestPool = preferredPool
 	}
-	
+
 	// Look for better options
 	for poolName, available := range availableWorkers {
 		if available > maxAvailable {
@@ -310,11 +310,11 @@ func (lbs *LoadBalancedStrategy) ScheduleTask(task *Task, availableWorkers map[s
 			bestPool = poolName
 		}
 	}
-	
+
 	if bestPool == "" {
 		return "", fmt.Errorf("no available workers for task %s", task.ID)
 	}
-	
+
 	return bestPool, nil
 }
 
@@ -347,19 +347,19 @@ func NewDependencyAwareStrategy() *DependencyAwareStrategy {
 func (das *DependencyAwareStrategy) ScheduleTask(task *Task, availableWorkers map[string]int) (string, error) {
 	// Prioritize pools that can handle dependent tasks
 	preferredPool := getPoolNameForTaskType(task.Type)
-	
+
 	// Check if preferred pool has capacity
 	if available, exists := availableWorkers[preferredPool]; exists && available > 0 {
 		return preferredPool, nil
 	}
-	
+
 	// Look for alternative with capacity
 	for poolName, available := range availableWorkers {
 		if available > 0 {
 			return poolName, nil
 		}
 	}
-	
+
 	return "", fmt.Errorf("no available workers for task %s", task.ID)
 }
 
@@ -389,7 +389,7 @@ func NewDependencyGraph() *DependencyGraph {
 func (dg *DependencyGraph) AddTask(taskID string, dependencies []string, dependents []string) {
 	dg.mutex.Lock()
 	defer dg.mutex.Unlock()
-	
+
 	// Create node if it doesn't exist
 	if _, exists := dg.nodes[taskID]; !exists {
 		dg.nodes[taskID] = &DependencyNode{
@@ -398,9 +398,9 @@ func (dg *DependencyGraph) AddTask(taskID string, dependencies []string, depende
 			Dependents:   make([]*DependencyNode, 0),
 		}
 	}
-	
+
 	node := dg.nodes[taskID]
-	
+
 	// Add dependencies
 	for _, depID := range dependencies {
 		if _, exists := dg.nodes[depID]; !exists {
@@ -410,12 +410,12 @@ func (dg *DependencyGraph) AddTask(taskID string, dependencies []string, depende
 				Dependents:   make([]*DependencyNode, 0),
 			}
 		}
-		
+
 		depNode := dg.nodes[depID]
 		node.Dependencies = append(node.Dependencies, depNode)
 		depNode.Dependents = append(depNode.Dependents, node)
 	}
-	
+
 	// Add dependents
 	for _, depID := range dependents {
 		if _, exists := dg.nodes[depID]; !exists {
@@ -425,7 +425,7 @@ func (dg *DependencyGraph) AddTask(taskID string, dependencies []string, depende
 				Dependents:   make([]*DependencyNode, 0),
 			}
 		}
-		
+
 		depNode := dg.nodes[depID]
 		node.Dependents = append(node.Dependents, depNode)
 		depNode.Dependencies = append(depNode.Dependencies, node)
@@ -436,25 +436,25 @@ func (dg *DependencyGraph) AddTask(taskID string, dependencies []string, depende
 func (dg *DependencyGraph) AreDependenciesSatisfied(taskID string) bool {
 	dg.mutex.RLock()
 	defer dg.mutex.RUnlock()
-	
+
 	node, exists := dg.nodes[taskID]
 	if !exists {
 		return true // No dependencies
 	}
-	
+
 	node.mutex.RLock()
 	defer node.mutex.RUnlock()
-	
+
 	for _, dep := range node.Dependencies {
 		dep.mutex.RLock()
 		completed := dep.Completed && !dep.Failed
 		dep.mutex.RUnlock()
-		
+
 		if !completed {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -462,15 +462,15 @@ func (dg *DependencyGraph) AreDependenciesSatisfied(taskID string) bool {
 func (dg *DependencyGraph) MarkTaskCompleted(taskID string, success bool) {
 	dg.mutex.Lock()
 	defer dg.mutex.Unlock()
-	
+
 	node, exists := dg.nodes[taskID]
 	if !exists {
 		return
 	}
-	
+
 	node.mutex.Lock()
 	defer node.mutex.Unlock()
-	
+
 	node.Completed = true
 	node.Failed = !success
 }
@@ -479,9 +479,9 @@ func (dg *DependencyGraph) MarkTaskCompleted(taskID string, success bool) {
 func (dg *DependencyGraph) GetReadyTasks() []string {
 	dg.mutex.RLock()
 	defer dg.mutex.RUnlock()
-	
+
 	ready := make([]string, 0)
-	
+
 	for taskID, node := range dg.nodes {
 		node.mutex.RLock()
 		if !node.Completed && !node.Failed && dg.areDependenciesSatisfiedUnsafe(node) {
@@ -489,7 +489,7 @@ func (dg *DependencyGraph) GetReadyTasks() []string {
 		}
 		node.mutex.RUnlock()
 	}
-	
+
 	return ready
 }
 
@@ -499,7 +499,7 @@ func (dg *DependencyGraph) areDependenciesSatisfiedUnsafe(node *DependencyNode) 
 		dep.mutex.RLock()
 		completed := dep.Completed && !dep.Failed
 		dep.mutex.RUnlock()
-		
+
 		if !completed {
 			return false
 		}
@@ -511,15 +511,15 @@ func (dg *DependencyGraph) areDependenciesSatisfiedUnsafe(node *DependencyNode) 
 func (dg *DependencyGraph) GetTaskStatus(taskID string) (completed bool, failed bool, exists bool) {
 	dg.mutex.RLock()
 	defer dg.mutex.RUnlock()
-	
+
 	node, exists := dg.nodes[taskID]
 	if !exists {
 		return false, false, false
 	}
-	
+
 	node.mutex.RLock()
 	defer node.mutex.RUnlock()
-	
+
 	return node.Completed, node.Failed, true
 }
 
@@ -557,12 +557,12 @@ func NewLoadBalancer(logger logr.Logger) *LoadBalancer {
 		poolMetrics: make(map[string]*PoolMetrics),
 		logger:      logger.WithName("load-balancer"),
 	}
-	
+
 	// Register load balancing strategies
 	lb.strategies["round_robin"] = NewRoundRobinLoadBalancer()
 	lb.strategies["least_connections"] = NewLeastConnectionsLoadBalancer()
 	lb.strategies["weighted_response_time"] = NewWeightedResponseTimeLoadBalancer()
-	
+
 	return lb
 }
 
@@ -571,11 +571,11 @@ func (lb *LoadBalancer) SelectPool(pools map[string]*WorkerPool, task *Task) (st
 	lb.mutex.RLock()
 	strategy := lb.strategies[lb.current]
 	lb.mutex.RUnlock()
-	
+
 	if strategy == nil {
 		return "", fmt.Errorf("no load balancing strategy configured")
 	}
-	
+
 	return strategy.SelectPool(pools, task)
 }
 
@@ -583,9 +583,9 @@ func (lb *LoadBalancer) SelectPool(pools map[string]*WorkerPool, task *Task) (st
 func (lb *LoadBalancer) UpdatePoolMetrics(poolName string, metrics *PoolMetrics) {
 	lb.mutex.Lock()
 	defer lb.mutex.Unlock()
-	
+
 	lb.poolMetrics[poolName] = metrics
-	
+
 	// Update strategy metrics
 	for _, strategy := range lb.strategies {
 		strategy.UpdateMetrics(poolName, metrics)
@@ -612,19 +612,19 @@ func NewRoundRobinLoadBalancer() *RoundRobinLoadBalancer {
 func (rr *RoundRobinLoadBalancer) SelectPool(pools map[string]*WorkerPool, task *Task) (string, error) {
 	rr.mutex.Lock()
 	defer rr.mutex.Unlock()
-	
+
 	if len(pools) == 0 {
 		return "", fmt.Errorf("no pools available")
 	}
-	
+
 	poolNames := make([]string, 0, len(pools))
 	for name := range pools {
 		poolNames = append(poolNames, name)
 	}
-	
+
 	selected := poolNames[rr.counter%len(poolNames)]
 	rr.counter++
-	
+
 	return selected, nil
 }
 
@@ -655,10 +655,10 @@ func (lc *LeastConnectionsLoadBalancer) SelectPool(pools map[string]*WorkerPool,
 	if len(pools) == 0 {
 		return "", fmt.Errorf("no pools available")
 	}
-	
+
 	var bestPool string
 	minConnections := int32(-1)
-	
+
 	for name, pool := range pools {
 		connections := pool.activeWorkers
 		if minConnections == -1 || connections < minConnections {
@@ -666,7 +666,7 @@ func (lc *LeastConnectionsLoadBalancer) SelectPool(pools map[string]*WorkerPool,
 			bestPool = name
 		}
 	}
-	
+
 	return bestPool, nil
 }
 
@@ -699,33 +699,33 @@ func NewWeightedResponseTimeLoadBalancer() *WeightedResponseTimeLoadBalancer {
 func (wrt *WeightedResponseTimeLoadBalancer) SelectPool(pools map[string]*WorkerPool, task *Task) (string, error) {
 	wrt.mutex.RLock()
 	defer wrt.mutex.RUnlock()
-	
+
 	if len(pools) == 0 {
 		return "", fmt.Errorf("no pools available")
 	}
-	
+
 	var bestPool string
 	bestWeight := float64(-1)
-	
+
 	for name := range pools {
 		weight, exists := wrt.poolWeights[name]
 		if !exists {
 			weight = 1.0 // Default weight
 		}
-		
+
 		if bestWeight == -1 || weight > bestWeight {
 			bestWeight = weight
 			bestPool = name
 		}
 	}
-	
+
 	if bestPool == "" {
 		// Fallback to first pool
 		for name := range pools {
 			return name, nil
 		}
 	}
-	
+
 	return bestPool, nil
 }
 
@@ -738,7 +738,7 @@ func (wrt *WeightedResponseTimeLoadBalancer) GetStrategyName() string {
 func (wrt *WeightedResponseTimeLoadBalancer) UpdateMetrics(poolName string, metrics *PoolMetrics) {
 	wrt.mutex.Lock()
 	defer wrt.mutex.Unlock()
-	
+
 	// Calculate weight based on response time (inverse relationship)
 	if metrics.AverageLatency > 0 {
 		weight := 1.0 / metrics.AverageLatency.Seconds()

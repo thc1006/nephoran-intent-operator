@@ -40,18 +40,18 @@ import (
 // Extends the existing NetworkIntent controller to leverage Porch for package orchestration
 type NetworkIntentPackageReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	Logger             logr.Logger
-	
+	Scheme *runtime.Scheme
+	Logger logr.Logger
+
 	// Core components
-	PackageManager     PackageRevisionManager
-	TemplateEngine     templates.TemplateEngine
-	YANGValidator      yang.YANGValidator
-	PorchClient        porch.PorchClient
-	LifecycleManager   porch.LifecycleManager
-	
+	PackageManager   PackageRevisionManager
+	TemplateEngine   templates.TemplateEngine
+	YANGValidator    yang.YANGValidator
+	PorchClient      porch.PorchClient
+	LifecycleManager porch.LifecycleManager
+
 	// Configuration
-	Config             *IntegrationConfig
+	Config *IntegrationConfig
 }
 
 // IntegrationConfig contains configuration for NetworkIntent-PackageRevision integration
@@ -61,92 +61,92 @@ type IntegrationConfig struct {
 	AutoPromoteToPublished   bool          `yaml:"autoPromoteToPublished"`
 	AutoCreateRollbackPoints bool          `yaml:"autoCreateRollbackPoints"`
 	DefaultTransitionTimeout time.Duration `yaml:"defaultTransitionTimeout"`
-	
+
 	// Validation settings
-	RequireYANGValidation    bool     `yaml:"requireYangValidation"`
-	RequiredApprovals        int      `yaml:"requiredApprovals"`
-	ValidationModels         []string `yaml:"validationModels"`
-	
+	RequireYANGValidation bool     `yaml:"requireYangValidation"`
+	RequiredApprovals     int      `yaml:"requiredApprovals"`
+	ValidationModels      []string `yaml:"validationModels"`
+
 	// Template settings
-	PreferredTemplateVendors []string `yaml:"preferredTemplateVendors"`
-	EnableTemplateInheritance bool    `yaml:"enableTemplateInheritance"`
-	
+	PreferredTemplateVendors  []string `yaml:"preferredTemplateVendors"`
+	EnableTemplateInheritance bool     `yaml:"enableTemplateInheritance"`
+
 	// Error handling
-	FailureRetryCount        int           `yaml:"failureRetryCount"`
-	FailureRetryInterval     time.Duration `yaml:"failureRetryInterval"`
-	ContinueOnValidationError bool         `yaml:"continueOnValidationError"`
-	
+	FailureRetryCount         int           `yaml:"failureRetryCount"`
+	FailureRetryInterval      time.Duration `yaml:"failureRetryInterval"`
+	ContinueOnValidationError bool          `yaml:"continueOnValidationError"`
+
 	// Status reporting
-	UpdateStatusFrequency    time.Duration `yaml:"updateStatusFrequency"`
-	EnableDetailedStatus     bool          `yaml:"enableDetailedStatus"`
+	UpdateStatusFrequency time.Duration `yaml:"updateStatusFrequency"`
+	EnableDetailedStatus  bool          `yaml:"enableDetailedStatus"`
 }
 
 // NetworkIntentPackageStatus represents the extended status for NetworkIntent with PackageRevision integration
 type NetworkIntentPackageStatus struct {
 	// PackageRevision information
-	PackageReference     *porch.PackageReference        `json:"packageReference,omitempty"`
-	PackageLifecycle     porch.PackageRevisionLifecycle `json:"packageLifecycle,omitempty"`
-	PackageCreatedAt     *metav1.Time                   `json:"packageCreatedAt,omitempty"`
-	PackageLastUpdated   *metav1.Time                   `json:"packageLastUpdated,omitempty"`
-	
+	PackageReference   *porch.PackageReference        `json:"packageReference,omitempty"`
+	PackageLifecycle   porch.PackageRevisionLifecycle `json:"packageLifecycle,omitempty"`
+	PackageCreatedAt   *metav1.Time                   `json:"packageCreatedAt,omitempty"`
+	PackageLastUpdated *metav1.Time                   `json:"packageLastUpdated,omitempty"`
+
 	// Template information
-	UsedTemplate         string                         `json:"usedTemplate,omitempty"`
-	TemplateVersion      string                         `json:"templateVersion,omitempty"`
-	GeneratedResources   int                            `json:"generatedResources,omitempty"`
-	
+	UsedTemplate       string `json:"usedTemplate,omitempty"`
+	TemplateVersion    string `json:"templateVersion,omitempty"`
+	GeneratedResources int    `json:"generatedResources,omitempty"`
+
 	// Validation results
-	YANGValidationResult *ValidationSummary             `json:"yangValidationResult,omitempty"`
-	ApprovalStatus       *ApprovalStatusSummary         `json:"approvalStatus,omitempty"`
-	
+	YANGValidationResult *ValidationSummary     `json:"yangValidationResult,omitempty"`
+	ApprovalStatus       *ApprovalStatusSummary `json:"approvalStatus,omitempty"`
+
 	// Lifecycle tracking
-	TransitionHistory    []*TransitionHistoryEntry      `json:"transitionHistory,omitempty"`
-	PendingTransitions   []*PendingTransition           `json:"pendingTransitions,omitempty"`
-	
+	TransitionHistory  []*TransitionHistoryEntry `json:"transitionHistory,omitempty"`
+	PendingTransitions []*PendingTransition      `json:"pendingTransitions,omitempty"`
+
 	// Error tracking
-	LastError            string                         `json:"lastError,omitempty"`
-	ErrorCount           int                            `json:"errorCount,omitempty"`
-	LastErrorTime        *metav1.Time                   `json:"lastErrorTime,omitempty"`
-	
+	LastError     string       `json:"lastError,omitempty"`
+	ErrorCount    int          `json:"errorCount,omitempty"`
+	LastErrorTime *metav1.Time `json:"lastErrorTime,omitempty"`
+
 	// Performance metrics
-	ProcessingDuration   *metav1.Duration               `json:"processingDuration,omitempty"`
-	ValidationDuration   *metav1.Duration               `json:"validationDuration,omitempty"`
-	DeploymentDuration   *metav1.Duration               `json:"deploymentDuration,omitempty"`
+	ProcessingDuration *metav1.Duration `json:"processingDuration,omitempty"`
+	ValidationDuration *metav1.Duration `json:"validationDuration,omitempty"`
+	DeploymentDuration *metav1.Duration `json:"deploymentDuration,omitempty"`
 }
 
 // ValidationSummary provides a summary of YANG validation results
 type ValidationSummary struct {
-	Valid        bool      `json:"valid"`
-	ModelCount   int       `json:"modelCount"`
-	ErrorCount   int       `json:"errorCount"`
-	WarningCount int       `json:"warningCount"`
+	Valid        bool        `json:"valid"`
+	ModelCount   int         `json:"modelCount"`
+	ErrorCount   int         `json:"errorCount"`
+	WarningCount int         `json:"warningCount"`
 	ValidatedAt  metav1.Time `json:"validatedAt"`
 }
 
 // ApprovalStatusSummary provides a summary of approval workflow status
 type ApprovalStatusSummary struct {
-	Required          int    `json:"required"`
-	Received          int    `json:"received"`
-	Status            string `json:"status"` // pending, approved, rejected
-	LastApprovalTime  *metav1.Time `json:"lastApprovalTime,omitempty"`
+	Required         int          `json:"required"`
+	Received         int          `json:"received"`
+	Status           string       `json:"status"` // pending, approved, rejected
+	LastApprovalTime *metav1.Time `json:"lastApprovalTime,omitempty"`
 }
 
 // TransitionHistoryEntry tracks lifecycle transitions
 type TransitionHistoryEntry struct {
-	FromStage       porch.PackageRevisionLifecycle `json:"fromStage"`
-	ToStage         porch.PackageRevisionLifecycle `json:"toStage"`
-	TransitionTime  metav1.Time                    `json:"transitionTime"`
-	Duration        metav1.Duration                `json:"duration"`
-	Success         bool                           `json:"success"`
-	User            string                         `json:"user,omitempty"`
-	Reason          string                         `json:"reason,omitempty"`
+	FromStage      porch.PackageRevisionLifecycle `json:"fromStage"`
+	ToStage        porch.PackageRevisionLifecycle `json:"toStage"`
+	TransitionTime metav1.Time                    `json:"transitionTime"`
+	Duration       metav1.Duration                `json:"duration"`
+	Success        bool                           `json:"success"`
+	User           string                         `json:"user,omitempty"`
+	Reason         string                         `json:"reason,omitempty"`
 }
 
 // PendingTransition tracks pending lifecycle transitions
 type PendingTransition struct {
-	ToStage         porch.PackageRevisionLifecycle `json:"toStage"`
-	ScheduledAt     metav1.Time                    `json:"scheduledAt"`
-	Prerequisites   []string                       `json:"prerequisites,omitempty"`
-	Timeout         *metav1.Duration               `json:"timeout,omitempty"`
+	ToStage       porch.PackageRevisionLifecycle `json:"toStage"`
+	ScheduledAt   metav1.Time                    `json:"scheduledAt"`
+	Prerequisites []string                       `json:"prerequisites,omitempty"`
+	Timeout       *metav1.Duration               `json:"timeout,omitempty"`
 }
 
 // SetupWithManager sets up the controller with the manager
@@ -344,10 +344,10 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 			intent.Status.Message = fmt.Sprintf("Failed to promote to Proposed: %v", err)
 			return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, err
 		}
-		
+
 		// Update status with transition result
 		r.updateStatusFromTransition(status, transitionResult)
-		
+
 		r.Logger.Info("Package promoted to Proposed",
 			"intent", intent.Name,
 			"package", status.PackageReference.GetPackageKey())
@@ -358,11 +358,11 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 		if status.ApprovalStatus == nil || status.ApprovalStatus.Status == "pending" {
 			// Approval workflow is pending
 			intent.Status.Phase = nephoranv1.NetworkIntentPhaseProcessing
-			intent.Status.Message = fmt.Sprintf("Waiting for approvals (%d/%d required)", 
+			intent.Status.Message = fmt.Sprintf("Waiting for approvals (%d/%d required)",
 				r.getReceivedApprovals(status), r.Config.RequiredApprovals)
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
-		
+
 		if status.ApprovalStatus.Status == "rejected" {
 			intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
 			intent.Status.Message = "Intent rejected during approval workflow"
@@ -371,28 +371,28 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 	}
 
 	// Auto-promote to Published if configured and approved
-	if r.Config.AutoPromoteToPublished && 
+	if r.Config.AutoPromoteToPublished &&
 		status.PackageLifecycle == porch.PackageRevisionLifecycleProposed &&
 		(r.Config.RequiredApprovals == 0 || status.ApprovalStatus.Status == "approved") {
-		
+
 		transitionResult, err := r.promotePackage(ctx, intent, status, porch.PackageRevisionLifecyclePublished)
 		if err != nil {
 			intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
 			intent.Status.Message = fmt.Sprintf("Failed to promote to Published: %v", err)
 			return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, err
 		}
-		
+
 		// Update status with transition result
 		r.updateStatusFromTransition(status, transitionResult)
-		
+
 		// Move to deploying phase
 		intent.Status.Phase = nephoranv1.NetworkIntentPhaseDeploying
 		intent.Status.Message = "Package published, starting deployment"
-		
+
 		r.Logger.Info("Package promoted to Published",
 			"intent", intent.Name,
 			"package", status.PackageReference.GetPackageKey())
-		
+
 		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
@@ -430,16 +430,16 @@ func (r *NetworkIntentPackageReconciler) handleDeployingIntent(ctx context.Conte
 			"intent", intent.Name,
 			"package", status.PackageReference.GetPackageKey())
 		return ctrl.Result{RequeueAfter: r.Config.UpdateStatusFrequency}, nil
-		
+
 	case "failed":
 		intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
 		intent.Status.Message = "Deployment failed"
 		return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, nil
-		
+
 	case "pending", "deploying":
 		intent.Status.Message = "Deployment in progress"
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-		
+
 	default:
 		intent.Status.Message = fmt.Sprintf("Unknown deployment status: %s", deploymentStatus)
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
@@ -461,7 +461,7 @@ func (r *NetworkIntentPackageReconciler) handleActiveIntent(ctx context.Context,
 				"intent", intent.Name,
 				"severity", driftResult.Severity,
 				"drifts", len(driftResult.DriftDetails))
-			
+
 			// Auto-correct drift if configured and safe
 			if driftResult.AutoCorrectible {
 				if err := r.PackageManager.CorrectConfigurationDrift(ctx, status.PackageReference, driftResult); err != nil {
@@ -488,19 +488,19 @@ func (r *NetworkIntentPackageReconciler) handleFailedIntent(ctx context.Context,
 			"intent", intent.Name,
 			"attempt", status.ErrorCount+1,
 			"maxRetries", r.Config.FailureRetryCount)
-		
+
 		// Reset to pending for retry
 		intent.Status.Phase = nephoranv1.NetworkIntentPhasePending
-		intent.Status.Message = fmt.Sprintf("Retrying intent processing (attempt %d/%d)", 
+		intent.Status.Message = fmt.Sprintf("Retrying intent processing (attempt %d/%d)",
 			status.ErrorCount+1, r.Config.FailureRetryCount)
-		
+
 		return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, nil
 	}
 
 	// Max retries exceeded, keep in failed state
-	intent.Status.Message = fmt.Sprintf("Intent failed after %d attempts. Last error: %s", 
+	intent.Status.Message = fmt.Sprintf("Intent failed after %d attempts. Last error: %s",
 		r.Config.FailureRetryCount, status.LastError)
-	
+
 	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil
 }
 
@@ -530,9 +530,9 @@ func (r *NetworkIntentPackageReconciler) handleIntentDeletion(ctx context.Contex
 		r.Logger.Info("Deleting associated PackageRevision",
 			"intent", namespacedName,
 			"package", status.PackageReference.GetPackageKey())
-		
+
 		if err := r.PackageManager.DeletePackageRevision(ctx, status.PackageReference); err != nil {
-			r.Logger.Error(err, "Failed to delete PackageRevision", 
+			r.Logger.Error(err, "Failed to delete PackageRevision",
 				"package", status.PackageReference.GetPackageKey())
 			// Continue with cleanup even if PackageRevision deletion fails
 		}
@@ -588,7 +588,7 @@ func (r *NetworkIntentPackageReconciler) updateExtendedStatus(ctx context.Contex
 
 func (r *NetworkIntentPackageReconciler) performYANGValidation(ctx context.Context, intent *nephoranv1.NetworkIntent, status *NetworkIntentPackageStatus) (*ValidationSummary, error) {
 	validationStart := time.Now()
-	
+
 	// Get PackageRevision for validation
 	pkg, err := r.PorchClient.GetPackageRevision(ctx, status.PackageReference.PackageName, status.PackageReference.Revision)
 	if err != nil {
@@ -633,7 +633,7 @@ func (r *NetworkIntentPackageReconciler) promotePackage(ctx context.Context, int
 	transitionOptions := &TransitionOptions{
 		CreateRollbackPoint: r.Config.AutoCreateRollbackPoints,
 		RollbackDescription: fmt.Sprintf("Auto-rollback point for %s", intent.Name),
-		Timeout:            r.Config.DefaultTransitionTimeout,
+		Timeout:             r.Config.DefaultTransitionTimeout,
 	}
 
 	var result *TransitionResult
@@ -663,11 +663,11 @@ func (r *NetworkIntentPackageReconciler) promotePackage(ctx context.Context, int
 func (r *NetworkIntentPackageReconciler) updateStatusFromTransition(status *NetworkIntentPackageStatus, result *TransitionResult) {
 	// Add transition to history
 	historyEntry := &TransitionHistoryEntry{
-		FromStage:       result.PreviousStage,
-		ToStage:         result.NewStage,
-		TransitionTime:  metav1.Time{Time: result.TransitionTime},
-		Duration:        metav1.Duration{Duration: result.Duration},
-		Success:         result.Success,
+		FromStage:      result.PreviousStage,
+		ToStage:        result.NewStage,
+		TransitionTime: metav1.Time{Time: result.TransitionTime},
+		Duration:       metav1.Duration{Duration: result.Duration},
+		Success:        result.Success,
 	}
 
 	if status.TransitionHistory == nil {

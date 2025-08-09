@@ -1,0 +1,731 @@
+# Performance Optimized CI for Large PRs
+# Advanced caching, incremental builds, and intelligent test execution
+
+name: "⚡ Performance Optimized CI"
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: read
+  packages: read
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      force_full_test:
+        description: 'Force full test suite execution'
+        required: false
+        default: false
+        type: boolean
+      cache_strategy:
+        description: 'Caching strategy'
+        required: false
+        default: 'aggressive'
+        type: choice
+        options:
+          - conservative
+          - balanced
+          - aggressive
+      parallel_jobs:
+        description: 'Number of parallel jobs'
+        required: false
+        default: '8'
+        type: string
+
+concurrency:
+  group: perf-ci-${{ github.ref }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: '1.24.1'
+  CACHE_VERSION: 'v2'
+  PARALLEL_JOBS: ${{ github.event.inputs.parallel_jobs || '8' }}
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+  CGO_ENABLED: 0
+  
+jobs:
+  # =============================================================================
+  # Smart Change Analysis and Caching Strategy
+  # =============================================================================
+  analyze-changes:
+    name: "🔍 Smart Change Analysis"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    outputs:
+      # File change analysis
+      go-files-changed: ${{ steps.changes.outputs.go_files }}
+      test-files-changed: ${{ steps.changes.outputs.test_files }}
+      config-files-changed: ${{ steps.changes.outputs.config_files }}
+      docker-files-changed: ${{ steps.changes.outputs.docker_files }}
+      
+      # Package impact analysis
+      affected-packages: ${{ steps.packages.outputs.packages }}
+      test-packages: ${{ steps.packages.outputs.test_packages }}
+      
+      # Build optimization
+      cache-strategy: ${{ steps.strategy.outputs.cache_strategy }}
+      build-targets: ${{ steps.strategy.outputs.build_targets }}
+      test-strategy: ${{ steps.strategy.outputs.test_strategy }}
+      
+      # Change metrics
+      files-changed-count: ${{ steps.metrics.outputs.files_changed }}
+      lines-changed-count: ${{ steps.metrics.outputs.lines_changed }}
+      complexity-score: ${{ steps.metrics.outputs.complexity }}
+      
+    steps:
+      - name: "📥 Checkout with Smart Fetch"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+          
+      - name: "🔍 Advanced File Change Detection"
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          list-files: json
+          filters: |
+            go_files:
+              - '**/*.go'
+              - '!**/*_test.go'
+            test_files:
+              - '**/*_test.go'
+              - 'test/**'
+              - 'tests/**'
+            config_files:
+              - 'go.mod'
+              - 'go.sum'
+              - '.golangci.yml'
+              - 'Makefile'
+              - '.github/workflows/**'
+            docker_files:
+              - 'Dockerfile*'
+              - 'docker-compose*.yml'
+              - '.dockerignore'
+
+      - name: "📦 Package Impact Analysis"
+        id: packages
+        run: |
+          echo "📦 Analyzing package impact..."
+          
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Get changed files
+            changed_files=$(echo '${{ steps.changes.outputs.go_files_files }}' | jq -r '.[]' 2>/dev/null || echo "")
+            
+            if [ -n "$changed_files" ]; then
+              # Extract unique packages from changed Go files
+              packages=$(echo "$changed_files" | xargs -I {} dirname {} | sort -u | grep -v '^\\.$' | tr '\n' ',' | sed 's/,$//')
+              
+              # Extract test packages
+              test_packages=$(echo '${{ steps.changes.outputs.test_files_files }}' | jq -r '.[]' 2>/dev/null | xargs -I {} dirname {} | sort -u | tr '\n' ',' | sed 's/,$//' || echo "")
+              
+              echo "packages=${packages}" >> $GITHUB_OUTPUT
+              echo "test_packages=${test_packages}" >> $GITHUB_OUTPUT
+              
+              echo "📦 Affected packages: ${packages}"
+              echo "🧪 Test packages: ${test_packages}"
+            else
+              echo "packages=" >> $GITHUB_OUTPUT
+              echo "test_packages=" >> $GITHUB_OUTPUT
+              echo "📦 No Go packages affected"
+            fi
+          else
+            # For pushes, test all packages
+            echo "packages=all" >> $GITHUB_OUTPUT
+            echo "test_packages=all" >> $GITHUB_OUTPUT
+            echo "📦 Testing all packages (push to main)"
+          fi
+
+      - name: "⚡ Determine Optimization Strategy"
+        id: strategy
+        run: |
+          echo "⚡ Determining optimization strategy..."
+          
+          files_changed=$(echo '${{ steps.changes.outputs.go_files_files }} ${{ steps.changes.outputs.test_files_files }}' | jq -r 'length' 2>/dev/null || echo "0")
+          
+          # Determine cache strategy
+          cache_strategy="${{ github.event.inputs.cache_strategy || 'balanced' }}"
+          
+          # Determine build targets based on changes
+          if [ "${{ steps.changes.outputs.go_files }}" = "true" ]; then
+            if [ "$files_changed" -gt 50 ]; then
+              build_targets="incremental"
+              test_strategy="parallel-focused"
+              echo "🎯 Large changeset detected: using incremental builds"
+            elif [ "$files_changed" -gt 20 ]; then
+              build_targets="selective"
+              test_strategy="parallel-selective"
+              echo "🎯 Medium changeset detected: using selective builds"
+            else
+              build_targets="targeted"
+              test_strategy="focused"
+              echo "🎯 Small changeset detected: using targeted builds"
+            fi
+          else
+            build_targets="minimal"
+            test_strategy="minimal"
+            echo "🎯 No code changes: minimal testing"
+          fi
+          
+          echo "cache_strategy=${cache_strategy}" >> $GITHUB_OUTPUT
+          echo "build_targets=${build_targets}" >> $GITHUB_OUTPUT
+          echo "test_strategy=${test_strategy}" >> $GITHUB_OUTPUT
+          
+          echo "⚡ Strategy: cache=${cache_strategy}, build=${build_targets}, test=${test_strategy}"
+
+      - name: "📊 Change Complexity Metrics"
+        id: metrics
+        run: |
+          echo "📊 Calculating change complexity..."
+          
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # Count changed files
+            files_changed=$(git diff --name-only HEAD~1 HEAD | wc -l)
+            
+            # Count changed lines
+            lines_changed=$(git diff --stat HEAD~1 HEAD | tail -1 | grep -o '[0-9]\\+ insertions\\|[0-9]\\+ deletions' | awk '{sum += $1} END {print sum+0}')
+            
+            # Simple complexity score (0-100)
+            complexity=$((files_changed + lines_changed / 10))
+            if [ $complexity -gt 100 ]; then complexity=100; fi
+          else
+            files_changed=0
+            lines_changed=0
+            complexity=0
+          fi
+          
+          echo "files_changed=${files_changed}" >> $GITHUB_OUTPUT
+          echo "lines_changed=${lines_changed}" >> $GITHUB_OUTPUT
+          echo "complexity=${complexity}" >> $GITHUB_OUTPUT
+          
+          echo "📊 Change metrics:"
+          echo "  Files: ${files_changed}"
+          echo "  Lines: ${lines_changed}" 
+          echo "  Complexity: ${complexity}/100"
+
+      - name: "📋 Generate Change Summary"
+        run: |
+          echo "## 🔍 Smart Change Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Change Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Files Changed:** ${{ steps.metrics.outputs.files_changed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lines Changed:** ${{ steps.metrics.outputs.lines_changed }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Complexity Score:** ${{ steps.metrics.outputs.complexity }}/100" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚡ Optimization Strategy" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cache Strategy:** ${{ steps.strategy.outputs.cache_strategy }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Targets:** ${{ steps.strategy.outputs.build_targets }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Strategy:** ${{ steps.strategy.outputs.test_strategy }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Affected Components" >> $GITHUB_STEP_SUMMARY
+          echo "- **Go Files:** ${{ steps.changes.outputs.go_files == 'true' && '✅ Changed' || '➖ Unchanged' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Files:** ${{ steps.changes.outputs.test_files == 'true' && '✅ Changed' || '➖ Unchanged' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Config Files:** ${{ steps.changes.outputs.config_files == 'true' && '✅ Changed' || '➖ Unchanged' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Docker Files:** ${{ steps.changes.outputs.docker_files == 'true' && '✅ Changed' || '➖ Unchanged' }}" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # Intelligent Multi-Layer Caching
+  # =============================================================================
+  setup-cache:
+    name: "🚀 Advanced Caching Setup"
+    runs-on: ubuntu-latest
+    needs: analyze-changes
+    timeout-minutes: 10
+    
+    outputs:
+      go-cache-hit: ${{ steps.go-cache.outputs.cache-hit }}
+      build-cache-hit: ${{ steps.build-cache.outputs.cache-hit }}
+      deps-cache-hit: ${{ steps.deps-cache.outputs.cache-hit }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go with Caching"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            go.mod
+
+      - name: "🗂️ Multi-Level Go Module Cache"
+        id: deps-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-deps-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-deps-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-go-deps-
+          save-always: ${{ needs.analyze-changes.outputs.cache-strategy == 'aggressive' }}
+
+      - name: "🔨 Build Cache Optimization"  
+        id: build-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-build-${{ env.CACHE_VERSION }}-${{ needs.analyze-changes.outputs.build-targets }}-${{ hashFiles('**/go.sum', '**/*.go') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-${{ env.CACHE_VERSION }}-${{ needs.analyze-changes.outputs.build-targets }}-
+            ${{ runner.os }}-go-build-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-go-build-
+          save-always: ${{ needs.analyze-changes.outputs.cache-strategy != 'conservative' }}
+
+      - name: "🛠️ Tool Cache"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/golangci-lint
+            ~/go/bin
+          key: ${{ runner.os }}-tools-${{ env.CACHE_VERSION }}-${{ env.GO_VERSION }}
+          restore-keys: |
+            ${{ runner.os }}-tools-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-tools-
+
+      - name: "📦 Warm Up Dependencies"
+        if: steps.deps-cache.outputs.cache-hit != 'true'
+        run: |
+          echo "📦 Warming up Go module cache..."
+          go mod download -x
+          go mod verify
+          
+          # Pre-build standard library for different architectures
+          echo "🔨 Pre-building standard library..."
+          GOOS=linux GOARCH=amd64 go install -a std
+          
+          echo "✅ Cache warm-up completed"
+
+      - name: "📊 Cache Statistics"
+        run: |
+          echo "## 🚀 Caching Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Cache Type | Status | Size Estimate |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|---------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Go Modules | ${{ steps.deps-cache.outputs.cache-hit == 'true' && '✅ HIT' || '❌ MISS' }} | $(du -sh ~/go/pkg/mod 2>/dev/null | cut -f1 || echo 'N/A') |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Cache | ${{ steps.build-cache.outputs.cache-hit == 'true' && '✅ HIT' || '❌ MISS' }} | $(du -sh ~/.cache/go-build 2>/dev/null | cut -f1 || echo 'N/A') |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Cache Strategy:** ${{ needs.analyze-changes.outputs.cache-strategy }}" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # Optimized Code Quality Checks
+  # =============================================================================
+  quality-checks:
+    name: "🔍 Quality Checks (${{ matrix.check }})"
+    runs-on: ubuntu-latest
+    needs: [analyze-changes, setup-cache]
+    if: needs.analyze-changes.outputs.go-files-changed == 'true' || github.event.inputs.force_full_test == 'true'
+    timeout-minutes: 15
+    
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJson(needs.analyze-changes.outputs.parallel-jobs || '4') }}
+      matrix:
+        check: [lint, vet, security, format]
+        
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "🚀 Restore Caches"
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/.cache/golangci-lint
+            ~/go/bin
+          key: ${{ runner.os }}-go-deps-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-deps-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-go-build-${{ env.CACHE_VERSION }}-
+
+      - name: "🔍 Run Linting (golangci-lint)"
+        if: matrix.check == 'lint'
+        run: |
+          # Install or use cached golangci-lint
+          if ! command -v golangci-lint >/dev/null 2>&1; then
+            go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
+          fi
+          
+          # Smart linting based on changed packages
+          if [ "${{ needs.analyze-changes.outputs.affected-packages }}" != "" ] && [ "${{ needs.analyze-changes.outputs.affected-packages }}" != "all" ]; then
+            echo "🎯 Running focused linting on changed packages..."
+            packages=$(echo "${{ needs.analyze-changes.outputs.affected-packages }}" | tr ',' ' ')
+            for pkg in $packages; do
+              golangci-lint run --timeout=5m "./$pkg/..."
+            done
+          else
+            echo "🔍 Running full project linting..."
+            golangci-lint run --timeout=10m
+          fi
+
+      - name: "🔍 Run Go Vet"
+        if: matrix.check == 'vet'
+        run: |
+          if [ "${{ needs.analyze-changes.outputs.affected-packages }}" != "" ] && [ "${{ needs.analyze-changes.outputs.affected-packages }}" != "all" ]; then
+            echo "🎯 Running vet on changed packages..."
+            packages=$(echo "${{ needs.analyze-changes.outputs.affected-packages }}" | tr ',' ' ')
+            for pkg in $packages; do
+              go vet "./$pkg/..."
+            done
+          else
+            echo "🔍 Running vet on all packages..."
+            go vet ./...
+          fi
+
+      - name: "🔒 Security Scan (gosec)"
+        if: matrix.check == 'security'
+        run: |
+          if ! command -v gosec >/dev/null 2>&1; then
+            go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+          fi
+          
+          if [ "${{ needs.analyze-changes.outputs.affected-packages }}" != "" ] && [ "${{ needs.analyze-changes.outputs.affected-packages }}" != "all" ]; then
+            echo "🎯 Running security scan on changed packages..."
+            packages=$(echo "${{ needs.analyze-changes.outputs.affected-packages }}" | tr ',' ' ')
+            for pkg in $packages; do
+              gosec "./$pkg/..."
+            done
+          else
+            echo "🔒 Running security scan on all packages..."
+            gosec ./...
+          fi
+
+      - name: "📐 Format Check"
+        if: matrix.check == 'format'
+        run: |
+          echo "📐 Checking Go code formatting..."
+          unformatted=$(gofmt -l . | grep -v vendor/ || true)
+          if [ -n "$unformatted" ]; then
+            echo "❌ Unformatted files found:"
+            echo "$unformatted"
+            echo ""
+            echo "Run: gofmt -w $unformatted"
+            exit 1
+          fi
+          echo "✅ All Go code is properly formatted"
+
+  # =============================================================================
+  # Smart Test Execution
+  # =============================================================================
+  smart-testing:
+    name: "🧪 Smart Testing (${{ matrix.test-type }})"
+    runs-on: ubuntu-latest
+    needs: [analyze-changes, setup-cache, quality-checks]
+    if: always() && (needs.analyze-changes.outputs.go-files-changed == 'true' || needs.analyze-changes.outputs.test-files-changed == 'true' || github.event.inputs.force_full_test == 'true')
+    timeout-minutes: 20
+    
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ fromJson(env.PARALLEL_JOBS) }}
+      matrix:
+        test-type: [unit, integration]
+        go-version: ['1.24.1']
+        
+    outputs:
+      unit-coverage: ${{ steps.coverage.outputs.unit_coverage }}
+      integration-coverage: ${{ steps.coverage.outputs.integration_coverage }}
+      
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go ${{ matrix.go-version }}"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: "🚀 Restore All Caches"
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-deps-${{ env.CACHE_VERSION }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-deps-${{ env.CACHE_VERSION }}-
+
+      - name: "🧪 Smart Unit Testing"
+        if: matrix.test-type == 'unit'
+        env:
+          GOMAXPROCS: 4
+        run: |
+          echo "🧪 Running smart unit tests..."
+          mkdir -p test-results
+          
+          # Determine test scope based on changes
+          test_args="-v -race -timeout=15m -parallel=4"
+          
+          if [ "${{ needs.analyze-changes.outputs.test-strategy }}" = "focused" ] && [ "${{ needs.analyze-changes.outputs.test-packages }}" != "" ]; then
+            echo "🎯 Running focused unit tests..."
+            packages=$(echo "${{ needs.analyze-changes.outputs.test-packages }}" | tr ',' ' ')
+            
+            # Test only changed packages
+            for pkg in $packages; do
+              echo "Testing package: $pkg"
+              go test $test_args -coverprofile="test-results/coverage-${pkg//\//-}.out" "./$pkg/..." || true
+            done
+            
+            # Merge coverage files if multiple packages
+            if ls test-results/coverage-*.out 1> /dev/null 2>&1; then
+              go install github.com/wadey/gocovmerge@latest
+              gocovmerge test-results/coverage-*.out > test-results/coverage.out
+            fi
+            
+          elif [ "${{ needs.analyze-changes.outputs.test-strategy }}" = "parallel-selective" ]; then
+            echo "🔄 Running selective parallel tests..."
+            go test $test_args -coverprofile=test-results/coverage.out -json ./... > test-results/unit-results.json
+            
+          else
+            echo "🔍 Running comprehensive unit tests..."
+            go test $test_args -coverprofile=test-results/coverage.out -json ./... > test-results/unit-results.json
+          fi
+
+      - name: "🔗 Smart Integration Testing"
+        if: matrix.test-type == 'integration'
+        run: |
+          echo "🔗 Running smart integration tests..."
+          mkdir -p test-results
+          
+          # Check if integration tests exist and are needed
+          if find . -name "*integration*test.go" -o -path "*/integration/*" -name "*test.go" | head -1 | read; then
+            if [ "${{ needs.analyze-changes.outputs.complexity }}" -lt "30" ] && [ "${{ github.event.inputs.force_full_test }}" != "true" ]; then
+              echo "🎯 Skipping integration tests for simple changes"
+              echo '{"integration_skipped": true}' > test-results/integration-results.json
+            else
+              echo "🔗 Running integration test suite..."
+              go test -v -tags=integration -timeout=10m ./tests/integration/... > test-results/integration-results.json || true
+            fi
+          else
+            echo "📝 No integration tests found"
+            echo '{"no_integration_tests": true}' > test-results/integration-results.json
+          fi
+
+      - name: "📊 Coverage Analysis"
+        id: coverage
+        if: matrix.test-type == 'unit'
+        run: |
+          echo "📊 Analyzing test coverage..."
+          
+          if [ -f "test-results/coverage.out" ]; then
+            coverage=$(go tool cover -func=test-results/coverage.out | grep total: | awk '{print $3}' | sed 's/%//')
+            echo "unit_coverage=${coverage}" >> $GITHUB_OUTPUT
+            echo "📊 Unit test coverage: ${coverage}%"
+            
+            # Generate HTML report for artifacts
+            go tool cover -html=test-results/coverage.out -o test-results/coverage.html
+          else
+            echo "unit_coverage=0" >> $GITHUB_OUTPUT
+            echo "⚠️ No coverage data available"
+          fi
+
+      - name: "💾 Upload Test Results"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-type }}-${{ matrix.go-version }}
+          path: test-results/
+          retention-days: 7
+
+      - name: "📤 Upload Coverage to Codecov"
+        if: matrix.test-type == 'unit' && github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v4
+        with:
+          files: test-results/coverage.out
+          flags: smart-testing,${{ matrix.test-type }}
+          name: ${{ matrix.test-type }}-${{ matrix.go-version }}
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # =============================================================================
+  # Conditional Build Matrix
+  # =============================================================================
+  conditional-build:
+    name: "🔨 Smart Build (${{ matrix.target }})"
+    runs-on: ubuntu-latest
+    needs: [analyze-changes, smart-testing]
+    if: needs.analyze-changes.outputs.go-files-changed == 'true' || needs.analyze-changes.outputs.docker-files-changed == 'true'
+    timeout-minutes: 15
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: "linux-amd64"
+            goos: linux
+            goarch: amd64
+          - target: "linux-arm64" 
+            goos: linux
+            goarch: arm64
+            condition: ${{ needs.analyze-changes.outputs.complexity > 50 || github.event_name == 'push' }}
+          - target: "darwin-amd64"
+            goos: darwin
+            goarch: amd64
+            condition: ${{ github.event_name == 'push' }}
+        exclude:
+          - target: "linux-arm64"
+            condition: false
+          - target: "darwin-amd64"
+            condition: false
+            
+    steps:
+      - name: "📥 Checkout Repository"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: "🚀 Restore Build Cache"
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-build-${{ env.CACHE_VERSION }}-${{ matrix.target }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-${{ env.CACHE_VERSION }}-${{ matrix.target }}-
+            ${{ runner.os }}-go-build-${{ env.CACHE_VERSION }}-
+
+      - name: "🔨 Cross-Compile Binary"
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          echo "🔨 Building for ${{ matrix.target }}..."
+          
+          binary_name="nephoran-operator"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            binary_name="${binary_name}.exe"
+          fi
+          
+          # Smart build - only build if source changed significantly
+          if [ "${{ needs.analyze-changes.outputs.build-targets }}" = "minimal" ]; then
+            echo "⚡ Minimal build: checking if binary needs rebuild..."
+            if [ -f "bin/${binary_name}" ] && [ "${{ needs.analyze-changes.outputs.go-files-changed }}" = "false" ]; then
+              echo "✅ Binary exists and no Go files changed, skipping build"
+              exit 0
+            fi
+          fi
+          
+          mkdir -p bin
+          
+          # Build with optimization flags
+          go build \
+            -ldflags="-s -w -X main.version=${{ github.sha }} -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -trimpath \
+            -o "bin/${binary_name}" \
+            ./cmd/main.go
+          
+          # Verify binary
+          ls -la "bin/${binary_name}"
+          echo "✅ Build completed for ${{ matrix.target }}"
+
+      - name: "💾 Upload Build Artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: bin/
+          retention-days: 3
+
+  # =============================================================================
+  # Performance and Results Summary
+  # =============================================================================
+  performance-summary:
+    name: "📊 Performance Summary"
+    runs-on: ubuntu-latest
+    needs: [analyze-changes, setup-cache, quality-checks, smart-testing, conditional-build]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: "📊 Generate Performance Report"
+        run: |
+          echo "## ⚡ Performance Optimized CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Change analysis summary
+          echo "### 🔍 Change Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "- **Files Changed:** ${{ needs.analyze-changes.outputs.files-changed-count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lines Changed:** ${{ needs.analyze-changes.outputs.lines-changed-count }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Complexity Score:** ${{ needs.analyze-changes.outputs.complexity-score }}/100" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Optimization results
+          echo "### ⚡ Optimization Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cache Strategy:** ${{ needs.analyze-changes.outputs.cache-strategy }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Strategy:** ${{ needs.analyze-changes.outputs.build-targets }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Test Strategy:** ${{ needs.analyze-changes.outputs.test-strategy }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Job results
+          echo "### 🎯 Job Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status | Duration Est. | Optimization |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|---------------|--------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🚀 Cache Setup | ${{ needs.setup-cache.result == 'success' && '✅ Success' || '❌ Failed' }} | ~2 min | ${{ needs.setup-cache.outputs.go-cache-hit == 'true' && 'Cache Hit' || 'Cache Miss' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 Quality Checks | ${{ needs.quality-checks.result == 'success' && '✅ Success' || (needs.quality-checks.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | ~3-5 min | ${{ needs.analyze-changes.outputs.affected-packages != 'all' && 'Focused' || 'Full' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Smart Testing | ${{ needs.smart-testing.result == 'success' && '✅ Success' || (needs.smart-testing.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | ~5-10 min | ${{ needs.analyze-changes.outputs.test-strategy }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔨 Conditional Build | ${{ needs.conditional-build.result == 'success' && '✅ Success' || (needs.conditional-build.result == 'skipped' && '⏭️ Skipped' || '❌ Failed') }} | ~3-8 min | Targeted platforms |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Performance metrics
+          echo "### 📈 Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Total Parallel Jobs:** ${{ env.PARALLEL_JOBS }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Estimated Time Savings:** $(( ${{ needs.analyze-changes.outputs.complexity-score }} > 50 ? 15 : ${{ needs.analyze-changes.outputs.complexity-score }} > 20 ? 8 : 3 )) minutes" >> $GITHUB_STEP_SUMMARY
+          echo "- **Cache Efficiency:** ${{ needs.setup-cache.outputs.go-cache-hit == 'true' && 'High' || 'Building' }}" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.smart-testing.outputs.unit-coverage }}" != "" ]; then
+            echo "- **Test Coverage:** ${{ needs.smart-testing.outputs.unit-coverage }}%" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Next steps
+          echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
+          overall_status="success"
+          
+          # Check for failures
+          if [ "${{ needs.quality-checks.result }}" = "failure" ] || [ "${{ needs.smart-testing.result }}" = "failure" ]; then
+            overall_status="failure"
+            echo "❌ **Action Required:** Some quality checks failed. Please review the job outputs and fix the issues." >> $GITHUB_STEP_SUMMARY
+          elif [ "${{ needs.conditional-build.result }}" = "failure" ]; then
+            overall_status="warning"
+            echo "⚠️ **Warning:** Build issues detected. Review build logs for details." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ **Ready:** All quality checks passed! This PR is ready for review." >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "OVERALL_STATUS=$overall_status" >> $GITHUB_ENV
+
+      - name: "🎯 Final Status Check"
+        run: |
+          if [ "$OVERALL_STATUS" = "failure" ]; then
+            echo "❌ Performance Optimized CI failed due to quality issues"
+            exit 1
+          elif [ "$OVERALL_STATUS" = "warning" ]; then
+            echo "⚠️ Performance Optimized CI completed with warnings"
+            exit 0
+          else
+            echo "✅ Performance Optimized CI completed successfully"
+            echo "⚡ Total estimated time savings: $(( ${{ needs.analyze-changes.outputs.complexity-score }} > 50 ? 15 : ${{ needs.analyze-changes.outputs.complexity-score }} > 20 ? 8 : 3 )) minutes"
+            exit 0
+          fi

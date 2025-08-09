@@ -76,8 +76,8 @@ type YANGValidator interface {
 // yangValidator implements comprehensive YANG model validation
 type yangValidator struct {
 	// Core dependencies
-	logger    logr.Logger
-	metrics   *ValidatorMetrics
+	logger  logr.Logger
+	metrics *ValidatorMetrics
 
 	// Model storage and compilation
 	models         map[string]*YANGModel
@@ -100,40 +100,40 @@ type yangValidator struct {
 // YANGModel represents a YANG model with metadata and content
 type YANGModel struct {
 	// Model identification
-	Name       string    `json:"name"`
-	Namespace  string    `json:"namespace"`
-	Prefix     string    `json:"prefix"`
-	Version    string    `json:"version,omitempty"`
-	Revision   string    `json:"revision,omitempty"`
-	
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Prefix    string `json:"prefix"`
+	Version   string `json:"version,omitempty"`
+	Revision  string `json:"revision,omitempty"`
+
 	// Model metadata
-	Organization string    `json:"organization,omitempty"`
-	Contact      string    `json:"contact,omitempty"`
-	Description  string    `json:"description,omitempty"`
-	Reference    string    `json:"reference,omitempty"`
-	
+	Organization string `json:"organization,omitempty"`
+	Contact      string `json:"contact,omitempty"`
+	Description  string `json:"description,omitempty"`
+	Reference    string `json:"reference,omitempty"`
+
 	// Model content
-	Content      string    `json:"content"`
-	Language     string    `json:"language"` // yang, yin
-	Encoding     string    `json:"encoding"` // utf-8, etc.
-	
+	Content  string `json:"content"`
+	Language string `json:"language"` // yang, yin
+	Encoding string `json:"encoding"` // utf-8, etc.
+
 	// Model structure
-	Imports      []string  `json:"imports,omitempty"`
-	Includes     []string  `json:"includes,omitempty"`
-	Extensions   []string  `json:"extensions,omitempty"`
-	Features     []string  `json:"features,omitempty"`
-	
+	Imports    []string `json:"imports,omitempty"`
+	Includes   []string `json:"includes,omitempty"`
+	Extensions []string `json:"extensions,omitempty"`
+	Features   []string `json:"features,omitempty"`
+
 	// Validation metadata
-	LoadedAt     time.Time `json:"loadedAt"`
-	Source       string    `json:"source"` // file, repository, inline
-	SourcePath   string    `json:"sourcePath,omitempty"`
-	Hash         string    `json:"hash"`
-	
+	LoadedAt   time.Time `json:"loadedAt"`
+	Source     string    `json:"source"` // file, repository, inline
+	SourcePath string    `json:"sourcePath,omitempty"`
+	Hash       string    `json:"hash"`
+
 	// Model classification
-	Category     ModelCategory `json:"category"`
-	Standard     string        `json:"standard"` // O-RAN, 3GPP, IETF, IEEE
-	Domain       string        `json:"domain"`   // radio, core, transport, management
-	
+	Category ModelCategory `json:"category"`
+	Standard string        `json:"standard"` // O-RAN, 3GPP, IETF, IEEE
+	Domain   string        `json:"domain"`   // radio, core, transport, management
+
 	// Compilation status
 	Compiled     bool          `json:"compiled"`
 	CompileError string        `json:"compileError,omitempty"`
@@ -145,11 +145,11 @@ type ModelCategory string
 
 const (
 	ModelCategoryConfiguration ModelCategory = "configuration"
-	ModelCategoryState        ModelCategory = "state"
-	ModelCategoryNotification ModelCategory = "notification"
-	ModelCategoryRPC          ModelCategory = "rpc"
-	ModelCategoryAction       ModelCategory = "action"
-	ModelCategoryAugment      ModelCategory = "augment"
+	ModelCategoryState         ModelCategory = "state"
+	ModelCategoryNotification  ModelCategory = "notification"
+	ModelCategoryRPC           ModelCategory = "rpc"
+	ModelCategoryAction        ModelCategory = "action"
+	ModelCategoryAugment       ModelCategory = "augment"
 )
 
 // Dependency represents a model dependency
@@ -174,56 +174,56 @@ type CompiledModel struct {
 
 // ModelSchema represents the parsed schema of a YANG model
 type ModelSchema struct {
-	RootNodes     []*SchemaNode    `json:"rootNodes"`
+	RootNodes     []*SchemaNode     `json:"rootNodes"`
 	Typedefs      []*TypeDefinition `json:"typedefs"`
-	Groupings     []*Grouping      `json:"groupings"`
-	Extensions    []*Extension     `json:"extensions"`
-	Features      []*Feature       `json:"features"`
-	Identities    []*Identity      `json:"identities"`
-	RPCs          []*RPC           `json:"rpcs,omitempty"`
-	Notifications []*Notification  `json:"notifications,omitempty"`
-	Actions       []*Action        `json:"actions,omitempty"`
+	Groupings     []*Grouping       `json:"groupings"`
+	Extensions    []*Extension      `json:"extensions"`
+	Features      []*Feature        `json:"features"`
+	Identities    []*Identity       `json:"identities"`
+	RPCs          []*RPC            `json:"rpcs,omitempty"`
+	Notifications []*Notification   `json:"notifications,omitempty"`
+	Actions       []*Action         `json:"actions,omitempty"`
 }
 
 // SchemaNode represents a node in the YANG schema tree
 type SchemaNode struct {
-	Name         string            `json:"name"`
-	QName        string            `json:"qname"` // qualified name
-	Type         NodeType          `json:"type"`
-	DataType     *DataType         `json:"dataType,omitempty"`
-	Description  string            `json:"description,omitempty"`
-	Reference    string            `json:"reference,omitempty"`
-	Status       NodeStatus        `json:"status"`
-	Config       bool              `json:"config"`
-	Mandatory    bool              `json:"mandatory"`
-	MinElements  *uint64           `json:"minElements,omitempty"`
-	MaxElements  *uint64           `json:"maxElements,omitempty"`
-	OrderedBy    string            `json:"orderedBy,omitempty"`
-	Key          []string          `json:"key,omitempty"`
-	UniqueKeys   [][]string        `json:"uniqueKeys,omitempty"`
-	DefaultValue interface{}       `json:"defaultValue,omitempty"`
-	Units        string            `json:"units,omitempty"`
-	Children     []*SchemaNode     `json:"children,omitempty"`
-	Constraints  []*NodeConstraint `json:"constraints,omitempty"`
-	Extensions   []*ExtensionUsage `json:"extensions,omitempty"`
-	IfFeatures   []string          `json:"ifFeatures,omitempty"`
-	WhenCondition string           `json:"whenCondition,omitempty"`
-	MustConditions []string        `json:"mustConditions,omitempty"`
+	Name           string            `json:"name"`
+	QName          string            `json:"qname"` // qualified name
+	Type           NodeType          `json:"type"`
+	DataType       *DataType         `json:"dataType,omitempty"`
+	Description    string            `json:"description,omitempty"`
+	Reference      string            `json:"reference,omitempty"`
+	Status         NodeStatus        `json:"status"`
+	Config         bool              `json:"config"`
+	Mandatory      bool              `json:"mandatory"`
+	MinElements    *uint64           `json:"minElements,omitempty"`
+	MaxElements    *uint64           `json:"maxElements,omitempty"`
+	OrderedBy      string            `json:"orderedBy,omitempty"`
+	Key            []string          `json:"key,omitempty"`
+	UniqueKeys     [][]string        `json:"uniqueKeys,omitempty"`
+	DefaultValue   interface{}       `json:"defaultValue,omitempty"`
+	Units          string            `json:"units,omitempty"`
+	Children       []*SchemaNode     `json:"children,omitempty"`
+	Constraints    []*NodeConstraint `json:"constraints,omitempty"`
+	Extensions     []*ExtensionUsage `json:"extensions,omitempty"`
+	IfFeatures     []string          `json:"ifFeatures,omitempty"`
+	WhenCondition  string            `json:"whenCondition,omitempty"`
+	MustConditions []string          `json:"mustConditions,omitempty"`
 }
 
 // NodeType defines the type of a schema node
 type NodeType string
 
 const (
-	NodeTypeContainer     NodeType = "container"
-	NodeTypeLeaf         NodeType = "leaf"
-	NodeTypeLeafList     NodeType = "leaf-list"
-	NodeTypeList         NodeType = "list"
-	NodeTypeChoice       NodeType = "choice"
-	NodeTypeCase         NodeType = "case"
-	NodeTypeAnydata      NodeType = "anydata"
-	NodeTypeAnyxml       NodeType = "anyxml"
-	NodeTypeUses         NodeType = "uses"
+	NodeTypeContainer NodeType = "container"
+	NodeTypeLeaf      NodeType = "leaf"
+	NodeTypeLeafList  NodeType = "leaf-list"
+	NodeTypeList      NodeType = "list"
+	NodeTypeChoice    NodeType = "choice"
+	NodeTypeCase      NodeType = "case"
+	NodeTypeAnydata   NodeType = "anydata"
+	NodeTypeAnyxml    NodeType = "anyxml"
+	NodeTypeUses      NodeType = "uses"
 )
 
 // NodeStatus defines the status of a schema node
@@ -237,46 +237,46 @@ const (
 
 // DataType represents a YANG data type
 type DataType struct {
-	Name         string            `json:"name"`
-	BaseType     string            `json:"baseType"`
-	Constraints  []*TypeConstraint `json:"constraints,omitempty"`
-	Patterns     []string          `json:"patterns,omitempty"`
-	Enums        []*EnumValue      `json:"enums,omitempty"`
-	Bits         []*BitValue       `json:"bits,omitempty"`
-	Range        *RangeConstraint  `json:"range,omitempty"`
-	Length       *LengthConstraint `json:"length,omitempty"`
-	Path         string            `json:"path,omitempty"` // for leafref
-	UnionTypes   []*DataType       `json:"unionTypes,omitempty"`
-	FractionDigits int             `json:"fractionDigits,omitempty"`
-	RequireInstance bool            `json:"requireInstance,omitempty"`
+	Name            string            `json:"name"`
+	BaseType        string            `json:"baseType"`
+	Constraints     []*TypeConstraint `json:"constraints,omitempty"`
+	Patterns        []string          `json:"patterns,omitempty"`
+	Enums           []*EnumValue      `json:"enums,omitempty"`
+	Bits            []*BitValue       `json:"bits,omitempty"`
+	Range           *RangeConstraint  `json:"range,omitempty"`
+	Length          *LengthConstraint `json:"length,omitempty"`
+	Path            string            `json:"path,omitempty"` // for leafref
+	UnionTypes      []*DataType       `json:"unionTypes,omitempty"`
+	FractionDigits  int               `json:"fractionDigits,omitempty"`
+	RequireInstance bool              `json:"requireInstance,omitempty"`
 }
 
 // TypeConstraint represents a constraint on a data type
 type TypeConstraint struct {
-	Type        string      `json:"type"`
-	Value       interface{} `json:"value"`
-	Description string      `json:"description,omitempty"`
-	ErrorMessage string     `json:"errorMessage,omitempty"`
+	Type         string      `json:"type"`
+	Value        interface{} `json:"value"`
+	Description  string      `json:"description,omitempty"`
+	ErrorMessage string      `json:"errorMessage,omitempty"`
 }
 
 // EnumValue represents an enumeration value
 type EnumValue struct {
-	Name        string `json:"name"`
-	Value       *int64 `json:"value,omitempty"`
-	Description string `json:"description,omitempty"`
-	Reference   string `json:"reference,omitempty"`
+	Name        string     `json:"name"`
+	Value       *int64     `json:"value,omitempty"`
+	Description string     `json:"description,omitempty"`
+	Reference   string     `json:"reference,omitempty"`
 	Status      NodeStatus `json:"status"`
-	IfFeatures  []string `json:"ifFeatures,omitempty"`
+	IfFeatures  []string   `json:"ifFeatures,omitempty"`
 }
 
 // BitValue represents a bit in a bits type
 type BitValue struct {
-	Name        string `json:"name"`
-	Position    uint32 `json:"position"`
-	Description string `json:"description,omitempty"`
-	Reference   string `json:"reference,omitempty"`
+	Name        string     `json:"name"`
+	Position    uint32     `json:"position"`
+	Description string     `json:"description,omitempty"`
+	Reference   string     `json:"reference,omitempty"`
 	Status      NodeStatus `json:"status"`
-	IfFeatures  []string `json:"ifFeatures,omitempty"`
+	IfFeatures  []string   `json:"ifFeatures,omitempty"`
 }
 
 // RangeConstraint represents a range constraint
@@ -319,20 +319,20 @@ type NodeConstraint struct {
 type ConstraintType string
 
 const (
-	ConstraintTypeMust  ConstraintType = "must"
-	ConstraintTypeWhen  ConstraintType = "when"
+	ConstraintTypeMust   ConstraintType = "must"
+	ConstraintTypeWhen   ConstraintType = "when"
 	ConstraintTypeUnique ConstraintType = "unique"
 )
 
 // TypeDefinition represents a typedef statement
 type TypeDefinition struct {
-	Name        string    `json:"name"`
-	Type        *DataType `json:"type"`
-	Description string    `json:"description,omitempty"`
-	Reference   string    `json:"reference,omitempty"`
-	Status      NodeStatus `json:"status"`
+	Name         string      `json:"name"`
+	Type         *DataType   `json:"type"`
+	Description  string      `json:"description,omitempty"`
+	Reference    string      `json:"reference,omitempty"`
+	Status       NodeStatus  `json:"status"`
 	DefaultValue interface{} `json:"defaultValue,omitempty"`
-	Units       string    `json:"units,omitempty"`
+	Units        string      `json:"units,omitempty"`
 }
 
 // Grouping represents a grouping statement
@@ -346,10 +346,10 @@ type Grouping struct {
 
 // Extension represents an extension statement
 type Extension struct {
-	Name        string `json:"name"`
-	Argument    string `json:"argument,omitempty"`
-	Description string `json:"description,omitempty"`
-	Reference   string `json:"reference,omitempty"`
+	Name        string     `json:"name"`
+	Argument    string     `json:"argument,omitempty"`
+	Description string     `json:"description,omitempty"`
+	Reference   string     `json:"reference,omitempty"`
 	Status      NodeStatus `json:"status"`
 }
 
@@ -425,94 +425,94 @@ type Constraint struct {
 
 // ValidationResult contains comprehensive validation results
 type ValidationResult struct {
-	Valid            bool                      `json:"valid"`
-	ModelName        string                    `json:"modelName,omitempty"`
-	ModelNames       []string                  `json:"modelNames,omitempty"`
-	ValidationTime   time.Time                 `json:"validationTime"`
-	Duration         time.Duration             `json:"duration"`
-	Errors           []*ValidationError        `json:"errors,omitempty"`
-	Warnings         []*ValidationWarning      `json:"warnings,omitempty"`
+	Valid             bool                        `json:"valid"`
+	ModelName         string                      `json:"modelName,omitempty"`
+	ModelNames        []string                    `json:"modelNames,omitempty"`
+	ValidationTime    time.Time                   `json:"validationTime"`
+	Duration          time.Duration               `json:"duration"`
+	Errors            []*ValidationError          `json:"errors,omitempty"`
+	Warnings          []*ValidationWarning        `json:"warnings,omitempty"`
 	ConstraintResults *ConstraintValidationResult `json:"constraintResults,omitempty"`
-	DataTypeResults  *DataTypeValidationResult   `json:"dataTypeResults,omitempty"`
-	MandatoryResults *MandatoryCheckResult       `json:"mandatoryResults,omitempty"`
-	Statistics       *ValidationStatistics     `json:"statistics,omitempty"`
-	Metadata         map[string]interface{}    `json:"metadata,omitempty"`
+	DataTypeResults   *DataTypeValidationResult   `json:"dataTypeResults,omitempty"`
+	MandatoryResults  *MandatoryCheckResult       `json:"mandatoryResults,omitempty"`
+	Statistics        *ValidationStatistics       `json:"statistics,omitempty"`
+	Metadata          map[string]interface{}      `json:"metadata,omitempty"`
 }
 
 // ValidationError represents a validation error
 type ValidationError struct {
-	Code         string      `json:"code"`
-	Path         string      `json:"path"`
-	Node         string      `json:"node,omitempty"`
-	Message      string      `json:"message"`
-	Description  string      `json:"description,omitempty"`
-	ExpectedType string      `json:"expectedType,omitempty"`
-	ActualType   string      `json:"actualType,omitempty"`
+	Code          string      `json:"code"`
+	Path          string      `json:"path"`
+	Node          string      `json:"node,omitempty"`
+	Message       string      `json:"message"`
+	Description   string      `json:"description,omitempty"`
+	ExpectedType  string      `json:"expectedType,omitempty"`
+	ActualType    string      `json:"actualType,omitempty"`
 	ExpectedValue interface{} `json:"expectedValue,omitempty"`
-	ActualValue  interface{} `json:"actualValue,omitempty"`
-	Constraint   string      `json:"constraint,omitempty"`
-	Remediation  string      `json:"remediation,omitempty"`
-	Severity     string      `json:"severity"`
-	Line         *int        `json:"line,omitempty"`
-	Column       *int        `json:"column,omitempty"`
+	ActualValue   interface{} `json:"actualValue,omitempty"`
+	Constraint    string      `json:"constraint,omitempty"`
+	Remediation   string      `json:"remediation,omitempty"`
+	Severity      string      `json:"severity"`
+	Line          *int        `json:"line,omitempty"`
+	Column        *int        `json:"column,omitempty"`
 }
 
 // ValidationWarning represents a validation warning
 type ValidationWarning struct {
-	Code        string      `json:"code"`
-	Path        string      `json:"path"`
-	Node        string      `json:"node,omitempty"`
-	Message     string      `json:"message"`
-	Description string      `json:"description,omitempty"`
-	Suggestion  string      `json:"suggestion,omitempty"`
-	Reason      string      `json:"reason,omitempty"`
-	Line        *int        `json:"line,omitempty"`
-	Column      *int        `json:"column,omitempty"`
+	Code        string `json:"code"`
+	Path        string `json:"path"`
+	Node        string `json:"node,omitempty"`
+	Message     string `json:"message"`
+	Description string `json:"description,omitempty"`
+	Suggestion  string `json:"suggestion,omitempty"`
+	Reason      string `json:"reason,omitempty"`
+	Line        *int   `json:"line,omitempty"`
+	Column      *int   `json:"column,omitempty"`
 }
 
 // ValidationStatistics contains validation statistics
 type ValidationStatistics struct {
-	NodesValidated    int           `json:"nodesValidated"`
-	ErrorCount        int           `json:"errorCount"`
-	WarningCount      int           `json:"warningCount"`
-	ConstraintCount   int           `json:"constraintCount"`
-	DataTypeCount     int           `json:"dataTypeCount"`
-	ValidationTime    time.Duration `json:"validationTime"`
-	MemoryUsage       int64         `json:"memoryUsage,omitempty"`
+	NodesValidated  int           `json:"nodesValidated"`
+	ErrorCount      int           `json:"errorCount"`
+	WarningCount    int           `json:"warningCount"`
+	ConstraintCount int           `json:"constraintCount"`
+	DataTypeCount   int           `json:"dataTypeCount"`
+	ValidationTime  time.Duration `json:"validationTime"`
+	MemoryUsage     int64         `json:"memoryUsage,omitempty"`
 }
 
 // ConstraintValidationResult contains constraint validation results
 type ConstraintValidationResult struct {
-	Valid            bool                  `json:"valid"`
-	ConstraintErrors []*ConstraintError    `json:"constraintErrors,omitempty"`
+	Valid                bool                   `json:"valid"`
+	ConstraintErrors     []*ConstraintError     `json:"constraintErrors,omitempty"`
 	EvaluatedConstraints []*EvaluatedConstraint `json:"evaluatedConstraints,omitempty"`
 }
 
 // ConstraintError represents a constraint validation error
 type ConstraintError struct {
-	ConstraintID string      `json:"constraintId"`
-	Path         string      `json:"path"`
-	Expression   string      `json:"expression"`
-	Message      string      `json:"message"`
-	ActualValue  interface{} `json:"actualValue,omitempty"`
+	ConstraintID string                 `json:"constraintId"`
+	Path         string                 `json:"path"`
+	Expression   string                 `json:"expression"`
+	Message      string                 `json:"message"`
+	ActualValue  interface{}            `json:"actualValue,omitempty"`
 	Context      map[string]interface{} `json:"context,omitempty"`
 }
 
 // EvaluatedConstraint represents an evaluated constraint
 type EvaluatedConstraint struct {
-	ConstraintID string      `json:"constraintId"`
-	Path         string      `json:"path"`
-	Expression   string      `json:"expression"`
-	Result       bool        `json:"result"`
-	EvalTime     time.Duration `json:"evalTime"`
+	ConstraintID string                 `json:"constraintId"`
+	Path         string                 `json:"path"`
+	Expression   string                 `json:"expression"`
+	Result       bool                   `json:"result"`
+	EvalTime     time.Duration          `json:"evalTime"`
 	Context      map[string]interface{} `json:"context,omitempty"`
 }
 
 // DataTypeValidationResult contains data type validation results
 type DataTypeValidationResult struct {
-	Valid          bool                `json:"valid"`
-	TypeErrors     []*DataTypeError    `json:"typeErrors,omitempty"`
-	ValidatedTypes []*ValidatedType    `json:"validatedTypes,omitempty"`
+	Valid          bool             `json:"valid"`
+	TypeErrors     []*DataTypeError `json:"typeErrors,omitempty"`
+	ValidatedTypes []*ValidatedType `json:"validatedTypes,omitempty"`
 }
 
 // DataTypeError represents a data type validation error
@@ -527,18 +527,18 @@ type DataTypeError struct {
 
 // ValidatedType represents a validated data type
 type ValidatedType struct {
-	Path       string      `json:"path"`
-	Type       string      `json:"type"`
-	Value      interface{} `json:"value"`
-	Valid      bool        `json:"valid"`
-	Constraints []string   `json:"constraints,omitempty"`
+	Path        string      `json:"path"`
+	Type        string      `json:"type"`
+	Value       interface{} `json:"value"`
+	Valid       bool        `json:"valid"`
+	Constraints []string    `json:"constraints,omitempty"`
 }
 
 // MandatoryCheckResult contains mandatory node validation results
 type MandatoryCheckResult struct {
-	Valid         bool                `json:"valid"`
-	MissingNodes  []*MissingMandatory `json:"missingNodes,omitempty"`
-	CheckedNodes  []*CheckedMandatory `json:"checkedNodes,omitempty"`
+	Valid        bool                `json:"valid"`
+	MissingNodes []*MissingMandatory `json:"missingNodes,omitempty"`
+	CheckedNodes []*CheckedMandatory `json:"checkedNodes,omitempty"`
 }
 
 // MissingMandatory represents a missing mandatory node
@@ -559,57 +559,57 @@ type CheckedMandatory struct {
 
 // SyntaxValidationResult contains YANG syntax validation results
 type SyntaxValidationResult struct {
-	Valid           bool             `json:"valid"`
-	SyntaxErrors    []*SyntaxError   `json:"syntaxErrors,omitempty"`
-	SyntaxWarnings  []*SyntaxWarning `json:"syntaxWarnings,omitempty"`
-	ParseTime       time.Duration    `json:"parseTime"`
+	Valid          bool             `json:"valid"`
+	SyntaxErrors   []*SyntaxError   `json:"syntaxErrors,omitempty"`
+	SyntaxWarnings []*SyntaxWarning `json:"syntaxWarnings,omitempty"`
+	ParseTime      time.Duration    `json:"parseTime"`
 }
 
 // SyntaxError represents a YANG syntax error
 type SyntaxError struct {
-	Line        int    `json:"line"`
-	Column      int    `json:"column"`
-	Message     string `json:"message"`
-	ErrorType   string `json:"errorType"`
-	Context     string `json:"context,omitempty"`
-	Suggestion  string `json:"suggestion,omitempty"`
+	Line       int    `json:"line"`
+	Column     int    `json:"column"`
+	Message    string `json:"message"`
+	ErrorType  string `json:"errorType"`
+	Context    string `json:"context,omitempty"`
+	Suggestion string `json:"suggestion,omitempty"`
 }
 
 // SyntaxWarning represents a YANG syntax warning
 type SyntaxWarning struct {
-	Line       int    `json:"line"`
-	Column     int    `json:"column"`
-	Message    string `json:"message"`
+	Line        int    `json:"line"`
+	Column      int    `json:"column"`
+	Message     string `json:"message"`
 	WarningType string `json:"warningType"`
-	Suggestion string `json:"suggestion,omitempty"`
+	Suggestion  string `json:"suggestion,omitempty"`
 }
 
 // Model capabilities and introspection
 
 // ModelCapabilities represents the capabilities of a YANG model
 type ModelCapabilities struct {
-	ModelName       string            `json:"modelName"`
-	Namespace       string            `json:"namespace"`
-	Version         string            `json:"version"`
-	Features        []string          `json:"features"`
-	Deviations      []string          `json:"deviations"`
-	RPCs            []string          `json:"rpcs,omitempty"`
-	Notifications   []string          `json:"notifications,omitempty"`
-	ConfigNodes     []string          `json:"configNodes"`
-	StateNodes      []string          `json:"stateNodes"`
-	Extensions      []string          `json:"extensions,omitempty"`
-	Identities      []string          `json:"identities,omitempty"`
-	Capabilities    map[string]interface{} `json:"capabilities,omitempty"`
+	ModelName     string                 `json:"modelName"`
+	Namespace     string                 `json:"namespace"`
+	Version       string                 `json:"version"`
+	Features      []string               `json:"features"`
+	Deviations    []string               `json:"deviations"`
+	RPCs          []string               `json:"rpcs,omitempty"`
+	Notifications []string               `json:"notifications,omitempty"`
+	ConfigNodes   []string               `json:"configNodes"`
+	StateNodes    []string               `json:"stateNodes"`
+	Extensions    []string               `json:"extensions,omitempty"`
+	Identities    []string               `json:"identities,omitempty"`
+	Capabilities  map[string]interface{} `json:"capabilities,omitempty"`
 }
 
 // ModelResolution contains model resolution information
 type ModelResolution struct {
-	ModelName        string              `json:"modelName"`
-	ResolvedDependencies []*ResolvedDependency `json:"resolvedDependencies"`
-	UnresolvedDependencies []string          `json:"unresolvedDependencies,omitempty"`
-	CircularDependencies [][]string        `json:"circularDependencies,omitempty"`
-	ResolutionTime   time.Time           `json:"resolutionTime"`
-	ResolutionOrder  []string            `json:"resolutionOrder"`
+	ModelName              string                `json:"modelName"`
+	ResolvedDependencies   []*ResolvedDependency `json:"resolvedDependencies"`
+	UnresolvedDependencies []string              `json:"unresolvedDependencies,omitempty"`
+	CircularDependencies   [][]string            `json:"circularDependencies,omitempty"`
+	ResolutionTime         time.Time             `json:"resolutionTime"`
+	ResolutionOrder        []string              `json:"resolutionOrder"`
 }
 
 // ResolvedDependency represents a resolved dependency
@@ -674,10 +674,10 @@ type Credentials struct {
 // ValidatorConfig contains YANG validator configuration
 type ValidatorConfig struct {
 	// Model management
-	ModelRepositories   []*ModelRepository `yaml:"modelRepositories"`
-	ModelCachePath      string             `yaml:"modelCachePath"`
-	ModelCacheSize      int                `yaml:"modelCacheSize"`
-	ModelRefreshInterval time.Duration     `yaml:"modelRefreshInterval"`
+	ModelRepositories    []*ModelRepository `yaml:"modelRepositories"`
+	ModelCachePath       string             `yaml:"modelCachePath"`
+	ModelCacheSize       int                `yaml:"modelCacheSize"`
+	ModelRefreshInterval time.Duration      `yaml:"modelRefreshInterval"`
 
 	// Validation settings
 	EnableConstraintValidation bool          `yaml:"enableConstraintValidation"`
@@ -687,43 +687,43 @@ type ValidatorConfig struct {
 	MaxValidationDepth         int           `yaml:"maxValidationDepth"`
 
 	// Performance settings
-	MaxConcurrentValidations   int           `yaml:"maxConcurrentValidations"`
-	EnableValidationCaching    bool          `yaml:"enableValidationCaching"`
-	ValidationCacheSize        int           `yaml:"validationCacheSize"`
-	ValidationCacheTTL         time.Duration `yaml:"validationCacheTTL"`
+	MaxConcurrentValidations int           `yaml:"maxConcurrentValidations"`
+	EnableValidationCaching  bool          `yaml:"enableValidationCaching"`
+	ValidationCacheSize      int           `yaml:"validationCacheSize"`
+	ValidationCacheTTL       time.Duration `yaml:"validationCacheTTL"`
 
 	// Standard model support
-	EnableO_RANModels          bool          `yaml:"enableORanModels"`
-	Enable3GPPModels          bool          `yaml:"enable3GppModels"`
-	EnableIETFModels          bool          `yaml:"enableIetfModels"`
-	EnableIEEEModels          bool          `yaml:"enableIeeeModels"`
+	EnableO_RANModels bool `yaml:"enableORanModels"`
+	Enable3GPPModels  bool `yaml:"enable3GppModels"`
+	EnableIETFModels  bool `yaml:"enableIetfModels"`
+	EnableIEEEModels  bool `yaml:"enableIeeeModels"`
 
 	// Debugging and logging
-	EnableDebugLogging        bool          `yaml:"enableDebugLogging"`
-	EnableMetrics             bool          `yaml:"enableMetrics"`
-	MetricsInterval           time.Duration `yaml:"metricsInterval"`
+	EnableDebugLogging bool          `yaml:"enableDebugLogging"`
+	EnableMetrics      bool          `yaml:"enableMetrics"`
+	MetricsInterval    time.Duration `yaml:"metricsInterval"`
 }
 
 // ValidatorHealth contains validator health information
 type ValidatorHealth struct {
-	Status              string            `json:"status"`
-	LoadedModels        int               `json:"loadedModels"`
-	CompiledModels      int               `json:"compiledModels"`
-	ValidationsPerformed int64            `json:"validationsPerformed"`
-	AverageValidationTime time.Duration   `json:"averageValidationTime"`
-	CacheHitRate        float64           `json:"cacheHitRate"`
-	ComponentHealth     map[string]string `json:"componentHealth"`
-	LastModelSync       time.Time         `json:"lastModelSync"`
+	Status                string            `json:"status"`
+	LoadedModels          int               `json:"loadedModels"`
+	CompiledModels        int               `json:"compiledModels"`
+	ValidationsPerformed  int64             `json:"validationsPerformed"`
+	AverageValidationTime time.Duration     `json:"averageValidationTime"`
+	CacheHitRate          float64           `json:"cacheHitRate"`
+	ComponentHealth       map[string]string `json:"componentHealth"`
+	LastModelSync         time.Time         `json:"lastModelSync"`
 }
 
 // ValidationMetrics contains validation metrics
 type ValidationMetrics struct {
-	ValidationsTotal     prometheus.Counter   `json:"validationsTotal"`
-	ValidationDuration   prometheus.Histogram `json:"validationDuration"`
-	ValidationErrors     *prometheus.CounterVec `json:"validationErrors"`
-	ModelsLoaded         prometheus.Gauge     `json:"modelsLoaded"`
-	CacheHitRate         prometheus.Gauge     `json:"cacheHitRate"`
-	ActiveValidations    prometheus.Gauge     `json:"activeValidations"`
+	ValidationsTotal   prometheus.Counter     `json:"validationsTotal"`
+	ValidationDuration prometheus.Histogram   `json:"validationDuration"`
+	ValidationErrors   *prometheus.CounterVec `json:"validationErrors"`
+	ModelsLoaded       prometheus.Gauge       `json:"modelsLoaded"`
+	CacheHitRate       prometheus.Gauge       `json:"cacheHitRate"`
+	ActiveValidations  prometheus.Gauge       `json:"activeValidations"`
 }
 
 // NewYANGValidator creates a new YANG validator
@@ -818,9 +818,9 @@ func (v *yangValidator) ValidateConfigurationWithSchema(ctx context.Context, mod
 	if err != nil {
 		result.Valid = false
 		result.Errors = []*ValidationError{{
-			Code:    "COMPILATION_ERROR",
-			Path:    "/",
-			Message: fmt.Sprintf("Model compilation failed: %v", err),
+			Code:     "COMPILATION_ERROR",
+			Path:     "/",
+			Message:  fmt.Sprintf("Model compilation failed: %v", err),
 			Severity: "error",
 		}}
 		result.Duration = time.Since(result.ValidationTime)
@@ -832,9 +832,9 @@ func (v *yangValidator) ValidateConfigurationWithSchema(ctx context.Context, mod
 	if err != nil {
 		result.Valid = false
 		result.Errors = []*ValidationError{{
-			Code:    "CONFIG_FORMAT_ERROR",
-			Path:    "/",
-			Message: fmt.Sprintf("Configuration format error: %v", err),
+			Code:     "CONFIG_FORMAT_ERROR",
+			Path:     "/",
+			Message:  fmt.Sprintf("Configuration format error: %v", err),
 			Severity: "error",
 		}}
 		result.Duration = time.Since(result.ValidationTime)
@@ -915,12 +915,12 @@ func (v *yangValidator) ValidateConfigurationWithSchema(ctx context.Context, mod
 				result.Valid = false
 				for _, constraintError := range constraintResult.ConstraintErrors {
 					result.Errors = append(result.Errors, &ValidationError{
-						Code:       "CONSTRAINT_VIOLATION",
-						Path:       constraintError.Path,
-						Message:    constraintError.Message,
-						Constraint: constraintError.Expression,
+						Code:        "CONSTRAINT_VIOLATION",
+						Path:        constraintError.Path,
+						Message:     constraintError.Message,
+						Constraint:  constraintError.Expression,
 						ActualValue: constraintError.ActualValue,
-						Severity:   "error",
+						Severity:    "error",
 					})
 				}
 			}
@@ -963,9 +963,9 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 		return &ValidationResult{
 			Valid: false,
 			Errors: []*ValidationError{{
-				Code:    "PACKAGE_EXTRACTION_ERROR",
-				Path:    "/",
-				Message: fmt.Sprintf("Failed to extract configuration from package: %v", err),
+				Code:     "PACKAGE_EXTRACTION_ERROR",
+				Path:     "/",
+				Message:  fmt.Sprintf("Failed to extract configuration from package: %v", err),
 				Severity: "error",
 			}},
 		}, nil
@@ -977,9 +977,9 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 		return &ValidationResult{
 			Valid: false,
 			Errors: []*ValidationError{{
-				Code:    "MODEL_DETERMINATION_ERROR",
-				Path:    "/",
-				Message: fmt.Sprintf("Failed to determine YANG models for package: %v", err),
+				Code:     "MODEL_DETERMINATION_ERROR",
+				Path:     "/",
+				Message:  fmt.Sprintf("Failed to determine YANG models for package: %v", err),
 				Severity: "error",
 			}},
 		}, nil
@@ -1070,7 +1070,7 @@ func (v *yangValidator) validateStructure(ctx context.Context, model *CompiledMo
 func (v *yangValidator) validateNodeStructure(nodes []*SchemaNode, data map[string]interface{}, pathPrefix string, result *ValidationResult) error {
 	for _, node := range nodes {
 		currentPath := pathPrefix + "/" + node.Name
-		
+
 		switch node.Type {
 		case NodeTypeContainer:
 			if containerData, exists := data[node.Name]; exists {
@@ -1134,7 +1134,7 @@ func (v *yangValidator) validateNodeStructure(nodes []*SchemaNode, data map[stri
 							Severity: "error",
 						})
 					}
-					
+
 					if node.MaxElements != nil && uint64(len(listArray)) > *node.MaxElements {
 						result.Valid = false
 						result.Errors = append(result.Errors, &ValidationError{
@@ -1192,7 +1192,7 @@ func (v *yangValidator) validateNodeStructure(nodes []*SchemaNode, data map[stri
 							Severity: "error",
 						})
 					}
-					
+
 					if node.MaxElements != nil && uint64(len(leafListArray)) > *node.MaxElements {
 						result.Valid = false
 						result.Errors = append(result.Errors, &ValidationError{
@@ -1245,7 +1245,7 @@ func (v *yangValidator) validateLeafDataType(node *SchemaNode, value interface{}
 	}
 
 	dataType := node.DataType
-	
+
 	// Basic type validation
 	switch dataType.BaseType {
 	case "string":
@@ -1263,9 +1263,9 @@ func (v *yangValidator) validateLeafDataType(node *SchemaNode, value interface{}
 			})
 			return nil
 		}
-		
+
 		strValue := value.(string)
-		
+
 		// Length constraints
 		if dataType.Length != nil {
 			valid := false
@@ -1287,7 +1287,7 @@ func (v *yangValidator) validateLeafDataType(node *SchemaNode, value interface{}
 				})
 			}
 		}
-		
+
 		// Pattern constraints
 		for _, pattern := range dataType.Patterns {
 			// In a real implementation, this would use proper regex validation
@@ -1329,7 +1329,7 @@ func (v *yangValidator) validateLeafDataType(node *SchemaNode, value interface{}
 			})
 			return nil
 		}
-		
+
 		// Range constraints
 		if dataType.Range != nil {
 			valid := false
@@ -1417,7 +1417,7 @@ func (v *yangValidator) extractConfigurationFromPackage(pkg *porch.PackageRevisi
 	// Extract configuration data from package resources
 	// This would parse ConfigMaps, Secrets, and other configuration resources
 	configData := make(map[string]interface{})
-	
+
 	for _, resource := range pkg.Spec.Resources {
 		// Process different resource types
 		if resource.Kind == "ConfigMap" {
@@ -1431,20 +1431,20 @@ func (v *yangValidator) extractConfigurationFromPackage(pkg *porch.PackageRevisi
 		}
 		// Handle other resource types...
 	}
-	
+
 	return configData, nil
 }
 
 func (v *yangValidator) determineModelsForPackage(pkg *porch.PackageRevision) ([]string, error) {
 	var modelNames []string
-	
+
 	// Look for O-RAN compliance annotation
 	if oranCompliance, exists := pkg.ObjectMeta.Annotations["porch.nephoran.com/oran-compliance"]; exists {
 		if oranCompliance == "true" {
 			modelNames = append(modelNames, "oran-interfaces", "oran-smo")
 		}
 	}
-	
+
 	// Look for target component labels
 	if targetComponent, exists := pkg.ObjectMeta.Labels["porch.nephoran.com/target-component"]; exists {
 		switch targetComponent {
@@ -1456,31 +1456,31 @@ func (v *yangValidator) determineModelsForPackage(pkg *porch.PackageRevision) ([
 			modelNames = append(modelNames, "3gpp-5gc-upf")
 		case "Near-RT-RIC":
 			modelNames = append(modelNames, "oran-near-rt-ric")
-		// Add more mappings...
+			// Add more mappings...
 		}
 	}
-	
+
 	return modelNames, nil
 }
 
 func (v *yangValidator) loadBuiltInModels() error {
 	// Load built-in YANG models for O-RAN, 3GPP, etc.
 	builtInModels := v.getBuiltInModels()
-	
+
 	v.modelMutex.Lock()
 	defer v.modelMutex.Unlock()
-	
+
 	for _, model := range builtInModels {
 		v.models[model.Name] = model
 	}
-	
+
 	v.logger.Info("Loaded built-in YANG models", "count", len(builtInModels))
 	return nil
 }
 
 func (v *yangValidator) getBuiltInModels() []*YANGModel {
 	var models []*YANGModel
-	
+
 	// O-RAN Interface model
 	oranModel := &YANGModel{
 		Name:         "oran-interfaces",
@@ -1498,7 +1498,7 @@ func (v *yangValidator) getBuiltInModels() []*YANGModel {
 		Hash:         "abc123def456", // Would be computed
 	}
 	models = append(models, oranModel)
-	
+
 	// 3GPP 5G Core AMF model
 	amfModel := &YANGModel{
 		Name:         "3gpp-5gc-amf",
@@ -1516,7 +1516,7 @@ func (v *yangValidator) getBuiltInModels() []*YANGModel {
 		Hash:         "def456ghi789", // Would be computed
 	}
 	models = append(models, amfModel)
-	
+
 	return models
 }
 
@@ -1709,7 +1709,7 @@ func (v *yangValidator) modelSyncWorker() {
 
 func (v *yangValidator) syncModelRepositories() {
 	v.logger.V(1).Info("Syncing model repositories", "repositories", len(v.repositories))
-	
+
 	for _, repo := range v.repositories {
 		if time.Since(repo.LastSync) >= repo.SyncInterval {
 			if err := v.syncRepository(repo); err != nil {
@@ -1721,11 +1721,11 @@ func (v *yangValidator) syncModelRepositories() {
 
 func (v *yangValidator) syncRepository(repo *ModelRepository) error {
 	v.logger.V(1).Info("Syncing model repository", "repository", repo.Name, "url", repo.URL)
-	
+
 	// Implementation would sync with the actual repository
 	// For now, just update the sync time
 	repo.LastSync = time.Now()
-	
+
 	return nil
 }
 
@@ -1751,14 +1751,14 @@ func (v *yangValidator) LoadModelFromContent(ctx context.Context, modelName, con
 		LoadedAt: time.Now(),
 		Source:   "inline",
 	}
-	
+
 	return v.RegisterModel(ctx, model)
 }
 
 func (v *yangValidator) RegisterModel(ctx context.Context, model *YANGModel) error {
 	v.modelMutex.Lock()
 	defer v.modelMutex.Unlock()
-	
+
 	v.models[model.Name] = model
 	return nil
 }
@@ -1766,7 +1766,7 @@ func (v *yangValidator) RegisterModel(ctx context.Context, model *YANGModel) err
 func (v *yangValidator) UnregisterModel(ctx context.Context, modelName string) error {
 	v.modelMutex.Lock()
 	defer v.modelMutex.Unlock()
-	
+
 	delete(v.models, modelName)
 	delete(v.compiledModels, modelName)
 	return nil
@@ -1778,18 +1778,18 @@ func (v *yangValidator) GenerateSchema(ctx context.Context, modelName string) (*
 
 func (v *yangValidator) CompileModel(ctx context.Context, model *YANGModel) (*CompiledModel, error) {
 	startTime := time.Now()
-	
+
 	// Simple compilation simulation
 	compiled := &CompiledModel{
 		Model: model,
 		Schema: &ModelSchema{
 			RootNodes: []*SchemaNode{
 				{
-					Name:      "config",
-					Type:      NodeTypeContainer,
-					Config:    true,
-					Status:    NodeStatusCurrent,
-					Children:  []*SchemaNode{},
+					Name:     "config",
+					Type:     NodeTypeContainer,
+					Config:   true,
+					Status:   NodeStatusCurrent,
+					Children: []*SchemaNode{},
 				},
 			},
 		},
@@ -1797,18 +1797,18 @@ func (v *yangValidator) CompileModel(ctx context.Context, model *YANGModel) (*Co
 		CompiledAt:  time.Now(),
 		CompileTime: time.Since(startTime),
 	}
-	
+
 	return compiled, nil
 }
 
 func (v *yangValidator) ValidateModelSyntax(ctx context.Context, modelContent string) (*SyntaxValidationResult, error) {
 	startTime := time.Now()
-	
+
 	result := &SyntaxValidationResult{
 		Valid:     true,
 		ParseTime: time.Since(startTime),
 	}
-	
+
 	// Simple syntax validation
 	if !strings.Contains(modelContent, "module") {
 		result.Valid = false
@@ -1819,7 +1819,7 @@ func (v *yangValidator) ValidateModelSyntax(ctx context.Context, modelContent st
 			ErrorType: "SYNTAX_ERROR",
 		}}
 	}
-	
+
 	return result, nil
 }
 
@@ -1828,7 +1828,7 @@ func (v *yangValidator) GetModelDependencies(ctx context.Context, modelName stri
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return model.Imports, nil
 }
 
@@ -1837,7 +1837,7 @@ func (v *yangValidator) GetModelCapabilities(ctx context.Context, modelName stri
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return &ModelCapabilities{
 		ModelName: model.Name,
 		Namespace: model.Namespace,
@@ -1866,9 +1866,9 @@ func (v *yangValidator) ValidateConstraints(ctx context.Context, model *YANGMode
 
 func (v *yangValidator) CheckMandatoryLeaves(ctx context.Context, model *YANGModel, data interface{}) (*MandatoryCheckResult, error) {
 	return &MandatoryCheckResult{
-		Valid:         true,
-		MissingNodes:  []*MissingMandatory{},
-		CheckedNodes:  []*CheckedMandatory{},
+		Valid:        true,
+		MissingNodes: []*MissingMandatory{},
+		CheckedNodes: []*CheckedMandatory{},
 	}, nil
 }
 
@@ -1884,7 +1884,7 @@ func (v *yangValidator) ValidateWithMultipleModels(ctx context.Context, modelNam
 	if len(modelNames) == 0 {
 		return &ValidationResult{Valid: true}, nil
 	}
-	
+
 	// For simplicity, validate against the first model
 	return v.ValidateConfiguration(ctx, modelNames[0], config)
 }
@@ -1898,14 +1898,14 @@ func (v *yangValidator) GetValidatorHealth(ctx context.Context) (*ValidatorHealt
 	modelsCount := len(v.models)
 	compiledCount := len(v.compiledModels)
 	v.modelMutex.RUnlock()
-	
+
 	return &ValidatorHealth{
-		Status:               "healthy",
-		LoadedModels:         modelsCount,
-		CompiledModels:       compiledCount,
-		ValidationsPerformed: 0, // Would track actual count
+		Status:                "healthy",
+		LoadedModels:          modelsCount,
+		CompiledModels:        compiledCount,
+		ValidationsPerformed:  0, // Would track actual count
 		AverageValidationTime: 100 * time.Millisecond,
-		CacheHitRate:         0.85,
+		CacheHitRate:          0.85,
 		ComponentHealth: map[string]string{
 			"parser":    "healthy",
 			"validator": "healthy",

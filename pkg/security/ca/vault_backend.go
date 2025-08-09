@@ -27,42 +27,42 @@ type VaultBackend struct {
 // VaultBackendConfig holds Vault PKI backend configuration
 type VaultBackendConfig struct {
 	// Vault connection
-	Address    string `yaml:"address"`
-	Token      string `yaml:"token"`
-	CACert     string `yaml:"ca_cert"`
-	CAPath     string `yaml:"ca_path"`
-	ClientCert string `yaml:"client_cert"`
-	ClientKey  string `yaml:"client_key"`
-	TLSSkipVerify bool `yaml:"tls_skip_verify"`
-	Namespace  string `yaml:"namespace"`
+	Address       string `yaml:"address"`
+	Token         string `yaml:"token"`
+	CACert        string `yaml:"ca_cert"`
+	CAPath        string `yaml:"ca_path"`
+	ClientCert    string `yaml:"client_cert"`
+	ClientKey     string `yaml:"client_key"`
+	TLSSkipVerify bool   `yaml:"tls_skip_verify"`
+	Namespace     string `yaml:"namespace"`
 
 	// PKI configuration
-	PKIMount       string `yaml:"pki_mount"`
-	Role           string `yaml:"role"`
-	IssuerRef      string `yaml:"issuer_ref"`
+	PKIMount  string `yaml:"pki_mount"`
+	Role      string `yaml:"role"`
+	IssuerRef string `yaml:"issuer_ref"`
 
 	// Authentication
-	AuthMethod     VaultAuthMethod      `yaml:"auth_method"`
-	AuthConfig     interface{}          `yaml:"auth_config"`
+	AuthMethod VaultAuthMethod `yaml:"auth_method"`
+	AuthConfig interface{}     `yaml:"auth_config"`
 
 	// Advanced settings
-	MaxLeaseTTL    time.Duration        `yaml:"max_lease_ttl"`
-	DefaultTTL     time.Duration        `yaml:"default_ttl"`
-	AllowedDomains []string             `yaml:"allowed_domains"`
-	AllowSubdomains bool                `yaml:"allow_subdomains"`
-	AllowAnyName   bool                 `yaml:"allow_any_name"`
-	EnforceHostnames bool               `yaml:"enforce_hostnames"`
-	AllowIPSANs    bool                 `yaml:"allow_ip_sans"`
-	ServerFlag     bool                 `yaml:"server_flag"`
-	ClientFlag     bool                 `yaml:"client_flag"`
-	CodeSigningFlag bool                `yaml:"code_signing_flag"`
-	EmailProtectionFlag bool            `yaml:"email_protection_flag"`
+	MaxLeaseTTL         time.Duration `yaml:"max_lease_ttl"`
+	DefaultTTL          time.Duration `yaml:"default_ttl"`
+	AllowedDomains      []string      `yaml:"allowed_domains"`
+	AllowSubdomains     bool          `yaml:"allow_subdomains"`
+	AllowAnyName        bool          `yaml:"allow_any_name"`
+	EnforceHostnames    bool          `yaml:"enforce_hostnames"`
+	AllowIPSANs         bool          `yaml:"allow_ip_sans"`
+	ServerFlag          bool          `yaml:"server_flag"`
+	ClientFlag          bool          `yaml:"client_flag"`
+	CodeSigningFlag     bool          `yaml:"code_signing_flag"`
+	EmailProtectionFlag bool          `yaml:"email_protection_flag"`
 
 	// CRL settings
-	CRLConfig      *VaultCRLConfig      `yaml:"crl_config"`
+	CRLConfig *VaultCRLConfig `yaml:"crl_config"`
 
 	// OCSP settings
-	OCSPConfig     *VaultOCSPConfig     `yaml:"ocsp_config"`
+	OCSPConfig *VaultOCSPConfig `yaml:"ocsp_config"`
 }
 
 // VaultAuthMethod represents Vault authentication methods
@@ -80,19 +80,19 @@ const (
 
 // VaultCRLConfig holds CRL configuration for Vault
 type VaultCRLConfig struct {
-	Enabled         bool          `yaml:"enabled"`
-	ExpiryBuffer    time.Duration `yaml:"expiry_buffer"`
-	DisableExpiry   bool          `yaml:"disable_expiry"`
-	AutoRebuild     bool          `yaml:"auto_rebuild"`
+	Enabled          bool          `yaml:"enabled"`
+	ExpiryBuffer     time.Duration `yaml:"expiry_buffer"`
+	DisableExpiry    bool          `yaml:"disable_expiry"`
+	AutoRebuild      bool          `yaml:"auto_rebuild"`
 	AutoRebuildGrace time.Duration `yaml:"auto_rebuild_grace"`
 }
 
 // VaultOCSPConfig holds OCSP configuration for Vault
 type VaultOCSPConfig struct {
-	Enabled       bool   `yaml:"enabled"`
+	Enabled       bool     `yaml:"enabled"`
 	OCSPServers   []string `yaml:"ocsp_servers"`
-	ResponderCert string `yaml:"responder_cert"`
-	ResponderKey  string `yaml:"responder_key"`
+	ResponderCert string   `yaml:"responder_cert"`
+	ResponderKey  string   `yaml:"responder_key"`
 }
 
 // VaultAppRoleAuth holds AppRole authentication configuration
@@ -104,35 +104,35 @@ type VaultAppRoleAuth struct {
 
 // VaultKubernetesAuth holds Kubernetes authentication configuration
 type VaultKubernetesAuth struct {
-	Role            string `yaml:"role"`
-	JWT             string `yaml:"jwt"`
-	MountPath       string `yaml:"mount_path"`
-	ServiceAccount  string `yaml:"service_account"`
+	Role           string `yaml:"role"`
+	JWT            string `yaml:"jwt"`
+	MountPath      string `yaml:"mount_path"`
+	ServiceAccount string `yaml:"service_account"`
 }
 
 // VaultIssueRequest represents a Vault certificate issue request
 type VaultIssueRequest struct {
-	CommonName       string   `json:"common_name"`
-	AltNames         string   `json:"alt_names,omitempty"`
-	IPSans           string   `json:"ip_sans,omitempty"`
-	URISans          string   `json:"uri_sans,omitempty"`
-	OtherSans        string   `json:"other_sans,omitempty"`
-	TTL              string   `json:"ttl,omitempty"`
-	Format           string   `json:"format"`
-	PrivateKeyFormat string   `json:"private_key_format,omitempty"`
-	ExcludeCNFromSans bool    `json:"exclude_cn_from_sans"`
-	NotAfter         string   `json:"not_after,omitempty"`
+	CommonName        string `json:"common_name"`
+	AltNames          string `json:"alt_names,omitempty"`
+	IPSans            string `json:"ip_sans,omitempty"`
+	URISans           string `json:"uri_sans,omitempty"`
+	OtherSans         string `json:"other_sans,omitempty"`
+	TTL               string `json:"ttl,omitempty"`
+	Format            string `json:"format"`
+	PrivateKeyFormat  string `json:"private_key_format,omitempty"`
+	ExcludeCNFromSans bool   `json:"exclude_cn_from_sans"`
+	NotAfter          string `json:"not_after,omitempty"`
 }
 
 // VaultIssueResponse represents Vault certificate issue response
 type VaultIssueResponse struct {
-	Certificate      string   `json:"certificate"`
-	PrivateKey       string   `json:"private_key"`
-	PrivateKeyType   string   `json:"private_key_type"`
-	SerialNumber     string   `json:"serial_number"`
-	CAChain          []string `json:"ca_chain"`
-	IssuingCA        string   `json:"issuing_ca"`
-	Expiration       int64    `json:"expiration"`
+	Certificate    string   `json:"certificate"`
+	PrivateKey     string   `json:"private_key"`
+	PrivateKeyType string   `json:"private_key_type"`
+	SerialNumber   string   `json:"serial_number"`
+	CAChain        []string `json:"ca_chain"`
+	IssuingCA      string   `json:"issuing_ca"`
+	Expiration     int64    `json:"expiration"`
 }
 
 // VaultRevokeRequest represents a Vault certificate revoke request
@@ -230,8 +230,8 @@ func (b *VaultBackend) IssueCertificate(ctx context.Context, req *CertificateReq
 	// Prepare Vault request
 	vaultReq := &VaultIssueRequest{
 		CommonName:        req.CommonName,
-		Format:           "pem",
-		PrivateKeyFormat: "pkcs8",
+		Format:            "pem",
+		PrivateKeyFormat:  "pkcs8",
 		ExcludeCNFromSans: false,
 	}
 
@@ -450,9 +450,9 @@ func (b *VaultBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error)
 		ValidUntil: validUntil,
 		Features:   b.GetSupportedFeatures(),
 		Metrics: map[string]interface{}{
-			"sealed":      health.Sealed,
-			"initialized": health.Initialized,
-			"cluster_id":  health.ClusterID,
+			"sealed":       health.Sealed,
+			"initialized":  health.Initialized,
+			"cluster_id":   health.ClusterID,
 			"cluster_name": health.ClusterName,
 		},
 	}, nil

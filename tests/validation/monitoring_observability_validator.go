@@ -27,13 +27,13 @@ import (
 // MonitoringObservabilityValidator validates comprehensive observability stack
 // Targets 2/2 points for monitoring and observability in production readiness
 type MonitoringObservabilityValidator struct {
-	client      client.Client
-	clientset   *kubernetes.Clientset
-	config      *ValidationConfig
-	
+	client    client.Client
+	clientset *kubernetes.Clientset
+	config    *ValidationConfig
+
 	// Monitoring metrics
-	metrics     *ObservabilityMetrics
-	mu          sync.RWMutex
+	metrics *ObservabilityMetrics
+	mu      sync.RWMutex
 }
 
 // ObservabilityMetrics tracks monitoring and observability validation results
@@ -44,38 +44,38 @@ type ObservabilityMetrics struct {
 	MetricsEndpointsActive    bool
 	CustomMetricsAvailable    bool
 	AlertRulesConfigured      bool
-	
+
 	// Logging & Tracing (1 point)
-	LogAggregationActive      bool
-	DistributedTracingActive  bool
-	LogRetentionConfigured    bool
+	LogAggregationActive         bool
+	DistributedTracingActive     bool
+	LogRetentionConfigured       bool
 	TracingInstrumentationActive bool
-	
+
 	// Dashboard & Alerting
-	GrafanaDashboards         bool
-	AlertManagerConfigured    bool
-	NotificationChannels      bool
-	SLOMonitoringEnabled      bool
-	
+	GrafanaDashboards      bool
+	AlertManagerConfigured bool
+	NotificationChannels   bool
+	SLOMonitoringEnabled   bool
+
 	// Health & Status
-	AllComponentsHealthy      bool
-	DataRetentionCompliant    bool
-	QueryPerformanceOptimal   bool
-	
+	AllComponentsHealthy    bool
+	DataRetentionCompliant  bool
+	QueryPerformanceOptimal bool
+
 	// Detailed component status
-	ComponentStatus          map[string]ComponentHealth
+	ComponentStatus map[string]ComponentHealth
 }
 
 // ComponentHealth represents the health status of an observability component
 type ComponentHealth struct {
-	Name            string
-	Deployed        bool
-	Healthy         bool
-	Version         string
-	Endpoints       []string
-	LastChecked     time.Time
-	ErrorMessage    string
-	Metrics         map[string]interface{}
+	Name         string
+	Deployed     bool
+	Healthy      bool
+	Version      string
+	Endpoints    []string
+	LastChecked  time.Time
+	ErrorMessage string
+	Metrics      map[string]interface{}
 }
 
 // ObservabilityComponent represents a component in the observability stack
@@ -95,11 +95,11 @@ type ObservabilityComponent struct {
 type ComponentType string
 
 const (
-	ComponentTypeMetrics ComponentType = "metrics"
-	ComponentTypeLogs    ComponentType = "logs"
-	ComponentTypeTracing ComponentType = "tracing"
+	ComponentTypeMetrics   ComponentType = "metrics"
+	ComponentTypeLogs      ComponentType = "logs"
+	ComponentTypeTracing   ComponentType = "tracing"
 	ComponentTypeDashboard ComponentType = "dashboard"
-	ComponentTypeAlerting ComponentType = "alerting"
+	ComponentTypeAlerting  ComponentType = "alerting"
 )
 
 // NewMonitoringObservabilityValidator creates a new monitoring and observability validator
@@ -118,10 +118,10 @@ func NewMonitoringObservabilityValidator(client client.Client, clientset *kubern
 // Returns score out of 2 points for monitoring and observability
 func (mov *MonitoringObservabilityValidator) ValidateMonitoringObservability(ctx context.Context) (int, error) {
 	ginkgo.By("Starting Monitoring and Observability Validation")
-	
+
 	totalScore := 0
 	maxScore := 2
-	
+
 	// Phase 1: Metrics Collection Validation (1 point)
 	metricsScore, err := mov.validateMetricsCollection(ctx)
 	if err != nil {
@@ -129,49 +129,49 @@ func (mov *MonitoringObservabilityValidator) ValidateMonitoringObservability(ctx
 	}
 	totalScore += metricsScore
 	ginkgo.By(fmt.Sprintf("Metrics Collection Score: %d/1 points", metricsScore))
-	
-	// Phase 2: Logging and Tracing Validation (1 point)  
+
+	// Phase 2: Logging and Tracing Validation (1 point)
 	loggingScore, err := mov.validateLoggingTracing(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("logging and tracing validation failed: %w", err)
 	}
 	totalScore += loggingScore
 	ginkgo.By(fmt.Sprintf("Logging and Tracing Score: %d/1 points", loggingScore))
-	
+
 	// Additional validations for comprehensive coverage
 	mov.validateDashboardsAlerting(ctx)
 	mov.validateDataRetention(ctx)
 	mov.validatePerformance(ctx)
-	
+
 	ginkgo.By(fmt.Sprintf("Monitoring and Observability Total Score: %d/%d points", totalScore, maxScore))
-	
+
 	return totalScore, nil
 }
 
 // validateMetricsCollection validates Prometheus metrics collection setup
 func (mov *MonitoringObservabilityValidator) validateMetricsCollection(ctx context.Context) (int, error) {
 	ginkgo.By("Validating Metrics Collection Infrastructure")
-	
+
 	score := 0
-	
+
 	// Check for Prometheus deployment
 	if mov.validatePrometheusDeployment(ctx) {
 		score = 1
 		ginkgo.By("✓ Prometheus metrics collection validated")
-		
+
 		mov.mu.Lock()
 		mov.metrics.PrometheusDeployed = true
 		mov.mu.Unlock()
 	} else {
 		ginkgo.By("✗ Prometheus metrics collection not properly configured")
 	}
-	
+
 	// Additional metrics validation
 	mov.validateServiceMonitors(ctx)
 	mov.validateMetricsEndpoints(ctx)
 	mov.validateCustomMetrics(ctx)
 	mov.validateAlertRules(ctx)
-	
+
 	return score, nil
 }
 
@@ -189,22 +189,22 @@ func (mov *MonitoringObservabilityValidator) validatePrometheusDeployment(ctx co
 			Required:        true,
 		},
 		{
-			Name:            "prometheus-operator",
-			Type:            ComponentTypeMetrics,
-			DeploymentName:  "prometheus-operator",
-			ServiceName:     "prometheus-operator",
-			Port:            8080,
-			Required:        false,
+			Name:           "prometheus-operator",
+			Type:           ComponentTypeMetrics,
+			DeploymentName: "prometheus-operator",
+			ServiceName:    "prometheus-operator",
+			Port:           8080,
+			Required:       false,
 		},
 	}
-	
+
 	validComponents := 0
 	for _, component := range components {
 		if mov.validateObservabilityComponent(ctx, component) {
 			validComponents++
 		}
 	}
-	
+
 	// Require at least one Prometheus component
 	return validComponents > 0
 }
@@ -215,20 +215,20 @@ func (mov *MonitoringObservabilityValidator) validateObservabilityComponent(ctx 
 		Name:        component.Name,
 		LastChecked: time.Now(),
 	}
-	
+
 	// Check deployment
 	deployment := &appsv1.Deployment{}
 	key := types.NamespacedName{
 		Name:      component.DeploymentName,
 		Namespace: component.Namespace,
 	}
-	
+
 	// Try multiple namespaces if none specified
 	namespaces := []string{"monitoring", "prometheus", "nephoran-system", "kube-system"}
 	if component.Namespace != "" {
 		namespaces = []string{component.Namespace}
 	}
-	
+
 	for _, ns := range namespaces {
 		key.Namespace = ns
 		if err := mov.client.Get(ctx, key, deployment); err == nil {
@@ -237,7 +237,7 @@ func (mov *MonitoringObservabilityValidator) validateObservabilityComponent(ctx 
 			break
 		}
 	}
-	
+
 	if !health.Deployed {
 		// Try by label selector as fallback
 		deployments := &appsv1.DeploymentList{}
@@ -246,39 +246,39 @@ func (mov *MonitoringObservabilityValidator) validateObservabilityComponent(ctx 
 				"app": component.Name,
 			}),
 		}
-		
+
 		if err := mov.client.List(ctx, deployments, listOpts...); err == nil && len(deployments.Items) > 0 {
 			health.Deployed = true
 			deployment = &deployments.Items[0]
 			component.Namespace = deployment.Namespace
 		}
 	}
-	
+
 	if health.Deployed {
 		// Check if deployment is ready
 		health.Healthy = deployment.Status.ReadyReplicas > 0
-		
+
 		// Get version from deployment
 		if deployment.Labels != nil {
 			if version, exists := deployment.Labels["version"]; exists {
 				health.Version = version
 			}
 		}
-		
+
 		// Validate service
 		mov.validateComponentService(ctx, component, &health)
-		
+
 		// Validate endpoints if healthy
 		if health.Healthy {
 			mov.validateComponentEndpoints(ctx, component, &health)
 		}
 	}
-	
+
 	// Store component health
 	mov.mu.Lock()
 	mov.metrics.ComponentStatus[component.Name] = health
 	mov.mu.Unlock()
-	
+
 	return health.Deployed && (health.Healthy || !component.Required)
 }
 
@@ -289,7 +289,7 @@ func (mov *MonitoringObservabilityValidator) validateComponentService(ctx contex
 		Name:      component.ServiceName,
 		Namespace: component.Namespace,
 	}
-	
+
 	if err := mov.client.Get(ctx, key, service); err == nil {
 		// Service exists, collect endpoint information
 		for _, port := range service.Spec.Ports {
@@ -304,7 +304,7 @@ func (mov *MonitoringObservabilityValidator) validateComponentEndpoints(ctx cont
 	if component.HealthEndpoint == "" && component.MetricsEndpoint == "" {
 		return
 	}
-	
+
 	// For now, we'll validate by checking if pods are ready
 	// In a real implementation, you'd make HTTP requests to the endpoints
 	pods := &corev1.PodList{}
@@ -314,11 +314,11 @@ func (mov *MonitoringObservabilityValidator) validateComponentEndpoints(ctx cont
 			"app": component.Name,
 		}),
 	}
-	
+
 	if err := mov.client.List(ctx, pods, listOpts...); err != nil {
 		return
 	}
-	
+
 	readyPods := 0
 	for _, pod := range pods.Items {
 		if pod.Status.Phase == corev1.PodRunning {
@@ -335,7 +335,7 @@ func (mov *MonitoringObservabilityValidator) validateComponentEndpoints(ctx cont
 			}
 		}
 	}
-	
+
 	health.Metrics = map[string]interface{}{
 		"ready_pods":  readyPods,
 		"total_pods":  len(pods.Items),
@@ -351,20 +351,20 @@ func (mov *MonitoringObservabilityValidator) validateServiceMonitors(ctx context
 		Version: "v1",
 		Kind:    "ServiceMonitorList",
 	})
-	
+
 	namespaces := []string{"nephoran-system", "monitoring", "prometheus"}
 	serviceMonitorCount := 0
-	
+
 	for _, namespace := range namespaces {
 		if err := mov.client.List(ctx, serviceMonitors, client.InNamespace(namespace)); err == nil {
 			serviceMonitorCount += len(serviceMonitors.Items)
 		}
 	}
-	
+
 	mov.mu.Lock()
 	mov.metrics.ServiceMonitorsConfigured = serviceMonitorCount > 0
 	mov.mu.Unlock()
-	
+
 	if serviceMonitorCount > 0 {
 		ginkgo.By(fmt.Sprintf("✓ Found %d ServiceMonitor resources", serviceMonitorCount))
 	} else {
@@ -378,7 +378,7 @@ func (mov *MonitoringObservabilityValidator) validateMetricsEndpoints(ctx contex
 	if err := mov.client.List(ctx, services, client.InNamespace("nephoran-system")); err != nil {
 		return
 	}
-	
+
 	metricsEndpoints := 0
 	for _, service := range services.Items {
 		for _, port := range service.Spec.Ports {
@@ -387,11 +387,11 @@ func (mov *MonitoringObservabilityValidator) validateMetricsEndpoints(ctx contex
 			}
 		}
 	}
-	
+
 	mov.mu.Lock()
 	mov.metrics.MetricsEndpointsActive = metricsEndpoints > 0
 	mov.mu.Unlock()
-	
+
 	if metricsEndpoints > 0 {
 		ginkgo.By(fmt.Sprintf("✓ Found %d metrics endpoints", metricsEndpoints))
 	}
@@ -404,7 +404,7 @@ func (mov *MonitoringObservabilityValidator) validateCustomMetrics(ctx context.C
 	if err := mov.client.List(ctx, services, client.InNamespace("nephoran-system")); err != nil {
 		return
 	}
-	
+
 	customMetricsFound := false
 	for _, service := range services.Items {
 		if service.Annotations != nil {
@@ -415,11 +415,11 @@ func (mov *MonitoringObservabilityValidator) validateCustomMetrics(ctx context.C
 			}
 		}
 	}
-	
+
 	mov.mu.Lock()
 	mov.metrics.CustomMetricsAvailable = customMetricsFound
 	mov.mu.Unlock()
-	
+
 	if customMetricsFound {
 		ginkgo.By("✓ Custom metrics configuration found")
 	}
@@ -433,20 +433,20 @@ func (mov *MonitoringObservabilityValidator) validateAlertRules(ctx context.Cont
 		Version: "v1",
 		Kind:    "PrometheusRuleList",
 	})
-	
+
 	namespaces := []string{"nephoran-system", "monitoring", "prometheus"}
 	alertRulesCount := 0
-	
+
 	for _, namespace := range namespaces {
 		if err := mov.client.List(ctx, prometheusRules, client.InNamespace(namespace)); err == nil {
 			alertRulesCount += len(prometheusRules.Items)
 		}
 	}
-	
+
 	mov.mu.Lock()
 	mov.metrics.AlertRulesConfigured = alertRulesCount > 0
 	mov.mu.Unlock()
-	
+
 	if alertRulesCount > 0 {
 		ginkgo.By(fmt.Sprintf("✓ Found %d Prometheus alert rules", alertRulesCount))
 	}
@@ -455,15 +455,15 @@ func (mov *MonitoringObservabilityValidator) validateAlertRules(ctx context.Cont
 // validateLoggingTracing validates logging aggregation and distributed tracing
 func (mov *MonitoringObservabilityValidator) validateLoggingTracing(ctx context.Context) (int, error) {
 	ginkgo.By("Validating Logging and Tracing Infrastructure")
-	
+
 	score := 0
-	
+
 	// Check logging infrastructure
 	loggingValid := mov.validateLoggingInfrastructure(ctx)
-	
-	// Check tracing infrastructure  
+
+	// Check tracing infrastructure
 	tracingValid := mov.validateTracingInfrastructure(ctx)
-	
+
 	// Award 1 point if either logging or tracing is properly configured
 	// Award full point if both are configured
 	if loggingValid && tracingValid {
@@ -475,7 +475,7 @@ func (mov *MonitoringObservabilityValidator) validateLoggingTracing(ctx context.
 	} else {
 		ginkgo.By("✗ Neither logging nor tracing infrastructure properly configured")
 	}
-	
+
 	return score, nil
 }
 
@@ -525,28 +525,28 @@ func (mov *MonitoringObservabilityValidator) validateLoggingInfrastructure(ctx c
 			Required:       false,
 		},
 	}
-	
+
 	validComponents := 0
 	for _, component := range loggingComponents {
 		if mov.validateObservabilityComponent(ctx, component) {
 			validComponents++
 		}
 	}
-	
+
 	// Also check for DaemonSets (common for log collectors)
 	loggingDaemonSets := mov.validateLoggingDaemonSets(ctx)
-	
+
 	isValid := validComponents > 0 || loggingDaemonSets > 0
-	
+
 	mov.mu.Lock()
 	mov.metrics.LogAggregationActive = isValid
 	mov.mu.Unlock()
-	
+
 	if isValid {
-		ginkgo.By(fmt.Sprintf("✓ Logging infrastructure validated (%d components, %d DaemonSets)", 
+		ginkgo.By(fmt.Sprintf("✓ Logging infrastructure validated (%d components, %d DaemonSets)",
 			validComponents, loggingDaemonSets))
 	}
-	
+
 	return isValid
 }
 
@@ -556,10 +556,10 @@ func (mov *MonitoringObservabilityValidator) validateLoggingDaemonSets(ctx conte
 	if err := mov.client.List(ctx, daemonSets); err != nil {
 		return 0
 	}
-	
+
 	loggingDaemonSets := 0
 	loggingKeywords := []string{"fluentd", "fluent-bit", "filebeat", "promtail", "logging"}
-	
+
 	for _, ds := range daemonSets.Items {
 		for _, keyword := range loggingKeywords {
 			if strings.Contains(strings.ToLower(ds.Name), keyword) ||
@@ -569,7 +569,7 @@ func (mov *MonitoringObservabilityValidator) validateLoggingDaemonSets(ctx conte
 			}
 		}
 	}
-	
+
 	return loggingDaemonSets
 }
 
@@ -620,24 +620,24 @@ func (mov *MonitoringObservabilityValidator) validateTracingInfrastructure(ctx c
 			Required:       false,
 		},
 	}
-	
+
 	validComponents := 0
 	for _, component := range tracingComponents {
 		if mov.validateObservabilityComponent(ctx, component) {
 			validComponents++
 		}
 	}
-	
+
 	isValid := validComponents > 0
-	
+
 	mov.mu.Lock()
 	mov.metrics.DistributedTracingActive = isValid
 	mov.mu.Unlock()
-	
+
 	if isValid {
 		ginkgo.By(fmt.Sprintf("✓ Tracing infrastructure validated (%d components)", validComponents))
 	}
-	
+
 	return isValid
 }
 
@@ -645,10 +645,10 @@ func (mov *MonitoringObservabilityValidator) validateTracingInfrastructure(ctx c
 func (mov *MonitoringObservabilityValidator) validateDashboardsAlerting(ctx context.Context) {
 	// Check for Grafana dashboards
 	mov.validateGrafanaDashboards(ctx)
-	
+
 	// Check for AlertManager
 	mov.validateAlertManager(ctx)
-	
+
 	// Check for notification channels
 	mov.validateNotificationChannels(ctx)
 }
@@ -664,29 +664,29 @@ func (mov *MonitoringObservabilityValidator) validateGrafanaDashboards(ctx conte
 		HealthEndpoint: "/api/health",
 		Required:       false,
 	}
-	
+
 	grafanaValid := mov.validateObservabilityComponent(ctx, grafanaComponent)
-	
+
 	// Check for ConfigMaps containing dashboards
 	configMaps := &corev1.ConfigMapList{}
 	dashboardConfigMaps := 0
-	
+
 	namespaces := []string{"monitoring", "grafana", "nephoran-system"}
 	for _, namespace := range namespaces {
 		if err := mov.client.List(ctx, configMaps, client.InNamespace(namespace)); err == nil {
 			for _, cm := range configMaps.Items {
-				if strings.Contains(cm.Name, "dashboard") || 
+				if strings.Contains(cm.Name, "dashboard") ||
 					(cm.Labels != nil && cm.Labels["grafana_dashboard"] == "1") {
 					dashboardConfigMaps++
 				}
 			}
 		}
 	}
-	
+
 	mov.mu.Lock()
 	mov.metrics.GrafanaDashboards = grafanaValid && dashboardConfigMaps > 0
 	mov.mu.Unlock()
-	
+
 	if grafanaValid {
 		ginkgo.By(fmt.Sprintf("✓ Grafana validated with %d dashboard ConfigMaps", dashboardConfigMaps))
 	}
@@ -703,13 +703,13 @@ func (mov *MonitoringObservabilityValidator) validateAlertManager(ctx context.Co
 		HealthEndpoint: "/-/healthy",
 		Required:       false,
 	}
-	
+
 	alertManagerValid := mov.validateObservabilityComponent(ctx, alertManagerComponent)
-	
+
 	mov.mu.Lock()
 	mov.metrics.AlertManagerConfigured = alertManagerValid
 	mov.mu.Unlock()
-	
+
 	if alertManagerValid {
 		ginkgo.By("✓ AlertManager validated")
 	}
@@ -720,7 +720,7 @@ func (mov *MonitoringObservabilityValidator) validateNotificationChannels(ctx co
 	// Check for AlertManager configuration containing receivers
 	secrets := &corev1.SecretList{}
 	configFound := false
-	
+
 	namespaces := []string{"monitoring", "alertmanager", "nephoran-system"}
 	for _, namespace := range namespaces {
 		if err := mov.client.List(ctx, secrets, client.InNamespace(namespace)); err == nil {
@@ -729,8 +729,8 @@ func (mov *MonitoringObservabilityValidator) validateNotificationChannels(ctx co
 					// Check if secret contains webhook or email configurations
 					if secret.Data != nil {
 						for key := range secret.Data {
-							if strings.Contains(key, "webhook") || 
-								strings.Contains(key, "email") || 
+							if strings.Contains(key, "webhook") ||
+								strings.Contains(key, "email") ||
 								strings.Contains(key, "slack") {
 								configFound = true
 								break
@@ -741,11 +741,11 @@ func (mov *MonitoringObservabilityValidator) validateNotificationChannels(ctx co
 			}
 		}
 	}
-	
+
 	mov.mu.Lock()
 	mov.metrics.NotificationChannels = configFound
 	mov.mu.Unlock()
-	
+
 	if configFound {
 		ginkgo.By("✓ Notification channels configuration found")
 	}
@@ -756,7 +756,7 @@ func (mov *MonitoringObservabilityValidator) validateDataRetention(ctx context.C
 	// Check for PersistentVolumes for data storage
 	pvcs := &corev1.PersistentVolumeClaimList{}
 	retentionConfigured := false
-	
+
 	namespaces := []string{"monitoring", "prometheus", "elasticsearch", "nephoran-system"}
 	for _, namespace := range namespaces {
 		if err := mov.client.List(ctx, pvcs, client.InNamespace(namespace)); err == nil {
@@ -766,11 +766,11 @@ func (mov *MonitoringObservabilityValidator) validateDataRetention(ctx context.C
 			}
 		}
 	}
-	
+
 	mov.mu.Lock()
 	mov.metrics.DataRetentionCompliant = retentionConfigured
 	mov.mu.Unlock()
-	
+
 	if retentionConfigured {
 		ginkgo.By("✓ Data retention storage configured")
 	}
@@ -781,7 +781,7 @@ func (mov *MonitoringObservabilityValidator) validatePerformance(ctx context.Con
 	// Check resource limits and requests are properly configured
 	deployments := &appsv1.DeploymentList{}
 	performanceOptimal := true
-	
+
 	namespaces := []string{"monitoring", "prometheus", "grafana", "logging"}
 	for _, namespace := range namespaces {
 		if err := mov.client.List(ctx, deployments, client.InNamespace(namespace)); err == nil {
@@ -795,11 +795,11 @@ func (mov *MonitoringObservabilityValidator) validatePerformance(ctx context.Con
 			}
 		}
 	}
-	
+
 	mov.mu.Lock()
 	mov.metrics.QueryPerformanceOptimal = performanceOptimal
 	mov.mu.Unlock()
-	
+
 	if performanceOptimal {
 		ginkgo.By("✓ Observability components have resource constraints configured")
 	}
@@ -816,7 +816,7 @@ func (mov *MonitoringObservabilityValidator) GetObservabilityMetrics() *Observab
 func (mov *MonitoringObservabilityValidator) GenerateObservabilityReport() string {
 	mov.mu.RLock()
 	defer mov.mu.RUnlock()
-	
+
 	report := fmt.Sprintf(`
 =============================================================================
 MONITORING AND OBSERVABILITY VALIDATION REPORT
@@ -857,7 +857,7 @@ COMPONENT HEALTH STATUS:
 		mov.metrics.NotificationChannels,
 		mov.metrics.SLOMonitoringEnabled,
 	)
-	
+
 	// Add component status details
 	for name, health := range mov.metrics.ComponentStatus {
 		status := "❌"
@@ -866,11 +866,11 @@ COMPONENT HEALTH STATUS:
 		} else if health.Deployed {
 			status = "⚠️"
 		}
-		
-		report += fmt.Sprintf("├── %-20s %s (Deployed: %t, Healthy: %t)\n", 
+
+		report += fmt.Sprintf("├── %-20s %s (Deployed: %t, Healthy: %t)\n",
 			name, status, health.Deployed, health.Healthy)
 	}
-	
+
 	report += `
 PERFORMANCE & RETENTION:
 ├── All Components Healthy:     ` + fmt.Sprintf("%t", mov.metrics.AllComponentsHealthy) + `
@@ -879,6 +879,6 @@ PERFORMANCE & RETENTION:
 
 =============================================================================
 `
-	
+
 	return report
 }

@@ -2,7 +2,7 @@ package monitoring
 
 import (
 	"context"
-		"fmt"
+	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -14,8 +14,8 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	"go.opentelemetry.io/otel/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // DistributedTracer manages OpenTelemetry tracing for the entire system
@@ -33,94 +33,94 @@ type DistributedTracer struct {
 
 // TracingConfig holds configuration for distributed tracing
 type TracingConfig struct {
-	ServiceName     string        `json:"service_name"`
-	ServiceVersion  string        `json:"service_version"`
-	Environment     string        `json:"environment"`
-	JaegerEndpoint  string        `json:"jaeger_endpoint"`
-	SamplingRatio   float64       `json:"sampling_ratio"`
-	BatchTimeout    time.Duration `json:"batch_timeout"`
-	MaxBatchSize    int           `json:"max_batch_size"`
-	MaxQueueSize    int           `json:"max_queue_size"`
-	
+	ServiceName    string        `json:"service_name"`
+	ServiceVersion string        `json:"service_version"`
+	Environment    string        `json:"environment"`
+	JaegerEndpoint string        `json:"jaeger_endpoint"`
+	SamplingRatio  float64       `json:"sampling_ratio"`
+	BatchTimeout   time.Duration `json:"batch_timeout"`
+	MaxBatchSize   int           `json:"max_batch_size"`
+	MaxQueueSize   int           `json:"max_queue_size"`
+
 	// Trace-based alerting configuration
-	AlertingEnabled     bool                      `json:"alerting_enabled"`
-	AlertThresholds     *TraceAlertThresholds     `json:"alert_thresholds"`
-	AnomalyDetection    *TraceAnomalyConfig       `json:"anomaly_detection"`
-	PerformanceTargets  *PerformanceTargets       `json:"performance_targets"`
+	AlertingEnabled    bool                  `json:"alerting_enabled"`
+	AlertThresholds    *TraceAlertThresholds `json:"alert_thresholds"`
+	AnomalyDetection   *TraceAnomalyConfig   `json:"anomaly_detection"`
+	PerformanceTargets *PerformanceTargets   `json:"performance_targets"`
 }
 
 // TraceAlertThresholds defines thresholds for trace-based alerts
 type TraceAlertThresholds struct {
-	HighLatencyThreshold    time.Duration `json:"high_latency_threshold"`
+	HighLatencyThreshold     time.Duration `json:"high_latency_threshold"`
 	CriticalLatencyThreshold time.Duration `json:"critical_latency_threshold"`
-	ErrorRateThreshold      float64       `json:"error_rate_threshold"`
-	SpanCountThreshold      int           `json:"span_count_threshold"`
-	DeepTraceThreshold      int           `json:"deep_trace_threshold"`
-	SlowOperationThreshold  time.Duration `json:"slow_operation_threshold"`
+	ErrorRateThreshold       float64       `json:"error_rate_threshold"`
+	SpanCountThreshold       int           `json:"span_count_threshold"`
+	DeepTraceThreshold       int           `json:"deep_trace_threshold"`
+	SlowOperationThreshold   time.Duration `json:"slow_operation_threshold"`
 }
 
 // TraceAnomalyConfig defines anomaly detection parameters
 type TraceAnomalyConfig struct {
-	Enabled                bool          `json:"enabled"`
-	WindowSize             time.Duration `json:"window_size"`
-	MinimumSamples         int           `json:"minimum_samples"`
-	StandardDeviations     float64       `json:"standard_deviations"`
-	LatencyAnomalyEnabled  bool          `json:"latency_anomaly_enabled"`
-	ThroughputAnomalyEnabled bool        `json:"throughput_anomaly_enabled"`
+	Enabled                  bool          `json:"enabled"`
+	WindowSize               time.Duration `json:"window_size"`
+	MinimumSamples           int           `json:"minimum_samples"`
+	StandardDeviations       float64       `json:"standard_deviations"`
+	LatencyAnomalyEnabled    bool          `json:"latency_anomaly_enabled"`
+	ThroughputAnomalyEnabled bool          `json:"throughput_anomaly_enabled"`
 }
 
 // PerformanceTargets defines SLO targets for trace analysis
 type PerformanceTargets struct {
-	P50LatencyTarget time.Duration `json:"p50_latency_target"`
-	P95LatencyTarget time.Duration `json:"p95_latency_target"`
-	P99LatencyTarget time.Duration `json:"p99_latency_target"`
-	ErrorRateTarget  float64       `json:"error_rate_target"`
-	AvailabilityTarget float64     `json:"availability_target"`
+	P50LatencyTarget   time.Duration `json:"p50_latency_target"`
+	P95LatencyTarget   time.Duration `json:"p95_latency_target"`
+	P99LatencyTarget   time.Duration `json:"p99_latency_target"`
+	ErrorRateTarget    float64       `json:"error_rate_target"`
+	AvailabilityTarget float64       `json:"availability_target"`
 }
 
 // ActiveSpan represents an active span with metadata
 type ActiveSpan struct {
-	SpanID      string            `json:"span_id"`
-	TraceID     string            `json:"trace_id"`
-	OperationName string          `json:"operation_name"`
-	StartTime   time.Time         `json:"start_time"`
-	Tags        map[string]string `json:"tags"`
-	Component   string            `json:"component"`
-	Duration    time.Duration     `json:"duration"`
-	Status      codes.Code        `json:"status"`
+	SpanID        string            `json:"span_id"`
+	TraceID       string            `json:"trace_id"`
+	OperationName string            `json:"operation_name"`
+	StartTime     time.Time         `json:"start_time"`
+	Tags          map[string]string `json:"tags"`
+	Component     string            `json:"component"`
+	Duration      time.Duration     `json:"duration"`
+	Status        codes.Code        `json:"status"`
 }
 
 // TraceAlert represents a trace-based alert
 type TraceAlert struct {
-	ID          string                 `json:"id"`
-	AlertType   TraceAlertType         `json:"alert_type"`
-	Severity    AlertSeverity          `json:"severity"`
-	TraceID     string                 `json:"trace_id"`
-	SpanID      string                 `json:"span_id"`
-	Message     string                 `json:"message"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Component   string                 `json:"component"`
-	Operation   string                 `json:"operation"`
-	Duration    time.Duration          `json:"duration,omitempty"`
-	ErrorRate   float64                `json:"error_rate,omitempty"`
-	Resolved    bool                   `json:"resolved"`
-	ResolvedAt  *time.Time             `json:"resolved_at,omitempty"`
+	ID         string                 `json:"id"`
+	AlertType  TraceAlertType         `json:"alert_type"`
+	Severity   AlertSeverity          `json:"severity"`
+	TraceID    string                 `json:"trace_id"`
+	SpanID     string                 `json:"span_id"`
+	Message    string                 `json:"message"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Metadata   map[string]interface{} `json:"metadata"`
+	Component  string                 `json:"component"`
+	Operation  string                 `json:"operation"`
+	Duration   time.Duration          `json:"duration,omitempty"`
+	ErrorRate  float64                `json:"error_rate,omitempty"`
+	Resolved   bool                   `json:"resolved"`
+	ResolvedAt *time.Time             `json:"resolved_at,omitempty"`
 }
 
 // TraceAlertType defines types of trace-based alerts
 type TraceAlertType string
 
 const (
-	AlertTypeHighLatency     TraceAlertType = "high_latency"
-	AlertTypeCriticalLatency TraceAlertType = "critical_latency"
-	AlertTypeHighErrorRate   TraceAlertType = "high_error_rate"
-	AlertTypeDeepTrace       TraceAlertType = "deep_trace"
-	AlertTypeSlowOperation   TraceAlertType = "slow_operation"
-	AlertTypeLatencyAnomaly  TraceAlertType = "latency_anomaly"
+	AlertTypeHighLatency       TraceAlertType = "high_latency"
+	AlertTypeCriticalLatency   TraceAlertType = "critical_latency"
+	AlertTypeHighErrorRate     TraceAlertType = "high_error_rate"
+	AlertTypeDeepTrace         TraceAlertType = "deep_trace"
+	AlertTypeSlowOperation     TraceAlertType = "slow_operation"
+	AlertTypeLatencyAnomaly    TraceAlertType = "latency_anomaly"
 	AlertTypeThroughputAnomaly TraceAlertType = "throughput_anomaly"
-	AlertTypeSpanFailure     TraceAlertType = "span_failure"
-	AlertTypeCircuitBreaker  TraceAlertType = "circuit_breaker"
+	AlertTypeSpanFailure       TraceAlertType = "span_failure"
+	AlertTypeCircuitBreaker    TraceAlertType = "circuit_breaker"
 )
 
 // AlertSeverity constants for distributed tracing (using shared type from alerting.go)
@@ -173,36 +173,36 @@ type SpanMetrics struct {
 // DefaultTracingConfig returns default tracing configuration
 func DefaultTracingConfig() *TracingConfig {
 	return &TracingConfig{
-		ServiceName:    "nephoran-intent-operator",
-		ServiceVersion: getEnv("NEPHORAN_VERSION", "1.0.0"),
-		Environment:    getEnv("NEPHORAN_ENVIRONMENT", "production"),
-		JaegerEndpoint: getEnv("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
-		SamplingRatio:  0.1, // 10% sampling for production
-		BatchTimeout:   5 * time.Second,
-		MaxBatchSize:   512,
-		MaxQueueSize:   2048,
+		ServiceName:     "nephoran-intent-operator",
+		ServiceVersion:  getEnv("NEPHORAN_VERSION", "1.0.0"),
+		Environment:     getEnv("NEPHORAN_ENVIRONMENT", "production"),
+		JaegerEndpoint:  getEnv("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
+		SamplingRatio:   0.1, // 10% sampling for production
+		BatchTimeout:    5 * time.Second,
+		MaxBatchSize:    512,
+		MaxQueueSize:    2048,
 		AlertingEnabled: true,
 		AlertThresholds: &TraceAlertThresholds{
 			HighLatencyThreshold:     5 * time.Second,
 			CriticalLatencyThreshold: 10 * time.Second,
 			ErrorRateThreshold:       0.05, // 5%
 			SpanCountThreshold:       100,
-			DeepTraceThreshold:       20,   // Max span depth
+			DeepTraceThreshold:       20, // Max span depth
 			SlowOperationThreshold:   2 * time.Second,
 		},
 		AnomalyDetection: &TraceAnomalyConfig{
-			Enabled:                   true,
-			WindowSize:                15 * time.Minute,
-			MinimumSamples:            10,
-			StandardDeviations:        2.5,
-			LatencyAnomalyEnabled:     true,
-			ThroughputAnomalyEnabled:  true,
+			Enabled:                  true,
+			WindowSize:               15 * time.Minute,
+			MinimumSamples:           10,
+			StandardDeviations:       2.5,
+			LatencyAnomalyEnabled:    true,
+			ThroughputAnomalyEnabled: true,
 		},
 		PerformanceTargets: &PerformanceTargets{
 			P50LatencyTarget:   1 * time.Second,
 			P95LatencyTarget:   3 * time.Second,
 			P99LatencyTarget:   5 * time.Second,
-			ErrorRateTarget:    0.01, // 1%
+			ErrorRateTarget:    0.01,  // 1%
 			AvailabilityTarget: 0.999, // 99.9%
 		},
 	}
@@ -304,9 +304,9 @@ func (dt *DistributedTracer) StartSpan(ctx context.Context, operationName string
 
 	// Create span start options
 	spanOpts := append(opts, trace.WithAttributes(attributes...))
-	
+
 	spanCtx, span := dt.tracer.Start(ctx, operationName, spanOpts...)
-	
+
 	// Record active span
 	spanContext := span.SpanContext()
 	activeSpan := &ActiveSpan{
@@ -340,7 +340,7 @@ func (dt *DistributedTracer) StartSpan(ctx context.Context, operationName string
 func (dt *DistributedTracer) FinishSpan(span trace.Span, status codes.Code, err error) {
 	spanContext := span.SpanContext()
 	spanID := spanContext.SpanID().String()
-	
+
 	// Get active span
 	dt.mu.Lock()
 	activeSpan, exists := dt.activeSpans[spanID]
@@ -472,8 +472,8 @@ func (dt *DistributedTracer) checkSpanAlerts(spanMetrics *SpanMetrics) {
 			Operation: spanMetrics.OperationName,
 			Duration:  spanMetrics.Duration,
 			Metadata: map[string]interface{}{
-				"operation_type": spanMetrics.OperationName,
-				"expected_max":   thresholds.SlowOperationThreshold,
+				"operation_type":  spanMetrics.OperationName,
+				"expected_max":    thresholds.SlowOperationThreshold,
 				"actual_duration": spanMetrics.Duration,
 			},
 		}
@@ -540,7 +540,7 @@ func (sa *SpanAnalyzer) RecordSpan(spanMetrics *SpanMetrics) {
 // checkAnomalies performs anomaly detection on span metrics
 func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMetrics) {
 	config := sa.config.AnomalyDetection
-	
+
 	// Only check if we have minimum samples
 	latencies := sa.latencyHistory[operationKey]
 	if len(latencies) < config.MinimumSamples {
@@ -780,7 +780,7 @@ func calculatePercentiles(durations []time.Duration) (p50, p95, p99 time.Duratio
 	// Sort durations
 	sorted := make([]time.Duration, len(durations))
 	copy(sorted, durations)
-	
+
 	// Simple sort implementation
 	for i := 0; i < len(sorted); i++ {
 		for j := i + 1; j < len(sorted); j++ {
@@ -833,11 +833,11 @@ func (h *DefaultSlackAlertHandler) HandleAlert(ctx context.Context, alert *Trace
 	message += fmt.Sprintf("*Operation:* %s\n", alert.Operation)
 	message += fmt.Sprintf("*Message:* %s\n", alert.Message)
 	message += fmt.Sprintf("*Trace ID:* `%s`\n", alert.TraceID)
-	
+
 	if alert.Duration > 0 {
 		message += fmt.Sprintf("*Duration:* %v\n", alert.Duration)
 	}
-	
+
 	message += fmt.Sprintf("*Time:* %s", alert.Timestamp.Format(time.RFC3339))
 
 	// This would integrate with your Slack webhook implementation

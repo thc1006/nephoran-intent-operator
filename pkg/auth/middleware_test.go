@@ -43,11 +43,11 @@ func TestAuthMiddleware(t *testing.T) {
 	})
 
 	tests := []struct {
-		name           string
-		setupRequest   func() *http.Request
-		expectStatus   int
-		expectUser     bool
-		checkResponse  func(*testing.T, *httptest.ResponseRecorder)
+		name          string
+		setupRequest  func() *http.Request
+		expectStatus  int
+		expectUser    bool
+		checkResponse func(*testing.T, *httptest.ResponseRecorder)
 	}{
 		{
 			name: "Valid JWT token",
@@ -132,7 +132,7 @@ func TestAuthMiddleware(t *testing.T) {
 					"exp": time.Now().Add(-time.Hour).Unix(),
 					"iat": time.Now().Add(-2 * time.Hour).Unix(),
 				})
-				
+
 				req := httptest.NewRequest("GET", "/protected", nil)
 				req.Header.Set("Authorization", "Bearer "+expiredToken)
 				return req
@@ -237,7 +237,7 @@ func TestRBACMiddleware(t *testing.T) {
 
 	// Create RBAC middleware
 	middleware := NewRBACMiddleware(&RBACMiddlewareConfig{
-		RBACManager:     rbacManager,
+		RBACManager: rbacManager,
 		ResourceExtractor: func(r *http.Request) string {
 			if strings.HasPrefix(r.URL.Path, "/admin") {
 				return "admin"
@@ -265,9 +265,9 @@ func TestRBACMiddleware(t *testing.T) {
 	})
 
 	tests := []struct {
-		name         string
-		setupRequest func() *http.Request
-		expectStatus int
+		name          string
+		setupRequest  func() *http.Request
+		expectStatus  int
 		checkResponse func(*testing.T, *httptest.ResponseRecorder)
 	}{
 		{
@@ -374,10 +374,10 @@ func TestCORSMiddleware(t *testing.T) {
 	})
 
 	tests := []struct {
-		name          string
-		setupRequest  func() *http.Request
-		expectStatus  int
-		checkHeaders  func(*testing.T, http.Header)
+		name         string
+		setupRequest func() *http.Request
+		expectStatus int
+		checkHeaders func(*testing.T, http.Header)
 	}{
 		{
 			name: "Simple CORS request",
@@ -572,11 +572,11 @@ func TestRequestLoggingMiddleware(t *testing.T) {
 	}
 
 	middleware := NewRequestLoggingMiddleware(&RequestLoggingConfig{
-		Logger:         mockLogger,
-		LogHeaders:     true,
-		LogBody:        true,
-		MaxBodySize:    1024,
-		SkipPaths:     []string{"/health"},
+		Logger:           mockLogger,
+		LogHeaders:       true,
+		LogBody:          true,
+		MaxBodySize:      1024,
+		SkipPaths:        []string{"/health"},
 		SensitiveHeaders: []string{"Authorization", "Cookie"},
 	})
 
@@ -697,7 +697,7 @@ func TestChainMiddlewares(t *testing.T) {
 	})
 
 	rbacMiddleware := NewRBACMiddleware(&RBACMiddlewareConfig{
-		RBACManager: rbacManager,
+		RBACManager:       rbacManager,
 		ResourceExtractor: func(r *http.Request) string { return "api" },
 		ActionExtractor:   func(r *http.Request) string { return "read" },
 		UserIDExtractor: func(r *http.Request) string {
@@ -846,7 +846,7 @@ func BenchmarkRBACMiddleware(b *testing.B) {
 	rbacManager := tc.SetupRBACManager()
 
 	middleware := NewRBACMiddleware(&RBACMiddlewareConfig{
-		RBACManager: rbacManager,
+		RBACManager:       rbacManager,
 		ResourceExtractor: func(r *http.Request) string { return "api" },
 		ActionExtractor:   func(r *http.Request) string { return "read" },
 		UserIDExtractor:   func(r *http.Request) string { return "test-user" },

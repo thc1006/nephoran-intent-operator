@@ -267,25 +267,25 @@ func (kpm *KPMServiceModel) GetSupportedMeasurements() []KPMMeasurement {
 		{MeasName: "RRC.ConnEstabSucc", MeasID: 2},
 		{MeasName: "RRC.ConnMean", MeasID: 3},
 		{MeasName: "RRC.ConnMax", MeasID: 4},
-		
+
 		// DRB measurements
 		{MeasName: "DRB.PdcpSduVolumeDL", MeasID: 10},
 		{MeasName: "DRB.PdcpSduVolumeUL", MeasID: 11},
 		{MeasName: "DRB.RlcSduDelayDl", MeasID: 12},
 		{MeasName: "DRB.UEThpDl", MeasID: 13},
 		{MeasName: "DRB.UEThpUl", MeasID: 14},
-		
+
 		// PRB measurements
 		{MeasName: "RRU.PrbTotDl", MeasID: 20},
 		{MeasName: "RRU.PrbTotUl", MeasID: 21},
 		{MeasName: "RRU.PrbUsedDl", MeasID: 22},
 		{MeasName: "RRU.PrbUsedUl", MeasID: 23},
-		
+
 		// QoS measurements
 		{MeasName: "QosFlow.PdcpPduVolumeDL_Filter", MeasID: 30},
 		{MeasName: "QosFlow.PdcpPduVolumeUL_Filter", MeasID: 31},
 		{MeasName: "QosFlow.PdcpSduDelayDL", MeasID: 32},
-		
+
 		// Slice measurements
 		{MeasName: "SNSSAI.DrbNumMean", MeasID: 40},
 		{MeasName: "SNSSAI.PdcpSduVolumeDL", MeasID: 41},
@@ -299,16 +299,16 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID string, cellID string, 
 	triggerConfig := &KPMTriggerConfig{
 		ReportingPeriodMs: 1000, // 1 second
 	}
-	
+
 	eventTrigger, err := kpm.CreateEventTrigger(triggerConfig)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create action for measurements
 	measList := make([]KPMMeasurement, 0, len(measurements))
 	supportedMeas := kpm.GetSupportedMeasurements()
-	
+
 	for _, measName := range measurements {
 		for _, supported := range supportedMeas {
 			if supported.MeasName == measName {
@@ -317,23 +317,23 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID string, cellID string, 
 			}
 		}
 	}
-	
+
 	actionConfig := &KPMActionConfig{
 		Measurements:      measList,
 		GranularityPeriod: 1000, // 1 second
 		CellID:            cellID,
 	}
-	
+
 	actionDef, err := kpm.CreateActionDefinition(actionConfig)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create subscription
 	subscription := &e2.E2Subscription{
-		SubscriptionID:  fmt.Sprintf("kpm-%s-%d", nodeID, time.Now().Unix()),
-		RequestorID:     "kpm-xapp",
-		RanFunctionID:   1, // KPM function ID
+		SubscriptionID: fmt.Sprintf("kpm-%s-%d", nodeID, time.Now().Unix()),
+		RequestorID:    "kpm-xapp",
+		RanFunctionID:  1, // KPM function ID
 		EventTriggers: []e2.E2EventTrigger{
 			{
 				TriggerType:     "PERIODIC",
@@ -342,8 +342,8 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID string, cellID string, 
 		},
 		Actions: []e2.E2Action{
 			{
-				ActionID:         1,
-				ActionType:       "REPORT",
+				ActionID:   1,
+				ActionType: "REPORT",
 				ActionDefinition: map[string]interface{}{
 					"event_trigger": json.RawMessage(eventTrigger),
 					"action_def":    json.RawMessage(actionDef),
@@ -357,6 +357,6 @@ func (kpm *KPMServiceModel) CreateKPMSubscription(nodeID string, cellID string, 
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
-	
+
 	return subscription, nil
 }

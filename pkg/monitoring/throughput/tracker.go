@@ -14,10 +14,10 @@ import (
 type IntentType string
 
 const (
-	IntentTypeCore     IntentType = "core"
-	IntentTypeRAN      IntentType = "ran"
-	IntentTypeSlicing  IntentType = "slicing"
-	IntentTypeDefault  IntentType = "default"
+	IntentTypeCore    IntentType = "core"
+	IntentTypeRAN     IntentType = "ran"
+	IntentTypeSlicing IntentType = "slicing"
+	IntentTypeDefault IntentType = "default"
 )
 
 // ThroughputTracker provides real-time throughput monitoring
@@ -42,10 +42,10 @@ type ThroughputTracker struct {
 // NewThroughputTracker creates a new throughput tracker
 func NewThroughputTracker() *ThroughputTracker {
 	windows := map[time.Duration]*SlidingWindowCounter{
-		time.Minute:   NewSlidingWindowCounter(time.Minute),
-		time.Minute * 5: NewSlidingWindowCounter(time.Minute * 5),
+		time.Minute:      NewSlidingWindowCounter(time.Minute),
+		time.Minute * 5:  NewSlidingWindowCounter(time.Minute * 5),
 		time.Minute * 15: NewSlidingWindowCounter(time.Minute * 15),
-		time.Hour:    NewSlidingWindowCounter(time.Hour),
+		time.Hour:        NewSlidingWindowCounter(time.Hour),
 	}
 
 	return &ThroughputTracker{
@@ -63,16 +63,16 @@ func NewThroughputTracker() *ThroughputTracker {
 			Name: "nephoran_intent_queue_depth",
 			Help: "Current depth of intent processing queues",
 		}, []string{"queue"}),
-		burstDetector: NewBurstDetector(),
+		burstDetector:  NewBurstDetector(),
 		regionCounters: make(map[string]*SlidingWindowCounter),
 	}
 }
 
 // RecordIntent records an intent processing event
 func (t *ThroughputTracker) RecordIntent(
-	intentType IntentType, 
-	status string, 
-	processingTime time.Duration, 
+	intentType IntentType,
+	status string,
+	processingTime time.Duration,
 	region string,
 ) {
 	t.mu.Lock()
@@ -176,8 +176,8 @@ func (c *SlidingWindowCounter) prune(now int64) {
 
 // BurstDetector tracks burst events
 type BurstDetector struct {
-	mu        sync.Mutex
-	timestamps []time.Time
+	mu             sync.Mutex
+	timestamps     []time.Time
 	burstThreshold int
 }
 

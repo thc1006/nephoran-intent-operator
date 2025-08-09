@@ -109,8 +109,8 @@ func TestRANFunctionItem(t *testing.T) {
 
 func TestRICSubscriptionDetails(t *testing.T) {
 	actionItem := RICActionToBeSetupItem{
-		RICActionID:   1,
-		RICActionType: RICActionTypeReport,
+		RICActionID:         1,
+		RICActionType:       RICActionTypeReport,
 		RICActionDefinition: []byte("action-def"),
 	}
 
@@ -369,9 +369,9 @@ func TestCreateErrorIndication(t *testing.T) {
 
 func TestE2APMessageTimestamp(t *testing.T) {
 	before := time.Now()
-	
+
 	message := CreateE2SetupRequest(GlobalE2NodeID{}, []RANFunctionItem{})
-	
+
 	after := time.Now()
 
 	assert.True(t, message.Timestamp.After(before) || message.Timestamp.Equal(before))

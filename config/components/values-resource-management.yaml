@@ -1,0 +1,429 @@
+# Enhanced Resource Management Configuration for Nephoran Intent Operator
+# This values file provides comprehensive resource management settings for all components
+# Use with: helm upgrade --install -f values-resource-management.yaml
+
+global:
+  # Resource management strategy
+  resourceManagement:
+    strategy: "optimized"  # Options: minimal, balanced, optimized, performance
+    enableVPA: false      # Vertical Pod Autoscaler
+    enableHPA: true       # Horizontal Pod Autoscaler
+    enablePDB: true       # Pod Disruption Budget
+    
+  # Node selection and scheduling
+  nodeSelection:
+    # Node affinity for better resource utilization
+    nodeAffinity:
+      enabled: true
+      preferredNodeTypes:
+        - "c5.large"
+        - "c5.xlarge" 
+        - "c5.2xlarge"
+    
+    # Pod anti-affinity for high availability
+    podAntiAffinity:
+      enabled: true
+      weight: 100
+      topologyKey: "kubernetes.io/hostname"
+    
+    # Tolerations for specialized nodes
+    tolerations:
+      - key: "nephoran.com/ai-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+      - key: "nephoran.com/data-workload"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+
+# Main Nephoran Operator Controller with enhanced resource management
+nephoranOperator:
+  enabled: true
+  replicaCount: 1
+  
+  # Resource configuration based on component criticality
+  resources:
+    # Production-ready resource limits
+    limits:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 256Mi
+  
+  # Pod Disruption Budget for high availability
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  
+  # Horizontal Pod Autoscaler (disabled by default for controller)
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+    # Advanced scaling policies
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+
+# LLM Processor with AI workload optimizations
+llmProcessor:
+  enabled: true
+  replicaCount: 2
+  
+  # Higher resource allocation for AI processing
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+      ephemeral-storage: 2Gi
+    requests:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 512Mi
+  
+  # Pod Disruption Budget
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  
+  # Horizontal Pod Autoscaler for load handling
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 75
+    # Custom metrics for AI workloads
+    customMetrics:
+      - type: Pods
+        metric:
+          name: llm_queue_depth
+        target:
+          type: AverageValue
+          averageValue: "5"
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 60
+        policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 15
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 60
+  
+  # Node affinity for AI workloads
+  nodeSelector:
+    "nephoran.com/workload-type": "ai"
+  
+  tolerations:
+    - key: "nephoran.com/ai-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+
+# RAG API with moderate resource allocation
+ragApi:
+  enabled: true
+  replicaCount: 2
+  
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 256Mi
+  
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 120
+        policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+      scaleDown:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+
+# Webhook with minimal resource requirements
+webhook:
+  enabled: true
+  replicaCount: 2
+  
+  # Minimal resources for validation webhook
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+      ephemeral-storage: 512Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+      ephemeral-storage: 128Mi
+  
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  
+  # Conservative autoscaling for webhooks
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+    behavior:
+      scaleUp:
+        stabilizationWindowSeconds: 300
+        policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+      scaleDown:
+        stabilizationWindowSeconds: 600
+        policies:
+        - type: Percent
+          value: 25
+          periodSeconds: 120
+
+# Nephio Bridge for GitOps operations
+nephioBridge:
+  enabled: true
+  replicaCount: 1
+  
+  resources:
+    limits:
+      cpu: 300m
+      memory: 384Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 50m
+      memory: 96Mi
+      ephemeral-storage: 256Mi
+  
+  # Single replica with no autoscaling (stateful operations)
+  podDisruptionBudget:
+    enabled: false  # Single replica component
+  
+  autoscaling:
+    enabled: false  # GitOps operations should be single-instance
+
+# O-RAN Adaptor for telecommunications interfaces
+oranAdaptor:
+  enabled: true
+  replicaCount: 2
+  
+  resources:
+    limits:
+      cpu: 400m
+      memory: 512Mi
+      ephemeral-storage: 1Gi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+      ephemeral-storage: 256Mi
+  
+  podDisruptionBudget:
+    enabled: true
+    minAvailable: 1
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+    # O-RAN specific metrics
+    customMetrics:
+      - type: Pods
+        metric:
+          name: oran_active_connections
+        target:
+          type: AverageValue
+          averageValue: "50"
+
+# Weaviate Vector Database with storage-optimized resources
+weaviate:
+  enabled: true
+  replicaCount: 1
+  
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+      ephemeral-storage: 10Gi
+    requests:
+      cpu: 200m
+      memory: 512Mi
+      ephemeral-storage: 5Gi
+  
+  # Persistent storage for vector data
+  persistence:
+    enabled: true
+    size: 50Gi
+    storageClass: "fast-ssd"
+    accessModes:
+      - ReadWriteOnce
+  
+  # Database-specific configurations
+  podDisruptionBudget:
+    enabled: false  # StatefulSet with single replica
+  
+  autoscaling:
+    enabled: false  # Stateful database component
+  
+  # Storage and memory-optimized node selection
+  nodeSelector:
+    "nephoran.com/storage-type": "ssd"
+  
+  tolerations:
+    - key: "nephoran.com/data-workload"
+      operator: "Equal"
+      value: "true"
+      effect: "NoSchedule"
+
+# Advanced Resource Management Features
+resourceManagement:
+  # Vertical Pod Autoscaler (requires VPA to be installed)
+  verticalPodAutoscaler:
+    enabled: false
+    updateMode: "Auto"  # Auto, Initial, Off
+    components:
+      - name: "llm-processor"
+        enabled: true
+        minAllowed:
+          cpu: "100m"
+          memory: "128Mi"
+        maxAllowed:
+          cpu: "2000m"
+          memory: "2Gi"
+      - name: "rag-api"
+        enabled: true
+        minAllowed:
+          cpu: "50m"
+          memory: "64Mi"
+        maxAllowed:
+          cpu: "1000m"
+          memory: "1Gi"
+  
+  # Resource Quotas for namespace-level limits
+  resourceQuotas:
+    enabled: true
+    hard:
+      requests.cpu: "5"
+      requests.memory: "8Gi"
+      limits.cpu: "20"
+      limits.memory: "32Gi"
+      persistentvolumeclaims: "10"
+      pods: "50"
+  
+  # Limit Ranges for default resource constraints
+  limitRanges:
+    enabled: true
+    defaults:
+      cpu: "100m"
+      memory: "128Mi"
+    defaultRequests:
+      cpu: "50m"
+      memory: "64Mi"
+    max:
+      cpu: "2"
+      memory: "4Gi"
+    min:
+      cpu: "10m"
+      memory: "32Mi"
+
+# Monitoring and Alerting for Resource Management
+monitoring:
+  enabled: true
+  
+  # Resource-specific alerts
+  resourceAlerts:
+    enabled: true
+    alerts:
+      - name: "HighCPUUsage"
+        expr: "rate(container_cpu_usage_seconds_total[5m]) > 0.8"
+        duration: "5m"
+        severity: "warning"
+      - name: "HighMemoryUsage"
+        expr: "container_memory_working_set_bytes / container_spec_memory_limit_bytes > 0.9"
+        duration: "5m"
+        severity: "critical"
+      - name: "PodRestartingFrequently"
+        expr: "rate(kube_pod_container_status_restarts_total[15m]) > 0.1"
+        duration: "5m"
+        severity: "warning"
+  
+  # Resource usage dashboards
+  grafana:
+    dashboards:
+      resourceUsage: true
+      costOptimization: true
+      capacityPlanning: true
+
+# Cost Optimization Features
+costOptimization:
+  enabled: true
+  
+  # Spot instance utilization
+  spotInstances:
+    enabled: true
+    allowedComponents:
+      - "llm-processor"
+      - "rag-api"
+    nodeSelector:
+      "karpenter.sh/capacity-type": "spot"
+    tolerations:
+      - key: "karpenter.sh/capacity-type"
+        value: "spot"
+        operator: "Equal"
+        effect: "NoSchedule"
+  
+  # Resource right-sizing recommendations
+  rightsizing:
+    enabled: true
+    analysisWindow: "7d"
+    recommendationThreshold: 0.2  # 20% improvement threshold
+  
+  # Idle resource detection
+  idleDetection:
+    enabled: true
+    thresholds:
+      cpu: 0.1      # 10% CPU utilization
+      memory: 0.2   # 20% memory utilization
+      duration: "1h" # Detection window

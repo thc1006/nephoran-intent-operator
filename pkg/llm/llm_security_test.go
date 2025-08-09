@@ -11,12 +11,12 @@ import (
 // TestTLSVerificationSecurity tests the TLS verification security controls
 func TestTLSVerificationSecurity(t *testing.T) {
 	tests := []struct {
-		name                string
-		config              ClientConfig
-		envValue            string
-		expectPanic         bool
-		expectInsecureSkip  bool
-		description         string
+		name               string
+		config             ClientConfig
+		envValue           string
+		expectPanic        bool
+		expectInsecureSkip bool
+		description        string
 	}{
 		{
 			name: "secure_by_default",
@@ -256,7 +256,7 @@ func TestTLSConfigurationHardening(t *testing.T) {
 func TestBackwardCompatibility(t *testing.T) {
 	// This should work without any issues
 	client := NewClient("https://test.example.com")
-	
+
 	if client == nil {
 		t.Fatal("NewClient returned nil")
 	}

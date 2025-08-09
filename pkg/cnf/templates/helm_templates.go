@@ -29,17 +29,17 @@ type HelmTemplateManager struct {
 
 // HelmTemplate defines a Helm chart template for a CNF function
 type HelmTemplate struct {
-	Function      nephoranv1.CNFFunction
-	ChartName     string
-	ChartVersion  string
-	Repository    string
-	Values        map[string]interface{}
-	Dependencies  []HelmDependency
-	Interfaces    []InterfaceTemplate
-	ConfigMaps    []ConfigMapTemplate
-	Secrets       []SecretTemplate
-	Services      []ServiceTemplate
-	CustomValues  map[string]interface{}
+	Function     nephoranv1.CNFFunction
+	ChartName    string
+	ChartVersion string
+	Repository   string
+	Values       map[string]interface{}
+	Dependencies []HelmDependency
+	Interfaces   []InterfaceTemplate
+	ConfigMaps   []ConfigMapTemplate
+	Secrets      []SecretTemplate
+	Services     []ServiceTemplate
+	CustomValues map[string]interface{}
 }
 
 // HelmDependency defines a Helm chart dependency
@@ -52,12 +52,12 @@ type HelmDependency struct {
 
 // InterfaceTemplate defines network interface templates
 type InterfaceTemplate struct {
-	Name         string
-	Type         string
-	Port         int32
-	Protocol     string
-	ServiceType  string
-	Annotations  map[string]string
+	Name        string
+	Type        string
+	Port        int32
+	Protocol    string
+	ServiceType string
+	Annotations map[string]string
 }
 
 // ConfigMapTemplate defines ConfigMap templates
@@ -95,16 +95,16 @@ func NewHelmTemplateManager() *HelmTemplateManager {
 	manager := &HelmTemplateManager{
 		Templates: make(map[nephoranv1.CNFFunction]*HelmTemplate),
 	}
-	
+
 	// Initialize 5G Core templates
 	manager.init5GCoreTemplates()
-	
+
 	// Initialize O-RAN templates
 	manager.initORANTemplates()
-	
+
 	// Initialize edge templates
 	manager.initEdgeTemplates()
-	
+
 	return manager
 }
 
@@ -114,7 +114,7 @@ func (m *HelmTemplateManager) GetTemplate(function nephoranv1.CNFFunction) (*Hel
 	if !exists {
 		return nil, fmt.Errorf("no Helm template found for CNF function: %s", function)
 	}
-	
+
 	return template, nil
 }
 
@@ -126,7 +126,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 	}
 
 	values := make(map[string]interface{})
-	
+
 	// Start with template default values
 	for k, v := range template.Values {
 		values[k] = v
@@ -182,7 +182,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 			"enabled": true,
 			"type":    cnf.Spec.ServiceMesh.Type,
 		}
-		
+
 		if cnf.Spec.ServiceMesh.MTLS != nil {
 			values["serviceMesh"].(map[string]interface{})["mtls"] = map[string]interface{}{
 				"enabled": cnf.Spec.ServiceMesh.MTLS.Enabled,
@@ -196,7 +196,7 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 		values["monitoring"] = map[string]interface{}{
 			"enabled": true,
 		}
-		
+
 		if cnf.Spec.Monitoring.Prometheus != nil {
 			values["monitoring"].(map[string]interface{})["prometheus"] = map[string]interface{}{
 				"enabled":  cnf.Spec.Monitoring.Prometheus.Enabled,
@@ -214,11 +214,11 @@ func (m *HelmTemplateManager) GenerateValues(cnf *nephoranv1.CNFDeployment) (map
 			"minReplicas": cnf.Spec.AutoScaling.MinReplicas,
 			"maxReplicas": cnf.Spec.AutoScaling.MaxReplicas,
 		}
-		
+
 		if cnf.Spec.AutoScaling.CPUUtilization != nil {
 			values["autoscaling"].(map[string]interface{})["targetCPUUtilizationPercentage"] = *cnf.Spec.AutoScaling.CPUUtilization
 		}
-		
+
 		if cnf.Spec.AutoScaling.MemoryUtilization != nil {
 			values["autoscaling"].(map[string]interface{})["targetMemoryUtilizationPercentage"] = *cnf.Spec.AutoScaling.MemoryUtilization
 		}

@@ -28,13 +28,13 @@ import (
 )
 
 var (
-	cfg           *rest.Config
-	k8sClient     client.Client
-	testEnv       *envtest.Environment
-	ctx           context.Context
-	cancel        context.CancelFunc
-	mgr           ctrl.Manager
-	testScheme    *runtime.Scheme
+	cfg        *rest.Config
+	k8sClient  client.Client
+	testEnv    *envtest.Environment
+	ctx        context.Context
+	cancel     context.CancelFunc
+	mgr        ctrl.Manager
+	testScheme *runtime.Scheme
 )
 
 func TestIntegrationControllers(t *testing.T) {
@@ -122,7 +122,7 @@ var _ = AfterSuite(func() {
 func setupControllersWithMocks(mgr ctrl.Manager) {
 	// Create mock dependencies for testing
 	mockDeps := testutils.NewMockDependencies()
-	
+
 	// Configure realistic mock responses
 	configureMockResponses(mockDeps)
 
@@ -164,18 +164,18 @@ func setupControllersWithMocks(mgr ctrl.Manager) {
 func configureMockResponses(mockDeps *testutils.MockDependencies) {
 	// Configure LLM client mock responses
 	llmClient := mockDeps.GetLLMClient().(*testutils.MockLLMClient)
-	
+
 	// Default successful AMF deployment response
 	amfResponse := testutils.CreateMockLLMResponse("5G-Core-AMF", 0.95)
 	amfResponse.Parameters = map[string]interface{}{
-		"replicas":        3,
-		"scaling":         true,
-		"cpu_request":     "500m",
-		"memory_request":  "1Gi",
-		"cpu_limit":       "1000m",
-		"memory_limit":    "2Gi",
-		"ha_enabled":      true,
-		"monitoring":      true,
+		"replicas":       3,
+		"scaling":        true,
+		"cpu_request":    "500m",
+		"memory_request": "1Gi",
+		"cpu_limit":      "1000m",
+		"memory_limit":   "2Gi",
+		"ha_enabled":     true,
+		"monitoring":     true,
 	}
 	llmClient.SetResponse("ProcessIntent", amfResponse)
 
@@ -198,17 +198,17 @@ func CreateTestNamespace() *corev1.Namespace {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: GenerateTestNamespace(),
 			Labels: map[string]string{
-				"test":                    "integration",
+				"test":                   "integration",
 				"nephoran.com/test-type": "integration",
 			},
 		},
 	}
-	
+
 	Expect(k8sClient.Create(ctx, namespace)).To(Succeed())
 	DeferCleanup(func() {
 		Expect(k8sClient.Delete(ctx, namespace)).To(Succeed())
 	})
-	
+
 	return namespace
 }
 

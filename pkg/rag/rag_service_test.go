@@ -50,23 +50,23 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (strin
 
 var _ = Describe("RAGService", func() {
 	var (
-		ragService         *RAGService
-		mockWeaviate      *MockWeaviateClient
-		mockLLM           *MockLLMClient
-		config            *RAGConfig
-		ctx               context.Context
+		ragService   *RAGService
+		mockWeaviate *MockWeaviateClient
+		mockLLM      *MockLLMClient
+		config       *RAGConfig
+		ctx          context.Context
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		
+
 		// Create mock clients
 		mockWeaviate = &MockWeaviateClient{}
 		mockLLM = &MockLLMClient{}
-		
+
 		// Create test configuration
 		config = &RAGConfig{
-			DefaultSearchLimit:    10,
+			DefaultSearchLimit:   10,
 			MaxSearchLimit:       50,
 			DefaultHybridAlpha:   0.7,
 			MinConfidenceScore:   0.5,
@@ -75,15 +75,15 @@ var _ = Describe("RAGService", func() {
 			MaxLLMTokens:         4000,
 			Temperature:          0.3,
 			EnableCaching:        true,
-			CacheTTL:            30 * time.Minute,
+			CacheTTL:             30 * time.Minute,
 			EnableReranking:      true,
-			RerankingTopK:       20,
+			RerankingTopK:        20,
 			EnableQueryExpansion: true,
-			TelecomDomains:      []string{"RAN", "Core", "Transport"},
-			PreferredSources:    []string{"3GPP", "O-RAN"},
-			TechnologyFilter:    []string{"5G", "4G"},
+			TelecomDomains:       []string{"RAN", "Core", "Transport"},
+			PreferredSources:     []string{"3GPP", "O-RAN"},
+			TechnologyFilter:     []string{"5G", "4G"},
 		}
-		
+
 		// Create RAG service
 		ragService = NewRAGService(mockWeaviate, mockLLM, config)
 	})
@@ -122,16 +122,16 @@ var _ = Describe("RAGService", func() {
 
 		BeforeEach(func() {
 			request = &RAGRequest{
-				Query:               "How to configure 5G RAN parameters?",
-				IntentType:          "configuration",
-				MaxResults:          5,
-				MinConfidence:       0.6,
-				UseHybridSearch:     true,
-				EnableReranking:     true,
-				IncludeSourceRefs:   true,
-				ResponseFormat:      "markdown",
-				UserID:              "test-user",
-				SessionID:           "test-session",
+				Query:             "How to configure 5G RAN parameters?",
+				IntentType:        "configuration",
+				MaxResults:        5,
+				MinConfidence:     0.6,
+				UseHybridSearch:   true,
+				EnableReranking:   true,
+				IncludeSourceRefs: true,
+				ResponseFormat:    "markdown",
+				UserID:            "test-user",
+				SessionID:         "test-session",
 			}
 
 			// Setup successful mock responses
@@ -139,20 +139,20 @@ var _ = Describe("RAGService", func() {
 				Results: []*SearchResult{
 					{
 						Document: &TelecomDocument{
-							ID:      "doc1",
-							Content: "5G RAN configuration parameters include...",
-							Source:  "3GPP TS 38.331",
-							Title:   "RAN Configuration Guide",
+							ID:       "doc1",
+							Content:  "5G RAN configuration parameters include...",
+							Source:   "3GPP TS 38.331",
+							Title:    "RAN Configuration Guide",
 							Category: "Configuration",
 						},
 						Score: 0.9,
 					},
 					{
 						Document: &TelecomDocument{
-							ID:      "doc2",
-							Content: "Additional RAN parameters for network optimization...",
-							Source:  "O-RAN WG3",
-							Title:   "Network Optimization",
+							ID:       "doc2",
+							Content:  "Additional RAN parameters for network optimization...",
+							Source:   "O-RAN WG3",
+							Title:    "Network Optimization",
 							Category: "Optimization",
 						},
 						Score: 0.8,
@@ -167,7 +167,7 @@ var _ = Describe("RAGService", func() {
 		Context("when processing a valid query", func() {
 			It("should return a successful response", func() {
 				response, err := ragService.ProcessQuery(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
 				Expect(response.Answer).To(ContainSubstring("Based on the provided documentation"))
@@ -181,7 +181,7 @@ var _ = Describe("RAGService", func() {
 			It("should include source references when requested", func() {
 				request.IncludeSourceRefs = true
 				response, err := ragService.ProcessQuery(ctx, request)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(response.Answer).To(ContainSubstring("**Sources:**"))
 				Expect(response.Answer).To(ContainSubstring("[1] 3GPP TS 38.331"))
@@ -221,7 +221,7 @@ var _ = Describe("RAGService", func() {
 		Context("when handling invalid requests", func() {
 			It("should return error for nil request", func() {
 				response, err := ragService.ProcessQuery(ctx, nil)
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(response).To(BeNil())
 				Expect(err.Error()).To(ContainSubstring("request"))
@@ -230,7 +230,7 @@ var _ = Describe("RAGService", func() {
 			It("should return error for empty query", func() {
 				request.Query = ""
 				response, err := ragService.ProcessQuery(ctx, request)
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(response).To(BeNil())
 				Expect(err.Error()).To(ContainSubstring("query"))
@@ -247,7 +247,7 @@ var _ = Describe("RAGService", func() {
 				initialFailed := initialMetrics.FailedQueries
 
 				response, err := ragService.ProcessQuery(ctx, request)
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(response).To(BeNil())
 				Expect(err.Error()).To(ContainSubstring("weaviate"))
@@ -267,7 +267,7 @@ var _ = Describe("RAGService", func() {
 				initialFailed := initialMetrics.FailedQueries
 
 				response, err := ragService.ProcessQuery(ctx, request)
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(response).To(BeNil())
 				Expect(err.Error()).To(ContainSubstring("llm"))
@@ -283,7 +283,7 @@ var _ = Describe("RAGService", func() {
 				cancel() // Cancel immediately
 
 				response, err := ragService.ProcessQuery(cancelCtx, request)
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(response).To(BeNil())
 				Expect(err.Error()).To(ContainSubstring("context"))
@@ -297,7 +297,7 @@ var _ = Describe("RAGService", func() {
 				time.Sleep(2 * time.Millisecond)
 
 				response, err := ragService.ProcessQuery(timeoutCtx, request)
-				
+
 				Expect(err).To(HaveOccurred())
 				Expect(response).To(BeNil())
 			})
@@ -309,13 +309,13 @@ var _ = Describe("RAGService", func() {
 			request := &RAGRequest{
 				IntentType: "configuration",
 				SearchFilters: map[string]interface{}{
-					"source": "3GPP",
+					"source":  "3GPP",
 					"version": "R16",
 				},
 			}
 
 			filters := ragService.buildSearchFilters(request)
-			
+
 			Expect(filters).To(HaveKeyWithValue("source", "3GPP"))
 			Expect(filters).To(HaveKeyWithValue("version", "R16"))
 			Expect(filters).To(HaveKeyWithValue("category", "Configuration"))
@@ -538,7 +538,7 @@ var _ = Describe("RAGService", func() {
 	Describe("GetMetrics", func() {
 		It("should return current metrics", func() {
 			metrics := ragService.GetMetrics()
-			
+
 			Expect(metrics).NotTo(BeNil())
 			Expect(metrics.TotalQueries).To(Equal(int64(0)))
 			Expect(metrics.SuccessfulQueries).To(Equal(int64(0)))
@@ -550,10 +550,10 @@ var _ = Describe("RAGService", func() {
 		It("should return a copy of metrics", func() {
 			metrics1 := ragService.GetMetrics()
 			metrics2 := ragService.GetMetrics()
-			
+
 			// Modify one copy
 			metrics1.TotalQueries = 100
-			
+
 			// Other copy should be unaffected
 			Expect(metrics2.TotalQueries).To(Equal(int64(0)))
 		})
@@ -562,11 +562,11 @@ var _ = Describe("RAGService", func() {
 	Describe("GetHealth", func() {
 		It("should return health status", func() {
 			health := ragService.GetHealth()
-			
+
 			Expect(health).To(HaveKey("status"))
 			Expect(health).To(HaveKey("weaviate"))
 			Expect(health).To(HaveKey("metrics"))
-			
+
 			weaviateHealth := health["weaviate"].(map[string]interface{})
 			Expect(weaviateHealth).To(HaveKeyWithValue("healthy", true))
 			Expect(weaviateHealth).To(HaveKey("version"))
@@ -688,9 +688,9 @@ var _ = Describe("RAGService", func() {
 						{Document: nil, Score: 0.9}, // Nil document
 						{
 							Document: &TelecomDocument{
-								ID:      "",  // Empty ID
-								Content: "",  // Empty content
-								Source:  "",  // Empty source
+								ID:      "", // Empty ID
+								Content: "", // Empty content
+								Source:  "", // Empty source
 							},
 							Score: 0.0, // Zero score
 						},
@@ -760,7 +760,7 @@ var _ = Describe("RAGService", func() {
 	Describe("Default Configuration", func() {
 		It("should have proper default values", func() {
 			defaultConfig := getDefaultRAGConfig()
-			
+
 			Expect(defaultConfig.DefaultSearchLimit).To(Equal(10))
 			Expect(defaultConfig.MaxSearchLimit).To(Equal(50))
 			Expect(defaultConfig.DefaultHybridAlpha).To(Equal(float32(0.7)))

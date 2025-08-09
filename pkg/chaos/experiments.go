@@ -215,11 +215,11 @@ func (p *PredefinedExperiments) GetMemoryStressExperiment(targetNamespace string
 			},
 		},
 		Parameters: map[string]string{
-			"memory_mb":   fmt.Sprintf("%d", memoryMB),
-			"workers":     "1",
-			"timeout":     "60s",
-			"vm_bytes":    fmt.Sprintf("%dM", memoryMB),
-			"vm_hang":     "10",
+			"memory_mb": fmt.Sprintf("%d", memoryMB),
+			"workers":   "1",
+			"timeout":   "60s",
+			"vm_bytes":  fmt.Sprintf("%dM", memoryMB),
+			"vm_hang":   "10",
 		},
 		SafetyLevel: SafetyLevelMedium,
 		BlastRadius: BlastRadius{
@@ -252,11 +252,11 @@ func (p *PredefinedExperiments) GetDiskIOStressExperiment(targetNamespace string
 			},
 		},
 		Parameters: map[string]string{
-			"io_workers":  fmt.Sprintf("%d", ioWorkers),
-			"io_ops":      "100",
-			"io_size":     "1M",
-			"io_type":     "mixed", // read, write, mixed
-			"timeout":     "60s",
+			"io_workers": fmt.Sprintf("%d", ioWorkers),
+			"io_ops":     "100",
+			"io_size":    "1M",
+			"io_type":    "mixed", // read, write, mixed
+			"timeout":    "60s",
 		},
 		SafetyLevel: SafetyLevelMedium,
 		BlastRadius: BlastRadius{
@@ -325,10 +325,10 @@ func (p *PredefinedExperiments) GetDatabaseSlowQueryExperiment(targetNamespace s
 			},
 		},
 		Parameters: map[string]string{
-			"query_delay_ms": fmt.Sprintf("%d", delayMS),
+			"query_delay_ms":  fmt.Sprintf("%d", delayMS),
 			"affected_tables": "all",
-			"query_pattern":  "SELECT",
-			"probability":    "0.5",
+			"query_pattern":   "SELECT",
+			"probability":     "0.5",
 		},
 		SafetyLevel: SafetyLevelMedium,
 		BlastRadius: BlastRadius{
@@ -361,10 +361,10 @@ func (p *PredefinedExperiments) GetLLMAPITimeoutExperiment(targetNamespace strin
 			},
 		},
 		Parameters: map[string]string{
-			"api_endpoint":  "openai",
-			"timeout_ms":    "5000",
-			"failure_rate":  "30",
-			"failure_type":  "timeout",
+			"api_endpoint": "openai",
+			"timeout_ms":   "5000",
+			"failure_rate": "30",
+			"failure_type": "timeout",
 		},
 		SafetyLevel: SafetyLevelHigh,
 		BlastRadius: BlastRadius{
@@ -498,10 +498,10 @@ func (p *PredefinedExperiments) GetDNSFailureExperiment(targetNamespace string) 
 			Namespace: targetNamespace,
 		},
 		Parameters: map[string]string{
-			"domains":       "*.svc.cluster.local",
-			"failure_type":  "nxdomain",
-			"failure_rate":  "30",
-			"cache_poison":  "false",
+			"domains":      "*.svc.cluster.local",
+			"failure_type": "nxdomain",
+			"failure_rate": "30",
+			"cache_poison": "false",
 		},
 		SafetyLevel: SafetyLevelMedium,
 		BlastRadius: BlastRadius{
@@ -571,9 +571,9 @@ func (p *PredefinedExperiments) GetORANRICFailureExperiment(targetNamespace stri
 			},
 		},
 		Parameters: map[string]string{
-			"failure_type":  "partial",
+			"failure_type":   "partial",
 			"affected_xapps": "traffic-steering,qos-management",
-			"e2_impact":     "degraded",
+			"e2_impact":      "degraded",
 		},
 		SafetyLevel: SafetyLevelHigh,
 		BlastRadius: BlastRadius{
@@ -603,10 +603,10 @@ func (p *PredefinedExperiments) GetCompositeFailureExperiment(targetNamespace st
 			Namespace: targetNamespace,
 		},
 		Parameters: map[string]string{
-			"scenarios":      "network-latency,pod-failure,cpu-stress",
-			"stagger_start":  "true",
-			"stagger_delay":  "30s",
-			"correlation":    "0.5",
+			"scenarios":     "network-latency,pod-failure,cpu-stress",
+			"stagger_start": "true",
+			"stagger_delay": "30s",
+			"correlation":   "0.5",
 		},
 		SafetyLevel: SafetyLevelHigh,
 		BlastRadius: BlastRadius{
@@ -639,8 +639,8 @@ type ExperimentSuite struct {
 type RunSequence string
 
 const (
-	RunSequenceSerial   RunSequence = "serial"
-	RunSequenceParallel RunSequence = "parallel"
+	RunSequenceSerial    RunSequence = "serial"
+	RunSequenceParallel  RunSequence = "parallel"
 	RunSequenceStaggered RunSequence = "staggered"
 )
 
@@ -743,7 +743,7 @@ func (p *PredefinedExperiments) RunExperimentSuite(ctx context.Context, suite *E
 // runSerialExperiments runs experiments one after another
 func (p *PredefinedExperiments) runSerialExperiments(ctx context.Context, experiments []*Experiment) ([]*ExperimentResult, error) {
 	results := make([]*ExperimentResult, 0, len(experiments))
-	
+
 	for _, exp := range experiments {
 		result, err := p.engine.RunExperiment(ctx, exp)
 		if err != nil {
@@ -753,7 +753,7 @@ func (p *PredefinedExperiments) runSerialExperiments(ctx context.Context, experi
 			// Continue with other experiments even if one fails
 		}
 		results = append(results, result)
-		
+
 		// Add delay between experiments
 		select {
 		case <-ctx.Done():
@@ -762,7 +762,7 @@ func (p *PredefinedExperiments) runSerialExperiments(ctx context.Context, experi
 			// Recovery time between experiments
 		}
 	}
-	
+
 	return results, nil
 }
 
@@ -770,7 +770,7 @@ func (p *PredefinedExperiments) runSerialExperiments(ctx context.Context, experi
 func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, experiments []*Experiment) ([]*ExperimentResult, error) {
 	results := make([]*ExperimentResult, len(experiments))
 	errChan := make(chan error, len(experiments))
-	
+
 	for i, exp := range experiments {
 		go func(index int, experiment *Experiment) {
 			result, err := p.engine.RunExperiment(ctx, experiment)
@@ -782,7 +782,7 @@ func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, expe
 			}
 		}(i, exp)
 	}
-	
+
 	// Wait for all experiments to complete
 	var errors []error
 	for i := 0; i < len(experiments); i++ {
@@ -790,11 +790,11 @@ func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, expe
 			errors = append(errors, err)
 		}
 	}
-	
+
 	if len(errors) > 0 {
 		return results, fmt.Errorf("some experiments failed: %v", errors)
 	}
-	
+
 	return results, nil
 }
 
@@ -802,7 +802,7 @@ func (p *PredefinedExperiments) runParallelExperiments(ctx context.Context, expe
 func (p *PredefinedExperiments) runStaggeredExperiments(ctx context.Context, experiments []*Experiment) ([]*ExperimentResult, error) {
 	results := make([]*ExperimentResult, len(experiments))
 	staggerDelay := 30 * time.Second
-	
+
 	for i, exp := range experiments {
 		go func(index int, experiment *Experiment, delay time.Duration) {
 			// Wait for stagger delay
@@ -811,7 +811,7 @@ func (p *PredefinedExperiments) runStaggeredExperiments(ctx context.Context, exp
 				return
 			case <-time.After(delay):
 			}
-			
+
 			result, err := p.engine.RunExperiment(ctx, experiment)
 			results[index] = result
 			if err != nil {
@@ -821,7 +821,7 @@ func (p *PredefinedExperiments) runStaggeredExperiments(ctx context.Context, exp
 			}
 		}(i, exp, time.Duration(i)*staggerDelay)
 	}
-	
+
 	// Wait for all experiments to complete
 	maxDuration := time.Duration(len(experiments))*staggerDelay + 10*time.Minute
 	select {

@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 // CAMonitor monitors Certificate Authority health and performance
@@ -26,36 +26,36 @@ type CAMonitor struct {
 // CAMetrics holds Prometheus metrics for CA operations
 type CAMetrics struct {
 	// Certificate metrics
-	CertificatesIssued    *prometheus.CounterVec
-	CertificatesRevoked   *prometheus.CounterVec
-	CertificatesExpired   *prometheus.CounterVec
-	CertificateLifetime   *prometheus.HistogramVec
+	CertificatesIssued  *prometheus.CounterVec
+	CertificatesRevoked *prometheus.CounterVec
+	CertificatesExpired *prometheus.CounterVec
+	CertificateLifetime *prometheus.HistogramVec
 
 	// Backend metrics
-	BackendHealth         *prometheus.GaugeVec
-	BackendOperations     *prometheus.CounterVec
-	BackendLatency        *prometheus.HistogramVec
-	BackendErrors         *prometheus.CounterVec
+	BackendHealth     *prometheus.GaugeVec
+	BackendOperations *prometheus.CounterVec
+	BackendLatency    *prometheus.HistogramVec
+	BackendErrors     *prometheus.CounterVec
 
 	// Pool metrics
-	CertificatePoolSize   *prometheus.GaugeVec
-	PoolOperations        *prometheus.CounterVec
-	PoolCacheHitRate      *prometheus.GaugeVec
+	CertificatePoolSize *prometheus.GaugeVec
+	PoolOperations      *prometheus.CounterVec
+	PoolCacheHitRate    *prometheus.GaugeVec
 
 	// Distribution metrics
-	DistributionJobs      *prometheus.CounterVec
-	DistributionLatency   *prometheus.HistogramVec
-	DistributionErrors    *prometheus.CounterVec
+	DistributionJobs    *prometheus.CounterVec
+	DistributionLatency *prometheus.HistogramVec
+	DistributionErrors  *prometheus.CounterVec
 
 	// Policy metrics
-	PolicyValidations     *prometheus.CounterVec
-	PolicyViolations      *prometheus.CounterVec
-	ApprovalRequests      *prometheus.CounterVec
+	PolicyValidations *prometheus.CounterVec
+	PolicyViolations  *prometheus.CounterVec
+	ApprovalRequests  *prometheus.CounterVec
 
 	// System metrics
-	ActiveSessions        *prometheus.GaugeVec
-	ResourceUsage         *prometheus.GaugeVec
-	ErrorRate             *prometheus.GaugeVec
+	ActiveSessions *prometheus.GaugeVec
+	ResourceUsage  *prometheus.GaugeVec
+	ErrorRate      *prometheus.GaugeVec
 }
 
 // AlertManager manages certificate-related alerts
@@ -69,12 +69,12 @@ type AlertManager struct {
 
 // AlertConfig configures alert management
 type AlertConfig struct {
-	Enabled              bool              `yaml:"enabled"`
-	Rules                []*AlertRule      `yaml:"rules"`
+	Enabled              bool                  `yaml:"enabled"`
+	Rules                []*AlertRule          `yaml:"rules"`
 	NotificationChannels []NotificationChannel `yaml:"notification_channels"`
-	Thresholds          *AlertThresholds   `yaml:"thresholds"`
-	Cooldown            time.Duration      `yaml:"cooldown"`
-	MaxAlerts           int                `yaml:"max_alerts"`
+	Thresholds           *AlertThresholds      `yaml:"thresholds"`
+	Cooldown             time.Duration         `yaml:"cooldown"`
+	MaxAlerts            int                   `yaml:"max_alerts"`
 }
 
 // AlertRule defines an alert rule
@@ -115,11 +115,11 @@ type NotificationChannel struct {
 
 // AlertThresholds defines default alert thresholds
 type AlertThresholds struct {
-	CertificateExpiryDays    int     `yaml:"certificate_expiry_days"`
-	BackendErrorRate         float64 `yaml:"backend_error_rate"`
-	PolicyViolationRate      float64 `yaml:"policy_violation_rate"`
-	DistributionFailureRate  float64 `yaml:"distribution_failure_rate"`
-	SystemResourceUsage      float64 `yaml:"system_resource_usage"`
+	CertificateExpiryDays   int     `yaml:"certificate_expiry_days"`
+	BackendErrorRate        float64 `yaml:"backend_error_rate"`
+	PolicyViolationRate     float64 `yaml:"policy_violation_rate"`
+	DistributionFailureRate float64 `yaml:"distribution_failure_rate"`
+	SystemResourceUsage     float64 `yaml:"system_resource_usage"`
 }
 
 // Alert represents an active alert
@@ -140,8 +140,8 @@ type Alert struct {
 type AlertStatus string
 
 const (
-	AlertStatusFiring   AlertStatus = "firing"
-	AlertStatusResolved AlertStatus = "resolved"
+	AlertStatusFiring     AlertStatus = "firing"
+	AlertStatusResolved   AlertStatus = "resolved"
 	AlertStatusSuppressed AlertStatus = "suppressed"
 )
 
@@ -158,7 +158,7 @@ type BackendHealthCheck struct {
 	backend Backend
 }
 
-func (h *BackendHealthCheck) Name() string { return h.name }
+func (h *BackendHealthCheck) Name() string   { return h.name }
 func (h *BackendHealthCheck) Critical() bool { return true }
 func (h *BackendHealthCheck) Check(ctx context.Context) error {
 	return h.backend.HealthCheck(ctx)
@@ -170,7 +170,7 @@ type CertificateExpiryCheck struct {
 	threshold time.Duration
 }
 
-func (h *CertificateExpiryCheck) Name() string { return "certificate_expiry" }
+func (h *CertificateExpiryCheck) Name() string   { return "certificate_expiry" }
 func (h *CertificateExpiryCheck) Critical() bool { return false }
 func (h *CertificateExpiryCheck) Check(ctx context.Context) error {
 	threshold := time.Now().Add(h.threshold)
@@ -191,11 +191,11 @@ func NewCAMonitor(config *MonitoringConfig, logger *logging.StructuredLogger) (*
 	ctx, cancel := context.WithCancel(context.Background())
 
 	monitor := &CAMonitor{
-		config:  config,
-		logger:  logger,
-		checks:  make(map[string]HealthCheck),
-		ctx:     ctx,
-		cancel:  cancel,
+		config: config,
+		logger: logger,
+		checks: make(map[string]HealthCheck),
+		ctx:    ctx,
+		cancel: cancel,
 	}
 
 	// Initialize metrics
@@ -215,7 +215,7 @@ func NewCAMonitor(config *MonitoringConfig, logger *logging.StructuredLogger) (*
 			Cooldown:  5 * time.Minute,
 			MaxAlerts: 100,
 		}
-		
+
 		alertManager, err := NewAlertManager(alertConfig, logger)
 		if err != nil {
 			cancel()
@@ -290,7 +290,7 @@ func (m *CAMonitor) RecordBackendOperation(backend string, operation string, suc
 		status = "error"
 		m.metrics.BackendErrors.WithLabelValues(backend, operation).Inc()
 	}
-	
+
 	m.metrics.BackendOperations.WithLabelValues(backend, operation, status).Inc()
 	m.metrics.BackendLatency.WithLabelValues(backend, operation).Observe(duration.Seconds())
 }
@@ -312,7 +312,7 @@ func (m *CAMonitor) RecordPolicyValidation(template string, valid bool, violatio
 		status = "failed"
 		m.metrics.PolicyViolations.WithLabelValues(template, "validation_failed").Add(float64(violationCount))
 	}
-	
+
 	m.metrics.PolicyValidations.WithLabelValues(template, status).Inc()
 }
 
@@ -350,14 +350,14 @@ func (m *CAMonitor) GetHealthStatus() map[string]interface{} {
 			"healthy":  err == nil,
 			"critical": check.Critical(),
 		}
-		
+
 		if err != nil {
 			checkStatus["error"] = err.Error()
 			if check.Critical() {
 				status["healthy"] = false
 			}
 		}
-		
+
 		status["checks"].(map[string]interface{})[name] = checkStatus
 	}
 
@@ -438,9 +438,9 @@ func (m *CAMonitor) runMetricsCollection() {
 func (m *CAMonitor) collectSystemMetrics() {
 	// Collect system resource usage
 	// This would typically use runtime metrics, cgroup stats, etc.
-	
+
 	m.logger.Debug("collecting system metrics")
-	
+
 	// Example metrics collection (would be replaced with actual implementation)
 	m.metrics.ResourceUsage.WithLabelValues("cpu").Set(0.25)    // 25% CPU
 	m.metrics.ResourceUsage.WithLabelValues("memory").Set(0.40) // 40% Memory
@@ -641,7 +641,7 @@ func (am *AlertManager) TriggerAlert(ruleName string, labels map[string]string) 
 	}
 
 	alertID := am.generateAlertID(rule, labels)
-	
+
 	// Check if alert already exists and is in cooldown
 	if existing, exists := am.activeAlerts[alertID]; exists {
 		if time.Since(existing.UpdatedAt) < am.config.Cooldown {

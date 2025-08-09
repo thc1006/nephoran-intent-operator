@@ -15,132 +15,132 @@ import (
 
 // IntegratedO2IMS provides integrated O2 IMS services with comprehensive monitoring and management
 type IntegratedO2IMS struct {
-	config                      *IntegratedO2Config
-	logger                      *logging.StructuredLogger
-	
+	config *IntegratedO2Config
+	logger *logging.StructuredLogger
+
 	// Core O2 IMS components
-	apiServer                   *O2APIServer
-	
+	apiServer *O2APIServer
+
 	// Infrastructure monitoring
-	infrastructureMonitoring    *InfrastructureMonitoringService
-	
+	infrastructureMonitoring *InfrastructureMonitoringService
+
 	// Inventory management
-	inventoryManagement         *InventoryManagementService
-	
+	inventoryManagement *InventoryManagementService
+
 	// CNF management
-	cnfManagement               *CNFManagementService
-	
+	cnfManagement *CNFManagementService
+
 	// Monitoring integrations
-	monitoringIntegrations      *MonitoringIntegrations
-	
+	monitoringIntegrations *MonitoringIntegrations
+
 	// Provider registry (shared across all services)
-	providerRegistry            *providers.ProviderRegistry
-	
+	providerRegistry *providers.ProviderRegistry
+
 	// Kubernetes client (for CNF management)
-	k8sClient                   client.Client
-	
+	k8sClient client.Client
+
 	// Synchronization
-	mu                         sync.RWMutex
-	
+	mu sync.RWMutex
+
 	// Lifecycle management
-	ctx                        context.Context
-	cancel                     context.CancelFunc
-	wg                         sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 // IntegratedO2Config configuration for integrated O2 IMS
 type IntegratedO2Config struct {
 	// Core O2 IMS configuration
-	O2IMSConfig                 *O2IMSConfig                     `json:"o2ImsConfig,omitempty"`
-	
+	O2IMSConfig *O2IMSConfig `json:"o2ImsConfig,omitempty"`
+
 	// Infrastructure monitoring configuration
 	InfrastructureMonitoringConfig *InfrastructureMonitoringConfig `json:"infrastructureMonitoringConfig,omitempty"`
-	
+
 	// Inventory management configuration
-	InventoryConfig             *InventoryConfig                 `json:"inventoryConfig,omitempty"`
-	
+	InventoryConfig *InventoryConfig `json:"inventoryConfig,omitempty"`
+
 	// CNF management configuration
-	CNFConfig                   *CNFConfig                       `json:"cnfConfig,omitempty"`
-	
+	CNFConfig *CNFConfig `json:"cnfConfig,omitempty"`
+
 	// Monitoring integrations configuration
-	MonitoringIntegrationsConfig *MonitoringIntegrationConfig    `json:"monitoringIntegrationsConfig,omitempty"`
-	
+	MonitoringIntegrationsConfig *MonitoringIntegrationConfig `json:"monitoringIntegrationsConfig,omitempty"`
+
 	// Integration settings
-	EnableIntegratedDashboards  bool                             `json:"enableIntegratedDashboards,omitempty"`
-	EnableCrossServiceMetrics   bool                             `json:"enableCrossServiceMetrics,omitempty"`
-	EnableAutomatedRemediation  bool                             `json:"enableAutomatedRemediation,omitempty"`
-	EnablePredictiveAnalytics   bool                             `json:"enablePredictiveAnalytics,omitempty"`
-	
+	EnableIntegratedDashboards bool `json:"enableIntegratedDashboards,omitempty"`
+	EnableCrossServiceMetrics  bool `json:"enableCrossServiceMetrics,omitempty"`
+	EnableAutomatedRemediation bool `json:"enableAutomatedRemediation,omitempty"`
+	EnablePredictiveAnalytics  bool `json:"enablePredictiveAnalytics,omitempty"`
+
 	// Performance settings
-	MetricsSyncInterval         time.Duration                    `json:"metricsSyncInterval,omitempty"`
-	InventorySyncInterval       time.Duration                    `json:"inventorySyncInterval,omitempty"`
-	HealthCheckInterval         time.Duration                    `json:"healthCheckInterval,omitempty"`
+	MetricsSyncInterval   time.Duration `json:"metricsSyncInterval,omitempty"`
+	InventorySyncInterval time.Duration `json:"inventorySyncInterval,omitempty"`
+	HealthCheckInterval   time.Duration `json:"healthCheckInterval,omitempty"`
 }
 
 // IntegratedHealthStatus represents the overall health status of the integrated system
 type IntegratedHealthStatus struct {
-	OverallStatus               string                           `json:"overallStatus"`
-	Timestamp                   time.Time                        `json:"timestamp"`
-	
+	OverallStatus string    `json:"overallStatus"`
+	Timestamp     time.Time `json:"timestamp"`
+
 	// Service health status
-	O2IMSHealth                 *ComponentHealthStatus           `json:"o2ImsHealth"`
-	InfrastructureHealth        *ComponentHealthStatus           `json:"infrastructureHealth"`
-	InventoryHealth             *ComponentHealthStatus           `json:"inventoryHealth"`
-	CNFHealth                   *ComponentHealthStatus           `json:"cnfHealth"`
-	MonitoringHealth            *ComponentHealthStatus           `json:"monitoringHealth"`
-	
+	O2IMSHealth          *ComponentHealthStatus `json:"o2ImsHealth"`
+	InfrastructureHealth *ComponentHealthStatus `json:"infrastructureHealth"`
+	InventoryHealth      *ComponentHealthStatus `json:"inventoryHealth"`
+	CNFHealth            *ComponentHealthStatus `json:"cnfHealth"`
+	MonitoringHealth     *ComponentHealthStatus `json:"monitoringHealth"`
+
 	// Summary metrics
-	TotalResources              int                              `json:"totalResources"`
-	HealthyResources            int                              `json:"healthyResources"`
-	DegradedResources           int                              `json:"degradedResources"`
-	UnhealthyResources          int                              `json:"unhealthyResources"`
-	
+	TotalResources     int `json:"totalResources"`
+	HealthyResources   int `json:"healthyResources"`
+	DegradedResources  int `json:"degradedResources"`
+	UnhealthyResources int `json:"unhealthyResources"`
+
 	// CNF status
-	TotalCNFs                   int                              `json:"totalCnfs"`
-	RunningCNFs                 int                              `json:"runningCnfs"`
-	FailedCNFs                  int                              `json:"failedCnfs"`
-	
+	TotalCNFs   int `json:"totalCnfs"`
+	RunningCNFs int `json:"runningCnfs"`
+	FailedCNFs  int `json:"failedCnfs"`
+
 	// Alerting status
-	ActiveAlerts                int                              `json:"activeAlerts"`
-	CriticalAlerts              int                              `json:"criticalAlerts"`
-	
+	ActiveAlerts   int `json:"activeAlerts"`
+	CriticalAlerts int `json:"criticalAlerts"`
+
 	// SLA compliance
-	SLACompliance               float64                          `json:"slaCompliance"`
-	
+	SLACompliance float64 `json:"slaCompliance"`
+
 	// Provider status
-	ProviderStatus              map[string]ComponentHealthStatus `json:"providerStatus"`
+	ProviderStatus map[string]ComponentHealthStatus `json:"providerStatus"`
 }
 
 // IntegratedMetrics represents comprehensive metrics across all services
 type IntegratedMetrics struct {
-	Timestamp                   time.Time                        `json:"timestamp"`
-	
+	Timestamp time.Time `json:"timestamp"`
+
 	// Infrastructure metrics
-	TotalNodes                  int                              `json:"totalNodes"`
-	HealthyNodes                int                              `json:"healthyNodes"`
-	AverageCPUUtilization       float64                          `json:"averageCpuUtilization"`
-	AverageMemoryUtilization    float64                          `json:"averageMemoryUtilization"`
-	AverageStorageUtilization   float64                          `json:"averageStorageUtilization"`
-	
+	TotalNodes                int     `json:"totalNodes"`
+	HealthyNodes              int     `json:"healthyNodes"`
+	AverageCPUUtilization     float64 `json:"averageCpuUtilization"`
+	AverageMemoryUtilization  float64 `json:"averageMemoryUtilization"`
+	AverageStorageUtilization float64 `json:"averageStorageUtilization"`
+
 	// CNF metrics
-	CNFDeployments              int                              `json:"cnfDeployments"`
-	CNFRestarts                 int                              `json:"cnfRestarts"`
-	AverageCNFStartupTime       time.Duration                    `json:"averageCnfStartupTime"`
-	
+	CNFDeployments        int           `json:"cnfDeployments"`
+	CNFRestarts           int           `json:"cnfRestarts"`
+	AverageCNFStartupTime time.Duration `json:"averageCnfStartupTime"`
+
 	// Telecommunications metrics
-	AveragePRBUtilization       float64                          `json:"averagePrbUtilization"`
-	HandoverSuccessRate         float64                          `json:"handoverSuccessRate"`
-	AverageSessionSetupTime     time.Duration                    `json:"averageSessionSetupTime"`
-	PacketLossRate              float64                          `json:"packetLossRate"`
-	
+	AveragePRBUtilization   float64       `json:"averagePrbUtilization"`
+	HandoverSuccessRate     float64       `json:"handoverSuccessRate"`
+	AverageSessionSetupTime time.Duration `json:"averageSessionSetupTime"`
+	PacketLossRate          float64       `json:"packetLossRate"`
+
 	// Inventory metrics
-	AssetsDiscovered            int                              `json:"assetsDiscovered"`
-	AssetsOutOfSync             int                              `json:"assetsOutOfSync"`
-	RelationshipsTracked        int                              `json:"relationshipsTracked"`
-	
+	AssetsDiscovered     int `json:"assetsDiscovered"`
+	AssetsOutOfSync      int `json:"assetsOutOfSync"`
+	RelationshipsTracked int `json:"relationshipsTracked"`
+
 	// Cost metrics
-	EstimatedMonthlyCost        float64                          `json:"estimatedMonthlyCost"`
-	CostOptimizationSavings     float64                          `json:"costOptimizationSavings"`
+	EstimatedMonthlyCost    float64 `json:"estimatedMonthlyCost"`
+	CostOptimizationSavings float64 `json:"costOptimizationSavings"`
 }
 
 // NewIntegratedO2IMS creates a new integrated O2 IMS instance
@@ -152,19 +152,19 @@ func NewIntegratedO2IMS(
 	if config == nil {
 		config = DefaultIntegratedO2Config()
 	}
-	
+
 	if logger == nil {
 		logger = logging.NewStructuredLogger(
 			logging.WithService("integrated-o2-ims"),
 			logging.WithVersion("1.0.0"),
 		)
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	// Initialize provider registry
 	providerRegistry := providers.NewProviderRegistry(config.O2IMSConfig.CloudProviders)
-	
+
 	integrated := &IntegratedO2IMS{
 		config:           config,
 		logger:           logger,
@@ -173,46 +173,46 @@ func NewIntegratedO2IMS(
 		ctx:              ctx,
 		cancel:           cancel,
 	}
-	
+
 	// Initialize services
 	if err := integrated.initializeServices(); err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to initialize services: %w", err)
 	}
-	
+
 	return integrated, nil
 }
 
 // DefaultIntegratedO2Config returns default integrated configuration
 func DefaultIntegratedO2Config() *IntegratedO2Config {
 	return &IntegratedO2Config{
-		O2IMSConfig:                     DefaultO2IMSConfig(),
-		InfrastructureMonitoringConfig:  DefaultInfrastructureMonitoringConfig(),
-		InventoryConfig:                 DefaultInventoryConfig(),
-		CNFConfig:                       DefaultCNFConfig(),
-		MonitoringIntegrationsConfig:    DefaultMonitoringIntegrationConfig(),
-		EnableIntegratedDashboards:      true,
-		EnableCrossServiceMetrics:       true,
-		EnableAutomatedRemediation:      true,
-		EnablePredictiveAnalytics:       true,
-		MetricsSyncInterval:             30 * time.Second,
-		InventorySyncInterval:           5 * time.Minute,
-		HealthCheckInterval:             60 * time.Second,
+		O2IMSConfig:                    DefaultO2IMSConfig(),
+		InfrastructureMonitoringConfig: DefaultInfrastructureMonitoringConfig(),
+		InventoryConfig:                DefaultInventoryConfig(),
+		CNFConfig:                      DefaultCNFConfig(),
+		MonitoringIntegrationsConfig:   DefaultMonitoringIntegrationConfig(),
+		EnableIntegratedDashboards:     true,
+		EnableCrossServiceMetrics:      true,
+		EnableAutomatedRemediation:     true,
+		EnablePredictiveAnalytics:      true,
+		MetricsSyncInterval:            30 * time.Second,
+		InventorySyncInterval:          5 * time.Minute,
+		HealthCheckInterval:            60 * time.Second,
 	}
 }
 
 // initializeServices initializes all integrated services
 func (i *IntegratedO2IMS) initializeServices() error {
 	i.logger.Info("initializing integrated O2 IMS services")
-	
+
 	var err error
-	
+
 	// Initialize O2 API server
 	i.apiServer, err = NewO2APIServer(i.config.O2IMSConfig)
 	if err != nil {
 		return fmt.Errorf("failed to initialize O2 API server: %w", err)
 	}
-	
+
 	// Initialize infrastructure monitoring
 	i.infrastructureMonitoring, err = NewInfrastructureMonitoringService(
 		i.config.InfrastructureMonitoringConfig,
@@ -222,7 +222,7 @@ func (i *IntegratedO2IMS) initializeServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize infrastructure monitoring: %w", err)
 	}
-	
+
 	// Initialize inventory management
 	i.inventoryManagement, err = NewInventoryManagementService(
 		i.config.InventoryConfig,
@@ -232,7 +232,7 @@ func (i *IntegratedO2IMS) initializeServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize inventory management: %w", err)
 	}
-	
+
 	// Initialize CNF management
 	i.cnfManagement, err = NewCNFManagementService(
 		i.config.CNFConfig,
@@ -242,7 +242,7 @@ func (i *IntegratedO2IMS) initializeServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize CNF management: %w", err)
 	}
-	
+
 	// Initialize monitoring integrations
 	i.monitoringIntegrations, err = NewMonitoringIntegrations(
 		i.config.MonitoringIntegrationsConfig,
@@ -251,12 +251,12 @@ func (i *IntegratedO2IMS) initializeServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize monitoring integrations: %w", err)
 	}
-	
+
 	// Setup cross-service integrations
 	if err := i.setupIntegrations(); err != nil {
 		return fmt.Errorf("failed to setup integrations: %w", err)
 	}
-	
+
 	i.logger.Info("integrated O2 IMS services initialized successfully")
 	return nil
 }
@@ -264,30 +264,30 @@ func (i *IntegratedO2IMS) initializeServices() error {
 // setupIntegrations configures cross-service integrations
 func (i *IntegratedO2IMS) setupIntegrations() error {
 	i.logger.Info("setting up cross-service integrations")
-	
+
 	// Integrate infrastructure monitoring with inventory management
 	// When infrastructure monitoring discovers resources, add them to inventory
-	
+
 	// Integrate CNF management with infrastructure monitoring
 	// Monitor CNF resources through infrastructure monitoring
-	
+
 	// Integrate monitoring with alerting
 	// Forward infrastructure alerts to monitoring integrations
-	
+
 	// Setup integrated dashboards if enabled
 	if i.config.EnableIntegratedDashboards {
 		if err := i.setupIntegratedDashboards(); err != nil {
 			i.logger.Error("failed to setup integrated dashboards", "error", err)
 		}
 	}
-	
+
 	return nil
 }
 
 // setupIntegratedDashboards creates integrated dashboards
 func (i *IntegratedO2IMS) setupIntegratedDashboards() error {
 	i.logger.Info("setting up integrated dashboards")
-	
+
 	// Create comprehensive dashboard that combines metrics from all services
 	dashboard := &DashboardSpec{
 		Name:  "integrated-o2-ims-overview",
@@ -346,17 +346,17 @@ func (i *IntegratedO2IMS) setupIntegratedDashboards() error {
 		},
 		RefreshInterval: "30s",
 	}
-	
+
 	return i.monitoringIntegrations.CreateDashboard(i.ctx, dashboard)
 }
 
 // Start starts all integrated services
 func (i *IntegratedO2IMS) Start(ctx context.Context) error {
 	i.logger.Info("starting integrated O2 IMS")
-	
+
 	// Start all services concurrently
 	services := []struct {
-		name string
+		name      string
 		startFunc func(context.Context) error
 	}{
 		{"O2 API Server", i.apiServer.Start},
@@ -365,7 +365,7 @@ func (i *IntegratedO2IMS) Start(ctx context.Context) error {
 		{"CNF Management", i.cnfManagement.Start},
 		{"Monitoring Integrations", i.monitoringIntegrations.Start},
 	}
-	
+
 	for _, service := range services {
 		go func(name string, startFunc func(context.Context) error) {
 			if err := startFunc(ctx); err != nil {
@@ -375,14 +375,14 @@ func (i *IntegratedO2IMS) Start(ctx context.Context) error {
 			}
 		}(service.name, service.startFunc)
 	}
-	
+
 	// Start integration background processes
 	i.wg.Add(3)
-	
+
 	go i.metricsAggregationLoop()
 	go i.healthMonitoringLoop()
 	go i.crossServiceSyncLoop()
-	
+
 	i.logger.Info("integrated O2 IMS started successfully")
 	return nil
 }
@@ -390,13 +390,13 @@ func (i *IntegratedO2IMS) Start(ctx context.Context) error {
 // Stop stops all integrated services
 func (i *IntegratedO2IMS) Stop() error {
 	i.logger.Info("stopping integrated O2 IMS")
-	
+
 	// Signal shutdown
 	i.cancel()
-	
+
 	// Stop all services
 	services := []struct {
-		name string
+		name     string
 		stopFunc func() error
 	}{
 		{"O2 API Server", i.apiServer.Shutdown},
@@ -405,7 +405,7 @@ func (i *IntegratedO2IMS) Stop() error {
 		{"CNF Management", i.cnfManagement.Stop},
 		{"Monitoring Integrations", i.monitoringIntegrations.Stop},
 	}
-	
+
 	for _, service := range services {
 		if err := service.stopFunc(); err != nil {
 			i.logger.Error("failed to stop service",
@@ -413,10 +413,10 @@ func (i *IntegratedO2IMS) Stop() error {
 				"error", err)
 		}
 	}
-	
+
 	// Wait for background processes to complete
 	i.wg.Wait()
-	
+
 	i.logger.Info("integrated O2 IMS stopped successfully")
 	return nil
 }
@@ -424,10 +424,10 @@ func (i *IntegratedO2IMS) Stop() error {
 // metricsAggregationLoop aggregates metrics across all services
 func (i *IntegratedO2IMS) metricsAggregationLoop() {
 	defer i.wg.Done()
-	
+
 	ticker := time.NewTicker(i.config.MetricsSyncInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-i.ctx.Done():
@@ -441,10 +441,10 @@ func (i *IntegratedO2IMS) metricsAggregationLoop() {
 // healthMonitoringLoop monitors overall system health
 func (i *IntegratedO2IMS) healthMonitoringLoop() {
 	defer i.wg.Done()
-	
+
 	ticker := time.NewTicker(i.config.HealthCheckInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-i.ctx.Done():
@@ -458,10 +458,10 @@ func (i *IntegratedO2IMS) healthMonitoringLoop() {
 // crossServiceSyncLoop synchronizes data between services
 func (i *IntegratedO2IMS) crossServiceSyncLoop() {
 	defer i.wg.Done()
-	
+
 	ticker := time.NewTicker(i.config.InventorySyncInterval)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-i.ctx.Done():
@@ -475,7 +475,7 @@ func (i *IntegratedO2IMS) crossServiceSyncLoop() {
 // aggregateMetrics aggregates metrics from all services
 func (i *IntegratedO2IMS) aggregateMetrics() {
 	i.logger.Debug("aggregating integrated metrics")
-	
+
 	// This would collect metrics from all services and create aggregated views
 	// Implementation would depend on specific metrics collection requirements
 }
@@ -483,7 +483,7 @@ func (i *IntegratedO2IMS) aggregateMetrics() {
 // checkOverallHealth performs comprehensive health check
 func (i *IntegratedO2IMS) checkOverallHealth() {
 	i.logger.Debug("checking overall system health")
-	
+
 	// Check health of all services and create overall status
 	// Implementation would check each service and aggregate status
 }
@@ -491,7 +491,7 @@ func (i *IntegratedO2IMS) checkOverallHealth() {
 // synchronizeServices synchronizes data between services
 func (i *IntegratedO2IMS) synchronizeServices() {
 	i.logger.Debug("synchronizing services")
-	
+
 	// Sync discovered resources from infrastructure monitoring to inventory
 	// Sync CNF resources to infrastructure monitoring
 	// Update dashboards with latest data
@@ -503,25 +503,25 @@ func (i *IntegratedO2IMS) synchronizeServices() {
 func (i *IntegratedO2IMS) GetIntegratedHealth(ctx context.Context) (*IntegratedHealthStatus, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
-	
+
 	// Get infrastructure health
 	infraHealth, err := i.infrastructureMonitoring.GetActiveAlerts()
 	if err != nil {
 		i.logger.Error("failed to get infrastructure health", "error", err)
 	}
-	
+
 	// Get CNF status
 	cnfs, err := i.cnfManagement.ListCNFs(ctx)
 	if err != nil {
 		i.logger.Error("failed to get CNF status", "error", err)
 	}
-	
+
 	// Calculate overall status
 	overallStatus := "healthy"
 	if len(infraHealth) > 0 {
 		overallStatus = "degraded"
 	}
-	
+
 	runningCNFs := 0
 	failedCNFs := 0
 	for _, cnf := range cnfs {
@@ -531,27 +531,27 @@ func (i *IntegratedO2IMS) GetIntegratedHealth(ctx context.Context) (*IntegratedH
 			failedCNFs++
 		}
 	}
-	
+
 	if failedCNFs > 0 {
 		overallStatus = "critical"
 	}
-	
+
 	status := &IntegratedHealthStatus{
-		OverallStatus:      overallStatus,
-		Timestamp:          time.Now(),
-		TotalCNFs:          len(cnfs),
-		RunningCNFs:        runningCNFs,
-		FailedCNFs:         failedCNFs,
-		ActiveAlerts:       len(infraHealth),
-		SLACompliance:      99.5, // This would be calculated from actual SLA metrics
-		O2IMSHealth:        &ComponentHealthStatus{Status: "healthy", LastCheck: time.Now()},
+		OverallStatus:        overallStatus,
+		Timestamp:            time.Now(),
+		TotalCNFs:            len(cnfs),
+		RunningCNFs:          runningCNFs,
+		FailedCNFs:           failedCNFs,
+		ActiveAlerts:         len(infraHealth),
+		SLACompliance:        99.5, // This would be calculated from actual SLA metrics
+		O2IMSHealth:          &ComponentHealthStatus{Status: "healthy", LastCheck: time.Now()},
 		InfrastructureHealth: &ComponentHealthStatus{Status: overallStatus, LastCheck: time.Now()},
-		InventoryHealth:    &ComponentHealthStatus{Status: "healthy", LastCheck: time.Now()},
-		CNFHealth:          &ComponentHealthStatus{Status: "healthy", LastCheck: time.Now()},
-		MonitoringHealth:   &ComponentHealthStatus{Status: "healthy", LastCheck: time.Now()},
-		ProviderStatus:     make(map[string]ComponentHealthStatus),
+		InventoryHealth:      &ComponentHealthStatus{Status: "healthy", LastCheck: time.Now()},
+		CNFHealth:            &ComponentHealthStatus{Status: "healthy", LastCheck: time.Now()},
+		MonitoringHealth:     &ComponentHealthStatus{Status: "healthy", LastCheck: time.Now()},
+		ProviderStatus:       make(map[string]ComponentHealthStatus),
 	}
-	
+
 	return status, nil
 }
 
@@ -559,10 +559,10 @@ func (i *IntegratedO2IMS) GetIntegratedHealth(ctx context.Context) (*IntegratedH
 func (i *IntegratedO2IMS) GetIntegratedMetrics(ctx context.Context) (*IntegratedMetrics, error) {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
-	
+
 	// Collect metrics from all services
 	cnfs, _ := i.cnfManagement.ListCNFs(ctx)
-	
+
 	metrics := &IntegratedMetrics{
 		Timestamp:                 time.Now(),
 		CNFDeployments:            len(cnfs),
@@ -576,7 +576,7 @@ func (i *IntegratedO2IMS) GetIntegratedMetrics(ctx context.Context) (*Integrated
 		EstimatedMonthlyCost:      15000.00,
 		CostOptimizationSavings:   2500.00,
 	}
-	
+
 	return metrics, nil
 }
 
@@ -608,7 +608,7 @@ func (i *IntegratedO2IMS) GetResourceTopology(ctx context.Context) (map[string]i
 			"version":   "1.0.0",
 		},
 	}
-	
+
 	return topology, nil
 }
 
@@ -617,16 +617,16 @@ func (i *IntegratedO2IMS) TriggerAutomatedRemediation(ctx context.Context, alert
 	if !i.config.EnableAutomatedRemediation {
 		return fmt.Errorf("automated remediation is disabled")
 	}
-	
+
 	i.logger.Info("triggering automated remediation", "alert_id", alertID)
-	
+
 	// Implementation would analyze the alert and trigger appropriate remediation
 	// This could include:
 	// - Scaling CNFs
 	// - Redistributing workloads
 	// - Healing infrastructure
 	// - Updating configurations
-	
+
 	return nil
 }
 
@@ -635,24 +635,24 @@ func (i *IntegratedO2IMS) GetPredictiveAnalytics(ctx context.Context) (map[strin
 	if !i.config.EnablePredictiveAnalytics {
 		return nil, fmt.Errorf("predictive analytics is disabled")
 	}
-	
+
 	// This would return predictive insights based on historical data
 	analytics := map[string]interface{}{
 		"capacity_forecast": map[string]interface{}{
-			"cpu_exhaustion_eta":    "14 days",
-			"memory_exhaustion_eta": "21 days",
+			"cpu_exhaustion_eta":     "14 days",
+			"memory_exhaustion_eta":  "21 days",
 			"storage_exhaustion_eta": "45 days",
 		},
 		"failure_predictions": []map[string]interface{}{
 			{
-				"resource_id": "node-1",
-				"failure_probability": 0.15,
+				"resource_id":            "node-1",
+				"failure_probability":    0.15,
 				"predicted_failure_time": time.Now().Add(72 * time.Hour),
-				"recommended_action": "schedule_maintenance",
+				"recommended_action":     "schedule_maintenance",
 			},
 		},
 		"cost_projections": map[string]interface{}{
-			"monthly_trend": "+12%",
+			"monthly_trend":          "+12%",
 			"optimization_potential": "$3,200",
 			"recommendations": []string{
 				"rightsizing_instances",
@@ -661,19 +661,19 @@ func (i *IntegratedO2IMS) GetPredictiveAnalytics(ctx context.Context) (map[strin
 			},
 		},
 		"performance_trends": map[string]interface{}{
-			"latency_trend": "+5ms over 30 days",
-			"throughput_trend": "-2% over 30 days",
+			"latency_trend":      "+5ms over 30 days",
+			"throughput_trend":   "-2% over 30 days",
 			"availability_trend": "99.95% stable",
 		},
 	}
-	
+
 	return analytics, nil
 }
 
 // PerformCapacityPlanning performs capacity planning analysis
 func (i *IntegratedO2IMS) PerformCapacityPlanning(ctx context.Context, timeHorizon time.Duration) (map[string]interface{}, error) {
 	i.logger.Info("performing capacity planning analysis", "time_horizon", timeHorizon)
-	
+
 	// This would analyze current usage trends and project future capacity needs
 	planning := map[string]interface{}{
 		"current_utilization": map[string]interface{}{
@@ -690,64 +690,64 @@ func (i *IntegratedO2IMS) PerformCapacityPlanning(ctx context.Context, timeHoriz
 		},
 		"recommendations": []map[string]interface{}{
 			{
-				"action": "add_compute_nodes",
-				"quantity": 3,
-				"timeline": "6 weeks",
+				"action":         "add_compute_nodes",
+				"quantity":       3,
+				"timeline":       "6 weeks",
 				"estimated_cost": 12000.00,
 			},
 			{
-				"action": "expand_storage",
-				"quantity": "500GB",
-				"timeline": "8 weeks",
+				"action":         "expand_storage",
+				"quantity":       "500GB",
+				"timeline":       "8 weeks",
 				"estimated_cost": 2500.00,
 			},
 		},
 		"risk_assessment": map[string]interface{}{
-			"capacity_exhaustion_risk": "medium",
+			"capacity_exhaustion_risk":     "medium",
 			"performance_degradation_risk": "low",
-			"cost_impact": "medium",
+			"cost_impact":                  "medium",
 		},
 	}
-	
+
 	return planning, nil
 }
 
 // GetComplianceReport generates compliance report across all services
 func (i *IntegratedO2IMS) GetComplianceReport(ctx context.Context) (map[string]interface{}, error) {
 	i.logger.Info("generating compliance report")
-	
+
 	// This would generate a comprehensive compliance report
 	report := map[string]interface{}{
 		"overall_compliance": "95%",
-		"timestamp": time.Now(),
+		"timestamp":          time.Now(),
 		"categories": map[string]interface{}{
 			"security": map[string]interface{}{
-				"score": "98%",
+				"score":  "98%",
 				"issues": []string{},
 				"recommendations": []string{
 					"enable_pod_security_policies",
 				},
 			},
 			"performance": map[string]interface{}{
-				"score": "92%",
+				"score":          "92%",
 				"sla_compliance": "99.5%",
 				"issues": []string{
 					"high_latency_detected_in_region_us-east",
 				},
 			},
 			"availability": map[string]interface{}{
-				"score": "99%",
+				"score":  "99%",
 				"uptime": "99.95%",
-				"mttr": "15 minutes",
-				"mtbf": "720 hours",
+				"mttr":   "15 minutes",
+				"mtbf":   "720 hours",
 			},
 			"cost": map[string]interface{}{
-				"score": "87%",
-				"efficiency": "good",
+				"score":          "87%",
+				"efficiency":     "good",
 				"waste_detected": "$1,200/month",
 			},
 		},
 	}
-	
+
 	return report, nil
 }

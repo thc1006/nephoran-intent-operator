@@ -21,21 +21,21 @@ const (
 type ErrorType string
 
 const (
-	TransientError    ErrorType = "transient"    // Network timeouts, temporary unavailability
-	PermanentError    ErrorType = "permanent"    // Invalid configuration, auth failures
-	ResourceError     ErrorType = "resource"     // Resource conflicts, quota exceeded
-	ThrottlingError   ErrorType = "throttling"   // API rate limiting
-	ValidationError   ErrorType = "validation"   // Schema validation failures
+	TransientError  ErrorType = "transient"  // Network timeouts, temporary unavailability
+	PermanentError  ErrorType = "permanent"  // Invalid configuration, auth failures
+	ResourceError   ErrorType = "resource"   // Resource conflicts, quota exceeded
+	ThrottlingError ErrorType = "throttling" // API rate limiting
+	ValidationError ErrorType = "validation" // Schema validation failures
 )
 
 // BackoffConfig holds configuration for backoff behavior
 type BackoffConfig struct {
-	Strategy       BackoffStrategy
-	BaseDelay      time.Duration
-	MaxDelay       time.Duration
-	Multiplier     float64
-	JitterEnabled  bool
-	MaxRetries     int
+	Strategy      BackoffStrategy
+	BaseDelay     time.Duration
+	MaxDelay      time.Duration
+	Multiplier    float64
+	JitterEnabled bool
+	MaxRetries    int
 }
 
 // DefaultBackoffConfigs provides sensible defaults for different error types
@@ -84,19 +84,19 @@ var DefaultBackoffConfigs = map[ErrorType]BackoffConfig{
 
 // BackoffEntry tracks backoff state for a specific resource
 type BackoffEntry struct {
-	RetryCount     int
-	LastAttempt    time.Time
-	CurrentDelay   time.Duration
-	ErrorType      ErrorType
+	RetryCount       int
+	LastAttempt      time.Time
+	CurrentDelay     time.Duration
+	ErrorType        ErrorType
 	ConsecutiveFails int
 }
 
 // BackoffManager manages backoff state for multiple resources
 type BackoffManager struct {
-	mu       sync.RWMutex
-	entries  map[string]*BackoffEntry
-	configs  map[ErrorType]BackoffConfig
-	rand     *rand.Rand
+	mu      sync.RWMutex
+	entries map[string]*BackoffEntry
+	configs map[ErrorType]BackoffConfig
+	rand    *rand.Rand
 }
 
 // NewBackoffManager creates a new BackoffManager with default configurations
@@ -127,7 +127,7 @@ func (bm *BackoffManager) GetNextDelay(resourceKey string, errorType ErrorType, 
 	entry.RetryCount++
 	entry.LastAttempt = time.Now()
 	entry.ErrorType = errorType
-	
+
 	// Check if we've exceeded max retries
 	if entry.RetryCount > config.MaxRetries {
 		// Reset for fresh attempt after cooldown
@@ -178,7 +178,7 @@ func (bm *BackoffManager) ShouldRetry(resourceKey string, errorType ErrorType) b
 
 	config := bm.configs[errorType]
 	entry, exists := bm.entries[resourceKey]
-	
+
 	if !exists {
 		return true // First attempt
 	}
@@ -238,7 +238,7 @@ func (bm *BackoffManager) ClassifyError(err error) ErrorType {
 	}
 
 	errStr := err.Error()
-	
+
 	// Classification rules based on error content
 	switch {
 	case containsAny(errStr, []string{"timeout", "connection refused", "network", "temporary"}):
@@ -269,7 +269,7 @@ func (bm *BackoffManager) GetBackoffStats() BackoffStats {
 
 	for _, entry := range bm.entries {
 		stats.ErrorTypes[entry.ErrorType]++
-		
+
 		switch {
 		case entry.RetryCount == 0:
 			stats.RetryRanges["0"]++
@@ -287,9 +287,9 @@ func (bm *BackoffManager) GetBackoffStats() BackoffStats {
 
 // BackoffStats contains statistics about backoff manager state
 type BackoffStats struct {
-	TotalEntries int                    `json:"total_entries"`
-	ErrorTypes   map[ErrorType]int      `json:"error_types"`
-	RetryRanges  map[string]int         `json:"retry_ranges"`
+	TotalEntries int               `json:"total_entries"`
+	ErrorTypes   map[ErrorType]int `json:"error_types"`
+	RetryRanges  map[string]int    `json:"retry_ranges"`
 }
 
 // getOrCreateEntry gets or creates a backoff entry for a resource
@@ -299,9 +299,9 @@ func (bm *BackoffManager) getOrCreateEntry(resourceKey string) *BackoffEntry {
 	}
 
 	entry := &BackoffEntry{
-		RetryCount:      0,
-		LastAttempt:     time.Now(),
-		CurrentDelay:    0,
+		RetryCount:       0,
+		LastAttempt:      time.Now(),
+		CurrentDelay:     0,
 		ConsecutiveFails: 0,
 	}
 	bm.entries[resourceKey] = entry

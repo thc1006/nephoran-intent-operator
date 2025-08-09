@@ -17,13 +17,13 @@ import (
 // FailoverManagerTestSuite provides comprehensive test coverage for FailoverManager
 type FailoverManagerTestSuite struct {
 	suite.Suite
-	ctx           context.Context
-	cancel        context.CancelFunc
-	mockCtrl      *gomock.Controller
-	k8sClient     *fake.Clientset
-	logger        *slog.Logger
-	manager       *FailoverManager
-	mockRoute53   *MockRoute53Client
+	ctx         context.Context
+	cancel      context.CancelFunc
+	mockCtrl    *gomock.Controller
+	k8sClient   *fake.Clientset
+	logger      *slog.Logger
+	manager     *FailoverManager
+	mockRoute53 *MockRoute53Client
 }
 
 func TestFailoverManagerSuite(t *testing.T) {
@@ -33,7 +33,7 @@ func TestFailoverManagerSuite(t *testing.T) {
 func (suite *FailoverManagerTestSuite) SetupSuite() {
 	suite.ctx, suite.cancel = context.WithTimeout(context.Background(), 30*time.Second)
 	suite.mockCtrl = gomock.NewController(suite.T())
-	
+
 	// Setup logger
 	suite.logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 }
@@ -46,21 +46,21 @@ func (suite *FailoverManagerTestSuite) TearDownSuite() {
 func (suite *FailoverManagerTestSuite) SetupTest() {
 	suite.k8sClient = fake.NewSimpleClientset()
 	suite.mockRoute53 = NewMockRoute53Client(suite.mockCtrl)
-	
+
 	config := &FailoverConfig{
 		Enabled:          true,
 		PrimaryRegion:    "us-west-2",
 		FailoverRegions:  []string{"us-east-1", "eu-west-1"},
 		RTOTargetMinutes: 60,
 		DNSConfig: DNSConfig{
-			HostedZoneID:   "Z123456789",
-			RecordSetName:  "api.nephoran.com",
+			HostedZoneID:  "Z123456789",
+			RecordSetName: "api.nephoran.com",
 			TTL:           60,
 		},
 		HealthCheckConfig: HealthCheckConfig{
-			Enabled:       true,
-			CheckInterval: 30 * time.Second,
-			Timeout:       10 * time.Second,
+			Enabled:          true,
+			CheckInterval:    30 * time.Second,
+			Timeout:          10 * time.Second,
 			FailureThreshold: 3,
 			SuccessThreshold: 2,
 		},
@@ -69,12 +69,12 @@ func (suite *FailoverManagerTestSuite) SetupTest() {
 			SyncInterval: 5 * time.Minute,
 		},
 		Automation: AutomationConfig{
-			AutoFailoverEnabled: true,
+			AutoFailoverEnabled:    true,
 			ManualApprovalRequired: false,
-			CooldownPeriod: 10 * time.Minute,
+			CooldownPeriod:         10 * time.Minute,
 		},
 	}
-	
+
 	suite.manager = &FailoverManager{
 		logger:          suite.logger,
 		k8sClient:       suite.k8sClient,
@@ -94,9 +94,9 @@ func (suite *FailoverManagerTestSuite) TestNewFailoverManager_Success() {
 		FailoverRegions:  []string{"us-east-1"},
 		RTOTargetMinutes: 60,
 	}
-	
+
 	manager, err := NewFailoverManager(config, suite.k8sClient, suite.logger)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), manager)
 	assert.Equal(suite.T(), config, manager.config)
@@ -111,7 +111,7 @@ func (suite *FailoverManagerTestSuite) TestNewFailoverManager_InvalidConfig() {
 		errMsg string
 	}{
 		{
-			name: "Nil config",
+			name:   "Nil config",
 			config: nil,
 			errMsg: "config cannot be nil",
 		},
@@ -144,11 +144,11 @@ func (suite *FailoverManagerTestSuite) TestNewFailoverManager_InvalidConfig() {
 			errMsg: "RTO target must be greater than 0",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			manager, err := NewFailoverManager(tc.config, suite.k8sClient, suite.logger)
-			
+
 			assert.Error(suite.T(), err)
 			assert.Nil(suite.T(), manager)
 			assert.Contains(suite.T(), err.Error(), tc.errMsg)
@@ -159,15 +159,15 @@ func (suite *FailoverManagerTestSuite) TestNewFailoverManager_InvalidConfig() {
 func (suite *FailoverManagerTestSuite) TestInitiateFailover_Success() {
 	targetRegion := "us-east-1"
 	reason := "Primary region health check failed"
-	
+
 	// Mock successful DNS update
 	suite.mockRoute53.EXPECT().
 		ChangeResourceRecordSets(gomock.Any(), gomock.Any()).
 		Return(nil, nil).
 		Times(1)
-	
+
 	record, err := suite.manager.InitiateFailover(suite.ctx, targetRegion, reason)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), record)
 	assert.Equal(suite.T(), targetRegion, record.TargetRegion)
@@ -180,9 +180,9 @@ func (suite *FailoverManagerTestSuite) TestInitiateFailover_Success() {
 func (suite *FailoverManagerTestSuite) TestInitiateFailover_InvalidRegion() {
 	invalidRegion := "invalid-region"
 	reason := "Test failover"
-	
+
 	record, err := suite.manager.InitiateFailover(suite.ctx, invalidRegion, reason)
-	
+
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), record)
 	assert.Contains(suite.T(), err.Error(), "invalid failover region")
@@ -191,9 +191,9 @@ func (suite *FailoverManagerTestSuite) TestInitiateFailover_InvalidRegion() {
 func (suite *FailoverManagerTestSuite) TestInitiateFailover_SameRegion() {
 	currentRegion := suite.manager.currentRegion
 	reason := "Test failover"
-	
+
 	record, err := suite.manager.InitiateFailover(suite.ctx, currentRegion, reason)
-	
+
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), record)
 	assert.Contains(suite.T(), err.Error(), "already in target region")
@@ -202,15 +202,15 @@ func (suite *FailoverManagerTestSuite) TestInitiateFailover_SameRegion() {
 func (suite *FailoverManagerTestSuite) TestInitiateFailover_DNSUpdateFailure() {
 	targetRegion := "us-east-1"
 	reason := "Test failover"
-	
+
 	// Mock failed DNS update
 	suite.mockRoute53.EXPECT().
 		ChangeResourceRecordSets(gomock.Any(), gomock.Any()).
 		Return(nil, assert.AnError).
 		Times(1)
-	
+
 	record, err := suite.manager.InitiateFailover(suite.ctx, targetRegion, reason)
-	
+
 	assert.Error(suite.T(), err)
 	assert.NotNil(suite.T(), record)
 	assert.Equal(suite.T(), "failed", record.Status)
@@ -220,15 +220,15 @@ func (suite *FailoverManagerTestSuite) TestInitiateFailover_DNSUpdateFailure() {
 func (suite *FailoverManagerTestSuite) TestFailoverBack_Success() {
 	// First failover to secondary region
 	suite.manager.currentRegion = "us-east-1"
-	
+
 	// Mock successful DNS update back to primary
 	suite.mockRoute53.EXPECT().
 		ChangeResourceRecordSets(gomock.Any(), gomock.Any()).
 		Return(nil, nil).
 		Times(1)
-	
+
 	record, err := suite.manager.FailoverBack(suite.ctx, "Primary region restored")
-	
+
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), record)
 	assert.Equal(suite.T(), suite.manager.config.PrimaryRegion, record.TargetRegion)
@@ -240,9 +240,9 @@ func (suite *FailoverManagerTestSuite) TestFailoverBack_Success() {
 func (suite *FailoverManagerTestSuite) TestFailoverBack_AlreadyInPrimary() {
 	// Already in primary region
 	suite.manager.currentRegion = suite.manager.config.PrimaryRegion
-	
+
 	record, err := suite.manager.FailoverBack(suite.ctx, "Test failback")
-	
+
 	assert.Error(suite.T(), err)
 	assert.Nil(suite.T(), record)
 	assert.Contains(suite.T(), err.Error(), "already in primary region")
@@ -250,39 +250,39 @@ func (suite *FailoverManagerTestSuite) TestFailoverBack_AlreadyInPrimary() {
 
 func (suite *FailoverManagerTestSuite) TestCheckRegionHealth_Healthy() {
 	region := "us-west-2"
-	
+
 	// Create mock health checker that returns healthy
 	mockChecker := &MockRegionHealthChecker{
 		isHealthy: true,
 	}
 	suite.manager.healthCheckers[region] = mockChecker
-	
+
 	isHealthy, err := suite.manager.CheckRegionHealth(suite.ctx, region)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.True(suite.T(), isHealthy)
 }
 
 func (suite *FailoverManagerTestSuite) TestCheckRegionHealth_Unhealthy() {
 	region := "us-west-2"
-	
+
 	// Create mock health checker that returns unhealthy
 	mockChecker := &MockRegionHealthChecker{
 		isHealthy: false,
 	}
 	suite.manager.healthCheckers[region] = mockChecker
-	
+
 	isHealthy, err := suite.manager.CheckRegionHealth(suite.ctx, region)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.False(suite.T(), isHealthy)
 }
 
 func (suite *FailoverManagerTestSuite) TestCheckRegionHealth_NoChecker() {
 	region := "unknown-region"
-	
+
 	isHealthy, err := suite.manager.CheckRegionHealth(suite.ctx, region)
-	
+
 	assert.Error(suite.T(), err)
 	assert.False(suite.T(), isHealthy)
 	assert.Contains(suite.T(), err.Error(), "no health checker found for region")
@@ -311,41 +311,41 @@ func (suite *FailoverManagerTestSuite) TestGetFailoverHistory() {
 			EndTime:      &now,
 		},
 	}
-	
+
 	suite.manager.failoverHistory = records
-	
+
 	history := suite.manager.GetFailoverHistory()
-	
+
 	assert.Len(suite.T(), history, 2)
 	assert.Equal(suite.T(), records, history)
 }
 
 func (suite *FailoverManagerTestSuite) TestUpdateDNSRecord_Success() {
 	targetRegion := "us-east-1"
-	
+
 	suite.mockRoute53.EXPECT().
 		ChangeResourceRecordSets(gomock.Any(), gomock.Any()).
 		Return(nil, nil).
 		Times(1)
-	
+
 	err := suite.manager.updateDNSRecord(suite.ctx, targetRegion)
-	
+
 	assert.NoError(suite.T(), err)
 }
 
 func (suite *FailoverManagerTestSuite) TestCreateRTOPlan() {
 	plan := suite.manager.createRTOPlan()
-	
+
 	assert.NotNil(suite.T(), plan)
 	assert.Equal(suite.T(), suite.manager.config.RTOTargetMinutes, plan.RTOTargetMinutes)
 	assert.NotEmpty(suite.T(), plan.Steps)
-	
+
 	// Verify key steps are included
 	stepNames := make([]string, len(plan.Steps))
 	for i, step := range plan.Steps {
 		stepNames[i] = step.Name
 	}
-	
+
 	assert.Contains(suite.T(), stepNames, "Health Check")
 	assert.Contains(suite.T(), stepNames, "DNS Update")
 	assert.Contains(suite.T(), stepNames, "State Synchronization")
@@ -392,11 +392,11 @@ func (suite *FailoverManagerTestSuite) TestFailoverScenarios_TableDriven() {
 			errorContains: "invalid failover region",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			suite.manager.currentRegion = tc.sourceRegion
-			
+
 			if tc.targetRegion != "invalid-region" {
 				if tc.dnsSuccess {
 					suite.mockRoute53.EXPECT().
@@ -410,9 +410,9 @@ func (suite *FailoverManagerTestSuite) TestFailoverScenarios_TableDriven() {
 						Times(1)
 				}
 			}
-			
+
 			record, err := suite.manager.InitiateFailover(suite.ctx, tc.targetRegion, "Test failover")
-			
+
 			if tc.expectedError {
 				assert.Error(suite.T(), err)
 				if tc.errorContains != "" {
@@ -476,12 +476,12 @@ func (suite *FailoverManagerTestSuite) TestEdgeCases() {
 			errorMsg:    "context canceled",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			tc.setupFunc()
 			err := tc.testFunc()
-			
+
 			if tc.expectError {
 				assert.Error(suite.T(), err)
 				if tc.errorMsg != "" {
@@ -497,23 +497,23 @@ func (suite *FailoverManagerTestSuite) TestEdgeCases() {
 func (suite *FailoverManagerTestSuite) TestRTOCompliance() {
 	// Test that RTO targets are properly tracked and met
 	targetRegion := "us-east-1"
-	
+
 	suite.mockRoute53.EXPECT().
 		ChangeResourceRecordSets(gomock.Any(), gomock.Any()).
 		Return(nil, nil).
 		Times(1)
-	
+
 	start := time.Now()
 	record, err := suite.manager.InitiateFailover(suite.ctx, targetRegion, "RTO test")
 	duration := time.Since(start)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), record)
-	
+
 	// Verify RTO tracking
 	rtoTargetDuration := time.Duration(suite.manager.config.RTOTargetMinutes) * time.Minute
 	assert.Less(suite.T(), duration, rtoTargetDuration, "Failover should complete within RTO target")
-	
+
 	// Verify metrics would be updated (in real implementation)
 	assert.NotZero(suite.T(), record.Duration)
 }
@@ -523,7 +523,7 @@ func BenchmarkInitiateFailover(b *testing.B) {
 	ctx := context.Background()
 	k8sClient := fake.NewSimpleClientset()
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
-	
+
 	config := &FailoverConfig{
 		Enabled:          true,
 		PrimaryRegion:    "us-west-2",
@@ -532,16 +532,16 @@ func BenchmarkInitiateFailover(b *testing.B) {
 		DNSConfig: DNSConfig{
 			HostedZoneID:  "Z123456789",
 			RecordSetName: "api.nephoran.com",
-			TTL:          60,
+			TTL:           60,
 		},
 	}
-	
+
 	manager, err := NewFailoverManager(config, k8sClient, logger)
 	require.NoError(b, err)
-	
+
 	// Mock successful DNS operations for benchmarking
 	manager.route53Client = &MockRoute53Client{}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		// Alternate between regions for each iteration
@@ -552,7 +552,7 @@ func BenchmarkInitiateFailover(b *testing.B) {
 			manager.currentRegion = "us-east-1"
 			targetRegion = "us-west-2"
 		}
-		
+
 		_, err := manager.InitiateFailover(ctx, targetRegion, "Benchmark test")
 		require.NoError(b, err)
 	}
@@ -596,19 +596,19 @@ func mockNewFailoverManager(config *FailoverConfig, k8sClient kubernetes.Interfa
 	if config == nil {
 		return nil, fmt.Errorf("config cannot be nil")
 	}
-	
+
 	if config.PrimaryRegion == "" {
 		return nil, fmt.Errorf("primary region cannot be empty")
 	}
-	
+
 	if len(config.FailoverRegions) == 0 {
 		return nil, fmt.Errorf("at least one failover region must be specified")
 	}
-	
+
 	if config.RTOTargetMinutes <= 0 {
 		return nil, fmt.Errorf("RTO target must be greater than 0")
 	}
-	
+
 	manager := &FailoverManager{
 		logger:          logger,
 		k8sClient:       k8sClient,
@@ -617,9 +617,9 @@ func mockNewFailoverManager(config *FailoverConfig, k8sClient kubernetes.Interfa
 		currentRegion:   config.PrimaryRegion,
 		failoverHistory: make([]*FailoverRecord, 0),
 	}
-	
+
 	manager.rtoPlan = manager.createRTOPlan()
-	
+
 	return manager, nil
 }
 
@@ -628,11 +628,11 @@ func (fm *FailoverManager) InitiateFailover(ctx context.Context, targetRegion, r
 	if !fm.config.Enabled {
 		return nil, fmt.Errorf("failover is disabled")
 	}
-	
+
 	if targetRegion == fm.currentRegion {
 		return nil, fmt.Errorf("already in target region %s", targetRegion)
 	}
-	
+
 	// Check if target region is valid
 	validRegion := false
 	for _, region := range fm.config.FailoverRegions {
@@ -644,7 +644,7 @@ func (fm *FailoverManager) InitiateFailover(ctx context.Context, targetRegion, r
 	if !validRegion {
 		return nil, fmt.Errorf("invalid failover region: %s", targetRegion)
 	}
-	
+
 	start := time.Now()
 	record := &FailoverRecord{
 		ID:           fmt.Sprintf("failover-%d", start.Unix()),
@@ -654,7 +654,7 @@ func (fm *FailoverManager) InitiateFailover(ctx context.Context, targetRegion, r
 		Status:       "in_progress",
 		StartTime:    start,
 	}
-	
+
 	// Update DNS record
 	if err := fm.updateDNSRecord(ctx, targetRegion); err != nil {
 		record.Status = "failed"
@@ -665,18 +665,18 @@ func (fm *FailoverManager) InitiateFailover(ctx context.Context, targetRegion, r
 		fm.failoverHistory = append(fm.failoverHistory, record)
 		return record, fmt.Errorf("failed to update DNS: %w", err)
 	}
-	
+
 	// Update current region
 	fm.currentRegion = targetRegion
-	
+
 	// Complete the record
 	endTime := time.Now()
 	record.EndTime = &endTime
 	record.Duration = endTime.Sub(start)
 	record.Status = "completed"
-	
+
 	fm.failoverHistory = append(fm.failoverHistory, record)
-	
+
 	return record, nil
 }
 
@@ -684,7 +684,7 @@ func (fm *FailoverManager) FailoverBack(ctx context.Context, reason string) (*Fa
 	if fm.currentRegion == fm.config.PrimaryRegion {
 		return nil, fmt.Errorf("already in primary region %s", fm.config.PrimaryRegion)
 	}
-	
+
 	return fm.InitiateFailover(ctx, fm.config.PrimaryRegion, reason)
 }
 
@@ -693,14 +693,14 @@ func (fm *FailoverManager) CheckRegionHealth(ctx context.Context, region string)
 	if !exists {
 		return false, fmt.Errorf("no health checker found for region %s", region)
 	}
-	
+
 	return checker.CheckHealth(ctx)
 }
 
 func (fm *FailoverManager) GetFailoverHistory() []*FailoverRecord {
 	fm.mu.RLock()
 	defer fm.mu.RUnlock()
-	
+
 	// Return a copy to prevent external modification
 	history := make([]*FailoverRecord, len(fm.failoverHistory))
 	copy(history, fm.failoverHistory)
@@ -711,7 +711,7 @@ func (fm *FailoverManager) updateDNSRecord(ctx context.Context, targetRegion str
 	if fm.route53Client == nil {
 		return nil // Skip DNS update in test
 	}
-	
+
 	_, err := fm.route53Client.ChangeResourceRecordSets(ctx, nil)
 	return err
 }
@@ -739,14 +739,14 @@ func (fm *FailoverManager) createRTOPlan() *RTOPlan {
 			CriticalPath:      true,
 		},
 	}
-	
+
 	var totalTime time.Duration
 	for _, step := range steps {
 		if step.CriticalPath {
 			totalTime += step.EstimatedDuration
 		}
 	}
-	
+
 	return &RTOPlan{
 		RTOTargetMinutes:   fm.config.RTOTargetMinutes,
 		Steps:              steps,

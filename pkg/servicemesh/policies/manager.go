@@ -7,18 +7,18 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
+	"gopkg.in/yaml.v3"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"gopkg.in/yaml.v3"
 )
 
 // PolicyManager manages service mesh policies
 type PolicyManager struct {
-	mesh          abstraction.ServiceMeshInterface
-	policyStore   *PolicyStore
-	validator     *PolicyValidator
-	enforcer      *PolicyEnforcer
-	logger        log.Logger
+	mesh        abstraction.ServiceMeshInterface
+	policyStore *PolicyStore
+	validator   *PolicyValidator
+	enforcer    *PolicyEnforcer
+	logger      log.Logger
 }
 
 // NewPolicyManager creates a new policy manager
@@ -156,8 +156,8 @@ func (m *PolicyManager) applyTrafficPolicy(ctx context.Context, policy Policy) e
 	if cb, ok := policy.Spec.CircuitBreaker.(map[string]interface{}); ok {
 		trafficPolicy.Spec.CircuitBreaker = &abstraction.CircuitBreaker{
 			ConsecutiveErrors:  int(cb["consecutiveErrors"].(float64)),
-			Interval:          cb["interval"].(string),
-			BaseEjectionTime:  cb["baseEjectionTime"].(string),
+			Interval:           cb["interval"].(string),
+			BaseEjectionTime:   cb["baseEjectionTime"].(string),
 			MaxEjectionPercent: int(cb["maxEjectionPercent"].(float64)),
 		}
 	}
@@ -176,7 +176,7 @@ func (m *PolicyManager) applyTrafficPolicy(ctx context.Context, policy Policy) e
 func (m *PolicyManager) applyNetworkSegmentationPolicy(ctx context.Context, policy Policy) error {
 	// Network segmentation is implemented through authorization policies
 	// Create deny-all by default and then allow specific traffic
-	
+
 	// Create deny-all policy
 	denyAll := &abstraction.AuthorizationPolicy{
 		ObjectMeta: metav1.ObjectMeta{
@@ -290,7 +290,7 @@ func (m *PolicyManager) createSegmentRules(segment map[string]interface{}) []abs
 				if labels, ok := sourceMap["labels"].(map[string]interface{}); ok {
 					// Convert labels to principals (simplified)
 					for k, v := range labels {
-						secSource.Principals = append(secSource.Principals, 
+						secSource.Principals = append(secSource.Principals,
 							fmt.Sprintf("cluster.local/ns/*/sa/%s-%s", k, v))
 					}
 				}
@@ -354,7 +354,7 @@ func (m *PolicyManager) EnforceZeroTrust(ctx context.Context, config *ZeroTrustC
 						"from": []interface{}{
 							map[string]interface{}{
 								"principals": []string{
-									fmt.Sprintf("cluster.local/ns/%s/sa/%s", 
+									fmt.Sprintf("cluster.local/ns/%s/sa/%s",
 										config.Namespace, allowedComm.Source),
 								},
 							},
@@ -439,7 +439,7 @@ func (m *PolicyManager) checkMTLSCompliance(ctx context.Context) ComplianceCheck
 
 	if report.Coverage < 100 {
 		check.Passed = false
-		check.Issues = append(check.Issues, 
+		check.Issues = append(check.Issues,
 			fmt.Sprintf("mTLS coverage is %.2f%%, should be 100%%", report.Coverage))
 	}
 
@@ -521,7 +521,7 @@ func (m *PolicyManager) checkCertificateCompliance(ctx context.Context) Complian
 // ExportPolicies exports policies to YAML format
 func (m *PolicyManager) ExportPolicies(ctx context.Context) (string, error) {
 	policies := m.policyStore.GetAllPolicies()
-	
+
 	data, err := yaml.Marshal(policies)
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal policies: %w", err)

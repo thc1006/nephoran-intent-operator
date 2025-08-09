@@ -20,12 +20,12 @@ import (
 // LLMProcessorServiceTestSuite provides comprehensive test coverage for LLMProcessorService
 type LLMProcessorServiceTestSuite struct {
 	suite.Suite
-	ctx         context.Context
-	cancel      context.CancelFunc
-	mockCtrl    *gomock.Controller
-	logger      *slog.Logger
-	service     *LLMProcessorService
-	config      *config.LLMProcessorConfig
+	ctx      context.Context
+	cancel   context.CancelFunc
+	mockCtrl *gomock.Controller
+	logger   *slog.Logger
+	service  *LLMProcessorService
+	config   *config.LLMProcessorConfig
 }
 
 func TestLLMProcessorServiceSuite(t *testing.T) {
@@ -43,23 +43,23 @@ func (suite *LLMProcessorServiceTestSuite) TearDownSuite() {
 
 func (suite *LLMProcessorServiceTestSuite) SetupTest() {
 	suite.mockCtrl = gomock.NewController(suite.T())
-	
+
 	suite.config = &config.LLMProcessorConfig{
-		Enabled:                  true,
-		ServiceVersion:           "1.0.0",
-		LLMAPIKey:               "test-api-key",
-		LLMModelName:            "gpt-4o-mini",
-		LLMMaxTokens:            4000,
-		LLMBackendType:          "openai",
-		LLMTimeout:              30 * time.Second,
-		RAGAPIURL:               "http://localhost:8081",
-		RAGEnabled:              true,
-		StreamingEnabled:        true,
-		EnableContextBuilder:    true,
-		UseKubernetesSecrets:    false,
-		SecretNamespace:         "default",
+		Enabled:              true,
+		ServiceVersion:       "1.0.0",
+		LLMAPIKey:            "test-api-key",
+		LLMModelName:         "gpt-4o-mini",
+		LLMMaxTokens:         4000,
+		LLMBackendType:       "openai",
+		LLMTimeout:           30 * time.Second,
+		RAGAPIURL:            "http://localhost:8081",
+		RAGEnabled:           true,
+		StreamingEnabled:     true,
+		EnableContextBuilder: true,
+		UseKubernetesSecrets: false,
+		SecretNamespace:      "default",
 	}
-	
+
 	suite.service = NewLLMProcessorService(suite.config, suite.logger)
 }
 
@@ -69,11 +69,11 @@ func (suite *LLMProcessorServiceTestSuite) TearDownTest() {
 
 func (suite *LLMProcessorServiceTestSuite) TestNewLLMProcessorService() {
 	service := NewLLMProcessorService(suite.config, suite.logger)
-	
+
 	assert.NotNil(suite.T(), service)
 	assert.Equal(suite.T(), suite.config, service.config)
 	assert.Equal(suite.T(), suite.logger, service.logger)
-	assert.Nil(suite.T(), service.processor) // Should be nil before initialization
+	assert.Nil(suite.T(), service.processor)     // Should be nil before initialization
 	assert.Nil(suite.T(), service.healthChecker) // Should be nil before initialization
 }
 
@@ -81,9 +81,9 @@ func (suite *LLMProcessorServiceTestSuite) TestInitialize_Success() {
 	// Set environment variables for API keys
 	os.Setenv("OPENAI_API_KEY", "test-openai-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	err := suite.service.Initialize(suite.ctx)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), suite.service.processor)
 	assert.NotNil(suite.T(), suite.service.healthChecker)
@@ -98,10 +98,10 @@ func (suite *LLMProcessorServiceTestSuite) TestInitialize_Success() {
 func (suite *LLMProcessorServiceTestSuite) TestInitialize_WithKubernetesSecrets() {
 	suite.config.UseKubernetesSecrets = true
 	suite.config.SecretNamespace = "test-namespace"
-	
+
 	// This will fail in unit test environment without K8s, but we can test the flow
 	err := suite.service.Initialize(suite.ctx)
-	
+
 	// Should still succeed by falling back to environment variables
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), suite.service.healthChecker)
@@ -111,12 +111,12 @@ func (suite *LLMProcessorServiceTestSuite) TestInitialize_DisabledFeatures() {
 	suite.config.RAGEnabled = false
 	suite.config.StreamingEnabled = false
 	suite.config.EnableContextBuilder = false
-	
+
 	os.Setenv("OPENAI_API_KEY", "test-openai-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	err := suite.service.Initialize(suite.ctx)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), suite.service.processor)
 	assert.Nil(suite.T(), suite.service.streamingProcessor)
@@ -163,15 +163,15 @@ func (suite *LLMProcessorServiceTestSuite) TestValidateLLMConfig_Success() {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			config := *suite.config // Copy config
 			tc.configMod(&config)
-			
+
 			service := NewLLMProcessorService(&config, suite.logger)
 			err := service.validateLLMConfig(tc.apiKey)
-			
+
 			assert.NoError(suite.T(), err)
 		})
 	}
@@ -225,15 +225,15 @@ func (suite *LLMProcessorServiceTestSuite) TestValidateLLMConfig_Errors() {
 			errorMsg: "RAG API URL is required",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			config := *suite.config // Copy config
 			tc.configMod(&config)
-			
+
 			service := NewLLMProcessorService(&config, suite.logger)
 			err := service.validateLLMConfig(tc.apiKey)
-			
+
 			assert.Error(suite.T(), err)
 			assert.Contains(suite.T(), err.Error(), tc.errorMsg)
 		})
@@ -250,9 +250,9 @@ func (suite *LLMProcessorServiceTestSuite) TestLoadSecureAPIKeys_EnvironmentVari
 		os.Unsetenv("WEAVIATE_API_KEY")
 		os.Unsetenv("JWT_SECRET_KEY")
 	}()
-	
+
 	apiKeys, err := suite.service.loadSecureAPIKeys(suite.ctx)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), apiKeys)
 	assert.Equal(suite.T(), "env-openai-key", apiKeys.OpenAI)
@@ -266,9 +266,9 @@ func (suite *LLMProcessorServiceTestSuite) TestLoadSecureAPIKeys_DefaultValues()
 	os.Unsetenv("WEAVIATE_API_KEY")
 	os.Unsetenv("API_KEY")
 	os.Unsetenv("JWT_SECRET_KEY")
-	
+
 	apiKeys, err := suite.service.loadSecureAPIKeys(suite.ctx)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), apiKeys)
 	assert.Equal(suite.T(), "", apiKeys.OpenAI)
@@ -281,13 +281,13 @@ func (suite *LLMProcessorServiceTestSuite) TestGetComponents() {
 	// Initialize the service first
 	os.Setenv("OPENAI_API_KEY", "test-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	err := suite.service.Initialize(suite.ctx)
 	require.NoError(suite.T(), err)
-	
+
 	processor, streamingProcessor, circuitBreakerMgr, tokenManager,
 		contextBuilder, relevanceScorer, promptBuilder, healthChecker := suite.service.GetComponents()
-	
+
 	assert.NotNil(suite.T(), processor)
 	assert.NotNil(suite.T(), streamingProcessor)
 	assert.NotNil(suite.T(), circuitBreakerMgr)
@@ -302,14 +302,14 @@ func (suite *LLMProcessorServiceTestSuite) TestShutdown() {
 	// Initialize the service first
 	os.Setenv("OPENAI_API_KEY", "test-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	err := suite.service.Initialize(suite.ctx)
 	require.NoError(suite.T(), err)
-	
+
 	// Shutdown should complete without error
 	err = suite.service.Shutdown(suite.ctx)
 	assert.NoError(suite.T(), err)
-	
+
 	// Health checker should be marked as not ready
 	assert.False(suite.T(), suite.service.healthChecker.IsReady())
 }
@@ -384,7 +384,7 @@ func (suite *LLMProcessorServiceTestSuite) TestInitialize_ConfigurationScenarios
 			errorMsg:    "max tokens must be greater than 0",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			// Set up environment variables
@@ -396,14 +396,14 @@ func (suite *LLMProcessorServiceTestSuite) TestInitialize_ConfigurationScenarios
 					os.Unsetenv(key)
 				}
 			}()
-			
+
 			// Modify config
 			config := *suite.config // Copy config
 			tc.configMod(&config)
-			
+
 			service := NewLLMProcessorService(&config, suite.logger)
 			err := service.Initialize(suite.ctx)
-			
+
 			if tc.expectError {
 				assert.Error(suite.T(), err)
 				if tc.errorMsg != "" {
@@ -421,26 +421,26 @@ func (suite *LLMProcessorServiceTestSuite) TestInitialize_ConfigurationScenarios
 func (suite *LLMProcessorServiceTestSuite) TestHealthChecksRegistration() {
 	os.Setenv("OPENAI_API_KEY", "test-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	err := suite.service.Initialize(suite.ctx)
 	require.NoError(suite.T(), err)
-	
+
 	// Verify health checks are registered by checking health
 	response := suite.service.healthChecker.Check(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), response)
 	assert.NotEmpty(suite.T(), response.Checks)
-	
+
 	// Look for expected health checks
 	checkNames := make([]string, len(response.Checks))
 	for i, check := range response.Checks {
 		checkNames[i] = check.Name
 	}
-	
+
 	assert.Contains(suite.T(), checkNames, "service_status")
 	assert.Contains(suite.T(), checkNames, "circuit_breaker")
 	assert.Contains(suite.T(), checkNames, "token_manager")
-	
+
 	// If streaming is enabled, check for streaming processor health check
 	if suite.config.StreamingEnabled {
 		assert.Contains(suite.T(), checkNames, "streaming_processor")
@@ -450,23 +450,23 @@ func (suite *LLMProcessorServiceTestSuite) TestHealthChecksRegistration() {
 func (suite *LLMProcessorServiceTestSuite) TestHealthChecksRegistration_WithRAGDependency() {
 	suite.config.RAGEnabled = true
 	suite.config.RAGAPIURL = "http://localhost:8081"
-	
+
 	os.Setenv("OPENAI_API_KEY", "test-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	err := suite.service.Initialize(suite.ctx)
 	require.NoError(suite.T(), err)
-	
+
 	// Check that RAG API dependency is registered
 	response := suite.service.healthChecker.Check(suite.ctx)
-	
+
 	assert.NotNil(suite.T(), response)
 	// Dependencies should be registered
 	depNames := make([]string, len(response.Dependencies))
 	for i, dep := range response.Dependencies {
 		depNames[i] = dep.Name
 	}
-	
+
 	assert.Contains(suite.T(), depNames, "rag_api")
 }
 
@@ -512,14 +512,14 @@ func (suite *LLMProcessorServiceTestSuite) TestEdgeCases() {
 			expectError: false, // Context cancellation handled in loadSecureAPIKeys
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			service := NewLLMProcessorService(suite.config, suite.logger)
 			tc.setupFunc(service)
-			
+
 			err := tc.testFunc(service)
-			
+
 			if tc.expectError {
 				assert.Error(suite.T(), err)
 				if tc.errorMsg != "" {
@@ -536,14 +536,14 @@ func (suite *LLMProcessorServiceTestSuite) TestEdgeCases() {
 func (suite *LLMProcessorServiceTestSuite) TestConcurrentOperations() {
 	os.Setenv("OPENAI_API_KEY", "test-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	err := suite.service.Initialize(suite.ctx)
 	require.NoError(suite.T(), err)
-	
+
 	// Test concurrent health checks
 	numGoroutines := 10
 	errors := make(chan error, numGoroutines)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
 			response := suite.service.healthChecker.Check(suite.ctx)
@@ -554,7 +554,7 @@ func (suite *LLMProcessorServiceTestSuite) TestConcurrentOperations() {
 			errors <- nil
 		}()
 	}
-	
+
 	// Collect results
 	for i := 0; i < numGoroutines; i++ {
 		err := <-errors
@@ -566,15 +566,15 @@ func (suite *LLMProcessorServiceTestSuite) TestIntegrationFlow() {
 	// Test complete service lifecycle
 	os.Setenv("OPENAI_API_KEY", "test-integration-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	// Step 1: Initialize
 	err := suite.service.Initialize(suite.ctx)
 	require.NoError(suite.T(), err)
-	
+
 	// Step 2: Verify components are available
 	processor, streamingProcessor, circuitBreakerMgr, tokenManager,
 		contextBuilder, relevanceScorer, promptBuilder, healthChecker := suite.service.GetComponents()
-	
+
 	assert.NotNil(suite.T(), processor)
 	assert.NotNil(suite.T(), streamingProcessor)
 	assert.NotNil(suite.T(), circuitBreakerMgr)
@@ -583,16 +583,16 @@ func (suite *LLMProcessorServiceTestSuite) TestIntegrationFlow() {
 	assert.NotNil(suite.T(), relevanceScorer)
 	assert.NotNil(suite.T(), promptBuilder)
 	assert.NotNil(suite.T(), healthChecker)
-	
+
 	// Step 3: Verify health checks work
 	response := healthChecker.Check(suite.ctx)
 	assert.NotNil(suite.T(), response)
 	assert.NotEmpty(suite.T(), response.Checks)
-	
+
 	// Step 4: Shutdown gracefully
 	err = suite.service.Shutdown(suite.ctx)
 	assert.NoError(suite.T(), err)
-	
+
 	// Step 5: Verify service is marked as not ready
 	assert.False(suite.T(), healthChecker.IsReady())
 }
@@ -600,18 +600,18 @@ func (suite *LLMProcessorServiceTestSuite) TestIntegrationFlow() {
 // Helper functions for testing
 func (suite *LLMProcessorServiceTestSuite) setupMinimalConfig() *config.LLMProcessorConfig {
 	return &config.LLMProcessorConfig{
-		Enabled:                  true,
-		ServiceVersion:           "1.0.0",
-		LLMAPIKey:               "test-api-key",
-		LLMModelName:            "gpt-4o-mini",
-		LLMMaxTokens:            1000,
-		LLMBackendType:          "mock",
-		LLMTimeout:              10 * time.Second,
-		RAGAPIURL:               "http://localhost:8081",
-		RAGEnabled:              false,
-		StreamingEnabled:        false,
-		EnableContextBuilder:    false,
-		UseKubernetesSecrets:    false,
+		Enabled:              true,
+		ServiceVersion:       "1.0.0",
+		LLMAPIKey:            "test-api-key",
+		LLMModelName:         "gpt-4o-mini",
+		LLMMaxTokens:         1000,
+		LLMBackendType:       "mock",
+		LLMTimeout:           10 * time.Second,
+		RAGAPIURL:            "http://localhost:8081",
+		RAGEnabled:           false,
+		StreamingEnabled:     false,
+		EnableContextBuilder: false,
+		UseKubernetesSecrets: false,
 	}
 }
 
@@ -622,7 +622,7 @@ type MockIntentProcessor struct {
 	LLMClient         interface{}
 	RAGEnhancedClient interface{}
 	CircuitBreaker    interface{}
-	Logger           *slog.Logger
+	Logger            *slog.Logger
 }
 
 // Mock implementations for missing types
@@ -647,7 +647,7 @@ func (suite *LLMProcessorServiceTestSuite) assertOptionalComponentsInitialized(s
 	} else {
 		assert.Nil(suite.T(), service.streamingProcessor, "streaming processor should not be initialized when disabled")
 	}
-	
+
 	if config.EnableContextBuilder {
 		assert.NotNil(suite.T(), service.contextBuilder, "context builder should be initialized when enabled")
 	} else {
@@ -660,10 +660,10 @@ func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheck() {
 	// Initialize service for testing
 	os.Setenv("OPENAI_API_KEY", "test-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	err := suite.service.Initialize(suite.ctx)
 	require.NoError(suite.T(), err)
-	
+
 	testCases := []struct {
 		name            string
 		stats           map[string]interface{}
@@ -672,9 +672,9 @@ func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheck() {
 		checkContains   []string
 	}{
 		{
-			name:           "No circuit breakers registered",
-			stats:          map[string]interface{}{},
-			expectedStatus: health.StatusHealthy,
+			name:            "No circuit breakers registered",
+			stats:           map[string]interface{}{},
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "No circuit breakers registered",
 		},
 		{
@@ -685,11 +685,11 @@ func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheck() {
 					"failures": 0,
 				},
 				"rag-service": map[string]interface{}{
-					"state":    "closed", 
+					"state":    "closed",
 					"failures": 1,
 				},
 			},
-			expectedStatus: health.StatusHealthy,
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All 2 circuit breakers operational",
 		},
 		{
@@ -700,7 +700,7 @@ func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheck() {
 					"failures": 2,
 				},
 			},
-			expectedStatus: health.StatusHealthy,
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All 1 circuit breakers operational",
 		},
 		{
@@ -764,7 +764,7 @@ func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheck() {
 					"failures": 1,
 				},
 			},
-			expectedStatus: health.StatusHealthy,
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All 2 circuit breakers operational",
 		},
 		{
@@ -775,7 +775,7 @@ func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheck() {
 					"failures": 2,
 				},
 			},
-			expectedStatus: health.StatusHealthy,
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All 1 circuit breakers operational",
 		},
 		{
@@ -787,7 +787,7 @@ func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheck() {
 					"failures": 0,
 				},
 			},
-			expectedStatus: health.StatusHealthy,
+			expectedStatus:  health.StatusHealthy,
 			expectedMessage: "All 2 circuit breakers operational",
 		},
 		{
@@ -849,7 +849,7 @@ func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheck() {
 func (suite *LLMProcessorServiceTestSuite) TestCircuitBreakerHealthCheckEdgeCases() {
 	os.Setenv("OPENAI_API_KEY", "test-key")
 	defer os.Unsetenv("OPENAI_API_KEY")
-	
+
 	err := suite.service.Initialize(suite.ctx)
 	require.NoError(suite.T(), err)
 

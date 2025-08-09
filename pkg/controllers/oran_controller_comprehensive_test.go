@@ -27,17 +27,17 @@ import (
 
 // fakeO1Adaptor implements O1Adaptor for testing
 type fakeO1Adaptor struct {
-	shouldFail       bool
-	callCount        int
-	lastManagedElem  *nephoranv1.ManagedElement
-	appliedConfigs   []string
+	shouldFail      bool
+	callCount       int
+	lastManagedElem *nephoranv1.ManagedElement
+	appliedConfigs  []string
 }
 
 func (f *fakeO1Adaptor) ApplyConfiguration(ctx context.Context, me *nephoranv1.ManagedElement) error {
 	f.callCount++
 	f.lastManagedElem = me
 	f.appliedConfigs = append(f.appliedConfigs, me.Spec.O1Config)
-	
+
 	if f.shouldFail {
 		return fmt.Errorf("fake O1 configuration failure")
 	}
@@ -63,7 +63,7 @@ func (f *fakeA1Adaptor) ApplyPolicy(ctx context.Context, me *nephoranv1.ManagedE
 	f.callCount++
 	f.lastManagedElem = me
 	f.appliedPolicies = append(f.appliedPolicies, me.Spec.A1Policy)
-	
+
 	if f.shouldFail {
 		return fmt.Errorf("fake A1 policy application failure")
 	}
@@ -83,8 +83,8 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 		managedElement  *nephoranv1.ManagedElement
 		deployment      *appsv1.Deployment
 		existingObjects []client.Object
-		o1Setup        func(*fakeO1Adaptor)
-		a1Setup        func(*fakeA1Adaptor)
+		o1Setup         func(*fakeO1Adaptor)
+		a1Setup         func(*fakeA1Adaptor)
 		expectedResult  ctrl.Result
 		expectedError   bool
 		expectedCalls   func(*testing.T, *fakeO1Adaptor, *fakeA1Adaptor)
@@ -117,7 +117,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				},
 			},
 			existingObjects: []client.Object{},
-			o1Setup:         func(o1 *fakeO1Adaptor) {
+			o1Setup: func(o1 *fakeO1Adaptor) {
 				// O1 should succeed
 			},
 			a1Setup: func(a1 *fakeA1Adaptor) {
@@ -135,12 +135,12 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 				readyCondition := testutil.GetCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.NotNil(t, readyCondition, "Ready condition should exist")
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
-				
+
 				// Check O1 condition
 				o1Condition := testutil.GetCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.NotNil(t, o1Condition, "O1 condition should exist")
 				assert.Equal(t, metav1.ConditionTrue, o1Condition.Status, "O1 condition should be true")
-				
+
 				// Check A1 condition
 				a1Condition := testutil.GetCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.NotNil(t, a1Condition, "A1 condition should exist")
@@ -257,10 +257,10 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
 				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
-				
+
 				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Equal(t, metav1.ConditionTrue, o1Condition.Status, "O1 condition should be true")
-				
+
 				// A1 condition should not exist
 				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Nil(t, a1Condition, "A1 condition should not exist when no policy specified")
@@ -304,11 +304,11 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
 				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
-				
+
 				// O1 condition should not exist
 				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Nil(t, o1Condition, "O1 condition should not exist when no config specified")
-				
+
 				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Equal(t, metav1.ConditionTrue, a1Condition.Status, "A1 condition should be true")
 			},
@@ -353,11 +353,11 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
 				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should still be true")
-				
+
 				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Equal(t, metav1.ConditionFalse, o1Condition.Status, "O1 condition should be false on failure")
 				assert.Equal(t, "Failed", o1Condition.Reason, "O1 condition reason should be Failed")
-				
+
 				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Equal(t, metav1.ConditionTrue, a1Condition.Status, "A1 condition should be true")
 			},
@@ -402,10 +402,10 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
 				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
-				
+
 				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Equal(t, metav1.ConditionTrue, o1Condition.Status, "O1 condition should be true")
-				
+
 				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Equal(t, metav1.ConditionFalse, a1Condition.Status, "A1 condition should be false on failure")
 				assert.Equal(t, "Failed", a1Condition.Reason, "A1 condition reason should be Failed")
@@ -472,7 +472,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
 				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
-				
+
 				a1Condition := getCondition(me.Status.Conditions, A1PolicyAppliedCondition)
 				assert.Equal(t, metav1.ConditionTrue, a1Condition.Status, "A1 condition should be true")
 			},
@@ -515,7 +515,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 			expectedStatus: func(t *testing.T, me *nephoranv1.ManagedElement) {
 				readyCondition := getCondition(me.Status.Conditions, typeReadyManagedElement)
 				assert.Equal(t, metav1.ConditionTrue, readyCondition.Status, "Ready condition should be true")
-				
+
 				o1Condition := getCondition(me.Status.Conditions, O1ConfiguredCondition)
 				assert.Equal(t, metav1.ConditionTrue, o1Condition.Status, "O1 condition should be true")
 			},
@@ -533,7 +533,7 @@ func TestOranAdaptorReconciler_Reconcile(t *testing.T) {
 			// Create fake adaptors
 			o1Adaptor := &fakeO1Adaptor{}
 			a1Adaptor := &fakeA1Adaptor{}
-			
+
 			// Apply test-specific setup
 			tc.o1Setup(o1Adaptor)
 			tc.a1Setup(a1Adaptor)
@@ -820,4 +820,3 @@ func TestOranAdaptorReconciler_EdgeCases(t *testing.T) {
 func int32Ptr(i int32) *int32 {
 	return &i
 }
-

@@ -34,28 +34,28 @@ type AuthProvider interface {
 
 // AuthConfig holds authentication configuration
 type AuthConfig struct {
-	Enabled              bool                       `json:"enabled"`
-	Type                 AuthType                   `json:"type"`
-	JWTConfig           *JWTConfig                 `json:"jwt_config,omitempty"`
-	OAuth2Config        *OAuth2Config              `json:"oauth2_config,omitempty"`
-	ServiceAuthConfig   *ServiceAuthConfig         `json:"service_auth_config,omitempty"`
-	RBACConfig          *RBACConfig                `json:"rbac_config,omitempty"`
-	TokenExpiry         time.Duration              `json:"token_expiry"`
-	RefreshTokenExpiry  time.Duration              `json:"refresh_token_expiry"`
-	MaxTokenLifetime    time.Duration              `json:"max_token_lifetime"`
-	EnableRevocation    bool                       `json:"enable_revocation"`
-	RequireSecureTransport bool                    `json:"require_secure_transport"`
+	Enabled                bool               `json:"enabled"`
+	Type                   AuthType           `json:"type"`
+	JWTConfig              *JWTConfig         `json:"jwt_config,omitempty"`
+	OAuth2Config           *OAuth2Config      `json:"oauth2_config,omitempty"`
+	ServiceAuthConfig      *ServiceAuthConfig `json:"service_auth_config,omitempty"`
+	RBACConfig             *RBACConfig        `json:"rbac_config,omitempty"`
+	TokenExpiry            time.Duration      `json:"token_expiry"`
+	RefreshTokenExpiry     time.Duration      `json:"refresh_token_expiry"`
+	MaxTokenLifetime       time.Duration      `json:"max_token_lifetime"`
+	EnableRevocation       bool               `json:"enable_revocation"`
+	RequireSecureTransport bool               `json:"require_secure_transport"`
 }
 
 // AuthType represents the authentication type
 type AuthType string
 
 const (
-	AuthTypeJWT           AuthType = "jwt"
-	AuthTypeOAuth2        AuthType = "oauth2"
+	AuthTypeJWT            AuthType = "jwt"
+	AuthTypeOAuth2         AuthType = "oauth2"
 	AuthTypeServiceAccount AuthType = "service_account"
-	AuthTypeMutualTLS     AuthType = "mtls"
-	AuthTypeAPIKey        AuthType = "api_key"
+	AuthTypeMutualTLS      AuthType = "mtls"
+	AuthTypeAPIKey         AuthType = "api_key"
 )
 
 // JWTConfig holds JWT-specific configuration
@@ -73,71 +73,71 @@ type JWTConfig struct {
 
 // OAuth2Config holds OAuth2/OIDC configuration
 type OAuth2Config struct {
-	Providers            map[string]*OAuth2Provider `json:"providers"`
-	DefaultProvider      string                     `json:"default_provider"`
-	StateStore           StateStore                 `json:"-"`
-	PKCERequired         bool                       `json:"pkce_required"`
-	NonceRequired        bool                       `json:"nonce_required"`
+	Providers       map[string]*OAuth2Provider `json:"providers"`
+	DefaultProvider string                     `json:"default_provider"`
+	StateStore      StateStore                 `json:"-"`
+	PKCERequired    bool                       `json:"pkce_required"`
+	NonceRequired   bool                       `json:"nonce_required"`
 }
 
 // OAuth2Provider represents an OAuth2/OIDC provider
 type OAuth2Provider struct {
-	Name                 string            `json:"name"`
-	ClientID             string            `json:"client_id"`
-	ClientSecret         string            `json:"client_secret"`
-	AuthURL              string            `json:"auth_url"`
-	TokenURL             string            `json:"token_url"`
-	UserInfoURL          string            `json:"user_info_url"`
-	JWKSEndpoint         string            `json:"jwks_endpoint"`
-	Scopes               []string          `json:"scopes"`
-	RedirectURLs         []string          `json:"redirect_urls"`
-	ResponseType         string            `json:"response_type"`
-	AdditionalParams     map[string]string `json:"additional_params"`
+	Name             string            `json:"name"`
+	ClientID         string            `json:"client_id"`
+	ClientSecret     string            `json:"client_secret"`
+	AuthURL          string            `json:"auth_url"`
+	TokenURL         string            `json:"token_url"`
+	UserInfoURL      string            `json:"user_info_url"`
+	JWKSEndpoint     string            `json:"jwks_endpoint"`
+	Scopes           []string          `json:"scopes"`
+	RedirectURLs     []string          `json:"redirect_urls"`
+	ResponseType     string            `json:"response_type"`
+	AdditionalParams map[string]string `json:"additional_params"`
 }
 
 // ServiceAuthConfig holds service account authentication configuration
 type ServiceAuthConfig struct {
-	Enabled            bool                        `json:"enabled"`
-	ServiceAccounts    map[string]*ServiceAccount  `json:"service_accounts"`
-	TokenRotation      bool                        `json:"token_rotation"`
-	RotationInterval   time.Duration               `json:"rotation_interval"`
-	MaxKeyAge          time.Duration               `json:"max_key_age"`
-	AllowedServices    []string                    `json:"allowed_services"`
+	Enabled          bool                       `json:"enabled"`
+	ServiceAccounts  map[string]*ServiceAccount `json:"service_accounts"`
+	TokenRotation    bool                       `json:"token_rotation"`
+	RotationInterval time.Duration              `json:"rotation_interval"`
+	MaxKeyAge        time.Duration              `json:"max_key_age"`
+	AllowedServices  []string                   `json:"allowed_services"`
 }
 
 // ServiceAccount represents a service account
 type ServiceAccount struct {
-	ID             string            `json:"id"`
-	Name           string            `json:"name"`
-	Description    string            `json:"description"`
-	PublicKey      string            `json:"public_key"`
-	AllowedScopes  []string          `json:"allowed_scopes"`
-	Metadata       map[string]string `json:"metadata"`
-	CreatedAt      time.Time         `json:"created_at"`
-	LastRotatedAt  time.Time         `json:"last_rotated_at"`
-	Active         bool              `json:"active"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Description   string            `json:"description"`
+	PublicKey     string            `json:"public_key"`
+	AllowedScopes []string          `json:"allowed_scopes"`
+	Metadata      map[string]string `json:"metadata"`
+	CreatedAt     time.Time         `json:"created_at"`
+	LastRotatedAt time.Time         `json:"last_rotated_at"`
+	Active        bool              `json:"active"`
 }
 
 // RBACConfig holds RBAC configuration
 type RBACConfig struct {
-	Enabled          bool                `json:"enabled"`
-	PolicyEngine     string              `json:"policy_engine"`
-	PolicyPath       string              `json:"policy_path"`
-	Roles            map[string]*Role    `json:"roles"`
-	DefaultRole      string              `json:"default_role"`
-	DenyByDefault    bool                `json:"deny_by_default"`
-	CachePermissions bool                `json:"cache_permissions"`
-	CacheTTL         time.Duration       `json:"cache_ttl"`
+	Enabled          bool             `json:"enabled"`
+	PolicyEngine     string           `json:"policy_engine"`
+	PolicyPath       string           `json:"policy_path"`
+	Roles            map[string]*Role `json:"roles"`
+	DefaultRole      string           `json:"default_role"`
+	DenyByDefault    bool             `json:"deny_by_default"`
+	CachePermissions bool             `json:"cache_permissions"`
+	CacheTTL         time.Duration    `json:"cache_ttl"`
 }
 
 // Role represents an RBAC role
 type Role struct {
-	Name         string              `json:"name"`
-	Description  string              `json:"description"`
-	Permissions  []*Permission       `json:"permissions"`
-	ParentRoles  []string            `json:"parent_roles"`
-	Metadata     map[string]string   `json:"metadata"`
-	Priority     int                 `json:"priority"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Permissions []*Permission     `json:"permissions"`
+	ParentRoles []string          `json:"parent_roles"`
+	Metadata    map[string]string `json:"metadata"`
+	Priority    int               `json:"priority"`
 }
 
 // Permission represents a permission
@@ -158,15 +158,15 @@ const (
 
 // AuthResult represents the result of authentication
 type AuthResult struct {
-	AccessToken    string                 `json:"access_token"`
-	RefreshToken   string                 `json:"refresh_token,omitempty"`
-	TokenType      string                 `json:"token_type"`
-	ExpiresIn      int64                  `json:"expires_in"`
-	ExpiresAt      time.Time              `json:"expires_at"`
-	Scope          string                 `json:"scope,omitempty"`
-	User           *User                  `json:"user,omitempty"`
-	Claims         map[string]interface{} `json:"claims,omitempty"`
-	SessionID      string                 `json:"session_id,omitempty"`
+	AccessToken  string                 `json:"access_token"`
+	RefreshToken string                 `json:"refresh_token,omitempty"`
+	TokenType    string                 `json:"token_type"`
+	ExpiresIn    int64                  `json:"expires_in"`
+	ExpiresAt    time.Time              `json:"expires_at"`
+	Scope        string                 `json:"scope,omitempty"`
+	User         *User                  `json:"user,omitempty"`
+	Claims       map[string]interface{} `json:"claims,omitempty"`
+	SessionID    string                 `json:"session_id,omitempty"`
 }
 
 // User represents an authenticated user
@@ -202,19 +202,19 @@ type StateStore interface {
 
 // AuthManager manages authentication and authorization
 type AuthManager struct {
-	config           *AuthConfig
-	logger           *logging.StructuredLogger
-	providers        map[AuthType]AuthProvider
-	tokenStore       TokenStore
-	keyCache         *KeyCache
-	rbacEngine       RBACEngine
-	mu               sync.RWMutex
-	publicKey        *rsa.PublicKey
-	privateKey       *rsa.PrivateKey
-	jwksCache        jwk.Set
-	jwksCacheExpiry  time.Time
-	revokedTokens    map[string]time.Time
-	revokedTokensMu  sync.RWMutex
+	config          *AuthConfig
+	logger          *logging.StructuredLogger
+	providers       map[AuthType]AuthProvider
+	tokenStore      TokenStore
+	keyCache        *KeyCache
+	rbacEngine      RBACEngine
+	mu              sync.RWMutex
+	publicKey       *rsa.PublicKey
+	privateKey      *rsa.PrivateKey
+	jwksCache       jwk.Set
+	jwksCacheExpiry time.Time
+	revokedTokens   map[string]time.Time
+	revokedTokensMu sync.RWMutex
 }
 
 // TokenStore interface for token storage
@@ -227,10 +227,10 @@ type TokenStore interface {
 
 // KeyCache manages cryptographic key caching
 type KeyCache struct {
-	mu       sync.RWMutex
-	keys     map[string]interface{}
-	expiry   map[string]time.Time
-	ttl      time.Duration
+	mu     sync.RWMutex
+	keys   map[string]interface{}
+	expiry map[string]time.Time
+	ttl    time.Duration
 }
 
 // RBACEngine interface for RBAC operations
@@ -382,7 +382,7 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 	// Perform authentication
 	result, err := provider.Authenticate(ctx, credentials)
 	if err != nil {
-		am.logger.Error("authentication failed", 
+		am.logger.Error("authentication failed",
 			slog.String("auth_type", string(authType)),
 			slog.Error(err))
 		return nil, err
@@ -392,7 +392,7 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 	if am.rbacEngine != nil && result.User != nil {
 		permissions, err := am.rbacEngine.GetUserPermissions(ctx, result.User)
 		if err != nil {
-			am.logger.Warn("failed to get user permissions", 
+			am.logger.Warn("failed to get user permissions",
 				slog.String("user_id", result.User.ID),
 				slog.Error(err))
 		} else {
@@ -414,7 +414,7 @@ func (am *AuthManager) Authenticate(ctx context.Context, r *http.Request) (*Auth
 			Roles:    result.User.Roles,
 			Scope:    result.Scope,
 		}
-		
+
 		if err := am.tokenStore.Store(ctx, result.AccessToken, claims, am.config.TokenExpiry); err != nil {
 			am.logger.Warn("failed to cache token", slog.Error(err))
 		}

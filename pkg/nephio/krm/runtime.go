@@ -70,27 +70,27 @@ type RuntimeConfig struct {
 	QueueSize              int `json:"queueSize" yaml:"queueSize"`
 
 	// Security settings
-	SandboxEnabled    bool     `json:"sandboxEnabled" yaml:"sandboxEnabled"`
-	AllowedImages     []string `json:"allowedImages" yaml:"allowedImages"`
+	SandboxEnabled      bool     `json:"sandboxEnabled" yaml:"sandboxEnabled"`
+	AllowedImages       []string `json:"allowedImages" yaml:"allowedImages"`
 	BlockedCapabilities []string `json:"blockedCapabilities" yaml:"blockedCapabilities"`
-	NetworkAccess     bool     `json:"networkAccess" yaml:"networkAccess"`
+	NetworkAccess       bool     `json:"networkAccess" yaml:"networkAccess"`
 
 	// Performance settings
-	EnableCaching      bool          `json:"enableCaching" yaml:"enableCaching"`
-	CacheSize          int           `json:"cacheSize" yaml:"cacheSize"`
+	EnableCaching     bool          `json:"enableCaching" yaml:"enableCaching"`
+	CacheSize         int           `json:"cacheSize" yaml:"cacheSize"`
 	CacheTTL          time.Duration `json:"cacheTtl" yaml:"cacheTtl"`
-	EnableCompression  bool          `json:"enableCompression" yaml:"enableCompression"`
+	EnableCompression bool          `json:"enableCompression" yaml:"enableCompression"`
 
 	// Observability settings
-	EnableMetrics     bool `json:"enableMetrics" yaml:"enableMetrics"`
-	EnableTracing     bool `json:"enableTracing" yaml:"enableTracing"`
-	EnableProfiling   bool `json:"enableProfiling" yaml:"enableProfiling"`
-	VerboseLogging    bool `json:"verboseLogging" yaml:"verboseLogging"`
+	EnableMetrics   bool `json:"enableMetrics" yaml:"enableMetrics"`
+	EnableTracing   bool `json:"enableTracing" yaml:"enableTracing"`
+	EnableProfiling bool `json:"enableProfiling" yaml:"enableProfiling"`
+	VerboseLogging  bool `json:"verboseLogging" yaml:"verboseLogging"`
 
 	// Workspace settings
-	WorkspaceDir      string `json:"workspaceDir" yaml:"workspaceDir"`
-	CleanupInterval   time.Duration `json:"cleanupInterval" yaml:"cleanupInterval"`
-	MaxWorkspaceSize  string `json:"maxWorkspaceSize" yaml:"maxWorkspaceSize"`
+	WorkspaceDir     string        `json:"workspaceDir" yaml:"workspaceDir"`
+	CleanupInterval  time.Duration `json:"cleanupInterval" yaml:"cleanupInterval"`
+	MaxWorkspaceSize string        `json:"maxWorkspaceSize" yaml:"maxWorkspaceSize"`
 }
 
 // ExecutionContext provides context for function execution
@@ -109,28 +109,28 @@ type ExecutionContext struct {
 
 // SecurityContext defines security constraints for function execution
 type SecurityContext struct {
-	UserID               int
-	GroupID              int
-	AllowedCapabilities  []string
-	DropCapabilities     []string
-	ReadOnlyRootFS       bool
-	NoNewPrivileges      bool
-	SELinuxContext       string
-	SeccompProfile       string
-	NetworkIsolation     bool
-	FileSystemIsolation  bool
+	UserID              int
+	GroupID             int
+	AllowedCapabilities []string
+	DropCapabilities    []string
+	ReadOnlyRootFS      bool
+	NoNewPrivileges     bool
+	SELinuxContext      string
+	SeccompProfile      string
+	NetworkIsolation    bool
+	FileSystemIsolation bool
 }
 
 // ExecutionResult contains the result of function execution
 type ExecutionResult struct {
-	Resources    []porch.KRMResource   `json:"resources"`
-	Results      []*porch.FunctionResult `json:"results,omitempty"`
-	Logs         []string              `json:"logs,omitempty"`
-	Error        *porch.FunctionError  `json:"error,omitempty"`
-	Duration     time.Duration         `json:"duration"`
-	MemoryUsage  int64                 `json:"memoryUsage"`
-	CPUUsage     float64               `json:"cpuUsage"`
-	ExitCode     int                   `json:"exitCode"`
+	Resources   []porch.KRMResource     `json:"resources"`
+	Results     []*porch.FunctionResult `json:"results,omitempty"`
+	Logs        []string                `json:"logs,omitempty"`
+	Error       *porch.FunctionError    `json:"error,omitempty"`
+	Duration    time.Duration           `json:"duration"`
+	MemoryUsage int64                   `json:"memoryUsage"`
+	CPUUsage    float64                 `json:"cpuUsage"`
+	ExitCode    int                     `json:"exitCode"`
 }
 
 // ResourcePool manages computational resources for function execution
@@ -145,23 +145,23 @@ type ResourcePool struct {
 
 // ExecutorPool manages a pool of function executors
 type ExecutorPool struct {
-	workers   chan *Executor
-	config    *RuntimeConfig
-	wg        sync.WaitGroup
-	ctx       context.Context
-	cancel    context.CancelFunc
-	metrics   *RuntimeMetrics
+	workers chan *Executor
+	config  *RuntimeConfig
+	wg      sync.WaitGroup
+	ctx     context.Context
+	cancel  context.CancelFunc
+	metrics *RuntimeMetrics
 }
 
 // Executor handles individual function execution
 type Executor struct {
-	id            string
-	runtime       *Runtime
-	workspace     string
-	containerID   string
-	isOccupied    bool
-	lastUsed      time.Time
-	mu            sync.Mutex
+	id          string
+	runtime     *Runtime
+	workspace   string
+	containerID string
+	isOccupied  bool
+	lastUsed    time.Time
+	mu          sync.Mutex
 }
 
 // SecurityPolicy enforces security constraints
@@ -184,32 +184,32 @@ type ResourceLimits struct {
 
 // NetworkPolicy defines network access constraints
 type NetworkPolicy struct {
-	AllowInternet      bool
-	AllowedHosts       []string
-	BlockedPorts       []int
-	AllowLoopback      bool
-	AllowServiceMesh   bool
+	AllowInternet    bool
+	AllowedHosts     []string
+	BlockedPorts     []int
+	AllowLoopback    bool
+	AllowServiceMesh bool
 }
 
 // FileSystemPolicy defines file system access constraints
 type FileSystemPolicy struct {
-	ReadOnlyPaths    []string
-	WritablePaths    []string
-	BlockedPaths     []string
-	MaxFileSize      int64
-	MaxTotalSize     int64
+	ReadOnlyPaths []string
+	WritablePaths []string
+	BlockedPaths  []string
+	MaxFileSize   int64
+	MaxTotalSize  int64
 }
 
 // RuntimeMetrics provides comprehensive metrics for function execution
 type RuntimeMetrics struct {
-	FunctionExecutions    prometheus.CounterVec
-	ExecutionDuration     prometheus.HistogramVec
-	ResourceUtilization   prometheus.GaugeVec
-	ErrorRate            prometheus.CounterVec
-	QueueDepth           prometheus.Gauge
-	ActiveExecutors      prometheus.Gauge
-	CacheHitRate         prometheus.Counter
-	SecurityViolations   prometheus.CounterVec
+	FunctionExecutions  prometheus.CounterVec
+	ExecutionDuration   prometheus.HistogramVec
+	ResourceUtilization prometheus.GaugeVec
+	ErrorRate           prometheus.CounterVec
+	QueueDepth          prometheus.Gauge
+	ActiveExecutors     prometheus.Gauge
+	CacheHitRate        prometheus.Counter
+	SecurityViolations  prometheus.CounterVec
 }
 
 // Default configuration
@@ -348,7 +348,7 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 			ReadOnlyPaths: []string{"/bin", "/usr", "/lib", "/etc"},
 			WritablePaths: []string{"/tmp", "/workspace"},
 			BlockedPaths:  []string{"/proc", "/sys", "/dev"},
-			MaxFileSize:   100 * 1024 * 1024, // 100MB
+			MaxFileSize:   100 * 1024 * 1024,  // 100MB
 			MaxTotalSize:  1024 * 1024 * 1024, // 1GB
 		},
 	}

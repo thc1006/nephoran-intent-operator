@@ -38,22 +38,22 @@ func TestAuthHandlers_Login(t *testing.T) {
 		OAuthProviders: map[string]interface{}{
 			"test": &testutil.MockOAuthProvider{Name: "test"},
 		},
-		BaseURL:       "http://localhost:8080",
-		Logger:        tc.Logger,
+		BaseURL: "http://localhost:8080",
+		Logger:  tc.Logger,
 	})
 
 	tests := []struct {
-		name           string
-		method         string
-		path           string
-		body           interface{}
-		expectStatus   int
-		checkResponse  func(*testing.T, *httptest.ResponseRecorder)
+		name          string
+		method        string
+		path          string
+		body          interface{}
+		expectStatus  int
+		checkResponse func(*testing.T, *httptest.ResponseRecorder)
 	}{
 		{
-			name:         "Valid login request",
-			method:       "POST",
-			path:         "/auth/login",
+			name:   "Valid login request",
+			method: "POST",
+			path:   "/auth/login",
 			body: map[string]interface{}{
 				"provider":     "test",
 				"redirect_uri": "http://localhost:8080/callback",
@@ -68,9 +68,9 @@ func TestAuthHandlers_Login(t *testing.T) {
 			},
 		},
 		{
-			name:         "Login with PKCE",
-			method:       "POST",
-			path:         "/auth/login",
+			name:   "Login with PKCE",
+			method: "POST",
+			path:   "/auth/login",
 			body: map[string]interface{}{
 				"provider":     "test",
 				"redirect_uri": "http://localhost:8080/callback",
@@ -87,9 +87,9 @@ func TestAuthHandlers_Login(t *testing.T) {
 			},
 		},
 		{
-			name:         "Missing provider",
-			method:       "POST",
-			path:         "/auth/login",
+			name:   "Missing provider",
+			method: "POST",
+			path:   "/auth/login",
 			body: map[string]interface{}{
 				"redirect_uri": "http://localhost:8080/callback",
 			},
@@ -102,9 +102,9 @@ func TestAuthHandlers_Login(t *testing.T) {
 			},
 		},
 		{
-			name:         "Invalid provider",
-			method:       "POST",
-			path:         "/auth/login",
+			name:   "Invalid provider",
+			method: "POST",
+			path:   "/auth/login",
 			body: map[string]interface{}{
 				"provider":     "invalid",
 				"redirect_uri": "http://localhost:8080/callback",
@@ -118,9 +118,9 @@ func TestAuthHandlers_Login(t *testing.T) {
 			},
 		},
 		{
-			name:         "Invalid redirect URI",
-			method:       "POST",
-			path:         "/auth/login",
+			name:   "Invalid redirect URI",
+			method: "POST",
+			path:   "/auth/login",
 			body: map[string]interface{}{
 				"provider":     "test",
 				"redirect_uri": "javascript:alert('xss')",
@@ -197,10 +197,10 @@ func TestAuthHandlers_Callback(t *testing.T) {
 	tokenResponse := of.CreateTokenResponse()
 
 	// Configure mock expectations
-	mockProvider.On("ExchangeCodeForToken", 
+	mockProvider.On("ExchangeCodeForToken",
 		context.Background(), "valid-code", "http://localhost:8080/callback", (*providers.PKCEChallenge)(nil)).
 		Return(tokenResponse, nil)
-	
+
 	mockProvider.On("GetUserInfo", context.Background(), tokenResponse.AccessToken).
 		Return(testUser, nil)
 
@@ -240,7 +240,7 @@ func TestAuthHandlers_Callback(t *testing.T) {
 				assert.NotEmpty(t, response["access_token"])
 				assert.NotEmpty(t, response["refresh_token"])
 				assert.Equal(t, testUser.Subject, response["user_id"])
-				
+
 				// Check session cookie
 				cookies := w.Result().Cookies()
 				assert.NotEmpty(t, cookies)
@@ -500,7 +500,7 @@ func TestAuthHandlers_Logout(t *testing.T) {
 				err := json.Unmarshal(w.Body.Bytes(), &response)
 				assert.NoError(t, err)
 				assert.Equal(t, "Logged out successfully", response["message"])
-				
+
 				// Verify token is blacklisted
 				isBlacklisted := jwtManager.IsTokenBlacklisted(token)
 				assert.True(t, isBlacklisted)
@@ -670,7 +670,7 @@ func TestAuthHandlers_HealthCheck(t *testing.T) {
 				assert.Equal(t, "healthy", response["status"])
 				assert.NotNil(t, response["timestamp"])
 				assert.Contains(t, response, "components")
-				
+
 				components := response["components"].(map[string]interface{})
 				assert.Equal(t, "healthy", components["jwt_manager"])
 				assert.Equal(t, "healthy", components["session_manager"])

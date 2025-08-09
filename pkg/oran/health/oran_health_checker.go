@@ -17,72 +17,72 @@ import (
 // ORANHealthChecker provides comprehensive health checking for O-RAN interfaces
 type ORANHealthChecker struct {
 	healthChecker   *health.HealthChecker
-	a1Adaptor      *a1.A1Adaptor
-	e2Adaptor      *e2.E2Adaptor
-	o1Adaptor      *o1.O1Adaptor
-	o2Adaptor      *o2.O2Adaptor
+	a1Adaptor       *a1.A1Adaptor
+	e2Adaptor       *e2.E2Adaptor
+	o1Adaptor       *o1.O1Adaptor
+	o2Adaptor       *o2.O2Adaptor
 	circuitBreakers map[string]*llm.CircuitBreaker
-	
+
 	// Configuration
 	checkInterval    time.Duration
 	dependencyChecks map[string]DependencyCheck
-	
+
 	// State tracking
-	lastHealthCheck  time.Time
-	healthHistory    []HealthSnapshot
+	lastHealthCheck time.Time
+	healthHistory   []HealthSnapshot
 	mutex           sync.RWMutex
 }
 
 // DependencyCheck represents a dependency health check configuration
 type DependencyCheck struct {
-	Name                string        `json:"name"`
-	URL                 string        `json:"url"`
-	Timeout             time.Duration `json:"timeout"`
-	ExpectedStatusCode  int           `json:"expected_status_code"`
-	CriticalDependency  bool          `json:"critical_dependency"`
-	CheckInterval       time.Duration `json:"check_interval"`
-	MaxFailures         int           `json:"max_failures"`
-	CurrentFailures     int           `json:"current_failures"`
-	LastCheck           time.Time     `json:"last_check"`
-	LastError           string        `json:"last_error,omitempty"`
+	Name               string        `json:"name"`
+	URL                string        `json:"url"`
+	Timeout            time.Duration `json:"timeout"`
+	ExpectedStatusCode int           `json:"expected_status_code"`
+	CriticalDependency bool          `json:"critical_dependency"`
+	CheckInterval      time.Duration `json:"check_interval"`
+	MaxFailures        int           `json:"max_failures"`
+	CurrentFailures    int           `json:"current_failures"`
+	LastCheck          time.Time     `json:"last_check"`
+	LastError          string        `json:"last_error,omitempty"`
 }
 
 // HealthSnapshot represents a point-in-time health status
 type HealthSnapshot struct {
-	Timestamp           time.Time                  `json:"timestamp"`
-	OverallStatus       health.Status              `json:"overall_status"`
-	InterfaceStatus     map[string]health.Status   `json:"interface_status"`
-	DependencyStatus    map[string]health.Status   `json:"dependency_status"`
-	CircuitBreakerStats map[string]interface{}     `json:"circuit_breaker_stats"`
-	Metrics             HealthMetrics              `json:"metrics"`
+	Timestamp           time.Time                `json:"timestamp"`
+	OverallStatus       health.Status            `json:"overall_status"`
+	InterfaceStatus     map[string]health.Status `json:"interface_status"`
+	DependencyStatus    map[string]health.Status `json:"dependency_status"`
+	CircuitBreakerStats map[string]interface{}   `json:"circuit_breaker_stats"`
+	Metrics             HealthMetrics            `json:"metrics"`
 }
 
 // HealthMetrics contains quantitative health metrics
 type HealthMetrics struct {
-	TotalChecks           int64         `json:"total_checks"`
-	HealthyChecks         int64         `json:"healthy_checks"`
-	UnhealthyChecks       int64         `json:"unhealthy_checks"`
-	AverageResponseTime   time.Duration `json:"average_response_time"`
-	UpTime                time.Duration `json:"uptime"`
-	CircuitBreakerTrips   int64         `json:"circuit_breaker_trips"`
-	RetryAttempts         int64         `json:"retry_attempts"`
-	DependencyFailures    int64         `json:"dependency_failures"`
+	TotalChecks         int64         `json:"total_checks"`
+	HealthyChecks       int64         `json:"healthy_checks"`
+	UnhealthyChecks     int64         `json:"unhealthy_checks"`
+	AverageResponseTime time.Duration `json:"average_response_time"`
+	UpTime              time.Duration `json:"uptime"`
+	CircuitBreakerTrips int64         `json:"circuit_breaker_trips"`
+	RetryAttempts       int64         `json:"retry_attempts"`
+	DependencyFailures  int64         `json:"dependency_failures"`
 }
 
 // ORANHealthConfig holds configuration for O-RAN health checker
 type ORANHealthConfig struct {
-	CheckInterval       time.Duration                `json:"check_interval"`
-	HistorySize         int                          `json:"history_size"`
-	DependencyChecks    map[string]DependencyCheck   `json:"dependency_checks"`
-	AlertingThresholds  AlertingThresholds           `json:"alerting_thresholds"`
+	CheckInterval      time.Duration              `json:"check_interval"`
+	HistorySize        int                        `json:"history_size"`
+	DependencyChecks   map[string]DependencyCheck `json:"dependency_checks"`
+	AlertingThresholds AlertingThresholds         `json:"alerting_thresholds"`
 }
 
 // AlertingThresholds defines when to trigger alerts
 type AlertingThresholds struct {
-	ConsecutiveFailures     int           `json:"consecutive_failures"`
-	DependencyFailureRate   float64       `json:"dependency_failure_rate"`
-	CircuitBreakerOpenTime  time.Duration `json:"circuit_breaker_open_time"`
-	ResponseTimeThreshold   time.Duration `json:"response_time_threshold"`
+	ConsecutiveFailures    int           `json:"consecutive_failures"`
+	DependencyFailureRate  float64       `json:"dependency_failure_rate"`
+	CircuitBreakerOpenTime time.Duration `json:"circuit_breaker_open_time"`
+	ResponseTimeThreshold  time.Duration `json:"response_time_threshold"`
 }
 
 // NewORANHealthChecker creates a new O-RAN health checker
@@ -96,28 +96,28 @@ func NewORANHealthChecker(
 ) *ORANHealthChecker {
 	if config == nil {
 		config = &ORANHealthConfig{
-			CheckInterval: 30 * time.Second,
-			HistorySize:   100,
+			CheckInterval:    30 * time.Second,
+			HistorySize:      100,
 			DependencyChecks: make(map[string]DependencyCheck),
 			AlertingThresholds: AlertingThresholds{
-				ConsecutiveFailures:     3,
-				DependencyFailureRate:   0.5,
-				CircuitBreakerOpenTime:  5 * time.Minute,
-				ResponseTimeThreshold:   5 * time.Second,
+				ConsecutiveFailures:    3,
+				DependencyFailureRate:  0.5,
+				CircuitBreakerOpenTime: 5 * time.Minute,
+				ResponseTimeThreshold:  5 * time.Second,
 			},
 		}
 	}
 
 	checker := &ORANHealthChecker{
 		healthChecker:    healthChecker,
-		a1Adaptor:       a1Adaptor,
-		e2Adaptor:       e2Adaptor,
-		o1Adaptor:       o1Adaptor,
-		o2Adaptor:       o2Adaptor,
-		circuitBreakers: make(map[string]*llm.CircuitBreaker),
-		checkInterval:   config.CheckInterval,
+		a1Adaptor:        a1Adaptor,
+		e2Adaptor:        e2Adaptor,
+		o1Adaptor:        o1Adaptor,
+		o2Adaptor:        o2Adaptor,
+		circuitBreakers:  make(map[string]*llm.CircuitBreaker),
+		checkInterval:    config.CheckInterval,
 		dependencyChecks: config.DependencyChecks,
-		healthHistory:   make([]HealthSnapshot, 0, config.HistorySize),
+		healthHistory:    make([]HealthSnapshot, 0, config.HistorySize),
 	}
 
 	// Register O-RAN specific health checks
@@ -244,7 +244,7 @@ func (ohc *ORANHealthChecker) registerORANHealthChecks() {
 		}
 
 		return &health.Check{
-			Name:      "o2-interface", 
+			Name:      "o2-interface",
 			Status:    status,
 			Message:   message,
 			Error:     errorString(err),
@@ -407,10 +407,10 @@ func (ohc *ORANHealthChecker) getConsecutiveFailures() int {
 // getAlertingThresholds returns the alerting thresholds
 func (ohc *ORANHealthChecker) getAlertingThresholds() AlertingThresholds {
 	return AlertingThresholds{
-		ConsecutiveFailures:     3,
-		DependencyFailureRate:   0.5,
-		CircuitBreakerOpenTime:  5 * time.Minute,
-		ResponseTimeThreshold:   5 * time.Second,
+		ConsecutiveFailures:    3,
+		DependencyFailureRate:  0.5,
+		CircuitBreakerOpenTime: 5 * time.Minute,
+		ResponseTimeThreshold:  5 * time.Second,
 	}
 }
 

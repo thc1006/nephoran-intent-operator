@@ -36,7 +36,7 @@ func NewIstioCertificateProvider(kubeClient kubernetes.Interface, trustDomain st
 func (p *IstioCertificateProvider) IssueCertificate(ctx context.Context, service string, namespace string) (*x509.Certificate, error) {
 	// In Istio, Citadel (istiod) automatically issues certificates
 	// We can retrieve the certificate from the pod's mounted volume
-	
+
 	// Get pods for the service
 	pods, err := p.kubeClient.CoreV1().Pods(namespace).List(ctx, metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("app=%s", service),
@@ -157,9 +157,9 @@ func (p *IstioCertificateProvider) ValidateCertificate(ctx context.Context, cert
 
 	// Verify certificate chain
 	opts := x509.VerifyOptions{
-		Roots:         roots,
-		CurrentTime:   now,
-		DNSName:       cert.Subject.CommonName,
+		Roots:       roots,
+		CurrentTime: now,
+		DNSName:     cert.Subject.CommonName,
 	}
 
 	_, err = cert.Verify(opts)
@@ -174,10 +174,10 @@ func (p *IstioCertificateProvider) ValidateCertificate(ctx context.Context, cert
 func (p *IstioCertificateProvider) RotateCertificate(ctx context.Context, service string, namespace string) (*x509.Certificate, error) {
 	// In Istio, certificate rotation is handled automatically by Citadel
 	// We can trigger rotation by deleting the secret and letting Citadel recreate it
-	
+
 	// Find the certificate secret for the service
 	secretName := fmt.Sprintf("istio.%s", service)
-	
+
 	// Delete the existing secret
 	err := p.kubeClient.CoreV1().Secrets(namespace).Delete(ctx, secretName, metav1.DeleteOptions{})
 	if err != nil {
@@ -242,6 +242,6 @@ func (p *IstioCertificateProvider) IsCertificateExpiringSoon(ctx context.Context
 	if err != nil {
 		return false, err
 	}
-	
+
 	return time.Until(expiry) < threshold, nil
 }

@@ -19,22 +19,22 @@ import (
 
 // TechnicalDebtMonitor provides comprehensive technical debt tracking and analysis
 type TechnicalDebtMonitor struct {
-	ProjectPath   string                    `json:"project_path"`
-	Timestamp     time.Time                 `json:"timestamp"`
-	TotalDebt     DebtSummary              `json:"total_debt"`
-	DebtByCategory map[string]DebtCategory  `json:"debt_by_category"`
-	DebtByFile     map[string]FileDebtInfo  `json:"debt_by_file"`
-	DebtByPackage  map[string]PackageDebt   `json:"debt_by_package"`
-	DebtTrend      []DebtTrendPoint         `json:"debt_trend"`
-	Alerts         []DebtAlert              `json:"alerts"`
+	ProjectPath     string                  `json:"project_path"`
+	Timestamp       time.Time               `json:"timestamp"`
+	TotalDebt       DebtSummary             `json:"total_debt"`
+	DebtByCategory  map[string]DebtCategory `json:"debt_by_category"`
+	DebtByFile      map[string]FileDebtInfo `json:"debt_by_file"`
+	DebtByPackage   map[string]PackageDebt  `json:"debt_by_package"`
+	DebtTrend       []DebtTrendPoint        `json:"debt_trend"`
+	Alerts          []DebtAlert             `json:"alerts"`
 	Recommendations []DebtRecommendation    `json:"recommendations"`
-	Configuration  DebtConfiguration        `json:"configuration"`
-	Metrics        DebtMetrics              `json:"metrics"`
+	Configuration   DebtConfiguration       `json:"configuration"`
+	Metrics         DebtMetrics             `json:"metrics"`
 }
 
 type DebtSummary struct {
-	TotalEstimatedHours    float64 `json:"total_estimated_hours"`
-	TotalEstimatedMinutes  float64 `json:"total_estimated_minutes"`
+	TotalEstimatedHours   float64 `json:"total_estimated_hours"`
+	TotalEstimatedMinutes float64 `json:"total_estimated_minutes"`
 	TotalIssues           int     `json:"total_issues"`
 	HighPriorityIssues    int     `json:"high_priority_issues"`
 	MediumPriorityIssues  int     `json:"medium_priority_issues"`
@@ -46,110 +46,110 @@ type DebtSummary struct {
 }
 
 type DebtCategory struct {
-	Name                string      `json:"name"`
-	Description         string      `json:"description"`
-	Issues              []DebtIssue `json:"issues"`
-	EstimatedHours      float64     `json:"estimated_hours"`
-	Priority            string      `json:"priority"`
-	TrendDirection      string      `json:"trend_direction"`
-	RecommendedAction   string      `json:"recommended_action"`
+	Name              string      `json:"name"`
+	Description       string      `json:"description"`
+	Issues            []DebtIssue `json:"issues"`
+	EstimatedHours    float64     `json:"estimated_hours"`
+	Priority          string      `json:"priority"`
+	TrendDirection    string      `json:"trend_direction"`
+	RecommendedAction string      `json:"recommended_action"`
 }
 
 type DebtIssue struct {
-	Type            string    `json:"type"`
-	Category        string    `json:"category"`
-	File            string    `json:"file"`
-	Line            int       `json:"line"`
-	Column          int       `json:"column"`
-	Severity        string    `json:"severity"`
-	Priority        string    `json:"priority"`
-	Description     string    `json:"description"`
-	Recommendation  string    `json:"recommendation"`
-	EstimatedMinutes int      `json:"estimated_minutes"`
-	Context         string    `json:"context"`
-	Tags            []string  `json:"tags"`
-	DetectedAt      time.Time `json:"detected_at"`
-	LastSeen        time.Time `json:"last_seen"`
-	FixComplexity   string    `json:"fix_complexity"`
-	BusinessImpact  string    `json:"business_impact"`
+	Type             string    `json:"type"`
+	Category         string    `json:"category"`
+	File             string    `json:"file"`
+	Line             int       `json:"line"`
+	Column           int       `json:"column"`
+	Severity         string    `json:"severity"`
+	Priority         string    `json:"priority"`
+	Description      string    `json:"description"`
+	Recommendation   string    `json:"recommendation"`
+	EstimatedMinutes int       `json:"estimated_minutes"`
+	Context          string    `json:"context"`
+	Tags             []string  `json:"tags"`
+	DetectedAt       time.Time `json:"detected_at"`
+	LastSeen         time.Time `json:"last_seen"`
+	FixComplexity    string    `json:"fix_complexity"`
+	BusinessImpact   string    `json:"business_impact"`
 }
 
 type FileDebtInfo struct {
-	FilePath            string      `json:"file_path"`
-	TotalDebtMinutes    int         `json:"total_debt_minutes"`
-	IssueCount          int         `json:"issue_count"`
-	DebtDensity         float64     `json:"debt_density"`
-	LinesOfCode         int         `json:"lines_of_code"`
-	ComplexityScore     int         `json:"complexity_score"`
-	Issues              []DebtIssue `json:"issues"`
-	LastModified        time.Time   `json:"last_modified"`
-	RecommendedAction   string      `json:"recommended_action"`
+	FilePath          string      `json:"file_path"`
+	TotalDebtMinutes  int         `json:"total_debt_minutes"`
+	IssueCount        int         `json:"issue_count"`
+	DebtDensity       float64     `json:"debt_density"`
+	LinesOfCode       int         `json:"lines_of_code"`
+	ComplexityScore   int         `json:"complexity_score"`
+	Issues            []DebtIssue `json:"issues"`
+	LastModified      time.Time   `json:"last_modified"`
+	RecommendedAction string      `json:"recommended_action"`
 }
 
 type PackageDebt struct {
-	PackageName         string               `json:"package_name"`
-	TotalDebtMinutes    int                  `json:"total_debt_minutes"`
-	FileCount           int                  `json:"file_count"`
-	IssueCount          int                  `json:"issue_count"`
-	AverageDebtPerFile  float64              `json:"average_debt_per_file"`
-	Files               map[string]FileDebtInfo `json:"files"`
-	Categories          map[string]int       `json:"categories"`
-	RecommendedAction   string               `json:"recommended_action"`
+	PackageName        string                  `json:"package_name"`
+	TotalDebtMinutes   int                     `json:"total_debt_minutes"`
+	FileCount          int                     `json:"file_count"`
+	IssueCount         int                     `json:"issue_count"`
+	AverageDebtPerFile float64                 `json:"average_debt_per_file"`
+	Files              map[string]FileDebtInfo `json:"files"`
+	Categories         map[string]int          `json:"categories"`
+	RecommendedAction  string                  `json:"recommended_action"`
 }
 
 type DebtTrendPoint struct {
-	Date                time.Time `json:"date"`
-	TotalDebtMinutes    int       `json:"total_debt_minutes"`
-	TotalIssues         int       `json:"total_issues"`
-	NewIssues           int       `json:"new_issues"`
-	ResolvedIssues      int       `json:"resolved_issues"`
-	DebtRatio           float64   `json:"debt_ratio"`
+	Date             time.Time `json:"date"`
+	TotalDebtMinutes int       `json:"total_debt_minutes"`
+	TotalIssues      int       `json:"total_issues"`
+	NewIssues        int       `json:"new_issues"`
+	ResolvedIssues   int       `json:"resolved_issues"`
+	DebtRatio        float64   `json:"debt_ratio"`
 }
 
 type DebtAlert struct {
-	Type        string    `json:"type"`
-	Level       string    `json:"level"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	ActionRequired string `json:"action_required"`
-	Threshold   string    `json:"threshold"`
-	CurrentValue string   `json:"current_value"`
-	DetectedAt  time.Time `json:"detected_at"`
-	Files       []string  `json:"files,omitempty"`
+	Type           string    `json:"type"`
+	Level          string    `json:"level"`
+	Title          string    `json:"title"`
+	Description    string    `json:"description"`
+	ActionRequired string    `json:"action_required"`
+	Threshold      string    `json:"threshold"`
+	CurrentValue   string    `json:"current_value"`
+	DetectedAt     time.Time `json:"detected_at"`
+	Files          []string  `json:"files,omitempty"`
 }
 
 type DebtRecommendation struct {
-	Category    string   `json:"category"`
-	Priority    string   `json:"priority"`
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Benefits    string   `json:"benefits"`
-	Effort      string   `json:"effort"`
-	Timeline    string   `json:"timeline"`
-	Files       []string `json:"files,omitempty"`
-	EstimatedHours float64 `json:"estimated_hours"`
+	Category       string   `json:"category"`
+	Priority       string   `json:"priority"`
+	Title          string   `json:"title"`
+	Description    string   `json:"description"`
+	Benefits       string   `json:"benefits"`
+	Effort         string   `json:"effort"`
+	Timeline       string   `json:"timeline"`
+	Files          []string `json:"files,omitempty"`
+	EstimatedHours float64  `json:"estimated_hours"`
 }
 
 type DebtConfiguration struct {
-	MaxDebtRatio                 float64              `json:"max_debt_ratio"`
-	MaxComplexityPerFunction     int                  `json:"max_complexity_per_function"`
-	MaxLinesPerFile              int                  `json:"max_lines_per_file"`
-	MaxFunctionsPerFile          int                  `json:"max_functions_per_file"`
-	MinTestCoverage              float64              `json:"min_test_coverage"`
-	MinCommentRatio              float64              `json:"min_comment_ratio"`
-	MaxDuplicationPercent        float64              `json:"max_duplication_percent"`
-	DebtPatterns                 map[string]int       `json:"debt_patterns"`
-	SeverityWeights              map[string]int       `json:"severity_weights"`
-	CategoryPriorities           map[string]string    `json:"category_priorities"`
+	MaxDebtRatio             float64           `json:"max_debt_ratio"`
+	MaxComplexityPerFunction int               `json:"max_complexity_per_function"`
+	MaxLinesPerFile          int               `json:"max_lines_per_file"`
+	MaxFunctionsPerFile      int               `json:"max_functions_per_file"`
+	MinTestCoverage          float64           `json:"min_test_coverage"`
+	MinCommentRatio          float64           `json:"min_comment_ratio"`
+	MaxDuplicationPercent    float64           `json:"max_duplication_percent"`
+	DebtPatterns             map[string]int    `json:"debt_patterns"`
+	SeverityWeights          map[string]int    `json:"severity_weights"`
+	CategoryPriorities       map[string]string `json:"category_priorities"`
 }
 
 type DebtMetrics struct {
-	DebtVelocity        float64 `json:"debt_velocity"`        // Debt accumulation rate per day
-	ResolutionRate      float64 `json:"resolution_rate"`      // Issues resolved per day
-	DebtBurndown        float64 `json:"debt_burndown"`        // Time to resolve all debt (days)
-	QualityGate         bool    `json:"quality_gate"`         // Whether debt is within acceptable limits
-	RiskLevel          string  `json:"risk_level"`           // Overall risk level
-	MaintenanceBurden  float64 `json:"maintenance_burden"`   // % of dev time spent on debt
+	DebtVelocity      float64 `json:"debt_velocity"`      // Debt accumulation rate per day
+	ResolutionRate    float64 `json:"resolution_rate"`    // Issues resolved per day
+	DebtBurndown      float64 `json:"debt_burndown"`      // Time to resolve all debt (days)
+	QualityGate       bool    `json:"quality_gate"`       // Whether debt is within acceptable limits
+	RiskLevel         string  `json:"risk_level"`         // Overall risk level
+	MaintenanceBurden float64 `json:"maintenance_burden"` // % of dev time spent on debt
 }
 
 func main() {
@@ -234,12 +234,12 @@ func NewTechnicalDebtMonitor(projectPath string) *TechnicalDebtMonitor {
 			MinCommentRatio:          0.15, // 15% minimum comment ratio
 			MaxDuplicationPercent:    5.0,  // 5% max code duplication
 			DebtPatterns: map[string]int{
-				"TODO":       5,   // 5 minutes per TODO
-				"FIXME":      15,  // 15 minutes per FIXME
-				"HACK":       30,  // 30 minutes per HACK
-				"XXX":        20,  // 20 minutes per XXX
-				"BUG":        45,  // 45 minutes per BUG
-				"DEPRECATED": 60,  // 60 minutes per deprecated usage
+				"TODO":       5,  // 5 minutes per TODO
+				"FIXME":      15, // 15 minutes per FIXME
+				"HACK":       30, // 30 minutes per HACK
+				"XXX":        20, // 20 minutes per XXX
+				"BUG":        45, // 45 minutes per BUG
+				"DEPRECATED": 60, // 60 minutes per deprecated usage
 			},
 			SeverityWeights: map[string]int{
 				"HIGH":   3,
@@ -247,12 +247,12 @@ func NewTechnicalDebtMonitor(projectPath string) *TechnicalDebtMonitor {
 				"LOW":    1,
 			},
 			CategoryPriorities: map[string]string{
-				"security":      "HIGH",
-				"performance":   "HIGH",
+				"security":        "HIGH",
+				"performance":     "HIGH",
 				"maintainability": "MEDIUM",
-				"complexity":    "MEDIUM",
-				"documentation": "LOW",
-				"style":        "LOW",
+				"complexity":      "MEDIUM",
+				"documentation":   "LOW",
+				"style":           "LOW",
 			},
 		},
 	}
@@ -484,7 +484,7 @@ func (monitor *TechnicalDebtMonitor) analyzeCodePatterns(lines []string, fileInf
 
 	for lineNum, line := range lines {
 		line = strings.TrimSpace(line)
-		
+
 		if line == "" {
 			blankLines++
 			continue
@@ -567,7 +567,7 @@ func (monitor *TechnicalDebtMonitor) containsDebtPattern(line, pattern string) b
 	// Case-insensitive search for debt patterns
 	upperLine := strings.ToUpper(line)
 	upperPattern := strings.ToUpper(pattern)
-	
+
 	// Look for pattern followed by colon or whitespace
 	patterns := []string{
 		upperPattern + ":",
@@ -588,12 +588,12 @@ func (monitor *TechnicalDebtMonitor) containsDebtPattern(line, pattern string) b
 
 func (monitor *TechnicalDebtMonitor) checkForAntiPatterns(line string, lineNum int, fileInfo *FileDebtInfo) {
 	antiPatterns := map[string]string{
-		"panic(":           "Avoid using panic in production code",
-		"fmt.Print":        "Use structured logging instead of fmt.Print",
-		"time.Sleep":       "Avoid time.Sleep in production code, use proper synchronization",
-		"//nolint":         "Linting suppressions should be minimized",
-		"interface{}":      "Use specific types instead of empty interface when possible",
-		"_ = ":             "Explicitly handle errors instead of discarding them",
+		"panic(":      "Avoid using panic in production code",
+		"fmt.Print":   "Use structured logging instead of fmt.Print",
+		"time.Sleep":  "Avoid time.Sleep in production code, use proper synchronization",
+		"//nolint":    "Linting suppressions should be minimized",
+		"interface{}": "Use specific types instead of empty interface when possible",
+		"_ = ":        "Explicitly handle errors instead of discarding them",
 	}
 
 	for pattern, recommendation := range antiPatterns {
@@ -700,7 +700,7 @@ func (monitor *TechnicalDebtMonitor) analyzePackageDebt() {
 
 	for filePath, fileInfo := range monitor.DebtByFile {
 		packageName := monitor.getPackageName(filePath)
-		
+
 		if _, exists := packageMap[packageName]; !exists {
 			packageMap[packageName] = &PackageDebt{
 				PackageName: packageName,
@@ -744,12 +744,12 @@ func (monitor *TechnicalDebtMonitor) getPackageName(filePath string) string {
 	if err != nil {
 		return filepath.Dir(filePath)
 	}
-	
+
 	dir := filepath.Dir(rel)
 	if dir == "." {
 		return "root"
 	}
-	
+
 	return strings.ReplaceAll(dir, string(filepath.Separator), "/")
 }
 
@@ -795,19 +795,19 @@ func (monitor *TechnicalDebtMonitor) calculateTotalDebt() {
 		category.Priority = monitor.Configuration.CategoryPriorities[name]
 		category.TrendDirection = "stable" // Would need historical data
 		category.RecommendedAction = monitor.getCategoryRecommendation(name, category)
-		
+
 		monitor.DebtByCategory[name] = *category
 	}
 
 	monitor.TotalDebt = DebtSummary{
 		TotalEstimatedMinutes: float64(totalMinutes),
 		TotalEstimatedHours:   float64(totalMinutes) / 60,
-		TotalIssues:          totalIssues,
-		HighPriorityIssues:   highPriority,
-		MediumPriorityIssues: mediumPriority,
-		LowPriorityIssues:    lowPriority,
-		DebtRatio:           monitor.calculateDebtRatio(),
-		DebtIndex:           monitor.calculateDebtIndex(),
+		TotalIssues:           totalIssues,
+		HighPriorityIssues:    highPriority,
+		MediumPriorityIssues:  mediumPriority,
+		LowPriorityIssues:     lowPriority,
+		DebtRatio:             monitor.calculateDebtRatio(),
+		DebtIndex:             monitor.calculateDebtIndex(),
 	}
 
 	// Set maintenance load and recommended action
@@ -845,8 +845,8 @@ func (monitor *TechnicalDebtMonitor) calculateDebtIndex() float64 {
 		return 0
 	}
 
-	weightedIssues := float64(monitor.TotalDebt.HighPriorityIssues*3 + 
-		monitor.TotalDebt.MediumPriorityIssues*2 + 
+	weightedIssues := float64(monitor.TotalDebt.HighPriorityIssues*3 +
+		monitor.TotalDebt.MediumPriorityIssues*2 +
 		monitor.TotalDebt.LowPriorityIssues*1)
 
 	return weightedIssues / float64(monitor.TotalDebt.TotalIssues) * 10
@@ -898,28 +898,28 @@ func (monitor *TechnicalDebtMonitor) GenerateAlerts() {
 	// High debt ratio alert
 	if monitor.TotalDebt.DebtRatio > monitor.Configuration.MaxDebtRatio {
 		alerts = append(alerts, DebtAlert{
-			Type:         "debt_ratio",
-			Level:        "HIGH",
-			Title:        "Technical Debt Ratio Exceeded",
-			Description:  fmt.Sprintf("Technical debt ratio (%.2f) exceeds threshold (%.2f)", monitor.TotalDebt.DebtRatio, monitor.Configuration.MaxDebtRatio),
+			Type:           "debt_ratio",
+			Level:          "HIGH",
+			Title:          "Technical Debt Ratio Exceeded",
+			Description:    fmt.Sprintf("Technical debt ratio (%.2f) exceeds threshold (%.2f)", monitor.TotalDebt.DebtRatio, monitor.Configuration.MaxDebtRatio),
 			ActionRequired: "Immediate debt reduction required",
-			Threshold:    fmt.Sprintf("%.2f", monitor.Configuration.MaxDebtRatio),
-			CurrentValue: fmt.Sprintf("%.2f", monitor.TotalDebt.DebtRatio),
-			DetectedAt:   time.Now(),
+			Threshold:      fmt.Sprintf("%.2f", monitor.Configuration.MaxDebtRatio),
+			CurrentValue:   fmt.Sprintf("%.2f", monitor.TotalDebt.DebtRatio),
+			DetectedAt:     time.Now(),
 		})
 	}
 
 	// High priority issues alert
 	if monitor.TotalDebt.HighPriorityIssues > 10 {
 		alerts = append(alerts, DebtAlert{
-			Type:         "high_priority_issues",
-			Level:        "MEDIUM",
-			Title:        "Too Many High Priority Issues",
-			Description:  fmt.Sprintf("Found %d high priority technical debt issues", monitor.TotalDebt.HighPriorityIssues),
+			Type:           "high_priority_issues",
+			Level:          "MEDIUM",
+			Title:          "Too Many High Priority Issues",
+			Description:    fmt.Sprintf("Found %d high priority technical debt issues", monitor.TotalDebt.HighPriorityIssues),
 			ActionRequired: "Address high priority issues in next sprint",
-			Threshold:    "10",
-			CurrentValue: fmt.Sprintf("%d", monitor.TotalDebt.HighPriorityIssues),
-			DetectedAt:   time.Now(),
+			Threshold:      "10",
+			CurrentValue:   fmt.Sprintf("%d", monitor.TotalDebt.HighPriorityIssues),
+			DetectedAt:     time.Now(),
 		})
 	}
 
@@ -933,15 +933,15 @@ func (monitor *TechnicalDebtMonitor) GenerateAlerts() {
 
 	if len(largeFiles) > 0 {
 		alerts = append(alerts, DebtAlert{
-			Type:         "large_files",
-			Level:        "MEDIUM",
-			Title:        "Large Files Detected",
-			Description:  fmt.Sprintf("Found %d files exceeding size threshold", len(largeFiles)),
+			Type:           "large_files",
+			Level:          "MEDIUM",
+			Title:          "Large Files Detected",
+			Description:    fmt.Sprintf("Found %d files exceeding size threshold", len(largeFiles)),
 			ActionRequired: "Consider splitting large files",
-			Threshold:    fmt.Sprintf("%d lines", monitor.Configuration.MaxLinesPerFile),
-			CurrentValue: fmt.Sprintf("%d files", len(largeFiles)),
-			DetectedAt:   time.Now(),
-			Files:        largeFiles,
+			Threshold:      fmt.Sprintf("%d lines", monitor.Configuration.MaxLinesPerFile),
+			CurrentValue:   fmt.Sprintf("%d files", len(largeFiles)),
+			DetectedAt:     time.Now(),
+			Files:          largeFiles,
 		})
 	}
 
@@ -976,7 +976,7 @@ func (monitor *TechnicalDebtMonitor) GenerateRecommendations() {
 		}
 
 		category := monitor.DebtByCategory[cat.name]
-		
+
 		priority := "MEDIUM"
 		if category.EstimatedHours > 8 {
 			priority = "HIGH"
@@ -1006,13 +1006,13 @@ func (monitor *TechnicalDebtMonitor) GenerateRecommendations() {
 	// Add specific recommendations for high-impact areas
 	if monitor.TotalDebt.DebtRatio > 0.3 {
 		recommendations = append(recommendations, DebtRecommendation{
-			Category:    "overall",
-			Priority:    "HIGH",
-			Title:       "Comprehensive Debt Reduction Initiative",
-			Description: "Technical debt has reached critical levels requiring systematic reduction",
-			Benefits:    "Improved development velocity, reduced bug rates, easier maintenance",
-			Effort:      "HIGH",
-			Timeline:    "2-3 months",
+			Category:       "overall",
+			Priority:       "HIGH",
+			Title:          "Comprehensive Debt Reduction Initiative",
+			Description:    "Technical debt has reached critical levels requiring systematic reduction",
+			Benefits:       "Improved development velocity, reduced bug rates, easier maintenance",
+			Effort:         "HIGH",
+			Timeline:       "2-3 months",
 			EstimatedHours: monitor.TotalDebt.TotalEstimatedHours,
 		})
 	}
@@ -1099,9 +1099,9 @@ func (monitor *TechnicalDebtMonitor) PrintSummary() {
 	fmt.Printf(strings.Repeat("=", 80) + "\n\n")
 
 	fmt.Printf("📊 Overall Assessment:\n")
-	fmt.Printf("  • Total Debt: %.1f hours (%.0f minutes)\n", 
+	fmt.Printf("  • Total Debt: %.1f hours (%.0f minutes)\n",
 		monitor.TotalDebt.TotalEstimatedHours, monitor.TotalDebt.TotalEstimatedMinutes)
-	fmt.Printf("  • Debt Ratio: %.2f (threshold: %.2f)\n", 
+	fmt.Printf("  • Debt Ratio: %.2f (threshold: %.2f)\n",
 		monitor.TotalDebt.DebtRatio, monitor.Configuration.MaxDebtRatio)
 	fmt.Printf("  • Risk Level: %s\n", monitor.Metrics.RiskLevel)
 	fmt.Printf("  • Maintenance Load: %s\n\n", monitor.TotalDebt.MaintenanceLoad)
@@ -1115,21 +1115,21 @@ func (monitor *TechnicalDebtMonitor) PrintSummary() {
 	// Top debt categories
 	if len(monitor.DebtByCategory) > 0 {
 		fmt.Printf("📂 Top Debt Categories:\n")
-		
+
 		type categoryPair struct {
 			name  string
 			hours float64
 		}
-		
+
 		var pairs []categoryPair
 		for name, category := range monitor.DebtByCategory {
 			pairs = append(pairs, categoryPair{name, category.EstimatedHours})
 		}
-		
+
 		sort.Slice(pairs, func(i, j int) bool {
 			return pairs[i].hours > pairs[j].hours
 		})
-		
+
 		for i, pair := range pairs {
 			if i >= 5 {
 				break
@@ -1163,12 +1163,12 @@ func (monitor *TechnicalDebtMonitor) PrintSummary() {
 	}
 
 	fmt.Printf("🎯 Recommended Action: %s\n", monitor.TotalDebt.RecommendedAction)
-	
+
 	if monitor.Metrics.QualityGate {
 		fmt.Printf("✅ Quality gate: PASSED\n")
 	} else {
 		fmt.Printf("❌ Quality gate: FAILED\n")
 	}
-	
+
 	fmt.Printf("\nGenerated: %s\n", monitor.Timestamp.Format("2006-01-02 15:04:05"))
 }

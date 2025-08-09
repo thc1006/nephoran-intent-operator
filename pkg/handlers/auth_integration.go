@@ -42,7 +42,7 @@ func (ah *AuthenticatedLLMProcessorHandler) ProcessIntentHandler(w http.Response
 			return
 		}
 
-		if \!ah.hasProcessPermission(authContext) {
+		if !ah.hasProcessPermission(authContext) {
 			ah.writeAuthError(w, "Insufficient permissions")
 			return
 		}
@@ -76,13 +76,13 @@ func (ah *AuthenticatedLLMProcessorHandler) logAuthenticatedRequest(r *http.Requ
 func (ah *AuthenticatedLLMProcessorHandler) writeAuthError(w http.ResponseWriter, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusUnauthorized)
-	
+
 	response := map[string]interface{}{
 		"error":     "authentication_required",
 		"message":   message,
 		"timestamp": time.Now().Format(time.RFC3339),
 		"status":    "error",
 	}
-	
+
 	json.NewEncoder(w).Encode(response)
 }

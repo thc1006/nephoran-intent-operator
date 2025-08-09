@@ -28,6 +28,9 @@ require (
 	// HTTP routing and API
 	github.com/gorilla/mux v1.8.1
 
+	// === CACHING ===
+	github.com/hashicorp/golang-lru/v2 v2.0.7
+
 	// Prometheus for metrics
 	github.com/prometheus/client_golang v1.22.0
 
@@ -309,7 +312,6 @@ require (
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.1.8 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
 	github.com/hashicorp/go-sockaddr v1.0.6 // indirect
-	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/hcl v1.0.1-vault-5 // indirect
 	github.com/hhatto/gorst v0.0.0-20181029133204-ca9f730cac5b // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect

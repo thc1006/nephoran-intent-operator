@@ -19,6 +19,7 @@ package porch
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,28 +37,28 @@ import (
 type Config struct {
 	// Kubernetes configuration
 	KubernetesConfig *KubernetesConfig `json:"kubernetesConfig,omitempty"`
-	
+
 	// Porch service configuration
 	PorchConfig *PorchServiceConfig `json:"porchConfig,omitempty"`
-	
+
 	// Repository configurations
 	Repositories map[string]*RepositoryConfig `json:"repositories,omitempty"`
-	
+
 	// Function configurations
 	Functions *FunctionRegistryConfig `json:"functions,omitempty"`
-	
+
 	// Cluster configurations
 	Clusters map[string]*ClusterConfig `json:"clusters,omitempty"`
-	
+
 	// Policy configurations
 	Policies *PolicyConfig `json:"policies,omitempty"`
-	
+
 	// Observability configuration
 	Observability *ObservabilityConfig `json:"observability,omitempty"`
-	
+
 	// Security configuration
 	Security *SecurityConfig `json:"security,omitempty"`
-	
+
 	// Performance configuration
 	Performance *PerformanceConfig `json:"performance,omitempty"`
 }
@@ -66,28 +67,28 @@ type Config struct {
 type KubernetesConfig struct {
 	// Kubeconfig file path
 	KubeconfigPath string `json:"kubeconfigPath,omitempty"`
-	
+
 	// Context to use from kubeconfig
 	Context string `json:"context,omitempty"`
-	
+
 	// Master URL override
 	MasterURL string `json:"masterUrl,omitempty"`
-	
+
 	// Namespace to operate in
 	Namespace string `json:"namespace,omitempty"`
-	
+
 	// QPS for the Kubernetes client
 	QPS float32 `json:"qps,omitempty"`
-	
+
 	// Burst for the Kubernetes client
 	Burst int `json:"burst,omitempty"`
-	
+
 	// Timeout for requests
 	Timeout time.Duration `json:"timeout,omitempty"`
-	
+
 	// User agent
 	UserAgent string `json:"userAgent,omitempty"`
-	
+
 	// Additional headers
 	Headers map[string]string `json:"headers,omitempty"`
 }
@@ -96,31 +97,31 @@ type KubernetesConfig struct {
 type PorchServiceConfig struct {
 	// Porch API server endpoint
 	Endpoint string `json:"endpoint"`
-	
+
 	// API version
 	APIVersion string `json:"apiVersion,omitempty"`
-	
+
 	// Timeout for operations
 	Timeout time.Duration `json:"timeout,omitempty"`
-	
+
 	// Retry configuration
 	Retry *RetryConfig `json:"retry,omitempty"`
-	
+
 	// Circuit breaker configuration
 	CircuitBreaker *CircuitBreakerConfig `json:"circuitBreaker,omitempty"`
-	
+
 	// TLS configuration
 	TLS *TLSConfig `json:"tls,omitempty"`
-	
+
 	// Authentication configuration
 	Auth *AuthenticationConfig `json:"auth,omitempty"`
-	
+
 	// Rate limiting
 	RateLimit *RateLimitConfig `json:"rateLimit,omitempty"`
-	
+
 	// Connection pooling
 	ConnectionPool *ConnectionPoolConfig `json:"connectionPool,omitempty"`
-	
+
 	// Enable experimental features
 	ExperimentalFeatures []string `json:"experimentalFeatures,omitempty"`
 }
@@ -129,19 +130,19 @@ type PorchServiceConfig struct {
 type FunctionRegistryConfig struct {
 	// Default registry for functions
 	DefaultRegistry string `json:"defaultRegistry,omitempty"`
-	
+
 	// Function registries
-	Registries map[string]*FunctionRegistry `json:"registries,omitempty"`
-	
+	Registries map[string]*FunctionRegistrySpec `json:"registries,omitempty"`
+
 	// Function execution configuration
 	Execution *FunctionExecutionConfig `json:"execution,omitempty"`
-	
+
 	// Cache configuration for function images
 	Cache *FunctionCacheConfig `json:"cache,omitempty"`
-	
+
 	// Security settings for function execution
 	Security *FunctionSecurityConfig `json:"security,omitempty"`
-	
+
 	// Resource limits for function execution
 	ResourceLimits *FunctionResourceLimits `json:"resourceLimits,omitempty"`
 }
@@ -150,40 +151,40 @@ type FunctionRegistryConfig struct {
 type ClusterConfig struct {
 	// Display name for the cluster
 	Name string `json:"name"`
-	
+
 	// Cluster endpoint
 	Endpoint string `json:"endpoint"`
-	
+
 	// Kubeconfig for the cluster
 	KubeconfigPath string `json:"kubeconfigPath,omitempty"`
-	
+
 	// Context name in kubeconfig
 	Context string `json:"context,omitempty"`
-	
+
 	// Namespace to deploy to
 	Namespace string `json:"namespace,omitempty"`
-	
+
 	// Labels for cluster identification
 	Labels map[string]string `json:"labels,omitempty"`
-	
+
 	// Annotations for cluster metadata
 	Annotations map[string]string `json:"annotations,omitempty"`
-	
+
 	// Cluster capabilities
 	Capabilities []string `json:"capabilities,omitempty"`
-	
+
 	// Cluster region/zone information
 	Location *ClusterLocation `json:"location,omitempty"`
-	
+
 	// Network configuration
 	Network *ClusterNetworkConfig `json:"network,omitempty"`
-	
+
 	// Security policies
 	SecurityPolicies []string `json:"securityPolicies,omitempty"`
-	
+
 	// Resource quotas
 	ResourceQuotas map[string]string `json:"resourceQuotas,omitempty"`
-	
+
 	// Health check configuration
 	HealthCheck *ClusterHealthConfig `json:"healthCheck,omitempty"`
 }
@@ -192,22 +193,22 @@ type ClusterConfig struct {
 type PolicyConfig struct {
 	// Default approval workflow
 	DefaultWorkflow string `json:"defaultWorkflow,omitempty"`
-	
+
 	// Approval workflows by package type
 	Workflows map[string]*WorkflowConfig `json:"workflows,omitempty"`
-	
+
 	// Validation policies
 	Validation *ValidationPolicyConfig `json:"validation,omitempty"`
-	
+
 	// Security policies
 	Security *SecurityPolicyConfig `json:"security,omitempty"`
-	
+
 	// Compliance policies
 	Compliance *CompliancePolicyConfig `json:"compliance,omitempty"`
-	
+
 	// RBAC policies
 	RBAC *RBACPolicyConfig `json:"rbac,omitempty"`
-	
+
 	// Audit policies
 	Audit *AuditPolicyConfig `json:"audit,omitempty"`
 }
@@ -216,16 +217,16 @@ type PolicyConfig struct {
 type ObservabilityConfig struct {
 	// Metrics configuration
 	Metrics *MetricsConfig `json:"metrics,omitempty"`
-	
+
 	// Logging configuration
 	Logging *LoggingConfig `json:"logging,omitempty"`
-	
+
 	// Tracing configuration
 	Tracing *TracingConfig `json:"tracing,omitempty"`
-	
+
 	// Health check configuration
 	HealthCheck *HealthCheckConfig `json:"healthCheck,omitempty"`
-	
+
 	// Alerting configuration
 	Alerting *AlertingConfig `json:"alerting,omitempty"`
 }
@@ -234,25 +235,25 @@ type ObservabilityConfig struct {
 type SecurityConfig struct {
 	// Authentication configuration
 	Authentication *SecurityAuthConfig `json:"authentication,omitempty"`
-	
+
 	// Authorization configuration
 	Authorization *AuthorizationConfig `json:"authorization,omitempty"`
-	
+
 	// Encryption configuration
 	Encryption *EncryptionConfig `json:"encryption,omitempty"`
-	
+
 	// Network security configuration
 	NetworkSecurity *NetworkSecurityConfig `json:"networkSecurity,omitempty"`
-	
+
 	// Certificate management
 	Certificates *CertificateConfig `json:"certificates,omitempty"`
-	
+
 	// Secret management
 	Secrets *SecretManagementConfig `json:"secrets,omitempty"`
-	
+
 	// Vulnerability scanning
 	Scanning *ScanningConfig `json:"scanning,omitempty"`
-	
+
 	// Compliance scanning
 	Compliance *ComplianceScanConfig `json:"compliance,omitempty"`
 }
@@ -261,19 +262,19 @@ type SecurityConfig struct {
 type PerformanceConfig struct {
 	// Client configuration
 	Client *ClientPerformanceConfig `json:"client,omitempty"`
-	
+
 	// Server configuration
 	Server *ServerPerformanceConfig `json:"server,omitempty"`
-	
+
 	// Caching configuration
 	Caching *CachingConfig `json:"caching,omitempty"`
-	
+
 	// Connection pooling
 	ConnectionPooling *ConnectionPoolingConfig `json:"connectionPooling,omitempty"`
-	
+
 	// Resource optimization
 	ResourceOptimization *ResourceOptimizationConfig `json:"resourceOptimization,omitempty"`
-	
+
 	// Performance monitoring
 	Monitoring *PerformanceMonitoringConfig `json:"monitoring,omitempty"`
 }
@@ -292,12 +293,12 @@ type RetryConfig struct {
 
 // CircuitBreakerConfig defines circuit breaker behavior
 type CircuitBreakerConfig struct {
-	Enabled           bool          `json:"enabled,omitempty"`
-	FailureThreshold  int           `json:"failureThreshold,omitempty"`
-	SuccessThreshold  int           `json:"successThreshold,omitempty"`
-	Timeout           time.Duration `json:"timeout,omitempty"`
-	HalfOpenMaxCalls  int           `json:"halfOpenMaxCalls,omitempty"`
-	OpenStateTimeout  time.Duration `json:"openStateTimeout,omitempty"`
+	Enabled          bool          `json:"enabled,omitempty"`
+	FailureThreshold int           `json:"failureThreshold,omitempty"`
+	SuccessThreshold int           `json:"successThreshold,omitempty"`
+	Timeout          time.Duration `json:"timeout,omitempty"`
+	HalfOpenMaxCalls int           `json:"halfOpenMaxCalls,omitempty"`
+	OpenStateTimeout time.Duration `json:"openStateTimeout,omitempty"`
 }
 
 // TLSConfig defines TLS configuration
@@ -330,11 +331,11 @@ type AuthenticationConfig struct {
 
 // RateLimitConfig defines rate limiting configuration
 type RateLimitConfig struct {
-	Enabled       bool          `json:"enabled,omitempty"`
-	RequestsPerSecond float64   `json:"requestsPerSecond,omitempty"`
-	Burst         int           `json:"burst,omitempty"`
-	TimeWindow    time.Duration `json:"timeWindow,omitempty"`
-	Strategy      string        `json:"strategy,omitempty"` // token_bucket, sliding_window
+	Enabled           bool          `json:"enabled,omitempty"`
+	RequestsPerSecond float64       `json:"requestsPerSecond,omitempty"`
+	Burst             int           `json:"burst,omitempty"`
+	TimeWindow        time.Duration `json:"timeWindow,omitempty"`
+	Strategy          string        `json:"strategy,omitempty"` // token_bucket, sliding_window
 }
 
 // ConnectionPoolConfig defines connection pool configuration
@@ -348,8 +349,8 @@ type ConnectionPoolConfig struct {
 
 // Function configuration types
 
-// FunctionRegistry defines a function registry
-type FunctionRegistry struct {
+// FunctionRegistrySpec defines a function registry specification
+type FunctionRegistrySpec struct {
 	Name     string            `json:"name"`
 	URL      string            `json:"url"`
 	Type     string            `json:"type"` // docker, oci, git
@@ -360,36 +361,36 @@ type FunctionRegistry struct {
 
 // FunctionExecutionConfig defines function execution configuration
 type FunctionExecutionConfig struct {
-	Runtime           string                    `json:"runtime,omitempty"` // docker, containerd, cri-o
-	DefaultTimeout    time.Duration             `json:"defaultTimeout,omitempty"`
-	MaxConcurrent     int                       `json:"maxConcurrent,omitempty"`
-	EnableNetworking  bool                      `json:"enableNetworking,omitempty"`
-	AllowPrivileged   bool                      `json:"allowPrivileged,omitempty"`
-	EnvironmentVars   map[string]string         `json:"environmentVars,omitempty"`
-	VolumeBinds       []string                  `json:"volumeBinds,omitempty"`
-	SecurityContext   *FunctionSecurityContext  `json:"securityContext,omitempty"`
-	ResourceLimits    *FunctionResourceLimits   `json:"resourceLimits,omitempty"`
+	Runtime          string                   `json:"runtime,omitempty"` // docker, containerd, cri-o
+	DefaultTimeout   time.Duration            `json:"defaultTimeout,omitempty"`
+	MaxConcurrent    int                      `json:"maxConcurrent,omitempty"`
+	EnableNetworking bool                     `json:"enableNetworking,omitempty"`
+	AllowPrivileged  bool                     `json:"allowPrivileged,omitempty"`
+	EnvironmentVars  map[string]string        `json:"environmentVars,omitempty"`
+	VolumeBinds      []string                 `json:"volumeBinds,omitempty"`
+	SecurityContext  *FunctionSecurityContext `json:"securityContext,omitempty"`
+	ResourceLimits   *FunctionResourceLimits  `json:"resourceLimits,omitempty"`
 }
 
 // FunctionCacheConfig defines function cache configuration
 type FunctionCacheConfig struct {
-	Enabled      bool          `json:"enabled,omitempty"`
-	Size         string        `json:"size,omitempty"`
-	TTL          time.Duration `json:"ttl,omitempty"`
+	Enabled         bool          `json:"enabled,omitempty"`
+	Size            string        `json:"size,omitempty"`
+	TTL             time.Duration `json:"ttl,omitempty"`
 	CleanupInterval time.Duration `json:"cleanupInterval,omitempty"`
-	Strategy     string        `json:"strategy,omitempty"` // LRU, LFU, FIFO
+	Strategy        string        `json:"strategy,omitempty"` // LRU, LFU, FIFO
 }
 
 // FunctionSecurityConfig defines function security configuration
 type FunctionSecurityConfig struct {
-	RunAsNonRoot         bool     `json:"runAsNonRoot,omitempty"`
-	ReadOnlyRootFilesystem bool   `json:"readOnlyRootFilesystem,omitempty"`
-	AllowedCapabilities  []string `json:"allowedCapabilities,omitempty"`
-	DroppedCapabilities  []string `json:"droppedCapabilities,omitempty"`
-	AllowedSysctls       []string `json:"allowedSysctls,omitempty"`
-	SELinuxOptions       *SELinuxOptions `json:"seLinuxOptions,omitempty"`
-	AppArmorProfile      string   `json:"appArmorProfile,omitempty"`
-	SeccompProfile       string   `json:"seccompProfile,omitempty"`
+	RunAsNonRoot           bool            `json:"runAsNonRoot,omitempty"`
+	ReadOnlyRootFilesystem bool            `json:"readOnlyRootFilesystem,omitempty"`
+	AllowedCapabilities    []string        `json:"allowedCapabilities,omitempty"`
+	DroppedCapabilities    []string        `json:"droppedCapabilities,omitempty"`
+	AllowedSysctls         []string        `json:"allowedSysctls,omitempty"`
+	SELinuxOptions         *SELinuxOptions `json:"seLinuxOptions,omitempty"`
+	AppArmorProfile        string          `json:"appArmorProfile,omitempty"`
+	SeccompProfile         string          `json:"seccompProfile,omitempty"`
 }
 
 // FunctionResourceLimits defines resource limits for functions
@@ -405,82 +406,82 @@ type FunctionResourceLimits struct {
 
 // FunctionSecurityContext defines security context for functions
 type FunctionSecurityContext struct {
-	RunAsUser           *int64            `json:"runAsUser,omitempty"`
-	RunAsGroup          *int64            `json:"runAsGroup,omitempty"`
-	FSGroup             *int64            `json:"fsGroup,omitempty"`
-	RunAsNonRoot        *bool             `json:"runAsNonRoot,omitempty"`
-	SupplementalGroups  []int64           `json:"supplementalGroups,omitempty"`
-	SELinuxOptions      *SELinuxOptions   `json:"seLinuxOptions,omitempty"`
-	WindowsOptions      *WindowsOptions   `json:"windowsOptions,omitempty"`
+	RunAsUser          *int64          `json:"runAsUser,omitempty"`
+	RunAsGroup         *int64          `json:"runAsGroup,omitempty"`
+	FSGroup            *int64          `json:"fsGroup,omitempty"`
+	RunAsNonRoot       *bool           `json:"runAsNonRoot,omitempty"`
+	SupplementalGroups []int64         `json:"supplementalGroups,omitempty"`
+	SELinuxOptions     *SELinuxOptions `json:"seLinuxOptions,omitempty"`
+	WindowsOptions     *WindowsOptions `json:"windowsOptions,omitempty"`
 }
 
 // Cluster configuration types
 
 // ClusterLocation defines cluster location information
 type ClusterLocation struct {
-	Region           string  `json:"region,omitempty"`
-	Zone             string  `json:"zone,omitempty"`
-	Country          string  `json:"country,omitempty"`
-	City             string  `json:"city,omitempty"`
-	Datacenter       string  `json:"datacenter,omitempty"`
-	Latitude         float64 `json:"latitude,omitempty"`
-	Longitude        float64 `json:"longitude,omitempty"`
+	Region     string  `json:"region,omitempty"`
+	Zone       string  `json:"zone,omitempty"`
+	Country    string  `json:"country,omitempty"`
+	City       string  `json:"city,omitempty"`
+	Datacenter string  `json:"datacenter,omitempty"`
+	Latitude   float64 `json:"latitude,omitempty"`
+	Longitude  float64 `json:"longitude,omitempty"`
 }
 
 // ClusterNetworkConfig defines cluster network configuration
 type ClusterNetworkConfig struct {
-	ServiceCIDR      string   `json:"serviceCIDR,omitempty"`
-	PodCIDR          string   `json:"podCIDR,omitempty"`
-	DNSServers       []string `json:"dnsServers,omitempty"`
-	MTU              int      `json:"mtu,omitempty"`
-	NetworkPolicy    bool     `json:"networkPolicy,omitempty"`
-	ServiceMesh      string   `json:"serviceMesh,omitempty"`
-	LoadBalancer     string   `json:"loadBalancer,omitempty"`
-	IngressController string  `json:"ingressController,omitempty"`
+	ServiceCIDR       string   `json:"serviceCIDR,omitempty"`
+	PodCIDR           string   `json:"podCIDR,omitempty"`
+	DNSServers        []string `json:"dnsServers,omitempty"`
+	MTU               int      `json:"mtu,omitempty"`
+	NetworkPolicy     bool     `json:"networkPolicy,omitempty"`
+	ServiceMesh       string   `json:"serviceMesh,omitempty"`
+	LoadBalancer      string   `json:"loadBalancer,omitempty"`
+	IngressController string   `json:"ingressController,omitempty"`
 }
 
 // ClusterHealthConfig defines cluster health check configuration
 type ClusterHealthConfig struct {
-	Enabled         bool          `json:"enabled,omitempty"`
-	Interval        time.Duration `json:"interval,omitempty"`
-	Timeout         time.Duration `json:"timeout,omitempty"`
-	FailureThreshold int          `json:"failureThreshold,omitempty"`
-	SuccessThreshold int          `json:"successThreshold,omitempty"`
-	Endpoints       []string      `json:"endpoints,omitempty"`
+	Enabled          bool          `json:"enabled,omitempty"`
+	Interval         time.Duration `json:"interval,omitempty"`
+	Timeout          time.Duration `json:"timeout,omitempty"`
+	FailureThreshold int           `json:"failureThreshold,omitempty"`
+	SuccessThreshold int           `json:"successThreshold,omitempty"`
+	Endpoints        []string      `json:"endpoints,omitempty"`
 }
 
 // Policy configuration types
 
 // WorkflowConfig defines workflow configuration
 type WorkflowConfig struct {
-	Name         string               `json:"name"`
-	Description  string               `json:"description,omitempty"`
-	Stages       []WorkflowStageConfig `json:"stages"`
-	Triggers     []WorkflowTriggerConfig `json:"triggers,omitempty"`
-	Approvers    []ApproverConfig     `json:"approvers,omitempty"`
-	Timeout      time.Duration        `json:"timeout,omitempty"`
-	RetryPolicy  *RetryPolicy         `json:"retryPolicy,omitempty"`
-	Notifications []NotificationConfig `json:"notifications,omitempty"`
+	Name          string                  `json:"name"`
+	Description   string                  `json:"description,omitempty"`
+	Stages        []WorkflowStageConfig   `json:"stages"`
+	Triggers      []WorkflowTriggerConfig `json:"triggers,omitempty"`
+	Approvers     []ApproverConfig        `json:"approvers,omitempty"`
+	Timeout       time.Duration           `json:"timeout,omitempty"`
+	RetryPolicy   *RetryPolicy            `json:"retryPolicy,omitempty"`
+	Notifications []NotificationConfig    `json:"notifications,omitempty"`
 }
 
 // WorkflowStageConfig defines workflow stage configuration
 type WorkflowStageConfig struct {
-	Name        string              `json:"name"`
-	Type        WorkflowStageType   `json:"type"`
-	Conditions  []WorkflowConditionConfig `json:"conditions,omitempty"`
-	Actions     []WorkflowActionConfig    `json:"actions"`
-	Approvers   []ApproverConfig    `json:"approvers,omitempty"`
-	Timeout     time.Duration       `json:"timeout,omitempty"`
-	OnSuccess   []WorkflowActionConfig `json:"onSuccess,omitempty"`
-	OnFailure   []WorkflowActionConfig `json:"onFailure,omitempty"`
+	Name       string                    `json:"name"`
+	Type       WorkflowStageType         `json:"type"`
+	Conditions []WorkflowConditionConfig `json:"conditions,omitempty"`
+	Actions    []WorkflowActionConfig    `json:"actions"`
+	Approvers  []ApproverConfig          `json:"approvers,omitempty"`
+	Timeout    time.Duration             `json:"timeout,omitempty"`
+	OnSuccess  []WorkflowActionConfig    `json:"onSuccess,omitempty"`
+	OnFailure  []WorkflowActionConfig    `json:"onFailure,omitempty"`
 }
 
 // WorkflowTriggerConfig defines workflow trigger configuration
 type WorkflowTriggerConfig struct {
-	Type        string                 `json:"type"`
-	Condition   map[string]interface{} `json:"condition"`
-	Schedule    string                 `json:"schedule,omitempty"`
-	Events      []string               `json:"events,omitempty"`
+	Type      string                 `json:"type"`
+	Condition map[string]interface{} `json:"condition"`
+	Schedule  string                 `json:"schedule,omitempty"`
+	Events    []string               `json:"events,omitempty"`
 }
 
 // WorkflowConditionConfig defines workflow condition configuration
@@ -493,132 +494,132 @@ type WorkflowConditionConfig struct {
 
 // WorkflowActionConfig defines workflow action configuration
 type WorkflowActionConfig struct {
-	Type       string                 `json:"type"`
-	Config     map[string]interface{} `json:"config"`
-	Timeout    time.Duration          `json:"timeout,omitempty"`
-	RetryPolicy *RetryPolicy          `json:"retryPolicy,omitempty"`
+	Type        string                 `json:"type"`
+	Config      map[string]interface{} `json:"config"`
+	Timeout     time.Duration          `json:"timeout,omitempty"`
+	RetryPolicy *RetryPolicy           `json:"retryPolicy,omitempty"`
 }
 
 // ApproverConfig defines approver configuration
 type ApproverConfig struct {
-	Type        string   `json:"type"` // user, group, service
-	Name        string   `json:"name"`
-	Roles       []string `json:"roles,omitempty"`
-	Stages      []string `json:"stages,omitempty"`
-	Permissions []string `json:"permissions,omitempty"`
+	Type        string                 `json:"type"` // user, group, service
+	Name        string                 `json:"name"`
+	Roles       []string               `json:"roles,omitempty"`
+	Stages      []string               `json:"stages,omitempty"`
+	Permissions []string               `json:"permissions,omitempty"`
 	Constraints map[string]interface{} `json:"constraints,omitempty"`
 }
 
 // NotificationConfig defines notification configuration
 type NotificationConfig struct {
-	Type      string                 `json:"type"` // email, slack, webhook
-	Target    string                 `json:"target"`
-	Template  string                 `json:"template,omitempty"`
-	Events    []string               `json:"events,omitempty"`
-	Config    map[string]interface{} `json:"config,omitempty"`
+	Type     string                 `json:"type"` // email, slack, webhook
+	Target   string                 `json:"target"`
+	Template string                 `json:"template,omitempty"`
+	Events   []string               `json:"events,omitempty"`
+	Config   map[string]interface{} `json:"config,omitempty"`
 }
 
 // ValidationPolicyConfig defines validation policy configuration
 type ValidationPolicyConfig struct {
-	Enabled           bool                    `json:"enabled,omitempty"`
-	DefaultValidators []string                `json:"defaultValidators,omitempty"`
+	Enabled           bool                       `json:"enabled,omitempty"`
+	DefaultValidators []string                   `json:"defaultValidators,omitempty"`
 	CustomValidators  map[string]ValidatorConfig `json:"customValidators,omitempty"`
-	Strictness        string                  `json:"strictness,omitempty"` // strict, moderate, lenient
-	FailOnWarning     bool                    `json:"failOnWarning,omitempty"`
+	Strictness        string                     `json:"strictness,omitempty"` // strict, moderate, lenient
+	FailOnWarning     bool                       `json:"failOnWarning,omitempty"`
 }
 
 // ValidatorConfig defines validator configuration
 type ValidatorConfig struct {
-	Image       string                 `json:"image"`
-	Config      map[string]interface{} `json:"config,omitempty"`
-	Resources   *FunctionResourceLimits `json:"resources,omitempty"`
-	Enabled     bool                   `json:"enabled,omitempty"`
-	Severity    string                 `json:"severity,omitempty"`
-	Categories  []string               `json:"categories,omitempty"`
+	Image      string                  `json:"image"`
+	Config     map[string]interface{}  `json:"config,omitempty"`
+	Resources  *FunctionResourceLimits `json:"resources,omitempty"`
+	Enabled    bool                    `json:"enabled,omitempty"`
+	Severity   string                  `json:"severity,omitempty"`
+	Categories []string                `json:"categories,omitempty"`
 }
 
 // SecurityPolicyConfig defines security policy configuration
 type SecurityPolicyConfig struct {
-	Enabled                 bool     `json:"enabled,omitempty"`
-	RequiredSecurityScanning bool     `json:"requiredSecurityScanning,omitempty"`
-	AllowedRegistries       []string `json:"allowedRegistries,omitempty"`
-	BlockedImages           []string `json:"blockedImages,omitempty"`
-	RequireSignedImages     bool     `json:"requireSignedImages,omitempty"`
-	MaxSeverityLevel        string   `json:"maxSeverityLevel,omitempty"`
-	EnforcePodSecurityStandards bool `json:"enforcePodSecurityStandards,omitempty"`
-	NetworkPolicyRequired   bool     `json:"networkPolicyRequired,omitempty"`
+	Enabled                     bool     `json:"enabled,omitempty"`
+	RequiredSecurityScanning    bool     `json:"requiredSecurityScanning,omitempty"`
+	AllowedRegistries           []string `json:"allowedRegistries,omitempty"`
+	BlockedImages               []string `json:"blockedImages,omitempty"`
+	RequireSignedImages         bool     `json:"requireSignedImages,omitempty"`
+	MaxSeverityLevel            string   `json:"maxSeverityLevel,omitempty"`
+	EnforcePodSecurityStandards bool     `json:"enforcePodSecurityStandards,omitempty"`
+	NetworkPolicyRequired       bool     `json:"networkPolicyRequired,omitempty"`
 }
 
 // CompliancePolicyConfig defines compliance policy configuration
 type CompliancePolicyConfig struct {
-	Enabled     bool                       `json:"enabled,omitempty"`
-	Frameworks  []string                   `json:"frameworks,omitempty"` // CIS, NIST, SOC2, etc.
-	Standards   []ComplianceStandardConfig `json:"standards,omitempty"`
-	Reporting   *ComplianceReportingConfig `json:"reporting,omitempty"`
+	Enabled     bool                         `json:"enabled,omitempty"`
+	Frameworks  []string                     `json:"frameworks,omitempty"` // CIS, NIST, SOC2, etc.
+	Standards   []ComplianceStandardConfig   `json:"standards,omitempty"`
+	Reporting   *ComplianceReportingConfig   `json:"reporting,omitempty"`
 	Remediation *ComplianceRemediationConfig `json:"remediation,omitempty"`
 }
 
 // ComplianceStandardConfig defines compliance standard configuration
 type ComplianceStandardConfig struct {
-	Name        string   `json:"name"`
-	Version     string   `json:"version"`
-	Controls    []string `json:"controls,omitempty"`
-	Severity    string   `json:"severity,omitempty"`
-	Required    bool     `json:"required,omitempty"`
-	Exemptions  []string `json:"exemptions,omitempty"`
+	Name       string   `json:"name"`
+	Version    string   `json:"version"`
+	Controls   []string `json:"controls,omitempty"`
+	Severity   string   `json:"severity,omitempty"`
+	Required   bool     `json:"required,omitempty"`
+	Exemptions []string `json:"exemptions,omitempty"`
 }
 
 // ComplianceReportingConfig defines compliance reporting configuration
 type ComplianceReportingConfig struct {
-	Enabled   bool          `json:"enabled,omitempty"`
-	Format    []string      `json:"format,omitempty"` // json, xml, pdf
-	Schedule  string        `json:"schedule,omitempty"`
-	Recipients []string     `json:"recipients,omitempty"`
-	Storage   *StorageConfig `json:"storage,omitempty"`
+	Enabled    bool           `json:"enabled,omitempty"`
+	Format     []string       `json:"format,omitempty"` // json, xml, pdf
+	Schedule   string         `json:"schedule,omitempty"`
+	Recipients []string       `json:"recipients,omitempty"`
+	Storage    *StorageConfig `json:"storage,omitempty"`
 }
 
 // ComplianceRemediationConfig defines compliance remediation configuration
 type ComplianceRemediationConfig struct {
-	Enabled       bool          `json:"enabled,omitempty"`
-	AutoRemediate bool          `json:"autoRemediate,omitempty"`
-	Timeout       time.Duration `json:"timeout,omitempty"`
-	MaxAttempts   int           `json:"maxAttempts,omitempty"`
-	NotifyOnFailure bool        `json:"notifyOnFailure,omitempty"`
+	Enabled         bool          `json:"enabled,omitempty"`
+	AutoRemediate   bool          `json:"autoRemediate,omitempty"`
+	Timeout         time.Duration `json:"timeout,omitempty"`
+	MaxAttempts     int           `json:"maxAttempts,omitempty"`
+	NotifyOnFailure bool          `json:"notifyOnFailure,omitempty"`
 }
 
 // RBACPolicyConfig defines RBAC policy configuration
 type RBACPolicyConfig struct {
-	Enabled         bool                    `json:"enabled,omitempty"`
-	DefaultRole     string                  `json:"defaultRole,omitempty"`
-	Roles           map[string]RoleConfig   `json:"roles,omitempty"`
-	RoleBindings    []RoleBindingConfig     `json:"roleBindings,omitempty"`
-	ServiceAccounts []ServiceAccountConfig  `json:"serviceAccounts,omitempty"`
+	Enabled         bool                   `json:"enabled,omitempty"`
+	DefaultRole     string                 `json:"defaultRole,omitempty"`
+	Roles           map[string]RoleConfig  `json:"roles,omitempty"`
+	RoleBindings    []RoleBindingConfig    `json:"roleBindings,omitempty"`
+	ServiceAccounts []ServiceAccountConfig `json:"serviceAccounts,omitempty"`
 }
 
 // RoleConfig defines role configuration
 type RoleConfig struct {
-	Name        string              `json:"name"`
-	Rules       []PolicyRuleConfig  `json:"rules"`
-	Labels      map[string]string   `json:"labels,omitempty"`
-	Annotations map[string]string   `json:"annotations,omitempty"`
+	Name        string             `json:"name"`
+	Rules       []PolicyRuleConfig `json:"rules"`
+	Labels      map[string]string  `json:"labels,omitempty"`
+	Annotations map[string]string  `json:"annotations,omitempty"`
 }
 
 // PolicyRuleConfig defines policy rule configuration
 type PolicyRuleConfig struct {
-	APIGroups     []string `json:"apiGroups,omitempty"`
-	Resources     []string `json:"resources,omitempty"`
-	ResourceNames []string `json:"resourceNames,omitempty"`
-	Verbs         []string `json:"verbs"`
+	APIGroups       []string `json:"apiGroups,omitempty"`
+	Resources       []string `json:"resources,omitempty"`
+	ResourceNames   []string `json:"resourceNames,omitempty"`
+	Verbs           []string `json:"verbs"`
 	NonResourceURLs []string `json:"nonResourceURLs,omitempty"`
 }
 
 // RoleBindingConfig defines role binding configuration
 type RoleBindingConfig struct {
-	Name      string                `json:"name"`
-	RoleRef   RoleRefConfig         `json:"roleRef"`
-	Subjects  []SubjectConfig       `json:"subjects"`
-	Labels    map[string]string     `json:"labels,omitempty"`
-	Annotations map[string]string   `json:"annotations,omitempty"`
+	Name        string            `json:"name"`
+	RoleRef     RoleRefConfig     `json:"roleRef"`
+	Subjects    []SubjectConfig   `json:"subjects"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // RoleRefConfig defines role reference configuration
@@ -638,18 +639,18 @@ type SubjectConfig struct {
 
 // ServiceAccountConfig defines service account configuration
 type ServiceAccountConfig struct {
-	Name         string            `json:"name"`
-	Namespace    string            `json:"namespace,omitempty"`
-	Labels       map[string]string `json:"labels,omitempty"`
-	Annotations  map[string]string `json:"annotations,omitempty"`
-	Secrets      []string          `json:"secrets,omitempty"`
-	ImagePullSecrets []string      `json:"imagePullSecrets,omitempty"`
+	Name             string            `json:"name"`
+	Namespace        string            `json:"namespace,omitempty"`
+	Labels           map[string]string `json:"labels,omitempty"`
+	Annotations      map[string]string `json:"annotations,omitempty"`
+	Secrets          []string          `json:"secrets,omitempty"`
+	ImagePullSecrets []string          `json:"imagePullSecrets,omitempty"`
 }
 
 // AuditPolicyConfig defines audit policy configuration
 type AuditPolicyConfig struct {
 	Enabled     bool                    `json:"enabled,omitempty"`
-	Level       string                  `json:"level,omitempty"` // Metadata, Request, RequestResponse
+	Level       string                  `json:"level,omitempty"`   // Metadata, Request, RequestResponse
 	Backend     string                  `json:"backend,omitempty"` // file, webhook, elasticsearch
 	Rules       []AuditRuleConfig       `json:"rules,omitempty"`
 	Retention   *AuditRetentionConfig   `json:"retention,omitempty"`
@@ -669,30 +670,30 @@ type AuditRuleConfig struct {
 
 // AuditRetentionConfig defines audit retention configuration
 type AuditRetentionConfig struct {
-	Days       int    `json:"days,omitempty"`
-	MaxSize    string `json:"maxSize,omitempty"`
-	MaxFiles   int    `json:"maxFiles,omitempty"`
-	Compress   bool   `json:"compress,omitempty"`
+	Days     int    `json:"days,omitempty"`
+	MaxSize  string `json:"maxSize,omitempty"`
+	MaxFiles int    `json:"maxFiles,omitempty"`
+	Compress bool   `json:"compress,omitempty"`
 }
 
 // AuditDestinationConfig defines audit destination configuration
 type AuditDestinationConfig struct {
-	Type     string                 `json:"type"` // file, webhook, s3, elasticsearch
-	Config   map[string]interface{} `json:"config"`
-	Format   string                 `json:"format,omitempty"`
-	BatchSize int                   `json:"batchSize,omitempty"`
-	Timeout   time.Duration         `json:"timeout,omitempty"`
+	Type      string                 `json:"type"` // file, webhook, s3, elasticsearch
+	Config    map[string]interface{} `json:"config"`
+	Format    string                 `json:"format,omitempty"`
+	BatchSize int                    `json:"batchSize,omitempty"`
+	Timeout   time.Duration          `json:"timeout,omitempty"`
 }
 
 // Observability configuration types
 
 // MetricsConfig defines metrics configuration
 type MetricsConfig struct {
-	Enabled    bool                    `json:"enabled,omitempty"`
-	Provider   string                  `json:"provider,omitempty"` // prometheus, datadog, newrelic
-	Endpoint   string                  `json:"endpoint,omitempty"`
-	Namespace  string                  `json:"namespace,omitempty"`
-	Labels     map[string]string       `json:"labels,omitempty"`
+	Enabled    bool                     `json:"enabled,omitempty"`
+	Provider   string                   `json:"provider,omitempty"` // prometheus, datadog, newrelic
+	Endpoint   string                   `json:"endpoint,omitempty"`
+	Namespace  string                   `json:"namespace,omitempty"`
+	Labels     map[string]string        `json:"labels,omitempty"`
 	Collectors []MetricsCollectorConfig `json:"collectors,omitempty"`
 	Exporters  []MetricsExporterConfig  `json:"exporters,omitempty"`
 }
@@ -750,12 +751,12 @@ type LogProcessorConfig struct {
 
 // TracingConfig defines tracing configuration
 type TracingConfig struct {
-	Enabled      bool                   `json:"enabled,omitempty"`
-	Provider     string                 `json:"provider,omitempty"` // jaeger, zipkin, otlp
-	Endpoint     string                 `json:"endpoint,omitempty"`
-	SamplingRate float64                `json:"samplingRate,omitempty"`
-	Headers      map[string]string      `json:"headers,omitempty"`
-	Attributes   map[string]interface{} `json:"attributes,omitempty"`
+	Enabled      bool                    `json:"enabled,omitempty"`
+	Provider     string                  `json:"provider,omitempty"` // jaeger, zipkin, otlp
+	Endpoint     string                  `json:"endpoint,omitempty"`
+	SamplingRate float64                 `json:"samplingRate,omitempty"`
+	Headers      map[string]string       `json:"headers,omitempty"`
+	Attributes   map[string]interface{}  `json:"attributes,omitempty"`
 	Exporters    []TracingExporterConfig `json:"exporters,omitempty"`
 }
 
@@ -771,51 +772,51 @@ type TracingExporterConfig struct {
 
 // HealthCheckConfig defines health check configuration
 type HealthCheckConfig struct {
-	Enabled         bool          `json:"enabled,omitempty"`
-	Port            int           `json:"port,omitempty"`
-	Path            string        `json:"path,omitempty"`
-	Interval        time.Duration `json:"interval,omitempty"`
-	Timeout         time.Duration `json:"timeout,omitempty"`
-	HealthyThreshold int          `json:"healthyThreshold,omitempty"`
-	UnhealthyThreshold int        `json:"unhealthyThreshold,omitempty"`
-	Checks          []HealthCheckDefinition `json:"checks,omitempty"`
+	Enabled            bool                    `json:"enabled,omitempty"`
+	Port               int                     `json:"port,omitempty"`
+	Path               string                  `json:"path,omitempty"`
+	Interval           time.Duration           `json:"interval,omitempty"`
+	Timeout            time.Duration           `json:"timeout,omitempty"`
+	HealthyThreshold   int                     `json:"healthyThreshold,omitempty"`
+	UnhealthyThreshold int                     `json:"unhealthyThreshold,omitempty"`
+	Checks             []HealthCheckDefinition `json:"checks,omitempty"`
 }
 
 // HealthCheckDefinition defines individual health check
 type HealthCheckDefinition struct {
-	Name     string        `json:"name"`
-	Type     string        `json:"type"`
+	Name     string                 `json:"name"`
+	Type     string                 `json:"type"`
 	Config   map[string]interface{} `json:"config,omitempty"`
-	Timeout  time.Duration `json:"timeout,omitempty"`
-	Critical bool          `json:"critical,omitempty"`
+	Timeout  time.Duration          `json:"timeout,omitempty"`
+	Critical bool                   `json:"critical,omitempty"`
 }
 
 // AlertingConfig defines alerting configuration
 type AlertingConfig struct {
-	Enabled   bool                   `json:"enabled,omitempty"`
-	Provider  string                 `json:"provider,omitempty"` // alertmanager, pagerduty
-	Receivers []AlertReceiverConfig  `json:"receivers,omitempty"`
-	Routes    []AlertRouteConfig     `json:"routes,omitempty"`
-	Rules     []AlertRuleConfig      `json:"rules,omitempty"`
-	Templates map[string]string      `json:"templates,omitempty"`
+	Enabled   bool                  `json:"enabled,omitempty"`
+	Provider  string                `json:"provider,omitempty"` // alertmanager, pagerduty
+	Receivers []AlertReceiverConfig `json:"receivers,omitempty"`
+	Routes    []AlertRouteConfig    `json:"routes,omitempty"`
+	Rules     []AlertRuleConfig     `json:"rules,omitempty"`
+	Templates map[string]string     `json:"templates,omitempty"`
 }
 
 // AlertReceiverConfig defines alert receiver configuration
 type AlertReceiverConfig struct {
-	Name     string                 `json:"name"`
-	Type     string                 `json:"type"` // email, slack, webhook, pagerduty
-	Config   map[string]interface{} `json:"config"`
-	Enabled  bool                   `json:"enabled,omitempty"`
+	Name    string                 `json:"name"`
+	Type    string                 `json:"type"` // email, slack, webhook, pagerduty
+	Config  map[string]interface{} `json:"config"`
+	Enabled bool                   `json:"enabled,omitempty"`
 }
 
 // AlertRouteConfig defines alert routing configuration
 type AlertRouteConfig struct {
-	Match     map[string]string      `json:"match,omitempty"`
-	MatchRE   map[string]string      `json:"matchRE,omitempty"`
-	Receiver  string                 `json:"receiver"`
-	GroupBy   []string               `json:"groupBy,omitempty"`
-	GroupWait time.Duration          `json:"groupWait,omitempty"`
-	GroupInterval time.Duration      `json:"groupInterval,omitempty"`
+	Match          map[string]string `json:"match,omitempty"`
+	MatchRE        map[string]string `json:"matchRE,omitempty"`
+	Receiver       string            `json:"receiver"`
+	GroupBy        []string          `json:"groupBy,omitempty"`
+	GroupWait      time.Duration     `json:"groupWait,omitempty"`
+	GroupInterval  time.Duration     `json:"groupInterval,omitempty"`
 	RepeatInterval time.Duration     `json:"repeatInterval,omitempty"`
 }
 
@@ -833,30 +834,30 @@ type AlertRuleConfig struct {
 
 // SecurityAuthConfig defines security authentication configuration
 type SecurityAuthConfig struct {
-	Methods    []string               `json:"methods,omitempty"` // cert, token, oidc
-	OIDC       *OIDCConfig            `json:"oidc,omitempty"`
-	Certificate *CertAuthConfig       `json:"certificate,omitempty"`
-	Token      *TokenAuthConfig       `json:"token,omitempty"`
-	LDAP       *LDAPAuthConfig        `json:"ldap,omitempty"`
+	Methods     []string         `json:"methods,omitempty"` // cert, token, oidc
+	OIDC        *OIDCConfig      `json:"oidc,omitempty"`
+	Certificate *CertAuthConfig  `json:"certificate,omitempty"`
+	Token       *TokenAuthConfig `json:"token,omitempty"`
+	LDAP        *LDAPAuthConfig  `json:"ldap,omitempty"`
 }
 
 // OIDCConfig defines OIDC configuration
 type OIDCConfig struct {
-	IssuerURL     string   `json:"issuerUrl"`
-	ClientID      string   `json:"clientId"`
-	ClientSecret  string   `json:"clientSecret"`
-	RedirectURL   string   `json:"redirectUrl,omitempty"`
-	Scopes        []string `json:"scopes,omitempty"`
+	IssuerURL     string            `json:"issuerUrl"`
+	ClientID      string            `json:"clientId"`
+	ClientSecret  string            `json:"clientSecret"`
+	RedirectURL   string            `json:"redirectUrl,omitempty"`
+	Scopes        []string          `json:"scopes,omitempty"`
 	ClaimsMapping map[string]string `json:"claimsMapping,omitempty"`
 }
 
 // CertAuthConfig defines certificate authentication configuration
 type CertAuthConfig struct {
-	CAFile        string   `json:"caFile"`
-	AllowedCNs    []string `json:"allowedCNs,omitempty"`
-	AllowedOUs    []string `json:"allowedOUs,omitempty"`
-	CRLFile       string   `json:"crlFile,omitempty"`
-	VerifyChain   bool     `json:"verifyChain,omitempty"`
+	CAFile      string   `json:"caFile"`
+	AllowedCNs  []string `json:"allowedCNs,omitempty"`
+	AllowedOUs  []string `json:"allowedOUs,omitempty"`
+	CRLFile     string   `json:"crlFile,omitempty"`
+	VerifyChain bool     `json:"verifyChain,omitempty"`
 }
 
 // TokenAuthConfig defines token authentication configuration
@@ -883,11 +884,11 @@ type LDAPAuthConfig struct {
 
 // AuthorizationConfig defines authorization configuration
 type AuthorizationConfig struct {
-	Enabled bool                  `json:"enabled,omitempty"`
-	Mode    string                `json:"mode,omitempty"` // rbac, abac, webhook
-	RBAC    *RBACAuthzConfig      `json:"rbac,omitempty"`
-	ABAC    *ABACAuthzConfig      `json:"abac,omitempty"`
-	Webhook *WebhookAuthzConfig   `json:"webhook,omitempty"`
+	Enabled bool                `json:"enabled,omitempty"`
+	Mode    string              `json:"mode,omitempty"` // rbac, abac, webhook
+	RBAC    *RBACAuthzConfig    `json:"rbac,omitempty"`
+	ABAC    *ABACAuthzConfig    `json:"abac,omitempty"`
+	Webhook *WebhookAuthzConfig `json:"webhook,omitempty"`
 }
 
 // RBACAuthzConfig defines RBAC authorization configuration
@@ -904,8 +905,8 @@ type ABACAuthzConfig struct {
 
 // WebhookAuthzConfig defines webhook authorization configuration
 type WebhookAuthzConfig struct {
-	Enabled bool   `json:"enabled,omitempty"`
-	URL     string `json:"url"`
+	Enabled bool          `json:"enabled,omitempty"`
+	URL     string        `json:"url"`
 	Timeout time.Duration `json:"timeout,omitempty"`
 }
 
@@ -917,41 +918,41 @@ type EncryptionConfig struct {
 
 // EncryptionAtRestConfig defines encryption at rest configuration
 type EncryptionAtRestConfig struct {
-	Enabled   bool                    `json:"enabled,omitempty"`
-	Provider  string                  `json:"provider,omitempty"` // kms, vault, local
-	KeyID     string                  `json:"keyId,omitempty"`
-	Algorithm string                  `json:"algorithm,omitempty"`
-	Config    map[string]interface{}  `json:"config,omitempty"`
+	Enabled   bool                   `json:"enabled,omitempty"`
+	Provider  string                 `json:"provider,omitempty"` // kms, vault, local
+	KeyID     string                 `json:"keyId,omitempty"`
+	Algorithm string                 `json:"algorithm,omitempty"`
+	Config    map[string]interface{} `json:"config,omitempty"`
 }
 
 // EncryptionInTransitConfig defines encryption in transit configuration
 type EncryptionInTransitConfig struct {
-	Enabled      bool     `json:"enabled,omitempty"`
-	MinTLSVersion string  `json:"minTlsVersion,omitempty"`
-	CipherSuites []string `json:"cipherSuites,omitempty"`
-	Certificates *CertificateConfig `json:"certificates,omitempty"`
+	Enabled       bool               `json:"enabled,omitempty"`
+	MinTLSVersion string             `json:"minTlsVersion,omitempty"`
+	CipherSuites  []string           `json:"cipherSuites,omitempty"`
+	Certificates  *CertificateConfig `json:"certificates,omitempty"`
 }
 
 // NetworkSecurityConfig defines network security configuration
 type NetworkSecurityConfig struct {
-	NetworkPolicies   bool                        `json:"networkPolicies,omitempty"`
-	ServiceMesh       *ServiceMeshSecurityConfig  `json:"serviceMesh,omitempty"`
-	Firewall          *FirewallConfig             `json:"firewall,omitempty"`
-	DDoSProtection    *DDoSProtectionConfig       `json:"ddosProtection,omitempty"`
+	NetworkPolicies bool                       `json:"networkPolicies,omitempty"`
+	ServiceMesh     *ServiceMeshSecurityConfig `json:"serviceMesh,omitempty"`
+	Firewall        *FirewallConfig            `json:"firewall,omitempty"`
+	DDoSProtection  *DDoSProtectionConfig      `json:"ddosProtection,omitempty"`
 }
 
 // ServiceMeshSecurityConfig defines service mesh security configuration
 type ServiceMeshSecurityConfig struct {
 	Enabled bool                   `json:"enabled,omitempty"`
 	Type    string                 `json:"type,omitempty"` // istio, linkerd, consul
-	mTLS    *mTLSConfig           `json:"mtls,omitempty"`
+	mTLS    *mTLSConfig            `json:"mtls,omitempty"`
 	Config  map[string]interface{} `json:"config,omitempty"`
 }
 
 // mTLSConfig defines mutual TLS configuration
 type mTLSConfig struct {
-	Mode         string `json:"mode,omitempty"` // strict, permissive
-	AutoRotation bool   `json:"autoRotation,omitempty"`
+	Mode         string        `json:"mode,omitempty"` // strict, permissive
+	AutoRotation bool          `json:"autoRotation,omitempty"`
 	TTL          time.Duration `json:"ttl,omitempty"`
 }
 
@@ -974,49 +975,49 @@ type FirewallRule struct {
 
 // DDoSProtectionConfig defines DDoS protection configuration
 type DDoSProtectionConfig struct {
-	Enabled           bool          `json:"enabled,omitempty"`
-	Provider          string        `json:"provider,omitempty"`
-	RateLimits        []RateLimit   `json:"rateLimits,omitempty"`
-	BlacklistIPs      []string      `json:"blacklistIPs,omitempty"`
-	WhitelistIPs      []string      `json:"whitelistIPs,omitempty"`
-	DetectionThreshold int          `json:"detectionThreshold,omitempty"`
-	MitigationTimeout time.Duration `json:"mitigationTimeout,omitempty"`
+	Enabled            bool          `json:"enabled,omitempty"`
+	Provider           string        `json:"provider,omitempty"`
+	RateLimits         []RateLimit   `json:"rateLimits,omitempty"`
+	BlacklistIPs       []string      `json:"blacklistIPs,omitempty"`
+	WhitelistIPs       []string      `json:"whitelistIPs,omitempty"`
+	DetectionThreshold int           `json:"detectionThreshold,omitempty"`
+	MitigationTimeout  time.Duration `json:"mitigationTimeout,omitempty"`
 }
 
 // RateLimit defines rate limiting configuration
 type RateLimit struct {
-	Path        string        `json:"path,omitempty"`
-	Method      string        `json:"method,omitempty"`
-	Limit       int           `json:"limit"`
-	Window      time.Duration `json:"window"`
-	BurstLimit  int           `json:"burstLimit,omitempty"`
+	Path       string        `json:"path,omitempty"`
+	Method     string        `json:"method,omitempty"`
+	Limit      int           `json:"limit"`
+	Window     time.Duration `json:"window"`
+	BurstLimit int           `json:"burstLimit,omitempty"`
 }
 
 // CertificateConfig defines certificate configuration
 type CertificateConfig struct {
-	CA          *CertificateAuthority `json:"ca,omitempty"`
-	AutoRotation bool                 `json:"autoRotation,omitempty"`
-	TTL         time.Duration         `json:"ttl,omitempty"`
-	Algorithms  []string              `json:"algorithms,omitempty"`
-	KeySizes    []int                 `json:"keySizes,omitempty"`
+	CA           *CertificateAuthority `json:"ca,omitempty"`
+	AutoRotation bool                  `json:"autoRotation,omitempty"`
+	TTL          time.Duration         `json:"ttl,omitempty"`
+	Algorithms   []string              `json:"algorithms,omitempty"`
+	KeySizes     []int                 `json:"keySizes,omitempty"`
 }
 
 // CertificateAuthority defines CA configuration
 type CertificateAuthority struct {
-	Type       string                 `json:"type"` // internal, external, vault
-	Config     map[string]interface{} `json:"config,omitempty"`
-	CertFile   string                 `json:"certFile,omitempty"`
-	KeyFile    string                 `json:"keyFile,omitempty"`
-	Issuer     string                 `json:"issuer,omitempty"`
+	Type     string                 `json:"type"` // internal, external, vault
+	Config   map[string]interface{} `json:"config,omitempty"`
+	CertFile string                 `json:"certFile,omitempty"`
+	KeyFile  string                 `json:"keyFile,omitempty"`
+	Issuer   string                 `json:"issuer,omitempty"`
 }
 
 // SecretManagementConfig defines secret management configuration
 type SecretManagementConfig struct {
-	Provider    string                    `json:"provider"` // kubernetes, vault, aws-secrets-manager
-	Config      map[string]interface{}    `json:"config,omitempty"`
-	Encryption  *SecretEncryptionConfig   `json:"encryption,omitempty"`
-	Rotation    *SecretRotationConfig     `json:"rotation,omitempty"`
-	Access      *SecretAccessConfig       `json:"access,omitempty"`
+	Provider   string                  `json:"provider"` // kubernetes, vault, aws-secrets-manager
+	Config     map[string]interface{}  `json:"config,omitempty"`
+	Encryption *SecretEncryptionConfig `json:"encryption,omitempty"`
+	Rotation   *SecretRotationConfig   `json:"rotation,omitempty"`
+	Access     *SecretAccessConfig     `json:"access,omitempty"`
 }
 
 // SecretEncryptionConfig defines secret encryption configuration
@@ -1035,29 +1036,29 @@ type SecretRotationConfig struct {
 
 // SecretAccessConfig defines secret access configuration
 type SecretAccessConfig struct {
-	Audit     bool          `json:"audit,omitempty"`
-	TTL       time.Duration `json:"ttl,omitempty"`
-	MaxUses   int           `json:"maxUses,omitempty"`
-	IPRestrict []string     `json:"ipRestrict,omitempty"`
+	Audit      bool          `json:"audit,omitempty"`
+	TTL        time.Duration `json:"ttl,omitempty"`
+	MaxUses    int           `json:"maxUses,omitempty"`
+	IPRestrict []string      `json:"ipRestrict,omitempty"`
 }
 
 // ScanningConfig defines vulnerability scanning configuration
 type ScanningConfig struct {
-	Enabled         bool                 `json:"enabled,omitempty"`
-	Provider        string               `json:"provider,omitempty"` // trivy, clair, snyk
-	Schedule        string               `json:"schedule,omitempty"`
-	Registries      []string             `json:"registries,omitempty"`
-	Severities      []string             `json:"severities,omitempty"`
-	FailOnSeverity  string               `json:"failOnSeverity,omitempty"`
-	Config          map[string]interface{} `json:"config,omitempty"`
+	Enabled        bool                   `json:"enabled,omitempty"`
+	Provider       string                 `json:"provider,omitempty"` // trivy, clair, snyk
+	Schedule       string                 `json:"schedule,omitempty"`
+	Registries     []string               `json:"registries,omitempty"`
+	Severities     []string               `json:"severities,omitempty"`
+	FailOnSeverity string                 `json:"failOnSeverity,omitempty"`
+	Config         map[string]interface{} `json:"config,omitempty"`
 }
 
 // ComplianceScanConfig defines compliance scanning configuration
 type ComplianceScanConfig struct {
-	Enabled    bool                    `json:"enabled,omitempty"`
-	Frameworks []string                `json:"frameworks,omitempty"`
-	Schedule   string                  `json:"schedule,omitempty"`
-	Benchmarks []ComplianceBenchmark   `json:"benchmarks,omitempty"`
+	Enabled    bool                  `json:"enabled,omitempty"`
+	Frameworks []string              `json:"frameworks,omitempty"`
+	Schedule   string                `json:"schedule,omitempty"`
+	Benchmarks []ComplianceBenchmark `json:"benchmarks,omitempty"`
 }
 
 // ComplianceBenchmark defines compliance benchmark
@@ -1095,20 +1096,20 @@ type ServerPerformanceConfig struct {
 
 // CachingConfig defines caching configuration
 type CachingConfig struct {
-	Enabled     bool                    `json:"enabled,omitempty"`
-	Layers      []CacheLayerConfig      `json:"layers,omitempty"`
-	Strategies  []CacheStrategyConfig   `json:"strategies,omitempty"`
+	Enabled      bool                     `json:"enabled,omitempty"`
+	Layers       []CacheLayerConfig       `json:"layers,omitempty"`
+	Strategies   []CacheStrategyConfig    `json:"strategies,omitempty"`
 	Invalidation *CacheInvalidationConfig `json:"invalidation,omitempty"`
 }
 
 // CacheLayerConfig defines cache layer configuration
 type CacheLayerConfig struct {
-	Name     string                 `json:"name"`
-	Type     string                 `json:"type"` // memory, redis, memcached
-	Size     string                 `json:"size,omitempty"`
-	TTL      time.Duration          `json:"ttl,omitempty"`
-	Config   map[string]interface{} `json:"config,omitempty"`
-	Enabled  bool                   `json:"enabled,omitempty"`
+	Name    string                 `json:"name"`
+	Type    string                 `json:"type"` // memory, redis, memcached
+	Size    string                 `json:"size,omitempty"`
+	TTL     time.Duration          `json:"ttl,omitempty"`
+	Config  map[string]interface{} `json:"config,omitempty"`
+	Enabled bool                   `json:"enabled,omitempty"`
 }
 
 // CacheStrategyConfig defines cache strategy configuration
@@ -1129,9 +1130,9 @@ type CacheInvalidationConfig struct {
 
 // ConnectionPoolingConfig defines connection pooling configuration
 type ConnectionPoolingConfig struct {
-	Database  *DatabasePoolConfig  `json:"database,omitempty"`
-	HTTP      *HTTPPoolConfig      `json:"http,omitempty"`
-	gRPC      *GRPCPoolConfig      `json:"grpc,omitempty"`
+	Database *DatabasePoolConfig `json:"database,omitempty"`
+	HTTP     *HTTPPoolConfig     `json:"http,omitempty"`
+	gRPC     *GRPCPoolConfig     `json:"grpc,omitempty"`
 }
 
 // DatabasePoolConfig defines database connection pool configuration
@@ -1144,37 +1145,37 @@ type DatabasePoolConfig struct {
 
 // HTTPPoolConfig defines HTTP connection pool configuration
 type HTTPPoolConfig struct {
-	MaxConnsPerHost   int           `json:"maxConnsPerHost,omitempty"`
-	MaxIdleConns      int           `json:"maxIdleConns,omitempty"`
-	IdleConnTimeout   time.Duration `json:"idleConnTimeout,omitempty"`
-	DialTimeout       time.Duration `json:"dialTimeout,omitempty"`
-	KeepAlive         time.Duration `json:"keepAlive,omitempty"`
+	MaxConnsPerHost int           `json:"maxConnsPerHost,omitempty"`
+	MaxIdleConns    int           `json:"maxIdleConns,omitempty"`
+	IdleConnTimeout time.Duration `json:"idleConnTimeout,omitempty"`
+	DialTimeout     time.Duration `json:"dialTimeout,omitempty"`
+	KeepAlive       time.Duration `json:"keepAlive,omitempty"`
 }
 
 // GRPCPoolConfig defines gRPC connection pool configuration
 type GRPCPoolConfig struct {
-	MaxConnections  int           `json:"maxConnections,omitempty"`
-	IdleTimeout     time.Duration `json:"idleTimeout,omitempty"`
-	MaxAge          time.Duration `json:"maxAge,omitempty"`
-	KeepAlive       time.Duration `json:"keepAlive,omitempty"`
+	MaxConnections   int           `json:"maxConnections,omitempty"`
+	IdleTimeout      time.Duration `json:"idleTimeout,omitempty"`
+	MaxAge           time.Duration `json:"maxAge,omitempty"`
+	KeepAlive        time.Duration `json:"keepAlive,omitempty"`
 	KeepAliveTimeout time.Duration `json:"keepAliveTimeout,omitempty"`
 }
 
 // ResourceOptimizationConfig defines resource optimization configuration
 type ResourceOptimizationConfig struct {
-	CPU    *CPUOptimizationConfig    `json:"cpu,omitempty"`
-	Memory *MemoryOptimizationConfig `json:"memory,omitempty"`
-	Disk   *DiskOptimizationConfig   `json:"disk,omitempty"`
+	CPU     *CPUOptimizationConfig     `json:"cpu,omitempty"`
+	Memory  *MemoryOptimizationConfig  `json:"memory,omitempty"`
+	Disk    *DiskOptimizationConfig    `json:"disk,omitempty"`
 	Network *NetworkOptimizationConfig `json:"network,omitempty"`
 }
 
 // CPUOptimizationConfig defines CPU optimization configuration
 type CPUOptimizationConfig struct {
-	MaxWorkers   int     `json:"maxWorkers,omitempty"`
-	GCPercent    int     `json:"gcPercent,omitempty"`
-	MaxProcs     int     `json:"maxProcs,omitempty"`
-	Affinity     []int   `json:"affinity,omitempty"`
-	Scaling      *AutoScalingConfig `json:"scaling,omitempty"`
+	MaxWorkers int                `json:"maxWorkers,omitempty"`
+	GCPercent  int                `json:"gcPercent,omitempty"`
+	MaxProcs   int                `json:"maxProcs,omitempty"`
+	Affinity   []int              `json:"affinity,omitempty"`
+	Scaling    *AutoScalingConfig `json:"scaling,omitempty"`
 }
 
 // MemoryOptimizationConfig defines memory optimization configuration
@@ -1187,20 +1188,20 @@ type MemoryOptimizationConfig struct {
 
 // DiskOptimizationConfig defines disk optimization configuration
 type DiskOptimizationConfig struct {
-	BufferSize    int    `json:"bufferSize,omitempty"`
-	SyncWrites    bool   `json:"syncWrites,omitempty"`
-	Compression   bool   `json:"compression,omitempty"`
-	ReadAhead     int    `json:"readAhead,omitempty"`
-	WriteCoalesce bool   `json:"writeCoalesce,omitempty"`
+	BufferSize    int  `json:"bufferSize,omitempty"`
+	SyncWrites    bool `json:"syncWrites,omitempty"`
+	Compression   bool `json:"compression,omitempty"`
+	ReadAhead     int  `json:"readAhead,omitempty"`
+	WriteCoalesce bool `json:"writeCoalesce,omitempty"`
 }
 
 // NetworkOptimizationConfig defines network optimization configuration
 type NetworkOptimizationConfig struct {
-	BufferSizes   *NetworkBufferConfig `json:"bufferSizes,omitempty"`
-	Compression   bool                 `json:"compression,omitempty"`
-	KeepAlive     bool                 `json:"keepAlive,omitempty"`
-	NoDelay       bool                 `json:"noDelay,omitempty"`
-	Multiplexing  bool                 `json:"multiplexing,omitempty"`
+	BufferSizes  *NetworkBufferConfig `json:"bufferSizes,omitempty"`
+	Compression  bool                 `json:"compression,omitempty"`
+	KeepAlive    bool                 `json:"keepAlive,omitempty"`
+	NoDelay      bool                 `json:"noDelay,omitempty"`
+	Multiplexing bool                 `json:"multiplexing,omitempty"`
 }
 
 // NetworkBufferConfig defines network buffer configuration
@@ -1211,30 +1212,30 @@ type NetworkBufferConfig struct {
 
 // AutoScalingConfig defines auto-scaling configuration
 type AutoScalingConfig struct {
-	Enabled     bool    `json:"enabled,omitempty"`
-	MinWorkers  int     `json:"minWorkers,omitempty"`
-	MaxWorkers  int     `json:"maxWorkers,omitempty"`
-	TargetCPU   float64 `json:"targetCPU,omitempty"`
+	Enabled      bool    `json:"enabled,omitempty"`
+	MinWorkers   int     `json:"minWorkers,omitempty"`
+	MaxWorkers   int     `json:"maxWorkers,omitempty"`
+	TargetCPU    float64 `json:"targetCPU,omitempty"`
 	TargetMemory float64 `json:"targetMemory,omitempty"`
 }
 
 // PerformanceMonitoringConfig defines performance monitoring configuration
 type PerformanceMonitoringConfig struct {
-	Enabled   bool                           `json:"enabled,omitempty"`
-	Profiling *ProfilingConfig               `json:"profiling,omitempty"`
-	Benchmarks *BenchmarkConfig              `json:"benchmarks,omitempty"`
-	Alerts    []PerformanceAlertConfig       `json:"alerts,omitempty"`
+	Enabled    bool                     `json:"enabled,omitempty"`
+	Profiling  *ProfilingConfig         `json:"profiling,omitempty"`
+	Benchmarks *BenchmarkConfig         `json:"benchmarks,omitempty"`
+	Alerts     []PerformanceAlertConfig `json:"alerts,omitempty"`
 }
 
 // ProfilingConfig defines profiling configuration
 type ProfilingConfig struct {
-	Enabled bool          `json:"enabled,omitempty"`
-	CPU     bool          `json:"cpu,omitempty"`
-	Memory  bool          `json:"memory,omitempty"`
-	Goroutine bool        `json:"goroutine,omitempty"`
-	Block   bool          `json:"block,omitempty"`
-	Mutex   bool          `json:"mutex,omitempty"`
-	Duration time.Duration `json:"duration,omitempty"`
+	Enabled   bool          `json:"enabled,omitempty"`
+	CPU       bool          `json:"cpu,omitempty"`
+	Memory    bool          `json:"memory,omitempty"`
+	Goroutine bool          `json:"goroutine,omitempty"`
+	Block     bool          `json:"block,omitempty"`
+	Mutex     bool          `json:"mutex,omitempty"`
+	Duration  time.Duration `json:"duration,omitempty"`
 }
 
 // BenchmarkConfig defines benchmark configuration
@@ -1259,11 +1260,11 @@ type PerformanceAlertConfig struct {
 
 // StorageConfig defines storage configuration
 type StorageConfig struct {
-	Type       string                 `json:"type"` // file, s3, gcs, azure
-	Path       string                 `json:"path,omitempty"`
-	Bucket     string                 `json:"bucket,omitempty"`
-	Prefix     string                 `json:"prefix,omitempty"`
-	Config     map[string]interface{} `json:"config,omitempty"`
+	Type       string                  `json:"type"` // file, s3, gcs, azure
+	Path       string                  `json:"path,omitempty"`
+	Bucket     string                  `json:"bucket,omitempty"`
+	Prefix     string                  `json:"prefix,omitempty"`
+	Config     map[string]interface{}  `json:"config,omitempty"`
 	Encryption *EncryptionAtRestConfig `json:"encryption,omitempty"`
 }
 
@@ -1358,13 +1359,13 @@ func (cb *ConfigBuilder) WithPerformance(config *PerformanceConfig) *ConfigBuild
 func (cb *ConfigBuilder) Build() *Config {
 	// Apply defaults
 	cb.applyDefaults()
-	
+
 	// Validate configuration
 	if err := cb.validate(); err != nil {
 		cb.logger.Error(err, "Configuration validation failed")
 		return nil
 	}
-	
+
 	return cb.config
 }
 
@@ -1373,23 +1374,23 @@ func (cb *ConfigBuilder) applyDefaults() {
 	if cb.config.KubernetesConfig == nil {
 		cb.config.KubernetesConfig = cb.getDefaultKubernetesConfig()
 	}
-	
+
 	if cb.config.PorchConfig == nil {
 		cb.config.PorchConfig = cb.getDefaultPorchConfig()
 	}
-	
+
 	if cb.config.Functions == nil {
 		cb.config.Functions = cb.getDefaultFunctionConfig()
 	}
-	
+
 	if cb.config.Observability == nil {
 		cb.config.Observability = cb.getDefaultObservabilityConfig()
 	}
-	
+
 	if cb.config.Security == nil {
 		cb.config.Security = cb.getDefaultSecurityConfig()
 	}
-	
+
 	if cb.config.Performance == nil {
 		cb.config.Performance = cb.getDefaultPerformanceConfig()
 	}
@@ -1401,13 +1402,13 @@ func (cb *ConfigBuilder) getDefaultKubernetesConfig() *KubernetesConfig {
 	if home := homedir.HomeDir(); home != "" {
 		kubeconfig = filepath.Join(home, ".kube", "config")
 	}
-	
+
 	return &KubernetesConfig{
 		KubeconfigPath: kubeconfig,
-		QPS:           50,
-		Burst:         100,
-		Timeout:       30 * time.Second,
-		UserAgent:     "nephoran-porch-client/v1.0.0",
+		QPS:            50,
+		Burst:          100,
+		Timeout:        30 * time.Second,
+		UserAgent:      "nephoran-porch-client/v1.0.0",
 	}
 }
 
@@ -1424,12 +1425,12 @@ func (cb *ConfigBuilder) getDefaultPorchConfig() *PorchServiceConfig {
 			Jitter:        true,
 		},
 		CircuitBreaker: &CircuitBreakerConfig{
-			Enabled:           true,
-			FailureThreshold:  5,
-			SuccessThreshold:  3,
-			Timeout:           60 * time.Second,
-			HalfOpenMaxCalls:  3,
-			OpenStateTimeout:  30 * time.Second,
+			Enabled:          true,
+			FailureThreshold: 5,
+			SuccessThreshold: 3,
+			Timeout:          60 * time.Second,
+			HalfOpenMaxCalls: 3,
+			OpenStateTimeout: 30 * time.Second,
 		},
 		RateLimit: &RateLimitConfig{
 			Enabled:           true,
@@ -1452,11 +1453,11 @@ func (cb *ConfigBuilder) getDefaultFunctionConfig() *FunctionRegistryConfig {
 	return &FunctionRegistryConfig{
 		DefaultRegistry: "gcr.io/kpt-fn",
 		Execution: &FunctionExecutionConfig{
-			Runtime:         "docker",
-			DefaultTimeout:  5 * time.Minute,
-			MaxConcurrent:   5,
+			Runtime:          "docker",
+			DefaultTimeout:   5 * time.Minute,
+			MaxConcurrent:    5,
 			EnableNetworking: false,
-			AllowPrivileged: false,
+			AllowPrivileged:  false,
 			ResourceLimits: &FunctionResourceLimits{
 				CPU:     "1000m",
 				Memory:  "1Gi",
@@ -1556,11 +1557,11 @@ func (cb *ConfigBuilder) validate() error {
 	if cb.config.PorchConfig == nil {
 		return fmt.Errorf("porch configuration is required")
 	}
-	
+
 	if cb.config.PorchConfig.Endpoint == "" {
 		return fmt.Errorf("porch endpoint is required")
 	}
-	
+
 	// Validate repositories
 	for name, repo := range cb.config.Repositories {
 		if repo.URL == "" {
@@ -1570,14 +1571,14 @@ func (cb *ConfigBuilder) validate() error {
 			return fmt.Errorf("repository %s: type is required", name)
 		}
 	}
-	
+
 	// Validate clusters
 	for name, cluster := range cb.config.Clusters {
 		if cluster.Endpoint == "" && cluster.KubeconfigPath == "" {
 			return fmt.Errorf("cluster %s: either endpoint or kubeconfig path is required", name)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -1591,21 +1592,21 @@ func NewDefaultConfig() *Config {
 // NewConfigFromEnvironment creates configuration from environment variables
 func NewConfigFromEnvironment() (*Config, error) {
 	builder := NewConfigBuilder()
-	
+
 	// Set Porch endpoint from environment
 	if endpoint := os.Getenv("PORCH_ENDPOINT"); endpoint != "" {
 		builder.WithPorchConfig(&PorchServiceConfig{
 			Endpoint: endpoint,
 		})
 	}
-	
+
 	// Set Kubernetes context from environment
 	if context := os.Getenv("KUBERNETES_CONTEXT"); context != "" {
 		builder.WithKubernetesConfig(&KubernetesConfig{
 			Context: context,
 		})
 	}
-	
+
 	// Set namespace from environment
 	if namespace := os.Getenv("PORCH_NAMESPACE"); namespace != "" {
 		if builder.config.KubernetesConfig == nil {
@@ -1613,12 +1614,12 @@ func NewConfigFromEnvironment() (*Config, error) {
 		}
 		builder.config.KubernetesConfig.Namespace = namespace
 	}
-	
+
 	config := builder.Build()
 	if config == nil {
 		return nil, fmt.Errorf("failed to build configuration from environment")
 	}
-	
+
 	return config, nil
 }
 
@@ -1634,10 +1635,10 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 	if c.KubernetesConfig == nil {
 		return nil, fmt.Errorf("kubernetes configuration not specified")
 	}
-	
+
 	var config *rest.Config
 	var err error
-	
+
 	if c.KubernetesConfig.KubeconfigPath != "" {
 		// Load from kubeconfig file
 		config, err = clientcmd.BuildConfigFromFlags(
@@ -1648,28 +1649,28 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 		// Use in-cluster config
 		config, err = rest.InClusterConfig()
 	}
-	
+
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kubernetes config: %w", err)
 	}
-	
+
 	// Apply configuration overrides
 	if c.KubernetesConfig.QPS > 0 {
 		config.QPS = c.KubernetesConfig.QPS
 	}
-	
+
 	if c.KubernetesConfig.Burst > 0 {
 		config.Burst = c.KubernetesConfig.Burst
 	}
-	
+
 	if c.KubernetesConfig.Timeout > 0 {
 		config.Timeout = c.KubernetesConfig.Timeout
 	}
-	
+
 	if c.KubernetesConfig.UserAgent != "" {
 		config.UserAgent = c.KubernetesConfig.UserAgent
 	}
-	
+
 	// Set additional headers
 	if len(c.KubernetesConfig.Headers) > 0 {
 		if config.WrapTransport == nil {
@@ -1681,7 +1682,7 @@ func (c *Config) GetKubernetesConfig() (*rest.Config, error) {
 			}
 		}
 	}
-	
+
 	return config, nil
 }
 
@@ -1721,13 +1722,13 @@ func (c *Config) IsFeatureEnabled(feature string) bool {
 	if c.PorchConfig == nil {
 		return false
 	}
-	
+
 	for _, enabled := range c.PorchConfig.ExperimentalFeatures {
 		if enabled == feature {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -1736,12 +1737,12 @@ func (c *Config) GetDefaultWorkflow() (*WorkflowConfig, error) {
 	if c.Policies == nil || c.Policies.DefaultWorkflow == "" {
 		return nil, fmt.Errorf("no default workflow configured")
 	}
-	
+
 	workflow, exists := c.Policies.Workflows[c.Policies.DefaultWorkflow]
 	if !exists {
 		return nil, fmt.Errorf("default workflow %s not found", c.Policies.DefaultWorkflow)
 	}
-	
+
 	return workflow, nil
 }
 
@@ -1750,19 +1751,19 @@ func (c *Config) GetWorkflowForPackage(packageType string) (*WorkflowConfig, err
 	if c.Policies == nil {
 		return c.GetDefaultWorkflow()
 	}
-	
+
 	workflow, exists := c.Policies.Workflows[packageType]
 	if !exists {
 		return c.GetDefaultWorkflow()
 	}
-	
+
 	return workflow, nil
 }
 
 // ValidateConfiguration validates the entire configuration
 func (c *Config) Validate() []error {
 	var errors []error
-	
+
 	// Validate Kubernetes config
 	if c.KubernetesConfig != nil {
 		if c.KubernetesConfig.QPS < 0 {
@@ -1772,7 +1773,7 @@ func (c *Config) Validate() []error {
 			errors = append(errors, fmt.Errorf("kubernetes Burst cannot be negative"))
 		}
 	}
-	
+
 	// Validate Porch config
 	if c.PorchConfig == nil {
 		errors = append(errors, fmt.Errorf("porch configuration is required"))
@@ -1784,7 +1785,7 @@ func (c *Config) Validate() []error {
 			errors = append(errors, fmt.Errorf("porch timeout must be positive"))
 		}
 	}
-	
+
 	// Validate repository configurations
 	for name, repo := range c.Repositories {
 		if repo.URL == "" {
@@ -1797,14 +1798,14 @@ func (c *Config) Validate() []error {
 			errors = append(errors, fmt.Errorf("repository %s: unsupported type %s", name, repo.Type))
 		}
 	}
-	
+
 	// Validate cluster configurations
 	for name, cluster := range c.Clusters {
 		if cluster.Endpoint == "" && cluster.KubeconfigPath == "" {
 			errors = append(errors, fmt.Errorf("cluster %s: either endpoint or kubeconfig path is required", name))
 		}
 	}
-	
+
 	return errors
 }
 
@@ -1813,7 +1814,7 @@ func (c *Config) DeepCopy() *Config {
 	// Implementation would perform deep copy of all fields
 	// For brevity, showing the pattern
 	copy := &Config{}
-	
+
 	if c.KubernetesConfig != nil {
 		copy.KubernetesConfig = &KubernetesConfig{}
 		*copy.KubernetesConfig = *c.KubernetesConfig
@@ -1824,7 +1825,7 @@ func (c *Config) DeepCopy() *Config {
 			}
 		}
 	}
-	
+
 	// Continue with other fields...
 	return copy
 }

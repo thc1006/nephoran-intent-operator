@@ -88,7 +88,7 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 		wg.Add(1)
 		go func(name string, check ComponentHealthCheck) {
 			defer wg.Done()
-			
+
 			componentCheck := check(checkCtx)
 			componentCheck.Name = name
 			checksChan <- componentCheck
@@ -113,7 +113,7 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 	h.lastHealthData = &HealthCheck{
 		Status:     overallStatus,
 		Timestamp:  time.Now(),
-		Version:    "1.0.0", // Could be injected from build
+		Version:    "1.0.0",                // Could be injected from build
 		Uptime:     time.Since(time.Now()), // This should track actual uptime
 		Components: h.buildComponentsMap(checks),
 		Checks:     checks,
@@ -152,18 +152,18 @@ func (h *HealthChecker) calculateOverallStatus(checks []ComponentCheck) string {
 // buildComponentsMap builds a map of component health information
 func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]interface{} {
 	components := make(map[string]interface{})
-	
+
 	for _, check := range checks {
 		components[check.Name] = map[string]interface{}{
-			"status":      check.Status,
-			"message":     check.Message,
-			"timestamp":   check.Timestamp,
-			"duration":    check.Duration,
-			"details":     check.Details,
-			"check_type":  check.CheckType,
+			"status":     check.Status,
+			"message":    check.Message,
+			"timestamp":  check.Timestamp,
+			"duration":   check.Duration,
+			"details":    check.Details,
+			"check_type": check.CheckType,
 		}
 	}
-	
+
 	return components
 }
 
@@ -171,7 +171,7 @@ func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]i
 func (h *HealthChecker) getServiceStatuses() []ServiceStatus {
 	// This would typically check external dependencies like databases, message queues, etc.
 	var services []ServiceStatus
-	
+
 	// Example service status check
 	services = append(services, ServiceStatus{
 		ServiceName: "database",
@@ -180,7 +180,7 @@ func (h *HealthChecker) getServiceStatuses() []ServiceStatus {
 		LastCheck:   time.Now(),
 		Latency:     5 * time.Millisecond,
 	})
-	
+
 	return services
 }
 
@@ -198,11 +198,11 @@ func (h *HealthChecker) getResourceHealthSummary() *ResourceHealthSummary {
 
 // ComponentCheck represents the result of a component health check
 type ComponentCheck struct {
-	Name        string                 `json:"name" validate:"required"`
-	Status      string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
-	Message     string                 `json:"message,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Duration    time.Duration          `json:"duration,omitempty"`
-	Details     map[string]interface{} `json:"details,omitempty"`
-	CheckType   string                 `json:"check_type,omitempty"` // connectivity, resource, dependency
+	Name      string                 `json:"name" validate:"required"`
+	Status    string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
+	Message   string                 `json:"message,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Duration  time.Duration          `json:"duration,omitempty"`
+	Details   map[string]interface{} `json:"details,omitempty"`
+	CheckType string                 `json:"check_type,omitempty"` // connectivity, resource, dependency
 }

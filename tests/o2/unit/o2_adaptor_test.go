@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -102,7 +102,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 				assert.NotNil(t, instance)
 				assert.Equal(t, "test-smf", instance.Name)
 				assert.Len(t, instance.NetworkEndpoints, 2)
-				
+
 				// Check that network endpoints are created
 				endpointNames := make([]string, len(instance.NetworkEndpoints))
 				for i, ep := range instance.NetworkEndpoints {
@@ -342,9 +342,9 @@ func TestO2Adaptor_GetVNFInstance(t *testing.T) {
 						Name:      "test-amf",
 						Namespace: "o-ran-vnfs",
 						Labels: map[string]string{
-							"app":                     "test-amf",
-							"app.kubernetes.io/name":  "amf",
-							"nephoran.com/vnf":        "true",
+							"app":                    "test-amf",
+							"app.kubernetes.io/name": "amf",
+							"nephoran.com/vnf":       "true",
 						},
 						CreationTimestamp: metav1.NewTime(time.Now().Add(-1 * time.Hour)),
 					},
@@ -449,8 +449,8 @@ func TestO2Adaptor_GetInfrastructureInfo(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "worker-1",
 						Labels: map[string]string{
-							"kubernetes.io/os":                   "linux",
-							"node-role.kubernetes.io/worker":     "",
+							"kubernetes.io/os":               "linux",
+							"node-role.kubernetes.io/worker": "",
 						},
 					},
 					Status: corev1.NodeStatus{
@@ -545,7 +545,7 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		request.Name = string(rune('a' + i%26)) + string(rune('a' + (i/26)%26)) // Generate unique names
+		request.Name = string(rune('a'+i%26)) + string(rune('a'+(i/26)%26)) // Generate unique names
 		_, err := adaptor.DeployVNF(ctx, request)
 		if err != nil {
 			b.Fatalf("DeployVNF failed: %v", err)

@@ -303,23 +303,23 @@ func TestRBACManager_DeleteRole(t *testing.T) {
 				role := rf.CreateBasicRole()
 				createdRole, err := manager.CreateRole(context.Background(), role)
 				require.NoError(t, err)
-				
+
 				// Assign role to a user
 				ctx := context.Background()
 				err = manager.AssignRoleToUser(ctx, "test-user", createdRole.ID)
 				require.NoError(t, err)
-				
+
 				return createdRole.ID
 			},
 			expectError: false, // Should succeed and also remove user assignments
 			checkDeleted: func(t *testing.T, roleID string) {
 				ctx := context.Background()
-				
+
 				// Role should be deleted
 				deletedRole, err := manager.GetRole(ctx, roleID)
 				assert.NoError(t, err)
 				assert.Nil(t, deletedRole)
-				
+
 				// User assignments should be removed
 				userRoles, err := manager.GetUserRoles(ctx, "test-user")
 				assert.NoError(t, err)
@@ -369,9 +369,9 @@ func TestRBACManager_CreatePermission(t *testing.T) {
 	pf := testutil.NewPermissionFactory()
 
 	tests := []struct {
-		name           string
-		permission     *Permission
-		expectError    bool
+		name            string
+		permission      *Permission
+		expectError     bool
 		checkPermission func(*testing.T, *Permission)
 	}{
 		{
@@ -458,10 +458,10 @@ func TestRBACManager_AssignRoleToUser(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name           string
-		userID         string
-		roleID         string
-		expectError    bool
+		name            string
+		userID          string
+		roleID          string
+		expectError     bool
 		checkAssignment func(*testing.T, string, string)
 	}{
 		{
@@ -495,11 +495,11 @@ func TestRBACManager_AssignRoleToUser(t *testing.T) {
 			expectError: false,
 			checkAssignment: func(t *testing.T, userID, roleID string) {
 				ctx := context.Background()
-				
+
 				// Assign second role
 				err := manager.AssignRoleToUser(ctx, userID, createdAdminRole.ID)
 				assert.NoError(t, err)
-				
+
 				// Check both roles are assigned
 				userRoles, err := manager.GetUserRoles(ctx, userID)
 				assert.NoError(t, err)
@@ -514,15 +514,15 @@ func TestRBACManager_AssignRoleToUser(t *testing.T) {
 			expectError: false,
 			checkAssignment: func(t *testing.T, userID, roleID string) {
 				ctx := context.Background()
-				
+
 				// Assign same role again
 				err := manager.AssignRoleToUser(ctx, userID, roleID)
 				assert.NoError(t, err)
-				
+
 				// Should still only have one instance
 				userRoles, err := manager.GetUserRoles(ctx, userID)
 				assert.NoError(t, err)
-				
+
 				count := 0
 				for _, role := range userRoles {
 					if role == roleID {
@@ -690,12 +690,12 @@ func TestRBACManager_CheckPermission(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name           string
-		userID         string
-		resource       string
-		action         string
-		expectAllowed  bool
-		expectError    bool
+		name          string
+		userID        string
+		resource      string
+		action        string
+		expectAllowed bool
+		expectError   bool
 	}{
 		{
 			name:          "Reader can read",
@@ -819,7 +819,7 @@ func TestRBACManager_HierarchicalRoles(t *testing.T) {
 	for i, perm := range createdAdminPerms {
 		adminPermIDs[i] = perm.ID
 	}
-	
+
 	adminRole := rf.CreateRoleWithPermissions(adminPermIDs)
 	adminRole.Name = "admin"
 	adminRole.ParentRoles = []string{createdBasicRole.ID}
@@ -960,7 +960,7 @@ func TestRBACManager_ListOperations(t *testing.T) {
 			checkFunc: func(t *testing.T, result interface{}) {
 				roles := result.([]*Role)
 				assert.GreaterOrEqual(t, len(roles), 2) // At least our test roles plus defaults
-				
+
 				roleNames := make([]string, len(roles))
 				for i, role := range roles {
 					roleNames[i] = role.Name
@@ -977,7 +977,7 @@ func TestRBACManager_ListOperations(t *testing.T) {
 			checkFunc: func(t *testing.T, result interface{}) {
 				permissions := result.([]*Permission)
 				assert.GreaterOrEqual(t, len(permissions), 2) // At least our test permissions plus defaults
-				
+
 				permissionIDs := make([]string, len(permissions))
 				for i, perm := range permissions {
 					permissionIDs[i] = perm.ID
@@ -994,7 +994,7 @@ func TestRBACManager_ListOperations(t *testing.T) {
 				require.NoError(t, err)
 				err = manager.AssignRoleToUser(ctx, "test-user", createdRole2.ID)
 				require.NoError(t, err)
-				
+
 				return manager.GetUserRoles(ctx, "test-user")
 			},
 			checkFunc: func(t *testing.T, result interface{}) {
@@ -1070,7 +1070,7 @@ func BenchmarkRBACManager_GetUserRoles(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		
+
 		err = manager.AssignRoleToUser(ctx, "bench-user", createdRole.ID)
 		if err != nil {
 			b.Fatal(err)
@@ -1185,11 +1185,11 @@ func TestRBACManager_PolicyEngineIntegration(t *testing.T) {
 
 	// Test policy-based permission evaluation
 	tests := []struct {
-		name         string
-		policyRules  []string
-		userContext  map[string]interface{}
-		resource     string
-		action       string
+		name          string
+		policyRules   []string
+		userContext   map[string]interface{}
+		resource      string
+		action        string
 		expectAllowed bool
 	}{
 		{
@@ -1225,23 +1225,23 @@ func TestRBACManager_PolicyEngineIntegration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// This test demonstrates how RBAC could integrate with a policy engine
 			// Implementation would depend on the specific policy engine used
-			
+
 			// For now, we'll test the basic structure
 			ctx := context.Background()
-			
+
 			// In a real implementation, you would:
 			// 1. Parse and store policy rules
 			// 2. Evaluate policies based on user context
 			// 3. Return policy decision
-			
+
 			// Basic check that the manager can handle complex scenarios
 			allowed, err := manager.CheckPermissionWithContext(ctx, tt.userContext, tt.resource, tt.action)
-			
+
 			// This method might not exist yet, but demonstrates the interface
 			if err != nil && err.Error() == "method not implemented" {
 				t.Skip("CheckPermissionWithContext not implemented yet")
 			}
-			
+
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expectAllowed, allowed)
 		})

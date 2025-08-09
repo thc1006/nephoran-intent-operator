@@ -17,9 +17,9 @@ type WebhookSecurityValidator struct {
 // NewWebhookSecurityValidator creates a new webhook security validator
 func NewWebhookSecurityValidator() *WebhookSecurityValidator {
 	return &WebhookSecurityValidator{
-		maxPayloadSize:  10 * 1024 * 1024, // 10MB default
-		allowedUserAgent: "",              // Empty means allow all
-		requiredHeaders: []string{         // Default required headers
+		maxPayloadSize:   10 * 1024 * 1024, // 10MB default
+		allowedUserAgent: "",               // Empty means allow all
+		requiredHeaders: []string{ // Default required headers
 			"Content-Type",
 			"X-Hub-Signature-256",
 		},
@@ -141,15 +141,15 @@ func NewWebhookRateLimiter(limit int, window time.Duration) *WebhookRateLimiter 
 // IsAllowed checks if a request from the given IP is allowed
 func (rl *WebhookRateLimiter) IsAllowed(ip string) bool {
 	now := time.Now()
-	
+
 	// Clean old requests
 	rl.cleanOldRequests(ip, now)
-	
+
 	// Check if we're within limits
 	if len(rl.requests[ip]) >= rl.limit {
 		return false
 	}
-	
+
 	// Add current request
 	rl.requests[ip] = append(rl.requests[ip], now)
 	return true
@@ -159,13 +159,13 @@ func (rl *WebhookRateLimiter) cleanOldRequests(ip string, now time.Time) {
 	if requests, exists := rl.requests[ip]; exists {
 		cutoff := now.Add(-rl.window)
 		validRequests := make([]time.Time, 0)
-		
+
 		for _, reqTime := range requests {
 			if reqTime.After(cutoff) {
 				validRequests = append(validRequests, reqTime)
 			}
 		}
-		
+
 		rl.requests[ip] = validRequests
 	}
 }

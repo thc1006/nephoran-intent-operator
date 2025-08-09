@@ -13,14 +13,12 @@ import (
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-
-
 // Basic test helper - simplified version for basic tests
 func createBasicTestEdgeController() *EdgeController {
 	config := &EdgeControllerConfig{
-		NodeDiscoveryEnabled:      true,
-		MaxLatencyMs:              5,
-		MinBandwidthMbps:          100,
+		NodeDiscoveryEnabled: true,
+		MaxLatencyMs:         5,
+		MinBandwidthMbps:     100,
 	}
 	kubeClient := kubefake.NewSimpleClientset()
 	logger := logr.Discard()
@@ -42,7 +40,6 @@ func createTestNetworkIntent(name, intent string) *nephoran.NetworkIntent {
 		},
 	}
 }
-
 
 func TestRequiresEdgeProcessing(t *testing.T) {
 	controller := createBasicTestEdgeController()

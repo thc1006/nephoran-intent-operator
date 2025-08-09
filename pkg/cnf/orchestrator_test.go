@@ -44,14 +44,14 @@ func TestCNFOrchestrator(t *testing.T) {
 
 var _ = Describe("CNF Orchestrator", func() {
 	var (
-		orchestrator     *CNFOrchestrator
-		fakeClient       client.Client
-		fakeRecorder     *record.FakeRecorder
-		mockPackageGen   *MockPackageGenerator
-		mockGitClient    *MockGitClient
-		mockMetrics      *MockMetricsCollector
-		scheme           *runtime.Scheme
-		ctx              context.Context
+		orchestrator   *CNFOrchestrator
+		fakeClient     client.Client
+		fakeRecorder   *record.FakeRecorder
+		mockPackageGen *MockPackageGenerator
+		mockGitClient  *MockGitClient
+		mockMetrics    *MockMetricsCollector
+		scheme         *runtime.Scheme
+		ctx            context.Context
 	)
 
 	BeforeEach(func() {
@@ -145,7 +145,7 @@ var _ = Describe("CNF Orchestrator", func() {
 
 		It("should fail deployment with invalid CNF deployment", func() {
 			cnfDeployment.Spec.Function = nephoranv1.CNFFunction("")
-			
+
 			result, err := orchestrator.Deploy(ctx, deployRequest)
 
 			Expect(err).To(HaveOccurred())
@@ -178,7 +178,7 @@ var _ = Describe("CNF Orchestrator", func() {
 			_, err := orchestrator.Deploy(ctx, deployRequest)
 
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			// Check for deployment started event
 			select {
 			case event := <-fakeRecorder.Events:
@@ -224,7 +224,7 @@ var _ = Describe("CNF Orchestrator", func() {
 
 		It("should fail validation with nil CNF deployment", func() {
 			deployRequest.CNFDeployment = nil
-			
+
 			err := orchestrator.validateDeploymentRequest(deployRequest)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("CNF deployment is required"))
@@ -233,7 +233,7 @@ var _ = Describe("CNF Orchestrator", func() {
 		It("should fail validation with missing Helm config for Helm strategy", func() {
 			deployRequest.CNFDeployment.Spec.DeploymentStrategy = nephoranv1.DeploymentStrategyHelm
 			// Helm config is nil
-			
+
 			err := orchestrator.validateDeploymentRequest(deployRequest)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Helm configuration is required"))
@@ -242,7 +242,7 @@ var _ = Describe("CNF Orchestrator", func() {
 		It("should fail validation with missing Operator config for Operator strategy", func() {
 			deployRequest.CNFDeployment.Spec.DeploymentStrategy = nephoranv1.DeploymentStrategyOperator
 			// Operator config is nil
-			
+
 			err := orchestrator.validateDeploymentRequest(deployRequest)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Operator configuration is required"))
@@ -269,7 +269,7 @@ var _ = Describe("CNF Orchestrator", func() {
 
 		It("should return error with uninitialized template registry", func() {
 			orchestrator.TemplateRegistry = nil
-			
+
 			template, err := orchestrator.getCNFTemplate(nephoranv1.CNFFunctionAMF)
 
 			Expect(err).To(HaveOccurred())
@@ -303,7 +303,7 @@ var _ = Describe("CNF Orchestrator", func() {
 
 		It("should pass with no dependencies", func() {
 			template.Dependencies = nil
-			
+
 			err := orchestrator.checkDependencies(ctx, cnfDeployment, template)
 			Expect(err).NotTo(HaveOccurred())
 		})
@@ -330,7 +330,7 @@ var _ = Describe("CNF Orchestrator", func() {
 
 		It("should fail when required dependency is missing", func() {
 			err := orchestrator.checkDependencies(ctx, cnfDeployment, template)
-			
+
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("required dependency NRF is not deployed"))
 		})
@@ -379,12 +379,12 @@ var _ = Describe("CNF Orchestrator", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(config).NotTo(BeNil())
 			Expect(config["replicaCount"]).To(Equal(int32(3)))
-			
+
 			resources := config["resources"].(map[string]interface{})
 			requests := resources["requests"].(map[string]interface{})
 			Expect(requests["cpu"]).To(Equal("1000m"))
 			Expect(requests["memory"]).To(Equal("2Gi"))
-			
+
 			limits := resources["limits"].(map[string]interface{})
 			Expect(limits["cpu"]).To(Equal("2000m"))
 			Expect(limits["memory"]).To(Equal("4Gi"))
@@ -517,13 +517,13 @@ func mustParseQuantity(s string) resource.Quantity {
 
 var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 	var (
-		orchestrator     *CNFOrchestrator
-		fakeClient       client.Client
-		fakeRecorder     *record.FakeRecorder
-		mockPackageGen   *MockPackageGenerator
-		mockGitClient    *MockGitClient
-		scheme           *runtime.Scheme
-		ctx              context.Context
+		orchestrator   *CNFOrchestrator
+		fakeClient     client.Client
+		fakeRecorder   *record.FakeRecorder
+		mockPackageGen *MockPackageGenerator
+		mockGitClient  *MockGitClient
+		scheme         *runtime.Scheme
+		ctx            context.Context
 	)
 
 	BeforeEach(func() {
@@ -588,7 +588,7 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 			_, err := orchestrator.Deploy(ctx, deployRequest)
 
 			Expect(err).To(HaveOccurred())
-			
+
 			// Check for deployment failed event
 			select {
 			case event := <-fakeRecorder.Events:
@@ -638,8 +638,8 @@ var _ = Describe("CNF Orchestrator Error Scenarios", func() {
 			Expect(err).NotTo(HaveOccurred())
 			resources := config["resources"].(map[string]interface{})
 			limits := resources["limits"].(map[string]interface{})
-			Expect(limits["cpu"]).To(Equal("1000m"))    // Same as request
-			Expect(limits["memory"]).To(Equal("2Gi"))   // Same as request
+			Expect(limits["cpu"]).To(Equal("1000m"))  // Same as request
+			Expect(limits["memory"]).To(Equal("2Gi")) // Same as request
 		})
 
 		It("should handle DPDK with nil values gracefully", func() {
@@ -777,14 +777,14 @@ var _ = Describe("CNF Orchestrator Performance Tests", func() {
 			}
 
 			template := orchestrator.TemplateRegistry.Templates[nephoranv1.CNFFunctionAMF]
-			
+
 			start := time.Now()
 			for i := 0; i < 100; i++ {
 				_, err := orchestrator.prepareDeploymentConfig(cnfDeployment, template)
 				Expect(err).NotTo(HaveOccurred())
 			}
 			duration := time.Since(start)
-			
+
 			// Expect each operation to take less than 1ms on average
 			avgDuration := duration / 100
 			Expect(avgDuration).To(BeNumerically("<", time.Millisecond))

@@ -49,7 +49,7 @@ type InMemoryStorage struct {
 
 	// Deployment templates
 	deploymentTemplates map[string]*DeploymentTemplate
-	dtMutex            sync.RWMutex
+	dtMutex             sync.RWMutex
 
 	// Deployments
 	deployments map[string]*Deployment

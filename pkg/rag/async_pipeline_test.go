@@ -15,8 +15,8 @@ import (
 
 func TestAsyncWorkerPool_NewAsyncWorkerPool(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 3,
-		QueryWorkers:    2,
+		DocumentWorkers:   3,
+		QueryWorkers:      2,
 		DocumentQueueSize: 10,
 		QueryQueueSize:    5,
 	}
@@ -34,8 +34,8 @@ func TestAsyncWorkerPool_NewAsyncWorkerPool(t *testing.T) {
 
 func TestAsyncWorkerPool_StartStop(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 2,
-		QueryWorkers:    1,
+		DocumentWorkers:   2,
+		QueryWorkers:      1,
 		DocumentQueueSize: 5,
 		QueryQueueSize:    5,
 	}
@@ -65,8 +65,8 @@ func TestAsyncWorkerPool_StartStop(t *testing.T) {
 
 func TestAsyncWorkerPool_SubmitDocumentJob_Success(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 2,
-		QueryWorkers:    1,
+		DocumentWorkers:   2,
+		QueryWorkers:      1,
 		DocumentQueueSize: 10,
 		QueryQueueSize:    5,
 	}
@@ -113,8 +113,8 @@ func TestAsyncWorkerPool_SubmitDocumentJob_Success(t *testing.T) {
 
 func TestAsyncWorkerPool_SubmitDocumentJob_Failure(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 1,
-		QueryWorkers:    1,
+		DocumentWorkers:   1,
+		QueryWorkers:      1,
 		DocumentQueueSize: 5,
 		QueryQueueSize:    5,
 	}
@@ -154,8 +154,8 @@ func TestAsyncWorkerPool_SubmitDocumentJob_Failure(t *testing.T) {
 
 func TestAsyncWorkerPool_SubmitQueryJob_Success(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 1,
-		QueryWorkers:    2,
+		DocumentWorkers:   1,
+		QueryWorkers:      2,
 		DocumentQueueSize: 5,
 		QueryQueueSize:    10,
 	}
@@ -201,8 +201,8 @@ func TestAsyncWorkerPool_SubmitQueryJob_Success(t *testing.T) {
 
 func TestAsyncWorkerPool_SubmitQueryJob_Failure(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 1,
-		QueryWorkers:    1,
+		DocumentWorkers:   1,
+		QueryWorkers:      1,
 		DocumentQueueSize: 5,
 		QueryQueueSize:    5,
 	}
@@ -241,8 +241,8 @@ func TestAsyncWorkerPool_SubmitQueryJob_Failure(t *testing.T) {
 
 func TestAsyncWorkerPool_ConcurrentJobs(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 3,
-		QueryWorkers:    3,
+		DocumentWorkers:   3,
+		QueryWorkers:      3,
 		DocumentQueueSize: 50,
 		QueryQueueSize:    50,
 	}
@@ -314,8 +314,8 @@ func TestAsyncWorkerPool_ConcurrentJobs(t *testing.T) {
 
 func TestAsyncWorkerPool_QueueFull(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 1,
-		QueryWorkers:    1,
+		DocumentWorkers:   1,
+		QueryWorkers:      1,
 		DocumentQueueSize: 2, // Small queue
 		QueryQueueSize:    2, // Small queue
 	}
@@ -371,8 +371,8 @@ func TestAsyncWorkerPool_QueueFull(t *testing.T) {
 
 func TestAsyncWorkerPool_SubmitNotStarted(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 1,
-		QueryWorkers:    1,
+		DocumentWorkers:   1,
+		QueryWorkers:      1,
 		DocumentQueueSize: 5,
 		QueryQueueSize:    5,
 	}
@@ -400,8 +400,8 @@ func TestAsyncWorkerPool_SubmitNotStarted(t *testing.T) {
 
 func TestAsyncWorkerPool_GracefulShutdown(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 2,
-		QueryWorkers:    2,
+		DocumentWorkers:   2,
+		QueryWorkers:      2,
 		DocumentQueueSize: 10,
 		QueryQueueSize:    10,
 	}
@@ -446,8 +446,8 @@ func TestAsyncWorkerPool_GracefulShutdown(t *testing.T) {
 
 func TestAsyncWorkerPool_ForceShutdown(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 1,
-		QueryWorkers:    1,
+		DocumentWorkers:   1,
+		QueryWorkers:      1,
 		DocumentQueueSize: 5,
 		QueryQueueSize:    5,
 	}
@@ -482,8 +482,8 @@ func TestAsyncWorkerPool_ForceShutdown(t *testing.T) {
 
 func TestAsyncWorkerPool_GetMetrics(t *testing.T) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 2,
-		QueryWorkers:    2,
+		DocumentWorkers:   2,
+		QueryWorkers:      2,
 		DocumentQueueSize: 10,
 		QueryQueueSize:    10,
 	}
@@ -605,8 +605,8 @@ func TestPipeline_ProcessQueryAsync(t *testing.T) {
 // Benchmark tests
 func BenchmarkAsyncWorkerPool_DocumentJobSubmission(b *testing.B) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 10,
-		QueryWorkers:    5,
+		DocumentWorkers:   10,
+		QueryWorkers:      5,
 		DocumentQueueSize: 1000,
 		QueryQueueSize:    500,
 	}
@@ -634,8 +634,8 @@ func BenchmarkAsyncWorkerPool_DocumentJobSubmission(b *testing.B) {
 
 func BenchmarkAsyncWorkerPool_QueryJobSubmission(b *testing.B) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 5,
-		QueryWorkers:    10,
+		DocumentWorkers:   5,
+		QueryWorkers:      10,
 		DocumentQueueSize: 500,
 		QueryQueueSize:    1000,
 	}
@@ -664,8 +664,8 @@ func BenchmarkAsyncWorkerPool_QueryJobSubmission(b *testing.B) {
 
 func BenchmarkAsyncWorkerPool_ConcurrentProcessing(b *testing.B) {
 	config := &AsyncWorkerConfig{
-		DocumentWorkers: 8,
-		QueryWorkers:    8,
+		DocumentWorkers:   8,
+		QueryWorkers:      8,
 		DocumentQueueSize: 1000,
 		QueryQueueSize:    1000,
 	}

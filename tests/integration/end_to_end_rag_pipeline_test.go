@@ -21,30 +21,30 @@ import (
 // relevance scoring to final prompt building
 type EndToEndRAGPipelineTestSuite struct {
 	suite.Suite
-	
-	ctx            context.Context
-	cancel         context.CancelFunc
-	
+
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	// Core components
 	embeddingService rag.EmbeddingServiceInterface
 	contextBuilder   *MockContextBuilder
 	relevanceScorer  *llm.RelevanceScorer
 	promptBuilder    *MockRAGAwarePromptBuilder
-	
+
 	// Test data
-	testDocuments    []*shared.TelecomDocument
-	testQueries      []TestPipelineQuery
+	testDocuments []*shared.TelecomDocument
+	testQueries   []TestPipelineQuery
 }
 
 // TestPipelineQuery represents a test query with expected pipeline behavior
 type TestPipelineQuery struct {
-	Query              string                      `json:"query"`
-	IntentType         string                      `json:"intent_type"`
-	ExpectedDocCount   int                         `json:"expected_doc_count"`
-	MinRelevanceScore  float32                     `json:"min_relevance_score"`
-	ExpectedKeywords   []string                    `json:"expected_keywords"`
-	Context            map[string]interface{}      `json:"context"`
-	ExpectedPromptSize int                         `json:"expected_prompt_size"`
+	Query              string                 `json:"query"`
+	IntentType         string                 `json:"intent_type"`
+	ExpectedDocCount   int                    `json:"expected_doc_count"`
+	MinRelevanceScore  float32                `json:"min_relevance_score"`
+	ExpectedKeywords   []string               `json:"expected_keywords"`
+	Context            map[string]interface{} `json:"context"`
+	ExpectedPromptSize int                    `json:"expected_prompt_size"`
 }
 
 // MockContextBuilder implements context building for testing
@@ -65,11 +65,11 @@ func NewMockContextBuilder() *MockContextBuilder {
 func (cb *MockContextBuilder) RetrieveDocuments(ctx context.Context, query string, maxResults int) ([]*shared.TelecomDocument, error) {
 	cb.retrievalCalls++
 	cb.lastQuery = query
-	
+
 	// Filter documents based on query (simple keyword matching for testing)
 	var results []*shared.TelecomDocument
 	queryLower := strings.ToLower(query)
-	
+
 	for _, doc := range cb.documents {
 		contentLower := strings.ToLower(doc.Content + " " + doc.Title)
 		if strings.Contains(contentLower, queryLower) {
@@ -79,7 +79,7 @@ func (cb *MockContextBuilder) RetrieveDocuments(ctx context.Context, query strin
 			}
 		}
 	}
-	
+
 	return results, nil
 }
 
@@ -116,15 +116,15 @@ func NewMockRAGAwarePromptBuilder() *MockRAGAwarePromptBuilder {
 func (pb *MockRAGAwarePromptBuilder) BuildPrompt(ctx context.Context, query string, documents []*llm.ScoredDocument, intentType string) (string, error) {
 	pb.buildCalls++
 	pb.lastQuery = query
-	
+
 	// Build context from scored documents
 	var contextParts []string
 	for _, doc := range documents {
 		contextParts = append(contextParts, doc.Document.Content[:min(len(doc.Document.Content), 200)])
 	}
-	
+
 	pb.lastContext = strings.Join(contextParts, "\n---\n")
-	
+
 	// Generate a comprehensive prompt
 	prompt := fmt.Sprintf(`Based on the following telecommunications documentation context, please answer the question about %s.
 
@@ -139,7 +139,7 @@ If the context doesn't contain sufficient information, please indicate what addi
 		pb.lastContext,
 		query,
 		intentType)
-	
+
 	pb.generatedPrompts = append(pb.generatedPrompts, prompt)
 	return prompt, nil
 }
@@ -157,10 +157,10 @@ func (pb *MockRAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
 // SetupSuite initializes the test suite
 func (suite *EndToEndRAGPipelineTestSuite) SetupSuite() {
 	suite.ctx, suite.cancel = context.WithCancel(context.Background())
-	
+
 	// Initialize components
 	suite.setupComponents()
-	
+
 	// Load test data
 	suite.loadTestData()
 }
@@ -177,22 +177,22 @@ func (suite *EndToEndRAGPipelineTestSuite) TearDownSuite() {
 func (suite *EndToEndRAGPipelineTestSuite) setupComponents() {
 	// Create embedding service with adapter pattern
 	concreteEmbeddingService := rag.NewEmbeddingService(&rag.EmbeddingConfig{
-		Provider:     "mock",
-		ModelName:    "test-model",
-		Dimensions:   384,
-		BatchSize:    16,
+		Provider:      "mock",
+		ModelName:     "test-model",
+		Dimensions:    384,
+		BatchSize:     16,
 		EnableCaching: true,
-		MockMode:     true,
+		MockMode:      true,
 	})
-	
+
 	suite.embeddingService = rag.NewEmbeddingServiceAdapter(concreteEmbeddingService)
-	
+
 	// Create context builder
 	suite.contextBuilder = NewMockContextBuilder()
-	
+
 	// Create relevance scorer with proper interface
 	suite.relevanceScorer = llm.NewRelevanceScorer(nil, suite.embeddingService)
-	
+
 	// Create prompt builder
 	suite.promptBuilder = NewMockRAGAwarePromptBuilder()
 }
@@ -202,58 +202,58 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 	// Load comprehensive test documents covering various telecom topics
 	suite.testDocuments = []*shared.TelecomDocument{
 		{
-			ID:       "doc-5g-slicing",
-			Title:    "5G Network Slicing Implementation Guide",
-			Content:  "Network slicing is a key 5G technology that enables the creation of multiple virtual networks on top of a shared physical infrastructure. Each network slice can be optimized for specific use cases such as enhanced Mobile Broadband (eMBB), Ultra-Reliable Low-Latency Communication (URLLC), or Massive Machine-Type Communication (mMTC). The implementation involves configuring the AMF (Access and Mobility Management Function) and SMF (Session Management Function) to handle different slice types with appropriate QoS parameters.",
-			Category: "5g_core",
-			Source:   "3GPP TS 23.501",
-			Version:  "17.0.0",
-			CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-10 * 24 * time.Hour),
-			Technology: []string{"5G", "Network Slicing"},
+			ID:              "doc-5g-slicing",
+			Title:           "5G Network Slicing Implementation Guide",
+			Content:         "Network slicing is a key 5G technology that enables the creation of multiple virtual networks on top of a shared physical infrastructure. Each network slice can be optimized for specific use cases such as enhanced Mobile Broadband (eMBB), Ultra-Reliable Low-Latency Communication (URLLC), or Massive Machine-Type Communication (mMTC). The implementation involves configuring the AMF (Access and Mobility Management Function) and SMF (Session Management Function) to handle different slice types with appropriate QoS parameters.",
+			Category:        "5g_core",
+			Source:          "3GPP TS 23.501",
+			Version:         "17.0.0",
+			CreatedAt:       time.Now().Add(-30 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-10 * 24 * time.Hour),
+			Technology:      []string{"5G", "Network Slicing"},
 			NetworkFunction: []string{"AMF", "SMF"},
 		},
 		{
-			ID:       "doc-oran-architecture",
-			Title:    "O-RAN Architecture and E2 Interface Specification",
-			Content:  "The O-RAN Alliance defines an open, intelligent Radio Access Network architecture that enables multi-vendor interoperability and programmability. The E2 interface connects the Near-RT RIC (Real-Time Intelligent Controller) to the E2 nodes (O-DU, O-CU) and enables real-time control and optimization. The E2AP (E2 Application Protocol) supports various service models including Key Performance Measurement (KPM), RAN Control (RC), and Network Information (NI) services.",
-			Category: "oran",
-			Source:   "O-RAN.WG3.E2AP-v03.00",
-			Version:  "03.00",
-			CreatedAt: time.Now().Add(-60 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-5 * 24 * time.Hour),
-			Technology: []string{"O-RAN", "E2"},
+			ID:              "doc-oran-architecture",
+			Title:           "O-RAN Architecture and E2 Interface Specification",
+			Content:         "The O-RAN Alliance defines an open, intelligent Radio Access Network architecture that enables multi-vendor interoperability and programmability. The E2 interface connects the Near-RT RIC (Real-Time Intelligent Controller) to the E2 nodes (O-DU, O-CU) and enables real-time control and optimization. The E2AP (E2 Application Protocol) supports various service models including Key Performance Measurement (KPM), RAN Control (RC), and Network Information (NI) services.",
+			Category:        "oran",
+			Source:          "O-RAN.WG3.E2AP-v03.00",
+			Version:         "03.00",
+			CreatedAt:       time.Now().Add(-60 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-5 * 24 * time.Hour),
+			Technology:      []string{"O-RAN", "E2"},
 			NetworkFunction: []string{"Near-RT RIC", "O-DU", "O-CU"},
 		},
 		{
-			ID:       "doc-amf-deployment",
-			Title:    "AMF Deployment Configuration for High Availability",
-			Content:  "The Access and Mobility Management Function (AMF) is a critical 5G Core network function that handles registration, connection, and mobility management. For high availability deployment, AMF instances should be configured with load balancing, geographic redundancy, and proper scaling policies. The AMF connects to UDM for subscriber data, AUSF for authentication, and PCF for policy control. Configuration parameters include PLMN settings, tracking area lists, and N1/N2 interface configurations.",
-			Category: "5g_core",
-			Source:   "3GPP TS 23.502",
-			Version:  "17.1.0",
-			CreatedAt: time.Now().Add(-15 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-2 * 24 * time.Hour),
-			Technology: []string{"5G", "Core Network"},
+			ID:              "doc-amf-deployment",
+			Title:           "AMF Deployment Configuration for High Availability",
+			Content:         "The Access and Mobility Management Function (AMF) is a critical 5G Core network function that handles registration, connection, and mobility management. For high availability deployment, AMF instances should be configured with load balancing, geographic redundancy, and proper scaling policies. The AMF connects to UDM for subscriber data, AUSF for authentication, and PCF for policy control. Configuration parameters include PLMN settings, tracking area lists, and N1/N2 interface configurations.",
+			Category:        "5g_core",
+			Source:          "3GPP TS 23.502",
+			Version:         "17.1.0",
+			CreatedAt:       time.Now().Add(-15 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-2 * 24 * time.Hour),
+			Technology:      []string{"5G", "Core Network"},
 			NetworkFunction: []string{"AMF", "UDM", "AUSF", "PCF"},
 		},
 		{
-			ID:       "doc-ric-apps",
-			Title:    "Near-RT RIC Application Development Guide",
-			Content:  "Near-RT RIC applications (xApps) enable real-time RAN optimization and control. xApps can implement various algorithms for handover optimization, load balancing, interference management, and QoS control. The development involves using E2 service models to interact with RAN nodes, implementing control loops with sub-second latency, and integrating with A1 interface for policy-driven configuration. Popular xApp use cases include traffic steering, energy saving, and anomaly detection.",
-			Category: "oran",
-			Source:   "O-RAN.WG2.xApp-Guide-v01.02",
-			Version:  "01.02",
-			CreatedAt: time.Now().Add(-45 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-7 * 24 * time.Hour),
-			Technology: []string{"O-RAN", "xApp", "Near-RT RIC"},
+			ID:              "doc-ric-apps",
+			Title:           "Near-RT RIC Application Development Guide",
+			Content:         "Near-RT RIC applications (xApps) enable real-time RAN optimization and control. xApps can implement various algorithms for handover optimization, load balancing, interference management, and QoS control. The development involves using E2 service models to interact with RAN nodes, implementing control loops with sub-second latency, and integrating with A1 interface for policy-driven configuration. Popular xApp use cases include traffic steering, energy saving, and anomaly detection.",
+			Category:        "oran",
+			Source:          "O-RAN.WG2.xApp-Guide-v01.02",
+			Version:         "01.02",
+			CreatedAt:       time.Now().Add(-45 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-7 * 24 * time.Hour),
+			Technology:      []string{"O-RAN", "xApp", "Near-RT RIC"},
 			NetworkFunction: []string{"Near-RT RIC", "xApp"},
 		},
 	}
-	
+
 	// Add documents to context builder
 	suite.contextBuilder.AddDocuments(suite.testDocuments)
-	
+
 	// Define test queries that exercise the full pipeline
 	suite.testQueries = []TestPipelineQuery{
 		{
@@ -264,8 +264,8 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			ExpectedKeywords:   []string{"amf", "high availability", "deployment", "configuration"},
 			ExpectedPromptSize: 800,
 			Context: map[string]interface{}{
-				"technology": "5g",
-				"component":  "amf",
+				"technology":  "5g",
+				"component":   "amf",
 				"requirement": "high_availability",
 			},
 		},
@@ -277,7 +277,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			ExpectedKeywords:   []string{"o-ran", "e2", "interface", "features"},
 			ExpectedPromptSize: 700,
 			Context: map[string]interface{}{
-				"standard": "oran",
+				"standard":  "oran",
 				"interface": "e2",
 			},
 		},
@@ -289,9 +289,9 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			ExpectedKeywords:   []string{"network slice", "iot", "low latency", "create"},
 			ExpectedPromptSize: 600,
 			Context: map[string]interface{}{
-				"use_case": "iot",
+				"use_case":    "iot",
 				"requirement": "low_latency",
-				"action": "create",
+				"action":      "create",
 			},
 		},
 		{
@@ -304,7 +304,7 @@ func (suite *EndToEndRAGPipelineTestSuite) loadTestData() {
 			Context: map[string]interface{}{
 				"component": "xapp",
 				"algorithm": "traffic_steering",
-				"goal": "optimization",
+				"goal":      "optimization",
 			},
 		},
 	}
@@ -317,24 +317,24 @@ func (suite *EndToEndRAGPipelineTestSuite) TestCompleteRAGPipelineWorkflow() {
 			// Step 1: Context Building - Retrieve documents from Weaviate (simulated)
 			suite.T().Log("Step 1: Document retrieval from context builder")
 			startTime := time.Now()
-			
+
 			documents, err := suite.contextBuilder.RetrieveDocuments(
 				suite.ctx,
 				testQuery.Query,
 				10, // max results
 			)
-			
+
 			retrievalTime := time.Since(startTime)
 			suite.NoError(err, "Document retrieval should not fail")
 			suite.GreaterOrEqual(len(documents), 1, "Should retrieve at least one document")
 			suite.LessOrEqual(len(documents), testQuery.ExpectedDocCount+2, "Should not retrieve excessive documents")
-			
+
 			suite.T().Logf("Retrieved %d documents in %v", len(documents), retrievalTime)
-			
+
 			// Step 2: Relevance Scoring - Score retrieved documents
 			suite.T().Log("Step 2: Document relevance scoring")
 			startTime = time.Now()
-			
+
 			var scoredDocuments []*llm.ScoredDocument
 			for i, doc := range documents {
 				request := &llm.RelevanceRequest{
@@ -344,56 +344,56 @@ func (suite *EndToEndRAGPipelineTestSuite) TestCompleteRAGPipelineWorkflow() {
 					Position:   i,
 					Context:    fmt.Sprintf("%v", testQuery.Context),
 				}
-				
+
 				relevanceScore, err := suite.relevanceScorer.CalculateRelevance(suite.ctx, request)
 				suite.NoError(err, "Relevance scoring should not fail")
 				suite.NotNil(relevanceScore, "Relevance score should not be nil")
 				suite.GreaterOrEqual(relevanceScore.OverallScore, float32(0.0), "Score should be non-negative")
 				suite.LessOrEqual(relevanceScore.OverallScore, float32(1.0), "Score should not exceed 1.0")
-				
+
 				scoredDoc := &llm.ScoredDocument{
 					Document:       doc,
 					RelevanceScore: relevanceScore,
 					Position:       i,
 					TokenCount:     len(doc.Content) / 4, // Rough token estimation
 				}
-				
+
 				scoredDocuments = append(scoredDocuments, scoredDoc)
 			}
-			
+
 			scoringTime := time.Since(startTime)
 			suite.T().Logf("Scored %d documents in %v", len(scoredDocuments), scoringTime)
-			
+
 			// Validate scoring results
 			suite.validateScoringResults(scoredDocuments, testQuery)
-			
+
 			// Step 3: RAG-Aware Prompt Building - Create final prompt
 			suite.T().Log("Step 3: RAG-aware prompt building")
 			startTime = time.Now()
-			
+
 			prompt, err := suite.promptBuilder.BuildPrompt(
 				suite.ctx,
 				testQuery.Query,
 				scoredDocuments,
 				testQuery.IntentType,
 			)
-			
+
 			promptTime := time.Since(startTime)
 			suite.NoError(err, "Prompt building should not fail")
 			suite.NotEmpty(prompt, "Generated prompt should not be empty")
 			suite.GreaterOrEqual(len(prompt), testQuery.ExpectedPromptSize, "Prompt should meet minimum size requirement")
-			
+
 			suite.T().Logf("Generated prompt with %d characters in %v", len(prompt), promptTime)
-			
+
 			// Step 4: Pipeline Validation - Ensure complete workflow integrity
 			suite.T().Log("Step 4: Complete pipeline validation")
 			suite.validateCompleteWorkflow(testQuery, documents, scoredDocuments, prompt)
-			
+
 			// Log performance metrics
 			totalTime := retrievalTime + scoringTime + promptTime
 			suite.T().Logf("Complete pipeline executed in %v (retrieval: %v, scoring: %v, prompt: %v)",
 				totalTime, retrievalTime, scoringTime, promptTime)
-			
+
 			// Performance assertions
 			suite.Less(totalTime, 10*time.Second, "Complete pipeline should execute within 10 seconds")
 			suite.Less(retrievalTime, 2*time.Second, "Document retrieval should be fast")
@@ -408,12 +408,12 @@ func (suite *EndToEndRAGPipelineTestSuite) TestPipelineComponentIntegration() {
 	// Test ContextBuilder ↔ RelevanceScorer Integration
 	suite.Run("ContextBuilder_RelevanceScorer_Integration", func() {
 		query := "AMF deployment configuration"
-		
+
 		// Retrieve documents
 		documents, err := suite.contextBuilder.RetrieveDocuments(suite.ctx, query, 3)
 		suite.NoError(err)
 		suite.GreaterOrEqual(len(documents), 1)
-		
+
 		// Score the first document
 		request := &llm.RelevanceRequest{
 			Query:      query,
@@ -421,20 +421,20 @@ func (suite *EndToEndRAGPipelineTestSuite) TestPipelineComponentIntegration() {
 			Document:   documents[0],
 			Position:   0,
 		}
-		
+
 		score, err := suite.relevanceScorer.CalculateRelevance(suite.ctx, request)
 		suite.NoError(err)
 		suite.NotNil(score)
-		
+
 		// Validate score components
 		suite.Greater(score.SemanticScore, float32(0.0), "Semantic score should be positive")
 		suite.Greater(score.AuthorityScore, float32(0.0), "Authority score should be positive")
 		suite.Greater(score.RecencyScore, float32(0.0), "Recency score should be positive")
-		
+
 		// Check explanation
 		suite.NotEmpty(score.Explanation, "Score should have explanation")
 	})
-	
+
 	// Test RelevanceScorer ↔ PromptBuilder Integration
 	suite.Run("RelevanceScorer_PromptBuilder_Integration", func() {
 		// Create a scored document
@@ -445,16 +445,16 @@ func (suite *EndToEndRAGPipelineTestSuite) TestPipelineComponentIntegration() {
 			Document:   doc,
 			Position:   0,
 		}
-		
+
 		score, err := suite.relevanceScorer.CalculateRelevance(suite.ctx, request)
 		suite.NoError(err)
-		
+
 		scoredDoc := &llm.ScoredDocument{
 			Document:       doc,
 			RelevanceScore: score,
 			Position:       0,
 		}
-		
+
 		// Build prompt with scored document
 		prompt, err := suite.promptBuilder.BuildPrompt(
 			suite.ctx,
@@ -462,7 +462,7 @@ func (suite *EndToEndRAGPipelineTestSuite) TestPipelineComponentIntegration() {
 			[]*llm.ScoredDocument{scoredDoc},
 			"configuration_request",
 		)
-		
+
 		suite.NoError(err)
 		suite.NotEmpty(prompt)
 		suite.Contains(strings.ToLower(prompt), "network slicing")
@@ -478,18 +478,18 @@ func (suite *EndToEndRAGPipelineTestSuite) TestEmbeddingServiceInterfaceAbstract
 		suite.NoError(err, "GetEmbedding should not fail")
 		suite.NotEmpty(embedding, "Embedding should not be empty")
 		suite.Greater(len(embedding), 0, "Embedding should have dimensions")
-		
+
 		// Test CalculateSimilarity method
 		similarity, err := suite.embeddingService.CalculateSimilarity(suite.ctx, "network slicing", "5G network slice")
 		suite.NoError(err, "CalculateSimilarity should not fail")
 		suite.GreaterOrEqual(similarity, 0.0, "Similarity should be non-negative")
 		suite.LessOrEqual(similarity, 1.0, "Similarity should not exceed 1.0")
 		suite.Greater(similarity, 0.3, "Similar texts should have reasonable similarity")
-		
+
 		// Test HealthCheck method
 		err = suite.embeddingService.HealthCheck(suite.ctx)
 		suite.NoError(err, "HealthCheck should pass for healthy service")
-		
+
 		// Test GetMetrics method
 		metrics := suite.embeddingService.GetMetrics()
 		suite.NotNil(metrics, "Metrics should not be nil")
@@ -505,7 +505,7 @@ func (suite *EndToEndRAGPipelineTestSuite) TestErrorHandlingAndResilience() {
 		if err == nil {
 			suite.Equal(0, len(documents), "Empty query should return no documents")
 		}
-		
+
 		// Test relevance scoring with nil document
 		request := &llm.RelevanceRequest{
 			Query:      "test query",
@@ -513,10 +513,10 @@ func (suite *EndToEndRAGPipelineTestSuite) TestErrorHandlingAndResilience() {
 			Document:   nil,
 			Position:   0,
 		}
-		
+
 		_, err = suite.relevanceScorer.CalculateRelevance(suite.ctx, request)
 		suite.Error(err, "Should fail with nil document")
-		
+
 		// Test prompt building with empty documents
 		prompt, err := suite.promptBuilder.BuildPrompt(suite.ctx, "test", []*llm.ScoredDocument{}, "test")
 		if err == nil {
@@ -536,7 +536,7 @@ func (suite *EndToEndRAGPipelineTestSuite) validateScoringResults(scoredDocument
 			break
 		}
 	}
-	
+
 	if len(scoredDocuments) > 0 {
 		// Allow some flexibility - either have high relevance OR reasonable scores
 		if !hasHighRelevance {
@@ -548,7 +548,7 @@ func (suite *EndToEndRAGPipelineTestSuite) validateScoringResults(scoredDocument
 			suite.GreaterOrEqual(avgScore, testQuery.MinRelevanceScore*0.7, "Average relevance should be reasonable")
 		}
 	}
-	
+
 	// Validate score components are reasonable
 	for _, scoredDoc := range scoredDocuments {
 		score := scoredDoc.RelevanceScore
@@ -563,11 +563,11 @@ func (suite *EndToEndRAGPipelineTestSuite) validateScoringResults(scoredDocument
 func (suite *EndToEndRAGPipelineTestSuite) validateCompleteWorkflow(testQuery TestPipelineQuery, documents []*shared.TelecomDocument, scoredDocuments []*llm.ScoredDocument, prompt string) {
 	// Validate data flow consistency
 	suite.Equal(len(documents), len(scoredDocuments), "Document count should be consistent")
-	
+
 	// Validate that prompt contains relevant information
 	promptLower := strings.ToLower(prompt)
 	queryLower := strings.ToLower(testQuery.Query)
-	
+
 	// Check if key terms from query appear in prompt
 	queryWords := strings.Fields(queryLower)
 	foundWords := 0
@@ -576,9 +576,9 @@ func (suite *EndToEndRAGPipelineTestSuite) validateCompleteWorkflow(testQuery Te
 			foundWords++
 		}
 	}
-	
+
 	suite.GreaterOrEqual(foundWords, len(queryWords)/2, "Prompt should contain significant query terms")
-	
+
 	// Validate that context from high-scoring documents appears in prompt
 	if len(scoredDocuments) > 0 {
 		highestScoring := scoredDocuments[0]
@@ -587,7 +587,7 @@ func (suite *EndToEndRAGPipelineTestSuite) validateCompleteWorkflow(testQuery Te
 				highestScoring = scoredDoc
 			}
 		}
-		
+
 		// Check if content from highest scoring document appears in prompt
 		docWords := strings.Fields(strings.ToLower(highestScoring.Document.Content))
 		foundDocWords := 0
@@ -596,10 +596,10 @@ func (suite *EndToEndRAGPipelineTestSuite) validateCompleteWorkflow(testQuery Te
 				foundDocWords++
 			}
 		}
-		
+
 		suite.GreaterOrEqual(foundDocWords, 2, "Prompt should contain content from highest scoring document")
 	}
-	
+
 	// Validate intent type appears in prompt
 	suite.Contains(promptLower, strings.ToLower(testQuery.IntentType), "Prompt should reference intent type")
 }
@@ -613,7 +613,6 @@ func min(a, b int) int {
 	}
 	return b
 }
-
 
 // Test runner
 func TestEndToEndRAGPipeline(t *testing.T) {

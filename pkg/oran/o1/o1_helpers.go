@@ -83,9 +83,9 @@ func (a *O1Adaptor) parseAlarmData(xmlData string, managedElementID string) ([]*
 func (a *O1Adaptor) parseGenericAlarmData(xmlData string, managedElementID string) ([]*Alarm, error) {
 	// Simple generic parsing for demonstration
 	// In production, this would handle various vendor-specific formats
-	
+
 	alarms := []*Alarm{}
-	
+
 	// Check if data contains alarm indicators
 	if strings.Contains(xmlData, "alarm") || strings.Contains(xmlData, "fault") {
 		// Create a generic alarm entry
@@ -155,11 +155,11 @@ func (a *O1Adaptor) convertEventToAlarm(event *NetconfEvent, managedElementID st
 // Enhanced metric collection with real NETCONF integration
 func (a *O1Adaptor) collectMetricsFromDevice(ctx context.Context, clientID string, metricNames []string) (map[string]interface{}, error) {
 	logger := log.FromContext(ctx)
-	
+
 	a.clientsMux.RLock()
 	client, exists := a.clients[clientID]
 	a.clientsMux.RUnlock()
-	
+
 	if !exists || !client.IsConnected() {
 		return nil, fmt.Errorf("no active client found or client not connected")
 	}
@@ -199,7 +199,7 @@ func (a *O1Adaptor) collectMetricsFromDevice(ctx context.Context, clientID strin
 		// Query the metric using NETCONF
 		configData, err := client.GetConfig(filter)
 		if err != nil {
-			logger.Info("failed to query metric via NETCONF, using default", 
+			logger.Info("failed to query metric via NETCONF, using default",
 				"metric", metricName, "error", err)
 			metrics[metricName] = defaultValue
 			continue
@@ -227,7 +227,7 @@ func (a *O1Adaptor) parseMetricValue(xmlData string, metricName string) (interfa
 
 	// Simple XML parsing for metric values
 	// In production, this would use proper XML parsing with schemas
-	
+
 	// Look for numeric values in the XML
 	lines := strings.Split(xmlData, "\n")
 	for _, line := range lines {
@@ -238,17 +238,17 @@ func (a *O1Adaptor) parseMetricValue(xmlData string, metricName string) (interfa
 			end := strings.LastIndex(line, "<")
 			if start >= 0 && end > start {
 				content := line[start+1 : end]
-				
+
 				// Try to parse as float
 				if value, err := strconv.ParseFloat(content, 64); err == nil {
 					return value, nil
 				}
-				
+
 				// Try to parse as int
 				if value, err := strconv.ParseInt(content, 10, 64); err == nil {
 					return value, nil
 				}
-				
+
 				// Return as string if not numeric
 				if content != "" {
 					return content, nil
@@ -263,7 +263,7 @@ func (a *O1Adaptor) parseMetricValue(xmlData string, metricName string) (interfa
 // startPeriodicMetricCollection starts a goroutine for periodic metric collection
 func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector *MetricCollector) {
 	logger := log.FromContext(ctx)
-	logger.Info("starting periodic metric collection", 
+	logger.Info("starting periodic metric collection",
 		"collectorID", collector.ID,
 		"element", collector.ManagedElement,
 		"period", collector.CollectionPeriod)
@@ -274,7 +274,7 @@ func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector
 
 	go func() {
 		defer cancel()
-		
+
 		ticker := time.NewTicker(collector.CollectionPeriod)
 		defer ticker.Stop()
 
@@ -300,7 +300,7 @@ func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector
 				a.metricsMux.Unlock()
 
 				// Log collected metrics (in production, you might want to export to monitoring system)
-				logger.Info("collected metrics", 
+				logger.Info("collected metrics",
 					"collectorID", collector.ID,
 					"metrics", metrics,
 					"timestamp", time.Now())
@@ -313,7 +313,7 @@ func (a *O1Adaptor) startPeriodicMetricCollection(ctx context.Context, collector
 func (a *O1Adaptor) validateNetworkElement(me interface{}) error {
 	// This would typically validate against the ManagedElement CRD schema
 	// For now, perform basic validation
-	
+
 	if me == nil {
 		return fmt.Errorf("managed element cannot be nil")
 	}
@@ -333,7 +333,7 @@ func (a *O1Adaptor) buildSecurityConfiguration(policy *SecurityPolicy) string {
 	xmlBuilder.WriteString(fmt.Sprintf("  <policy-id>%s</policy-id>\n", policy.PolicyID))
 	xmlBuilder.WriteString(fmt.Sprintf("  <policy-type>%s</policy-type>\n", policy.PolicyType))
 	xmlBuilder.WriteString(fmt.Sprintf("  <enforcement>%s</enforcement>\n", policy.Enforcement))
-	
+
 	if len(policy.Rules) > 0 {
 		xmlBuilder.WriteString("  <rules>\n")
 		for _, rule := range policy.Rules {
@@ -344,7 +344,7 @@ func (a *O1Adaptor) buildSecurityConfiguration(policy *SecurityPolicy) string {
 		}
 		xmlBuilder.WriteString("  </rules>\n")
 	}
-	
+
 	xmlBuilder.WriteString("</security-configuration>\n")
 	return xmlBuilder.String()
 }

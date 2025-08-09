@@ -18,25 +18,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/testutil"
 	gitfake "github.com/thc1006/nephoran-intent-operator/pkg/git/fake"
-	"github.com/thc1006/nephoran-intent-operator/hack/testtools"
 )
-
-
 
 func TestE2NodeSetController_Reconcile(t *testing.T) {
 	testCases := []struct {
-		name             string
-		e2nodeSet        *nephoranv1.E2NodeSet
-		existingObjects  []client.Object
-		e2ManagerSetup   func(*testutil.FakeE2Manager)
-		gitClientSetup   func(*gitfake.Client)
-		expectedResult   ctrl.Result
-		expectedError    bool
-		expectedCalls    func(*testing.T, *testutil.FakeE2Manager, *gitfake.Client)
-		expectedStatus   func(*testing.T, *nephoranv1.E2NodeSet)
-		description      string
+		name            string
+		e2nodeSet       *nephoranv1.E2NodeSet
+		existingObjects []client.Object
+		e2ManagerSetup  func(*testutil.FakeE2Manager)
+		gitClientSetup  func(*gitfake.Client)
+		expectedResult  ctrl.Result
+		expectedError   bool
+		expectedCalls   func(*testing.T, *testutil.FakeE2Manager, *gitfake.Client)
+		expectedStatus  func(*testing.T, *nephoranv1.E2NodeSet)
+		description     string
 	}{
 		{
 			name: "successful_creation_with_replicas",
@@ -354,7 +352,7 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 			// Create fake clients and managers
 			e2Manager := testutil.NewFakeE2Manager()
 			gitClient := gitfake.NewClient()
-			
+
 			// Apply test-specific setup
 			tc.e2ManagerSetup(e2Manager)
 			tc.gitClientSetup(gitClient)
@@ -416,10 +414,10 @@ func TestE2NodeSetController_Reconcile(t *testing.T) {
 
 func TestE2NodeSetController_EdgeCases(t *testing.T) {
 	testCases := []struct {
-		name           string
-		setup          func() (*E2NodeSetReconciler, *nephoranv1.E2NodeSet, context.Context)
-		expectedError  bool
-		description    string
+		name          string
+		setup         func() (*E2NodeSetReconciler, *nephoranv1.E2NodeSet, context.Context)
+		expectedError bool
+		description   string
 	}{
 		{
 			name: "nil_e2_manager",
@@ -592,10 +590,10 @@ func TestE2NodeSetController_ConcurrentUpdates(t *testing.T) {
 
 func TestE2NodeSetController_FinalizerHandling(t *testing.T) {
 	testCases := []struct {
-		name           string
-		initialState   *nephoranv1.E2NodeSet
+		name               string
+		initialState       *nephoranv1.E2NodeSet
 		expectedFinalizers []string
-		description    string
+		description        string
 	}{
 		{
 			name: "add_finalizer_on_creation",

@@ -309,7 +309,7 @@ func TestOAuthManager_ValidateToken(t *testing.T) {
 		// Note: This test will fail with the current implementation because
 		// getSigningKey returns a dummy key. In a real implementation,
 		// you would need to properly handle JWKS and key validation.
-		
+
 		// For testing purposes, we'll test the cache functionality
 		tokenInfo := &TokenInfo{
 			AccessToken: tokenString,
@@ -318,9 +318,9 @@ func TestOAuthManager_ValidateToken(t *testing.T) {
 			Issuer:      "test-issuer",
 			ExpiresAt:   time.Now().Add(time.Hour),
 		}
-		
+
 		manager.cacheToken(tokenString, tokenInfo)
-		
+
 		// Test cache retrieval
 		cached, found := manager.getTokenFromCache(tokenString)
 		assert.True(t, found)
@@ -339,13 +339,13 @@ func TestOAuthManager_ValidateToken(t *testing.T) {
 			Subject:     "expired-user",
 			ExpiresAt:   time.Now().Add(-time.Hour), // Expired
 		}
-		
+
 		manager.cacheToken("expired-token", expiredToken)
-		
+
 		// Should not find expired token
 		_, found := manager.getTokenFromCache("expired-token")
 		assert.True(t, found) // Cache doesn't automatically clean up, cleanup happens periodically
-		
+
 		// But validation should remove it
 		manager.removeTokenFromCache("expired-token")
 		_, found = manager.getTokenFromCache("expired-token")
@@ -411,12 +411,12 @@ func TestRBACManager(t *testing.T) {
 			validateFunc: func(t *testing.T, rm *RBACManager) {
 				assert.Len(t, rm.policies, 1)
 				assert.Contains(t, rm.policies, "test-policy-1")
-				
+
 				// Check admin users
 				assert.Len(t, rm.users, 2)
 				assert.Contains(t, rm.users, "admin1")
 				assert.Contains(t, rm.users, "admin2")
-				
+
 				// Check admin role
 				assert.Contains(t, rm.roles, "admin")
 			},
@@ -581,7 +581,7 @@ func TestCertificateManager(t *testing.T) {
 
 	t.Run("check certificate expiry", func(t *testing.T) {
 		ctx := context.Background()
-		
+
 		// This should not panic or error
 		manager.CheckCertificateExpiry(ctx)
 	})
@@ -958,7 +958,7 @@ d17jO/vCKmYfAiEAn4G6KAKGdZgz0xRGJlGLOj+1vJGLQ+h88XKfvr+9YEkCIDYj
 
 	certFile := filepath.Join(certDir, "bench.crt")
 	keyFile := filepath.Join(certDir, "bench.key")
-	
+
 	ioutil.WriteFile(certFile, []byte(certContent), 0644)
 	ioutil.WriteFile(keyFile, []byte(keyContent), 0644)
 

@@ -66,7 +66,7 @@ func (m *LoadTestMetrics) RecordRequest(latency time.Duration, success bool, err
 
 	m.TotalRequests++
 	m.Latencies = append(m.Latencies, latency)
-	
+
 	if success {
 		m.SuccessfulRequests++
 	} else {
@@ -87,7 +87,7 @@ func (m *LoadTestMetrics) RecordRequest(latency time.Duration, success bool, err
 func (m *LoadTestMetrics) Finalize() {
 	m.EndTime = time.Now()
 	testDuration := m.EndTime.Sub(m.StartTime)
-	
+
 	if len(m.Latencies) > 0 {
 		// Calculate average latency
 		var total time.Duration
@@ -99,7 +99,7 @@ func (m *LoadTestMetrics) Finalize() {
 		// Calculate percentiles
 		sortedLatencies := make([]time.Duration, len(m.Latencies))
 		copy(sortedLatencies, m.Latencies)
-		
+
 		// Simple bubble sort for small datasets
 		for i := 0; i < len(sortedLatencies); i++ {
 			for j := 0; j < len(sortedLatencies)-1-i; j++ {
@@ -170,7 +170,7 @@ func TestO2APILoadPerformance(t *testing.T) {
 		}
 
 		metrics := runResourcePoolCreationLoadTest(t, httpServer.URL, client, loadConfig)
-		
+
 		// Performance assertions
 		assert.Greater(t, metrics.SuccessfulRequests, int64(800), "Should handle at least 800 successful requests")
 		assert.Less(t, float64(metrics.FailedRequests)/float64(metrics.TotalRequests), 0.05, "Error rate should be less than 5%")
@@ -198,7 +198,7 @@ func TestO2APILoadPerformance(t *testing.T) {
 		}
 
 		metrics := runMixedOperationsLoadTest(t, httpServer.URL, client, loadConfig)
-		
+
 		// Performance assertions for mixed operations
 		assert.Greater(t, metrics.SuccessfulRequests, int64(1200), "Should handle at least 1200 successful mixed operations")
 		assert.Less(t, float64(metrics.FailedRequests)/float64(metrics.TotalRequests), 0.08, "Error rate should be less than 8% for mixed operations")
@@ -212,7 +212,7 @@ func TestO2APILoadPerformance(t *testing.T) {
 		t.Logf("  Average Latency: %v", metrics.AverageLatency)
 		t.Logf("  P95 Latency: %v", metrics.P95Latency)
 		t.Logf("  Requests/Second: %.2f", metrics.RequestsPerSecond)
-		
+
 		if len(metrics.ErrorTypes) > 0 {
 			t.Logf("  Error Types:")
 			for errorType, count := range metrics.ErrorTypes {
@@ -230,7 +230,7 @@ func TestO2APILoadPerformance(t *testing.T) {
 		}
 
 		metrics := runSustainedLoadTest(t, httpServer.URL, client, loadConfig)
-		
+
 		// Performance assertions for sustained load
 		assert.Greater(t, metrics.SuccessfulRequests, int64(1800), "Should handle at least 1800 successful requests over sustained period")
 		assert.Less(t, float64(metrics.FailedRequests)/float64(metrics.TotalRequests), 0.03, "Error rate should be less than 3% for sustained load")
@@ -253,13 +253,13 @@ func runResourcePoolCreationLoadTest(t *testing.T, baseURL string, client *http.
 
 	// Channel to control request rate during ramp-up
 	requestChan := make(chan bool, config.ConcurrentClients)
-	
+
 	// Start goroutines for concurrent clients
 	for i := 0; i < config.ConcurrentClients; i++ {
 		wg.Add(1)
 		go func(clientID int) {
 			defer wg.Done()
-			
+
 			// Ramp-up delay
 			rampDelay := time.Duration(clientID) * config.RampUpTime / time.Duration(config.ConcurrentClients)
 			time.Sleep(rampDelay)
@@ -274,13 +274,13 @@ func runResourcePoolCreationLoadTest(t *testing.T, baseURL string, client *http.
 				poolID := fmt.Sprintf("load-test-pool-%d-%d-%d", clientID, j, time.Now().UnixNano())
 				pool := &models.ResourcePool{
 					ResourcePoolID: poolID,
-					Name:          fmt.Sprintf("Load Test Pool %d-%d", clientID, j),
-					Description:   "Resource pool created during load testing",
-					Location:      "us-east-1",
-					OCloudID:      "load-test-ocloud",
-					Provider:      "kubernetes",
-					Region:        "us-east-1",
-					Zone:          "us-east-1a",
+					Name:           fmt.Sprintf("Load Test Pool %d-%d", clientID, j),
+					Description:    "Resource pool created during load testing",
+					Location:       "us-east-1",
+					OCloudID:       "load-test-ocloud",
+					Provider:       "kubernetes",
+					Region:         "us-east-1",
+					Zone:           "us-east-1a",
 					Capacity: &models.ResourceCapacity{
 						CPU: &models.ResourceMetric{
 							Total:       "100",
@@ -352,12 +352,12 @@ func runMixedOperationsLoadTest(t *testing.T, baseURL string, client *http.Clien
 	for i := 0; i < 20; i++ {
 		poolID := fmt.Sprintf("mixed-test-pool-%d", i)
 		createdPoolIDs[i] = poolID
-		
+
 		pool := &models.ResourcePool{
 			ResourcePoolID: poolID,
-			Name:          fmt.Sprintf("Mixed Test Pool %d", i),
-			Provider:      "kubernetes",
-			OCloudID:      "mixed-test-ocloud",
+			Name:           fmt.Sprintf("Mixed Test Pool %d", i),
+			Provider:       "kubernetes",
+			OCloudID:       "mixed-test-ocloud",
 		}
 
 		poolJSON, _ := json.Marshal(pool)
@@ -373,12 +373,12 @@ func runMixedOperationsLoadTest(t *testing.T, baseURL string, client *http.Clien
 
 	// Channel to control request rate
 	requestChan := make(chan bool, config.ConcurrentClients)
-	
+
 	for i := 0; i < config.ConcurrentClients; i++ {
 		wg.Add(1)
 		go func(clientID int) {
 			defer wg.Done()
-			
+
 			// Ramp-up delay
 			rampDelay := time.Duration(clientID) * config.RampUpTime / time.Duration(config.ConcurrentClients)
 			time.Sleep(rampDelay)
@@ -415,9 +415,9 @@ func runMixedOperationsLoadTest(t *testing.T, baseURL string, client *http.Clien
 					poolID := fmt.Sprintf("mixed-post-pool-%d-%d-%d", clientID, j, time.Now().UnixNano())
 					pool := &models.ResourcePool{
 						ResourcePoolID: poolID,
-						Name:          fmt.Sprintf("Mixed POST Pool %d-%d", clientID, j),
-						Provider:      "kubernetes",
-						OCloudID:      "mixed-test-ocloud",
+						Name:           fmt.Sprintf("Mixed POST Pool %d-%d", clientID, j),
+						Provider:       "kubernetes",
+						OCloudID:       "mixed-test-ocloud",
 					}
 
 					poolJSON, marshalErr := json.Marshal(pool)
@@ -436,7 +436,7 @@ func runMixedOperationsLoadTest(t *testing.T, baseURL string, client *http.Clien
 				case operation < 9: // PUT operations (20%)
 					operationType = "PUT"
 					poolID := createdPoolIDs[j%len(createdPoolIDs)]
-					
+
 					// Get current pool first
 					getResp, getErr := client.Get(baseURL + "/o2ims/v1/resourcePools/" + poolID)
 					if getErr != nil {
@@ -464,9 +464,9 @@ func runMixedOperationsLoadTest(t *testing.T, baseURL string, client *http.Clien
 					tempPoolID := fmt.Sprintf("temp-delete-pool-%d-%d-%d", clientID, j, time.Now().UnixNano())
 					tempPool := &models.ResourcePool{
 						ResourcePoolID: tempPoolID,
-						Name:          "Temporary Pool for Deletion",
-						Provider:      "kubernetes",
-						OCloudID:      "temp-ocloud",
+						Name:           "Temporary Pool for Deletion",
+						Provider:       "kubernetes",
+						OCloudID:       "temp-ocloud",
 					}
 
 					tempPoolJSON, _ := json.Marshal(tempPool)
@@ -486,7 +486,7 @@ func runMixedOperationsLoadTest(t *testing.T, baseURL string, client *http.Clien
 
 					// Now delete it
 					req, _ := http.NewRequest("DELETE", baseURL+"/o2ims/v1/resourcePools/"+tempPoolID, nil)
-					
+
 					start = time.Now()
 					resp, err = client.Do(req)
 				}
@@ -530,12 +530,12 @@ func runSustainedLoadTest(t *testing.T, baseURL string, client *http.Client, con
 	var wg sync.WaitGroup
 
 	requestChan := make(chan bool, config.ConcurrentClients)
-	
+
 	for i := 0; i < config.ConcurrentClients; i++ {
 		wg.Add(1)
 		go func(clientID int) {
 			defer wg.Done()
-			
+
 			// Gradual ramp-up
 			rampDelay := time.Duration(clientID) * config.RampUpTime / time.Duration(config.ConcurrentClients)
 			time.Sleep(rampDelay)
@@ -556,9 +556,9 @@ func runSustainedLoadTest(t *testing.T, baseURL string, client *http.Client, con
 					poolID := fmt.Sprintf("sustained-pool-%d-%d-%d", clientID, j, time.Now().UnixNano())
 					pool := &models.ResourcePool{
 						ResourcePoolID: poolID,
-						Name:          fmt.Sprintf("Sustained Test Pool %d-%d", clientID, j),
-						Provider:      "kubernetes",
-						OCloudID:      "sustained-test-ocloud",
+						Name:           fmt.Sprintf("Sustained Test Pool %d-%d", clientID, j),
+						Provider:       "kubernetes",
+						OCloudID:       "sustained-test-ocloud",
 					}
 
 					poolJSON, marshalErr := json.Marshal(pool)
@@ -669,9 +669,9 @@ func BenchmarkO2APIOperations(b *testing.B) {
 			poolID := fmt.Sprintf("benchmark-pool-%d-%d", i, time.Now().UnixNano())
 			pool := &models.ResourcePool{
 				ResourcePoolID: poolID,
-				Name:          fmt.Sprintf("Benchmark Pool %d", i),
-				Provider:      "kubernetes",
-				OCloudID:      "benchmark-ocloud",
+				Name:           fmt.Sprintf("Benchmark Pool %d", i),
+				Provider:       "kubernetes",
+				OCloudID:       "benchmark-ocloud",
 			}
 
 			poolJSON, err := json.Marshal(pool)
@@ -692,9 +692,9 @@ func BenchmarkO2APIOperations(b *testing.B) {
 		for i := 0; i < 10; i++ {
 			pool := &models.ResourcePool{
 				ResourcePoolID: fmt.Sprintf("list-test-pool-%d", i),
-				Name:          fmt.Sprintf("List Test Pool %d", i),
-				Provider:      "kubernetes",
-				OCloudID:      "list-test-ocloud",
+				Name:           fmt.Sprintf("List Test Pool %d", i),
+				Provider:       "kubernetes",
+				OCloudID:       "list-test-ocloud",
 			}
 			poolJSON, _ := json.Marshal(pool)
 			resp, _ := client.Post(
@@ -720,9 +720,9 @@ func BenchmarkO2APIOperations(b *testing.B) {
 		poolID := "get-test-pool"
 		pool := &models.ResourcePool{
 			ResourcePoolID: poolID,
-			Name:          "Get Test Pool",
-			Provider:      "kubernetes",
-			OCloudID:      "get-test-ocloud",
+			Name:           "Get Test Pool",
+			Provider:       "kubernetes",
+			OCloudID:       "get-test-ocloud",
 		}
 		poolJSON, _ := json.Marshal(pool)
 		resp, err := client.Post(
@@ -746,7 +746,7 @@ func BenchmarkO2APIOperations(b *testing.B) {
 func TestMemoryUsage(t *testing.T) {
 	// This test would typically require additional tooling for memory profiling
 	// For now, we'll simulate high-volume operations and ensure no memory leaks
-	
+
 	scheme := runtime.NewScheme()
 	corev1.AddToScheme(scheme)
 	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
@@ -774,15 +774,15 @@ func TestMemoryUsage(t *testing.T) {
 
 	t.Run("High Volume Resource Pool Operations", func(t *testing.T) {
 		const numOperations = 1000
-		
+
 		// Create many resource pools
 		for i := 0; i < numOperations; i++ {
 			poolID := fmt.Sprintf("memory-test-pool-%d", i)
 			pool := &models.ResourcePool{
 				ResourcePoolID: poolID,
-				Name:          fmt.Sprintf("Memory Test Pool %d", i),
-				Provider:      "kubernetes",
-				OCloudID:      "memory-test-ocloud",
+				Name:           fmt.Sprintf("Memory Test Pool %d", i),
+				Provider:       "kubernetes",
+				OCloudID:       "memory-test-ocloud",
 				Capacity: &models.ResourceCapacity{
 					CPU: &models.ResourceMetric{
 						Total:       strconv.Itoa(100 + i%100),

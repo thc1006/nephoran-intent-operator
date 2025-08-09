@@ -21,12 +21,12 @@ import (
 type ExperimentStatus string
 
 const (
-	StatusPending   ExperimentStatus = "Pending"
-	StatusRunning   ExperimentStatus = "Running"
-	StatusCompleted ExperimentStatus = "Completed"
-	StatusFailed    ExperimentStatus = "Failed"
+	StatusPending    ExperimentStatus = "Pending"
+	StatusRunning    ExperimentStatus = "Running"
+	StatusCompleted  ExperimentStatus = "Completed"
+	StatusFailed     ExperimentStatus = "Failed"
 	StatusRolledBack ExperimentStatus = "RolledBack"
-	StatusAborted   ExperimentStatus = "Aborted"
+	StatusAborted    ExperimentStatus = "Aborted"
 )
 
 // SafetyLevel defines the safety constraints for experiments
@@ -59,37 +59,37 @@ type SLAThresholds struct {
 
 // Experiment represents a chaos experiment configuration
 type Experiment struct {
-	ID              string            `json:"id"`
-	Name            string            `json:"name"`
-	Description     string            `json:"description"`
-	Type            ExperimentType    `json:"type"`
-	Target          ExperimentTarget  `json:"target"`
-	Parameters      map[string]string `json:"parameters"`
-	SafetyLevel     SafetyLevel       `json:"safetyLevel"`
-	BlastRadius     BlastRadius       `json:"blastRadius"`
-	SLAThresholds   SLAThresholds     `json:"slaThresholds"`
-	Schedule        *Schedule         `json:"schedule,omitempty"`
-	Duration        time.Duration     `json:"duration"`
-	Status          ExperimentStatus  `json:"status"`
-	StartTime       *time.Time        `json:"startTime,omitempty"`
-	EndTime         *time.Time        `json:"endTime,omitempty"`
-	Results         *ExperimentResult `json:"results,omitempty"`
-	RollbackOnFail  bool              `json:"rollbackOnFail"`
-	DryRun          bool              `json:"dryRun"`
+	ID             string            `json:"id"`
+	Name           string            `json:"name"`
+	Description    string            `json:"description"`
+	Type           ExperimentType    `json:"type"`
+	Target         ExperimentTarget  `json:"target"`
+	Parameters     map[string]string `json:"parameters"`
+	SafetyLevel    SafetyLevel       `json:"safetyLevel"`
+	BlastRadius    BlastRadius       `json:"blastRadius"`
+	SLAThresholds  SLAThresholds     `json:"slaThresholds"`
+	Schedule       *Schedule         `json:"schedule,omitempty"`
+	Duration       time.Duration     `json:"duration"`
+	Status         ExperimentStatus  `json:"status"`
+	StartTime      *time.Time        `json:"startTime,omitempty"`
+	EndTime        *time.Time        `json:"endTime,omitempty"`
+	Results        *ExperimentResult `json:"results,omitempty"`
+	RollbackOnFail bool              `json:"rollbackOnFail"`
+	DryRun         bool              `json:"dryRun"`
 }
 
 // ExperimentType defines the type of chaos experiment
 type ExperimentType string
 
 const (
-	ExperimentTypeNetwork      ExperimentType = "Network"
-	ExperimentTypePod          ExperimentType = "Pod"
-	ExperimentTypeResource     ExperimentType = "Resource"
-	ExperimentTypeDatabase     ExperimentType = "Database"
-	ExperimentTypeExternal     ExperimentType = "External"
-	ExperimentTypeLoad         ExperimentType = "Load"
-	ExperimentTypeDependency   ExperimentType = "Dependency"
-	ExperimentTypeComposite    ExperimentType = "Composite"
+	ExperimentTypeNetwork    ExperimentType = "Network"
+	ExperimentTypePod        ExperimentType = "Pod"
+	ExperimentTypeResource   ExperimentType = "Resource"
+	ExperimentTypeDatabase   ExperimentType = "Database"
+	ExperimentTypeExternal   ExperimentType = "External"
+	ExperimentTypeLoad       ExperimentType = "Load"
+	ExperimentTypeDependency ExperimentType = "Dependency"
+	ExperimentTypeComposite  ExperimentType = "Composite"
 )
 
 // ExperimentTarget specifies what to target in the experiment
@@ -112,9 +112,9 @@ type Schedule struct {
 type ScheduleType string
 
 const (
-	ScheduleTypeOnce      ScheduleType = "Once"
-	ScheduleTypeCron      ScheduleType = "Cron"
-	ScheduleTypeInterval  ScheduleType = "Interval"
+	ScheduleTypeOnce       ScheduleType = "Once"
+	ScheduleTypeCron       ScheduleType = "Cron"
+	ScheduleTypeInterval   ScheduleType = "Interval"
 	ScheduleTypeContinuous ScheduleType = "Continuous"
 )
 
@@ -163,20 +163,20 @@ type RecoveryMetrics struct {
 
 // ChaosEngine orchestrates chaos experiments with safety controls
 type ChaosEngine struct {
-	client          client.Client
-	kubeClient      kubernetes.Interface
-	logger          *zap.Logger
-	experiments     map[string]*Experiment
+	client            client.Client
+	kubeClient        kubernetes.Interface
+	logger            *zap.Logger
+	experiments       map[string]*Experiment
 	activeExperiments sync.Map
-	injector        *FailureInjector
-	validator       *ResilienceValidator
-	recoveryTester  *RecoveryTester
-	killSwitch      *KillSwitch
-	metrics         *ChaosMetrics
-	config          *EngineConfig
-	mu              sync.RWMutex
-	ctx             context.Context
-	cancel          context.CancelFunc
+	injector          *FailureInjector
+	validator         *ResilienceValidator
+	recoveryTester    *RecoveryTester
+	killSwitch        *KillSwitch
+	metrics           *ChaosMetrics
+	config            *EngineConfig
+	mu                sync.RWMutex
+	ctx               context.Context
+	cancel            context.CancelFunc
 }
 
 // EngineConfig defines chaos engine configuration
@@ -218,7 +218,7 @@ func NewChaosEngine(
 	config *EngineConfig,
 ) *ChaosEngine {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	if config == nil {
 		config = &EngineConfig{
 			MaxConcurrentExperiments: 3,
@@ -234,18 +234,18 @@ func NewChaosEngine(
 	}
 
 	return &ChaosEngine{
-		client:          client,
-		kubeClient:      kubeClient,
-		logger:          logger,
-		experiments:     make(map[string]*Experiment),
-		injector:        NewFailureInjector(client, kubeClient, logger),
-		validator:       NewResilienceValidator(client, logger),
-		recoveryTester:  NewRecoveryTester(client, kubeClient, logger),
-		killSwitch:      &KillSwitch{enabled: true},
-		metrics:         initMetrics(),
-		config:          config,
-		ctx:             ctx,
-		cancel:          cancel,
+		client:         client,
+		kubeClient:     kubeClient,
+		logger:         logger,
+		experiments:    make(map[string]*Experiment),
+		injector:       NewFailureInjector(client, kubeClient, logger),
+		validator:      NewResilienceValidator(client, logger),
+		recoveryTester: NewRecoveryTester(client, kubeClient, logger),
+		killSwitch:     &KillSwitch{enabled: true},
+		metrics:        initMetrics(),
+		config:         config,
+		ctx:            ctx,
+		cancel:         cancel,
 	}
 }
 
@@ -330,7 +330,7 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 	// Set up monitoring for the experiment
 	monitorCtx, monitorCancel := context.WithCancel(ctx)
 	defer monitorCancel()
-	
+
 	monitoringChan := e.startMonitoring(monitorCtx, experiment)
 
 	// Execute experiment with timeout
@@ -357,7 +357,7 @@ func (e *ChaosEngine) RunExperiment(ctx context.Context, experiment *Experiment)
 	endTime := time.Now()
 	experiment.EndTime = &endTime
 	duration := endTime.Sub(startTime)
-	
+
 	e.metrics.experimentsActive.Dec()
 	e.metrics.experimentsDuration.WithLabelValues(
 		string(experiment.Type),
@@ -511,7 +511,7 @@ func (e *ChaosEngine) applySafetyConstraints(experiment *Experiment) {
 func (e *ChaosEngine) registerExperiment(experiment *Experiment) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	
+
 	e.experiments[experiment.ID] = experiment
 	e.activeExperiments.Store(experiment.ID, experiment)
 }
@@ -568,7 +568,7 @@ func (e *ChaosEngine) handleSLAViolation(experiment *Experiment, violation SLAVi
 	if experiment.SLAThresholds.AutoRollbackEnable && violation.Severity == "Critical" {
 		e.logger.Info("Triggering auto-rollback due to SLA violation",
 			zap.String("experiment", experiment.ID))
-		
+
 		if err := e.rollbackExperiment(experiment); err != nil {
 			e.logger.Error("Failed to rollback experiment",
 				zap.String("experiment", experiment.ID),
@@ -584,8 +584,8 @@ func (e *ChaosEngine) executeExperiment(
 	monitoringChan <-chan SLAViolation,
 ) *ExperimentResult {
 	result := &ExperimentResult{
-		Success:    true,
-		Artifacts:  make(map[string]interface{}),
+		Success:   true,
+		Artifacts: make(map[string]interface{}),
 	}
 
 	// Pre-experiment validation
@@ -644,12 +644,12 @@ func (e *ChaosEngine) executeExperiment(
 
 	// Collect final metrics
 	result.SLAImpact = metricsCollector.GetImpactMetrics()
-	
+
 	// Test recovery
 	recoveryStart := time.Now()
 	recoveryResult := e.recoveryTester.TestRecovery(ctx, experiment, injectionResult)
 	recoveryDuration := time.Since(recoveryStart)
-	
+
 	result.RecoveryMetrics = RecoveryMetrics{
 		MTTR:                  recoveryDuration,
 		AutoRecoveryTriggered: recoveryResult.AutoRecoveryTriggered,
@@ -667,8 +667,8 @@ func (e *ChaosEngine) executeExperiment(
 	// Post-experiment validation
 	postCheckResult := e.validator.PostExperimentValidation(ctx, experiment, result)
 	if !postCheckResult.Success {
-		result.Observations = append(result.Observations, 
-			"Post-experiment validation issues: " + postCheckResult.Issues)
+		result.Observations = append(result.Observations,
+			"Post-experiment validation issues: "+postCheckResult.Issues)
 	}
 
 	return result
@@ -720,7 +720,7 @@ func (e *ChaosEngine) simulateAvailabilityImpact(experiment *Experiment) float64
 	default:
 		baseImpact = 1.0
 	}
-	
+
 	// Adjust based on blast radius
 	radiusMultiplier := float64(experiment.BlastRadius.MaxPods) * 0.5
 	return baseImpact * (1 + radiusMultiplier)
@@ -843,7 +843,7 @@ func (e *ChaosEngine) startMetricsCollection(ctx context.Context, experiment *Ex
 // TriggerKillSwitch triggers the emergency kill switch
 func (e *ChaosEngine) TriggerKillSwitch(reason string) error {
 	e.killSwitch.Trigger(reason)
-	
+
 	// Stop all active experiments
 	var errors []error
 	e.activeExperiments.Range(func(key, value interface{}) bool {
@@ -888,7 +888,7 @@ func (e *ChaosEngine) ListExperiments() []*Experiment {
 // Stop gracefully stops the chaos engine
 func (e *ChaosEngine) Stop() error {
 	e.logger.Info("Stopping chaos engine")
-	
+
 	// Cancel context to stop all goroutines
 	e.cancel()
 
@@ -993,7 +993,7 @@ func (m *MetricsCollector) GetImpactMetrics() SLAImpactMetrics {
 		totalAvailability += sample.Availability
 		totalThroughput += sample.Throughput
 		totalErrorRate += sample.ErrorRate
-		
+
 		if sample.LatencyP50 > maxLatencyP50 {
 			maxLatencyP50 = sample.LatencyP50
 		}

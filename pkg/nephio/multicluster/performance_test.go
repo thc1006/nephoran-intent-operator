@@ -34,18 +34,17 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
+	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
 )
 
 // Performance test utilities
 type PerformanceMetrics struct {
 	OperationsPerSecond float64
-	AverageLatency     time.Duration
-	P95Latency         time.Duration
-	P99Latency         time.Duration
-	MemoryUsageMB      float64
-	GoroutineCount     int
+	AverageLatency      time.Duration
+	P95Latency          time.Duration
+	P99Latency          time.Duration
+	MemoryUsageMB       float64
+	GoroutineCount      int
 }
 
 type LatencyMeasurement struct {
@@ -101,10 +100,10 @@ func getMemoryUsage() float64 {
 func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterManager {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	clusterMgr := NewClusterManager(client, logger)
 	config := &rest.Config{Host: "https://test-cluster.example.com"}
 
@@ -114,7 +113,7 @@ func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterMana
 			Name:      fmt.Sprintf("perf-cluster-%d", i),
 			Namespace: "default",
 		}
-		
+
 		clusterInfo := &ClusterInfo{
 			Name:       clusterName,
 			Kubeconfig: config,
@@ -124,7 +123,7 @@ func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterMana
 			},
 			HealthStatus: ClusterHealthStatus{Available: true},
 		}
-		
+
 		clusterMgr.clusters[clusterName] = clusterInfo
 	}
 
@@ -135,11 +134,11 @@ func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterMana
 func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
 	scheme := runtime.NewScheme()
 	require.NoError(b, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(b)
 	clusterMgr := NewClusterManager(client, logger)
-	
+
 	config := &rest.Config{Host: "https://benchmark-cluster.example.com"}
 	ctx := context.Background()
 
@@ -149,7 +148,7 @@ func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
 			Name:      fmt.Sprintf("bench-cluster-%d", i),
 			Namespace: "default",
 		}
-		
+
 		_, err := clusterMgr.RegisterCluster(ctx, config, clusterName)
 		if err != nil {
 			b.Fatalf("Failed to register cluster: %v", err)
@@ -160,7 +159,7 @@ func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
 func BenchmarkClusterManager_SelectTargetClusters_10_Clusters(b *testing.B) {
 	clusterMgr := setupPerformanceTestEnvironment(b, 10)
 	packageRevision := createTestPackageRevision("bench-package", "v1.0.0")
-	
+
 	candidates := make([]types.NamespacedName, 10)
 	for i := 0; i < 10; i++ {
 		candidates[i] = types.NamespacedName{
@@ -168,9 +167,9 @@ func BenchmarkClusterManager_SelectTargetClusters_10_Clusters(b *testing.B) {
 			Namespace: "default",
 		}
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := clusterMgr.SelectTargetClusters(ctx, candidates, packageRevision)
@@ -183,7 +182,7 @@ func BenchmarkClusterManager_SelectTargetClusters_10_Clusters(b *testing.B) {
 func BenchmarkClusterManager_SelectTargetClusters_100_Clusters(b *testing.B) {
 	clusterMgr := setupPerformanceTestEnvironment(b, 100)
 	packageRevision := createTestPackageRevision("bench-package", "v1.0.0")
-	
+
 	candidates := make([]types.NamespacedName, 100)
 	for i := 0; i < 100; i++ {
 		candidates[i] = types.NamespacedName{
@@ -191,9 +190,9 @@ func BenchmarkClusterManager_SelectTargetClusters_100_Clusters(b *testing.B) {
 			Namespace: "default",
 		}
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := clusterMgr.SelectTargetClusters(ctx, candidates, packageRevision)
@@ -206,7 +205,7 @@ func BenchmarkClusterManager_SelectTargetClusters_100_Clusters(b *testing.B) {
 func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
 	clusterMgr := setupPerformanceTestEnvironment(b, 1000)
 	packageRevision := createTestPackageRevision("bench-package", "v1.0.0")
-	
+
 	candidates := make([]types.NamespacedName, 1000)
 	for i := 0; i < 1000; i++ {
 		candidates[i] = types.NamespacedName{
@@ -214,9 +213,9 @@ func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
 			Namespace: "default",
 		}
 	}
-	
+
 	ctx := context.Background()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := clusterMgr.SelectTargetClusters(ctx, candidates, packageRevision)
@@ -229,10 +228,10 @@ func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
 func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
 	scheme := runtime.NewScheme()
 	require.NoError(b, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(b)
-	
+
 	healthMonitor := NewHealthMonitor(client, logger)
 	mockHandler := &MockAlertHandler{}
 	healthMonitor.RegisterAlertHandler(mockHandler)
@@ -261,14 +260,14 @@ func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
 func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
 	scheme := runtime.NewScheme()
 	require.NoError(b, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(b)
-	
+
 	syncEngine := NewSyncEngine(client, logger)
 	packageRevision := createTestPackageRevision("bench-sync-package", "v1.0.0")
 	targetCluster := types.NamespacedName{Name: "bench-target-cluster", Namespace: "default"}
-	
+
 	ctx := context.Background()
 
 	b.ResetTimer()
@@ -284,7 +283,7 @@ func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
 func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
 	clusterMgr := setupPerformanceTestEnvironment(t, 50)
 	packageRevision := createTestPackageRevision("concurrent-test", "v1.0.0")
-	
+
 	candidates := make([]types.NamespacedName, 50)
 	for i := 0; i < 50; i++ {
 		candidates[i] = types.NamespacedName{
@@ -296,26 +295,26 @@ func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
 	ctx := context.Background()
 	numGoroutines := 20
 	operationsPerGoroutine := 10
-	
+
 	var wg sync.WaitGroup
 	var measurements []LatencyMeasurement
 	var measurementsMutex sync.Mutex
-	
+
 	startTime := time.Now()
 
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			
+
 			for j := 0; j < operationsPerGoroutine; j++ {
 				operationStart := time.Now()
-				
+
 				_, err := clusterMgr.SelectTargetClusters(ctx, candidates, packageRevision)
 				operationDuration := time.Since(operationStart)
-				
+
 				assert.NoError(t, err)
-				
+
 				measurementsMutex.Lock()
 				measurements = append(measurements, LatencyMeasurement{
 					Duration:  operationDuration,
@@ -338,21 +337,21 @@ func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
 
 	metrics := PerformanceMetrics{
 		OperationsPerSecond: operationsPerSecond,
-		AverageLatency:     avgLatency,
-		P95Latency:         p95Latency,
-		P99Latency:         p99Latency,
-		MemoryUsageMB:      memoryUsage,
-		GoroutineCount:     goroutineCount,
+		AverageLatency:      avgLatency,
+		P95Latency:          p95Latency,
+		P99Latency:          p99Latency,
+		MemoryUsageMB:       memoryUsage,
+		GoroutineCount:      goroutineCount,
 	}
 
 	// Performance assertions
-	assert.Greater(t, metrics.OperationsPerSecond, 50.0, 
+	assert.Greater(t, metrics.OperationsPerSecond, 50.0,
 		"Should achieve at least 50 operations per second")
-	assert.Less(t, metrics.AverageLatency, 100*time.Millisecond, 
+	assert.Less(t, metrics.AverageLatency, 100*time.Millisecond,
 		"Average latency should be under 100ms")
-	assert.Less(t, metrics.P95Latency, 200*time.Millisecond, 
+	assert.Less(t, metrics.P95Latency, 200*time.Millisecond,
 		"P95 latency should be under 200ms")
-	assert.Less(t, metrics.MemoryUsageMB, 100.0, 
+	assert.Less(t, metrics.MemoryUsageMB, 100.0,
 		"Memory usage should be reasonable")
 
 	t.Logf("Performance Metrics:")
@@ -367,12 +366,12 @@ func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
 func TestPerformance_HealthMonitoringScalability(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	healthMonitor := NewHealthMonitor(client, logger)
-	
+
 	// Setup multiple clusters for monitoring
 	numClusters := 100
 	for i := 1; i <= numClusters; i++ {
@@ -380,7 +379,7 @@ func TestPerformance_HealthMonitoringScalability(t *testing.T) {
 			Name:      fmt.Sprintf("health-perf-cluster-%d", i),
 			Namespace: "default",
 		}
-		
+
 		healthMonitor.clusters[clusterName] = &ClusterHealthState{
 			Name:          clusterName,
 			OverallStatus: HealthStatusHealthy,
@@ -404,12 +403,12 @@ func TestPerformance_HealthMonitoringScalability(t *testing.T) {
 
 	// Let monitoring run
 	time.Sleep(2 * time.Second)
-	
+
 	endTime := time.Now()
 	duration := endTime.Sub(startTime)
 
 	// Verify performance under load
-	assert.Less(t, duration, 6*time.Second, 
+	assert.Less(t, duration, 6*time.Second,
 		"Health monitoring should not significantly delay operations")
 
 	// Verify monitoring is working
@@ -433,10 +432,10 @@ func TestPerformance_HealthMonitoringScalability(t *testing.T) {
 func TestPerformance_AlertProcessingThroughput(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	healthMonitor := NewHealthMonitor(client, logger)
 	mockHandler := &MockAlertHandler{}
 	healthMonitor.RegisterAlertHandler(mockHandler)
@@ -460,16 +459,16 @@ func TestPerformance_AlertProcessingThroughput(t *testing.T) {
 	processingTime := time.Since(startTime)
 
 	alertsPerSecond := float64(numAlerts) / processingTime.Seconds()
-	
+
 	// Performance assertions
-	assert.Greater(t, alertsPerSecond, 1000.0, 
+	assert.Greater(t, alertsPerSecond, 1000.0,
 		"Should process at least 1000 alerts per second")
-	assert.Less(t, processingTime, 5*time.Second, 
+	assert.Less(t, processingTime, 5*time.Second,
 		"Should process 10k alerts within 5 seconds")
 
 	// Verify all alerts were processed
 	processedCount := mockHandler.GetAlertsCount()
-	assert.Equal(t, numAlerts, processedCount, 
+	assert.Equal(t, numAlerts, processedCount,
 		"All alerts should be processed")
 
 	t.Logf("Alert Processing Performance:")
@@ -485,7 +484,7 @@ func TestPerformance_MemoryLeaks(t *testing.T) {
 
 	clusterMgr := setupPerformanceTestEnvironment(t, 10)
 	packageRevision := createTestPackageRevision("memory-test", "v1.0.0")
-	
+
 	candidates := make([]types.NamespacedName, 10)
 	for i := 0; i < 10; i++ {
 		candidates[i] = types.NamespacedName{
@@ -495,13 +494,13 @@ func TestPerformance_MemoryLeaks(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	
+
 	// Perform many operations to detect memory leaks
 	numIterations := 1000
 	for i := 0; i < numIterations; i++ {
 		_, err := clusterMgr.SelectTargetClusters(ctx, candidates, packageRevision)
 		assert.NoError(t, err)
-		
+
 		// Force GC periodically
 		if i%100 == 0 {
 			runtime.GC()
@@ -512,12 +511,12 @@ func TestPerformance_MemoryLeaks(t *testing.T) {
 	runtime.GC()
 	time.Sleep(100 * time.Millisecond) // Allow GC to complete
 	runtime.GC()
-	
+
 	finalMemory := getMemoryUsage()
 	memoryGrowth := finalMemory - initialMemory
 
 	// Memory growth assertions
-	assert.Less(t, memoryGrowth, 50.0, 
+	assert.Less(t, memoryGrowth, 50.0,
 		"Memory growth should be reasonable (under 50MB)")
 
 	t.Logf("Memory Usage:")
@@ -530,15 +529,15 @@ func TestPerformance_MemoryLeaks(t *testing.T) {
 func TestPerformance_ConcurrentChannelOperations(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(scheme))
-	
+
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
 	logger := testr.New(t)
-	
+
 	healthMonitor := NewHealthMonitor(client, logger)
-	
+
 	numClusters := 50
 	numUpdatesPerCluster := 100
-	
+
 	var wg sync.WaitGroup
 	startTime := time.Now()
 
@@ -548,15 +547,15 @@ func TestPerformance_ConcurrentChannelOperations(t *testing.T) {
 			Name:      fmt.Sprintf("channel-perf-cluster-%d", i),
 			Namespace: "default",
 		}
-		
+
 		// Register health channel
 		healthChan := healthMonitor.RegisterHealthChannel(clusterName)
-		
+
 		// Start goroutine to consume health updates
 		wg.Add(1)
 		go func(cluster types.NamespacedName, ch <-chan HealthUpdate) {
 			defer wg.Done()
-			
+
 			receivedCount := 0
 			for update := range ch {
 				assert.Equal(t, cluster, update.ClusterName)
@@ -566,12 +565,12 @@ func TestPerformance_ConcurrentChannelOperations(t *testing.T) {
 				}
 			}
 		}(clusterName, healthChan)
-		
+
 		// Start goroutine to send health updates
 		wg.Add(1)
 		go func(cluster types.NamespacedName) {
 			defer wg.Done()
-			
+
 			for j := 0; j < numUpdatesPerCluster; j++ {
 				update := HealthUpdate{
 					ClusterName: cluster,
@@ -579,7 +578,7 @@ func TestPerformance_ConcurrentChannelOperations(t *testing.T) {
 					Timestamp:   time.Now(),
 					Alerts:      []Alert{},
 				}
-				
+
 				healthMonitor.notifyHealthChannels(update)
 			}
 		}(clusterName)

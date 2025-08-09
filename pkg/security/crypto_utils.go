@@ -32,38 +32,38 @@ import (
 type CryptoUtils struct {
 	// Secure memory management
 	secureAllocator *SecureAllocator
-	
+
 	// Hash function pool
 	hashPool map[string]*sync.Pool
-	
+
 	// Constant-time operations
 	constantTime *ConstantTimeOps
-	
+
 	// Random number generator
 	rng io.Reader
-	
+
 	// Digital signature chains
 	signatureChains map[string]*SignatureChain
-	
+
 	// Encrypted storage
 	storage *EncryptedStorage
-	
+
 	mu sync.RWMutex
 }
 
 // SecureAllocator manages secure memory allocation
 type SecureAllocator struct {
-	buffers    map[uintptr]*SecureBuffer
-	pageSize   int
-	mu         sync.Mutex
+	buffers  map[uintptr]*SecureBuffer
+	pageSize int
+	mu       sync.Mutex
 }
 
 // SecureBuffer represents a secure memory buffer
 type SecureBuffer struct {
-	data     []byte
-	size     int
-	locked   bool
-	cleared  bool
+	data    []byte
+	size    int
+	locked  bool
+	cleared bool
 }
 
 // ConstantTimeOps provides constant-time operations
@@ -79,11 +79,11 @@ type SignatureChain struct {
 
 // ChainedSignature represents a signature in a chain
 type ChainedSignature struct {
-	SignerID      string
-	Signature     []byte
-	PreviousHash  []byte
-	Timestamp     time.Time
-	Algorithm     string
+	SignerID     string
+	Signature    []byte
+	PreviousHash []byte
+	Timestamp    time.Time
+	Algorithm    string
 }
 
 // EncryptedStorage provides encrypted data storage
@@ -121,14 +121,14 @@ func NewCryptoUtils() *CryptoUtils {
 		secureAllocator: NewSecureAllocator(),
 		hashPool:        make(map[string]*sync.Pool),
 		constantTime:    &ConstantTimeOps{},
-		rng:            rand.Reader,
+		rng:             rand.Reader,
 		signatureChains: make(map[string]*SignatureChain),
 		storage:         NewEncryptedStorage(),
 	}
-	
+
 	// Initialize hash pools
 	cu.initHashPools()
-	
+
 	return cu
 }
 
@@ -145,7 +145,7 @@ func NewEncryptedStorage() *EncryptedStorage {
 	// Generate master key
 	masterKey := make([]byte, 32)
 	rand.Read(masterKey)
-	
+
 	return &EncryptedStorage{
 		masterKey: masterKey,
 		data:      make(map[string]*EncryptedItem),
@@ -160,28 +160,28 @@ func (cu *CryptoUtils) initHashPools() {
 			return sha256.New()
 		},
 	}
-	
+
 	// SHA512 pool
 	cu.hashPool["SHA512"] = &sync.Pool{
 		New: func() interface{} {
 			return sha512.New()
 		},
 	}
-	
+
 	// SHA3-256 pool
 	cu.hashPool["SHA3-256"] = &sync.Pool{
 		New: func() interface{} {
 			return sha3.New256()
 		},
 	}
-	
+
 	// SHA3-512 pool
 	cu.hashPool["SHA3-512"] = &sync.Pool{
 		New: func() interface{} {
 			return sha3.New512()
 		},
 	}
-	
+
 	// BLAKE2b pool
 	cu.hashPool["BLAKE2b"] = &sync.Pool{
 		New: func() interface{} {
@@ -212,7 +212,7 @@ func (cu *CryptoUtils) PutHash(function HashFunction, h hash.Hash) {
 func (cu *CryptoUtils) ComputeHash(data []byte, function HashFunction) []byte {
 	h := cu.GetHash(function)
 	defer cu.PutHash(function, h)
-	
+
 	h.Write(data)
 	return h.Sum(nil)
 }
@@ -249,22 +249,22 @@ func (cu *CryptoUtils) SecureRandomInt(max int) (int, error) {
 	if max <= 0 {
 		return 0, errors.New("max must be positive")
 	}
-	
+
 	// Calculate required bytes
 	bytesNeeded := (bitLen(max) + 7) / 8
-	
+
 	for {
 		bytes, err := cu.SecureRandom(bytesNeeded)
 		if err != nil {
 			return 0, err
 		}
-		
+
 		// Convert to integer
 		n := 0
 		for _, b := range bytes {
 			n = (n << 8) | int(b)
 		}
-		
+
 		// Ensure uniform distribution
 		if n < max {
 			return n, nil
@@ -276,24 +276,24 @@ func (cu *CryptoUtils) SecureRandomInt(max int) (int, error) {
 func (sa *SecureAllocator) Allocate(size int) *SecureBuffer {
 	sa.mu.Lock()
 	defer sa.mu.Unlock()
-	
+
 	// Align to page size
 	alignedSize := ((size + sa.pageSize - 1) / sa.pageSize) * sa.pageSize
-	
+
 	buffer := &SecureBuffer{
-		data:   make([]byte, alignedSize),
-		size:   size,
-		locked: false,
+		data:    make([]byte, alignedSize),
+		size:    size,
+		locked:  false,
 		cleared: false,
 	}
-	
+
 	// Store buffer reference
 	ptr := uintptr(unsafe.Pointer(&buffer.data[0]))
 	sa.buffers[ptr] = buffer
-	
+
 	// Try to lock memory (platform-specific)
 	buffer.lock()
-	
+
 	return buffer
 }
 
@@ -309,19 +309,19 @@ func (sb *SecureBuffer) Clear() {
 	if sb.cleared {
 		return
 	}
-	
+
 	// Overwrite with random data multiple times
 	for i := 0; i < 3; i++ {
 		rand.Read(sb.data)
 	}
-	
+
 	// Final overwrite with zeros
 	for i := range sb.data {
 		sb.data[i] = 0
 	}
-	
+
 	sb.cleared = true
-	
+
 	// Force garbage collection hint
 	runtime.GC()
 }
@@ -330,14 +330,14 @@ func (sb *SecureBuffer) Clear() {
 func (cu *CryptoUtils) CreateSignatureChain(chainID string) *SignatureChain {
 	cu.mu.Lock()
 	defer cu.mu.Unlock()
-	
+
 	chain := &SignatureChain{
 		ChainID:    chainID,
 		Signatures: make([]*ChainedSignature, 0),
 		Verifiers:  make([]crypto.PublicKey, 0),
 		Created:    time.Now(),
 	}
-	
+
 	cu.signatureChains[chainID] = chain
 	return chain
 }
@@ -354,7 +354,7 @@ func (sc *SignatureChain) AddSignature(signerID string, signature []byte, algori
 		h.Write([]byte(lastSig.Timestamp.String()))
 		previousHash = h.Sum(nil)
 	}
-	
+
 	chainedSig := &ChainedSignature{
 		SignerID:     signerID,
 		Signature:    signature,
@@ -362,7 +362,7 @@ func (sc *SignatureChain) AddSignature(signerID string, signature []byte, algori
 		Timestamp:    time.Now(),
 		Algorithm:    algorithm,
 	}
-	
+
 	sc.Signatures = append(sc.Signatures, chainedSig)
 }
 
@@ -377,18 +377,18 @@ func (sc *SignatureChain) VerifyChain() bool {
 			h.Write(prevSig.Signature)
 			h.Write([]byte(prevSig.Timestamp.String()))
 			expectedHash := h.Sum(nil)
-			
+
 			if !bytes.Equal(sig.PreviousHash, expectedHash) {
 				return false
 			}
 		}
-		
+
 		// Verify signature if verifier available
 		if i < len(sc.Verifiers) {
 			// Signature verification would go here
 		}
 	}
-	
+
 	return true
 }
 
@@ -396,27 +396,27 @@ func (sc *SignatureChain) VerifyChain() bool {
 func (es *EncryptedStorage) Store(id string, data []byte) error {
 	es.mu.Lock()
 	defer es.mu.Unlock()
-	
+
 	// Generate nonce
 	nonce := make([]byte, 12)
 	if _, err := rand.Read(nonce); err != nil {
 		return fmt.Errorf("failed to generate nonce: %w", err)
 	}
-	
+
 	// Create cipher
 	block, err := aes.NewCipher(es.masterKey)
 	if err != nil {
 		return fmt.Errorf("failed to create cipher: %w", err)
 	}
-	
+
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return fmt.Errorf("failed to create GCM: %w", err)
 	}
-	
+
 	// Encrypt data
 	ciphertext := gcm.Seal(nil, nonce, data, []byte(id))
-	
+
 	// Store encrypted item
 	es.data[id] = &EncryptedItem{
 		ID:         id,
@@ -426,7 +426,7 @@ func (es *EncryptedStorage) Store(id string, data []byte) error {
 		Created:    time.Now(),
 		Accessed:   time.Now(),
 	}
-	
+
 	return nil
 }
 
@@ -434,32 +434,32 @@ func (es *EncryptedStorage) Store(id string, data []byte) error {
 func (es *EncryptedStorage) Retrieve(id string) ([]byte, error) {
 	es.mu.RLock()
 	defer es.mu.RUnlock()
-	
+
 	item, ok := es.data[id]
 	if !ok {
 		return nil, fmt.Errorf("item not found: %s", id)
 	}
-	
+
 	// Create cipher
 	block, err := aes.NewCipher(es.masterKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
 	}
-	
+
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
 	}
-	
+
 	// Decrypt data
 	plaintext, err := gcm.Open(nil, item.Nonce, item.Ciphertext, []byte(id))
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
-	
+
 	// Update access time
 	item.Accessed = time.Now()
-	
+
 	return plaintext, nil
 }
 
@@ -485,7 +485,7 @@ func XORBytes(a, b []byte) []byte {
 	if len(a) != len(b) {
 		panic("XORBytes: length mismatch")
 	}
-	
+
 	result := make([]byte, len(a))
 	subtle.XORBytes(result, a, b)
 	return result
@@ -504,18 +504,18 @@ func UnpadPKCS7(data []byte) ([]byte, error) {
 	if length == 0 {
 		return nil, errors.New("empty data")
 	}
-	
+
 	padding := int(data[length-1])
 	if padding > length || padding == 0 {
 		return nil, errors.New("invalid padding")
 	}
-	
+
 	for i := 0; i < padding; i++ {
 		if data[length-1-i] != byte(padding) {
 			return nil, errors.New("invalid padding")
 		}
 	}
-	
+
 	return data[:length-padding], nil
 }
 
@@ -545,7 +545,7 @@ func GenerateKeyPair(bits int) (*rsa.PrivateKey, *rsa.PublicKey, error) {
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to generate key pair: %w", err)
 	}
-	
+
 	return privateKey, &privateKey.PublicKey, nil
 }
 
@@ -555,7 +555,7 @@ func SerializePublicKey(pub *rsa.PublicKey) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal public key: %w", err)
 	}
-	
+
 	return pubASN1, nil
 }
 
@@ -565,12 +565,12 @@ func DeserializePublicKey(data []byte) (*rsa.PublicKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse public key: %w", err)
 	}
-	
+
 	rsaPub, ok := pub.(*rsa.PublicKey)
 	if !ok {
 		return nil, errors.New("not an RSA public key")
 	}
-	
+
 	return rsaPub, nil
 }
 

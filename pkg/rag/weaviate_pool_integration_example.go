@@ -8,13 +8,14 @@ import (
 // with the main monitoring metrics collector.
 //
 // Example usage:
-//   metricsCollector := monitoring.NewMetricsCollector()
-//   poolConfig := DefaultPoolConfig()
-//   pool := IntegrateWeaviatePoolWithMetrics(poolConfig, metricsCollector)
-//   
-//   if err := pool.Start(); err != nil {
-//       log.Fatal("Failed to start pool:", err)
-//   }
+//
+//	metricsCollector := monitoring.NewMetricsCollector()
+//	poolConfig := DefaultPoolConfig()
+//	pool := IntegrateWeaviatePoolWithMetrics(poolConfig, metricsCollector)
+//
+//	if err := pool.Start(); err != nil {
+//	    log.Fatal("Failed to start pool:", err)
+//	}
 func IntegrateWeaviatePoolWithMetrics(config *PoolConfig, metricsCollector *monitoring.MetricsCollector) *WeaviateConnectionPool {
 	return NewWeaviateConnectionPoolWithMetrics(config, metricsCollector)
 }

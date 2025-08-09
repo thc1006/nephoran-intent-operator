@@ -33,40 +33,40 @@ import (
 type functionRunner struct {
 	// Parent client for API operations
 	client *Client
-	
+
 	// Logger for function operations
 	logger logr.Logger
-	
+
 	// Metrics for function operations
 	metrics *FunctionRunnerMetrics
-	
+
 	// Function registry for available functions
 	registry FunctionRegistry
-	
+
 	// Execution engine for running functions
 	executionEngine ExecutionEngine
-	
+
 	// Resource quota manager
 	quotaManager ResourceQuotaManager
-	
+
 	// Security validator for function execution
 	securityValidator FunctionSecurityValidator
-	
+
 	// Pipeline orchestrator for chaining functions
 	pipelineOrchestrator PipelineOrchestrator
-	
+
 	// O-RAN compliance validator
 	oranValidator ORANComplianceValidator
-	
+
 	// Performance profiler
 	profiler PerformanceProfiler
-	
+
 	// Cache for function results
 	cache FunctionCache
-	
+
 	// Concurrent execution limiter
 	semaphore chan struct{}
-	
+
 	// Active executions tracking
 	activeExecutions map[string]*executionContext
 	executionMutex   sync.RWMutex
@@ -74,13 +74,13 @@ type functionRunner struct {
 
 // executionContext tracks active function executions
 type executionContext struct {
-	id          string
+	id           string
 	functionName string
-	startTime   time.Time
-	cancel      context.CancelFunc
-	resources   *ResourceUsage
-	status      ExecutionStatus
-	mutex       sync.RWMutex
+	startTime    time.Time
+	cancel       context.CancelFunc
+	resources    *ResourceUsage
+	status       ExecutionStatus
+	mutex        sync.RWMutex
 }
 
 // ExecutionStatus represents the current status of function execution
@@ -109,14 +109,14 @@ type ResourceUsage struct {
 
 // FunctionRunnerMetrics defines Prometheus metrics for function operations
 type FunctionRunnerMetrics struct {
-	functionExecutions     *prometheus.CounterVec
-	executionDuration      *prometheus.HistogramVec
-	executionErrors        *prometheus.CounterVec
-	activeExecutions       *prometheus.GaugeVec
-	resourceUsage          *prometheus.GaugeVec
-	cacheHitRate          *prometheus.CounterVec
-	pipelineExecutions    *prometheus.CounterVec
-	validationResults     *prometheus.CounterVec
+	functionExecutions *prometheus.CounterVec
+	executionDuration  *prometheus.HistogramVec
+	executionErrors    *prometheus.CounterVec
+	activeExecutions   *prometheus.GaugeVec
+	resourceUsage      *prometheus.GaugeVec
+	cacheHitRate       *prometheus.CounterVec
+	pipelineExecutions *prometheus.CounterVec
+	validationResults  *prometheus.CounterVec
 }
 
 // FunctionRegistry manages available KRM functions
@@ -142,14 +142,14 @@ type ExecutionEngine interface {
 // FunctionExecutionRequest extends FunctionRequest with execution-specific details
 type FunctionExecutionRequest struct {
 	*FunctionRequest
-	ExecutionID   string
-	Runtime       string
+	ExecutionID    string
+	Runtime        string
 	ResourceLimits *FunctionResourceLimits
-	Timeout       time.Duration
-	Environment   map[string]string
-	WorkingDir    string
-	NetworkAccess bool
-	Privileged    bool
+	Timeout        time.Duration
+	Environment    map[string]string
+	WorkingDir     string
+	NetworkAccess  bool
+	Privileged     bool
 }
 
 // FunctionExecutionResult extends FunctionResponse with execution details
@@ -196,19 +196,12 @@ type FunctionSecurityValidator interface {
 
 // SecurityScanResult represents security scan results
 type SecurityScanResult struct {
-	Vulnerabilities []Vulnerability
+	Vulnerabilities  []Vulnerability
 	PolicyViolations []PolicyViolation
-	RiskScore       int
-	Approved        bool
+	RiskScore        int
+	Approved         bool
 }
 
-// Vulnerability represents a security vulnerability
-type Vulnerability struct {
-	ID          string
-	Severity    string
-	Description string
-	FixVersion  string
-}
 
 // PolicyViolation represents a policy violation
 type PolicyViolation struct {
@@ -228,11 +221,11 @@ type PipelineOrchestrator interface {
 
 // PipelineMetrics represents pipeline execution metrics
 type PipelineMetrics struct {
-	TotalDuration    time.Duration
-	StageExecutions  map[string]time.Duration
-	ResourceUsage    *ResourceUsage
-	SuccessRate      float64
-	ErrorRate        float64
+	TotalDuration   time.Duration
+	StageExecutions map[string]time.Duration
+	ResourceUsage   *ResourceUsage
+	SuccessRate     float64
+	ErrorRate       float64
 }
 
 // ORANComplianceValidator validates O-RAN compliance of function results
@@ -245,10 +238,10 @@ type ORANComplianceValidator interface {
 
 // ComplianceResult represents O-RAN compliance validation results
 type ComplianceResult struct {
-	Compliant   bool
-	Violations  []ComplianceViolation
-	Warnings    []ComplianceWarning
-	Score       int
+	Compliant  bool
+	Violations []ComplianceViolation
+	Warnings   []ComplianceWarning
+	Score      int
 }
 
 // ComplianceViolation represents a compliance violation
@@ -272,10 +265,10 @@ type ComplianceWarning struct {
 
 // NetworkFunctionSpec represents a network function specification
 type NetworkFunctionSpec struct {
-	Type        string
-	Interfaces  []ORANInterface
-	Resources   map[string]interface{}
-	Metadata    map[string]string
+	Type       string
+	Interfaces []ORANInterface
+	Resources  map[string]interface{}
+	Metadata   map[string]string
 }
 
 // PerformanceProfiler profiles function execution performance
@@ -288,27 +281,27 @@ type PerformanceProfiler interface {
 
 // ProfileResult represents profiling results
 type ProfileResult struct {
-	ExecutionID   string
-	ProfileType   string
-	Data          []byte
-	Analysis      *PerformanceAnalysis
-	GeneratedAt   time.Time
+	ExecutionID string
+	ProfileType string
+	Data        []byte
+	Analysis    *PerformanceAnalysis
+	GeneratedAt time.Time
 }
 
 // PerformanceAnalysis represents performance analysis results
 type PerformanceAnalysis struct {
-	Bottlenecks    []Bottleneck
-	Recommendations []string
-	Score          int
+	Bottlenecks        []Bottleneck
+	Recommendations    []string
+	Score              int
 	ResourceEfficiency float64
 }
 
 // Bottleneck represents a performance bottleneck
 type Bottleneck struct {
-	Type        string
-	Location    string
-	Impact      string
-	Suggestion  string
+	Type       string
+	Location   string
+	Impact     string
+	Suggestion string
 }
 
 // FunctionCache provides caching for function results
@@ -322,10 +315,10 @@ type FunctionCache interface {
 
 // CacheStats represents cache statistics
 type CacheStats struct {
-	HitCount    int64
-	MissCount   int64
-	Size        int64
-	HitRate     float64
+	HitCount  int64
+	MissCount int64
+	Size      int64
+	HitRate   float64
 }
 
 // NewFunctionRunner creates a new function runner
@@ -334,7 +327,7 @@ func NewFunctionRunner(client *Client) FunctionRunner {
 	if client.config.Functions != nil && client.config.Functions.Execution != nil {
 		maxConcurrent = client.config.Functions.Execution.MaxConcurrent
 	}
-	
+
 	return &functionRunner{
 		client:           client,
 		logger:           log.Log.WithName("function-runner"),
@@ -348,15 +341,15 @@ func NewFunctionRunner(client *Client) FunctionRunner {
 func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequest) (*FunctionResponse, error) {
 	start := time.Now()
 	executionID := fmt.Sprintf("exec-%d", time.Now().UnixNano())
-	
+
 	fr.logger.Info("Executing function", "function", req.FunctionConfig.Image, "executionID", executionID)
-	
+
 	defer func() {
 		if fr.metrics != nil {
 			fr.metrics.executionDuration.WithLabelValues(req.FunctionConfig.Image, "single").Observe(time.Since(start).Seconds())
 		}
 	}()
-	
+
 	// Check cache first
 	if fr.cache != nil {
 		cacheKey := fr.generateCacheKey(req)
@@ -371,7 +364,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 			fr.metrics.cacheHitRate.WithLabelValues("miss").Inc()
 		}
 	}
-	
+
 	// Create execution request
 	execReq := &FunctionExecutionRequest{
 		FunctionRequest: req,
@@ -381,7 +374,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 		ResourceLimits:  fr.getResourceLimits(req),
 		Environment:     fr.getEnvironment(req),
 	}
-	
+
 	// Validate security requirements
 	if fr.securityValidator != nil {
 		if err := fr.securityValidator.ValidateFunction(ctx, execReq); err != nil {
@@ -389,7 +382,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 			return nil, fmt.Errorf("security validation failed: %w", err)
 		}
 	}
-	
+
 	// Check resource quotas
 	if fr.quotaManager != nil {
 		if err := fr.quotaManager.CheckQuota(ctx, execReq); err != nil {
@@ -397,7 +390,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 			return nil, fmt.Errorf("resource quota exceeded: %w", err)
 		}
 	}
-	
+
 	// Acquire semaphore for concurrent execution control
 	select {
 	case fr.semaphore <- struct{}{}:
@@ -405,11 +398,11 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 	case <-ctx.Done():
 		return nil, ctx.Err()
 	}
-	
+
 	// Create execution context
 	execCtx, cancel := context.WithTimeout(ctx, execReq.Timeout)
 	defer cancel()
-	
+
 	execution := &executionContext{
 		id:           executionID,
 		functionName: req.FunctionConfig.Image,
@@ -417,24 +410,24 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 		cancel:       cancel,
 		status:       ExecutionStatusQueued,
 	}
-	
+
 	fr.executionMutex.Lock()
 	fr.activeExecutions[executionID] = execution
 	fr.executionMutex.Unlock()
-	
+
 	defer func() {
 		fr.executionMutex.Lock()
 		delete(fr.activeExecutions, executionID)
 		fr.executionMutex.Unlock()
 	}()
-	
+
 	// Update metrics
 	if fr.metrics != nil {
 		fr.metrics.functionExecutions.WithLabelValues(req.FunctionConfig.Image, "started").Inc()
 		fr.metrics.activeExecutions.WithLabelValues(req.FunctionConfig.Image).Inc()
 		defer fr.metrics.activeExecutions.WithLabelValues(req.FunctionConfig.Image).Dec()
 	}
-	
+
 	// Reserve resources
 	if fr.quotaManager != nil {
 		resourceReq := &ResourceRequirement{
@@ -448,35 +441,35 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 		}
 		defer fr.quotaManager.ReleaseResources(ctx, executionID)
 	}
-	
+
 	// Start profiling if enabled
 	if fr.profiler != nil {
 		fr.profiler.StartProfiling(ctx, executionID)
 		defer fr.profiler.StopProfiling(ctx, executionID)
 	}
-	
+
 	// Update execution status
 	execution.mutex.Lock()
 	execution.status = ExecutionStatusRunning
 	execution.mutex.Unlock()
-	
+
 	// Execute function
 	result, err := fr.executionEngine.ExecuteFunction(execCtx, execReq)
 	if err != nil {
 		execution.mutex.Lock()
 		execution.status = ExecutionStatusFailed
 		execution.mutex.Unlock()
-		
+
 		fr.recordError(executionID, "execution_failed", err)
 		return nil, fmt.Errorf("function execution failed: %w", err)
 	}
-	
+
 	// Update execution status
 	execution.mutex.Lock()
 	execution.status = ExecutionStatusCompleted
 	execution.resources = result.ResourceUsage
 	execution.mutex.Unlock()
-	
+
 	// Validate O-RAN compliance if configured
 	if fr.oranValidator != nil && len(result.Resources) > 0 {
 		if compliance, err := fr.oranValidator.ValidateCompliance(ctx, result.Resources); err != nil {
@@ -488,7 +481,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 			}
 		}
 	}
-	
+
 	// Cache result if applicable
 	if fr.cache != nil && fr.shouldCacheResult(req, result.FunctionResponse) {
 		cacheKey := fr.generateCacheKey(req)
@@ -497,7 +490,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 			fr.logger.Error(err, "Failed to cache function result", "executionID", executionID)
 		}
 	}
-	
+
 	// Update metrics
 	if fr.metrics != nil {
 		fr.metrics.functionExecutions.WithLabelValues(req.FunctionConfig.Image, "completed").Inc()
@@ -506,7 +499,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 			fr.metrics.resourceUsage.WithLabelValues(executionID, "memory").Set(float64(result.ResourceUsage.Memory))
 		}
 	}
-	
+
 	fr.logger.Info("Function execution completed", "executionID", executionID, "duration", time.Since(start))
 	return result.FunctionResponse, nil
 }
@@ -515,27 +508,27 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 func (fr *functionRunner) ExecutePipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
 	start := time.Now()
 	pipelineID := fmt.Sprintf("pipeline-%d", time.Now().UnixNano())
-	
+
 	fr.logger.Info("Executing function pipeline", "pipelineID", pipelineID, "stages", len(req.Pipeline.Mutators)+len(req.Pipeline.Validators))
-	
+
 	defer func() {
 		if fr.metrics != nil {
 			fr.metrics.pipelineExecutions.WithLabelValues("completed").Inc()
 		}
 	}()
-	
+
 	// Validate pipeline
 	if fr.pipelineOrchestrator != nil {
 		if err := fr.pipelineOrchestrator.ValidatePipeline(ctx, &req.Pipeline); err != nil {
 			return nil, fmt.Errorf("pipeline validation failed: %w", err)
 		}
 	}
-	
+
 	// Use pipeline orchestrator if available
 	if fr.pipelineOrchestrator != nil {
 		return fr.pipelineOrchestrator.ExecutePipeline(ctx, req)
 	}
-	
+
 	// Fallback to sequential execution
 	return fr.executeSequentialPipeline(ctx, req)
 }
@@ -543,17 +536,17 @@ func (fr *functionRunner) ExecutePipeline(ctx context.Context, req *PipelineRequ
 // ValidateFunction validates a function's availability and configuration
 func (fr *functionRunner) ValidateFunction(ctx context.Context, functionName string) (*FunctionValidation, error) {
 	fr.logger.V(1).Info("Validating function", "function", functionName)
-	
+
 	// Check function registry
 	if fr.registry != nil {
 		return fr.registry.ValidateFunction(ctx, functionName)
 	}
-	
+
 	// Basic validation
 	validation := &FunctionValidation{
 		Valid: true,
 	}
-	
+
 	// Validate image format
 	if !strings.Contains(functionName, ":") {
 		validation.Valid = false
@@ -563,7 +556,7 @@ func (fr *functionRunner) ValidateFunction(ctx context.Context, functionName str
 			Code:     "INVALID_IMAGE_TAG",
 		})
 	}
-	
+
 	return validation, nil
 }
 
@@ -572,7 +565,7 @@ func (fr *functionRunner) ListFunctions(ctx context.Context) ([]*FunctionInfo, e
 	if fr.registry != nil {
 		return fr.registry.ListFunctions(ctx)
 	}
-	
+
 	// Return default functions if no registry
 	return []*FunctionInfo{
 		{
@@ -598,7 +591,7 @@ func (fr *functionRunner) GetFunctionSchema(ctx context.Context, functionName st
 	if fr.registry != nil {
 		return fr.registry.GetFunctionSchema(ctx, functionName)
 	}
-	
+
 	// Return empty schema if no registry
 	return &FunctionSchema{}, nil
 }
@@ -608,7 +601,7 @@ func (fr *functionRunner) RegisterFunction(ctx context.Context, info *FunctionIn
 	if fr.registry != nil {
 		return fr.registry.RegisterFunction(ctx, info)
 	}
-	
+
 	return fmt.Errorf("function registry not available")
 }
 
@@ -618,19 +611,19 @@ func (fr *functionRunner) RegisterFunction(ctx context.Context, info *FunctionIn
 func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
 	resources := make([]KRMResource, len(req.Resources))
 	copy(resources, req.Resources)
-	
+
 	var allResults []*FunctionResult
-	
+
 	// Execute mutators first
 	for i, mutator := range req.Pipeline.Mutators {
 		fr.logger.V(1).Info("Executing mutator", "index", i, "image", mutator.Image)
-		
+
 		funcReq := &FunctionRequest{
 			FunctionConfig: mutator,
 			Resources:      resources,
 			Context:        req.Context,
 		}
-		
+
 		response, err := fr.ExecuteFunction(ctx, funcReq)
 		if err != nil {
 			return &PipelineResponse{
@@ -642,21 +635,21 @@ func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *Pi
 				},
 			}, nil
 		}
-		
+
 		resources = response.Resources
 		allResults = append(allResults, response.Results...)
 	}
-	
+
 	// Execute validators
 	for i, validator := range req.Pipeline.Validators {
 		fr.logger.V(1).Info("Executing validator", "index", i, "image", validator.Image)
-		
+
 		funcReq := &FunctionRequest{
 			FunctionConfig: validator,
 			Resources:      resources,
 			Context:        req.Context,
 		}
-		
+
 		response, err := fr.ExecuteFunction(ctx, funcReq)
 		if err != nil {
 			return &PipelineResponse{
@@ -668,9 +661,9 @@ func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *Pi
 				},
 			}, nil
 		}
-		
+
 		allResults = append(allResults, response.Results...)
-		
+
 		// Check for validation errors
 		for _, result := range response.Results {
 			if result.Severity == "error" {
@@ -685,7 +678,7 @@ func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *Pi
 			}
 		}
 	}
-	
+
 	return &PipelineResponse{
 		Resources: resources,
 		Results:   allResults,
@@ -714,8 +707,8 @@ func (fr *functionRunner) getResourceLimits(req *FunctionRequest) *FunctionResou
 		return fr.client.config.Functions.Execution.ResourceLimits
 	}
 	return &FunctionResourceLimits{
-		CPU:    "1000m",
-		Memory: "1Gi",
+		CPU:     "1000m",
+		Memory:  "1Gi",
 		Timeout: 5 * time.Minute,
 	}
 }
@@ -723,20 +716,20 @@ func (fr *functionRunner) getResourceLimits(req *FunctionRequest) *FunctionResou
 // getEnvironment determines environment variables for function execution
 func (fr *functionRunner) getEnvironment(req *FunctionRequest) map[string]string {
 	env := make(map[string]string)
-	
+
 	if fr.client.config.Functions != nil && fr.client.config.Functions.Execution != nil {
 		for k, v := range fr.client.config.Functions.Execution.EnvironmentVars {
 			env[k] = v
 		}
 	}
-	
+
 	// Add context-specific environment variables
 	if req.Context != nil && req.Context.Environment != nil {
 		for k, v := range req.Context.Environment {
 			env[k] = v
 		}
 	}
-	
+
 	return env
 }
 
@@ -754,21 +747,21 @@ func (fr *functionRunner) shouldCacheResult(req *FunctionRequest, resp *Function
 	if resp.Error != nil {
 		return false
 	}
-	
+
 	// Don't cache if there are error-level results
 	for _, result := range resp.Results {
 		if result.Severity == "error" {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
 // recordError records function execution errors
 func (fr *functionRunner) recordError(executionID, errorType string, err error) {
 	fr.logger.Error(err, "Function execution error", "executionID", executionID, "errorType", errorType)
-	
+
 	if fr.metrics != nil {
 		fr.metrics.executionErrors.WithLabelValues(errorType).Inc()
 	}
@@ -782,7 +775,7 @@ func (fr *functionRunner) parseCPULimit(cpu string) float64 {
 		fmt.Sscanf(cpu, "%f", &milliCPU)
 		return milliCPU / 1000.0
 	}
-	
+
 	var cores float64
 	fmt.Sscanf(cpu, "%f", &cores)
 	return cores
@@ -795,7 +788,7 @@ func (fr *functionRunner) parseMemoryLimit(memory string) int64 {
 	var value int64
 	var unit string
 	fmt.Sscanf(memory, "%d%s", &value, &unit)
-	
+
 	switch unit {
 	case "KI", "K":
 		return value * 1024
@@ -925,7 +918,7 @@ func (fr *functionRunner) SetFunctionCache(cache FunctionCache) {
 func (fr *functionRunner) GetActiveExecutions() map[string]*executionContext {
 	fr.executionMutex.RLock()
 	defer fr.executionMutex.RUnlock()
-	
+
 	result := make(map[string]*executionContext)
 	for k, v := range fr.activeExecutions {
 		result[k] = v
@@ -938,25 +931,25 @@ func (fr *functionRunner) CancelExecution(executionID string) error {
 	fr.executionMutex.RLock()
 	execution, exists := fr.activeExecutions[executionID]
 	fr.executionMutex.RUnlock()
-	
+
 	if !exists {
 		return fmt.Errorf("execution %s not found", executionID)
 	}
-	
+
 	execution.mutex.Lock()
 	if execution.cancel != nil {
 		execution.cancel()
 		execution.status = ExecutionStatusCancelled
 	}
 	execution.mutex.Unlock()
-	
+
 	return nil
 }
 
 // Close gracefully shuts down the function runner
 func (fr *functionRunner) Close() error {
 	fr.logger.Info("Shutting down function runner")
-	
+
 	// Cancel all active executions
 	fr.executionMutex.RLock()
 	for _, execution := range fr.activeExecutions {
@@ -965,12 +958,12 @@ func (fr *functionRunner) Close() error {
 		}
 	}
 	fr.executionMutex.RUnlock()
-	
+
 	// Clear active executions
 	fr.executionMutex.Lock()
 	fr.activeExecutions = make(map[string]*executionContext)
 	fr.executionMutex.Unlock()
-	
+
 	fr.logger.Info("Function runner shut down complete")
 	return nil
 }

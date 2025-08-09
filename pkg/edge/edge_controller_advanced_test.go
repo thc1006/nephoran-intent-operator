@@ -14,28 +14,27 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 )
 
-
 // TestEdgeNodeSelection tests the edge node selection logic
 func TestEdgeNodeSelection(t *testing.T) {
 	config := &EdgeControllerConfig{
-		NodeDiscoveryEnabled:      true,
-		MaxLatencyMs:              5,
-		MinBandwidthMbps:          100,
-		EdgeResourceThreshold:     0.8,
+		NodeDiscoveryEnabled:  true,
+		MaxLatencyMs:          5,
+		MinBandwidthMbps:      100,
+		EdgeResourceThreshold: 0.8,
 	}
 	kubeClient := fake.NewSimpleClientset()
 	logger := logr.Discard()
 	controller := NewEdgeController(nil, kubeClient, logger, runtime.NewScheme(), config)
 	ctx := context.Background()
-	
+
 	// Discover nodes first
 	require.NoError(t, controller.discoverEdgeNodes(ctx))
-	
+
 	tests := []struct {
-		name            string
-		requirements    EdgeRequirements
-		expectedNodeID  string
-		expectError     bool
+		name           string
+		requirements   EdgeRequirements
+		expectedNodeID string
+		expectError    bool
 	}{
 		{
 			name: "select node with GPU requirement",
@@ -72,11 +71,11 @@ func TestEdgeNodeSelection(t *testing.T) {
 			expectError:    true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			node, err := controller.selectBestEdgeNode(tt.requirements)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, node)
@@ -92,13 +91,13 @@ func TestEdgeNodeSelection(t *testing.T) {
 // TestEdgeNodeHealthChecking tests health check functionality
 func TestEdgeNodeHealthChecking(t *testing.T) {
 	controller := NewEdgeController(nil, fake.NewSimpleClientset(), logr.Discard(), runtime.NewScheme(), &EdgeControllerConfig{
-		NodeDiscoveryEnabled:      true,
-		MaxLatencyMs:              5,
-		MinBandwidthMbps:          100,
-		EdgeResourceThreshold:     0.8,
+		NodeDiscoveryEnabled:  true,
+		MaxLatencyMs:          5,
+		MinBandwidthMbps:      100,
+		EdgeResourceThreshold: 0.8,
 	})
 	ctx := context.Background()
-	
+
 	// Add test nodes
 	healthyNode := &EdgeNode{
 		ID:     "healthy-node",
@@ -112,7 +111,7 @@ func TestEdgeNodeHealthChecking(t *testing.T) {
 		},
 		LastSeen: time.Now(),
 	}
-	
+
 	unhealthyNode := &EdgeNode{
 		ID:     "unhealthy-node",
 		Name:   "Unhealthy Node",
@@ -125,30 +124,29 @@ func TestEdgeNodeHealthChecking(t *testing.T) {
 		},
 		LastSeen: time.Now(),
 	}
-	
+
 	controller.edgeNodes["healthy-node"] = healthyNode
 	controller.edgeNodes["unhealthy-node"] = unhealthyNode
-	
+
 	// Perform health check
 	controller.performHealthCheck(ctx)
-	
+
 	// Verify healthy node remains active
 	assert.Equal(t, EdgeNodeActive, controller.edgeNodes["healthy-node"].Status)
-	
+
 	// Verify unhealthy node is marked as unhealthy
 	assert.Equal(t, EdgeNodeDegraded, controller.edgeNodes["unhealthy-node"].Status)
 }
 
-
 // TestEdgeZoneManagement tests edge zone creation and management
 func TestEdgeZoneManagement(t *testing.T) {
 	controller := NewEdgeController(nil, fake.NewSimpleClientset(), logr.Discard(), runtime.NewScheme(), &EdgeControllerConfig{
-		NodeDiscoveryEnabled:      true,
-		MaxLatencyMs:              5,
-		MinBandwidthMbps:          100,
-		EdgeResourceThreshold:     0.8,
+		NodeDiscoveryEnabled:  true,
+		MaxLatencyMs:          5,
+		MinBandwidthMbps:      100,
+		EdgeResourceThreshold: 0.8,
 	})
-	
+
 	// Test zone creation
 	zone := controller.createEdgeZone("test-zone", "us-west-2")
 	assert.NotNil(t, zone)
@@ -156,19 +154,19 @@ func TestEdgeZoneManagement(t *testing.T) {
 	assert.Equal(t, "us-west-2", zone.Region)
 	assert.Equal(t, 2, zone.RedundancyLevel)
 	assert.NotNil(t, zone.Nodes)
-	
+
 	// Test adding node to zone
 	node := &EdgeNode{
 		ID:   "test-node",
 		Zone: "test-zone",
 	}
-	
+
 	controller.edgeZones["test-zone"] = zone
 	controller.edgeNodes["test-node"] = node
-	
+
 	// Add node to zone
 	zone.Nodes = append(zone.Nodes, node.ID)
-	
+
 	// Verify node is in zone
 	assert.Contains(t, zone.Nodes, "test-node")
 }
@@ -176,12 +174,12 @@ func TestEdgeZoneManagement(t *testing.T) {
 // TestEdgeFailover tests edge failover functionality
 func TestEdgeFailover(t *testing.T) {
 	controller := NewEdgeController(nil, fake.NewSimpleClientset(), logr.Discard(), runtime.NewScheme(), &EdgeControllerConfig{
-		NodeDiscoveryEnabled:      true,
-		MaxLatencyMs:              5,
-		MinBandwidthMbps:          100,
-		EdgeResourceThreshold:     0.8,
+		NodeDiscoveryEnabled:  true,
+		MaxLatencyMs:          5,
+		MinBandwidthMbps:      100,
+		EdgeResourceThreshold: 0.8,
 	})
-	
+
 	// Create primary and backup nodes
 	primaryNode := &EdgeNode{
 		ID:     "primary-node",
@@ -195,7 +193,7 @@ func TestEdgeFailover(t *testing.T) {
 			NetworkBandwidth: 5000,
 		},
 	}
-	
+
 	backupNode := &EdgeNode{
 		ID:     "backup-node",
 		Name:   "Backup Node",
@@ -208,10 +206,10 @@ func TestEdgeFailover(t *testing.T) {
 			NetworkBandwidth: 5000,
 		},
 	}
-	
+
 	controller.edgeNodes["primary-node"] = primaryNode
 	controller.edgeNodes["backup-node"] = backupNode
-	
+
 	// Create zone with both nodes
 	zone := &EdgeZone{
 		ID:              "zone-1",
@@ -220,10 +218,10 @@ func TestEdgeFailover(t *testing.T) {
 		RedundancyLevel: 2,
 	}
 	controller.edgeZones["zone-1"] = zone
-	
+
 	// Simulate primary node failure
 	primaryNode.Status = EdgeNodeDegraded
-	
+
 	// Test failover
 	requirements := EdgeRequirements{
 		ComputeIntensive:     true,
@@ -231,7 +229,7 @@ func TestEdgeFailover(t *testing.T) {
 		MinMemoryGB:          16,
 		MinCPU:               4,
 	}
-	
+
 	selectedNode, err := controller.selectBestEdgeNode(requirements)
 	assert.NoError(t, err)
 	assert.NotNil(t, selectedNode)
@@ -241,12 +239,12 @@ func TestEdgeFailover(t *testing.T) {
 // TestEdgeMetricsCollection tests metrics collection for edge nodes
 func TestEdgeMetricsCollection(t *testing.T) {
 	controller := NewEdgeController(nil, fake.NewSimpleClientset(), logr.Discard(), runtime.NewScheme(), &EdgeControllerConfig{
-		NodeDiscoveryEnabled:      true,
-		MaxLatencyMs:              5,
-		MinBandwidthMbps:          100,
-		EdgeResourceThreshold:     0.8,
+		NodeDiscoveryEnabled:  true,
+		MaxLatencyMs:          5,
+		MinBandwidthMbps:      100,
+		EdgeResourceThreshold: 0.8,
 	})
-	
+
 	node := &EdgeNode{
 		ID:     "metrics-node",
 		Name:   "Metrics Test Node",
@@ -258,20 +256,20 @@ func TestEdgeMetricsCollection(t *testing.T) {
 			ErrorRate:      0,
 		},
 	}
-	
+
 	controller.edgeNodes["metrics-node"] = node
-	
+
 	// Simulate metrics updates
 	updates := []EdgeHealthMetrics{
 		{UptimePercent: 99.5, AverageLatency: 1.2, ThroughputMbps: 750, ErrorRate: 0.05},
 		{UptimePercent: 99.8, AverageLatency: 1.1, ThroughputMbps: 800, ErrorRate: 0.03},
 		{UptimePercent: 99.9, AverageLatency: 1.0, ThroughputMbps: 850, ErrorRate: 0.01},
 	}
-	
+
 	for _, metrics := range updates {
 		node.HealthMetrics = metrics
 		node.LastSeen = time.Now()
-		
+
 		// Verify metrics are updated
 		assert.Equal(t, metrics.UptimePercent, node.HealthMetrics.UptimePercent)
 		assert.Equal(t, metrics.AverageLatency, node.HealthMetrics.AverageLatency)
@@ -332,7 +330,7 @@ func TestEdgeCapabilities(t *testing.T) {
 			shouldMatch: false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			node := &EdgeNode{
@@ -342,7 +340,7 @@ func TestEdgeCapabilities(t *testing.T) {
 					Memory: 64 * 1024 * 1024 * 1024,
 				},
 			}
-			
+
 			matches := node.meetsRequirements(tt.requirements)
 			assert.Equal(t, tt.shouldMatch, matches)
 		})
@@ -367,7 +365,7 @@ func (n *EdgeNode) meetsRequirements(req EdgeRequirements) bool {
 	if req.IoTGateway && !n.Capabilities.IoTGateway {
 		return false
 	}
-	
+
 	// Check resources
 	if req.MinCPU > n.Resources.CPU {
 		return false
@@ -378,7 +376,7 @@ func (n *EdgeNode) meetsRequirements(req EdgeRequirements) bool {
 	if req.GPURequired && n.Resources.GPU == 0 {
 		return false
 	}
-	
+
 	return true
 }
 
@@ -398,32 +396,32 @@ type EdgeRequirements struct {
 func (ec *EdgeController) selectBestEdgeNode(req EdgeRequirements) (*EdgeNode, error) {
 	ec.mutex.RLock()
 	defer ec.mutex.RUnlock()
-	
+
 	var bestNode *EdgeNode
 	var bestScore int
-	
+
 	for _, node := range ec.edgeNodes {
 		if node.Status != EdgeNodeActive {
 			continue
 		}
-		
+
 		if !node.meetsRequirements(req) {
 			continue
 		}
-		
+
 		// Simple scoring based on available resources
 		score := node.Resources.CPU + int(node.Resources.Memory/(1024*1024*1024)) + node.Resources.GPU*10
-		
+
 		if bestNode == nil || score > bestScore {
 			bestNode = node
 			bestScore = score
 		}
 	}
-	
+
 	if bestNode == nil {
 		return nil, errors.New("no suitable edge node found")
 	}
-	
+
 	return bestNode, nil
 }
 
@@ -431,7 +429,7 @@ func (ec *EdgeController) selectBestEdgeNode(req EdgeRequirements) (*EdgeNode, e
 func (ec *EdgeController) performHealthCheck(ctx context.Context) {
 	ec.mutex.Lock()
 	defer ec.mutex.Unlock()
-	
+
 	for _, node := range ec.edgeNodes {
 		// Check health metrics
 		if node.HealthMetrics.UptimePercent < 90.0 ||
@@ -442,7 +440,7 @@ func (ec *EdgeController) performHealthCheck(ctx context.Context) {
 		} else {
 			node.Status = EdgeNodeActive
 		}
-		
+
 		node.LastSeen = time.Now()
 	}
 }

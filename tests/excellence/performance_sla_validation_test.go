@@ -47,8 +47,8 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 
 							fileContent := string(content)
 							if strings.Contains(fileContent, "Deployment") ||
-							   strings.Contains(fileContent, "StatefulSet") ||
-							   strings.Contains(fileContent, "DaemonSet") {
+								strings.Contains(fileContent, "StatefulSet") ||
+								strings.Contains(fileContent, "DaemonSet") {
 								workloadFiles = append(workloadFiles, path)
 							}
 						}
@@ -86,7 +86,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 
 					if kind == "Deployment" || kind == "StatefulSet" || kind == "DaemonSet" {
 						workloadsAnalyzed++
-						
+
 						// Navigate to containers
 						spec, ok := k8sResource["spec"].(map[string]interface{})
 						if !ok {
@@ -146,11 +146,11 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 												resourceIssues = append(resourceIssues,
 													fmt.Sprintf("Container '%s' in %s has zero CPU request", containerName, workloadFile))
 											}
-											
+
 											// Very high CPU requests might indicate inefficiency
-											if strings.HasSuffix(cpuReqStr, "000m") || 
-											   (strings.Contains(cpuReqStr, ".") && !strings.HasSuffix(cpuReqStr, "m")) {
-												GinkgoWriter.Printf("Warning: Container '%s' in %s has high CPU request: %s\n", 
+											if strings.HasSuffix(cpuReqStr, "000m") ||
+												(strings.Contains(cpuReqStr, ".") && !strings.HasSuffix(cpuReqStr, "m")) {
+												GinkgoWriter.Printf("Warning: Container '%s' in %s has high CPU request: %s\n",
 													containerName, workloadFile, cpuReqStr)
 											}
 										}
@@ -167,7 +167,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 												resourceIssues = append(resourceIssues,
 													fmt.Sprintf("Container '%s' in %s has zero memory request", containerName, workloadFile))
 											}
-											
+
 											// Very high memory requests
 											if strings.HasSuffix(memReqStr, "Gi") && len(memReqStr) > 4 {
 												GinkgoWriter.Printf("Warning: Container '%s' in %s has high memory request: %s\n",
@@ -184,7 +184,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							// Check limits
 							limits, hasLimits := resourcesMap["limits"]
 							if !hasLimits {
-								GinkgoWriter.Printf("Info: Container '%s' in %s lacks resource limits (may be acceptable)\n", 
+								GinkgoWriter.Printf("Info: Container '%s' in %s lacks resource limits (may be acceptable)\n",
 									containerName, workloadFile)
 							} else {
 								limitsMap, ok := limits.(map[string]interface{})
@@ -198,7 +198,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 												if cpuReq, hasReqCPU := requestsMap["cpu"]; hasReqCPU {
 													cpuLimitStr, _ := cpuLimit.(string)
 													cpuReqStr, _ := cpuReq.(string)
-													
+
 													if cpuLimitStr == cpuReqStr {
 														GinkgoWriter.Printf("Info: Container '%s' has equal CPU request and limit: %s\n",
 															containerName, cpuLimitStr)
@@ -224,7 +224,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			}
 
 			// Expect most workloads to have proper resource configuration
-			Expect(len(resourceIssues)).To(BeNumerically("<=", workloadsAnalyzed/2), 
+			Expect(len(resourceIssues)).To(BeNumerically("<=", workloadsAnalyzed/2),
 				"Most workloads should have proper resource requests configured")
 		})
 
@@ -261,9 +261,9 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				GinkgoWriter.Printf("Info: No HorizontalPodAutoscaler resources found. Consider implementing auto-scaling for production workloads.\n")
 			} else {
 				GinkgoWriter.Printf("Found HPA configurations:\n")
-				
+
 				hpaIssues := []string{}
-				
+
 				for _, hpaFile := range hpaFiles {
 					GinkgoWriter.Printf("  - %s\n", hpaFile)
 
@@ -355,7 +355,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 							}
 
 							if strings.Contains(string(content), "Service") &&
-							   strings.Contains(string(content), "ClusterIP") {
+								strings.Contains(string(content), "ClusterIP") {
 								services = append(services, path)
 							}
 						}
@@ -384,11 +384,11 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 
 			for _, endpoint := range endpoints {
 				startTime := time.Now()
-				
+
 				// Simulate API call (replace with actual HTTP requests in real implementation)
 				simulatedResponseTime := time.Duration(500+len(endpoint)*10) * time.Millisecond
 				time.Sleep(time.Millisecond) // Minimal actual time for simulation
-				
+
 				endTime := startTime.Add(simulatedResponseTime)
 				duration := endTime.Sub(startTime)
 
@@ -415,7 +415,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				}
 			}
 
-			Expect(slaViolations).To(BeNumerically("<=", len(endpoints)/4), 
+			Expect(slaViolations).To(BeNumerically("<=", len(endpoints)/4),
 				"At least 75% of endpoints should meet response time SLA")
 		})
 
@@ -448,7 +448,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			}
 
 			GinkgoWriter.Printf("Resource Utilization Analysis:\n")
-			
+
 			lowEfficiencyResources := []string{}
 			for resource, data := range utilizationResults {
 				dataMap := data.(map[string]interface{})
@@ -456,7 +456,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				target := dataMap["target_utilization"].(float64)
 				efficiency := dataMap["efficiency_score"].(int)
 
-				GinkgoWriter.Printf("  %s: %.1f%% (target: %.1f%%, efficiency: %d%%)\n", 
+				GinkgoWriter.Printf("  %s: %.1f%% (target: %.1f%%, efficiency: %d%%)\n",
 					resource, current, target, efficiency)
 
 				if efficiency < 50 {
@@ -469,7 +469,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			}
 
 			// Allow some inefficiency but flag major issues
-			Expect(len(lowEfficiencyResources)).To(BeNumerically("<=", 1), 
+			Expect(len(lowEfficiencyResources)).To(BeNumerically("<=", 1),
 				"Most resources should have reasonable utilization efficiency")
 		})
 
@@ -479,34 +479,34 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 
 			scalingScenarios := []map[string]interface{}{
 				{
-					"scenario":           "Load Increase",
-					"initial_replicas":   2,
-					"peak_replicas":      8,
-					"scale_up_time":      180, // seconds
-					"scale_up_sla":       300, // should scale up within 5 minutes
-					"sla_met":            true,
+					"scenario":         "Load Increase",
+					"initial_replicas": 2,
+					"peak_replicas":    8,
+					"scale_up_time":    180, // seconds
+					"scale_up_sla":     300, // should scale up within 5 minutes
+					"sla_met":          true,
 				},
 				{
-					"scenario":           "Load Decrease",
-					"initial_replicas":   8,
-					"final_replicas":     2,
-					"scale_down_time":    420, // seconds
-					"scale_down_sla":     600, // should scale down within 10 minutes
-					"sla_met":            true,
+					"scenario":         "Load Decrease",
+					"initial_replicas": 8,
+					"final_replicas":   2,
+					"scale_down_time":  420, // seconds
+					"scale_down_sla":   600, // should scale down within 10 minutes
+					"sla_met":          true,
 				},
 				{
-					"scenario":           "Spike Handling",
-					"initial_replicas":   3,
-					"spike_replicas":     12,
-					"spike_duration":     60, // seconds
-					"response_time":      45, // seconds to start scaling
-					"response_sla":       60, // should start scaling within 1 minute
-					"sla_met":            true,
+					"scenario":         "Spike Handling",
+					"initial_replicas": 3,
+					"spike_replicas":   12,
+					"spike_duration":   60, // seconds
+					"response_time":    45, // seconds to start scaling
+					"response_sla":     60, // should start scaling within 1 minute
+					"sla_met":          true,
 				},
 			}
 
 			GinkgoWriter.Printf("Scaling Behavior Analysis:\n")
-			
+
 			slaViolations := 0
 			for _, scenario := range scalingScenarios {
 				scenarioName := scenario["scenario"].(string)
@@ -520,7 +520,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				}
 			}
 
-			Expect(slaViolations).To(BeNumerically("<=", 1), 
+			Expect(slaViolations).To(BeNumerically("<=", 1),
 				"Most scaling scenarios should meet SLA requirements")
 		})
 	})
@@ -533,9 +533,9 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			}
 
 			monitoringResources := map[string][]string{
-				"ServiceMonitor":  {},
-				"PodMonitor":      {},
-				"PrometheusRule":  {},
+				"ServiceMonitor": {},
+				"PodMonitor":     {},
+				"PrometheusRule": {},
 			}
 
 			for _, monitoringPath := range monitoringPaths {
@@ -568,9 +568,9 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			GinkgoWriter.Printf("Monitoring Resources Found:\n")
 			for resourceType, files := range monitoringResources {
 				GinkgoWriter.Printf("  %s: %d files\n", resourceType, len(files))
-				
+
 				if len(files) == 0 {
-					monitoringIssues = append(monitoringIssues, 
+					monitoringIssues = append(monitoringIssues,
 						fmt.Sprintf("No %s resources found", resourceType))
 				}
 
@@ -636,13 +636,13 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			}
 
 			// Allow some missing monitoring resources but flag if too many are missing
-			Expect(len(monitoringIssues)).To(BeNumerically("<=", 3), 
+			Expect(len(monitoringIssues)).To(BeNumerically("<=", 3),
 				"Should have comprehensive monitoring configuration")
 		})
 
 		It("should validate SLI/SLO definitions", func() {
 			// Look for SLI/SLO definitions in monitoring configurations
-			
+
 			expectedSLIs := []string{
 				"availability",
 				"latency",
@@ -705,7 +705,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 			}
 
 			// Allow some missing SLIs but encourage comprehensive coverage
-			Expect(len(missingSLIs)).To(BeNumerically("<=", len(expectedSLIs)/2), 
+			Expect(len(missingSLIs)).To(BeNumerically("<=", len(expectedSLIs)/2),
 				"Should have SLI coverage for major service indicators")
 		})
 	})
@@ -718,17 +718,17 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 				"test_type": "performance_sla_validation",
 				"results": map[string]interface{}{
 					"resource_efficiency": map[string]interface{}{
-						"workloads_with_requests": 8,
-						"total_workloads":         10,
-						"hpa_configured":          true,
+						"workloads_with_requests":     8,
+						"total_workloads":             10,
+						"hpa_configured":              true,
 						"resource_optimization_score": 85,
 					},
 					"performance_benchmarks": map[string]interface{}{
-						"api_response_time_sla_met":  true,
-						"average_response_time_ms":   750,
-						"sla_threshold_ms":           2000,
-						"utilization_efficiency":     68,
-						"scaling_sla_met":            true,
+						"api_response_time_sla_met": true,
+						"average_response_time_ms":  750,
+						"sla_threshold_ms":          2000,
+						"utilization_efficiency":    68,
+						"scaling_sla_met":           true,
 					},
 					"monitoring_observability": map[string]interface{}{
 						"servicemonitor_configured": true,
@@ -737,18 +737,18 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 						"alerting_configured":       true,
 					},
 					"sla_compliance": map[string]interface{}{
-						"availability_target":     99.95,
-						"availability_current":    99.97,
-						"latency_target_ms":       2000,
-						"latency_p95_ms":          1250,
-						"error_rate_target":       0.5,
-						"error_rate_current":      0.2,
-						"overall_sla_score":       92,
+						"availability_target":  99.95,
+						"availability_current": 99.97,
+						"latency_target_ms":    2000,
+						"latency_p95_ms":       1250,
+						"error_rate_target":    0.5,
+						"error_rate_current":   0.2,
+						"overall_sla_score":    92,
 					},
 				},
 				"recommendations": []string{
 					"Implement resource requests for all workloads",
-					"Add comprehensive SLI coverage for all critical services", 
+					"Add comprehensive SLI coverage for all critical services",
 					"Consider implementing automated performance testing",
 					"Set up alerting for SLA violations",
 				},
@@ -768,7 +768,7 @@ var _ = Describe("Performance SLA Validation Tests", func() {
 
 			// Validate overall SLA compliance
 			slaScore := report["results"].(map[string]interface{})["sla_compliance"].(map[string]interface{})["overall_sla_score"].(int)
-			
+
 			if slaScore >= 90 {
 				GinkgoWriter.Printf("✅ Excellent SLA compliance: %d%%\n", slaScore)
 			} else if slaScore >= 80 {

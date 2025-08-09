@@ -32,9 +32,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
-	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // NetworkSliceConfigFunction implements network slice configuration for 5G networks
@@ -45,35 +45,35 @@ type NetworkSliceConfigFunction struct {
 // NetworkSliceConfig defines the configuration structure for network slicing
 type NetworkSliceConfig struct {
 	// Slice identification
-	SliceID       string `json:"sliceId" yaml:"sliceId"`
-	SliceName     string `json:"sliceName" yaml:"sliceName"`
-	SliceType     string `json:"sliceType" yaml:"sliceType"` // eMBB, URLLC, mMTC
-	Description   string `json:"description,omitempty" yaml:"description,omitempty"`
-	
+	SliceID     string `json:"sliceId" yaml:"sliceId"`
+	SliceName   string `json:"sliceName" yaml:"sliceName"`
+	SliceType   string `json:"sliceType" yaml:"sliceType"` // eMBB, URLLC, mMTC
+	Description string `json:"description,omitempty" yaml:"description,omitempty"`
+
 	// Service Level Agreement (SLA) parameters
-	SLA           *SLAConfiguration `json:"sla" yaml:"sla"`
-	
+	SLA *SLAConfiguration `json:"sla" yaml:"sla"`
+
 	// Quality of Service (QoS) parameters
-	QoS           *QoSConfiguration `json:"qos,omitempty" yaml:"qos,omitempty"`
-	
+	QoS *QoSConfiguration `json:"qos,omitempty" yaml:"qos,omitempty"`
+
 	// Resource allocation
-	Resources     *SliceResourceAllocation `json:"resources,omitempty" yaml:"resources,omitempty"`
-	
+	Resources *SliceResourceAllocation `json:"resources,omitempty" yaml:"resources,omitempty"`
+
 	// Isolation requirements
-	Isolation     *SliceIsolationConfig `json:"isolation,omitempty" yaml:"isolation,omitempty"`
-	
+	Isolation *SliceIsolationConfig `json:"isolation,omitempty" yaml:"isolation,omitempty"`
+
 	// Geographic and coverage requirements
-	Coverage      *SliceCoverageConfig `json:"coverage,omitempty" yaml:"coverage,omitempty"`
-	
+	Coverage *SliceCoverageConfig `json:"coverage,omitempty" yaml:"coverage,omitempty"`
+
 	// Security requirements
-	Security      *SliceSecurityConfig `json:"security,omitempty" yaml:"security,omitempty"`
-	
+	Security *SliceSecurityConfig `json:"security,omitempty" yaml:"security,omitempty"`
+
 	// Lifecycle management
-	Lifecycle     *SliceLifecycleConfig `json:"lifecycle,omitempty" yaml:"lifecycle,omitempty"`
-	
+	Lifecycle *SliceLifecycleConfig `json:"lifecycle,omitempty" yaml:"lifecycle,omitempty"`
+
 	// Monitoring and observability
-	Monitoring    *SliceMonitoringConfig `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
-	
+	Monitoring *SliceMonitoringConfig `json:"monitoring,omitempty" yaml:"monitoring,omitempty"`
+
 	// Network function configurations
 	NetworkFunctions []*NetworkFunctionConfig `json:"networkFunctions,omitempty" yaml:"networkFunctions,omitempty"`
 }
@@ -81,32 +81,32 @@ type NetworkSliceConfig struct {
 // SLAConfiguration defines service level agreement parameters
 type SLAConfiguration struct {
 	// Latency requirements
-	Latency       *LatencyRequirements `json:"latency,omitempty" yaml:"latency,omitempty"`
-	
+	Latency *LatencyRequirements `json:"latency,omitempty" yaml:"latency,omitempty"`
+
 	// Throughput requirements
-	Throughput    *ThroughputRequirements `json:"throughput,omitempty" yaml:"throughput,omitempty"`
-	
+	Throughput *ThroughputRequirements `json:"throughput,omitempty" yaml:"throughput,omitempty"`
+
 	// Availability requirements
-	Availability  *AvailabilityRequirements `json:"availability,omitempty" yaml:"availability,omitempty"`
-	
+	Availability *AvailabilityRequirements `json:"availability,omitempty" yaml:"availability,omitempty"`
+
 	// Reliability requirements
-	Reliability   *ReliabilityRequirements `json:"reliability,omitempty" yaml:"reliability,omitempty"`
-	
+	Reliability *ReliabilityRequirements `json:"reliability,omitempty" yaml:"reliability,omitempty"`
+
 	// Scalability requirements
-	Scalability   *ScalabilityRequirements `json:"scalability,omitempty" yaml:"scalability,omitempty"`
+	Scalability *ScalabilityRequirements `json:"scalability,omitempty" yaml:"scalability,omitempty"`
 }
 
 // LatencyRequirements defines latency SLA parameters
 type LatencyRequirements struct {
-	MaxLatency        string  `json:"maxLatency" yaml:"maxLatency"`           // e.g., "1ms", "10ms"
-	TypicalLatency    string  `json:"typicalLatency,omitempty" yaml:"typicalLatency,omitempty"`
-	JitterTolerance   string  `json:"jitterTolerance,omitempty" yaml:"jitterTolerance,omitempty"`
-	Percentile        float64 `json:"percentile,omitempty" yaml:"percentile,omitempty"`
+	MaxLatency      string  `json:"maxLatency" yaml:"maxLatency"` // e.g., "1ms", "10ms"
+	TypicalLatency  string  `json:"typicalLatency,omitempty" yaml:"typicalLatency,omitempty"`
+	JitterTolerance string  `json:"jitterTolerance,omitempty" yaml:"jitterTolerance,omitempty"`
+	Percentile      float64 `json:"percentile,omitempty" yaml:"percentile,omitempty"`
 }
 
 // ThroughputRequirements defines throughput SLA parameters
 type ThroughputRequirements struct {
-	MinDownlink   string `json:"minDownlink,omitempty" yaml:"minDownlink,omitempty"`     // e.g., "100Mbps", "1Gbps"
+	MinDownlink   string `json:"minDownlink,omitempty" yaml:"minDownlink,omitempty"` // e.g., "100Mbps", "1Gbps"
 	MinUplink     string `json:"minUplink,omitempty" yaml:"minUplink,omitempty"`
 	MaxDownlink   string `json:"maxDownlink,omitempty" yaml:"maxDownlink,omitempty"`
 	MaxUplink     string `json:"maxUplink,omitempty" yaml:"maxUplink,omitempty"`
@@ -116,60 +116,60 @@ type ThroughputRequirements struct {
 
 // AvailabilityRequirements defines availability SLA parameters
 type AvailabilityRequirements struct {
-	Target        float64 `json:"target" yaml:"target"`                               // e.g., 0.999, 0.9999
-	ServiceLevel  string  `json:"serviceLevel,omitempty" yaml:"serviceLevel,omitempty"`
-	Downtime      string  `json:"downtime,omitempty" yaml:"downtime,omitempty"`       // allowed downtime per month
-	MTBF          string  `json:"mtbf,omitempty" yaml:"mtbf,omitempty"`               // Mean Time Between Failures
-	MTTR          string  `json:"mttr,omitempty" yaml:"mttr,omitempty"`               // Mean Time To Repair
+	Target       float64 `json:"target" yaml:"target"` // e.g., 0.999, 0.9999
+	ServiceLevel string  `json:"serviceLevel,omitempty" yaml:"serviceLevel,omitempty"`
+	Downtime     string  `json:"downtime,omitempty" yaml:"downtime,omitempty"` // allowed downtime per month
+	MTBF         string  `json:"mtbf,omitempty" yaml:"mtbf,omitempty"`         // Mean Time Between Failures
+	MTTR         string  `json:"mttr,omitempty" yaml:"mttr,omitempty"`         // Mean Time To Repair
 }
 
 // ReliabilityRequirements defines reliability SLA parameters
 type ReliabilityRequirements struct {
-	SuccessRate   float64 `json:"successRate" yaml:"successRate"`                     // e.g., 0.999
-	ErrorRate     float64 `json:"errorRate,omitempty" yaml:"errorRate,omitempty"`
-	PacketLoss    float64 `json:"packetLoss,omitempty" yaml:"packetLoss,omitempty"`   // maximum acceptable packet loss
-	Redundancy    string  `json:"redundancy,omitempty" yaml:"redundancy,omitempty"`   // redundancy level
+	SuccessRate float64 `json:"successRate" yaml:"successRate"` // e.g., 0.999
+	ErrorRate   float64 `json:"errorRate,omitempty" yaml:"errorRate,omitempty"`
+	PacketLoss  float64 `json:"packetLoss,omitempty" yaml:"packetLoss,omitempty"` // maximum acceptable packet loss
+	Redundancy  string  `json:"redundancy,omitempty" yaml:"redundancy,omitempty"` // redundancy level
 }
 
 // ScalabilityRequirements defines scalability SLA parameters
 type ScalabilityRequirements struct {
-	MinUsers      int32   `json:"minUsers,omitempty" yaml:"minUsers,omitempty"`
-	MaxUsers      int32   `json:"maxUsers,omitempty" yaml:"maxUsers,omitempty"`
-	AutoScaling   bool    `json:"autoScaling,omitempty" yaml:"autoScaling,omitempty"`
-	ScaleUpTime   string  `json:"scaleUpTime,omitempty" yaml:"scaleUpTime,omitempty"`   // time to scale up
-	ScaleDownTime string  `json:"scaleDownTime,omitempty" yaml:"scaleDownTime,omitempty"` // time to scale down
+	MinUsers      int32  `json:"minUsers,omitempty" yaml:"minUsers,omitempty"`
+	MaxUsers      int32  `json:"maxUsers,omitempty" yaml:"maxUsers,omitempty"`
+	AutoScaling   bool   `json:"autoScaling,omitempty" yaml:"autoScaling,omitempty"`
+	ScaleUpTime   string `json:"scaleUpTime,omitempty" yaml:"scaleUpTime,omitempty"`     // time to scale up
+	ScaleDownTime string `json:"scaleDownTime,omitempty" yaml:"scaleDownTime,omitempty"` // time to scale down
 }
 
 // QoSConfiguration defines quality of service parameters
 type QoSConfiguration struct {
-	FiveQI            int32   `json:"5qi,omitempty" yaml:"5qi,omitempty"`
-	PriorityLevel     int32   `json:"priorityLevel,omitempty" yaml:"priorityLevel,omitempty"`
-	PacketDelayBudget string  `json:"packetDelayBudget,omitempty" yaml:"packetDelayBudget,omitempty"`
-	PacketErrorRate   string  `json:"packetErrorRate,omitempty" yaml:"packetErrorRate,omitempty"`
-	MaxDataBurst      string  `json:"maxDataBurst,omitempty" yaml:"maxDataBurst,omitempty"`
-	GFBR              string  `json:"gfbr,omitempty" yaml:"gfbr,omitempty"` // Guaranteed Flow Bit Rate
-	MFBR              string  `json:"mfbr,omitempty" yaml:"mfbr,omitempty"` // Maximum Flow Bit Rate
-	QoSClass          string  `json:"qosClass,omitempty" yaml:"qosClass,omitempty"`
+	FiveQI            int32  `json:"5qi,omitempty" yaml:"5qi,omitempty"`
+	PriorityLevel     int32  `json:"priorityLevel,omitempty" yaml:"priorityLevel,omitempty"`
+	PacketDelayBudget string `json:"packetDelayBudget,omitempty" yaml:"packetDelayBudget,omitempty"`
+	PacketErrorRate   string `json:"packetErrorRate,omitempty" yaml:"packetErrorRate,omitempty"`
+	MaxDataBurst      string `json:"maxDataBurst,omitempty" yaml:"maxDataBurst,omitempty"`
+	GFBR              string `json:"gfbr,omitempty" yaml:"gfbr,omitempty"` // Guaranteed Flow Bit Rate
+	MFBR              string `json:"mfbr,omitempty" yaml:"mfbr,omitempty"` // Maximum Flow Bit Rate
+	QoSClass          string `json:"qosClass,omitempty" yaml:"qosClass,omitempty"`
 }
 
 // SliceResourceAllocation defines resource allocation for the slice
 type SliceResourceAllocation struct {
 	// Compute resources
-	CPU           string `json:"cpu,omitempty" yaml:"cpu,omitempty"`           // e.g., "2000m", "4"
-	Memory        string `json:"memory,omitempty" yaml:"memory,omitempty"`     // e.g., "4Gi", "8Gi"
-	Storage       string `json:"storage,omitempty" yaml:"storage,omitempty"`   // e.g., "10Gi", "100Gi"
-	
+	CPU     string `json:"cpu,omitempty" yaml:"cpu,omitempty"`         // e.g., "2000m", "4"
+	Memory  string `json:"memory,omitempty" yaml:"memory,omitempty"`   // e.g., "4Gi", "8Gi"
+	Storage string `json:"storage,omitempty" yaml:"storage,omitempty"` // e.g., "10Gi", "100Gi"
+
 	// Network resources
-	Bandwidth     string `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"` // e.g., "1Gbps", "10Gbps"
-	Connections   int32  `json:"connections,omitempty" yaml:"connections,omitempty"`
-	
+	Bandwidth   string `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"` // e.g., "1Gbps", "10Gbps"
+	Connections int32  `json:"connections,omitempty" yaml:"connections,omitempty"`
+
 	// Radio resources
 	SpectrumAllocation *SpectrumAllocation `json:"spectrumAllocation,omitempty" yaml:"spectrumAllocation,omitempty"`
-	
+
 	// Edge resources
-	EdgeNodes     []string `json:"edgeNodes,omitempty" yaml:"edgeNodes,omitempty"`
-	EdgeZones     []string `json:"edgeZones,omitempty" yaml:"edgeZones,omitempty"`
-	
+	EdgeNodes []string `json:"edgeNodes,omitempty" yaml:"edgeNodes,omitempty"`
+	EdgeZones []string `json:"edgeZones,omitempty" yaml:"edgeZones,omitempty"`
+
 	// Resource pools
 	ResourcePools []ResourcePoolAllocation `json:"resourcePools,omitempty" yaml:"resourcePools,omitempty"`
 }
@@ -184,7 +184,7 @@ type SpectrumAllocation struct {
 
 // FrequencyBand defines frequency band allocation
 type FrequencyBand struct {
-	Band       string `json:"band" yaml:"band"`                           // e.g., "n78", "n1"
+	Band       string `json:"band" yaml:"band"` // e.g., "n78", "n1"
 	StartFreq  string `json:"startFreq,omitempty" yaml:"startFreq,omitempty"`
 	EndFreq    string `json:"endFreq,omitempty" yaml:"endFreq,omitempty"`
 	Bandwidth  string `json:"bandwidth,omitempty" yaml:"bandwidth,omitempty"`
@@ -193,39 +193,39 @@ type FrequencyBand struct {
 
 // ResourcePoolAllocation defines allocation from resource pools
 type ResourcePoolAllocation struct {
-	PoolName      string            `json:"poolName" yaml:"poolName"`
-	PoolType      string            `json:"poolType" yaml:"poolType"`     // compute, network, storage
-	Allocation    string            `json:"allocation" yaml:"allocation"` // amount or percentage
-	Priority      int32             `json:"priority,omitempty" yaml:"priority,omitempty"`
-	Constraints   map[string]string `json:"constraints,omitempty" yaml:"constraints,omitempty"`
+	PoolName    string            `json:"poolName" yaml:"poolName"`
+	PoolType    string            `json:"poolType" yaml:"poolType"`     // compute, network, storage
+	Allocation  string            `json:"allocation" yaml:"allocation"` // amount or percentage
+	Priority    int32             `json:"priority,omitempty" yaml:"priority,omitempty"`
+	Constraints map[string]string `json:"constraints,omitempty" yaml:"constraints,omitempty"`
 }
 
 // SliceIsolationConfig defines isolation requirements
 type SliceIsolationConfig struct {
-	Level         string   `json:"level" yaml:"level"`                           // physical, logical, none
-	Mechanisms    []string `json:"mechanisms,omitempty" yaml:"mechanisms,omitempty"`
-	Encryption    bool     `json:"encryption,omitempty" yaml:"encryption,omitempty"`
-	VLANs         []string `json:"vlans,omitempty" yaml:"vlans,omitempty"`
-	VxLANs        []string `json:"vxlans,omitempty" yaml:"vxlans,omitempty"`
+	Level           string   `json:"level" yaml:"level"` // physical, logical, none
+	Mechanisms      []string `json:"mechanisms,omitempty" yaml:"mechanisms,omitempty"`
+	Encryption      bool     `json:"encryption,omitempty" yaml:"encryption,omitempty"`
+	VLANs           []string `json:"vlans,omitempty" yaml:"vlans,omitempty"`
+	VxLANs          []string `json:"vxlans,omitempty" yaml:"vxlans,omitempty"`
 	NetworkPolicies []string `json:"networkPolicies,omitempty" yaml:"networkPolicies,omitempty"`
 	ResourceQuotas  []string `json:"resourceQuotas,omitempty" yaml:"resourceQuotas,omitempty"`
 }
 
 // SliceCoverageConfig defines coverage requirements
 type SliceCoverageConfig struct {
-	GeographicAreas []GeographicArea    `json:"geographicAreas,omitempty" yaml:"geographicAreas,omitempty"`
-	CoverageType    string              `json:"coverageType,omitempty" yaml:"coverageType,omitempty"` // indoor, outdoor, both
-	Mobility        *MobilityConfig     `json:"mobility,omitempty" yaml:"mobility,omitempty"`
-	Handover        *HandoverConfig     `json:"handover,omitempty" yaml:"handover,omitempty"`
+	GeographicAreas []GeographicArea `json:"geographicAreas,omitempty" yaml:"geographicAreas,omitempty"`
+	CoverageType    string           `json:"coverageType,omitempty" yaml:"coverageType,omitempty"` // indoor, outdoor, both
+	Mobility        *MobilityConfig  `json:"mobility,omitempty" yaml:"mobility,omitempty"`
+	Handover        *HandoverConfig  `json:"handover,omitempty" yaml:"handover,omitempty"`
 }
 
 // GeographicArea defines a geographic coverage area
 type GeographicArea struct {
-	Name        string        `json:"name" yaml:"name"`
-	Type        string        `json:"type" yaml:"type"`                     // country, region, city, custom
-	Coordinates []Coordinate  `json:"coordinates,omitempty" yaml:"coordinates,omitempty"`
-	Radius      string        `json:"radius,omitempty" yaml:"radius,omitempty"`
-	Priority    int32         `json:"priority,omitempty" yaml:"priority,omitempty"`
+	Name        string       `json:"name" yaml:"name"`
+	Type        string       `json:"type" yaml:"type"` // country, region, city, custom
+	Coordinates []Coordinate `json:"coordinates,omitempty" yaml:"coordinates,omitempty"`
+	Radius      string       `json:"radius,omitempty" yaml:"radius,omitempty"`
+	Priority    int32        `json:"priority,omitempty" yaml:"priority,omitempty"`
 }
 
 // Coordinate defines a geographic coordinate
@@ -237,37 +237,37 @@ type Coordinate struct {
 
 // MobilityConfig defines mobility requirements
 type MobilityConfig struct {
-	MobilityLevel string   `json:"mobilityLevel" yaml:"mobilityLevel"`         // stationary, pedestrian, vehicular, high-speed
-	MaxSpeed      string   `json:"maxSpeed,omitempty" yaml:"maxSpeed,omitempty"`
-	HandoverTime  string   `json:"handoverTime,omitempty" yaml:"handoverTime,omitempty"`
+	MobilityLevel     string   `json:"mobilityLevel" yaml:"mobilityLevel"` // stationary, pedestrian, vehicular, high-speed
+	MaxSpeed          string   `json:"maxSpeed,omitempty" yaml:"maxSpeed,omitempty"`
+	HandoverTime      string   `json:"handoverTime,omitempty" yaml:"handoverTime,omitempty"`
 	SupportedMobility []string `json:"supportedMobility,omitempty" yaml:"supportedMobility,omitempty"`
 }
 
 // HandoverConfig defines handover requirements
 type HandoverConfig struct {
-	HandoverType     string `json:"handoverType,omitempty" yaml:"handoverType,omitempty"`       // intra-cell, inter-cell, inter-system
-	MaxHandoverTime  string `json:"maxHandoverTime,omitempty" yaml:"maxHandoverTime,omitempty"`
-	MaxPacketLoss    string `json:"maxPacketLoss,omitempty" yaml:"maxPacketLoss,omitempty"`
+	HandoverType     string   `json:"handoverType,omitempty" yaml:"handoverType,omitempty"` // intra-cell, inter-cell, inter-system
+	MaxHandoverTime  string   `json:"maxHandoverTime,omitempty" yaml:"maxHandoverTime,omitempty"`
+	MaxPacketLoss    string   `json:"maxPacketLoss,omitempty" yaml:"maxPacketLoss,omitempty"`
 	HandoverTriggers []string `json:"handoverTriggers,omitempty" yaml:"handoverTriggers,omitempty"`
 }
 
 // SliceSecurityConfig defines security requirements
 type SliceSecurityConfig struct {
-	EncryptionLevel string              `json:"encryptionLevel,omitempty" yaml:"encryptionLevel,omitempty"`
-	AuthMechanisms  []string            `json:"authMechanisms,omitempty" yaml:"authMechanisms,omitempty"`
-	AccessControl   *AccessControlConfig `json:"accessControl,omitempty" yaml:"accessControl,omitempty"`
-	IntegrityChecks bool                `json:"integrityChecks,omitempty" yaml:"integrityChecks,omitempty"`
-	KeyManagement   *KeyManagementConfig `json:"keyManagement,omitempty" yaml:"keyManagement,omitempty"`
+	EncryptionLevel string                 `json:"encryptionLevel,omitempty" yaml:"encryptionLevel,omitempty"`
+	AuthMechanisms  []string               `json:"authMechanisms,omitempty" yaml:"authMechanisms,omitempty"`
+	AccessControl   *AccessControlConfig   `json:"accessControl,omitempty" yaml:"accessControl,omitempty"`
+	IntegrityChecks bool                   `json:"integrityChecks,omitempty" yaml:"integrityChecks,omitempty"`
+	KeyManagement   *KeyManagementConfig   `json:"keyManagement,omitempty" yaml:"keyManagement,omitempty"`
 	ThreatDetection *ThreatDetectionConfig `json:"threatDetection,omitempty" yaml:"threatDetection,omitempty"`
 }
 
 // AccessControlConfig defines access control requirements
 type AccessControlConfig struct {
-	Model       string   `json:"model,omitempty" yaml:"model,omitempty"`           // RBAC, ABAC, MAC
-	Policies    []string `json:"policies,omitempty" yaml:"policies,omitempty"`
-	Whitelist   []string `json:"whitelist,omitempty" yaml:"whitelist,omitempty"`
-	Blacklist   []string `json:"blacklist,omitempty" yaml:"blacklist,omitempty"`
-	MFA         bool     `json:"mfa,omitempty" yaml:"mfa,omitempty"`
+	Model     string   `json:"model,omitempty" yaml:"model,omitempty"` // RBAC, ABAC, MAC
+	Policies  []string `json:"policies,omitempty" yaml:"policies,omitempty"`
+	Whitelist []string `json:"whitelist,omitempty" yaml:"whitelist,omitempty"`
+	Blacklist []string `json:"blacklist,omitempty" yaml:"blacklist,omitempty"`
+	MFA       bool     `json:"mfa,omitempty" yaml:"mfa,omitempty"`
 }
 
 // KeyManagementConfig defines key management requirements
@@ -288,24 +288,24 @@ type ThreatDetectionConfig struct {
 
 // SliceLifecycleConfig defines lifecycle management
 type SliceLifecycleConfig struct {
-	AutoProvisioning bool              `json:"autoProvisioning,omitempty" yaml:"autoProvisioning,omitempty"`
-	ProvisioningTime string            `json:"provisioningTime,omitempty" yaml:"provisioningTime,omitempty"`
-	DecommissionTime string            `json:"decommissionTime,omitempty" yaml:"decommissionTime,omitempty"`
-	BackupStrategy   *BackupStrategy   `json:"backupStrategy,omitempty" yaml:"backupStrategy,omitempty"`
-	UpdateStrategy   *UpdateStrategy   `json:"updateStrategy,omitempty" yaml:"updateStrategy,omitempty"`
+	AutoProvisioning bool            `json:"autoProvisioning,omitempty" yaml:"autoProvisioning,omitempty"`
+	ProvisioningTime string          `json:"provisioningTime,omitempty" yaml:"provisioningTime,omitempty"`
+	DecommissionTime string          `json:"decommissionTime,omitempty" yaml:"decommissionTime,omitempty"`
+	BackupStrategy   *BackupStrategy `json:"backupStrategy,omitempty" yaml:"backupStrategy,omitempty"`
+	UpdateStrategy   *UpdateStrategy `json:"updateStrategy,omitempty" yaml:"updateStrategy,omitempty"`
 }
 
 // BackupStrategy defines backup requirements
 type BackupStrategy struct {
-	Enabled        bool   `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	BackupInterval string `json:"backupInterval,omitempty" yaml:"backupInterval,omitempty"`
+	Enabled         bool   `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	BackupInterval  string `json:"backupInterval,omitempty" yaml:"backupInterval,omitempty"`
 	RetentionPeriod string `json:"retentionPeriod,omitempty" yaml:"retentionPeriod,omitempty"`
-	BackupLocation string `json:"backupLocation,omitempty" yaml:"backupLocation,omitempty"`
+	BackupLocation  string `json:"backupLocation,omitempty" yaml:"backupLocation,omitempty"`
 }
 
 // UpdateStrategy defines update strategy
 type UpdateStrategy struct {
-	Strategy        string `json:"strategy,omitempty" yaml:"strategy,omitempty"`     // rolling, blue-green, canary
+	Strategy        string `json:"strategy,omitempty" yaml:"strategy,omitempty"` // rolling, blue-green, canary
 	MaxUnavailable  string `json:"maxUnavailable,omitempty" yaml:"maxUnavailable,omitempty"`
 	MaxSurge        string `json:"maxSurge,omitempty" yaml:"maxSurge,omitempty"`
 	RollbackTimeout string `json:"rollbackTimeout,omitempty" yaml:"rollbackTimeout,omitempty"`
@@ -313,12 +313,12 @@ type UpdateStrategy struct {
 
 // SliceMonitoringConfig defines monitoring requirements
 type SliceMonitoringConfig struct {
-	KPIs             []KPIConfig       `json:"kpis,omitempty" yaml:"kpis,omitempty"`
-	Metrics          []MetricConfig    `json:"metrics,omitempty" yaml:"metrics,omitempty"`
-	Alerting         *AlertingConfig   `json:"alerting,omitempty" yaml:"alerting,omitempty"`
-	Dashboards       []string          `json:"dashboards,omitempty" yaml:"dashboards,omitempty"`
-	LoggingLevel     string            `json:"loggingLevel,omitempty" yaml:"loggingLevel,omitempty"`
-	TracingEnabled   bool              `json:"tracingEnabled,omitempty" yaml:"tracingEnabled,omitempty"`
+	KPIs           []KPIConfig     `json:"kpis,omitempty" yaml:"kpis,omitempty"`
+	Metrics        []MetricConfig  `json:"metrics,omitempty" yaml:"metrics,omitempty"`
+	Alerting       *AlertingConfig `json:"alerting,omitempty" yaml:"alerting,omitempty"`
+	Dashboards     []string        `json:"dashboards,omitempty" yaml:"dashboards,omitempty"`
+	LoggingLevel   string          `json:"loggingLevel,omitempty" yaml:"loggingLevel,omitempty"`
+	TracingEnabled bool            `json:"tracingEnabled,omitempty" yaml:"tracingEnabled,omitempty"`
 }
 
 // KPIConfig defines KPI monitoring
@@ -331,44 +331,44 @@ type KPIConfig struct {
 
 // MetricConfig defines custom metrics
 type MetricConfig struct {
-	Name        string            `json:"name" yaml:"name"`
-	Type        string            `json:"type" yaml:"type"`
-	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	Interval    string            `json:"interval,omitempty" yaml:"interval,omitempty"`
+	Name     string            `json:"name" yaml:"name"`
+	Type     string            `json:"type" yaml:"type"`
+	Labels   map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
+	Interval string            `json:"interval,omitempty" yaml:"interval,omitempty"`
 }
 
 // AlertingConfig defines alerting configuration
 type AlertingConfig struct {
-	Enabled         bool                `json:"enabled,omitempty" yaml:"enabled,omitempty"`
-	AlertRules      []AlertRule         `json:"alertRules,omitempty" yaml:"alertRules,omitempty"`
+	Enabled              bool                  `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	AlertRules           []AlertRule           `json:"alertRules,omitempty" yaml:"alertRules,omitempty"`
 	NotificationChannels []NotificationChannel `json:"notificationChannels,omitempty" yaml:"notificationChannels,omitempty"`
 }
 
 // AlertRule defines an alerting rule
 type AlertRule struct {
-	Name        string `json:"name" yaml:"name"`
-	Condition   string `json:"condition" yaml:"condition"`
-	Severity    string `json:"severity,omitempty" yaml:"severity,omitempty"`
-	Duration    string `json:"duration,omitempty" yaml:"duration,omitempty"`
-	Action      string `json:"action,omitempty" yaml:"action,omitempty"`
+	Name      string `json:"name" yaml:"name"`
+	Condition string `json:"condition" yaml:"condition"`
+	Severity  string `json:"severity,omitempty" yaml:"severity,omitempty"`
+	Duration  string `json:"duration,omitempty" yaml:"duration,omitempty"`
+	Action    string `json:"action,omitempty" yaml:"action,omitempty"`
 }
 
 // NotificationChannel defines notification channel
 type NotificationChannel struct {
-	Type       string            `json:"type" yaml:"type"`
-	Target     string            `json:"target" yaml:"target"`
-	Config     map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
-	Enabled    bool              `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+	Type    string            `json:"type" yaml:"type"`
+	Target  string            `json:"target" yaml:"target"`
+	Config  map[string]string `json:"config,omitempty" yaml:"config,omitempty"`
+	Enabled bool              `json:"enabled,omitempty" yaml:"enabled,omitempty"`
 }
 
 // NetworkFunctionConfig defines network function configuration
 type NetworkFunctionConfig struct {
-	Name        string                 `json:"name" yaml:"name"`
-	Type        string                 `json:"type" yaml:"type"`         // AMF, SMF, UPF, PCF, UDM, etc.
-	Config      map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
-	Resources   *ResourceRequirements  `json:"resources,omitempty" yaml:"resources,omitempty"`
-	Replicas    int32                  `json:"replicas,omitempty" yaml:"replicas,omitempty"`
-	Affinity    *AffinityConfig        `json:"affinity,omitempty" yaml:"affinity,omitempty"`
+	Name      string                 `json:"name" yaml:"name"`
+	Type      string                 `json:"type" yaml:"type"` // AMF, SMF, UPF, PCF, UDM, etc.
+	Config    map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
+	Resources *ResourceRequirements  `json:"resources,omitempty" yaml:"resources,omitempty"`
+	Replicas  int32                  `json:"replicas,omitempty" yaml:"replicas,omitempty"`
+	Affinity  *AffinityConfig        `json:"affinity,omitempty" yaml:"affinity,omitempty"`
 }
 
 // ResourceRequirements defines resource requirements for network functions
@@ -386,7 +386,7 @@ type AffinityConfig struct {
 
 // NodeAffinityConfig defines node affinity
 type NodeAffinityConfig struct {
-	RequiredDuringSchedulingIgnoredDuringExecution  []NodeSelectorTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
+	RequiredDuringSchedulingIgnoredDuringExecution  []NodeSelectorTerm        `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	PreferredDuringSchedulingIgnoredDuringExecution []PreferredSchedulingTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
 }
 
@@ -411,13 +411,13 @@ type PreferredSchedulingTerm struct {
 
 // PodAffinityConfig defines pod affinity
 type PodAffinityConfig struct {
-	RequiredDuringSchedulingIgnoredDuringExecution  []PodAffinityTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
+	RequiredDuringSchedulingIgnoredDuringExecution  []PodAffinityTerm         `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	PreferredDuringSchedulingIgnoredDuringExecution []WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
 }
 
 // PodAntiAffinityConfig defines pod anti-affinity
 type PodAntiAffinityConfig struct {
-	RequiredDuringSchedulingIgnoredDuringExecution  []PodAffinityTerm `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
+	RequiredDuringSchedulingIgnoredDuringExecution  []PodAffinityTerm         `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	PreferredDuringSchedulingIgnoredDuringExecution []WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty" yaml:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
 }
 
@@ -447,7 +447,7 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 	defer span.End()
 
 	logger := log.FromContext(ctx).WithName("network-slice-config")
-	
+
 	span.SetAttributes(
 		attribute.Int("input.resources", len(resources)),
 	)
@@ -465,7 +465,7 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 		attribute.String("slice.type", sliceConfig.SliceType),
 	)
 
-	logger.Info("Configuring network slice", 
+	logger.Info("Configuring network slice",
 		"sliceId", sliceConfig.SliceID,
 		"sliceType", sliceConfig.SliceType,
 		"resources", len(resources),
@@ -497,7 +497,7 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 	)
 
 	span.SetStatus(codes.Ok, "network slice configuration completed")
-	logger.Info("Network slice configuration completed successfully", 
+	logger.Info("Network slice configuration completed successfully",
 		"sliceId", sliceConfig.SliceID,
 		"processedResources", len(processedResources),
 	)
@@ -765,9 +765,9 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 						if containerMap["resources"] == nil {
 							containerMap["resources"] = make(map[string]interface{})
 						}
-						
+
 						resourcesMap := containerMap["resources"].(map[string]interface{})
-						
+
 						// Set requests
 						if requests, ok := resourcesMap["requests"].(map[string]interface{}); ok || resourceConfig.CPU != "" || resourceConfig.Memory != "" {
 							if requests == nil {
@@ -835,7 +835,7 @@ func (f *NetworkSliceConfigFunction) addSliceLabelsAndAnnotations(resource *porc
 
 	annotations := resource.Metadata["annotations"].(map[string]interface{})
 	annotations["nephoran.com/slice-config-timestamp"] = time.Now().UTC().Format(time.RFC3339)
-	
+
 	if config.Description != "" {
 		annotations["nephoran.com/slice-description"] = config.Description
 	}
@@ -860,7 +860,7 @@ func (f *NetworkSliceConfigFunction) addQoSAnnotations(resource *porch.KRMResour
 	}
 
 	annotations := resource.Metadata["annotations"].(map[string]interface{})
-	
+
 	if qos.FiveQI != 0 {
 		annotations["nephoran.com/5qi"] = strconv.Itoa(int(qos.FiveQI))
 	}
@@ -886,12 +886,12 @@ func (f *NetworkSliceConfigFunction) configureNetworkFunctions(resource *porch.K
 	}
 
 	annotations := resource.Metadata["annotations"].(map[string]interface{})
-	
+
 	var nfTypes []string
 	for _, nfConfig := range nfConfigs {
 		nfTypes = append(nfTypes, nfConfig.Type)
 	}
-	
+
 	annotations["nephoran.com/required-network-functions"] = strings.Join(nfTypes, ",")
 }
 

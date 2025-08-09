@@ -42,31 +42,31 @@ type ResponseValidator func(*http.Response, []byte) error
 
 // LoadTestResult contains test results
 type LoadTestResult struct {
-	StartTime            time.Time              `json:"start_time"`
-	EndTime              time.Time              `json:"end_time"`
-	Duration             time.Duration          `json:"duration"`
-	TotalRequests        int64                  `json:"total_requests"`
-	SuccessfulRequests   int64                  `json:"successful_requests"`
-	FailedRequests       int64                  `json:"failed_requests"`
-	AverageLatency       time.Duration          `json:"average_latency"`
-	P50Latency           time.Duration          `json:"p50_latency"`
-	P95Latency           time.Duration          `json:"p95_latency"`
-	P99Latency           time.Duration          `json:"p99_latency"`
-	MaxLatency           time.Duration          `json:"max_latency"`
-	MinLatency           time.Duration          `json:"min_latency"`
-	Throughput           float64                `json:"throughput"`
-	ErrorRate            float64                `json:"error_rate"`
-	ScenarioResults      map[string]*ScenarioResult `json:"scenario_results"`
-	ResourceUtilization  *ResourceMetrics       `json:"resource_utilization"`
-	SystemPerformance    *SystemMetrics         `json:"system_performance"`
+	StartTime           time.Time                  `json:"start_time"`
+	EndTime             time.Time                  `json:"end_time"`
+	Duration            time.Duration              `json:"duration"`
+	TotalRequests       int64                      `json:"total_requests"`
+	SuccessfulRequests  int64                      `json:"successful_requests"`
+	FailedRequests      int64                      `json:"failed_requests"`
+	AverageLatency      time.Duration              `json:"average_latency"`
+	P50Latency          time.Duration              `json:"p50_latency"`
+	P95Latency          time.Duration              `json:"p95_latency"`
+	P99Latency          time.Duration              `json:"p99_latency"`
+	MaxLatency          time.Duration              `json:"max_latency"`
+	MinLatency          time.Duration              `json:"min_latency"`
+	Throughput          float64                    `json:"throughput"`
+	ErrorRate           float64                    `json:"error_rate"`
+	ScenarioResults     map[string]*ScenarioResult `json:"scenario_results"`
+	ResourceUtilization *ResourceMetrics           `json:"resource_utilization"`
+	SystemPerformance   *SystemMetrics             `json:"system_performance"`
 }
 
 // ScenarioResult contains scenario-specific results
 type ScenarioResult struct {
-	Requests     int64         `json:"requests"`
-	Successes    int64         `json:"successes"`
-	Failures     int64         `json:"failures"`
-	AvgLatency   time.Duration `json:"avg_latency"`
+	Requests     int64            `json:"requests"`
+	Successes    int64            `json:"successes"`
+	Failures     int64            `json:"failures"`
+	AvgLatency   time.Duration    `json:"avg_latency"`
 	ErrorsByType map[string]int64 `json:"errors_by_type"`
 }
 
@@ -81,9 +81,9 @@ type ResourceMetrics struct {
 
 // SystemMetrics tracks system performance
 type SystemMetrics struct {
-	DatabaseLatency  time.Duration `json:"database_latency"`
-	CacheHitRate     float64       `json:"cache_hit_rate"`
-	QueueDepth       int64         `json:"queue_depth"`
+	DatabaseLatency      time.Duration     `json:"database_latency"`
+	CacheHitRate         float64           `json:"cache_hit_rate"`
+	QueueDepth           int64             `json:"queue_depth"`
 	CircuitBreakerStatus map[string]string `json:"circuit_breaker_status"`
 }
 
@@ -128,7 +128,7 @@ type ProductionLoadTester struct {
 // NewProductionLoadTester creates a new load tester
 func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	tester := &ProductionLoadTester{
 		config: config,
 		httpClient: &http.Client{
@@ -142,8 +142,8 @@ func NewProductionLoadTester(config *LoadTestConfig) *ProductionLoadTester {
 		results: &LoadTestResult{
 			ScenarioResults: make(map[string]*ScenarioResult),
 		},
-		ctx:    ctx,
-		cancel: cancel,
+		ctx:              ctx,
+		cancel:           cancel,
 		metricsCollector: NewMetricsCollector(),
 	}
 
@@ -227,10 +227,10 @@ func (plt *ProductionLoadTester) runRampUp() {
 func (plt *ProductionLoadTester) createTargeter() vegeta.Targeter {
 	return func(tgt *vegeta.Target) error {
 		scenario := plt.selectScenario()
-		
+
 		tgt.Method = scenario.Method
 		tgt.URL = scenario.Endpoint
-		
+
 		if scenario.PayloadFunc != nil {
 			payload := scenario.PayloadFunc()
 			body, err := json.Marshal(payload)
@@ -246,7 +246,7 @@ func (plt *ProductionLoadTester) createTargeter() vegeta.Targeter {
 		// Track concurrent requests
 		atomic.AddInt64(&plt.activeRequests, 1)
 		concurrentRequests.WithLabelValues(scenario.Name).Inc()
-		
+
 		return nil
 	}
 }
@@ -255,14 +255,14 @@ func (plt *ProductionLoadTester) createTargeter() vegeta.Targeter {
 func (plt *ProductionLoadTester) selectScenario() TestScenario {
 	r := rand.Float64() * plt.totalWeight
 	cumulative := 0.0
-	
+
 	for i, weight := range plt.scenarioWeights {
 		cumulative += weight
 		if r <= cumulative {
 			return plt.config.TestScenarios[i]
 		}
 	}
-	
+
 	return plt.config.TestScenarios[len(plt.config.TestScenarios)-1]
 }
 
@@ -271,14 +271,14 @@ func (plt *ProductionLoadTester) processResults(results <-chan *vegeta.Result) {
 	for res := range results {
 		atomic.AddInt64(&plt.activeRequests, -1)
 		atomic.AddInt64(&plt.results.TotalRequests, 1)
-		
+
 		scenarioName := plt.getScenarioFromURL(res.URL)
 		concurrentRequests.WithLabelValues(scenarioName).Dec()
-		
+
 		plt.mu.Lock()
 		scenarioResult := plt.results.ScenarioResults[scenarioName]
 		scenarioResult.Requests++
-		
+
 		if res.Error == "" && res.Code >= 200 && res.Code < 300 {
 			atomic.AddInt64(&plt.results.SuccessfulRequests, 1)
 			scenarioResult.Successes++
@@ -287,11 +287,11 @@ func (plt *ProductionLoadTester) processResults(results <-chan *vegeta.Result) {
 			atomic.AddInt64(&plt.results.FailedRequests, 1)
 			scenarioResult.Failures++
 			requestsTotal.WithLabelValues(scenarioName, "failure").Inc()
-			
+
 			errorType := plt.categorizeError(res.Error, res.Code)
 			scenarioResult.ErrorsByType[errorType]++
 		}
-		
+
 		requestDuration.WithLabelValues(scenarioName).Observe(res.Latency.Seconds())
 		plt.mu.Unlock()
 	}
@@ -321,7 +321,7 @@ func (plt *ProductionLoadTester) categorizeError(err string, code int) string {
 		}
 		return "network_error"
 	}
-	
+
 	switch {
 	case code >= 500:
 		return fmt.Sprintf("5xx_%d", code)
@@ -336,16 +336,16 @@ func (plt *ProductionLoadTester) categorizeError(err string, code int) string {
 func (plt *ProductionLoadTester) collectFinalMetrics() {
 	// Calculate throughput
 	plt.results.Throughput = float64(plt.results.TotalRequests) / plt.results.Duration.Seconds()
-	
+
 	// Calculate error rate
 	if plt.results.TotalRequests > 0 {
 		plt.results.ErrorRate = float64(plt.results.FailedRequests) / float64(plt.results.TotalRequests)
 	}
-	
+
 	// Get resource metrics
 	plt.results.ResourceUtilization = plt.metricsCollector.GetResourceMetrics()
 	plt.results.SystemPerformance = plt.metricsCollector.GetSystemMetrics()
-	
+
 	// Calculate latency percentiles (would need to track all latencies for accurate percentiles)
 	// This is a simplified version
 	for name, result := range plt.results.ScenarioResults {
@@ -367,10 +367,10 @@ func NewTelecomWorkloadGenerator() *TelecomWorkloadGenerator {
 	return &TelecomWorkloadGenerator{
 		scenarios: []TestScenario{
 			{
-				Name:     "NetworkIntentCreation",
-				Weight:   30.0,
-				Endpoint: "http://localhost:8080/api/v1/networkintents",
-				Method:   "POST",
+				Name:        "NetworkIntentCreation",
+				Weight:      30.0,
+				Endpoint:    "http://localhost:8080/api/v1/networkintents",
+				Method:      "POST",
 				PayloadFunc: generateNetworkIntentPayload,
 				Validators: []ResponseValidator{
 					validateStatusCode(201),
@@ -378,10 +378,10 @@ func NewTelecomWorkloadGenerator() *TelecomWorkloadGenerator {
 				},
 			},
 			{
-				Name:     "PolicyManagement",
-				Weight:   25.0,
-				Endpoint: "http://localhost:8080/api/v1/policies",
-				Method:   "POST",
+				Name:        "PolicyManagement",
+				Weight:      25.0,
+				Endpoint:    "http://localhost:8080/api/v1/policies",
+				Method:      "POST",
 				PayloadFunc: generatePolicyPayload,
 				Validators: []ResponseValidator{
 					validateStatusCode(201),
@@ -389,10 +389,10 @@ func NewTelecomWorkloadGenerator() *TelecomWorkloadGenerator {
 				},
 			},
 			{
-				Name:     "E2NodeScaling",
-				Weight:   20.0,
-				Endpoint: "http://localhost:8080/api/v1/e2nodesets/scale",
-				Method:   "POST",
+				Name:        "E2NodeScaling",
+				Weight:      20.0,
+				Endpoint:    "http://localhost:8080/api/v1/e2nodesets/scale",
+				Method:      "POST",
 				PayloadFunc: generateScalingPayload,
 				Validators: []ResponseValidator{
 					validateStatusCode(200),
@@ -438,7 +438,7 @@ func generateNetworkIntentPayload() interface{} {
 		"Optimize gNB parameters for maximum throughput",
 		"Enable network slicing for IoT devices",
 	}
-	
+
 	return map[string]interface{}{
 		"apiVersion": "nephoran.com/v1",
 		"kind":       "NetworkIntent",
@@ -541,7 +541,7 @@ func (mc *MetricsCollector) collectMetrics() {
 	// Collect system metrics
 	mc.systemMetrics.CacheHitRate = getCacheHitRate()
 	mc.systemMetrics.QueueDepth = getQueueDepth()
-	
+
 	// Update Prometheus metrics
 	systemMetrics.WithLabelValues("cpu_usage").Set(mc.resourceMetrics.CPUUsage)
 	systemMetrics.WithLabelValues("memory_usage").Set(mc.resourceMetrics.MemoryUsage)
@@ -553,7 +553,7 @@ func (mc *MetricsCollector) collectMetrics() {
 func (mc *MetricsCollector) GetResourceMetrics() *ResourceMetrics {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
-	
+
 	metrics := *mc.resourceMetrics
 	return &metrics
 }
@@ -562,7 +562,7 @@ func (mc *MetricsCollector) GetResourceMetrics() *ResourceMetrics {
 func (mc *MetricsCollector) GetSystemMetrics() *SystemMetrics {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
-	
+
 	metrics := *mc.systemMetrics
 	return &metrics
 }

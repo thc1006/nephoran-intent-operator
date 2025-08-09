@@ -84,7 +84,7 @@ func TestNewClient(t *testing.T) {
 
 func TestClient_InitRepo_NewRepo(t *testing.T) {
 	tmpDir := createTempDir(t)
-	
+
 	client := &Client{
 		RepoURL:  "https://github.com/test/repo.git",
 		Branch:   "main",
@@ -95,7 +95,7 @@ func TestClient_InitRepo_NewRepo(t *testing.T) {
 	// Since we can't actually clone from a remote, we'll test the directory creation logic
 	// In a real scenario, this would fail due to the fake repository URL
 	err := client.InitRepo()
-	
+
 	// The error is expected since we're using a fake URL
 	// But we can verify that the method attempts to handle non-existent directories correctly
 	assert.Error(t, err)
@@ -105,7 +105,7 @@ func TestClient_InitRepo_NewRepo(t *testing.T) {
 func TestClient_InitRepo_ExistingRepo(t *testing.T) {
 	tmpDir := createTempDir(t)
 	repoPath := filepath.Join(tmpDir, "existing-repo")
-	
+
 	// Create a real git repository
 	_, err := git.PlainInit(repoPath, false)
 	require.NoError(t, err)
@@ -160,19 +160,19 @@ func TestClient_CommitAndPush_Success(t *testing.T) {
 	_ = client // Use the client variable
 
 	files := map[string]string{
-		"test1.txt":       "content1",
+		"test1.txt":        "content1",
 		"subdir/test2.txt": "content2",
-		"test3.yaml":      "key: value",
+		"test3.yaml":       "key: value",
 	}
 
 	// Note: This will fail at the push step due to no remote, but we can test file creation and commit
 	commitHash, err := client.CommitAndPush(files, "Test commit")
-	
+
 	// The commit should succeed but push or SSH auth will fail
 	if err != nil {
-		assert.True(t, 
-			strings.Contains(err.Error(), "failed to push") || 
-			strings.Contains(err.Error(), "failed to create ssh auth"),
+		assert.True(t,
+			strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth"),
 			"Expected push or SSH auth error, got: %v", err)
 		// Verify that files were created and committed even though push failed
 		for filePath, expectedContent := range files {
@@ -204,9 +204,9 @@ func TestClient_CommitAndPush_FileCreation(t *testing.T) {
 	}
 
 	files := map[string]string{
-		"config/app.yaml":           "app: test",
-		"scripts/deploy.sh":         "#!/bin/bash\necho 'deploying'",
-		"docs/README.md":           "# Documentation",
+		"config/app.yaml":            "app: test",
+		"scripts/deploy.sh":          "#!/bin/bash\necho 'deploying'",
+		"docs/README.md":             "# Documentation",
 		"nested/deep/structure.json": `{"key": "value"}`,
 	}
 
@@ -216,16 +216,16 @@ func TestClient_CommitAndPush_FileCreation(t *testing.T) {
 	// Verify all files were created with correct content
 	for filePath, expectedContent := range files {
 		fullPath := filepath.Join(repoPath, filePath)
-		
+
 		// Check that file exists
 		_, statErr := os.Stat(fullPath)
 		assert.NoError(t, statErr, "File should exist: %s", filePath)
-		
+
 		// Check that directories were created
 		dir := filepath.Dir(fullPath)
 		_, dirStatErr := os.Stat(dir)
 		assert.NoError(t, dirStatErr, "Directory should exist: %s", dir)
-		
+
 		// Check file content
 		content, readErr := os.ReadFile(fullPath)
 		assert.NoError(t, readErr, "Should be able to read file: %s", filePath)
@@ -292,15 +292,15 @@ func TestClient_CommitAndPushChanges_Success(t *testing.T) {
 
 	// This will fail at push, but commit should work
 	err = client.CommitAndPushChanges("Add changes")
-	
+
 	// Expect push failure but verify commit was made
 	if err != nil {
-		assert.True(t, 
-			strings.Contains(err.Error(), "failed to push") || 
-			strings.Contains(err.Error(), "failed to create ssh auth"),
+		assert.True(t,
+			strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth"),
 			"Expected push or SSH auth error, got: %v", err)
 	}
-	
+
 	// Verify the file was added to git
 	_, err = os.Stat(testFile)
 	assert.NoError(t, err)
@@ -351,10 +351,10 @@ func TestClient_RemoveDirectory_Success(t *testing.T) {
 	err = client.RemoveDirectory("to-remove", "Remove test directory")
 	if err != nil {
 		// Allow for empty commit errors when removing untracked directories
-		assert.True(t, 
+		assert.True(t,
 			strings.Contains(err.Error(), "clean working tree") ||
-			strings.Contains(err.Error(), "failed to push") ||
-			strings.Contains(err.Error(), "failed to create ssh auth"),
+				strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth"),
 			"Expected empty commit, push, or SSH auth error, got: %v", err)
 	}
 
@@ -395,7 +395,7 @@ func TestClient_RemoveDirectory_NonExistentDirectory(t *testing.T) {
 	err = client.RemoveDirectory("non-existent-dir", "Remove non-existent directory")
 	if err != nil {
 		// Should only fail with empty commit error since nothing to remove
-		assert.True(t, 
+		assert.True(t,
 			strings.Contains(err.Error(), "clean working tree"),
 			"Expected empty commit error for non-existent directory, got: %v", err)
 	}
@@ -469,9 +469,9 @@ func TestClient_CommitAndPushChanges_GitFilesExclusion(t *testing.T) {
 	// The commit should succeed for tracked files but may fail at push or ssh auth
 	if err != nil {
 		// Allow for both push failures and SSH auth failures
-		assert.True(t, 
-			strings.Contains(err.Error(), "failed to push") || 
-			strings.Contains(err.Error(), "failed to create ssh auth"),
+		assert.True(t,
+			strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth"),
 			"Expected push or SSH auth error, got: %v", err)
 	}
 
@@ -479,7 +479,7 @@ func TestClient_CommitAndPushChanges_GitFilesExclusion(t *testing.T) {
 	// would skip them if they were in the status. Since the CommitAndPushChanges method
 	// only processes tracked files and skips .git files, we need to verify this behavior
 	// by simulating what the method would do.
-	
+
 	status, err := workTree.Status()
 	require.NoError(t, err)
 
@@ -489,7 +489,7 @@ func TestClient_CommitAndPushChanges_GitFilesExclusion(t *testing.T) {
 		if strings.HasPrefix(file, ".git") {
 			gitFilesFound++
 			// .git files should remain untracked (not processed by CommitAndPushChanges)
-			assert.Equal(t, git.Untracked, fileStatus.Worktree, 
+			assert.Equal(t, git.Untracked, fileStatus.Worktree,
 				"Git-related files should be untracked: %s", file)
 		}
 	}
@@ -499,12 +499,12 @@ func TestClient_CommitAndPushChanges_GitFilesExclusion(t *testing.T) {
 	// because of .git prefix, while properly excluding .git files. Since the method
 	// may or may not succeed (due to SSH issues), we verify the core functionality
 	// by checking that .git files remain untracked and regular files were processed.
-	
+
 	// If there's a test.txt in status, it should be untracked (newly created)
 	if testStatus, exists := status["test.txt"]; exists {
 		assert.Equal(t, git.Untracked, testStatus.Worktree, "test.txt should be untracked")
 	}
-	
+
 	// The initial.txt file should have been processed if the method succeeded
 	// (it may not appear in status if successfully committed)
 }
@@ -523,7 +523,7 @@ func TestClient_CommitAndPushChanges_TrackedFilesOnly(t *testing.T) {
 	// Create initial files and commit them (make them tracked)
 	trackedFile1 := filepath.Join(repoPath, "tracked1.txt")
 	trackedFile2 := filepath.Join(repoPath, "tracked2.txt")
-	
+
 	err = os.WriteFile(trackedFile1, []byte("tracked content 1"), 0644)
 	require.NoError(t, err)
 	err = os.WriteFile(trackedFile2, []byte("tracked content 2"), 0644)
@@ -559,7 +559,7 @@ func TestClient_CommitAndPushChanges_TrackedFilesOnly(t *testing.T) {
 	// Create untracked files (should NOT be staged)
 	untrackedFile1 := filepath.Join(repoPath, "untracked1.txt")
 	untrackedFile2 := filepath.Join(repoPath, "untracked2.txt")
-	
+
 	err = os.WriteFile(untrackedFile1, []byte("untracked content 1"), 0644)
 	require.NoError(t, err)
 	err = os.WriteFile(untrackedFile2, []byte("untracked content 2"), 0644)
@@ -568,7 +568,7 @@ func TestClient_CommitAndPushChanges_TrackedFilesOnly(t *testing.T) {
 	// Get status before commit to verify untracked files exist
 	statusBefore, err := workTree.Status()
 	require.NoError(t, err)
-	
+
 	// Verify we have both tracked (modified) and untracked files
 	foundTracked := false
 	foundUntracked := false
@@ -589,9 +589,9 @@ func TestClient_CommitAndPushChanges_TrackedFilesOnly(t *testing.T) {
 	// The method should only stage tracked files and skip untracked ones
 	// It may fail at push or SSH auth but should succeed at staging and commit
 	if err != nil {
-		assert.True(t, 
-			strings.Contains(err.Error(), "failed to push") || 
-			strings.Contains(err.Error(), "failed to create ssh auth"),
+		assert.True(t,
+			strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth"),
 			"Expected push or SSH auth error, got: %v", err)
 	}
 
@@ -644,7 +644,7 @@ func TestClient_CommitAndPushChanges_MixedFileStates(t *testing.T) {
 	}
 
 	// Create mixed file state scenarios
-	
+
 	// 1. Modified tracked file
 	modifyFile := filepath.Join(repoPath, "modify-me.txt")
 	err = os.WriteFile(modifyFile, []byte("modified content"), 0644)
@@ -684,9 +684,9 @@ func TestClient_CommitAndPushChanges_MixedFileStates(t *testing.T) {
 	err = client.CommitAndPushChanges("Test mixed file states")
 
 	if err != nil {
-		assert.True(t, 
-			strings.Contains(err.Error(), "failed to push") || 
-			strings.Contains(err.Error(), "failed to create ssh auth"),
+		assert.True(t,
+			strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth"),
 			"Expected push or SSH auth error, got: %v", err)
 	}
 
@@ -775,7 +775,7 @@ func TestClient_RemoveDirectory_AtomicOperation(t *testing.T) {
 		require.NoError(t, err)
 		err = os.WriteFile(fullPath, []byte(fmt.Sprintf("content of %s", file)), 0644)
 		require.NoError(t, err)
-		
+
 		// Add to git (make tracked)
 		gitPath := filepath.Join(testDir, file)
 		_, err = workTree.Add(gitPath)
@@ -809,10 +809,10 @@ func TestClient_RemoveDirectory_AtomicOperation(t *testing.T) {
 
 	// May fail at push, SSH auth, or have no changes to commit
 	if err != nil {
-		assert.True(t, 
-			strings.Contains(err.Error(), "failed to push") || 
-			strings.Contains(err.Error(), "failed to create ssh auth") ||
-			strings.Contains(err.Error(), "clean working tree"),
+		assert.True(t,
+			strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth") ||
+				strings.Contains(err.Error(), "clean working tree"),
 			"Expected push, SSH auth, or empty commit error, got: %v", err)
 	}
 
@@ -865,9 +865,9 @@ func TestClient_RemoveDirectory_NestedDirectories(t *testing.T) {
 
 	// Create files at different levels
 	nestedFiles := map[string]string{
-		"deep/file1.txt":                    "content1",
-		"deep/nested/file2.txt":             "content2",
-		"deep/nested/structure/file3.txt":   "content3",
+		"deep/file1.txt":                      "content1",
+		"deep/nested/file2.txt":               "content2",
+		"deep/nested/structure/file3.txt":     "content3",
 		"deep/nested/structure/sub/file4.txt": "content4",
 	}
 
@@ -877,7 +877,7 @@ func TestClient_RemoveDirectory_NestedDirectories(t *testing.T) {
 		require.NoError(t, err)
 		err = os.WriteFile(fullPath, []byte(content), 0644)
 		require.NoError(t, err)
-		
+
 		// Track the file
 		_, err = workTree.Add(filePath)
 		require.NoError(t, err)
@@ -897,10 +897,10 @@ func TestClient_RemoveDirectory_NestedDirectories(t *testing.T) {
 	err = client.RemoveDirectory("deep", "Remove entire deep directory structure")
 
 	if err != nil {
-		assert.True(t, 
-			strings.Contains(err.Error(), "failed to push") || 
-			strings.Contains(err.Error(), "failed to create ssh auth") ||
-			strings.Contains(err.Error(), "clean working tree"),
+		assert.True(t,
+			strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth") ||
+				strings.Contains(err.Error(), "clean working tree"),
 			"Expected push, SSH auth, or empty commit error, got: %v", err)
 	}
 
@@ -968,9 +968,9 @@ func TestClient_RemoveDirectory_PartialPathMatching(t *testing.T) {
 	err = client.RemoveDirectory("test", "Remove test directory only")
 
 	if err != nil {
-		assert.True(t, 
-			strings.Contains(err.Error(), "failed to push") || 
-			strings.Contains(err.Error(), "failed to create ssh auth"),
+		assert.True(t,
+			strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth"),
 			"Expected push or SSH auth error, got: %v", err)
 	}
 
@@ -1021,7 +1021,7 @@ func TestClient_RemoveDirectory_ErrorScenarios(t *testing.T) {
 		err = client.RemoveDirectory("non-existent", "Remove non-existent directory")
 		if err != nil {
 			// Should only fail with empty commit error since nothing to remove
-			assert.True(t, 
+			assert.True(t,
 				strings.Contains(err.Error(), "clean working tree"),
 				"Expected empty commit error for non-existent directory, got: %v", err)
 		}
@@ -1138,10 +1138,10 @@ func TestClient_RemoveDirectory_CommitMessagePropagation(t *testing.T) {
 
 			if err != nil {
 				// Should only fail at push, SSH auth, or empty commit (no changes to commit)
-				assert.True(t, 
-					strings.Contains(err.Error(), "failed to push") || 
-					strings.Contains(err.Error(), "failed to create ssh auth") ||
-					strings.Contains(err.Error(), "clean working tree"),
+				assert.True(t,
+					strings.Contains(err.Error(), "failed to push") ||
+						strings.Contains(err.Error(), "failed to create ssh auth") ||
+						strings.Contains(err.Error(), "clean working tree"),
 					"Expected push, SSH auth, or empty commit error, got: %v", err)
 			}
 
@@ -1153,8 +1153,8 @@ func TestClient_RemoveDirectory_CommitMessagePropagation(t *testing.T) {
 			require.NoError(t, err)
 
 			// Only verify commit message if this isn't a setup commit
-			if !strings.Contains(commit.Message, "Recreate for test") && 
-			   !strings.Contains(commit.Message, "Setup test structure") {
+			if !strings.Contains(commit.Message, "Recreate for test") &&
+				!strings.Contains(commit.Message, "Setup test structure") {
 				expectedMessage := tc.commitMessage
 				if expectedMessage == "" {
 					expectedMessage = "" // Empty messages should be preserved
@@ -1172,12 +1172,12 @@ func TestClient_RemoveDirectory_CommitMessagePropagation(t *testing.T) {
 // Table-driven tests for CommitAndPushChanges edge cases
 func TestClient_CommitAndPushChanges_TableDriven(t *testing.T) {
 	testCases := []struct {
-		name           string
-		setupFiles     map[string]string  // files to create initially (tracked)
-		modifyFiles    map[string]string  // files to modify after initial commit
-		createFiles    map[string]string  // new files to create (untracked)
-		deleteFiles    []string           // tracked files to delete
-		expectStaged   []string           // files that should be staged
+		name            string
+		setupFiles      map[string]string // files to create initially (tracked)
+		modifyFiles     map[string]string // files to modify after initial commit
+		createFiles     map[string]string // new files to create (untracked)
+		deleteFiles     []string          // tracked files to delete
+		expectStaged    []string          // files that should be staged
 		expectUntracked []string          // files that should remain untracked
 	}{
 		{
@@ -1201,10 +1201,10 @@ func TestClient_CommitAndPushChanges_TableDriven(t *testing.T) {
 				"existing.txt": "modified existing content",
 			},
 			createFiles: map[string]string{
-				"new.txt":          "new content",
+				"new.txt":           "new content",
 				"untracked/sub.txt": "untracked sub content",
 			},
-			expectStaged:   []string{"existing.txt"},
+			expectStaged:    []string{"existing.txt"},
 			expectUntracked: []string{"new.txt", "untracked/sub.txt"},
 		},
 		{
@@ -1225,11 +1225,11 @@ func TestClient_CommitAndPushChanges_TableDriven(t *testing.T) {
 				"regular.txt": "modified regular content",
 			},
 			createFiles: map[string]string{
-				".gitignore":    "*.log",
-				".git-config":   "config content",
+				".gitignore":     "*.log",
+				".git-config":    "config content",
 				".github/ci.yml": "ci: config",
 			},
-			expectStaged:   []string{"regular.txt"},
+			expectStaged:    []string{"regular.txt"},
 			expectUntracked: []string{".gitignore", ".git-config", ".github/ci.yml"},
 		},
 	}
@@ -1316,7 +1316,7 @@ func TestClient_CommitAndPushChanges_TableDriven(t *testing.T) {
 			// Check that expected untracked files remain untracked
 			for _, expectedUntracked := range tc.expectUntracked {
 				if fileStatus, exists := status[expectedUntracked]; exists {
-					assert.Equal(t, git.Untracked, fileStatus.Worktree, 
+					assert.Equal(t, git.Untracked, fileStatus.Worktree,
 						"File should remain untracked: %s", expectedUntracked)
 				}
 			}
@@ -1335,13 +1335,13 @@ func TestClient_CommitAndPushChanges_TableDriven(t *testing.T) {
 // Table-driven tests for RemoveDirectory scenarios
 func TestClient_RemoveDirectory_TableDriven(t *testing.T) {
 	testCases := []struct {
-		name            string
-		setupStructure  map[string]string // files to create and track
-		removeDir       string            // directory to remove
-		commitMsg       string            // commit message to use
-		shouldExist     []string          // files/dirs that should still exist
-		shouldNotExist  []string          // files/dirs that should be removed
-		expectError     bool              // whether an error is expected (other than push)
+		name           string
+		setupStructure map[string]string // files to create and track
+		removeDir      string            // directory to remove
+		commitMsg      string            // commit message to use
+		shouldExist    []string          // files/dirs that should still exist
+		shouldNotExist []string          // files/dirs that should be removed
+		expectError    bool              // whether an error is expected (other than push)
 	}{
 		{
 			name: "Remove simple directory",
@@ -1453,9 +1453,9 @@ func TestClient_RemoveDirectory_TableDriven(t *testing.T) {
 			}
 
 			// Allow push failures, SSH auth failures, and empty commit errors but verify filesystem operations
-			if err != nil && !strings.Contains(err.Error(), "failed to push") && 
-			   !strings.Contains(err.Error(), "failed to create ssh auth") &&
-			   !strings.Contains(err.Error(), "clean working tree") {
+			if err != nil && !strings.Contains(err.Error(), "failed to push") &&
+				!strings.Contains(err.Error(), "failed to create ssh auth") &&
+				!strings.Contains(err.Error(), "clean working tree") {
 				// Allow for "nothing to commit" scenarios
 				if !strings.Contains(strings.ToLower(err.Error()), "nothing to commit") {
 					t.Errorf("Unexpected error for test %s: %v", tc.name, err)
@@ -1513,7 +1513,7 @@ func TestClient_CommitAndPushChanges_FileStatusEdgeCases(t *testing.T) {
 	_, err = workTree.Commit("Initial", &git.CommitOptions{
 		Author: &object.Signature{
 			Name:  "Test User",
-			Email: "test@example.com", 
+			Email: "test@example.com",
 			When:  time.Now(),
 		},
 	})
@@ -1538,18 +1538,18 @@ func TestClient_CommitAndPushChanges_FileStatusEdgeCases(t *testing.T) {
 
 	// Should handle the mixed state correctly
 	err = client.CommitAndPushChanges("Handle mixed staged/worktree state")
-	
+
 	if err != nil {
-		assert.True(t, 
-			strings.Contains(err.Error(), "failed to push") || 
-			strings.Contains(err.Error(), "failed to create ssh auth"),
+		assert.True(t,
+			strings.Contains(err.Error(), "failed to push") ||
+				strings.Contains(err.Error(), "failed to create ssh auth"),
 			"Expected push or SSH auth error, got: %v", err)
 	}
 
 	// Verify the final state
 	content, err := os.ReadFile(testFile)
 	require.NoError(t, err)
-	
+
 	// The worktree version should be preserved
 	assert.Equal(t, "worktree change", string(content))
 }
@@ -1567,7 +1567,7 @@ func TestClient_RemoveDirectory_EdgeCaseScenarios(t *testing.T) {
 
 		// Create both root-level files and directories with similar names
 		rootFile := filepath.Join(repoPath, "test")
-		testDir := filepath.Join(repoPath, "testdir") 
+		testDir := filepath.Join(repoPath, "testdir")
 		testDirFile := filepath.Join(testDir, "file.txt")
 
 		err = os.WriteFile(rootFile, []byte("root file content"), 0644)
@@ -1602,9 +1602,9 @@ func TestClient_RemoveDirectory_EdgeCaseScenarios(t *testing.T) {
 		err = client.RemoveDirectory("testdir", "Remove testdir only")
 
 		if err != nil {
-			assert.True(t, 
-				strings.Contains(err.Error(), "failed to push") || 
-				strings.Contains(err.Error(), "failed to create ssh auth"),
+			assert.True(t,
+				strings.Contains(err.Error(), "failed to push") ||
+					strings.Contains(err.Error(), "failed to create ssh auth"),
 				"Expected push or SSH auth error, got: %v", err)
 		}
 
@@ -1683,28 +1683,28 @@ func TestClientInterface_MockImplementation(t *testing.T) {
 		"test.txt": "content",
 	}
 	expectedHash := "abc123def456"
-	
+
 	mockClient.On("CommitAndPush", files, "Test message").Return(expectedHash, nil)
-	
+
 	hash, err := mockClient.CommitAndPush(files, "Test message")
 	assert.NoError(t, err)
 	assert.Equal(t, expectedHash, hash)
 
 	// Test CommitAndPushChanges
 	mockClient.On("CommitAndPushChanges", "Changes message").Return(nil)
-	
+
 	err = mockClient.CommitAndPushChanges("Changes message")
 	assert.NoError(t, err)
 
 	// Test InitRepo
 	mockClient.On("InitRepo").Return(nil)
-	
+
 	err = mockClient.InitRepo()
 	assert.NoError(t, err)
 
 	// Test RemoveDirectory
 	mockClient.On("RemoveDirectory", "old-dir", "Remove old directory").Return(nil)
-	
+
 	err = mockClient.RemoveDirectory("old-dir", "Remove old directory")
 	assert.NoError(t, err)
 
@@ -1718,10 +1718,10 @@ func TestClientInterface_MockWithErrors(t *testing.T) {
 	files := map[string]string{
 		"test.txt": "content",
 	}
-	
+
 	expectedError := fmt.Errorf("push failed")
 	mockClient.On("CommitAndPush", files, "Test message").Return("", expectedError)
-	
+
 	hash, err := mockClient.CommitAndPush(files, "Test message")
 	assert.Error(t, err)
 	assert.Equal(t, expectedError, err)
@@ -1747,7 +1747,7 @@ func TestClient_FilePermissions(t *testing.T) {
 	}
 
 	files := map[string]string{
-		"script.sh":    "#!/bin/bash\necho 'test'",
+		"script.sh":   "#!/bin/bash\necho 'test'",
 		"config.yaml": "key: value",
 	}
 
@@ -1759,11 +1759,11 @@ func TestClient_FilePermissions(t *testing.T) {
 		fullPath := filepath.Join(repoPath, filePath)
 		info, statErr := os.Stat(fullPath)
 		assert.NoError(t, statErr)
-		
+
 		// Check that file has expected permissions
 		mode := info.Mode()
 		assert.True(t, mode.IsRegular())
-		
+
 		// On Unix systems, check specific permissions
 		if mode&fs.ModePerm != 0 {
 			perm := mode & fs.ModePerm
@@ -1775,7 +1775,7 @@ func TestClient_FilePermissions(t *testing.T) {
 // Test edge cases and error handling
 func TestClient_EdgeCases(t *testing.T) {
 	tmpDir := createTempDir(t)
-	
+
 	t.Run("Empty files map", func(t *testing.T) {
 		repoPath := filepath.Join(tmpDir, "empty-test-repo")
 		_, err := git.PlainInit(repoPath, false)
@@ -1789,7 +1789,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		}
 
 		files := map[string]string{}
-		
+
 		// Should handle empty files map gracefully
 		_, err = client.CommitAndPush(files, "Empty commit")
 		// May fail at push, but should not panic
@@ -1817,7 +1817,7 @@ func TestClient_EdgeCases(t *testing.T) {
 		}
 
 		_, err = client.CommitAndPush(files, "Long path test")
-		
+
 		// Should handle long paths correctly
 		fullPath := filepath.Join(repoPath, longPath)
 		_, statErr := os.Stat(fullPath)
@@ -1901,13 +1901,13 @@ func TestClient_ConcurrentAccess(t *testing.T) {
 
 	// Note: Real concurrent git operations would require more sophisticated testing
 	// This test just verifies that multiple operations don't cause obvious issues
-	
+
 	// Perform multiple operations in sequence (simulating potential concurrent scenarios)
 	for i := 0; i < 5; i++ {
 		files := map[string]string{
 			fmt.Sprintf("file%d.txt", i): fmt.Sprintf("content%d", i),
 		}
-		
+
 		_, err = client.CommitAndPush(files, fmt.Sprintf("Commit %d", i))
 		// Errors expected due to no remote, but should not panic
 		if err != nil {
@@ -1958,7 +1958,7 @@ func BenchmarkClient_FileCreation(b *testing.B) {
 		files := map[string]string{
 			fmt.Sprintf("subdir/file%d.txt", i): fmt.Sprintf("content%d", i),
 		}
-		
+
 		// Only test file creation part, not git operations
 		for filePath, content := range files {
 			fullPath := filepath.Join(repoPath, filePath)
@@ -2020,18 +2020,18 @@ func TestNewGitClientConfig_ValidTokenFile(t *testing.T) {
 	tmpDir := createTempDir(t)
 	tokenFile := filepath.Join(tmpDir, "token.txt")
 	expectedToken := "github_pat_123456789abcdef"
-	
+
 	// Create token file
 	err := os.WriteFile(tokenFile, []byte(expectedToken), 0600)
 	require.NoError(t, err)
-	
+
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
-		"main", 
+		"main",
 		"fallback-token", // This should not be used
 		tokenFile,
 	)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, "git@github.com:test/repo.git", config.RepoURL)
@@ -2047,18 +2047,18 @@ func TestNewGitClientConfig_TokenFileWithWhitespace(t *testing.T) {
 	tokenFile := filepath.Join(tmpDir, "token-with-whitespace.txt")
 	rawToken := "  \n\t  github_pat_with_whitespace  \n\t  "
 	expectedToken := "github_pat_with_whitespace"
-	
+
 	// Create token file with whitespace
 	err := os.WriteFile(tokenFile, []byte(rawToken), 0600)
 	require.NoError(t, err)
-	
+
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
 		"main",
 		"fallback-token",
 		tokenFile,
 	)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, expectedToken, config.Token, "Token should be trimmed of whitespace")
@@ -2068,14 +2068,14 @@ func TestNewGitClientConfig_TokenFileWithWhitespace(t *testing.T) {
 func TestNewGitClientConfig_InvalidTokenFileFallbackToEnvVar(t *testing.T) {
 	nonExistentFile := "/non/existent/token/file.txt"
 	fallbackToken := "env-var-token-123"
-	
+
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
 		"main",
 		fallbackToken,
 		nonExistentFile,
 	)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, "git@github.com:test/repo.git", config.RepoURL)
@@ -2088,14 +2088,14 @@ func TestNewGitClientConfig_InvalidTokenFileFallbackToEnvVar(t *testing.T) {
 
 func TestNewGitClientConfig_EmptyTokenPathUsesEnvVar(t *testing.T) {
 	envVarToken := "environment-variable-token"
-	
+
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
 		"main",
 		envVarToken,
 		"", // Empty token path
 	)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, "git@github.com:test/repo.git", config.RepoURL)
@@ -2108,14 +2108,14 @@ func TestNewGitClientConfig_EmptyTokenPathUsesEnvVar(t *testing.T) {
 
 func TestNewGitClientConfig_NoTokenFileNoEnvVar(t *testing.T) {
 	nonExistentFile := "/non/existent/token/file.txt"
-	
+
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
 		"main",
 		"", // Empty environment variable token
 		nonExistentFile,
 	)
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, config)
 	assert.Contains(t, err.Error(), "no git token available")
@@ -2129,7 +2129,7 @@ func TestNewGitClientConfig_EmptyTokenFileAndEmptyEnvVar(t *testing.T) {
 		"", // Empty environment variable token
 		"", // Empty token path
 	)
-	
+
 	assert.Error(t, err)
 	assert.Nil(t, config)
 	assert.Contains(t, err.Error(), "no git token available")
@@ -2137,21 +2137,21 @@ func TestNewGitClientConfig_EmptyTokenFileAndEmptyEnvVar(t *testing.T) {
 
 func TestNewGitClientConfig_TokenFileReadError(t *testing.T) {
 	tmpDir := createTempDir(t)
-	
+
 	// Create a directory instead of a file to cause read error
 	tokenDir := filepath.Join(tmpDir, "token-dir")
 	err := os.Mkdir(tokenDir, 0755)
 	require.NoError(t, err)
-	
+
 	fallbackToken := "fallback-env-token"
-	
+
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
 		"main",
 		fallbackToken,
 		tokenDir, // This is a directory, not a file
 	)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, fallbackToken, config.Token, "Should fallback to environment variable on read error")
@@ -2162,22 +2162,22 @@ func TestNewGitClientConfig_TokenFilePermissions(t *testing.T) {
 	tmpDir := createTempDir(t)
 	tokenFile := filepath.Join(tmpDir, "secure-token.txt")
 	expectedToken := "secure_token_123"
-	
+
 	// Create token file with restricted permissions
 	err := os.WriteFile(tokenFile, []byte(expectedToken), 0600)
 	require.NoError(t, err)
-	
+
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
 		"main",
 		"fallback-token",
 		tokenFile,
 	)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, expectedToken, config.Token)
-	
+
 	// Verify file exists and can be read (permissions behavior varies by OS)
 	info, err := os.Stat(tokenFile)
 	require.NoError(t, err)
@@ -2188,18 +2188,18 @@ func TestNewGitClientConfig_EmptyTokenFileContent(t *testing.T) {
 	tmpDir := createTempDir(t)
 	tokenFile := filepath.Join(tmpDir, "empty-token.txt")
 	fallbackToken := "fallback-token-456"
-	
+
 	// Create empty token file
 	err := os.WriteFile(tokenFile, []byte(""), 0600)
 	require.NoError(t, err)
-	
+
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
 		"main",
 		fallbackToken,
 		tokenFile,
 	)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, "", config.Token, "Empty token file should result in empty token")
@@ -2210,18 +2210,18 @@ func TestNewGitClientConfig_WhitespaceOnlyTokenFile(t *testing.T) {
 	tmpDir := createTempDir(t)
 	tokenFile := filepath.Join(tmpDir, "whitespace-token.txt")
 	fallbackToken := "fallback-token-789"
-	
+
 	// Create token file with only whitespace
 	err := os.WriteFile(tokenFile, []byte("   \n\t   \n   "), 0600)
 	require.NoError(t, err)
-	
+
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
 		"main",
 		fallbackToken,
 		tokenFile,
 	)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, config)
 	assert.Equal(t, "", config.Token, "Whitespace-only token file should result in empty token after trimming")
@@ -2230,7 +2230,7 @@ func TestNewGitClientConfig_WhitespaceOnlyTokenFile(t *testing.T) {
 
 func TestNewGitClientConfig_TableDriven(t *testing.T) {
 	tmpDir := createTempDir(t)
-	
+
 	testCases := []struct {
 		name          string
 		setupToken    func() (string, string) // Returns tokenPath, tokenContent
@@ -2302,18 +2302,18 @@ func TestNewGitClientConfig_TableDriven(t *testing.T) {
 			expectError: true,
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			tokenPath, _ := tc.setupToken()
-			
+
 			config, err := NewGitClientConfig(
 				"git@github.com:test/repo.git",
 				"main",
 				tc.envVarToken,
 				tokenPath,
 			)
-			
+
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, config)
@@ -2324,7 +2324,7 @@ func TestNewGitClientConfig_TableDriven(t *testing.T) {
 				assert.Equal(t, "git@github.com:test/repo.git", config.RepoURL)
 				assert.Equal(t, "main", config.Branch)
 				assert.Equal(t, tc.expectedToken, config.Token)
-				
+
 				if tc.expectedPath == "file" {
 					assert.Equal(t, tokenPath, config.TokenPath)
 				} else if tc.expectedPath == "" {
@@ -2332,7 +2332,7 @@ func TestNewGitClientConfig_TableDriven(t *testing.T) {
 				} else {
 					assert.Equal(t, tc.expectedPath, config.TokenPath)
 				}
-				
+
 				assert.Equal(t, "/tmp/deployment-repo", config.RepoPath)
 				assert.NotNil(t, config.Logger)
 			}
@@ -2348,9 +2348,9 @@ func TestNewClientFromConfig(t *testing.T) {
 		RepoPath: "/custom/repo/path",
 		Logger:   slog.Default().With("test", "value"),
 	}
-	
+
 	client := NewClientFromConfig(config)
-	
+
 	assert.NotNil(t, client)
 	assert.Equal(t, config.RepoURL, client.RepoURL)
 	assert.Equal(t, config.Branch, client.Branch)
@@ -2367,9 +2367,9 @@ func TestNewClientFromConfig_NilLogger(t *testing.T) {
 		RepoPath: "/custom/repo/path",
 		Logger:   nil, // Nil logger should be handled
 	}
-	
+
 	client := NewClientFromConfig(config)
-	
+
 	assert.NotNil(t, client)
 	assert.NotNil(t, client.logger, "Logger should be set to default when nil")
 	assert.Equal(t, config.RepoURL, client.RepoURL)
@@ -2383,11 +2383,11 @@ func TestTokenLoadingIntegration(t *testing.T) {
 	tmpDir := createTempDir(t)
 	tokenFile := filepath.Join(tmpDir, "integration-token.txt")
 	token := "integration_test_token_123"
-	
+
 	// Create token file
 	err := os.WriteFile(tokenFile, []byte("  "+token+"  \n"), 0600)
 	require.NoError(t, err)
-	
+
 	// Create config with token file
 	config, err := NewGitClientConfig(
 		"git@github.com:test/repo.git",
@@ -2397,11 +2397,11 @@ func TestTokenLoadingIntegration(t *testing.T) {
 	)
 	require.NoError(t, err)
 	require.NotNil(t, config)
-	
+
 	// Create client from config
 	client := NewClientFromConfig(config)
 	require.NotNil(t, client)
-	
+
 	// Verify the complete workflow
 	assert.Equal(t, "git@github.com:test/repo.git", client.RepoURL)
 	assert.Equal(t, "develop", client.Branch)
@@ -2415,63 +2415,63 @@ func TestNewGitClientConfig_EdgeCases(t *testing.T) {
 	t.Run("Very large token file", func(t *testing.T) {
 		tmpDir := createTempDir(t)
 		tokenFile := filepath.Join(tmpDir, "large-token.txt")
-		
+
 		// Create a very large token (10KB)
 		largeToken := strings.Repeat("a", 10240)
 		err := os.WriteFile(tokenFile, []byte(largeToken), 0600)
 		require.NoError(t, err)
-		
+
 		config, err := NewGitClientConfig(
 			"git@github.com:test/repo.git",
 			"main",
 			"fallback",
 			tokenFile,
 		)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, config)
 		assert.Equal(t, largeToken, config.Token)
 	})
-	
+
 	t.Run("Token file with binary content", func(t *testing.T) {
 		tmpDir := createTempDir(t)
 		tokenFile := filepath.Join(tmpDir, "binary-token.txt")
-		
+
 		// Create a file with binary content
 		binaryContent := []byte{0x00, 0x01, 0x02, 0xFF, 0xFE, 0xFD}
 		err := os.WriteFile(tokenFile, binaryContent, 0600)
 		require.NoError(t, err)
-		
+
 		config, err := NewGitClientConfig(
 			"git@github.com:test/repo.git",
 			"main",
 			"fallback",
 			tokenFile,
 		)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, config)
 		// Binary content should be read as-is and trimmed
 		expectedToken := strings.TrimSpace(string(binaryContent))
 		assert.Equal(t, expectedToken, config.Token)
 	})
-	
+
 	t.Run("Unicode content in token file", func(t *testing.T) {
 		tmpDir := createTempDir(t)
 		tokenFile := filepath.Join(tmpDir, "unicode-token.txt")
-		
+
 		// Create a file with Unicode content
 		unicodeToken := "github_pat_🔑_token_测试"
 		err := os.WriteFile(tokenFile, []byte(unicodeToken), 0600)
 		require.NoError(t, err)
-		
+
 		config, err := NewGitClientConfig(
 			"git@github.com:test/repo.git",
 			"main",
 			"fallback",
 			tokenFile,
 		)
-		
+
 		assert.NoError(t, err)
 		assert.NotNil(t, config)
 		assert.Equal(t, unicodeToken, config.Token)
@@ -2483,12 +2483,12 @@ func BenchmarkNewGitClientConfig_TokenFile(b *testing.B) {
 	tmpDir, err := os.MkdirTemp("", "bench-token-*")
 	require.NoError(b, err)
 	defer os.RemoveAll(tmpDir)
-	
+
 	tokenFile := filepath.Join(tmpDir, "bench-token.txt")
 	token := "benchmark_token_123456789"
 	err = os.WriteFile(tokenFile, []byte(token), 0600)
 	require.NoError(b, err)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		config, err := NewGitClientConfig(
@@ -2505,7 +2505,7 @@ func BenchmarkNewGitClientConfig_TokenFile(b *testing.B) {
 
 func BenchmarkNewGitClientConfig_EnvVar(b *testing.B) {
 	token := "benchmark_env_token_123456789"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		config, err := NewGitClientConfig(

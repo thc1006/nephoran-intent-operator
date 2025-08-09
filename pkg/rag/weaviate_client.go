@@ -24,14 +24,14 @@ import (
 
 // WeaviateClient provides a production-ready client for Weaviate vector database
 type WeaviateClient struct {
-	client           *weaviate.Client
-	config           *WeaviateConfig
-	logger           *slog.Logger
-	healthStatus     *WeaviateHealthStatus
-	circuitBreaker   *CircuitBreaker
-	rateLimiter      *WeaviateRateLimiter
+	client            *weaviate.Client
+	config            *WeaviateConfig
+	logger            *slog.Logger
+	healthStatus      *WeaviateHealthStatus
+	circuitBreaker    *CircuitBreaker
+	rateLimiter       *WeaviateRateLimiter
 	embeddingFallback *EmbeddingFallback
-	mutex            sync.RWMutex
+	mutex             sync.RWMutex
 }
 
 // CircuitBreaker definition moved to cost_aware_embedding_service.go to avoid duplicates
@@ -57,99 +57,99 @@ type WeaviateRateLimiter struct {
 
 // EmbeddingFallback provides local embedding model fallback
 type EmbeddingFallback struct {
-	enabled     bool
-	modelPath   string
-	dimensions  int
-	available   bool
-	mutex       sync.RWMutex
+	enabled    bool
+	modelPath  string
+	dimensions int
+	available  bool
+	mutex      sync.RWMutex
 }
 
 // RetryConfig holds configuration for exponential backoff
 type RetryConfig struct {
-	MaxRetries   int           `json:"max_retries"`
-	BaseDelay    time.Duration `json:"base_delay"`
-	MaxDelay     time.Duration `json:"max_delay"`
-	BackoffMultiplier float64  `json:"backoff_multiplier"`
-	Jitter       bool          `json:"jitter"`
+	MaxRetries        int           `json:"max_retries"`
+	BaseDelay         time.Duration `json:"base_delay"`
+	MaxDelay          time.Duration `json:"max_delay"`
+	BackoffMultiplier float64       `json:"backoff_multiplier"`
+	Jitter            bool          `json:"jitter"`
 }
 
 // WeaviateConfig holds configuration for the Weaviate client
 type WeaviateConfig struct {
-	Host     string `json:"host"`
-	Scheme   string `json:"scheme"`
-	APIKey   string `json:"api_key"`
-	Headers  map[string]string `json:"headers"`
-	Timeout  time.Duration `json:"timeout"`
-	Retries  int `json:"retries"`
-	
+	Host    string            `json:"host"`
+	Scheme  string            `json:"scheme"`
+	APIKey  string            `json:"api_key"`
+	Headers map[string]string `json:"headers"`
+	Timeout time.Duration     `json:"timeout"`
+	Retries int               `json:"retries"`
+
 	// Schema configuration
 	AutoSchema bool `json:"auto_schema"`
-	
+
 	// OpenAI configuration for vectorization
 	OpenAIAPIKey string `json:"openai_api_key"`
-	
+
 	// Rate limiting configuration
 	RateLimiting struct {
 		RequestsPerMinute int32 `json:"requests_per_minute"`
 		TokensPerMinute   int64 `json:"tokens_per_minute"`
 		Enabled           bool  `json:"enabled"`
 	} `json:"rate_limiting"`
-	
+
 	// Circuit breaker configuration
 	CircuitBreaker struct {
 		MaxFailures int32         `json:"max_failures"`
 		Timeout     time.Duration `json:"timeout"`
 		Enabled     bool          `json:"enabled"`
 	} `json:"circuit_breaker"`
-	
+
 	// Retry configuration
 	Retry RetryConfig `json:"retry"`
-	
+
 	// Embedding fallback configuration
 	EmbeddingFallback struct {
-		Enabled     bool   `json:"enabled"`
-		ModelPath   string `json:"model_path"`
-		Dimensions  int    `json:"dimensions"`
+		Enabled    bool   `json:"enabled"`
+		ModelPath  string `json:"model_path"`
+		Dimensions int    `json:"dimensions"`
 	} `json:"embedding_fallback"`
-	
+
 	// Performance tuning
 	ConnectionPool struct {
-		MaxIdleConns        int           `json:"max_idle_conns"`
-		MaxConnsPerHost     int           `json:"max_conns_per_host"`
-		IdleConnTimeout     time.Duration `json:"idle_conn_timeout"`
-		DisableCompression  bool          `json:"disable_compression"`
+		MaxIdleConns       int           `json:"max_idle_conns"`
+		MaxConnsPerHost    int           `json:"max_conns_per_host"`
+		IdleConnTimeout    time.Duration `json:"idle_conn_timeout"`
+		DisableCompression bool          `json:"disable_compression"`
 	} `json:"connection_pool"`
 }
 
 // HealthStatus represents the health status of the Weaviate cluster
 type WeaviateHealthStatus struct {
-	IsHealthy     bool              `json:"is_healthy"`
-	LastCheck     time.Time         `json:"last_check"`
-	Version       string            `json:"version"`
-	Nodes         []NodeStatus      `json:"nodes"`
-	Statistics    ClusterStatistics `json:"statistics"`
-	Details       string            `json:"details"`
-	ErrorCount    int64             `json:"error_count"`
-	LastError     error             `json:"last_error,omitempty"`
+	IsHealthy  bool              `json:"is_healthy"`
+	LastCheck  time.Time         `json:"last_check"`
+	Version    string            `json:"version"`
+	Nodes      []NodeStatus      `json:"nodes"`
+	Statistics ClusterStatistics `json:"statistics"`
+	Details    string            `json:"details"`
+	ErrorCount int64             `json:"error_count"`
+	LastError  error             `json:"last_error,omitempty"`
 }
 
 // NodeStatus represents the status of a single Weaviate node
 type NodeStatus struct {
-	Name      string                 `json:"name"`
-	Status    string                 `json:"status"`
-	Version   string                 `json:"version"`
-	GitHash   string                 `json:"git_hash"`
-	Stats     map[string]interface{} `json:"stats"`
+	Name    string                 `json:"name"`
+	Status  string                 `json:"status"`
+	Version string                 `json:"version"`
+	GitHash string                 `json:"git_hash"`
+	Stats   map[string]interface{} `json:"stats"`
 }
 
 // ClusterStatistics holds cluster-wide statistics
 type ClusterStatistics struct {
-	ObjectCount    int64                  `json:"object_count"`
-	ClassCount     int                    `json:"class_count"`
-	ShardCount     int                    `json:"shard_count"`
-	VectorDimensions map[string]int       `json:"vector_dimensions"`
-	IndexSize      int64                  `json:"index_size"`
-	QueryLatency   LatencyMetrics         `json:"query_latency"`
+	ObjectCount      int64          `json:"object_count"`
+	ClassCount       int            `json:"class_count"`
+	ShardCount       int            `json:"shard_count"`
+	VectorDimensions map[string]int `json:"vector_dimensions"`
+	IndexSize        int64          `json:"index_size"`
+	QueryLatency     LatencyMetrics `json:"query_latency"`
 }
 
 // LatencyMetrics holds latency statistics
@@ -161,49 +161,49 @@ type LatencyMetrics struct {
 
 // TelecomDocument represents a document in the telecom knowledge base
 type TelecomDocument struct {
-	ID             string            `json:"id"`
-	Content        string            `json:"content"`
-	Title          string            `json:"title"`
-	Source         string            `json:"source"`
-	Category       string            `json:"category"`
-	Subcategory    string            `json:"subcategory"`
-	Version        string            `json:"version"`
-	WorkingGroup   string            `json:"working_group"`
-	Keywords       []string          `json:"keywords"`
-	Confidence     float32           `json:"confidence"`
-	Language       string            `json:"language"`
-	DocumentType   string            `json:"document_type"`
-	NetworkFunction []string         `json:"network_function"`
-	Technology     []string          `json:"technology"`
-	UseCase        []string          `json:"use_case"`
+	ID              string   `json:"id"`
+	Content         string   `json:"content"`
+	Title           string   `json:"title"`
+	Source          string   `json:"source"`
+	Category        string   `json:"category"`
+	Subcategory     string   `json:"subcategory"`
+	Version         string   `json:"version"`
+	WorkingGroup    string   `json:"working_group"`
+	Keywords        []string `json:"keywords"`
+	Confidence      float32  `json:"confidence"`
+	Language        string   `json:"language"`
+	DocumentType    string   `json:"document_type"`
+	NetworkFunction []string `json:"network_function"`
+	Technology      []string `json:"technology"`
+	UseCase         []string `json:"use_case"`
 	// Timestamp removed to avoid conflicts
-	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // SearchQuery represents a query to the vector database
 type SearchQuery struct {
-	Query            string                 `json:"query"`
-	Limit            int                    `json:"limit"`
-	Offset           int                    `json:"offset"`
-	Filters          map[string]interface{} `json:"filters,omitempty"`
-	HybridSearch     bool                   `json:"hybrid_search"`
-	HybridAlpha      float32                `json:"hybrid_alpha"`
-	UseReranker      bool                   `json:"use_reranker"`
-	MinConfidence    float32                `json:"min_confidence"`
-	IncludeVector    bool                   `json:"include_vector"`
-	ExpandQuery      bool                   `json:"expand_query"`
+	Query         string                 `json:"query"`
+	Limit         int                    `json:"limit"`
+	Offset        int                    `json:"offset"`
+	Filters       map[string]interface{} `json:"filters,omitempty"`
+	HybridSearch  bool                   `json:"hybrid_search"`
+	HybridAlpha   float32                `json:"hybrid_alpha"`
+	UseReranker   bool                   `json:"use_reranker"`
+	MinConfidence float32                `json:"min_confidence"`
+	IncludeVector bool                   `json:"include_vector"`
+	ExpandQuery   bool                   `json:"expand_query"`
 }
 
 // SearchResult definition moved to enhanced_rag_integration.go to avoid duplicates
 
 // SearchResponse represents the response from a search query
 type SearchResponse struct {
-	Results       []*SearchResult `json:"results"`
-	Total         int             `json:"total"`
-	Took          time.Duration   `json:"took"`
-	Query         string          `json:"query"`
-	ProcessedAt   time.Time       `json:"processed_at"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	Results     []*SearchResult        `json:"results"`
+	Total       int                    `json:"total"`
+	Took        time.Duration          `json:"took"`
+	Query       string                 `json:"query"`
+	ProcessedAt time.Time              `json:"processed_at"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // NewWeaviateClient creates a new Weaviate client with production-ready configuration
@@ -358,95 +358,95 @@ func (wc *WeaviateClient) initializeSchema(ctx context.Context) error {
 		},
 		Properties: []*models.Property{
 			{
-				Name:         "content",
-				DataType:     []string{"text"},
-				Description:  "Full document content with telecom terminology",
+				Name:            "content",
+				DataType:        []string{"text"},
+				Description:     "Full document content with telecom terminology",
 				IndexFilterable: &[]bool{true}[0],
 				IndexSearchable: &[]bool{true}[0],
 			},
 			{
-				Name:         "title",
-				DataType:     []string{"text"},
-				Description:  "Document or section title",
+				Name:            "title",
+				DataType:        []string{"text"},
+				Description:     "Document or section title",
 				IndexFilterable: &[]bool{true}[0],
 				IndexSearchable: &[]bool{true}[0],
 			},
 			{
-				Name:         "source",
-				DataType:     []string{"text"},
-				Description:  "Document source organization (3GPP, O-RAN, ETSI, ITU, etc.)",
+				Name:            "source",
+				DataType:        []string{"text"},
+				Description:     "Document source organization (3GPP, O-RAN, ETSI, ITU, etc.)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "category",
-				DataType:     []string{"text"},
-				Description:  "Knowledge category (RAN, Core, Transport, Management, etc.)",
+				Name:            "category",
+				DataType:        []string{"text"},
+				Description:     "Knowledge category (RAN, Core, Transport, Management, etc.)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "subcategory",
-				DataType:     []string{"text"},
-				Description:  "Detailed subcategory for fine-grained classification",
+				Name:            "subcategory",
+				DataType:        []string{"text"},
+				Description:     "Detailed subcategory for fine-grained classification",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "version",
-				DataType:     []string{"text"},
-				Description:  "Specification version (e.g., Rel-17, v1.5.0)",
+				Name:            "version",
+				DataType:        []string{"text"},
+				Description:     "Specification version (e.g., Rel-17, v1.5.0)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "workingGroup",
-				DataType:     []string{"text"},
-				Description:  "Working group responsible (e.g., RAN1, SA2, O-RAN WG1)",
+				Name:            "workingGroup",
+				DataType:        []string{"text"},
+				Description:     "Working group responsible (e.g., RAN1, SA2, O-RAN WG1)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "keywords",
-				DataType:     []string{"text[]"},
-				Description:  "Extracted telecom keywords and terminology",
+				Name:            "keywords",
+				DataType:        []string{"text[]"},
+				Description:     "Extracted telecom keywords and terminology",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "confidence",
-				DataType:     []string{"number"},
-				Description:  "Content quality and relevance confidence score",
+				Name:            "confidence",
+				DataType:        []string{"number"},
+				Description:     "Content quality and relevance confidence score",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "language",
-				DataType:     []string{"text"},
-				Description:  "Document language (ISO 639-1 code)",
+				Name:            "language",
+				DataType:        []string{"text"},
+				Description:     "Document language (ISO 639-1 code)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "documentType",
-				DataType:     []string{"text"},
-				Description:  "Type of document (specification, report, presentation, etc.)",
+				Name:            "documentType",
+				DataType:        []string{"text"},
+				Description:     "Type of document (specification, report, presentation, etc.)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "networkFunction",
-				DataType:     []string{"text[]"},
-				Description:  "Related network functions (gNB, AMF, SMF, UPF, etc.)",
+				Name:            "networkFunction",
+				DataType:        []string{"text[]"},
+				Description:     "Related network functions (gNB, AMF, SMF, UPF, etc.)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "technology",
-				DataType:     []string{"text[]"},
-				Description:  "Related technologies (5G, 4G, O-RAN, vRAN, etc.)",
+				Name:            "technology",
+				DataType:        []string{"text[]"},
+				Description:     "Related technologies (5G, 4G, O-RAN, vRAN, etc.)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "useCase",
-				DataType:     []string{"text[]"},
-				Description:  "Applicable use cases (eMBB, URLLC, mMTC, etc.)",
+				Name:            "useCase",
+				DataType:        []string{"text[]"},
+				Description:     "Applicable use cases (eMBB, URLLC, mMTC, etc.)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "timestamp",
-				DataType:     []string{"date"},
-				Description:  "Last updated timestamp",
+				Name:            "timestamp",
+				DataType:        []string{"date"},
+				Description:     "Last updated timestamp",
 				IndexFilterable: &[]bool{true}[0],
 			},
 		},
@@ -478,40 +478,40 @@ func (wc *WeaviateClient) initializeSchema(ctx context.Context) error {
 		},
 		Properties: []*models.Property{
 			{
-				Name:         "pattern",
-				DataType:     []string{"text"},
-				Description:  "Intent pattern template",
+				Name:            "pattern",
+				DataType:        []string{"text"},
+				Description:     "Intent pattern template",
 				IndexFilterable: &[]bool{true}[0],
 				IndexSearchable: &[]bool{true}[0],
 			},
 			{
-				Name:         "category",
-				DataType:     []string{"text"},
-				Description:  "Intent category (configuration, optimization, troubleshooting)",
+				Name:            "category",
+				DataType:        []string{"text"},
+				Description:     "Intent category (configuration, optimization, troubleshooting)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "networkDomain",
-				DataType:     []string{"text"},
-				Description:  "Target network domain (RAN, Core, Transport)",
+				Name:            "networkDomain",
+				DataType:        []string{"text"},
+				Description:     "Target network domain (RAN, Core, Transport)",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "parameters",
-				DataType:     []string{"text[]"},
-				Description:  "Required and optional parameters",
+				Name:            "parameters",
+				DataType:        []string{"text[]"},
+				Description:     "Required and optional parameters",
 				IndexFilterable: &[]bool{true}[0],
 			},
 			{
-				Name:         "examples",
-				DataType:     []string{"text[]"},
-				Description:  "Example intent statements",
+				Name:            "examples",
+				DataType:        []string{"text[]"},
+				Description:     "Example intent statements",
 				IndexSearchable: &[]bool{true}[0],
 			},
 			{
-				Name:         "confidence",
-				DataType:     []string{"number"},
-				Description:  "Pattern matching confidence threshold",
+				Name:            "confidence",
+				DataType:        []string{"number"},
+				Description:     "Pattern matching confidence threshold",
 				IndexFilterable: &[]bool{true}[0],
 			},
 		},
@@ -831,7 +831,7 @@ func (wc *WeaviateClient) AddDocument(ctx context.Context, doc *TelecomDocument)
 func (wc *WeaviateClient) GetHealthStatus() *WeaviateHealthStatus {
 	wc.mutex.RLock()
 	defer wc.mutex.RUnlock()
-	
+
 	// Return a copy to prevent modifications
 	status := *wc.healthStatus
 	return &status
@@ -897,7 +897,7 @@ func (wc *WeaviateClient) initializeRateLimiter() {
 		}
 	}
 	wc.rateLimiter.tokenBucket = wc.rateLimiter.tokensPerMinute
-	wc.logger.Info("Rate limiter initialized", 
+	wc.logger.Info("Rate limiter initialized",
 		"requests_per_minute", wc.rateLimiter.requestsPerMinute,
 		"tokens_per_minute", wc.rateLimiter.tokensPerMinute)
 }
@@ -949,7 +949,7 @@ func (wc *WeaviateClient) checkRateLimit(estimatedTokens int64) error {
 	defer wc.rateLimiter.mutex.Unlock()
 
 	if wc.rateLimiter.tokenBucket < estimatedTokens {
-		return fmt.Errorf("rate limit exceeded: insufficient tokens (need %d, have %d)", 
+		return fmt.Errorf("rate limit exceeded: insufficient tokens (need %d, have %d)",
 			estimatedTokens, wc.rateLimiter.tokenBucket)
 	}
 
@@ -1003,12 +1003,12 @@ func (wc *WeaviateClient) recordCircuitBreakerSuccess() {
 // recordCircuitBreakerFailure records a failed operation
 func (wc *WeaviateClient) recordCircuitBreakerFailure() {
 	failureCount := atomic.AddInt32(&wc.circuitBreaker.failureCount, 1)
-	
+
 	if failureCount >= wc.circuitBreaker.maxFailures {
 		atomic.StoreInt32(&wc.circuitBreaker.currentState, CircuitOpen)
 		atomic.StoreInt64(&wc.circuitBreaker.lastFailTime, time.Now().UnixNano())
-		wc.logger.Warn("Circuit breaker opened due to failures", 
-			"failure_count", failureCount, 
+		wc.logger.Warn("Circuit breaker opened due to failures",
+			"failure_count", failureCount,
 			"max_failures", wc.circuitBreaker.maxFailures)
 	}
 }
@@ -1016,7 +1016,7 @@ func (wc *WeaviateClient) recordCircuitBreakerFailure() {
 // executeWithRetry executes a function with exponential backoff retry
 func (wc *WeaviateClient) executeWithRetry(ctx context.Context, operation func() error) error {
 	var lastErr error
-	
+
 	for attempt := 0; attempt <= wc.config.Retry.MaxRetries; attempt++ {
 		// Check circuit breaker
 		if err := wc.checkCircuitBreaker(); err != nil {
@@ -1027,7 +1027,7 @@ func (wc *WeaviateClient) executeWithRetry(ctx context.Context, operation func()
 		if err := operation(); err != nil {
 			lastErr = err
 			wc.recordCircuitBreakerFailure()
-			
+
 			// Don't retry on final attempt
 			if attempt == wc.config.Retry.MaxRetries {
 				break
@@ -1035,8 +1035,8 @@ func (wc *WeaviateClient) executeWithRetry(ctx context.Context, operation func()
 
 			// Calculate backoff delay
 			delay := wc.calculateBackoffDelay(attempt)
-			wc.logger.Warn("Operation failed, retrying", 
-				"attempt", attempt+1, 
+			wc.logger.Warn("Operation failed, retrying",
+				"attempt", attempt+1,
 				"max_attempts", wc.config.Retry.MaxRetries+1,
 				"delay", delay,
 				"error", err)
@@ -1055,15 +1055,15 @@ func (wc *WeaviateClient) executeWithRetry(ctx context.Context, operation func()
 		return nil
 	}
 
-	return fmt.Errorf("operation failed after %d attempts: %w", 
+	return fmt.Errorf("operation failed after %d attempts: %w",
 		wc.config.Retry.MaxRetries+1, lastErr)
 }
 
 // calculateBackoffDelay calculates exponential backoff delay with jitter
 func (wc *WeaviateClient) calculateBackoffDelay(attempt int) time.Duration {
-	delay := time.Duration(float64(wc.config.Retry.BaseDelay) * 
+	delay := time.Duration(float64(wc.config.Retry.BaseDelay) *
 		math.Pow(wc.config.Retry.BackoffMultiplier, float64(attempt)))
-	
+
 	if delay > wc.config.Retry.MaxDelay {
 		delay = wc.config.Retry.MaxDelay
 	}
@@ -1089,10 +1089,10 @@ func (wc *WeaviateClient) initializeEmbeddingFallback() error {
 	wc.embeddingFallback.available = true
 	wc.embeddingFallback.mutex.Unlock()
 
-	wc.logger.Info("Embedding fallback initialized", 
+	wc.logger.Info("Embedding fallback initialized",
 		"model_path", wc.embeddingFallback.modelPath,
 		"dimensions", wc.embeddingFallback.dimensions)
-	
+
 	return nil
 }
 
@@ -1127,7 +1127,7 @@ func (wc *WeaviateClient) SearchWithRetry(ctx context.Context, query *SearchQuer
 	return result, err
 }
 
-// AddDocumentWithRetry adds document with retry logic  
+// AddDocumentWithRetry adds document with retry logic
 func (wc *WeaviateClient) AddDocumentWithRetry(ctx context.Context, doc *TelecomDocument) error {
 	// Estimate tokens for rate limiting
 	estimatedTokens := int64(len(doc.Content) / 4)

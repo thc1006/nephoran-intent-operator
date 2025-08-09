@@ -17,27 +17,27 @@ import (
 
 // CostAwareEmbeddingService provides intelligent embedding provider selection
 type CostAwareEmbeddingService struct {
-	logger           *zap.Logger
-	providers        map[string]EmbeddingProvider
-	providerConfigs  map[string]*CostAwareProviderConfig
-	costTracker      *CostAwareCostTracker
-	healthMonitor    *HealthMonitor
-	circuitBreakers  map[string]*CircuitBreaker
-	fallbackChains   map[string][]string
-	metrics          *costAwareMetrics
-	mu               sync.RWMutex
+	logger          *zap.Logger
+	providers       map[string]EmbeddingProvider
+	providerConfigs map[string]*CostAwareProviderConfig
+	costTracker     *CostAwareCostTracker
+	healthMonitor   *HealthMonitor
+	circuitBreakers map[string]*CircuitBreaker
+	fallbackChains  map[string][]string
+	metrics         *costAwareMetrics
+	mu              sync.RWMutex
 }
 
 // CostAwareProviderConfig holds configuration for each embedding provider
 type CostAwareProviderConfig struct {
-	Name             string
-	CostPerToken     float64
-	CostPerRequest   float64
-	MaxTokensPerReq  int
-	Priority         int
-	QualityScore     float64
-	LatencyTarget    time.Duration
-	Enabled          bool
+	Name            string
+	CostPerToken    float64
+	CostPerRequest  float64
+	MaxTokensPerReq int
+	Priority        int
+	QualityScore    float64
+	LatencyTarget   time.Duration
+	Enabled         bool
 }
 
 // CostTracker tracks costs and budgets
@@ -52,45 +52,45 @@ type CostAwareCostTracker struct {
 
 // CostAccumulator tracks accumulated costs
 type CostAccumulator struct {
-	hourly  atomic.Value // float64
-	daily   atomic.Value // float64
-	monthly atomic.Value // float64
+	hourly    atomic.Value // float64
+	daily     atomic.Value // float64
+	monthly   atomic.Value // float64
 	lastReset time.Time
 }
 
 // ProviderStats tracks provider performance statistics
 type ProviderStats struct {
-	TotalRequests   atomic.Int64
-	SuccessfulReqs  atomic.Int64
-	FailedReqs      atomic.Int64
-	TotalCost       atomic.Value // float64
-	TotalLatency    atomic.Int64 // nanoseconds
-	AverageQuality  atomic.Value // float64
-	LastUsed        atomic.Int64 // unix timestamp
+	TotalRequests  atomic.Int64
+	SuccessfulReqs atomic.Int64
+	FailedReqs     atomic.Int64
+	TotalCost      atomic.Value // float64
+	TotalLatency   atomic.Int64 // nanoseconds
+	AverageQuality atomic.Value // float64
+	LastUsed       atomic.Int64 // unix timestamp
 }
 
 // HealthMonitor monitors provider health
 type HealthMonitor struct {
-	healthChecks map[string]*CostAwareHealthStatus
+	healthChecks  map[string]*CostAwareHealthStatus
 	checkInterval time.Duration
-	mu           sync.RWMutex
+	mu            sync.RWMutex
 }
 
 // HealthStatus represents provider health
 type CostAwareHealthStatus struct {
-	Healthy       atomic.Bool
-	LastCheck     atomic.Int64 // unix timestamp
+	Healthy          atomic.Bool
+	LastCheck        atomic.Int64 // unix timestamp
 	ConsecutiveFails atomic.Int32
-	ResponseTime  atomic.Int64 // milliseconds
+	ResponseTime     atomic.Int64 // milliseconds
 }
 
 // CircuitBreaker implements circuit breaker pattern
 type CircuitBreaker struct {
-	state           atomic.Int32 // 0=closed, 1=open, 2=half-open
-	failures        atomic.Int32
-	lastFailure     atomic.Int64 // unix timestamp
-	successCount    atomic.Int32
-	config          CircuitBreakerConfig
+	state        atomic.Int32 // 0=closed, 1=open, 2=half-open
+	failures     atomic.Int32
+	lastFailure  atomic.Int64 // unix timestamp
+	successCount atomic.Int32
+	config       CircuitBreakerConfig
 }
 
 // CircuitBreakerConfig holds circuit breaker configuration
@@ -102,10 +102,10 @@ type CircuitBreakerConfig struct {
 
 // CostAwareEmbeddingRequest represents a request for cost-aware embeddings
 type CostAwareEmbeddingRequest struct {
-	Text            string
-	MaxBudget       float64
-	QualityRequired float64
-	LatencyBudget   time.Duration
+	Text              string
+	MaxBudget         float64
+	QualityRequired   float64
+	LatencyBudget     time.Duration
 	PreferredProvider string
 }
 
@@ -120,14 +120,14 @@ type CostAwareEmbeddingResponse struct {
 
 // costAwareMetrics tracks performance metrics
 type costAwareMetrics struct {
-	requestsTotal      prometheus.Counter
+	requestsTotal       prometheus.Counter
 	requestsPerProvider *prometheus.CounterVec
-	costTotal          prometheus.Counter
-	costPerProvider    *prometheus.CounterVec
-	providerLatency    *prometheus.HistogramVec
-	providerQuality    *prometheus.GaugeVec
-	budgetExceeded     prometheus.Counter
-	fallbacksUsed      prometheus.Counter
+	costTotal           prometheus.Counter
+	costPerProvider     *prometheus.CounterVec
+	providerLatency     *prometheus.HistogramVec
+	providerQuality     *prometheus.GaugeVec
+	budgetExceeded      prometheus.Counter
+	fallbacksUsed       prometheus.Counter
 	circuitBreakerTrips prometheus.Counter
 }
 
@@ -151,8 +151,8 @@ func NewCostAwareEmbeddingService(logger *zap.Logger) *CostAwareEmbeddingService
 			Help: "Cost per embedding provider",
 		}, []string{"provider"}),
 		providerLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
-			Name: "embedding_provider_latency_seconds",
-			Help: "Latency of embedding providers",
+			Name:    "embedding_provider_latency_seconds",
+			Help:    "Latency of embedding providers",
 			Buckets: prometheus.DefBuckets,
 		}, []string{"provider"}),
 		providerQuality: prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -425,34 +425,34 @@ func (s *CostAwareEmbeddingService) tryProvider(
 	}
 
 	start := time.Now()
-	
+
 	// Get embeddings
 	embeddings, err := provider.GetEmbeddings(ctx, []string{request.Text})
-	
+
 	duration := time.Since(start)
-	
+
 	// Update metrics
 	s.metrics.requestsPerProvider.WithLabelValues(providerName).Inc()
 	s.metrics.providerLatency.WithLabelValues(providerName).Observe(duration.Seconds())
-	
+
 	if err != nil {
 		s.recordFailure(providerName)
 		return nil, err
 	}
-	
+
 	// Calculate cost
 	config := s.providerConfigs[providerName]
 	cost := s.estimateCost(config, request.Text)
-	
+
 	// Update cost tracking
 	s.updateCostTracking(providerName, cost)
-	
+
 	// Record success
 	s.recordSuccess(providerName, duration)
-	
+
 	// Assess quality
 	quality := s.assessQuality(embeddings[0])
-	
+
 	response := &CostAwareEmbeddingResponse{
 		Embeddings: embeddings[0],
 		Provider:   providerName,
@@ -460,7 +460,7 @@ func (s *CostAwareEmbeddingService) tryProvider(
 		Latency:    duration,
 		Quality:    quality,
 	}
-	
+
 	return response, nil
 }
 
@@ -475,24 +475,24 @@ func (s *CostAwareEmbeddingService) estimateCost(config *CostAwareProviderConfig
 func (s *CostAwareEmbeddingService) assessQuality(embeddings []float64) float64 {
 	// Simple quality assessment based on embedding properties
 	// In practice, this would use more sophisticated methods
-	
+
 	// Check embedding magnitude
 	magnitude := 0.0
 	for _, val := range embeddings {
 		magnitude += val * val
 	}
 	magnitude = math.Sqrt(magnitude)
-	
+
 	// Check for reasonable values
 	if magnitude < 0.1 || magnitude > 10.0 {
 		return 0.5 // Low quality
 	}
-	
+
 	// Check dimension
 	if len(embeddings) < 384 {
 		return 0.7 // Medium quality
 	}
-	
+
 	return 0.9 // High quality
 }
 
@@ -644,7 +644,7 @@ func (s *CostAwareEmbeddingService) recordFailure(provider string) {
 	if breaker, exists := s.circuitBreakers[provider]; exists {
 		failures := breaker.failures.Add(1)
 		breaker.lastFailure.Store(time.Now().Unix())
-		
+
 		if failures >= breaker.config.FailureThreshold {
 			if breaker.state.CompareAndSwap(0, 1) { // Close to Open
 				s.metrics.circuitBreakerTrips.Inc()
@@ -653,7 +653,7 @@ func (s *CostAwareEmbeddingService) recordFailure(provider string) {
 					zap.Int32("failures", failures))
 			}
 		}
-		
+
 		if breaker.state.Load() == 2 { // Half-open
 			breaker.state.Store(1) // Back to open
 			breaker.successCount.Store(0)
@@ -693,10 +693,10 @@ func (s *CostAwareEmbeddingService) checkProviderHealth(name string, provider Em
 	defer cancel()
 
 	start := time.Now()
-	
+
 	// Simple health check - try to get embeddings for a small text
 	_, err := provider.GetEmbeddings(ctx, []string{"health check"})
-	
+
 	duration := time.Since(start)
 
 	health, exists := s.healthMonitor.healthChecks[name]
@@ -728,22 +728,22 @@ func (s *CostAwareEmbeddingService) resetCostTracking() {
 
 	for range ticker.C {
 		now := time.Now()
-		
+
 		// Reset hourly costs
 		if now.Hour() != s.costTracker.currentCosts.lastReset.Hour() {
 			s.costTracker.currentCosts.hourly.Store(0.0)
 		}
-		
+
 		// Reset daily costs
 		if now.Day() != s.costTracker.currentCosts.lastReset.Day() {
 			s.costTracker.currentCosts.daily.Store(0.0)
 		}
-		
+
 		// Reset monthly costs
 		if now.Month() != s.costTracker.currentCosts.lastReset.Month() {
 			s.costTracker.currentCosts.monthly.Store(0.0)
 		}
-		
+
 		s.costTracker.currentCosts.lastReset = now
 	}
 }

@@ -1,0 +1,311 @@
+# Comprehensive Resource Management for Nephoran Intent Operator
+# This file contains resource quotas, limit ranges, and optimization configurations
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: nephoran-system-quota
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: resource-management
+spec:
+  hard:
+    # CPU and Memory limits for the entire namespace
+    requests.cpu: "2"
+    requests.memory: "4Gi"
+    limits.cpu: "8"
+    limits.memory: "16Gi"
+    
+    # Pod and service limits
+    pods: "50"
+    services: "10"
+    persistentvolumeclaims: "5"
+    secrets: "20"
+    configmaps: "20"
+    
+    # Storage limits
+    requests.storage: "100Gi"
+    
+    # Network policy limits for telecom workloads
+    count/networkpolicies.networking.k8s.io: "10"
+    count/poddisruptionbudgets.policy: "10"
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: nephoran-system-limits
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: resource-management
+spec:
+  limits:
+  # Container-level limits
+  - type: "Container"
+    default:
+      # Default limits for containers
+      cpu: "500m"
+      memory: "512Mi"
+      ephemeral-storage: "1Gi"
+    defaultRequest:
+      # Default requests for containers
+      cpu: "100m"
+      memory: "128Mi"
+      ephemeral-storage: "256Mi"
+    max:
+      # Maximum allowed limits
+      cpu: "2"
+      memory: "4Gi"
+      ephemeral-storage: "5Gi"
+    min:
+      # Minimum required requests
+      cpu: "10m"
+      memory: "32Mi"
+      ephemeral-storage: "64Mi"
+    
+  # Pod-level limits
+  - type: "Pod"
+    max:
+      cpu: "4"
+      memory: "8Gi"
+      ephemeral-storage: "10Gi"
+    min:
+      cpu: "50m"
+      memory: "128Mi"
+      ephemeral-storage: "256Mi"
+    
+  # PVC limits for telecom data storage
+  - type: "PersistentVolumeClaim"
+    max:
+      storage: "50Gi"
+    min:
+      storage: "1Gi"
+
+---
+# Priority classes for different workload types
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: nephoran-critical
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: resource-management
+value: 1000
+globalDefault: false
+description: "Critical priority for core Nephoran operator components"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: nephoran-high
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: resource-management
+value: 750
+globalDefault: false
+description: "High priority for AI/ML processing components"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: nephoran-normal
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: resource-management
+value: 500
+globalDefault: false
+description: "Normal priority for supporting components"
+
+---
+# NetworkPolicy for resource management
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-system-network-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: resource-management
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow intra-namespace communication
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-system
+  # Allow monitoring from Prometheus
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8443
+  # Allow health checks from kube-system
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8081
+  egress:
+  # Allow all outbound for now (can be restricted based on security requirements)
+  - {}
+
+---
+# Configuration for resource optimization and cost management
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: resource-optimization-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: resource-management
+data:
+  optimization.yaml: |
+    resourceOptimization:
+      # CPU optimization settings
+      cpu:
+        # Enable CPU throttling for non-critical workloads
+        throttlingEnabled: true
+        targetUtilization: 80
+        scaleDownThreshold: 50
+        scaleUpThreshold: 85
+        
+        # CPU scheduling preferences
+        schedulingPolicy: "balanced"
+        affinityRules:
+          preferHighMemoryNodes: true
+          avoidBurstableNodes: false
+      
+      # Memory optimization settings  
+      memory:
+        # Memory pressure thresholds for telecom workloads
+        lowPressureThreshold: 70
+        mediumPressureThreshold: 85
+        highPressureThreshold: 95
+        
+        # Memory management for AI/ML workloads
+        aiWorkloadReservation: "2Gi"
+        cacheOptimization:
+          enabled: true
+          maxCacheSize: "1Gi"
+          evictionPolicy: "LRU"
+      
+      # Storage optimization
+      storage:
+        # Ephemeral storage limits for container logs
+        logRetentionSize: "500Mi"
+        tempStorageLimit: "1Gi"
+        
+        # PVC optimization
+        dynamicProvisioning: true
+        storageClass: "fast-ssd"
+        reclaimPolicy: "Delete"
+      
+      # Network optimization
+      network:
+        # Bandwidth management for telecom data
+        ingressBandwidthLimit: "1Gbps"
+        egressBandwidthLimit: "500Mbps"
+        
+        # Connection pooling
+        maxConnectionsPerPod: 1000
+        connectionTimeout: "30s"
+        keepAliveTimeout: "60s"
+      
+      # Cost optimization strategies
+      cost:
+        # Spot instance preferences
+        spotInstancesEnabled: true
+        spotInstanceTolerations:
+          - key: "kubernetes.io/arch"
+            operator: "Equal"
+            value: "amd64"
+            effect: "NoSchedule"
+        
+        # Scheduling windows for cost optimization
+        schedulingWindows:
+          businessHours:
+            start: "08:00"
+            end: "18:00"
+            timezone: "UTC"
+            minReplicas:
+              controller: 2
+              llmProcessor: 2
+              webhook: 2
+          offHours:
+            start: "18:00"
+            end: "08:00"
+            timezone: "UTC"
+            minReplicas:
+              controller: 1
+              llmProcessor: 1
+              webhook: 1
+        
+        # Resource allocation strategies
+        allocationStrategy:
+          binPacking: true
+          nodeUtilizationTarget: 80
+          fragmentationThreshold: 20
+      
+      # SLA and performance targets
+      sla:
+        # Response time targets for different components
+        responseTime:
+          controller: "100ms"
+          llmProcessor: "2s"
+          webhook: "500ms"
+          ragApi: "1s"
+        
+        # Availability targets
+        availability:
+          critical: "99.95%"
+          high: "99.9%"
+          normal: "99.5%"
+        
+        # Performance thresholds
+        performance:
+          cpuUtilization: 80
+          memoryUtilization: 85
+          networkLatency: "10ms"
+          storageIOPS: 1000
+
+---
+# ServiceMonitor for resource management monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: resource-management-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: resource-management
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: nephoran-intent-operator
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
+  - port: health
+    interval: 60s
+    path: /healthz
+    honorLabels: true
+  namespaceSelector:
+    matchNames:
+    - nephoran-system

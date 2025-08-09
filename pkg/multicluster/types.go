@@ -13,25 +13,25 @@ import (
 type ClusterStatus string
 
 const (
-	ClusterStatusHealthy    ClusterStatus = "Healthy"
-	ClusterStatusDegraded   ClusterStatus = "Degraded"
+	ClusterStatusHealthy     ClusterStatus = "Healthy"
+	ClusterStatusDegraded    ClusterStatus = "Degraded"
 	ClusterStatusUnreachable ClusterStatus = "Unreachable"
 )
 
 // ResourceCapacity represents the computational resources of a cluster
 type ResourceCapacity struct {
-	CPU             int64 // millicores
-	Memory          int64 // bytes
-	StorageGB       int64
+	CPU              int64 // millicores
+	Memory           int64 // bytes
+	StorageGB        int64
 	EphemeralStorage int64 // bytes
 }
 
 // EdgeLocation provides geographic and network context for edge clusters
 type EdgeLocation struct {
-	Region        string
-	Zone          string
-	Latitude      float64
-	Longitude     float64
+	Region           string
+	Zone             string
+	Latitude         float64
+	Longitude        float64
 	NetworkLatencyMS float64
 }
 
@@ -41,11 +41,11 @@ type WorkloadCluster struct {
 	ID string
 
 	// Cluster metadata
-	Name        string
-	KubeConfig  *rest.Config
-	Client      *kubernetes.Clientset
-	Region      string
-	Zone        string
+	Name       string
+	KubeConfig *rest.Config
+	Client     *kubernetes.Clientset
+	Region     string
+	Zone       string
 
 	// Capabilities and characteristics
 	EdgeLocation *EdgeLocation
@@ -55,9 +55,9 @@ type WorkloadCluster struct {
 	// Current cluster status
 	Status        ClusterStatus
 	LastCheckedAt time.Time
-	
+
 	// Additional metadata
-	Labels       map[string]string
+	Labels      map[string]string
 	Annotations map[string]string
 }
 
@@ -70,21 +70,21 @@ type ClusterRegistrationOptions struct {
 	ConnectionRetries int
 
 	// Validation and security options
-	RequiredCapabilities []string
+	RequiredCapabilities     []string
 	MinimumResourceThreshold *ResourceCapacity
 }
 
 // NetworkTopology represents the network relationships between clusters
 type NetworkTopology struct {
-	Clusters         map[string]*WorkloadCluster
-	LatencyMatrix    map[string]map[string]float64
-	NetworkPolicies  []NetworkPolicy
+	Clusters        map[string]*WorkloadCluster
+	LatencyMatrix   map[string]map[string]float64
+	NetworkPolicies []NetworkPolicy
 }
 
 // NetworkPolicy defines network constraints and routing rules
 type NetworkPolicy struct {
-	Source      string
-	Destination string
+	Source           string
+	Destination      string
 	AllowedProtocols []string
 	MaxLatencyMS     float64
 	Bandwidth        int64 // Mbps
@@ -92,10 +92,10 @@ type NetworkPolicy struct {
 
 // DeploymentTarget represents a selected cluster for package deployment
 type DeploymentTarget struct {
-	Cluster      *WorkloadCluster
-	Constraints  []PlacementConstraint
-	Priority     int
-	Fitness      float64 // Deployment suitability score
+	Cluster     *WorkloadCluster
+	Constraints []PlacementConstraint
+	Priority    int
+	Fitness     float64 // Deployment suitability score
 }
 
 // PlacementConstraint defines rules for package deployment
@@ -116,44 +116,44 @@ const (
 
 // PropagationResult captures the outcome of package deployment
 type PropagationResult struct {
-	PackageName     string
-	TargetClusters  []string
+	PackageName           string
+	TargetClusters        []string
 	SuccessfulDeployments []string
 	FailedDeployments     []string
-	Timestamp       metav1.Time
-	TotalLatencyMS  float64
+	Timestamp             metav1.Time
+	TotalLatencyMS        float64
 }
 
 // DeploymentStrategy defines how packages are propagated
 type DeploymentStrategy struct {
-	Type                 string
-	RolloutPercentage    int
+	Type                  string
+	RolloutPercentage     int
 	MaxConcurrentClusters int
-	RollbackOnFailure    bool
+	RollbackOnFailure     bool
 }
 
 // MultiClusterStatus aggregates deployment status across clusters
 type MultiClusterStatus struct {
-	PackageName      string
-	OverallStatus    string
-	ClusterStatuses  map[string]ClusterDeploymentStatus
-	LastUpdated      metav1.Time
+	PackageName     string
+	OverallStatus   string
+	ClusterStatuses map[string]ClusterDeploymentStatus
+	LastUpdated     metav1.Time
 }
 
 // ClusterDeploymentStatus represents the deployment status for a specific cluster
 type ClusterDeploymentStatus struct {
-	ClusterName   string
-	Status        string
-	LastUpdated   metav1.Time
-	ErrorMessage  string
+	ClusterName  string
+	Status       string
+	LastUpdated  metav1.Time
+	ErrorMessage string
 }
 
 // PropagationOptions provides configuration for package deployment
 type PropagationOptions struct {
-	Strategy          DeploymentStrategy
-	Constraints       []PlacementConstraint
-	ValidateOnly      bool
-	DryRun            bool
+	Strategy     DeploymentStrategy
+	Constraints  []PlacementConstraint
+	ValidateOnly bool
+	DryRun       bool
 }
 
 // ClusterPropagationManager interface defines multi-cluster package management

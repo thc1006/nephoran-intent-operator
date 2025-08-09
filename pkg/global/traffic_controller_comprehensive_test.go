@@ -34,15 +34,15 @@ type fakePrometheusAPI struct {
 func (f *fakePrometheusAPI) Query(ctx context.Context, query string, ts time.Time) (model.Value, v1.Warnings, error) {
 	f.callCount++
 	f.queriedMetrics = append(f.queriedMetrics, query)
-	
+
 	if f.shouldFail {
 		return nil, nil, fmt.Errorf("fake prometheus query failure")
 	}
-	
+
 	if response, exists := f.queryResponses[query]; exists {
 		return response, nil, nil
 	}
-	
+
 	// Default response
 	return model.Vector{
 		&model.Sample{
@@ -136,11 +136,11 @@ func (f *fakePrometheusAPI) Reset() {
 
 func TestTrafficController_Start(t *testing.T) {
 	testCases := []struct {
-		name            string
-		configMapData   map[string]string
-		configSetup     func(*TrafficControllerConfig)
-		expectedError   bool
-		description     string
+		name          string
+		configMapData map[string]string
+		configSetup   func(*TrafficControllerConfig)
+		expectedError bool
+		description   string
 	}{
 		{
 			name: "successful_start_with_valid_config",
@@ -185,7 +185,7 @@ func TestTrafficController_Start(t *testing.T) {
 			description:   "Should successfully start with valid configuration",
 		},
 		{
-			name: "start_with_missing_config",
+			name:          "start_with_missing_config",
 			configMapData: map[string]string{
 				// Missing regions.yaml
 			},
@@ -233,14 +233,14 @@ func TestTrafficController_Start(t *testing.T) {
 			tc.configSetup(config)
 
 			controller := &TrafficController{
-				client:         fakeClient,
-				kubeClient:     fakeKubeClient,
-				prometheusAPI:  fakePrometheusAPI,
-				logger:         log.Log.WithName("traffic-controller-test"),
-				config:         config,
-				regions:        make(map[string]*RegionInfo),
+				client:           fakeClient,
+				kubeClient:       fakeKubeClient,
+				prometheusAPI:    fakePrometheusAPI,
+				logger:           log.Log.WithName("traffic-controller-test"),
+				config:           config,
+				regions:          make(map[string]*RegionInfo),
 				routingDecisions: make(chan *RoutingDecision, 100),
-				healthChecks:   make(map[string]*RegionHealth),
+				healthChecks:     make(map[string]*RegionHealth),
 			}
 
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -252,7 +252,7 @@ func TestTrafficController_Start(t *testing.T) {
 				assert.Error(t, err, tc.description)
 			} else {
 				assert.NoError(t, err, tc.description)
-				
+
 				// Verify regions were loaded
 				if tc.name == "successful_start_with_valid_config" {
 					regions := make(map[string]*RegionInfo)
@@ -261,7 +261,7 @@ func TestTrafficController_Start(t *testing.T) {
 						regions[k] = v
 					}
 					controller.mutex.RUnlock()
-					
+
 					assert.Equal(t, 2, len(regions), "Should load 2 regions")
 					assert.Contains(t, regions, "us-east-1", "Should contain us-east-1 region")
 					assert.Contains(t, regions, "us-west-1", "Should contain us-west-1 region")
@@ -288,7 +288,7 @@ func TestTrafficController_HealthChecks(t *testing.T) {
 					Endpoint: "http://region1.example.com",
 				},
 				"region-2": {
-					Name:     "Region 2", 
+					Name:     "Region 2",
 					Endpoint: "http://region2.example.com",
 				},
 			},
@@ -410,13 +410,13 @@ func TestTrafficController_HealthChecks(t *testing.T) {
 
 func TestTrafficController_RoutingDecisions(t *testing.T) {
 	testCases := []struct {
-		name             string
-		regions          map[string]*RegionInfo
-		healthChecks     map[string]*RegionHealth
-		routingStrategy  string
-		expectedWeights  map[string]int
-		expectedError    bool
-		description      string
+		name            string
+		regions         map[string]*RegionInfo
+		healthChecks    map[string]*RegionHealth
+		routingStrategy string
+		expectedWeights map[string]int
+		expectedError   bool
+		description     string
 	}{
 		{
 			name: "latency_based_routing",
@@ -598,13 +598,13 @@ func TestTrafficController_RoutingDecisions(t *testing.T) {
 				assert.Nil(t, decision, tc.description)
 			} else {
 				assert.NotNil(t, decision, tc.description)
-				
+
 				// Verify routing weights
 				actualWeights := make(map[string]int)
 				for _, region := range decision.TargetRegions {
 					actualWeights[region.Region] = region.Weight
 				}
-				
+
 				for regionName, expectedWeight := range tc.expectedWeights {
 					actualWeight, exists := actualWeights[regionName]
 					assert.True(t, exists, "Region %s should be in routing decision", regionName)
@@ -643,11 +643,11 @@ func TestTrafficController_MetricsCollection(t *testing.T) {
 			expectedCapacity: map[string]*RegionCapacity{
 				"region-1": {
 					CurrentIntentsPerMinute: 100,
-					CPUUtilization:         45.5,
+					CPUUtilization:          45.5,
 				},
 				"region-2": {
 					CurrentIntentsPerMinute: 150,
-					CPUUtilization:         67.2,
+					CPUUtilization:          67.2,
 				},
 			},
 			description: "Should successfully collect metrics for all regions",
@@ -659,7 +659,7 @@ func TestTrafficController_MetricsCollection(t *testing.T) {
 			expectedCapacity: map[string]*RegionCapacity{
 				"region-1": {
 					CurrentIntentsPerMinute: 0,
-					CPUUtilization:         0,
+					CPUUtilization:          0,
 				},
 			},
 			description: "Should handle Prometheus query failures gracefully",
@@ -702,10 +702,10 @@ func TestTrafficController_MetricsCollection(t *testing.T) {
 
 func TestTrafficController_ConfidenceScoring(t *testing.T) {
 	testCases := []struct {
-		name             string
-		healthyRegions   map[string]*RegionHealth
-		expectedScore    float64
-		description      string
+		name           string
+		healthyRegions map[string]*RegionHealth
+		expectedScore  float64
+		description    string
 	}{
 		{
 			name: "high_confidence_multiple_healthy_regions",
@@ -768,13 +768,13 @@ func TestTrafficController_ConfidenceScoring(t *testing.T) {
 
 func TestTrafficController_LatencyAndCostCalculation(t *testing.T) {
 	testCases := []struct {
-		name             string
-		healthyRegions   map[string]*RegionHealth
-		regions          map[string]*RegionInfo
-		weightedRegions  []WeightedRegion
-		expectedLatency  time.Duration
-		expectedCost     float64
-		description      string
+		name            string
+		healthyRegions  map[string]*RegionHealth
+		regions         map[string]*RegionInfo
+		weightedRegions []WeightedRegion
+		expectedLatency time.Duration
+		expectedCost    float64
+		description     string
 	}{
 		{
 			name: "weighted_latency_and_cost_calculation",
@@ -805,7 +805,7 @@ func TestTrafficController_LatencyAndCostCalculation(t *testing.T) {
 				{Region: "slow-cheap", Weight: 30},
 			},
 			expectedLatency: 95 * time.Millisecond, // Weighted average: (50*70 + 200*30)/100
-			expectedCost:    0.0017,                 // Weighted average: (0.002*70 + 0.001*30)/100
+			expectedCost:    0.0017,                // Weighted average: (0.002*70 + 0.001*30)/100
 			description:     "Should calculate weighted average latency and cost",
 		},
 		{

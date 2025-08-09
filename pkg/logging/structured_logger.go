@@ -34,7 +34,7 @@ type StructuredLogger struct {
 // Config holds configuration for the structured logger
 type Config struct {
 	Level       LogLevel `json:"level"`
-	Format      string   `json:"format"`      // "json" or "text"
+	Format      string   `json:"format"` // "json" or "text"
 	ServiceName string   `json:"service_name"`
 	Version     string   `json:"version"`
 	Environment string   `json:"environment"`
@@ -58,7 +58,7 @@ type RequestContext struct {
 // NewStructuredLogger creates a new structured logger instance
 func NewStructuredLogger(config Config) *StructuredLogger {
 	level := parseLevel(config.Level)
-	
+
 	var handler slog.Handler
 	opts := &slog.HandlerOptions{
 		Level:     level,
@@ -161,7 +161,7 @@ func (sl *StructuredLogger) DebugWithContext(msg string, args ...any) {
 // LogOperation logs the start and completion of an operation
 func (sl *StructuredLogger) LogOperation(operationName string, fn func() error) error {
 	start := time.Now()
-	
+
 	sl.InfoWithContext("Operation started",
 		"operation", operationName,
 		"start_time", start,
@@ -388,19 +388,43 @@ func (sl *StructuredLogger) LogFormat(level LogLevel, msg string, obj interface{
 	}
 }
 
+// getSafeFunctionName safely extracts function name with proper error handling
+func getSafeFunctionName(fn *runtime.Func) string {
+	if fn == nil {
+		return ""
+	}
+	
+	// Use defer/recover to catch any potential panics from fn.Name()
+	defer func() {
+		if r := recover(); r != nil {
+			// Log the panic but don't propagate it - return empty string instead
+			// This prevents the entire logging system from crashing
+		}
+	}()
+	
+	// Even though fn is not nil, fn.Name() can still panic in edge cases
+	// where the PC doesn't correspond to a valid function entry point
+	name := fn.Name()
+	if name == "" {
+		return "<unnamed>"
+	}
+	
+	return name
+}
+
 // GetCallerInfo returns caller information for debugging
 func GetCallerInfo(skip int) (string, int, string) {
 	pc, file, line, ok := runtime.Caller(skip + 1)
 	if !ok {
 		return "", 0, ""
 	}
-	
+
 	fn := runtime.FuncForPC(pc)
-	funcName := ""
-	if fn != nil {
-		funcName = fn.Name()
+	funcName := getSafeFunctionName(fn)
+	if funcName == "" {
+		funcName = "<unknown>"
 	}
-	
+
 	return file, line, funcName
 }
 

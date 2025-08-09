@@ -27,12 +27,12 @@ type MetricsAnalyzer struct {
 
 // ResourceSnapshot captures resource state at a point in time
 type ResourceSnapshot struct {
-	Timestamp     time.Time
-	CPUPercent    float64
-	MemoryMB      float64
+	Timestamp      time.Time
+	CPUPercent     float64
+	MemoryMB       float64
 	GoroutineCount int
-	NetworkIO     NetworkMetrics
-	DiskIO        DiskMetrics
+	NetworkIO      NetworkMetrics
+	DiskIO         DiskMetrics
 }
 
 // Anomaly represents a detected performance anomaly
@@ -59,10 +59,10 @@ type Bottleneck struct {
 
 // AnalysisConfig configures the analysis parameters
 type AnalysisConfig struct {
-	AnomalyThreshold      float64 // Standard deviations for anomaly detection
-	BottleneckThreshold   float64 // Percentage threshold for bottleneck detection
-	HistoryWindow         time.Duration
-	SamplingInterval      time.Duration
+	AnomalyThreshold       float64 // Standard deviations for anomaly detection
+	BottleneckThreshold    float64 // Percentage threshold for bottleneck detection
+	HistoryWindow          time.Duration
+	SamplingInterval       time.Duration
 	EnableAutoOptimization bool
 }
 
@@ -77,10 +77,10 @@ func NewMetricsAnalyzer() *MetricsAnalyzer {
 		bottlenecks:   make([]Bottleneck, 0),
 		historyWindow: 10 * time.Minute,
 		analysisConfig: AnalysisConfig{
-			AnomalyThreshold:      3.0, // 3 standard deviations
-			BottleneckThreshold:   80.0, // 80% utilization
-			HistoryWindow:         10 * time.Minute,
-			SamplingInterval:      100 * time.Millisecond,
+			AnomalyThreshold:       3.0,  // 3 standard deviations
+			BottleneckThreshold:    80.0, // 80% utilization
+			HistoryWindow:          10 * time.Minute,
+			SamplingInterval:       100 * time.Millisecond,
 			EnableAutoOptimization: true,
 		},
 	}
@@ -367,7 +367,7 @@ func (ma *MetricsAnalyzer) DetectAnomalies(metricName string, currentValue float
 			Severity:    ma.getSeverity(zScore),
 			Description: fmt.Sprintf("%s value %.2f deviates %.2f standard deviations from mean %.2f", metricName, currentValue, zScore, mean),
 		}
-		
+
 		ma.anomalies = append(ma.anomalies, *anomaly)
 		return anomaly
 	}

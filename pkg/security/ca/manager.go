@@ -49,31 +49,31 @@ type CAManager struct {
 // Config holds CA manager configuration
 type Config struct {
 	// Global settings
-	DefaultBackend    CABackendType            `yaml:"default_backend"`
-	BackendConfigs    map[CABackendType]interface{} `yaml:"backend_configs"`
-	CertificateStore  *CertificateStoreConfig  `yaml:"certificate_store"`
-	DistributionConfig *DistributionConfig     `yaml:"distribution_config"`
-	PolicyConfig      *PolicyConfig           `yaml:"policy_config"`
-	MonitoringConfig  *MonitoringConfig       `yaml:"monitoring_config"`
+	DefaultBackend     CABackendType                 `yaml:"default_backend"`
+	BackendConfigs     map[CABackendType]interface{} `yaml:"backend_configs"`
+	CertificateStore   *CertificateStoreConfig       `yaml:"certificate_store"`
+	DistributionConfig *DistributionConfig           `yaml:"distribution_config"`
+	PolicyConfig       *PolicyConfig                 `yaml:"policy_config"`
+	MonitoringConfig   *MonitoringConfig             `yaml:"monitoring_config"`
 
 	// Lifecycle settings
 	DefaultValidityDuration time.Duration `yaml:"default_validity_duration"`
-	RenewalThreshold       time.Duration `yaml:"renewal_threshold"`
-	MaxRetryAttempts       int          `yaml:"max_retry_attempts"`
-	RetryBackoff          time.Duration `yaml:"retry_backoff"`
+	RenewalThreshold        time.Duration `yaml:"renewal_threshold"`
+	MaxRetryAttempts        int           `yaml:"max_retry_attempts"`
+	RetryBackoff            time.Duration `yaml:"retry_backoff"`
 
 	// Security settings
-	KeySize                int           `yaml:"key_size"`
-	AllowedKeyTypes        []string      `yaml:"allowed_key_types"`
-	MinValidityDuration    time.Duration `yaml:"min_validity_duration"`
-	MaxValidityDuration    time.Duration `yaml:"max_validity_duration"`
-	RequireApproval        bool          `yaml:"require_approval"`
-	AutoRotationEnabled    bool          `yaml:"auto_rotation_enabled"`
+	KeySize             int           `yaml:"key_size"`
+	AllowedKeyTypes     []string      `yaml:"allowed_key_types"`
+	MinValidityDuration time.Duration `yaml:"min_validity_duration"`
+	MaxValidityDuration time.Duration `yaml:"max_validity_duration"`
+	RequireApproval     bool          `yaml:"require_approval"`
+	AutoRotationEnabled bool          `yaml:"auto_rotation_enabled"`
 
 	// Multi-tenancy
-	TenantSupport    bool                        `yaml:"tenant_support"`
-	TenantConfigs    map[string]*TenantCAConfig  `yaml:"tenant_configs"`
-	DefaultTenant    string                      `yaml:"default_tenant"`
+	TenantSupport bool                       `yaml:"tenant_support"`
+	TenantConfigs map[string]*TenantCAConfig `yaml:"tenant_configs"`
+	DefaultTenant string                     `yaml:"default_tenant"`
 }
 
 // CertificateStoreConfig configures certificate storage
@@ -89,28 +89,28 @@ type CertificateStoreConfig struct {
 
 // DistributionConfig configures certificate distribution
 type DistributionConfig struct {
-	Enabled            bool              `yaml:"enabled"`
-	HotReloadEnabled   bool              `yaml:"hot_reload_enabled"`
-	WatchIntervals     time.Duration     `yaml:"watch_intervals"`
-	DistributionPaths  map[string]string `yaml:"distribution_paths"`
+	Enabled            bool                `yaml:"enabled"`
+	HotReloadEnabled   bool                `yaml:"hot_reload_enabled"`
+	WatchIntervals     time.Duration       `yaml:"watch_intervals"`
+	DistributionPaths  map[string]string   `yaml:"distribution_paths"`
 	NotificationConfig *NotificationConfig `yaml:"notification_config"`
 }
 
 // NotificationConfig configures certificate notifications
 type NotificationConfig struct {
-	Enabled    bool     `yaml:"enabled"`
-	Webhooks   []string `yaml:"webhooks"`
-	EmailSMTP  *SMTPConfig `yaml:"email_smtp"`
+	Enabled     bool         `yaml:"enabled"`
+	Webhooks    []string     `yaml:"webhooks"`
+	EmailSMTP   *SMTPConfig  `yaml:"email_smtp"`
 	SlackConfig *SlackConfig `yaml:"slack_config"`
 }
 
 // SMTPConfig configures SMTP notifications
 type SMTPConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	From     string `yaml:"from"`
+	Host     string   `yaml:"host"`
+	Port     int      `yaml:"port"`
+	Username string   `yaml:"username"`
+	Password string   `yaml:"password"`
+	From     string   `yaml:"from"`
 	To       []string `yaml:"to"`
 }
 
@@ -122,53 +122,53 @@ type SlackConfig struct {
 
 // PolicyConfig configures certificate policies
 type PolicyConfig struct {
-	Enabled            bool                    `yaml:"enabled"`
-	PolicyTemplates    map[string]*PolicyTemplate `yaml:"policy_templates"`
-	ValidationRules    []ValidationRule        `yaml:"validation_rules"`
-	ApprovalRequired   bool                   `yaml:"approval_required"`
-	ApprovalWorkflow   *ApprovalWorkflow      `yaml:"approval_workflow"`
+	Enabled          bool                       `yaml:"enabled"`
+	PolicyTemplates  map[string]*PolicyTemplate `yaml:"policy_templates"`
+	ValidationRules  []ValidationRule           `yaml:"validation_rules"`
+	ApprovalRequired bool                       `yaml:"approval_required"`
+	ApprovalWorkflow *ApprovalWorkflow          `yaml:"approval_workflow"`
 }
 
 // PolicyTemplate defines certificate policy templates
 type PolicyTemplate struct {
-	Name              string        `yaml:"name"`
-	KeyUsage          []string      `yaml:"key_usage"`
-	ExtKeyUsage       []string      `yaml:"ext_key_usage"`
-	ValidityDuration  time.Duration `yaml:"validity_duration"`
-	KeySize           int          `yaml:"key_size"`
-	AllowedSANTypes   []string      `yaml:"allowed_san_types"`
-	RequiredFields    []string      `yaml:"required_fields"`
-	CustomExtensions  map[string]string `yaml:"custom_extensions"`
+	Name             string            `yaml:"name"`
+	KeyUsage         []string          `yaml:"key_usage"`
+	ExtKeyUsage      []string          `yaml:"ext_key_usage"`
+	ValidityDuration time.Duration     `yaml:"validity_duration"`
+	KeySize          int               `yaml:"key_size"`
+	AllowedSANTypes  []string          `yaml:"allowed_san_types"`
+	RequiredFields   []string          `yaml:"required_fields"`
+	CustomExtensions map[string]string `yaml:"custom_extensions"`
 }
 
 // ValidationRule defines certificate validation rules
 type ValidationRule struct {
-	Name        string      `yaml:"name"`
-	Type        string      `yaml:"type"` // subject, san, key_usage, etc.
-	Pattern     string      `yaml:"pattern"`
-	Required    bool        `yaml:"required"`
-	ErrorMessage string     `yaml:"error_message"`
+	Name         string `yaml:"name"`
+	Type         string `yaml:"type"` // subject, san, key_usage, etc.
+	Pattern      string `yaml:"pattern"`
+	Required     bool   `yaml:"required"`
+	ErrorMessage string `yaml:"error_message"`
 }
 
 // ApprovalWorkflow defines certificate approval workflow
 type ApprovalWorkflow struct {
-	Stages    []ApprovalStage `yaml:"stages"`
-	Timeout   time.Duration   `yaml:"timeout"`
+	Stages     []ApprovalStage   `yaml:"stages"`
+	Timeout    time.Duration     `yaml:"timeout"`
 	Escalation *EscalationConfig `yaml:"escalation"`
 }
 
 // ApprovalStage defines an approval stage
 type ApprovalStage struct {
-	Name         string   `yaml:"name"`
-	Approvers    []string `yaml:"approvers"`
-	MinApprovals int     `yaml:"min_approvals"`
+	Name         string        `yaml:"name"`
+	Approvers    []string      `yaml:"approvers"`
+	MinApprovals int           `yaml:"min_approvals"`
 	Timeout      time.Duration `yaml:"timeout"`
 }
 
 // EscalationConfig defines escalation settings
 type EscalationConfig struct {
-	Enabled    bool     `yaml:"enabled"`
-	Escalators []string `yaml:"escalators"`
+	Enabled    bool          `yaml:"enabled"`
+	Escalators []string      `yaml:"escalators"`
 	Timeout    time.Duration `yaml:"timeout"`
 }
 
@@ -178,7 +178,7 @@ type MonitoringConfig struct {
 	HealthCheckInterval   time.Duration `yaml:"health_check_interval"`
 	MetricsEnabled        bool          `yaml:"metrics_enabled"`
 	AlertingEnabled       bool          `yaml:"alerting_enabled"`
-	ExpirationWarningDays int          `yaml:"expiration_warning_days"`
+	ExpirationWarningDays int           `yaml:"expiration_warning_days"`
 }
 
 // TenantCAConfig holds tenant-specific CA configuration
@@ -200,7 +200,7 @@ type CertificateRequest struct {
 	IPAddresses      []string          `json:"ip_addresses"`
 	EmailAddresses   []string          `json:"email_addresses"`
 	URIs             []*url.URL        `json:"uris"`
-	KeySize          int              `json:"key_size"`
+	KeySize          int               `json:"key_size"`
 	ValidityDuration time.Duration     `json:"validity_duration"`
 	KeyUsage         []string          `json:"key_usage"`
 	ExtKeyUsage      []string          `json:"ext_key_usage"`
@@ -216,31 +216,31 @@ type CertificateRequest struct {
 
 // CertificateResponse represents the response to a certificate request
 type CertificateResponse struct {
-	RequestID       string            `json:"request_id"`
-	Certificate     *x509.Certificate `json:"certificate"`
-	CertificatePEM  string            `json:"certificate_pem"`
-	PrivateKeyPEM   string            `json:"private_key_pem"`
-	CACertificatePEM string           `json:"ca_certificate_pem"`
-	TrustChainPEM   []string          `json:"trust_chain_pem"`
-	SerialNumber    string            `json:"serial_number"`
-	Fingerprint     string            `json:"fingerprint"`
-	ExpiresAt       time.Time         `json:"expires_at"`
-	IssuedBy        string            `json:"issued_by"`
-	Status          CertificateStatus `json:"status"`
-	Metadata        map[string]string `json:"metadata"`
-	CreatedAt       time.Time         `json:"created_at"`
+	RequestID        string            `json:"request_id"`
+	Certificate      *x509.Certificate `json:"certificate"`
+	CertificatePEM   string            `json:"certificate_pem"`
+	PrivateKeyPEM    string            `json:"private_key_pem"`
+	CACertificatePEM string            `json:"ca_certificate_pem"`
+	TrustChainPEM    []string          `json:"trust_chain_pem"`
+	SerialNumber     string            `json:"serial_number"`
+	Fingerprint      string            `json:"fingerprint"`
+	ExpiresAt        time.Time         `json:"expires_at"`
+	IssuedBy         string            `json:"issued_by"`
+	Status           CertificateStatus `json:"status"`
+	Metadata         map[string]string `json:"metadata"`
+	CreatedAt        time.Time         `json:"created_at"`
 }
 
 // CertificateStatus represents certificate status
 type CertificateStatus string
 
 const (
-	StatusPending   CertificateStatus = "pending"
-	StatusIssued    CertificateStatus = "issued"
-	StatusRenewed   CertificateStatus = "renewed"
-	StatusRevoked   CertificateStatus = "revoked"
-	StatusExpired   CertificateStatus = "expired"
-	StatusFailed    CertificateStatus = "failed"
+	StatusPending CertificateStatus = "pending"
+	StatusIssued  CertificateStatus = "issued"
+	StatusRenewed CertificateStatus = "renewed"
+	StatusRevoked CertificateStatus = "revoked"
+	StatusExpired CertificateStatus = "expired"
+	StatusFailed  CertificateStatus = "failed"
 )
 
 // Backend defines the interface for CA backends
@@ -248,16 +248,16 @@ type Backend interface {
 	// Initialization
 	Initialize(ctx context.Context, config interface{}) error
 	HealthCheck(ctx context.Context) error
-	
+
 	// Certificate operations
 	IssueCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error)
 	RevokeCertificate(ctx context.Context, serialNumber string, reason int) error
 	RenewCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error)
-	
+
 	// CA operations
 	GetCAChain(ctx context.Context) ([]*x509.Certificate, error)
 	GetCRL(ctx context.Context) (*pkix.CertificateList, error)
-	
+
 	// Metadata
 	GetBackendInfo(ctx context.Context) (*BackendInfo, error)
 	GetSupportedFeatures() []string
@@ -265,13 +265,13 @@ type Backend interface {
 
 // BackendInfo contains backend metadata
 type BackendInfo struct {
-	Type        CABackendType `json:"type"`
-	Version     string        `json:"version"`
-	Status      string        `json:"status"`
-	Issuer      string        `json:"issuer"`
-	ValidUntil  time.Time     `json:"valid_until"`
-	Features    []string      `json:"features"`
-	Metrics     map[string]interface{} `json:"metrics"`
+	Type       CABackendType          `json:"type"`
+	Version    string                 `json:"version"`
+	Status     string                 `json:"status"`
+	Issuer     string                 `json:"issuer"`
+	ValidUntil time.Time              `json:"valid_until"`
+	Features   []string               `json:"features"`
+	Metrics    map[string]interface{} `json:"metrics"`
 }
 
 // NewCAManager creates a new CA manager

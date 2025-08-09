@@ -45,11 +45,11 @@ var _ = Describe("NetworkIntent Controller Error Handling", func() {
 		}
 
 		config := &Config{
-			MaxRetries:      3,
-			RetryDelay:      time.Second,
-			GitRepoURL:      "https://github.com/test/repo.git",
-			GitBranch:       "main",
-			GitDeployPath:   "deployments",
+			MaxRetries:    3,
+			RetryDelay:    time.Second,
+			GitRepoURL:    "https://github.com/test/repo.git",
+			GitBranch:     "main",
+			GitDeployPath: "deployments",
 		}
 
 		var err error
@@ -61,8 +61,8 @@ var _ = Describe("NetworkIntent Controller Error Handling", func() {
 		// Create test NetworkIntent
 		networkIntent = &nephoranv1.NetworkIntent{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-intent",
-				Namespace: "default",
+				Name:       "test-intent",
+				Namespace:  "default",
 				Finalizers: []string{NetworkIntentFinalizer},
 			},
 			Spec: nephoranv1.NetworkIntentSpec{
@@ -130,7 +130,7 @@ var _ = Describe("NetworkIntent Controller Error Handling", func() {
 			// Should have some variation (but not too much)
 			Expect(maxResult - minResult).To(BeNumerically(">", 0))
 			Expect(maxResult).To(BeNumerically("<=", expectedBase*11/10)) // Max 10% over
-			Expect(minResult).To(BeNumerically(">=", expectedBase*9/10))   // Min 10% under
+			Expect(minResult).To(BeNumerically(">=", expectedBase*9/10))  // Min 10% under
 		})
 
 		It("should not exceed max delay", func() {
@@ -144,7 +144,7 @@ var _ = Describe("NetworkIntent Controller Error Handling", func() {
 
 		It("should use defaults for zero values", func() {
 			result := calculateExponentialBackoff(1, 0, 0)
-			
+
 			// Should use BaseBackoffDelay and MaxBackoffDelay constants
 			expectedBase := time.Duration(float64(BaseBackoffDelay.Nanoseconds()) * math.Pow(BackoffMultiplier, 1.0))
 			minExpected := time.Duration(float64(expectedBase.Nanoseconds()) * 0.9)
@@ -305,7 +305,7 @@ var _ = Describe("NetworkIntent Controller Error Handling", func() {
 			expectedDelay0 := calculateExponentialBackoffForOperation(0, "llm-processing")
 			Expect(result.RequeueAfter).To(BeNumerically("~", expectedDelay0, float64(expectedDelay0)*0.1))
 
-			// Second retry (count 1) 
+			// Second retry (count 1)
 			result, err = reconciler.Reconcile(ctx, req)
 			Expect(err).NotTo(HaveOccurred())
 			expectedDelay1 := calculateExponentialBackoffForOperation(1, "llm-processing")
@@ -441,7 +441,7 @@ var _ = Describe("NetworkIntent Controller Error Handling", func() {
 
 		It("should set Ready=False on Git push failures", func() {
 			mockGitClient := &MockGitClient{
-				InitError:      nil, // Init succeeds
+				InitError:       nil, // Init succeeds
 				CommitPushError: fmt.Errorf("git push failed"),
 			}
 			reconciler.deps = &TestDependencies{
@@ -707,7 +707,7 @@ var _ = Describe("NetworkIntent Controller Error Handling", func() {
 			// Verify LLM processing succeeded
 			updated := &nephoranv1.NetworkIntent{}
 			Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
-			
+
 			processedCondition := getConditionByType(updated.Status.Conditions, "Processed")
 			Expect(processedCondition).NotTo(BeNil())
 			Expect(processedCondition.Status).To(Equal(metav1.ConditionTrue))
@@ -727,10 +727,10 @@ var _ = Describe("NetworkIntent Controller Error Handling", func() {
 
 			// Verify both phases now succeeded
 			Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(networkIntent), updated)).To(Succeed())
-			
+
 			processedCondition = getConditionByType(updated.Status.Conditions, "Processed")
 			Expect(processedCondition.Status).To(Equal(metav1.ConditionTrue))
-			
+
 			readyCondition = getConditionByType(updated.Status.Conditions, "Ready")
 			Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
 		})
@@ -856,10 +856,10 @@ func getConditionByType(conditions []metav1.Condition, conditionType string) *me
 
 // Constants that should match the main implementation
 const (
-	BaseBackoffDelay   = 1 * time.Second
-	MaxBackoffDelay    = 5 * time.Minute
-	BackoffMultiplier  = 2.0
-	JitterFactor       = 0.1 // 10% jitter
+	BaseBackoffDelay  = 1 * time.Second
+	MaxBackoffDelay   = 5 * time.Minute
+	BackoffMultiplier = 2.0
+	JitterFactor      = 0.1 // 10% jitter
 )
 
 // Table-driven test for comprehensive scenarios
@@ -990,7 +990,7 @@ func TestNetworkIntentErrorHandlingTableDriven(t *testing.T) {
 			maxAttempts := (tc.maxRetries + 1) * 2 // Allow for both LLM and Git retries
 			for i := 0; i < maxAttempts; i++ {
 				result, err := reconciler.Reconcile(ctx, req)
-				
+
 				// For successful cases, break when no requeue needed
 				if err == nil && !result.Requeue && result.RequeueAfter == 0 {
 					break

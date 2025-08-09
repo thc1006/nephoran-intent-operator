@@ -19,20 +19,20 @@ import (
 
 // OptimizedDBManager provides high-performance database operations with Go 1.24+ optimizations
 type OptimizedDBManager struct {
-	connectionPools   map[string]*ConnectionPool
-	preparedStmts     *PreparedStatementCache
-	queryOptimizer    *QueryOptimizer
-	txnManager       *TransactionManager
-	batchProcessor   *BatchProcessor
-	metrics          *DBMetrics
-	config           *DBConfig
-	healthChecker    *DBHealthChecker
-	readReplicas     []*sql.DB
-	writePrimary     *sql.DB
-	loadBalancer     *ReadLoadBalancer
-	mu               sync.RWMutex
-	shutdown         chan struct{}
-	wg               sync.WaitGroup
+	connectionPools map[string]*ConnectionPool
+	preparedStmts   *PreparedStatementCache
+	queryOptimizer  *QueryOptimizer
+	txnManager      *TransactionManager
+	batchProcessor  *BatchProcessor
+	metrics         *DBMetrics
+	config          *DBConfig
+	healthChecker   *DBHealthChecker
+	readReplicas    []*sql.DB
+	writePrimary    *sql.DB
+	loadBalancer    *ReadLoadBalancer
+	mu              sync.RWMutex
+	shutdown        chan struct{}
+	wg              sync.WaitGroup
 }
 
 // DBConfig contains database optimization configuration
@@ -86,81 +86,81 @@ type PreparedStatementCache struct {
 
 // PreparedStmt represents a cached prepared statement
 type PreparedStmt struct {
-	stmt        *sql.Stmt
-	query       string
-	lastUsed    time.Time
-	useCount    int64
-	prev        *PreparedStmt
-	next        *PreparedStmt
-	params      []interface{}
-	createdAt   time.Time
+	stmt      *sql.Stmt
+	query     string
+	lastUsed  time.Time
+	useCount  int64
+	prev      *PreparedStmt
+	next      *PreparedStmt
+	params    []interface{}
+	createdAt time.Time
 }
 
 // QueryOptimizer provides query optimization and caching
 type QueryOptimizer struct {
-	queryCache      map[string]*CachedQuery
-	slowQueries     map[string]*SlowQuery
-	optimizations   map[string]string
-	hitCount        int64
-	missCount       int64
-	optimizedCount  int64
-	mu              sync.RWMutex
+	queryCache     map[string]*CachedQuery
+	slowQueries    map[string]*SlowQuery
+	optimizations  map[string]string
+	hitCount       int64
+	missCount      int64
+	optimizedCount int64
+	mu             sync.RWMutex
 }
 
 // CachedQuery represents a cached query result
 type CachedQuery struct {
-	result      interface{}
-	query       string
-	params      []interface{}
-	cachedAt    time.Time
-	expiration  time.Time
-	hitCount    int64
-	size        int64
+	result     interface{}
+	query      string
+	params     []interface{}
+	cachedAt   time.Time
+	expiration time.Time
+	hitCount   int64
+	size       int64
 }
 
 // SlowQuery tracks slow query information
 type SlowQuery struct {
-	query           string
-	avgDuration     time.Duration
-	maxDuration     time.Duration
-	executionCount  int64
-	lastExecution   time.Time
-	optimized       bool
-	suggestions     []string
+	query          string
+	avgDuration    time.Duration
+	maxDuration    time.Duration
+	executionCount int64
+	lastExecution  time.Time
+	optimized      bool
+	suggestions    []string
 }
 
 // TransactionManager handles transaction optimization
 type TransactionManager struct {
-	activeTxns       map[string]*Transaction
-	txnPool          sync.Pool
+	activeTxns        map[string]*Transaction
+	txnPool           sync.Pool
 	maxConcurrentTxns int64
-	currentTxns      int64
-	completedTxns    int64
-	rolledBackTxns   int64
-	deadlocks        int64
-	mu               sync.RWMutex
+	currentTxns       int64
+	completedTxns     int64
+	rolledBackTxns    int64
+	deadlocks         int64
+	mu                sync.RWMutex
 }
 
 // Transaction represents an optimized database transaction
 type Transaction struct {
-	id          string
-	tx          *sql.Tx
-	startTime   time.Time
-	timeout     time.Duration
-	readOnly    bool
-	isolation   sql.IsolationLevel
-	operations  []TxnOperation
-	context     context.Context
-	cancel      context.CancelFunc
+	id         string
+	tx         *sql.Tx
+	startTime  time.Time
+	timeout    time.Duration
+	readOnly   bool
+	isolation  sql.IsolationLevel
+	operations []TxnOperation
+	context    context.Context
+	cancel     context.CancelFunc
 }
 
 // TxnOperation represents a transaction operation
 type TxnOperation struct {
-	type_       string
-	query       string
-	params      []interface{}
-	executedAt  time.Time
-	duration    time.Duration
+	type_        string
+	query        string
+	params       []interface{}
+	executedAt   time.Time
+	duration     time.Duration
 	rowsAffected int64
 }
 
@@ -221,23 +221,23 @@ type DBHealthChecker struct {
 
 // HealthCheck represents a database health check
 type HealthCheck struct {
-	name        string
-	lastCheck   time.Time
-	lastError   error
-	latency     time.Duration
-	healthy     bool
-	failCount   int64
+	name         string
+	lastCheck    time.Time
+	lastError    error
+	latency      time.Duration
+	healthy      bool
+	failCount    int64
 	successCount int64
 }
 
 // ReadLoadBalancer balances read operations across replicas
 type ReadLoadBalancer struct {
-	replicas       []*sql.DB
-	weights        []int
-	currentIndex   int64
+	replicas        []*sql.DB
+	weights         []int
+	currentIndex    int64
 	healthyReplicas map[int]bool
-	strategy       LoadBalanceStrategy
-	mu            sync.RWMutex
+	strategy        LoadBalanceStrategy
+	mu              sync.RWMutex
 }
 
 // LoadBalanceStrategy defines load balancing strategies
@@ -252,25 +252,25 @@ const (
 
 // DBMetrics tracks database performance metrics
 type DBMetrics struct {
-	QueryCount          int64
-	SlowQueryCount      int64
-	ErrorCount          int64
-	ConnectionCount     int64
-	ActiveConnections   int64
-	IdleConnections     int64
-	TransactionCount    int64
-	RollbackCount       int64
-	BatchCount          int64
-	CacheHitCount       int64
-	CacheMissCount      int64
-	AverageQueryTime    int64 // nanoseconds
-	AverageConnTime     int64 // nanoseconds
-	TotalBytesRead      int64
-	TotalBytesWritten   int64
-	ReplicationLag      int64 // milliseconds
-	DeadlockCount       int64
-	PreparedStmtHits    int64
-	PreparedStmtMisses  int64
+	QueryCount         int64
+	SlowQueryCount     int64
+	ErrorCount         int64
+	ConnectionCount    int64
+	ActiveConnections  int64
+	IdleConnections    int64
+	TransactionCount   int64
+	RollbackCount      int64
+	BatchCount         int64
+	CacheHitCount      int64
+	CacheMissCount     int64
+	AverageQueryTime   int64 // nanoseconds
+	AverageConnTime    int64 // nanoseconds
+	TotalBytesRead     int64
+	TotalBytesWritten  int64
+	ReplicationLag     int64 // milliseconds
+	DeadlockCount      int64
+	PreparedStmtHits   int64
+	PreparedStmtMisses int64
 }
 
 // NewOptimizedDBManager creates a new optimized database manager
@@ -283,11 +283,11 @@ func NewOptimizedDBManager(config *DBConfig) (*OptimizedDBManager, error) {
 		connectionPools: make(map[string]*ConnectionPool),
 		preparedStmts:   NewPreparedStatementCache(config.PreparedStmtCache),
 		queryOptimizer:  NewQueryOptimizer(),
-		txnManager:     NewTransactionManager(),
-		batchProcessor: NewBatchProcessor(config.BatchSize, config.BatchTimeout),
-		metrics:       &DBMetrics{},
-		config:        config,
-		shutdown:      make(chan struct{}),
+		txnManager:      NewTransactionManager(),
+		batchProcessor:  NewBatchProcessor(config.BatchSize, config.BatchTimeout),
+		metrics:         &DBMetrics{},
+		config:          config,
+		shutdown:        make(chan struct{}),
 	}
 
 	if config.EnableHealthCheck {
@@ -350,10 +350,10 @@ func (dm *OptimizedDBManager) AddConnectionPool(name, dsn string) error {
 	}
 
 	pool := &ConnectionPool{
-		db:     db,
-		dsn:    dsn,
-		config: dm.config,
-		healthy: true,
+		db:              db,
+		dsn:             dsn,
+		config:          dm.config,
+		healthy:         true,
 		lastHealthCheck: time.Now(),
 	}
 
@@ -1052,25 +1052,25 @@ func (dm *OptimizedDBManager) GetMetrics() DBMetrics {
 	dm.updateConnectionMetrics() // Ensure metrics are current
 
 	return DBMetrics{
-		QueryCount:          atomic.LoadInt64(&dm.metrics.QueryCount),
-		SlowQueryCount:      atomic.LoadInt64(&dm.metrics.SlowQueryCount),
-		ErrorCount:          atomic.LoadInt64(&dm.metrics.ErrorCount),
-		ConnectionCount:     atomic.LoadInt64(&dm.metrics.ConnectionCount),
-		ActiveConnections:   atomic.LoadInt64(&dm.metrics.ActiveConnections),
-		IdleConnections:     atomic.LoadInt64(&dm.metrics.IdleConnections),
-		TransactionCount:    atomic.LoadInt64(&dm.metrics.TransactionCount),
-		RollbackCount:       atomic.LoadInt64(&dm.metrics.RollbackCount),
-		BatchCount:          atomic.LoadInt64(&dm.metrics.BatchCount),
-		CacheHitCount:       atomic.LoadInt64(&dm.metrics.CacheHitCount),
-		CacheMissCount:      atomic.LoadInt64(&dm.metrics.CacheMissCount),
-		AverageQueryTime:    atomic.LoadInt64(&dm.metrics.AverageQueryTime),
-		AverageConnTime:     atomic.LoadInt64(&dm.metrics.AverageConnTime),
-		TotalBytesRead:      atomic.LoadInt64(&dm.metrics.TotalBytesRead),
-		TotalBytesWritten:   atomic.LoadInt64(&dm.metrics.TotalBytesWritten),
-		ReplicationLag:      atomic.LoadInt64(&dm.metrics.ReplicationLag),
-		DeadlockCount:       atomic.LoadInt64(&dm.metrics.DeadlockCount),
-		PreparedStmtHits:    atomic.LoadInt64(&dm.metrics.PreparedStmtHits),
-		PreparedStmtMisses:  atomic.LoadInt64(&dm.metrics.PreparedStmtMisses),
+		QueryCount:         atomic.LoadInt64(&dm.metrics.QueryCount),
+		SlowQueryCount:     atomic.LoadInt64(&dm.metrics.SlowQueryCount),
+		ErrorCount:         atomic.LoadInt64(&dm.metrics.ErrorCount),
+		ConnectionCount:    atomic.LoadInt64(&dm.metrics.ConnectionCount),
+		ActiveConnections:  atomic.LoadInt64(&dm.metrics.ActiveConnections),
+		IdleConnections:    atomic.LoadInt64(&dm.metrics.IdleConnections),
+		TransactionCount:   atomic.LoadInt64(&dm.metrics.TransactionCount),
+		RollbackCount:      atomic.LoadInt64(&dm.metrics.RollbackCount),
+		BatchCount:         atomic.LoadInt64(&dm.metrics.BatchCount),
+		CacheHitCount:      atomic.LoadInt64(&dm.metrics.CacheHitCount),
+		CacheMissCount:     atomic.LoadInt64(&dm.metrics.CacheMissCount),
+		AverageQueryTime:   atomic.LoadInt64(&dm.metrics.AverageQueryTime),
+		AverageConnTime:    atomic.LoadInt64(&dm.metrics.AverageConnTime),
+		TotalBytesRead:     atomic.LoadInt64(&dm.metrics.TotalBytesRead),
+		TotalBytesWritten:  atomic.LoadInt64(&dm.metrics.TotalBytesWritten),
+		ReplicationLag:     atomic.LoadInt64(&dm.metrics.ReplicationLag),
+		DeadlockCount:      atomic.LoadInt64(&dm.metrics.DeadlockCount),
+		PreparedStmtHits:   atomic.LoadInt64(&dm.metrics.PreparedStmtHits),
+		PreparedStmtMisses: atomic.LoadInt64(&dm.metrics.PreparedStmtMisses),
 	}
 }
 

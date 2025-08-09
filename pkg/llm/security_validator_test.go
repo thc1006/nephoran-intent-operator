@@ -171,11 +171,11 @@ func TestSecurityValidator_ValidateResponse_Sensitive(t *testing.T) {
 
 func TestRateLimiter_TokenBucket(t *testing.T) {
 	config := &RateLimitConfig{
-		RequestsPerMinute:   10,
-		TokensPerMinute:     100,
-		WindowSize:          time.Minute,
-		BurstSize:           5,
-		CleanupInterval:     5 * time.Minute,
+		RequestsPerMinute: 10,
+		TokensPerMinute:   100,
+		WindowSize:        time.Minute,
+		BurstSize:         5,
+		CleanupInterval:   5 * time.Minute,
 	}
 
 	limiter := NewRateLimiter(config)
@@ -203,11 +203,11 @@ func TestRateLimiter_TokenBucket(t *testing.T) {
 
 func TestRateLimiter_TokenRefill(t *testing.T) {
 	config := &RateLimitConfig{
-		RequestsPerMinute:   60, // 1 per second
-		TokensPerMinute:     60,
-		WindowSize:          time.Second,
-		BurstSize:           2,
-		CleanupInterval:     time.Minute,
+		RequestsPerMinute: 60, // 1 per second
+		TokensPerMinute:   60,
+		WindowSize:        time.Second,
+		BurstSize:         2,
+		CleanupInterval:   time.Minute,
 	}
 
 	limiter := NewRateLimiter(config)
@@ -240,11 +240,11 @@ func TestRateLimiter_TokenRefill(t *testing.T) {
 
 func TestRateLimiter_ConcurrentAccess(t *testing.T) {
 	config := &RateLimitConfig{
-		RequestsPerMinute:   100,
-		TokensPerMinute:     1000,
-		WindowSize:          time.Minute,
-		BurstSize:           50,
-		CleanupInterval:     5 * time.Minute,
+		RequestsPerMinute: 100,
+		TokensPerMinute:   1000,
+		WindowSize:        time.Minute,
+		BurstSize:         50,
+		CleanupInterval:   5 * time.Minute,
 	}
 
 	limiter := NewRateLimiter(config)
@@ -262,10 +262,10 @@ func TestRateLimiter_ConcurrentAccess(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			clientID := "concurrent-client"
-			
+
 			allowed, err := limiter.AllowRequest(ctx, clientID, 1)
 			assert.NoError(t, err)
-			
+
 			if allowed {
 				allowedMutex.Lock()
 				allowedCount++
@@ -288,11 +288,11 @@ func TestRateLimiter_ConcurrentAccess(t *testing.T) {
 
 func TestRateLimiter_MultipleClients(t *testing.T) {
 	config := &RateLimitConfig{
-		RequestsPerMinute:   10,
-		TokensPerMinute:     100,
-		WindowSize:          time.Minute,
-		BurstSize:           5,
-		CleanupInterval:     5 * time.Minute,
+		RequestsPerMinute: 10,
+		TokensPerMinute:   100,
+		WindowSize:        time.Minute,
+		BurstSize:         5,
+		CleanupInterval:   5 * time.Minute,
 	}
 
 	limiter := NewRateLimiter(config)
@@ -318,11 +318,11 @@ func TestRateLimiter_MultipleClients(t *testing.T) {
 
 func TestRateLimiter_GetStats(t *testing.T) {
 	config := &RateLimitConfig{
-		RequestsPerMinute:   60,
-		TokensPerMinute:     600,
-		WindowSize:          time.Minute,
-		BurstSize:           10,
-		CleanupInterval:     5 * time.Minute,
+		RequestsPerMinute: 60,
+		TokensPerMinute:   600,
+		WindowSize:        time.Minute,
+		BurstSize:         10,
+		CleanupInterval:   5 * time.Minute,
 	}
 
 	limiter := NewRateLimiter(config)
@@ -355,11 +355,11 @@ func TestRateLimiter_GetStats(t *testing.T) {
 
 func TestRateLimiter_Cleanup(t *testing.T) {
 	config := &RateLimitConfig{
-		RequestsPerMinute:   60,
-		TokensPerMinute:     600,
-		WindowSize:          time.Minute,
-		BurstSize:           10,
-		CleanupInterval:     100 * time.Millisecond, // Fast cleanup for testing
+		RequestsPerMinute: 60,
+		TokensPerMinute:   600,
+		WindowSize:        time.Minute,
+		BurstSize:         10,
+		CleanupInterval:   100 * time.Millisecond, // Fast cleanup for testing
 	}
 
 	limiter := NewRateLimiter(config)
@@ -448,11 +448,11 @@ func BenchmarkSecurityValidator_ValidatePrompt(b *testing.B) {
 
 func BenchmarkRateLimiter_AllowRequest(b *testing.B) {
 	config := &RateLimitConfig{
-		RequestsPerMinute:   10000,
-		TokensPerMinute:     100000,
-		WindowSize:          time.Minute,
-		BurstSize:           1000,
-		CleanupInterval:     5 * time.Minute,
+		RequestsPerMinute: 10000,
+		TokensPerMinute:   100000,
+		WindowSize:        time.Minute,
+		BurstSize:         1000,
+		CleanupInterval:   5 * time.Minute,
 	}
 
 	limiter := NewRateLimiter(config)
@@ -494,7 +494,7 @@ func TestSecurityValidator_PatternMatching(t *testing.T) {
 
 	for _, tc := range testCases {
 		containsBlocked := containsBlockedPattern(tc.input, validator.blockedPatterns)
-		assert.Equal(t, tc.expected, containsBlocked, 
+		assert.Equal(t, tc.expected, containsBlocked,
 			"Pattern matching failed for: %s (reason: %s)", tc.input, tc.reason)
 	}
 }

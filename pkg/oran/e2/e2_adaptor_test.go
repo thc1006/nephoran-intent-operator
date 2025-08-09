@@ -70,7 +70,7 @@ func TestE2Adaptor_RegisterE2Node(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Contains(t, r.URL.Path, "/e2ap/v1/nodes/test-node/register")
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		
+
 		w.WriteHeader(http.StatusCreated)
 	}))
 	defer server.Close()
@@ -113,7 +113,7 @@ func TestE2Adaptor_DeregisterE2Node(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "DELETE", r.Method)
 		assert.Contains(t, r.URL.Path, "/e2ap/v1/nodes/test-node/deregister")
-		
+
 		w.WriteHeader(http.StatusNoContent)
 	}))
 	defer server.Close()
@@ -149,7 +149,7 @@ func TestE2Adaptor_CreateSubscription(t *testing.T) {
 		assert.Equal(t, "POST", r.Method)
 		assert.Contains(t, r.URL.Path, "/e2ap/v1/nodes/test-node/subscriptions")
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-		
+
 		w.WriteHeader(http.StatusCreated)
 	}))
 	defer server.Close()
@@ -220,7 +220,7 @@ func TestE2Adaptor_SendControlRequest(t *testing.T) {
 		assert.Contains(t, r.URL.Path, "/e2ap/v1/nodes/test-node/control")
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 		assert.Equal(t, "application/json", r.Header.Get("Accept"))
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(expectedResponse)
@@ -301,10 +301,10 @@ func TestE2Adaptor_ConfigureE2Interface(t *testing.T) {
 		},
 		"default_subscriptions": []interface{}{
 			map[string]interface{}{
-				"subscription_id":      "default-sub-001",
-				"requestor_id":         "nephoran-controller",
-				"ran_function_id":      1.0,
-				"reporting_period_ms":  1000.0,
+				"subscription_id":     "default-sub-001",
+				"requestor_id":        "nephoran-controller",
+				"ran_function_id":     1.0,
+				"reporting_period_ms": 1000.0,
 				"event_triggers": []interface{}{
 					map[string]interface{}{
 						"trigger_type":        "PERIODIC",
@@ -440,17 +440,17 @@ func TestE2Adaptor_RemoveE2Interface(t *testing.T) {
 
 func TestCreateKPMServiceModel(t *testing.T) {
 	serviceModel := CreateKPMServiceModel()
-	
+
 	assert.Equal(t, "1.3.6.1.4.1.53148.1.1.2.2", serviceModel.ServiceModelID)
 	assert.Equal(t, "KPM", serviceModel.ServiceModelName)
 	assert.Equal(t, "1.0", serviceModel.ServiceModelVersion)
 	assert.Contains(t, serviceModel.SupportedProcedures, "RIC_SUBSCRIPTION")
 	assert.Contains(t, serviceModel.SupportedProcedures, "RIC_INDICATION")
-	
+
 	// Verify configuration contains expected measurement types
 	config := serviceModel.Configuration
 	assert.NotNil(t, config)
-	
+
 	if measurementTypes, exists := config["measurement_types"]; exists {
 		types := measurementTypes.([]string)
 		assert.Contains(t, types, "DRB.RlcSduDelayDl")
@@ -460,17 +460,17 @@ func TestCreateKPMServiceModel(t *testing.T) {
 
 func TestCreateRCServiceModel(t *testing.T) {
 	serviceModel := CreateRCServiceModel()
-	
+
 	assert.Equal(t, "1.3.6.1.4.1.53148.1.1.2.3", serviceModel.ServiceModelID)
 	assert.Equal(t, "RC", serviceModel.ServiceModelName)
 	assert.Equal(t, "1.0", serviceModel.ServiceModelVersion)
 	assert.Contains(t, serviceModel.SupportedProcedures, "RIC_CONTROL_REQUEST")
 	assert.Contains(t, serviceModel.SupportedProcedures, "RIC_CONTROL_ACKNOWLEDGE")
-	
+
 	// Verify configuration contains expected control actions
 	config := serviceModel.Configuration
 	assert.NotNil(t, config)
-	
+
 	if controlActions, exists := config["control_actions"]; exists {
 		actions := controlActions.([]string)
 		assert.Contains(t, actions, "QoS_flow_mapping")
@@ -480,12 +480,12 @@ func TestCreateRCServiceModel(t *testing.T) {
 
 func TestCreateDefaultE2NodeFunction(t *testing.T) {
 	function := CreateDefaultE2NodeFunction()
-	
+
 	assert.Equal(t, 1, function.FunctionID)
 	assert.Equal(t, "gNB-DU", function.FunctionDefinition)
 	assert.Equal(t, 1, function.FunctionRevision)
 	assert.Equal(t, "ACTIVE", function.Status.State)
-	
+
 	// Verify service model is KPM
 	assert.Equal(t, "KPM", function.ServiceModel.ServiceModelName)
 	assert.Equal(t, "1.3.6.1.4.1.53148.1.1.2.2", function.ServiceModel.ServiceModelID)
@@ -557,7 +557,7 @@ func TestE2Adaptor_GetServiceModel(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "GET", r.Method)
 		assert.Contains(t, r.URL.Path, "/e2ap/v1/service-models/")
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(expectedServiceModel)
@@ -576,7 +576,7 @@ func TestE2Adaptor_GetServiceModel(t *testing.T) {
 	ctx := context.Background()
 	serviceModel, err := adaptor.GetServiceModel(ctx, "1.3.6.1.4.1.53148.1.1.2.2")
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, expectedServiceModel.ServiceModelID, serviceModel.ServiceModelID)
 	assert.Equal(t, expectedServiceModel.ServiceModelName, serviceModel.ServiceModelName)
 	assert.Equal(t, expectedServiceModel.ServiceModelVersion, serviceModel.ServiceModelVersion)
@@ -656,7 +656,7 @@ func BenchmarkE2Adaptor_CreateSubscription(b *testing.B) {
 				},
 			},
 		}
-		
+
 		err := adaptor.CreateSubscription(ctx, "bench-node", subscription)
 		require.NoError(b, err)
 	}

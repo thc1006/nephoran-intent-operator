@@ -21,56 +21,56 @@ import (
 
 // SelfSignedBackend implements a self-signed CA backend for development and testing
 type SelfSignedBackend struct {
-	logger    *logging.StructuredLogger
-	config    *SelfSignedBackendConfig
-	rootCA    *x509.Certificate
-	rootKey   interface{}
-	intermCA  *x509.Certificate
-	intermKey interface{}
-	mu        sync.RWMutex
-	issuedCerts map[string]*IssuedCertificate
-	revokedCerts map[string]*RevokedCertificate
+	logger        *logging.StructuredLogger
+	config        *SelfSignedBackendConfig
+	rootCA        *x509.Certificate
+	rootKey       interface{}
+	intermCA      *x509.Certificate
+	intermKey     interface{}
+	mu            sync.RWMutex
+	issuedCerts   map[string]*IssuedCertificate
+	revokedCerts  map[string]*RevokedCertificate
 	serialCounter *big.Int
 }
 
 // SelfSignedBackendConfig holds self-signed backend configuration
 type SelfSignedBackendConfig struct {
 	// Root CA configuration
-	RootCA    *CAConfig    `yaml:"root_ca"`
-	
+	RootCA *CAConfig `yaml:"root_ca"`
+
 	// Intermediate CA configuration
 	IntermediateCA *CAConfig `yaml:"intermediate_ca"`
-	
+
 	// Certificate defaults
-	DefaultKeySize       int           `yaml:"default_key_size"`
-	DefaultValidityDays  int           `yaml:"default_validity_days"`
-	MaxValidityDays      int           `yaml:"max_validity_days"`
-	AllowedKeyUsages     []string      `yaml:"allowed_key_usages"`
-	AllowedExtKeyUsages  []string      `yaml:"allowed_ext_key_usages"`
-	
+	DefaultKeySize      int      `yaml:"default_key_size"`
+	DefaultValidityDays int      `yaml:"default_validity_days"`
+	MaxValidityDays     int      `yaml:"max_validity_days"`
+	AllowedKeyUsages    []string `yaml:"allowed_key_usages"`
+	AllowedExtKeyUsages []string `yaml:"allowed_ext_key_usages"`
+
 	// Security settings
-	MinKeySize           int           `yaml:"min_key_size"`
-	RequireExplicitKeyUsage bool       `yaml:"require_explicit_key_usage"`
-	
+	MinKeySize              int  `yaml:"min_key_size"`
+	RequireExplicitKeyUsage bool `yaml:"require_explicit_key_usage"`
+
 	// CRL settings
-	CRLConfig           *SelfSignedCRLConfig `yaml:"crl_config"`
-	
+	CRLConfig *SelfSignedCRLConfig `yaml:"crl_config"`
+
 	// Storage settings
-	PersistentStorage   bool          `yaml:"persistent_storage"`
-	StoragePath         string        `yaml:"storage_path"`
-	EncryptStorage      bool          `yaml:"encrypt_storage"`
+	PersistentStorage bool   `yaml:"persistent_storage"`
+	StoragePath       string `yaml:"storage_path"`
+	EncryptStorage    bool   `yaml:"encrypt_storage"`
 }
 
 // CAConfig holds CA certificate configuration
 type CAConfig struct {
-	Subject     *pkix.Name    `yaml:"subject"`
-	KeySize     int           `yaml:"key_size"`
-	ValidityDays int          `yaml:"validity_days"`
-	KeyUsages   []string      `yaml:"key_usages"`
-	ExtKeyUsages []string     `yaml:"ext_key_usages"`
-	CRLDistributionPoints []string `yaml:"crl_distribution_points"`
-	OCSPServers []string      `yaml:"ocsp_servers"`
-	IssuerURL   string        `yaml:"issuer_url"`
+	Subject               *pkix.Name `yaml:"subject"`
+	KeySize               int        `yaml:"key_size"`
+	ValidityDays          int        `yaml:"validity_days"`
+	KeyUsages             []string   `yaml:"key_usages"`
+	ExtKeyUsages          []string   `yaml:"ext_key_usages"`
+	CRLDistributionPoints []string   `yaml:"crl_distribution_points"`
+	OCSPServers           []string   `yaml:"ocsp_servers"`
+	IssuerURL             string     `yaml:"issuer_url"`
 }
 
 // SelfSignedCRLConfig holds CRL configuration
@@ -83,13 +83,13 @@ type SelfSignedCRLConfig struct {
 
 // IssuedCertificate represents an issued certificate
 type IssuedCertificate struct {
-	Certificate   *x509.Certificate `json:"certificate"`
-	SerialNumber  string           `json:"serial_number"`
-	Fingerprint   string           `json:"fingerprint"`
-	IssuedAt      time.Time        `json:"issued_at"`
-	ExpiresAt     time.Time        `json:"expires_at"`
-	Status        CertificateStatus `json:"status"`
-	RequestID     string           `json:"request_id"`
+	Certificate  *x509.Certificate `json:"certificate"`
+	SerialNumber string            `json:"serial_number"`
+	Fingerprint  string            `json:"fingerprint"`
+	IssuedAt     time.Time         `json:"issued_at"`
+	ExpiresAt    time.Time         `json:"expires_at"`
+	Status       CertificateStatus `json:"status"`
+	RequestID    string            `json:"request_id"`
 }
 
 // RevokedCertificate represents a revoked certificate
@@ -102,9 +102,9 @@ type RevokedCertificate struct {
 // NewSelfSignedBackend creates a new self-signed CA backend
 func NewSelfSignedBackend(logger *logging.StructuredLogger) (Backend, error) {
 	return &SelfSignedBackend{
-		logger:       logger,
-		issuedCerts:  make(map[string]*IssuedCertificate),
-		revokedCerts: make(map[string]*RevokedCertificate),
+		logger:        logger,
+		issuedCerts:   make(map[string]*IssuedCertificate),
+		revokedCerts:  make(map[string]*RevokedCertificate),
 		serialCounter: big.NewInt(1000), // Start from 1000
 	}, nil
 }
@@ -234,7 +234,7 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 	// Select issuer (intermediate CA if available, otherwise root CA)
 	var issuer *x509.Certificate
 	var issuerKey interface{}
-	
+
 	if b.intermCA != nil {
 		issuer = b.intermCA
 		issuerKey = b.intermKey
@@ -326,11 +326,11 @@ func (b *SelfSignedBackend) IssueCertificate(ctx context.Context, req *Certifica
 		IssuedBy:         string(BackendSelfSigned),
 		Status:           StatusIssued,
 		Metadata: map[string]string{
-			"backend_type":     string(BackendSelfSigned),
-			"issuer_subject":   issuer.Subject.String(),
-			"tenant_id":        req.TenantID,
-			"key_algorithm":    "RSA",
-			"key_size":         fmt.Sprintf("%d", req.KeySize),
+			"backend_type":   string(BackendSelfSigned),
+			"issuer_subject": issuer.Subject.String(),
+			"tenant_id":      req.TenantID,
+			"key_algorithm":  "RSA",
+			"key_size":       fmt.Sprintf("%d", req.KeySize),
 		},
 		CreatedAt: time.Now(),
 	}
@@ -409,7 +409,7 @@ func (b *SelfSignedBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate
 	if b.intermCA != nil {
 		chain = append(chain, b.intermCA)
 	}
-	
+
 	if b.rootCA != nil {
 		chain = append(chain, b.rootCA)
 	}
@@ -438,7 +438,7 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 	for _, revoked := range b.revokedCerts {
 		serialNumber := new(big.Int)
 		serialNumber.SetString(revoked.SerialNumber, 10)
-		
+
 		template.RevokedCertificates = append(template.RevokedCertificates, pkix.RevokedCertificate{
 			SerialNumber:   serialNumber,
 			RevocationTime: revoked.RevokedAt,
@@ -449,7 +449,7 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 	// Select issuer
 	var issuer *x509.Certificate
 	var issuerKey interface{}
-	
+
 	if b.intermCA != nil {
 		issuer = b.intermCA
 		issuerKey = b.intermKey
@@ -474,7 +474,7 @@ func (b *SelfSignedBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, e
 
 	var validUntil time.Time
 	var issuer string
-	
+
 	if b.intermCA != nil {
 		validUntil = b.intermCA.NotAfter
 		issuer = b.intermCA.Subject.String()
@@ -491,9 +491,9 @@ func (b *SelfSignedBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, e
 		ValidUntil: validUntil,
 		Features:   b.GetSupportedFeatures(),
 		Metrics: map[string]interface{}{
-			"issued_certificates": len(b.issuedCerts),
+			"issued_certificates":  len(b.issuedCerts),
 			"revoked_certificates": len(b.revokedCerts),
-			"has_intermediate_ca": b.intermCA != nil,
+			"has_intermediate_ca":  b.intermCA != nil,
 		},
 	}, nil
 }
@@ -555,16 +555,16 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 
 	// Create root CA certificate template
 	template := &x509.Certificate{
-		SerialNumber: big.NewInt(1),
-		Subject:      *b.config.RootCA.Subject,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(0, 0, b.config.RootCA.ValidityDays),
-		KeyUsage:     x509.KeyUsageKeyCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{},
+		SerialNumber:          big.NewInt(1),
+		Subject:               *b.config.RootCA.Subject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(0, 0, b.config.RootCA.ValidityDays),
+		KeyUsage:              x509.KeyUsageKeyCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{},
 		BasicConstraintsValid: true,
 		IsCA:                  true,
-		MaxPathLen:           1,
-		MaxPathLenZero:       false,
+		MaxPathLen:            1,
+		MaxPathLenZero:        false,
 	}
 
 	// Add CRL distribution points if configured
@@ -612,16 +612,16 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 
 	// Create intermediate CA certificate template
 	template := &x509.Certificate{
-		SerialNumber: big.NewInt(2),
-		Subject:      *b.config.IntermediateCA.Subject,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(0, 0, b.config.IntermediateCA.ValidityDays),
-		KeyUsage:     x509.KeyUsageKeyCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{},
+		SerialNumber:          big.NewInt(2),
+		Subject:               *b.config.IntermediateCA.Subject,
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().AddDate(0, 0, b.config.IntermediateCA.ValidityDays),
+		KeyUsage:              x509.KeyUsageKeyCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{},
 		BasicConstraintsValid: true,
 		IsCA:                  true,
-		MaxPathLen:           0,
-		MaxPathLenZero:       true,
+		MaxPathLen:            0,
+		MaxPathLenZero:        true,
 	}
 
 	// Add CRL distribution points if configured
@@ -654,7 +654,7 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 
 func (b *SelfSignedBackend) convertKeyUsage(keyUsages []string) x509.KeyUsage {
 	var usage x509.KeyUsage
-	
+
 	for _, ku := range keyUsages {
 		switch strings.ToLower(ku) {
 		case "digital_signature":
@@ -677,18 +677,18 @@ func (b *SelfSignedBackend) convertKeyUsage(keyUsages []string) x509.KeyUsage {
 			usage |= x509.KeyUsageDecipherOnly
 		}
 	}
-	
+
 	// Default usage if none specified
 	if usage == 0 {
 		usage = x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment
 	}
-	
+
 	return usage
 }
 
 func (b *SelfSignedBackend) convertExtKeyUsage(extKeyUsages []string) []x509.ExtKeyUsage {
 	var usages []x509.ExtKeyUsage
-	
+
 	for _, eku := range extKeyUsages {
 		switch strings.ToLower(eku) {
 		case "server_auth":
@@ -705,7 +705,7 @@ func (b *SelfSignedBackend) convertExtKeyUsage(extKeyUsages []string) []x509.Ext
 			usages = append(usages, x509.ExtKeyUsageOCSPSigning)
 		}
 	}
-	
+
 	// Default extended key usages if none specified
 	if len(usages) == 0 {
 		usages = []x509.ExtKeyUsage{
@@ -713,7 +713,7 @@ func (b *SelfSignedBackend) convertExtKeyUsage(extKeyUsages []string) []x509.Ext
 			x509.ExtKeyUsageClientAuth,
 		}
 	}
-	
+
 	return usages
 }
 

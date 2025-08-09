@@ -78,81 +78,81 @@ type RollbackStrategy struct {
 
 // RollbackStep defines a rollback step
 type RollbackStep struct {
-	Name        string                 `json:"name"`
-	Action      string                 `json:"action"`
-	Config      map[string]interface{} `json:"config"`
-	Timeout     time.Duration          `json:"timeout"`
-	Required    bool                   `json:"required"`
-	Condition   string                 `json:"condition,omitempty"`
+	Name      string                 `json:"name"`
+	Action    string                 `json:"action"`
+	Config    map[string]interface{} `json:"config"`
+	Timeout   time.Duration          `json:"timeout"`
+	Required  bool                   `json:"required"`
+	Condition string                 `json:"condition,omitempty"`
 }
 
 // ApprovalStrategy defines approval requirements
 type ApprovalStrategy struct {
-	Required        bool                   `json:"required"`
-	Approvers       []ApprovalRequirement  `json:"approvers"`
-	AutoApproval    *AutoApprovalRule      `json:"autoApproval,omitempty"`
-	Timeout         time.Duration          `json:"timeout"`
-	NotifyChannels  []string               `json:"notifyChannels,omitempty"`
-	Config          map[string]interface{} `json:"config,omitempty"`
+	Required       bool                   `json:"required"`
+	Approvers      []ApprovalRequirement  `json:"approvers"`
+	AutoApproval   *AutoApprovalRule      `json:"autoApproval,omitempty"`
+	Timeout        time.Duration          `json:"timeout"`
+	NotifyChannels []string               `json:"notifyChannels,omitempty"`
+	Config         map[string]interface{} `json:"config,omitempty"`
 }
 
 // ApprovalRequirement defines approval requirements
 type ApprovalRequirement struct {
-	Type        string   `json:"type"`
-	Count       int      `json:"count"`
-	Users       []string `json:"users,omitempty"`
-	Groups      []string `json:"groups,omitempty"`
-	Roles       []string `json:"roles,omitempty"`
-	Conditions  []string `json:"conditions,omitempty"`
+	Type       string   `json:"type"`
+	Count      int      `json:"count"`
+	Users      []string `json:"users,omitempty"`
+	Groups     []string `json:"groups,omitempty"`
+	Roles      []string `json:"roles,omitempty"`
+	Conditions []string `json:"conditions,omitempty"`
 }
 
 // AutoApprovalRule defines automatic approval rules
 type AutoApprovalRule struct {
-	Enabled     bool                   `json:"enabled"`
-	Conditions  []string               `json:"conditions"`
-	Timeout     time.Duration          `json:"timeout"`
-	Config      map[string]interface{} `json:"config,omitempty"`
+	Enabled    bool                   `json:"enabled"`
+	Conditions []string               `json:"conditions"`
+	Timeout    time.Duration          `json:"timeout"`
+	Config     map[string]interface{} `json:"config,omitempty"`
 }
 
 // NotificationStrategy defines notification behavior
 type NotificationStrategy struct {
-	Enabled     bool                     `json:"enabled"`
-	Events      []NotificationEvent      `json:"events"`
-	Channels    []NotificationChannel    `json:"channels"`
-	Templates   map[string]string        `json:"templates,omitempty"`
-	Config      map[string]interface{}   `json:"config,omitempty"`
+	Enabled   bool                   `json:"enabled"`
+	Events    []NotificationEvent    `json:"events"`
+	Channels  []NotificationChannel  `json:"channels"`
+	Templates map[string]string      `json:"templates,omitempty"`
+	Config    map[string]interface{} `json:"config,omitempty"`
 }
 
 // NotificationEvent defines when to send notifications
 type NotificationEvent struct {
-	Type        string                 `json:"type"`
-	Conditions  []string               `json:"conditions,omitempty"`
-	Config      map[string]interface{} `json:"config,omitempty"`
+	Type       string                 `json:"type"`
+	Conditions []string               `json:"conditions,omitempty"`
+	Config     map[string]interface{} `json:"config,omitempty"`
 }
 
 // NotificationChannel defines notification channels
 type NotificationChannel struct {
-	Type        string                 `json:"type"`
-	Endpoint    string                 `json:"endpoint"`
-	Config      map[string]interface{} `json:"config,omitempty"`
-	Enabled     bool                   `json:"enabled"`
+	Type     string                 `json:"type"`
+	Endpoint string                 `json:"endpoint"`
+	Config   map[string]interface{} `json:"config,omitempty"`
+	Enabled  bool                   `json:"enabled"`
 }
 
 // TimeoutStrategy defines timeout behavior
 type TimeoutStrategy struct {
-	GlobalTimeout time.Duration          `json:"globalTimeout"`
-	PhaseTimeouts map[string]time.Duration `json:"phaseTimeouts,omitempty"`
+	GlobalTimeout  time.Duration            `json:"globalTimeout"`
+	PhaseTimeouts  map[string]time.Duration `json:"phaseTimeouts,omitempty"`
 	ActionTimeouts map[string]time.Duration `json:"actionTimeouts,omitempty"`
-	OnTimeout     string                 `json:"onTimeout"`
-	Config        map[string]interface{} `json:"config,omitempty"`
+	OnTimeout      string                   `json:"onTimeout"`
+	Config         map[string]interface{}   `json:"config,omitempty"`
 }
 
 // ValidationResult represents workflow validation results
 type ValidationResult struct {
-	Valid    bool                    `json:"valid"`
-	Errors   []ValidationError       `json:"errors,omitempty"`
-	Warnings []ValidationWarning     `json:"warnings,omitempty"`
-	Metrics  *ValidationMetrics      `json:"metrics,omitempty"`
+	Valid    bool                `json:"valid"`
+	Errors   []ValidationError   `json:"errors,omitempty"`
+	Warnings []ValidationWarning `json:"warnings,omitempty"`
+	Metrics  *ValidationMetrics  `json:"metrics,omitempty"`
 }
 
 // ValidationError represents a validation error
@@ -172,70 +172,70 @@ type ValidationWarning struct {
 
 // ValidationMetrics provides validation metrics
 type ValidationMetrics struct {
-	TotalPhases   int `json:"totalPhases"`
-	TotalActions  int `json:"totalActions"`
-	Dependencies  int `json:"dependencies"`
-	Complexity    int `json:"complexity"`
+	TotalPhases  int `json:"totalPhases"`
+	TotalActions int `json:"totalActions"`
+	Dependencies int `json:"dependencies"`
+	Complexity   int `json:"complexity"`
 }
 
 // ComplianceResults represents compliance validation results
 type ComplianceResults struct {
-	ORANCompliance    *ORANComplianceResult    `json:"oranCompliance,omitempty"`
+	ORANCompliance     *ORANComplianceResult     `json:"oranCompliance,omitempty"`
 	SecurityCompliance *SecurityComplianceResult `json:"securityCompliance,omitempty"`
-	NetworkCompliance *NetworkComplianceResult  `json:"networkCompliance,omitempty"`
-	OverallStatus     string                   `json:"overallStatus"`
-	Timestamp         time.Time                `json:"timestamp"`
+	NetworkCompliance  *NetworkComplianceResult  `json:"networkCompliance,omitempty"`
+	OverallStatus      string                    `json:"overallStatus"`
+	Timestamp          time.Time                 `json:"timestamp"`
 }
 
 // ORANComplianceResult represents O-RAN compliance results
 type ORANComplianceResult struct {
-	Interfaces    []InterfaceComplianceResult `json:"interfaces"`
-	Standards     []StandardComplianceResult  `json:"standards"`
-	Certifications []CertificationResult      `json:"certifications"`
-	OverallScore  float64                     `json:"overallScore"`
+	Interfaces     []InterfaceComplianceResult `json:"interfaces"`
+	Standards      []StandardComplianceResult  `json:"standards"`
+	Certifications []CertificationResult       `json:"certifications"`
+	OverallScore   float64                     `json:"overallScore"`
 }
 
 // InterfaceComplianceResult represents interface compliance
 type InterfaceComplianceResult struct {
-	Name       string `json:"name"`
-	Type       string `json:"type"`
-	Version    string `json:"version"`
-	Compliant  bool   `json:"compliant"`
-	Score      float64 `json:"score"`
-	Issues     []string `json:"issues,omitempty"`
+	Name      string   `json:"name"`
+	Type      string   `json:"type"`
+	Version   string   `json:"version"`
+	Compliant bool     `json:"compliant"`
+	Score     float64  `json:"score"`
+	Issues    []string `json:"issues,omitempty"`
 }
 
 // StandardComplianceResult represents standard compliance
 type StandardComplianceResult struct {
-	Name      string  `json:"name"`
-	Version   string  `json:"version"`
-	Compliant bool    `json:"compliant"`
-	Score     float64 `json:"score"`
+	Name      string   `json:"name"`
+	Version   string   `json:"version"`
+	Compliant bool     `json:"compliant"`
+	Score     float64  `json:"score"`
 	Issues    []string `json:"issues,omitempty"`
 }
 
 // CertificationResult represents certification status
 type CertificationResult struct {
-	Name        string    `json:"name"`
-	Authority   string    `json:"authority"`
-	Valid       bool      `json:"valid"`
-	ExpiresAt   time.Time `json:"expiresAt,omitempty"`
-	Issues      []string  `json:"issues,omitempty"`
+	Name      string    `json:"name"`
+	Authority string    `json:"authority"`
+	Valid     bool      `json:"valid"`
+	ExpiresAt time.Time `json:"expiresAt,omitempty"`
+	Issues    []string  `json:"issues,omitempty"`
 }
 
 // SecurityComplianceResult represents security compliance
 type SecurityComplianceResult struct {
-	Policies      []PolicyComplianceResult `json:"policies"`
-	Vulnerabilities []VulnerabilityResult  `json:"vulnerabilities"`
-	OverallScore  float64                  `json:"overallScore"`
+	Policies        []PolicyComplianceResult `json:"policies"`
+	Vulnerabilities []VulnerabilityResult    `json:"vulnerabilities"`
+	OverallScore    float64                  `json:"overallScore"`
 }
 
 // PolicyComplianceResult represents policy compliance
 type PolicyComplianceResult struct {
-	Name       string   `json:"name"`
-	Type       string   `json:"type"`
-	Compliant  bool     `json:"compliant"`
-	Issues     []string `json:"issues,omitempty"`
+	Name      string   `json:"name"`
+	Type      string   `json:"type"`
+	Compliant bool     `json:"compliant"`
+	Issues    []string `json:"issues,omitempty"`
 }
 
 // VulnerabilityResult represents vulnerability assessment
@@ -249,10 +249,10 @@ type VulnerabilityResult struct {
 
 // NetworkComplianceResult represents network compliance
 type NetworkComplianceResult struct {
-	SliceCompliance   []SliceComplianceResult `json:"sliceCompliance"`
-	QoSCompliance     []QoSComplianceResult   `json:"qosCompliance"`
+	SliceCompliance    []SliceComplianceResult `json:"sliceCompliance"`
+	QoSCompliance      []QoSComplianceResult   `json:"qosCompliance"`
 	SecurityCompliance []NetworkSecurityResult `json:"securityCompliance"`
-	OverallScore      float64                 `json:"overallScore"`
+	OverallScore       float64                 `json:"overallScore"`
 }
 
 // SliceComplianceResult represents slice compliance
@@ -272,9 +272,9 @@ type QoSComplianceResult struct {
 
 // NetworkSecurityResult represents network security assessment
 type NetworkSecurityResult struct {
-	Policy    string   `json:"policy"`
-	Secure    bool     `json:"secure"`
-	Issues    []string `json:"issues,omitempty"`
+	Policy string   `json:"policy"`
+	Secure bool     `json:"secure"`
+	Issues []string `json:"issues,omitempty"`
 }
 
 // ResourceUsageSummary provides resource usage summary
@@ -290,22 +290,22 @@ type ResourceUsageSummary struct {
 
 // ResourceUsage represents resource usage metrics
 type ResourceUsage struct {
-	Requested string  `json:"requested"`
-	Used      string  `json:"used"`
-	Available string  `json:"available"`
+	Requested  string  `json:"requested"`
+	Used       string  `json:"used"`
+	Available  string  `json:"available"`
 	Percentage float64 `json:"percentage"`
 }
 
 // DeploymentResult represents deployment results
 type DeploymentResult struct {
-	PackageName   string        `json:"packageName"`
-	ClusterName   string        `json:"clusterName"`
-	Status        string        `json:"status"`
-	Message       string        `json:"message"`
-	Resources     []ResourceResult `json:"resources"`
-	SyncResult    *SyncResult   `json:"syncResult,omitempty"`
-	Duration      time.Duration `json:"duration"`
-	Timestamp     time.Time     `json:"timestamp"`
+	PackageName string           `json:"packageName"`
+	ClusterName string           `json:"clusterName"`
+	Status      string           `json:"status"`
+	Message     string           `json:"message"`
+	Resources   []ResourceResult `json:"resources"`
+	SyncResult  *SyncResult      `json:"syncResult,omitempty"`
+	Duration    time.Duration    `json:"duration"`
+	Timestamp   time.Time        `json:"timestamp"`
 }
 
 // ResourceResult represents individual resource deployment result
@@ -321,12 +321,12 @@ type ResourceResult struct {
 var DefaultWorkflowEngineConfig = &WorkflowEngineConfig{
 	MaxConcurrentWorkflows: 10,
 	DefaultTimeout:         30 * time.Minute,
-	StageTimeout:          10 * time.Minute,
-	RetryAttempts:         3,
-	RetryBackoff:          30 * time.Second,
-	EnableValidation:      true,
-	EnableMetrics:         true,
-	EnableTracing:         true,
+	StageTimeout:           10 * time.Minute,
+	RetryAttempts:          3,
+	RetryBackoff:           30 * time.Second,
+	EnableValidation:       true,
+	EnableMetrics:          true,
+	EnableTracing:          true,
 }
 
 // NewNephioWorkflowEngine creates a new workflow engine
@@ -726,7 +726,7 @@ func (wv *WorkflowValidator) calculateComplexity(workflow *WorkflowDefinition) i
 	complexity := len(workflow.Phases)
 	complexity += wv.countTotalActions(workflow)
 	complexity += wv.countDependencies(workflow)
-	
+
 	// Add complexity for conditions
 	for _, phase := range workflow.Phases {
 		complexity += len(phase.Conditions)
@@ -736,7 +736,7 @@ func (wv *WorkflowValidator) calculateComplexity(workflow *WorkflowDefinition) i
 			}
 		}
 	}
-	
+
 	return complexity
 }
 
@@ -769,9 +769,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 		},
 		Phases: []WorkflowPhase{
 			{
-				Name:        "blueprint-selection",
-				Description: "Select appropriate blueprint for deployment",
-				Type:        WorkflowPhaseTypeBlueprintSelection,
+				Name:         "blueprint-selection",
+				Description:  "Select appropriate blueprint for deployment",
+				Type:         WorkflowPhaseTypeBlueprintSelection,
 				Dependencies: []string{},
 				Actions: []WorkflowAction{
 					{
@@ -785,9 +785,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				ContinueOnError: false,
 			},
 			{
-				Name:        "package-specialization",
-				Description: "Create specialized packages for target clusters",
-				Type:        WorkflowPhaseTypePackageSpecialization,
+				Name:         "package-specialization",
+				Description:  "Create specialized packages for target clusters",
+				Type:         WorkflowPhaseTypePackageSpecialization,
 				Dependencies: []string{"blueprint-selection"},
 				Actions: []WorkflowAction{
 					{
@@ -801,9 +801,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				ContinueOnError: false,
 			},
 			{
-				Name:        "validation",
-				Description: "Validate specialized packages",
-				Type:        WorkflowPhaseTypeValidation,
+				Name:         "validation",
+				Description:  "Validate specialized packages",
+				Type:         WorkflowPhaseTypeValidation,
 				Dependencies: []string{"package-specialization"},
 				Actions: []WorkflowAction{
 					{
@@ -817,9 +817,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				ContinueOnError: false,
 			},
 			{
-				Name:        "approval",
-				Description: "Approve packages for deployment",
-				Type:        WorkflowPhaseTypeApproval,
+				Name:         "approval",
+				Description:  "Approve packages for deployment",
+				Type:         WorkflowPhaseTypeApproval,
 				Dependencies: []string{"validation"},
 				Actions: []WorkflowAction{
 					{
@@ -833,9 +833,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				ContinueOnError: false,
 			},
 			{
-				Name:        "deployment",
-				Description: "Deploy packages to target clusters",
-				Type:        WorkflowPhaseTypeDeployment,
+				Name:         "deployment",
+				Description:  "Deploy packages to target clusters",
+				Type:         WorkflowPhaseTypeDeployment,
 				Dependencies: []string{"approval"},
 				Actions: []WorkflowAction{
 					{
@@ -855,9 +855,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 				ContinueOnError: false,
 			},
 			{
-				Name:        "monitoring",
-				Description: "Monitor deployment health",
-				Type:        WorkflowPhaseTypeMonitoring,
+				Name:         "monitoring",
+				Description:  "Monitor deployment health",
+				Type:         WorkflowPhaseTypeMonitoring,
 				Dependencies: []string{"deployment"},
 				Actions: []WorkflowAction{
 					{
@@ -878,9 +878,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 			},
 		},
 		Rollback: &RollbackStrategy{
-			Enabled: true,
+			Enabled:   true,
 			TriggerOn: []string{"deployment-failure", "validation-failure"},
-			Timeout: 15 * time.Minute,
+			Timeout:   15 * time.Minute,
 		},
 		Approvals: &ApprovalStrategy{
 			Required: true,
@@ -903,9 +903,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 		},
 		Phases: []WorkflowPhase{
 			{
-				Name:        "blueprint-selection",
-				Description: "Select appropriate blueprint for configuration",
-				Type:        WorkflowPhaseTypeBlueprintSelection,
+				Name:         "blueprint-selection",
+				Description:  "Select appropriate blueprint for configuration",
+				Type:         WorkflowPhaseTypeBlueprintSelection,
 				Dependencies: []string{},
 				Actions: []WorkflowAction{
 					{
@@ -919,9 +919,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 				ContinueOnError: false,
 			},
 			{
-				Name:        "package-specialization", 
-				Description: "Create specialized configuration packages",
-				Type:        WorkflowPhaseTypePackageSpecialization,
+				Name:         "package-specialization",
+				Description:  "Create specialized configuration packages",
+				Type:         WorkflowPhaseTypePackageSpecialization,
 				Dependencies: []string{"blueprint-selection"},
 				Actions: []WorkflowAction{
 					{
@@ -935,9 +935,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 				ContinueOnError: false,
 			},
 			{
-				Name:        "validation",
-				Description: "Validate configuration packages",
-				Type:        WorkflowPhaseTypeValidation,
+				Name:         "validation",
+				Description:  "Validate configuration packages",
+				Type:         WorkflowPhaseTypeValidation,
 				Dependencies: []string{"package-specialization"},
 				Actions: []WorkflowAction{
 					{
@@ -951,9 +951,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 				ContinueOnError: false,
 			},
 			{
-				Name:        "deployment",
-				Description: "Deploy configuration to clusters",
-				Type:        WorkflowPhaseTypeDeployment,
+				Name:         "deployment",
+				Description:  "Deploy configuration to clusters",
+				Type:         WorkflowPhaseTypeDeployment,
 				Dependencies: []string{"validation"},
 				Actions: []WorkflowAction{
 					{
@@ -968,9 +968,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 			},
 		},
 		Rollback: &RollbackStrategy{
-			Enabled: true,
+			Enabled:   true,
 			TriggerOn: []string{"deployment-failure", "validation-failure"},
-			Timeout: 10 * time.Minute,
+			Timeout:   10 * time.Minute,
 		},
 		Approvals: &ApprovalStrategy{
 			Required: false, // Auto-approve configuration changes
@@ -992,9 +992,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 		},
 		Phases: []WorkflowPhase{
 			{
-				Name:        "blueprint-selection",
-				Description: "Select scaling blueprint",
-				Type:        WorkflowPhaseTypeBlueprintSelection,
+				Name:         "blueprint-selection",
+				Description:  "Select scaling blueprint",
+				Type:         WorkflowPhaseTypeBlueprintSelection,
 				Dependencies: []string{},
 				Actions: []WorkflowAction{
 					{
@@ -1008,9 +1008,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 				ContinueOnError: false,
 			},
 			{
-				Name:        "package-specialization",
-				Description: "Create scaling-specific packages",
-				Type:        WorkflowPhaseTypePackageSpecialization,
+				Name:         "package-specialization",
+				Description:  "Create scaling-specific packages",
+				Type:         WorkflowPhaseTypePackageSpecialization,
 				Dependencies: []string{"blueprint-selection"},
 				Actions: []WorkflowAction{
 					{
@@ -1024,9 +1024,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 				ContinueOnError: false,
 			},
 			{
-				Name:        "deployment",
-				Description: "Apply scaling changes",
-				Type:        WorkflowPhaseTypeDeployment,
+				Name:         "deployment",
+				Description:  "Apply scaling changes",
+				Type:         WorkflowPhaseTypeDeployment,
 				Dependencies: []string{"package-specialization"},
 				Actions: []WorkflowAction{
 					{
@@ -1040,9 +1040,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 				ContinueOnError: false,
 			},
 			{
-				Name:        "monitoring",
-				Description: "Monitor scaling results",
-				Type:        WorkflowPhaseTypeMonitoring,
+				Name:         "monitoring",
+				Description:  "Monitor scaling results",
+				Type:         WorkflowPhaseTypeMonitoring,
 				Dependencies: []string{"deployment"},
 				Actions: []WorkflowAction{
 					{
@@ -1057,9 +1057,9 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 			},
 		},
 		Rollback: &RollbackStrategy{
-			Enabled: true,
+			Enabled:   true,
 			TriggerOn: []string{"scaling-failure"},
-			Timeout: 10 * time.Minute,
+			Timeout:   10 * time.Minute,
 		},
 		Timeouts: &TimeoutStrategy{
 			GlobalTimeout: 45 * time.Minute,
@@ -1078,9 +1078,9 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 		},
 		Phases: []WorkflowPhase{
 			{
-				Name:        "oran-compliance-check",
-				Description: "Verify O-RAN compliance requirements",
-				Type:        WorkflowPhaseTypeValidation,
+				Name:         "oran-compliance-check",
+				Description:  "Verify O-RAN compliance requirements",
+				Type:         WorkflowPhaseTypeValidation,
 				Dependencies: []string{},
 				Actions: []WorkflowAction{
 					{
@@ -1094,9 +1094,9 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 				ContinueOnError: false,
 			},
 			{
-				Name:        "blueprint-selection",
-				Description: "Select O-RAN compliant blueprint",
-				Type:        WorkflowPhaseTypeBlueprintSelection,
+				Name:         "blueprint-selection",
+				Description:  "Select O-RAN compliant blueprint",
+				Type:         WorkflowPhaseTypeBlueprintSelection,
 				Dependencies: []string{"oran-compliance-check"},
 				Actions: []WorkflowAction{
 					{
@@ -1110,9 +1110,9 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 				ContinueOnError: false,
 			},
 			{
-				Name:        "package-specialization",
-				Description: "Create O-RAN specialized packages",
-				Type:        WorkflowPhaseTypePackageSpecialization,
+				Name:         "package-specialization",
+				Description:  "Create O-RAN specialized packages",
+				Type:         WorkflowPhaseTypePackageSpecialization,
 				Dependencies: []string{"blueprint-selection"},
 				Actions: []WorkflowAction{
 					{
@@ -1126,9 +1126,9 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 				ContinueOnError: false,
 			},
 			{
-				Name:        "validation",
-				Description: "Validate O-RAN packages",
-				Type:        WorkflowPhaseTypeValidation,
+				Name:         "validation",
+				Description:  "Validate O-RAN packages",
+				Type:         WorkflowPhaseTypeValidation,
 				Dependencies: []string{"package-specialization"},
 				Actions: []WorkflowAction{
 					{
@@ -1142,9 +1142,9 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 				ContinueOnError: false,
 			},
 			{
-				Name:        "deployment",
-				Description: "Deploy O-RAN packages",
-				Type:        WorkflowPhaseTypeDeployment,
+				Name:         "deployment",
+				Description:  "Deploy O-RAN packages",
+				Type:         WorkflowPhaseTypeDeployment,
 				Dependencies: []string{"validation"},
 				Actions: []WorkflowAction{
 					{
@@ -1159,9 +1159,9 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 			},
 		},
 		Rollback: &RollbackStrategy{
-			Enabled: true,
+			Enabled:   true,
 			TriggerOn: []string{"compliance-failure", "deployment-failure"},
-			Timeout: 20 * time.Minute,
+			Timeout:   20 * time.Minute,
 		},
 		Timeouts: &TimeoutStrategy{
 			GlobalTimeout: 2 * time.Hour,
@@ -1180,9 +1180,9 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 		},
 		Phases: []WorkflowPhase{
 			{
-				Name:        "5g-requirements-check",
-				Description: "Verify 5G Core requirements",
-				Type:        WorkflowPhaseTypeValidation,
+				Name:         "5g-requirements-check",
+				Description:  "Verify 5G Core requirements",
+				Type:         WorkflowPhaseTypeValidation,
 				Dependencies: []string{},
 				Actions: []WorkflowAction{
 					{
@@ -1196,9 +1196,9 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				ContinueOnError: false,
 			},
 			{
-				Name:        "blueprint-selection",
-				Description: "Select 5G Core blueprint",
-				Type:        WorkflowPhaseTypeBlueprintSelection,
+				Name:         "blueprint-selection",
+				Description:  "Select 5G Core blueprint",
+				Type:         WorkflowPhaseTypeBlueprintSelection,
 				Dependencies: []string{"5g-requirements-check"},
 				Actions: []WorkflowAction{
 					{
@@ -1212,9 +1212,9 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				ContinueOnError: false,
 			},
 			{
-				Name:        "package-specialization",
-				Description: "Create 5G Core specialized packages",
-				Type:        WorkflowPhaseTypePackageSpecialization,
+				Name:         "package-specialization",
+				Description:  "Create 5G Core specialized packages",
+				Type:         WorkflowPhaseTypePackageSpecialization,
 				Dependencies: []string{"blueprint-selection"},
 				Actions: []WorkflowAction{
 					{
@@ -1228,9 +1228,9 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				ContinueOnError: false,
 			},
 			{
-				Name:        "network-slice-configuration",
-				Description: "Configure network slices",
-				Type:        WorkflowPhaseTypeConfiguration,
+				Name:         "network-slice-configuration",
+				Description:  "Configure network slices",
+				Type:         WorkflowPhaseTypeConfiguration,
 				Dependencies: []string{"package-specialization"},
 				Actions: []WorkflowAction{
 					{
@@ -1244,9 +1244,9 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				ContinueOnError: false,
 			},
 			{
-				Name:        "validation",
-				Description: "Validate 5G Core packages",
-				Type:        WorkflowPhaseTypeValidation,
+				Name:         "validation",
+				Description:  "Validate 5G Core packages",
+				Type:         WorkflowPhaseTypeValidation,
 				Dependencies: []string{"network-slice-configuration"},
 				Actions: []WorkflowAction{
 					{
@@ -1260,9 +1260,9 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				ContinueOnError: false,
 			},
 			{
-				Name:        "deployment",
-				Description: "Deploy 5G Core network functions",
-				Type:        WorkflowPhaseTypeDeployment,
+				Name:         "deployment",
+				Description:  "Deploy 5G Core network functions",
+				Type:         WorkflowPhaseTypeDeployment,
 				Dependencies: []string{"validation"},
 				Actions: []WorkflowAction{
 					{
@@ -1276,9 +1276,9 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 				ContinueOnError: false,
 			},
 			{
-				Name:        "monitoring",
-				Description: "Monitor 5G Core deployment",
-				Type:        WorkflowPhaseTypeMonitoring,
+				Name:         "monitoring",
+				Description:  "Monitor 5G Core deployment",
+				Type:         WorkflowPhaseTypeMonitoring,
 				Dependencies: []string{"deployment"},
 				Actions: []WorkflowAction{
 					{
@@ -1293,9 +1293,9 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 			},
 		},
 		Rollback: &RollbackStrategy{
-			Enabled: true,
+			Enabled:   true,
 			TriggerOn: []string{"requirements-failure", "deployment-failure", "slice-failure"},
-			Timeout: 25 * time.Minute,
+			Timeout:   25 * time.Minute,
 		},
 		Timeouts: &TimeoutStrategy{
 			GlobalTimeout: 3 * time.Hour,

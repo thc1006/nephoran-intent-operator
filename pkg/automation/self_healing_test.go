@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"k8s.io/client-go/kubernetes/fake"
-
 )
 
 // MockAlertManager for testing
@@ -88,28 +87,28 @@ func createTestLogger() *slog.Logger {
 
 func createTestSelfHealingConfig() *SelfHealingConfig {
 	return &SelfHealingConfig{
-		Enabled:                    true,
-		MonitoringInterval:         30 * time.Second,
-		PredictiveAnalysisEnabled:  true,
-		AutoRemediationEnabled:     true,
-		MaxConcurrentRemediations:  3,
-		HealthCheckTimeout:         10 * time.Second,
-		FailureDetectionThreshold:  0.8,
-		BackupBeforeRemediation:    true,
-		RollbackOnFailure:          true,
-		LearningEnabled:            true,
+		Enabled:                   true,
+		MonitoringInterval:        30 * time.Second,
+		PredictiveAnalysisEnabled: true,
+		AutoRemediationEnabled:    true,
+		MaxConcurrentRemediations: 3,
+		HealthCheckTimeout:        10 * time.Second,
+		FailureDetectionThreshold: 0.8,
+		BackupBeforeRemediation:   true,
+		RollbackOnFailure:         true,
+		LearningEnabled:           true,
 		ComponentConfigs: map[string]*ComponentConfig{
 			"test-component": {
-				Name:                 "test-component",
-				HealthCheckEndpoint:  "/health",
-				CriticalityLevel:     "HIGH",
-				AutoHealingEnabled:   true,
-				MaxRestartAttempts:   3,
-				RestartCooldown:      5 * time.Minute,
-				ScalingEnabled:       true,
-				MinReplicas:          1,
-				MaxReplicas:          5,
-				DependsOn:            []string{},
+				Name:                "test-component",
+				HealthCheckEndpoint: "/health",
+				CriticalityLevel:    "HIGH",
+				AutoHealingEnabled:  true,
+				MaxRestartAttempts:  3,
+				RestartCooldown:     5 * time.Minute,
+				ScalingEnabled:      true,
+				MinReplicas:         1,
+				MaxReplicas:         5,
+				DependsOn:           []string{},
 				ResourceLimits: &ResourceLimits{
 					MaxCPU:    "2000m",
 					MaxMemory: "2Gi",
@@ -124,9 +123,9 @@ func createTestSelfHealingConfig() *SelfHealingConfig {
 			},
 		},
 		NotificationConfig: &NotificationConfig{
-			Enabled:   true,
-			Webhooks:  []string{"http://test-webhook.com"},
-			Channels:  []string{"slack"},
+			Enabled:  true,
+			Webhooks: []string{"http://test-webhook.com"},
+			Channels: []string{"slack"},
 		},
 	}
 }
@@ -162,7 +161,7 @@ func TestNewSelfHealingManager_WithDefaults(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, manager)
-	
+
 	// Verify defaults were set
 	assert.Equal(t, 30*time.Second, config.MonitoringInterval)
 	assert.Equal(t, 10*time.Second, config.HealthCheckTimeout)
@@ -229,7 +228,7 @@ func TestSelfHealingManager_Stop(t *testing.T) {
 	manager.Stop()
 
 	assert.False(t, manager.running)
-	
+
 	// Verify channel is closed by checking if we can receive from it immediately
 	select {
 	case <-manager.stopCh:
@@ -361,7 +360,7 @@ func TestSelfHealingManager_ForceHealing(t *testing.T) {
 	t.Run("With remediation enabled", func(t *testing.T) {
 		// Skip mock setup due to interface constraints
 		// In real tests, would use dependency injection
-		
+
 		// Test the error case when remediation is not enabled
 		manager.automatedRemediation = nil
 		err := manager.ForceHealing(ctx, component, reason)
@@ -450,16 +449,16 @@ func TestSelfHealingConfig_Validation(t *testing.T) {
 // Test component configuration
 func TestComponentConfig_Structure(t *testing.T) {
 	componentConfig := &ComponentConfig{
-		Name:                 "test-service",
-		HealthCheckEndpoint:  "/health",
-		CriticalityLevel:     "HIGH",
-		AutoHealingEnabled:   true,
-		MaxRestartAttempts:   5,
-		RestartCooldown:      10 * time.Minute,
-		ScalingEnabled:       true,
-		MinReplicas:          2,
-		MaxReplicas:          10,
-		DependsOn:            []string{"database", "redis"},
+		Name:                "test-service",
+		HealthCheckEndpoint: "/health",
+		CriticalityLevel:    "HIGH",
+		AutoHealingEnabled:  true,
+		MaxRestartAttempts:  5,
+		RestartCooldown:     10 * time.Minute,
+		ScalingEnabled:      true,
+		MinReplicas:         2,
+		MaxReplicas:         10,
+		DependsOn:           []string{"database", "redis"},
 		CustomRemediations: []*CustomRemediation{
 			{
 				Name:    "restart-on-memory-leak",
@@ -551,7 +550,7 @@ func TestRemediationSession_Structure(t *testing.T) {
 				Target: "api-service-deployment",
 				Parameters: map[string]interface{}{
 					"graceful_shutdown": true,
-					"timeout":          "30s",
+					"timeout":           "30s",
 				},
 				Status:    "COMPLETED",
 				StartTime: startTime,
@@ -561,8 +560,8 @@ func TestRemediationSession_Structure(t *testing.T) {
 		},
 		Results: map[string]interface{}{
 			"restart_count": 1,
-			"downtime":     "10s",
-			"success":      true,
+			"downtime":      "10s",
+			"success":       true,
 		},
 		BackupID: "backup-456",
 		RollbackPlan: &RollbackPlan{
@@ -718,10 +717,10 @@ func TestSelfHealingManager_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func() {
 			defer func() { done <- true }()
-			
+
 			// Concurrent read operations
 			_ = manager.GetMetrics()
-			
+
 			// Concurrent write operations
 			manager.metrics.TotalHealingOperations++
 		}()

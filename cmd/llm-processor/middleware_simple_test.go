@@ -20,7 +20,7 @@ func TestSecurityHeadersBasic(t *testing.T) {
 	config := middleware.DefaultSecurityHeadersConfig()
 	config.EnableHSTS = true
 	config.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
-	
+
 	securityHeaders := middleware.NewSecurityHeaders(config, logger)
 
 	// Create test handler
@@ -35,7 +35,7 @@ func TestSecurityHeadersBasic(t *testing.T) {
 	t.Run("Security headers without TLS", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		rr := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(rr, req)
 
 		expectedHeaders := map[string]string{
@@ -64,7 +64,7 @@ func TestSecurityHeadersBasic(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.TLS = &tls.ConnectionState{} // Simulate TLS
 		rr := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(rr, req)
 
 		// Should have HSTS with secure connection
@@ -80,7 +80,7 @@ func TestSecurityHeadersBasic(t *testing.T) {
 	})
 }
 
-// TestRedactLoggerBasic tests basic redact logger functionality  
+// TestRedactLoggerBasic tests basic redact logger functionality
 func TestRedactLoggerBasic(t *testing.T) {
 	// This test verifies the redact logger can be created and used
 	logger := slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -104,7 +104,7 @@ func TestRedactLoggerBasic(t *testing.T) {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.Header.Set("Authorization", "Bearer secret-token")
 		rr := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(rr, req)
 
 		// Should have correlation ID header
@@ -120,7 +120,7 @@ func TestRedactLoggerBasic(t *testing.T) {
 	t.Run("Skip health check paths", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/healthz", nil)
 		rr := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(rr, req)
 
 		// Health check should still work
@@ -158,14 +158,14 @@ func TestMiddlewareChain(t *testing.T) {
 		req.TLS = &tls.ConnectionState{} // Simulate TLS
 		req.Header.Set("Authorization", "Bearer secret")
 		rr := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(rr, req)
 
 		// Should have both middleware effects
 		if rr.Header().Get("X-Frame-Options") == "" {
 			t.Error("Expected security headers to be applied")
 		}
-		
+
 		if rr.Header().Get("X-Request-ID") == "" {
 			t.Error("Expected correlation ID from redact logger")
 		}

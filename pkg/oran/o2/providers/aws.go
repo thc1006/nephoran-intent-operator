@@ -28,25 +28,25 @@ const (
 
 // AWSProvider implements CloudProvider for Amazon Web Services
 type AWSProvider struct {
-	name              string
-	config            *ProviderConfiguration
-	awsConfig         aws.Config
-	ec2Client         *ec2.Client
-	eksClient         *eks.Client
-	ecsClient         *ecs.Client
-	s3Client          *s3.Client
-	rdsClient         *rds.Client
-	cfnClient         *cloudformation.Client
-	elbClient         *elasticloadbalancingv2.Client
-	cloudwatchClient  *cloudwatch.Client
-	iamClient         *iam.Client
-	stsClient         *sts.Client
-	connected         bool
-	eventCallback     EventCallback
-	stopChannel       chan struct{}
-	mutex             sync.RWMutex
-	accountID         string
-	region            string
+	name             string
+	config           *ProviderConfiguration
+	awsConfig        aws.Config
+	ec2Client        *ec2.Client
+	eksClient        *eks.Client
+	ecsClient        *ecs.Client
+	s3Client         *s3.Client
+	rdsClient        *rds.Client
+	cfnClient        *cloudformation.Client
+	elbClient        *elasticloadbalancingv2.Client
+	cloudwatchClient *cloudwatch.Client
+	iamClient        *iam.Client
+	stsClient        *sts.Client
+	connected        bool
+	eventCallback    EventCallback
+	stopChannel      chan struct{}
+	mutex            sync.RWMutex
+	accountID        string
+	region           string
 }
 
 // NewAWSProvider creates a new AWS provider instance
@@ -124,31 +124,31 @@ func (a *AWSProvider) GetCapabilities() *ProviderCapabilities {
 		NetworkTypes:     []string{"vpc", "subnet", "security_group", "load_balancer", "api_gateway"},
 		AcceleratorTypes: []string{"gpu", "fpga", "inferentia"},
 
-		AutoScaling:     true,
-		LoadBalancing:   true,
-		Monitoring:      true,
-		Logging:         true,
-		Networking:      true,
-		StorageClasses:  true,
+		AutoScaling:    true,
+		LoadBalancing:  true,
+		Monitoring:     true,
+		Logging:        true,
+		Networking:     true,
+		StorageClasses: true,
 
-		HorizontalPodAutoscaling: true,  // EKS
-		VerticalPodAutoscaling:   true,  // EKS
-		ClusterAutoscaling:       true,  // EKS/ECS
+		HorizontalPodAutoscaling: true, // EKS
+		VerticalPodAutoscaling:   true, // EKS
+		ClusterAutoscaling:       true, // EKS/ECS
 
-		Namespaces:      true,  // EKS
-		ResourceQuotas:  true,  // Service Quotas
-		NetworkPolicies: true,  // Security Groups/NACLs
-		RBAC:           true,  // IAM
+		Namespaces:      true, // EKS
+		ResourceQuotas:  true, // Service Quotas
+		NetworkPolicies: true, // Security Groups/NACLs
+		RBAC:            true, // IAM
 
-		MultiZone:        true,  // Availability Zones
-		MultiRegion:      true,  // Global services
-		BackupRestore:    true,  // AWS Backup
-		DisasterRecovery: true,  // Multi-region
+		MultiZone:        true, // Availability Zones
+		MultiRegion:      true, // Global services
+		BackupRestore:    true, // AWS Backup
+		DisasterRecovery: true, // Multi-region
 
-		Encryption:       true,  // KMS
-		SecretManagement: true,  // Secrets Manager
-		ImageScanning:    true,  // ECR scanning
-		PolicyEngine:     true,  // IAM policies
+		Encryption:       true, // KMS
+		SecretManagement: true, // Secrets Manager
+		ImageScanning:    true, // ECR scanning
+		PolicyEngine:     true, // IAM policies
 
 		MaxNodes:    10000,  // EKS limit
 		MaxPods:     750000, // EKS with multiple node groups
@@ -201,7 +201,7 @@ func (a *AWSProvider) loadAWSConfig(ctx context.Context) (aws.Config, error) {
 	if accessKey, exists := a.config.Credentials["access_key_id"]; exists {
 		secretKey := a.config.Credentials["secret_access_key"]
 		sessionToken := a.config.Credentials["session_token"]
-		
+
 		optFns = append(optFns, config.WithCredentialsProvider(
 			credentials.NewStaticCredentialsProvider(accessKey, secretKey, sessionToken),
 		))

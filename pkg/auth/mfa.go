@@ -28,23 +28,23 @@ type MFAManager struct {
 
 // MFAConfig holds MFA configuration
 type MFAConfig struct {
-	Enabled                bool          `json:"enabled"`
-	RequiredForAdmin       bool          `json:"required_for_admin"`
-	RequiredForOperator    bool          `json:"required_for_operator"`
-	TOTPEnabled            bool          `json:"totp_enabled"`
-	EmailEnabled           bool          `json:"email_enabled"`
-	SMSEnabled             bool          `json:"sms_enabled"`
-	BackupCodesEnabled     bool          `json:"backup_codes_enabled"`
-	CodeLength             int           `json:"code_length"`
-	CodeTTL                time.Duration `json:"code_ttl"`
-	MaxAttempts            int           `json:"max_attempts"`
-	AttemptWindow          time.Duration `json:"attempt_window"`
-	CleanupInterval        time.Duration `json:"cleanup_interval"`
-	IssuerName             string        `json:"issuer_name"`
-	
+	Enabled             bool          `json:"enabled"`
+	RequiredForAdmin    bool          `json:"required_for_admin"`
+	RequiredForOperator bool          `json:"required_for_operator"`
+	TOTPEnabled         bool          `json:"totp_enabled"`
+	EmailEnabled        bool          `json:"email_enabled"`
+	SMSEnabled          bool          `json:"sms_enabled"`
+	BackupCodesEnabled  bool          `json:"backup_codes_enabled"`
+	CodeLength          int           `json:"code_length"`
+	CodeTTL             time.Duration `json:"code_ttl"`
+	MaxAttempts         int           `json:"max_attempts"`
+	AttemptWindow       time.Duration `json:"attempt_window"`
+	CleanupInterval     time.Duration `json:"cleanup_interval"`
+	IssuerName          string        `json:"issuer_name"`
+
 	// Email configuration
 	EmailConfig *EmailConfig `json:"email_config,omitempty"`
-	
+
 	// SMS configuration (integration with external service)
 	SMSConfig *SMSConfig `json:"sms_config,omitempty"`
 }
@@ -63,7 +63,7 @@ type EmailConfig struct {
 
 // SMSConfig holds SMS MFA configuration
 type SMSConfig struct {
-	Provider   string `json:"provider"`   // twilio, aws-sns, etc.
+	Provider   string `json:"provider"` // twilio, aws-sns, etc.
 	APIKey     string `json:"api_key"`
 	APISecret  string `json:"api_secret"`
 	FromNumber string `json:"from_number"`
@@ -72,22 +72,22 @@ type SMSConfig struct {
 
 // MFACode represents a temporary MFA code
 type MFACode struct {
-	UserID      string    `json:"user_id"`
-	Code        string    `json:"code"`
-	Method      string    `json:"method"` // totp, email, sms
-	CreatedAt   time.Time `json:"created_at"`
-	ExpiresAt   time.Time `json:"expires_at"`
-	Attempts    int       `json:"attempts"`
-	Used        bool      `json:"used"`
-	IPAddress   string    `json:"ip_address"`
-	UserAgent   string    `json:"user_agent"`
+	UserID    string    `json:"user_id"`
+	Code      string    `json:"code"`
+	Method    string    `json:"method"` // totp, email, sms
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Attempts  int       `json:"attempts"`
+	Used      bool      `json:"used"`
+	IPAddress string    `json:"ip_address"`
+	UserAgent string    `json:"user_agent"`
 }
 
 // MFASetupData holds data for MFA setup
 type MFASetupData struct {
-	QRCodeURL    string   `json:"qr_code_url"`
-	Secret       string   `json:"secret"`
-	BackupCodes  []string `json:"backup_codes"`
+	QRCodeURL     string   `json:"qr_code_url"`
+	Secret        string   `json:"secret"`
+	BackupCodes   []string `json:"backup_codes"`
 	RecoveryCodes []string `json:"recovery_codes"`
 }
 
@@ -102,26 +102,26 @@ type MFAVerificationRequest struct {
 
 // MFAVerificationResult represents the result of MFA verification
 type MFAVerificationResult struct {
-	Valid           bool      `json:"valid"`
-	Method          string    `json:"method"`
-	RemainingCodes  int       `json:"remaining_codes"`
-	NextCodeAt      time.Time `json:"next_code_at"`
-	AttemptsLeft    int       `json:"attempts_left"`
-	BackupUsed      bool      `json:"backup_used"`
-	Error           string    `json:"error,omitempty"`
+	Valid          bool      `json:"valid"`
+	Method         string    `json:"method"`
+	RemainingCodes int       `json:"remaining_codes"`
+	NextCodeAt     time.Time `json:"next_code_at"`
+	AttemptsLeft   int       `json:"attempts_left"`
+	BackupUsed     bool      `json:"backup_used"`
+	Error          string    `json:"error,omitempty"`
 }
 
 // MFAMetrics tracks MFA performance and security metrics
 type MFAMetrics struct {
-	TotalVerifications    int64            `json:"total_verifications"`
-	SuccessfulVerifications int64          `json:"successful_verifications"`
-	FailedVerifications   int64            `json:"failed_verifications"`
-	MethodStats           map[string]int64 `json:"method_stats"`
-	AverageVerificationTime time.Duration  `json:"average_verification_time"`
-	BruteForceAttempts    int64            `json:"brute_force_attempts"`
-	BackupCodesUsed       int64            `json:"backup_codes_used"`
-	LastUpdated           time.Time        `json:"last_updated"`
-	mutex                 sync.RWMutex
+	TotalVerifications      int64            `json:"total_verifications"`
+	SuccessfulVerifications int64            `json:"successful_verifications"`
+	FailedVerifications     int64            `json:"failed_verifications"`
+	MethodStats             map[string]int64 `json:"method_stats"`
+	AverageVerificationTime time.Duration    `json:"average_verification_time"`
+	BruteForceAttempts      int64            `json:"brute_force_attempts"`
+	BackupCodesUsed         int64            `json:"backup_codes_used"`
+	LastUpdated             time.Time        `json:"last_updated"`
+	mutex                   sync.RWMutex
 }
 
 // NewMFAManager creates a new MFA manager
@@ -159,19 +159,19 @@ func NewMFAManager(config *MFAConfig) (*MFAManager, error) {
 // getDefaultMFAConfig returns default MFA configuration
 func getDefaultMFAConfig() *MFAConfig {
 	return &MFAConfig{
-		Enabled:                true,
-		RequiredForAdmin:       true,
-		RequiredForOperator:    false,
-		TOTPEnabled:            true,
-		EmailEnabled:           true,
-		SMSEnabled:             false,
-		BackupCodesEnabled:     true,
-		CodeLength:             6,
-		CodeTTL:                5 * time.Minute,
-		MaxAttempts:            3,
-		AttemptWindow:          15 * time.Minute,
-		CleanupInterval:        time.Hour,
-		IssuerName:             "Nephoran Intent Operator",
+		Enabled:             true,
+		RequiredForAdmin:    true,
+		RequiredForOperator: false,
+		TOTPEnabled:         true,
+		EmailEnabled:        true,
+		SMSEnabled:          false,
+		BackupCodesEnabled:  true,
+		CodeLength:          6,
+		CodeTTL:             5 * time.Minute,
+		MaxAttempts:         3,
+		AttemptWindow:       15 * time.Minute,
+		CleanupInterval:     time.Hour,
+		IssuerName:          "Nephoran Intent Operator",
 	}
 }
 
@@ -302,7 +302,7 @@ func (mfa *MFAManager) VerifyCode(ctx context.Context, request *MFAVerificationR
 	defer func() {
 		mfa.updateMetrics(func(m *MFAMetrics) {
 			m.TotalVerifications++
-			m.AverageVerificationTime = (m.AverageVerificationTime*time.Duration(m.TotalVerifications-1) + 
+			m.AverageVerificationTime = (m.AverageVerificationTime*time.Duration(m.TotalVerifications-1) +
 				time.Since(startTime)) / time.Duration(m.TotalVerifications)
 		})
 	}()
@@ -371,7 +371,7 @@ func (mfa *MFAManager) verifyTemporaryCode(ctx context.Context, request *MFAVeri
 	}
 
 	codeKey := mfa.getCodeKey(request.UserID, request.Method)
-	
+
 	mfa.codesMutex.Lock()
 	storedCode, exists := mfa.codes[codeKey]
 	if !exists {
@@ -414,25 +414,25 @@ func (mfa *MFAManager) verifyTemporaryCode(ctx context.Context, request *MFAVeri
 	if storedCode.Code == request.Code {
 		storedCode.Used = true
 		result.Valid = true
-		
+
 		mfa.updateMetrics(func(m *MFAMetrics) {
 			m.SuccessfulVerifications++
 			m.MethodStats[request.Method]++
 		})
-		
-		mfa.logger.Info("Temporary code verification successful", 
-			"user_id", request.UserID, 
+
+		mfa.logger.Info("Temporary code verification successful",
+			"user_id", request.UserID,
 			"method", request.Method)
 	} else {
 		mfa.updateMetrics(func(m *MFAMetrics) {
 			m.FailedVerifications++
 		})
-		
-		mfa.logger.Warn("Temporary code verification failed", 
-			"user_id", request.UserID, 
+
+		mfa.logger.Warn("Temporary code verification failed",
+			"user_id", request.UserID,
 			"method", request.Method,
 			"attempts", storedCode.Attempts)
-		
+
 		result.Error = "invalid code"
 	}
 
@@ -450,7 +450,7 @@ func (mfa *MFAManager) verifyBackupCode(ctx context.Context, request *MFAVerific
 	// In production, retrieve and validate backup codes from secure storage
 	// This would involve checking against stored hashed backup codes
 	valid, remainingCodes := mfa.validateBackupCode(request.UserID, request.Code)
-	
+
 	result.Valid = valid
 	result.RemainingCodes = remainingCodes
 	result.BackupUsed = valid
@@ -461,15 +461,15 @@ func (mfa *MFAManager) verifyBackupCode(ctx context.Context, request *MFAVerific
 			m.BackupCodesUsed++
 			m.MethodStats["backup"]++
 		})
-		
-		mfa.logger.Warn("Backup code used", 
+
+		mfa.logger.Warn("Backup code used",
 			"user_id", request.UserID,
 			"remaining_codes", remainingCodes)
 	} else {
 		mfa.updateMetrics(func(m *MFAMetrics) {
 			m.FailedVerifications++
 		})
-		
+
 		result.Error = "invalid backup code"
 	}
 
@@ -483,25 +483,25 @@ func (mfa *MFAManager) generateNumericCode(length int) (string, error) {
 	for i := 0; i < length; i++ {
 		max *= 10
 	}
-	
+
 	bytes := make([]byte, 4)
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
 	}
-	
+
 	// Convert to number
 	num := 0
 	for _, b := range bytes {
 		num = num*256 + int(b)
 	}
-	
+
 	code := strconv.Itoa(num % max)
-	
+
 	// Pad with zeros if necessary
 	for len(code) < length {
 		code = "0" + code
 	}
-	
+
 	return code, nil
 }
 
@@ -534,12 +534,12 @@ func (mfa *MFAManager) generateAlphanumericCode(length int) (string, error) {
 	if _, err := rand.Read(bytes); err != nil {
 		return "", err
 	}
-	
+
 	const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	for i, b := range bytes {
 		bytes[i] = charset[b%byte(len(charset))]
 	}
-	
+
 	return string(bytes), nil
 }
 
@@ -597,7 +597,7 @@ func (mfa *MFAManager) cleanupExpiredCodes() {
 func (mfa *MFAManager) GetMetrics() *MFAMetrics {
 	mfa.metrics.mutex.RLock()
 	defer mfa.metrics.mutex.RUnlock()
-	
+
 	metrics := *mfa.metrics
 	return &metrics
 }
@@ -627,9 +627,9 @@ func (ec *EmailClient) SendMFACode(ctx context.Context, email, code string, ttl 
 
 	// Send email via SMTP
 	auth := smtp.PlainAuth("", ec.config.SMTPUsername, ec.config.SMTPPassword, ec.config.SMTPHost)
-	
+
 	msg := fmt.Sprintf("To: %s\r\nSubject: %s\r\n\r\n%s", email, subject, body)
-	
+
 	addr := fmt.Sprintf("%s:%d", ec.config.SMTPHost, ec.config.SMTPPort)
 	return smtp.SendMail(addr, auth, ec.config.FromAddress, []string{email}, []byte(msg))
 }
@@ -645,7 +645,7 @@ func NewSMSClient(config *SMSConfig) *SMSClient {
 
 func (sc *SMSClient) SendMFACode(ctx context.Context, phoneNumber, code string) error {
 	message := fmt.Sprintf("Your Nephoran verification code is: %s", code)
-	
+
 	if sc.config.Template != "" {
 		message = strings.ReplaceAll(sc.config.Template, "{{code}}", code)
 	}
@@ -653,6 +653,6 @@ func (sc *SMSClient) SendMFACode(ctx context.Context, phoneNumber, code string) 
 	// In production, integrate with SMS providers like Twilio, AWS SNS, etc.
 	// For now, just log the message
 	slog.Info("SMS MFA code", "phone", phoneNumber, "code", code, "message", message)
-	
+
 	return nil
 }

@@ -91,7 +91,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 	if len(sources) == 0 {
 		sources = []ConfigSource{ConfigSourceEnv, ConfigSourceFile, ConfigSourceKubernetes}
 	}
-	
+
 	// Check cache first
 	if entry := cm.cache.Get(key); entry.IsSome() {
 		cacheEntry := entry.Value()
@@ -100,7 +100,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 			return Ok[T, error](cacheEntry.Value)
 		}
 	}
-	
+
 	// Try each source in priority order
 	var lastErr error
 	for _, source := range sources {
@@ -108,7 +108,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 			result := provider.Load(ctx, key)
 			if result.IsOk() {
 				config := result.Value()
-				
+
 				// Apply transforms
 				for _, transform := range cm.transforms {
 					transformResult := transform(config)
@@ -118,7 +118,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 					}
 					config = transformResult.Value()
 				}
-				
+
 				// Validate configuration
 				for _, validator := range cm.validators {
 					validationResult := validator(config)
@@ -131,7 +131,7 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 						continue
 					}
 				}
-				
+
 				// Cache the result
 				entry := ConfigEntry[T]{
 					Value:     config,
@@ -140,18 +140,18 @@ func (cm *ConfigManager[T]) Load(ctx context.Context, key string, sources ...Con
 					Version:   fmt.Sprintf("%d", time.Now().Unix()),
 				}
 				cm.cache.Set(key, entry)
-				
+
 				return Ok[T, error](config)
 			}
 			lastErr = result.Error()
 		}
 	}
-	
+
 	// Return defaults if all sources fail
 	if !isZero(cm.defaults) {
 		return Ok[T, error](cm.defaults)
 	}
-	
+
 	return Err[T, error](fmt.Errorf("failed to load config for key %s: %w", key, lastErr))
 }
 
@@ -161,7 +161,7 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 	if !exists {
 		return Err[bool, error](fmt.Errorf("no provider registered for source: %d", source))
 	}
-	
+
 	// Validate before storing
 	for _, validator := range cm.validators {
 		result := validator(value)
@@ -172,7 +172,7 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 			return Err[bool, error](fmt.Errorf("validation failed for key: %s", key))
 		}
 	}
-	
+
 	// Store the configuration
 	result := provider.Store(ctx, key, value)
 	if result.IsOk() {
@@ -185,7 +185,7 @@ func (cm *ConfigManager[T]) Store(ctx context.Context, key string, value T, sour
 		}
 		cm.cache.Set(key, entry)
 	}
-	
+
 	return result
 }
 
@@ -198,7 +198,7 @@ func (cm *ConfigManager[T]) Watch(ctx context.Context, key string, source Config
 		close(resultChan)
 		return resultChan
 	}
-	
+
 	return provider.Watch(ctx, key)
 }
 
@@ -206,37 +206,37 @@ func (cm *ConfigManager[T]) Watch(ctx context.Context, key string, source Config
 func (cm *ConfigManager[T]) Reload(ctx context.Context) Result[int, error] {
 	reloaded := 0
 	keys := cm.cache.Keys()
-	
+
 	for _, key := range keys {
 		entry := cm.cache.Get(key)
 		if entry.IsNone() {
 			continue
 		}
-		
+
 		cacheEntry := entry.Value()
 		result := cm.Load(ctx, key, cacheEntry.Source)
 		if result.IsOk() {
 			reloaded++
 		}
 	}
-	
+
 	return Ok[int, error](reloaded)
 }
 
 // Close closes all providers.
 func (cm *ConfigManager[T]) Close() error {
 	var errs []error
-	
+
 	for _, provider := range cm.providers {
 		if err := provider.Close(); err != nil {
 			errs = append(errs, err)
 		}
 	}
-	
+
 	if len(errs) > 0 {
 		return fmt.Errorf("errors closing providers: %v", errs)
 	}
-	
+
 	return nil
 }
 
@@ -262,22 +262,22 @@ func NewEnvironmentProvider[T any](prefix string, parser EnvParser[T]) *Environm
 // Load loads configuration from environment variables.
 func (ep *EnvironmentProvider[T]) Load(ctx context.Context, key string) Result[T, error] {
 	envVars := make(map[string]string)
-	
+
 	// Collect all environment variables with the prefix
 	for _, env := range os.Environ() {
 		parts := strings.SplitN(env, "=", 2)
 		if len(parts) != 2 {
 			continue
 		}
-		
+
 		envKey := parts[0]
 		envValue := parts[1]
-		
+
 		if strings.HasPrefix(envKey, ep.prefix) {
 			envVars[envKey] = envValue
 		}
 	}
-	
+
 	return ep.parser.Parse(envVars)
 }
 
@@ -307,21 +307,21 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 	var config T
 	configValue := reflect.ValueOf(&config).Elem()
 	configType := reflect.TypeOf(config)
-	
+
 	for i := 0; i < configType.NumField(); i++ {
 		field := configType.Field(i)
 		fieldValue := configValue.Field(i)
-		
+
 		if !fieldValue.CanSet() {
 			continue
 		}
-		
+
 		// Get environment variable name from tag or field name
 		envName := field.Tag.Get("env")
 		if envName == "" {
 			envName = strings.ToUpper(field.Name)
 		}
-		
+
 		envValue, exists := env[envName]
 		if !exists {
 			// Check for default value
@@ -331,13 +331,13 @@ func (rep ReflectiveEnvParser[T]) Parse(env map[string]string) Result[T, error] 
 				continue
 			}
 		}
-		
+
 		// Parse the value based on field type
 		if err := setFieldValue(fieldValue, envValue); err != nil {
 			return Err[T, error](fmt.Errorf("failed to set field %s: %w", field.Name, err))
 		}
 	}
-	
+
 	return Ok[T, error](config)
 }
 
@@ -391,7 +391,7 @@ func setFieldValue(fieldValue reflect.Value, value string) error {
 	default:
 		return fmt.Errorf("unsupported field type: %s", fieldValue.Kind())
 	}
-	
+
 	return nil
 }
 
@@ -422,14 +422,14 @@ func NewFileProvider[T any](basePath string, format FileFormat) *FileProvider[T]
 // Load loads configuration from a file.
 func (fp *FileProvider[T]) Load(ctx context.Context, key string) Result[T, error] {
 	filename := fp.getFilename(key)
-	
+
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return Err[T, error](fmt.Errorf("failed to read config file %s: %w", filename, err))
 	}
-	
+
 	var config T
-	
+
 	switch fp.format {
 	case FormatJSON:
 		if err := json.Unmarshal(data, &config); err != nil {
@@ -438,17 +438,17 @@ func (fp *FileProvider[T]) Load(ctx context.Context, key string) Result[T, error
 	default:
 		return Err[T, error](fmt.Errorf("unsupported file format: %d", fp.format))
 	}
-	
+
 	return Ok[T, error](config)
 }
 
 // Store stores configuration to a file.
 func (fp *FileProvider[T]) Store(ctx context.Context, key string, value T) Result[bool, error] {
 	filename := fp.getFilename(key)
-	
+
 	var data []byte
 	var err error
-	
+
 	switch fp.format {
 	case FormatJSON:
 		data, err = json.MarshalIndent(value, "", "  ")
@@ -458,27 +458,27 @@ func (fp *FileProvider[T]) Store(ctx context.Context, key string, value T) Resul
 	default:
 		return Err[bool, error](fmt.Errorf("unsupported file format: %d", fp.format))
 	}
-	
+
 	if err := os.WriteFile(filename, data, 0644); err != nil {
 		return Err[bool, error](fmt.Errorf("failed to write config file %s: %w", filename, err))
 	}
-	
+
 	return Ok[bool, error](true)
 }
 
 // Watch watches for file changes (simplified implementation).
 func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[T, error] {
 	resultChan := make(chan Result[T, error])
-	
+
 	go func() {
 		defer close(resultChan)
-		
+
 		filename := fp.getFilename(key)
 		lastModTime := time.Time{}
-		
+
 		ticker := time.NewTicker(1 * time.Second)
 		defer ticker.Stop()
-		
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -488,7 +488,7 @@ func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[
 				if err != nil {
 					continue
 				}
-				
+
 				if stat.ModTime().After(lastModTime) {
 					lastModTime = stat.ModTime()
 					result := fp.Load(ctx, key)
@@ -497,7 +497,7 @@ func (fp *FileProvider[T]) Watch(ctx context.Context, key string) <-chan Result[
 			}
 		}
 	}()
-	
+
 	return resultChan
 }
 
@@ -517,7 +517,7 @@ func (fp *FileProvider[T]) getFilename(key string) string {
 	case FormatProperties:
 		extension = ".properties"
 	}
-	
+
 	return fmt.Sprintf("%s/%s%s", fp.basePath, key, extension)
 }
 
@@ -539,9 +539,9 @@ func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
 		var zero T
 		return Err[T, error](fmt.Errorf("no configurations to merge"))
 	}
-	
+
 	result := configs[0]
-	
+
 	for i := 1; i < len(configs); i++ {
 		mergeResult := cm.mergeFunc(result, configs[i])
 		if mergeResult.IsErr() {
@@ -549,7 +549,7 @@ func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
 		}
 		result = mergeResult.Value()
 	}
-	
+
 	return Ok[T, error](result)
 }
 
@@ -567,13 +567,13 @@ func DeepCopy[T any](original T) Result[T, error] {
 		var zero T
 		return Err[T, error](fmt.Errorf("failed to marshal for deep copy: %w", err))
 	}
-	
+
 	var copy T
 	if err := json.Unmarshal(data, &copy); err != nil {
 		var zero T
 		return Err[T, error](fmt.Errorf("failed to unmarshal for deep copy: %w", err))
 	}
-	
+
 	return Ok[T, error](copy)
 }
 
@@ -609,7 +609,7 @@ func validateNonEmptyStrings(value reflect.Value) Result[bool, error] {
 			return validateNonEmptyStrings(value.Elem())
 		}
 	}
-	
+
 	return Ok[bool, error](true)
 }
 
@@ -644,6 +644,6 @@ func validateRanges(value reflect.Value, min, max int64) Result[bool, error] {
 			return validateRanges(value.Elem(), min, max)
 		}
 	}
-	
+
 	return Ok[bool, error](true)
 }

@@ -18,19 +18,19 @@ import (
 
 var _ = Describe("O-RAN Interface Integration Tests", func() {
 	var (
-		ctx                      context.Context
-		cancel                   context.CancelFunc
-		oranValidator           *validation.ORANInterfaceValidator
-		testFactory             *validation.ORANTestFactory
-		testNamespace           *corev1.Namespace
-		validationConfig        *validation.ValidationConfig
-		totalScore              int
-		targetScore             = 7 // Full O-RAN compliance score
+		ctx              context.Context
+		cancel           context.CancelFunc
+		oranValidator    *validation.ORANInterfaceValidator
+		testFactory      *validation.ORANTestFactory
+		testNamespace    *corev1.Namespace
+		validationConfig *validation.ValidationConfig
+		totalScore       int
+		targetScore      = 7 // Full O-RAN compliance score
 	)
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 10*time.Minute)
-		
+
 		// Create test namespace
 		testNamespace = &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -42,18 +42,18 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, testNamespace)).To(Succeed())
-		
+
 		// Initialize validation components
 		validationConfig = &validation.ValidationConfig{
-			TestMode:           "integration",
-			TimeoutDuration:    5 * time.Minute,
+			TestMode:          "integration",
+			TimeoutDuration:   5 * time.Minute,
 			EnablePerformance: true,
 			EnableReliability: true,
 		}
-		
+
 		oranValidator = validation.NewORANInterfaceValidator(validationConfig)
 		oranValidator.SetK8sClient(k8sClient)
-		
+
 		testFactory = validation.NewORANTestFactory()
 	})
 
@@ -61,12 +61,12 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 		if oranValidator != nil {
 			oranValidator.Cleanup()
 		}
-		
+
 		// Cleanup test namespace
 		if testNamespace != nil {
 			Expect(k8sClient.Delete(ctx, testNamespace)).To(Succeed())
 		}
-		
+
 		cancel()
 	})
 
@@ -92,7 +92,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				By("Testing A1 policy CRUD operations")
 				startTime := time.Now()
-				
+
 				// Create policy through mock RIC
 				policy := testFactory.CreateA1Policy("traffic-steering")
 				err := oranValidator.GetRICMockService().CreatePolicy(policy)
@@ -116,7 +116,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				// Record metrics
 				latency := time.Since(startTime)
 				oranValidator.RecordInterfaceMetric("A1-Policy", true, latency)
-				
+
 				By("Cleanup intent")
 				Expect(k8sClient.Delete(ctx, policyIntent)).To(Succeed())
 			})
@@ -125,15 +125,15 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("Creating conflicting policies")
 				policy1 := testFactory.CreateA1Policy("qos-optimization")
 				policy1.PolicyData["targetLatency"] = 5 // 5ms
-				
+
 				policy2 := testFactory.CreateA1Policy("qos-optimization")
-				policy2.PolicyID = policy1.PolicyID // Same ID to create conflict
+				policy2.PolicyID = policy1.PolicyID      // Same ID to create conflict
 				policy2.PolicyData["targetLatency"] = 10 // 10ms
-				
+
 				// Create first policy
 				err := oranValidator.GetRICMockService().CreatePolicy(policy1)
 				Expect(err).ToNot(HaveOccurred())
-				
+
 				// Attempt to create conflicting policy
 				err = oranValidator.GetRICMockService().CreatePolicy(policy2)
 				Expect(err).To(HaveOccurred())
@@ -144,21 +144,21 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("Creating multiple policy types")
 				policyTypes := []string{"traffic-steering", "qos-optimization", "admission-control", "energy-saving"}
 				createdPolicies := make([]*validation.A1Policy, 0, len(policyTypes))
-				
+
 				for _, policyType := range policyTypes {
 					policy := testFactory.CreateA1Policy(policyType)
 					err := oranValidator.GetRICMockService().CreatePolicy(policy)
 					Expect(err).ToNot(HaveOccurred())
 					createdPolicies = append(createdPolicies, policy)
 				}
-				
+
 				By("Verifying all policies are active")
 				for _, policy := range createdPolicies {
 					retrievedPolicy, err := oranValidator.GetRICMockService().GetPolicy(policy.PolicyID)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(retrievedPolicy.Status).To(Equal("ACTIVE"))
 				}
-				
+
 				By("Cleanup policies")
 				for _, policy := range createdPolicies {
 					err := oranValidator.GetRICMockService().DeletePolicy(policy.PolicyID)
@@ -204,24 +204,24 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 			It("should handle xApp lifecycle management", func() {
 				By("Testing xApp deployment lifecycle")
 				xappTypes := []string{"qoe-optimizer", "load-balancer", "anomaly-detector", "slice-optimizer"}
-				
+
 				for _, xappType := range xappTypes {
 					By(GinkgoWriter.Printf("Testing %s xApp lifecycle", xappType))
-					
+
 					// Deploy xApp
 					xappConfig := testFactory.CreateXAppConfig(xappType)
 					err := oranValidator.GetRICMockService().DeployXApp(xappConfig)
 					Expect(err).ToNot(HaveOccurred())
-					
+
 					// Verify deployment
 					deployedXApp, err := oranValidator.GetRICMockService().GetXApp(xappConfig.Name)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deployedXApp.Status).To(Equal("RUNNING"))
-					
+
 					// Undeploy xApp
 					err = oranValidator.GetRICMockService().UndeployXApp(xappConfig.Name)
 					Expect(err).ToNot(HaveOccurred())
-					
+
 					// Verify undeployment
 					_, err = oranValidator.GetRICMockService().GetXApp(xappConfig.Name)
 					Expect(err).To(HaveOccurred())
@@ -255,7 +255,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 				By("Testing E2 node registration with mock service")
 				nodeTypes := []string{"gnodeb", "enb", "ng-enb"}
 				registeredNodes := make([]*validation.E2Node, 0, len(nodeTypes))
-				
+
 				for _, nodeType := range nodeTypes {
 					node := testFactory.CreateE2Node(nodeType)
 					err := oranValidator.GetE2MockService().RegisterNode(node)
@@ -313,7 +313,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 			It("should support all major E2 service models (KPM, RC, NI, CCC)", func() {
 				By("Registering all service models")
 				serviceModels := testFactory.CreateServiceModels()
-				
+
 				for _, model := range serviceModels {
 					err := oranValidator.GetE2MockService().RegisterServiceModel(model)
 					Expect(err).ToNot(HaveOccurred())
@@ -375,7 +375,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 				By("Creating and managing subscription lifecycle")
 				subscription := testFactory.CreateE2Subscription("KPM", node.NodeID)
-				
+
 				// Create subscription
 				err = oranValidator.GetE2MockService().CreateSubscription(subscription)
 				Expect(err).ToNot(HaveOccurred())
@@ -612,8 +612,8 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 						"region":   "us-west1",
 						"resources": map[string]interface{}{
 							"compute_instances": 3,
-							"cloud_sql":        1,
-							"storage_buckets":  2,
+							"cloud_sql":         1,
+							"storage_buckets":   2,
 						},
 					},
 				}
@@ -723,7 +723,7 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 
 			By("Collecting interface performance metrics")
 			metrics := oranValidator.GetInterfaceMetrics()
-			
+
 			// Validate A1 interface performance
 			if a1Metrics, exists := metrics["A1"]; exists {
 				Expect(a1Metrics.ErrorRate).To(BeNumerically("<", 5.0), "A1 interface error rate should be < 5%")
@@ -761,11 +761,11 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 			}
 
 			registeredNodes := make([]*validation.E2Node, 0, len(vendorNodes))
-			
+
 			for _, vendorNode := range vendorNodes {
 				node := testFactory.CreateE2Node(vendorNode["nodeType"])
 				node.Capabilities["vendor"] = vendorNode["vendor"]
-				
+
 				err := oranValidator.GetE2MockService().RegisterNode(node)
 				Expect(err).ToNot(HaveOccurred())
 				registeredNodes = append(registeredNodes, node)
@@ -803,22 +803,22 @@ var _ = Describe("O-RAN Interface Integration Tests", func() {
 	It("should provide comprehensive O-RAN interface compliance score", func() {
 		By("Executing complete O-RAN validation suite")
 		finalScore := oranValidator.ValidateAllORANInterfaces(ctx)
-		
+
 		By("Recording final results")
 		GinkgoWriter.Printf("=== O-RAN Interface Compliance Results ===\n")
 		GinkgoWriter.Printf("A1 Interface: 2/2 points\n")
-		GinkgoWriter.Printf("E2 Interface: 2/2 points\n") 
+		GinkgoWriter.Printf("E2 Interface: 2/2 points\n")
 		GinkgoWriter.Printf("O1 Interface: 2/2 points\n")
 		GinkgoWriter.Printf("O2 Interface: 1/1 points\n")
 		GinkgoWriter.Printf("Total Score: %d/%d points\n", finalScore, targetScore)
 		GinkgoWriter.Printf("Compliance Level: %.1f%%\n", float64(finalScore)/float64(targetScore)*100)
-		
+
 		if finalScore == targetScore {
 			GinkgoWriter.Printf("✅ Full O-RAN compliance achieved!\n")
 		} else {
 			GinkgoWriter.Printf("⚠️  Partial O-RAN compliance: %d points missing\n", targetScore-finalScore)
 		}
-		
+
 		Expect(finalScore).To(BeNumerically(">=", targetScore-1), "Should achieve near-complete O-RAN compliance")
 	})
 })

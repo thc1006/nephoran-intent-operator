@@ -111,7 +111,7 @@ func NewStructuredLogger(config *LogConfig) (*StructuredLogger, error) {
 	var handler slog.Handler
 	if config.Format == "json" {
 		handler = slog.NewJSONHandler(output, &slog.HandlerOptions{
-			Level: level,
+			Level:     level,
 			AddSource: true,
 			ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 				// Customize attribute formatting

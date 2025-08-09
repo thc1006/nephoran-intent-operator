@@ -61,8 +61,8 @@ type RBACConfig struct {
 
 // SessionConfig holds session configuration
 type SessionConfig struct {
-	Enabled     bool
-	Timeout     time.Duration
+	Enabled       bool
+	Timeout       time.Duration
 	MaxConcurrent int
 }
 
@@ -142,4 +142,3 @@ func LoadNephoranAuthConfig() (*NephoranAuthConfig, error) {
 		},
 	}, nil
 }
-

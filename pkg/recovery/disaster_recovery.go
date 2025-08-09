@@ -75,44 +75,44 @@ type DisasterRecoveryManager struct {
 // DisasterRecoveryConfig holds DR configuration
 type DisasterRecoveryConfig struct {
 	// Backup Configuration
-	BackupEnabled        bool              `json:"backup_enabled"`
-	BackupSchedule       string            `json:"backup_schedule"` // Cron expression
-	BackupRetention      BackupRetention   `json:"backup_retention"`
-	BackupStorage        BackupStorageConf `json:"backup_storage"`
-	BackupCompression    bool              `json:"backup_compression"`
-	BackupEncryption     bool              `json:"backup_encryption"`
-	EncryptionKey        string            `json:"encryption_key"`
+	BackupEnabled     bool              `json:"backup_enabled"`
+	BackupSchedule    string            `json:"backup_schedule"` // Cron expression
+	BackupRetention   BackupRetention   `json:"backup_retention"`
+	BackupStorage     BackupStorageConf `json:"backup_storage"`
+	BackupCompression bool              `json:"backup_compression"`
+	BackupEncryption  bool              `json:"backup_encryption"`
+	EncryptionKey     string            `json:"encryption_key"`
 
 	// Recovery Configuration
-	RecoveryEnabled      bool              `json:"recovery_enabled"`
-	RecoveryTestSchedule string            `json:"recovery_test_schedule"`
-	RPOMinutes           int               `json:"rpo_minutes"` // Recovery Point Objective
-	RTOMinutes           int               `json:"rto_minutes"` // Recovery Time Objective
-	MultiRegion          bool              `json:"multi_region"`
-	FailoverRegions      []string          `json:"failover_regions"`
+	RecoveryEnabled      bool     `json:"recovery_enabled"`
+	RecoveryTestSchedule string   `json:"recovery_test_schedule"`
+	RPOMinutes           int      `json:"rpo_minutes"` // Recovery Point Objective
+	RTOMinutes           int      `json:"rto_minutes"` // Recovery Time Objective
+	MultiRegion          bool     `json:"multi_region"`
+	FailoverRegions      []string `json:"failover_regions"`
 
 	// Monitoring
-	AlertingEnabled      bool              `json:"alerting_enabled"`
-	SlackWebhook         string            `json:"slack_webhook"`
-	EmailNotifications   []string          `json:"email_notifications"`
-	MetricsEnabled       bool              `json:"metrics_enabled"`
+	AlertingEnabled    bool     `json:"alerting_enabled"`
+	SlackWebhook       string   `json:"slack_webhook"`
+	EmailNotifications []string `json:"email_notifications"`
+	MetricsEnabled     bool     `json:"metrics_enabled"`
 }
 
 // BackupRetention defines retention policy
 type BackupRetention struct {
-	DailyBackups    int `json:"daily_backups"`
-	WeeklyBackups   int `json:"weekly_backups"`
-	MonthlyBackups  int `json:"monthly_backups"`
-	YearlyBackups   int `json:"yearly_backups"`
+	DailyBackups   int `json:"daily_backups"`
+	WeeklyBackups  int `json:"weekly_backups"`
+	MonthlyBackups int `json:"monthly_backups"`
+	YearlyBackups  int `json:"yearly_backups"`
 }
 
 // BackupStorageConf defines storage configuration
 type BackupStorageConf struct {
-	Type        string `json:"type"`        // s3, gcs, azure
-	Bucket      string `json:"bucket"`
-	Path        string `json:"path"`
-	Region      string `json:"region"`
-	AWSProfile  string `json:"aws_profile"` // AWS profile for authentication
+	Type       string `json:"type"` // s3, gcs, azure
+	Bucket     string `json:"bucket"`
+	Path       string `json:"path"`
+	Region     string `json:"region"`
+	AWSProfile string `json:"aws_profile"` // AWS profile for authentication
 }
 
 // BackupStore interface for backup storage
@@ -126,40 +126,40 @@ type BackupStore interface {
 
 // Backup represents a system backup
 type Backup struct {
-	ID               string                     `json:"id"`
-	Type             string                     `json:"type"` // full, incremental
-	Status           string                     `json:"status"`
-	CreatedAt        time.Time                  `json:"created_at"`
-	CompletedAt      *time.Time                 `json:"completed_at,omitempty"`
-	Size             int64                      `json:"size"`
-	Components       map[string]ComponentBackup `json:"components"`
-	Metadata         map[string]string          `json:"metadata"`
-	EncryptionKey    string                     `json:"encryption_key,omitempty"`
-	Checksum         string                     `json:"checksum"`
-	Region           string                     `json:"region"`
+	ID            string                     `json:"id"`
+	Type          string                     `json:"type"` // full, incremental
+	Status        string                     `json:"status"`
+	CreatedAt     time.Time                  `json:"created_at"`
+	CompletedAt   *time.Time                 `json:"completed_at,omitempty"`
+	Size          int64                      `json:"size"`
+	Components    map[string]ComponentBackup `json:"components"`
+	Metadata      map[string]string          `json:"metadata"`
+	EncryptionKey string                     `json:"encryption_key,omitempty"`
+	Checksum      string                     `json:"checksum"`
+	Region        string                     `json:"region"`
 }
 
 // BackupMetadata contains backup metadata
 type BackupMetadata struct {
-	ID          string            `json:"id"`
-	Type        string            `json:"type"`
-	Status      string            `json:"status"`
-	CreatedAt   time.Time         `json:"created_at"`
-	Size        int64             `json:"size"`
-	Region      string            `json:"region"`
-	Tags        map[string]string `json:"tags"`
+	ID        string            `json:"id"`
+	Type      string            `json:"type"`
+	Status    string            `json:"status"`
+	CreatedAt time.Time         `json:"created_at"`
+	Size      int64             `json:"size"`
+	Region    string            `json:"region"`
+	Tags      map[string]string `json:"tags"`
 }
 
 // ComponentBackup represents a component backup
 type ComponentBackup struct {
-	Name         string    `json:"name"`
-	Type         string    `json:"type"`
-	Status       string    `json:"status"`
-	DataPath     string    `json:"data_path"`
-	Size         int64     `json:"size"`
-	StartTime    time.Time `json:"start_time"`
-	EndTime      time.Time `json:"end_time"`
-	Error        string    `json:"error,omitempty"`
+	Name      string    `json:"name"`
+	Type      string    `json:"type"`
+	Status    string    `json:"status"`
+	DataPath  string    `json:"data_path"`
+	Size      int64     `json:"size"`
+	StartTime time.Time `json:"start_time"`
+	EndTime   time.Time `json:"end_time"`
+	Error     string    `json:"error,omitempty"`
 }
 
 // SnapshotManager manages volume snapshots
@@ -229,9 +229,9 @@ func NewDisasterRecoveryManager(config *DisasterRecoveryConfig, k8sClient kubern
 	}
 
 	manager := &DisasterRecoveryManager{
-		config:    config,
-		logger:    logger,
-		k8sClient: k8sClient,
+		config:      config,
+		logger:      logger,
+		k8sClient:   k8sClient,
 		backupStore: backupStore,
 		snapshotManager: &SnapshotManager{
 			k8sClient: k8sClient,
@@ -357,7 +357,7 @@ func (drm *DisasterRecoveryManager) CreateBackup(ctx context.Context, backupType
 	now := time.Now()
 	backup.CompletedAt = &now
 	backup.Status = "completed"
-	
+
 	// Update metrics
 	backupOperations.WithLabelValues("success", backupType).Inc()
 	backupSize.WithLabelValues(backupType).Set(float64(backup.Size))
@@ -462,11 +462,11 @@ func (drm *DisasterRecoveryManager) RestoreBackup(ctx context.Context, backupID 
 	// Execute restore plan
 	for _, step := range plan.Steps {
 		drm.logger.Info("Executing restore step", "step", step.Name)
-		
+
 		if err := drm.executeRestoreStep(ctx, step, backup); err != nil {
 			drm.logger.Error("Restore step failed", "step", step.Name, "error", err)
 			restoreOperations.WithLabelValues("failed", step.Name).Inc()
-			
+
 			// Rollback if critical step fails
 			if step.Critical {
 				drm.rollbackRestore(ctx, plan, step)
@@ -597,7 +597,7 @@ func (drm *DisasterRecoveryManager) Failover(ctx context.Context, targetRegion s
 	// Execute failover
 	for _, step := range plan.Steps {
 		drm.logger.Info("Executing failover step", "step", step.Name)
-		
+
 		if err := step.Execute(ctx); err != nil {
 			drm.logger.Error("Failover step failed", "step", step.Name, "error", err)
 			if step.Critical {
@@ -670,26 +670,26 @@ type S3BackupStore struct {
 // NewS3BackupStore creates a new S3 backup store
 func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3BackupStore {
 	ctx := context.TODO()
-	
+
 	// Configure AWS config options
 	configOptions := []func(*config.LoadOptions) error{
 		config.WithRegion(backupConfig.Region),
 	}
-	
+
 	// Check for AWS profile configuration
 	awsProfile := backupConfig.AWSProfile
 	if awsProfile == "" {
 		// Fall back to AWS_PROFILE environment variable if not specified in config
 		awsProfile = os.Getenv("AWS_PROFILE")
 	}
-	
+
 	if awsProfile != "" {
 		logger.Info("Using AWS profile for authentication", "profile", awsProfile)
 		configOptions = append(configOptions, config.WithSharedConfigProfile(awsProfile))
 	} else {
 		logger.Info("Using default AWS credential chain (IRSA, instance profile, or environment variables)")
 	}
-	
+
 	// Configure retry policy with exponential backoff
 	retryConfig := retry.NewStandard(func(o *retry.StandardOptions) {
 		o.MaxAttempts = 3
@@ -698,7 +698,7 @@ func NewS3BackupStore(backupConfig BackupStorageConf, logger *slog.Logger) *S3Ba
 	configOptions = append(configOptions, config.WithRetryer(func() aws.Retryer {
 		return retryConfig
 	}))
-	
+
 	cfg, err := config.LoadDefaultConfig(ctx, configOptions...)
 	if err != nil {
 		logger.Error("failed to load AWS config", "error", err, "profile", awsProfile)
@@ -730,9 +730,9 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 	}
 
 	key := filepath.Join(s.config.Path, backup.ID, "metadata.json")
-	
+
 	s.logger.Info("Uploading backup to S3", "bucket", s.config.Bucket, "key", key, "backupID", backup.ID)
-	
+
 	// Upload with automatic retry (configured in client)
 	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.config.Bucket),
@@ -773,12 +773,12 @@ type RestoreStep struct {
 }
 
 type RecoveryTestResult struct {
-	ID           string                   `json:"id"`
-	StartTime    time.Time                `json:"start_time"`
-	EndTime      time.Time                `json:"end_time"`
-	Duration     time.Duration            `json:"duration"`
-	Tests        map[string]TestResult    `json:"tests"`
-	OverallStatus string                  `json:"overall_status"`
+	ID            string                `json:"id"`
+	StartTime     time.Time             `json:"start_time"`
+	EndTime       time.Time             `json:"end_time"`
+	Duration      time.Duration         `json:"duration"`
+	Tests         map[string]TestResult `json:"tests"`
+	OverallStatus string                `json:"overall_status"`
 }
 
 type TestResult struct {
@@ -900,9 +900,9 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 	}
 
 	key := filepath.Join(s.config.Path, backupID, "metadata.json")
-	
+
 	s.logger.Info("Downloading backup from S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
-	
+
 	// Download with automatic retry (configured in client)
 	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.config.Bucket),
@@ -936,7 +936,7 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 	}
 
 	s.logger.Info("Listing backups from S3", "bucket", s.config.Bucket, "prefix", s.config.Path)
-	
+
 	// List objects with automatic retry (configured in client)
 	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 		Bucket: aws.String(s.config.Bucket),
@@ -954,14 +954,14 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 		if !strings.HasSuffix(key, "metadata.json") {
 			continue
 		}
-		
+
 		// Extract backup ID from path
 		parts := strings.Split(key, "/")
 		if len(parts) < 2 {
 			continue
 		}
 		backupID := parts[len(parts)-2]
-		
+
 		backups = append(backups, &BackupMetadata{
 			ID:        backupID,
 			Type:      "full", // Default type
@@ -985,9 +985,9 @@ func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 
 	// First, list all objects with the backup prefix
 	prefix := filepath.Join(s.config.Path, backupID)
-	
+
 	s.logger.Info("Deleting backup from S3", "bucket", s.config.Bucket, "prefix", prefix, "backupID", backupID)
-	
+
 	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
 		Bucket: aws.String(s.config.Bucket),
 		Prefix: aws.String(prefix),
@@ -1021,9 +1021,9 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 	}
 
 	key := filepath.Join(s.config.Path, backupID, "metadata.json")
-	
+
 	s.logger.Info("Verifying backup in S3", "bucket", s.config.Bucket, "key", key, "backupID", backupID)
-	
+
 	// Check if object exists with automatic retry (configured in client)
 	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
 		Bucket: aws.String(s.config.Bucket),

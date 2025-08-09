@@ -21,20 +21,20 @@ import (
 
 // SecurityTestSuite provides comprehensive security testing
 type SecurityTestSuite struct {
-	t               *testing.T
-	tc              *testutil.TestContext
-	jwtManager      *JWTManager
-	sessionManager  *SessionManager
-	rbacManager     *RBACManager
-	server          *httptest.Server
-	handlers        *AuthHandlers
-	testUser        *providers.UserInfo
-	validToken      string
+	t              *testing.T
+	tc             *testutil.TestContext
+	jwtManager     *JWTManager
+	sessionManager *SessionManager
+	rbacManager    *RBACManager
+	server         *httptest.Server
+	handlers       *AuthHandlers
+	testUser       *providers.UserInfo
+	validToken     string
 }
 
 func NewSecurityTestSuite(t *testing.T) *SecurityTestSuite {
 	tc := testutil.NewTestContext(t)
-	
+
 	suite := &SecurityTestSuite{
 		t:              t,
 		tc:             tc,
@@ -42,17 +42,17 @@ func NewSecurityTestSuite(t *testing.T) *SecurityTestSuite {
 		sessionManager: tc.SetupSessionManager(),
 		rbacManager:    tc.SetupRBACManager(),
 	}
-	
+
 	suite.setupTestData()
 	suite.setupHTTPServer()
-	
+
 	return suite
 }
 
 func (suite *SecurityTestSuite) setupTestData() {
 	uf := testutil.NewUserFactory()
 	suite.testUser = uf.CreateBasicUser()
-	
+
 	var err error
 	suite.validToken, err = suite.jwtManager.GenerateToken(suite.testUser, nil)
 	require.NoError(suite.t, err)
@@ -61,22 +61,22 @@ func (suite *SecurityTestSuite) setupTestData() {
 func (suite *SecurityTestSuite) setupHTTPServer() {
 	// Create handlers with security features enabled
 	suite.handlers = NewAuthHandlers(&AuthHandlersConfig{
-		JWTManager:     suite.jwtManager,
-		SessionManager: suite.sessionManager,
-		RBACManager:    suite.rbacManager,
-		EnableCSRF:     true,
+		JWTManager:      suite.jwtManager,
+		SessionManager:  suite.sessionManager,
+		RBACManager:     suite.rbacManager,
+		EnableCSRF:      true,
 		EnableRateLimit: true,
-		RateLimitRPS:   10,
-		Logger:         suite.tc.Logger,
+		RateLimitRPS:    10,
+		Logger:          suite.tc.Logger,
 	})
-	
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/auth/login", suite.handlers.LoginHandler)
 	mux.HandleFunc("/auth/userinfo", suite.handlers.UserInfoHandler)
 	mux.HandleFunc("/auth/refresh", suite.handlers.RefreshTokenHandler)
 	mux.HandleFunc("/auth/csrf-token", suite.handlers.CSRFTokenHandler)
 	mux.HandleFunc("/protected", suite.protectedHandler)
-	
+
 	// Apply security middleware
 	securityMiddleware := NewSecurityHeadersMiddleware(&SecurityHeadersConfig{
 		ContentSecurityPolicy: "default-src 'self'",
@@ -86,7 +86,7 @@ func (suite *SecurityTestSuite) setupHTTPServer() {
 		HSTSMaxAge:            31536000,
 		RemoveServerHeader:    true,
 	})
-	
+
 	suite.server = httptest.NewServer(securityMiddleware.Middleware(mux))
 }
 
@@ -105,12 +105,12 @@ func (suite *SecurityTestSuite) Cleanup() {
 func TestSecurity_JWTTokenManipulation(t *testing.T) {
 	suite := NewSecurityTestSuite(t)
 	defer suite.Cleanup()
-	
+
 	tests := []struct {
-		name           string
-		tokenModifier  func(string) string
-		expectStatus   int
-		expectError    bool
+		name          string
+		tokenModifier func(string) string
+		expectStatus  int
+		expectError   bool
 	}{
 		{
 			name: "Valid token",
@@ -142,20 +142,20 @@ func TestSecurity_JWTTokenManipulation(t *testing.T) {
 				if len(parts) != 3 {
 					return token
 				}
-				
+
 				// Decode payload, modify it, encode back
 				payload, err := base64.RawURLEncoding.DecodeString(parts[1])
 				if err != nil {
 					return token
 				}
-				
+
 				var claims map[string]interface{}
 				json.Unmarshal(payload, &claims)
 				claims["sub"] = "malicious-user" // Change subject
-				
+
 				newPayload, _ := json.Marshal(claims)
 				newPayloadB64 := base64.RawURLEncoding.EncodeToString(newPayload)
-				
+
 				return parts[0] + "." + newPayloadB64 + "." + parts[2]
 			},
 			expectStatus: http.StatusUnauthorized,
@@ -168,20 +168,20 @@ func TestSecurity_JWTTokenManipulation(t *testing.T) {
 				if len(parts) != 3 {
 					return token
 				}
-				
+
 				// Decode header, change algorithm to "none"
 				header, err := base64.RawURLEncoding.DecodeString(parts[0])
 				if err != nil {
 					return token
 				}
-				
+
 				var headerClaims map[string]interface{}
 				json.Unmarshal(header, &headerClaims)
 				headerClaims["alg"] = "none"
-				
+
 				newHeader, _ := json.Marshal(headerClaims)
 				newHeaderB64 := base64.RawURLEncoding.EncodeToString(newHeader)
-				
+
 				return newHeaderB64 + "." + parts[1] + "." + ""
 			},
 			expectStatus: http.StatusUnauthorized,
@@ -218,19 +218,19 @@ func TestSecurity_JWTTokenManipulation(t *testing.T) {
 			expectError:  true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			modifiedToken := tt.tokenModifier(suite.validToken)
-			
+
 			req, _ := http.NewRequest("GET", suite.server.URL+"/auth/userinfo", nil)
 			req.Header.Set("Authorization", "Bearer "+modifiedToken)
-			
+
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			
+
 			assert.Equal(t, tt.expectStatus, resp.StatusCode)
 		})
 	}
@@ -239,7 +239,7 @@ func TestSecurity_JWTTokenManipulation(t *testing.T) {
 func TestSecurity_SessionSecurity(t *testing.T) {
 	suite := NewSecurityTestSuite(t)
 	defer suite.Cleanup()
-	
+
 	// Create valid session
 	ctx := context.Background()
 	session, err := suite.sessionManager.CreateSession(ctx, suite.testUser, map[string]interface{}{
@@ -247,7 +247,7 @@ func TestSecurity_SessionSecurity(t *testing.T) {
 		"user_agent": "test-browser",
 	})
 	require.NoError(t, err)
-	
+
 	tests := []struct {
 		name         string
 		sessionID    string
@@ -291,7 +291,7 @@ func TestSecurity_SessionSecurity(t *testing.T) {
 			description:  "Should handle extremely long session IDs",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request with session cookie
@@ -302,9 +302,9 @@ func TestSecurity_SessionSecurity(t *testing.T) {
 					Value: tt.sessionID,
 				})
 			}
-			
+
 			w := httptest.NewRecorder()
-			
+
 			// Apply auth middleware
 			authMiddleware := NewAuthMiddleware(&AuthMiddlewareConfig{
 				SessionManager: suite.sessionManager,
@@ -312,10 +312,10 @@ func TestSecurity_SessionSecurity(t *testing.T) {
 				CookieName:     "session",
 				ContextKey:     "user",
 			})
-			
+
 			handler := authMiddleware.Middleware(http.HandlerFunc(suite.protectedHandler))
 			handler.ServeHTTP(w, req)
-			
+
 			assert.Equal(t, tt.expectStatus, w.Code, tt.description)
 		})
 	}
@@ -324,20 +324,20 @@ func TestSecurity_SessionSecurity(t *testing.T) {
 func TestSecurity_CSRFProtection(t *testing.T) {
 	suite := NewSecurityTestSuite(t)
 	defer suite.Cleanup()
-	
+
 	// Get CSRF token first
 	req, _ := http.NewRequest("GET", suite.server.URL+"/auth/csrf-token", nil)
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	
+
 	var csrfResp map[string]string
 	err = json.NewDecoder(resp.Body).Decode(&csrfResp)
 	require.NoError(t, err)
-	
+
 	validCSRFToken := csrfResp["csrf_token"]
-	
+
 	tests := []struct {
 		name         string
 		csrfToken    string
@@ -369,26 +369,26 @@ func TestSecurity_CSRFProtection(t *testing.T) {
 			description:  "Should deny request with expired CSRF token",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			loginReq := map[string]string{
 				"provider":     "test",
 				"redirect_uri": "http://localhost:8080/callback",
 			}
-			
+
 			body, _ := json.Marshal(loginReq)
 			req, _ := http.NewRequest("POST", suite.server.URL+"/auth/login", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
-			
+
 			if tt.csrfToken != "" {
 				req.Header.Set("X-CSRF-Token", tt.csrfToken)
 			}
-			
+
 			resp, err := client.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			
+
 			assert.Equal(t, tt.expectStatus, resp.StatusCode, tt.description)
 		})
 	}
@@ -397,7 +397,7 @@ func TestSecurity_CSRFProtection(t *testing.T) {
 func TestSecurity_RateLimiting(t *testing.T) {
 	suite := NewSecurityTestSuite(t)
 	defer suite.Cleanup()
-	
+
 	// Create rate limiter with very low limits for testing
 	rateLimiter := NewRateLimitMiddleware(&RateLimitConfig{
 		RequestsPerMinute: 5,
@@ -406,39 +406,39 @@ func TestSecurity_RateLimiting(t *testing.T) {
 			return r.RemoteAddr
 		},
 	})
-	
+
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("success"))
 	})
-	
+
 	handler := rateLimiter.Middleware(testHandler)
-	
+
 	// Test normal requests within limit
 	for i := 0; i < 2; i++ {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.100:12345"
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusOK, w.Code, "Request %d should succeed", i+1)
 	}
-	
+
 	// Test requests exceeding limit
 	for i := 0; i < 3; i++ {
 		req := httptest.NewRequest("GET", "/test", nil)
 		req.RemoteAddr = "192.168.1.100:12345"
 		w := httptest.NewRecorder()
-		
+
 		handler.ServeHTTP(w, req)
 		assert.Equal(t, http.StatusTooManyRequests, w.Code, "Request %d should be rate limited", i+3)
 	}
-	
+
 	// Test different IP should not be affected
 	req := httptest.NewRequest("GET", "/test", nil)
 	req.RemoteAddr = "192.168.1.101:12345"
 	w := httptest.NewRecorder()
-	
+
 	handler.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusOK, w.Code, "Different IP should not be rate limited")
 }
@@ -446,7 +446,7 @@ func TestSecurity_RateLimiting(t *testing.T) {
 func TestSecurity_InputValidation(t *testing.T) {
 	suite := NewSecurityTestSuite(t)
 	defer suite.Cleanup()
-	
+
 	tests := []struct {
 		name         string
 		payload      interface{}
@@ -514,18 +514,18 @@ func TestSecurity_InputValidation(t *testing.T) {
 			description:  "Should safely handle malformed refresh tokens",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			body, _ := json.Marshal(tt.payload)
 			req, _ := http.NewRequest("POST", suite.server.URL+tt.endpoint, bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
-			
+
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			
+
 			assert.Equal(t, tt.expectStatus, resp.StatusCode, tt.description)
 		})
 	}
@@ -534,22 +534,22 @@ func TestSecurity_InputValidation(t *testing.T) {
 func TestSecurity_HeaderSecurity(t *testing.T) {
 	suite := NewSecurityTestSuite(t)
 	defer suite.Cleanup()
-	
+
 	req, _ := http.NewRequest("GET", suite.server.URL+"/auth/userinfo", nil)
 	req.Header.Set("Authorization", "Bearer "+suite.validToken)
-	
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	
+
 	// Check security headers
 	assert.Equal(t, "default-src 'self'", resp.Header.Get("Content-Security-Policy"))
 	assert.Equal(t, "DENY", resp.Header.Get("X-Frame-Options"))
 	assert.Equal(t, "nosniff", resp.Header.Get("X-Content-Type-Options"))
 	assert.Equal(t, "strict-origin-when-cross-origin", resp.Header.Get("Referrer-Policy"))
 	assert.Contains(t, resp.Header.Get("Strict-Transport-Security"), "max-age=31536000")
-	
+
 	// Server header should be removed
 	assert.Empty(t, resp.Header.Get("Server"))
 }
@@ -557,111 +557,111 @@ func TestSecurity_HeaderSecurity(t *testing.T) {
 func TestSecurity_TimingAttacks(t *testing.T) {
 	suite := NewSecurityTestSuite(t)
 	defer suite.Cleanup()
-	
+
 	// Test that token validation has consistent timing regardless of token validity
 	// This helps prevent timing attacks
-	
+
 	validToken := suite.validToken
 	invalidToken := "invalid.jwt.token"
-	
+
 	measureTime := func(token string) time.Duration {
 		start := time.Now()
-		
+
 		req := httptest.NewRequest("GET", "/auth/userinfo", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		w := httptest.NewRecorder()
-		
+
 		suite.handlers.UserInfoHandler(w, req)
-		
+
 		return time.Since(start)
 	}
-	
+
 	const iterations = 10
 	var validTimes, invalidTimes []time.Duration
-	
+
 	// Measure timing for valid tokens
 	for i := 0; i < iterations; i++ {
 		validTimes = append(validTimes, measureTime(validToken))
 	}
-	
+
 	// Measure timing for invalid tokens
 	for i := 0; i < iterations; i++ {
 		invalidTimes = append(invalidTimes, measureTime(invalidToken))
 	}
-	
+
 	// Calculate averages
 	var validAvg, invalidAvg time.Duration
 	for _, t := range validTimes {
 		validAvg += t
 	}
 	validAvg /= time.Duration(len(validTimes))
-	
+
 	for _, t := range invalidTimes {
 		invalidAvg += t
 	}
 	invalidAvg /= time.Duration(len(invalidTimes))
-	
+
 	// The timing difference should not be significant
 	timingDifference := float64(validAvg-invalidAvg) / float64(validAvg)
 	if timingDifference < 0 {
 		timingDifference = -timingDifference
 	}
-	
+
 	// Allow up to 50% timing difference (in practice should be much less)
 	assert.Less(t, timingDifference, 0.5, "Timing difference too large: valid=%v, invalid=%v", validAvg, invalidAvg)
 }
 
 func TestSecurity_RandomnessQuality(t *testing.T) {
 	// Test the quality of random values generated by the system
-	
+
 	// Test session ID randomness
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
-	
+
 	sessionManager := tc.SetupSessionManager()
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
-	
+
 	const numSessions = 1000
 	sessionIDs := make(map[string]bool)
 	var sessionBytes []byte
-	
+
 	ctx := context.Background()
 	for i := 0; i < numSessions; i++ {
 		session, err := sessionManager.CreateSession(ctx, user, nil)
 		require.NoError(t, err)
-		
+
 		// Check for duplicates
 		assert.False(t, sessionIDs[session.ID], "Duplicate session ID found")
 		sessionIDs[session.ID] = true
-		
+
 		// Collect bytes for entropy analysis
 		sessionBytes = append(sessionBytes, []byte(session.ID)...)
 	}
-	
+
 	// Basic entropy check - count unique bytes
 	uniqueBytes := make(map[byte]bool)
 	for _, b := range sessionBytes {
 		uniqueBytes[b] = true
 	}
-	
+
 	// Should have reasonable byte distribution
 	assert.GreaterOrEqual(t, len(uniqueBytes), 50, "Session IDs should have good byte distribution")
-	
+
 	// Test JWT token randomness
 	jwtManager := tc.SetupJWTManager()
-	
+
 	const numTokens = 100
 	tokenIDs := make(map[string]bool)
-	
+
 	for i := 0; i < numTokens; i++ {
 		token, err := jwtManager.GenerateToken(user, nil)
 		require.NoError(t, err)
-		
+
 		// Extract JTI claim for uniqueness test
 		claims, err := jwtManager.ValidateToken(token)
 		require.NoError(t, err)
-		
+
 		if jti, ok := claims["jti"].(string); ok {
 			assert.False(t, tokenIDs[jti], "Duplicate JWT ID found")
 			tokenIDs[jti] = true
@@ -671,29 +671,29 @@ func TestSecurity_RandomnessQuality(t *testing.T) {
 
 func TestSecurity_PasswordSecurityBestPractices(t *testing.T) {
 	// Test that sensitive data is handled securely
-	
+
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
-	
+
 	// Create configuration with sensitive data
 	config := &JWTConfig{
-		Issuer:        "test-issuer",
-		SigningKey:    "super-secret-key",
-		ClientSecret:  "oauth2-client-secret",
+		Issuer:       "test-issuer",
+		SigningKey:   "super-secret-key",
+		ClientSecret: "oauth2-client-secret",
 	}
-	
+
 	// Test that sensitive data doesn't appear in string representation
 	configStr := fmt.Sprintf("%+v", config)
 	assert.NotContains(t, configStr, "super-secret-key")
 	assert.NotContains(t, configStr, "oauth2-client-secret")
-	
+
 	// Test that errors don't leak sensitive information
 	invalidToken := "invalid.token.here"
 	jwtManager := tc.SetupJWTManager()
-	
+
 	_, err := jwtManager.ValidateToken(invalidToken)
 	assert.Error(t, err)
-	
+
 	// Error message should not contain the actual token
 	errorMsg := err.Error()
 	assert.NotContains(t, strings.ToLower(errorMsg), "invalid.token.here")
@@ -702,18 +702,18 @@ func TestSecurity_PasswordSecurityBestPractices(t *testing.T) {
 func TestSecurity_CryptographicStandards(t *testing.T) {
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
-	
+
 	// Test RSA key strength
 	assert.GreaterOrEqual(t, tc.PrivateKey.Size()*8, 2048, "RSA key should be at least 2048 bits")
-	
+
 	// Test JWT algorithm
 	jwtManager := tc.SetupJWTManager()
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
-	
+
 	token, err := jwtManager.GenerateToken(user, nil)
 	require.NoError(t, err)
-	
+
 	// Parse token to check algorithm
 	parsedToken, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		// Verify algorithm
@@ -722,7 +722,7 @@ func TestSecurity_CryptographicStandards(t *testing.T) {
 		}
 		return tc.PublicKey, nil
 	})
-	
+
 	require.NoError(t, err)
 	assert.True(t, parsedToken.Valid)
 	assert.Equal(t, "RS256", parsedToken.Header["alg"])
@@ -732,25 +732,25 @@ func TestSecurity_MemoryLeakPrevention(t *testing.T) {
 	// Test that sensitive data is properly cleared from memory
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
-	
+
 	jwtManager := tc.SetupJWTManager()
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
-	
+
 	// Generate many tokens to test for memory leaks
 	const numTokens = 1000
-	
+
 	for i := 0; i < numTokens; i++ {
 		token, err := jwtManager.GenerateToken(user, map[string]interface{}{
-			"iteration":    i,
+			"iteration":      i,
 			"sensitive_data": fmt.Sprintf("secret-%d", i),
 		})
 		require.NoError(t, err)
-		
+
 		// Validate token
 		_, err = jwtManager.ValidateToken(token)
 		require.NoError(t, err)
-		
+
 		// Force garbage collection periodically
 		if i%100 == 0 {
 			// In a real test, you might use runtime.GC() and memory profiling
@@ -763,26 +763,26 @@ func TestSecurity_ConcurrencyAttacks(t *testing.T) {
 	// Test that concurrent access doesn't expose security vulnerabilities
 	tc := testutil.NewTestContext(t)
 	defer tc.Cleanup()
-	
+
 	jwtManager := tc.SetupJWTManager()
 	sessionManager := tc.SetupSessionManager()
 	uf := testutil.NewUserFactory()
 	user := uf.CreateBasicUser()
-	
+
 	// Create initial token and session
 	token, err := jwtManager.GenerateToken(user, nil)
 	require.NoError(t, err)
-	
+
 	ctx := context.Background()
 	session, err := sessionManager.CreateSession(ctx, user, nil)
 	require.NoError(t, err)
-	
+
 	const numGoroutines = 10
 	const numOperations = 100
-	
+
 	// Test concurrent token validation
 	results := make(chan error, numGoroutines*numOperations)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
 			for j := 0; j < numOperations; j++ {
@@ -791,7 +791,7 @@ func TestSecurity_ConcurrencyAttacks(t *testing.T) {
 			}
 		}()
 	}
-	
+
 	// Test concurrent session operations
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
@@ -801,7 +801,7 @@ func TestSecurity_ConcurrencyAttacks(t *testing.T) {
 			}
 		}()
 	}
-	
+
 	// Collect results
 	successCount := 0
 	for i := 0; i < numGoroutines*numOperations*2; i++ {
@@ -809,7 +809,7 @@ func TestSecurity_ConcurrencyAttacks(t *testing.T) {
 			successCount++
 		}
 	}
-	
+
 	// All operations should succeed
 	assert.Equal(t, numGoroutines*numOperations*2, successCount)
 }

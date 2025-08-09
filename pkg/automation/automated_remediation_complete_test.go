@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	
+
 	appsv1 "k8s.io/api/apps/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -108,12 +108,12 @@ func createTestConfig() *SelfHealingConfig {
 			},
 		},
 		NotificationConfig: &NotificationConfig{
-			Enabled: true,
+			Enabled:  true,
 			Webhooks: []string{"http://example.com/webhook"},
 		},
 		BackupBeforeRemediation: true,
-		RollbackOnFailure:      true,
-		LearningEnabled:        true,
+		RollbackOnFailure:       true,
+		LearningEnabled:         true,
 	}
 }
 
@@ -333,7 +333,7 @@ func TestAutomatedRemediation_executeRemediation(t *testing.T) {
 			},
 		},
 	}
-	
+
 	ctx := context.Background()
 	ar.executeRemediation(ctx, session, strategy)
 
@@ -432,17 +432,17 @@ func TestAutomatedRemediation_ConcurrentRemediations(t *testing.T) {
 	ar, _ := NewAutomatedRemediation(config, k8sClient, ctrlClient, logger)
 
 	ctx := context.Background()
-	
+
 	// First, fill up the concurrent limit with known components
 	err1 := ar.InitiateRemediation(ctx, "component-limit-1", "test reason")
 	assert.NoError(t, err1)
-	
+
 	err2 := ar.InitiateRemediation(ctx, "component-limit-2", "test reason")
 	assert.NoError(t, err2)
-	
+
 	// Give time for these to start running
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// Now try to add one more - this should fail due to limit
 	err3 := ar.InitiateRemediation(ctx, "component-limit-3", "test reason")
 	if err3 != nil {
@@ -451,7 +451,7 @@ func TestAutomatedRemediation_ConcurrentRemediations(t *testing.T) {
 		// In some cases, the previous sessions may have completed too quickly
 		t.Log("Warning: Expected concurrent remediation limit to be reached but it wasn't")
 	}
-	
+
 	// Verify we have exactly MaxConcurrentRemediations active
 	active := ar.GetActiveRemediations()
 	assert.LessOrEqual(t, len(active), config.MaxConcurrentRemediations+2) // +2 for potential PENDING status
@@ -485,7 +485,7 @@ func TestAutomatedRemediation_NotificationIntegration(t *testing.T) {
 	// Verify notification config is respected
 	assert.True(t, config.NotificationConfig.Enabled)
 	assert.NotEmpty(t, config.NotificationConfig.Webhooks)
-	
+
 	// In a real test, we would verify AlertManager was called
 	// For now, just ensure the session can be processed without errors
 	assert.NotNil(t, session)
@@ -506,7 +506,7 @@ func TestAutomatedRemediation_trackHistory(t *testing.T) {
 	// Execute some remediations
 	ctx := context.Background()
 	ar.InitiateRemediation(ctx, "test-component", "high error rate")
-	
+
 	// Wait for remediation to complete
 	time.Sleep(500 * time.Millisecond)
 

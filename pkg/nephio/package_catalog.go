@@ -40,104 +40,104 @@ import (
 
 // PackageCatalogConfig defines configuration for package catalog
 type PackageCatalogConfig struct {
-	CatalogRepository     string        `json:"catalogRepository" yaml:"catalogRepository"`
-	BlueprintDirectory    string        `json:"blueprintDirectory" yaml:"blueprintDirectory"`
-	VariantDirectory      string        `json:"variantDirectory" yaml:"variantDirectory"`
-	TemplateDirectory     string        `json:"templateDirectory" yaml:"templateDirectory"`
-	CacheTimeout          time.Duration `json:"cacheTimeout" yaml:"cacheTimeout"`
-	MaxCachedItems        int           `json:"maxCachedItems" yaml:"maxCachedItems"`
-	EnableVersioning      bool          `json:"enableVersioning" yaml:"enableVersioning"`
-	EnableMetrics         bool          `json:"enableMetrics" yaml:"enableMetrics"`
-	EnableTracing         bool          `json:"enableTracing" yaml:"enableTracing"`
+	CatalogRepository  string        `json:"catalogRepository" yaml:"catalogRepository"`
+	BlueprintDirectory string        `json:"blueprintDirectory" yaml:"blueprintDirectory"`
+	VariantDirectory   string        `json:"variantDirectory" yaml:"variantDirectory"`
+	TemplateDirectory  string        `json:"templateDirectory" yaml:"templateDirectory"`
+	CacheTimeout       time.Duration `json:"cacheTimeout" yaml:"cacheTimeout"`
+	MaxCachedItems     int           `json:"maxCachedItems" yaml:"maxCachedItems"`
+	EnableVersioning   bool          `json:"enableVersioning" yaml:"enableVersioning"`
+	EnableMetrics      bool          `json:"enableMetrics" yaml:"enableMetrics"`
+	EnableTracing      bool          `json:"enableTracing" yaml:"enableTracing"`
 }
 
 // PackageCatalogMetrics provides catalog metrics
 type PackageCatalogMetrics struct {
-	BlueprintQueries      prometheus.CounterVec
-	VariantCreations      prometheus.CounterVec
-	CatalogOperations     prometheus.CounterVec
-	CacheHitRate          prometheus.Counter
-	CacheMissRate         prometheus.Counter
-	BlueprintLoadTime     prometheus.HistogramVec
-	VariantCreationTime   prometheus.HistogramVec
-	CatalogSize           prometheus.GaugeVec
+	BlueprintQueries    prometheus.CounterVec
+	VariantCreations    prometheus.CounterVec
+	CatalogOperations   prometheus.CounterVec
+	CacheHitRate        prometheus.Counter
+	CacheMissRate       prometheus.Counter
+	BlueprintLoadTime   prometheus.HistogramVec
+	VariantCreationTime prometheus.HistogramVec
+	CatalogSize         prometheus.GaugeVec
 }
 
 // PackageDependency represents a package dependency
 type PackageDependency struct {
-	Name        string            `json:"name"`
-	Repository  string            `json:"repository"`
-	Version     string            `json:"version"`
-	Optional    bool              `json:"optional"`
-	Condition   string            `json:"condition,omitempty"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	Name       string            `json:"name"`
+	Repository string            `json:"repository"`
+	Version    string            `json:"version"`
+	Optional   bool              `json:"optional"`
+	Condition  string            `json:"condition,omitempty"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
 // ParameterDefinition defines a blueprint parameter
 type ParameterDefinition struct {
-	Name         string      `json:"name"`
-	Type         string      `json:"type"`
-	Description  string      `json:"description"`
-	Default      interface{} `json:"default,omitempty"`
-	Required     bool        `json:"required"`
-	Validation   string      `json:"validation,omitempty"`
-	Constraints  []string    `json:"constraints,omitempty"`
+	Name        string      `json:"name"`
+	Type        string      `json:"type"`
+	Description string      `json:"description"`
+	Default     interface{} `json:"default,omitempty"`
+	Required    bool        `json:"required"`
+	Validation  string      `json:"validation,omitempty"`
+	Constraints []string    `json:"constraints,omitempty"`
 }
 
 // ValidationRule defines validation rules for blueprints
 type ValidationRule struct {
-	Name        string            `json:"name"`
-	Type        string            `json:"type"`
-	Expression  string            `json:"expression"`
-	Message     string            `json:"message"`
-	Severity    string            `json:"severity"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
+	Name       string            `json:"name"`
+	Type       string            `json:"type"`
+	Expression string            `json:"expression"`
+	Message    string            `json:"message"`
+	Severity   string            `json:"severity"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
 // ResourceTemplate defines a resource template in a blueprint
 type ResourceTemplate struct {
-	Name        string                 `json:"name"`
-	Kind        string                 `json:"kind"`
-	APIVersion  string                 `json:"apiVersion"`
-	Template    map[string]interface{} `json:"template"`
-	Conditions  []string               `json:"conditions,omitempty"`
+	Name       string                 `json:"name"`
+	Kind       string                 `json:"kind"`
+	APIVersion string                 `json:"apiVersion"`
+	Template   map[string]interface{} `json:"template"`
+	Conditions []string               `json:"conditions,omitempty"`
 }
 
 // FunctionDefinition defines a KRM function in a blueprint
 type FunctionDefinition struct {
-	Name        string                 `json:"name"`
-	Image       string                 `json:"image"`
-	Config      map[string]interface{} `json:"config,omitempty"`
-	Stage       string                 `json:"stage"`
-	Required    bool                   `json:"required"`
+	Name     string                 `json:"name"`
+	Image    string                 `json:"image"`
+	Config   map[string]interface{} `json:"config,omitempty"`
+	Stage    string                 `json:"stage"`
+	Required bool                   `json:"required"`
 }
 
 // SpecializationSpec defines how a blueprint can be specialized
 type SpecializationSpec struct {
-	Parameters    []ParameterDefinition  `json:"parameters"`
-	Templates     []TemplateDefinition   `json:"templates"`
-	Functions     []FunctionDefinition   `json:"functions"`
-	Validations   []ValidationRule       `json:"validations"`
-	Constraints   []string               `json:"constraints,omitempty"`
+	Parameters  []ParameterDefinition `json:"parameters"`
+	Templates   []TemplateDefinition  `json:"templates"`
+	Functions   []FunctionDefinition  `json:"functions"`
+	Validations []ValidationRule      `json:"validations"`
+	Constraints []string              `json:"constraints,omitempty"`
 }
 
 // TemplateDefinition defines a specialization template
 type TemplateDefinition struct {
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"`
-	Template    map[string]interface{} `json:"template"`
-	Conditions  []string               `json:"conditions,omitempty"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`
+	Template   map[string]interface{} `json:"template"`
+	Conditions []string               `json:"conditions,omitempty"`
 }
 
 // ClusterContext provides cluster-specific context for specialization
 type ClusterContext struct {
-	Name         string               `json:"name"`
-	Region       string               `json:"region"`
-	Zone         string               `json:"zone"`
-	Capabilities []ClusterCapability  `json:"capabilities"`
-	Resources    *ClusterResources    `json:"resources,omitempty"`
-	Labels       map[string]string    `json:"labels,omitempty"`
-	Annotations  map[string]string    `json:"annotations,omitempty"`
+	Name         string              `json:"name"`
+	Region       string              `json:"region"`
+	Zone         string              `json:"zone"`
+	Capabilities []ClusterCapability `json:"capabilities"`
+	Resources    *ClusterResources   `json:"resources,omitempty"`
+	Labels       map[string]string   `json:"labels,omitempty"`
+	Annotations  map[string]string   `json:"annotations,omitempty"`
 }
 
 // ClusterResources represents available cluster resources
@@ -161,19 +161,19 @@ type NetworkSliceSpec struct {
 
 // SLASpecification defines SLA requirements
 type SLASpecification struct {
-	Latency     string `json:"latency"`
-	Throughput  string `json:"throughput"`
-	Reliability string `json:"reliability"`
+	Latency      string `json:"latency"`
+	Throughput   string `json:"throughput"`
+	Reliability  string `json:"reliability"`
 	Availability string `json:"availability"`
 }
 
 // QoSSpecification defines QoS requirements
 type QoSSpecification struct {
-	Priority    int    `json:"priority"`
-	QCI         int    `json:"qci"`
-	ARP         int    `json:"arp"`
-	GBR         string `json:"gbr,omitempty"`
-	MBR         string `json:"mbr,omitempty"`
+	Priority int    `json:"priority"`
+	QCI      int    `json:"qci"`
+	ARP      int    `json:"arp"`
+	GBR      string `json:"gbr,omitempty"`
+	MBR      string `json:"mbr,omitempty"`
 }
 
 // ResourceRequirements defines resource requirements
@@ -186,18 +186,18 @@ type ResourceRequirements struct {
 
 // SecuritySpecification defines security requirements
 type SecuritySpecification struct {
-	Encryption    bool     `json:"encryption"`
+	Encryption     bool     `json:"encryption"`
 	Authentication string   `json:"authentication"`
 	Authorization  string   `json:"authorization"`
-	Policies      []string `json:"policies,omitempty"`
+	Policies       []string `json:"policies,omitempty"`
 }
 
 // ORANComplianceSpec defines O-RAN compliance requirements
 type ORANComplianceSpec struct {
-	Interfaces      []ORANInterface      `json:"interfaces"`
-	Validations     []ComplianceRule     `json:"validations"`
-	Certifications  []Certification      `json:"certifications,omitempty"`
-	Standards       []StandardReference  `json:"standards,omitempty"`
+	Interfaces     []ORANInterface     `json:"interfaces"`
+	Validations    []ComplianceRule    `json:"validations"`
+	Certifications []Certification     `json:"certifications,omitempty"`
+	Standards      []StandardReference `json:"standards,omitempty"`
 }
 
 // ORANInterface defines an O-RAN interface specification
@@ -211,11 +211,11 @@ type ORANInterface struct {
 
 // ComplianceRule defines a compliance validation rule
 type ComplianceRule struct {
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Standard    string `json:"standard"`
-	Expression  string `json:"expression"`
-	Required    bool   `json:"required"`
+	Name       string `json:"name"`
+	Type       string `json:"type"`
+	Standard   string `json:"standard"`
+	Expression string `json:"expression"`
+	Required   bool   `json:"required"`
 }
 
 // Certification defines certification requirements
@@ -251,15 +251,15 @@ type AuthenticationPolicy struct {
 
 // AuthorizationPolicy defines authorization requirements
 type AuthorizationPolicy struct {
-	RBAC     *RBACPolicy       `json:"rbac,omitempty"`
-	Policies []PolicyRule      `json:"policies,omitempty"`
+	RBAC     *RBACPolicy  `json:"rbac,omitempty"`
+	Policies []PolicyRule `json:"policies,omitempty"`
 }
 
 // RBACPolicy defines RBAC requirements
 type RBACPolicy struct {
-	Roles        []string          `json:"roles,omitempty"`
-	RoleBindings []string          `json:"roleBindings,omitempty"`
-	Subjects     []string          `json:"subjects,omitempty"`
+	Roles        []string `json:"roles,omitempty"`
+	RoleBindings []string `json:"roleBindings,omitempty"`
+	Subjects     []string `json:"subjects,omitempty"`
 }
 
 // PolicyRule defines a policy rule
@@ -304,21 +304,21 @@ type NetworkPort struct {
 
 // PodSecurityPolicy defines pod security requirements
 type PodSecurityPolicy struct {
-	RunAsUser     *int64  `json:"runAsUser,omitempty"`
-	RunAsGroup    *int64  `json:"runAsGroup,omitempty"`
-	ReadOnlyRoot  bool    `json:"readOnlyRoot"`
-	Privileged    bool    `json:"privileged"`
-	Capabilities  []string `json:"capabilities,omitempty"`
+	RunAsUser    *int64   `json:"runAsUser,omitempty"`
+	RunAsGroup   *int64   `json:"runAsGroup,omitempty"`
+	ReadOnlyRoot bool     `json:"readOnlyRoot"`
+	Privileged   bool     `json:"privileged"`
+	Capabilities []string `json:"capabilities,omitempty"`
 }
 
 // PlacementPolicySpec defines placement policy requirements
 type PlacementPolicySpec struct {
-	NodeSelector      map[string]string `json:"nodeSelector,omitempty"`
-	NodeAffinity      *NodeAffinity     `json:"nodeAffinity,omitempty"`
-	PodAffinity       *PodAffinity      `json:"podAffinity,omitempty"`
-	PodAntiAffinity   *PodAffinity      `json:"podAntiAffinity,omitempty"`
-	Tolerations       []Toleration      `json:"tolerations,omitempty"`
-	TopologySpread    []TopologySpread  `json:"topologySpread,omitempty"`
+	NodeSelector    map[string]string `json:"nodeSelector,omitempty"`
+	NodeAffinity    *NodeAffinity     `json:"nodeAffinity,omitempty"`
+	PodAffinity     *PodAffinity      `json:"podAffinity,omitempty"`
+	PodAntiAffinity *PodAffinity      `json:"podAntiAffinity,omitempty"`
+	Tolerations     []Toleration      `json:"tolerations,omitempty"`
+	TopologySpread  []TopologySpread  `json:"topologySpread,omitempty"`
 }
 
 // NodeAffinity defines node affinity requirements
@@ -373,7 +373,7 @@ type TopologySpread struct {
 var DefaultPackageCatalogConfig = &PackageCatalogConfig{
 	CatalogRepository:  "nephoran-catalog",
 	BlueprintDirectory: "blueprints",
-	VariantDirectory:   "variants", 
+	VariantDirectory:   "variants",
 	TemplateDirectory:  "templates",
 	CacheTimeout:       30 * time.Minute,
 	MaxCachedItems:     1000,
@@ -533,7 +533,7 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 		string(intent.Spec.IntentType), "found",
 	).Inc()
 
-	logger.Info("Found blueprint for intent", 
+	logger.Info("Found blueprint for intent",
 		"blueprint", bestBlueprint.Name,
 		"version", bestBlueprint.Version,
 	)
@@ -566,8 +566,8 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 	}()
 
 	// Generate variant name
-	variantName := fmt.Sprintf("%s-%s-%s", 
-		blueprint.Name, 
+	variantName := fmt.Sprintf("%s-%s-%s",
+		blueprint.Name,
 		specialization.ClusterContext.Name,
 		time.Now().Format("20060102-150405"))
 
@@ -613,7 +613,7 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 		blueprint.Name, specialization.ClusterContext.Name, "success",
 	).Inc()
 
-	logger.Info("Created package variant", 
+	logger.Info("Created package variant",
 		"variant", variantName,
 		"packageRevision", packageRevision.Name,
 	)
@@ -639,16 +639,16 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 		Revision:    "v1",
 		Lifecycle:   porch.PackageRevisionLifecycleDraft,
 		Labels: map[string]string{
-			"blueprint":       variant.Blueprint.Name,
-			"cluster":         variant.TargetCluster.Name,
-			"specialized":     "true",
-			"intent-managed":  "true",
+			"blueprint":      variant.Blueprint.Name,
+			"cluster":        variant.TargetCluster.Name,
+			"specialized":    "true",
+			"intent-managed": "true",
 		},
 		Annotations: map[string]string{
-			"blueprint.version":     variant.Blueprint.Version,
-			"cluster.region":        variant.TargetCluster.Region,
-			"cluster.zone":          variant.TargetCluster.Zone,
-			"specialization.time":   time.Now().Format(time.RFC3339),
+			"blueprint.version":   variant.Blueprint.Version,
+			"cluster.region":      variant.TargetCluster.Region,
+			"cluster.zone":        variant.TargetCluster.Zone,
+			"specialization.time": time.Now().Format(time.RFC3339),
 		},
 	}
 
@@ -678,10 +678,10 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 	// In a real implementation, this would use the Porch client
 	createdPackage := packageRevision.DeepCopy()
 	createdPackage.Status = porch.PackageRevisionStatus{
-		Phase:             "Draft",
-		UpstreamLock:      nil,
-		PublishedBy:       "nephoran-intent-operator",
-		PublishedAt:       metav1.NewTime(time.Now()),
+		Phase:        "Draft",
+		UpstreamLock: nil,
+		PublishedBy:  "nephoran-intent-operator",
+		PublishedAt:  metav1.NewTime(time.Now()),
 	}
 
 	span.SetAttributes(
@@ -702,14 +702,14 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 	for _, template := range variant.Blueprint.Resources {
 		// Apply specialization parameters to template
 		specializedResource := npc.applySpecialization(template, variant.Specialization)
-		
+
 		resource := porch.KRMResource{
 			Name:       template.Name,
 			Kind:       template.Kind,
 			APIVersion: template.APIVersion,
 			Content:    specializedResource,
 		}
-		
+
 		resources = append(resources, resource)
 	}
 
@@ -807,10 +807,10 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 			"metadata": map[string]interface{}{
 				"name": fmt.Sprintf("%s-ns", variant.Name),
 				"labels": map[string]interface{}{
-					"cluster":       cluster.Name,
-					"region":        cluster.Region,
-					"zone":          cluster.Zone,
-					"managed-by":    "nephoran-intent-operator",
+					"cluster":    cluster.Name,
+					"region":     cluster.Region,
+					"zone":       cluster.Zone,
+					"managed-by": "nephoran-intent-operator",
 				},
 			},
 		},
@@ -820,7 +820,7 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 	// ConfigMap with cluster info
 	configMapResource := porch.KRMResource{
 		Name:       "cluster-info",
-		Kind:       "ConfigMap", 
+		Kind:       "ConfigMap",
 		APIVersion: "v1",
 		Content: map[string]interface{}{
 			"apiVersion": "v1",
@@ -848,10 +848,10 @@ func (npc *NephioPackageCatalog) findWorkloadCluster(ctx context.Context, cluste
 	// This would typically query the workload registry
 	// For now, return a mock cluster
 	return &WorkloadCluster{
-		Name:         clusterName,
-		Status:       WorkloadClusterStatusActive,
-		Region:       "us-east-1",
-		Zone:         "us-east-1a",
+		Name:   clusterName,
+		Status: WorkloadClusterStatusActive,
+		Region: "us-east-1",
+		Zone:   "us-east-1a",
 		Capabilities: []ClusterCapability{
 			{
 				Name:    "5g-core",
@@ -993,7 +993,7 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 				},
 				{
 					Name:        "resources.memory",
-					Type:        "string", 
+					Type:        "string",
 					Description: "Memory resource requirements",
 					Default:     "512Mi",
 					Required:    false,
@@ -1041,7 +1041,7 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			UpdatedAt: time.Now(),
 		},
 		{
-			Name:        "oran-ric-blueprint", 
+			Name:        "oran-ric-blueprint",
 			Repository:  npc.config.CatalogRepository,
 			Version:     "1.0.0",
 			Description: "O-RAN RIC Platform",

@@ -20,33 +20,33 @@ import (
 
 // MockDependencies implements the Dependencies interface for testing
 type MockDependencies struct {
-	gitClient             *MockGitClient
-	llmClient             *MockLLMClient
-	packageGenerator      *MockPackageGenerator
-	httpClient            *http.Client
-	eventRecorder         *record.FakeRecorder
-	telecomKnowledgeBase  *telecom.TelecomKnowledgeBase
-	metricsCollector      *MockMetricsCollector
-	
+	gitClient            *MockGitClient
+	llmClient            *MockLLMClient
+	packageGenerator     *MockPackageGenerator
+	httpClient           *http.Client
+	eventRecorder        *record.FakeRecorder
+	telecomKnowledgeBase *telecom.TelecomKnowledgeBase
+	metricsCollector     *MockMetricsCollector
+
 	// Control behavior
-	simulateErrors        map[string]error
-	operationDelays       map[string]time.Duration
-	callCounts            map[string]int
-	mu                    sync.RWMutex
+	simulateErrors  map[string]error
+	operationDelays map[string]time.Duration
+	callCounts      map[string]int
+	mu              sync.RWMutex
 }
 
 // NewMockDependencies creates a new mock dependencies instance
 func NewMockDependencies() *MockDependencies {
 	return &MockDependencies{
-		gitClient:            NewMockGitClient(),
-		llmClient:            NewMockLLMClient(),
-		packageGenerator:     NewMockPackageGenerator(),
-		httpClient:           &http.Client{Timeout: 30 * time.Second},
-		eventRecorder:        record.NewFakeRecorder(100),
-		metricsCollector:     NewMockMetricsCollector(),
-		simulateErrors:       make(map[string]error),
-		operationDelays:      make(map[string]time.Duration),
-		callCounts:           make(map[string]int),
+		gitClient:        NewMockGitClient(),
+		llmClient:        NewMockLLMClient(),
+		packageGenerator: NewMockPackageGenerator(),
+		httpClient:       &http.Client{Timeout: 30 * time.Second},
+		eventRecorder:    record.NewFakeRecorder(100),
+		metricsCollector: NewMockMetricsCollector(),
+		simulateErrors:   make(map[string]error),
+		operationDelays:  make(map[string]time.Duration),
+		callCounts:       make(map[string]int),
 	}
 }
 
@@ -118,7 +118,7 @@ func (m *MockDependencies) simulateDelay(operation string) {
 	m.mu.RLock()
 	delay, exists := m.operationDelays[operation]
 	m.mu.RUnlock()
-	
+
 	if exists && delay > 0 {
 		time.Sleep(delay)
 	}
@@ -132,11 +132,11 @@ func (m *MockDependencies) checkError(operation string) error {
 
 // MockGitClient implements git.ClientInterface for testing
 type MockGitClient struct {
-	commits       []string
-	pushResults   map[string]error
-	pullResults   map[string]error
-	files         map[string]string
-	mu            sync.RWMutex
+	commits     []string
+	pushResults map[string]error
+	pullResults map[string]error
+	files       map[string]string
+	mu          sync.RWMutex
 }
 
 func NewMockGitClient() *MockGitClient {
@@ -157,14 +157,14 @@ func (m *MockGitClient) Clone(ctx context.Context, url, branch, path string) err
 func (m *MockGitClient) CommitAndPush(ctx context.Context, repoPath, message string, files map[string]string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	commitHash := fmt.Sprintf("commit-%d", len(m.commits))
 	m.commits = append(m.commits, commitHash)
-	
+
 	for path, content := range files {
 		m.files[path] = content
 	}
-	
+
 	if err := m.pushResults["CommitAndPush"]; err != nil {
 		return "", err
 	}
@@ -194,23 +194,23 @@ func NewMockLLMClient() *MockLLMClient {
 func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string, metadata map[string]interface{}) (*shared.LLMResponse, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if err := m.errors["ProcessIntent"]; err != nil {
 		return nil, err
 	}
-	
+
 	if response := m.responses["ProcessIntent"]; response != nil {
 		return response, nil
 	}
-	
+
 	// Default response for successful processing
 	return &shared.LLMResponse{
-		IntentType:    "5G-Core-AMF",
-		Confidence:    0.95,
+		IntentType: "5G-Core-AMF",
+		Confidence: 0.95,
 		Parameters: map[string]interface{}{
-			"replicas":    3,
-			"scaling":     true,
-			"cpu_request": "500m",
+			"replicas":       3,
+			"scaling":        true,
+			"cpu_request":    "500m",
 			"memory_request": "1Gi",
 		},
 		Manifests: map[string]interface{}{
@@ -227,7 +227,7 @@ func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string, metada
 		},
 		ProcessingTime: 1500,
 		TokensUsed:     250,
-		Model:         "gpt-4o-mini",
+		Model:          "gpt-4o-mini",
 	}, nil
 }
 
@@ -260,11 +260,11 @@ func NewMockPackageGenerator() *MockPackageGenerator {
 func (m *MockPackageGenerator) GeneratePackage(intentType string, parameters map[string]interface{}) (map[string]string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if err := m.errors["GeneratePackage"]; err != nil {
 		return nil, err
 	}
-	
+
 	// Generate mock package files
 	files := map[string]string{
 		"Kptfile": `apiVersion: kpt.dev/v1
@@ -292,7 +292,7 @@ spec:
       - name: ` + intentType + `
         image: ` + intentType + `:latest`,
 	}
-	
+
 	return files, nil
 }
 
@@ -371,7 +371,7 @@ func CreateMockLLMResponse(intentType string, confidence float64) *shared.LLMRes
 		},
 		ProcessingTime: 1500,
 		TokensUsed:     250,
-		Model:         "gpt-4o-mini",
+		Model:          "gpt-4o-mini",
 	}
 }
 
@@ -398,7 +398,7 @@ func (p *PerformanceTracker) Start(operation string) {
 func (p *PerformanceTracker) Stop(operation string) time.Duration {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	if start, exists := p.startTimes[operation]; exists {
 		duration := time.Since(start)
 		p.durations[operation] = duration
@@ -417,7 +417,7 @@ func (p *PerformanceTracker) GetDuration(operation string) time.Duration {
 func (p *PerformanceTracker) GetAllDurations() map[string]time.Duration {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
-	
+
 	result := make(map[string]time.Duration)
 	for k, v := range p.durations {
 		result[k] = v
@@ -448,28 +448,28 @@ func (c *ConcurrentTestRunner) AddOperation(op func() error) {
 
 func (c *ConcurrentTestRunner) Run() []error {
 	jobs := make(chan func() error, len(c.operations))
-	
+
 	// Start workers
 	for i := 0; i < c.workers; i++ {
 		c.wg.Add(1)
 		go c.worker(jobs)
 	}
-	
+
 	// Send jobs
 	for _, op := range c.operations {
 		jobs <- op
 	}
 	close(jobs)
-	
+
 	// Wait for completion
 	c.wg.Wait()
-	
+
 	return c.results
 }
 
 func (c *ConcurrentTestRunner) worker(jobs <-chan func() error) {
 	defer c.wg.Done()
-	
+
 	for op := range jobs {
 		err := op()
 		c.mu.Lock()

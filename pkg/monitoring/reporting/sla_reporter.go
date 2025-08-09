@@ -38,35 +38,35 @@ type SLATarget struct {
 
 // SLAStatus represents the current status of an SLA
 type SLAStatus struct {
-	Target           SLATarget     `json:"target"`
-	CurrentValue     float64       `json:"current_value"`
-	ComplianceStatus string        `json:"compliance_status"` // compliant, at_risk, violation
-	ErrorBudgetUsed  float64       `json:"error_budget_used"`
-	BurnRate         float64       `json:"burn_rate"`
-	TimeToExhaustion *time.Time    `json:"time_to_exhaustion,omitempty"`
-	LastUpdated      time.Time     `json:"last_updated"`
-	History          []DataPoint   `json:"history"`
+	Target           SLATarget      `json:"target"`
+	CurrentValue     float64        `json:"current_value"`
+	ComplianceStatus string         `json:"compliance_status"` // compliant, at_risk, violation
+	ErrorBudgetUsed  float64        `json:"error_budget_used"`
+	BurnRate         float64        `json:"burn_rate"`
+	TimeToExhaustion *time.Time     `json:"time_to_exhaustion,omitempty"`
+	LastUpdated      time.Time      `json:"last_updated"`
+	History          []DataPoint    `json:"history"`
 	Violations       []SLAViolation `json:"violations"`
 }
 
 // SLAViolation represents an SLA violation event
 type SLAViolation struct {
-	ID            string                 `json:"id"`
-	Target        string                 `json:"target"`
-	StartTime     time.Time              `json:"start_time"`
-	EndTime       *time.Time             `json:"end_time,omitempty"`
-	Duration      time.Duration          `json:"duration"`
-	Severity      string                 `json:"severity"`
-	ImpactValue   float64                `json:"impact_value"`
-	RootCause     string                 `json:"root_cause"`
-	Resolution    string                 `json:"resolution"`
-	BusinessImpact BusinessImpact        `json:"business_impact"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	ID             string                 `json:"id"`
+	Target         string                 `json:"target"`
+	StartTime      time.Time              `json:"start_time"`
+	EndTime        *time.Time             `json:"end_time,omitempty"`
+	Duration       time.Duration          `json:"duration"`
+	Severity       string                 `json:"severity"`
+	ImpactValue    float64                `json:"impact_value"`
+	RootCause      string                 `json:"root_cause"`
+	Resolution     string                 `json:"resolution"`
+	BusinessImpact BusinessImpact         `json:"business_impact"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 // BusinessImpact represents the business impact of an SLA violation
 type BusinessImpact struct {
-	RevenueImpact    float64 `json:"revenue_impact"`
+	RevenueImpact     float64 `json:"revenue_impact"`
 	CustomersAffected int64   `json:"customers_affected"`
 	TransactionsLost  int64   `json:"transactions_lost"`
 	ReputationScore   float64 `json:"reputation_score"`
@@ -122,8 +122,8 @@ type ReportTrends struct {
 
 // Recommendation provides actionable insights
 type Recommendation struct {
-	Type        string `json:"type"`        // performance, capacity, reliability
-	Priority    string `json:"priority"`    // high, medium, low
+	Type        string `json:"type"`     // performance, capacity, reliability
+	Priority    string `json:"priority"` // high, medium, low
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	Action      string `json:"action"`
@@ -132,15 +132,15 @@ type Recommendation struct {
 
 // BusinessMetrics provides business context for SLA performance
 type BusinessMetrics struct {
-	TotalRevenue        float64 `json:"total_revenue"`
-	RevenueAtRisk       float64 `json:"revenue_at_risk"`
+	TotalRevenue         float64 `json:"total_revenue"`
+	RevenueAtRisk        float64 `json:"revenue_at_risk"`
 	CustomerSatisfaction float64 `json:"customer_satisfaction"`
 	CompetitivePosition  string  `json:"competitive_position"`
 }
 
 // SLAReporter manages SLA monitoring and reporting
 type SLAReporter struct {
-	promClient       v1.API
+	promClient      v1.API
 	slaTargets      []SLATarget
 	violationStore  ViolationStore
 	reportGenerator ReportGenerator
@@ -208,7 +208,7 @@ func NewSLAReporter(promClient v1.API, logger *logrus.Logger) *SLAReporter {
 // Start begins the SLA monitoring process
 func (s *SLAReporter) Start(ctx context.Context) error {
 	s.logger.Info("Starting SLA Reporter")
-	
+
 	// Initialize current statuses
 	for _, target := range s.slaTargets {
 		s.currentStatuses[target.Name] = &SLAStatus{
@@ -222,10 +222,10 @@ func (s *SLAReporter) Start(ctx context.Context) error {
 
 	// Start monitoring loop
 	go s.monitoringLoop(ctx)
-	
+
 	// Start violation detection
 	go s.violationDetectionLoop(ctx)
-	
+
 	return nil
 }
 
@@ -239,12 +239,12 @@ func (s *SLAReporter) Stop() {
 func (s *SLAReporter) GetCurrentStatus() []SLAStatus {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	statuses := make([]SLAStatus, 0, len(s.currentStatuses))
 	for _, status := range s.currentStatuses {
 		statuses = append(statuses, *status)
 	}
-	
+
 	return statuses
 }
 
@@ -252,12 +252,12 @@ func (s *SLAReporter) GetCurrentStatus() []SLAStatus {
 func (s *SLAReporter) GetSLAStatus(targetName string) (*SLAStatus, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	status, exists := s.currentStatuses[targetName]
 	if !exists {
 		return nil, fmt.Errorf("SLA target %s not found", targetName)
 	}
-	
+
 	return status, nil
 }
 
@@ -267,7 +267,7 @@ func (s *SLAReporter) GenerateReport(reportType string, period Period) (*SLARepo
 		"report_type": reportType,
 		"period":      period,
 	}).Info("Generating SLA report")
-	
+
 	report := &SLAReport{
 		ID:          fmt.Sprintf("sla-report-%d", time.Now().Unix()),
 		GeneratedAt: time.Now(),
@@ -276,34 +276,34 @@ func (s *SLAReporter) GenerateReport(reportType string, period Period) (*SLARepo
 		SLAStatuses: s.GetCurrentStatus(),
 		Metadata:    make(map[string]interface{}),
 	}
-	
+
 	// Calculate overall SLA score
 	report.OverallSLAScore = s.calculateOverallSLAScore(report.SLAStatuses)
-	
+
 	// Generate summary
 	summary, err := s.generateSummary(period)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate summary: %v", err)
 	}
 	report.Summary = summary
-	
+
 	// Analyze trends
 	trends, err := s.analyzeTrends(period)
 	if err != nil {
 		return nil, fmt.Errorf("failed to analyze trends: %v", err)
 	}
 	report.Trends = trends
-	
+
 	// Generate recommendations
 	report.Recommendations = s.generateRecommendations(report.SLAStatuses, trends)
-	
+
 	// Calculate business metrics
 	businessMetrics, err := s.calculateBusinessMetrics(period)
 	if err != nil {
 		return nil, fmt.Errorf("failed to calculate business metrics: %v", err)
 	}
 	report.BusinessMetrics = businessMetrics
-	
+
 	return report, nil
 }
 
@@ -311,7 +311,7 @@ func (s *SLAReporter) GenerateReport(reportType string, period Period) (*SLARepo
 func (s *SLAReporter) monitoringLoop(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second) // Check every 30 seconds
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -328,7 +328,7 @@ func (s *SLAReporter) monitoringLoop(ctx context.Context) {
 func (s *SLAReporter) violationDetectionLoop(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute) // Check for violations every minute
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -345,21 +345,21 @@ func (s *SLAReporter) violationDetectionLoop(ctx context.Context) {
 func (s *SLAReporter) updateSLAStatuses(ctx context.Context) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	for _, target := range s.slaTargets {
 		status := s.currentStatuses[target.Name]
-		
+
 		// Query current value
 		value, err := s.queryCurrentValue(ctx, target.Query)
 		if err != nil {
 			s.logger.WithError(err).WithField("target", target.Name).Error("Failed to query current value")
 			continue
 		}
-		
+
 		// Update status
 		status.CurrentValue = value
 		status.LastUpdated = time.Now()
-		
+
 		// Add to history (keep last 100 points)
 		dataPoint := DataPoint{
 			Timestamp: time.Now(),
@@ -369,16 +369,16 @@ func (s *SLAReporter) updateSLAStatuses(ctx context.Context) {
 		if len(status.History) > 100 {
 			status.History = status.History[1:]
 		}
-		
+
 		// Calculate error budget usage
 		status.ErrorBudgetUsed = s.calculateErrorBudgetUsage(target, value)
-		
+
 		// Calculate burn rate
 		status.BurnRate = s.calculateBurnRate(status.History)
-		
+
 		// Update compliance status
 		status.ComplianceStatus = s.determineComplianceStatus(target, value, status.ErrorBudgetUsed)
-		
+
 		// Calculate time to exhaustion if burning error budget
 		if status.BurnRate > 0 {
 			remainingBudget := target.ErrorBudget - status.ErrorBudgetUsed
@@ -396,11 +396,11 @@ func (s *SLAReporter) queryCurrentValue(ctx context.Context, query string) (floa
 	if err != nil {
 		return 0, err
 	}
-	
+
 	if len(warnings) > 0 {
 		s.logger.WithField("warnings", warnings).Warn("Prometheus query returned warnings")
 	}
-	
+
 	switch result.Type() {
 	case model.ValVector:
 		vector := result.(model.Vector)
@@ -449,22 +449,22 @@ func (s *SLAReporter) calculateBurnRate(history []DataPoint) float64 {
 	if len(history) < 2 {
 		return 0
 	}
-	
+
 	// Calculate burn rate based on last 10 points
 	start := len(history) - 10
 	if start < 0 {
 		start = 0
 	}
-	
+
 	recent := history[start:]
 	if len(recent) < 2 {
 		return 0
 	}
-	
+
 	// Simple linear regression to calculate rate of change
 	var sumX, sumY, sumXY, sumX2 float64
 	n := float64(len(recent))
-	
+
 	for i, point := range recent {
 		x := float64(i)
 		y := point.Value
@@ -473,11 +473,11 @@ func (s *SLAReporter) calculateBurnRate(history []DataPoint) float64 {
 		sumXY += x * y
 		sumX2 += x * x
 	}
-	
+
 	if n*sumX2-sumX*sumX == 0 {
 		return 0
 	}
-	
+
 	slope := (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX)
 	return slope
 }
@@ -497,7 +497,7 @@ func (s *SLAReporter) determineComplianceStatus(target SLATarget, currentValue, 
 func (s *SLAReporter) detectViolations(ctx context.Context) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	
+
 	for _, status := range s.currentStatuses {
 		if status.ComplianceStatus == "violation" {
 			// Check if this is a new violation or ongoing
@@ -505,20 +505,20 @@ func (s *SLAReporter) detectViolations(ctx context.Context) {
 			if lastViolation == nil || lastViolation.EndTime != nil {
 				// New violation
 				violation := SLAViolation{
-					ID:        fmt.Sprintf("violation-%s-%d", status.Target.Name, time.Now().Unix()),
-					Target:    status.Target.Name,
-					StartTime: time.Now(),
-					Severity:  s.determineSeverity(status.ErrorBudgetUsed),
+					ID:          fmt.Sprintf("violation-%s-%d", status.Target.Name, time.Now().Unix()),
+					Target:      status.Target.Name,
+					StartTime:   time.Now(),
+					Severity:    s.determineSeverity(status.ErrorBudgetUsed),
 					ImpactValue: status.CurrentValue,
-					Metadata:  make(map[string]interface{}),
+					Metadata:    make(map[string]interface{}),
 				}
-				
+
 				if s.violationStore != nil {
 					if err := s.violationStore.Store(violation); err != nil {
 						s.logger.WithError(err).Error("Failed to store violation")
 					}
 				}
-				
+
 				s.logger.WithFields(logrus.Fields{
 					"target":    violation.Target,
 					"violation": violation.ID,
@@ -534,17 +534,17 @@ func (s *SLAReporter) getLastViolation(target string) *SLAViolation {
 	if s.violationStore == nil {
 		return nil
 	}
-	
+
 	violations, err := s.violationStore.List(target, time.Now().Add(-24*time.Hour))
 	if err != nil || len(violations) == 0 {
 		return nil
 	}
-	
+
 	// Sort by start time and return the most recent
 	sort.Slice(violations, func(i, j int) bool {
 		return violations[i].StartTime.After(violations[j].StartTime)
 	})
-	
+
 	return &violations[0]
 }
 
@@ -566,7 +566,7 @@ func (s *SLAReporter) calculateOverallSLAScore(statuses []SLAStatus) float64 {
 	if len(statuses) == 0 {
 		return 0
 	}
-	
+
 	var totalScore float64
 	for _, status := range statuses {
 		// Score based on compliance status
@@ -583,7 +583,7 @@ func (s *SLAReporter) calculateOverallSLAScore(statuses []SLAStatus) float64 {
 		}
 		totalScore += score
 	}
-	
+
 	return totalScore / float64(len(statuses))
 }
 
@@ -618,7 +618,7 @@ func (s *SLAReporter) analyzeTrends(period Period) (ReportTrends, error) {
 // generateRecommendations generates actionable recommendations
 func (s *SLAReporter) generateRecommendations(statuses []SLAStatus, trends ReportTrends) []Recommendation {
 	recommendations := make([]Recommendation, 0)
-	
+
 	// Analyze each SLA status for recommendations
 	for _, status := range statuses {
 		if status.ComplianceStatus == "violation" || status.ComplianceStatus == "at_risk" {
@@ -634,7 +634,7 @@ func (s *SLAReporter) generateRecommendations(statuses []SLAStatus, trends Repor
 			recommendations = append(recommendations, recommendation)
 		}
 	}
-	
+
 	// Add trend-based recommendations
 	if trends.LatencyTrend == "degrading" {
 		recommendations = append(recommendations, Recommendation{
@@ -646,7 +646,7 @@ func (s *SLAReporter) generateRecommendations(statuses []SLAStatus, trends Repor
 			Impact:      "Maintain responsive user experience",
 		})
 	}
-	
+
 	return recommendations
 }
 
@@ -679,7 +679,7 @@ func (s *SLAReporter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // handleSLAStatus handles requests for current SLA status
 func (s *SLAReporter) handleSLAStatus(w http.ResponseWriter, r *http.Request) {
 	statuses := s.GetCurrentStatus()
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(statuses)
 }
@@ -690,32 +690,32 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 	if reportType == "" {
 		reportType = "daily"
 	}
-	
+
 	// Parse period from query parameters
 	period := Period{
 		StartTime: time.Now().Add(-24 * time.Hour),
 		EndTime:   time.Now(),
 		Duration:  "24h",
 	}
-	
+
 	if start := r.URL.Query().Get("start"); start != "" {
 		if t, err := time.Parse(time.RFC3339, start); err == nil {
 			period.StartTime = t
 		}
 	}
-	
+
 	if end := r.URL.Query().Get("end"); end != "" {
 		if t, err := time.Parse(time.RFC3339, end); err == nil {
 			period.EndTime = t
 		}
 	}
-	
+
 	report, err := s.GenerateReport(reportType, period)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	format := r.URL.Query().Get("format")
 	switch format {
 	case "pdf":
@@ -764,24 +764,24 @@ func (s *SLAReporter) handleSLAReport(w http.ResponseWriter, r *http.Request) {
 func (s *SLAReporter) handleViolations(w http.ResponseWriter, r *http.Request) {
 	target := r.URL.Query().Get("target")
 	since := time.Now().Add(-24 * time.Hour)
-	
+
 	if sinceStr := r.URL.Query().Get("since"); sinceStr != "" {
 		if t, err := time.Parse(time.RFC3339, sinceStr); err == nil {
 			since = t
 		}
 	}
-	
+
 	if s.violationStore == nil {
 		http.Error(w, "Violation store not configured", http.StatusNotImplemented)
 		return
 	}
-	
+
 	violations, err := s.violationStore.List(target, since)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(violations)
 }

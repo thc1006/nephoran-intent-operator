@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package controllers
@@ -48,7 +49,7 @@ var _ = Describe("Windows Compatibility Tests", func() {
 			By("Verifying Windows path separators are handled correctly")
 			testPath := filepath.Join("C:", "Users", "test", "nephoran")
 			Expect(strings.Contains(testPath, "\\")).To(BeTrue(), "Should contain Windows path separators")
-			
+
 			By("Verifying path.Join works with Windows paths")
 			joinedPath := filepath.Join("C:", "temp", "kubebuilder", "bin")
 			expectedParts := []string{"C:", "temp", "kubebuilder", "bin"}
@@ -61,13 +62,13 @@ var _ = Describe("Windows Compatibility Tests", func() {
 			By("Setting and retrieving Windows environment variables")
 			testEnvVar := "NEPHORAN_TEST_VAR"
 			testValue := "C:\\Windows\\System32"
-			
+
 			os.Setenv(testEnvVar, testValue)
 			defer os.Unsetenv(testEnvVar)
-			
+
 			retrievedValue := os.Getenv(testEnvVar)
 			Expect(retrievedValue).To(Equal(testValue))
-			
+
 			By("Verifying Windows path expansion")
 			userProfile := os.Getenv("USERPROFILE")
 			if userProfile != "" {
@@ -79,24 +80,24 @@ var _ = Describe("Windows Compatibility Tests", func() {
 			By("Creating and manipulating files with Windows paths")
 			tempDir := os.TempDir()
 			Expect(tempDir).NotTo(BeEmpty())
-			
+
 			testFile := filepath.Join(tempDir, "nephoran-test.txt")
-			
+
 			// Create file
 			file, err := os.Create(testFile)
 			Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(testFile)
-			
+
 			// Write content
 			_, err = file.WriteString("Windows compatibility test\r\n")
 			Expect(err).NotTo(HaveOccurred())
 			file.Close()
-			
+
 			// Read content
 			content, err := os.ReadFile(testFile)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(content)).To(ContainSubstring("Windows compatibility test"))
-			
+
 			By("Verifying Windows line endings are preserved")
 			Expect(string(content)).To(ContainSubstring("\r\n"))
 		})
@@ -168,14 +169,14 @@ var _ = Describe("Windows Compatibility Tests", func() {
 				}),
 			}
 			Expect(k8sClient.List(ctx, configMapList, listOptions...)).To(Succeed())
-			
+
 			for _, cm := range configMapList.Items {
 				// Verify Windows-compatible time format
 				Expect(cm.Data["created"]).NotTo(BeEmpty())
 				createdTime, err := time.Parse(time.RFC3339, cm.Data["created"])
 				Expect(err).NotTo(HaveOccurred())
 				Expect(createdTime).To(BeTemporally("~", time.Now(), time.Minute))
-				
+
 				// Verify all required fields are present
 				Expect(cm.Data["nodeId"]).NotTo(BeEmpty())
 				Expect(cm.Data["nodeType"]).To(Equal("simulated-gnb"))
@@ -283,10 +284,10 @@ var _ = Describe("Windows Compatibility Tests", func() {
 		It("Should handle Windows-specific environment variables", func() {
 			By("Checking Windows system environment variables")
 			windowsVars := map[string]bool{
-				"USERPROFILE": false,
+				"USERPROFILE":  false,
 				"PROGRAMFILES": false,
-				"SYSTEMROOT": false,
-				"TEMP": false,
+				"SYSTEMROOT":   false,
+				"TEMP":         false,
 			}
 
 			for varName := range windowsVars {
@@ -310,21 +311,21 @@ var _ = Describe("Windows Compatibility Tests", func() {
 		It("Should handle Windows-specific time operations", func() {
 			By("Testing Windows time formatting")
 			now := time.Now()
-			
+
 			// Test RFC3339 formatting (used in controller)
 			rfc3339Time := now.Format(time.RFC3339)
 			Expect(rfc3339Time).To(MatchRegexp(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}`))
-			
+
 			// Test parsing back
 			parsedTime, err := time.Parse(time.RFC3339, rfc3339Time)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(parsedTime.Unix()).To(Equal(now.Unix()))
-			
+
 			By("Testing Windows-compatible duration handling")
 			testDuration := 30 * time.Second
 			durationString := testDuration.String()
 			Expect(durationString).To(Equal("30s"))
-			
+
 			parsedDuration, err := time.ParseDuration(durationString)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(parsedDuration).To(Equal(testDuration))
@@ -333,23 +334,23 @@ var _ = Describe("Windows Compatibility Tests", func() {
 		It("Should handle Windows process and runtime information", func() {
 			By("Verifying Windows runtime information")
 			Expect(runtime.GOOS).To(Equal("windows"))
-			
+
 			By("Checking Windows architecture")
 			validArches := []string{"amd64", "386", "arm64"}
 			Expect(validArches).To(ContainElement(runtime.GOARCH))
-			
+
 			By("Verifying Windows-specific process information")
 			pid := os.Getpid()
 			Expect(pid).To(BeNumerically(">", 0))
-			
+
 			// Test Windows-compatible executable detection
 			executable, err := os.Executable()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(executable).NotTo(BeEmpty())
-			
+
 			// Should contain .exe extension on Windows or be in temp directory
-			isExeOrTemp := strings.HasSuffix(strings.ToLower(executable), ".exe") || 
-						  strings.Contains(executable, "Temp")
+			isExeOrTemp := strings.HasSuffix(strings.ToLower(executable), ".exe") ||
+				strings.Contains(executable, "Temp")
 			Expect(isExeOrTemp).To(BeTrue(), fmt.Sprintf("Executable path should be Windows-compatible: %s", executable))
 		})
 	})
@@ -359,11 +360,11 @@ var _ = Describe("Windows Compatibility Tests", func() {
 			By("Testing Windows-compatible test descriptions")
 			testName := GinkgoT().Name()
 			Expect(testName).NotTo(BeEmpty())
-			
+
 			By("Verifying Windows line ending handling in test output")
 			windowsMessage := "Test message with Windows line ending\r\n"
 			Expect(windowsMessage).To(ContainSubstring("\r\n"))
-			
+
 			By("Testing Windows-compatible matcher operations")
 			windowsPath := `C:\Users\Test\nephoran-intent-operator`
 			Expect(windowsPath).To(MatchRegexp(`^[A-Z]:\\`))
@@ -373,14 +374,14 @@ var _ = Describe("Windows Compatibility Tests", func() {
 		It("Should handle Windows-specific test timing", func() {
 			By("Testing Windows-compatible timeouts")
 			start := time.Now()
-			
+
 			// Simulate a quick operation
 			time.Sleep(10 * time.Millisecond)
-			
+
 			elapsed := time.Since(start)
 			Expect(elapsed).To(BeNumerically(">=", 10*time.Millisecond))
 			Expect(elapsed).To(BeNumerically("<", 100*time.Millisecond))
-			
+
 			By("Testing Windows-compatible Eventually operations")
 			Eventually(func() bool {
 				return time.Now().After(start.Add(5 * time.Millisecond))
@@ -394,16 +395,16 @@ var _ = Describe("Windows Compatibility Tests", func() {
 				namespaceName,
 				1,
 			)
-			
+
 			Expect(k8sClient.Create(ctx, testE2NodeSet)).To(Succeed())
-			
+
 			By("Verifying resource exists")
 			created := &nephoranv1.E2NodeSet{}
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(testE2NodeSet), created)).To(Succeed())
-			
+
 			By("Testing Windows-compatible cleanup")
 			Expect(k8sClient.Delete(ctx, testE2NodeSet)).To(Succeed())
-			
+
 			By("Verifying cleanup completed on Windows")
 			Eventually(func() bool {
 				deleted := &nephoranv1.E2NodeSet{}
@@ -417,7 +418,7 @@ var _ = Describe("Windows Compatibility Tests", func() {
 		It("Should perform efficiently on Windows platform", func() {
 			By("Testing Windows performance characteristics")
 			start := time.Now()
-			
+
 			// Create multiple resources
 			e2nodeSets := []*nephoranv1.E2NodeSet{}
 			for i := 0; i < 5; i++ {
@@ -429,18 +430,18 @@ var _ = Describe("Windows Compatibility Tests", func() {
 				Expect(k8sClient.Create(ctx, e2ns)).To(Succeed())
 				e2nodeSets = append(e2nodeSets, e2ns)
 			}
-			
+
 			creationTime := time.Since(start)
 			By(fmt.Sprintf("Created 5 E2NodeSets in %v", creationTime))
 			Expect(creationTime).To(BeNumerically("<", 5*time.Second), "Resource creation should be reasonably fast on Windows")
-			
+
 			By("Testing Windows resource cleanup performance")
 			cleanupStart := time.Now()
-			
+
 			for _, e2ns := range e2nodeSets {
 				Expect(k8sClient.Delete(ctx, e2ns)).To(Succeed())
 			}
-			
+
 			cleanupTime := time.Since(cleanupStart)
 			By(fmt.Sprintf("Cleaned up 5 E2NodeSets in %v", cleanupTime))
 			Expect(cleanupTime).To(BeNumerically("<", 5*time.Second), "Resource cleanup should be reasonably fast on Windows")
@@ -449,13 +450,13 @@ var _ = Describe("Windows Compatibility Tests", func() {
 		It("Should handle Windows memory usage appropriately", func() {
 			By("Monitoring Windows memory usage during test operations")
 			var startMemStats, endMemStats runtime.MemStats
-			
+
 			runtime.GC()
 			runtime.ReadMemStats(&startMemStats)
-			
+
 			By("Performing memory-intensive operations")
 			largeE2NodeSets := []*nephoranv1.E2NodeSet{}
-			
+
 			for i := 0; i < 10; i++ {
 				e2ns := CreateTestE2NodeSet(
 					GetUniqueName(fmt.Sprintf("memory-test-%d", i)),
@@ -469,21 +470,21 @@ var _ = Describe("Windows Compatibility Tests", func() {
 				for j := 0; j < 10; j++ {
 					e2ns.Annotations[fmt.Sprintf("large-annotation-%d", j)] = strings.Repeat("data", 100)
 				}
-				
+
 				Expect(k8sClient.Create(ctx, e2ns)).To(Succeed())
 				largeE2NodeSets = append(largeE2NodeSets, e2ns)
 			}
-			
+
 			runtime.GC()
 			runtime.ReadMemStats(&endMemStats)
-			
+
 			By("Verifying reasonable memory usage on Windows")
 			memoryIncreaseMB := float64(endMemStats.Alloc-startMemStats.Alloc) / (1024 * 1024)
 			By(fmt.Sprintf("Memory increase: %.2f MB", memoryIncreaseMB))
-			
+
 			// Should not use excessive memory (adjust threshold as needed)
 			Expect(memoryIncreaseMB).To(BeNumerically("<", 50), "Memory usage should be reasonable on Windows")
-			
+
 			By("Cleaning up memory test resources")
 			for _, e2ns := range largeE2NodeSets {
 				Expect(k8sClient.Delete(ctx, e2ns)).To(Succeed())
@@ -496,26 +497,26 @@ var _ = Describe("Windows Compatibility Tests", func() {
 
 func getWindowsSystemInfo() map[string]string {
 	info := make(map[string]string)
-	
+
 	envVars := []string{
 		"USERPROFILE",
-		"PROGRAMFILES", 
+		"PROGRAMFILES",
 		"SYSTEMROOT",
 		"TEMP",
 		"USERNAME",
 		"COMPUTERNAME",
 	}
-	
+
 	for _, envVar := range envVars {
 		if value := os.Getenv(envVar); value != "" {
 			info[envVar] = value
 		}
 	}
-	
+
 	info["GOOS"] = runtime.GOOS
 	info["GOARCH"] = runtime.GOARCH
 	info["NumCPU"] = fmt.Sprintf("%d", runtime.NumCPU())
-	
+
 	return info
 }
 
@@ -524,7 +525,7 @@ func isWindowsLongPathSupported() bool {
 	longPath := strings.Repeat("a", 300) + ".txt"
 	tempDir := os.TempDir()
 	fullPath := filepath.Join(tempDir, longPath)
-	
+
 	file, err := os.Create(fullPath)
 	if err != nil {
 		return false

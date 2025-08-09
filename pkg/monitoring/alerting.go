@@ -33,34 +33,34 @@ const (
 
 // Alert represents an alert instance
 type Alert struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Description string                 `json:"description"`
-	Severity    AlertSeverity          `json:"severity"`
-	State       AlertState             `json:"state"`
-	Labels      map[string]string      `json:"labels"`
-	Annotations map[string]string      `json:"annotations"`
-	StartsAt    time.Time              `json:"starts_at"`
-	EndsAt      *time.Time             `json:"ends_at,omitempty"`
-	GeneratorURL string                `json:"generator_url,omitempty"`
-	Fingerprint string                 `json:"fingerprint"`
-	Value       interface{}            `json:"value,omitempty"`
-	Details     map[string]interface{} `json:"details,omitempty"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Description  string                 `json:"description"`
+	Severity     AlertSeverity          `json:"severity"`
+	State        AlertState             `json:"state"`
+	Labels       map[string]string      `json:"labels"`
+	Annotations  map[string]string      `json:"annotations"`
+	StartsAt     time.Time              `json:"starts_at"`
+	EndsAt       *time.Time             `json:"ends_at,omitempty"`
+	GeneratorURL string                 `json:"generator_url,omitempty"`
+	Fingerprint  string                 `json:"fingerprint"`
+	Value        interface{}            `json:"value,omitempty"`
+	Details      map[string]interface{} `json:"details,omitempty"`
 }
 
 // AlertRule defines conditions for triggering alerts
 type AlertRule struct {
-	Name         string                 `json:"name"`
-	Description  string                 `json:"description"`
-	Condition    AlertConditionFunc     `json:"-"`
-	Severity     AlertSeverity          `json:"severity"`
-	Duration     time.Duration          `json:"duration"`
-	Labels       map[string]string      `json:"labels"`
-	Annotations  map[string]string      `json:"annotations"`
-	Enabled      bool                   `json:"enabled"`
-	LastEvaluated time.Time             `json:"last_evaluated"`
-	EvaluationCount int64               `json:"evaluation_count"`
-	AlertCount   int64                  `json:"alert_count"`
+	Name            string             `json:"name"`
+	Description     string             `json:"description"`
+	Condition       AlertConditionFunc `json:"-"`
+	Severity        AlertSeverity      `json:"severity"`
+	Duration        time.Duration      `json:"duration"`
+	Labels          map[string]string  `json:"labels"`
+	Annotations     map[string]string  `json:"annotations"`
+	Enabled         bool               `json:"enabled"`
+	LastEvaluated   time.Time          `json:"last_evaluated"`
+	EvaluationCount int64              `json:"evaluation_count"`
+	AlertCount      int64              `json:"alert_count"`
 }
 
 // AlertConditionFunc evaluates whether an alert should fire
@@ -68,11 +68,11 @@ type AlertConditionFunc func(ctx context.Context) (bool, interface{}, error)
 
 // NotificationChannel represents a notification destination
 type NotificationChannel struct {
-	Name     string            `json:"name"`
-	Type     string            `json:"type"` // slack, email, webhook, pagerduty
-	Config   map[string]string `json:"config"`
-	Enabled  bool              `json:"enabled"`
-	Filters  []AlertFilter     `json:"filters"`
+	Name    string            `json:"name"`
+	Type    string            `json:"type"` // slack, email, webhook, pagerduty
+	Config  map[string]string `json:"config"`
+	Enabled bool              `json:"enabled"`
+	Filters []AlertFilter     `json:"filters"`
 }
 
 // AlertFilter filters alerts for notification channels
@@ -139,7 +139,7 @@ func (am *AlertManager) RegisterAlertRule(rule *AlertRule) {
 	defer am.mu.Unlock()
 
 	am.rules[rule.Name] = rule
-	
+
 	if am.logger != nil {
 		am.logger.Info(context.Background(), "Alert rule registered",
 			slog.String("rule_name", rule.Name),
@@ -155,7 +155,7 @@ func (am *AlertManager) RegisterNotificationChannel(channel *NotificationChannel
 	defer am.mu.Unlock()
 
 	am.notificationChannels[channel.Name] = channel
-	
+
 	if am.logger != nil {
 		am.logger.Info(context.Background(), "Notification channel registered",
 			slog.String("channel_name", channel.Name),
@@ -261,7 +261,7 @@ func (am *AlertManager) evaluateRule(ctx context.Context, rule *AlertRule) {
 	}
 
 	alertID := am.generateAlertID(rule)
-	
+
 	am.mu.Lock()
 	existingAlert, exists := am.activeAlerts[alertID]
 	am.mu.Unlock()
@@ -366,7 +366,7 @@ func (am *AlertManager) shouldNotify(alert *Alert, channel *NotificationChannel)
 // matchFilter checks if an alert matches a filter
 func (am *AlertManager) matchFilter(alert *Alert, filter AlertFilter) bool {
 	var value string
-	
+
 	switch filter.Field {
 	case "severity":
 		value = string(alert.Severity)
@@ -432,10 +432,10 @@ func (am *AlertManager) sendSlackNotification(ctx context.Context, alert *Alert,
 	payload := map[string]interface{}{
 		"attachments": []map[string]interface{}{
 			{
-				"color":      color,
-				"title":      fmt.Sprintf("%s %s", stateEmoji, alert.Name),
-				"text":       alert.Description,
-				"timestamp":  alert.StartsAt.Unix(),
+				"color":     color,
+				"title":     fmt.Sprintf("%s %s", stateEmoji, alert.Name),
+				"text":      alert.Description,
+				"timestamp": alert.StartsAt.Unix(),
 				"fields": []map[string]interface{}{
 					{
 						"title": "Severity",
@@ -691,7 +691,7 @@ func (am *AlertManager) copyLabels(labels map[string]string) map[string]string {
 	if labels == nil {
 		return make(map[string]string)
 	}
-	
+
 	copy := make(map[string]string, len(labels))
 	for k, v := range labels {
 		copy[k] = v

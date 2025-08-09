@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // ORANTestFactory provides factory methods for creating O-RAN test data
@@ -37,52 +37,52 @@ func (otf *ORANTestFactory) GetNextName(prefix string) string {
 func (otf *ORANTestFactory) CreateA1PolicyManagementIntent(scenario string) *nephranv1.NetworkIntent {
 	var intent string
 	var labels map[string]string
-	
+
 	switch scenario {
 	case "traffic-steering":
 		intent = "Create traffic steering policy for load balancing with 70% traffic to primary RAN node and 30% to secondary node"
 		labels = map[string]string{
-			"test-type":        "a1-traffic-steering",
-			"oran-interface":   "a1",
-			"policy-type":      "traffic-steering",
+			"test-type":      "a1-traffic-steering",
+			"oran-interface": "a1",
+			"policy-type":    "traffic-steering",
 		}
 	case "qos-optimization":
 		intent = "Deploy QoS optimization policy for enhanced mobile broadband with latency target 10ms and throughput 1Gbps"
 		labels = map[string]string{
-			"test-type":        "a1-qos-optimization",
-			"oran-interface":   "a1",
-			"policy-type":      "qos-optimization",
+			"test-type":      "a1-qos-optimization",
+			"oran-interface": "a1",
+			"policy-type":    "qos-optimization",
 		}
 	case "admission-control":
 		intent = "Configure admission control policy for URLLC services with priority-based resource allocation"
 		labels = map[string]string{
-			"test-type":        "a1-admission-control",
-			"oran-interface":   "a1",
-			"policy-type":      "admission-control",
+			"test-type":      "a1-admission-control",
+			"oran-interface": "a1",
+			"policy-type":    "admission-control",
 		}
 	case "energy-saving":
 		intent = "Create energy saving policy for RAN optimization during low traffic periods with 20% power reduction"
 		labels = map[string]string{
-			"test-type":        "a1-energy-saving",
-			"oran-interface":   "a1",
-			"policy-type":      "energy-saving",
+			"test-type":      "a1-energy-saving",
+			"oran-interface": "a1",
+			"policy-type":    "energy-saving",
 		}
 	default:
 		intent = "Create basic traffic management policy for RAN optimization"
 		labels = map[string]string{
-			"test-type":        "a1-basic-policy",
-			"oran-interface":   "a1",
-			"policy-type":      "basic",
+			"test-type":      "a1-basic-policy",
+			"oran-interface": "a1",
+			"policy-type":    "basic",
 		}
 	}
-	
+
 	return &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      otf.GetNextName("a1-policy-intent"),
 			Namespace: "default",
 			Labels:    labels,
 			Annotations: map[string]string{
-				"test-scenario":    scenario,
+				"test-scenario":   scenario,
 				"test-created-at": otf.timeBase.Format(time.RFC3339),
 			},
 		},
@@ -101,47 +101,47 @@ func (otf *ORANTestFactory) CreateA1PolicyManagementIntent(scenario string) *nep
 // CreateA1Policy creates a test A1 policy
 func (otf *ORANTestFactory) CreateA1Policy(policyType string) *A1Policy {
 	var policyData map[string]interface{}
-	
+
 	switch policyType {
 	case "traffic-steering":
 		policyData = map[string]interface{}{
 			"primaryPathWeight":   0.7,
 			"secondaryPathWeight": 0.3,
-			"targetThroughput":   "1Gbps",
-			"latencyThreshold":   "10ms",
-			"cellList": []string{"cell-001", "cell-002", "cell-003"},
+			"targetThroughput":    "1Gbps",
+			"latencyThreshold":    "10ms",
+			"cellList":            []string{"cell-001", "cell-002", "cell-003"},
 		}
 	case "qos-optimization":
 		policyData = map[string]interface{}{
-			"serviceType":        "eMBB",
-			"latencyTarget":      10, // milliseconds
-			"throughputTarget":   1000, // Mbps
-			"reliabilityTarget":  99.99, // percentage
+			"serviceType":       "eMBB",
+			"latencyTarget":     10,    // milliseconds
+			"throughputTarget":  1000,  // Mbps
+			"reliabilityTarget": 99.99, // percentage
 			"5qi":               1,
 			"arp":               1,
 		}
 	case "admission-control":
 		policyData = map[string]interface{}{
-			"maxConcurrentUEs":   1000,
-			"priorityThreshold":  8,
-			"resourceReserved":   0.1, // 10% reserved for emergency
-			"admissionStrategy":  "priority-based",
+			"maxConcurrentUEs":  1000,
+			"priorityThreshold": 8,
+			"resourceReserved":  0.1, // 10% reserved for emergency
+			"admissionStrategy": "priority-based",
 		}
 	case "energy-saving":
 		policyData = map[string]interface{}{
-			"powerReductionTarget": 0.2, // 20% reduction
-			"activationThreshold":  0.3, // Activate when utilization < 30%
-			"deactivationThreshold": 0.7, // Deactivate when utilization > 70%
-			"enabledHours": []int{22, 23, 0, 1, 2, 3, 4, 5}, // 10 PM to 5 AM
+			"powerReductionTarget":  0.2,                             // 20% reduction
+			"activationThreshold":   0.3,                             // Activate when utilization < 30%
+			"deactivationThreshold": 0.7,                             // Deactivate when utilization > 70%
+			"enabledHours":          []int{22, 23, 0, 1, 2, 3, 4, 5}, // 10 PM to 5 AM
 		}
 	default:
 		policyData = map[string]interface{}{
-			"action":     "optimize",
-			"target":     "throughput",
-			"threshold":  100,
+			"action":    "optimize",
+			"target":    "throughput",
+			"threshold": 100,
 		}
 	}
-	
+
 	return &A1Policy{
 		PolicyID:     otf.GetNextName("policy"),
 		PolicyTypeID: policyType,
@@ -155,24 +155,24 @@ func (otf *ORANTestFactory) CreateA1Policy(policyType string) *A1Policy {
 // CreateXAppConfig creates a test xApp configuration
 func (otf *ORANTestFactory) CreateXAppConfig(xappType string) *XAppConfig {
 	var configData map[string]interface{}
-	
+
 	switch xappType {
 	case "qoe-optimizer":
 		configData = map[string]interface{}{
-			"optimizationTarget": "qoe",
-			"mlModel":           "neural-network",
-			"updateInterval":    "10s",
-			"performanceMetrics": []string{"throughput", "latency", "packetLoss"},
+			"optimizationTarget":  "qoe",
+			"mlModel":             "neural-network",
+			"updateInterval":      "10s",
+			"performanceMetrics":  []string{"throughput", "latency", "packetLoss"},
 			"adaptationThreshold": 0.1,
 		}
 	case "load-balancer":
 		configData = map[string]interface{}{
-			"balancingAlgorithm": "weighted-round-robin",
+			"balancingAlgorithm":  "weighted-round-robin",
 			"healthCheckInterval": "5s",
-			"failoverThreshold":  3,
+			"failoverThreshold":   3,
 			"loadThresholds": map[string]float64{
-				"cpu":    0.8,
-				"memory": 0.85,
+				"cpu":     0.8,
+				"memory":  0.85,
 				"network": 0.9,
 			},
 		}
@@ -180,8 +180,8 @@ func (otf *ORANTestFactory) CreateXAppConfig(xappType string) *XAppConfig {
 		configData = map[string]interface{}{
 			"detectionAlgorithm": "isolation-forest",
 			"sensitivityLevel":   "medium",
-			"monitoredMetrics": []string{"cpuUsage", "memoryUsage", "networkLatency"},
-			"alertThreshold":    0.95,
+			"monitoredMetrics":   []string{"cpuUsage", "memoryUsage", "networkLatency"},
+			"alertThreshold":     0.95,
 		}
 	case "slice-optimizer":
 		configData = map[string]interface{}{
@@ -200,7 +200,7 @@ func (otf *ORANTestFactory) CreateXAppConfig(xappType string) *XAppConfig {
 			"enabled":        true,
 		}
 	}
-	
+
 	return &XAppConfig{
 		Name:       otf.GetNextName("xapp-" + xappType),
 		Version:    "1.0.0",
@@ -216,45 +216,45 @@ func (otf *ORANTestFactory) CreateXAppConfig(xappType string) *XAppConfig {
 func (otf *ORANTestFactory) CreateE2NodeManagementIntent(scenario string) *nephranv1.NetworkIntent {
 	var intent string
 	var labels map[string]string
-	
+
 	switch scenario {
 	case "gnodeb-registration":
 		intent = "Register gNodeB with E2 interface supporting KPM and RC service models for 5G standalone deployment"
 		labels = map[string]string{
-			"test-type":        "e2-gnodeb-registration",
-			"oran-interface":   "e2",
-			"node-type":        "gnodeb",
+			"test-type":      "e2-gnodeb-registration",
+			"oran-interface": "e2",
+			"node-type":      "gnodeb",
 		}
 	case "enb-registration":
 		intent = "Register eNodeB with E2 interface for LTE to 5G NSA deployment with measurement reporting"
 		labels = map[string]string{
-			"test-type":        "e2-enb-registration", 
-			"oran-interface":   "e2",
-			"node-type":        "enb",
+			"test-type":      "e2-enb-registration",
+			"oran-interface": "e2",
+			"node-type":      "enb",
 		}
 	case "multi-node-deployment":
 		intent = "Deploy multiple E2 nodes with different configurations for distributed RAN testing"
 		labels = map[string]string{
-			"test-type":        "e2-multi-node",
-			"oran-interface":   "e2",
-			"deployment-type":  "distributed",
+			"test-type":       "e2-multi-node",
+			"oran-interface":  "e2",
+			"deployment-type": "distributed",
 		}
 	default:
 		intent = "Create basic E2 node registration for RAN testing"
 		labels = map[string]string{
-			"test-type":        "e2-basic-node",
-			"oran-interface":   "e2",
-			"node-type":        "generic",
+			"test-type":      "e2-basic-node",
+			"oran-interface": "e2",
+			"node-type":      "generic",
 		}
 	}
-	
+
 	return &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      otf.GetNextName("e2-node-intent"),
 			Namespace: "default",
 			Labels:    labels,
 			Annotations: map[string]string{
-				"test-scenario":    scenario,
+				"test-scenario":   scenario,
 				"test-created-at": otf.timeBase.Format(time.RFC3339),
 			},
 		},
@@ -275,7 +275,7 @@ func (otf *ORANTestFactory) CreateE2NodeSet(scenario string, replicas int32) *ne
 	var ranFunctions []nephranv1.RANFunction
 	var simulationConfig *nephranv1.SimulationConfig
 	var ricConfig *nephranv1.RICConfiguration
-	
+
 	switch scenario {
 	case "kpm-testing":
 		ranFunctions = []nephranv1.RANFunction{
@@ -350,7 +350,7 @@ func (otf *ORANTestFactory) CreateE2NodeSet(scenario string, replicas int32) *ne
 			TrafficProfile:    nephranv1.TrafficProfileLow,
 		}
 	}
-	
+
 	ricConfig = &nephranv1.RICConfiguration{
 		RICEndpoint:       "http://near-rt-ric:38080",
 		ConnectionTimeout: "30s",
@@ -360,15 +360,15 @@ func (otf *ORANTestFactory) CreateE2NodeSet(scenario string, replicas int32) *ne
 			BackoffInterval: "5s",
 		},
 	}
-	
+
 	return &nephranv1.E2NodeSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      otf.GetNextName("e2nodeset-" + scenario),
 			Namespace: "default",
 			Labels: map[string]string{
-				"test-type":       "e2-nodeset",
-				"oran-interface":  "e2",
-				"test-scenario":   scenario,
+				"test-type":      "e2-nodeset",
+				"oran-interface": "e2",
+				"test-scenario":  scenario,
 			},
 			Annotations: map[string]string{
 				"test-created-at": otf.timeBase.Format(time.RFC3339),
@@ -393,11 +393,11 @@ func (otf *ORANTestFactory) CreateE2NodeSet(scenario string, replicas int32) *ne
 func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E2Subscription {
 	var eventTrigger map[string]interface{}
 	var actions []E2Action
-	
+
 	switch serviceModel {
 	case "KPM":
 		eventTrigger = map[string]interface{}{
-			"reportingPeriod":    1000, // 1 second
+			"reportingPeriod":   1000, // 1 second
 			"granularityPeriod": 100,  // 100 ms
 		}
 		actions = []E2Action{
@@ -406,7 +406,7 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 				ActionType: "REPORT",
 				Definition: map[string]interface{}{
 					"measurementType": "DRB.UEThpDl",
-					"cellID":         "001",
+					"cellID":          "001",
 					"plmnID": map[string]string{
 						"mcc": "001",
 						"mnc": "01",
@@ -418,7 +418,7 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 				ActionType: "REPORT",
 				Definition: map[string]interface{}{
 					"measurementType": "DRB.UEThpUl",
-					"cellID":         "001",
+					"cellID":          "001",
 				},
 			},
 		}
@@ -450,7 +450,7 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 				ActionType: "REPORT",
 				Definition: map[string]interface{}{
 					"informationType": "CELL_INFO",
-					"cellID":         "001",
+					"cellID":          "001",
 				},
 			},
 		}
@@ -468,15 +468,15 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 			},
 		}
 	}
-	
+
 	return &E2Subscription{
 		SubscriptionID: otf.GetNextName("e2-sub"),
-		NodeID:        nodeID,
-		ServiceModel:  serviceModel,
-		EventTrigger:  eventTrigger,
-		Actions:       actions,
-		Status:        "ACTIVE",
-		CreatedAt:     otf.timeBase.Add(time.Duration(otf.nameCounter) * time.Second),
+		NodeID:         nodeID,
+		ServiceModel:   serviceModel,
+		EventTrigger:   eventTrigger,
+		Actions:        actions,
+		Status:         "ACTIVE",
+		CreatedAt:      otf.timeBase.Add(time.Duration(otf.nameCounter) * time.Second),
 	}
 }
 
@@ -484,13 +484,13 @@ func (otf *ORANTestFactory) CreateE2Subscription(serviceModel, nodeID string) *E
 func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 	var supportedModels []string
 	var capabilities map[string]interface{}
-	
+
 	switch nodeType {
 	case "gnodeb":
 		supportedModels = []string{"KPM", "RC", "NI"}
 		capabilities = map[string]interface{}{
-			"maxUEs":              10000,
-			"supportedBands":      []string{"n78", "n79", "n258"},
+			"maxUEs":             10000,
+			"supportedBands":     []string{"n78", "n79", "n258"},
 			"mimo":               "8x8",
 			"carrierAggregation": true,
 		}
@@ -499,15 +499,15 @@ func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 		capabilities = map[string]interface{}{
 			"maxUEs":         5000,
 			"supportedBands": []string{"B1", "B3", "B7", "B20"},
-			"mimo":          "4x4",
+			"mimo":           "4x4",
 		}
 	case "ng-enb":
 		supportedModels = []string{"KPM", "RC"}
 		capabilities = map[string]interface{}{
 			"maxUEs":         8000,
 			"supportedBands": []string{"B1", "B3", "B7", "B20", "n78"},
-			"mimo":          "4x4",
-			"nsa":           true,
+			"mimo":           "4x4",
+			"nsa":            true,
 		}
 	default:
 		supportedModels = []string{"KPM"}
@@ -516,20 +516,20 @@ func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 			"basic":  true,
 		}
 	}
-	
+
 	plmns := []PLMNID{
 		{MCC: "001", MNC: "01"},
 		{MCC: "001", MNC: "02"},
 	}
-	
+
 	return &E2Node{
 		NodeID:          otf.GetNextName("node-" + nodeType),
 		NodeType:        nodeType,
-		PLMNs:          plmns,
+		PLMNs:           plmns,
 		SupportedModels: supportedModels,
-		Status:         "CONNECTED",
-		LastHeartbeat:  otf.timeBase.Add(time.Duration(otf.nameCounter) * time.Second),
-		Capabilities:   capabilities,
+		Status:          "CONNECTED",
+		LastHeartbeat:   otf.timeBase.Add(time.Duration(otf.nameCounter) * time.Second),
+		Capabilities:    capabilities,
 	}
 }
 
@@ -539,52 +539,52 @@ func (otf *ORANTestFactory) CreateE2Node(nodeType string) *E2Node {
 func (otf *ORANTestFactory) CreateO1FCAPSIntent(scenario string) *nephranv1.NetworkIntent {
 	var intent string
 	var labels map[string]string
-	
+
 	switch scenario {
 	case "fault-management":
 		intent = "Configure fault management for AMF with critical alarm monitoring and automatic incident creation"
 		labels = map[string]string{
-			"test-type":        "o1-fault-mgmt",
-			"oran-interface":   "o1",
-			"fcaps-category":   "fault",
+			"test-type":      "o1-fault-mgmt",
+			"oran-interface": "o1",
+			"fcaps-category": "fault",
 		}
 	case "configuration-management":
 		intent = "Setup configuration management for UPF with NETCONF interface and YANG model validation"
 		labels = map[string]string{
-			"test-type":        "o1-config-mgmt",
-			"oran-interface":   "o1",
-			"fcaps-category":   "configuration",
+			"test-type":      "o1-config-mgmt",
+			"oran-interface": "o1",
+			"fcaps-category": "configuration",
 		}
 	case "performance-management":
 		intent = "Enable performance monitoring for SMF with KPI collection every 15 minutes and SLA tracking"
 		labels = map[string]string{
-			"test-type":        "o1-perf-mgmt",
-			"oran-interface":   "o1",
-			"fcaps-category":   "performance",
+			"test-type":      "o1-perf-mgmt",
+			"oran-interface": "o1",
+			"fcaps-category": "performance",
 		}
 	case "security-management":
 		intent = "Configure security management for 5G Core with certificate automation and access control"
 		labels = map[string]string{
-			"test-type":        "o1-security-mgmt",
-			"oran-interface":   "o1",
-			"fcaps-category":   "security",
+			"test-type":      "o1-security-mgmt",
+			"oran-interface": "o1",
+			"fcaps-category": "security",
 		}
 	default:
 		intent = "Setup basic O1 management interface for network function monitoring"
 		labels = map[string]string{
-			"test-type":        "o1-basic-mgmt",
-			"oran-interface":   "o1",
-			"fcaps-category":   "basic",
+			"test-type":      "o1-basic-mgmt",
+			"oran-interface": "o1",
+			"fcaps-category": "basic",
 		}
 	}
-	
+
 	return &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      otf.GetNextName("o1-fcaps-intent"),
 			Namespace: "default",
 			Labels:    labels,
 			Annotations: map[string]string{
-				"test-scenario":    scenario,
+				"test-scenario":   scenario,
 				"test-created-at": otf.timeBase.Format(time.RFC3339),
 			},
 		},
@@ -605,13 +605,13 @@ func (otf *ORANTestFactory) CreateO1FCAPSIntent(scenario string) *nephranv1.Netw
 // CreateManagedElement creates a test managed element for O1 testing
 func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedElement {
 	var configuration map[string]interface{}
-	
+
 	switch elementType {
 	case "AMF":
 		configuration = map[string]interface{}{
 			"faultMonitoring": map[string]interface{}{
-				"enabled":       true,
-				"severity":      []string{"CRITICAL", "MAJOR", "MINOR"},
+				"enabled":      true,
+				"severity":     []string{"CRITICAL", "MAJOR", "MINOR"},
 				"alertTargets": []string{"smo@example.com"},
 			},
 			"performanceMonitoring": map[string]interface{}{
@@ -627,9 +627,9 @@ func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedEle
 	case "SMF":
 		configuration = map[string]interface{}{
 			"sessionManagement": map[string]interface{}{
-				"maxSessions":      100000,
-				"sessionTimeout":   "300s",
-				"retryAttempts":    3,
+				"maxSessions":    100000,
+				"sessionTimeout": "300s",
+				"retryAttempts":  3,
 			},
 			"performanceMonitoring": map[string]interface{}{
 				"enabled": true,
@@ -644,8 +644,8 @@ func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedEle
 		configuration = map[string]interface{}{
 			"dataPlane": map[string]interface{}{
 				"maxThroughput": "100Gbps",
-				"bufferSize":   "1GB",
-				"qosSupport":   true,
+				"bufferSize":    "1GB",
+				"qosSupport":    true,
 			},
 			"performanceMonitoring": map[string]interface{}{
 				"enabled": true,
@@ -659,12 +659,12 @@ func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedEle
 	default:
 		configuration = map[string]interface{}{
 			"basicMonitoring": map[string]interface{}{
-				"enabled": true,
+				"enabled":  true,
 				"interval": "60s",
 			},
 		}
 	}
-	
+
 	return &ManagedElement{
 		ElementID:     otf.GetNextName("element-" + elementType),
 		ElementType:   elementType,
@@ -677,7 +677,7 @@ func (otf *ORANTestFactory) CreateManagedElement(elementType string) *ManagedEle
 // CreateO1Configuration creates a test O1 configuration
 func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) *O1Configuration {
 	var configData map[string]interface{}
-	
+
 	switch configType {
 	case "FCAPS":
 		configData = map[string]interface{}{
@@ -687,14 +687,14 @@ func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) 
 				"notificationTargets": []string{"http://smo.example.com/alarms"},
 			},
 			"configurationManagement": map[string]interface{}{
-				"autoBackup":      true,
-				"backupInterval":  "1h",
-				"configHistory":   30, // days
+				"autoBackup":     true,
+				"backupInterval": "1h",
+				"configHistory":  30, // days
 			},
 			"performanceManagement": map[string]interface{}{
 				"collection_interval": "15m",
-				"aggregationLevel":   "cell",
-				"retentionPeriod":    "7d",
+				"aggregationLevel":    "cell",
+				"retentionPeriod":     "7d",
 			},
 		}
 	case "SECURITY":
@@ -725,9 +725,9 @@ func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) 
 				"throughput.downlink",
 			},
 			"thresholds": map[string]interface{}{
-				"cpu_usage":     80.0,
-				"memory_usage":  85.0,
-				"latency":       100.0, // milliseconds
+				"cpu_usage":    80.0,
+				"memory_usage": 85.0,
+				"latency":      100.0, // milliseconds
 			},
 			"reporting": map[string]interface{}{
 				"interval": "15m",
@@ -743,7 +743,7 @@ func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) 
 			},
 		}
 	}
-	
+
 	return &O1Configuration{
 		ConfigID:   otf.GetNextName("config-" + configType),
 		ElementID:  elementID,
@@ -760,52 +760,52 @@ func (otf *ORANTestFactory) CreateO1Configuration(configType, elementID string) 
 func (otf *ORANTestFactory) CreateO2CloudInfraIntent(scenario string) *nephranv1.NetworkIntent {
 	var intent string
 	var labels map[string]string
-	
+
 	switch scenario {
 	case "multi-cloud-deployment":
 		intent = "Provision multi-cloud infrastructure across AWS, Azure, and GCP for 5G Core redundancy"
 		labels = map[string]string{
-			"test-type":         "o2-multi-cloud",
-			"oran-interface":    "o2",
-			"deployment-scope":  "multi-cloud",
+			"test-type":        "o2-multi-cloud",
+			"oran-interface":   "o2",
+			"deployment-scope": "multi-cloud",
 		}
 	case "edge-cloud-deployment":
 		intent = "Deploy edge cloud infrastructure for UPF with low-latency requirements and local breakout"
 		labels = map[string]string{
-			"test-type":         "o2-edge-cloud",
-			"oran-interface":    "o2",
-			"deployment-scope":  "edge",
+			"test-type":        "o2-edge-cloud",
+			"oran-interface":   "o2",
+			"deployment-scope": "edge",
 		}
 	case "hybrid-cloud-deployment":
 		intent = "Setup hybrid cloud deployment with private cloud for core functions and public cloud for scaling"
 		labels = map[string]string{
-			"test-type":         "o2-hybrid-cloud",
-			"oran-interface":    "o2",
-			"deployment-scope":  "hybrid",
+			"test-type":        "o2-hybrid-cloud",
+			"oran-interface":   "o2",
+			"deployment-scope": "hybrid",
 		}
 	case "container-orchestration":
 		intent = "Deploy Kubernetes clusters for containerized network functions with auto-scaling and service mesh"
 		labels = map[string]string{
-			"test-type":         "o2-container-orch",
-			"oran-interface":    "o2",
-			"deployment-scope":  "containers",
+			"test-type":        "o2-container-orch",
+			"oran-interface":   "o2",
+			"deployment-scope": "containers",
 		}
 	default:
 		intent = "Provision basic cloud infrastructure for network function deployment"
 		labels = map[string]string{
-			"test-type":         "o2-basic-cloud",
-			"oran-interface":    "o2",
-			"deployment-scope":  "basic",
+			"test-type":        "o2-basic-cloud",
+			"oran-interface":   "o2",
+			"deployment-scope": "basic",
 		}
 	}
-	
+
 	return &nephranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      otf.GetNextName("o2-cloud-intent"),
 			Namespace: "default",
 			Labels:    labels,
 			Annotations: map[string]string{
-				"test-scenario":    scenario,
+				"test-scenario":   scenario,
 				"test-created-at": otf.timeBase.Format(time.RFC3339),
 			},
 		},
@@ -828,7 +828,7 @@ func (otf *ORANTestFactory) CreateO2CloudInfraIntent(scenario string) *nephranv1
 func (otf *ORANTestFactory) CreatePerformanceBenchmarkData() map[string]*InterfaceMetrics {
 	return map[string]*InterfaceMetrics{
 		"A1": {
-			RequestCount:    1000,
+			RequestCount:   1000,
 			SuccessCount:   985,
 			FailureCount:   15,
 			AverageLatency: 45 * time.Millisecond,
@@ -838,7 +838,7 @@ func (otf *ORANTestFactory) CreatePerformanceBenchmarkData() map[string]*Interfa
 			LastTestTime:   time.Now(),
 		},
 		"E2": {
-			RequestCount:    2500,
+			RequestCount:   2500,
 			SuccessCount:   2465,
 			FailureCount:   35,
 			AverageLatency: 25 * time.Millisecond,
@@ -848,7 +848,7 @@ func (otf *ORANTestFactory) CreatePerformanceBenchmarkData() map[string]*Interfa
 			LastTestTime:   time.Now(),
 		},
 		"O1": {
-			RequestCount:    800,
+			RequestCount:   800,
 			SuccessCount:   792,
 			FailureCount:   8,
 			AverageLatency: 120 * time.Millisecond,
@@ -858,7 +858,7 @@ func (otf *ORANTestFactory) CreatePerformanceBenchmarkData() map[string]*Interfa
 			LastTestTime:   time.Now(),
 		},
 		"O2": {
-			RequestCount:    150,
+			RequestCount:   150,
 			SuccessCount:   148,
 			FailureCount:   2,
 			AverageLatency: 2500 * time.Millisecond,
@@ -883,7 +883,7 @@ func (otf *ORANTestFactory) CreateServiceModels() []*ServiceModel {
 					"DRB.UEThpDl", "DRB.UEThpUl", "RRU.PrbUsedDl", "RRU.PrbUsedUl",
 				},
 				"granularityPeriods": []int{100, 1000, 10000},
-				"maxReports":        1000,
+				"maxReports":         1000,
 			},
 		},
 		{

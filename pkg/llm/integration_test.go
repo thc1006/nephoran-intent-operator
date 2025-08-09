@@ -13,12 +13,12 @@ import (
 
 // IntegrationTestSuite represents a complete LLM processing pipeline integration test
 type IntegrationTestSuite struct {
-	contextBuilder    *ContextBuilder
-	relevanceScorer   *RelevanceScorer
-	promptBuilder     *RAGAwarePromptBuilder
-	mockWeaviatePool  *MockWeaviateConnectionPool
-	mockEmbedding     *MockEmbeddingServiceForScorer
-	mockTokenManager  *MockTokenManager
+	contextBuilder   *ContextBuilder
+	relevanceScorer  *RelevanceScorer
+	promptBuilder    *RAGAwarePromptBuilder
+	mockWeaviatePool *MockWeaviateConnectionPool
+	mockEmbedding    *MockEmbeddingServiceForScorer
+	mockTokenManager *MockTokenManager
 }
 
 // NewIntegrationTestSuite creates a new integration test suite with all mock dependencies
@@ -38,7 +38,7 @@ func NewIntegrationTestSuite() *IntegrationTestSuite {
 	mockTokenManager := &MockTokenManager{
 		supportsSystemPrompt: true,
 		supportsChatFormat:   true,
-		maxTokens:           4096,
+		maxTokens:            4096,
 	}
 
 	// Create context builder
@@ -537,12 +537,12 @@ func (suite *IntegrationTestSuite) ExecuteCompleteWorkflow(
 	for i, docMap := range contextDocs {
 		// Convert map back to document for scoring
 		doc := mapToTelecomDocument(docMap)
-		
+
 		request := &RelevanceRequest{
-			Query:      intent,
-			IntentType: intentType,
-			Document:   doc,
-			Position:   i,
+			Query:         intent,
+			IntentType:    intentType,
+			Document:      doc,
+			Position:      i,
 			OriginalScore: getFloatFromMap(docMap, "score", 0.5),
 		}
 
@@ -570,12 +570,12 @@ func (suite *IntegrationTestSuite) ExecuteCompleteWorkflow(
 
 	// Stage 4: Build comprehensive prompt
 	promptRequest := &PromptRequest{
-		Query:       intent,
-		IntentType:  intentType,
-		ModelName:   modelName,
-		RAGContext:  searchResults,
+		Query:          intent,
+		IntentType:     intentType,
+		ModelName:      modelName,
+		RAGContext:     searchResults,
 		IncludeFewShot: true,
-		MaxTokens:   4000,
+		MaxTokens:      4000,
 	}
 
 	promptResponse, err := suite.promptBuilder.BuildPrompt(ctx, promptRequest)
@@ -599,94 +599,94 @@ func (suite *IntegrationTestSuite) ExecuteCompleteWorkflow(
 func createComprehensiveTelecomKnowledgeBase() []*shared.SearchResult {
 	documents := []*shared.TelecomDocument{
 		{
-			ID:       "5g_amf_deploy_ha",
-			Title:    "5G AMF High Availability Deployment Guide",
-			Content:  "Comprehensive guide for deploying Access and Mobility Management Function with high availability, including redundancy, load balancing, and failover mechanisms in 5G standalone core networks.",
-			Source:   "3GPP TS 23.501 v17.0.0",
-			Category: "configuration",
-			Version:  "v17.0.0",
-			Keywords: []string{"AMF", "5G", "high availability", "deployment", "redundancy"},
+			ID:              "5g_amf_deploy_ha",
+			Title:           "5G AMF High Availability Deployment Guide",
+			Content:         "Comprehensive guide for deploying Access and Mobility Management Function with high availability, including redundancy, load balancing, and failover mechanisms in 5G standalone core networks.",
+			Source:          "3GPP TS 23.501 v17.0.0",
+			Category:        "configuration",
+			Version:         "v17.0.0",
+			Keywords:        []string{"AMF", "5G", "high availability", "deployment", "redundancy"},
 			NetworkFunction: []string{"AMF"},
-			Technology: []string{"5G", "5GC"},
-			UseCase: []string{"configuration", "deployment"},
-			Confidence: 0.95,
-			CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-5 * 24 * time.Hour),
+			Technology:      []string{"5G", "5GC"},
+			UseCase:         []string{"configuration", "deployment"},
+			Confidence:      0.95,
+			CreatedAt:       time.Now().Add(-30 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-5 * 24 * time.Hour),
 		},
 		{
-			ID:      "oran_handover_troubleshooting",
-			Title:   "O-RAN Handover Troubleshooting Procedures",
-			Content: "Detailed troubleshooting procedures for handover failures in O-RAN networks, including X2/Xn interface analysis, RIC policy conflicts, and timing synchronization issues.",
-			Source:  "O-RAN.WG3.HO-v02.00",
-			Category: "troubleshooting",
-			Version: "v2.0",
-			Keywords: []string{"O-RAN", "handover", "troubleshooting", "X2", "Xn", "RIC"},
+			ID:              "oran_handover_troubleshooting",
+			Title:           "O-RAN Handover Troubleshooting Procedures",
+			Content:         "Detailed troubleshooting procedures for handover failures in O-RAN networks, including X2/Xn interface analysis, RIC policy conflicts, and timing synchronization issues.",
+			Source:          "O-RAN.WG3.HO-v02.00",
+			Category:        "troubleshooting",
+			Version:         "v2.0",
+			Keywords:        []string{"O-RAN", "handover", "troubleshooting", "X2", "Xn", "RIC"},
 			NetworkFunction: []string{"O-CU", "O-DU", "RIC"},
-			Technology: []string{"O-RAN", "5G", "RAN"},
-			UseCase: []string{"troubleshooting", "diagnostics"},
-			Confidence: 0.91,
-			CreatedAt: time.Now().Add(-60 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-15 * 24 * time.Hour),
+			Technology:      []string{"O-RAN", "5G", "RAN"},
+			UseCase:         []string{"troubleshooting", "diagnostics"},
+			Confidence:      0.91,
+			CreatedAt:       time.Now().Add(-60 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-15 * 24 * time.Hour),
 		},
 		{
-			ID:      "network_slicing_optimization",
-			Title:   "5G Network Slicing Optimization for Multi-Service Support",
-			Content: "Optimization strategies for 5G network slicing supporting simultaneous eMBB, URLLC, and mMTC services with dynamic resource allocation and QoS management.",
-			Source:  "3GPP TS 28.530 v16.5.0",
-			Category: "optimization",
-			Version: "v16.5.0",
-			Keywords: []string{"network slicing", "eMBB", "URLLC", "mMTC", "QoS", "optimization"},
+			ID:              "network_slicing_optimization",
+			Title:           "5G Network Slicing Optimization for Multi-Service Support",
+			Content:         "Optimization strategies for 5G network slicing supporting simultaneous eMBB, URLLC, and mMTC services with dynamic resource allocation and QoS management.",
+			Source:          "3GPP TS 28.530 v16.5.0",
+			Category:        "optimization",
+			Version:         "v16.5.0",
+			Keywords:        []string{"network slicing", "eMBB", "URLLC", "mMTC", "QoS", "optimization"},
 			NetworkFunction: []string{"NSSF", "AMF", "SMF"},
-			Technology: []string{"5G", "Network Slicing"},
-			UseCase: []string{"optimization", "multi-service"},
-			Confidence: 0.89,
-			CreatedAt: time.Now().Add(-45 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-10 * 24 * time.Hour),
+			Technology:      []string{"5G", "Network Slicing"},
+			UseCase:         []string{"optimization", "multi-service"},
+			Confidence:      0.89,
+			CreatedAt:       time.Now().Add(-45 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-10 * 24 * time.Hour),
 		},
 		{
-			ID:      "upf_edge_deployment",
-			Title:   "User Plane Function Edge Deployment for Low-Latency Applications",
-			Content: "Deployment procedures for UPF at edge locations to support ultra-low latency applications including AR/VR, autonomous vehicles, and industrial IoT.",
-			Source:  "ETSI MEC 003 v3.1.1",
-			Category: "configuration",
-			Version: "v3.1.1",
-			Keywords: []string{"UPF", "edge computing", "low latency", "MEC", "deployment"},
+			ID:              "upf_edge_deployment",
+			Title:           "User Plane Function Edge Deployment for Low-Latency Applications",
+			Content:         "Deployment procedures for UPF at edge locations to support ultra-low latency applications including AR/VR, autonomous vehicles, and industrial IoT.",
+			Source:          "ETSI MEC 003 v3.1.1",
+			Category:        "configuration",
+			Version:         "v3.1.1",
+			Keywords:        []string{"UPF", "edge computing", "low latency", "MEC", "deployment"},
 			NetworkFunction: []string{"UPF"},
-			Technology: []string{"5G", "Edge Computing", "MEC"},
-			UseCase: []string{"edge deployment", "low latency"},
-			Confidence: 0.87,
-			CreatedAt: time.Now().Add(-25 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-8 * 24 * time.Hour),
+			Technology:      []string{"5G", "Edge Computing", "MEC"},
+			UseCase:         []string{"edge deployment", "low latency"},
+			Confidence:      0.87,
+			CreatedAt:       time.Now().Add(-25 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-8 * 24 * time.Hour),
 		},
 		{
-			ID:      "gnb_performance_optimization",
-			Title:   "gNodeB Performance Optimization for Dense Urban Deployments",
-			Content: "Performance tuning guidelines for gNodeB in high-density urban environments, covering interference management, capacity optimization, and energy efficiency.",
-			Source:  "O-RAN.WG3.E2-v03.00",
-			Category: "optimization",
-			Version: "v3.0",
-			Keywords: []string{"gNodeB", "performance", "optimization", "urban", "interference"},
+			ID:              "gnb_performance_optimization",
+			Title:           "gNodeB Performance Optimization for Dense Urban Deployments",
+			Content:         "Performance tuning guidelines for gNodeB in high-density urban environments, covering interference management, capacity optimization, and energy efficiency.",
+			Source:          "O-RAN.WG3.E2-v03.00",
+			Category:        "optimization",
+			Version:         "v3.0",
+			Keywords:        []string{"gNodeB", "performance", "optimization", "urban", "interference"},
 			NetworkFunction: []string{"gNB", "O-CU", "O-DU"},
-			Technology: []string{"5G", "O-RAN", "RAN"},
-			UseCase: []string{"optimization", "performance tuning"},
-			Confidence: 0.86,
-			CreatedAt: time.Now().Add(-40 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-12 * 24 * time.Hour),
+			Technology:      []string{"5G", "O-RAN", "RAN"},
+			UseCase:         []string{"optimization", "performance tuning"},
+			Confidence:      0.86,
+			CreatedAt:       time.Now().Add(-40 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-12 * 24 * time.Hour),
 		},
 		{
-			ID:      "nssf_slice_selection",
-			Title:   "Network Slice Selection Function Configuration and Policies",
-			Content: "NSSF configuration procedures for network slice selection, including selection policies, slice templates, and integration with AMF and SMF components.",
-			Source:  "3GPP TS 23.502 v17.1.0",
-			Category: "configuration",
-			Version: "v17.1.0",
-			Keywords: []string{"NSSF", "slice selection", "policies", "configuration"},
+			ID:              "nssf_slice_selection",
+			Title:           "Network Slice Selection Function Configuration and Policies",
+			Content:         "NSSF configuration procedures for network slice selection, including selection policies, slice templates, and integration with AMF and SMF components.",
+			Source:          "3GPP TS 23.502 v17.1.0",
+			Category:        "configuration",
+			Version:         "v17.1.0",
+			Keywords:        []string{"NSSF", "slice selection", "policies", "configuration"},
 			NetworkFunction: []string{"NSSF"},
-			Technology: []string{"5G", "Network Slicing"},
-			UseCase: []string{"configuration", "slice management"},
-			Confidence: 0.92,
-			CreatedAt: time.Now().Add(-20 * 24 * time.Hour),
-			UpdatedAt: time.Now().Add(-3 * 24 * time.Hour),
+			Technology:      []string{"5G", "Network Slicing"},
+			UseCase:         []string{"configuration", "slice management"},
+			Confidence:      0.92,
+			CreatedAt:       time.Now().Add(-20 * 24 * time.Hour),
+			UpdatedAt:       time.Now().Add(-3 * 24 * time.Hour),
 		},
 	}
 
@@ -704,47 +704,47 @@ func createComprehensiveTelecomKnowledgeBase() []*shared.SearchResult {
 
 func createLargeTelecomKnowledgeBase(count int) []*shared.SearchResult {
 	results := make([]*shared.SearchResult, count)
-	
+
 	baseDocs := createComprehensiveTelecomKnowledgeBase()
-	
+
 	for i := 0; i < count; i++ {
 		baseDoc := baseDocs[i%len(baseDocs)].Document
-		
+
 		// Create variations of the base documents
 		doc := &shared.TelecomDocument{
-			ID:      fmt.Sprintf("%s_variant_%d", baseDoc.ID, i),
-			Title:   fmt.Sprintf("%s (Variant %d)", baseDoc.Title, i),
-			Content: fmt.Sprintf("%s Additional content for variant %d with extended details.", baseDoc.Content, i),
-			Source:  baseDoc.Source,
-			Category: baseDoc.Category,
-			Version: baseDoc.Version,
-			Keywords: append(baseDoc.Keywords, fmt.Sprintf("variant%d", i)),
+			ID:              fmt.Sprintf("%s_variant_%d", baseDoc.ID, i),
+			Title:           fmt.Sprintf("%s (Variant %d)", baseDoc.Title, i),
+			Content:         fmt.Sprintf("%s Additional content for variant %d with extended details.", baseDoc.Content, i),
+			Source:          baseDoc.Source,
+			Category:        baseDoc.Category,
+			Version:         baseDoc.Version,
+			Keywords:        append(baseDoc.Keywords, fmt.Sprintf("variant%d", i)),
 			NetworkFunction: baseDoc.NetworkFunction,
-			Technology: baseDoc.Technology,
-			UseCase: baseDoc.UseCase,
-			Confidence: baseDoc.Confidence - float32(i%10)*0.01,
-			CreatedAt: time.Now().Add(-time.Duration(i*24) * time.Hour),
-			UpdatedAt: time.Now().Add(-time.Duration(i*12) * time.Hour),
+			Technology:      baseDoc.Technology,
+			UseCase:         baseDoc.UseCase,
+			Confidence:      baseDoc.Confidence - float32(i%10)*0.01,
+			CreatedAt:       time.Now().Add(-time.Duration(i*24) * time.Hour),
+			UpdatedAt:       time.Now().Add(-time.Duration(i*12) * time.Hour),
 		}
-		
+
 		results[i] = &shared.SearchResult{
 			Document: doc,
 			Score:    0.9 - float32(i)*0.01,
 			Distance: float32(i) * 0.01,
 		}
 	}
-	
+
 	return results
 }
 
 func mapToTelecomDocument(docMap map[string]any) *shared.TelecomDocument {
 	doc := &shared.TelecomDocument{
-		ID:       getStringFromMap(docMap, "id", ""),
-		Title:    getStringFromMap(docMap, "title", ""),
-		Content:  getStringFromMap(docMap, "content", ""),
-		Source:   getStringFromMap(docMap, "source", ""),
-		Category: getStringFromMap(docMap, "category", ""),
-		Version:  getStringFromMap(docMap, "version", ""),
+		ID:         getStringFromMap(docMap, "id", ""),
+		Title:      getStringFromMap(docMap, "title", ""),
+		Content:    getStringFromMap(docMap, "content", ""),
+		Source:     getStringFromMap(docMap, "source", ""),
+		Category:   getStringFromMap(docMap, "category", ""),
+		Version:    getStringFromMap(docMap, "version", ""),
 		Confidence: getFloatFromMap(docMap, "confidence", 0.5),
 	}
 

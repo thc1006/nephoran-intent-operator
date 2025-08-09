@@ -21,11 +21,11 @@ type ContextAssembler struct {
 type ContextAssemblyStrategy string
 
 const (
-	StrategyRankBased      ContextAssemblyStrategy = "rank_based"      // Use results in rank order
-	StrategyHierarchical   ContextAssemblyStrategy = "hierarchical"    // Group by document hierarchy
-	StrategyTopical        ContextAssemblyStrategy = "topical"         // Group by topic/domain
-	StrategyProgressive    ContextAssemblyStrategy = "progressive"     // Build context progressively
-	StrategyBalanced       ContextAssemblyStrategy = "balanced"        // Balance different sources/types
+	StrategyRankBased    ContextAssemblyStrategy = "rank_based"   // Use results in rank order
+	StrategyHierarchical ContextAssemblyStrategy = "hierarchical" // Group by document hierarchy
+	StrategyTopical      ContextAssemblyStrategy = "topical"      // Group by topic/domain
+	StrategyProgressive  ContextAssemblyStrategy = "progressive"  // Build context progressively
+	StrategyBalanced     ContextAssemblyStrategy = "balanced"     // Balance different sources/types
 )
 
 // ContextSection represents a section of assembled context
@@ -589,8 +589,8 @@ func (ca *ContextAssembler) createSectionFromResults(results []*EnhancedSearchRe
 	metadata := map[string]interface{}{
 		"result_count":      len(results),
 		"average_relevance": avgRelevance,
-		"sources":          ca.uniqueStrings(sources),
-		"section_type":     sectionType,
+		"sources":           ca.uniqueStrings(sources),
+		"section_type":      sectionType,
 	}
 
 	section := &ContextSection{
@@ -644,7 +644,7 @@ func (ca *ContextAssembler) assembleContextFromSections(sections []*ContextSecti
 
 	for i, section := range sections {
 		sectionContent := section.Content
-		
+
 		// Check if adding this section would exceed the limit
 		if currentLength+len(sectionContent) > maxLength {
 			// Try to include partial content
@@ -677,16 +677,16 @@ func (ca *ContextAssembler) assembleContextFromSections(sections []*ContextSecti
 func (ca *ContextAssembler) sortSectionsByPriority(sections []*ContextSection) {
 	typePriority := map[string]int{
 		"introduction": 0,
-		"main":        1,
-		"detail":      2,
-		"conclusion":  3,
+		"main":         1,
+		"detail":       2,
+		"conclusion":   3,
 	}
 
 	sort.Slice(sections, func(i, j int) bool {
 		// First sort by type priority
 		priI := typePriority[sections[i].SectionType]
 		priJ := typePriority[sections[j].SectionType]
-		
+
 		if priI != priJ {
 			return priI < priJ
 		}
@@ -704,14 +704,14 @@ func (ca *ContextAssembler) truncateAtSentenceBoundary(content string, maxLength
 
 	// Find the last sentence boundary before maxLength
 	truncated := content[:maxLength]
-	
+
 	// Look for sentence endings
 	lastDot := strings.LastIndex(truncated, ".")
 	lastExclamation := strings.LastIndex(truncated, "!")
 	lastQuestion := strings.LastIndex(truncated, "?")
-	
+
 	lastSentenceEnd := max(lastDot, lastExclamation, lastQuestion)
-	
+
 	if lastSentenceEnd > maxLength/2 { // Only truncate if we keep at least half
 		return content[:lastSentenceEnd+1]
 	}
@@ -768,7 +768,7 @@ func (ca *ContextAssembler) createContextMetadata(sections []*ContextSection, re
 	for _, section := range sections {
 		requestedLength += len(section.Content)
 	}
-	
+
 	if len(context) < requestedLength {
 		metadata.TruncatedAt = len(context)
 	}

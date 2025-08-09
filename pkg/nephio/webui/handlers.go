@@ -43,7 +43,7 @@ func (h *PackageHandlers) ListPackages(w http.ResponseWriter, r *http.Request) {
 	// This is a placeholder implementation
 	packages := []PackageRevision{
 		{
-			ID:   uuid.New(),
+			ID: uuid.New(),
 			Spec: PackageRevisionSpec{
 				Name:        "example-package",
 				Repository:  "nephio-packages",
@@ -237,8 +237,8 @@ func (h *NetworkIntentHandlers) SubmitIntent(w http.ResponseWriter, r *http.Requ
 		Description: intentSpec.Type,
 		Spec:        intentSpec,
 		Status: NetworkIntentStatus{
-			Phase:     "Submitted",
-			Progress:  0.0,
+			Phase:    "Submitted",
+			Progress: 0.0,
 			Conditions: []Condition{
 				{
 					Type:    "Processing",
@@ -276,8 +276,8 @@ func (h *NetworkIntentHandlers) ListIntents(w http.ResponseWriter, r *http.Reque
 				TargetClusters: []string{"cluster-01"},
 			},
 			Status: NetworkIntentStatus{
-				Phase:     "Processing",
-				Progress:  0.5,
+				Phase:    "Processing",
+				Progress: 0.5,
 				Conditions: []Condition{
 					{
 						Type:    "Deploying",
@@ -324,12 +324,12 @@ func NewSystemHandlers(logger *zap.Logger, kubeClient kubernetes.Interface) *Sys
 func (h *SystemHandlers) GetHealthStatus(w http.ResponseWriter, r *http.Request) {
 	// TODO: Implement comprehensive health check logic
 	healthStatus := APIHealthStatus{
-		Status:           "Healthy",
-		Version:          "1.0.0",
-		Uptime:           metav1.Now().Sub(metav1.Time{}),
-		Components:       map[string]string{
-			"database":  "Connected",
-			"cache":     "Operational",
+		Status:  "Healthy",
+		Version: "1.0.0",
+		Uptime:  metav1.Now().Sub(metav1.Time{}),
+		Components: map[string]string{
+			"database":   "Connected",
+			"cache":      "Operational",
 			"kubeclient": "Healthy",
 		},
 		DatabaseStatus:   "Connected",

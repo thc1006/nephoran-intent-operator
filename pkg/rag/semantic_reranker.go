@@ -24,10 +24,10 @@ type SemanticReranker struct {
 
 // CrossEncoder provides cross-encoder scoring for query-document pairs
 type CrossEncoder struct {
-	modelName    string
-	initialized  bool
-	scoreCache   map[string]float32
-	cacheMutex   sync.RWMutex
+	modelName   string
+	initialized bool
+	scoreCache  map[string]float32
+	cacheMutex  sync.RWMutex
 }
 
 // RerankingScore contains detailed scoring information
@@ -142,7 +142,7 @@ func (sr *SemanticReranker) calculateDetailedScore(ctx context.Context, query st
 func (sr *SemanticReranker) calculateSemanticSimilarity(query, content string) float32 {
 	// This is a simplified implementation
 	// In practice, you would use actual embeddings and cosine similarity
-	
+
 	// For now, use a heuristic based on term overlap and TF-IDF-like scoring
 	queryTerms := sr.extractImportantTerms(query)
 	contentTerms := sr.extractImportantTerms(content)
@@ -178,7 +178,7 @@ func (sr *SemanticReranker) calculateSemanticSimilarity(query, content string) f
 func (sr *SemanticReranker) extractImportantTerms(text string) map[string]float64 {
 	terms := make(map[string]float64)
 	words := strings.Fields(strings.ToLower(text))
-	
+
 	// Count term frequencies
 	termFreq := make(map[string]int)
 	for _, word := range words {
@@ -194,13 +194,13 @@ func (sr *SemanticReranker) extractImportantTerms(text string) map[string]float6
 	for term, freq := range termFreq {
 		// Simple TF weight
 		tf := float64(freq) / float64(totalWords)
-		
+
 		// Boost technical terms
 		idf := 1.0
 		if sr.isTechnicalTerm(term) {
 			idf = 2.0
 		}
-		
+
 		terms[term] = tf * idf
 	}
 
@@ -242,10 +242,10 @@ func (sr *SemanticReranker) calculateCrossEncoderScore(ctx context.Context, quer
 	// For now, return a placeholder score based on lexical similarity
 	// In a full implementation, this would call an actual cross-encoder model
 	score := sr.calculateLexicalSimilarity(query, content)
-	
+
 	// Cache the score
 	sr.crossEncoder.setCachedScore(cacheKey, score)
-	
+
 	return score, nil
 }
 
@@ -452,11 +452,11 @@ func (sr *SemanticReranker) calculateContextualRelevance(query string, result *E
 func (sr *SemanticReranker) calculateCombinedScore(score *RerankingScore) float32 {
 	// Define weights for different scoring components
 	weights := map[string]float32{
-		"semantic":    0.3,
-		"cross":       0.25,
-		"lexical":     0.2,
-		"structural":  0.15,
-		"contextual":  0.1,
+		"semantic":   0.3,
+		"cross":      0.25,
+		"lexical":    0.2,
+		"structural": 0.15,
+		"contextual": 0.1,
 	}
 
 	combined := score.SemanticSimilarity*weights["semantic"] +
@@ -512,7 +512,7 @@ func (sr *SemanticReranker) generateScoreExplanation(score *RerankingScore, resu
 func (ce *CrossEncoder) getCachedScore(key string) (float32, bool) {
 	ce.cacheMutex.RLock()
 	defer ce.cacheMutex.RUnlock()
-	
+
 	score, exists := ce.scoreCache[key]
 	return score, exists
 }
@@ -521,7 +521,7 @@ func (ce *CrossEncoder) getCachedScore(key string) (float32, bool) {
 func (ce *CrossEncoder) setCachedScore(key string, score float32) {
 	ce.cacheMutex.Lock()
 	defer ce.cacheMutex.Unlock()
-	
+
 	// Limit cache size
 	if len(ce.scoreCache) > 10000 {
 		// Simple cache eviction - remove 25% of entries
@@ -534,7 +534,7 @@ func (ce *CrossEncoder) setCachedScore(key string, score float32) {
 			}
 		}
 	}
-	
+
 	ce.scoreCache[key] = score
 }
 
@@ -542,6 +542,6 @@ func (ce *CrossEncoder) setCachedScore(key string, score float32) {
 func (ce *CrossEncoder) clearCache() {
 	ce.cacheMutex.Lock()
 	defer ce.cacheMutex.Unlock()
-	
+
 	ce.scoreCache = make(map[string]float32)
 }

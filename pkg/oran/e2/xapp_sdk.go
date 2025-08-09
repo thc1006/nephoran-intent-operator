@@ -13,65 +13,65 @@ import (
 
 // XAppSDK represents the main SDK interface for xApp development
 type XAppSDK struct {
-	config         *XAppConfig
-	e2Manager      *E2Manager
-	subscriptions  map[string]*XAppSubscription
-	controlHandlers map[string]XAppControlHandler
+	config             *XAppConfig
+	e2Manager          *E2Manager
+	subscriptions      map[string]*XAppSubscription
+	controlHandlers    map[string]XAppControlHandler
 	indicationHandlers map[string]XAppIndicationHandler
-	lifecycle      *XAppLifecycle
-	metrics        *XAppMetrics
-	logger         *log.Logger
-	mutex          sync.RWMutex
+	lifecycle          *XAppLifecycle
+	metrics            *XAppMetrics
+	logger             *log.Logger
+	mutex              sync.RWMutex
 }
 
 // XAppConfig contains configuration for xApp
 type XAppConfig struct {
-	XAppName        string            `json:"xapp_name"`
-	XAppVersion     string            `json:"xapp_version"`
-	XAppDescription string            `json:"xapp_description"`
-	E2NodeID        string            `json:"e2_node_id"`
-	NearRTRICURL    string            `json:"near_rt_ric_url"`
-	ServiceModels   []string          `json:"service_models"`
-	Environment     map[string]string `json:"environment"`
+	XAppName        string              `json:"xapp_name"`
+	XAppVersion     string              `json:"xapp_version"`
+	XAppDescription string              `json:"xapp_description"`
+	E2NodeID        string              `json:"e2_node_id"`
+	NearRTRICURL    string              `json:"near_rt_ric_url"`
+	ServiceModels   []string            `json:"service_models"`
+	Environment     map[string]string   `json:"environment"`
 	ResourceLimits  *XAppResourceLimits `json:"resource_limits"`
-	HealthCheck     *XAppHealthConfig `json:"health_check"`
+	HealthCheck     *XAppHealthConfig   `json:"health_check"`
 }
 
 // XAppResourceLimits defines resource constraints for xApp
 type XAppResourceLimits struct {
-	MaxMemoryMB     int           `json:"max_memory_mb"`
-	MaxCPUCores     float64       `json:"max_cpu_cores"`
-	MaxSubscriptions int          `json:"max_subscriptions"`
-	RequestTimeout  time.Duration `json:"request_timeout"`
+	MaxMemoryMB      int           `json:"max_memory_mb"`
+	MaxCPUCores      float64       `json:"max_cpu_cores"`
+	MaxSubscriptions int           `json:"max_subscriptions"`
+	RequestTimeout   time.Duration `json:"request_timeout"`
 }
 
 // XAppHealthConfig defines health check configuration
 type XAppHealthConfig struct {
-	Enabled         bool          `json:"enabled"`
-	CheckInterval   time.Duration `json:"check_interval"`
-	FailureThreshold int          `json:"failure_threshold"`
-	HealthEndpoint  string        `json:"health_endpoint"`
+	Enabled          bool          `json:"enabled"`
+	CheckInterval    time.Duration `json:"check_interval"`
+	FailureThreshold int           `json:"failure_threshold"`
+	HealthEndpoint   string        `json:"health_endpoint"`
 }
 
 // XAppSubscription represents an active E2 subscription
 type XAppSubscription struct {
-	SubscriptionID string                 `json:"subscription_id"`
-	NodeID         string                 `json:"node_id"`
-	RANFunctionID  int                    `json:"ran_function_id"`
-	EventTrigger   map[string]interface{} `json:"event_trigger"`
-	Actions        []XAppAction           `json:"actions"`
-	Status         XAppSubscriptionStatus `json:"status"`
-	CreatedAt      time.Time              `json:"created_at"`
-	LastIndication time.Time              `json:"last_indication"`
-	IndicationCount int64                 `json:"indication_count"`
+	SubscriptionID  string                 `json:"subscription_id"`
+	NodeID          string                 `json:"node_id"`
+	RANFunctionID   int                    `json:"ran_function_id"`
+	EventTrigger    map[string]interface{} `json:"event_trigger"`
+	Actions         []XAppAction           `json:"actions"`
+	Status          XAppSubscriptionStatus `json:"status"`
+	CreatedAt       time.Time              `json:"created_at"`
+	LastIndication  time.Time              `json:"last_indication"`
+	IndicationCount int64                  `json:"indication_count"`
 }
 
 // XAppAction represents a subscription action
 type XAppAction struct {
-	ActionID    int                    `json:"action_id"`
-	ActionType  string                 `json:"action_type"` // "report", "insert", "policy"
-	Definition  map[string]interface{} `json:"definition"`
-	Handler     string                 `json:"handler"`
+	ActionID   int                    `json:"action_id"`
+	ActionType string                 `json:"action_type"` // "report", "insert", "policy"
+	Definition map[string]interface{} `json:"definition"`
+	Handler    string                 `json:"handler"`
 }
 
 // XAppSubscriptionStatus represents subscription status
@@ -124,15 +124,15 @@ type XAppLifecycleHandler func(ctx context.Context, event XAppLifecycleEvent, da
 
 // XAppMetrics collects xApp performance metrics
 type XAppMetrics struct {
-	SubscriptionsActive    int64               `json:"subscriptions_active"`
-	IndicationsReceived    int64               `json:"indications_received"`
-	ControlRequestsSent    int64               `json:"control_requests_sent"`
-	ErrorCount             int64               `json:"error_count"`
-	AverageProcessingTime  time.Duration       `json:"average_processing_time"`
-	ThroughputPerSecond    float64             `json:"throughput_per_second"`
-	LastMetricsUpdate      time.Time           `json:"last_metrics_update"`
-	CustomMetrics          map[string]float64  `json:"custom_metrics"`
-	mutex                  sync.RWMutex
+	SubscriptionsActive   int64              `json:"subscriptions_active"`
+	IndicationsReceived   int64              `json:"indications_received"`
+	ControlRequestsSent   int64              `json:"control_requests_sent"`
+	ErrorCount            int64              `json:"error_count"`
+	AverageProcessingTime time.Duration      `json:"average_processing_time"`
+	ThroughputPerSecond   float64            `json:"throughput_per_second"`
+	LastMetricsUpdate     time.Time          `json:"last_metrics_update"`
+	CustomMetrics         map[string]float64 `json:"custom_metrics"`
+	mutex                 sync.RWMutex
 }
 
 // NewXAppSDK creates a new xApp SDK instance
@@ -165,7 +165,7 @@ func NewXAppSDK(config *XAppConfig, e2Manager *E2Manager) (*XAppSDK, error) {
 // Start initializes and starts the xApp
 func (sdk *XAppSDK) Start(ctx context.Context) error {
 	sdk.logger.Printf("Starting xApp: %s v%s", sdk.config.XAppName, sdk.config.XAppVersion)
-	
+
 	// Trigger startup event
 	if err := sdk.lifecycle.TriggerEvent(ctx, XAppEventStartup, sdk.config); err != nil {
 		return fmt.Errorf("startup event failed: %w", err)
@@ -180,7 +180,7 @@ func (sdk *XAppSDK) Start(ctx context.Context) error {
 
 	sdk.lifecycle.SetState(XAppStateRunning)
 	sdk.logger.Printf("xApp %s started successfully", sdk.config.XAppName)
-	
+
 	return nil
 }
 
@@ -203,7 +203,7 @@ func (sdk *XAppSDK) Stop(ctx context.Context) error {
 
 	sdk.lifecycle.SetState(XAppStateStopped)
 	sdk.logger.Printf("xApp %s stopped", sdk.config.XAppName)
-	
+
 	return nil
 }
 
@@ -249,7 +249,7 @@ func (sdk *XAppSDK) Subscribe(ctx context.Context, subscriptionReq *E2Subscripti
 
 	subscription.Status = XAppSubscriptionStatusActive
 	sdk.metrics.IncrementActiveSubscriptions()
-	
+
 	// Trigger subscribed event
 	sdk.lifecycle.TriggerEvent(ctx, XAppEventSubscribed, subscription)
 
@@ -273,17 +273,17 @@ func (sdk *XAppSDK) Unsubscribe(ctx context.Context, subscriptionID string) erro
 	// For now, we'll simulate the cancellation
 	delete(sdk.subscriptions, subscriptionID)
 	subscription.Status = XAppSubscriptionStatusCancelled
-	
+
 	sdk.metrics.DecrementActiveSubscriptions()
 	sdk.logger.Printf("Cancelled subscription: %s", subscriptionID)
-	
+
 	return nil
 }
 
 // SendControlMessage sends a control message to an E2 node
 func (sdk *XAppSDK) SendControlMessage(ctx context.Context, nodeID string, controlReq *RICControlRequest) (*RICControlAcknowledge, error) {
 	sdk.metrics.IncrementControlRequests()
-	
+
 	// Send via E2Manager
 	response, err := sdk.e2Manager.SendControlMessage(ctx, nodeID, controlReq)
 	if err != nil {
@@ -312,7 +312,7 @@ func (sdk *XAppSDK) RegisterControlHandler(controlType string, handler XAppContr
 // HandleIndication processes incoming RIC indications
 func (sdk *XAppSDK) HandleIndication(ctx context.Context, indication *RICIndication) error {
 	sdk.metrics.IncrementIndications()
-	
+
 	// Update subscription last indication time
 	sdk.mutex.Lock()
 	for _, subscription := range sdk.subscriptions {
@@ -339,7 +339,7 @@ func (sdk *XAppSDK) HandleIndication(ctx context.Context, indication *RICIndicat
 
 	// Trigger indication event
 	sdk.lifecycle.TriggerEvent(ctx, XAppEventIndication, indication)
-	
+
 	return nil
 }
 
@@ -347,7 +347,7 @@ func (sdk *XAppSDK) HandleIndication(ctx context.Context, indication *RICIndicat
 func (sdk *XAppSDK) GetSubscriptions() map[string]*XAppSubscription {
 	sdk.mutex.RLock()
 	defer sdk.mutex.RUnlock()
-	
+
 	// Return copy to prevent external modification
 	subscriptions := make(map[string]*XAppSubscription)
 	for id, sub := range sdk.subscriptions {
@@ -378,21 +378,21 @@ func (sdk *XAppSDK) handleStartup(ctx context.Context, event XAppLifecycleEvent,
 	if !ok {
 		return fmt.Errorf("invalid startup data")
 	}
-	
+
 	sdk.logger.Printf("xApp startup: %s v%s", config.XAppName, config.XAppVersion)
-	
+
 	// Initialize metrics collection
 	go sdk.metrics.StartCollection(ctx)
-	
+
 	return nil
 }
 
 func (sdk *XAppSDK) handleShutdown(ctx context.Context, event XAppLifecycleEvent, data interface{}) error {
 	sdk.logger.Printf("xApp shutdown initiated")
-	
+
 	// Stop metrics collection
 	sdk.metrics.StopCollection()
-	
+
 	return nil
 }
 
@@ -490,7 +490,7 @@ func (m *XAppMetrics) IncrementErrors() {
 func (m *XAppMetrics) GetSnapshot() *XAppMetrics {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	snapshot := &XAppMetrics{
 		SubscriptionsActive:   m.SubscriptionsActive,
 		IndicationsReceived:   m.IndicationsReceived,
@@ -501,11 +501,11 @@ func (m *XAppMetrics) GetSnapshot() *XAppMetrics {
 		LastMetricsUpdate:     m.LastMetricsUpdate,
 		CustomMetrics:         make(map[string]float64),
 	}
-	
+
 	for k, v := range m.CustomMetrics {
 		snapshot.CustomMetrics[k] = v
 	}
-	
+
 	return snapshot
 }
 
@@ -530,14 +530,14 @@ func (m *XAppMetrics) StopCollection() {
 func (m *XAppMetrics) updateMetrics() {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	// Calculate throughput (indications per second over last 30 seconds)
 	now := time.Now()
 	duration := now.Sub(m.LastMetricsUpdate).Seconds()
 	if duration > 0 {
 		m.ThroughputPerSecond = float64(m.IndicationsReceived) / duration
 	}
-	
+
 	m.LastMetricsUpdate = now
 }
 

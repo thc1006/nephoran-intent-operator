@@ -130,19 +130,19 @@ type FunctionRunner interface {
 type NetworkIntentExtensions struct {
 	// Porch integration metadata
 	PorchMetadata *PorchMetadata `json:"porchMetadata,omitempty"`
-	
+
 	// Package specifications
 	PackageSpec *PackageSpec `json:"packageSpec,omitempty"`
-	
+
 	// Target cluster information
 	ClusterTargets []*ClusterTarget `json:"clusterTargets,omitempty"`
-	
+
 	// Workflow definition
 	Workflow *WorkflowSpec `json:"workflow,omitempty"`
-	
+
 	// O-RAN compliance settings
 	ORANCompliance *ORANComplianceSpec `json:"oranCompliance,omitempty"`
-	
+
 	// Network slice configuration
 	NetworkSlice *NetworkSliceSpec `json:"networkSlice,omitempty"`
 }
@@ -153,7 +153,7 @@ type NetworkIntentExtensions struct {
 type Repository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	
+
 	Spec   RepositorySpec   `json:"spec,omitempty"`
 	Status RepositoryStatus `json:"status,omitempty"`
 }
@@ -162,7 +162,7 @@ type Repository struct {
 type RepositoryList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	
+
 	Items []Repository `json:"items"`
 }
 
@@ -170,22 +170,22 @@ type RepositoryList struct {
 type RepositorySpec struct {
 	// Repository type (git, oci)
 	Type string `json:"type"`
-	
+
 	// Repository URL
 	URL string `json:"url"`
-	
+
 	// Branch to track
 	Branch string `json:"branch,omitempty"`
-	
+
 	// Directory within repository
 	Directory string `json:"directory,omitempty"`
-	
+
 	// Authentication configuration
 	Auth *AuthConfig `json:"auth,omitempty"`
-	
+
 	// Synchronization settings
 	Sync *SyncConfig `json:"sync,omitempty"`
-	
+
 	// Repository capabilities
 	Capabilities []string `json:"capabilities,omitempty"`
 }
@@ -194,19 +194,19 @@ type RepositorySpec struct {
 type RepositoryStatus struct {
 	// Conditions represent the current state
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	
+
 	// Last sync time
 	LastSyncTime *metav1.Time `json:"lastSyncTime,omitempty"`
-	
+
 	// Current commit hash
 	CommitHash string `json:"commitHash,omitempty"`
-	
+
 	// Sync error if any
 	SyncError string `json:"syncError,omitempty"`
-	
+
 	// Package count
 	PackageCount int32 `json:"packageCount,omitempty"`
-	
+
 	// Repository health
 	Health RepositoryHealth `json:"health,omitempty"`
 }
@@ -215,7 +215,7 @@ type RepositoryStatus struct {
 type PackageRevision struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	
+
 	Spec   PackageRevisionSpec   `json:"spec,omitempty"`
 	Status PackageRevisionStatus `json:"status,omitempty"`
 }
@@ -224,7 +224,7 @@ type PackageRevision struct {
 type PackageRevisionList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	
+
 	Items []PackageRevision `json:"items"`
 }
 
@@ -232,25 +232,25 @@ type PackageRevisionList struct {
 type PackageRevisionSpec struct {
 	// Package name
 	PackageName string `json:"packageName"`
-	
+
 	// Repository name
 	Repository string `json:"repository"`
-	
+
 	// Revision identifier
 	Revision string `json:"revision"`
-	
+
 	// Lifecycle stage
 	Lifecycle PackageRevisionLifecycle `json:"lifecycle"`
-	
+
 	// Package content
 	Resources []KRMResource `json:"resources,omitempty"`
-	
+
 	// Function pipeline
 	Functions []FunctionConfig `json:"functions,omitempty"`
-	
+
 	// Package metadata
 	PackageMetadata *PackageMetadata `json:"packageMetadata,omitempty"`
-	
+
 	// Approval workflow
 	WorkflowLock *WorkflowLock `json:"workflowLock,omitempty"`
 }
@@ -259,22 +259,22 @@ type PackageRevisionSpec struct {
 type PackageRevisionStatus struct {
 	// Conditions represent the current state
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	
+
 	// Publishing timestamp
 	PublishTime *metav1.Time `json:"publishTime,omitempty"`
-	
+
 	// Validation results
 	ValidationResults []*ValidationResult `json:"validationResults,omitempty"`
-	
+
 	// Rendering results
 	RenderingResults *RenderResult `json:"renderingResults,omitempty"`
-	
+
 	// Deployment status
 	DeploymentStatus *DeploymentStatus `json:"deploymentStatus,omitempty"`
-	
+
 	// Package size
 	PackageSize int64 `json:"packageSize,omitempty"`
-	
+
 	// Downstream packages using this revision
 	Downstream []PackageReference `json:"downstream,omitempty"`
 }
@@ -283,7 +283,7 @@ type PackageRevisionStatus struct {
 type Workflow struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	
+
 	Spec   WorkflowSpec   `json:"spec,omitempty"`
 	Status WorkflowStatus `json:"status,omitempty"`
 }
@@ -292,7 +292,7 @@ type Workflow struct {
 type WorkflowList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	
+
 	Items []Workflow `json:"items"`
 }
 
@@ -331,8 +331,8 @@ type RepositoryConfig struct {
 	Capabilities []string    `json:"capabilities,omitempty"`
 }
 
-// AuthConfig defines authentication configuration
-type AuthConfig struct {
+// GitAuthConfig defines Git authentication configuration
+type GitAuthConfig struct {
 	Type       string            `json:"type"` // basic, token, ssh
 	Username   string            `json:"username,omitempty"`
 	Password   string            `json:"password,omitempty"`
@@ -355,12 +355,12 @@ type SyncConfig struct {
 
 // PackageSpec defines package creation specification
 type PackageSpec struct {
-	Repository  string            `json:"repository"`
-	PackageName string            `json:"packageName"`
-	Revision    string            `json:"revision,omitempty"`
+	Repository  string                   `json:"repository"`
+	PackageName string                   `json:"packageName"`
+	Revision    string                   `json:"revision,omitempty"`
 	Lifecycle   PackageRevisionLifecycle `json:"lifecycle,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string        `json:"labels,omitempty"`
+	Annotations map[string]string        `json:"annotations,omitempty"`
 }
 
 // PackageReference uniquely identifies a package revision
@@ -372,8 +372,8 @@ type PackageReference struct {
 
 // PackageContent contains the full content of a package
 type PackageContent struct {
-	Files map[string][]byte `json:"files"`
-	Kptfile *KptfileContent `json:"kptfile,omitempty"`
+	Files   map[string][]byte `json:"files"`
+	Kptfile *KptfileContent   `json:"kptfile,omitempty"`
 }
 
 // KptfileContent represents the Kptfile structure
@@ -381,12 +381,12 @@ type KptfileContent struct {
 	APIVersion string                 `json:"apiVersion"`
 	Kind       string                 `json:"kind"`
 	Metadata   map[string]interface{} `json:"metadata"`
-	Info       *PackageInfo           `json:"info,omitempty"`
+	Info       *PackageMetadata       `json:"info,omitempty"`
 	Pipeline   *Pipeline              `json:"pipeline,omitempty"`
 }
 
-// PackageInfo contains package information
-type PackageInfo struct {
+// PackageMetadata contains package metadata information
+type PackageMetadata struct {
 	Description string            `json:"description,omitempty"`
 	Keywords    []string          `json:"keywords,omitempty"`
 	Site        string            `json:"site,omitempty"`
@@ -414,23 +414,23 @@ type FunctionConfig struct {
 
 // FunctionRequest represents a function execution request
 type FunctionRequest struct {
-	FunctionConfig FunctionConfig `json:"functionConfig"`
-	Resources      []KRMResource  `json:"resources"`
+	FunctionConfig FunctionConfig   `json:"functionConfig"`
+	Resources      []KRMResource    `json:"resources"`
 	Context        *FunctionContext `json:"context,omitempty"`
 }
 
 // FunctionResponse represents a function execution response
 type FunctionResponse struct {
-	Resources []KRMResource       `json:"resources"`
-	Results   []*FunctionResult   `json:"results,omitempty"`
-	Logs      []string            `json:"logs,omitempty"`
-	Error     *FunctionError      `json:"error,omitempty"`
+	Resources []KRMResource     `json:"resources"`
+	Results   []*FunctionResult `json:"results,omitempty"`
+	Logs      []string          `json:"logs,omitempty"`
+	Error     *FunctionError    `json:"error,omitempty"`
 }
 
 // PipelineRequest represents a pipeline execution request
 type PipelineRequest struct {
-	Pipeline  Pipeline      `json:"pipeline"`
-	Resources []KRMResource `json:"resources"`
+	Pipeline  Pipeline         `json:"pipeline"`
+	Resources []KRMResource    `json:"resources"`
 	Context   *FunctionContext `json:"context,omitempty"`
 }
 
@@ -466,8 +466,8 @@ type ResourceSelector struct {
 
 // ValidationResult contains validation results
 type ValidationResult struct {
-	Valid   bool              `json:"valid"`
-	Errors  []ValidationError `json:"errors,omitempty"`
+	Valid    bool              `json:"valid"`
+	Errors   []ValidationError `json:"errors,omitempty"`
 	Warnings []ValidationError `json:"warnings,omitempty"`
 }
 
@@ -505,39 +505,39 @@ type WorkflowSpec struct {
 	RetryPolicy *RetryPolicy      `json:"retryPolicy,omitempty"`
 }
 
-// WorkflowStatus defines the observed state of a workflow
-type WorkflowStatus struct {
-	Phase      WorkflowPhase       `json:"phase"`
-	Stage      string              `json:"stage,omitempty"`
-	Conditions []metav1.Condition  `json:"conditions,omitempty"`
-	StartTime  *metav1.Time        `json:"startTime,omitempty"`
-	EndTime    *metav1.Time        `json:"endTime,omitempty"`
-	Results    []WorkflowResult    `json:"results,omitempty"`
+// GeneralWorkflowStatus defines the general observed state of a workflow
+type GeneralWorkflowStatus struct {
+	Phase      WorkflowPhase      `json:"phase"`
+	Stage      string             `json:"stage,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	StartTime  *metav1.Time       `json:"startTime,omitempty"`
+	EndTime    *metav1.Time       `json:"endTime,omitempty"`
+	Results    []WorkflowResult   `json:"results,omitempty"`
 }
 
 // WorkflowStage represents a workflow stage
 type WorkflowStage struct {
-	Name        string              `json:"name"`
-	Type        WorkflowStageType   `json:"type"`
-	Conditions  []WorkflowCondition `json:"conditions,omitempty"`
-	Actions     []WorkflowAction    `json:"actions"`
-	Approvers   []Approver          `json:"approvers,omitempty"`
-	Timeout     *metav1.Duration    `json:"timeout,omitempty"`
-	OnFailure   *FailureAction      `json:"onFailure,omitempty"`
+	Name       string              `json:"name"`
+	Type       WorkflowStageType   `json:"type"`
+	Conditions []WorkflowCondition `json:"conditions,omitempty"`
+	Actions    []WorkflowAction    `json:"actions"`
+	Approvers  []Approver          `json:"approvers,omitempty"`
+	Timeout    *metav1.Duration    `json:"timeout,omitempty"`
+	OnFailure  *FailureAction      `json:"onFailure,omitempty"`
 }
 
 // Nephio-Specific Types
 
 // PorchMetadata contains Porch integration metadata
 type PorchMetadata struct {
-	Repository       string            `json:"repository"`
-	PackageName      string            `json:"packageName"`
-	Revision         string            `json:"revision"`
-	GeneratedAt      *metav1.Time      `json:"generatedAt"`
-	GeneratedBy      string            `json:"generatedBy,omitempty"`
-	IntentID         string            `json:"intentId"`
-	Labels           map[string]string `json:"labels,omitempty"`
-	Annotations      map[string]string `json:"annotations,omitempty"`
+	Repository  string            `json:"repository"`
+	PackageName string            `json:"packageName"`
+	Revision    string            `json:"revision"`
+	GeneratedAt *metav1.Time      `json:"generatedAt"`
+	GeneratedBy string            `json:"generatedBy,omitempty"`
+	IntentID    string            `json:"intentId"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // ClusterTarget defines a target cluster for deployment
@@ -552,30 +552,30 @@ type ClusterTarget struct {
 
 // ORANComplianceSpec defines O-RAN compliance requirements
 type ORANComplianceSpec struct {
-	Interfaces    []ORANInterface   `json:"interfaces,omitempty"`
-	Validations   []ComplianceRule  `json:"validations,omitempty"`
-	Certifications []string          `json:"certifications,omitempty"`
-	Standards     []StandardRef     `json:"standards,omitempty"`
+	Interfaces     []ORANInterface  `json:"interfaces,omitempty"`
+	Validations    []ComplianceRule `json:"validations,omitempty"`
+	Certifications []string         `json:"certifications,omitempty"`
+	Standards      []StandardRef    `json:"standards,omitempty"`
 }
 
 // ORANInterface defines an O-RAN interface configuration
 type ORANInterface struct {
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"` // A1, O1, O2, E2
-	Version     string                 `json:"version"`
-	Endpoint    string                 `json:"endpoint,omitempty"`
-	Config      map[string]interface{} `json:"config,omitempty"`
-	Enabled     bool                   `json:"enabled"`
+	Name     string                 `json:"name"`
+	Type     string                 `json:"type"` // A1, O1, O2, E2
+	Version  string                 `json:"version"`
+	Endpoint string                 `json:"endpoint,omitempty"`
+	Config   map[string]interface{} `json:"config,omitempty"`
+	Enabled  bool                   `json:"enabled"`
 }
 
 // ComplianceRule defines a compliance validation rule
 type ComplianceRule struct {
-	Name        string   `json:"name"`
-	Type        string   `json:"type"`
-	Severity    string   `json:"severity"`
-	Description string   `json:"description"`
-	Rule        string   `json:"rule"`
-	Remediation string   `json:"remediation,omitempty"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Severity    string `json:"severity"`
+	Description string `json:"description"`
+	Rule        string `json:"rule"`
+	Remediation string `json:"remediation,omitempty"`
 }
 
 // StandardRef references an industry standard
@@ -588,21 +588,21 @@ type StandardRef struct {
 
 // NetworkSliceSpec defines network slice configuration
 type NetworkSliceSpec struct {
-	SliceID       string                 `json:"sliceId"`
-	SliceType     string                 `json:"sliceType"` // eMBB, URLLC, mMTC
-	SLA           *SLAParameters         `json:"sla"`
-	QoS           *QoSParameters         `json:"qos,omitempty"`
-	Resources     *SliceResources        `json:"resources,omitempty"`
-	Isolation     *IsolationParameters   `json:"isolation,omitempty"`
-	Geography     []GeographicArea       `json:"geography,omitempty"`
+	SliceID   string               `json:"sliceId"`
+	SliceType string               `json:"sliceType"` // eMBB, URLLC, mMTC
+	SLA       *SLAParameters       `json:"sla"`
+	QoS       *QoSParameters       `json:"qos,omitempty"`
+	Resources *SliceResources      `json:"resources,omitempty"`
+	Isolation *IsolationParameters `json:"isolation,omitempty"`
+	Geography []GeographicArea     `json:"geography,omitempty"`
 }
 
 // SLAParameters defines service level agreement parameters
 type SLAParameters struct {
-	Latency      *LatencyRequirement  `json:"latency,omitempty"`
-	Throughput   *ThroughputRequirement `json:"throughput,omitempty"`
+	Latency      *LatencyRequirement      `json:"latency,omitempty"`
+	Throughput   *ThroughputRequirement   `json:"throughput,omitempty"`
 	Availability *AvailabilityRequirement `json:"availability,omitempty"`
-	Reliability  *ReliabilityRequirement `json:"reliability,omitempty"`
+	Reliability  *ReliabilityRequirement  `json:"reliability,omitempty"`
 }
 
 // Supporting utility types and interfaces
@@ -650,16 +650,6 @@ type ComparisonResult struct {
 	Diff     string   `json:"diff,omitempty"`
 }
 
-// PackageMetadata contains package metadata
-type PackageMetadata struct {
-	Name        string            `json:"name"`
-	Version     string            `json:"version,omitempty"`
-	Description string            `json:"description,omitempty"`
-	Author      string            `json:"author,omitempty"`
-	Keywords    []string          `json:"keywords,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
-}
 
 // WorkflowLock represents a workflow lock on a package
 type WorkflowLock struct {
@@ -671,11 +661,11 @@ type WorkflowLock struct {
 
 // DeploymentStatus represents package deployment status
 type DeploymentStatus struct {
-	Phase      string              `json:"phase"`
-	Conditions []metav1.Condition  `json:"conditions,omitempty"`
-	Targets    []DeploymentTarget  `json:"targets,omitempty"`
-	StartTime  *metav1.Time        `json:"startTime,omitempty"`
-	EndTime    *metav1.Time        `json:"endTime,omitempty"`
+	Phase      string             `json:"phase"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Targets    []DeploymentTarget `json:"targets,omitempty"`
+	StartTime  *metav1.Time       `json:"startTime,omitempty"`
+	EndTime    *metav1.Time       `json:"endTime,omitempty"`
 }
 
 // DeploymentTarget represents a deployment target
@@ -700,7 +690,7 @@ type DeployedResource struct {
 
 // FunctionContext provides context for function execution
 type FunctionContext struct {
-	Package     *PackageReference  `json:"package,omitempty"`
+	Package     *PackageReference   `json:"package,omitempty"`
 	Invocation  *FunctionInvocation `json:"invocation,omitempty"`
 	Environment map[string]string   `json:"environment,omitempty"`
 }
@@ -714,10 +704,10 @@ type FunctionInvocation struct {
 
 // FunctionResult represents a function execution result
 type FunctionResult struct {
-	Message  string `json:"message"`
-	Severity string `json:"severity"`
-	Field    string `json:"field,omitempty"`
-	File     string `json:"file,omitempty"`
+	Message  string            `json:"message"`
+	Severity string            `json:"severity"`
+	Field    string            `json:"field,omitempty"`
+	File     string            `json:"file,omitempty"`
 	Tags     map[string]string `json:"tags,omitempty"`
 }
 
@@ -749,26 +739,26 @@ type FunctionInfo struct {
 
 // FunctionSchema defines function configuration schema
 type FunctionSchema struct {
-	OpenAPIV3Schema *runtime.RawExtension `json:"openAPIV3Schema,omitempty"`
+	OpenAPIV3Schema *runtime.RawExtension     `json:"openAPIV3Schema,omitempty"`
 	Properties      map[string]SchemaProperty `json:"properties,omitempty"`
 	Required        []string                  `json:"required,omitempty"`
 }
 
 // SchemaProperty defines a schema property
 type SchemaProperty struct {
-	Type        string      `json:"type"`
-	Description string      `json:"description,omitempty"`
-	Default     interface{} `json:"default,omitempty"`
+	Type        string        `json:"type"`
+	Description string        `json:"description,omitempty"`
+	Default     interface{}   `json:"default,omitempty"`
 	Examples    []interface{} `json:"examples,omitempty"`
 }
 
 // FunctionExample contains function usage examples
 type FunctionExample struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description,omitempty"`
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
 	Config      *FunctionConfig `json:"config"`
-	Input       []KRMResource  `json:"input"`
-	Output      []KRMResource  `json:"output"`
+	Input       []KRMResource   `json:"input"`
+	Output      []KRMResource   `json:"output"`
 }
 
 // ExecConfig defines execution configuration for container functions
@@ -794,8 +784,8 @@ type ComponentHealth struct {
 	Error  string `json:"error,omitempty"`
 }
 
-// VersionInfo contains version information
-type VersionInfo struct {
+// BuildVersionInfo contains build version information
+type BuildVersionInfo struct {
 	Version   string `json:"version"`
 	GitCommit string `json:"gitCommit,omitempty"`
 	BuildTime string `json:"buildTime,omitempty"`
@@ -833,10 +823,10 @@ type WorkflowTrigger struct {
 
 // Approver defines who can approve workflow stages
 type Approver struct {
-	Type    string   `json:"type"` // user, group, service
-	Name    string   `json:"name"`
-	Roles   []string `json:"roles,omitempty"`
-	Stages  []string `json:"stages,omitempty"`
+	Type   string   `json:"type"` // user, group, service
+	Name   string   `json:"name"`
+	Roles  []string `json:"roles,omitempty"`
+	Stages []string `json:"stages,omitempty"`
 }
 
 // RetryPolicy defines retry behavior
@@ -866,10 +856,10 @@ type FailureAction struct {
 
 // WorkflowResult contains workflow execution results
 type WorkflowResult struct {
-	Stage     string       `json:"stage"`
-	Status    string       `json:"status"`
-	Message   string       `json:"message,omitempty"`
-	Timestamp *metav1.Time `json:"timestamp"`
+	Stage     string                 `json:"stage"`
+	Status    string                 `json:"status"`
+	Message   string                 `json:"message,omitempty"`
+	Timestamp *metav1.Time           `json:"timestamp"`
 	Data      map[string]interface{} `json:"data,omitempty"`
 }
 
@@ -877,20 +867,20 @@ type WorkflowResult struct {
 
 // QoSParameters defines quality of service parameters
 type QoSParameters struct {
-	FiveQI           int32   `json:"5qi,omitempty"`
-	PriorityLevel    int32   `json:"priorityLevel,omitempty"`
-	PacketDelayBudget int32  `json:"packetDelayBudget,omitempty"`
-	PacketErrorRate  string `json:"packetErrorRate,omitempty"`
-	MaxDataBurstVolume int64 `json:"maxDataBurstVolume,omitempty"`
+	FiveQI             int32  `json:"5qi,omitempty"`
+	PriorityLevel      int32  `json:"priorityLevel,omitempty"`
+	PacketDelayBudget  int32  `json:"packetDelayBudget,omitempty"`
+	PacketErrorRate    string `json:"packetErrorRate,omitempty"`
+	MaxDataBurstVolume int64  `json:"maxDataBurstVolume,omitempty"`
 }
 
 // SliceResources defines resource requirements for a slice
 type SliceResources struct {
-	CPU       *resource.Quantity `json:"cpu,omitempty"`
-	Memory    *resource.Quantity `json:"memory,omitempty"`
-	Storage   *resource.Quantity `json:"storage,omitempty"`
-	Bandwidth *resource.Quantity `json:"bandwidth,omitempty"`
-	Connections int32            `json:"connections,omitempty"`
+	CPU         *resource.Quantity `json:"cpu,omitempty"`
+	Memory      *resource.Quantity `json:"memory,omitempty"`
+	Storage     *resource.Quantity `json:"storage,omitempty"`
+	Bandwidth   *resource.Quantity `json:"bandwidth,omitempty"`
+	Connections int32              `json:"connections,omitempty"`
 }
 
 // IsolationParameters defines isolation requirements
@@ -902,9 +892,9 @@ type IsolationParameters struct {
 
 // GeographicArea defines a geographic area for slice coverage
 type GeographicArea struct {
-	Type        string             `json:"type"` // country, region, city, custom
-	Name        string             `json:"name"`
-	Coordinates []Coordinate       `json:"coordinates,omitempty"`
+	Type        string              `json:"type"` // country, region, city, custom
+	Name        string              `json:"name"`
+	Coordinates []Coordinate        `json:"coordinates,omitempty"`
 	Coverage    *CoverageParameters `json:"coverage,omitempty"`
 }
 
@@ -917,19 +907,19 @@ type Coordinate struct {
 
 // CoverageParameters defines coverage requirements
 type CoverageParameters struct {
-	Indoor   bool    `json:"indoor,omitempty"`
-	Outdoor  bool    `json:"outdoor,omitempty"`
-	Mobility string  `json:"mobility,omitempty"` // stationary, pedestrian, vehicular
-	Density  string  `json:"density,omitempty"`  // sparse, dense, ultra_dense
+	Indoor   bool   `json:"indoor,omitempty"`
+	Outdoor  bool   `json:"outdoor,omitempty"`
+	Mobility string `json:"mobility,omitempty"` // stationary, pedestrian, vehicular
+	Density  string `json:"density,omitempty"`  // sparse, dense, ultra_dense
 }
 
 // SLA requirement types
 
 // LatencyRequirement defines latency requirements
 type LatencyRequirement struct {
-	MaxLatency    *metav1.Duration `json:"maxLatency"`
+	MaxLatency     *metav1.Duration `json:"maxLatency"`
 	TypicalLatency *metav1.Duration `json:"typicalLatency,omitempty"`
-	Percentile    float64          `json:"percentile,omitempty"`
+	Percentile     float64          `json:"percentile,omitempty"`
 }
 
 // ThroughputRequirement defines throughput requirements
@@ -950,10 +940,10 @@ type AvailabilityRequirement struct {
 
 // ReliabilityRequirement defines reliability requirements
 type ReliabilityRequirement struct {
-	SuccessRate      float64 `json:"successRate"`
-	ErrorRate        float64 `json:"errorRate,omitempty"`
+	SuccessRate             float64          `json:"successRate"`
+	ErrorRate               float64          `json:"errorRate,omitempty"`
 	MeanTimeBetweenFailures *metav1.Duration `json:"mtbf,omitempty"`
-	MeanTimeToRepair *metav1.Duration `json:"mttr,omitempty"`
+	MeanTimeToRepair        *metav1.Duration `json:"mttr,omitempty"`
 }
 
 // Utility functions and helpers
@@ -976,9 +966,9 @@ func (pr *PackageReference) GetPackageKey() string {
 func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
 	switch lifecycle {
 	case PackageRevisionLifecycleDraft,
-		 PackageRevisionLifecycleProposed,
-		 PackageRevisionLifecyclePublished,
-		 PackageRevisionLifecycleDeletable:
+		PackageRevisionLifecycleProposed,
+		PackageRevisionLifecyclePublished,
+		PackageRevisionLifecycleDeletable:
 		return true
 	default:
 		return false
@@ -1149,12 +1139,12 @@ func (e *PorchError) Unwrap() error {
 
 // Common error types
 var (
-	ErrRepositoryNotFound     = &PorchError{Type: "RepositoryNotFound", Message: "repository not found"}
-	ErrPackageNotFound        = &PorchError{Type: "PackageNotFound", Message: "package not found"}
-	ErrInvalidLifecycle       = &PorchError{Type: "InvalidLifecycle", Message: "invalid lifecycle transition"}
+	ErrRepositoryNotFound      = &PorchError{Type: "RepositoryNotFound", Message: "repository not found"}
+	ErrPackageNotFound         = &PorchError{Type: "PackageNotFound", Message: "package not found"}
+	ErrInvalidLifecycle        = &PorchError{Type: "InvalidLifecycle", Message: "invalid lifecycle transition"}
 	ErrFunctionExecutionFailed = &PorchError{Type: "FunctionExecutionFailed", Message: "function execution failed"}
-	ErrValidationFailed       = &PorchError{Type: "ValidationFailed", Message: "package validation failed"}
-	ErrWorkflowLocked         = &PorchError{Type: "WorkflowLocked", Message: "package is locked by workflow"}
+	ErrValidationFailed        = &PorchError{Type: "ValidationFailed", Message: "package validation failed"}
+	ErrWorkflowLocked          = &PorchError{Type: "WorkflowLocked", Message: "package is locked by workflow"}
 )
 
 // Constants for common values
@@ -1162,21 +1152,21 @@ const (
 	// Repository types
 	RepositoryTypeGit = "git"
 	RepositoryTypeOCI = "oci"
-	
+
 	// Auth types
-	AuthTypeBasic  = "basic"
-	AuthTypeToken  = "token"
-	AuthTypeSSH    = "ssh"
-	
+	AuthTypeBasic = "basic"
+	AuthTypeToken = "token"
+	AuthTypeSSH   = "ssh"
+
 	// Function types
 	FunctionTypeMutator   = "mutator"
 	FunctionTypeValidator = "validator"
-	
+
 	// Workflow trigger types
 	WorkflowTriggerManual    = "manual"
 	WorkflowTriggerAutomatic = "automatic"
 	WorkflowTriggerSchedule  = "schedule"
-	
+
 	// Standard annotations
 	AnnotationManagedBy      = "porch.nephoran.com/managed-by"
 	AnnotationGeneratedBy    = "porch.nephoran.com/generated-by"
@@ -1186,7 +1176,7 @@ const (
 	AnnotationRevision       = "porch.nephoran.com/revision"
 	AnnotationWorkflowID     = "porch.nephoran.com/workflow-id"
 	AnnotationORANCompliance = "porch.nephoran.com/oran-compliance"
-	
+
 	// Standard labels
 	LabelComponent       = "porch.nephoran.com/component"
 	LabelRepository      = "porch.nephoran.com/repository"

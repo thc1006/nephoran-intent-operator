@@ -29,11 +29,11 @@ func RegisterProvider(provider ServiceMeshProvider, factory ProviderFactory) {
 
 // ServiceMeshFactory creates service mesh implementations
 type ServiceMeshFactory struct {
-	kubeClient     kubernetes.Interface
-	dynamicClient  client.Client
-	config         *rest.Config
-	detector       *ServiceMeshDetector
-	logger         log.Logger
+	kubeClient    kubernetes.Interface
+	dynamicClient client.Client
+	config        *rest.Config
+	detector      *ServiceMeshDetector
+	logger        log.Logger
 }
 
 // NewServiceMeshFactory creates a new service mesh factory
@@ -69,27 +69,26 @@ func (f *ServiceMeshFactory) CreateServiceMesh(ctx context.Context, config *Serv
 	registryMutex.RLock()
 	factory, exists := providerRegistry[ServiceMeshProvider(provider)]
 	registryMutex.RUnlock()
-	
+
 	if !exists {
 		if provider == ProviderNone {
 			return f.createNoOpMesh(ctx, config)
 		}
 		return nil, fmt.Errorf("unsupported service mesh provider: %s", provider)
 	}
-	
+
 	mesh, err := factory(f.kubeClient, f.dynamicClient, f.config, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create service mesh %s: %w", provider, err)
 	}
-	
+
 	// Initialize the mesh
 	if err := mesh.Initialize(ctx, config); err != nil {
 		return nil, fmt.Errorf("failed to initialize service mesh %s: %w", provider, err)
 	}
-	
+
 	return mesh, nil
 }
-
 
 // createNoOpMesh creates a no-op service mesh implementation for environments without service mesh
 func (f *ServiceMeshFactory) createNoOpMesh(ctx context.Context, config *ServiceMeshConfig) (ServiceMeshInterface, error) {
@@ -104,7 +103,7 @@ func (f *ServiceMeshFactory) GetAvailableProviders(ctx context.Context) ([]Provi
 	// Check each provider
 	for _, provider := range []ServiceMeshProvider{ProviderIstio, ProviderLinkerd, ProviderConsul} {
 		info := ProviderInfo{
-			Provider: provider,
+			Provider:  provider,
 			Available: false,
 		}
 
@@ -113,7 +112,7 @@ func (f *ServiceMeshFactory) GetAvailableProviders(ctx context.Context) ([]Provi
 		if err == nil && detectedProvider == provider {
 			info.Available = true
 			info.Version, _ = f.detector.GetServiceMeshVersion(ctx, provider)
-			
+
 			// Get capabilities
 			info.Capabilities = f.getProviderCapabilities(provider)
 		}

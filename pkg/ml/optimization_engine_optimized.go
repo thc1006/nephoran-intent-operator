@@ -76,10 +76,10 @@ func NewDataCache(ttl time.Duration) *DataCache {
 		entries: make(map[string]*CacheEntry),
 		ttl:     ttl,
 	}
-	
+
 	// Start cleanup goroutine
 	go cache.cleanupExpired()
-	
+
 	return cache
 }
 
@@ -87,16 +87,16 @@ func NewDataCache(ttl time.Duration) *DataCache {
 func (c *DataCache) Get(key string) ([]DataPoint, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	entry, exists := c.entries[key]
 	if !exists {
 		return nil, false
 	}
-	
+
 	if time.Since(entry.timestamp) > c.ttl {
 		return nil, false
 	}
-	
+
 	return entry.data, true
 }
 
@@ -104,7 +104,7 @@ func (c *DataCache) Get(key string) ([]DataPoint, bool) {
 func (c *DataCache) Set(key string, data []DataPoint) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	c.entries[key] = &CacheEntry{
 		data:      data,
 		timestamp: time.Now(),
@@ -115,7 +115,7 @@ func (c *DataCache) Set(key string, data []DataPoint) {
 func (c *DataCache) cleanupExpired() {
 	ticker := time.NewTicker(c.ttl)
 	defer ticker.Stop()
-	
+
 	for range ticker.C {
 		c.mu.Lock()
 		now := time.Now()
@@ -139,7 +139,7 @@ func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *N
 	// Define time range with adaptive window
 	endTime := time.Now()
 	startTime := endTime.Add(-7 * 24 * time.Hour) // Start with 7 days instead of 30
-	
+
 	// Adaptive step size based on time range
 	duration := endTime.Sub(startTime)
 	var step time.Duration
@@ -176,13 +176,13 @@ func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *N
 		wg.Add(1)
 		go func(name, query string) {
 			defer wg.Done()
-			
+
 			result, _, err := client.QueryRange(ctx, query, v1.Range{
 				Start: startTime,
 				End:   endTime,
 				Step:  step,
 			})
-			
+
 			resultChan <- queryResult{
 				name:   name,
 				result: result,
@@ -215,10 +215,10 @@ func GatherHistoricalDataOptimized(ctx context.Context, client v1.API, intent *N
 
 	// Process results efficiently using streaming
 	dataPoints := processResultsStreaming(results, pool)
-	
+
 	// Cache the results
 	cache.Set(cacheKey, dataPoints)
-	
+
 	return dataPoints, nil
 }
 
@@ -232,12 +232,12 @@ func processResultsStreaming(results map[string]model.Value, pool *DataPointPool
 			break
 		}
 	}
-	
+
 	dataPoints := make([]DataPoint, 0, estimatedSize)
-	
+
 	// Create a map for efficient timestamp lookup
 	timestampMap := make(map[model.Time]*DataPoint)
-	
+
 	// Process CPU data first to establish timestamps
 	if cpuResult, exists := results["cpu"]; exists {
 		if matrix, ok := cpuResult.(model.Matrix); ok && len(matrix) > 0 {
@@ -247,13 +247,13 @@ func processResultsStreaming(results map[string]model.Value, pool *DataPointPool
 				dp.Features["cpu_utilization"] = float64(value.Value)
 				dp.Metadata["intent_id"] = "optimized"
 				dp.Metadata["source"] = "prometheus"
-				
+
 				timestampMap[value.Timestamp] = dp
 				dataPoints = append(dataPoints, *dp)
 			}
 		}
 	}
-	
+
 	// Add memory data to existing data points
 	if memResult, exists := results["memory"]; exists {
 		if matrix, ok := memResult.(model.Matrix); ok && len(matrix) > 0 {
@@ -264,7 +264,7 @@ func processResultsStreaming(results map[string]model.Value, pool *DataPointPool
 			}
 		}
 	}
-	
+
 	// Add traffic data to existing data points
 	if trafficResult, exists := results["traffic"]; exists {
 		if matrix, ok := trafficResult.(model.Matrix); ok && len(matrix) > 0 {
@@ -275,12 +275,12 @@ func processResultsStreaming(results map[string]model.Value, pool *DataPointPool
 			}
 		}
 	}
-	
+
 	// Return pooled objects
 	for _, dp := range timestampMap {
 		pool.Put(dp)
 	}
-	
+
 	return dataPoints
 }
 
@@ -305,7 +305,7 @@ func (s *StreamingDataProcessor) Process(dataPoints []DataPoint) error {
 		if end > len(dataPoints) {
 			end = len(dataPoints)
 		}
-		
+
 		chunk := dataPoints[i:end]
 		if err := s.processor(chunk); err != nil {
 			return err
@@ -322,7 +322,7 @@ func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoi
 		maxCPU, maxMemory float64
 		count             int
 	)
-	
+
 	processor := NewStreamingDataProcessor(100, func(chunk []DataPoint) error {
 		for _, point := range chunk {
 			if cpu, exists := point.Features["cpu_utilization"]; exists {
@@ -341,19 +341,19 @@ func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoi
 		}
 		return nil
 	})
-	
+
 	if err := processor.Process(data); err != nil {
 		return nil, err
 	}
-	
+
 	avgCPU := sumCPU / float64(count)
 	avgMemory := sumMemory / float64(count)
-	
+
 	// Generate recommendations based on analysis
 	recommendation := &ScalingRecommendation{
 		PredictiveScaling: true,
 	}
-	
+
 	// Optimized decision logic
 	switch {
 	case maxCPU > 80 || maxMemory > 80:
@@ -378,7 +378,7 @@ func GenerateScalingRecommendationsOptimized(ctx context.Context, data []DataPoi
 		recommendation.ScaleUpPolicy = "moderate"
 		recommendation.ScaleDownPolicy = "moderate"
 	}
-	
+
 	return recommendation, nil
 }
 
@@ -405,7 +405,7 @@ func NewCircuitBreaker(threshold int, timeout time.Duration) *CircuitBreaker {
 func (cb *CircuitBreaker) Call(fn func() error) error {
 	cb.mu.Lock()
 	defer cb.mu.Unlock()
-	
+
 	// Check circuit state
 	switch cb.state {
 	case "open":
@@ -416,26 +416,26 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 			return fmt.Errorf("circuit breaker is open")
 		}
 	}
-	
+
 	// Execute function
 	err := fn()
-	
+
 	if err != nil {
 		cb.failures++
 		cb.lastFailTime = time.Now()
-		
+
 		if cb.failures >= cb.threshold {
 			cb.state = "open"
 			return fmt.Errorf("circuit breaker opened: %w", err)
 		}
 		return err
 	}
-	
+
 	// Success - reset failures
 	if cb.state == "half-open" {
 		cb.state = "closed"
 	}
 	cb.failures = 0
-	
+
 	return nil
 }

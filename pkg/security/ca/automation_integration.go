@@ -24,23 +24,23 @@ type AutomationIntegration struct {
 type IntegrationConfig struct {
 	// CA Manager configuration
 	CAManagerConfig *Config `yaml:"ca_manager"`
-	
+
 	// Automation Engine configuration
 	AutomationConfig *AutomationConfig `yaml:"automation_engine"`
-	
+
 	// Integration settings
 	EnableKubernetesIntegration bool `yaml:"enable_kubernetes_integration"`
 	EnableMonitoringIntegration bool `yaml:"enable_monitoring_integration"`
 	EnableAlertingIntegration   bool `yaml:"enable_alerting_integration"`
-	
+
 	// Performance settings
 	MaxConcurrentOperations int           `yaml:"max_concurrent_operations"`
 	OperationTimeout        time.Duration `yaml:"operation_timeout"`
 	HealthCheckInterval     time.Duration `yaml:"health_check_interval"`
-	
+
 	// Security settings
-	EnableSecurityScanning  bool `yaml:"enable_security_scanning"`
-	EnableComplianceChecks  bool `yaml:"enable_compliance_checks"`
+	EnableSecurityScanning bool `yaml:"enable_security_scanning"`
+	EnableComplianceChecks bool `yaml:"enable_compliance_checks"`
 	EnableAuditLogging     bool `yaml:"enable_audit_logging"`
 }
 
@@ -171,8 +171,8 @@ func (ai *AutomationIntegration) GetAutomationEngine() *AutomationEngine {
 // GetHealthStatus returns the overall health status
 func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 	status := map[string]interface{}{
-		"healthy":   true,
-		"timestamp": time.Now().Format(time.RFC3339),
+		"healthy":    true,
+		"timestamp":  time.Now().Format(time.RFC3339),
 		"components": map[string]interface{}{},
 	}
 
@@ -180,25 +180,25 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 	if ai.caManager != nil {
 		caHealth := ai.caManager.HealthCheck(context.Background())
 		caStatus := map[string]interface{}{
-			"healthy": len(caHealth) == 0,
+			"healthy":  len(caHealth) == 0,
 			"backends": caHealth,
 		}
-		
+
 		if len(caHealth) > 0 {
 			status["healthy"] = false
 		}
-		
+
 		status["components"].(map[string]interface{})["ca_manager"] = caStatus
 	}
 
 	// Check Automation Engine health
 	if ai.automationEngine != nil {
 		engineStatus := map[string]interface{}{
-			"healthy":             true,
-			"provisioning_queue":  ai.automationEngine.GetProvisioningQueueSize(),
-			"renewal_queue":       ai.automationEngine.GetRenewalQueueSize(),
+			"healthy":            true,
+			"provisioning_queue": ai.automationEngine.GetProvisioningQueueSize(),
+			"renewal_queue":      ai.automationEngine.GetRenewalQueueSize(),
 		}
-		
+
 		status["components"].(map[string]interface{})["automation_engine"] = engineStatus
 	}
 
@@ -208,8 +208,8 @@ func (ai *AutomationIntegration) GetHealthStatus() map[string]interface{} {
 // GetMetrics returns integration metrics
 func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
 	metrics := map[string]interface{}{
-		"timestamp": time.Now().Format(time.RFC3339),
-		"ca_manager": map[string]interface{}{},
+		"timestamp":         time.Now().Format(time.RFC3339),
+		"ca_manager":        map[string]interface{}{},
 		"automation_engine": map[string]interface{}{},
 	}
 
@@ -217,9 +217,9 @@ func (ai *AutomationIntegration) GetMetrics() map[string]interface{} {
 	if ai.caManager != nil && ai.caManager.monitor != nil {
 		// This would collect CA manager metrics
 		metrics["ca_manager"] = map[string]interface{}{
-			"certificates_issued": 0,  // Placeholder
+			"certificates_issued":  0, // Placeholder
 			"certificates_revoked": 0, // Placeholder
-			"backend_health": map[string]bool{},
+			"backend_health":       map[string]bool{},
 		}
 	}
 
@@ -253,7 +253,7 @@ func (ai *AutomationIntegration) EmergencyRevokeCertificate(ctx context.Context,
 
 	ai.logger.Info("emergency certificate revocation completed",
 		"serial_number", serialNumber)
-	
+
 	return nil
 }
 
@@ -344,7 +344,7 @@ func (ai *AutomationIntegration) setupKubernetesControllers() error {
 
 	// This would setup the CertificateAutomationReconciler and other controllers
 	// Implementation would register controllers with the manager
-	
+
 	return nil
 }
 
@@ -353,7 +353,7 @@ func (ai *AutomationIntegration) setupMonitoringIntegration() error {
 
 	// This would integrate with existing Prometheus/Grafana monitoring
 	// Implementation would expose metrics endpoints and dashboards
-	
+
 	return nil
 }
 
@@ -362,7 +362,7 @@ func (ai *AutomationIntegration) setupAlertingIntegration() error {
 
 	// This would integrate with existing alerting systems
 	// Implementation would configure alert rules and notification channels
-	
+
 	return nil
 }
 
@@ -382,11 +382,11 @@ func (ai *AutomationIntegration) runHealthChecks(ctx context.Context) {
 
 func (ai *AutomationIntegration) performHealthChecks() {
 	status := ai.GetHealthStatus()
-	
+
 	if !status["healthy"].(bool) {
 		ai.logger.Warn("certificate automation integration health check failed",
 			"status", status)
-		
+
 		// Trigger alerts if configured
 		if ai.config.EnableAlertingIntegration {
 			ai.triggerHealthAlert(status)
@@ -406,16 +406,16 @@ func NewDefaultIntegrationConfig() *IntegrationConfig {
 	return &IntegrationConfig{
 		CAManagerConfig: &Config{
 			DefaultBackend:          BackendSelfSigned,
-			BackendConfigs:         make(map[CABackendType]interface{}),
+			BackendConfigs:          make(map[CABackendType]interface{}),
 			DefaultValidityDuration: 365 * 24 * time.Hour, // 1 year
-			RenewalThreshold:       30 * 24 * time.Hour,   // 30 days
-			MaxRetryAttempts:       3,
-			RetryBackoff:           5 * time.Second,
-			KeySize:                2048,
-			AllowedKeyTypes:        []string{"rsa", "ecdsa"},
-			MinValidityDuration:    24 * time.Hour,        // 1 day
-			MaxValidityDuration:    2 * 365 * 24 * time.Hour, // 2 years
-			AutoRotationEnabled:    true,
+			RenewalThreshold:        30 * 24 * time.Hour,  // 30 days
+			MaxRetryAttempts:        3,
+			RetryBackoff:            5 * time.Second,
+			KeySize:                 2048,
+			AllowedKeyTypes:         []string{"rsa", "ecdsa"},
+			MinValidityDuration:     24 * time.Hour,           // 1 day
+			MaxValidityDuration:     2 * 365 * 24 * time.Hour, // 2 years
+			AutoRotationEnabled:     true,
 			CertificateStore: &CertificateStoreConfig{
 				Type:            "kubernetes",
 				Namespace:       "nephoran-system",
@@ -434,30 +434,30 @@ func NewDefaultIntegrationConfig() *IntegrationConfig {
 		},
 		AutomationConfig: &AutomationConfig{
 			ProvisioningEnabled:     true,
-			AutoInjectCertificates: true,
+			AutoInjectCertificates:  true,
 			ServiceDiscoveryEnabled: true,
 			ProvisioningWorkers:     5,
 			ProvisioningTimeout:     5 * time.Minute,
-			
+
 			RenewalEnabled:         true,
 			RenewalThreshold:       30 * 24 * time.Hour, // 30 days
 			RenewalWorkers:         3,
 			RenewalWindow:          7 * 24 * time.Hour, // 7 days
 			GracefulRenewalEnabled: true,
-			
-			ValidationEnabled:       true,
+
+			ValidationEnabled:      true,
 			RealtimeValidation:     false,
 			ChainValidationEnabled: true,
 			CTLogValidationEnabled: false, // Disabled by default for performance
 			ValidationCacheSize:    1000,
 			ValidationCacheTTL:     1 * time.Hour,
-			
-			RevocationEnabled:    true,
+
+			RevocationEnabled:   true,
 			CRLCheckEnabled:     true,
 			OCSPCheckEnabled:    true,
 			RevocationCacheSize: 500,
 			RevocationCacheTTL:  30 * time.Minute,
-			
+
 			KubernetesIntegration: &K8sIntegrationConfig{
 				Enabled:          true,
 				Namespaces:       []string{"default", "nephoran-system"},
@@ -474,30 +474,30 @@ func NewDefaultIntegrationConfig() *IntegrationConfig {
 					Port:             9443,
 				},
 			},
-			
+
 			MonitoringIntegration: &MonitoringIntegration{
 				PrometheusEnabled:    true,
-				JaegerEnabled:       true,
-				GrafanaEnabled:      true,
+				JaegerEnabled:        true,
+				GrafanaEnabled:       true,
 				CustomMetricsEnabled: true,
 			},
-			
+
 			AlertingConfig: &AutomationAlertingConfig{
-				Enabled:                   true,
-				ProvisioningFailureAlert:  true,
+				Enabled:                  true,
+				ProvisioningFailureAlert: true,
 				RenewalFailureAlert:      true,
 				ValidationFailureAlert:   true,
 				RevocationAlert:          true,
 				AlertCooldown:            5 * time.Minute,
 			},
-			
+
 			BatchSize:               10,
 			MaxConcurrentOperations: 50,
 			OperationTimeout:        5 * time.Minute,
 			RetryAttempts:           3,
 			RetryBackoff:            1 * time.Second,
 		},
-		
+
 		EnableKubernetesIntegration: true,
 		EnableMonitoringIntegration: true,
 		EnableAlertingIntegration:   true,
@@ -506,6 +506,6 @@ func NewDefaultIntegrationConfig() *IntegrationConfig {
 		HealthCheckInterval:         30 * time.Second,
 		EnableSecurityScanning:      true,
 		EnableComplianceChecks:      true,
-		EnableAuditLogging:         true,
+		EnableAuditLogging:          true,
 	}
 }

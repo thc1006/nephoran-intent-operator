@@ -1,0 +1,491 @@
+# Comprehensive HorizontalPodAutoscaler configurations for Nephoran Intent Operator
+# This file contains HPA configurations for all scalable components with advanced scaling policies
+
+---
+# HPA for LLM Processor - AI workload with dynamic scaling
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: llm-processor-hpa
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: ai-processor
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: llm-processor
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 75
+  # Custom metrics for AI workload queue depth
+  - type: Pods
+    pods:
+      metric:
+        name: llm_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "5"
+  # Request rate scaling
+  - type: Pods
+    pods:
+      metric:
+        name: http_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "50"
+  behavior:
+    scaleUp:
+      # Allow rapid scale up for AI workloads
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 15
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      # Conservative scale down to avoid thrashing
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 60
+      - type: Pods
+        value: 1
+        periodSeconds: 300
+      selectPolicy: Min
+
+---
+# HPA for RAG API - Data retrieval workload
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: rag-api-hpa
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: rag-api
+    app.kubernetes.io/component: data-retrieval
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: rag-api
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Vector search operations per second
+  - type: Pods
+    pods:
+      metric:
+        name: vector_search_ops_per_second
+      target:
+        type: AverageValue
+        averageValue: "10"
+  # Active connections metric
+  - type: Pods
+    pods:
+      metric:
+        name: active_connections
+      target:
+        type: AverageValue
+        averageValue: "20"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 120
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 30
+      - type: Pods
+        value: 2
+        periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      selectPolicy: Min
+
+---
+# HPA for Webhook - Admission controller scaling
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nephoran-webhook-hpa
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-webhook
+    app.kubernetes.io/component: admission-controller
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nephoran-webhook
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Webhook admission requests
+  - type: Pods
+    pods:
+      metric:
+        name: webhook_admission_requests_per_second
+      target:
+        type: AverageValue
+        averageValue: "100"
+  behavior:
+    scaleUp:
+      # Conservative scaling for critical admission controller
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      selectPolicy: Min
+    scaleDown:
+      # Very conservative scale down for webhooks
+      stabilizationWindowSeconds: 600
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 120
+      selectPolicy: Min
+
+---
+# HPA for O-RAN Adaptor - Telecommunications interface scaling
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: oran-adaptor-hpa
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+    app.kubernetes.io/component: oran-interface
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: oran-adaptor
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+  # CPU-based scaling
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  # Memory-based scaling
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # O-RAN specific metrics
+  - type: Pods
+    pods:
+      metric:
+        name: oran_active_connections
+      target:
+        type: AverageValue
+        averageValue: "50"
+  # A1 policy operations per second
+  - type: Pods
+    pods:
+      metric:
+        name: a1_policy_ops_per_second
+      target:
+        type: AverageValue
+        averageValue: "20"
+  # O1 FCAPS operations per second
+  - type: Pods
+    pods:
+      metric:
+        name: o1_fcaps_ops_per_second
+      target:
+        type: AverageValue
+        averageValue: "30"
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 120
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 30
+      - type: Pods
+        value: 1
+        periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 60
+      selectPolicy: Min
+
+---
+# KEDA ScaledObject for advanced scaling with external metrics
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: llm-processor-keda-scaler
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+    app.kubernetes.io/component: ai-processor
+spec:
+  scaleTargetRef:
+    name: llm-processor
+  minReplicaCount: 2
+  maxReplicaCount: 15
+  pollingInterval: 30
+  cooldownPeriod: 300
+  idleReplicaCount: 2
+  triggers:
+  # Prometheus-based scaling for queue depth
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+      metricName: llm_processing_queue_depth
+      threshold: '5'
+      query: sum(llm_processing_queue_depth{job="llm-processor"})
+  # Redis-based scaling for job queue
+  - type: redis
+    metadata:
+      address: redis.nephoran-system.svc.cluster.local:6379
+      listName: llm_job_queue
+      listLength: '10'
+  # Custom HTTP-based scaling
+  - type: external
+    metadata:
+      scalerAddress: http://custom-scaler.nephoran-system.svc.cluster.local:8080
+      metricName: ai_workload_pressure
+      targetValue: '70'
+  # Memory pressure scaling
+  - type: memory
+    metricType: Utilization
+    metadata:
+      value: '80'
+
+---
+# KEDA ScaledObject for RAG API with Weaviate connection scaling
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: rag-api-keda-scaler
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: rag-api
+    app.kubernetes.io/component: data-retrieval
+spec:
+  scaleTargetRef:
+    name: rag-api
+  minReplicaCount: 2
+  maxReplicaCount: 10
+  pollingInterval: 30
+  cooldownPeriod: 180
+  idleReplicaCount: 2
+  triggers:
+  # Prometheus-based scaling for vector search load
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+      metricName: weaviate_vector_search_rate
+      threshold: '15'
+      query: sum(rate(weaviate_vector_searches_total[5m]))
+  # HTTP queue depth
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+      metricName: http_request_queue_depth
+      threshold: '20'
+      query: sum(http_request_queue_depth{service="rag-api"})
+  # Database connection pool utilization
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+      metricName: db_connection_pool_usage
+      threshold: '0.8'
+      query: max(db_connection_pool_active / db_connection_pool_max)
+
+---
+# Advanced scaling configuration with multiple triggers
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scaling-configuration
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: scaling-config
+data:
+  scaling-rules.yaml: |
+    scaling:
+      # Global scaling parameters
+      global:
+        stabilizationWindow: 300
+        scaleUpCooldown: 60
+        scaleDownCooldown: 300
+        maxScaleUpRate: 100
+        maxScaleDownRate: 25
+      
+      # Component-specific rules
+      components:
+        llm-processor:
+          priority: "high"
+          metrics:
+            - name: "cpu"
+              threshold: 70
+              weight: 0.3
+            - name: "memory" 
+              threshold: 75
+              weight: 0.3
+            - name: "queue_depth"
+              threshold: 5
+              weight: 0.4
+          scaling:
+            aggressive: true
+            minReplicas: 2
+            maxReplicas: 10
+            scaleUpMultiplier: 2
+            scaleDownMultiplier: 0.5
+        
+        rag-api:
+          priority: "medium"
+          metrics:
+            - name: "cpu"
+              threshold: 75
+              weight: 0.4
+            - name: "memory"
+              threshold: 80
+              weight: 0.3
+            - name: "search_ops"
+              threshold: 10
+              weight: 0.3
+          scaling:
+            moderate: true
+            minReplicas: 2
+            maxReplicas: 8
+            scaleUpMultiplier: 1.5
+            scaleDownMultiplier: 0.5
+        
+        webhook:
+          priority: "critical"
+          metrics:
+            - name: "cpu"
+              threshold: 80
+              weight: 0.5
+            - name: "admission_rate"
+              threshold: 100
+              weight: 0.5
+          scaling:
+            conservative: true
+            minReplicas: 2
+            maxReplicas: 5
+            scaleUpMultiplier: 1.2
+            scaleDownMultiplier: 0.8
+      
+      # Cost optimization rules
+      costOptimization:
+        enabled: true
+        spotInstancePreference: true
+        schedulingWindows:
+          - name: "business-hours"
+            start: "08:00"
+            end: "18:00"
+            timezone: "UTC"
+            minReplicas: 2
+          - name: "off-hours"
+            start: "18:00"
+            end: "08:00"  
+            timezone: "UTC"
+            minReplicas: 1
+        
+      # Performance SLA enforcement
+      sla:
+        enabled: true
+        targets:
+          responseTime: "2s"
+          availability: "99.9%"
+          errorRate: "1%"
+        violations:
+          scaleUpMultiplier: 3
+          alertThreshold: 2
+
+---
+# ServiceMonitor for HPA metrics collection
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: hpa-metrics
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: hpa-monitoring
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: nephoran-intent-operator
+  endpoints:
+  - port: metrics
+    interval: 15s
+    path: /metrics
+    honorLabels: true
+  - port: health
+    interval: 30s
+    path: /healthz
+    honorLabels: true

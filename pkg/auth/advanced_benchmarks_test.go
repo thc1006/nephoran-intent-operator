@@ -19,39 +19,39 @@ import (
 // BenchmarkAuthSystemSuite provides comprehensive authentication and authorization benchmarks using Go 1.24+ features
 func BenchmarkAuthSystemSuite(b *testing.B) {
 	ctx := context.Background()
-	
+
 	// Setup enhanced auth system for benchmarking
 	authSystem := setupBenchmarkAuthSystem()
 	defer authSystem.Cleanup()
-	
+
 	b.Run("JWTValidation", func(b *testing.B) {
 		benchmarkJWTValidation(b, ctx, authSystem)
 	})
-	
+
 	b.Run("RBACAuthorization", func(b *testing.B) {
 		benchmarkRBACAuthorization(b, ctx, authSystem)
 	})
-	
+
 	b.Run("LDAPAuthentication", func(b *testing.B) {
 		benchmarkLDAPAuthentication(b, ctx, authSystem)
 	})
-	
+
 	b.Run("OAuth2TokenExchange", func(b *testing.B) {
 		benchmarkOAuth2TokenExchange(b, ctx, authSystem)
 	})
-	
+
 	b.Run("SessionManagement", func(b *testing.B) {
 		benchmarkSessionManagement(b, ctx, authSystem)
 	})
-	
+
 	b.Run("ConcurrentAuthentication", func(b *testing.B) {
 		benchmarkConcurrentAuthentication(b, ctx, authSystem)
 	})
-	
+
 	b.Run("TokenCaching", func(b *testing.B) {
 		benchmarkTokenCaching(b, ctx, authSystem)
 	})
-	
+
 	b.Run("PermissionMatrix", func(b *testing.B) {
 		benchmarkPermissionMatrix(b, ctx, authSystem)
 	})
@@ -60,11 +60,11 @@ func BenchmarkAuthSystemSuite(b *testing.B) {
 // benchmarkJWTValidation tests JWT token validation performance with different token complexities
 func benchmarkJWTValidation(b *testing.B, ctx context.Context, authSystem *EnhancedAuthSystem) {
 	jwtScenarios := []struct {
-		name         string
-		algorithm    string
-		keySize      int
-		claimsCount  int
-		tokenExpiry  time.Duration
+		name        string
+		algorithm   string
+		keySize     int
+		claimsCount int
+		tokenExpiry time.Duration
 	}{
 		{"RS256_Small", "RS256", 2048, 5, time.Hour},
 		{"RS256_Medium", "RS256", 2048, 15, time.Hour},
@@ -72,29 +72,29 @@ func benchmarkJWTValidation(b *testing.B, ctx context.Context, authSystem *Enhan
 		{"RS512_Large", "RS512", 4096, 30, time.Hour},
 		{"ExpiredToken", "RS256", 2048, 10, -time.Hour}, // Expired token
 	}
-	
+
 	for _, scenario := range jwtScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			// Generate test tokens with specified parameters
-			tokens := generateJWTTokens(scenario.algorithm, scenario.keySize, 
+			tokens := generateJWTTokens(scenario.algorithm, scenario.keySize,
 				scenario.claimsCount, scenario.tokenExpiry, 1000) // Pre-generate 1000 tokens
-			
+
 			var validationLatency int64
 			var validTokens, invalidTokens, expiredTokens int64
 			var parseErrors, signatureErrors int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				token := tokens[i%len(tokens)]
-				
+
 				valStart := time.Now()
 				result, err := authSystem.ValidateJWTToken(ctx, token)
 				valLatency := time.Since(valStart)
-				
+
 				atomic.AddInt64(&validationLatency, valLatency.Nanoseconds())
-				
+
 				if err != nil {
 					switch {
 					case isTokenExpiredError(err):
@@ -112,14 +112,14 @@ func benchmarkJWTValidation(b *testing.B, ctx context.Context, authSystem *Enhan
 					}
 				}
 			}
-			
+
 			// Calculate JWT validation metrics
 			avgLatency := time.Duration(validationLatency / int64(b.N))
 			validationRate := float64(b.N) / b.Elapsed().Seconds()
 			validityRate := float64(validTokens) / float64(b.N) * 100
 			expiryRate := float64(expiredTokens) / float64(b.N) * 100
 			signatureErrorRate := float64(signatureErrors) / float64(b.N) * 100
-			
+
 			b.ReportMetric(float64(avgLatency.Microseconds()), "avg_validation_latency_us")
 			b.ReportMetric(validationRate, "validations_per_sec")
 			b.ReportMetric(validityRate, "valid_token_rate_percent")
@@ -146,36 +146,36 @@ func benchmarkRBACAuthorization(b *testing.B, ctx context.Context, authSystem *E
 		{"Complex_RBAC", 50, 200, 15, 10, 3},
 		{"Enterprise_RBAC", 100, 500, 25, 20, 4},
 	}
-	
+
 	for _, scenario := range rbacScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			// Setup RBAC configuration
 			rbacConfig := setupRBACConfiguration(scenario.roleCount, scenario.permissionCount,
 				scenario.resourceTypes, scenario.userGroups, scenario.hierarchyDepth)
-			
+
 			authSystem.ConfigureRBAC(rbacConfig)
-			
+
 			// Generate test authorization requests
 			authRequests := generateAuthorizationRequests(scenario.resourceTypes, 100)
 			testUser := generateTestUser("test-user", scenario.userGroups/2) // User in half the groups
-			
+
 			var authzLatency int64
 			var authorized, denied int64
 			var roleEvaluations, permissionChecks int64
 			var cacheHits, cacheMisses int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				request := authRequests[i%len(authRequests)]
-				
+
 				authzStart := time.Now()
 				result, err := authSystem.AuthorizeRequest(ctx, testUser, request)
 				authzLatency := time.Since(authzStart)
-				
+
 				atomic.AddInt64(&authzLatency, authzLatency.Nanoseconds())
-				
+
 				if err != nil {
 					b.Errorf("Authorization failed: %v", err)
 				} else {
@@ -184,10 +184,10 @@ func benchmarkRBACAuthorization(b *testing.B, ctx context.Context, authSystem *E
 					} else {
 						atomic.AddInt64(&denied, 1)
 					}
-					
+
 					atomic.AddInt64(&roleEvaluations, int64(result.RolesEvaluated))
 					atomic.AddInt64(&permissionChecks, int64(result.PermissionsChecked))
-					
+
 					if result.CacheHit {
 						atomic.AddInt64(&cacheHits, 1)
 					} else {
@@ -195,7 +195,7 @@ func benchmarkRBACAuthorization(b *testing.B, ctx context.Context, authSystem *E
 					}
 				}
 			}
-			
+
 			// Calculate RBAC authorization metrics
 			avgAuthzLatency := time.Duration(authzLatency / int64(b.N))
 			authzRate := float64(b.N) / b.Elapsed().Seconds()
@@ -203,7 +203,7 @@ func benchmarkRBACAuthorization(b *testing.B, ctx context.Context, authSystem *E
 			avgRoleEvals := float64(roleEvaluations) / float64(b.N)
 			avgPermissionChecks := float64(permissionChecks) / float64(b.N)
 			cacheHitRate := float64(cacheHits) / float64(cacheHits+cacheMisses) * 100
-			
+
 			b.ReportMetric(float64(avgAuthzLatency.Microseconds()), "avg_authz_latency_us")
 			b.ReportMetric(authzRate, "authorizations_per_sec")
 			b.ReportMetric(authorizationRate, "authorization_rate_percent")
@@ -219,10 +219,10 @@ func benchmarkRBACAuthorization(b *testing.B, ctx context.Context, authSystem *E
 // benchmarkLDAPAuthentication tests LDAP authentication performance
 func benchmarkLDAPAuthentication(b *testing.B, ctx context.Context, authSystem *EnhancedAuthSystem) {
 	ldapScenarios := []struct {
-		name          string
-		userPoolSize  int
-		groupDepth    int
-		attributeCount int
+		name              string
+		userPoolSize      int
+		groupDepth        int
+		attributeCount    int
 		useConnectionPool bool
 	}{
 		{"Small_Pool", 100, 2, 5, false},
@@ -230,7 +230,7 @@ func benchmarkLDAPAuthentication(b *testing.B, ctx context.Context, authSystem *
 		{"Large_Pool", 10000, 4, 15, true},
 		{"Connection_Pool", 1000, 3, 10, true},
 	}
-	
+
 	for _, scenario := range ldapScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			// Configure LDAP settings
@@ -242,29 +242,29 @@ func benchmarkLDAPAuthentication(b *testing.B, ctx context.Context, authSystem *
 				ConnectionPoolSize: 10,
 				UseConnectionPool:  scenario.useConnectionPool,
 			}
-			
+
 			authSystem.ConfigureLDAP(ldapConfig)
-			
+
 			// Generate test users
 			testUsers := generateLDAPTestUsers(scenario.userPoolSize, scenario.groupDepth)
-			
+
 			var authLatency, bindLatency, searchLatency int64
 			var successfulAuths, failedAuths int64
 			var connectionPoolHits int64
 			var groupLookups int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				user := testUsers[i%len(testUsers)]
-				
+
 				authStart := time.Now()
 				result, err := authSystem.AuthenticateLDAP(ctx, user.Username, user.Password)
 				authLatency := time.Since(authStart)
-				
+
 				atomic.AddInt64(&authLatency, authLatency.Nanoseconds())
-				
+
 				if err != nil {
 					atomic.AddInt64(&failedAuths, 1)
 				} else {
@@ -272,13 +272,13 @@ func benchmarkLDAPAuthentication(b *testing.B, ctx context.Context, authSystem *
 					atomic.AddInt64(&bindLatency, int64(result.BindTime.Nanoseconds()))
 					atomic.AddInt64(&searchLatency, int64(result.SearchTime.Nanoseconds()))
 					atomic.AddInt64(&groupLookups, int64(result.GroupsFound))
-					
+
 					if result.UsedConnectionPool {
 						atomic.AddInt64(&connectionPoolHits, 1)
 					}
 				}
 			}
-			
+
 			// Calculate LDAP authentication metrics
 			avgAuthLatency := time.Duration(authLatency / int64(b.N))
 			avgBindLatency := time.Duration(bindLatency / int64(b.N))
@@ -287,7 +287,7 @@ func benchmarkLDAPAuthentication(b *testing.B, ctx context.Context, authSystem *
 			successRate := float64(successfulAuths) / float64(b.N) * 100
 			avgGroupLookups := float64(groupLookups) / float64(b.N)
 			poolUtilization := float64(connectionPoolHits) / float64(b.N) * 100
-			
+
 			b.ReportMetric(float64(avgAuthLatency.Milliseconds()), "avg_auth_latency_ms")
 			b.ReportMetric(float64(avgBindLatency.Milliseconds()), "avg_bind_latency_ms")
 			b.ReportMetric(float64(avgSearchLatency.Milliseconds()), "avg_search_latency_ms")
@@ -303,18 +303,18 @@ func benchmarkLDAPAuthentication(b *testing.B, ctx context.Context, authSystem *
 // benchmarkOAuth2TokenExchange tests OAuth2 token exchange performance
 func benchmarkOAuth2TokenExchange(b *testing.B, ctx context.Context, authSystem *EnhancedAuthSystem) {
 	oauth2Scenarios := []struct {
-		name         string
-		provider     string
-		tokenType    string
-		scopeCount   int
-		audience     string
+		name       string
+		provider   string
+		tokenType  string
+		scopeCount int
+		audience   string
 	}{
 		{"GitHub_AccessToken", "github", "access_token", 3, "nephoran-api"},
 		{"Google_IDToken", "google", "id_token", 5, "nephoran-api"},
 		{"AzureAD_AccessToken", "azuread", "access_token", 8, "nephoran-api"},
 		{"Custom_RefreshToken", "custom", "refresh_token", 4, "nephoran-api"},
 	}
-	
+
 	for _, scenario := range oauth2Scenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			// Configure OAuth2 provider
@@ -325,42 +325,42 @@ func benchmarkOAuth2TokenExchange(b *testing.B, ctx context.Context, authSystem 
 				Scopes:       generateScopes(scenario.scopeCount),
 				Audience:     scenario.audience,
 			}
-			
+
 			authSystem.ConfigureOAuth2(oauth2Config)
-			
+
 			// Generate test OAuth2 tokens
 			oauth2Tokens := generateOAuth2Tokens(scenario.provider, scenario.tokenType, 100)
-			
+
 			var exchangeLatency, validationLatency int64
 			var successfulExchanges, failedExchanges int64
 			var tokenRefreshes int64
 			var scopeValidations int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				token := oauth2Tokens[i%len(oauth2Tokens)]
-				
+
 				exchangeStart := time.Now()
 				result, err := authSystem.ExchangeOAuth2Token(ctx, token, oauth2Config)
 				exchangeLatency := time.Since(exchangeStart)
-				
+
 				atomic.AddInt64(&exchangeLatency, exchangeLatency.Nanoseconds())
-				
+
 				if err != nil {
 					atomic.AddInt64(&failedExchanges, 1)
 				} else {
 					atomic.AddInt64(&successfulExchanges, 1)
 					atomic.AddInt64(&validationLatency, int64(result.ValidationTime.Nanoseconds()))
 					atomic.AddInt64(&scopeValidations, int64(result.ScopesValidated))
-					
+
 					if result.TokenRefreshed {
 						atomic.AddInt64(&tokenRefreshes, 1)
 					}
 				}
 			}
-			
+
 			// Calculate OAuth2 exchange metrics
 			avgExchangeLatency := time.Duration(exchangeLatency / int64(b.N))
 			avgValidationLatency := time.Duration(validationLatency / int64(b.N))
@@ -368,7 +368,7 @@ func benchmarkOAuth2TokenExchange(b *testing.B, ctx context.Context, authSystem 
 			successRate := float64(successfulExchanges) / float64(b.N) * 100
 			refreshRate := float64(tokenRefreshes) / float64(b.N) * 100
 			avgScopeValidations := float64(scopeValidations) / float64(b.N)
-			
+
 			b.ReportMetric(float64(avgExchangeLatency.Milliseconds()), "avg_exchange_latency_ms")
 			b.ReportMetric(float64(avgValidationLatency.Milliseconds()), "avg_validation_latency_ms")
 			b.ReportMetric(exchangeRate, "exchanges_per_sec")
@@ -396,18 +396,18 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 		{"ConcurrentCreate", "create", 10, time.Hour, "redis"},
 		{"ConcurrentValidate", "validate", 20, time.Hour, "redis"},
 	}
-	
+
 	for _, scenario := range sessionScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			// Configure session management
 			sessionConfig := SessionConfig{
-				TTL:            scenario.sessionTTL,
-				StorageBackend: scenario.storageBackend,
+				TTL:             scenario.sessionTTL,
+				StorageBackend:  scenario.storageBackend,
 				CleanupInterval: time.Minute * 5,
 			}
-			
+
 			authSystem.ConfigureSessionManagement(sessionConfig)
-			
+
 			// Pre-create sessions for validation/refresh/delete operations
 			var existingSessions []string
 			if scenario.operation != "create" {
@@ -416,26 +416,26 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 					existingSessions = append(existingSessions, sessionID)
 				}
 			}
-			
+
 			var operationLatency int64
 			var successfulOps, failedOps int64
 			var cacheHits, cacheMisses int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			semaphore := make(chan struct{}, scenario.concurrency)
-			
+
 			for i := 0; i < b.N; i++ {
 				semaphore <- struct{}{}
-				
+
 				go func(iteration int) {
 					defer func() { <-semaphore }()
-					
+
 					opStart := time.Now()
 					var err error
 					var cacheHit bool
-					
+
 					switch scenario.operation {
 					case "create":
 						_, err = authSystem.CreateSession(ctx, fmt.Sprintf("user-%d", iteration))
@@ -453,15 +453,15 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 						sessionID := existingSessions[iteration%len(existingSessions)]
 						err = authSystem.DeleteSession(ctx, sessionID)
 					}
-					
+
 					opLatency := time.Since(opStart)
 					atomic.AddInt64(&operationLatency, opLatency.Nanoseconds())
-					
+
 					if err != nil {
 						atomic.AddInt64(&failedOps, 1)
 					} else {
 						atomic.AddInt64(&successfulOps, 1)
-						
+
 						if cacheHit {
 							atomic.AddInt64(&cacheHits, 1)
 						} else {
@@ -470,18 +470,18 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 					}
 				}(i)
 			}
-			
+
 			// Wait for all operations to complete
 			for i := 0; i < scenario.concurrency; i++ {
 				semaphore <- struct{}{}
 			}
-			
+
 			// Calculate session management metrics
 			avgOpLatency := time.Duration(operationLatency / int64(b.N))
 			opRate := float64(b.N) / b.Elapsed().Seconds()
 			successRate := float64(successfulOps) / float64(b.N) * 100
 			cacheHitRate := float64(cacheHits) / float64(cacheHits+cacheMisses) * 100
-			
+
 			b.ReportMetric(float64(avgOpLatency.Microseconds()), "avg_operation_latency_us")
 			b.ReportMetric(opRate, "operations_per_sec")
 			b.ReportMetric(successRate, "success_rate_percent")
@@ -494,36 +494,36 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 // benchmarkConcurrentAuthentication tests authentication system under concurrent load
 func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSystem *EnhancedAuthSystem) {
 	concurrencyLevels := []int{1, 5, 10, 25, 50, 100}
-	
+
 	// Prepare test data
 	testUsers := generateTestUsers(1000)
 	testTokens := generateJWTTokens("RS256", 2048, 10, time.Hour, 1000)
-	
+
 	for _, concurrency := range concurrencyLevels {
 		b.Run(fmt.Sprintf("Concurrent-%d", concurrency), func(b *testing.B) {
 			var totalLatency int64
 			var jwtValidations, ldapAuths, oauth2Exchanges int64
 			var successCount, errorCount int64
-			
+
 			// Enhanced memory tracking for concurrent operations
 			var startMemStats, peakMemStats runtime.MemStats
 			runtime.GC()
 			runtime.ReadMemStats(&startMemStats)
 			peakMemory := int64(startMemStats.Alloc)
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			b.SetParallelism(concurrency)
 			b.RunParallel(func(pb *testing.PB) {
 				localIterations := 0
 				for pb.Next() {
 					// Mix different authentication methods
 					authType := localIterations % 3
-					
+
 					start := time.Now()
 					var err error
-					
+
 					switch authType {
 					case 0: // JWT validation
 						token := testTokens[localIterations%len(testTokens)]
@@ -544,16 +544,16 @@ func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSy
 						})
 						atomic.AddInt64(&oauth2Exchanges, 1)
 					}
-					
+
 					latency := time.Since(start)
 					atomic.AddInt64(&totalLatency, latency.Nanoseconds())
-					
+
 					if err != nil {
 						atomic.AddInt64(&errorCount, 1)
 					} else {
 						atomic.AddInt64(&successCount, 1)
 					}
-					
+
 					// Track peak memory usage
 					var currentMemStats runtime.MemStats
 					runtime.ReadMemStats(&currentMemStats)
@@ -562,22 +562,22 @@ func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSy
 						peakMemory = currentAlloc
 						peakMemStats = currentMemStats
 					}
-					
+
 					localIterations++
 				}
 			})
-			
+
 			// Calculate concurrent authentication metrics
 			totalRequests := int64(b.N)
 			avgLatency := time.Duration(totalLatency / totalRequests)
 			throughput := float64(totalRequests) / b.Elapsed().Seconds()
 			successRate := float64(successCount) / float64(totalRequests) * 100
 			memoryGrowth := float64(peakMemory-int64(startMemStats.Alloc)) / 1024 / 1024 // MB
-			
+
 			jwtValidationRate := float64(jwtValidations) / float64(totalRequests) * 100
 			ldapAuthRate := float64(ldapAuths) / float64(totalRequests) * 100
 			oauth2ExchangeRate := float64(oauth2Exchanges) / float64(totalRequests) * 100
-			
+
 			b.ReportMetric(float64(avgLatency.Milliseconds()), "avg_latency_ms")
 			b.ReportMetric(throughput, "requests_per_sec")
 			b.ReportMetric(successRate, "success_rate_percent")
@@ -593,10 +593,10 @@ func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSy
 // benchmarkTokenCaching tests token validation caching effectiveness
 func benchmarkTokenCaching(b *testing.B, ctx context.Context, authSystem *EnhancedAuthSystem) {
 	cacheScenarios := []struct {
-		name        string
-		cacheSize   int
-		cacheTTL    time.Duration
-		uniqueTokens int
+		name           string
+		cacheSize      int
+		cacheTTL       time.Duration
+		uniqueTokens   int
 		requestPattern string
 	}{
 		{"SmallCache_HighHit", 100, time.Minute * 5, 50, "repeated"},
@@ -604,7 +604,7 @@ func benchmarkTokenCaching(b *testing.B, ctx context.Context, authSystem *Enhanc
 		{"LargeCache_LowHit", 1000, time.Minute * 15, 800, "unique"},
 		{"TTL_Expiration", 200, time.Second * 30, 100, "repeated"},
 	}
-	
+
 	for _, scenario := range cacheScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			// Configure token cache
@@ -612,22 +612,22 @@ func benchmarkTokenCaching(b *testing.B, ctx context.Context, authSystem *Enhanc
 				MaxSize: scenario.cacheSize,
 				TTL:     scenario.cacheTTL,
 			}
-			
+
 			authSystem.ConfigureTokenCache(cacheConfig)
-			
+
 			// Generate token set based on scenario
 			tokens := generateJWTTokens("RS256", 2048, 10, time.Hour, scenario.uniqueTokens)
-			
+
 			var validationLatency int64
 			var cacheHits, cacheMisses int64
 			var validTokens, invalidTokens int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				var token string
-				
+
 				// Select token based on request pattern
 				switch scenario.requestPattern {
 				case "repeated":
@@ -644,18 +644,18 @@ func benchmarkTokenCaching(b *testing.B, ctx context.Context, authSystem *Enhanc
 					// Mostly unique tokens to decrease cache hits
 					token = tokens[i%scenario.uniqueTokens]
 				}
-				
+
 				valStart := time.Now()
 				result, err := authSystem.ValidateJWTTokenCached(ctx, token)
 				valLatency := time.Since(valStart)
-				
+
 				atomic.AddInt64(&validationLatency, valLatency.Nanoseconds())
-				
+
 				if err != nil {
 					atomic.AddInt64(&invalidTokens, 1)
 				} else {
 					atomic.AddInt64(&validTokens, 1)
-					
+
 					if result.FromCache {
 						atomic.AddInt64(&cacheHits, 1)
 					} else {
@@ -663,13 +663,13 @@ func benchmarkTokenCaching(b *testing.B, ctx context.Context, authSystem *Enhanc
 					}
 				}
 			}
-			
+
 			// Calculate token caching metrics
 			avgLatency := time.Duration(validationLatency / int64(b.N))
 			validationRate := float64(b.N) / b.Elapsed().Seconds()
 			cacheHitRate := float64(cacheHits) / float64(cacheHits+cacheMisses) * 100
 			cacheEffectiveness := cacheHitRate / 100.0 * validationRate // Effective throughput from cache
-			
+
 			b.ReportMetric(float64(avgLatency.Microseconds()), "avg_validation_latency_us")
 			b.ReportMetric(validationRate, "validations_per_sec")
 			b.ReportMetric(cacheHitRate, "cache_hit_rate_percent")
@@ -683,76 +683,76 @@ func benchmarkTokenCaching(b *testing.B, ctx context.Context, authSystem *Enhanc
 // benchmarkPermissionMatrix tests large-scale permission evaluation
 func benchmarkPermissionMatrix(b *testing.B, ctx context.Context, authSystem *EnhancedAuthSystem) {
 	matrixScenarios := []struct {
-		name           string
-		userCount      int
-		roleCount      int
-		resourceCount  int
+		name            string
+		userCount       int
+		roleCount       int
+		resourceCount   int
 		permissionTypes int
-		matrixDensity  float64 // Percentage of user-resource-permission combinations that are valid
+		matrixDensity   float64 // Percentage of user-resource-permission combinations that are valid
 	}{
 		{"Small_Matrix", 100, 10, 50, 5, 0.1},
 		{"Medium_Matrix", 1000, 50, 200, 10, 0.05},
 		{"Large_Matrix", 5000, 200, 1000, 20, 0.02},
 		{"Sparse_Matrix", 10000, 100, 500, 15, 0.01},
 	}
-	
+
 	for _, scenario := range matrixScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			// Generate permission matrix
 			permissionMatrix := generatePermissionMatrix(scenario.userCount, scenario.roleCount,
 				scenario.resourceCount, scenario.permissionTypes, scenario.matrixDensity)
-			
+
 			authSystem.LoadPermissionMatrix(permissionMatrix)
-			
+
 			// Generate test permission checks
 			permissionChecks := generatePermissionChecks(scenario.userCount, scenario.resourceCount,
 				scenario.permissionTypes, 1000)
-			
+
 			var evaluationLatency int64
 			var matrixLookups int64
 			var permissionGrants, permissionDenials int64
 			var cacheUtilization int64
-			
+
 			b.ResetTimer()
 			b.ReportAllocs()
-			
+
 			for i := 0; i < b.N; i++ {
 				check := permissionChecks[i%len(permissionChecks)]
-				
+
 				evalStart := time.Now()
 				result, err := authSystem.EvaluatePermission(ctx, check)
 				evalLatency := time.Since(evalStart)
-				
+
 				atomic.AddInt64(&evaluationLatency, evalLatency.Nanoseconds())
-				
+
 				if err != nil {
 					b.Errorf("Permission evaluation failed: %v", err)
 				} else {
 					atomic.AddInt64(&matrixLookups, int64(result.MatrixLookups))
-					
+
 					if result.Granted {
 						atomic.AddInt64(&permissionGrants, 1)
 					} else {
 						atomic.AddInt64(&permissionDenials, 1)
 					}
-					
+
 					if result.UsedCache {
 						atomic.AddInt64(&cacheUtilization, 1)
 					}
 				}
 			}
-			
+
 			// Calculate permission matrix metrics
 			avgEvalLatency := time.Duration(evaluationLatency / int64(b.N))
 			evaluationRate := float64(b.N) / b.Elapsed().Seconds()
 			grantRate := float64(permissionGrants) / float64(b.N) * 100
 			avgMatrixLookups := float64(matrixLookups) / float64(b.N)
 			cacheUtilizationRate := float64(cacheUtilization) / float64(b.N) * 100
-			
+
 			// Calculate matrix efficiency metrics
 			expectedGrants := scenario.matrixDensity * 100
 			matrixAccuracy := 100 - abs(grantRate-expectedGrants) // How close we are to expected grants
-			
+
 			b.ReportMetric(float64(avgEvalLatency.Microseconds()), "avg_evaluation_latency_us")
 			b.ReportMetric(evaluationRate, "evaluations_per_sec")
 			b.ReportMetric(grantRate, "permission_grant_rate_percent")
@@ -773,9 +773,9 @@ func generateJWTTokens(algorithm string, keySize int, claimsCount int, expiry ti
 	if err != nil {
 		panic(fmt.Sprintf("Failed to generate RSA key: %v", err))
 	}
-	
+
 	tokens := make([]string, count)
-	
+
 	for i := 0; i < count; i++ {
 		// Create claims
 		claims := jwt.MapClaims{
@@ -784,50 +784,50 @@ func generateJWTTokens(algorithm string, keySize int, claimsCount int, expiry ti
 			"aud": "nephoran-api",
 			"iat": time.Now().Unix(),
 		}
-		
+
 		if expiry > 0 {
 			claims["exp"] = time.Now().Add(expiry).Unix()
 		} else {
 			claims["exp"] = time.Now().Add(expiry).Unix() // Negative expiry for expired tokens
 		}
-		
+
 		// Add additional claims based on claimsCount
 		for j := 0; j < claimsCount; j++ {
 			claims[fmt.Sprintf("claim_%d", j)] = fmt.Sprintf("value_%d_%d", i, j)
 		}
-		
+
 		// Create and sign token
 		token := jwt.NewWithClaims(jwt.GetSigningMethod(algorithm), claims)
 		signedToken, err := token.SignedString(privateKey)
 		if err != nil {
 			panic(fmt.Sprintf("Failed to sign token: %v", err))
 		}
-		
+
 		tokens[i] = signedToken
 	}
-	
+
 	return tokens
 }
 
 func setupRBACConfiguration(roleCount, permissionCount, resourceTypes, userGroups, hierarchyDepth int) RBACConfig {
 	return RBACConfig{
-		Roles:           generateRoles(roleCount, permissionCount),
-		Permissions:     generatePermissions(permissionCount, resourceTypes),
-		UserGroups:      generateUserGroups(userGroups),
-		HierarchyDepth:  hierarchyDepth,
+		Roles:          generateRoles(roleCount, permissionCount),
+		Permissions:    generatePermissions(permissionCount, resourceTypes),
+		UserGroups:     generateUserGroups(userGroups),
+		HierarchyDepth: hierarchyDepth,
 	}
 }
 
 func generateRoles(count, permissionCount int) []Role {
 	roles := make([]Role, count)
-	
+
 	for i := range roles {
 		roles[i] = Role{
 			Name:        fmt.Sprintf("role-%d", i),
 			Permissions: generateRolePermissions(i, permissionCount),
 		}
 	}
-	
+
 	return roles
 }
 
@@ -835,19 +835,19 @@ func generateRolePermissions(roleIndex, maxPermissions int) []string {
 	// Each role gets a subset of permissions
 	permissionCount := (roleIndex % maxPermissions) + 1
 	permissions := make([]string, permissionCount)
-	
+
 	for i := range permissions {
 		permissions[i] = fmt.Sprintf("permission-%d", (roleIndex+i)%maxPermissions)
 	}
-	
+
 	return permissions
 }
 
 func generatePermissions(count, resourceTypes int) []Permission {
 	permissions := make([]Permission, count)
-	
+
 	actions := []string{"read", "write", "delete", "create", "update"}
-	
+
 	for i := range permissions {
 		permissions[i] = Permission{
 			Name:     fmt.Sprintf("permission-%d", i),
@@ -855,27 +855,27 @@ func generatePermissions(count, resourceTypes int) []Permission {
 			Action:   actions[i%len(actions)],
 		}
 	}
-	
+
 	return permissions
 }
 
 func generateUserGroups(count int) []UserGroup {
 	groups := make([]UserGroup, count)
-	
+
 	for i := range groups {
 		groups[i] = UserGroup{
 			Name:  fmt.Sprintf("group-%d", i),
 			Users: []string{fmt.Sprintf("user-%d", i), fmt.Sprintf("user-%d", i+count)},
 		}
 	}
-	
+
 	return groups
 }
 
 func generateAuthorizationRequests(resourceTypes, count int) []AuthorizationRequest {
 	requests := make([]AuthorizationRequest, count)
 	actions := []string{"read", "write", "delete", "create", "update"}
-	
+
 	for i := range requests {
 		requests[i] = AuthorizationRequest{
 			Resource: fmt.Sprintf("resource-%d", i%resourceTypes),
@@ -883,7 +883,7 @@ func generateAuthorizationRequests(resourceTypes, count int) []AuthorizationRequ
 			Context:  map[string]interface{}{"tenant": fmt.Sprintf("tenant-%d", i%10)},
 		}
 	}
-	
+
 	return requests
 }
 
@@ -892,7 +892,7 @@ func generateTestUser(username string, groupCount int) User {
 	for i := range groups {
 		groups[i] = fmt.Sprintf("group-%d", i)
 	}
-	
+
 	return User{
 		Username: username,
 		Groups:   groups,
@@ -905,7 +905,7 @@ func generateTestUser(username string, groupCount int) User {
 
 func generateLDAPTestUsers(count, groupDepth int) []LDAPUser {
 	users := make([]LDAPUser, count)
-	
+
 	for i := range users {
 		users[i] = LDAPUser{
 			Username: fmt.Sprintf("user-%d", i),
@@ -914,35 +914,35 @@ func generateLDAPTestUsers(count, groupDepth int) []LDAPUser {
 			Groups:   generateUserLDAPGroups(i, groupDepth),
 		}
 	}
-	
+
 	return users
 }
 
 func generateUserLDAPGroups(userIndex, depth int) []string {
 	groupCount := (userIndex % depth) + 1
 	groups := make([]string, groupCount)
-	
+
 	for i := range groups {
 		groups[i] = fmt.Sprintf("cn=group-%d,ou=groups,dc=example,dc=com", (userIndex+i)%10)
 	}
-	
+
 	return groups
 }
 
 func generateScopes(count int) []string {
 	scopes := make([]string, count)
 	baseSopes := []string{"read", "write", "admin", "user", "api", "openid", "profile", "email"}
-	
+
 	for i := range scopes {
 		scopes[i] = baseSopes[i%len(baseSopes)]
 	}
-	
+
 	return scopes
 }
 
 func generateOAuth2Tokens(provider, tokenType string, count int) []OAuth2Token {
 	tokens := make([]OAuth2Token, count)
-	
+
 	for i := range tokens {
 		tokens[i] = OAuth2Token{
 			AccessToken:  fmt.Sprintf("%s-access-token-%d", provider, i),
@@ -953,20 +953,20 @@ func generateOAuth2Tokens(provider, tokenType string, count int) []OAuth2Token {
 			ExpiresIn:    3600,
 		}
 	}
-	
+
 	return tokens
 }
 
 func generateTestUsers(count int) []TestUser {
 	users := make([]TestUser, count)
-	
+
 	for i := range users {
 		users[i] = TestUser{
 			Username: fmt.Sprintf("user-%d", i),
 			Password: fmt.Sprintf("password-%d", i),
 		}
 	}
-	
+
 	return users
 }
 
@@ -976,40 +976,40 @@ func generatePermissionMatrix(userCount, roleCount, resourceCount, permissionTyp
 		Resources: make([]string, resourceCount),
 		Matrix:    make(map[string]map[string]map[string]bool),
 	}
-	
+
 	// Generate users and resources
 	for i := 0; i < userCount; i++ {
 		matrix.Users[i] = fmt.Sprintf("user-%d", i)
 	}
-	
+
 	for i := 0; i < resourceCount; i++ {
 		matrix.Resources[i] = fmt.Sprintf("resource-%d", i)
 	}
-	
+
 	// Generate permission matrix based on density
 	permissions := []string{"read", "write", "delete", "create", "update"}
-	
+
 	for _, user := range matrix.Users {
 		matrix.Matrix[user] = make(map[string]map[string]bool)
-		
+
 		for _, resource := range matrix.Resources {
 			matrix.Matrix[user][resource] = make(map[string]bool)
-			
+
 			for i := 0; i < permissionTypes && i < len(permissions); i++ {
 				permission := permissions[i]
 				// Randomly grant permission based on density
-				matrix.Matrix[user][resource][permission] = (float64(time.Now().UnixNano()%100)/100.0) < density
+				matrix.Matrix[user][resource][permission] = (float64(time.Now().UnixNano()%100) / 100.0) < density
 			}
 		}
 	}
-	
+
 	return matrix
 }
 
 func generatePermissionChecks(userCount, resourceCount, permissionTypes, count int) []PermissionCheck {
 	checks := make([]PermissionCheck, count)
 	permissions := []string{"read", "write", "delete", "create", "update"}
-	
+
 	for i := range checks {
 		checks[i] = PermissionCheck{
 			User:       fmt.Sprintf("user-%d", i%userCount),
@@ -1017,7 +1017,7 @@ func generatePermissionChecks(userCount, resourceCount, permissionTypes, count i
 			Permission: permissions[i%min(permissionTypes, len(permissions))],
 		}
 	}
-	
+
 	return checks
 }
 
@@ -1054,7 +1054,7 @@ func setupBenchmarkAuthSystem() *EnhancedAuthSystem {
 			StorageBackend: "memory",
 		},
 	}
-	
+
 	return NewEnhancedAuthSystem(config)
 }
 
@@ -1070,14 +1070,14 @@ func isSignatureError(err error) bool {
 // Enhanced Auth System types and interfaces
 
 type EnhancedAuthSystem struct {
-	jwtManager      JWTManager
-	rbacEngine      RBACEngine
-	ldapClient      LDAPClient
-	oauth2Manager   OAuth2Manager
-	sessionManager  SessionManager
-	tokenCache      TokenCache
+	jwtManager       JWTManager
+	rbacEngine       RBACEngine
+	ldapClient       LDAPClient
+	oauth2Manager    OAuth2Manager
+	sessionManager   SessionManager
+	tokenCache       TokenCache
 	permissionMatrix *PermissionMatrix
-	metrics         AuthMetrics
+	metrics          AuthMetrics
 }
 
 type AuthSystemConfig struct {
@@ -1196,17 +1196,17 @@ type JWTValidationResult struct {
 }
 
 type AuthorizationResult struct {
-	Authorized        bool
-	RolesEvaluated    int
+	Authorized         bool
+	RolesEvaluated     int
 	PermissionsChecked int
-	CacheHit          bool
+	CacheHit           bool
 }
 
 type LDAPAuthResult struct {
-	Authenticated     bool
-	BindTime          time.Duration
-	SearchTime        time.Duration
-	GroupsFound       int
+	Authenticated      bool
+	BindTime           time.Duration
+	SearchTime         time.Duration
+	GroupsFound        int
 	UsedConnectionPool bool
 }
 
@@ -1243,7 +1243,7 @@ func (a *EnhancedAuthSystem) ValidateJWTToken(ctx context.Context, token string)
 
 func (a *EnhancedAuthSystem) ValidateJWTTokenCached(ctx context.Context, token string) (*JWTValidationResult, error) {
 	// Simulate cache hit 70% of the time
-	fromCache := (time.Now().UnixNano()%100) < 70
+	fromCache := (time.Now().UnixNano() % 100) < 70
 	if fromCache {
 		time.Sleep(10 * time.Microsecond)
 	} else {

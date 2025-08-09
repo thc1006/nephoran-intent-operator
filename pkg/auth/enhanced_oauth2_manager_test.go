@@ -16,11 +16,11 @@ func TestEnhancedOAuth2Manager_ConfigureAllRoutes(t *testing.T) {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 
 	tests := []struct {
-		name               string
-		config             *EnhancedOAuth2ManagerConfig
-		expectedRoutes     []string
-		unexpectedRoutes   []string
-		publicAccess       map[string]bool // route -> should be publicly accessible
+		name             string
+		config           *EnhancedOAuth2ManagerConfig
+		expectedRoutes   []string
+		unexpectedRoutes []string
+		publicAccess     map[string]bool // route -> should be publicly accessible
 	}{
 		{
 			name: "Auth disabled - all routes public",
@@ -35,13 +35,13 @@ func TestEnhancedOAuth2Manager_ConfigureAllRoutes(t *testing.T) {
 				"/healthz", "/readyz", "/metrics", "/process", "/status", "/circuit-breaker/status", "/stream",
 			},
 			publicAccess: map[string]bool{
-				"/healthz":                    true,
-				"/readyz":                     true,
-				"/metrics":                    true,
-				"/process":                    true,
-				"/status":                     true,
-				"/circuit-breaker/status":     true,
-				"/stream":                     true,
+				"/healthz":                true,
+				"/readyz":                 true,
+				"/metrics":                true,
+				"/process":                true,
+				"/status":                 true,
+				"/circuit-breaker/status": true,
+				"/stream":                 true,
 			},
 		},
 		{
@@ -56,18 +56,18 @@ func TestEnhancedOAuth2Manager_ConfigureAllRoutes(t *testing.T) {
 				StreamingEnabled:       false, // Streaming disabled
 			},
 			expectedRoutes: []string{
-				"/healthz", "/readyz", "/metrics", 
+				"/healthz", "/readyz", "/metrics",
 				"/auth/login/{provider}", "/auth/callback/{provider}", "/auth/refresh", "/auth/logout", "/auth/userinfo",
 			},
 			unexpectedRoutes: []string{
 				"/stream", // Should not exist when streaming disabled
 			},
 			publicAccess: map[string]bool{
-				"/healthz":  true,
-				"/readyz":   true, 
-				"/metrics":  true,
-				"/process":  false, // Protected
-				"/status":   false, // Protected admin endpoint
+				"/healthz": true,
+				"/readyz":  true,
+				"/metrics": true,
+				"/process": false, // Protected
+				"/status":  false, // Protected admin endpoint
 			},
 		},
 		{
@@ -88,7 +88,7 @@ func TestEnhancedOAuth2Manager_ConfigureAllRoutes(t *testing.T) {
 			},
 		},
 		{
-			name: "Health endpoints disabled", 
+			name: "Health endpoints disabled",
 			config: &EnhancedOAuth2ManagerConfig{
 				Enabled:                false,
 				HealthEndpointsEnabled: false, // Disabled
@@ -145,12 +145,12 @@ func TestEnhancedOAuth2Manager_ConfigureAllRoutes(t *testing.T) {
 					if route == "/process" || route == "/stream" || route == "/auth/refresh" || route == "/auth/logout" {
 						req = httptest.NewRequest("POST", route, nil)
 					}
-					
+
 					rr := httptest.NewRecorder()
 					router.ServeHTTP(rr, req)
-					
+
 					// Route should exist (not 404)
-					assert.NotEqual(t, http.StatusNotFound, rr.Code, 
+					assert.NotEqual(t, http.StatusNotFound, rr.Code,
 						"Route %s should exist but returned 404", route)
 				})
 			}
@@ -161,7 +161,7 @@ func TestEnhancedOAuth2Manager_ConfigureAllRoutes(t *testing.T) {
 					req := httptest.NewRequest("GET", route, nil)
 					rr := httptest.NewRecorder()
 					router.ServeHTTP(rr, req)
-					
+
 					// Route should not exist (404)
 					assert.Equal(t, http.StatusNotFound, rr.Code,
 						"Route %s should not exist but was found", route)
@@ -175,14 +175,14 @@ func TestEnhancedOAuth2Manager_ConfigureAllRoutes(t *testing.T) {
 					if route == "/process" || route == "/stream" {
 						method = "POST"
 					}
-					
+
 					req := httptest.NewRequest(method, route, nil)
 					rr := httptest.NewRecorder()
 					router.ServeHTTP(rr, req)
-					
+
 					if shouldBePublic {
 						// Public routes should return OK (200) or at least not 401/403 for auth
-						assert.NotContains(t, []int{http.StatusUnauthorized, http.StatusForbidden}, 
+						assert.NotContains(t, []int{http.StatusUnauthorized, http.StatusForbidden},
 							rr.Code, "Public route %s should be accessible", route)
 					}
 					// Note: Testing protected routes would require setting up proper auth middleware
@@ -226,7 +226,7 @@ func TestEnhancedOAuth2Manager_IPAllowlist(t *testing.T) {
 			expectedStatus: http.StatusOK,
 		},
 		{
-			name:           "Allowed IP - local network", 
+			name:           "Allowed IP - local network",
 			clientIP:       "192.168.1.100",
 			expectedStatus: http.StatusOK,
 		},
@@ -257,7 +257,7 @@ func TestEnhancedOAuth2Manager_IPAllowlist(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest("GET", "/metrics", nil)
 			req.RemoteAddr = tt.clientIP + ":12345"
-			
+
 			// Set headers
 			for key, value := range tt.headers {
 				req.Header.Set(key, value)
@@ -327,7 +327,7 @@ func TestEnhancedConfigValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.expectError {
 				require.Error(t, err)
 				if tt.errorCode != "" {

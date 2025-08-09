@@ -29,9 +29,9 @@ type O2APIServer struct {
 	logger *logging.StructuredLogger
 
 	// Core services
-	imsService      O2IMSService
-	resourceManager ResourceManager
-	inventoryService InventoryService
+	imsService        O2IMSService
+	resourceManager   ResourceManager
+	inventoryService  InventoryService
 	monitoringService MonitoringService
 
 	// HTTP server components
@@ -39,10 +39,10 @@ type O2APIServer struct {
 	httpServer *http.Server
 
 	// Middleware components
-	authMiddleware    auth.AuthMiddleware
-	corsMiddleware    *middleware.CORSMiddleware
+	authMiddleware      auth.AuthMiddleware
+	corsMiddleware      *middleware.CORSMiddleware
 	rateLimitMiddleware http.Handler
-	
+
 	// Metrics and monitoring
 	metricsRegistry *prometheus.Registry
 	metrics         *APIMetrics
@@ -160,7 +160,7 @@ func (s *O2APIServer) initializeServices() error {
 
 // initializeHTTPServer initializes the HTTP server and routing
 func (s *O2APIServer) initializeHTTPServer() error {
-	s.logger.Info("initializing HTTP server", 
+	s.logger.Info("initializing HTTP server",
 		"port", s.config.Port,
 		"tls_enabled", s.config.TLSEnabled)
 
@@ -215,11 +215,11 @@ func (s *O2APIServer) initializeMiddleware() error {
 			AllowedHeaders:   s.config.SecurityConfig.CORSAllowedHeaders,
 			AllowCredentials: s.config.AuthenticationConfig != nil && s.config.AuthenticationConfig.Enabled,
 		}
-		
+
 		if err := middleware.ValidateConfig(corsConfig); err != nil {
 			return fmt.Errorf("invalid CORS config: %w", err)
 		}
-		
+
 		s.corsMiddleware = middleware.NewCORSMiddleware(corsConfig, s.logger.Logger)
 	}
 
@@ -466,11 +466,11 @@ func (s *O2APIServer) getQueryParamInt(r *http.Request, param string, defaultVal
 	if value == "" {
 		return defaultValue
 	}
-	
+
 	if intValue, err := strconv.Atoi(value); err == nil {
 		return intValue
 	}
-	
+
 	return defaultValue
 }
 
@@ -480,11 +480,11 @@ func (s *O2APIServer) getQueryParamBool(r *http.Request, param string, defaultVa
 	if value == "" {
 		return defaultValue
 	}
-	
+
 	if boolValue, err := strconv.ParseBool(value); err == nil {
 		return boolValue
 	}
-	
+
 	return defaultValue
 }
 

@@ -1,0 +1,195 @@
+# Copyright 2025.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+---
+# Service for the webhook server
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-intent-operator-webhook-service
+  namespace: nephoran-intent-operator-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  type: ClusterIP
+  ports:
+  - name: webhook
+    port: 443
+    targetPort: 9443
+    protocol: TCP
+  selector:
+    control-plane: controller-manager
+    app.kubernetes.io/name: nephoran-intent-operator
+
+---
+# ValidatingWebhookConfiguration for NetworkIntent validation
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: nephoran-intent-operator-validating-webhook-configuration
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/part-of: nephoran-intent-operator
+webhooks:
+- name: vnetworkintent.kb.io
+  clientConfig:
+    service:
+      name: nephoran-intent-operator-webhook-service
+      namespace: nephoran-intent-operator-system
+      path: /validate-nephoran-io-v1-networkintent
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["nephoran.io"]
+    apiVersions: ["v1"]
+    resources: ["networkintents"]
+  sideEffects: None
+  admissionReviewVersions: ["v1", "v1beta1"]
+  failurePolicy: Fail
+  timeoutSeconds: 30
+  matchPolicy: Equivalent
+
+---
+# Certificate for the webhook server (using cert-manager)
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-intent-operator-serving-cert
+  namespace: nephoran-intent-operator-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook-cert
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  dnsNames:
+  - nephoran-intent-operator-webhook-service.nephoran-intent-operator-system.svc
+  - nephoran-intent-operator-webhook-service.nephoran-intent-operator-system.svc.cluster.local
+  issuerRef:
+    kind: ClusterIssuer
+    name: selfsigned-cluster-issuer
+  secretName: webhook-server-certs
+  subject:
+    organizations:
+    - nephoran.io
+    organizationalUnits:
+    - intent-operator
+  duration: 8760h  # 1 year
+  renewBefore: 720h  # 30 days
+
+---
+# ClusterIssuer for self-signed certificates (development/testing)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-cluster-issuer
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: cert-issuer
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  selfSigned: {}
+
+---
+# Issuer for CA certificates (production)
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: webhook-ca-issuer
+  namespace: nephoran-intent-operator-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: ca-issuer
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  ca:
+    secretName: webhook-ca-key-pair
+
+---
+# NetworkPolicy for webhook security
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-intent-operator-webhook-netpol
+  namespace: nephoran-intent-operator-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook-security
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  podSelector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/name: nephoran-intent-operator
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 9443
+  - from:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8080  # metrics
+    - protocol: TCP
+      port: 8081  # health probes
+  egress:
+  - {}  # Allow all egress for now, can be restricted further
+
+---
+# ServiceMonitor for webhook metrics (if Prometheus operator is installed)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: nephoran-intent-operator-webhook-metrics
+  namespace: nephoran-intent-operator-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook-monitoring
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nephoran-intent-operator
+      app.kubernetes.io/component: webhook
+  endpoints:
+  - path: /metrics
+    port: webhook
+    interval: 30s
+    scrapeTimeout: 10s
+
+---
+# PodDisruptionBudget for webhook high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nephoran-intent-operator-webhook-pdb
+  namespace: nephoran-intent-operator-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook-availability
+    app.kubernetes.io/part-of: nephoran-intent-operator
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      app.kubernetes.io/name: nephoran-intent-operator

@@ -37,7 +37,7 @@ func main() {
 	fmt.Println("1. Configuration:")
 	fmt.Println("   - Concurrent push limit set via env: 2")
 	fmt.Println()
-	
+
 	fmt.Println("2. Testing concurrent semaphore acquisition:")
 	fmt.Println("   (Watch for debug logs with in_flight and limit fields)")
 	fmt.Println()
@@ -48,13 +48,13 @@ func main() {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			
+
 			// This will trigger semaphore acquisition/release with logging
 			// Note: actual push will fail without a real repo, but that's ok
 			files := map[string]string{
 				fmt.Sprintf("test%d.txt", id): fmt.Sprintf("content %d", id),
 			}
-			
+
 			fmt.Printf("   Operation %d starting...\n", id)
 			_, err := client.CommitAndPush(files, fmt.Sprintf("Test commit %d", id))
 			if err != nil {
@@ -63,16 +63,16 @@ func main() {
 				fmt.Printf("   Operation %d completed successfully\n", id)
 			}
 		}(i)
-		
+
 		// Small delay between launches to see semaphore behavior
 		time.Sleep(100 * time.Millisecond)
 	}
-	
+
 	wg.Wait()
-	
+
 	fmt.Println()
 	fmt.Println("3. Metrics verification:")
-	
+
 	// Gather metrics
 	mfs, err := registry.Gather()
 	if err != nil {

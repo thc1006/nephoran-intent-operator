@@ -93,14 +93,14 @@ func (m *MockA1Adaptor) GetSupportedPolicyTypes() []string {
 
 var _ = Describe("OranAdaptorReconciler", func() {
 	var (
-		testEnv         *testtools.TestEnvironment
-		ctx             context.Context
-		reconciler      *controllers.OranAdaptorReconciler
-		mockO1Adaptor   *MockO1Adaptor
-		mockA1Adaptor   *MockA1Adaptor
-		testNamespace   string
-		managedElement  *nephoranv1.ManagedElement
-		deployment      *appsv1.Deployment
+		testEnv          *testtools.TestEnvironment
+		ctx              context.Context
+		reconciler       *controllers.OranAdaptorReconciler
+		mockO1Adaptor    *MockO1Adaptor
+		mockA1Adaptor    *MockA1Adaptor
+		testNamespace    string
+		managedElement   *nephoranv1.ManagedElement
+		deployment       *appsv1.Deployment
 		reconcileRequest ctrl.Request
 	)
 
@@ -111,7 +111,7 @@ var _ = Describe("OranAdaptorReconciler", func() {
 
 		ctx = testEnv.GetContext()
 		testNamespace = testtools.GetUniqueNamespace("oran-test")
-		
+
 		// Create test namespace
 		Expect(testEnv.CreateNamespace(testNamespace)).To(Succeed())
 

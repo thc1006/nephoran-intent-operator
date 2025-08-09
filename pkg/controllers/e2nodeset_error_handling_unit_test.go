@@ -93,11 +93,11 @@ func TestCalculateExponentialBackoffUnit(t *testing.T) {
 			// Run multiple times to account for jitter randomness
 			for i := 0; i < 10; i++ {
 				delay := calculateExponentialBackoff(tt.retryCount, tt.baseDelay, tt.maxDelay)
-				assert.True(t, delay >= tt.expectRange.min, 
+				assert.True(t, delay >= tt.expectRange.min,
 					"Delay %v should be >= %v", delay, tt.expectRange.min)
-				assert.True(t, delay <= tt.expectRange.max, 
+				assert.True(t, delay <= tt.expectRange.max,
 					"Delay %v should be <= %v", delay, tt.expectRange.max)
-				
+
 				// Verify delay is positive
 				assert.True(t, delay > 0, "Delay should be positive")
 			}
@@ -107,9 +107,9 @@ func TestCalculateExponentialBackoffUnit(t *testing.T) {
 
 func TestCalculateExponentialBackoffForOperationUnit(t *testing.T) {
 	tests := []struct {
-		name       string
-		operation  string
-		retryCount int
+		name          string
+		operation     string
+		retryCount    int
 		expectedRange struct {
 			min time.Duration
 			max time.Duration
@@ -182,9 +182,9 @@ func TestCalculateExponentialBackoffForOperationUnit(t *testing.T) {
 			// Run multiple times to account for jitter randomness
 			for i := 0; i < 5; i++ {
 				delay := calculateExponentialBackoffForOperation(tt.retryCount, tt.operation)
-				assert.True(t, delay >= tt.expectedRange.min, 
+				assert.True(t, delay >= tt.expectedRange.min,
 					"Delay %v should be >= %v for operation %s", delay, tt.expectedRange.min, tt.operation)
-				assert.True(t, delay <= tt.expectedRange.max, 
+				assert.True(t, delay <= tt.expectedRange.max,
 					"Delay %v should be <= %v for operation %s", delay, tt.expectedRange.max, tt.operation)
 			}
 		})
@@ -312,7 +312,7 @@ func TestSetRetryCount(t *testing.T) {
 func TestSetRetryCountWithExistingAnnotations(t *testing.T) {
 	e2nodeSet := createBasicE2NodeSet("test", "default")
 	e2nodeSet.Annotations = map[string]string{
-		"existing-annotation": "existing-value",
+		"existing-annotation":            "existing-value",
 		"nephoran.com/other-retry-count": "5",
 	}
 
@@ -472,13 +472,13 @@ func TestBackoffBoundaries(t *testing.T) {
 	// Test that backoff always stays within reasonable bounds
 	for retryCount := 0; retryCount < 20; retryCount++ {
 		delay := calculateExponentialBackoff(retryCount, BaseBackoffDelay, MaxBackoffDelay)
-		
+
 		// Should never be negative
 		assert.True(t, delay >= 0, "Delay should never be negative")
-		
+
 		// Should never exceed max delay
 		assert.True(t, delay <= MaxBackoffDelay, "Delay should never exceed max delay")
-		
+
 		// For first retry, should be close to base delay
 		if retryCount == 0 {
 			assert.True(t, delay >= BaseBackoffDelay/2, "First retry delay should be reasonable")

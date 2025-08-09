@@ -18,6 +18,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // ExtendedProcessedParameters extends ProcessedParameters with CNF-specific fields
@@ -90,7 +91,9 @@ type CNFDeploymentPlan struct {
 	DeploymentOrder []DeploymentPhase `json:"deploymentOrder,omitempty"`
 
 	// EstimatedResources total estimated resources for the plan
-	EstimatedResources map[string]interface{} `json:"estimatedResources"`
+	// EstimatedResources contains resource estimates
+	// +kubebuilder:pruning:PreserveUnknownFields
+	EstimatedResources runtime.RawExtension `json:"estimatedResources"`
 
 	// EstimatedCost total estimated cost for the plan
 	EstimatedCost float64 `json:"estimatedCost"`

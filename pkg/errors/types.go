@@ -1,17 +1,107 @@
 package errors
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
-	"net/http"
-	"runtime"
-	"sync"
 	"time"
 )
 
-// Removed duplicate ErrorSeverity - using the one from comprehensive_errors.go
+// ErrorSeverity represents the severity level of an error
+type ErrorSeverity string
+
+const (
+	SeverityLow      ErrorSeverity = "low"
+	SeverityMedium   ErrorSeverity = "medium"
+	SeverityHigh     ErrorSeverity = "high"
+	SeverityCritical ErrorSeverity = "critical"
+)
+
+// String returns the string representation of ErrorSeverity
+func (es ErrorSeverity) String() string {
+	return string(es)
+}
+
+// ErrorCategory represents the category of an error
+type ErrorCategory string
+
+const (
+	CategoryBusiness   ErrorCategory = "business"
+	CategorySystem     ErrorCategory = "system"
+	CategorySecurity   ErrorCategory = "security"
+	CategoryNetwork    ErrorCategory = "network"
+	CategoryData       ErrorCategory = "data"
+	CategoryValidation ErrorCategory = "validation"
+	CategoryPermission ErrorCategory = "permission"
+	CategoryResource   ErrorCategory = "resource"
+	CategoryConfig     ErrorCategory = "config"
+	CategoryInternal   ErrorCategory = "internal"
+)
+
+// RecoveryStrategy represents different error recovery strategies
+type RecoveryStrategy string
+
+const (
+	StrategyRetry          RecoveryStrategy = "retry"
+	StrategyBackoff        RecoveryStrategy = "backoff"
+	StrategyExponential    RecoveryStrategy = "exponential"
+	StrategyJittered       RecoveryStrategy = "jittered"
+	StrategyCircuitBreaker RecoveryStrategy = "circuit_breaker"
+	StrategyFallback       RecoveryStrategy = "fallback"
+	StrategyBulkhead       RecoveryStrategy = "bulkhead"
+	StrategyTimeout        RecoveryStrategy = "timeout"
+	StrategyRateLimit      RecoveryStrategy = "rate_limit"
+	StrategyDegradation    RecoveryStrategy = "degradation"
+	StrategyComposite      RecoveryStrategy = "composite"
+)
+
+// ProcessingError represents an error that occurred during processing
+type ProcessingError struct {
+	// Basic error information
+	ID        string    `json:"id"`
+	Code      string    `json:"code"`
+	Message   string    `json:"message"`
+	Details   string    `json:"details,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
+
+	// Classification
+	Type      ErrorType     `json:"type"`
+	Category  ErrorCategory `json:"category"`
+	Severity  ErrorSeverity `json:"severity"`
+	Component string        `json:"component,omitempty"`
+	Operation string        `json:"operation,omitempty"`
+	Phase     string        `json:"phase,omitempty"`
+
+	// Context and tracing
+	CorrelationID string                 `json:"correlation_id,omitempty"`
+	TraceID       string                 `json:"trace_id,omitempty"`
+	SpanID        string                 `json:"span_id,omitempty"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+
+	// Error chain
+	Cause      error              `json:"-"`
+	CauseChain []*ProcessingError `json:"cause_chain,omitempty"`
+	StackTrace []StackFrame       `json:"stack_trace,omitempty"`
+
+	// Recovery information
+	Recoverable      bool             `json:"recoverable"`
+	RetryCount       int              `json:"retry_count"`
+	MaxRetries       int              `json:"max_retries"`
+	BackoffStrategy  string           `json:"backoff_strategy,omitempty"`
+	NextRetryTime    *time.Time       `json:"next_retry_time,omitempty"`
+	RecoveryStrategy RecoveryStrategy `json:"recovery_strategy,omitempty"`
+}
+
+// Error implements the error interface
+func (pe *ProcessingError) Error() string {
+	if pe.Details != "" {
+		return fmt.Sprintf("[%s:%s:%s] %s: %s", pe.Component, pe.Operation, pe.Phase, pe.Message, pe.Details)
+	}
+	return fmt.Sprintf("[%s:%s:%s] %s", pe.Component, pe.Operation, pe.Phase, pe.Message)
+}
+
+// Unwrap implements the error unwrapping interface
+func (pe *ProcessingError) Unwrap() error {
+	return pe.Cause
+}
 
 // This file contains type aliases and imports for backward compatibility
 
@@ -24,11 +114,11 @@ import (
 type ErrorImpact string
 
 const (
-	ImpactNone      ErrorImpact = "none"
-	ImpactMinimal   ErrorImpact = "minimal"
-	ImpactModerate  ErrorImpact = "moderate"
-	ImpactSevere    ErrorImpact = "severe"
-	ImpactCritical  ErrorImpact = "critical"
+	ImpactNone     ErrorImpact = "none"
+	ImpactMinimal  ErrorImpact = "minimal"
+	ImpactModerate ErrorImpact = "moderate"
+	ImpactSevere   ErrorImpact = "severe"
+	ImpactCritical ErrorImpact = "critical"
 )
 
 // StackFrame represents a single frame in the stack trace
@@ -40,62 +130,9 @@ type StackFrame struct {
 	Package  string `json:"package"`
 }
 
-// ServiceError represents a comprehensive error with rich context
-type ServiceError struct {
-	mu sync.RWMutex
-
-	// Basic error information
-	Type         ErrorType              `json:"type"`
-	Code         string                 `json:"code"`
-	Message      string                 `json:"message"`
-	Details      string                 `json:"details,omitempty"`
-	Service      string                 `json:"service"`
-	Operation    string                 `json:"operation"`
-	Component    string                 `json:"component,omitempty"`
-	Timestamp    time.Time              `json:"timestamp"`
-	CorrelationID string                `json:"correlation_id,omitempty"`
-	RequestID    string                 `json:"request_id,omitempty"`
-	UserID       string                 `json:"user_id,omitempty"`
-	SessionID    string                 `json:"session_id,omitempty"`
-
-	// Error classification
-	Category  ErrorCategory `json:"category"`
-	Severity  ErrorSeverity `json:"severity"`
-	Impact    ErrorImpact   `json:"impact"`
-	Retryable bool          `json:"retryable"`
-	Temporary bool          `json:"temporary"`
-
-	// HTTP information
-	HTTPStatus   int    `json:"http_status,omitempty"`
-	HTTPMethod   string `json:"http_method,omitempty"`
-	HTTPPath     string `json:"http_path,omitempty"`
-	RemoteAddr   string `json:"remote_addr,omitempty"`
-	UserAgent    string `json:"user_agent,omitempty"`
-
-	// Error chain and context
-	Cause       error                  `json:"-"`
-	CauseChain  []*ServiceError        `json:"cause_chain,omitempty"`
-	StackTrace  []StackFrame           `json:"stack_trace,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-	Tags        []string               `json:"tags,omitempty"`
-
-	// Performance information
-	Latency   time.Duration     `json:"latency,omitempty"`
-	Resources map[string]string `json:"resources,omitempty"`
-
-	// Recovery information
-	RecoveryHints  []string          `json:"recovery_hints,omitempty"`
-	RetryCount     int               `json:"retry_count,omitempty"`
-	RetryAfter     time.Duration     `json:"retry_after,omitempty"`
-	CircuitBreaker string            `json:"circuit_breaker,omitempty"`
-	BackoffState   map[string]interface{} `json:"backoff_state,omitempty"`
-
-	// Debugging information
-	DebugInfo  map[string]interface{} `json:"debug_info,omitempty"`
-	SourceCode string                 `json:"source_code,omitempty"`
-	Hostname   string                 `json:"hostname,omitempty"`
-	PID        int                    `json:"pid,omitempty"`
-	GoroutineID string                `json:"goroutine_id,omitempty"`
+// String returns a formatted string representation of the stack frame
+func (sf StackFrame) String() string {
+	return fmt.Sprintf("%s:%d %s", sf.File, sf.Line, sf.Function)
 }
 
 // ErrorContextFunc is a function that can add context to an error
@@ -112,14 +149,14 @@ type ErrorHandler func(*ServiceError) error
 
 // ErrorMetrics holds metrics about errors
 type ErrorMetrics struct {
-	TotalCount    int64             `json:"total_count"`
-	CountByType   map[string]int64  `json:"count_by_type"`
-	CountByCode   map[string]int64  `json:"count_by_code"`
-	MeanLatency   float64           `json:"mean_latency"`
-	P95Latency    float64           `json:"p95_latency"`
-	P99Latency    float64           `json:"p99_latency"`
+	TotalCount     int64            `json:"total_count"`
+	CountByType    map[string]int64 `json:"count_by_type"`
+	CountByCode    map[string]int64 `json:"count_by_code"`
+	MeanLatency    float64          `json:"mean_latency"`
+	P95Latency     float64          `json:"p95_latency"`
+	P99Latency     float64          `json:"p99_latency"`
 	LastOccurrence time.Time        `json:"last_occurrence"`
-	RatePerSecond float64           `json:"rate_per_second"`
+	RatePerSecond  float64          `json:"rate_per_second"`
 }
 
 // ErrorConfiguration holds configuration for error handling
@@ -161,351 +198,4 @@ func DefaultErrorConfiguration() *ErrorConfiguration {
 			ErrorTypeResource,
 		},
 	}
-}
-
-// Error implements the error interface
-func (e *ServiceError) Error() string {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	if e.Details != "" {
-		return fmt.Sprintf("[%s:%s:%s] %s: %s", e.Service, e.Component, e.Operation, e.Message, e.Details)
-	}
-	return fmt.Sprintf("[%s:%s:%s] %s", e.Service, e.Component, e.Operation, e.Message)
-}
-
-// String provides a detailed string representation
-func (e *ServiceError) String() string {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	return fmt.Sprintf(
-		"ServiceError{Type:%s, Code:%s, Message:%s, Service:%s, Component:%s, Operation:%s, Severity:%s, Category:%s, Retryable:%t}",
-		e.Type, e.Code, e.Message, e.Service, e.Component, e.Operation, e.Severity, e.Category, e.Retryable,
-	)
-}
-
-// Unwrap implements the error unwrapping interface
-func (e *ServiceError) Unwrap() error {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.Cause
-}
-
-// Is implements error comparison
-func (e *ServiceError) Is(target error) bool {
-	if target == nil {
-		return false
-	}
-	
-	if se, ok := target.(*ServiceError); ok {
-		e.mu.RLock()
-		defer e.mu.RUnlock()
-		return e.Type == se.Type && e.Code == se.Code
-	}
-	
-	e.mu.RLock()
-	cause := e.Cause
-	e.mu.RUnlock()
-	
-	if cause != nil {
-		return fmt.Errorf("wrapped: %w", cause).Is(target)
-	}
-	return false
-}
-
-// As implements error type assertion
-func (e *ServiceError) As(target interface{}) bool {
-	if se, ok := target.(**ServiceError); ok {
-		*se = e
-		return true
-	}
-	
-	e.mu.RLock()
-	cause := e.Cause
-	e.mu.RUnlock()
-	
-	if cause != nil {
-		return fmt.Errorf("wrapped: %w", cause).As(target)
-	}
-	return false
-}
-
-// MarshalJSON implements json.Marshaler for safe concurrent access
-func (e *ServiceError) MarshalJSON() ([]byte, error) {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	// Create a struct to avoid recursion
-	type serviceErrorJSON ServiceError
-	return json.Marshal((*serviceErrorJSON)(e))
-}
-
-// UnmarshalJSON implements json.Unmarshaler
-func (e *ServiceError) UnmarshalJSON(data []byte) error {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	type serviceErrorJSON ServiceError
-	return json.Unmarshal(data, (*serviceErrorJSON)(e))
-}
-
-// Clone creates a deep copy of the error
-func (e *ServiceError) Clone() *ServiceError {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	newErr := &ServiceError{
-		Type:         e.Type,
-		Code:         e.Code,
-		Message:      e.Message,
-		Details:      e.Details,
-		Service:      e.Service,
-		Operation:    e.Operation,
-		Component:    e.Component,
-		Timestamp:    e.Timestamp,
-		CorrelationID: e.CorrelationID,
-		RequestID:    e.RequestID,
-		UserID:       e.UserID,
-		SessionID:    e.SessionID,
-		Category:     e.Category,
-		Severity:     e.Severity,
-		Impact:       e.Impact,
-		Retryable:    e.Retryable,
-		Temporary:    e.Temporary,
-		HTTPStatus:   e.HTTPStatus,
-		HTTPMethod:   e.HTTPMethod,
-		HTTPPath:     e.HTTPPath,
-		RemoteAddr:   e.RemoteAddr,
-		UserAgent:    e.UserAgent,
-		Cause:        e.Cause,
-		Latency:      e.Latency,
-		RetryCount:   e.RetryCount,
-		RetryAfter:   e.RetryAfter,
-		CircuitBreaker: e.CircuitBreaker,
-		SourceCode:   e.SourceCode,
-		Hostname:     e.Hostname,
-		PID:          e.PID,
-		GoroutineID:  e.GoroutineID,
-	}
-
-	// Deep copy slices and maps
-	if e.CauseChain != nil {
-		newErr.CauseChain = make([]*ServiceError, len(e.CauseChain))
-		for i, cause := range e.CauseChain {
-			newErr.CauseChain[i] = cause.Clone()
-		}
-	}
-
-	if e.StackTrace != nil {
-		newErr.StackTrace = make([]StackFrame, len(e.StackTrace))
-		copy(newErr.StackTrace, e.StackTrace)
-	}
-
-	if e.Metadata != nil {
-		newErr.Metadata = make(map[string]interface{}, len(e.Metadata))
-		for k, v := range e.Metadata {
-			newErr.Metadata[k] = v
-		}
-	}
-
-	if e.Tags != nil {
-		newErr.Tags = make([]string, len(e.Tags))
-		copy(newErr.Tags, e.Tags)
-	}
-
-	if e.Resources != nil {
-		newErr.Resources = make(map[string]string, len(e.Resources))
-		for k, v := range e.Resources {
-			newErr.Resources[k] = v
-		}
-	}
-
-	if e.RecoveryHints != nil {
-		newErr.RecoveryHints = make([]string, len(e.RecoveryHints))
-		copy(newErr.RecoveryHints, e.RecoveryHints)
-	}
-
-	if e.BackoffState != nil {
-		newErr.BackoffState = make(map[string]interface{}, len(e.BackoffState))
-		for k, v := range e.BackoffState {
-			newErr.BackoffState[k] = v
-		}
-	}
-
-	if e.DebugInfo != nil {
-		newErr.DebugInfo = make(map[string]interface{}, len(e.DebugInfo))
-		for k, v := range e.DebugInfo {
-			newErr.DebugInfo[k] = v
-		}
-	}
-
-	return newErr
-}
-
-// GetSeverity returns the error severity level
-func (e *ServiceError) GetSeverity() ErrorSeverity {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.Severity
-}
-
-// GetCategory returns the error category
-func (e *ServiceError) GetCategory() ErrorCategory {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.Category
-}
-
-// GetImpact returns the error impact level
-func (e *ServiceError) GetImpact() ErrorImpact {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.Impact
-}
-
-// IsRetryable returns whether this error is retryable
-func (e *ServiceError) IsRetryable() bool {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.Retryable
-}
-
-// IsTemporary returns whether this error is temporary
-func (e *ServiceError) IsTemporary() bool {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.Temporary
-}
-
-// GetHTTPStatus returns the appropriate HTTP status code for this error
-func (e *ServiceError) GetHTTPStatus() int {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	
-	if e.HTTPStatus > 0 {
-		return e.HTTPStatus
-	}
-	return getHTTPStatusForErrorType(e.Type)
-}
-
-// HasTag checks if the error has a specific tag
-func (e *ServiceError) HasTag(tag string) bool {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	
-	for _, t := range e.Tags {
-		if t == tag {
-			return true
-		}
-	}
-	return false
-}
-
-// AddTag adds a tag to the error (thread-safe)
-func (e *ServiceError) AddTag(tag string) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	
-	// Check if tag already exists
-	for _, t := range e.Tags {
-		if t == tag {
-			return
-		}
-	}
-	
-	e.Tags = append(e.Tags, tag)
-}
-
-// Helper functions for HTTP status mapping
-func getHTTPStatusForErrorType(errType ErrorType) int {
-	switch errType {
-	case ErrorTypeValidation, ErrorTypeRequired, ErrorTypeInvalid, ErrorTypeFormat, ErrorTypeRange:
-		return http.StatusBadRequest
-	case ErrorTypeAuth:
-		return http.StatusUnauthorized
-	case ErrorTypeUnauthorized, ErrorTypeExpired:
-		return http.StatusUnauthorized
-	case ErrorTypeForbidden:
-		return http.StatusForbidden
-	case ErrorTypeNotFound:
-		return http.StatusNotFound
-	case ErrorTypeConflict, ErrorTypeDuplicate:
-		return http.StatusConflict
-	case ErrorTypePrecondition:
-		return http.StatusPreconditionFailed
-	case ErrorTypeRateLimit:
-		return http.StatusTooManyRequests
-	case ErrorTypeTimeout:
-		return http.StatusGatewayTimeout
-	case ErrorTypeNetwork, ErrorTypeExternal:
-		return http.StatusBadGateway
-	case ErrorTypeQuota, ErrorTypeResource:
-		return http.StatusInsufficientStorage
-	default:
-		return http.StatusInternalServerError
-	}
-}
-
-// Context extraction helpers
-func extractContextFromHTTPRequest(r *http.Request) map[string]interface{} {
-	ctx := make(map[string]interface{})
-	if r != nil {
-		ctx["http_method"] = r.Method
-		ctx["http_path"] = r.URL.Path
-		ctx["remote_addr"] = r.RemoteAddr
-		ctx["user_agent"] = r.UserAgent()
-		if r.Header.Get("X-Request-ID") != "" {
-			ctx["request_id"] = r.Header.Get("X-Request-ID")
-		}
-		if r.Header.Get("X-Correlation-ID") != "" {
-			ctx["correlation_id"] = r.Header.Get("X-Correlation-ID")
-		}
-	}
-	return ctx
-}
-
-func extractContextFromContext(ctx context.Context) map[string]interface{} {
-	ctxMap := make(map[string]interface{})
-	
-	// Extract common context values
-	if reqID := ctx.Value("request_id"); reqID != nil {
-		ctxMap["request_id"] = reqID
-	}
-	if corrID := ctx.Value("correlation_id"); corrID != nil {
-		ctxMap["correlation_id"] = corrID
-	}
-	if userID := ctx.Value("user_id"); userID != nil {
-		ctxMap["user_id"] = userID
-	}
-	if sessionID := ctx.Value("session_id"); sessionID != nil {
-		ctxMap["session_id"] = sessionID
-	}
-	
-	return ctxMap
-}
-
-// Runtime information helpers
-func getCurrentHostname() string {
-	if hostname, err := runtime.Hostname(); err == nil {
-		return hostname
-	}
-	return "unknown"
-}
-
-func getCurrentPID() int {
-	return runtime.Getpid()
-}
-
-func getCurrentGoroutineID() string {
-	buf := make([]byte, 64)
-	buf = buf[:runtime.Stack(buf, false)]
-	// Parse goroutine ID from stack trace
-	// Format: "goroutine 1 [running]:"
-	for i, b := range buf {
-		if b == ' ' {
-			return string(buf[10:i]) // Skip "goroutine "
-		}
-	}
-	return "unknown"
 }

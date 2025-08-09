@@ -94,31 +94,31 @@ type CORSConfig struct {
 // Headers returns CORS headers.
 func (c CORSConfig) Headers() map[string]string {
 	headers := make(map[string]string)
-	
+
 	if len(c.AllowedOrigins) > 0 {
 		headers["Access-Control-Allow-Origin"] = strings.Join(c.AllowedOrigins, ", ")
 	}
-	
+
 	if len(c.AllowedMethods) > 0 {
 		headers["Access-Control-Allow-Methods"] = strings.Join(c.AllowedMethods, ", ")
 	}
-	
+
 	if len(c.AllowedHeaders) > 0 {
 		headers["Access-Control-Allow-Headers"] = strings.Join(c.AllowedHeaders, ", ")
 	}
-	
+
 	if len(c.ExposedHeaders) > 0 {
 		headers["Access-Control-Expose-Headers"] = strings.Join(c.ExposedHeaders, ", ")
 	}
-	
+
 	if c.MaxAge > 0 {
 		headers["Access-Control-Max-Age"] = fmt.Sprintf("%.0f", c.MaxAge.Seconds())
 	}
-	
+
 	if c.AllowCredentials {
 		headers["Access-Control-Allow-Credentials"] = "true"
 	}
-	
+
 	return headers
 }
 
@@ -132,11 +132,11 @@ func AuthenticationMiddleware[TRequest, TResponse any](authenticator Authenticat
 				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("authentication failed: %w", authResult.Error()))
 			}
-			
+
 			// Add user info to context
 			user := authResult.Value()
 			ctx = context.WithValue(ctx, "authenticated_user", user)
-			
+
 			return next(ctx, request)
 		}
 	}
@@ -185,7 +185,7 @@ func (ja *JWTAuthenticator[TRequest]) Authenticate(ctx context.Context, request 
 	if tokenOpt.IsNone() {
 		return Err[User, error](fmt.Errorf("no token found in request"))
 	}
-	
+
 	token := tokenOpt.Value()
 	return ja.validator.Validate(ctx, token)
 }
@@ -200,25 +200,25 @@ func AuthorizationMiddleware[TRequest, TResponse any](authorizer Authorizer[TReq
 				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("no authenticated user found"))
 			}
-			
+
 			user, ok := userVal.(User)
 			if !ok {
 				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("invalid user type in context"))
 			}
-			
+
 			// Check authorization
 			authResult := authorizer.Authorize(ctx, user, request)
 			if authResult.IsErr() {
 				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("authorization failed: %w", authResult.Error()))
 			}
-			
+
 			if !authResult.Value() {
 				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("access denied"))
 			}
-			
+
 			return next(ctx, request)
 		}
 	}
@@ -253,7 +253,7 @@ func (rba *RoleBasedAuthorizer[TRequest]) Authorize(ctx context.Context, user Us
 	if rba.roleExtractor != nil {
 		requiredRoles = rba.roleExtractor(request)
 	}
-	
+
 	// Check if user has any of the required roles
 	userRoleSet := NewSet(user.Roles...)
 	for _, role := range requiredRoles {
@@ -261,7 +261,7 @@ func (rba *RoleBasedAuthorizer[TRequest]) Authorize(ctx context.Context, user Us
 			return Ok[bool, error](true)
 		}
 	}
-	
+
 	return Ok[bool, error](false)
 }
 
@@ -275,12 +275,12 @@ func RateLimitingMiddleware[TRequest, TResponse any](limiter RateLimiter[TReques
 				var zero TResponse
 				return Err[TResponse, error](limitResult.Error())
 			}
-			
+
 			if !limitResult.Value() {
 				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("rate limit exceeded"))
 			}
-			
+
 			return next(ctx, request)
 		}
 	}
@@ -301,11 +301,11 @@ type TokenBucketRateLimiter[TRequest any] struct {
 
 // TokenBucket represents a token bucket for rate limiting.
 type TokenBucket struct {
-	capacity     int
-	tokens       int
-	lastRefill   time.Time
-	refillRate   time.Duration
-	mu           sync.Mutex
+	capacity   int
+	tokens     int
+	lastRefill time.Time
+	refillRate time.Duration
+	mu         sync.Mutex
 }
 
 // NewTokenBucketRateLimiter creates a new token bucket rate limiter.
@@ -325,11 +325,11 @@ func NewTokenBucketRateLimiter[TRequest any](
 // Allow checks if the request is within rate limits.
 func (tbrl *TokenBucketRateLimiter[TRequest]) Allow(ctx context.Context, request TRequest) Result[bool, error] {
 	key := tbrl.keyExtractor(request)
-	
+
 	// Get or create token bucket
 	bucketOpt := tbrl.buckets.Get(key)
 	var bucket *TokenBucket
-	
+
 	if bucketOpt.IsNone() {
 		bucket = &TokenBucket{
 			capacity:   tbrl.capacity,
@@ -341,7 +341,7 @@ func (tbrl *TokenBucketRateLimiter[TRequest]) Allow(ctx context.Context, request
 	} else {
 		bucket = bucketOpt.Value()
 	}
-	
+
 	return Ok[bool, error](bucket.takeToken())
 }
 
@@ -349,10 +349,10 @@ func (tbrl *TokenBucketRateLimiter[TRequest]) Allow(ctx context.Context, request
 func (tb *TokenBucket) takeToken() bool {
 	tb.mu.Lock()
 	defer tb.mu.Unlock()
-	
+
 	now := time.Now()
 	elapsed := now.Sub(tb.lastRefill)
-	
+
 	// Refill tokens based on elapsed time
 	tokensToAdd := int(elapsed / tb.refillRate)
 	tb.tokens += tokensToAdd
@@ -360,13 +360,13 @@ func (tb *TokenBucket) takeToken() bool {
 		tb.tokens = tb.capacity
 	}
 	tb.lastRefill = now
-	
+
 	// Check if token is available
 	if tb.tokens > 0 {
 		tb.tokens--
 		return true
 	}
-	
+
 	return false
 }
 
@@ -405,13 +405,13 @@ func LoggingMiddleware[TRequest, TResponse any](logger Logger[TRequest, TRespons
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
 			start := time.Now()
-			
+
 			// Log request
 			logger.LogRequest(ctx, request)
-			
+
 			// Process request
 			result := next(ctx, request)
-			
+
 			// Log response
 			duration := time.Since(start)
 			if result.IsOk() {
@@ -419,7 +419,7 @@ func LoggingMiddleware[TRequest, TResponse any](logger Logger[TRequest, TRespons
 			} else {
 				logger.LogResponse(ctx, request, *new(TResponse), duration, result.Error())
 			}
-			
+
 			return result
 		}
 	}
@@ -450,7 +450,7 @@ func (jl *JSONLogger[TRequest, TResponse]) LogRequest(ctx context.Context, reque
 		"type":      "request",
 		"request":   request,
 	}
-	
+
 	if data, err := json.Marshal(logEntry); err == nil {
 		jl.writer(string(data))
 	}
@@ -465,11 +465,11 @@ func (jl *JSONLogger[TRequest, TResponse]) LogResponse(ctx context.Context, requ
 		"response":  response,
 		"duration":  duration.String(),
 	}
-	
+
 	if err != nil {
 		logEntry["error"] = err.Error()
 	}
-	
+
 	if data, err := json.Marshal(logEntry); err == nil {
 		jl.writer(string(data))
 	}
@@ -480,21 +480,21 @@ func MetricsMiddleware[TRequest, TResponse any](collector MetricsCollector[TRequ
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
 			start := time.Now()
-			
+
 			// Increment request counter
 			collector.IncRequestCounter(ctx, request)
-			
+
 			// Process request
 			result := next(ctx, request)
-			
+
 			// Record metrics
 			duration := time.Since(start)
 			collector.RecordLatency(ctx, request, duration)
-			
+
 			if result.IsErr() {
 				collector.IncErrorCounter(ctx, request, result.Error())
 			}
-			
+
 			return result
 		}
 	}
@@ -516,17 +516,17 @@ func CircuitBreakerMiddleware[TRequest, TResponse any](breaker CircuitBreaker[TR
 				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("circuit breaker is open"))
 			}
-			
+
 			// Process request
 			result := next(ctx, request)
-			
+
 			// Record success or failure
 			if result.IsOk() {
 				breaker.RecordSuccess(ctx, request)
 			} else {
 				breaker.RecordFailure(ctx, request, result.Error())
 			}
-			
+
 			return result
 		}
 	}
@@ -546,16 +546,16 @@ func TimeoutMiddleware[TRequest, TResponse any](timeout time.Duration) Middlewar
 			// Create context with timeout
 			timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
-			
+
 			// Channel to receive result
 			resultChan := make(chan Result[TResponse, error], 1)
-			
+
 			// Process request in goroutine
 			go func() {
 				result := next(timeoutCtx, request)
 				resultChan <- result
 			}()
-			
+
 			// Wait for result or timeout
 			select {
 			case result := <-resultChan:
@@ -574,7 +574,7 @@ func CompressionMiddleware[TRequest, TResponse any](compressor Compressor[TRespo
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
 			// Process request
 			result := next(ctx, request)
-			
+
 			if result.IsOk() {
 				// Compress response
 				compressedResult := compressor.Compress(ctx, result.Value())
@@ -583,7 +583,7 @@ func CompressionMiddleware[TRequest, TResponse any](compressor Compressor[TRespo
 				}
 				// Fall back to original response if compression fails
 			}
-			
+
 			return result
 		}
 	}
@@ -608,17 +608,17 @@ func HTTPSRedirectMiddleware[TRequest, TResponse any](port int) Middleware[TRequ
 // SecurityHeadersMiddleware adds security headers to responses.
 func SecurityHeadersMiddleware[TRequest, TResponse any](headers map[string]string) Middleware[TRequest, TResponse] {
 	defaultHeaders := map[string]string{
-		"X-Content-Type-Options": "nosniff",
-		"X-Frame-Options":        "DENY",
-		"X-XSS-Protection":       "1; mode=block",
+		"X-Content-Type-Options":    "nosniff",
+		"X-Frame-Options":           "DENY",
+		"X-XSS-Protection":          "1; mode=block",
 		"Strict-Transport-Security": "max-age=31536000; includeSubDomains",
 	}
-	
+
 	// Merge with provided headers
 	for k, v := range headers {
 		defaultHeaders[k] = v
 	}
-	
+
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
 			// Add security headers to context for later use
@@ -635,7 +635,7 @@ func ConditionalMiddleware[TRequest, TResponse any](
 ) Middleware[TRequest, TResponse] {
 	return func(next Handler[TRequest, TResponse]) Handler[TRequest, TResponse] {
 		middlewareHandler := middleware(next)
-		
+
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
 			if condition(ctx, request) {
 				return middlewareHandler(ctx, request)
@@ -679,7 +679,7 @@ func (mg *MiddlewareGroup[TRequest, TResponse]) Build() *MiddlewareChain[TReques
 // WebAPIGroup provides common middleware for web APIs.
 func WebAPIGroup[TRequest, TResponse any]() *MiddlewareGroup[TRequest, TResponse] {
 	return NewMiddlewareGroup[TRequest, TResponse]("web-api").
-		Add(LoggingMiddleware[TRequest, TResponse](NewJSONLogger[TRequest, TResponse](func(s string) { 
+		Add(LoggingMiddleware[TRequest, TResponse](NewJSONLogger[TRequest, TResponse](func(s string) {
 			// Default logger implementation
 		}))).
 		Add(CORSMiddleware[TRequest, TResponse](CORSConfig{
@@ -697,7 +697,7 @@ func SecureAPIGroup[TRequest, TResponse any](
 	authorizer Authorizer[TRequest],
 ) *MiddlewareGroup[TRequest, TResponse] {
 	return NewMiddlewareGroup[TRequest, TResponse]("secure-api").
-		Add(LoggingMiddleware[TRequest, TResponse](NewJSONLogger[TRequest, TResponse](func(s string) { 
+		Add(LoggingMiddleware[TRequest, TResponse](NewJSONLogger[TRequest, TResponse](func(s string) {
 			// Default logger implementation
 		}))).
 		Add(SecurityHeadersMiddleware[TRequest, TResponse](nil)).

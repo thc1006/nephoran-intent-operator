@@ -14,7 +14,7 @@ type MockEmbeddingService struct {
 	err        error
 }
 
-// GetEmbedding implements the rag.EmbeddingService interface  
+// GetEmbedding implements the rag.EmbeddingService interface
 func (m *MockEmbeddingService) GetEmbedding(ctx context.Context, text string) ([]float64, error) {
 	if m.err != nil {
 		return nil, m.err
@@ -112,7 +112,7 @@ func TestRelevanceScorerStub_Score(t *testing.T) {
 				}
 			}
 
-			t.Logf("Test '%s': doc_len=%d, intent_len=%d, score=%f", 
+			t.Logf("Test '%s': doc_len=%d, intent_len=%d, score=%f",
 				tt.name, len(tt.doc), len(tt.intent), score)
 		})
 	}

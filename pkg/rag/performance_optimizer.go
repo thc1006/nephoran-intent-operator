@@ -13,10 +13,10 @@ import (
 
 // PerformanceOptimizer manages and optimizes RAG pipeline performance
 type PerformanceOptimizer struct {
-	config       *OptimizerConfig
-	logger       *slog.Logger
-	metrics      *PerformanceMetrics
-	mutex        sync.RWMutex
+	config              *OptimizerConfig
+	logger              *slog.Logger
+	metrics             *PerformanceMetrics
+	mutex               sync.RWMutex
 	activeOptimizations map[string]*OptimizationTask
 }
 
@@ -24,43 +24,43 @@ type PerformanceOptimizer struct {
 type OptimizerConfig struct {
 	EnableAutoOptimization   bool          `json:"enable_auto_optimization"`
 	OptimizationInterval     time.Duration `json:"optimization_interval"`
-	MemoryThreshold          float64       `json:"memory_threshold"`      // Memory usage threshold (0.0-1.0)
-	CPUThreshold             float64       `json:"cpu_threshold"`         // CPU usage threshold (0.0-1.0)
-	LatencyThreshold         time.Duration `json:"latency_threshold"`     // Maximum acceptable latency
-	ThroughputTarget         int64         `json:"throughput_target"`     // Target requests per minute
+	MemoryThreshold          float64       `json:"memory_threshold"`  // Memory usage threshold (0.0-1.0)
+	CPUThreshold             float64       `json:"cpu_threshold"`     // CPU usage threshold (0.0-1.0)
+	LatencyThreshold         time.Duration `json:"latency_threshold"` // Maximum acceptable latency
+	ThroughputTarget         int64         `json:"throughput_target"` // Target requests per minute
 	EnableMemoryOptimization bool          `json:"enable_memory_optimization"`
 	EnableCacheOptimization  bool          `json:"enable_cache_optimization"`
 	EnableBatchOptimization  bool          `json:"enable_batch_optimization"`
-	MonitoringWindow         time.Duration `json:"monitoring_window"`     // Window for collecting metrics
+	MonitoringWindow         time.Duration `json:"monitoring_window"` // Window for collecting metrics
 }
 
 // PerformanceMetrics tracks system performance metrics
 type PerformanceMetrics struct {
 	// System metrics
-	CPUUsage          float64       `json:"cpu_usage"`
-	MemoryUsage       float64       `json:"memory_usage"`
-	GoroutineCount    int           `json:"goroutine_count"`
-	HeapSize          uint64        `json:"heap_size"`
-	GCPauses          []time.Duration `json:"gc_pauses"`
-	
+	CPUUsage       float64         `json:"cpu_usage"`
+	MemoryUsage    float64         `json:"memory_usage"`
+	GoroutineCount int             `json:"goroutine_count"`
+	HeapSize       uint64          `json:"heap_size"`
+	GCPauses       []time.Duration `json:"gc_pauses"`
+
 	// Pipeline metrics
-	AverageLatency    time.Duration `json:"average_latency"`
-	ThroughputRPM     int64         `json:"throughput_rpm"`
-	ErrorRate         float64       `json:"error_rate"`
-	CacheHitRate      float64       `json:"cache_hit_rate"`
-	
+	AverageLatency time.Duration `json:"average_latency"`
+	ThroughputRPM  int64         `json:"throughput_rpm"`
+	ErrorRate      float64       `json:"error_rate"`
+	CacheHitRate   float64       `json:"cache_hit_rate"`
+
 	// Component metrics
-	DocumentProcessingTime time.Duration `json:"document_processing_time"`
+	DocumentProcessingTime  time.Duration `json:"document_processing_time"`
 	EmbeddingGenerationTime time.Duration `json:"embedding_generation_time"`
-	RetrievalTime         time.Duration `json:"retrieval_time"`
-	ContextAssemblyTime   time.Duration `json:"context_assembly_time"`
-	
+	RetrievalTime           time.Duration `json:"retrieval_time"`
+	ContextAssemblyTime     time.Duration `json:"context_assembly_time"`
+
 	// Optimization metrics
-	OptimizationsApplied  int       `json:"optimizations_applied"`
-	LastOptimization      time.Time `json:"last_optimization"`
-	PerformanceGain       float64   `json:"performance_gain"`
-	
-	mutex                 sync.RWMutex
+	OptimizationsApplied int       `json:"optimizations_applied"`
+	LastOptimization     time.Time `json:"last_optimization"`
+	PerformanceGain      float64   `json:"performance_gain"`
+
+	mutex sync.RWMutex
 }
 
 // OptimizationTask represents an active optimization task
@@ -101,8 +101,8 @@ func getDefaultOptimizerConfig() *OptimizerConfig {
 	return &OptimizerConfig{
 		EnableAutoOptimization:   true,
 		OptimizationInterval:     10 * time.Minute,
-		MemoryThreshold:          0.8,  // 80% memory usage
-		CPUThreshold:             0.7,  // 70% CPU usage
+		MemoryThreshold:          0.8, // 80% memory usage
+		CPUThreshold:             0.7, // 70% CPU usage
 		LatencyThreshold:         5 * time.Second,
 		ThroughputTarget:         1000, // 1000 RPM
 		EnableMemoryOptimization: true,
@@ -150,8 +150,8 @@ func (po *PerformanceOptimizer) OptimizePerformance(pipeline *RAGPipeline) error
 			po.logger.Error("Failed to apply optimization", "optimization", optimization.ID, "error", err)
 			continue
 		}
-		
-		po.logger.Info("Applied optimization", 
+
+		po.logger.Info("Applied optimization",
 			"optimization", optimization.ID,
 			"type", optimization.Type,
 			"impact", optimization.Impact,
@@ -306,7 +306,7 @@ func (po *PerformanceOptimizer) optimizeMemoryUsage(pipeline *RAGPipeline, task 
 
 	// Optimize batch sizes to reduce memory footprint
 	if pipeline.config.DocumentLoaderConfig != nil {
-		pipeline.config.DocumentLoaderConfig.PageProcessingBatch = 
+		pipeline.config.DocumentLoaderConfig.PageProcessingBatch =
 			min(pipeline.config.DocumentLoaderConfig.PageProcessingBatch, 5)
 	}
 
@@ -321,13 +321,13 @@ func (po *PerformanceOptimizer) optimizeCPUUsage(pipeline *RAGPipeline, task *Op
 
 	// Reduce concurrency if CPU usage is high
 	maxConcurrency := runtime.NumCPU()
-	
+
 	if pipeline.config.MaxConcurrentProcessing > maxConcurrency {
 		pipeline.config.MaxConcurrentProcessing = maxConcurrency
 	}
 
 	if pipeline.config.EmbeddingConfig != nil {
-		pipeline.config.EmbeddingConfig.MaxConcurrency = 
+		pipeline.config.EmbeddingConfig.MaxConcurrency =
 			min(pipeline.config.EmbeddingConfig.MaxConcurrency, maxConcurrency/2)
 	}
 
@@ -342,7 +342,7 @@ func (po *PerformanceOptimizer) optimizeLatency(pipeline *RAGPipeline, task *Opt
 
 	// Reduce timeouts for faster failure detection
 	if pipeline.config.EmbeddingConfig != nil {
-			pipeline.config.EmbeddingConfig.RequestTimeout = minDuration(pipeline.config.EmbeddingConfig.RequestTimeout, 15*time.Second)
+		pipeline.config.EmbeddingConfig.RequestTimeout = minDuration(pipeline.config.EmbeddingConfig.RequestTimeout, 15*time.Second)
 	}
 
 	// Optimize cache to prioritize frequently accessed items
@@ -359,8 +359,8 @@ func (po *PerformanceOptimizer) optimizeThroughput(pipeline *RAGPipeline, task *
 
 	// Increase batch sizes for better throughput (within memory limits)
 	if pipeline.config.EmbeddingConfig != nil && po.metrics.MemoryUsage < 0.6 {
-		pipeline.config.EmbeddingConfig.BatchSize = 
-			min(pipeline.config.EmbeddingConfig.BatchSize * 2, 200)
+		pipeline.config.EmbeddingConfig.BatchSize =
+			min(pipeline.config.EmbeddingConfig.BatchSize*2, 200)
 	}
 
 	// Optimize connection pooling
@@ -404,7 +404,7 @@ func (po *PerformanceOptimizer) optimizeEmbeddingGeneration(pipeline *RAGPipelin
 
 	// Optimize batch sizes for embedding generation
 	if pipeline.config.EmbeddingConfig != nil {
-		pipeline.config.EmbeddingConfig.BatchSize = 
+		pipeline.config.EmbeddingConfig.BatchSize =
 			min(pipeline.config.EmbeddingConfig.BatchSize, 50) // Smaller batches for faster response
 	}
 
@@ -425,7 +425,7 @@ func (po *PerformanceOptimizer) optimizeDocumentProcessing(pipeline *RAGPipeline
 
 	// Optimize chunking batch sizes
 	if pipeline.config.ChunkingConfig != nil {
-		pipeline.config.ChunkingConfig.BatchSize = 
+		pipeline.config.ChunkingConfig.BatchSize =
 			min(pipeline.config.ChunkingConfig.BatchSize, 25)
 	}
 
@@ -556,7 +556,6 @@ func (po *PerformanceOptimizer) calculateHealthScore(metrics *PerformanceMetrics
 
 	return score
 }
-
 
 // Helper function for minimum duration calculation
 func minDuration(a, b time.Duration) time.Duration {

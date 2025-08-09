@@ -36,13 +36,13 @@ import (
 type KRMFunction interface {
 	// Execute transforms the input resource list and returns the transformed resources
 	Execute(ctx context.Context, input *ResourceList) (*ResourceList, error)
-	
+
 	// Validate checks if the function configuration and input are valid
 	Validate(ctx context.Context, config *FunctionConfig) error
-	
+
 	// GetMetadata returns metadata about this function
 	GetMetadata() *FunctionMetadata
-	
+
 	// GetSchema returns the JSON schema for function configuration
 	GetSchema() *FunctionSchema
 }
@@ -51,13 +51,13 @@ type KRMFunction interface {
 type ResourceList struct {
 	// Items contains the actual Kubernetes resources
 	Items []porch.KRMResource `json:"items"`
-	
+
 	// FunctionConfig contains configuration passed to the function
 	FunctionConfig map[string]interface{} `json:"functionConfig,omitempty"`
-	
+
 	// Results contains any results or messages from processing
 	Results []*porch.FunctionResult `json:"results,omitempty"`
-	
+
 	// Context provides execution context information
 	Context *ExecutionContext `json:"context,omitempty"`
 }
@@ -66,16 +66,16 @@ type ResourceList struct {
 type FunctionConfig struct {
 	// APIVersion of the function config
 	APIVersion string `json:"apiVersion"`
-	
+
 	// Kind of the function config
 	Kind string `json:"kind"`
-	
+
 	// Metadata for the function config
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-	
+
 	// Data contains the actual configuration
 	Data map[string]interface{} `json:"data,omitempty"`
-	
+
 	// Spec contains structured configuration
 	Spec map[string]interface{} `json:"spec,omitempty"`
 }
@@ -84,18 +84,18 @@ type FunctionConfig struct {
 type ExecutionContext struct {
 	// Package information
 	Package *PackageContext `json:"package,omitempty"`
-	
+
 	// Pipeline information
 	Pipeline *PipelineContext `json:"pipeline,omitempty"`
-	
+
 	// Environment variables
 	Environment map[string]string `json:"environment,omitempty"`
-	
+
 	// Execution metadata
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
-	
+
 	// Timing information
-	StartTime time.Time `json:"startTime"`
+	StartTime time.Time     `json:"startTime"`
 	Timeout   time.Duration `json:"timeout,omitempty"`
 }
 
@@ -120,33 +120,33 @@ type FunctionMetadata struct {
 	Name        string `json:"name"`
 	Version     string `json:"version"`
 	Description string `json:"description"`
-	
+
 	// Function classification
-	Type        FunctionType `json:"type"`
-	Categories  []string     `json:"categories,omitempty"`
-	Keywords    []string     `json:"keywords,omitempty"`
-	Tags        []string     `json:"tags,omitempty"`
-	
+	Type       FunctionType `json:"type"`
+	Categories []string     `json:"categories,omitempty"`
+	Keywords   []string     `json:"keywords,omitempty"`
+	Tags       []string     `json:"tags,omitempty"`
+
 	// Resource type support
 	ResourceTypes []ResourceTypeSupport `json:"resourceTypes,omitempty"`
 	APIVersions   []string              `json:"apiVersions,omitempty"`
-	
+
 	// Performance characteristics
 	Performance *PerformanceProfile `json:"performance,omitempty"`
-	
+
 	// Security profile
 	Security *SecurityProfile `json:"security,omitempty"`
-	
+
 	// Telecom-specific metadata
 	Telecom *TelecomProfile `json:"telecom,omitempty"`
-	
+
 	// Author and licensing
 	Author  string `json:"author,omitempty"`
 	License string `json:"license,omitempty"`
-	
+
 	// Documentation
 	Documentation *DocumentationLinks `json:"documentation,omitempty"`
-	
+
 	// Examples
 	Examples []*FunctionExample `json:"examples,omitempty"`
 }
@@ -181,10 +181,10 @@ type PerformanceProfile struct {
 
 // ScalabilityLimits defines scalability constraints
 type ScalabilityLimits struct {
-	MaxResources    int `json:"maxResources,omitempty"`
-	MaxComplexity   int `json:"maxComplexity,omitempty"`
-	ParallelSafe    bool `json:"parallelSafe,omitempty"`
-	ConcurrencyLimit int `json:"concurrencyLimit,omitempty"`
+	MaxResources     int  `json:"maxResources,omitempty"`
+	MaxComplexity    int  `json:"maxComplexity,omitempty"`
+	ParallelSafe     bool `json:"parallelSafe,omitempty"`
+	ConcurrencyLimit int  `json:"concurrencyLimit,omitempty"`
 }
 
 // SecurityProfile defines security characteristics
@@ -202,30 +202,30 @@ type SecurityProfile struct {
 type TelecomProfile struct {
 	// Standards compliance
 	Standards []StandardCompliance `json:"standards,omitempty"`
-	
+
 	// O-RAN interfaces supported
 	ORANInterfaces []ORANInterfaceSupport `json:"oranInterfaces,omitempty"`
-	
+
 	// Network function types
 	NetworkFunctionTypes []string `json:"networkFunctionTypes,omitempty"`
-	
+
 	// 5G capabilities
 	FiveGCapabilities []string `json:"5gCapabilities,omitempty"`
-	
+
 	// Network slice support
 	NetworkSliceSupport bool `json:"networkSliceSupport,omitempty"`
-	
+
 	// Edge computing support
 	EdgeSupport bool `json:"edgeSupport,omitempty"`
 }
 
 // StandardCompliance defines compliance with industry standards
 type StandardCompliance struct {
-	Name     string `json:"name"`     // 3GPP, O-RAN, ETSI, etc.
-	Version  string `json:"version"`
-	Release  string `json:"release,omitempty"`
+	Name     string   `json:"name"` // 3GPP, O-RAN, ETSI, etc.
+	Version  string   `json:"version"`
+	Release  string   `json:"release,omitempty"`
 	Sections []string `json:"sections,omitempty"`
-	Required bool   `json:"required,omitempty"`
+	Required bool     `json:"required,omitempty"`
 }
 
 // ORANInterfaceSupport defines O-RAN interface support
@@ -246,17 +246,17 @@ type DocumentationLinks struct {
 
 // FunctionExample provides a usage example
 type FunctionExample struct {
-	Name        string                 `json:"name"`
-	Description string                 `json:"description,omitempty"`
-	Config      *FunctionConfig        `json:"config"`
-	Input       []porch.KRMResource    `json:"input"`
-	Output      []porch.KRMResource    `json:"output"`
-	Explanation string                 `json:"explanation,omitempty"`
+	Name        string              `json:"name"`
+	Description string              `json:"description,omitempty"`
+	Config      *FunctionConfig     `json:"config"`
+	Input       []porch.KRMResource `json:"input"`
+	Output      []porch.KRMResource `json:"output"`
+	Explanation string              `json:"explanation,omitempty"`
 }
 
 // FunctionSchema defines the JSON schema for function configuration
 type FunctionSchema struct {
-	Type        string                    `json:"type"`
+	Type        string                     `json:"type"`
 	Properties  map[string]*SchemaProperty `json:"properties,omitempty"`
 	Required    []string                   `json:"required,omitempty"`
 	Definitions map[string]*FunctionSchema `json:"definitions,omitempty"`
@@ -264,18 +264,18 @@ type FunctionSchema struct {
 
 // SchemaProperty defines a property in the function schema
 type SchemaProperty struct {
-	Type         string                 `json:"type"`
-	Description  string                 `json:"description,omitempty"`
-	Default      interface{}            `json:"default,omitempty"`
-	Examples     []interface{}          `json:"examples,omitempty"`
-	Enum         []interface{}          `json:"enum,omitempty"`
-	Properties   map[string]*SchemaProperty `json:"properties,omitempty"`
-	Items        *SchemaProperty        `json:"items,omitempty"`
-	Pattern      string                 `json:"pattern,omitempty"`
-	MinLength    *int                   `json:"minLength,omitempty"`
-	MaxLength    *int                   `json:"maxLength,omitempty"`
-	Minimum      *float64               `json:"minimum,omitempty"`
-	Maximum      *float64               `json:"maximum,omitempty"`
+	Type        string                     `json:"type"`
+	Description string                     `json:"description,omitempty"`
+	Default     interface{}                `json:"default,omitempty"`
+	Examples    []interface{}              `json:"examples,omitempty"`
+	Enum        []interface{}              `json:"enum,omitempty"`
+	Properties  map[string]*SchemaProperty `json:"properties,omitempty"`
+	Items       *SchemaProperty            `json:"items,omitempty"`
+	Pattern     string                     `json:"pattern,omitempty"`
+	MinLength   *int                       `json:"minLength,omitempty"`
+	MaxLength   *int                       `json:"maxLength,omitempty"`
+	Minimum     *float64                   `json:"minimum,omitempty"`
+	Maximum     *float64                   `json:"maximum,omitempty"`
 }
 
 // BaseFunctionImpl provides a base implementation for KRM functions
@@ -307,12 +307,12 @@ func (f *BaseFunctionImpl) Validate(ctx context.Context, config *FunctionConfig)
 	if config == nil {
 		return fmt.Errorf("function configuration is required")
 	}
-	
+
 	// Validate against schema if available
 	if f.schema != nil {
 		return f.validateAgainstSchema(config, f.schema)
 	}
-	
+
 	return nil
 }
 
@@ -321,7 +321,7 @@ func (f *BaseFunctionImpl) Validate(ctx context.Context, config *FunctionConfig)
 // FindResourcesByGVK finds resources by GroupVersionKind
 func FindResourcesByGVK(resources []porch.KRMResource, gvk schema.GroupVersionKind) []porch.KRMResource {
 	var matches []porch.KRMResource
-	
+
 	for _, resource := range resources {
 		if resource.Kind == gvk.Kind {
 			// Check API version
@@ -337,7 +337,7 @@ func FindResourcesByGVK(resources []porch.KRMResource, gvk schema.GroupVersionKi
 			}
 		}
 	}
-	
+
 	return matches
 }
 
@@ -358,12 +358,12 @@ func GetResourceName(resource *porch.KRMResource) (string, error) {
 	if resource.Metadata == nil {
 		return "", fmt.Errorf("resource metadata is nil")
 	}
-	
+
 	name, ok := resource.Metadata["name"].(string)
 	if !ok {
 		return "", fmt.Errorf("resource name not found or not a string")
 	}
-	
+
 	return name, nil
 }
 
@@ -372,12 +372,12 @@ func GetResourceNamespace(resource *porch.KRMResource) string {
 	if resource.Metadata == nil {
 		return ""
 	}
-	
+
 	namespace, ok := resource.Metadata["namespace"].(string)
 	if !ok {
 		return ""
 	}
-	
+
 	return namespace
 }
 
@@ -386,13 +386,13 @@ func SetResourceAnnotation(resource *porch.KRMResource, key, value string) {
 	if resource.Metadata == nil {
 		resource.Metadata = make(map[string]interface{})
 	}
-	
+
 	annotations, ok := resource.Metadata["annotations"].(map[string]interface{})
 	if !ok {
 		annotations = make(map[string]interface{})
 		resource.Metadata["annotations"] = annotations
 	}
-	
+
 	annotations[key] = value
 }
 
@@ -401,12 +401,12 @@ func GetResourceAnnotation(resource *porch.KRMResource, key string) (string, boo
 	if resource.Metadata == nil {
 		return "", false
 	}
-	
+
 	annotations, ok := resource.Metadata["annotations"].(map[string]interface{})
 	if !ok {
 		return "", false
 	}
-	
+
 	value, ok := annotations[key].(string)
 	return value, ok
 }
@@ -416,13 +416,13 @@ func SetResourceLabel(resource *porch.KRMResource, key, value string) {
 	if resource.Metadata == nil {
 		resource.Metadata = make(map[string]interface{})
 	}
-	
+
 	labels, ok := resource.Metadata["labels"].(map[string]interface{})
 	if !ok {
 		labels = make(map[string]interface{})
 		resource.Metadata["labels"] = labels
 	}
-	
+
 	labels[key] = value
 }
 
@@ -431,12 +431,12 @@ func GetResourceLabel(resource *porch.KRMResource, key string) (string, bool) {
 	if resource.Metadata == nil {
 		return "", false
 	}
-	
+
 	labels, ok := resource.Metadata["labels"].(map[string]interface{})
 	if !ok {
 		return "", false
 	}
-	
+
 	value, ok := labels[key].(string)
 	return value, ok
 }
@@ -458,14 +458,14 @@ func MatchesLabelSelector(resource *porch.KRMResource, selector map[string]strin
 	if len(selector) == 0 {
 		return true
 	}
-	
+
 	for key, expectedValue := range selector {
 		actualValue, exists := GetResourceLabel(resource, key)
 		if !exists || actualValue != expectedValue {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -475,11 +475,11 @@ func CreateResult(severity, message string, tags map[string]string) *porch.Funct
 		Message:  message,
 		Severity: severity,
 	}
-	
+
 	if tags != nil {
 		result.Tags = tags
 	}
-	
+
 	return result
 }
 
@@ -515,18 +515,18 @@ func ValidateResourceList(rl *ResourceList) error {
 	if rl == nil {
 		return fmt.Errorf("resource list cannot be nil")
 	}
-	
+
 	if len(rl.Items) == 0 {
 		return fmt.Errorf("resource list cannot be empty")
 	}
-	
+
 	// Validate each resource
 	for i, resource := range rl.Items {
 		if err := ValidateKRMResource(&resource); err != nil {
 			return fmt.Errorf("resource %d is invalid: %w", i, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -535,20 +535,20 @@ func ValidateKRMResource(resource *porch.KRMResource) error {
 	if resource.APIVersion == "" {
 		return fmt.Errorf("apiVersion is required")
 	}
-	
+
 	if resource.Kind == "" {
 		return fmt.Errorf("kind is required")
 	}
-	
+
 	if resource.Metadata == nil {
 		return fmt.Errorf("metadata is required")
 	}
-	
+
 	name, ok := resource.Metadata["name"].(string)
 	if !ok || name == "" {
 		return fmt.Errorf("metadata.name is required and must be a non-empty string")
 	}
-	
+
 	return nil
 }
 
@@ -558,12 +558,12 @@ func DeepCopyResource(resource *porch.KRMResource) (*porch.KRMResource, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal resource: %w", err)
 	}
-	
+
 	var copy porch.KRMResource
 	if err := json.Unmarshal(data, &copy); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal resource: %w", err)
 	}
-	
+
 	return &copy, nil
 }
 
@@ -573,39 +573,39 @@ func DeepCopyResourceList(rl *ResourceList) (*ResourceList, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal resource list: %w", err)
 	}
-	
+
 	var copy ResourceList
 	if err := json.Unmarshal(data, &copy); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal resource list: %w", err)
 	}
-	
+
 	return &copy, nil
 }
 
 // FilterResourcesByNamespace filters resources by namespace
 func FilterResourcesByNamespace(resources []porch.KRMResource, namespace string) []porch.KRMResource {
 	var filtered []porch.KRMResource
-	
+
 	for _, resource := range resources {
 		resourceNamespace := GetResourceNamespace(&resource)
 		if resourceNamespace == namespace {
 			filtered = append(filtered, resource)
 		}
 	}
-	
+
 	return filtered
 }
 
 // FilterResourcesByLabel filters resources by label
 func FilterResourcesByLabel(resources []porch.KRMResource, key, value string) []porch.KRMResource {
 	var filtered []porch.KRMResource
-	
+
 	for _, resource := range resources {
 		if labelValue, exists := GetResourceLabel(&resource, key); exists && labelValue == value {
 			filtered = append(filtered, resource)
 		}
 	}
-	
+
 	return filtered
 }
 
@@ -614,7 +614,7 @@ func GetSpecField(resource *porch.KRMResource, fieldPath string) (interface{}, e
 	if resource.Spec == nil {
 		return nil, fmt.Errorf("resource spec is nil")
 	}
-	
+
 	return getNestedField(resource.Spec, fieldPath)
 }
 
@@ -623,7 +623,7 @@ func SetSpecField(resource *porch.KRMResource, fieldPath string, value interface
 	if resource.Spec == nil {
 		resource.Spec = make(map[string]interface{})
 	}
-	
+
 	return setNestedField(resource.Spec, fieldPath, value)
 }
 
@@ -632,7 +632,7 @@ func GetStatusField(resource *porch.KRMResource, fieldPath string) (interface{},
 	if resource.Status == nil {
 		return nil, fmt.Errorf("resource status is nil")
 	}
-	
+
 	return getNestedField(resource.Status, fieldPath)
 }
 
@@ -641,7 +641,7 @@ func SetStatusField(resource *porch.KRMResource, fieldPath string, value interfa
 	if resource.Status == nil {
 		resource.Status = make(map[string]interface{})
 	}
-	
+
 	return setNestedField(resource.Status, fieldPath, value)
 }
 
@@ -656,45 +656,45 @@ func (f *BaseFunctionImpl) validateAgainstSchema(config *FunctionConfig, schema 
 			}
 		}
 	}
-	
+
 	return nil
 }
 
 func getNestedField(data map[string]interface{}, fieldPath string) (interface{}, error) {
 	parts := strings.Split(fieldPath, ".")
 	current := data
-	
+
 	for i, part := range parts {
 		value, exists := current[part]
 		if !exists {
 			return nil, fmt.Errorf("field '%s' not found", fieldPath)
 		}
-		
+
 		if i == len(parts)-1 {
 			return value, nil
 		}
-		
+
 		next, ok := value.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("field '%s' is not a map", strings.Join(parts[:i+1], "."))
 		}
-		
+
 		current = next
 	}
-	
+
 	return nil, fmt.Errorf("empty field path")
 }
 
 func setNestedField(data map[string]interface{}, fieldPath string, value interface{}) error {
 	parts := strings.Split(fieldPath, ".")
 	current := data
-	
+
 	for i, part := range parts {
 		if i == len(parts)-1 {
 			current[part] = value
 			return nil
 		}
-		
+
 		if existing, exists := current[part]; exists {
 			if next, ok := existing.(map[string]interface{}); ok {
 				current = next
@@ -707,7 +707,7 @@ func setNestedField(data map[string]interface{}, fieldPath string, value interfa
 			current = next
 		}
 	}
-	
+
 	return fmt.Errorf("empty field path")
 }
 

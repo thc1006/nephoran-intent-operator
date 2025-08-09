@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
 )
 
 // Client is a client for the LLM processor.
@@ -92,12 +91,12 @@ func NewClient(url string) *Client {
 
 // ClientConfig holds configuration for LLM client
 type ClientConfig struct {
-	APIKey               string
-	ModelName            string
-	MaxTokens            int
-	BackendType          string
-	Timeout              time.Duration
-	SkipTLSVerification  bool   // SECURITY WARNING: Only use in development environments
+	APIKey              string
+	ModelName           string
+	MaxTokens           int
+	BackendType         string
+	Timeout             time.Duration
+	SkipTLSVerification bool // SECURITY WARNING: Only use in development environments
 }
 
 // allowInsecureClient checks if insecure TLS is allowed via environment variable

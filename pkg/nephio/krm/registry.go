@@ -45,17 +45,17 @@ import (
 
 // Registry manages KRM function discovery, caching, and metadata
 type Registry struct {
-	config           *RegistryConfig
-	repositories     map[string]*Repository
-	functions        map[string]*FunctionMetadata
-	cache            *FunctionCache
-	healthMonitor    *HealthMonitor
-	metrics          *RegistryMetrics
-	tracer           trace.Tracer
-	mu               sync.RWMutex
-	updateChan       chan *FunctionUpdate
-	shutdownChan     chan struct{}
-	httpClient       *http.Client
+	config        *RegistryConfig
+	repositories  map[string]*Repository
+	functions     map[string]*FunctionMetadata
+	cache         *FunctionCache
+	healthMonitor *HealthMonitor
+	metrics       *RegistryMetrics
+	tracer        trace.Tracer
+	mu            sync.RWMutex
+	updateChan    chan *FunctionUpdate
+	shutdownChan  chan struct{}
+	httpClient    *http.Client
 }
 
 // RegistryConfig defines configuration for the function registry
@@ -63,27 +63,27 @@ type RegistryConfig struct {
 	// Repository settings
 	DefaultRepositories []RepositoryConfig `json:"defaultRepositories" yaml:"defaultRepositories"`
 	RepositoryTimeout   time.Duration      `json:"repositoryTimeout" yaml:"repositoryTimeout"`
-	
+
 	// Caching settings
-	CacheDir            string        `json:"cacheDir" yaml:"cacheDir"`
-	CacheTTL            time.Duration `json:"cacheTtl" yaml:"cacheTtl"`
-	MaxCacheSize        int64         `json:"maxCacheSize" yaml:"maxCacheSize"`
-	EnableCompression   bool          `json:"enableCompression" yaml:"enableCompression"`
-	
+	CacheDir          string        `json:"cacheDir" yaml:"cacheDir"`
+	CacheTTL          time.Duration `json:"cacheTtl" yaml:"cacheTtl"`
+	MaxCacheSize      int64         `json:"maxCacheSize" yaml:"maxCacheSize"`
+	EnableCompression bool          `json:"enableCompression" yaml:"enableCompression"`
+
 	// Health monitoring
 	HealthCheckInterval time.Duration `json:"healthCheckInterval" yaml:"healthCheckInterval"`
 	UnhealthyThreshold  int           `json:"unhealthyThreshold" yaml:"unhealthyThreshold"`
 	HealthyThreshold    int           `json:"healthyThreshold" yaml:"healthyThreshold"`
-	
+
 	// Discovery settings
 	DiscoveryInterval   time.Duration `json:"discoveryInterval" yaml:"discoveryInterval"`
 	ConcurrentDiscovery int           `json:"concurrentDiscovery" yaml:"concurrentDiscovery"`
-	
+
 	// Security settings
-	AllowInsecure       bool     `json:"allowInsecure" yaml:"allowInsecure"`
-	TrustedRegistries   []string `json:"trustedRegistries" yaml:"trustedRegistries"`
-	SignatureVerification bool   `json:"signatureVerification" yaml:"signatureVerification"`
-	
+	AllowInsecure         bool     `json:"allowInsecure" yaml:"allowInsecure"`
+	TrustedRegistries     []string `json:"trustedRegistries" yaml:"trustedRegistries"`
+	SignatureVerification bool     `json:"signatureVerification" yaml:"signatureVerification"`
+
 	// Performance settings
 	MaxConcurrentDownloads int           `json:"maxConcurrentDownloads" yaml:"maxConcurrentDownloads"`
 	DownloadTimeout        time.Duration `json:"downloadTimeout" yaml:"downloadTimeout"`
@@ -92,38 +92,38 @@ type RegistryConfig struct {
 
 // Repository represents a function repository
 type Repository struct {
-	Config         RepositoryConfig    `json:"config"`
-	Health         RepositoryHealth    `json:"health"`
-	Functions      []*FunctionMetadata `json:"functions"`
-	LastSyncTime   time.Time           `json:"lastSyncTime"`
-	LastError      string              `json:"lastError,omitempty"`
-	Version        string              `json:"version,omitempty"`
-	mu             sync.RWMutex
+	Config       RepositoryConfig    `json:"config"`
+	Health       RepositoryHealth    `json:"health"`
+	Functions    []*FunctionMetadata `json:"functions"`
+	LastSyncTime time.Time           `json:"lastSyncTime"`
+	LastError    string              `json:"lastError,omitempty"`
+	Version      string              `json:"version,omitempty"`
+	mu           sync.RWMutex
 }
 
 // RepositoryConfig defines repository configuration
 type RepositoryConfig struct {
-	Name             string            `json:"name" yaml:"name"`
-	URL              string            `json:"url" yaml:"url"`
-	Type             string            `json:"type" yaml:"type"` // git, oci, http
-	Branch           string            `json:"branch,omitempty" yaml:"branch,omitempty"`
-	Path             string            `json:"path,omitempty" yaml:"path,omitempty"`
-	Auth             *AuthConfig       `json:"auth,omitempty" yaml:"auth,omitempty"`
-	Headers          map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
-	Insecure         bool              `json:"insecure,omitempty" yaml:"insecure,omitempty"`
-	Priority         int               `json:"priority,omitempty" yaml:"priority,omitempty"`
-	Enabled          bool              `json:"enabled" yaml:"enabled"`
-	Tags             []string          `json:"tags,omitempty" yaml:"tags,omitempty"`
-	Description      string            `json:"description,omitempty" yaml:"description,omitempty"`
+	Name        string            `json:"name" yaml:"name"`
+	URL         string            `json:"url" yaml:"url"`
+	Type        string            `json:"type" yaml:"type"` // git, oci, http
+	Branch      string            `json:"branch,omitempty" yaml:"branch,omitempty"`
+	Path        string            `json:"path,omitempty" yaml:"path,omitempty"`
+	Auth        *AuthConfig       `json:"auth,omitempty" yaml:"auth,omitempty"`
+	Headers     map[string]string `json:"headers,omitempty" yaml:"headers,omitempty"`
+	Insecure    bool              `json:"insecure,omitempty" yaml:"insecure,omitempty"`
+	Priority    int               `json:"priority,omitempty" yaml:"priority,omitempty"`
+	Enabled     bool              `json:"enabled" yaml:"enabled"`
+	Tags        []string          `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
 }
 
 // AuthConfig defines authentication for repositories
 type AuthConfig struct {
-	Type       string `json:"type" yaml:"type"` // basic, bearer, api-key
-	Username   string `json:"username,omitempty" yaml:"username,omitempty"`
-	Password   string `json:"password,omitempty" yaml:"password,omitempty"`
-	Token      string `json:"token,omitempty" yaml:"token,omitempty"`
-	SecretRef  string `json:"secretRef,omitempty" yaml:"secretRef,omitempty"`
+	Type      string `json:"type" yaml:"type"` // basic, bearer, api-key
+	Username  string `json:"username,omitempty" yaml:"username,omitempty"`
+	Password  string `json:"password,omitempty" yaml:"password,omitempty"`
+	Token     string `json:"token,omitempty" yaml:"token,omitempty"`
+	SecretRef string `json:"secretRef,omitempty" yaml:"secretRef,omitempty"`
 }
 
 // FunctionMetadata contains comprehensive metadata about a KRM function
@@ -133,31 +133,31 @@ type FunctionMetadata struct {
 	Image       string `json:"image" yaml:"image"`
 	Version     string `json:"version" yaml:"version"`
 	Description string `json:"description,omitempty" yaml:"description,omitempty"`
-	
+
 	// Classification
-	Type        string   `json:"type" yaml:"type"` // mutator, validator, generator
-	Categories  []string `json:"categories,omitempty" yaml:"categories,omitempty"`
-	Keywords    []string `json:"keywords,omitempty" yaml:"keywords,omitempty"`
-	Tags        []string `json:"tags,omitempty" yaml:"tags,omitempty"`
-	
+	Type       string   `json:"type" yaml:"type"` // mutator, validator, generator
+	Categories []string `json:"categories,omitempty" yaml:"categories,omitempty"`
+	Keywords   []string `json:"keywords,omitempty" yaml:"keywords,omitempty"`
+	Tags       []string `json:"tags,omitempty" yaml:"tags,omitempty"`
+
 	// Capabilities
 	ResourceTypes []ResourceTypeSupport `json:"resourceTypes,omitempty" yaml:"resourceTypes,omitempty"`
 	ApiVersions   []string              `json:"apiVersions,omitempty" yaml:"apiVersions,omitempty"`
-	
+
 	// Compatibility
 	MinKubernetesVersion string   `json:"minKubernetesVersion,omitempty" yaml:"minKubernetesVersion,omitempty"`
 	SupportedPlatforms   []string `json:"supportedPlatforms,omitempty" yaml:"supportedPlatforms,omitempty"`
-	
+
 	// Configuration
-	ConfigSchema    *FunctionConfigSchema `json:"configSchema,omitempty" yaml:"configSchema,omitempty"`
-	Examples        []*FunctionExample    `json:"examples,omitempty" yaml:"examples,omitempty"`
-	Documentation   *FunctionDocumentation `json:"documentation,omitempty" yaml:"documentation,omitempty"`
-	
+	ConfigSchema  *FunctionConfigSchema  `json:"configSchema,omitempty" yaml:"configSchema,omitempty"`
+	Examples      []*FunctionExample     `json:"examples,omitempty" yaml:"examples,omitempty"`
+	Documentation *FunctionDocumentation `json:"documentation,omitempty" yaml:"documentation,omitempty"`
+
 	// Quality metrics
-	Quality         *QualityMetrics    `json:"quality,omitempty" yaml:"quality,omitempty"`
-	Performance     *PerformanceInfo   `json:"performance,omitempty" yaml:"performance,omitempty"`
-	SecurityProfile *SecurityProfile   `json:"securityProfile,omitempty" yaml:"securityProfile,omitempty"`
-	
+	Quality         *QualityMetrics  `json:"quality,omitempty" yaml:"quality,omitempty"`
+	Performance     *PerformanceInfo `json:"performance,omitempty" yaml:"performance,omitempty"`
+	SecurityProfile *SecurityProfile `json:"securityProfile,omitempty" yaml:"securityProfile,omitempty"`
+
 	// Lifecycle
 	Author          string    `json:"author,omitempty" yaml:"author,omitempty"`
 	License         string    `json:"license,omitempty" yaml:"license,omitempty"`
@@ -165,7 +165,7 @@ type FunctionMetadata struct {
 	UpdatedAt       time.Time `json:"updatedAt,omitempty" yaml:"updatedAt,omitempty"`
 	Deprecated      bool      `json:"deprecated,omitempty" yaml:"deprecated,omitempty"`
 	DeprecationNote string    `json:"deprecationNote,omitempty" yaml:"deprecationNote,omitempty"`
-	
+
 	// Registry metadata
 	Repository   string    `json:"repository" yaml:"repository"`
 	Source       string    `json:"source" yaml:"source"`
@@ -190,114 +190,114 @@ type FunctionConfigSchema struct {
 
 // SchemaProperty defines a configuration property
 type SchemaProperty struct {
-	Type        string      `json:"type" yaml:"type"`
-	Description string      `json:"description,omitempty" yaml:"description,omitempty"`
-	Default     interface{} `json:"default,omitempty" yaml:"default,omitempty"`
+	Type        string        `json:"type" yaml:"type"`
+	Description string        `json:"description,omitempty" yaml:"description,omitempty"`
+	Default     interface{}   `json:"default,omitempty" yaml:"default,omitempty"`
 	Examples    []interface{} `json:"examples,omitempty" yaml:"examples,omitempty"`
 	Enum        []interface{} `json:"enum,omitempty" yaml:"enum,omitempty"`
-	Pattern     string      `json:"pattern,omitempty" yaml:"pattern,omitempty"`
-	Minimum     *float64    `json:"minimum,omitempty" yaml:"minimum,omitempty"`
-	Maximum     *float64    `json:"maximum,omitempty" yaml:"maximum,omitempty"`
+	Pattern     string        `json:"pattern,omitempty" yaml:"pattern,omitempty"`
+	Minimum     *float64      `json:"minimum,omitempty" yaml:"minimum,omitempty"`
+	Maximum     *float64      `json:"maximum,omitempty" yaml:"maximum,omitempty"`
 }
 
 // FunctionExample provides usage examples for a function
 type FunctionExample struct {
-	Name        string             `json:"name" yaml:"name"`
-	Description string             `json:"description,omitempty" yaml:"description,omitempty"`
+	Name        string                 `json:"name" yaml:"name"`
+	Description string                 `json:"description,omitempty" yaml:"description,omitempty"`
 	Config      map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
-	Input       []interface{}      `json:"input,omitempty" yaml:"input,omitempty"`
-	Output      []interface{}      `json:"output,omitempty" yaml:"output,omitempty"`
+	Input       []interface{}          `json:"input,omitempty" yaml:"input,omitempty"`
+	Output      []interface{}          `json:"output,omitempty" yaml:"output,omitempty"`
 }
 
 // FunctionDocumentation contains documentation links and content
 type FunctionDocumentation struct {
-	README      string            `json:"readme,omitempty" yaml:"readme,omitempty"`
-	UsageGuide  string            `json:"usageGuide,omitempty" yaml:"usageGuide,omitempty"`
-	APIRef      string            `json:"apiRef,omitempty" yaml:"apiRef,omitempty"`
-	Links       map[string]string `json:"links,omitempty" yaml:"links,omitempty"`
+	README     string            `json:"readme,omitempty" yaml:"readme,omitempty"`
+	UsageGuide string            `json:"usageGuide,omitempty" yaml:"usageGuide,omitempty"`
+	APIRef     string            `json:"apiRef,omitempty" yaml:"apiRef,omitempty"`
+	Links      map[string]string `json:"links,omitempty" yaml:"links,omitempty"`
 }
 
 // QualityMetrics provides quality assessment of the function
 type QualityMetrics struct {
-	TestCoverage    float64 `json:"testCoverage,omitempty" yaml:"testCoverage,omitempty"`
-	CodeQuality     float64 `json:"codeQuality,omitempty" yaml:"codeQuality,omitempty"`
-	Documentation   float64 `json:"documentation,omitempty" yaml:"documentation,omitempty"`
-	CommunityScore  float64 `json:"communityScore,omitempty" yaml:"communityScore,omitempty"`
-	SecurityScore   float64 `json:"securityScore,omitempty" yaml:"securityScore,omitempty"`
-	OverallScore    float64 `json:"overallScore,omitempty" yaml:"overallScore,omitempty"`
+	TestCoverage   float64 `json:"testCoverage,omitempty" yaml:"testCoverage,omitempty"`
+	CodeQuality    float64 `json:"codeQuality,omitempty" yaml:"codeQuality,omitempty"`
+	Documentation  float64 `json:"documentation,omitempty" yaml:"documentation,omitempty"`
+	CommunityScore float64 `json:"communityScore,omitempty" yaml:"communityScore,omitempty"`
+	SecurityScore  float64 `json:"securityScore,omitempty" yaml:"securityScore,omitempty"`
+	OverallScore   float64 `json:"overallScore,omitempty" yaml:"overallScore,omitempty"`
 }
 
 // PerformanceInfo provides performance characteristics
 type PerformanceInfo struct {
-	TypicalExecutionTime    time.Duration `json:"typicalExecutionTime,omitempty" yaml:"typicalExecutionTime,omitempty"`
-	MaxExecutionTime        time.Duration `json:"maxExecutionTime,omitempty" yaml:"maxExecutionTime,omitempty"`
-	TypicalMemoryUsage      int64         `json:"typicalMemoryUsage,omitempty" yaml:"typicalMemoryUsage,omitempty"`
-	MaxMemoryUsage          int64         `json:"maxMemoryUsage,omitempty" yaml:"maxMemoryUsage,omitempty"`
-	CPUIntensive            bool          `json:"cpuIntensive,omitempty" yaml:"cpuIntensive,omitempty"`
-	NetworkIO               bool          `json:"networkIo,omitempty" yaml:"networkIo,omitempty"`
-	DiskIO                  bool          `json:"diskIo,omitempty" yaml:"diskIo,omitempty"`
-	ScalabilityCharacteristics string    `json:"scalabilityCharacteristics,omitempty" yaml:"scalabilityCharacteristics,omitempty"`
+	TypicalExecutionTime       time.Duration `json:"typicalExecutionTime,omitempty" yaml:"typicalExecutionTime,omitempty"`
+	MaxExecutionTime           time.Duration `json:"maxExecutionTime,omitempty" yaml:"maxExecutionTime,omitempty"`
+	TypicalMemoryUsage         int64         `json:"typicalMemoryUsage,omitempty" yaml:"typicalMemoryUsage,omitempty"`
+	MaxMemoryUsage             int64         `json:"maxMemoryUsage,omitempty" yaml:"maxMemoryUsage,omitempty"`
+	CPUIntensive               bool          `json:"cpuIntensive,omitempty" yaml:"cpuIntensive,omitempty"`
+	NetworkIO                  bool          `json:"networkIo,omitempty" yaml:"networkIo,omitempty"`
+	DiskIO                     bool          `json:"diskIo,omitempty" yaml:"diskIo,omitempty"`
+	ScalabilityCharacteristics string        `json:"scalabilityCharacteristics,omitempty" yaml:"scalabilityCharacteristics,omitempty"`
 }
 
 // SecurityProfile defines security characteristics
 type SecurityProfile struct {
-	RequiredCapabilities []string `json:"requiredCapabilities,omitempty" yaml:"requiredCapabilities,omitempty"`
-	RequiredPrivileges   []string `json:"requiredPrivileges,omitempty" yaml:"requiredPrivileges,omitempty"`
-	NetworkAccess        bool     `json:"networkAccess,omitempty" yaml:"networkAccess,omitempty"`
-	FileSystemAccess     []string `json:"fileSystemAccess,omitempty" yaml:"fileSystemAccess,omitempty"`
-	SecurityRisks        []string `json:"securityRisks,omitempty" yaml:"securityRisks,omitempty"`
-	LastSecurityScan     time.Time `json:"lastSecurityScan,omitempty" yaml:"lastSecurityScan,omitempty"`
+	RequiredCapabilities []string                `json:"requiredCapabilities,omitempty" yaml:"requiredCapabilities,omitempty"`
+	RequiredPrivileges   []string                `json:"requiredPrivileges,omitempty" yaml:"requiredPrivileges,omitempty"`
+	NetworkAccess        bool                    `json:"networkAccess,omitempty" yaml:"networkAccess,omitempty"`
+	FileSystemAccess     []string                `json:"fileSystemAccess,omitempty" yaml:"fileSystemAccess,omitempty"`
+	SecurityRisks        []string                `json:"securityRisks,omitempty" yaml:"securityRisks,omitempty"`
+	LastSecurityScan     time.Time               `json:"lastSecurityScan,omitempty" yaml:"lastSecurityScan,omitempty"`
 	Vulnerabilities      []SecurityVulnerability `json:"vulnerabilities,omitempty" yaml:"vulnerabilities,omitempty"`
 }
 
 // SecurityVulnerability represents a security vulnerability
 type SecurityVulnerability struct {
-	ID          string    `json:"id" yaml:"id"`
-	Severity    string    `json:"severity" yaml:"severity"`
-	Description string    `json:"description" yaml:"description"`
-	FixVersion  string    `json:"fixVersion,omitempty" yaml:"fixVersion,omitempty"`
-	URL         string    `json:"url,omitempty" yaml:"url,omitempty"`
+	ID           string    `json:"id" yaml:"id"`
+	Severity     string    `json:"severity" yaml:"severity"`
+	Description  string    `json:"description" yaml:"description"`
+	FixVersion   string    `json:"fixVersion,omitempty" yaml:"fixVersion,omitempty"`
+	URL          string    `json:"url,omitempty" yaml:"url,omitempty"`
 	DiscoveredAt time.Time `json:"discoveredAt" yaml:"discoveredAt"`
 }
 
 // FunctionCache manages function metadata and artifact caching
 type FunctionCache struct {
-	cacheDir  string
-	ttl       time.Duration
-	maxSize   int64
-	mu        sync.RWMutex
-	items     map[string]*CacheItem
-	metrics   *CacheMetrics
+	cacheDir string
+	ttl      time.Duration
+	maxSize  int64
+	mu       sync.RWMutex
+	items    map[string]*CacheItem
+	metrics  *CacheMetrics
 }
 
 // CacheItem represents a cached function
 type CacheItem struct {
-	Key         string    `json:"key"`
+	Key         string            `json:"key"`
 	Metadata    *FunctionMetadata `json:"metadata"`
-	Data        []byte    `json:"data,omitempty"`
-	Size        int64     `json:"size"`
-	ExpiresAt   time.Time `json:"expiresAt"`
-	AccessCount int64     `json:"accessCount"`
-	LastAccess  time.Time `json:"lastAccess"`
+	Data        []byte            `json:"data,omitempty"`
+	Size        int64             `json:"size"`
+	ExpiresAt   time.Time         `json:"expiresAt"`
+	AccessCount int64             `json:"accessCount"`
+	LastAccess  time.Time         `json:"lastAccess"`
 }
 
 // HealthMonitor monitors repository and function health
 type HealthMonitor struct {
-	registry     *Registry
-	checkInterval time.Duration
+	registry           *Registry
+	checkInterval      time.Duration
 	unhealthyThreshold int
 	healthyThreshold   int
-	checks     map[string]*HealthCheck
-	mu         sync.RWMutex
+	checks             map[string]*HealthCheck
+	mu                 sync.RWMutex
 }
 
 // HealthCheck tracks health of a component
 type HealthCheck struct {
-	Name            string    `json:"name"`
-	Status          string    `json:"status"` // healthy, unhealthy, unknown
-	LastCheck       time.Time `json:"lastCheck"`
-	ConsecutiveFails int      `json:"consecutiveFails"`
-	Error           string    `json:"error,omitempty"`
+	Name             string    `json:"name"`
+	Status           string    `json:"status"` // healthy, unhealthy, unknown
+	LastCheck        time.Time `json:"lastCheck"`
+	ConsecutiveFails int       `json:"consecutiveFails"`
+	Error            string    `json:"error,omitempty"`
 }
 
 // FunctionUpdate represents a function update notification
@@ -308,39 +308,39 @@ type FunctionUpdate struct {
 
 // Registry metrics
 type RegistryMetrics struct {
-	RepositoryCount    prometheus.Gauge
-	FunctionCount      prometheus.GaugeVec
-	DiscoveryDuration  prometheus.HistogramVec
-	CacheHitRate       prometheus.Counter
-	CacheMissRate      prometheus.Counter
+	RepositoryCount     prometheus.Gauge
+	FunctionCount       prometheus.GaugeVec
+	DiscoveryDuration   prometheus.HistogramVec
+	CacheHitRate        prometheus.Counter
+	CacheMissRate       prometheus.Counter
 	HealthCheckFailures prometheus.CounterVec
 }
 
 // CacheMetrics provides cache performance metrics
 type CacheMetrics struct {
-	Hits        prometheus.Counter
-	Misses      prometheus.Counter
-	Evictions   prometheus.Counter
-	Size        prometheus.Gauge
-	ItemCount   prometheus.Gauge
+	Hits      prometheus.Counter
+	Misses    prometheus.Counter
+	Evictions prometheus.Counter
+	Size      prometheus.Gauge
+	ItemCount prometheus.Gauge
 }
 
 // Default registry configuration
 var DefaultRegistryConfig = &RegistryConfig{
 	DefaultRepositories: []RepositoryConfig{
 		{
-			Name:    "nephoran-functions",
-			URL:     "https://github.com/nephoran/krm-functions",
-			Type:    "git",
-			Branch:  "main",
-			Enabled: true,
+			Name:     "nephoran-functions",
+			URL:      "https://github.com/nephoran/krm-functions",
+			Type:     "git",
+			Branch:   "main",
+			Enabled:  true,
 			Priority: 100,
 		},
 		{
-			Name:    "kpt-functions",
-			URL:     "https://catalog.kpt.dev/functions",
-			Type:    "http",
-			Enabled: true,
+			Name:     "kpt-functions",
+			URL:      "https://catalog.kpt.dev/functions",
+			Type:     "http",
+			Enabled:  true,
 			Priority: 50,
 		},
 	},
@@ -408,7 +408,7 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Help: "Total number of cache operations",
 		}),
 		Misses: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "krm_registry_cache_misses_total", 
+			Name: "krm_registry_cache_misses_total",
 			Help: "Total number of cache misses",
 		}),
 		Evictions: promauto.NewCounter(prometheus.CounterOpts{
@@ -438,7 +438,7 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 		checkInterval:      config.HealthCheckInterval,
 		unhealthyThreshold: config.UnhealthyThreshold,
 		healthyThreshold:   config.HealthyThreshold,
-		checks:            make(map[string]*HealthCheck),
+		checks:             make(map[string]*HealthCheck),
 	}
 
 	// Create HTTP client with timeout
@@ -497,7 +497,7 @@ func (r *Registry) DiscoverFunctions(ctx context.Context) error {
 	defer span.End()
 
 	logger := log.FromContext(ctx).WithName("krm-registry")
-	
+
 	r.mu.RLock()
 	repositories := make([]*Repository, 0, len(r.repositories))
 	for _, repo := range r.repositories {
@@ -615,11 +615,11 @@ func (r *Registry) SearchFunctions(ctx context.Context, query *SearchQuery) (*Se
 	matches := r.performSearch(functions, query)
 
 	result := &SearchResult{
-		Query:       query,
-		Matches:     matches,
-		TotalCount:  len(functions),
-		MatchCount:  len(matches),
-		SearchTime:  time.Now(),
+		Query:      query,
+		Matches:    matches,
+		TotalCount: len(functions),
+		MatchCount: len(matches),
+		SearchTime: time.Now(),
 	}
 
 	span.SetAttributes(
@@ -782,7 +782,7 @@ func (r *Registry) discoverRepository(ctx context.Context, repo *Repository) err
 	}()
 
 	logger := log.FromContext(ctx).WithName("krm-registry").WithValues("repository", repo.Config.Name)
-	
+
 	switch repo.Config.Type {
 	case "git":
 		return r.discoverGitRepository(ctx, repo)
@@ -936,12 +936,12 @@ type RepositoryHealth struct {
 }
 
 type FunctionFilter struct {
-	Type         string   `json:"type,omitempty"`
-	Categories   []string `json:"categories,omitempty"`
-	Keywords     []string `json:"keywords,omitempty"`
-	Repository   string   `json:"repository,omitempty"`
-	MinVersion   string   `json:"minVersion,omitempty"`
-	Deprecated   *bool    `json:"deprecated,omitempty"`
+	Type       string   `json:"type,omitempty"`
+	Categories []string `json:"categories,omitempty"`
+	Keywords   []string `json:"keywords,omitempty"`
+	Repository string   `json:"repository,omitempty"`
+	MinVersion string   `json:"minVersion,omitempty"`
+	Deprecated *bool    `json:"deprecated,omitempty"`
 }
 
 type SearchQuery struct {
@@ -965,11 +965,11 @@ type FunctionCatalog struct {
 }
 
 type RegistryHealth struct {
-	Status        string        `json:"status"`
-	Repositories  int           `json:"repositories"`
-	Functions     int           `json:"functions"`
-	LastDiscovery time.Time     `json:"lastDiscovery"`
-	CacheStatus   *CacheStatus  `json:"cacheStatus"`
+	Status        string       `json:"status"`
+	Repositories  int          `json:"repositories"`
+	Functions     int          `json:"functions"`
+	LastDiscovery time.Time    `json:"lastDiscovery"`
+	CacheStatus   *CacheStatus `json:"cacheStatus"`
 }
 
 type CacheStatus struct {
@@ -1128,7 +1128,7 @@ func (hm *HealthMonitor) checkHealth() {
 
 		// Perform health check
 		healthy := hm.checkRepositoryHealth(repo)
-		
+
 		check.LastCheck = time.Now()
 		if healthy {
 			check.ConsecutiveFails = 0

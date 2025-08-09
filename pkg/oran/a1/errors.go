@@ -14,65 +14,65 @@ type A1ErrorType string
 
 const (
 	// A1-P Policy Interface Error Types
-	ErrorTypePolicyTypeNotFound       A1ErrorType = "urn:problem-type:a1:policy-type-not-found"
-	ErrorTypePolicyTypeAlreadyExists  A1ErrorType = "urn:problem-type:a1:policy-type-already-exists"  
-	ErrorTypePolicyTypeInvalidSchema  A1ErrorType = "urn:problem-type:a1:policy-type-invalid-schema"
-	ErrorTypePolicyInstanceNotFound   A1ErrorType = "urn:problem-type:a1:policy-instance-not-found"
-	ErrorTypePolicyInstanceConflict   A1ErrorType = "urn:problem-type:a1:policy-instance-conflict"
-	ErrorTypePolicyValidationFailed   A1ErrorType = "urn:problem-type:a1:policy-validation-failed"
-	ErrorTypePolicyEnforcementFailed  A1ErrorType = "urn:problem-type:a1:policy-enforcement-failed"
-	
+	ErrorTypePolicyTypeNotFound      A1ErrorType = "urn:problem-type:a1:policy-type-not-found"
+	ErrorTypePolicyTypeAlreadyExists A1ErrorType = "urn:problem-type:a1:policy-type-already-exists"
+	ErrorTypePolicyTypeInvalidSchema A1ErrorType = "urn:problem-type:a1:policy-type-invalid-schema"
+	ErrorTypePolicyInstanceNotFound  A1ErrorType = "urn:problem-type:a1:policy-instance-not-found"
+	ErrorTypePolicyInstanceConflict  A1ErrorType = "urn:problem-type:a1:policy-instance-conflict"
+	ErrorTypePolicyValidationFailed  A1ErrorType = "urn:problem-type:a1:policy-validation-failed"
+	ErrorTypePolicyEnforcementFailed A1ErrorType = "urn:problem-type:a1:policy-enforcement-failed"
+
 	// A1-C Consumer Interface Error Types
-	ErrorTypeConsumerNotFound         A1ErrorType = "urn:problem-type:a1:consumer-not-found"
-	ErrorTypeConsumerAlreadyExists    A1ErrorType = "urn:problem-type:a1:consumer-already-exists"
-	ErrorTypeConsumerInvalidCallback  A1ErrorType = "urn:problem-type:a1:consumer-invalid-callback"
+	ErrorTypeConsumerNotFound           A1ErrorType = "urn:problem-type:a1:consumer-not-found"
+	ErrorTypeConsumerAlreadyExists      A1ErrorType = "urn:problem-type:a1:consumer-already-exists"
+	ErrorTypeConsumerInvalidCallback    A1ErrorType = "urn:problem-type:a1:consumer-invalid-callback"
 	ErrorTypeConsumerNotificationFailed A1ErrorType = "urn:problem-type:a1:consumer-notification-failed"
-	
+
 	// A1-EI Enrichment Interface Error Types
-	ErrorTypeEITypeNotFound           A1ErrorType = "urn:problem-type:a1:ei-type-not-found"
-	ErrorTypeEITypeAlreadyExists      A1ErrorType = "urn:problem-type:a1:ei-type-already-exists"
-	ErrorTypeEIJobNotFound            A1ErrorType = "urn:problem-type:a1:ei-job-not-found"
-	ErrorTypeEIJobAlreadyExists       A1ErrorType = "urn:problem-type:a1:ei-job-already-exists"
-	ErrorTypeEIJobInvalidConfig       A1ErrorType = "urn:problem-type:a1:ei-job-invalid-config"
-	ErrorTypeEIJobExecutionFailed     A1ErrorType = "urn:problem-type:a1:ei-job-execution-failed"
-	
+	ErrorTypeEITypeNotFound       A1ErrorType = "urn:problem-type:a1:ei-type-not-found"
+	ErrorTypeEITypeAlreadyExists  A1ErrorType = "urn:problem-type:a1:ei-type-already-exists"
+	ErrorTypeEIJobNotFound        A1ErrorType = "urn:problem-type:a1:ei-job-not-found"
+	ErrorTypeEIJobAlreadyExists   A1ErrorType = "urn:problem-type:a1:ei-job-already-exists"
+	ErrorTypeEIJobInvalidConfig   A1ErrorType = "urn:problem-type:a1:ei-job-invalid-config"
+	ErrorTypeEIJobExecutionFailed A1ErrorType = "urn:problem-type:a1:ei-job-execution-failed"
+
 	// Generic Error Types
-	ErrorTypeInvalidRequest           A1ErrorType = "urn:problem-type:a1:invalid-request"
-	ErrorTypeInternalServerError      A1ErrorType = "urn:problem-type:a1:internal-server-error"
-	ErrorTypeServiceUnavailable       A1ErrorType = "urn:problem-type:a1:service-unavailable"
-	ErrorTypeMethodNotAllowed         A1ErrorType = "urn:problem-type:a1:method-not-allowed"
-	ErrorTypeUnsupportedMediaType     A1ErrorType = "urn:problem-type:a1:unsupported-media-type"
-	ErrorTypeRateLimitExceeded        A1ErrorType = "urn:problem-type:a1:rate-limit-exceeded"
-	ErrorTypeAuthenticationRequired   A1ErrorType = "urn:problem-type:a1:authentication-required"
-	ErrorTypeAuthorizationDenied      A1ErrorType = "urn:problem-type:a1:authorization-denied"
-	ErrorTypeCircuitBreakerOpen       A1ErrorType = "urn:problem-type:a1:circuit-breaker-open"
-	ErrorTypeTimeout                  A1ErrorType = "urn:problem-type:a1:timeout"
+	ErrorTypeInvalidRequest         A1ErrorType = "urn:problem-type:a1:invalid-request"
+	ErrorTypeInternalServerError    A1ErrorType = "urn:problem-type:a1:internal-server-error"
+	ErrorTypeServiceUnavailable     A1ErrorType = "urn:problem-type:a1:service-unavailable"
+	ErrorTypeMethodNotAllowed       A1ErrorType = "urn:problem-type:a1:method-not-allowed"
+	ErrorTypeUnsupportedMediaType   A1ErrorType = "urn:problem-type:a1:unsupported-media-type"
+	ErrorTypeRateLimitExceeded      A1ErrorType = "urn:problem-type:a1:rate-limit-exceeded"
+	ErrorTypeAuthenticationRequired A1ErrorType = "urn:problem-type:a1:authentication-required"
+	ErrorTypeAuthorizationDenied    A1ErrorType = "urn:problem-type:a1:authorization-denied"
+	ErrorTypeCircuitBreakerOpen     A1ErrorType = "urn:problem-type:a1:circuit-breaker-open"
+	ErrorTypeTimeout                A1ErrorType = "urn:problem-type:a1:timeout"
 )
 
 // A1ProblemDetail represents RFC 7807 compliant problem details for A1 interfaces
 type A1ProblemDetail struct {
-	Type      string                 `json:"type" validate:"required,uri"`
-	Title     string                 `json:"title" validate:"required"`
-	Status    int                    `json:"status" validate:"required,min=100,max=599"`
-	Detail    string                 `json:"detail,omitempty"`
-	Instance  string                 `json:"instance,omitempty"`
-	Timestamp time.Time              `json:"timestamp,omitempty"`
-	RequestID string                 `json:"request_id,omitempty"`
+	Type       string                 `json:"type" validate:"required,uri"`
+	Title      string                 `json:"title" validate:"required"`
+	Status     int                    `json:"status" validate:"required,min=100,max=599"`
+	Detail     string                 `json:"detail,omitempty"`
+	Instance   string                 `json:"instance,omitempty"`
+	Timestamp  time.Time              `json:"timestamp,omitempty"`
+	RequestID  string                 `json:"request_id,omitempty"`
 	Extensions map[string]interface{} `json:"-"`
 }
 
 // A1Error represents an A1-specific error with context information
 type A1Error struct {
-	Type           A1ErrorType            `json:"type"`
-	Title          string                 `json:"title"`
-	Status         int                    `json:"status"`
-	Detail         string                 `json:"detail,omitempty"`
-	Instance       string                 `json:"instance,omitempty"`
-	Cause          error                  `json:"-"`
-	Context        map[string]interface{} `json:"context,omitempty"`
-	Retryable      bool                   `json:"retryable,omitempty"`
-	Timestamp      time.Time              `json:"timestamp"`
-	CorrelationID  string                 `json:"correlation_id,omitempty"`
+	Type          A1ErrorType            `json:"type"`
+	Title         string                 `json:"title"`
+	Status        int                    `json:"status"`
+	Detail        string                 `json:"detail,omitempty"`
+	Instance      string                 `json:"instance,omitempty"`
+	Cause         error                  `json:"-"`
+	Context       map[string]interface{} `json:"context,omitempty"`
+	Retryable     bool                   `json:"retryable,omitempty"`
+	Timestamp     time.Time              `json:"timestamp"`
+	CorrelationID string                 `json:"correlation_id,omitempty"`
 }
 
 // Error implements the error interface
@@ -96,25 +96,25 @@ func (e *A1Error) IsRetryable() bool {
 // ToProblemDetail converts A1Error to RFC 7807 compliant ProblemDetail
 func (e *A1Error) ToProblemDetail() *A1ProblemDetail {
 	pd := &A1ProblemDetail{
-		Type:      string(e.Type),
-		Title:     e.Title,
-		Status:    e.Status,
-		Detail:    e.Detail,
-		Instance:  e.Instance,
-		Timestamp: e.Timestamp,
-		RequestID: e.CorrelationID,
+		Type:       string(e.Type),
+		Title:      e.Title,
+		Status:     e.Status,
+		Detail:     e.Detail,
+		Instance:   e.Instance,
+		Timestamp:  e.Timestamp,
+		RequestID:  e.CorrelationID,
 		Extensions: make(map[string]interface{}),
 	}
-	
+
 	// Add context as extensions
 	for key, value := range e.Context {
 		pd.Extensions[key] = value
 	}
-	
+
 	if e.Retryable {
 		pd.Extensions["retryable"] = true
 	}
-	
+
 	return pd
 }
 
@@ -122,32 +122,32 @@ func (e *A1Error) ToProblemDetail() *A1ProblemDetail {
 func (pd *A1ProblemDetail) MarshalJSON() ([]byte, error) {
 	// Create a map to hold all fields including extensions
 	result := make(map[string]interface{})
-	
+
 	result["type"] = pd.Type
 	result["title"] = pd.Title
 	result["status"] = pd.Status
-	
+
 	if pd.Detail != "" {
 		result["detail"] = pd.Detail
 	}
-	
+
 	if pd.Instance != "" {
 		result["instance"] = pd.Instance
 	}
-	
+
 	if !pd.Timestamp.IsZero() {
 		result["timestamp"] = pd.Timestamp.Format(time.RFC3339)
 	}
-	
+
 	if pd.RequestID != "" {
 		result["request_id"] = pd.RequestID
 	}
-	
+
 	// Add extensions
 	for key, value := range pd.Extensions {
 		result[key] = value
 	}
-	
+
 	return json.Marshal(result)
 }
 
@@ -459,7 +459,7 @@ func NewTimeoutError(operation string, timeout time.Duration) *A1Error {
 func WriteA1Error(w http.ResponseWriter, err *A1Error) {
 	w.Header().Set("Content-Type", ContentTypeProblemJSON)
 	w.WriteHeader(err.Status)
-	
+
 	problemDetail := err.ToProblemDetail()
 	if jsonData, jsonErr := json.MarshalIndent(problemDetail, "", "  "); jsonErr == nil {
 		w.Write(jsonData)
@@ -474,7 +474,7 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 	if resp.StatusCode < 400 {
 		return nil, fmt.Errorf("response does not contain an error (status: %d)", resp.StatusCode)
 	}
-	
+
 	var problemDetail A1ProblemDetail
 	if err := json.NewDecoder(resp.Body).Decode(&problemDetail); err != nil {
 		// Return generic error if response is not in problem+json format
@@ -485,7 +485,7 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 			Timestamp: time.Now(),
 		}, nil
 	}
-	
+
 	a1Error := &A1Error{
 		Type:          A1ErrorType(problemDetail.Type),
 		Title:         problemDetail.Title,
@@ -496,12 +496,12 @@ func ExtractA1ErrorFromHTTPResponse(resp *http.Response) (*A1Error, error) {
 		CorrelationID: problemDetail.RequestID,
 		Context:       problemDetail.Extensions,
 	}
-	
+
 	// Check if error is marked as retryable
 	if retryable, ok := problemDetail.Extensions["retryable"].(bool); ok {
 		a1Error.Retryable = retryable
 	}
-	
+
 	return a1Error, nil
 }
 
@@ -533,12 +533,12 @@ func DefaultErrorHandler(w http.ResponseWriter, r *http.Request, err *A1Error) {
 	if requestID := r.Header.Get("X-Request-ID"); requestID != "" {
 		err.CorrelationID = requestID
 	}
-	
+
 	// Add instance URI based on request
 	if err.Instance == "" {
 		err.Instance = r.URL.Path
 	}
-	
+
 	WriteA1Error(w, err)
 }
 
@@ -547,7 +547,7 @@ func ErrorMiddleware(errorHandler ErrorHandler) func(http.Handler) http.Handler 
 	if errorHandler == nil {
 		errorHandler = DefaultErrorHandler
 	}
-	
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
@@ -563,7 +563,7 @@ func ErrorMiddleware(errorHandler ErrorHandler) func(http.Handler) http.Handler 
 					errorHandler(w, r, err)
 				}
 			}()
-			
+
 			next.ServeHTTP(w, r)
 		})
 	}

@@ -64,14 +64,14 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 
 	Context("Table-driven tests for cleanupGitOpsPackages", func() {
 		type gitOpsTestCase struct {
-			name                 string
-			networkIntentName    string
+			name                   string
+			networkIntentName      string
 			networkIntentNamespace string
-			gitRepoURL          string
-			gitDeployPath       string
-			removeDirectoryError error
-			commitError         error
-			expectedError       bool
+			gitRepoURL             string
+			gitDeployPath          string
+			removeDirectoryError   error
+			commitError            error
+			expectedError          bool
 			expectedErrorSubstring string
 		}
 
@@ -143,7 +143,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				name:                   "git commit failure",
 				networkIntentName:      "commit-fail-test",
 				networkIntentNamespace: namespaceName,
-				commitError:           errors.New("failed to commit changes"),
+				commitError:            errors.New("failed to commit changes"),
 				expectedError:          true,
 				expectedErrorSubstring: "failed to commit package removal",
 			}),
@@ -159,7 +159,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				name:                   "network timeout",
 				networkIntentName:      "timeout-test",
 				networkIntentNamespace: namespaceName,
-				commitError:           ErrGitNetworkTimeout,
+				commitError:            ErrGitNetworkTimeout,
 				expectedError:          true,
 				expectedErrorSubstring: "network timeout",
 			}),
@@ -341,12 +341,12 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 
 	Context("Table-driven tests for handleDeletion", func() {
 		type deletionTestCase struct {
-			name                  string
-			finalizers           []string
-			gitCleanupError      error
-			resourceCleanupError error
-			expectedRequeue      bool
-			expectedError        bool
+			name                   string
+			finalizers             []string
+			gitCleanupError        error
+			resourceCleanupError   error
+			expectedRequeue        bool
+			expectedError          bool
 			expectedErrorSubstring string
 		}
 
@@ -403,13 +403,13 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 			},
 			Entry("successful deletion with finalizer", deletionTestCase{
 				name:            "successful deletion with finalizer",
-				finalizers:     []string{NetworkIntentFinalizer},
+				finalizers:      []string{NetworkIntentFinalizer},
 				expectedRequeue: false,
 				expectedError:   false,
 			}),
 			Entry("deletion without finalizers", deletionTestCase{
 				name:            "deletion without finalizers",
-				finalizers:     []string{},
+				finalizers:      []string{},
 				expectedRequeue: false,
 				expectedError:   false,
 			}),
@@ -424,35 +424,35 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				expectedError:   false,
 			}),
 			Entry("git cleanup failure", deletionTestCase{
-				name:                  "git cleanup failure",
-				finalizers:           []string{NetworkIntentFinalizer},
-				gitCleanupError:      errors.New("git cleanup failed"),
-				expectedRequeue:      true,
-				expectedError:        true,
+				name:                   "git cleanup failure",
+				finalizers:             []string{NetworkIntentFinalizer},
+				gitCleanupError:        errors.New("git cleanup failed"),
+				expectedRequeue:        true,
+				expectedError:          true,
 				expectedErrorSubstring: "git cleanup failed",
 			}),
 			Entry("git authentication failure", deletionTestCase{
-				name:                  "git authentication failure",
-				finalizers:           []string{NetworkIntentFinalizer},
-				gitCleanupError:      ErrGitAuthenticationFailed,
-				expectedRequeue:      true,
-				expectedError:        true,
+				name:                   "git authentication failure",
+				finalizers:             []string{NetworkIntentFinalizer},
+				gitCleanupError:        ErrGitAuthenticationFailed,
+				expectedRequeue:        true,
+				expectedError:          true,
 				expectedErrorSubstring: "SSH key authentication failed",
 			}),
 			Entry("git network timeout", deletionTestCase{
-				name:                  "git network timeout",
-				finalizers:           []string{NetworkIntentFinalizer},
-				gitCleanupError:      ErrGitNetworkTimeout,
-				expectedRequeue:      true,
-				expectedError:        true,
+				name:                   "git network timeout",
+				finalizers:             []string{NetworkIntentFinalizer},
+				gitCleanupError:        ErrGitNetworkTimeout,
+				expectedRequeue:        true,
+				expectedError:          true,
 				expectedErrorSubstring: "network timeout",
 			}),
 			Entry("git repository corruption", deletionTestCase{
-				name:                  "git repository corruption",
-				finalizers:           []string{NetworkIntentFinalizer},
-				gitCleanupError:      ErrGitRepositoryCorrupted,
-				expectedRequeue:      true,
-				expectedError:        true,
+				name:                   "git repository corruption",
+				finalizers:             []string{NetworkIntentFinalizer},
+				gitCleanupError:        ErrGitRepositoryCorrupted,
+				expectedRequeue:        true,
+				expectedError:          true,
 				expectedErrorSubstring: "repository is corrupted",
 			}),
 		)
@@ -460,9 +460,9 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 
 	Context("Table-driven tests for Git client error scenarios", func() {
 		type gitErrorTestCase struct {
-			name           string
-			error          error
-			operation      string
+			name            string
+			error           error
+			operation       string
 			shouldPropagate bool
 		}
 
@@ -500,39 +500,39 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				mockGitClient.AssertExpectations(GinkgoT())
 			},
 			Entry("authentication failure on remove", gitErrorTestCase{
-				name:           "authentication failure on remove",
-				error:          ErrGitAuthenticationFailed,
-				operation:      "RemoveDirectory",
+				name:            "authentication failure on remove",
+				error:           ErrGitAuthenticationFailed,
+				operation:       "RemoveDirectory",
 				shouldPropagate: true,
 			}),
 			Entry("network timeout on commit", gitErrorTestCase{
-				name:           "network timeout on commit",
-				error:          ErrGitNetworkTimeout,
-				operation:      "CommitAndPushChanges",
+				name:            "network timeout on commit",
+				error:           ErrGitNetworkTimeout,
+				operation:       "CommitAndPushChanges",
 				shouldPropagate: true,
 			}),
 			Entry("repository corruption", gitErrorTestCase{
-				name:           "repository corruption",
-				error:          ErrGitRepositoryCorrupted,
-				operation:      "RemoveDirectory",
+				name:            "repository corruption",
+				error:           ErrGitRepositoryCorrupted,
+				operation:       "RemoveDirectory",
 				shouldPropagate: true,
 			}),
 			Entry("directory not found", gitErrorTestCase{
-				name:           "directory not found",
-				error:          ErrGitDirectoryNotFound,
-				operation:      "RemoveDirectory",
+				name:            "directory not found",
+				error:           ErrGitDirectoryNotFound,
+				operation:       "RemoveDirectory",
 				shouldPropagate: true,
 			}),
 			Entry("push rejected", gitErrorTestCase{
-				name:           "push rejected",
-				error:          ErrGitPushRejected,
-				operation:      "CommitAndPushChanges",
+				name:            "push rejected",
+				error:           ErrGitPushRejected,
+				operation:       "CommitAndPushChanges",
 				shouldPropagate: true,
 			}),
 			Entry("no changes to commit", gitErrorTestCase{
-				name:           "no changes to commit",
-				error:          ErrGitNoChangesToCommit,
-				operation:      "CommitAndPushChanges",
+				name:            "no changes to commit",
+				error:           ErrGitNoChangesToCommit,
+				operation:       "CommitAndPushChanges",
 				shouldPropagate: true,
 			}),
 		)
@@ -553,7 +553,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 
 				Expect(selector).NotTo(BeEmpty())
 				for _, expectedSubstring := range tc.expected {
-					Expect(selector).To(ContainSubstring(expectedSubstring), 
+					Expect(selector).To(ContainSubstring(expectedSubstring),
 						"Selector should contain '%s': %s", expectedSubstring, selector)
 				}
 			},
@@ -598,7 +598,7 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 
 	Context("Table-driven tests for finalizer management", func() {
 		type finalizerTestCase struct {
-			name            string
+			name              string
 			initialFinalizers []string
 			finalizerToCheck  string
 			finalizerToRemove string
@@ -621,22 +621,22 @@ var _ = Describe("NetworkIntent Controller Cleanup Table-Driven Tests", func() {
 				}
 			},
 			Entry("contains existing finalizer", finalizerTestCase{
-				name:             "contains existing finalizer",
+				name:              "contains existing finalizer",
 				initialFinalizers: []string{NetworkIntentFinalizer, "other.finalizer"},
-				finalizerToCheck: NetworkIntentFinalizer,
-				expectedContains: true,
+				finalizerToCheck:  NetworkIntentFinalizer,
+				expectedContains:  true,
 			}),
 			Entry("does not contain non-existent finalizer", finalizerTestCase{
-				name:             "does not contain non-existent finalizer",
+				name:              "does not contain non-existent finalizer",
 				initialFinalizers: []string{"other.finalizer"},
-				finalizerToCheck: NetworkIntentFinalizer,
-				expectedContains: false,
+				finalizerToCheck:  NetworkIntentFinalizer,
+				expectedContains:  false,
 			}),
 			Entry("empty finalizers list", finalizerTestCase{
-				name:             "empty finalizers list",
+				name:              "empty finalizers list",
 				initialFinalizers: []string{},
-				finalizerToCheck: NetworkIntentFinalizer,
-				expectedContains: false,
+				finalizerToCheck:  NetworkIntentFinalizer,
+				expectedContains:  false,
 			}),
 			Entry("remove existing finalizer", finalizerTestCase{
 				name:              "remove existing finalizer",

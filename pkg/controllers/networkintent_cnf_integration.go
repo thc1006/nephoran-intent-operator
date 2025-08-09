@@ -39,15 +39,15 @@ import (
 
 const (
 	// Labels for CNF integration
-	CNFIntentLabel              = "nephoran.com/cnf-intent"
-	CNFDeploymentSourceLabel    = "nephoran.com/source"
-	CNFDeploymentSourceValue    = "network-intent"
-	CNFDeploymentIntentLabel    = "nephoran.com/network-intent"
-	
+	CNFIntentLabel           = "nephoran.com/cnf-intent"
+	CNFDeploymentSourceLabel = "nephoran.com/source"
+	CNFDeploymentSourceValue = "network-intent"
+	CNFDeploymentIntentLabel = "nephoran.com/network-intent"
+
 	// Annotations for CNF tracking
 	CNFProcessingResultAnnotation = "nephoran.com/cnf-processing-result"
 	CNFLastProcessedAnnotation    = "nephoran.com/cnf-last-processed"
-	
+
 	// Events for CNF processing
 	EventCNFIntentDetected      = "CNFIntentDetected"
 	EventCNFProcessingStarted   = "CNFProcessingStarted"
@@ -59,25 +59,25 @@ const (
 
 // CNFIntegrationManager manages CNF deployment integration with NetworkIntent
 type CNFIntegrationManager struct {
-	Client              client.Client
-	Scheme              *runtime.Scheme
-	Recorder            record.EventRecorder
-	CNFIntentProcessor  *cnf.CNFIntentProcessor
-	CNFOrchestrator     *cnf.CNFOrchestrator
-	Config              *CNFIntegrationConfig
+	Client             client.Client
+	Scheme             *runtime.Scheme
+	Recorder           record.EventRecorder
+	CNFIntentProcessor *cnf.CNFIntentProcessor
+	CNFOrchestrator    *cnf.CNFOrchestrator
+	Config             *CNFIntegrationConfig
 }
 
 // CNFIntegrationConfig holds configuration for CNF integration
 type CNFIntegrationConfig struct {
-	EnableCNFIntegration     bool
-	CNFProcessingTimeout     time.Duration
-	CNFDeploymentTimeout     time.Duration
-	MaxConcurrentCNFDeploys  int
-	EnableAutoDeployment     bool
-	RequireExplicitApproval  bool
-	DefaultTargetNamespace   string
-	CNFLabelSelector         map[string]string
-	RetryPolicy              CNFRetryPolicy
+	EnableCNFIntegration    bool
+	CNFProcessingTimeout    time.Duration
+	CNFDeploymentTimeout    time.Duration
+	MaxConcurrentCNFDeploys int
+	EnableAutoDeployment    bool
+	RequireExplicitApproval bool
+	DefaultTargetNamespace  string
+	CNFLabelSelector        map[string]string
+	RetryPolicy             CNFRetryPolicy
 }
 
 // CNFRetryPolicy defines retry behavior for CNF operations
@@ -90,14 +90,14 @@ type CNFRetryPolicy struct {
 
 // CNFDeploymentContext holds context for CNF deployment operations
 type CNFDeploymentContext struct {
-	NetworkIntent       *nephoranv1.NetworkIntent
-	ProcessingResult    *nephoranv1.CNFIntentProcessingResult
-	CNFDeployments      []*nephoranv1.CNFDeployment
-	StartTime           time.Time
-	RequestID           string
-	ProcessingPhase     string
-	Errors              []error
-	Warnings            []string
+	NetworkIntent    *nephoranv1.NetworkIntent
+	ProcessingResult *nephoranv1.CNFIntentProcessingResult
+	CNFDeployments   []*nephoranv1.CNFDeployment
+	StartTime        time.Time
+	RequestID        string
+	ProcessingPhase  string
+	Errors           []error
+	Warnings         []string
 }
 
 // NewCNFIntegrationManager creates a new CNF integration manager
@@ -108,7 +108,7 @@ func NewCNFIntegrationManager(
 	cnfProcessor *cnf.CNFIntentProcessor,
 	cnfOrchestrator *cnf.CNFOrchestrator,
 ) *CNFIntegrationManager {
-	
+
 	return &CNFIntegrationManager{
 		Client:             client,
 		Scheme:             scheme,
@@ -221,7 +221,7 @@ func (m *CNFIntegrationManager) ProcessCNFIntent(ctx context.Context, networkInt
 // isCNFIntent determines if a NetworkIntent contains CNF deployment requirements
 func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkIntent) bool {
 	intent := strings.ToLower(networkIntent.Spec.Intent)
-	
+
 	cnfKeywords := []string{
 		"cnf", "cloud native", "containerized",
 		"deploy", "deployment", "helm", "kubernetes",
@@ -390,7 +390,7 @@ func (m *CNFIntegrationManager) createCNFDeployments(ctx context.Context, deploy
 				logger.Error(err, "Failed to get existing CNF deployment")
 				continue
 			}
-			
+
 			// Update the existing deployment
 			existingCNF.Spec = cnfDeployment.Spec
 			if err := m.Client.Update(ctx, existingCNF); err != nil {
@@ -402,7 +402,7 @@ func (m *CNFIntegrationManager) createCNFDeployments(ctx context.Context, deploy
 		}
 
 		deploymentContext.CNFDeployments = append(deploymentContext.CNFDeployments, cnfDeployment)
-		
+
 		m.Recorder.Event(deploymentContext.NetworkIntent, "Normal", EventCNFDeploymentCreated,
 			fmt.Sprintf("Created CNF deployment: %s (%s)", cnfDeployment.Name, cnfSpec.Function))
 
@@ -413,7 +413,7 @@ func (m *CNFIntegrationManager) createCNFDeployments(ctx context.Context, deploy
 	}
 
 	if len(deploymentContext.Errors) > 0 {
-		return fmt.Errorf("failed to create %d out of %d CNF deployments", 
+		return fmt.Errorf("failed to create %d out of %d CNF deployments",
 			len(deploymentContext.Errors), len(deploymentContext.ProcessingResult.CNFDeployments))
 	}
 
@@ -424,7 +424,7 @@ func (m *CNFIntegrationManager) createCNFDeployments(ctx context.Context, deploy
 func (m *CNFIntegrationManager) createCNFDeploymentResource(networkIntent *nephoranv1.NetworkIntent, cnfSpec *nephoranv1.CNFDeploymentIntent, index int) (*nephoranv1.CNFDeployment, error) {
 	// Generate CNF deployment name
 	cnfName := fmt.Sprintf("%s-%s-%d", networkIntent.Name, strings.ToLower(string(cnfSpec.Function)), index)
-	
+
 	// Determine target namespace
 	targetNamespace := m.Config.DefaultTargetNamespace
 	if networkIntent.Spec.TargetNamespace != "" {
@@ -439,10 +439,10 @@ func (m *CNFIntegrationManager) createCNFDeploymentResource(networkIntent *nepho
 			Name:      cnfName,
 			Namespace: targetNamespace,
 			Labels: map[string]string{
-				CNFDeploymentSourceLabel:   CNFDeploymentSourceValue,
-				CNFDeploymentIntentLabel:   networkIntent.Name,
-				CNFIntentLabel:            "true",
-				"nephoran.com/cnf-type":    string(cnfSpec.CNFType),
+				CNFDeploymentSourceLabel:    CNFDeploymentSourceValue,
+				CNFDeploymentIntentLabel:    networkIntent.Name,
+				CNFIntentLabel:              "true",
+				"nephoran.com/cnf-type":     string(cnfSpec.CNFType),
 				"nephoran.com/cnf-function": string(cnfSpec.Function),
 			},
 			Annotations: map[string]string{
@@ -508,7 +508,7 @@ func (m *CNFIntegrationManager) convertResourceIntent(resourceIntent *nephoranv1
 	}
 
 	resources := nephoranv1.CNFResources{}
-	
+
 	if resourceIntent.CPU != nil {
 		resources.CPU = *resourceIntent.CPU
 	} else {
@@ -688,11 +688,11 @@ func (m *CNFIntegrationManager) getDefaultHelmConfig(function nephoranv1.CNFFunc
 // handleProcessingError handles errors during CNF processing
 func (m *CNFIntegrationManager) handleProcessingError(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, deploymentContext *CNFDeploymentContext, processingErr error) error {
 	logger := log.FromContext(ctx)
-	
+
 	// Update NetworkIntent status with error
-	networkIntent.Status.ValidationErrors = append(networkIntent.Status.ValidationErrors, 
+	networkIntent.Status.ValidationErrors = append(networkIntent.Status.ValidationErrors,
 		fmt.Sprintf("CNF processing failed: %v", processingErr))
-	
+
 	if err := m.Client.Status().Update(ctx, networkIntent); err != nil {
 		logger.Error(err, "Failed to update NetworkIntent status with CNF processing error")
 	}
@@ -738,23 +738,23 @@ func (m *CNFIntegrationManager) updateNetworkIntentWithCNFStatus(ctx context.Con
 // mapCNFFunctionToTargetComponent maps CNF functions to TargetComponent enum
 func (m *CNFIntegrationManager) mapCNFFunctionToTargetComponent(function nephoranv1.CNFFunction) nephoranv1.TargetComponent {
 	mapping := map[nephoranv1.CNFFunction]nephoranv1.TargetComponent{
-		nephoranv1.CNFFunctionAMF:        nephoranv1.TargetComponentAMF,
-		nephoranv1.CNFFunctionSMF:        nephoranv1.TargetComponentSMF,
-		nephoranv1.CNFFunctionUPF:        nephoranv1.TargetComponentUPF,
-		nephoranv1.CNFFunctionNRF:        nephoranv1.TargetComponentNRF,
-		nephoranv1.CNFFunctionAUSF:       nephoranv1.TargetComponentAUSF,
-		nephoranv1.CNFFunctionUDM:        nephoranv1.TargetComponentUDM,
-		nephoranv1.CNFFunctionPCF:        nephoranv1.TargetComponentPCF,
-		nephoranv1.CNFFunctionNSSF:       nephoranv1.TargetComponentNSSF,
-		nephoranv1.CNFFunctionODU:        nephoranv1.TargetComponentODU,
-		nephoranv1.CNFFunctionOCUCP:      nephoranv1.TargetComponentOCUCP,
-		nephoranv1.CNFFunctionOCUUP:      nephoranv1.TargetComponentOCUUP,
-		nephoranv1.CNFFunctionNearRTRIC:  nephoranv1.TargetComponentNearRTRIC,
-		nephoranv1.CNFFunctionNonRTRIC:   nephoranv1.TargetComponentNonRTRIC,
-		nephoranv1.CNFFunctionOENB:       nephoranv1.TargetComponentOENB,
-		nephoranv1.CNFFunctionSMO:        nephoranv1.TargetComponentSMO,
-		nephoranv1.CNFFunctionRApp:       nephoranv1.TargetComponentRApp,
-		nephoranv1.CNFFunctionXApp:       nephoranv1.TargetComponentXApp,
+		nephoranv1.CNFFunctionAMF:       nephoranv1.TargetComponentAMF,
+		nephoranv1.CNFFunctionSMF:       nephoranv1.TargetComponentSMF,
+		nephoranv1.CNFFunctionUPF:       nephoranv1.TargetComponentUPF,
+		nephoranv1.CNFFunctionNRF:       nephoranv1.TargetComponentNRF,
+		nephoranv1.CNFFunctionAUSF:      nephoranv1.TargetComponentAUSF,
+		nephoranv1.CNFFunctionUDM:       nephoranv1.TargetComponentUDM,
+		nephoranv1.CNFFunctionPCF:       nephoranv1.TargetComponentPCF,
+		nephoranv1.CNFFunctionNSSF:      nephoranv1.TargetComponentNSSF,
+		nephoranv1.CNFFunctionODU:       nephoranv1.TargetComponentODU,
+		nephoranv1.CNFFunctionOCUCP:     nephoranv1.TargetComponentOCUCP,
+		nephoranv1.CNFFunctionOCUUP:     nephoranv1.TargetComponentOCUUP,
+		nephoranv1.CNFFunctionNearRTRIC: nephoranv1.TargetComponentNearRTRIC,
+		nephoranv1.CNFFunctionNonRTRIC:  nephoranv1.TargetComponentNonRTRIC,
+		nephoranv1.CNFFunctionOENB:      nephoranv1.TargetComponentOENB,
+		nephoranv1.CNFFunctionSMO:       nephoranv1.TargetComponentSMO,
+		nephoranv1.CNFFunctionRApp:      nephoranv1.TargetComponentRApp,
+		nephoranv1.CNFFunctionXApp:      nephoranv1.TargetComponentXApp,
 	}
 
 	return mapping[function]

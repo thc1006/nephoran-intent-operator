@@ -40,14 +40,14 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 		By("Setting up reconcilers for error testing")
 		networkIntentReconciler = &NetworkIntentReconciler{
-			Client:          k8sClient,
-			Scheme:          testEnv.Scheme,
-			EventRecorder:   &record.FakeRecorder{},
-			MaxRetries:      3,
-			RetryDelay:      time.Second * 1,
-			GitRepoURL:      "https://github.com/test/deployments.git",
-			GitBranch:       "main",
-			GitDeployPath:   "networkintents",
+			Client:        k8sClient,
+			Scheme:        testEnv.Scheme,
+			EventRecorder: &record.FakeRecorder{},
+			MaxRetries:    3,
+			RetryDelay:    time.Second * 1,
+			GitRepoURL:    "https://github.com/test/deployments.git",
+			GitBranch:     "main",
+			GitDeployPath: "networkintents",
 		}
 
 		e2nodeSetReconciler = &E2NodeSetReconciler{
@@ -223,11 +223,11 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 
 			By("Setting up LLM client with malformed JSON responses")
 			malformedResponses := []string{
-				`{"incomplete": json`,                                    // Invalid JSON
-				`null`,                                                  // Null response
-				`"not an object"`,                                       // Non-object response
-				`{}`,                                                    // Empty object
-				`{"missing_required_fields": true}`,                     // Missing required fields
+				`{"incomplete": json`,               // Invalid JSON
+				`null`,                              // Null response
+				`"not an object"`,                   // Non-object response
+				`{}`,                                // Empty object
+				`{"missing_required_fields": true}`, // Missing required fields
 				`{"action": "deploy", "component": null, "replicas": -1}`, // Invalid field values
 			}
 
@@ -265,7 +265,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 		It("Should handle concurrent NetworkIntent processing safely", func() {
 			By("Creating multiple NetworkIntents simultaneously")
 			networkIntents := []*nephoranv1.NetworkIntent{}
-			
+
 			for i := 0; i < 5; i++ {
 				ni := &nephoranv1.NetworkIntent{
 					ObjectMeta: metav1.ObjectMeta{
@@ -602,7 +602,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Verifying final state consistency")
 			finalE2NodeSet := &nephoranv1.E2NodeSet{}
 			Expect(k8sClient.Get(ctx, namespacedName, finalE2NodeSet)).To(Succeed())
-			
+
 			finalReplicas := scaleSequence[len(scaleSequence)-1]
 			Expect(finalE2NodeSet.Spec.Replicas).To(Equal(finalReplicas))
 			Expect(finalE2NodeSet.Status.ReadyReplicas).To(Equal(finalReplicas))
@@ -678,7 +678,7 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 			By("Verifying all ConfigMaps have correct labels and data")
 			finalConfigMaps := &corev1.ConfigMapList{}
 			Expect(k8sClient.List(ctx, finalConfigMaps, listOptions...)).To(Succeed())
-			
+
 			for _, cm := range finalConfigMaps.Items {
 				Expect(cm.Labels["app"]).To(Equal("e2node"))
 				Expect(cm.Labels["e2nodeset"]).To(Equal(e2nodeSet.Name))
@@ -744,8 +744,8 @@ var _ = Describe("Error Handling and Recovery Tests", func() {
 					Name:      "cascading-test-e2nodeset",
 					Namespace: namespaceName,
 					Labels: map[string]string{
-						"test-resource":      "true",
-						"source-intent":      networkIntent.Name,
+						"test-resource":       "true",
+						"source-intent":       networkIntent.Name,
 						"nephoran.com/intent": networkIntent.Name,
 					},
 					Annotations: map[string]string{

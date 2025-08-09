@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
+	_ "github.com/lib/pq"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
-	_ "github.com/lib/pq"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,9 +23,9 @@ import (
 
 var _ = Describe("TestContainers Integration Tests", func() {
 	var (
-		namespace            *corev1.Namespace
-		testCtx              context.Context
-		containerTracker     *ContainerTestTracker
+		namespace        *corev1.Namespace
+		testCtx          context.Context
+		containerTracker *ContainerTestTracker
 	)
 
 	BeforeEach(func() {
@@ -57,7 +57,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 					Started: true,
 				})
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				DeferCleanup(func() {
 					err := postgresContainer.Terminate(testCtx)
 					Expect(err).NotTo(HaveOccurred())
@@ -75,7 +75,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 				By("connecting to PostgreSQL database")
 				dbURL := fmt.Sprintf("postgres://nephoran:test_password@%s:%s/nephoran_test?sslmode=disable",
 					host, port.Port())
-				
+
 				db, err := sql.Open("postgres", dbURL)
 				Expect(err).NotTo(HaveOccurred())
 				defer db.Close()
@@ -95,7 +95,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 						created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 						updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 					)`
-				
+
 				_, err = db.Exec(createTableQuery)
 				Expect(err).NotTo(HaveOccurred())
 
@@ -125,8 +125,8 @@ var _ = Describe("TestContainers Integration Tests", func() {
 				insertQuery := `
 					INSERT INTO network_intents (name, namespace, phase, intent_type)
 					VALUES ($1, $2, $3, $4)`
-				
-				_, err = db.Exec(insertQuery, intent.Name, intent.Namespace, 
+
+				_, err = db.Exec(insertQuery, intent.Name, intent.Namespace,
 					"Pending", string(intent.Spec.IntentType))
 				Expect(err).NotTo(HaveOccurred())
 
@@ -148,8 +148,8 @@ var _ = Describe("TestContainers Integration Tests", func() {
 						UPDATE network_intents 
 						SET phase = $1, updated_at = CURRENT_TIMESTAMP 
 						WHERE name = $2 AND namespace = $3`
-					
-					_, err = db.Exec(updateQuery, createdIntent.Status.Phase, 
+
+					_, err = db.Exec(updateQuery, createdIntent.Status.Phase,
 						intent.Name, intent.Namespace)
 					Expect(err).NotTo(HaveOccurred())
 				}
@@ -157,16 +157,16 @@ var _ = Describe("TestContainers Integration Tests", func() {
 				By("querying database for intent history")
 				var dbPhase string
 				var createdAt, updatedAt time.Time
-				
+
 				selectQuery := `
 					SELECT phase, created_at, updated_at 
 					FROM network_intents 
 					WHERE name = $1 AND namespace = $2`
-				
+
 				err = db.QueryRow(selectQuery, intent.Name, intent.Namespace).
 					Scan(&dbPhase, &createdAt, &updatedAt)
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				Expect(dbPhase).To(Equal(createdIntent.Status.Phase))
 				Expect(updatedAt).To(BeTemporally(">=", createdAt))
 
@@ -189,7 +189,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 					Started: true,
 				})
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				DeferCleanup(func() {
 					err := redisContainer.Terminate(testCtx)
 					Expect(err).NotTo(HaveOccurred())
@@ -249,7 +249,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 				}, 120*time.Second, 5*time.Second).Should(Not(Equal("")))
 
 				// Simulate caching intent processing results
-				containerTracker.RecordCacheOperation("redis", "intent-cache", 
+				containerTracker.RecordCacheOperation("redis", "intent-cache",
 					fmt.Sprintf("intent:%s:%s", intent.Namespace, intent.Name))
 
 				By("verifying cache performance benefits")
@@ -285,7 +285,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 					Started: true,
 				})
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				DeferCleanup(func() {
 					err := rabbitmqContainer.Terminate(testCtx)
 					Expect(err).NotTo(HaveOccurred())
@@ -376,7 +376,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 					Started: true,
 				})
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				DeferCleanup(func() {
 					err := prometheusContainer.Terminate(testCtx)
 					Expect(err).NotTo(HaveOccurred())
@@ -409,7 +409,7 @@ var _ = Describe("TestContainers Integration Tests", func() {
 						Name:      "prometheus-metrics-intent",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/metrics-enabled":    "true",
+							"nephoran.com/metrics-enabled":     "true",
 							"nephoran.com/prometheus-endpoint": prometheusURL,
 							"nephoran.com/metrics-interval":    "15s",
 						},
@@ -439,9 +439,9 @@ var _ = Describe("TestContainers Integration Tests", func() {
 				}, 120*time.Second, 5*time.Second).Should(Not(Equal("")))
 
 				// Simulate metrics collection
-				containerTracker.RecordMetricsCollection("prometheus", "intent_processing_duration", 
+				containerTracker.RecordMetricsCollection("prometheus", "intent_processing_duration",
 					createdIntent.Name, 2.5)
-				containerTracker.RecordMetricsCollection("prometheus", "intent_processing_status", 
+				containerTracker.RecordMetricsCollection("prometheus", "intent_processing_status",
 					createdIntent.Name, 1.0)
 
 				containerTracker.RecordSuccess("prometheus", "metrics-collection")
@@ -497,16 +497,16 @@ var _ = Describe("TestContainers Integration Tests", func() {
 						Name:      "full-stack-integration",
 						Namespace: namespace.Name,
 						Annotations: map[string]string{
-							"nephoran.com/stack-test":         "comprehensive",
-							"nephoran.com/postgres-endpoint":  fmt.Sprintf("%s:%s", pgHost, pgPort.Port()),
-							"nephoran.com/redis-endpoint":     fmt.Sprintf("%s:%s", redisHost, redisPort.Port()),
-							"nephoran.com/persistence":        "enabled",
+							"nephoran.com/stack-test":        "comprehensive",
+							"nephoran.com/postgres-endpoint": fmt.Sprintf("%s:%s", pgHost, pgPort.Port()),
+							"nephoran.com/redis-endpoint":    fmt.Sprintf("%s:%s", redisHost, redisPort.Port()),
+							"nephoran.com/persistence":       "enabled",
 							"nephoran.com/caching":           "enabled",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
 						Intent: "Deploy complete 5G Core stack with PostgreSQL persistence, Redis caching, " +
-								"and comprehensive monitoring for production-scale deployment",
+							"and comprehensive monitoring for production-scale deployment",
 						IntentType: nephoranv1.IntentTypeDeployment,
 						Priority:   nephoranv1.PriorityHigh,
 						TargetComponents: []nephoranv1.TargetComponent{
@@ -616,11 +616,11 @@ func (ctt *ContainerTestTracker) RegisterContainer(name string, container testco
 func (ctt *ContainerTestTracker) RecordCacheOperation(containerName, operation, key string) {
 	ctt.mu.Lock()
 	defer ctt.mu.Unlock()
-	
+
 	if ctt.cacheOperations[containerName] == nil {
 		ctt.cacheOperations[containerName] = make([]CacheOperation, 0)
 	}
-	
+
 	ctt.cacheOperations[containerName] = append(ctt.cacheOperations[containerName], CacheOperation{
 		Operation: operation,
 		Key:       key,
@@ -631,11 +631,11 @@ func (ctt *ContainerTestTracker) RecordCacheOperation(containerName, operation, 
 func (ctt *ContainerTestTracker) RecordQueueOperation(containerName, operation, queue string) {
 	ctt.mu.Lock()
 	defer ctt.mu.Unlock()
-	
+
 	if ctt.queueOperations[containerName] == nil {
 		ctt.queueOperations[containerName] = make([]QueueOperation, 0)
 	}
-	
+
 	ctt.queueOperations[containerName] = append(ctt.queueOperations[containerName], QueueOperation{
 		Operation: operation,
 		Queue:     queue,
@@ -646,11 +646,11 @@ func (ctt *ContainerTestTracker) RecordQueueOperation(containerName, operation, 
 func (ctt *ContainerTestTracker) RecordMetricsCollection(containerName, metricName, entityName string, value float64) {
 	ctt.mu.Lock()
 	defer ctt.mu.Unlock()
-	
+
 	if ctt.metricsCollections[containerName] == nil {
 		ctt.metricsCollections[containerName] = make([]MetricsCollection, 0)
 	}
-	
+
 	ctt.metricsCollections[containerName] = append(ctt.metricsCollections[containerName], MetricsCollection{
 		MetricName: metricName,
 		EntityName: entityName,
@@ -674,22 +674,22 @@ func (ctt *ContainerTestTracker) RecordSuccess(containerName, operation string) 
 func (ctt *ContainerTestTracker) GetContainerMetrics() ContainerMetrics {
 	ctt.mu.RLock()
 	defer ctt.mu.RUnlock()
-	
+
 	totalMetrics := 0
 	for _, metrics := range ctt.metricsCollections {
 		totalMetrics += len(metrics)
 	}
-	
+
 	totalQueue := 0
 	for _, queues := range ctt.queueOperations {
 		totalQueue += len(queues)
 	}
-	
+
 	totalCache := 0
 	for _, cache := range ctt.cacheOperations {
 		totalCache += len(cache)
 	}
-	
+
 	return ContainerMetrics{
 		TotalContainers:      len(ctt.containers),
 		SuccessfulOperations: ctt.successfulOperations,

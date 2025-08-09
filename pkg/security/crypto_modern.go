@@ -27,26 +27,26 @@ import (
 type CryptoModern struct {
 	// Entropy pool for enhanced randomness
 	entropyPool *EntropyPool
-	
+
 	// Key derivation parameters
 	kdfParams *KDFParams
-	
+
 	// Encryption contexts
 	contexts map[string]*EncryptionContext
-	
+
 	// Post-quantum preparation
 	pqReady bool
-	
+
 	mu sync.RWMutex
 }
 
 // EntropyPool manages entropy for secure random generation
 type EntropyPool struct {
-	pool      []byte
-	poolSize  int
-	lastSeed  time.Time
-	mu        sync.Mutex
-	rng       io.Reader
+	pool     []byte
+	poolSize int
+	lastSeed time.Time
+	mu       sync.Mutex
+	rng      io.Reader
 }
 
 // KDFParams contains key derivation function parameters
@@ -56,15 +56,15 @@ type KDFParams struct {
 	Argon2Memory  uint32
 	Argon2Threads uint8
 	Argon2KeyLen  uint32
-	
+
 	// PBKDF2 parameters
 	PBKDF2Iterations int
-	
+
 	// Scrypt parameters
 	ScryptN int
 	ScryptR int
 	ScryptP int
-	
+
 	// HKDF info
 	HKDFInfo []byte
 }
@@ -137,11 +137,11 @@ func NewEntropyPool(size int) *EntropyPool {
 func (p *EntropyPool) reseed() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	if _, err := io.ReadFull(p.rng, p.pool); err != nil {
 		return fmt.Errorf("failed to reseed entropy pool: %w", err)
 	}
-	
+
 	p.lastSeed = time.Now()
 	return nil
 }
@@ -150,29 +150,29 @@ func (p *EntropyPool) reseed() error {
 func (p *EntropyPool) Read(b []byte) (int, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	
+
 	// Reseed if pool is older than 5 minutes
 	if time.Since(p.lastSeed) > 5*time.Minute {
 		if err := p.reseed(); err != nil {
 			return 0, err
 		}
 	}
-	
+
 	// Mix pool entropy with system randomness
 	systemRandom := make([]byte, len(b))
 	if _, err := io.ReadFull(p.rng, systemRandom); err != nil {
 		return 0, err
 	}
-	
+
 	for i := range b {
 		b[i] = p.pool[i%p.poolSize] ^ systemRandom[i]
 	}
-	
+
 	// Stir the pool
 	for i := 0; i < p.poolSize; i++ {
 		p.pool[i] = p.pool[i] ^ byte(i)
 	}
-	
+
 	return len(b), nil
 }
 
@@ -182,26 +182,26 @@ func (c *CryptoModern) EncryptAESGCM(plaintext, key, aad []byte) (*EncryptedData
 	if len(key) != 16 && len(key) != 24 && len(key) != 32 {
 		return nil, errors.New("invalid AES key size")
 	}
-	
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
 	}
-	
+
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
 	}
-	
+
 	// Generate nonce
 	nonce := make([]byte, gcm.NonceSize())
 	if _, err := c.entropyPool.Read(nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
-	
+
 	// Encrypt with AAD
 	ciphertext := gcm.Seal(nil, nonce, plaintext, aad)
-	
+
 	return &EncryptedData{
 		Algorithm:  "AES-GCM",
 		Ciphertext: ciphertext,
@@ -217,22 +217,22 @@ func (c *CryptoModern) DecryptAESGCM(data *EncryptedData, key []byte) ([]byte, e
 	if data.Algorithm != "AES-GCM" {
 		return nil, fmt.Errorf("invalid algorithm: expected AES-GCM, got %s", data.Algorithm)
 	}
-	
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
 	}
-	
+
 	gcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create GCM: %w", err)
 	}
-	
+
 	plaintext, err := gcm.Open(nil, data.Nonce, data.Ciphertext, data.AAD)
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
-	
+
 	return plaintext, nil
 }
 
@@ -241,21 +241,21 @@ func (c *CryptoModern) EncryptChaCha20Poly1305(plaintext, key, aad []byte) (*Enc
 	if len(key) != chacha20poly1305.KeySize {
 		return nil, fmt.Errorf("invalid key size: expected %d, got %d", chacha20poly1305.KeySize, len(key))
 	}
-	
+
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
 	}
-	
+
 	// Generate nonce
 	nonce := make([]byte, chacha20poly1305.NonceSize)
 	if _, err := c.entropyPool.Read(nonce); err != nil {
 		return nil, fmt.Errorf("failed to generate nonce: %w", err)
 	}
-	
+
 	// Encrypt with AAD
 	ciphertext := aead.Seal(nil, nonce, plaintext, aad)
-	
+
 	return &EncryptedData{
 		Algorithm:  "ChaCha20-Poly1305",
 		Ciphertext: ciphertext,
@@ -271,17 +271,17 @@ func (c *CryptoModern) DecryptChaCha20Poly1305(data *EncryptedData, key []byte) 
 	if data.Algorithm != "ChaCha20-Poly1305" {
 		return nil, fmt.Errorf("invalid algorithm: expected ChaCha20-Poly1305, got %s", data.Algorithm)
 	}
-	
+
 	aead, err := chacha20poly1305.New(key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create cipher: %w", err)
 	}
-	
+
 	plaintext, err := aead.Open(nil, data.Nonce, data.Ciphertext, data.AAD)
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
-	
+
 	return plaintext, nil
 }
 
@@ -291,11 +291,11 @@ func (c *CryptoModern) GenerateEd25519KeyPair() (*Ed25519KeyPair, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate Ed25519 key pair: %w", err)
 	}
-	
+
 	// Generate key ID
 	h := sha256.Sum256(pub)
 	keyID := base64.URLEncoding.EncodeToString(h[:8])
-	
+
 	return &Ed25519KeyPair{
 		PublicKey:  pub,
 		PrivateKey: priv,
@@ -309,7 +309,7 @@ func (c *CryptoModern) SignEd25519(message []byte, privateKey ed25519.PrivateKey
 	if len(privateKey) != ed25519.PrivateKeySize {
 		return nil, errors.New("invalid private key size")
 	}
-	
+
 	signature := ed25519.Sign(privateKey, message)
 	return signature, nil
 }
@@ -319,7 +319,7 @@ func (c *CryptoModern) VerifyEd25519(message, signature []byte, publicKey ed2551
 	if len(publicKey) != ed25519.PublicKeySize {
 		return false
 	}
-	
+
 	return ed25519.Verify(publicKey, message, signature)
 }
 
@@ -328,21 +328,21 @@ func (c *CryptoModern) DeriveKeyHKDF(secret, salt []byte, length int) ([]byte, e
 	if length > 255*sha256.Size {
 		return nil, errors.New("requested key length too long for HKDF")
 	}
-	
+
 	// If no salt provided, use a zero salt
 	if salt == nil {
 		salt = make([]byte, sha256.Size)
 	}
-	
+
 	// Create HKDF reader
 	hkdfReader := hkdf.New(sha256.New, secret, salt, c.kdfParams.HKDFInfo)
-	
+
 	// Derive key
 	key := make([]byte, length)
 	if _, err := io.ReadFull(hkdfReader, key); err != nil {
 		return nil, fmt.Errorf("failed to derive key: %w", err)
 	}
-	
+
 	return key, nil
 }
 
@@ -403,10 +403,10 @@ func (c *CryptoModern) HashPassword(password string) (string, error) {
 	if _, err := c.entropyPool.Read(salt); err != nil {
 		return "", fmt.Errorf("failed to generate salt: %w", err)
 	}
-	
+
 	// Derive key using Argon2id
 	hash := c.DeriveKeyArgon2([]byte(password), salt)
-	
+
 	// Encode as base64 with parameters
 	encoded := fmt.Sprintf("$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
 		argon2.Version,
@@ -416,7 +416,7 @@ func (c *CryptoModern) HashPassword(password string) (string, error) {
 		base64.RawStdEncoding.EncodeToString(salt),
 		base64.RawStdEncoding.EncodeToString(hash),
 	)
-	
+
 	return encoded, nil
 }
 
@@ -427,27 +427,27 @@ func (c *CryptoModern) VerifyPassword(password, encoded string) (bool, error) {
 	var memory, time uint32
 	var threads uint8
 	var salt, hash string
-	
+
 	_, err := fmt.Sscanf(encoded, "$argon2id$v=%d$m=%d,t=%d,p=%d$%s$%s",
 		&version, &memory, &time, &threads, &salt, &hash)
 	if err != nil {
 		return false, fmt.Errorf("failed to parse encoded hash: %w", err)
 	}
-	
+
 	// Decode salt and hash
 	saltBytes, err := base64.RawStdEncoding.DecodeString(salt)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode salt: %w", err)
 	}
-	
+
 	hashBytes, err := base64.RawStdEncoding.DecodeString(hash)
 	if err != nil {
 		return false, fmt.Errorf("failed to decode hash: %w", err)
 	}
-	
+
 	// Compute hash of provided password
 	computedHash := argon2.IDKey([]byte(password), saltBytes, time, memory, threads, uint32(len(hashBytes)))
-	
+
 	// Constant-time comparison
 	return c.SecureCompare(hashBytes, computedHash), nil
 }
@@ -456,19 +456,19 @@ func (c *CryptoModern) VerifyPassword(password, encoded string) (bool, error) {
 func (c *CryptoModern) CreateEncryptionContext(id, algorithm string, keySize int) (*EncryptionContext, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	// Generate key
 	key := make([]byte, keySize)
 	if _, err := c.entropyPool.Read(key); err != nil {
 		return nil, fmt.Errorf("failed to generate key: %w", err)
 	}
-	
+
 	ctx := &EncryptionContext{
 		Algorithm: algorithm,
 		Key:       key,
 		Created:   time.Now(),
 	}
-	
+
 	c.contexts[id] = ctx
 	return ctx, nil
 }
@@ -477,7 +477,7 @@ func (c *CryptoModern) CreateEncryptionContext(id, algorithm string, keySize int
 func (c *CryptoModern) GetEncryptionContext(id string) (*EncryptionContext, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	
+
 	ctx, ok := c.contexts[id]
 	return ctx, ok
 }
@@ -486,7 +486,7 @@ func (c *CryptoModern) GetEncryptionContext(id string) (*EncryptionContext, bool
 func (c *CryptoModern) DeleteEncryptionContext(id string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	
+
 	if ctx, ok := c.contexts[id]; ok {
 		// Securely clear the key
 		SecureClear(ctx.Key)

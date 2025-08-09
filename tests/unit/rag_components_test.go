@@ -148,7 +148,7 @@ func (suite *RAGComponentsTestSuite) testChunkBySentence() {
 
 	suite.NoError(err)
 	suite.GreaterOrEqual(len(chunks), 1)
-	
+
 	// Verify chunk properties
 	for _, chunk := range chunks {
 		suite.Equal(doc.ID, chunk.DocumentID)
@@ -164,8 +164,8 @@ func (suite *RAGComponentsTestSuite) testChunkBySentence() {
 		if chunk.ChunkIndex < len(chunks)-1 {
 			suite.True(
 				content[len(content)-1] == '.' ||
-				content[len(content)-1] == '!' ||
-				content[len(content)-1] == '?',
+					content[len(content)-1] == '!' ||
+					content[len(content)-1] == '?',
 				"Chunk should end with sentence punctuation: %s", content,
 			)
 		}
@@ -222,11 +222,11 @@ func (suite *RAGComponentsTestSuite) testChunkWithOverlap() {
 	if len(chunks) >= 2 {
 		chunk1 := chunks[0].Content
 		chunk2 := chunks[1].Content
-		
+
 		// Extract overlap regions
 		overlap1 := chunk1[len(chunk1)-10:]
 		overlap2 := chunk2[:10]
-		
+
 		suite.Equal(overlap1, overlap2, "Chunks should have proper overlap")
 	}
 }
@@ -448,14 +448,14 @@ func (suite *RAGComponentsTestSuite) testSemanticSearch() {
 	mockWeaviate.On("SearchSimilar", mock.Anything, mock.Anything, mock.Anything).Return(
 		[]rag.RetrievedDocument{
 			{
-				DocumentID:      "doc1",
+				DocumentID:     "doc1",
 				Title:          "5G Network Architecture",
 				Content:        "5G networks use a service-based architecture...",
 				Score:          0.95,
 				RelevanceScore: 0.95,
 			},
 			{
-				DocumentID:      "doc2",
+				DocumentID:     "doc2",
 				Title:          "Network Slicing",
 				Content:        "Network slicing enables multiple virtual networks...",
 				Score:          0.87,
@@ -483,7 +483,7 @@ func (suite *RAGComponentsTestSuite) testSemanticSearch() {
 	suite.Len(results, 2)
 	suite.Equal("doc1", results[0].DocumentID)
 	suite.GreaterOrEqual(results[0].Score, 0.8)
-	
+
 	// Results should be sorted by score
 	for i := 1; i < len(results); i++ {
 		suite.GreaterOrEqual(results[i-1].Score, results[i].Score)
@@ -501,11 +501,11 @@ func (suite *RAGComponentsTestSuite) testHybridSearch() {
 		}, nil)
 
 	service := rag.NewEnhancedRetrievalService(&rag.RetrievalConfig{
-		HybridSearch:     true,
-		SemanticSearch:   true,
-		KeywordWeight:    0.3,
-		SemanticWeight:   0.7,
-		MockMode:         true,
+		HybridSearch:   true,
+		SemanticSearch: true,
+		KeywordWeight:  0.3,
+		SemanticWeight: 0.7,
+		MockMode:       true,
 	})
 	service.SetWeaviateClient(mockWeaviate)
 
@@ -517,7 +517,7 @@ func (suite *RAGComponentsTestSuite) testHybridSearch() {
 
 	suite.NoError(err)
 	suite.GreaterOrEqual(len(results), 1)
-	
+
 	// Hybrid search should combine semantic and keyword scores
 	for _, result := range results {
 		suite.GreaterOrEqual(result.Score, 0.0)
@@ -551,7 +551,7 @@ func (suite *RAGComponentsTestSuite) testFilterByScore() {
 
 	suite.NoError(err)
 	suite.Len(results, 2) // Only doc1 and doc2 should pass the filter
-	
+
 	for _, result := range results {
 		suite.GreaterOrEqual(result.Score, 0.5)
 	}
@@ -624,7 +624,7 @@ func (suite *RAGComponentsTestSuite) testSearchWithMetadata() {
 
 	suite.NoError(err)
 	suite.Len(results, 1)
-	
+
 	result := results[0]
 	suite.Equal("5g_core", result.Metadata["category"])
 	suite.Equal("3gpp", result.Metadata["standard"])

@@ -31,16 +31,16 @@ import (
 
 // SATSolver implements a SAT solver for complex constraint satisfaction in dependency resolution
 type SATSolver struct {
-	logger            logr.Logger
-	variables         map[string]*SATVariable
-	clauses           []*SATClause
-	assignments       map[string]bool
-	unitPropagations  []string
-	conflictAnalysis  *ConflictAnalysis
-	backtrackLevel    int
-	statistics        *SATStatistics
-	config            *SATSolverConfig
-	mu                sync.RWMutex
+	logger           logr.Logger
+	variables        map[string]*SATVariable
+	clauses          []*SATClause
+	assignments      map[string]bool
+	unitPropagations []string
+	conflictAnalysis *ConflictAnalysis
+	backtrackLevel   int
+	statistics       *SATStatistics
+	config           *SATSolverConfig
+	mu               sync.RWMutex
 }
 
 // SATVariable represents a variable in the SAT problem
@@ -74,16 +74,16 @@ type SATLiteral struct {
 
 // SATStatistics tracks solver performance
 type SATStatistics struct {
-	Variables        int
-	Clauses          int
-	Decisions        int
-	Conflicts        int
-	Propagations     int
-	Backtracks       int
-	LearnedClauses   int
-	Restarts         int
-	SolveTime        time.Duration
-	MemoryUsage      int64
+	Variables      int
+	Clauses        int
+	Decisions      int
+	Conflicts      int
+	Propagations   int
+	Backtracks     int
+	LearnedClauses int
+	Restarts       int
+	SolveTime      time.Duration
+	MemoryUsage    int64
 }
 
 // SATSolverConfig configures the SAT solver
@@ -115,12 +115,12 @@ func NewSATSolver(config *SATSolverConfig) *SATSolver {
 	}
 
 	return &SATSolver{
-		logger:       log.Log.WithName("sat-solver"),
-		variables:    make(map[string]*SATVariable),
-		clauses:      []*SATClause{},
-		assignments:  make(map[string]bool),
-		statistics:   &SATStatistics{},
-		config:       config,
+		logger:      log.Log.WithName("sat-solver"),
+		variables:   make(map[string]*SATVariable),
+		clauses:     []*SATClause{},
+		assignments: make(map[string]bool),
+		statistics:  &SATStatistics{},
+		config:      config,
 	}
 }
 

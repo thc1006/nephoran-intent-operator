@@ -16,24 +16,24 @@ import (
 // PerformanceIntegration provides a unified interface for all performance optimizations
 type PerformanceIntegration struct {
 	// Core services
-	optimizedRAG     *OptimizedRAGService
-	weaviatePool     *WeaviateConnectionPool
-	memoryCache      *MemoryCache
-	redisCache       *RedisCache
-	errorHandler     *ErrorHandler
-	
+	optimizedRAG *OptimizedRAGService
+	weaviatePool *WeaviateConnectionPool
+	memoryCache  *MemoryCache
+	redisCache   *RedisCache
+	errorHandler *ErrorHandler
+
 	// Monitoring and metrics
 	prometheusMetrics *PrometheusMetrics
 	metricsCollector  *MetricsCollector
-	monitor          *RAGMonitor
-	
+	monitor           *RAGMonitor
+
 	// Configuration
-	config           *PerformanceConfig
-	logger           *slog.Logger
-	
+	config *PerformanceConfig
+	logger *slog.Logger
+
 	// State management
-	isHealthy        bool
-	startTime        time.Time
+	isHealthy bool
+	startTime time.Time
 }
 
 // PerformanceConfig aggregates all performance-related configurations
@@ -45,21 +45,21 @@ type PerformanceConfig struct {
 	RedisCacheConfig    *RedisCacheConfig    `json:"redis_cache_config"`
 	ErrorHandlingConfig *ErrorHandlingConfig `json:"error_handling_config"`
 	MonitoringConfig    *MonitoringConfig    `json:"monitoring_config"`
-	
+
 	// Integration settings
-	EnableAutoOptimization    bool          `json:"enable_auto_optimization"`
-	OptimizationInterval      time.Duration `json:"optimization_interval"`
-	PerformanceTargets        *PerformanceTargets `json:"performance_targets"`
-	
+	EnableAutoOptimization bool                `json:"enable_auto_optimization"`
+	OptimizationInterval   time.Duration       `json:"optimization_interval"`
+	PerformanceTargets     *PerformanceTargets `json:"performance_targets"`
+
 	// Feature flags
-	EnableDistributedTracing  bool `json:"enable_distributed_tracing"`
-	EnableChaosEngineering    bool `json:"enable_chaos_engineering"`
-	EnableLoadBalancing       bool `json:"enable_load_balancing"`
+	EnableDistributedTracing bool `json:"enable_distributed_tracing"`
+	EnableChaosEngineering   bool `json:"enable_chaos_engineering"`
+	EnableLoadBalancing      bool `json:"enable_load_balancing"`
 }
 
 // PerformanceTargets defines SLA targets for the system
 type PerformanceTargets struct {
-	MaxQueryLatencyMs       int     `json:"max_query_latency_ms"`
+	MaxQueryLatencyMs      int     `json:"max_query_latency_ms"`
 	MinCacheHitRate        float64 `json:"min_cache_hit_rate"`
 	MaxErrorRate           float64 `json:"max_error_rate"`
 	MinThroughputQPS       int     `json:"min_throughput_qps"`
@@ -68,44 +68,44 @@ type PerformanceTargets struct {
 
 // PerformanceReport provides comprehensive performance analytics
 type PerformanceReport struct {
-	GeneratedAt           time.Time                    `json:"generated_at"`
-	SystemUptime          time.Duration                `json:"system_uptime"`
-	OverallHealth         string                       `json:"overall_health"`
-	
+	GeneratedAt   time.Time     `json:"generated_at"`
+	SystemUptime  time.Duration `json:"system_uptime"`
+	OverallHealth string        `json:"overall_health"`
+
 	// Performance metrics
-	QueryPerformance      *QueryPerformanceMetrics     `json:"query_performance"`
-	CachePerformance      *CachePerformanceMetrics     `json:"cache_performance"`
+	QueryPerformance      *QueryPerformanceMetrics      `json:"query_performance"`
+	CachePerformance      *CachePerformanceMetrics      `json:"cache_performance"`
 	ConnectionPerformance *ConnectionPerformanceMetrics `json:"connection_performance"`
-	ErrorAnalysis         *ErrorAnalysisMetrics        `json:"error_analysis"`
-	
+	ErrorAnalysis         *ErrorAnalysisMetrics         `json:"error_analysis"`
+
 	// Resource utilization
-	ResourceUtilization   *ResourceUtilizationMetrics  `json:"resource_utilization"`
-	
+	ResourceUtilization *ResourceUtilizationMetrics `json:"resource_utilization"`
+
 	// Optimization recommendations
-	Recommendations       []PerformanceRecommendation  `json:"recommendations"`
-	
+	Recommendations []PerformanceRecommendation `json:"recommendations"`
+
 	// SLA compliance
-	SLACompliance         *SLAComplianceReport         `json:"sla_compliance"`
+	SLACompliance *SLAComplianceReport `json:"sla_compliance"`
 }
 
 // Individual metric structures
 type QueryPerformanceMetrics struct {
-	TotalQueries         int64         `json:"total_queries"`
-	AverageLatency       time.Duration `json:"average_latency"`
-	P95Latency           time.Duration `json:"p95_latency"`
-	P99Latency           time.Duration `json:"p99_latency"`
-	ThroughputQPS        float64       `json:"throughput_qps"`
-	SuccessRate          float64       `json:"success_rate"`
-	QualityScore         float64       `json:"quality_score"`
+	TotalQueries   int64         `json:"total_queries"`
+	AverageLatency time.Duration `json:"average_latency"`
+	P95Latency     time.Duration `json:"p95_latency"`
+	P99Latency     time.Duration `json:"p99_latency"`
+	ThroughputQPS  float64       `json:"throughput_qps"`
+	SuccessRate    float64       `json:"success_rate"`
+	QualityScore   float64       `json:"quality_score"`
 }
 
 type CachePerformanceMetrics struct {
-	MemoryCacheHitRate   float64 `json:"memory_cache_hit_rate"`
-	RedisCacheHitRate    float64 `json:"redis_cache_hit_rate"`
-	OverallHitRate       float64 `json:"overall_hit_rate"`
-	CacheEfficiency      float64 `json:"cache_efficiency"`
-	EvictionRate         float64 `json:"eviction_rate"`
-	CacheLatency         time.Duration `json:"cache_latency"`
+	MemoryCacheHitRate float64       `json:"memory_cache_hit_rate"`
+	RedisCacheHitRate  float64       `json:"redis_cache_hit_rate"`
+	OverallHitRate     float64       `json:"overall_hit_rate"`
+	CacheEfficiency    float64       `json:"cache_efficiency"`
+	EvictionRate       float64       `json:"eviction_rate"`
+	CacheLatency       time.Duration `json:"cache_latency"`
 }
 
 type ConnectionPerformanceMetrics struct {
@@ -117,21 +117,21 @@ type ConnectionPerformanceMetrics struct {
 }
 
 type ErrorAnalysisMetrics struct {
-	TotalErrors          int64                    `json:"total_errors"`
-	ErrorRate            float64                  `json:"error_rate"`
-	ErrorsByType         map[string]int64         `json:"errors_by_type"`
-	ErrorsByComponent    map[string]int64         `json:"errors_by_component"`
-	CircuitBreakerTrips  int64                    `json:"circuit_breaker_trips"`
-	RecoveryEvents       int64                    `json:"recovery_events"`
+	TotalErrors         int64            `json:"total_errors"`
+	ErrorRate           float64          `json:"error_rate"`
+	ErrorsByType        map[string]int64 `json:"errors_by_type"`
+	ErrorsByComponent   map[string]int64 `json:"errors_by_component"`
+	CircuitBreakerTrips int64            `json:"circuit_breaker_trips"`
+	RecoveryEvents      int64            `json:"recovery_events"`
 }
 
 type ResourceUtilizationMetrics struct {
-	CPUUsage             float64 `json:"cpu_usage"`
-	MemoryUsage          float64 `json:"memory_usage"`
-	DiskUsage            float64 `json:"disk_usage"`
-	NetworkUtilization   float64 `json:"network_utilization"`
-	GoroutineCount       int     `json:"goroutine_count"`
-	HeapSize             int64   `json:"heap_size"`
+	CPUUsage           float64 `json:"cpu_usage"`
+	MemoryUsage        float64 `json:"memory_usage"`
+	DiskUsage          float64 `json:"disk_usage"`
+	NetworkUtilization float64 `json:"network_utilization"`
+	GoroutineCount     int     `json:"goroutine_count"`
+	HeapSize           int64   `json:"heap_size"`
 }
 
 type PerformanceRecommendation struct {
@@ -146,25 +146,25 @@ type PerformanceRecommendation struct {
 }
 
 type SLAComplianceReport struct {
-	OverallCompliance    float64                      `json:"overall_compliance"`
-	TargetCompliance     map[string]bool              `json:"target_compliance"`
-	Violations           []SLAViolation               `json:"violations"`
-	ComplianceTrends     map[string][]CompliancePoint `json:"compliance_trends"`
+	OverallCompliance float64                      `json:"overall_compliance"`
+	TargetCompliance  map[string]bool              `json:"target_compliance"`
+	Violations        []SLAViolation               `json:"violations"`
+	ComplianceTrends  map[string][]CompliancePoint `json:"compliance_trends"`
 }
 
 type SLAViolation struct {
-	Target      string    `json:"target"`
-	ActualValue float64   `json:"actual_value"`
-	TargetValue float64   `json:"target_value"`
-	Severity    string    `json:"severity"`
-	Timestamp   time.Time `json:"timestamp"`
+	Target      string        `json:"target"`
+	ActualValue float64       `json:"actual_value"`
+	TargetValue float64       `json:"target_value"`
+	Severity    string        `json:"severity"`
+	Timestamp   time.Time     `json:"timestamp"`
 	Duration    time.Duration `json:"duration"`
 }
 
 type CompliancePoint struct {
-	Timestamp   time.Time `json:"timestamp"`
-	Value       float64   `json:"value"`
-	Compliant   bool      `json:"compliant"`
+	Timestamp time.Time `json:"timestamp"`
+	Value     float64   `json:"value"`
+	Compliant bool      `json:"compliant"`
 }
 
 // NewPerformanceIntegration creates a comprehensive performance-optimized RAG system
@@ -278,8 +278,8 @@ func (pi *PerformanceIntegration) ProcessQuery(ctx context.Context, request *RAG
 
 func (pi *PerformanceIntegration) GeneratePerformanceReport() *PerformanceReport {
 	report := &PerformanceReport{
-		GeneratedAt:  time.Now(),
-		SystemUptime: time.Since(pi.startTime),
+		GeneratedAt:   time.Now(),
+		SystemUptime:  time.Since(pi.startTime),
 		OverallHealth: pi.getOverallHealth(),
 	}
 
@@ -315,7 +315,7 @@ func (pi *PerformanceIntegration) collectQueryPerformanceMetrics() *QueryPerform
 
 func (pi *PerformanceIntegration) collectCachePerformanceMetrics() *CachePerformanceMetrics {
 	memStats := pi.memoryCache.GetStats()
-	
+
 	var redisHitRate float64 = 0
 	if pi.redisCache != nil {
 		redisStats := pi.redisCache.GetMetrics()
@@ -376,11 +376,11 @@ func (pi *PerformanceIntegration) collectErrorAnalysisMetrics() *ErrorAnalysisMe
 func (pi *PerformanceIntegration) collectResourceUtilizationMetrics() *ResourceUtilizationMetrics {
 	// This would collect actual system metrics
 	return &ResourceUtilizationMetrics{
-		CPUUsage:           50.0, // Placeholder
-		MemoryUsage:        60.0, // Placeholder
-		DiskUsage:          70.0, // Placeholder
-		NetworkUtilization: 30.0, // Placeholder
-		GoroutineCount:     100,  // Placeholder
+		CPUUsage:           50.0,              // Placeholder
+		MemoryUsage:        60.0,              // Placeholder
+		DiskUsage:          70.0,              // Placeholder
+		NetworkUtilization: 30.0,              // Placeholder
+		GoroutineCount:     100,               // Placeholder
 		HeapSize:           1024 * 1024 * 128, // Placeholder
 	}
 }
@@ -513,7 +513,7 @@ func (pi *PerformanceIntegration) generatePerformanceRecommendations(report *Per
 				"Implement connection health checks",
 			},
 			Metadata: map[string]interface{}{
-				"current_utilization": report.ConnectionPerformance.PoolUtilization,
+				"current_utilization":  report.ConnectionPerformance.PoolUtilization,
 				"recommended_increase": 0.3,
 			},
 		})
@@ -751,18 +751,18 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 		RedisCacheConfig:    getDefaultRedisCacheConfig(),
 		ErrorHandlingConfig: getDefaultErrorHandlingConfig(),
 		MonitoringConfig:    getDefaultMonitoringConfig(),
-		
+
 		EnableAutoOptimization: true,
 		OptimizationInterval:   15 * time.Minute,
-		
+
 		PerformanceTargets: &PerformanceTargets{
-			MaxQueryLatencyMs:       2000,  // 2 seconds
-			MinCacheHitRate:        0.75,  // 75%
-			MaxErrorRate:           0.05,  // 5%
-			MinThroughputQPS:       10,    // 10 queries per second
-			MaxResourceUtilization: 0.8,   // 80%
+			MaxQueryLatencyMs:      2000, // 2 seconds
+			MinCacheHitRate:        0.75, // 75%
+			MaxErrorRate:           0.05, // 5%
+			MinThroughputQPS:       10,   // 10 queries per second
+			MaxResourceUtilization: 0.8,  // 80%
 		},
-		
+
 		EnableDistributedTracing: false,
 		EnableChaosEngineering:   false,
 		EnableLoadBalancing:      false,

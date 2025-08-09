@@ -33,14 +33,14 @@ import (
 func TestRequestSizeLimits(t *testing.T) {
 	// Set up test configuration with a small request size limit for testing
 	testMaxSize := int64(1024) // 1KB limit for testing
-	
+
 	// Create a test configuration
 	cfg := config.DefaultLLMProcessorConfig()
 	cfg.MaxRequestSize = testMaxSize
-	cfg.AuthEnabled = false // Disable auth for simpler testing
-	cfg.RAGEnabled = false  // Disable RAG for simpler testing
+	cfg.AuthEnabled = false     // Disable auth for simpler testing
+	cfg.RAGEnabled = false      // Disable RAG for simpler testing
 	cfg.LLMBackendType = "mock" // Use mock backend
-	
+
 	// Create test logger
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelInfo,
@@ -101,14 +101,14 @@ func TestRequestSizeLimits(t *testing.T) {
 					t.Errorf("Unexpected error reading body: %v", err)
 					return
 				}
-				
+
 				// Simulate successful processing
 				response := map[string]interface{}{
-					"status": "success",
-					"result": "test result",
+					"status":    "success",
+					"result":    "test result",
 					"body_size": len(body),
 				}
-				
+
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(response)
 			})
@@ -169,7 +169,7 @@ func TestRequestSizeLimitMiddleware(t *testing.T) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		
+
 		fmt.Fprintf(w, "Received %d bytes", len(body))
 	})
 
@@ -370,7 +370,7 @@ func TestIntegrationWithRealHandlers(t *testing.T) {
 
 	// Create a mock service (simplified)
 	service := &MockLLMProcessorService{}
-	
+
 	// Create handler (simplified version)
 	handler := &MockLLMProcessorHandler{
 		config: cfg,
@@ -454,8 +454,8 @@ func (h *MockLLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r 
 	}
 
 	response := map[string]interface{}{
-		"status": "success",
-		"result": "Mock processing result",
+		"status":     "success",
+		"result":     "Mock processing result",
 		"request_id": "test-123",
 	}
 
@@ -491,12 +491,12 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 			StreetAddress: []string{""},
 			PostalCode:    []string{""},
 		},
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
-		KeyUsage:     x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
-		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		IPAddresses:  []net.IP{net.IPv4(127, 0, 0, 1)},
-		DNSNames:     []string{"localhost"},
+		NotBefore:   time.Now(),
+		NotAfter:    time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IPAddresses: []net.IP{net.IPv4(127, 0, 0, 1)},
+		DNSNames:    []string{"localhost"},
 	}
 
 	// Generate private key
@@ -550,7 +550,7 @@ func createTestTLSCertificates(t *testing.T) (certPath, keyPath string, cleanup 
 // TestTLSServerStartup tests server startup with and without TLS configuration
 func TestTLSServerStartup(t *testing.T) {
 	tests := []struct {
-		name                 string
+		name                string
 		tlsEnabled          bool
 		certPath            string
 		keyPath             string
@@ -570,8 +570,8 @@ func TestTLSServerStartup(t *testing.T) {
 		{
 			name:                "HTTPS server startup with valid certificates",
 			tlsEnabled:          true,
-			certPath:            "",  // Will be set by test
-			keyPath:             "",  // Will be set by test  
+			certPath:            "", // Will be set by test
+			keyPath:             "", // Will be set by test
 			expectStartupError:  false,
 			createValidCerts:    true,
 			expectedLogContains: "Server starting with TLS",
@@ -652,7 +652,7 @@ func TestTLSServerStartup(t *testing.T) {
 
 			// Create a test server similar to setupHTTPServer
 			server := &http.Server{
-				Addr:    ":" + cfg.Port,
+				Addr: ":" + cfg.Port,
 				Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
 					fmt.Fprint(w, "OK")
@@ -735,44 +735,44 @@ func TestTLSCertificateValidation(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to create temp directory: %v", err)
 				}
-				
+
 				certPath := filepath.Join(tmpDir, "cert.pem")
 				keyPath := filepath.Join(tmpDir, "key.pem")
-				
+
 				// Create empty cert file
 				os.WriteFile(certPath, []byte(""), 0644)
-				
+
 				// Create valid key file
 				_, keyContent, cleanup := createTestTLSCertificates(t)
 				keyData, _ := os.ReadFile(keyContent)
 				os.WriteFile(keyPath, keyData, 0644)
 				cleanup() // Clean up the temp certs
-				
+
 				return certPath, keyPath, func() { os.RemoveAll(tmpDir) }
 			},
 			expectError:    true,
 			errorSubstring: "tls: failed to find any PEM data in certificate input",
 		},
 		{
-			name: "Key file is empty", 
+			name: "Key file is empty",
 			setupCert: func(t *testing.T) (string, string, func()) {
 				tmpDir, err := os.MkdirTemp("", "tls-test-*")
 				if err != nil {
 					t.Fatalf("Failed to create temp directory: %v", err)
 				}
-				
+
 				certPath := filepath.Join(tmpDir, "cert.pem")
 				keyPath := filepath.Join(tmpDir, "key.pem")
-				
+
 				// Create valid cert file
 				certContent, _, cleanup := createTestTLSCertificates(t)
 				certData, _ := os.ReadFile(certContent)
 				os.WriteFile(certPath, certData, 0644)
 				cleanup() // Clean up the temp certs
-				
+
 				// Create empty key file
 				os.WriteFile(keyPath, []byte(""), 0644)
-				
+
 				return certPath, keyPath, func() { os.RemoveAll(tmpDir) }
 			},
 			expectError:    true,
@@ -784,7 +784,7 @@ func TestTLSCertificateValidation(t *testing.T) {
 				// Create two different certificate/key pairs
 				cert1Path, _, cleanup1 := createTestTLSCertificates(t)
 				_, key2Path, cleanup2 := createTestTLSCertificates(t)
-				
+
 				return cert1Path, key2Path, func() {
 					cleanup1()
 					cleanup2()
@@ -831,7 +831,7 @@ func TestGracefulShutdownWithTLS(t *testing.T) {
 			expectTLS:  true,
 		},
 		{
-			name:       "Graceful shutdown with TLS disabled", 
+			name:       "Graceful shutdown with TLS disabled",
 			tlsEnabled: false,
 			expectTLS:  false,
 		},
@@ -895,12 +895,12 @@ func TestGracefulShutdownWithTLS(t *testing.T) {
 			// Make a request to the server while initiating shutdown
 			go func() {
 				time.Sleep(50 * time.Millisecond) // Let request start
-				
+
 				// Create client with appropriate TLS settings
 				client := &http.Client{
 					Timeout: 5 * time.Second,
 				}
-				
+
 				if tt.tlsEnabled {
 					// Accept self-signed certificates for testing
 					client.Transport = &http.Transport{
@@ -1064,9 +1064,9 @@ func TestTLSConfigurationIntegration(t *testing.T) {
 	defer cleanup()
 
 	tests := []struct {
-		name           string
-		envVars        map[string]string
-		expectTLSEnabled bool
+		name              string
+		envVars           map[string]string
+		expectTLSEnabled  bool
 		expectValidConfig bool
 	}{
 		{
@@ -1176,11 +1176,11 @@ func TestIPAllowlistMiddleware(t *testing.T) {
 	})
 
 	tests := []struct {
-		name            string
-		allowedCIDRs    []string
-		clientHeaders   map[string]string
-		expectedStatus  int
-		description     string
+		name           string
+		allowedCIDRs   []string
+		clientHeaders  map[string]string
+		expectedStatus int
+		description    string
 	}{
 		{
 			name:         "Private network allowed via X-Forwarded-For",
@@ -1219,11 +1219,11 @@ func TestIPAllowlistMiddleware(t *testing.T) {
 			description:    "CloudFlare CF-Connecting-IP header should be respected",
 		},
 		{
-			name:            "Empty allowlist blocks all",
-			allowedCIDRs:    []string{},
-			clientHeaders:   map[string]string{"X-Forwarded-For": "127.0.0.1"},
-			expectedStatus:  http.StatusForbidden,
-			description:     "Empty allowlist should block all traffic",
+			name:           "Empty allowlist blocks all",
+			allowedCIDRs:   []string{},
+			clientHeaders:  map[string]string{"X-Forwarded-For": "127.0.0.1"},
+			expectedStatus: http.StatusForbidden,
+			description:    "Empty allowlist should block all traffic",
 		},
 		{
 			name:         "Multiple headers - first one wins",
@@ -1262,7 +1262,7 @@ func TestIPAllowlistMiddleware(t *testing.T) {
 
 			// Create test request
 			req := httptest.NewRequest("GET", "/metrics", nil)
-			
+
 			// Set headers
 			for header, value := range tt.clientHeaders {
 				req.Header.Set(header, value)
@@ -1296,36 +1296,36 @@ func TestMetricsEndpointConfiguration(t *testing.T) {
 	}))
 
 	tests := []struct {
-		name                 string
+		name                  string
 		exposeMetricsPublicly bool
-		allowedCIDRs         []string
-		clientIP             string
-		expectedStatus       int
-		description          string
+		allowedCIDRs          []string
+		clientIP              string
+		expectedStatus        int
+		description           string
 	}{
 		{
-			name:                 "Metrics exposed publicly",
+			name:                  "Metrics exposed publicly",
 			exposeMetricsPublicly: true,
-			allowedCIDRs:         []string{"127.0.0.0/8"},
-			clientIP:             "8.8.8.8", // Should be allowed because public exposure
-			expectedStatus:       http.StatusOK,
-			description:          "When ExposeMetricsPublicly=true, all IPs should be allowed",
+			allowedCIDRs:          []string{"127.0.0.0/8"},
+			clientIP:              "8.8.8.8", // Should be allowed because public exposure
+			expectedStatus:        http.StatusOK,
+			description:           "When ExposeMetricsPublicly=true, all IPs should be allowed",
 		},
 		{
-			name:                 "Metrics protected - allowed IP",
+			name:                  "Metrics protected - allowed IP",
 			exposeMetricsPublicly: false,
-			allowedCIDRs:         []string{"127.0.0.0/8", "192.168.1.0/24"},
-			clientIP:             "192.168.1.100",
-			expectedStatus:       http.StatusOK,
-			description:          "When protected, allowed IP should pass",
+			allowedCIDRs:          []string{"127.0.0.0/8", "192.168.1.0/24"},
+			clientIP:              "192.168.1.100",
+			expectedStatus:        http.StatusOK,
+			description:           "When protected, allowed IP should pass",
 		},
 		{
-			name:                 "Metrics protected - blocked IP",
+			name:                  "Metrics protected - blocked IP",
 			exposeMetricsPublicly: false,
-			allowedCIDRs:         []string{"127.0.0.0/8"},
-			clientIP:             "8.8.8.8",
-			expectedStatus:       http.StatusForbidden,
-			description:          "When protected, disallowed IP should be blocked",
+			allowedCIDRs:          []string{"127.0.0.0/8"},
+			clientIP:              "8.8.8.8",
+			expectedStatus:        http.StatusForbidden,
+			description:           "When protected, disallowed IP should be blocked",
 		},
 	}
 

@@ -37,7 +37,7 @@ func TestQuickstartTutorial(t *testing.T) {
 	var cmd *exec.Cmd
 
 	projectRoot := findProjectRoot(t)
-	
+
 	switch runtime.GOOS {
 	case "windows":
 		scriptPath = filepath.Join(projectRoot, "scripts", "quickstart.ps1")
@@ -61,16 +61,16 @@ func TestQuickstartTutorial(t *testing.T) {
 
 	// Run the quickstart script
 	err := cmd.Run()
-	
+
 	// Calculate elapsed time
 	elapsed := time.Since(startTime)
-	
+
 	// Log output for debugging
 	t.Logf("Stdout:\n%s", stdout.String())
 	if stderr.Len() > 0 {
 		t.Logf("Stderr:\n%s", stderr.String())
 	}
-	
+
 	// Check for errors
 	if err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
@@ -114,7 +114,7 @@ func TestQuickstartPrerequisites(t *testing.T) {
 		t.Run(tool.name, func(t *testing.T) {
 			cmd := exec.Command(tool.command, tool.args...)
 			output, err := cmd.CombinedOutput()
-			
+
 			if err != nil {
 				t.Errorf("%s not found or not working: %v", tool.name, err)
 			} else {
@@ -168,23 +168,23 @@ func TestQuickstartSteps(t *testing.T) {
 	}
 
 	var totalTime time.Duration
-	
+
 	for _, step := range steps {
 		t.Run(step.name, func(t *testing.T) {
 			start := time.Now()
-			
+
 			// Run validation with timeout
 			done := make(chan bool)
 			go func() {
 				step.validate(t)
 				done <- true
 			}()
-			
+
 			select {
 			case <-done:
 				elapsed := time.Since(start)
 				totalTime += elapsed
-				
+
 				if elapsed > step.maxDuration {
 					t.Errorf("Step took %v, exceeding target of %v", elapsed, step.maxDuration)
 				} else {
@@ -195,7 +195,7 @@ func TestQuickstartSteps(t *testing.T) {
 			}
 		})
 	}
-	
+
 	t.Logf("Total time for all steps: %v", totalTime)
 	if totalTime > 15*time.Minute {
 		t.Errorf("Total time %v exceeds 15-minute target", totalTime)
@@ -210,7 +210,7 @@ func validatePrerequisites(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Fatal("Docker daemon is not running")
 	}
-	
+
 	// Check kubectl is configured
 	cmd = exec.Command("kubectl", "version", "--client", "--short")
 	if err := cmd.Run(); err != nil {
@@ -225,18 +225,18 @@ func validateClusterSetup(t *testing.T) {
 	if err != nil {
 		t.Fatal("Failed to get Kind clusters")
 	}
-	
+
 	if !strings.Contains(string(output), "nephoran-quickstart") {
 		t.Fatal("Quickstart cluster not found")
 	}
-	
+
 	// Check nodes are ready
 	cmd = exec.Command("kubectl", "get", "nodes", "-o", "json")
 	output, err = cmd.Output()
 	if err != nil {
 		t.Fatal("Failed to get nodes")
 	}
-	
+
 	// Simple check for at least 2 nodes
 	if !strings.Contains(string(output), "Ready") {
 		t.Fatal("Nodes are not ready")
@@ -249,7 +249,7 @@ func validateCRDs(t *testing.T) {
 		"managedelements.nephoran.com",
 		"e2nodesets.nephoran.com",
 	}
-	
+
 	for _, crd := range crds {
 		cmd := exec.Command("kubectl", "get", "crd", crd)
 		if err := cmd.Run(); err != nil {
@@ -264,14 +264,14 @@ func validateController(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Fatal("Controller deployment not found")
 	}
-	
+
 	// Check if pods are running
 	cmd = exec.Command("kubectl", "get", "pods", "-n", "nephoran-system", "-l", "app=nephoran-controller", "-o", "jsonpath={.items[*].status.phase}")
 	output, err := cmd.Output()
 	if err != nil {
 		t.Fatal("Failed to get controller pods")
 	}
-	
+
 	if !strings.Contains(string(output), "Running") {
 		t.Fatal("Controller pods are not running")
 	}
@@ -283,17 +283,17 @@ func validateFirstIntent(t *testing.T) {
 	if err := cmd.Run(); err != nil {
 		t.Fatal("First intent not found")
 	}
-	
+
 	// Check intent status
 	cmd = exec.Command("kubectl", "get", "networkintent", "deploy-amf-quickstart", "-o", "jsonpath={.status.phase}")
 	output, err := cmd.Output()
 	if err != nil {
 		t.Fatal("Failed to get intent status")
 	}
-	
+
 	status := strings.TrimSpace(string(output))
 	validStatuses := []string{"Deployed", "Ready", "Completed", "Processing"}
-	
+
 	valid := false
 	for _, s := range validStatuses {
 		if status == s {
@@ -301,7 +301,7 @@ func validateFirstIntent(t *testing.T) {
 			break
 		}
 	}
-	
+
 	if !valid && status != "" {
 		t.Errorf("Intent has unexpected status: %s", status)
 	}
@@ -310,7 +310,7 @@ func validateFirstIntent(t *testing.T) {
 func validateQuickstartDeployment(t *testing.T) {
 	// Run the validation script
 	projectRoot := findProjectRoot(t)
-	
+
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
@@ -324,11 +324,11 @@ func validateQuickstartDeployment(t *testing.T) {
 			cmd = exec.Command("/bin/bash", validationScript)
 		}
 	}
-	
+
 	if cmd != nil {
 		output, err := cmd.CombinedOutput()
 		t.Logf("Validation output:\n%s", string(output))
-		
+
 		if err != nil {
 			t.Error("Validation script reported errors")
 		}
@@ -337,7 +337,7 @@ func validateQuickstartDeployment(t *testing.T) {
 
 func cleanupQuickstart(t *testing.T) {
 	projectRoot := findProjectRoot(t)
-	
+
 	var cmd *exec.Cmd
 	switch runtime.GOOS {
 	case "windows":
@@ -347,7 +347,7 @@ func cleanupQuickstart(t *testing.T) {
 		scriptPath := filepath.Join(projectRoot, "scripts", "quickstart.sh")
 		cmd = exec.Command("/bin/bash", scriptPath, "--cleanup")
 	}
-	
+
 	if err := cmd.Run(); err != nil {
 		t.Logf("Warning: Cleanup failed: %v", err)
 	} else {
@@ -362,12 +362,12 @@ func findProjectRoot(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	for {
 		if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
 			return dir
 		}
-		
+
 		parent := filepath.Dir(dir)
 		if parent == dir {
 			t.Fatal("Could not find project root")
@@ -379,18 +379,18 @@ func findProjectRoot(t *testing.T) string {
 // BenchmarkQuickstart measures the performance of the quickstart process
 func BenchmarkQuickstart(b *testing.B) {
 	b.Skip("Benchmark skipped - run manually when needed")
-	
+
 	for i := 0; i < b.N; i++ {
 		// Clean up from previous run
 		cleanupCmd := exec.Command("/bin/bash", "scripts/quickstart.sh", "--cleanup")
 		cleanupCmd.Run()
-		
+
 		// Run quickstart
 		b.StartTimer()
 		cmd := exec.Command("/bin/bash", "scripts/quickstart.sh", "--skip-prereq")
 		err := cmd.Run()
 		b.StopTimer()
-		
+
 		if err != nil {
 			b.Fatalf("Quickstart failed: %v", err)
 		}
@@ -401,24 +401,24 @@ func BenchmarkQuickstart(b *testing.B) {
 func TestQuickstartDocumentation(t *testing.T) {
 	projectRoot := findProjectRoot(t)
 	quickstartPath := filepath.Join(projectRoot, "QUICKSTART.md")
-	
+
 	// Check if file exists
 	info, err := os.Stat(quickstartPath)
 	if err != nil {
 		t.Fatalf("QUICKSTART.md not found: %v", err)
 	}
-	
+
 	// Check file size (should be substantial)
 	if info.Size() < 10000 {
 		t.Errorf("QUICKSTART.md seems too small (%d bytes)", info.Size())
 	}
-	
+
 	// Read and validate content
 	content, err := os.ReadFile(quickstartPath)
 	if err != nil {
 		t.Fatalf("Failed to read QUICKSTART.md: %v", err)
 	}
-	
+
 	// Check for required sections
 	requiredSections := []string{
 		"15-Minute Quick Start",
@@ -431,13 +431,13 @@ func TestQuickstartDocumentation(t *testing.T) {
 		"make",
 		"kubectl apply",
 	}
-	
+
 	contentStr := string(content)
 	for _, section := range requiredSections {
 		if !strings.Contains(contentStr, section) {
 			t.Errorf("QUICKSTART.md missing required section/content: %s", section)
 		}
 	}
-	
+
 	t.Logf("✅ QUICKSTART.md validated (%d bytes, all required sections present)", info.Size())
 }

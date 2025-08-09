@@ -17,46 +17,46 @@ import (
 
 // RevocationChecker provides comprehensive certificate revocation checking
 type RevocationChecker struct {
-	config         *RevocationConfig
-	logger         *logging.StructuredLogger
-	crlCache       *CRLCache
-	ocspCache      *OCSPCache
-	httpClient     *http.Client
-	mu             sync.RWMutex
+	config     *RevocationConfig
+	logger     *logging.StructuredLogger
+	crlCache   *CRLCache
+	ocspCache  *OCSPCache
+	httpClient *http.Client
+	mu         sync.RWMutex
 }
 
 // RevocationConfig configures revocation checking
 type RevocationConfig struct {
-	CRLCheckEnabled    bool          `yaml:"crl_check_enabled"`
-	OCSPCheckEnabled   bool          `yaml:"ocsp_check_enabled"`
-	CacheSize          int           `yaml:"cache_size"`
-	CacheTTL           time.Duration `yaml:"cache_ttl"`
-	Timeout            time.Duration `yaml:"timeout"`
-	MaxCRLSize         int64         `yaml:"max_crl_size"`
-	OCSPFallback       bool          `yaml:"ocsp_fallback"`
-	CRLFallback        bool          `yaml:"crl_fallback"`
-	ParallelCheck      bool          `yaml:"parallel_check"`
-	RetryAttempts      int           `yaml:"retry_attempts"`
-	RetryDelay         time.Duration `yaml:"retry_delay"`
+	CRLCheckEnabled  bool          `yaml:"crl_check_enabled"`
+	OCSPCheckEnabled bool          `yaml:"ocsp_check_enabled"`
+	CacheSize        int           `yaml:"cache_size"`
+	CacheTTL         time.Duration `yaml:"cache_ttl"`
+	Timeout          time.Duration `yaml:"timeout"`
+	MaxCRLSize       int64         `yaml:"max_crl_size"`
+	OCSPFallback     bool          `yaml:"ocsp_fallback"`
+	CRLFallback      bool          `yaml:"crl_fallback"`
+	ParallelCheck    bool          `yaml:"parallel_check"`
+	RetryAttempts    int           `yaml:"retry_attempts"`
+	RetryDelay       time.Duration `yaml:"retry_delay"`
 }
 
 // CRLCache caches Certificate Revocation Lists
 type CRLCache struct {
-	cache     map[string]*CRLEntry
-	ttl       time.Duration
-	maxSize   int
-	mu        sync.RWMutex
+	cache   map[string]*CRLEntry
+	ttl     time.Duration
+	maxSize int
+	mu      sync.RWMutex
 }
 
 // CRLEntry represents a cached CRL entry
 type CRLEntry struct {
-	URL           string                 `json:"url"`
-	CRL           *pkix.CertificateList  `json:"-"`
-	LastModified  time.Time              `json:"last_modified"`
-	NextUpdate    time.Time              `json:"next_update"`
-	CachedAt      time.Time              `json:"cached_at"`
-	Size          int64                  `json:"size"`
-	EntryCount    int                    `json:"entry_count"`
+	URL          string                `json:"url"`
+	CRL          *pkix.CertificateList `json:"-"`
+	LastModified time.Time             `json:"last_modified"`
+	NextUpdate   time.Time             `json:"next_update"`
+	CachedAt     time.Time             `json:"cached_at"`
+	Size         int64                 `json:"size"`
+	EntryCount   int                   `json:"entry_count"`
 }
 
 // OCSPCache caches OCSP responses
@@ -69,56 +69,56 @@ type OCSPCache struct {
 
 // OCSPEntry represents a cached OCSP entry
 type OCSPEntry struct {
-	SerialNumber   string               `json:"serial_number"`
-	IssuerHash     string               `json:"issuer_hash"`
-	Status         int                  `json:"status"`
-	Response       *ocsp.Response       `json:"-"`
-	NextUpdate     time.Time            `json:"next_update"`
-	CachedAt       time.Time            `json:"cached_at"`
+	SerialNumber string         `json:"serial_number"`
+	IssuerHash   string         `json:"issuer_hash"`
+	Status       int            `json:"status"`
+	Response     *ocsp.Response `json:"-"`
+	NextUpdate   time.Time      `json:"next_update"`
+	CachedAt     time.Time      `json:"cached_at"`
 }
 
 // RevocationCheckResult represents the result of a revocation check
 type RevocationCheckResult struct {
-	SerialNumber    string                    `json:"serial_number"`
-	Status          RevocationStatus          `json:"status"`
-	Method          RevocationMethod          `json:"method"`
-	CheckTime       time.Time                 `json:"check_time"`
-	RevokedAt       *time.Time                `json:"revoked_at,omitempty"`
-	RevocationReason *int                     `json:"revocation_reason,omitempty"`
-	NextUpdate      *time.Time                `json:"next_update,omitempty"`
-	ResponseSource  string                    `json:"response_source"`
-	CacheHit        bool                      `json:"cache_hit"`
-	CheckDuration   time.Duration             `json:"check_duration"`
-	Details         *RevocationCheckDetails   `json:"details,omitempty"`
-	Errors          []string                  `json:"errors,omitempty"`
-	Warnings        []string                  `json:"warnings,omitempty"`
+	SerialNumber     string                  `json:"serial_number"`
+	Status           RevocationStatus        `json:"status"`
+	Method           RevocationMethod        `json:"method"`
+	CheckTime        time.Time               `json:"check_time"`
+	RevokedAt        *time.Time              `json:"revoked_at,omitempty"`
+	RevocationReason *int                    `json:"revocation_reason,omitempty"`
+	NextUpdate       *time.Time              `json:"next_update,omitempty"`
+	ResponseSource   string                  `json:"response_source"`
+	CacheHit         bool                    `json:"cache_hit"`
+	CheckDuration    time.Duration           `json:"check_duration"`
+	Details          *RevocationCheckDetails `json:"details,omitempty"`
+	Errors           []string                `json:"errors,omitempty"`
+	Warnings         []string                `json:"warnings,omitempty"`
 }
 
 // RevocationMethod represents the method used for revocation checking
 type RevocationMethod string
 
 const (
-	RevocationMethodCRL      RevocationMethod = "crl"
-	RevocationMethodOCSP     RevocationMethod = "ocsp"
-	RevocationMethodCached   RevocationMethod = "cached"
-	RevocationMethodHybrid   RevocationMethod = "hybrid"
+	RevocationMethodCRL    RevocationMethod = "crl"
+	RevocationMethodOCSP   RevocationMethod = "ocsp"
+	RevocationMethodCached RevocationMethod = "cached"
+	RevocationMethodHybrid RevocationMethod = "hybrid"
 )
 
 // RevocationCheckDetails provides detailed information about the revocation check
 type RevocationCheckDetails struct {
-	CRLDistributionPoints []string              `json:"crl_distribution_points,omitempty"`
-	OCSPServers          []string              `json:"ocsp_servers,omitempty"`
-	IssuerInfo          *IssuerInfo           `json:"issuer_info,omitempty"`
-	CRLInfo             *CRLInfo              `json:"crl_info,omitempty"`
-	OCSPInfo            *OCSPInfo             `json:"ocsp_info,omitempty"`
-	MethodsFailed       []MethodFailure       `json:"methods_failed,omitempty"`
+	CRLDistributionPoints []string        `json:"crl_distribution_points,omitempty"`
+	OCSPServers           []string        `json:"ocsp_servers,omitempty"`
+	IssuerInfo            *IssuerInfo     `json:"issuer_info,omitempty"`
+	CRLInfo               *CRLInfo        `json:"crl_info,omitempty"`
+	OCSPInfo              *OCSPInfo       `json:"ocsp_info,omitempty"`
+	MethodsFailed         []MethodFailure `json:"methods_failed,omitempty"`
 }
 
 // IssuerInfo provides information about the certificate issuer
 type IssuerInfo struct {
-	Subject     string `json:"subject"`
-	KeyID       string `json:"key_id,omitempty"`
-	Hash        string `json:"hash"`
+	Subject string `json:"subject"`
+	KeyID   string `json:"key_id,omitempty"`
+	Hash    string `json:"hash"`
 }
 
 // CRLInfo provides information about CRL checking
@@ -133,12 +133,12 @@ type CRLInfo struct {
 
 // OCSPInfo provides information about OCSP checking
 type OCSPInfo struct {
-	ResponderURL   string    `json:"responder_url"`
-	ProducedAt     time.Time `json:"produced_at"`
-	ThisUpdate     time.Time `json:"this_update"`
-	NextUpdate     time.Time `json:"next_update"`
-	ResponderID    string    `json:"responder_id"`
-	SignatureAlg   string    `json:"signature_algorithm"`
+	ResponderURL string    `json:"responder_url"`
+	ProducedAt   time.Time `json:"produced_at"`
+	ThisUpdate   time.Time `json:"this_update"`
+	NextUpdate   time.Time `json:"next_update"`
+	ResponderID  string    `json:"responder_id"`
+	SignatureAlg string    `json:"signature_algorithm"`
 }
 
 // MethodFailure represents a failed revocation check method
@@ -218,10 +218,10 @@ func (rc *RevocationChecker) CheckRevocationDetailed(ctx context.Context, cert *
 	serialNumber := cert.SerialNumber.String()
 
 	result := &RevocationCheckResult{
-		SerialNumber:  serialNumber,
-		Status:        RevocationStatusUnknown,
-		CheckTime:     start,
-		CacheHit:      false,
+		SerialNumber: serialNumber,
+		Status:       RevocationStatusUnknown,
+		CheckTime:    start,
+		CacheHit:     false,
 		Details: &RevocationCheckDetails{
 			MethodsFailed: []MethodFailure{},
 		},
@@ -261,7 +261,7 @@ func (rc *RevocationChecker) extractRevocationEndpoints(cert *x509.Certificate, 
 func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x509.Certificate, result *RevocationCheckResult) (*RevocationCheckResult, error) {
 	var wg sync.WaitGroup
 	resultsChan := make(chan *RevocationCheckResult, 2)
-	
+
 	// Launch CRL check
 	if rc.config.CRLCheckEnabled && len(result.Details.CRLDistributionPoints) > 0 {
 		wg.Add(1)
@@ -306,7 +306,7 @@ func (rc *RevocationChecker) performParallelCheck(ctx context.Context, cert *x50
 			// Keep the good result
 			bestResult = checkResult
 		}
-		
+
 		// Merge errors and warnings
 		result.Errors = append(result.Errors, checkResult.Errors...)
 		result.Warnings = append(result.Warnings, checkResult.Warnings...)
@@ -340,10 +340,10 @@ func (rc *RevocationChecker) performSequentialCheck(ctx context.Context, cert *x
 			result.CheckDuration = time.Since(result.CheckTime)
 			return result, nil
 		}
-		
+
 		result.Errors = append(result.Errors, ocspResult.Errors...)
 		result.Warnings = append(result.Warnings, ocspResult.Warnings...)
-		
+
 		// Add to failed methods if CRL fallback is disabled
 		if !rc.config.CRLFallback {
 			result.Details.MethodsFailed = append(result.Details.MethodsFailed, MethodFailure{
@@ -367,10 +367,10 @@ func (rc *RevocationChecker) performSequentialCheck(ctx context.Context, cert *x
 			result.CheckDuration = time.Since(result.CheckTime)
 			return result, nil
 		}
-		
+
 		result.Errors = append(result.Errors, crlResult.Errors...)
 		result.Warnings = append(result.Warnings, crlResult.Warnings...)
-		
+
 		result.Details.MethodsFailed = append(result.Details.MethodsFailed, MethodFailure{
 			Method: RevocationMethodCRL,
 			Error:  "CRL check failed",
@@ -404,7 +404,7 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 			if revokedCert.SerialNumber.Cmp(cert.SerialNumber) == 0 {
 				result.Status = RevocationStatusRevoked
 				result.RevokedAt = &revokedCert.RevocationTime
-				
+
 				// Extract revocation reason if present
 				for _, ext := range revokedCert.Extensions {
 					if ext.Id.Equal([]int{2, 5, 29, 21}) { // reasonCode extension
@@ -414,10 +414,10 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 						}
 					}
 				}
-				
+
 				result.ResponseSource = crlURL
 				result.NextUpdate = &crlEntry.NextUpdate
-				
+
 				// Add CRL info to details
 				if result.Details == nil {
 					result.Details = &RevocationCheckDetails{}
@@ -430,7 +430,7 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 					Size:         crlEntry.Size,
 					Version:      crlEntry.CRL.Version,
 				}
-				
+
 				return result
 			}
 		}
@@ -439,7 +439,7 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 		result.Status = RevocationStatusGood
 		result.ResponseSource = crlURL
 		result.NextUpdate = &crlEntry.NextUpdate
-		
+
 		// Add CRL info to details
 		if result.Details == nil {
 			result.Details = &RevocationCheckDetails{}
@@ -452,7 +452,7 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 			Size:         crlEntry.Size,
 			Version:      crlEntry.CRL.Version,
 		}
-		
+
 		break // Use first successful CRL
 	}
 
@@ -485,12 +485,12 @@ func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certifica
 			result.ResponseSource = ocspURL
 			result.CacheHit = true
 			result.NextUpdate = &cached.NextUpdate
-			
+
 			if cached.Status == int(RevocationStatusRevoked) && cached.Response != nil {
 				result.RevokedAt = &cached.Response.RevokedAt
 				result.RevocationReason = &cached.Response.RevocationReason
 			}
-			
+
 			return result
 		}
 
@@ -531,11 +531,11 @@ func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certifica
 			result.Details = &RevocationCheckDetails{}
 		}
 		result.Details.OCSPInfo = &OCSPInfo{
-			ResponderURL:   ocspURL,
-			ProducedAt:     ocspResp.ProducedAt,
-			ThisUpdate:     ocspResp.ThisUpdate,
-			NextUpdate:     ocspResp.NextUpdate,
-			SignatureAlg:   ocspResp.SignatureAlgorithm.String(),
+			ResponderURL: ocspURL,
+			ProducedAt:   ocspResp.ProducedAt,
+			ThisUpdate:   ocspResp.ThisUpdate,
+			NextUpdate:   ocspResp.NextUpdate,
+			SignatureAlg: ocspResp.SignatureAlgorithm.String(),
 		}
 
 		break // Use first successful OCSP response
@@ -615,7 +615,7 @@ func (rc *RevocationChecker) performOCSPRequest(ctx context.Context, ocspURL str
 	// 2. Create OCSP request
 	// 3. Send HTTP POST to OCSP responder
 	// 4. Parse OCSP response
-	
+
 	return nil, fmt.Errorf("OCSP request not implemented")
 }
 

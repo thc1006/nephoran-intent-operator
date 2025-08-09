@@ -12,28 +12,27 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
 // HealthMonitor manages multi-cluster health monitoring
 type HealthMonitor struct {
-	client          client.Client
-	logger          logr.Logger
-	clusters        map[types.NamespacedName]*ClusterHealthState
-	clusterLock     sync.RWMutex
-	healthChannels  map[types.NamespacedName]chan HealthUpdate
-	alertHandlers   []AlertHandler
+	client         client.Client
+	logger         logr.Logger
+	clusters       map[types.NamespacedName]*ClusterHealthState
+	clusterLock    sync.RWMutex
+	healthChannels map[types.NamespacedName]chan HealthUpdate
+	alertHandlers  []AlertHandler
 }
 
 // ClusterHealthState represents the comprehensive health state of a cluster
 type ClusterHealthState struct {
-	Name               types.NamespacedName
-	LastHealthCheck    time.Time
-	OverallStatus      HealthStatus
-	ComponentStatuses  map[string]ComponentHealth
+	Name                types.NamespacedName
+	LastHealthCheck     time.Time
+	OverallStatus       HealthStatus
+	ComponentStatuses   map[string]ComponentHealth
 	ResourceUtilization ResourceUtilization
-	Alerts             []Alert
+	Alerts              []Alert
 }
 
 // HealthStatus represents the overall health of a cluster
@@ -85,11 +84,11 @@ const (
 type AlertType string
 
 const (
-	AlertTypeResourcePressure   AlertType = "ResourcePressure"
-	AlertTypeComponentFailure   AlertType = "ComponentFailure"
-	AlertTypeNetworkIssue       AlertType = "NetworkIssue"
-	AlertTypeSecurityViolation  AlertType = "SecurityViolation"
-	AlertTypePerformanceDegred  AlertType = "PerformanceDegraded"
+	AlertTypeResourcePressure  AlertType = "ResourcePressure"
+	AlertTypeComponentFailure  AlertType = "ComponentFailure"
+	AlertTypeNetworkIssue      AlertType = "NetworkIssue"
+	AlertTypeSecurityViolation AlertType = "SecurityViolation"
+	AlertTypePerformanceDegred AlertType = "PerformanceDegraded"
 )
 
 // AlertHandler processes health alerts
@@ -99,7 +98,7 @@ type AlertHandler interface {
 
 // StartHealthMonitoring begins continuous health monitoring
 func (hm *HealthMonitor) StartHealthMonitoring(
-	ctx context.Context, 
+	ctx context.Context,
 	interval time.Duration,
 ) {
 	ticker := time.NewTicker(interval)
@@ -125,19 +124,19 @@ func (hm *HealthMonitor) performClusterHealthCheck(ctx context.Context) {
 		wg.Add(1)
 		go func(name types.NamespacedName, cluster *ClusterHealthState) {
 			defer wg.Done()
-			
+
 			// Perform comprehensive health check
 			newHealthState := hm.checkClusterHealth(ctx, name)
-			
+
 			// Update cluster health state
 			cluster.LastHealthCheck = time.Now()
 			cluster.OverallStatus = newHealthState.OverallStatus
 			cluster.ComponentStatuses = newHealthState.ComponentStatuses
 			cluster.ResourceUtilization = newHealthState.ResourceUtilization
-			
+
 			// Process alerts
 			hm.processAlerts(newHealthState.Alerts)
-			
+
 			// Notify health channels
 			hm.notifyHealthChannels(HealthUpdate{
 				ClusterName: name,
@@ -152,42 +151,42 @@ func (hm *HealthMonitor) performClusterHealthCheck(ctx context.Context) {
 
 // checkClusterHealth performs a comprehensive health evaluation
 func (hm *HealthMonitor) checkClusterHealth(
-	ctx context.Context, 
+	ctx context.Context,
 	clusterName types.NamespacedName,
 ) *ClusterHealthState {
 	// 1. Check control plane components
 	controlPlaneHealth := hm.checkControlPlaneComponents(ctx, clusterName)
-	
+
 	// 2. Check node health
 	nodeHealth := hm.checkNodeHealth(ctx, clusterName)
-	
+
 	// 3. Check resource utilization
 	resourceUtilization := hm.checkResourceUtilization(ctx, clusterName)
-	
+
 	// 4. Check system pods
 	systemPodsHealth := hm.checkSystemPods(ctx, clusterName)
-	
+
 	// 5. Determine overall cluster health
 	overallStatus := hm.determineOverallHealth(
-		controlPlaneHealth, 
-		nodeHealth, 
+		controlPlaneHealth,
+		nodeHealth,
 		systemPodsHealth,
 		resourceUtilization,
 	)
 
 	// 6. Generate alerts
 	alerts := hm.generateHealthAlerts(
-		controlPlaneHealth, 
-		nodeHealth, 
+		controlPlaneHealth,
+		nodeHealth,
 		systemPodsHealth,
 		resourceUtilization,
 	)
 
 	return &ClusterHealthState{
-		Name:               clusterName,
-		LastHealthCheck:    time.Now(),
-		OverallStatus:      overallStatus,
-		ComponentStatuses:  map[string]ComponentHealth{
+		Name:            clusterName,
+		LastHealthCheck: time.Now(),
+		OverallStatus:   overallStatus,
+		ComponentStatuses: map[string]ComponentHealth{
 			"ControlPlane": controlPlaneHealth,
 			"Nodes":        nodeHealth,
 			"SystemPods":   systemPodsHealth,
@@ -199,7 +198,7 @@ func (hm *HealthMonitor) checkClusterHealth(
 
 // Detailed health check methods
 func (hm *HealthMonitor) checkControlPlaneComponents(
-	ctx context.Context, 
+	ctx context.Context,
 	clusterName types.NamespacedName,
 ) ComponentHealth {
 	// Check critical control plane components
@@ -207,7 +206,7 @@ func (hm *HealthMonitor) checkControlPlaneComponents(
 }
 
 func (hm *HealthMonitor) checkNodeHealth(
-	ctx context.Context, 
+	ctx context.Context,
 	clusterName types.NamespacedName,
 ) ComponentHealth {
 	// Check node-level health
@@ -215,7 +214,7 @@ func (hm *HealthMonitor) checkNodeHealth(
 }
 
 func (hm *HealthMonitor) checkResourceUtilization(
-	ctx context.Context, 
+	ctx context.Context,
 	clusterName types.NamespacedName,
 ) ResourceUtilization {
 	// Check resource utilization
@@ -223,7 +222,7 @@ func (hm *HealthMonitor) checkResourceUtilization(
 }
 
 func (hm *HealthMonitor) checkSystemPods(
-	ctx context.Context, 
+	ctx context.Context,
 	clusterName types.NamespacedName,
 ) ComponentHealth {
 	// Check system-critical pods
@@ -251,12 +250,12 @@ func (hm *HealthMonitor) generateHealthAlerts(
 	alerts := make([]Alert, 0)
 
 	// Add example alert generation logic
-	if resources.CPUUsed / resources.CPUTotal > 0.9 {
+	if resources.CPUUsed/resources.CPUTotal > 0.9 {
 		alerts = append(alerts, Alert{
-			Severity:   SeverityWarning,
-			Type:       AlertTypeResourcePressure,
-			Message:    "High CPU utilization detected",
-			Timestamp:  time.Now(),
+			Severity:  SeverityWarning,
+			Type:      AlertTypeResourcePressure,
+			Message:   "High CPU utilization detected",
+			Timestamp: time.Now(),
 		})
 	}
 
@@ -283,7 +282,7 @@ func (hm *HealthMonitor) notifyHealthChannels(update HealthUpdate) {
 		case ch <- update:
 		default:
 			// Channel is full, log or handle accordingly
-			hm.logger.Info("Health update channel is full", 
+			hm.logger.Info("Health update channel is full",
 				"cluster", update.ClusterName)
 		}
 	}

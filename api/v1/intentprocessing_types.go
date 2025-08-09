@@ -23,6 +23,111 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// ProcessedParameters defines structured parameters extracted from intent processing
+type ProcessedParameters struct {
+	// NetworkFunction specifies the network function type
+	// +optional
+	NetworkFunction string `json:"networkFunction,omitempty"`
+
+	// Region specifies the deployment region
+	// +optional
+	Region string `json:"region,omitempty"`
+
+	// ScaleParameters contains scaling configuration
+	// +optional
+	ScaleParameters *ScaleParameters `json:"scaleParameters,omitempty"`
+
+	// QoSParameters contains quality of service settings
+	// +optional
+	QoSParameters *QoSParameters `json:"qosParameters,omitempty"`
+
+	// SecurityParameters contains security settings
+	// +optional
+	SecurityParameters *SecurityParameters `json:"securityParameters,omitempty"`
+
+	// CustomParameters contains additional custom parameters
+	// +optional
+	CustomParameters map[string]string `json:"customParameters,omitempty"`
+}
+
+// ScaleParameters defines scaling configuration
+type ScaleParameters struct {
+	// MinReplicas specifies the minimum number of replicas
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	MinReplicas *int32 `json:"minReplicas,omitempty"`
+
+	// MaxReplicas specifies the maximum number of replicas
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	MaxReplicas *int32 `json:"maxReplicas,omitempty"`
+
+	// TargetCPUUtilization specifies the target CPU utilization percentage
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	TargetCPUUtilization *int32 `json:"targetCPUUtilization,omitempty"`
+
+	// AutoScalingEnabled indicates if auto-scaling is enabled
+	// +optional
+	AutoScalingEnabled *bool `json:"autoScalingEnabled,omitempty"`
+}
+
+// QoSParameters defines quality of service parameters
+type QoSParameters struct {
+	// Latency specifies the target latency requirement
+	// +optional
+	Latency string `json:"latency,omitempty"`
+
+	// Bandwidth specifies the bandwidth requirement
+	// +optional
+	Bandwidth string `json:"bandwidth,omitempty"`
+
+	// Priority specifies the traffic priority
+	// +optional
+	// +kubebuilder:validation:Enum=low;medium;high;critical
+	Priority string `json:"priority,omitempty"`
+
+	// ServiceLevel specifies the service level agreement
+	// +optional
+	ServiceLevel string `json:"serviceLevel,omitempty"`
+}
+
+// SecurityParameters defines security configuration
+type SecurityParameters struct {
+	// Encryption specifies encryption requirements
+	// +optional
+	Encryption *EncryptionConfig `json:"encryption,omitempty"`
+
+	// NetworkPolicies specifies network security policies
+	// +optional
+	NetworkPolicies []string `json:"networkPolicies,omitempty"`
+
+	// ServiceMesh indicates if service mesh should be enabled
+	// +optional
+	ServiceMesh *bool `json:"serviceMesh,omitempty"`
+
+	// TLSEnabled indicates if TLS should be enabled
+	// +optional
+	TLSEnabled *bool `json:"tlsEnabled,omitempty"`
+}
+
+// EncryptionConfig defines encryption configuration
+type EncryptionConfig struct {
+	// Enabled indicates if encryption is enabled
+	// +optional
+	Enabled *bool `json:"enabled,omitempty"`
+
+	// Algorithm specifies the encryption algorithm
+	// +optional
+	// +kubebuilder:validation:Enum=AES-256;AES-128;RSA-2048;RSA-4096
+	Algorithm string `json:"algorithm,omitempty"`
+
+	// KeyRotationInterval specifies the key rotation interval
+	// +optional
+	KeyRotationInterval string `json:"keyRotationInterval,omitempty"`
+}
+
 // IntentProcessingPhase represents the phase of LLM processing
 type IntentProcessingPhase string
 

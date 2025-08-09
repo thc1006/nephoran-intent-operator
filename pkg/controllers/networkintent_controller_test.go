@@ -36,15 +36,15 @@ var _ = Describe("NetworkIntent Controller", func() {
 
 		By("Setting up the reconciler with mock dependencies")
 		reconciler = &NetworkIntentReconciler{
-			Client:          k8sClient,
-			Scheme:          testEnv.Scheme,
-			EventRecorder:   &record.FakeRecorder{},
-			MaxRetries:      3,
-			RetryDelay:      time.Second * 1,
-			GitRepoURL:      "https://github.com/test/deployments.git",
-			GitBranch:       "main",
-			GitDeployPath:   "networkintents",
-			HTTPClient:      &http.Client{Timeout: 30 * time.Second},
+			Client:        k8sClient,
+			Scheme:        testEnv.Scheme,
+			EventRecorder: &record.FakeRecorder{},
+			MaxRetries:    3,
+			RetryDelay:    time.Second * 1,
+			GitRepoURL:    "https://github.com/test/deployments.git",
+			GitBranch:     "main",
+			GitDeployPath: "networkintents",
+			HTTPClient:    &http.Client{Timeout: 30 * time.Second},
 		}
 	})
 

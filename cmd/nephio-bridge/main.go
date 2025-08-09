@@ -9,8 +9,8 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/tools/record"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -45,7 +45,7 @@ func (a *llmClientAdapter) ProcessIntentStream(ctx context.Context, prompt strin
 	if err != nil {
 		return err
 	}
-	
+
 	if chunks != nil {
 		chunks <- &shared.StreamingChunk{
 			Content: result,
@@ -169,7 +169,7 @@ func main() {
 
 	// Initialize clients with configuration
 	llmClient := llm.NewClient(cfg.LLMProcessorURL)
-	
+
 	// Create Git client with token file support
 	var gitClient *git.Client
 	if cfg.GitTokenPath != "" || cfg.GitToken != "" {
@@ -203,13 +203,13 @@ func main() {
 
 	// Create dependencies struct that implements Dependencies interface
 	deps := &dependencyImpl{
-		gitClient:        gitClient,
-		llmClient:        &llmClientAdapter{client: llmClient},
-		packageGen:       packageGen,
-		httpClient:       &http.Client{Timeout: 30 * time.Second},
-		eventRecorder:    mgr.GetEventRecorderFor("network-intent-controller"),
+		gitClient:     gitClient,
+		llmClient:     &llmClientAdapter{client: llmClient},
+		packageGen:    packageGen,
+		httpClient:    &http.Client{Timeout: 30 * time.Second},
+		eventRecorder: mgr.GetEventRecorderFor("network-intent-controller"),
 	}
-	
+
 	// Create controller configuration
 	controllerConfig := &controllers.Config{
 		MaxRetries:      3,
@@ -221,7 +221,7 @@ func main() {
 		LLMProcessorURL: cfg.LLMProcessorURL,
 		UseNephioPorch:  useNephioPorch,
 	}
-	
+
 	// Setup NetworkIntent controller
 	networkIntentController, err := controllers.NewNetworkIntentReconciler(
 		mgr.GetClient(),
@@ -233,7 +233,7 @@ func main() {
 		setupLog.Error(err, "unable to create NetworkIntent controller")
 		os.Exit(1)
 	}
-	
+
 	if err = networkIntentController.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to setup controller", "controller", "NetworkIntent")
 		os.Exit(1)

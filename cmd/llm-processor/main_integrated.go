@@ -21,12 +21,12 @@ import (
 )
 
 var (
-	cfg       *config.LLMProcessorConfig
-	logger    *slog.Logger
-	service   *services.LLMProcessorService
-	handler   *handlers.LLMProcessorHandler
+	cfg             *config.LLMProcessorConfig
+	logger          *slog.Logger
+	service         *services.LLMProcessorService
+	handler         *handlers.LLMProcessorHandler
 	authIntegration *auth.NephoranAuthIntegration
-	startTime = time.Now()
+	startTime       = time.Now()
 )
 
 func main() {
@@ -385,20 +385,20 @@ func setupNephoranAuthRoutes(router *mux.Router) {
 	// TODO: Implement Nephoran auth route setup when methods are available
 	// For now, setup protected routes with placeholder middleware
 	logger.Warn("Nephoran authentication routes not fully implemented - using placeholder setup")
-	
+
 	// Protected endpoints
 	protected := router.PathPrefix("/api").Subrouter()
-	
+
 	// Add size limiting middleware for POST endpoints
 	protected.Use(func(next http.Handler) http.Handler {
 		return http.MaxBytesReader(nil, nil, cfg.MaxRequestSize)
 	})
-	
+
 	// Configure routes
 	protected.HandleFunc("/process", handler.ProcessIntentHandler).Methods("POST")
 	protected.HandleFunc("/status", handler.StatusHandler).Methods("GET")
 	protected.HandleFunc("/circuit-breaker/status", handler.CircuitBreakerStatusHandler).Methods("GET")
-	
+
 	if cfg.StreamingEnabled {
 		protected.HandleFunc("/stream", handler.StreamingHandler).Methods("POST")
 	}
@@ -467,7 +467,7 @@ func setupPublicRoutes(router *mux.Router) {
 	router.HandleFunc("/api/process", sizeLimitedProcessHandler).Methods("POST")
 	router.HandleFunc("/api/status", handler.StatusHandler).Methods("GET")
 	router.HandleFunc("/api/circuit-breaker/status", handler.CircuitBreakerStatusHandler).Methods("GET")
-	
+
 	if cfg.StreamingEnabled {
 		router.HandleFunc("/api/stream", sizeLimitedStreamHandler).Methods("POST")
 	}

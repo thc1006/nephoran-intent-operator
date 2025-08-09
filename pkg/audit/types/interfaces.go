@@ -27,22 +27,22 @@ type AuditLogger interface {
 type Backend interface {
 	// Type returns the backend type identifier
 	Type() string
-	
+
 	// Initialize sets up the backend with configuration
 	Initialize(config interface{}) error
-	
+
 	// WriteEvent writes a single audit event
 	WriteEvent(ctx context.Context, event *AuditEvent) error
-	
+
 	// WriteEvents writes multiple audit events in a batch
 	WriteEvents(ctx context.Context, events []*AuditEvent) error
-	
+
 	// Query searches for audit events (optional for compliance reporting)
 	Query(ctx context.Context, query interface{}) (interface{}, error)
-	
+
 	// Health checks the backend connectivity and status
 	Health(ctx context.Context) error
-	
+
 	// Close gracefully shuts down the backend
 	Close() error
 }

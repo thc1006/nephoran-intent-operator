@@ -33,13 +33,13 @@ func ExamplePorchClientUsage() error {
 
 	// Create Porch client configuration
 	config := DefaultPorchConfig()
-	
+
 	// Optional: Configure authentication for specific environments
 	// config.AuthConfig = &AuthConfig{
 	//     Type:  "bearer",
 	//     Token: "your-auth-token",
 	// }
-	
+
 	// Optional: Configure custom endpoint
 	// config.Endpoint = "https://your-porch-server:8443"
 
@@ -152,7 +152,7 @@ func ExamplePorchClientUsage() error {
 	if err != nil {
 		return fmt.Errorf("failed to validate package: %w", err)
 	}
-	fmt.Printf("Package validation: valid=%v, errors=%d, warnings=%d\n", 
+	fmt.Printf("Package validation: valid=%v, errors=%d, warnings=%d\n",
 		validation.Valid, len(validation.Errors), len(validation.Warnings))
 
 	// Example 7: Render package (if functions are defined)
@@ -161,7 +161,7 @@ func ExamplePorchClientUsage() error {
 	if err != nil {
 		return fmt.Errorf("failed to render package: %w", err)
 	}
-	fmt.Printf("Rendered package: %d resources, %d results\n", 
+	fmt.Printf("Rendered package: %d resources, %d results\n",
 		len(renderResult.Resources), len(renderResult.Results))
 
 	// Example 8: Package lifecycle management
@@ -228,7 +228,7 @@ data:
 	if err != nil {
 		return fmt.Errorf("failed to run function: %w", err)
 	}
-	fmt.Printf("Function executed: %d output resources, %d results\n", 
+	fmt.Printf("Function executed: %d output resources, %d results\n",
 		len(functionResp.Resources), len(functionResp.Results))
 
 	// Example 11: Health check
@@ -262,10 +262,10 @@ func ExampleAdvancedUsage() error {
 			DefaultNamespace:  "porch-system",
 			DefaultRepository: "blueprints",
 			CircuitBreaker: &CircuitBreakerConfig{
-				Enabled:             true,
-				FailureThreshold:    3,
-				Timeout:             60 * time.Second,
-				HalfOpenMaxCalls:    2,
+				Enabled:          true,
+				FailureThreshold: 3,
+				Timeout:          60 * time.Second,
+				HalfOpenMaxCalls: 2,
 			},
 			RateLimit: &RateLimitConfig{
 				Enabled:           true,

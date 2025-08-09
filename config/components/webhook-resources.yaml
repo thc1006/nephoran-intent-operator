@@ -1,0 +1,183 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephoran-webhook
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-webhook
+    app.kubernetes.io/component: admission-controller
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nephoran-webhook
+  template:
+    metadata:
+      labels:
+        app: nephoran-webhook
+        app.kubernetes.io/name: nephoran-webhook
+        app.kubernetes.io/component: admission-controller
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: webhook
+        image: nephoran-webhook:latest
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: health
+          protocol: TCP
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          capabilities:
+            drop:
+            - "ALL"
+        # Low resources for webhook validation
+        resources:
+          limits:
+            cpu: 200m
+            memory: 256Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        env:
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: WEBHOOK_PORT
+          value: "9443"
+        - name: METRICS_PORT
+          value: "8080"
+        - name: HEALTH_PORT
+          value: "8081"
+        - name: WEBHOOK_CERT_DIR
+          value: "/tmp/k8s-webhook-server/serving-certs"
+        - name: ENABLE_STRICT_VALIDATION
+          value: "true"
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: webhook-certs
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true
+      serviceAccountName: nephoran-webhook
+      terminationGracePeriodSeconds: 10
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: webhook-certs
+        secret:
+          secretName: nephoran-webhook-server-cert
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - nephoran-webhook
+              topologyKey: kubernetes.io/hostname
+      tolerations:
+      - key: "nephoran.com/control-plane"
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nephoran-webhook-service
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-webhook
+    app.kubernetes.io/component: admission-controller
+spec:
+  ports:
+  - port: 443
+    targetPort: 9443
+    protocol: TCP
+    name: webhook-server
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: metrics
+  selector:
+    app: nephoran-webhook
+  type: ClusterIP
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: nephoran-webhook-pdb
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-webhook
+    app.kubernetes.io/component: admission-controller
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: nephoran-webhook
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionWebhook
+metadata:
+  name: nephoran-validating-webhook
+  labels:
+    app.kubernetes.io/name: nephoran-webhook
+    app.kubernetes.io/component: admission-controller
+webhooks:
+- name: networkintent.nephoran.com
+  clientConfig:
+    service:
+      name: nephoran-webhook-service
+      namespace: nephoran-system
+      path: "/validate-networkintent"
+  rules:
+  - operations: ["CREATE", "UPDATE"]
+    apiGroups: ["nephoran.com"]
+    apiVersions: ["v1"]
+    resources: ["networkintents"]
+  admissionReviewVersions: ["v1", "v1beta1"]
+  sideEffects: None
+  failurePolicy: Fail
+  timeoutSeconds: 10

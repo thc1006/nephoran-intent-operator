@@ -18,41 +18,41 @@ import (
 // AdvancedConfigurationManager provides comprehensive O-RAN configuration management
 // following O-RAN.WG10.O1-Interface.0-v07.00 specification
 type AdvancedConfigurationManager struct {
-	config            *ConfigManagerConfig
-	versionStore      *ConfigurationVersionStore
-	templateEngine    *ConfigurationTemplateEngine
-	profileManager    *ConfigurationProfileManager
-	driftDetector     *ConfigurationDriftDetector
-	validationEngine  *ConfigurationValidationEngine
-	gitOpsManager     *GitOpsConfigManager
-	rollbackManager   *ConfigurationRollbackManager
-	bulkOperations    *BulkConfigurationManager
-	netconfClients    map[string]*NetconfClient
-	clientsMux        sync.RWMutex
-	yangRegistry      *ExtendedYANGModelRegistry
-	metrics           *ConfigMetrics
+	config           *ConfigManagerConfig
+	versionStore     *ConfigurationVersionStore
+	templateEngine   *ConfigurationTemplateEngine
+	profileManager   *ConfigurationProfileManager
+	driftDetector    *ConfigurationDriftDetector
+	validationEngine *ConfigurationValidationEngine
+	gitOpsManager    *GitOpsConfigManager
+	rollbackManager  *ConfigurationRollbackManager
+	bulkOperations   *BulkConfigurationManager
+	netconfClients   map[string]*NetconfClient
+	clientsMux       sync.RWMutex
+	yangRegistry     *ExtendedYANGModelRegistry
+	metrics          *ConfigMetrics
 }
 
 // ConfigManagerConfig holds configuration manager settings
 type ConfigManagerConfig struct {
 	MaxVersions          int
 	GitRepository        string
-	GitBranch           string
-	GitCredentials      *GitCredentials
+	GitBranch            string
+	GitCredentials       *GitCredentials
 	EnableDriftDetection bool
-	DriftCheckInterval  time.Duration
-	ValidationMode      string // STRICT, PERMISSIVE, DISABLED
-	BackupInterval      time.Duration
-	EnableBulkOps       bool
-	MaxBulkSize         int
+	DriftCheckInterval   time.Duration
+	ValidationMode       string // STRICT, PERMISSIVE, DISABLED
+	BackupInterval       time.Duration
+	EnableBulkOps        bool
+	MaxBulkSize          int
 }
 
 // GitCredentials holds Git authentication information
 type GitCredentials struct {
-	Username    string
-	Password    string
-	PrivateKey  []byte
-	TokenAuth   string
+	Username   string
+	Password   string
+	PrivateKey []byte
+	TokenAuth  string
 }
 
 // ConfigurationVersionStore manages configuration versions and history
@@ -82,20 +82,20 @@ type ConfigurationVersion struct {
 
 // ConfigurationSnapshot represents a point-in-time system snapshot
 type ConfigurationSnapshot struct {
-	ID          string                            `json:"id"`
-	Timestamp   time.Time                         `json:"timestamp"`
-	Description string                            `json:"description"`
-	Elements    map[string]*ConfigurationVersion  `json:"elements"`
-	SystemState map[string]interface{}            `json:"system_state"`
-	Creator     string                            `json:"creator"`
+	ID          string                           `json:"id"`
+	Timestamp   time.Time                        `json:"timestamp"`
+	Description string                           `json:"description"`
+	Elements    map[string]*ConfigurationVersion `json:"elements"`
+	SystemState map[string]interface{}           `json:"system_state"`
+	Creator     string                           `json:"creator"`
 }
 
 // ConfigurationTemplateEngine manages configuration templates and profiles
 type ConfigurationTemplateEngine struct {
-	templates    map[string]*ConfigurationTemplate
-	generators   map[string]TemplateGenerator
-	processors   map[string]TemplateProcessor
-	mutex        sync.RWMutex
+	templates  map[string]*ConfigurationTemplate
+	generators map[string]TemplateGenerator
+	processors map[string]TemplateProcessor
+	mutex      sync.RWMutex
 }
 
 // ConfigurationTemplate defines a configuration template
@@ -154,17 +154,17 @@ type ConfigurationProfileManager struct {
 
 // ConfigurationProfile defines a configuration profile
 type ConfigurationProfile struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Description  string                 `json:"description"`
-	FunctionType string                 `json:"function_type"` // O-RU, O-DU, O-CU-CP, etc.
-	Environment  string                 `json:"environment"`   // DEV, TEST, PROD
-	BaseProfile  string                 `json:"base_profile,omitempty"`
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Description   string                 `json:"description"`
+	FunctionType  string                 `json:"function_type"` // O-RU, O-DU, O-CU-CP, etc.
+	Environment   string                 `json:"environment"`   // DEV, TEST, PROD
+	BaseProfile   string                 `json:"base_profile,omitempty"`
 	Configuration map[string]interface{} `json:"configuration"`
-	Overrides    map[string]interface{} `json:"overrides"`
-	Tags         []string               `json:"tags"`
-	CreatedAt    time.Time              `json:"created_at"`
-	UpdatedAt    time.Time              `json:"updated_at"`
+	Overrides     map[string]interface{} `json:"overrides"`
+	Tags          []string               `json:"tags"`
+	CreatedAt     time.Time              `json:"created_at"`
+	UpdatedAt     time.Time              `json:"updated_at"`
 }
 
 // ProfileSet groups related profiles
@@ -191,46 +191,46 @@ type ProfileNode struct {
 
 // ConfigurationDriftDetector monitors configuration changes
 type ConfigurationDriftDetector struct {
-	baselines       map[string]*ConfigurationBaseline
-	driftPolicies   map[string]*DriftPolicy
-	detectionRules  []*DriftDetectionRule
-	mutex           sync.RWMutex
-	checkInterval   time.Duration
-	running         bool
-	stopChan        chan struct{}
+	baselines      map[string]*ConfigurationBaseline
+	driftPolicies  map[string]*DriftPolicy
+	detectionRules []*DriftDetectionRule
+	mutex          sync.RWMutex
+	checkInterval  time.Duration
+	running        bool
+	stopChan       chan struct{}
 }
 
 // ConfigurationBaseline represents expected configuration state
 type ConfigurationBaseline struct {
-	ID            string                 `json:"id"`
-	ElementID     string                 `json:"element_id"`
-	BaselineData  map[string]interface{} `json:"baseline_data"`
-	CreatedAt     time.Time              `json:"created_at"`
-	UpdatedAt     time.Time              `json:"updated_at"`
-	ChecksumSHA256 string                `json:"checksum_sha256"`
+	ID             string                 `json:"id"`
+	ElementID      string                 `json:"element_id"`
+	BaselineData   map[string]interface{} `json:"baseline_data"`
+	CreatedAt      time.Time              `json:"created_at"`
+	UpdatedAt      time.Time              `json:"updated_at"`
+	ChecksumSHA256 string                 `json:"checksum_sha256"`
 }
 
 // DriftPolicy defines how to handle configuration drift
 type DriftPolicy struct {
-	ID               string        `json:"id"`
-	Name             string        `json:"name"`
-	Action           string        `json:"action"` // ALERT, AUTO_CORRECT, IGNORE
-	Severity         string        `json:"severity"`
-	NotificationChannels []string `json:"notification_channels"`
-	AutoCorrectDelay time.Duration `json:"auto_correct_delay"`
-	Enabled          bool          `json:"enabled"`
+	ID                   string        `json:"id"`
+	Name                 string        `json:"name"`
+	Action               string        `json:"action"` // ALERT, AUTO_CORRECT, IGNORE
+	Severity             string        `json:"severity"`
+	NotificationChannels []string      `json:"notification_channels"`
+	AutoCorrectDelay     time.Duration `json:"auto_correct_delay"`
+	Enabled              bool          `json:"enabled"`
 }
 
 // DriftDetectionRule defines rules for detecting configuration drift
 type DriftDetectionRule struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Pattern     string                 `json:"pattern"` // XPath or JSONPath pattern
-	Condition   string                 `json:"condition"` // EQ, NE, GT, LT, REGEX
-	ExpectedValue interface{}          `json:"expected_value"`
-	Tolerance   float64                `json:"tolerance,omitempty"`
-	Enabled     bool                   `json:"enabled"`
-	Tags        []string               `json:"tags"`
+	ID            string      `json:"id"`
+	Name          string      `json:"name"`
+	Pattern       string      `json:"pattern"`   // XPath or JSONPath pattern
+	Condition     string      `json:"condition"` // EQ, NE, GT, LT, REGEX
+	ExpectedValue interface{} `json:"expected_value"`
+	Tolerance     float64     `json:"tolerance,omitempty"`
+	Enabled       bool        `json:"enabled"`
+	Tags          []string    `json:"tags"`
 }
 
 // ConfigurationValidationEngine validates configurations
@@ -251,24 +251,24 @@ type ConfigurationValidator interface {
 
 // ValidationRule defines validation rules
 type ValidationRule struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	Type        string                 `json:"type"` // SYNTAX, SEMANTIC, BUSINESS
-	Severity    string                 `json:"severity"` // ERROR, WARNING, INFO
-	Pattern     string                 `json:"pattern"`
-	Condition   string                 `json:"condition"`
-	Message     string                 `json:"message"`
-	Enabled     bool                   `json:"enabled"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	ID         string                 `json:"id"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"`     // SYNTAX, SEMANTIC, BUSINESS
+	Severity   string                 `json:"severity"` // ERROR, WARNING, INFO
+	Pattern    string                 `json:"pattern"`
+	Condition  string                 `json:"condition"`
+	Message    string                 `json:"message"`
+	Enabled    bool                   `json:"enabled"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 // ValidationResult represents validation results
 type ValidationResult struct {
-	Valid     bool                `json:"valid"`
-	Errors    []*ValidationError  `json:"errors"`
-	Warnings  []*ValidationError  `json:"warnings"`
-	Summary   string              `json:"summary"`
-	Timestamp time.Time           `json:"timestamp"`
+	Valid     bool               `json:"valid"`
+	Errors    []*ValidationError `json:"errors"`
+	Warnings  []*ValidationError `json:"warnings"`
+	Summary   string             `json:"summary"`
+	Timestamp time.Time          `json:"timestamp"`
 }
 
 // ValidationError represents a validation error
@@ -287,13 +287,13 @@ type CustomValidator interface {
 
 // GitOpsConfigManager integrates with Git for configuration management
 type GitOpsConfigManager struct {
-	repository       *git.Repository
-	config           *ConfigManagerConfig
-	localPath        string
-	remoteName       string
-	branch           string
-	lastSync         time.Time
-	mutex            sync.RWMutex
+	repository *git.Repository
+	config     *ConfigManagerConfig
+	localPath  string
+	remoteName string
+	branch     string
+	lastSync   time.Time
+	mutex      sync.RWMutex
 }
 
 // ConfigurationRollbackManager handles configuration rollbacks
@@ -320,25 +320,25 @@ type RollbackOperation struct {
 
 // BulkConfigurationManager handles bulk configuration operations
 type BulkConfigurationManager struct {
-	operations   map[string]*BulkOperation
-	maxBulkSize  int
-	workerPool   *WorkerPool
-	mutex        sync.RWMutex
+	operations  map[string]*BulkOperation
+	maxBulkSize int
+	workerPool  *WorkerPool
+	mutex       sync.RWMutex
 }
 
 // BulkOperation represents a bulk configuration operation
 type BulkOperation struct {
-	ID           string                    `json:"id"`
-	Type         string                    `json:"type"` // APPLY, VALIDATE, BACKUP
-	Status       string                    `json:"status"`
-	Progress     float64                   `json:"progress"`
-	StartTime    time.Time                 `json:"start_time"`
-	EndTime      time.Time                 `json:"end_time"`
-	Elements     []string                  `json:"elements"`
-	Operations   []*ConfigurationOperation `json:"operations"`
+	ID           string                      `json:"id"`
+	Type         string                      `json:"type"` // APPLY, VALIDATE, BACKUP
+	Status       string                      `json:"status"`
+	Progress     float64                     `json:"progress"`
+	StartTime    time.Time                   `json:"start_time"`
+	EndTime      time.Time                   `json:"end_time"`
+	Elements     []string                    `json:"elements"`
+	Operations   []*ConfigurationOperation   `json:"operations"`
 	Results      map[string]*OperationResult `json:"results"`
-	ErrorCount   int                       `json:"error_count"`
-	SuccessCount int                       `json:"success_count"`
+	ErrorCount   int                         `json:"error_count"`
+	SuccessCount int                         `json:"success_count"`
 }
 
 // ConfigurationOperation represents a single configuration operation
@@ -351,56 +351,56 @@ type ConfigurationOperation struct {
 
 // OperationResult represents the result of a configuration operation
 type OperationResult struct {
-	Success       bool                   `json:"success"`
-	Error         string                 `json:"error,omitempty"`
-	ValidationResult *ValidationResult   `json:"validation_result,omitempty"`
-	AppliedAt     time.Time              `json:"applied_at"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	Success          bool                   `json:"success"`
+	Error            string                 `json:"error,omitempty"`
+	ValidationResult *ValidationResult      `json:"validation_result,omitempty"`
+	AppliedAt        time.Time              `json:"applied_at"`
+	Metadata         map[string]interface{} `json:"metadata"`
 }
 
 // WorkerPool manages concurrent operation execution
 type WorkerPool struct {
-	workers   int
-	taskChan  chan *ConfigurationOperation
+	workers    int
+	taskChan   chan *ConfigurationOperation
 	resultChan chan *OperationResult
-	quit      chan struct{}
-	wg        sync.WaitGroup
+	quit       chan struct{}
+	wg         sync.WaitGroup
 }
 
 // ConfigMetrics holds Prometheus metrics for configuration management
 type ConfigMetrics struct {
-	ConfigChanges       prometheus.Counter
-	ConfigValidations   prometheus.Counter  
-	ValidationErrors    prometheus.Counter
-	DriftDetections     prometheus.Counter
-	RollbackOperations  prometheus.Counter
-	BulkOperations      prometheus.Counter
+	ConfigChanges      prometheus.Counter
+	ConfigValidations  prometheus.Counter
+	ValidationErrors   prometheus.Counter
+	DriftDetections    prometheus.Counter
+	RollbackOperations prometheus.Counter
+	BulkOperations     prometheus.Counter
 }
 
 // NewAdvancedConfigurationManager creates a new advanced configuration manager
 func NewAdvancedConfigurationManager(config *ConfigManagerConfig, yangRegistry *ExtendedYANGModelRegistry) *AdvancedConfigurationManager {
 	if config == nil {
 		config = &ConfigManagerConfig{
-			MaxVersions:         100,
+			MaxVersions:          100,
 			EnableDriftDetection: true,
-			DriftCheckInterval:  5 * time.Minute,
-			ValidationMode:      "STRICT",
-			BackupInterval:      24 * time.Hour,
-			EnableBulkOps:       true,
-			MaxBulkSize:         1000,
+			DriftCheckInterval:   5 * time.Minute,
+			ValidationMode:       "STRICT",
+			BackupInterval:       24 * time.Hour,
+			EnableBulkOps:        true,
+			MaxBulkSize:          1000,
 		}
 	}
 
 	acm := &AdvancedConfigurationManager{
-		config:            config,
-		versionStore:      NewConfigurationVersionStore(config.MaxVersions),
-		templateEngine:    NewConfigurationTemplateEngine(),
-		profileManager:    NewConfigurationProfileManager(),
-		validationEngine:  NewConfigurationValidationEngine(yangRegistry),
-		rollbackManager:   NewConfigurationRollbackManager(),
-		netconfClients:    make(map[string]*NetconfClient),
-		yangRegistry:      yangRegistry,
-		metrics:           initializeConfigMetrics(),
+		config:           config,
+		versionStore:     NewConfigurationVersionStore(config.MaxVersions),
+		templateEngine:   NewConfigurationTemplateEngine(),
+		profileManager:   NewConfigurationProfileManager(),
+		validationEngine: NewConfigurationValidationEngine(yangRegistry),
+		rollbackManager:  NewConfigurationRollbackManager(),
+		netconfClients:   make(map[string]*NetconfClient),
+		yangRegistry:     yangRegistry,
+		metrics:          initializeConfigMetrics(),
 	}
 
 	if config.EnableDriftDetection {
@@ -570,11 +570,11 @@ func (acm *AdvancedConfigurationManager) ApplyConfigurationProfile(ctx context.C
 
 	// Apply resolved configuration
 	metadata := map[string]string{
-		"profile_id":       profileID,
-		"profile_name":     profile.Name,
-		"function_type":    profile.FunctionType,
-		"environment":      profile.Environment,
-		"source":           "profile",
+		"profile_id":    profileID,
+		"profile_name":  profile.Name,
+		"function_type": profile.FunctionType,
+		"environment":   profile.Environment,
+		"source":        "profile",
 	}
 
 	return acm.ApplyConfiguration(ctx, elementID, resolvedConfig, metadata)
@@ -776,7 +776,7 @@ func initializeConfigMetrics() *ConfigMetrics {
 			Help: "Total number of configuration changes",
 		}),
 		ConfigValidations: promauto.NewCounter(prometheus.CounterOpts{
-			Name: "oran_config_validations_total", 
+			Name: "oran_config_validations_total",
 			Help: "Total number of configuration validations",
 		}),
 		ValidationErrors: promauto.NewCounter(prometheus.CounterOpts{
@@ -830,7 +830,7 @@ func (cvs *ConfigurationVersionStore) GetVersion(versionID string) *Configuratio
 func (cvs *ConfigurationVersionStore) GetLatestVersion(elementID string) *ConfigurationVersion {
 	cvs.mutex.RLock()
 	defer cvs.mutex.RUnlock()
-	
+
 	var latest *ConfigurationVersion
 	for _, version := range cvs.versions {
 		if version.ElementID == elementID {
@@ -845,30 +845,30 @@ func (cvs *ConfigurationVersionStore) GetLatestVersion(elementID string) *Config
 func (cvs *ConfigurationVersionStore) GetVersionHistory(elementID string, limit, offset int) []*ConfigurationVersion {
 	cvs.mutex.RLock()
 	defer cvs.mutex.RUnlock()
-	
+
 	var versions []*ConfigurationVersion
 	for _, version := range cvs.versions {
 		if version.ElementID == elementID {
 			versions = append(versions, version)
 		}
 	}
-	
+
 	// Sort by timestamp descending
 	sort.Slice(versions, func(i, j int) bool {
 		return versions[i].Timestamp.After(versions[j].Timestamp)
 	})
-	
+
 	// Apply pagination
 	start := offset
 	if start > len(versions) {
 		start = len(versions)
 	}
-	
+
 	end := offset + limit
 	if end > len(versions) {
 		end = len(versions)
 	}
-	
+
 	return versions[start:end]
 }
 
@@ -942,11 +942,11 @@ func (cve *ConfigurationValidationEngine) ValidateConfiguration(ctx context.Cont
 
 func NewConfigurationDriftDetector(checkInterval time.Duration) *ConfigurationDriftDetector {
 	return &ConfigurationDriftDetector{
-		baselines:       make(map[string]*ConfigurationBaseline),
-		driftPolicies:   make(map[string]*DriftPolicy),
-		detectionRules:  make([]*DriftDetectionRule, 0),
-		checkInterval:   checkInterval,
-		stopChan:        make(chan struct{}),
+		baselines:      make(map[string]*ConfigurationBaseline),
+		driftPolicies:  make(map[string]*DriftPolicy),
+		detectionRules: make([]*DriftDetectionRule, 0),
+		checkInterval:  checkInterval,
+		stopChan:       make(chan struct{}),
 	}
 }
 
@@ -958,20 +958,20 @@ func (cdd *ConfigurationDriftDetector) UpdateBaseline(elementID string, baseline
 
 // DriftDetectionResult represents drift detection results
 type DriftDetectionResult struct {
-	ElementID   string                 `json:"element_id"`
-	HasDrift    bool                   `json:"has_drift"`
-	DriftItems  []*DriftItem           `json:"drift_items"`
-	DetectedAt  time.Time              `json:"detected_at"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	ElementID  string                 `json:"element_id"`
+	HasDrift   bool                   `json:"has_drift"`
+	DriftItems []*DriftItem           `json:"drift_items"`
+	DetectedAt time.Time              `json:"detected_at"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // DriftItem represents a specific configuration drift
 type DriftItem struct {
-	Path         string      `json:"path"`
+	Path          string      `json:"path"`
 	ExpectedValue interface{} `json:"expected_value"`
 	ActualValue   interface{} `json:"actual_value"`
-	Severity     string      `json:"severity"`
-	RuleID       string      `json:"rule_id"`
+	Severity      string      `json:"severity"`
+	RuleID        string      `json:"rule_id"`
 }
 
 func (cdd *ConfigurationDriftDetector) DetectDrift(ctx context.Context, elementID string) (*DriftDetectionResult, error) {
@@ -1038,11 +1038,11 @@ func (bcm *BulkConfigurationManager) StartBulkOperation(ctx context.Context, ope
 		Results:      make(map[string]*OperationResult),
 		SuccessCount: len(operations),
 	}
-	
+
 	bcm.mutex.Lock()
 	bcm.operations[bulkOp.ID] = bulkOp
 	bcm.mutex.Unlock()
-	
+
 	return bulkOp, nil
 }
 

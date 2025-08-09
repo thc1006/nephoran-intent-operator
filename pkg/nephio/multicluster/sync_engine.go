@@ -8,9 +8,8 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
+	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
 
 // SyncEngine manages synchronization of packages across clusters
@@ -21,11 +20,11 @@ type SyncEngine struct {
 
 // SyncOptions configuration for package synchronization
 type SyncOptions struct {
-	SyncMethod          SyncMethod
-	Timeout             time.Duration
-	RetryAttempts       int
-	ConflictResolution  ConflictResolutionStrategy
-	ValidationMode      ValidationMode
+	SyncMethod         SyncMethod
+	Timeout            time.Duration
+	RetryAttempts      int
+	ConflictResolution ConflictResolutionStrategy
+	ValidationMode     ValidationMode
 }
 
 // SyncMethod defines different synchronization approaches
@@ -41,9 +40,9 @@ const (
 type ConflictResolutionStrategy string
 
 const (
-	ResolutionStrategyMerge        ConflictResolutionStrategy = "merge"
-	ResolutionStrategyOverwrite    ConflictResolutionStrategy = "overwrite"
-	ResolutionStrategyReject       ConflictResolutionStrategy = "reject"
+	ResolutionStrategyMerge     ConflictResolutionStrategy = "merge"
+	ResolutionStrategyOverwrite ConflictResolutionStrategy = "overwrite"
+	ResolutionStrategyReject    ConflictResolutionStrategy = "reject"
 )
 
 // ValidationMode determines how package validation is performed
@@ -127,8 +126,8 @@ func (se *SyncEngine) performSync(
 		}
 
 		lastErr = err
-		se.logger.Error(err, "Sync attempt failed", 
-			"cluster", targetCluster, 
+		se.logger.Error(err, "Sync attempt failed",
+			"cluster", targetCluster,
 			"attempt", attempt+1,
 			"syncMethod", opts.SyncMethod,
 		)
@@ -137,7 +136,7 @@ func (se *SyncEngine) performSync(
 		time.Sleep(time.Duration(1<<uint(attempt)) * time.Second)
 	}
 
-	return nil, fmt.Errorf("sync failed after %d attempts: %w", 
+	return nil, fmt.Errorf("sync failed after %d attempts: %w",
 		opts.RetryAttempts, lastErr)
 }
 

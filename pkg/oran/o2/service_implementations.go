@@ -373,7 +373,7 @@ func (s *O2IMSServiceImpl) CreateResource(ctx context.Context, req *models.Creat
 				Configuration:  req.Configuration,
 				Metadata:       req.Metadata,
 			}
-			
+
 			_, err := s.resourceManager.ProvisionResource(context.Background(), provisionReq)
 			if err != nil {
 				s.logger.Error("failed to provision resource",
@@ -700,13 +700,13 @@ func (is *InventoryServiceImpl) DiscoverInfrastructure(ctx context.Context, prov
 
 	// Create discovery result
 	discovery := &InfrastructureDiscovery{
-		ProviderID:  string(provider),
-		DiscoveryID: fmt.Sprintf("disc-%d", time.Now().Unix()),
-		Status:      "IN_PROGRESS",
-		StartedAt:   time.Now(),
-		Resources:   []*DiscoveredResource{},
+		ProviderID:    string(provider),
+		DiscoveryID:   fmt.Sprintf("disc-%d", time.Now().Unix()),
+		Status:        "IN_PROGRESS",
+		StartedAt:     time.Now(),
+		Resources:     []*DiscoveredResource{},
 		ResourcePools: []*DiscoveredResourcePool{},
-		Summary:     &DiscoverySummary{},
+		Summary:       &DiscoverySummary{},
 	}
 
 	// In a real implementation, this would discover actual infrastructure

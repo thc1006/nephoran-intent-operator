@@ -22,10 +22,10 @@ type PaginationRequest struct {
 
 // PaginationResponse wraps paginated results
 type PaginationResponse struct {
-	Total       int64 `json:"total"`
-	Page        int   `json:"page"`
-	PageSize    int   `json:"page_size"`
-	TotalPages  int   `json:"total_pages"`
+	Total      int64 `json:"total"`
+	Page       int   `json:"page"`
+	PageSize   int   `json:"page_size"`
+	TotalPages int   `json:"total_pages"`
 }
 
 // PackageRevisionSpec represents the specification for a package revision
@@ -55,11 +55,11 @@ type Condition struct {
 
 // PackageRevision represents a complete package revision
 type PackageRevision struct {
-	ID         uuid.UUID            `json:"id"`
-	Spec       PackageRevisionSpec  `json:"spec"`
-	Status     PackageRevisionStatus `json:"status"`
-	CreatedAt  time.Time            `json:"created_at"`
-	UpdatedAt  time.Time            `json:"updated_at"`
+	ID        uuid.UUID             `json:"id"`
+	Spec      PackageRevisionSpec   `json:"spec"`
+	Status    PackageRevisionStatus `json:"status"`
+	CreatedAt time.Time             `json:"created_at"`
+	UpdatedAt time.Time             `json:"updated_at"`
 }
 
 // WorkloadCluster represents a managed workload cluster
@@ -75,7 +75,7 @@ type WorkloadCluster struct {
 // NetworkIntent represents a network configuration intent
 type NetworkIntent struct {
 	ID          uuid.UUID           `json:"id"`
-	Description string             `json:"description"`
+	Description string              `json:"description"`
 	Spec        NetworkIntentSpec   `json:"spec"`
 	Status      NetworkIntentStatus `json:"status"`
 	CreatedAt   time.Time           `json:"created_at"`
@@ -83,9 +83,9 @@ type NetworkIntent struct {
 
 // NetworkIntentSpec defines the desired network configuration
 type NetworkIntentSpec struct {
-	Type        string            `json:"type"`
-	Parameters  map[string]string `json:"parameters"`
-	TargetClusters []string       `json:"target_clusters"`
+	Type           string            `json:"type"`
+	Parameters     map[string]string `json:"parameters"`
+	TargetClusters []string          `json:"target_clusters"`
 }
 
 // NetworkIntentStatus represents the processing status of a network intent

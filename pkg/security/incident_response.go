@@ -18,44 +18,44 @@ import (
 
 // IncidentResponse manages security incident detection and response
 type IncidentResponse struct {
-	config       *IncidentConfig
-	logger       *slog.Logger
-	incidents    map[string]*SecurityIncident
-	playbooks    map[string]*ResponsePlaybook
-	escalation   *EscalationEngine
-	forensics    *ForensicsCollector
-	metrics      *IncidentMetrics
-	mutex        sync.RWMutex
-	stopChan     chan struct{}
+	config     *IncidentConfig
+	logger     *slog.Logger
+	incidents  map[string]*SecurityIncident
+	playbooks  map[string]*ResponsePlaybook
+	escalation *EscalationEngine
+	forensics  *ForensicsCollector
+	metrics    *IncidentMetrics
+	mutex      sync.RWMutex
+	stopChan   chan struct{}
 }
 
 // IncidentConfig holds incident response configuration
 type IncidentConfig struct {
-	EnableAutoResponse    bool          `json:"enable_auto_response"`
-	AutoResponseThreshold string        `json:"auto_response_threshold"` // Critical, High, Medium
-	MaxAutoActions        int           `json:"max_auto_actions"`
-	IncidentRetention     time.Duration `json:"incident_retention"`
-	EscalationTimeout     time.Duration `json:"escalation_timeout"`
-	ForensicsEnabled      bool          `json:"forensics_enabled"`
-	NotificationConfig    *NotificationConfig `json:"notification_config"`
+	EnableAutoResponse    bool                 `json:"enable_auto_response"`
+	AutoResponseThreshold string               `json:"auto_response_threshold"` // Critical, High, Medium
+	MaxAutoActions        int                  `json:"max_auto_actions"`
+	IncidentRetention     time.Duration        `json:"incident_retention"`
+	EscalationTimeout     time.Duration        `json:"escalation_timeout"`
+	ForensicsEnabled      bool                 `json:"forensics_enabled"`
+	NotificationConfig    *NotificationConfig  `json:"notification_config"`
 	IntegrationConfig     *IRIntegrationConfig `json:"integration_config"`
 	WebhookSecret         string               `json:"webhook_secret"`
 }
 
 // NotificationConfig holds notification settings
 type NotificationConfig struct {
-	EnableEmail    bool     `json:"enable_email"`
-	EnableSlack    bool     `json:"enable_slack"`
-	EnableSMS      bool     `json:"enable_sms"`
-	EnablePagerDuty bool    `json:"enable_pagerduty"`
-	Recipients     []string `json:"recipients"`
-	EscalationList []string `json:"escalation_list"`
+	EnableEmail     bool     `json:"enable_email"`
+	EnableSlack     bool     `json:"enable_slack"`
+	EnableSMS       bool     `json:"enable_sms"`
+	EnablePagerDuty bool     `json:"enable_pagerduty"`
+	Recipients      []string `json:"recipients"`
+	EscalationList  []string `json:"escalation_list"`
 }
 
 // IRIntegrationConfig holds integration settings for incident response
 type IRIntegrationConfig struct {
-	SIEM     *SIEMConfig     `json:"siem,omitempty"`
-	SOAR     *SOARConfig     `json:"soar,omitempty"`
+	SIEM      *SIEMConfig      `json:"siem,omitempty"`
+	SOAR      *SOARConfig      `json:"soar,omitempty"`
 	Ticketing *TicketingConfig `json:"ticketing,omitempty"`
 }
 
@@ -84,25 +84,25 @@ type TicketingConfig struct {
 
 // SecurityIncident represents a security incident
 type SecurityIncident struct {
-	ID            string                 `json:"id"`
-	Title         string                 `json:"title"`
-	Description   string                 `json:"description"`
-	Severity      string                 `json:"severity"`
-	Status        string                 `json:"status"`
-	Category      string                 `json:"category"`
-	Source        string                 `json:"source"`
-	DetectedAt    time.Time              `json:"detected_at"`
-	AcknowledgedAt *time.Time            `json:"acknowledged_at,omitempty"`
-	ResolvedAt    *time.Time             `json:"resolved_at,omitempty"`
-	Assignee      string                 `json:"assignee"`
-	Tags          []string               `json:"tags"`
-	Evidence      []*Evidence            `json:"evidence"`
-	Timeline      []*TimelineEvent       `json:"timeline"`
-	Actions       []*ResponseAction      `json:"actions"`
-	Artifacts     map[string]interface{} `json:"artifacts"`
-	MITRE         *MITREMapping          `json:"mitre,omitempty"`
-	Impact        *ImpactAssessment      `json:"impact"`
-	Remediation   *RemediationPlan       `json:"remediation"`
+	ID             string                 `json:"id"`
+	Title          string                 `json:"title"`
+	Description    string                 `json:"description"`
+	Severity       string                 `json:"severity"`
+	Status         string                 `json:"status"`
+	Category       string                 `json:"category"`
+	Source         string                 `json:"source"`
+	DetectedAt     time.Time              `json:"detected_at"`
+	AcknowledgedAt *time.Time             `json:"acknowledged_at,omitempty"`
+	ResolvedAt     *time.Time             `json:"resolved_at,omitempty"`
+	Assignee       string                 `json:"assignee"`
+	Tags           []string               `json:"tags"`
+	Evidence       []*Evidence            `json:"evidence"`
+	Timeline       []*TimelineEvent       `json:"timeline"`
+	Actions        []*ResponseAction      `json:"actions"`
+	Artifacts      map[string]interface{} `json:"artifacts"`
+	MITRE          *MITREMapping          `json:"mitre,omitempty"`
+	Impact         *ImpactAssessment      `json:"impact"`
+	Remediation    *RemediationPlan       `json:"remediation"`
 }
 
 // Evidence represents incident evidence
@@ -141,10 +141,10 @@ type ResponseAction struct {
 
 // MITREMapping represents MITRE ATT&CK framework mapping
 type MITREMapping struct {
-	Tactics     []string `json:"tactics"`
-	Techniques  []string `json:"techniques"`
+	Tactics       []string `json:"tactics"`
+	Techniques    []string `json:"techniques"`
 	SubTechniques []string `json:"sub_techniques"`
-	Confidence  float64  `json:"confidence"`
+	Confidence    float64  `json:"confidence"`
 }
 
 // ImpactAssessment represents the impact assessment of an incident
@@ -170,14 +170,14 @@ type RemediationPlan struct {
 
 // ResponsePlaybook represents an automated response playbook
 type ResponsePlaybook struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Description  string            `json:"description"`
+	ID           string             `json:"id"`
+	Name         string             `json:"name"`
+	Description  string             `json:"description"`
 	Triggers     []*PlaybookTrigger `json:"triggers"`
 	Actions      []*PlaybookAction  `json:"actions"`
-	Enabled      bool              `json:"enabled"`
-	Priority     int               `json:"priority"`
-	LastExecuted *time.Time        `json:"last_executed,omitempty"`
+	Enabled      bool               `json:"enabled"`
+	Priority     int                `json:"priority"`
+	LastExecuted *time.Time         `json:"last_executed,omitempty"`
 }
 
 // PlaybookTrigger represents a playbook trigger condition
@@ -193,25 +193,25 @@ type PlaybookAction struct {
 	Description string                 `json:"description"`
 	Parameters  map[string]interface{} `json:"parameters"`
 	Timeout     time.Duration          `json:"timeout"`
-	RetryCount  int                   `json:"retry_count"`
-	OnFailure   string                `json:"on_failure"` // continue, abort, escalate
+	RetryCount  int                    `json:"retry_count"`
+	OnFailure   string                 `json:"on_failure"` // continue, abort, escalate
 }
 
 // EscalationEngine handles incident escalation
 type EscalationEngine struct {
-	config    *IncidentConfig
-	logger    *slog.Logger
-	rules     []*EscalationRule
-	mutex     sync.RWMutex
+	config *IncidentConfig
+	logger *slog.Logger
+	rules  []*EscalationRule
+	mutex  sync.RWMutex
 }
 
 // EscalationRule represents an escalation rule
 type EscalationRule struct {
-	ID          string        `json:"id"`
-	Conditions  []*Condition  `json:"conditions"`
-	Actions     []*Action     `json:"actions"`
-	Timeout     time.Duration `json:"timeout"`
-	Enabled     bool          `json:"enabled"`
+	ID         string        `json:"id"`
+	Conditions []*Condition  `json:"conditions"`
+	Actions    []*Action     `json:"actions"`
+	Timeout    time.Duration `json:"timeout"`
+	Enabled    bool          `json:"enabled"`
 }
 
 // Condition represents an escalation condition
@@ -242,17 +242,17 @@ type EvidenceStorage struct {
 
 // IncidentMetrics tracks incident response metrics
 type IncidentMetrics struct {
-	TotalIncidents       int64             `json:"total_incidents"`
-	OpenIncidents        int64             `json:"open_incidents"`
-	ResolvedIncidents    int64             `json:"resolved_incidents"`
-	IncidentsBySeverity  map[string]int64  `json:"incidents_by_severity"`
-	IncidentsByCategory  map[string]int64  `json:"incidents_by_category"`
-	MTTR                 time.Duration     `json:"mttr"` // Mean Time To Resolution
-	MTTA                 time.Duration     `json:"mtta"` // Mean Time To Acknowledgment
-	AutomatedActions     int64             `json:"automated_actions"`
-	EscalatedIncidents   int64             `json:"escalated_incidents"`
-	LastIncidentTime     time.Time         `json:"last_incident_time"`
-	mutex                sync.RWMutex
+	TotalIncidents      int64            `json:"total_incidents"`
+	OpenIncidents       int64            `json:"open_incidents"`
+	ResolvedIncidents   int64            `json:"resolved_incidents"`
+	IncidentsBySeverity map[string]int64 `json:"incidents_by_severity"`
+	IncidentsByCategory map[string]int64 `json:"incidents_by_category"`
+	MTTR                time.Duration    `json:"mttr"` // Mean Time To Resolution
+	MTTA                time.Duration    `json:"mtta"` // Mean Time To Acknowledgment
+	AutomatedActions    int64            `json:"automated_actions"`
+	EscalatedIncidents  int64            `json:"escalated_incidents"`
+	LastIncidentTime    time.Time        `json:"last_incident_time"`
+	mutex               sync.RWMutex
 }
 
 // NewIncidentResponse creates a new incident response system
@@ -491,15 +491,15 @@ func (ir *IncidentResponse) ListIncidents(filter *IncidentFilter) ([]*SecurityIn
 
 // IncidentFilter represents incident filtering criteria
 type IncidentFilter struct {
-	Severity   string    `json:"severity,omitempty"`
-	Status     string    `json:"status,omitempty"`
-	Category   string    `json:"category,omitempty"`
-	Assignee   string    `json:"assignee,omitempty"`
-	Source     string    `json:"source,omitempty"`
-	FromDate   time.Time `json:"from_date,omitempty"`
-	ToDate     time.Time `json:"to_date,omitempty"`
-	Tags       []string  `json:"tags,omitempty"`
-	Limit      int       `json:"limit,omitempty"`
+	Severity string    `json:"severity,omitempty"`
+	Status   string    `json:"status,omitempty"`
+	Category string    `json:"category,omitempty"`
+	Assignee string    `json:"assignee,omitempty"`
+	Source   string    `json:"source,omitempty"`
+	FromDate time.Time `json:"from_date,omitempty"`
+	ToDate   time.Time `json:"to_date,omitempty"`
+	Tags     []string  `json:"tags,omitempty"`
+	Limit    int       `json:"limit,omitempty"`
 }
 
 // AddEvidence adds evidence to an incident
@@ -569,7 +569,7 @@ func (ir *IncidentResponse) ExecutePlaybook(ctx context.Context, incidentID, pla
 			responseAction.Status = "failed"
 			responseAction.Result = err.Error()
 			ir.logger.Error("Playbook action failed", "error", err, "action", action.Type)
-			
+
 			if action.OnFailure == "abort" {
 				break
 			}
@@ -755,13 +755,13 @@ func (ir *IncidentResponse) updateMetrics(incident *SecurityIncident, action str
 	case "resolved":
 		ir.metrics.OpenIncidents--
 		ir.metrics.ResolvedIncidents++
-		
+
 		// Calculate MTTR
 		if incident.ResolvedAt != nil {
 			resolution_time := incident.ResolvedAt.Sub(incident.DetectedAt)
 			ir.metrics.MTTR = (ir.metrics.MTTR*time.Duration(ir.metrics.ResolvedIncidents-1) + resolution_time) / time.Duration(ir.metrics.ResolvedIncidents)
 		}
-		
+
 		// Calculate MTTA
 		if incident.AcknowledgedAt != nil {
 			ack_time := incident.AcknowledgedAt.Sub(incident.DetectedAt)
@@ -924,7 +924,7 @@ func generateActionID() string {
 func (ir *IncidentResponse) GetMetrics() *IncidentMetrics {
 	ir.metrics.mutex.RLock()
 	defer ir.metrics.mutex.RUnlock()
-	
+
 	metrics := *ir.metrics
 	return &metrics
 }
@@ -961,14 +961,14 @@ func (fc *ForensicsCollector) CollectEvidence(ctx context.Context, incident *Sec
 
 	// Collect different types of evidence
 	evidenceTypes := []string{"logs", "network", "system", "memory"}
-	
+
 	for _, evidenceType := range evidenceTypes {
 		evidence, err := fc.collectEvidenceType(ctx, incident, evidenceType)
 		if err != nil {
 			fc.logger.Error("Failed to collect evidence", "type", evidenceType, "error", err)
 			continue
 		}
-		
+
 		if evidence != nil {
 			fc.storage.mutex.Lock()
 			fc.storage.artifacts[evidence.ID] = evidence

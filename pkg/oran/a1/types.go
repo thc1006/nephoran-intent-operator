@@ -16,7 +16,7 @@ type A1Interface string
 
 const (
 	A1PolicyInterface     A1Interface = "A1-P"  // Policy interface
-	A1ConsumerInterface   A1Interface = "A1-C"  // Consumer interface  
+	A1ConsumerInterface   A1Interface = "A1-C"  // Consumer interface
 	A1EnrichmentInterface A1Interface = "A1-EI" // Enrichment Information interface
 )
 
@@ -53,8 +53,8 @@ type PolicyInstance struct {
 // PolicyInstanceInfo provides additional metadata for policy instances
 type PolicyInstanceInfo struct {
 	NotificationDestination string                 `json:"notification_destination,omitempty"`
-	RequestID              string                 `json:"request_id,omitempty"`
-	AdditionalParams       map[string]interface{} `json:"additional_params,omitempty"`
+	RequestID               string                 `json:"request_id,omitempty"`
+	AdditionalParams        map[string]interface{} `json:"additional_params,omitempty"`
 }
 
 // PolicyStatus represents the status of an O-RAN A1 policy instance
@@ -81,58 +81,58 @@ type EnrichmentInfoType struct {
 
 // EnrichmentInfoJob represents A1-EI job definition per O-RAN specification
 type EnrichmentInfoJob struct {
-	EiJobID          string                 `json:"ei_job_id" validate:"required"`
-	EiTypeID         string                 `json:"ei_type_id" validate:"required"`
-	EiJobData        map[string]interface{} `json:"ei_job_data" validate:"required"`
-	TargetURI        string                 `json:"target_uri" validate:"required,url"`
-	JobOwner         string                 `json:"job_owner" validate:"required"`
-	JobStatusURL     string                 `json:"job_status_url,omitempty"`
-	JobDefinition    EnrichmentJobDef       `json:"job_definition,omitempty"`
-	CreatedAt        time.Time              `json:"created_at,omitempty"`
-	ModifiedAt       time.Time              `json:"modified_at,omitempty"`
-	LastExecutedAt   time.Time              `json:"last_executed_at,omitempty"`
+	EiJobID        string                 `json:"ei_job_id" validate:"required"`
+	EiTypeID       string                 `json:"ei_type_id" validate:"required"`
+	EiJobData      map[string]interface{} `json:"ei_job_data" validate:"required"`
+	TargetURI      string                 `json:"target_uri" validate:"required,url"`
+	JobOwner       string                 `json:"job_owner" validate:"required"`
+	JobStatusURL   string                 `json:"job_status_url,omitempty"`
+	JobDefinition  EnrichmentJobDef       `json:"job_definition,omitempty"`
+	CreatedAt      time.Time              `json:"created_at,omitempty"`
+	ModifiedAt     time.Time              `json:"modified_at,omitempty"`
+	LastExecutedAt time.Time              `json:"last_executed_at,omitempty"`
 }
 
 // EnrichmentJobDef provides additional job definition parameters
 type EnrichmentJobDef struct {
-	DeliveryInfo         []DeliveryInfo         `json:"delivery_info,omitempty"`
-	JobParameters        map[string]interface{} `json:"job_parameters,omitempty"`
-	JobResultSchema      map[string]interface{} `json:"job_result_schema,omitempty"`
-	StatusNotificationURI string                `json:"status_notification_uri,omitempty"`
+	DeliveryInfo          []DeliveryInfo         `json:"delivery_info,omitempty"`
+	JobParameters         map[string]interface{} `json:"job_parameters,omitempty"`
+	JobResultSchema       map[string]interface{} `json:"job_result_schema,omitempty"`
+	StatusNotificationURI string                 `json:"status_notification_uri,omitempty"`
 }
 
 // DeliveryInfo specifies how enrichment information should be delivered
 type DeliveryInfo struct {
-	TopicName      string                 `json:"topic_name,omitempty"`
+	TopicName       string                 `json:"topic_name,omitempty"`
 	BootStrapServer string                 `json:"boot_strap_server,omitempty"`
-	AdditionalInfo map[string]interface{} `json:"additional_info,omitempty"`
+	AdditionalInfo  map[string]interface{} `json:"additional_info,omitempty"`
 }
 
 // EnrichmentInfoJobStatus represents the status of an EI job
 type EnrichmentInfoJobStatus struct {
-	Status         string                 `json:"status" validate:"required,oneof=ENABLED DISABLED"`
-	Producers      []string               `json:"producers,omitempty"`
-	LastUpdated    time.Time              `json:"last_updated,omitempty"`
-	StatusInfo     map[string]interface{} `json:"status_info,omitempty"`
+	Status      string                 `json:"status" validate:"required,oneof=ENABLED DISABLED"`
+	Producers   []string               `json:"producers,omitempty"`
+	LastUpdated time.Time              `json:"last_updated,omitempty"`
+	StatusInfo  map[string]interface{} `json:"status_info,omitempty"`
 }
 
 // ConsumerInfo represents A1-C consumer information
 type ConsumerInfo struct {
-	ConsumerID   string              `json:"consumer_id" validate:"required"`
-	ConsumerName string              `json:"consumer_name,omitempty"`
-	CallbackURL  string              `json:"callback_url" validate:"required,url"`
-	Capabilities []string            `json:"capabilities,omitempty"`
-	Metadata     ConsumerMetadata    `json:"metadata,omitempty"`
-	CreatedAt    time.Time           `json:"created_at,omitempty"`
-	ModifiedAt   time.Time           `json:"modified_at,omitempty"`
+	ConsumerID   string           `json:"consumer_id" validate:"required"`
+	ConsumerName string           `json:"consumer_name,omitempty"`
+	CallbackURL  string           `json:"callback_url" validate:"required,url"`
+	Capabilities []string         `json:"capabilities,omitempty"`
+	Metadata     ConsumerMetadata `json:"metadata,omitempty"`
+	CreatedAt    time.Time        `json:"created_at,omitempty"`
+	ModifiedAt   time.Time        `json:"modified_at,omitempty"`
 }
 
 // ConsumerMetadata provides additional consumer metadata
 type ConsumerMetadata struct {
-	Version         string                 `json:"version,omitempty"`
-	Description     string                 `json:"description,omitempty"`
-	SupportedTypes  []int                  `json:"supported_types,omitempty"`
-	AdditionalInfo  map[string]interface{} `json:"additional_info,omitempty"`
+	Version        string                 `json:"version,omitempty"`
+	Description    string                 `json:"description,omitempty"`
+	SupportedTypes []int                  `json:"supported_types,omitempty"`
+	AdditionalInfo map[string]interface{} `json:"additional_info,omitempty"`
 }
 
 // PolicyNotification represents A1 policy notifications
@@ -148,50 +148,50 @@ type PolicyNotification struct {
 
 // A1ServerConfig holds configuration for the A1 server
 type A1ServerConfig struct {
-	Port                    int                        `json:"port" validate:"required,min=1,max=65535"`
-	Host                    string                     `json:"host"`
-	TLSEnabled              bool                       `json:"tls_enabled"`
-	CertFile                string                     `json:"cert_file"`
-	KeyFile                 string                     `json:"key_file"`
-	ReadTimeout             time.Duration              `json:"read_timeout"`
-	WriteTimeout            time.Duration              `json:"write_timeout"`
-	IdleTimeout             time.Duration              `json:"idle_timeout"`
-	MaxHeaderBytes          int                        `json:"max_header_bytes"`
-	EnableA1P               bool                       `json:"enable_a1p"`
-	EnableA1C               bool                       `json:"enable_a1c"`
-	EnableA1EI              bool                       `json:"enable_a1ei"`
-	Logger                  *logging.StructuredLogger  `json:"-"`
-	CircuitBreakerConfig    *CircuitBreakerConfig      `json:"circuit_breaker_config"`
-	ValidationConfig        *ValidationConfig          `json:"validation_config"`
-	AuthenticationConfig    *AuthenticationConfig      `json:"authentication_config"`
-	RateLimitConfig         *RateLimitConfig           `json:"rate_limit_config"`
-	MetricsConfig           *MetricsConfig             `json:"metrics_config"`
+	Port                 int                       `json:"port" validate:"required,min=1,max=65535"`
+	Host                 string                    `json:"host"`
+	TLSEnabled           bool                      `json:"tls_enabled"`
+	CertFile             string                    `json:"cert_file"`
+	KeyFile              string                    `json:"key_file"`
+	ReadTimeout          time.Duration             `json:"read_timeout"`
+	WriteTimeout         time.Duration             `json:"write_timeout"`
+	IdleTimeout          time.Duration             `json:"idle_timeout"`
+	MaxHeaderBytes       int                       `json:"max_header_bytes"`
+	EnableA1P            bool                      `json:"enable_a1p"`
+	EnableA1C            bool                      `json:"enable_a1c"`
+	EnableA1EI           bool                      `json:"enable_a1ei"`
+	Logger               *logging.StructuredLogger `json:"-"`
+	CircuitBreakerConfig *CircuitBreakerConfig     `json:"circuit_breaker_config"`
+	ValidationConfig     *ValidationConfig         `json:"validation_config"`
+	AuthenticationConfig *AuthenticationConfig     `json:"authentication_config"`
+	RateLimitConfig      *RateLimitConfig          `json:"rate_limit_config"`
+	MetricsConfig        *MetricsConfig            `json:"metrics_config"`
 }
 
 // CircuitBreakerConfig configures circuit breaker behavior
 type CircuitBreakerConfig struct {
-	MaxRequests     uint32        `json:"max_requests" validate:"min=1"`
-	Interval        time.Duration `json:"interval" validate:"min=1s"`
-	Timeout         time.Duration `json:"timeout" validate:"min=1s"`
-	ReadyToTrip     func(counts Counts) bool `json:"-"`
-	OnStateChange   func(name string, from State, to State) `json:"-"`
+	MaxRequests   uint32                                  `json:"max_requests" validate:"min=1"`
+	Interval      time.Duration                           `json:"interval" validate:"min=1s"`
+	Timeout       time.Duration                           `json:"timeout" validate:"min=1s"`
+	ReadyToTrip   func(counts Counts) bool                `json:"-"`
+	OnStateChange func(name string, from State, to State) `json:"-"`
 }
 
 // ValidationConfig configures JSON schema validation
 type ValidationConfig struct {
-	EnableSchemaValidation    bool `json:"enable_schema_validation"`
+	EnableSchemaValidation   bool `json:"enable_schema_validation"`
 	StrictValidation         bool `json:"strict_validation"`
 	ValidateAdditionalFields bool `json:"validate_additional_fields"`
 }
 
 // AuthenticationConfig configures authentication mechanisms
 type AuthenticationConfig struct {
-	Enabled          bool              `json:"enabled"`
-	Method           string            `json:"method" validate:"oneof=basic bearer jwt oauth2"`
-	JWTSecret        string            `json:"jwt_secret,omitempty"`
-	TokenValidation  bool              `json:"token_validation"`
-	AllowedIssuers   []string          `json:"allowed_issuers,omitempty"`
-	RequiredClaims   map[string]string `json:"required_claims,omitempty"`
+	Enabled         bool              `json:"enabled"`
+	Method          string            `json:"method" validate:"oneof=basic bearer jwt oauth2"`
+	JWTSecret       string            `json:"jwt_secret,omitempty"`
+	TokenValidation bool              `json:"token_validation"`
+	AllowedIssuers  []string          `json:"allowed_issuers,omitempty"`
+	RequiredClaims  map[string]string `json:"required_claims,omitempty"`
 }
 
 // RateLimitConfig configures rate limiting
@@ -204,10 +204,10 @@ type RateLimitConfig struct {
 
 // MetricsConfig configures metrics collection
 type MetricsConfig struct {
-	Enabled       bool   `json:"enabled"`
-	Endpoint      string `json:"endpoint"`
-	Namespace     string `json:"namespace"`
-	Subsystem     string `json:"subsystem"`
+	Enabled   bool   `json:"enabled"`
+	Endpoint  string `json:"endpoint"`
+	Namespace string `json:"namespace"`
+	Subsystem string `json:"subsystem"`
 }
 
 // Circuit breaker state definitions
@@ -235,27 +235,27 @@ type A1Service interface {
 	GetPolicyType(ctx context.Context, policyTypeID int) (*PolicyType, error)
 	CreatePolicyType(ctx context.Context, policyTypeID int, policyType *PolicyType) error
 	DeletePolicyType(ctx context.Context, policyTypeID int) error
-	
+
 	GetPolicyInstances(ctx context.Context, policyTypeID int) ([]string, error)
 	GetPolicyInstance(ctx context.Context, policyTypeID int, policyID string) (*PolicyInstance, error)
 	CreatePolicyInstance(ctx context.Context, policyTypeID int, policyID string, instance *PolicyInstance) error
 	UpdatePolicyInstance(ctx context.Context, policyTypeID int, policyID string, instance *PolicyInstance) error
 	DeletePolicyInstance(ctx context.Context, policyTypeID int, policyID string) error
 	GetPolicyStatus(ctx context.Context, policyTypeID int, policyID string) (*PolicyStatus, error)
-	
-	// A1-C Consumer Interface Methods  
+
+	// A1-C Consumer Interface Methods
 	RegisterConsumer(ctx context.Context, consumerID string, info *ConsumerInfo) error
 	UnregisterConsumer(ctx context.Context, consumerID string) error
 	GetConsumer(ctx context.Context, consumerID string) (*ConsumerInfo, error)
 	ListConsumers(ctx context.Context) ([]*ConsumerInfo, error)
 	NotifyConsumer(ctx context.Context, consumerID string, notification *PolicyNotification) error
-	
+
 	// A1-EI Enrichment Information Interface Methods
 	GetEITypes(ctx context.Context) ([]string, error)
 	GetEIType(ctx context.Context, eiTypeID string) (*EnrichmentInfoType, error)
 	CreateEIType(ctx context.Context, eiTypeID string, eiType *EnrichmentInfoType) error
 	DeleteEIType(ctx context.Context, eiTypeID string) error
-	
+
 	GetEIJobs(ctx context.Context, eiTypeID string) ([]string, error)
 	GetEIJob(ctx context.Context, eiJobID string) (*EnrichmentInfoJob, error)
 	CreateEIJob(ctx context.Context, eiJobID string, job *EnrichmentInfoJob) error
@@ -271,26 +271,26 @@ type A1Handler interface {
 	HandleGetPolicyType(w http.ResponseWriter, r *http.Request)
 	HandleCreatePolicyType(w http.ResponseWriter, r *http.Request)
 	HandleDeletePolicyType(w http.ResponseWriter, r *http.Request)
-	
+
 	HandleGetPolicyInstances(w http.ResponseWriter, r *http.Request)
 	HandleGetPolicyInstance(w http.ResponseWriter, r *http.Request)
 	HandleCreatePolicyInstance(w http.ResponseWriter, r *http.Request)
 	HandleUpdatePolicyInstance(w http.ResponseWriter, r *http.Request)
 	HandleDeletePolicyInstance(w http.ResponseWriter, r *http.Request)
 	HandleGetPolicyStatus(w http.ResponseWriter, r *http.Request)
-	
+
 	// A1-C Consumer Handler Methods
 	HandleRegisterConsumer(w http.ResponseWriter, r *http.Request)
 	HandleUnregisterConsumer(w http.ResponseWriter, r *http.Request)
 	HandleGetConsumer(w http.ResponseWriter, r *http.Request)
 	HandleListConsumers(w http.ResponseWriter, r *http.Request)
-	
+
 	// A1-EI Enrichment Information Handler Methods
 	HandleGetEITypes(w http.ResponseWriter, r *http.Request)
 	HandleGetEIType(w http.ResponseWriter, r *http.Request)
 	HandleCreateEIType(w http.ResponseWriter, r *http.Request)
 	HandleDeleteEIType(w http.ResponseWriter, r *http.Request)
-	
+
 	HandleGetEIJobs(w http.ResponseWriter, r *http.Request)
 	HandleGetEIJob(w http.ResponseWriter, r *http.Request)
 	HandleCreateEIJob(w http.ResponseWriter, r *http.Request)
@@ -315,26 +315,26 @@ type A1Storage interface {
 	GetPolicyType(ctx context.Context, policyTypeID int) (*PolicyType, error)
 	ListPolicyTypes(ctx context.Context) ([]*PolicyType, error)
 	DeletePolicyType(ctx context.Context, policyTypeID int) error
-	
+
 	// Policy Instance Storage
 	StorePolicyInstance(ctx context.Context, instance *PolicyInstance) error
 	GetPolicyInstance(ctx context.Context, policyTypeID int, policyID string) (*PolicyInstance, error)
 	ListPolicyInstances(ctx context.Context, policyTypeID int) ([]*PolicyInstance, error)
 	DeletePolicyInstance(ctx context.Context, policyTypeID int, policyID string) error
 	UpdatePolicyInstanceStatus(ctx context.Context, policyTypeID int, policyID string, status *PolicyStatus) error
-	
+
 	// Consumer Storage
 	StoreConsumer(ctx context.Context, consumer *ConsumerInfo) error
 	GetConsumer(ctx context.Context, consumerID string) (*ConsumerInfo, error)
 	ListConsumers(ctx context.Context) ([]*ConsumerInfo, error)
 	DeleteConsumer(ctx context.Context, consumerID string) error
-	
+
 	// EI Type Storage
 	StoreEIType(ctx context.Context, eiType *EnrichmentInfoType) error
 	GetEIType(ctx context.Context, eiTypeID string) (*EnrichmentInfoType, error)
 	ListEITypes(ctx context.Context) ([]*EnrichmentInfoType, error)
 	DeleteEIType(ctx context.Context, eiTypeID string) error
-	
+
 	// EI Job Storage
 	StoreEIJob(ctx context.Context, job *EnrichmentInfoJob) error
 	GetEIJob(ctx context.Context, eiJobID string) (*EnrichmentInfoJob, error)
@@ -356,43 +356,43 @@ type A1Metrics interface {
 
 // RequestContext holds request-specific context information
 type RequestContext struct {
-	RequestID     string                 `json:"request_id"`
-	UserAgent     string                 `json:"user_agent,omitempty"`
-	RemoteAddr    string                 `json:"remote_addr,omitempty"`
-	Method        string                 `json:"method"`
-	Path          string                 `json:"path"`
-	Headers       map[string][]string    `json:"headers,omitempty"`
-	QueryParams   map[string][]string    `json:"query_params,omitempty"`
+	RequestID      string                 `json:"request_id"`
+	UserAgent      string                 `json:"user_agent,omitempty"`
+	RemoteAddr     string                 `json:"remote_addr,omitempty"`
+	Method         string                 `json:"method"`
+	Path           string                 `json:"path"`
+	Headers        map[string][]string    `json:"headers,omitempty"`
+	QueryParams    map[string][]string    `json:"query_params,omitempty"`
 	Authentication map[string]interface{} `json:"authentication,omitempty"`
-	StartTime     time.Time              `json:"start_time"`
+	StartTime      time.Time              `json:"start_time"`
 }
 
 // ResponseInfo holds response information for logging
 type ResponseInfo struct {
-	StatusCode    int           `json:"status_code"`
-	ContentLength int64         `json:"content_length"`
-	Duration      time.Duration `json:"duration"`
+	StatusCode    int                 `json:"status_code"`
+	ContentLength int64               `json:"content_length"`
+	Duration      time.Duration       `json:"duration"`
 	Headers       map[string][]string `json:"headers,omitempty"`
 }
 
 // HealthCheck represents health status information
 type HealthCheck struct {
-	Status      string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Version     string                 `json:"version,omitempty"`
-	Uptime      time.Duration          `json:"uptime,omitempty"`
-	Components  map[string]interface{} `json:"components,omitempty"`
-	Checks      []ComponentCheck       `json:"checks,omitempty"`
+	Status     string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Version    string                 `json:"version,omitempty"`
+	Uptime     time.Duration          `json:"uptime,omitempty"`
+	Components map[string]interface{} `json:"components,omitempty"`
+	Checks     []ComponentCheck       `json:"checks,omitempty"`
 }
 
 // ComponentCheck represents individual component health status
 type ComponentCheck struct {
-	Name        string                 `json:"name" validate:"required"`
-	Status      string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
-	Message     string                 `json:"message,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Duration    time.Duration          `json:"duration,omitempty"`
-	Details     map[string]interface{} `json:"details,omitempty"`
+	Name      string                 `json:"name" validate:"required"`
+	Status    string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
+	Message   string                 `json:"message,omitempty"`
+	Timestamp time.Time              `json:"timestamp"`
+	Duration  time.Duration          `json:"duration,omitempty"`
+	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
 // Common HTTP status codes used in A1 interface
@@ -420,7 +420,7 @@ const (
 	PolicyStatusUnknown     = "UNKNOWN"
 )
 
-// Predefined EI job statuses per O-RAN specification  
+// Predefined EI job statuses per O-RAN specification
 const (
 	EIJobStatusEnabled  = "ENABLED"
 	EIJobStatusDisabled = "DISABLED"
@@ -443,23 +443,23 @@ const (
 // DefaultA1ServerConfig returns a default configuration for the A1 server
 func DefaultA1ServerConfig() *A1ServerConfig {
 	return &A1ServerConfig{
-		Port:         8080,
-		Host:         "0.0.0.0",
-		TLSEnabled:   false,
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  120 * time.Second,
+		Port:           8080,
+		Host:           "0.0.0.0",
+		TLSEnabled:     false,
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   30 * time.Second,
+		IdleTimeout:    120 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1MB
-		EnableA1P:    true,
-		EnableA1C:    true,
-		EnableA1EI:   true,
+		EnableA1P:      true,
+		EnableA1C:      true,
+		EnableA1EI:     true,
 		CircuitBreakerConfig: &CircuitBreakerConfig{
 			MaxRequests: 10,
 			Interval:    60 * time.Second,
 			Timeout:     30 * time.Second,
 		},
 		ValidationConfig: &ValidationConfig{
-			EnableSchemaValidation:    true,
+			EnableSchemaValidation:   true,
 			StrictValidation:         false,
 			ValidateAdditionalFields: true,
 		},
@@ -506,23 +506,23 @@ func (pt *PolicyType) UnmarshalJSON(data []byte) error {
 	}{
 		Alias: (*Alias)(pt),
 	}
-	
+
 	if err := json.Unmarshal(data, &aux); err != nil {
 		return err
 	}
-	
+
 	if aux.CreatedAt != "" {
 		if t, err := time.Parse(time.RFC3339, aux.CreatedAt); err == nil {
 			pt.CreatedAt = t
 		}
 	}
-	
+
 	if aux.ModifiedAt != "" {
 		if t, err := time.Parse(time.RFC3339, aux.ModifiedAt); err == nil {
 			pt.ModifiedAt = t
 		}
 	}
-	
+
 	return nil
 }
 

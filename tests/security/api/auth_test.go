@@ -176,7 +176,7 @@ func TestOAuth2Flow(t *testing.T) {
 			t.Run("AuthorizationCodeFlow", func(t *testing.T) {
 				// Generate state parameter for CSRF protection
 				state := suite.generateSecureState()
-				
+
 				// Test authorization URL generation
 				authURL := suite.generateAuthorizationURL(provider, state)
 				assert.Contains(t, authURL, "response_type=code")
@@ -195,7 +195,7 @@ func TestOAuth2Flow(t *testing.T) {
 				// Simulate callback with authorization code
 				code := "test-auth-code"
 				returnedState := state
-				
+
 				// Verify state parameter
 				assert.Equal(t, state, returnedState, "State parameter mismatch - possible CSRF attack")
 
@@ -209,7 +209,7 @@ func TestOAuth2Flow(t *testing.T) {
 			t.Run("RefreshTokenFlow", func(t *testing.T) {
 				refreshToken := "test-refresh-token"
 				tokenReq := suite.createRefreshTokenRequest(provider, refreshToken)
-				
+
 				assert.NotNil(t, tokenReq)
 				assert.Equal(t, "refresh_token", tokenReq.GrantType)
 				assert.Equal(t, refreshToken, tokenReq.RefreshToken)
@@ -218,7 +218,7 @@ func TestOAuth2Flow(t *testing.T) {
 			// Test client credentials flow (for service-to-service auth)
 			t.Run("ClientCredentialsFlow", func(t *testing.T) {
 				tokenReq := suite.createClientCredentialsRequest(provider)
-				
+
 				assert.NotNil(t, tokenReq)
 				assert.Equal(t, "client_credentials", tokenReq.GrantType)
 				assert.NotEmpty(t, tokenReq.ClientID)
@@ -229,7 +229,7 @@ func TestOAuth2Flow(t *testing.T) {
 			t.Run("TokenIntrospection", func(t *testing.T) {
 				token := suite.generateValidJWT()
 				introspectionReq := suite.createIntrospectionRequest(token)
-				
+
 				assert.NotNil(t, introspectionReq)
 				assert.Equal(t, token, introspectionReq.Token)
 				assert.Equal(t, "access_token", introspectionReq.TokenTypeHint)
@@ -239,7 +239,7 @@ func TestOAuth2Flow(t *testing.T) {
 			t.Run("TokenRevocation", func(t *testing.T) {
 				token := suite.generateValidJWT()
 				revocationReq := suite.createRevocationRequest(token)
-				
+
 				assert.NotNil(t, revocationReq)
 				assert.Equal(t, token, revocationReq.Token)
 			})
@@ -321,12 +321,12 @@ func TestTokenExpiryAndRefresh(t *testing.T) {
 	t.Run("TokenExpiry", func(t *testing.T) {
 		// Generate token with short expiry
 		token := suite.generateShortLivedJWT(5 * time.Second)
-		
+
 		// Initial request should succeed
 		req := httptest.NewRequest("GET", "/api/v1/test", nil)
 		req.Header.Set("Authorization", "Bearer "+token)
 		w := httptest.NewRecorder()
-		
+
 		suite.simulateAuthMiddleware(w, req, http.StatusOK, "")
 		assert.Equal(t, http.StatusOK, w.Code)
 
@@ -337,7 +337,7 @@ func TestTokenExpiryAndRefresh(t *testing.T) {
 		req2 := httptest.NewRequest("GET", "/api/v1/test", nil)
 		req2.Header.Set("Authorization", "Bearer "+token)
 		w2 := httptest.NewRecorder()
-		
+
 		suite.simulateAuthMiddleware(w2, req2, http.StatusUnauthorized, "token is expired")
 		assert.Equal(t, http.StatusUnauthorized, w2.Code)
 	})
@@ -345,7 +345,7 @@ func TestTokenExpiryAndRefresh(t *testing.T) {
 	t.Run("RefreshTokenRotation", func(t *testing.T) {
 		// Generate initial refresh token
 		refreshToken1 := suite.generateRefreshToken()
-		
+
 		// Use refresh token to get new access token
 		newAccessToken, newRefreshToken := suite.simulateTokenRefresh(refreshToken1)
 		assert.NotEmpty(t, newAccessToken)
@@ -360,18 +360,18 @@ func TestTokenExpiryAndRefresh(t *testing.T) {
 	t.Run("SlidingExpiration", func(t *testing.T) {
 		// Test sliding expiration window
 		token := suite.generateSlidingExpirationToken(10 * time.Second)
-		
+
 		for i := 0; i < 3; i++ {
 			time.Sleep(3 * time.Second)
-			
+
 			req := httptest.NewRequest("GET", "/api/v1/test", nil)
 			req.Header.Set("Authorization", "Bearer "+token)
 			w := httptest.NewRecorder()
-			
+
 			// Each request should extend the expiration
 			suite.simulateAuthMiddleware(w, req, http.StatusOK, "")
 			assert.Equal(t, http.StatusOK, w.Code)
-			
+
 			// Get new token with extended expiration
 			token = w.Header().Get("X-New-Token")
 			if token != "" {
@@ -389,7 +389,7 @@ func TestMultiFactorAuthentication(t *testing.T) {
 	t.Run("TOTP_Authentication", func(t *testing.T) {
 		// Generate TOTP secret
 		secret := suite.generateTOTPSecret()
-		
+
 		// Test valid TOTP code
 		validCode := suite.generateTOTPCode(secret, time.Now())
 		assert.True(t, suite.verifyTOTPCode(secret, validCode, time.Now()))
@@ -411,21 +411,21 @@ func TestMultiFactorAuthentication(t *testing.T) {
 
 	t.Run("SMS_OTP_Authentication", func(t *testing.T) {
 		phoneNumber := "+1234567890"
-		
+
 		// Generate OTP
 		otp := suite.generateSMSOTP()
 		assert.Len(t, otp, 6)
-		
+
 		// Test valid OTP
 		assert.True(t, suite.verifySMSOTP(phoneNumber, otp))
-		
+
 		// Test invalid OTP
 		assert.False(t, suite.verifySMSOTP(phoneNumber, "000000"))
-		
+
 		// Test OTP expiry (5 minutes)
 		time.Sleep(5*time.Minute + 1*time.Second)
 		assert.False(t, suite.verifySMSOTP(phoneNumber, otp))
-		
+
 		// Test rate limiting
 		for i := 0; i < 5; i++ {
 			suite.verifySMSOTP(phoneNumber, "wrong")
@@ -438,11 +438,11 @@ func TestMultiFactorAuthentication(t *testing.T) {
 		// Test WebAuthn registration
 		challenge := suite.generateWebAuthnChallenge()
 		assert.NotEmpty(t, challenge)
-		
+
 		// Simulate credential creation
 		credentialID := suite.simulateWebAuthnRegistration(challenge)
 		assert.NotEmpty(t, credentialID)
-		
+
 		// Test WebAuthn authentication
 		authChallenge := suite.generateWebAuthnChallenge()
 		signature := suite.simulateWebAuthnAssertion(credentialID, authChallenge)
@@ -453,13 +453,13 @@ func TestMultiFactorAuthentication(t *testing.T) {
 		// Generate backup codes
 		codes := suite.generateBackupCodes(10)
 		assert.Len(t, codes, 10)
-		
+
 		// Test valid backup code
 		assert.True(t, suite.verifyBackupCode(codes[0]))
-		
+
 		// Test that used code is invalidated
 		assert.False(t, suite.verifyBackupCode(codes[0]))
-		
+
 		// Test invalid code
 		assert.False(t, suite.verifyBackupCode("invalid-code"))
 	})
@@ -472,10 +472,10 @@ func TestSessionManagement(t *testing.T) {
 	t.Run("SessionCreation", func(t *testing.T) {
 		userID := "user123"
 		sessionID := suite.createSession(userID)
-		
+
 		assert.NotEmpty(t, sessionID)
 		assert.Len(t, sessionID, 32) // Should be cryptographically secure
-		
+
 		// Verify session is stored
 		session := suite.getSession(sessionID)
 		assert.NotNil(t, session)
@@ -484,13 +484,13 @@ func TestSessionManagement(t *testing.T) {
 
 	t.Run("SessionInvalidation", func(t *testing.T) {
 		sessionID := suite.createSession("user123")
-		
+
 		// Session should exist
 		assert.NotNil(t, suite.getSession(sessionID))
-		
+
 		// Invalidate session
 		suite.invalidateSession(sessionID)
-		
+
 		// Session should not exist
 		assert.Nil(t, suite.getSession(sessionID))
 	})
@@ -498,7 +498,7 @@ func TestSessionManagement(t *testing.T) {
 	t.Run("ConcurrentSessions", func(t *testing.T) {
 		userID := "user123"
 		maxSessions := 3
-		
+
 		sessions := []string{}
 		for i := 0; i < maxSessions+1; i++ {
 			sessionID := suite.createSessionWithLimit(userID, maxSessions)
@@ -506,20 +506,20 @@ func TestSessionManagement(t *testing.T) {
 				sessions = append(sessions, sessionID)
 			}
 		}
-		
+
 		// Should only have max allowed sessions
 		assert.Len(t, sessions, maxSessions)
 	})
 
 	t.Run("SessionTimeout", func(t *testing.T) {
 		sessionID := suite.createSessionWithTimeout("user123", 2*time.Second)
-		
+
 		// Session should exist initially
 		assert.NotNil(t, suite.getSession(sessionID))
-		
+
 		// Wait for timeout
 		time.Sleep(3 * time.Second)
-		
+
 		// Session should be expired
 		assert.Nil(t, suite.getSession(sessionID))
 	})
@@ -577,7 +577,7 @@ func TestAuthorizationHeaders(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest("GET", "/api/v1/test", nil)
 			req.Header.Set(tc.header, tc.value)
-			
+
 			w := httptest.NewRecorder()
 			suite.simulateAuthMiddleware(w, req, tc.expectedCode, "")
 			assert.Equal(t, tc.expectedCode, w.Code)
@@ -589,13 +589,13 @@ func TestAuthorizationHeaders(t *testing.T) {
 
 func (s *AuthTestSuite) generateValidJWT() string {
 	claims := jwt.MapClaims{
-		"sub":  "user123",
-		"aud":  "nephoran-api",
-		"iss":  "nephoran-auth",
-		"exp":  time.Now().Add(time.Hour).Unix(),
-		"iat":  time.Now().Unix(),
-		"nbf":  time.Now().Unix(),
-		"role": "operator",
+		"sub":         "user123",
+		"aud":         "nephoran-api",
+		"iss":         "nephoran-auth",
+		"exp":         time.Now().Add(time.Hour).Unix(),
+		"iat":         time.Now().Unix(),
+		"nbf":         time.Now().Unix(),
+		"role":        "operator",
 		"permissions": []string{"read", "write"},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -703,7 +703,7 @@ func (s *AuthTestSuite) generateSlidingExpirationToken(duration time.Duration) s
 func (s *AuthTestSuite) simulateAuthMiddleware(w http.ResponseWriter, r *http.Request, expectedCode int, expectedError string) {
 	// Simulate authentication middleware behavior
 	authHeader := r.Header.Get("Authorization")
-	
+
 	if authHeader == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{"error": "missing authorization header"})
@@ -717,7 +717,7 @@ func (s *AuthTestSuite) simulateAuthMiddleware(w http.ResponseWriter, r *http.Re
 	}
 
 	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-	
+
 	// Parse and validate token
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -740,7 +740,7 @@ func (s *AuthTestSuite) simulateAuthMiddleware(w http.ResponseWriter, r *http.Re
 
 func (s *AuthTestSuite) simulateAPIKeyAuth(w http.ResponseWriter, r *http.Request, expectedCode int) {
 	apiKey := r.Header.Get("X-API-Key")
-	
+
 	validKeys := map[string]bool{
 		"valid-api-key-abc123": true,
 	}
@@ -770,7 +770,7 @@ func (s *AuthTestSuite) generateAuthorizationURL(provider, state string) string 
 		"scope":         "openid profile email",
 		"state":         state,
 	}
-	
+
 	baseURL := fmt.Sprintf("https://%s.example.com/authorize", provider)
 	query := ""
 	for k, v := range params {
@@ -779,7 +779,7 @@ func (s *AuthTestSuite) generateAuthorizationURL(provider, state string) string 
 		}
 		query += fmt.Sprintf("%s=%s", k, v)
 	}
-	
+
 	return baseURL + "?" + query
 }
 
@@ -996,11 +996,11 @@ func (s *AuthTestSuite) createSessionWithLimit(userID string, maxSessions int) s
 			count++
 		}
 	}
-	
+
 	if count >= maxSessions {
 		return ""
 	}
-	
+
 	return s.createSession(userID)
 }
 
@@ -1009,12 +1009,12 @@ func (s *AuthTestSuite) getSession(sessionID string) *Session {
 	if !exists {
 		return nil
 	}
-	
+
 	if time.Now().After(session.ExpiresAt) {
 		delete(sessionStore, sessionID)
 		return nil
 	}
-	
+
 	return session
 }
 
@@ -1026,11 +1026,11 @@ func (s *AuthTestSuite) simulateTokenRefresh(refreshToken string) (string, strin
 	if refreshToken == "" {
 		return "", ""
 	}
-	
+
 	// Generate new tokens
 	newAccessToken := s.generateValidJWT()
 	newRefreshToken := s.generateRefreshToken()
-	
+
 	return newAccessToken, newRefreshToken
 }
 
@@ -1039,4 +1039,3 @@ func (s *AuthTestSuite) generateRefreshToken() string {
 	rand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }
-

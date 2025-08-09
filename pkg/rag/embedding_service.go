@@ -35,135 +35,135 @@ type EmbeddingService struct {
 // EmbeddingConfig holds configuration for the embedding service
 type EmbeddingConfig struct {
 	// Provider configuration
-	Provider     string `json:"provider"`      // "openai", "azure", "local", etc.
-	APIKey       string `json:"api_key"`
-	APIEndpoint  string `json:"api_endpoint"`
-	ModelName    string `json:"model_name"`
-	
+	Provider    string `json:"provider"` // "openai", "azure", "local", etc.
+	APIKey      string `json:"api_key"`
+	APIEndpoint string `json:"api_endpoint"`
+	ModelName   string `json:"model_name"`
+
 	// Model-specific settings
-	Dimensions      int     `json:"dimensions"`       // Embedding dimensions
-	MaxTokens       int     `json:"max_tokens"`       // Max tokens per request
-	BatchSize       int     `json:"batch_size"`       // Documents per batch
-	MaxConcurrency  int     `json:"max_concurrency"`  // Concurrent requests
-	
+	Dimensions     int `json:"dimensions"`      // Embedding dimensions
+	MaxTokens      int `json:"max_tokens"`      // Max tokens per request
+	BatchSize      int `json:"batch_size"`      // Documents per batch
+	MaxConcurrency int `json:"max_concurrency"` // Concurrent requests
+
 	// Request configuration
-	RequestTimeout  time.Duration `json:"request_timeout"`
-	RetryAttempts   int           `json:"retry_attempts"`
-	RetryDelay      time.Duration `json:"retry_delay"`
-	
+	RequestTimeout time.Duration `json:"request_timeout"`
+	RetryAttempts  int           `json:"retry_attempts"`
+	RetryDelay     time.Duration `json:"retry_delay"`
+
 	// Rate limiting
-	RateLimit       int           `json:"rate_limit"`        // Requests per minute
-	TokenRateLimit  int           `json:"token_rate_limit"`  // Tokens per minute
-	
+	RateLimit      int `json:"rate_limit"`       // Requests per minute
+	TokenRateLimit int `json:"token_rate_limit"` // Tokens per minute
+
 	// Quality control
-	MinTextLength   int     `json:"min_text_length"`   // Minimum text length for embedding
-	MaxTextLength   int     `json:"max_text_length"`   // Maximum text length for embedding
-	NormalizeText   bool    `json:"normalize_text"`    // Normalize text before embedding
-	RemoveStopWords bool    `json:"remove_stop_words"` // Remove common stop words
-	
+	MinTextLength   int  `json:"min_text_length"`   // Minimum text length for embedding
+	MaxTextLength   int  `json:"max_text_length"`   // Maximum text length for embedding
+	NormalizeText   bool `json:"normalize_text"`    // Normalize text before embedding
+	RemoveStopWords bool `json:"remove_stop_words"` // Remove common stop words
+
 	// Caching
-	EnableCaching     bool          `json:"enable_caching"`
-	CacheTTL          time.Duration `json:"cache_ttl"`
-	CacheDirectory    string        `json:"cache_directory"`
-	EnableRedisCache  bool          `json:"enable_redis_cache"`
-	RedisAddr         string        `json:"redis_addr"`
-	RedisPassword     string        `json:"redis_password"`
-	RedisDB           int           `json:"redis_db"`
-	L1CacheSize       int64         `json:"l1_cache_size"`       // L1 in-memory cache size
-	L2CacheEnabled    bool          `json:"l2_cache_enabled"`    // L2 Redis cache
-	
+	EnableCaching    bool          `json:"enable_caching"`
+	CacheTTL         time.Duration `json:"cache_ttl"`
+	CacheDirectory   string        `json:"cache_directory"`
+	EnableRedisCache bool          `json:"enable_redis_cache"`
+	RedisAddr        string        `json:"redis_addr"`
+	RedisPassword    string        `json:"redis_password"`
+	RedisDB          int           `json:"redis_db"`
+	L1CacheSize      int64         `json:"l1_cache_size"`    // L1 in-memory cache size
+	L2CacheEnabled   bool          `json:"l2_cache_enabled"` // L2 Redis cache
+
 	// Multi-provider configuration
-	Providers           []ProviderConfig `json:"providers"`           // Multiple provider configurations
-	FallbackEnabled     bool            `json:"fallback_enabled"`    // Enable fallback to other providers
-	FallbackOrder       []string        `json:"fallback_order"`     // Order of fallback providers
-	LoadBalancing       string          `json:"load_balancing"`     // "round_robin", "least_cost", "fastest"
-	HealthCheckInterval time.Duration   `json:"health_check_interval"` // Provider health check interval
-	
+	Providers           []ProviderConfig `json:"providers"`             // Multiple provider configurations
+	FallbackEnabled     bool             `json:"fallback_enabled"`      // Enable fallback to other providers
+	FallbackOrder       []string         `json:"fallback_order"`        // Order of fallback providers
+	LoadBalancing       string           `json:"load_balancing"`        // "round_robin", "least_cost", "fastest"
+	HealthCheckInterval time.Duration    `json:"health_check_interval"` // Provider health check interval
+
 	// Cost management
-	EnableCostTracking  bool    `json:"enable_cost_tracking"`
-	DailyCostLimit      float64 `json:"daily_cost_limit"`      // Daily cost limit in USD
-	MonthlyCostLimit    float64 `json:"monthly_cost_limit"`    // Monthly cost limit in USD
-	CostAlertThreshold  float64 `json:"cost_alert_threshold"`  // Alert when cost reaches % of limit
-	
+	EnableCostTracking bool    `json:"enable_cost_tracking"`
+	DailyCostLimit     float64 `json:"daily_cost_limit"`     // Daily cost limit in USD
+	MonthlyCostLimit   float64 `json:"monthly_cost_limit"`   // Monthly cost limit in USD
+	CostAlertThreshold float64 `json:"cost_alert_threshold"` // Alert when cost reaches % of limit
+
 	// Quality control
-	EnableQualityCheck  bool    `json:"enable_quality_check"`
-	MinQualityScore     float64 `json:"min_quality_score"`     // Minimum embedding quality score
-	QualityCheckSample  int     `json:"quality_check_sample"`  // Sample size for quality checks
-	
+	EnableQualityCheck bool    `json:"enable_quality_check"`
+	MinQualityScore    float64 `json:"min_quality_score"`    // Minimum embedding quality score
+	QualityCheckSample int     `json:"quality_check_sample"` // Sample size for quality checks
+
 	// Telecom-specific preprocessing
-	TelecomPreprocessing bool     `json:"telecom_preprocessing"` // Apply telecom-specific preprocessing
-	PreserveTechnicalTerms bool   `json:"preserve_technical_terms"`
+	TelecomPreprocessing   bool    `json:"telecom_preprocessing"` // Apply telecom-specific preprocessing
+	PreserveTechnicalTerms bool    `json:"preserve_technical_terms"`
 	TechnicalTermWeighting float64 `json:"technical_term_weighting"` // Weight boost for technical terms
-	
+
 	// Performance monitoring
-	EnableMetrics   bool `json:"enable_metrics"`
+	EnableMetrics   bool          `json:"enable_metrics"`
 	MetricsInterval time.Duration `json:"metrics_interval"`
 }
 
 // EmbeddingRequest represents a request for generating embeddings
 type EmbeddingRequest struct {
-	Texts       []string          `json:"texts"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-	RequestID   string            `json:"request_id,omitempty"`
-	Priority    int               `json:"priority"`           // Higher = more important
-	ChunkIDs    []string          `json:"chunk_ids,omitempty"`
-	UseCache    bool              `json:"use_cache"`
-	Model       string            `json:"model,omitempty"`
-	BatchSize   int               `json:"batch_size,omitempty"`
-	Timeout     time.Duration     `json:"timeout,omitempty"`
+	Texts     []string               `json:"texts"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+	RequestID string                 `json:"request_id,omitempty"`
+	Priority  int                    `json:"priority"` // Higher = more important
+	ChunkIDs  []string               `json:"chunk_ids,omitempty"`
+	UseCache  bool                   `json:"use_cache"`
+	Model     string                 `json:"model,omitempty"`
+	BatchSize int                    `json:"batch_size,omitempty"`
+	Timeout   time.Duration          `json:"timeout,omitempty"`
 }
 
 // EmbeddingResponse represents the response from embedding generation
 type EmbeddingResponse struct {
-	Embeddings     [][]float32       `json:"embeddings"`
-	TokenUsage     TokenUsage        `json:"token_usage"`
-	ProcessingTime time.Duration     `json:"processing_time"`
-	CacheHits      int               `json:"cache_hits"`
-	CacheMisses    int               `json:"cache_misses"`
-	RequestID      string            `json:"request_id"`
-	ModelUsed      string            `json:"model_used"`
-	Model          string            `json:"model"`
-	Provider       string            `json:"provider"`
-	CacheHitRate   float64           `json:"cache_hit_rate"`
-	QualityScore   float64           `json:"quality_score"`
-	Cost           float64           `json:"cost"`
+	Embeddings     [][]float32            `json:"embeddings"`
+	TokenUsage     TokenUsage             `json:"token_usage"`
+	ProcessingTime time.Duration          `json:"processing_time"`
+	CacheHits      int                    `json:"cache_hits"`
+	CacheMisses    int                    `json:"cache_misses"`
+	RequestID      string                 `json:"request_id"`
+	ModelUsed      string                 `json:"model_used"`
+	Model          string                 `json:"model"`
+	Provider       string                 `json:"provider"`
+	CacheHitRate   float64                `json:"cache_hit_rate"`
+	QualityScore   float64                `json:"quality_score"`
+	Cost           float64                `json:"cost"`
 	Metadata       map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // TokenUsage tracks token consumption
 type TokenUsage struct {
-	PromptTokens     int `json:"prompt_tokens"`
-	TotalTokens      int `json:"total_tokens"`
-	EstimatedCost    float64 `json:"estimated_cost"`
+	PromptTokens  int     `json:"prompt_tokens"`
+	TotalTokens   int     `json:"total_tokens"`
+	EstimatedCost float64 `json:"estimated_cost"`
 }
 
 // EmbeddingMetrics tracks embedding service performance
 type EmbeddingMetrics struct {
-	TotalRequests      int64         `json:"total_requests"`
-	SuccessfulRequests int64         `json:"successful_requests"`
-	FailedRequests     int64         `json:"failed_requests"`
-	TotalTexts         int64         `json:"total_texts"`
-	TotalTokens        int64         `json:"total_tokens"`
-	TotalCost          float64       `json:"total_cost"`
-	
-	AverageLatency     time.Duration `json:"average_latency"`
-	AverageTextLength  float64       `json:"average_text_length"`
-	
+	TotalRequests      int64   `json:"total_requests"`
+	SuccessfulRequests int64   `json:"successful_requests"`
+	FailedRequests     int64   `json:"failed_requests"`
+	TotalTexts         int64   `json:"total_texts"`
+	TotalTokens        int64   `json:"total_tokens"`
+	TotalCost          float64 `json:"total_cost"`
+
+	AverageLatency    time.Duration `json:"average_latency"`
+	AverageTextLength float64       `json:"average_text_length"`
+
 	CacheStats struct {
-		TotalLookups   int64   `json:"total_lookups"`
-		CacheHits      int64   `json:"cache_hits"`
-		CacheMisses    int64   `json:"cache_misses"`
-		HitRate        float64 `json:"hit_rate"`
+		TotalLookups int64   `json:"total_lookups"`
+		CacheHits    int64   `json:"cache_hits"`
+		CacheMisses  int64   `json:"cache_misses"`
+		HitRate      float64 `json:"hit_rate"`
 	} `json:"cache_stats"`
-	
+
 	RateLimitingStats struct {
-		RateLimitHits    int64         `json:"rate_limit_hits"`
-		TotalWaitTime    time.Duration `json:"total_wait_time"`
-		AverageWaitTime  time.Duration `json:"average_wait_time"`
+		RateLimitHits   int64         `json:"rate_limit_hits"`
+		TotalWaitTime   time.Duration `json:"total_wait_time"`
+		AverageWaitTime time.Duration `json:"average_wait_time"`
 	} `json:"rate_limiting_stats"`
-	
+
 	ModelStats map[string]ModelUsageStats `json:"model_stats"`
-	
+
 	LastUpdated time.Time `json:"last_updated"`
 	mutex       sync.RWMutex
 }
@@ -195,10 +195,10 @@ type EmbeddingCache interface {
 
 // CacheStats represents cache statistics
 type CacheStats struct {
-	Size     int64 `json:"size"`
-	Hits     int64 `json:"hits"`
-	Misses   int64 `json:"misses"`
-	HitRate  float64 `json:"hit_rate"`
+	Size    int64   `json:"size"`
+	Hits    int64   `json:"hits"`
+	Misses  int64   `json:"misses"`
+	HitRate float64 `json:"hit_rate"`
 }
 
 // InMemoryCache is a simple in-memory cache implementation
@@ -222,18 +222,18 @@ type OpenAIEmbeddingRequest struct {
 
 // ProviderConfig holds configuration for a specific embedding provider
 type ProviderConfig struct {
-	Name        string  `json:"name"`         // Provider name (openai, azure, local)
-	APIKey      string  `json:"api_key"`
-	APIEndpoint string  `json:"api_endpoint"`
-	ModelName   string  `json:"model_name"`
-	Dimensions  int     `json:"dimensions"`
-	MaxTokens   int     `json:"max_tokens"`
-	CostPerToken float64 `json:"cost_per_token"`  // Cost per 1K tokens
-	RateLimit   int     `json:"rate_limit"`      // Requests per minute
-	Priority    int     `json:"priority"`        // Priority for load balancing
-	Enabled     bool    `json:"enabled"`
-	Healthy     bool    `json:"healthy"`
-	LastCheck   time.Time `json:"last_check"`
+	Name         string    `json:"name"` // Provider name (openai, azure, local)
+	APIKey       string    `json:"api_key"`
+	APIEndpoint  string    `json:"api_endpoint"`
+	ModelName    string    `json:"model_name"`
+	Dimensions   int       `json:"dimensions"`
+	MaxTokens    int       `json:"max_tokens"`
+	CostPerToken float64   `json:"cost_per_token"` // Cost per 1K tokens
+	RateLimit    int       `json:"rate_limit"`     // Requests per minute
+	Priority     int       `json:"priority"`       // Priority for load balancing
+	Enabled      bool      `json:"enabled"`
+	Healthy      bool      `json:"healthy"`
+	LastCheck    time.Time `json:"last_check"`
 }
 
 // BasicEmbeddingProvider interface for different embedding providers
@@ -276,7 +276,7 @@ type CostLimits struct {
 // CostAlert represents a cost alert
 type CostAlert struct {
 	Timestamp time.Time
-	Type      string  // "daily", "monthly", "threshold"
+	Type      string // "daily", "monthly", "threshold"
 	Amount    float64
 	Limit     float64
 	Message   string
@@ -292,21 +292,21 @@ type QualityAssessment struct {
 
 // QualityConfig holds quality assessment configuration
 type QualityConfig struct {
-	Enabled         bool
-	MinScore        float64
-	SampleSize      int
-	ReferenceTexts  []string
+	Enabled             bool
+	MinScore            float64
+	SampleSize          int
+	ReferenceTexts      []string
 	SimilarityThreshold float64
 }
 
 // QualityMetrics tracks embedding quality metrics
 type QualityMetrics struct {
-	AverageScore    float64
-	MinScore        float64
-	MaxScore        float64
-	FailedChecks    int64
-	TotalChecks     int64
-	LastCheck       time.Time
+	AverageScore float64
+	MinScore     float64
+	MaxScore     float64
+	FailedChecks int64
+	TotalChecks  int64
+	LastCheck    time.Time
 }
 
 // OpenAIEmbeddingResponse represents the response format from OpenAI API
@@ -334,10 +334,10 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 	httpClient := &http.Client{
 		Timeout: config.RequestTimeout,
 		Transport: &http.Transport{
-			MaxIdleConns:        100,
-			MaxConnsPerHost:     config.MaxConcurrency,
-			IdleConnTimeout:     90 * time.Second,
-			DisableCompression:  false,
+			MaxIdleConns:       100,
+			MaxConnsPerHost:    config.MaxConcurrency,
+			IdleConnTimeout:    90 * time.Second,
+			DisableCompression: false,
 		},
 	}
 
@@ -372,17 +372,17 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 	// If no providers configured, create default OpenAI provider
 	if len(providers) == 0 && config.Provider != "" {
 		defaultConfig := ProviderConfig{
-			Name:        config.Provider,
-			APIKey:      config.APIKey,
-			APIEndpoint: config.APIEndpoint,
-			ModelName:   config.ModelName,
-			Dimensions:  config.Dimensions,
-			MaxTokens:   config.MaxTokens,
+			Name:         config.Provider,
+			APIKey:       config.APIKey,
+			APIEndpoint:  config.APIEndpoint,
+			ModelName:    config.ModelName,
+			Dimensions:   config.Dimensions,
+			MaxTokens:    config.MaxTokens,
 			CostPerToken: 0.00013, // Default OpenAI cost
-			RateLimit:   config.RateLimit,
-			Priority:    1,
-			Enabled:     true,
-			Healthy:     true,
+			RateLimit:    config.RateLimit,
+			Priority:     1,
+			Enabled:      true,
+			Healthy:      true,
 		}
 		providers[config.Provider] = createProvider(defaultConfig, httpClient)
 	}
@@ -396,16 +396,16 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 
 	// Create quality assessment
 	qualityAssess := NewQualityAssessment(QualityConfig{
-		Enabled:    config.EnableQualityCheck,
-		MinScore:   config.MinQualityScore,
-		SampleSize: config.QualityCheckSample,
+		Enabled:             config.EnableQualityCheck,
+		MinScore:            config.MinQualityScore,
+		SampleSize:          config.QualityCheckSample,
 		SimilarityThreshold: 0.8,
 	})
 
 	service := &EmbeddingService{
-		config:        config,
-		logger:        slog.Default().With("component", "embedding-service"),
-		metrics:       &EmbeddingMetrics{
+		config: config,
+		logger: slog.Default().With("component", "embedding-service"),
+		metrics: &EmbeddingMetrics{
 			ModelStats:  make(map[string]ModelUsageStats),
 			LastUpdated: time.Now(),
 		},
@@ -432,7 +432,6 @@ func NewEmbeddingService(config *EmbeddingConfig) *EmbeddingService {
 
 	return service
 }
-
 
 // GenerateEmbeddings generates embeddings for the provided texts using multi-provider approach
 func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
@@ -471,7 +470,7 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 
 	if request.UseCache {
 		embeddings = make([][]float32, len(processedTexts))
-		
+
 		for i, text := range processedTexts {
 			cacheKey := es.generateCacheKey(text)
 			var cached []float32
@@ -544,14 +543,14 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 			// Cache in both L1 and L2 if enabled
 			if request.UseCache {
 				cacheKey := es.generateCacheKey(textsToEmbed[i])
-				
+
 				// Cache in L1 (memory)
 				if es.config.EnableCaching {
 					if err := es.cache.Set(cacheKey, newEmbedding, es.config.CacheTTL); err != nil {
 						es.logger.Warn("Failed to cache embedding in L1", "error", err)
 					}
 				}
-				
+
 				// Cache in L2 (Redis)
 				if es.config.EnableRedisCache {
 					if err := es.redisCache.Set(cacheKey, newEmbedding, es.config.CacheTTL); err != nil {
@@ -576,7 +575,7 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 		m.TotalTexts += int64(len(request.Texts))
 		m.TotalTokens += int64(tokenUsage.TotalTokens)
 		m.TotalCost += tokenUsage.EstimatedCost
-		
+
 		if m.SuccessfulRequests > 0 {
 			m.AverageLatency = (m.AverageLatency*time.Duration(m.SuccessfulRequests-1) + processingTime) / time.Duration(m.SuccessfulRequests)
 		} else {
@@ -697,7 +696,7 @@ func (es *EmbeddingService) generateEmbeddingsWithSpecificProvider(ctx context.C
 		}
 
 		batch := texts[i:end]
-		
+
 		// Wait for rate limiting
 		if err := es.rateLimiter.Wait(ctx, len(batch)); err != nil {
 			return nil, totalUsage, fmt.Errorf("rate limiting error: %w", err)
@@ -721,14 +720,14 @@ func (es *EmbeddingService) generateEmbeddingsWithSpecificProvider(ctx context.C
 // selectBestProvider selects the best provider based on load balancing strategy
 func (es *EmbeddingService) selectBestProvider(ctx context.Context, texts []string) (BasicEmbeddingProvider, error) {
 	var availableProviders []BasicEmbeddingProvider
-	
+
 	// Filter healthy and enabled providers
 	for _, provider := range es.providers {
 		config := provider.GetConfig()
 		if !config.Enabled || !config.Healthy {
 			continue
 		}
-		
+
 		// Quick health check if needed
 		if time.Since(config.LastCheck) > es.config.HealthCheckInterval {
 			if err := provider.HealthCheck(ctx); err != nil {
@@ -736,14 +735,14 @@ func (es *EmbeddingService) selectBestProvider(ctx context.Context, texts []stri
 				continue
 			}
 		}
-		
+
 		availableProviders = append(availableProviders, provider)
 	}
-	
+
 	if len(availableProviders) == 0 {
 		return nil, fmt.Errorf("no healthy providers available")
 	}
-	
+
 	// Select based on load balancing strategy
 	switch es.config.LoadBalancing {
 	case "least_cost":
@@ -763,11 +762,11 @@ func (es *EmbeddingService) selectLeastCostProvider(providers []BasicEmbeddingPr
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
 	}
-	
+
 	estimatedTokens := es.estimateTokenCount(texts)
 	bestProvider := providers[0]
 	lowestCost := bestProvider.GetCostEstimate(estimatedTokens)
-	
+
 	for _, provider := range providers[1:] {
 		cost := provider.GetCostEstimate(estimatedTokens)
 		if cost < lowestCost {
@@ -775,7 +774,7 @@ func (es *EmbeddingService) selectLeastCostProvider(providers []BasicEmbeddingPr
 			bestProvider = provider
 		}
 	}
-	
+
 	return bestProvider, nil
 }
 
@@ -784,7 +783,7 @@ func (es *EmbeddingService) selectFastestProvider(providers []BasicEmbeddingProv
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
 	}
-	
+
 	// For now, select based on priority (in real implementation, use historical latency)
 	return es.selectHighestPriorityProvider(providers)
 }
@@ -794,27 +793,27 @@ func (es *EmbeddingService) selectRoundRobinProvider(providers []BasicEmbeddingP
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
 	}
-	
+
 	// Simple round-robin based on request count
 	minRequests := int64(-1)
 	var selectedProvider BasicEmbeddingProvider
-	
+
 	for _, provider := range providers {
 		modelStats, exists := es.metrics.ModelStats[provider.GetName()]
 		if !exists {
 			return provider, nil // Use provider with no previous requests
 		}
-		
+
 		if minRequests == -1 || modelStats.RequestCount < minRequests {
 			minRequests = modelStats.RequestCount
 			selectedProvider = provider
 		}
 	}
-	
+
 	if selectedProvider == nil {
 		return providers[0], nil
 	}
-	
+
 	return selectedProvider, nil
 }
 
@@ -823,10 +822,10 @@ func (es *EmbeddingService) selectHighestPriorityProvider(providers []BasicEmbed
 	if len(providers) == 0 {
 		return nil, fmt.Errorf("no providers available")
 	}
-	
+
 	bestProvider := providers[0]
 	highestPriority := bestProvider.GetConfig().Priority
-	
+
 	for _, provider := range providers[1:] {
 		priority := provider.GetConfig().Priority
 		if priority > highestPriority {
@@ -834,7 +833,7 @@ func (es *EmbeddingService) selectHighestPriorityProvider(providers []BasicEmbed
 			bestProvider = provider
 		}
 	}
-	
+
 	return bestProvider, nil
 }
 
@@ -853,7 +852,7 @@ func (es *EmbeddingService) estimateCost(texts []string) float64 {
 	if len(es.providers) == 0 {
 		return 0.0
 	}
-	
+
 	// Use the default or first available provider for estimation
 	var provider BasicEmbeddingProvider
 	for _, p := range es.providers {
@@ -862,11 +861,11 @@ func (es *EmbeddingService) estimateCost(texts []string) float64 {
 			break
 		}
 	}
-	
+
 	if provider == nil {
 		return 0.0
 	}
-	
+
 	estimatedTokens := es.estimateTokenCount(texts)
 	return provider.GetCostEstimate(estimatedTokens)
 }
@@ -924,7 +923,7 @@ func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) (
 					return 0
 				}(),
 			)
-			
+
 			// Wait before retrying
 			select {
 			case <-ctx.Done():
@@ -1012,12 +1011,12 @@ func (es *EmbeddingService) applyTelecomPreprocessing(text string) string {
 	if es.config.PreserveTechnicalTerms {
 		// Define telecom technical term patterns
 		technicalPatterns := []string{
-			`\b[A-Z]{2,}(?:-[A-Z]{2,})*\b`,           // Acronyms like RAN, AMF, SMF
-			`\b\d+G\b`,                               // Technology generations
-			`\b(?:Rel|Release)[-\s]*\d+\b`,           // Release versions
-			`\b[vV]\d+\.\d+(?:\.\d+)?\b`,            // Version numbers
-			`\b\d+\.\d+\.\d+\b`,                     // Specification numbers
-			`\b[A-Z]+\d+\b`,                         // Standards like TS38.300
+			`\b[A-Z]{2,}(?:-[A-Z]{2,})*\b`, // Acronyms like RAN, AMF, SMF
+			`\b\d+G\b`,                     // Technology generations
+			`\b(?:Rel|Release)[-\s]*\d+\b`, // Release versions
+			`\b[vV]\d+\.\d+(?:\.\d+)?\b`,   // Version numbers
+			`\b\d+\.\d+\.\d+\b`,            // Specification numbers
+			`\b[A-Z]+\d+\b`,                // Standards like TS38.300
 		}
 
 		// Apply weighting by duplicating technical terms (simple approach)
@@ -1058,12 +1057,12 @@ func (es *EmbeddingService) GenerateEmbeddingsForChunks(ctx context.Context, chu
 	for i, chunk := range chunks {
 		// Use clean content for embedding
 		content := chunk.CleanContent
-		
+
 		// Add section context if available
 		if chunk.SectionTitle != "" && es.config.TelecomPreprocessing {
 			content = fmt.Sprintf("Section: %s\n\n%s", chunk.SectionTitle, content)
 		}
-		
+
 		// Add parent context if available
 		if chunk.ParentContext != "" {
 			content = fmt.Sprintf("Context: %s\n\n%s", chunk.ParentContext, content)
@@ -1113,7 +1112,7 @@ func (es *EmbeddingService) updateMetrics(updater func(*EmbeddingMetrics)) {
 func (es *EmbeddingService) GetMetrics() *EmbeddingMetrics {
 	es.metrics.mutex.RLock()
 	defer es.metrics.mutex.RUnlock()
-	
+
 	// Return a copy
 	metrics := *es.metrics
 	return &metrics
@@ -1197,7 +1196,7 @@ func (rl *RateLimiter) refillTokens(requestsPerMinute, tokensPerMinute int) {
 
 	for range ticker.C {
 		rl.mutex.Lock()
-		
+
 		// Refill request tokens
 		for len(rl.requestTokens) < requestsPerMinute {
 			select {
@@ -1318,11 +1317,11 @@ func (c *InMemoryCache) evictOldest() {
 // NoOpCache is a cache implementation that doesn't cache anything
 type NoOpCache struct{}
 
-func (c *NoOpCache) Get(key string) ([]float32, bool)                      { return nil, false }
+func (c *NoOpCache) Get(key string) ([]float32, bool)                             { return nil, false }
 func (c *NoOpCache) Set(key string, embedding []float32, ttl time.Duration) error { return nil }
-func (c *NoOpCache) Delete(key string) error                               { return nil }
-func (c *NoOpCache) Clear() error                                          { return nil }
-func (c *NoOpCache) Stats() CacheStats                                     { return CacheStats{} }
+func (c *NoOpCache) Delete(key string) error                                      { return nil }
+func (c *NoOpCache) Clear() error                                                 { return nil }
+func (c *NoOpCache) Stats() CacheStats                                            { return CacheStats{} }
 
 // createProvider creates a provider instance based on configuration
 func createProvider(config ProviderConfig, httpClient *http.Client) BasicEmbeddingProvider {

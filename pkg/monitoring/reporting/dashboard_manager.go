@@ -25,14 +25,14 @@ import (
 
 // DashboardConfig represents the configuration for dashboard management
 type DashboardConfig struct {
-	GrafanaURL    string            `yaml:"grafana_url"`
-	APIKey        string            `yaml:"api_key"`
-	OrgID         int               `yaml:"org_id"`
-	DashboardPath string            `yaml:"dashboard_path"`
-	Templates     TemplateConfig    `yaml:"templates"`
-	RBAC          RBACConfig        `yaml:"rbac"`
-	Monitoring    MonitoringConfig  `yaml:"monitoring"`
-	ABTesting     ABTestingConfig   `yaml:"ab_testing"`
+	GrafanaURL    string           `yaml:"grafana_url"`
+	APIKey        string           `yaml:"api_key"`
+	OrgID         int              `yaml:"org_id"`
+	DashboardPath string           `yaml:"dashboard_path"`
+	Templates     TemplateConfig   `yaml:"templates"`
+	RBAC          RBACConfig       `yaml:"rbac"`
+	Monitoring    MonitoringConfig `yaml:"monitoring"`
+	ABTesting     ABTestingConfig  `yaml:"ab_testing"`
 }
 
 // TemplateConfig contains template configuration
@@ -63,25 +63,25 @@ type MonitoringConfig struct {
 
 // ABTestingConfig contains A/B testing configuration
 type ABTestingConfig struct {
-	Enabled          bool    `yaml:"enabled"`
-	TrafficSplit     float64 `yaml:"traffic_split"`
-	TestDuration     string  `yaml:"test_duration"`
-	MetricsEndpoint  string  `yaml:"metrics_endpoint"`
+	Enabled         bool    `yaml:"enabled"`
+	TrafficSplit    float64 `yaml:"traffic_split"`
+	TestDuration    string  `yaml:"test_duration"`
+	MetricsEndpoint string  `yaml:"metrics_endpoint"`
 }
 
 // Dashboard represents a Grafana dashboard
 type Dashboard struct {
-	ID          int                    `json:"id,omitempty"`
-	UID         string                 `json:"uid,omitempty"`
-	Title       string                 `json:"title"`
-	Tags        []string               `json:"tags,omitempty"`
-	Templating  DashboardTemplating    `json:"templating"`
-	Panels      []DashboardPanel       `json:"panels"`
-	Time        DashboardTimeRange     `json:"time"`
-	Refresh     string                 `json:"refresh"`
-	SchemaVersion int                  `json:"schemaVersion"`
-	Version     int                    `json:"version"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	ID            int                    `json:"id,omitempty"`
+	UID           string                 `json:"uid,omitempty"`
+	Title         string                 `json:"title"`
+	Tags          []string               `json:"tags,omitempty"`
+	Templating    DashboardTemplating    `json:"templating"`
+	Panels        []DashboardPanel       `json:"panels"`
+	Time          DashboardTimeRange     `json:"time"`
+	Refresh       string                 `json:"refresh"`
+	SchemaVersion int                    `json:"schemaVersion"`
+	Version       int                    `json:"version"`
+	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // DashboardTemplating contains dashboard template variables
@@ -144,26 +144,26 @@ type PanelGridPos struct {
 
 // PanelFieldConfig represents panel field configuration
 type PanelFieldConfig struct {
-	Defaults  FieldDefaults           `json:"defaults"`
-	Overrides []FieldOverride         `json:"overrides,omitempty"`
-	Metadata  map[string]interface{}  `json:"metadata,omitempty"`
+	Defaults  FieldDefaults          `json:"defaults"`
+	Overrides []FieldOverride        `json:"overrides,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // FieldDefaults represents default field settings
 type FieldDefaults struct {
-	Unit        string                 `json:"unit,omitempty"`
-	Min         *float64               `json:"min,omitempty"`
-	Max         *float64               `json:"max,omitempty"`
-	Decimals    *int                   `json:"decimals,omitempty"`
-	Thresholds  *FieldThresholds       `json:"thresholds,omitempty"`
-	Mappings    []FieldMapping         `json:"mappings,omitempty"`
-	Custom      map[string]interface{} `json:"custom,omitempty"`
+	Unit       string                 `json:"unit,omitempty"`
+	Min        *float64               `json:"min,omitempty"`
+	Max        *float64               `json:"max,omitempty"`
+	Decimals   *int                   `json:"decimals,omitempty"`
+	Thresholds *FieldThresholds       `json:"thresholds,omitempty"`
+	Mappings   []FieldMapping         `json:"mappings,omitempty"`
+	Custom     map[string]interface{} `json:"custom,omitempty"`
 }
 
 // FieldThresholds represents field thresholds
 type FieldThresholds struct {
-	Mode  string           `json:"mode"`
-	Steps []ThresholdStep  `json:"steps"`
+	Mode  string          `json:"mode"`
+	Steps []ThresholdStep `json:"steps"`
 }
 
 // ThresholdStep represents a threshold step
@@ -182,8 +182,8 @@ type FieldMapping struct {
 
 // FieldOverride represents field override
 type FieldOverride struct {
-	Matcher    FieldMatcher           `json:"matcher"`
-	Properties []FieldProperty        `json:"properties"`
+	Matcher    FieldMatcher    `json:"matcher"`
+	Properties []FieldProperty `json:"properties"`
 }
 
 // FieldMatcher represents field matcher
@@ -200,34 +200,34 @@ type FieldProperty struct {
 
 // PanelAlert represents panel alert configuration
 type PanelAlert struct {
-	ID             int           `json:"id,omitempty"`
-	Name           string        `json:"name"`
-	Message        string        `json:"message"`
-	Frequency      string        `json:"frequency"`
-	Conditions     []AlertCondition `json:"conditions"`
-	ExecutionErrorState string   `json:"executionErrorState"`
-	NoDataState    string        `json:"noDataState"`
-	For            string        `json:"for"`
+	ID                  int              `json:"id,omitempty"`
+	Name                string           `json:"name"`
+	Message             string           `json:"message"`
+	Frequency           string           `json:"frequency"`
+	Conditions          []AlertCondition `json:"conditions"`
+	ExecutionErrorState string           `json:"executionErrorState"`
+	NoDataState         string           `json:"noDataState"`
+	For                 string           `json:"for"`
 }
 
 // AlertCondition represents alert condition
 type AlertCondition struct {
-	Query      AlertQuery      `json:"query"`
-	Reducer    AlertReducer    `json:"reducer"`
-	Evaluator  AlertEvaluator  `json:"evaluator"`
+	Query     AlertQuery     `json:"query"`
+	Reducer   AlertReducer   `json:"reducer"`
+	Evaluator AlertEvaluator `json:"evaluator"`
 }
 
 // AlertQuery represents alert query
 type AlertQuery struct {
-	QueryType   string            `json:"queryType"`
-	RefID       string            `json:"refId"`
-	Model       map[string]interface{} `json:"model"`
+	QueryType string                 `json:"queryType"`
+	RefID     string                 `json:"refId"`
+	Model     map[string]interface{} `json:"model"`
 }
 
 // AlertReducer represents alert reducer
 type AlertReducer struct {
-	Type   string                 `json:"type"`
-	Params []interface{}          `json:"params"`
+	Type   string        `json:"type"`
+	Params []interface{} `json:"params"`
 }
 
 // AlertEvaluator represents alert evaluator
@@ -244,45 +244,45 @@ type DashboardTimeRange struct {
 
 // DashboardStatus represents the status of a dashboard
 type DashboardStatus struct {
-	UID              string                 `json:"uid"`
-	Title            string                 `json:"title"`
-	Version          int                    `json:"version"`
-	LastUpdated      time.Time              `json:"last_updated"`
-	Health           string                 `json:"health"` // healthy, degraded, unhealthy
-	DataFlowStatus   string                 `json:"data_flow_status"`
-	PanelCount       int                    `json:"panel_count"`
-	QueryCount       int                    `json:"query_count"`
-	ErrorCount       int                    `json:"error_count"`
-	ResponseTimes    []float64              `json:"response_times"`
-	Metadata         map[string]interface{} `json:"metadata"`
+	UID            string                 `json:"uid"`
+	Title          string                 `json:"title"`
+	Version        int                    `json:"version"`
+	LastUpdated    time.Time              `json:"last_updated"`
+	Health         string                 `json:"health"` // healthy, degraded, unhealthy
+	DataFlowStatus string                 `json:"data_flow_status"`
+	PanelCount     int                    `json:"panel_count"`
+	QueryCount     int                    `json:"query_count"`
+	ErrorCount     int                    `json:"error_count"`
+	ResponseTimes  []float64              `json:"response_times"`
+	Metadata       map[string]interface{} `json:"metadata"`
 }
 
 // ABTestResult represents A/B test results
 type ABTestResult struct {
-	DashboardA      string                 `json:"dashboard_a"`
-	DashboardB      string                 `json:"dashboard_b"`
-	StartTime       time.Time              `json:"start_time"`
-	EndTime         time.Time              `json:"end_time"`
-	TrafficSplitA   float64                `json:"traffic_split_a"`
-	TrafficSplitB   float64                `json:"traffic_split_b"`
-	MetricsA        map[string]float64     `json:"metrics_a"`
-	MetricsB        map[string]float64     `json:"metrics_b"`
-	Winner          string                 `json:"winner"`
-	Confidence      float64                `json:"confidence"`
-	Metadata        map[string]interface{} `json:"metadata"`
+	DashboardA    string                 `json:"dashboard_a"`
+	DashboardB    string                 `json:"dashboard_b"`
+	StartTime     time.Time              `json:"start_time"`
+	EndTime       time.Time              `json:"end_time"`
+	TrafficSplitA float64                `json:"traffic_split_a"`
+	TrafficSplitB float64                `json:"traffic_split_b"`
+	MetricsA      map[string]float64     `json:"metrics_a"`
+	MetricsB      map[string]float64     `json:"metrics_b"`
+	Winner        string                 `json:"winner"`
+	Confidence    float64                `json:"confidence"`
+	Metadata      map[string]interface{} `json:"metadata"`
 }
 
 // DashboardManager manages Grafana dashboards
 type DashboardManager struct {
-	config       DashboardConfig
-	client       *http.Client
-	templates    map[string]*template.Template
-	dashboards   map[string]*Dashboard
-	statuses     map[string]*DashboardStatus
-	abTests      map[string]*ABTestResult
-	logger       *logrus.Logger
-	mu           sync.RWMutex
-	stopCh       chan struct{}
+	config     DashboardConfig
+	client     *http.Client
+	templates  map[string]*template.Template
+	dashboards map[string]*Dashboard
+	statuses   map[string]*DashboardStatus
+	abTests    map[string]*ABTestResult
+	logger     *logrus.Logger
+	mu         sync.RWMutex
+	stopCh     chan struct{}
 }
 
 // NewDashboardManager creates a new dashboard manager
@@ -510,10 +510,10 @@ func (dm *DashboardManager) StartABTest(ctx context.Context, dashboardA, dashboa
 	}()
 
 	dm.logger.WithFields(logrus.Fields{
-		"test_id":      testID,
-		"dashboard_a":  dashboardA,
-		"dashboard_b":  dashboardB,
-		"duration":     duration,
+		"test_id":     testID,
+		"dashboard_a": dashboardA,
+		"dashboard_b": dashboardB,
+		"duration":    duration,
 	}).Info("Started A/B test")
 
 	return result, nil
@@ -792,8 +792,8 @@ func (dm *DashboardManager) completeABTest(ctx context.Context, testID string) {
 	}
 
 	dm.logger.WithFields(logrus.Fields{
-		"test_id": testID,
-		"winner":  result.Winner,
+		"test_id":    testID,
+		"winner":     result.Winner,
 		"confidence": result.Confidence,
 	}).Info("Completed A/B test")
 }

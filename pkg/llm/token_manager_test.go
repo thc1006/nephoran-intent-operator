@@ -34,7 +34,7 @@ func TestTokenManager_EstimateTokens(t *testing.T) {
 	for _, tc := range testCases {
 		tokens := tm.EstimateTokens(tc.text, tc.model)
 		// Allow some variance in token estimation
-		assert.InDelta(t, tc.expected, tokens, float64(tc.expected)*0.3, 
+		assert.InDelta(t, tc.expected, tokens, float64(tc.expected)*0.3,
 			"Token estimation for '%s' should be approximately %d, got %d", tc.text, tc.expected, tokens)
 	}
 }
@@ -48,7 +48,7 @@ func TestTokenManager_CalculateTokenBudget(t *testing.T) {
 	ragContext := "AMF (Access and Mobility Management Function) is a key component of 5G core network..."
 
 	budget, err := tm.CalculateTokenBudget(ctx, "gpt-4o-mini", systemPrompt, userPrompt, ragContext)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, budget)
 	assert.True(t, budget.SystemPromptTokens > 0)
@@ -68,7 +68,7 @@ func TestTokenManager_CalculateTokenBudget_ExceedsLimit(t *testing.T) {
 	longContext := strings.Repeat("This is a very long context that will exceed the token limit. ", 1000)
 
 	budget, err := tm.CalculateTokenBudget(ctx, "gpt-4o-mini", "System prompt", "User prompt", longContext)
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, budget)
 	assert.False(t, budget.CanAccommodate)
@@ -113,7 +113,7 @@ func TestTokenManager_OptimizeContext(t *testing.T) {
 
 	// Test with very limited budget
 	optimized = tm.OptimizeContext(contexts, 50, "gpt-4o-mini")
-	assert.True(t, len(optimized) >= 1) // Should keep at least the most relevant one
+	assert.True(t, len(optimized) >= 1)          // Should keep at least the most relevant one
 	assert.Equal(t, 0.9, optimized[0].Relevance) // Should be the highest relevance
 }
 
@@ -196,7 +196,7 @@ func TestTokenManager_EstimateTokens_DifferentModels(t *testing.T) {
 	for _, model := range models {
 		tokens := tm.EstimateTokens(text, model)
 		assert.True(t, tokens > 0, "Model %s should estimate tokens for text", model)
-		
+
 		// Verify different models may have different estimations
 		if model == "gpt-4o-mini" {
 			// This is our baseline - should be reasonable
@@ -236,14 +236,14 @@ spec:
 			description: "YAML should have higher token density",
 		},
 		{
-			name: "json_config",
-			content: `{"networkFunction": "AMF", "replicas": 3, "namespace": "5g-core"}`,
+			name:        "json_config",
+			content:     `{"networkFunction": "AMF", "replicas": 3, "namespace": "5g-core"}`,
 			expectHigh:  true,
 			description: "JSON should have higher token density",
 		},
 		{
-			name: "natural_language",
-			content: "Please deploy the AMF network function with three replicas in the production environment.",
+			name:        "natural_language",
+			content:     "Please deploy the AMF network function with three replicas in the production environment.",
 			expectHigh:  false,
 			description: "Natural language has normal token density",
 		},
@@ -268,14 +268,14 @@ func TestTokenManager_TruncateToFit(t *testing.T) {
 	tm := NewTokenManager()
 
 	longText := strings.Repeat("This is a sentence that will be repeated many times. ", 100)
-	
+
 	// Test truncation to fit within budget
 	truncated := tm.TruncateToFit(longText, 50, "gpt-4o-mini")
-	
+
 	truncatedTokens := tm.EstimateTokens(truncated, "gpt-4o-mini")
 	assert.True(t, truncatedTokens <= 50, "Truncated text should fit within token budget")
 	assert.True(t, len(truncated) < len(longText), "Truncated text should be shorter than original")
-	
+
 	// Test with text that's already short enough
 	shortText := "Short text"
 	truncated = tm.TruncateToFit(shortText, 100, "gpt-4o-mini")
@@ -300,7 +300,7 @@ func TestTokenManager_CalculateCost(t *testing.T) {
 
 	for _, tc := range testCases {
 		cost, err := tm.CalculateCost(tc.model, tc.inputTokens, tc.outputTokens)
-		
+
 		if tc.expectCost {
 			assert.NoError(t, err)
 			assert.True(t, cost > 0, "Cost should be positive for model %s", tc.model)
@@ -343,14 +343,14 @@ func TestTokenManager_ContextOptimization_WordBoundary(t *testing.T) {
 
 	// Test that truncation respects word boundaries
 	text := "This is a complete sentence that should be truncated at word boundaries not in the middle of words."
-	
+
 	// Truncate to a size that would normally cut through a word
 	truncated := tm.TruncateToFit(text, 10, "gpt-4o-mini")
-	
+
 	// Verify truncation ends at word boundary
-	assert.True(t, strings.HasSuffix(truncated, " ") || !strings.Contains(truncated, " "), 
+	assert.True(t, strings.HasSuffix(truncated, " ") || !strings.Contains(truncated, " "),
 		"Truncated text should end at word boundary")
-	
+
 	words := strings.Fields(truncated)
 	for _, word := range words {
 		assert.True(t, len(word) > 0, "No empty words should exist")
@@ -362,18 +362,18 @@ func TestTokenManager_EdgeCases(t *testing.T) {
 
 	// Test with empty strings
 	assert.Equal(t, 0, tm.EstimateTokens("", "gpt-4o-mini"))
-	
+
 	// Test with only whitespace
 	assert.Equal(t, 0, tm.EstimateTokens("   \n\t  ", "gpt-4o-mini"))
-	
+
 	// Test with special characters
 	tokens := tm.EstimateTokens("!@#$%^&*()_+-=[]{}|;':\",./<>?", "gpt-4o-mini")
 	assert.True(t, tokens > 0, "Special characters should have token count")
-	
+
 	// Test with unicode characters
 	tokens = tm.EstimateTokens("Hello 世界 🌍", "gpt-4o-mini")
 	assert.True(t, tokens > 0, "Unicode characters should be handled")
-	
+
 	// Test truncation with very small budget
 	truncated := tm.TruncateToFit("This is a test", 1, "gpt-4o-mini")
 	assert.True(t, len(truncated) > 0, "Should return at least something even with tiny budget")
@@ -385,14 +385,14 @@ func TestTokenManager_Budget_SafetyMargin(t *testing.T) {
 
 	// Test that safety margin is applied correctly
 	budget, err := tm.CalculateTokenBudget(ctx, "gpt-4o-mini", "System", "User", "Context")
-	
+
 	assert.NoError(t, err)
 	assert.NotNil(t, budget)
-	
+
 	// The remaining tokens should account for safety margin
 	config, _ := tm.GetModelConfig("gpt-4o-mini")
 	expectedMax := int(float64(config.ContextWindow) * (1.0 - config.SafetyMargin))
-	
+
 	assert.True(t, budget.TotalUsedTokens+budget.RemainingTokens <= expectedMax,
 		"Total budget should not exceed context window minus safety margin")
 }
@@ -401,7 +401,7 @@ func TestTokenManager_Budget_SafetyMargin(t *testing.T) {
 func BenchmarkTokenManager_EstimateTokens(b *testing.B) {
 	tm := NewTokenManager()
 	text := "Deploy AMF network function with 3 replicas in production namespace for enhanced mobile broadband service"
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		tm.EstimateTokens(text, "gpt-4o-mini")
@@ -411,11 +411,11 @@ func BenchmarkTokenManager_EstimateTokens(b *testing.B) {
 func BenchmarkTokenManager_CalculateTokenBudget(b *testing.B) {
 	tm := NewTokenManager()
 	ctx := context.Background()
-	
+
 	systemPrompt := "You are a helpful assistant for network operations."
 	userPrompt := "Deploy AMF with 3 replicas"
 	ragContext := "AMF (Access and Mobility Management Function) is a key component of 5G core network that handles access and mobility management procedures."
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		tm.CalculateTokenBudget(ctx, "gpt-4o-mini", systemPrompt, userPrompt, ragContext)
@@ -424,7 +424,7 @@ func BenchmarkTokenManager_CalculateTokenBudget(b *testing.B) {
 
 func BenchmarkTokenManager_OptimizeContext(b *testing.B) {
 	tm := NewTokenManager()
-	
+
 	contexts := make([]RetrievedContext, 10)
 	for i := 0; i < 10; i++ {
 		contexts[i] = RetrievedContext{
@@ -433,7 +433,7 @@ func BenchmarkTokenManager_OptimizeContext(b *testing.B) {
 			Source:    "test-source",
 		}
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		tm.OptimizeContext(contexts, 1000, "gpt-4o-mini")

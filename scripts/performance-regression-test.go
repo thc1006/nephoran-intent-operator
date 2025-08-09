@@ -17,14 +17,14 @@ import (
 
 // PerformanceTestSuite represents a comprehensive performance testing framework
 type PerformanceTestSuite struct {
-	ProjectPath     string                    `json:"project_path"`
-	TestResults     []BenchmarkResult         `json:"test_results"`
+	ProjectPath     string                     `json:"project_path"`
+	TestResults     []BenchmarkResult          `json:"test_results"`
 	Baseline        map[string]BenchmarkResult `json:"baseline"`
-	RegressionTests []RegressionTest          `json:"regression_tests"`
-	Summary         PerformanceSummary        `json:"summary"`
-	Timestamp       time.Time                 `json:"timestamp"`
-	Environment     TestEnvironment           `json:"environment"`
-	Thresholds      PerformanceThresholds     `json:"thresholds"`
+	RegressionTests []RegressionTest           `json:"regression_tests"`
+	Summary         PerformanceSummary         `json:"summary"`
+	Timestamp       time.Time                  `json:"timestamp"`
+	Environment     TestEnvironment            `json:"environment"`
+	Thresholds      PerformanceThresholds      `json:"thresholds"`
 }
 
 type BenchmarkResult struct {
@@ -43,15 +43,15 @@ type BenchmarkResult struct {
 }
 
 type RegressionTest struct {
-	TestName        string  `json:"test_name"`
-	BaselineValue   int64   `json:"baseline_value"`
-	CurrentValue    int64   `json:"current_value"`
-	RegressionPct   float64 `json:"regression_percent"`
-	Threshold       float64 `json:"threshold"`
-	Status          string  `json:"status"`
-	Metric          string  `json:"metric"`
-	Severity        string  `json:"severity"`
-	Recommendation  string  `json:"recommendation"`
+	TestName       string  `json:"test_name"`
+	BaselineValue  int64   `json:"baseline_value"`
+	CurrentValue   int64   `json:"current_value"`
+	RegressionPct  float64 `json:"regression_percent"`
+	Threshold      float64 `json:"threshold"`
+	Status         string  `json:"status"`
+	Metric         string  `json:"metric"`
+	Severity       string  `json:"severity"`
+	Recommendation string  `json:"recommendation"`
 }
 
 type PerformanceSummary struct {
@@ -79,11 +79,11 @@ type TestEnvironment struct {
 }
 
 type PerformanceThresholds struct {
-	MaxRegressionPercent       float64 `json:"max_regression_percent"`
-	MaxAllocRegressionPercent  float64 `json:"max_alloc_regression_percent"`
-	MaxDurationMs              int64   `json:"max_duration_ms"`
-	MaxMemoryUsageMB           int64   `json:"max_memory_usage_mb"`
-	MinPerformanceScore        float64 `json:"min_performance_score"`
+	MaxRegressionPercent      float64 `json:"max_regression_percent"`
+	MaxAllocRegressionPercent float64 `json:"max_alloc_regression_percent"`
+	MaxDurationMs             int64   `json:"max_duration_ms"`
+	MaxMemoryUsageMB          int64   `json:"max_memory_usage_mb"`
+	MinPerformanceScore       float64 `json:"min_performance_score"`
 }
 
 // Performance test categories
@@ -123,7 +123,7 @@ func main() {
 
 	projectPath := os.Args[1]
 	var baselineFile, outputFile string
-	
+
 	if len(os.Args) > 2 {
 		baselineFile = os.Args[2]
 	}
@@ -138,8 +138,8 @@ func main() {
 		Timestamp:   time.Now(),
 		Environment: getTestEnvironment(),
 		Thresholds: PerformanceThresholds{
-			MaxRegressionPercent:      15.0, // 15% regression threshold
-			MaxAllocRegressionPercent: 20.0, // 20% allocation regression
+			MaxRegressionPercent:      15.0,  // 15% regression threshold
+			MaxAllocRegressionPercent: 20.0,  // 20% allocation regression
 			MaxDurationMs:             30000, // 30 second max test duration
 			MaxMemoryUsageMB:          1024,  // 1GB max memory usage
 			MinPerformanceScore:       7.0,   // Minimum performance score
@@ -155,10 +155,10 @@ func main() {
 
 	fmt.Printf("🚀 Starting comprehensive performance regression testing...\n")
 	fmt.Printf("📁 Project Path: %s\n", projectPath)
-	fmt.Printf("🖥️  Environment: %s %s (%d CPUs)\n", 
+	fmt.Printf("🖥️  Environment: %s %s (%d CPUs)\n",
 		suite.Environment.OS, suite.Environment.Architecture, suite.Environment.CPUCount)
 	fmt.Printf("🔧 Go Version: %s\n", suite.Environment.GoVersion)
-	
+
 	if baselineFile != "" {
 		fmt.Printf("📊 Baseline: %s\n", baselineFile)
 	}
@@ -169,14 +169,14 @@ func main() {
 	// Run performance tests by category
 	for category, packages := range performanceTestCategories {
 		fmt.Printf("📦 Testing %s components...\n", category)
-		
+
 		for _, pkg := range packages {
 			pkgPath := filepath.Join(projectPath, pkg)
 			if _, err := os.Stat(pkgPath); os.IsNotExist(err) {
 				fmt.Printf("   ⏭️  Skipping %s (not found)\n", pkg)
 				continue
 			}
-			
+
 			results := suite.runPackageBenchmarks(pkgPath, pkg)
 			suite.TestResults = append(suite.TestResults, results...)
 		}
@@ -207,11 +207,11 @@ func main() {
 
 func getTestEnvironment() TestEnvironment {
 	hostname, _ := os.Hostname()
-	
+
 	// Get memory info (simplified)
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
-	
+
 	return TestEnvironment{
 		GoVersion:    runtime.Version(),
 		OS:           runtime.GOOS,
@@ -274,12 +274,12 @@ func (suite *PerformanceTestSuite) runPackageBenchmarks(pkgPath, pkgName string)
 	// Simulate benchmark execution
 	// In a real implementation, this would execute: go test -bench=. -benchmem -count=3
 	benchmarkResults := suite.simulateBenchmarkExecution(pkgPath, pkgName)
-	
+
 	for _, result := range benchmarkResults {
 		// Check for regression if baseline exists
 		if baseline, exists := suite.Baseline[result.Name]; exists {
 			result.RegressionPct = calculateRegression(baseline.NsPerOp, result.NsPerOp)
-			
+
 			if result.RegressionPct > suite.Thresholds.MaxRegressionPercent {
 				result.Status = "REGRESSION"
 			} else if result.RegressionPct < -5.0 {
@@ -292,7 +292,7 @@ func (suite *PerformanceTestSuite) runPackageBenchmarks(pkgPath, pkgName string)
 		}
 
 		results = append(results, result)
-		fmt.Printf("      ✓ %s: %s (%.1f%% change)\n", 
+		fmt.Printf("      ✓ %s: %s (%.1f%% change)\n",
 			result.Name, result.Status, result.RegressionPct)
 	}
 
@@ -371,7 +371,7 @@ func (suite *PerformanceTestSuite) analyzeRegressions() {
 
 	for _, result := range suite.TestResults {
 		if baseline, exists := suite.Baseline[result.Name]; exists {
-			
+
 			// Analyze performance regression
 			perfRegression := RegressionTest{
 				TestName:      result.Name,
@@ -401,17 +401,17 @@ func (suite *PerformanceTestSuite) analyzeRegressions() {
 			// Analyze memory allocation regression
 			if result.AllocsPerOp > 0 && baseline.AllocsPerOp > 0 {
 				allocRegression := calculateRegression(baseline.AllocsPerOp, result.AllocsPerOp)
-				
+
 				if allocRegression > suite.Thresholds.MaxAllocRegressionPercent {
 					memRegression := RegressionTest{
-						TestName:      result.Name,
-						BaselineValue: baseline.AllocsPerOp,
-						CurrentValue:  result.AllocsPerOp,
-						RegressionPct: allocRegression,
-						Threshold:     suite.Thresholds.MaxAllocRegressionPercent,
-						Metric:        "allocs/op",
-						Status:        "REGRESSION",
-						Severity:      "HIGH",
+						TestName:       result.Name,
+						BaselineValue:  baseline.AllocsPerOp,
+						CurrentValue:   result.AllocsPerOp,
+						RegressionPct:  allocRegression,
+						Threshold:      suite.Thresholds.MaxAllocRegressionPercent,
+						Metric:         "allocs/op",
+						Status:         "REGRESSION",
+						Severity:       "HIGH",
 						Recommendation: "Review memory allocation patterns and reduce unnecessary allocations",
 					}
 					regressions = append(regressions, memRegression)
@@ -467,15 +467,15 @@ func (suite *PerformanceTestSuite) generateSummary(totalTime time.Duration) {
 
 	// Calculate performance score (0-10 scale)
 	performanceScore := 10.0
-	
+
 	// Penalty for regressions
 	performanceScore -= float64(summary.RegressionBenchmarks) / float64(summary.TotalBenchmarks) * 5
-	
+
 	// Penalty for high average regression
 	if summary.AvgRegression > 5.0 {
 		performanceScore -= (summary.AvgRegression - 5.0) / 10 * 3
 	}
-	
+
 	// Penalty for maximum regression
 	if maxRegression > suite.Thresholds.MaxRegressionPercent {
 		performanceScore -= (maxRegression - suite.Thresholds.MaxRegressionPercent) / 10 * 2
@@ -519,7 +519,7 @@ func (suite *PerformanceTestSuite) printSummary() {
 	fmt.Printf("🚀 PERFORMANCE REGRESSION TEST SUMMARY\n")
 	fmt.Printf(strings.Repeat("=", 80) + "\n\n")
 
-	fmt.Printf("📊 Overall Performance Score: %.1f/10.0 (Grade: %s)\n", 
+	fmt.Printf("📊 Overall Performance Score: %.1f/10.0 (Grade: %s)\n",
 		suite.Summary.PerformanceScore, suite.Summary.Grade)
 	fmt.Printf("🎯 Status: %s\n\n", suite.Summary.OverallStatus)
 
@@ -547,8 +547,8 @@ func (suite *PerformanceTestSuite) printSummary() {
 			if i >= 5 || reg.Status != "REGRESSION" { // Show top 5 regressions
 				break
 			}
-			
-			fmt.Printf("  %d. %s (%s): %.1f%% slower\n", 
+
+			fmt.Printf("  %d. %s (%s): %.1f%% slower\n",
 				i+1, reg.TestName, reg.Metric, reg.RegressionPct)
 			fmt.Printf("     %s\n", reg.Recommendation)
 		}

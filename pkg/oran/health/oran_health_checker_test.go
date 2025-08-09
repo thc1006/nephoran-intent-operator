@@ -44,10 +44,10 @@ func TestNewORANHealthChecker(t *testing.T) {
 					},
 				},
 				AlertingThresholds: AlertingThresholds{
-					ConsecutiveFailures:     5,
-					DependencyFailureRate:   0.7,
-					CircuitBreakerOpenTime:  10 * time.Minute,
-					ResponseTimeThreshold:   10 * time.Second,
+					ConsecutiveFailures:    5,
+					DependencyFailureRate:  0.7,
+					CircuitBreakerOpenTime: 10 * time.Minute,
+					ResponseTimeThreshold:  10 * time.Second,
 				},
 			},
 		},
@@ -197,7 +197,7 @@ func TestORANHealthChecker_ResetCircuitBreakers(t *testing.T) {
 
 	// Verify circuit breakers are in closed state
 	stats := checker.GetCircuitBreakerStats()
-	
+
 	if a1Stats, ok := stats["a1"].(map[string]interface{}); ok {
 		if state, ok := a1Stats["state"].(string); ok {
 			assert.Equal(t, "closed", state)
@@ -232,7 +232,7 @@ func TestORANHealthChecker_HealthHistory(t *testing.T) {
 
 	history := checker.GetHealthHistory()
 	assert.NotNil(t, history)
-	
+
 	// Should have some history entries
 	if len(history) > 0 {
 		for _, snapshot := range history {
@@ -272,16 +272,16 @@ func TestORANHealthChecker_IsHealthy(t *testing.T) {
 
 func TestDependencyCheck_Structure(t *testing.T) {
 	depCheck := DependencyCheck{
-		Name:                "test-dependency",
-		URL:                 "http://test-service/health",
-		Timeout:             5 * time.Second,
-		ExpectedStatusCode:  200,
-		CriticalDependency:  true,
-		CheckInterval:       30 * time.Second,
-		MaxFailures:         3,
-		CurrentFailures:     0,
-		LastCheck:           time.Now(),
-		LastError:           "",
+		Name:               "test-dependency",
+		URL:                "http://test-service/health",
+		Timeout:            5 * time.Second,
+		ExpectedStatusCode: 200,
+		CriticalDependency: true,
+		CheckInterval:      30 * time.Second,
+		MaxFailures:        3,
+		CurrentFailures:    0,
+		LastCheck:          time.Now(),
+		LastError:          "",
 	}
 
 	assert.Equal(t, "test-dependency", depCheck.Name)
@@ -298,7 +298,7 @@ func TestDependencyCheck_Structure(t *testing.T) {
 
 func TestHealthSnapshot_Structure(t *testing.T) {
 	now := time.Now()
-	
+
 	snapshot := HealthSnapshot{
 		Timestamp:     now,
 		OverallStatus: health.StatusHealthy,
@@ -335,14 +335,14 @@ func TestHealthSnapshot_Structure(t *testing.T) {
 
 func TestHealthMetrics_Structure(t *testing.T) {
 	metrics := HealthMetrics{
-		TotalChecks:           100,
-		HealthyChecks:         95,
-		UnhealthyChecks:       5,
-		AverageResponseTime:   150 * time.Millisecond,
-		UpTime:                2 * time.Hour,
-		CircuitBreakerTrips:   2,
-		RetryAttempts:         10,
-		DependencyFailures:    3,
+		TotalChecks:         100,
+		HealthyChecks:       95,
+		UnhealthyChecks:     5,
+		AverageResponseTime: 150 * time.Millisecond,
+		UpTime:              2 * time.Hour,
+		CircuitBreakerTrips: 2,
+		RetryAttempts:       10,
+		DependencyFailures:  3,
 	}
 
 	assert.Equal(t, int64(100), metrics.TotalChecks)
@@ -357,10 +357,10 @@ func TestHealthMetrics_Structure(t *testing.T) {
 
 func TestAlertingThresholds_Structure(t *testing.T) {
 	thresholds := AlertingThresholds{
-		ConsecutiveFailures:     5,
-		DependencyFailureRate:   0.8,
-		CircuitBreakerOpenTime:  10 * time.Minute,
-		ResponseTimeThreshold:   5 * time.Second,
+		ConsecutiveFailures:    5,
+		DependencyFailureRate:  0.8,
+		CircuitBreakerOpenTime: 10 * time.Minute,
+		ResponseTimeThreshold:  5 * time.Second,
 	}
 
 	assert.Equal(t, 5, thresholds.ConsecutiveFailures)
@@ -465,7 +465,7 @@ func TestORANHealthChecker_PartialFailures(t *testing.T) {
 		health.StatusHealthy,
 		health.StatusUnhealthy,
 	}
-	
+
 	for i, status := range statuses {
 		snapshot := HealthSnapshot{
 			Timestamp:     time.Now().Add(time.Duration(i) * time.Second),

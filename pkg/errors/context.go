@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
-	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -24,7 +24,7 @@ type HTTPContextExtractor struct{}
 
 func (h *HTTPContextExtractor) ExtractContext(source interface{}) map[string]interface{} {
 	ctx := make(map[string]interface{})
-	
+
 	if req, ok := source.(*http.Request); ok {
 		ctx["http_method"] = req.Method
 		ctx["http_path"] = req.URL.Path
@@ -33,7 +33,7 @@ func (h *HTTPContextExtractor) ExtractContext(source interface{}) map[string]int
 		ctx["user_agent"] = req.UserAgent()
 		ctx["content_length"] = req.ContentLength
 		ctx["host"] = req.Host
-		
+
 		// Extract common headers
 		if reqID := req.Header.Get("X-Request-ID"); reqID != "" {
 			ctx["request_id"] = reqID
@@ -53,19 +53,19 @@ func (h *HTTPContextExtractor) ExtractContext(source interface{}) map[string]int
 		if sessionID := req.Header.Get("X-Session-ID"); sessionID != "" {
 			ctx["session_id"] = sessionID
 		}
-		
+
 		// Extract authorization info (without sensitive data)
 		if auth := req.Header.Get("Authorization"); auth != "" {
 			if len(auth) > 10 {
 				ctx["auth_type"] = auth[:10] // e.g., "Bearer ", "Basic "
 			}
 		}
-		
+
 		// Extract content type
 		ctx["content_type"] = req.Header.Get("Content-Type")
 		ctx["accept"] = req.Header.Get("Accept")
 	}
-	
+
 	return ctx
 }
 
@@ -82,27 +82,27 @@ type GoContextExtractor struct{}
 
 func (g *GoContextExtractor) ExtractContext(source interface{}) map[string]interface{} {
 	ctx := make(map[string]interface{})
-	
+
 	if goCtx, ok := source.(context.Context); ok {
 		// Extract deadline information
 		if deadline, hasDeadline := goCtx.Deadline(); hasDeadline {
 			ctx["deadline"] = deadline.Format(time.RFC3339)
 			ctx["time_until_deadline"] = time.Until(deadline).String()
 		}
-		
+
 		// Extract common context values with type assertions
 		contextKeys := []string{
 			"request_id", "correlation_id", "trace_id", "span_id", "user_id",
 			"session_id", "tenant_id", "operation_id", "transaction_id",
 			"component", "service", "version", "environment",
 		}
-		
+
 		for _, key := range contextKeys {
 			if value := goCtx.Value(key); value != nil {
 				ctx[key] = fmt.Sprintf("%v", value)
 			}
 		}
-		
+
 		// Try to extract from structured context values
 		if ctxData := goCtx.Value("context_data"); ctxData != nil {
 			if dataMap, ok := ctxData.(map[string]interface{}); ok {
@@ -112,7 +112,7 @@ func (g *GoContextExtractor) ExtractContext(source interface{}) map[string]inter
 			}
 		}
 	}
-	
+
 	return ctx
 }
 
@@ -129,7 +129,7 @@ type KubernetesContextExtractor struct{}
 
 func (k *KubernetesContextExtractor) ExtractContext(source interface{}) map[string]interface{} {
 	ctx := make(map[string]interface{})
-	
+
 	// Extract from REST config
 	if config, ok := source.(*rest.Config); ok {
 		ctx["k8s_host"] = config.Host
@@ -141,7 +141,7 @@ func (k *KubernetesContextExtractor) ExtractContext(source interface{}) map[stri
 			ctx["k8s_impersonate_user"] = config.Impersonate.UserName
 		}
 	}
-	
+
 	// Extract namespace from various sources
 	if ns := os.Getenv("KUBERNETES_NAMESPACE"); ns != "" {
 		ctx["k8s_namespace"] = ns
@@ -149,7 +149,7 @@ func (k *KubernetesContextExtractor) ExtractContext(source interface{}) map[stri
 	if ns := os.Getenv("POD_NAMESPACE"); ns != "" {
 		ctx["k8s_namespace"] = ns
 	}
-	
+
 	// Extract pod information
 	if podName := os.Getenv("POD_NAME"); podName != "" {
 		ctx["k8s_pod_name"] = podName
@@ -163,12 +163,12 @@ func (k *KubernetesContextExtractor) ExtractContext(source interface{}) map[stri
 	if serviceAccount := os.Getenv("SERVICE_ACCOUNT"); serviceAccount != "" {
 		ctx["k8s_service_account"] = serviceAccount
 	}
-	
+
 	// Extract cluster information
 	if clusterName := os.Getenv("CLUSTER_NAME"); clusterName != "" {
 		ctx["k8s_cluster_name"] = clusterName
 	}
-	
+
 	return ctx
 }
 
@@ -185,7 +185,7 @@ type ORANContextExtractor struct{}
 
 func (o *ORANContextExtractor) ExtractContext(source interface{}) map[string]interface{} {
 	ctx := make(map[string]interface{})
-	
+
 	// Extract O-RAN environment variables
 	if ricID := os.Getenv("RIC_ID"); ricID != "" {
 		ctx["oran_ric_id"] = ricID
@@ -205,7 +205,7 @@ func (o *ORANContextExtractor) ExtractContext(source interface{}) map[string]int
 	if sliceID := os.Getenv("SLICE_ID"); sliceID != "" {
 		ctx["oran_slice_id"] = sliceID
 	}
-	
+
 	// Extract interface information
 	if a1Interface := os.Getenv("A1_INTERFACE_ENABLED"); a1Interface != "" {
 		ctx["oran_a1_enabled"] = a1Interface
@@ -219,7 +219,7 @@ func (o *ORANContextExtractor) ExtractContext(source interface{}) map[string]int
 	if e2Interface := os.Getenv("E2_INTERFACE_ENABLED"); e2Interface != "" {
 		ctx["oran_e2_enabled"] = e2Interface
 	}
-	
+
 	return ctx
 }
 
@@ -236,7 +236,7 @@ type SystemContextExtractor struct{}
 
 func (s *SystemContextExtractor) ExtractContext(source interface{}) map[string]interface{} {
 	ctx := make(map[string]interface{})
-	
+
 	// Runtime information
 	ctx["go_version"] = runtime.Version()
 	ctx["go_os"] = runtime.GOOS
@@ -244,7 +244,7 @@ func (s *SystemContextExtractor) ExtractContext(source interface{}) map[string]i
 	ctx["num_cpu"] = runtime.NumCPU()
 	ctx["num_goroutines"] = runtime.NumGoroutine()
 	ctx["pid"] = os.Getpid()
-	
+
 	// Memory stats
 	var memStats runtime.MemStats
 	runtime.ReadMemStats(&memStats)
@@ -252,12 +252,12 @@ func (s *SystemContextExtractor) ExtractContext(source interface{}) map[string]i
 	ctx["memory_total_alloc"] = memStats.TotalAlloc
 	ctx["memory_sys"] = memStats.Sys
 	ctx["memory_num_gc"] = memStats.NumGC
-	
+
 	// Host information
 	if hostname, err := os.Hostname(); err == nil {
 		ctx["hostname"] = hostname
 	}
-	
+
 	// Environment information
 	if env := os.Getenv("ENVIRONMENT"); env != "" {
 		ctx["environment"] = env
@@ -271,7 +271,7 @@ func (s *SystemContextExtractor) ExtractContext(source interface{}) map[string]i
 	if instanceID := os.Getenv("AWS_INSTANCE_ID"); instanceID != "" {
 		ctx["aws_instance_id"] = instanceID
 	}
-	
+
 	// Application information
 	if appName := os.Getenv("APP_NAME"); appName != "" {
 		ctx["app_name"] = appName
@@ -285,7 +285,7 @@ func (s *SystemContextExtractor) ExtractContext(source interface{}) map[string]i
 	if gitCommit := os.Getenv("GIT_COMMIT"); gitCommit != "" {
 		ctx["git_commit"] = gitCommit
 	}
-	
+
 	return ctx
 }
 
@@ -300,12 +300,12 @@ func (s *SystemContextExtractor) GetContextKeys() []string {
 
 // ContextAwareErrorBuilder builds errors with rich contextual information
 type ContextAwareErrorBuilder struct {
-	service      string
-	operation    string
-	component    string
-	extractors   []ContextExtractor
-	mu           sync.RWMutex
-	config       *ErrorConfiguration
+	service    string
+	operation  string
+	component  string
+	extractors []ContextExtractor
+	mu         sync.RWMutex
+	config     *ErrorConfiguration
 }
 
 // NewContextAwareErrorBuilder creates a new context-aware error builder
@@ -313,21 +313,21 @@ func NewContextAwareErrorBuilder(service, operation, component string, config *E
 	if config == nil {
 		config = DefaultErrorConfiguration()
 	}
-	
+
 	builder := &ContextAwareErrorBuilder{
 		service:   service,
 		operation: operation,
 		component: component,
 		config:    config,
 	}
-	
+
 	// Register default extractors
 	builder.RegisterExtractor(&HTTPContextExtractor{})
 	builder.RegisterExtractor(&GoContextExtractor{})
 	builder.RegisterExtractor(&KubernetesContextExtractor{})
 	builder.RegisterExtractor(&ORANContextExtractor{})
 	builder.RegisterExtractor(&SystemContextExtractor{})
-	
+
 	return builder
 }
 
@@ -357,25 +357,25 @@ func (b *ContextAwareErrorBuilder) NewErrorWithHTTPRequest(req *http.Request, er
 // NewErrorWithSources creates a new context-aware error with multiple context sources
 func (b *ContextAwareErrorBuilder) NewErrorWithSources(ctx context.Context, errType ErrorType, code, message string, sources ...interface{}) *ServiceError {
 	err := &ServiceError{
-		Type:      errType,
-		Code:      code,
-		Message:   message,
-		Service:   b.service,
-		Operation: b.operation,
-		Component: b.component,
-		Timestamp: time.Now(),
-		Category:  b.categorizeError(errType),
-		Severity:  b.determineSeverity(errType),
-		Impact:    b.determineImpact(errType),
-		Retryable: b.isRetryable(errType),
-		Temporary: b.isTemporary(errType),
+		Type:       errType,
+		Code:       code,
+		Message:    message,
+		Service:    b.service,
+		Operation:  b.operation,
+		Component:  b.component,
+		Timestamp:  time.Now(),
+		Category:   b.categorizeError(errType),
+		Severity:   b.determineSeverity(errType),
+		Impact:     b.determineImpact(errType),
+		Retryable:  b.isRetryable(errType),
+		Temporary:  b.isTemporary(errType),
 		HTTPStatus: getHTTPStatusForErrorType(errType),
-		Metadata:  make(map[string]interface{}),
+		Metadata:   make(map[string]interface{}),
 	}
-	
+
 	// Extract context from all sources
 	b.extractContextFromSources(err, sources...)
-	
+
 	// Add stack trace if configured
 	if b.config.StackTraceEnabled {
 		opts := DefaultStackTraceOptions()
@@ -384,20 +384,20 @@ func (b *ContextAwareErrorBuilder) NewErrorWithSources(ctx context.Context, errT
 		opts.SourceContext = b.config.SourceCodeLines
 		err.StackTrace = CaptureStackTrace(opts)
 	}
-	
+
 	// Set system context
 	b.setSystemContext(err)
-	
+
 	return err
 }
 
 // WrapErrorWithContext wraps an existing error with context
 func (b *ContextAwareErrorBuilder) WrapErrorWithContext(ctx context.Context, cause error, message string, sources ...interface{}) *ServiceError {
 	errType := b.categorizeExternalError(cause)
-	
+
 	err := b.NewErrorWithSources(ctx, errType, "wrapped_error", message, sources...)
 	err.Cause = cause
-	
+
 	// Build cause chain if the cause is also a ServiceError
 	if serviceErr, ok := cause.(*ServiceError); ok {
 		err.CauseChain = []*ServiceError{serviceErr}
@@ -405,7 +405,7 @@ func (b *ContextAwareErrorBuilder) WrapErrorWithContext(ctx context.Context, cau
 			err.CauseChain = append(err.CauseChain, serviceErr.CauseChain...)
 		}
 	}
-	
+
 	return err
 }
 
@@ -415,14 +415,14 @@ func (b *ContextAwareErrorBuilder) extractContextFromSources(err *ServiceError, 
 	extractors := make([]ContextExtractor, len(b.extractors))
 	copy(extractors, b.extractors)
 	b.mu.RUnlock()
-	
+
 	for _, source := range sources {
 		for _, extractor := range extractors {
 			contextData := extractor.ExtractContext(source)
 			for key, value := range contextData {
 				if value != nil && value != "" {
 					err.Metadata[key] = value
-					
+
 					// Map to specific error fields
 					switch key {
 					case "request_id":
@@ -469,7 +469,7 @@ func (b *ContextAwareErrorBuilder) setSystemContext(err *ServiceError) {
 	err.Hostname = getCurrentHostname()
 	err.PID = getCurrentPID()
 	err.GoroutineID = getCurrentGoroutineID()
-	
+
 	// Add debug information if this is an internal error
 	if err.Type == ErrorTypeInternal {
 		debugInfo := make(map[string]interface{})
@@ -478,19 +478,24 @@ func (b *ContextAwareErrorBuilder) setSystemContext(err *ServiceError) {
 	}
 }
 
+
 // getCallerInfo gets information about the function that created the error
 func (b *ContextAwareErrorBuilder) getCallerInfo() map[string]interface{} {
 	callerInfo := make(map[string]interface{})
-	
+
 	if pc, file, line, ok := runtime.Caller(4); ok { // Skip 4 levels: getCallerInfo -> setSystemContext -> NewErrorWithSources -> caller
 		callerInfo["file"] = file
 		callerInfo["line"] = line
-		
-		if fn := runtime.FuncForPC(pc); fn != nil {
-			callerInfo["function"] = fn.Name()
+
+		fn := runtime.FuncForPC(pc)
+		funcName := getSafeFunctionName(fn)
+		if funcName != "" {
+			callerInfo["function"] = funcName
+		} else {
+			callerInfo["function"] = "<unknown>"
 		}
 	}
-	
+
 	return callerInfo
 }
 
@@ -583,9 +588,9 @@ func (b *ContextAwareErrorBuilder) categorizeExternalError(err error) ErrorType 
 	if err == nil {
 		return ErrorTypeInternal
 	}
-	
+
 	errStr := err.Error()
-	
+
 	switch {
 	case strings.Contains(errStr, "timeout"):
 		return ErrorTypeTimeout
@@ -632,12 +637,12 @@ func (ce *ContextualError) WithGoContext(ctx context.Context) *ContextualError {
 func (ce *ContextualError) WithCustomContext(key string, value interface{}) *ContextualError {
 	ce.ServiceError.mu.Lock()
 	defer ce.ServiceError.mu.Unlock()
-	
+
 	if ce.ServiceError.Metadata == nil {
 		ce.ServiceError.Metadata = make(map[string]interface{})
 	}
 	ce.ServiceError.Metadata[key] = value
-	
+
 	return ce
 }
 
@@ -645,7 +650,7 @@ func (ce *ContextualError) WithCustomContext(key string, value interface{}) *Con
 func (ce *ContextualError) WithLatency(latency time.Duration) *ContextualError {
 	ce.ServiceError.mu.Lock()
 	defer ce.ServiceError.mu.Unlock()
-	
+
 	ce.ServiceError.Latency = latency
 	return ce
 }
@@ -654,12 +659,12 @@ func (ce *ContextualError) WithLatency(latency time.Duration) *ContextualError {
 func (ce *ContextualError) WithResource(resourceType, resourceID string) *ContextualError {
 	ce.ServiceError.mu.Lock()
 	defer ce.ServiceError.mu.Unlock()
-	
+
 	if ce.ServiceError.Resources == nil {
 		ce.ServiceError.Resources = make(map[string]string)
 	}
 	ce.ServiceError.Resources[resourceType] = resourceID
-	
+
 	return ce
 }
 

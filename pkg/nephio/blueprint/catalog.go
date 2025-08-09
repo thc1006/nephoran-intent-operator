@@ -37,46 +37,46 @@ import (
 
 // Template represents a blueprint template
 type Template struct {
-	ID             string            `json:"id" yaml:"id"`
-	Name           string            `json:"name" yaml:"name"`
-	Description    string            `json:"description" yaml:"description"`
-	Version        string            `json:"version" yaml:"version"`
-	Type           TemplateType      `json:"type" yaml:"type"`
-	Category       TemplateCategory  `json:"category" yaml:"category"`
-	Tags           []string          `json:"tags" yaml:"tags"`
-	Author         string            `json:"author" yaml:"author"`
-	License        string            `json:"license" yaml:"license"`
-	
+	ID          string           `json:"id" yaml:"id"`
+	Name        string           `json:"name" yaml:"name"`
+	Description string           `json:"description" yaml:"description"`
+	Version     string           `json:"version" yaml:"version"`
+	Type        TemplateType     `json:"type" yaml:"type"`
+	Category    TemplateCategory `json:"category" yaml:"category"`
+	Tags        []string         `json:"tags" yaml:"tags"`
+	Author      string           `json:"author" yaml:"author"`
+	License     string           `json:"license" yaml:"license"`
+
 	// Component targeting
 	TargetComponents []v1.TargetComponent `json:"targetComponents" yaml:"targetComponents"`
 	IntentTypes      []v1.IntentType      `json:"intentTypes" yaml:"intentTypes"`
-	
+
 	// Dependencies
-	Dependencies     []TemplateDependency `json:"dependencies" yaml:"dependencies"`
-	Prerequisites    []string             `json:"prerequisites" yaml:"prerequisites"`
-	
+	Dependencies  []TemplateDependency `json:"dependencies" yaml:"dependencies"`
+	Prerequisites []string             `json:"prerequisites" yaml:"prerequisites"`
+
 	// Template content and metadata
-	Files            map[string]string    `json:"files" yaml:"files"`
-	Parameters       []TemplateParameter  `json:"parameters" yaml:"parameters"`
-	Outputs          []TemplateOutput     `json:"outputs" yaml:"outputs"`
-	
+	Files      map[string]string   `json:"files" yaml:"files"`
+	Parameters []TemplateParameter `json:"parameters" yaml:"parameters"`
+	Outputs    []TemplateOutput    `json:"outputs" yaml:"outputs"`
+
 	// Validation and compliance
-	ORANCompliant    bool                 `json:"oranCompliant" yaml:"oranCompliant"`
-	Validated        bool                 `json:"validated" yaml:"validated"`
-	ValidationErrors []string             `json:"validationErrors,omitempty" yaml:"validationErrors,omitempty"`
-	
+	ORANCompliant    bool     `json:"oranCompliant" yaml:"oranCompliant"`
+	Validated        bool     `json:"validated" yaml:"validated"`
+	ValidationErrors []string `json:"validationErrors,omitempty" yaml:"validationErrors,omitempty"`
+
 	// Metadata
-	CreatedAt        time.Time            `json:"createdAt" yaml:"createdAt"`
-	UpdatedAt        time.Time            `json:"updatedAt" yaml:"updatedAt"`
-	UsageCount       int64                `json:"usageCount" yaml:"usageCount"`
-	Rating           float64              `json:"rating" yaml:"rating"`
-	Checksum         string               `json:"checksum" yaml:"checksum"`
-	
+	CreatedAt  time.Time `json:"createdAt" yaml:"createdAt"`
+	UpdatedAt  time.Time `json:"updatedAt" yaml:"updatedAt"`
+	UsageCount int64     `json:"usageCount" yaml:"usageCount"`
+	Rating     float64   `json:"rating" yaml:"rating"`
+	Checksum   string    `json:"checksum" yaml:"checksum"`
+
 	// Repository information
-	Repository       string               `json:"repository" yaml:"repository"`
-	Path             string               `json:"path" yaml:"path"`
-	Branch           string               `json:"branch" yaml:"branch"`
-	CommitHash       string               `json:"commitHash" yaml:"commitHash"`
+	Repository string `json:"repository" yaml:"repository"`
+	Path       string `json:"path" yaml:"path"`
+	Branch     string `json:"branch" yaml:"branch"`
+	CommitHash string `json:"commitHash" yaml:"commitHash"`
 }
 
 // TemplateType defines the type of blueprint template
@@ -96,14 +96,14 @@ const (
 type TemplateCategory string
 
 const (
-	TemplateCategoryCore     TemplateCategory = "5g-core"
-	TemplateCategoryRAN      TemplateCategory = "ran"
-	TemplateCategoryORAN     TemplateCategory = "oran"
-	TemplateCategoryEdge     TemplateCategory = "edge"
-	TemplateCategorySlicing  TemplateCategory = "slicing"
-	TemplateCategoryCloud    TemplateCategory = "cloud"
-	TemplateCategoryNetwork  TemplateCategory = "network"
-	TemplateCategoryGeneric  TemplateCategory = "generic"
+	TemplateCategoryCore    TemplateCategory = "5g-core"
+	TemplateCategoryRAN     TemplateCategory = "ran"
+	TemplateCategoryORAN    TemplateCategory = "oran"
+	TemplateCategoryEdge    TemplateCategory = "edge"
+	TemplateCategorySlicing TemplateCategory = "slicing"
+	TemplateCategoryCloud   TemplateCategory = "cloud"
+	TemplateCategoryNetwork TemplateCategory = "network"
+	TemplateCategoryGeneric TemplateCategory = "generic"
 )
 
 // TemplateDependency represents a template dependency
@@ -117,14 +117,14 @@ type TemplateDependency struct {
 
 // TemplateParameter represents a configurable parameter in a template
 type TemplateParameter struct {
-	Name         string      `json:"name" yaml:"name"`
-	Type         string      `json:"type" yaml:"type"`
-	Description  string      `json:"description" yaml:"description"`
-	Default      interface{} `json:"default,omitempty" yaml:"default,omitempty"`
-	Required     bool        `json:"required" yaml:"required"`
-	Constraints  []string    `json:"constraints,omitempty" yaml:"constraints,omitempty"`
-	Options      []string    `json:"options,omitempty" yaml:"options,omitempty"`
-	Pattern      string      `json:"pattern,omitempty" yaml:"pattern,omitempty"`
+	Name        string      `json:"name" yaml:"name"`
+	Type        string      `json:"type" yaml:"type"`
+	Description string      `json:"description" yaml:"description"`
+	Default     interface{} `json:"default,omitempty" yaml:"default,omitempty"`
+	Required    bool        `json:"required" yaml:"required"`
+	Constraints []string    `json:"constraints,omitempty" yaml:"constraints,omitempty"`
+	Options     []string    `json:"options,omitempty" yaml:"options,omitempty"`
+	Pattern     string      `json:"pattern,omitempty" yaml:"pattern,omitempty"`
 }
 
 // TemplateOutput represents an output from a template
@@ -138,61 +138,61 @@ type TemplateOutput struct {
 // SearchCriteria defines criteria for template search and filtering
 type SearchCriteria struct {
 	// Basic filters
-	Query            string                `json:"query,omitempty"`
-	Type             TemplateType          `json:"type,omitempty"`
-	Category         TemplateCategory      `json:"category,omitempty"`
-	Tags             []string              `json:"tags,omitempty"`
-	
+	Query    string           `json:"query,omitempty"`
+	Type     TemplateType     `json:"type,omitempty"`
+	Category TemplateCategory `json:"category,omitempty"`
+	Tags     []string         `json:"tags,omitempty"`
+
 	// Component filters
-	TargetComponents []v1.TargetComponent  `json:"targetComponents,omitempty"`
-	IntentTypes      []v1.IntentType       `json:"intentTypes,omitempty"`
-	
+	TargetComponents []v1.TargetComponent `json:"targetComponents,omitempty"`
+	IntentTypes      []v1.IntentType      `json:"intentTypes,omitempty"`
+
 	// Quality filters
-	ORANCompliant    *bool                 `json:"oranCompliant,omitempty"`
-	MinRating        *float64              `json:"minRating,omitempty"`
-	Validated        *bool                 `json:"validated,omitempty"`
-	
+	ORANCompliant *bool    `json:"oranCompliant,omitempty"`
+	MinRating     *float64 `json:"minRating,omitempty"`
+	Validated     *bool    `json:"validated,omitempty"`
+
 	// Version and dependency filters
-	Version          string                `json:"version,omitempty"`
-	MinVersion       string                `json:"minVersion,omitempty"`
-	MaxVersion       string                `json:"maxVersion,omitempty"`
-	
+	Version    string `json:"version,omitempty"`
+	MinVersion string `json:"minVersion,omitempty"`
+	MaxVersion string `json:"maxVersion,omitempty"`
+
 	// Sorting and pagination
-	SortBy           string                `json:"sortBy,omitempty"`
-	SortOrder        string                `json:"sortOrder,omitempty"`
-	Limit            int                   `json:"limit,omitempty"`
-	Offset           int                   `json:"offset,omitempty"`
+	SortBy    string `json:"sortBy,omitempty"`
+	SortOrder string `json:"sortOrder,omitempty"`
+	Limit     int    `json:"limit,omitempty"`
+	Offset    int    `json:"offset,omitempty"`
 }
 
 // Catalog manages blueprint template repository and provides discovery capabilities
 type Catalog struct {
-	config            *BlueprintConfig
-	logger            *zap.Logger
-	
+	config *BlueprintConfig
+	logger *zap.Logger
+
 	// Template storage
-	templates         sync.Map                    // map[string]*Template
-	templatesByType   map[TemplateType][]*Template
-	templatesByCategory map[TemplateCategory][]*Template
+	templates            sync.Map // map[string]*Template
+	templatesByType      map[TemplateType][]*Template
+	templatesByCategory  map[TemplateCategory][]*Template
 	templatesByComponent map[v1.TargetComponent][]*Template
-	
+
 	// Repository management
-	repositories      []TemplateRepository
-	repoCache         sync.Map
-	
+	repositories []TemplateRepository
+	repoCache    sync.Map
+
 	// Indexing and search
-	searchIndex       *SearchIndex
-	dependencyGraph   *DependencyGraph
-	
+	searchIndex     *SearchIndex
+	dependencyGraph *DependencyGraph
+
 	// Cache and performance
-	cacheHits         int64
-	cacheMisses       int64
-	lastSync          time.Time
-	syncMutex         sync.RWMutex
-	
+	cacheHits   int64
+	cacheMisses int64
+	lastSync    time.Time
+	syncMutex   sync.RWMutex
+
 	// Background operations
-	ctx               context.Context
-	cancel            context.CancelFunc
-	wg                sync.WaitGroup
+	ctx    context.Context
+	cancel context.CancelFunc
+	wg     sync.WaitGroup
 }
 
 // TemplateRepository represents a template repository configuration
@@ -208,21 +208,21 @@ type TemplateRepository struct {
 
 // SearchIndex provides fast template search capabilities
 type SearchIndex struct {
-	nameIndex       map[string][]*Template
-	tagIndex        map[string][]*Template
-	componentIndex  map[v1.TargetComponent][]*Template
-	typeIndex       map[v1.IntentType][]*Template
-	textIndex       map[string][]*Template
-	mutex           sync.RWMutex
+	nameIndex      map[string][]*Template
+	tagIndex       map[string][]*Template
+	componentIndex map[v1.TargetComponent][]*Template
+	typeIndex      map[v1.IntentType][]*Template
+	textIndex      map[string][]*Template
+	mutex          sync.RWMutex
 }
 
 // DependencyGraph manages template dependencies and compatibility
 type DependencyGraph struct {
-	dependencies    map[string][]string
-	dependents      map[string][]string
-	conflicts       map[string][]string
-	compatibility   map[string][]string
-	mutex           sync.RWMutex
+	dependencies  map[string][]string
+	dependents    map[string][]string
+	conflicts     map[string][]string
+	compatibility map[string][]string
+	mutex         sync.RWMutex
 }
 
 // NewCatalog creates a new blueprint catalog
@@ -259,7 +259,7 @@ func NewCatalog(config *BlueprintConfig, logger *zap.Logger) (*Catalog, error) {
 	// Start background operations
 	catalog.startBackgroundOperations()
 
-	logger.Info("Blueprint catalog initialized", 
+	logger.Info("Blueprint catalog initialized",
 		zap.Int("repositories", len(catalog.repositories)))
 
 	return catalog, nil
@@ -316,8 +316,8 @@ func (c *Catalog) startBackgroundOperations() {
 // FindTemplates searches for templates matching the given criteria
 func (c *Catalog) FindTemplates(ctx context.Context, criteria *SearchCriteria) ([]*Template, error) {
 	startTime := time.Now()
-	
-	c.logger.Debug("Searching templates", 
+
+	c.logger.Debug("Searching templates",
 		zap.Any("criteria", criteria))
 
 	// Try cache first
@@ -327,7 +327,7 @@ func (c *Catalog) FindTemplates(ctx context.Context, criteria *SearchCriteria) (
 			if expiry, ok := cacheEntry["expiry"].(time.Time); ok && time.Now().Before(expiry) {
 				if templates, ok := cacheEntry["templates"].([]*Template); ok {
 					c.cacheHits++
-					c.logger.Debug("Template search cache hit", 
+					c.logger.Debug("Template search cache hit",
 						zap.String("cache_key", cacheKey),
 						zap.Int("results", len(templates)))
 					return templates, nil
@@ -379,7 +379,7 @@ func (c *Catalog) GetTemplate(ctx context.Context, templateID string) (*Template
 // GetTemplatesByComponent returns templates for specific components
 func (c *Catalog) GetTemplatesByComponent(ctx context.Context, components []v1.TargetComponent) ([]*Template, error) {
 	var results []*Template
-	
+
 	for _, component := range components {
 		if templates, ok := c.templatesByComponent[component]; ok {
 			results = append(results, templates...)
@@ -388,7 +388,7 @@ func (c *Catalog) GetTemplatesByComponent(ctx context.Context, components []v1.T
 
 	// Remove duplicates
 	uniqueResults := c.removeDuplicateTemplates(results)
-	
+
 	return uniqueResults, nil
 }
 
@@ -476,7 +476,7 @@ func (c *Catalog) RegisterTemplate(ctx context.Context, template *Template) erro
 	// Update indexes
 	c.updateIndexes(template)
 
-	c.logger.Info("Template registered", 
+	c.logger.Info("Template registered",
 		zap.String("template_id", template.ID),
 		zap.String("template_name", template.Name),
 		zap.String("version", template.Version))
@@ -494,7 +494,7 @@ func (c *Catalog) UpdateTemplate(ctx context.Context, template *Template) error 
 	// Preserve creation time and usage stats
 	template.CreatedAt = existing.CreatedAt
 	template.UsageCount = existing.UsageCount
-	
+
 	// Update modification time and checksum
 	template.UpdatedAt = time.Now()
 	template.Checksum = c.calculateChecksum(template)
@@ -508,7 +508,7 @@ func (c *Catalog) UpdateTemplate(ctx context.Context, template *Template) error 
 	c.templates.Store(template.ID, template)
 	c.updateIndexes(template)
 
-	c.logger.Info("Template updated", 
+	c.logger.Info("Template updated",
 		zap.String("template_id", template.ID),
 		zap.String("template_name", template.Name),
 		zap.String("version", template.Version))
@@ -532,7 +532,7 @@ func (c *Catalog) RemoveTemplate(ctx context.Context, templateID string) error {
 	c.templates.Delete(templateID)
 	c.removeFromIndexes(template)
 
-	c.logger.Info("Template removed", 
+	c.logger.Info("Template removed",
 		zap.String("template_id", templateID),
 		zap.String("template_name", template.Name))
 
@@ -544,7 +544,7 @@ func (c *Catalog) SyncRepositories(ctx context.Context) error {
 	c.syncMutex.Lock()
 	defer c.syncMutex.Unlock()
 
-	c.logger.Info("Starting repository synchronization", 
+	c.logger.Info("Starting repository synchronization",
 		zap.Int("repositories", len(c.repositories)))
 
 	var allErrors []string
@@ -556,7 +556,7 @@ func (c *Catalog) SyncRepositories(ctx context.Context) error {
 
 		if err := c.syncRepository(ctx, &repo); err != nil {
 			allErrors = append(allErrors, fmt.Sprintf("repository %s: %v", repo.Name, err))
-			c.logger.Error("Repository sync failed", 
+			c.logger.Error("Repository sync failed",
 				zap.String("repository", repo.Name),
 				zap.Error(err))
 		}
@@ -568,7 +568,7 @@ func (c *Catalog) SyncRepositories(ctx context.Context) error {
 		return fmt.Errorf("repository sync errors: %v", allErrors)
 	}
 
-	c.logger.Info("Repository synchronization completed", 
+	c.logger.Info("Repository synchronization completed",
 		zap.Time("last_sync", c.lastSync))
 
 	return nil
@@ -576,7 +576,7 @@ func (c *Catalog) SyncRepositories(ctx context.Context) error {
 
 // syncRepository synchronizes templates from a single repository
 func (c *Catalog) syncRepository(ctx context.Context, repo *TemplateRepository) error {
-	c.logger.Debug("Syncing repository", 
+	c.logger.Debug("Syncing repository",
 		zap.String("repository", repo.Name),
 		zap.String("url", repo.URL))
 
@@ -596,13 +596,13 @@ func (c *Catalog) syncRepository(ctx context.Context, repo *TemplateRepository) 
 	for _, template := range templates {
 		template.Repository = repo.Name
 		if err := c.RegisterTemplate(ctx, template); err != nil {
-			c.logger.Warn("Failed to register template", 
+			c.logger.Warn("Failed to register template",
 				zap.String("template_id", template.ID),
 				zap.Error(err))
 		}
 	}
 
-	c.logger.Debug("Repository sync completed", 
+	c.logger.Debug("Repository sync completed",
 		zap.String("repository", repo.Name),
 		zap.Int("templates", len(templates)))
 
@@ -850,7 +850,7 @@ func (c *Catalog) HealthCheck(ctx context.Context) bool {
 
 	// Check if last sync was successful and recent
 	if time.Since(c.lastSync) > 2*time.Hour {
-		c.logger.Warn("Template synchronization is outdated", 
+		c.logger.Warn("Template synchronization is outdated",
 			zap.Time("last_sync", c.lastSync))
 		return false
 	}

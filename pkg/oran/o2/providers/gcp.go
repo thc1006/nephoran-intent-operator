@@ -22,22 +22,22 @@ const (
 
 // GCPProvider implements CloudProvider for Google Cloud Platform
 type GCPProvider struct {
-	name              string
-	config            *ProviderConfiguration
-	projectID         string
-	region            string
-	zone              string
-	
+	name      string
+	config    *ProviderConfiguration
+	projectID string
+	region    string
+	zone      string
+
 	// GCP service clients
-	computeClient     *compute.InstancesClient
-	gkeClient         *container.ClusterManagerClient
-	storageClient     *storage.Client
-	monitoringClient  *monitoring.MetricClient
-	
-	connected         bool
-	eventCallback     EventCallback
-	stopChannel       chan struct{}
-	mutex             sync.RWMutex
+	computeClient    *compute.InstancesClient
+	gkeClient        *container.ClusterManagerClient
+	storageClient    *storage.Client
+	monitoringClient *monitoring.MetricClient
+
+	connected     bool
+	eventCallback EventCallback
+	stopChannel   chan struct{}
+	mutex         sync.RWMutex
 }
 
 // NewGCPProvider creates a new GCP provider instance
@@ -113,31 +113,31 @@ func (g *GCPProvider) GetCapabilities() *ProviderCapabilities {
 		NetworkTypes:     []string{"vpc_network", "subnet", "firewall_rule", "load_balancer"},
 		AcceleratorTypes: []string{"gpu", "tpu"},
 
-		AutoScaling:     true,
-		LoadBalancing:   true,
-		Monitoring:      true,
-		Logging:         true,
-		Networking:      true,
-		StorageClasses:  true,
+		AutoScaling:    true,
+		LoadBalancing:  true,
+		Monitoring:     true,
+		Logging:        true,
+		Networking:     true,
+		StorageClasses: true,
 
-		HorizontalPodAutoscaling: true,  // GKE
-		VerticalPodAutoscaling:   true,  // GKE
-		ClusterAutoscaling:       true,  // GKE
+		HorizontalPodAutoscaling: true, // GKE
+		VerticalPodAutoscaling:   true, // GKE
+		ClusterAutoscaling:       true, // GKE
 
-		Namespaces:      true,  // GKE
-		ResourceQuotas:  true,  // Quotas
-		NetworkPolicies: true,  // Firewall rules
-		RBAC:           true,  // IAM
+		Namespaces:      true, // GKE
+		ResourceQuotas:  true, // Quotas
+		NetworkPolicies: true, // Firewall rules
+		RBAC:            true, // IAM
 
-		MultiZone:        true,  // Zones
-		MultiRegion:      true,  // Global services
-		BackupRestore:    true,  // Snapshots
-		DisasterRecovery: true,  // Multi-region
+		MultiZone:        true, // Zones
+		MultiRegion:      true, // Global services
+		BackupRestore:    true, // Snapshots
+		DisasterRecovery: true, // Multi-region
 
-		Encryption:       true,  // Cloud KMS
-		SecretManagement: true,  // Secret Manager
-		ImageScanning:    true,  // Container Analysis
-		PolicyEngine:     true,  // Organization policies
+		Encryption:       true, // Cloud KMS
+		SecretManagement: true, // Secret Manager
+		ImageScanning:    true, // Container Analysis
+		PolicyEngine:     true, // Organization policies
 
 		MaxNodes:    15000,  // GKE limit
 		MaxPods:     450000, // GKE with multiple node pools
@@ -186,7 +186,7 @@ func (g *GCPProvider) Connect(ctx context.Context) error {
 		Zone:       g.zone,
 		MaxResults: func(v uint32) *uint32 { return &v }(1),
 	}
-	
+
 	it := g.computeClient.List(ctx, req)
 	_, err = it.Next()
 	if err != nil && err.Error() != "no more items in iterator" {
@@ -258,7 +258,7 @@ func (g *GCPProvider) HealthCheck(ctx context.Context) error {
 		Zone:       g.zone,
 		MaxResults: func(v uint32) *uint32 { return &v }(1),
 	}
-	
+
 	it := g.computeClient.List(ctx, req)
 	_, err := it.Next()
 	if err != nil && err.Error() != "no more items in iterator" {

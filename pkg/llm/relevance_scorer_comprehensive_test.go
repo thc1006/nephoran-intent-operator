@@ -23,36 +23,36 @@ type MockEmbeddingServiceForScorer struct {
 func (m *MockEmbeddingServiceForScorer) CalculateSimilarity(ctx context.Context, text1, text2 string) (float64, error) {
 	m.callCount++
 	m.lastTexts = []string{text1, text2}
-	
+
 	// Simulate latency if specified
 	if m.simulateLatency > 0 {
 		time.Sleep(m.simulateLatency)
 	}
-	
+
 	if m.err != nil {
 		return 0, m.err
 	}
-	
+
 	return m.similarity, nil
 }
 
 func (m *MockEmbeddingServiceForScorer) GetEmbedding(ctx context.Context, text string) ([]float64, error) {
 	m.callCount++
-	
+
 	if m.err != nil {
 		return nil, m.err
 	}
-	
+
 	if m.embedding != nil {
 		return m.embedding, nil
 	}
-	
+
 	// Generate a mock embedding based on text characteristics
 	embedding := make([]float64, 384) // Typical embedding size
 	for i := range embedding {
 		embedding[i] = float64(len(text)%10) / 10.0 // Simple mock based on text length
 	}
-	
+
 	return embedding, nil
 }
 
@@ -76,21 +76,21 @@ func TestRelevanceScorer_CalculateRelevance(t *testing.T) {
 				Query:      "Deploy AMF network function in 5G core",
 				IntentType: "configuration",
 				Document: &shared.TelecomDocument{
-					ID:       "amf_deploy_guide",
-					Title:    "5G AMF Deployment Guide",
-					Content:  "This comprehensive guide covers Access and Mobility Management Function deployment in 5G standalone core networks, including configuration parameters, scaling policies, and integration with SMF and UPF components.",
-					Source:   "3GPP TS 23.501 v17.0.0",
-					Category: "configuration",
-					Version:  "v17.0.0",
-					Keywords: []string{"AMF", "5G", "deployment", "configuration"},
-					Language: "en",
-					DocumentType: "specification",
+					ID:              "amf_deploy_guide",
+					Title:           "5G AMF Deployment Guide",
+					Content:         "This comprehensive guide covers Access and Mobility Management Function deployment in 5G standalone core networks, including configuration parameters, scaling policies, and integration with SMF and UPF components.",
+					Source:          "3GPP TS 23.501 v17.0.0",
+					Category:        "configuration",
+					Version:         "v17.0.0",
+					Keywords:        []string{"AMF", "5G", "deployment", "configuration"},
+					Language:        "en",
+					DocumentType:    "specification",
 					NetworkFunction: []string{"AMF"},
-					Technology: []string{"5G", "5GC"},
-					UseCase: []string{"configuration", "deployment"},
-					Confidence: 0.95,
-					CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
-					UpdatedAt: time.Now().Add(-5 * 24 * time.Hour),
+					Technology:      []string{"5G", "5GC"},
+					UseCase:         []string{"configuration", "deployment"},
+					Confidence:      0.95,
+					CreatedAt:       time.Now().Add(-30 * 24 * time.Hour),
+					UpdatedAt:       time.Now().Add(-5 * 24 * time.Hour),
 				},
 				Position:      0,
 				OriginalScore: 0.9,
@@ -119,19 +119,19 @@ func TestRelevanceScorer_CalculateRelevance(t *testing.T) {
 				Query:      "Troubleshoot handover failures",
 				IntentType: "troubleshooting",
 				Document: &shared.TelecomDocument{
-					ID:       "oran_architecture",
-					Title:    "O-RAN Architecture Overview",
-					Content:  "O-RAN Alliance specification for disaggregated Radio Access Network architecture including RIC, xApps, and interface specifications.",
-					Source:   "O-RAN.WG1.O-RAN-Architecture-Description-v07.00",
-					Category: "architecture",
-					Version:  "v7.0",
-					Keywords: []string{"O-RAN", "architecture", "RIC", "xApp"},
+					ID:              "oran_architecture",
+					Title:           "O-RAN Architecture Overview",
+					Content:         "O-RAN Alliance specification for disaggregated Radio Access Network architecture including RIC, xApps, and interface specifications.",
+					Source:          "O-RAN.WG1.O-RAN-Architecture-Description-v07.00",
+					Category:        "architecture",
+					Version:         "v7.0",
+					Keywords:        []string{"O-RAN", "architecture", "RIC", "xApp"},
 					NetworkFunction: []string{"RIC", "O-DU", "O-CU"},
-					Technology: []string{"O-RAN", "5G", "RAN"},
-					UseCase: []string{"architecture", "design"},
-					Confidence: 0.82,
-					CreatedAt: time.Now().Add(-90 * 24 * time.Hour),
-					UpdatedAt: time.Now().Add(-60 * 24 * time.Hour),
+					Technology:      []string{"O-RAN", "5G", "RAN"},
+					UseCase:         []string{"architecture", "design"},
+					Confidence:      0.82,
+					CreatedAt:       time.Now().Add(-90 * 24 * time.Hour),
+					UpdatedAt:       time.Now().Add(-60 * 24 * time.Hour),
 				},
 				Position:      2,
 				OriginalScore: 0.65,
@@ -157,18 +157,18 @@ func TestRelevanceScorer_CalculateRelevance(t *testing.T) {
 				Query:      "Deploy 5G network slicing",
 				IntentType: "configuration",
 				Document: &shared.TelecomDocument{
-					ID:       "old_2g_guide",
-					Title:    "2G Network Planning Guide",
-					Content:  "Legacy 2G network planning procedures and frequency allocation guidelines from early mobile networks.",
-					Source:   "Internal Documentation v1.2",
-					Category: "planning",
-					Version:  "v1.2",
-					Keywords: []string{"2G", "planning", "frequency"},
+					ID:         "old_2g_guide",
+					Title:      "2G Network Planning Guide",
+					Content:    "Legacy 2G network planning procedures and frequency allocation guidelines from early mobile networks.",
+					Source:     "Internal Documentation v1.2",
+					Category:   "planning",
+					Version:    "v1.2",
+					Keywords:   []string{"2G", "planning", "frequency"},
 					Technology: []string{"2G", "GSM"},
-					UseCase: []string{"planning"},
+					UseCase:    []string{"planning"},
 					Confidence: 0.45,
-					CreatedAt: time.Now().Add(-5 * 365 * 24 * time.Hour), // 5 years old
-					UpdatedAt: time.Now().Add(-4 * 365 * 24 * time.Hour), // 4 years old
+					CreatedAt:  time.Now().Add(-5 * 365 * 24 * time.Hour), // 5 years old
+					UpdatedAt:  time.Now().Add(-4 * 365 * 24 * time.Hour), // 4 years old
 				},
 				Position:      8,
 				OriginalScore: 0.25,
@@ -194,16 +194,16 @@ func TestRelevanceScorer_CalculateRelevance(t *testing.T) {
 				Query:      "Configure AMF parameters",
 				IntentType: "configuration",
 				Document: &shared.TelecomDocument{
-					ID:      "amf_config",
-					Title:   "AMF Configuration Parameters",
-					Content: "AMF configuration includes mobility management, session management integration, and security policies.",
-					Source:  "Technical Guide v2.1",
-					Keywords: []string{"AMF", "configuration", "parameters"},
+					ID:              "amf_config",
+					Title:           "AMF Configuration Parameters",
+					Content:         "AMF configuration includes mobility management, session management integration, and security policies.",
+					Source:          "Technical Guide v2.1",
+					Keywords:        []string{"AMF", "configuration", "parameters"},
 					NetworkFunction: []string{"AMF"},
-					Technology: []string{"5G"},
-					Confidence: 0.75,
-					CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
-					UpdatedAt: time.Now().Add(-10 * 24 * time.Hour),
+					Technology:      []string{"5G"},
+					Confidence:      0.75,
+					CreatedAt:       time.Now().Add(-30 * 24 * time.Hour),
+					UpdatedAt:       time.Now().Add(-10 * 24 * time.Hour),
 				},
 				Position:      1,
 				OriginalScore: 0.7,
@@ -249,7 +249,7 @@ func TestRelevanceScorer_CalculateRelevance(t *testing.T) {
 			errorContains: "document cannot be nil",
 		},
 		{
-			name: "nil request error",
+			name:          "nil request error",
 			request:       nil,
 			expectedError: true,
 			errorContains: "relevance request cannot be nil",
@@ -260,17 +260,17 @@ func TestRelevanceScorer_CalculateRelevance(t *testing.T) {
 				Query:      "5G NR gNB PDCP RLC MAC PHY layer configuration",
 				IntentType: "configuration",
 				Document: &shared.TelecomDocument{
-					ID:       "nr_protocol_stack",
-					Title:    "5G NR Protocol Stack Configuration",
-					Content:  "New Radio gNodeB protocol stack including PDCP, RLC, MAC, and PHY layer configuration procedures for 5G networks.",
-					Source:   "3GPP TS 38.300 v16.7.0",
-					Category: "configuration",
-					Keywords: []string{"5G", "NR", "gNodeB", "PDCP", "RLC", "MAC", "PHY"},
+					ID:              "nr_protocol_stack",
+					Title:           "5G NR Protocol Stack Configuration",
+					Content:         "New Radio gNodeB protocol stack including PDCP, RLC, MAC, and PHY layer configuration procedures for 5G networks.",
+					Source:          "3GPP TS 38.300 v16.7.0",
+					Category:        "configuration",
+					Keywords:        []string{"5G", "NR", "gNodeB", "PDCP", "RLC", "MAC", "PHY"},
 					NetworkFunction: []string{"gNB"},
-					Technology: []string{"5G", "NR"},
-					Confidence: 0.92,
-					CreatedAt: time.Now().Add(-60 * 24 * time.Hour),
-					UpdatedAt: time.Now().Add(-20 * 24 * time.Hour),
+					Technology:      []string{"5G", "NR"},
+					Confidence:      0.92,
+					CreatedAt:       time.Now().Add(-60 * 24 * time.Hour),
+					UpdatedAt:       time.Now().Add(-20 * 24 * time.Hour),
 				},
 				Position: 0,
 			},
@@ -293,18 +293,18 @@ func TestRelevanceScorer_CalculateRelevance(t *testing.T) {
 				Query:      "Network slice selection procedures",
 				IntentType: "configuration",
 				Document: &shared.TelecomDocument{
-					ID:       "nssf_spec",
-					Title:    "Network Slice Selection Function (NSSF)",
-					Content:  "3GPP specification for NSSF procedures, network slice selection, and policy enforcement in 5G networks.",
-					Source:   "3GPP TS 23.501 Release 17",
-					Category: "specification",
-					Version:  "Rel-17",
-					Keywords: []string{"NSSF", "network slicing", "5G"},
+					ID:              "nssf_spec",
+					Title:           "Network Slice Selection Function (NSSF)",
+					Content:         "3GPP specification for NSSF procedures, network slice selection, and policy enforcement in 5G networks.",
+					Source:          "3GPP TS 23.501 Release 17",
+					Category:        "specification",
+					Version:         "Rel-17",
+					Keywords:        []string{"NSSF", "network slicing", "5G"},
 					NetworkFunction: []string{"NSSF"},
-					Technology: []string{"5G", "Network Slicing"},
-					Confidence: 0.98,
-					CreatedAt: time.Now().Add(-15 * 24 * time.Hour),
-					UpdatedAt: time.Now().Add(-1 * 24 * time.Hour),
+					Technology:      []string{"5G", "Network Slicing"},
+					Confidence:      0.98,
+					CreatedAt:       time.Now().Add(-15 * 24 * time.Hour),
+					UpdatedAt:       time.Now().Add(-1 * 24 * time.Hour),
 				},
 				Position: 0,
 			},
@@ -326,16 +326,16 @@ func TestRelevanceScorer_CalculateRelevance(t *testing.T) {
 				Query:      "Deploy UPF",
 				IntentType: "configuration",
 				Document: &shared.TelecomDocument{
-					ID:      "upf_guide",
-					Title:   "UPF Deployment Guide",
-					Content: "User Plane Function deployment procedures for 5G core networks.",
-					Source:  "Deployment Guide v1.0",
-					Keywords: []string{"UPF", "deployment", "5G"},
+					ID:              "upf_guide",
+					Title:           "UPF Deployment Guide",
+					Content:         "User Plane Function deployment procedures for 5G core networks.",
+					Source:          "Deployment Guide v1.0",
+					Keywords:        []string{"UPF", "deployment", "5G"},
 					NetworkFunction: []string{"UPF"},
-					Technology: []string{"5G"},
-					Confidence: 0.88,
-					CreatedAt: time.Now().Add(-20 * 24 * time.Hour),
-					UpdatedAt: time.Now().Add(-5 * 24 * time.Hour),
+					Technology:      []string{"5G"},
+					Confidence:      0.88,
+					CreatedAt:       time.Now().Add(-20 * 24 * time.Hour),
+					UpdatedAt:       time.Now().Add(-5 * 24 * time.Hour),
 				},
 				Position:      15, // High position should apply penalty
 				OriginalScore: 0.8,
@@ -360,16 +360,16 @@ func TestRelevanceScorer_CalculateRelevance(t *testing.T) {
 				Query:      "5G network optimization",
 				IntentType: "optimization",
 				Document: &shared.TelecomDocument{
-					ID:      "optimization_guide_de",
-					Title:   "5G Netzwerkoptimierung Leitfaden",
-					Content: "Dieses Dokument beschreibt Optimierungsverfahren für 5G-Netzwerke einschließlich Leistungsüberwachung und Parametereinstellung.",
-					Source:  "Technical Guide v2.0",
-					Language: "de",
-					Keywords: []string{"5G", "Optimierung", "Netzwerk"},
+					ID:         "optimization_guide_de",
+					Title:      "5G Netzwerkoptimierung Leitfaden",
+					Content:    "Dieses Dokument beschreibt Optimierungsverfahren für 5G-Netzwerke einschließlich Leistungsüberwachung und Parametereinstellung.",
+					Source:     "Technical Guide v2.0",
+					Language:   "de",
+					Keywords:   []string{"5G", "Optimierung", "Netzwerk"},
 					Technology: []string{"5G"},
 					Confidence: 0.70,
-					CreatedAt: time.Now().Add(-45 * 24 * time.Hour),
-					UpdatedAt: time.Now().Add(-15 * 24 * time.Hour),
+					CreatedAt:  time.Now().Add(-45 * 24 * time.Hour),
+					UpdatedAt:  time.Now().Add(-15 * 24 * time.Hour),
 				},
 				Position: 3,
 			},
@@ -503,8 +503,8 @@ func TestRelevanceScorer_ConfigurationValidation(t *testing.T) {
 			config: &RelevanceScorerConfig{
 				SemanticWeight:        0.4,
 				AuthorityWeight:       0.3,
-				RecencyWeight:        0.15,
-				DomainWeight:         0.1,
+				RecencyWeight:         0.15,
+				DomainWeight:          0.1,
 				IntentAlignmentWeight: 0.05,
 			},
 			expectedError: false,
@@ -514,8 +514,8 @@ func TestRelevanceScorer_ConfigurationValidation(t *testing.T) {
 			config: &RelevanceScorerConfig{
 				SemanticWeight:        0.5,
 				AuthorityWeight:       0.4,
-				RecencyWeight:        0.3,
-				DomainWeight:         0.2,
+				RecencyWeight:         0.3,
+				DomainWeight:          0.2,
 				IntentAlignmentWeight: 0.1,
 			},
 			expectedError: true,
@@ -526,8 +526,8 @@ func TestRelevanceScorer_ConfigurationValidation(t *testing.T) {
 			config: &RelevanceScorerConfig{
 				SemanticWeight:        0.2,
 				AuthorityWeight:       0.2,
-				RecencyWeight:        0.1,
-				DomainWeight:         0.1,
+				RecencyWeight:         0.1,
+				DomainWeight:          0.1,
 				IntentAlignmentWeight: 0.1,
 			},
 			expectedError: true,
@@ -575,16 +575,16 @@ func TestRelevanceScorer_Performance(t *testing.T) {
 
 	// Create test document
 	doc := &shared.TelecomDocument{
-		ID:      "perf_test_doc",
-		Title:   "Performance Test Document",
-		Content: "This is a test document for performance evaluation with various 5G and O-RAN related content including AMF, SMF, UPF, gNodeB, and other network function descriptions.",
-		Source:  "Performance Test v1.0",
-		Keywords: []string{"5G", "O-RAN", "AMF", "SMF", "UPF"},
+		ID:              "perf_test_doc",
+		Title:           "Performance Test Document",
+		Content:         "This is a test document for performance evaluation with various 5G and O-RAN related content including AMF, SMF, UPF, gNodeB, and other network function descriptions.",
+		Source:          "Performance Test v1.0",
+		Keywords:        []string{"5G", "O-RAN", "AMF", "SMF", "UPF"},
 		NetworkFunction: []string{"AMF", "SMF", "UPF"},
-		Technology: []string{"5G", "O-RAN"},
-		Confidence: 0.8,
-		CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
-		UpdatedAt: time.Now().Add(-5 * 24 * time.Hour),
+		Technology:      []string{"5G", "O-RAN"},
+		Confidence:      0.8,
+		CreatedAt:       time.Now().Add(-30 * 24 * time.Hour),
+		UpdatedAt:       time.Now().Add(-5 * 24 * time.Hour),
 	}
 
 	request := &RelevanceRequest{
@@ -635,16 +635,16 @@ func TestRelevanceScorer_ConcurrentAccess(t *testing.T) {
 
 	// Create test document
 	doc := &shared.TelecomDocument{
-		ID:      "concurrent_test_doc",
-		Title:   "Concurrent Access Test Document",
-		Content: "Test document for concurrent access with 5G AMF deployment procedures",
-		Source:  "Concurrent Test v1.0",
-		Keywords: []string{"5G", "AMF", "deployment"},
+		ID:              "concurrent_test_doc",
+		Title:           "Concurrent Access Test Document",
+		Content:         "Test document for concurrent access with 5G AMF deployment procedures",
+		Source:          "Concurrent Test v1.0",
+		Keywords:        []string{"5G", "AMF", "deployment"},
 		NetworkFunction: []string{"AMF"},
-		Technology: []string{"5G"},
-		Confidence: 0.85,
-		CreatedAt: time.Now().Add(-20 * 24 * time.Hour),
-		UpdatedAt: time.Now().Add(-3 * 24 * time.Hour),
+		Technology:      []string{"5G"},
+		Confidence:      0.85,
+		CreatedAt:       time.Now().Add(-20 * 24 * time.Hour),
+		UpdatedAt:       time.Now().Add(-3 * 24 * time.Hour),
 	}
 
 	// Run concurrent scoring operations
@@ -696,14 +696,14 @@ func TestRelevanceScorer_EdgeCases(t *testing.T) {
 				Query:      "Deploy network function",
 				IntentType: "configuration",
 				Document: &shared.TelecomDocument{
-					ID:      "long_doc",
-					Title:   "Very Long Document",
-					Content: generateLongContent(10000), // 10k characters
-					Source:  "Long Content Test",
-					Keywords: []string{"test", "long", "content"},
+					ID:         "long_doc",
+					Title:      "Very Long Document",
+					Content:    generateLongContent(10000), // 10k characters
+					Source:     "Long Content Test",
+					Keywords:   []string{"test", "long", "content"},
 					Confidence: 0.5,
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
+					CreatedAt:  time.Now(),
+					UpdatedAt:  time.Now(),
 				},
 				Position: 0,
 			},
@@ -718,14 +718,14 @@ func TestRelevanceScorer_EdgeCases(t *testing.T) {
 				Query:      "Deploy network function with special characters",
 				IntentType: "configuration",
 				Document: &shared.TelecomDocument{
-					ID:      "special_chars_doc",
-					Title:   "Document with Special Characters: ñáéíóú çüß 中文 한글 العربية",
-					Content: "Content with special characters: €$¥£ @#%^&*()_+-=[]{}|;:,.<>? and emojis 🚀📡🌐",
-					Source:  "Special Characters Test™",
-					Keywords: []string{"special", "characters", "unicode"},
+					ID:         "special_chars_doc",
+					Title:      "Document with Special Characters: ñáéíóú çüß 中文 한글 العربية",
+					Content:    "Content with special characters: €$¥£ @#%^&*()_+-=[]{}|;:,.<>? and emojis 🚀📡🌐",
+					Source:     "Special Characters Test™",
+					Keywords:   []string{"special", "characters", "unicode"},
 					Confidence: 0.7,
-					CreatedAt: time.Now(),
-					UpdatedAt: time.Now(),
+					CreatedAt:  time.Now(),
+					UpdatedAt:  time.Now(),
 				},
 				Position: 0,
 			},

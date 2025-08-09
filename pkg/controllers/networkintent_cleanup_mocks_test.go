@@ -81,11 +81,11 @@ func (m *MockLLMClientInterface) ProcessIntent(ctx interface{}, intent string) (
 // EnhancedMockGitClient provides more sophisticated mock behavior
 type EnhancedMockGitClient struct {
 	mock.Mock
-	callCounts       map[string]int
-	failureCounts    map[string]int
-	maxFailures      map[string]int
-	simulateLatency  bool
-	latencyDuration  int // milliseconds
+	callCounts      map[string]int
+	failureCounts   map[string]int
+	maxFailures     map[string]int
+	simulateLatency bool
+	latencyDuration int // milliseconds
 }
 
 func NewEnhancedMockGitClient() *EnhancedMockGitClient {
@@ -108,7 +108,7 @@ func (m *EnhancedMockGitClient) SetLatencySimulation(enabled bool, durationMs in
 func (m *EnhancedMockGitClient) RemoveDirectory(path string, commitMessage string) error {
 	method := "RemoveDirectory"
 	m.callCounts[method]++
-	
+
 	// Simulate transient failures
 	if maxFails, exists := m.maxFailures[method]; exists {
 		if m.failureCounts[method] < maxFails {
@@ -117,7 +117,7 @@ func (m *EnhancedMockGitClient) RemoveDirectory(path string, commitMessage strin
 			return args.Error(0)
 		}
 	}
-	
+
 	args := m.Called(path, commitMessage)
 	return args.Error(0)
 }
@@ -125,7 +125,7 @@ func (m *EnhancedMockGitClient) RemoveDirectory(path string, commitMessage strin
 func (m *EnhancedMockGitClient) CommitAndPushChanges(message string) error {
 	method := "CommitAndPushChanges"
 	m.callCounts[method]++
-	
+
 	// Simulate transient failures
 	if maxFails, exists := m.maxFailures[method]; exists {
 		if m.failureCounts[method] < maxFails {
@@ -134,7 +134,7 @@ func (m *EnhancedMockGitClient) CommitAndPushChanges(message string) error {
 			return args.Error(0)
 		}
 	}
-	
+
 	args := m.Called(message)
 	return args.Error(0)
 }
@@ -142,7 +142,7 @@ func (m *EnhancedMockGitClient) CommitAndPushChanges(message string) error {
 func (m *EnhancedMockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
 	method := "CommitAndPush"
 	m.callCounts[method]++
-	
+
 	args := m.Called(files, message)
 	return args.String(0), args.Error(1)
 }
@@ -150,7 +150,7 @@ func (m *EnhancedMockGitClient) CommitAndPush(files map[string]string, message s
 func (m *EnhancedMockGitClient) InitRepo() error {
 	method := "InitRepo"
 	m.callCounts[method]++
-	
+
 	args := m.Called()
 	return args.Error(0)
 }
@@ -170,12 +170,12 @@ type ScenarioBasedMockGitClient struct {
 }
 
 type GitScenario struct {
-	Name            string
-	RemoveDirError  error
-	CommitError     error
-	CallSequence    []string
-	ExpectedCalls   int
-	ActualCalls     int
+	Name           string
+	RemoveDirError error
+	CommitError    error
+	CallSequence   []string
+	ExpectedCalls  int
+	ActualCalls    int
 }
 
 func NewScenarioBasedMockGitClient() *ScenarioBasedMockGitClient {
@@ -193,14 +193,14 @@ func (m *ScenarioBasedMockGitClient) ExecuteScenario(scenarioName string) {
 	if !exists {
 		return
 	}
-	
+
 	// Set up expectations based on scenario
 	if scenario.RemoveDirError != nil {
 		m.On("RemoveDirectory", mock.Anything, mock.Anything).Return(scenario.RemoveDirError)
 	} else {
 		m.On("RemoveDirectory", mock.Anything, mock.Anything).Return(nil)
 	}
-	
+
 	if scenario.CommitError != nil {
 		m.On("CommitAndPushChanges", mock.Anything).Return(scenario.CommitError)
 	} else {
@@ -306,11 +306,11 @@ func (v *GitClientCallValidator) Validate() error {
 		if !exists {
 			return fmt.Errorf("expected call to %s was not made", method)
 		}
-		
+
 		if len(expectedArgs) != len(actualArgs) {
 			return fmt.Errorf("method %s: expected %d args, got %d", method, len(expectedArgs), len(actualArgs))
 		}
-		
+
 		for i, expected := range expectedArgs {
 			if expected != actualArgs[i] {
 				return fmt.Errorf("method %s: arg %d expected %v, got %v", method, i, expected, actualArgs[i])
@@ -323,11 +323,11 @@ func (v *GitClientCallValidator) Validate() error {
 // Common error types for testing
 var (
 	ErrGitAuthenticationFailed = errors.New("SSH key authentication failed")
-	ErrGitNetworkTimeout      = errors.New("network timeout connecting to remote repository")
-	ErrGitRepositoryCorrupted = errors.New("repository is corrupted or locked")
-	ErrGitDirectoryNotFound   = errors.New("directory not found in repository")
-	ErrGitPushRejected        = errors.New("push rejected by remote repository")
-	ErrGitNoChangesToCommit   = errors.New("no changes to commit")
+	ErrGitNetworkTimeout       = errors.New("network timeout connecting to remote repository")
+	ErrGitRepositoryCorrupted  = errors.New("repository is corrupted or locked")
+	ErrGitDirectoryNotFound    = errors.New("directory not found in repository")
+	ErrGitPushRejected         = errors.New("push rejected by remote repository")
+	ErrGitNoChangesToCommit    = errors.New("no changes to commit")
 )
 
 // Test scenario factory functions

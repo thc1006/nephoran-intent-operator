@@ -46,56 +46,56 @@ type NephioIntegration struct {
 // NephioIntegrationConfig defines configuration for Nephio integration
 type NephioIntegrationConfig struct {
 	// Core Nephio settings
-	NephioNamespace       string `json:"nephioNamespace" yaml:"nephioNamespace"`
-	PorchAPI              string `json:"porchAPI" yaml:"porchAPI"`
-	ConfigSyncEnabled     bool   `json:"configSyncEnabled" yaml:"configSyncEnabled"`
-	
+	NephioNamespace   string `json:"nephioNamespace" yaml:"nephioNamespace"`
+	PorchAPI          string `json:"porchAPI" yaml:"porchAPI"`
+	ConfigSyncEnabled bool   `json:"configSyncEnabled" yaml:"configSyncEnabled"`
+
 	// Repository settings
-	UpstreamRepository    string `json:"upstreamRepository" yaml:"upstreamRepository"`
-	DownstreamRepository  string `json:"downstreamRepository" yaml:"downstreamRepository"`
-	CatalogRepository     string `json:"catalogRepository" yaml:"catalogRepository"`
-	
+	UpstreamRepository   string `json:"upstreamRepository" yaml:"upstreamRepository"`
+	DownstreamRepository string `json:"downstreamRepository" yaml:"downstreamRepository"`
+	CatalogRepository    string `json:"catalogRepository" yaml:"catalogRepository"`
+
 	// Workflow settings
-	WorkflowOrchestrator  *WorkflowOrchestratorConfig `json:"workflowOrchestrator,omitempty" yaml:"workflowOrchestrator,omitempty"`
-	PackageCatalog        *PackageCatalogConfig       `json:"packageCatalog,omitempty" yaml:"packageCatalog,omitempty"`
-	WorkloadRegistry      *WorkloadClusterConfig      `json:"workloadRegistry,omitempty" yaml:"workloadRegistry,omitempty"`
-	ConfigSync            *ConfigSyncConfig           `json:"configSync,omitempty" yaml:"configSync,omitempty"`
-	WorkflowEngine        *WorkflowEngineConfig       `json:"workflowEngine,omitempty" yaml:"workflowEngine,omitempty"`
-	
+	WorkflowOrchestrator *WorkflowOrchestratorConfig `json:"workflowOrchestrator,omitempty" yaml:"workflowOrchestrator,omitempty"`
+	PackageCatalog       *PackageCatalogConfig       `json:"packageCatalog,omitempty" yaml:"packageCatalog,omitempty"`
+	WorkloadRegistry     *WorkloadClusterConfig      `json:"workloadRegistry,omitempty" yaml:"workloadRegistry,omitempty"`
+	ConfigSync           *ConfigSyncConfig           `json:"configSync,omitempty" yaml:"configSync,omitempty"`
+	WorkflowEngine       *WorkflowEngineConfig       `json:"workflowEngine,omitempty" yaml:"workflowEngine,omitempty"`
+
 	// Integration settings
-	EnableMetrics         bool          `json:"enableMetrics" yaml:"enableMetrics"`
-	EnableTracing         bool          `json:"enableTracing" yaml:"enableTracing"`
-	HealthCheckInterval   time.Duration `json:"healthCheckInterval" yaml:"healthCheckInterval"`
-	InitTimeout           time.Duration `json:"initTimeout" yaml:"initTimeout"`
+	EnableMetrics       bool          `json:"enableMetrics" yaml:"enableMetrics"`
+	EnableTracing       bool          `json:"enableTracing" yaml:"enableTracing"`
+	HealthCheckInterval time.Duration `json:"healthCheckInterval" yaml:"healthCheckInterval"`
+	InitTimeout         time.Duration `json:"initTimeout" yaml:"initTimeout"`
 }
 
 // NephioIntegrationStatus represents the status of Nephio integration
 type NephioIntegrationStatus struct {
-	Ready                 bool      `json:"ready"`
-	InitializedAt         time.Time `json:"initializedAt"`
-	LastHealthCheck       time.Time `json:"lastHealthCheck"`
-	WorkflowOrchestrator  string    `json:"workflowOrchestrator"`
-	PackageCatalog        string    `json:"packageCatalog"`
-	WorkloadRegistry      string    `json:"workloadRegistry"`
-	ConfigSync            string    `json:"configSync"`
-	WorkflowEngine        string    `json:"workflowEngine"`
-	RegisteredWorkflows   int       `json:"registeredWorkflows"`
-	RegisteredBlueprints  int       `json:"registeredBlueprints"`
-	RegisteredClusters    int       `json:"registeredClusters"`
+	Ready                bool      `json:"ready"`
+	InitializedAt        time.Time `json:"initializedAt"`
+	LastHealthCheck      time.Time `json:"lastHealthCheck"`
+	WorkflowOrchestrator string    `json:"workflowOrchestrator"`
+	PackageCatalog       string    `json:"packageCatalog"`
+	WorkloadRegistry     string    `json:"workloadRegistry"`
+	ConfigSync           string    `json:"configSync"`
+	WorkflowEngine       string    `json:"workflowEngine"`
+	RegisteredWorkflows  int       `json:"registeredWorkflows"`
+	RegisteredBlueprints int       `json:"registeredBlueprints"`
+	RegisteredClusters   int       `json:"registeredClusters"`
 }
 
 // Default configuration
 var DefaultNephioIntegrationConfig = &NephioIntegrationConfig{
-	NephioNamespace:       "nephio-system",
-	PorchAPI:              "https://porch.nephio-system.svc.cluster.local:8080",
-	ConfigSyncEnabled:     true,
-	UpstreamRepository:    "nephoran-blueprints",
-	DownstreamRepository:  "nephoran-deployments",
-	CatalogRepository:     "nephoran-catalog",
-	EnableMetrics:         true,
-	EnableTracing:         true,
-	HealthCheckInterval:   1 * time.Minute,
-	InitTimeout:           10 * time.Minute,
+	NephioNamespace:      "nephio-system",
+	PorchAPI:             "https://porch.nephio-system.svc.cluster.local:8080",
+	ConfigSyncEnabled:    true,
+	UpstreamRepository:   "nephoran-blueprints",
+	DownstreamRepository: "nephoran-deployments",
+	CatalogRepository:    "nephoran-catalog",
+	EnableMetrics:        true,
+	EnableTracing:        true,
+	HealthCheckInterval:  1 * time.Minute,
+	InitTimeout:          10 * time.Minute,
 }
 
 // NewNephioIntegration creates a new Nephio integration instance

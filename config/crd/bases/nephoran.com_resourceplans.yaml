@@ -1,0 +1,943 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: resourceplans.nephoran.com
+spec:
+  group: nephoran.com
+  names:
+    kind: ResourcePlan
+    listKind: ResourcePlanList
+    plural: resourceplans
+    shortNames:
+    - rp
+    - resplan
+    singular: resourceplan
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.parentIntentRef.name
+      name: Parent Intent
+      type: string
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.deploymentPattern
+      name: Pattern
+      type: string
+    - jsonPath: .status.plannedResources[*].name | length(@)
+      name: Resources
+      type: integer
+    - jsonPath: .status.costEstimate.totalCost
+      name: Cost
+      type: string
+    - jsonPath: .status.qualityScore
+      name: Quality
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: ResourcePlan is the Schema for the resourceplans API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ResourcePlanSpec defines the desired state of ResourcePlan
+            properties:
+              complianceRequirements:
+                description: ComplianceRequirements specifies compliance requirements
+                items:
+                  description: ComplianceRequirement defines a compliance requirement
+                  properties:
+                    mandatory:
+                      default: true
+                      description: Mandatory indicates if compliance is mandatory
+                      type: boolean
+                    requirements:
+                      description: Requirements specifies specific requirements
+                      items:
+                        type: string
+                      type: array
+                    standard:
+                      description: Standard specifies the compliance standard
+                      enum:
+                      - 3GPP
+                      - ETSI
+                      - ORAN
+                      - FCC
+                      - CE
+                      - GDPR
+                      - HIPAA
+                      - SOC2
+                      - ISO27001
+                      type: string
+                    version:
+                      description: Version of the standard
+                      type: string
+                  required:
+                  - standard
+                  type: object
+                type: array
+              deploymentPattern:
+                default: Standalone
+                description: DeploymentPattern specifies the deployment pattern to
+                  use
+                type: string
+              enableCostOptimization:
+                default: true
+                description: EnableCostOptimization enables cost optimization
+                type: boolean
+              enablePerformanceOptimization:
+                default: true
+                description: EnablePerformanceOptimization enables performance optimization
+                type: boolean
+              intentProcessingRef:
+                description: IntentProcessingRef references the IntentProcessing resource
+                properties:
+                  apiVersion:
+                    description: APIVersion of the referent
+                    type: string
+                  kind:
+                    description: Kind of the referent
+                    type: string
+                  name:
+                    description: Name of the referent
+                    type: string
+                  namespace:
+                    description: Namespace of the referent
+                    type: string
+                  resourceVersion:
+                    description: ResourceVersion of the referent
+                    type: string
+                  uid:
+                    description: UID of the referent
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              networkSlice:
+                description: NetworkSlice specifies network slice requirements
+                properties:
+                  isolationLevel:
+                    default: logical
+                    description: IsolationLevel defines isolation requirements
+                    enum:
+                    - none
+                    - logical
+                    - physical
+                    type: string
+                  qualityOfService:
+                    description: QualityOfService defines QoS parameters
+                    properties:
+                      allocationRetentionPriority:
+                        description: AllocationRetentionPriority
+                        format: int32
+                        maximum: 15
+                        minimum: 1
+                        type: integer
+                      fiveQI:
+                        description: FiveQI (5G QoS Identifier)
+                        format: int32
+                        maximum: 255
+                        minimum: 1
+                        type: integer
+                      guaranteedBitRate:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: GuaranteedBitRate in Mbps
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      maxBitRate:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: MaxBitRate in Mbps
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      priorityLevel:
+                        description: Priority level
+                        format: int32
+                        maximum: 15
+                        minimum: 1
+                        type: integer
+                      qci:
+                        description: QCI (QoS Class Identifier) for 4G
+                        format: int32
+                        maximum: 9
+                        minimum: 1
+                        type: integer
+                    type: object
+                  resourceAllocation:
+                    default: shared
+                    description: ResourceAllocation defines resource allocation strategy
+                    enum:
+                    - shared
+                    - dedicated
+                    - hybrid
+                    type: string
+                  serviceLevelAgreement:
+                    description: ServiceLevelAgreement defines SLA requirements
+                    properties:
+                      availabilityTarget:
+                        description: AvailabilityTarget as percentage (e.g., 99.99)
+                      maxLatency:
+                        description: MaxLatency in milliseconds
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      maxPacketLoss:
+                        description: MaxPacketLoss as percentage
+                      minThroughput:
+                        description: MinThroughput in Mbps
+                        format: int32
+                        minimum: 1
+                        type: integer
+                      recoveryPointObjective:
+                        description: RecoveryPointObjective in seconds
+                        format: int32
+                        minimum: 0
+                        type: integer
+                      recoveryTimeObjective:
+                        description: RecoveryTimeObjective in seconds
+                        format: int32
+                        minimum: 1
+                        type: integer
+                    type: object
+                  sliceId:
+                    description: SliceID uniquely identifies the network slice
+                    pattern: ^[0-9A-Fa-f]{6}-[0-9A-Fa-f]{6}$
+                    type: string
+                  sliceType:
+                    description: SliceType defines the type of network slice
+                    enum:
+                    - eMBB
+                    - URLLC
+                    - mMTC
+                    - custom
+                    type: string
+                required:
+                - sliceId
+                - sliceType
+                type: object
+              optimizationGoals:
+                description: OptimizationGoals defines optimization objectives
+                items:
+                  description: OptimizationGoal represents an optimization objective
+                  properties:
+                    constraints:
+                      additionalProperties:
+                        type: string
+                      description: Constraints specifies additional constraints
+                      type: object
+                    priority:
+                      description: Priority specifies the goal priority
+                      maximum: 10
+                      minimum: 1
+                      type: integer
+                    target:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      description: Target specifies the target value
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    type:
+                      description: Type specifies the optimization type
+                      enum:
+                      - cost
+                      - performance
+                      - availability
+                      - latency
+                      - throughput
+                      - energy
+                      type: string
+                    weight:
+                      description: Weight specifies the relative weight
+                  required:
+                  - priority
+                  - type
+                  type: object
+                type: array
+              parentIntentRef:
+                description: ParentIntentRef references the parent NetworkIntent
+                properties:
+                  apiVersion:
+                    description: APIVersion of the referent
+                    type: string
+                  kind:
+                    description: Kind of the referent
+                    type: string
+                  name:
+                    description: Name of the referent
+                    type: string
+                  namespace:
+                    description: Namespace of the referent
+                    type: string
+                  resourceVersion:
+                    description: ResourceVersion of the referent
+                    type: string
+                  uid:
+                    description: UID of the referent
+                    type: string
+                required:
+                - kind
+                - name
+                type: object
+              priority:
+                default: medium
+                description: Priority defines planning priority
+                enum:
+                - low
+                - medium
+                - high
+                - critical
+                type: string
+              requirementsInput:
+                description: RequirementsInput contains the input requirements for
+                  planning
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              resourceConstraints:
+                description: ResourceConstraints defines constraints for resource
+                  allocation
+                properties:
+                  cpu:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: CPU limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  maxConcurrency:
+                    default: 10
+                    description: Maximum concurrent operations
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Memory limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  networkBandwidth:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Network bandwidth limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  storage:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Storage limits
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                type: object
+              targetClusters:
+                description: TargetClusters specifies clusters for deployment
+                items:
+                  description: ClusterReference represents a reference to a cluster
+                  properties:
+                    capabilities:
+                      description: Capabilities of the cluster
+                      items:
+                        type: string
+                      type: array
+                    cloudProvider:
+                      description: CloudProvider of the cluster
+                      enum:
+                      - aws
+                      - azure
+                      - gcp
+                      - openstack
+                      - on-premises
+                      type: string
+                    labels:
+                      additionalProperties:
+                        type: string
+                      description: Labels for the cluster
+                      type: object
+                    name:
+                      description: Name of the cluster
+                      type: string
+                    priority:
+                      description: Priority for cluster selection
+                      maximum: 10
+                      minimum: 1
+                      type: integer
+                    region:
+                      description: Region where the cluster is located
+                      type: string
+                    resourceLimits:
+                      description: ResourceLimits for the cluster
+                      properties:
+                        cpu:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: CPU limits
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        maxConcurrency:
+                          default: 10
+                          description: Maximum concurrent operations
+                          format: int32
+                          minimum: 1
+                          type: integer
+                        memory:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Memory limits
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        networkBandwidth:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Network bandwidth limits
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        storage:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Storage limits
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                      type: object
+                    zone:
+                      description: Zone where the cluster is located
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              targetComponents:
+                description: TargetComponents specifies which components to plan for
+                items:
+                  description: TargetComponent defines a component targeted for disaster
+                    recovery
+                  properties:
+                    dependencies:
+                      description: Dependencies on other components
+                      items:
+                        type: string
+                      type: array
+                    labelSelector:
+                      additionalProperties:
+                        type: string
+                      description: Label selector for the component
+                      type: object
+                    name:
+                      description: Name of the component
+                      type: string
+                    namespace:
+                      description: Namespace of the component
+                      type: string
+                    type:
+                      description: Type of component (deployment, statefulset, etc.)
+                      enum:
+                      - deployment
+                      - statefulset
+                      - service
+                      - configmap
+                      - secret
+                      - pvc
+                      type: string
+                  required:
+                  - name
+                  - type
+                  type: object
+                type: array
+            required:
+            - parentIntentRef
+            - requirementsInput
+            type: object
+          status:
+            description: ResourcePlanStatus defines the observed state of ResourcePlan
+            properties:
+              complianceStatus:
+                description: ComplianceStatus tracks compliance validation results
+                items:
+                  description: ResourceComplianceStatus represents compliance validation
+                    status
+                  properties:
+                    standard:
+                      description: Standard being validated
+                      type: string
+                    status:
+                      description: Status of compliance (Compliant, NonCompliant,
+                        Unknown)
+                      type: string
+                    validatedAt:
+                      description: ValidatedAt timestamp
+                      format: date-time
+                      type: string
+                    validationResults:
+                      description: ValidationResults for specific requirements
+                      items:
+                        type: string
+                      type: array
+                    version:
+                      description: Version of the standard
+                      type: string
+                    violations:
+                      description: Violations if any
+                      items:
+                        description: ComplianceViolation represents a compliance violation
+                        properties:
+                          description:
+                            description: Description of the violation
+                            type: string
+                          remediation:
+                            description: Remediation suggestion
+                            type: string
+                          resource:
+                            description: Resource affected
+                            type: string
+                          severity:
+                            description: Severity of violation (Critical, Major, Minor)
+                            type: string
+                          type:
+                            description: Type of violation
+                            type: string
+                        required:
+                        - description
+                        - severity
+                        - type
+                        type: object
+                      type: array
+                  required:
+                  - standard
+                  - status
+                  - validatedAt
+                  type: object
+                type: array
+              conditions:
+                description: Conditions represent the latest available observations
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              costEstimate:
+                description: CostEstimate contains the estimated costs
+                properties:
+                  billingPeriod:
+                    default: monthly
+                    description: BillingPeriod (hourly, daily, monthly)
+                    type: string
+                  confidence:
+                    description: Confidence level of the estimate (0.0-1.0)
+                  costBreakdown:
+                    additionalProperties: {}
+                    description: CostBreakdown by component
+                    type: object
+                  currency:
+                    default: USD
+                    description: Currency for the cost
+                    type: string
+                  estimatedAt:
+                    description: EstimatedAt timestamp
+                    format: date-time
+                    type: string
+                  totalCost:
+                    description: TotalCost is the total estimated cost
+                required:
+                - billingPeriod
+                - currency
+                - estimatedAt
+                - totalCost
+                type: object
+              observedGeneration:
+                description: ObservedGeneration reflects the generation observed
+                format: int64
+                type: integer
+              optimizationResults:
+                description: OptimizationResults contains optimization outcomes
+                items:
+                  description: OptimizationResult represents the result of an optimization
+                  properties:
+                    appliedChanges:
+                      description: AppliedChanges during optimization
+                      items:
+                        type: string
+                      type: array
+                    description:
+                      description: Description of the optimization
+                      type: string
+                    improvementPercent:
+                      description: ImprovementPercent achieved
+                    optimizedAt:
+                      description: OptimizedAt timestamp
+                      format: date-time
+                      type: string
+                    status:
+                      description: Status of optimization (Success, Failed, Skipped)
+                      type: string
+                    type:
+                      description: Type of optimization
+                      type: string
+                  required:
+                  - optimizedAt
+                  - status
+                  - type
+                  type: object
+                type: array
+              performanceEstimate:
+                description: PerformanceEstimate contains performance projections
+                properties:
+                  bottleneckAnalysis:
+                    description: BottleneckAnalysis identifies potential bottlenecks
+                    items:
+                      type: string
+                    type: array
+                  expectedAvailability:
+                    description: ExpectedAvailability as percentage
+                  expectedLatency:
+                    description: ExpectedLatency in milliseconds
+                  expectedThroughput:
+                    description: ExpectedThroughput in requests per second
+                  resourceUtilization:
+                    additionalProperties: {}
+                    description: ResourceUtilization estimates
+                    type: object
+                  scalingRecommendations:
+                    description: ScalingRecommendations for horizontal scaling
+                    items:
+                      description: ScalingRecommendation represents a scaling recommendation
+                      properties:
+                        confidence:
+                          description: Confidence in the recommendation (0.0-1.0)
+                        impact:
+                          description: Impact of the scaling
+                          type: string
+                        reason:
+                          description: Reason for the recommendation
+                          type: string
+                        recommendedReplicas:
+                          description: RecommendedReplicas
+                          format: int32
+                          type: integer
+                        resource:
+                          description: Resource name
+                          type: string
+                      required:
+                      - reason
+                      - recommendedReplicas
+                      - resource
+                      type: object
+                    type: array
+                type: object
+              phase:
+                description: Phase represents the current planning phase
+                type: string
+              plannedResources:
+                description: PlannedResources contains the planned resource allocation
+                items:
+                  description: PlannedResource represents a planned resource
+                  properties:
+                    annotations:
+                      additionalProperties:
+                        type: string
+                      description: Annotations for the resource
+                      type: object
+                    cluster:
+                      description: Cluster where the resource will be deployed
+                      type: string
+                    component:
+                      description: Component this resource belongs to
+                      properties:
+                        dependencies:
+                          description: Dependencies on other components
+                          items:
+                            type: string
+                          type: array
+                        labelSelector:
+                          additionalProperties:
+                            type: string
+                          description: Label selector for the component
+                          type: object
+                        name:
+                          description: Name of the component
+                          type: string
+                        namespace:
+                          description: Namespace of the component
+                          type: string
+                        type:
+                          description: Type of component (deployment, statefulset,
+                            etc.)
+                          enum:
+                          - deployment
+                          - statefulset
+                          - service
+                          - configmap
+                          - secret
+                          - pvc
+                          type: string
+                      required:
+                      - name
+                      - type
+                      type: object
+                    configuration:
+                      description: Configuration contains resource-specific configuration
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    dependencies:
+                      description: Dependencies lists resource dependencies
+                      items:
+                        type: string
+                      type: array
+                    estimatedCost:
+                      description: EstimatedCost for the resource
+                    labels:
+                      additionalProperties:
+                        type: string
+                      description: Labels for the resource
+                      type: object
+                    name:
+                      description: Name of the resource
+                      type: string
+                    namespace:
+                      description: Namespace where the resource will be deployed
+                      type: string
+                    replicas:
+                      default: 1
+                      description: Replicas specifies the number of replicas
+                      format: int32
+                      minimum: 0
+                      type: integer
+                    resourceRequirements:
+                      description: ResourceRequirements for the resource
+                      properties:
+                        limits:
+                          description: Limits defines resource limits
+                          properties:
+                            cpu:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: CPU resource
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            ephemeralStorage:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: EphemeralStorage resource
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            extended:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: Extended resources (GPUs, FPGAs, etc.)
+                              type: object
+                            memory:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Memory resource
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            storage:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Storage resource
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          type: object
+                        requests:
+                          description: Requests defines resource requests
+                          properties:
+                            cpu:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: CPU resource
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            ephemeralStorage:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: EphemeralStorage resource
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            extended:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: Extended resources (GPUs, FPGAs, etc.)
+                              type: object
+                            memory:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Memory resource
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            storage:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Storage resource
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                          type: object
+                      required:
+                      - requests
+                      type: object
+                    type:
+                      description: Type of the resource (NetworkFunction, Service,
+                        etc.)
+                      type: string
+                  required:
+                  - name
+                  - resourceRequirements
+                  - type
+                  type: object
+                type: array
+              planningCompletionTime:
+                description: PlanningCompletionTime indicates when planning completed
+                format: date-time
+                type: string
+              planningDuration:
+                description: PlanningDuration represents total planning time
+                type: string
+              planningStartTime:
+                description: PlanningStartTime indicates when planning started
+                format: date-time
+                type: string
+              qualityScore:
+                description: QualityScore represents the quality of the plan
+              resourceAllocation:
+                description: ResourceAllocation contains the detailed resource allocation
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              retryCount:
+                description: RetryCount tracks retry attempts
+                format: int32
+                type: integer
+              validationResults:
+                description: ValidationResults contains validation outcomes
+                items:
+                  description: ValidationResult represents the result of a validation
+                  properties:
+                    details:
+                      additionalProperties:
+                        type: string
+                      description: Details with additional information
+                      type: object
+                    message:
+                      description: Message describing the result
+                      type: string
+                    status:
+                      description: Status of validation (Passed, Failed, Warning)
+                      type: string
+                    type:
+                      description: Type of validation
+                      type: string
+                    validatedAt:
+                      description: ValidatedAt timestamp
+                      format: date-time
+                      type: string
+                  required:
+                  - message
+                  - status
+                  - type
+                  - validatedAt
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

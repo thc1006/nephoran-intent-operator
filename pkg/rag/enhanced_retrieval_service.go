@@ -28,200 +28,200 @@ type EnhancedRetrievalService struct {
 // RetrievalConfig holds configuration for the enhanced retrieval service
 type RetrievalConfig struct {
 	// Search configuration
-	DefaultLimit            int     `json:"default_limit"`
-	MaxLimit                int     `json:"max_limit"`
-	DefaultHybridAlpha      float32 `json:"default_hybrid_alpha"`
-	MinConfidenceThreshold  float32 `json:"min_confidence_threshold"`
-	
+	DefaultLimit           int     `json:"default_limit"`
+	MaxLimit               int     `json:"max_limit"`
+	DefaultHybridAlpha     float32 `json:"default_hybrid_alpha"`
+	MinConfidenceThreshold float32 `json:"min_confidence_threshold"`
+
 	// Query enhancement
-	EnableQueryExpansion    bool    `json:"enable_query_expansion"`
-	QueryExpansionTerms     int     `json:"query_expansion_terms"`
-	EnableQueryRewriting    bool    `json:"enable_query_rewriting"`
-	EnableSpellCorrection   bool    `json:"enable_spell_correction"`
-	EnableSynonymExpansion  bool    `json:"enable_synonym_expansion"`
-	
+	EnableQueryExpansion   bool `json:"enable_query_expansion"`
+	QueryExpansionTerms    int  `json:"query_expansion_terms"`
+	EnableQueryRewriting   bool `json:"enable_query_rewriting"`
+	EnableSpellCorrection  bool `json:"enable_spell_correction"`
+	EnableSynonymExpansion bool `json:"enable_synonym_expansion"`
+
 	// Reranking configuration
-	EnableSemanticReranking bool    `json:"enable_semantic_reranking"`
-	RerankingTopK          int     `json:"reranking_top_k"`
-	CrossEncoderModel      string  `json:"cross_encoder_model"`
-	
+	EnableSemanticReranking bool   `json:"enable_semantic_reranking"`
+	RerankingTopK           int    `json:"reranking_top_k"`
+	CrossEncoderModel       string `json:"cross_encoder_model"`
+
 	// Context assembly
-	MaxContextLength       int     `json:"max_context_length"`
-	ContextOverlapRatio    float64 `json:"context_overlap_ratio"`
-	IncludeHierarchyInfo   bool    `json:"include_hierarchy_info"`
-	IncludeSourceMetadata  bool    `json:"include_source_metadata"`
-	
+	MaxContextLength      int     `json:"max_context_length"`
+	ContextOverlapRatio   float64 `json:"context_overlap_ratio"`
+	IncludeHierarchyInfo  bool    `json:"include_hierarchy_info"`
+	IncludeSourceMetadata bool    `json:"include_source_metadata"`
+
 	// Filtering and ranking
 	EnableDiversityFiltering bool    `json:"enable_diversity_filtering"`
-	DiversityThreshold      float32  `json:"diversity_threshold"`
-	BoostRecentDocuments    bool     `json:"boost_recent_documents"`
-	RecencyBoostFactor      float64  `json:"recency_boost_factor"`
-	
+	DiversityThreshold       float32 `json:"diversity_threshold"`
+	BoostRecentDocuments     bool    `json:"boost_recent_documents"`
+	RecencyBoostFactor       float64 `json:"recency_boost_factor"`
+
 	// Performance settings
-	EnableResultCaching     bool          `json:"enable_result_caching"`
-	ResultCacheTTL         time.Duration `json:"result_cache_ttl"`
-	MaxConcurrentQueries   int           `json:"max_concurrent_queries"`
-	QueryTimeout           time.Duration `json:"query_timeout"`
-	
+	EnableResultCaching  bool          `json:"enable_result_caching"`
+	ResultCacheTTL       time.Duration `json:"result_cache_ttl"`
+	MaxConcurrentQueries int           `json:"max_concurrent_queries"`
+	QueryTimeout         time.Duration `json:"query_timeout"`
+
 	// Intent-specific settings
-	IntentTypeWeights      map[string]float64 `json:"intent_type_weights"`
-	TechnicalDomainBoosts  map[string]float64 `json:"technical_domain_boosts"`
-	SourcePriorityWeights  map[string]float64 `json:"source_priority_weights"`
+	IntentTypeWeights     map[string]float64 `json:"intent_type_weights"`
+	TechnicalDomainBoosts map[string]float64 `json:"technical_domain_boosts"`
+	SourcePriorityWeights map[string]float64 `json:"source_priority_weights"`
 }
 
 // EnhancedSearchRequest extends the basic search with advanced features
 type EnhancedSearchRequest struct {
 	// Basic search parameters
-	Query               string                 `json:"query"`
-	Limit               int                    `json:"limit"`
-	Filters             map[string]interface{} `json:"filters,omitempty"`
-	
+	Query   string                 `json:"query"`
+	Limit   int                    `json:"limit"`
+	Filters map[string]interface{} `json:"filters,omitempty"`
+
 	// Enhancement options
-	EnableQueryEnhancement  bool   `json:"enable_query_enhancement"`
-	EnableReranking        bool   `json:"enable_reranking"`
-	RequiredContextLength  int    `json:"required_context_length"`
-	
+	EnableQueryEnhancement bool `json:"enable_query_enhancement"`
+	EnableReranking        bool `json:"enable_reranking"`
+	RequiredContextLength  int  `json:"required_context_length"`
+
 	// Intent context
-	IntentType             string `json:"intent_type,omitempty"`
-	NetworkDomain          string `json:"network_domain,omitempty"`
-	TechnicalLevel         string `json:"technical_level,omitempty"` // basic, intermediate, advanced
-	
+	IntentType     string `json:"intent_type,omitempty"`
+	NetworkDomain  string `json:"network_domain,omitempty"`
+	TechnicalLevel string `json:"technical_level,omitempty"` // basic, intermediate, advanced
+
 	// User context
-	UserID                 string `json:"user_id,omitempty"`
-	SessionID              string `json:"session_id,omitempty"`
-	ConversationHistory    []string `json:"conversation_history,omitempty"`
-	
+	UserID              string   `json:"user_id,omitempty"`
+	SessionID           string   `json:"session_id,omitempty"`
+	ConversationHistory []string `json:"conversation_history,omitempty"`
+
 	// Search preferences
-	PreferredSources       []string `json:"preferred_sources,omitempty"`
-	ExcludedSources        []string `json:"excluded_sources,omitempty"`
-	PreferredDocumentTypes []string `json:"preferred_document_types,omitempty"`
+	PreferredSources       []string       `json:"preferred_sources,omitempty"`
+	ExcludedSources        []string       `json:"excluded_sources,omitempty"`
+	PreferredDocumentTypes []string       `json:"preferred_document_types,omitempty"`
 	MaxDocumentAge         *time.Duration `json:"max_document_age,omitempty"`
-	
+
 	// Quality requirements
-	MinQualityScore        float32 `json:"min_quality_score"`
-	RequireHierarchyInfo   bool    `json:"require_hierarchy_info"`
-	RequireTechnicalTerms  bool    `json:"require_technical_terms"`
+	MinQualityScore       float32 `json:"min_quality_score"`
+	RequireHierarchyInfo  bool    `json:"require_hierarchy_info"`
+	RequireTechnicalTerms bool    `json:"require_technical_terms"`
 }
 
 // EnhancedSearchResponse extends the basic response with additional metadata
 type EnhancedSearchResponse struct {
 	// Basic response data
-	Results            []*EnhancedSearchResult `json:"results"`
-	Total              int                     `json:"total"`
-	Query              string                  `json:"query"`
-	ProcessedQuery     string                  `json:"processed_query"`
-	
+	Results        []*EnhancedSearchResult `json:"results"`
+	Total          int                     `json:"total"`
+	Query          string                  `json:"query"`
+	ProcessedQuery string                  `json:"processed_query"`
+
 	// Processing information
-	ProcessingTime     time.Duration           `json:"processing_time"`
-	RetrievalTime      time.Duration           `json:"retrieval_time"`
-	EnhancementTime    time.Duration           `json:"enhancement_time"`
-	RerankingTime      time.Duration           `json:"reranking_time"`
-	ContextAssemblyTime time.Duration          `json:"context_assembly_time"`
-	
+	ProcessingTime      time.Duration `json:"processing_time"`
+	RetrievalTime       time.Duration `json:"retrieval_time"`
+	EnhancementTime     time.Duration `json:"enhancement_time"`
+	RerankingTime       time.Duration `json:"reranking_time"`
+	ContextAssemblyTime time.Duration `json:"context_assembly_time"`
+
 	// Enhancement details
-	QueryEnhancements  *QueryEnhancements      `json:"query_enhancements,omitempty"`
-	RerankingApplied   bool                    `json:"reranking_applied"`
-	FiltersApplied     []string                `json:"filters_applied"`
-	BoostsApplied      []string                `json:"boosts_applied"`
-	
+	QueryEnhancements *QueryEnhancements `json:"query_enhancements,omitempty"`
+	RerankingApplied  bool               `json:"reranking_applied"`
+	FiltersApplied    []string           `json:"filters_applied"`
+	BoostsApplied     []string           `json:"boosts_applied"`
+
 	// Context information
-	AssembledContext   string                  `json:"assembled_context"`
-	ContextMetadata    *ContextMetadata        `json:"context_metadata"`
-	
+	AssembledContext string           `json:"assembled_context"`
+	ContextMetadata  *ContextMetadata `json:"context_metadata"`
+
 	// Quality metrics
-	AverageRelevanceScore float32              `json:"average_relevance_score"`
-	CoverageScore         float32              `json:"coverage_score"`
-	DiversityScore        float32              `json:"diversity_score"`
-	
+	AverageRelevanceScore float32 `json:"average_relevance_score"`
+	CoverageScore         float32 `json:"coverage_score"`
+	DiversityScore        float32 `json:"diversity_score"`
+
 	// Debug information
-	DebugInfo         map[string]interface{}   `json:"debug_info,omitempty"`
-	ProcessedAt       time.Time                `json:"processed_at"`
+	DebugInfo   map[string]interface{} `json:"debug_info,omitempty"`
+	ProcessedAt time.Time              `json:"processed_at"`
 }
 
 // EnhancedSearchResult extends SearchResult with additional information
 type EnhancedSearchResult struct {
 	// Basic result information
 	*SearchResult
-	
+
 	// Enhanced scoring
-	RelevanceScore     float32 `json:"relevance_score"`
-	QualityScore       float32 `json:"quality_score"`
-	FreshnessScore     float32 `json:"freshness_score"`
-	AuthorityScore     float32 `json:"authority_score"`
-	CombinedScore      float32 `json:"combined_score"`
-	
+	RelevanceScore float32 `json:"relevance_score"`
+	QualityScore   float32 `json:"quality_score"`
+	FreshnessScore float32 `json:"freshness_score"`
+	AuthorityScore float32 `json:"authority_score"`
+	CombinedScore  float32 `json:"combined_score"`
+
 	// Context information
 	ContextRelevance   float32 `json:"context_relevance"`
 	HierarchyMatch     bool    `json:"hierarchy_match"`
 	SemanticSimilarity float32 `json:"semantic_similarity"`
-	
+
 	// Explanation
-	RelevanceReason    string  `json:"relevance_reason"`
-	HighlightedText    string  `json:"highlighted_text"`
-	KeyTermMatches     []string `json:"key_term_matches"`
-	
+	RelevanceReason string   `json:"relevance_reason"`
+	HighlightedText string   `json:"highlighted_text"`
+	KeyTermMatches  []string `json:"key_term_matches"`
+
 	// Metadata
-	ProcessingNotes    []string `json:"processing_notes,omitempty"`
+	ProcessingNotes []string `json:"processing_notes,omitempty"`
 }
 
 // QueryEnhancements contains information about query processing
 type QueryEnhancements struct {
-	OriginalQuery      string   `json:"original_query"`
-	ExpandedTerms      []string `json:"expanded_terms"`
+	OriginalQuery       string            `json:"original_query"`
+	ExpandedTerms       []string          `json:"expanded_terms"`
 	SynonymReplacements map[string]string `json:"synonym_replacements"`
 	SpellingCorrections map[string]string `json:"spelling_corrections"`
-	RewrittenQuery     string   `json:"rewritten_query"`
-	EnhancementApplied []string `json:"enhancements_applied"`
+	RewrittenQuery      string            `json:"rewritten_query"`
+	EnhancementApplied  []string          `json:"enhancements_applied"`
 }
 
 // ContextMetadata contains information about assembled context
 type ContextMetadata struct {
-	DocumentCount      int     `json:"document_count"`
-	TotalLength        int     `json:"total_length"`
-	TruncatedAt        int     `json:"truncated_at"`
-	HierarchyLevels    []int   `json:"hierarchy_levels"`
+	DocumentCount      int            `json:"document_count"`
+	TotalLength        int            `json:"total_length"`
+	TruncatedAt        int            `json:"truncated_at"`
+	HierarchyLevels    []int          `json:"hierarchy_levels"`
 	SourceDistribution map[string]int `json:"source_distribution"`
-	TechnicalTermCount int     `json:"technical_term_count"`
-	AverageQuality     float32 `json:"average_quality"`
+	TechnicalTermCount int            `json:"technical_term_count"`
+	AverageQuality     float32        `json:"average_quality"`
 }
 
 // RetrievalMetrics tracks advanced retrieval performance
 type RetrievalMetrics struct {
 	// Basic metrics
-	TotalQueries           int64         `json:"total_queries"`
-	SuccessfulQueries      int64         `json:"successful_queries"`
-	FailedQueries          int64         `json:"failed_queries"`
-	AverageResponseTime    time.Duration `json:"average_response_time"`
-	
+	TotalQueries        int64         `json:"total_queries"`
+	SuccessfulQueries   int64         `json:"successful_queries"`
+	FailedQueries       int64         `json:"failed_queries"`
+	AverageResponseTime time.Duration `json:"average_response_time"`
+
 	// Enhancement metrics
-	QueriesWithEnhancement int64 `json:"queries_with_enhancement"`
-	QueriesWithReranking   int64 `json:"queries_with_reranking"`
+	QueriesWithEnhancement int64         `json:"queries_with_enhancement"`
+	QueriesWithReranking   int64         `json:"queries_with_reranking"`
 	AverageEnhancementTime time.Duration `json:"average_enhancement_time"`
 	AverageRerankingTime   time.Duration `json:"average_reranking_time"`
-	
+
 	// Quality metrics
-	AverageRelevanceScore  float32 `json:"average_relevance_score"`
-	AverageCoverageScore   float32 `json:"average_coverage_score"`
-	AverageDiversityScore  float32 `json:"average_diversity_score"`
-	
+	AverageRelevanceScore float32 `json:"average_relevance_score"`
+	AverageCoverageScore  float32 `json:"average_coverage_score"`
+	AverageDiversityScore float32 `json:"average_diversity_score"`
+
 	// Intent-specific metrics
-	IntentTypeMetrics     map[string]IntentTypeMetrics `json:"intent_type_metrics"`
-	
+	IntentTypeMetrics map[string]IntentTypeMetrics `json:"intent_type_metrics"`
+
 	// Cache metrics
-	CacheHitRate          float64 `json:"cache_hit_rate"`
-	CacheHits             int64   `json:"cache_hits"`
-	CacheMisses           int64   `json:"cache_misses"`
-	
-	LastUpdated           time.Time `json:"last_updated"`
-	mutex                 sync.RWMutex
+	CacheHitRate float64 `json:"cache_hit_rate"`
+	CacheHits    int64   `json:"cache_hits"`
+	CacheMisses  int64   `json:"cache_misses"`
+
+	LastUpdated time.Time `json:"last_updated"`
+	mutex       sync.RWMutex
 }
 
 // IntentTypeMetrics tracks metrics per intent type
 type IntentTypeMetrics struct {
-	QueryCount            int64   `json:"query_count"`
-	AverageRelevance      float32 `json:"average_relevance"`
-	AverageResponseTime   time.Duration `json:"average_response_time"`
-	SuccessRate           float64 `json:"success_rate"`
+	QueryCount          int64         `json:"query_count"`
+	AverageRelevance    float32       `json:"average_relevance"`
+	AverageResponseTime time.Duration `json:"average_response_time"`
+	SuccessRate         float64       `json:"success_rate"`
 }
 
 // NewEnhancedRetrievalService creates a new enhanced retrieval service
@@ -237,8 +237,8 @@ func NewEnhancedRetrievalService(
 	service := &EnhancedRetrievalService{
 		weaviateClient:   weaviateClient,
 		embeddingService: embeddingService,
-		config:          config,
-		logger:          slog.Default().With("component", "enhanced-retrieval-service"),
+		config:           config,
+		logger:           slog.Default().With("component", "enhanced-retrieval-service"),
 		metrics: &RetrievalMetrics{
 			IntentTypeMetrics: make(map[string]IntentTypeMetrics),
 			LastUpdated:       time.Now(),
@@ -252,7 +252,6 @@ func NewEnhancedRetrievalService(
 
 	return service
 }
-
 
 // SearchEnhanced performs an enhanced search with query processing and reranking
 func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request *EnhancedSearchRequest) (*EnhancedSearchResponse, error) {
@@ -382,7 +381,7 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 	ers.updateMetrics(func(m *RetrievalMetrics) {
 		m.TotalQueries++
 		m.SuccessfulQueries++
-		
+
 		if m.SuccessfulQueries > 0 {
 			m.AverageResponseTime = (m.AverageResponseTime*time.Duration(m.SuccessfulQueries-1) + response.ProcessingTime) / time.Duration(m.SuccessfulQueries)
 		} else {
@@ -523,7 +522,7 @@ func (ers *EnhancedRetrievalService) convertToEnhancedResults(basicResults []*Se
 			AuthorityScore:     ers.calculateAuthorityScore(result),
 			SemanticSimilarity: result.Score, // Initial value
 		}
-		
+
 		// Calculate combined score
 		enhanced[i].CombinedScore = ers.calculateCombinedScore(enhanced[i])
 	}
@@ -606,10 +605,10 @@ func (ers *EnhancedRetrievalService) calculateAuthorityScore(result *SearchResul
 func (ers *EnhancedRetrievalService) calculateCombinedScore(result *EnhancedSearchResult) float32 {
 	// Weighted combination of different scores
 	weights := map[string]float32{
-		"relevance":  0.4,
-		"quality":    0.25,
-		"freshness":  0.15,
-		"authority":  0.2,
+		"relevance": 0.4,
+		"quality":   0.25,
+		"freshness": 0.15,
+		"authority": 0.2,
 	}
 
 	score := result.RelevanceScore*weights["relevance"] +
@@ -782,12 +781,12 @@ func (ers *EnhancedRetrievalService) calculateCoverageScore(results []*EnhancedS
 	}
 
 	coveredTerms := make(map[string]bool)
-	
+
 	for _, result := range results {
 		if result.Document == nil {
 			continue
 		}
-		
+
 		content := strings.ToLower(result.Document.Content)
 		for _, term := range queryTerms {
 			if strings.Contains(content, term) {
@@ -835,10 +834,10 @@ func (ers *EnhancedRetrievalService) buildDebugInfo(
 		"original_query":        request.Query,
 		"processed_query":       searchQuery.Query,
 		"initial_results_count": len(searchResponse.Results),
-		"search_took":          searchResponse.Took,
+		"search_took":           searchResponse.Took,
 		"filters_applied":       searchQuery.Filters,
-		"hybrid_alpha":         searchQuery.HybridAlpha,
-		"min_confidence":       searchQuery.MinConfidence,
+		"hybrid_alpha":          searchQuery.HybridAlpha,
+		"min_confidence":        searchQuery.MinConfidence,
 	}
 }
 
@@ -853,7 +852,7 @@ func (ers *EnhancedRetrievalService) updateMetrics(updater func(*RetrievalMetric
 func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
 	ers.metrics.mutex.RLock()
 	defer ers.metrics.mutex.RUnlock()
-	
+
 	// Return a copy
 	metrics := *ers.metrics
 	return &metrics
@@ -861,19 +860,19 @@ func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
 
 // RetrievalHealthStatus represents the health status of the retrieval service
 type RetrievalHealthStatus struct {
-	Status        string                    `json:"status"`        // "healthy", "degraded", "unhealthy"
-	Timestamp     time.Time                 `json:"timestamp"`     
-	Components    map[string]ComponentStatus `json:"components"`
-	Metrics       HealthMetrics             `json:"metrics"`
-	TotalQueries  int64                     `json:"total_queries"`
-	SuccessRate   float64                   `json:"success_rate"`
+	Status       string                     `json:"status"` // "healthy", "degraded", "unhealthy"
+	Timestamp    time.Time                  `json:"timestamp"`
+	Components   map[string]ComponentStatus `json:"components"`
+	Metrics      HealthMetrics              `json:"metrics"`
+	TotalQueries int64                      `json:"total_queries"`
+	SuccessRate  float64                    `json:"success_rate"`
 }
 
 // ComponentStatus represents the health status of a service component
 type ComponentStatus struct {
-	Status    string    `json:"status"`               // "healthy", "degraded", "unhealthy"
-	Message   string    `json:"message,omitempty"`    
-	LastCheck time.Time `json:"last_check"`
+	Status    string                 `json:"status"` // "healthy", "degraded", "unhealthy"
+	Message   string                 `json:"message,omitempty"`
+	LastCheck time.Time              `json:"last_check"`
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
@@ -898,7 +897,7 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 
 	// Get current metrics safely
 	metrics := ers.GetMetrics()
-	
+
 	// Calculate success rate with zero-division protection
 	var successRate float64
 	if metrics.TotalQueries > 0 {
@@ -909,7 +908,7 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 
 	// Check component health
 	components := make(map[string]ComponentStatus)
-	
+
 	// Check Weaviate/Vector Store health
 	weaviateHealth := ers.weaviateClient.GetHealthStatus()
 	weaviateStatus := "healthy"
@@ -918,7 +917,7 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 		weaviateStatus = "unhealthy"
 		weaviateMessage = "Vector store connectivity issues"
 	}
-	
+
 	components["vector_store"] = ComponentStatus{
 		Status:    weaviateStatus,
 		Message:   weaviateMessage,
@@ -928,7 +927,7 @@ func (ers *EnhancedRetrievalService) GetHealthStatus(ctx context.Context) (*Retr
 		},
 	}
 
-	// Check Embedding Service health  
+	// Check Embedding Service health
 	embeddingStatus := ers.checkEmbeddingServiceHealth(healthCtx)
 	components["embedding_service"] = embeddingStatus
 
@@ -967,7 +966,7 @@ func (ers *EnhancedRetrievalService) checkEmbeddingServiceHealth(ctx context.Con
 	status, err := ers.embeddingService.CheckStatus(ctx)
 	if err != nil {
 		return ComponentStatus{
-			Status:    "unhealthy", 
+			Status:    "unhealthy",
 			Message:   fmt.Sprintf("Health check failed: %v", err),
 			LastCheck: time.Now(),
 		}

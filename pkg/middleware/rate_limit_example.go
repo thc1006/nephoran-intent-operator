@@ -17,10 +17,10 @@ func ExampleRateLimiterUsage() {
 
 	// Configure rate limiter
 	config := RateLimiterConfig{
-		QPS:             20,                // Allow 20 requests per second per IP
-		Burst:           40,                // Allow burst of 40 requests
-		CleanupInterval: 10 * time.Minute,  // Clean up old IP entries every 10 minutes
-		IPTimeout:       1 * time.Hour,     // Remove IP entries after 1 hour of inactivity
+		QPS:             20,               // Allow 20 requests per second per IP
+		Burst:           40,               // Allow burst of 40 requests
+		CleanupInterval: 10 * time.Minute, // Clean up old IP entries every 10 minutes
+		IPTimeout:       1 * time.Hour,    // Remove IP entries after 1 hour of inactivity
 	}
 
 	// Create rate limiter
@@ -50,10 +50,10 @@ func ExamplePostOnlyRateLimiterUsage() {
 
 	// Configure rate limiter for POST requests only
 	config := RateLimiterConfig{
-		QPS:             10,                // Allow 10 POST requests per second per IP
-		Burst:           20,                // Allow burst of 20 POST requests
-		CleanupInterval: 10 * time.Minute,  // Clean up old IP entries every 10 minutes
-		IPTimeout:       1 * time.Hour,     // Remove IP entries after 1 hour of inactivity
+		QPS:             10,               // Allow 10 POST requests per second per IP
+		Burst:           20,               // Allow burst of 20 POST requests
+		CleanupInterval: 10 * time.Minute, // Clean up old IP entries every 10 minutes
+		IPTimeout:       1 * time.Hour,    // Remove IP entries after 1 hour of inactivity
 	}
 
 	// Create POST-only rate limiter

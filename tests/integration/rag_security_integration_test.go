@@ -22,17 +22,17 @@ var _ = Describe("RAG Security Integration", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		
+
 		// Setup RAG service with mock clients
 		mockWeaviate := &MockWeaviateClient{
 			searchResponse: &rag.SearchResponse{
 				Results: []*rag.SearchResult{
 					{
 						Document: &rag.TelecomDocument{
-							ID:      "security-doc-1",
-							Content: "Security best practices for 5G networks include proper authentication, encryption, and network slicing isolation.",
-							Source:  "3GPP TS 33.501",
-							Title:   "5G Security Architecture",
+							ID:       "security-doc-1",
+							Content:  "Security best practices for 5G networks include proper authentication, encryption, and network slicing isolation.",
+							Source:   "3GPP TS 33.501",
+							Title:    "5G Security Architecture",
 							Category: "Security",
 						},
 						Score: 0.95,
@@ -41,21 +41,21 @@ var _ = Describe("RAG Security Integration", func() {
 				Took: 50 * time.Millisecond,
 			},
 		}
-		
+
 		mockLLM := &MockLLMClient{
 			processResponse: "Based on the security documentation, here are the recommended security practices for 5G networks...",
 		}
-		
+
 		ragConfig := &rag.RAGConfig{
-			DefaultSearchLimit:  10,
+			DefaultSearchLimit: 10,
 			MaxSearchLimit:     50,
 			MinConfidenceScore: 0.5,
 			EnableCaching:      true,
 			EnableReranking:    true,
 		}
-		
+
 		ragService = rag.NewRAGService(mockWeaviate, mockLLM, ragConfig)
-		
+
 		// Setup security scanner
 		scannerConfig := &security.ScannerConfig{
 			BaseURL:            "https://test-target.local",
@@ -63,9 +63,9 @@ var _ = Describe("RAG Security Integration", func() {
 			EnableVulnScanning: true,
 			EnableOWASPTesting: true,
 		}
-		
+
 		securityScanner = security.NewSecurityScanner(scannerConfig)
-		
+
 		// Setup incident response
 		irConfig := &security.IncidentConfig{
 			EnableAutoResponse:    true,
@@ -76,7 +76,7 @@ var _ = Describe("RAG Security Integration", func() {
 				Recipients:  []string{"security@test.com"},
 			},
 		}
-		
+
 		var err error
 		incidentResp, err = security.NewIncidentResponse(irConfig)
 		Expect(err).ToNot(HaveOccurred())
@@ -107,7 +107,7 @@ var _ = Describe("RAG Security Integration", func() {
 				Expect(response.Answer).To(ContainSubstring("security"))
 				Expect(response.Confidence).To(BeNumerically(">", 0.5))
 				Expect(len(response.SourceDocuments)).To(BeNumerically(">", 0))
-				
+
 				// Check that source is security-related
 				securityDoc := response.SourceDocuments[0]
 				Expect(securityDoc.Document.Category).To(Equal("Security"))
@@ -144,7 +144,7 @@ var _ = Describe("RAG Security Integration", func() {
 			It("should create security incidents for critical findings", func() {
 				// Run security scan
 				scanResults, err := securityScanner.RunFullScan(ctx)
-				
+
 				Expect(err).ToNot(HaveOccurred())
 				Expect(scanResults).NotTo(BeNil())
 
@@ -194,10 +194,10 @@ var _ = Describe("RAG Security Integration", func() {
 					Source:      "security-scanner",
 					Description: "Comprehensive security scan results",
 					Data: map[string]interface{}{
-						"scan_id":         securityScanner.GenerateReport(),
+						"scan_id":             securityScanner.GenerateReport(),
 						"vulnerability_count": 5,
-						"risk_score":     75.5,
-						"scan_duration":  "5m30s",
+						"risk_score":          75.5,
+						"scan_duration":       "5m30s",
 					},
 				}
 
@@ -252,10 +252,10 @@ var _ = Describe("RAG Security Integration", func() {
 					Source:      "ai-assistant",
 					Description: "AI-generated remediation recommendations",
 					Data: map[string]interface{}{
-						"query":       ragRequest.Query,
-						"response":    ragResponse.Answer,
-						"confidence":  ragResponse.Confidence,
-						"sources":     len(ragResponse.SourceDocuments),
+						"query":      ragRequest.Query,
+						"response":   ragResponse.Answer,
+						"confidence": ragResponse.Confidence,
+						"sources":    len(ragResponse.SourceDocuments),
 					},
 				}
 
@@ -274,7 +274,7 @@ var _ = Describe("RAG Security Integration", func() {
 				incidents := make([]*security.SecurityIncident, 3)
 				incidentTitles := []string{
 					"SQL Injection on Login Page",
-					"SQL Injection on Search Function", 
+					"SQL Injection on Search Function",
 					"SQL Injection on Contact Form",
 				}
 
@@ -323,7 +323,7 @@ var _ = Describe("RAG Security Integration", func() {
 					Tags:        []string{"rce", "production", "web-server", "critical"},
 					Impact: &security.ImpactAssessment{
 						Confidentiality: "High",
-						Integrity:       "High", 
+						Integrity:       "High",
 						Availability:    "High",
 						BusinessImpact:  "Critical",
 						AffectedSystems: []string{"web-server-01", "database", "api-gateway"},

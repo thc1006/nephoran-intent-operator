@@ -383,14 +383,14 @@ func TestLLMProcessorConfig_Validate_LogicalConstraints(t *testing.T) {
 func TestLLMProcessorConfig_Validate_MultipleErrors(t *testing.T) {
 	cfg := DefaultLLMProcessorConfig()
 	cfg.LLMBackendType = "openai"
-	cfg.LLMAPIKey = ""                           // Missing required API key
-	cfg.AuthEnabled = true                       // Auth enabled
-	cfg.JWTSecretKey = ""                        // But missing JWT secret
-	cfg.APIKeyRequired = true                    // API key required
-	cfg.APIKey = ""                              // But missing API key
-	cfg.MaxConcurrentStreams = 1500              // Too high
-	cfg.MaxContextTokens = 50000                 // Too high
-	cfg.CircuitBreakerThreshold = 75             // Too high
+	cfg.LLMAPIKey = ""               // Missing required API key
+	cfg.AuthEnabled = true           // Auth enabled
+	cfg.JWTSecretKey = ""            // But missing JWT secret
+	cfg.APIKeyRequired = true        // API key required
+	cfg.APIKey = ""                  // But missing API key
+	cfg.MaxConcurrentStreams = 1500  // Too high
+	cfg.MaxContextTokens = 50000     // Too high
+	cfg.CircuitBreakerThreshold = 75 // Too high
 
 	err := cfg.Validate()
 	assert.Error(t, err)
@@ -584,8 +584,8 @@ func TestParseAllowedOrigins(t *testing.T) {
 			description: "Origins with spaces should be trimmed correctly",
 		},
 		{
-			name:        "wildcard in development",
-			input:       "*",
+			name:  "wildcard in development",
+			input: "*",
 			setupEnv: func(t *testing.T) {
 				os.Setenv("LLM_ENVIRONMENT", "development")
 				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
@@ -595,8 +595,8 @@ func TestParseAllowedOrigins(t *testing.T) {
 			description: "Wildcard should be allowed in development environment",
 		},
 		{
-			name:        "wildcard in production",
-			input:       "*",
+			name:  "wildcard in production",
+			input: "*",
 			setupEnv: func(t *testing.T) {
 				os.Setenv("LLM_ENVIRONMENT", "production")
 				t.Cleanup(func() { os.Unsetenv("LLM_ENVIRONMENT") })
@@ -727,10 +727,10 @@ func TestLoadLLMProcessorConfig_CORSConfiguration(t *testing.T) {
 		{
 			name: "CORS enabled without origins in production",
 			envVars: map[string]string{
-				"LLM_BACKEND_TYPE":  "mock",
-				"AUTH_ENABLED":      "false",
-				"CORS_ENABLED":      "true",
-				"LLM_ENVIRONMENT":   "production",
+				"LLM_BACKEND_TYPE": "mock",
+				"AUTH_ENABLED":     "false",
+				"CORS_ENABLED":     "true",
+				"LLM_ENVIRONMENT":  "production",
 			},
 			description: "CORS enabled without origins in production should fail validation",
 			wantErr:     true,
@@ -798,43 +798,43 @@ func TestLoadLLMProcessorConfig_EnvironmentOverrides(t *testing.T) {
 
 	// Set test environment variables
 	envVars := map[string]string{
-		"PORT":                         "9080",
-		"LOG_LEVEL":                    "debug",
-		"SERVICE_VERSION":             "v3.0.0",
-		"GRACEFUL_SHUTDOWN_TIMEOUT":   "45s",
-		"LLM_BACKEND_TYPE":            "mock",
-		"LLM_MODEL_NAME":              "gpt-3.5-turbo",
-		"LLM_TIMEOUT":                 "120s",
-		"LLM_MAX_TOKENS":              "4096",
-		"RAG_API_URL":                 "http://custom-rag:6001",
-		"RAG_TIMEOUT":                 "60s",
-		"RAG_ENABLED":                 "false",
-		"STREAMING_ENABLED":           "false",
-		"MAX_CONCURRENT_STREAMS":      "200",
-		"STREAM_TIMEOUT":              "10m",
-		"ENABLE_CONTEXT_BUILDER":      "false",
-		"MAX_CONTEXT_TOKENS":          "8000",
-		"CONTEXT_TTL":                 "10m",
-		"API_KEY_REQUIRED":            "true",
-		"CORS_ENABLED":                "false",
-		"LLM_ALLOWED_ORIGINS":         "http://localhost:3000",
-		"REQUEST_TIMEOUT":             "60s",
-		"MAX_REQUEST_SIZE":            "2097152",
-		"CIRCUIT_BREAKER_ENABLED":     "false",
-		"CIRCUIT_BREAKER_THRESHOLD":   "10",
-		"CIRCUIT_BREAKER_TIMEOUT":     "120s",
-		"RATE_LIMIT_ENABLED":          "false",
+		"PORT":                           "9080",
+		"LOG_LEVEL":                      "debug",
+		"SERVICE_VERSION":                "v3.0.0",
+		"GRACEFUL_SHUTDOWN_TIMEOUT":      "45s",
+		"LLM_BACKEND_TYPE":               "mock",
+		"LLM_MODEL_NAME":                 "gpt-3.5-turbo",
+		"LLM_TIMEOUT":                    "120s",
+		"LLM_MAX_TOKENS":                 "4096",
+		"RAG_API_URL":                    "http://custom-rag:6001",
+		"RAG_TIMEOUT":                    "60s",
+		"RAG_ENABLED":                    "false",
+		"STREAMING_ENABLED":              "false",
+		"MAX_CONCURRENT_STREAMS":         "200",
+		"STREAM_TIMEOUT":                 "10m",
+		"ENABLE_CONTEXT_BUILDER":         "false",
+		"MAX_CONTEXT_TOKENS":             "8000",
+		"CONTEXT_TTL":                    "10m",
+		"API_KEY_REQUIRED":               "true",
+		"CORS_ENABLED":                   "false",
+		"LLM_ALLOWED_ORIGINS":            "http://localhost:3000",
+		"REQUEST_TIMEOUT":                "60s",
+		"MAX_REQUEST_SIZE":               "2097152",
+		"CIRCUIT_BREAKER_ENABLED":        "false",
+		"CIRCUIT_BREAKER_THRESHOLD":      "10",
+		"CIRCUIT_BREAKER_TIMEOUT":        "120s",
+		"RATE_LIMIT_ENABLED":             "false",
 		"RATE_LIMIT_REQUESTS_PER_MINUTE": "120",
-		"RATE_LIMIT_BURST":            "20",
-		"MAX_RETRIES":                 "5",
-		"RETRY_DELAY":                 "2s",
-		"RETRY_BACKOFF":               "linear",
-		"AUTH_ENABLED":                "false",
-		"REQUIRE_AUTH":                "false",
-		"ADMIN_USERS":                 "admin1,admin2",
-		"OPERATOR_USERS":              "operator1,operator2",
-		"USE_KUBERNETES_SECRETS":      "false",
-		"SECRET_NAMESPACE":            "custom-namespace",
+		"RATE_LIMIT_BURST":               "20",
+		"MAX_RETRIES":                    "5",
+		"RETRY_DELAY":                    "2s",
+		"RETRY_BACKOFF":                  "linear",
+		"AUTH_ENABLED":                   "false",
+		"REQUIRE_AUTH":                   "false",
+		"ADMIN_USERS":                    "admin1,admin2",
+		"OPERATOR_USERS":                 "operator1,operator2",
+		"USE_KUBERNETES_SECRETS":         "false",
+		"SECRET_NAMESPACE":               "custom-namespace",
 	}
 
 	for key, value := range envVars {
@@ -1446,7 +1446,7 @@ func cleanupLLMProcessorEnv(t *testing.T) {
 		"SECRET_NAMESPACE",
 		// Environment detection variables (used by isDevelopmentEnvironment())
 		"GO_ENV",
-		"NODE_ENV", 
+		"NODE_ENV",
 		"ENVIRONMENT",
 		"ENV",
 		"APP_ENV",

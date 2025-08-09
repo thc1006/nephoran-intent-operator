@@ -26,85 +26,85 @@ type HSMBackend struct {
 // HSMBackendConfig holds HSM backend configuration
 type HSMBackendConfig struct {
 	// HSM connection
-	ProviderType    HSMProviderType       `yaml:"provider_type"`
-	ConnectionString string               `yaml:"connection_string"`
-	SlotID          int                   `yaml:"slot_id"`
-	TokenLabel      string                `yaml:"token_label"`
-	
+	ProviderType     HSMProviderType `yaml:"provider_type"`
+	ConnectionString string          `yaml:"connection_string"`
+	SlotID           int             `yaml:"slot_id"`
+	TokenLabel       string          `yaml:"token_label"`
+
 	// Authentication
-	UserPIN         string                `yaml:"user_pin"`
-	SOPin           string                `yaml:"so_pin"`
-	KeystoreFile    string                `yaml:"keystore_file,omitempty"`
-	KeystorePass    string                `yaml:"keystore_pass,omitempty"`
-	
+	UserPIN      string `yaml:"user_pin"`
+	SOPin        string `yaml:"so_pin"`
+	KeystoreFile string `yaml:"keystore_file,omitempty"`
+	KeystorePass string `yaml:"keystore_pass,omitempty"`
+
 	// Key management
-	KeyGeneration   *HSMKeyGenConfig      `yaml:"key_generation"`
-	KeyStorage      *HSMKeyStorageConfig  `yaml:"key_storage"`
-	
+	KeyGeneration *HSMKeyGenConfig     `yaml:"key_generation"`
+	KeyStorage    *HSMKeyStorageConfig `yaml:"key_storage"`
+
 	// Security settings
-	RequireAuthentication bool            `yaml:"require_authentication"`
-	SessionTimeout        time.Duration   `yaml:"session_timeout"`
-	MaxRetries           int              `yaml:"max_retries"`
-	
+	RequireAuthentication bool          `yaml:"require_authentication"`
+	SessionTimeout        time.Duration `yaml:"session_timeout"`
+	MaxRetries            int           `yaml:"max_retries"`
+
 	// High availability
-	HAConfig        *HSMHAConfig          `yaml:"ha_config,omitempty"`
-	
+	HAConfig *HSMHAConfig `yaml:"ha_config,omitempty"`
+
 	// Performance settings
-	PoolSize        int                   `yaml:"pool_size"`
-	MaxSessions     int                   `yaml:"max_sessions"`
+	PoolSize    int `yaml:"pool_size"`
+	MaxSessions int `yaml:"max_sessions"`
 }
 
 // HSMProviderType represents different HSM providers
 type HSMProviderType string
 
 const (
-	HSMProviderPKCS11    HSMProviderType = "pkcs11"
-	HSMProviderAWS       HSMProviderType = "aws_cloudhsm"
-	HSMProviderAzure     HSMProviderType = "azure_keyvault"
-	HSMProviderThales    HSMProviderType = "thales"
-	HSMProviderSafeNet   HSMProviderType = "safenet"
-	HSMProviderYubiKey   HSMProviderType = "yubikey"
-	HSMProviderSoftHSM   HSMProviderType = "softhsm"
+	HSMProviderPKCS11  HSMProviderType = "pkcs11"
+	HSMProviderAWS     HSMProviderType = "aws_cloudhsm"
+	HSMProviderAzure   HSMProviderType = "azure_keyvault"
+	HSMProviderThales  HSMProviderType = "thales"
+	HSMProviderSafeNet HSMProviderType = "safenet"
+	HSMProviderYubiKey HSMProviderType = "yubikey"
+	HSMProviderSoftHSM HSMProviderType = "softhsm"
 )
 
 // HSMKeyGenConfig holds key generation configuration
 type HSMKeyGenConfig struct {
-	KeyType         string            `yaml:"key_type"`         // RSA, ECDSA, Ed25519
-	KeySize         int               `yaml:"key_size"`
-	Curve           string            `yaml:"curve,omitempty"`  // For ECDSA
-	Extractable     bool              `yaml:"extractable"`
-	Sensitive       bool              `yaml:"sensitive"`
-	Permanent       bool              `yaml:"permanent"`
-	KeyUsages       []string          `yaml:"key_usages"`
-	Attributes      map[string]interface{} `yaml:"attributes,omitempty"`
+	KeyType     string                 `yaml:"key_type"` // RSA, ECDSA, Ed25519
+	KeySize     int                    `yaml:"key_size"`
+	Curve       string                 `yaml:"curve,omitempty"` // For ECDSA
+	Extractable bool                   `yaml:"extractable"`
+	Sensitive   bool                   `yaml:"sensitive"`
+	Permanent   bool                   `yaml:"permanent"`
+	KeyUsages   []string               `yaml:"key_usages"`
+	Attributes  map[string]interface{} `yaml:"attributes,omitempty"`
 }
 
 // HSMKeyStorageConfig holds key storage configuration
 type HSMKeyStorageConfig struct {
-	KeyPrefix       string            `yaml:"key_prefix"`
-	CAKeyLabel      string            `yaml:"ca_key_label"`
-	IntermKeyLabel  string            `yaml:"interm_key_label"`
-	AutoLabel       bool              `yaml:"auto_label"`
-	KeyRetention    time.Duration     `yaml:"key_retention"`
-	BackupEnabled   bool              `yaml:"backup_enabled"`
-	ReplicationEnabled bool           `yaml:"replication_enabled"`
+	KeyPrefix          string        `yaml:"key_prefix"`
+	CAKeyLabel         string        `yaml:"ca_key_label"`
+	IntermKeyLabel     string        `yaml:"interm_key_label"`
+	AutoLabel          bool          `yaml:"auto_label"`
+	KeyRetention       time.Duration `yaml:"key_retention"`
+	BackupEnabled      bool          `yaml:"backup_enabled"`
+	ReplicationEnabled bool          `yaml:"replication_enabled"`
 }
 
 // HSMHAConfig holds high availability configuration
 type HSMHAConfig struct {
-	Enabled         bool              `yaml:"enabled"`
-	PrimaryHSM      HSMEndpoint       `yaml:"primary_hsm"`
-	SecondaryHSMs   []HSMEndpoint     `yaml:"secondary_hsms"`
-	FailoverTimeout time.Duration     `yaml:"failover_timeout"`
+	Enabled             bool          `yaml:"enabled"`
+	PrimaryHSM          HSMEndpoint   `yaml:"primary_hsm"`
+	SecondaryHSMs       []HSMEndpoint `yaml:"secondary_hsms"`
+	FailoverTimeout     time.Duration `yaml:"failover_timeout"`
 	HealthCheckInterval time.Duration `yaml:"health_check_interval"`
 }
 
 // HSMEndpoint represents an HSM endpoint
 type HSMEndpoint struct {
-	Address      string `yaml:"address"`
-	SlotID       int    `yaml:"slot_id"`
-	TokenLabel   string `yaml:"token_label"`
-	Priority     int    `yaml:"priority"`
+	Address    string `yaml:"address"`
+	SlotID     int    `yaml:"slot_id"`
+	TokenLabel string `yaml:"token_label"`
+	Priority   int    `yaml:"priority"`
 }
 
 // HSMProvider defines the interface for HSM providers
@@ -113,22 +113,22 @@ type HSMProvider interface {
 	Connect(ctx context.Context) error
 	Disconnect() error
 	HealthCheck(ctx context.Context) error
-	
+
 	// Key management
 	GenerateKey(ctx context.Context, config *HSMKeyGenConfig) (HSMKeyHandle, error)
 	ImportKey(ctx context.Context, keyData []byte, config *HSMKeyGenConfig) (HSMKeyHandle, error)
 	DeleteKey(ctx context.Context, handle HSMKeyHandle) error
 	ListKeys(ctx context.Context) ([]HSMKeyInfo, error)
-	
+
 	// Cryptographic operations
 	Sign(ctx context.Context, handle HSMKeyHandle, data []byte, algorithm string) ([]byte, error)
 	Verify(ctx context.Context, handle HSMKeyHandle, data, signature []byte, algorithm string) error
 	GetPublicKey(ctx context.Context, handle HSMKeyHandle) (crypto.PublicKey, error)
-	
+
 	// Certificate operations
 	GenerateCSR(ctx context.Context, handle HSMKeyHandle, template *x509.CertificateRequest) ([]byte, error)
 	SignCertificate(ctx context.Context, handle HSMKeyHandle, template, parent *x509.Certificate) ([]byte, error)
-	
+
 	// Provider info
 	GetProviderInfo() HSMProviderInfo
 }
@@ -145,24 +145,24 @@ type HSMKeyHandle interface {
 
 // HSMKeyInfo contains information about an HSM key
 type HSMKeyInfo struct {
-	Handle      HSMKeyHandle          `json:"handle"`
-	ID          string                `json:"id"`
-	Label       string                `json:"label"`
-	Type        string                `json:"type"`
-	Size        int                   `json:"size"`
-	Usage       []string              `json:"usage"`
-	CreatedAt   time.Time             `json:"created_at"`
-	Attributes  map[string]interface{} `json:"attributes"`
+	Handle     HSMKeyHandle           `json:"handle"`
+	ID         string                 `json:"id"`
+	Label      string                 `json:"label"`
+	Type       string                 `json:"type"`
+	Size       int                    `json:"size"`
+	Usage      []string               `json:"usage"`
+	CreatedAt  time.Time              `json:"created_at"`
+	Attributes map[string]interface{} `json:"attributes"`
 }
 
 // HSMProviderInfo contains HSM provider information
 type HSMProviderInfo struct {
-	ProviderType    HSMProviderType       `json:"provider_type"`
-	Version         string                `json:"version"`
-	SlotInfo        HSMSlotInfo           `json:"slot_info"`
-	TokenInfo       HSMTokenInfo          `json:"token_info"`
-	SupportedAlgorithms []string          `json:"supported_algorithms"`
-	Capabilities    []string              `json:"capabilities"`
+	ProviderType        HSMProviderType `json:"provider_type"`
+	Version             string          `json:"version"`
+	SlotInfo            HSMSlotInfo     `json:"slot_info"`
+	TokenInfo           HSMTokenInfo    `json:"token_info"`
+	SupportedAlgorithms []string        `json:"supported_algorithms"`
+	Capabilities        []string        `json:"capabilities"`
 }
 
 // HSMSlotInfo contains HSM slot information
@@ -176,16 +176,16 @@ type HSMSlotInfo struct {
 
 // HSMTokenInfo contains HSM token information
 type HSMTokenInfo struct {
-	Label           string `json:"label"`
-	Manufacturer    string `json:"manufacturer"`
-	Model           string `json:"model"`
-	SerialNumber    string `json:"serial_number"`
-	MaxSessionCount int    `json:"max_session_count"`
-	SessionCount    int    `json:"session_count"`
-	MaxRWSessionCount int  `json:"max_rw_session_count"`
-	RWSessionCount  int    `json:"rw_session_count"`
-	FreePublicMemory int   `json:"free_public_memory"`
-	FreePrivateMemory int  `json:"free_private_memory"`
+	Label             string `json:"label"`
+	Manufacturer      string `json:"manufacturer"`
+	Model             string `json:"model"`
+	SerialNumber      string `json:"serial_number"`
+	MaxSessionCount   int    `json:"max_session_count"`
+	SessionCount      int    `json:"session_count"`
+	MaxRWSessionCount int    `json:"max_rw_session_count"`
+	RWSessionCount    int    `json:"rw_session_count"`
+	FreePublicMemory  int    `json:"free_public_memory"`
+	FreePrivateMemory int    `json:"free_private_memory"`
 }
 
 // BasicHSMKeyHandle implements HSMKeyHandle interface
@@ -198,11 +198,11 @@ type BasicHSMKeyHandle struct {
 	attributes map[string]interface{}
 }
 
-func (h *BasicHSMKeyHandle) ID() string { return h.id }
-func (h *BasicHSMKeyHandle) Label() string { return h.label }
-func (h *BasicHSMKeyHandle) Type() string { return h.keyType }
-func (h *BasicHSMKeyHandle) Size() int { return h.keySize }
-func (h *BasicHSMKeyHandle) Usage() []string { return h.usage }
+func (h *BasicHSMKeyHandle) ID() string                         { return h.id }
+func (h *BasicHSMKeyHandle) Label() string                      { return h.label }
+func (h *BasicHSMKeyHandle) Type() string                       { return h.keyType }
+func (h *BasicHSMKeyHandle) Size() int                          { return h.keySize }
+func (h *BasicHSMKeyHandle) Usage() []string                    { return h.usage }
 func (h *BasicHSMKeyHandle) Attributes() map[string]interface{} { return h.attributes }
 
 // NewHSMBackend creates a new HSM backend
@@ -371,11 +371,11 @@ func (b *HSMBackend) IssueCertificate(ctx context.Context, req *CertificateReque
 		IssuedBy:         string(BackendHSM),
 		Status:           StatusIssued,
 		Metadata: map[string]string{
-			"hsm_provider":   string(b.config.ProviderType),
-			"hsm_key_id":     keyHandle.ID(),
-			"hsm_key_label":  keyHandle.Label(),
-			"tenant_id":      req.TenantID,
-			"key_in_hsm":     "true",
+			"hsm_provider":  string(b.config.ProviderType),
+			"hsm_key_id":    keyHandle.ID(),
+			"hsm_key_label": keyHandle.Label(),
+			"tenant_id":     req.TenantID,
+			"key_in_hsm":    "true",
 		},
 		CreatedAt: time.Now(),
 	}
@@ -411,7 +411,7 @@ func (b *HSMBackend) RenewCertificate(ctx context.Context, req *CertificateReque
 	// For HSM backend, we can either:
 	// 1. Generate a new key pair (more secure)
 	// 2. Reuse existing key pair (for continuity)
-	
+
 	// For this implementation, we'll generate a new certificate
 	response, err := b.IssueCertificate(ctx, req)
 	if err != nil {
@@ -453,11 +453,11 @@ func (b *HSMBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
 		Features: b.GetSupportedFeatures(),
 		Metrics: map[string]interface{}{
 			"provider_type":       string(providerInfo.ProviderType),
-			"slot_id":            providerInfo.SlotInfo.ID,
-			"token_label":        providerInfo.TokenInfo.Label,
-			"max_sessions":       providerInfo.TokenInfo.MaxSessionCount,
-			"current_sessions":   providerInfo.TokenInfo.SessionCount,
-			"free_public_memory": providerInfo.TokenInfo.FreePublicMemory,
+			"slot_id":             providerInfo.SlotInfo.ID,
+			"token_label":         providerInfo.TokenInfo.Label,
+			"max_sessions":        providerInfo.TokenInfo.MaxSessionCount,
+			"current_sessions":    providerInfo.TokenInfo.SessionCount,
+			"free_public_memory":  providerInfo.TokenInfo.FreePublicMemory,
 			"free_private_memory": providerInfo.TokenInfo.FreePrivateMemory,
 		},
 	}
@@ -705,8 +705,8 @@ func NewAzureKeyVaultProvider(config *HSMBackendConfig, logger *logging.Structur
 
 // MockHSMProvider is a mock implementation for testing
 type MockHSMProvider struct {
-	config *HSMBackendConfig
-	logger *logging.StructuredLogger
+	config    *HSMBackendConfig
+	logger    *logging.StructuredLogger
 	connected bool
 }
 
@@ -760,7 +760,7 @@ func (m *MockHSMProvider) ListKeys(ctx context.Context) ([]HSMKeyInfo, error) {
 		keySize: 4096,
 		usage:   []string{"sign", "verify"},
 	}
-	
+
 	return []HSMKeyInfo{
 		{
 			Handle:    handle,
@@ -803,18 +803,18 @@ func (m *MockHSMProvider) SignCertificate(ctx context.Context, handle HSMKeyHand
 func (m *MockHSMProvider) GetProviderInfo() HSMProviderInfo {
 	return HSMProviderInfo{
 		ProviderType: m.config.ProviderType,
-		Version:     "mock-1.0.0",
+		Version:      "mock-1.0.0",
 		SlotInfo: HSMSlotInfo{
-			ID:          m.config.SlotID,
-			Description: "Mock HSM Slot",
+			ID:           m.config.SlotID,
+			Description:  "Mock HSM Slot",
 			Manufacturer: "Mock HSM Inc.",
 		},
 		TokenInfo: HSMTokenInfo{
 			Label:           m.config.TokenLabel,
 			Manufacturer:    "Mock HSM Inc.",
-			Model:          "MockHSM v1.0",
+			Model:           "MockHSM v1.0",
 			MaxSessionCount: 100,
-			SessionCount:   1,
+			SessionCount:    1,
 		},
 		SupportedAlgorithms: []string{"RSA", "ECDSA", "SHA256"},
 		Capabilities: []string{

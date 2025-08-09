@@ -27,27 +27,27 @@ type O2AdaptorInterface interface {
 	TerminateVNF(ctx context.Context, instanceID string) error
 	GetVNFInstance(ctx context.Context, instanceID string) (*VNFInstance, error)
 	ListVNFInstances(ctx context.Context, filter *VNFFilter) ([]*VNFInstance, error)
-	
+
 	// Infrastructure Management
 	GetInfrastructureInfo(ctx context.Context) (*InfrastructureInfo, error)
 	GetNodeResources(ctx context.Context, nodeID string) (*NodeResources, error)
 	ListAvailableResources(ctx context.Context) (*ResourceAvailability, error)
-	
+
 	// Container and Pod Management
 	CreatePod(ctx context.Context, req *PodCreateRequest) (*corev1.Pod, error)
 	UpdatePod(ctx context.Context, podName, namespace string, req *PodUpdateRequest) error
 	DeletePod(ctx context.Context, podName, namespace string) error
 	GetPodStatus(ctx context.Context, podName, namespace string) (*PodStatus, error)
-	
+
 	// Service and Network Management
 	CreateService(ctx context.Context, req *ServiceCreateRequest) (*corev1.Service, error)
 	UpdateService(ctx context.Context, serviceName, namespace string, req *ServiceUpdateRequest) error
 	DeleteService(ctx context.Context, serviceName, namespace string) error
-	
+
 	// Monitoring and Metrics
 	GetVNFMetrics(ctx context.Context, instanceID string) (*VNFMetrics, error)
 	GetInfrastructureMetrics(ctx context.Context) (*InfrastructureMetrics, error)
-	
+
 	// Fault and Healing
 	GetVNFFaults(ctx context.Context, instanceID string) ([]*VNFFault, error)
 	TriggerVNFHealing(ctx context.Context, instanceID string, req *HealingRequest) error
@@ -55,43 +55,43 @@ type O2AdaptorInterface interface {
 
 // O2Adaptor implements the O2 interface for Kubernetes-based cloud infrastructure
 type O2Adaptor struct {
-	kubeClient    client.Client
-	clientset     kubernetes.Interface
-	config        *O2Config
+	kubeClient client.Client
+	clientset  kubernetes.Interface
+	config     *O2Config
 }
 
 // O2Config holds O2 interface configuration
 type O2Config struct {
-	Namespace         string
-	DefaultResources  *corev1.ResourceRequirements
-	ImagePullSecrets  []string
-	NodeSelector      map[string]string
-	Tolerations       []corev1.Toleration
-	ServiceAccount    string
-	TLSConfig         *oran.TLSConfig
+	Namespace        string
+	DefaultResources *corev1.ResourceRequirements
+	ImagePullSecrets []string
+	NodeSelector     map[string]string
+	Tolerations      []corev1.Toleration
+	ServiceAccount   string
+	TLSConfig        *oran.TLSConfig
 }
 
 // VNF Lifecycle types
 type VNFDeployRequest struct {
-	Name             string                       `json:"name"`
-	Namespace        string                       `json:"namespace"`
-	VNFPackageID     string                       `json:"vnf_package_id"`
-	FlavorID         string                       `json:"flavor_id"`
-	Image            string                       `json:"image"`
-	Replicas         int32                        `json:"replicas"`
-	Resources        *corev1.ResourceRequirements `json:"resources"`
-	Environment      []corev1.EnvVar              `json:"environment"`
-	Ports            []corev1.ContainerPort       `json:"ports"`
-	VolumeConfig     []VolumeConfig               `json:"volume_config"`
-	NetworkConfig    *NetworkConfig               `json:"network_config"`
-	SecurityContext  *corev1.SecurityContext      `json:"security_context"`
-	Metadata         map[string]string            `json:"metadata"`
+	Name            string                       `json:"name"`
+	Namespace       string                       `json:"namespace"`
+	VNFPackageID    string                       `json:"vnf_package_id"`
+	FlavorID        string                       `json:"flavor_id"`
+	Image           string                       `json:"image"`
+	Replicas        int32                        `json:"replicas"`
+	Resources       *corev1.ResourceRequirements `json:"resources"`
+	Environment     []corev1.EnvVar              `json:"environment"`
+	Ports           []corev1.ContainerPort       `json:"ports"`
+	VolumeConfig    []VolumeConfig               `json:"volume_config"`
+	NetworkConfig   *NetworkConfig               `json:"network_config"`
+	SecurityContext *corev1.SecurityContext      `json:"security_context"`
+	Metadata        map[string]string            `json:"metadata"`
 }
 
 type VNFScaleRequest struct {
-	ScaleType       string `json:"scale_type"` // SCALE_OUT, SCALE_IN, SCALE_UP, SCALE_DOWN
-	NumberOfSteps   int32  `json:"number_of_steps"`
-	AspectID        string `json:"aspect_id"`
+	ScaleType        string                 `json:"scale_type"` // SCALE_OUT, SCALE_IN, SCALE_UP, SCALE_DOWN
+	NumberOfSteps    int32                  `json:"number_of_steps"`
+	AspectID         string                 `json:"aspect_id"`
 	AdditionalParams map[string]interface{} `json:"additional_params"`
 }
 
@@ -103,48 +103,48 @@ type VNFUpdateRequest struct {
 }
 
 type VNFInstance struct {
-	ID                string            `json:"id"`
-	Name              string            `json:"name"`
-	Namespace         string            `json:"namespace"`
-	VNFPackageID      string            `json:"vnf_package_id"`
-	FlavorID          string            `json:"flavor_id"`
-	Status            VNFInstanceStatus `json:"status"`
-	CreatedAt         time.Time         `json:"created_at"`
-	UpdatedAt         time.Time         `json:"updated_at"`
-	Metadata          map[string]string `json:"metadata"`
-	Resources         *VNFResources     `json:"resources"`
-	NetworkEndpoints  []NetworkEndpoint `json:"network_endpoints"`
+	ID               string            `json:"id"`
+	Name             string            `json:"name"`
+	Namespace        string            `json:"namespace"`
+	VNFPackageID     string            `json:"vnf_package_id"`
+	FlavorID         string            `json:"flavor_id"`
+	Status           VNFInstanceStatus `json:"status"`
+	CreatedAt        time.Time         `json:"created_at"`
+	UpdatedAt        time.Time         `json:"updated_at"`
+	Metadata         map[string]string `json:"metadata"`
+	Resources        *VNFResources     `json:"resources"`
+	NetworkEndpoints []NetworkEndpoint `json:"network_endpoints"`
 }
 
 type VNFInstanceStatus struct {
-	State           string `json:"state"` // INSTANTIATED, NOT_INSTANTIATED, FAILED
-	DetailedState   string `json:"detailed_state"`
+	State           string    `json:"state"` // INSTANTIATED, NOT_INSTANTIATED, FAILED
+	DetailedState   string    `json:"detailed_state"`
 	LastStateChange time.Time `json:"last_state_change"`
-	ErrorMessage    string `json:"error_message,omitempty"`
+	ErrorMessage    string    `json:"error_message,omitempty"`
 }
 
 type VNFResources struct {
-	CPU    string `json:"cpu"`
-	Memory string `json:"memory"`
+	CPU     string `json:"cpu"`
+	Memory  string `json:"memory"`
 	Storage string `json:"storage"`
 }
 
 type VNFFilter struct {
-	Names      []string `json:"names,omitempty"`
-	Namespaces []string `json:"namespaces,omitempty"`
-	States     []string `json:"states,omitempty"`
+	Names      []string          `json:"names,omitempty"`
+	Namespaces []string          `json:"namespaces,omitempty"`
+	States     []string          `json:"states,omitempty"`
 	Labels     map[string]string `json:"labels,omitempty"`
 }
 
 // Infrastructure types
 type InfrastructureInfo struct {
-	ClusterName     string         `json:"cluster_name"`
-	KubernetesVersion string       `json:"kubernetes_version"`
-	NodeCount       int            `json:"node_count"`
-	TotalResources  *NodeResources `json:"total_resources"`
+	ClusterName        string         `json:"cluster_name"`
+	KubernetesVersion  string         `json:"kubernetes_version"`
+	NodeCount          int            `json:"node_count"`
+	TotalResources     *NodeResources `json:"total_resources"`
 	AvailableResources *NodeResources `json:"available_resources"`
-	StorageClasses  []string       `json:"storage_classes"`
-	NetworkPolicies []string       `json:"network_policies"`
+	StorageClasses     []string       `json:"storage_classes"`
+	NetworkPolicies    []string       `json:"network_policies"`
 }
 
 type NodeResources struct {
@@ -157,52 +157,52 @@ type NodeResources struct {
 
 type ResourceAvailability struct {
 	Nodes map[string]*NodeResources `json:"nodes"`
-	Total *NodeResources             `json:"total"`
+	Total *NodeResources            `json:"total"`
 }
 
 // Container and Pod types
 type PodCreateRequest struct {
-	Name            string                  `json:"name"`
-	Namespace       string                  `json:"namespace"`
-	Image           string                  `json:"image"`
-	Command         []string                `json:"command,omitempty"`
-	Args            []string                `json:"args,omitempty"`
-	Environment     []corev1.EnvVar         `json:"environment,omitempty"`
+	Name            string                       `json:"name"`
+	Namespace       string                       `json:"namespace"`
+	Image           string                       `json:"image"`
+	Command         []string                     `json:"command,omitempty"`
+	Args            []string                     `json:"args,omitempty"`
+	Environment     []corev1.EnvVar              `json:"environment,omitempty"`
 	Resources       *corev1.ResourceRequirements `json:"resources,omitempty"`
-	Ports           []corev1.ContainerPort  `json:"ports,omitempty"`
-	VolumeConfig    []VolumeConfig          `json:"volume_config,omitempty"`
-	SecurityContext *corev1.SecurityContext `json:"security_context,omitempty"`
-	Labels          map[string]string       `json:"labels,omitempty"`
-	Annotations     map[string]string       `json:"annotations,omitempty"`
+	Ports           []corev1.ContainerPort       `json:"ports,omitempty"`
+	VolumeConfig    []VolumeConfig               `json:"volume_config,omitempty"`
+	SecurityContext *corev1.SecurityContext      `json:"security_context,omitempty"`
+	Labels          map[string]string            `json:"labels,omitempty"`
+	Annotations     map[string]string            `json:"annotations,omitempty"`
 }
 
 type PodUpdateRequest struct {
-	Image       string          `json:"image,omitempty"`
-	Environment []corev1.EnvVar `json:"environment,omitempty"`
+	Image       string                       `json:"image,omitempty"`
+	Environment []corev1.EnvVar              `json:"environment,omitempty"`
 	Resources   *corev1.ResourceRequirements `json:"resources,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string            `json:"labels,omitempty"`
+	Annotations map[string]string            `json:"annotations,omitempty"`
 }
 
 type PodStatus struct {
-	Phase      string                `json:"phase"`
-	Conditions []corev1.PodCondition `json:"conditions"`
-	StartTime  *metav1.Time          `json:"start_time"`
-	Ready      bool                  `json:"ready"`
-	RestartCount int32               `json:"restart_count"`
-	Message    string                `json:"message,omitempty"`
+	Phase        string                `json:"phase"`
+	Conditions   []corev1.PodCondition `json:"conditions"`
+	StartTime    *metav1.Time          `json:"start_time"`
+	Ready        bool                  `json:"ready"`
+	RestartCount int32                 `json:"restart_count"`
+	Message      string                `json:"message,omitempty"`
 }
 
 type VolumeConfig struct {
-	Name      string           `json:"name"`
-	MountPath string           `json:"mount_path"`
+	Name         string              `json:"name"`
+	MountPath    string              `json:"mount_path"`
 	VolumeSource corev1.VolumeSource `json:"volume_source"`
 }
 
 type NetworkConfig struct {
-	ServiceType    corev1.ServiceType `json:"service_type"`
-	Ports          []corev1.ServicePort `json:"ports"`
-	NetworkPolicies []string           `json:"network_policies,omitempty"`
+	ServiceType     corev1.ServiceType   `json:"service_type"`
+	Ports           []corev1.ServicePort `json:"ports"`
+	NetworkPolicies []string             `json:"network_policies,omitempty"`
 }
 
 type NetworkEndpoint struct {
@@ -214,44 +214,44 @@ type NetworkEndpoint struct {
 
 // Service types
 type ServiceCreateRequest struct {
-	Name        string                `json:"name"`
-	Namespace   string                `json:"namespace"`
-	Selector    map[string]string     `json:"selector"`
-	Ports       []corev1.ServicePort  `json:"ports"`
-	Type        corev1.ServiceType    `json:"type"`
-	Labels      map[string]string     `json:"labels,omitempty"`
-	Annotations map[string]string     `json:"annotations,omitempty"`
+	Name        string               `json:"name"`
+	Namespace   string               `json:"namespace"`
+	Selector    map[string]string    `json:"selector"`
+	Ports       []corev1.ServicePort `json:"ports"`
+	Type        corev1.ServiceType   `json:"type"`
+	Labels      map[string]string    `json:"labels,omitempty"`
+	Annotations map[string]string    `json:"annotations,omitempty"`
 }
 
 type ServiceUpdateRequest struct {
-	Ports       []corev1.ServicePort  `json:"ports,omitempty"`
-	Type        corev1.ServiceType    `json:"type,omitempty"`
-	Labels      map[string]string     `json:"labels,omitempty"`
-	Annotations map[string]string     `json:"annotations,omitempty"`
+	Ports       []corev1.ServicePort `json:"ports,omitempty"`
+	Type        corev1.ServiceType   `json:"type,omitempty"`
+	Labels      map[string]string    `json:"labels,omitempty"`
+	Annotations map[string]string    `json:"annotations,omitempty"`
 }
 
 // Monitoring types
 type VNFMetrics struct {
-	InstanceID   string                 `json:"instance_id"`
-	Timestamp    time.Time              `json:"timestamp"`
-	CPUUsage     float64                `json:"cpu_usage"`
-	MemoryUsage  float64                `json:"memory_usage"`
-	NetworkIO    NetworkIOMetrics       `json:"network_io"`
-	StorageIO    StorageIOMetrics       `json:"storage_io"`
+	InstanceID    string                 `json:"instance_id"`
+	Timestamp     time.Time              `json:"timestamp"`
+	CPUUsage      float64                `json:"cpu_usage"`
+	MemoryUsage   float64                `json:"memory_usage"`
+	NetworkIO     NetworkIOMetrics       `json:"network_io"`
+	StorageIO     StorageIOMetrics       `json:"storage_io"`
 	CustomMetrics map[string]interface{} `json:"custom_metrics"`
 }
 
 type InfrastructureMetrics struct {
-	Timestamp      time.Time                    `json:"timestamp"`
-	ClusterMetrics *ClusterMetrics              `json:"cluster_metrics"`
-	NodeMetrics    map[string]*NodeMetrics      `json:"node_metrics"`
+	Timestamp      time.Time               `json:"timestamp"`
+	ClusterMetrics *ClusterMetrics         `json:"cluster_metrics"`
+	NodeMetrics    map[string]*NodeMetrics `json:"node_metrics"`
 }
 
 type ClusterMetrics struct {
-	TotalPods       int32   `json:"total_pods"`
-	RunningPods     int32   `json:"running_pods"`
-	FailedPods      int32   `json:"failed_pods"`
-	CPUUtilization  float64 `json:"cpu_utilization"`
+	TotalPods         int32   `json:"total_pods"`
+	RunningPods       int32   `json:"running_pods"`
+	FailedPods        int32   `json:"failed_pods"`
+	CPUUtilization    float64 `json:"cpu_utilization"`
 	MemoryUtilization float64 `json:"memory_utilization"`
 }
 
@@ -263,9 +263,9 @@ type NodeMetrics struct {
 }
 
 type NetworkIOMetrics struct {
-	BytesReceived    int64 `json:"bytes_received"`
-	BytesTransmitted int64 `json:"bytes_transmitted"`
-	PacketsReceived  int64 `json:"packets_received"`
+	BytesReceived      int64 `json:"bytes_received"`
+	BytesTransmitted   int64 `json:"bytes_transmitted"`
+	PacketsReceived    int64 `json:"packets_received"`
 	PacketsTransmitted int64 `json:"packets_transmitted"`
 }
 
@@ -278,14 +278,14 @@ type StorageIOMetrics struct {
 
 // Fault and Healing types
 type VNFFault struct {
-	ID           string    `json:"id"`
-	InstanceID   string    `json:"instance_id"`
-	FaultType    string    `json:"fault_type"`
-	Severity     string    `json:"severity"`
-	Description  string    `json:"description"`
-	DetectedAt   time.Time `json:"detected_at"`
-	Status       string    `json:"status"` // ACTIVE, RESOLVED, HEALING
-	Recommendations []string `json:"recommendations"`
+	ID              string    `json:"id"`
+	InstanceID      string    `json:"instance_id"`
+	FaultType       string    `json:"fault_type"`
+	Severity        string    `json:"severity"`
+	Description     string    `json:"description"`
+	DetectedAt      time.Time `json:"detected_at"`
+	Status          string    `json:"status"` // ACTIVE, RESOLVED, HEALING
+	Recommendations []string  `json:"recommendations"`
 }
 
 type HealingRequest struct {
@@ -311,7 +311,7 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 			},
 		}
 	}
-	
+
 	return &O2Adaptor{
 		kubeClient: kubeClient,
 		clientset:  clientset,
@@ -323,7 +323,7 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 func (a *O2Adaptor) DeployVNF(ctx context.Context, req *VNFDeployRequest) (*VNFInstance, error) {
 	logger := log.FromContext(ctx)
 	logger.Info("deploying VNF", "name", req.Name, "namespace", req.Namespace)
-	
+
 	// Create namespace if it doesn't exist
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -333,13 +333,13 @@ func (a *O2Adaptor) DeployVNF(ctx context.Context, req *VNFDeployRequest) (*VNFI
 	if err := a.kubeClient.Create(ctx, namespace); err != nil && !strings.Contains(err.Error(), "already exists") {
 		return nil, fmt.Errorf("failed to create namespace: %w", err)
 	}
-	
+
 	// Create deployment
 	deployment := a.buildDeployment(req)
 	if err := a.kubeClient.Create(ctx, deployment); err != nil {
 		return nil, fmt.Errorf("failed to create deployment: %w", err)
 	}
-	
+
 	// Create service if network config is provided
 	var service *corev1.Service
 	if req.NetworkConfig != nil {
@@ -350,14 +350,14 @@ func (a *O2Adaptor) DeployVNF(ctx context.Context, req *VNFDeployRequest) (*VNFI
 			Ports:     req.NetworkConfig.Ports,
 			Type:      req.NetworkConfig.ServiceType,
 		}
-		
+
 		var err error
 		service, err = a.CreateService(ctx, serviceReq)
 		if err != nil {
 			logger.Error(err, "failed to create service, continuing without service")
 		}
 	}
-	
+
 	// Build VNF instance response
 	instance := &VNFInstance{
 		ID:           fmt.Sprintf("%s-%s", req.Namespace, req.Name),
@@ -379,7 +379,7 @@ func (a *O2Adaptor) DeployVNF(ctx context.Context, req *VNFDeployRequest) (*VNFI
 			Storage: "10Gi", // Default storage
 		},
 	}
-	
+
 	// Add network endpoints if service was created
 	if service != nil {
 		for _, port := range service.Spec.Ports {
@@ -392,7 +392,7 @@ func (a *O2Adaptor) DeployVNF(ctx context.Context, req *VNFDeployRequest) (*VNFI
 			instance.NetworkEndpoints = append(instance.NetworkEndpoints, endpoint)
 		}
 	}
-	
+
 	logger.Info("VNF deployed successfully", "instanceID", instance.ID)
 	return instance, nil
 }
@@ -401,24 +401,24 @@ func (a *O2Adaptor) DeployVNF(ctx context.Context, req *VNFDeployRequest) (*VNFI
 func (a *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, req *VNFScaleRequest) error {
 	logger := log.FromContext(ctx)
 	logger.Info("scaling VNF", "instanceID", instanceID, "scaleType", req.ScaleType)
-	
+
 	// Parse instance ID to get namespace and name
 	parts := strings.SplitN(instanceID, "-", 2)
 	if len(parts) != 2 {
 		return fmt.Errorf("invalid instance ID format: %s", instanceID)
 	}
 	namespace, name := parts[0], parts[1]
-	
+
 	// Get current deployment
 	deployment := &appsv1.Deployment{}
 	if err := a.kubeClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
 		return fmt.Errorf("failed to get deployment: %w", err)
 	}
-	
+
 	// Calculate new replica count based on scale type
 	currentReplicas := *deployment.Spec.Replicas
 	var newReplicas int32
-	
+
 	switch req.ScaleType {
 	case "SCALE_OUT":
 		newReplicas = currentReplicas + req.NumberOfSteps
@@ -433,13 +433,13 @@ func (a *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, req *VNFSca
 	default:
 		return fmt.Errorf("unsupported scale type: %s", req.ScaleType)
 	}
-	
+
 	// Update deployment
 	deployment.Spec.Replicas = &newReplicas
 	if err := a.kubeClient.Update(ctx, deployment); err != nil {
 		return fmt.Errorf("failed to update deployment: %w", err)
 	}
-	
+
 	logger.Info("VNF scaled successfully", "instanceID", instanceID, "oldReplicas", currentReplicas, "newReplicas", newReplicas)
 	return nil
 }
@@ -452,13 +452,13 @@ func (a *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*VNF
 		return nil, fmt.Errorf("invalid instance ID format: %s", instanceID)
 	}
 	namespace, name := parts[0], parts[1]
-	
+
 	// Get deployment
 	deployment := &appsv1.Deployment{}
 	if err := a.kubeClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
 		return nil, fmt.Errorf("failed to get deployment: %w", err)
 	}
-	
+
 	// Build instance from deployment
 	instance := &VNFInstance{
 		ID:        instanceID,
@@ -473,14 +473,14 @@ func (a *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*VNF
 		UpdatedAt: time.Now(),
 		Metadata:  deployment.Labels,
 	}
-	
+
 	// Get associated service
 	serviceList := &corev1.ServiceList{}
 	listOpts := &client.ListOptions{
 		Namespace:     namespace,
 		LabelSelector: labels.SelectorFromSet(map[string]string{"app": name}),
 	}
-	
+
 	if err := a.kubeClient.List(ctx, serviceList, listOpts); err == nil {
 		for _, service := range serviceList.Items {
 			for _, port := range service.Spec.Ports {
@@ -494,26 +494,26 @@ func (a *O2Adaptor) GetVNFInstance(ctx context.Context, instanceID string) (*VNF
 			}
 		}
 	}
-	
+
 	return instance, nil
 }
 
 // GetInfrastructureInfo retrieves cluster infrastructure information
 func (a *O2Adaptor) GetInfrastructureInfo(ctx context.Context) (*InfrastructureInfo, error) {
 	logger := log.FromContext(ctx)
-	
+
 	// Get cluster version
 	version, err := a.clientset.Discovery().ServerVersion()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get server version: %w", err)
 	}
-	
+
 	// Get nodes
 	nodes, err := a.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list nodes: %w", err)
 	}
-	
+
 	// Calculate total resources
 	totalResources := &NodeResources{
 		CPU:     "0",
@@ -521,14 +521,14 @@ func (a *O2Adaptor) GetInfrastructureInfo(ctx context.Context) (*InfrastructureI
 		Storage: "0",
 		Pods:    "0",
 	}
-	
+
 	for _, node := range nodes.Items {
 		// Add node resources to total (simplified calculation)
 		if cpu := node.Status.Capacity[corev1.ResourceCPU]; !cpu.IsZero() {
 			// In a real implementation, we would properly add these values
 		}
 	}
-	
+
 	// Get storage classes
 	storageClasses, err := a.clientset.StorageV1().StorageClasses().List(ctx, metav1.ListOptions{})
 	var scNames []string
@@ -537,16 +537,16 @@ func (a *O2Adaptor) GetInfrastructureInfo(ctx context.Context) (*InfrastructureI
 			scNames = append(scNames, sc.Name)
 		}
 	}
-	
+
 	info := &InfrastructureInfo{
-		ClusterName:       "kubernetes-cluster", // Could be read from cluster-info
-		KubernetesVersion: version.GitVersion,
-		NodeCount:         len(nodes.Items),
-		TotalResources:    totalResources,
+		ClusterName:        "kubernetes-cluster", // Could be read from cluster-info
+		KubernetesVersion:  version.GitVersion,
+		NodeCount:          len(nodes.Items),
+		TotalResources:     totalResources,
 		AvailableResources: totalResources, // Simplified
-		StorageClasses:    scNames,
+		StorageClasses:     scNames,
 	}
-	
+
 	logger.Info("retrieved infrastructure info", "nodeCount", info.NodeCount, "k8sVersion", info.KubernetesVersion)
 	return info, nil
 }
@@ -554,7 +554,7 @@ func (a *O2Adaptor) GetInfrastructureInfo(ctx context.Context) (*InfrastructureI
 // CreatePod creates a pod
 func (a *O2Adaptor) CreatePod(ctx context.Context, req *PodCreateRequest) (*corev1.Pod, error) {
 	logger := log.FromContext(ctx)
-	
+
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        req.Name,
@@ -577,7 +577,7 @@ func (a *O2Adaptor) CreatePod(ctx context.Context, req *PodCreateRequest) (*core
 			},
 		},
 	}
-	
+
 	// Add volumes if configured
 	for _, volConfig := range req.VolumeConfig {
 		volume := corev1.Volume{
@@ -585,18 +585,18 @@ func (a *O2Adaptor) CreatePod(ctx context.Context, req *PodCreateRequest) (*core
 			VolumeSource: volConfig.VolumeSource,
 		}
 		pod.Spec.Volumes = append(pod.Spec.Volumes, volume)
-		
+
 		volumeMount := corev1.VolumeMount{
 			Name:      volConfig.Name,
 			MountPath: volConfig.MountPath,
 		}
 		pod.Spec.Containers[0].VolumeMounts = append(pod.Spec.Containers[0].VolumeMounts, volumeMount)
 	}
-	
+
 	if err := a.kubeClient.Create(ctx, pod); err != nil {
 		return nil, fmt.Errorf("failed to create pod: %w", err)
 	}
-	
+
 	logger.Info("pod created successfully", "name", req.Name, "namespace", req.Namespace)
 	return pod, nil
 }
@@ -616,11 +616,11 @@ func (a *O2Adaptor) CreateService(ctx context.Context, req *ServiceCreateRequest
 			Type:     req.Type,
 		},
 	}
-	
+
 	if err := a.kubeClient.Create(ctx, service); err != nil {
 		return nil, fmt.Errorf("failed to create service: %w", err)
 	}
-	
+
 	return service, nil
 }
 
@@ -633,9 +633,9 @@ func (a *O2Adaptor) GetVNFMetrics(ctx context.Context, instanceID string) (*VNFM
 		CPUUsage:    45.2,
 		MemoryUsage: 62.8,
 		NetworkIO: NetworkIOMetrics{
-			BytesReceived:    1024 * 1024 * 100, // 100MB
-			BytesTransmitted: 1024 * 1024 * 80,  // 80MB
-			PacketsReceived:  50000,
+			BytesReceived:      1024 * 1024 * 100, // 100MB
+			BytesTransmitted:   1024 * 1024 * 80,  // 80MB
+			PacketsReceived:    50000,
 			PacketsTransmitted: 40000,
 		},
 		StorageIO: StorageIOMetrics{
@@ -650,7 +650,7 @@ func (a *O2Adaptor) GetVNFMetrics(ctx context.Context, instanceID string) (*VNFM
 			"error_rate":         0.02,
 		},
 	}
-	
+
 	return metrics, nil
 }
 
@@ -658,16 +658,16 @@ func (a *O2Adaptor) GetVNFMetrics(ctx context.Context, instanceID string) (*VNFM
 
 func (a *O2Adaptor) buildDeployment(req *VNFDeployRequest) *appsv1.Deployment {
 	labels := map[string]string{
-		"app":                req.Name,
-		"nephoran.com/vnf":   "true",
-		"nephoran.com/type":  "o-ran",
+		"app":               req.Name,
+		"nephoran.com/vnf":  "true",
+		"nephoran.com/type": "o-ran",
 	}
-	
+
 	// Add custom labels
 	for k, v := range req.Metadata {
 		labels[k] = v
 	}
-	
+
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      req.Name,
@@ -698,7 +698,7 @@ func (a *O2Adaptor) buildDeployment(req *VNFDeployRequest) *appsv1.Deployment {
 			},
 		},
 	}
-	
+
 	// Add volumes
 	for _, volConfig := range req.VolumeConfig {
 		volume := corev1.Volume{
@@ -706,7 +706,7 @@ func (a *O2Adaptor) buildDeployment(req *VNFDeployRequest) *appsv1.Deployment {
 			VolumeSource: volConfig.VolumeSource,
 		}
 		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, volume)
-		
+
 		volumeMount := corev1.VolumeMount{
 			Name:      volConfig.Name,
 			MountPath: volConfig.MountPath,
@@ -714,7 +714,7 @@ func (a *O2Adaptor) buildDeployment(req *VNFDeployRequest) *appsv1.Deployment {
 		deployment.Spec.Template.Spec.Containers[0].VolumeMounts = append(
 			deployment.Spec.Template.Spec.Containers[0].VolumeMounts, volumeMount)
 	}
-	
+
 	return deployment
 }
 
@@ -742,40 +742,40 @@ func NewO2Manager(adaptor *O2Adaptor) *O2Manager {
 
 // ResourceMap represents discovered cloud resources
 type ResourceMap struct {
-	Nodes       map[string]*NodeInfo      `json:"nodes"`
-	Namespaces  map[string]*NamespaceInfo `json:"namespaces"`
-	StorageClasses []string               `json:"storage_classes"`
-	Networks    map[string]*NetworkInfo   `json:"networks"`
-	Metrics     *ClusterResourceMetrics   `json:"metrics"`
-	Timestamp   time.Time                 `json:"timestamp"`
+	Nodes          map[string]*NodeInfo      `json:"nodes"`
+	Namespaces     map[string]*NamespaceInfo `json:"namespaces"`
+	StorageClasses []string                  `json:"storage_classes"`
+	Networks       map[string]*NetworkInfo   `json:"networks"`
+	Metrics        *ClusterResourceMetrics   `json:"metrics"`
+	Timestamp      time.Time                 `json:"timestamp"`
 }
 
 type NodeInfo struct {
-	Name         string            `json:"name"`
-	Status       string            `json:"status"`
-	Roles        []string          `json:"roles"`
-	Capacity     *NodeResources    `json:"capacity"`
-	Allocatable  *NodeResources    `json:"allocatable"`
-	Used         *NodeResources    `json:"used"`
-	Labels       map[string]string `json:"labels"`
-	Annotations  map[string]string `json:"annotations"`
-	Conditions   []string          `json:"conditions"`
+	Name        string            `json:"name"`
+	Status      string            `json:"status"`
+	Roles       []string          `json:"roles"`
+	Capacity    *NodeResources    `json:"capacity"`
+	Allocatable *NodeResources    `json:"allocatable"`
+	Used        *NodeResources    `json:"used"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	Conditions  []string          `json:"conditions"`
 }
 
 type NamespaceInfo struct {
-	Name         string            `json:"name"`
-	Status       string            `json:"status"`
-	Labels       map[string]string `json:"labels"`
-	ResourceQuota *ResourceQuota   `json:"resource_quota,omitempty"`
-	PodCount     int32             `json:"pod_count"`
+	Name          string            `json:"name"`
+	Status        string            `json:"status"`
+	Labels        map[string]string `json:"labels"`
+	ResourceQuota *ResourceQuota    `json:"resource_quota,omitempty"`
+	PodCount      int32             `json:"pod_count"`
 }
 
 type NetworkInfo struct {
-	Name         string            `json:"name"`
-	Type         string            `json:"type"` // CNI, overlay, underlay
-	CIDR         string            `json:"cidr"`
-	Gateway      string            `json:"gateway"`
-	Endpoints    int32             `json:"endpoints"`
+	Name      string `json:"name"`
+	Type      string `json:"type"` // CNI, overlay, underlay
+	CIDR      string `json:"cidr"`
+	Gateway   string `json:"gateway"`
+	Endpoints int32  `json:"endpoints"`
 }
 
 type ResourceQuota struct {
@@ -786,37 +786,37 @@ type ResourceQuota struct {
 }
 
 type ClusterResourceMetrics struct {
-	TotalNodes      int32   `json:"total_nodes"`
-	ReadyNodes      int32   `json:"ready_nodes"`
-	TotalPods       int32   `json:"total_pods"`
-	RunningPods     int32   `json:"running_pods"`
-	TotalCPU        string  `json:"total_cpu"`
-	TotalMemory     string  `json:"total_memory"`
-	UsedCPU         string  `json:"used_cpu"`
-	UsedMemory      string  `json:"used_memory"`
-	CPUUtilization  float64 `json:"cpu_utilization"`
+	TotalNodes        int32   `json:"total_nodes"`
+	ReadyNodes        int32   `json:"ready_nodes"`
+	TotalPods         int32   `json:"total_pods"`
+	RunningPods       int32   `json:"running_pods"`
+	TotalCPU          string  `json:"total_cpu"`
+	TotalMemory       string  `json:"total_memory"`
+	UsedCPU           string  `json:"used_cpu"`
+	UsedMemory        string  `json:"used_memory"`
+	CPUUtilization    float64 `json:"cpu_utilization"`
 	MemoryUtilization float64 `json:"memory_utilization"`
 }
 
 // VNFDescriptor represents a VNF deployment specification
 type VNFDescriptor struct {
-	Name             string                       `json:"name"`
-	Type             string                       `json:"type"` // amf, smf, upf, etc.
-	Version          string                       `json:"version"`
-	Vendor           string                       `json:"vendor"`
-	Description      string                       `json:"description"`
-	Image            string                       `json:"image"`
-	Replicas         int32                        `json:"replicas"`
-	Resources        *corev1.ResourceRequirements `json:"resources"`
-	Environment      []corev1.EnvVar              `json:"environment"`
-	Ports            []corev1.ContainerPort       `json:"ports"`
-	VolumeConfig     []VolumeConfig               `json:"volume_config"`
-	NetworkConfig    *NetworkConfig               `json:"network_config"`
-	SecurityContext  *corev1.SecurityContext      `json:"security_context"`
-	HealthCheck      *HealthCheckConfig           `json:"health_check"`
-	Affinity         *corev1.Affinity             `json:"affinity"`
-	Tolerations      []corev1.Toleration          `json:"tolerations"`
-	Metadata         map[string]string            `json:"metadata"`
+	Name            string                       `json:"name"`
+	Type            string                       `json:"type"` // amf, smf, upf, etc.
+	Version         string                       `json:"version"`
+	Vendor          string                       `json:"vendor"`
+	Description     string                       `json:"description"`
+	Image           string                       `json:"image"`
+	Replicas        int32                        `json:"replicas"`
+	Resources       *corev1.ResourceRequirements `json:"resources"`
+	Environment     []corev1.EnvVar              `json:"environment"`
+	Ports           []corev1.ContainerPort       `json:"ports"`
+	VolumeConfig    []VolumeConfig               `json:"volume_config"`
+	NetworkConfig   *NetworkConfig               `json:"network_config"`
+	SecurityContext *corev1.SecurityContext      `json:"security_context"`
+	HealthCheck     *HealthCheckConfig           `json:"health_check"`
+	Affinity        *corev1.Affinity             `json:"affinity"`
+	Tolerations     []corev1.Toleration          `json:"tolerations"`
+	Metadata        map[string]string            `json:"metadata"`
 }
 
 type HealthCheckConfig struct {
@@ -826,19 +826,19 @@ type HealthCheckConfig struct {
 }
 
 type DeploymentStatus struct {
-	ID               string            `json:"id"`
-	Name             string            `json:"name"`
-	Status           string            `json:"status"` // PENDING, RUNNING, FAILED, SUCCEEDED
-	Phase            string            `json:"phase"`  // Creating, Ready, Updating, Terminating
-	Replicas         int32             `json:"replicas"`
-	ReadyReplicas    int32             `json:"ready_replicas"`
-	UpdatedReplicas  int32             `json:"updated_replicas"`
-	AvailableReplicas int32            `json:"available_replicas"`
-	Conditions       []string          `json:"conditions"`
-	LastUpdated      time.Time         `json:"last_updated"`
-	Events           []string          `json:"events"`
-	Resources        *VNFResources     `json:"resources"`
-	Endpoints        []NetworkEndpoint `json:"endpoints"`
+	ID                string            `json:"id"`
+	Name              string            `json:"name"`
+	Status            string            `json:"status"` // PENDING, RUNNING, FAILED, SUCCEEDED
+	Phase             string            `json:"phase"`  // Creating, Ready, Updating, Terminating
+	Replicas          int32             `json:"replicas"`
+	ReadyReplicas     int32             `json:"ready_replicas"`
+	UpdatedReplicas   int32             `json:"updated_replicas"`
+	AvailableReplicas int32             `json:"available_replicas"`
+	Conditions        []string          `json:"conditions"`
+	LastUpdated       time.Time         `json:"last_updated"`
+	Events            []string          `json:"events"`
+	Resources         *VNFResources     `json:"resources"`
+	Endpoints         []NetworkEndpoint `json:"endpoints"`
 }
 
 // DiscoverResources discovers and maps all available cloud resources
@@ -906,7 +906,7 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*ResourceMap, error)
 			if condition.Type == corev1.NodeReady && condition.Status == corev1.ConditionTrue {
 				readyNodes++
 			}
-			nodeInfo.Conditions = append(nodeInfo.Conditions, 
+			nodeInfo.Conditions = append(nodeInfo.Conditions,
 				fmt.Sprintf("%s=%s", condition.Type, condition.Status))
 		}
 
@@ -929,7 +929,7 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*ResourceMap, error)
 			pods, err := m.adaptor.clientset.CoreV1().Pods(ns.Name).List(ctx, metav1.ListOptions{})
 			if err == nil {
 				nsInfo.PodCount = int32(len(pods.Items))
-				
+
 				// Calculate used resources in namespace
 				for _, pod := range pods.Items {
 					for _, container := range pod.Spec.Containers {
@@ -978,7 +978,7 @@ func (m *O2Manager) DiscoverResources(ctx context.Context) (*ResourceMap, error)
 		MemoryUtilization: float64(usedMemory) / float64(totalMemory) * 100,
 	}
 
-	logger.Info("resource discovery completed", 
+	logger.Info("resource discovery completed",
 		"nodes", len(resourceMap.Nodes),
 		"namespaces", len(resourceMap.Namespaces),
 		"storageClasses", len(resourceMap.StorageClasses))
@@ -1029,10 +1029,10 @@ func (m *O2Manager) ScaleWorkload(ctx context.Context, workloadID string, replic
 			if err := m.adaptor.kubeClient.Get(ctx, client.ObjectKey{Namespace: namespace, Name: name}, deployment); err != nil {
 				continue
 			}
-			
+
 			if deployment.Status.ReadyReplicas == replicas {
-				logger.Info("workload scaled successfully", 
-					"workloadID", workloadID, 
+				logger.Info("workload scaled successfully",
+					"workloadID", workloadID,
 					"oldReplicas", originalReplicas,
 					"newReplicas", replicas)
 				return nil
@@ -1228,7 +1228,7 @@ func (a *O2Adaptor) ListVNFInstances(ctx context.Context, filter *VNFFilter) ([]
 	for _, deployment := range deploymentList.Items {
 		// Convert deployment to VNF instance
 		instanceID := fmt.Sprintf("%s-%s", deployment.Namespace, deployment.Name)
-		
+
 		// Apply name filter if specified
 		if filter != nil && len(filter.Names) > 0 {
 			found := false
@@ -1281,10 +1281,10 @@ func (a *O2Adaptor) GetNodeResources(ctx context.Context, nodeID string) (*NodeR
 	// Add custom resource information
 	for resourceName, quantity := range node.Status.Capacity {
 		if !strings.HasPrefix(string(resourceName), "kubernetes.io/") &&
-		   !strings.HasPrefix(string(resourceName), "cpu") &&
-		   !strings.HasPrefix(string(resourceName), "memory") &&
-		   !strings.HasPrefix(string(resourceName), "storage") &&
-		   !strings.HasPrefix(string(resourceName), "pods") {
+			!strings.HasPrefix(string(resourceName), "cpu") &&
+			!strings.HasPrefix(string(resourceName), "memory") &&
+			!strings.HasPrefix(string(resourceName), "storage") &&
+			!strings.HasPrefix(string(resourceName), "pods") {
 			resources.Custom[string(resourceName)] = quantity.String()
 		}
 	}
@@ -1492,7 +1492,7 @@ func (a *O2Adaptor) GetVNFFaults(ctx context.Context, instanceID string) ([]*VNF
 	events, err := a.clientset.CoreV1().Events(namespace).List(ctx, metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("involvedObject.name=%s", name),
 	})
-	
+
 	if err == nil {
 		for _, event := range events.Items {
 			if event.Type == "Warning" {
@@ -1554,7 +1554,7 @@ func (a *O2Adaptor) TriggerVNFHealing(ctx context.Context, instanceID string, re
 
 		// Store deployment spec for recreation
 		deploymentSpec := deployment.Spec.DeepCopy()
-		
+
 		// Delete deployment
 		if err := a.kubeClient.Delete(ctx, deployment); err != nil {
 			return fmt.Errorf("failed to delete deployment: %w", err)

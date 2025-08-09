@@ -45,16 +45,16 @@ type GoroutineStats struct {
 
 // MemoryStats tracks memory metrics
 type MemoryStats struct {
-	HeapAlloc      uint64
-	HeapSys        uint64
-	HeapInuse      uint64
-	HeapReleased   uint64
-	GCPauseTotal   time.Duration
-	GCPauseAvg     time.Duration
-	GCCount        uint32
-	LastGC         time.Time
-	MemoryLeaks    []MemoryLeak
-	LastSnapshot   time.Time
+	HeapAlloc    uint64
+	HeapSys      uint64
+	HeapInuse    uint64
+	HeapReleased uint64
+	GCPauseTotal time.Duration
+	GCPauseAvg   time.Duration
+	GCCount      uint32
+	LastGC       time.Time
+	MemoryLeaks  []MemoryLeak
+	LastSnapshot time.Time
 }
 
 // MemoryLeak represents a detected memory leak
@@ -93,10 +93,10 @@ type HotSpot struct {
 
 // Contention represents lock contention
 type Contention struct {
-	Mutex      string
-	WaitTime   time.Duration
-	Waiters    int
-	Location   string
+	Mutex    string
+	WaitTime time.Duration
+	Waiters  int
+	Location string
 }
 
 // Allocation represents memory allocation pattern
@@ -423,7 +423,7 @@ func (p *Profiler) DetectMemoryLeaks() []MemoryLeak {
 func (p *Profiler) updateGoroutineStats() {
 	current := runtime.NumGoroutine()
 	p.goroutineStats.Current = current
-	
+
 	if current > p.goroutineStats.Peak {
 		p.goroutineStats.Peak = current
 	}
@@ -431,7 +431,7 @@ func (p *Profiler) updateGoroutineStats() {
 	// Capture stack traces
 	buf := make([]byte, 1<<20) // 1MB buffer
 	n := runtime.Stack(buf, true)
-	
+
 	// Parse stack traces (simplified)
 	stacks := string(buf[:n])
 	p.goroutineStats.StackTraces = make(map[string]int)
@@ -447,13 +447,13 @@ func (p *Profiler) updateMemoryStats(memStats *runtime.MemStats) {
 	p.memoryStats.HeapInuse = memStats.HeapInuse
 	p.memoryStats.HeapReleased = memStats.HeapReleased
 	p.memoryStats.GCCount = memStats.NumGC
-	
+
 	if memStats.NumGC > 0 {
 		p.memoryStats.GCPauseTotal = time.Duration(memStats.PauseTotalNs)
 		p.memoryStats.GCPauseAvg = time.Duration(memStats.PauseTotalNs / uint64(memStats.NumGC))
 		p.memoryStats.LastGC = time.Unix(0, int64(memStats.LastGC))
 	}
-	
+
 	p.memoryStats.LastSnapshot = time.Now()
 }
 
@@ -467,30 +467,30 @@ func (p *Profiler) StartHTTPProfiler(addr string) error {
 	}
 
 	mux := http.NewServeMux()
-	
+
 	// Register pprof handlers
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	
+
 	// Custom endpoints
 	mux.HandleFunc("/debug/stats", p.handleStats)
 	mux.HandleFunc("/debug/leaks", p.handleLeaks)
-	
+
 	p.httpServer = &http.Server{
 		Addr:    addr,
 		Handler: mux,
 	}
-	
+
 	go func() {
 		klog.Infof("HTTP profiler listening on %s", addr)
 		if err := p.httpServer.ListenAndServe(); err != http.ErrServerClosed {
 			klog.Errorf("HTTP profiler error: %v", err)
 		}
 	}()
-	
+
 	return nil
 }
 
@@ -542,12 +542,12 @@ func (p *Profiler) handleLeaks(w http.ResponseWriter, r *http.Request) {
 func (p *Profiler) GenerateFlameGraph(profilePath string) (string, error) {
 	// In real implementation, use go-torch or similar tool
 	// to generate flame graphs from profile data
-	
+
 	outputPath := fmt.Sprintf("%s.svg", profilePath)
-	
+
 	// Simulated flame graph generation
 	klog.Infof("Flame graph would be generated at %s", outputPath)
-	
+
 	return outputPath, nil
 }
 
@@ -606,11 +606,11 @@ func (p *Profiler) ExportMetrics(registry *prometheus.Registry) {
 		Name: "profiler_goroutines",
 		Help: "Goroutine statistics",
 	}, []string{"type"})
-	
+
 	goroutineGauge.WithLabelValues("current").Set(float64(p.goroutineStats.Current))
 	goroutineGauge.WithLabelValues("peak").Set(float64(p.goroutineStats.Peak))
 	goroutineGauge.WithLabelValues("leaked").Set(float64(p.goroutineStats.Leaked))
-	
+
 	registry.MustRegister(goroutineGauge)
 
 	// Memory metrics
@@ -618,11 +618,11 @@ func (p *Profiler) ExportMetrics(registry *prometheus.Registry) {
 		Name: "profiler_memory_mb",
 		Help: "Memory statistics in MB",
 	}, []string{"type"})
-	
+
 	memoryGauge.WithLabelValues("heap_alloc").Set(float64(p.memoryStats.HeapAlloc) / (1024 * 1024))
 	memoryGauge.WithLabelValues("heap_sys").Set(float64(p.memoryStats.HeapSys) / (1024 * 1024))
 	memoryGauge.WithLabelValues("heap_inuse").Set(float64(p.memoryStats.HeapInuse) / (1024 * 1024))
-	
+
 	registry.MustRegister(memoryGauge)
 
 	// GC metrics
@@ -630,9 +630,9 @@ func (p *Profiler) ExportMetrics(registry *prometheus.Registry) {
 		Name: "profiler_gc",
 		Help: "Garbage collection statistics",
 	}, []string{"type"})
-	
+
 	gcGauge.WithLabelValues("count").Set(float64(p.memoryStats.GCCount))
 	gcGauge.WithLabelValues("pause_ms").Set(float64(p.memoryStats.GCPauseAvg.Milliseconds()))
-	
+
 	registry.MustRegister(gcGauge)
 }

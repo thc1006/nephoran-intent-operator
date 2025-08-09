@@ -23,12 +23,12 @@ import (
 	"sync"
 	"time"
 
+	"bytes"
 	"github.com/Masterminds/sprig/v3"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"text/template"
-	"bytes"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -103,19 +103,19 @@ type Secret struct {
 
 // BlueprintMetadata contains metadata about the blueprint
 type BlueprintMetadata struct {
-	Name              string            `json:"name" yaml:"name"`
-	Version           string            `json:"version" yaml:"version"`
-	Description       string            `json:"description" yaml:"description"`
-	Labels            map[string]string `json:"labels" yaml:"labels"`
-	Annotations       map[string]string `json:"annotations" yaml:"annotations"`
-	ComponentType     v1.TargetComponent `json:"componentType" yaml:"componentType"`
-	IntentType        v1.IntentType     `json:"intentType" yaml:"intentType"`
-	ORANCompliant     bool              `json:"oranCompliant" yaml:"oranCompliant"`
-	InterfaceTypes    []string          `json:"interfaceTypes" yaml:"interfaceTypes"`
-	NetworkSlice      string            `json:"networkSlice,omitempty" yaml:"networkSlice,omitempty"`
-	Region            string            `json:"region,omitempty" yaml:"region,omitempty"`
-	CreatedAt         time.Time         `json:"createdAt" yaml:"createdAt"`
-	GeneratedBy       string            `json:"generatedBy" yaml:"generatedBy"`
+	Name           string             `json:"name" yaml:"name"`
+	Version        string             `json:"version" yaml:"version"`
+	Description    string             `json:"description" yaml:"description"`
+	Labels         map[string]string  `json:"labels" yaml:"labels"`
+	Annotations    map[string]string  `json:"annotations" yaml:"annotations"`
+	ComponentType  v1.TargetComponent `json:"componentType" yaml:"componentType"`
+	IntentType     v1.IntentType      `json:"intentType" yaml:"intentType"`
+	ORANCompliant  bool               `json:"oranCompliant" yaml:"oranCompliant"`
+	InterfaceTypes []string           `json:"interfaceTypes" yaml:"interfaceTypes"`
+	NetworkSlice   string             `json:"networkSlice,omitempty" yaml:"networkSlice,omitempty"`
+	Region         string             `json:"region,omitempty" yaml:"region,omitempty"`
+	CreatedAt      time.Time          `json:"createdAt" yaml:"createdAt"`
+	GeneratedBy    string             `json:"generatedBy" yaml:"generatedBy"`
 }
 
 // NewBlueprintRenderingEngine creates a new blueprint rendering engine
@@ -467,7 +467,7 @@ func (bre *BlueprintRenderingEngine) renderMap(templateMap map[string]interface{
 	}
 
 	result := make(map[string]interface{})
-	
+
 	for key, value := range templateMap {
 		// Render the key
 		renderedKey, err := bre.renderString(key, context)
@@ -508,7 +508,7 @@ func (bre *BlueprintRenderingEngine) renderSlice(templateSlice []interface{}, co
 	}
 
 	result := make([]interface{}, len(templateSlice))
-	
+
 	for i, value := range templateSlice {
 		renderedValue, err := bre.renderValue(value, context)
 		if err != nil {
@@ -546,18 +546,18 @@ func (bre *BlueprintRenderingEngine) postProcessBlueprint(
 // addCommonLabelsAndAnnotations adds common labels and annotations
 func (bre *BlueprintRenderingEngine) addCommonLabelsAndAnnotations(rendered *RenderedBlueprint, req *BlueprintRequest) {
 	commonLabels := map[string]string{
-		"nephoran.com/blueprint":   "true",
-		"nephoran.com/intent":      req.Intent.Name,
-		"nephoran.com/component":   string(req.Metadata.ComponentType),
-		"nephoran.com/version":     rendered.Version,
-		"nephoran.com/managed-by":  "nephoran-intent-operator",
+		"nephoran.com/blueprint":  "true",
+		"nephoran.com/intent":     req.Intent.Name,
+		"nephoran.com/component":  string(req.Metadata.ComponentType),
+		"nephoran.com/version":    rendered.Version,
+		"nephoran.com/managed-by": "nephoran-intent-operator",
 	}
 
 	commonAnnotations := map[string]string{
-		"nephoran.com/generated-at":    time.Now().Format(time.RFC3339),
-		"nephoran.com/blueprint-name":  rendered.Name,
-		"nephoran.com/intent-id":       req.Intent.Name,
-		"nephoran.com/oran-compliant":  fmt.Sprintf("%t", rendered.ORANCompliant),
+		"nephoran.com/generated-at":   time.Now().Format(time.RFC3339),
+		"nephoran.com/blueprint-name": rendered.Name,
+		"nephoran.com/intent-id":      req.Intent.Name,
+		"nephoran.com/oran-compliant": fmt.Sprintf("%t", rendered.ORANCompliant),
 	}
 
 	// Add to KRM resources
@@ -639,7 +639,7 @@ func (bre *BlueprintRenderingEngine) validateResourceRelationships(rendered *Ren
 // applyNamingConventions applies consistent naming conventions
 func (bre *BlueprintRenderingEngine) applyNamingConventions(rendered *RenderedBlueprint, req *BlueprintRequest) {
 	prefix := fmt.Sprintf("%s-%s", req.Intent.Name, strings.ToLower(string(req.Metadata.ComponentType)))
-	
+
 	// Apply to KRM resources
 	for i := range rendered.KRMResources {
 		if metadata, ok := rendered.KRMResources[i].Metadata["name"].(string); ok {
@@ -669,10 +669,10 @@ func (bre *BlueprintRenderingEngine) optimizeResourceConfigurations(rendered *Re
 	// Apply resource constraints from intent
 	if req.Intent.Spec.ResourceConstraints != nil {
 		constraints := req.Intent.Spec.ResourceConstraints
-		
+
 		for i := range rendered.KRMResources {
 			resource := &rendered.KRMResources[i]
-			
+
 			// Apply to Deployment and StatefulSet resources
 			if resource.Kind == "Deployment" || resource.Kind == "StatefulSet" {
 				bre.applyResourceConstraints(resource, constraints)
@@ -705,7 +705,7 @@ func (bre *BlueprintRenderingEngine) applyResourceConstraints(resource *KRMResou
 // setContainerResources sets container resource constraints
 func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]interface{}, constraints *v1.ResourceConstraints) {
 	resourcesMap := make(map[string]interface{})
-	
+
 	// Set requests
 	if requests, exists := resourcesMap["requests"]; exists {
 		if requestsMap, ok := requests.(map[string]interface{}); ok {
@@ -726,7 +726,7 @@ func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]
 		}
 		resourcesMap["requests"] = requestsMap
 	}
-	
+
 	// Set limits
 	if limits, exists := resourcesMap["limits"]; exists {
 		if limitsMap, ok := limits.(map[string]interface{}); ok {
@@ -747,7 +747,7 @@ func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]
 		}
 		resourcesMap["limits"] = limitsMap
 	}
-	
+
 	container["resources"] = resourcesMap
 }
 
@@ -755,7 +755,7 @@ func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]
 func (bre *BlueprintRenderingEngine) applyCriticalPriorityOptimizations(rendered *RenderedBlueprint) {
 	for i := range rendered.KRMResources {
 		resource := &rendered.KRMResources[i]
-		
+
 		// Set priority class for critical workloads
 		if resource.Kind == "Deployment" || resource.Kind == "StatefulSet" {
 			if spec, ok := resource.Spec["template"].(map[string]interface{}); ok {
@@ -801,7 +801,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 			},
 			"data": cm.Data,
 		}
-		
+
 		filename := fmt.Sprintf("configmap-%s-%d.yaml", cm.Name, i)
 		content, err := yaml.Marshal(configMap)
 		if err != nil {
@@ -823,7 +823,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 			"type": secret.Type,
 			"data": secret.Data,
 		}
-		
+
 		filename := fmt.Sprintf("secret-%s-%d.yaml", secret.Name, i)
 		content, err := yaml.Marshal(secretResource)
 		if err != nil {
@@ -841,7 +841,7 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 		"metadata":      rendered.Metadata,
 		"dependencies":  rendered.Dependencies,
 	}
-	
+
 	content, err := yaml.Marshal(metadataFile)
 	if err != nil {
 		return fmt.Errorf("failed to marshal metadata to YAML: %w", err)
@@ -854,49 +854,49 @@ func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered
 // buildResourceLabels builds common resource labels
 func (bre *BlueprintRenderingEngine) buildResourceLabels(context map[string]interface{}) map[string]string {
 	labels := make(map[string]string)
-	
+
 	if intentName, ok := context["IntentName"].(string); ok {
 		labels["nephoran.com/intent"] = intentName
 	}
-	
+
 	if componentType, ok := context["ComponentType"].(v1.TargetComponent); ok {
 		labels["nephoran.com/component"] = string(componentType)
 	}
-	
+
 	labels["nephoran.com/managed-by"] = "nephoran-intent-operator"
 	labels["nephoran.com/blueprint"] = "true"
-	
+
 	return labels
 }
 
 // createTemplateFunctionMap creates the function map for templates
 func createTemplateFunctionMap() template.FuncMap {
 	funcMap := sprig.TxtFuncMap()
-	
+
 	// Add custom functions
 	funcMap["toYAML"] = func(v interface{}) string {
 		data, _ := yaml.Marshal(v)
 		return strings.TrimSuffix(string(data), "\n")
 	}
-	
+
 	funcMap["fromYAML"] = func(str string) interface{} {
 		var result interface{}
 		yaml.Unmarshal([]byte(str), &result)
 		return result
 	}
-	
+
 	funcMap["include"] = func(name string, data interface{}) string {
 		// Placeholder for template include functionality
 		return ""
 	}
-	
+
 	funcMap["required"] = func(warn string, val interface{}) interface{} {
 		if val == nil {
 			panic(warn)
 		}
 		return val
 	}
-	
+
 	funcMap["tpl"] = func(tpl string, data interface{}) string {
 		// Placeholder for template processing
 		return tpl

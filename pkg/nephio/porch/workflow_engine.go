@@ -97,9 +97,9 @@ type WorkflowEngine interface {
 // workflowEngine implements comprehensive workflow management
 type workflowEngine struct {
 	// Core dependencies
-	client           *Client
-	logger           logr.Logger
-	metrics          *WorkflowEngineMetrics
+	client  *Client
+	logger  logr.Logger
+	metrics *WorkflowEngineMetrics
 
 	// Workflow management
 	workflowRegistry *WorkflowRegistry
@@ -107,8 +107,8 @@ type workflowEngine struct {
 	stateManager     *WorkflowStateManager
 
 	// Approval system
-	approvalManager  *ApprovalManager
-	policyEngine     *PolicyEngine
+	approvalManager   *ApprovalManager
+	policyEngine      *PolicyEngine
 	delegationService *DelegationService
 
 	// External integrations
@@ -128,28 +128,28 @@ type workflowEngine struct {
 	executionMonitor *ExecutionMonitor
 
 	// Configuration
-	config           *WorkflowEngineConfig
+	config *WorkflowEngineConfig
 
 	// Concurrency control
-	executionLocks   map[string]*sync.Mutex
-	lockMutex        sync.RWMutex
+	executionLocks map[string]*sync.Mutex
+	lockMutex      sync.RWMutex
 
 	// Background processing
-	shutdown         chan struct{}
-	wg               sync.WaitGroup
+	shutdown chan struct{}
+	wg       sync.WaitGroup
 }
 
 // Core data structures
 
 // WorkflowInput provides input data for workflow execution
 type WorkflowInput struct {
-	PackageRef       *PackageReference
-	User             string
-	TriggerEvent     *PackageEvent
-	Parameters       map[string]interface{}
-	Priority         WorkflowPriority
-	Deadline         *time.Time
-	Context          map[string]string
+	PackageRef   *PackageReference
+	User         string
+	TriggerEvent *PackageEvent
+	Parameters   map[string]interface{}
+	Priority     WorkflowPriority
+	Deadline     *time.Time
+	Context      map[string]string
 }
 
 // WorkflowExecution represents a running workflow instance
@@ -188,34 +188,34 @@ type WorkflowStageDefinition struct {
 
 // StageExecutionResult contains stage execution results
 type StageExecutionResult struct {
-	StageID          string
-	Status           StageExecutionStatus
-	StartTime        time.Time
-	EndTime          *time.Time
-	Duration         time.Duration
-	Output           map[string]interface{}
-	Approvals        []*ApprovalResult
-	Tasks            []*TaskResult
-	Errors           []StageError
-	RetryCount       int
-	NextStages       []string
+	StageID    string
+	Status     StageExecutionStatus
+	StartTime  time.Time
+	EndTime    *time.Time
+	Duration   time.Duration
+	Output     map[string]interface{}
+	Approvals  []*ApprovalResult
+	Tasks      []*TaskResult
+	Errors     []StageError
+	RetryCount int
+	NextStages []string
 }
 
 // Approval system types
 
 // ApprovalPolicy defines approval requirements
 type ApprovalPolicy struct {
-	ID               string
-	Name             string
-	Description      string
-	PackageSelector  *PackageSelector
-	StageSelector    []PackageRevisionLifecycle
-	Rules            []*ApprovalRule
-	Priority         int
-	Enabled          bool
-	CreatedAt        time.Time
-	CreatedBy        string
-	Metadata         map[string]string
+	ID              string
+	Name            string
+	Description     string
+	PackageSelector *PackageSelector
+	StageSelector   []PackageRevisionLifecycle
+	Rules           []*ApprovalRule
+	Priority        int
+	Enabled         bool
+	CreatedAt       time.Time
+	CreatedBy       string
+	Metadata        map[string]string
 }
 
 // ApprovalRule defines who can approve and under what conditions
@@ -241,72 +241,72 @@ const (
 
 // PendingApproval represents a pending approval request
 type PendingApproval struct {
-	ID               string
+	ID                  string
 	WorkflowExecutionID string
-	PackageRef       *PackageReference
-	StageID          string
-	RequestedAt      time.Time
-	Deadline         time.Time
-	Approvers        []ApproverSpec
-	RequiredCount    int
-	ReceivedApprovals []*ApprovalResult
-	Status           ApprovalStatus
-	Priority         ApprovalPriority
-	Context          map[string]interface{}
+	PackageRef          *PackageReference
+	StageID             string
+	RequestedAt         time.Time
+	Deadline            time.Time
+	Approvers           []ApproverSpec
+	RequiredCount       int
+	ReceivedApprovals   []*ApprovalResult
+	Status              ApprovalStatus
+	Priority            ApprovalPriority
+	Context             map[string]interface{}
 }
 
 // ApprovalResult represents an approval decision result
 type ApprovalResult struct {
-	ID               string
-	ApprovalID       string
-	Approver         string
-	Decision         ApprovalDecision
-	Comment          string
-	Timestamp        time.Time
-	Evidence         []ApprovalEvidence
-	Metadata         map[string]string
+	ID         string
+	ApprovalID string
+	Approver   string
+	Decision   ApprovalDecision
+	Comment    string
+	Timestamp  time.Time
+	Evidence   []ApprovalEvidence
+	Metadata   map[string]string
 }
 
 // PolicyEvaluationResult contains policy evaluation results
 type PolicyEvaluationResult struct {
-	PackageRef       *PackageReference
-	Stage            PackageRevisionLifecycle
+	PackageRef         *PackageReference
+	Stage              PackageRevisionLifecycle
 	ApplicablePolicies []*ApprovalPolicy
-	RequiredApprovals []*ApprovalRequirement
-	BypassAvailable  bool
-	BypassReasons    []string
-	EvaluationTime   time.Time
+	RequiredApprovals  []*ApprovalRequirement
+	BypassAvailable    bool
+	BypassReasons      []string
+	EvaluationTime     time.Time
 }
 
 // Manual task system types
 
 // ManualTask represents a manual task in a workflow
 type ManualTask struct {
-	ID               string
-	Name             string
-	Description      string
-	Type             TaskType
-	Assignees        []string
-	Priority         TaskPriority
-	Deadline         *time.Time
-	Instructions     string
-	RequiredFields   []TaskField
-	Attachments      []TaskAttachment
-	Dependencies     []string
+	ID             string
+	Name           string
+	Description    string
+	Type           TaskType
+	Assignees      []string
+	Priority       TaskPriority
+	Deadline       *time.Time
+	Instructions   string
+	RequiredFields []TaskField
+	Attachments    []TaskAttachment
+	Dependencies   []string
 }
 
 // ManualTaskExecution represents an executing manual task
 type ManualTaskExecution struct {
-	ID               string
-	TaskID           string
+	ID                  string
+	TaskID              string
 	WorkflowExecutionID string
-	Status           TaskStatus
-	AssignedTo       string
-	StartTime        time.Time
-	CompleteTime     *time.Time
-	Result           *TaskResult
-	EscalationHistory []*TaskEscalation
-	ActivityLog      []TaskActivity
+	Status              TaskStatus
+	AssignedTo          string
+	StartTime           time.Time
+	CompleteTime        *time.Time
+	Result              *TaskResult
+	EscalationHistory   []*TaskEscalation
+	ActivityLog         []TaskActivity
 }
 
 // TaskResult represents a manual task completion result
@@ -338,58 +338,58 @@ type ExternalIntegration struct {
 
 // ExternalAction represents an action to execute on external system
 type ExternalAction struct {
-	Type             string
-	Parameters       map[string]interface{}
-	IdempotencyKey   string
-	Timeout          *time.Duration
-	RetryPolicy      *RetryPolicy
+	Type           string
+	Parameters     map[string]interface{}
+	IdempotencyKey string
+	Timeout        *time.Duration
+	RetryPolicy    *RetryPolicy
 }
 
 // ExternalActionResult contains external action execution result
 type ExternalActionResult struct {
-	Success          bool
-	Response         map[string]interface{}
-	Error            string
-	Duration         time.Duration
-	RetryCount       int
-	ExecutedAt       time.Time
+	Success    bool
+	Response   map[string]interface{}
+	Error      string
+	Duration   time.Duration
+	RetryCount int
+	ExecutedAt time.Time
 }
 
 // Audit and compliance types
 
 // WorkflowAuditLog contains workflow audit information
 type WorkflowAuditLog struct {
-	PackageRef       *PackageReference
-	Entries          []*AuditLogEntry
-	TotalCount       int
-	TimeRange        *TimeRange
-	GeneratedAt      time.Time
+	PackageRef  *PackageReference
+	Entries     []*AuditLogEntry
+	TotalCount  int
+	TimeRange   *TimeRange
+	GeneratedAt time.Time
 }
 
 // AuditLogEntry represents a single audit log entry
 type AuditLogEntry struct {
-	ID               string
-	Timestamp        time.Time
-	EventType        AuditEventType
-	User             string
-	WorkflowID       string
-	ExecutionID      string
-	StageID          string
-	Action           string
-	Details          map[string]interface{}
-	IPAddress        string
-	UserAgent        string
-	Result           AuditResult
+	ID          string
+	Timestamp   time.Time
+	EventType   AuditEventType
+	User        string
+	WorkflowID  string
+	ExecutionID string
+	StageID     string
+	Action      string
+	Details     map[string]interface{}
+	IPAddress   string
+	UserAgent   string
+	Result      AuditResult
 }
 
 // ComplianceReport contains compliance assessment results
 type ComplianceReport struct {
-	GeneratedAt      time.Time
-	TimeRange        *TimeRange
-	ComplianceScore  float64
-	Violations       []*ComplianceViolation
-	Recommendations  []*ComplianceRecommendation
-	Summary          *ComplianceSummary
+	GeneratedAt     time.Time
+	TimeRange       *TimeRange
+	ComplianceScore float64
+	Violations      []*ComplianceViolation
+	Recommendations []*ComplianceRecommendation
+	Summary         *ComplianceSummary
 }
 
 // Enums and constants
@@ -398,50 +398,50 @@ type ComplianceReport struct {
 type WorkflowExecutionStatus string
 
 const (
-	WorkflowExecutionStatusPending    WorkflowExecutionStatus = "pending"
-	WorkflowExecutionStatusRunning    WorkflowExecutionStatus = "running"
-	WorkflowExecutionStatusPaused     WorkflowExecutionStatus = "paused"
-	WorkflowExecutionStatusCompleted  WorkflowExecutionStatus = "completed"
-	WorkflowExecutionStatusFailed     WorkflowExecutionStatus = "failed"
-	WorkflowExecutionStatusAborted    WorkflowExecutionStatus = "aborted"
-	WorkflowExecutionStatusTimedOut   WorkflowExecutionStatus = "timed_out"
+	WorkflowExecutionStatusPending   WorkflowExecutionStatus = "pending"
+	WorkflowExecutionStatusRunning   WorkflowExecutionStatus = "running"
+	WorkflowExecutionStatusPaused    WorkflowExecutionStatus = "paused"
+	WorkflowExecutionStatusCompleted WorkflowExecutionStatus = "completed"
+	WorkflowExecutionStatusFailed    WorkflowExecutionStatus = "failed"
+	WorkflowExecutionStatusAborted   WorkflowExecutionStatus = "aborted"
+	WorkflowExecutionStatusTimedOut  WorkflowExecutionStatus = "timed_out"
 )
 
 // StageExecutionStatus defines stage execution status
 type StageExecutionStatus string
 
 const (
-	StageExecutionStatusPending       StageExecutionStatus = "pending"
-	StageExecutionStatusRunning       StageExecutionStatus = "running"
+	StageExecutionStatusPending         StageExecutionStatus = "pending"
+	StageExecutionStatusRunning         StageExecutionStatus = "running"
 	StageExecutionStatusWaitingApproval StageExecutionStatus = "waiting_approval"
-	StageExecutionStatusCompleted     StageExecutionStatus = "completed"
-	StageExecutionStatusFailed        StageExecutionStatus = "failed"
-	StageExecutionStatusSkipped       StageExecutionStatus = "skipped"
-	StageExecutionStatusTimedOut      StageExecutionStatus = "timed_out"
+	StageExecutionStatusCompleted       StageExecutionStatus = "completed"
+	StageExecutionStatusFailed          StageExecutionStatus = "failed"
+	StageExecutionStatusSkipped         StageExecutionStatus = "skipped"
+	StageExecutionStatusTimedOut        StageExecutionStatus = "timed_out"
 )
 
 // ApprovalStatus defines approval request status
 type ApprovalStatus string
 
 const (
-	ApprovalStatusPending     ApprovalStatus = "pending"
-	ApprovalStatusApproved    ApprovalStatus = "approved"
-	ApprovalStatusRejected    ApprovalStatus = "rejected"
-	ApprovalStatusTimedOut    ApprovalStatus = "timed_out"
-	ApprovalStatusEscalated   ApprovalStatus = "escalated"
+	ApprovalStatusPending   ApprovalStatus = "pending"
+	ApprovalStatusApproved  ApprovalStatus = "approved"
+	ApprovalStatusRejected  ApprovalStatus = "rejected"
+	ApprovalStatusTimedOut  ApprovalStatus = "timed_out"
+	ApprovalStatusEscalated ApprovalStatus = "escalated"
 )
 
 // TaskStatus defines manual task status
 type TaskStatus string
 
 const (
-	TaskStatusPending     TaskStatus = "pending"
-	TaskStatusAssigned    TaskStatus = "assigned"
-	TaskStatusInProgress  TaskStatus = "in_progress"
-	TaskStatusCompleted   TaskStatus = "completed"
-	TaskStatusFailed      TaskStatus = "failed"
-	TaskStatusEscalated   TaskStatus = "escalated"
-	TaskStatusCancelled   TaskStatus = "cancelled"
+	TaskStatusPending    TaskStatus = "pending"
+	TaskStatusAssigned   TaskStatus = "assigned"
+	TaskStatusInProgress TaskStatus = "in_progress"
+	TaskStatusCompleted  TaskStatus = "completed"
+	TaskStatusFailed     TaskStatus = "failed"
+	TaskStatusEscalated  TaskStatus = "escalated"
+	TaskStatusCancelled  TaskStatus = "cancelled"
 )
 
 // Implementation
@@ -456,13 +456,13 @@ func NewWorkflowEngine(client *Client, config *WorkflowEngineConfig) (WorkflowEn
 	}
 
 	we := &workflowEngine{
-		client:           client,
-		logger:           log.Log.WithName("workflow-engine"),
-		config:           config,
-		integrations:     make(map[string]*ExternalIntegration),
-		executionLocks:   make(map[string]*sync.Mutex),
-		shutdown:         make(chan struct{}),
-		metrics:          initWorkflowEngineMetrics(),
+		client:         client,
+		logger:         log.Log.WithName("workflow-engine"),
+		config:         config,
+		integrations:   make(map[string]*ExternalIntegration),
+		executionLocks: make(map[string]*sync.Mutex),
+		shutdown:       make(chan struct{}),
+		metrics:        initWorkflowEngineMetrics(),
 	}
 
 	// Initialize components
@@ -663,7 +663,7 @@ func (we *workflowEngine) EvaluateApprovalPolicies(ctx context.Context, packageR
 		we.metrics.applicablePolicies.Observe(float64(len(result.ApplicablePolicies)))
 	}
 
-	we.logger.V(1).Info("Policy evaluation completed", 
+	we.logger.V(1).Info("Policy evaluation completed",
 		"package", packageRef.GetPackageKey(),
 		"applicablePolicies", len(result.ApplicablePolicies),
 		"requiredApprovals", len(result.RequiredApprovals))
@@ -781,10 +781,10 @@ func (we *workflowEngine) metricsCollectionWorker() {
 // Close gracefully shuts down the workflow engine
 func (we *workflowEngine) Close() error {
 	we.logger.Info("Shutting down workflow engine")
-	
+
 	close(we.shutdown)
 	we.wg.Wait()
-	
+
 	// Close components
 	if we.workflowRegistry != nil {
 		we.workflowRegistry.Close()
@@ -801,7 +801,7 @@ func (we *workflowEngine) Close() error {
 	if we.taskManager != nil {
 		we.taskManager.Close()
 	}
-	
+
 	we.logger.Info("Workflow engine shutdown complete")
 	return nil
 }
@@ -868,7 +868,7 @@ func (we *workflowEngine) collectMetrics() {
 	if we.metrics == nil {
 		return
 	}
-	
+
 	// Collect current system metrics
 	// Implementation would gather metrics from various components
 }
@@ -881,7 +881,7 @@ func getDefaultWorkflowEngineConfig() *WorkflowEngineConfig {
 		DefaultApprovalTimeout:  24 * time.Hour,
 		DefaultTaskTimeout:      7 * 24 * time.Hour,
 		EnableAuditLogging:      true,
-		EnableMetrics:          true,
+		EnableMetrics:           true,
 	}
 }
 
@@ -935,8 +935,8 @@ func initWorkflowEngineMetrics() *WorkflowEngineMetrics {
 		),
 		applicablePolicies: prometheus.NewHistogram(
 			prometheus.HistogramOpts{
-				Name: "porch_workflow_applicable_policies",
-				Help: "Number of applicable policies per evaluation",
+				Name:    "porch_workflow_applicable_policies",
+				Help:    "Number of applicable policies per evaluation",
 				Buckets: []float64{0, 1, 2, 5, 10, 20},
 			},
 		),
@@ -951,7 +951,7 @@ type WorkflowEngineConfig struct {
 	DefaultApprovalTimeout  time.Duration
 	DefaultTaskTimeout      time.Duration
 	EnableAuditLogging      bool
-	EnableMetrics          bool
+	EnableMetrics           bool
 	WorkflowRegistryConfig  *WorkflowRegistryConfig
 	ExecutionEngineConfig   *ExecutionEngineConfig
 	StateManagerConfig      *WorkflowStateManagerConfig
@@ -960,7 +960,7 @@ type WorkflowEngineConfig struct {
 	DelegationServiceConfig *DelegationServiceConfig
 	TaskManagerConfig       *ManualTaskManagerConfig
 	EscalationEngineConfig  *EscalationEngineConfig
-	AuditLoggerConfig      *WorkflowAuditLoggerConfig
+	AuditLoggerConfig       *WorkflowAuditLoggerConfig
 	ComplianceEngineConfig  *ComplianceEngineConfig
 	TriggerEvaluatorConfig  *TriggerEvaluatorConfig
 	ExecutionMonitorConfig  *ExecutionMonitorConfig
@@ -980,17 +980,18 @@ type WorkflowEngineMetrics struct {
 
 // Additional supporting types
 type WorkflowListOptions struct {
-	Labels     map[string]string
-	Status     []WorkflowPhase
-	PageSize   int
-	Continue   string
+	Labels   map[string]string
+	Status   []WorkflowPhase
+	PageSize int
+	Continue string
 }
 
 type WorkflowPriority string
+
 const (
-	WorkflowPriorityLow    WorkflowPriority = "low"
-	WorkflowPriorityNormal WorkflowPriority = "normal"
-	WorkflowPriorityHigh   WorkflowPriority = "high"
+	WorkflowPriorityLow      WorkflowPriority = "low"
+	WorkflowPriorityNormal   WorkflowPriority = "normal"
+	WorkflowPriorityHigh     WorkflowPriority = "high"
 	WorkflowPriorityCritical WorkflowPriority = "critical"
 )
 
@@ -1016,28 +1017,28 @@ type WorkflowError struct {
 }
 
 type StageError struct {
-	Code        string
-	Message     string
-	Timestamp   time.Time
-	Retryable   bool
+	Code      string
+	Message   string
+	Timestamp time.Time
+	Retryable bool
 }
 
 type WorkflowEngineHealth struct {
-	Status              string
-	ActiveExecutions    int
-	PendingApprovals    int
-	ActiveManualTasks   int
-	LastActivity        time.Time
+	Status            string
+	ActiveExecutions  int
+	PendingApprovals  int
+	ActiveManualTasks int
+	LastActivity      time.Time
 }
 
 type WorkflowStatistics struct {
-	TimeRange           *TimeRange
-	TotalExecutions     int64
+	TimeRange            *TimeRange
+	TotalExecutions      int64
 	SuccessfulExecutions int64
-	FailedExecutions    int64
+	FailedExecutions     int64
 	AverageExecutionTime time.Duration
-	ApprovalMetrics     *ApprovalStatistics
-	TaskMetrics         *TaskStatistics
+	ApprovalMetrics      *ApprovalStatistics
+	TaskMetrics          *TaskStatistics
 }
 
 type ApprovalStatistics struct {
@@ -1049,38 +1050,55 @@ type ApprovalStatistics struct {
 }
 
 type TaskStatistics struct {
-	TotalTasks          int64
-	CompletedTasks      int64
-	EscalatedTasks      int64
+	TotalTasks            int64
+	CompletedTasks        int64
+	EscalatedTasks        int64
 	AverageCompletionTime time.Duration
 }
 
 // Placeholder component implementations
 type WorkflowRegistry struct{}
-func NewWorkflowRegistry(config *WorkflowRegistryConfig) *WorkflowRegistry { return &WorkflowRegistry{} }
-func (wr *WorkflowRegistry) RegisterWorkflow(ctx context.Context, workflow *Workflow) error { return nil }
-func (wr *WorkflowRegistry) UnregisterWorkflow(ctx context.Context, name string) error { return nil }
-func (wr *WorkflowRegistry) Close() error { return nil }
 
-type ExecutionEngine struct{}
-func NewExecutionEngine(config *ExecutionEngineConfig) *ExecutionEngine { return &ExecutionEngine{} }
-func (ee *ExecutionEngine) ExecuteWorkflow(ctx context.Context, execution *WorkflowExecution, workflow *Workflow) error { return nil }
-func (ee *ExecutionEngine) Close() error { return nil }
+func NewWorkflowRegistry(config *WorkflowRegistryConfig) *WorkflowRegistry {
+	return &WorkflowRegistry{}
+}
+func (wr *WorkflowRegistry) RegisterWorkflow(ctx context.Context, workflow *Workflow) error {
+	return nil
+}
+func (wr *WorkflowRegistry) UnregisterWorkflow(ctx context.Context, name string) error { return nil }
+func (wr *WorkflowRegistry) Close() error                                              { return nil }
+
+type WorkflowExecutionEngine struct{}
+
+func NewExecutionEngine(config *ExecutionEngineConfig) *WorkflowExecutionEngine { return &WorkflowExecutionEngine{} }
+func (ee *WorkflowExecutionEngine) ExecuteWorkflow(ctx context.Context, execution *WorkflowExecution, workflow *Workflow) error {
+	return nil
+}
+func (ee *WorkflowExecutionEngine) Close() error { return nil }
 
 type WorkflowStateManager struct{}
-func NewWorkflowStateManager(config *WorkflowStateManagerConfig) *WorkflowStateManager { return &WorkflowStateManager{} }
-func (wsm *WorkflowStateManager) SaveExecution(ctx context.Context, execution *WorkflowExecution) error { return nil }
+
+func NewWorkflowStateManager(config *WorkflowStateManagerConfig) *WorkflowStateManager {
+	return &WorkflowStateManager{}
+}
+func (wsm *WorkflowStateManager) SaveExecution(ctx context.Context, execution *WorkflowExecution) error {
+	return nil
+}
 func (wsm *WorkflowStateManager) Close() error { return nil }
 
 type ApprovalManager struct{}
+
 func NewApprovalManager(config *ApprovalManagerConfig) *ApprovalManager { return &ApprovalManager{} }
 func (am *ApprovalManager) GetPendingApproval(ctx context.Context, approvalID string) (*PendingApproval, error) {
 	return &PendingApproval{ID: approvalID}, nil
 }
-func (am *ApprovalManager) ProcessApproval(ctx context.Context, approval *PendingApproval, result *ApprovalResult) error { return nil }
+func (am *ApprovalManager) ProcessApproval(ctx context.Context, approval *PendingApproval, result *ApprovalResult) error {
+	return nil
+}
 func (am *ApprovalManager) Close() error { return nil }
 
 type PolicyEngine struct{}
+
 func NewPolicyEngine(config *PolicyEngineConfig) *PolicyEngine { return &PolicyEngine{} }
 func (pe *PolicyEngine) EvaluatePolicies(ctx context.Context, packageRef *PackageReference, stage PackageRevisionLifecycle) (*PolicyEvaluationResult, error) {
 	return &PolicyEvaluationResult{PackageRef: packageRef, Stage: stage, EvaluationTime: time.Now()}, nil
@@ -1088,43 +1106,67 @@ func (pe *PolicyEngine) EvaluatePolicies(ctx context.Context, packageRef *Packag
 func (pe *PolicyEngine) Close() error { return nil }
 
 type DelegationService struct{}
-func NewDelegationService(config *DelegationServiceConfig) *DelegationService { return &DelegationService{} }
+
+func NewDelegationService(config *DelegationServiceConfig) *DelegationService {
+	return &DelegationService{}
+}
 func (ds *DelegationService) Close() error { return nil }
 
 type ManualTaskManager struct{}
-func NewManualTaskManager(config *ManualTaskManagerConfig) *ManualTaskManager { return &ManualTaskManager{} }
+
+func NewManualTaskManager(config *ManualTaskManagerConfig) *ManualTaskManager {
+	return &ManualTaskManager{}
+}
 func (mtm *ManualTaskManager) CreateTaskExecution(ctx context.Context, task *ManualTask) (*ManualTaskExecution, error) {
 	return &ManualTaskExecution{
-		ID: fmt.Sprintf("task-exec-%d", time.Now().UnixNano()),
-		TaskID: task.ID,
-		Status: TaskStatusPending,
+		ID:        fmt.Sprintf("task-exec-%d", time.Now().UnixNano()),
+		TaskID:    task.ID,
+		Status:    TaskStatusPending,
 		StartTime: time.Now(),
 	}, nil
 }
 func (mtm *ManualTaskManager) Close() error { return nil }
 
 type EscalationEngine struct{}
-func NewEscalationEngine(config *EscalationEngineConfig) *EscalationEngine { return &EscalationEngine{} }
+
+func NewEscalationEngine(config *EscalationEngineConfig) *EscalationEngine {
+	return &EscalationEngine{}
+}
 func (ee *EscalationEngine) Close() error { return nil }
 
 type WorkflowAuditLogger struct{}
-func NewWorkflowAuditLogger(config *WorkflowAuditLoggerConfig) *WorkflowAuditLogger { return &WorkflowAuditLogger{} }
+
+func NewWorkflowAuditLogger(config *WorkflowAuditLoggerConfig) *WorkflowAuditLogger {
+	return &WorkflowAuditLogger{}
+}
 func (wal *WorkflowAuditLogger) LogWorkflowCreated(ctx context.Context, workflow *Workflow) {}
-func (wal *WorkflowAuditLogger) LogWorkflowStarted(ctx context.Context, execution *WorkflowExecution) {}
-func (wal *WorkflowAuditLogger) LogApprovalSubmitted(ctx context.Context, approval *PendingApproval, result *ApprovalResult) {}
-func (wal *WorkflowAuditLogger) LogManualTaskCreated(ctx context.Context, execution *ManualTaskExecution) {}
+func (wal *WorkflowAuditLogger) LogWorkflowStarted(ctx context.Context, execution *WorkflowExecution) {
+}
+func (wal *WorkflowAuditLogger) LogApprovalSubmitted(ctx context.Context, approval *PendingApproval, result *ApprovalResult) {
+}
+func (wal *WorkflowAuditLogger) LogManualTaskCreated(ctx context.Context, execution *ManualTaskExecution) {
+}
 func (wal *WorkflowAuditLogger) Close() error { return nil }
 
 type ComplianceEngine struct{}
-func NewComplianceEngine(config *ComplianceEngineConfig) *ComplianceEngine { return &ComplianceEngine{} }
+
+func NewComplianceEngine(config *ComplianceEngineConfig) *ComplianceEngine {
+	return &ComplianceEngine{}
+}
 func (ce *ComplianceEngine) Close() error { return nil }
 
 type TriggerEvaluator struct{}
-func NewTriggerEvaluator(config *TriggerEvaluatorConfig) *TriggerEvaluator { return &TriggerEvaluator{} }
+
+func NewTriggerEvaluator(config *TriggerEvaluatorConfig) *TriggerEvaluator {
+	return &TriggerEvaluator{}
+}
 func (te *TriggerEvaluator) Close() error { return nil }
 
 type ExecutionMonitor struct{}
-func NewExecutionMonitor(config *ExecutionMonitorConfig) *ExecutionMonitor { return &ExecutionMonitor{} }
+
+func NewExecutionMonitor(config *ExecutionMonitorConfig) *ExecutionMonitor {
+	return &ExecutionMonitor{}
+}
 func (em *ExecutionMonitor) Close() error { return nil }
 
 // Configuration placeholder types
@@ -1165,7 +1207,6 @@ type IntegrationAuth struct{}
 type AuditLogOptions struct{}
 type AuditEventType string
 type AuditResult string
-type ComplianceViolation struct{}
 type ComplianceRecommendation struct{}
 type ComplianceSummary struct{}
 type ComplianceReportOptions struct{}
@@ -1173,4 +1214,3 @@ type AuditExportOptions struct{}
 type AuditExport struct{}
 type StageCondition struct{}
 type FailurePolicy struct{}
-type WorkflowTrigger struct{}

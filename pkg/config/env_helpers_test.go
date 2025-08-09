@@ -10,7 +10,7 @@ import (
 // Helper function to set environment variables and clean up
 func setEnvVars(t *testing.T, vars map[string]string) func() {
 	t.Helper()
-	
+
 	// Store original values for cleanup
 	original := make(map[string]string)
 	for key := range vars {
@@ -18,14 +18,14 @@ func setEnvVars(t *testing.T, vars map[string]string) func() {
 			original[key] = val
 		}
 	}
-	
+
 	// Set new values
 	for key, val := range vars {
 		if err := os.Setenv(key, val); err != nil {
 			t.Fatalf("Failed to set environment variable %s: %v", key, err)
 		}
 	}
-	
+
 	// Return cleanup function
 	return func() {
 		for key := range vars {
@@ -40,39 +40,39 @@ func setEnvVars(t *testing.T, vars map[string]string) func() {
 
 func TestGetEnvOrDefault(t *testing.T) {
 	tests := []struct {
-		name        string
-		envVars     map[string]string
-		key         string
-		defaultVal  string
-		expected    string
+		name       string
+		envVars    map[string]string
+		key        string
+		defaultVal string
+		expected   string
 	}{
 		{
-			name:        "existing env var",
-			envVars:     map[string]string{"TEST_KEY": "test_value"},
-			key:         "TEST_KEY",
-			defaultVal:  "default",
-			expected:    "test_value",
+			name:       "existing env var",
+			envVars:    map[string]string{"TEST_KEY": "test_value"},
+			key:        "TEST_KEY",
+			defaultVal: "default",
+			expected:   "test_value",
 		},
 		{
-			name:        "missing env var returns default",
-			envVars:     map[string]string{},
-			key:         "MISSING_KEY",
-			defaultVal:  "default",
-			expected:    "default",
+			name:       "missing env var returns default",
+			envVars:    map[string]string{},
+			key:        "MISSING_KEY",
+			defaultVal: "default",
+			expected:   "default",
 		},
 		{
-			name:        "empty env var returns default",
-			envVars:     map[string]string{"EMPTY_KEY": ""},
-			key:         "EMPTY_KEY",
-			defaultVal:  "default",
-			expected:    "default",
+			name:       "empty env var returns default",
+			envVars:    map[string]string{"EMPTY_KEY": ""},
+			key:        "EMPTY_KEY",
+			defaultVal: "default",
+			expected:   "default",
 		},
 		{
-			name:        "whitespace env var returns value",
-			envVars:     map[string]string{"WHITESPACE_KEY": "  value  "},
-			key:         "WHITESPACE_KEY",
-			defaultVal:  "default",
-			expected:    "  value  ",
+			name:       "whitespace env var returns value",
+			envVars:    map[string]string{"WHITESPACE_KEY": "  value  "},
+			key:        "WHITESPACE_KEY",
+			defaultVal: "default",
+			expected:   "  value  ",
 		},
 	}
 
@@ -91,95 +91,95 @@ func TestGetEnvOrDefault(t *testing.T) {
 
 func TestGetBoolEnv(t *testing.T) {
 	tests := []struct {
-		name        string
-		envVars     map[string]string
-		key         string
-		defaultVal  bool
-		expected    bool
+		name       string
+		envVars    map[string]string
+		key        string
+		defaultVal bool
+		expected   bool
 	}{
 		{
-			name:        "true value",
-			envVars:     map[string]string{"BOOL_KEY": "true"},
-			key:         "BOOL_KEY",
-			defaultVal:  false,
-			expected:    true,
+			name:       "true value",
+			envVars:    map[string]string{"BOOL_KEY": "true"},
+			key:        "BOOL_KEY",
+			defaultVal: false,
+			expected:   true,
 		},
 		{
-			name:        "1 value",
-			envVars:     map[string]string{"BOOL_KEY": "1"},
-			key:         "BOOL_KEY",
-			defaultVal:  false,
-			expected:    true,
+			name:       "1 value",
+			envVars:    map[string]string{"BOOL_KEY": "1"},
+			key:        "BOOL_KEY",
+			defaultVal: false,
+			expected:   true,
 		},
 		{
-			name:        "yes value",
-			envVars:     map[string]string{"BOOL_KEY": "yes"},
-			key:         "BOOL_KEY",
-			defaultVal:  false,
-			expected:    true,
+			name:       "yes value",
+			envVars:    map[string]string{"BOOL_KEY": "yes"},
+			key:        "BOOL_KEY",
+			defaultVal: false,
+			expected:   true,
 		},
 		{
-			name:        "enabled value",
-			envVars:     map[string]string{"BOOL_KEY": "enabled"},
-			key:         "BOOL_KEY",
-			defaultVal:  false,
-			expected:    true,
+			name:       "enabled value",
+			envVars:    map[string]string{"BOOL_KEY": "enabled"},
+			key:        "BOOL_KEY",
+			defaultVal: false,
+			expected:   true,
 		},
 		{
-			name:        "false value",
-			envVars:     map[string]string{"BOOL_KEY": "false"},
-			key:         "BOOL_KEY",
-			defaultVal:  true,
-			expected:    false,
+			name:       "false value",
+			envVars:    map[string]string{"BOOL_KEY": "false"},
+			key:        "BOOL_KEY",
+			defaultVal: true,
+			expected:   false,
 		},
 		{
-			name:        "0 value",
-			envVars:     map[string]string{"BOOL_KEY": "0"},
-			key:         "BOOL_KEY",
-			defaultVal:  true,
-			expected:    false,
+			name:       "0 value",
+			envVars:    map[string]string{"BOOL_KEY": "0"},
+			key:        "BOOL_KEY",
+			defaultVal: true,
+			expected:   false,
 		},
 		{
-			name:        "disabled value",
-			envVars:     map[string]string{"BOOL_KEY": "disabled"},
-			key:         "BOOL_KEY",
-			defaultVal:  true,
-			expected:    false,
+			name:       "disabled value",
+			envVars:    map[string]string{"BOOL_KEY": "disabled"},
+			key:        "BOOL_KEY",
+			defaultVal: true,
+			expected:   false,
 		},
 		{
-			name:        "case insensitive true",
-			envVars:     map[string]string{"BOOL_KEY": "TRUE"},
-			key:         "BOOL_KEY",
-			defaultVal:  false,
-			expected:    true,
+			name:       "case insensitive true",
+			envVars:    map[string]string{"BOOL_KEY": "TRUE"},
+			key:        "BOOL_KEY",
+			defaultVal: false,
+			expected:   true,
 		},
 		{
-			name:        "invalid value returns default",
-			envVars:     map[string]string{"BOOL_KEY": "invalid"},
-			key:         "BOOL_KEY",
-			defaultVal:  true,
-			expected:    true,
+			name:       "invalid value returns default",
+			envVars:    map[string]string{"BOOL_KEY": "invalid"},
+			key:        "BOOL_KEY",
+			defaultVal: true,
+			expected:   true,
 		},
 		{
-			name:        "missing key returns default",
-			envVars:     map[string]string{},
-			key:         "MISSING_BOOL",
-			defaultVal:  true,
-			expected:    true,
+			name:       "missing key returns default",
+			envVars:    map[string]string{},
+			key:        "MISSING_BOOL",
+			defaultVal: true,
+			expected:   true,
 		},
 		{
-			name:        "empty value returns default",
-			envVars:     map[string]string{"BOOL_KEY": ""},
-			key:         "BOOL_KEY",
-			defaultVal:  false,
-			expected:    false,
+			name:       "empty value returns default",
+			envVars:    map[string]string{"BOOL_KEY": ""},
+			key:        "BOOL_KEY",
+			defaultVal: false,
+			expected:   false,
 		},
 		{
-			name:        "whitespace value returns default",
-			envVars:     map[string]string{"BOOL_KEY": "  "},
-			key:         "BOOL_KEY",
-			defaultVal:  true,
-			expected:    true,
+			name:       "whitespace value returns default",
+			envVars:    map[string]string{"BOOL_KEY": "  "},
+			key:        "BOOL_KEY",
+			defaultVal: true,
+			expected:   true,
 		},
 	}
 
@@ -198,53 +198,53 @@ func TestGetBoolEnv(t *testing.T) {
 
 func TestGetDurationEnv(t *testing.T) {
 	tests := []struct {
-		name        string
-		envVars     map[string]string
-		key         string
-		defaultVal  time.Duration
-		expected    time.Duration
+		name       string
+		envVars    map[string]string
+		key        string
+		defaultVal time.Duration
+		expected   time.Duration
 	}{
 		{
-			name:        "valid duration",
-			envVars:     map[string]string{"DURATION_KEY": "30s"},
-			key:         "DURATION_KEY",
-			defaultVal:  10 * time.Second,
-			expected:    30 * time.Second,
+			name:       "valid duration",
+			envVars:    map[string]string{"DURATION_KEY": "30s"},
+			key:        "DURATION_KEY",
+			defaultVal: 10 * time.Second,
+			expected:   30 * time.Second,
 		},
 		{
-			name:        "complex duration",
-			envVars:     map[string]string{"DURATION_KEY": "1h30m45s"},
-			key:         "DURATION_KEY",
-			defaultVal:  1 * time.Minute,
-			expected:    1*time.Hour + 30*time.Minute + 45*time.Second,
+			name:       "complex duration",
+			envVars:    map[string]string{"DURATION_KEY": "1h30m45s"},
+			key:        "DURATION_KEY",
+			defaultVal: 1 * time.Minute,
+			expected:   1*time.Hour + 30*time.Minute + 45*time.Second,
 		},
 		{
-			name:        "invalid duration returns default",
-			envVars:     map[string]string{"DURATION_KEY": "invalid"},
-			key:         "DURATION_KEY",
-			defaultVal:  5 * time.Minute,
-			expected:    5 * time.Minute,
+			name:       "invalid duration returns default",
+			envVars:    map[string]string{"DURATION_KEY": "invalid"},
+			key:        "DURATION_KEY",
+			defaultVal: 5 * time.Minute,
+			expected:   5 * time.Minute,
 		},
 		{
-			name:        "missing key returns default",
-			envVars:     map[string]string{},
-			key:         "MISSING_DURATION",
-			defaultVal:  2 * time.Hour,
-			expected:    2 * time.Hour,
+			name:       "missing key returns default",
+			envVars:    map[string]string{},
+			key:        "MISSING_DURATION",
+			defaultVal: 2 * time.Hour,
+			expected:   2 * time.Hour,
 		},
 		{
-			name:        "empty value returns default",
-			envVars:     map[string]string{"DURATION_KEY": ""},
-			key:         "DURATION_KEY",
-			defaultVal:  15 * time.Second,
-			expected:    15 * time.Second,
+			name:       "empty value returns default",
+			envVars:    map[string]string{"DURATION_KEY": ""},
+			key:        "DURATION_KEY",
+			defaultVal: 15 * time.Second,
+			expected:   15 * time.Second,
 		},
 		{
-			name:        "microseconds",
-			envVars:     map[string]string{"DURATION_KEY": "100us"},
-			key:         "DURATION_KEY",
-			defaultVal:  1 * time.Millisecond,
-			expected:    100 * time.Microsecond,
+			name:       "microseconds",
+			envVars:    map[string]string{"DURATION_KEY": "100us"},
+			key:        "DURATION_KEY",
+			defaultVal: 1 * time.Millisecond,
+			expected:   100 * time.Microsecond,
 		},
 	}
 
@@ -263,67 +263,67 @@ func TestGetDurationEnv(t *testing.T) {
 
 func TestGetStringSliceEnv(t *testing.T) {
 	tests := []struct {
-		name        string
-		envVars     map[string]string
-		key         string
-		defaultVal  []string
-		expected    []string
+		name       string
+		envVars    map[string]string
+		key        string
+		defaultVal []string
+		expected   []string
 	}{
 		{
-			name:        "single value",
-			envVars:     map[string]string{"SLICE_KEY": "value1"},
-			key:         "SLICE_KEY",
-			defaultVal:  []string{"default"},
-			expected:    []string{"value1"},
+			name:       "single value",
+			envVars:    map[string]string{"SLICE_KEY": "value1"},
+			key:        "SLICE_KEY",
+			defaultVal: []string{"default"},
+			expected:   []string{"value1"},
 		},
 		{
-			name:        "multiple values",
-			envVars:     map[string]string{"SLICE_KEY": "value1,value2,value3"},
-			key:         "SLICE_KEY",
-			defaultVal:  []string{"default"},
-			expected:    []string{"value1", "value2", "value3"},
+			name:       "multiple values",
+			envVars:    map[string]string{"SLICE_KEY": "value1,value2,value3"},
+			key:        "SLICE_KEY",
+			defaultVal: []string{"default"},
+			expected:   []string{"value1", "value2", "value3"},
 		},
 		{
-			name:        "values with spaces",
-			envVars:     map[string]string{"SLICE_KEY": " value1 , value2 , value3 "},
-			key:         "SLICE_KEY",
-			defaultVal:  []string{"default"},
-			expected:    []string{"value1", "value2", "value3"},
+			name:       "values with spaces",
+			envVars:    map[string]string{"SLICE_KEY": " value1 , value2 , value3 "},
+			key:        "SLICE_KEY",
+			defaultVal: []string{"default"},
+			expected:   []string{"value1", "value2", "value3"},
 		},
 		{
-			name:        "empty items ignored",
-			envVars:     map[string]string{"SLICE_KEY": "value1,,value3,"},
-			key:         "SLICE_KEY",
-			defaultVal:  []string{"default"},
-			expected:    []string{"value1", "value3"},
+			name:       "empty items ignored",
+			envVars:    map[string]string{"SLICE_KEY": "value1,,value3,"},
+			key:        "SLICE_KEY",
+			defaultVal: []string{"default"},
+			expected:   []string{"value1", "value3"},
 		},
 		{
-			name:        "only empty items returns default",
-			envVars:     map[string]string{"SLICE_KEY": ",,, ,"},
-			key:         "SLICE_KEY",
-			defaultVal:  []string{"default"},
-			expected:    []string{"default"},
+			name:       "only empty items returns default",
+			envVars:    map[string]string{"SLICE_KEY": ",,, ,"},
+			key:        "SLICE_KEY",
+			defaultVal: []string{"default"},
+			expected:   []string{"default"},
 		},
 		{
-			name:        "missing key returns default",
-			envVars:     map[string]string{},
-			key:         "MISSING_SLICE",
-			defaultVal:  []string{"default1", "default2"},
-			expected:    []string{"default1", "default2"},
+			name:       "missing key returns default",
+			envVars:    map[string]string{},
+			key:        "MISSING_SLICE",
+			defaultVal: []string{"default1", "default2"},
+			expected:   []string{"default1", "default2"},
 		},
 		{
-			name:        "empty value returns default",
-			envVars:     map[string]string{"SLICE_KEY": ""},
-			key:         "SLICE_KEY",
-			defaultVal:  []string{"default"},
-			expected:    []string{"default"},
+			name:       "empty value returns default",
+			envVars:    map[string]string{"SLICE_KEY": ""},
+			key:        "SLICE_KEY",
+			defaultVal: []string{"default"},
+			expected:   []string{"default"},
 		},
 		{
-			name:        "nil default",
-			envVars:     map[string]string{"SLICE_KEY": "value1,value2"},
-			key:         "SLICE_KEY",
-			defaultVal:  nil,
-			expected:    []string{"value1", "value2"},
+			name:       "nil default",
+			envVars:    map[string]string{"SLICE_KEY": "value1,value2"},
+			key:        "SLICE_KEY",
+			defaultVal: nil,
+			expected:   []string{"value1", "value2"},
 		},
 	}
 
@@ -342,67 +342,67 @@ func TestGetStringSliceEnv(t *testing.T) {
 
 func TestGetIntEnv(t *testing.T) {
 	tests := []struct {
-		name        string
-		envVars     map[string]string
-		key         string
-		defaultVal  int
-		expected    int
+		name       string
+		envVars    map[string]string
+		key        string
+		defaultVal int
+		expected   int
 	}{
 		{
-			name:        "valid positive integer",
-			envVars:     map[string]string{"INT_KEY": "123"},
-			key:         "INT_KEY",
-			defaultVal:  10,
-			expected:    123,
+			name:       "valid positive integer",
+			envVars:    map[string]string{"INT_KEY": "123"},
+			key:        "INT_KEY",
+			defaultVal: 10,
+			expected:   123,
 		},
 		{
-			name:        "valid negative integer",
-			envVars:     map[string]string{"INT_KEY": "-456"},
-			key:         "INT_KEY",
-			defaultVal:  10,
-			expected:    -456,
+			name:       "valid negative integer",
+			envVars:    map[string]string{"INT_KEY": "-456"},
+			key:        "INT_KEY",
+			defaultVal: 10,
+			expected:   -456,
 		},
 		{
-			name:        "zero value",
-			envVars:     map[string]string{"INT_KEY": "0"},
-			key:         "INT_KEY",
-			defaultVal:  10,
-			expected:    0,
+			name:       "zero value",
+			envVars:    map[string]string{"INT_KEY": "0"},
+			key:        "INT_KEY",
+			defaultVal: 10,
+			expected:   0,
 		},
 		{
-			name:        "invalid integer returns default",
-			envVars:     map[string]string{"INT_KEY": "invalid"},
-			key:         "INT_KEY",
-			defaultVal:  42,
-			expected:    42,
+			name:       "invalid integer returns default",
+			envVars:    map[string]string{"INT_KEY": "invalid"},
+			key:        "INT_KEY",
+			defaultVal: 42,
+			expected:   42,
 		},
 		{
-			name:        "float value returns default",
-			envVars:     map[string]string{"INT_KEY": "12.34"},
-			key:         "INT_KEY",
-			defaultVal:  42,
-			expected:    42,
+			name:       "float value returns default",
+			envVars:    map[string]string{"INT_KEY": "12.34"},
+			key:        "INT_KEY",
+			defaultVal: 42,
+			expected:   42,
 		},
 		{
-			name:        "missing key returns default",
-			envVars:     map[string]string{},
-			key:         "MISSING_INT",
-			defaultVal:  100,
-			expected:    100,
+			name:       "missing key returns default",
+			envVars:    map[string]string{},
+			key:        "MISSING_INT",
+			defaultVal: 100,
+			expected:   100,
 		},
 		{
-			name:        "empty value returns default",
-			envVars:     map[string]string{"INT_KEY": ""},
-			key:         "INT_KEY",
-			defaultVal:  50,
-			expected:    50,
+			name:       "empty value returns default",
+			envVars:    map[string]string{"INT_KEY": ""},
+			key:        "INT_KEY",
+			defaultVal: 50,
+			expected:   50,
 		},
 		{
-			name:        "whitespace value returns default",
-			envVars:     map[string]string{"INT_KEY": "  "},
-			key:         "INT_KEY",
-			defaultVal:  75,
-			expected:    75,
+			name:       "whitespace value returns default",
+			envVars:    map[string]string{"INT_KEY": "  "},
+			key:        "INT_KEY",
+			defaultVal: 75,
+			expected:   75,
 		},
 	}
 
@@ -421,32 +421,32 @@ func TestGetIntEnv(t *testing.T) {
 
 func TestGetInt64Env(t *testing.T) {
 	tests := []struct {
-		name        string
-		envVars     map[string]string
-		key         string
-		defaultVal  int64
-		expected    int64
+		name       string
+		envVars    map[string]string
+		key        string
+		defaultVal int64
+		expected   int64
 	}{
 		{
-			name:        "valid int64",
-			envVars:     map[string]string{"INT64_KEY": "9223372036854775807"},
-			key:         "INT64_KEY",
-			defaultVal:  100,
-			expected:    9223372036854775807,
+			name:       "valid int64",
+			envVars:    map[string]string{"INT64_KEY": "9223372036854775807"},
+			key:        "INT64_KEY",
+			defaultVal: 100,
+			expected:   9223372036854775807,
 		},
 		{
-			name:        "negative int64",
-			envVars:     map[string]string{"INT64_KEY": "-9223372036854775808"},
-			key:         "INT64_KEY",
-			defaultVal:  100,
-			expected:    -9223372036854775808,
+			name:       "negative int64",
+			envVars:    map[string]string{"INT64_KEY": "-9223372036854775808"},
+			key:        "INT64_KEY",
+			defaultVal: 100,
+			expected:   -9223372036854775808,
 		},
 		{
-			name:        "invalid value returns default",
-			envVars:     map[string]string{"INT64_KEY": "invalid"},
-			key:         "INT64_KEY",
-			defaultVal:  42,
-			expected:    42,
+			name:       "invalid value returns default",
+			envVars:    map[string]string{"INT64_KEY": "invalid"},
+			key:        "INT64_KEY",
+			defaultVal: 42,
+			expected:   42,
 		},
 	}
 
@@ -465,39 +465,39 @@ func TestGetInt64Env(t *testing.T) {
 
 func TestGetFloatEnv(t *testing.T) {
 	tests := []struct {
-		name        string
-		envVars     map[string]string
-		key         string
-		defaultVal  float64
-		expected    float64
+		name       string
+		envVars    map[string]string
+		key        string
+		defaultVal float64
+		expected   float64
 	}{
 		{
-			name:        "valid float",
-			envVars:     map[string]string{"FLOAT_KEY": "3.14159"},
-			key:         "FLOAT_KEY",
-			defaultVal:  1.0,
-			expected:    3.14159,
+			name:       "valid float",
+			envVars:    map[string]string{"FLOAT_KEY": "3.14159"},
+			key:        "FLOAT_KEY",
+			defaultVal: 1.0,
+			expected:   3.14159,
 		},
 		{
-			name:        "integer as float",
-			envVars:     map[string]string{"FLOAT_KEY": "42"},
-			key:         "FLOAT_KEY",
-			defaultVal:  1.0,
-			expected:    42.0,
+			name:       "integer as float",
+			envVars:    map[string]string{"FLOAT_KEY": "42"},
+			key:        "FLOAT_KEY",
+			defaultVal: 1.0,
+			expected:   42.0,
 		},
 		{
-			name:        "scientific notation",
-			envVars:     map[string]string{"FLOAT_KEY": "1.23e-4"},
-			key:         "FLOAT_KEY",
-			defaultVal:  1.0,
-			expected:    1.23e-4,
+			name:       "scientific notation",
+			envVars:    map[string]string{"FLOAT_KEY": "1.23e-4"},
+			key:        "FLOAT_KEY",
+			defaultVal: 1.0,
+			expected:   1.23e-4,
 		},
 		{
-			name:        "invalid value returns default",
-			envVars:     map[string]string{"FLOAT_KEY": "invalid"},
-			key:         "FLOAT_KEY",
-			defaultVal:  2.5,
-			expected:    2.5,
+			name:       "invalid value returns default",
+			envVars:    map[string]string{"FLOAT_KEY": "invalid"},
+			key:        "FLOAT_KEY",
+			defaultVal: 2.5,
+			expected:   2.5,
 		},
 	}
 
@@ -801,7 +801,7 @@ func TestIsSet(t *testing.T) {
 		expected bool
 	}{
 		{"SET_VAR", true},
-		{"EMPTY_VAR", true},  // Empty but set
+		{"EMPTY_VAR", true}, // Empty but set
 		{"UNSET_VAR", false},
 	}
 
@@ -850,11 +850,11 @@ func TestValidateIntRange(t *testing.T) {
 		value       int
 		expectError bool
 	}{
-		{10, false},   // Min boundary
-		{50, false},   // Mid range
-		{100, false},  // Max boundary
-		{9, true},     // Below min
-		{101, true},   // Above max
+		{10, false},  // Min boundary
+		{50, false},  // Mid range
+		{100, false}, // Max boundary
+		{9, true},    // Below min
+		{101, true},  // Above max
 	}
 
 	for _, tt := range tests {
@@ -875,11 +875,11 @@ func TestValidateDurationRange(t *testing.T) {
 		value       time.Duration
 		expectError bool
 	}{
-		{1 * time.Second, false},     // Min boundary
-		{30 * time.Second, false},    // Mid range
-		{5 * time.Minute, false},     // Max boundary
+		{1 * time.Second, false},       // Min boundary
+		{30 * time.Second, false},      // Mid range
+		{5 * time.Minute, false},       // Max boundary
 		{500 * time.Millisecond, true}, // Below min
-		{10 * time.Minute, true},     // Above max
+		{10 * time.Minute, true},       // Above max
 	}
 
 	for _, tt := range tests {
@@ -897,7 +897,7 @@ func TestValidateDurationRange(t *testing.T) {
 func BenchmarkGetEnvOrDefault(b *testing.B) {
 	os.Setenv("BENCH_KEY", "benchmark_value")
 	defer os.Unsetenv("BENCH_KEY")
-	
+
 	for i := 0; i < b.N; i++ {
 		GetEnvOrDefault("BENCH_KEY", "default")
 	}
@@ -906,7 +906,7 @@ func BenchmarkGetEnvOrDefault(b *testing.B) {
 func BenchmarkGetBoolEnv(b *testing.B) {
 	os.Setenv("BENCH_BOOL", "true")
 	defer os.Unsetenv("BENCH_BOOL")
-	
+
 	for i := 0; i < b.N; i++ {
 		GetBoolEnv("BENCH_BOOL", false)
 	}
@@ -915,7 +915,7 @@ func BenchmarkGetBoolEnv(b *testing.B) {
 func BenchmarkGetStringSliceEnv(b *testing.B) {
 	os.Setenv("BENCH_SLICE", "item1,item2,item3,item4,item5")
 	defer os.Unsetenv("BENCH_SLICE")
-	
+
 	for i := 0; i < b.N; i++ {
 		GetStringSliceEnv("BENCH_SLICE", []string{})
 	}

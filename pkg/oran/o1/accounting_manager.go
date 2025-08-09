@@ -16,25 +16,25 @@ import (
 // ComprehensiveAccountingManager provides complete O-RAN accounting management
 // following O-RAN.WG10.O1-Interface.0-v07.00 specification
 type ComprehensiveAccountingManager struct {
-	config              *AccountingManagerConfig
-	usageCollector      *UsageDataCollector
-	meteringEngine      *MeteringEngine
-	billingEngine       *BillingEngine
-	chargingManager     *ChargingManager
-	usageAggregator     *UsageAggregator
-	reportGenerator     *AccountingReportGenerator
-	auditTrail          *AccountingAuditTrail
-	dataRetention       *DataRetentionManager
-	rateLimitManager    *RateLimitManager
-	quotaManager        *QuotaManager
-	fraudDetection      *FraudDetectionEngine
-	settlementManager   *SettlementManager
-	revenueTracking     *RevenueTrackingService
-	usageStorage        *UsageDataStorage
-	metrics             *AccountingMetrics
-	running             bool
-	stopChan            chan struct{}
-	mutex               sync.RWMutex
+	config            *AccountingManagerConfig
+	usageCollector    *UsageDataCollector
+	meteringEngine    *MeteringEngine
+	billingEngine     *BillingEngine
+	chargingManager   *ChargingManager
+	usageAggregator   *UsageAggregator
+	reportGenerator   *AccountingReportGenerator
+	auditTrail        *AccountingAuditTrail
+	dataRetention     *DataRetentionManager
+	rateLimitManager  *RateLimitManager
+	quotaManager      *QuotaManager
+	fraudDetection    *FraudDetectionEngine
+	settlementManager *SettlementManager
+	revenueTracking   *RevenueTrackingService
+	usageStorage      *UsageDataStorage
+	metrics           *AccountingMetrics
+	running           bool
+	stopChan          chan struct{}
+	mutex             sync.RWMutex
 }
 
 // AccountingManagerConfig holds accounting configuration
@@ -59,16 +59,16 @@ type AccountingManagerConfig struct {
 
 // ChargingRate defines charging rates for different services
 type ChargingRate struct {
-	ServiceID     string                 `json:"service_id"`
-	RateType      string                 `json:"rate_type"` // FLAT, USAGE, TIERED, DYNAMIC
-	BaseRate      float64                `json:"base_rate"`
-	UsageRates    map[string]float64     `json:"usage_rates"`
-	TieredRates   []*TierRate            `json:"tiered_rates"`
-	TimeBasedRates map[string]float64    `json:"time_based_rates"`
-	Currency      string                 `json:"currency"`
-	ValidFrom     time.Time              `json:"valid_from"`
-	ValidUntil    time.Time              `json:"valid_until"`
-	Conditions    map[string]interface{} `json:"conditions"`
+	ServiceID      string                 `json:"service_id"`
+	RateType       string                 `json:"rate_type"` // FLAT, USAGE, TIERED, DYNAMIC
+	BaseRate       float64                `json:"base_rate"`
+	UsageRates     map[string]float64     `json:"usage_rates"`
+	TieredRates    []*TierRate            `json:"tiered_rates"`
+	TimeBasedRates map[string]float64     `json:"time_based_rates"`
+	Currency       string                 `json:"currency"`
+	ValidFrom      time.Time              `json:"valid_from"`
+	ValidUntil     time.Time              `json:"valid_until"`
+	Conditions     map[string]interface{} `json:"conditions"`
 }
 
 // TierRate represents tiered pricing rates
@@ -81,37 +81,37 @@ type TierRate struct {
 
 // DiscountRule defines discount rules
 type DiscountRule struct {
-	ID            string                 `json:"id"`
-	Name          string                 `json:"name"`
-	Type          string                 `json:"type"` // PERCENTAGE, FIXED, TIER_BASED
-	Value         float64                `json:"value"`
-	Conditions    map[string]interface{} `json:"conditions"`
-	ApplicableTo  []string               `json:"applicable_to"`
-	ValidFrom     time.Time              `json:"valid_from"`
-	ValidUntil    time.Time              `json:"valid_until"`
-	MaxDiscount   float64                `json:"max_discount"`
-	Priority      int                    `json:"priority"`
-	Enabled       bool                   `json:"enabled"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Type         string                 `json:"type"` // PERCENTAGE, FIXED, TIER_BASED
+	Value        float64                `json:"value"`
+	Conditions   map[string]interface{} `json:"conditions"`
+	ApplicableTo []string               `json:"applicable_to"`
+	ValidFrom    time.Time              `json:"valid_from"`
+	ValidUntil   time.Time              `json:"valid_until"`
+	MaxDiscount  float64                `json:"max_discount"`
+	Priority     int                    `json:"priority"`
+	Enabled      bool                   `json:"enabled"`
 }
 
 // QuotaLimit defines resource quota limits
 type QuotaLimit struct {
-	ResourceType  string    `json:"resource_type"`
-	Limit         float64   `json:"limit"`
-	Unit          string    `json:"unit"`
-	Period        string    `json:"period"` // DAILY, WEEKLY, MONTHLY
-	Warning       float64   `json:"warning"` // Warning threshold percentage
-	Action        string    `json:"action"` // ALERT, THROTTLE, BLOCK
-	ResetTime     time.Time `json:"reset_time"`
+	ResourceType string    `json:"resource_type"`
+	Limit        float64   `json:"limit"`
+	Unit         string    `json:"unit"`
+	Period       string    `json:"period"`  // DAILY, WEEKLY, MONTHLY
+	Warning      float64   `json:"warning"` // Warning threshold percentage
+	Action       string    `json:"action"`  // ALERT, THROTTLE, BLOCK
+	ResetTime    time.Time `json:"reset_time"`
 }
 
 // RateLimit defines rate limiting parameters
 type RateLimit struct {
-	ResourceType  string        `json:"resource_type"`
-	Limit         int           `json:"limit"`
-	Window        time.Duration `json:"window"`
-	BurstLimit    int           `json:"burst_limit"`
-	Action        string        `json:"action"` // THROTTLE, REJECT, QUEUE
+	ResourceType string        `json:"resource_type"`
+	Limit        int           `json:"limit"`
+	Window       time.Duration `json:"window"`
+	BurstLimit   int           `json:"burst_limit"`
+	Action       string        `json:"action"` // THROTTLE, REJECT, QUEUE
 }
 
 // UsageDataCollector collects resource usage data
@@ -127,18 +127,18 @@ type UsageDataCollector struct {
 
 // ResourceCollector collects usage data for specific resources
 type ResourceCollector struct {
-	ID           string
-	ResourceType string
-	ElementID    string
+	ID               string
+	ResourceType     string
+	ElementID        string
 	CollectionMethod string // PERIODIC, EVENT_DRIVEN, ON_DEMAND
-	Interval     time.Duration
-	LastCollection time.Time
-	Status       string // ACTIVE, INACTIVE, ERROR
-	ErrorCount   int64
-	SuccessCount int64
-	Config       map[string]interface{}
-	running      bool
-	cancel       context.CancelFunc
+	Interval         time.Duration
+	LastCollection   time.Time
+	Status           string // ACTIVE, INACTIVE, ERROR
+	ErrorCount       int64
+	SuccessCount     int64
+	Config           map[string]interface{}
+	running          bool
+	cancel           context.CancelFunc
 }
 
 // UsageEvent represents a resource usage event
@@ -171,16 +171,16 @@ type UsageProcessor interface {
 
 // ProcessedUsage represents processed usage data
 type ProcessedUsage struct {
-	Event         *UsageEvent            `json:"event"`
-	ProcessedAt   time.Time              `json:"processed_at"`
-	NormalizedQuantity float64           `json:"normalized_quantity"`
-	NormalizedUnit     string            `json:"normalized_unit"`
-	ChargingAmount     float64           `json:"charging_amount"`
-	Currency           string            `json:"currency"`
-	Billable           bool              `json:"billable"`
-	TaxAmount          float64           `json:"tax_amount"`
-	DiscountAmount     float64           `json:"discount_amount"`
-	NetAmount          float64           `json:"net_amount"`
+	Event              *UsageEvent            `json:"event"`
+	ProcessedAt        time.Time              `json:"processed_at"`
+	NormalizedQuantity float64                `json:"normalized_quantity"`
+	NormalizedUnit     string                 `json:"normalized_unit"`
+	ChargingAmount     float64                `json:"charging_amount"`
+	Currency           string                 `json:"currency"`
+	Billable           bool                   `json:"billable"`
+	TaxAmount          float64                `json:"tax_amount"`
+	DiscountAmount     float64                `json:"discount_amount"`
+	NetAmount          float64                `json:"net_amount"`
 	Metadata           map[string]interface{} `json:"metadata"`
 }
 
@@ -208,36 +208,36 @@ type CollectorConfig struct {
 
 // MeteringEngine performs usage metering and calculation
 type MeteringEngine struct {
-	meters          map[string]*UsageMeter
-	calculators     map[string]*UsageCalculator
+	meters           map[string]*UsageMeter
+	calculators      map[string]*UsageCalculator
 	aggregationRules []*AggregationRule
-	config          *MeteringConfig
-	mutex           sync.RWMutex
+	config           *MeteringConfig
+	mutex            sync.RWMutex
 }
 
 // UsageMeter tracks resource usage
 type UsageMeter struct {
-	ID            string
-	ResourceType  string
-	Unit          string
-	Precision     int
-	Accumulator   *UsageAccumulator
-	ResetPolicy   string // NEVER, DAILY, WEEKLY, MONTHLY
-	LastReset     time.Time
-	CurrentValue  float64
-	PeakValue     float64
-	AverageValue  float64
-	SampleCount   int64
-	Status        string // ACTIVE, INACTIVE, ERROR
+	ID           string
+	ResourceType string
+	Unit         string
+	Precision    int
+	Accumulator  *UsageAccumulator
+	ResetPolicy  string // NEVER, DAILY, WEEKLY, MONTHLY
+	LastReset    time.Time
+	CurrentValue float64
+	PeakValue    float64
+	AverageValue float64
+	SampleCount  int64
+	Status       string // ACTIVE, INACTIVE, ERROR
 }
 
 // UsageAccumulator accumulates usage values
 type UsageAccumulator struct {
-	Type        string // SUM, AVERAGE, MAX, MIN, DELTA
-	Window      time.Duration
-	Samples     []*UsageSample
-	MaxSamples  int
-	mutex       sync.RWMutex
+	Type       string // SUM, AVERAGE, MAX, MIN, DELTA
+	Window     time.Duration
+	Samples    []*UsageSample
+	MaxSamples int
+	mutex      sync.RWMutex
 }
 
 // UsageSample represents a usage sample
@@ -257,125 +257,125 @@ type UsageCalculator interface {
 
 // CalculatedUsage represents calculated usage
 type CalculatedUsage struct {
-	ResourceType    string    `json:"resource_type"`
-	Period          string    `json:"period"`
-	StartTime       time.Time `json:"start_time"`
-	EndTime         time.Time `json:"end_time"`
-	TotalUsage      float64   `json:"total_usage"`
-	PeakUsage       float64   `json:"peak_usage"`
-	AverageUsage    float64   `json:"average_usage"`
-	MinUsage        float64   `json:"min_usage"`
-	Unit            string    `json:"unit"`
-	Quality         string    `json:"quality"`
-	SampleCount     int64     `json:"sample_count"`
-	CalculationTime time.Time `json:"calculation_time"`
+	ResourceType    string                 `json:"resource_type"`
+	Period          string                 `json:"period"`
+	StartTime       time.Time              `json:"start_time"`
+	EndTime         time.Time              `json:"end_time"`
+	TotalUsage      float64                `json:"total_usage"`
+	PeakUsage       float64                `json:"peak_usage"`
+	AverageUsage    float64                `json:"average_usage"`
+	MinUsage        float64                `json:"min_usage"`
+	Unit            string                 `json:"unit"`
+	Quality         string                 `json:"quality"`
+	SampleCount     int64                  `json:"sample_count"`
+	CalculationTime time.Time              `json:"calculation_time"`
 	Metadata        map[string]interface{} `json:"metadata"`
 }
 
 // AggregationRule defines usage aggregation rules
 type AggregationRule struct {
-	ID              string        `json:"id"`
-	ResourceTypes   []string      `json:"resource_types"`
-	AggregationType string        `json:"aggregation_type"` // SUM, AVERAGE, MAX, MIN
-	TimeWindow      time.Duration `json:"time_window"`
-	GroupBy         []string      `json:"group_by"`
+	ID              string                 `json:"id"`
+	ResourceTypes   []string               `json:"resource_types"`
+	AggregationType string                 `json:"aggregation_type"` // SUM, AVERAGE, MAX, MIN
+	TimeWindow      time.Duration          `json:"time_window"`
+	GroupBy         []string               `json:"group_by"`
 	Filters         map[string]interface{} `json:"filters"`
-	OutputFormat    string        `json:"output_format"`
-	Enabled         bool          `json:"enabled"`
+	OutputFormat    string                 `json:"output_format"`
+	Enabled         bool                   `json:"enabled"`
 }
 
 // MeteringConfig holds metering configuration
 type MeteringConfig struct {
-	DefaultUnit           string
-	DefaultPrecision      int
-	MaxAccumulatorSamples int
-	AggregationSchedule   map[string]string
-	CalculationTimeout    time.Duration
+	DefaultUnit            string
+	DefaultPrecision       int
+	MaxAccumulatorSamples  int
+	AggregationSchedule    map[string]string
+	CalculationTimeout     time.Duration
 	EnableRealTimeMetering bool
 }
 
 // BillingEngine generates bills and invoices
 type BillingEngine struct {
-	billingCycles   map[string]*BillingCycle
+	billingCycles    map[string]*BillingCycle
 	invoiceGenerator *InvoiceGenerator
 	paymentProcessor *PaymentProcessor
-	taxCalculator   *TaxCalculator
-	discountEngine  *DiscountEngine
-	creditManager   *CreditManager
-	config          *BillingConfig
-	mutex           sync.RWMutex
+	taxCalculator    *TaxCalculator
+	discountEngine   *DiscountEngine
+	creditManager    *CreditManager
+	config           *BillingConfig
+	mutex            sync.RWMutex
 }
 
 // BillingCycle represents a billing cycle
 type BillingCycle struct {
-	ID            string    `json:"id"`
-	CustomerID    string    `json:"customer_id"`
-	ServiceID     string    `json:"service_id"`
-	CycleType     string    `json:"cycle_type"` // PREPAID, POSTPAID
-	Period        string    `json:"period"` // MONTHLY, QUARTERLY, ANNUAL
-	StartDate     time.Time `json:"start_date"`
-	EndDate       time.Time `json:"end_date"`
-	DueDate       time.Time `json:"due_date"`
-	Status        string    `json:"status"` // ACTIVE, SUSPENDED, CLOSED
-	BillingDay    int       `json:"billing_day"`
-	GracePeriod   time.Duration `json:"grace_period"`
-	UsageData     []*ProcessedUsage `json:"usage_data"`
-	Charges       []*BillingCharge `json:"charges"`
-	Credits       []*BillingCredit `json:"credits"`
-	Adjustments   []*BillingAdjustment `json:"adjustments"`
-	SubTotal      float64   `json:"sub_total"`
-	TaxAmount     float64   `json:"tax_amount"`
-	DiscountAmount float64  `json:"discount_amount"`
-	TotalAmount   float64   `json:"total_amount"`
-	PaidAmount    float64   `json:"paid_amount"`
-	Balance       float64   `json:"balance"`
+	ID             string               `json:"id"`
+	CustomerID     string               `json:"customer_id"`
+	ServiceID      string               `json:"service_id"`
+	CycleType      string               `json:"cycle_type"` // PREPAID, POSTPAID
+	Period         string               `json:"period"`     // MONTHLY, QUARTERLY, ANNUAL
+	StartDate      time.Time            `json:"start_date"`
+	EndDate        time.Time            `json:"end_date"`
+	DueDate        time.Time            `json:"due_date"`
+	Status         string               `json:"status"` // ACTIVE, SUSPENDED, CLOSED
+	BillingDay     int                  `json:"billing_day"`
+	GracePeriod    time.Duration        `json:"grace_period"`
+	UsageData      []*ProcessedUsage    `json:"usage_data"`
+	Charges        []*BillingCharge     `json:"charges"`
+	Credits        []*BillingCredit     `json:"credits"`
+	Adjustments    []*BillingAdjustment `json:"adjustments"`
+	SubTotal       float64              `json:"sub_total"`
+	TaxAmount      float64              `json:"tax_amount"`
+	DiscountAmount float64              `json:"discount_amount"`
+	TotalAmount    float64              `json:"total_amount"`
+	PaidAmount     float64              `json:"paid_amount"`
+	Balance        float64              `json:"balance"`
 }
 
 // BillingCharge represents a billing charge
 type BillingCharge struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"` // USAGE, SUBSCRIPTION, ONE_TIME
-	Description string    `json:"description"`
-	Quantity    float64   `json:"quantity"`
-	Unit        string    `json:"unit"`
-	Rate        float64   `json:"rate"`
-	Amount      float64   `json:"amount"`
-	Currency    string    `json:"currency"`
-	TaxRate     float64   `json:"tax_rate"`
-	TaxAmount   float64   `json:"tax_amount"`
-	Period      string    `json:"period,omitempty"`
-	StartDate   time.Time `json:"start_date,omitempty"`
-	EndDate     time.Time `json:"end_date,omitempty"`
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"` // USAGE, SUBSCRIPTION, ONE_TIME
+	Description string                 `json:"description"`
+	Quantity    float64                `json:"quantity"`
+	Unit        string                 `json:"unit"`
+	Rate        float64                `json:"rate"`
+	Amount      float64                `json:"amount"`
+	Currency    string                 `json:"currency"`
+	TaxRate     float64                `json:"tax_rate"`
+	TaxAmount   float64                `json:"tax_amount"`
+	Period      string                 `json:"period,omitempty"`
+	StartDate   time.Time              `json:"start_date,omitempty"`
+	EndDate     time.Time              `json:"end_date,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // BillingCredit represents a billing credit
 type BillingCredit struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"` // ADJUSTMENT, REFUND, PROMOTIONAL
-	Description string    `json:"description"`
-	Amount      float64   `json:"amount"`
-	Currency    string    `json:"currency"`
-	AppliedDate time.Time `json:"applied_date"`
-	ExpiryDate  time.Time `json:"expiry_date,omitempty"`
-	Reason      string    `json:"reason"`
-	Reference   string    `json:"reference"`
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"` // ADJUSTMENT, REFUND, PROMOTIONAL
+	Description string                 `json:"description"`
+	Amount      float64                `json:"amount"`
+	Currency    string                 `json:"currency"`
+	AppliedDate time.Time              `json:"applied_date"`
+	ExpiryDate  time.Time              `json:"expiry_date,omitempty"`
+	Reason      string                 `json:"reason"`
+	Reference   string                 `json:"reference"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
 // BillingAdjustment represents a billing adjustment
 type BillingAdjustment struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"` // CREDIT, DEBIT, REVERSAL
-	Amount      float64   `json:"amount"`
-	Currency    string    `json:"currency"`
-	Description string    `json:"description"`
-	Reason      string    `json:"reason"`
-	Reference   string    `json:"reference"`
-	AppliedDate time.Time `json:"applied_date"`
-	AppliedBy   string    `json:"applied_by"`
-	Approved    bool      `json:"approved"`
-	ApprovedBy  string    `json:"approved_by,omitempty"`
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"` // CREDIT, DEBIT, REVERSAL
+	Amount      float64                `json:"amount"`
+	Currency    string                 `json:"currency"`
+	Description string                 `json:"description"`
+	Reason      string                 `json:"reason"`
+	Reference   string                 `json:"reference"`
+	AppliedDate time.Time              `json:"applied_date"`
+	AppliedBy   string                 `json:"applied_by"`
+	Approved    bool                   `json:"approved"`
+	ApprovedBy  string                 `json:"approved_by,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
@@ -389,11 +389,11 @@ type InvoiceGenerator struct {
 
 // InvoiceTemplate defines invoice template structure
 type InvoiceTemplate struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Format   string `json:"format"` // PDF, HTML, XML, JSON
-	Template string `json:"template"`
-	Sections []*InvoiceSection `json:"sections"`
+	ID       string                 `json:"id"`
+	Name     string                 `json:"name"`
+	Format   string                 `json:"format"` // PDF, HTML, XML, JSON
+	Template string                 `json:"template"`
+	Sections []*InvoiceSection      `json:"sections"`
 	Metadata map[string]interface{} `json:"metadata"`
 }
 
@@ -415,17 +415,17 @@ type InvoiceFormatGenerator interface {
 
 // GeneratedInvoice represents a generated invoice
 type GeneratedInvoice struct {
-	ID          string    `json:"id"`
-	Number      string    `json:"number"`
-	CycleID     string    `json:"cycle_id"`
-	CustomerID  string    `json:"customer_id"`
-	Format      string    `json:"format"`
-	Content     []byte    `json:"content"`
-	Size        int64     `json:"size"`
-	Checksum    string    `json:"checksum"`
-	GeneratedAt time.Time `json:"generated_at"`
-	DueDate     time.Time `json:"due_date"`
-	Status      string    `json:"status"` // DRAFT, SENT, PAID, OVERDUE, CANCELLED
+	ID          string                 `json:"id"`
+	Number      string                 `json:"number"`
+	CycleID     string                 `json:"cycle_id"`
+	CustomerID  string                 `json:"customer_id"`
+	Format      string                 `json:"format"`
+	Content     []byte                 `json:"content"`
+	Size        int64                  `json:"size"`
+	Checksum    string                 `json:"checksum"`
+	GeneratedAt time.Time              `json:"generated_at"`
+	DueDate     time.Time              `json:"due_date"`
+	Status      string                 `json:"status"` // DRAFT, SENT, PAID, OVERDUE, CANCELLED
 	Metadata    map[string]interface{} `json:"metadata"`
 }
 
@@ -450,16 +450,16 @@ type PaymentProcessor struct {
 
 // PaymentProvider represents a payment provider
 type PaymentProvider struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Type         string                 `json:"type"` // CREDIT_CARD, BANK_TRANSFER, DIGITAL_WALLET
-	Endpoint     string                 `json:"endpoint"`
-	Credentials  map[string]string      `json:"credentials"`
-	SupportedCurrencies []string        `json:"supported_currencies"`
-	Fees         map[string]float64     `json:"fees"`
-	Limits       map[string]float64     `json:"limits"`
-	Enabled      bool                   `json:"enabled"`
-	Config       map[string]interface{} `json:"config"`
+	ID                  string                 `json:"id"`
+	Name                string                 `json:"name"`
+	Type                string                 `json:"type"` // CREDIT_CARD, BANK_TRANSFER, DIGITAL_WALLET
+	Endpoint            string                 `json:"endpoint"`
+	Credentials         map[string]string      `json:"credentials"`
+	SupportedCurrencies []string               `json:"supported_currencies"`
+	Fees                map[string]float64     `json:"fees"`
+	Limits              map[string]float64     `json:"limits"`
+	Enabled             bool                   `json:"enabled"`
+	Config              map[string]interface{} `json:"config"`
 }
 
 // PaymentTransaction represents a payment transaction
@@ -491,29 +491,29 @@ type TaxCalculator struct {
 
 // TaxRule defines tax calculation rules
 type TaxRule struct {
-	ID            string                 `json:"id"`
-	Name          string                 `json:"name"`
-	Type          string                 `json:"type"` // PERCENTAGE, FIXED, COMPOUND
-	Rate          float64                `json:"rate"`
-	ApplicableTo  []string               `json:"applicable_to"`
-	Jurisdiction  string                 `json:"jurisdiction"`
-	Conditions    map[string]interface{} `json:"conditions"`
-	ValidFrom     time.Time              `json:"valid_from"`
-	ValidUntil    time.Time              `json:"valid_until"`
-	Priority      int                    `json:"priority"`
-	Enabled       bool                   `json:"enabled"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	Type         string                 `json:"type"` // PERCENTAGE, FIXED, COMPOUND
+	Rate         float64                `json:"rate"`
+	ApplicableTo []string               `json:"applicable_to"`
+	Jurisdiction string                 `json:"jurisdiction"`
+	Conditions   map[string]interface{} `json:"conditions"`
+	ValidFrom    time.Time              `json:"valid_from"`
+	ValidUntil   time.Time              `json:"valid_until"`
+	Priority     int                    `json:"priority"`
+	Enabled      bool                   `json:"enabled"`
 }
 
 // TaxExemption defines tax exemptions
 type TaxExemption struct {
-	ID           string                 `json:"id"`
-	CustomerID   string                 `json:"customer_id"`
-	ServiceTypes []string               `json:"service_types"`
-	ExemptionType string                `json:"exemption_type"`
-	Certificate  string                 `json:"certificate"`
-	ValidFrom    time.Time              `json:"valid_from"`
-	ValidUntil   time.Time              `json:"valid_until"`
-	Conditions   map[string]interface{} `json:"conditions"`
+	ID            string                 `json:"id"`
+	CustomerID    string                 `json:"customer_id"`
+	ServiceTypes  []string               `json:"service_types"`
+	ExemptionType string                 `json:"exemption_type"`
+	Certificate   string                 `json:"certificate"`
+	ValidFrom     time.Time              `json:"valid_from"`
+	ValidUntil    time.Time              `json:"valid_until"`
+	Conditions    map[string]interface{} `json:"conditions"`
 }
 
 // DiscountEngine applies discounts
@@ -526,18 +526,18 @@ type DiscountEngine struct {
 
 // DiscountCoupon represents a discount coupon
 type DiscountCoupon struct {
-	ID           string                 `json:"id"`
-	Code         string                 `json:"code"`
-	Type         string                 `json:"type"`
-	Value        float64                `json:"value"`
-	MinAmount    float64                `json:"min_amount"`
-	MaxDiscount  float64                `json:"max_discount"`
-	UsageLimit   int                    `json:"usage_limit"`
-	UsedCount    int                    `json:"used_count"`
-	ValidFrom    time.Time              `json:"valid_from"`
-	ValidUntil   time.Time              `json:"valid_until"`
-	Conditions   map[string]interface{} `json:"conditions"`
-	Active       bool                   `json:"active"`
+	ID          string                 `json:"id"`
+	Code        string                 `json:"code"`
+	Type        string                 `json:"type"`
+	Value       float64                `json:"value"`
+	MinAmount   float64                `json:"min_amount"`
+	MaxDiscount float64                `json:"max_discount"`
+	UsageLimit  int                    `json:"usage_limit"`
+	UsedCount   int                    `json:"used_count"`
+	ValidFrom   time.Time              `json:"valid_from"`
+	ValidUntil  time.Time              `json:"valid_until"`
+	Conditions  map[string]interface{} `json:"conditions"`
+	Active      bool                   `json:"active"`
 }
 
 // DiscountCampaign represents a discount campaign
@@ -578,14 +578,14 @@ type CreditManager struct {
 
 // CustomerCredit represents customer credit balance
 type CustomerCredit struct {
-	CustomerID     string    `json:"customer_id"`
-	Balance        float64   `json:"balance"`
-	Currency       string    `json:"currency"`
-	CreditLimit    float64   `json:"credit_limit"`
-	AvailableCredit float64  `json:"available_credit"`
-	LastUpdate     time.Time `json:"last_update"`
-	Status         string    `json:"status"` // ACTIVE, SUSPENDED, FROZEN
-	Transactions   []*CreditTransaction `json:"transactions"`
+	CustomerID      string               `json:"customer_id"`
+	Balance         float64              `json:"balance"`
+	Currency        string               `json:"currency"`
+	CreditLimit     float64              `json:"credit_limit"`
+	AvailableCredit float64              `json:"available_credit"`
+	LastUpdate      time.Time            `json:"last_update"`
+	Status          string               `json:"status"` // ACTIVE, SUSPENDED, FROZEN
+	Transactions    []*CreditTransaction `json:"transactions"`
 }
 
 // CreditTransaction represents a credit transaction
@@ -619,12 +619,12 @@ type CreditCalculator interface {
 
 // ChargingManager manages charging operations
 type ChargingManager struct {
-	chargingRules  []*ChargingRule
-	rateCards      map[string]*RateCard
-	priceBooks     map[string]*PriceBook
-	ratingEngine   *RatingEngine
-	config         *ChargingConfig
-	mutex          sync.RWMutex
+	chargingRules []*ChargingRule
+	rateCards     map[string]*RateCard
+	priceBooks    map[string]*PriceBook
+	ratingEngine  *RatingEngine
+	config        *ChargingConfig
+	mutex         sync.RWMutex
 }
 
 // ChargingRule defines charging rules
@@ -642,48 +642,48 @@ type ChargingRule struct {
 
 // RateCard defines rate cards for charging
 type RateCard struct {
-	ID          string                `json:"id"`
-	Name        string                `json:"name"`
-	Version     string                `json:"version"`
-	Currency    string                `json:"currency"`
-	Rates       map[string]*ChargingRate `json:"rates"`
-	ValidFrom   time.Time             `json:"valid_from"`
-	ValidUntil  time.Time             `json:"valid_until"`
-	Status      string                `json:"status"`
+	ID         string                   `json:"id"`
+	Name       string                   `json:"name"`
+	Version    string                   `json:"version"`
+	Currency   string                   `json:"currency"`
+	Rates      map[string]*ChargingRate `json:"rates"`
+	ValidFrom  time.Time                `json:"valid_from"`
+	ValidUntil time.Time                `json:"valid_until"`
+	Status     string                   `json:"status"`
 }
 
 // PriceBook contains pricing information
 type PriceBook struct {
-	ID          string               `json:"id"`
-	Name        string               `json:"name"`
-	Version     string               `json:"version"`
-	Currency    string               `json:"currency"`
-	Services    map[string]*ServicePrice `json:"services"`
-	ValidFrom   time.Time            `json:"valid_from"`
-	ValidUntil  time.Time            `json:"valid_until"`
-	Status      string               `json:"status"`
+	ID         string                   `json:"id"`
+	Name       string                   `json:"name"`
+	Version    string                   `json:"version"`
+	Currency   string                   `json:"currency"`
+	Services   map[string]*ServicePrice `json:"services"`
+	ValidFrom  time.Time                `json:"valid_from"`
+	ValidUntil time.Time                `json:"valid_until"`
+	Status     string                   `json:"status"`
 }
 
 // ServicePrice defines service pricing
 type ServicePrice struct {
-	ServiceID      string             `json:"service_id"`
-	BasePrice      float64            `json:"base_price"`
-	SetupFee       float64            `json:"setup_fee"`
-	RecurringFee   float64            `json:"recurring_fee"`
-	UsageRates     map[string]float64 `json:"usage_rates"`
-	DiscountRules  []string           `json:"discount_rules"`
-	BundleOptions  []*BundleOption    `json:"bundle_options"`
+	ServiceID     string             `json:"service_id"`
+	BasePrice     float64            `json:"base_price"`
+	SetupFee      float64            `json:"setup_fee"`
+	RecurringFee  float64            `json:"recurring_fee"`
+	UsageRates    map[string]float64 `json:"usage_rates"`
+	DiscountRules []string           `json:"discount_rules"`
+	BundleOptions []*BundleOption    `json:"bundle_options"`
 }
 
 // BundleOption represents service bundle options
 type BundleOption struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Price       float64 `json:"price"`
-	Discount    float64 `json:"discount"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Price       float64  `json:"price"`
+	Discount    float64  `json:"discount"`
 	Services    []string `json:"services"`
-	MinQuantity int     `json:"min_quantity"`
-	MaxQuantity int     `json:"max_quantity"`
+	MinQuantity int      `json:"min_quantity"`
+	MaxQuantity int      `json:"max_quantity"`
 }
 
 // RatingEngine performs rating calculations
@@ -703,31 +703,31 @@ type UsageRater interface {
 
 // RatedUsage represents rated usage
 type RatedUsage struct {
-	Usage         *ProcessedUsage `json:"usage"`
-	RateCard      string          `json:"rate_card"`
-	BaseAmount    float64         `json:"base_amount"`
-	UsageAmount   float64         `json:"usage_amount"`
-	TotalAmount   float64         `json:"total_amount"`
-	Currency      string          `json:"currency"`
-	RatingTime    time.Time       `json:"rating_time"`
-	RateDetails   map[string]interface{} `json:"rate_details"`
+	Usage       *ProcessedUsage        `json:"usage"`
+	RateCard    string                 `json:"rate_card"`
+	BaseAmount  float64                `json:"base_amount"`
+	UsageAmount float64                `json:"usage_amount"`
+	TotalAmount float64                `json:"total_amount"`
+	Currency    string                 `json:"currency"`
+	RatingTime  time.Time              `json:"rating_time"`
+	RateDetails map[string]interface{} `json:"rate_details"`
 }
 
 // RateCalculator performs rate calculations
 type RateCalculator struct {
-	ID          string
-	Type        string
-	Formula     string
-	Parameters  map[string]interface{}
-	Enabled     bool
+	ID         string
+	Type       string
+	Formula    string
+	Parameters map[string]interface{}
+	Enabled    bool
 }
 
 // RatingCache caches rating results
 type RatingCache struct {
-	cache     map[string]*CachedRating
-	mutex     sync.RWMutex
-	ttl       time.Duration
-	maxSize   int
+	cache   map[string]*CachedRating
+	mutex   sync.RWMutex
+	ttl     time.Duration
+	maxSize int
 }
 
 // CachedRating represents cached rating data
@@ -739,24 +739,24 @@ type CachedRating struct {
 
 // UsageAggregator aggregates usage data
 type UsageAggregator struct {
-	aggregators    map[string]*DataAggregator
-	schedules      map[string]*AggregationSchedule
-	storage        *AggregatedDataStorage
-	config         *AggregationConfig
-	running        bool
-	mutex          sync.RWMutex
+	aggregators map[string]*DataAggregator
+	schedules   map[string]*AggregationSchedule
+	storage     *AggregatedDataStorage
+	config      *AggregationConfig
+	running     bool
+	mutex       sync.RWMutex
 }
 
 // DataAggregator aggregates usage data
 type DataAggregator struct {
-	ID             string
-	ResourceTypes  []string
+	ID              string
+	ResourceTypes   []string
 	AggregationType string // SUM, AVERAGE, MAX, MIN, COUNT
-	TimeWindow     time.Duration
-	GroupByFields  []string
-	Filters        map[string]interface{}
-	LastRun        time.Time
-	Status         string
+	TimeWindow      time.Duration
+	GroupByFields   []string
+	Filters         map[string]interface{}
+	LastRun         time.Time
+	Status          string
 }
 
 // AggregationSchedule defines aggregation schedules
@@ -777,18 +777,18 @@ type AggregatedDataStorage interface {
 
 // AggregatedUsageData represents aggregated usage data
 type AggregatedUsageData struct {
-	ID             string                 `json:"id"`
-	ResourceType   string                 `json:"resource_type"`
-	AggregationType string                `json:"aggregation_type"`
-	Period         string                 `json:"period"`
-	StartTime      time.Time              `json:"start_time"`
-	EndTime        time.Time              `json:"end_time"`
-	Value          float64                `json:"value"`
-	Unit           string                 `json:"unit"`
-	Count          int64                  `json:"count"`
-	Dimensions     map[string]interface{} `json:"dimensions"`
-	Metadata       map[string]interface{} `json:"metadata"`
-	CreatedAt      time.Time              `json:"created_at"`
+	ID              string                 `json:"id"`
+	ResourceType    string                 `json:"resource_type"`
+	AggregationType string                 `json:"aggregation_type"`
+	Period          string                 `json:"period"`
+	StartTime       time.Time              `json:"start_time"`
+	EndTime         time.Time              `json:"end_time"`
+	Value           float64                `json:"value"`
+	Unit            string                 `json:"unit"`
+	Count           int64                  `json:"count"`
+	Dimensions      map[string]interface{} `json:"dimensions"`
+	Metadata        map[string]interface{} `json:"metadata"`
+	CreatedAt       time.Time              `json:"created_at"`
 }
 
 // AggregationQuery represents a query for aggregated data
@@ -805,37 +805,37 @@ type AggregationQuery struct {
 
 // AccountingReportGenerator generates accounting reports
 type AccountingReportGenerator struct {
-	templates    map[string]*ReportTemplate
-	generators   map[string]ReportGenerator
-	scheduler    *ReportScheduler
-	distributor  *ReportDistributor
-	config       *ReportingConfig
+	templates   map[string]*ReportTemplate
+	generators  map[string]ReportGenerator
+	scheduler   *ReportScheduler
+	distributor *ReportDistributor
+	config      *ReportingConfig
 }
 
 // AccountingAuditTrail maintains audit trail for accounting operations
 type AccountingAuditTrail struct {
-	entries     []*AuditEntry
-	storage     AuditStorage
-	retention   *AuditRetentionPolicy
-	encryption  *AuditEncryption
-	mutex       sync.RWMutex
+	entries    []*AuditEntry
+	storage    AuditStorage
+	retention  *AuditRetentionPolicy
+	encryption *AuditEncryption
+	mutex      sync.RWMutex
 }
 
 // DataRetentionManager manages data retention policies
 type DataRetentionManager struct {
-	policies    map[string]*RetentionPolicy
-	scheduler   *RetentionScheduler
-	archiver    *DataArchiver
-	config      *RetentionConfig
+	policies  map[string]*RetentionPolicy
+	scheduler *RetentionScheduler
+	archiver  *DataArchiver
+	config    *RetentionConfig
 }
 
 // RateLimitManager manages rate limiting
 type RateLimitManager struct {
-	limiters    map[string]*ResourceLimiter
-	policies    []*RateLimitPolicy
-	violations  map[string]*RateLimitViolation
-	config      *RateLimitConfig
-	mutex       sync.RWMutex
+	limiters   map[string]*ResourceLimiter
+	policies   []*RateLimitPolicy
+	violations map[string]*RateLimitViolation
+	config     *RateLimitConfig
+	mutex      sync.RWMutex
 }
 
 // ResourceLimiter limits resource usage rates
@@ -874,12 +874,12 @@ type RateLimitViolation struct {
 
 // QuotaManager manages resource quotas
 type QuotaManager struct {
-	quotas      map[string]*ResourceQuota
-	usage       map[string]*QuotaUsage
-	policies    []*QuotaPolicy
-	violations  map[string]*QuotaViolation
-	config      *QuotaConfig
-	mutex       sync.RWMutex
+	quotas     map[string]*ResourceQuota
+	usage      map[string]*QuotaUsage
+	policies   []*QuotaPolicy
+	violations map[string]*QuotaViolation
+	config     *QuotaConfig
+	mutex      sync.RWMutex
 }
 
 // ResourceQuota defines resource quotas
@@ -899,13 +899,13 @@ type ResourceQuota struct {
 
 // QuotaUsage tracks quota usage
 type QuotaUsage struct {
-	QuotaID      string
-	Current      float64
-	Percentage   float64
-	LastUpdate   time.Time
-	ResetTime    time.Time
-	Violations   int
-	Status       string
+	QuotaID    string
+	Current    float64
+	Percentage float64
+	LastUpdate time.Time
+	ResetTime  time.Time
+	Violations int
+	Status     string
 }
 
 // QuotaPolicy defines quota policies
@@ -923,27 +923,27 @@ type QuotaPolicy struct {
 
 // QuotaViolation represents a quota violation
 type QuotaViolation struct {
-	ID           string
-	QuotaID      string
-	Timestamp    time.Time
-	Attempted    float64
-	Limit        float64
-	Action       string
-	UserID       string
-	ElementID    string
-	Resolved     bool
+	ID        string
+	QuotaID   string
+	Timestamp time.Time
+	Attempted float64
+	Limit     float64
+	Action    string
+	UserID    string
+	ElementID string
+	Resolved  bool
 }
 
 // FraudDetectionEngine detects fraudulent usage patterns
 type FraudDetectionEngine struct {
-	detectors   map[string]*FraudDetector
-	rules       []*FraudRule
-	patterns    []*FraudPattern
-	alerts      chan *FraudAlert
-	analyzer    *FraudAnalyzer
-	config      *FraudDetectionConfig
-	running     bool
-	mutex       sync.RWMutex
+	detectors map[string]*FraudDetector
+	rules     []*FraudRule
+	patterns  []*FraudPattern
+	alerts    chan *FraudAlert
+	analyzer  *FraudAnalyzer
+	config    *FraudDetectionConfig
+	running   bool
+	mutex     sync.RWMutex
 }
 
 // FraudDetector detects specific types of fraud
@@ -955,14 +955,14 @@ type FraudDetector interface {
 
 // FraudRule defines fraud detection rules
 type FraudRule struct {
-	ID          string
-	Name        string
-	Type        string // THRESHOLD, PATTERN, ANOMALY
-	Conditions  map[string]interface{}
-	RiskScore   float64
-	Action      string // ALERT, BLOCK, FLAG
-	Enabled     bool
-	Priority    int
+	ID         string
+	Name       string
+	Type       string // THRESHOLD, PATTERN, ANOMALY
+	Conditions map[string]interface{}
+	RiskScore  float64
+	Action     string // ALERT, BLOCK, FLAG
+	Enabled    bool
+	Priority   int
 }
 
 // FraudPattern represents fraud patterns
@@ -993,10 +993,10 @@ type FraudAlert struct {
 
 // FraudAnalyzer analyzes usage patterns for fraud
 type FraudAnalyzer struct {
-	mlModels     map[string]*FraudMLModel
-	baselines    map[string]*UsageBaseline
-	riskScoring  *RiskScoringEngine
-	correlation  *FraudCorrelationEngine
+	mlModels    map[string]*FraudMLModel
+	baselines   map[string]*UsageBaseline
+	riskScoring *RiskScoringEngine
+	correlation *FraudCorrelationEngine
 }
 
 // FraudMLModel represents ML models for fraud detection
@@ -1028,31 +1028,31 @@ type RiskScoringEngine struct {
 
 // RiskScoringModel defines risk scoring models
 type RiskScoringModel struct {
-	ID         string
-	Name       string
-	Type       string
-	Factors    []string
-	Weights    map[string]float64
-	Formula    string
-	Enabled    bool
+	ID      string
+	Name    string
+	Type    string
+	Factors []string
+	Weights map[string]float64
+	Formula string
+	Enabled bool
 }
 
 // FraudCorrelationEngine correlates fraud events
 type FraudCorrelationEngine struct {
-	rules       []*CorrelationRule
-	incidents   map[string]*FraudIncident
-	networks    map[string]*FraudNetwork
+	rules     []*CorrelationRule
+	incidents map[string]*FraudIncident
+	networks  map[string]*FraudNetwork
 }
 
 // FraudIncident represents a fraud incident
 type FraudIncident struct {
-	ID          string
-	Type        string
-	Severity    string
-	Alerts      []string
-	StartTime   time.Time
-	EndTime     time.Time
-	Status      string
+	ID            string
+	Type          string
+	Severity      string
+	Alerts        []string
+	StartTime     time.Time
+	EndTime       time.Time
+	Status        string
 	Investigation *FraudInvestigation
 }
 
@@ -1081,37 +1081,37 @@ type FraudEvidence struct {
 
 // FraudNetwork represents fraud networks
 type FraudNetwork struct {
-	ID       string
-	Name     string
-	Members  []string
-	Patterns []string
+	ID        string
+	Name      string
+	Members   []string
+	Patterns  []string
 	RiskScore float64
-	Active   bool
+	Active    bool
 }
 
 // SettlementManager manages financial settlements
 type SettlementManager struct {
-	settlements  map[string]*Settlement
-	reconciler   *SettlementReconciler
-	clearing     *ClearingHouse
-	config       *SettlementConfig
-	mutex        sync.RWMutex
+	settlements map[string]*Settlement
+	reconciler  *SettlementReconciler
+	clearing    *ClearingHouse
+	config      *SettlementConfig
+	mutex       sync.RWMutex
 }
 
 // Settlement represents a financial settlement
 type Settlement struct {
-	ID             string
-	Type           string // REVENUE_SHARE, INTERCONNECT, ROAMING
-	Participants   []string
-	Period         string
-	StartDate      time.Time
-	EndDate        time.Time
-	TotalAmount    float64
-	Currency       string
-	Allocations    []*SettlementAllocation
-	Status         string // PENDING, PROCESSED, DISPUTED, COMPLETED
-	ProcessedAt    time.Time
-	Reference      string
+	ID           string
+	Type         string // REVENUE_SHARE, INTERCONNECT, ROAMING
+	Participants []string
+	Period       string
+	StartDate    time.Time
+	EndDate      time.Time
+	TotalAmount  float64
+	Currency     string
+	Allocations  []*SettlementAllocation
+	Status       string // PENDING, PROCESSED, DISPUTED, COMPLETED
+	ProcessedAt  time.Time
+	Reference    string
 }
 
 // SettlementAllocation represents settlement allocation
@@ -1125,9 +1125,9 @@ type SettlementAllocation struct {
 
 // SettlementReconciler reconciles settlements
 type SettlementReconciler struct {
-	rules       []*ReconciliationRule
-	exceptions  []*ReconciliationException
-	tolerance   float64
+	rules      []*ReconciliationRule
+	exceptions []*ReconciliationException
+	tolerance  float64
 }
 
 // ReconciliationRule defines reconciliation rules
@@ -1155,20 +1155,20 @@ type ReconciliationException struct {
 // ClearingHouse manages clearing operations
 type ClearingHouse struct {
 	transactions map[string]*ClearingTransaction
-	batches     map[string]*ClearingBatch
-	config      *ClearingConfig
+	batches      map[string]*ClearingBatch
+	config       *ClearingConfig
 }
 
 // ClearingTransaction represents a clearing transaction
 type ClearingTransaction struct {
-	ID          string
-	BatchID     string
-	Amount      float64
-	Currency    string
-	Type        string
-	Status      string
-	Timestamp   time.Time
-	Reference   string
+	ID        string
+	BatchID   string
+	Amount    float64
+	Currency  string
+	Type      string
+	Status    string
+	Timestamp time.Time
+	Reference string
 }
 
 // ClearingBatch represents a clearing batch
@@ -1185,11 +1185,11 @@ type ClearingBatch struct {
 
 // RevenueTrackingService tracks revenue metrics
 type RevenueTrackingService struct {
-	trackers   map[string]*RevenueTracker
-	metrics    map[string]*RevenueMetric
-	forecasts  map[string]*RevenueForecast
-	kpis       map[string]*RevenueKPI
-	config     *RevenueConfig
+	trackers  map[string]*RevenueTracker
+	metrics   map[string]*RevenueMetric
+	forecasts map[string]*RevenueForecast
+	kpis      map[string]*RevenueKPI
+	config    *RevenueConfig
 }
 
 // RevenueTracker tracks revenue by category
@@ -1216,11 +1216,11 @@ type RevenueMetric struct {
 
 // RevenueForecast represents revenue forecasts
 type RevenueForecast struct {
-	ID       string
-	Period   string
-	Forecast float64
-	Currency string
-	Method   string
+	ID         string
+	Period     string
+	Forecast   float64
+	Currency   string
+	Method     string
 	Confidence float64
 	CreatedAt  time.Time
 }
@@ -1260,15 +1260,15 @@ type UsageQuery struct {
 
 // AccountingMetrics holds Prometheus metrics for accounting management
 type AccountingMetrics struct {
-	UsageEventsProcessed    prometheus.Counter
-	ProcessingErrors        prometheus.Counter
-	BillingCyclesGenerated  prometheus.Counter
-	InvoicesGenerated       prometheus.Counter
-	PaymentsProcessed       *prometheus.CounterVec
-	FraudAlertsGenerated    prometheus.Counter
-	QuotaViolations         prometheus.Counter
-	RateLimitViolations     prometheus.Counter
-	RevenueTracked          *prometheus.GaugeVec
+	UsageEventsProcessed   prometheus.Counter
+	ProcessingErrors       prometheus.Counter
+	BillingCyclesGenerated prometheus.Counter
+	InvoicesGenerated      prometheus.Counter
+	PaymentsProcessed      *prometheus.CounterVec
+	FraudAlertsGenerated   prometheus.Counter
+	QuotaViolations        prometheus.Counter
+	RateLimitViolations    prometheus.Counter
+	RevenueTracked         *prometheus.GaugeVec
 }
 
 // Configuration structures
@@ -1296,10 +1296,10 @@ type PaymentConfig struct {
 }
 
 type TaxConfig struct {
-	DefaultRate         float64
-	CalculationMethod   string
-	RoundingPrecision   int
-	InclusiveOfTax      bool
+	DefaultRate       float64
+	CalculationMethod string
+	RoundingPrecision int
+	InclusiveOfTax    bool
 }
 
 type ChargingConfig struct {
@@ -1310,11 +1310,11 @@ type ChargingConfig struct {
 }
 
 type RatingConfig struct {
-	CacheEnabled    bool
-	CacheSize       int
-	CacheTTL        time.Duration
-	ParallelRating  bool
-	MaxWorkers      int
+	CacheEnabled   bool
+	CacheSize      int
+	CacheTTL       time.Duration
+	ParallelRating bool
+	MaxWorkers     int
 }
 
 type AggregationConfig struct {
@@ -1325,9 +1325,9 @@ type AggregationConfig struct {
 }
 
 type ReportingConfig struct {
-	DefaultFormat   string
-	MaxReportSize   int64
-	RetentionPeriod time.Duration
+	DefaultFormat        string
+	MaxReportSize        int64
+	RetentionPeriod      time.Duration
 	DistributionChannels []string
 }
 
@@ -1346,25 +1346,25 @@ type RateLimitConfig struct {
 }
 
 type QuotaConfig struct {
-	DefaultPeriod      string
-	WarningThreshold   float64
-	GracePercentage    float64
-	ResetSchedule      string
+	DefaultPeriod    string
+	WarningThreshold float64
+	GracePercentage  float64
+	ResetSchedule    string
 }
 
 type FraudDetectionConfig struct {
-	EnabledDetectors   []string
-	RiskThreshold      float64
-	AlertThreshold     float64
-	AnalysisWindow     time.Duration
+	EnabledDetectors    []string
+	RiskThreshold       float64
+	AlertThreshold      float64
+	AnalysisWindow      time.Duration
 	ModelUpdateInterval time.Duration
 }
 
 type SettlementConfig struct {
-	DefaultCurrency    string
+	DefaultCurrency         string
 	ReconciliationTolerance float64
-	ProcessingSchedule string
-	NotificationChannels []string
+	ProcessingSchedule      string
+	NotificationChannels    []string
 }
 
 type ClearingConfig struct {
@@ -1450,10 +1450,10 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.reportGenerator = NewAccountingReportGenerator(&ReportingConfig{
-		DefaultFormat:          "PDF",
-		MaxReportSize:          100 * 1024 * 1024, // 100MB
-		RetentionPeriod:        365 * 24 * time.Hour,
-		DistributionChannels:   []string{"email", "api"},
+		DefaultFormat:        "PDF",
+		MaxReportSize:        100 * 1024 * 1024, // 100MB
+		RetentionPeriod:      365 * 24 * time.Hour,
+		DistributionChannels: []string{"email", "api"},
 	})
 
 	cam.auditTrail = NewAccountingAuditTrail(config.AuditRetention)
@@ -1467,11 +1467,11 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 
 	if config.EnableFraudDetection {
 		cam.fraudDetection = NewFraudDetectionEngine(&FraudDetectionConfig{
-			EnabledDetectors:     []string{"threshold", "anomaly", "pattern"},
-			RiskThreshold:        0.7,
-			AlertThreshold:       0.8,
-			AnalysisWindow:       time.Hour,
-			ModelUpdateInterval:  24 * time.Hour,
+			EnabledDetectors:    []string{"threshold", "anomaly", "pattern"},
+			RiskThreshold:       0.7,
+			AlertThreshold:      0.8,
+			AnalysisWindow:      time.Hour,
+			ModelUpdateInterval: 24 * time.Hour,
 		})
 	}
 
@@ -1483,10 +1483,10 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 	})
 
 	cam.quotaManager = NewQuotaManager(&QuotaConfig{
-		DefaultPeriod:     "monthly",
-		WarningThreshold:  0.8,
-		GracePercentage:   0.1,
-		ResetSchedule:     "0 0 1 * *", // First day of each month
+		DefaultPeriod:    "monthly",
+		WarningThreshold: 0.8,
+		GracePercentage:  0.1,
+		ResetSchedule:    "0 0 1 * *", // First day of each month
 	})
 
 	cam.settlementManager = NewSettlementManager(&SettlementConfig{
@@ -1660,7 +1660,7 @@ func (cam *ComprehensiveAccountingManager) GetAccountingStatistics(ctx context.C
 		PendingPayments:     cam.getPendingPayments(),
 		FraudAlertsActive:   cam.getActiveFraudAlerts(),
 		SystemHealth:        cam.assessSystemHealth(),
-		Timestamp:          time.Now(),
+		Timestamp:           time.Now(),
 	}
 
 	return stats, nil
@@ -1795,7 +1795,7 @@ func NewUsageWorkerPool(workers int) *UsageWorkerPool {
 }
 
 func (uwp *UsageWorkerPool) Start(ctx context.Context) error { uwp.running = true; return nil }
-func (uwp *UsageWorkerPool) Stop(ctx context.Context) error { uwp.running = false; return nil }
+func (uwp *UsageWorkerPool) Stop(ctx context.Context) error  { uwp.running = false; return nil }
 
 func NewMeteringEngine(config *MeteringConfig) *MeteringEngine {
 	return &MeteringEngine{
@@ -1807,7 +1807,7 @@ func NewMeteringEngine(config *MeteringConfig) *MeteringEngine {
 }
 
 func (me *MeteringEngine) Start(ctx context.Context) error { return nil }
-func (me *MeteringEngine) Stop(ctx context.Context) error { return nil }
+func (me *MeteringEngine) Stop(ctx context.Context) error  { return nil }
 
 func NewBillingEngine(config *BillingConfig) *BillingEngine {
 	return &BillingEngine{
@@ -1822,7 +1822,7 @@ func NewBillingEngine(config *BillingConfig) *BillingEngine {
 }
 
 func (be *BillingEngine) Start(ctx context.Context) error { return nil }
-func (be *BillingEngine) Stop(ctx context.Context) error { return nil }
+func (be *BillingEngine) Stop(ctx context.Context) error  { return nil }
 func (be *BillingEngine) GenerateBill(ctx context.Context, cycleID string) (*BillingCycle, error) {
 	return &BillingCycle{ID: cycleID}, nil
 }
@@ -1850,7 +1850,7 @@ func NewUsageAggregator(config *AggregationConfig) *UsageAggregator {
 }
 
 func (ua *UsageAggregator) Start(ctx context.Context) error { ua.running = true; return nil }
-func (ua *UsageAggregator) Stop(ctx context.Context) error { ua.running = false; return nil }
+func (ua *UsageAggregator) Stop(ctx context.Context) error  { ua.running = false; return nil }
 
 func NewAccountingReportGenerator(config *ReportingConfig) *AccountingReportGenerator {
 	return &AccountingReportGenerator{
@@ -1913,8 +1913,8 @@ func NewFraudDetectionEngine(config *FraudDetectionConfig) *FraudDetectionEngine
 }
 
 func (fde *FraudDetectionEngine) Start(ctx context.Context) error { fde.running = true; return nil }
-func (fde *FraudDetectionEngine) Stop(ctx context.Context) error { fde.running = false; return nil }
-func (fde *FraudDetectionEngine) GetActiveAlerts() int { return 5 }
+func (fde *FraudDetectionEngine) Stop(ctx context.Context) error  { fde.running = false; return nil }
+func (fde *FraudDetectionEngine) GetActiveAlerts() int            { return 5 }
 
 func NewSettlementManager(config *SettlementConfig) *SettlementManager {
 	return &SettlementManager{

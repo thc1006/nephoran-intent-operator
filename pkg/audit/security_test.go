@@ -40,7 +40,7 @@ func (suite *SecurityTestSuite) SetupSuite() {
 	var err error
 	suite.tempDir, err = ioutil.TempDir("", "security_test")
 	suite.Require().NoError(err)
-	
+
 	// Setup TLS test server
 	suite.tlsServer = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Verify authentication header
@@ -49,7 +49,7 @@ func (suite *SecurityTestSuite) SetupSuite() {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status": "authenticated"}`))
 	}))
@@ -74,11 +74,11 @@ func (suite *SecurityTestSuite) SetupTest() {
 		EnableIntegrity: true,
 		ComplianceMode:  []ComplianceStandard{ComplianceSOC2, ComplianceISO27001},
 	}
-	
+
 	var err error
 	suite.auditSystem, err = NewAuditSystem(config)
 	suite.Require().NoError(err)
-	
+
 	err = suite.auditSystem.Start()
 	suite.Require().NoError(err)
 }
@@ -109,17 +109,17 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 				InsecureSkipVerify: true, // Only for testing
 			},
 		}
-		
+
 		backend, err := backends.NewWebhookBackend(config)
 		suite.NoError(err)
 		suite.NotNil(backend)
-		
+
 		// Test authenticated request
 		event := createSecurityTestEvent("auth-test")
 		err = backend.WriteEvent(context.Background(), event)
 		suite.NoError(err)
 	})
-	
+
 	suite.Run("reject unauthenticated requests", func() {
 		// Test backend without authentication
 		config := backends.BackendConfig{
@@ -135,21 +135,21 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 				InsecureSkipVerify: true,
 			},
 		}
-		
+
 		backend, err := backends.NewWebhookBackend(config)
 		suite.NoError(err)
-		
+
 		// This should fail due to missing authentication
 		event := createSecurityTestEvent("unauth-test")
 		err = backend.WriteEvent(context.Background(), event)
 		suite.Error(err)
 	})
-	
+
 	suite.Run("rotate authentication credentials", func() {
 		// Test credential rotation
 		originalToken := "original-token"
 		newToken := "rotated-token"
-		
+
 		config := backends.BackendConfig{
 			Type:    backends.BackendTypeWebhook,
 			Enabled: true,
@@ -166,20 +166,20 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 				InsecureSkipVerify: true,
 			},
 		}
-		
+
 		backend, err := backends.NewWebhookBackend(config)
 		suite.NoError(err)
-		
+
 		// Use original token
 		event := createSecurityTestEvent("rotation-test-1")
 		err = backend.WriteEvent(context.Background(), event)
 		suite.NoError(err)
-		
+
 		// Rotate credentials
 		config.Auth.Token = newToken
 		err = backend.Initialize(config)
 		suite.NoError(err)
-		
+
 		// Use new token
 		event = createSecurityTestEvent("rotation-test-2")
 		err = backend.WriteEvent(context.Background(), event)
@@ -206,32 +206,32 @@ func (suite *SecurityTestSuite) TestTLSSecurity() {
 				InsecureSkipVerify: false, // Enforce certificate validation
 			},
 		}
-		
+
 		backend, err := backends.NewWebhookBackend(config)
 		suite.NoError(err)
-		
+
 		// This might fail due to self-signed cert, but TLS should be enforced
 		event := createSecurityTestEvent("tls-test")
 		backend.WriteEvent(context.Background(), event)
 		// We don't assert on the error as it might be a cert validation error
 		// The important thing is TLS is being enforced
 	})
-	
+
 	suite.Run("TLS certificate validation", func() {
 		// Test with proper certificate validation
 		tlsConfig := &tls.Config{
 			ServerName:         "test-server",
 			InsecureSkipVerify: false,
 		}
-		
+
 		// In a real test, you would use proper certificates
 		suite.NotNil(tlsConfig)
 	})
-	
+
 	suite.Run("encrypted audit log files", func() {
 		// Test encrypted file backend
 		encryptedLogFile := filepath.Join(suite.tempDir, "encrypted_audit.log")
-		
+
 		config := backends.BackendConfig{
 			Type:    backends.BackendTypeFile,
 			Enabled: true,
@@ -242,15 +242,15 @@ func (suite *SecurityTestSuite) TestTLSSecurity() {
 				"key_file":   filepath.Join(suite.tempDir, "encryption.key"),
 			},
 		}
-		
+
 		backend, err := backends.NewFileBackend(config)
 		suite.NoError(err)
-		
+
 		// Write encrypted event
 		event := createSecurityTestEvent("encryption-test")
 		err = backend.WriteEvent(context.Background(), event)
 		suite.NoError(err)
-		
+
 		// Verify file exists (content verification would require decryption)
 		_, err = os.Stat(encryptedLogFile)
 		suite.NoError(err)
@@ -268,7 +268,7 @@ func (suite *SecurityTestSuite) TestInputValidation() {
 			"../../../etc/passwd",
 			"\x00\x01\x02\x03", // Binary data
 		}
-		
+
 		for _, maliciousInput := range maliciousInputs {
 			event := &AuditEvent{
 				ID:        uuid.New().String(),
@@ -282,7 +282,7 @@ func (suite *SecurityTestSuite) TestInputValidation() {
 					"malicious_field": maliciousInput,
 				},
 			}
-			
+
 			// Event should be validated and sanitized
 			err := event.Validate()
 			if err != nil {
@@ -295,15 +295,15 @@ func (suite *SecurityTestSuite) TestInputValidation() {
 			}
 		}
 	})
-	
+
 	suite.Run("validate user context", func() {
 		invalidUserContexts := []UserContext{
-			{UserID: ""}, // Empty user ID
-			{UserID: strings.Repeat("a", 1000)}, // Too long user ID
-			{Email: "invalid-email"}, // Invalid email
+			{UserID: ""},                            // Empty user ID
+			{UserID: strings.Repeat("a", 1000)},     // Too long user ID
+			{Email: "invalid-email"},                // Invalid email
 			{Role: "<script>alert('xss')</script>"}, // XSS in role
 		}
-		
+
 		for _, invalidCtx := range invalidUserContexts {
 			event := &AuditEvent{
 				ID:          uuid.New().String(),
@@ -315,20 +315,20 @@ func (suite *SecurityTestSuite) TestInputValidation() {
 				Result:      ResultSuccess,
 				UserContext: &invalidCtx,
 			}
-			
+
 			err := event.Validate()
 			suite.Error(err, "Should reject invalid user context")
 		}
 	})
-	
+
 	suite.Run("validate network context", func() {
 		invalidNetworkContexts := []NetworkContext{
-			{SourcePort: -1}, // Invalid port
+			{SourcePort: -1},    // Invalid port
 			{SourcePort: 70000}, // Port out of range
 			{DestinationPort: -1},
 			{DestinationPort: 70000},
 		}
-		
+
 		for _, invalidCtx := range invalidNetworkContexts {
 			event := &AuditEvent{
 				ID:             uuid.New().String(),
@@ -340,7 +340,7 @@ func (suite *SecurityTestSuite) TestInputValidation() {
 				Result:         ResultSuccess,
 				NetworkContext: &invalidCtx,
 			}
-			
+
 			err := event.Validate()
 			suite.Error(err, "Should reject invalid network context")
 		}
@@ -353,12 +353,12 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 		// Verify audit system runs with minimal privileges
 		stats := suite.auditSystem.GetStats()
 		suite.NotNil(stats)
-		
+
 		// In a real environment, you would check:
 		// - Process user ID is not root
 		// - File permissions are restrictive
 		// - Network access is limited
-		
+
 		// For testing, we verify the system is operational with restricted config
 		restrictedConfig := &AuditSystemConfig{
 			Enabled:       true,
@@ -367,24 +367,24 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 			FlushInterval: 100 * time.Millisecond,
 			MaxQueueSize:  100, // Limited queue size
 		}
-		
+
 		restrictedSystem, err := NewAuditSystem(restrictedConfig)
 		suite.NoError(err)
-		
+
 		err = restrictedSystem.Start()
 		suite.NoError(err)
 		defer restrictedSystem.Stop()
-		
+
 		// Should still be able to process events
 		event := createSecurityTestEvent("privilege-test")
 		err = restrictedSystem.LogEvent(event)
 		suite.NoError(err)
 	})
-	
+
 	suite.Run("file system access control", func() {
 		// Test restrictive file permissions
 		secureLogFile := filepath.Join(suite.tempDir, "secure_audit.log")
-		
+
 		config := backends.BackendConfig{
 			Type:    backends.BackendTypeFile,
 			Enabled: true,
@@ -394,14 +394,14 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 				"permission": "0600", // Owner read/write only
 			},
 		}
-		
+
 		backend, err := backends.NewFileBackend(config)
 		suite.NoError(err)
-		
+
 		event := createSecurityTestEvent("access-control-test")
 		err = backend.WriteEvent(context.Background(), event)
 		suite.NoError(err)
-		
+
 		// Verify file permissions (Unix-like systems)
 		if info, err := os.Stat(secureLogFile); err == nil {
 			mode := info.Mode()
@@ -412,11 +412,11 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 			}
 		}
 	})
-	
+
 	suite.Run("prevent unauthorized access to audit data", func() {
 		// Test that audit data cannot be accessed by unauthorized processes
 		logFile := filepath.Join(suite.tempDir, "protected_audit.log")
-		
+
 		// Create backend with access controls
 		config := backends.BackendConfig{
 			Type:    backends.BackendTypeFile,
@@ -427,14 +427,14 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 				"access_control": "strict",
 			},
 		}
-		
+
 		backend, err := backends.NewFileBackend(config)
 		suite.NoError(err)
-		
+
 		event := createSecurityTestEvent("protection-test")
 		err = backend.WriteEvent(context.Background(), event)
 		suite.NoError(err)
-		
+
 		// Verify file exists
 		_, err = os.Stat(logFile)
 		suite.NoError(err)
@@ -445,7 +445,7 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 func (suite *SecurityTestSuite) TestTamperPrevention() {
 	suite.Run("detect log file tampering", func() {
 		logFile := filepath.Join(suite.tempDir, "tamper_test.log")
-		
+
 		config := backends.BackendConfig{
 			Type:    backends.BackendTypeFile,
 			Enabled: true,
@@ -455,80 +455,80 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 				"integrity": "checksum",
 			},
 		}
-		
+
 		backend, err := backends.NewFileBackend(config)
 		suite.NoError(err)
-		
+
 		// Write original events
 		originalEvents := []*AuditEvent{
 			createSecurityTestEvent("tamper-test-1"),
 			createSecurityTestEvent("tamper-test-2"),
 		}
-		
+
 		for _, event := range originalEvents {
 			err = backend.WriteEvent(context.Background(), event)
 			suite.NoError(err)
 		}
-		
+
 		// Read original content
 		originalContent, err := ioutil.ReadFile(logFile)
 		suite.NoError(err)
-		
+
 		// Simulate tampering
 		tamperedContent := strings.Replace(string(originalContent), "tamper-test-1", "tampered-event", 1)
 		err = ioutil.WriteFile(logFile, []byte(tamperedContent), 0644)
 		suite.NoError(err)
-		
+
 		// Verify tampering is detected (would require integrity validation implementation)
 		// In a real implementation, you would check checksums or digital signatures
 		suite.NotEqual(originalContent, []byte(tamperedContent))
 	})
-	
+
 	suite.Run("immutable audit logs", func() {
 		// Test write-once audit log implementation
 		immutableLogFile := filepath.Join(suite.tempDir, "immutable_audit.log")
-		
+
 		config := backends.BackendConfig{
 			Type:    backends.BackendTypeFile,
 			Enabled: true,
 			Name:    "immutable-test",
 			Settings: map[string]interface{}{
-				"path":      immutableLogFile,
-				"immutable": true,
+				"path":        immutableLogFile,
+				"immutable":   true,
 				"append_only": true,
 			},
 		}
-		
+
 		backend, err := backends.NewFileBackend(config)
 		suite.NoError(err)
-		
+
 		// Write events (should succeed)
 		for i := 0; i < 5; i++ {
 			event := createSecurityTestEvent(fmt.Sprintf("immutable-test-%d", i))
 			err = backend.WriteEvent(context.Background(), event)
 			suite.NoError(err)
 		}
-		
+
 		// Verify file exists and has content
 		content, err := ioutil.ReadFile(immutableLogFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
-		
+
 		// In a real implementation, subsequent writes would use append-only mode
 		// and the file system would be configured for immutability
 	})
-	
+
 	suite.Run("audit trail integrity chain", func() {
 		// Test cryptographic integrity chain
 		integrityChain, err := NewIntegrityChain()
 		suite.NoError(err)
-		
+
 		events := []*AuditEvent{
 			createSecurityTestEvent("chain-test-1"),
 			createSecurityTestEvent("chain-test-2"),
 			createSecurityTestEvent("chain-test-3"),
 		}
-		
+
 		// Process events through integrity chain
 		for _, event := range events {
 			err = integrityChain.ProcessEvent(event)
@@ -536,14 +536,14 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 			suite.NotEmpty(event.Hash)
 			suite.NotEmpty(event.PreviousHash)
 		}
-		
+
 		// Verify chain integrity
 		isValid := integrityChain.VerifyChain(events)
 		suite.True(isValid)
-		
+
 		// Tamper with an event
 		events[1].Action = "tampered-action"
-		
+
 		// Chain should be invalid
 		isValid = integrityChain.VerifyChain(events)
 		suite.False(isValid)
@@ -566,28 +566,28 @@ func (suite *SecurityTestSuite) TestSensitiveDataProtection() {
 			},
 			Data: map[string]interface{}{
 				"credit_card_number": "4111-1111-1111-1111",
-				"ssn":               "123-45-6789",
-				"password":          "super_secret_password",
-				"api_key":           "sk-1234567890abcdef",
-				"customer_name":     "John Doe",
-				"email":            "john.doe@example.com",
+				"ssn":                "123-45-6789",
+				"password":           "super_secret_password",
+				"api_key":            "sk-1234567890abcdef",
+				"customer_name":      "John Doe",
+				"email":              "john.doe@example.com",
 			},
 		}
-		
+
 		// Apply data masking
 		maskedEvent := suite.maskSensitiveData(sensitiveEvent)
-		
+
 		// Verify sensitive data is masked
 		suite.Contains(maskedEvent.Data["credit_card_number"], "*")
 		suite.Contains(maskedEvent.Data["ssn"], "*")
 		suite.Contains(maskedEvent.Data["password"], "*")
 		suite.Contains(maskedEvent.Data["api_key"], "*")
-		
+
 		// Non-sensitive data should remain
 		suite.Equal("John Doe", maskedEvent.Data["customer_name"])
 		suite.Equal("john.doe@example.com", maskedEvent.Data["email"])
 	})
-	
+
 	suite.Run("classify data sensitivity", func() {
 		testCases := []struct {
 			fieldName string
@@ -602,33 +602,33 @@ func (suite *SecurityTestSuite) TestSensitiveDataProtection() {
 			{"user_id", "user123", "internal"},
 			{"log_level", "info", "public"},
 		}
-		
+
 		for _, tc := range testCases {
 			classification := suite.classifyDataSensitivity(tc.fieldName, tc.value)
 			suite.Equal(tc.expected, classification)
 		}
 	})
-	
+
 	suite.Run("encrypt sensitive audit events", func() {
 		sensitiveEvent := &AuditEvent{
 			ID:                 uuid.New().String(),
 			Timestamp:          time.Now(),
 			EventType:          EventTypeDataAccess,
 			Component:          "encryption-test",
-			Action:            "access_pii",
-			Severity:          SeverityInfo,
-			Result:            ResultSuccess,
+			Action:             "access_pii",
+			Severity:           SeverityInfo,
+			Result:             ResultSuccess,
 			DataClassification: "Confidential",
 			Data: map[string]interface{}{
-				"patient_id": "P123456",
+				"patient_id":     "P123456",
 				"medical_record": "Confidential medical data",
 			},
 		}
-		
+
 		// Encrypt sensitive event
 		encryptedEvent, err := suite.encryptSensitiveEvent(sensitiveEvent)
 		suite.NoError(err)
-		
+
 		// Verify encryption
 		suite.NotEqual(sensitiveEvent.Data["medical_record"], encryptedEvent.Data["medical_record"])
 		suite.Contains(encryptedEvent.Data["medical_record"].(string), "encrypted:")
@@ -648,7 +648,7 @@ func (suite *SecurityTestSuite) TestSecurityMonitoring() {
 			{"Injection attempt", 1, "injection", true},
 			{"Normal operation", 10, "normal", false},
 		}
-		
+
 		for _, attack := range attackPatterns {
 			suite.Run(attack.name, func() {
 				detected := suite.detectAuditSystemAttack(attack.eventCount, attack.pattern)
@@ -656,20 +656,20 @@ func (suite *SecurityTestSuite) TestSecurityMonitoring() {
 			})
 		}
 	})
-	
+
 	suite.Run("audit system self-monitoring", func() {
 		// Monitor audit system health and security
 		healthCheck := suite.auditSystem.GetStats()
-		
+
 		// Verify system is healthy
 		suite.Greater(healthCheck.BackendCount, 0)
 		suite.True(healthCheck.IntegrityEnabled)
-		
+
 		// Check for security violations
 		securityViolations := suite.checkSecurityViolations(healthCheck)
 		suite.Empty(securityViolations, "Security violations detected")
 	})
-	
+
 	suite.Run("compliance violations detection", func() {
 		violationEvent := &AuditEvent{
 			ID:        uuid.New().String(),
@@ -681,14 +681,14 @@ func (suite *SecurityTestSuite) TestSecurityMonitoring() {
 			Result:    ResultFailure,
 			Data: map[string]interface{}{
 				"violation_type": "data_retention",
-				"policy_id":     "RET-001",
-				"description":   "Audit log retention period exceeded",
+				"policy_id":      "RET-001",
+				"description":    "Audit log retention period exceeded",
 			},
 		}
-		
+
 		err := suite.auditSystem.LogEvent(violationEvent)
 		suite.NoError(err)
-		
+
 		// In a real implementation, this would trigger alerts
 		suite.Equal(EventTypeSecurityViolation, violationEvent.EventType)
 		suite.Equal(SeverityCritical, violationEvent.Severity)
@@ -716,7 +716,7 @@ func (suite *SecurityTestSuite) maskSensitiveData(event *AuditEvent) *AuditEvent
 	// Create a copy of the event
 	maskedEvent := *event
 	maskedEvent.Data = make(map[string]interface{})
-	
+
 	for key, value := range event.Data {
 		switch key {
 		case "credit_card_number", "ssn", "password", "api_key":
@@ -725,7 +725,7 @@ func (suite *SecurityTestSuite) maskSensitiveData(event *AuditEvent) *AuditEvent
 			maskedEvent.Data[key] = value
 		}
 	}
-	
+
 	return &maskedEvent
 }
 
@@ -741,30 +741,30 @@ func (suite *SecurityTestSuite) maskValue(value interface{}) string {
 
 func (suite *SecurityTestSuite) classifyDataSensitivity(fieldName string, value interface{}) string {
 	sensitiveFields := map[string]string{
-		"password":         "confidential",
-		"api_key":          "confidential",
-		"secret":           "confidential",
-		"credit_card":      "restricted",
+		"password":        "confidential",
+		"api_key":         "confidential",
+		"secret":          "confidential",
+		"credit_card":     "restricted",
 		"ssn":             "restricted",
 		"social_security": "restricted",
 		"email":           "internal",
 		"user_id":         "internal",
 		"username":        "internal",
 	}
-	
+
 	for field, level := range sensitiveFields {
 		if strings.Contains(strings.ToLower(fieldName), field) {
 			return level
 		}
 	}
-	
+
 	return "public"
 }
 
 func (suite *SecurityTestSuite) encryptSensitiveEvent(event *AuditEvent) (*AuditEvent, error) {
 	encryptedEvent := *event
 	encryptedEvent.Data = make(map[string]interface{})
-	
+
 	for key, value := range event.Data {
 		if suite.isSensitiveField(key) {
 			encryptedValue, err := suite.encryptValue(value)
@@ -776,20 +776,20 @@ func (suite *SecurityTestSuite) encryptSensitiveEvent(event *AuditEvent) (*Audit
 			encryptedEvent.Data[key] = value
 		}
 	}
-	
+
 	return &encryptedEvent, nil
 }
 
 func (suite *SecurityTestSuite) isSensitiveField(fieldName string) bool {
 	sensitiveFields := []string{"medical_record", "confidential", "secret", "password"}
 	fieldLower := strings.ToLower(fieldName)
-	
+
 	for _, sensitive := range sensitiveFields {
 		if strings.Contains(fieldLower, sensitive) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -799,7 +799,7 @@ func (suite *SecurityTestSuite) encryptValue(value interface{}) (string, error) 
 		encrypted := base64.StdEncoding.EncodeToString([]byte(str))
 		return fmt.Sprintf("encrypted:%s", encrypted), nil
 	}
-	
+
 	return fmt.Sprintf("encrypted:%s", base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%v", value)))), nil
 }
 
@@ -818,20 +818,20 @@ func (suite *SecurityTestSuite) detectAuditSystemAttack(eventCount int, pattern 
 
 func (suite *SecurityTestSuite) checkSecurityViolations(stats AuditStats) []string {
 	var violations []string
-	
+
 	// Check for suspicious patterns
 	if stats.EventsDropped > stats.EventsReceived/10 {
 		violations = append(violations, "High drop rate detected")
 	}
-	
+
 	if !stats.IntegrityEnabled {
 		violations = append(violations, "Integrity protection disabled")
 	}
-	
+
 	if stats.BackendCount == 0 {
 		violations = append(violations, "No active backends")
 	}
-	
+
 	return violations
 }
 
@@ -841,42 +841,42 @@ func (suite *SecurityTestSuite) TestCryptographicSecurity() {
 		// Test cryptographically secure random generation
 		randomBytes1 := make([]byte, 32)
 		randomBytes2 := make([]byte, 32)
-		
+
 		_, err := rand.Read(randomBytes1)
 		suite.NoError(err)
-		
+
 		_, err = rand.Read(randomBytes2)
 		suite.NoError(err)
-		
+
 		// Random bytes should be different
 		suite.NotEqual(randomBytes1, randomBytes2)
-		
+
 		// Should not be all zeros
 		allZeros := make([]byte, 32)
 		suite.NotEqual(randomBytes1, allZeros)
 	})
-	
+
 	suite.Run("key derivation security", func() {
 		password := "test-password"
 		salt := make([]byte, 16)
 		_, err := rand.Read(salt)
 		suite.NoError(err)
-		
+
 		// In a real implementation, you would use PBKDF2, scrypt, or Argon2
 		// For testing, we just verify the process
 		suite.NotEmpty(password)
 		suite.NotEmpty(salt)
 	})
-	
+
 	suite.Run("hash algorithm security", func() {
 		// Test secure hash algorithms
 		testData := "test data for hashing"
-		
+
 		// SHA-256 should produce consistent results
 		hash1 := suite.calculateSecureHash(testData)
 		hash2 := suite.calculateSecureHash(testData)
 		suite.Equal(hash1, hash2)
-		
+
 		// Different data should produce different hashes
 		hash3 := suite.calculateSecureHash("different data")
 		suite.NotEqual(hash1, hash3)
@@ -892,7 +892,7 @@ func (suite *SecurityTestSuite) calculateSecureHash(data string) string {
 func (suite *SecurityTestSuite) TestSecurityConfiguration() {
 	suite.Run("secure defaults", func() {
 		config := DefaultAuditConfig()
-		
+
 		// Verify secure defaults
 		suite.True(config.Enabled)
 		suite.True(config.EnableIntegrity)
@@ -900,14 +900,14 @@ func (suite *SecurityTestSuite) TestSecurityConfiguration() {
 		suite.GreaterOrEqual(config.BatchSize, 10)
 		suite.LessOrEqual(config.MaxQueueSize, 50000)
 	})
-	
+
 	suite.Run("configuration validation", func() {
 		insecureConfigs := []*AuditSystemConfig{
 			{Enabled: true, EnableIntegrity: false}, // Integrity disabled
 			{Enabled: true, MaxQueueSize: -1},       // Invalid queue size
 			{Enabled: true, BatchSize: 0},           // Invalid batch size
 		}
-		
+
 		for _, config := range insecureConfigs {
 			_, err := NewAuditSystem(config)
 			// Some configurations might be allowed but should generate warnings
@@ -915,7 +915,7 @@ func (suite *SecurityTestSuite) TestSecurityConfiguration() {
 			_ = err
 		}
 	})
-	
+
 	suite.Run("security hardening checks", func() {
 		hardeningChecks := []struct {
 			name     string
@@ -927,7 +927,7 @@ func (suite *SecurityTestSuite) TestSecurityConfiguration() {
 			{"Encryption at rest", func() bool { return true }, false},
 			{"Network segmentation", func() bool { return true }, false},
 		}
-		
+
 		for _, check := range hardeningChecks {
 			result := check.check()
 			if check.required {
@@ -953,14 +953,14 @@ func (suite *SecurityTestSuite) TestSecurityRegression() {
 			Severity:  SeverityInfo,
 			Result:    ResultSuccess,
 		}
-		
+
 		err := suite.auditSystem.LogEvent(maliciousEvent)
 		suite.NoError(err)
-		
+
 		// Verify the malicious content is properly escaped or rejected
 		// In a real implementation, check the actual log output
 	})
-	
+
 	suite.Run("CVE-2023-002 - Directory traversal prevention", func() {
 		// Test for directory traversal in file backend
 		traversalPaths := []string{
@@ -969,7 +969,7 @@ func (suite *SecurityTestSuite) TestSecurityRegression() {
 			"/etc/shadow",
 			"C:\\Windows\\System32\\config\\SAM",
 		}
-		
+
 		for _, path := range traversalPaths {
 			config := backends.BackendConfig{
 				Type:    backends.BackendTypeFile,
@@ -979,7 +979,7 @@ func (suite *SecurityTestSuite) TestSecurityRegression() {
 					"path": path,
 				},
 			}
-			
+
 			// Backend creation should either fail or sanitize the path
 			backend, err := backends.NewFileBackend(config)
 			if err == nil {
@@ -996,27 +996,27 @@ func (suite *SecurityTestSuite) TestSecurityRegression() {
 func BenchmarkSecurityOperations(b *testing.B) {
 	auditSystem := setupBenchmarkAuditSystem(b, 10)
 	defer auditSystem.Stop()
-	
+
 	b.Run("EventValidation", func(b *testing.B) {
 		event := createSecurityTestEvent("validation-benchmark")
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			event.Validate()
 		}
 	})
-	
+
 	b.Run("DataMasking", func(b *testing.B) {
 		suite := &SecurityTestSuite{}
 		event := &AuditEvent{
 			Data: map[string]interface{}{
-				"password":    "secret123",
-				"credit_card": "4111111111111111",
+				"password":     "secret123",
+				"credit_card":  "4111111111111111",
 				"normal_field": "normal_value",
 			},
 		}
 		b.ResetTimer()
-		
+
 		for i := 0; i < b.N; i++ {
 			suite.maskSensitiveData(event)
 		}

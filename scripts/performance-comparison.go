@@ -16,26 +16,26 @@ import (
 
 // PerformanceMetrics represents performance measurement results
 type PerformanceMetrics struct {
-	TestName          string        `json:"test_name"`
-	GoVersion         string        `json:"go_version"`
-	Timestamp         time.Time     `json:"timestamp"`
-	Duration          time.Duration `json:"duration"`
-	MemoryAllocated   int64         `json:"memory_allocated"`
-	MemoryReleased    int64         `json:"memory_released"`
-	GoroutineCount    int           `json:"goroutine_count"`
-	GCCount           uint32        `json:"gc_count"`
-	HTTPRequestsPerSec int64        `json:"http_requests_per_sec"`
-	JSONOpsPerSec     int64         `json:"json_ops_per_sec"`
-	CryptoOpsPerSec   int64         `json:"crypto_ops_per_sec"`
+	TestName           string        `json:"test_name"`
+	GoVersion          string        `json:"go_version"`
+	Timestamp          time.Time     `json:"timestamp"`
+	Duration           time.Duration `json:"duration"`
+	MemoryAllocated    int64         `json:"memory_allocated"`
+	MemoryReleased     int64         `json:"memory_released"`
+	GoroutineCount     int           `json:"goroutine_count"`
+	GCCount            uint32        `json:"gc_count"`
+	HTTPRequestsPerSec int64         `json:"http_requests_per_sec"`
+	JSONOpsPerSec      int64         `json:"json_ops_per_sec"`
+	CryptoOpsPerSec    int64         `json:"crypto_ops_per_sec"`
 }
 
 // ComparisonResult represents comparison between old and new performance
 type ComparisonResult struct {
-	Metric              string  `json:"metric"`
-	OldValue            float64 `json:"old_value"`
-	NewValue            float64 `json:"new_value"`
-	ImprovementPercent  float64 `json:"improvement_percent"`
-	Status              string  `json:"status"`
+	Metric             string  `json:"metric"`
+	OldValue           float64 `json:"old_value"`
+	NewValue           float64 `json:"new_value"`
+	ImprovementPercent float64 `json:"improvement_percent"`
+	Status             string  `json:"status"`
 }
 
 // PerformanceComparison contains all comparison results
@@ -156,8 +156,8 @@ func benchmarkJSONProcessing() int64 {
 			"parameters":      []string{"param1", "param2", "param3"},
 		},
 		"metadata": map[string]string{
-			"namespace":      "default",
-			"correlationId":  "test-123",
+			"namespace":     "default",
+			"correlationId": "test-123",
 		},
 	}
 
@@ -168,11 +168,11 @@ func benchmarkJSONProcessing() int64 {
 	for time.Since(start) < testDuration {
 		// Marshal
 		data, _ := processor.MarshalOptimized(testData)
-		
+
 		// Unmarshal
 		var result map[string]interface{}
 		processor.UnmarshalOptimized(data, &result)
-		
+
 		operations++
 	}
 
@@ -200,10 +200,10 @@ func benchmarkCryptographicOperations() int64 {
 	for time.Since(start) < testDuration {
 		// Encrypt
 		encrypted, _ := crypto.EncryptAESGCM(data, key, nil)
-		
+
 		// Decrypt
 		crypto.DecryptAESGCM(encrypted, key)
-		
+
 		operations++
 	}
 

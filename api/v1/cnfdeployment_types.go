@@ -26,13 +26,13 @@ import (
 )
 
 // CNFType defines the type of Cloud Native Function
-// +kubebuilder:validation:Enum=5G-Core;O-RAN;Edge;Custom
+// +kubebuilder:validation:Enum="5G-Core";"O-RAN";"Edge";"Custom"
 type CNFType string
 
 const (
 	// CNF5GCore represents 5G Core network functions
 	CNF5GCore CNFType = "5G-Core"
-	// CNFORAN represents O-RAN network functions  
+	// CNFORAN represents O-RAN network functions
 	CNFORAN CNFType = "O-RAN"
 	// CNFEdge represents Edge computing network functions
 	CNFEdge CNFType = "Edge"
@@ -46,39 +46,39 @@ type CNFFunction string
 
 const (
 	// 5G Core Functions
-	CNFFunctionAMF     CNFFunction = "AMF"
-	CNFFunctionSMF     CNFFunction = "SMF"
-	CNFFunctionUPF     CNFFunction = "UPF"
-	CNFFunctionNRF     CNFFunction = "NRF"
-	CNFFunctionAUSF    CNFFunction = "AUSF"
-	CNFFunctionUDM     CNFFunction = "UDM"
-	CNFFunctionPCF     CNFFunction = "PCF"
-	CNFFunctionNSSF    CNFFunction = "NSSF"
-	CNFFunctionNEF     CNFFunction = "NEF"
-	CNFFunctionSMSF    CNFFunction = "SMSF"
-	CNFFunctionBSF     CNFFunction = "BSF"
-	CNFFunctionUDR     CNFFunction = "UDR"
-	CNFFunctionUDSF    CNFFunction = "UDSF"
-	CNFFunctionCHF     CNFFunction = "CHF"
-	CNFFunctionN3IWF   CNFFunction = "N3IWF"
-	CNFFunctionTNGF    CNFFunction = "TNGF"
-	CNFFunctionTWIF    CNFFunction = "TWIF"
-	CNFFunctionNWDAF   CNFFunction = "NWDAF"
-	CNFFunctionSCP     CNFFunction = "SCP"
-	CNFFunctionSEPP    CNFFunction = "SEPP"
+	CNFFunctionAMF   CNFFunction = "AMF"
+	CNFFunctionSMF   CNFFunction = "SMF"
+	CNFFunctionUPF   CNFFunction = "UPF"
+	CNFFunctionNRF   CNFFunction = "NRF"
+	CNFFunctionAUSF  CNFFunction = "AUSF"
+	CNFFunctionUDM   CNFFunction = "UDM"
+	CNFFunctionPCF   CNFFunction = "PCF"
+	CNFFunctionNSSF  CNFFunction = "NSSF"
+	CNFFunctionNEF   CNFFunction = "NEF"
+	CNFFunctionSMSF  CNFFunction = "SMSF"
+	CNFFunctionBSF   CNFFunction = "BSF"
+	CNFFunctionUDR   CNFFunction = "UDR"
+	CNFFunctionUDSF  CNFFunction = "UDSF"
+	CNFFunctionCHF   CNFFunction = "CHF"
+	CNFFunctionN3IWF CNFFunction = "N3IWF"
+	CNFFunctionTNGF  CNFFunction = "TNGF"
+	CNFFunctionTWIF  CNFFunction = "TWIF"
+	CNFFunctionNWDAF CNFFunction = "NWDAF"
+	CNFFunctionSCP   CNFFunction = "SCP"
+	CNFFunctionSEPP  CNFFunction = "SEPP"
 
 	// O-RAN Functions
-	CNFFunctionODU         CNFFunction = "O-DU"
-	CNFFunctionOCUCP       CNFFunction = "O-CU-CP"
-	CNFFunctionOCUUP       CNFFunction = "O-CU-UP"
-	CNFFunctionNearRTRIC   CNFFunction = "Near-RT-RIC"
-	CNFFunctionNonRTRIC    CNFFunction = "Non-RT-RIC"
-	CNFFunctionOENB        CNFFunction = "O-eNB"
-	CNFFunctionSMO         CNFFunction = "SMO"
-	CNFFunctionRApp        CNFFunction = "rApp"
-	CNFFunctionXApp        CNFFunction = "xApp"
-	CNFFunctionOFH         CNFFunction = "O-FH"
-	CNFFunctionOMP         CNFFunction = "O-M-P"
+	CNFFunctionODU       CNFFunction = "O-DU"
+	CNFFunctionOCUCP     CNFFunction = "O-CU-CP"
+	CNFFunctionOCUUP     CNFFunction = "O-CU-UP"
+	CNFFunctionNearRTRIC CNFFunction = "Near-RT-RIC"
+	CNFFunctionNonRTRIC  CNFFunction = "Non-RT-RIC"
+	CNFFunctionOENB      CNFFunction = "O-eNB"
+	CNFFunctionSMO       CNFFunction = "SMO"
+	CNFFunctionRApp      CNFFunction = "rApp"
+	CNFFunctionXApp      CNFFunction = "xApp"
+	CNFFunctionOFH       CNFFunction = "O-FH"
+	CNFFunctionOMP       CNFFunction = "O-M-P"
 
 	// Testing and Support Functions
 	CNFFunctionUESimulator      CNFFunction = "UE-Simulator"

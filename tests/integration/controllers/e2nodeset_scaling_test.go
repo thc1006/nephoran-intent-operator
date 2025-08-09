@@ -18,23 +18,23 @@ import (
 
 var _ = Describe("E2NodeSet Scaling Integration", func() {
 	var (
-		namespace        string
-		testFixtures     *testutils.TestFixtures
+		namespace          string
+		testFixtures       *testutils.TestFixtures
 		performanceTracker *testutils.PerformanceTracker
 	)
 
 	BeforeEach(func() {
 		namespace = fmt.Sprintf("e2scale-ns-%d", time.Now().UnixNano())
-		
+
 		// Create test namespace
 		ns := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{Name: namespace},
 		}
 		Expect(k8sClient.Create(ctx, ns)).To(Succeed())
-		
+
 		testFixtures = testutils.NewTestFixtures()
 		performanceTracker = testutils.NewPerformanceTracker()
-		
+
 		DeferCleanup(func() {
 			// Cleanup namespace
 			Expect(k8sClient.Delete(ctx, ns)).To(Succeed())
@@ -81,7 +81,7 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 				scalingDuration := performanceTracker.Stop("scale-1-to-100")
 
 				By("verifying performance requirements")
-				Expect(scalingDuration).To(BeNumerically("<", 150*time.Second), 
+				Expect(scalingDuration).To(BeNumerically("<", 150*time.Second),
 					"Scaling to 100 nodes should complete within 2.5 minutes")
 
 				By("verifying all ConfigMaps are created")
@@ -91,7 +91,7 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 					if err != nil {
 						return -1
 					}
-					
+
 					count := 0
 					for _, cm := range configMapList.Items {
 						if cm.Labels["nephoran.com/e2-nodeset"] == nodeSet.Name {
@@ -191,16 +191,16 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 				scalingDuration := performanceTracker.Stop("scale-10-to-50")
 
 				By("verifying scaling performance")
-				Expect(scalingDuration).To(BeNumerically("<", 90*time.Second), 
+				Expect(scalingDuration).To(BeNumerically("<", 90*time.Second),
 					"Scaling from 10 to 50 should complete within 90 seconds")
 
 				By("verifying progressive scaling occurred")
-				Expect(len(progressChecks)).To(BeNumerically(">=", 3), 
+				Expect(len(progressChecks)).To(BeNumerically(">=", 3),
 					"Should have multiple progress checkpoints")
-				
+
 				// Verify monotonic increase (no decreases during scale-up)
 				for i := 1; i < len(progressChecks); i++ {
-					Expect(progressChecks[i]).To(BeNumerically(">=", progressChecks[i-1]), 
+					Expect(progressChecks[i]).To(BeNumerically(">=", progressChecks[i-1]),
 						"Node count should not decrease during scale-up")
 				}
 			})
@@ -256,7 +256,7 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 				scalingDuration := performanceTracker.Stop("scale-50-to-10")
 
 				By("verifying scale-down performance")
-				Expect(scalingDuration).To(BeNumerically("<", 45*time.Second), 
+				Expect(scalingDuration).To(BeNumerically("<", 45*time.Second),
 					"Scaling down should be faster than scaling up")
 
 				By("verifying excess ConfigMaps are cleaned up")
@@ -309,10 +309,10 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 				By("simulating partial failure by deleting some ConfigMaps during scaling")
 				// Wait a bit for scaling to start
 				time.Sleep(5 * time.Second)
-				
+
 				configMapList := &corev1.ConfigMapList{}
 				k8sClient.List(ctx, configMapList, client.InNamespace(namespace))
-				
+
 				deletedCount := 0
 				for _, cm := range configMapList.Items {
 					if cm.Labels["nephoran.com/e2-nodeset"] == nodeSet.Name && deletedCount < 3 {
@@ -365,14 +365,14 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 				}, 20*time.Second, 1*time.Second).Should(Equal(int32(3)))
 
 				scalingSequence := []int32{10, 5, 20, 15, 8}
-				
+
 				By("performing rapid scaling changes")
 				for i, targetReplicas := range scalingSequence {
 					By(fmt.Sprintf("scaling to %d nodes (step %d)", targetReplicas, i+1))
-					
+
 					nodeSet.Spec.Replicas = targetReplicas
 					Expect(k8sClient.Update(ctx, nodeSet)).To(Succeed())
-					
+
 					// Give some time for scaling to start
 					time.Sleep(2 * time.Second)
 				}
@@ -419,7 +419,7 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 			It("should handle multiple NodeSets scaling simultaneously", func() {
 				numNodeSets := 5
 				nodeSets := make([]*nephoranv1.E2NodeSet, numNodeSets)
-				
+
 				By("creating multiple E2NodeSets")
 				for i := 0; i < numNodeSets; i++ {
 					nodeSet := testutils.E2NodeSetFixture.CreateBasicE2NodeSet(
@@ -439,7 +439,7 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 							return -1
 						}
 						return currentNodeSet.Status.CurrentNodes
-					}, 30*time.Second, 2*time.Second).Should(Equal(int32(2)), 
+					}, 30*time.Second, 2*time.Second).Should(Equal(int32(2)),
 						fmt.Sprintf("NodeSet %d should reach initial state", i))
 				}
 
@@ -463,14 +463,14 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 							return -1
 						}
 						return currentNodeSet.Status.CurrentNodes
-					}, 120*time.Second, 3*time.Second).Should(Equal(targetReplicas[i]), 
+					}, 120*time.Second, 3*time.Second).Should(Equal(targetReplicas[i]),
 						fmt.Sprintf("NodeSet %d should reach target %d", i, targetReplicas[i]))
 				}
 
 				concurrentScalingDuration := performanceTracker.Stop("concurrent-scaling")
 
 				By("verifying concurrent scaling performance")
-				Expect(concurrentScalingDuration).To(BeNumerically("<", 150*time.Second), 
+				Expect(concurrentScalingDuration).To(BeNumerically("<", 150*time.Second),
 					"Concurrent scaling should complete within reasonable time")
 
 				By("verifying all ConfigMaps are created correctly")
@@ -501,7 +501,7 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 						Name: nodeSet.Name, Namespace: nodeSet.Namespace,
 					}, finalNodeSet)).To(Succeed())
 
-					Expect(finalNodeSet.Status.Phase).To(Equal(nephoranv1.E2NodeSetPhaseReady), 
+					Expect(finalNodeSet.Status.Phase).To(Equal(nephoranv1.E2NodeSetPhaseReady),
 						fmt.Sprintf("NodeSet %d should be ready", i))
 					Expect(finalNodeSet.Status.CurrentNodes).To(Equal(targetReplicas[i]))
 					Expect(finalNodeSet.Status.ReadyNodes).To(Equal(targetReplicas[i]))
@@ -513,11 +513,11 @@ var _ = Describe("E2NodeSet Scaling Integration", func() {
 	Describe("Performance Validation", func() {
 		It("should meet timing requirements for various scaling scenarios", func() {
 			testCases := []struct {
-				name           string
-				initial        int32
-				target         int32
-				maxDuration    time.Duration
-				description    string
+				name        string
+				initial     int32
+				target      int32
+				maxDuration time.Duration
+				description string
 			}{
 				{"small-scale-up", 1, 10, 30 * time.Second, "Small scale up should be fast"},
 				{"medium-scale-up", 5, 25, 60 * time.Second, "Medium scale up should be moderate"},

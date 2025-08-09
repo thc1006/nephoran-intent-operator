@@ -58,25 +58,25 @@ var (
 type AuditSystemConfig struct {
 	// Enabled controls whether audit logging is active
 	Enabled bool `json:"enabled" yaml:"enabled"`
-	
+
 	// LogLevel controls the minimum severity level for audit events
 	LogLevel Severity `json:"log_level" yaml:"log_level"`
-	
+
 	// BatchSize controls how many events to process in a batch
 	BatchSize int `json:"batch_size" yaml:"batch_size"`
-	
+
 	// FlushInterval controls how often to flush batched events
 	FlushInterval time.Duration `json:"flush_interval" yaml:"flush_interval"`
-	
+
 	// MaxQueueSize controls the maximum number of events to queue
 	MaxQueueSize int `json:"max_queue_size" yaml:"max_queue_size"`
-	
+
 	// EnableIntegrity controls whether log integrity protection is enabled
 	EnableIntegrity bool `json:"enable_integrity" yaml:"enable_integrity"`
-	
+
 	// ComplianceMode controls additional compliance-specific features
 	ComplianceMode []ComplianceStandard `json:"compliance_mode" yaml:"compliance_mode"`
-	
+
 	// Backends configuration for different output destinations
 	Backends []backends.BackendConfig `json:"backends" yaml:"backends"`
 }
@@ -99,28 +99,28 @@ func DefaultAuditConfig() *AuditSystemConfig {
 type AuditSystem struct {
 	config   *AuditSystemConfig
 	backends []backends.Backend
-	
+
 	// Event processing
-	eventQueue    chan *types.AuditEvent
-	batchBuffer   []*types.AuditEvent
-	batchMutex    sync.RWMutex
-	flushTimer    *time.Timer
-	
+	eventQueue  chan *types.AuditEvent
+	batchBuffer []*types.AuditEvent
+	batchMutex  sync.RWMutex
+	flushTimer  *time.Timer
+
 	// System state
-	logger         logr.Logger
-	tracer         trace.Tracer
-	running        atomic.Bool
-	wg             sync.WaitGroup
-	ctx            context.Context
-	cancel         context.CancelFunc
-	
+	logger  logr.Logger
+	tracer  trace.Tracer
+	running atomic.Bool
+	wg      sync.WaitGroup
+	ctx     context.Context
+	cancel  context.CancelFunc
+
 	// Integrity protection
 	integrityChain *IntegrityChain
-	
+
 	// Compliance features
 	retentionManager *RetentionManager
 	complianceLogger *compliance.ComplianceLogger
-	
+
 	// Metrics and monitoring
 	lastFlush      time.Time
 	eventsReceived int64
@@ -132,19 +132,19 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 	if config == nil {
 		config = DefaultAuditConfig()
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	system := &AuditSystem{
-		config:       config,
-		eventQueue:   make(chan *types.AuditEvent, config.MaxQueueSize),
-		batchBuffer:  make([]*types.AuditEvent, 0, config.BatchSize),
-		logger:       log.Log.WithName("audit-system"),
-		ctx:          ctx,
-		cancel:       cancel,
-		lastFlush:    time.Now(),
+		config:      config,
+		eventQueue:  make(chan *types.AuditEvent, config.MaxQueueSize),
+		batchBuffer: make([]*types.AuditEvent, 0, config.BatchSize),
+		logger:      log.Log.WithName("audit-system"),
+		ctx:         ctx,
+		cancel:      cancel,
+		lastFlush:   time.Now(),
 	}
-	
+
 	// Initialize integrity protection if enabled
 	if config.EnableIntegrity {
 		var err error
@@ -153,16 +153,16 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 			return nil, fmt.Errorf("failed to initialize integrity chain: %w", err)
 		}
 	}
-	
+
 	// Initialize retention manager
 	retentionConfig := &RetentionConfig{
 		ComplianceMode: config.ComplianceMode,
 	}
 	system.retentionManager = NewRetentionManager(retentionConfig)
-	
+
 	// Initialize compliance logger
 	system.complianceLogger = compliance.NewComplianceLogger(config.ComplianceMode)
-	
+
 	// Initialize backends
 	for _, backendConfig := range config.Backends {
 		backend, err := backends.NewBackend(backendConfig)
@@ -172,7 +172,7 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 		}
 		system.backends = append(system.backends, backend)
 	}
-	
+
 	return system, nil
 }
 
@@ -182,32 +182,32 @@ func (as *AuditSystem) Start() error {
 		as.logger.Info("Audit system is disabled")
 		return nil
 	}
-	
+
 	if as.running.Load() {
 		return fmt.Errorf("audit system is already running")
 	}
-	
+
 	as.logger.Info("Starting audit system",
 		"batch_size", as.config.BatchSize,
 		"flush_interval", as.config.FlushInterval,
 		"max_queue_size", as.config.MaxQueueSize,
 		"backends", len(as.backends))
-	
+
 	as.running.Store(true)
-	
+
 	// Start the main processing goroutine
 	as.wg.Add(1)
 	go as.processingLoop()
-	
+
 	// Start flush timer
 	as.flushTimer = time.NewTimer(as.config.FlushInterval)
 	as.wg.Add(1)
 	go as.timerLoop()
-	
+
 	// Start retention manager
 	as.wg.Add(1)
 	go as.retentionManager.Start(as.ctx, &as.wg)
-	
+
 	return nil
 }
 
@@ -216,31 +216,31 @@ func (as *AuditSystem) Stop() error {
 	if !as.running.Load() {
 		return nil
 	}
-	
+
 	as.logger.Info("Stopping audit system")
 	as.running.Store(false)
-	
+
 	// Cancel context to signal shutdown
 	as.cancel()
-	
+
 	// Stop flush timer
 	if as.flushTimer != nil {
 		as.flushTimer.Stop()
 	}
-	
+
 	// Wait for all goroutines to finish
 	as.wg.Wait()
-	
+
 	// Flush any remaining events
 	as.flushBatch()
-	
+
 	// Close backends
 	for _, backend := range as.backends {
 		if err := backend.Close(); err != nil {
 			as.logger.Error(err, "Failed to close backend", "type", backend.Type())
 		}
 	}
-	
+
 	as.logger.Info("Audit system stopped")
 	return nil
 }
@@ -250,28 +250,28 @@ func (as *AuditSystem) LogEvent(event *types.AuditEvent) error {
 	if !as.config.Enabled || !as.running.Load() {
 		return nil
 	}
-	
+
 	// Check minimum severity level
 	if event.Severity < as.config.LogLevel {
 		return nil
 	}
-	
+
 	// Enrich event with system metadata
 	as.enrichEvent(event)
-	
+
 	// Validate event structure
 	if err := event.Validate(); err != nil {
 		auditErrorsTotal.WithLabelValues("system", "validation_error").Inc()
 		return fmt.Errorf("invalid audit event: %w", err)
 	}
-	
+
 	// Apply integrity protection
 	if as.integrityChain != nil {
 		if err := as.integrityChain.ProcessEvent(event); err != nil {
 			as.logger.Error(err, "Failed to apply integrity protection to audit event")
 		}
 	}
-	
+
 	// Try to enqueue the event
 	select {
 	case as.eventQueue <- event:
@@ -306,7 +306,7 @@ func (as *AuditSystem) GetStats() AuditStats {
 // processingLoop is the main event processing loop
 func (as *AuditSystem) processingLoop() {
 	defer as.wg.Done()
-	
+
 	for {
 		select {
 		case event := <-as.eventQueue:
@@ -314,11 +314,11 @@ func (as *AuditSystem) processingLoop() {
 			as.batchBuffer = append(as.batchBuffer, event)
 			shouldFlush := len(as.batchBuffer) >= as.config.BatchSize
 			as.batchMutex.Unlock()
-			
+
 			if shouldFlush {
 				as.flushBatch()
 			}
-			
+
 		case <-as.ctx.Done():
 			as.logger.Info("Processing loop shutting down")
 			return
@@ -329,13 +329,13 @@ func (as *AuditSystem) processingLoop() {
 // timerLoop handles periodic flushing based on time intervals
 func (as *AuditSystem) timerLoop() {
 	defer as.wg.Done()
-	
+
 	for {
 		select {
 		case <-as.flushTimer.C:
 			as.flushBatch()
 			as.flushTimer.Reset(as.config.FlushInterval)
-			
+
 		case <-as.ctx.Done():
 			as.logger.Info("Timer loop shutting down")
 			return
@@ -350,16 +350,16 @@ func (as *AuditSystem) flushBatch() {
 		as.batchMutex.Unlock()
 		return
 	}
-	
+
 	// Copy and clear buffer
 	events := make([]*types.AuditEvent, len(as.batchBuffer))
 	copy(events, as.batchBuffer)
 	as.batchBuffer = as.batchBuffer[:0]
 	as.batchMutex.Unlock()
-	
+
 	// Update queue size metric
 	auditQueueSize.WithLabelValues("batch_buffer").Set(float64(len(as.batchBuffer)))
-	
+
 	// Process events with each backend
 	for _, backend := range as.backends {
 		if err := as.processEventsWithBackend(backend, events); err != nil {
@@ -367,12 +367,12 @@ func (as *AuditSystem) flushBatch() {
 			auditErrorsTotal.WithLabelValues(backend.Type(), "processing_error").Inc()
 		}
 	}
-	
+
 	// Update compliance logging
 	for _, event := range events {
 		as.complianceLogger.ProcessEvent(event)
 	}
-	
+
 	as.lastFlush = time.Now()
 	as.logger.V(1).Info("Flushed audit batch", "count", len(events))
 }
@@ -384,7 +384,7 @@ func (as *AuditSystem) processEventsWithBackend(backend backends.Backend, events
 		duration := time.Since(start)
 		auditProcessingDuration.WithLabelValues(backend.Type(), "batch_write").Observe(duration.Seconds())
 	}()
-	
+
 	return backend.WriteEvents(as.ctx, events)
 }
 
@@ -393,24 +393,24 @@ func (as *AuditSystem) enrichEvent(event *types.AuditEvent) {
 	if event.ID == "" {
 		event.ID = uuid.New().String()
 	}
-	
+
 	if event.Timestamp.IsZero() {
 		event.Timestamp = time.Now().UTC()
 	}
-	
+
 	if event.Version == "" {
 		event.Version = AuditFormatVersion
 	}
-	
+
 	// Add system context
 	if event.SystemContext == nil {
 		event.SystemContext = &SystemContext{}
 	}
-	
+
 	event.SystemContext.Hostname = getHostname()
 	event.SystemContext.ProcessID = getProcessID()
 	event.SystemContext.ThreadID = getGoroutineID()
-	
+
 	// Add compliance metadata based on configured standards
 	for _, standard := range as.config.ComplianceMode {
 		switch standard {
@@ -429,7 +429,7 @@ func (as *AuditSystem) addSOC2Metadata(event *types.AuditEvent) {
 	if event.ComplianceMetadata == nil {
 		event.ComplianceMetadata = make(map[string]interface{})
 	}
-	
+
 	event.ComplianceMetadata["soc2_control_id"] = as.getSOC2ControlID(event.EventType)
 	event.ComplianceMetadata["soc2_trust_service"] = as.getSOC2TrustService(event.EventType)
 }
@@ -439,7 +439,7 @@ func (as *AuditSystem) addISO27001Metadata(event *types.AuditEvent) {
 	if event.ComplianceMetadata == nil {
 		event.ComplianceMetadata = make(map[string]interface{})
 	}
-	
+
 	event.ComplianceMetadata["iso27001_control"] = as.getISO27001Control(event.EventType)
 	event.ComplianceMetadata["iso27001_annex"] = as.getISO27001Annex(event.EventType)
 }
@@ -449,7 +449,7 @@ func (as *AuditSystem) addPCIDSSMetadata(event *types.AuditEvent) {
 	if event.ComplianceMetadata == nil {
 		event.ComplianceMetadata = make(map[string]interface{})
 	}
-	
+
 	event.ComplianceMetadata["pci_requirement"] = as.getPCIRequirement(event.EventType)
 	event.ComplianceMetadata["pci_data_classification"] = as.getPCIDataClassification(event)
 }
@@ -533,10 +533,10 @@ func (as *AuditSystem) getPCIDataClassification(event *types.AuditEvent) string 
 
 // AuditStats contains statistics about the audit system
 type AuditStats struct {
-	EventsReceived   int64                 `json:"events_received"`
-	EventsDropped    int64                 `json:"events_dropped"`
-	QueueSize        int                   `json:"queue_size"`
-	BackendCount     int                   `json:"backend_count"`
+	EventsReceived   int64                `json:"events_received"`
+	EventsDropped    int64                `json:"events_dropped"`
+	QueueSize        int                  `json:"queue_size"`
+	BackendCount     int                  `json:"backend_count"`
 	LastFlushTime    time.Time            `json:"last_flush_time"`
 	IntegrityEnabled bool                 `json:"integrity_enabled"`
 	ComplianceMode   []ComplianceStandard `json:"compliance_mode"`

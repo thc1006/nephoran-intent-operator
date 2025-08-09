@@ -31,30 +31,30 @@ func (suite *ComplianceTestSuite) SetupTest() {
 		audit.ComplianceISO27001,
 		audit.CompliancePCIDSS,
 	}
-	
+
 	suite.complianceLogger = NewComplianceLogger(complianceMode)
-	
+
 	retentionConfig := &RetentionConfig{
 		ComplianceMode:     complianceMode,
-		DefaultRetention:   365 * 24 * time.Hour, // 1 year
-		MinRetention:       30 * 24 * time.Hour,  // 30 days
+		DefaultRetention:   365 * 24 * time.Hour,     // 1 year
+		MinRetention:       30 * 24 * time.Hour,      // 30 days
 		MaxRetention:       7 * 365 * 24 * time.Hour, // 7 years
-		PurgeInterval:      24 * time.Hour,       // Daily
+		PurgeInterval:      24 * time.Hour,           // Daily
 		BackupBeforePurge:  true,
 		CompressionEnabled: true,
 	}
-	
+
 	suite.retentionManager = NewRetentionManager(retentionConfig)
 }
 
 // SOC2 Compliance Tests
 func (suite *ComplianceTestSuite) TestSOC2ComplianceRequirements() {
 	tests := []struct {
-		name              string
-		event             *audit.AuditEvent
-		expectedControls  []string
-		expectedService   string
-		requiresEvidence  bool
+		name             string
+		event            *audit.AuditEvent
+		expectedControls []string
+		expectedService  string
+		requiresEvidence bool
 	}{
 		{
 			name: "authentication event CC6.1",
@@ -102,16 +102,16 @@ func (suite *ComplianceTestSuite) TestSOC2ComplianceRequirements() {
 		{
 			name: "data access event CC6.7",
 			event: &audit.AuditEvent{
-				ID:        uuid.New().String(),
-				EventType: audit.EventTypeDataAccess,
-				Component: "api-service",
-				Action:    "sensitive_data_access",
-				Severity:  audit.SeverityNotice,
-				Result:    audit.ResultSuccess,
+				ID:                 uuid.New().String(),
+				EventType:          audit.EventTypeDataAccess,
+				Component:          "api-service",
+				Action:             "sensitive_data_access",
+				Severity:           audit.SeverityNotice,
+				Result:             audit.ResultSuccess,
 				DataClassification: "Confidential",
 				Data: map[string]interface{}{
 					"records_accessed": 150,
-					"data_type":       "customer_pii",
+					"data_type":        "customer_pii",
 				},
 				Timestamp: time.Now(),
 			},
@@ -129,9 +129,9 @@ func (suite *ComplianceTestSuite) TestSOC2ComplianceRequirements() {
 				Severity:  audit.SeverityWarning,
 				Result:    audit.ResultSuccess,
 				Data: map[string]interface{}{
-					"change_type":        "security_policy",
-					"approval_required":  true,
-					"change_ticket":      "CHG-2023-1234",
+					"change_type":       "security_policy",
+					"approval_required": true,
+					"change_ticket":     "CHG-2023-1234",
 				},
 				Timestamp: time.Now(),
 			},
@@ -140,25 +140,25 @@ func (suite *ComplianceTestSuite) TestSOC2ComplianceRequirements() {
 			requiresEvidence: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		suite.Run(tt.name, func() {
 			compliance := suite.analyzeSOC2Compliance(tt.event)
-			
+
 			suite.NotNil(compliance)
 			suite.Equal(audit.ComplianceSOC2, compliance.Standard)
-			
+
 			// Verify required controls are identified
 			for _, expectedControl := range tt.expectedControls {
 				suite.Contains(compliance.Controls, expectedControl)
 			}
-			
+
 			// Verify trust service category
 			suite.Equal(tt.expectedService, compliance.TrustService)
-			
+
 			// Verify evidence requirements
 			suite.Equal(tt.requiresEvidence, compliance.RequiresEvidence)
-			
+
 			// Verify retention period meets SOC2 requirements (7 years)
 			expectedRetention := 7 * 365 * 24 * time.Hour
 			suite.GreaterOrEqual(compliance.RetentionPeriod, expectedRetention)
@@ -205,8 +205,8 @@ func (suite *ComplianceTestSuite) TestISO27001ComplianceRequirements() {
 				Severity:  audit.SeverityNotice,
 				Result:    audit.ResultSuccess,
 				Data: map[string]interface{}{
-					"query_type":    "customer_data",
-					"record_count":  25,
+					"query_type":   "customer_data",
+					"record_count": 25,
 					"purpose":      "customer_support",
 				},
 				Timestamp: time.Now(),
@@ -226,8 +226,8 @@ func (suite *ComplianceTestSuite) TestISO27001ComplianceRequirements() {
 				Result:    audit.ResultFailure,
 				Data: map[string]interface{}{
 					"violation_type": "unauthorized_access_attempt",
-					"source_ip":     "192.168.1.100",
-					"target_system": "production_database",
+					"source_ip":      "192.168.1.100",
+					"target_system":  "production_database",
 				},
 				Timestamp: time.Now(),
 			},
@@ -236,25 +236,25 @@ func (suite *ComplianceTestSuite) TestISO27001ComplianceRequirements() {
 			riskCategory:     "Critical",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		suite.Run(tt.name, func() {
 			compliance := suite.analyzeISO27001Compliance(tt.event)
-			
+
 			suite.NotNil(compliance)
 			suite.Equal(audit.ComplianceISO27001, compliance.Standard)
-			
+
 			// Verify controls
 			for _, expectedControl := range tt.expectedControls {
 				suite.Contains(compliance.Controls, expectedControl)
 			}
-			
+
 			// Verify annex classification
 			suite.Equal(tt.expectedAnnex, compliance.Annex)
-			
+
 			// Verify risk category
 			suite.Equal(tt.riskCategory, compliance.RiskCategory)
-			
+
 			// Verify retention period meets ISO 27001 requirements (3 years minimum)
 			expectedRetention := 3 * 365 * 24 * time.Hour
 			suite.GreaterOrEqual(compliance.RetentionPeriod, expectedRetention)
@@ -265,11 +265,11 @@ func (suite *ComplianceTestSuite) TestISO27001ComplianceRequirements() {
 // PCI DSS Compliance Tests
 func (suite *ComplianceTestSuite) TestPCIDSSComplianceRequirements() {
 	tests := []struct {
-		name              string
-		event             *audit.AuditEvent
-		expectedReq       string
+		name               string
+		event              *audit.AuditEvent
+		expectedReq        string
 		dataClassification string
-		requiresAlert     bool
+		requiresAlert      bool
 	}{
 		{
 			name: "cardholder data access requirement 10.2.1",
@@ -283,10 +283,10 @@ func (suite *ComplianceTestSuite) TestPCIDSSComplianceRequirements() {
 				Data: map[string]interface{}{
 					"cardholder_data": true,
 					"card_numbers":    5,
-					"purpose":        "transaction_processing",
+					"purpose":         "transaction_processing",
 				},
 				DataClassification: "Cardholder Data",
-				Timestamp:         time.Now(),
+				Timestamp:          time.Now(),
 			},
 			expectedReq:        "10.2.1",
 			dataClassification: "Cardholder Data",
@@ -338,23 +338,23 @@ func (suite *ComplianceTestSuite) TestPCIDSSComplianceRequirements() {
 			requiresAlert:      false,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		suite.Run(tt.name, func() {
 			compliance := suite.analyzePCIDSSCompliance(tt.event)
-			
+
 			suite.NotNil(compliance)
 			suite.Equal(audit.CompliancePCIDSS, compliance.Standard)
-			
+
 			// Verify requirement mapping
 			suite.Equal(tt.expectedReq, compliance.Requirement)
-			
+
 			// Verify data classification
 			suite.Equal(tt.dataClassification, compliance.DataClassification)
-			
+
 			// Verify alert requirements
 			suite.Equal(tt.requiresAlert, compliance.RequiresAlert)
-			
+
 			// Verify retention period meets PCI DSS requirements (1 year minimum)
 			expectedRetention := 365 * 24 * time.Hour
 			suite.GreaterOrEqual(compliance.RetentionPeriod, expectedRetention)
@@ -366,10 +366,10 @@ func (suite *ComplianceTestSuite) TestPCIDSSComplianceRequirements() {
 func (suite *ComplianceTestSuite) TestRetentionManagement() {
 	suite.Run("calculate retention period", func() {
 		tests := []struct {
-			name               string
-			event              *audit.AuditEvent
+			name                string
+			event               *audit.AuditEvent
 			complianceStandards []audit.ComplianceStandard
-			expectedMin        time.Duration
+			expectedMin         time.Duration
 		}{
 			{
 				name: "SOC2 security event",
@@ -405,7 +405,7 @@ func (suite *ComplianceTestSuite) TestRetentionManagement() {
 				expectedMin: 7 * 365 * 24 * time.Hour, // Longest requirement wins
 			},
 		}
-		
+
 		for _, tt := range tests {
 			suite.Run(tt.name, func() {
 				retention := suite.retentionManager.CalculateRetentionPeriod(tt.event, tt.complianceStandards)
@@ -413,7 +413,7 @@ func (suite *ComplianceTestSuite) TestRetentionManagement() {
 			})
 		}
 	})
-	
+
 	suite.Run("retention policy enforcement", func() {
 		// Create events with different ages
 		events := []*audit.AuditEvent{
@@ -433,7 +433,7 @@ func (suite *ComplianceTestSuite) TestRetentionManagement() {
 				EventType: audit.EventTypeSecurityViolation,
 			},
 		}
-		
+
 		policies := []RetentionPolicy{
 			{
 				EventType:       audit.EventTypeHealthCheck,
@@ -448,11 +448,11 @@ func (suite *ComplianceTestSuite) TestRetentionManagement() {
 				RetentionPeriod: 7 * 365 * 24 * time.Hour, // 7 years
 			},
 		}
-		
+
 		for i, event := range events {
 			policy := policies[i]
 			shouldRetain := suite.retentionManager.ShouldRetainEvent(event, policy)
-			
+
 			expectedRetain := time.Since(event.Timestamp) < policy.RetentionPeriod
 			suite.Equal(expectedRetain, shouldRetain,
 				"Event %d retention decision mismatch", i)
@@ -469,35 +469,35 @@ func (suite *ComplianceTestSuite) TestComplianceReportGeneration() {
 			createComplianceTestEvent(audit.EventTypeDataAccess, audit.SeverityNotice),
 			createComplianceTestEvent(audit.EventTypeSecurityViolation, audit.SeverityCritical),
 		}
-		
+
 		report := suite.complianceLogger.GenerateSOC2Report(events, time.Now().Add(-24*time.Hour), time.Now())
-		
+
 		suite.NotNil(report)
 		suite.Equal("SOC2", report.Standard)
 		suite.Len(report.TrustServices, 2) // Security and Confidentiality
 		suite.Greater(report.TotalEvents, int64(0))
 		suite.NotEmpty(report.ControlCoverage)
-		
+
 		// Verify security violations are flagged
 		suite.Greater(report.SecurityViolations, int64(0))
 	})
-	
+
 	suite.Run("generate ISO 27001 report", func() {
 		events := []*audit.AuditEvent{
 			createComplianceTestEvent(audit.EventTypeAuthentication, audit.SeverityInfo),
 			createComplianceTestEvent(audit.EventTypeSystemChange, audit.SeverityWarning),
 			createComplianceTestEvent(audit.EventTypeIncidentResponse, audit.SeverityCritical),
 		}
-		
+
 		report := suite.complianceLogger.GenerateISO27001Report(events, time.Now().Add(-24*time.Hour), time.Now())
-		
+
 		suite.NotNil(report)
 		suite.Equal("ISO27001", report.Standard)
 		suite.Greater(report.TotalEvents, int64(0))
 		suite.NotEmpty(report.AnnexCoverage)
 		suite.NotEmpty(report.RiskAssessment)
 	})
-	
+
 	suite.Run("generate PCI DSS report", func() {
 		events := []*audit.AuditEvent{
 			{
@@ -507,7 +507,7 @@ func (suite *ComplianceTestSuite) TestComplianceReportGeneration() {
 					"cardholder_data": true,
 				},
 				DataClassification: "Cardholder Data",
-				Timestamp:         time.Now(),
+				Timestamp:          time.Now(),
 			},
 			{
 				ID:        uuid.New().String(),
@@ -518,9 +518,9 @@ func (suite *ComplianceTestSuite) TestComplianceReportGeneration() {
 				Timestamp: time.Now(),
 			},
 		}
-		
+
 		report := suite.complianceLogger.GeneratePCIDSSReport(events, time.Now().Add(-24*time.Hour), time.Now())
-		
+
 		suite.NotNil(report)
 		suite.Equal("PCI_DSS", report.Standard)
 		suite.Greater(report.TotalEvents, int64(0))
@@ -545,29 +545,29 @@ func (suite *ComplianceTestSuite) TestEvidenceCollection() {
 			},
 			Timestamp: time.Now(),
 		}
-		
+
 		evidence := suite.complianceLogger.CollectEvidence(event, []audit.ComplianceStandard{audit.ComplianceSOC2})
-		
+
 		suite.NotNil(evidence)
 		suite.Equal(event.ID, evidence.EventID)
 		suite.Equal(audit.ComplianceSOC2, evidence.Standard)
 		suite.NotEmpty(evidence.EvidenceType)
 		suite.NotNil(evidence.Metadata)
 		suite.True(evidence.Verified)
-		
+
 		// Verify evidence chain
 		suite.NotEmpty(evidence.Hash)
 		suite.NotEmpty(evidence.PreviousHash)
 	})
-	
+
 	suite.Run("verify evidence integrity", func() {
 		event := createComplianceTestEvent(audit.EventTypeDataAccess, audit.SeverityNotice)
 		evidence := suite.complianceLogger.CollectEvidence(event, []audit.ComplianceStandard{audit.ComplianceISO27001})
-		
+
 		// Verify evidence hasn't been tampered with
 		isValid := suite.complianceLogger.VerifyEvidenceIntegrity(evidence)
 		suite.True(isValid)
-		
+
 		// Tamper with evidence and verify detection
 		evidence.Metadata["tampered"] = "true"
 		isValid = suite.complianceLogger.VerifyEvidenceIntegrity(evidence)
@@ -587,28 +587,28 @@ func (suite *ComplianceTestSuite) TestCrossStandardCompliance() {
 			Result:    audit.ResultSuccess,
 			Data: map[string]interface{}{
 				"cardholder_data": true,
-				"pii_records":    25,
+				"pii_records":     25,
 			},
 			DataClassification: "Sensitive",
-			Timestamp:         time.Now(),
+			Timestamp:          time.Now(),
 		}
-		
+
 		standards := []audit.ComplianceStandard{
 			audit.ComplianceSOC2,
 			audit.ComplianceISO27001,
 			audit.CompliancePCIDSS,
 		}
-		
+
 		analysis := suite.complianceLogger.AnalyzeMultiStandardCompliance(event, standards)
-		
+
 		suite.Len(analysis.Standards, 3)
-		
+
 		// Verify each standard has appropriate controls
 		for _, stdAnalysis := range analysis.Standards {
 			suite.NotEmpty(stdAnalysis.Controls)
 			suite.Greater(stdAnalysis.RetentionPeriod, time.Duration(0))
 		}
-		
+
 		// Verify strictest retention period is selected
 		maxRetention := time.Duration(0)
 		for _, std := range analysis.Standards {
@@ -640,18 +640,18 @@ func (suite *ComplianceTestSuite) TestComplianceProcessingPerformance() {
 				}[i%4],
 			)
 		}
-		
+
 		start := time.Now()
 		processed := 0
-		
+
 		for _, event := range events {
 			suite.complianceLogger.ProcessEvent(event)
 			processed++
 		}
-		
+
 		duration := time.Since(start)
 		eventsPerSecond := float64(processed) / duration.Seconds()
-		
+
 		suite.Greater(eventsPerSecond, 100.0, "Compliance processing too slow: %.2f events/sec", eventsPerSecond)
 	})
 }
@@ -740,9 +740,9 @@ type ComplianceReport struct {
 
 type SOC2Report struct {
 	ComplianceReport
-	TrustServices       []string
-	ControlCoverage     map[string]int64
-	SecurityViolations  int64
+	TrustServices      []string
+	ControlCoverage    map[string]int64
+	SecurityViolations int64
 }
 
 type ISO27001Report struct {
@@ -753,8 +753,8 @@ type ISO27001Report struct {
 
 type PCIDSSReport struct {
 	ComplianceReport
-	CardholderDataAccess  int64
-	RequirementCoverage   map[string]int64
+	CardholderDataAccess int64
+	RequirementCoverage  map[string]int64
 }
 
 type Evidence struct {
@@ -769,8 +769,8 @@ type Evidence struct {
 }
 
 type MultiStandardAnalysis struct {
-	Standards             []ComplianceStandardAnalysis
-	FinalRetentionPeriod  time.Duration
+	Standards            []ComplianceStandardAnalysis
+	FinalRetentionPeriod time.Duration
 }
 
 type ComplianceStandardAnalysis struct {
@@ -827,7 +827,7 @@ func (cl *ComplianceLogger) GeneratePCIDSSReport(events []*audit.AuditEvent, sta
 			}
 		}
 	}
-	
+
 	return &PCIDSSReport{
 		ComplianceReport: ComplianceReport{
 			Standard:    "PCI_DSS",
@@ -864,13 +864,13 @@ func (cl *ComplianceLogger) AnalyzeMultiStandardCompliance(event *audit.AuditEve
 	analysis := &MultiStandardAnalysis{
 		Standards: make([]ComplianceStandardAnalysis, len(standards)),
 	}
-	
+
 	maxRetention := time.Duration(0)
-	
+
 	for i, standard := range standards {
 		var retention time.Duration
 		var controls []string
-		
+
 		switch standard {
 		case audit.ComplianceSOC2:
 			retention = 7 * 365 * 24 * time.Hour
@@ -882,18 +882,18 @@ func (cl *ComplianceLogger) AnalyzeMultiStandardCompliance(event *audit.AuditEve
 			retention = 365 * 24 * time.Hour
 			controls = []string{"10.2.1", "8.1.1"}
 		}
-		
+
 		analysis.Standards[i] = ComplianceStandardAnalysis{
 			Standard:        standard,
 			Controls:        controls,
 			RetentionPeriod: retention,
 		}
-		
+
 		if retention > maxRetention {
 			maxRetention = retention
 		}
 	}
-	
+
 	analysis.FinalRetentionPeriod = maxRetention
 	return analysis
 }
@@ -923,7 +923,7 @@ func NewRetentionManager(config *RetentionConfig) *RetentionManager {
 
 func (rm *RetentionManager) CalculateRetentionPeriod(event *audit.AuditEvent, standards []audit.ComplianceStandard) time.Duration {
 	maxRetention := rm.config.DefaultRetention
-	
+
 	for _, standard := range standards {
 		var retention time.Duration
 		switch standard {
@@ -936,12 +936,12 @@ func (rm *RetentionManager) CalculateRetentionPeriod(event *audit.AuditEvent, st
 		default:
 			retention = rm.config.DefaultRetention
 		}
-		
+
 		if retention > maxRetention {
 			maxRetention = retention
 		}
 	}
-	
+
 	// Security events may need longer retention
 	if event.EventType == audit.EventTypeSecurityViolation {
 		securityRetention := 7 * 365 * 24 * time.Hour
@@ -949,7 +949,7 @@ func (rm *RetentionManager) CalculateRetentionPeriod(event *audit.AuditEvent, st
 			maxRetention = securityRetention
 		}
 	}
-	
+
 	return maxRetention
 }
 

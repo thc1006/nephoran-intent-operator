@@ -69,8 +69,8 @@ func TestLoadAuthConfig_CustomFilePath(t *testing.T) {
 			expectedError: "failed to load config file",
 		},
 		{
-			name:       "empty path and env var works with defaults",
-			configPath: "",
+			name:        "empty path and env var works with defaults",
+			configPath:  "",
 			expectError: false,
 			validateConfig: func(t *testing.T, config *AuthConfig) {
 				// Should work with environment variables only
@@ -87,7 +87,7 @@ func TestLoadAuthConfig_CustomFilePath(t *testing.T) {
 			originalAuthFile := os.Getenv("AUTH_CONFIG_FILE")
 			originalAuthEnabled := os.Getenv("AUTH_ENABLED")
 			originalJWTSecret := os.Getenv("JWT_SECRET_KEY")
-			
+
 			defer func() {
 				os.Setenv("AUTH_CONFIG_FILE", originalAuthFile)
 				os.Setenv("AUTH_ENABLED", originalAuthEnabled)
@@ -101,7 +101,7 @@ func TestLoadAuthConfig_CustomFilePath(t *testing.T) {
 				if err := os.WriteFile(tmpFile, []byte(tt.fileContent), 0644); err != nil {
 					t.Fatalf("Failed to create temp file: %v", err)
 				}
-				
+
 				if tt.configPath == "" {
 					// Test env var fallback
 					os.Setenv("AUTH_CONFIG_FILE", tmpFile)
@@ -161,7 +161,7 @@ func TestLoadAuthConfig_PathPrecedence(t *testing.T) {
 
 	// Create temp directory for test files
 	tempDir := t.TempDir()
-	
+
 	// Create custom config file
 	customFile := filepath.Join(tempDir, "custom.json")
 	customConfig := map[string]interface{}{
@@ -174,7 +174,7 @@ func TestLoadAuthConfig_PathPrecedence(t *testing.T) {
 		t.Fatalf("Failed to create custom config file: %v", err)
 	}
 
-	// Create env config file  
+	// Create env config file
 	envFile := filepath.Join(tempDir, "env.json")
 	envConfig := map[string]interface{}{
 		"enabled":        false,
@@ -201,7 +201,7 @@ func TestLoadAuthConfig_PathPrecedence(t *testing.T) {
 	if config.JWTSecretKey != "custom-jwt-secret-from-custom-file-12345678901234567890" {
 		t.Errorf("Expected JWT secret from custom file, got: %s", config.JWTSecretKey)
 	}
-	
+
 	if !config.Enabled {
 		t.Error("Expected auth enabled from custom file (true), but got disabled")
 	}
@@ -216,7 +216,7 @@ func TestLoadAuthConfig_PathPrecedence(t *testing.T) {
 	if config2.JWTSecretKey != "env-jwt-secret-from-env-file-12345678901234567890" {
 		t.Errorf("Expected JWT secret from env file, got: %s", config2.JWTSecretKey)
 	}
-	
+
 	if config2.Enabled {
 		t.Error("Expected auth disabled from env file (false), but got enabled")
 	}

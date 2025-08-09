@@ -19,27 +19,27 @@ import (
 
 // SecurityManager manages security configurations and operations
 type SecurityManager struct {
-	tlsManager    *TLSManager
-	oauthManager  *OAuthManager
-	rbacManager   *RBACManager
-	certManager   *CertificateManager
+	tlsManager   *TLSManager
+	oauthManager *OAuthManager
+	rbacManager  *RBACManager
+	certManager  *CertificateManager
 }
 
 // TLSManager manages mutual TLS configurations
 type TLSManager struct {
-	mu          sync.RWMutex
-	tlsConfigs  map[string]*tls.Config
-	certPaths   map[string]*CertificatePaths
-	autoReload  bool
+	mu           sync.RWMutex
+	tlsConfigs   map[string]*tls.Config
+	certPaths    map[string]*CertificatePaths
+	autoReload   bool
 	reloadTicker *time.Ticker
 }
 
 // OAuthManager manages OAuth2/OIDC authentication
 type OAuthManager struct {
-	mu           sync.RWMutex
-	providers    map[string]*OIDCProvider
-	tokenCache   map[string]*TokenInfo
-	httpClient   *http.Client
+	mu         sync.RWMutex
+	providers  map[string]*OIDCProvider
+	tokenCache map[string]*TokenInfo
+	httpClient *http.Client
 }
 
 // RBACManager manages role-based access control
@@ -52,10 +52,10 @@ type RBACManager struct {
 
 // CertificateManager manages certificate lifecycle
 type CertificateManager struct {
-	mu           sync.RWMutex
-	certificates map[string]*CertificateInfo
-	caPool       *x509.CertPool
-	autoRotate   bool
+	mu               sync.RWMutex
+	certificates     map[string]*CertificateInfo
+	caPool           *x509.CertPool
+	autoRotate       bool
 	rotationInterval time.Duration
 }
 
@@ -68,12 +68,12 @@ type CertificatePaths struct {
 
 // CertificateInfo holds certificate information
 type CertificateInfo struct {
-	Certificate *x509.Certificate
-	PrivateKey  interface{}
-	NotBefore   time.Time
-	NotAfter    time.Time
-	Subject     string
-	Issuer      string
+	Certificate  *x509.Certificate
+	PrivateKey   interface{}
+	NotBefore    time.Time
+	NotAfter     time.Time
+	Subject      string
+	Issuer       string
 	SerialNumber string
 }
 
@@ -126,12 +126,12 @@ type RBACPolicy struct {
 
 // PolicyRule defines a policy rule
 type PolicyRule struct {
-	ID          string      `json:"id"`
-	Effect      string      `json:"effect"` // ALLOW, DENY
-	Actions     []string    `json:"actions"`
-	Resources   []string    `json:"resources"`
-	Conditions  []Condition `json:"conditions"`
-	Priority    int         `json:"priority"`
+	ID         string      `json:"id"`
+	Effect     string      `json:"effect"` // ALLOW, DENY
+	Actions    []string    `json:"actions"`
+	Resources  []string    `json:"resources"`
+	Conditions []Condition `json:"conditions"`
+	Priority   int         `json:"priority"`
 }
 
 // Subject represents a policy subject (user, group, service)
@@ -211,9 +211,9 @@ type OAuthConfig struct {
 
 // RBACConfig holds RBAC configuration
 type RBACConfig struct {
-	Enabled       bool   `json:"enabled"`
-	PolicyPath    string `json:"policy_path"`
-	DefaultPolicy string `json:"default_policy"` // ALLOW, DENY
+	Enabled       bool     `json:"enabled"`
+	PolicyPath    string   `json:"policy_path"`
+	DefaultPolicy string   `json:"default_policy"` // ALLOW, DENY
 	AdminUsers    []string `json:"admin_users"`
 	AdminRoles    []string `json:"admin_roles"`
 }
@@ -238,10 +238,10 @@ func NewSecurityManager(config *SecurityConfig) (*SecurityManager, error) {
 	certManager := NewCertificateManager()
 
 	return &SecurityManager{
-		tlsManager:  tlsManager,
+		tlsManager:   tlsManager,
 		oauthManager: oauthManager,
-		rbacManager: rbacManager,
-		certManager: certManager,
+		rbacManager:  rbacManager,
+		certManager:  certManager,
 	}, nil
 }
 
@@ -437,7 +437,7 @@ func (m *OAuthManager) initializeProvider(provider *OIDCProvider) error {
 // refreshJWKS refreshes JWKS from the provider
 func (m *OAuthManager) refreshJWKS(provider *OIDCProvider) error {
 	jwksURL := provider.IssuerURL + "/.well-known/jwks.json"
-	
+
 	resp, err := m.httpClient.Get(jwksURL)
 	if err != nil {
 		return fmt.Errorf("failed to fetch JWKS: %w", err)
@@ -538,7 +538,7 @@ func (m *OAuthManager) getSigningKey(provider *OIDCProvider, token *jwt.Token) (
 	// For simplicity, this implementation returns a dummy key
 	// In a real implementation, this would extract the correct key from JWKS
 	// based on the token's "kid" (key ID) header
-	
+
 	provider.JWKSCache.mu.RLock()
 	defer provider.JWKSCache.mu.RUnlock()
 
@@ -784,9 +784,9 @@ func (m *RBACManager) matchesPattern(pattern, value string) bool {
 // NewCertificateManager creates a new certificate manager
 func NewCertificateManager() *CertificateManager {
 	return &CertificateManager{
-		certificates: make(map[string]*CertificateInfo),
-		caPool:       x509.NewCertPool(),
-		autoRotate:   true,
+		certificates:     make(map[string]*CertificateInfo),
+		caPool:           x509.NewCertPool(),
+		autoRotate:       true,
 		rotationInterval: 30 * 24 * time.Hour, // 30 days
 	}
 }
@@ -844,7 +844,7 @@ func (m *CertificateManager) CheckCertificateExpiry(ctx context.Context) {
 
 	for name, cert := range m.certificates {
 		timeToExpiry := cert.NotAfter.Sub(now)
-		
+
 		if timeToExpiry < 0 {
 			logger.Error(fmt.Errorf("certificate expired"), "certificate", name, "expired_at", cert.NotAfter)
 		} else if timeToExpiry < warningThreshold {
@@ -900,7 +900,7 @@ func (sm *SecurityManager) CreateMiddleware() func(http.Handler) http.Handler {
 			// Check RBAC permissions
 			action := r.Method
 			resource := r.URL.Path
-			
+
 			allowed, err := sm.rbacManager.CheckPermission(ctx, tokenInfo.Subject, action, resource)
 			if err != nil {
 				http.Error(w, "Permission check failed", http.StatusInternalServerError)

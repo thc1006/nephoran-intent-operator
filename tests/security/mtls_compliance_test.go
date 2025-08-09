@@ -20,21 +20,21 @@ import (
 
 // ComplianceValidationSuite validates mTLS implementation against security standards
 type ComplianceValidationSuite struct {
-	ctx           context.Context
-	k8sClient     client.Client
-	namespace     string
-	testSuite     *mTLSSecurityTestSuite
+	ctx               context.Context
+	k8sClient         client.Client
+	namespace         string
+	testSuite         *mTLSSecurityTestSuite
 	complianceResults map[string]*ComplianceResult
 }
 
 // ComplianceResult tracks compliance validation results
 type ComplianceResult struct {
-	Standard      string            `json:"standard"`
-	Version       string            `json:"version"`
+	Standard      string               `json:"standard"`
+	Version       string               `json:"version"`
 	Requirements  []*RequirementResult `json:"requirements"`
-	OverallStatus string            `json:"overall_status"`
-	Score         float64           `json:"score"`
-	Timestamp     time.Time         `json:"timestamp"`
+	OverallStatus string               `json:"overall_status"`
+	Score         float64              `json:"score"`
+	Timestamp     time.Time            `json:"timestamp"`
 }
 
 // RequirementResult tracks individual requirement validation
@@ -79,10 +79,10 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 	Context("O-RAN Security Requirements Compliance", func() {
 		It("should validate O-RAN A1 interface security requirements", func() {
 			result := &ComplianceResult{
-				Standard: "O-RAN",
-				Version:  "7.0.0",
+				Standard:     "O-RAN",
+				Version:      "7.0.0",
 				Requirements: []*RequirementResult{},
-				Timestamp: time.Now(),
+				Timestamp:    time.Now(),
 			}
 
 			// O-RAN.WG2.A1.SEC-001: mTLS for A1 interface
@@ -162,10 +162,10 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 		It("should validate O-RAN O1 interface security requirements", func() {
 			result := &ComplianceResult{
-				Standard: "O-RAN",
-				Version:  "7.0.0",
+				Standard:     "O-RAN",
+				Version:      "7.0.0",
 				Requirements: []*RequirementResult{},
-				Timestamp: time.Now(),
+				Timestamp:    time.Now(),
 			}
 
 			// O-RAN.WG5.O1.SEC-001: NETCONF over TLS
@@ -212,10 +212,10 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 		It("should validate O-RAN E2 interface security requirements", func() {
 			result := &ComplianceResult{
-				Standard: "O-RAN",
-				Version:  "7.0.0",
+				Standard:     "O-RAN",
+				Version:      "7.0.0",
 				Requirements: []*RequirementResult{},
-				Timestamp: time.Now(),
+				Timestamp:    time.Now(),
 			}
 
 			// O-RAN.WG3.E2.SEC-001: E2 connection security
@@ -263,10 +263,10 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 	Context("NIST Cybersecurity Framework Compliance", func() {
 		It("should validate NIST CSF Identity (ID) requirements", func() {
 			result := &ComplianceResult{
-				Standard: "NIST CSF",
-				Version:  "1.1",
+				Standard:     "NIST CSF",
+				Version:      "1.1",
 				Requirements: []*RequirementResult{},
-				Timestamp: time.Now(),
+				Timestamp:    time.Now(),
 			}
 
 			// NIST.ID.AM-1: Physical devices and systems are inventoried
@@ -311,10 +311,10 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 		It("should validate NIST CSF Protect (PR) requirements", func() {
 			result := &ComplianceResult{
-				Standard: "NIST CSF",
-				Version:  "1.1",
+				Standard:     "NIST CSF",
+				Version:      "1.1",
 				Requirements: []*RequirementResult{},
-				Timestamp: time.Now(),
+				Timestamp:    time.Now(),
 			}
 
 			// NIST.PR.AC-1: Identities and credentials are issued, managed, verified, revoked
@@ -361,10 +361,10 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 		It("should validate NIST CSF Detect (DE) requirements", func() {
 			result := &ComplianceResult{
-				Standard: "NIST CSF",
-				Version:  "1.1",
+				Standard:     "NIST CSF",
+				Version:      "1.1",
 				Requirements: []*RequirementResult{},
-				Timestamp: time.Now(),
+				Timestamp:    time.Now(),
 			}
 
 			// NIST.DE.CM-1: Network is monitored to detect potential cybersecurity events
@@ -393,10 +393,10 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 	Context("TLS 1.3 Compliance Validation", func() {
 		It("should validate TLS 1.3 protocol compliance", func() {
 			result := &ComplianceResult{
-				Standard: "TLS",
-				Version:  "1.3",
+				Standard:     "TLS",
+				Version:      "1.3",
 				Requirements: []*RequirementResult{},
-				Timestamp: time.Now(),
+				Timestamp:    time.Now(),
 			}
 
 			// RFC 8446: TLS 1.3 cipher suite requirements
@@ -492,11 +492,11 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 			resp, err := client.Get(server.URL)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			if resp != nil {
 				// Verify TLS 1.3 was used
 				Expect(resp.TLS.Version).To(Equal(uint16(tls.VersionTLS13)))
-				
+
 				// Verify cipher suite is TLS 1.3 compatible
 				tls13Ciphers := []uint16{
 					tls.TLS_AES_128_GCM_SHA256,
@@ -504,7 +504,7 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 					tls.TLS_CHACHA20_POLY1305_SHA256,
 				}
 				Expect(tls13Ciphers).To(ContainElement(resp.TLS.CipherSuite))
-				
+
 				resp.Body.Close()
 			}
 
@@ -515,10 +515,10 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 	Context("Industry-Specific Compliance", func() {
 		It("should validate telecommunications security standards", func() {
 			result := &ComplianceResult{
-				Standard: "3GPP",
-				Version:  "Release 16",
+				Standard:     "3GPP",
+				Version:      "Release 16",
 				Requirements: []*RequirementResult{},
-				Timestamp: time.Now(),
+				Timestamp:    time.Now(),
 			}
 
 			// 3GPP TS 33.501: 5G security requirements
@@ -545,10 +545,10 @@ var _ = Describe("mTLS Compliance Validation Suite", func() {
 
 		It("should validate cloud security standards", func() {
 			result := &ComplianceResult{
-				Standard: "CSA CCM",
-				Version:  "4.0",
+				Standard:     "CSA CCM",
+				Version:      "4.0",
 				Requirements: []*RequirementResult{},
-				Timestamp: time.Now(),
+				Timestamp:    time.Now(),
 			}
 
 			// CSA CCM: Encryption & Key Management
@@ -679,7 +679,7 @@ func (c *ComplianceValidationSuite) generateComplianceReport() {
 
 	for standard, result := range c.complianceResults {
 		totalRequirements += len(result.Requirements)
-		
+
 		passCount := 0
 		for _, req := range result.Requirements {
 			if req.Status == "PASS" {
@@ -687,7 +687,7 @@ func (c *ComplianceValidationSuite) generateComplianceReport() {
 				passedRequirements++
 			}
 		}
-		
+
 		result.Score = float64(passCount) / float64(len(result.Requirements)) * 100
 		if result.Score >= 90 {
 			result.OverallStatus = "COMPLIANT"
@@ -697,12 +697,12 @@ func (c *ComplianceValidationSuite) generateComplianceReport() {
 			result.OverallStatus = "NON_COMPLIANT"
 		}
 
-		By(fmt.Sprintf("Standard: %s - Score: %.1f%% - Status: %s", 
+		By(fmt.Sprintf("Standard: %s - Score: %.1f%% - Status: %s",
 			standard, result.Score, result.OverallStatus))
 	}
 
 	overallScore := float64(passedRequirements) / float64(totalRequirements) * 100
-	By(fmt.Sprintf("Overall Compliance Score: %.1f%% (%d/%d requirements passed)", 
+	By(fmt.Sprintf("Overall Compliance Score: %.1f%% (%d/%d requirements passed)",
 		overallScore, passedRequirements, totalRequirements))
 }
 

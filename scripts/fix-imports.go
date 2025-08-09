@@ -14,7 +14,7 @@ func main() {
 	}
 
 	filename := os.Args[1]
-	
+
 	// Read the file
 	content, err := os.ReadFile(filename)
 	if err != nil {
@@ -25,7 +25,7 @@ func main() {
 	lines := strings.Split(string(content), "\n")
 	var newLines []string
 	inImportBlock := false
-	
+
 	for _, line := range lines {
 		// Check if we're entering import block
 		if strings.TrimSpace(line) == "import (" {
@@ -33,14 +33,14 @@ func main() {
 			newLines = append(newLines, line)
 			continue
 		}
-		
+
 		// Check if we're leaving import block
 		if inImportBlock && strings.TrimSpace(line) == ")" {
 			inImportBlock = false
 			newLines = append(newLines, line)
 			continue
 		}
-		
+
 		// If we're in import block, filter out malformed lines
 		if inImportBlock {
 			trimmed := strings.TrimSpace(line)
@@ -49,10 +49,10 @@ func main() {
 				continue
 			}
 		}
-		
+
 		newLines = append(newLines, line)
 	}
-	
+
 	// Write the fixed content back
 	newContent := strings.Join(newLines, "\n")
 	err = os.WriteFile(filename, []byte(newContent), 0644)
@@ -60,6 +60,6 @@ func main() {
 		fmt.Printf("Error writing file: %v\n", err)
 		os.Exit(1)
 	}
-	
+
 	fmt.Printf("Fixed imports in %s\n", filename)
 }

@@ -33,14 +33,14 @@ import (
 
 // MockLifecycleManager implements lifecycle management for testing
 type MockLifecycleManager struct {
-	client               PorchClient
-	logger               *zap.Logger
-	mutex                sync.RWMutex
-	transitions          map[string][]LifecycleTransition
-	validators           map[PackageRevisionLifecycle]ValidationFunc
-	hooks               map[string][]LifecycleHook
-	transitionHistory   []TransitionEvent
-	enabled             bool
+	client            PorchClient
+	logger            *zap.Logger
+	mutex             sync.RWMutex
+	transitions       map[string][]LifecycleTransition
+	validators        map[PackageRevisionLifecycle]ValidationFunc
+	hooks             map[string][]LifecycleHook
+	transitionHistory []TransitionEvent
+	enabled           bool
 }
 
 // LifecycleTransition represents a state transition
@@ -74,13 +74,13 @@ type LifecycleEvent struct {
 
 // TransitionEvent records transition history
 type TransitionEvent struct {
-	PackageKey  string
-	From        PackageRevisionLifecycle
-	To          PackageRevisionLifecycle
-	Success     bool
-	Error       error
-	Timestamp   time.Time
-	Duration    time.Duration
+	PackageKey string
+	From       PackageRevisionLifecycle
+	To         PackageRevisionLifecycle
+	Success    bool
+	Error      error
+	Timestamp  time.Time
+	Duration   time.Duration
 }
 
 // NewMockLifecycleManager creates a new mock lifecycle manager
@@ -90,9 +90,9 @@ func NewMockLifecycleManager(client PorchClient) *MockLifecycleManager {
 		logger:            zap.New(zap.UseDevMode(true)),
 		transitions:       make(map[string][]LifecycleTransition),
 		validators:        make(map[PackageRevisionLifecycle]ValidationFunc),
-		hooks:            make(map[string][]LifecycleHook),
+		hooks:             make(map[string][]LifecycleHook),
 		transitionHistory: []TransitionEvent{},
-		enabled:          true,
+		enabled:           true,
 	}
 
 	// Setup default transitions
@@ -196,12 +196,12 @@ func (m *MockLifecycleManager) setupDefaultValidators() {
 		if err := m.validators[PackageRevisionLifecycleDraft](ctx, pkg); err != nil {
 			return err
 		}
-		
+
 		// Check for required metadata
 		if pkg.Spec.PackageMetadata == nil {
 			return fmt.Errorf("package metadata is required for proposed packages")
 		}
-		
+
 		return nil
 	}
 
@@ -210,12 +210,12 @@ func (m *MockLifecycleManager) setupDefaultValidators() {
 		if err := m.validators[PackageRevisionLifecycleProposed](ctx, pkg); err != nil {
 			return err
 		}
-		
+
 		// Check publish conditions
 		if pkg.Status.PublishTime == nil {
 			return fmt.Errorf("publish time must be set for published packages")
 		}
-		
+
 		return nil
 	}
 }
@@ -237,7 +237,7 @@ func (m *MockLifecycleManager) setupDefaultHooks() {
 			zap.String("package", event.Package.Spec.PackageName),
 			zap.String("from", string(event.From)),
 			zap.String("to", string(event.To)))
-		
+
 		// Update package metrics
 		m.updatePackageMetrics(event)
 		return nil
@@ -257,7 +257,7 @@ func (m *MockLifecycleManager) setupDefaultHooks() {
 func (m *MockLifecycleManager) RegisterTransition(transition LifecycleTransition) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	key := fmt.Sprintf("%s->%s", transition.From, transition.To)
 	m.transitions[key] = append(m.transitions[key], transition)
 }
@@ -266,7 +266,7 @@ func (m *MockLifecycleManager) RegisterTransition(transition LifecycleTransition
 func (m *MockLifecycleManager) RegisterHook(event string, hook LifecycleHook) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	
+
 	m.hooks[event] = append(m.hooks[event], hook)
 }
 
@@ -278,7 +278,7 @@ func (m *MockLifecycleManager) TransitionPackage(ctx context.Context, pkg *Packa
 
 	start := time.Now()
 	currentState := pkg.Spec.Lifecycle
-	
+
 	// Record transition attempt
 	defer func() {
 		duration := time.Since(start)
@@ -289,7 +289,7 @@ func (m *MockLifecycleManager) TransitionPackage(ctx context.Context, pkg *Packa
 			Timestamp:  start,
 			Duration:   duration,
 		}
-		
+
 		m.mutex.Lock()
 		m.transitionHistory = append(m.transitionHistory, event)
 		m.mutex.Unlock()
@@ -317,7 +317,7 @@ func (m *MockLifecycleManager) TransitionPackage(ctx context.Context, pkg *Packa
 		To:        targetState,
 		Timestamp: time.Now(),
 	}
-	
+
 	if err := m.executeHooks(ctx, "pre-transition", event); err != nil {
 		return fmt.Errorf("pre-transition hook failed: %w", err)
 	}
@@ -385,7 +385,7 @@ func (m *MockLifecycleManager) TransitionPackage(ctx context.Context, pkg *Packa
 func (m *MockLifecycleManager) GetTransitionHistory() []TransitionEvent {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
-	
+
 	history := make([]TransitionEvent, len(m.transitionHistory))
 	copy(history, m.transitionHistory)
 	return history
@@ -588,9 +588,9 @@ func TestLifecycleValidation(t *testing.T) {
 		errorMsg    string
 	}{
 		{
-			name: "valid_draft_package",
-			pkg: fixture.CreateTestPackageRevision("valid-draft", "v1.0.0"),
-			state: PackageRevisionLifecycleDraft,
+			name:        "valid_draft_package",
+			pkg:         fixture.CreateTestPackageRevision("valid-draft", "v1.0.0"),
+			state:       PackageRevisionLifecycleDraft,
 			expectError: false,
 		},
 		{
@@ -603,16 +603,16 @@ func TestLifecycleValidation(t *testing.T) {
 					Lifecycle:   PackageRevisionLifecycleDraft,
 				},
 			},
-			state: PackageRevisionLifecycleDraft,
+			state:       PackageRevisionLifecycleDraft,
 			expectError: true,
-			errorMsg: "package name is required",
+			errorMsg:    "package name is required",
 		},
 		{
-			name: "proposed_without_metadata",
-			pkg: fixture.CreateTestPackageRevision("no-metadata", "v1.0.0"),
-			state: PackageRevisionLifecycleProposed,
+			name:        "proposed_without_metadata",
+			pkg:         fixture.CreateTestPackageRevision("no-metadata", "v1.0.0"),
+			state:       PackageRevisionLifecycleProposed,
 			expectError: true,
-			errorMsg: "package metadata is required",
+			errorMsg:    "package metadata is required",
 		},
 		{
 			name: "valid_proposed_with_metadata",
@@ -622,7 +622,7 @@ func TestLifecycleValidation(t *testing.T) {
 					Description: "Test package with metadata",
 				}
 			}),
-			state: PackageRevisionLifecycleProposed,
+			state:       PackageRevisionLifecycleProposed,
 			expectError: false,
 		},
 	}
@@ -799,7 +799,7 @@ func TestConcurrentTransitions(t *testing.T) {
 		wg.Add(1)
 		go func(startIdx int) {
 			defer wg.Done()
-			
+
 			for j := startIdx; j < numPackages; j += numGoroutines {
 				err := manager.TransitionPackage(fixture.Context, packages[j], PackageRevisionLifecycleProposed)
 				if err != nil {
@@ -874,8 +874,8 @@ func TestValidTransitions(t *testing.T) {
 	manager := NewMockLifecycleManager(mockClient)
 
 	testCases := []struct {
-		name               string
-		currentState       PackageRevisionLifecycle
+		name                string
+		currentState        PackageRevisionLifecycle
 		expectedTransitions []PackageRevisionLifecycle
 	}{
 		{
@@ -1051,7 +1051,7 @@ func TestLifecycleMetrics(t *testing.T) {
 
 	// Track metrics calls
 	metricsUpdated := false
-	
+
 	// Replace the metrics update function with a test version
 	originalUpdateMetrics := manager.updatePackageMetrics
 	manager.updatePackageMetrics = func(event LifecycleEvent) {

@@ -47,98 +47,98 @@ import (
 // TestEnvironmentOptions configures the test environment setup
 type TestEnvironmentOptions struct {
 	// CRD and Webhook Configuration
-	CRDDirectoryPaths     []string
-	WebhookInstallOptions envtest.WebhookInstallOptions
+	CRDDirectoryPaths        []string
+	WebhookInstallOptions    envtest.WebhookInstallOptions
 	AttachControlPlaneOutput bool
-	UseExistingCluster   *bool
-	
+	UseExistingCluster       *bool
+
 	// Environment Variables
 	EnvironmentVariables map[string]string
-	
+
 	// Binary Assets
 	BinaryAssetsDirectory string
 	KubeAPIServerFlags    []string
-	EtcdFlags            []string
-	
+	EtcdFlags             []string
+
 	// Timeouts and Intervals
 	ControlPlaneStartTimeout time.Duration
 	ControlPlaneStopTimeout  time.Duration
 	APIServerReadyTimeout    time.Duration
-	
+
 	// Test Configuration
-	EnableWebhooks          bool
-	EnableMetrics          bool
-	EnableHealthChecks     bool
-	EnableLeaderElection   bool
-	EnableProfiling        bool
-	
+	EnableWebhooks       bool
+	EnableMetrics        bool
+	EnableHealthChecks   bool
+	EnableLeaderElection bool
+	EnableProfiling      bool
+
 	// Namespace Configuration
 	DefaultNamespace       string
 	CreateDefaultNamespace bool
 	NamespaceCleanupPolicy CleanupPolicy
-	
+
 	// Scheme Configuration
-	SchemeBuilders         []func(*runtime.Scheme) error
-	
+	SchemeBuilders []func(*runtime.Scheme) error
+
 	// Resource Limits
-	MemoryLimit            string
-	CPULimit              string
-	
+	MemoryLimit string
+	CPULimit    string
+
 	// CI/Development Mode
-	CIMode                bool
-	DevelopmentMode       bool
-	VerboseLogging        bool
+	CIMode          bool
+	DevelopmentMode bool
+	VerboseLogging  bool
 }
 
 // CleanupPolicy defines how resources should be cleaned up
 type CleanupPolicy string
 
 const (
-	CleanupPolicyDelete  CleanupPolicy = "delete"
-	CleanupPolicyRetain  CleanupPolicy = "retain"
-	CleanupPolicyOrphan  CleanupPolicy = "orphan"
+	CleanupPolicyDelete CleanupPolicy = "delete"
+	CleanupPolicyRetain CleanupPolicy = "retain"
+	CleanupPolicyOrphan CleanupPolicy = "orphan"
 )
 
 // TestEnvironment provides a comprehensive test environment for controller testing
 type TestEnvironment struct {
 	// Core Components
-	Cfg         *rest.Config
-	K8sClient   client.Client
+	Cfg          *rest.Config
+	K8sClient    client.Client
 	K8sClientSet *kubernetes.Clientset
-	TestEnv     *envtest.Environment
-	Scheme      *runtime.Scheme
-	
+	TestEnv      *envtest.Environment
+	Scheme       *runtime.Scheme
+
 	// Manager and Controllers
-	Manager     ctrl.Manager
-	ManagerCtx  context.Context
+	Manager       ctrl.Manager
+	ManagerCtx    context.Context
 	ManagerCancel context.CancelFunc
-	ManagerOnce sync.Once
-	
+	ManagerOnce   sync.Once
+
 	// Context Management
 	ctx    context.Context
 	cancel context.CancelFunc
-	
+
 	// Configuration
 	options TestEnvironmentOptions
-	
+
 	// State Management
 	started      bool
-	mu          sync.RWMutex
+	mu           sync.RWMutex
 	cleanupFuncs []func() error
-	
+
 	// Webhook Server
 	webhookServer *webhook.Server
-	
+
 	// Event Recorder
 	eventRecorder record.EventRecorder
-	
+
 	// Discovery Client
 	discoveryClient discovery.DiscoveryInterface
-	
+
 	// Metrics and Profiling
-	metricsAddr    string
-	profilingAddr  string
-	healthzAddr    string
+	metricsAddr   string
+	profilingAddr string
+	healthzAddr   string
 }
 
 // DefaultTestEnvironmentOptions returns sensible defaults for test environment setup
@@ -154,19 +154,19 @@ func DefaultTestEnvironmentOptions() TestEnvironmentOptions {
 		ControlPlaneStartTimeout: 60 * time.Second,
 		ControlPlaneStopTimeout:  60 * time.Second,
 		APIServerReadyTimeout:    30 * time.Second,
-		EnableWebhooks:          false, // Disabled by default for simpler tests
-		EnableMetrics:           false,
-		EnableHealthChecks:      true,
-		EnableLeaderElection:    false,
-		EnableProfiling:         false,
-		DefaultNamespace:        "default",
-		CreateDefaultNamespace:  true,
-		NamespaceCleanupPolicy:  CleanupPolicyDelete,
-		MemoryLimit:            "2Gi",
-		CPULimit:               "1000m",
-		CIMode:                 false,
-		DevelopmentMode:        true,
-		VerboseLogging:         false,
+		EnableWebhooks:           false, // Disabled by default for simpler tests
+		EnableMetrics:            false,
+		EnableHealthChecks:       true,
+		EnableLeaderElection:     false,
+		EnableProfiling:          false,
+		DefaultNamespace:         "default",
+		CreateDefaultNamespace:   true,
+		NamespaceCleanupPolicy:   CleanupPolicyDelete,
+		MemoryLimit:              "2Gi",
+		CPULimit:                 "1000m",
+		CIMode:                   false,
+		DevelopmentMode:          true,
+		VerboseLogging:           false,
 		SchemeBuilders: []func(*runtime.Scheme) error{
 			nephoranv1.AddToScheme,
 			corev1.AddToScheme,
@@ -175,7 +175,7 @@ func DefaultTestEnvironmentOptions() TestEnvironmentOptions {
 			apiextensionsv1.AddToScheme,
 		},
 		EnvironmentVariables: map[string]string{
-			"TEST_ENV": "true",
+			"TEST_ENV":  "true",
 			"LOG_LEVEL": "debug",
 		},
 	}
@@ -245,7 +245,7 @@ func SetupTestEnvironmentWithOptions(options TestEnvironmentOptions) (*TestEnvir
 	ctx, cancel := context.WithCancel(context.TODO())
 
 	By("bootstrapping test environment")
-	
+
 	// Create runtime scheme
 	testScheme := runtime.NewScheme()
 	for _, addToScheme := range options.SchemeBuilders {
@@ -266,7 +266,7 @@ func SetupTestEnvironmentWithOptions(options TestEnvironmentOptions) (*TestEnvir
 		ControlPlaneStopTimeout:  options.ControlPlaneStopTimeout,
 		KubeAPIServerFlags:       options.KubeAPIServerFlags,
 		EtcdServerFlags:          options.EtcdFlags,
-		Scheme:                  testScheme,
+		Scheme:                   testScheme,
 	}
 
 	// Configure webhooks if enabled
@@ -504,7 +504,7 @@ func (te *TestEnvironment) CreateManagerWithOptions(opts ctrl.Options) (ctrl.Man
 	if te.options.EnableWebhooks {
 		if opts.WebhookServer == nil {
 			te.webhookServer = webhook.NewServer(webhook.Options{
-				Port: 9443,
+				Port:    9443,
 				CertDir: te.TestEnv.WebhookInstallOptions.LocalServingCertDir,
 			})
 			opts.WebhookServer = te.webhookServer
@@ -551,7 +551,7 @@ func (te *TestEnvironment) StartManager() error {
 	var startErr error
 	te.ManagerOnce.Do(func() {
 		te.ManagerCtx, te.ManagerCancel = context.WithCancel(te.ctx)
-		
+
 		go func() {
 			defer GinkgoRecover()
 			By("starting controller manager")
@@ -559,21 +559,21 @@ func (te *TestEnvironment) StartManager() error {
 				GinkgoLogr.Error(err, "Failed to start manager")
 			}
 		}()
-		
+
 		// Wait for the manager to be ready
 		ctx, cancel := context.WithTimeout(te.ctx, 30*time.Second)
 		defer cancel()
-		
+
 		if !te.Manager.GetCache().WaitForCacheSync(ctx) {
 			startErr = fmt.Errorf("failed to sync cache")
 			return
 		}
-		
+
 		// Give it a moment to fully initialize
 		time.Sleep(100 * time.Millisecond)
 		By("controller manager started successfully")
 	})
-	
+
 	return startErr
 }
 
@@ -612,7 +612,7 @@ func (te *TestEnvironment) WaitForManagerReady() error {
 	if te.Manager == nil {
 		return fmt.Errorf("manager not created")
 	}
-	
+
 	return te.WaitForCacheSync(te.Manager)
 }
 
@@ -877,7 +877,7 @@ func (te *TestEnvironment) CreateNamespaceWithLabels(name string, labels map[str
 			Name:   name,
 			Labels: labels,
 			Annotations: map[string]string{
-				"test.nephoran.com/created-at": time.Now().Format(time.RFC3339),
+				"test.nephoran.com/created-at":     time.Now().Format(time.RFC3339),
 				"test.nephoran.com/cleanup-policy": string(te.options.NamespaceCleanupPolicy),
 			},
 		},

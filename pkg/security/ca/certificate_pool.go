@@ -52,18 +52,18 @@ type ExpiryEntry struct {
 
 // CertificateEncryptor handles certificate encryption for storage
 type CertificateEncryptor struct {
-	enabled    bool
-	key        []byte
-	algorithm  string
+	enabled   bool
+	key       []byte
+	algorithm string
 }
 
 // StoredCertificate represents a certificate stored in Kubernetes
 type StoredCertificate struct {
 	CertificateResponse *CertificateResponse `json:"certificate_response"`
-	StoredAt           time.Time            `json:"stored_at"`
-	UpdatedAt          time.Time            `json:"updated_at"`
-	Version            int                  `json:"version"`
-	Checksum           string               `json:"checksum"`
+	StoredAt            time.Time            `json:"stored_at"`
+	UpdatedAt           time.Time            `json:"updated_at"`
+	Version             int                  `json:"version"`
+	Checksum            string               `json:"checksum"`
 }
 
 // NewCertificatePool creates a new certificate pool
@@ -92,7 +92,7 @@ func NewCertificatePool(config *CertificateStoreConfig, logger *logging.Structur
 
 	// Start background processes
 	go pool.runMaintenanceTasks()
-	
+
 	return pool, nil
 }
 
@@ -294,9 +294,9 @@ func (p *CertificatePool) GetStatistics() map[string]interface{} {
 
 	stats := map[string]interface{}{
 		"total_certificates": len(p.certificates),
-		"by_status":         make(map[string]int),
-		"by_tenant":         make(map[string]int),
-		"expiring_soon":     0,
+		"by_status":          make(map[string]int),
+		"by_tenant":          make(map[string]int),
+		"expiring_soon":      0,
 	}
 
 	// Count by status
@@ -434,12 +434,12 @@ func (p *CertificatePool) matchesFilters(cert *CertificateResponse, filters map[
 
 func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 	secretName := p.generateSecretName(cert.SerialNumber)
-	
+
 	storedCert := &StoredCertificate{
 		CertificateResponse: cert,
-		StoredAt:           time.Now(),
-		UpdatedAt:          time.Now(),
-		Version:            1,
+		StoredAt:            time.Now(),
+		UpdatedAt:           time.Now(),
+		Version:             1,
 	}
 
 	// Serialize certificate data
@@ -471,10 +471,10 @@ func (p *CertificatePool) persistToKubernetes(cert *CertificateResponse) error {
 				"nephoran.io/status":           string(cert.Status),
 			},
 			Annotations: map[string]string{
-				"nephoran.io/expires-at":    cert.ExpiresAt.Format(time.RFC3339),
-				"nephoran.io/issued-by":     cert.IssuedBy,
-				"nephoran.io/fingerprint":   cert.Fingerprint,
-				"nephoran.io/request-id":    cert.RequestID,
+				"nephoran.io/expires-at":  cert.ExpiresAt.Format(time.RFC3339),
+				"nephoran.io/issued-by":   cert.IssuedBy,
+				"nephoran.io/fingerprint": cert.Fingerprint,
+				"nephoran.io/request-id":  cert.RequestID,
 			},
 		},
 		Data: map[string][]byte{
@@ -513,7 +513,7 @@ func (p *CertificatePool) loadFromStorage(serialNumber string) (*CertificateResp
 
 	secretName := p.generateSecretName(serialNumber)
 	secret := &corev1.Secret{}
-	
+
 	err := p.client.Get(context.TODO(), types.NamespacedName{
 		Name:      secretName,
 		Namespace: p.config.Namespace,
@@ -607,7 +607,7 @@ func (p *CertificatePool) performMaintenance() {
 
 func (p *CertificatePool) cleanupExpiredCertificates() {
 	cutoff := time.Now().Add(-p.config.RetentionPeriod)
-	
+
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -621,11 +621,11 @@ func (p *CertificatePool) cleanupExpiredCertificates() {
 	for _, serialNumber := range toDelete {
 		p.logger.Info("cleaning up expired certificate",
 			"serial_number", serialNumber)
-		
+
 		cert := p.certificates[serialNumber]
 		p.updateIndices(cert, true)
 		delete(p.certificates, serialNumber)
-		
+
 		// Remove from persistent storage
 		if err := p.removeFromKubernetes(serialNumber); err != nil {
 			p.logger.Warn("failed to remove expired certificate from storage",

@@ -1,0 +1,836 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: audittrails.nephoran.com
+spec:
+  group: nephoran.com
+  names:
+    categories:
+    - security
+    kind: AuditTrail
+    listKind: AuditTrailList
+    plural: audittrails
+    singular: audittrail
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.enabled
+      name: Enabled
+      type: boolean
+    - jsonPath: .status.stats.backendCount
+      name: Backends
+      type: integer
+    - jsonPath: .status.stats.eventsReceived
+      name: Events
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: AuditTrail is the Schema for the audittrails API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: AuditTrailSpec defines the desired state of AuditTrail
+            properties:
+              backends:
+                description: Backends configuration for different output destinations
+                items:
+                  description: AuditBackendConfig defines configuration for audit
+                    backends
+                  properties:
+                    bufferSize:
+                      default: 1000
+                      description: BufferSize controls the internal buffer size
+                      maximum: 100000
+                      minimum: 1
+                      type: integer
+                    compression:
+                      default: false
+                      description: Compression enables compression for the backend
+                      type: boolean
+                    enabled:
+                      default: true
+                      description: Enabled controls whether this backend is active
+                      type: boolean
+                    filter:
+                      description: Filter configuration for this backend
+                      properties:
+                        components:
+                          description: Components defines which components to include
+                          items:
+                            type: string
+                          type: array
+                        eventTypes:
+                          description: EventTypes defines which event types to include
+                          items:
+                            type: string
+                          type: array
+                        excludeFields:
+                          description: ExcludeFields defines which fields to exclude
+                            from output
+                          items:
+                            type: string
+                          type: array
+                        excludeTypes:
+                          description: ExcludeTypes defines event types to exclude
+                          items:
+                            type: string
+                          type: array
+                        includeFields:
+                          description: IncludeFields defines which fields to include
+                            in output
+                          items:
+                            type: string
+                          type: array
+                        minSeverity:
+                          default: info
+                          description: MinSeverity defines the minimum severity level
+                            to process
+                          enum:
+                          - emergency
+                          - alert
+                          - critical
+                          - error
+                          - warning
+                          - notice
+                          - info
+                          - debug
+                          type: string
+                      type: object
+                    format:
+                      default: json
+                      description: Format specifies the output format
+                      enum:
+                      - json
+                      - text
+                      - cef
+                      - leef
+                      - syslog
+                      type: string
+                    name:
+                      description: Name is a unique identifier for this backend instance
+                      maxLength: 63
+                      minLength: 1
+                      type: string
+                    retryPolicy:
+                      description: RetryPolicy for failed operations
+                      properties:
+                        backoffFactor:
+                          default: 2
+                          description: BackoffFactor defines the multiplier for exponential
+                            backoff
+                        initialDelay:
+                          default: 1
+                          description: InitialDelay defines the initial delay between
+                            retries (in seconds)
+                          maximum: 60
+                          minimum: 1
+                          type: integer
+                        maxDelay:
+                          default: 30
+                          description: MaxDelay defines the maximum delay between
+                            retries (in seconds)
+                          maximum: 300
+                          minimum: 1
+                          type: integer
+                        maxRetries:
+                          default: 3
+                          description: MaxRetries defines the maximum number of retry
+                            attempts
+                          maximum: 10
+                          minimum: 0
+                          type: integer
+                      type: object
+                    settings:
+                      description: Settings contains backend-specific configuration
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    timeout:
+                      default: 30
+                      description: Timeout for backend operations (in seconds)
+                      maximum: 300
+                      minimum: 1
+                      type: integer
+                    tls:
+                      description: TLS configuration for secure connections
+                      properties:
+                        caFile:
+                          description: CAFile path to the CA certificate file
+                          type: string
+                        certFile:
+                          description: CertFile path to the certificate file
+                          type: string
+                        enabled:
+                          default: true
+                          description: Enabled controls whether TLS is enabled
+                          type: boolean
+                        insecureSkipVerify:
+                          default: false
+                          description: InsecureSkipVerify controls whether to skip
+                            certificate verification
+                          type: boolean
+                        keyFile:
+                          description: KeyFile path to the private key file
+                          type: string
+                        serverName:
+                          description: ServerName for SNI
+                          type: string
+                      type: object
+                    type:
+                      description: Type specifies the backend type
+                      enum:
+                      - file
+                      - elasticsearch
+                      - splunk
+                      - syslog
+                      - kafka
+                      - cloudwatch
+                      - stackdriver
+                      - azure_monitor
+                      - siem
+                      - webhook
+                      type: string
+                  required:
+                  - enabled
+                  - name
+                  - type
+                  type: object
+                type: array
+              batchSize:
+                default: 100
+                description: BatchSize controls how many events to process in a batch
+                maximum: 10000
+                minimum: 1
+                type: integer
+              complianceMode:
+                description: ComplianceMode controls additional compliance-specific
+                  features
+                items:
+                  enum:
+                  - soc2
+                  - iso27001
+                  - pci_dss
+                  - hipaa
+                  - gdpr
+                  - ccpa
+                  - fisma
+                  - nist_csf
+                  type: string
+                type: array
+              enableIntegrity:
+                default: true
+                description: EnableIntegrity controls whether log integrity protection
+                  is enabled
+                type: boolean
+              enabled:
+                default: true
+                description: Enabled controls whether audit logging is active
+                type: boolean
+              flushInterval:
+                default: 10
+                description: FlushInterval controls how often to flush batched events
+                  (in seconds)
+                maximum: 3600
+                minimum: 1
+                type: integer
+              integrityConfig:
+                description: IntegrityConfig defines integrity protection settings
+                properties:
+                  autoGenerateKeys:
+                    default: true
+                    description: AutoGenerateKeys controls whether to automatically
+                      generate key pairs
+                    type: boolean
+                  enabled:
+                    default: true
+                    description: Enabled controls whether integrity protection is
+                      active
+                    type: boolean
+                  keyPairSecret:
+                    description: KeyPairSecret defines the secret containing existing
+                      key pairs
+                    type: string
+                  keySize:
+                    default: 2048
+                    description: KeySize defines the RSA key size for signing
+                    enum:
+                    - 2048
+                    - 3072
+                    - 4096
+                    type: integer
+                  maxChainLength:
+                    default: 10000
+                    description: MaxChainLength defines maximum integrity chain length
+                      to keep in memory
+                    maximum: 100000
+                    minimum: 100
+                    type: integer
+                  verificationMode:
+                    default: strict
+                    description: VerificationMode defines how strict verification
+                      should be
+                    enum:
+                    - strict
+                    - permissive
+                    - disabled
+                    type: string
+                type: object
+              logLevel:
+                default: info
+                description: LogLevel controls the minimum severity level for audit
+                  events
+                enum:
+                - emergency
+                - alert
+                - critical
+                - error
+                - warning
+                - notice
+                - info
+                - debug
+                type: string
+              maxQueueSize:
+                default: 10000
+                description: MaxQueueSize controls the maximum number of events to
+                  queue
+                maximum: 100000
+                minimum: 100
+                type: integer
+              notificationConfig:
+                description: NotificationConfig defines notification settings for
+                  audit events
+                properties:
+                  email:
+                    description: Email defines email notification settings
+                    properties:
+                      from:
+                        description: From defines the sender email address
+                        type: string
+                      secretRef:
+                        description: SecretRef references a secret containing SMTP
+                          credentials
+                        properties:
+                          key:
+                            description: Key within the secret
+                            type: string
+                          name:
+                            description: Name of the secret
+                            type: string
+                          namespace:
+                            description: Namespace of the secret (optional, defaults
+                              to same namespace as AuditTrail)
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      smtpPort:
+                        default: 587
+                        description: SMTPPort defines the SMTP server port
+                        maximum: 65535
+                        minimum: 1
+                        type: integer
+                      smtpServer:
+                        description: SMTPServer defines the SMTP server address
+                        type: string
+                      subject:
+                        description: Subject template for email notifications
+                        type: string
+                      to:
+                        description: To defines the recipient email addresses
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - from
+                    - smtpServer
+                    - to
+                    type: object
+                  enabled:
+                    default: false
+                    description: Enabled controls whether notifications are sent
+                    type: boolean
+                  slack:
+                    description: Slack defines Slack notification settings
+                    properties:
+                      channel:
+                        description: Channel defines the Slack channel to post to
+                        type: string
+                      secretRef:
+                        description: SecretRef references a secret containing Slack
+                          credentials
+                        properties:
+                          key:
+                            description: Key within the secret
+                            type: string
+                          name:
+                            description: Name of the secret
+                            type: string
+                          namespace:
+                            description: Namespace of the secret (optional, defaults
+                              to same namespace as AuditTrail)
+                            type: string
+                        required:
+                        - name
+                        type: object
+                      username:
+                        description: Username defines the bot username
+                        type: string
+                      webhookUrl:
+                        description: WebhookURL defines the Slack webhook URL
+                        type: string
+                    type: object
+                  webhooks:
+                    description: Webhooks defines webhook endpoints for notifications
+                    items:
+                      description: WebhookNotification defines webhook notification
+                        settings
+                      properties:
+                        eventTypes:
+                          description: EventTypes defines which events trigger this
+                            webhook
+                          items:
+                            type: string
+                          type: array
+                        headers:
+                          additionalProperties:
+                            type: string
+                          description: Headers defines custom headers to send with
+                            webhook
+                          type: object
+                        minSeverity:
+                          description: MinSeverity defines minimum severity to trigger
+                            notifications
+                          enum:
+                          - emergency
+                          - alert
+                          - critical
+                          - error
+                          - warning
+                          - notice
+                          - info
+                          - debug
+                          type: string
+                        name:
+                          description: Name identifies this webhook
+                          type: string
+                        secretRef:
+                          description: SecretRef references a secret containing authentication
+                            credentials
+                          properties:
+                            key:
+                              description: Key within the secret
+                              type: string
+                            name:
+                              description: Name of the secret
+                              type: string
+                            namespace:
+                              description: Namespace of the secret (optional, defaults
+                                to same namespace as AuditTrail)
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        url:
+                          description: URL defines the webhook endpoint
+                          type: string
+                      required:
+                      - name
+                      - url
+                      type: object
+                    type: array
+                type: object
+              retentionPolicy:
+                description: RetentionPolicy defines how long audit events should
+                  be retained
+                properties:
+                  archivalEnabled:
+                    default: true
+                    description: ArchivalEnabled controls whether events are archived
+                      before deletion
+                    type: boolean
+                  checkInterval:
+                    default: 24
+                    description: CheckInterval defines how often to check for expired
+                      events (in hours)
+                    maximum: 168
+                    minimum: 1
+                    type: integer
+                  compressionEnabled:
+                    default: true
+                    description: CompressionEnabled controls whether archived events
+                      are compressed
+                    type: boolean
+                  defaultRetention:
+                    default: 365
+                    description: DefaultRetention defines the default retention period
+                      (in days)
+                    maximum: 3650
+                    minimum: 1
+                    type: integer
+                  encryptionEnabled:
+                    default: true
+                    description: EncryptionEnabled controls whether archived events
+                      are encrypted
+                    type: boolean
+                  policies:
+                    description: Policies defines specific retention policies for
+                      different event types
+                    items:
+                      description: SpecificRetentionPolicy defines retention settings
+                        for specific event types
+                      properties:
+                        archiveBeforeDelete:
+                          default: true
+                          description: ArchiveBeforeDelete controls whether events
+                            are archived before deletion
+                          type: boolean
+                        complianceStandard:
+                          description: ComplianceStandard defines which compliance
+                            standard requires this retention
+                          enum:
+                          - soc2
+                          - iso27001
+                          - pci_dss
+                          - hipaa
+                          - gdpr
+                          - ccpa
+                          - fisma
+                          - nist_csf
+                          type: string
+                        components:
+                          description: Components defines which components this policy
+                            applies to
+                          items:
+                            type: string
+                          type: array
+                        description:
+                          description: Description provides a human-readable description
+                          type: string
+                        eventTypes:
+                          description: EventTypes defines which event types this policy
+                            applies to
+                          items:
+                            type: string
+                          type: array
+                        legalHoldExempt:
+                          default: false
+                          description: LegalHoldExempt controls whether events can
+                            be deleted during legal holds
+                          type: boolean
+                        name:
+                          description: Name identifies this retention policy
+                          maxLength: 63
+                          minLength: 1
+                          type: string
+                        requireApproval:
+                          default: false
+                          description: RequireApproval controls whether deletion requires
+                            manual approval
+                          type: boolean
+                        retentionPeriod:
+                          description: RetentionPeriod defines how long events should
+                            be retained (in days)
+                          maximum: 7300
+                          minimum: 1
+                          type: integer
+                        severity:
+                          description: Severity defines the minimum severity level
+                            this policy applies to
+                          enum:
+                          - emergency
+                          - alert
+                          - critical
+                          - error
+                          - warning
+                          - notice
+                          - info
+                          - debug
+                          type: string
+                      required:
+                      - name
+                      - retentionPeriod
+                      type: object
+                    type: array
+                type: object
+            required:
+            - enabled
+            type: object
+          status:
+            description: AuditTrailStatus defines the observed state of AuditTrail
+            properties:
+              backendStatus:
+                description: BackendStatus contains status of individual backends
+                items:
+                  description: BackendStatus contains status of an individual backend
+                  properties:
+                    error:
+                      description: Error contains the last error message if unhealthy
+                      type: string
+                    eventsFailed:
+                      description: EventsFailed is the number of events that failed
+                        to write
+                      format: int64
+                      type: integer
+                    eventsWritten:
+                      description: EventsWritten is the number of events successfully
+                        written
+                      format: int64
+                      type: integer
+                    healthy:
+                      description: Healthy indicates if the backend is healthy
+                      type: boolean
+                    lastCheck:
+                      description: LastCheck is the timestamp of the last health check
+                      format: date-time
+                      type: string
+                    lastEventTime:
+                      description: LastEventTime is the timestamp of the last event
+                        written
+                      format: date-time
+                      type: string
+                    name:
+                      description: Name of the backend
+                      type: string
+                    type:
+                      description: Type of the backend
+                      type: string
+                  required:
+                  - eventsFailed
+                  - eventsWritten
+                  - healthy
+                  - name
+                  - type
+                  type: object
+                type: array
+              complianceStatus:
+                description: ComplianceStatus contains compliance tracking status
+                properties:
+                  lastReport:
+                    description: LastReport is the timestamp of the last compliance
+                      report
+                    format: date-time
+                    type: string
+                  recentViolations:
+                    description: RecentViolations is a list of recent violations
+                    items:
+                      description: ComplianceViolationSummary contains summary of
+                        a compliance violation
+                      properties:
+                        controlId:
+                          description: ControlID is the specific control that was
+                            violated
+                          type: string
+                        detectedAt:
+                          description: DetectedAt is when the violation was detected
+                          format: date-time
+                          type: string
+                        severity:
+                          description: Severity is the severity of the violation
+                          type: string
+                        standard:
+                          description: Standard is the compliance standard that was
+                            violated
+                          type: string
+                        status:
+                          description: Status is the current remediation status
+                          type: string
+                        violationId:
+                          description: ViolationID is the unique identifier for the
+                            violation
+                          type: string
+                      required:
+                      - controlId
+                      - detectedAt
+                      - severity
+                      - standard
+                      - status
+                      - violationId
+                      type: object
+                    type: array
+                  standards:
+                    description: Standards is the list of active compliance standards
+                    items:
+                      type: string
+                    type: array
+                  violationCount:
+                    description: ViolationCount is the total number of violations
+                      detected
+                    format: int64
+                    type: integer
+                required:
+                - violationCount
+                type: object
+              conditions:
+                description: Conditions represent the latest available observations
+                  of the audit trail's state
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              integrityStatus:
+                description: IntegrityStatus contains integrity chain status
+                properties:
+                  chainLength:
+                    description: ChainLength is the current length of the integrity
+                      chain
+                    type: integer
+                  enabled:
+                    description: Enabled indicates if integrity protection is enabled
+                    type: boolean
+                  keyId:
+                    description: KeyID is the ID of the current signing key
+                    type: string
+                  lastHash:
+                    description: LastHash is the hash of the last event in the chain
+                    type: string
+                  lastSequence:
+                    description: LastSequence is the sequence number of the last event
+                    format: int64
+                    type: integer
+                  lastVerification:
+                    description: LastVerification is the timestamp of the last chain
+                      verification
+                    format: date-time
+                    type: string
+                  verificationResult:
+                    description: VerificationResult is the result of the last verification
+                    type: string
+                required:
+                - chainLength
+                - enabled
+                - lastSequence
+                type: object
+              lastUpdate:
+                description: LastUpdate timestamp of the last status update
+                format: date-time
+                type: string
+              phase:
+                description: Phase represents the current phase of the audit trail
+                enum:
+                - Pending
+                - Initializing
+                - Running
+                - Stopping
+                - Failed
+                type: string
+              stats:
+                description: Stats contains operational statistics
+                properties:
+                  backendCount:
+                    description: BackendCount is the number of active backends
+                    type: integer
+                  eventsArchived:
+                    description: EventsArchived is the total number of events archived
+                    format: int64
+                    type: integer
+                  eventsDropped:
+                    description: EventsDropped is the total number of events dropped
+                    format: int64
+                    type: integer
+                  eventsProcessed:
+                    description: EventsProcessed is the total number of events successfully
+                      processed
+                    format: int64
+                    type: integer
+                  eventsReceived:
+                    description: EventsReceived is the total number of events received
+                    format: int64
+                    type: integer
+                  lastEventTime:
+                    description: LastEventTime is the timestamp of the last processed
+                      event
+                    format: date-time
+                    type: string
+                  queueSize:
+                    description: QueueSize is the current size of the event queue
+                    type: integer
+                required:
+                - backendCount
+                - eventsArchived
+                - eventsDropped
+                - eventsProcessed
+                - eventsReceived
+                - queueSize
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

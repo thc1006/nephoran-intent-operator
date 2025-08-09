@@ -18,14 +18,14 @@ import (
 // EnhancedGoroutinePool provides advanced goroutine management with Go 1.24+ optimizations
 type EnhancedGoroutinePool struct {
 	workStealingQueues []*WorkStealingQueue
-	workers           []*Worker
-	scheduler         *Scheduler
-	affinityManager   *CPUAffinityManager
-	metrics           *PoolMetrics
-	config            *PoolConfig
-	shutdown          chan struct{}
-	wg                sync.WaitGroup
-	mu                sync.RWMutex
+	workers            []*Worker
+	scheduler          *Scheduler
+	affinityManager    *CPUAffinityManager
+	metrics            *PoolMetrics
+	config             *PoolConfig
+	shutdown           chan struct{}
+	wg                 sync.WaitGroup
+	mu                 sync.RWMutex
 }
 
 // PoolConfig contains goroutine pool configuration
@@ -40,7 +40,7 @@ type PoolConfig struct {
 	EnableCPUAffinity   bool
 	EnablePriorityQueue bool
 	MetricsInterval     time.Duration
-	SpinCount          int
+	SpinCount           int
 	PreemptionEnabled   bool
 }
 
@@ -57,19 +57,19 @@ type WorkStealingQueue struct {
 
 // Worker represents a worker goroutine with CPU affinity
 type Worker struct {
-	id               int
-	queue            *WorkStealingQueue
-	localTasks       int64
-	stolenTasks      int64
-	processedTasks   int64
-	failedTasks      int64
-	idleTime         int64
-	processingTime   int64
-	lastTaskTime     time.Time
-	cpuAffinity      int
-	context          context.Context
-	cancel           context.CancelFunc
-	priority         Priority
+	id             int
+	queue          *WorkStealingQueue
+	localTasks     int64
+	stolenTasks    int64
+	processedTasks int64
+	failedTasks    int64
+	idleTime       int64
+	processingTime int64
+	lastTaskTime   time.Time
+	cpuAffinity    int
+	context        context.Context
+	cancel         context.CancelFunc
+	priority       Priority
 }
 
 // Scheduler manages task distribution and worker scaling
@@ -96,8 +96,8 @@ type CPUAffinityManager struct {
 
 // NumaNode represents a NUMA node with CPU cores
 type NumaNode struct {
-	ID    int
-	Cores []int
+	ID     int
+	Cores  []int
 	Memory int64
 }
 
@@ -135,8 +135,8 @@ type PoolMetrics struct {
 	FailedTasks        int64
 	StolenTasks        int64
 	QueuedTasks        int64
-	AverageWaitTime    int64 // nanoseconds
-	AverageProcessTime int64 // nanoseconds
+	AverageWaitTime    int64   // nanoseconds
+	AverageProcessTime int64   // nanoseconds
 	Throughput         float64 // tasks per second
 	CPUUtilization     float64
 	MemoryUsage        int64
@@ -159,11 +159,11 @@ func NewEnhancedGoroutinePool(config *PoolConfig) *EnhancedGoroutinePool {
 
 	pool := &EnhancedGoroutinePool{
 		workStealingQueues: make([]*WorkStealingQueue, config.MaxWorkers),
-		workers:           make([]*Worker, 0, config.MaxWorkers),
-		scheduler:         NewScheduler(),
-		metrics:           &PoolMetrics{},
-		config:            config,
-		shutdown:          make(chan struct{}),
+		workers:            make([]*Worker, 0, config.MaxWorkers),
+		scheduler:          NewScheduler(),
+		metrics:            &PoolMetrics{},
+		config:             config,
+		shutdown:           make(chan struct{}),
 	}
 
 	// Initialize work-stealing queues
@@ -200,7 +200,7 @@ func DefaultPoolConfig() *PoolConfig {
 		EnableCPUAffinity:   true,
 		EnablePriorityQueue: true,
 		MetricsInterval:     10 * time.Second,
-		SpinCount:          100,
+		SpinCount:           100,
 		PreemptionEnabled:   true,
 	}
 }

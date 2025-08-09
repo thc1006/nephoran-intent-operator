@@ -15,25 +15,25 @@ type AlertManager struct {
 
 // Alert represents a system alert
 type Alert struct {
-	ID          string                 `json:"id"`
-	Component   string                 `json:"component"`
-	Severity    string                 `json:"severity"` // LOW, MEDIUM, HIGH, CRITICAL
-	Message     string                 `json:"message"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Tags        map[string]string      `json:"tags"`
-	Metadata    map[string]interface{} `json:"metadata"`
-	Resolved    bool                   `json:"resolved"`
-	ResolvedAt  *time.Time            `json:"resolved_at,omitempty"`
+	ID         string                 `json:"id"`
+	Component  string                 `json:"component"`
+	Severity   string                 `json:"severity"` // LOW, MEDIUM, HIGH, CRITICAL
+	Message    string                 `json:"message"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Tags       map[string]string      `json:"tags"`
+	Metadata   map[string]interface{} `json:"metadata"`
+	Resolved   bool                   `json:"resolved"`
+	ResolvedAt *time.Time             `json:"resolved_at,omitempty"`
 }
 
 // NotificationConfig defines notification settings
 type NotificationConfig struct {
-	Enabled    bool                   `json:"enabled"`
-	Webhooks   []string              `json:"webhooks"`
-	Channels   []string              `json:"channels"`
-	Templates  map[string]string     `json:"templates"`
-	Escalation *EscalationConfig     `json:"escalation,omitempty"`
-	RateLimit  *RateLimitConfig      `json:"rate_limit,omitempty"`
+	Enabled    bool              `json:"enabled"`
+	Webhooks   []string          `json:"webhooks"`
+	Channels   []string          `json:"channels"`
+	Templates  map[string]string `json:"templates"`
+	Escalation *EscalationConfig `json:"escalation,omitempty"`
+	RateLimit  *RateLimitConfig  `json:"rate_limit,omitempty"`
 }
 
 // EscalationConfig defines alert escalation rules
@@ -74,7 +74,7 @@ func (am *AlertManager) SendAlert(alert *Alert) error {
 		return nil
 	}
 
-	am.logger.Info("Sending alert", 
+	am.logger.Info("Sending alert",
 		"id", alert.ID,
 		"component", alert.Component,
 		"severity", alert.Severity,

@@ -1,0 +1,39 @@
+# Kustomization file for webhook deployment
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: nephoran-intent-operator-webhook
+  namespace: nephoran-intent-operator-system
+
+resources:
+- manifests.yaml
+
+commonLabels:
+  app.kubernetes.io/name: nephoran-intent-operator
+  app.kubernetes.io/component: webhook
+  app.kubernetes.io/part-of: nephoran-intent-operator
+  app.kubernetes.io/version: v1.0.0
+
+patchesStrategicMerge:
+# Uncomment and customize these patches as needed
+# - webhook_patches.yaml
+
+# Certificate configuration
+configMapGenerator:
+- name: webhook-config
+  literals:
+  - WEBHOOK_TLS_MIN_VERSION=1.2
+  - WEBHOOK_CIPHER_SUITES=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+  - WEBHOOK_TIMEOUT=30s
+  - VALIDATION_LOG_LEVEL=info
+
+# Namespace creation
+namespace:
+- nephoran-intent-operator-system
+
+# Image settings
+images:
+- name: controller
+  newName: nephoran/intent-operator
+  newTag: latest

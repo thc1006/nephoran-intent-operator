@@ -77,21 +77,21 @@ func NewEventBus[T any](config EventBusConfig) *EventBus[T] {
 	if config.Timeout == 0 {
 		config.Timeout = 30 * time.Second
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	bus := &EventBus[T]{
 		buffer: make(chan Event[T], config.BufferSize),
 		ctx:    ctx,
 		cancel: cancel,
 	}
-	
+
 	// Start worker goroutines
 	for i := 0; i < config.WorkerCount; i++ {
 		bus.wg.Add(1)
 		go bus.worker(config.Timeout)
 	}
-	
+
 	return bus
 }
 
@@ -106,7 +106,7 @@ func (eb *EventBus[T]) Subscribe(handler EventHandler[T]) {
 func (eb *EventBus[T]) SubscribeWithFilter(handler EventHandler[T], filter EventFilter[T]) {
 	eb.mu.Lock()
 	defer eb.mu.Unlock()
-	
+
 	// Wrap handler with filter
 	wrappedHandler := func(ctx context.Context, event Event[T]) Result[bool, error] {
 		if !filter(event) {
@@ -114,7 +114,7 @@ func (eb *EventBus[T]) SubscribeWithFilter(handler EventHandler[T], filter Event
 		}
 		return handler(ctx, event)
 	}
-	
+
 	eb.handlers = append(eb.handlers, wrappedHandler)
 }
 
@@ -154,13 +154,13 @@ func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[
 			return Ok[[]bool, error]([]bool{}) // Event filtered out
 		}
 	}
-	
+
 	handlers := make([]EventHandler[T], len(eb.handlers))
 	copy(handlers, eb.handlers)
 	middlewares := make([]EventMiddleware[T], len(eb.middlewares))
 	copy(middlewares, eb.middlewares)
 	eb.mu.RUnlock()
-	
+
 	// Apply middlewares
 	processedEvent := event
 	for _, middleware := range middlewares {
@@ -170,7 +170,7 @@ func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[
 		}
 		processedEvent = result.Value()
 	}
-	
+
 	// Execute handlers
 	results := make([]bool, len(handlers))
 	for i, handler := range handlers {
@@ -180,14 +180,14 @@ func (eb *EventBus[T]) PublishSync(ctx context.Context, event Event[T]) Result[[
 		}
 		results[i] = result.Value()
 	}
-	
+
 	return Ok[[]bool, error](results)
 }
 
 // worker processes events from the buffer.
 func (eb *EventBus[T]) worker(timeout time.Duration) {
 	defer eb.wg.Done()
-	
+
 	for {
 		select {
 		case event := <-eb.buffer:
@@ -225,7 +225,7 @@ func (m LoggingMiddleware[T]) Process(ctx context.Context, event Event[T]) Resul
 
 // MetricsMiddleware collects metrics on events.
 type MetricsMiddleware[T any] struct {
-	Counter  func(string) // Count events by type
+	Counter  func(string)                // Count events by type
 	Latency  func(string, time.Duration) // Track processing latency
 	recorder func(Event[T])
 }
@@ -233,15 +233,15 @@ type MetricsMiddleware[T any] struct {
 func (m MetricsMiddleware[T]) Process(ctx context.Context, event Event[T]) Result[Event[T], error] {
 	start := time.Now()
 	m.Counter(event.Type)
-	
+
 	defer func() {
 		m.Latency(event.Type, time.Since(start))
 	}()
-	
+
 	if m.recorder != nil {
 		m.recorder(event)
 	}
-	
+
 	return Ok[Event[T], error](event)
 }
 
@@ -270,29 +270,29 @@ func (er *EventRouter[T]) AddRoute(name string, bus *EventBus[T]) {
 // Route routes an event to the appropriate bus.
 func (er *EventRouter[T]) Route(event Event[T]) Result[bool, error] {
 	routeName := er.router(event)
-	
+
 	er.mu.RLock()
 	bus, exists := er.routes[routeName]
 	er.mu.RUnlock()
-	
+
 	if !exists {
 		return Err[bool, error](fmt.Errorf("no route found for: %s", routeName))
 	}
-	
+
 	return bus.Publish(event)
 }
 
 // EventAggregator aggregates events and publishes summary events.
 type EventAggregator[TInput, TOutput any] struct {
-	inputBus    *EventBus[TInput]
-	outputBus   *EventBus[TOutput]
-	aggregator  func([]Event[TInput]) Result[Event[TOutput], error]
-	window      time.Duration
-	buffer      []Event[TInput]
-	mu          sync.Mutex
-	ticker      *time.Ticker
-	ctx         context.Context
-	cancel      context.CancelFunc
+	inputBus   *EventBus[TInput]
+	outputBus  *EventBus[TOutput]
+	aggregator func([]Event[TInput]) Result[Event[TOutput], error]
+	window     time.Duration
+	buffer     []Event[TInput]
+	mu         sync.Mutex
+	ticker     *time.Ticker
+	ctx        context.Context
+	cancel     context.CancelFunc
 }
 
 // NewEventAggregator creates a new event aggregator.
@@ -303,7 +303,7 @@ func NewEventAggregator[TInput, TOutput any](
 	window time.Duration,
 ) *EventAggregator[TInput, TOutput] {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	ea := &EventAggregator[TInput, TOutput]{
 		inputBus:   inputBus,
 		outputBus:  outputBus,
@@ -314,13 +314,13 @@ func NewEventAggregator[TInput, TOutput any](
 		ctx:        ctx,
 		cancel:     cancel,
 	}
-	
+
 	// Subscribe to input events
 	inputBus.Subscribe(ea.handleInputEvent)
-	
+
 	// Start aggregation worker
 	go ea.aggregateWorker()
-	
+
 	return ea
 }
 
@@ -352,12 +352,12 @@ func (ea *EventAggregator[TInput, TOutput]) processBuffer() {
 		ea.mu.Unlock()
 		return
 	}
-	
+
 	events := make([]Event[TInput], len(ea.buffer))
 	copy(events, ea.buffer)
 	ea.buffer = ea.buffer[:0] // Clear buffer
 	ea.mu.Unlock()
-	
+
 	// Aggregate events
 	result := ea.aggregator(events)
 	if result.IsOk() {
@@ -404,14 +404,14 @@ func (mes *MemoryEventStore[T]) Store(ctx context.Context, event Event[T]) Resul
 func (mes *MemoryEventStore[T]) LoadByID(ctx context.Context, id string) Result[[]Event[T], error] {
 	mes.mu.RLock()
 	defer mes.mu.RUnlock()
-	
+
 	var matching []Event[T]
 	for _, event := range mes.events {
 		if event.ID == id {
 			matching = append(matching, event)
 		}
 	}
-	
+
 	return Ok[[]Event[T], error](matching)
 }
 
@@ -419,14 +419,14 @@ func (mes *MemoryEventStore[T]) LoadByID(ctx context.Context, id string) Result[
 func (mes *MemoryEventStore[T]) LoadByType(ctx context.Context, eventType string) Result[[]Event[T], error] {
 	mes.mu.RLock()
 	defer mes.mu.RUnlock()
-	
+
 	var matching []Event[T]
 	for _, event := range mes.events {
 		if event.Type == eventType {
 			matching = append(matching, event)
 		}
 	}
-	
+
 	return Ok[[]Event[T], error](matching)
 }
 
@@ -434,14 +434,14 @@ func (mes *MemoryEventStore[T]) LoadByType(ctx context.Context, eventType string
 func (mes *MemoryEventStore[T]) LoadSince(ctx context.Context, timestamp time.Time) Result[[]Event[T], error] {
 	mes.mu.RLock()
 	defer mes.mu.RUnlock()
-	
+
 	var matching []Event[T]
 	for _, event := range mes.events {
 		if event.Timestamp.After(timestamp) {
 			matching = append(matching, event)
 		}
 	}
-	
+
 	return Ok[[]Event[T], error](matching)
 }
 
@@ -457,17 +457,17 @@ type EventStream[T any] struct {
 // NewEventStream creates a new event stream.
 func NewEventStream[T any](bus *EventBus[T], bufferSize int) *EventStream[T] {
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	stream := &EventStream[T]{
 		bus:        bus,
 		subscriber: make(chan Event[T], bufferSize),
 		ctx:        ctx,
 		cancel:     cancel,
 	}
-	
+
 	// Subscribe to bus events
 	bus.Subscribe(stream.handleEvent)
-	
+
 	return stream
 }
 
@@ -484,7 +484,7 @@ func (es *EventStream[T]) handleEvent(ctx context.Context, event Event[T]) Resul
 			return Ok[bool, error](true) // Skip filtered events
 		}
 	}
-	
+
 	select {
 	case es.subscriber <- event:
 		return Ok[bool, error](true)

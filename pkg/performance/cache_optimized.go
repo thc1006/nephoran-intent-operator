@@ -17,14 +17,14 @@ import (
 
 // OptimizedCache provides high-performance caching with Go 1.24+ optimizations
 type OptimizedCache[K comparable, V any] struct {
-	shards        []*CacheShard[K, V]
-	shardCount    int
-	config        *CacheConfig
-	metrics       *CacheMetrics
+	shards         []*CacheShard[K, V]
+	shardCount     int
+	config         *CacheConfig
+	metrics        *CacheMetrics
 	evictionPolicy EvictionPolicy
-	hasher        Hasher[K]
-	shutdown      chan struct{}
-	wg            sync.WaitGroup
+	hasher         Hasher[K]
+	shutdown       chan struct{}
+	wg             sync.WaitGroup
 }
 
 // CacheConfig contains cache optimization configuration
@@ -44,35 +44,35 @@ type CacheConfig struct {
 
 // CacheShard represents a cache shard with improved type safety
 type CacheShard[K comparable, V any] struct {
-	entries      map[K]*CacheEntry[V]
-	lruHead      *CacheEntry[V]
-	lruTail      *CacheEntry[V]
-	lfuHeap      *LFUHeap[K, V]
-	size         int64
-	maxSize      int64
-	hitCount     int64
-	missCount    int64
-	evictions    int64
-	mu           sync.RWMutex
-	lastCleanup  time.Time
-	ttl          time.Duration
+	entries        map[K]*CacheEntry[V]
+	lruHead        *CacheEntry[V]
+	lruTail        *CacheEntry[V]
+	lfuHeap        *LFUHeap[K, V]
+	size           int64
+	maxSize        int64
+	hitCount       int64
+	missCount      int64
+	evictions      int64
+	mu             sync.RWMutex
+	lastCleanup    time.Time
+	ttl            time.Duration
 	evictionPolicy EvictionPolicy
 }
 
 // CacheEntry represents a cache entry with metadata
 type CacheEntry[V any] struct {
-	key        interface{}
-	value      V
-	size       int64
-	expiration time.Time
+	key         interface{}
+	value       V
+	size        int64
+	expiration  time.Time
 	accessCount int64
-	lastAccess time.Time
-	createdAt  time.Time
-	prev       *CacheEntry[V]
-	next       *CacheEntry[V]
-	frequency  int64
-	compressed bool
-	version    uint64
+	lastAccess  time.Time
+	createdAt   time.Time
+	prev        *CacheEntry[V]
+	next        *CacheEntry[V]
+	frequency   int64
+	compressed  bool
+	version     uint64
 }
 
 // EvictionPolicy defines cache eviction strategies
@@ -115,9 +115,9 @@ func (h DefaultHasher[K]) Hash(key K) uint64 {
 
 // LFUHeap implements a min-heap for LFU eviction
 type LFUHeap[K comparable, V any] struct {
-	entries []*CacheEntry[V]
+	entries  []*CacheEntry[V]
 	indexMap map[K]int
-	mu      sync.RWMutex
+	mu       sync.RWMutex
 }
 
 // CacheMetrics tracks cache performance metrics
@@ -169,7 +169,7 @@ func NewOptimizedCache[K comparable, V any](config *CacheConfig) *OptimizedCache
 	if shardCount <= 0 {
 		shardCount = runtime.NumCPU()
 	}
-	
+
 	// Round up to next power of 2
 	powerOf2 := 1
 	for powerOf2 < shardCount {
@@ -178,13 +178,13 @@ func NewOptimizedCache[K comparable, V any](config *CacheConfig) *OptimizedCache
 	shardCount = powerOf2
 
 	cache := &OptimizedCache[K, V]{
-		shards:        make([]*CacheShard[K, V], shardCount),
-		shardCount:    shardCount,
-		config:        config,
-		metrics:      &CacheMetrics{ShardDistribution: make([]int64, shardCount)},
+		shards:         make([]*CacheShard[K, V], shardCount),
+		shardCount:     shardCount,
+		config:         config,
+		metrics:        &CacheMetrics{ShardDistribution: make([]int64, shardCount)},
 		evictionPolicy: config.EvictionPolicy,
-		hasher:        DefaultHasher[K]{},
-		shutdown:      make(chan struct{}),
+		hasher:         DefaultHasher[K]{},
+		shutdown:       make(chan struct{}),
 	}
 
 	// Initialize shards

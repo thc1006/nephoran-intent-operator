@@ -342,12 +342,12 @@ func VerifyResourceConsistency(ctx context.Context, k8sClient client.Client, nam
 		readyReplicas := int(e2ns.Status.ReadyReplicas)
 
 		if actualConfigMaps != expectedConfigMaps {
-			return fmt.Errorf("E2NodeSet %s: expected %d ConfigMaps, found %d", 
+			return fmt.Errorf("E2NodeSet %s: expected %d ConfigMaps, found %d",
 				e2ns.Name, expectedConfigMaps, actualConfigMaps)
 		}
 
 		if readyReplicas != expectedConfigMaps {
-			return fmt.Errorf("E2NodeSet %s: expected %d ready replicas, found %d", 
+			return fmt.Errorf("E2NodeSet %s: expected %d ready replicas, found %d",
 				e2ns.Name, expectedConfigMaps, readyReplicas)
 		}
 	}
@@ -406,7 +406,7 @@ func GetE2NodeSetConfigMaps(ctx context.Context, k8sClient client.Client, e2node
 			"e2nodeset": e2nodeSet.Name,
 		}),
 	}
-	
+
 	err := k8sClient.List(ctx, configMapList, listOptions...)
 	return configMapList, err
 }

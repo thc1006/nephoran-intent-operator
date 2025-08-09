@@ -5,8 +5,8 @@ import (
 	"context"
 	"fmt"
 
-	rbacv1 "k8s.io/api/rbac/v1"
 	corev1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -177,7 +177,7 @@ func (m *RBACManager) GetRoleDefinitions() map[OperatorRole]RoleDefinition {
 func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 	logger := log.FromContext(ctx)
 	definitions := m.GetRoleDefinitions()
-	
+
 	def, exists := definitions[role]
 	if !exists {
 		return fmt.Errorf("unknown role: %s", role)
@@ -191,7 +191,7 @@ func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 			},
 			Rules: def.Rules,
 		}
-		
+
 		if err := m.client.Create(ctx, clusterRole); err != nil {
 			logger.Error(err, "Failed to create ClusterRole", "role", def.Name)
 			return fmt.Errorf("failed to create ClusterRole %s: %w", def.Name, err)
@@ -205,7 +205,7 @@ func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 			},
 			Rules: def.Rules,
 		}
-		
+
 		if err := m.client.Create(ctx, role); err != nil {
 			logger.Error(err, "Failed to create Role", "role", def.Name)
 			return fmt.Errorf("failed to create Role %s: %w", def.Name, err)
@@ -219,7 +219,7 @@ func (m *RBACManager) CreateRole(ctx context.Context, role OperatorRole) error {
 // CreateServiceAccount creates a ServiceAccount with appropriate labels
 func (m *RBACManager) CreateServiceAccount(ctx context.Context, name string, role OperatorRole) error {
 	logger := log.FromContext(ctx)
-	
+
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -249,14 +249,14 @@ func (m *RBACManager) CreateServiceAccount(ctx context.Context, name string, rol
 func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName string, role OperatorRole) error {
 	logger := log.FromContext(ctx)
 	definitions := m.GetRoleDefinitions()
-	
+
 	def, exists := definitions[role]
 	if !exists {
 		return fmt.Errorf("unknown role: %s", role)
 	}
 
 	bindingName := fmt.Sprintf("%s-binding", saName)
-	
+
 	if def.ClusterRole {
 		binding := &rbacv1.ClusterRoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
@@ -280,7 +280,7 @@ func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName strin
 				},
 			},
 		}
-		
+
 		if err := m.client.Create(ctx, binding); err != nil {
 			logger.Error(err, "Failed to create ClusterRoleBinding", "binding", bindingName)
 			return fmt.Errorf("failed to create ClusterRoleBinding %s: %w", bindingName, err)
@@ -309,7 +309,7 @@ func (m *RBACManager) BindRoleToServiceAccount(ctx context.Context, saName strin
 				},
 			},
 		}
-		
+
 		if err := m.client.Create(ctx, binding); err != nil {
 			logger.Error(err, "Failed to create RoleBinding", "binding", bindingName)
 			return fmt.Errorf("failed to create RoleBinding %s: %w", bindingName, err)
@@ -329,26 +329,26 @@ func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.Po
 				return fmt.Errorf("wildcard API group not allowed: use specific API groups")
 			}
 		}
-		
+
 		for _, resource := range rule.Resources {
 			if resource == "*" {
 				return fmt.Errorf("wildcard resource not allowed: use specific resources")
 			}
 		}
-		
+
 		for _, verb := range rule.Verbs {
 			if verb == "*" {
 				return fmt.Errorf("wildcard verb not allowed: use specific verbs")
 			}
 		}
-		
+
 		// Check for dangerous verb combinations
 		hasDelete := contains(rule.Verbs, "delete")
 		hasDeleteCollection := contains(rule.Verbs, "deletecollection")
 		if hasDelete && hasDeleteCollection {
 			return fmt.Errorf("both delete and deletecollection verbs present: consider separating concerns")
 		}
-		
+
 		// Check for escalation permissions
 		if contains(rule.Resources, "clusterroles") || contains(rule.Resources, "clusterrolebindings") {
 			if contains(rule.Verbs, "create") || contains(rule.Verbs, "update") || contains(rule.Verbs, "patch") {
@@ -356,7 +356,7 @@ func (m *RBACManager) ValidatePermissions(ctx context.Context, rules []rbacv1.Po
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -380,7 +380,7 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 		if err := m.ValidatePermissions(ctx, cr.Rules); err != nil {
 			report.Issues = append(report.Issues, fmt.Sprintf("ClusterRole %s: %s", cr.Name, err.Error()))
 		}
-		
+
 		// Check for system:masters binding (critical security issue)
 		if cr.Name == "cluster-admin" {
 			report.Warnings = append(report.Warnings, "cluster-admin role detected: ensure minimal usage")
@@ -406,7 +406,7 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 	}
 
 	report.ServiceAccountCount = len(serviceAccounts.Items)
-	
+
 	// Check for default service account usage
 	for _, sa := range serviceAccounts.Items {
 		if sa.Name == "default" && len(sa.Secrets) > 0 {
@@ -416,7 +416,7 @@ func (m *RBACManager) AuditRBACCompliance(ctx context.Context) (*RBACAuditReport
 
 	report.Compliant = len(report.Issues) == 0
 	logger.Info("RBAC audit completed", "compliant", report.Compliant, "issues", len(report.Issues), "warnings", len(report.Warnings))
-	
+
 	return report, nil
 }
 
@@ -433,14 +433,14 @@ type RBACAuditReport struct {
 // EnforceMinimalPermissions ensures minimal required permissions for operation
 func (m *RBACManager) EnforceMinimalPermissions(ctx context.Context) error {
 	logger := log.FromContext(ctx)
-	
+
 	// Create minimal operator role
 	minimalRole := &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "nephoran-minimal-operator",
 			Namespace: m.namespace,
 			Labels: map[string]string{
-				"app.kubernetes.io/name":      "nephoran-intent-operator",
+				"app.kubernetes.io/name":       "nephoran-intent-operator",
 				"security.nephoran.io/minimal": "true",
 			},
 		},
@@ -457,12 +457,12 @@ func (m *RBACManager) EnforceMinimalPermissions(ctx context.Context) error {
 			},
 		},
 	}
-	
+
 	if err := m.client.Create(ctx, minimalRole); err != nil {
 		logger.Error(err, "Failed to create minimal role")
 		return fmt.Errorf("failed to create minimal role: %w", err)
 	}
-	
+
 	logger.Info("Enforced minimal permissions")
 	return nil
 }

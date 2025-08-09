@@ -227,7 +227,7 @@ func (f *FakeE2Manager) GetLastProvisionedSpec() nephoranv1.E2NodeSetSpec {
 func (f *FakeE2Manager) GetNodes() map[string]*e2.E2Node {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
-	
+
 	// Return a copy to avoid race conditions
 	nodes := make(map[string]*e2.E2Node)
 	for k, v := range f.nodes {
@@ -239,7 +239,7 @@ func (f *FakeE2Manager) GetNodes() map[string]*e2.E2Node {
 func (f *FakeE2Manager) GetConnections() map[string]string {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
-	
+
 	// Return a copy to avoid race conditions
 	connections := make(map[string]string)
 	for k, v := range f.connections {

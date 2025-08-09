@@ -86,151 +86,151 @@ type RestoreManager struct {
 // RestoreConfig holds restore configuration
 type RestoreConfig struct {
 	// General settings
-	Enabled                bool              `json:"enabled"`
-	DefaultRestoreTimeout  time.Duration     `json:"default_restore_timeout"`
-	ParallelRestores       int               `json:"parallel_restores"`
-	ValidationEnabled      bool              `json:"validation_enabled"`
-	
+	Enabled               bool          `json:"enabled"`
+	DefaultRestoreTimeout time.Duration `json:"default_restore_timeout"`
+	ParallelRestores      int           `json:"parallel_restores"`
+	ValidationEnabled     bool          `json:"validation_enabled"`
+
 	// Storage settings
-	StorageProvider        string            `json:"storage_provider"`
-	S3Config              S3RestoreConfig    `json:"s3_config"`
-	
+	StorageProvider string          `json:"storage_provider"`
+	S3Config        S3RestoreConfig `json:"s3_config"`
+
 	// Point-in-time recovery settings
-	PITREnabled           bool              `json:"pitr_enabled"`
-	PITRGranularity       time.Duration     `json:"pitr_granularity"`    // Minimum time between recoverable points
-	PITRRetention         time.Duration     `json:"pitr_retention"`      // How long to keep PITR data
-	
+	PITREnabled     bool          `json:"pitr_enabled"`
+	PITRGranularity time.Duration `json:"pitr_granularity"` // Minimum time between recoverable points
+	PITRRetention   time.Duration `json:"pitr_retention"`   // How long to keep PITR data
+
 	// Component restore settings
 	ComponentRestoreConfig ComponentRestoreConfig `json:"component_restore_config"`
-	
+
 	// Validation settings
-	ValidationConfig      ValidationConfig   `json:"validation_config"`
-	
+	ValidationConfig ValidationConfig `json:"validation_config"`
+
 	// Recovery verification settings
-	VerificationConfig    VerificationConfig `json:"verification_config"`
+	VerificationConfig VerificationConfig `json:"verification_config"`
 }
 
 // S3RestoreConfig holds S3-specific restore configuration
 type S3RestoreConfig struct {
-	Bucket                string `json:"bucket"`
-	Region                string `json:"region"`
-	Prefix                string `json:"prefix"`
-	DownloadTimeout       time.Duration `json:"download_timeout"`
-	VerifyChecksums       bool `json:"verify_checksums"`
+	Bucket          string        `json:"bucket"`
+	Region          string        `json:"region"`
+	Prefix          string        `json:"prefix"`
+	DownloadTimeout time.Duration `json:"download_timeout"`
+	VerifyChecksums bool          `json:"verify_checksums"`
 }
 
 // ComponentRestoreConfig holds component-specific restore settings
 type ComponentRestoreConfig struct {
-	RestoreOrder          []string          `json:"restore_order"`
-	ComponentTimeout      map[string]time.Duration `json:"component_timeout"`
-	ComponentValidation   map[string]bool   `json:"component_validation"`
-	SkipOnFailure         []string          `json:"skip_on_failure"`      // Non-critical components
+	RestoreOrder        []string                 `json:"restore_order"`
+	ComponentTimeout    map[string]time.Duration `json:"component_timeout"`
+	ComponentValidation map[string]bool          `json:"component_validation"`
+	SkipOnFailure       []string                 `json:"skip_on_failure"` // Non-critical components
 }
 
 // ValidationConfig holds validation configuration
 type ValidationConfig struct {
-	Enabled                   bool              `json:"enabled"`
-	ChecksumValidation        bool              `json:"checksum_validation"`
-	SchemaValidation          bool              `json:"schema_validation"`
-	DependencyValidation      bool              `json:"dependency_validation"`
-	PreRestoreValidation      bool              `json:"pre_restore_validation"`
-	PostRestoreValidation     bool              `json:"post_restore_validation"`
-	ValidationTimeout         time.Duration     `json:"validation_timeout"`
-	ContinueOnValidationError bool              `json:"continue_on_validation_error"`
+	Enabled                   bool          `json:"enabled"`
+	ChecksumValidation        bool          `json:"checksum_validation"`
+	SchemaValidation          bool          `json:"schema_validation"`
+	DependencyValidation      bool          `json:"dependency_validation"`
+	PreRestoreValidation      bool          `json:"pre_restore_validation"`
+	PostRestoreValidation     bool          `json:"post_restore_validation"`
+	ValidationTimeout         time.Duration `json:"validation_timeout"`
+	ContinueOnValidationError bool          `json:"continue_on_validation_error"`
 }
 
 // VerificationConfig holds post-restore verification settings
 type VerificationConfig struct {
-	Enabled               bool              `json:"enabled"`
-	HealthCheckTimeout    time.Duration     `json:"health_check_timeout"`
-	FunctionalTests       []FunctionalTest  `json:"functional_tests"`
-	VerificationRetries   int               `json:"verification_retries"`
-	VerificationInterval  time.Duration     `json:"verification_interval"`
+	Enabled              bool             `json:"enabled"`
+	HealthCheckTimeout   time.Duration    `json:"health_check_timeout"`
+	FunctionalTests      []FunctionalTest `json:"functional_tests"`
+	VerificationRetries  int              `json:"verification_retries"`
+	VerificationInterval time.Duration    `json:"verification_interval"`
 }
 
 // FunctionalTest represents a functional test to run after restore
 type FunctionalTest struct {
-	Name        string            `json:"name"`
-	Type        string            `json:"type"`        // http, grpc, custom
-	Endpoint    string            `json:"endpoint"`
-	Method      string            `json:"method"`
-	ExpectedCode int              `json:"expected_code"`
-	Timeout     time.Duration     `json:"timeout"`
-	Headers     map[string]string `json:"headers"`
-	Body        string            `json:"body"`
+	Name         string            `json:"name"`
+	Type         string            `json:"type"` // http, grpc, custom
+	Endpoint     string            `json:"endpoint"`
+	Method       string            `json:"method"`
+	ExpectedCode int               `json:"expected_code"`
+	Timeout      time.Duration     `json:"timeout"`
+	Headers      map[string]string `json:"headers"`
+	Body         string            `json:"body"`
 }
 
 // RestoreRecord represents a restore operation record
 type RestoreRecord struct {
-	ID                    string                     `json:"id"`
-	Type                  string                     `json:"type"`           // full, incremental, pitr
-	Status                string                     `json:"status"`
-	BackupID              string                     `json:"backup_id"`
-	PointInTime           *time.Time                 `json:"point_in_time,omitempty"`
-	StartTime             time.Time                  `json:"start_time"`
-	EndTime               *time.Time                 `json:"end_time,omitempty"`
-	Duration              time.Duration              `json:"duration"`
-	Components            map[string]ComponentRestore `json:"components"`
-	ValidationResults     *ValidationResults         `json:"validation_results,omitempty"`
-	VerificationResults   *VerificationResults       `json:"verification_results,omitempty"`
-	Error                 string                     `json:"error,omitempty"`
-	Metadata              map[string]interface{}     `json:"metadata"`
-	RestoreParameters     RestoreParameters          `json:"restore_parameters"`
+	ID                  string                      `json:"id"`
+	Type                string                      `json:"type"` // full, incremental, pitr
+	Status              string                      `json:"status"`
+	BackupID            string                      `json:"backup_id"`
+	PointInTime         *time.Time                  `json:"point_in_time,omitempty"`
+	StartTime           time.Time                   `json:"start_time"`
+	EndTime             *time.Time                  `json:"end_time,omitempty"`
+	Duration            time.Duration               `json:"duration"`
+	Components          map[string]ComponentRestore `json:"components"`
+	ValidationResults   *ValidationResults          `json:"validation_results,omitempty"`
+	VerificationResults *VerificationResults        `json:"verification_results,omitempty"`
+	Error               string                      `json:"error,omitempty"`
+	Metadata            map[string]interface{}      `json:"metadata"`
+	RestoreParameters   RestoreParameters           `json:"restore_parameters"`
 }
 
 // ComponentRestore represents the restore status of a component
 type ComponentRestore struct {
-	Name          string            `json:"name"`
-	Status        string            `json:"status"`
-	StartTime     time.Time         `json:"start_time"`
-	EndTime       *time.Time        `json:"end_time,omitempty"`
-	Duration      time.Duration     `json:"duration"`
-	SourcePath    string            `json:"source_path"`
-	TargetPath    string            `json:"target_path"`
-	Size          int64             `json:"size"`
-	Checksum      string            `json:"checksum"`
-	Error         string            `json:"error,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata"`
+	Name       string                 `json:"name"`
+	Status     string                 `json:"status"`
+	StartTime  time.Time              `json:"start_time"`
+	EndTime    *time.Time             `json:"end_time,omitempty"`
+	Duration   time.Duration          `json:"duration"`
+	SourcePath string                 `json:"source_path"`
+	TargetPath string                 `json:"target_path"`
+	Size       int64                  `json:"size"`
+	Checksum   string                 `json:"checksum"`
+	Error      string                 `json:"error,omitempty"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // ValidationResults holds validation results
 type ValidationResults struct {
-	OverallStatus         string                    `json:"overall_status"`
-	ChecksumValidation    *ChecksumValidation       `json:"checksum_validation,omitempty"`
-	SchemaValidation      *SchemaValidation         `json:"schema_validation,omitempty"`
-	DependencyValidation  *DependencyValidation     `json:"dependency_validation,omitempty"`
-	ValidationErrors      []string                  `json:"validation_errors"`
-	ValidationWarnings    []string                  `json:"validation_warnings"`
+	OverallStatus        string                `json:"overall_status"`
+	ChecksumValidation   *ChecksumValidation   `json:"checksum_validation,omitempty"`
+	SchemaValidation     *SchemaValidation     `json:"schema_validation,omitempty"`
+	DependencyValidation *DependencyValidation `json:"dependency_validation,omitempty"`
+	ValidationErrors     []string              `json:"validation_errors"`
+	ValidationWarnings   []string              `json:"validation_warnings"`
 }
 
 // ChecksumValidation holds checksum validation results
 type ChecksumValidation struct {
-	Status          string            `json:"status"`
-	ComponentResults map[string]bool  `json:"component_results"`
-	FailedComponents []string         `json:"failed_components"`
+	Status           string          `json:"status"`
+	ComponentResults map[string]bool `json:"component_results"`
+	FailedComponents []string        `json:"failed_components"`
 }
 
 // SchemaValidation holds schema validation results
 type SchemaValidation struct {
-	Status          string            `json:"status"`
-	ValidatedSchemas []string         `json:"validated_schemas"`
-	SchemaErrors    []string         `json:"schema_errors"`
+	Status           string   `json:"status"`
+	ValidatedSchemas []string `json:"validated_schemas"`
+	SchemaErrors     []string `json:"schema_errors"`
 }
 
 // DependencyValidation holds dependency validation results
 type DependencyValidation struct {
-	Status               string            `json:"status"`
-	MissingDependencies  []string         `json:"missing_dependencies"`
-	ConflictingVersions  []string         `json:"conflicting_versions"`
+	Status              string   `json:"status"`
+	MissingDependencies []string `json:"missing_dependencies"`
+	ConflictingVersions []string `json:"conflicting_versions"`
 }
 
 // VerificationResults holds post-restore verification results
 type VerificationResults struct {
-	OverallStatus       string                     `json:"overall_status"`
-	HealthCheckResults  map[string]bool            `json:"health_check_results"`
+	OverallStatus         string                          `json:"overall_status"`
+	HealthCheckResults    map[string]bool                 `json:"health_check_results"`
 	FunctionalTestResults map[string]FunctionalTestResult `json:"functional_test_results"`
-	VerificationErrors  []string                   `json:"verification_errors"`
-	VerificationTime    time.Duration              `json:"verification_time"`
+	VerificationErrors    []string                        `json:"verification_errors"`
+	VerificationTime      time.Duration                   `json:"verification_time"`
 }
 
 // FunctionalTestResult holds the result of a functional test
@@ -244,21 +244,21 @@ type FunctionalTestResult struct {
 
 // RestoreParameters holds parameters for a restore operation
 type RestoreParameters struct {
-	TargetNamespaces    []string          `json:"target_namespaces"`
-	ComponentFilter     []string          `json:"component_filter"`      // Only restore these components
-	ExcludeComponents   []string          `json:"exclude_components"`    // Skip these components
-	OverwriteExisting   bool              `json:"overwrite_existing"`
-	DryRun              bool              `json:"dry_run"`
-	RestoreSecrets      bool              `json:"restore_secrets"`
-	RestorePVCs         bool              `json:"restore_pvcs"`
-	CustomOptions       map[string]string `json:"custom_options"`
+	TargetNamespaces  []string          `json:"target_namespaces"`
+	ComponentFilter   []string          `json:"component_filter"`   // Only restore these components
+	ExcludeComponents []string          `json:"exclude_components"` // Skip these components
+	OverwriteExisting bool              `json:"overwrite_existing"`
+	DryRun            bool              `json:"dry_run"`
+	RestoreSecrets    bool              `json:"restore_secrets"`
+	RestorePVCs       bool              `json:"restore_pvcs"`
+	CustomOptions     map[string]string `json:"custom_options"`
 }
 
 // RestoreValidationEngine handles restore validation
 type RestoreValidationEngine struct {
-	logger     *slog.Logger
-	k8sClient  kubernetes.Interface
-	config     *ValidationConfig
+	logger    *slog.Logger
+	k8sClient kubernetes.Interface
+	config    *ValidationConfig
 }
 
 // NewRestoreManager creates a new restore manager
@@ -408,9 +408,9 @@ func (rm *RestoreManager) performRestore(ctx context.Context, restoreType, backu
 	start := time.Now()
 	restoreID := fmt.Sprintf("%s-restore-%d", restoreType, start.Unix())
 
-	rm.logger.Info("Starting restore operation", 
-		"type", restoreType, 
-		"id", restoreID, 
+	rm.logger.Info("Starting restore operation",
+		"type", restoreType,
+		"id", restoreID,
 		"backup_id", backupID,
 		"point_in_time", pointInTime)
 
@@ -513,7 +513,7 @@ func (rm *RestoreManager) downloadBackupMetadata(ctx context.Context, backupID s
 	}
 
 	key := fmt.Sprintf("%s/full/%s/metadata.json", rm.config.S3Config.Prefix, backupID)
-	
+
 	rm.logger.Info("Downloading backup metadata", "key", key)
 
 	result, err := rm.s3Client.GetObject(ctx, &s3.GetObjectInput{
@@ -712,7 +712,7 @@ func (rm *RestoreManager) restoreKubernetesConfig(ctx context.Context, component
 		// Skip if not in target namespaces
 		relPath, _ := filepath.Rel(extractDir, path)
 		namespace := filepath.Dir(relPath)
-		
+
 		if len(params.TargetNamespaces) > 0 {
 			found := false
 			for _, ns := range params.TargetNamespaces {
@@ -762,7 +762,7 @@ func (rm *RestoreManager) restoreKubernetesResource(ctx context.Context, filePat
 
 	// Determine resource type based on file path
 	filename := filepath.Base(filePath)
-	
+
 	if strings.Contains(filename, "configmap") {
 		return rm.restoreConfigMap(ctx, data, params)
 	} else if strings.Contains(filename, "secret") && params.RestoreSecrets {
@@ -1072,9 +1072,9 @@ func (rm *RestoreManager) performPostRestoreValidation(ctx context.Context, reco
 // performPostRestoreVerification performs post-restore verification
 func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, record *RestoreRecord) error {
 	verificationResults := &VerificationResults{
-		HealthCheckResults:     make(map[string]bool),
-		FunctionalTestResults:  make(map[string]FunctionalTestResult),
-		VerificationErrors:     make([]string, 0),
+		HealthCheckResults:    make(map[string]bool),
+		FunctionalTestResults: make(map[string]FunctionalTestResult),
+		VerificationErrors:    make([]string, 0),
 	}
 
 	start := time.Now()
@@ -1104,7 +1104,7 @@ func (rm *RestoreManager) performPostRestoreVerification(ctx context.Context, re
 
 	record.VerificationResults = verificationResults
 
-	rm.logger.Info("Post-restore verification completed", 
+	rm.logger.Info("Post-restore verification completed",
 		"status", verificationResults.OverallStatus,
 		"duration", verificationResults.VerificationTime)
 
@@ -1164,7 +1164,7 @@ func (rve *RestoreValidationEngine) ValidateBackup(ctx context.Context, backup *
 		results.SchemaValidation = schemaResults
 	}
 
-	// Dependency validation  
+	// Dependency validation
 	if rve.config.DependencyValidation {
 		depResults := rve.validateDependencies(ctx, backup, params)
 		results.DependencyValidation = depResults
@@ -1192,7 +1192,7 @@ func (rve *RestoreValidationEngine) validateChecksums(backup *BackupRecord) *Che
 		// In real implementation, would verify actual checksums
 		valid := component.Checksum != ""
 		results.ComponentResults[name] = valid
-		
+
 		if !valid {
 			allValid = false
 			results.FailedComponents = append(results.FailedComponents, name)

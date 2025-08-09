@@ -18,7 +18,7 @@ func TestSecuritySuite(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	By("Setting up test environment")
-	
+
 	// Setup test environment
 	err := utils.SetupTestEnvironment()
 	Expect(err).NotTo(HaveOccurred())
@@ -31,7 +31,7 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	By("Tearing down test environment")
-	
+
 	err := utils.TeardownTestEnvironment()
 	Expect(err).NotTo(HaveOccurred())
 

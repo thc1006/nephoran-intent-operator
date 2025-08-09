@@ -17,94 +17,94 @@ type AlertManager struct {
 	config  *AlertManagerConfig
 	logger  *logging.StructuredLogger
 	started atomic.Bool
-	
+
 	// Alert rules and conditions
-	alertRules       map[string]*AlertRule
-	burnRateRules    []*BurnRateRule
-	alertConditions  *AlertConditionEvaluator
-	
+	alertRules      map[string]*AlertRule
+	burnRateRules   []*BurnRateRule
+	alertConditions *AlertConditionEvaluator
+
 	// Alert state management
-	activeAlerts     map[string]*ActiveAlert
-	alertHistory     *AlertHistory
-	silences         *SilenceManager
-	
+	activeAlerts map[string]*ActiveAlert
+	alertHistory *AlertHistory
+	silences     *SilenceManager
+
 	// Predictive alerting
-	predictor        *ViolationPredictor
-	trendAnalyzer    *TrendAnalyzer
-	
+	predictor     *ViolationPredictor
+	trendAnalyzer *TrendAnalyzer
+
 	// Notification management
-	notificationMgr  *NotificationManager
-	escalationMgr    *EscalationManager
-	
+	notificationMgr *NotificationManager
+	escalationMgr   *EscalationManager
+
 	// Performance metrics
-	metrics          *AlertManagerMetrics
-	alertsGenerated  atomic.Uint64
-	alertsResolved   atomic.Uint64
-	falsePositives   atomic.Uint64
-	
+	metrics         *AlertManagerMetrics
+	alertsGenerated atomic.Uint64
+	alertsResolved  atomic.Uint64
+	falsePositives  atomic.Uint64
+
 	// Background processing
 	evaluationTicker *time.Ticker
 	cleanupTicker    *time.Ticker
 	stopCh           chan struct{}
 	wg               sync.WaitGroup
-	
+
 	// Synchronization
-	mu               sync.RWMutex
+	mu sync.RWMutex
 }
 
 // AlertManagerConfig holds configuration for the alert manager
 type AlertManagerConfig struct {
 	// Evaluation settings
-	EvaluationInterval    time.Duration `yaml:"evaluation_interval"`
-	NotificationTimeout   time.Duration `yaml:"notification_timeout"`
-	MaxPendingAlerts     int           `yaml:"max_pending_alerts"`
-	DeduplicationWindow  time.Duration `yaml:"deduplication_window"`
-	
+	EvaluationInterval  time.Duration `yaml:"evaluation_interval"`
+	NotificationTimeout time.Duration `yaml:"notification_timeout"`
+	MaxPendingAlerts    int           `yaml:"max_pending_alerts"`
+	DeduplicationWindow time.Duration `yaml:"deduplication_window"`
+
 	// Burn rate alert configuration
 	BurnRateWindows      []BurnRateWindow `yaml:"burn_rate_windows"`
 	ErrorBudgetThreshold float64          `yaml:"error_budget_threshold"`
-	
+
 	// Predictive alerting
-	PredictionEnabled    bool          `yaml:"prediction_enabled"`
-	PredictionHorizon    time.Duration `yaml:"prediction_horizon"`
-	ConfidenceThreshold  float64       `yaml:"confidence_threshold"`
-	
+	PredictionEnabled   bool          `yaml:"prediction_enabled"`
+	PredictionHorizon   time.Duration `yaml:"prediction_horizon"`
+	ConfidenceThreshold float64       `yaml:"confidence_threshold"`
+
 	// Notification settings
 	NotificationChannels []NotificationChannel `yaml:"notification_channels"`
-	EscalationPolicies   []EscalationPolicy   `yaml:"escalation_policies"`
-	
+	EscalationPolicies   []EscalationPolicy    `yaml:"escalation_policies"`
+
 	// Alert retention
 	AlertRetentionPeriod time.Duration `yaml:"alert_retention_period"`
-	HistoryMaxSize      int           `yaml:"history_max_size"`
+	HistoryMaxSize       int           `yaml:"history_max_size"`
 }
 
 // DefaultAlertManagerConfig returns optimized default configuration
 func DefaultAlertManagerConfig() *AlertManagerConfig {
 	return &AlertManagerConfig{
-		EvaluationInterval:   30 * time.Second,
-		NotificationTimeout:  30 * time.Second,
-		MaxPendingAlerts:     1000,
-		DeduplicationWindow:  5 * time.Minute,
-		
+		EvaluationInterval:  30 * time.Second,
+		NotificationTimeout: 30 * time.Second,
+		MaxPendingAlerts:    1000,
+		DeduplicationWindow: 5 * time.Minute,
+
 		BurnRateWindows: []BurnRateWindow{
 			{Name: "fast", LongWindow: 1 * time.Hour, ShortWindow: 5 * time.Minute, Factor: 14.4},
 			{Name: "slow", LongWindow: 6 * time.Hour, ShortWindow: 30 * time.Minute, Factor: 6.0},
 		},
 		ErrorBudgetThreshold: 10.0, // Alert when 10% error budget remaining
-		
-		PredictionEnabled:    true,
-		PredictionHorizon:    2 * time.Hour,
-		ConfidenceThreshold:  0.8,
-		
+
+		PredictionEnabled:   true,
+		PredictionHorizon:   2 * time.Hour,
+		ConfidenceThreshold: 0.8,
+
 		NotificationChannels: []NotificationChannel{
 			{Type: "webhook", URL: "http://alertmanager:9093/api/v1/alerts", Enabled: true},
 			{Type: "log", Enabled: true},
 		},
-		
+
 		EscalationPolicies: []EscalationPolicy{
 			{
-				Name:     "default",
-				Enabled:  true,
+				Name:    "default",
+				Enabled: true,
 				Levels: []EscalationLevel{
 					{Duration: 5 * time.Minute, Severity: "warning"},
 					{Duration: 15 * time.Minute, Severity: "critical"},
@@ -112,9 +112,9 @@ func DefaultAlertManagerConfig() *AlertManagerConfig {
 				},
 			},
 		},
-		
+
 		AlertRetentionPeriod: 7 * 24 * time.Hour, // 7 days
-		HistoryMaxSize:      10000,
+		HistoryMaxSize:       10000,
 	}
 }
 
@@ -129,9 +129,9 @@ type BurnRateWindow struct {
 
 // NotificationChannel defines a notification destination
 type NotificationChannel struct {
-	Type    string `yaml:"type"`    // webhook, email, slack, pagerduty
-	URL     string `yaml:"url,omitempty"`
-	Enabled bool   `yaml:"enabled"`
+	Type    string                 `yaml:"type"` // webhook, email, slack, pagerduty
+	URL     string                 `yaml:"url,omitempty"`
+	Enabled bool                   `yaml:"enabled"`
 	Config  map[string]interface{} `yaml:"config,omitempty"`
 }
 
@@ -151,50 +151,50 @@ type EscalationLevel struct {
 
 // AlertRule defines conditions for generating alerts
 type AlertRule struct {
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Metric      string        `json:"metric"`
-	Condition   string        `json:"condition"` // "gt", "lt", "eq", "ne"
-	Threshold   float64       `json:"threshold"`
-	Duration    time.Duration `json:"duration"`
-	Severity    string        `json:"severity"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Metric      string            `json:"metric"`
+	Condition   string            `json:"condition"` // "gt", "lt", "eq", "ne"
+	Threshold   float64           `json:"threshold"`
+	Duration    time.Duration     `json:"duration"`
+	Severity    string            `json:"severity"`
 	Labels      map[string]string `json:"labels"`
 	Annotations map[string]string `json:"annotations"`
-	Enabled     bool          `json:"enabled"`
+	Enabled     bool              `json:"enabled"`
 }
 
 // BurnRateRule defines burn rate alerting conditions
 type BurnRateRule struct {
-	Name         string        `json:"name"`
-	SLOTarget    float64       `json:"slo_target"`
-	LongWindow   time.Duration `json:"long_window"`
-	ShortWindow  time.Duration `json:"short_window"`
-	BurnFactor   float64       `json:"burn_factor"`
-	Severity     string        `json:"severity"`
-	ErrorBudget  float64       `json:"error_budget"`
-	Enabled      bool          `json:"enabled"`
+	Name        string        `json:"name"`
+	SLOTarget   float64       `json:"slo_target"`
+	LongWindow  time.Duration `json:"long_window"`
+	ShortWindow time.Duration `json:"short_window"`
+	BurnFactor  float64       `json:"burn_factor"`
+	Severity    string        `json:"severity"`
+	ErrorBudget float64       `json:"error_budget"`
+	Enabled     bool          `json:"enabled"`
 }
 
 // ActiveAlert represents an active alert condition
 type ActiveAlert struct {
-	ID           string                 `json:"id"`
-	Rule         *AlertRule             `json:"rule"`
-	Status       AlertStatus            `json:"status"`
-	StartsAt     time.Time              `json:"starts_at"`
-	EndsAt       time.Time              `json:"ends_at,omitempty"`
-	Value        float64                `json:"value"`
-	Labels       map[string]string      `json:"labels"`
-	Annotations  map[string]string      `json:"annotations"`
-	Fingerprint  string                 `json:"fingerprint"`
-	
+	ID          string            `json:"id"`
+	Rule        *AlertRule        `json:"rule"`
+	Status      AlertStatus       `json:"status"`
+	StartsAt    time.Time         `json:"starts_at"`
+	EndsAt      time.Time         `json:"ends_at,omitempty"`
+	Value       float64           `json:"value"`
+	Labels      map[string]string `json:"labels"`
+	Annotations map[string]string `json:"annotations"`
+	Fingerprint string            `json:"fingerprint"`
+
 	// Escalation tracking
-	EscalationLevel int                 `json:"escalation_level"`
-	LastEscalated   time.Time           `json:"last_escalated,omitempty"`
-	
+	EscalationLevel int       `json:"escalation_level"`
+	LastEscalated   time.Time `json:"last_escalated,omitempty"`
+
 	// Notification tracking
 	NotificationsSent map[string]time.Time `json:"notifications_sent"`
-	SilencedUntil     time.Time           `json:"silenced_until,omitempty"`
-	
+	SilencedUntil     time.Time            `json:"silenced_until,omitempty"`
+
 	mu sync.RWMutex
 }
 
@@ -211,30 +211,30 @@ const (
 // AlertManagerMetrics contains Prometheus metrics for the alert manager
 type AlertManagerMetrics struct {
 	// Alert generation metrics
-	AlertsGenerated     *prometheus.CounterVec
-	AlertsResolved      *prometheus.CounterVec
-	AlertDuration       *prometheus.HistogramVec
-	ActiveAlertsGauge   *prometheus.GaugeVec
-	
+	AlertsGenerated   *prometheus.CounterVec
+	AlertsResolved    *prometheus.CounterVec
+	AlertDuration     *prometheus.HistogramVec
+	ActiveAlertsGauge *prometheus.GaugeVec
+
 	// Burn rate metrics
-	BurnRateViolations  *prometheus.CounterVec
-	ErrorBudgetBurn     *prometheus.GaugeVec
-	BurnRateLatency     prometheus.Histogram
-	
+	BurnRateViolations *prometheus.CounterVec
+	ErrorBudgetBurn    *prometheus.GaugeVec
+	BurnRateLatency    prometheus.Histogram
+
 	// Prediction metrics
 	PredictedViolations *prometheus.CounterVec
 	PredictionAccuracy  *prometheus.GaugeVec
 	PredictionLatency   prometheus.Histogram
-	
+
 	// Notification metrics
 	NotificationsSent   *prometheus.CounterVec
 	NotificationLatency *prometheus.HistogramVec
 	NotificationErrors  *prometheus.CounterVec
-	
+
 	// Performance metrics
-	EvaluationLatency   prometheus.Histogram
-	EvaluationErrors    prometheus.Counter
-	RuleEvaluations     *prometheus.CounterVec
+	EvaluationLatency prometheus.Histogram
+	EvaluationErrors  prometheus.Counter
+	RuleEvaluations   *prometheus.CounterVec
 }
 
 // AlertConditionEvaluator evaluates alert conditions against current metrics
@@ -257,9 +257,9 @@ type SLIProvider interface {
 
 // AlertHistory tracks historical alert data
 type AlertHistory struct {
-	alerts    []*HistoricalAlert
-	maxSize   int
-	mu        sync.RWMutex
+	alerts  []*HistoricalAlert
+	maxSize int
+	mu      sync.RWMutex
 }
 
 // HistoricalAlert represents a historical alert record
@@ -278,23 +278,23 @@ type SilenceManager struct {
 
 // Silence represents an alert silence rule
 type Silence struct {
-	ID        string                 `json:"id"`
-	Matchers  map[string]string      `json:"matchers"`
-	StartsAt  time.Time              `json:"starts_at"`
-	EndsAt    time.Time              `json:"ends_at"`
-	CreatedBy string                 `json:"created_by"`
-	Comment   string                 `json:"comment"`
+	ID        string            `json:"id"`
+	Matchers  map[string]string `json:"matchers"`
+	StartsAt  time.Time         `json:"starts_at"`
+	EndsAt    time.Time         `json:"ends_at"`
+	CreatedBy string            `json:"created_by"`
+	Comment   string            `json:"comment"`
 }
 
 // ViolationPredictor performs predictive analysis for SLA violations
 type ViolationPredictor struct {
-	models          map[string]*PredictionModel
-	features        *FeatureExtractor
-	confidenceCalc  *ConfidenceCalculator
-	enabled         bool
-	horizon         time.Duration
-	threshold       float64
-	mu              sync.RWMutex
+	models         map[string]*PredictionModel
+	features       *FeatureExtractor
+	confidenceCalc *ConfidenceCalculator
+	enabled        bool
+	horizon        time.Duration
+	threshold      float64
+	mu             sync.RWMutex
 }
 
 // PredictionModel represents a machine learning model for violation prediction
@@ -308,17 +308,17 @@ type PredictionModel struct {
 
 // TrendAnalyzer analyzes trends in SLI metrics
 type TrendAnalyzer struct {
-	windowSize    time.Duration
-	trendData     map[string]*TrendData
-	mu            sync.RWMutex
+	windowSize time.Duration
+	trendData  map[string]*TrendData
+	mu         sync.RWMutex
 }
 
 // TrendData tracks trend information for a metric
 type TrendData struct {
-	Metric    string    `json:"metric"`
-	Slope     float64   `json:"slope"`
-	Direction string    `json:"direction"` // increasing, decreasing, stable
-	Strength  float64   `json:"strength"`  // 0.0-1.0
+	Metric     string    `json:"metric"`
+	Slope      float64   `json:"slope"`
+	Direction  string    `json:"direction"` // increasing, decreasing, stable
+	Strength   float64   `json:"strength"`  // 0.0-1.0
 	LastUpdate time.Time `json:"last_update"`
 }
 
@@ -340,170 +340,170 @@ func NewAlertManager(config *AlertManagerConfig, logger *logging.StructuredLogge
 	if config == nil {
 		config = DefaultAlertManagerConfig()
 	}
-	
+
 	if logger == nil {
 		return nil, fmt.Errorf("logger is required")
 	}
-	
+
 	// Initialize metrics
 	metrics := &AlertManagerMetrics{
 		AlertsGenerated: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_alertmanager_alerts_generated_total",
 			Help: "Total number of alerts generated",
 		}, []string{"rule", "severity", "slo_type"}),
-		
+
 		AlertsResolved: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_alertmanager_alerts_resolved_total",
 			Help: "Total number of alerts resolved",
 		}, []string{"rule", "severity", "resolution_reason"}),
-		
+
 		AlertDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "sla_alertmanager_alert_duration_seconds",
 			Help:    "Duration of active alerts",
 			Buckets: prometheus.ExponentialBuckets(60, 2, 12), // 1min to ~68 hours
 		}, []string{"rule", "severity"}),
-		
+
 		ActiveAlertsGauge: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "sla_alertmanager_active_alerts",
 			Help: "Number of currently active alerts",
 		}, []string{"severity", "slo_type"}),
-		
+
 		BurnRateViolations: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_alertmanager_burn_rate_violations_total",
 			Help: "Total number of burn rate violations",
 		}, []string{"window", "severity"}),
-		
+
 		ErrorBudgetBurn: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "sla_alertmanager_error_budget_burn_rate",
 			Help: "Current error budget burn rate",
 		}, []string{"window", "slo_type"}),
-		
+
 		BurnRateLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Name:    "sla_alertmanager_burn_rate_calculation_latency_seconds",
 			Help:    "Latency of burn rate calculations",
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
 		}),
-		
+
 		PredictedViolations: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_alertmanager_predicted_violations_total",
 			Help: "Total number of predicted SLA violations",
 		}, []string{"model", "confidence_level"}),
-		
+
 		PredictionAccuracy: prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "sla_alertmanager_prediction_accuracy_percent",
 			Help: "Accuracy of violation predictions",
 		}, []string{"model", "time_horizon"}),
-		
+
 		PredictionLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Name:    "sla_alertmanager_prediction_latency_seconds",
 			Help:    "Latency of violation prediction calculations",
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 12),
 		}),
-		
+
 		NotificationsSent: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_alertmanager_notifications_sent_total",
 			Help: "Total number of notifications sent",
 		}, []string{"channel", "severity", "status"}),
-		
+
 		NotificationLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "sla_alertmanager_notification_latency_seconds",
 			Help:    "Latency of notification delivery",
 			Buckets: prometheus.ExponentialBuckets(0.1, 2, 10),
 		}, []string{"channel"}),
-		
+
 		NotificationErrors: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_alertmanager_notification_errors_total",
 			Help: "Total number of notification errors",
 		}, []string{"channel", "error_type"}),
-		
+
 		EvaluationLatency: prometheus.NewHistogram(prometheus.HistogramOpts{
 			Name:    "sla_alertmanager_evaluation_latency_seconds",
 			Help:    "Latency of alert rule evaluation",
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 12),
 		}),
-		
+
 		EvaluationErrors: prometheus.NewCounter(prometheus.CounterOpts{
 			Name: "sla_alertmanager_evaluation_errors_total",
 			Help: "Total number of alert evaluation errors",
 		}),
-		
+
 		RuleEvaluations: prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "sla_alertmanager_rule_evaluations_total",
 			Help: "Total number of rule evaluations",
 		}, []string{"rule", "result"}),
 	}
-	
+
 	// Initialize components
 	alertHistory := &AlertHistory{
 		alerts:  make([]*HistoricalAlert, 0),
 		maxSize: config.HistoryMaxSize,
 	}
-	
+
 	silenceManager := &SilenceManager{
 		silences: make(map[string]*Silence),
 	}
-	
+
 	predictor := &ViolationPredictor{
-		models:     make(map[string]*PredictionModel),
-		features:   NewFeatureExtractor(),
-		enabled:    config.PredictionEnabled,
-		horizon:    config.PredictionHorizon,
-		threshold:  config.ConfidenceThreshold,
+		models:    make(map[string]*PredictionModel),
+		features:  NewFeatureExtractor(),
+		enabled:   config.PredictionEnabled,
+		horizon:   config.PredictionHorizon,
+		threshold: config.ConfidenceThreshold,
 	}
-	
+
 	trendAnalyzer := &TrendAnalyzer{
 		windowSize: 1 * time.Hour,
 		trendData:  make(map[string]*TrendData),
 	}
-	
+
 	notificationMgr := &NotificationManager{
 		channels: config.NotificationChannels,
 		timeout:  config.NotificationTimeout,
 	}
-	
+
 	escalationMgr := &EscalationManager{
 		policies: make(map[string]*EscalationPolicy),
 	}
-	
+
 	// Initialize escalation policies
 	for _, policy := range config.EscalationPolicies {
 		policyCopy := policy
 		escalationMgr.policies[policy.Name] = &policyCopy
 	}
-	
+
 	// Initialize alert condition evaluator
 	alertConditions := &AlertConditionEvaluator{
 		rules:     make(map[string]*AlertRule),
 		burnRates: make([]*BurnRateRule, 0),
 	}
-	
+
 	// Initialize default alert rules
 	defaultRules := createDefaultAlertRules(config)
 	for _, rule := range defaultRules {
 		alertConditions.rules[rule.Name] = rule
 	}
-	
+
 	// Initialize burn rate rules
 	burnRateRules := createBurnRateRules(config)
 	alertConditions.burnRates = burnRateRules
-	
+
 	alertManager := &AlertManager{
-		config:           config,
-		logger:           logger.WithComponent("alert-manager"),
-		alertRules:       alertConditions.rules,
-		burnRateRules:    burnRateRules,
-		alertConditions:  alertConditions,
-		activeAlerts:     make(map[string]*ActiveAlert),
-		alertHistory:     alertHistory,
-		silences:         silenceManager,
-		predictor:        predictor,
-		trendAnalyzer:    trendAnalyzer,
-		notificationMgr:  notificationMgr,
-		escalationMgr:    escalationMgr,
-		metrics:          metrics,
-		stopCh:           make(chan struct{}),
+		config:          config,
+		logger:          logger.WithComponent("alert-manager"),
+		alertRules:      alertConditions.rules,
+		burnRateRules:   burnRateRules,
+		alertConditions: alertConditions,
+		activeAlerts:    make(map[string]*ActiveAlert),
+		alertHistory:    alertHistory,
+		silences:        silenceManager,
+		predictor:       predictor,
+		trendAnalyzer:   trendAnalyzer,
+		notificationMgr: notificationMgr,
+		escalationMgr:   escalationMgr,
+		metrics:         metrics,
+		stopCh:          make(chan struct{}),
 	}
-	
+
 	return alertManager, nil
 }
 
@@ -512,35 +512,35 @@ func (am *AlertManager) Start(ctx context.Context) error {
 	if am.started.Load() {
 		return fmt.Errorf("alert manager already started")
 	}
-	
+
 	am.logger.InfoWithContext("Starting SLA alert manager",
 		"evaluation_interval", am.config.EvaluationInterval,
 		"max_pending_alerts", am.config.MaxPendingAlerts,
 		"prediction_enabled", am.config.PredictionEnabled,
 	)
-	
+
 	// Initialize tickers
 	am.evaluationTicker = time.NewTicker(am.config.EvaluationInterval)
 	am.cleanupTicker = time.NewTicker(1 * time.Hour)
-	
+
 	// Start background processes
 	am.wg.Add(1)
 	go am.runEvaluationLoop(ctx)
-	
+
 	am.wg.Add(1)
 	go am.runCleanupLoop(ctx)
-	
+
 	am.wg.Add(1)
 	go am.runEscalationLoop(ctx)
-	
+
 	if am.config.PredictionEnabled {
 		am.wg.Add(1)
 		go am.runPredictionLoop(ctx)
 	}
-	
+
 	am.started.Store(true)
 	am.logger.InfoWithContext("SLA alert manager started successfully")
-	
+
 	return nil
 }
 
@@ -549,9 +549,9 @@ func (am *AlertManager) Stop(ctx context.Context) error {
 	if !am.started.Load() {
 		return nil
 	}
-	
+
 	am.logger.InfoWithContext("Stopping SLA alert manager")
-	
+
 	// Stop tickers
 	if am.evaluationTicker != nil {
 		am.evaluationTicker.Stop()
@@ -559,15 +559,15 @@ func (am *AlertManager) Stop(ctx context.Context) error {
 	if am.cleanupTicker != nil {
 		am.cleanupTicker.Stop()
 	}
-	
+
 	// Signal stop
 	close(am.stopCh)
-	
+
 	// Wait for goroutines
 	am.wg.Wait()
-	
+
 	am.logger.InfoWithContext("SLA alert manager stopped")
-	
+
 	return nil
 }
 
@@ -577,15 +577,15 @@ func (am *AlertManager) EvaluateAlerts(sliProvider SLIProvider) error {
 	defer func() {
 		am.metrics.EvaluationLatency.Observe(time.Since(start).Seconds())
 	}()
-	
+
 	am.alertConditions.sliProvider = sliProvider
-	
+
 	// Evaluate standard alert rules
 	for _, rule := range am.alertRules {
 		if !rule.Enabled {
 			continue
 		}
-		
+
 		if err := am.evaluateRule(rule, sliProvider); err != nil {
 			am.logger.ErrorWithContext("Failed to evaluate alert rule",
 				err,
@@ -594,13 +594,13 @@ func (am *AlertManager) EvaluateAlerts(sliProvider SLIProvider) error {
 			am.metrics.EvaluationErrors.Inc()
 		}
 	}
-	
+
 	// Evaluate burn rate rules
 	for _, burnRule := range am.burnRateRules {
 		if !burnRule.Enabled {
 			continue
 		}
-		
+
 		if err := am.evaluateBurnRateRule(burnRule, sliProvider); err != nil {
 			am.logger.ErrorWithContext("Failed to evaluate burn rate rule",
 				err,
@@ -608,7 +608,7 @@ func (am *AlertManager) EvaluateAlerts(sliProvider SLIProvider) error {
 			)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -623,20 +623,20 @@ func (am *AlertManager) SetSLIProvider(provider SLIProvider) {
 func (am *AlertManager) GetActiveAlerts() []*ActiveAlert {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
-	
+
 	alerts := make([]*ActiveAlert, 0, len(am.activeAlerts))
 	for _, alert := range am.activeAlerts {
 		alertCopy := *alert
 		alerts = append(alerts, &alertCopy)
 	}
-	
+
 	return alerts
 }
 
 // SilenceAlert creates a silence for matching alerts
 func (am *AlertManager) SilenceAlert(matchers map[string]string, duration time.Duration, createdBy, comment string) (string, error) {
 	silenceID := fmt.Sprintf("silence-%d", time.Now().UnixNano())
-	
+
 	silence := &Silence{
 		ID:        silenceID,
 		Matchers:  matchers,
@@ -645,25 +645,25 @@ func (am *AlertManager) SilenceAlert(matchers map[string]string, duration time.D
 		CreatedBy: createdBy,
 		Comment:   comment,
 	}
-	
+
 	am.silences.mu.Lock()
 	am.silences.silences[silenceID] = silence
 	am.silences.mu.Unlock()
-	
+
 	am.logger.InfoWithContext("Alert silence created",
 		"silence_id", silenceID,
 		"duration", duration,
 		"created_by", createdBy,
 		"matchers", matchers,
 	)
-	
+
 	return silenceID, nil
 }
 
 // runEvaluationLoop runs the main alert evaluation loop
 func (am *AlertManager) runEvaluationLoop(ctx context.Context) {
 	defer am.wg.Done()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -681,7 +681,7 @@ func (am *AlertManager) runEvaluationLoop(ctx context.Context) {
 // runCleanupLoop performs periodic cleanup of resolved alerts
 func (am *AlertManager) runCleanupLoop(ctx context.Context) {
 	defer am.wg.Done()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -697,10 +697,10 @@ func (am *AlertManager) runCleanupLoop(ctx context.Context) {
 // runEscalationLoop handles alert escalation
 func (am *AlertManager) runEscalationLoop(ctx context.Context) {
 	defer am.wg.Done()
-	
+
 	escalationTicker := time.NewTicker(1 * time.Minute)
 	defer escalationTicker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -716,10 +716,10 @@ func (am *AlertManager) runEscalationLoop(ctx context.Context) {
 // runPredictionLoop runs predictive violation analysis
 func (am *AlertManager) runPredictionLoop(ctx context.Context) {
 	defer am.wg.Done()
-	
+
 	predictionTicker := time.NewTicker(5 * time.Minute)
 	defer predictionTicker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -740,7 +740,7 @@ func (am *AlertManager) evaluateRule(rule *AlertRule, sliProvider SLIProvider) e
 	defer func() {
 		am.metrics.RuleEvaluations.WithLabelValues(rule.Name, "completed").Inc()
 	}()
-	
+
 	// Get current metric value
 	var currentValue float64
 	switch rule.Metric {
@@ -755,16 +755,16 @@ func (am *AlertManager) evaluateRule(rule *AlertRule, sliProvider SLIProvider) e
 	default:
 		return fmt.Errorf("unsupported metric: %s", rule.Metric)
 	}
-	
+
 	// Check condition
 	conditionMet := am.evaluateCondition(rule.Condition, currentValue, rule.Threshold)
-	
+
 	if conditionMet {
 		am.handleAlertFiring(rule, currentValue)
 	} else {
 		am.handleAlertResolution(rule.Name)
 	}
-	
+
 	return nil
 }
 
@@ -774,25 +774,25 @@ func (am *AlertManager) evaluateBurnRateRule(rule *BurnRateRule, sliProvider SLI
 	defer func() {
 		am.metrics.BurnRateLatency.Observe(time.Since(start).Seconds())
 	}()
-	
+
 	// Calculate burn rates for long and short windows
 	longBurnRate := sliProvider.GetBurnRate(rule.LongWindow)
 	shortBurnRate := sliProvider.GetBurnRate(rule.ShortWindow)
-	
+
 	// Check if both windows exceed the burn rate threshold
 	threshold := rule.BurnFactor * (100.0 - rule.SLOTarget) / 100.0
-	
+
 	longExceeded := longBurnRate > threshold
 	shortExceeded := shortBurnRate > threshold
-	
+
 	if longExceeded && shortExceeded {
 		am.handleBurnRateViolation(rule, longBurnRate, shortBurnRate)
 	}
-	
+
 	// Update metrics
 	am.metrics.ErrorBudgetBurn.WithLabelValues("long", rule.Name).Set(longBurnRate)
 	am.metrics.ErrorBudgetBurn.WithLabelValues("short", rule.Name).Set(shortBurnRate)
-	
+
 	return nil
 }
 
@@ -820,9 +820,9 @@ func (am *AlertManager) evaluateCondition(condition string, value, threshold flo
 func (am *AlertManager) handleAlertFiring(rule *AlertRule, value float64) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	fingerprint := am.generateFingerprint(rule, rule.Labels)
-	
+
 	alert, exists := am.activeAlerts[fingerprint]
 	if !exists {
 		// Create new alert
@@ -837,17 +837,17 @@ func (am *AlertManager) handleAlertFiring(rule *AlertRule, value float64) {
 			Fingerprint:       fingerprint,
 			NotificationsSent: make(map[string]time.Time),
 		}
-		
+
 		am.activeAlerts[fingerprint] = alert
-		
+
 		// Send notification
 		am.sendNotification(alert)
-		
+
 		// Update metrics
 		atomic.AddUint64(&am.alertsGenerated, 1)
 		am.metrics.AlertsGenerated.WithLabelValues(rule.Name, rule.Severity, rule.Metric).Inc()
 		am.metrics.ActiveAlertsGauge.WithLabelValues(rule.Severity, rule.Metric).Inc()
-		
+
 		am.logger.WarnWithContext("Alert firing",
 			"alert_id", alert.ID,
 			"rule", rule.Name,
@@ -866,7 +866,7 @@ func (am *AlertManager) handleAlertFiring(rule *AlertRule, value float64) {
 func (am *AlertManager) handleAlertResolution(ruleName string) {
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	for fingerprint, alert := range am.activeAlerts {
 		if alert.Rule.Name == ruleName && alert.Status == AlertStatusFiring {
 			alert.mu.Lock()
@@ -874,25 +874,25 @@ func (am *AlertManager) handleAlertResolution(ruleName string) {
 			alert.EndsAt = time.Now()
 			duration := alert.EndsAt.Sub(alert.StartsAt)
 			alert.mu.Unlock()
-			
+
 			// Move to history
 			am.moveToHistory(alert)
-			
+
 			// Remove from active alerts
 			delete(am.activeAlerts, fingerprint)
-			
+
 			// Update metrics
 			atomic.AddUint64(&am.alertsResolved, 1)
 			am.metrics.AlertsResolved.WithLabelValues(alert.Rule.Name, alert.Rule.Severity, "condition_resolved").Inc()
 			am.metrics.AlertDuration.WithLabelValues(alert.Rule.Name, alert.Rule.Severity).Observe(duration.Seconds())
 			am.metrics.ActiveAlertsGauge.WithLabelValues(alert.Rule.Severity, alert.Rule.Metric).Dec()
-			
+
 			am.logger.InfoWithContext("Alert resolved",
 				"alert_id", alert.ID,
 				"rule", alert.Rule.Name,
 				"duration", duration,
 			)
-			
+
 			break
 		}
 	}
@@ -901,10 +901,10 @@ func (am *AlertManager) handleAlertResolution(ruleName string) {
 // handleBurnRateViolation handles burn rate violations
 func (am *AlertManager) handleBurnRateViolation(rule *BurnRateRule, longRate, shortRate float64) {
 	fingerprint := fmt.Sprintf("burn-rate-%s", rule.Name)
-	
+
 	am.mu.Lock()
 	defer am.mu.Unlock()
-	
+
 	_, exists := am.activeAlerts[fingerprint]
 	if !exists {
 		// Create burn rate alert
@@ -915,11 +915,11 @@ func (am *AlertManager) handleBurnRateViolation(rule *BurnRateRule, longRate, sh
 			Value:       longRate,
 			Fingerprint: fingerprint,
 			Labels: map[string]string{
-				"alertname":   "BurnRateViolation",
-				"rule":        rule.Name,
-				"severity":    rule.Severity,
-				"long_rate":   fmt.Sprintf("%.2f", longRate),
-				"short_rate":  fmt.Sprintf("%.2f", shortRate),
+				"alertname":  "BurnRateViolation",
+				"rule":       rule.Name,
+				"severity":   rule.Severity,
+				"long_rate":  fmt.Sprintf("%.2f", longRate),
+				"short_rate": fmt.Sprintf("%.2f", shortRate),
 			},
 			Annotations: map[string]string{
 				"summary":     fmt.Sprintf("Error budget burn rate violation for %s", rule.Name),
@@ -927,15 +927,15 @@ func (am *AlertManager) handleBurnRateViolation(rule *BurnRateRule, longRate, sh
 			},
 			NotificationsSent: make(map[string]time.Time),
 		}
-		
+
 		am.activeAlerts[fingerprint] = alert
-		
+
 		// Send notification
 		am.sendNotification(alert)
-		
+
 		// Update metrics
 		am.metrics.BurnRateViolations.WithLabelValues(rule.Name, rule.Severity).Inc()
-		
+
 		am.logger.WarnWithContext("Burn rate violation detected",
 			"rule", rule.Name,
 			"long_rate", longRate,
@@ -951,19 +951,19 @@ func (am *AlertManager) sendNotification(alert *ActiveAlert) {
 	if am.isAlertSilenced(alert) {
 		return
 	}
-	
+
 	for _, channel := range am.notificationMgr.channels {
 		if !channel.Enabled {
 			continue
 		}
-		
+
 		start := time.Now()
-		
+
 		err := am.deliverNotification(channel, alert)
-		
+
 		latency := time.Since(start)
 		am.metrics.NotificationLatency.WithLabelValues(channel.Type).Observe(latency.Seconds())
-		
+
 		status := "success"
 		if err != nil {
 			status = "error"
@@ -978,7 +978,7 @@ func (am *AlertManager) sendNotification(alert *ActiveAlert) {
 			alert.NotificationsSent[channel.Type] = time.Now()
 			alert.mu.Unlock()
 		}
-		
+
 		am.metrics.NotificationsSent.WithLabelValues(channel.Type, alert.Rule.Severity, status).Inc()
 	}
 }
@@ -1023,14 +1023,14 @@ func (am *AlertManager) sendLogNotification(alert *ActiveAlert) error {
 func (am *AlertManager) isAlertSilenced(alert *ActiveAlert) bool {
 	am.silences.mu.RLock()
 	defer am.silences.mu.RUnlock()
-	
+
 	now := time.Now()
-	
+
 	for _, silence := range am.silences.silences {
 		if silence.EndsAt.Before(now) {
 			continue // Silence expired
 		}
-		
+
 		// Check if alert matches silence matchers
 		if am.matchesMatchers(alert.Labels, silence.Matchers) {
 			alert.mu.Lock()
@@ -1039,7 +1039,7 @@ func (am *AlertManager) isAlertSilenced(alert *ActiveAlert) bool {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -1057,7 +1057,7 @@ func (am *AlertManager) matchesMatchers(labels, matchers map[string]string) bool
 func (am *AlertManager) performCleanup() {
 	now := time.Now()
 	cutoff := now.Add(-am.config.AlertRetentionPeriod)
-	
+
 	// Clean up expired silences
 	am.silences.mu.Lock()
 	for id, silence := range am.silences.silences {
@@ -1066,7 +1066,7 @@ func (am *AlertManager) performCleanup() {
 		}
 	}
 	am.silences.mu.Unlock()
-	
+
 	// Clean up old alert history
 	am.alertHistory.mu.Lock()
 	cleanedAlerts := make([]*HistoricalAlert, 0)
@@ -1083,19 +1083,19 @@ func (am *AlertManager) performCleanup() {
 func (am *AlertManager) processEscalations() {
 	am.mu.RLock()
 	defer am.mu.RUnlock()
-	
+
 	now := time.Now()
-	
+
 	for _, alert := range am.activeAlerts {
 		if alert.Status != AlertStatusFiring {
 			continue
 		}
-		
+
 		alert.mu.RLock()
 		alertAge := now.Sub(alert.StartsAt)
 		currentLevel := alert.EscalationLevel
 		alert.mu.RUnlock()
-		
+
 		// Find applicable escalation policy
 		policy := am.escalationMgr.policies["default"] // Use default policy
 		if policy != nil && policy.Enabled {
@@ -1114,20 +1114,20 @@ func (am *AlertManager) escalateAlert(alert *ActiveAlert, level int, escalationL
 	alert.mu.Lock()
 	alert.EscalationLevel = level
 	alert.LastEscalated = time.Now()
-	
+
 	// Update severity if specified
 	if escalationLevel.Severity != "" {
 		alert.Rule.Severity = escalationLevel.Severity
 	}
 	alert.mu.Unlock()
-	
+
 	am.logger.WarnWithContext("Alert escalated",
 		"alert_id", alert.ID,
 		"new_level", level,
 		"new_severity", escalationLevel.Severity,
 		"age", time.Since(alert.StartsAt),
 	)
-	
+
 	// Send escalation notification
 	am.sendNotification(alert)
 }
@@ -1138,15 +1138,15 @@ func (am *AlertManager) performPredictiveAnalysis() {
 	defer func() {
 		am.metrics.PredictionLatency.Observe(time.Since(start).Seconds())
 	}()
-	
+
 	if !am.predictor.enabled {
 		return
 	}
-	
+
 	// This would implement sophisticated ML-based prediction
 	// For now, we'll use trend analysis
 	predictions := am.trendAnalyzer.analyzeViolationRisk(am.alertConditions.sliProvider)
-	
+
 	for _, prediction := range predictions {
 		if prediction.Confidence >= am.predictor.threshold {
 			am.handlePredictedViolation(prediction)
@@ -1163,9 +1163,9 @@ func (am *AlertManager) handlePredictedViolation(prediction *ViolationPrediction
 	if prediction.Confidence < 0.7 {
 		confidenceLevel = "low"
 	}
-	
+
 	am.metrics.PredictedViolations.WithLabelValues(prediction.Model, confidenceLevel).Inc()
-	
+
 	am.logger.WarnWithContext("Predicted SLA violation",
 		"violation_type", prediction.Type,
 		"predicted_time", prediction.PredictedTime,
@@ -1191,12 +1191,12 @@ func (am *AlertManager) moveToHistory(alert *ActiveAlert) {
 		Duration:   alert.EndsAt.Sub(alert.StartsAt),
 		MTTR:       alert.EndsAt.Sub(alert.StartsAt), // Simplified MTTR calculation
 	}
-	
+
 	am.alertHistory.mu.Lock()
 	defer am.alertHistory.mu.Unlock()
-	
+
 	am.alertHistory.alerts = append(am.alertHistory.alerts, historicalAlert)
-	
+
 	// Trim history if too large
 	if len(am.alertHistory.alerts) > am.alertHistory.maxSize {
 		am.alertHistory.alerts = am.alertHistory.alerts[1:]
@@ -1248,7 +1248,7 @@ func createDefaultAlertRules(config *AlertManagerConfig) []*AlertRule {
 
 func createBurnRateRules(config *AlertManagerConfig) []*BurnRateRule {
 	rules := make([]*BurnRateRule, 0)
-	
+
 	for _, window := range config.BurnRateWindows {
 		rule := &BurnRateRule{
 			Name:        fmt.Sprintf("BurnRate_%s", window.Name),
@@ -1262,7 +1262,7 @@ func createBurnRateRules(config *AlertManagerConfig) []*BurnRateRule {
 		}
 		rules = append(rules, rule)
 	}
-	
+
 	return rules
 }
 

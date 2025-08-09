@@ -32,7 +32,7 @@ import (
 
 func TestNewConfig(t *testing.T) {
 	config := NewConfig()
-	
+
 	assert.NotNil(t, config)
 	assert.NotNil(t, config.KubernetesConfig)
 	assert.NotNil(t, config.PorchConfig)
@@ -42,7 +42,7 @@ func TestNewConfig(t *testing.T) {
 
 func TestConfigWithDefaults(t *testing.T) {
 	config := NewConfig().WithDefaults()
-	
+
 	// Verify defaults are applied
 	assert.Equal(t, "default", config.KubernetesConfig.Namespace)
 	assert.Equal(t, "https://porch-server.porch-system.svc.cluster.local", config.PorchConfig.ServerURL)
@@ -50,24 +50,24 @@ func TestConfigWithDefaults(t *testing.T) {
 	assert.Equal(t, 3, config.PorchConfig.RetryConfig.MaxAttempts)
 	assert.Equal(t, 1*time.Second, config.PorchConfig.RetryConfig.InitialDelay)
 	assert.Equal(t, 2.0, config.PorchConfig.RetryConfig.Multiplier)
-	
+
 	// Verify function execution defaults
 	assert.Equal(t, "docker", config.Functions.Execution.Runtime)
 	assert.Equal(t, 5*time.Minute, config.Functions.Execution.DefaultTimeout)
 	assert.Equal(t, 10, config.Functions.Execution.MaxConcurrent)
 	assert.Equal(t, "1000m", config.Functions.Execution.ResourceLimits.CPU)
 	assert.Equal(t, "1Gi", config.Functions.Execution.ResourceLimits.Memory)
-	
+
 	// Verify cache defaults
 	assert.True(t, config.Cache.Enabled)
 	assert.Equal(t, 5*time.Minute, config.Cache.DefaultTTL)
 	assert.Equal(t, 1000, config.Cache.MaxEntries)
-	
+
 	// Verify security defaults
 	assert.True(t, config.Security.Enabled)
 	assert.True(t, config.Security.ImageScanningEnabled)
 	assert.Equal(t, "medium", config.Security.RequiredSecurityLevel)
-	
+
 	// Verify observability defaults
 	assert.True(t, config.Observability.Metrics.Enabled)
 	assert.Equal(t, ":8080", config.Observability.Metrics.Address)
@@ -81,14 +81,14 @@ func TestConfigBuilder(t *testing.T) {
 	config := NewConfig().
 		WithNamespace("test-namespace").
 		WithPorchServer("https://custom-porch-server.example.com").
-		WithTimeout(60 * time.Second).
+		WithTimeout(60*time.Second).
 		WithMaxRetries(5).
 		WithCache(true, 10*time.Minute).
 		WithSecurity(true, true, "high").
 		WithMetrics(true, ":9090").
 		WithTracing(true, "zipkin", "http://zipkin:9411/api/v2/spans").
 		WithLogging(true, "debug")
-	
+
 	assert.Equal(t, "test-namespace", config.KubernetesConfig.Namespace)
 	assert.Equal(t, "https://custom-porch-server.example.com", config.PorchConfig.ServerURL)
 	assert.Equal(t, 60*time.Second, config.PorchConfig.Timeout)
@@ -109,47 +109,47 @@ func TestConfigBuilder(t *testing.T) {
 
 func TestConfigAddRepository(t *testing.T) {
 	config := NewConfig()
-	
+
 	repoConfig := &RepositoryConfig{
 		Name: "test-repo",
 		Type: "git",
 		URL:  "https://github.com/test/repo.git",
 	}
-	
+
 	config.AddRepository(repoConfig)
-	
+
 	assert.Contains(t, config.Repositories, "test-repo")
 	assert.Equal(t, repoConfig, config.Repositories["test-repo"])
 }
 
 func TestConfigAddFunction(t *testing.T) {
 	config := NewConfig().WithDefaults()
-	
+
 	funcConfig := &FunctionConfig{
 		Image: "gcr.io/kpt-fn/custom-function:v1.0.0",
 		ConfigMap: map[string]string{
 			"param": "value",
 		},
 	}
-	
+
 	config.AddFunction("custom-function", funcConfig)
-	
+
 	assert.Contains(t, config.Functions.Registry.Functions, "custom-function")
 	assert.Equal(t, funcConfig, config.Functions.Registry.Functions["custom-function"])
 }
 
 func TestConfigSetResourceLimits(t *testing.T) {
 	config := NewConfig().WithDefaults()
-	
+
 	limits := &FunctionResourceLimits{
 		CPU:     "2000m",
 		Memory:  "2Gi",
 		Storage: "10Gi",
 		Timeout: 10 * time.Minute,
 	}
-	
+
 	config.SetResourceLimits(limits)
-	
+
 	assert.Equal(t, limits, config.Functions.Execution.ResourceLimits)
 }
 
@@ -229,11 +229,11 @@ func TestConfigValidation(t *testing.T) {
 			errorMsg:    "invalid log level",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
@@ -255,7 +255,7 @@ func TestConfigFromEnvironment(t *testing.T) {
 	os.Setenv("PORCH_METRICS_ENABLED", "true")
 	os.Setenv("PORCH_METRICS_ADDRESS", ":8888")
 	os.Setenv("PORCH_LOG_LEVEL", "warn")
-	
+
 	defer func() {
 		// Clean up environment variables
 		os.Unsetenv("PORCH_SERVER_URL")
@@ -268,9 +268,9 @@ func TestConfigFromEnvironment(t *testing.T) {
 		os.Unsetenv("PORCH_METRICS_ADDRESS")
 		os.Unsetenv("PORCH_LOG_LEVEL")
 	}()
-	
+
 	config := NewConfigFromEnvironment()
-	
+
 	assert.Equal(t, "https://env-porch-server.com", config.PorchConfig.ServerURL)
 	assert.Equal(t, "env-namespace", config.KubernetesConfig.Namespace)
 	assert.Equal(t, 45*time.Second, config.PorchConfig.Timeout)
@@ -303,18 +303,18 @@ users:
   user:
     token: test-token
 `
-	
+
 	kubeconfigFile, err := os.CreateTemp("", "kubeconfig-*.yaml")
 	require.NoError(t, err)
 	defer os.Remove(kubeconfigFile.Name())
-	
+
 	_, err = kubeconfigFile.WriteString(kubeconfigContent)
 	require.NoError(t, err)
 	kubeconfigFile.Close()
-	
+
 	config, err := NewConfigFromKubeconfig(kubeconfigFile.Name())
 	require.NoError(t, err)
-	
+
 	assert.NotNil(t, config)
 	assert.NotNil(t, config.KubernetesConfig.RestConfig)
 	// The namespace from context should be set
@@ -326,9 +326,9 @@ func TestConfigFromRestConfig(t *testing.T) {
 		Host:        "https://test-k8s-server.com",
 		BearerToken: "test-token",
 	}
-	
+
 	config := NewConfigFromRestConfig(restConfig)
-	
+
 	assert.NotNil(t, config)
 	assert.Equal(t, restConfig, config.KubernetesConfig.RestConfig)
 	// Default namespace should be set when not specified in rest config
@@ -418,11 +418,11 @@ func TestRepositoryConfigValidation(t *testing.T) {
 			errorMsg:    "git repository URL must use https:// or git@ protocol",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
@@ -517,11 +517,11 @@ func TestAuthConfigValidation(t *testing.T) {
 			errorMsg:    "unsupported auth type",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
@@ -581,11 +581,11 @@ func TestSyncConfigValidation(t *testing.T) {
 			errorMsg:    "sync interval must be at least 1 minute",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
@@ -658,11 +658,11 @@ func TestFunctionResourceLimitsValidation(t *testing.T) {
 			errorMsg:    "timeout must not exceed 1 hour",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.limits.Validate()
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
@@ -679,40 +679,40 @@ func TestConfigPerformance(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping performance tests in short mode")
 	}
-	
+
 	t.Run("ConfigCreationLatency", func(t *testing.T) {
 		start := time.Now()
 		config := NewConfig().WithDefaults()
 		duration := time.Since(start)
-		
+
 		assert.NotNil(t, config)
 		assert.Less(t, duration, 10*time.Millisecond, "Config creation should be fast")
 	})
-	
+
 	t.Run("ConfigValidationLatency", func(t *testing.T) {
 		config := NewConfig().WithDefaults()
-		
+
 		start := time.Now()
 		err := config.Validate()
 		duration := time.Since(start)
-		
+
 		assert.NoError(t, err)
 		assert.Less(t, duration, 10*time.Millisecond, "Config validation should be fast")
 	})
-	
+
 	t.Run("RepositoryAdditionLatency", func(t *testing.T) {
 		config := NewConfig().WithDefaults()
-		
+
 		repoConfig := &RepositoryConfig{
 			Name: "test-repo",
 			Type: "git",
 			URL:  "https://github.com/test/repo.git",
 		}
-		
+
 		start := time.Now()
 		config.AddRepository(repoConfig)
 		duration := time.Since(start)
-		
+
 		assert.Less(t, duration, 1*time.Millisecond, "Repository addition should be very fast")
 	})
 }
@@ -725,16 +725,16 @@ func BenchmarkConfigOperations(b *testing.B) {
 			_ = NewConfig()
 		}
 	})
-	
+
 	b.Run("WithDefaults", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			_ = NewConfig().WithDefaults()
 		}
 	})
-	
+
 	b.Run("Validate", func(b *testing.B) {
 		config := NewConfig().WithDefaults()
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			err := config.Validate()
@@ -743,7 +743,7 @@ func BenchmarkConfigOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("AddRepository", func(b *testing.B) {
 		config := NewConfig().WithDefaults()
 		repoConfig := &RepositoryConfig{
@@ -751,18 +751,18 @@ func BenchmarkConfigOperations(b *testing.B) {
 			Type: "git",
 			URL:  "https://github.com/test/repo.git",
 		}
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			config.AddRepository(repoConfig)
 		}
 	})
-	
+
 	b.Run("ConfigFromEnvironment", func(b *testing.B) {
 		// Set up environment
 		os.Setenv("PORCH_SERVER_URL", "https://bench-server.com")
 		defer os.Unsetenv("PORCH_SERVER_URL")
-		
+
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			_ = NewConfigFromEnvironment()

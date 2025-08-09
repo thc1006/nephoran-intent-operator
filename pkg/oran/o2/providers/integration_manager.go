@@ -13,21 +13,21 @@ import (
 
 // IntegrationManager manages the integration between O2 IMS and cloud providers
 type IntegrationManager struct {
-	registry           *ProviderRegistry
-	factory            *ProviderFactory
-	kubeClient         client.Client
-	clientset          kubernetes.Interface
-	defaultProvider    string
-	mu                 sync.RWMutex
-	metricsAggregator  *MetricsAggregator
-	eventProcessor     *EventProcessor
-	resourceCache      *ResourceCache
+	registry          *ProviderRegistry
+	factory           *ProviderFactory
+	kubeClient        client.Client
+	clientset         kubernetes.Interface
+	defaultProvider   string
+	mu                sync.RWMutex
+	metricsAggregator *MetricsAggregator
+	eventProcessor    *EventProcessor
+	resourceCache     *ResourceCache
 }
 
 // NewIntegrationManager creates a new integration manager
 func NewIntegrationManager(kubeClient client.Client, clientset kubernetes.Interface) *IntegrationManager {
 	registry := NewProviderRegistry()
-	
+
 	return &IntegrationManager{
 		registry:          registry,
 		factory:           NewProviderFactory(registry),

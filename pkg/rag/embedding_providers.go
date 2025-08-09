@@ -78,7 +78,7 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 					return 0
 				}(),
 			)
-			
+
 			// Exponential backoff
 			backoffDelay := time.Duration(attempt+1) * 2 * time.Second
 			select {
@@ -134,12 +134,12 @@ func (p *OpenAIProvider) HealthCheck(ctx context.Context) error {
 	// Simple health check with a minimal embedding request
 	testTexts := []string{"health check"}
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
-	
+
 	p.mutex.Lock()
 	p.config.Healthy = (err == nil)
 	p.config.LastCheck = time.Now()
 	p.mutex.Unlock()
-	
+
 	return err
 }
 
@@ -229,7 +229,7 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 					return 0
 				}(),
 			)
-			
+
 			// Exponential backoff
 			backoffDelay := time.Duration(attempt+1) * 2 * time.Second
 			select {
@@ -284,12 +284,12 @@ func (p *AzureOpenAIProvider) GetConfig() ProviderConfig {
 func (p *AzureOpenAIProvider) HealthCheck(ctx context.Context) error {
 	testTexts := []string{"health check"}
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
-	
+
 	p.mutex.Lock()
 	p.config.Healthy = (err == nil)
 	p.config.LastCheck = time.Now()
 	p.mutex.Unlock()
-	
+
 	return err
 }
 
@@ -336,9 +336,9 @@ func (p *LocalProvider) GenerateEmbeddings(ctx context.Context, texts []string) 
 	// - ONNX Runtime with embedding models
 	// - TensorFlow Lite models
 	// - Ollama for local LLM embeddings
-	
+
 	p.logger.Warn("Local provider called but not implemented - would generate embeddings locally")
-	
+
 	// For now, return an error indicating this is not yet implemented
 	return nil, TokenUsage{}, fmt.Errorf("local embedding provider not implemented yet - requires integration with local models")
 }
@@ -356,7 +356,7 @@ func (p *LocalProvider) HealthCheck(ctx context.Context) error {
 	p.config.Healthy = true // Always healthy for local provider (when implemented)
 	p.config.LastCheck = time.Now()
 	p.mutex.Unlock()
-	
+
 	// For now, return healthy status
 	return nil
 }
@@ -466,12 +466,12 @@ func (p *HuggingFaceProvider) GetConfig() ProviderConfig {
 func (p *HuggingFaceProvider) HealthCheck(ctx context.Context) error {
 	testTexts := []string{"health check"}
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
-	
+
 	p.mutex.Lock()
 	p.config.Healthy = (err == nil)
 	p.config.LastCheck = time.Now()
 	p.mutex.Unlock()
-	
+
 	return err
 }
 
@@ -578,12 +578,12 @@ func (p *CohereProvider) GetConfig() ProviderConfig {
 func (p *CohereProvider) HealthCheck(ctx context.Context) error {
 	testTexts := []string{"health check"}
 	_, _, err := p.GenerateEmbeddings(ctx, testTexts)
-	
+
 	p.mutex.Lock()
 	p.config.Healthy = (err == nil)
 	p.config.LastCheck = time.Now()
 	p.mutex.Unlock()
-	
+
 	return err
 }
 

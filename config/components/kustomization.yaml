@@ -1,0 +1,282 @@
+# Kustomization for Nephoran Intent Operator Resource Management
+# This file orchestrates the deployment of all components with proper resource limits
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: nephoran-resource-management
+  annotations:
+    config.kubernetes.io/local-config: "true"
+
+# Namespace for all resources
+namespace: nephoran-system
+
+# Common labels applied to all resources
+commonLabels:
+  app.kubernetes.io/name: nephoran-intent-operator
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/part-of: nephoran-intent-operator
+  app.kubernetes.io/version: "v1.0.0"
+
+# Common annotations
+commonAnnotations:
+  config.kubernetes.io/origin: "nephoran-resource-management"
+  deployment.kubernetes.io/revision: "1"
+
+# Resources to include in deployment
+resources:
+  # Main operator with resource limits
+  - ../manager/manager.yaml
+  
+  # Component-specific resource configurations
+  - llm-processor-resources.yaml
+  - rag-api-resources.yaml
+  - webhook-resources.yaml
+  - nephio-bridge-resources.yaml
+  - oran-adaptor-resources.yaml
+  
+  # Auto-scaling configurations
+  - hpa-configurations.yaml
+  - controller-hpa.yaml
+  
+  # Resource management and quotas
+  - resource-management.yaml
+
+# ConfigMap generators for dynamic configuration
+configMapGenerator:
+  # Resource management configuration
+  - name: resource-management-config
+    literals:
+      - RESOURCE_STRATEGY=optimized
+      - ENABLE_HPA=true
+      - ENABLE_PDB=true
+      - ENABLE_VPA=false
+      - COST_OPTIMIZATION=true
+      - MONITORING_ENABLED=true
+    options:
+      disableNameSuffixHash: true
+
+  # Scaling configuration
+  - name: scaling-config
+    files:
+      - scaling-rules.yaml=hpa-configurations.yaml
+    options:
+      disableNameSuffixHash: true
+
+  # Resource quotas configuration
+  - name: resource-quotas-config
+    literals:
+      - REQUESTS_CPU=5
+      - REQUESTS_MEMORY=8Gi
+      - LIMITS_CPU=20
+      - LIMITS_MEMORY=32Gi
+      - PERSISTENT_VOLUME_CLAIMS=10
+      - PODS=50
+    options:
+      disableNameSuffixHash: true
+
+# Secret generators for sensitive resource configurations
+secretGenerator:
+  # Metrics access credentials (if needed)
+  - name: metrics-credentials
+    literals:
+      - PROMETHEUS_TOKEN=placeholder
+      - GRAFANA_TOKEN=placeholder
+    type: Opaque
+    options:
+      disableNameSuffixHash: true
+
+# Patches for resource customization
+patches:
+  # Global resource limit patches
+  - target:
+      kind: Deployment
+      labelSelector: "app.kubernetes.io/component=ai-processor"
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 1Gi
+      - op: add
+        path: /spec/template/metadata/annotations/cluster-autoscaler.kubernetes.io~1safe-to-evict
+        value: "true"
+
+  - target:
+      kind: Deployment
+      labelSelector: "app.kubernetes.io/component=data-retrieval"
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 512Mi
+      - op: add
+        path: /spec/template/metadata/annotations/cluster-autoscaler.kubernetes.io~1safe-to-evict
+        value: "true"
+
+  # Security context patches for all deployments
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: add
+        path: /spec/template/spec/securityContext/seccompProfile
+        value:
+          type: RuntimeDefault
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext/runAsNonRoot
+        value: true
+      - op: add
+        path: /spec/template/spec/containers/0/securityContext/readOnlyRootFilesystem
+        value: true
+
+  # Monitoring annotations for all services
+  - target:
+      kind: Service
+    patch: |-
+      - op: add
+        path: /metadata/annotations/prometheus.io~1scrape
+        value: "true"
+      - op: add
+        path: /metadata/annotations/prometheus.io~1port
+        value: "8080"
+      - op: add
+        path: /metadata/annotations/prometheus.io~1path
+        value: "/metrics"
+
+# Resource transformations
+transformers:
+  # Prefix all resource names
+  - |-
+    apiVersion: builtin
+    kind: PrefixSuffixTransformer
+    metadata:
+      name: nephoran-prefix
+    prefix: nephoran-
+
+  # Add resource labels
+  - |-
+    apiVersion: builtin
+    kind: LabelTransformer
+    metadata:
+      name: resource-labels
+    labels:
+      resource-management: "enabled"
+      auto-scaling: "enabled"
+      cost-optimization: "enabled"
+    fieldSpecs:
+    - path: metadata/labels
+      create: true
+
+# Images to use (for centralized image management)
+images:
+  - name: controller
+    newName: ghcr.io/thc1006/nephoran-intent-operator
+    newTag: latest
+  - name: llm-processor
+    newName: ghcr.io/thc1006/nephoran-llm-processor
+    newTag: latest
+  - name: rag-api
+    newName: ghcr.io/thc1006/nephoran-rag-api
+    newTag: latest
+  - name: nephoran-webhook
+    newName: ghcr.io/thc1006/nephoran-webhook
+    newTag: latest
+  - name: nephio-bridge
+    newName: ghcr.io/thc1006/nephio-bridge
+    newTag: latest
+  - name: oran-adaptor
+    newName: ghcr.io/thc1006/oran-adaptor
+    newTag: latest
+
+# Replacements for dynamic configuration
+replacements:
+  # Replace namespace references
+  - source:
+      kind: ConfigMap
+      name: resource-management-config
+      fieldPath: data.RESOURCE_STRATEGY
+    targets:
+      - select:
+          kind: Deployment
+        fieldPaths:
+          - spec.template.spec.containers.[name=*].env.[name=RESOURCE_STRATEGY].value
+        options:
+          create: true
+
+  # Replace resource limits based on strategy
+  - source:
+      kind: ConfigMap
+      name: resource-quotas-config
+      fieldPath: data.LIMITS_MEMORY
+    targets:
+      - select:
+          kind: ResourceQuota
+        fieldPaths:
+          - spec.hard.limits\.memory
+        options:
+          create: true
+
+# Components to include from other kustomizations
+components:
+  # Include monitoring components if available
+  - ../monitoring
+  # Include RBAC components
+  - ../rbac
+
+# Build metadata
+buildMetadata:
+  - managedByLabel
+  - originAnnotations
+
+# Validation rules
+validators:
+  - |-
+    apiVersion: builtin
+    kind: ReplicaCountTransformer
+    metadata:
+      name: replica-validator
+    # Ensure minimum replicas for high availability
+    replica:
+      min: 1
+      max: 50
+
+# Generator options
+generatorOptions:
+  # Don't add hash suffixes to ConfigMaps and Secrets
+  disableNameSuffixHash: true
+  # Add common labels to generated resources
+  labels:
+    generated-by: kustomize
+    resource-management: enabled
+
+# Vars for cross-resource references
+vars:
+  - name: NAMESPACE
+    objref:
+      kind: Namespace
+      name: nephoran-system
+      apiVersion: v1
+  - name: RESOURCE_STRATEGY
+    objref:
+      kind: ConfigMap
+      name: resource-management-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.RESOURCE_STRATEGY
+
+# Ordering for resource application
+sortOptions:
+  order: legacy
+  legacySortOptions:
+    orderFirst:
+      - Namespace
+      - ResourceQuota
+      - LimitRange
+      - PodSecurityPolicy
+      - Secret
+      - ConfigMap
+      - ServiceAccount
+    orderLast:
+      - ValidatingAdmissionWebhook
+      - MutatingAdmissionWebhook
+      - CustomResourceDefinition
+      - HorizontalPodAutoscaler
+      - PodDisruptionBudget

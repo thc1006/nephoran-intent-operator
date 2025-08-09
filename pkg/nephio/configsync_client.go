@@ -59,53 +59,53 @@ type GitClient struct {
 
 // GitConfig defines Git client configuration
 type GitConfig struct {
-	Username     string            `json:"username,omitempty"`
-	Email        string            `json:"email,omitempty"`
-	SSHKeyPath   string            `json:"sshKeyPath,omitempty"`
-	HTTPSToken   string            `json:"httpsToken,omitempty"`
-	Environment  map[string]string `json:"environment,omitempty"`
-	Timeout      time.Duration     `json:"timeout,omitempty"`
+	Username    string            `json:"username,omitempty"`
+	Email       string            `json:"email,omitempty"`
+	SSHKeyPath  string            `json:"sshKeyPath,omitempty"`
+	HTTPSToken  string            `json:"httpsToken,omitempty"`
+	Environment map[string]string `json:"environment,omitempty"`
+	Timeout     time.Duration     `json:"timeout,omitempty"`
 }
 
 // GitClientMetrics provides Git client metrics
 type GitClientMetrics struct {
-	GitCommands    prometheus.CounterVec
+	GitCommands     prometheus.CounterVec
 	CommandDuration prometheus.HistogramVec
-	GitErrors      prometheus.CounterVec
+	GitErrors       prometheus.CounterVec
 }
 
 // ConfigSyncResult extends SyncResult with additional Config Sync information
 type ConfigSyncResult struct {
 	*SyncResult
-	Repository     string            `json:"repository"`
-	Branch         string            `json:"branch"`
-	Directory      string            `json:"directory"`
-	SyncRevision   string            `json:"syncRevision"`
-	ClusterStatus  string            `json:"clusterStatus"`
-	RootSyncStatus *RootSyncStatus   `json:"rootSyncStatus,omitempty"`
-	RepoSyncStatus *RepoSyncStatus   `json:"repoSyncStatus,omitempty"`
-	Conflicts      []SyncConflict    `json:"conflicts,omitempty"`
+	Repository     string          `json:"repository"`
+	Branch         string          `json:"branch"`
+	Directory      string          `json:"directory"`
+	SyncRevision   string          `json:"syncRevision"`
+	ClusterStatus  string          `json:"clusterStatus"`
+	RootSyncStatus *RootSyncStatus `json:"rootSyncStatus,omitempty"`
+	RepoSyncStatus *RepoSyncStatus `json:"repoSyncStatus,omitempty"`
+	Conflicts      []SyncConflict  `json:"conflicts,omitempty"`
 }
 
 // RootSyncStatus represents RootSync resource status
 type RootSyncStatus struct {
-	Name       string            `json:"name"`
-	Status     string            `json:"status"`
-	Message    string            `json:"message"`
-	Conditions []SyncCondition   `json:"conditions"`
-	Source     *SyncSource       `json:"source"`
-	Sync       *SyncStatusInfo   `json:"sync"`
+	Name       string          `json:"name"`
+	Status     string          `json:"status"`
+	Message    string          `json:"message"`
+	Conditions []SyncCondition `json:"conditions"`
+	Source     *SyncSource     `json:"source"`
+	Sync       *SyncStatusInfo `json:"sync"`
 }
 
-// RepoSyncStatus represents RepoSync resource status  
+// RepoSyncStatus represents RepoSync resource status
 type RepoSyncStatus struct {
-	Name       string            `json:"name"`
-	Namespace  string            `json:"namespace"`
-	Status     string            `json:"status"`
-	Message    string            `json:"message"`
-	Conditions []SyncCondition   `json:"conditions"`
-	Source     *SyncSource       `json:"source"`
-	Sync       *SyncStatusInfo   `json:"sync"`
+	Name       string          `json:"name"`
+	Namespace  string          `json:"namespace"`
+	Status     string          `json:"status"`
+	Message    string          `json:"message"`
+	Conditions []SyncCondition `json:"conditions"`
+	Source     *SyncSource     `json:"source"`
+	Sync       *SyncStatusInfo `json:"sync"`
 }
 
 // SyncCondition represents a sync condition
@@ -127,10 +127,10 @@ type SyncSource struct {
 
 // GitSyncSource represents Git sync source
 type GitSyncSource struct {
-	Repo      string          `json:"repo"`
-	Branch    string          `json:"branch"`
-	Revision  string          `json:"revision"`
-	Auth      string          `json:"auth,omitempty"`
+	Repo      string           `json:"repo"`
+	Branch    string           `json:"branch"`
+	Revision  string           `json:"revision"`
+	Auth      string           `json:"auth,omitempty"`
 	SecretRef *SecretReference `json:"secretRef,omitempty"`
 }
 
@@ -142,16 +142,16 @@ type SecretReference struct {
 
 // SyncStatusInfo represents sync status information
 type SyncStatusInfo struct {
-	Commit      string    `json:"commit"`
+	Commit       string        `json:"commit"`
 	ErrorSummary *ErrorSummary `json:"errorSummary,omitempty"`
-	Errors      []SyncError   `json:"errors,omitempty"`
+	Errors       []SyncError   `json:"errors,omitempty"`
 }
 
 // ErrorSummary represents error summary
 type ErrorSummary struct {
-	TotalCount int                      `json:"totalCount"`
-	Truncated  bool                     `json:"truncated"`
-	ErrorCountAfterTruncation int       `json:"errorCountAfterTruncation"`
+	TotalCount                int  `json:"totalCount"`
+	Truncated                 bool `json:"truncated"`
+	ErrorCountAfterTruncation int  `json:"errorCountAfterTruncation"`
 }
 
 // SyncConflict represents a sync conflict
@@ -165,17 +165,17 @@ type SyncConflict struct {
 
 // PolicyDir represents a policy directory structure
 type PolicyDir struct {
-	Path        string             `json:"path"`
-	Policies    []PolicyFile       `json:"policies"`
-	Namespaces  []NamespaceDir     `json:"namespaces"`
-	Clusters    []ClusterDir       `json:"clusters"`
+	Path       string         `json:"path"`
+	Policies   []PolicyFile   `json:"policies"`
+	Namespaces []NamespaceDir `json:"namespaces"`
+	Clusters   []ClusterDir   `json:"clusters"`
 }
 
 // PolicyFile represents a policy file
 type PolicyFile struct {
-	Name     string      `json:"name"`
-	Kind     string      `json:"kind"`
-	Content  interface{} `json:"content"`
+	Name    string      `json:"name"`
+	Kind    string      `json:"kind"`
+	Content interface{} `json:"content"`
 }
 
 // NamespaceDir represents a namespace directory
@@ -265,8 +265,8 @@ func NewConfigSyncClient(
 	}
 
 	gitClient := &GitClient{
-		config:  gitConfig,
-		tracer:  otel.Tracer("nephio-git-client"),
+		config: gitConfig,
+		tracer: otel.Tracer("nephio-git-client"),
 		metrics: &GitClientMetrics{
 			GitCommands: *promauto.NewCounterVec(
 				prometheus.CounterOpts{
@@ -355,9 +355,9 @@ func (csc *ConfigSyncClient) SyncPackageToCluster(ctx context.Context, pkg *porc
 	}
 
 	// Step 4: Commit and push changes
-	commitMessage := fmt.Sprintf("Deploy %s v%s to cluster %s", 
+	commitMessage := fmt.Sprintf("Deploy %s v%s to cluster %s",
 		pkg.Spec.PackageName, pkg.Spec.Revision, cluster.Name)
-	
+
 	files := []string{packageDir}
 	if err := csc.gitClient.Commit(ctx, commitMessage, files); err != nil {
 		span.RecordError(err)
@@ -423,7 +423,7 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 	for _, resource := range pkg.Spec.Resources {
 		// Generate filename
 		filename := fmt.Sprintf("%s-%s.yaml", strings.ToLower(resource.Kind), resource.Name)
-		
+
 		// Convert resource content to YAML
 		yamlContent, err := yaml.Marshal(resource.Content)
 		if err != nil {
@@ -453,9 +453,9 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 			"nephoran.io/package":          pkg.Spec.PackageName,
 		},
 		"commonAnnotations": map[string]interface{}{
-			"nephoran.io/deployed-at":   time.Now().Format(time.RFC3339),
-			"nephoran.io/source-repo":   pkg.Spec.Repository,
-			"nephoran.io/source-rev":    pkg.Spec.Revision,
+			"nephoran.io/deployed-at": time.Now().Format(time.RFC3339),
+			"nephoran.io/source-repo": pkg.Spec.Repository,
+			"nephoran.io/source-rev":  pkg.Spec.Revision,
 		},
 	}
 
@@ -474,9 +474,9 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 			"metadata": map[string]interface{}{
 				"name": fmt.Sprintf("%s-ns", pkg.Spec.PackageName),
 				"labels": map[string]interface{}{
-					"nephoran.io/managed":  "true",
-					"nephoran.io/cluster":  cluster.Name,
-					"nephoran.io/package":  pkg.Spec.PackageName,
+					"nephoran.io/managed": "true",
+					"nephoran.io/cluster": cluster.Name,
+					"nephoran.io/package": pkg.Spec.PackageName,
 				},
 			},
 		}
@@ -751,7 +751,7 @@ func (gc *GitClient) GetCommitHash(ctx context.Context) (string, error) {
 
 	cmd := exec.CommandContext(ctx, "git", "rev-parse", "HEAD")
 	cmd.Dir = gc.workingDir
-	
+
 	output, err := cmd.Output()
 	if err != nil {
 		span.RecordError(err)

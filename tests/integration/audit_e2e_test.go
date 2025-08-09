@@ -235,7 +235,7 @@ func (suite *E2EAuditTestSuite) TestCompleteAuditTrailLifecycle() {
 				Result:    ResultFailure,
 				Data: map[string]interface{}{
 					"violation_type": "brute_force",
-					"attempts":      10,
+					"attempts":       10,
 				},
 			},
 		}
@@ -349,7 +349,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 			Severity:  SeverityInfo,
 			Result:    ResultSuccess,
 			UserContext: &UserContext{
-				UserID:      "system",
+				UserID:         "system",
 				ServiceAccount: true,
 			},
 			ResourceContext: &ResourceContext{
@@ -359,7 +359,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				Namespace:    "default",
 			},
 			Data: map[string]interface{}{
-				"generation":    1,
+				"generation":       1,
 				"resource_version": "12345",
 				"reconcile_reason": "spec_change",
 			},
@@ -401,7 +401,7 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 				Namespace:    "production",
 			},
 			Data: map[string]interface{}{
-				"admission_allowed": true,
+				"admission_allowed":  true,
 				"validation_time_ms": 15,
 				"policies_evaluated": []string{"security-policy", "resource-quota"},
 			},
@@ -422,20 +422,20 @@ func (suite *E2EAuditTestSuite) TestAuditEventSources() {
 			Severity:  SeverityInfo,
 			Result:    ResultSuccess,
 			UserContext: &UserContext{
-				UserID:     "user@example.com",
-				Username:   "developer",
-				AuthMethod: "oidc",
+				UserID:       "user@example.com",
+				Username:     "developer",
+				AuthMethod:   "oidc",
 				AuthProvider: "google",
-				Groups:     []string{"developers", "k8s-users"},
+				Groups:       []string{"developers", "k8s-users"},
 			},
 			NetworkContext: &NetworkContext{
 				UserAgent: "kubectl/v1.28.0",
 				RequestID: "req-" + uuid.New().String(),
 			},
 			Data: map[string]interface{}{
-				"token_type":    "bearer",
-				"token_exp":     time.Now().Add(1 * time.Hour).Unix(),
-				"scopes":        []string{"openid", "email", "profile"},
+				"token_type": "bearer",
+				"token_exp":  time.Now().Add(1 * time.Hour).Unix(),
+				"scopes":     []string{"openid", "email", "profile"},
 			},
 		}
 
@@ -538,8 +538,8 @@ func (suite *E2EAuditTestSuite) TestHighLoadAuditing() {
 		eventsPerSecond := float64(stats.EventsReceived) / duration.Seconds()
 
 		suite.Greater(stats.EventsReceived, int64(numEvents*0.8)) // Allow for some drops
-		suite.Greater(eventsPerSecond, 100.0) // Should process at least 100 events/sec
-		
+		suite.Greater(eventsPerSecond, 100.0)                     // Should process at least 100 events/sec
+
 		fmt.Printf("High load test results: %d events received, %.2f events/sec, %d dropped\n",
 			stats.EventsReceived, eventsPerSecond, stats.EventsDropped)
 	})
@@ -555,11 +555,11 @@ func (suite *E2EAuditTestSuite) TestErrorRecovery() {
 				Namespace: "default",
 			},
 			Spec: nephv1.AuditTrailSpec{
-				Enabled:      true,
-				LogLevel:     "info",
-				BatchSize:    5,
+				Enabled:       true,
+				LogLevel:      "info",
+				BatchSize:     5,
 				FlushInterval: 1,
-				MaxQueueSize: 100,
+				MaxQueueSize:  100,
 				Backends: []nephv1.AuditBackendConfig{
 					{
 						Type:    "webhook",
@@ -681,9 +681,9 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 				Timestamp:          time.Now(),
 				EventType:          EventTypeAuthentication,
 				Component:          "auth-service",
-				Action:            "mfa_verification",
-				Severity:          SeverityInfo,
-				Result:            ResultSuccess,
+				Action:             "mfa_verification",
+				Severity:           SeverityInfo,
+				Result:             ResultSuccess,
 				DataClassification: "Authentication Data",
 				UserContext: &UserContext{
 					UserID:     "compliance-user-1",
@@ -699,9 +699,9 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 				Timestamp:          time.Now(),
 				EventType:          EventTypeDataAccess,
 				Component:          "payment-api",
-				Action:            "cardholder_data_access",
-				Severity:          SeverityNotice,
-				Result:            ResultSuccess,
+				Action:             "cardholder_data_access",
+				Severity:           SeverityNotice,
+				Result:             ResultSuccess,
 				DataClassification: "Cardholder Data",
 				UserContext: &UserContext{
 					UserID: "payment-processor",
@@ -710,7 +710,7 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 				Data: map[string]interface{}{
 					"cardholder_data": true,
 					"transaction_id":  "txn_789",
-					"amount":         100.00,
+					"amount":          100.00,
 				},
 			},
 			{
@@ -725,9 +725,9 @@ func (suite *E2EAuditTestSuite) TestComplianceIntegration() {
 					UserID: "suspicious-user",
 				},
 				Data: map[string]interface{}{
-					"violation_type":     "unauthorized_pii_access",
+					"violation_type":    "unauthorized_pii_access",
 					"records_attempted": 500,
-					"blocked":          true,
+					"blocked":           true,
 				},
 			},
 		}
@@ -885,11 +885,11 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 					APIVersion:   "v1",
 				},
 				Data: map[string]interface{}{
-					"verb":           "create",
-					"resource":       "pods",
-					"namespace":      "default",
-					"response_code":  201,
-					"user_agent":     "kubectl/v1.28.0",
+					"verb":          "create",
+					"resource":      "pods",
+					"namespace":     "default",
+					"response_code": 201,
+					"user_agent":    "kubectl/v1.28.0",
 				},
 			},
 			{
@@ -901,7 +901,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 				Severity:  SeverityInfo,
 				Result:    ResultSuccess,
 				UserContext: &UserContext{
-					UserID:        "system:serviceaccount:kube-system:default",
+					UserID:         "system:serviceaccount:kube-system:default",
 					ServiceAccount: true,
 				},
 				ResourceContext: &ResourceContext{
@@ -934,7 +934,7 @@ func (suite *E2EAuditTestSuite) TestKubernetesIntegration() {
 		logFile := filepath.Join(suite.tempDir, "basic.log")
 		content, err := ioutil.ReadFile(logFile)
 		suite.NoError(err)
-		
+
 		contentStr := string(content)
 		suite.Contains(contentStr, "kube-apiserver")
 		suite.Contains(contentStr, "kubectl")
@@ -977,7 +977,7 @@ func (suite *E2EAuditTestSuite) TestScalabilityMetrics() {
 				maxLatency = latency
 			}
 		}
-		
+
 		avgLatency := totalLatency / numEvents
 
 		suite.Less(avgLatency, 10*time.Millisecond, "Average latency too high: %v", avgLatency)

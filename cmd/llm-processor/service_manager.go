@@ -17,18 +17,18 @@ import (
 
 // ServiceManager manages the overall service lifecycle and components
 type ServiceManager struct {
-	config                *Config
-	logger                *slog.Logger
-	healthChecker         *health.HealthChecker
-	secretManager         *config.SecretManager
-	oauth2Manager         *auth.OAuth2Manager
-	processor             *IntentProcessor
-	streamingProcessor    *llm.StreamingProcessor
-	circuitBreakerMgr     *llm.CircuitBreakerManager
-	tokenManager          *llm.TokenManager
-	contextBuilder        *llm.ContextBuilder
-	relevanceScorer       *llm.RelevanceScorer
-	promptBuilder         *llm.RAGAwarePromptBuilder
+	config             *Config
+	logger             *slog.Logger
+	healthChecker      *health.HealthChecker
+	secretManager      *config.SecretManager
+	oauth2Manager      *auth.OAuth2Manager
+	processor          *IntentProcessor
+	streamingProcessor *llm.StreamingProcessor
+	circuitBreakerMgr  *llm.CircuitBreakerManager
+	tokenManager       *llm.TokenManager
+	contextBuilder     *llm.ContextBuilder
+	relevanceScorer    *llm.RelevanceScorer
+	promptBuilder      *llm.RAGAwarePromptBuilder
 }
 
 // NewServiceManager creates a new service manager
@@ -54,7 +54,7 @@ func (sm *ServiceManager) Initialize(ctx context.Context) error {
 		return fmt.Errorf("failed to initialize OAuth2 manager: %w", err)
 	}
 
-	// Initialize processing components  
+	// Initialize processing components
 	if err := sm.initializeProcessingComponents(ctx); err != nil {
 		return fmt.Errorf("failed to initialize processing components: %w", err)
 	}
@@ -76,7 +76,7 @@ func (sm *ServiceManager) initializeSecretManager() error {
 			sm.logger.Info("Falling back to environment variables for secrets")
 			return nil // Continue without secret manager
 		}
-		sm.logger.Info("Secret manager initialized successfully", 
+		sm.logger.Info("Secret manager initialized successfully",
 			slog.String("namespace", sm.config.SecretNamespace))
 	}
 	return nil
@@ -110,27 +110,27 @@ func (sm *ServiceManager) initializeOAuth2Manager() error {
 func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) error {
 	// Initialize token manager
 	sm.tokenManager = llm.NewTokenManager()
-	
+
 	// Initialize circuit breaker manager
 	sm.circuitBreakerMgr = llm.NewCircuitBreakerManager(nil)
-	
+
 	// Validate configuration
 	if sm.config.RAGAPIURL == "" {
 		return fmt.Errorf("RAG API URL is required but not configured")
 	}
-	
+
 	// Load API keys securely
 	apiKeys, err := sm.loadSecureAPIKeys(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to load API keys: %w", err)
 	}
-	
+
 	// Use the secure API key for LLM client
 	apiKey := apiKeys.OpenAI
 	if apiKey == "" {
 		apiKey = sm.config.LLMAPIKey // fallback to config
 	}
-	
+
 	clientConfig := llm.ClientConfig{
 		APIKey:      apiKey,
 		ModelName:   sm.config.LLMModelName,
@@ -138,50 +138,50 @@ func (sm *ServiceManager) initializeProcessingComponents(ctx context.Context) er
 		BackendType: sm.config.LLMBackendType,
 		Timeout:     sm.config.LLMTimeout,
 	}
-	
+
 	// Validate client configuration
 	if err := sm.validateClientConfig(clientConfig); err != nil {
 		return err
 	}
-	
+
 	llmClient := llm.NewClientWithConfig(sm.config.RAGAPIURL, clientConfig)
 	if llmClient == nil {
 		return fmt.Errorf("failed to create LLM client - nil client returned")
 	}
-	
+
 	// Initialize supporting components
 	sm.relevanceScorer = llm.NewRelevanceScorer(nil, nil)
-	
+
 	if sm.config.EnableContextBuilder {
 		sm.contextBuilder = llm.NewContextBuilder(sm.tokenManager, sm.relevanceScorer, nil)
 	}
-	
+
 	sm.promptBuilder = llm.NewRAGAwarePromptBuilder(sm.tokenManager, nil)
-	
+
 	// Initialize RAG-enhanced processor if enabled
 	var ragEnhanced *llm.RAGEnhancedProcessor
 	if sm.config.RAGEnabled {
 		ragEnhanced = llm.NewRAGEnhancedProcessor(*llmClient, nil, nil, nil)
 	}
-	
+
 	// Initialize streaming processor if enabled
 	if sm.config.StreamingEnabled {
 		streamingConfig := &llm.StreamingConfig{
 			MaxConcurrentStreams: sm.config.MaxConcurrentStreams,
-			StreamTimeout:       sm.config.StreamTimeout,
+			StreamTimeout:        sm.config.StreamTimeout,
 		}
 		sm.streamingProcessor = llm.NewStreamingProcessor(*llmClient, sm.tokenManager, streamingConfig)
 	}
-	
+
 	// Initialize main processor with circuit breaker
 	circuitBreaker := sm.circuitBreakerMgr.GetOrCreate("llm-processor", nil)
 	sm.processor = &IntentProcessor{
 		llmClient:         llmClient,
 		ragEnhancedClient: ragEnhanced,
 		circuitBreaker:    circuitBreaker,
-		logger:           sm.logger,
+		logger:            sm.logger,
 	}
-	
+
 	return nil
 }
 
@@ -205,7 +205,7 @@ func (sm *ServiceManager) registerHealthChecks() {
 					Message: "No circuit breakers registered",
 				}
 			}
-			
+
 			// Check if any circuit breakers are open
 			var openBreakers []string
 			for name, state := range stats {
@@ -215,14 +215,14 @@ func (sm *ServiceManager) registerHealthChecks() {
 					}
 				}
 			}
-			
+
 			if len(openBreakers) > 0 {
 				return &health.Check{
 					Status:  health.StatusUnhealthy,
 					Message: fmt.Sprintf("Circuit breakers in open state: %v", openBreakers),
 				}
 			}
-			
+
 			return &health.Check{
 				Status:  health.StatusHealthy,
 				Message: "All circuit breakers operational",
@@ -249,8 +249,8 @@ func (sm *ServiceManager) registerHealthChecks() {
 		sm.healthChecker.RegisterCheck("streaming_processor", func(ctx context.Context) *health.Check {
 			metrics := sm.streamingProcessor.GetMetrics()
 			return &health.Check{
-				Status:  health.StatusHealthy,
-				Message: "Streaming processor operational",
+				Status:   health.StatusHealthy,
+				Message:  "Streaming processor operational",
 				Metadata: metrics,
 			}
 		})
@@ -300,15 +300,15 @@ func (sm *ServiceManager) validateClientConfig(config llm.ClientConfig) error {
 // CreateRouter creates and configures the HTTP router
 func (sm *ServiceManager) CreateRouter() *mux.Router {
 	router := mux.NewRouter()
-	
+
 	// Setup OAuth2 routes
 	sm.oauth2Manager.SetupRoutes(router)
-	
+
 	// Public health endpoints (no authentication required)
 	router.HandleFunc("/healthz", sm.healthChecker.HealthzHandler).Methods("GET")
 	router.HandleFunc("/readyz", sm.healthChecker.ReadyzHandler).Methods("GET")
 	router.HandleFunc("/metrics", sm.metricsHandler).Methods("GET")
-	
+
 	// Setup protected/unprotected routes based on configuration
 	handlers := &auth.RouteHandlers{
 		ProcessIntent:        sm.processIntentHandler,
@@ -316,13 +316,13 @@ func (sm *ServiceManager) CreateRouter() *mux.Router {
 		CircuitBreakerStatus: sm.circuitBreakerStatusHandler,
 		Metrics:              sm.metricsHandler,
 	}
-	
+
 	if sm.config.StreamingEnabled {
 		handlers.StreamingHandler = sm.streamingHandler
 	}
-	
+
 	sm.oauth2Manager.ConfigureProtectedRoutes(router, handlers)
-	
+
 	return router
 }
 
@@ -439,16 +439,16 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 // statusHandler provides service status information
 func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) {
 	status := map[string]interface{}{
-		"service":         "llm-processor",
-		"version":         sm.config.ServiceVersion,
-		"uptime":          time.Since(startTime).String(),
-		"healthy":         sm.healthChecker.IsHealthy(),
-		"ready":           sm.healthChecker.IsReady(),
-		"backend_type":    sm.config.LLMBackendType,
-		"model":           sm.config.LLMModelName,
-		"rag_enabled":     sm.config.RAGEnabled,
-		"authentication":  sm.oauth2Manager.GetAuthenticationInfo(),
-		"timestamp":       time.Now().UTC().Format(time.RFC3339),
+		"service":        "llm-processor",
+		"version":        sm.config.ServiceVersion,
+		"uptime":         time.Since(startTime).String(),
+		"healthy":        sm.healthChecker.IsHealthy(),
+		"ready":          sm.healthChecker.IsReady(),
+		"backend_type":   sm.config.LLMBackendType,
+		"model":          sm.config.LLMModelName,
+		"rag_enabled":    sm.config.RAGEnabled,
+		"authentication": sm.oauth2Manager.GetAuthenticationInfo(),
+		"timestamp":      time.Now().UTC().Format(time.RFC3339),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

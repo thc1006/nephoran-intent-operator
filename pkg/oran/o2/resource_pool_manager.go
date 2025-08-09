@@ -16,54 +16,54 @@ import (
 
 // ResourcePoolManager manages resource pools across multiple cloud providers
 type ResourcePoolManager struct {
-	storage       O2IMSStorage
-	kubeClient    client.Client
+	storage        O2IMSStorage
+	kubeClient     client.Client
 	cloudProviders map[string]*CloudProviderConfig
-	mu            sync.RWMutex
-	logger        *logging.StructuredLogger
-	config        *ResourcePoolConfig
-	
+	mu             sync.RWMutex
+	logger         *logging.StructuredLogger
+	config         *ResourcePoolConfig
+
 	// Resource pool cache
-	poolCache     map[string]*models.ResourcePool
-	cacheMu       sync.RWMutex
-	cacheExpiry   time.Duration
-	
+	poolCache   map[string]*models.ResourcePool
+	cacheMu     sync.RWMutex
+	cacheExpiry time.Duration
+
 	// Discovery and monitoring
-	discoveryEnabled bool
+	discoveryEnabled  bool
 	monitoringEnabled bool
-	healthChecker    HealthChecker
-	metricsCollector MetricsCollector
+	healthChecker     HealthChecker
+	metricsCollector  MetricsCollector
 }
 
 // ResourcePoolConfig defines configuration for resource pool management
 type ResourcePoolConfig struct {
 	// Discovery configuration
-	AutoDiscoveryEnabled   bool          `json:"auto_discovery_enabled"`
-	DiscoveryInterval     time.Duration  `json:"discovery_interval"`
-	
+	AutoDiscoveryEnabled bool          `json:"auto_discovery_enabled"`
+	DiscoveryInterval    time.Duration `json:"discovery_interval"`
+
 	// Cache configuration
-	CacheEnabled          bool          `json:"cache_enabled"`
-	CacheExpiry           time.Duration  `json:"cache_expiry"`
-	MaxCacheSize          int           `json:"max_cache_size"`
-	
+	CacheEnabled bool          `json:"cache_enabled"`
+	CacheExpiry  time.Duration `json:"cache_expiry"`
+	MaxCacheSize int           `json:"max_cache_size"`
+
 	// Health monitoring
-	HealthCheckEnabled    bool          `json:"health_check_enabled"`
-	HealthCheckInterval   time.Duration  `json:"health_check_interval"`
-	HealthThreshold       float64       `json:"health_threshold"`
-	
+	HealthCheckEnabled  bool          `json:"health_check_enabled"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
+	HealthThreshold     float64       `json:"health_threshold"`
+
 	// Resource monitoring
-	ResourceMonitoringEnabled bool       `json:"resource_monitoring_enabled"`
+	ResourceMonitoringEnabled bool          `json:"resource_monitoring_enabled"`
 	MetricsCollectionInterval time.Duration `json:"metrics_collection_interval"`
-	
+
 	// Capacity management
-	CapacityThreshold     float64       `json:"capacity_threshold"`
-	AutoScalingEnabled    bool          `json:"auto_scaling_enabled"`
-	
+	CapacityThreshold  float64 `json:"capacity_threshold"`
+	AutoScalingEnabled bool    `json:"auto_scaling_enabled"`
+
 	// Multi-cloud configuration
-	DefaultProvider       string                         `json:"default_provider"`
-	ProviderPriorities    map[string]int                 `json:"provider_priorities"`
-	FailoverEnabled       bool                          `json:"failover_enabled"`
-	LoadBalancingStrategy LoadBalancingStrategy          `json:"load_balancing_strategy"`
+	DefaultProvider       string                `json:"default_provider"`
+	ProviderPriorities    map[string]int        `json:"provider_priorities"`
+	FailoverEnabled       bool                  `json:"failover_enabled"`
+	LoadBalancingStrategy LoadBalancingStrategy `json:"load_balancing_strategy"`
 }
 
 // LoadBalancingStrategy defines load balancing strategies for resource pools
@@ -367,7 +367,7 @@ func (rpm *ResourcePoolManager) RegisterCloudProvider(ctx context.Context, provi
 	provider.UpdatedAt = time.Now()
 	provider.Status = "ACTIVE"
 	provider.Enabled = true
-	
+
 	rpm.cloudProviders[provider.ProviderID] = provider
 
 	// Test connectivity if configured

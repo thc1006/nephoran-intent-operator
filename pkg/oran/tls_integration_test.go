@@ -52,12 +52,12 @@ func TestTLSIntegration(t *testing.T) {
 func TestE2AdaptorTLSConfiguration(t *testing.T) {
 	// Mock E2 adaptor configuration with TLS
 	mockConfig := struct {
-		RICURL                  string
-		APIVersion              string
-		Timeout                 time.Duration
-		TLSConfig               *TLSConfig
-		HeartbeatInterval       time.Duration
-		MaxRetries              int
+		RICURL            string
+		APIVersion        string
+		Timeout           time.Duration
+		TLSConfig         *TLSConfig
+		HeartbeatInterval time.Duration
+		MaxRetries        int
 	}{
 		RICURL:            "https://near-rt-ric:38080",
 		APIVersion:        "v1",

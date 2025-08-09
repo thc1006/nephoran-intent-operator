@@ -42,7 +42,7 @@ func NewValidationScorer(config *ValidationConfig) *ValidationScorer {
 func (vs *ValidationScorer) initializeMetrics() {
 	// Functional Completeness Metrics (50 points total)
 	vs.metrics["intent_processing"] = &ScoreMetric{
-		Name: "Intent Processing Pipeline", Category: "functional", MaxPoints: 15, 
+		Name: "Intent Processing Pipeline", Category: "functional", MaxPoints: 15,
 		Threshold: 100.0, Unit: "% completion", Weight: 1.0,
 	}
 	vs.metrics["llm_rag_integration"] = &ScoreMetric{
@@ -61,7 +61,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "O-RAN Interface Compliance", Category: "functional", MaxPoints: 7,
 		Threshold: 85.0, Unit: "% compliance", Weight: 1.0,
 	}
-	
+
 	// Performance Benchmarks (25 points total)
 	vs.metrics["latency_p95"] = &ScoreMetric{
 		Name: "P95 Latency Performance", Category: "performance", MaxPoints: 8,
@@ -79,7 +79,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Resource Efficiency", Category: "performance", MaxPoints: 4,
 		Threshold: 80.0, Unit: "% efficiency", Weight: 1.0,
 	}
-	
+
 	// Security Compliance (15 points total)
 	vs.metrics["authentication"] = &ScoreMetric{
 		Name: "Authentication & Authorization", Category: "security", MaxPoints: 5,
@@ -97,7 +97,7 @@ func (vs *ValidationScorer) initializeMetrics() {
 		Name: "Vulnerability Scanning", Category: "security", MaxPoints: 3,
 		Threshold: 100.0, Unit: "% clean", Weight: 1.0,
 	}
-	
+
 	// Production Readiness (10 points total)
 	vs.metrics["high_availability"] = &ScoreMetric{
 		Name: "High Availability", Category: "production", MaxPoints: 3,
@@ -121,15 +121,15 @@ func (vs *ValidationScorer) initializeMetrics() {
 func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) int {
 	vs.mu.Lock()
 	defer vs.mu.Unlock()
-	
+
 	metric, exists := vs.metrics[metricName]
 	if !exists {
 		ginkgo.By(fmt.Sprintf("Warning: Unknown metric %s", metricName))
 		return 0
 	}
-	
+
 	metric.ActualValue = actualValue
-	
+
 	// Calculate score based on threshold and weight
 	var score int
 	if metric.Weight > 0 {
@@ -159,10 +159,10 @@ func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) 
 			}
 		}
 	}
-	
-	ginkgo.By(fmt.Sprintf("Metric '%s': %.2f %s (threshold: %.2f) = %d/%d points", 
+
+	ginkgo.By(fmt.Sprintf("Metric '%s': %.2f %s (threshold: %.2f) = %d/%d points",
 		metric.Name, actualValue, metric.Unit, metric.Threshold, score, metric.MaxPoints))
-	
+
 	return score
 }
 
@@ -170,13 +170,13 @@ func (vs *ValidationScorer) ScoreMetric(metricName string, actualValue float64) 
 func (vs *ValidationScorer) ScoreBinary(metricName string, passed bool) int {
 	vs.mu.Lock()
 	defer vs.mu.Unlock()
-	
+
 	metric, exists := vs.metrics[metricName]
 	if !exists {
 		ginkgo.By(fmt.Sprintf("Warning: Unknown metric %s", metricName))
 		return 0
 	}
-	
+
 	var score int
 	if passed {
 		score = metric.MaxPoints
@@ -186,10 +186,10 @@ func (vs *ValidationScorer) ScoreBinary(metricName string, passed bool) int {
 		score = 0
 		metric.ActualValue = 0.0
 	}
-	
-	ginkgo.By(fmt.Sprintf("Metric '%s': %t = %d/%d points", 
+
+	ginkgo.By(fmt.Sprintf("Metric '%s': %t = %d/%d points",
 		metric.Name, passed, score, metric.MaxPoints))
-	
+
 	return score
 }
 
@@ -197,10 +197,10 @@ func (vs *ValidationScorer) ScoreBinary(metricName string, passed bool) int {
 func (vs *ValidationScorer) GetCategoryScore(category string) (int, int) {
 	vs.mu.RLock()
 	defer vs.mu.RUnlock()
-	
+
 	totalScore := 0
 	maxScore := 0
-	
+
 	for _, metric := range vs.metrics {
 		if metric.Category == category {
 			maxScore += metric.MaxPoints
@@ -220,7 +220,7 @@ func (vs *ValidationScorer) GetCategoryScore(category string) (int, int) {
 			}
 		}
 	}
-	
+
 	return totalScore, maxScore
 }
 
@@ -228,28 +228,28 @@ func (vs *ValidationScorer) GetCategoryScore(category string) (int, int) {
 func (vs *ValidationScorer) GetDetailedScoreReport() string {
 	vs.mu.RLock()
 	defer vs.mu.RUnlock()
-	
+
 	report := "DETAILED SCORING BREAKDOWN:\n"
 	report += "==========================\n\n"
-	
+
 	categories := []string{"functional", "performance", "security", "production"}
 	categoryNames := map[string]string{
 		"functional":  "Functional Completeness",
-		"performance": "Performance Benchmarks", 
+		"performance": "Performance Benchmarks",
 		"security":    "Security Compliance",
 		"production":  "Production Readiness",
 	}
-	
+
 	totalScore := 0
 	totalMaxScore := 0
-	
+
 	for _, category := range categories {
 		report += fmt.Sprintf("%s:\n", categoryNames[category])
 		report += strings.Repeat("-", len(categoryNames[category])+1) + "\n"
-		
+
 		categoryScore := 0
 		categoryMaxScore := 0
-		
+
 		for _, metric := range vs.metrics {
 			if metric.Category == category {
 				actualScore := 0
@@ -268,28 +268,28 @@ func (vs *ValidationScorer) GetDetailedScoreReport() string {
 					}
 					actualScore = int(float64(metric.MaxPoints) * ratio)
 				}
-				
+
 				status := "✓"
 				if !metric.Achieved {
 					status = "✗"
 				}
-				
+
 				report += fmt.Sprintf("  %s %-30s: %2d/%2d points (%.1f %s)\n",
-					status, metric.Name, actualScore, metric.MaxPoints, 
+					status, metric.Name, actualScore, metric.MaxPoints,
 					metric.ActualValue, metric.Unit)
-				
+
 				categoryScore += actualScore
 				categoryMaxScore += metric.MaxPoints
 			}
 		}
-		
+
 		report += fmt.Sprintf("  Category Total: %d/%d points\n\n", categoryScore, categoryMaxScore)
 		totalScore += categoryScore
 		totalMaxScore += categoryMaxScore
 	}
-	
+
 	report += fmt.Sprintf("OVERALL TOTAL: %d/%d POINTS\n", totalScore, totalMaxScore)
-	
+
 	return report
 }
 
@@ -299,7 +299,7 @@ func (vs *ValidationScorer) ValidateScoreThresholds() error {
 	perfScore, _ := vs.GetCategoryScore("performance")
 	secScore, _ := vs.GetCategoryScore("security")
 	prodScore, _ := vs.GetCategoryScore("production")
-	
+
 	if funcScore < vs.config.FunctionalTarget {
 		return fmt.Errorf("functional score %d below target %d", funcScore, vs.config.FunctionalTarget)
 	}
@@ -312,12 +312,12 @@ func (vs *ValidationScorer) ValidateScoreThresholds() error {
 	if prodScore < vs.config.ProductionTarget {
 		return fmt.Errorf("production score %d below target %d", prodScore, vs.config.ProductionTarget)
 	}
-	
+
 	totalScore := funcScore + perfScore + secScore + prodScore
 	if totalScore < vs.config.TotalTarget {
 		return fmt.Errorf("total score %d below target %d", totalScore, vs.config.TotalTarget)
 	}
-	
+
 	return nil
 }
 
@@ -325,14 +325,14 @@ func (vs *ValidationScorer) ValidateScoreThresholds() error {
 func (vs *ValidationScorer) GetScoreMetrics() map[string]*ScoreMetric {
 	vs.mu.RLock()
 	defer vs.mu.RUnlock()
-	
+
 	// Return copy to prevent external modification
 	metrics := make(map[string]*ScoreMetric)
 	for k, v := range vs.metrics {
 		metricCopy := *v
 		metrics[k] = &metricCopy
 	}
-	
+
 	return metrics
 }
 
@@ -340,7 +340,7 @@ func (vs *ValidationScorer) GetScoreMetrics() map[string]*ScoreMetric {
 func (vs *ValidationScorer) ResetMetrics() {
 	vs.mu.Lock()
 	defer vs.mu.Unlock()
-	
+
 	for _, metric := range vs.metrics {
 		metric.ActualValue = 0.0
 		metric.Achieved = false

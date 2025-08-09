@@ -24,7 +24,7 @@ import (
 func TestObservabilityLogging(t *testing.T) {
 	// Create a buffer to capture logs
 	var logBuffer bytes.Buffer
-	
+
 	// Create a JSON handler that writes to our buffer
 	logger := slog.New(slog.NewJSONHandler(&logBuffer, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -74,7 +74,7 @@ func TestObservabilityLogging(t *testing.T) {
 	// Test acquiring and releasing semaphore
 	client.acquireSemaphore("test-operation-1")
 	client.acquireSemaphore("test-operation-2")
-	
+
 	// This one should wait (in a goroutine to not block)
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -83,19 +83,19 @@ func TestObservabilityLogging(t *testing.T) {
 		client.acquireSemaphore("test-operation-3")
 		client.releaseSemaphore("test-operation-3")
 	}()
-	
+
 	// Give it time to log the waiting message
 	time.Sleep(50 * time.Millisecond)
-	
+
 	// Release one to let the waiting operation proceed
 	client.releaseSemaphore("test-operation-1")
 	client.releaseSemaphore("test-operation-2")
-	
+
 	wg.Wait()
 
 	// Parse and verify logs
 	logs := strings.Split(strings.TrimSpace(logBuffer.String()), "\n")
-	
+
 	foundAcquired := false
 	foundWaiting := false
 	foundReleased := false
@@ -106,20 +106,20 @@ func TestObservabilityLogging(t *testing.T) {
 		if logLine == "" {
 			continue
 		}
-		
+
 		var logEntry map[string]interface{}
 		err := json.Unmarshal([]byte(logLine), &logEntry)
 		require.NoError(t, err, "Failed to parse log: %s", logLine)
-		
+
 		msg, ok := logEntry["msg"].(string)
 		if !ok {
 			continue
 		}
-		
+
 		// Check for expected log messages
 		if strings.Contains(msg, "git push: acquired semaphore") {
 			foundAcquired = true
-			
+
 			// Verify in_flight and limit fields exist
 			if _, ok := logEntry["in_flight"]; ok {
 				foundInFlight = true
@@ -128,10 +128,10 @@ func TestObservabilityLogging(t *testing.T) {
 				foundLimit = true
 			}
 		}
-		
+
 		if strings.Contains(msg, "git push: waiting on semaphore") {
 			foundWaiting = true
-			
+
 			// Verify in_flight and limit fields exist in waiting log too
 			if _, ok := logEntry["in_flight"]; ok {
 				foundInFlight = true
@@ -140,7 +140,7 @@ func TestObservabilityLogging(t *testing.T) {
 				foundLimit = true
 			}
 		}
-		
+
 		if strings.Contains(msg, "git push: released semaphore") {
 			foundReleased = true
 		}
@@ -158,10 +158,10 @@ func TestObservabilityLogging(t *testing.T) {
 func TestObservabilityMetrics(t *testing.T) {
 	// Create a test registry
 	registry := prometheus.NewRegistry()
-	
+
 	// Initialize metrics with our test registry
 	InitMetrics(registry)
-	
+
 	// Create a temporary directory for the test repo
 	tmpDir, err := os.MkdirTemp("", "git-metrics-test-*")
 	require.NoError(t, err)
@@ -231,7 +231,7 @@ func TestObservabilityMetrics(t *testing.T) {
 func TestObservabilityUnderLoad(t *testing.T) {
 	// Create a buffer to capture logs
 	var logBuffer bytes.Buffer
-	
+
 	// Create a JSON handler that writes to our buffer
 	logger := slog.New(slog.NewJSONHandler(&logBuffer, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -256,7 +256,7 @@ func TestObservabilityUnderLoad(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			operation := fmt.Sprintf("operation-%d", id)
-			
+
 			client.acquireSemaphore(operation)
 			// Simulate some work
 			time.Sleep(10 * time.Millisecond)
@@ -268,7 +268,7 @@ func TestObservabilityUnderLoad(t *testing.T) {
 
 	// Parse logs and count different message types
 	logs := strings.Split(strings.TrimSpace(logBuffer.String()), "\n")
-	
+
 	var acquiredCount, waitingCount, releasedCount int
 	var maxInFlight float64
 
@@ -276,15 +276,15 @@ func TestObservabilityUnderLoad(t *testing.T) {
 		if logLine == "" {
 			continue
 		}
-		
+
 		var logEntry map[string]interface{}
 		err := json.Unmarshal([]byte(logLine), &logEntry)
 		if err != nil {
 			continue
 		}
-		
+
 		msg, _ := logEntry["msg"].(string)
-		
+
 		switch {
 		case strings.Contains(msg, "git push: acquired semaphore"):
 			acquiredCount++

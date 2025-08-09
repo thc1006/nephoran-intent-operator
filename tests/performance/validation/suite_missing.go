@@ -13,19 +13,19 @@ import (
 // validateSystemAvailability validates the claim of 99.95% system availability
 func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*ClaimResult, error) {
 	target := vs.config.Claims.SystemAvailability
-	
+
 	// Run availability monitoring test
 	measurements, err := vs.testRunner.RunSystemAvailabilityTest(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Calculate average availability
 	avgAvailability := vs.calculateMean(measurements)
-	
+
 	// Generate descriptive statistics
 	stats := vs.calculateDescriptiveStats(measurements)
-	
+
 	// Perform hypothesis test
 	// H0: Availability <= 99.95%
 	// H1: Availability > 99.95% (one-tailed test)
@@ -35,7 +35,7 @@ func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*Cla
 		"greater",
 		fmt.Sprintf("System availability is greater than %.3f%%", target),
 	)
-	
+
 	// Determine validation status
 	status := "failed"
 	if avgAvailability >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
@@ -43,17 +43,17 @@ func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*Cla
 	} else if hypothesisTest.PValue >= vs.config.Statistics.SignificanceLevel {
 		status = "inconclusive"
 	}
-	
+
 	return &ClaimResult{
-		Claim:          fmt.Sprintf("System availability >= %.3f%%", target),
-		Target:         target,
-		Measured:       avgAvailability,
-		Status:         status,
-		Confidence:     vs.config.Statistics.ConfidenceLevel,
+		Claim:      fmt.Sprintf("System availability >= %.3f%%", target),
+		Target:     target,
+		Measured:   avgAvailability,
+		Status:     status,
+		Confidence: vs.config.Statistics.ConfidenceLevel,
 		Evidence: &ClaimEvidence{
 			SampleSize:      len(measurements),
 			MeasurementUnit: "percentage",
-			RawData:        measurements,
+			RawData:         measurements,
 			Percentiles: map[string]float64{
 				"p50": vs.calculatePercentile(measurements, 50.0),
 				"p90": vs.calculatePercentile(measurements, 90.0),
@@ -70,19 +70,19 @@ func (vs *ValidationSuite) validateSystemAvailability(ctx context.Context) (*Cla
 // validateRAGRetrievalLatencyP95 validates the claim of sub-200ms P95 RAG retrieval latency
 func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (*ClaimResult, error) {
 	target := vs.config.Claims.RAGRetrievalLatencyP95
-	
+
 	// Run RAG retrieval latency test
 	measurements, err := vs.testRunner.RunRAGRetrievalLatencyTest(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Calculate P95 latency
 	p95Latency := vs.calculatePercentile(measurements, 95.0)
-	
+
 	// Generate descriptive statistics
 	stats := vs.calculateDescriptiveStats(measurements)
-	
+
 	// Perform hypothesis test
 	// H0: P95 RAG latency >= 200ms
 	// H1: P95 RAG latency < 200ms (one-tailed test)
@@ -92,7 +92,7 @@ func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (
 		"less",
 		fmt.Sprintf("RAG P95 retrieval latency is less than %v", target),
 	)
-	
+
 	// Determine validation status
 	status := "failed"
 	if p95Latency <= target.Seconds() && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
@@ -100,17 +100,17 @@ func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (
 	} else if hypothesisTest.PValue >= vs.config.Statistics.SignificanceLevel {
 		status = "inconclusive"
 	}
-	
+
 	return &ClaimResult{
-		Claim:          fmt.Sprintf("RAG retrieval P95 latency < %v", target),
-		Target:         target,
-		Measured:       time.Duration(p95Latency * float64(time.Second)),
-		Status:         status,
-		Confidence:     vs.config.Statistics.ConfidenceLevel,
+		Claim:      fmt.Sprintf("RAG retrieval P95 latency < %v", target),
+		Target:     target,
+		Measured:   time.Duration(p95Latency * float64(time.Second)),
+		Status:     status,
+		Confidence: vs.config.Statistics.ConfidenceLevel,
 		Evidence: &ClaimEvidence{
 			SampleSize:      len(measurements),
 			MeasurementUnit: "seconds",
-			RawData:        measurements,
+			RawData:         measurements,
 			Percentiles: map[string]float64{
 				"p50": vs.calculatePercentile(measurements, 50.0),
 				"p90": vs.calculatePercentile(measurements, 90.0),
@@ -127,19 +127,19 @@ func (vs *ValidationSuite) validateRAGRetrievalLatencyP95(ctx context.Context) (
 // validateCacheHitRate validates the claim of 87% cache hit rate
 func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResult, error) {
 	target := vs.config.Claims.CacheHitRate
-	
+
 	// Run cache hit rate test
 	measurements, err := vs.testRunner.RunCacheHitRateTest(ctx)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Calculate average hit rate
 	avgHitRate := vs.calculateMean(measurements)
-	
+
 	// Generate descriptive statistics
 	stats := vs.calculateDescriptiveStats(measurements)
-	
+
 	// Perform hypothesis test
 	// H0: Cache hit rate <= 87%
 	// H1: Cache hit rate > 87% (one-tailed test)
@@ -149,7 +149,7 @@ func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResu
 		"greater",
 		fmt.Sprintf("Cache hit rate is greater than %.1f%%", target),
 	)
-	
+
 	// Determine validation status
 	status := "failed"
 	if avgHitRate >= target && hypothesisTest.PValue < vs.config.Statistics.SignificanceLevel {
@@ -157,17 +157,17 @@ func (vs *ValidationSuite) validateCacheHitRate(ctx context.Context) (*ClaimResu
 	} else if hypothesisTest.PValue >= vs.config.Statistics.SignificanceLevel {
 		status = "inconclusive"
 	}
-	
+
 	return &ClaimResult{
-		Claim:          fmt.Sprintf("Cache hit rate >= %.1f%%", target),
-		Target:         target,
-		Measured:       avgHitRate,
-		Status:         status,
-		Confidence:     vs.config.Statistics.ConfidenceLevel,
+		Claim:      fmt.Sprintf("Cache hit rate >= %.1f%%", target),
+		Target:     target,
+		Measured:   avgHitRate,
+		Status:     status,
+		Confidence: vs.config.Statistics.ConfidenceLevel,
 		Evidence: &ClaimEvidence{
 			SampleSize:      len(measurements),
 			MeasurementUnit: "percentage",
-			RawData:        measurements,
+			RawData:         measurements,
 			Percentiles: map[string]float64{
 				"p50": vs.calculatePercentile(measurements, 50.0),
 				"p90": vs.calculatePercentile(measurements, 90.0),
@@ -191,20 +191,20 @@ func (vs *ValidationSuite) analyzeDistribution(data []float64) *DistributionAnal
 			},
 		}
 	}
-	
+
 	// Perform normality test
 	normalityTest := vs.statisticalTests.PerformNormalityTest(data)
-	
+
 	// Determine likely distribution type based on statistics
 	stats := vs.calculateDescriptiveStats(data)
 	distributionType := vs.inferDistributionType(stats, normalityTest)
-	
+
 	// Calculate distribution parameters based on type
 	parameters := vs.calculateDistributionParameters(data, distributionType)
-	
+
 	// Perform goodness of fit test
 	goodnessOfFit := vs.performGoodnessOfFitTest(data, distributionType, parameters)
-	
+
 	return &DistributionAnalysis{
 		Type:          distributionType,
 		Parameters:    parameters,
@@ -217,12 +217,12 @@ func (vs *ValidationSuite) analyzeDistribution(data []float64) *DistributionAnal
 // inferDistributionType infers the most likely distribution type
 func (vs *ValidationSuite) inferDistributionType(stats *DescriptiveStats, normalityTest *NormalityTest) string {
 	// Simple heuristics for distribution identification
-	
+
 	// Check for normality first
 	if normalityTest.ShapiroWilk != nil && normalityTest.ShapiroWilk.PValue > 0.05 {
 		return "normal"
 	}
-	
+
 	// Check skewness and kurtosis
 	if abs(stats.Skewness) < 0.5 {
 		return "normal"
@@ -231,7 +231,7 @@ func (vs *ValidationSuite) inferDistributionType(stats *DescriptiveStats, normal
 	} else if stats.Skewness < -1.0 {
 		return "beta"
 	}
-	
+
 	// Default to empirical distribution
 	return "empirical"
 }
@@ -240,7 +240,7 @@ func (vs *ValidationSuite) inferDistributionType(stats *DescriptiveStats, normal
 func (vs *ValidationSuite) calculateDistributionParameters(data []float64, distType string) map[string]float64 {
 	params := make(map[string]float64)
 	stats := vs.calculateDescriptiveStats(data)
-	
+
 	switch distType {
 	case "normal":
 		params["mean"] = stats.Mean
@@ -261,7 +261,7 @@ func (vs *ValidationSuite) calculateDistributionParameters(data []float64, distT
 		params["mean"] = stats.Mean
 		params["std_dev"] = stats.StdDev
 	}
-	
+
 	return params
 }
 
@@ -282,15 +282,15 @@ func (vs *ValidationSuite) generateQQPlotData(data []float64, distType string) [
 	if len(data) < 2 {
 		return []QQPoint{}
 	}
-	
+
 	// Sort the data
 	sortedData := make([]float64, len(data))
 	copy(sortedData, data)
 	// Implementation would sort the data and calculate theoretical quantiles
-	
+
 	// Generate Q-Q points (simplified)
 	points := make([]QQPoint, min(len(data), 100)) // Limit to 100 points for visualization
-	
+
 	for i := range points {
 		// This would calculate actual theoretical vs sample quantiles
 		points[i] = QQPoint{
@@ -298,17 +298,17 @@ func (vs *ValidationSuite) generateQQPlotData(data []float64, distType string) [
 			Sample:      sortedData[i*len(sortedData)/len(points)],
 		}
 	}
-	
+
 	return points
 }
 
 // gatherEnvironmentInfo collects environment information for metadata
 func (vs *ValidationSuite) gatherEnvironmentInfo() *EnvironmentInfo {
 	return &EnvironmentInfo{
-		Platform:         runtime.GOOS,
-		Architecture:     runtime.GOARCH,
+		Platform:          runtime.GOOS,
+		Architecture:      runtime.GOARCH,
 		KubernetesVersion: "v1.28.0", // Would be retrieved dynamically
-		NodeCount:        3,          // Would be retrieved from cluster
+		NodeCount:         3,         // Would be retrieved from cluster
 		ResourceLimits: map[string]string{
 			"cpu":    "4000m",
 			"memory": "8Gi",
@@ -327,7 +327,7 @@ func (vs *ValidationSuite) gatherEnvironmentInfo() *EnvironmentInfo {
 // generateRecommendations generates recommendations based on validation results
 func (vs *ValidationSuite) generateRecommendations() []Recommendation {
 	var recommendations []Recommendation
-	
+
 	// This would analyze validation results and generate specific recommendations
 	recommendations = append(recommendations, Recommendation{
 		Type:        "performance",
@@ -337,18 +337,18 @@ func (vs *ValidationSuite) generateRecommendations() []Recommendation {
 		Impact:      "Improved early detection of performance regressions",
 		Effort:      "medium",
 	})
-	
+
 	return recommendations
 }
 
 // Recommendation represents a recommendation based on validation results
 type Recommendation struct {
-	Type        string `json:"type"`        // "performance", "reliability", "scalability"
-	Priority    string `json:"priority"`    // "high", "medium", "low"
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Impact      string `json:"impact"`
-	Effort      string `json:"effort"`      // "low", "medium", "high"
+	Type        string   `json:"type"`     // "performance", "reliability", "scalability"
+	Priority    string   `json:"priority"` // "high", "medium", "low"
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Impact      string   `json:"impact"`
+	Effort      string   `json:"effort"` // "low", "medium", "high"
 	Actions     []string `json:"actions,omitempty"`
 }
 
@@ -370,21 +370,21 @@ func min(a, b int) int {
 
 // BaselineComparison contains baseline comparison results
 type BaselineComparison struct {
-	HasBaseline   bool                        `json:"has_baseline"`
-	BaselineDate  time.Time                   `json:"baseline_date,omitempty"`
+	HasBaseline   bool                         `json:"has_baseline"`
+	BaselineDate  time.Time                    `json:"baseline_date,omitempty"`
 	Comparisons   map[string]*MetricComparison `json:"comparisons,omitempty"`
-	OverallChange float64                     `json:"overall_change"`
-	Conclusion    string                      `json:"conclusion"`
+	OverallChange float64                      `json:"overall_change"`
+	Conclusion    string                       `json:"conclusion"`
 }
 
 // MetricComparison represents comparison of a metric against baseline
 type MetricComparison struct {
-	Metric          string  `json:"metric"`
-	CurrentValue    float64 `json:"current_value"`
-	BaselineValue   float64 `json:"baseline_value"`
-	PercentChange   float64 `json:"percent_change"`
-	AbsoluteChange  float64 `json:"absolute_change"`
-	Significant     bool    `json:"significant"`
-	PValue          float64 `json:"p_value"`
-	Interpretation  string  `json:"interpretation"`
+	Metric         string  `json:"metric"`
+	CurrentValue   float64 `json:"current_value"`
+	BaselineValue  float64 `json:"baseline_value"`
+	PercentChange  float64 `json:"percent_change"`
+	AbsoluteChange float64 `json:"absolute_change"`
+	Significant    bool    `json:"significant"`
+	PValue         float64 `json:"p_value"`
+	Interpretation string  `json:"interpretation"`
 }

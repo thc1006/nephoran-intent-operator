@@ -63,12 +63,12 @@ func (vr ValidationResult) Error() string {
 	if vr.Valid {
 		return ""
 	}
-	
+
 	var messages []string
 	for _, err := range vr.Errors {
 		messages = append(messages, fmt.Sprintf("%s: %s", err.Field, err.Message))
 	}
-	
+
 	return strings.Join(messages, "; ")
 }
 
@@ -273,35 +273,35 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 	result := NewValidationResult()
 	objValue := reflect.ValueOf(obj)
 	objType := reflect.TypeOf(obj)
-	
+
 	// Handle pointer types
 	if objValue.Kind() == reflect.Ptr {
 		objValue = objValue.Elem()
 		objType = objType.Elem()
 	}
-	
+
 	if objValue.Kind() != reflect.Struct {
 		result.AddError("", "value must be a struct", "type_error", obj)
 		return result
 	}
-	
+
 	// Validate each field
 	for i := 0; i < objValue.NumField(); i++ {
 		fieldType := objType.Field(i)
 		fieldValue := objValue.Field(i)
 		fieldName := fieldType.Name
-		
+
 		// Skip unexported fields
 		if !fieldValue.CanInterface() {
 			continue
 		}
-		
+
 		// Check for validation tag
 		if tag := fieldType.Tag.Get("validate"); tag != "" {
 			tagResult := sv.validateTag(fieldName, fieldValue, tag)
 			result.Combine(tagResult)
 		}
-		
+
 		// Apply custom field validators
 		if validators, exists := sv.fieldValidators[fieldName]; exists {
 			for _, validator := range validators {
@@ -310,7 +310,7 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 			}
 		}
 	}
-	
+
 	return result
 }
 
@@ -318,7 +318,7 @@ func (sv *StructValidator[T]) Validate(obj T) ValidationResult {
 func (sv *StructValidator[T]) validateTag(fieldName string, fieldValue reflect.Value, tag string) ValidationResult {
 	result := NewValidationResult()
 	rules := strings.Split(tag, ",")
-	
+
 	for _, rule := range rules {
 		rule = strings.TrimSpace(rule)
 		parts := strings.Split(rule, "=")
@@ -327,7 +327,7 @@ func (sv *StructValidator[T]) validateTag(fieldName string, fieldValue reflect.V
 		if len(parts) > 1 {
 			ruleValue = parts[1]
 		}
-		
+
 		switch ruleName {
 		case "required":
 			if isZeroReflectValue(fieldValue) {
@@ -360,13 +360,13 @@ func (sv *StructValidator[T]) validateTag(fieldName string, fieldValue reflect.V
 			}
 		}
 	}
-	
+
 	return result
 }
 
 // ValidationPipeline allows chaining multiple validators.
 type ValidationPipeline[T any] struct {
-	validators []Validator[T]
+	validators       []Validator[T]
 	stopOnFirstError bool
 }
 
@@ -392,16 +392,16 @@ func (vp *ValidationPipeline[T]) StopOnFirstError(stop bool) *ValidationPipeline
 // Execute executes the validation pipeline.
 func (vp *ValidationPipeline[T]) Execute(obj T) ValidationResult {
 	result := NewValidationResult()
-	
+
 	for _, validator := range vp.validators {
 		validationResult := validator(obj)
 		result.Combine(validationResult)
-		
+
 		if vp.stopOnFirstError && !validationResult.Valid {
 			break
 		}
 	}
-	
+
 	return result
 }
 
@@ -420,24 +420,24 @@ func NewAsyncValidator[T any](validator Validator[T]) *AsyncValidator[T] {
 // ValidateAsync validates asynchronously.
 func (av *AsyncValidator[T]) ValidateAsync(ctx context.Context, obj T) <-chan ValidationResult {
 	resultChan := make(chan ValidationResult, 1)
-	
+
 	go func() {
 		defer close(resultChan)
 		result := av.validator(obj)
-		
+
 		select {
 		case resultChan <- result:
 		case <-ctx.Done():
 			// Context cancelled
 		}
 	}()
-	
+
 	return resultChan
 }
 
 // BatchValidator validates multiple objects concurrently.
 type BatchValidator[T any] struct {
-	validator Validator[T]
+	validator      Validator[T]
 	maxConcurrency int
 }
 
@@ -446,9 +446,9 @@ func NewBatchValidator[T any](validator Validator[T], maxConcurrency int) *Batch
 	if maxConcurrency <= 0 {
 		maxConcurrency = 10
 	}
-	
+
 	return &BatchValidator[T]{
-		validator: validator,
+		validator:      validator,
 		maxConcurrency: maxConcurrency,
 	}
 }
@@ -456,31 +456,31 @@ func NewBatchValidator[T any](validator Validator[T], maxConcurrency int) *Batch
 // ValidateBatch validates multiple objects concurrently.
 func (bv *BatchValidator[T]) ValidateBatch(ctx context.Context, objects []T) <-chan BatchValidationResult[T] {
 	resultChan := make(chan BatchValidationResult[T], len(objects))
-	
+
 	// Create semaphore for concurrency control
 	semaphore := make(chan struct{}, bv.maxConcurrency)
-	
+
 	go func() {
 		defer close(resultChan)
-		
+
 		var wg sync.WaitGroup
-		
+
 		for i, obj := range objects {
 			wg.Add(1)
 			go func(index int, object T) {
 				defer wg.Done()
-				
+
 				// Acquire semaphore
 				semaphore <- struct{}{}
 				defer func() { <-semaphore }()
-				
+
 				result := bv.validator(object)
 				batchResult := BatchValidationResult[T]{
 					Index:  index,
 					Object: object,
 					Result: result,
 				}
-				
+
 				select {
 				case resultChan <- batchResult:
 				case <-ctx.Done():
@@ -488,10 +488,10 @@ func (bv *BatchValidator[T]) ValidateBatch(ctx context.Context, objects []T) <-c
 				}
 			}(i, obj)
 		}
-		
+
 		wg.Wait()
 	}()
-	
+
 	return resultChan
 }
 
@@ -504,7 +504,7 @@ type BatchValidationResult[T any] struct {
 
 // ConditionalValidator applies different validators based on conditions.
 type ConditionalValidator[T any] struct {
-	conditions []ConditionalRule[T]
+	conditions       []ConditionalRule[T]
 	defaultValidator Validator[T]
 }
 
@@ -543,11 +543,11 @@ func (cv *ConditionalValidator[T]) Validate(obj T) ValidationResult {
 			return rule.Validator(obj)
 		}
 	}
-	
+
 	if cv.defaultValidator != nil {
 		return cv.defaultValidator(obj)
 	}
-	
+
 	return NewValidationResult()
 }
 
@@ -558,7 +558,7 @@ func isZeroValue(value any) bool {
 	if value == nil {
 		return true
 	}
-	
+
 	v := reflect.ValueOf(value)
 	return v.IsZero()
 }
@@ -658,7 +658,7 @@ func UniqueSlice[T any, E Comparable](fieldName string, extractor func(T) []E) V
 		values := extractor(obj)
 		result := NewValidationResult()
 		seen := NewSet[E]()
-		
+
 		for _, value := range values {
 			if seen.Contains(value) {
 				result.AddError(fieldName, "duplicate values are not allowed", "unique", values)
@@ -666,7 +666,7 @@ func UniqueSlice[T any, E Comparable](fieldName string, extractor func(T) []E) V
 			}
 			seen.Add(value)
 		}
-		
+
 		return result
 	}
 }
@@ -676,12 +676,12 @@ func ValidJSON[T any](fieldName string, extractor func(T) string) Validator[T] {
 	return func(obj T) ValidationResult {
 		value := extractor(obj)
 		result := NewValidationResult()
-		
+
 		var js json.RawMessage
 		if err := json.Unmarshal([]byte(value), &js); err != nil {
 			result.AddError(fieldName, "invalid JSON format", "json", value)
 		}
-		
+
 		return result
 	}
 }
@@ -708,16 +708,16 @@ func PasswordStrength[T any](fieldName string, extractor func(T) string) Validat
 	return func(obj T) ValidationResult {
 		password := extractor(obj)
 		result := NewValidationResult()
-		
+
 		if len(password) < 8 {
 			result.AddError(fieldName, "password must be at least 8 characters long", "password_length", password)
 		}
-		
+
 		hasUpper := regexp.MustCompile(`[A-Z]`).MatchString(password)
 		hasLower := regexp.MustCompile(`[a-z]`).MatchString(password)
 		hasDigit := regexp.MustCompile(`[0-9]`).MatchString(password)
 		hasSpecial := regexp.MustCompile(`[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]`).MatchString(password)
-		
+
 		if !hasUpper {
 			result.AddError(fieldName, "password must contain at least one uppercase letter", "password_uppercase", password)
 		}
@@ -730,7 +730,7 @@ func PasswordStrength[T any](fieldName string, extractor func(T) string) Validat
 		if !hasSpecial {
 			result.AddError(fieldName, "password must contain at least one special character", "password_special", password)
 		}
-		
+
 		return result
 	}
 }

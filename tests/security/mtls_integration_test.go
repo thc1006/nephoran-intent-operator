@@ -25,24 +25,24 @@ import (
 
 // mTLSIntegrationTestSuite tests integration between all mTLS components
 type mTLSIntegrationTestSuite struct {
-	ctx           context.Context
-	k8sClient     client.Client
-	namespace     string
-	caManager     *ca.CAManager
-	mtlsClients   map[string]*mtls.Client
-	testServices  map[string]*testServiceDeployment
-	mu            sync.RWMutex
+	ctx          context.Context
+	k8sClient    client.Client
+	namespace    string
+	caManager    *ca.CAManager
+	mtlsClients  map[string]*mtls.Client
+	testServices map[string]*testServiceDeployment
+	mu           sync.RWMutex
 }
 
 // testServiceDeployment represents a test service with mTLS configuration
 type testServiceDeployment struct {
-	Name           string
-	Deployment     *appsv1.Deployment
-	Service        *corev1.Service
-	ServerCert     *corev1.Secret
-	ClientCert     *corev1.Secret
-	MTLSClient     *mtls.Client
-	Endpoint       string
+	Name       string
+	Deployment *appsv1.Deployment
+	Service    *corev1.Service
+	ServerCert *corev1.Secret
+	ClientCert *corev1.Secret
+	MTLSClient *mtls.Client
+	Endpoint   string
 }
 
 var _ = Describe("mTLS Integration Test Suite", func() {
@@ -70,15 +70,15 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 		It("should establish mTLS connections between NetworkIntent controller and services", func() {
 			// Deploy test services that mimic the actual system components
 			services := []string{"llm-processor", "rag-api", "nephio-bridge"}
-			
+
 			for _, serviceName := range services {
 				By(fmt.Sprintf("Deploying test service: %s", serviceName))
-				
+
 				testService, err := suite.deployTestService(serviceName)
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				suite.testServices[serviceName] = testService
-				
+
 				// Wait for service to be ready
 				Eventually(func() bool {
 					return suite.isServiceReady(serviceName)
@@ -88,28 +88,28 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 			// Test controller-to-service communication
 			for serviceName, testService := range suite.testServices {
 				By(fmt.Sprintf("Testing mTLS communication to %s", serviceName))
-				
+
 				// Create mTLS client for controller
 				controllerClient, err := suite.createControllerMTLSClient(serviceName)
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				// Test HTTP request
 				resp, err := controllerClient.GetHTTPClient().Get(testService.Endpoint + "/health")
 				Expect(err).NotTo(HaveOccurred())
 				Expect(resp.StatusCode).To(Equal(http.StatusOK))
 				resp.Body.Close()
-				
+
 				By(fmt.Sprintf("mTLS communication to %s successful", serviceName))
 			}
 		})
 
 		It("should handle certificate rotation in controller-to-service communication", func() {
 			serviceName := "llm-processor"
-			
+
 			// Deploy service
 			testService, err := suite.deployTestService(serviceName)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			Eventually(func() bool {
 				return suite.isServiceReady(serviceName)
 			}, 60*time.Second, 2*time.Second).Should(BeTrue())
@@ -142,7 +142,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 
 		It("should validate certificate policies for controller connections", func() {
 			serviceName := "rag-api"
-			
+
 			// Deploy service with specific certificate policies
 			testService, err := suite.deployTestServiceWithPolicy(serviceName, "strict")
 			Expect(err).NotTo(HaveOccurred())
@@ -173,26 +173,26 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 	Context("Service Mesh Integration", func() {
 		It("should integrate with Istio service mesh for automatic mTLS", func() {
 			Skip("Requires Istio service mesh deployment")
-			
+
 			// This test would verify:
 			// 1. Istio sidecar injection
 			// 2. Automatic certificate provisioning
 			// 3. mTLS policy enforcement
 			// 4. Traffic encryption validation
-			
+
 			services := []string{"service-a", "service-b", "service-c"}
-			
+
 			for _, serviceName := range services {
 				By(fmt.Sprintf("Testing Istio mTLS for %s", serviceName))
-				
+
 				// Deploy service with Istio annotations
 				testService, err := suite.deployIstioService(serviceName)
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				// Verify Istio sidecar is injected
 				pod := suite.getServicePod(serviceName)
 				Expect(len(pod.Spec.Containers)).To(BeNumerically(">=", 2)) // App + Envoy sidecar
-				
+
 				// Verify mTLS communication through Istio
 				err = suite.testIstioMTLSCommunication(serviceName)
 				Expect(err).NotTo(HaveOccurred())
@@ -201,20 +201,20 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 
 		It("should integrate with Linkerd service mesh for automatic mTLS", func() {
 			Skip("Requires Linkerd service mesh deployment")
-			
+
 			// Similar to Istio but for Linkerd
 			services := []string{"service-d", "service-e", "service-f"}
-			
+
 			for _, serviceName := range services {
 				By(fmt.Sprintf("Testing Linkerd mTLS for %s", serviceName))
-				
+
 				testService, err := suite.deployLinkerdService(serviceName)
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				// Verify Linkerd proxy injection
 				pod := suite.getServicePod(serviceName)
 				Expect(len(pod.Spec.Containers)).To(BeNumerically(">=", 2))
-				
+
 				// Test Linkerd mTLS
 				err = suite.testLinkerdMTLSCommunication(serviceName)
 				Expect(err).NotTo(HaveOccurred())
@@ -224,9 +224,9 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 		It("should handle service mesh certificate coordination", func() {
 			// Test coordination between service mesh and CA manager
 			serviceName := "coordinated-service"
-			
+
 			By("Deploying service with coordinated certificate management")
-			
+
 			// Deploy service that uses both service mesh and CA manager
 			testService, err := suite.deployCoordinatedService(serviceName)
 			Expect(err).NotTo(HaveOccurred())
@@ -238,7 +238,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 			// Verify both service mesh and CA manager certificates exist
 			meshCert := suite.getServiceMeshCertificate(serviceName)
 			caCert := suite.getCAManagedCertificate(serviceName)
-			
+
 			Expect(meshCert).NotTo(BeNil())
 			Expect(caCert).NotTo(BeNil())
 
@@ -251,10 +251,10 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 	Context("CA Backend Integration", func() {
 		It("should integrate with cert-manager for certificate provisioning", func() {
 			Skip("Requires cert-manager deployment")
-			
+
 			// Test cert-manager integration
 			By("Testing cert-manager integration")
-			
+
 			// Create Certificate resource
 			cert := suite.createCertManagerCertificate("cert-manager-test")
 			err := suite.k8sClient.Create(suite.ctx, cert)
@@ -276,9 +276,9 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 
 		It("should integrate with Vault PKI for certificate management", func() {
 			Skip("Requires HashiCorp Vault deployment")
-			
+
 			By("Testing Vault PKI integration")
-			
+
 			// Configure Vault PKI backend
 			err := suite.setupVaultPKI()
 			Expect(err).NotTo(HaveOccurred())
@@ -297,9 +297,9 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 
 		It("should handle external PKI integration", func() {
 			Skip("Requires external PKI system")
-			
+
 			By("Testing external PKI integration")
-			
+
 			// This would test integration with enterprise PKI systems
 			// like Microsoft AD CS, EJBCA, etc.
 		})
@@ -307,17 +307,17 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 		It("should coordinate between multiple CA backends", func() {
 			// Test scenario where different services use different CA backends
 			services := map[string]string{
-				"internal-service":  "self-signed",
-				"external-service":  "cert-manager",  
-				"vault-service":     "vault-pki",
+				"internal-service": "self-signed",
+				"external-service": "cert-manager",
+				"vault-service":    "vault-pki",
 			}
 
 			for serviceName, caBackend := range services {
 				By(fmt.Sprintf("Testing %s with %s backend", serviceName, caBackend))
-				
+
 				var client *mtls.Client
 				var err error
-				
+
 				switch caBackend {
 				case "self-signed":
 					client, err = suite.createSelfSignedMTLSClient(serviceName)
@@ -334,9 +334,9 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 						Skip("Vault not available")
 					}
 				}
-				
+
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				// Test cross-backend communication
 				err = suite.testCrossBackendCommunication(serviceName, client)
 				Expect(err).NotTo(HaveOccurred())
@@ -347,12 +347,12 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 	Context("Certificate Automation Integration", func() {
 		It("should coordinate automatic certificate rotation across components", func() {
 			services := []string{"rotation-test-1", "rotation-test-2", "rotation-test-3"}
-			
+
 			// Deploy services with rotation enabled
 			for _, serviceName := range services {
 				testService, err := suite.deployServiceWithRotation(serviceName)
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				suite.testServices[serviceName] = testService
 			}
 
@@ -371,10 +371,10 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 			// Verify all services continue to work after rotation
 			for _, serviceName := range services {
 				By(fmt.Sprintf("Verifying %s after rotation", serviceName))
-				
+
 				client, err := suite.createControllerMTLSClient(serviceName)
 				Expect(err).NotTo(HaveOccurred())
-				
+
 				testService := suite.testServices[serviceName]
 				resp, err := client.GetHTTPClient().Get(testService.Endpoint + "/health")
 				Expect(err).NotTo(HaveOccurred())
@@ -386,13 +386,13 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 
 		It("should handle certificate distribution across clusters", func() {
 			Skip("Requires multi-cluster setup")
-			
+
 			// This would test certificate distribution in multi-cluster scenarios
 			clusters := []string{"cluster-1", "cluster-2", "cluster-3"}
-			
+
 			for _, cluster := range clusters {
 				By(fmt.Sprintf("Testing certificate distribution to %s", cluster))
-				
+
 				// Deploy service to cluster
 				// Verify certificate distribution
 				// Test cross-cluster mTLS communication
@@ -402,7 +402,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 		It("should validate certificate validation engine integration", func() {
 			// Test real-time certificate validation
 			serviceName := "validation-test"
-			
+
 			// Deploy service with validation engine
 			testService, err := suite.deployServiceWithValidation(serviceName)
 			Expect(err).NotTo(HaveOccurred())
@@ -414,7 +414,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 			// Test with valid certificate
 			validClient, err := suite.createValidMTLSClient(serviceName)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			resp, err := validClient.GetHTTPClient().Get(testService.Endpoint + "/health")
 			Expect(err).NotTo(HaveOccurred())
 			resp.Body.Close()
@@ -422,7 +422,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 			// Test with invalid certificate (should be rejected)
 			invalidClient, err := suite.createInvalidMTLSClient(serviceName)
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			_, err = invalidClient.GetHTTPClient().Get(testService.Endpoint + "/health")
 			Expect(err).To(HaveOccurred())
 
@@ -434,7 +434,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 		It("should handle complete NetworkIntent processing with mTLS", func() {
 			// Deploy all required services
 			services := []string{"llm-processor", "rag-api", "nephio-bridge"}
-			
+
 			for _, serviceName := range services {
 				testService, err := suite.deployTestService(serviceName)
 				Expect(err).NotTo(HaveOccurred())
@@ -450,11 +450,11 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 
 			// Simulate NetworkIntent processing flow
 			By("Simulating NetworkIntent processing with mTLS")
-			
+
 			// 1. Controller -> LLM Processor
 			llmClient, err := suite.createControllerMTLSClient("llm-processor")
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			resp, err := llmClient.GetHTTPClient().Post(
 				suite.testServices["llm-processor"].Endpoint+"/process",
 				"application/json",
@@ -466,7 +466,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 			// 2. LLM Processor -> RAG API
 			ragClient, err := suite.createServiceMTLSClient("llm-processor", "rag-api")
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			resp, err = ragClient.GetHTTPClient().Get(
 				suite.testServices["rag-api"].Endpoint + "/retrieve",
 			)
@@ -476,7 +476,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 			// 3. Controller -> Nephio Bridge
 			bridgeClient, err := suite.createControllerMTLSClient("nephio-bridge")
 			Expect(err).NotTo(HaveOccurred())
-			
+
 			resp, err = bridgeClient.GetHTTPClient().Post(
 				suite.testServices["nephio-bridge"].Endpoint+"/deploy",
 				"application/json",
@@ -490,7 +490,7 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 
 		It("should handle fault injection and recovery", func() {
 			serviceName := "fault-test"
-			
+
 			// Deploy service
 			testService, err := suite.deployTestService(serviceName)
 			Expect(err).NotTo(HaveOccurred())
@@ -546,18 +546,18 @@ var _ = Describe("mTLS Integration Test Suite", func() {
 func (s *mTLSIntegrationTestSuite) initializeCAManager() error {
 	// Initialize CA manager with test configuration
 	config := &ca.Config{
-		Backend:     "self-signed", // Use self-signed for testing
-		StorePath:   "/tmp/ca-test",
-		KeySize:     2048,
+		Backend:      "self-signed", // Use self-signed for testing
+		StorePath:    "/tmp/ca-test",
+		KeySize:      2048,
 		ValidityDays: 365,
 	}
-	
+
 	var err error
 	s.caManager, err = ca.NewCAManager(config)
 	if err != nil {
 		return fmt.Errorf("failed to create CA manager: %w", err)
 	}
-	
+
 	return s.caManager.Initialize(s.ctx)
 }
 
@@ -568,7 +568,7 @@ func (s *mTLSIntegrationTestSuite) deployTestService(serviceName string) (*testS
 		return nil, err
 	}
 
-	// Create client certificate secret  
+	// Create client certificate secret
 	clientCert, err := s.createClientCertificateSecret(serviceName + "-client")
 	if err != nil {
 		return nil, err
@@ -742,16 +742,16 @@ func (s *mTLSIntegrationTestSuite) createClientCertificateSecret(clientName stri
 
 func (s *mTLSIntegrationTestSuite) createControllerMTLSClient(targetService string) (*mtls.Client, error) {
 	config := &mtls.ClientConfig{
-		ServiceName:        "nephoran-controller",
-		ServerName:         targetService,
-		ClientCertPath:     fmt.Sprintf("/tmp/certs/%s-client.crt", targetService),
-		ClientKeyPath:      fmt.Sprintf("/tmp/certs/%s-client.key", targetService),
-		CACertPath:         "/tmp/certs/ca.crt",
-		RotationEnabled:    true,
-		RotationInterval:   1 * time.Hour,
-		RenewalThreshold:   24 * time.Hour,
-		CAManager:          s.caManager,
-		AutoProvision:      true,
+		ServiceName:      "nephoran-controller",
+		ServerName:       targetService,
+		ClientCertPath:   fmt.Sprintf("/tmp/certs/%s-client.crt", targetService),
+		ClientKeyPath:    fmt.Sprintf("/tmp/certs/%s-client.key", targetService),
+		CACertPath:       "/tmp/certs/ca.crt",
+		RotationEnabled:  true,
+		RotationInterval: 1 * time.Hour,
+		RenewalThreshold: 24 * time.Hour,
+		CAManager:        s.caManager,
+		AutoProvision:    true,
 	}
 
 	return mtls.NewClient(config, nil)
@@ -763,7 +763,7 @@ func (s *mTLSIntegrationTestSuite) isServiceReady(serviceName string) bool {
 		Name:      serviceName,
 		Namespace: s.namespace,
 	}, &deployment)
-	
+
 	if err != nil {
 		return false
 	}
@@ -778,7 +778,7 @@ func (s *mTLSIntegrationTestSuite) cleanup() {
 		s.k8sClient.Delete(s.ctx, testService.Service)
 		s.k8sClient.Delete(s.ctx, testService.ServerCert)
 		s.k8sClient.Delete(s.ctx, testService.ClientCert)
-		
+
 		if testService.MTLSClient != nil {
 			testService.MTLSClient.Close()
 		}

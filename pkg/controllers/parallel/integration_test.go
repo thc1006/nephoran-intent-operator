@@ -30,7 +30,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
@@ -44,27 +44,27 @@ type ParallelProcessingIntegrationTestSuite struct {
 	engine        *ParallelProcessingEngine
 	resilienceMgr *resilience.ResilienceManager
 	errorTracker  *monitoring.ErrorTracker
-	ctx          context.Context
-	cancel       context.CancelFunc
+	ctx           context.Context
+	cancel        context.CancelFunc
 }
 
 func (suite *ParallelProcessingIntegrationTestSuite) SetupSuite() {
 	zapLogger, _ := zap.NewDevelopment()
 	suite.logger = zapr.New(zapLogger)
-	
+
 	suite.ctx, suite.cancel = context.WithCancel(context.Background())
-	
+
 	// Setup resilience manager
 	resilienceConfig := &resilience.ResilienceConfig{
 		DefaultTimeout:          30 * time.Second,
 		MaxConcurrentOperations: 100,
 		HealthCheckInterval:     10 * time.Second,
 		TimeoutEnabled:          true,
-		BulkheadEnabled:        true,
-		CircuitBreakerEnabled:  true,
-		RateLimitingEnabled:    true,
-		RetryEnabled:          true,
-		HealthCheckEnabled:    true,
+		BulkheadEnabled:         true,
+		CircuitBreakerEnabled:   true,
+		RateLimitingEnabled:     true,
+		RetryEnabled:            true,
+		HealthCheckEnabled:      true,
 		TimeoutConfigs: map[string]*resilience.TimeoutConfig{
 			"llm_processing": {
 				Name:           "llm_processing",
@@ -80,10 +80,10 @@ func (suite *ParallelProcessingIntegrationTestSuite) SetupSuite() {
 			},
 		},
 	}
-	
+
 	suite.resilienceMgr = resilience.NewResilienceManager(resilienceConfig, suite.logger)
 	require.NoError(suite.T(), suite.resilienceMgr.Start(suite.ctx))
-	
+
 	// Setup error tracker
 	errorConfig := &monitoring.ErrorTrackingConfig{
 		EnablePrometheus:    true,
@@ -92,25 +92,25 @@ func (suite *ParallelProcessingIntegrationTestSuite) SetupSuite() {
 		DashboardEnabled:    false,
 		ReportsEnabled:      false,
 	}
-	
+
 	var err error
 	suite.errorTracker, err = monitoring.NewErrorTracker(errorConfig, suite.logger)
 	require.NoError(suite.T(), err)
-	
+
 	// Setup parallel processing engine
 	engineConfig := &ParallelProcessingConfig{
 		MaxConcurrentIntents: 50,
-		IntentPoolSize:      10,
-		LLMPoolSize:        5,
-		RAGPoolSize:        5,
-		ResourcePoolSize:   8,
-		ManifestPoolSize:   8,
-		GitOpsPoolSize:     4,
-		DeploymentPoolSize: 4,
-		TaskQueueSize:      200,
-		HealthCheckInterval: 10 * time.Second,
+		IntentPoolSize:       10,
+		LLMPoolSize:          5,
+		RAGPoolSize:          5,
+		ResourcePoolSize:     8,
+		ManifestPoolSize:     8,
+		GitOpsPoolSize:       4,
+		DeploymentPoolSize:   4,
+		TaskQueueSize:        200,
+		HealthCheckInterval:  10 * time.Second,
 	}
-	
+
 	suite.engine, err = NewParallelProcessingEngine(
 		engineConfig,
 		suite.resilienceMgr,
@@ -145,20 +145,20 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestCompleteIntentProcessin
 			Priority:   "high",
 		},
 	}
-	
+
 	intentID := fmt.Sprintf("%s/%s", intent.Namespace, intent.Name)
-	
+
 	// Process the complete intent workflow
 	result, err := suite.engine.ProcessIntentWorkflow(suite.ctx, intent)
 	require.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), result)
-	
+
 	suite.T().Logf("Intent processing result: %+v", result)
-	
+
 	// Verify workflow phases were executed
 	assert.True(suite.T(), result.Success)
 	assert.NotNil(suite.T(), result.ProcessingPhases)
-	
+
 	// Check that all expected phases were completed
 	expectedPhases := []interfaces.ProcessingPhase{
 		interfaces.PhaseInitialization,
@@ -171,23 +171,23 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestCompleteIntentProcessin
 		interfaces.PhaseDeploymentVerification,
 		interfaces.PhaseCompleted,
 	}
-	
+
 	completedPhases := make(map[interfaces.ProcessingPhase]bool)
 	for _, phase := range result.ProcessingPhases {
 		completedPhases[phase.Phase] = phase.Success
 	}
-	
+
 	for _, expectedPhase := range expectedPhases {
-		assert.True(suite.T(), completedPhases[expectedPhase], 
+		assert.True(suite.T(), completedPhases[expectedPhase],
 			"Phase %s should have been completed", expectedPhase)
 	}
-	
+
 	// Verify metrics were collected
 	metrics := suite.engine.GetMetrics()
 	assert.NotNil(suite.T(), metrics)
 	assert.True(suite.T(), metrics.TotalTasks > 0)
 	assert.True(suite.T(), metrics.CompletedTasks > 0)
-	
+
 	suite.T().Logf("Processing metrics: %+v", metrics)
 }
 
@@ -197,15 +197,15 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestConcurrentIntentProcess
 	var wg sync.WaitGroup
 	results := make([]*IntentProcessingResult, numIntents)
 	errors := make([]error, numIntents)
-	
+
 	startTime := time.Now()
-	
+
 	// Process multiple intents concurrently
 	for i := 0; i < numIntents; i++ {
 		wg.Add(1)
 		go func(intentNum int) {
 			defer wg.Done()
-			
+
 			intent := &v1alpha1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("concurrent-intent-%d", intentNum),
@@ -217,16 +217,16 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestConcurrentIntentProcess
 					Priority:   "medium",
 				},
 			}
-			
+
 			result, err := suite.engine.ProcessIntentWorkflow(suite.ctx, intent)
 			results[intentNum] = result
 			errors[intentNum] = err
 		}(i)
 	}
-	
+
 	wg.Wait()
 	duration := time.Since(startTime)
-	
+
 	// Verify all intents were processed
 	successCount := 0
 	for i, result := range results {
@@ -236,26 +236,26 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestConcurrentIntentProcess
 			successCount++
 		}
 	}
-	
-	suite.T().Logf("Processed %d intents in %v, %d successful", 
+
+	suite.T().Logf("Processed %d intents in %v, %d successful",
 		numIntents, duration, successCount)
-	
+
 	// Verify reasonable success rate and performance
 	successRate := float64(successCount) / float64(numIntents)
 	assert.True(suite.T(), successRate >= 0.7, "Expected at least 70%% success rate, got %.2f%%", successRate*100)
-	
+
 	// Verify concurrent processing was faster than sequential
 	averageTimePerIntent := duration / time.Duration(numIntents)
 	suite.T().Logf("Average time per intent: %v", averageTimePerIntent)
-	assert.True(suite.T(), averageTimePerIntent < 10*time.Second, 
+	assert.True(suite.T(), averageTimePerIntent < 10*time.Second,
 		"Concurrent processing should be reasonably fast")
-	
+
 	// Check system metrics after concurrent load
 	metrics := suite.engine.GetMetrics()
 	assert.NotNil(suite.T(), metrics)
 	assert.True(suite.T(), metrics.TotalTasks >= int64(numIntents*6), // At least 6 tasks per intent
 		"Expected significant task processing")
-	
+
 	suite.T().Logf("Final metrics after concurrent test: %+v", metrics)
 }
 
@@ -273,31 +273,31 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestErrorRecoveryInWorkflow
 			Priority:   "critical",
 		},
 	}
-	
+
 	// Process with potential for errors
 	result, err := suite.engine.ProcessIntentWorkflow(suite.ctx, intent)
-	
+
 	// Even if some errors occurred, the system should handle them gracefully
 	if err != nil {
 		suite.T().Logf("Workflow completed with errors: %v", err)
 	}
-	
+
 	// Check if the system recovered and maintained functionality
 	health := suite.engine.HealthCheck()
 	assert.NoError(suite.T(), health, "System should remain healthy after error recovery")
-	
+
 	// Verify error tracking captured issues
 	errorSummary := suite.errorTracker.GetErrorSummary()
 	if errorSummary != nil && errorSummary.TotalErrors > 0 {
 		suite.T().Logf("Error summary: %+v", errorSummary)
-		
+
 		// Verify errors were properly categorized and correlated
 		assert.True(suite.T(), errorSummary.TotalErrors >= 0)
 		if errorSummary.ErrorsByCategory != nil {
 			suite.T().Logf("Errors by category: %+v", errorSummary.ErrorsByCategory)
 		}
 	}
-	
+
 	// Test that the system can continue processing new intents
 	followUpIntent := &v1alpha1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -310,14 +310,14 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestErrorRecoveryInWorkflow
 			Priority:   "low",
 		},
 	}
-	
+
 	followUpResult, followUpErr := suite.engine.ProcessIntentWorkflow(suite.ctx, followUpIntent)
-	
+
 	// System should continue functioning
 	if followUpErr != nil {
 		suite.T().Logf("Follow-up intent error: %v", followUpErr)
 	}
-	
+
 	suite.T().Logf("Post-recovery processing result: %+v", followUpResult)
 }
 
@@ -350,16 +350,16 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestResourceOptimization() 
 			},
 		},
 	}
-	
+
 	startTime := time.Now()
 	var wg sync.WaitGroup
-	
+
 	// Process all intents and measure resource utilization
 	for i, intent := range intents {
 		wg.Add(1)
 		go func(intentNum int, intent *v1alpha1.NetworkIntent) {
 			defer wg.Done()
-			
+
 			result, err := suite.engine.ProcessIntentWorkflow(suite.ctx, intent)
 			if err != nil {
 				suite.T().Logf("Intent %d processing error: %v", intentNum, err)
@@ -368,29 +368,29 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestResourceOptimization() 
 			}
 		}(i, intent)
 	}
-	
+
 	wg.Wait()
 	duration := time.Since(startTime)
-	
+
 	// Analyze resource utilization
 	metrics := suite.engine.GetMetrics()
 	assert.NotNil(suite.T(), metrics)
-	
+
 	suite.T().Logf("Resource optimization test completed in %v", duration)
 	suite.T().Logf("Final resource metrics: %+v", metrics)
-	
+
 	// Verify efficient resource usage
 	if metrics.AverageLatency > 0 {
-		assert.True(suite.T(), metrics.AverageLatency < 30*time.Second, 
+		assert.True(suite.T(), metrics.AverageLatency < 30*time.Second,
 			"Average latency should be reasonable")
 	}
-	
+
 	// Check that concurrent processing was effective
 	totalTasks := metrics.TotalTasks
 	assert.True(suite.T(), totalTasks > 0, "Should have processed tasks")
-	
+
 	// Verify system maintained stability under varying loads
-	assert.True(suite.T(), metrics.SuccessRate >= 0.8, 
+	assert.True(suite.T(), metrics.SuccessRate >= 0.8,
 		"Success rate should be high (>80%%), got %.2f%%", metrics.SuccessRate*100)
 }
 
@@ -398,19 +398,19 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestResourceOptimization() 
 func (suite *ParallelProcessingIntegrationTestSuite) TestSystemLimitsAndScaling() {
 	// Test system behavior at configured limits
 	maxIntents := suite.engine.config.MaxConcurrentIntents
-	
+
 	suite.T().Logf("Testing system limits with %d concurrent intents", maxIntents)
-	
+
 	var wg sync.WaitGroup
 	successCount := int64(0)
 	var successMutex sync.Mutex
-	
+
 	// Submit exactly the maximum number of concurrent intents
 	for i := 0; i < int(maxIntents); i++ {
 		wg.Add(1)
 		go func(intentNum int) {
 			defer wg.Done()
-			
+
 			intent := &v1alpha1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("scaling-test-intent-%d", intentNum),
@@ -422,10 +422,10 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestSystemLimitsAndScaling(
 					Priority:   "medium",
 				},
 			}
-			
+
 			ctx, cancel := context.WithTimeout(suite.ctx, 60*time.Second)
 			defer cancel()
-			
+
 			result, err := suite.engine.ProcessIntentWorkflow(ctx, intent)
 			if err == nil && result != nil && result.Success {
 				successMutex.Lock()
@@ -436,26 +436,26 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestSystemLimitsAndScaling(
 			}
 		}(i)
 	}
-	
+
 	wg.Wait()
-	
+
 	// Analyze scaling behavior
 	successRate := float64(successCount) / float64(maxIntents)
-	suite.T().Logf("Scaling test: processed %d/%d intents (%.2f%% success rate)", 
+	suite.T().Logf("Scaling test: processed %d/%d intents (%.2f%% success rate)",
 		successCount, maxIntents, successRate*100)
-	
+
 	// System should handle at least some portion of max capacity
-	assert.True(suite.T(), successRate >= 0.5, 
+	assert.True(suite.T(), successRate >= 0.5,
 		"System should handle at least 50%% of max capacity under stress")
-	
+
 	// Verify system metrics reflect the load
 	metrics := suite.engine.GetMetrics()
 	assert.NotNil(suite.T(), metrics)
 	assert.True(suite.T(), metrics.TotalTasks >= successCount*4, // Minimum tasks per successful intent
 		"Metrics should reflect significant task processing")
-	
+
 	suite.T().Logf("Scaling test final metrics: %+v", metrics)
-	
+
 	// Verify system health after stress test
 	health := suite.engine.HealthCheck()
 	assert.NoError(suite.T(), health, "System should remain healthy after scaling test")
@@ -512,39 +512,39 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestRealWorldScenarios() {
 			},
 		},
 	}
-	
+
 	for _, scenario := range scenarios {
 		suite.T().Run(scenario.name, func(t *testing.T) {
 			startTime := time.Now()
-			
+
 			result, err := suite.engine.ProcessIntentWorkflow(suite.ctx, scenario.intent)
 			duration := time.Since(startTime)
-			
+
 			if err != nil {
 				t.Logf("Scenario %s failed: %v", scenario.name, err)
 			}
-			
+
 			t.Logf("Scenario %s completed in %v", scenario.name, duration)
-			
+
 			if result != nil {
-				t.Logf("Scenario %s result: Success=%v, Phases=%d", 
+				t.Logf("Scenario %s result: Success=%v, Phases=%d",
 					scenario.name, result.Success, len(result.ProcessingPhases))
-				
+
 				// Verify realistic processing occurred
-				assert.True(t, len(result.ProcessingPhases) >= 4, 
+				assert.True(t, len(result.ProcessingPhases) >= 4,
 					"Should have significant processing phases")
 			}
-			
+
 			// Verify reasonable processing time for realistic scenarios
-			assert.True(t, duration < 2*time.Minute, 
+			assert.True(t, duration < 2*time.Minute,
 				"Realistic scenarios should complete within reasonable time")
 		})
 	}
-	
+
 	// Verify system health after all scenarios
 	health := suite.engine.HealthCheck()
 	assert.NoError(suite.T(), health, "System should remain healthy after real-world scenarios")
-	
+
 	// Check final system metrics
 	metrics := suite.engine.GetMetrics()
 	suite.T().Logf("Real-world scenarios final metrics: %+v", metrics)

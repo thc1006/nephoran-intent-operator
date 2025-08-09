@@ -27,29 +27,29 @@ type LDAPAuthMiddleware struct {
 // LDAPMiddlewareConfig represents LDAP middleware configuration
 type LDAPMiddlewareConfig struct {
 	// Authentication settings
-	Realm                string        `json:"realm"`
-	DefaultProvider      string        `json:"default_provider"`
-	AllowBasicAuth       bool          `json:"allow_basic_auth"`
-	AllowFormAuth        bool          `json:"allow_form_auth"`
-	AllowJSONAuth        bool          `json:"allow_json_auth"`
-	SessionTimeout       time.Duration `json:"session_timeout"`
-	
+	Realm           string        `json:"realm"`
+	DefaultProvider string        `json:"default_provider"`
+	AllowBasicAuth  bool          `json:"allow_basic_auth"`
+	AllowFormAuth   bool          `json:"allow_form_auth"`
+	AllowJSONAuth   bool          `json:"allow_json_auth"`
+	SessionTimeout  time.Duration `json:"session_timeout"`
+
 	// Security settings
-	RequireHTTPS         bool          `json:"require_https"`
-	MaxFailedAttempts    int           `json:"max_failed_attempts"`
-	LockoutDuration      time.Duration `json:"lockout_duration"`
-	
+	RequireHTTPS      bool          `json:"require_https"`
+	MaxFailedAttempts int           `json:"max_failed_attempts"`
+	LockoutDuration   time.Duration `json:"lockout_duration"`
+
 	// Cache settings
-	EnableUserCache      bool          `json:"enable_user_cache"`
-	CacheTTL             time.Duration `json:"cache_ttl"`
-	
+	EnableUserCache bool          `json:"enable_user_cache"`
+	CacheTTL        time.Duration `json:"cache_ttl"`
+
 	// Headers
-	UserHeader           string        `json:"user_header"`
-	RolesHeader          string        `json:"roles_header"`
-	GroupsHeader         string        `json:"groups_header"`
-	
+	UserHeader   string `json:"user_header"`
+	RolesHeader  string `json:"roles_header"`
+	GroupsHeader string `json:"groups_header"`
+
 	// Skip authentication for these paths
-	SkipAuth             []string      `json:"skip_auth"`
+	SkipAuth []string `json:"skip_auth"`
 }
 
 // LDAPAuthRequest represents LDAP authentication request
@@ -61,28 +61,28 @@ type LDAPAuthRequest struct {
 
 // LDAPAuthResponse represents LDAP authentication response
 type LDAPAuthResponse struct {
-	Success      bool                   `json:"success"`
-	AccessToken  string                 `json:"access_token,omitempty"`
-	RefreshToken string                 `json:"refresh_token,omitempty"`
-	ExpiresIn    int64                  `json:"expires_in,omitempty"`
-	TokenType    string                 `json:"token_type,omitempty"`
-	User         *LDAPUserResponse      `json:"user,omitempty"`
-	Error        string                 `json:"error,omitempty"`
-	ErrorCode    string                 `json:"error_code,omitempty"`
+	Success      bool              `json:"success"`
+	AccessToken  string            `json:"access_token,omitempty"`
+	RefreshToken string            `json:"refresh_token,omitempty"`
+	ExpiresIn    int64             `json:"expires_in,omitempty"`
+	TokenType    string            `json:"token_type,omitempty"`
+	User         *LDAPUserResponse `json:"user,omitempty"`
+	Error        string            `json:"error,omitempty"`
+	ErrorCode    string            `json:"error_code,omitempty"`
 }
 
 // LDAPUserResponse represents LDAP user in response
 type LDAPUserResponse struct {
-	Username     string   `json:"username"`
-	Email        string   `json:"email"`
-	DisplayName  string   `json:"display_name"`
-	FirstName    string   `json:"first_name"`
-	LastName     string   `json:"last_name"`
-	Title        string   `json:"title"`
-	Department   string   `json:"department"`
-	Phone        string   `json:"phone"`
-	Groups       []string `json:"groups"`
-	Roles        []string `json:"roles"`
+	Username    string   `json:"username"`
+	Email       string   `json:"email"`
+	DisplayName string   `json:"display_name"`
+	FirstName   string   `json:"first_name"`
+	LastName    string   `json:"last_name"`
+	Title       string   `json:"title"`
+	Department  string   `json:"department"`
+	Phone       string   `json:"phone"`
+	Groups      []string `json:"groups"`
+	Roles       []string `json:"roles"`
 }
 
 // NewLDAPAuthMiddleware creates new LDAP authentication middleware
@@ -195,14 +195,14 @@ func (lm *LDAPAuthMiddleware) HandleLDAPLogin(w http.ResponseWriter, r *http.Req
 
 	// Create session
 	sessionInfo, err := lm.sessionManager.CreateSession(r.Context(), &SessionData{
-		UserID:       userInfo.Username,
-		Username:     userInfo.Username,
-		Email:        userInfo.Email,
-		DisplayName:  userInfo.Name,
-		Provider:     "ldap:" + provider,
-		Groups:       userInfo.Groups,
-		Roles:        userInfo.Roles,
-		ExpiresAt:    time.Now().Add(lm.config.SessionTimeout),
+		UserID:      userInfo.Username,
+		Username:    userInfo.Username,
+		Email:       userInfo.Email,
+		DisplayName: userInfo.Name,
+		Provider:    "ldap:" + provider,
+		Groups:      userInfo.Groups,
+		Roles:       userInfo.Roles,
+		ExpiresAt:   time.Now().Add(lm.config.SessionTimeout),
 	})
 	if err != nil {
 		lm.logger.Error("Failed to create session", "error", err, "username", authReq.Username)

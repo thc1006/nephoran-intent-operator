@@ -23,7 +23,7 @@ func NewUserFactory() *UserFactory {
 func (f *UserFactory) CreateBasicUser() *providers.UserInfo {
 	f.counter++
 	id := fmt.Sprintf("user%d", f.counter)
-	
+
 	return &providers.UserInfo{
 		Subject:       fmt.Sprintf("test-%s", id),
 		Email:         fmt.Sprintf("%s@example.com", id),
@@ -72,7 +72,7 @@ func (f *UserFactory) CreateUserWithProvider(provider string) *providers.UserInf
 	user := f.CreateBasicUser()
 	user.Provider = provider
 	user.ProviderID = fmt.Sprintf("%s-%s", provider, user.Subject)
-	
+
 	// Provider-specific adjustments
 	switch provider {
 	case "github":
@@ -84,7 +84,7 @@ func (f *UserFactory) CreateUserWithProvider(provider string) *providers.UserInf
 		user.Attributes["tenant_id"] = "test-tenant-123"
 		user.Attributes["object_id"] = fmt.Sprintf("obj-%s", user.Subject)
 	}
-	
+
 	return user
 }
 
@@ -277,14 +277,14 @@ func (f *ConfigFactory) CreateRBACConfig() *auth.RBACConfig {
 // CreateSessionConfig creates a session configuration for testing
 func (f *ConfigFactory) CreateSessionConfig() *auth.SessionConfig {
 	return &auth.SessionConfig{
-		SessionTTL:     time.Hour,
-		CleanupPeriod:  time.Minute,
-		CookieName:     "test-session",
-		CookiePath:     "/",
-		CookieDomain:   "localhost",
-		SecureCookies:  false,
-		HTTPOnly:       true,
-		SameSite:       4, // SameSiteStrictMode
+		SessionTTL:    time.Hour,
+		CleanupPeriod: time.Minute,
+		CookieName:    "test-session",
+		CookiePath:    "/",
+		CookieDomain:  "localhost",
+		SecureCookies: false,
+		HTTPOnly:      true,
+		SameSite:      4, // SameSiteStrictMode
 	}
 }
 
@@ -517,7 +517,7 @@ func CreateTestData() map[string]interface{} {
 	rf := NewRoleFactory()
 	pf := NewPermissionFactory()
 	sf := NewSessionFactory()
-	
+
 	data := map[string]interface{}{
 		"users": map[string]*providers.UserInfo{
 			"basic":  uf.CreateBasicUser(),
@@ -527,9 +527,9 @@ func CreateTestData() map[string]interface{} {
 			"azure":  uf.CreateUserWithProvider("azuread"),
 		},
 		"tokens": map[string]jwt.MapClaims{
-			"valid":     tf.CreateBasicToken("test-user"),
-			"expired":   tf.CreateExpiredToken("test-user"),
-			"future":    tf.CreateTokenNotValidYet("test-user"),
+			"valid":      tf.CreateBasicToken("test-user"),
+			"expired":    tf.CreateExpiredToken("test-user"),
+			"future":     tf.CreateTokenNotValidYet("test-user"),
 			"with_roles": tf.CreateTokenWithRoles("test-user", []string{"admin"}),
 		},
 		"roles": map[string]*auth.Role{
@@ -542,6 +542,6 @@ func CreateTestData() map[string]interface{} {
 			"expired": sf.CreateExpiredSession("test-user"),
 		},
 	}
-	
+
 	return data
 }

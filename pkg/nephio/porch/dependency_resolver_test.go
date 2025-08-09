@@ -28,10 +28,10 @@ import (
 func TestDependencyResolver_5GCoreScenario(t *testing.T) {
 	// Test 5G Core function dependencies
 	tests := []struct {
-		name             string
-		rootPackage      *PackageReference
-		expectedDeps     []string
-		expectedOrder    []string
+		name              string
+		rootPackage       *PackageReference
+		expectedDeps      []string
+		expectedOrder     []string
 		expectedConflicts int
 	}{
 		{
@@ -40,8 +40,8 @@ func TestDependencyResolver_5GCoreScenario(t *testing.T) {
 				Name:      "amf",
 				Namespace: "5g-core",
 			},
-			expectedDeps: []string{"udm", "ausf", "nrf"},
-			expectedOrder: []string{"nrf", "udm", "ausf", "amf"},
+			expectedDeps:      []string{"udm", "ausf", "nrf"},
+			expectedOrder:     []string{"nrf", "udm", "ausf", "amf"},
 			expectedConflicts: 0,
 		},
 		{
@@ -50,8 +50,8 @@ func TestDependencyResolver_5GCoreScenario(t *testing.T) {
 				Name:      "smf",
 				Namespace: "5g-core",
 			},
-			expectedDeps: []string{"upf", "pcf", "nrf"},
-			expectedOrder: []string{"nrf", "pcf", "upf", "smf"},
+			expectedDeps:      []string{"upf", "pcf", "nrf"},
+			expectedOrder:     []string{"nrf", "pcf", "upf", "smf"},
 			expectedConflicts: 0,
 		},
 		{
@@ -60,8 +60,8 @@ func TestDependencyResolver_5GCoreScenario(t *testing.T) {
 				Name:      "nssf",
 				Namespace: "5g-core",
 			},
-			expectedDeps: []string{"nrf", "slice-manager"},
-			expectedOrder: []string{"nrf", "slice-manager", "nssf"},
+			expectedDeps:      []string{"nrf", "slice-manager"},
+			expectedOrder:     []string{"nrf", "slice-manager", "nssf"},
 			expectedConflicts: 0,
 		},
 	}
@@ -82,7 +82,7 @@ func TestDependencyResolver_5GCoreScenario(t *testing.T) {
 			ctx := context.Background()
 
 			// Build dependency graph
-			graph, err := resolver.BuildDependencyGraph(ctx, 
+			graph, err := resolver.BuildDependencyGraph(ctx,
 				[]*PackageReference{tt.rootPackage},
 				&GraphBuildOptions{
 					MaxDepth:          5,
@@ -122,9 +122,9 @@ func TestDependencyResolver_5GCoreScenario(t *testing.T) {
 func TestDependencyResolver_ORANScenario(t *testing.T) {
 	// Test O-RAN component dependencies
 	tests := []struct {
-		name             string
-		rootPackage      *PackageReference
-		expectedDeps     []string
+		name         string
+		rootPackage  *PackageReference
+		expectedDeps []string
 	}{
 		{
 			name: "Near-RT RIC with E2 nodes",
@@ -304,8 +304,8 @@ func TestDependencyResolver_UpdatePropagation(t *testing.T) {
 	}
 
 	// Propagate updates
-	propagationResult, err := resolver.PropagateUpdates(ctx, 
-		updatedPackage, 
+	propagationResult, err := resolver.PropagateUpdates(ctx,
+		updatedPackage,
 		PropagationStrategyEager)
 	require.NoError(t, err)
 	assert.True(t, propagationResult.Success)
@@ -356,11 +356,11 @@ func TestContextAwareSelector_5GCoreContext(t *testing.T) {
 func TestSATSolver_ComplexConstraints(t *testing.T) {
 	// Test SAT solver with complex version constraints
 	config := &SATSolverConfig{
-		MaxDecisions:     1000,
-		MaxConflicts:     100,
-		Timeout:          1 * time.Minute,
-		EnableLearning:   true,
-		EnableVSIDS:      true,
+		MaxDecisions:   1000,
+		MaxConflicts:   100,
+		Timeout:        1 * time.Minute,
+		EnableLearning: true,
+		EnableVSIDS:    true,
 	}
 
 	solver := NewSATSolver(config)

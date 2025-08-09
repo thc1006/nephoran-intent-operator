@@ -43,11 +43,11 @@ func Example5GCoreDeploymentWithDependencies() error {
 		MaxResolutionTime: 10 * time.Minute,
 		VersionSolverConfig: &VersionSolverConfig{
 			SATSolverConfig: &SATSolverConfig{
-				MaxDecisions:     10000,
-				MaxConflicts:     1000,
-				Timeout:          5 * time.Minute,
-				EnableLearning:   true,
-				EnableVSIDS:      true,
+				MaxDecisions:   10000,
+				MaxConflicts:   1000,
+				Timeout:        5 * time.Minute,
+				EnableLearning: true,
+				EnableVSIDS:    true,
 			},
 		},
 	}
@@ -72,15 +72,15 @@ func Example5GCoreDeploymentWithDependencies() error {
 	graph, err := resolver.BuildDependencyGraph(ctx,
 		[]*PackageReference{amfPackage},
 		&GraphBuildOptions{
-			MaxDepth:            10,
-			IncludeOptional:     true,
+			MaxDepth:               10,
+			IncludeOptional:        true,
 			IncludeDevDependencies: false,
-			ResolveTransitive:   true,
-			UseCache:            true,
-			ParallelProcessing:  true,
-			VersionSelection:    VersionSelectionStrategyLatest,
-			ConflictResolution:  ConflictResolutionStrategyAutomatic,
-			Timeout:             5 * time.Minute,
+			ResolveTransitive:      true,
+			UseCache:               true,
+			ParallelProcessing:     true,
+			VersionSelection:       VersionSelectionStrategyLatest,
+			ConflictResolution:     ConflictResolutionStrategyAutomatic,
+			Timeout:                5 * time.Minute,
 		})
 	if err != nil {
 		return fmt.Errorf("failed to build dependency graph: %w", err)
@@ -96,7 +96,7 @@ func Example5GCoreDeploymentWithDependencies() error {
 
 	if circularResult.HasCircularDependencies {
 		fmt.Printf("Circular dependencies detected: %d cycles\n", len(circularResult.Cycles))
-		
+
 		// Attempt to break circular dependencies
 		for _, suggestion := range circularResult.BreakingSuggestions {
 			fmt.Printf("Suggestion: Break at %s -> %s\n",
@@ -105,7 +105,7 @@ func Example5GCoreDeploymentWithDependencies() error {
 		}
 
 		// Apply automatic resolution
-		modification, err := resolver.BreakCircularDependencies(ctx, graph, 
+		modification, err := resolver.BreakCircularDependencies(ctx, graph,
 			CircularResolutionStrategyBreak)
 		if err != nil {
 			return fmt.Errorf("failed to break circular dependencies: %w", err)
@@ -158,7 +158,7 @@ func Example5GCoreDeploymentWithDependencies() error {
 
 	// Perform context-aware dependency selection
 	selector := NewContextAwareDependencySelector()
-	
+
 	targetClusters := []*WorkloadCluster{
 		{
 			Name:   "core-dc-1",
@@ -192,13 +192,13 @@ func Example5GCoreDeploymentWithDependencies() error {
 	}
 
 	fmt.Println("\nSelecting dependencies based on deployment context...")
-	contextualDeps, err := selector.SelectDependencies(ctx, amfPackage, 
+	contextualDeps, err := selector.SelectDependencies(ctx, amfPackage,
 		targetClusters, contextOpts)
 	if err != nil {
 		return fmt.Errorf("failed to select contextual dependencies: %w", err)
 	}
 
-	fmt.Printf("Context-aware selection completed (score: %.2f):\n", 
+	fmt.Printf("Context-aware selection completed (score: %.2f):\n",
 		contextualDeps.ContextScore)
 	fmt.Printf("  Primary dependencies: %d\n", len(contextualDeps.PrimaryDependencies))
 	fmt.Printf("  Optional dependencies: %d\n", len(contextualDeps.OptionalDependencies))
@@ -283,7 +283,7 @@ func Example5GCoreDeploymentWithDependencies() error {
 	if propagationResult.Success {
 		fmt.Printf("Update propagation successful:\n")
 		fmt.Printf("  Affected packages: %d\n", len(propagationResult.UpdatedPackages))
-		
+
 		for _, update := range propagationResult.UpdatedPackages {
 			fmt.Printf("    %s: %s -> %s (%s)\n",
 				update.PackageRef.Name,

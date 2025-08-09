@@ -21,21 +21,21 @@ import (
 // EnhancedFaultManager provides comprehensive O-RAN fault management
 // following O-RAN.WG10.O1-Interface.0-v07.00 specification
 type EnhancedFaultManager struct {
-	config           *FaultManagerConfig
-	alarms           map[string]*EnhancedAlarm
-	alarmHistory     []*AlarmHistoryEntry
-	alarmsMux        sync.RWMutex
+	config            *FaultManagerConfig
+	alarms            map[string]*EnhancedAlarm
+	alarmHistory      []*AlarmHistoryEntry
+	alarmsMux         sync.RWMutex
 	correlationEngine *AlarmCorrelationEngine
-	notificationMgr  *AlarmNotificationManager
-	thresholdMgr     *AlarmThresholdManager
-	maskingMgr       *AlarmMaskingManager
+	notificationMgr   *AlarmNotificationManager
+	thresholdMgr      *AlarmThresholdManager
+	maskingMgr        *AlarmMaskingManager
 	rootCauseAnalyzer *RootCauseAnalyzer
 	websocketUpgrader websocket.Upgrader
-	subscribers      map[string]*AlarmSubscriber
-	subscribersMux   sync.RWMutex
-	prometheusClient api.Client
-	metrics          *FaultMetrics
-	streamingEnabled bool
+	subscribers       map[string]*AlarmSubscriber
+	subscribersMux    sync.RWMutex
+	prometheusClient  api.Client
+	metrics           *FaultMetrics
+	streamingEnabled  bool
 }
 
 // FaultManagerConfig holds fault manager configuration
@@ -73,42 +73,42 @@ type EnhancedAlarm struct {
 
 // AlarmHistoryEntry represents a historical alarm record
 type AlarmHistoryEntry struct {
-	AlarmID           string                 `json:"alarm_id"`
-	Timestamp         time.Time              `json:"timestamp"`
-	Action            string                 `json:"action"` // RAISED, CHANGED, CLEARED, ACKNOWLEDGED
-	Severity          string                 `json:"severity"`
-	Details           map[string]interface{} `json:"details"`
-	OperatorComments  string                 `json:"operator_comments,omitempty"`
+	AlarmID          string                 `json:"alarm_id"`
+	Timestamp        time.Time              `json:"timestamp"`
+	Action           string                 `json:"action"` // RAISED, CHANGED, CLEARED, ACKNOWLEDGED
+	Severity         string                 `json:"severity"`
+	Details          map[string]interface{} `json:"details"`
+	OperatorComments string                 `json:"operator_comments,omitempty"`
 }
 
 // AlarmCorrelationEngine performs alarm correlation and root cause analysis
 type AlarmCorrelationEngine struct {
-	rules             map[string]*CorrelationRule
-	correlationGraph  *AlarmGraph
-	temporalWindow    time.Duration
-	spatialRules      map[string]*SpatialCorrelationRule
-	mutex             sync.RWMutex
+	rules            map[string]*CorrelationRule
+	correlationGraph *AlarmGraph
+	temporalWindow   time.Duration
+	spatialRules     map[string]*SpatialCorrelationRule
+	mutex            sync.RWMutex
 }
 
 // CorrelationRule defines alarm correlation rules
 type CorrelationRule struct {
-	ID                string        `json:"id"`
-	Name              string        `json:"name"`
-	TriggerPattern    []AlarmPattern `json:"trigger_pattern"`
-	ResultAction      string        `json:"result_action"` // SUPPRESS, CORRELATE, ROOT_CAUSE
-	TimeWindow        time.Duration `json:"time_window"`
-	Enabled           bool          `json:"enabled"`
-	Priority          int           `json:"priority"`
+	ID             string         `json:"id"`
+	Name           string         `json:"name"`
+	TriggerPattern []AlarmPattern `json:"trigger_pattern"`
+	ResultAction   string         `json:"result_action"` // SUPPRESS, CORRELATE, ROOT_CAUSE
+	TimeWindow     time.Duration  `json:"time_window"`
+	Enabled        bool           `json:"enabled"`
+	Priority       int            `json:"priority"`
 }
 
 // AlarmPattern defines patterns for alarm correlation
 type AlarmPattern struct {
-	AlarmType         string                 `json:"alarm_type"`
-	Severity          string                 `json:"severity"`
-	Source            string                 `json:"source"`
-	Attributes        map[string]interface{} `json:"attributes"`
-	TemporalRelation  string                 `json:"temporal_relation"` // BEFORE, AFTER, CONCURRENT
-	SpatialRelation   string                 `json:"spatial_relation"`  // SAME_NODE, ADJACENT, DOWNSTREAM
+	AlarmType        string                 `json:"alarm_type"`
+	Severity         string                 `json:"severity"`
+	Source           string                 `json:"source"`
+	Attributes       map[string]interface{} `json:"attributes"`
+	TemporalRelation string                 `json:"temporal_relation"` // BEFORE, AFTER, CONCURRENT
+	SpatialRelation  string                 `json:"spatial_relation"`  // SAME_NODE, ADJACENT, DOWNSTREAM
 }
 
 // SpatialCorrelationRule defines spatial relationships between network elements
@@ -128,28 +128,28 @@ type AlarmGraph struct {
 
 // AlarmNode represents a node in the correlation graph
 type AlarmNode struct {
-	AlarmID     string                 `json:"alarm_id"`
-	NodeType    string                 `json:"node_type"` // ROOT, SYMPTOM, RELATED
-	Attributes  map[string]interface{} `json:"attributes"`
-	Timestamp   time.Time              `json:"timestamp"`
-	Processed   bool                   `json:"processed"`
+	AlarmID    string                 `json:"alarm_id"`
+	NodeType   string                 `json:"node_type"` // ROOT, SYMPTOM, RELATED
+	Attributes map[string]interface{} `json:"attributes"`
+	Timestamp  time.Time              `json:"timestamp"`
+	Processed  bool                   `json:"processed"`
 }
 
 // AlarmEdge represents a relationship between alarms
 type AlarmEdge struct {
-	SourceAlarmID   string  `json:"source_alarm_id"`
-	TargetAlarmID   string  `json:"target_alarm_id"`
-	RelationType    string  `json:"relation_type"`
-	Confidence      float64 `json:"confidence"`
-	Weight          int     `json:"weight"`
+	SourceAlarmID string  `json:"source_alarm_id"`
+	TargetAlarmID string  `json:"target_alarm_id"`
+	RelationType  string  `json:"relation_type"`
+	Confidence    float64 `json:"confidence"`
+	Weight        int     `json:"weight"`
 }
 
 // AlarmNotificationManager handles alarm notifications
 type AlarmNotificationManager struct {
-	channels         map[string]NotificationChannel
-	templates        map[string]*NotificationTemplate
-	escalationRules  []*EscalationRule
-	mutex            sync.RWMutex
+	channels        map[string]NotificationChannel
+	templates       map[string]*NotificationTemplate
+	escalationRules []*EscalationRule
+	mutex           sync.RWMutex
 }
 
 // NotificationChannel interface for different notification methods
@@ -161,44 +161,44 @@ type NotificationChannel interface {
 
 // NotificationTemplate defines notification formatting
 type NotificationTemplate struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Subject     string            `json:"subject"`
-	Body        string            `json:"body"`
-	Format      string            `json:"format"` // TEXT, HTML, JSON
-	Variables   map[string]string `json:"variables"`
+	ID        string            `json:"id"`
+	Name      string            `json:"name"`
+	Subject   string            `json:"subject"`
+	Body      string            `json:"body"`
+	Format    string            `json:"format"` // TEXT, HTML, JSON
+	Variables map[string]string `json:"variables"`
 }
 
 // EscalationRule defines when and how to escalate alarms
 type EscalationRule struct {
-	ID             string        `json:"id"`
-	Severity       []string      `json:"severity"`
-	Duration       time.Duration `json:"duration"`
-	Target         string        `json:"target"`
-	Action         string        `json:"action"`
-	Enabled        bool          `json:"enabled"`
+	ID       string        `json:"id"`
+	Severity []string      `json:"severity"`
+	Duration time.Duration `json:"duration"`
+	Target   string        `json:"target"`
+	Action   string        `json:"action"`
+	Enabled  bool          `json:"enabled"`
 }
 
 // AlarmThresholdManager manages alarm thresholds and conditions
 type AlarmThresholdManager struct {
-	thresholds  map[string]*AlarmThreshold
-	monitors    map[string]*ThresholdMonitor
-	mutex       sync.RWMutex
+	thresholds map[string]*AlarmThreshold
+	monitors   map[string]*ThresholdMonitor
+	mutex      sync.RWMutex
 }
 
 // AlarmThreshold defines conditions for alarm generation
 type AlarmThreshold struct {
-	ID              string                 `json:"id"`
-	MetricName      string                 `json:"metric_name"`
-	Condition       string                 `json:"condition"` // GT, LT, EQ, NE, GTE, LTE
-	Value           float64                `json:"value"`
-	Severity        string                 `json:"severity"`
-	Duration        time.Duration          `json:"duration"`
-	AlarmType       string                 `json:"alarm_type"`
-	Enabled         bool                   `json:"enabled"`
-	Attributes      map[string]interface{} `json:"attributes"`
-	ClearThreshold  *float64               `json:"clear_threshold,omitempty"`
-	Hysteresis      bool                   `json:"hysteresis"`
+	ID             string                 `json:"id"`
+	MetricName     string                 `json:"metric_name"`
+	Condition      string                 `json:"condition"` // GT, LT, EQ, NE, GTE, LTE
+	Value          float64                `json:"value"`
+	Severity       string                 `json:"severity"`
+	Duration       time.Duration          `json:"duration"`
+	AlarmType      string                 `json:"alarm_type"`
+	Enabled        bool                   `json:"enabled"`
+	Attributes     map[string]interface{} `json:"attributes"`
+	ClearThreshold *float64               `json:"clear_threshold,omitempty"`
+	Hysteresis     bool                   `json:"hysteresis"`
 }
 
 // ThresholdMonitor monitors metrics and triggers alarms
@@ -213,20 +213,20 @@ type ThresholdMonitor struct {
 
 // AlarmMaskingManager handles alarm suppression and filtering
 type AlarmMaskingManager struct {
-	masks      map[string]*AlarmMask
-	filters    []*AlarmFilter
-	mutex      sync.RWMutex
+	masks   map[string]*AlarmMask
+	filters []*AlarmFilter
+	mutex   sync.RWMutex
 }
 
 // AlarmMask defines alarm suppression rules
 type AlarmMask struct {
-	ID          string                 `json:"id"`
-	Pattern     AlarmPattern           `json:"pattern"`
-	Action      string                 `json:"action"` // SUPPRESS, DELAY, MODIFY
-	Duration    time.Duration          `json:"duration"`
-	Reason      string                 `json:"reason"`
-	Enabled     bool                   `json:"enabled"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	ID         string                 `json:"id"`
+	Pattern    AlarmPattern           `json:"pattern"`
+	Action     string                 `json:"action"` // SUPPRESS, DELAY, MODIFY
+	Duration   time.Duration          `json:"duration"`
+	Reason     string                 `json:"reason"`
+	Enabled    bool                   `json:"enabled"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 // AlarmFilter defines alarm filtering rules
@@ -240,27 +240,27 @@ type AlarmFilter struct {
 
 // RootCauseAnalyzer provides AI-enhanced root cause analysis
 type RootCauseAnalyzer struct {
-	knowledgeBase  *RootCauseKnowledgeBase
-	mlModel        MLRootCauseModel
-	analysisCache  map[string]*RootCauseAnalysis
-	mutex          sync.RWMutex
+	knowledgeBase *RootCauseKnowledgeBase
+	mlModel       MLRootCauseModel
+	analysisCache map[string]*RootCauseAnalysis
+	mutex         sync.RWMutex
 }
 
 // RootCauseKnowledgeBase contains expert knowledge for root cause analysis
 type RootCauseKnowledgeBase struct {
-	Rules           map[string]*RootCauseRule
-	Patterns        []*CausalPattern
-	ProbabilityMap  map[string]float64
-	UpdateTime      time.Time
+	Rules          map[string]*RootCauseRule
+	Patterns       []*CausalPattern
+	ProbabilityMap map[string]float64
+	UpdateTime     time.Time
 }
 
 // RootCauseRule defines expert rules for root cause analysis
 type RootCauseRule struct {
-	ID          string          `json:"id"`
-	Conditions  []RuleCondition `json:"conditions"`
-	Conclusion  string          `json:"conclusion"`
-	Confidence  float64         `json:"confidence"`
-	Action      string          `json:"action"`
+	ID         string          `json:"id"`
+	Conditions []RuleCondition `json:"conditions"`
+	Conclusion string          `json:"conclusion"`
+	Confidence float64         `json:"confidence"`
+	Action     string          `json:"action"`
 }
 
 // RuleCondition defines conditions for root cause rules
@@ -281,10 +281,10 @@ type CausalPattern struct {
 
 // EventPattern defines patterns in alarm events
 type EventPattern struct {
-	EventType    string                 `json:"event_type"`
-	Attributes   map[string]interface{} `json:"attributes"`
-	Frequency    int                    `json:"frequency"`
-	Duration     time.Duration          `json:"duration"`
+	EventType  string                 `json:"event_type"`
+	Attributes map[string]interface{} `json:"attributes"`
+	Frequency  int                    `json:"frequency"`
+	Duration   time.Duration          `json:"duration"`
 }
 
 // MLRootCauseModel interface for machine learning models
@@ -296,22 +296,22 @@ type MLRootCauseModel interface {
 
 // RootCauseAnalysis represents the result of root cause analysis
 type RootCauseAnalysis struct {
-	AnalysisID      string                `json:"analysis_id"`
-	Timestamp       time.Time             `json:"timestamp"`
-	RootCauseAlarms []string              `json:"root_cause_alarms"`
-	SymptomAlarms   []string              `json:"symptom_alarms"`
-	Confidence      float64               `json:"confidence"`
-	Reasoning       string                `json:"reasoning"`
-	Recommendations []string              `json:"recommendations"`
-	AffectedServices []string             `json:"affected_services"`
-	EstimatedImpact  ImpactAssessment      `json:"estimated_impact"`
+	AnalysisID       string           `json:"analysis_id"`
+	Timestamp        time.Time        `json:"timestamp"`
+	RootCauseAlarms  []string         `json:"root_cause_alarms"`
+	SymptomAlarms    []string         `json:"symptom_alarms"`
+	Confidence       float64          `json:"confidence"`
+	Reasoning        string           `json:"reasoning"`
+	Recommendations  []string         `json:"recommendations"`
+	AffectedServices []string         `json:"affected_services"`
+	EstimatedImpact  ImpactAssessment `json:"estimated_impact"`
 }
 
 // ImpactAssessment represents the impact assessment of alarms
 type ImpactAssessment struct {
-	ServiceImpact    string   `json:"service_impact"`    // HIGH, MEDIUM, LOW
-	CustomerImpact   string   `json:"customer_impact"`   // CRITICAL, MAJOR, MINOR
-	BusinessImpact   string   `json:"business_impact"`   // REVENUE, REPUTATION, OPERATIONAL
+	ServiceImpact    string   `json:"service_impact"`  // HIGH, MEDIUM, LOW
+	CustomerImpact   string   `json:"customer_impact"` // CRITICAL, MAJOR, MINOR
+	BusinessImpact   string   `json:"business_impact"` // REVENUE, REPUTATION, OPERATIONAL
 	AffectedUsers    int      `json:"affected_users"`
 	AffectedServices []string `json:"affected_services"`
 	RecoveryTime     string   `json:"recovery_time"`
@@ -319,31 +319,31 @@ type ImpactAssessment struct {
 
 // RootCauseFeedback represents feedback for ML model training
 type RootCauseFeedback struct {
-	AnalysisID     string  `json:"analysis_id"`
-	CorrectRootCause bool  `json:"correct_root_cause"`
-	ActualRootCause string `json:"actual_root_cause"`
-	Comments       string `json:"comments"`
-	Timestamp      time.Time `json:"timestamp"`
+	AnalysisID       string    `json:"analysis_id"`
+	CorrectRootCause bool      `json:"correct_root_cause"`
+	ActualRootCause  string    `json:"actual_root_cause"`
+	Comments         string    `json:"comments"`
+	Timestamp        time.Time `json:"timestamp"`
 }
 
 // AlarmSubscriber represents a client subscribed to alarm notifications
 type AlarmSubscriber struct {
-	ID          string                 `json:"id"`
-	Connection  *websocket.Conn        `json:"-"`
-	Filters     []AlarmPattern         `json:"filters"`
-	LastPing    time.Time              `json:"last_ping"`
-	Active      bool                   `json:"active"`
-	SendBuffer  chan *EnhancedAlarm    `json:"-"`
-	Metadata    map[string]interface{} `json:"metadata"`
+	ID         string                 `json:"id"`
+	Connection *websocket.Conn        `json:"-"`
+	Filters    []AlarmPattern         `json:"filters"`
+	LastPing   time.Time              `json:"last_ping"`
+	Active     bool                   `json:"active"`
+	SendBuffer chan *EnhancedAlarm    `json:"-"`
+	Metadata   map[string]interface{} `json:"metadata"`
 }
 
 // FaultMetrics holds Prometheus metrics for fault management
 type FaultMetrics struct {
-	ActiveAlarms    prometheus.Gauge
-	AlarmRate       prometheus.Counter
-	AlarmsByType    *prometheus.CounterVec
-	AlarmsBySeverity *prometheus.CounterVec
-	CorrelationHits prometheus.Counter
+	ActiveAlarms      prometheus.Gauge
+	AlarmRate         prometheus.Counter
+	AlarmsByType      *prometheus.CounterVec
+	AlarmsBySeverity  *prometheus.CounterVec
+	CorrelationHits   prometheus.Counter
 	RootCauseAccuracy prometheus.Histogram
 }
 
@@ -439,8 +439,8 @@ func (fm *EnhancedFaultManager) RaiseAlarm(ctx context.Context, alarm *Alarm) (*
 		Action:    "RAISED",
 		Severity:  enhancedAlarm.Severity,
 		Details: map[string]interface{}{
-			"source":          enhancedAlarm.ManagedElementID,
-			"probable_cause":  enhancedAlarm.ProbableCause,
+			"source":           enhancedAlarm.ManagedElementID,
+			"probable_cause":   enhancedAlarm.ProbableCause,
 			"specific_problem": enhancedAlarm.SpecificProblem,
 		},
 	})
@@ -489,7 +489,7 @@ func (fm *EnhancedFaultManager) ClearAlarm(ctx context.Context, alarmID string, 
 	alarm.AlarmClearedTime = time.Now()
 	alarm.TimeCleared = time.Now()
 	alarm.ProcessingState = "CLEARED"
-	
+
 	// Add clearing information
 	if clearingInfo != nil {
 		for key, value := range clearingInfo {
@@ -546,11 +546,11 @@ func (fm *EnhancedFaultManager) GetActiveAlarms(ctx context.Context, filters map
 			"MINOR":    2,
 			"WARNING":  1,
 		}
-		
+
 		if severityOrder[alarms[i].Severity] != severityOrder[alarms[j].Severity] {
 			return severityOrder[alarms[i].Severity] > severityOrder[alarms[j].Severity]
 		}
-		
+
 		return alarms[i].AlarmRaisedTime.After(alarms[j].AlarmRaisedTime)
 	})
 
@@ -647,11 +647,11 @@ func (fm *EnhancedFaultManager) GetFaultStatistics(ctx context.Context) (map[str
 	defer fm.alarmsMux.RUnlock()
 
 	stats := make(map[string]interface{})
-	
+
 	// Basic counts
 	stats["active_alarms"] = len(fm.alarms)
 	stats["total_history_entries"] = len(fm.alarmHistory)
-	
+
 	// Severity distribution
 	severityCount := make(map[string]int)
 	typeCount := make(map[string]int)
@@ -661,17 +661,17 @@ func (fm *EnhancedFaultManager) GetFaultStatistics(ctx context.Context) (map[str
 	}
 	stats["severity_distribution"] = severityCount
 	stats["type_distribution"] = typeCount
-	
+
 	// Correlation statistics
 	if fm.correlationEngine != nil {
 		stats["correlation_stats"] = fm.correlationEngine.GetStatistics()
 	}
-	
+
 	// Root cause statistics
 	if fm.rootCauseAnalyzer != nil {
 		stats["root_cause_stats"] = fm.rootCauseAnalyzer.GetStatistics()
 	}
-	
+
 	// Subscriber statistics
 	fm.subscribersMux.RLock()
 	stats["active_subscribers"] = len(fm.subscribers)
@@ -732,7 +732,7 @@ func (fm *EnhancedFaultManager) matchesFilters(alarm *EnhancedAlarm, filters map
 func (fm *EnhancedFaultManager) performCorrelation(ctx context.Context, alarm *EnhancedAlarm) {
 	if correlatedAlarms := fm.correlationEngine.CorrelateAlarm(ctx, alarm); len(correlatedAlarms) > 0 {
 		fm.metrics.CorrelationHits.Inc()
-		
+
 		// Update alarm with correlation information
 		fm.alarmsMux.Lock()
 		if existingAlarm, exists := fm.alarms[alarm.ID]; exists {
@@ -759,7 +759,7 @@ func (fm *EnhancedFaultManager) performRootCauseAnalysis(ctx context.Context, al
 				rootAlarm.ProcessingState = "ROOT_CAUSE_IDENTIFIED"
 			}
 		}
-		
+
 		fm.metrics.RootCauseAccuracy.Observe(analysis.Confidence)
 	}
 }
@@ -803,7 +803,7 @@ func (fm *EnhancedFaultManager) matchesAlarmPattern(alarm *EnhancedAlarm, patter
 	if pattern.Source != "" && alarm.ManagedElementID != pattern.Source {
 		return false
 	}
-	
+
 	// Check attribute matching
 	for key, value := range pattern.Attributes {
 		if alarmValue, exists := alarm.VendorSpecificData[key]; !exists || alarmValue != value {
@@ -838,16 +838,16 @@ func (fm *EnhancedFaultManager) handleSubscriber(subscriber *AlarmSubscriber) {
 			if !ok {
 				return
 			}
-			
+
 			if err := subscriber.Connection.WriteJSON(alarm); err != nil {
 				return
 			}
-			
+
 		case <-pingTicker.C:
 			if time.Since(subscriber.LastPing) > 60*time.Second {
 				return // Connection seems dead
 			}
-			
+
 			if err := subscriber.Connection.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
@@ -878,8 +878,8 @@ func initializeFaultMetrics() *FaultMetrics {
 			Help: "Total number of alarm correlations found",
 		}),
 		RootCauseAccuracy: promauto.NewHistogram(prometheus.HistogramOpts{
-			Name: "oran_fault_root_cause_accuracy",
-			Help: "Accuracy of root cause analysis",
+			Name:    "oran_fault_root_cause_accuracy",
+			Help:    "Accuracy of root cause analysis",
 			Buckets: prometheus.DefBuckets,
 		}),
 	}
@@ -890,7 +890,7 @@ func initializeFaultMetrics() *FaultMetrics {
 
 func NewAlarmCorrelationEngine(window time.Duration) *AlarmCorrelationEngine {
 	return &AlarmCorrelationEngine{
-		rules:            make(map[string]*CorrelationRule),
+		rules: make(map[string]*CorrelationRule),
 		correlationGraph: &AlarmGraph{
 			nodes: make(map[string]*AlarmNode),
 			edges: make(map[string][]*AlarmEdge),
@@ -979,9 +979,9 @@ func (rca *RootCauseAnalyzer) AnalyzeRootCause(ctx context.Context, alarms []*En
 
 func (rca *RootCauseAnalyzer) GetStatistics() map[string]interface{} {
 	return map[string]interface{}{
-		"knowledge_base_rules":    len(rca.knowledgeBase.Rules),
-		"causal_patterns":         len(rca.knowledgeBase.Patterns),
-		"cached_analyses":         len(rca.analysisCache),
-		"last_kb_update":          rca.knowledgeBase.UpdateTime,
+		"knowledge_base_rules": len(rca.knowledgeBase.Rules),
+		"causal_patterns":      len(rca.knowledgeBase.Patterns),
+		"cached_analyses":      len(rca.analysisCache),
+		"last_kb_update":       rca.knowledgeBase.UpdateTime,
 	}
 }

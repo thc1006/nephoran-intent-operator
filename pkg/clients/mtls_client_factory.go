@@ -17,13 +17,13 @@ import (
 type ServiceType string
 
 const (
-	ServiceTypeLLM         ServiceType = "llm"
-	ServiceTypeRAG         ServiceType = "rag"
-	ServiceTypeGit         ServiceType = "git"
-	ServiceTypeDatabase    ServiceType = "database"
-	ServiceTypeNephio      ServiceType = "nephio"
-	ServiceTypeORAN        ServiceType = "oran"
-	ServiceTypeMonitoring  ServiceType = "monitoring"
+	ServiceTypeLLM        ServiceType = "llm"
+	ServiceTypeRAG        ServiceType = "rag"
+	ServiceTypeGit        ServiceType = "git"
+	ServiceTypeDatabase   ServiceType = "database"
+	ServiceTypeNephio     ServiceType = "nephio"
+	ServiceTypeORAN       ServiceType = "oran"
+	ServiceTypeMonitoring ServiceType = "monitoring"
 )
 
 // MTLSClientFactory creates and manages mTLS-enabled service clients
@@ -32,11 +32,11 @@ type MTLSClientFactory struct {
 	logger          *logging.StructuredLogger
 	caManager       *ca.CAManager
 	identityManager *mtls.IdentityManager
-	
+
 	// Client cache
 	clients map[ServiceType]interface{}
 	mu      sync.RWMutex
-	
+
 	// Lifecycle management
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -55,17 +55,17 @@ func NewMTLSClientFactory(config *ClientFactoryConfig) (*MTLSClientFactory, erro
 	if config == nil {
 		return nil, fmt.Errorf("client factory config is required")
 	}
-	
+
 	if config.Config == nil {
 		return nil, fmt.Errorf("application config is required")
 	}
-	
+
 	if config.Logger == nil {
 		config.Logger = logging.NewStructuredLogger()
 	}
-	
+
 	ctx, cancel := context.WithCancel(context.Background())
-	
+
 	factory := &MTLSClientFactory{
 		config:          config.Config,
 		logger:          config.Logger,
@@ -75,12 +75,12 @@ func NewMTLSClientFactory(config *ClientFactoryConfig) (*MTLSClientFactory, erro
 		ctx:             ctx,
 		cancel:          cancel,
 	}
-	
+
 	config.Logger.Info("mTLS client factory initialized",
 		"mtls_enabled", config.Config.MTLSConfig != nil && config.Config.MTLSConfig.Enabled,
 		"auto_provision", config.Config.MTLSConfig != nil && config.Config.MTLSConfig.AutoProvision,
 		"ca_manager_available", config.CAManager != nil)
-	
+
 	return factory, nil
 }
 
@@ -92,34 +92,34 @@ func (f *MTLSClientFactory) GetLLMClient() (shared.ClientInterface, error) {
 		return client.(shared.ClientInterface), nil
 	}
 	f.mu.RUnlock()
-	
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	// Double-check after acquiring write lock
 	if client, exists := f.clients[ServiceTypeLLM]; exists {
 		return client.(shared.ClientInterface), nil
 	}
-	
+
 	// Create mTLS-enabled HTTP client
 	httpClient, err := f.createMTLSHTTPClient(ServiceTypeLLM)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mTLS HTTP client for LLM service: %w", err)
 	}
-	
+
 	// Create LLM client with mTLS HTTP client
 	llmClient := &MTLSLLMClient{
 		baseURL:    f.getServiceURL(ServiceTypeLLM),
 		httpClient: httpClient,
 		logger:     f.logger,
 	}
-	
+
 	f.clients[ServiceTypeLLM] = llmClient
-	
+
 	f.logger.Info("created mTLS LLM client",
 		"service_url", llmClient.baseURL,
 		"mtls_enabled", f.isMTLSEnabled(ServiceTypeLLM))
-	
+
 	return llmClient, nil
 }
 
@@ -131,34 +131,34 @@ func (f *MTLSClientFactory) GetRAGClient() (*MTLSRAGClient, error) {
 		return client.(*MTLSRAGClient), nil
 	}
 	f.mu.RUnlock()
-	
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	// Double-check after acquiring write lock
 	if client, exists := f.clients[ServiceTypeRAG]; exists {
 		return client.(*MTLSRAGClient), nil
 	}
-	
+
 	// Create mTLS-enabled HTTP client
 	httpClient, err := f.createMTLSHTTPClient(ServiceTypeRAG)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mTLS HTTP client for RAG service: %w", err)
 	}
-	
+
 	// Create RAG client with mTLS HTTP client
 	ragClient := &MTLSRAGClient{
 		baseURL:    f.getServiceURL(ServiceTypeRAG),
 		httpClient: httpClient,
 		logger:     f.logger,
 	}
-	
+
 	f.clients[ServiceTypeRAG] = ragClient
-	
+
 	f.logger.Info("created mTLS RAG client",
 		"service_url", ragClient.baseURL,
 		"mtls_enabled", f.isMTLSEnabled(ServiceTypeRAG))
-	
+
 	return ragClient, nil
 }
 
@@ -170,33 +170,33 @@ func (f *MTLSClientFactory) GetGitClient() (*MTLSGitClient, error) {
 		return client.(*MTLSGitClient), nil
 	}
 	f.mu.RUnlock()
-	
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	// Double-check after acquiring write lock
 	if client, exists := f.clients[ServiceTypeGit]; exists {
 		return client.(*MTLSGitClient), nil
 	}
-	
+
 	// Create mTLS-enabled HTTP client
 	httpClient, err := f.createMTLSHTTPClient(ServiceTypeGit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mTLS HTTP client for Git service: %w", err)
 	}
-	
+
 	// Create Git client with mTLS HTTP client
 	gitClient := &MTLSGitClient{
 		httpClient: httpClient,
 		logger:     f.logger,
 		config:     f.config,
 	}
-	
+
 	f.clients[ServiceTypeGit] = gitClient
-	
+
 	f.logger.Info("created mTLS Git client",
 		"mtls_enabled", f.isMTLSEnabled(ServiceTypeGit))
-	
+
 	return gitClient, nil
 }
 
@@ -208,32 +208,32 @@ func (f *MTLSClientFactory) GetMonitoringClient() (*MTLSMonitoringClient, error)
 		return client.(*MTLSMonitoringClient), nil
 	}
 	f.mu.RUnlock()
-	
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	// Double-check after acquiring write lock
 	if client, exists := f.clients[ServiceTypeMonitoring]; exists {
 		return client.(*MTLSMonitoringClient), nil
 	}
-	
+
 	// Create mTLS-enabled HTTP client
 	httpClient, err := f.createMTLSHTTPClient(ServiceTypeMonitoring)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mTLS HTTP client for monitoring service: %w", err)
 	}
-	
+
 	// Create monitoring client with mTLS HTTP client
 	monitoringClient := &MTLSMonitoringClient{
 		httpClient: httpClient,
 		logger:     f.logger,
 	}
-	
+
 	f.clients[ServiceTypeMonitoring] = monitoringClient
-	
+
 	f.logger.Info("created mTLS monitoring client",
 		"mtls_enabled", f.isMTLSEnabled(ServiceTypeMonitoring))
-	
+
 	return monitoringClient, nil
 }
 
@@ -244,46 +244,46 @@ func (f *MTLSClientFactory) createMTLSHTTPClient(serviceType ServiceType) (*http
 		f.logger.Debug("mTLS not enabled, creating regular HTTP client", "service_type", serviceType)
 		return &http.Client{}, nil
 	}
-	
+
 	serviceCfg := f.getServiceMTLSConfig(serviceType)
 	if serviceCfg == nil {
 		return nil, fmt.Errorf("mTLS configuration not found for service type: %s", serviceType)
 	}
-	
+
 	// Provision service identity if needed
 	if err := f.ensureServiceIdentity(serviceType); err != nil {
 		return nil, fmt.Errorf("failed to ensure service identity: %w", err)
 	}
-	
+
 	// Create mTLS client configuration
 	clientConfig := &mtls.ClientConfig{
 		ServiceName:          serviceCfg.ServiceName,
-		TenantID:            f.config.MTLSConfig.TenantID,
+		TenantID:             f.config.MTLSConfig.TenantID,
 		ClientCertPath:       serviceCfg.ClientCertPath,
 		ClientKeyPath:        serviceCfg.ClientKeyPath,
-		CACertPath:          serviceCfg.CACertPath,
-		ServerName:          serviceCfg.ServerName,
-		InsecureSkipVerify:  serviceCfg.InsecureSkipVerify,
-		DialTimeout:         serviceCfg.DialTimeout,
-		KeepAliveTimeout:    serviceCfg.KeepAliveTimeout,
-		MaxIdleConns:        serviceCfg.MaxIdleConns,
-		MaxConnsPerHost:     serviceCfg.MaxConnsPerHost,
-		IdleConnTimeout:     serviceCfg.IdleConnTimeout,
+		CACertPath:           serviceCfg.CACertPath,
+		ServerName:           serviceCfg.ServerName,
+		InsecureSkipVerify:   serviceCfg.InsecureSkipVerify,
+		DialTimeout:          serviceCfg.DialTimeout,
+		KeepAliveTimeout:     serviceCfg.KeepAliveTimeout,
+		MaxIdleConns:         serviceCfg.MaxIdleConns,
+		MaxConnsPerHost:      serviceCfg.MaxConnsPerHost,
+		IdleConnTimeout:      serviceCfg.IdleConnTimeout,
 		CertValidityDuration: f.config.MTLSConfig.ValidityDuration,
-		RotationEnabled:     f.config.MTLSConfig.RotationEnabled,
-		RotationInterval:    f.config.MTLSConfig.RotationInterval,
-		RenewalThreshold:    f.config.MTLSConfig.RenewalThreshold,
-		CAManager:           f.caManager,
-		AutoProvision:       f.config.MTLSConfig.AutoProvision,
-		PolicyTemplate:      f.config.MTLSConfig.PolicyTemplate,
+		RotationEnabled:      f.config.MTLSConfig.RotationEnabled,
+		RotationInterval:     f.config.MTLSConfig.RotationInterval,
+		RenewalThreshold:     f.config.MTLSConfig.RenewalThreshold,
+		CAManager:            f.caManager,
+		AutoProvision:        f.config.MTLSConfig.AutoProvision,
+		PolicyTemplate:       f.config.MTLSConfig.PolicyTemplate,
 	}
-	
+
 	// Create mTLS client
 	mtlsClient, err := mtls.NewClient(clientConfig, f.logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create mTLS client: %w", err)
 	}
-	
+
 	return mtlsClient.GetHTTPClient(), nil
 }
 
@@ -292,27 +292,27 @@ func (f *MTLSClientFactory) ensureServiceIdentity(serviceType ServiceType) error
 	if f.identityManager == nil {
 		return nil // Identity manager not available
 	}
-	
+
 	serviceCfg := f.getServiceMTLSConfig(serviceType)
 	if serviceCfg == nil {
 		return fmt.Errorf("service mTLS configuration not found for type: %s", serviceType)
 	}
-	
+
 	// Get service role based on service type
 	role := f.getServiceRole(serviceType)
-	
+
 	// Check if identity already exists
 	_, err := f.identityManager.GetServiceIdentity(serviceCfg.ServiceName, role, f.config.MTLSConfig.TenantID)
 	if err == nil {
 		return nil // Identity already exists
 	}
-	
+
 	// Create service identity
 	_, err = f.identityManager.CreateServiceIdentity(serviceCfg.ServiceName, role, f.config.MTLSConfig.TenantID)
 	if err != nil {
 		return fmt.Errorf("failed to create service identity: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -321,7 +321,7 @@ func (f *MTLSClientFactory) isMTLSEnabled(serviceType ServiceType) bool {
 	if f.config.MTLSConfig == nil || !f.config.MTLSConfig.Enabled {
 		return false
 	}
-	
+
 	serviceCfg := f.getServiceMTLSConfig(serviceType)
 	return serviceCfg != nil && serviceCfg.Enabled
 }
@@ -331,7 +331,7 @@ func (f *MTLSClientFactory) getServiceMTLSConfig(serviceType ServiceType) *confi
 	if f.config.MTLSConfig == nil {
 		return nil
 	}
-	
+
 	switch serviceType {
 	case ServiceTypeLLM:
 		return f.config.MTLSConfig.LLMProcessor
@@ -385,7 +385,7 @@ func (f *MTLSClientFactory) getServiceURL(serviceType ServiceType) string {
 			}
 		}
 		return f.config.LLMProcessorURL
-		
+
 	case ServiceTypeRAG:
 		if f.isMTLSEnabled(serviceType) {
 			serviceCfg := f.getServiceMTLSConfig(serviceType)
@@ -394,7 +394,7 @@ func (f *MTLSClientFactory) getServiceURL(serviceType ServiceType) string {
 			}
 		}
 		return f.config.GetRAGAPIURL(true)
-		
+
 	default:
 		return ""
 	}
@@ -403,12 +403,12 @@ func (f *MTLSClientFactory) getServiceURL(serviceType ServiceType) string {
 // Close gracefully shuts down the client factory
 func (f *MTLSClientFactory) Close() error {
 	f.logger.Info("shutting down mTLS client factory")
-	
+
 	f.cancel()
-	
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	
+
 	// Close all clients that implement closer interface
 	for serviceType, client := range f.clients {
 		if closer, ok := client.(interface{ Close() error }); ok {
@@ -419,9 +419,9 @@ func (f *MTLSClientFactory) Close() error {
 			}
 		}
 	}
-	
+
 	f.clients = make(map[ServiceType]interface{})
-	
+
 	return nil
 }
 
@@ -429,25 +429,25 @@ func (f *MTLSClientFactory) Close() error {
 func (f *MTLSClientFactory) GetClientStats() *ClientStats {
 	f.mu.RLock()
 	defer f.mu.RUnlock()
-	
+
 	stats := &ClientStats{
 		TotalClients:  len(f.clients),
 		ClientTypes:   make(map[ServiceType]bool),
 		MTLSEnabled:   f.config.MTLSConfig != nil && f.config.MTLSConfig.Enabled,
 		AutoProvision: f.config.MTLSConfig != nil && f.config.MTLSConfig.AutoProvision,
 	}
-	
+
 	for serviceType := range f.clients {
 		stats.ClientTypes[serviceType] = f.isMTLSEnabled(serviceType)
 	}
-	
+
 	return stats
 }
 
 // ClientStats holds statistics about managed clients
 type ClientStats struct {
-	TotalClients  int                    `json:"total_clients"`
-	ClientTypes   map[ServiceType]bool   `json:"client_types"`
-	MTLSEnabled   bool                   `json:"mtls_enabled"`
-	AutoProvision bool                   `json:"auto_provision"`
+	TotalClients  int                  `json:"total_clients"`
+	ClientTypes   map[ServiceType]bool `json:"client_types"`
+	MTLSEnabled   bool                 `json:"mtls_enabled"`
+	AutoProvision bool                 `json:"auto_provision"`
 }

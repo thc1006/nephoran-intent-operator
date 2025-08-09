@@ -21,116 +21,116 @@ type TelecomKnowledgeBase struct {
 
 // NetworkFunctionSpec defines comprehensive 5G Core network function specifications
 type NetworkFunctionSpec struct {
-	Name               string                        `json:"name"`
-	Type               string                        `json:"type"`
-	Description        string                        `json:"description"`
-	Version            string                        `json:"version"`
-	Vendor             string                        `json:"vendor"`
-	
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	Version     string `json:"version"`
+	Vendor      string `json:"vendor"`
+
 	// 3GPP Specifications
-	Specification3GPP  []string                     `json:"specification_3gpp"`
-	
+	Specification3GPP []string `json:"specification_3gpp"`
+
 	// Network Interfaces based on 3GPP TS 23.501
-	Interfaces         []string                     `json:"interfaces"`
-	ServiceInterfaces  []string                     `json:"service_interfaces"`
-	
+	Interfaces        []string `json:"interfaces"`
+	ServiceInterfaces []string `json:"service_interfaces"`
+
 	// Dependencies and relationships
-	Dependencies       []string                     `json:"dependencies"`
-	OptionalDeps       []string                     `json:"optional_dependencies"`
-	
+	Dependencies []string `json:"dependencies"`
+	OptionalDeps []string `json:"optional_dependencies"`
+
 	// Resource requirements (production-grade)
-	Resources          ResourceRequirements         `json:"resources"`
-	
+	Resources ResourceRequirements `json:"resources"`
+
 	// Scaling configuration
-	Scaling            ScalingParameters           `json:"scaling"`
-	
+	Scaling ScalingParameters `json:"scaling"`
+
 	// Performance baselines from real deployments
-	Performance        PerformanceBaseline         `json:"performance"`
-	
+	Performance PerformanceBaseline `json:"performance"`
+
 	// Security requirements
-	Security           SecurityRequirements        `json:"security"`
-	
+	Security SecurityRequirements `json:"security"`
+
 	// Deployment patterns
 	DeploymentPatterns map[string]DeploymentConfig `json:"deployment_patterns"`
-	
+
 	// Configuration parameters
-	Configuration      map[string]ConfigParameter   `json:"configuration"`
-	
+	Configuration map[string]ConfigParameter `json:"configuration"`
+
 	// Health and monitoring
-	HealthChecks       []HealthCheck               `json:"health_checks"`
-	MonitoringMetrics  []MetricDefinition          `json:"monitoring_metrics"`
+	HealthChecks      []HealthCheck      `json:"health_checks"`
+	MonitoringMetrics []MetricDefinition `json:"monitoring_metrics"`
 }
 
 // InterfaceSpec defines 5G network interfaces per 3GPP specifications
 type InterfaceSpec struct {
-	Name            string                 `json:"name"`
-	Type            string                 `json:"type"` // Reference Point, Service Based
-	Protocol        []string               `json:"protocol"`
-	Specification   string                 `json:"specification"`
-	Description     string                 `json:"description"`
-	Endpoints       []EndpointSpec         `json:"endpoints"`
-	SecurityModel   SecurityModel          `json:"security_model"`
-	QosRequirements QosRequirements        `json:"qos_requirements"`
-	Reliability     ReliabilitySpec        `json:"reliability"`
+	Name            string          `json:"name"`
+	Type            string          `json:"type"` // Reference Point, Service Based
+	Protocol        []string        `json:"protocol"`
+	Specification   string          `json:"specification"`
+	Description     string          `json:"description"`
+	Endpoints       []EndpointSpec  `json:"endpoints"`
+	SecurityModel   SecurityModel   `json:"security_model"`
+	QosRequirements QosRequirements `json:"qos_requirements"`
+	Reliability     ReliabilitySpec `json:"reliability"`
 }
 
 // ResourceRequirements defines compute, memory, and storage requirements
 type ResourceRequirements struct {
-	MinCPU      string `json:"min_cpu"`      // e.g., "2" cores
-	MinMemory   string `json:"min_memory"`   // e.g., "4Gi"
-	MaxCPU      string `json:"max_cpu"`      // e.g., "8" cores
-	MaxMemory   string `json:"max_memory"`   // e.g., "16Gi"
-	Storage     string `json:"storage"`      // e.g., "100Gi"
-	NetworkBW   string `json:"network_bw"`   // e.g., "10Gbps"
-	DiskIOPS    int    `json:"disk_iops"`    // e.g., 1000
-	Accelerator string `json:"accelerator"`  // e.g., "nvidia.com/gpu"
+	MinCPU      string `json:"min_cpu"`     // e.g., "2" cores
+	MinMemory   string `json:"min_memory"`  // e.g., "4Gi"
+	MaxCPU      string `json:"max_cpu"`     // e.g., "8" cores
+	MaxMemory   string `json:"max_memory"`  // e.g., "16Gi"
+	Storage     string `json:"storage"`     // e.g., "100Gi"
+	NetworkBW   string `json:"network_bw"`  // e.g., "10Gbps"
+	DiskIOPS    int    `json:"disk_iops"`   // e.g., 1000
+	Accelerator string `json:"accelerator"` // e.g., "nvidia.com/gpu"
 }
 
 // ScalingParameters defines auto-scaling configuration
 type ScalingParameters struct {
-	MinReplicas       int     `json:"min_replicas"`
-	MaxReplicas       int     `json:"max_replicas"`
-	TargetCPU         int     `json:"target_cpu"`          // percentage
-	TargetMemory      int     `json:"target_memory"`       // percentage
-	ScaleUpThreshold  int     `json:"scale_up_threshold"`  // percentage
-	ScaleDownDelay    int     `json:"scale_down_delay"`    // seconds
-	CustomMetrics     []CustomMetric `json:"custom_metrics"`
+	MinReplicas      int            `json:"min_replicas"`
+	MaxReplicas      int            `json:"max_replicas"`
+	TargetCPU        int            `json:"target_cpu"`         // percentage
+	TargetMemory     int            `json:"target_memory"`      // percentage
+	ScaleUpThreshold int            `json:"scale_up_threshold"` // percentage
+	ScaleDownDelay   int            `json:"scale_down_delay"`   // seconds
+	CustomMetrics    []CustomMetric `json:"custom_metrics"`
 }
 
 // PerformanceBaseline defines expected performance characteristics
 type PerformanceBaseline struct {
-	MaxThroughputRPS    int     `json:"max_throughput_rps"`     // Requests per second
-	AvgLatencyMs        float64 `json:"avg_latency_ms"`         // Average latency in ms
-	P95LatencyMs        float64 `json:"p95_latency_ms"`         // P95 latency in ms
-	P99LatencyMs        float64 `json:"p99_latency_ms"`         // P99 latency in ms
-	MaxConcurrentSessions int   `json:"max_concurrent_sessions"`
-	ProcessingTimeMs    float64 `json:"processing_time_ms"`
-	MemoryUsageMB       int     `json:"memory_usage_mb"`
-	CPUUsagePercent     int     `json:"cpu_usage_percent"`
+	MaxThroughputRPS      int     `json:"max_throughput_rps"` // Requests per second
+	AvgLatencyMs          float64 `json:"avg_latency_ms"`     // Average latency in ms
+	P95LatencyMs          float64 `json:"p95_latency_ms"`     // P95 latency in ms
+	P99LatencyMs          float64 `json:"p99_latency_ms"`     // P99 latency in ms
+	MaxConcurrentSessions int     `json:"max_concurrent_sessions"`
+	ProcessingTimeMs      float64 `json:"processing_time_ms"`
+	MemoryUsageMB         int     `json:"memory_usage_mb"`
+	CPUUsagePercent       int     `json:"cpu_usage_percent"`
 }
 
 // SecurityRequirements defines security specifications
 type SecurityRequirements struct {
-	TLSVersion       []string          `json:"tls_version"`
-	Authentication   []string          `json:"authentication"`   // OAuth2, mTLS, etc.
-	Encryption       EncryptionSpec    `json:"encryption"`
-	RBAC             bool             `json:"rbac"`
-	NetworkPolicies  []NetworkPolicy  `json:"network_policies"`
-	SecurityContext  SecurityContext  `json:"security_context"`
+	TLSVersion      []string        `json:"tls_version"`
+	Authentication  []string        `json:"authentication"` // OAuth2, mTLS, etc.
+	Encryption      EncryptionSpec  `json:"encryption"`
+	RBAC            bool            `json:"rbac"`
+	NetworkPolicies []NetworkPolicy `json:"network_policies"`
+	SecurityContext SecurityContext `json:"security_context"`
 }
 
 // DeploymentConfig defines deployment patterns
 type DeploymentConfig struct {
-	Name              string                 `json:"name"`
-	Replicas          int                   `json:"replicas"`
-	AntiAffinity      bool                  `json:"anti_affinity"`
-	ResourceProfile   string                `json:"resource_profile"`  // small, medium, large
-	StorageClass      string                `json:"storage_class"`
-	NetworkPolicy     string                `json:"network_policy"`
-	ServiceMesh       bool                  `json:"service_mesh"`
-	LoadBalancer      LoadBalancerSpec      `json:"load_balancer"`
-	Monitoring        MonitoringConfig      `json:"monitoring"`
-	BackupPolicy      BackupPolicy          `json:"backup_policy"`
+	Name            string           `json:"name"`
+	Replicas        int              `json:"replicas"`
+	AntiAffinity    bool             `json:"anti_affinity"`
+	ResourceProfile string           `json:"resource_profile"` // small, medium, large
+	StorageClass    string           `json:"storage_class"`
+	NetworkPolicy   string           `json:"network_policy"`
+	ServiceMesh     bool             `json:"service_mesh"`
+	LoadBalancer    LoadBalancerSpec `json:"load_balancer"`
+	Monitoring      MonitoringConfig `json:"monitoring"`
+	BackupPolicy    BackupPolicy     `json:"backup_policy"`
 }
 
 // Supporting types
@@ -144,29 +144,29 @@ type ConfigParameter struct {
 }
 
 type HealthCheck struct {
-	Type        string `json:"type"`        // http, tcp, grpc
-	Path        string `json:"path"`
-	Port        int    `json:"port"`
-	Interval    int    `json:"interval"`    // seconds
-	Timeout     int    `json:"timeout"`     // seconds
-	Retries     int    `json:"retries"`
-	InitialDelay int   `json:"initial_delay"` // seconds
+	Type         string `json:"type"` // http, tcp, grpc
+	Path         string `json:"path"`
+	Port         int    `json:"port"`
+	Interval     int    `json:"interval"` // seconds
+	Timeout      int    `json:"timeout"`  // seconds
+	Retries      int    `json:"retries"`
+	InitialDelay int    `json:"initial_delay"` // seconds
 }
 
 type MetricDefinition struct {
-	Name        string            `json:"name"`
-	Type        string            `json:"type"`        // counter, gauge, histogram
-	Description string            `json:"description"`
-	Labels      []string          `json:"labels"`
-	Alerts      []AlertRule       `json:"alerts"`
+	Name        string      `json:"name"`
+	Type        string      `json:"type"` // counter, gauge, histogram
+	Description string      `json:"description"`
+	Labels      []string    `json:"labels"`
+	Alerts      []AlertRule `json:"alerts"`
 }
 
 type AlertRule struct {
-	Name        string  `json:"name"`
-	Condition   string  `json:"condition"`
-	Threshold   float64 `json:"threshold"`
-	Duration    string  `json:"duration"`
-	Severity    string  `json:"severity"`
+	Name      string  `json:"name"`
+	Condition string  `json:"condition"`
+	Threshold float64 `json:"threshold"`
+	Duration  string  `json:"duration"`
+	Severity  string  `json:"severity"`
 }
 
 type CustomMetric struct {
@@ -176,9 +176,9 @@ type CustomMetric struct {
 }
 
 type EncryptionSpec struct {
-	AtRest    string   `json:"at_rest"`
-	InTransit []string `json:"in_transit"`
-	KeyManagement string `json:"key_management"`
+	AtRest        string   `json:"at_rest"`
+	InTransit     []string `json:"in_transit"`
+	KeyManagement string   `json:"key_management"`
 }
 
 type NetworkPolicy struct {
@@ -189,18 +189,18 @@ type NetworkPolicy struct {
 }
 
 type SecurityContext struct {
-	RunAsNonRoot     bool   `json:"run_as_non_root"`
-	RunAsUser        int64  `json:"run_as_user"`
-	FSGroup          int64  `json:"fs_group"`
-	Capabilities     []string `json:"capabilities"`
-	SeLinuxOptions   map[string]string `json:"selinux_options"`
+	RunAsNonRoot   bool              `json:"run_as_non_root"`
+	RunAsUser      int64             `json:"run_as_user"`
+	FSGroup        int64             `json:"fs_group"`
+	Capabilities   []string          `json:"capabilities"`
+	SeLinuxOptions map[string]string `json:"selinux_options"`
 }
 
 type LoadBalancerSpec struct {
-	Type        string            `json:"type"`        // ClusterIP, NodePort, LoadBalancer
-	Algorithm   string            `json:"algorithm"`   // round-robin, least-connections
+	Type            string        `json:"type"`      // ClusterIP, NodePort, LoadBalancer
+	Algorithm       string        `json:"algorithm"` // round-robin, least-connections
 	SessionAffinity string        `json:"session_affinity"`
-	HealthCheck HealthCheckLB     `json:"health_check"`
+	HealthCheck     HealthCheckLB `json:"health_check"`
 }
 
 type HealthCheckLB struct {
@@ -211,11 +211,11 @@ type HealthCheckLB struct {
 }
 
 type MonitoringConfig struct {
-	Enabled     bool   `json:"enabled"`
-	Prometheus  bool   `json:"prometheus"`
-	Grafana     bool   `json:"grafana"`
-	Jaeger      bool   `json:"jaeger"`
-	LogLevel    string `json:"log_level"`
+	Enabled    bool   `json:"enabled"`
+	Prometheus bool   `json:"prometheus"`
+	Grafana    bool   `json:"grafana"`
+	Jaeger     bool   `json:"jaeger"`
+	LogLevel   string `json:"log_level"`
 }
 
 type BackupPolicy struct {
@@ -238,9 +238,9 @@ type SecurityModel struct {
 }
 
 type QosRequirements struct {
-	Bandwidth string  `json:"bandwidth"`
-	Latency   float64 `json:"latency"`     // ms
-	Jitter    float64 `json:"jitter"`      // ms
+	Bandwidth  string  `json:"bandwidth"`
+	Latency    float64 `json:"latency"`     // ms
+	Jitter     float64 `json:"jitter"`      // ms
 	PacketLoss float64 `json:"packet_loss"` // percentage
 }
 
@@ -251,25 +251,25 @@ type ReliabilitySpec struct {
 }
 
 type QosProfile struct {
-	QCI           int     `json:"qci"`            // QoS Class Identifier
-	QFI           int     `json:"qfi"`            // QoS Flow Identifier  
-	Resource      string  `json:"resource"`       // GBR, Non-GBR
-	Priority      int     `json:"priority"`       // 1-9 (1 highest)
-	DelayBudget   int     `json:"delay_budget"`   // ms
-	ErrorRate     float64 `json:"error_rate"`     // 10^-x
-	MaxBitrateUL  string  `json:"max_bitrate_ul"` // Mbps
-	MaxBitrateDL  string  `json:"max_bitrate_dl"` // Mbps
-	GuaranteedBR  string  `json:"guaranteed_br"`  // Mbps
+	QCI          int     `json:"qci"`            // QoS Class Identifier
+	QFI          int     `json:"qfi"`            // QoS Flow Identifier
+	Resource     string  `json:"resource"`       // GBR, Non-GBR
+	Priority     int     `json:"priority"`       // 1-9 (1 highest)
+	DelayBudget  int     `json:"delay_budget"`   // ms
+	ErrorRate    float64 `json:"error_rate"`     // 10^-x
+	MaxBitrateUL string  `json:"max_bitrate_ul"` // Mbps
+	MaxBitrateDL string  `json:"max_bitrate_dl"` // Mbps
+	GuaranteedBR string  `json:"guaranteed_br"`  // Mbps
 }
 
 type SliceTypeSpec struct {
-	SST           int                    `json:"sst"`           // Slice/Service Type
-	Description   string                 `json:"description"`
-	UseCase       string                 `json:"use_case"`
-	Requirements  SliceRequirements      `json:"requirements"`
-	ResourceProfile ResourceProfile      `json:"resource_profile"`
-	QosProfile    string                 `json:"qos_profile"`
-	NetworkFunctions []string            `json:"network_functions"`
+	SST              int               `json:"sst"` // Slice/Service Type
+	Description      string            `json:"description"`
+	UseCase          string            `json:"use_case"`
+	Requirements     SliceRequirements `json:"requirements"`
+	ResourceProfile  ResourceProfile   `json:"resource_profile"`
+	QosProfile       string            `json:"qos_profile"`
+	NetworkFunctions []string          `json:"network_functions"`
 }
 
 type SliceRequirements struct {
@@ -280,15 +280,15 @@ type SliceRequirements struct {
 }
 
 type ThroughputReq struct {
-	Min string `json:"min"` // Mbps
-	Max string `json:"max"` // Mbps
+	Min     string `json:"min"`     // Mbps
+	Max     string `json:"max"`     // Mbps
 	Typical string `json:"typical"` // Mbps
 }
 
 type LatencyReq struct {
-	UserPlane   float64 `json:"user_plane"`   // ms
+	UserPlane    float64 `json:"user_plane"`    // ms
 	ControlPlane float64 `json:"control_plane"` // ms
-	MaxJitter   float64 `json:"max_jitter"`    // ms
+	MaxJitter    float64 `json:"max_jitter"`    // ms
 }
 
 type ReliabilityReq struct {
@@ -304,39 +304,39 @@ type DensityReq struct {
 }
 
 type ResourceProfile struct {
-	Compute  ComputeProfile  `json:"compute"`
-	Network  NetworkProfile  `json:"network"`
-	Storage  StorageProfile  `json:"storage"`
+	Compute ComputeProfile `json:"compute"`
+	Network NetworkProfile `json:"network"`
+	Storage StorageProfile `json:"storage"`
 }
 
 type ComputeProfile struct {
 	CPUIntensive bool   `json:"cpu_intensive"`
 	GPURequired  bool   `json:"gpu_required"`
-	MemoryType   string `json:"memory_type"`   // standard, high-memory
-	Architecture string `json:"architecture"`  // x86, ARM
+	MemoryType   string `json:"memory_type"`  // standard, high-memory
+	Architecture string `json:"architecture"` // x86, ARM
 }
 
 type NetworkProfile struct {
-	BandwidthIntensive bool   `json:"bandwidth_intensive"`
-	LatencySensitive   bool   `json:"latency_sensitive"`
-	JitterSensitive    bool   `json:"jitter_sensitive"`
-	EdgePlacement      bool   `json:"edge_placement"`
-	Multicast          bool   `json:"multicast"`
+	BandwidthIntensive bool `json:"bandwidth_intensive"`
+	LatencySensitive   bool `json:"latency_sensitive"`
+	JitterSensitive    bool `json:"jitter_sensitive"`
+	EdgePlacement      bool `json:"edge_placement"`
+	Multicast          bool `json:"multicast"`
 }
 
 type StorageProfile struct {
 	PersistentStorage bool   `json:"persistent_storage"`
-	HighIOPS         bool   `json:"high_iops"`
-	StorageType      string `json:"storage_type"` // ssd, nvme, hdd
-	BackupRequired   bool   `json:"backup_required"`
+	HighIOPS          bool   `json:"high_iops"`
+	StorageType       string `json:"storage_type"` // ssd, nvme, hdd
+	BackupRequired    bool   `json:"backup_required"`
 }
 
 type KPISpec struct {
-	Name        string  `json:"name"`
-	Type        string  `json:"type"`        // counter, gauge, rate
-	Unit        string  `json:"unit"`
-	Description string  `json:"description"`
-	Category    string  `json:"category"`    // performance, reliability, quality
+	Name        string     `json:"name"`
+	Type        string     `json:"type"` // counter, gauge, rate
+	Unit        string     `json:"unit"`
+	Description string     `json:"description"`
+	Category    string     `json:"category"` // performance, reliability, quality
 	Thresholds  Thresholds `json:"thresholds"`
 	SLA         SLASpec    `json:"sla"`
 }
@@ -354,21 +354,21 @@ type SLASpec struct {
 }
 
 type DeploymentPattern struct {
-	Name         string                    `json:"name"`
-	Description  string                    `json:"description"`
-	UseCase      []string                  `json:"use_case"`
-	Architecture DeploymentArchitecture    `json:"architecture"`
-	Scaling      ScalingPattern            `json:"scaling"`
-	Resilience   ResiliencePattern         `json:"resilience"`
-	Performance  PerformancePattern        `json:"performance"`
+	Name         string                 `json:"name"`
+	Description  string                 `json:"description"`
+	UseCase      []string               `json:"use_case"`
+	Architecture DeploymentArchitecture `json:"architecture"`
+	Scaling      ScalingPattern         `json:"scaling"`
+	Resilience   ResiliencePattern      `json:"resilience"`
+	Performance  PerformancePattern     `json:"performance"`
 }
 
 type DeploymentArchitecture struct {
-	Type         string   `json:"type"`         // single-zone, multi-zone, multi-region
-	Redundancy   string   `json:"redundancy"`   // active-active, active-passive
-	DataPlane    string   `json:"data_plane"`   // centralized, distributed, hybrid
-	ControlPlane string   `json:"control_plane"` // centralized, distributed
-	ServiceMesh  bool     `json:"service_mesh"`
+	Type         string `json:"type"`          // single-zone, multi-zone, multi-region
+	Redundancy   string `json:"redundancy"`    // active-active, active-passive
+	DataPlane    string `json:"data_plane"`    // centralized, distributed, hybrid
+	ControlPlane string `json:"control_plane"` // centralized, distributed
+	ServiceMesh  bool   `json:"service_mesh"`
 }
 
 type ScalingPattern struct {
@@ -379,18 +379,18 @@ type ScalingPattern struct {
 }
 
 type ResiliencePattern struct {
-	CircuitBreaker  bool `json:"circuit_breaker"`
-	Retry           bool `json:"retry"`
-	Timeout         bool `json:"timeout"`
-	Bulkhead        bool `json:"bulkhead"`
-	HealthCheck     bool `json:"health_check"`
+	CircuitBreaker bool `json:"circuit_breaker"`
+	Retry          bool `json:"retry"`
+	Timeout        bool `json:"timeout"`
+	Bulkhead       bool `json:"bulkhead"`
+	HealthCheck    bool `json:"health_check"`
 }
 
 type PerformancePattern struct {
-	Caching      bool `json:"caching"`
-	LoadBalancing bool `json:"load_balancing"`
+	Caching           bool `json:"caching"`
+	LoadBalancing     bool `json:"load_balancing"`
 	ConnectionPooling bool `json:"connection_pooling"`
-	Compression  bool `json:"compression"`
+	Compression       bool `json:"compression"`
 }
 
 // NewTelecomKnowledgeBase creates and initializes the knowledge base
@@ -403,14 +403,14 @@ func NewTelecomKnowledgeBase() *TelecomKnowledgeBase {
 		PerformanceKPIs:  make(map[string]*KPISpec),
 		DeploymentTypes:  make(map[string]*DeploymentPattern),
 	}
-	
+
 	kb.initializeNetworkFunctions()
 	kb.initializeInterfaces()
 	kb.initializeQosProfiles()
 	kb.initializeSliceTypes()
 	kb.initializeKPIs()
 	kb.initializeDeploymentPatterns()
-	
+
 	kb.initialized = true
 	return kb
 }
@@ -419,16 +419,16 @@ func NewTelecomKnowledgeBase() *TelecomKnowledgeBase {
 func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 	// AMF - Access and Mobility Management Function (3GPP TS 23.501)
 	kb.NetworkFunctions["amf"] = &NetworkFunctionSpec{
-		Name:        "AMF",
-		Type:        "5gc-control-plane",
-		Description: "Access and Mobility Management Function - Handles UE registration, authentication, mobility management, and access authorization",
-		Version:     "R17",
-		Vendor:      "multi-vendor",
+		Name:              "AMF",
+		Type:              "5gc-control-plane",
+		Description:       "Access and Mobility Management Function - Handles UE registration, authentication, mobility management, and access authorization",
+		Version:           "R17",
+		Vendor:            "multi-vendor",
 		Specification3GPP: []string{"TS 23.501", "TS 23.502", "TS 29.518", "TS 29.518"},
-		Interfaces: []string{"N1", "N2", "N8", "N11", "N12", "N14", "N15", "N20", "N22"},
+		Interfaces:        []string{"N1", "N2", "N8", "N11", "N12", "N14", "N15", "N20", "N22"},
 		ServiceInterfaces: []string{"Namf_Communication", "Namf_EventExposure", "Namf_MT", "Namf_Location"},
-		Dependencies: []string{"AUSF", "UDM", "PCF", "SMF"},
-		OptionalDeps: []string{"NSSF", "NEF", "NRF"},
+		Dependencies:      []string{"AUSF", "UDM", "PCF", "SMF"},
+		OptionalDeps:      []string{"NSSF", "NEF", "NRF"},
 		Resources: ResourceRequirements{
 			MinCPU:      "2",
 			MinMemory:   "4Gi",
@@ -440,26 +440,26 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			Accelerator: "",
 		},
 		Scaling: ScalingParameters{
-			MinReplicas:       3,
-			MaxReplicas:       20,
-			TargetCPU:         70,
-			TargetMemory:      80,
-			ScaleUpThreshold:  80,
-			ScaleDownDelay:    300,
+			MinReplicas:      3,
+			MaxReplicas:      20,
+			TargetCPU:        70,
+			TargetMemory:     80,
+			ScaleUpThreshold: 80,
+			ScaleDownDelay:   300,
 			CustomMetrics: []CustomMetric{
 				{Name: "active_ue_sessions", Target: 10000, Type: "average"},
 				{Name: "registration_rate", Target: 1000, Type: "rate"},
 			},
 		},
 		Performance: PerformanceBaseline{
-			MaxThroughputRPS:    10000,
-			AvgLatencyMs:        50,
-			P95LatencyMs:        100,
-			P99LatencyMs:        200,
+			MaxThroughputRPS:      10000,
+			AvgLatencyMs:          50,
+			P95LatencyMs:          100,
+			P99LatencyMs:          200,
 			MaxConcurrentSessions: 100000,
-			ProcessingTimeMs:    25,
-			MemoryUsageMB:       8192,
-			CPUUsagePercent:     60,
+			ProcessingTimeMs:      25,
+			MemoryUsageMB:         8192,
+			CPUUsagePercent:       60,
 		},
 		Security: SecurityRequirements{
 			TLSVersion:     []string{"TLS1.3", "TLS1.2"},
@@ -564,46 +564,46 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 
 	// SMF - Session Management Function (3GPP TS 23.501)
 	kb.NetworkFunctions["smf"] = &NetworkFunctionSpec{
-		Name:        "SMF",
-		Type:        "5gc-control-plane",
-		Description: "Session Management Function - Manages PDU sessions, IP address allocation, and traffic routing policies",
-		Version:     "R17",
-		Vendor:      "multi-vendor",
+		Name:              "SMF",
+		Type:              "5gc-control-plane",
+		Description:       "Session Management Function - Manages PDU sessions, IP address allocation, and traffic routing policies",
+		Version:           "R17",
+		Vendor:            "multi-vendor",
 		Specification3GPP: []string{"TS 23.501", "TS 23.502", "TS 29.502", "TS 29.508"},
-		Interfaces: []string{"N4", "N7", "N10", "N11", "N16"},
+		Interfaces:        []string{"N4", "N7", "N10", "N11", "N16"},
 		ServiceInterfaces: []string{"Nsmf_PDUSession", "Nsmf_EventExposure"},
-		Dependencies: []string{"UPF", "PCF", "UDM", "AMF"},
-		OptionalDeps: []string{"CHF", "NEF"},
+		Dependencies:      []string{"UPF", "PCF", "UDM", "AMF"},
+		OptionalDeps:      []string{"CHF", "NEF"},
 		Resources: ResourceRequirements{
-			MinCPU:      "2",
-			MinMemory:   "4Gi",
-			MaxCPU:      "6",
-			MaxMemory:   "12Gi",
-			Storage:     "50Gi",
-			NetworkBW:   "5Gbps",
-			DiskIOPS:    800,
+			MinCPU:    "2",
+			MinMemory: "4Gi",
+			MaxCPU:    "6",
+			MaxMemory: "12Gi",
+			Storage:   "50Gi",
+			NetworkBW: "5Gbps",
+			DiskIOPS:  800,
 		},
 		Scaling: ScalingParameters{
-			MinReplicas:       2,
-			MaxReplicas:       15,
-			TargetCPU:         70,
-			TargetMemory:      75,
-			ScaleUpThreshold:  75,
-			ScaleDownDelay:    300,
+			MinReplicas:      2,
+			MaxReplicas:      15,
+			TargetCPU:        70,
+			TargetMemory:     75,
+			ScaleUpThreshold: 75,
+			ScaleDownDelay:   300,
 			CustomMetrics: []CustomMetric{
 				{Name: "active_pdu_sessions", Target: 50000, Type: "average"},
 				{Name: "session_establishment_rate", Target: 500, Type: "rate"},
 			},
 		},
 		Performance: PerformanceBaseline{
-			MaxThroughputRPS:    5000,
-			AvgLatencyMs:        100,
-			P95LatencyMs:        200,
-			P99LatencyMs:        400,
+			MaxThroughputRPS:      5000,
+			AvgLatencyMs:          100,
+			P95LatencyMs:          200,
+			P99LatencyMs:          400,
 			MaxConcurrentSessions: 200000,
-			ProcessingTimeMs:    75,
-			MemoryUsageMB:       6144,
-			CPUUsagePercent:     65,
+			ProcessingTimeMs:      75,
+			MemoryUsageMB:         6144,
+			CPUUsagePercent:       65,
 		},
 		Security: SecurityRequirements{
 			TLSVersion:     []string{"TLS1.3", "TLS1.2"},
@@ -619,14 +619,14 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 
 	// UPF - User Plane Function (3GPP TS 23.501)
 	kb.NetworkFunctions["upf"] = &NetworkFunctionSpec{
-		Name:        "UPF",
-		Type:        "5gc-user-plane",
-		Description: "User Plane Function - Handles packet forwarding, QoS enforcement, and traffic accounting",
-		Version:     "R17",
-		Vendor:      "multi-vendor",
+		Name:              "UPF",
+		Type:              "5gc-user-plane",
+		Description:       "User Plane Function - Handles packet forwarding, QoS enforcement, and traffic accounting",
+		Version:           "R17",
+		Vendor:            "multi-vendor",
 		Specification3GPP: []string{"TS 23.501", "TS 23.502", "TS 29.244"},
-		Interfaces: []string{"N3", "N4", "N6", "N9"},
-		Dependencies: []string{"SMF"},
+		Interfaces:        []string{"N3", "N4", "N6", "N9"},
+		Dependencies:      []string{"SMF"},
 		Resources: ResourceRequirements{
 			MinCPU:      "4",
 			MinMemory:   "8Gi",
@@ -638,40 +638,40 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			Accelerator: "intel.com/qat",
 		},
 		Scaling: ScalingParameters{
-			MinReplicas:       2,
-			MaxReplicas:       10,
-			TargetCPU:         60,
-			TargetMemory:      70,
-			ScaleUpThreshold:  70,
-			ScaleDownDelay:    600,
+			MinReplicas:      2,
+			MaxReplicas:      10,
+			TargetCPU:        60,
+			TargetMemory:     70,
+			ScaleUpThreshold: 70,
+			ScaleDownDelay:   600,
 			CustomMetrics: []CustomMetric{
 				{Name: "throughput_mbps", Target: 10000, Type: "average"},
 				{Name: "packet_processing_rate", Target: 1000000, Type: "rate"},
 			},
 		},
 		Performance: PerformanceBaseline{
-			MaxThroughputRPS:    100000,
-			AvgLatencyMs:        10,
-			P95LatencyMs:        20,
-			P99LatencyMs:        50,
+			MaxThroughputRPS:      100000,
+			AvgLatencyMs:          10,
+			P95LatencyMs:          20,
+			P99LatencyMs:          50,
 			MaxConcurrentSessions: 1000000,
-			ProcessingTimeMs:    1,
-			MemoryUsageMB:       16384,
-			CPUUsagePercent:     55,
+			ProcessingTimeMs:      1,
+			MemoryUsageMB:         16384,
+			CPUUsagePercent:       55,
 		},
 	}
 
 	// PCF - Policy Control Function (3GPP TS 23.501)
 	kb.NetworkFunctions["pcf"] = &NetworkFunctionSpec{
-		Name:        "PCF",
-		Type:        "5gc-control-plane",
-		Description: "Policy Control Function - Provides policy rules for access and mobility management",
-		Version:     "R17",
+		Name:              "PCF",
+		Type:              "5gc-control-plane",
+		Description:       "Policy Control Function - Provides policy rules for access and mobility management",
+		Version:           "R17",
 		Specification3GPP: []string{"TS 23.501", "TS 23.503", "TS 29.507"},
-		Interfaces: []string{"N5", "N7", "N15", "N16"},
+		Interfaces:        []string{"N5", "N7", "N15", "N16"},
 		ServiceInterfaces: []string{"Npcf_AM_PolicyControl", "Npcf_SM_PolicyControl", "Npcf_PolicyAuthorization"},
-		Dependencies: []string{"UDR"},
-		OptionalDeps: []string{"BSF", "NEF"},
+		Dependencies:      []string{"UDR"},
+		OptionalDeps:      []string{"BSF", "NEF"},
 		Resources: ResourceRequirements{
 			MinCPU:    "1",
 			MinMemory: "2Gi",
@@ -680,23 +680,23 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			Storage:   "50Gi",
 		},
 		Performance: PerformanceBaseline{
-			MaxThroughputRPS:    2000,
-			AvgLatencyMs:        75,
-			P95LatencyMs:        150,
-			ProcessingTimeMs:    50,
+			MaxThroughputRPS: 2000,
+			AvgLatencyMs:     75,
+			P95LatencyMs:     150,
+			ProcessingTimeMs: 50,
 		},
 	}
 
 	// UDM - Unified Data Management (3GPP TS 23.501)
 	kb.NetworkFunctions["udm"] = &NetworkFunctionSpec{
-		Name:        "UDM",
-		Type:        "5gc-control-plane",
-		Description: "Unified Data Management - Manages user subscription data and authentication credentials",
-		Version:     "R17",
+		Name:              "UDM",
+		Type:              "5gc-control-plane",
+		Description:       "Unified Data Management - Manages user subscription data and authentication credentials",
+		Version:           "R17",
 		Specification3GPP: []string{"TS 23.501", "TS 29.503"},
-		Interfaces: []string{"N8", "N10", "N13"},
+		Interfaces:        []string{"N8", "N10", "N13"},
 		ServiceInterfaces: []string{"Nudm_SubscriberDataManagement", "Nudm_UEAuthentication", "Nudm_UEContextManagement"},
-		Dependencies: []string{"UDR"},
+		Dependencies:      []string{"UDR"},
 		Resources: ResourceRequirements{
 			MinCPU:    "2",
 			MinMemory: "4Gi",
@@ -705,23 +705,23 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			Storage:   "100Gi",
 		},
 		Performance: PerformanceBaseline{
-			MaxThroughputRPS:    8000,
-			AvgLatencyMs:        60,
-			P95LatencyMs:        120,
-			ProcessingTimeMs:    30,
+			MaxThroughputRPS: 8000,
+			AvgLatencyMs:     60,
+			P95LatencyMs:     120,
+			ProcessingTimeMs: 30,
 		},
 	}
 
 	// AUSF - Authentication Server Function (3GPP TS 23.501)
 	kb.NetworkFunctions["ausf"] = &NetworkFunctionSpec{
-		Name:        "AUSF",
-		Type:        "5gc-control-plane",
-		Description: "Authentication Server Function - Performs UE authentication and key generation",
-		Version:     "R17",
+		Name:              "AUSF",
+		Type:              "5gc-control-plane",
+		Description:       "Authentication Server Function - Performs UE authentication and key generation",
+		Version:           "R17",
 		Specification3GPP: []string{"TS 23.501", "TS 33.501", "TS 29.509"},
-		Interfaces: []string{"N12", "N13"},
+		Interfaces:        []string{"N12", "N13"},
 		ServiceInterfaces: []string{"Nausf_UEAuthentication", "Nausf_SoRProtection"},
-		Dependencies: []string{"UDM"},
+		Dependencies:      []string{"UDM"},
 		Resources: ResourceRequirements{
 			MinCPU:    "1",
 			MinMemory: "2Gi",
@@ -730,19 +730,19 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			Storage:   "20Gi",
 		},
 		Performance: PerformanceBaseline{
-			MaxThroughputRPS:    5000,
-			AvgLatencyMs:        80,
-			P95LatencyMs:        160,
-			ProcessingTimeMs:    40,
+			MaxThroughputRPS: 5000,
+			AvgLatencyMs:     80,
+			P95LatencyMs:     160,
+			ProcessingTimeMs: 40,
 		},
 	}
 
 	// NRF - Network Repository Function (3GPP TS 23.501)
 	kb.NetworkFunctions["nrf"] = &NetworkFunctionSpec{
-		Name:        "NRF",
-		Type:        "5gc-control-plane",
-		Description: "Network Repository Function - Service discovery and registration for 5G Core network functions",
-		Version:     "R17",
+		Name:              "NRF",
+		Type:              "5gc-control-plane",
+		Description:       "Network Repository Function - Service discovery and registration for 5G Core network functions",
+		Version:           "R17",
 		Specification3GPP: []string{"TS 23.501", "TS 29.510"},
 		ServiceInterfaces: []string{"Nnrf_NFManagement", "Nnrf_NFDiscovery", "Nnrf_AccessToken", "Nnrf_Bootstrapping"},
 		Resources: ResourceRequirements{
@@ -753,23 +753,23 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			Storage:   "50Gi",
 		},
 		Performance: PerformanceBaseline{
-			MaxThroughputRPS:    15000,
-			AvgLatencyMs:        30,
-			P95LatencyMs:        60,
-			ProcessingTimeMs:    10,
+			MaxThroughputRPS: 15000,
+			AvgLatencyMs:     30,
+			P95LatencyMs:     60,
+			ProcessingTimeMs: 10,
 		},
 	}
 
 	// NSSF - Network Slice Selection Function (3GPP TS 23.501)
 	kb.NetworkFunctions["nssf"] = &NetworkFunctionSpec{
-		Name:        "NSSF",
-		Type:        "5gc-control-plane",
-		Description: "Network Slice Selection Function - Selects appropriate network slice instances for UEs",
-		Version:     "R17",
+		Name:              "NSSF",
+		Type:              "5gc-control-plane",
+		Description:       "Network Slice Selection Function - Selects appropriate network slice instances for UEs",
+		Version:           "R17",
 		Specification3GPP: []string{"TS 23.501", "TS 23.502", "TS 29.531"},
-		Interfaces: []string{"N22"},
+		Interfaces:        []string{"N22"},
 		ServiceInterfaces: []string{"Nnssf_NSSelection", "Nnssf_NSSAI_Availability"},
-		Dependencies: []string{"NRF"},
+		Dependencies:      []string{"NRF"},
 		Resources: ResourceRequirements{
 			MinCPU:    "1",
 			MinMemory: "1Gi",
@@ -778,22 +778,22 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			Storage:   "20Gi",
 		},
 		Performance: PerformanceBaseline{
-			MaxThroughputRPS:    3000,
-			AvgLatencyMs:        40,
-			P95LatencyMs:        80,
-			ProcessingTimeMs:    20,
+			MaxThroughputRPS: 3000,
+			AvgLatencyMs:     40,
+			P95LatencyMs:     80,
+			ProcessingTimeMs: 20,
 		},
 	}
 
 	// gNodeB - 5G Base Station (3GPP TS 38.401)
 	kb.NetworkFunctions["gnb"] = &NetworkFunctionSpec{
-		Name:        "gNodeB",
-		Type:        "ran",
-		Description: "5G New Radio Base Station - Provides radio access for 5G UEs",
-		Version:     "R17",
+		Name:              "gNodeB",
+		Type:              "ran",
+		Description:       "5G New Radio Base Station - Provides radio access for 5G UEs",
+		Version:           "R17",
 		Specification3GPP: []string{"TS 38.401", "TS 38.423", "TS 38.473"},
-		Interfaces: []string{"N2", "N3", "Xn", "F1", "E1"},
-		Dependencies: []string{"AMF", "UPF"},
+		Interfaces:        []string{"N2", "N3", "Xn", "F1", "E1"},
+		Dependencies:      []string{"AMF", "UPF"},
 		Resources: ResourceRequirements{
 			MinCPU:      "4",
 			MinMemory:   "8Gi",
@@ -804,9 +804,9 @@ func (kb *TelecomKnowledgeBase) initializeNetworkFunctions() {
 			Accelerator: "xilinx.com/fpga-xilinx_u50_gen3x16_xdma_base_1",
 		},
 		Performance: PerformanceBaseline{
-			MaxThroughputRPS:    50000,
-			AvgLatencyMs:        5,
-			P95LatencyMs:        15,
+			MaxThroughputRPS:      50000,
+			AvgLatencyMs:          5,
+			P95LatencyMs:          15,
 			MaxConcurrentSessions: 500000,
 		},
 	}
@@ -903,28 +903,28 @@ func (kb *TelecomKnowledgeBase) initializeInterfaces() {
 func (kb *TelecomKnowledgeBase) initializeQosProfiles() {
 	// 5QI 1 - Conversational Voice (GBR)
 	kb.QosProfiles["5qi_1"] = &QosProfile{
-		QCI:           1,
-		QFI:           1,
-		Resource:      "GBR",
-		Priority:      2,
-		DelayBudget:   100,
-		ErrorRate:     0.01,
-		MaxBitrateUL:  "150",
-		MaxBitrateDL:  "150",
-		GuaranteedBR:  "64",
+		QCI:          1,
+		QFI:          1,
+		Resource:     "GBR",
+		Priority:     2,
+		DelayBudget:  100,
+		ErrorRate:    0.01,
+		MaxBitrateUL: "150",
+		MaxBitrateDL: "150",
+		GuaranteedBR: "64",
 	}
 
 	// 5QI 2 - Conversational Video (GBR)
 	kb.QosProfiles["5qi_2"] = &QosProfile{
-		QCI:           2,
-		QFI:           2,
-		Resource:      "GBR",
-		Priority:      4,
-		DelayBudget:   150,
-		ErrorRate:     0.001,
-		MaxBitrateUL:  "1000",
-		MaxBitrateDL:  "1000",
-		GuaranteedBR:  "500",
+		QCI:          2,
+		QFI:          2,
+		Resource:     "GBR",
+		Priority:     4,
+		DelayBudget:  150,
+		ErrorRate:    0.001,
+		MaxBitrateUL: "1000",
+		MaxBitrateDL: "1000",
+		GuaranteedBR: "500",
 	}
 
 	// 5QI 5 - IMS Signaling (Non-GBR)
@@ -1009,8 +1009,8 @@ func (kb *TelecomKnowledgeBase) initializeSliceTypes() {
 			},
 			Storage: StorageProfile{
 				PersistentStorage: false,
-				HighIOPS:         false,
-				StorageType:      "ssd",
+				HighIOPS:          false,
+				StorageType:       "ssd",
 			},
 		},
 		QosProfile:       "5qi_9",
@@ -1162,10 +1162,10 @@ func (kb *TelecomKnowledgeBase) initializeDeploymentPatterns() {
 		},
 		Resilience: ResiliencePattern{
 			CircuitBreaker: true,
-			Retry:         true,
-			Timeout:       true,
-			Bulkhead:      true,
-			HealthCheck:   true,
+			Retry:          true,
+			Timeout:        true,
+			Bulkhead:       true,
+			HealthCheck:    true,
 		},
 		Performance: PerformancePattern{
 			Caching:           true,
@@ -1386,7 +1386,7 @@ func (kb *TelecomKnowledgeBase) GetCompatibleSliceTypes(maxLatency float64, minT
 
 	for _, slice := range kb.SliceTypes {
 		latencyOK := slice.Requirements.Latency.UserPlane <= maxLatency
-		
+
 		var throughputMin int
 		fmt.Sscanf(slice.Requirements.Throughput.Min, "%d", &throughputMin)
 		throughputOK := throughputMin >= minThroughput

@@ -29,167 +29,167 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
-	
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
 
 // ErrorTrackingSystem provides comprehensive error monitoring and observability
 type ErrorTrackingSystem struct {
 	// Core components
-	errorAggregator     *errors.ErrorAggregator
-	recoveryManager     *errors.AdvancedRecoveryManager
-	
+	errorAggregator *errors.ErrorAggregator
+	recoveryManager *errors.AdvancedRecoveryManager
+
 	// Monitoring backends
 	prometheusMetrics   *PrometheusErrorMetrics
 	openTelemetryTracer trace.Tracer
 	openTelemetryMeter  metric.Meter
-	
+
 	// Alerting
 	alertManager        *AlertManager
 	notificationManager *NotificationManager
-	
+
 	// Dashboard and reporting
-	dashboardManager    *DashboardManager
-	reportGenerator     *ErrorReportGenerator
-	
+	dashboardManager *DashboardManager
+	reportGenerator  *ErrorReportGenerator
+
 	// Configuration and state
-	config              *ErrorTrackingConfig
-	logger              logr.Logger
-	
+	config *ErrorTrackingConfig
+	logger logr.Logger
+
 	// Error processing
-	errorStream         chan *ErrorEvent
-	processingWorkers   []*ErrorProcessingWorker
-	
+	errorStream       chan *ErrorEvent
+	processingWorkers []*ErrorProcessingWorker
+
 	// Analytics and ML
-	errorAnalyzer       *ErrorAnalyzer
-	predictionEngine    *ErrorPredictionEngine
-	anomalyDetector     *AnomalyDetector
-	
+	errorAnalyzer    *ErrorAnalyzer
+	predictionEngine *ErrorPredictionEngine
+	anomalyDetector  *AnomalyDetector
+
 	// State management
-	mutex               sync.RWMutex
-	started             bool
-	stopChan            chan struct{}
+	mutex    sync.RWMutex
+	started  bool
+	stopChan chan struct{}
 }
 
 // ErrorTrackingConfig holds configuration for error tracking
 type ErrorTrackingConfig struct {
 	// General settings
-	Enabled                    bool          `json:"enabled"`
-	ProcessingWorkers          int           `json:"processingWorkers"`
-	ErrorBufferSize           int           `json:"errorBufferSize"`
-	
+	Enabled           bool `json:"enabled"`
+	ProcessingWorkers int  `json:"processingWorkers"`
+	ErrorBufferSize   int  `json:"errorBufferSize"`
+
 	// Prometheus settings
-	PrometheusEnabled         bool          `json:"prometheusEnabled"`
-	PrometheusNamespace       string        `json:"prometheusNamespace"`
-	MetricsPort              int           `json:"metricsPort"`
-	
+	PrometheusEnabled   bool   `json:"prometheusEnabled"`
+	PrometheusNamespace string `json:"prometheusNamespace"`
+	MetricsPort         int    `json:"metricsPort"`
+
 	// OpenTelemetry settings
-	OpenTelemetryEnabled      bool          `json:"openTelemetryEnabled"`
-	TracingEndpoint          string        `json:"tracingEndpoint"`
-	MetricsEndpoint          string        `json:"metricsEndpoint"`
-	ServiceName              string        `json:"serviceName"`
-	
+	OpenTelemetryEnabled bool   `json:"openTelemetryEnabled"`
+	TracingEndpoint      string `json:"tracingEndpoint"`
+	MetricsEndpoint      string `json:"metricsEndpoint"`
+	ServiceName          string `json:"serviceName"`
+
 	// Alerting settings
-	AlertingEnabled          bool          `json:"alertingEnabled"`
-	AlertRules               []AlertRule   `json:"alertRules"`
-	NotificationChannels     []NotificationChannel `json:"notificationChannels"`
-	
+	AlertingEnabled      bool                  `json:"alertingEnabled"`
+	AlertRules           []AlertRule           `json:"alertRules"`
+	NotificationChannels []NotificationChannel `json:"notificationChannels"`
+
 	// Dashboard settings
-	DashboardEnabled         bool          `json:"dashboardEnabled"`
-	DashboardPort           int           `json:"dashboardPort"`
-	
+	DashboardEnabled bool `json:"dashboardEnabled"`
+	DashboardPort    int  `json:"dashboardPort"`
+
 	// Analytics settings
-	AnalyticsEnabled         bool          `json:"analyticsEnabled"`
-	PredictionEnabled        bool          `json:"predictionEnabled"`
-	AnomalyDetectionEnabled  bool          `json:"anomalyDetectionEnabled"`
-	
+	AnalyticsEnabled        bool `json:"analyticsEnabled"`
+	PredictionEnabled       bool `json:"predictionEnabled"`
+	AnomalyDetectionEnabled bool `json:"anomalyDetectionEnabled"`
+
 	// Retention settings
-	MetricsRetentionDays     int           `json:"metricsRetentionDays"`
-	TracesRetentionDays      int           `json:"tracesRetentionDays"`
-	ReportsRetentionDays     int           `json:"reportsRetentionDays"`
+	MetricsRetentionDays int `json:"metricsRetentionDays"`
+	TracesRetentionDays  int `json:"tracesRetentionDays"`
+	ReportsRetentionDays int `json:"reportsRetentionDays"`
 }
 
 // ErrorEvent represents an error event for monitoring
 type ErrorEvent struct {
 	// Basic information
-	EventID         string                 `json:"eventId"`
-	Timestamp       time.Time              `json:"timestamp"`
-	Error           *errors.ProcessingError `json:"error"`
-	
+	EventID   string                  `json:"eventId"`
+	Timestamp time.Time               `json:"timestamp"`
+	Error     *errors.ProcessingError `json:"error"`
+
 	// Context information
-	TraceID         string                 `json:"traceId"`
-	SpanID          string                 `json:"spanId"`
-	CorrelationID   string                 `json:"correlationId"`
-	RequestID       string                 `json:"requestId"`
-	
+	TraceID       string `json:"traceId"`
+	SpanID        string `json:"spanId"`
+	CorrelationID string `json:"correlationId"`
+	RequestID     string `json:"requestId"`
+
 	// Processing information
-	Component       string                 `json:"component"`
-	Operation       string                 `json:"operation"`
-	Phase           string                 `json:"phase"`
-	
+	Component string `json:"component"`
+	Operation string `json:"operation"`
+	Phase     string `json:"phase"`
+
 	// Recovery information
-	RecoveryAttempts int                   `json:"recoveryAttempts"`
-	RecoverySuccess  bool                  `json:"recoverySuccess"`
-	RecoveryDuration time.Duration         `json:"recoveryDuration"`
-	
+	RecoveryAttempts int           `json:"recoveryAttempts"`
+	RecoverySuccess  bool          `json:"recoverySuccess"`
+	RecoveryDuration time.Duration `json:"recoveryDuration"`
+
 	// Impact assessment
-	ImpactLevel     string                 `json:"impactLevel"`
-	AffectedUsers   int64                  `json:"affectedUsers"`
-	BusinessImpact  map[string]interface{} `json:"businessImpact"`
-	
+	ImpactLevel    string                 `json:"impactLevel"`
+	AffectedUsers  int64                  `json:"affectedUsers"`
+	BusinessImpact map[string]interface{} `json:"businessImpact"`
+
 	// Additional metadata
-	Tags            map[string]string      `json:"tags"`
-	Labels          map[string]string      `json:"labels"`
-	CustomData      map[string]interface{} `json:"customData"`
+	Tags       map[string]string      `json:"tags"`
+	Labels     map[string]string      `json:"labels"`
+	CustomData map[string]interface{} `json:"customData"`
 }
 
 // PrometheusErrorMetrics provides Prometheus metrics for error tracking
 type PrometheusErrorMetrics struct {
 	// Error counters
-	errorsTotal         *prometheus.CounterVec
-	errorsByCategory    *prometheus.CounterVec
-	errorsBySeverity    *prometheus.CounterVec
-	errorsByComponent   *prometheus.CounterVec
-	
+	errorsTotal       *prometheus.CounterVec
+	errorsByCategory  *prometheus.CounterVec
+	errorsBySeverity  *prometheus.CounterVec
+	errorsByComponent *prometheus.CounterVec
+
 	// Recovery metrics
-	recoveryAttemptsTotal   *prometheus.CounterVec
-	recoverySuccessTotal    *prometheus.CounterVec
-	recoveryDurationHist    *prometheus.HistogramVec
-	
+	recoveryAttemptsTotal *prometheus.CounterVec
+	recoverySuccessTotal  *prometheus.CounterVec
+	recoveryDurationHist  *prometheus.HistogramVec
+
 	// Performance metrics
 	errorProcessingDuration *prometheus.HistogramVec
 	errorProcessingRate     *prometheus.GaugeVec
-	
+
 	// System health metrics
-	activeErrors            *prometheus.GaugeVec
-	errorRate              *prometheus.GaugeVec
-	meanTimeToRecovery     *prometheus.GaugeVec
-	
+	activeErrors       *prometheus.GaugeVec
+	errorRate          *prometheus.GaugeVec
+	meanTimeToRecovery *prometheus.GaugeVec
+
 	// Circuit breaker metrics
-	circuitBreakerState    *prometheus.GaugeVec
-	circuitBreakerTrips    *prometheus.CounterVec
-	
-	registry               prometheus.Registerer
+	circuitBreakerState *prometheus.GaugeVec
+	circuitBreakerTrips *prometheus.CounterVec
+
+	registry prometheus.Registerer
 }
 
 // AlertRule defines conditions for triggering alerts
 type AlertRule struct {
-	Name               string            `json:"name"`
-	Description        string            `json:"description"`
-	Condition          string            `json:"condition"`       // e.g., "error_rate > 0.05"
-	Threshold          float64           `json:"threshold"`
-	EvaluationWindow   time.Duration     `json:"evaluationWindow"`
-	Severity           AlertSeverity     `json:"severity"`
-	Labels             map[string]string `json:"labels"`
-	Annotations        map[string]string `json:"annotations"`
-	
+	Name             string            `json:"name"`
+	Description      string            `json:"description"`
+	Condition        string            `json:"condition"` // e.g., "error_rate > 0.05"
+	Threshold        float64           `json:"threshold"`
+	EvaluationWindow time.Duration     `json:"evaluationWindow"`
+	Severity         AlertSeverity     `json:"severity"`
+	Labels           map[string]string `json:"labels"`
+	Annotations      map[string]string `json:"annotations"`
+
 	// Firing conditions
-	FireImmediately    bool              `json:"fireImmediately"`
-	MinDuration        time.Duration     `json:"minDuration"`
-	
+	FireImmediately bool          `json:"fireImmediately"`
+	MinDuration     time.Duration `json:"minDuration"`
+
 	// Resolution
-	AutoResolve        bool              `json:"autoResolve"`
-	ResolutionTimeout  time.Duration     `json:"resolutionTimeout"`
+	AutoResolve       bool          `json:"autoResolve"`
+	ResolutionTimeout time.Duration `json:"resolutionTimeout"`
 }
 
 // AlertSeverity defines alert severity levels
@@ -197,7 +197,7 @@ type AlertSeverity string
 
 const (
 	SeverityCritical AlertSeverity = "critical"
-	SeverityHigh     AlertSeverity = "high" 
+	SeverityHigh     AlertSeverity = "high"
 	SeverityMedium   AlertSeverity = "medium"
 	SeverityLow      AlertSeverity = "low"
 	SeverityInfo     AlertSeverity = "info"
@@ -205,11 +205,11 @@ const (
 
 // NotificationChannel defines how alerts are sent
 type NotificationChannel struct {
-	Name        string                 `json:"name"`
-	Type        NotificationChannelType `json:"type"`
-	Config      map[string]interface{} `json:"config"`
-	Enabled     bool                   `json:"enabled"`
-	Severities  []AlertSeverity        `json:"severities"`
+	Name       string                  `json:"name"`
+	Type       NotificationChannelType `json:"type"`
+	Config     map[string]interface{}  `json:"config"`
+	Enabled    bool                    `json:"enabled"`
+	Severities []AlertSeverity         `json:"severities"`
 }
 
 // NotificationChannelType defines notification channel types
@@ -228,35 +228,35 @@ type AlertManager struct {
 	rules               []AlertRule
 	activeAlerts        map[string]*ActiveAlert
 	notificationManager *NotificationManager
-	
+
 	// State
-	evaluationTicker    *time.Ticker
-	logger             logr.Logger
-	mutex              sync.RWMutex
-	stopChan           chan struct{}
+	evaluationTicker *time.Ticker
+	logger           logr.Logger
+	mutex            sync.RWMutex
+	stopChan         chan struct{}
 }
 
 // ActiveAlert represents a currently active alert
 type ActiveAlert struct {
-	ID              string            `json:"id"`
-	Rule            AlertRule         `json:"rule"`
-	FireTime        time.Time         `json:"fireTime"`
-	LastEvaluation  time.Time         `json:"lastEvaluation"`
-	Value           float64           `json:"value"`
-	Labels          map[string]string `json:"labels"`
-	Annotations     map[string]string `json:"annotations"`
-	Status          AlertStatus       `json:"status"`
-	NotificationsSent int             `json:"notificationsSent"`
+	ID                string            `json:"id"`
+	Rule              AlertRule         `json:"rule"`
+	FireTime          time.Time         `json:"fireTime"`
+	LastEvaluation    time.Time         `json:"lastEvaluation"`
+	Value             float64           `json:"value"`
+	Labels            map[string]string `json:"labels"`
+	Annotations       map[string]string `json:"annotations"`
+	Status            AlertStatus       `json:"status"`
+	NotificationsSent int               `json:"notificationsSent"`
 }
 
 // AlertStatus represents the status of an alert
 type AlertStatus string
 
 const (
-	AlertStatusPending   AlertStatus = "pending"
-	AlertStatusFiring    AlertStatus = "firing"
-	AlertStatusResolved  AlertStatus = "resolved"
-	AlertStatusSilenced  AlertStatus = "silenced"
+	AlertStatusPending  AlertStatus = "pending"
+	AlertStatusFiring   AlertStatus = "firing"
+	AlertStatusResolved AlertStatus = "resolved"
+	AlertStatusSilenced AlertStatus = "silenced"
 )
 
 // NotificationManager manages alert notifications
@@ -264,17 +264,17 @@ type NotificationManager struct {
 	channels    []NotificationChannel
 	templates   map[NotificationChannelType]*NotificationTemplate
 	rateLimiter *NotificationRateLimiter
-	
-	logger      logr.Logger
-	mutex       sync.RWMutex
+
+	logger logr.Logger
+	mutex  sync.RWMutex
 }
 
 // NotificationTemplate defines message templates for different channels
 type NotificationTemplate struct {
-	Subject    string `json:"subject"`
-	Body       string `json:"body"`
-	Format     string `json:"format"` // text, html, markdown, json
-	Variables  []string `json:"variables"`
+	Subject   string   `json:"subject"`
+	Body      string   `json:"body"`
+	Format    string   `json:"format"` // text, html, markdown, json
+	Variables []string `json:"variables"`
 }
 
 // NotificationRateLimiter prevents notification spam
@@ -287,26 +287,26 @@ type NotificationRateLimiter struct {
 // RateLimit defines rate limiting parameters
 type RateLimit struct {
 	MaxNotifications int           `json:"maxNotifications"`
-	TimeWindow      time.Duration `json:"timeWindow"`
-	BurstAllowed    int           `json:"burstAllowed"`
-	
+	TimeWindow       time.Duration `json:"timeWindow"`
+	BurstAllowed     int           `json:"burstAllowed"`
+
 	// State
-	notifications   []time.Time
-	mutex          sync.RWMutex
+	notifications []time.Time
+	mutex         sync.RWMutex
 }
 
 // ErrorProcessingWorker processes error events
 type ErrorProcessingWorker struct {
-	id                  int
-	errorStream        chan *ErrorEvent
-	trackingSystem     *ErrorTrackingSystem
-	
+	id             int
+	errorStream    chan *ErrorEvent
+	trackingSystem *ErrorTrackingSystem
+
 	// Processing state
-	processedEvents    int64
-	lastActivity      time.Time
-	
-	logger            logr.Logger
-	stopChan          chan struct{}
+	processedEvents int64
+	lastActivity    time.Time
+
+	logger   logr.Logger
+	stopChan chan struct{}
 }
 
 // DashboardManager provides web dashboard for error tracking
@@ -314,45 +314,45 @@ type DashboardManager struct {
 	config         *DashboardConfig
 	webServer      *WebServer
 	templateEngine *TemplateEngine
-	
+
 	// Dashboard components
-	errorSummary       *ErrorSummaryWidget
-	errorTimeline      *TimelineWidget
-	componentHealth    *HealthWidget
-	alertsWidget       *AlertsWidget
-	recoveryStats      *RecoveryStatsWidget
-	
-	logger            logr.Logger
+	errorSummary    *ErrorSummaryWidget
+	errorTimeline   *TimelineWidget
+	componentHealth *HealthWidget
+	alertsWidget    *AlertsWidget
+	recoveryStats   *RecoveryStatsWidget
+
+	logger logr.Logger
 }
 
 // DashboardConfig configures the dashboard
 type DashboardConfig struct {
-	Port              int    `json:"port"`
-	Path              string `json:"path"`
-	Title             string `json:"title"`
-	RefreshInterval   int    `json:"refreshInterval"`
-	Theme             string `json:"theme"`
-	EnableAuth        bool   `json:"enableAuth"`
-	BasicAuthUsers    map[string]string `json:"basicAuthUsers"`
+	Port            int               `json:"port"`
+	Path            string            `json:"path"`
+	Title           string            `json:"title"`
+	RefreshInterval int               `json:"refreshInterval"`
+	Theme           string            `json:"theme"`
+	EnableAuth      bool              `json:"enableAuth"`
+	BasicAuthUsers  map[string]string `json:"basicAuthUsers"`
 }
 
 // ErrorReportGenerator generates error reports
 type ErrorReportGenerator struct {
 	templates        map[string]*ReportTemplate
 	scheduledReports []ScheduledReport
-	
-	logger          logr.Logger
-	mutex           sync.RWMutex
+
+	logger logr.Logger
+	mutex  sync.RWMutex
 }
 
 // ReportTemplate defines report structure
 type ReportTemplate struct {
-	Name           string            `json:"name"`
-	Description    string            `json:"description"`
-	Format         ReportFormat      `json:"format"`
-	Sections       []ReportSection   `json:"sections"`
-	TimeRange      time.Duration     `json:"timeRange"`
-	Parameters     map[string]interface{} `json:"parameters"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description"`
+	Format      ReportFormat           `json:"format"`
+	Sections    []ReportSection        `json:"sections"`
+	TimeRange   time.Duration          `json:"timeRange"`
+	Parameters  map[string]interface{} `json:"parameters"`
 }
 
 // ReportFormat defines report output formats
@@ -367,32 +367,32 @@ const (
 
 // ReportSection defines a section of a report
 type ReportSection struct {
-	Name        string                 `json:"name"`
-	Type        SectionType            `json:"type"`
-	Query       string                 `json:"query"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Name       string                 `json:"name"`
+	Type       SectionType            `json:"type"`
+	Query      string                 `json:"query"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 // SectionType defines types of report sections
 type SectionType string
 
 const (
-	SectionSummary    SectionType = "summary"
-	SectionChart      SectionType = "chart"
-	SectionTable      SectionType = "table"
-	SectionMetrics    SectionType = "metrics"
-	SectionAnalysis   SectionType = "analysis"
+	SectionSummary  SectionType = "summary"
+	SectionChart    SectionType = "chart"
+	SectionTable    SectionType = "table"
+	SectionMetrics  SectionType = "metrics"
+	SectionAnalysis SectionType = "analysis"
 )
 
 // ScheduledReport defines a scheduled report
 type ScheduledReport struct {
-	ID          string         `json:"id"`
-	Template    string         `json:"template"`
-	Schedule    string         `json:"schedule"`    // cron expression
-	Recipients  []string       `json:"recipients"`
-	Enabled     bool           `json:"enabled"`
-	LastRun     *time.Time     `json:"lastRun"`
-	NextRun     time.Time      `json:"nextRun"`
+	ID         string     `json:"id"`
+	Template   string     `json:"template"`
+	Schedule   string     `json:"schedule"` // cron expression
+	Recipients []string   `json:"recipients"`
+	Enabled    bool       `json:"enabled"`
+	LastRun    *time.Time `json:"lastRun"`
+	NextRun    time.Time  `json:"nextRun"`
 }
 
 // ErrorAnalyzer performs advanced error analysis
@@ -400,22 +400,22 @@ type ErrorAnalyzer struct {
 	patterns         []ErrorPattern
 	correlationRules []CorrelationRule
 	trendAnalyzer    *TrendAnalyzer
-	
-	logger          logr.Logger
-	mutex           sync.RWMutex
+
+	logger logr.Logger
+	mutex  sync.RWMutex
 }
 
 // ErrorPattern represents a pattern in errors
 type ErrorPattern struct {
-	ID             string            `json:"id"`
-	Name           string            `json:"name"`
-	Description    string            `json:"description"`
-	Pattern        string            `json:"pattern"`        // regex or query
-	Confidence     float64           `json:"confidence"`
-	LastSeen       time.Time         `json:"lastSeen"`
-	Occurrences    int64             `json:"occurrences"`
-	Severity       errors.ErrorSeverity `json:"severity"`
-	Recommendations []string         `json:"recommendations"`
+	ID              string               `json:"id"`
+	Name            string               `json:"name"`
+	Description     string               `json:"description"`
+	Pattern         string               `json:"pattern"` // regex or query
+	Confidence      float64              `json:"confidence"`
+	LastSeen        time.Time            `json:"lastSeen"`
+	Occurrences     int64                `json:"occurrences"`
+	Severity        errors.ErrorSeverity `json:"severity"`
+	Recommendations []string             `json:"recommendations"`
 }
 
 // CorrelationRule defines how errors are correlated
@@ -431,27 +431,27 @@ type CorrelationRule struct {
 
 // CorrelationAction defines actions for correlated errors
 type CorrelationAction struct {
-	Type        ActionType         `json:"type"`
-	Parameters  map[string]interface{} `json:"parameters"`
+	Type       ActionType             `json:"type"`
+	Parameters map[string]interface{} `json:"parameters"`
 }
 
 // ActionType defines correlation action types
 type ActionType string
 
 const (
-	ActionAlert       ActionType = "alert"
-	ActionAutoRecover ActionType = "auto_recover"
-	ActionEscalate    ActionType = "escalate"
+	ActionAlert          ActionType = "alert"
+	ActionAutoRecover    ActionType = "auto_recover"
+	ActionEscalate       ActionType = "escalate"
 	ActionSuppressAlerts ActionType = "suppress_alerts"
 )
 
 // TrendAnalyzer analyzes error trends
 type TrendAnalyzer struct {
-	timeSeriesData  map[string]*TimeSeries
-	trendModels     map[string]*TrendModel
-	
-	logger         logr.Logger
-	mutex          sync.RWMutex
+	timeSeriesData map[string]*TimeSeries
+	trendModels    map[string]*TrendModel
+
+	logger logr.Logger
+	mutex  sync.RWMutex
 }
 
 // TimeSeries represents time series data
@@ -464,8 +464,8 @@ type TimeSeries struct {
 
 // DataPoint represents a single data point
 type DataPoint struct {
-	Timestamp time.Time `json:"timestamp"`
-	Value     float64   `json:"value"`
+	Timestamp time.Time         `json:"timestamp"`
+	Value     float64           `json:"value"`
 	Labels    map[string]string `json:"labels"`
 }
 
@@ -482,12 +482,12 @@ const (
 
 // TrendModel represents a trend model
 type TrendModel struct {
-	Name           string            `json:"name"`
-	ModelType      TrendModelType    `json:"modelType"`
-	Parameters     map[string]float64 `json:"parameters"`
-	Accuracy       float64           `json:"accuracy"`
-	LastTrained    time.Time         `json:"lastTrained"`
-	Predictions    []TrendPrediction `json:"predictions"`
+	Name        string             `json:"name"`
+	ModelType   TrendModelType     `json:"modelType"`
+	Parameters  map[string]float64 `json:"parameters"`
+	Accuracy    float64            `json:"accuracy"`
+	LastTrained time.Time          `json:"lastTrained"`
+	Predictions []TrendPrediction  `json:"predictions"`
 }
 
 // TrendModelType defines trend model types
@@ -495,50 +495,50 @@ type TrendModelType string
 
 const (
 	ModelLinear      TrendModelType = "linear"
-	ModelExponential TrendModelType = "exponential" 
+	ModelExponential TrendModelType = "exponential"
 	ModelSeasonal    TrendModelType = "seasonal"
 	ModelARIMA       TrendModelType = "arima"
 )
 
 // TrendPrediction represents a trend prediction
 type TrendPrediction struct {
-	Timestamp   time.Time `json:"timestamp"`
-	Value       float64   `json:"value"`
-	Confidence  float64   `json:"confidence"`
-	LowerBound  float64   `json:"lowerBound"`
-	UpperBound  float64   `json:"upperBound"`
+	Timestamp  time.Time `json:"timestamp"`
+	Value      float64   `json:"value"`
+	Confidence float64   `json:"confidence"`
+	LowerBound float64   `json:"lowerBound"`
+	UpperBound float64   `json:"upperBound"`
 }
 
 // ErrorPredictionEngine predicts future errors
 type ErrorPredictionEngine struct {
-	models          map[string]*PredictionModel
-	features        []FeatureExtractor
-	trainingData    *TrainingDataset
-	
-	logger         logr.Logger
-	mutex          sync.RWMutex
+	models       map[string]*PredictionModel
+	features     []FeatureExtractor
+	trainingData *TrainingDataset
+
+	logger logr.Logger
+	mutex  sync.RWMutex
 }
 
 // PredictionModel represents an ML model for error prediction
 type PredictionModel struct {
-	ID             string                 `json:"id"`
-	Name           string                 `json:"name"`
-	ModelType      PredictionModelType    `json:"modelType"`
-	Features       []string               `json:"features"`
-	Accuracy       float64                `json:"accuracy"`
-	Precision      float64                `json:"precision"`
-	Recall         float64                `json:"recall"`
-	F1Score        float64                `json:"f1Score"`
-	LastTrained    time.Time              `json:"lastTrained"`
-	TrainingSize   int                    `json:"trainingSize"`
-	Parameters     map[string]interface{} `json:"parameters"`
+	ID           string                 `json:"id"`
+	Name         string                 `json:"name"`
+	ModelType    PredictionModelType    `json:"modelType"`
+	Features     []string               `json:"features"`
+	Accuracy     float64                `json:"accuracy"`
+	Precision    float64                `json:"precision"`
+	Recall       float64                `json:"recall"`
+	F1Score      float64                `json:"f1Score"`
+	LastTrained  time.Time              `json:"lastTrained"`
+	TrainingSize int                    `json:"trainingSize"`
+	Parameters   map[string]interface{} `json:"parameters"`
 }
 
 // PredictionModelType defines prediction model types
 type PredictionModelType string
 
 const (
-	ModelLogisticRegression  PredictionModelType = "logistic_regression"
+	ModelLogisticRegression PredictionModelType = "logistic_regression"
 	ModelRandomForest       PredictionModelType = "random_forest"
 	ModelSVM                PredictionModelType = "svm"
 	ModelNeuralNetwork      PredictionModelType = "neural_network"
@@ -553,21 +553,21 @@ type FeatureExtractor interface {
 
 // TrainingDataset holds training data for ML models
 type TrainingDataset struct {
-	Features  []map[string]float64 `json:"features"`
-	Labels    []float64           `json:"labels"`
-	Metadata  []map[string]interface{} `json:"metadata"`
-	Size      int                 `json:"size"`
-	LastUpdate time.Time          `json:"lastUpdate"`
+	Features   []map[string]float64     `json:"features"`
+	Labels     []float64                `json:"labels"`
+	Metadata   []map[string]interface{} `json:"metadata"`
+	Size       int                      `json:"size"`
+	LastUpdate time.Time                `json:"lastUpdate"`
 }
 
 // AnomalyDetector detects anomalous error patterns
 type AnomalyDetector struct {
-	detectors      map[string]*AnomalyDetectorModel
-	baselines      map[string]*Baseline
-	alertRules     []AnomalyAlertRule
-	
-	logger        logr.Logger
-	mutex         sync.RWMutex
+	detectors  map[string]*AnomalyDetectorModel
+	baselines  map[string]*Baseline
+	alertRules []AnomalyAlertRule
+
+	logger logr.Logger
+	mutex  sync.RWMutex
 }
 
 // AnomalyDetectorModel represents an anomaly detection model
@@ -586,37 +586,37 @@ type AnomalyDetectorModel struct {
 type AnomalyAlgorithm string
 
 const (
-	AlgorithmIsolationForest  AnomalyAlgorithm = "isolation_forest"
-	AlgorithmOneClassSVM      AnomalyAlgorithm = "one_class_svm"
-	AlgorithmStatistical      AnomalyAlgorithm = "statistical"
-	AlgorithmLocalOutlier     AnomalyAlgorithm = "local_outlier_factor"
-	AlgorithmAutoEncoder      AnomalyAlgorithm = "autoencoder"
+	AlgorithmIsolationForest AnomalyAlgorithm = "isolation_forest"
+	AlgorithmOneClassSVM     AnomalyAlgorithm = "one_class_svm"
+	AlgorithmStatistical     AnomalyAlgorithm = "statistical"
+	AlgorithmLocalOutlier    AnomalyAlgorithm = "local_outlier_factor"
+	AlgorithmAutoEncoder     AnomalyAlgorithm = "autoencoder"
 )
 
 // Baseline represents normal behavior baseline
 type Baseline struct {
-	ID             string                 `json:"id"`
-	Name           string                 `json:"name"`
-	MetricName     string                 `json:"metricName"`
-	Mean           float64                `json:"mean"`
-	StandardDev    float64                `json:"standardDev"`
-	Min            float64                `json:"min"`
-	Max            float64                `json:"max"`
-	Percentiles    map[string]float64     `json:"percentiles"`
-	SampleSize     int64                  `json:"sampleSize"`
-	LastUpdated    time.Time              `json:"lastUpdated"`
-	TimeWindow     time.Duration          `json:"timeWindow"`
+	ID          string             `json:"id"`
+	Name        string             `json:"name"`
+	MetricName  string             `json:"metricName"`
+	Mean        float64            `json:"mean"`
+	StandardDev float64            `json:"standardDev"`
+	Min         float64            `json:"min"`
+	Max         float64            `json:"max"`
+	Percentiles map[string]float64 `json:"percentiles"`
+	SampleSize  int64              `json:"sampleSize"`
+	LastUpdated time.Time          `json:"lastUpdated"`
+	TimeWindow  time.Duration      `json:"timeWindow"`
 }
 
 // AnomalyAlertRule defines rules for anomaly alerts
 type AnomalyAlertRule struct {
-	ID             string         `json:"id"`
-	Name           string         `json:"name"`
-	MetricName     string         `json:"metricName"`
-	Threshold      float64        `json:"threshold"`
-	Operator       Operator       `json:"operator"`
-	Severity       AlertSeverity  `json:"severity"`
-	Enabled        bool           `json:"enabled"`
+	ID         string        `json:"id"`
+	Name       string        `json:"name"`
+	MetricName string        `json:"metricName"`
+	Threshold  float64       `json:"threshold"`
+	Operator   Operator      `json:"operator"`
+	Severity   AlertSeverity `json:"severity"`
+	Enabled    bool          `json:"enabled"`
 }
 
 // Operator defines comparison operators
@@ -636,7 +636,7 @@ func NewErrorTrackingSystem(config *ErrorTrackingConfig, errorAggregator *errors
 	if config == nil {
 		config = getDefaultErrorTrackingConfig()
 	}
-	
+
 	ets := &ErrorTrackingSystem{
 		errorAggregator: errorAggregator,
 		config:          config,
@@ -644,24 +644,24 @@ func NewErrorTrackingSystem(config *ErrorTrackingConfig, errorAggregator *errors
 		errorStream:     make(chan *ErrorEvent, config.ErrorBufferSize),
 		stopChan:        make(chan struct{}),
 	}
-	
+
 	// Initialize Prometheus metrics if enabled
 	if config.PrometheusEnabled {
 		ets.prometheusMetrics = NewPrometheusErrorMetrics(config.PrometheusNamespace)
 	}
-	
+
 	// Initialize OpenTelemetry if enabled
 	if config.OpenTelemetryEnabled {
 		ets.openTelemetryTracer = otel.Tracer(config.ServiceName)
 		ets.openTelemetryMeter = otel.Meter(config.ServiceName)
 	}
-	
+
 	// Initialize alerting if enabled
 	if config.AlertingEnabled {
 		ets.alertManager = NewAlertManager(config.AlertRules, logger)
 		ets.notificationManager = NewNotificationManager(config.NotificationChannels, logger)
 	}
-	
+
 	// Initialize dashboard if enabled
 	if config.DashboardEnabled {
 		dashboardConfig := &DashboardConfig{
@@ -673,29 +673,29 @@ func NewErrorTrackingSystem(config *ErrorTrackingConfig, errorAggregator *errors
 		}
 		ets.dashboardManager = NewDashboardManager(dashboardConfig, logger)
 	}
-	
+
 	// Initialize analytics if enabled
 	if config.AnalyticsEnabled {
 		ets.errorAnalyzer = NewErrorAnalyzer(logger)
-		
+
 		if config.PredictionEnabled {
 			ets.predictionEngine = NewErrorPredictionEngine(logger)
 		}
-		
+
 		if config.AnomalyDetectionEnabled {
 			ets.anomalyDetector = NewAnomalyDetector(logger)
 		}
 	}
-	
+
 	// Initialize report generator
 	ets.reportGenerator = NewErrorReportGenerator(logger)
-	
+
 	// Create processing workers
 	ets.processingWorkers = make([]*ErrorProcessingWorker, config.ProcessingWorkers)
 	for i := 0; i < config.ProcessingWorkers; i++ {
 		ets.processingWorkers[i] = NewErrorProcessingWorker(i, ets.errorStream, ets, logger)
 	}
-	
+
 	return ets
 }
 
@@ -703,35 +703,35 @@ func NewErrorTrackingSystem(config *ErrorTrackingConfig, errorAggregator *errors
 func (ets *ErrorTrackingSystem) Start(ctx context.Context) error {
 	ets.mutex.Lock()
 	defer ets.mutex.Unlock()
-	
+
 	if ets.started {
 		return fmt.Errorf("error tracking system already started")
 	}
-	
+
 	ets.logger.Info("Starting error tracking system")
-	
+
 	// Start processing workers
 	for _, worker := range ets.processingWorkers {
 		go worker.Start(ctx)
 	}
-	
+
 	// Start alert manager
 	if ets.alertManager != nil {
 		go ets.alertManager.Start(ctx)
 	}
-	
+
 	// Start dashboard
 	if ets.dashboardManager != nil {
 		go ets.dashboardManager.Start(ctx)
 	}
-	
+
 	// Start background tasks
 	go ets.metricsCollector(ctx)
 	go ets.reportScheduler(ctx)
-	
+
 	ets.started = true
 	ets.logger.Info("Error tracking system started successfully")
-	
+
 	return nil
 }
 
@@ -739,33 +739,33 @@ func (ets *ErrorTrackingSystem) Start(ctx context.Context) error {
 func (ets *ErrorTrackingSystem) Stop() error {
 	ets.mutex.Lock()
 	defer ets.mutex.Unlock()
-	
+
 	if !ets.started {
 		return nil
 	}
-	
+
 	ets.logger.Info("Stopping error tracking system")
-	
+
 	// Signal stop
 	close(ets.stopChan)
-	
+
 	// Stop components
 	if ets.alertManager != nil {
 		ets.alertManager.Stop()
 	}
-	
+
 	if ets.dashboardManager != nil {
 		ets.dashboardManager.Stop()
 	}
-	
+
 	// Stop workers
 	for _, worker := range ets.processingWorkers {
 		worker.Stop()
 	}
-	
+
 	ets.started = false
 	ets.logger.Info("Error tracking system stopped")
-	
+
 	return nil
 }
 
@@ -774,11 +774,11 @@ func (ets *ErrorTrackingSystem) TrackError(ctx context.Context, err *errors.Proc
 	if !ets.started {
 		return fmt.Errorf("error tracking system not started")
 	}
-	
+
 	// Extract trace information
 	span := trace.SpanFromContext(ctx)
 	spanContext := span.SpanContext()
-	
+
 	// Create error event
 	event := &ErrorEvent{
 		EventID:       fmt.Sprintf("err_%d", time.Now().UnixNano()),
@@ -795,13 +795,13 @@ func (ets *ErrorTrackingSystem) TrackError(ctx context.Context, err *errors.Proc
 		Labels:        make(map[string]string),
 		CustomData:    make(map[string]interface{}),
 	}
-	
+
 	// Add additional context
 	event.Tags["category"] = string(err.Category)
 	event.Tags["severity"] = string(err.Severity)
 	event.Tags["component"] = err.Component
 	event.Labels["error_code"] = err.Code
-	
+
 	// Queue for processing
 	select {
 	case ets.errorStream <- event:
@@ -817,39 +817,39 @@ func (ets *ErrorTrackingSystem) TrackRecovery(ctx context.Context, errorID strin
 	if !ets.started {
 		return nil
 	}
-	
+
 	// Update Prometheus metrics
 	if ets.prometheusMetrics != nil {
 		labels := prometheus.Labels{
 			"error_id": errorID,
 			"success":  fmt.Sprintf("%t", success),
 		}
-		
+
 		ets.prometheusMetrics.recoveryAttemptsTotal.With(labels).Add(float64(attempts))
-		
+
 		if success {
 			ets.prometheusMetrics.recoverySuccessTotal.With(labels).Inc()
 		}
-		
+
 		ets.prometheusMetrics.recoveryDurationHist.With(labels).Observe(duration.Seconds())
 	}
-	
+
 	// Record OpenTelemetry metrics
 	if ets.openTelemetryMeter != nil {
 		attrs := []attribute.KeyValue{
 			attribute.String("error_id", errorID),
 			attribute.Bool("success", success),
 		}
-		
+
 		if counter, err := ets.openTelemetryMeter.Int64Counter("error_recovery_attempts"); err == nil {
 			counter.Add(ctx, int64(attempts), metric.WithAttributes(attrs...))
 		}
-		
+
 		if histogram, err := ets.openTelemetryMeter.Float64Histogram("error_recovery_duration"); err == nil {
 			histogram.Record(ctx, duration.Seconds(), metric.WithAttributes(attrs...))
 		}
 	}
-	
+
 	return nil
 }
 
@@ -857,15 +857,15 @@ func (ets *ErrorTrackingSystem) TrackRecovery(ctx context.Context, errorID strin
 func (ets *ErrorTrackingSystem) metricsCollector(ctx context.Context) {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
 			ets.collectMetrics(ctx)
-			
+
 		case <-ets.stopChan:
 			return
-			
+
 		case <-ctx.Done():
 			return
 		}
@@ -877,13 +877,13 @@ func (ets *ErrorTrackingSystem) collectMetrics(ctx context.Context) {
 	// Collect error aggregator metrics
 	if ets.errorAggregator != nil {
 		stats := ets.errorAggregator.GetErrorStatistics()
-		
+
 		// Update Prometheus metrics
 		if ets.prometheusMetrics != nil {
 			if totalErrors, ok := stats["totalErrors"].(int); ok {
 				ets.prometheusMetrics.activeErrors.WithLabelValues("total").Set(float64(totalErrors))
 			}
-			
+
 			if errorCounts, ok := stats["errorCounts"].(map[string]int64); ok {
 				for category, count := range errorCounts {
 					ets.prometheusMetrics.errorsByCategory.WithLabelValues(category).Add(float64(count))
@@ -891,11 +891,11 @@ func (ets *ErrorTrackingSystem) collectMetrics(ctx context.Context) {
 			}
 		}
 	}
-	
+
 	// Collect recovery manager metrics if available
 	if ets.recoveryManager != nil {
 		recoveryMetrics := ets.recoveryManager.GetAdvancedMetrics()
-		
+
 		if ets.prometheusMetrics != nil {
 			ets.prometheusMetrics.meanTimeToRecovery.WithLabelValues("overall").Set(float64(recoveryMetrics.AverageRecoveryTime.Milliseconds()))
 		}
@@ -906,17 +906,17 @@ func (ets *ErrorTrackingSystem) collectMetrics(ctx context.Context) {
 func (ets *ErrorTrackingSystem) reportScheduler(ctx context.Context) {
 	ticker := time.NewTicker(1 * time.Minute) // Check every minute
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ticker.C:
 			if ets.reportGenerator != nil {
 				ets.reportGenerator.CheckScheduledReports(ctx)
 			}
-			
+
 		case <-ets.stopChan:
 			return
-			
+
 		case <-ctx.Done():
 			return
 		}
@@ -926,7 +926,7 @@ func (ets *ErrorTrackingSystem) reportScheduler(ctx context.Context) {
 // GetMetrics returns comprehensive error tracking metrics
 func (ets *ErrorTrackingSystem) GetMetrics() map[string]interface{} {
 	metrics := make(map[string]interface{})
-	
+
 	// Collect worker metrics
 	workerMetrics := make([]map[string]interface{}, len(ets.processingWorkers))
 	for i, worker := range ets.processingWorkers {
@@ -934,34 +934,34 @@ func (ets *ErrorTrackingSystem) GetMetrics() map[string]interface{} {
 			"id":               worker.id,
 			"processed_events": worker.processedEvents,
 			"last_activity":    worker.lastActivity,
-			"status":          "active",
+			"status":           "active",
 		}
 	}
 	metrics["workers"] = workerMetrics
-	
+
 	// Collect alert metrics
 	if ets.alertManager != nil {
 		metrics["alerts"] = ets.alertManager.GetMetrics()
 	}
-	
+
 	// Collect analytics metrics
 	if ets.errorAnalyzer != nil {
 		metrics["analytics"] = ets.errorAnalyzer.GetMetrics()
 	}
-	
+
 	return metrics
 }
 
 // GetHealthStatus returns the health status of the error tracking system
 func (ets *ErrorTrackingSystem) GetHealthStatus() map[string]interface{} {
 	health := map[string]interface{}{
-		"status":    "healthy",
-		"timestamp": time.Now(),
+		"status":     "healthy",
+		"timestamp":  time.Now(),
 		"components": map[string]interface{}{},
 	}
-	
+
 	components := health["components"].(map[string]interface{})
-	
+
 	// Check worker health
 	activeWorkers := 0
 	for _, worker := range ets.processingWorkers {
@@ -969,27 +969,27 @@ func (ets *ErrorTrackingSystem) GetHealthStatus() map[string]interface{} {
 			activeWorkers++
 		}
 	}
-	
+
 	components["workers"] = map[string]interface{}{
-		"total":  len(ets.processingWorkers),
-		"active": activeWorkers,
+		"total":   len(ets.processingWorkers),
+		"active":  activeWorkers,
 		"healthy": activeWorkers > 0,
 	}
-	
+
 	// Check alert manager health
 	if ets.alertManager != nil {
 		components["alerting"] = map[string]interface{}{
 			"healthy": true, // Would implement actual health check
 		}
 	}
-	
+
 	// Check dashboard health
 	if ets.dashboardManager != nil {
 		components["dashboard"] = map[string]interface{}{
 			"healthy": true, // Would implement actual health check
 		}
 	}
-	
+
 	// Overall health
 	allHealthy := true
 	for _, component := range components {
@@ -1002,11 +1002,11 @@ func (ets *ErrorTrackingSystem) GetHealthStatus() map[string]interface{} {
 			}
 		}
 	}
-	
+
 	if !allHealthy {
 		health["status"] = "unhealthy"
 	}
-	
+
 	return health
 }
 
@@ -1015,25 +1015,25 @@ func (ets *ErrorTrackingSystem) GetHealthStatus() map[string]interface{} {
 // getDefaultErrorTrackingConfig returns default configuration
 func getDefaultErrorTrackingConfig() *ErrorTrackingConfig {
 	return &ErrorTrackingConfig{
-		Enabled:                    true,
-		ProcessingWorkers:          3,
-		ErrorBufferSize:           1000,
-		PrometheusEnabled:         true,
-		PrometheusNamespace:       "nephoran_errors",
-		MetricsPort:              8080,
-		OpenTelemetryEnabled:      true,
-		ServiceName:              "nephoran-intent-operator",
-		AlertingEnabled:          true,
-		AlertRules:               make([]AlertRule, 0),
-		NotificationChannels:     make([]NotificationChannel, 0),
-		DashboardEnabled:         true,
+		Enabled:                 true,
+		ProcessingWorkers:       3,
+		ErrorBufferSize:         1000,
+		PrometheusEnabled:       true,
+		PrometheusNamespace:     "nephoran_errors",
+		MetricsPort:             8080,
+		OpenTelemetryEnabled:    true,
+		ServiceName:             "nephoran-intent-operator",
+		AlertingEnabled:         true,
+		AlertRules:              make([]AlertRule, 0),
+		NotificationChannels:    make([]NotificationChannel, 0),
+		DashboardEnabled:        true,
 		DashboardPort:           8090,
-		AnalyticsEnabled:         true,
-		PredictionEnabled:        false, // Disabled by default
-		AnomalyDetectionEnabled:  false, // Disabled by default
-		MetricsRetentionDays:     30,
-		TracesRetentionDays:      7,
-		ReportsRetentionDays:     90,
+		AnalyticsEnabled:        true,
+		PredictionEnabled:       false, // Disabled by default
+		AnomalyDetectionEnabled: false, // Disabled by default
+		MetricsRetentionDays:    30,
+		TracesRetentionDays:     7,
+		ReportsRetentionDays:    90,
 	}
 }
 
@@ -1078,24 +1078,24 @@ func NewAnomalyDetector(logger logr.Logger) *AnomalyDetector {
 func NewErrorProcessingWorker(id int, stream chan *ErrorEvent, ets *ErrorTrackingSystem, logger logr.Logger) *ErrorProcessingWorker {
 	return &ErrorProcessingWorker{
 		id:             id,
-		errorStream:   stream,
+		errorStream:    stream,
 		trackingSystem: ets,
-		logger:        logger,
-		stopChan:      make(chan struct{}),
+		logger:         logger,
+		stopChan:       make(chan struct{}),
 	}
 }
 
 // Placeholder methods
-func (am *AlertManager) Start(ctx context.Context) { /* Implementation */ }
-func (am *AlertManager) Stop() { /* Implementation */ }
+func (am *AlertManager) Start(ctx context.Context)          { /* Implementation */ }
+func (am *AlertManager) Stop()                              { /* Implementation */ }
 func (am *AlertManager) GetMetrics() map[string]interface{} { return make(map[string]interface{}) }
 
 func (dm *DashboardManager) Start(ctx context.Context) { /* Implementation */ }
-func (dm *DashboardManager) Stop() { /* Implementation */ }
+func (dm *DashboardManager) Stop()                     { /* Implementation */ }
 
 func (erg *ErrorReportGenerator) CheckScheduledReports(ctx context.Context) { /* Implementation */ }
 
 func (ea *ErrorAnalyzer) GetMetrics() map[string]interface{} { return make(map[string]interface{}) }
 
 func (epw *ErrorProcessingWorker) Start(ctx context.Context) { /* Implementation */ }
-func (epw *ErrorProcessingWorker) Stop() { /* Implementation */ }
+func (epw *ErrorProcessingWorker) Stop()                     { /* Implementation */ }

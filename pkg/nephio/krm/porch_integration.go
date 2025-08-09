@@ -42,87 +42,87 @@ import (
 
 // PorchIntegrationManager manages the integration between KRM functions and Porch
 type PorchIntegrationManager struct {
-	client            client.Client
-	porchClient       porch.PorchClient
-	functionManager   *FunctionManager
-	pipelineOrch      *PipelineOrchestrator
-	runtime           *Runtime
-	config            *PorchIntegrationConfig
-	metrics           *PorchIntegrationMetrics
-	tracer            trace.Tracer
-	intentCache       sync.Map
-	packageCache      sync.Map
-	mu                sync.RWMutex
+	client          client.Client
+	porchClient     porch.PorchClient
+	functionManager *FunctionManager
+	pipelineOrch    *PipelineOrchestrator
+	runtime         *Runtime
+	config          *PorchIntegrationConfig
+	metrics         *PorchIntegrationMetrics
+	tracer          trace.Tracer
+	intentCache     sync.Map
+	packageCache    sync.Map
+	mu              sync.RWMutex
 }
 
 // PorchIntegrationConfig defines configuration for Porch integration
 type PorchIntegrationConfig struct {
 	// Package creation settings
-	DefaultRepository     string        `json:"defaultRepository" yaml:"defaultRepository"`
-	DefaultNamespace      string        `json:"defaultNamespace" yaml:"defaultNamespace"`
-	PackageTimeout        time.Duration `json:"packageTimeout" yaml:"packageTimeout"`
-	RenderTimeout         time.Duration `json:"renderTimeout" yaml:"renderTimeout"`
-	
+	DefaultRepository string        `json:"defaultRepository" yaml:"defaultRepository"`
+	DefaultNamespace  string        `json:"defaultNamespace" yaml:"defaultNamespace"`
+	PackageTimeout    time.Duration `json:"packageTimeout" yaml:"packageTimeout"`
+	RenderTimeout     time.Duration `json:"renderTimeout" yaml:"renderTimeout"`
+
 	// Function execution settings
 	EnablePipeline        bool          `json:"enablePipeline" yaml:"enablePipeline"`
 	PipelineTimeout       time.Duration `json:"pipelineTimeout" yaml:"pipelineTimeout"`
 	MaxConcurrentPackages int           `json:"maxConcurrentPackages" yaml:"maxConcurrentPackages"`
-	
+
 	// Cache settings
-	EnableCaching         bool          `json:"enableCaching" yaml:"enableCaching"`
-	CacheTTL             time.Duration `json:"cacheTtl" yaml:"cacheTtl"`
-	MaxCacheSize         int           `json:"maxCacheSize" yaml:"maxCacheSize"`
-	
+	EnableCaching bool          `json:"enableCaching" yaml:"enableCaching"`
+	CacheTTL      time.Duration `json:"cacheTtl" yaml:"cacheTtl"`
+	MaxCacheSize  int           `json:"maxCacheSize" yaml:"maxCacheSize"`
+
 	// Retry settings
-	MaxRetries           int           `json:"maxRetries" yaml:"maxRetries"`
-	RetryBackoff         time.Duration `json:"retryBackoff" yaml:"retryBackoff"`
-	
+	MaxRetries   int           `json:"maxRetries" yaml:"maxRetries"`
+	RetryBackoff time.Duration `json:"retryBackoff" yaml:"retryBackoff"`
+
 	// Monitoring settings
-	EnableMetrics        bool          `json:"enableMetrics" yaml:"enableMetrics"`
-	EnableTracing        bool          `json:"enableTracing" yaml:"enableTracing"`
+	EnableMetrics bool `json:"enableMetrics" yaml:"enableMetrics"`
+	EnableTracing bool `json:"enableTracing" yaml:"enableTracing"`
 }
 
 // PorchIntegrationMetrics provides comprehensive metrics for Porch integration
 type PorchIntegrationMetrics struct {
-	PackageCreations     prometheus.CounterVec
-	PackageRevisions     prometheus.CounterVec
-	FunctionExecutions   prometheus.CounterVec
-	PipelineExecutions   prometheus.CounterVec
-	ExecutionDuration    prometheus.HistogramVec
-	PackageSize          prometheus.HistogramVec
-	CacheHitRate         prometheus.Counter
-	CacheMissRate        prometheus.Counter
-	ErrorRate            prometheus.CounterVec
+	PackageCreations   prometheus.CounterVec
+	PackageRevisions   prometheus.CounterVec
+	FunctionExecutions prometheus.CounterVec
+	PipelineExecutions prometheus.CounterVec
+	ExecutionDuration  prometheus.HistogramVec
+	PackageSize        prometheus.HistogramVec
+	CacheHitRate       prometheus.Counter
+	CacheMissRate      prometheus.Counter
+	ErrorRate          prometheus.CounterVec
 }
 
 // FunctionEvalTask represents a function evaluation task for Porch
 type FunctionEvalTask struct {
-	ID               string                    `json:"id"`
-	IntentID         string                    `json:"intentId"`
-	PackageRef       *porch.PackageReference   `json:"packageRef"`
-	FunctionPipeline *PipelineDefinition       `json:"functionPipeline"`
-	Context          *FunctionEvalContext      `json:"context"`
-	Status           FunctionEvalTaskStatus    `json:"status"`
-	Results          *FunctionEvalResults      `json:"results,omitempty"`
-	CreatedAt        time.Time                 `json:"createdAt"`
-	UpdatedAt        time.Time                 `json:"updatedAt"`
-	CompletedAt      *time.Time                `json:"completedAt,omitempty"`
+	ID               string                  `json:"id"`
+	IntentID         string                  `json:"intentId"`
+	PackageRef       *porch.PackageReference `json:"packageRef"`
+	FunctionPipeline *PipelineDefinition     `json:"functionPipeline"`
+	Context          *FunctionEvalContext    `json:"context"`
+	Status           FunctionEvalTaskStatus  `json:"status"`
+	Results          *FunctionEvalResults    `json:"results,omitempty"`
+	CreatedAt        time.Time               `json:"createdAt"`
+	UpdatedAt        time.Time               `json:"updatedAt"`
+	CompletedAt      *time.Time              `json:"completedAt,omitempty"`
 }
 
 // FunctionEvalContext provides context for function evaluation
 type FunctionEvalContext struct {
-	IntentSpec       *v1.NetworkIntentSpec     `json:"intentSpec"`
-	TargetClusters   []*porch.ClusterTarget    `json:"targetClusters,omitempty"`
-	ORANCompliance   *porch.ORANComplianceSpec `json:"oranCompliance,omitempty"`
-	NetworkSlice     *porch.NetworkSliceSpec   `json:"networkSlice,omitempty"`
-	Environment      map[string]string         `json:"environment,omitempty"`
-	User             string                    `json:"user,omitempty"`
-	Namespace        string                    `json:"namespace"`
+	IntentSpec     *v1.NetworkIntentSpec     `json:"intentSpec"`
+	TargetClusters []*porch.ClusterTarget    `json:"targetClusters,omitempty"`
+	ORANCompliance *porch.ORANComplianceSpec `json:"oranCompliance,omitempty"`
+	NetworkSlice   *porch.NetworkSliceSpec   `json:"networkSlice,omitempty"`
+	Environment    map[string]string         `json:"environment,omitempty"`
+	User           string                    `json:"user,omitempty"`
+	Namespace      string                    `json:"namespace"`
 }
 
 // FunctionEvalResults contains the results of function evaluation
 type FunctionEvalResults struct {
-	PackageRevision    *porch.PackageRevision   `json:"packageRevision"`
+	PackageRevision    *porch.PackageRevision    `json:"packageRevision"`
 	ValidationResults  []*porch.ValidationResult `json:"validationResults,omitempty"`
 	RenderResults      *porch.RenderResult       `json:"renderResults,omitempty"`
 	PipelineResults    *PipelineExecution        `json:"pipelineResults,omitempty"`
@@ -136,12 +136,12 @@ type FunctionEvalResults struct {
 type FunctionEvalTaskStatus string
 
 const (
-	FunctionEvalTaskStatusPending    FunctionEvalTaskStatus = "Pending"
-	FunctionEvalTaskStatusRunning    FunctionEvalTaskStatus = "Running"
-	FunctionEvalTaskStatusCompleted  FunctionEvalTaskStatus = "Completed"
-	FunctionEvalTaskStatusFailed     FunctionEvalTaskStatus = "Failed"
-	FunctionEvalTaskStatusTimeout    FunctionEvalTaskStatus = "Timeout"
-	FunctionEvalTaskStatusCancelled  FunctionEvalTaskStatus = "Cancelled"
+	FunctionEvalTaskStatusPending   FunctionEvalTaskStatus = "Pending"
+	FunctionEvalTaskStatusRunning   FunctionEvalTaskStatus = "Running"
+	FunctionEvalTaskStatusCompleted FunctionEvalTaskStatus = "Completed"
+	FunctionEvalTaskStatusFailed    FunctionEvalTaskStatus = "Failed"
+	FunctionEvalTaskStatusTimeout   FunctionEvalTaskStatus = "Timeout"
+	FunctionEvalTaskStatusCancelled FunctionEvalTaskStatus = "Cancelled"
 )
 
 // PackageRevisionLifecycleManager manages package revision lifecycle with KRM functions
@@ -168,12 +168,12 @@ var DefaultPorchIntegrationConfig = &PorchIntegrationConfig{
 	PipelineTimeout:       15 * time.Minute,
 	MaxConcurrentPackages: 20,
 	EnableCaching:         true,
-	CacheTTL:             1 * time.Hour,
-	MaxCacheSize:         1000,
-	MaxRetries:           3,
-	RetryBackoff:         5 * time.Second,
-	EnableMetrics:        true,
-	EnableTracing:        true,
+	CacheTTL:              1 * time.Hour,
+	MaxCacheSize:          1000,
+	MaxRetries:            3,
+	RetryBackoff:          5 * time.Second,
+	EnableMetrics:         true,
+	EnableTracing:         true,
 }
 
 // NewPorchIntegrationManager creates a new Porch integration manager
@@ -291,10 +291,10 @@ func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, in
 		ID:       generateTaskID(),
 		IntentID: string(intent.UID),
 		Context: &FunctionEvalContext{
-			IntentSpec:   &intent.Spec,
-			Environment:  make(map[string]string),
-			User:         extractUserFromContext(ctx),
-			Namespace:    intent.Namespace,
+			IntentSpec:  &intent.Spec,
+			Environment: make(map[string]string),
+			User:        extractUserFromContext(ctx),
+			Namespace:   intent.Namespace,
 		},
 		Status:    FunctionEvalTaskStatusPending,
 		CreatedAt: time.Now(),
@@ -378,7 +378,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 		Revision:    packageRevision.Spec.Revision,
 	}
 
-	logger.Info("Created package revision", 
+	logger.Info("Created package revision",
 		"repository", packageRevision.Spec.Repository,
 		"package", packageRevision.Spec.PackageName,
 		"revision", packageRevision.Spec.Revision,
@@ -472,7 +472,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 
 	logger.Info("Successfully completed intent processing", "taskId", task.ID)
 	span.SetStatus(codes.Ok, "intent task completed successfully")
-	
+
 	return nil
 }
 
@@ -507,9 +507,9 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 	}
 
 	annotations := map[string]string{
-		porch.AnnotationManagedBy:  "nephoran-intent-operator",
-		porch.AnnotationIntentID:   string(intent.UID),
-		porch.AnnotationRepository: repository,
+		porch.AnnotationManagedBy:   "nephoran-intent-operator",
+		porch.AnnotationIntentID:    string(intent.UID),
+		porch.AnnotationRepository:  repository,
 		porch.AnnotationPackageName: packageName,
 	}
 
@@ -570,7 +570,7 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 			Repository:  spec.Repository,
 			Revision:    spec.Revision,
 			Lifecycle:   spec.Lifecycle,
-			Resources:   []porch.KRMResource{}, // Will be populated by functions
+			Resources:   []porch.KRMResource{},    // Will be populated by functions
 			Functions:   []porch.FunctionConfig{}, // Will be populated by pipeline
 		},
 	}
@@ -975,7 +975,7 @@ func (pim *PorchIntegrationManager) updateIntentStatus(ctx context.Context, inte
 		// Update deployment status
 		if task.Results.DeploymentTargets != nil {
 			intent.Status.DeploymentStatus = &v1.DeploymentStatus{
-				Phase: "Pending",
+				Phase:   "Pending",
 				Targets: make([]v1.DeploymentTargetStatus, 0, len(task.Results.DeploymentTargets)),
 			}
 
@@ -1054,7 +1054,7 @@ func (pim *PorchIntegrationManager) CancelFunctionEvalTask(ctx context.Context, 
 // Cleanup performs cleanup of expired cache entries
 func (pim *PorchIntegrationManager) Cleanup(ctx context.Context) error {
 	logger := log.FromContext(ctx).WithName("porch-integration-cleanup")
-	
+
 	cleaned := 0
 	cutoff := time.Now().Add(-pim.config.CacheTTL)
 

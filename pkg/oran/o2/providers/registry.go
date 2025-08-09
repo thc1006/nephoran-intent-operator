@@ -12,23 +12,23 @@ import (
 
 // ProviderRegistry manages cloud provider instances
 type ProviderRegistry struct {
-	providers      map[string]CloudProvider
-	configurations map[string]*ProviderConfiguration
-	healthStatus   map[string]*HealthStatus
-	metrics        map[string]map[string]interface{}
-	mu             sync.RWMutex
-	stopCh         chan struct{}
+	providers           map[string]CloudProvider
+	configurations      map[string]*ProviderConfiguration
+	healthStatus        map[string]*HealthStatus
+	metrics             map[string]map[string]interface{}
+	mu                  sync.RWMutex
+	stopCh              chan struct{}
 	healthCheckInterval time.Duration
 }
 
 // NewProviderRegistry creates a new provider registry
 func NewProviderRegistry() *ProviderRegistry {
 	return &ProviderRegistry{
-		providers:      make(map[string]CloudProvider),
-		configurations: make(map[string]*ProviderConfiguration),
-		healthStatus:   make(map[string]*HealthStatus),
-		metrics:        make(map[string]map[string]interface{}),
-		stopCh:         make(chan struct{}),
+		providers:           make(map[string]CloudProvider),
+		configurations:      make(map[string]*ProviderConfiguration),
+		healthStatus:        make(map[string]*HealthStatus),
+		metrics:             make(map[string]map[string]interface{}),
+		stopCh:              make(chan struct{}),
 		healthCheckInterval: 30 * time.Second,
 	}
 }

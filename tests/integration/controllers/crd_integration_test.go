@@ -40,13 +40,13 @@ var _ = Describe("CRD Integration Tests", func() {
 						Name:      "integration-test-intent",
 						Namespace: namespace.Name,
 						Labels: map[string]string{
-							"test":                       "integration",
-							"nephoran.com/intent-type":  "deployment",
-							"nephoran.com/target":       "5GC",
+							"test":                     "integration",
+							"nephoran.com/intent-type": "deployment",
+							"nephoran.com/target":      "5GC",
 						},
 						Annotations: map[string]string{
-							"nephoran.com/test-run":     "crd-integration",
-							"nephoran.com/description":  "Integration test for NetworkIntent CRD",
+							"nephoran.com/test-run":    "crd-integration",
+							"nephoran.com/description": "Integration test for NetworkIntent CRD",
 						},
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
@@ -72,9 +72,9 @@ var _ = Describe("CRD Integration Tests", func() {
 				}
 
 				// Set resource constraints
-				intent.Spec.ResourceConstraints.CPU = resource.NewQuantity(500, resource.DecimalSI) // 500m
-				intent.Spec.ResourceConstraints.Memory = resource.NewQuantity(1073741824, resource.BinarySI) // 1Gi
-				intent.Spec.ResourceConstraints.MaxCPU = resource.NewQuantity(2000, resource.DecimalSI) // 2000m
+				intent.Spec.ResourceConstraints.CPU = resource.NewQuantity(500, resource.DecimalSI)             // 500m
+				intent.Spec.ResourceConstraints.Memory = resource.NewQuantity(1073741824, resource.BinarySI)    // 1Gi
+				intent.Spec.ResourceConstraints.MaxCPU = resource.NewQuantity(2000, resource.DecimalSI)         // 2000m
 				intent.Spec.ResourceConstraints.MaxMemory = resource.NewQuantity(4294967296, resource.BinarySI) // 4Gi
 
 				Expect(k8sClient.Create(testCtx, intent)).To(Succeed())
@@ -215,9 +215,9 @@ var _ = Describe("CRD Integration Tests", func() {
 						Name:      "integration-e2nodeset",
 						Namespace: namespace.Name,
 						Labels: map[string]string{
-							"test":                        "integration",
-							"nephoran.com/e2-interface":  "v3.0",
-							"nephoran.com/simulation":    "enabled",
+							"test":                      "integration",
+							"nephoran.com/e2-interface": "v3.0",
+							"nephoran.com/simulation":   "enabled",
 						},
 					},
 					Spec: nephoranv1.E2NodeSetSpec{
@@ -225,7 +225,7 @@ var _ = Describe("CRD Integration Tests", func() {
 						Template: nephoranv1.E2NodeTemplate{
 							ObjectMeta: metav1.ObjectMeta{
 								Labels: map[string]string{
-									"app":                     "e2-node",
+									"app":                    "e2-node",
 									"nephoran.com/component": "e2-simulator",
 								},
 							},
@@ -441,9 +441,9 @@ var _ = Describe("CRD Integration Tests", func() {
 				expectedConditions := []nephoranv1.E2NodeSetConditionType{
 					nephoranv1.E2NodeSetConditionAvailable,
 				}
-				
+
 				for _, expectedType := range expectedConditions {
-					Expect(conditionTypes).To(HaveKey(expectedType), 
+					Expect(conditionTypes).To(HaveKey(expectedType),
 						fmt.Sprintf("Expected condition type %s not found", expectedType))
 				}
 			})
@@ -573,8 +573,8 @@ var _ = Describe("CRD Integration Tests", func() {
 						Namespace: namespace.Name,
 					},
 					Spec: nephoranv1.NetworkIntentSpec{
-						Intent:     "Deploy all network functions with excessive components list",
-						IntentType: nephoranv1.IntentTypeDeployment,
+						Intent:           "Deploy all network functions with excessive components list",
+						IntentType:       nephoranv1.IntentTypeDeployment,
 						TargetComponents: make([]nephoranv1.TargetComponent, 25), // Exceeds max of 20
 					},
 				}
@@ -595,7 +595,7 @@ var _ = Describe("CRD Integration Tests", func() {
 						Intent:     "Deploy AMF with specific resource requirements",
 						IntentType: nephoranv1.IntentTypeDeployment,
 						ResourceConstraints: &nephoranv1.ResourceConstraints{
-							CPU:       resource.NewQuantity(1000, resource.DecimalSI),    // 1000m
+							CPU:       resource.NewQuantity(1000, resource.DecimalSI),      // 1000m
 							Memory:    resource.NewQuantity(2147483648, resource.BinarySI), // 2Gi
 							MaxCPU:    resource.NewQuantity(4000, resource.DecimalSI),      // 4000m
 							MaxMemory: resource.NewQuantity(8589934592, resource.BinarySI), // 8Gi

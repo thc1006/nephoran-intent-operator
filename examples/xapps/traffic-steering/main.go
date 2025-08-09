@@ -30,39 +30,39 @@ type TrafficSteeringXApp struct {
 
 // CellLoadInfo stores load information for traffic steering decisions
 type CellLoadInfo struct {
-	CellID             string                 `json:"cell_id"`
-	LastUpdate         time.Time              `json:"last_update"`
-	PRBUtilizationDL   float64               `json:"prb_utilization_dl"`
-	PRBUtilizationUL   float64               `json:"prb_utilization_ul"`
-	ActiveUEs          int                   `json:"active_ues"`
-	ThroughputDL       float64               `json:"throughput_dl_mbps"`
-	ThroughputUL       float64               `json:"throughput_ul_mbps"`
-	ConnectionSuccess  float64               `json:"connection_success_rate"`
-	LoadLevel          LoadLevel             `json:"load_level"`
-	NeighborCells      []string              `json:"neighbor_cells"`
-	ConnectedUEs       map[string]*UEInfo    `json:"connected_ues"`
+	CellID            string             `json:"cell_id"`
+	LastUpdate        time.Time          `json:"last_update"`
+	PRBUtilizationDL  float64            `json:"prb_utilization_dl"`
+	PRBUtilizationUL  float64            `json:"prb_utilization_ul"`
+	ActiveUEs         int                `json:"active_ues"`
+	ThroughputDL      float64            `json:"throughput_dl_mbps"`
+	ThroughputUL      float64            `json:"throughput_ul_mbps"`
+	ConnectionSuccess float64            `json:"connection_success_rate"`
+	LoadLevel         LoadLevel          `json:"load_level"`
+	NeighborCells     []string           `json:"neighbor_cells"`
+	ConnectedUEs      map[string]*UEInfo `json:"connected_ues"`
 }
 
 // UEInfo stores information about connected UEs
 type UEInfo struct {
-	UEID         string     `json:"ue_id"`
-	RSRP         float64    `json:"rsrp_dbm"`
-	RSRQ         float64    `json:"rsrq_db"`
-	CQI          int        `json:"cqi"`
-	ThroughputDL float64    `json:"throughput_dl_kbps"`
-	ThroughputUL float64    `json:"throughput_ul_kbps"`
-	Priority     int        `json:"priority"`
-	LastUpdate   time.Time  `json:"last_update"`
+	UEID         string    `json:"ue_id"`
+	RSRP         float64   `json:"rsrp_dbm"`
+	RSRQ         float64   `json:"rsrq_db"`
+	CQI          int       `json:"cqi"`
+	ThroughputDL float64   `json:"throughput_dl_kbps"`
+	ThroughputUL float64   `json:"throughput_ul_kbps"`
+	Priority     int       `json:"priority"`
+	LastUpdate   time.Time `json:"last_update"`
 }
 
 // LoadLevel represents the load level of a cell
 type LoadLevel string
 
 const (
-	LoadLevelLow      LoadLevel = "LOW"       // < 30%
-	LoadLevelModerate LoadLevel = "MODERATE"  // 30-70%
-	LoadLevelHigh     LoadLevel = "HIGH"      // 70-85%
-	LoadLevelCritical LoadLevel = "CRITICAL"  // > 85%
+	LoadLevelLow      LoadLevel = "LOW"      // < 30%
+	LoadLevelModerate LoadLevel = "MODERATE" // 30-70%
+	LoadLevelHigh     LoadLevel = "HIGH"     // 70-85%
+	LoadLevelCritical LoadLevel = "CRITICAL" // > 85%
 )
 
 // SteeringRules defines traffic steering thresholds and policies
@@ -384,18 +384,18 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 		return
 	}
 
-	log.Printf("Found %d overloaded cells and %d underloaded cells", 
+	log.Printf("Found %d overloaded cells and %d underloaded cells",
 		len(overloadedCells), len(underloadedCells))
 
 	// Sort cells by load for optimal steering decisions
 	sort.Slice(overloadedCells, func(i, j int) bool {
 		return (overloadedCells[i].PRBUtilizationDL + overloadedCells[i].PRBUtilizationUL) >
-			   (overloadedCells[j].PRBUtilizationDL + overloadedCells[j].PRBUtilizationUL)
+			(overloadedCells[j].PRBUtilizationDL + overloadedCells[j].PRBUtilizationUL)
 	})
 
 	sort.Slice(underloadedCells, func(i, j int) bool {
 		return (underloadedCells[i].PRBUtilizationDL + underloadedCells[i].PRBUtilizationUL) <
-			   (underloadedCells[j].PRBUtilizationDL + underloadedCells[j].PRBUtilizationUL)
+			(underloadedCells[j].PRBUtilizationDL + underloadedCells[j].PRBUtilizationUL)
 	})
 
 	// Perform traffic steering
@@ -410,7 +410,7 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 
 		// Select UEs to steer
 		candidateUEs := x.selectUEsForSteering(overloadedCell, targetCell)
-		
+
 		// Limit number of UEs to steer per cycle
 		maxSteer := x.steeringRules.MaxSteerUEs
 		if len(candidateUEs) > maxSteer {
@@ -423,11 +423,11 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 				UEID:         ueInfo.UEID,
 				SourceCellID: overloadedCell.CellID,
 				TargetCellID: targetCell.CellID,
-				Reason:       fmt.Sprintf("Load balancing: source=%.1f%%, target=%.1f%%", 
-					(overloadedCell.PRBUtilizationDL + overloadedCell.PRBUtilizationUL) / 2,
-					(targetCell.PRBUtilizationDL + targetCell.PRBUtilizationUL) / 2),
-				LoadDifference: math.Abs((overloadedCell.PRBUtilizationDL + overloadedCell.PRBUtilizationUL) -
-					(targetCell.PRBUtilizationDL + targetCell.PRBUtilizationUL)) / 2,
+				Reason: fmt.Sprintf("Load balancing: source=%.1f%%, target=%.1f%%",
+					(overloadedCell.PRBUtilizationDL+overloadedCell.PRBUtilizationUL)/2,
+					(targetCell.PRBUtilizationDL+targetCell.PRBUtilizationUL)/2),
+				LoadDifference: math.Abs((overloadedCell.PRBUtilizationDL+overloadedCell.PRBUtilizationUL)-
+					(targetCell.PRBUtilizationDL+targetCell.PRBUtilizationUL)) / 2,
 				Timestamp: time.Now(),
 				Status:    "PENDING",
 			}
@@ -438,7 +438,7 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 				decision.Status = "FAILED"
 			} else {
 				decision.Status = "SUCCESS"
-				log.Printf("Successfully steered UE %s from cell %s to cell %s", 
+				log.Printf("Successfully steered UE %s from cell %s to cell %s",
 					ueInfo.UEID, overloadedCell.CellID, targetCell.CellID)
 			}
 
@@ -454,7 +454,7 @@ func (x *TrafficSteeringXApp) evaluateAndSteer(ctx context.Context) {
 // findCellsByLoadLevel returns cells matching the specified load levels
 func (x *TrafficSteeringXApp) findCellsByLoadLevel(levels ...LoadLevel) []*CellLoadInfo {
 	var cells []*CellLoadInfo
-	
+
 	for _, cellInfo := range x.cellLoadInfo {
 		for _, level := range levels {
 			if cellInfo.LoadLevel == level {
@@ -463,7 +463,7 @@ func (x *TrafficSteeringXApp) findCellsByLoadLevel(levels ...LoadLevel) []*CellL
 			}
 		}
 	}
-	
+
 	return cells
 }
 
@@ -489,10 +489,10 @@ func (x *TrafficSteeringXApp) findBestTargetCell(sourceCell *CellLoadInfo, candi
 		}
 
 		candidateLoad := (candidate.PRBUtilizationDL + candidate.PRBUtilizationUL) / 2
-		
+
 		// Calculate load difference (higher is better for steering)
 		loadDifference := sourceLoad - candidateLoad
-		
+
 		// Require minimum load difference to avoid ping-pong effects
 		if loadDifference < x.steeringRules.HysteresisMargin {
 			continue
@@ -559,7 +559,7 @@ func (x *TrafficSteeringXApp) executeTrafficSteering(ctx context.Context, decisi
 		return fmt.Errorf("failed to send control message: %w", err)
 	}
 
-	log.Printf("Traffic steering control sent for UE %s, received ack: %+v", 
+	log.Printf("Traffic steering control sent for UE %s, received ack: %+v",
 		decision.UEID, ack)
 
 	return nil
@@ -598,9 +598,9 @@ func (x *TrafficSteeringXApp) handleHealth(w http.ResponseWriter, r *http.Reques
 		"timestamp": time.Now().UTC(),
 		"cells":     len(x.cellLoadInfo),
 		"sdk_metrics": map[string]interface{}{
-			"subscriptions_active":   metrics.SubscriptionsActive,
-			"indications_received":   metrics.IndicationsReceived,
-			"control_requests_sent":  metrics.ControlRequestsSent,
+			"subscriptions_active":  metrics.SubscriptionsActive,
+			"indications_received":  metrics.IndicationsReceived,
+			"control_requests_sent": metrics.ControlRequestsSent,
 			"error_count":           metrics.ErrorCount,
 		},
 	}
@@ -647,14 +647,14 @@ func (x *TrafficSteeringXApp) handleRules(w http.ResponseWriter, r *http.Request
 func (x *TrafficSteeringXApp) handleInfo(w http.ResponseWriter, r *http.Request) {
 	config := x.sdk.GetConfig()
 	info := map[string]interface{}{
-		"name":         config.XAppName,
-		"version":      config.XAppVersion,
-		"description":  config.XAppDescription,
-		"e2_node_id":   config.E2NodeID,
-		"ric_url":      config.NearRTRICURL,
+		"name":           config.XAppName,
+		"version":        config.XAppVersion,
+		"description":    config.XAppDescription,
+		"e2_node_id":     config.E2NodeID,
+		"ric_url":        config.NearRTRICURL,
 		"service_models": config.ServiceModels,
-		"state":        string(x.sdk.GetState()),
-		"cells":        len(x.cellLoadInfo),
+		"state":          string(x.sdk.GetState()),
+		"cells":          len(x.cellLoadInfo),
 	}
 
 	w.Header().Set("Content-Type", "application/json")

@@ -44,7 +44,7 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 		namespace = "test-cnf-" + randString(8)
-		
+
 		// Create test namespace
 		ns := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
@@ -52,7 +52,7 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, ns)).To(Succeed())
-		
+
 		// Initialize CNF components
 		cnfOrchestrator = cnf.NewCNFOrchestrator(k8sClient, scheme, recorder)
 		cnfIntentProcessor = cnf.NewCNFIntentProcessor(k8sClient, nil, nil)
@@ -77,15 +77,15 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoranv1.NetworkIntentSpec{
-					Intent: "Deploy an AMF function with high availability and auto-scaling for production use",
+					Intent:     "Deploy an AMF function with high availability and auto-scaling for production use",
 					IntentType: nephoranv1.IntentTypeDeployment,
-					Priority: nephoranv1.PriorityHigh,
+					Priority:   nephoranv1.PriorityHigh,
 					TargetComponents: []nephoranv1.TargetComponent{
 						nephoranv1.TargetComponentAMF,
 					},
 					ResourceConstraints: &nephoranv1.ResourceConstraints{
-						CPU:    mustParseQuantity("1000m"),
-						Memory: mustParseQuantity("2Gi"),
+						CPU:     mustParseQuantity("1000m"),
+						Memory:  mustParseQuantity("2Gi"),
 						Storage: mustParseQuantity("10Gi"),
 					},
 					TargetNamespace: namespace,
@@ -122,9 +122,9 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 						Memory: mustParseQuantity("2Gi"),
 					},
 					AutoScaling: &nephoranv1.AutoScaling{
-						Enabled:     true,
-						MinReplicas: 1,
-						MaxReplicas: 5,
+						Enabled:        true,
+						MinReplicas:    1,
+						MaxReplicas:    5,
 						CPUUtilization: ptr(int32(70)),
 					},
 					Monitoring: &nephoranv1.MonitoringConfig{
@@ -218,9 +218,9 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoranv1.NetworkIntentSpec{
-					Intent: "Deploy Near-RT RIC for intelligent RAN control with xApp support and E2 interface",
+					Intent:     "Deploy Near-RT RIC for intelligent RAN control with xApp support and E2 interface",
 					IntentType: nephoranv1.IntentTypeDeployment,
-					Priority: nephoranv1.PriorityMedium,
+					Priority:   nephoranv1.PriorityMedium,
 					TargetComponents: []nephoranv1.TargetComponent{
 						nephoranv1.TargetComponentNearRTRIC,
 					},
@@ -346,7 +346,7 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 					Namespace: namespace,
 				},
 				Spec: nephoranv1.CNFDeploymentSpec{
-					CNFType:            nephoranv1.CNF5GCore,       // 5G Core type
+					CNFType:            nephoranv1.CNF5GCore,      // 5G Core type
 					Function:           nephoranv1.CNFFunctionODU, // O-RAN function
 					DeploymentStrategy: nephoranv1.DeploymentStrategyDirect,
 					Replicas:           1,
@@ -425,7 +425,7 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 		It("should successfully retrieve and validate CNF templates", func() {
 			By("Creating template manager")
 			templateManager := cnf.NewHelmTemplateManager()
-			
+
 			By("Retrieving AMF template")
 			amfTemplate, err := templateManager.GetTemplate(nephoranv1.CNFFunctionAMF)
 			Expect(err).NotTo(HaveOccurred())
@@ -499,10 +499,10 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 
 			By("Verifying generated values")
 			Expect(values["replicaCount"]).To(Equal(int32(3)))
-			
+
 			resources, ok := values["resources"].(map[string]interface{})
 			Expect(ok).To(BeTrue())
-			
+
 			requests, ok := resources["requests"].(map[string]interface{})
 			Expect(ok).To(BeTrue())
 			Expect(requests["cpu"]).To(Equal("1000m"))
@@ -520,7 +520,7 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 			By("Creating multiple CNF deployments concurrently")
 			const numDeployments = 5
 			deployments := make([]*nephoranv1.CNFDeployment, numDeployments)
-			
+
 			for i := 0; i < numDeployments; i++ {
 				deployments[i] = &nephoranv1.CNFDeployment{
 					ObjectMeta: metav1.ObjectMeta{

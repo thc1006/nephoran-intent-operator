@@ -233,7 +233,7 @@ func TestPolicyManager_CreatePolicy(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify policy was stored
 				stored, err := manager.policyManager.GetPolicy(tt.policy.ID)
 				assert.NoError(t, err)
@@ -353,7 +353,7 @@ func TestPolicyManager_UpdatePolicy(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				if tt.validateFunc != nil {
 					updated, err := manager.policyManager.GetPolicy(tt.policyID)
 					require.NoError(t, err)
@@ -506,7 +506,7 @@ func TestServiceRegistry_RegisterService(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify service was registered
 				assert.Equal(t, "REGISTERED", tt.service.Status)
 				assert.NotZero(t, tt.service.RegisteredAt)
@@ -576,7 +576,7 @@ func TestServiceOrchestrator_DeployRApp(t *testing.T) {
 				Version: "1.0.0",
 				Image:   "registry.example.com/analytics-rapp:1.0.0",
 				Configuration: map[string]interface{}{
-					"data_sources": []string{"ric-1", "ric-2"},
+					"data_sources":  []string{"ric-1", "ric-2"},
 					"output_format": "json",
 				},
 				Resources: &ResourceRequirements{
@@ -621,7 +621,7 @@ func TestServiceOrchestrator_DeployRApp(t *testing.T) {
 				Version: "2.0.0",
 				Image:   "registry.example.com/optimization-rapp:2.0.0",
 				Configuration: map[string]interface{}{
-					"algorithm": "genetic",
+					"algorithm":  "genetic",
 					"iterations": 1000,
 				},
 				Resources: &ResourceRequirements{
@@ -642,7 +642,7 @@ func TestServiceOrchestrator_DeployRApp(t *testing.T) {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify rApp was deployed
 				assert.Equal(t, "RUNNING", tt.rApp.Status)
 				assert.NotZero(t, tt.rApp.CreatedAt)
@@ -729,7 +729,7 @@ func TestSMOClient_HTTPMethods(t *testing.T) {
 	t.Run("GET request", func(t *testing.T) {
 		var result map[string]interface{}
 		err := client.get(ctx, server.URL+"/test", &result)
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, "GET", result["method"])
 		assert.Equal(t, "/test", result["path"])
@@ -741,7 +741,7 @@ func TestSMOClient_HTTPMethods(t *testing.T) {
 		}
 		var result map[string]interface{}
 		err := client.post(ctx, server.URL+"/test", body, &result)
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, "POST", result["method"])
 		assert.NotNil(t, result["body"])
@@ -753,7 +753,7 @@ func TestSMOClient_HTTPMethods(t *testing.T) {
 		}
 		var result map[string]interface{}
 		err := client.put(ctx, server.URL+"/test", body, &result)
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, "PUT", result["method"])
 		assert.NotNil(t, result["body"])

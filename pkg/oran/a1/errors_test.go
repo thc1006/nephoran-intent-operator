@@ -18,11 +18,11 @@ import (
 
 func TestA1Error_Structure(t *testing.T) {
 	err := &A1Error{
-		Type:     ErrorTypePolicyTypeNotFound,
-		Title:    "Policy Type Not Found",
-		Status:   http.StatusNotFound,
-		Detail:   "The requested policy type with ID 123 was not found",
-		Instance: "/A1-P/v2/policytypes/123",
+		Type:      ErrorTypePolicyTypeNotFound,
+		Title:     "Policy Type Not Found",
+		Status:    http.StatusNotFound,
+		Detail:    "The requested policy type with ID 123 was not found",
+		Instance:  "/A1-P/v2/policytypes/123",
 		Timestamp: time.Now(),
 		Extensions: map[string]interface{}{
 			"policy_type_id": 123,
@@ -41,15 +41,15 @@ func TestA1Error_Structure(t *testing.T) {
 
 func TestA1Error_JSON_Serialization(t *testing.T) {
 	originalErr := &A1Error{
-		Type:     ErrorTypeInvalidRequest,
-		Title:    "Invalid Request",
-		Status:   http.StatusBadRequest,
-		Detail:   "The request body contains invalid JSON",
-		Instance: "/A1-P/v2/policytypes/1",
+		Type:      ErrorTypeInvalidRequest,
+		Title:     "Invalid Request",
+		Status:    http.StatusBadRequest,
+		Detail:    "The request body contains invalid JSON",
+		Instance:  "/A1-P/v2/policytypes/1",
 		Timestamp: time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC),
 		Extensions: map[string]interface{}{
 			"validation_errors": []string{"missing required field: schema"},
-			"request_id":       "req-123",
+			"request_id":        "req-123",
 		},
 	}
 
@@ -86,7 +86,7 @@ func TestA1Error_JSON_Serialization(t *testing.T) {
 func TestA1Error_Error_Method(t *testing.T) {
 	err := &A1Error{
 		Type:   ErrorTypePolicyInstanceNotFound,
-		Title:  "Policy Instance Not Found", 
+		Title:  "Policy Instance Not Found",
 		Detail: "Policy instance 'test-policy-1' not found for policy type 123",
 		Status: http.StatusNotFound,
 	}
@@ -470,7 +470,7 @@ func TestRecoverFromPanic_A1Error(t *testing.T) {
 		r := recover()
 		if r != nil {
 			err := RecoverToA1Error(r, "panic occurred during request processing")
-			
+
 			assert.Equal(t, ErrorTypeInternalServerError, err.Type)
 			assert.Equal(t, http.StatusInternalServerError, err.Status)
 			assert.Contains(t, err.Detail, "panic occurred")
@@ -493,18 +493,18 @@ func TestA1Error_ConcurrentAccess(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
 			defer func() { done <- true }()
-			
+
 			// Access various fields
 			_ = err.Error()
 			_ = err.Type
 			_ = err.Status
-			
+
 			// Modify extensions (should be safe if properly implemented)
 			if err.Extensions == nil {
 				err.Extensions = make(map[string]interface{})
 			}
 			err.Extensions["test"] = "value"
-			
+
 			// Serialize to JSON
 			jsonData, _ := json.Marshal(err)
 			var testErr A1Error
@@ -524,7 +524,7 @@ func TestA1Error_ConcurrentAccess(t *testing.T) {
 
 func BenchmarkWriteA1Error(b *testing.B) {
 	err := NewPolicyTypeNotFoundError(123)
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		rr := httptest.NewRecorder()

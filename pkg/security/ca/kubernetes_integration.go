@@ -435,7 +435,7 @@ func (e *AutomationEngine) handleMutatingAdmission(w http.ResponseWriter, r *htt
 			"name", req.Name,
 			"namespace", req.Namespace,
 			"error", err)
-		
+
 		response := &admissionv1.AdmissionResponse{
 			UID:     req.UID,
 			Allowed: false,
@@ -448,12 +448,12 @@ func (e *AutomationEngine) handleMutatingAdmission(w http.ResponseWriter, r *htt
 			Allowed: true,
 			Patch:   patches,
 		}
-		
+
 		if len(patches) > 2 { // More than empty array "[]"
 			patchType := admissionv1.PatchTypeJSONPatch
 			response.PatchType = &patchType
 		}
-		
+
 		admissionReview.Response = response
 	}
 
@@ -563,8 +563,8 @@ func (e *AutomationEngine) mutateDeployment(req *admissionv1.AdmissionRequest) (
 		// Add annotations to pod template
 		patches := []map[string]interface{}{
 			{
-				"op":    "add",
-				"path":  "/spec/template/metadata/annotations",
+				"op":   "add",
+				"path": "/spec/template/metadata/annotations",
 				"value": map[string]string{
 					fmt.Sprintf("%s/inject-certificate", e.config.KubernetesIntegration.AnnotationPrefix): "true",
 				},
@@ -651,7 +651,7 @@ func (e *AutomationEngine) shouldProvisionCertificateForService(service *v1.Serv
 
 func (e *AutomationEngine) createCertificateVolumePatches(pod *v1.Pod) []map[string]interface{} {
 	secretName := fmt.Sprintf("%s-%s-tls", e.config.KubernetesIntegration.SecretPrefix, pod.Name)
-	
+
 	volume := map[string]interface{}{
 		"name": "certificate-volume",
 		"secret": map[string]interface{}{

@@ -25,25 +25,25 @@ type MockManager struct {
 	llmServer        *httptest.Server
 	oranServer       *httptest.Server
 	prometheusServer *httptest.Server
-	
+
 	// Service mocks
-	weaviateMock     *MockWeaviateClient
-	llmMock          *MockLLMClient
-	redisMock        *MockRedisClient
-	k8sMock          *MockK8sClient
-	
+	weaviateMock *MockWeaviateClient
+	llmMock      *MockLLMClient
+	redisMock    *MockRedisClient
+	k8sMock      *MockK8sClient
+
 	// Chaos injection
 	chaosEnabled     bool
 	failureRate      float64
 	latencyInjection time.Duration
-	
+
 	// Request tracking
-	requestCounts    map[string]int
-	responseLatency  map[string][]time.Duration
-	
+	requestCounts   map[string]int
+	responseLatency map[string][]time.Duration
+
 	// Synchronization
 	mu sync.RWMutex
-	
+
 	// Configuration
 	config *TestConfig
 }
@@ -59,14 +59,14 @@ func NewMockManager() *MockManager {
 // Initialize sets up all mock services
 func (mm *MockManager) Initialize(config *TestConfig) {
 	mm.config = config
-	
+
 	if config.MockExternalAPIs {
 		mm.setupWeaviateMock()
 		mm.setupLLMMock()
 		mm.setupORANMock()
 		mm.setupPrometheusMock()
 	}
-	
+
 	mm.setupServiceMocks()
 }
 
@@ -74,11 +74,11 @@ func (mm *MockManager) Initialize(config *TestConfig) {
 func (mm *MockManager) Reset() {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
-	
+
 	// Reset request tracking
 	mm.requestCounts = make(map[string]int)
 	mm.responseLatency = make(map[string][]time.Duration)
-	
+
 	// Reset service mocks
 	if mm.weaviateMock != nil {
 		mm.weaviateMock.Reset()
@@ -113,23 +113,23 @@ func (mm *MockManager) Cleanup() {
 // setupWeaviateMock creates a mock Weaviate server
 func (mm *MockManager) setupWeaviateMock() {
 	router := mux.NewRouter()
-	
+
 	// Health check endpoint
 	router.HandleFunc("/v1/.well-known/ready", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("weaviate_health")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]bool{"ready": true})
 	}).Methods("GET")
-	
+
 	// GraphQL endpoint for queries
 	router.HandleFunc("/v1/graphql", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("weaviate_query")
-		
+
 		if mm.shouldInjectFailure() {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		
+
 		// Mock response for semantic search
 		response := map[string]interface{}{
 			"data": map[string]interface{}{
@@ -153,26 +153,26 @@ func (mm *MockManager) setupWeaviateMock() {
 				},
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}).Methods("POST")
-	
+
 	// Object creation endpoint
 	router.HandleFunc("/v1/objects", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("weaviate_create")
-		
+
 		if mm.shouldInjectFailure() {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		
+
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]string{
 			"id": "mock-object-id",
 		})
 	}).Methods("POST")
-	
+
 	mm.weaviateServer = httptest.NewServer(router)
 	mm.weaviateMock = &MockWeaviateClient{}
 }
@@ -180,11 +180,11 @@ func (mm *MockManager) setupWeaviateMock() {
 // setupLLMMock creates a mock LLM provider server
 func (mm *MockManager) setupLLMMock() {
 	router := mux.NewRouter()
-	
+
 	// Chat completions endpoint (OpenAI-compatible)
 	router.HandleFunc("/v1/chat/completions", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("llm_completion")
-		
+
 		if mm.shouldInjectFailure() {
 			w.WriteHeader(http.StatusTooManyRequests)
 			json.NewEncoder(w).Encode(map[string]string{
@@ -192,7 +192,7 @@ func (mm *MockManager) setupLLMMock() {
 			})
 			return
 		}
-		
+
 		// Mock structured response for network intent processing
 		response := map[string]interface{}{
 			"id":      "mock-completion-id",
@@ -231,20 +231,20 @@ func (mm *MockManager) setupLLMMock() {
 				"total_tokens":      350,
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}).Methods("POST")
-	
+
 	// Embeddings endpoint
 	router.HandleFunc("/v1/embeddings", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("llm_embedding")
-		
+
 		if mm.shouldInjectFailure() {
 			w.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
-		
+
 		// Mock embedding response
 		response := map[string]interface{}{
 			"object": "list",
@@ -261,11 +261,11 @@ func (mm *MockManager) setupLLMMock() {
 				"total_tokens":  50,
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}).Methods("POST")
-	
+
 	mm.llmServer = httptest.NewServer(router)
 	mm.llmMock = &MockLLMClient{}
 }
@@ -273,32 +273,32 @@ func (mm *MockManager) setupLLMMock() {
 // setupORANMock creates mock O-RAN interface servers
 func (mm *MockManager) setupORANMock() {
 	router := mux.NewRouter()
-	
+
 	// A1 Policy Management Interface
 	router.HandleFunc("/a1-p/v2/policytypes", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_a1_policy_types")
-		
+
 		response := []map[string]interface{}{
 			{
 				"policy_type_id": 1000,
-				"name":          "QoS Policy",
-				"description":   "Quality of Service policy for network slices",
+				"name":           "QoS Policy",
+				"description":    "Quality of Service policy for network slices",
 			},
 			{
 				"policy_type_id": 2000,
-				"name":          "Traffic Steering Policy",
-				"description":   "Traffic steering policy for load balancing",
+				"name":           "Traffic Steering Policy",
+				"description":    "Traffic steering policy for load balancing",
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}).Methods("GET")
-	
+
 	// O1 Interface (NETCONF/RESTCONF)
 	router.HandleFunc("/restconf/data/ietf-interfaces:interfaces", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_o1_interfaces")
-		
+
 		response := map[string]interface{}{
 			"ietf-interfaces:interfaces": map[string]interface{}{
 				"interface": []map[string]interface{}{
@@ -310,46 +310,46 @@ func (mm *MockManager) setupORANMock() {
 				},
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}).Methods("GET")
-	
+
 	// O2 Interface (Cloud Infrastructure)
 	router.HandleFunc("/o2/v1/deployments", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("oran_o2_deployments")
-		
+
 		if r.Method == "POST" {
 			w.WriteHeader(http.StatusCreated)
 			json.NewEncoder(w).Encode(map[string]interface{}{
 				"deployment_id": "mock-deployment-123",
-				"status":       "creating",
+				"status":        "creating",
 			})
 		} else {
 			response := []map[string]interface{}{
 				{
 					"deployment_id": "mock-deployment-123",
-					"name":         "amf-deployment",
-					"status":       "running",
-					"replicas":     3,
+					"name":          "amf-deployment",
+					"status":        "running",
+					"replicas":      3,
 				},
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(response)
 		}
 	}).Methods("GET", "POST")
-	
+
 	mm.oranServer = httptest.NewServer(router)
 }
 
 // setupPrometheusMock creates a mock Prometheus server
 func (mm *MockManager) setupPrometheusMock() {
 	router := mux.NewRouter()
-	
+
 	// Query endpoint
 	router.HandleFunc("/api/v1/query", func(w http.ResponseWriter, r *http.Request) {
 		mm.trackRequest("prometheus_query")
-		
+
 		response := map[string]interface{}{
 			"status": "success",
 			"data": map[string]interface{}{
@@ -368,11 +368,11 @@ func (mm *MockManager) setupPrometheusMock() {
 				},
 			},
 		}
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
 	}).Methods("GET")
-	
+
 	mm.prometheusServer = httptest.NewServer(router)
 }
 
@@ -475,7 +475,7 @@ func (mm *MockManager) InjectChaos(failureRate float64, testFunc func() error) e
 	mm.failureRate = failureRate
 	mm.latencyInjection = time.Duration(rand.Intn(1000)) * time.Millisecond
 	mm.mu.Unlock()
-	
+
 	defer func() {
 		mm.mu.Lock()
 		mm.chaosEnabled = false
@@ -483,7 +483,7 @@ func (mm *MockManager) InjectChaos(failureRate float64, testFunc func() error) e
 		mm.latencyInjection = 0
 		mm.mu.Unlock()
 	}()
-	
+
 	return testFunc()
 }
 
@@ -491,16 +491,16 @@ func (mm *MockManager) InjectChaos(failureRate float64, testFunc func() error) e
 func (mm *MockManager) shouldInjectFailure() bool {
 	mm.mu.RLock()
 	defer mm.mu.RUnlock()
-	
+
 	if !mm.chaosEnabled {
 		return false
 	}
-	
+
 	// Inject latency
 	if mm.latencyInjection > 0 {
 		time.Sleep(mm.latencyInjection)
 	}
-	
+
 	// Inject failure based on rate
 	return rand.Float64() < mm.failureRate
 }
@@ -509,9 +509,9 @@ func (mm *MockManager) shouldInjectFailure() bool {
 func (mm *MockManager) trackRequest(service string) {
 	mm.mu.Lock()
 	defer mm.mu.Unlock()
-	
+
 	mm.requestCounts[service]++
-	
+
 	// Track latency (simulated)
 	latency := time.Duration(rand.Intn(100)) * time.Millisecond
 	mm.responseLatency[service] = append(mm.responseLatency[service], latency)
@@ -529,7 +529,7 @@ func (mm *MockManager) generateMockEmbedding(dimensions int) []float64 {
 // GetMockServerURLs returns URLs for mock servers
 func (mm *MockManager) GetMockServerURLs() map[string]string {
 	urls := make(map[string]string)
-	
+
 	if mm.weaviateServer != nil {
 		urls["weaviate"] = mm.weaviateServer.URL
 	}
@@ -542,7 +542,7 @@ func (mm *MockManager) GetMockServerURLs() map[string]string {
 	if mm.prometheusServer != nil {
 		urls["prometheus"] = mm.prometheusServer.URL
 	}
-	
+
 	return urls
 }
 
@@ -550,12 +550,12 @@ func (mm *MockManager) GetMockServerURLs() map[string]string {
 func (mm *MockManager) GenerateReport() {
 	mm.mu.RLock()
 	defer mm.mu.RUnlock()
-	
+
 	fmt.Println("=== Mock Service Interaction Report ===")
-	
+
 	for service, count := range mm.requestCounts {
 		fmt.Printf("Service: %s, Requests: %d\n", service, count)
-		
+
 		if latencies, exists := mm.responseLatency[service]; exists && len(latencies) > 0 {
 			var total time.Duration
 			for _, lat := range latencies {

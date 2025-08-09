@@ -30,12 +30,12 @@ import (
 var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 	var (
 		namespace         *corev1.Namespace
-		testCtx          context.Context
-		o2Server         *o2.O2APIServer
-		httpTestServer   *httptest.Server
-		testClient       *http.Client
-		metricsRegistry  *prometheus.Registry
-		testLogger       *logging.StructuredLogger
+		testCtx           context.Context
+		o2Server          *o2.O2APIServer
+		httpTestServer    *httptest.Server
+		testClient        *http.Client
+		metricsRegistry   *prometheus.Registry
+		testLogger        *logging.StructuredLogger
 		complianceResults *ComplianceResults
 	)
 
@@ -50,9 +50,9 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 		complianceResults = NewComplianceResults()
 
 		config := &o2.O2IMSConfig{
-			ServerAddress:    "127.0.0.1",
-			ServerPort:       0,
-			TLSEnabled:       false,
+			ServerAddress: "127.0.0.1",
+			ServerPort:    0,
+			TLSEnabled:    false,
 			DatabaseConfig: map[string]interface{}{
 				"type":     "memory",
 				"database": "o2_compliance_test_db",
@@ -129,7 +129,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 				By("testing all required endpoints")
 				for _, endpoint := range requiredEndpoints {
 					result := complianceResults.StartEndpointTest(endpoint)
-					
+
 					testPath := endpoint.Path
 					if strings.Contains(testPath, "{resourcePoolId}") {
 						testPath = strings.Replace(testPath, "{resourcePoolId}", "test-pool-id", -1)
@@ -159,7 +159,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 
 					// Endpoint should exist (not return 404)
 					if endpoint.Required {
-						Expect(resp.StatusCode).NotTo(Equal(404), 
+						Expect(resp.StatusCode).NotTo(Equal(404),
 							fmt.Sprintf("Required endpoint %s %s not found", endpoint.Method, endpoint.Path))
 						result.Status = "PASS"
 					} else {
@@ -172,7 +172,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 
 			It("should implement proper HTTP status codes per O-RAN specification", func() {
 				By("testing status codes for various scenarios")
-				
+
 				statusCodeTests := []ComplianceStatusCodeTest{
 					{
 						Name: "Service Info Success",
@@ -180,7 +180,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 							return testClient.Get(httpTestServer.URL + "/o2ims/v1/")
 						},
 						ExpectedStatus: 200,
-						Required: true,
+						Required:       true,
 					},
 					{
 						Name: "Resource Not Found",
@@ -188,16 +188,16 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 							return testClient.Get(httpTestServer.URL + "/o2ims/v1/resourcePools/non-existent-pool")
 						},
 						ExpectedStatus: 404,
-						Required: true,
+						Required:       true,
 					},
 					{
 						Name: "Invalid Request Body",
 						Request: func() (*http.Response, error) {
-							return testClient.Post(httpTestServer.URL+"/o2ims/v1/resourcePools", 
+							return testClient.Post(httpTestServer.URL+"/o2ims/v1/resourcePools",
 								"application/json", strings.NewReader(`{"invalid": json}`))
 						},
 						ExpectedStatus: 400,
-						Required: true,
+						Required:       true,
 					},
 					{
 						Name: "Method Not Allowed",
@@ -206,16 +206,16 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 							return testClient.Do(req)
 						},
 						ExpectedStatus: 405,
-						Required: true,
+						Required:       true,
 					},
 				}
 
 				for _, test := range statusCodeTests {
 					By(fmt.Sprintf("testing %s", test.Name))
-					
+
 					result := complianceResults.StartStatusCodeTest(test)
 					resp, err := test.Request()
-					
+
 					if err != nil {
 						result.Status = "FAIL"
 						result.ErrorMessage = err.Error()
@@ -225,15 +225,15 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 							result.Status = "PASS"
 						} else {
 							result.Status = "FAIL"
-							result.ErrorMessage = fmt.Sprintf("Expected status %d, got %d", 
+							result.ErrorMessage = fmt.Sprintf("Expected status %d, got %d",
 								test.ExpectedStatus, resp.StatusCode)
 						}
 					}
-					
+
 					complianceResults.CompleteStatusCodeTest(test, result)
-					
+
 					if test.Required {
-						Expect(result.Status).To(Equal("PASS"), 
+						Expect(result.Status).To(Equal("PASS"),
 							fmt.Sprintf("Required status code test '%s' failed: %s", test.Name, result.ErrorMessage))
 					}
 				}
@@ -243,16 +243,16 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 		Context("when validating data models and schemas", func() {
 			It("should implement all required O-RAN data model fields", func() {
 				By("testing resource pool data model compliance")
-				
+
 				poolID := fmt.Sprintf("schema-test-pool-%d", time.Now().UnixNano())
 				testPool := &models.ResourcePool{
 					ResourcePoolID:   poolID,
-					Name:            "Schema Compliance Test Pool",
-					Description:     "Testing O-RAN schema compliance",
-					Location:        "test-location",
-					OCloudID:        "test-ocloud-id",
+					Name:             "Schema Compliance Test Pool",
+					Description:      "Testing O-RAN schema compliance",
+					Location:         "test-location",
+					OCloudID:         "test-ocloud-id",
 					GlobalLocationID: "test-global-location",
-					Provider:        "kubernetes",
+					Provider:         "kubernetes",
 					Extensions: map[string]interface{}{
 						"testField": "testValue",
 					},
@@ -282,12 +282,12 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 
 				// Validate required O-RAN fields are present
 				schemaValidation := complianceResults.StartSchemaValidation("ResourcePool")
-				
+
 				requiredFields := []string{
-					"ResourcePoolID", "Name", "OCloudID", 
+					"ResourcePoolID", "Name", "OCloudID",
 					"CreatedAt", "UpdatedAt",
 				}
-				
+
 				poolValue := reflect.ValueOf(retrievedPool)
 				for _, fieldName := range requiredFields {
 					field := poolValue.FieldByName(fieldName)
@@ -300,13 +300,13 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 					schemaValidation.Status = "PASS"
 				} else {
 					schemaValidation.Status = "FAIL"
-					schemaValidation.ErrorMessage = fmt.Sprintf("Missing required fields: %v", 
+					schemaValidation.ErrorMessage = fmt.Sprintf("Missing required fields: %v",
 						schemaValidation.MissingFields)
 				}
 
 				complianceResults.CompleteSchemaValidation("ResourcePool", schemaValidation)
-				
-				Expect(schemaValidation.Status).To(Equal("PASS"), 
+
+				Expect(schemaValidation.Status).To(Equal("PASS"),
 					fmt.Sprintf("ResourcePool schema validation failed: %s", schemaValidation.ErrorMessage))
 
 				DeferCleanup(func() {
@@ -317,15 +317,15 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 
 			It("should validate resource type schema compliance", func() {
 				By("testing resource type data model compliance")
-				
+
 				typeID := fmt.Sprintf("schema-test-type-%d", time.Now().UnixNano())
 				testType := &models.ResourceType{
 					ResourceTypeID: typeID,
-					Name:          "Schema Compliance Test Type",
-					Description:   "Testing O-RAN resource type schema",
-					Vendor:        "Nephoran",
-					Model:         "TestModel",
-					Version:       "1.0.0",
+					Name:           "Schema Compliance Test Type",
+					Description:    "Testing O-RAN resource type schema",
+					Vendor:         "Nephoran",
+					Model:          "TestModel",
+					Version:        "1.0.0",
 					Specifications: &models.ResourceTypeSpec{
 						Category: "COMPUTE",
 						MinResources: map[string]string{
@@ -338,8 +338,8 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 						},
 					},
 					SupportedActions: []string{"CREATE", "DELETE", "UPDATE"},
-					CreatedAt:       time.Now(),
-					UpdatedAt:       time.Now(),
+					CreatedAt:        time.Now(),
+					UpdatedAt:        time.Now(),
 				}
 
 				typeJSON, err := json.Marshal(testType)
@@ -363,7 +363,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				schemaValidation := complianceResults.StartSchemaValidation("ResourceType")
-				
+
 				// Validate required fields
 				if retrievedType.ResourceTypeID == "" {
 					schemaValidation.MissingFields = append(schemaValidation.MissingFields, "ResourceTypeID")
@@ -378,7 +378,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 						schemaValidation.MissingFields = append(schemaValidation.MissingFields, "Specifications.Category")
 					}
 				}
-				
+
 				// Validate supported actions
 				if len(retrievedType.SupportedActions) == 0 {
 					schemaValidation.MissingFields = append(schemaValidation.MissingFields, "SupportedActions")
@@ -388,12 +388,12 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 					schemaValidation.Status = "PASS"
 				} else {
 					schemaValidation.Status = "FAIL"
-					schemaValidation.ErrorMessage = fmt.Sprintf("Missing required fields: %v", 
+					schemaValidation.ErrorMessage = fmt.Sprintf("Missing required fields: %v",
 						schemaValidation.MissingFields)
 				}
 
 				complianceResults.CompleteSchemaValidation("ResourceType", schemaValidation)
-				
+
 				Expect(schemaValidation.Status).To(Equal("PASS"))
 
 				DeferCleanup(func() {
@@ -406,7 +406,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 		Context("when validating query parameter support", func() {
 			It("should support all required O-RAN query parameters", func() {
 				By("testing filter parameter compliance")
-				
+
 				// Create test data first
 				pools := []struct {
 					id       string
@@ -421,10 +421,10 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 				for _, pool := range pools {
 					testPool := &models.ResourcePool{
 						ResourcePoolID: pool.id,
-						Name:          fmt.Sprintf("Filter Test Pool %s", pool.id),
-						Provider:      pool.provider,
-						Location:      pool.location,
-						OCloudID:      "test-ocloud",
+						Name:           fmt.Sprintf("Filter Test Pool %s", pool.id),
+						Provider:       pool.provider,
+						Location:       pool.location,
+						OCloudID:       "test-ocloud",
 					}
 
 					poolJSON, _ := json.Marshal(testPool)
@@ -479,16 +479,16 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 
 				for _, filterTest := range filterTests {
 					By(fmt.Sprintf("testing %s", filterTest.Name))
-					
+
 					result := complianceResults.StartFilterTest(filterTest)
-					
+
 					resp, err := testClient.Get(httpTestServer.URL + "/o2ims/v1/resourcePools?" + filterTest.QueryParam)
 					if err != nil {
 						result.Status = "FAIL"
 						result.ErrorMessage = err.Error()
 					} else {
 						defer resp.Body.Close()
-						
+
 						if resp.StatusCode == 200 {
 							var pools []models.ResourcePool
 							json.NewDecoder(resp.Body).Decode(&pools)
@@ -499,11 +499,11 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 							result.ErrorMessage = fmt.Sprintf("HTTP %d", resp.StatusCode)
 						}
 					}
-					
+
 					complianceResults.CompleteFilterTest(filterTest, result)
-					
+
 					if filterTest.Required {
-						Expect(result.Status).To(Equal("PASS"), 
+						Expect(result.Status).To(Equal("PASS"),
 							fmt.Sprintf("Required filter test '%s' failed: %s", filterTest.Name, result.ErrorMessage))
 					}
 				}
@@ -526,26 +526,26 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 
 				for _, pagTest := range paginationTests {
 					By(fmt.Sprintf("testing %s", pagTest.Name))
-					
+
 					result := complianceResults.StartPaginationTest(pagTest)
-					
+
 					resp, err := testClient.Get(httpTestServer.URL + "/o2ims/v1/resourcePools?" + pagTest.QueryParam)
 					if err != nil {
 						result.Status = "FAIL"
 						result.ErrorMessage = err.Error()
 					} else {
 						defer resp.Body.Close()
-						
+
 						if resp.StatusCode == 200 {
 							var pools []models.ResourcePool
 							json.NewDecoder(resp.Body).Decode(&pools)
-							
+
 							if len(pools) <= pagTest.MaxResults {
 								result.Status = "PASS"
 								result.ActualCount = len(pools)
 							} else {
 								result.Status = "FAIL"
-								result.ErrorMessage = fmt.Sprintf("Expected max %d results, got %d", 
+								result.ErrorMessage = fmt.Sprintf("Expected max %d results, got %d",
 									pagTest.MaxResults, len(pools))
 								result.ActualCount = len(pools)
 							}
@@ -554,9 +554,9 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 							result.ErrorMessage = fmt.Sprintf("HTTP %d", resp.StatusCode)
 						}
 					}
-					
+
 					complianceResults.CompletePaginationTest(pagTest, result)
-					
+
 					if pagTest.Required {
 						Expect(result.Status).To(Equal("PASS"))
 					}
@@ -567,11 +567,11 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 		Context("when validating error response format", func() {
 			It("should follow RFC 7807 Problem Details format", func() {
 				By("testing error response structure")
-				
+
 				// Test various error scenarios
 				errorTests := []ComplianceErrorTest{
 					{
-						Name:         "Resource Not Found",
+						Name: "Resource Not Found",
 						RequestFunc: func() (*http.Response, error) {
 							return testClient.Get(httpTestServer.URL + "/o2ims/v1/resourcePools/non-existent")
 						},
@@ -579,16 +579,16 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 						Required:       true,
 					},
 					{
-						Name:         "Invalid JSON",
+						Name: "Invalid JSON",
 						RequestFunc: func() (*http.Response, error) {
-							return testClient.Post(httpTestServer.URL+"/o2ims/v1/resourcePools", 
+							return testClient.Post(httpTestServer.URL+"/o2ims/v1/resourcePools",
 								"application/json", strings.NewReader(`{"invalid": json}`))
 						},
 						ExpectedStatus: 400,
 						Required:       true,
 					},
 					{
-						Name:         "Method Not Allowed",
+						Name: "Method Not Allowed",
 						RequestFunc: func() (*http.Response, error) {
 							req, _ := http.NewRequest("PATCH", httpTestServer.URL+"/o2ims/v1/", nil)
 							return testClient.Do(req)
@@ -600,37 +600,37 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 
 				for _, errorTest := range errorTests {
 					By(fmt.Sprintf("testing %s", errorTest.Name))
-					
+
 					result := complianceResults.StartErrorTest(errorTest)
-					
+
 					resp, err := errorTest.RequestFunc()
 					if err != nil {
 						result.Status = "FAIL"
 						result.ErrorMessage = err.Error()
 					} else {
 						defer resp.Body.Close()
-						
+
 						if resp.StatusCode != errorTest.ExpectedStatus {
 							result.Status = "FAIL"
-							result.ErrorMessage = fmt.Sprintf("Expected status %d, got %d", 
+							result.ErrorMessage = fmt.Sprintf("Expected status %d, got %d",
 								errorTest.ExpectedStatus, resp.StatusCode)
 							result.ActualStatus = resp.StatusCode
 						} else {
 							// Check if response follows RFC 7807
 							body, _ := io.ReadAll(resp.Body)
 							var problemDetail map[string]interface{}
-							
+
 							if json.Unmarshal(body, &problemDetail) == nil {
 								// Validate RFC 7807 fields
 								requiredFields := []string{"type", "title", "status"}
 								missingFields := []string{}
-								
+
 								for _, field := range requiredFields {
 									if _, exists := problemDetail[field]; !exists {
 										missingFields = append(missingFields, field)
 									}
 								}
-								
+
 								if len(missingFields) == 0 {
 									result.Status = "PASS"
 									result.RFC7807Compliant = true
@@ -647,11 +647,11 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 							}
 						}
 					}
-					
+
 					complianceResults.CompleteErrorTest(errorTest, result)
-					
+
 					if errorTest.Required {
-						Expect(result.Status).To(Equal("PASS"), 
+						Expect(result.Status).To(Equal("PASS"),
 							fmt.Sprintf("Required error test '%s' failed: %s", errorTest.Name, result.ErrorMessage))
 					}
 				}
@@ -663,9 +663,9 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 		Context("when validating system configuration", func() {
 			It("should validate O2 IMS configuration completeness", func() {
 				By("checking required configuration parameters")
-				
+
 				configValidation := complianceResults.StartConfigValidation()
-				
+
 				// Test service configuration
 				resp, err := testClient.Get(httpTestServer.URL + "/o2ims/v1/")
 				Expect(err).NotTo(HaveOccurred())
@@ -677,11 +677,11 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 
 				// Validate required service information
 				requiredFields := map[string]bool{
-					"name":         false,
-					"version":      false,
-					"apiVersion":   false,
+					"name":          false,
+					"version":       false,
+					"apiVersion":    false,
 					"specification": false,
-					"capabilities": false,
+					"capabilities":  false,
 				}
 
 				for field := range requiredFields {
@@ -714,15 +714,15 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 				if caps, ok := serviceInfo["capabilities"].([]interface{}); ok {
 					requiredCapabilities := []string{
 						"InfrastructureInventory",
-						"InfrastructureMonitoring", 
+						"InfrastructureMonitoring",
 						"InfrastructureProvisioning",
 					}
-					
+
 					capStrings := make([]string, len(caps))
 					for i, cap := range caps {
 						capStrings[i] = cap.(string)
 					}
-					
+
 					for _, reqCap := range requiredCapabilities {
 						found := false
 						for _, actualCap := range capStrings {
@@ -738,17 +738,17 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 				}
 
 				// Determine overall status
-				if configValidation.ServiceInfoComplete && 
-				   configValidation.SpecificationCompliant && 
-				   len(configValidation.MissingCapabilities) == 0 {
+				if configValidation.ServiceInfoComplete &&
+					configValidation.SpecificationCompliant &&
+					len(configValidation.MissingCapabilities) == 0 {
 					configValidation.Status = "PASS"
 				} else {
 					configValidation.Status = "FAIL"
 				}
 
 				complianceResults.CompleteConfigValidation(configValidation)
-				
-				Expect(configValidation.Status).To(Equal("PASS"), 
+
+				Expect(configValidation.Status).To(Equal("PASS"),
 					"Configuration validation failed")
 			})
 		})
@@ -758,9 +758,9 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 		Context("when validating security implementations", func() {
 			It("should validate HTTPS and authentication requirements", func() {
 				By("checking security headers and configurations")
-				
+
 				securityValidation := complianceResults.StartSecurityValidation()
-				
+
 				// Test basic security headers
 				resp, err := testClient.Get(httpTestServer.URL + "/o2ims/v1/")
 				Expect(err).NotTo(HaveOccurred())
@@ -769,7 +769,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 				// Check for security headers
 				securityHeaders := map[string]bool{
 					"X-Content-Type-Options": false,
-					"X-Frame-Options":        false, 
+					"X-Frame-Options":        false,
 					"X-XSS-Protection":       false,
 				}
 
@@ -781,7 +781,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 
 				presentHeaders := []string{}
 				missingHeaders := []string{}
-				
+
 				for header, present := range securityHeaders {
 					if present {
 						presentHeaders = append(presentHeaders, header)
@@ -794,10 +794,10 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 				securityValidation.MissingSecurityHeaders = missingHeaders
 
 				// Test authentication endpoint existence
-				authResp, err := testClient.Post(httpTestServer.URL+"/oauth/token", 
-					"application/x-www-form-urlencoded", 
+				authResp, err := testClient.Post(httpTestServer.URL+"/oauth/token",
+					"application/x-www-form-urlencoded",
 					strings.NewReader("grant_type=client_credentials"))
-				
+
 				if err == nil {
 					authResp.Body.Close()
 					securityValidation.AuthEndpointExists = true
@@ -812,7 +812,7 @@ var _ = Describe("O2 IMS O-RAN Compliance Validation", func() {
 				}
 
 				complianceResults.CompleteSecurityValidation(securityValidation)
-				
+
 				// Note: In test environment, some security features may not be fully enabled
 				// so we don't fail the test, but we do record the compliance status
 			})
@@ -843,11 +843,11 @@ type ComplianceEndpoint struct {
 }
 
 type EndpointTestResult struct {
-	Endpoint      ComplianceEndpoint
-	Status        string
-	ResponseTime  time.Duration
-	ErrorMessage  string
-	TestTime      time.Time
+	Endpoint     ComplianceEndpoint
+	Status       string
+	ResponseTime time.Duration
+	ErrorMessage string
+	TestTime     time.Time
 }
 
 type ComplianceStatusCodeTest struct {
@@ -858,11 +858,11 @@ type ComplianceStatusCodeTest struct {
 }
 
 type StatusCodeTestResult struct {
-	Test           ComplianceStatusCodeTest
-	Status         string
-	ActualStatus   int
-	ErrorMessage   string
-	TestTime       time.Time
+	Test         ComplianceStatusCodeTest
+	Status       string
+	ActualStatus int
+	ErrorMessage string
+	TestTime     time.Time
 }
 
 type SchemaValidationResult struct {
@@ -922,36 +922,36 @@ type ErrorTestResult struct {
 }
 
 type ConfigValidationResult struct {
-	Status                  string
-	ServiceInfoComplete     bool
-	SpecificationCompliant  bool
-	MissingServiceFields    []string
-	MissingCapabilities     []string
+	Status                 string
+	ServiceInfoComplete    bool
+	SpecificationCompliant bool
+	MissingServiceFields   []string
+	MissingCapabilities    []string
 	ErrorMessage           string
 	TestTime               time.Time
 }
 
 type SecurityValidationResult struct {
-	Status                   string
-	SecurityHeaders          []string
-	MissingSecurityHeaders   []string
-	AuthEndpointExists       bool
-	TLSEnabled              bool
-	ErrorMessage            string
-	TestTime                time.Time
+	Status                 string
+	SecurityHeaders        []string
+	MissingSecurityHeaders []string
+	AuthEndpointExists     bool
+	TLSEnabled             bool
+	ErrorMessage           string
+	TestTime               time.Time
 }
 
 // Compliance Results Implementation
 
 func NewComplianceResults() *ComplianceResults {
 	return &ComplianceResults{
-		TestStartTime:      time.Now(),
-		EndpointTests:      make([]EndpointTestResult, 0),
-		StatusCodeTests:    make([]StatusCodeTestResult, 0),
-		SchemaValidations:  make([]SchemaValidationResult, 0),
-		FilterTests:        make([]FilterTestResult, 0),
-		PaginationTests:    make([]PaginationTestResult, 0),
-		ErrorTests:         make([]ErrorTestResult, 0),
+		TestStartTime:     time.Now(),
+		EndpointTests:     make([]EndpointTestResult, 0),
+		StatusCodeTests:   make([]StatusCodeTestResult, 0),
+		SchemaValidations: make([]SchemaValidationResult, 0),
+		FilterTests:       make([]FilterTestResult, 0),
+		PaginationTests:   make([]PaginationTestResult, 0),
+		ErrorTests:        make([]ErrorTestResult, 0),
 	}
 }
 
@@ -1027,7 +1027,7 @@ func (cr *ComplianceResults) StartConfigValidation() *ConfigValidationResult {
 	cr.ConfigValidation = &ConfigValidationResult{
 		MissingServiceFields: make([]string, 0),
 		MissingCapabilities:  make([]string, 0),
-		TestTime:            time.Now(),
+		TestTime:             time.Now(),
 	}
 	return cr.ConfigValidation
 }
@@ -1040,7 +1040,7 @@ func (cr *ComplianceResults) StartSecurityValidation() *SecurityValidationResult
 	cr.SecurityValidation = &SecurityValidationResult{
 		SecurityHeaders:        make([]string, 0),
 		MissingSecurityHeaders: make([]string, 0),
-		TestTime:              time.Now(),
+		TestTime:               time.Now(),
 	}
 	return cr.SecurityValidation
 }
@@ -1051,41 +1051,41 @@ func (cr *ComplianceResults) CompleteSecurityValidation(result *SecurityValidati
 
 func (cr *ComplianceResults) GenerateReport() {
 	// Calculate overall compliance
-	totalTests := len(cr.EndpointTests) + len(cr.StatusCodeTests) + len(cr.SchemaValidations) + 
-				  len(cr.FilterTests) + len(cr.PaginationTests) + len(cr.ErrorTests)
-	
+	totalTests := len(cr.EndpointTests) + len(cr.StatusCodeTests) + len(cr.SchemaValidations) +
+		len(cr.FilterTests) + len(cr.PaginationTests) + len(cr.ErrorTests)
+
 	passedTests := 0
-	
+
 	for _, test := range cr.EndpointTests {
 		if test.Status == "PASS" {
 			passedTests++
 		}
 	}
-	
+
 	for _, test := range cr.StatusCodeTests {
 		if test.Status == "PASS" {
 			passedTests++
 		}
 	}
-	
+
 	for _, test := range cr.SchemaValidations {
 		if test.Status == "PASS" {
 			passedTests++
 		}
 	}
-	
+
 	for _, test := range cr.FilterTests {
 		if test.Status == "PASS" {
 			passedTests++
 		}
 	}
-	
+
 	for _, test := range cr.PaginationTests {
 		if test.Status == "PASS" {
 			passedTests++
 		}
 	}
-	
+
 	for _, test := range cr.ErrorTests {
 		if test.Status == "PASS" {
 			passedTests++
@@ -1103,7 +1103,7 @@ func (cr *ComplianceResults) GenerateReport() {
 	}
 
 	compliancePercentage := float64(passedTests) / float64(totalTests) * 100
-	
+
 	if compliancePercentage >= 95.0 {
 		cr.OverallCompliance = "COMPLIANT"
 	} else if compliancePercentage >= 80.0 {
