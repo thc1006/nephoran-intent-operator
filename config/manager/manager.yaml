@@ -23,7 +23,7 @@ spec:
   selector:
     matchLabels:
       control-plane: controller-manager
-  replicas: 1
+  replicas: 2
   template:
     metadata:
       annotations:
@@ -62,26 +62,41 @@ spec:
           httpGet:
             path: /healthz
             port: 8081
-          initialDelaySeconds: 15
+            scheme: HTTP
+          initialDelaySeconds: 30
           periodSeconds: 20
-          timeoutSeconds: 5
+          timeoutSeconds: 10
           failureThreshold: 3
+          successThreshold: 1
         readinessProbe:
           httpGet:
             path: /readyz
             port: 8081
-          initialDelaySeconds: 5
+            scheme: HTTP
+          initialDelaySeconds: 10
           periodSeconds: 10
-          timeoutSeconds: 3
+          timeoutSeconds: 5
           failureThreshold: 3
-        # Resource limits for the main operator
+          successThreshold: 1
+        # Startup probe for slow-starting telecom controllers
+        startupProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 18
+          successThreshold: 1
+        # Resource limits for the main operator controller
         resources:
           limits:
-            cpu: 500m
+            cpu: 200m
             memory: 512Mi
           requests:
             cpu: 100m
-            memory: 128Mi
+            memory: 256Mi
         volumeMounts:
         - name: tmp
           mountPath: /tmp

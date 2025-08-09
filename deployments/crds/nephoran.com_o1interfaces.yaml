@@ -1,0 +1,757 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: o1interfaces.nephoran.com
+spec:
+  group: nephoran.com
+  names:
+    kind: O1Interface
+    listKind: O1InterfaceList
+    plural: o1interfaces
+    shortNames:
+    - o1if
+    singular: o1interface
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.host
+      name: Host
+      type: string
+    - jsonPath: .spec.port
+      name: Port
+      type: integer
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.connectionStatus.connected
+      name: Connected
+      type: boolean
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: O1Interface is the Schema for the o1interfaces API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: O1InterfaceSpec defines the desired state of O1Interface
+            properties:
+              credentials:
+                description: Credentials for authentication
+                properties:
+                  caCertificateRef:
+                    description: CA certificate reference
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  clientCertificateRef:
+                    description: Client certificate reference for mTLS
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  clientKeyRef:
+                    description: Client key reference for mTLS
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  passwordRef:
+                    description: Password reference
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  privateKeyRef:
+                    description: SSH private key reference
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  usernameRef:
+                    description: Username reference
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                type: object
+              fcaps:
+                description: FCAPS configuration
+                properties:
+                  accountingManagement:
+                    description: Accounting management
+                    properties:
+                      billingEnabled:
+                        description: Billing integration enabled
+                        type: boolean
+                      collectionInterval:
+                        default: 60
+                        description: Usage collection interval in seconds
+                        type: integer
+                      enabled:
+                        default: true
+                        description: Enable accounting management
+                        type: boolean
+                      fraudDetection:
+                        description: Fraud detection enabled
+                        type: boolean
+                      retentionDays:
+                        default: 90
+                        description: Data retention period in days
+                        type: integer
+                    required:
+                    - enabled
+                    type: object
+                  configurationManagement:
+                    description: Configuration management
+                    properties:
+                      driftCheckInterval:
+                        default: 300
+                        description: Drift check interval in seconds
+                        type: integer
+                      driftDetection:
+                        default: true
+                        description: Drift detection enabled
+                        type: boolean
+                      enabled:
+                        default: true
+                        description: Enable configuration management
+                        type: boolean
+                      gitOpsEnabled:
+                        default: true
+                        description: GitOps integration enabled
+                        type: boolean
+                      maxVersions:
+                        default: 10
+                        description: Maximum versions to retain
+                        type: integer
+                      versioningEnabled:
+                        default: true
+                        description: Configuration versioning enabled
+                        type: boolean
+                    required:
+                    - enabled
+                    type: object
+                  faultManagement:
+                    description: Fault management configuration
+                    properties:
+                      alertManagerConfig:
+                        description: AlertManager integration
+                        properties:
+                          authToken:
+                            type: string
+                          url:
+                            type: string
+                        required:
+                        - url
+                        type: object
+                      correlationEnabled:
+                        default: true
+                        description: Alarm correlation enabled
+                        type: boolean
+                      enabled:
+                        default: true
+                        description: Enable fault management
+                        type: boolean
+                      retentionDays:
+                        default: 30
+                        description: Alarm retention period in days
+                        type: integer
+                      rootCauseAnalysis:
+                        default: false
+                        description: Root cause analysis enabled
+                        type: boolean
+                      severityFilter:
+                        description: Alarm severity filter (CRITICAL, MAJOR, MINOR,
+                          WARNING)
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - enabled
+                    type: object
+                  performanceManagement:
+                    description: Performance management
+                    properties:
+                      aggregationPeriods:
+                        description: Aggregation periods (5min, 15min, 1hour, 1day)
+                        items:
+                          type: string
+                        type: array
+                      anomalyDetection:
+                        default: false
+                        description: Anomaly detection enabled
+                        type: boolean
+                      collectionInterval:
+                        default: 15
+                        description: KPI collection interval in seconds
+                        type: integer
+                      enabled:
+                        default: true
+                        description: Enable performance management
+                        type: boolean
+                      grafanaConfig:
+                        description: Grafana integration
+                        properties:
+                          dashboardID:
+                            type: string
+                          url:
+                            type: string
+                        required:
+                        - url
+                        type: object
+                      prometheusConfig:
+                        description: Prometheus integration
+                        properties:
+                          pushGatewayURL:
+                            type: string
+                          url:
+                            type: string
+                        required:
+                        - url
+                        type: object
+                    required:
+                    - enabled
+                    type: object
+                  securityManagement:
+                    description: Security management
+                    properties:
+                      auditInterval:
+                        default: 3600
+                        description: Security audit interval in seconds
+                        type: integer
+                      certificateManagement:
+                        default: true
+                        description: Certificate management enabled
+                        type: boolean
+                      complianceMonitoring:
+                        default: true
+                        description: Compliance monitoring enabled
+                        type: boolean
+                      enabled:
+                        default: true
+                        description: Enable security management
+                        type: boolean
+                      intrusionDetection:
+                        default: false
+                        description: Intrusion detection enabled
+                        type: boolean
+                    required:
+                    - enabled
+                    type: object
+                required:
+                - accountingManagement
+                - configurationManagement
+                - faultManagement
+                - performanceManagement
+                - securityManagement
+                type: object
+              highAvailability:
+                description: HighAvailability configuration
+                properties:
+                  enabled:
+                    default: true
+                    description: Enable high availability
+                    type: boolean
+                  failoverTimeout:
+                    default: 30
+                    description: Failover timeout in seconds
+                    type: integer
+                  replicas:
+                    default: 2
+                    description: Number of replicas
+                    type: integer
+                required:
+                - enabled
+                type: object
+              host:
+                description: Host is the hostname or IP address of the managed element
+                type: string
+              port:
+                default: 830
+                description: 'Port is the NETCONF port (default: 830)'
+                type: integer
+              protocol:
+                default: ssh
+                description: Protocol defines the transport protocol (ssh, tls)
+                enum:
+                - ssh
+                - tls
+                type: string
+              securityConfig:
+                description: Security configuration
+                properties:
+                  oauth2Config:
+                    description: OAuth2 configuration
+                    properties:
+                      clientID:
+                        type: string
+                      clientSecretRef:
+                        description: SecretKeySelector selects a key of a Secret.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.  Must
+                              be a valid secret key.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          optional:
+                            description: Specify whether the Secret or its key must
+                              be defined
+                            type: boolean
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      enabled:
+                        default: true
+                        type: boolean
+                      provider:
+                        type: string
+                    required:
+                    - clientID
+                    - enabled
+                    - provider
+                    type: object
+                  rbacRules:
+                    description: RBAC rules
+                    items:
+                      description: RBACRule defines an RBAC rule
+                      properties:
+                        permissions:
+                          items:
+                            type: string
+                          type: array
+                        role:
+                          type: string
+                      required:
+                      - permissions
+                      - role
+                      type: object
+                    type: array
+                  tlsConfig:
+                    description: TLS configuration
+                    properties:
+                      cipherSuites:
+                        items:
+                          type: string
+                        type: array
+                      enabled:
+                        default: true
+                        type: boolean
+                      minVersion:
+                        enum:
+                        - TLS1.2
+                        - TLS1.3
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                type: object
+              smoConfig:
+                description: SMO integration configuration
+                properties:
+                  endpoint:
+                    description: SMO endpoint URL
+                    type: string
+                  hierarchicalManagement:
+                    description: Hierarchical management enabled
+                    type: boolean
+                  registrationEnabled:
+                    default: true
+                    description: Registration enabled
+                    type: boolean
+                  serviceDiscovery:
+                    description: Service discovery configuration
+                    properties:
+                      config:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      type:
+                        enum:
+                        - kubernetes
+                        - consul
+                        - etcd
+                        type: string
+                    required:
+                    - type
+                    type: object
+                required:
+                - endpoint
+                type: object
+              streamingConfig:
+                description: Streaming configuration for real-time data
+                properties:
+                  enabled:
+                    default: true
+                    description: Enable streaming
+                    type: boolean
+                  maxConnections:
+                    default: 100
+                    description: Maximum connections
+                    type: integer
+                  qosLevel:
+                    default: Reliable
+                    description: Quality of Service level (BestEffort, Reliable, Guaranteed)
+                    type: string
+                  rateLimiting:
+                    description: Rate limiting configuration
+                    properties:
+                      burstSize:
+                        description: Burst size
+                        type: integer
+                      requestsPerSecond:
+                        description: Requests per second
+                        type: integer
+                    required:
+                    - burstSize
+                    - requestsPerSecond
+                    type: object
+                  streamTypes:
+                    description: Stream types to enable
+                    items:
+                      type: string
+                    type: array
+                  webSocketPort:
+                    default: 8080
+                    description: WebSocket port
+                    type: integer
+                required:
+                - enabled
+                type: object
+              yangModels:
+                description: YANG models to load
+                items:
+                  description: YANGModelRef references a YANG model to load
+                  properties:
+                    configMapRef:
+                      description: ConfigMap reference for model data
+                      properties:
+                        key:
+                          description: The key to select.
+                          type: string
+                        name:
+                          default: ""
+                          description: |-
+                            Name of the referent.
+                            This field is effectively required, but due to backwards compatibility is
+                            allowed to be empty. Instances of this type with an empty value here are
+                            almost certainly wrong.
+                            More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          type: string
+                        optional:
+                          description: Specify whether the ConfigMap or its key must
+                            be defined
+                          type: boolean
+                      required:
+                      - key
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    name:
+                      description: Model name
+                      type: string
+                    source:
+                      description: Model source (file, configmap, url)
+                      type: string
+                    version:
+                      description: Model version
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+            required:
+            - credentials
+            - fcaps
+            - host
+            type: object
+          status:
+            description: O1InterfaceStatus defines the observed state of O1Interface
+            properties:
+              conditions:
+                description: Conditions represent the latest available observations
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              connectionStatus:
+                description: Connection status
+                properties:
+                  capabilities:
+                    items:
+                      type: string
+                    type: array
+                  connected:
+                    type: boolean
+                  connectedAt:
+                    format: date-time
+                    type: string
+                  sessionID:
+                    type: string
+                required:
+                - connected
+                type: object
+              errorMessage:
+                description: Error message if any
+                type: string
+              fcapsStatus:
+                description: FCAPS status
+                properties:
+                  accountingManagementReady:
+                    type: boolean
+                  activeAlarms:
+                    type: integer
+                  collectedKPIs:
+                    type: integer
+                  configManagementReady:
+                    type: boolean
+                  configVersion:
+                    type: string
+                  faultManagementReady:
+                    type: boolean
+                  performanceManagementReady:
+                    type: boolean
+                  securityManagementReady:
+                    type: boolean
+                required:
+                - accountingManagementReady
+                - configManagementReady
+                - faultManagementReady
+                - performanceManagementReady
+                - securityManagementReady
+                type: object
+              lastSyncTime:
+                description: Last sync time
+                format: date-time
+                type: string
+              phase:
+                description: Phase represents the current phase of the O1 interface
+                enum:
+                - Pending
+                - Initializing
+                - Connecting
+                - Connected
+                - Failed
+                - Terminating
+                type: string
+              smoStatus:
+                description: SMO registration status
+                properties:
+                  lastHeartbeat:
+                    format: date-time
+                    type: string
+                  registered:
+                    type: boolean
+                  registrationID:
+                    type: string
+                required:
+                - registered
+                type: object
+              streamingStatus:
+                description: Streaming service status
+                properties:
+                  active:
+                    type: boolean
+                  activeConnections:
+                    type: integer
+                  streamedEvents:
+                    format: int64
+                    type: integer
+                required:
+                - active
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

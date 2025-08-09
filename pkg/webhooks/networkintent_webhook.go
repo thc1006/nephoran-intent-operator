@@ -78,33 +78,9 @@ var TelecomKeywords = []string{
 	"template", "operator", "controller", "crd", "custom resource",
 }
 
-// SecurityPatterns contains potentially malicious patterns that should be rejected
-var SecurityPatterns = []*regexp.Regexp{
-	// Script injection patterns
-	regexp.MustCompile(`(?i)<script[^>]*>.*?</script>`),
-	regexp.MustCompile(`(?i)javascript:`),
-	regexp.MustCompile(`(?i)vbscript:`),
-	regexp.MustCompile(`(?i)onload=`),
-	regexp.MustCompile(`(?i)onerror=`),
-	regexp.MustCompile(`(?i)onclick=`),
-	
-	// SQL injection patterns
-	regexp.MustCompile(`(?i)(union\s+select|drop\s+table|delete\s+from|insert\s+into)`),
-	regexp.MustCompile(`(?i)(exec\s*\(|sp_|xp_)`),
-	regexp.MustCompile(`(?i)(\bor\s+1\s*=\s*1\b|\band\s+1\s*=\s*1\b)`),
-	
-	// Command injection patterns
-	regexp.MustCompile(`(?i)(;\s*rm\s+-rf|;\s*cat\s+/etc/passwd|;\s*wget\s+|;\s*curl\s+)`),
-	regexp.MustCompile(`(?i)(\$\(.*\)|` + "`" + `.*` + "`" + `|\|\s*sh\s|\|\s*bash\s)`),
-	regexp.MustCompile(`(?i)(nc\s+-l|netcat\s+-l|/bin/sh|/bin/bash)`),
-	
-	// Path traversal patterns
-	regexp.MustCompile(`\.\.\/|\.\.\\`),
-	regexp.MustCompile(`(?i)(\/etc\/passwd|\/etc\/shadow|\/proc\/|\/sys\/)`),
-	
-	// Protocol handler patterns
-	regexp.MustCompile(`(?i)(file:|ftp:|data:|ldap:)`),
-}
+// Note: SecurityPatterns variable has been removed as the new restricted character set
+// prevents most injection attacks at the CRD validation level. The validateSecurity
+// function now checks for suspicious patterns within the allowed character set.
 
 // ComplexityRules defines validation rules for intent complexity
 type ComplexityRules struct {
@@ -207,55 +183,122 @@ func (v *NetworkIntentValidator) validateIntentContent(intent string) error {
 		return fmt.Errorf("intent cannot be empty or only whitespace")
 	}
 
-	// Validate character set - allow printable ASCII and common Unicode
-	for i, r := range intent {
-		if !unicode.IsPrint(r) && !unicode.IsSpace(r) {
-			return fmt.Errorf("intent contains invalid character at position %d: %q", i, r)
+	// SECURITY: Enforce strict character allowlist matching CRD pattern
+	// Only allow: a-zA-Z0-9, spaces, and safe punctuation: - _ . , ; : ( ) [ ]
+	allowedChars := regexp.MustCompile(`^[a-zA-Z0-9\s\-_.,;:()\[\]]*$`)
+	if !allowedChars.MatchString(intent) {
+		// Find the first invalid character for better error reporting
+		for i, r := range intent {
+			if !isAllowedChar(r) {
+				return fmt.Errorf("intent contains disallowed character at position %d: %q - only alphanumeric, spaces, and safe punctuation (- _ . , ; : ( ) [ ]) are allowed", i, r)
+			}
 		}
-		
-		// Check for control characters that might be used maliciously
-		if unicode.IsControl(r) && r != '\t' && r != '\n' && r != '\r' {
-			return fmt.Errorf("intent contains control character at position %d", i)
-		}
+		return fmt.Errorf("intent contains disallowed characters - only alphanumeric, spaces, and safe punctuation are allowed")
 	}
 
-	// Check for excessive line breaks or tabs
-	if strings.Count(intent, "\n") > 50 {
-		return fmt.Errorf("intent contains too many line breaks (max 50)")
+	// Additional length check (redundant with CRD but provides defense in depth)
+	if len(intent) > 1000 {
+		return fmt.Errorf("intent exceeds maximum length of 1000 characters (got %d)", len(intent))
 	}
-	
-	if strings.Count(intent, "\t") > 20 {
-		return fmt.Errorf("intent contains too many tab characters (max 20)")
+
+	// Check for suspicious patterns even within allowed characters
+	// Prevent repeated punctuation that might indicate obfuscation attempts
+	punctuationRepeats := regexp.MustCompile(`[.,;:(){}\[\]]{5,}`)
+	if punctuationRepeats.MatchString(intent) {
+		return fmt.Errorf("intent contains excessive repeated punctuation")
+	}
+
+	// Check for control characters (should not be present with our allowlist, but defense in depth)
+	for i, r := range intent {
+		if unicode.IsControl(r) && !unicode.IsSpace(r) {
+			return fmt.Errorf("intent contains control character at position %d", i)
+		}
 	}
 
 	return nil
 }
 
+// isAllowedChar checks if a rune is in our allowed character set
+func isAllowedChar(r rune) bool {
+	// Alphanumeric
+	if unicode.IsLetter(r) || unicode.IsDigit(r) {
+		return true
+	}
+	// Allowed punctuation and spaces
+	allowed := " -_.,;:()[]"
+	return strings.ContainsRune(allowed, r)
+}
+
 // validateSecurity checks for potentially malicious patterns
 func (v *NetworkIntentValidator) validateSecurity(intent string) error {
-	// Check against known malicious patterns
-	for _, pattern := range SecurityPatterns {
-		if pattern.MatchString(intent) {
-			return fmt.Errorf("intent contains potentially malicious pattern: %s", pattern.String())
+	// SECURITY: With our restricted character set, many injection attacks are already prevented
+	// This function provides additional defense-in-depth by checking for suspicious patterns
+	// even within the allowed character set
+	
+	// Check for patterns that might indicate obfuscation attempts
+	// Even with restricted chars, check for suspicious word patterns
+	suspiciousPatterns := []string{
+		// SQL-like patterns (even without quotes)
+		"drop table", "delete from", "insert into", "select from",
+		"union select", "exec sp", "exec xp",
+		// Command-like patterns
+		"rm -rf", "cat etc", "wget http", "curl http",
+		// Script-like patterns
+		"script type", "javascript void", "onload equals", "onerror equals",
+		// Path traversal attempts
+		"dot dot slash", "dot dot backslash",
+	}
+	
+	intentLower := strings.ToLower(intent)
+	for _, pattern := range suspiciousPatterns {
+		if strings.Contains(intentLower, pattern) {
+			return fmt.Errorf("intent contains suspicious pattern that might indicate an attack attempt: %s", pattern)
 		}
 	}
 
-	// Check for suspicious character sequences
-	if strings.Contains(intent, "\\x") || strings.Contains(intent, "\\u") {
-		return fmt.Errorf("intent contains potentially encoded characters")
+	// Check for base64-like patterns (continuous alphanumeric strings)
+	// Even without = or +/, long unbroken alphanumeric could be encoding
+	alphanumericPattern := regexp.MustCompile(`[A-Za-z0-9]{40,}`)
+	if matches := alphanumericPattern.FindAllString(intent, -1); len(matches) > 0 {
+		return fmt.Errorf("intent contains suspiciously long unbroken alphanumeric sequence (possible encoding)")
 	}
 
-	// Check for base64-like patterns that might be used to hide malicious content
-	base64Pattern := regexp.MustCompile(`[A-Za-z0-9+/]{20,}={0,2}`)
-	if matches := base64Pattern.FindAllString(intent, -1); len(matches) > 3 {
-		return fmt.Errorf("intent contains suspicious encoded content")
+	// Check for repeated patterns that might indicate fuzzing or automated attacks
+	// Look for unusual repetition of allowed punctuation
+	punctuationCounts := map[rune]int{
+		'.': 0, ',': 0, ';': 0, ':': 0,
+		'(': 0, ')': 0, '[': 0, ']': 0,
+		'-': 0, '_': 0,
+	}
+	
+	for _, r := range intent {
+		if count, exists := punctuationCounts[r]; exists {
+			punctuationCounts[r] = count + 1
+		}
+	}
+	
+	// Check for excessive use of any single punctuation mark
+	for char, count := range punctuationCounts {
+		maxAllowed := 10
+		// Allow more hyphens and underscores as they're common in technical terms
+		if char == '-' || char == '_' {
+			maxAllowed = 20
+		}
+		if count > maxAllowed {
+			return fmt.Errorf("intent contains excessive use of '%c' (%d occurrences, max %d)", char, count, maxAllowed)
+		}
 	}
 
-	// Check for repeated special characters that might indicate an attack
-	specialChars := []string{"<", ">", "'", "\"", ";", "|", "&", "$", "`"}
-	for _, char := range specialChars {
-		if strings.Count(intent, char) > 10 {
-			return fmt.Errorf("intent contains too many occurrences of '%s' (max 10)", char)
+	// Check for patterns that look like attempts to bypass validation
+	// e.g., "d r o p  t a b l e" (spaced out malicious commands)
+	spacedPatterns := []string{
+		"d r o p", "s e l e c t", "d e l e t e", "i n s e r t",
+		"e x e c", "s c r i p t", "j a v a",
+	}
+	
+	for _, pattern := range spacedPatterns {
+		if strings.Contains(intentLower, pattern) {
+			return fmt.Errorf("intent contains suspicious spaced pattern that might be attempting to bypass filters")
 		}
 	}
 

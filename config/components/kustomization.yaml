@@ -27,7 +27,7 @@ commonAnnotations:
 # Resources to include in deployment
 resources:
   # Main operator with resource limits
-  - manager.yaml
+  - ../manager/manager.yaml
   
   # Component-specific resource configurations
   - llm-processor-resources.yaml
@@ -38,6 +38,10 @@ resources:
   
   # Auto-scaling configurations
   - hpa-configurations.yaml
+  - controller-hpa.yaml
+  
+  # Resource management and quotas
+  - resource-management.yaml
 
 # ConfigMap generators for dynamic configuration
 configMapGenerator:

@@ -23,16 +23,32 @@ import (
 // NetworkIntentSpec defines the desired state of NetworkIntent
 type NetworkIntentSpec struct {
 	// Intent is the natural language intent from the user describing the desired network configuration.
-	// The intent must be between 1 and 2000 characters and cannot contain potentially malicious content
-	// such as script tags, SQL injection patterns, or command injection attempts.
-	// Only printable ASCII and common Unicode characters are allowed.
+	// 
+	// SECURITY: This field implements defense-in-depth validation to prevent injection attacks:
+	// 1. Restricted character set - Only allows alphanumeric, spaces, and safe punctuation
+	// 2. Length limits - Maximum 1000 characters to prevent resource exhaustion
+	// 3. Pattern validation - Explicitly excludes dangerous characters that could enable:
+	//    - Command injection (backticks, $, &, *, /, \)
+	//    - SQL injection (quotes, =, --)  
+	//    - Script injection (<, >, @, #)
+	//    - Path traversal (/, \)
+	//    - Protocol handlers (@, #)
+	// 4. Additional runtime validation in webhook for content analysis
+	//
+	// Allowed characters:
+	//   - Letters: a-z, A-Z
+	//   - Numbers: 0-9
+	//   - Spaces and basic punctuation: space, hyphen, underscore, period, comma, semicolon, colon
+	//   - Grouping: parentheses (), square brackets []
+	//
 	// Examples:
 	//   - "Deploy a high-availability AMF instance for production with auto-scaling"
 	//   - "Create a network slice for URLLC with 1ms latency requirements"  
 	//   - "Configure QoS policies for enhanced mobile broadband services"
+	//
 	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=2000
-	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9\s\-_.,;:()\[\]{}'"@#$%&*+=?!/\\]*$`
+	// +kubebuilder:validation:MaxLength=1000
+	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9\s\-_.,;:()\[\]]*$`
 	Intent string `json:"intent"`
 }
 

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.14.0
+    controller-gen.kubebuilder.io/version: v0.18.0
   name: networkintents.nephoran.com
 spec:
   group: nephoran.com
@@ -11,6 +11,8 @@ spec:
     kind: NetworkIntent
     listKind: NetworkIntentList
     plural: networkintents
+    shortNames:
+    - ni
     singular: networkintent
   scope: Namespaced
   versions:
@@ -40,106 +42,45 @@ spec:
             description: NetworkIntentSpec defines the desired state of NetworkIntent
             properties:
               intent:
-                description: The original natural language intent from the user.
+                description: |-
+                  Intent is the natural language intent from the user describing the desired network configuration.
+
+                  SECURITY: This field implements defense-in-depth validation to prevent injection attacks:
+                  1. Restricted character set - Only allows alphanumeric, spaces, and safe punctuation
+                  2. Length limits - Maximum 1000 characters to prevent resource exhaustion
+                  3. Pattern validation - Explicitly excludes dangerous characters that could enable:
+                     - Command injection (backticks, $, &, *, /, \)
+                     - SQL injection (quotes, =, --)
+                     - Script injection (<, >, @, #)
+                     - Path traversal (/, \)
+                     - Protocol handlers (@, #)
+                  4. Additional runtime validation in webhook for content analysis
+
+                  Allowed characters:
+                    - Letters: a-z, A-Z
+                    - Numbers: 0-9
+                    - Spaces and basic punctuation: space, hyphen, underscore, period, comma, semicolon, colon
+                    - Grouping: parentheses (), square brackets []
+
+                  Examples:
+                    - "Deploy a high-availability AMF instance for production with auto-scaling"
+                    - "Create a network slice for URLLC with 1ms latency requirements"
+                    - "Configure QoS policies for enhanced mobile broadband services"
+                maxLength: 1000
+                minLength: 1
+                pattern: ^[a-zA-Z0-9\s\-_.,;:()\[\]]*$
                 type: string
-              parameters:
-                description: Structured parameters translated from the intent by the
-                  LLM.
-                type: object
-                x-kubernetes-preserve-unknown-fields: true
             required:
             - intent
             type: object
           status:
             description: NetworkIntentStatus defines the observed state of NetworkIntent
             properties:
-              conditions:
-                description: Conditions represent the latest available observations
-                  of an object's state
-                items:
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource.\n---\nThis struct is intended for
-                    direct use as an array at the field path .status.conditions.  For
-                    example,\n\n\n\ttype FooStatus struct{\n\t    // Represents the
-                    observations of a foo's current state.\n\t    // Known .status.conditions.type
-                    are: \"Available\", \"Progressing\", and \"Degraded\"\n\t    //
-                    +patchMergeKey=type\n\t    // +patchStrategy=merge\n\t    // +listType=map\n\t
-                    \   // +listMapKey=type\n\t    Conditions []metav1.Condition `json:\"conditions,omitempty\"
-                    patchStrategy:\"merge\" patchMergeKey:\"type\" protobuf:\"bytes,1,rep,name=conditions\"`\n\n\n\t
-                    \   // other fields\n\t}"
-                  properties:
-                    lastTransitionTime:
-                      description: |-
-                        lastTransitionTime is the last time the condition transitioned from one status to another.
-                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
-                      format: date-time
-                      type: string
-                    message:
-                      description: |-
-                        message is a human readable message indicating details about the transition.
-                        This may be an empty string.
-                      maxLength: 32768
-                      type: string
-                    observedGeneration:
-                      description: |-
-                        observedGeneration represents the .metadata.generation that the condition was set based upon.
-                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-                        with respect to the current state of the instance.
-                      format: int64
-                      minimum: 0
-                      type: integer
-                    reason:
-                      description: |-
-                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
-                        Producers of specific condition types may define expected values and meanings for this field,
-                        and whether the values are considered a guaranteed API.
-                        The value should be a CamelCase string.
-                        This field may not be empty.
-                      maxLength: 1024
-                      minLength: 1
-                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
-                      type: string
-                    status:
-                      description: status of the condition, one of True, False, Unknown.
-                      enum:
-                      - "True"
-                      - "False"
-                      - Unknown
-                      type: string
-                    type:
-                      description: |-
-                        type of condition in CamelCase or in foo.example.com/CamelCase.
-                        ---
-                        Many .condition.type values are consistent across resources like Available, but because arbitrary conditions can be
-                        useful (see .node.status.conditions), the ability to deconflict is important.
-                        The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
-                      maxLength: 316
-                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
-                      type: string
-                  required:
-                  - lastTransitionTime
-                  - message
-                  - reason
-                  - status
-                  - type
-                  type: object
-                type: array
-              deploymentCompletionTime:
-                description: DeploymentCompletionTime indicates when the GitOps deployment
-                  completed
-                format: date-time
+              lastMessage:
+                description: LastMessage contains the last status message
                 type: string
-              deploymentStartTime:
-                description: DeploymentStartTime indicates when the GitOps deployment
-                  started
-                format: date-time
-                type: string
-              gitCommitHash:
-                description: GitCommitHash represents the commit hash of the deployed
-                  configuration
-                type: string
-              lastRetryTime:
-                description: LastRetryTime indicates the last time a retry was attempted
+              lastUpdateTime:
+                description: LastUpdateTime indicates when the status was last updated
                 format: date-time
                 type: string
               observedGeneration:
@@ -150,16 +91,6 @@ spec:
               phase:
                 description: Phase represents the current phase of the NetworkIntent
                   processing
-                type: string
-              processingCompletionTime:
-                description: ProcessingCompletionTime indicates when the intent processing
-                  completed
-                format: date-time
-                type: string
-              processingStartTime:
-                description: ProcessingStartTime indicates when the intent processing
-                  started
-                format: date-time
                 type: string
             type: object
         type: object

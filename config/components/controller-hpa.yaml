@@ -1,0 +1,166 @@
+# HorizontalPodAutoscaler for the main Nephoran Intent Operator controller
+# This provides automatic scaling for the core controller based on resource utilization
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: nephoran-operator-controller-manager-hpa
+  namespace: nephoran-system
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: nephoran-operator-controller-manager
+  minReplicas: 2
+  maxReplicas: 5
+  metrics:
+  # CPU-based scaling - conservative for controller workloads
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 80
+  # Memory-based scaling - important for telecom knowledge processing
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85
+  # Custom metric for NetworkIntent reconciliation queue depth
+  - type: Pods
+    pods:
+      metric:
+        name: controller_reconcile_queue_depth
+      target:
+        type: AverageValue
+        averageValue: "10"
+  # Controller active reconciliation rate
+  - type: Pods
+    pods:
+      metric:
+        name: controller_reconciliations_per_second
+      target:
+        type: AverageValue
+        averageValue: "5"
+  behavior:
+    scaleUp:
+      # Conservative scaling for critical controller
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 50
+        periodSeconds: 60
+      - type: Pods
+        value: 1
+        periodSeconds: 120
+      selectPolicy: Min
+    scaleDown:
+      # Very conservative scale down for controller stability
+      stabilizationWindowSeconds: 600
+      policies:
+      - type: Percent
+        value: 25
+        periodSeconds: 180
+      selectPolicy: Min
+
+---
+# KEDA ScaledObject for advanced controller scaling with Kubernetes metrics
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: controller-manager-keda-scaler
+  namespace: nephoran-system
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: manager
+spec:
+  scaleTargetRef:
+    name: nephoran-operator-controller-manager
+  minReplicaCount: 2
+  maxReplicaCount: 5
+  pollingInterval: 60
+  cooldownPeriod: 600
+  idleReplicaCount: 2
+  triggers:
+  # Prometheus-based scaling for controller metrics
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+      metricName: workqueue_depth
+      threshold: '15'
+      query: sum(workqueue_depth{job="nephoran-controller-manager"})
+  # API server request rate scaling
+  - type: prometheus
+    metadata:
+      serverAddress: http://prometheus.monitoring.svc.cluster.local:9090
+      metricName: apiserver_request_rate
+      threshold: '100'
+      query: sum(rate(rest_client_requests_total{job="nephoran-controller-manager"}[5m]))
+  # Memory pressure based on telecom knowledge processing
+  - type: memory
+    metricType: Utilization
+    metadata:
+      value: '85'
+
+---
+# NetworkPolicy for controller scaling components
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: controller-hpa-network-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: manager
+spec:
+  podSelector:
+    matchLabels:
+      control-plane: controller-manager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow metrics scraping from Prometheus
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8443
+  # Allow health check probes
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8081
+  egress:
+  # Allow Kubernetes API access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow DNS resolution
+  - to: []
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow communication with LLM processor and RAG API
+  - to:
+    - podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: nephoran-intent-operator
+    ports:
+    - protocol: TCP
+      port: 8080
