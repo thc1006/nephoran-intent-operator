@@ -474,11 +474,11 @@ func (p *ResourcePlanner) GenerateManifests(ctx context.Context, networkIntent *
 // generateDeploymentManifest generates a Kubernetes Deployment manifest for a network function
 func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.NetworkIntent, nf *PlannedNetworkFunction) *appsv1.Deployment {
 	labels := map[string]string{
-		"app":                          nf.Name,
-		"networkintent":                networkIntent.Name,
-		"networkfunction":              nf.Type,
-		"nephoran.com/managed":         "true",
-		"nephoran.com/network-intent":  networkIntent.Name,
+		"app":                           nf.Name,
+		"networkintent":                 networkIntent.Name,
+		"networkfunction":               nf.Type,
+		"nephoran.com/managed":          "true",
+		"nephoran.com/network-intent":   networkIntent.Name,
 		"nephoran.com/network-function": nf.Type,
 	}
 
@@ -507,11 +507,11 @@ func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.N
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
 						{
-							Name:            nf.Name,
-							Image:          fmt.Sprintf("%s:%s", strings.ToLower(nf.Type), nf.Version),
-							Ports:          p.generateContainerPorts(nf),
-							Env:            p.generateEnvironmentVariables(nf),
-							Resources:      corev1.ResourceRequirements{
+							Name:  nf.Name,
+							Image: fmt.Sprintf("%s:%s", strings.ToLower(nf.Type), nf.Version),
+							Ports: p.generateContainerPorts(nf),
+							Env:   p.generateEnvironmentVariables(nf),
+							Resources: corev1.ResourceRequirements{
 								Limits:   parseQuantity(nf.Resources.CPU + "," + nf.Resources.Memory),
 								Requests: parseQuantity(nf.Resources.CPU + "," + nf.Resources.Memory),
 							},
@@ -549,11 +549,11 @@ func (p *ResourcePlanner) generateDeploymentManifest(networkIntent *nephoranv1.N
 // generateServiceManifest generates a Kubernetes Service manifest for a network function
 func (p *ResourcePlanner) generateServiceManifest(networkIntent *nephoranv1.NetworkIntent, nf *PlannedNetworkFunction) *corev1.Service {
 	labels := map[string]string{
-		"app":                          nf.Name,
-		"networkintent":                networkIntent.Name,
-		"networkfunction":              nf.Type,
-		"nephoran.com/managed":         "true",
-		"nephoran.com/network-intent":  networkIntent.Name,
+		"app":                           nf.Name,
+		"networkintent":                 networkIntent.Name,
+		"networkfunction":               nf.Type,
+		"nephoran.com/managed":          "true",
+		"nephoran.com/network-intent":   networkIntent.Name,
 		"nephoran.com/network-function": nf.Type,
 	}
 
@@ -583,11 +583,11 @@ func (p *ResourcePlanner) generateServiceManifest(networkIntent *nephoranv1.Netw
 // generateConfigMapManifest generates a ConfigMap for network function configuration
 func (p *ResourcePlanner) generateConfigMapManifest(networkIntent *nephoranv1.NetworkIntent, nf *PlannedNetworkFunction) *corev1.ConfigMap {
 	labels := map[string]string{
-		"app":                          nf.Name,
-		"networkintent":                networkIntent.Name,
-		"networkfunction":              nf.Type,
-		"nephoran.com/managed":         "true",
-		"nephoran.com/network-intent":  networkIntent.Name,
+		"app":                           nf.Name,
+		"networkintent":                 networkIntent.Name,
+		"networkfunction":               nf.Type,
+		"nephoran.com/managed":          "true",
+		"nephoran.com/network-intent":   networkIntent.Name,
 		"nephoran.com/network-function": nf.Type,
 	}
 
@@ -621,11 +621,11 @@ func (p *ResourcePlanner) generateConfigMapManifest(networkIntent *nephoranv1.Ne
 // generateNetworkPolicyManifest generates a NetworkPolicy for security
 func (p *ResourcePlanner) generateNetworkPolicyManifest(networkIntent *nephoranv1.NetworkIntent, nf *PlannedNetworkFunction) *networkingv1.NetworkPolicy {
 	labels := map[string]string{
-		"app":                          nf.Name,
-		"networkintent":                networkIntent.Name,
-		"networkfunction":              nf.Type,
-		"nephoran.com/managed":         "true",
-		"nephoran.com/network-intent":  networkIntent.Name,
+		"app":                           nf.Name,
+		"networkintent":                 networkIntent.Name,
+		"networkfunction":               nf.Type,
+		"nephoran.com/managed":          "true",
+		"nephoran.com/network-intent":   networkIntent.Name,
 		"nephoran.com/network-function": nf.Type,
 	}
 
@@ -683,9 +683,9 @@ func (p *ResourcePlanner) generateSliceConfigMap(networkIntent *nephoranv1.Netwo
 		},
 		Data: map[string]string{
 			"slice-config.yaml": string(sliceYaml),
-			"sst":              fmt.Sprintf("%d", sliceConfig.SST),
-			"qos-profile":      sliceConfig.QoSProfile,
-			"isolation":        sliceConfig.Isolation,
+			"sst":               fmt.Sprintf("%d", sliceConfig.SST),
+			"qos-profile":       sliceConfig.QoSProfile,
+			"isolation":         sliceConfig.Isolation,
 		},
 	}
 
@@ -695,7 +695,7 @@ func (p *ResourcePlanner) generateSliceConfigMap(networkIntent *nephoranv1.Netwo
 // Helper functions for manifest generation
 func (p *ResourcePlanner) generateContainerPorts(nf *PlannedNetworkFunction) []corev1.ContainerPort {
 	var ports []corev1.ContainerPort
-	
+
 	// Default ports based on network function type
 	switch strings.ToLower(nf.Type) {
 	case "amf":
@@ -710,16 +710,16 @@ func (p *ResourcePlanner) generateContainerPorts(nf *PlannedNetworkFunction) []c
 	default:
 		ports = append(ports, corev1.ContainerPort{Name: "api", ContainerPort: 8080, Protocol: corev1.ProtocolTCP})
 	}
-	
+
 	// Add management port
 	ports = append(ports, corev1.ContainerPort{Name: "mgmt", ContainerPort: 9090, Protocol: corev1.ProtocolTCP})
-	
+
 	return ports
 }
 
 func (p *ResourcePlanner) generateEnvironmentVariables(nf *PlannedNetworkFunction) []corev1.EnvVar {
 	var envVars []corev1.EnvVar
-	
+
 	// Add common environment variables
 	envVars = append(envVars, corev1.EnvVar{
 		Name:  "NF_TYPE",
@@ -745,7 +745,7 @@ func (p *ResourcePlanner) generateEnvironmentVariables(nf *PlannedNetworkFunctio
 			},
 		},
 	})
-	
+
 	return envVars
 }
 
@@ -781,7 +781,7 @@ func (p *ResourcePlanner) generateReadinessProbe(nf *PlannedNetworkFunction) *co
 
 func (p *ResourcePlanner) generateServicePorts(nf *PlannedNetworkFunction) []corev1.ServicePort {
 	var ports []corev1.ServicePort
-	
+
 	// Generate ports based on container ports
 	containerPorts := p.generateContainerPorts(nf)
 	for _, cp := range containerPorts {
@@ -792,13 +792,13 @@ func (p *ResourcePlanner) generateServicePorts(nf *PlannedNetworkFunction) []cor
 			Protocol:   cp.Protocol,
 		})
 	}
-	
+
 	return ports
 }
 
 func (p *ResourcePlanner) generateIngressRules(nf *PlannedNetworkFunction) []networkingv1.NetworkPolicyIngressRule {
 	var rules []networkingv1.NetworkPolicyIngressRule
-	
+
 	// Allow traffic from same namespace
 	rules = append(rules, networkingv1.NetworkPolicyIngressRule{
 		From: []networkingv1.NetworkPolicyPeer{
@@ -811,16 +811,16 @@ func (p *ResourcePlanner) generateIngressRules(nf *PlannedNetworkFunction) []net
 			},
 		},
 	})
-	
+
 	return rules
 }
 
 func (p *ResourcePlanner) generateEgressRules(nf *PlannedNetworkFunction) []networkingv1.NetworkPolicyEgressRule {
 	var rules []networkingv1.NetworkPolicyEgressRule
-	
+
 	// Allow all egress (can be restricted based on requirements)
 	rules = append(rules, networkingv1.NetworkPolicyEgressRule{})
-	
+
 	return rules
 }
 
@@ -860,12 +860,12 @@ func (p *ResourcePlanner) PlanNetworkFunction(nfName string, llmParams map[strin
 	if kb == nil {
 		return nil, fmt.Errorf("telecom knowledge base not available")
 	}
-	
+
 	nfSpec, exists := kb.GetNetworkFunction(nfName)
 	if !exists {
 		return nil, fmt.Errorf("network function spec not found: %s", nfName)
 	}
-	
+
 	plannedNF := p.planNetworkFunction(nfSpec, llmParams, telecomContext)
 	return &plannedNF, nil
 }
@@ -875,9 +875,9 @@ func (p *ResourcePlanner) CalculateEstimatedCost(plan *ResourcePlan) (float64, e
 	if plan == nil {
 		return 0, fmt.Errorf("resource plan cannot be nil")
 	}
-	
+
 	var totalCPU, totalMemory, totalStorage float64
-	
+
 	for _, nf := range plan.NetworkFunctions {
 		// Parse CPU
 		var cpu float64
@@ -894,6 +894,6 @@ func (p *ResourcePlanner) CalculateEstimatedCost(plan *ResourcePlan) (float64, e
 		fmt.Sscanf(nf.Resources.Storage, "%fGi", &storage)
 		totalStorage += storage * float64(nf.Replicas)
 	}
-	
+
 	return p.calculateEstimatedCost(totalCPU, totalMemory, totalStorage), nil
 }

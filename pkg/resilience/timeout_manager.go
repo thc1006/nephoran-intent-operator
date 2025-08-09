@@ -13,22 +13,22 @@ import (
 type TimeoutConfig struct {
 	// LLM processing timeout
 	LLMTimeout time.Duration `json:"llm_timeout" yaml:"llm_timeout"`
-	
+
 	// Git operations timeout
 	GitTimeout time.Duration `json:"git_timeout" yaml:"git_timeout"`
-	
+
 	// Kubernetes API timeout
 	KubernetesTimeout time.Duration `json:"kubernetes_timeout" yaml:"kubernetes_timeout"`
-	
+
 	// Package generation timeout
 	PackageGenerationTimeout time.Duration `json:"package_generation_timeout" yaml:"package_generation_timeout"`
-	
+
 	// RAG system timeout
 	RAGTimeout time.Duration `json:"rag_timeout" yaml:"rag_timeout"`
-	
+
 	// Overall reconciliation timeout
 	ReconciliationTimeout time.Duration `json:"reconciliation_timeout" yaml:"reconciliation_timeout"`
-	
+
 	// Default timeout for unspecified operations
 	DefaultTimeout time.Duration `json:"default_timeout" yaml:"default_timeout"`
 }
@@ -134,7 +134,7 @@ func (tm *TimeoutManager) ExecuteWithTimeout(
 	operation func(context.Context) (interface{}, error),
 ) (interface{}, error) {
 	startTime := time.Now()
-	
+
 	// Create timeout context
 	timeoutCtx, cancel := tm.CreateTimeoutContext(ctx, operationType)
 	defer cancel()
@@ -184,7 +184,7 @@ func (tm *TimeoutManager) ExecuteWithCustomTimeout(
 	operation func(context.Context) (interface{}, error),
 ) (interface{}, error) {
 	startTime := time.Now()
-	
+
 	// Create timeout context
 	timeoutCtx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
@@ -235,12 +235,12 @@ func (tm *TimeoutManager) ExecuteWithGracefulDegradation(
 	fallback func(context.Context, error) (interface{}, error),
 ) (interface{}, error) {
 	result, err := tm.ExecuteWithTimeout(ctx, operationType, operation)
-	
+
 	// If timeout occurred and fallback is provided, use fallback
 	if err != nil && isTimeoutError(err) && fallback != nil {
 		return fallback(ctx, err)
 	}
-	
+
 	return result, err
 }
 
@@ -286,7 +286,7 @@ func (tm *TimeoutManager) UpdateConfig(config *TimeoutConfig) {
 func (tm *TimeoutManager) GetConfig() *TimeoutConfig {
 	tm.mutex.RLock()
 	defer tm.mutex.RUnlock()
-	
+
 	// Return a copy to prevent external modification
 	return &TimeoutConfig{
 		LLMTimeout:               tm.config.LLMTimeout,
@@ -370,12 +370,12 @@ func isTimeoutError(err error) bool {
 	if err == nil {
 		return false
 	}
-	
+
 	// Check for context timeout
 	if err == context.DeadlineExceeded {
 		return true
 	}
-	
+
 	// Check if error message contains timeout information
 	errStr := err.Error()
 	return contains(errStr, "timeout") || contains(errStr, "deadline exceeded") || contains(errStr, "context deadline exceeded")
@@ -383,7 +383,7 @@ func isTimeoutError(err error) bool {
 
 // contains is a helper function to check if a string contains a substring
 func contains(str, substr string) bool {
-	return len(str) >= len(substr) && (str == substr || (len(str) > len(substr) && 
+	return len(str) >= len(substr) && (str == substr || (len(str) > len(substr) &&
 		(indexOf(str, substr) >= 0)))
 }
 

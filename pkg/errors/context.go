@@ -478,7 +478,6 @@ func (b *ContextAwareErrorBuilder) setSystemContext(err *ServiceError) {
 	}
 }
 
-
 // getCallerInfo gets information about the function that created the error
 func (b *ContextAwareErrorBuilder) getCallerInfo() map[string]interface{} {
 	callerInfo := make(map[string]interface{})

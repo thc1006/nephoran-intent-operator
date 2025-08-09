@@ -29,17 +29,17 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 	nephoranv1.AddToScheme(scheme)
 
 	tests := []struct {
-		name                string
-		intentText          string
-		enabledLLMIntent    string
-		initialPhase        string
-		initialConditions   []metav1.Condition
-		mockSetup           func(*MockDependencies)
-		expectedPhase       string
-		expectedRequeue     bool
-		expectedError       bool
-		validationChecks    func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result)
-		description         string
+		name              string
+		intentText        string
+		enabledLLMIntent  string
+		initialPhase      string
+		initialConditions []metav1.Condition
+		mockSetup         func(*MockDependencies)
+		expectedPhase     string
+		expectedRequeue   bool
+		expectedError     bool
+		validationChecks  func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result)
+		description       string
 	}{
 		{
 			name:             "empty_intent_text",
@@ -264,10 +264,10 @@ func TestNetworkIntentEdgeCases(t *testing.T) {
 			},
 		},
 		{
-			name:         "max_retry_attempts_exceeded",
-			intentText:   "Deploy SMF with persistent failure",
+			name:             "max_retry_attempts_exceeded",
+			intentText:       "Deploy SMF with persistent failure",
 			enabledLLMIntent: "true",
-			initialPhase: "Error",
+			initialPhase:     "Error",
 			initialConditions: []metav1.Condition{
 				{
 					Type:    "Processed",
@@ -409,7 +409,10 @@ func TestConcurrentReconciliation(t *testing.T) {
 	ctx := context.Background()
 
 	// Test concurrent reconciliation
-	resultChan := make(chan struct{ result ctrl.Result; err error }, len(intents))
+	resultChan := make(chan struct {
+		result ctrl.Result
+		err    error
+	}, len(intents))
 
 	for _, intent := range intents {
 		go func(ni *nephoranv1.NetworkIntent) {
@@ -420,7 +423,10 @@ func TestConcurrentReconciliation(t *testing.T) {
 				},
 			}
 			result, err := reconciler.Reconcile(ctx, req)
-			resultChan <- struct{ result ctrl.Result; err error }{result, err}
+			resultChan <- struct {
+				result ctrl.Result
+				err    error
+			}{result, err}
 		}(intent)
 	}
 
@@ -588,13 +594,13 @@ func BenchmarkEdgeCaseProcessing(b *testing.B) {
 
 	// Test scenarios
 	scenarios := []struct {
-		name   string
-		intent string
+		name      string
+		intent    string
 		mockSetup func(*MockDependencies)
 	}{
 		{
-			name:   "EmptyIntent",
-			intent: "",
+			name:      "EmptyIntent",
+			intent:    "",
 			mockSetup: func(deps *MockDependencies) {},
 		},
 		{

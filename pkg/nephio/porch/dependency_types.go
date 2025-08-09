@@ -912,7 +912,6 @@ const (
 	VersionSelectionStrategyNone       VersionSelectionStrategy = "none"
 )
 
-
 type CircularResolutionStrategy string
 
 const (

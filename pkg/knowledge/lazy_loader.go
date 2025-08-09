@@ -21,22 +21,22 @@ type LazyKnowledgeLoader struct {
 	interfaceCache *lru.Cache[string, *telecom.InterfaceSpec]
 	qosCache       *lru.Cache[string, *telecom.QosProfile]
 	sliceCache     *lru.Cache[string, *telecom.SliceTypeSpec]
-	
+
 	// Index for fast keyword lookup
 	keywordIndex map[string][]string // keyword -> [resource_ids]
-	
+
 	// Compressed data storage
 	compressedData map[string][]byte // resource_id -> compressed_data
-	
+
 	// Resource metadata for lazy loading decisions
 	metadata map[string]*ResourceMetadata
-	
+
 	// Mutex for thread-safe operations
 	mu sync.RWMutex
-	
+
 	// Cache statistics
 	stats *CacheStats
-	
+
 	// Configuration
 	config *LoaderConfig
 }
@@ -74,7 +74,7 @@ type LoaderConfig struct {
 // DefaultLoaderConfig returns default configuration
 func DefaultLoaderConfig() *LoaderConfig {
 	return &LoaderConfig{
-		CacheSize:        50,  // Keep 50 most recent items in memory
+		CacheSize:        50, // Keep 50 most recent items in memory
 		CompressData:     true,
 		PreloadEssential: true,
 		MaxMemoryMB:      100, // 100MB max memory
@@ -87,28 +87,28 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 	if config == nil {
 		config = DefaultLoaderConfig()
 	}
-	
+
 	// Create LRU caches
 	nfCache, err := lru.New[string, *telecom.NetworkFunctionSpec](config.CacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create NF cache: %w", err)
 	}
-	
+
 	interfaceCache, err := lru.New[string, *telecom.InterfaceSpec](config.CacheSize / 2)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create interface cache: %w", err)
 	}
-	
+
 	qosCache, err := lru.New[string, *telecom.QosProfile](config.CacheSize / 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create QoS cache: %w", err)
 	}
-	
+
 	sliceCache, err := lru.New[string, *telecom.SliceTypeSpec](config.CacheSize / 4)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create slice cache: %w", err)
 	}
-	
+
 	loader := &LazyKnowledgeLoader{
 		nfCache:        nfCache,
 		interfaceCache: interfaceCache,
@@ -120,17 +120,17 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 		stats:          &CacheStats{},
 		config:         config,
 	}
-	
+
 	// Initialize with minimal data
 	if err := loader.initializeMinimal(); err != nil {
 		return nil, fmt.Errorf("failed to initialize: %w", err)
 	}
-	
+
 	// Preload essential items if configured
 	if config.PreloadEssential {
 		loader.preloadEssentials()
 	}
-	
+
 	return loader, nil
 }
 
@@ -138,7 +138,7 @@ func NewLazyKnowledgeLoader(config *LoaderConfig) (*LazyKnowledgeLoader, error) 
 func (l *LazyKnowledgeLoader) initializeMinimal() error {
 	// Build keyword index for common network functions
 	essentialNFs := []string{"amf", "smf", "upf", "pcf", "udm", "ausf", "nrf", "nssf"}
-	
+
 	for _, nfName := range essentialNFs {
 		metadata := &ResourceMetadata{
 			ID:       nfName,
@@ -147,13 +147,13 @@ func (l *LazyKnowledgeLoader) initializeMinimal() error {
 			Keywords: l.extractKeywords(nfName),
 		}
 		l.metadata[nfName] = metadata
-		
+
 		// Update keyword index
 		for _, keyword := range metadata.Keywords {
 			l.keywordIndex[keyword] = append(l.keywordIndex[keyword], nfName)
 		}
 	}
-	
+
 	// Add interface metadata
 	interfaces := []string{"n1", "n2", "n3", "n4", "namf", "nsmf"}
 	for _, ifName := range interfaces {
@@ -164,12 +164,12 @@ func (l *LazyKnowledgeLoader) initializeMinimal() error {
 			Keywords: []string{ifName, "interface", "5g"},
 		}
 		l.metadata[ifName] = metadata
-		
+
 		for _, keyword := range metadata.Keywords {
 			l.keywordIndex[keyword] = append(l.keywordIndex[keyword], ifName)
 		}
 	}
-	
+
 	// Add slice types
 	sliceTypes := []string{"embb", "urllc", "mmtc"}
 	for _, sliceType := range sliceTypes {
@@ -180,12 +180,12 @@ func (l *LazyKnowledgeLoader) initializeMinimal() error {
 			Keywords: []string{sliceType, "slice", "network"},
 		}
 		l.metadata[sliceType] = metadata
-		
+
 		for _, keyword := range metadata.Keywords {
 			l.keywordIndex[keyword] = append(l.keywordIndex[keyword], sliceType)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -201,11 +201,11 @@ func (l *LazyKnowledgeLoader) preloadEssentials() {
 // extractKeywords extracts keywords from a resource name
 func (l *LazyKnowledgeLoader) extractKeywords(name string) []string {
 	keywords := []string{name}
-	
+
 	// Add common variations
 	keywords = append(keywords, strings.ToLower(name))
 	keywords = append(keywords, strings.ToUpper(name))
-	
+
 	// Add domain-specific keywords
 	switch strings.ToLower(name) {
 	case "amf":
@@ -219,42 +219,42 @@ func (l *LazyKnowledgeLoader) extractKeywords(name string) []string {
 	case "udm":
 		keywords = append(keywords, "data", "management", "subscription")
 	}
-	
+
 	return keywords
 }
 
 // GetNetworkFunction retrieves a network function with lazy loading
 func (l *LazyKnowledgeLoader) GetNetworkFunction(name string) (*telecom.NetworkFunctionSpec, bool) {
 	l.mu.RLock()
-	
+
 	// Check cache first
 	if nf, ok := l.nfCache.Get(strings.ToLower(name)); ok {
 		l.stats.recordHit()
 		l.mu.RUnlock()
 		return nf, true
 	}
-	
+
 	l.stats.recordMiss()
 	l.mu.RUnlock()
-	
+
 	// Load from compressed storage or generate on-demand
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	nf := l.loadNetworkFunction(strings.ToLower(name))
 	if nf == nil {
 		return nil, false
 	}
-	
+
 	// Add to cache
 	l.nfCache.Add(strings.ToLower(name), nf)
-	
+
 	// Update metadata
 	if meta, ok := l.metadata[strings.ToLower(name)]; ok {
 		meta.LastAccess = time.Now()
 		meta.AccessCount++
 	}
-	
+
 	return nf, true
 }
 
@@ -267,7 +267,7 @@ func (l *LazyKnowledgeLoader) loadNetworkFunction(name string) *telecom.NetworkF
 			return nf
 		}
 	}
-	
+
 	// Generate on-demand based on the function name
 	switch name {
 	case "amf":
@@ -536,26 +536,26 @@ func (l *LazyKnowledgeLoader) generateNSSFSpec() *telecom.NetworkFunctionSpec {
 // GetInterface retrieves an interface specification with lazy loading
 func (l *LazyKnowledgeLoader) GetInterface(name string) (*telecom.InterfaceSpec, bool) {
 	l.mu.RLock()
-	
+
 	// Check cache first
 	if iface, ok := l.interfaceCache.Get(strings.ToLower(name)); ok {
 		l.stats.recordHit()
 		l.mu.RUnlock()
 		return iface, true
 	}
-	
+
 	l.stats.recordMiss()
 	l.mu.RUnlock()
-	
+
 	// Load on-demand
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	iface := l.loadInterface(strings.ToLower(name))
 	if iface == nil {
 		return nil, false
 	}
-	
+
 	l.interfaceCache.Add(strings.ToLower(name), iface)
 	return iface, true
 }
@@ -603,24 +603,24 @@ func (l *LazyKnowledgeLoader) loadInterface(name string) *telecom.InterfaceSpec 
 // GetQosProfile retrieves a QoS profile with lazy loading
 func (l *LazyKnowledgeLoader) GetQosProfile(name string) (*telecom.QosProfile, bool) {
 	l.mu.RLock()
-	
+
 	if qos, ok := l.qosCache.Get(strings.ToLower(name)); ok {
 		l.stats.recordHit()
 		l.mu.RUnlock()
 		return qos, true
 	}
-	
+
 	l.stats.recordMiss()
 	l.mu.RUnlock()
-	
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	qos := l.loadQosProfile(strings.ToLower(name))
 	if qos == nil {
 		return nil, false
 	}
-	
+
 	l.qosCache.Add(strings.ToLower(name), qos)
 	return qos, true
 }
@@ -659,24 +659,24 @@ func (l *LazyKnowledgeLoader) loadQosProfile(name string) *telecom.QosProfile {
 // GetSliceType retrieves a slice type with lazy loading
 func (l *LazyKnowledgeLoader) GetSliceType(name string) (*telecom.SliceTypeSpec, bool) {
 	l.mu.RLock()
-	
+
 	if slice, ok := l.sliceCache.Get(strings.ToLower(name)); ok {
 		l.stats.recordHit()
 		l.mu.RUnlock()
 		return slice, true
 	}
-	
+
 	l.stats.recordMiss()
 	l.mu.RUnlock()
-	
+
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	slice := l.loadSliceType(strings.ToLower(name))
 	if slice == nil {
 		return nil, false
 	}
-	
+
 	l.sliceCache.Add(strings.ToLower(name), slice)
 	return slice, true
 }
@@ -716,9 +716,9 @@ func (l *LazyKnowledgeLoader) loadSliceType(name string) *telecom.SliceTypeSpec 
 func (l *LazyKnowledgeLoader) FindResourcesByKeywords(keywords []string) []string {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	resourceSet := make(map[string]bool)
-	
+
 	for _, keyword := range keywords {
 		keyword = strings.ToLower(keyword)
 		if resources, ok := l.keywordIndex[keyword]; ok {
@@ -727,13 +727,13 @@ func (l *LazyKnowledgeLoader) FindResourcesByKeywords(keywords []string) []strin
 			}
 		}
 	}
-	
+
 	// Convert set to slice
 	var results []string
 	for resource := range resourceSet {
 		results = append(results, resource)
 	}
-	
+
 	return results
 }
 
@@ -741,17 +741,17 @@ func (l *LazyKnowledgeLoader) FindResourcesByKeywords(keywords []string) []strin
 func (l *LazyKnowledgeLoader) compress(data interface{}) ([]byte, error) {
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
-	
+
 	enc := gob.NewEncoder(gz)
 	if err := enc.Encode(data); err != nil {
 		gz.Close()
 		return nil, err
 	}
-	
+
 	if err := gz.Close(); err != nil {
 		return nil, err
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -763,7 +763,7 @@ func (l *LazyKnowledgeLoader) decompress(data []byte, target interface{}) error 
 		return err
 	}
 	defer gz.Close()
-	
+
 	dec := gob.NewDecoder(gz)
 	return dec.Decode(target)
 }
@@ -772,18 +772,18 @@ func (l *LazyKnowledgeLoader) decompress(data []byte, target interface{}) error 
 func (l *LazyKnowledgeLoader) GetStats() map[string]interface{} {
 	l.stats.mu.RLock()
 	defer l.stats.mu.RUnlock()
-	
+
 	hitRate := float64(0)
 	if total := l.stats.Hits + l.stats.Misses; total > 0 {
 		hitRate = float64(l.stats.Hits) / float64(total) * 100
 	}
-	
+
 	return map[string]interface{}{
-		"hits":         l.stats.Hits,
-		"misses":       l.stats.Misses,
-		"hit_rate":     hitRate,
-		"evictions":    l.stats.Evictions,
-		"total_loads":  l.stats.TotalLoads,
+		"hits":          l.stats.Hits,
+		"misses":        l.stats.Misses,
+		"hit_rate":      hitRate,
+		"evictions":     l.stats.Evictions,
+		"total_loads":   l.stats.TotalLoads,
 		"avg_load_time": l.stats.LoadTime / time.Duration(l.stats.TotalLoads+1),
 	}
 }
@@ -792,7 +792,7 @@ func (l *LazyKnowledgeLoader) GetStats() map[string]interface{} {
 func (l *LazyKnowledgeLoader) ClearCache() {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	
+
 	l.nfCache.Purge()
 	l.interfaceCache.Purge()
 	l.qosCache.Purge()
@@ -817,7 +817,7 @@ func (s *CacheStats) recordMiss() {
 func (l *LazyKnowledgeLoader) ListNetworkFunctions() []string {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	var names []string
 	for id, meta := range l.metadata {
 		if meta.Type == "nf" {
@@ -831,10 +831,10 @@ func (l *LazyKnowledgeLoader) ListNetworkFunctions() []string {
 func (l *LazyKnowledgeLoader) PreloadByIntent(intent string) {
 	// Extract keywords from intent
 	keywords := strings.Fields(strings.ToLower(intent))
-	
+
 	// Find matching resources
 	resources := l.FindResourcesByKeywords(keywords)
-	
+
 	// Preload found resources
 	for _, resource := range resources {
 		if meta, ok := l.metadata[resource]; ok {
@@ -856,18 +856,18 @@ func (l *LazyKnowledgeLoader) PreloadByIntent(intent string) {
 func (l *LazyKnowledgeLoader) GetMemoryUsage() int64 {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	// Rough estimation based on cache sizes
-	nfCacheSize := l.nfCache.Len() * 10240        // ~10KB per NF
-	interfaceCacheSize := l.interfaceCache.Len() * 2048  // ~2KB per interface
-	qosCacheSize := l.qosCache.Len() * 1024       // ~1KB per QoS profile
-	sliceCacheSize := l.sliceCache.Len() * 5120   // ~5KB per slice
-	
+	nfCacheSize := l.nfCache.Len() * 10240              // ~10KB per NF
+	interfaceCacheSize := l.interfaceCache.Len() * 2048 // ~2KB per interface
+	qosCacheSize := l.qosCache.Len() * 1024             // ~1KB per QoS profile
+	sliceCacheSize := l.sliceCache.Len() * 5120         // ~5KB per slice
+
 	compressedSize := 0
 	for _, data := range l.compressedData {
 		compressedSize += len(data)
 	}
-	
+
 	return int64(nfCacheSize + interfaceCacheSize + qosCacheSize + sliceCacheSize + compressedSize)
 }
 
@@ -880,18 +880,18 @@ func (l *LazyKnowledgeLoader) IsInitialized() bool {
 func (l *LazyKnowledgeLoader) SaveToFile(filename string) error {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	
+
 	data := map[string]interface{}{
 		"metadata":       l.metadata,
 		"keywordIndex":   l.keywordIndex,
 		"compressedData": l.compressedData,
 	}
-	
+
 	compressed, err := l.compress(data)
 	if err != nil {
 		return fmt.Errorf("failed to compress data: %w", err)
 	}
-	
+
 	// In production, write to file
 	// For now, just return nil
 	_ = compressed

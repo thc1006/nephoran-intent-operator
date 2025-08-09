@@ -35,25 +35,25 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 		category string
 
 		// Input configuration
-		intentText       string
-		enabledLLMIntent string
-		initialPhase     string
+		intentText        string
+		enabledLLMIntent  string
+		initialPhase      string
 		initialConditions []metav1.Condition
-		environmentVars  map[string]string
+		environmentVars   map[string]string
 
 		// Mock configuration
-		llmResponse      string
-		llmError         error
-		llmFailCount     int
-		gitShouldFail    bool
-		httpClientSetup  func(*http.Client)
+		llmResponse     string
+		llmError        error
+		llmFailCount    int
+		gitShouldFail   bool
+		httpClientSetup func(*http.Client)
 
 		// Expected outcomes
-		expectedPhase       string
-		expectedRequeue     bool
-		expectedError       bool
-		expectedConditions  []ExpectedCondition
-		expectedParameters  map[string]interface{}
+		expectedPhase      string
+		expectedRequeue    bool
+		expectedError      bool
+		expectedConditions []ExpectedCondition
+		expectedParameters map[string]interface{}
 
 		// Validation and assertions
 		validationChecks func(t *testing.T, ni *nephoranv1.NetworkIntent, result ctrl.Result)
@@ -62,11 +62,11 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 	}{
 		// === HAPPY PATH SCENARIOS ===
 		{
-			name:            "5gc_amf_deployment_success",
-			category:        "happy_path",
-			intentText:      "Deploy AMF network function for 5G core",
+			name:             "5gc_amf_deployment_success",
+			category:         "happy_path",
+			intentText:       "Deploy AMF network function for 5G core",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
+			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
 				"action":    "deploy",
 				"component": "amf",
@@ -92,17 +92,17 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"5gc", "amf", "deployment"},
 		},
 		{
-			name:            "5gc_smf_configuration_success",
-			category:        "happy_path",
-			intentText:      "Configure SMF with UPF integration and session management policies",
+			name:             "5gc_smf_configuration_success",
+			category:         "happy_path",
+			intentText:       "Configure SMF with UPF integration and session management policies",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
+			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
 				"action":    "configure",
 				"component": "smf",
 				"namespace": "5g-core",
 				"config": map[string]interface{}{
-					"upf_integration": true,
+					"upf_integration":  true,
 					"session_policies": []string{"policy1", "policy2"},
 				},
 			}),
@@ -116,16 +116,16 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"5gc", "smf", "configuration"},
 		},
 		{
-			name:            "oran_deployment_success",
-			category:        "happy_path",
-			intentText:      "Deploy O-RAN components including O-CU and O-DU for edge deployment",
+			name:             "oran_deployment_success",
+			category:         "happy_path",
+			intentText:       "Deploy O-RAN components including O-CU and O-DU for edge deployment",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
+			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
-				"action":    "deploy",
-				"component": "oran",
-				"namespace": "oran-system",
-				"components": []string{"o-cu", "o-du"},
+				"action":          "deploy",
+				"component":       "oran",
+				"namespace":       "oran-system",
+				"components":      []string{"o-cu", "o-du"},
 				"deployment_type": "edge",
 			}),
 			expectedPhase:   "Processing",
@@ -138,11 +138,11 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"oran", "o-cu", "o-du", "edge"},
 		},
 		{
-			name:            "network_slice_embb_success",
-			category:        "happy_path",
-			intentText:      "Deploy eMBB network slice for enhanced mobile broadband with high throughput",
+			name:             "network_slice_embb_success",
+			category:         "happy_path",
+			intentText:       "Deploy eMBB network slice for enhanced mobile broadband with high throughput",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
+			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
 				"action":     "deploy",
 				"component":  "network-slice",
@@ -165,13 +165,13 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 
 		// === ERROR SCENARIOS ===
 		{
-			name:            "empty_intent_error",
-			category:        "error_handling",
-			intentText:      "",
+			name:             "empty_intent_error",
+			category:         "error_handling",
+			intentText:       "",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
-			expectedPhase:   "Error",
-			expectedRequeue: false,
+			initialPhase:     "Pending",
+			expectedPhase:    "Error",
+			expectedRequeue:  false,
 			expectedConditions: []ExpectedCondition{
 				{Type: "Validated", Status: metav1.ConditionFalse, MessageContains: "empty"},
 			},
@@ -179,14 +179,14 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"validation", "error"},
 		},
 		{
-			name:            "llm_service_unavailable_error",
-			category:        "error_handling",
-			intentText:      "Deploy SMF network function",
+			name:             "llm_service_unavailable_error",
+			category:         "error_handling",
+			intentText:       "Deploy SMF network function",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
-			llmError:        errors.New("LLM service unavailable - connection timeout"),
-			expectedPhase:   "Error",
-			expectedRequeue: true,
+			initialPhase:     "Pending",
+			llmError:         errors.New("LLM service unavailable - connection timeout"),
+			expectedPhase:    "Error",
+			expectedRequeue:  true,
 			expectedConditions: []ExpectedCondition{
 				{Type: "Processed", Status: metav1.ConditionFalse, MessageContains: "LLM"},
 				{Type: "Ready", Status: metav1.ConditionFalse},
@@ -195,14 +195,14 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"llm", "error", "retry"},
 		},
 		{
-			name:            "llm_invalid_json_error",
-			category:        "error_handling",
-			intentText:      "Deploy UPF network function",
+			name:             "llm_invalid_json_error",
+			category:         "error_handling",
+			intentText:       "Deploy UPF network function",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
-			llmResponse:     "invalid json response from LLM",
-			expectedPhase:   "Error",
-			expectedRequeue: true,
+			initialPhase:     "Pending",
+			llmResponse:      "invalid json response from LLM",
+			expectedPhase:    "Error",
+			expectedRequeue:  true,
 			expectedConditions: []ExpectedCondition{
 				{Type: "Processed", Status: metav1.ConditionFalse},
 			},
@@ -210,11 +210,11 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"llm", "json", "error"},
 		},
 		{
-			name:            "git_operation_failure_error",
-			category:        "error_handling",
-			intentText:      "Deploy comprehensive 5G network",
+			name:             "git_operation_failure_error",
+			category:         "error_handling",
+			intentText:       "Deploy comprehensive 5G network",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
+			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
 				"action":    "deploy",
 				"component": "5gc-comprehensive",
@@ -233,11 +233,11 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 
 		// === RETRY SCENARIOS ===
 		{
-			name:            "llm_retry_eventual_success",
-			category:        "retry_logic",
-			intentText:      "Deploy NSSF for network slicing",
+			name:             "llm_retry_eventual_success",
+			category:         "retry_logic",
+			intentText:       "Deploy NSSF for network slicing",
 			enabledLLMIntent: "true",
-			initialPhase:    "Error",
+			initialPhase:     "Error",
 			initialConditions: []metav1.Condition{
 				{
 					Type:    "Processed",
@@ -262,11 +262,11 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"retry", "recovery", "nssf"},
 		},
 		{
-			name:            "max_retries_exceeded",
-			category:        "retry_logic",
-			intentText:      "Deploy AMF with persistent failure simulation",
+			name:             "max_retries_exceeded",
+			category:         "retry_logic",
+			intentText:       "Deploy AMF with persistent failure simulation",
 			enabledLLMIntent: "true",
-			initialPhase:    "Error",
+			initialPhase:     "Error",
 			initialConditions: []metav1.Condition{
 				{
 					Type:    "Processed",
@@ -292,13 +292,13 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 
 		// === LLM DISABLED SCENARIOS ===
 		{
-			name:            "llm_disabled_success",
-			category:        "llm_disabled",
-			intentText:      "Deploy AMF network function without LLM",
+			name:             "llm_disabled_success",
+			category:         "llm_disabled",
+			intentText:       "Deploy AMF network function without LLM",
 			enabledLLMIntent: "false",
-			initialPhase:    "Pending",
-			expectedPhase:   "Processed",
-			expectedRequeue: false,
+			initialPhase:     "Pending",
+			expectedPhase:    "Processed",
+			expectedRequeue:  false,
 			expectedConditions: []ExpectedCondition{
 				{Type: "Processed", Status: metav1.ConditionTrue},
 				{Type: "Ready", Status: metav1.ConditionTrue},
@@ -307,13 +307,13 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"no_llm", "direct_processing"},
 		},
 		{
-			name:            "llm_disabled_complex_intent",
-			category:        "llm_disabled",
-			intentText:      "Deploy comprehensive 5G core with AMF, SMF, UPF, and NSSF components",
+			name:             "llm_disabled_complex_intent",
+			category:         "llm_disabled",
+			intentText:       "Deploy comprehensive 5G core with AMF, SMF, UPF, and NSSF components",
 			enabledLLMIntent: "false",
-			initialPhase:    "Pending",
-			expectedPhase:   "Processed",
-			expectedRequeue: false,
+			initialPhase:     "Pending",
+			expectedPhase:    "Processed",
+			expectedRequeue:  false,
 			expectedConditions: []ExpectedCondition{
 				{Type: "Processed", Status: metav1.ConditionTrue},
 			},
@@ -323,11 +323,11 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 
 		// === EDGE CASE SCENARIOS ===
 		{
-			name:            "unicode_intent_success",
-			category:        "edge_cases",
-			intentText:      "Deploy AMF with 高性能 configuration for 5G 网络 deployment",
+			name:             "unicode_intent_success",
+			category:         "edge_cases",
+			intentText:       "Deploy AMF with 高性能 configuration for 5G 网络 deployment",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
+			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
 				"action":    "deploy",
 				"component": "amf",
@@ -343,11 +343,11 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"unicode", "i18n", "edge_case"},
 		},
 		{
-			name:            "special_characters_intent",
-			category:        "edge_cases",
-			intentText:      "Deploy SMF with config: {cpu: '500m', memory: '1Gi', ports: [8080, 8443]}",
+			name:             "special_characters_intent",
+			category:         "edge_cases",
+			intentText:       "Deploy SMF with config: {cpu: '500m', memory: '1Gi', ports: [8080, 8443]}",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
+			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
 				"action":    "deploy",
 				"component": "smf",
@@ -367,13 +367,13 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"special_chars", "structured_data"},
 		},
 		{
-			name:            "very_long_intent_error",
-			category:        "edge_cases",
-			intentText:      strings.Repeat("Deploy comprehensive 5G network with advanced features ", 100),
+			name:             "very_long_intent_error",
+			category:         "edge_cases",
+			intentText:       strings.Repeat("Deploy comprehensive 5G network with advanced features ", 100),
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
-			expectedPhase:   "Error",
-			expectedRequeue: false,
+			initialPhase:     "Pending",
+			expectedPhase:    "Error",
+			expectedRequeue:  false,
 			expectedConditions: []ExpectedCondition{
 				{Type: "Validated", Status: metav1.ConditionFalse, MessageContains: "complex"},
 			},
@@ -383,11 +383,11 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 
 		// === PHASE TRANSITION SCENARIOS ===
 		{
-			name:            "pending_to_processing_transition",
-			category:        "phase_transitions",
-			intentText:      "Deploy UPF for user plane processing",
+			name:             "pending_to_processing_transition",
+			category:         "phase_transitions",
+			intentText:       "Deploy UPF for user plane processing",
 			enabledLLMIntent: "true",
-			initialPhase:    "Pending",
+			initialPhase:     "Pending",
 			llmResponse: mustMarshal(map[string]interface{}{
 				"action":    "deploy",
 				"component": "upf",
@@ -405,11 +405,11 @@ func TestNetworkIntentTableDriven(t *testing.T) {
 			tags:        []string{"phase_transition", "upf"},
 		},
 		{
-			name:         "error_to_processing_recovery",
-			category:     "phase_transitions",
-			intentText:   "Deploy PCF for policy control",
+			name:             "error_to_processing_recovery",
+			category:         "phase_transitions",
+			intentText:       "Deploy PCF for policy control",
 			enabledLLMIntent: "true",
-			initialPhase: "Error",
+			initialPhase:     "Error",
 			initialConditions: []metav1.Condition{
 				{
 					Type:    "Processed",

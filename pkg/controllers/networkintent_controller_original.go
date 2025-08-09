@@ -215,13 +215,13 @@ type SecurityRule struct {
 // NetworkIntentReconciler orchestrates the reconciliation of NetworkIntent resources
 type NetworkIntentReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	deps               Dependencies
-	config             *Config
-	llmSanitizer       *security.LLMSanitizer
-	circuitBreakerMgr  *resilience.CircuitBreakerManager
-	timeoutManager     *resilience.TimeoutManager
-	llmCircuitBreaker  *resilience.LLMCircuitBreaker
+	Scheme            *runtime.Scheme
+	deps              Dependencies
+	config            *Config
+	llmSanitizer      *security.LLMSanitizer
+	circuitBreakerMgr *resilience.CircuitBreakerManager
+	timeoutManager    *resilience.TimeoutManager
+	llmCircuitBreaker *resilience.LLMCircuitBreaker
 }
 
 // Exponential backoff helper functions
@@ -341,18 +341,18 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 
 	// Initialize resilience components
 	metricsCollector := deps.GetMetricsCollector()
-	
+
 	// Configure circuit breaker for LLM operations
 	circuitConfig := &resilience.CircuitBreakerConfig{
-		FailureThreshold:    5,  // Open after 5 failures
-		RecoveryTimeout:     60 * time.Second,  // Wait 60s before trying half-open
-		SuccessThreshold:    3,  // Close after 3 successes in half-open
-		RequestTimeout:      30 * time.Second,  // Individual request timeout
-		HalfOpenMaxRequests: 5,  // Max requests in half-open state
-		MinimumRequests:     10, // Min requests before calculating failure rate
-		FailureRate:         0.5, // 50% failure rate threshold
+		FailureThreshold:    5,                // Open after 5 failures
+		RecoveryTimeout:     60 * time.Second, // Wait 60s before trying half-open
+		SuccessThreshold:    3,                // Close after 3 successes in half-open
+		RequestTimeout:      30 * time.Second, // Individual request timeout
+		HalfOpenMaxRequests: 5,                // Max requests in half-open state
+		MinimumRequests:     10,               // Min requests before calculating failure rate
+		FailureRate:         0.5,              // 50% failure rate threshold
 	}
-	
+
 	// Configure timeouts for different operations
 	timeoutConfig := &resilience.TimeoutConfig{
 		LLMTimeout:               30 * time.Second,  // LLM processing timeout
@@ -366,10 +366,10 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 
 	// Create circuit breaker manager
 	circuitBreakerMgr := resilience.NewCircuitBreakerManager(circuitConfig, metricsCollector)
-	
+
 	// Create timeout manager
 	timeoutManager := resilience.NewTimeoutManager(timeoutConfig, metricsCollector)
-	
+
 	// Create LLM circuit breaker
 	llmCircuitBreaker := circuitBreakerMgr.GetOrCreateCircuitBreaker("llm-processor", circuitConfig)
 
@@ -696,7 +696,7 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 
 	// Process with LLM using secure prompt with circuit breaker and timeout
 	logger.Info("Processing intent with LLM", "retry_count", retryCount+1, "enhanced_prompt_length", len(securePrompt))
-	
+
 	// Execute LLM call through circuit breaker with fallback
 	var processedResult string
 	result, err := r.llmCircuitBreaker.ExecuteWithFallback(ctx,
@@ -710,18 +710,18 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 		// Fallback operation when circuit is open
 		func(ctx context.Context, circuitErr error) (interface{}, error) {
 			logger.Warn("LLM circuit breaker is open, using fallback response", "error", circuitErr)
-			
+
 			// Provide a basic fallback response for simple intents
 			fallbackResponse := r.generateFallbackResponse(sanitizedIntent)
 			if fallbackResponse != "" {
 				r.recordEvent(networkIntent, "Normal", "LLMFallbackUsed", "Circuit breaker open, using fallback response")
 				return fallbackResponse, nil
 			}
-			
+
 			// If no fallback possible, return circuit breaker error
 			return nil, fmt.Errorf("LLM service unavailable and no fallback possible: %w", circuitErr)
 		})
-	
+
 	if err != nil {
 		// Check if this is a circuit breaker error
 		if r.llmCircuitBreaker.IsOpen() {
@@ -736,11 +736,11 @@ func (r *NetworkIntentReconciler) processLLMPhase(ctx context.Context, networkIn
 			updateCondition(&networkIntent.Status.Conditions, condition)
 			r.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMServiceUnavailable", fmt.Sprintf("LLM service is currently unavailable: %v", err))
 			r.recordFailureEvent(networkIntent, "LLMServiceUnavailable", err.Error())
-			
+
 			// For circuit breaker failures, use longer backoff
 			return ctrl.Result{RequeueAfter: 2 * r.config.RetryDelay}, err
 		}
-		
+
 		// Handle other errors (timeouts, processing failures, etc.)
 		processedResult = ""
 	} else {
@@ -1843,7 +1843,7 @@ func (r *NetworkIntentReconciler) commitToGitOps(ctx context.Context, networkInt
 		func(timeoutCtx context.Context) (interface{}, error) {
 			return gitClient.CommitAndPush(deploymentFiles, commitMessage)
 		})
-	
+
 	var commitHash string
 	if err == nil && result != nil {
 		commitHash = result.(string)
@@ -2906,20 +2906,20 @@ func (r *NetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string {
 	logger := ctrl.Log.WithName("fallback-generator")
 	logger.V(1).Info("Generating fallback response for intent", "intent_length", len(intent))
-	
+
 	// Convert to lowercase for pattern matching
 	intentLower := strings.ToLower(intent)
-	
+
 	// Basic pattern matching for common intents
 	var response map[string]interface{}
-	
+
 	// Check for 5G Core network functions
 	if strings.Contains(intentLower, "amf") || strings.Contains(intentLower, "access and mobility") {
 		response = map[string]interface{}{
-			"type": "5g-core",
+			"type":            "5g-core",
 			"networkFunction": "AMF",
-			"name": "nephoran-amf",
-			"replicas": 2,
+			"name":            "nephoran-amf",
+			"replicas":        2,
 			"resources": map[string]interface{}{
 				"requests": map[string]string{
 					"cpu":    "500m",
@@ -2934,10 +2934,10 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 		}
 	} else if strings.Contains(intentLower, "smf") || strings.Contains(intentLower, "session management") {
 		response = map[string]interface{}{
-			"type": "5g-core",
+			"type":            "5g-core",
 			"networkFunction": "SMF",
-			"name": "nephoran-smf",
-			"replicas": 2,
+			"name":            "nephoran-smf",
+			"replicas":        2,
 			"resources": map[string]interface{}{
 				"requests": map[string]string{
 					"cpu":    "300m",
@@ -2952,10 +2952,10 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 		}
 	} else if strings.Contains(intentLower, "upf") || strings.Contains(intentLower, "user plane") {
 		response = map[string]interface{}{
-			"type": "5g-core",
+			"type":            "5g-core",
 			"networkFunction": "UPF",
-			"name": "nephoran-upf",
-			"replicas": 3,
+			"name":            "nephoran-upf",
+			"replicas":        3,
 			"resources": map[string]interface{}{
 				"requests": map[string]string{
 					"cpu":    "1",
@@ -2970,10 +2970,10 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 		}
 	} else if strings.Contains(intentLower, "o-du") || strings.Contains(intentLower, "distributed unit") {
 		response = map[string]interface{}{
-			"type": "o-ran",
+			"type":            "o-ran",
 			"networkFunction": "O-DU",
-			"name": "nephoran-odu",
-			"replicas": 1,
+			"name":            "nephoran-odu",
+			"replicas":        1,
 			"resources": map[string]interface{}{
 				"requests": map[string]string{
 					"cpu":    "2",
@@ -2988,10 +2988,10 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 		}
 	} else if strings.Contains(intentLower, "o-cu") || strings.Contains(intentLower, "centralized unit") {
 		response = map[string]interface{}{
-			"type": "o-ran",
+			"type":            "o-ran",
 			"networkFunction": "O-CU",
-			"name": "nephoran-ocu",
-			"replicas": 2,
+			"name":            "nephoran-ocu",
+			"replicas":        2,
 			"resources": map[string]interface{}{
 				"requests": map[string]string{
 					"cpu":    "1",
@@ -3009,14 +3009,14 @@ func (r *NetworkIntentReconciler) generateFallbackResponse(intent string) string
 		logger.V(1).Info("No specific pattern matched, using generic fallback")
 		return ""
 	}
-	
+
 	// Convert to JSON string
 	jsonBytes, err := json.MarshalIndent(response, "", "  ")
 	if err != nil {
 		logger.Error(err, "Failed to marshal fallback response to JSON")
 		return ""
 	}
-	
+
 	logger.V(1).Info("Generated fallback response", "response_size", len(jsonBytes))
 	return string(jsonBytes)
 }

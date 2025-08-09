@@ -40,7 +40,7 @@ type ValidationIssueType string
 type ValidationSeverity string
 type SuggestionType string
 type KRMIssueType string
-type YAMLIssueType string  
+type YAMLIssueType string
 type JSONIssueType string
 type ConflictType string
 type ConflictSeverity string
@@ -776,10 +776,10 @@ const (
 type ContentConflictSeverity string
 
 const (
-	ContentConflictSeverityLow      ContentConflictSeverity = "low"
-	ContentConflictSeverityMedium   ContentConflictSeverity = "medium"
-	ContentConflictSeverityHigh     ContentConflictSeverity = "high"
-	ConflictSeverityCritical ConflictSeverity = "critical"
+	ContentConflictSeverityLow    ContentConflictSeverity = "low"
+	ContentConflictSeverityMedium ContentConflictSeverity = "medium"
+	ContentConflictSeverityHigh   ContentConflictSeverity = "high"
+	ConflictSeverityCritical      ConflictSeverity        = "critical"
 )
 
 // ConflictResolutionStrategy defines how to resolve conflicts

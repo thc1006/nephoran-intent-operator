@@ -47,32 +47,32 @@ var TelecomKeywords = []string{
 	// 5G Core components
 	"amf", "smf", "upf", "nssf", "nrf", "udm", "udr", "ausf", "pcf", "bsf",
 	"nef", "chf", "scp", "sepp", "udsf", "unef", "tngf", "twif", "n3iwf",
-	
+
 	// O-RAN components
-	"oran", "o-ran", "ran", "ric", "near-rt-ric", "non-rt-ric", "o-du", 
+	"oran", "o-ran", "ran", "ric", "near-rt-ric", "non-rt-ric", "o-du",
 	"o-cu", "o-ru", "e2", "a1", "o1", "o2", "smo", "xapp", "rapp",
-	
+
 	// Network functions and services
 	"vnf", "cnf", "nf", "network function", "network slice", "slicing",
 	"qos", "quality of service", "sla", "service level", "urllc", "embb", "mmtc",
-	
+
 	// Infrastructure and deployment terms
 	"deployment", "service", "pod", "container", "kubernetes", "k8s",
 	"cluster", "namespace", "ingress", "load balancer", "scaling", "autoscaling",
 	"high availability", "ha", "failover", "redundancy", "backup",
-	
+
 	// Performance and optimization
 	"latency", "throughput", "bandwidth", "performance", "optimization",
 	"monitoring", "metrics", "alerting", "logging", "observability",
-	
+
 	// Security and compliance
 	"security", "authentication", "authorization", "encryption", "tls", "mtls",
 	"certificate", "rbac", "policy", "compliance", "audit",
-	
+
 	// Network and connectivity
 	"network", "connectivity", "routing", "switching", "gateway", "proxy",
 	"firewall", "dns", "dhcp", "vlan", "subnet", "cidr", "ip", "ipv4", "ipv6",
-	
+
 	// Cloud native and orchestration
 	"helm", "chart", "yaml", "manifest", "config", "configuration",
 	"template", "operator", "controller", "crd", "custom resource",
@@ -84,17 +84,17 @@ var TelecomKeywords = []string{
 
 // ComplexityRules defines validation rules for intent complexity
 type ComplexityRules struct {
-	MaxWords                int
-	MaxSentences           int
-	MaxConsecutiveRepeats  int
-	MinTelecomKeywords     int
+	MaxWords              int
+	MaxSentences          int
+	MaxConsecutiveRepeats int
+	MinTelecomKeywords    int
 }
 
 var DefaultComplexityRules = ComplexityRules{
-	MaxWords:               300,  // Maximum number of words
-	MaxSentences:          20,   // Maximum number of sentences
-	MaxConsecutiveRepeats: 5,    // Maximum consecutive repeated words/phrases
-	MinTelecomKeywords:    1,    // Minimum telecom-related keywords required
+	MaxWords:              300, // Maximum number of words
+	MaxSentences:          20,  // Maximum number of sentences
+	MaxConsecutiveRepeats: 5,   // Maximum consecutive repeated words/phrases
+	MinTelecomKeywords:    1,   // Minimum telecom-related keywords required
 }
 
 // NewNetworkIntentValidator creates a new NetworkIntent validator
@@ -234,7 +234,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 	// SECURITY: With our restricted character set, many injection attacks are already prevented
 	// This function provides additional defense-in-depth by checking for suspicious patterns
 	// even within the allowed character set
-	
+
 	// Check for patterns that might indicate obfuscation attempts
 	// Even with restricted chars, check for suspicious word patterns
 	suspiciousPatterns := []string{
@@ -248,7 +248,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 		// Path traversal attempts
 		"dot dot slash", "dot dot backslash",
 	}
-	
+
 	intentLower := strings.ToLower(intent)
 	for _, pattern := range suspiciousPatterns {
 		if strings.Contains(intentLower, pattern) {
@@ -270,13 +270,13 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 		'(': 0, ')': 0, '[': 0, ']': 0,
 		'-': 0, '_': 0,
 	}
-	
+
 	for _, r := range intent {
 		if count, exists := punctuationCounts[r]; exists {
 			punctuationCounts[r] = count + 1
 		}
 	}
-	
+
 	// Check for excessive use of any single punctuation mark
 	for char, count := range punctuationCounts {
 		maxAllowed := 10
@@ -295,7 +295,7 @@ func (v *NetworkIntentValidator) validateSecurity(intent string) error {
 		"d r o p", "s e l e c t", "d e l e t e", "i n s e r t",
 		"e x e c", "s c r i p t", "j a v a",
 	}
-	
+
 	for _, pattern := range spacedPatterns {
 		if strings.Contains(intentLower, pattern) {
 			return fmt.Errorf("intent contains suspicious spaced pattern that might be attempting to bypass filters")
@@ -320,12 +320,12 @@ func (v *NetworkIntentValidator) validateTelecomRelevance(intent string) error {
 	}
 
 	if keywordCount < DefaultComplexityRules.MinTelecomKeywords {
-		return fmt.Errorf("intent does not appear to be telecommunications-related (found %d telecom keywords, minimum required: %d)", 
+		return fmt.Errorf("intent does not appear to be telecommunications-related (found %d telecom keywords, minimum required: %d)",
 			keywordCount, DefaultComplexityRules.MinTelecomKeywords)
 	}
 
-	networkIntentWebhookLog.V(1).Info("Telecommunications validation passed", 
-		"keywordCount", keywordCount, 
+	networkIntentWebhookLog.V(1).Info("Telecommunications validation passed",
+		"keywordCount", keywordCount,
 		"foundKeywords", foundKeywords[:min(len(foundKeywords), 5)]) // Log first 5 keywords
 
 	return nil
@@ -336,7 +336,7 @@ func (v *NetworkIntentValidator) validateComplexity(intent string) error {
 	// Count words
 	words := strings.Fields(intent)
 	if len(words) > DefaultComplexityRules.MaxWords {
-		return fmt.Errorf("intent is too complex (%d words, maximum allowed: %d)", 
+		return fmt.Errorf("intent is too complex (%d words, maximum allowed: %d)",
 			len(words), DefaultComplexityRules.MaxWords)
 	}
 
@@ -349,7 +349,7 @@ func (v *NetworkIntentValidator) validateComplexity(intent string) error {
 		return r == '.' || r == '!' || r == '?'
 	})
 	if len(sentences) > DefaultComplexityRules.MaxSentences {
-		return fmt.Errorf("intent contains too many sentences (%d, maximum allowed: %d)", 
+		return fmt.Errorf("intent contains too many sentences (%d, maximum allowed: %d)",
 			len(sentences), DefaultComplexityRules.MaxSentences)
 	}
 
@@ -377,7 +377,7 @@ func (v *NetworkIntentValidator) checkRepetition(words []string) error {
 		if strings.ToLower(words[i]) == strings.ToLower(words[i-1]) {
 			consecutiveRepeats++
 			if consecutiveRepeats > DefaultComplexityRules.MaxConsecutiveRepeats {
-				return fmt.Errorf("intent contains too many consecutive repeated words: '%s' (max allowed: %d)", 
+				return fmt.Errorf("intent contains too many consecutive repeated words: '%s' (max allowed: %d)",
 					words[i], DefaultComplexityRules.MaxConsecutiveRepeats)
 			}
 		} else {
@@ -438,7 +438,7 @@ func (v *NetworkIntentValidator) validateBusinessLogic(ctx context.Context, ni *
 // validateResourceNaming checks for naming consistency and best practices
 func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIntent) error {
 	name := ni.Name
-	
+
 	// Basic Kubernetes naming validation (beyond what's already enforced by k8s)
 	if len(name) > 63 {
 		return fmt.Errorf("NetworkIntent name is too long (%d characters, max 63)", len(name))
@@ -460,7 +460,7 @@ func (v *NetworkIntentValidator) validateResourceNaming(ni *nephoranv1.NetworkIn
 	nameLower := strings.ToLower(name)
 	for _, pattern := range discouragedPatterns {
 		if strings.Contains(nameLower, pattern) {
-			networkIntentWebhookLog.Info("NetworkIntent uses discouraged naming pattern", 
+			networkIntentWebhookLog.Info("NetworkIntent uses discouraged naming pattern",
 				"name", name, "pattern", pattern)
 			// We log but don't fail - it's just a recommendation
 		}
@@ -510,7 +510,7 @@ func (v *NetworkIntentValidator) validateIntentCoherence(intent string) error {
 				foundTerms = append(foundTerms, term)
 			}
 		}
-		
+
 		if len(foundTerms) > 1 {
 			return fmt.Errorf("intent contains potentially contradictory terms: %v", foundTerms)
 		}
@@ -548,9 +548,9 @@ func min(a, b int) int {
 // SetupNetworkIntentWebhookWithManager registers the NetworkIntent webhook with the manager
 func SetupNetworkIntentWebhookWithManager(mgr ctrl.Manager) error {
 	validator := NewNetworkIntentValidator()
-	
-	mgr.GetWebhookServer().Register("/validate-nephoran-io-v1-networkintent", 
+
+	mgr.GetWebhookServer().Register("/validate-nephoran-io-v1-networkintent",
 		&admission.Webhook{Handler: validator})
-	
+
 	return nil
 }

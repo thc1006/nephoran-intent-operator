@@ -14,22 +14,22 @@ import (
 type CircuitBreakerConfig struct {
 	// Failure threshold - number of failures to trigger open state
 	FailureThreshold int `json:"failure_threshold" yaml:"failure_threshold"`
-	
+
 	// Recovery timeout - how long to wait before transitioning from open to half-open
 	RecoveryTimeout time.Duration `json:"recovery_timeout" yaml:"recovery_timeout"`
-	
+
 	// Success threshold - number of successes needed to close circuit from half-open
 	SuccessThreshold int `json:"success_threshold" yaml:"success_threshold"`
-	
+
 	// Request timeout for individual operations
 	RequestTimeout time.Duration `json:"request_timeout" yaml:"request_timeout"`
-	
+
 	// Maximum requests allowed in half-open state
 	HalfOpenMaxRequests int `json:"half_open_max_requests" yaml:"half_open_max_requests"`
-	
+
 	// Minimum requests before failure rate calculation
 	MinimumRequests int `json:"minimum_requests" yaml:"minimum_requests"`
-	
+
 	// Failure rate threshold (0.0 to 1.0)
 	FailureRate float64 `json:"failure_rate" yaml:"failure_rate"`
 }
@@ -58,24 +58,24 @@ const (
 
 // CircuitBreakerMetrics holds metrics for circuit breaker monitoring
 type CircuitBreakerMetrics struct {
-	ServiceName       string              `json:"service_name"`
-	State             CircuitBreakerState `json:"state"`
-	TotalRequests     int64               `json:"total_requests"`
-	SuccessfulRequests int64              `json:"successful_requests"`
-	FailedRequests    int64               `json:"failed_requests"`
-	RejectedRequests  int64               `json:"rejected_requests"`
-	FailureRate       float64             `json:"failure_rate"`
-	LastStateChange   time.Time           `json:"last_state_change"`
-	AverageLatency    time.Duration       `json:"average_latency"`
+	ServiceName        string              `json:"service_name"`
+	State              CircuitBreakerState `json:"state"`
+	TotalRequests      int64               `json:"total_requests"`
+	SuccessfulRequests int64               `json:"successful_requests"`
+	FailedRequests     int64               `json:"failed_requests"`
+	RejectedRequests   int64               `json:"rejected_requests"`
+	FailureRate        float64             `json:"failure_rate"`
+	LastStateChange    time.Time           `json:"last_state_change"`
+	AverageLatency     time.Duration       `json:"average_latency"`
 }
 
 // LLMCircuitBreaker wraps the existing LLM circuit breaker with a streamlined interface
 type LLMCircuitBreaker struct {
-	name            string
-	circuitBreaker  *llm.CircuitBreaker
-	config          *CircuitBreakerConfig
+	name             string
+	circuitBreaker   *llm.CircuitBreaker
+	config           *CircuitBreakerConfig
 	metricsCollector *monitoring.MetricsCollector
-	mutex           sync.RWMutex
+	mutex            sync.RWMutex
 }
 
 // NewLLMCircuitBreaker creates a new circuit breaker for LLM operations
@@ -86,18 +86,18 @@ func NewLLMCircuitBreaker(name string, config *CircuitBreakerConfig, metricsColl
 
 	// Convert to LLM circuit breaker config
 	llmConfig := &llm.CircuitBreakerConfig{
-		FailureThreshold:     int64(config.FailureThreshold),
-		FailureRate:          config.FailureRate,
-		MinimumRequestCount:  int64(config.MinimumRequests),
-		Timeout:              config.RequestTimeout,
-		HalfOpenTimeout:      config.RecoveryTimeout,
-		SuccessThreshold:     int64(config.SuccessThreshold),
-		HalfOpenMaxRequests:  int64(config.HalfOpenMaxRequests),
-		ResetTimeout:         config.RecoveryTimeout,
-		SlidingWindowSize:    100,
-		EnableHealthCheck:    false,
-		HealthCheckInterval:  30 * time.Second,
-		HealthCheckTimeout:   10 * time.Second,
+		FailureThreshold:    int64(config.FailureThreshold),
+		FailureRate:         config.FailureRate,
+		MinimumRequestCount: int64(config.MinimumRequests),
+		Timeout:             config.RequestTimeout,
+		HalfOpenTimeout:     config.RecoveryTimeout,
+		SuccessThreshold:    int64(config.SuccessThreshold),
+		HalfOpenMaxRequests: int64(config.HalfOpenMaxRequests),
+		ResetTimeout:        config.RecoveryTimeout,
+		SlidingWindowSize:   100,
+		EnableHealthCheck:   false,
+		HealthCheckInterval: 30 * time.Second,
+		HealthCheckTimeout:  10 * time.Second,
 	}
 
 	llmCB := llm.NewCircuitBreaker(name, llmConfig)
@@ -137,7 +137,7 @@ func (cb *LLMCircuitBreaker) ExecuteWithFallback(
 	fallback func(context.Context, error) (interface{}, error),
 ) (interface{}, error) {
 	result, err := cb.Execute(ctx, operation)
-	
+
 	// If circuit breaker rejected the request, use fallback
 	if err != nil && cb.IsOpen() {
 		if fallback != nil {
@@ -145,7 +145,7 @@ func (cb *LLMCircuitBreaker) ExecuteWithFallback(
 		}
 		return nil, fmt.Errorf("circuit breaker is open and no fallback provided: %w", err)
 	}
-	
+
 	return result, err
 }
 
@@ -178,9 +178,9 @@ func (cb *LLMCircuitBreaker) GetState() CircuitBreakerState {
 func (cb *LLMCircuitBreaker) GetMetrics() CircuitBreakerMetrics {
 	cb.mutex.RLock()
 	defer cb.mutex.RUnlock()
-	
+
 	llmMetrics := cb.circuitBreaker.GetMetrics()
-	
+
 	return CircuitBreakerMetrics{
 		ServiceName:        cb.name,
 		State:              cb.GetState(),

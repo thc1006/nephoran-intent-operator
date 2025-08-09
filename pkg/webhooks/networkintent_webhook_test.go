@@ -41,10 +41,10 @@ var _ = Describe("NetworkIntent Webhook", func() {
 	BeforeEach(func() {
 		scheme = runtime.NewScheme()
 		Expect(nephoranv1.AddToScheme(scheme)).To(Succeed())
-		
+
 		decoder, err := admission.NewDecoder(scheme)
 		Expect(err).NotTo(HaveOccurred())
-		
+
 		validator = NewNetworkIntentValidator()
 		Expect(validator.InjectDecoder(decoder)).To(Succeed())
 	})
@@ -314,8 +314,8 @@ var _ = Describe("NetworkIntent Webhook", func() {
 
 			It("should reject invalid names", func() {
 				invalidNames := []string{
-					"", // empty
-					"a",  // too short
+					"",  // empty
+					"a", // too short
 					"this-name-is-way-too-long-and-exceeds-the-kubernetes-limit-of-sixty-three-characters",
 					"Invalid_Name", // uppercase and underscore
 				}
@@ -427,7 +427,7 @@ func TestNetworkIntentWebhook(t *testing.T) {
 // Test individual validation functions
 func TestValidateIntentContent(t *testing.T) {
 	validator := NewNetworkIntentValidator()
-	
+
 	tests := []struct {
 		name        string
 		intent      string
@@ -475,7 +475,7 @@ func TestValidateIntentContent(t *testing.T) {
 
 func TestValidateSecurity(t *testing.T) {
 	validator := NewNetworkIntentValidator()
-	
+
 	tests := []struct {
 		name        string
 		intent      string
@@ -523,7 +523,7 @@ func TestValidateSecurity(t *testing.T) {
 
 func TestValidateTelecomRelevance(t *testing.T) {
 	validator := NewNetworkIntentValidator()
-	
+
 	tests := []struct {
 		name        string
 		intent      string

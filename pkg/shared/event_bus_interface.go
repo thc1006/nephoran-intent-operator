@@ -60,7 +60,7 @@ type EventBusMetrics interface {
 	GetFailedHandlers() int64
 	GetAverageProcessingTime() int64 // in milliseconds
 	GetBufferUtilization() float64
-	
+
 	// Recording methods
 	RecordEventPublished(eventType string)
 	RecordEventProcessed(processingTime time.Duration)

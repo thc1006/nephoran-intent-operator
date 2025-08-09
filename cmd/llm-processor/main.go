@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -20,11 +21,12 @@ import (
 )
 
 var (
-	cfg       *config.LLMProcessorConfig
-	logger    *slog.Logger
-	service   *services.LLMProcessorService
-	handler   *handlers.LLMProcessorHandler
-	startTime = time.Now()
+	cfg              *config.LLMProcessorConfig
+	logger           *slog.Logger
+	service          *services.LLMProcessorService
+	handler          *handlers.LLMProcessorHandler
+	startTime        = time.Now()
+	postRateLimiter  *middleware.PostOnlyRateLimiter // Declare at package level for shutdown
 )
 
 func main() {
@@ -259,6 +261,8 @@ func createLoggerWithLevel(level string) *slog.Logger {
 func setupHTTPServer() *http.Server {
 	router := mux.NewRouter()
 
+	// Initialize request size limiter middleware (uses HTTP_MAX_BODY env var via config)
+	requestSizeLimiter := middleware.NewRequestSizeLimiter(cfg.MaxRequestSize, logger)
 	logger.Info("Request size limiting enabled",
 		slog.Int64("max_request_size_bytes", cfg.MaxRequestSize),
 		slog.String("max_request_size_human", fmt.Sprintf("%.2f MB", float64(cfg.MaxRequestSize)/(1024*1024))))
@@ -286,7 +290,7 @@ func setupHTTPServer() *http.Server {
 	}
 
 	// Initialize rate limiter middleware for POST endpoints only
-	var postRateLimiter *middleware.PostOnlyRateLimiter
+	// var postRateLimiter *middleware.PostOnlyRateLimiter // Now declared at package level
 	if cfg.RateLimitEnabled {
 		rateLimiterConfig := middleware.RateLimiterConfig{
 			QPS:             cfg.RateLimitQPS,
@@ -326,12 +330,14 @@ func setupHTTPServer() *http.Server {
 		os.Exit(1)
 	}
 
-	// Initialize security headers middleware
+	// Initialize security headers middleware with enhanced configuration
 	securityHeadersConfig := middleware.DefaultSecurityHeadersConfig()
 	// Enable HSTS only if TLS is enabled
 	securityHeadersConfig.EnableHSTS = cfg.TLSEnabled
-	// Use appropriate CSP for API service
-	securityHeadersConfig.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+	// Enhanced security headers for API service
+	securityHeadersConfig.ContentTypeOptions = true // Always set nosniff
+	securityHeadersConfig.FrameOptions = "DENY"     // Prevent clickjacking
+	securityHeadersConfig.ContentSecurityPolicy = "default-src 'none'" // Strict CSP for API
 
 	securityHeaders := middleware.NewSecurityHeaders(securityHeadersConfig, logger)
 
@@ -364,18 +370,21 @@ func setupHTTPServer() *http.Server {
 	}
 
 	// Apply middlewares in the correct order:
-	// 1. Redact Logger (first, to log all requests)
+	// 1. Request Size Limiter (first, to prevent oversized bodies early)
+	router.Use(requestSizeLimiter.Middleware)
+
+	// 2. Redact Logger (to log all requests)
 	router.Use(redactLogger.Middleware)
 
-	// 2. Security Headers (early, to set headers on all responses)
+	// 3. Security Headers (early, to set headers on all responses)
 	router.Use(securityHeaders.Middleware)
 
-	// 3. CORS (existing, after security headers)
+	// 4. CORS (after security headers)
 	if corsMiddleware != nil {
 		router.Use(corsMiddleware.Middleware)
 	}
 
-	// 4. Rate Limiter (for POST endpoints only, before authentication)
+	// 5. Rate Limiter (for POST endpoints only, before authentication)
 	if postRateLimiter != nil {
 		router.Use(postRateLimiter.Middleware)
 	}
@@ -384,10 +393,29 @@ func setupHTTPServer() *http.Server {
 	_, _, _, _, _, _, _, healthChecker := service.GetComponents()
 
 	// Prepare public route handlers
+	// Apply metrics access control if metrics endpoint is enabled
+	var metricsHandler http.HandlerFunc
+	if cfg.MetricsEnabled {
+		if len(cfg.MetricsAllowedIPs) > 0 {
+			// Wrap metrics handler with IP access control
+			metricsHandler = createIPRestrictedHandler(handler.MetricsHandler, cfg.MetricsAllowedIPs, logger)
+		} else {
+			metricsHandler = handler.MetricsHandler
+		}
+	} else {
+		// Metrics disabled - return 404
+		metricsHandler = func(w http.ResponseWriter, r *http.Request) {
+			logger.Warn("Metrics endpoint accessed but disabled",
+				slog.String("remote_addr", r.RemoteAddr),
+				slog.String("path", r.URL.Path))
+			http.NotFound(w, r)
+		}
+	}
+
 	publicHandlers := &auth.PublicRouteHandlers{
 		Health:  healthChecker.HealthzHandler,
 		Ready:   healthChecker.ReadyzHandler,
-		Metrics: handler.MetricsHandler,
+		Metrics: metricsHandler,
 	}
 
 	// Prepare protected route handlers
@@ -411,4 +439,70 @@ func setupHTTPServer() *http.Server {
 		WriteTimeout: cfg.RequestTimeout,
 		IdleTimeout:  2 * time.Minute,
 	}
+}
+
+// createIPRestrictedHandler wraps a handler with IP-based access control
+func createIPRestrictedHandler(handler http.HandlerFunc, allowedIPs []string, logger *slog.Logger) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Extract client IP
+		clientIP := getClientIP(r)
+		
+		// Check if IP is in allowed list
+		allowed := false
+		for _, ip := range allowedIPs {
+			if clientIP == ip {
+				allowed = true
+				break
+			}
+		}
+		
+		if !allowed {
+			logger.Warn("Metrics access denied - IP not in allowed list",
+				slog.String("client_ip", clientIP),
+				slog.String("remote_addr", r.RemoteAddr),
+				slog.String("path", r.URL.Path))
+			
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusForbidden)
+			fmt.Fprintf(w, `{"error":"Access forbidden","message":"Your IP address is not authorized to access this endpoint"}`)
+			return
+		}
+		
+		// Log successful access
+		logger.Debug("Metrics access granted",
+			slog.String("client_ip", clientIP),
+			slog.String("path", r.URL.Path))
+		
+		// Call the original handler
+		handler(w, r)
+	}
+}
+
+// getClientIP extracts the client IP address from the request
+func getClientIP(r *http.Request) string {
+	// Check X-Forwarded-For header (common with proxies/load balancers)
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// X-Forwarded-For can contain multiple IPs, take the first one
+		parts := strings.Split(xff, ",")
+		if len(parts) > 0 {
+			ip := strings.TrimSpace(parts[0])
+			if ip != "" {
+				return ip
+			}
+		}
+	}
+	
+	// Check X-Real-IP header (nginx)
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return xri
+	}
+	
+	// Fall back to RemoteAddr
+	// RemoteAddr might be in the format "IP:port", so we need to extract just the IP
+	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
+		return host
+	}
+	
+	// If SplitHostPort fails, it might already be just an IP
+	return r.RemoteAddr
 }

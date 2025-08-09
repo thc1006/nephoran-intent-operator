@@ -38,7 +38,7 @@ func TestLoadConstantsWithEnvironment(t *testing.T) {
 	os.Setenv("NEPHORAN_RETRY_DELAY", "45s")
 	os.Setenv("NEPHORAN_MAX_INPUT_LENGTH", "15000")
 	os.Setenv("NEPHORAN_LLM_TIMEOUT", "60s")
-	
+
 	defer func() {
 		// Clean up environment variables
 		os.Unsetenv("NEPHORAN_MAX_RETRIES")
@@ -159,7 +159,7 @@ func TestEnvironmentVariableParsing(t *testing.T) {
 			defer os.Unsetenv(tt.envVar)
 
 			result := tt.getter()
-			
+
 			// Compare based on type
 			switch expected := tt.expected.(type) {
 			case int:
@@ -257,7 +257,7 @@ func TestConfigurationBoundaryValues(t *testing.T) {
 func TestPrintConfiguration(t *testing.T) {
 	// This is mainly to ensure the function doesn't panic
 	constants := LoadConstants()
-	
+
 	// Capture output (in a real test, you might want to capture stdout)
 	// For now, just ensure it doesn't panic
 	defer func() {
@@ -265,6 +265,6 @@ func TestPrintConfiguration(t *testing.T) {
 			t.Errorf("PrintConfiguration panicked: %v", r)
 		}
 	}()
-	
+
 	PrintConfiguration(constants)
 }

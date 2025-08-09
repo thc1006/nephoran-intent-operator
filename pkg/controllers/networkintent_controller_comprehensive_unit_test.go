@@ -34,24 +34,24 @@ import (
 // MockDependencies implements Dependencies interface for testing
 type MockDependencies struct {
 	mock.Mock
-	gitClient           *MockGitClient
-	llmClient           *MockLLMClient
-	packageGenerator    *MockPackageGenerator
-	httpClient          *http.Client
-	eventRecorder       record.EventRecorder
+	gitClient            *MockGitClient
+	llmClient            *MockLLMClient
+	packageGenerator     *MockPackageGenerator
+	httpClient           *http.Client
+	eventRecorder        record.EventRecorder
 	telecomKnowledgeBase *telecom.TelecomKnowledgeBase
-	metricsCollector    *MockMetricsCollector
+	metricsCollector     *MockMetricsCollector
 }
 
 func NewMockDependencies() *MockDependencies {
 	return &MockDependencies{
-		gitClient:           NewMockGitClient(),
-		llmClient:           NewMockLLMClient(),
-		packageGenerator:    NewMockPackageGenerator(),
-		httpClient:          &http.Client{Timeout: 30 * time.Second},
-		eventRecorder:       &record.FakeRecorder{},
+		gitClient:            NewMockGitClient(),
+		llmClient:            NewMockLLMClient(),
+		packageGenerator:     NewMockPackageGenerator(),
+		httpClient:           &http.Client{Timeout: 30 * time.Second},
+		eventRecorder:        &record.FakeRecorder{},
 		telecomKnowledgeBase: telecom.NewTelecomKnowledgeBase(),
-		metricsCollector:    NewMockMetricsCollector(),
+		metricsCollector:     NewMockMetricsCollector(),
 	}
 }
 
@@ -86,11 +86,11 @@ func (m *MockDependencies) GetMetricsCollector() *monitoring.MetricsCollector {
 // MockLLMClient for testing LLM integration
 type MockLLMClient struct {
 	mock.Mock
-	response    string
-	err         error
-	callCount   int
-	failCount   int
-	processed   bool
+	response  string
+	err       error
+	callCount int
+	failCount int
+	processed bool
 }
 
 func NewMockLLMClient() *MockLLMClient {
@@ -281,24 +281,24 @@ func TestReconcile(t *testing.T) {
 	nephoranv1.AddToScheme(scheme)
 
 	tests := []struct {
-		name             string
-		networkIntent    *nephoranv1.NetworkIntent
-		mockSetup        func(*MockDependencies)
-		enableLLMIntent  string
-		expectedResult   ctrl.Result
-		expectedError    bool
-		expectedPhase    string
-		validationCheck  func(t *testing.T, ni *nephoranv1.NetworkIntent)
+		name            string
+		networkIntent   *nephoranv1.NetworkIntent
+		mockSetup       func(*MockDependencies)
+		enableLLMIntent string
+		expectedResult  ctrl.Result
+		expectedError   bool
+		expectedPhase   string
+		validationCheck func(t *testing.T, ni *nephoranv1.NetworkIntent)
 	}{
 		{
 			name:          "successful reconciliation with LLM processing",
 			networkIntent: createTestNetworkIntent("test-intent", "default", "Deploy AMF network function"),
 			mockSetup: func(deps *MockDependencies) {
 				llmResponse := map[string]interface{}{
-					"action":      "deploy",
-					"component":   "amf",
-					"namespace":   "5g-core",
-					"replicas":    1,
+					"action":    "deploy",
+					"component": "amf",
+					"namespace": "5g-core",
+					"replicas":  1,
 					"resources": map[string]interface{}{
 						"cpu":    "500m",
 						"memory": "512Mi",
@@ -347,9 +347,9 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
-			name:          "empty intent handling",
-			networkIntent: createTestNetworkIntent("test-empty-intent", "default", ""),
-			mockSetup:     func(deps *MockDependencies) {},
+			name:            "empty intent handling",
+			networkIntent:   createTestNetworkIntent("test-empty-intent", "default", ""),
+			mockSetup:       func(deps *MockDependencies) {},
 			enableLLMIntent: "true",
 			expectedResult:  ctrl.Result{},
 			expectedError:   false,
@@ -360,7 +360,7 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
-			name:          "intent with finalizer deletion",
+			name: "intent with finalizer deletion",
 			networkIntent: func() *nephoranv1.NetworkIntent {
 				ni := createTestNetworkIntent("test-finalizer", "default", "Deploy NSSF")
 				ni.ObjectMeta.Finalizers = []string{NetworkIntentFinalizer}
@@ -563,11 +563,11 @@ func getConditionMessage(conditions []metav1.Condition, conditionType string) st
 
 func TestProcessingContext(t *testing.T) {
 	tests := []struct {
-		name                string
-		intentType          string
-		extractedEntities   map[string]interface{}
-		telecomContext      map[string]interface{}
-		expectedValid       bool
+		name              string
+		intentType        string
+		extractedEntities map[string]interface{}
+		telecomContext    map[string]interface{}
+		expectedValid     bool
 	}{
 		{
 			name:       "valid 5gc context",
@@ -583,11 +583,11 @@ func TestProcessingContext(t *testing.T) {
 			expectedValid: true,
 		},
 		{
-			name:       "empty context",
-			intentType: "unknown",
+			name:              "empty context",
+			intentType:        "unknown",
 			extractedEntities: map[string]interface{}{},
 			telecomContext:    map[string]interface{}{},
-			expectedValid: true, // Empty context is still valid
+			expectedValid:     true, // Empty context is still valid
 		},
 	}
 

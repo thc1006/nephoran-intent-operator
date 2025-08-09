@@ -1070,7 +1070,9 @@ func (wr *WorkflowRegistry) Close() error                                       
 
 type WorkflowExecutionEngine struct{}
 
-func NewExecutionEngine(config *ExecutionEngineConfig) *WorkflowExecutionEngine { return &WorkflowExecutionEngine{} }
+func NewExecutionEngine(config *ExecutionEngineConfig) *WorkflowExecutionEngine {
+	return &WorkflowExecutionEngine{}
+}
 func (ee *WorkflowExecutionEngine) ExecuteWorkflow(ctx context.Context, execution *WorkflowExecution, workflow *Workflow) error {
 	return nil
 }

@@ -23,13 +23,13 @@ import (
 // NetworkIntentSpec defines the desired state of NetworkIntent
 type NetworkIntentSpec struct {
 	// Intent is the natural language intent from the user describing the desired network configuration.
-	// 
+	//
 	// SECURITY: This field implements defense-in-depth validation to prevent injection attacks:
 	// 1. Restricted character set - Only allows alphanumeric, spaces, and safe punctuation
 	// 2. Length limits - Maximum 1000 characters to prevent resource exhaustion
 	// 3. Pattern validation - Explicitly excludes dangerous characters that could enable:
 	//    - Command injection (backticks, $, &, *, /, \)
-	//    - SQL injection (quotes, =, --)  
+	//    - SQL injection (quotes, =, --)
 	//    - Script injection (<, >, @, #)
 	//    - Path traversal (/, \)
 	//    - Protocol handlers (@, #)
@@ -43,7 +43,7 @@ type NetworkIntentSpec struct {
 	//
 	// Examples:
 	//   - "Deploy a high-availability AMF instance for production with auto-scaling"
-	//   - "Create a network slice for URLLC with 1ms latency requirements"  
+	//   - "Create a network slice for URLLC with 1ms latency requirements"
 	//   - "Configure QoS policies for enhanced mobile broadband services"
 	//
 	// +kubebuilder:validation:MinLength=1

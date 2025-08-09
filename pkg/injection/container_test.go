@@ -153,17 +153,17 @@ func TestContainerConcurrentAccess(t *testing.T) {
 
 	// Test concurrent access to same dependency
 	done := make(chan bool, 10)
-	
+
 	for i := 0; i < 10; i++ {
 		go func() {
 			defer func() { done <- true }()
-			
+
 			// Each goroutine gets dependencies
 			client := container.GetHTTPClient()
 			if client == nil {
 				t.Error("Concurrent access returned nil HTTP client")
 			}
-			
+
 			metrics := container.GetMetricsCollector()
 			if metrics == nil {
 				t.Error("Concurrent access returned nil metrics collector")
@@ -241,7 +241,7 @@ func TestContainerWithEnvironmentVariables(t *testing.T) {
 	// Set up test environment variables
 	oldGitURL := os.Getenv("GIT_REPO_URL")
 	oldLLMURL := os.Getenv("LLM_PROCESSOR_URL")
-	
+
 	defer func() {
 		// Restore original values
 		if oldGitURL == "" {
@@ -282,7 +282,7 @@ func TestContainerLLMSanitizerWithConfig(t *testing.T) {
 		AllowedDomains:  []string{"example.com"},
 		BlockedKeywords: []string{"forbidden"},
 	}
-	
+
 	container := NewContainer(constants)
 
 	sanitizer, err := container.GetLLMSanitizer()

@@ -650,7 +650,6 @@ type ComparisonResult struct {
 	Diff     string   `json:"diff,omitempty"`
 }
 
-
 // WorkflowLock represents a workflow lock on a package
 type WorkflowLock struct {
 	LockedBy   string       `json:"lockedBy"`

@@ -53,7 +53,7 @@ type Config struct {
 	GitDeployPath   string
 	LLMProcessorURL string
 	UseNephioPorch  bool
-	
+
 	// Configuration constants reference
 	Constants *configPkg.Constants
 }
@@ -132,15 +132,15 @@ type SliceConfiguration struct {
 // NetworkIntentReconciler orchestrates the reconciliation of NetworkIntent resources
 type NetworkIntentReconciler struct {
 	client.Client
-	Scheme             *runtime.Scheme
-	deps               Dependencies
-	config             *Config
-	constants          *configPkg.Constants
-	llmSanitizer       *security.LLMSanitizer
-	circuitBreakerMgr  *resilience.CircuitBreakerManager
-	timeoutManager     *resilience.TimeoutManager
-	llmCircuitBreaker  *resilience.LLMCircuitBreaker
-	reconciler         *Reconciler
+	Scheme            *runtime.Scheme
+	deps              Dependencies
+	config            *Config
+	constants         *configPkg.Constants
+	llmSanitizer      *security.LLMSanitizer
+	circuitBreakerMgr *resilience.CircuitBreakerManager
+	timeoutManager    *resilience.TimeoutManager
+	llmCircuitBreaker *resilience.LLMCircuitBreaker
+	reconciler        *Reconciler
 }
 
 // Exponential backoff helper functions
@@ -418,7 +418,7 @@ func getRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) in
 	if networkIntent.Annotations == nil {
 		return 0
 	}
-	
+
 	key := fmt.Sprintf("nephoran.com/retry-count-%s", operation)
 	if countStr, exists := networkIntent.Annotations[key]; exists {
 		if count, err := strconv.Atoi(countStr); err == nil {
@@ -451,7 +451,7 @@ func (r *NetworkIntentReconciler) handleDeletion(ctx context.Context, networkInt
 
 func (r *NetworkIntentReconciler) reconcileDelete(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues("operation", "delete")
-	
+
 	// Perform cleanup operations
 	if err := r.performCleanup(ctx, networkIntent); err != nil {
 		logger.Error(err, "Failed to perform cleanup")

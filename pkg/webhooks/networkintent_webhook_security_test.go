@@ -31,10 +31,10 @@ func TestSecurityValidation(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
-		name        string
-		intent      string
-		shouldFail  bool
-		errorMsg    string
+		name       string
+		intent     string
+		shouldFail bool
+		errorMsg   string
 	}{
 		// Valid intents - should pass
 		{
@@ -281,7 +281,7 @@ func TestCharacterAllowlist(t *testing.T) {
 		{' ', true}, {'-', true}, {'_', true}, {'.', true},
 		{',', true}, {';', true}, {':', true},
 		{'(', true}, {')', true}, {'[', true}, {']', true},
-		
+
 		// Disallowed characters
 		{'<', false}, {'>', false}, {'/', false}, {'\\', false},
 		{'@', false}, {'#', false}, {'$', false}, {'%', false},
@@ -305,7 +305,7 @@ func TestCharacterAllowlist(t *testing.T) {
 func BenchmarkSecurityValidation(b *testing.B) {
 	validator := NewNetworkIntentValidator()
 	ctx := context.Background()
-	
+
 	ni := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "benchmark-intent",

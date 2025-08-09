@@ -283,7 +283,7 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 
 	// Remove deployment files
 	basePath := fmt.Sprintf("%s/%s-%s", g.config.GitDeployPath, networkIntent.Namespace, networkIntent.Name)
-	
+
 	// Create commit message for cleanup
 	commitMessage := fmt.Sprintf("Remove NetworkIntent: %s/%s\n\nCleaning up resources for deleted NetworkIntent\n\nProcessed by Nephoran Intent Operator",
 		networkIntent.Namespace,

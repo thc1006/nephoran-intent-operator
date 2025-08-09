@@ -202,7 +202,6 @@ type SecurityScanResult struct {
 	Approved         bool
 }
 
-
 // PolicyViolation represents a policy violation
 type PolicyViolation struct {
 	Policy      string

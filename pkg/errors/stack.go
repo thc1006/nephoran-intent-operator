@@ -395,7 +395,7 @@ func getSafeFunctionName(fn *runtime.Func) string {
 	if fn == nil {
 		return ""
 	}
-	
+
 	// Use defer/recover to catch any potential panics from fn.Name()
 	defer func() {
 		if r := recover(); r != nil {
@@ -403,14 +403,14 @@ func getSafeFunctionName(fn *runtime.Func) string {
 			// This prevents the entire error handling system from crashing
 		}
 	}()
-	
+
 	// Even though fn is not nil, fn.Name() can still panic in edge cases
 	// where the PC doesn't correspond to a valid function entry point
 	name := fn.Name()
 	if name == "" {
 		return "<unnamed>"
 	}
-	
+
 	return name
 }
 

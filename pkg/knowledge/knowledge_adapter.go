@@ -20,7 +20,7 @@ func NewKnowledgeBaseAdapter(config *LoaderConfig) (*KnowledgeBaseAdapter, error
 	if err != nil {
 		return nil, fmt.Errorf("failed to create lazy loader: %w", err)
 	}
-	
+
 	return &KnowledgeBaseAdapter{
 		loader: loader,
 	}, nil
@@ -37,12 +37,12 @@ func NewOptimizedTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
 		PerformanceKPIs:  make(map[string]*telecom.KPISpec),
 		DeploymentTypes:  make(map[string]*telecom.DeploymentPattern),
 	}
-	
+
 	// Only initialize essential metadata, not the full data
-	kb.NetworkFunctions["amf"] = nil  // Placeholder, will be loaded on demand
+	kb.NetworkFunctions["amf"] = nil // Placeholder, will be loaded on demand
 	kb.NetworkFunctions["smf"] = nil
 	kb.NetworkFunctions["upf"] = nil
-	
+
 	return kb
 }
 
@@ -106,7 +106,7 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 		PerformanceKPIs:  make(map[string]*telecom.KPISpec),
 		DeploymentTypes:  make(map[string]*telecom.DeploymentPattern),
 	}
-	
+
 	// Only load essential functions to keep memory usage low
 	essentialFunctions := []string{"amf", "smf", "upf"}
 	for _, name := range essentialFunctions {
@@ -114,7 +114,7 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 			kb.NetworkFunctions[strings.ToLower(name)] = nf
 		}
 	}
-	
+
 	// Load basic interfaces
 	essentialInterfaces := []string{"n1", "n2", "n3", "n4"}
 	for _, name := range essentialInterfaces {
@@ -122,7 +122,7 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 			kb.Interfaces[strings.ToLower(name)] = iface
 		}
 	}
-	
+
 	// Load basic QoS profiles
 	essentialQos := []string{"5qi_1", "5qi_9"}
 	for _, name := range essentialQos {
@@ -130,7 +130,7 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 			kb.QosProfiles[strings.ToLower(name)] = qos
 		}
 	}
-	
+
 	// Load slice types
 	sliceTypes := []string{"embb", "urllc", "mmtc"}
 	for _, name := range sliceTypes {
@@ -138,7 +138,7 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 			kb.SliceTypes[strings.ToLower(name)] = slice
 		}
 	}
-	
+
 	// Add minimal KPIs
 	kb.PerformanceKPIs["registration_success_rate"] = &telecom.KPISpec{
 		Name:        "Registration Success Rate",
@@ -152,7 +152,7 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 			Target:   99.5,
 		},
 	}
-	
+
 	// Add minimal deployment patterns
 	kb.DeploymentTypes["high-availability"] = &telecom.DeploymentPattern{
 		Name:        "high-availability",
@@ -172,7 +172,7 @@ func (a *KnowledgeBaseAdapter) ConvertToTelecomKnowledgeBase() *telecom.TelecomK
 			HealthCheck:    true,
 		},
 	}
-	
+
 	return kb
 }
 
@@ -190,7 +190,7 @@ func NewLazyTelecomKnowledgeBase() (*LazyTelecomKnowledgeBase, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Create a minimal base knowledge base
 	base := &telecom.TelecomKnowledgeBase{
 		NetworkFunctions: make(map[string]*telecom.NetworkFunctionSpec),
@@ -200,7 +200,7 @@ func NewLazyTelecomKnowledgeBase() (*LazyTelecomKnowledgeBase, error) {
 		PerformanceKPIs:  make(map[string]*telecom.KPISpec),
 		DeploymentTypes:  make(map[string]*telecom.DeploymentPattern),
 	}
-	
+
 	return &LazyTelecomKnowledgeBase{
 		TelecomKnowledgeBase: base,
 		adapter:              adapter,
@@ -210,91 +210,91 @@ func NewLazyTelecomKnowledgeBase() (*LazyTelecomKnowledgeBase, error) {
 // GetNetworkFunction overrides the base method with lazy loading
 func (l *LazyTelecomKnowledgeBase) GetNetworkFunction(name string) (*telecom.NetworkFunctionSpec, bool) {
 	l.mu.RLock()
-	
+
 	// Check if already loaded in base
 	if nf, ok := l.TelecomKnowledgeBase.NetworkFunctions[strings.ToLower(name)]; ok && nf != nil {
 		l.mu.RUnlock()
 		return nf, true
 	}
 	l.mu.RUnlock()
-	
+
 	// Load from adapter
 	nf, ok := l.adapter.GetNetworkFunction(name)
 	if !ok {
 		return nil, false
 	}
-	
+
 	// Cache in base for future access
 	l.mu.Lock()
 	l.TelecomKnowledgeBase.NetworkFunctions[strings.ToLower(name)] = nf
 	l.mu.Unlock()
-	
+
 	return nf, true
 }
 
 // GetInterface overrides the base method with lazy loading
 func (l *LazyTelecomKnowledgeBase) GetInterface(name string) (*telecom.InterfaceSpec, bool) {
 	l.mu.RLock()
-	
+
 	if iface, ok := l.TelecomKnowledgeBase.Interfaces[strings.ToLower(name)]; ok && iface != nil {
 		l.mu.RUnlock()
 		return iface, true
 	}
 	l.mu.RUnlock()
-	
+
 	iface, ok := l.adapter.GetInterface(name)
 	if !ok {
 		return nil, false
 	}
-	
+
 	l.mu.Lock()
 	l.TelecomKnowledgeBase.Interfaces[strings.ToLower(name)] = iface
 	l.mu.Unlock()
-	
+
 	return iface, true
 }
 
 // GetQosProfile overrides the base method with lazy loading
 func (l *LazyTelecomKnowledgeBase) GetQosProfile(name string) (*telecom.QosProfile, bool) {
 	l.mu.RLock()
-	
+
 	if qos, ok := l.TelecomKnowledgeBase.QosProfiles[strings.ToLower(name)]; ok && qos != nil {
 		l.mu.RUnlock()
 		return qos, true
 	}
 	l.mu.RUnlock()
-	
+
 	qos, ok := l.adapter.GetQosProfile(name)
 	if !ok {
 		return nil, false
 	}
-	
+
 	l.mu.Lock()
 	l.TelecomKnowledgeBase.QosProfiles[strings.ToLower(name)] = qos
 	l.mu.Unlock()
-	
+
 	return qos, true
 }
 
 // GetSliceType overrides the base method with lazy loading
 func (l *LazyTelecomKnowledgeBase) GetSliceType(name string) (*telecom.SliceTypeSpec, bool) {
 	l.mu.RLock()
-	
+
 	if slice, ok := l.TelecomKnowledgeBase.SliceTypes[strings.ToLower(name)]; ok && slice != nil {
 		l.mu.RUnlock()
 		return slice, true
 	}
 	l.mu.RUnlock()
-	
+
 	slice, ok := l.adapter.GetSliceType(name)
 	if !ok {
 		return nil, false
 	}
-	
+
 	l.mu.Lock()
 	l.TelecomKnowledgeBase.SliceTypes[strings.ToLower(name)] = slice
 	l.mu.Unlock()
-	
+
 	return slice, true
 }
 

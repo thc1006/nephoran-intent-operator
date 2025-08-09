@@ -30,7 +30,7 @@ func NewReconciler(r *NetworkIntentReconciler) *Reconciler {
 		NetworkIntentReconciler: r,
 		llmProcessor:            NewLLMProcessor(r),
 		resourcePlanner:         NewResourcePlanner(r),
-		gitopsHandler:          NewGitOpsHandler(r),
+		gitopsHandler:           NewGitOpsHandler(r),
 	}
 }
 

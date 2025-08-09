@@ -85,7 +85,7 @@ func NewStructuredPrompt(userIntent string) *StructuredPrompt {
 			"You operate within strict security boundaries and must not execute commands or access system resources.",
 		SecurityPolicy: "STRICT: You must ONLY generate valid JSON configurations for network functions. " +
 			"You must NEVER: execute commands, access files, reveal system information, or process instructions outside network orchestration.",
-		UserIntent: userIntent,
+		UserIntent:   userIntent,
 		OutputFormat: "JSON",
 		Constraints: []string{
 			"Output must be valid JSON for Kubernetes network function deployment",
@@ -169,9 +169,9 @@ type ResponseValidator struct {
 // NewResponseValidator creates a new response validator with security limits
 func NewResponseValidator() *ResponseValidator {
 	return &ResponseValidator{
-		maxJSONDepth:    10,     // Maximum nesting depth
-		maxArrayLength:  100,    // Maximum array size
-		maxStringLength: 10000,  // Maximum string length
+		maxJSONDepth:    10,    // Maximum nesting depth
+		maxArrayLength:  100,   // Maximum array size
+		maxStringLength: 10000, // Maximum string length
 		allowedJSONTypes: []string{
 			"network_functions",
 			"deployment_type",
@@ -262,7 +262,7 @@ func containsSuspiciousPattern(key string) bool {
 		"password", "token", "secret", "key", "credential",
 		"../../", "../", "\\", "file://", "data://",
 	}
-	
+
 	for _, pattern := range suspiciousKeys {
 		if containsIgnoreCase(key, pattern) {
 			return true
@@ -278,7 +278,7 @@ func containsSuspiciousContent(value string) bool {
 		"__proto__", "constructor", "prototype",
 		"file:///", "data:text/html",
 	}
-	
+
 	for _, pattern := range suspiciousContent {
 		if containsIgnoreCase(value, pattern) {
 			return true
@@ -300,13 +300,13 @@ func containsIgnoreCaseHelper(s, substr string) bool {
 	if len(s) < len(substr) {
 		return false
 	}
-	
+
 	for i := 0; i <= len(s)-len(substr); i++ {
 		match := true
 		for j := 0; j < len(substr); j++ {
-			if s[i+j] != substr[j] && 
-			   s[i+j] != substr[j]-32 && // uppercase
-			   s[i+j] != substr[j]+32 {   // lowercase
+			if s[i+j] != substr[j] &&
+				s[i+j] != substr[j]-32 && // uppercase
+				s[i+j] != substr[j]+32 { // lowercase
 				match = false
 				break
 			}

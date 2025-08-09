@@ -46,17 +46,16 @@ func getEnvAsBool(key string, defaultValue bool) bool {
 	return defaultValue
 }
 
-
 func main() {
 	// Load configuration from environment variables with validation
 	constants := config.LoadConstants()
-	
+
 	// Validate configuration
 	if err := config.ValidateConstants(constants); err != nil {
 		setupLog.Error(err, "Configuration validation failed")
 		os.Exit(1)
 	}
-	
+
 	// Also validate complete configuration with all rules
 	if err := config.ValidateCompleteConfiguration(constants); err != nil {
 		setupLog.Error(err, "Complete configuration validation failed")
@@ -132,10 +131,10 @@ func main() {
 	if enableNetworkIntent {
 		// Create dependency injection container
 		container := injection.NewContainer(constants)
-		
+
 		// Set the event recorder from the manager
 		container.SetEventRecorder(mgr.GetEventRecorderFor("nephoran-intent-operator"))
-		
+
 		// Create configuration with values from loaded constants
 		controllerConfig := &controllers.Config{
 			MaxRetries:      constants.MaxRetries,
@@ -148,7 +147,7 @@ func main() {
 			UseNephioPorch:  getEnvAsBool("USE_NEPHIO_PORCH", false),
 			Constants:       constants,
 		}
-		
+
 		// Create LLM sanitizer configuration from constants
 		sanitizerConfig := &security.SanitizerConfig{
 			MaxInputLength:  constants.MaxInputLength,
@@ -158,10 +157,10 @@ func main() {
 			ContextBoundary: constants.ContextBoundary,
 			SystemPrompt:    constants.SystemPrompt,
 		}
-		
+
 		// Initialize the LLM sanitizer with configuration
 		llmSanitizer := security.NewLLMSanitizer(sanitizerConfig)
-		
+
 		// Create controller with dependencies and configuration
 		controller, err := controllers.NewNetworkIntentReconciler(
 			mgr.GetClient(),
@@ -173,12 +172,12 @@ func main() {
 			setupLog.Error(err, "unable to create NetworkIntent controller")
 			os.Exit(1)
 		}
-		
+
 		if err = controller.SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to setup controller", "controller", "NetworkIntent")
 			os.Exit(1)
 		}
-		
+
 		setupLog.Info("NetworkIntent controller enabled with configurable constants",
 			"max_retries", constants.MaxRetries,
 			"retry_delay", constants.RetryDelay,
@@ -226,8 +225,8 @@ func main() {
 	}
 
 	fmt.Println("Nephoran Intent Operator starting")
-	setupLog.Info("starting manager", 
-		"networkIntentEnabled", enableNetworkIntent, 
+	setupLog.Info("starting manager",
+		"networkIntentEnabled", enableNetworkIntent,
 		"llmIntentEnabled", enableLlmIntent,
 		"webhooksEnabled", enableWebhooks)
 

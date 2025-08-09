@@ -24,15 +24,15 @@ func TestNetworkIntentPhaseTransitions(t *testing.T) {
 	nephoranv1.AddToScheme(scheme)
 
 	tests := []struct {
-		name                string
-		initialPhase        string
-		initialConditions   []metav1.Condition
-		intent              string
-		mockSetup           func(*MockDependencies)
-		expectedPhase       string
-		expectedConditions  []string // Condition types that should be present
-		expectedRequeue     bool
-		validationChecks    func(t *testing.T, ni *nephoranv1.NetworkIntent)
+		name               string
+		initialPhase       string
+		initialConditions  []metav1.Condition
+		intent             string
+		mockSetup          func(*MockDependencies)
+		expectedPhase      string
+		expectedConditions []string // Condition types that should be present
+		expectedRequeue    bool
+		validationChecks   func(t *testing.T, ni *nephoranv1.NetworkIntent)
 	}{
 		{
 			name:         "Pending to Processing transition",
@@ -47,10 +47,10 @@ func TestNetworkIntentPhaseTransitions(t *testing.T) {
 			intent: "Deploy AMF network function for 5G core",
 			mockSetup: func(deps *MockDependencies) {
 				llmResponse := map[string]interface{}{
-					"action":      "deploy",
-					"component":   "amf",
-					"namespace":   "5g-core",
-					"replicas":    1,
+					"action":    "deploy",
+					"component": "amf",
+					"namespace": "5g-core",
+					"replicas":  1,
 				}
 				responseJSON, _ := json.Marshal(llmResponse)
 				deps.llmClient.SetResponse(string(responseJSON))
@@ -203,9 +203,9 @@ func TestNetworkIntentPhaseTransitions(t *testing.T) {
 			},
 		},
 		{
-			name:         "Empty intent handling",
-			initialPhase: "Pending",
-			initialConditions: []metav1.Condition{},
+			name:               "Empty intent handling",
+			initialPhase:       "Pending",
+			initialConditions:  []metav1.Condition{},
 			intent:             "",
 			mockSetup:          func(deps *MockDependencies) {},
 			expectedPhase:      "Error",
@@ -325,9 +325,9 @@ func TestNetworkIntentMultiPhaseProcessing(t *testing.T) {
 	// Setup mock dependencies for successful flow
 	mockDeps := NewMockDependencies()
 	llmResponse := map[string]interface{}{
-		"action":    "deploy",
-		"component": "5gc-core",
-		"namespace": "5g-core",
+		"action":     "deploy",
+		"component":  "5gc-core",
+		"namespace":  "5g-core",
 		"components": []string{"amf", "smf", "upf"},
 		"resources": map[string]interface{}{
 			"cpu":    "2000m",

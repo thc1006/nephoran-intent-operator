@@ -27,20 +27,20 @@ type Constants struct {
 	BackoffMultiplier float64
 
 	// LLM Operation Timeouts
-	LLMProcessingBaseDelay time.Duration
-	LLMProcessingMaxDelay  time.Duration
-	GitOperationsBaseDelay time.Duration
-	GitOperationsMaxDelay  time.Duration
+	LLMProcessingBaseDelay    time.Duration
+	LLMProcessingMaxDelay     time.Duration
+	GitOperationsBaseDelay    time.Duration
+	GitOperationsMaxDelay     time.Duration
 	ResourcePlanningBaseDelay time.Duration
 	ResourcePlanningMaxDelay  time.Duration
 
 	// Security Configuration
-	MaxInputLength       int
-	MaxOutputLength      int
-	ContextBoundary      string
-	AllowedDomains       []string
-	BlockedKeywords      []string
-	SystemPrompt         string
+	MaxInputLength  int
+	MaxOutputLength int
+	ContextBoundary string
+	AllowedDomains  []string
+	BlockedKeywords []string
+	SystemPrompt    string
 
 	// Resilience Configuration
 	CircuitBreakerFailureThreshold    int
@@ -61,16 +61,16 @@ type Constants struct {
 	DefaultTimeout           time.Duration
 
 	// Resource Limits
-	CPURequestDefault  string
+	CPURequestDefault    string
 	MemoryRequestDefault string
-	CPULimitDefault    string
-	MemoryLimitDefault string
-	
+	CPULimitDefault      string
+	MemoryLimitDefault   string
+
 	// Monitoring Configuration
-	MetricsPort                int
-	HealthProbePort           int
-	MetricsUpdateInterval     time.Duration
-	HealthCheckTimeout        time.Duration
+	MetricsPort           int
+	HealthProbePort       int
+	MetricsUpdateInterval time.Duration
+	HealthCheckTimeout    time.Duration
 }
 
 // Default values for all constants
@@ -143,16 +143,16 @@ var defaultConstants = Constants{
 	DefaultTimeout:           30 * time.Second,
 
 	// Resource Limits
-	CPURequestDefault:  "100m",
+	CPURequestDefault:    "100m",
 	MemoryRequestDefault: "128Mi",
-	CPULimitDefault:    "1000m",
-	MemoryLimitDefault: "1Gi",
+	CPULimitDefault:      "1000m",
+	MemoryLimitDefault:   "1Gi",
 
 	// Monitoring Configuration
 	MetricsPort:           8080,
-	HealthProbePort:      8081,
+	HealthProbePort:       8081,
 	MetricsUpdateInterval: 30 * time.Second,
-	HealthCheckTimeout:   10 * time.Second,
+	HealthCheckTimeout:    10 * time.Second,
 }
 
 // LoadConstants loads configuration constants from environment variables with fallbacks to defaults
@@ -289,7 +289,7 @@ func splitString(s, sep string) []string {
 	if s == "" {
 		return nil
 	}
-	
+
 	var result []string
 	start := 0
 	for i := 0; i <= len(s)-len(sep); i++ {
@@ -307,17 +307,17 @@ func splitString(s, sep string) []string {
 func trimSpace(s string) string {
 	start := 0
 	end := len(s)
-	
+
 	// Trim leading spaces
 	for start < end && (s[start] == ' ' || s[start] == '\t' || s[start] == '\n' || s[start] == '\r') {
 		start++
 	}
-	
+
 	// Trim trailing spaces
 	for end > start && (s[end-1] == ' ' || s[end-1] == '\t' || s[end-1] == '\n' || s[end-1] == '\r') {
 		end--
 	}
-	
+
 	return s[start:end]
 }
 

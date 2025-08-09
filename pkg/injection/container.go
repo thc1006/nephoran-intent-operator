@@ -230,4 +230,3 @@ func (c *Container) registerProviders() {
 	c.RegisterProvider("metrics_collector", MetricsCollectorProvider)
 	c.RegisterProvider("llm_sanitizer", LLMSanitizerProvider)
 }
-

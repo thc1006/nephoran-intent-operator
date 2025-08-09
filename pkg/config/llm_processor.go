@@ -91,6 +91,8 @@ type LLMProcessorConfig struct {
 	// Metrics Security Configuration
 	ExposeMetricsPublicly bool     // Whether to expose metrics publicly (default: false)
 	MetricsAllowedCIDRs   []string // CIDR blocks allowed to access metrics endpoint
+	MetricsEnabled        bool     // Whether to enable the /metrics endpoint at all
+	MetricsAllowedIPs     []string // Specific IP addresses allowed to access metrics
 }
 
 // DefaultLLMProcessorConfig returns a configuration with sensible defaults
@@ -156,6 +158,8 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 		// Metrics Security - Default to private with secure defaults
 		ExposeMetricsPublicly: false,
 		MetricsAllowedCIDRs:   []string{}, // Will be set to private networks if empty and not public
+		MetricsEnabled:        false,       // Disabled by default for security
+		MetricsAllowedIPs:     []string{}, // Empty means no IP restriction if metrics enabled
 	}
 }
 
@@ -230,7 +234,13 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 
 	// Performance Configuration
 	cfg.RequestTimeout = parseDurationWithValidation("REQUEST_TIMEOUT", cfg.RequestTimeout, &validationErrors)
-	cfg.MaxRequestSize = parseInt64WithValidation("MAX_REQUEST_SIZE", cfg.MaxRequestSize, validatePositiveInt64, &validationErrors)
+	// Use HTTP_MAX_BODY env var for request size limit (fallback to MAX_REQUEST_SIZE for backward compatibility)
+	httpMaxBody := GetEnvOrDefault("HTTP_MAX_BODY", "")
+	if httpMaxBody != "" {
+		cfg.MaxRequestSize = parseInt64WithValidation("HTTP_MAX_BODY", cfg.MaxRequestSize, validatePositiveInt64, &validationErrors)
+	} else {
+		cfg.MaxRequestSize = parseInt64WithValidation("MAX_REQUEST_SIZE", cfg.MaxRequestSize, validatePositiveInt64, &validationErrors)
+	}
 
 	// Circuit Breaker Configuration
 	cfg.CircuitBreakerEnabled = parseBoolWithDefault("CIRCUIT_BREAKER_ENABLED", cfg.CircuitBreakerEnabled)
@@ -272,7 +282,19 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.SecretNamespace = GetEnvOrDefault("SECRET_NAMESPACE", cfg.SecretNamespace)
 
 	// Metrics Security Configuration
+	cfg.MetricsEnabled = parseBoolWithDefault("METRICS_ENABLED", cfg.MetricsEnabled)
 	cfg.ExposeMetricsPublicly = parseBoolWithDefault("EXPOSE_METRICS_PUBLICLY", cfg.ExposeMetricsPublicly)
+
+	// Parse IP-based access control list
+	metricsAllowedIPs := GetEnvOrDefault("METRICS_ALLOWED_IPS", "")
+	if metricsAllowedIPs != "" {
+		parsedIPs, err := parseAndValidateIPs(metricsAllowedIPs)
+		if err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf("METRICS_ALLOWED_IPS: %v", err))
+		} else {
+			cfg.MetricsAllowedIPs = parsedIPs
+		}
+	}
 
 	// Parse CIDR allowlist
 	metricsAllowedCIDRs := GetEnvOrDefault("METRICS_ALLOWED_CIDRS", "")
@@ -283,8 +305,8 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 		} else {
 			cfg.MetricsAllowedCIDRs = parsedCIDRs
 		}
-	} else if !cfg.ExposeMetricsPublicly {
-		// Set secure defaults for private access
+	} else if !cfg.ExposeMetricsPublicly && cfg.MetricsEnabled {
+		// Set secure defaults for private access only if metrics are enabled
 		cfg.MetricsAllowedCIDRs = getDefaultPrivateNetworks()
 	}
 
@@ -760,15 +782,27 @@ func (c *LLMProcessorConfig) GetEffectiveRAGEndpoints() (processEndpoint, health
 
 // validateMetricsSecurityConfiguration validates the metrics security configuration
 func (c *LLMProcessorConfig) validateMetricsSecurityConfiguration() error {
+	// Skip validation if metrics are disabled
+	if !c.MetricsEnabled {
+		return nil
+	}
+
 	// If metrics are exposed publicly, warn about security implications
-	if c.ExposeMetricsPublicly && len(c.MetricsAllowedCIDRs) == 0 {
-		return fmt.Errorf("when exposing metrics publicly, consider setting METRICS_ALLOWED_CIDRS for additional security")
+	if c.ExposeMetricsPublicly && len(c.MetricsAllowedCIDRs) == 0 && len(c.MetricsAllowedIPs) == 0 {
+		return fmt.Errorf("when exposing metrics publicly, consider setting METRICS_ALLOWED_CIDRS or METRICS_ALLOWED_IPS for additional security")
 	}
 
 	// Validate each CIDR block
 	for i, cidr := range c.MetricsAllowedCIDRs {
 		if err := validateCIDR(cidr); err != nil {
 			return fmt.Errorf("invalid CIDR at position %d: %w", i, err)
+		}
+	}
+
+	// Validate each IP address
+	for i, ip := range c.MetricsAllowedIPs {
+		if err := validateIP(ip); err != nil {
+			return fmt.Errorf("invalid IP at position %d: %w", i, err)
 		}
 	}
 
@@ -874,12 +908,24 @@ func (c *LLMProcessorConfig) GetMetricsAccessConfig() (isPublic bool, allowedCID
 
 // IsMetricsAccessAllowed checks if the given IP address is allowed to access metrics
 func (c *LLMProcessorConfig) IsMetricsAccessAllowed(clientIP string) bool {
+	// If metrics are disabled, deny all access
+	if !c.MetricsEnabled {
+		return false
+	}
+
 	// If metrics are public, allow all access
 	if c.ExposeMetricsPublicly {
 		return true
 	}
 
-	// If no CIDRs are configured, deny access (should not happen due to defaults)
+	// Check specific IP allowlist first
+	for _, allowedIP := range c.MetricsAllowedIPs {
+		if clientIP == allowedIP {
+			return true
+		}
+	}
+
+	// If no CIDRs are configured and no IPs matched, deny access
 	if len(c.MetricsAllowedCIDRs) == 0 {
 		return false
 	}
@@ -902,4 +948,49 @@ func (c *LLMProcessorConfig) IsMetricsAccessAllowed(clientIP string) bool {
 	}
 
 	return false
+}
+
+// parseAndValidateIPs parses a comma-separated list of IP addresses and validates them
+func parseAndValidateIPs(ipsStr string) ([]string, error) {
+	if strings.TrimSpace(ipsStr) == "" {
+		return nil, fmt.Errorf("IP string cannot be empty")
+	}
+
+	ips := strings.Split(ipsStr, ",")
+	var validIPs []string
+
+	for _, ip := range ips {
+		ip = strings.TrimSpace(ip)
+		if ip == "" {
+			continue
+		}
+
+		// Validate IP format
+		if err := validateIP(ip); err != nil {
+			return nil, fmt.Errorf("invalid IP '%s': %w", ip, err)
+		}
+
+		validIPs = append(validIPs, ip)
+	}
+
+	if len(validIPs) == 0 {
+		return nil, fmt.Errorf("no valid IP addresses found")
+	}
+
+	return validIPs, nil
+}
+
+// validateIP validates a single IP address
+func validateIP(ip string) error {
+	if ip == "" {
+		return fmt.Errorf("IP cannot be empty")
+	}
+
+	// Parse IP using net.ParseIP
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return fmt.Errorf("invalid IP address format")
+	}
+
+	return nil
 }

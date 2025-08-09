@@ -522,8 +522,8 @@ const (
 	ConflictTypeCircularDependency   DependencyConflictType = "circular_dependency"
 	ConflictTypeMissingDependency    DependencyConflictType = "missing_dependency"
 	ConflictTypeIncompatibleVersions DependencyConflictType = "incompatible_versions"
-	ConflictTypeExcludedDependency   ConflictType = "excluded_dependency"
-	ConflictTypeDuplicateDependency  ConflictType = "duplicate_dependency"
+	ConflictTypeExcludedDependency   ConflictType           = "excluded_dependency"
+	ConflictTypeDuplicateDependency  ConflictType           = "duplicate_dependency"
 )
 
 // DependencyConflictSeverity defines conflict severity levels

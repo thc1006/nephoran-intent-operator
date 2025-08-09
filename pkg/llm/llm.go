@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -68,9 +69,24 @@ type ResponseCache struct {
 }
 
 type CacheEntry struct {
-	Response  string
-	Timestamp time.Time
-	HitCount  int64
+	Response   string
+	Timestamp  time.Time
+	LastAccess time.Time
+	HitCount   int64
+}
+
+// ValidationError represents a validation error with missing fields
+type ValidationError struct {
+	Message       string   `json:"message"`
+	MissingFields []string `json:"missing_fields"`
+}
+
+// Error implements the error interface
+func (ve *ValidationError) Error() string {
+	if len(ve.MissingFields) == 0 {
+		return ve.Message
+	}
+	return fmt.Sprintf("%s: missing fields %v", ve.Message, ve.MissingFields)
 }
 
 // ResponseValidator validates LLM responses
@@ -265,10 +281,11 @@ func (c *ResponseCache) Get(key string) (string, bool) {
 	}
 
 	entry.HitCount++
+	entry.LastAccess = time.Now() // Update access time for LRU
 	return entry.Response, true
 }
 
-// Set stores a response in cache
+// Set stores a response in cache with LRU eviction
 func (c *ResponseCache) Set(key, response string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -278,25 +295,36 @@ func (c *ResponseCache) Set(key, response string) {
 		return
 	}
 
-	// Evict oldest entries if cache is full
-	if len(c.entries) >= c.maxSize {
-		oldest := time.Now()
-		oldestKey := ""
+	// LRU eviction when capacity is exceeded
+	for len(c.entries) >= c.maxSize {
+		// Find the least recently used entry (oldest LastAccess)
+		lruKey := ""
+		lruTime := time.Now()
+
 		for k, v := range c.entries {
-			if v.Timestamp.Before(oldest) {
-				oldest = v.Timestamp
-				oldestKey = k
+			// Use LastAccess if available, otherwise use Timestamp
+			accessTime := v.Timestamp
+			if !v.LastAccess.IsZero() {
+				accessTime = v.LastAccess
+			}
+
+			if accessTime.Before(lruTime) {
+				lruTime = accessTime
+				lruKey = k
 			}
 		}
-		if oldestKey != "" {
-			delete(c.entries, oldestKey)
+
+		if lruKey != "" {
+			delete(c.entries, lruKey)
 		}
 	}
 
+	now := time.Now()
 	c.entries[key] = &CacheEntry{
-		Response:  response,
-		Timestamp: time.Now(),
-		HitCount:  0,
+		Response:   response,
+		Timestamp:  now,
+		LastAccess: now, // Initialize LastAccess
+		HitCount:   0,
 	}
 }
 
@@ -363,11 +391,35 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
 	}()
 
-	c.logger.Debug("Processing intent", slog.String("intent", intent), slog.String("backend", c.backendType))
+	// Add timeout wrapper from environment variable
+	timeoutSecs := 15 // default
+	if envTimeout := os.Getenv("LLM_TIMEOUT_SECS"); envTimeout != "" {
+		if t, err := strconv.Atoi(envTimeout); err == nil && t > 0 {
+			timeoutSecs = t
+		}
+	}
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(timeoutSecs)*time.Second)
+	defer cancel()
+
+	// Truncate intent for logging if needed
+	truncatedIntent := intent
+	if c.logger.Enabled(ctx, slog.LevelDebug) && len(intent) > 1000 {
+		truncatedIntent = intent[:1000] + "..."
+	}
+
+	c.logger.Info("Processing intent",
+		slog.String("intent_type", c.classifyIntent(intent)),
+		slog.String("backend", c.backendType),
+	)
+	c.logger.Debug("Processing intent with full details",
+		slog.String("intent", truncatedIntent),
+		slog.String("backend", c.backendType),
+	)
 
 	// Check cache first
 	cacheKey := c.generateCacheKey(intent)
 	if cached, found := c.cache.Get(cacheKey); found {
+		c.logger.Info("Cache hit for intent")
 		c.logger.Debug("Cache hit for intent", slog.String("cache_key", cacheKey))
 		cacheHit = true
 		success = true
@@ -384,9 +436,9 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	// Process with retry logic using appropriate backend
 	var result string
-	err := c.retryWithExponentialBackoff(ctx, func() error {
+	err := c.retryWithExponentialBackoff(ctxWithTimeout, func() error {
 		var processErr error
-		result, processErr = c.processWithLLMBackend(ctx, intent, intentType, extractedParams)
+		result, processErr = c.processWithLLMBackend(ctxWithTimeout, intent, intentType, extractedParams)
 		retryCount++
 		return processErr
 	})
@@ -403,9 +455,9 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 				originalURL := c.url
 				c.url = fallbackURL
 
-				fallbackErr := c.retryWithExponentialBackoff(ctx, func() error {
+				fallbackErr := c.retryWithExponentialBackoff(ctxWithTimeout, func() error {
 					var processErr error
-					result, processErr = c.processWithLLMBackend(ctx, intent, intentType, extractedParams)
+					result, processErr = c.processWithLLMBackend(ctxWithTimeout, intent, intentType, extractedParams)
 					return processErr
 				})
 
@@ -427,12 +479,22 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 
 	// Validate the response
 	if err := c.validator.ValidateResponse([]byte(result)); err != nil {
-		c.logger.Error("Response validation failed", slog.String("error", err.Error()), slog.String("response", result))
+		// Truncate response for logging if needed
+		truncatedResponse := result
+		if c.logger.Enabled(ctx, slog.LevelDebug) && len(result) > 1000 {
+			truncatedResponse = result[:1000] + "..."
+		}
+		c.logger.Error("Response validation failed", slog.String("error", err.Error()))
+		c.logger.Debug("Response validation failed with details",
+			slog.String("error", err.Error()),
+			slog.String("response", truncatedResponse),
+		)
 		return "", fmt.Errorf("response validation failed: %w", err)
 	}
 
 	// Cache successful response
 	c.cache.Set(cacheKey, result)
+	c.logger.Info("Response cached successfully")
 	c.logger.Debug("Response cached", slog.String("cache_key", cacheKey))
 
 	success = true
@@ -547,9 +609,21 @@ func (c *Client) processWithChatCompletion(ctx context.Context, systemPrompt, in
 	}
 	defer resp.Body.Close()
 
+	// Validate Content-Type header
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.Contains(strings.ToLower(contentType), "application/json") {
+		return "", fmt.Errorf("invalid response content type: expected application/json, got %s", contentType)
+	}
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Validate that the response body is valid JSON
+	var tempJSON interface{}
+	if err := json.Unmarshal(respBody, &tempJSON); err != nil {
+		return "", fmt.Errorf("response body is not valid JSON: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -602,9 +676,21 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 	}
 	defer resp.Body.Close()
 
+	// Validate Content-Type header for RAG API
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.Contains(strings.ToLower(contentType), "application/json") {
+		return "", fmt.Errorf("invalid response content type: expected application/json, got %s", contentType)
+	}
+
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Validate that the response body is valid JSON
+	var tempJSON interface{}
+	if err := json.Unmarshal(respBody, &tempJSON); err != nil {
+		return "", fmt.Errorf("response body is not valid JSON: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
@@ -626,7 +712,15 @@ func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func
 	var lastErr error
 	delay := c.retryConfig.BaseDelay
 
-	for attempt := 0; attempt <= c.retryConfig.MaxRetries; attempt++ {
+	// Get max retries from environment variable
+	maxRetries := 2 // default
+	if envMaxRetries := os.Getenv("LLM_MAX_RETRIES"); envMaxRetries != "" {
+		if r, err := strconv.Atoi(envMaxRetries); err == nil && r >= 0 {
+			maxRetries = r
+		}
+	}
+
+	for attempt := 0; attempt <= maxRetries; attempt++ {
 		if attempt > 0 {
 			c.logger.Debug("Retrying operation",
 				slog.Int("attempt", attempt),
@@ -668,10 +762,10 @@ func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func
 	}
 
 	c.logger.Error("Operation failed after all retries",
-		slog.Int("max_retries", c.retryConfig.MaxRetries),
+		slog.Int("max_retries", maxRetries),
 		slog.String("final_error", lastErr.Error()),
 	)
-	return fmt.Errorf("operation failed after %d retries: %w", c.retryConfig.MaxRetries, lastErr)
+	return fmt.Errorf("operation failed after %d retries: %w", maxRetries, lastErr)
 }
 
 // isRetryableError determines if an error warrants a retry
@@ -705,10 +799,19 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 		return fmt.Errorf("invalid JSON response: %w", err)
 	}
 
-	// Check required fields
+	// Check required fields and collect missing ones
+	var missingFields []string
 	for field := range v.requiredFields {
 		if _, exists := response[field]; !exists {
-			return fmt.Errorf("missing required field: %s", field)
+			missingFields = append(missingFields, field)
+		}
+	}
+
+	// Return structured error if any fields are missing
+	if len(missingFields) > 0 {
+		return &ValidationError{
+			Message:       "Response validation failed",
+			MissingFields: missingFields,
 		}
 	}
 

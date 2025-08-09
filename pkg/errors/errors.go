@@ -365,7 +365,7 @@ func getStackTrace(skip int) []StackFrame {
 
 		// Extract package name from function name
 		packageName := extractPackageName(funcName)
-		
+
 		stack = append(stack, StackFrame{
 			File:     file,
 			Line:     line,
@@ -381,7 +381,7 @@ func (e *ServiceError) GetStackTraceStrings() []string {
 	if e.StackTrace == nil {
 		return nil
 	}
-	
+
 	result := make([]string, len(e.StackTrace))
 	for i, frame := range e.StackTrace {
 		result[i] = frame.String()

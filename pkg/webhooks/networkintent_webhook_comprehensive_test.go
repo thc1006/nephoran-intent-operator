@@ -72,12 +72,12 @@ func TestNetworkIntentValidator_Handle(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name              string
-		networkIntent     *nephoranv1.NetworkIntent
-		operation         admissionv1.Operation
-		expectedAllowed   bool
-		expectedReason    string
-		containsMessage   string
+		name            string
+		networkIntent   *nephoranv1.NetworkIntent
+		operation       admissionv1.Operation
+		expectedAllowed bool
+		expectedReason  string
+		containsMessage string
 	}{
 		{
 			name:            "valid telecommunications intent - AMF deployment",

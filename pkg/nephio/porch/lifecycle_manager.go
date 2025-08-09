@@ -1113,7 +1113,6 @@ type TransitionRecord struct {
 	User      string
 }
 
-
 // Default validation gate implementations
 
 // ContentValidationGate validates package content before transition
