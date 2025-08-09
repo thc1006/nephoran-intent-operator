@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // Client is a client for the LLM processor.
@@ -33,6 +35,7 @@ type Client struct {
 	mutex        sync.RWMutex
 	cache        *ResponseCache
 	fallbackURLs []string
+	ragClient    rag.RAGClient // Optional RAG client for enhanced processing
 }
 
 // RetryConfig defines retry behavior
@@ -185,7 +188,7 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		Transport: transport,
 	}
 
-	return &Client{
+	client := &Client{
 		httpClient:   httpClient,
 		url:          url,
 		promptEngine: NewTelecomPromptEngine(),
@@ -206,6 +209,34 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		cache:        NewResponseCache(5*time.Minute, 1000),
 		fallbackURLs: []string{}, // Can be configured for redundancy
 	}
+
+	// Initialize RAG client if backend type is "rag"
+	if config.BackendType == "rag" {
+		ragConfig := &rag.RAGClientConfig{
+			Enabled:          true,
+			MaxSearchResults: 5,
+			MinConfidence:    0.7,
+			WeaviateURL:      os.Getenv("WEAVIATE_URL"),
+			WeaviateAPIKey:   os.Getenv("WEAVIATE_API_KEY"),
+			LLMEndpoint:      url,
+			LLMAPIKey:        config.APIKey,
+			MaxTokens:        config.MaxTokens,
+			Temperature:      0.0,
+		}
+		client.ragClient = rag.NewRAGClient(ragConfig)
+		
+		// Initialize the RAG client
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := client.ragClient.Initialize(ctx); err != nil {
+			logger.Warn("Failed to initialize RAG client, will use fallback processing",
+				slog.String("error", err.Error()))
+			// Don't fail hard, just disable RAG
+			client.ragClient = nil
+		}
+	}
+
+	return client
 }
 
 // NewClientMetrics creates a new metrics tracker
@@ -529,6 +560,16 @@ func (c *Client) Shutdown() {
 		c.cache.Stop()
 	}
 
+	// Shutdown RAG client if present
+	if c.ragClient != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := c.ragClient.Shutdown(ctx); err != nil {
+			c.logger.Warn("Failed to shutdown RAG client cleanly",
+				slog.String("error", err.Error()))
+		}
+	}
+
 	// Close HTTP client connections
 	if transport, ok := c.httpClient.Transport.(*http.Transport); ok {
 		transport.CloseIdleConnections()
@@ -652,6 +693,19 @@ func (c *Client) processWithChatCompletion(ctx context.Context, systemPrompt, in
 
 // processWithRAGAPI handles RAG API requests
 func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
+	// Use the RAG client interface if available
+	if c.ragClient != nil {
+		result, err := c.ragClient.ProcessIntent(ctx, intent)
+		if err != nil {
+			c.logger.Debug("RAG client processing failed, falling back to direct API",
+				slog.String("error", err.Error()))
+			// Fall through to direct API call
+		} else {
+			return result, nil
+		}
+	}
+
+	// Fallback to direct API call (legacy compatibility)
 	req := map[string]interface{}{
 		"spec": map[string]string{
 			"intent": intent,

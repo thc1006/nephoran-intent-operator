@@ -1,139 +1,71 @@
-//go:build !disable_rag && !test
-
+// Package rag provides Retrieval-Augmented Generation interfaces
+// This file contains interface definitions that allow conditional compilation
+// with or without Weaviate dependencies
 package rag
 
 import (
 	"context"
-	"time"
 )
 
-// EmbeddingProvider interface for embedding providers
-type EmbeddingProvider interface {
-	GetEmbeddings(ctx context.Context, texts []string) ([][]float64, error)
+// RAGClient is the main interface for RAG operations
+// This allows for different implementations (Weaviate, no-op, etc.)
+type RAGClient interface {
+	// ProcessIntent processes an intent with RAG enhancement
+	ProcessIntent(ctx context.Context, intent string) (string, error)
+	
+	// Search performs a semantic search for relevant documents
+	Search(ctx context.Context, query string, limit int) ([]SearchResult, error)
+	
+	// Initialize sets up the RAG client
+	Initialize(ctx context.Context) error
+	
+	// Shutdown gracefully shuts down the client
+	Shutdown(ctx context.Context) error
+	
+	// IsHealthy checks if the RAG service is healthy
 	IsHealthy() bool
-	GetLatency() time.Duration
 }
 
-// TokenUsage definition moved to embedding_service.go to avoid duplicates
-
-// EmbeddingRequestExt represents extended embedding request
-type EmbeddingRequestExt struct {
-	Texts     []string
-	UseCache  bool
-	RequestID string
-	Priority  int
-	Metadata  map[string]interface{}
+// SearchResult represents a search result from the RAG system
+type SearchResult struct {
+	ID         string
+	Content    string
+	Confidence float64
+	Metadata   map[string]interface{}
 }
 
-// EmbeddingResponseExt represents extended embedding response
-type EmbeddingResponseExt struct {
-	Embeddings [][]float32
-	TokenUsage *TokenUsage
-	ModelUsed  string
+// RAGClientConfig holds configuration for RAG clients
+type RAGClientConfig struct {
+	// Common configuration
+	Enabled          bool
+	MaxSearchResults int
+	MinConfidence    float64
+	
+	// Weaviate-specific (used only when rag build tag is enabled)
+	WeaviateURL      string
+	WeaviateAPIKey   string
+	
+	// LLM configuration
+	LLMEndpoint      string
+	LLMAPIKey        string
+	MaxTokens        int
+	Temperature      float32
 }
 
-// CostOptimizerConfig holds cost optimizer configuration
-type CostOptimizerConfig struct {
-	MaxCostPerRequest float64
+// TokenUsage tracks token usage for cost tracking
+type TokenUsage struct {
+	PromptTokens     int
+	CompletionTokens int
+	TotalTokens      int
+	EstimatedCost    float64
 }
 
-// ParallelChunkConfig holds configuration for parallel chunk processor
-type ParallelChunkConfig struct {
-	MaxWorkers int
+// NewRAGClient creates a new RAG client based on build tags
+// With "rag" build tag: returns Weaviate-based implementation
+// Without "rag" build tag: returns no-op implementation
+func NewRAGClient(config *RAGClientConfig) RAGClient {
+	// This function will be implemented differently in:
+	// - client_weaviate.go (with //go:build rag)
+	// - client_noop.go (with //go:build !rag)
+	return newRAGClientImpl(config)
 }
-
-// StreamingProcessorConfig holds configuration for streaming processor
-type StreamingProcessorConfig struct {
-	BufferSize int
-}
-
-// StreamingDocumentProcessor processes documents using streaming
-type StreamingDocumentProcessor struct {
-	config *StreamingProcessorConfig
-}
-
-// NewStreamingDocumentProcessor creates a new streaming processor
-func NewStreamingDocumentProcessor(
-	config *StreamingConfig,
-	chunkingService *ChunkingService,
-	embeddingService interface{},
-) *StreamingDocumentProcessor {
-	return &StreamingDocumentProcessor{
-		config: &StreamingProcessorConfig{BufferSize: 1024},
-	}
-}
-
-// ProcessDocumentStream processes a document stream
-func (sdp *StreamingDocumentProcessor) ProcessDocumentStream(ctx context.Context, doc *LoadedDocument) (interface{}, error) {
-	// Stub implementation
-	return nil, nil
-}
-
-// GetMetrics returns streaming processor metrics
-func (sdp *StreamingDocumentProcessor) GetMetrics() interface{} {
-	return map[string]interface{}{"status": "ok"}
-}
-
-// Shutdown shuts down the streaming processor
-func (sdp *StreamingDocumentProcessor) Shutdown(timeout time.Duration) error {
-	return nil
-}
-
-// NewParallelChunkProcessorExt creates a new parallel chunk processor with extended config
-func NewParallelChunkProcessorExt(
-	config *ParallelChunkConfig,
-	chunkingService *ChunkingService,
-	embeddingService interface{},
-) *ParallelChunkProcessor {
-	return nil // Stub implementation
-}
-
-// CostAwareEmbeddingServiceAdapter adapts CostAwareEmbeddingService to expected interface
-type CostAwareEmbeddingServiceAdapter struct {
-	service *CostAwareEmbeddingService
-}
-
-// NewCostAwareEmbeddingServiceAdapter creates an adapter
-func NewCostAwareEmbeddingServiceAdapter(service *CostAwareEmbeddingService) *CostAwareEmbeddingServiceAdapter {
-	return &CostAwareEmbeddingServiceAdapter{service: service}
-}
-
-// GenerateEmbeddingsOptimized generates embeddings with cost optimization
-func (caesa *CostAwareEmbeddingServiceAdapter) GenerateEmbeddingsOptimized(ctx context.Context, request *EmbeddingRequestExt) (*EmbeddingResponseExt, error) {
-	// Convert request format
-	embeddingRequest := CostAwareEmbeddingRequest{
-		Text:            request.Texts[0], // Take first text for now
-		MaxBudget:       10.0,
-		QualityRequired: 0.8,
-		LatencyBudget:   5 * time.Second,
-	}
-
-	// Call the actual service
-	response, err := caesa.service.GetEmbeddings(ctx, embeddingRequest)
-	if err != nil {
-		return nil, err
-	}
-
-	// Convert response format
-	embeddings := make([][]float32, len(request.Texts))
-	for i := range request.Texts {
-		embeddings[i] = make([]float32, len(response.Embeddings))
-		for j, val := range response.Embeddings {
-			embeddings[i][j] = float32(val)
-		}
-	}
-
-	return &EmbeddingResponseExt{
-		Embeddings: embeddings,
-		TokenUsage: &TokenUsage{EstimatedCost: response.Cost},
-		ModelUsed:  response.Provider,
-	}, nil
-}
-
-// Helper functions
-
-func generateChunkID(docID string, index int) string {
-	return docID + "_chunk_" + string(rune(index))
-}
-
-// generateDocumentID definition moved to enhanced_rag_integration.go to avoid duplicates
