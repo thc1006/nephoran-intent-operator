@@ -100,11 +100,13 @@ type ResponseValidator struct {
 // NewClient creates a new LLM client with enhanced capabilities.
 func NewClient(url string) *Client {
 	return NewClientWithConfig(url, ClientConfig{
-		APIKey:      "",
-		ModelName:   "gpt-4o-mini",
-		MaxTokens:   2048,
-		BackendType: "openai",
-		Timeout:     60 * time.Second,
+		APIKey:          "",
+		ModelName:       "gpt-4o-mini",
+		MaxTokens:       2048,
+		BackendType:     "openai",
+		Timeout:         60 * time.Second,
+		MaxRetries:      2,   // Default retry count
+		CacheMaxEntries: 512, // Default cache size
 	})
 }
 
@@ -116,6 +118,8 @@ type ClientConfig struct {
 	BackendType         string
 	Timeout             time.Duration
 	SkipTLSVerification bool // SECURITY WARNING: Only use in development environments
+	MaxRetries          int  // Maximum retry attempts for LLM requests
+	CacheMaxEntries     int  // Maximum entries in LLM cache
 }
 
 // allowInsecureClient checks if insecure TLS is allowed via environment variable
@@ -188,12 +192,23 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		Transport: transport,
 	}
 
+	// Use configuration values passed in (already parsed from environment in config package)
+	maxRetries := config.MaxRetries
+	if maxRetries <= 0 {
+		maxRetries = 2 // Fallback default
+	}
+
+	cacheMaxEntries := config.CacheMaxEntries
+	if cacheMaxEntries <= 0 {
+		cacheMaxEntries = 512 // Fallback default
+	}
+
 	client := &Client{
 		httpClient:   httpClient,
 		url:          url,
 		promptEngine: NewTelecomPromptEngine(),
 		retryConfig: RetryConfig{
-			MaxRetries:    3,
+			MaxRetries:    maxRetries, // Use config value passed in
 			BaseDelay:     time.Second,
 			MaxDelay:      30 * time.Second,
 			JitterEnabled: true,
@@ -206,7 +221,7 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		backendType:  config.BackendType,
 		logger:       logger,
 		metrics:      NewClientMetrics(),
-		cache:        NewResponseCache(5*time.Minute, 1000),
+		cache:        NewResponseCache(5*time.Minute, cacheMaxEntries), // Use environment variable
 		fallbackURLs: []string{}, // Can be configured for redundancy
 	}
 
@@ -422,14 +437,12 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
 	}()
 
-	// Add timeout wrapper from environment variable
-	timeoutSecs := 15 // default
-	if envTimeout := os.Getenv("LLM_TIMEOUT_SECS"); envTimeout != "" {
-		if t, err := strconv.Atoi(envTimeout); err == nil && t > 0 {
-			timeoutSecs = t
-		}
+	// Use timeout from client configuration (already parsed from environment)
+	timeout := c.httpClient.Timeout
+	if timeout <= 0 {
+		timeout = 15 * time.Second // Fallback default
 	}
-	ctxWithTimeout, cancel := context.WithTimeout(ctx, time.Duration(timeoutSecs)*time.Second)
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	// Truncate intent for logging if needed
@@ -780,12 +793,10 @@ func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func
 	var lastErr error
 	delay := c.retryConfig.BaseDelay
 
-	// Get max retries from environment variable
-	maxRetries := 2 // default
-	if envMaxRetries := os.Getenv("LLM_MAX_RETRIES"); envMaxRetries != "" {
-		if r, err := strconv.Atoi(envMaxRetries); err == nil && r >= 0 {
-			maxRetries = r
-		}
+	// Use max retries from client configuration (already parsed from environment)
+	maxRetries := c.retryConfig.MaxRetries
+	if maxRetries <= 0 {
+		maxRetries = 2 // Fallback default
 	}
 
 	for attempt := 0; attempt <= maxRetries; attempt++ {

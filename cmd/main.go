@@ -49,6 +49,13 @@ func getEnvAsBool(key string, defaultValue bool) bool {
 func main() {
 	// Load configuration from environment variables with validation
 	constants := config.LoadConstants()
+	
+	// Load main config from environment
+	cfg, err := config.LoadFromEnv()
+	if err != nil {
+		setupLog.Error(err, "Failed to load configuration from environment")
+		os.Exit(1)
+	}
 
 	// Validate configuration
 	if err := config.ValidateConstants(constants); err != nil {
@@ -77,8 +84,8 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false, "Enable leader election for controller manager.")
 	flag.BoolVar(&secureMetrics, "metrics-secure", false, "If set the metrics endpoint is served securely")
 	flag.BoolVar(&enableHTTP2, "enable-http2", false, "If set, HTTP/2 will be enabled for the webhook and metrics servers")
-	flag.BoolVar(&enableNetworkIntent, "enable-network-intent", getEnvAsBool("ENABLE_NETWORK_INTENT", true), "Enable NetworkIntent controller")
-	flag.BoolVar(&enableLlmIntent, "enable-llm-intent", getEnvAsBool("ENABLE_LLM_INTENT", false), "Enable LLM Intent processing")
+	flag.BoolVar(&enableNetworkIntent, "enable-network-intent", cfg.GetEnableNetworkIntent(), "Enable NetworkIntent controller")
+	flag.BoolVar(&enableLlmIntent, "enable-llm-intent", cfg.GetEnableLLMIntent(), "Enable LLM Intent processing")
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", getEnvAsBool("ENABLE_WEBHOOKS", true), "Enable admission webhooks for validation")
 	flag.BoolVar(&printConfig, "print-config", false, "Print current configuration and exit")
 

@@ -24,8 +24,9 @@ type LLMProcessorConfig struct {
 	LLMBackendType string
 	LLMAPIKey      string
 	LLMModelName   string
-	LLMTimeout     time.Duration
+	LLMTimeout     time.Duration // Uses LLM_TIMEOUT_SECS env var (default: 15s)
 	LLMMaxTokens   int
+	LLMMaxRetries  int // Uses LLM_MAX_RETRIES env var (default: 2)
 
 	// RAG Configuration
 	RAGAPIURL                string
@@ -43,6 +44,9 @@ type LLMProcessorConfig struct {
 	EnableContextBuilder bool
 	MaxContextTokens     int
 	ContextTTL           time.Duration
+
+	// Cache Configuration
+	CacheMaxEntries int // Uses LLM_CACHE_MAX_ENTRIES env var (default: 512)
 
 	// Security Configuration
 	APIKeyRequired bool
@@ -105,8 +109,9 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 
 		LLMBackendType: "rag",
 		LLMModelName:   "gpt-4o-mini",
-		LLMTimeout:     60 * time.Second,
+		LLMTimeout:     15 * time.Second, // Default 15s for individual LLM requests
 		LLMMaxTokens:   2048,
+		LLMMaxRetries:  2, // Default 2 retries
 
 		RAGAPIURL:                "http://rag-api:5001",
 		RAGTimeout:               30 * time.Second,
@@ -121,6 +126,9 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 		EnableContextBuilder: true,
 		MaxContextTokens:     6000,
 		ContextTTL:           5 * time.Minute,
+
+		// Cache configuration
+		CacheMaxEntries: 512, // Default 512 cache entries
 
 		APIKeyRequired: false,
 		CORSEnabled:    true,
@@ -186,8 +194,18 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	}
 	cfg.LLMAPIKey = llmAPIKey
 	cfg.LLMModelName = GetEnvOrDefault("LLM_MODEL_NAME", cfg.LLMModelName)
-	cfg.LLMTimeout = parseDurationWithValidation("LLM_TIMEOUT", cfg.LLMTimeout, &validationErrors)
+	// Handle LLM_TIMEOUT_SECS as seconds value
+	if envTimeoutSecs := GetEnvOrDefault("LLM_TIMEOUT_SECS", ""); envTimeoutSecs != "" {
+		if timeoutSecs, err := strconv.Atoi(envTimeoutSecs); err == nil && timeoutSecs > 0 {
+			cfg.LLMTimeout = time.Duration(timeoutSecs) * time.Second
+		} else if err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf("LLM_TIMEOUT_SECS: invalid integer format: %v", err))
+		} else {
+			validationErrors = append(validationErrors, "LLM_TIMEOUT_SECS: must be positive")
+		}
+	}
 	cfg.LLMMaxTokens = parseIntWithValidation("LLM_MAX_TOKENS", cfg.LLMMaxTokens, validatePositiveInt, &validationErrors)
+	cfg.LLMMaxRetries = parseIntWithValidation("LLM_MAX_RETRIES", cfg.LLMMaxRetries, validateNonNegativeInt, &validationErrors)
 
 	// RAG Configuration
 	cfg.RAGAPIURL = getEnvWithValidation("RAG_API_URL", cfg.RAGAPIURL, validateURL, &validationErrors)
@@ -205,6 +223,9 @@ func LoadLLMProcessorConfig() (*LLMProcessorConfig, error) {
 	cfg.EnableContextBuilder = parseBoolWithDefault("ENABLE_CONTEXT_BUILDER", cfg.EnableContextBuilder)
 	cfg.MaxContextTokens = parseIntWithValidation("MAX_CONTEXT_TOKENS", cfg.MaxContextTokens, validatePositiveInt, &validationErrors)
 	cfg.ContextTTL = parseDurationWithValidation("CONTEXT_TTL", cfg.ContextTTL, &validationErrors)
+
+	// Cache Configuration
+	cfg.CacheMaxEntries = parseIntWithValidation("LLM_CACHE_MAX_ENTRIES", cfg.CacheMaxEntries, validatePositiveInt, &validationErrors)
 
 	// Security Configuration
 	cfg.APIKeyRequired = parseBoolWithDefault("API_KEY_REQUIRED", cfg.APIKeyRequired)

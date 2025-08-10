@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,9 +18,16 @@ type Config struct {
 	ProbeAddr            string
 	EnableLeaderElection bool
 
+	// Intent processing features
+	EnableNetworkIntent bool // Enable/disable NetworkIntent controller (default: true)
+	EnableLLMIntent     bool // Enable/disable LLM Intent processing (default: false)
+
 	// LLM Processor configuration
 	LLMProcessorURL     string
 	LLMProcessorTimeout time.Duration
+	LLMTimeout          time.Duration // Timeout for individual LLM requests (default: 15s)
+	LLMMaxRetries       int           // Maximum retry attempts for LLM requests (default: 2)
+	LLMCacheMaxEntries  int           // Maximum entries in LLM cache (default: 512)
 
 	// RAG API configuration
 	RAGAPIURLInternal string
@@ -44,6 +53,13 @@ type Config struct {
 	// Kubernetes configuration
 	Namespace string
 	CRDPath   string
+
+	// HTTP configuration
+	HTTPMaxBody int64 // Maximum HTTP request body size (default: 1MB)
+
+	// Metrics configuration
+	MetricsEnabled    bool     // Enable/disable metrics endpoint (default: false)
+	MetricsAllowedIPs []string // IP addresses allowed to access metrics
 
 	// mTLS Configuration
 	MTLSConfig *MTLSConfig
@@ -123,8 +139,16 @@ func DefaultConfig() *Config {
 		ProbeAddr:            ":8081",
 		EnableLeaderElection: false,
 
+		// Intent processing features
+		EnableNetworkIntent: true,  // Default enabled
+		EnableLLMIntent:     false, // Default disabled
+
+		// LLM configuration
 		LLMProcessorURL:     "http://llm-processor.default.svc.cluster.local:8080",
 		LLMProcessorTimeout: 30 * time.Second,
+		LLMTimeout:          15 * time.Second, // Default 15s for individual requests
+		LLMMaxRetries:       2,                // Default 2 retries
+		LLMCacheMaxEntries:  512,              // Default 512 cache entries
 
 		RAGAPIURLInternal: "http://rag-api.default.svc.cluster.local:5001",
 		RAGAPIURLExternal: "http://localhost:5001",
@@ -141,6 +165,13 @@ func DefaultConfig() *Config {
 
 		Namespace: "default",
 		CRDPath:   "deployments/crds",
+
+		// HTTP configuration
+		HTTPMaxBody: 1048576, // Default 1MB
+
+		// Metrics configuration
+		MetricsEnabled:    false,      // Default disabled for security
+		MetricsAllowedIPs: []string{}, // Empty by default
 
 		MTLSConfig: DefaultMTLSConfig(),
 	}
@@ -300,8 +331,26 @@ func LoadFromEnv() (*Config, error) {
 	cfg.MetricsAddr = GetEnvOrDefault("METRICS_ADDR", cfg.MetricsAddr)
 	cfg.ProbeAddr = GetEnvOrDefault("PROBE_ADDR", cfg.ProbeAddr)
 	cfg.EnableLeaderElection = GetBoolEnv("ENABLE_LEADER_ELECTION", cfg.EnableLeaderElection)
+
+	// Intent processing features
+	cfg.EnableNetworkIntent = GetBoolEnv("ENABLE_NETWORK_INTENT", cfg.EnableNetworkIntent)
+	cfg.EnableLLMIntent = GetBoolEnv("ENABLE_LLM_INTENT", cfg.EnableLLMIntent)
+
+	// LLM configuration
 	cfg.LLMProcessorURL = GetEnvOrDefault("LLM_PROCESSOR_URL", cfg.LLMProcessorURL)
 	cfg.LLMProcessorTimeout = GetDurationEnv("LLM_PROCESSOR_TIMEOUT", cfg.LLMProcessorTimeout)
+	// Handle LLM_TIMEOUT_SECS as integer seconds value for consistency with LLM implementations
+	if envTimeoutSecs := GetEnvOrDefault("LLM_TIMEOUT_SECS", ""); envTimeoutSecs != "" {
+		if timeoutSecs, err := strconv.Atoi(envTimeoutSecs); err == nil && timeoutSecs > 0 {
+			cfg.LLMTimeout = time.Duration(timeoutSecs) * time.Second
+		} else {
+			// Log parsing error but continue with default
+			log.Printf("Config warning: LLM_TIMEOUT_SECS parsing error: %v, using default %v", err, cfg.LLMTimeout)
+		}
+	}
+	cfg.LLMMaxRetries = GetIntEnv("LLM_MAX_RETRIES", cfg.LLMMaxRetries)
+	cfg.LLMCacheMaxEntries = GetIntEnv("LLM_CACHE_MAX_ENTRIES", cfg.LLMCacheMaxEntries)
+
 	cfg.RAGAPIURLInternal = GetEnvOrDefault("RAG_API_URL", cfg.RAGAPIURLInternal)
 	cfg.RAGAPIURLExternal = GetEnvOrDefault("RAG_API_URL_EXTERNAL", cfg.RAGAPIURLExternal)
 	cfg.RAGAPITimeout = GetDurationEnv("RAG_API_TIMEOUT", cfg.RAGAPITimeout)
@@ -336,6 +385,24 @@ func LoadFromEnv() (*Config, error) {
 	cfg.OpenAIEmbeddingModel = GetEnvOrDefault("OPENAI_EMBEDDING_MODEL", cfg.OpenAIEmbeddingModel)
 	cfg.Namespace = GetEnvOrDefault("NAMESPACE", cfg.Namespace)
 	cfg.CRDPath = GetEnvOrDefault("CRD_PATH", cfg.CRDPath)
+
+	// HTTP configuration
+	cfg.HTTPMaxBody = GetInt64Env("HTTP_MAX_BODY", cfg.HTTPMaxBody)
+
+	// Metrics configuration
+	cfg.MetricsEnabled = GetBoolEnv("METRICS_ENABLED", cfg.MetricsEnabled)
+	cfg.MetricsAllowedIPs = GetStringSliceEnv("METRICS_ALLOWED_IPS", cfg.MetricsAllowedIPs)
+
+	// Security validation for metrics configuration
+	if cfg.MetricsEnabled && len(cfg.MetricsAllowedIPs) == 0 {
+		// Check if user explicitly set "*" to allow all access
+		if metricsIPsEnv := GetEnvOrDefault("METRICS_ALLOWED_IPS", ""); metricsIPsEnv == "*" {
+			cfg.MetricsAllowedIPs = []string{"*"}
+			log.Printf("Config warning: Metrics endpoint is enabled with unrestricted access (METRICS_ALLOWED_IPS=*). This may expose sensitive information.")
+		} else {
+			log.Printf("Config warning: Metrics endpoint is enabled but METRICS_ALLOWED_IPS is empty. Consider setting specific IP addresses or '*' for unrestricted access.")
+		}
+	}
 
 	// Load mTLS configuration from environment
 	loadMTLSFromEnv(cfg)
@@ -556,6 +623,46 @@ func (c *Config) GetOpenAIEmbeddingModel() string {
 // GetNamespace returns the Kubernetes namespace
 func (c *Config) GetNamespace() string {
 	return c.Namespace
+}
+
+// GetEnableNetworkIntent returns whether NetworkIntent controller is enabled
+func (c *Config) GetEnableNetworkIntent() bool {
+	return c.EnableNetworkIntent
+}
+
+// GetEnableLLMIntent returns whether LLM Intent processing is enabled
+func (c *Config) GetEnableLLMIntent() bool {
+	return c.EnableLLMIntent
+}
+
+// GetLLMTimeout returns the timeout for individual LLM requests
+func (c *Config) GetLLMTimeout() time.Duration {
+	return c.LLMTimeout
+}
+
+// GetLLMMaxRetries returns the maximum retry attempts for LLM requests
+func (c *Config) GetLLMMaxRetries() int {
+	return c.LLMMaxRetries
+}
+
+// GetLLMCacheMaxEntries returns the maximum entries in LLM cache
+func (c *Config) GetLLMCacheMaxEntries() int {
+	return c.LLMCacheMaxEntries
+}
+
+// GetHTTPMaxBody returns the maximum HTTP request body size
+func (c *Config) GetHTTPMaxBody() int64 {
+	return c.HTTPMaxBody
+}
+
+// GetMetricsEnabled returns whether metrics endpoint is enabled
+func (c *Config) GetMetricsEnabled() bool {
+	return c.MetricsEnabled
+}
+
+// GetMetricsAllowedIPs returns the IP addresses allowed to access metrics
+func (c *Config) GetMetricsAllowedIPs() []string {
+	return c.MetricsAllowedIPs
 }
 
 // Ensure Config implements interfaces.ConfigProvider
