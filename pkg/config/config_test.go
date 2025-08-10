@@ -406,6 +406,441 @@ func TestConfig_GetRAGAPIURL(t *testing.T) {
 	}
 }
 
+// TestEnvironmentVariables tests the 8 specific environment variables
+func TestEnvironmentVariables(t *testing.T) {
+	tests := []struct {
+		name     string
+		envVar   string
+		testCases []struct {
+			name     string
+			value    string
+			expected interface{}
+			isError  bool
+		}
+	}{
+		{
+			name:   "ENABLE_NETWORK_INTENT",
+			envVar: "ENABLE_NETWORK_INTENT",
+			testCases: []struct {
+				name     string
+				value    string
+				expected interface{}
+				isError  bool
+			}{
+				{"default when unset", "", true, false}, // default: true
+				{"true value", "true", true, false},
+				{"false value", "false", false, false},
+				{"1 value", "1", true, false},
+				{"0 value", "0", false, false},
+				{"yes value", "yes", true, false},
+				{"no value", "no", false, false},
+				{"on value", "on", true, false},
+				{"off value", "off", false, false},
+				{"enabled value", "enabled", true, false},
+				{"disabled value", "disabled", false, false},
+				{"invalid value uses default", "invalid", true, false}, // uses default
+				{"empty string uses default", "", true, false},
+				{"mixed case true", "TRUE", true, false},
+				{"mixed case false", "False", false, false},
+				{"whitespace trimmed", "  true  ", true, false},
+			},
+		},
+		{
+			name:   "ENABLE_LLM_INTENT",
+			envVar: "ENABLE_LLM_INTENT",
+			testCases: []struct {
+				name     string
+				value    string
+				expected interface{}
+				isError  bool
+			}{
+				{"default when unset", "", false, false}, // default: false
+				{"true value", "true", true, false},
+				{"false value", "false", false, false},
+				{"1 value", "1", true, false},
+				{"0 value", "0", false, false},
+				{"invalid value uses default", "maybe", false, false}, // uses default
+				{"whitespace trimmed", "  false  ", false, false},
+			},
+		},
+		{
+			name:   "LLM_TIMEOUT_SECS",
+			envVar: "LLM_TIMEOUT_SECS",
+			testCases: []struct {
+				name     string
+				value    string
+				expected interface{}
+				isError  bool
+			}{
+				{"default when unset", "", 15 * time.Second, false}, // default: 15s
+				{"valid seconds", "30", 30 * time.Second, false},
+				{"minimum value", "1", 1 * time.Second, false},
+				{"large value", "300", 300 * time.Second, false},
+				{"zero value uses default", "0", 15 * time.Second, false}, // uses default for non-positive
+				{"negative value uses default", "-5", 15 * time.Second, false},
+				{"invalid string uses default", "invalid", 15 * time.Second, false},
+				{"empty string uses default", "", 15 * time.Second, false},
+				{"float string uses default", "15.5", 15 * time.Second, false}, // Atoi fails on float
+				{"whitespace not trimmed uses default", "  60  ", 15 * time.Second, false}, // GetEnvOrDefault doesn't trim, strconv.Atoi fails
+			},
+		},
+		{
+			name:   "LLM_MAX_RETRIES",
+			envVar: "LLM_MAX_RETRIES",
+			testCases: []struct {
+				name     string
+				value    string
+				expected interface{}
+				isError  bool
+			}{
+				{"default when unset", "", 2, false}, // default: 2
+				{"valid retries", "5", 5, false},
+				{"zero retries", "0", 0, false},
+				{"maximum retries", "10", 10, false},
+				{"negative value accepted", "-1", -1, false}, // GetIntEnv accepts negative values
+				{"invalid string uses default", "invalid", 2, false},
+				{"empty string uses default", "", 2, false},
+				{"whitespace trimmed", "  3  ", 3, false},
+			},
+		},
+		{
+			name:   "LLM_CACHE_MAX_ENTRIES",
+			envVar: "LLM_CACHE_MAX_ENTRIES",
+			testCases: []struct {
+				name     string
+				value    string
+				expected interface{}
+				isError  bool
+			}{
+				{"default when unset", "", 512, false}, // default: 512
+				{"valid entries", "1024", 1024, false},
+				{"zero entries", "0", 0, false},
+				{"large entries", "10000", 10000, false},
+				{"negative value accepted", "-100", -100, false}, // GetIntEnv accepts negative values
+				{"invalid string uses default", "many", 512, false},
+				{"empty string uses default", "", 512, false},
+				{"whitespace trimmed", "  256  ", 256, false},
+			},
+		},
+		{
+			name:   "HTTP_MAX_BODY",
+			envVar: "HTTP_MAX_BODY",
+			testCases: []struct {
+				name     string
+				value    string
+				expected interface{}
+				isError  bool
+			}{
+				{"default when unset", "", int64(1048576), false}, // default: 1MB
+				{"valid size", "2097152", int64(2097152), false}, // 2MB
+				{"zero size", "0", int64(0), false},
+				{"large size", "10485760", int64(10485760), false}, // 10MB
+				{"negative value accepted", "-1000", int64(-1000), false}, // GetInt64Env accepts negative values
+				{"invalid string uses default", "unlimited", int64(1048576), false},
+				{"empty string uses default", "", int64(1048576), false},
+				{"whitespace trimmed", "  524288  ", int64(524288), false}, // 512KB
+			},
+		},
+		{
+			name:   "METRICS_ENABLED",
+			envVar: "METRICS_ENABLED",
+			testCases: []struct {
+				name     string
+				value    string
+				expected interface{}
+				isError  bool
+			}{
+				{"default when unset", "", false, false}, // default: false
+				{"true value", "true", true, false},
+				{"false value", "false", false, false},
+				{"1 value", "1", true, false},
+				{"0 value", "0", false, false},
+				{"invalid value uses default", "maybe", false, false},
+				{"whitespace trimmed", "  true  ", true, false},
+			},
+		},
+		{
+			name:   "METRICS_ALLOWED_IPS",
+			envVar: "METRICS_ALLOWED_IPS",
+			testCases: []struct {
+				name     string
+				value    string
+				expected interface{}
+				isError  bool
+			}{
+				{"default when unset", "", []string{}, false}, // default: empty
+				{"single IP", "127.0.0.1", []string{"127.0.0.1"}, false},
+				{"multiple IPs", "127.0.0.1,192.168.1.1,10.0.0.1", []string{"127.0.0.1", "192.168.1.1", "10.0.0.1"}, false},
+				{"IPs with spaces", " 127.0.0.1 , 192.168.1.1 , 10.0.0.1 ", []string{"127.0.0.1", "192.168.1.1", "10.0.0.1"}, false},
+				{"wildcard", "*", []string{"*"}, false},
+				{"mixed IPs and wildcard", "127.0.0.1,*", []string{"127.0.0.1", "*"}, false},
+				{"empty string uses default", "", []string{}, false},
+				{"comma only gives empty", ",", []string{}, false},
+				{"spaces only gives empty", "   ", []string{}, false},
+				{"empty items filtered", "127.0.0.1,,192.168.1.1", []string{"127.0.0.1", "192.168.1.1"}, false},
+				{"trailing comma", "127.0.0.1,", []string{"127.0.0.1"}, false},
+				{"leading comma", ",127.0.0.1", []string{"127.0.0.1"}, false},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			for _, tc := range test.testCases {
+				t.Run(tc.name, func(t *testing.T) {
+					// Clean environment
+					cleanupTargetEnv(t)
+
+					// Set required API key
+					os.Setenv("OPENAI_API_KEY", "sk-test-key")
+
+					// Set test environment variable if value is not empty (to test default behavior)
+					if tc.value != "" {
+						os.Setenv(test.envVar, tc.value)
+					}
+
+					cfg, err := LoadFromEnv()
+					
+					if tc.isError {
+						assert.Error(t, err)
+						return
+					}
+					
+					require.NoError(t, err)
+					require.NotNil(t, cfg)
+
+					// Check the specific field based on the environment variable
+					switch test.envVar {
+					case "ENABLE_NETWORK_INTENT":
+						assert.Equal(t, tc.expected, cfg.EnableNetworkIntent)
+					case "ENABLE_LLM_INTENT":
+						assert.Equal(t, tc.expected, cfg.EnableLLMIntent)
+					case "LLM_TIMEOUT_SECS":
+						assert.Equal(t, tc.expected, cfg.LLMTimeout)
+					case "LLM_MAX_RETRIES":
+						assert.Equal(t, tc.expected, cfg.LLMMaxRetries)
+					case "LLM_CACHE_MAX_ENTRIES":
+						assert.Equal(t, tc.expected, cfg.LLMCacheMaxEntries)
+					case "HTTP_MAX_BODY":
+						assert.Equal(t, tc.expected, cfg.HTTPMaxBody)
+					case "METRICS_ENABLED":
+						assert.Equal(t, tc.expected, cfg.MetricsEnabled)
+					case "METRICS_ALLOWED_IPS":
+						assert.Equal(t, tc.expected, cfg.MetricsAllowedIPs)
+					}
+				})
+			}
+		})
+	}
+}
+
+// TestEnvironmentVariablesDefaultValues specifically tests that default values are correct
+func TestEnvironmentVariablesDefaultValues(t *testing.T) {
+	cleanupTargetEnv(t)
+	os.Setenv("OPENAI_API_KEY", "sk-test-key")
+
+	cfg, err := LoadFromEnv()
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	// Test all 8 environment variables have correct defaults
+	assert.Equal(t, true, cfg.EnableNetworkIntent, "ENABLE_NETWORK_INTENT default should be true")
+	assert.Equal(t, false, cfg.EnableLLMIntent, "ENABLE_LLM_INTENT default should be false") 
+	assert.Equal(t, 15*time.Second, cfg.LLMTimeout, "LLM_TIMEOUT_SECS default should be 15 seconds")
+	assert.Equal(t, 2, cfg.LLMMaxRetries, "LLM_MAX_RETRIES default should be 2")
+	assert.Equal(t, 512, cfg.LLMCacheMaxEntries, "LLM_CACHE_MAX_ENTRIES default should be 512")
+	assert.Equal(t, int64(1048576), cfg.HTTPMaxBody, "HTTP_MAX_BODY default should be 1048576 (1MB)")
+	assert.Equal(t, false, cfg.MetricsEnabled, "METRICS_ENABLED default should be false")
+	assert.Equal(t, []string{}, cfg.MetricsAllowedIPs, "METRICS_ALLOWED_IPS default should be empty slice")
+}
+
+// TestEnvironmentVariablesEdgeCases tests edge cases for the 8 environment variables
+func TestEnvironmentVariablesEdgeCases(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupEnv    func()
+		validate    func(t *testing.T, cfg *Config)
+		expectError bool
+	}{
+		{
+			name: "LLM_TIMEOUT_SECS with very large value",
+			setupEnv: func() {
+				os.Setenv("LLM_TIMEOUT_SECS", "86400") // 24 hours
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				assert.Equal(t, 86400*time.Second, cfg.LLMTimeout)
+			},
+		},
+		{
+			name: "HTTP_MAX_BODY with maximum int64 value",
+			setupEnv: func() {
+				os.Setenv("HTTP_MAX_BODY", "9223372036854775807") // max int64
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				assert.Equal(t, int64(9223372036854775807), cfg.HTTPMaxBody)
+			},
+		},
+		{
+			name: "METRICS_ALLOWED_IPS with complex whitespace",
+			setupEnv: func() {
+				os.Setenv("METRICS_ALLOWED_IPS", "\t127.0.0.1\n,\r192.168.1.1\t,   10.0.0.1   \n")
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				expected := []string{"127.0.0.1", "192.168.1.1", "10.0.0.1"}
+				assert.Equal(t, expected, cfg.MetricsAllowedIPs)
+			},
+		},
+		{
+			name: "All boolean env vars with enable/disable values",
+			setupEnv: func() {
+				os.Setenv("ENABLE_NETWORK_INTENT", "disable")
+				os.Setenv("ENABLE_LLM_INTENT", "enable")
+				os.Setenv("METRICS_ENABLED", "enabled")
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				assert.False(t, cfg.EnableNetworkIntent)
+				assert.True(t, cfg.EnableLLMIntent)
+				assert.True(t, cfg.MetricsEnabled)
+			},
+		},
+		{
+			name: "Integer env vars with boundary values",
+			setupEnv: func() {
+				os.Setenv("LLM_MAX_RETRIES", "0")
+				os.Setenv("LLM_CACHE_MAX_ENTRIES", "1")
+				os.Setenv("HTTP_MAX_BODY", "0")
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				assert.Equal(t, 0, cfg.LLMMaxRetries)
+				assert.Equal(t, 1, cfg.LLMCacheMaxEntries)
+				assert.Equal(t, int64(0), cfg.HTTPMaxBody)
+			},
+		},
+		{
+			name: "METRICS_ALLOWED_IPS with IPv6 addresses",
+			setupEnv: func() {
+				os.Setenv("METRICS_ALLOWED_IPS", "::1,2001:db8::1,127.0.0.1")
+			},
+			validate: func(t *testing.T, cfg *Config) {
+				expected := []string{"::1", "2001:db8::1", "127.0.0.1"}
+				assert.Equal(t, expected, cfg.MetricsAllowedIPs)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cleanupTargetEnv(t)
+			os.Setenv("OPENAI_API_KEY", "sk-test-key")
+			
+			tt.setupEnv()
+			
+			cfg, err := LoadFromEnv()
+			if tt.expectError {
+				assert.Error(t, err)
+				return
+			}
+			
+			require.NoError(t, err)
+			require.NotNil(t, cfg)
+			
+			tt.validate(t, cfg)
+		})
+	}
+}
+
+// TestSpecialLLMTimeoutSecsConversion tests the specific conversion logic for LLM_TIMEOUT_SECS
+func TestSpecialLLMTimeoutSecsConversion(t *testing.T) {
+	tests := []struct {
+		name           string
+		envValue       string
+		expectedResult time.Duration
+		description    string
+	}{
+		{
+			name:           "valid positive integer",
+			envValue:       "30",
+			expectedResult: 30 * time.Second,
+			description:    "Should convert seconds to time.Duration",
+		},
+		{
+			name:           "zero value",
+			envValue:       "0",
+			expectedResult: 15 * time.Second, // default
+			description:    "Should use default for zero or negative values",
+		},
+		{
+			name:           "negative value",
+			envValue:       "-5",
+			expectedResult: 15 * time.Second, // default
+			description:    "Should use default for negative values",
+		},
+		{
+			name:           "invalid format",
+			envValue:       "not-a-number",
+			expectedResult: 15 * time.Second, // default
+			description:    "Should use default for invalid format",
+		},
+		{
+			name:           "float value",
+			envValue:       "15.5",
+			expectedResult: 15 * time.Second, // default because Atoi fails
+			description:    "Should use default for float values (Atoi fails)",
+		},
+		{
+			name:           "empty string",
+			envValue:       "",
+			expectedResult: 15 * time.Second, // default
+			description:    "Should use default for empty string",
+		},
+		{
+			name:           "large value",
+			envValue:       "3600",
+			expectedResult: 3600 * time.Second, // 1 hour
+			description:    "Should handle large values correctly",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cleanupTargetEnv(t)
+			os.Setenv("OPENAI_API_KEY", "sk-test-key")
+			os.Setenv("LLM_TIMEOUT_SECS", tt.envValue)
+
+			cfg, err := LoadFromEnv()
+			require.NoError(t, err)
+			require.NotNil(t, cfg)
+
+			assert.Equal(t, tt.expectedResult, cfg.LLMTimeout, tt.description)
+		})
+	}
+}
+
+// cleanupTargetEnv cleans up the specific 8 environment variables we're testing
+func cleanupTargetEnv(t *testing.T) {
+	targetEnvVars := []string{
+		"ENABLE_NETWORK_INTENT",
+		"ENABLE_LLM_INTENT", 
+		"LLM_TIMEOUT_SECS",
+		"LLM_MAX_RETRIES",
+		"LLM_CACHE_MAX_ENTRIES",
+		"HTTP_MAX_BODY",
+		"METRICS_ENABLED",
+		"METRICS_ALLOWED_IPS",
+		"OPENAI_API_KEY", // Required for validation
+	}
+
+	for _, envVar := range targetEnvVars {
+		os.Unsetenv(envVar)
+	}
+
+	t.Cleanup(func() {
+		for _, envVar := range targetEnvVars {
+			os.Unsetenv(envVar)
+		}
+	})
+}
+
 // cleanupEnv cleans up environment variables that might affect tests
 func cleanupEnv(t *testing.T) {
 	envVars := []string{
@@ -427,6 +862,15 @@ func cleanupEnv(t *testing.T) {
 		"OPENAI_EMBEDDING_MODEL",
 		"NAMESPACE",
 		"CRD_PATH",
+		// Add the 8 target environment variables
+		"ENABLE_NETWORK_INTENT",
+		"ENABLE_LLM_INTENT",
+		"LLM_TIMEOUT_SECS",
+		"LLM_MAX_RETRIES",
+		"LLM_CACHE_MAX_ENTRIES",
+		"HTTP_MAX_BODY",
+		"METRICS_ENABLED",
+		"METRICS_ALLOWED_IPS",
 	}
 
 	for _, envVar := range envVars {

@@ -18,16 +18,16 @@ type Config struct {
 	ProbeAddr            string
 	EnableLeaderElection bool
 
-	// Intent processing features
-	EnableNetworkIntent bool // Enable/disable NetworkIntent controller (default: true)
-	EnableLLMIntent     bool // Enable/disable LLM Intent processing (default: false)
+	// Intent processing features - control core functionality
+	EnableNetworkIntent bool // Enable/disable NetworkIntent controller (default: true) - controls whether NetworkIntent CRDs are reconciled
+	EnableLLMIntent     bool // Enable/disable LLM Intent processing (default: false) - enables AI-powered natural language intent interpretation
 
 	// LLM Processor configuration
 	LLMProcessorURL     string
 	LLMProcessorTimeout time.Duration
-	LLMTimeout          time.Duration // Timeout for individual LLM requests (default: 15s)
-	LLMMaxRetries       int           // Maximum retry attempts for LLM requests (default: 2)
-	LLMCacheMaxEntries  int           // Maximum entries in LLM cache (default: 512)
+	LLMTimeout          time.Duration // Timeout for individual LLM requests in seconds (default: 15s) - balances response time vs reliability
+	LLMMaxRetries       int           // Maximum retry attempts for LLM requests (default: 2) - uses exponential backoff, 0-10 range
+	LLMCacheMaxEntries  int           // Maximum entries in LLM response cache (default: 512) - LRU eviction, ~1-5KB per entry
 
 	// RAG API configuration
 	RAGAPIURLInternal string
@@ -55,11 +55,11 @@ type Config struct {
 	CRDPath   string
 
 	// HTTP configuration
-	HTTPMaxBody int64 // Maximum HTTP request body size (default: 1MB)
+	HTTPMaxBody int64 // Maximum HTTP request body size in bytes (default: 1MB) - prevents DoS attacks, range 1KB-100MB
 
-	// Metrics configuration
-	MetricsEnabled    bool     // Enable/disable metrics endpoint (default: false)
-	MetricsAllowedIPs []string // IP addresses allowed to access metrics
+	// Metrics configuration - observability and security
+	MetricsEnabled    bool     // Enable/disable Prometheus metrics endpoint (default: false) - exposes /metrics for monitoring
+	MetricsAllowedIPs []string // Comma-separated IP addresses allowed to access metrics - security control, empty blocks all, "*" allows all
 
 	// mTLS Configuration
 	MTLSConfig *MTLSConfig

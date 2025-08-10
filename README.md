@@ -337,6 +337,56 @@ Key files include:
 
 For detailed information about each file and usage instructions, see the comprehensive [archive/README.md](archive/README.md)
 
+## ⚙️ Configuration
+
+The Nephoran Intent Operator provides comprehensive configuration options through environment variables, enabling flexible deployment across different environments without code changes.
+
+### Core Environment Variables
+
+The operator supports 8 key environment variables for controlling system behavior:
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `ENABLE_NETWORK_INTENT` | Boolean | `true` | Enable/disable NetworkIntent controller |
+| `ENABLE_LLM_INTENT` | Boolean | `false` | Enable/disable LLM Intent processing |
+| `LLM_TIMEOUT_SECS` | Integer | `15` | Timeout for individual LLM requests (seconds) |
+| `LLM_MAX_RETRIES` | Integer | `2` | Maximum retry attempts for LLM requests |
+| `LLM_CACHE_MAX_ENTRIES` | Integer | `512` | Maximum entries in LLM cache |
+| `HTTP_MAX_BODY` | Integer | `1048576` | Maximum HTTP request body size (bytes) |
+| `METRICS_ENABLED` | Boolean | `false` | Enable/disable metrics endpoint |
+| `METRICS_ALLOWED_IPS` | String | `""` | Comma-separated IPs allowed to access metrics |
+
+### Quick Configuration Examples
+
+#### Development Environment
+```bash
+export ENABLE_NETWORK_INTENT=true
+export ENABLE_LLM_INTENT=true
+export LLM_TIMEOUT_SECS=5
+export METRICS_ENABLED=true
+export METRICS_ALLOWED_IPS="*"  # Open access for development
+```
+
+#### Production Environment
+```bash
+export ENABLE_NETWORK_INTENT=true
+export ENABLE_LLM_INTENT=true
+export LLM_TIMEOUT_SECS=30
+export LLM_MAX_RETRIES=3
+export METRICS_ENABLED=true
+export METRICS_ALLOWED_IPS="10.0.0.50,10.0.0.51"  # Monitoring systems only
+```
+
+### Comprehensive Configuration Documentation
+
+For detailed information about all environment variables, including:
+- Complete variable reference with examples
+- Security considerations and best practices
+- Troubleshooting guide and common issues
+- Migration guide for version upgrades
+
+See: **[Environment Variables Reference Guide](docs/ENVIRONMENT_VARIABLES.md)**
+
 ### 📖 Advanced Topics
 - **[O-RAN Compliance Certification](docs/ORAN-COMPLIANCE-CERTIFICATION.md)**: Standards compliance details
 - **[Security Documentation](docs/security/README.md)**: Complete security implementation guide
