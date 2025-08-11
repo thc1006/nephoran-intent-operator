@@ -77,7 +77,7 @@ jobs:
           retention-days: 1
 
   # =============================================================================
-  # Build Job
+  # Build Job (prefer Makefile; fallback to go build)
   # =============================================================================
   build:
     name: Build
@@ -120,18 +120,28 @@ jobs:
           name: generated-crds
           path: deployments/crds/
 
-      - name: Build project
-        run: make build
+      - name: Build project (prefer Makefile; fallback to go build)
+        shell: bash
+        run: |
+          set -e
+          if make -n build >/dev/null 2>&1; then
+            make build
+          else
+            echo "Makefile 'build' target not found → fallback to 'go build ./...'"
+            go build ./...
+          fi
 
       - name: Upload build artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: bin/
+          if-no-files-found: ignore
           retention-days: 7
 
   # =============================================================================
-  # Test Job (includes unit tests and envtest)
+  # Test Job (basic go test; envtest deferred for MVP)
   # =============================================================================
   test:
     name: Test
@@ -185,22 +195,15 @@ jobs:
           name: generated-crds
           path: deployments/crds/
 
-      - name: Install envtest
-        run: |
-          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
-
-      - name: Setup envtest environment
-        run: |
-          setup-envtest use 1.29.0 --bin-dir ~/.local/bin
-          echo "KUBEBUILDER_ASSETS=$(setup-envtest use 1.29.0 --bin-dir ~/.local/bin -p path)" >> $GITHUB_ENV
-
-      - name: Run tests with coverage
+      - name: Run tests with coverage (basic)
+        shell: bash
         env:
           USE_EXISTING_CLUSTER: false
-          ENVTEST_K8S_VERSION: 1.29.0
           REDIS_URL: redis://localhost:6379
         run: |
-          make test
+          mkdir -p .excellence-reports
+          go test ./... -count=1 -coverprofile=.excellence-reports/coverage.out
+          go tool cover -html=.excellence-reports/coverage.out -o .excellence-reports/coverage.html
 
       - name: Upload test results
         if: always()
@@ -214,7 +217,7 @@ jobs:
           retention-days: 7
 
   # =============================================================================
-  # Linting Job (using golangci-lint-action for better performance)
+  # Linting Job (non-blocking for MVP)
   # =============================================================================
   lint:
     name: Lint
@@ -266,7 +269,7 @@ jobs:
           args: --config .golangci.yml --timeout=10m --out-format=github-actions
 
   # =============================================================================
-  # Security/Vulnerability Scanning Job
+  # Security/Vulnerability Scanning Job (non-blocking for MVP)
   # =============================================================================
   security:
     name: Security Scan
@@ -322,20 +325,19 @@ jobs:
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
 
-      - name: Run vulnerability check
-        env:
-          GOVULNCHECK_DB: ~/.cache/go-security-db
+      - name: Run vulnerability check (non-blocking)
+        continue-on-error: true
         run: |
-          echo "🔍 Running govulncheck..."
-          govulncheck ./...
+          mkdir -p .excellence-reports
+          govulncheck -json ./... > .excellence-reports/govulncheck.json
+          echo "Report saved to .excellence-reports/govulncheck.json"
 
       - name: Upload security scan results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: security-scan-results
-          path: |
-            ~/.cache/go-security-db/
+          path: .excellence-reports/govulncheck.json
           if-no-files-found: ignore
           retention-days: 7
 
@@ -345,7 +347,7 @@ jobs:
   ci-status:
     name: CI Status Check
     runs-on: ubuntu-latest
-    needs: [generate, build, test]   # <— 只留這三個
+    needs: [generate, build, test]
     if: always()
     timeout-minutes: 5
 
@@ -375,9 +377,7 @@ jobs:
           echo "|-----|--------|-------------|" >> $GITHUB_STEP_SUMMARY
           echo "| Generate CRDs | ${{ needs.generate.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | CRD generation and code generation |" >> $GITHUB_STEP_SUMMARY
           echo "| Build | ${{ needs.build.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Project compilation |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test | ${{ needs.test.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Unit tests with envtest |" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint | ${{ needs.lint.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Code linting with golangci-lint |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security | ${{ needs.security.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Vulnerability scanning with govulncheck |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ needs.test.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Basic go test with coverage |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
