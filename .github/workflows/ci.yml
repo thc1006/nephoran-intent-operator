@@ -1,0 +1,21 @@
+﻿name: ci
+on:
+  push:
+    branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
+  pull_request:
+
+concurrency:
+  group: ${{ github.ref }}       # 以分支為群組
+  cancel-in-progress: true       # 新的中斷舊的（避免同分支互踩）
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - run: go version
+      - run: go mod tidy
+      - run: go test ./...
