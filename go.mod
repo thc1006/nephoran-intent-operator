@@ -180,7 +180,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.6.1
 	istio.io/api v1.26.3
-	k8s.io/metrics v0.33.2
+	k8s.io/metrics v0.33.3
 	sigs.k8s.io/kustomize/api v0.19.0
 	sigs.k8s.io/kustomize/kyaml v0.19.0
 )
