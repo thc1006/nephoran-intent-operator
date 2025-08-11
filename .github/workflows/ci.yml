@@ -345,7 +345,7 @@ jobs:
   ci-status:
     name: CI Status Check
     runs-on: ubuntu-latest
-    needs: [generate, build, test]   # <— 只留這三個
+    needs: [generate, build, test, lint, security]
     if: always()
     timeout-minutes: 5
 
@@ -357,13 +357,17 @@ jobs:
           echo "Generate: ${{ needs.generate.result }}"
           echo "Build:    ${{ needs.build.result }}"
           echo "Test:     ${{ needs.test.result }}"
+          echo "Lint:     ${{ needs.lint.result }}"
+          echo "Security: ${{ needs.security.result }}"
           echo ""
 
           if [[ "${{ needs.generate.result }}" != "success" || \
                 "${{ needs.build.result }}"    != "success" || \
                 "${{ needs.test.result }}"     != "success" ]]; then
-            echo "❌ CI Pipeline Failed"; exit 1; fi
-          echo "✅ CI Pipeline Succeeded"
+            echo "❌ CI Pipeline Failed - Critical jobs (generate/build/test) failed"
+            exit 1
+          fi
+          echo "✅ CI Pipeline Succeeded - All critical jobs completed successfully"
 
       - name: Generate CI summary
         if: always()
