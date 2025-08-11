@@ -173,7 +173,7 @@ require (
 	go.opentelemetry.io/otel/exporters/prometheus v0.54.0
 	golang.org/x/mod v0.25.0
 	golang.org/x/net v0.42.0
-	gonum.org/v1/gonum v0.15.1
+	gonum.org/v1/gonum v0.16.0
 	google.golang.org/api v0.227.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
