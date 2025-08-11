@@ -10,9 +10,10 @@ import (
 )
 
 func main() {
+	// repoRoot 假設是目前工作樹根目錄
 	repoRoot, _ := os.Getwd()
 	schemaPath := filepath.Join(repoRoot, "docs", "contracts", "intent.schema.json")
-	outDir := filepath.Join(repoRoot, "handoff")
+	outDir := filepath.Join(repoRoot, "handoff") // 與 porch 分支用同一個協作目錄名，後面會給你路徑參數
 
 	v, err := ingest.NewValidator(schemaPath)
 	if err != nil {

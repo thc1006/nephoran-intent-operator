@@ -50,25 +50,25 @@ func TestRAGClientInterface(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := NewRAGClient(tt.config)
-			
+
 			// Verify interface implementation
 			if client == nil {
 				t.Fatal("NewRAGClient returned nil")
 			}
-			
+
 			// Check that client implements RAGClient interface
 			var _ RAGClient = client
-			
+
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
-			
+
 			// Test Initialize method
 			t.Run("Initialize", func(t *testing.T) {
 				err := client.Initialize(ctx)
-				
+
 				// Check client type to determine expected behavior
 				clientType := reflect.TypeOf(client).String()
-				
+
 				if clientType == "*rag.noOpRAGClient" {
 					// No-op client should always succeed
 					if err != nil {
@@ -84,14 +84,14 @@ func TestRAGClientInterface(t *testing.T) {
 					}
 				}
 			})
-			
+
 			// Test Retrieve method
 			t.Run("Retrieve", func(t *testing.T) {
 				docs, err := client.Retrieve(ctx, "test query")
-				
+
 				// Check client type to determine expected behavior
 				clientType := reflect.TypeOf(client).String()
-				
+
 				if clientType == "*rag.noOpRAGClient" {
 					// No-op client should never error and return empty slice
 					if err != nil {
@@ -109,16 +109,16 @@ func TestRAGClientInterface(t *testing.T) {
 					} else {
 						t.Logf("Weaviate client Retrieve succeeded with %d docs", len(docs))
 					}
-					
+
 					// Verify return type consistency
 					if err == nil && docs == nil {
 						t.Error("Weaviate client returned nil docs slice without error")
 					}
 				}
-				
+
 				t.Logf("Retrieved %d documents", len(docs))
 			})
-			
+
 			// Test Shutdown method
 			t.Run("Shutdown", func(t *testing.T) {
 				err := client.Shutdown(ctx)
@@ -140,21 +140,21 @@ func TestBuildTagConditionalBehavior(t *testing.T) {
 		WeaviateURL:      "http://invalid-url-for-testing:8080",
 		WeaviateAPIKey:   "test-key",
 	}
-	
+
 	client := NewRAGClient(config)
 	clientType := reflect.TypeOf(client).String()
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	
+
 	// Determine which implementation we're testing based on behavior
 	err := client.Initialize(ctx)
 	if err != nil {
 		t.Fatalf("Initialize failed: %v", err)
 	}
-	
+
 	docs, err := client.Retrieve(ctx, "test telecommunications query")
-	
+
 	// Check implementation type and expected behavior
 	if clientType == "*rag.noOpRAGClient" || (err == nil && len(docs) == 0) {
 		t.Log("✓ Running with no-op RAG client (without rag build tag)")
@@ -165,7 +165,7 @@ func TestBuildTagConditionalBehavior(t *testing.T) {
 	} else {
 		t.Logf("Unknown client type: %s", clientType)
 	}
-	
+
 	// Always test shutdown
 	if err := client.Shutdown(ctx); err != nil {
 		t.Errorf("Shutdown failed: %v", err)
@@ -182,7 +182,7 @@ func verifyNoOpBehavior(t *testing.T, client RAGClient, ctx context.Context) {
 	if len(docs) != 0 {
 		t.Errorf("No-op client should return empty docs, got %d docs", len(docs))
 	}
-	
+
 	// Multiple calls should be consistent
 	for i := 0; i < 3; i++ {
 		docs2, err2 := client.Retrieve(ctx, fmt.Sprintf("query %d", i))
@@ -199,7 +199,7 @@ func verifyNoOpBehavior(t *testing.T, client RAGClient, ctx context.Context) {
 func verifyWeaviateBehavior(t *testing.T, client RAGClient, ctx context.Context) {
 	// Weaviate client may error due to connectivity issues in test environment
 	docs, err := client.Retrieve(ctx, "telecommunications intent")
-	
+
 	// We expect either:
 	// 1. Connection error (acceptable in test environment)
 	// 2. Valid response with docs (if Weaviate is available)
@@ -247,7 +247,7 @@ func TestRAGClientConfigDefaults(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Should not panic with any config
@@ -256,19 +256,19 @@ func TestRAGClientConfigDefaults(t *testing.T) {
 					t.Errorf("NewRAGClient panicked with config %v: %v", tt.config, r)
 				}
 			}()
-			
+
 			client := NewRAGClient(tt.config)
 			if client == nil {
 				t.Error("NewRAGClient returned nil")
 				return
 			}
-			
+
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			
+
 			// Basic operations should work even with minimal config
 			clientType := reflect.TypeOf(client).String()
-			
+
 			err := client.Initialize(ctx)
 			if clientType == "*rag.noOpRAGClient" {
 				// No-op client should always succeed
@@ -281,7 +281,7 @@ func TestRAGClientConfigDefaults(t *testing.T) {
 					t.Logf("Weaviate client Initialize failed (expected): %v", err)
 				}
 			}
-			
+
 			docs, err := client.Retrieve(ctx, "test")
 			if clientType == "*rag.noOpRAGClient" {
 				// No-op client should never error
@@ -300,7 +300,7 @@ func TestRAGClientConfigDefaults(t *testing.T) {
 					t.Error("Weaviate client returned nil docs slice without error")
 				}
 			}
-			
+
 			if err := client.Shutdown(ctx); err != nil {
 				t.Errorf("Shutdown failed: %v", err)
 			}
@@ -317,14 +317,14 @@ func TestConcurrentAccess(t *testing.T) {
 		WeaviateURL:      "http://localhost:8080", // Provide URL for Weaviate client
 		WeaviateAPIKey:   "test-key",
 	}
-	
+
 	client := NewRAGClient(config)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	
+
 	err := client.Initialize(ctx)
 	clientType := reflect.TypeOf(client).String()
-	
+
 	// Handle initialization based on client type
 	if clientType == "*rag.noOpRAGClient" {
 		if err != nil {
@@ -343,13 +343,13 @@ func TestConcurrentAccess(t *testing.T) {
 			t.Errorf("Shutdown failed: %v", err)
 		}
 	}()
-	
+
 	// Run concurrent retrieve operations
 	const numGoroutines = 10
 	const numCallsPerGoroutine = 5
-	
+
 	errCh := make(chan error, numGoroutines*numCallsPerGoroutine)
-	
+
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			for j := 0; j < numCallsPerGoroutine; j++ {
@@ -363,7 +363,7 @@ func TestConcurrentAccess(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	// Collect results
 	var errors []error
 	for i := 0; i < numGoroutines*numCallsPerGoroutine; i++ {
@@ -371,7 +371,7 @@ func TestConcurrentAccess(t *testing.T) {
 			errors = append(errors, err)
 		}
 	}
-	
+
 	// Handle results based on client type
 	if clientType == "*rag.noOpRAGClient" {
 		// No-op client should never have errors
@@ -408,10 +408,10 @@ func BenchmarkRAGClientOperations(b *testing.B) {
 		MaxSearchResults: 5,
 		MinConfidence:    0.7,
 	}
-	
+
 	client := NewRAGClient(config)
 	ctx := context.Background()
-	
+
 	if err := client.Initialize(ctx); err != nil {
 		b.Fatalf("Initialize failed: %v", err)
 	}
@@ -420,7 +420,7 @@ func BenchmarkRAGClientOperations(b *testing.B) {
 			b.Errorf("Shutdown failed: %v", err)
 		}
 	}()
-	
+
 	b.Run("Retrieve", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -430,7 +430,7 @@ func BenchmarkRAGClientOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("Initialize", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
@@ -440,7 +440,7 @@ func BenchmarkRAGClientOperations(b *testing.B) {
 			}
 		}
 	})
-	
+
 	b.Run("Shutdown", func(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {

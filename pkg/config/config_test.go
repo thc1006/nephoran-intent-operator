@@ -409,8 +409,8 @@ func TestConfig_GetRAGAPIURL(t *testing.T) {
 // TestEnvironmentVariables tests the 8 specific environment variables
 func TestEnvironmentVariables(t *testing.T) {
 	tests := []struct {
-		name     string
-		envVar   string
+		name      string
+		envVar    string
 		testCases []struct {
 			name     string
 			value    string
@@ -480,7 +480,7 @@ func TestEnvironmentVariables(t *testing.T) {
 				{"negative value uses default", "-5", 15 * time.Second, false},
 				{"invalid string uses default", "invalid", 15 * time.Second, false},
 				{"empty string uses default", "", 15 * time.Second, false},
-				{"float string uses default", "15.5", 15 * time.Second, false}, // Atoi fails on float
+				{"float string uses default", "15.5", 15 * time.Second, false},             // Atoi fails on float
 				{"whitespace not trimmed uses default", "  60  ", 15 * time.Second, false}, // GetEnvOrDefault doesn't trim, strconv.Atoi fails
 			},
 		},
@@ -532,9 +532,9 @@ func TestEnvironmentVariables(t *testing.T) {
 				isError  bool
 			}{
 				{"default when unset", "", int64(1048576), false}, // default: 1MB
-				{"valid size", "2097152", int64(2097152), false}, // 2MB
+				{"valid size", "2097152", int64(2097152), false},  // 2MB
 				{"zero size", "0", int64(0), false},
-				{"large size", "10485760", int64(10485760), false}, // 10MB
+				{"large size", "10485760", int64(10485760), false},        // 10MB
 				{"negative value accepted", "-1000", int64(-1000), false}, // GetInt64Env accepts negative values
 				{"invalid string uses default", "unlimited", int64(1048576), false},
 				{"empty string uses default", "", int64(1048576), false},
@@ -600,12 +600,12 @@ func TestEnvironmentVariables(t *testing.T) {
 					}
 
 					cfg, err := LoadFromEnv()
-					
+
 					if tc.isError {
 						assert.Error(t, err)
 						return
 					}
-					
+
 					require.NoError(t, err)
 					require.NotNil(t, cfg)
 
@@ -645,7 +645,7 @@ func TestEnvironmentVariablesDefaultValues(t *testing.T) {
 
 	// Test all 8 environment variables have correct defaults
 	assert.Equal(t, true, cfg.EnableNetworkIntent, "ENABLE_NETWORK_INTENT default should be true")
-	assert.Equal(t, false, cfg.EnableLLMIntent, "ENABLE_LLM_INTENT default should be false") 
+	assert.Equal(t, false, cfg.EnableLLMIntent, "ENABLE_LLM_INTENT default should be false")
 	assert.Equal(t, 15*time.Second, cfg.LLMTimeout, "LLM_TIMEOUT_SECS default should be 15 seconds")
 	assert.Equal(t, 2, cfg.LLMMaxRetries, "LLM_MAX_RETRIES default should be 2")
 	assert.Equal(t, 512, cfg.LLMCacheMaxEntries, "LLM_CACHE_MAX_ENTRIES default should be 512")
@@ -732,18 +732,18 @@ func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cleanupTargetEnv(t)
 			os.Setenv("OPENAI_API_KEY", "sk-test-key")
-			
+
 			tt.setupEnv()
-			
+
 			cfg, err := LoadFromEnv()
 			if tt.expectError {
 				assert.Error(t, err)
 				return
 			}
-			
+
 			require.NoError(t, err)
 			require.NotNil(t, cfg)
-			
+
 			tt.validate(t, cfg)
 		})
 	}
@@ -820,7 +820,7 @@ func TestSpecialLLMTimeoutSecsConversion(t *testing.T) {
 func cleanupTargetEnv(t *testing.T) {
 	targetEnvVars := []string{
 		"ENABLE_NETWORK_INTENT",
-		"ENABLE_LLM_INTENT", 
+		"ENABLE_LLM_INTENT",
 		"LLM_TIMEOUT_SECS",
 		"LLM_MAX_RETRIES",
 		"LLM_CACHE_MAX_ENTRIES",

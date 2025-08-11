@@ -30,7 +30,7 @@ var (
 	// Global metrics registration state
 	metricsRegistered bool
 	metricsRegistryMu sync.Mutex
-	
+
 	// Controller-runtime metrics for NetworkIntent controller
 	networkIntentReconcilesTotal = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
@@ -39,24 +39,24 @@ var (
 		},
 		[]string{"controller", "namespace", "name", "result"},
 	)
-	
+
 	networkIntentReconcileErrors = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
-			Name: "networkintent_reconcile_errors_total", 
+			Name: "networkintent_reconcile_errors_total",
 			Help: "Total number of NetworkIntent reconciliation errors",
 		},
 		[]string{"controller", "namespace", "name", "error_type"},
 	)
-	
+
 	networkIntentProcessingDuration = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
-			Name: "networkintent_processing_duration_seconds",
-			Help: "Duration of NetworkIntent processing phases",
+			Name:    "networkintent_processing_duration_seconds",
+			Help:    "Duration of NetworkIntent processing phases",
 			Buckets: prometheus.DefBuckets,
 		},
 		[]string{"controller", "namespace", "name", "phase"},
 	)
-	
+
 	networkIntentStatus = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "networkintent_status",
@@ -75,12 +75,12 @@ type ControllerMetrics struct {
 // NewControllerMetrics creates a new ControllerMetrics instance
 func NewControllerMetrics(controllerName string) *ControllerMetrics {
 	enabled := isMetricsEnabled()
-	
+
 	// Register metrics once globally if enabled
 	if enabled {
 		registerMetricsOnce()
 	}
-	
+
 	return &ControllerMetrics{
 		controllerName: controllerName,
 		enabled:        enabled,
@@ -100,18 +100,18 @@ func isMetricsEnabled() bool {
 func registerMetricsOnce() {
 	metricsRegistryMu.Lock()
 	defer metricsRegistryMu.Unlock()
-	
+
 	if metricsRegistered {
 		return
 	}
-	
+
 	metrics.Registry.MustRegister(
 		networkIntentReconcilesTotal,
 		networkIntentReconcileErrors,
 		networkIntentProcessingDuration,
 		networkIntentStatus,
 	)
-	
+
 	metricsRegistered = true
 }
 
