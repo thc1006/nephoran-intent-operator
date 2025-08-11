@@ -32,7 +32,7 @@ require (
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 
 	// Prometheus for metrics
-	github.com/prometheus/client_golang v1.22.0
+	github.com/prometheus/client_golang v1.23.0
 
 	// Redis client for caching
 	github.com/redis/go-redis/v9 v9.8.0 // indirect; Updated from v8 to v9 for better performance
@@ -155,7 +155,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.5.0
 	github.com/prometheus/client_model v0.6.2
-	github.com/prometheus/common v0.62.0
+	github.com/prometheus/common v0.65.0
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/rs/cors v1.11.1
 	github.com/shirou/gopsutil/v3 v3.24.5
