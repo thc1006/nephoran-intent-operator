@@ -77,7 +77,7 @@ jobs:
           retention-days: 1
 
   # =============================================================================
-  # Build Job (prefer Makefile; fallback to scoped go build)
+  # Build Job (Makefile if present; else go build ./...; always upload log)
   # =============================================================================
   build:
     name: Build
@@ -122,27 +122,6 @@ jobs:
           name: generated-crds
           path: deployments/crds/
 
-      - name: Determine package set (scoped to changed paths)
-        id: pkgs
-        shell: bash
-        run: |
-          set -euo pipefail
-          BASE_REF="${{ github.base_ref }}"
-          if [[ -z "$BASE_REF" ]]; then BASE_REF="origin/integrate/mvp"; fi
-          echo "Base ref: $BASE_REF"
-          CHANGED=$(git diff --name-only "$BASE_REF"... | grep -E '\\.(go|mod|sum)$' || true)
-          if [[ -n "$CHANGED" ]]; then
-            echo "$CHANGED" | sed 's#^# - #' >&2
-            PKGS=$(echo "$CHANGED" | xargs -I{} dirname {} | sort -u | xargs -I{} bash -lc 'go list ./{} 2>/dev/null' | sort -u || true)
-          fi
-          if [[ -z "${PKGS:-}" ]]; then
-            PKGS=$(go list ./cmd/... ./internal/... 2>/dev/null || true)
-          fi
-          if [[ -z "$PKGS" ]]; then PKGS="./..."; fi
-          echo "Packages to build:\n$PKGS" >&2
-          echo "pkgs=$PKGS" >> $GITHUB_OUTPUT
-          echo "PKGS=$PKGS" >> $GITHUB_ENV
-
       - name: Build project (Makefile if present; else go build ./...)
         shell: bash
         run: |
@@ -153,7 +132,7 @@ jobs:
             status=${PIPESTATUS[0]}
             exit $status
           else
-            echo "No Makefile target 'build' → fallback to 'go build ./...'"
+            echo "No Makefile target 'build' → fallback to 'go build -v ./...'"
             ( go build -v ./... ) 2>&1 | tee .excellence-reports/build.log
             status=${PIPESTATUS[0]}
             exit $status
@@ -168,10 +147,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-
-
   # =============================================================================
-  # Test Job (basic go test on scoped packages)
+  # Test Job (basic go test ./...; always upload log)
   # =============================================================================
   test:
     name: Test
@@ -227,22 +204,6 @@ jobs:
           name: generated-crds
           path: deployments/crds/
 
-      - name: Determine package set (scoped to changed paths)
-        shell: bash
-        run: |
-          set -euo pipefail
-          BASE_REF="${{ github.base_ref }}"
-          if [[ -z "$BASE_REF" ]]; then BASE_REF="origin/integrate/mvp"; fi
-          CHANGED=$(git diff --name-only "$BASE_REF"... | grep -E '\\.(go|mod|sum)$' || true)
-          if [[ -n "$CHANGED" ]]; then
-            PKGS=$(echo "$CHANGED" | xargs -I{} dirname {} | sort -u | xargs -I{} bash -lc 'go list ./{} 2>/dev/null' | sort -u || true)
-          fi
-          if [[ -z "${PKGS:-}" ]]; then
-            PKGS=$(go list ./cmd/... ./internal/... 2>/dev/null || true)
-          fi
-          if [[ -z "$PKGS" ]]; then PKGS="./..."; fi
-          echo "PKGS=$PKGS" >> $GITHUB_ENV
-
       - name: Run tests with coverage (basic)
         shell: bash
         env:
@@ -253,10 +214,8 @@ jobs:
           mkdir -p .excellence-reports
           ( go test -v ./... -count=1 -coverprofile=.excellence-reports/coverage.out ) 2>&1 | tee .excellence-reports/test.log
           status=${PIPESTATUS[0]}
-          # coverage html 盡量嘗試，不影響整體結果
           go tool cover -html=.excellence-reports/coverage.out -o .excellence-reports/coverage.html || true
           exit $status
-
 
       - name: Upload test results
         if: always()
@@ -416,7 +375,6 @@ jobs:
           echo "Lint:     ${{ needs.lint.result }}"
           echo "Security: ${{ needs.security.result }}"
           echo ""
-
           if [[ "${{ needs.generate.result }}" != "success" || \
                 "${{ needs.build.result }}"    != "success" || \
                 "${{ needs.test.result }}"     != "success" ]]; then
@@ -434,8 +392,8 @@ jobs:
           echo "| Job | Status | Description |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|-------------|" >> $GITHUB_STEP_SUMMARY
           echo "| Generate CRDs | ${{ needs.generate.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | CRD generation and code generation |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ needs.build.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Scoped project compilation |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test | ${{ needs.test.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Scoped go test with coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Project compilation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ needs.test.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Basic go test with coverage |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
@@ -481,11 +439,14 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Download build artifacts
+      # 若你的 Dockerfile 需要 bin/ 內的二進位檔，請在 Makefile 的 build 目標輸出到 bin/
+      # 這裡下載失敗也不要讓 job 掛掉（main push 才會跑）
+      - name: Download build artifacts (optional)
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-          path: bin/
+          path: .excellence-reports/
+          if-no-files-found: ignore
 
       - name: Build and push container image
         uses: docker/build-push-action@v6
