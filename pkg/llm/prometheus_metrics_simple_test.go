@@ -36,7 +36,7 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 		// Reset singleton
 		prometheusOnce = sync.Once{}
 		prometheusMetrics = nil
-		
+
 		// Test with metrics disabled
 		os.Setenv("METRICS_ENABLED", "false")
 		pm := NewPrometheusMetrics()
@@ -46,7 +46,7 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 		// Reset singleton
 		prometheusOnce = sync.Once{}
 		prometheusMetrics = nil
-		
+
 		// Test with metrics enabled
 		os.Setenv("METRICS_ENABLED", "true")
 		pm = NewPrometheusMetrics()
@@ -58,11 +58,11 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 		// Reset singleton
 		prometheusOnce = sync.Once{}
 		prometheusMetrics = nil
-		
+
 		os.Setenv("METRICS_ENABLED", "false")
 		pm := NewPrometheusMetrics()
 		require.False(t, pm.isRegistered())
-		
+
 		// These should not panic even with metrics disabled
 		pm.RecordRequest("test-model", "success", 100*time.Millisecond)
 		pm.RecordError("test-model", "timeout")
@@ -76,11 +76,11 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 		// Reset singleton
 		prometheusOnce = sync.Once{}
 		prometheusMetrics = nil
-		
+
 		os.Setenv("METRICS_ENABLED", "true")
 		pm := NewPrometheusMetrics()
 		require.True(t, pm.isRegistered())
-		
+
 		// These should work properly with metrics enabled
 		pm.RecordRequest("test-model", "success", 100*time.Millisecond)
 		pm.RecordRequest("test-model", "error", 200*time.Millisecond)
@@ -89,7 +89,7 @@ func TestPrometheusMetricsBasic(t *testing.T) {
 		pm.RecordCacheMiss("test-model")
 		pm.RecordRetryAttempt("test-model")
 		pm.RecordFallbackAttempt("test-model", "fallback-model")
-		
+
 		// Verify metrics objects exist
 		assert.NotNil(t, pm.RequestsTotal)
 		assert.NotNil(t, pm.ErrorsTotal)
@@ -123,7 +123,7 @@ func TestErrorCategorizationBasic(t *testing.T) {
 		if err == nil {
 			return "none"
 		}
-		
+
 		errMsg := err.Error()
 		switch {
 		case err.Error() == "circuit breaker is open":
