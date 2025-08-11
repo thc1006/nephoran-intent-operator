@@ -110,7 +110,7 @@ require (
 
 require (
 	cloud.google.com/go/compute v1.38.0
-	cloud.google.com/go/container v1.43.0
+	cloud.google.com/go/container v1.44.0
 	cloud.google.com/go/monitoring v1.24.2
 	cloud.google.com/go/storage v1.56.0
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0
