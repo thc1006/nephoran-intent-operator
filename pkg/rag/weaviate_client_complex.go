@@ -1179,13 +1179,13 @@ func (c *simpleWeaviateRAGClient) Retrieve(ctx context.Context, query string) ([
 	if c.config.WeaviateURL == "" {
 		return nil, fmt.Errorf("Weaviate URL not configured")
 	}
-	
+
 	// Use configured max results or default to 5
 	limit := c.config.MaxSearchResults
 	if limit <= 0 {
 		limit = 5
 	}
-	
+
 	// Build GraphQL query for Weaviate
 	graphqlQuery := fmt.Sprintf(`{
 		Get {
@@ -1203,37 +1203,37 @@ func (c *simpleWeaviateRAGClient) Retrieve(ctx context.Context, query string) ([
 			}
 		}
 	}`, query, limit)
-	
+
 	// Make request to Weaviate
 	reqBody := map[string]string{"query": graphqlQuery}
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal query: %w", err)
 	}
-	
-	req, err := http.NewRequestWithContext(ctx, "POST", 
-		c.config.WeaviateURL+"/v1/graphql", 
+
+	req, err := http.NewRequestWithContext(ctx, "POST",
+		c.config.WeaviateURL+"/v1/graphql",
 		strings.NewReader(string(jsonBody)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Content-Type", "application/json")
 	if c.config.WeaviateAPIKey != "" {
 		req.Header.Set("Authorization", "Bearer "+c.config.WeaviateAPIKey)
 	}
-	
+
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("Weaviate returned status %d: %s", resp.StatusCode, string(body))
 	}
-	
+
 	// Parse response
 	var graphqlResp struct {
 		Data struct {
@@ -1251,27 +1251,27 @@ func (c *simpleWeaviateRAGClient) Retrieve(ctx context.Context, query string) ([
 			Message string `json:"message"`
 		} `json:"errors"`
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
 	}
-	
+
 	if err := json.Unmarshal(body, &graphqlResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
-	
+
 	if len(graphqlResp.Errors) > 0 {
 		return nil, fmt.Errorf("GraphQL errors: %s", graphqlResp.Errors[0].Message)
 	}
-	
+
 	// Convert to Doc structs and apply confidence filter
 	results := make([]Doc, 0, len(graphqlResp.Data.Get.Document))
 	minConfidence := c.config.MinConfidence
 	if minConfidence <= 0 {
 		minConfidence = 0.0 // Accept all results if no minimum configured
 	}
-	
+
 	for _, doc := range graphqlResp.Data.Get.Document {
 		if doc.Additional.Certainty >= minConfidence {
 			results = append(results, Doc{
@@ -1282,11 +1282,11 @@ func (c *simpleWeaviateRAGClient) Retrieve(ctx context.Context, query string) ([
 			})
 		}
 	}
-	
+
 	c.logger.Debug("Retrieved documents from Weaviate",
 		slog.Int("total_found", len(graphqlResp.Data.Get.Document)),
 		slog.Int("filtered_results", len(results)),
 		slog.Float64("min_confidence", minConfidence))
-	
+
 	return results, nil
 }

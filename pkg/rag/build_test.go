@@ -13,19 +13,19 @@ func TestBuildModes(t *testing.T) {
 		MaxSearchResults: 5,
 		MinConfidence:    0.7,
 	}
-	
+
 	client := NewRAGClient(config)
-	
+
 	// Initialize should always work
 	ctx := context.Background()
 	err := client.Initialize(ctx)
 	if err != nil {
 		t.Errorf("Initialize failed: %v", err)
 	}
-	
+
 	// ProcessIntent behavior depends on build tags
 	result, err := client.ProcessIntent(ctx, "test intent")
-	
+
 	// Check if this is a no-op build (without rag tag)
 	if err != nil && strings.Contains(err.Error(), "RAG support is not enabled") {
 		// This is expected for no-op build
@@ -37,11 +37,11 @@ func TestBuildModes(t *testing.T) {
 		// RAG is enabled
 		t.Logf("Running with Weaviate RAG client (build with rag tag): %s", result)
 	}
-	
+
 	// IsHealthy should always return something
 	healthy := client.IsHealthy()
 	t.Logf("Client health status: %v", healthy)
-	
+
 	// Shutdown should always work
 	err = client.Shutdown(ctx)
 	if err != nil {

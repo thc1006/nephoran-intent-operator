@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"nephoran-intent-operator/internal/ingest"
+	ingest "github.com/thc1006/nephoran-intent-operator/internal/ingest"
 )
 
 func main() {

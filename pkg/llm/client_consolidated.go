@@ -39,8 +39,8 @@ type Client struct {
 	retryConfig    RetryConfig
 
 	// Observability
-	logger           *slog.Logger
-	metrics          *ClientMetrics
+	logger            *slog.Logger
+	metrics           *ClientMetrics
 	metricsIntegrator *MetricsIntegrator
 
 	// Concurrency control
@@ -605,7 +605,7 @@ func (c *Client) categorizeError(err error) string {
 	if err == nil {
 		return "none"
 	}
-	
+
 	errMsg := err.Error()
 	switch {
 	case strings.Contains(errMsg, "circuit breaker is open"):
@@ -664,19 +664,19 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 		if !success {
 			status = "error"
 		}
-		
+
 		// Get current token stats for this request
 		// Note: This gives cumulative stats, not per-request, but it's the best we can do
 		// with the current TokenTracker implementation
 		tokenStats := c.tokenTracker.GetStats()
 		totalTokens := int(tokenStats["total_tokens"].(int64))
-		
+
 		// Record LLM request metrics
 		c.metricsIntegrator.RecordLLMRequest(c.modelName, status, latency, totalTokens)
-		
+
 		// Record cache operation
 		c.metricsIntegrator.RecordCacheOperation(c.modelName, "get", cacheHit)
-		
+
 		// Record retry attempts if any occurred
 		for i := 0; i < retryCount; i++ {
 			c.metricsIntegrator.RecordRetryAttempt(c.modelName)

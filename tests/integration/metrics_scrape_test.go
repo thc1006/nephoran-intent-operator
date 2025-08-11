@@ -2,7 +2,7 @@
 //
 // This test validates Prometheus metrics endpoint functionality including:
 // - HTTP server setup with metrics endpoint
-// - Conditional metrics exposure based on METRICS_ENABLED environment variable  
+// - Conditional metrics exposure based on METRICS_ENABLED environment variable
 // - LLM metrics collection and exposition
 // - Controller metrics collection and exposition
 // - Prometheus text format parsing and validation
@@ -33,23 +33,23 @@ import (
 // MetricsScrapeTestSuite provides comprehensive testing for Prometheus metrics endpoint
 type MetricsScrapeTestSuite struct {
 	suite.Suite
-	
+
 	// Test components
-	router           *mux.Router
-	server           *httptest.Server
-	llmMetrics       *llm.PrometheusMetrics
+	router            *mux.Router
+	server            *httptest.Server
+	llmMetrics        *llm.PrometheusMetrics
 	controllerMetrics *controllers.ControllerMetrics
-	
+
 	// Test state
 	originalMetricsEnabled string
-	testRegistry          *prometheus.Registry
+	testRegistry           *prometheus.Registry
 }
 
 // SetupSuite initializes test suite components
 func (suite *MetricsScrapeTestSuite) SetupSuite() {
 	// Store original environment state
 	suite.originalMetricsEnabled = os.Getenv("METRICS_ENABLED")
-	
+
 	// Create isolated test registry
 	suite.testRegistry = prometheus.NewRegistry()
 }
@@ -62,7 +62,7 @@ func (suite *MetricsScrapeTestSuite) TearDownSuite() {
 	} else {
 		os.Unsetenv("METRICS_ENABLED")
 	}
-	
+
 	if suite.server != nil {
 		suite.server.Close()
 	}
@@ -79,7 +79,7 @@ func (suite *MetricsScrapeTestSuite) TearDownTest() {
 		suite.server.Close()
 		suite.server = nil
 	}
-	
+
 	// Reset environment for next test
 	os.Unsetenv("METRICS_ENABLED")
 }
@@ -88,29 +88,29 @@ func (suite *MetricsScrapeTestSuite) TearDownTest() {
 func (suite *MetricsScrapeTestSuite) TestMetricsEndpointEnabled() {
 	// Enable metrics
 	os.Setenv("METRICS_ENABLED", "true")
-	
+
 	// Setup test server with metrics
 	suite.setupTestServerWithMetrics()
-	
+
 	// Make request to metrics endpoint
 	resp, err := http.Get(suite.server.URL + "/metrics")
 	require.NoError(suite.T(), err)
 	defer resp.Body.Close()
-	
+
 	// Validate response
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
-	assert.Equal(suite.T(), "text/plain; version=0.0.4; charset=utf-8", 
+	assert.Equal(suite.T(), "text/plain; version=0.0.4; charset=utf-8",
 		resp.Header.Get("Content-Type"))
-	
+
 	// Read response body
 	body := make([]byte, 8192)
 	n, err := resp.Body.Read(body)
 	require.NoError(suite.T(), err)
-	
+
 	content := string(body[:n])
-	suite.T().Logf("Metrics response (first 1000 chars): %s", 
+	suite.T().Logf("Metrics response (first 1000 chars): %s",
 		content[:minInt(1000, len(content))])
-	
+
 	// Validate basic Prometheus format
 	assert.Contains(suite.T(), content, "# HELP")
 	assert.Contains(suite.T(), content, "# TYPE")
@@ -120,15 +120,15 @@ func (suite *MetricsScrapeTestSuite) TestMetricsEndpointEnabled() {
 func (suite *MetricsScrapeTestSuite) TestMetricsEndpointDisabled() {
 	// Disable metrics explicitly
 	os.Setenv("METRICS_ENABLED", "false")
-	
+
 	// Setup test server without metrics
 	suite.setupTestServerWithoutMetrics()
-	
+
 	// Make request to metrics endpoint
 	resp, err := http.Get(suite.server.URL + "/metrics")
 	require.NoError(suite.T(), err)
 	defer resp.Body.Close()
-	
+
 	// Validate response - should return 404
 	assert.Equal(suite.T(), http.StatusNotFound, resp.StatusCode)
 }
@@ -137,41 +137,41 @@ func (suite *MetricsScrapeTestSuite) TestMetricsEndpointDisabled() {
 func (suite *MetricsScrapeTestSuite) TestLLMMetricsPresent() {
 	// Enable metrics
 	os.Setenv("METRICS_ENABLED", "true")
-	
+
 	// Setup test server with LLM metrics
 	suite.setupTestServerWithLLMMetrics()
-	
+
 	// Generate some test metrics
 	suite.generateTestLLMMetrics()
-	
+
 	// Make request to metrics endpoint
 	resp, err := http.Get(suite.server.URL + "/metrics")
 	require.NoError(suite.T(), err)
 	defer resp.Body.Close()
-	
+
 	// Parse metrics
 	metrics, err := suite.parsePrometheusMetrics(resp)
 	require.NoError(suite.T(), err)
-	
+
 	// Validate LLM metrics presence
 	expectedLLMMetrics := []string{
 		"nephoran_llm_requests_total",
 		"nephoran_llm_processing_duration_seconds",
 		"nephoran_llm_errors_total",
-		"nephoran_llm_cache_hits_total", 
+		"nephoran_llm_cache_hits_total",
 		"nephoran_llm_cache_misses_total",
 	}
-	
+
 	for _, metricName := range expectedLLMMetrics {
 		suite.assertMetricPresent(metrics, metricName)
 		suite.assertMetricHasHelp(metrics, metricName)
 		suite.assertMetricHasType(metrics, metricName)
 	}
-	
+
 	// Validate specific help text
-	suite.assertMetricHelpContains(metrics, "nephoran_llm_requests_total", 
+	suite.assertMetricHelpContains(metrics, "nephoran_llm_requests_total",
 		"Total number of LLM requests")
-	suite.assertMetricHelpContains(metrics, "nephoran_llm_processing_duration_seconds", 
+	suite.assertMetricHelpContains(metrics, "nephoran_llm_processing_duration_seconds",
 		"Duration of LLM processing requests")
 }
 
@@ -179,22 +179,22 @@ func (suite *MetricsScrapeTestSuite) TestLLMMetricsPresent() {
 func (suite *MetricsScrapeTestSuite) TestControllerMetricsPresent() {
 	// Enable metrics
 	os.Setenv("METRICS_ENABLED", "true")
-	
+
 	// Setup test server with controller metrics
 	suite.setupTestServerWithControllerMetrics()
-	
+
 	// Generate some test controller metrics
 	suite.generateTestControllerMetrics()
-	
+
 	// Make request to metrics endpoint
 	resp, err := http.Get(suite.server.URL + "/metrics")
 	require.NoError(suite.T(), err)
 	defer resp.Body.Close()
-	
+
 	// Parse metrics
 	metrics, err := suite.parsePrometheusMetrics(resp)
 	require.NoError(suite.T(), err)
-	
+
 	// Validate controller metrics presence
 	expectedControllerMetrics := []string{
 		"networkintent_reconciles_total",
@@ -202,17 +202,17 @@ func (suite *MetricsScrapeTestSuite) TestControllerMetricsPresent() {
 		"networkintent_reconcile_errors_total",
 		"networkintent_status",
 	}
-	
+
 	for _, metricName := range expectedControllerMetrics {
 		suite.assertMetricPresent(metrics, metricName)
 		suite.assertMetricHasHelp(metrics, metricName)
 		suite.assertMetricHasType(metrics, metricName)
 	}
-	
+
 	// Validate specific help text
-	suite.assertMetricHelpContains(metrics, "networkintent_reconciles_total", 
+	suite.assertMetricHelpContains(metrics, "networkintent_reconciles_total",
 		"Total number of NetworkIntent reconciliations")
-	suite.assertMetricHelpContains(metrics, "networkintent_processing_duration_seconds", 
+	suite.assertMetricHelpContains(metrics, "networkintent_processing_duration_seconds",
 		"Duration of NetworkIntent processing phases")
 }
 
@@ -220,15 +220,15 @@ func (suite *MetricsScrapeTestSuite) TestControllerMetricsPresent() {
 func (suite *MetricsScrapeTestSuite) TestMetricsEndpointConcurrency() {
 	// Enable metrics
 	os.Setenv("METRICS_ENABLED", "true")
-	
+
 	// Setup test server with metrics
 	suite.setupTestServerWithMetrics()
-	
+
 	// Create multiple concurrent requests
 	const concurrentRequests = 10
 	responses := make(chan *http.Response, concurrentRequests)
 	errors := make(chan error, concurrentRequests)
-	
+
 	for i := 0; i < concurrentRequests; i++ {
 		go func() {
 			resp, err := http.Get(suite.server.URL + "/metrics")
@@ -239,7 +239,7 @@ func (suite *MetricsScrapeTestSuite) TestMetricsEndpointConcurrency() {
 			responses <- resp
 		}()
 	}
-	
+
 	// Collect all responses
 	successCount := 0
 	for i := 0; i < concurrentRequests; i++ {
@@ -254,8 +254,8 @@ func (suite *MetricsScrapeTestSuite) TestMetricsEndpointConcurrency() {
 			suite.T().Error("Request timeout")
 		}
 	}
-	
-	assert.Equal(suite.T(), concurrentRequests, successCount, 
+
+	assert.Equal(suite.T(), concurrentRequests, successCount,
 		"All concurrent requests should succeed")
 }
 
@@ -263,28 +263,28 @@ func (suite *MetricsScrapeTestSuite) TestMetricsEndpointConcurrency() {
 func (suite *MetricsScrapeTestSuite) TestMetricsEndpointPerformance() {
 	// Enable metrics
 	os.Setenv("METRICS_ENABLED", "true")
-	
+
 	// Setup test server with comprehensive metrics
 	suite.setupTestServerWithAllMetrics()
-	
+
 	// Generate substantial metrics to test performance
 	suite.generateComprehensiveTestMetrics()
-	
+
 	// Measure response time
 	start := time.Now()
 	resp, err := http.Get(suite.server.URL + "/metrics")
 	duration := time.Since(start)
-	
+
 	require.NoError(suite.T(), err)
 	defer resp.Body.Close()
-	
+
 	// Validate response time is acceptable (< 1 second)
-	assert.Less(suite.T(), duration, time.Second, 
+	assert.Less(suite.T(), duration, time.Second,
 		"Metrics endpoint should respond within 1 second")
-	
+
 	// Validate response is successful
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
-	
+
 	// Log performance metrics
 	suite.T().Logf("Metrics endpoint response time: %v", duration)
 }
@@ -294,10 +294,10 @@ func (suite *MetricsScrapeTestSuite) setupTestServerWithMetrics() {
 	// Initialize metrics components
 	suite.llmMetrics = llm.NewPrometheusMetrics()
 	suite.controllerMetrics = controllers.NewControllerMetrics("networkintent")
-	
+
 	// Setup metrics endpoint
 	suite.router.Handle("/metrics", promhttp.Handler()).Methods("GET")
-	
+
 	// Create and start test server
 	suite.server = httptest.NewServer(suite.router)
 }
@@ -310,7 +310,7 @@ func (suite *MetricsScrapeTestSuite) setupTestServerWithoutMetrics() {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("healthy"))
 	}).Methods("GET")
-	
+
 	// Create and start test server
 	suite.server = httptest.NewServer(suite.router)
 }
@@ -319,10 +319,10 @@ func (suite *MetricsScrapeTestSuite) setupTestServerWithoutMetrics() {
 func (suite *MetricsScrapeTestSuite) setupTestServerWithLLMMetrics() {
 	// Initialize LLM metrics
 	suite.llmMetrics = llm.NewPrometheusMetrics()
-	
+
 	// Setup metrics endpoint
 	suite.router.Handle("/metrics", promhttp.Handler()).Methods("GET")
-	
+
 	// Create and start test server
 	suite.server = httptest.NewServer(suite.router)
 }
@@ -331,10 +331,10 @@ func (suite *MetricsScrapeTestSuite) setupTestServerWithLLMMetrics() {
 func (suite *MetricsScrapeTestSuite) setupTestServerWithControllerMetrics() {
 	// Initialize controller metrics
 	suite.controllerMetrics = controllers.NewControllerMetrics("networkintent")
-	
+
 	// Setup metrics endpoint
 	suite.router.Handle("/metrics", promhttp.Handler()).Methods("GET")
-	
+
 	// Create and start test server
 	suite.server = httptest.NewServer(suite.router)
 }
@@ -344,10 +344,10 @@ func (suite *MetricsScrapeTestSuite) setupTestServerWithAllMetrics() {
 	// Initialize all metrics components
 	suite.llmMetrics = llm.NewPrometheusMetrics()
 	suite.controllerMetrics = controllers.NewControllerMetrics("networkintent")
-	
+
 	// Setup metrics endpoint
 	suite.router.Handle("/metrics", promhttp.Handler()).Methods("GET")
-	
+
 	// Create and start test server
 	suite.server = httptest.NewServer(suite.router)
 }
@@ -357,21 +357,21 @@ func (suite *MetricsScrapeTestSuite) generateTestLLMMetrics() {
 	if suite.llmMetrics == nil {
 		return
 	}
-	
+
 	// Generate sample LLM request metrics
 	models := []string{"gpt-4o-mini", "mistral-8x22b"}
 	statuses := []string{"success", "error"}
-	
+
 	for _, model := range models {
 		for _, status := range statuses {
 			duration := time.Duration(100+len(model)*10) * time.Millisecond
 			suite.llmMetrics.RecordRequest(model, status, duration)
-			
+
 			if status == "error" {
 				suite.llmMetrics.RecordError(model, "processing_error")
 			}
 		}
-		
+
 		// Generate cache metrics
 		suite.llmMetrics.RecordCacheHit(model)
 		suite.llmMetrics.RecordCacheMiss(model)
@@ -384,7 +384,7 @@ func (suite *MetricsScrapeTestSuite) generateTestControllerMetrics() {
 	if suite.controllerMetrics == nil {
 		return
 	}
-	
+
 	// Generate sample controller metrics
 	testCases := []struct {
 		namespace string
@@ -398,15 +398,15 @@ func (suite *MetricsScrapeTestSuite) generateTestControllerMetrics() {
 		{"prod", "prod-intent-1", "error", "validation", 0.8},
 		{"staging", "staging-intent-1", "success", "reconciliation", 2.1},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.controllerMetrics.RecordReconcileTotal(tc.namespace, tc.name, tc.result)
 		suite.controllerMetrics.RecordProcessingDuration(tc.namespace, tc.name, tc.phase, tc.duration)
-		
+
 		if tc.result == "error" {
 			suite.controllerMetrics.RecordReconcileError(tc.namespace, tc.name, "validation_error")
 		}
-		
+
 		// Set status based on result
 		status := controllers.StatusReady
 		if tc.result == "error" {
@@ -423,19 +423,19 @@ func (suite *MetricsScrapeTestSuite) generateComprehensiveTestMetrics() {
 		model := fmt.Sprintf("model-%d", i%5)
 		status := []string{"success", "error"}[i%2]
 		duration := time.Duration(i*10) * time.Millisecond
-		
+
 		if suite.llmMetrics != nil {
 			suite.llmMetrics.RecordRequest(model, status, duration)
 		}
 	}
-	
+
 	// Generate many controller metrics
 	for i := 0; i < 50; i++ {
 		namespace := fmt.Sprintf("ns-%d", i%3)
 		name := fmt.Sprintf("intent-%d", i)
 		result := []string{"success", "error"}[i%3]
 		phase := []string{"validation", "processing", "deployment"}[i%3]
-		
+
 		if suite.controllerMetrics != nil {
 			suite.controllerMetrics.RecordReconcileTotal(namespace, name, result)
 			suite.controllerMetrics.RecordProcessingDuration(namespace, name, phase, float64(i)*0.1)
@@ -461,19 +461,19 @@ type PrometheusValue struct {
 func (suite *MetricsScrapeTestSuite) parsePrometheusMetrics(resp *http.Response) (map[string]PrometheusMetric, error) {
 	scanner := bufio.NewScanner(resp.Body)
 	metrics := make(map[string]PrometheusMetric)
-	
+
 	var currentMetric *PrometheusMetric
-	
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
-		
+
 		// Skip empty lines and comments not related to metrics
-		if line == "" || (strings.HasPrefix(line, "#") && 
-			!strings.HasPrefix(line, "# HELP") && 
+		if line == "" || (strings.HasPrefix(line, "#") &&
+			!strings.HasPrefix(line, "# HELP") &&
 			!strings.HasPrefix(line, "# TYPE")) {
 			continue
 		}
-		
+
 		if strings.HasPrefix(line, "# HELP ") {
 			parts := strings.SplitN(line[7:], " ", 2)
 			if len(parts) >= 1 {
@@ -482,7 +482,7 @@ func (suite *MetricsScrapeTestSuite) parsePrometheusMetrics(resp *http.Response)
 				if len(parts) > 1 {
 					help = parts[1]
 				}
-				
+
 				if metric, exists := metrics[metricName]; exists {
 					metric.Help = help
 					metrics[metricName] = metric
@@ -498,7 +498,7 @@ func (suite *MetricsScrapeTestSuite) parsePrometheusMetrics(resp *http.Response)
 			if len(parts) >= 2 {
 				metricName := parts[0]
 				metricType := parts[1]
-				
+
 				if metric, exists := metrics[metricName]; exists {
 					metric.Type = metricType
 					metrics[metricName] = metric
@@ -515,17 +515,17 @@ func (suite *MetricsScrapeTestSuite) parsePrometheusMetrics(resp *http.Response)
 			if len(parts) >= 2 {
 				metricPart := parts[0]
 				value := parts[1]
-				
+
 				// Extract metric name and labels
 				var metricName string
 				var labels map[string]string
-				
+
 				if strings.Contains(metricPart, "{") {
 					// Metric with labels
 					openBrace := strings.Index(metricPart, "{")
 					metricName = metricPart[:openBrace]
 					labelsPart := metricPart[openBrace+1 : len(metricPart)-1]
-					
+
 					labels = make(map[string]string)
 					if labelsPart != "" {
 						labelPairs := strings.Split(labelsPart, ",")
@@ -543,7 +543,7 @@ func (suite *MetricsScrapeTestSuite) parsePrometheusMetrics(resp *http.Response)
 					metricName = metricPart
 					labels = make(map[string]string)
 				}
-				
+
 				// Add value to metric
 				if metric, exists := metrics[metricName]; exists {
 					metric.Values = append(metric.Values, PrometheusValue{
@@ -563,11 +563,11 @@ func (suite *MetricsScrapeTestSuite) parsePrometheusMetrics(resp *http.Response)
 			}
 		}
 	}
-	
+
 	if err := scanner.Err(); err != nil {
 		return nil, fmt.Errorf("error scanning metrics response: %w", err)
 	}
-	
+
 	return metrics, nil
 }
 
@@ -595,7 +595,7 @@ func (suite *MetricsScrapeTestSuite) assertMetricHasType(metrics map[string]Prom
 func (suite *MetricsScrapeTestSuite) assertMetricHelpContains(metrics map[string]PrometheusMetric, name, expectedContent string) {
 	metric, exists := metrics[name]
 	require.True(suite.T(), exists, "Metric %s should exist", name)
-	assert.Contains(suite.T(), metric.Help, expectedContent, 
+	assert.Contains(suite.T(), metric.Help, expectedContent,
 		"Metric %s help text should contain '%s'", name, expectedContent)
 }
 
@@ -623,41 +623,41 @@ func TestMetricsScrapeFunctional(t *testing.T) {
 			os.Unsetenv("METRICS_ENABLED")
 		}
 	}()
-	
+
 	t.Run("Basic metrics endpoint availability", func(t *testing.T) {
 		// Enable metrics
 		os.Setenv("METRICS_ENABLED", "true")
-		
+
 		// Create basic test server
 		router := mux.NewRouter()
 		router.Handle("/metrics", promhttp.Handler()).Methods("GET")
 		server := httptest.NewServer(router)
 		defer server.Close()
-		
+
 		// Test metrics endpoint
 		resp, err := http.Get(server.URL + "/metrics")
 		require.NoError(t, err)
 		defer resp.Body.Close()
-		
+
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Contains(t, resp.Header.Get("Content-Type"), "text/plain")
 	})
-	
+
 	t.Run("Metrics disabled scenario", func(t *testing.T) {
 		// Disable metrics
 		os.Setenv("METRICS_ENABLED", "false")
-		
+
 		// Create test server without metrics endpoint
 		router := mux.NewRouter()
 		// Intentionally don't register /metrics endpoint
 		server := httptest.NewServer(router)
 		defer server.Close()
-		
+
 		// Test metrics endpoint should return 404
 		resp, err := http.Get(server.URL + "/metrics")
 		require.NoError(t, err)
 		defer resp.Body.Close()
-		
+
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
 }

@@ -20,10 +20,10 @@ type Doc struct {
 type RAGClient interface {
 	// Retrieve performs a semantic search for relevant documents
 	Retrieve(ctx context.Context, query string) ([]Doc, error)
-	
+
 	// Initialize initializes the RAG client and its dependencies
 	Initialize(ctx context.Context) error
-	
+
 	// Shutdown gracefully shuts down the RAG client and releases resources
 	Shutdown(ctx context.Context) error
 }
@@ -43,16 +43,16 @@ type RAGClientConfig struct {
 	Enabled          bool
 	MaxSearchResults int
 	MinConfidence    float64
-	
+
 	// Weaviate-specific (used only when rag build tag is enabled)
-	WeaviateURL      string
-	WeaviateAPIKey   string
-	
+	WeaviateURL    string
+	WeaviateAPIKey string
+
 	// LLM configuration
-	LLMEndpoint      string
-	LLMAPIKey        string
-	MaxTokens        int
-	Temperature      float32
+	LLMEndpoint string
+	LLMAPIKey   string
+	MaxTokens   int
+	Temperature float32
 }
 
 // TokenUsage tracks token usage for cost tracking

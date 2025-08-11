@@ -166,7 +166,7 @@ func DefaultLLMProcessorConfig() *LLMProcessorConfig {
 		// Metrics Security - Default to private with secure defaults
 		ExposeMetricsPublicly: false,
 		MetricsAllowedCIDRs:   []string{}, // Will be set to private networks if empty and not public
-		MetricsEnabled:        false,       // Disabled by default for security
+		MetricsEnabled:        false,      // Disabled by default for security
 		MetricsAllowedIPs:     []string{}, // Empty means no IP restriction if metrics enabled
 	}
 }
