@@ -141,6 +141,7 @@ type NetworkIntentReconciler struct {
 	timeoutManager    *resilience.TimeoutManager
 	llmCircuitBreaker *resilience.LLMCircuitBreaker
 	reconciler        *Reconciler
+	metrics           *ControllerMetrics
 }
 
 // Exponential backoff helper functions
@@ -300,6 +301,7 @@ func NewNetworkIntentReconciler(client client.Client, scheme *runtime.Scheme, de
 		circuitBreakerMgr: circuitBreakerMgr,
 		timeoutManager:    timeoutManager,
 		llmCircuitBreaker: llmCircuitBreaker,
+		metrics:           NewControllerMetrics("networkintent"),
 	}
 
 	// Initialize the modular reconciler
@@ -341,8 +343,36 @@ func validateAndSetConfigDefaults(config *Config, constants *configPkg.Constants
 
 // Reconcile is the main entry point for reconciliation
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	startTime := time.Now()
+	
 	// Delegate to the modular reconciler
-	return r.reconciler.Reconcile(ctx, req)
+	result, err := r.reconciler.Reconcile(ctx, req)
+	
+	// Record metrics
+	processingDuration := time.Since(startTime).Seconds()
+	
+	if err != nil {
+		// Determine error type for better metrics granularity
+		errorType := "unknown"
+		if strings.Contains(err.Error(), "not found") {
+			errorType = "not_found"
+		} else if strings.Contains(err.Error(), "timeout") {
+			errorType = "timeout"
+		} else if strings.Contains(err.Error(), "llm") {
+			errorType = "llm_processing"
+		} else if strings.Contains(err.Error(), "git") {
+			errorType = "git_operations"
+		}
+		
+		r.metrics.RecordFailure(req.Namespace, req.Name, errorType)
+	} else {
+		r.metrics.RecordSuccess(req.Namespace, req.Name)
+	}
+	
+	// Record processing duration
+	r.metrics.RecordProcessingDuration(req.Namespace, req.Name, "total", processingDuration)
+	
+	return result, err
 }
 
 // extractIntentType extracts the intent type from the intent text

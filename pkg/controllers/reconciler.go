@@ -98,6 +98,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
 			r.extractIntentType(networkIntent.Spec.Intent), "processing")
 	}
+	
+	// Set status to processing in controller-runtime metrics
+	r.metrics.SetStatus(networkIntent.Namespace, networkIntent.Name, "processing", StatusProcessing)
 
 	// Check if already completed to avoid unnecessary work
 	if r.isProcessingComplete(&networkIntent) {
@@ -114,6 +117,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
 				r.extractIntentType(networkIntent.Spec.Intent), "failed")
 		}
+		// Set status to failed in controller-runtime metrics
+		r.metrics.SetStatus(networkIntent.Namespace, networkIntent.Name, "failed", StatusFailed)
 		return result, err
 	}
 
@@ -142,6 +147,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		metricsCollector.UpdateNetworkIntentStatus(networkIntent.Name, networkIntent.Namespace,
 			r.extractIntentType(networkIntent.Spec.Intent), "completed")
 	}
+	
+	// Set status to ready in controller-runtime metrics
+	r.metrics.SetStatus(networkIntent.Namespace, networkIntent.Name, "ready", StatusReady)
 
 	r.recordEvent(&networkIntent, "Normal", "ReconciliationCompleted",
 		"NetworkIntent successfully processed through all phases and deployed")
@@ -161,11 +169,17 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 	// Phase 1: LLM Processing with RAG context retrieval
 	if !isConditionTrue(networkIntent.Status.Conditions, "Processed") {
 		logger.Info("Starting Phase 1: LLM Processing")
+		phaseStartTime := time.Now()
+		
 		if err := r.updatePhase(ctx, networkIntent, "LLMProcessing"); err != nil {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update LLM processing phase: %w", err)
 		}
 
 		result, err := r.llmProcessor.ProcessLLMPhase(ctx, networkIntent, processingCtx)
+		
+		// Record phase duration
+		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "llm_processing", time.Since(phaseStartTime).Seconds())
+		
 		if err != nil || result.Requeue || result.RequeueAfter > 0 {
 			return result, err
 		}
@@ -174,11 +188,17 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 	// Phase 2: Resource planning with telecom knowledge
 	if isConditionTrue(networkIntent.Status.Conditions, "Processed") && !isConditionTrue(networkIntent.Status.Conditions, "ResourcesPlanned") {
 		logger.Info("Starting Phase 2: Resource Planning")
+		phaseStartTime := time.Now()
+		
 		if err := r.updatePhase(ctx, networkIntent, "ResourcePlanning"); err != nil {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update resource planning phase: %w", err)
 		}
 
 		result, err := r.resourcePlanner.PlanResources(ctx, networkIntent, processingCtx)
+		
+		// Record phase duration
+		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "resource_planning", time.Since(phaseStartTime).Seconds())
+		
 		if err != nil || result.Requeue || result.RequeueAfter > 0 {
 			return result, err
 		}
@@ -187,11 +207,17 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 	// Phase 3: Deployment manifest generation
 	if isConditionTrue(networkIntent.Status.Conditions, "ResourcesPlanned") && !isConditionTrue(networkIntent.Status.Conditions, "ManifestsGenerated") {
 		logger.Info("Starting Phase 3: Manifest Generation")
+		phaseStartTime := time.Now()
+		
 		if err := r.updatePhase(ctx, networkIntent, "ManifestGeneration"); err != nil {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update manifest generation phase: %w", err)
 		}
 
 		result, err := r.resourcePlanner.GenerateManifests(ctx, networkIntent, processingCtx)
+		
+		// Record phase duration
+		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "manifest_generation", time.Since(phaseStartTime).Seconds())
+		
 		if err != nil || result.Requeue || result.RequeueAfter > 0 {
 			return result, err
 		}
@@ -200,11 +226,17 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 	// Phase 4: GitOps commit and validation
 	if isConditionTrue(networkIntent.Status.Conditions, "ManifestsGenerated") && !isConditionTrue(networkIntent.Status.Conditions, "GitOpsCommitted") {
 		logger.Info("Starting Phase 4: GitOps Commit")
+		phaseStartTime := time.Now()
+		
 		if err := r.updatePhase(ctx, networkIntent, "GitOpsCommit"); err != nil {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update GitOps commit phase: %w", err)
 		}
 
 		result, err := r.gitopsHandler.CommitToGitOps(ctx, networkIntent, processingCtx)
+		
+		// Record phase duration
+		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "gitops_commit", time.Since(phaseStartTime).Seconds())
+		
 		if err != nil || result.Requeue || result.RequeueAfter > 0 {
 			return result, err
 		}
@@ -213,11 +245,17 @@ func (r *Reconciler) executeProcessingPipeline(ctx context.Context, networkInten
 	// Phase 5: Deployment verification
 	if isConditionTrue(networkIntent.Status.Conditions, "GitOpsCommitted") && !isConditionTrue(networkIntent.Status.Conditions, "DeploymentVerified") {
 		logger.Info("Starting Phase 5: Deployment Verification")
+		phaseStartTime := time.Now()
+		
 		if err := r.updatePhase(ctx, networkIntent, "DeploymentVerification"); err != nil {
 			return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update deployment verification phase: %w", err)
 		}
 
 		result, err := r.gitopsHandler.VerifyDeployment(ctx, networkIntent, processingCtx)
+		
+		// Record phase duration
+		r.metrics.RecordProcessingDuration(networkIntent.Namespace, networkIntent.Name, "deployment_verification", time.Since(phaseStartTime).Seconds())
+		
 		if err != nil || result.Requeue || result.RequeueAfter > 0 {
 			return result, err
 		}

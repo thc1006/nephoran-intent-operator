@@ -64,9 +64,10 @@ Currently at **TRL 9** with complete core functionality, enterprise extensions, 
 
 ### 📊 Production Observability
 - **Golden Signals Monitoring**: SLI/SLO tracking with Prometheus and Grafana
+- **Comprehensive Metrics**: 11 specialized metrics covering LLM performance, controller operations, and system health
 - **Distributed Tracing**: OpenTelemetry with Jaeger for end-to-end request tracing
 - **Structured Logging**: Centralized logging with ELK stack integration
-- **Custom Business Metrics**: Intent processing latency, success rates, and cost tracking
+- **Custom Business Metrics**: Intent processing latency, success rates, cache efficiency, and cost tracking
 
 ### 🚀 Network Function Orchestration
 - **5G Core Functions**: Complete AMF, SMF, UPF, NSSF, and supporting functions
@@ -386,6 +387,113 @@ For detailed information about all environment variables, including:
 - Migration guide for version upgrades
 
 See: **[Environment Variables Reference Guide](docs/ENVIRONMENT_VARIABLES.md)**
+
+## 📊 Monitoring & Observability
+
+The Nephoran Intent Operator provides comprehensive observability through Prometheus metrics, distributed tracing, and structured logging, enabling complete visibility into system performance and operational health.
+
+### 🎯 Metrics Overview
+
+The system exposes **11 specialized Prometheus metrics** across two main categories:
+
+#### LLM Processing Metrics
+- **`nephoran_llm_requests_total`**: Total LLM requests by model and status
+- **`nephoran_llm_errors_total`**: LLM errors categorized by type and model
+- **`nephoran_llm_processing_duration_seconds`**: Processing latency histograms with P95/P99 analysis
+- **`nephoran_llm_cache_hits_total`** / **`nephoran_llm_cache_misses_total`**: Cache efficiency tracking
+- **`nephoran_llm_fallback_attempts_total`**: Model fallback frequency monitoring
+- **`nephoran_llm_retry_attempts_total`**: Request retry pattern analysis
+
+#### Controller Operations Metrics
+- **`networkintent_reconciles_total`**: Controller reconciliation success/failure rates
+- **`networkintent_reconcile_errors_total`**: Error categorization for troubleshooting
+- **`networkintent_processing_duration_seconds`**: Phase-by-phase processing timing
+- **`networkintent_status`**: Real-time resource status (Failed=0, Processing=1, Ready=2)
+
+### ⚡ Quick Metrics Setup
+
+```bash
+# Enable metrics collection
+export METRICS_ENABLED=true
+
+# Optional: Restrict metrics access (production recommended)
+export METRICS_ALLOWED_IPS="10.0.0.50,10.0.0.51"
+
+# Verify metrics endpoint
+curl http://localhost:8080/metrics | grep nephoran_
+```
+
+### 📈 Key Performance Indicators
+
+Monitor these essential metrics for production health:
+
+| Metric | Ideal Range | Alert Threshold | Business Impact |
+|--------|-------------|-----------------|-----------------|
+| **LLM Success Rate** | > 95% | < 90% | Intent processing failures |
+| **Cache Hit Rate** | > 70% | < 50% | Increased costs and latency |
+| **P95 Processing Time** | < 2s | > 5s | User experience degradation |
+| **Controller Error Rate** | < 5% | > 10% | Deployment failures |
+| **Fallback Frequency** | < 2% | > 5% | Primary model reliability issues |
+
+### 🔍 Common Monitoring Queries
+
+**System Health Overview:**
+```promql
+# Overall system success rate
+(rate(nephoran_llm_requests_total{status="success"}[5m]) + 
+ rate(networkintent_reconciles_total{result="success"}[5m])) /
+(rate(nephoran_llm_requests_total[5m]) + 
+ rate(networkintent_reconciles_total[5m])) * 100
+```
+
+**Performance Monitoring:**
+```promql
+# 95th percentile end-to-end processing time
+histogram_quantile(0.95, 
+  rate(networkintent_processing_duration_seconds_bucket{phase="total"}[5m]))
+```
+
+**Cost Optimization:**
+```promql
+# Cache efficiency by model
+rate(nephoran_llm_cache_hits_total[5m]) / 
+(rate(nephoran_llm_cache_hits_total[5m]) + rate(nephoran_llm_cache_misses_total[5m]))
+```
+
+### 🎨 Grafana Dashboard Features
+
+Our pre-configured dashboard provides:
+- **Executive Summary**: High-level KPIs and system health status
+- **LLM Performance**: Model-specific latency, error rates, and cost tracking
+- **Controller Operations**: NetworkIntent lifecycle and processing efficiency
+- **Troubleshooting Views**: Error categorization and debugging assistance
+- **Capacity Planning**: Resource utilization trends and scaling recommendations
+
+### 🚨 Production Alerts
+
+Essential alerting rules for operational teams:
+
+```yaml
+# High-priority alerts for immediate attention
+- alert: LLMProcessingFailures
+  expr: rate(nephoran_llm_errors_total[5m]) / rate(nephoran_llm_requests_total[5m]) > 0.1
+  severity: critical
+  
+- alert: SlowIntentProcessing  
+  expr: histogram_quantile(0.95, rate(networkintent_processing_duration_seconds_bucket[5m])) > 10
+  severity: warning
+```
+
+### 📋 Comprehensive Metrics Documentation
+
+For complete metrics reference including:
+- Detailed metric descriptions with example values
+- Label specifications and cardinality considerations
+- Performance tuning and troubleshooting guides
+- Advanced Prometheus queries and alerting rules
+- Grafana dashboard configuration and best practices
+
+See: **[Complete Prometheus Metrics Documentation](PROMETHEUS_METRICS.md)**
 
 ### 📖 Advanced Topics
 - **[O-RAN Compliance Certification](docs/ORAN-COMPLIANCE-CERTIFICATION.md)**: Standards compliance details

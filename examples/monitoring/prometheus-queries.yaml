@@ -1,0 +1,299 @@
+# Prometheus Queries for Nephoran Intent Operator
+# This file contains example queries for monitoring and alerting
+
+# ============================================================================
+# LLM Processing Performance Queries
+# ============================================================================
+
+llm_performance:
+  # Average LLM request duration by model
+  avg_request_duration: |
+    rate(nephoran_llm_processing_duration_seconds_sum[5m]) / 
+    rate(nephoran_llm_processing_duration_seconds_count[5m])
+  
+  # 95th percentile processing time
+  p95_processing_time: |
+    histogram_quantile(0.95, rate(nephoran_llm_processing_duration_seconds_bucket[5m]))
+  
+  # 99th percentile processing time
+  p99_processing_time: |
+    histogram_quantile(0.99, rate(nephoran_llm_processing_duration_seconds_bucket[5m]))
+  
+  # LLM error rate by model
+  error_rate: |
+    rate(nephoran_llm_errors_total[5m]) / 
+    rate(nephoran_llm_requests_total[5m]) * 100
+  
+  # Request success rate
+  success_rate: |
+    rate(nephoran_llm_requests_total{status="success"}[5m]) / 
+    rate(nephoran_llm_requests_total[5m]) * 100
+  
+  # Cache efficiency metrics
+  cache_hit_rate: |
+    rate(nephoran_llm_cache_hits_total[5m]) / 
+    (rate(nephoran_llm_cache_hits_total[5m]) + rate(nephoran_llm_cache_misses_total[5m])) * 100
+  
+  # Requests per second by model
+  requests_per_second: |
+    rate(nephoran_llm_requests_total[1m])
+  
+  # Model fallback frequency
+  fallback_rate: |
+    rate(nephoran_llm_fallback_attempts_total[5m])
+  
+  # Retry frequency by model
+  retry_rate: |
+    rate(nephoran_llm_retry_attempts_total[5m])
+
+# ============================================================================
+# Controller Operations Queries
+# ============================================================================
+
+controller_operations:
+  # NetworkIntent processing success rate
+  success_rate: |
+    rate(networkintent_reconciles_total{result="success"}[5m]) / 
+    rate(networkintent_reconciles_total[5m]) * 100
+  
+  # Average reconciliation duration by phase
+  avg_reconcile_duration: |
+    rate(networkintent_processing_duration_seconds_sum[5m]) / 
+    rate(networkintent_processing_duration_seconds_count[5m])
+  
+  # Processing rate by controller
+  processing_rate: |
+    rate(networkintent_reconciles_total[1m])
+  
+  # Error rate by error type
+  error_rate_by_type: |
+    rate(networkintent_reconcile_errors_total[5m]) by (error_type)
+  
+  # Active NetworkIntents by status
+  active_by_status: |
+    sum by (namespace) (networkintent_status == 2)  # Ready
+  
+  # Processing NetworkIntents
+  processing_count: |
+    sum by (namespace) (networkintent_status == 1)  # Processing
+  
+  # Failed NetworkIntents
+  failed_count: |
+    sum by (namespace) (networkintent_status == 0)  # Failed
+  
+  # Top slow NetworkIntents
+  slowest_intents: |
+    topk(10, rate(networkintent_processing_duration_seconds_sum[10m]) / 
+              rate(networkintent_processing_duration_seconds_count[10m]))
+
+# ============================================================================
+# System Health Overview Queries
+# ============================================================================
+
+system_health:
+  # Overall system success rate
+  overall_success_rate: |
+    (
+      rate(nephoran_llm_requests_total{status="success"}[5m]) + 
+      rate(networkintent_reconciles_total{result="success"}[5m])
+    ) /
+    (
+      rate(nephoran_llm_requests_total[5m]) + 
+      rate(networkintent_reconciles_total[5m])
+    ) * 100
+  
+  # System throughput (intents processed per minute)
+  system_throughput: |
+    rate(networkintent_reconciles_total{result="success"}[1m]) * 60
+  
+  # Average end-to-end processing time
+  e2e_processing_time: |
+    histogram_quantile(0.95, 
+      rate(networkintent_processing_duration_seconds_bucket{phase="total"}[5m]))
+  
+  # Resource utilization metrics
+  cpu_usage: |
+    rate(process_cpu_seconds_total[5m]) * 100
+  
+  memory_usage: |
+    process_resident_memory_bytes / 1024 / 1024  # MB
+  
+  # Service availability
+  service_up: |
+    up{job="nephoran-intent-operator"}
+
+# ============================================================================
+# Capacity Planning Queries
+# ============================================================================
+
+capacity_planning:
+  # Peak concurrent requests
+  peak_concurrent_requests: |
+    max_over_time(
+      (
+        rate(nephoran_llm_requests_total[1m]) + 
+        rate(networkintent_reconciles_total[1m])
+      )[1h:1m]
+    )
+  
+  # Model usage distribution
+  model_usage_distribution: |
+    sum by (model) (rate(nephoran_llm_requests_total[1h]))
+  
+  # Cache size optimization
+  cache_efficiency_trend: |
+    increase(nephoran_llm_cache_hits_total[1h]) / 
+    (increase(nephoran_llm_cache_hits_total[1h]) + increase(nephoran_llm_cache_misses_total[1h]))
+  
+  # Error trends over time
+  error_trends: |
+    increase(nephoran_llm_errors_total[1h]) by (error_type)
+  
+  # Processing time trends
+  processing_time_trend: |
+    avg_over_time(
+      (
+        rate(nephoran_llm_processing_duration_seconds_sum[5m]) / 
+        rate(nephoran_llm_processing_duration_seconds_count[5m])
+      )[1h:5m]
+    )
+
+# ============================================================================
+# Cost Optimization Queries
+# ============================================================================
+
+cost_optimization:
+  # Token usage by model (requires custom metrics)
+  token_usage_by_model: |
+    sum by (model) (increase(nephoran_llm_tokens_total[1h]))
+  
+  # Cost per successful intent (approximate)
+  cost_per_intent: |
+    sum(increase(nephoran_llm_tokens_total[1h])) / 
+    sum(increase(networkintent_reconciles_total{result="success"}[1h]))
+  
+  # Cache savings (reduced API calls)
+  cache_savings: |
+    sum(rate(nephoran_llm_cache_hits_total[1h])) * 3600  # hourly cache hits
+  
+  # Model efficiency (success rate vs cost)
+  model_efficiency: |
+    (
+      rate(nephoran_llm_requests_total{status="success"}[1h]) / 
+      rate(nephoran_llm_requests_total[1h])
+    ) by (model)
+
+# ============================================================================
+# Troubleshooting Queries
+# ============================================================================
+
+troubleshooting:
+  # Top error-prone NetworkIntents
+  top_errors: |
+    topk(10, rate(networkintent_reconcile_errors_total[1h]))
+  
+  # Slowest LLM models
+  slowest_models: |
+    topk(5, 
+      rate(nephoran_llm_processing_duration_seconds_sum[10m]) / 
+      rate(nephoran_llm_processing_duration_seconds_count[10m])
+    )
+  
+  # Recent failures by namespace
+  recent_failures: |
+    increase(networkintent_reconcile_errors_total[15m]) by (namespace, name, error_type)
+  
+  # Circuit breaker activations
+  circuit_breaker_failures: |
+    sum by (model) (rate(nephoran_llm_errors_total{error_type="circuit_breaker_rejected"}[5m]))
+  
+  # High retry rates (potential instability)
+  high_retry_rates: |
+    rate(nephoran_llm_retry_attempts_total[5m]) > 0.1
+  
+  # Memory pressure indicators
+  memory_pressure: |
+    rate(go_memstats_gc_total[5m]) > 1.0  # More than 1 GC per second
+  
+  # Goroutine leaks
+  goroutine_leaks: |
+    go_goroutines > 1000
+
+# ============================================================================
+# SLA Monitoring Queries
+# ============================================================================
+
+sla_monitoring:
+  # Availability (4 nines = 99.99%)
+  availability: |
+    avg_over_time(up{job="nephoran-intent-operator"}[24h]) * 100
+  
+  # Processing latency SLA (95% under 2 seconds)
+  latency_sla_compliance: |
+    (
+      histogram_quantile(0.95, 
+        rate(networkintent_processing_duration_seconds_bucket{phase="total"}[5m])
+      ) < 2
+    ) * 100
+  
+  # Error budget consumption (1% monthly)
+  error_budget_consumption: |
+    (
+      sum(rate(networkintent_reconcile_errors_total[30d])) / 
+      sum(rate(networkintent_reconciles_total[30d]))
+    ) * 100
+  
+  # Throughput SLA (45 intents per minute)
+  throughput_sla: |
+    rate(networkintent_reconciles_total{result="success"}[1m]) * 60 >= 45
+
+# ============================================================================
+# Security Monitoring Queries
+# ============================================================================
+
+security_monitoring:
+  # Authentication failures
+  auth_failures: |
+    rate(nephoran_llm_errors_total{error_type="authentication"}[5m])
+  
+  # Unusual request patterns
+  unusual_request_volume: |
+    rate(nephoran_llm_requests_total[5m]) > 
+    (avg_over_time(rate(nephoran_llm_requests_total[5m])[1h]) * 3)
+  
+  # Failed validation attempts
+  validation_failures: |
+    rate(networkintent_reconcile_errors_total{error_type="validation"}[5m])
+  
+  # Security policy violations
+  policy_violations: |
+    rate(nephoran_llm_errors_total{error_type="policy_violation"}[5m])
+
+# ============================================================================
+# Business Intelligence Queries
+# ============================================================================
+
+business_intelligence:
+  # Intent processing trends by hour
+  hourly_intent_volume: |
+    sum by (hour) (
+      label_replace(
+        increase(networkintent_reconciles_total{result="success"}[1h]),
+        "hour", "$1", "__name__", ".*"
+      )
+    )
+  
+  # Top namespaces by activity
+  top_active_namespaces: |
+    topk(10, sum by (namespace) (rate(networkintent_reconciles_total[1h])))
+  
+  # Model adoption trends
+  model_adoption: |
+    sum by (model) (increase(nephoran_llm_requests_total[24h]))
+  
+  # Processing efficiency over time
+  efficiency_trend: |
+    (
+      rate(networkintent_reconciles_total{result="success"}[1h]) / 
+      rate(networkintent_reconciles_total[1h])
+    )

@@ -1,0 +1,776 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Nephoran Intent Operator - Production Dashboard",
+    "tags": ["nephoran", "intent-operator", "llm", "o-ran", "telecommunications"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "id": 1,
+        "title": "System Overview",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+        "collapsed": false
+      },
+      {
+        "id": 2,
+        "title": "Service Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"nephoran-intent-operator\"}",
+            "legendFormat": "Service Status",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "DOWN"}}, "type": "value"},
+              {"options": {"1": {"text": "UP"}}, "type": "value"}
+            ]
+          }
+        },
+        "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1}
+      },
+      {
+        "id": 3,
+        "title": "Overall Success Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(rate(nephoran_llm_requests_total{status=\"success\"}[5m]) + rate(networkintent_reconciles_total{result=\"success\"}[5m])) / (rate(nephoran_llm_requests_total[5m]) + rate(networkintent_reconciles_total[5m])) * 100",
+            "legendFormat": "Success Rate %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 90},
+                {"color": "green", "value": 95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 4, "x": 4, "y": 1}
+      },
+      {
+        "id": 4,
+        "title": "System Throughput",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(networkintent_reconciles_total{result=\"success\"}[1m]) * 60",
+            "legendFormat": "Intents/min",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 10},
+                {"color": "green", "value": 30}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 4, "x": 8, "y": 1}
+      },
+      {
+        "id": 5,
+        "title": "P95 Processing Time",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(networkintent_processing_duration_seconds_bucket{phase=\"total\"}[5m]))",
+            "legendFormat": "P95 Latency",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "s",
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 2},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 4, "x": 12, "y": 1}
+      },
+      {
+        "id": 6,
+        "title": "Cache Hit Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(nephoran_llm_cache_hits_total[5m]) / (rate(nephoran_llm_cache_hits_total[5m]) + rate(nephoran_llm_cache_misses_total[5m])) * 100",
+            "legendFormat": "Cache Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 50},
+                {"color": "green", "value": 70}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 4, "x": 16, "y": 1}
+      },
+      {
+        "id": 7,
+        "title": "Active NetworkIntents",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(networkintent_status == 2)",
+            "legendFormat": "Ready",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(networkintent_status == 1)",
+            "legendFormat": "Processing",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(networkintent_status == 0)",
+            "legendFormat": "Failed",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short"
+          }
+        },
+        "gridPos": {"h": 4, "w": 4, "x": 20, "y": 1}
+      },
+      {
+        "id": 10,
+        "title": "LLM Performance",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 5},
+        "collapsed": false
+      },
+      {
+        "id": 11,
+        "title": "LLM Request Rate by Model",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(nephoran_llm_requests_total[5m])",
+            "legendFormat": "{{model}} - {{status}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Requests/sec",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6}
+      },
+      {
+        "id": 12,
+        "title": "LLM Processing Duration",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(nephoran_llm_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "P50 {{model}}",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(nephoran_llm_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 {{model}}",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(nephoran_llm_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "P99 {{model}}",
+            "refId": "C"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Duration (s)",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 6}
+      },
+      {
+        "id": 13,
+        "title": "LLM Error Rate by Model",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(nephoran_llm_errors_total[5m]) / rate(nephoran_llm_requests_total[5m]) * 100",
+            "legendFormat": "{{model}} - {{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Error Rate (%)",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 14}
+      },
+      {
+        "id": 14,
+        "title": "Cache Performance",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(nephoran_llm_cache_hits_total[5m])",
+            "legendFormat": "Hits {{model}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(nephoran_llm_cache_misses_total[5m])",
+            "legendFormat": "Misses {{model}}",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Operations/sec",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 14}
+      },
+      {
+        "id": 15,
+        "title": "Fallback & Retry Rates",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(nephoran_llm_fallback_attempts_total[5m])",
+            "legendFormat": "Fallback {{original_model}}->{{fallback_model}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(nephoran_llm_retry_attempts_total[5m])",
+            "legendFormat": "Retries {{model}}",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Rate/sec",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 14}
+      },
+      {
+        "id": 20,
+        "title": "Controller Operations",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 22},
+        "collapsed": false
+      },
+      {
+        "id": 21,
+        "title": "NetworkIntent Processing Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(networkintent_reconciles_total[5m])",
+            "legendFormat": "{{result}} - {{namespace}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Reconciles/sec",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 23}
+      },
+      {
+        "id": 22,
+        "title": "Controller Processing Duration by Phase",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(networkintent_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "P95 {{phase}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(networkintent_processing_duration_seconds_sum[5m]) / rate(networkintent_processing_duration_seconds_count[5m])",
+            "legendFormat": "Avg {{phase}}",
+            "refId": "B"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Duration (s)",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 23}
+      },
+      {
+        "id": 23,
+        "title": "NetworkIntent Status Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (namespace) (networkintent_status == 2)",
+            "legendFormat": "Ready",
+            "refId": "A"
+          },
+          {
+            "expr": "sum by (namespace) (networkintent_status == 1)",
+            "legendFormat": "Processing",
+            "refId": "B"
+          },
+          {
+            "expr": "sum by (namespace) (networkintent_status == 0)",
+            "legendFormat": "Failed",
+            "refId": "C"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 31}
+      },
+      {
+        "id": 24,
+        "title": "Error Rate by Type",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(networkintent_reconcile_errors_total[5m]) by (error_type)",
+            "legendFormat": "{{error_type}}",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Errors/sec",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 31}
+      },
+      {
+        "id": 25,
+        "title": "Top Slow NetworkIntents",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, rate(networkintent_processing_duration_seconds_sum[10m]) / rate(networkintent_processing_duration_seconds_count[10m]))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transform": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "indexByName": {},
+              "renameByName": {
+                "namespace": "Namespace",
+                "name": "NetworkIntent",
+                "Value": "Avg Duration (s)"
+              }
+            }
+          }
+        ],
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 31}
+      },
+      {
+        "id": 30,
+        "title": "System Resources",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 39},
+        "collapsed": false
+      },
+      {
+        "id": 31,
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(process_cpu_seconds_total[5m]) * 100",
+            "legendFormat": "CPU Usage %",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "CPU %",
+            "min": 0,
+            "max": 100
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 6, "w": 8, "x": 0, "y": 40}
+      },
+      {
+        "id": 32,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "process_resident_memory_bytes / 1024 / 1024",
+            "legendFormat": "Memory (MB)",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Memory (MB)",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 6, "w": 8, "x": 8, "y": 40}
+      },
+      {
+        "id": 33,
+        "title": "Goroutines",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "go_goroutines",
+            "legendFormat": "Active Goroutines",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Count",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 6, "w": 8, "x": 16, "y": 40}
+      },
+      {
+        "id": 40,
+        "title": "Business Intelligence",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 46},
+        "collapsed": false
+      },
+      {
+        "id": 41,
+        "title": "Hourly Intent Volume",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "increase(networkintent_reconciles_total{result=\"success\"}[1h])",
+            "legendFormat": "Successful Intents/hour",
+            "refId": "A"
+          }
+        ],
+        "yAxes": [
+          {
+            "label": "Intents",
+            "min": 0
+          },
+          {
+            "show": false
+          }
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 47}
+      },
+      {
+        "id": 42,
+        "title": "Model Usage Distribution",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (model) (increase(nephoran_llm_requests_total[1h]))",
+            "legendFormat": "{{model}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 47}
+      },
+      {
+        "id": 43,
+        "title": "Top Active Namespaces",
+        "type": "table",
+        "targets": [
+          {
+            "expr": "topk(10, sum by (namespace) (rate(networkintent_reconciles_total[1h])))",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transform": [
+          {
+            "id": "organize",
+            "options": {
+              "excludeByName": {"Time": true, "__name__": true},
+              "renameByName": {
+                "namespace": "Namespace",
+                "Value": "Activity Rate"
+              }
+            }
+          }
+        ],
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 47}
+      },
+      {
+        "id": 50,
+        "title": "SLA Monitoring",
+        "type": "row",
+        "gridPos": {"h": 1, "w": 24, "x": 0, "y": 55},
+        "collapsed": false
+      },
+      {
+        "id": 51,
+        "title": "Availability SLA",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "avg_over_time(up{job=\"nephoran-intent-operator\"}[24h]) * 100",
+            "legendFormat": "24h Availability",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "percent",
+            "min": 99.8,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 99.9},
+                {"color": "green", "value": 99.95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 56}
+      },
+      {
+        "id": 52,
+        "title": "Latency SLA Compliance",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(histogram_quantile(0.95, rate(networkintent_processing_duration_seconds_bucket{phase=\"total\"}[5m])) < 2) * 100",
+            "legendFormat": "P95 < 2s",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 90},
+                {"color": "green", "value": 95}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 56}
+      },
+      {
+        "id": 53,
+        "title": "Error Budget Consumption",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "(sum(rate(networkintent_reconcile_errors_total[30d])) / sum(rate(networkintent_reconciles_total[30d]))) * 100",
+            "legendFormat": "Monthly Error Rate",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "percent",
+            "min": 0,
+            "max": 1,
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 0.05},
+                {"color": "red", "value": 0.1}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 56}
+      },
+      {
+        "id": 54,
+        "title": "Throughput SLA",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "rate(networkintent_reconciles_total{result=\"success\"}[1m]) * 60",
+            "legendFormat": "Current Throughput",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "unit": "short",
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 30},
+                {"color": "green", "value": 45}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 56}
+      }
+    ],
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"]
+    },
+    "refresh": "30s",
+    "schemaVersion": 27,
+    "version": 1,
+    "links": [
+      {
+        "title": "Prometheus Metrics Documentation",
+        "url": "https://github.com/thc1006/nephoran-intent-operator/blob/main/PROMETHEUS_METRICS.md",
+        "type": "dashboards"
+      },
+      {
+        "title": "Runbooks",
+        "url": "https://github.com/thc1006/nephoran-intent-operator/tree/main/docs/runbooks",
+        "type": "dashboards"
+      },
+      {
+        "title": "Alert Manager",
+        "url": "/alertmanager",
+        "type": "dashboards"
+      }
+    ],
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "expr": "changes(up{job=\"nephoran-intent-operator\"}[5m]) > 0",
+          "textFormat": "Service restart detected",
+          "titleFormat": "Deployment Event"
+        }
+      ]
+    },
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "query": "label_values(networkintent_reconciles_total, namespace)",
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*"
+        },
+        {
+          "name": "model",
+          "type": "query",
+          "query": "label_values(nephoran_llm_requests_total, model)",
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*"
+        },
+        {
+          "name": "interval",
+          "type": "interval",
+          "auto": true,
+          "auto_min": "10s",
+          "auto_count": 30,
+          "query": "1m,5m,10m,30m,1h,6h,12h,1d,7d,14d,30d"
+        }
+      ]
+    }
+  },
+  "overwrite": true,
+  "folderId": null,
+  "folderUid": null
+}

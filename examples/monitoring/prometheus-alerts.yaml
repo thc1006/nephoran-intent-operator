@@ -1,0 +1,366 @@
+# Prometheus Alerting Rules for Nephoran Intent Operator
+# Production-ready alerting rules with appropriate thresholds and severities
+
+groups:
+- name: nephoran_intent_operator_critical
+  interval: 30s
+  rules:
+  
+  # ============================================================================
+  # CRITICAL ALERTS - Immediate Action Required
+  # ============================================================================
+  
+  - alert: ServiceDown
+    expr: up{job="nephoran-intent-operator"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      category: availability
+      runbook: runbooks/service-down.md
+    annotations:
+      summary: "Nephoran Intent Operator service is down"
+      description: "The Nephoran Intent Operator service has been down for more than 1 minute. Immediate investigation required."
+      impact: "Complete system unavailability - no intent processing possible"
+      action: "Check pod status, logs, and underlying infrastructure"
+
+  - alert: HighErrorRate
+    expr: |
+      (
+        rate(nephoran_llm_errors_total[5m]) / 
+        rate(nephoran_llm_requests_total[5m])
+      ) > 0.1
+    for: 2m
+    labels:
+      severity: critical
+      category: reliability
+      runbook: runbooks/high-error-rate.md
+    annotations:
+      summary: "High LLM processing error rate detected"
+      description: "LLM error rate is {{ $value | humanizePercentage }} for model {{ $labels.model }}, exceeding 10% threshold"
+      impact: "Intent processing failures affecting user experience"
+      action: "Check LLM service connectivity and authentication"
+
+  - alert: NetworkIntentProcessingFailures
+    expr: rate(networkintent_reconcile_errors_total[5m]) > 0.1
+    for: 3m
+    labels:
+      severity: critical
+      category: processing
+      runbook: runbooks/networkintent-failures.md
+    annotations:
+      summary: "High NetworkIntent processing failure rate"
+      description: "NetworkIntent processing failure rate: {{ $value }} errors/sec in namespace {{ $labels.namespace }}"
+      impact: "Network function deployments failing"
+      action: "Investigate controller logs and resource constraints"
+
+  - alert: ExtremelySlowProcessing
+    expr: |
+      histogram_quantile(0.95, 
+        rate(networkintent_processing_duration_seconds_bucket{phase="total"}[5m])
+      ) > 30
+    for: 5m
+    labels:
+      severity: critical
+      category: performance
+      runbook: runbooks/slow-processing.md
+    annotations:
+      summary: "Extremely slow intent processing detected"
+      description: "95th percentile processing time is {{ $value }}s, well above 30s threshold"
+      impact: "Severe user experience degradation"
+      action: "Check resource utilization, LLM API latency, and system load"
+
+  # ============================================================================
+  # WARNING ALERTS - Action Recommended
+  # ============================================================================
+
+- name: nephoran_intent_operator_warnings
+  interval: 60s
+  rules:
+  
+  - alert: SlowLLMProcessing
+    expr: |
+      histogram_quantile(0.95, 
+        rate(nephoran_llm_processing_duration_seconds_bucket[5m])
+      ) > 10
+    for: 5m
+    labels:
+      severity: warning
+      category: performance
+      runbook: runbooks/slow-llm-processing.md
+    annotations:
+      summary: "Slow LLM processing detected"
+      description: "95th percentile LLM processing time is {{ $value }}s for model {{ $labels.model }}"
+      impact: "Increased response times affecting user experience"
+      action: "Monitor LLM API performance and consider model optimization"
+
+  - alert: LowCacheHitRate
+    expr: |
+      (
+        rate(nephoran_llm_cache_hits_total[10m]) / 
+        (rate(nephoran_llm_cache_hits_total[10m]) + rate(nephoran_llm_cache_misses_total[10m]))
+      ) < 0.3
+    for: 10m
+    labels:
+      severity: warning
+      category: efficiency
+      runbook: runbooks/cache-optimization.md
+    annotations:
+      summary: "Low LLM cache hit rate"
+      description: "Cache hit rate is {{ $value | humanizePercentage }} for model {{ $labels.model }}"
+      impact: "Increased API costs and response times"
+      action: "Consider increasing cache size or reviewing cache strategy"
+
+  - alert: HighFallbackRate
+    expr: rate(nephoran_llm_fallback_attempts_total[15m]) > 0.05
+    for: 10m
+    labels:
+      severity: warning
+      category: reliability
+      runbook: runbooks/model-fallbacks.md
+    annotations:
+      summary: "High LLM model fallback rate"
+      description: "Fallback rate from {{ $labels.original_model }} to {{ $labels.fallback_model }} is {{ $value }}/sec"
+      impact: "Primary model reliability issues"
+      action: "Investigate primary model availability and performance"
+
+  - alert: HighRetryRate
+    expr: rate(nephoran_llm_retry_attempts_total[5m]) > 0.2
+    for: 10m
+    labels:
+      severity: warning
+      category: reliability
+      runbook: runbooks/high-retries.md
+    annotations:
+      summary: "High LLM request retry rate"
+      description: "Retry rate is {{ $value }}/sec for model {{ $labels.model }}"
+      impact: "Potential service instability"
+      action: "Check network connectivity and LLM service health"
+
+  - alert: ResourceConstraints
+    expr: |
+      (
+        rate(process_cpu_seconds_total[5m]) * 100 > 80
+      ) or (
+        process_resident_memory_bytes / 1024 / 1024 / 1024 > 2  # 2GB
+      )
+    for: 15m
+    labels:
+      severity: warning
+      category: resources
+      runbook: runbooks/resource-constraints.md
+    annotations:
+      summary: "High resource utilization detected"
+      description: "CPU: {{ $value }}% or Memory usage exceeding limits"
+      impact: "Performance degradation risk"
+      action: "Consider scaling up or optimizing resource usage"
+
+  - alert: CircuitBreakerActivated
+    expr: rate(nephoran_llm_errors_total{error_type="circuit_breaker_rejected"}[5m]) > 0
+    for: 2m
+    labels:
+      severity: warning
+      category: reliability
+      runbook: runbooks/circuit-breaker.md
+    annotations:
+      summary: "Circuit breaker activated for LLM model"
+      description: "Circuit breaker rejecting requests for model {{ $labels.model }}"
+      impact: "Reduced processing capacity"
+      action: "Investigate underlying service issues causing circuit breaker activation"
+
+  # ============================================================================
+  # INFO ALERTS - Informational
+  # ============================================================================
+
+- name: nephoran_intent_operator_info
+  interval: 300s
+  rules:
+  
+  - alert: LowThroughput
+    expr: rate(networkintent_reconciles_total{result="success"}[5m]) * 60 < 10
+    for: 30m
+    labels:
+      severity: info
+      category: performance
+      runbook: runbooks/low-throughput.md
+    annotations:
+      summary: "Low intent processing throughput"
+      description: "Processing only {{ $value }} intents per minute"
+      impact: "Below expected throughput levels"
+      action: "Monitor for sustained low activity or investigate processing bottlenecks"
+
+  - alert: UnusualRequestPattern
+    expr: |
+      rate(nephoran_llm_requests_total[5m]) > 
+      (avg_over_time(rate(nephoran_llm_requests_total[5m])[2h]) * 3)
+    for: 15m
+    labels:
+      severity: info
+      category: security
+      runbook: runbooks/unusual-activity.md
+    annotations:
+      summary: "Unusual LLM request volume detected"
+      description: "Request rate {{ $value }}/sec is 3x higher than average"
+      impact: "Potential security concern or load spike"
+      action: "Investigate request sources and patterns"
+
+  - alert: ModelUsageImbalance
+    expr: |
+      (
+        max by (model) (rate(nephoran_llm_requests_total[1h])) / 
+        min by (model) (rate(nephoran_llm_requests_total[1h]))
+      ) > 10
+    for: 1h
+    labels:
+      severity: info
+      category: optimization
+      runbook: runbooks/model-balancing.md
+    annotations:
+      summary: "Significant model usage imbalance"
+      description: "Usage ratio between models exceeds 10:1"
+      impact: "Suboptimal load distribution"
+      action: "Review model selection strategy and load balancing"
+
+  # ============================================================================
+  # BUSINESS IMPACT ALERTS
+  # ============================================================================
+
+- name: nephoran_sla_monitoring
+  interval: 300s
+  rules:
+  
+  - alert: SLALatencyBreach
+    expr: |
+      (
+        histogram_quantile(0.95, 
+          rate(networkintent_processing_duration_seconds_bucket{phase="total"}[5m])
+        ) > 2
+      ) * 100 < 95
+    for: 10m
+    labels:
+      severity: warning
+      category: sla
+      runbook: runbooks/sla-breach.md
+    annotations:
+      summary: "Processing latency SLA breach"
+      description: "95% of requests not completing within 2s SLA target"
+      impact: "SLA violation affecting customer experience"
+      action: "Investigate performance bottlenecks and optimize processing pipeline"
+
+  - alert: AvailabilitySLAAtRisk
+    expr: avg_over_time(up{job="nephoran-intent-operator"}[1h]) * 100 < 99.9
+    for: 5m
+    labels:
+      severity: critical
+      category: sla
+      runbook: runbooks/availability-sla.md
+    annotations:
+      summary: "Availability SLA at risk"
+      description: "Service availability {{ $value | humanizePercentage }} below 99.9% SLA"
+      impact: "Critical SLA breach risk"
+      action: "Immediate investigation of service stability issues"
+
+  - alert: ErrorBudgetExhaustion
+    expr: |
+      (
+        sum(rate(networkintent_reconcile_errors_total[24h])) / 
+        sum(rate(networkintent_reconciles_total[24h]))
+      ) * 100 > 0.1
+    for: 1h
+    labels:
+      severity: warning
+      category: sla
+      runbook: runbooks/error-budget.md
+    annotations:
+      summary: "Error budget exhaustion risk"
+      description: "Daily error rate {{ $value | humanizePercentage }} exceeding 0.1% budget"
+      impact: "Monthly error budget at risk"
+      action: "Implement immediate error reduction measures"
+
+  # ============================================================================
+  # CAPACITY PLANNING ALERTS
+  # ============================================================================
+
+- name: nephoran_capacity_planning
+  interval: 600s
+  rules:
+  
+  - alert: HighVolumeGrowth
+    expr: |
+      (
+        rate(networkintent_reconciles_total[1h]) - 
+        rate(networkintent_reconciles_total[1h] offset 24h)
+      ) / rate(networkintent_reconciles_total[1h] offset 24h) > 0.5
+    for: 2h
+    labels:
+      severity: info
+      category: capacity
+      runbook: runbooks/capacity-planning.md
+    annotations:
+      summary: "High volume growth detected"
+      description: "Intent processing volume increased {{ $value | humanizePercentage }} compared to yesterday"
+      impact: "Capacity planning required"
+      action: "Review scaling policies and resource allocation"
+
+  - alert: CacheUtilizationHigh
+    expr: |
+      (
+        sum(rate(nephoran_llm_cache_hits_total[1h])) + 
+        sum(rate(nephoran_llm_cache_misses_total[1h]))
+      ) > 1000
+    for: 1h
+    labels:
+      severity: info
+      category: capacity
+      runbook: runbooks/cache-scaling.md
+    annotations:
+      summary: "High cache utilization"
+      description: "Cache operations exceeding 1000/hour"
+      impact: "Cache scaling may be beneficial"
+      action: "Consider increasing cache size or implementing cache partitioning"
+
+  # ============================================================================
+  # SECURITY ALERTS
+  # ============================================================================
+
+- name: nephoran_security_monitoring
+  interval: 60s
+  rules:
+  
+  - alert: AuthenticationFailures
+    expr: rate(nephoran_llm_errors_total{error_type="authentication"}[5m]) > 0.01
+    for: 5m
+    labels:
+      severity: warning
+      category: security
+      runbook: runbooks/auth-failures.md
+    annotations:
+      summary: "Authentication failures detected"
+      description: "Authentication failure rate: {{ $value }}/sec"
+      impact: "Potential security threat"
+      action: "Investigate authentication sources and credential validity"
+
+  - alert: ValidationFailures
+    expr: rate(networkintent_reconcile_errors_total{error_type="validation"}[5m]) > 0.05
+    for: 10m
+    labels:
+      severity: warning
+      category: security
+      runbook: runbooks/validation-failures.md
+    annotations:
+      summary: "High validation failure rate"
+      description: "Validation failures: {{ $value }}/sec in namespace {{ $labels.namespace }}"
+      impact: "Potential malicious or malformed requests"
+      action: "Review request patterns and validation rules"
+
+  - alert: UnauthorizedAccess
+    expr: rate(nephoran_llm_errors_total{error_type="authorization"}[5m]) > 0
+    for: 2m
+    labels:
+      severity: critical
+      category: security
+      runbook: runbooks/unauthorized-access.md
+    annotations:
+      summary: "Unauthorized access attempts detected"
+      description: "Authorization failures for model {{ $labels.model }}"
+      impact: "Security breach attempt"
+      action: "Immediate security review and access audit required"

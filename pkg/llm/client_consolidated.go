@@ -39,8 +39,9 @@ type Client struct {
 	retryConfig    RetryConfig
 
 	// Observability
-	logger  *slog.Logger
-	metrics *ClientMetrics
+	logger           *slog.Logger
+	metrics          *ClientMetrics
+	metricsIntegrator *MetricsIntegrator
 
 	// Concurrency control
 	mutex        sync.RWMutex
@@ -288,6 +289,10 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		tokenTracker: NewTokenTracker(),
 	}
 
+	// Initialize metrics integrator for Prometheus support
+	metricsCollector := NewMetricsCollector()
+	client.metricsIntegrator = NewMetricsIntegrator(metricsCollector)
+
 	// Initialize smart endpoints for RAG backend
 	if config.BackendType == "rag" {
 		client.initializeRAGEndpoints()
@@ -333,9 +338,15 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	var success bool
 	var cacheHit bool
 	var retryCount int
+	var processingError error
 
 	defer func() {
 		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
+		// Record specific error types for Prometheus metrics
+		if processingError != nil && c.metricsIntegrator != nil {
+			errorType := c.categorizeError(processingError)
+			c.metricsIntegrator.prometheusMetrics.RecordError(c.modelName, errorType)
+		}
 	}()
 
 	c.logger.Debug("Processing intent", slog.String("intent", intent))
@@ -354,6 +365,11 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	})
 
 	if err != nil {
+		processingError = err
+		// Check if this is a circuit breaker error
+		if strings.Contains(err.Error(), "circuit breaker is open") && c.metricsIntegrator != nil {
+			c.metricsIntegrator.RecordCircuitBreakerEvent("llm-client", "rejected", c.modelName)
+		}
 		return "", err
 	}
 
@@ -584,6 +600,43 @@ func (c *Client) Shutdown() {
 	}
 }
 
+// categorizeError categorizes errors for better Prometheus metrics
+func (c *Client) categorizeError(err error) string {
+	if err == nil {
+		return "none"
+	}
+	
+	errMsg := err.Error()
+	switch {
+	case strings.Contains(errMsg, "circuit breaker is open"):
+		return "circuit_breaker_open"
+	case strings.Contains(errMsg, "timeout"):
+		return "timeout"
+	case strings.Contains(errMsg, "context deadline exceeded"):
+		return "timeout"
+	case strings.Contains(errMsg, "connection refused"):
+		return "connection_refused"
+	case strings.Contains(errMsg, "no such host"):
+		return "dns_resolution"
+	case strings.Contains(errMsg, "TLS"):
+		return "tls_error"
+	case strings.Contains(errMsg, "401"):
+		return "authentication_error"
+	case strings.Contains(errMsg, "403"):
+		return "authorization_error"
+	case strings.Contains(errMsg, "429"):
+		return "rate_limit_exceeded"
+	case strings.Contains(errMsg, "500"):
+		return "server_error"
+	case strings.Contains(errMsg, "502"), strings.Contains(errMsg, "503"), strings.Contains(errMsg, "504"):
+		return "server_unavailable"
+	case strings.Contains(errMsg, "parse") || strings.Contains(errMsg, "decode"):
+		return "parsing_error"
+	default:
+		return "unknown_error"
+	}
+}
+
 // updateMetrics updates client metrics
 func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
 	c.metrics.mutex.Lock()
@@ -604,4 +657,29 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 	}
 
 	c.metrics.RetryAttempts += int64(retryCount)
+
+	// Record Prometheus metrics via integrator
+	if c.metricsIntegrator != nil {
+		status := "success"
+		if !success {
+			status = "error"
+		}
+		
+		// Get current token stats for this request
+		// Note: This gives cumulative stats, not per-request, but it's the best we can do
+		// with the current TokenTracker implementation
+		tokenStats := c.tokenTracker.GetStats()
+		totalTokens := int(tokenStats["total_tokens"].(int64))
+		
+		// Record LLM request metrics
+		c.metricsIntegrator.RecordLLMRequest(c.modelName, status, latency, totalTokens)
+		
+		// Record cache operation
+		c.metricsIntegrator.RecordCacheOperation(c.modelName, "get", cacheHit)
+		
+		// Record retry attempts if any occurred
+		for i := 0; i < retryCount; i++ {
+			c.metricsIntegrator.RecordRetryAttempt(c.modelName)
+		}
+	}
 }

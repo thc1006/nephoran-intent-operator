@@ -1,0 +1,296 @@
+# Prometheus Scrape Configuration for Nephoran Intent Operator
+# This configuration should be added to your prometheus.yml or loaded as a separate config
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "prometheus-alerts.yaml"
+
+scrape_configs:
+  # ============================================================================
+  # Nephoran Intent Operator Main Service
+  # ============================================================================
+  - job_name: 'nephoran-intent-operator'
+    static_configs:
+      - targets: ['nephoran-intent-operator:8080']
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    honor_labels: true
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: nephoran-intent-operator:8080
+      - target_label: job
+        replacement: 'nephoran-intent-operator'
+    metric_relabel_configs:
+      # Add environment label
+      - target_label: environment
+        replacement: 'production'  # Change based on deployment
+      - target_label: cluster
+        replacement: 'nephoran-main'  # Change based on cluster name
+
+  # ============================================================================
+  # LLM Processor Service (if deployed separately)
+  # ============================================================================
+  - job_name: 'nephoran-llm-processor'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - nephoran-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: llm-processor
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: kubernetes_name
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: kubernetes_pod_name
+    scrape_interval: 15s
+    metrics_path: /metrics
+
+  # ============================================================================
+  # Nephio Bridge Service (if deployed separately)
+  # ============================================================================
+  - job_name: 'nephoran-nephio-bridge'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - nephoran-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: nephio-bridge
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: kubernetes_name
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: kubernetes_pod_name
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # ============================================================================
+  # RAG API Service
+  # ============================================================================
+  - job_name: 'nephoran-rag-api'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - nephoran-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: rag-api
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: kubernetes_name
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: kubernetes_pod_name
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # ============================================================================
+  # Weaviate Vector Database (if metrics enabled)
+  # ============================================================================
+  - job_name: 'weaviate'
+    kubernetes_sd_configs:
+      - role: endpoints
+        namespaces:
+          names:
+            - nephoran-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_service_name]
+        action: keep
+        regex: weaviate
+      - source_labels: [__meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: metrics
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_service_name]
+        target_label: kubernetes_name
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: kubernetes_pod_name
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # ============================================================================
+  # Kubernetes System Metrics (for correlation)
+  # ============================================================================
+  - job_name: 'kubernetes-apiservers'
+    kubernetes_sd_configs:
+      - role: endpoints
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+        action: keep
+        regex: default;kubernetes;https
+
+  - job_name: 'kubernetes-nodes'
+    scheme: https
+    tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+    kubernetes_sd_configs:
+      - role: node
+    relabel_configs:
+      - action: labelmap
+        regex: __meta_kubernetes_node_label_(.+)
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
+      - source_labels: [__meta_kubernetes_node_name]
+        regex: (.+)
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics
+
+  - job_name: 'kubernetes-pods'
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names:
+            - nephoran-system
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+        action: replace
+        target_label: __metrics_path__
+        regex: (.+)
+      - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+        action: replace
+        regex: ([^:]+)(?::\d+)?;(\d+)
+        replacement: $1:$2
+        target_label: __address__
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: kubernetes_pod_name
+
+# ============================================================================
+# Alertmanager Configuration
+# ============================================================================
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
+      path_prefix: /
+      scheme: http
+      timeout: 30s
+      api_version: v2
+
+# ============================================================================
+# Recording Rules for Performance
+# ============================================================================
+recording_rules:
+  - name: nephoran_recording_rules
+    interval: 30s
+    rules:
+      # System-wide success rate (used frequently in dashboards)
+      - record: nephoran:system_success_rate
+        expr: |
+          (
+            rate(nephoran_llm_requests_total{status="success"}[5m]) + 
+            rate(networkintent_reconciles_total{result="success"}[5m])
+          ) /
+          (
+            rate(nephoran_llm_requests_total[5m]) + 
+            rate(networkintent_reconciles_total[5m])
+          ) * 100
+
+      # P95 end-to-end processing latency
+      - record: nephoran:p95_processing_latency
+        expr: |
+          histogram_quantile(0.95, 
+            rate(networkintent_processing_duration_seconds_bucket{phase="total"}[5m])
+          )
+
+      # Cache efficiency by model
+      - record: nephoran:cache_hit_rate_by_model
+        expr: |
+          rate(nephoran_llm_cache_hits_total[5m]) / 
+          (
+            rate(nephoran_llm_cache_hits_total[5m]) + 
+            rate(nephoran_llm_cache_misses_total[5m])
+          ) * 100
+
+      # LLM error rate by model and type
+      - record: nephoran:llm_error_rate_by_model
+        expr: |
+          rate(nephoran_llm_errors_total[5m]) / 
+          rate(nephoran_llm_requests_total[5m]) * 100
+
+      # System throughput (intents per minute)
+      - record: nephoran:system_throughput
+        expr: |
+          rate(networkintent_reconciles_total{result="success"}[1m]) * 60
+
+      # Active NetworkIntent counts by status
+      - record: nephoran:active_networkintents_ready
+        expr: sum(networkintent_status == 2)
+      
+      - record: nephoran:active_networkintents_processing
+        expr: sum(networkintent_status == 1)
+      
+      - record: nephoran:active_networkintents_failed
+        expr: sum(networkintent_status == 0)
+
+# ============================================================================
+# Configuration for Different Deployment Scenarios
+# ============================================================================
+
+# For Docker Compose deployment:
+# Replace kubernetes_sd_configs with static_configs:
+#   static_configs:
+#     - targets: ['nephoran-intent-operator:8080']
+
+# For multi-cluster setup:
+# Add federation configuration:
+# - job_name: 'federate'
+#   scrape_interval: 15s
+#   honor_labels: true
+#   metrics_path: '/federate'
+#   params:
+#     'match[]':
+#       - '{job=~"nephoran.*"}'
+#   static_configs:
+#     - targets:
+#       - 'remote-prometheus:9090'
+
+# For high-availability setup:
+# Configure external labels for each Prometheus instance:
+# external_labels:
+#   cluster: 'nephoran-main'
+#   region: 'us-west-2'
+#   replica: 'prometheus-01'
