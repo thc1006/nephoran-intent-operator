@@ -77,7 +77,7 @@ jobs:
           retention-days: 1
 
   # =============================================================================
-  # Build Job (Makefile if present; else go build ./...; always upload log)
+  # Build Job — ONLY build MVP commands; always upload build.log
   # =============================================================================
   build:
     name: Build
@@ -122,21 +122,25 @@ jobs:
           name: generated-crds
           path: deployments/crds/
 
-      - name: Build project (Makefile if present; else go build ./...)
+      - name: Build project (MVP targets only)
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p .excellence-reports
-          if make -n build >/dev/null 2>&1; then
-            ( make build ) 2>&1 | tee .excellence-reports/build.log
-            status=${PIPESTATUS[0]}
-            exit $status
-          else
-            echo "No Makefile target 'build' → fallback to 'go build -v ./...'"
-            ( go build -v ./... ) 2>&1 | tee .excellence-reports/build.log
-            status=${PIPESTATUS[0]}
-            exit $status
+
+          TARGETS=()
+          [[ -f cmd/intent-ingest/main.go ]]    && TARGETS+=("./cmd/intent-ingest")
+          [[ -f cmd/porch-publisher/main.go ]]  && TARGETS+=("./cmd/porch-publisher")
+
+          if [[ ${#TARGETS[@]} -eq 0 ]]; then
+            echo "❌ No MVP command targets found; aborting to avoid building ./..."
+            exit 1
           fi
+
+          echo "Building targets: ${TARGETS[*]}"
+          ( go build -v "${TARGETS[@]}" ) 2>&1 | tee .excellence-reports/build.log
+          status=${PIPESTATUS[0]}
+          exit $status
 
       - name: Upload build log
         if: always()
@@ -148,7 +152,7 @@ jobs:
           retention-days: 7
 
   # =============================================================================
-  # Test Job (basic go test ./...; always upload log)
+  # Test Job — ONLY test MVP command packages; always upload test.log
   # =============================================================================
   test:
     name: Test
@@ -204,7 +208,7 @@ jobs:
           name: generated-crds
           path: deployments/crds/
 
-      - name: Run tests with coverage (basic)
+      - name: Run tests with coverage (MVP scope)
         shell: bash
         env:
           USE_EXISTING_CLUSTER: false
@@ -212,7 +216,18 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .excellence-reports
-          ( go test -v ./... -count=1 -coverprofile=.excellence-reports/coverage.out ) 2>&1 | tee .excellence-reports/test.log
+
+          PKGS=()
+          [[ -d cmd/intent-ingest ]]    && PKGS+=("./cmd/intent-ingest")
+          [[ -d cmd/porch-publisher ]]  && PKGS+=("./cmd/porch-publisher")
+
+          if [[ ${#PKGS[@]} -eq 0 ]]; then
+            echo "❌ No MVP test packages present; aborting to avoid testing ./..."
+            exit 1
+          fi
+
+          echo "Testing packages: ${PKGS[*]}"
+          ( go test -v -count=1 -coverprofile=.excellence-reports/coverage.out "${PKGS[@]}" ) 2>&1 | tee .excellence-reports/test.log
           status=${PIPESTATUS[0]}
           go tool cover -html=.excellence-reports/coverage.out -o .excellence-reports/coverage.html || true
           exit $status
@@ -388,14 +403,14 @@ jobs:
           echo "| Job | Status | Description |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|-------------|" >> $GITHUB_STEP_SUMMARY
           echo "| Generate CRDs | ${{ needs.generate.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | CRD generation and code generation |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build | ${{ needs.build.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Project compilation |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test | ${{ needs.test.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Basic go test with coverage |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Build MVP commands only |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ needs.test.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Test MVP command pkgs only |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
 
   # =============================================================================
-  # Container Build Job (runs after successful CI)
+  # Container Build Job (main only; optional artifacts)
   # =============================================================================
   container:
     name: Container Build
@@ -434,15 +449,6 @@ jobs:
             type=ref,event=pr
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
-
-      # 若你的 Dockerfile 需要 bin/ 內的二進位檔，請在 Makefile 的 build 目標輸出到 bin/
-      # 這裡下載失敗也不要讓 job 掛掉（main push 才會跑）
-      - name: Download build artifacts (optional)
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: .excellence-reports/
-          if-no-files-found: ignore
 
       - name: Build and push container image
         uses: docker/build-push-action@v6
