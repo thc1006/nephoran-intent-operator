@@ -1,10 +1,10 @@
 name: CI
 
 on:
+  workflow_dispatch: {}
   push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
+    branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
+  pull_request: {}
 
 env:
   # Go version is extracted dynamically from go.mod in setup-go step
