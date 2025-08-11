@@ -1,31 +1,40 @@
+# .golangci.yml — minimal, schema-safe for v1.61
 run:
   timeout: 10m
   tests: true
+  modules-download-mode: readonly
+  # 將原本放在根層的 skip-dirs/skip-files 搬到這裡
+  skip-dirs:
+    - vendor
+    - deployments
+    - docs
+    - examples
+    - handoff
+  skip-files:
+    - ".*_generated\\.go$"
+    - "^pkg/apis/.+zz_generated.*\\.go$"
 
 linters:
-  disable-all: true
   enable:
     - govet
-    - errcheck
     - staticcheck
-    - gosimple
-    - ineffassign
     - gofmt
-    - goimports
+    - ineffassign
+    - gosimple
+    - unused
+    - gocritic
 
 issues:
+  exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    - path: _test\\.go
+      linters:
+        - errcheck
 
-# 排除產生物/不相關目錄
-skip-dirs:
-  - vendor
-  - bin
-  - deployments
-  - examples/packages
-
-# 忽略某些常見型態（MVP 階段先不擋）
 linters-settings:
-  errcheck:
-    check-type-assertions: false
-    check-blank: false
+  gofmt:
+    simplify: true
+  gocritic:
+    enable-all: false
