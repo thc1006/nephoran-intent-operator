@@ -222,7 +222,7 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		logger:       logger,
 		metrics:      NewClientMetrics(),
 		cache:        NewResponseCache(5*time.Minute, cacheMaxEntries), // Use environment variable
-		fallbackURLs: []string{}, // Can be configured for redundancy
+		fallbackURLs: []string{},                                       // Can be configured for redundancy
 	}
 
 	// Initialize RAG client if backend type is "rag"
@@ -239,7 +239,7 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 			Temperature:      0.0,
 		}
 		client.ragClient = rag.NewRAGClient(ragConfig)
-		
+
 		// Initialize the RAG client
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -718,16 +718,16 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 			// Build context from retrieved documents
 			var contextBuilder strings.Builder
 			contextBuilder.WriteString("Based on the following context:\n\n")
-			
+
 			for i, doc := range docs {
-				contextBuilder.WriteString(fmt.Sprintf("Context %d (confidence: %.2f):\n%s\n\n", 
+				contextBuilder.WriteString(fmt.Sprintf("Context %d (confidence: %.2f):\n%s\n\n",
 					i+1, doc.Confidence, doc.Content))
 			}
-			
+
 			// Generate enhanced response using ChatCompletion with RAG context
 			systemPrompt := c.promptEngine.GeneratePrompt("NetworkFunctionDeployment", intent)
 			enhancedPrompt := fmt.Sprintf("%s\n\nAdditional Context:\n%s", systemPrompt, contextBuilder.String())
-			
+
 			return c.processWithChatCompletion(ctx, enhancedPrompt, intent)
 		}
 	}

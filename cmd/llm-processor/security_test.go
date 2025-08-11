@@ -313,8 +313,8 @@ func TestMetricsIPRestriction(t *testing.T) {
 				if len(allowedIPs) > 0 {
 					allowed := false
 					for _, ip := range allowedIPs {
-						if strings.TrimSpace(ip) == clientIP || 
-						   strings.TrimSpace(ip) == tt.clientIP {
+						if strings.TrimSpace(ip) == clientIP ||
+							strings.TrimSpace(ip) == tt.clientIP {
 							allowed = true
 							break
 						}

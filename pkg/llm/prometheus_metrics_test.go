@@ -26,7 +26,7 @@ func TestPrometheusMetricsIntegration(t *testing.T) {
 
 	t.Run("metrics disabled by default", func(t *testing.T) {
 		os.Unsetenv("METRICS_ENABLED")
-		
+
 		pm := NewPrometheusMetrics()
 		assert.NotNil(t, pm)
 		assert.False(t, pm.isRegistered())
@@ -34,11 +34,11 @@ func TestPrometheusMetricsIntegration(t *testing.T) {
 
 	t.Run("metrics enabled when METRICS_ENABLED=true", func(t *testing.T) {
 		os.Setenv("METRICS_ENABLED", "true")
-		
+
 		// Reset singleton for test
 		prometheusOnce = sync.Once{}
 		prometheusMetrics = nil
-		
+
 		pm := NewPrometheusMetrics()
 		assert.NotNil(t, pm)
 		assert.True(t, pm.isRegistered())
@@ -46,14 +46,14 @@ func TestPrometheusMetricsIntegration(t *testing.T) {
 
 	t.Run("prometheus metrics recording", func(t *testing.T) {
 		os.Setenv("METRICS_ENABLED", "true")
-		
+
 		// Reset singleton for test
 		prometheusOnce = sync.Once{}
 		prometheusMetrics = nil
-		
+
 		pm := NewPrometheusMetrics()
 		require.True(t, pm.isRegistered())
-		
+
 		// Record some metrics
 		pm.RecordRequest("gpt-4o-mini", "success", 500*time.Millisecond)
 		pm.RecordRequest("gpt-4o-mini", "error", 200*time.Millisecond)
@@ -62,7 +62,7 @@ func TestPrometheusMetricsIntegration(t *testing.T) {
 		pm.RecordRetryAttempt("gpt-4o-mini")
 		pm.RecordFallbackAttempt("gpt-4o-mini", "gpt-3.5-turbo")
 		pm.RecordError("gpt-4o-mini", "timeout")
-		
+
 		// Verify metrics were recorded (basic checks)
 		assert.NotNil(t, pm.RequestsTotal)
 		assert.NotNil(t, pm.ErrorsTotal)
@@ -73,25 +73,25 @@ func TestPrometheusMetricsIntegration(t *testing.T) {
 func TestMetricsIntegrator(t *testing.T) {
 	os.Setenv("METRICS_ENABLED", "true")
 	defer os.Unsetenv("METRICS_ENABLED")
-	
+
 	// Reset singleton for test
 	prometheusOnce = sync.Once{}
 	prometheusMetrics = nil
-	
+
 	collector := NewMetricsCollector()
 	integrator := NewMetricsIntegrator(collector)
-	
+
 	assert.NotNil(t, integrator)
 	assert.NotNil(t, integrator.collector)
 	assert.NotNil(t, integrator.prometheusMetrics)
-	
+
 	// Test integrated recording
 	integrator.RecordLLMRequest("gpt-4o-mini", "success", 500*time.Millisecond, 150)
 	integrator.RecordCacheOperation("gpt-4o-mini", "get", true)
 	integrator.RecordRetryAttempt("gpt-4o-mini")
 	integrator.RecordFallbackAttempt("gpt-4o-mini", "gpt-3.5-turbo")
 	integrator.RecordCircuitBreakerEvent("llm-client", "rejected", "gpt-4o-mini")
-	
+
 	// Verify both systems recorded metrics
 	clientMetrics := collector.GetClientMetrics()
 	assert.Greater(t, clientMetrics.RequestsTotal, int64(0))
@@ -104,11 +104,11 @@ func TestErrorCategorization(t *testing.T) {
 	client := &Client{
 		modelName: "test-model",
 	}
-	
+
 	testCases := []struct {
-		name           string
-		error          error
-		expectedType   string
+		name         string
+		error        error
+		expectedType string
 	}{
 		{
 			name:         "circuit breaker error",
@@ -151,7 +151,7 @@ func TestErrorCategorization(t *testing.T) {
 			expectedType: "unknown_error",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := client.categorizeError(tc.error)
@@ -164,11 +164,11 @@ func TestMetricsEnvironmentVariableGating(t *testing.T) {
 	// Test with metrics disabled
 	os.Setenv("METRICS_ENABLED", "false")
 	assert.False(t, isMetricsEnabled())
-	
+
 	// Test with metrics enabled
 	os.Setenv("METRICS_ENABLED", "true")
 	assert.True(t, isMetricsEnabled())
-	
+
 	// Test with unset variable (should be false)
 	os.Unsetenv("METRICS_ENABLED")
 	assert.False(t, isMetricsEnabled())

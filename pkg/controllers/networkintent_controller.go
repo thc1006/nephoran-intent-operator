@@ -344,13 +344,13 @@ func validateAndSetConfigDefaults(config *Config, constants *configPkg.Constants
 // Reconcile is the main entry point for reconciliation
 func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	startTime := time.Now()
-	
+
 	// Delegate to the modular reconciler
 	result, err := r.reconciler.Reconcile(ctx, req)
-	
+
 	// Record metrics
 	processingDuration := time.Since(startTime).Seconds()
-	
+
 	if err != nil {
 		// Determine error type for better metrics granularity
 		errorType := "unknown"
@@ -363,15 +363,15 @@ func (r *NetworkIntentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		} else if strings.Contains(err.Error(), "git") {
 			errorType = "git_operations"
 		}
-		
+
 		r.metrics.RecordFailure(req.Namespace, req.Name, errorType)
 	} else {
 		r.metrics.RecordSuccess(req.Namespace, req.Name)
 	}
-	
+
 	// Record processing duration
 	r.metrics.RecordProcessingDuration(req.Namespace, req.Name, "total", processingDuration)
-	
+
 	return result, err
 }
 

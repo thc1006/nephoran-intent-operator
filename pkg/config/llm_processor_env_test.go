@@ -151,11 +151,11 @@ func TestLLMProcessorConfigEnvironmentVariables(t *testing.T) {
 			for key, value := range tt.envVars {
 				os.Setenv(key, value)
 			}
-			
+
 			// Set required environment variables for tests that don't want errors
 			if !tt.wantError {
-				os.Setenv("AUTH_ENABLED", "false")    // Disable auth to skip JWT requirement
-				os.Setenv("CORS_ENABLED", "false")    // Disable CORS to skip origins requirement
+				os.Setenv("AUTH_ENABLED", "false") // Disable auth to skip JWT requirement
+				os.Setenv("CORS_ENABLED", "false") // Disable CORS to skip origins requirement
 			}
 
 			// Clean up after test
@@ -268,12 +268,12 @@ func TestLLMProcessorConfigValidation(t *testing.T) {
 				MetricsEnabled:    false,
 				MetricsAllowedIPs: []string{},
 				// Set required fields to pass validation
-				LLMBackendType:     "rag",
-				AuthEnabled:        false,
-				APIKeyRequired:     false,
-				TLSEnabled:        false,
-				CORSEnabled:       false,
-				AllowedOrigins:    []string{},
+				LLMBackendType: "rag",
+				AuthEnabled:    false,
+				APIKeyRequired: false,
+				TLSEnabled:     false,
+				CORSEnabled:    false,
+				AllowedOrigins: []string{},
 			},
 		},
 		{
@@ -286,12 +286,12 @@ func TestLLMProcessorConfigValidation(t *testing.T) {
 				MetricsEnabled:    true,
 				MetricsAllowedIPs: []string{"127.0.0.1", "192.168.1.1"},
 				// Set required fields
-				LLMBackendType:     "rag",
-				AuthEnabled:        false,
-				APIKeyRequired:     false,
-				TLSEnabled:        false,
-				CORSEnabled:       false,
-				AllowedOrigins:    []string{},
+				LLMBackendType: "rag",
+				AuthEnabled:    false,
+				APIKeyRequired: false,
+				TLSEnabled:     false,
+				CORSEnabled:    false,
+				AllowedOrigins: []string{},
 			},
 		},
 	}

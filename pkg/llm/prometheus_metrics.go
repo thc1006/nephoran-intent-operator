@@ -13,7 +13,7 @@ import (
 var (
 	// prometheusOnce ensures metrics are only registered once
 	prometheusOnce sync.Once
-	
+
 	// prometheusMetrics holds the registered Prometheus metrics
 	prometheusMetrics *PrometheusMetrics
 )
@@ -27,10 +27,10 @@ type PrometheusMetrics struct {
 	CacheMissesTotal      *prometheus.CounterVec
 	FallbackAttemptsTotal *prometheus.CounterVec
 	RetryAttemptsTotal    *prometheus.CounterVec
-	
+
 	// Histogram metrics
 	ProcessingDurationSeconds *prometheus.HistogramVec
-	
+
 	// Registration flag
 	registered bool
 	mutex      sync.RWMutex
@@ -45,7 +45,7 @@ func NewPrometheusMetrics() *PrometheusMetrics {
 			prometheusMetrics = &PrometheusMetrics{registered: false}
 		}
 	})
-	
+
 	return prometheusMetrics
 }
 
@@ -64,7 +64,7 @@ func createAndRegisterMetrics() *PrometheusMetrics {
 		}, []string{"model", "status"}),
 
 		ErrorsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "nephoran_llm_errors_total", 
+			Name: "nephoran_llm_errors_total",
 			Help: "Total number of LLM errors by model and error type",
 		}, []string{"model", "error_type"}),
 
@@ -125,7 +125,7 @@ func (pm *PrometheusMetrics) RecordRequest(model, status string, duration time.D
 	if !pm.isRegistered() {
 		return
 	}
-	
+
 	pm.RequestsTotal.WithLabelValues(model, status).Inc()
 	pm.ProcessingDurationSeconds.WithLabelValues(model, status).Observe(duration.Seconds())
 }
@@ -135,7 +135,7 @@ func (pm *PrometheusMetrics) RecordError(model, errorType string) {
 	if !pm.isRegistered() {
 		return
 	}
-	
+
 	pm.ErrorsTotal.WithLabelValues(model, errorType).Inc()
 }
 
@@ -144,7 +144,7 @@ func (pm *PrometheusMetrics) RecordCacheHit(model string) {
 	if !pm.isRegistered() {
 		return
 	}
-	
+
 	pm.CacheHitsTotal.WithLabelValues(model).Inc()
 }
 
@@ -153,7 +153,7 @@ func (pm *PrometheusMetrics) RecordCacheMiss(model string) {
 	if !pm.isRegistered() {
 		return
 	}
-	
+
 	pm.CacheMissesTotal.WithLabelValues(model).Inc()
 }
 
@@ -162,7 +162,7 @@ func (pm *PrometheusMetrics) RecordFallbackAttempt(originalModel, fallbackModel 
 	if !pm.isRegistered() {
 		return
 	}
-	
+
 	pm.FallbackAttemptsTotal.WithLabelValues(originalModel, fallbackModel).Inc()
 }
 
@@ -171,7 +171,7 @@ func (pm *PrometheusMetrics) RecordRetryAttempt(model string) {
 	if !pm.isRegistered() {
 		return
 	}
-	
+
 	pm.RetryAttemptsTotal.WithLabelValues(model).Inc()
 }
 
@@ -180,7 +180,7 @@ func (pm *PrometheusMetrics) isRegistered() bool {
 	if pm == nil {
 		return false
 	}
-	
+
 	pm.mutex.RLock()
 	defer pm.mutex.RUnlock()
 	return pm.registered
@@ -204,10 +204,10 @@ func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
 func (mi *MetricsIntegrator) RecordLLMRequest(model, status string, latency time.Duration, tokens int) {
 	// Record to existing MetricsCollector
 	mi.collector.RecordLLMRequest(model, status, latency, tokens)
-	
+
 	// Record to Prometheus metrics
 	mi.prometheusMetrics.RecordRequest(model, status, latency)
-	
+
 	// Record error if status indicates failure
 	if status == "error" || status == "failed" {
 		mi.prometheusMetrics.RecordError(model, "processing_error")
@@ -216,9 +216,9 @@ func (mi *MetricsIntegrator) RecordLLMRequest(model, status string, latency time
 
 // RecordCacheOperation records cache operations to both metrics systems
 func (mi *MetricsIntegrator) RecordCacheOperation(model, operation string, hit bool) {
-	// Record to existing MetricsCollector  
+	// Record to existing MetricsCollector
 	mi.collector.RecordCacheOperation(operation, hit)
-	
+
 	// Record to Prometheus metrics
 	if hit {
 		mi.prometheusMetrics.RecordCacheHit(model)
@@ -234,18 +234,18 @@ func (mi *MetricsIntegrator) RecordFallbackAttempt(originalModel, fallbackModel 
 	mi.collector.clientMetrics.mutex.Lock()
 	mi.collector.clientMetrics.FallbackAttempts++
 	mi.collector.clientMetrics.mutex.Unlock()
-	
+
 	// Record to Prometheus metrics
 	mi.prometheusMetrics.RecordFallbackAttempt(originalModel, fallbackModel)
 }
 
-// RecordRetryAttempt records retry attempts to both metrics systems  
+// RecordRetryAttempt records retry attempts to both metrics systems
 func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {
 	// Increment retry in existing collector's client metrics
 	mi.collector.clientMetrics.mutex.Lock()
 	mi.collector.clientMetrics.RetryAttempts++
 	mi.collector.clientMetrics.mutex.Unlock()
-	
+
 	// Record to Prometheus metrics
 	mi.prometheusMetrics.RecordRetryAttempt(model)
 }
@@ -254,7 +254,7 @@ func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {
 func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(name, event, model string) {
 	// Record to existing MetricsCollector
 	mi.collector.RecordCircuitBreakerEvent(name, event)
-	
+
 	// Map circuit breaker events to error types for Prometheus
 	switch event {
 	case "rejected":
