@@ -1,10 +1,15 @@
 name: CI
 
 on:
+  workflow_dispatch: {}
   push:
-    branches: [ main, develop ]
+    branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, integrate/mvp ]     # <— 建議只針對被保護分支的 PR
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   # Go version is extracted dynamically from go.mod in setup-go step
@@ -333,35 +338,31 @@ jobs:
   # =============================================================================
   # Final CI Status Check
   # =============================================================================
-  ci-status:
-    name: CI Status Check
-    runs-on: ubuntu-latest
-    needs: [generate, build, test, lint, security]
-    if: always()
-    timeout-minutes: 5
-    
-    steps:
-      - name: Check all job statuses
-        run: |
-          echo "=== CI Pipeline Status ==="
-          echo "Generate CRDs: ${{ needs.generate.result }}"
-          echo "Build: ${{ needs.build.result }}"
-          echo "Test: ${{ needs.test.result }}"
-          echo "Lint: ${{ needs.lint.result }}"
-          echo "Security: ${{ needs.security.result }}"
-          echo ""
-          
-          # Check if any critical jobs failed
-          if [[ "${{ needs.generate.result }}" != "success" || \
-                "${{ needs.build.result }}" != "success" || \
-                "${{ needs.test.result }}" != "success" || \
-                "${{ needs.lint.result }}" != "success" || \
-                "${{ needs.security.result }}" != "success" ]]; then
-            echo "❌ CI Pipeline Failed - One or more critical jobs failed"
-            exit 1
-          else
-            echo "✅ CI Pipeline Succeeded - All jobs completed successfully"
-          fi
+ci-status:
+  name: CI Status Check                   # <— 顯示名稱固定（將出現在 Ruleset 清單）
+  runs-on: ubuntu-latest
+  needs: [generate, build, test, lint, security]
+  if: always()
+  timeout-minutes: 5
+  steps:
+    - name: Gate on upstream job results
+      shell: bash
+      run: |
+        echo "Generate: ${{ needs.generate.result }}"
+        echo "Build:    ${{ needs.build.result }}"
+        echo "Test:     ${{ needs.test.result }}"
+        echo "Lint:     ${{ needs.lint.result }}"
+        echo "Security: ${{ needs.security.result }}"
+
+        if [[ "${{ needs.generate.result }}" != "success" || \
+              "${{ needs.build.result }}"    != "success" || \
+              "${{ needs.test.result }}"     != "success" || \
+              "${{ needs.lint.result }}"     != "success" || \
+              "${{ needs.security.result }}" != "success" ]]; then
+          echo "❌ CI Pipeline Failed"
+          exit 1
+        fi
+        echo "✅ CI Pipeline Succeeded"
 
       - name: Generate CI summary
         if: always()
