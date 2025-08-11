@@ -1,0 +1,82 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: network-intent-controller
+  labels:
+    app: network-intent-controller
+    component: controller
+    app.kubernetes.io/name: network-intent-controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/part-of: nephoran-intent-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: network-intent-controller-role
+  labels:
+    app: network-intent-controller
+    component: controller
+    app.kubernetes.io/name: network-intent-controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/part-of: nephoran-intent-operator
+rules:
+# NetworkIntent CRD permissions
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents/status"]
+  verbs: ["get", "update", "patch"]
+- apiGroups: ["nephoran.com"]
+  resources: ["networkintents/finalizers"]
+  verbs: ["update"]
+
+# Event permissions for status updates
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["create", "patch"]
+
+# ConfigMap permissions for leader election
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# Pod permissions for controller runtime
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+
+# Secret permissions if needed for authentication
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch"]
+
+# Webhook permissions
+- apiGroups: ["admissionregistration.k8s.io"]
+  resources: ["validatingadmissionwebhooks", "mutatingadmissionwebhooks"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: network-intent-controller-binding
+  labels:
+    app: network-intent-controller
+    component: controller
+    app.kubernetes.io/name: network-intent-controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/part-of: nephoran-intent-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: network-intent-controller-role
+subjects:
+- kind: ServiceAccount
+  name: network-intent-controller
+  namespace: nephoran-system

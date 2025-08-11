@@ -1,0 +1,182 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-intent-controller
+  labels:
+    app: network-intent-controller
+    component: controller
+    version: v2.0.0
+    app.kubernetes.io/name: network-intent-controller
+    app.kubernetes.io/component: controller
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/version: v2.0.0
+  annotations:
+    deployment.kubernetes.io/revision: "1"
+    nephoran.com/component: "network-intent-controller"
+    nephoran.com/enhanced: "true"
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: network-intent-controller
+  template:
+    metadata:
+      labels:
+        app: network-intent-controller
+        component: controller
+        version: v2.0.0
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+        # ServiceMonitor compatible - metrics endpoint available for Prometheus operator
+    spec:
+      serviceAccountName: network-intent-controller
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: controller
+        image: ghcr.io/thc1006/nephoran-intent-operator/network-intent-controller:v2.0.0
+        imagePullPolicy: Always
+        command: ["/network-intent-controller"]
+        args:
+        - "--health-probe-bind-address=:8081"
+        - "--metrics-bind-address=:8080"
+        - "--leader-elect"
+        - "--zap-log-level=info"
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: webhook
+          containerPort: 9443
+          protocol: TCP
+        - name: health
+          containerPort: 8081
+          protocol: TCP
+        env:
+        # Controller Configuration
+        - name: ENABLE_NETWORK_INTENT
+          value: "true"
+        - name: ENABLE_LLM_INTENT
+          value: "false"
+        - name: LOG_LEVEL
+          value: "info"
+        - name: SERVICE_VERSION
+          value: "v2.0.0"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        
+        # Metrics and Monitoring
+        - name: METRICS_ENABLED
+          value: "true"
+        - name: TRACING_ENABLED
+          value: "true"
+        - name: JAEGER_ENDPOINT
+          value: "http://jaeger-collector.monitoring.svc.cluster.local:14268/api/traces"
+        
+        # Git Information (injected at build time)
+        - name: GIT_COMMIT
+          value: "$(GIT_COMMIT)"
+        - name: GIT_BRANCH
+          value: "$(GIT_BRANCH)"
+        
+        # Health Checks
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+            scheme: HTTP
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: health
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+        
+        # Startup Probe for slow-starting containers
+        startupProbe:
+          httpGet:
+            path: /healthz
+            port: health
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 30
+          successThreshold: 1
+        
+        # Resource Requirements
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+            ephemeral-storage: 512Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+        
+        # Security Context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+        
+        # Volume Mounts
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        - name: webhook-certs
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true
+      
+      # Pod-level configurations
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 10
+      
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: webhook-certs
+        secret:
+          secretName: network-intent-controller-webhook-certs
+          optional: true

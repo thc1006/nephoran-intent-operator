@@ -4,7 +4,7 @@
 
 ![Nephoran Intent Operator](https://img.shields.io/badge/Nephoran-Intent%20Operator-blue?style=for-the-badge&logo=kubernetes)
 
-**Transform natural language into deployed network functions with AI-driven orchestration**
+**MVP: Demonstrating intent-driven network orchestration with AI-powered translation**
 
 [![Build Status](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/ci.yaml?branch=main&style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/ci.yaml)
 [![Documentation](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/docs-unified.yml?branch=main&style=flat-square&logo=gitbook&label=docs)](https://thc1006.github.io/nephoran-intent-operator)
@@ -13,7 +13,7 @@
 [![Code Coverage](https://img.shields.io/codecov/c/github/thc1006/nephoran-intent-operator?style=flat-square&logo=codecov)](https://codecov.io/gh/thc1006/nephoran-intent-operator)
 [![Docker Pulls](https://img.shields.io/docker/pulls/nephoran/intent-operator?style=flat-square&logo=docker)](https://hub.docker.com/r/nephoran/intent-operator)
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-v1.30+-blue?style=flat-square&logo=kubernetes)](https://kubernetes.io/)
-[![O-RAN Compliant](https://img.shields.io/badge/O--RAN-Compliant-green?style=flat-square&logo=verified)](https://www.o-ran.org/)
+[![O-RAN Ready](https://img.shields.io/badge/O--RAN-Ready-blue?style=flat-square&logo=verified)](https://www.o-ran.org/)
 [![Security Scan](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/security-consolidated.yml?branch=main&style=flat-square&logo=security&label=security)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/security-consolidated.yml)
 [![Release](https://img.shields.io/github/v/release/thc1006/nephoran-intent-operator?style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/releases)
 
@@ -23,57 +23,56 @@
 
 ## 🎯 Project Overview
 
-The **Nephoran Intent Operator** represents a paradigm shift in telecommunications network management, transforming traditional imperative command-based operations into an intelligent, autonomous, intent-driven orchestration system. This production-ready cloud-native platform bridges the semantic gap between high-level business objectives expressed in natural language and concrete **O-RAN compliant** network function deployments.
+The **Nephoran Intent Operator** is a proof-of-concept cloud-native platform that demonstrates the potential of intent-driven telecommunications orchestration. This MVP showcases how natural language intents can be translated into structured network function configurations through AI-powered processing, providing a foundation for future production-ready telecommunications automation.
 
-**🌟 Key Value Proposition:**
-- **Natural Language Interface**: Deploy complex 5G network functions using simple English descriptions
-- **O-RAN Standards Compliance**: Full adherence to O-RAN Alliance specifications (A1, O1, O2, E2 interfaces)
-- **AI-Powered Orchestration**: Advanced LLM processing with RAG-enhanced domain knowledge
-- **Enterprise-Grade Security**: OAuth2 multi-provider authentication, mTLS, and comprehensive audit trails
-- **Production-Ready**: 99.95% availability, sub-2-second processing latency, comprehensive monitoring
+**🌟 Key Value Proposition (MVP Scope):**
+- **Natural Language Interface**: Translate network intents into structured configurations using AI
+- **Kubernetes-Native**: CRD-based controller for NetworkIntent resource management
+- **LLM Integration**: GPT-4o-mini processing with optional RAG enhancement (behind build tag)
+- **Extensible Architecture**: Foundation for O-RAN interface implementations and production features
+- **Proof-of-Concept**: Demonstrates intent-driven orchestration potential with simulated network functions
 
-### 🏆 Technology Readiness Level 9 - Production Ready
+### 🔬 MVP Status - Proof of Concept
 
-Currently at **TRL 9** with complete core functionality, enterprise extensions, and comprehensive operational excellence features validated through extensive testing including 90%+ code coverage, chaos engineering, and production benchmarking.
+Currently an **MVP/proof-of-concept** demonstrating intent-driven network orchestration capabilities. The system includes core functionality for NetworkIntent processing, LLM integration, and basic controller operations with comprehensive testing coverage.
 
 ## ✨ Core Features & Capabilities
 
-### 🧠 AI-Powered Intent Processing
-- **Advanced LLM Integration**: GPT-4o-mini with sophisticated prompt engineering for telecommunications domain
-- **RAG-Enhanced Knowledge**: Weaviate vector database with 45,000+ document chunks from 3GPP and O-RAN specifications  
-- **Intelligent Context Assembly**: Sub-200ms semantic retrieval with 87% accuracy on benchmark queries
-- **Multi-Provider Support**: OpenAI, Azure OpenAI, Mistral, and local model compatibility
+### 🧠 AI-Powered Intent Processing (MVP Features)
+- **LLM Integration**: GPT-4o-mini for natural language processing
+- **Optional RAG System**: Weaviate vector database integration available (when enabled via build tags)
+- **Context Enhancement**: Framework for semantic retrieval and knowledge augmentation
+- **Extensible Architecture**: Support for multiple LLM providers
 
-### 📡 O-RAN Standards Compliance
-- **A1 Interface**: Policy management for Near-RT RIC coordination and xApp orchestration
-- **O1 Interface**: Complete FCAPS management with NETCONF/YANG model support
-- **O2 Interface**: Cloud infrastructure orchestration across multi-cloud environments
-- **E2 Interface**: Real-time RAN intelligent control with comprehensive service model support
+### 🔧 Core MVP Components
+- **NetworkIntent CRD**: Kubernetes custom resource for capturing network intents
+- **Intent Controller**: Processes NetworkIntent resources and manages lifecycle
+- **LLM Processor**: Translates natural language to structured network configurations
+- **RAG System**: Optional context enhancement (enabled via build tags)
 
 ### 🏗️ Cloud-Native Architecture
 - **Kubernetes-Native**: Custom resources, operators, and webhooks following K8s best practices
-- **Multi-Cluster GitOps**: Nephio R5 integration with Porch package orchestration
-- **Service Mesh Ready**: Istio integration with mTLS and advanced traffic management
-- **Horizontal Scaling**: KEDA-based autoscaling supporting 200+ concurrent intent processing
+- **GitOps Foundation**: Basic package generation capabilities for future Nephio integration
+- **Cloud-Native Patterns**: Service-oriented architecture ready for production scaling
+- **Observability**: Prometheus metrics and health endpoints for monitoring
 
-### 🔒 Enterprise-Grade Security
-- **OAuth2 Multi-Provider**: Support for GitHub, Google, Microsoft, and custom OIDC providers
-- **mTLS Everywhere**: Certificate-based service-to-service communication
-- **RBAC & Policy Enforcement**: Namespace isolation, resource quotas, and OPA policy validation
-- **Supply Chain Security**: SLSA compliance, container scanning, and vulnerability management
+### 🔒 Basic Security Features (MVP)
+- **HTTP Security**: Basic authentication and configurable endpoint access
+- **Kubernetes RBAC**: Standard service account and role-based permissions
+- **Container Security**: Base image scanning in CI pipeline
+- **Configuration Security**: Environment-based secrets management
 
-### 📊 Production Observability
-- **Golden Signals Monitoring**: SLI/SLO tracking with Prometheus and Grafana
-- **Comprehensive Metrics**: 11 specialized metrics covering LLM performance, controller operations, and system health
-- **Distributed Tracing**: OpenTelemetry with Jaeger for end-to-end request tracing
-- **Structured Logging**: Centralized logging with ELK stack integration
-- **Custom Business Metrics**: Intent processing latency, success rates, cache efficiency, and cost tracking
+### 📊 MVP Observability
+- **Basic Metrics**: Prometheus metrics for LLM requests, controller operations, and system health
+- **Health Endpoints**: Kubernetes liveness and readiness probes
+- **Structured Logging**: JSON-formatted logs with request tracing
+- **Debugging Support**: Comprehensive error handling and status reporting
 
-### 🚀 Network Function Orchestration
-- **5G Core Functions**: Complete AMF, SMF, UPF, NSSF, and supporting functions
-- **Network Slicing**: Dynamic slice instantiation with QoS differentiation (eMBB, URLLC, mMTC)
-- **Multi-Vendor Support**: Standards-compliant interfaces ensuring vendor interoperability
-- **Edge Computing**: Distributed deployment with edge-cloud synchronization
+### 🚀 Simulated Network Functions
+- **Intent Translation**: Convert natural language to network function parameters
+- **Configuration Generation**: Create structured YAML/JSON for network deployments
+- **Status Management**: Track intent processing lifecycle and deployment state
+- **Extensibility**: Framework for integrating real network function deployments
 
 ## ⚡ 15-Minute Quickstart
 
@@ -183,7 +182,7 @@ Run our automated validation:
 If you encounter issues:
 - Check our comprehensive [QUICKSTART.md](QUICKSTART.md) for detailed steps
 - View [Documentation](docs/README.md) for organized guides and references
-- Join our [Discord community](https://discord.gg/nephoran) for live support
+- Open [GitHub Issues](https://github.com/thc1006/nephoran-intent-operator/issues) for support
 
 ## 🏗️ System Architecture
 
@@ -239,55 +238,55 @@ graph TB
 
 ### 📈 Performance Characteristics
 
-| Metric | Production Value | Benchmark |
-|--------|------------------|-----------|
-| Intent Processing Latency | < 2 seconds (P95) | Sub-2s SLA |
-| Concurrent Intents | 200+ simultaneous | Linear scaling |
-| Throughput | 45 intents/minute | High-volume capable |  
-| Availability | 99.95% uptime | Enterprise SLA |
-| Knowledge Base | 45,000+ chunks | Comprehensive coverage |
-| Retrieval Accuracy | 87% MRR | Production-validated |
+| Metric | MVP Status | Notes |
+| Intent Processing Latency | Not optimized | Depends on LLM API response time |
+| Concurrent Intents | Limited testing | Bounded by Kubernetes resources |
+| Throughput | Development mode | Not tested for production load |  
+| Availability | Basic K8s patterns | No SLA targets |
+| Knowledge Base | Basic telco docs | Expandable via RAG system |
+| LLM Integration | GPT-4o-mini | Multi-provider ready |
 
-## 🚀 Production Use Cases
+## 🧪 MVP Use Cases & Demonstrations
 
-### 5G Core Network Deployment
+### Intent Translation Example
 ```yaml
 apiVersion: nephoran.com/v1
 kind: NetworkIntent
 spec:
   intent: |
-    Deploy a complete 5G standalone core network for enterprise deployment with:
-    - AMF, SMF, UPF functions in high-availability configuration  
-    - Network slice templates for eMBB, URLLC, and mMTC
-    - Integration with existing HSS/UDM systems
-    - Auto-scaling based on subscriber load (10k-1M users)
-    - Multi-region disaster recovery setup
+    Deploy a production-ready AMF (Access and Mobility Management Function)
+    for a 5G core network with:
+    - High availability with 3 replicas
+    - Auto-scaling configuration (min: 3, max: 10 pods)
+    - Resource limits: 2 CPU cores, 4GB memory per pod
+    - Prometheus monitoring on port 9090
+    - Standard 3GPP interfaces (N1, N2, N11)
 ```
 
-### Edge Computing Orchestration  
+### RAN Function Configuration  
 ```yaml
 apiVersion: nephoran.com/v1
 kind: NetworkIntent
 spec:
   intent: |
-    Establish edge computing infrastructure with:
-    - Near-RT RIC deployment at edge locations
-    - O-DU/O-CU functions for low-latency applications
-    - Local traffic breakout for enterprise services
-    - AI/ML workload optimization via E2 interface
+    Configure basic O-RAN components for testing:
+    - E2 node simulation with configurable parameters
+    - Basic RIC integration testing framework
+    - Container-based network function templates
+    - Development and testing resource specifications
 ```
 
-### Network Slicing as a Service
+### Basic Network Configuration
 ```yaml
 apiVersion: nephoran.com/v1
 kind: NetworkIntent
 spec:
   intent: |
-    Create dynamic network slice for autonomous vehicle deployment:
-    - Ultra-low latency requirements (1ms RTT)
-    - Guaranteed bandwidth allocation (100 Mbps per vehicle)
-    - Priority traffic handling with QoS enforcement
-    - Integration with MEC applications for edge processing
+    Generate network function configurations:
+    - Basic QoS parameter specification
+    - Resource allocation templates
+    - Container deployment manifests
+    - Development environment setup
 ```
 
 ## 📚 Documentation & Learning
@@ -512,13 +511,12 @@ See: **[Complete Prometheus Metrics Documentation](PROMETHEUS_METRICS.md)**
 
 ## 🤝 Community & Contribution
 
-### 🌟 Join the Community
+### 🌟 Get Involved
 
 We welcome contributions from telecommunications engineers, cloud-native developers, AI/ML researchers, and network operators!
 
-[![Discord](https://img.shields.io/badge/Discord-Join%20Community-7289da?style=flat-square&logo=discord)](https://discord.gg/nephoran)
+[![GitHub Issues](https://img.shields.io/badge/GitHub-Issues-24292e?style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/issues)
 [![GitHub Discussions](https://img.shields.io/badge/GitHub-Discussions-24292e?style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/discussions)
-[![LinkedIn](https://img.shields.io/badge/LinkedIn-Follow%20Updates-0077b5?style=flat-square&logo=linkedin)](https://linkedin.com/company/nephoran)
 
 ### 🛠️ Development Workflow
 
@@ -563,7 +561,7 @@ Contributors receive recognition through:
 
 ### Cloud Providers
 
-#### ☁️ Public Cloud (Recommended)
+#### ☁️ Public Cloud (Development/Testing)
 ```bash
 # AWS EKS with Terraform
 cd deployments/multi-region/terraform
@@ -578,7 +576,7 @@ helm install nephoran deployments/helm/nephoran-operator \
   --set monitoring.enabled=true
 ```
 
-#### 🏢 Enterprise On-Premises
+#### 🏢 On-Premises (Development)
 ```bash
 # Red Hat OpenShift
 oc apply -k deployments/kustomize/overlays/production/
@@ -590,7 +588,7 @@ kubectl apply -f deployments/kubernetes/ --recursive
 ./scripts/deploy-production.sh --target bare-metal
 ```
 
-#### 🌐 Edge/Multi-Cloud
+#### 🌐 Edge/Multi-Cloud (Future)
 ```bash
 # Edge computing deployment
 ./scripts/deploy-edge.sh --regions us-west,eu-central,asia-southeast
@@ -627,30 +625,45 @@ This setting helps prevent git operation bottlenecks in high-load scenarios whil
 
 ## 📈 Roadmap & Innovation
 
-### 🎯 Current Release (v1.0)
-- ✅ Production-ready core functionality
-- ✅ O-RAN A1/O1/O2/E2 interface compliance
-- ✅ Advanced LLM/RAG processing pipeline
-- ✅ Enterprise security and observability
-- ✅ Multi-cluster GitOps deployment
+### 🎯 Current MVP (v0.x)
+- ✅ NetworkIntent CRD and controller implementation
+- ✅ Basic LLM integration with GPT-4o-mini
+- ✅ Optional RAG system (behind build tags)
+- ✅ Kubernetes-native deployment patterns
+- ✅ Prometheus metrics and observability foundation
 
-### 🚧 Upcoming (v1.1 - Q2 2024)
-- 🔄 **Service Mesh Integration**: Native Istio/Linkerd support with advanced traffic management
-- 🤖 **ML-based Optimization**: Automated intent processing improvement via reinforcement learning
-- 🌍 **Multi-Region Enhancements**: Global traffic steering and disaster recovery automation
-- 📱 **Mobile App**: Intent submission via mobile interface for field operations
+## 🗺️ Roadmap - From MVP to Production
 
-### 🔮 Future Vision (v2.0+)
-- 🧠 **Autonomous Operations**: Self-healing network functions with zero-touch automation
+### 🚧 Phase 1: Core Platform (v1.0)
+- 🔄 **Full O-RAN Interface Implementation**: Complete A1, O1, O2, E2 interface specifications
+- 🤖 **Production GitOps**: Nephio R5 integration with Porch package orchestration
+- 🌍 **Real Network Functions**: Integration with actual 5G Core and RAN components
+- 🔒 **Enterprise Security**: OAuth2, mTLS, RBAC, and comprehensive audit trails
+
+### 🏢 Phase 2: Enterprise Features (v2.0)
+- 📊 **Production Observability**: 99.95% availability targets, comprehensive SLI/SLO tracking
+- 🚀 **High-Scale Performance**: 200+ concurrent intents, sub-2-second processing
+- 🌐 **Multi-Cloud Orchestration**: AWS, Azure, GCP, and edge deployment
+- 🔧 **Service Mesh Integration**: Native Istio/Linkerd with advanced traffic management
+
+### 🔮 Phase 3: Advanced Automation (v3.0+)
+- 🧠 **ML-Driven Optimization**: Autonomous network optimization and self-healing
 - 🔗 **6G Readiness**: Next-generation wireless standards integration
-- 🎨 **Low-Code Interface**: Visual intent designer for non-technical users
+- 🎨 **Visual Intent Designer**: Low-code interface for network operators
 - 🏭 **Industry Verticals**: Specialized templates for automotive, manufacturing, healthcare
+
+### 🎯 Production Readiness Goals
+- **Availability**: 99.95% uptime SLA
+- **Performance**: Sub-2-second P95 intent processing
+- **Scale**: 200+ concurrent intent operations
+- **Standards**: Full O-RAN Alliance compliance certification
+- **Security**: SOC 2 Type II, GDPR/CCPA compliance
 
 ## ⭐ Support & Enterprise Services
 
 ### 🆘 Community Support (Free)
 - **GitHub Issues**: Bug reports and feature requests
-- **Discord Community**: Real-time help and discussions  
+- **GitHub Discussions**: Questions and community help  
 - **Documentation**: Comprehensive guides and tutorials
 - **Stack Overflow**: Tagged questions with `nephoran-operator`
 
@@ -678,10 +691,10 @@ Licensed under the [Apache License, Version 2.0](LICENSE).
 
 <div align="center">
 
-**🌟 Star us on GitHub** • **🐛 Report Issues** • **💬 Join Discord** • **📖 Read Docs** • **🤝 Contribute**
+**🌟 Star us on GitHub** • **🐛 Report Issues** • **💬 Discuss on GitHub** • **📖 Read Docs** • **🤝 Contribute**
 
 *Transforming telecommunications through intelligent automation*
 
-**[Documentation](https://thc1006.github.io/nephoran-intent-operator)** • **[Getting Started](QUICKSTART.md)** • **[API Reference](docs/API_REFERENCE.md)** • **[Community](https://discord.gg/nephoran)**
+**[Documentation](https://thc1006.github.io/nephoran-intent-operator)** • **[Getting Started](QUICKSTART.md)** • **[API Reference](docs/API_REFERENCE.md)** • **[GitHub Issues](https://github.com/thc1006/nephoran-intent-operator/issues)**
 
 </div>
