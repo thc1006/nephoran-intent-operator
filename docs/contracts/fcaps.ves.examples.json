@@ -1,0 +1,82 @@
+{
+  "fault_example": {
+    "event": {
+      "commonEventHeader": {
+        "version": "4.1",
+        "domain": "fault",
+        "eventName": "Fault_NFSim_LinkDown",
+        "eventId": "fault-0001",
+        "sequence": 0,
+        "priority": "High",
+        "reportingEntityName": "nf-sim",
+        "sourceName": "nf-sim",
+        "nfVendorName": "nephoran",
+        "startEpochMicrosec": 1731000000000,
+        "lastEpochMicrosec": 1731000000000,
+        "timeZoneOffset": "+00:00"
+      },
+      "faultFields": {
+        "faultFieldsVersion": "4.0",
+        "alarmCondition": "LINK_DOWN",
+        "eventSeverity": "CRITICAL",
+        "specificProblem": "eth0 loss of signal",
+        "eventSourceType": "other",
+        "vfStatus": "Active",
+        "alarmInterfaceA": "eth0"
+      }
+    }
+  },
+  "measurement_example": {
+    "event": {
+      "commonEventHeader": {
+        "version": "4.1",
+        "domain": "measurementsForVfScaling",
+        "eventName": "Perf_NFSim_Metrics",
+        "eventId": "perf-0001",
+        "sequence": 0,
+        "priority": "Normal",
+        "reportingEntityName": "nf-sim",
+        "sourceName": "nf-sim",
+        "nfVendorName": "nephoran",
+        "startEpochMicrosec": 1731000300000,
+        "lastEpochMicrosec": 1731000360000,
+        "timeZoneOffset": "+00:00"
+      },
+      "measurementsForVfScalingFields": {
+        "measurementsForVfScalingVersion": "1.1",
+        "vNicUsageArray": [{
+          "vnfNetworkInterface": "eth0",
+          "receivedOctetsDelta": 1200000,
+          "transmittedOctetsDelta": 1800000
+        }],
+        "additionalFields": {
+          "kpm.p95_latency_ms": 85.3,
+          "kpm.prb_utilization": 0.62,
+          "kpm.ue_count": 37
+        }
+      }
+    }
+  },
+  "heartbeat_example": {
+    "event": {
+      "commonEventHeader": {
+        "version": "4.1",
+        "domain": "heartbeat",
+        "eventName": "Heartbeat_NFSim",
+        "eventId": "hb-0001",
+        "sequence": 10,
+        "priority": "Low",
+        "reportingEntityName": "nf-sim",
+        "sourceName": "nf-sim",
+        "nfVendorName": "nephoran",
+        "startEpochMicrosec": 1731000600000,
+        "lastEpochMicrosec": 1731000600000,
+        "timeZoneOffset": "+00:00"
+      },
+      "heartbeatFields": {
+        "heartbeatFieldsVersion": "3.0",
+        "heartbeatInterval": 30
+      }
+    }
+  }
+}

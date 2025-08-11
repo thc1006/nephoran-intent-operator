@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/intent.schema.json",
+  "title": "ScalingIntent",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["intent_type", "target", "namespace", "replicas"],
+  "properties": {
+    "intent_type": {
+      "const": "scaling",
+      "description": "MVP supports only scaling"
+    },
+    "target": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Kubernetes Deployment name (CNF simulator)"
+    },
+    "namespace": {
+      "type": "string",
+      "minLength": 1
+    },
+    "replicas": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100
+    },
+    "reason": {
+      "type": "string",
+      "maxLength": 512
+    },
+    "source": {
+      "type": "string",
+      "enum": ["user", "planner", "test"]
+    },
+    "correlation_id": {
+      "type": "string",
+      "description": "Optional id for tracing"
+    }
+  },
+  "$comment": "Validated by admission webhook; replicas min/max may be further clamped by ConfigMap."
+}
