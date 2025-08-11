@@ -293,6 +293,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: v1.61.0
+          install-mode: goinstall
           only-new-issues: false
           args: --config .golangci.yml --timeout=10m --out-format=github-actions
 
