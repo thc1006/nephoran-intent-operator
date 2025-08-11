@@ -132,7 +132,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/iam v1.45.0
 	github.com/aws/aws-sdk-go-v2/service/rds v1.102.0
 	github.com/aws/aws-sdk-go-v2/service/route53 v1.55.0
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.19
+	github.com/aws/aws-sdk-go-v2/service/sts v1.36.0
 	github.com/bytedance/sonic v1.14.0
 	github.com/cert-manager/cert-manager v1.18.2
 	github.com/ghodss/yaml v1.0.0
