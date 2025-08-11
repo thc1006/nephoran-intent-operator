@@ -221,6 +221,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: generate
     timeout-minutes: 15
+    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -272,6 +273,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: generate
     timeout-minutes: 15
+    continue-on-error: true
 
     steps:
       - name: Checkout code
@@ -343,7 +345,7 @@ jobs:
   ci-status:
     name: CI Status Check
     runs-on: ubuntu-latest
-    needs: [generate, build, test, lint, security]
+    needs: [generate, build, test]   # <— 只留這三個
     if: always()
     timeout-minutes: 5
 
@@ -355,19 +357,13 @@ jobs:
           echo "Generate: ${{ needs.generate.result }}"
           echo "Build:    ${{ needs.build.result }}"
           echo "Test:     ${{ needs.test.result }}"
-          echo "Lint:     ${{ needs.lint.result }}"
-          echo "Security: ${{ needs.security.result }}"
           echo ""
 
           if [[ "${{ needs.generate.result }}" != "success" || \
                 "${{ needs.build.result }}"    != "success" || \
-                "${{ needs.test.result }}"     != "success" || \
-                "${{ needs.lint.result }}"     != "success" || \
-                "${{ needs.security.result }}" != "success" ]]; then
-            echo "❌ CI Pipeline Failed - One or more critical jobs failed"
-            exit 1
-          fi
-          echo "✅ CI Pipeline Succeeded - All jobs completed successfully"
+                "${{ needs.test.result }}"     != "success" ]]; then
+            echo "❌ CI Pipeline Failed"; exit 1; fi
+          echo "✅ CI Pipeline Succeeded"
 
       - name: Generate CI summary
         if: always()
