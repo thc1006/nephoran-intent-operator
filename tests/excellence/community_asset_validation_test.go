@@ -13,7 +13,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"sigs.k8s.io/yaml"
 )
 
 var _ = Describe("Community Asset Validation Tests", func() {
@@ -535,7 +534,7 @@ var _ = Describe("Community Asset Validation Tests", func() {
 
 			hasContributingGuide := false
 			for _, contributingPath := range contributingPaths {
-				if stat, err := os.Stat(contributingPath); err == nil {
+				if _, err := os.Stat(contributingPath); err == nil {
 					hasContributingGuide = true
 
 					// Validate content

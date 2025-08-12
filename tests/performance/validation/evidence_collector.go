@@ -1,7 +1,6 @@
 package validation
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,18 +9,14 @@ import (
 	"path/filepath"
 	"sort"
 	"time"
-
-	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
 )
 
 // EvidenceCollector collects and organizes quantifiable evidence for performance claims
 type EvidenceCollector struct {
-	config           *EvidenceRequirements
-	prometheusClient v1.API
-	outputDir        string
-	baselines        *BaselineRepository
+	config    *EvidenceRequirements
+	outputDir string
+	baselines *BaselineRepository
+	// prometheusClient v1.API // TODO: Re-enable when Prometheus integration is needed
 }
 
 // EvidenceReport contains comprehensive evidence for all performance claims
@@ -45,7 +40,7 @@ type DetailedEvidence struct {
 	DistributionAnalysis *DistributionAnalysis `json:"distribution_analysis"`
 	TimeSeriesAnalysis   *TimeSeriesAnalysis   `json:"timeseries_analysis"`
 	OutlierAnalysis      *OutlierAnalysis      `json:"outlier_analysis"`
-	ValidationResults    *ValidationResult     `json:"validation_results"`
+	ValidationResults    *EvidenceValidationResult     `json:"validation_results"`
 	SupportingMetrics    *SupportingMetrics    `json:"supporting_metrics"`
 }
 
@@ -262,8 +257,8 @@ type OutlierImpact struct {
 	Recommendation  string  `json:"recommendation"`
 }
 
-// ValidationResult contains the final validation results
-type ValidationResult struct {
+// EvidenceValidationResult contains the final validation results
+type EvidenceValidationResult struct {
 	ClaimValidated     bool                  `json:"claim_validated"`
 	ConfidenceLevel    float64               `json:"confidence_level"`
 	ValidationCriteria []ValidationCriterion `json:"validation_criteria"`
@@ -608,7 +603,7 @@ func (ec *EvidenceCollector) generateDetailedEvidence(claimName string, result *
 	evidence.OutlierAnalysis = ec.analyzeOutliers(result.Evidence.RawData)
 
 	// Create validation results
-	evidence.ValidationResults = &ValidationResult{
+	evidence.ValidationResults = &EvidenceValidationResult{
 		ClaimValidated:  result.Status == "validated",
 		ConfidenceLevel: result.Confidence,
 		QualityScore:    ec.calculateQualityScore(result),

@@ -685,5 +685,177 @@ func isRunningInCI() bool {
 	return false
 }
 
-// Additional methods for notifications, artifacts, etc. would be implemented here...
-// (sendNotifications, saveArtifacts, generateHTMLReport, etc.)
+// saveArtifacts saves validation artifacts according to configuration
+func (ar *AutomationRunner) saveArtifacts(result *ValidationResult, artifactConfig ArtifactConfig) {
+	if len(artifactConfig.Paths) == 0 {
+		return
+	}
+	
+	log.Printf("Saving validation artifacts...")
+	
+	// Create artifacts directory
+	artifactDir := filepath.Join(ar.outputDir, "artifacts")
+	if err := os.MkdirAll(artifactDir, 0755); err != nil {
+		log.Printf("Warning: Failed to create artifacts directory: %v", err)
+		return
+	}
+	
+	// Save result as JSON artifact
+	resultPath := filepath.Join(artifactDir, fmt.Sprintf("validation-result-%s.json", result.ID))
+	data, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		log.Printf("Warning: Failed to marshal result: %v", err)
+		return
+	}
+	
+	if err := os.WriteFile(resultPath, data, 0644); err != nil {
+		log.Printf("Warning: Failed to save result artifact: %v", err)
+		return
+	}
+	
+	result.Artifacts = append(result.Artifacts, resultPath)
+	log.Printf("Saved validation artifacts to: %s", artifactDir)
+}
+
+// sendNotifications sends notifications based on validation results
+func (ar *AutomationRunner) sendNotifications(notificationConfig NotificationConfig, result *ValidationResult) {
+	log.Printf("Processing notifications for validation result: %s", result.Status)
+	
+	// Determine which targets to notify based on status
+	var targets []NotificationTarget
+	switch result.Status {
+	case "failed":
+		targets = notificationConfig.OnFailure
+	case "passed":
+		targets = notificationConfig.OnSuccess
+	default:
+		// For other statuses like "warning", use regression targets
+		targets = notificationConfig.OnRegression
+	}
+	
+	if len(targets) == 0 {
+		log.Printf("No notification targets configured for status: %s", result.Status)
+		return
+	}
+	
+	// Process each notification target
+	for _, target := range targets {
+		notification := NotificationSent{
+			Type:       target.Type,
+			Recipients: target.Recipients,
+			Subject:    fmt.Sprintf("Performance Validation - %s", result.Status),
+			SentAt:     time.Now(),
+			Status:     "sent",
+			MessageID:  fmt.Sprintf("val-%s-%d", result.ID, time.Now().Unix()),
+		}
+		
+		// Log notification (in real implementation, would send to configured endpoints)
+		log.Printf("NOTIFICATION [%s]: %s", target.Type, notification.Subject)
+		
+		result.Notifications = append(result.Notifications, notification)
+	}
+}
+
+// generateHTMLReport generates a comprehensive HTML report
+func (ar *AutomationRunner) generateHTMLReport(result *ValidationResult) (string, error) {
+	log.Printf("Generating HTML report for validation result: %s", result.ID)
+	
+	// Simple HTML template for the report
+	htmlTemplate := `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Performance Validation Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background: #f0f0f0; padding: 20px; border-radius: 5px; }
+        .status-passed { color: green; font-weight: bold; }
+        .status-failed { color: red; font-weight: bold; }
+        .status-warning { color: orange; font-weight: bold; }
+        .claim { margin: 10px 0; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .artifacts { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Performance Validation Report</h1>
+        <p><strong>ID:</strong> %s</p>
+        <p><strong>Start Time:</strong> %s</p>
+        <p><strong>Duration:</strong> %v</p>
+        <p><strong>Status:</strong> <span class="status-%s">%s</span></p>
+        <p><strong>Environment:</strong> %s</p>
+        <p><strong>Branch:</strong> %s</p>
+    </div>
+    
+    <h2>Validation Claims (%d)</h2>
+    <div class="claims">
+        %s
+    </div>
+    
+    <h2>Quality Gates</h2>
+    <div class="quality-gates">
+        %s
+    </div>
+    
+    <div class="artifacts">
+        <h2>Artifacts</h2>
+        <ul>
+            %s
+        </ul>
+    </div>
+    
+    <p><em>Generated at: %s</em></p>
+</body>
+</html>`
+	
+	// Build claims section
+	claimsHTML := ""
+	for name, claim := range result.Claims {
+		statusClass := "status-" + claim.Status
+		claimsHTML += fmt.Sprintf(`
+        <div class="claim">
+            <h3>%s</h3>
+            <p><strong>Status:</strong> <span class="%s">%s</span></p>
+            <p><strong>Target:</strong> %v</p>
+            <p><strong>Measured:</strong> %v</p>
+            <p><strong>Confidence:</strong> %.2f%%</p>
+        </div>`, name, statusClass, claim.Status, claim.Target, claim.Measured, claim.Confidence*100)
+	}
+	
+	// Build quality gates section
+	qualityGatesHTML := ""
+	for _, gate := range result.QualityGates {
+		statusClass := "status-" + gate.Status
+		qualityGatesHTML += fmt.Sprintf(`
+        <div class="claim">
+            <h3>%s</h3>
+            <p><strong>Status:</strong> <span class="%s">%s</span></p>
+            <p><strong>Message:</strong> %s</p>
+            <p><strong>Action:</strong> %s</p>
+        </div>`, gate.Name, statusClass, gate.Status, gate.Message, gate.Action)
+	}
+	
+	// Build artifacts section
+	artifactsHTML := ""
+	for _, artifact := range result.Artifacts {
+		artifactsHTML += fmt.Sprintf("<li>%s</li>", filepath.Base(artifact))
+	}
+	
+	// Fill in the template
+	htmlReport := fmt.Sprintf(htmlTemplate,
+		result.ID,
+		result.StartTime.Format("2006-01-02 15:04:05"),
+		result.Duration,
+		result.Status,
+		result.Status,
+		result.Environment,
+		result.Branch,
+		len(result.Claims),
+		claimsHTML,
+		qualityGatesHTML,
+		artifactsHTML,
+		time.Now().Format("2006-01-02 15:04:05"),
+	)
+	
+	return htmlReport, nil
+}

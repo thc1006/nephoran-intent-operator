@@ -1,7 +1,6 @@
 package excellence_test
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -294,6 +293,7 @@ var _ = Describe("Security Compliance Tests", func() {
 				"ubuntu:", // with version tag
 				"gcr.io/distroless",
 			}
+			_ = recommendedImages // Reserved for future security recommendations
 
 			securityIssues := []string{}
 
