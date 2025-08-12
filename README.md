@@ -49,6 +49,7 @@ Currently an **MVP/proof-of-concept** demonstrating intent-driven network orches
 - **Intent Controller**: Processes NetworkIntent resources and manages lifecycle
 - **LLM Processor**: Translates natural language to structured network configurations
 - **RAG System**: Optional context enhancement (enabled via build tags)
+- **FCAPS Simulator**: Automated scaling decisions based on telecom events ([docs](docs/FCAPS_SIMULATOR.md))
 
 ### 🏗️ Cloud-Native Architecture
 - **Kubernetes-Native**: Custom resources, operators, and webhooks following K8s best practices
@@ -287,6 +288,28 @@ spec:
     - Resource allocation templates
     - Container deployment manifests
     - Development environment setup
+```
+
+### FCAPS-Driven Automated Scaling
+```bash
+# Start the intent ingest service
+go run ./cmd/intent-ingest &
+
+# Run FCAPS simulator with telecom events
+./fcaps-sim --verbose
+# Automatically detects:
+# - Critical faults → Scale up by 2 replicas
+# - High PRB utilization (>0.8) → Scale up by 1
+# - High latency (>100ms) → Scale up by 1
+
+# Generated intent (automatic):
+{
+  "intent_type": "scaling",
+  "target": "nf-sim",
+  "replicas": 3,
+  "reason": "Critical fault detected: LINK_DOWN",
+  "source": "planner"
+}
 ```
 
 ## 📚 Documentation & Learning
