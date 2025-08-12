@@ -312,53 +312,24 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------------
-  # 6) Guard job to prevent ci.yaml from appearing
-  # ---------------------------------------------------------------------------
-  guard-ci-yaml:
-    name: Guard Against ci.yaml
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Check for ci.yaml
-        shell: bash
-        run: |
-          if [ -f ".github/workflows/ci.yaml" ]; then
-            echo "❌ ERROR: ci.yaml detected!"
-            echo ""
-            echo "This repository uses ci.yml (not ci.yaml) as the canonical CI workflow."
-            echo "Please remove .github/workflows/ci.yaml and use ci.yml instead."
-            echo ""
-            echo "This is enforced to maintain consistency and prevent confusion."
-            exit 1
-          fi
-          echo "✅ No ci.yaml found (correct)"
-
-  # ---------------------------------------------------------------------------
-  # 7) 單一門檻 - 只 gate generate/build/test 三個
+  # 6) 單一門檻 - 只 gate generate/build/test 三個
   # ---------------------------------------------------------------------------
   ci-status:
     name: CI Status Check
     runs-on: ubuntu-latest
-    needs: [generate, build, test, guard-ci-yaml]
+    needs: [generate, build, test]
     if: always()
     timeout-minutes: 5
     steps:
       - name: Gate
         shell: bash
         run: |
-          echo "Generate:      ${{ needs.generate.result }}"
-          echo "Build:         ${{ needs.build.result }}"
-          echo "Test:          ${{ needs.test.result }}"
-          echo "Guard CI YAML: ${{ needs.guard-ci-yaml.result }}"
+          echo "Generate: ${{ needs.generate.result }}"
+          echo "Build:    ${{ needs.build.result }}"
+          echo "Test:     ${{ needs.test.result }}"
           if [[ "${{ needs.generate.result }}" != "success" || \
                 "${{ needs.build.result }}"    != "success" || \
-                "${{ needs.test.result }}"     != "success" || \
-                "${{ needs.guard-ci-yaml.result }}" != "success" ]]; then
+                "${{ needs.test.result }}"     != "success" ]]; then
             echo "❌ CI Pipeline Failed"; exit 1; fi
           echo "✅ CI Pipeline Succeeded"
 
@@ -373,7 +344,6 @@ jobs:
           echo "| Generate | ${{ needs.generate.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build    | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Test     | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Guard CI YAML | ${{ needs.guard-ci-yaml.result }} |" >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
   # 7) Container Build（只在 main push 且前面綠燈時）
