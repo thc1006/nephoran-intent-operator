@@ -15,9 +15,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -37,81 +35,6 @@ type DisasterRecoveryTestSuite struct {
 	scenarios []*DisasterScenario
 }
 
-// DisasterScenario represents a disaster recovery test scenario
-type DisasterScenario struct {
-	Name                string
-	Description         string
-	DisasterType        DisasterType
-	AffectedComponents  []string
-	RecoveryStrategy    RecoveryStrategy
-	ExpectedRTO         time.Duration // Recovery Time Objective
-	ExpectedRPO         time.Duration // Recovery Point Objective
-	PreConditions       func(*DisasterRecoveryTestSuite) error
-	InjectDisaster      func(*DisasterRecoveryTestSuite) error
-	ValidateFailure     func(*DisasterRecoveryTestSuite) error
-	ExecuteRecovery     func(*DisasterRecoveryTestSuite) error
-	ValidateRecovery    func(*DisasterRecoveryTestSuite) error
-	PostRecoveryCleanup func(*DisasterRecoveryTestSuite) error
-}
-
-// DisasterType defines types of disasters
-type DisasterType string
-
-const (
-	DisasterTypeDataCorruption      DisasterType = "data_corruption"
-	DisasterTypeControllerFailure   DisasterType = "controller_failure"
-	DisasterTypeEtcdFailure         DisasterType = "etcd_failure"
-	DisasterTypeNodeFailure         DisasterType = "node_failure"
-	DisasterTypeNetworkPartition    DisasterType = "network_partition"
-	DisasterTypeCompleteClusterLoss DisasterType = "complete_cluster_loss"
-	DisasterTypeStorageFailure      DisasterType = "storage_failure"
-	DisasterTypeBackupCorruption    DisasterType = "backup_corruption"
-)
-
-// RecoveryStrategy defines recovery approaches
-type RecoveryStrategy string
-
-const (
-	RecoveryStrategyBackupRestore      RecoveryStrategy = "backup_restore"
-	RecoveryStrategyFailover           RecoveryStrategy = "failover"
-	RecoveryStrategyReplication        RecoveryStrategy = "replication"
-	RecoveryStrategyReconciliation     RecoveryStrategy = "reconciliation"
-	RecoveryStrategyManualIntervention RecoveryStrategy = "manual_intervention"
-)
-
-// TestDataSet contains test data for disaster recovery scenarios
-type TestDataSet struct {
-	NetworkIntents []nephoran.NetworkIntent
-	E2NodeSets     []nephoran.E2NodeSet
-	Deployments    []appsv1.Deployment
-	Services       []corev1.Service
-	ConfigMaps     []corev1.ConfigMap
-	Secrets        []corev1.Secret
-}
-
-// BackupMetadata contains backup information
-type BackupMetadata struct {
-	Timestamp        time.Time
-	BackupID         string
-	Components       []string
-	DataIntegrity    string
-	CompressionRatio float64
-	BackupSize       int64
-	BackupPath       string
-}
-
-// RecoveryMetrics tracks recovery performance
-type RecoveryMetrics struct {
-	StartTime           time.Time
-	EndTime             time.Time
-	ActualRTO           time.Duration
-	ActualRPO           time.Duration
-	DataLossOccurred    bool
-	ComponentsRecovered int
-	ComponentsFailed    int
-	RecoverySuccess     bool
-	ErrorMessages       []string
-}
 
 func (suite *DisasterRecoveryTestSuite) SetupSuite() {
 	suite.ctx, suite.cancel = context.WithCancel(context.TODO())
@@ -168,9 +91,7 @@ func (suite *DisasterRecoveryTestSuite) setupTestData() {
 					Namespace: "default",
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:        "Deploy high-performance 5G network slice",
-					NetworkSlice:  "slice-001",
-					QoSParameters: map[string]string{"latency": "1ms", "throughput": "10Gbps"},
+					Intent: "Deploy high-performance 5G network slice",
 				},
 			},
 			{
@@ -179,9 +100,7 @@ func (suite *DisasterRecoveryTestSuite) setupTestData() {
 					Namespace: "default",
 				},
 				Spec: nephoran.NetworkIntentSpec{
-					Intent:        "Configure edge computing resources",
-					NetworkSlice:  "slice-002",
-					QoSParameters: map[string]string{"latency": "5ms", "throughput": "1Gbps"},
+					Intent: "Configure edge computing resources",
 				},
 			},
 		},
@@ -192,11 +111,19 @@ func (suite *DisasterRecoveryTestSuite) setupTestData() {
 					Namespace: "default",
 				},
 				Spec: nephoran.E2NodeSetSpec{
-					E2Nodes: []nephoran.E2Node{
-						{
-							NodeID:   "node-001",
-							NodeType: "gNB",
-							Location: nephoran.Location{Zone: "zone-1", Region: "us-east-1"},
+					Replicas: 1,
+					Template: nephoran.E2NodeTemplate{
+						Spec: nephoran.E2NodeSpec{
+							NodeID:             "node-001",
+							E2InterfaceVersion: "v2.0",
+							SupportedRANFunctions: []nephoran.RANFunction{
+								{
+									FunctionID:  1,
+									Revision:    1,
+									Description: "KPM Service Model",
+									OID:         "1.3.6.1.4.1.53148.1.1.2.2",
+								},
+							},
 						},
 					},
 				},
@@ -346,12 +273,12 @@ func (suite *DisasterRecoveryTestSuite) runDisasterScenario(scenario *DisasterSc
 		name string
 		fn   func(*DisasterRecoveryTestSuite) error
 	}{
-		{"pre-conditions", scenario.PreConditions},
-		{"inject-disaster", scenario.InjectDisaster},
-		{"validate-failure", scenario.ValidateFailure},
-		{"execute-recovery", scenario.ExecuteRecovery},
-		{"validate-recovery", scenario.ValidateRecovery},
-		{"post-cleanup", scenario.PostRecoveryCleanup},
+		{"pre-conditions", scenario.PreConditions.(func(*DisasterRecoveryTestSuite) error)},
+		{"inject-disaster", scenario.InjectDisaster.(func(*DisasterRecoveryTestSuite) error)},
+		{"validate-failure", scenario.ValidateFailure.(func(*DisasterRecoveryTestSuite) error)},
+		{"execute-recovery", scenario.ExecuteRecovery.(func(*DisasterRecoveryTestSuite) error)},
+		{"validate-recovery", scenario.ValidateRecovery.(func(*DisasterRecoveryTestSuite) error)},
+		{"post-cleanup", scenario.PostRecoveryCleanup.(func(*DisasterRecoveryTestSuite) error)},
 	}
 
 	for _, step := range steps {
@@ -400,7 +327,7 @@ func (suite *DisasterRecoveryTestSuite) validateRecoveryObjectives(scenario *Dis
 
 // Disaster injection and recovery implementation functions
 
-func (suite *DisasterRecoveryTestSuite) setupDataCorruptionPreConditions() error {
+func (suite *DisasterRecoveryTestSuite) setupDataCorruptionPreConditions(s *DisasterRecoveryTestSuite) error {
 	// Create test resources
 	for _, intent := range suite.testData.NetworkIntents {
 		if err := suite.k8sClient.Create(suite.ctx, &intent); err != nil {
@@ -412,7 +339,7 @@ func (suite *DisasterRecoveryTestSuite) setupDataCorruptionPreConditions() error
 	return suite.createBackup("pre-corruption-backup", []string{"network-intents", "e2-nodesets"})
 }
 
-func (suite *DisasterRecoveryTestSuite) injectDataCorruption() error {
+func (suite *DisasterRecoveryTestSuite) injectDataCorruption(s *DisasterRecoveryTestSuite) error {
 	// Simulate data corruption by deleting all custom resources
 	for _, intent := range suite.testData.NetworkIntents {
 		if err := suite.k8sClient.Delete(suite.ctx, &intent); err != nil {
@@ -424,7 +351,7 @@ func (suite *DisasterRecoveryTestSuite) injectDataCorruption() error {
 	return nil
 }
 
-func (suite *DisasterRecoveryTestSuite) validateDataCorruptionFailure() error {
+func (suite *DisasterRecoveryTestSuite) validateDataCorruptionFailure(s *DisasterRecoveryTestSuite) error {
 	// Verify that resources are gone
 	var intentList nephoran.NetworkIntentList
 	if err := suite.k8sClient.List(suite.ctx, &intentList); err != nil {
@@ -439,7 +366,7 @@ func (suite *DisasterRecoveryTestSuite) validateDataCorruptionFailure() error {
 	return nil
 }
 
-func (suite *DisasterRecoveryTestSuite) executeBackupRestore() error {
+func (suite *DisasterRecoveryTestSuite) executeBackupRestore(s *DisasterRecoveryTestSuite) error {
 	// Simulate backup restoration
 	suite.T().Log("Executing backup restore...")
 
@@ -455,7 +382,7 @@ func (suite *DisasterRecoveryTestSuite) executeBackupRestore() error {
 	return nil
 }
 
-func (suite *DisasterRecoveryTestSuite) validateDataCorruptionRecovery() error {
+func (suite *DisasterRecoveryTestSuite) validateDataCorruptionRecovery(s *DisasterRecoveryTestSuite) error {
 	// Verify resources are restored
 	var intentList nephoran.NetworkIntentList
 	if err := suite.k8sClient.List(suite.ctx, &intentList); err != nil {
@@ -471,7 +398,7 @@ func (suite *DisasterRecoveryTestSuite) validateDataCorruptionRecovery() error {
 	return nil
 }
 
-func (suite *DisasterRecoveryTestSuite) cleanupDataCorruption() error {
+func (suite *DisasterRecoveryTestSuite) cleanupDataCorruption(s *DisasterRecoveryTestSuite) error {
 	// Cleanup test resources
 	for _, intent := range suite.testData.NetworkIntents {
 		suite.k8sClient.Delete(suite.ctx, &intent)
@@ -479,7 +406,7 @@ func (suite *DisasterRecoveryTestSuite) cleanupDataCorruption() error {
 	return nil
 }
 
-func (suite *DisasterRecoveryTestSuite) setupControllerFailurePreConditions() error {
+func (suite *DisasterRecoveryTestSuite) setupControllerFailurePreConditions(s *DisasterRecoveryTestSuite) error {
 	// Create deployment
 	deployment := &suite.testData.Deployments[0]
 	if err := suite.k8sClient.Create(suite.ctx, deployment); err != nil {
@@ -490,7 +417,7 @@ func (suite *DisasterRecoveryTestSuite) setupControllerFailurePreConditions() er
 	return suite.waitForDeploymentReady(deployment.Name, deployment.Namespace, 30*time.Second)
 }
 
-func (suite *DisasterRecoveryTestSuite) injectControllerFailure() error {
+func (suite *DisasterRecoveryTestSuite) injectControllerFailure(s *DisasterRecoveryTestSuite) error {
 	// Scale down deployment to simulate failure
 	deployment := &appsv1.Deployment{}
 	key := types.NamespacedName{
@@ -511,7 +438,7 @@ func (suite *DisasterRecoveryTestSuite) injectControllerFailure() error {
 	return nil
 }
 
-func (suite *DisasterRecoveryTestSuite) validateControllerFailure() error {
+func (suite *DisasterRecoveryTestSuite) validateControllerFailure(s *DisasterRecoveryTestSuite) error {
 	// Verify no pods are running
 	deployment := &appsv1.Deployment{}
 	key := types.NamespacedName{
@@ -531,7 +458,7 @@ func (suite *DisasterRecoveryTestSuite) validateControllerFailure() error {
 	return nil
 }
 
-func (suite *DisasterRecoveryTestSuite) executeControllerFailover() error {
+func (suite *DisasterRecoveryTestSuite) executeControllerFailover(s *DisasterRecoveryTestSuite) error {
 	// Scale back up to simulate failover
 	deployment := &appsv1.Deployment{}
 	key := types.NamespacedName{
@@ -552,7 +479,7 @@ func (suite *DisasterRecoveryTestSuite) executeControllerFailover() error {
 	return nil
 }
 
-func (suite *DisasterRecoveryTestSuite) validateControllerRecovery() error {
+func (suite *DisasterRecoveryTestSuite) validateControllerRecovery(s *DisasterRecoveryTestSuite) error {
 	// Wait for deployment to be ready and validate
 	return suite.waitForDeploymentReady(
 		suite.testData.Deployments[0].Name,
@@ -561,102 +488,102 @@ func (suite *DisasterRecoveryTestSuite) validateControllerRecovery() error {
 	)
 }
 
-func (suite *DisasterRecoveryTestSuite) cleanupControllerFailure() error {
+func (suite *DisasterRecoveryTestSuite) cleanupControllerFailure(s *DisasterRecoveryTestSuite) error {
 	// Delete deployment
 	deployment := &suite.testData.Deployments[0]
 	return suite.k8sClient.Delete(suite.ctx, deployment)
 }
 
 // Storage failure scenario implementations
-func (suite *DisasterRecoveryTestSuite) setupStorageFailurePreConditions() error {
+func (suite *DisasterRecoveryTestSuite) setupStorageFailurePreConditions(s *DisasterRecoveryTestSuite) error {
 	// Create persistent volume claim and associated resources
 	suite.T().Log("Setting up storage failure pre-conditions")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) injectStorageFailure() error {
+func (suite *DisasterRecoveryTestSuite) injectStorageFailure(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Injecting storage failure")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) validateStorageFailure() error {
+func (suite *DisasterRecoveryTestSuite) validateStorageFailure(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Validating storage failure")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) executeStorageRecovery() error {
+func (suite *DisasterRecoveryTestSuite) executeStorageRecovery(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Executing storage recovery")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) validateStorageRecovery() error {
+func (suite *DisasterRecoveryTestSuite) validateStorageRecovery(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Validating storage recovery")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) cleanupStorageFailure() error {
+func (suite *DisasterRecoveryTestSuite) cleanupStorageFailure(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Cleaning up storage failure test")
 	return nil
 }
 
 // Network partition scenario implementations
-func (suite *DisasterRecoveryTestSuite) setupNetworkPartitionPreConditions() error {
+func (suite *DisasterRecoveryTestSuite) setupNetworkPartitionPreConditions(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Setting up network partition pre-conditions")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) injectNetworkPartition() error {
+func (suite *DisasterRecoveryTestSuite) injectNetworkPartition(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Injecting network partition")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) validateNetworkPartition() error {
+func (suite *DisasterRecoveryTestSuite) validateNetworkPartition(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Validating network partition")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) executeNetworkRecovery() error {
+func (suite *DisasterRecoveryTestSuite) executeNetworkRecovery(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Executing network recovery")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) validateNetworkRecovery() error {
+func (suite *DisasterRecoveryTestSuite) validateNetworkRecovery(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Validating network recovery")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) cleanupNetworkPartition() error {
+func (suite *DisasterRecoveryTestSuite) cleanupNetworkPartition(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Cleaning up network partition test")
 	return nil
 }
 
 // Backup corruption scenario implementations
-func (suite *DisasterRecoveryTestSuite) setupBackupCorruptionPreConditions() error {
+func (suite *DisasterRecoveryTestSuite) setupBackupCorruptionPreConditions(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Setting up backup corruption pre-conditions")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) injectBackupCorruption() error {
+func (suite *DisasterRecoveryTestSuite) injectBackupCorruption(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Injecting backup corruption")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) validateBackupCorruption() error {
+func (suite *DisasterRecoveryTestSuite) validateBackupCorruption(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Validating backup corruption")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) executeManualRecovery() error {
+func (suite *DisasterRecoveryTestSuite) executeManualRecovery(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Executing manual recovery")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) validateManualRecovery() error {
+func (suite *DisasterRecoveryTestSuite) validateManualRecovery(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Validating manual recovery")
 	return nil // Simplified for test environment
 }
 
-func (suite *DisasterRecoveryTestSuite) cleanupBackupCorruption() error {
+func (suite *DisasterRecoveryTestSuite) cleanupBackupCorruption(s *DisasterRecoveryTestSuite) error {
 	suite.T().Log("Cleaning up backup corruption test")
 	return nil
 }
