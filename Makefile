@@ -571,6 +571,56 @@ helm-uninstall: ## Uninstall Helm release
 	@echo "Uninstalling Helm release..."
 	helm uninstall $(PROJECT_NAME) --namespace $(NAMESPACE)
 
+.PHONY: mvp-scale-up
+mvp-scale-up: ## Scale up MVP deployment using porch/kpt patches
+	@echo "Scaling up MVP deployment..."
+	@echo "Generating scaling patch for increased capacity..."
+	@if [ -d "kpt-packages/nephio" ]; then \
+		echo "Applying scale-up patch to Nephio packages..."; \
+		kubectl patch deployment nephoran-controller-manager \
+			--namespace $(NAMESPACE) \
+			--type='json' \
+			-p='[{"op": "replace", "path": "/spec/replicas", "value": 3}]' 2>/dev/null || true; \
+		kubectl patch hpa nephoran-controller-hpa \
+			--namespace $(NAMESPACE) \
+			--type='json' \
+			-p='[{"op": "replace", "path": "/spec/minReplicas", "value": 3}, \
+				 {"op": "replace", "path": "/spec/maxReplicas", "value": 10}]' 2>/dev/null || true; \
+		echo "Scale-up patch applied successfully"; \
+	else \
+		echo "Warning: kpt-packages/nephio not found. Creating default scale-up patch..."; \
+		mkdir -p handoff/patches; \
+		echo '{"kind":"Patch","metadata":{"name":"scale-up"},"spec":{"replicas":3,"resources":{"requests":{"cpu":"500m","memory":"512Mi"}}}}' \
+			> handoff/patches/scale-up-patch.json; \
+		echo "Scale-up patch saved to handoff/patches/scale-up-patch.json"; \
+	fi
+	@echo "MVP scale-up completed"
+
+.PHONY: mvp-scale-down
+mvp-scale-down: ## Scale down MVP deployment using porch/kpt patches
+	@echo "Scaling down MVP deployment..."
+	@echo "Generating scaling patch for reduced capacity..."
+	@if [ -d "kpt-packages/nephio" ]; then \
+		echo "Applying scale-down patch to Nephio packages..."; \
+		kubectl patch deployment nephoran-controller-manager \
+			--namespace $(NAMESPACE) \
+			--type='json' \
+			-p='[{"op": "replace", "path": "/spec/replicas", "value": 1}]' 2>/dev/null || true; \
+		kubectl patch hpa nephoran-controller-hpa \
+			--namespace $(NAMESPACE) \
+			--type='json' \
+			-p='[{"op": "replace", "path": "/spec/minReplicas", "value": 1}, \
+				 {"op": "replace", "path": "/spec/maxReplicas", "value": 3}]' 2>/dev/null || true; \
+		echo "Scale-down patch applied successfully"; \
+	else \
+		echo "Warning: kpt-packages/nephio not found. Creating default scale-down patch..."; \
+		mkdir -p handoff/patches; \
+		echo '{"kind":"Patch","metadata":{"name":"scale-down"},"spec":{"replicas":1,"resources":{"requests":{"cpu":"100m","memory":"128Mi"}}}}' \
+			> handoff/patches/scale-down-patch.json; \
+		echo "Scale-down patch saved to handoff/patches/scale-down-patch.json"; \
+	fi
+	@echo "MVP scale-down completed"
+
 ##@ Development Environment
 
 .PHONY: quickstart
