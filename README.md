@@ -6,7 +6,7 @@
 
 **MVP: Demonstrating intent-driven network orchestration with AI-powered translation**
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/ci.yaml?branch=main&style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/ci.yaml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/ci.yml?branch=main&style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/ci.yml)
 [![Documentation](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/docs-unified.yml?branch=main&style=flat-square&logo=gitbook&label=docs)](https://thc1006.github.io/nephoran-intent-operator)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/thc1006/nephoran-intent-operator?style=flat-square&logo=go)](https://golang.org/)
 [![License](https://img.shields.io/github/license/thc1006/nephoran-intent-operator?style=flat-square)](LICENSE)
@@ -16,6 +16,7 @@
 [![O-RAN Ready](https://img.shields.io/badge/O--RAN-Ready-blue?style=flat-square&logo=verified)](https://www.o-ran.org/)
 [![Security Scan](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/security-consolidated.yml?branch=main&style=flat-square&logo=security&label=security)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/security-consolidated.yml)
 [![Release](https://img.shields.io/github/v/release/thc1006/nephoran-intent-operator?style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/releases)
+[![DOI](https://zenodo.org/badge/1026653090.svg)](https://doi.org/10.5281/zenodo.16813086)
 
 </div>
 
