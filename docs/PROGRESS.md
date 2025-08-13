@@ -2,6 +2,9 @@
 
 | timestamp (ISO-8601) | branch | module | summary |
 |---|---|---|---|
+| 2025-08-13T11:25:19.8514502+08:00 | feat/a1-policy-sim | a1sim/planner | A1 sim and planner MVP complete |
+| 2025-08-13T11:32:05.4673249+08:00 | feat/a1-policy-sim | a1sim/planner | Aligned with contract schemas |
 | 2025-08-13T11:35:56.9813699+08:00 | feat/e2-kpm-sim | kpm | Implemented E2 KPM simulator with tests |
+| 2025-08-13T12:36:09.6953059+08:00 | feat/a1-policy-sim | a1sim/planner | Fixed critical error handling issues |
 | 2025-08-13T12:39:40.2703177+08:00 | feat/e2-kpm-sim | kpm | Fixed critical issues in E2 KPM simulator |
 | 2025-08-13T13:06:17.5591944+08:00 | feat/e2-kpm-sim | kpm | Added godoc and improved code quality |
