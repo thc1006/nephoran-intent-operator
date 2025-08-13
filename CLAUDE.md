@@ -87,3 +87,15 @@ Natural language → LLM → structured NetworkIntent → Nephio/Porch → scale
 - Use `Get-Date -Format o` for ISO timestamps and `git rev-parse --abbrev-ref HEAD` for the branch.
 - Do not rewrite history; append only.
 - If a merge conflict happens, keep both lines (duplicate timestamps are acceptable).
+
+- 在各自工作樹
+git status
+go test ./...
+git add -A
+git commit -m "feat(<area>): <short message>"
+git push -u origin HEAD
+
+# 選擇其一開 PR
+# 1) 網頁 Compare & pull request（Base: integrate/mvp, Compare: <your-branch>）
+# 2) gh CLI（如果安裝了）
+# gh pr create --base integrate/mvp --head <your-branch> --title "<title>" --body "<body>"
