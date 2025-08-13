@@ -71,5 +71,3 @@ func TestGenerateMetric(t *testing.T) {
 		t.Errorf("timestamp is too old: %v", metric.Timestamp)
 	}
 }
-
-// TestSample is in builder_test.go since Sample is defined in builder.go
