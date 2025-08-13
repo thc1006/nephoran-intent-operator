@@ -1,0 +1,111 @@
+# =============================================================================
+# Git Attributes for Nephoran Intent Operator
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Default text file handling - LF line endings
+# -----------------------------------------------------------------------------
+* text=auto eol=lf
+
+# -----------------------------------------------------------------------------
+# Windows-specific scripts
+# -----------------------------------------------------------------------------
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# -----------------------------------------------------------------------------
+# Source code files - ensure LF
+# -----------------------------------------------------------------------------
+*.go text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.sh text eol=lf
+*.bash text eol=lf
+*.proto text eol=lf
+
+# -----------------------------------------------------------------------------
+# Documentation
+# -----------------------------------------------------------------------------
+*.md text eol=lf
+*.rst text eol=lf
+*.adoc text eol=lf
+README* text eol=lf
+LICENSE* text eol=lf
+CHANGELOG* text eol=lf
+
+# -----------------------------------------------------------------------------
+# Configuration files
+# -----------------------------------------------------------------------------
+.gitignore text eol=lf
+.gitattributes text eol=lf
+.editorconfig text eol=lf
+Makefile text eol=lf
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
+
+# -----------------------------------------------------------------------------
+# Binary files - do not modify
+# -----------------------------------------------------------------------------
+*.exe binary
+*.dll binary
+*.so binary
+*.dylib binary
+*.o binary
+*.a binary
+*.lib binary
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg binary
+*.webp binary
+
+# Archives
+*.tar binary
+*.tar.gz binary
+*.tgz binary
+*.zip binary
+*.gz binary
+*.bz2 binary
+*.7z binary
+*.rar binary
+
+# Fonts
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+
+# Documents
+*.pdf binary
+*.doc binary
+*.docx binary
+*.xls binary
+*.xlsx binary
+*.ppt binary
+*.pptx binary
+
+# Database files
+*.db binary
+*.sqlite binary
+*.sqlite3 binary
+
+# Generated files
+*.pb.go binary
+*.gen.go binary
+zz_generated*.go text eol=lf
+
+# -----------------------------------------------------------------------------
+# Diff handling
+# -----------------------------------------------------------------------------
+*.go diff=golang
+*.proto diff=proto

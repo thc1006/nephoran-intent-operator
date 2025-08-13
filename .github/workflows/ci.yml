@@ -7,8 +7,9 @@ on:
   pull_request:
     branches: [ main, integrate/mvp ]
 
+# Updated concurrency to use ${{ github.ref }} only
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -20,11 +21,149 @@ env:
 
 jobs:
   # ---------------------------------------------------------------------------
+  # 0) Hygiene Check - Fails on large non-LFS files
+  # ---------------------------------------------------------------------------
+  hygiene:
+    name: Repository Hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Check for large files not in LFS
+        id: large-files
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## 🧹 Repository Hygiene Check" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Find files larger than 10MB not tracked by LFS
+          large_files=""
+          file_count=0
+          
+          echo "| File | Size | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          
+          while IFS= read -r file; do
+            if [ -f "$file" ]; then
+              size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo 0)
+              size_mb=$((size / 1048576))
+              
+              # Check if file is tracked by LFS
+              if git check-attr filter "$file" | grep -q "filter: lfs"; then
+                echo "| $file | ${size_mb}MB | ✅ LFS tracked |" >> $GITHUB_STEP_SUMMARY
+              else
+                if [ $size -gt 10485760 ]; then  # 10MB = 10 * 1024 * 1024
+                  echo "❌ Large file not in LFS: $file (${size_mb}MB)"
+                  echo "| $file | ${size_mb}MB | ❌ Not in LFS |" >> $GITHUB_STEP_SUMMARY
+                  large_files="${large_files}${file} (${size_mb}MB)\n"
+                  ((file_count++))
+                fi
+              fi
+            fi
+          done < <(find . -type f -size +1M -not -path "./.git/*" -not -path "./vendor/*" -not -path "./node_modules/*" 2>/dev/null || true)
+          
+          if [ $file_count -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ❌ Failed: Found $file_count large files (>10MB) not tracked by Git LFS" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Action Required:** Add these files to Git LFS or remove them:" >> $GITHUB_STEP_SUMMARY
+            echo '```bash' >> $GITHUB_STEP_SUMMARY
+            echo "git lfs track \"path/to/file\"" >> $GITHUB_STEP_SUMMARY
+            echo "git add .gitattributes" >> $GITHUB_STEP_SUMMARY
+            echo "git add path/to/file" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit 1
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ✅ Passed: No large files found outside Git LFS" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Check for common unwanted files
+        shell: bash
+        run: |
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Additional Checks" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          unwanted_patterns=(
+            "*.log"
+            "*.tmp"
+            "*.bak"
+            "*.swp"
+            ".DS_Store"
+            "Thumbs.db"
+            "*.orig"
+          )
+          
+          found_unwanted=false
+          echo "| Pattern | Files Found |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|------------|" >> $GITHUB_STEP_SUMMARY
+          
+          for pattern in "${unwanted_patterns[@]}"; do
+            count=$(find . -name "$pattern" -not -path "./.git/*" 2>/dev/null | wc -l)
+            if [ $count -gt 0 ]; then
+              echo "| $pattern | $count file(s) |" >> $GITHUB_STEP_SUMMARY
+              found_unwanted=true
+            fi
+          done
+          
+          if [ "$found_unwanted" = false ]; then
+            echo "| - | None found ✅ |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # ---------------------------------------------------------------------------
+  # Path filters for module-specific changes (Optional)
+  # ---------------------------------------------------------------------------
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      controllers: ${{ steps.filter.outputs.controllers }}
+      pkg: ${{ steps.filter.outputs.pkg }}
+      cmd: ${{ steps.filter.outputs.cmd }}
+      docs: ${{ steps.filter.outputs.docs }}
+      ci: ${{ steps.filter.outputs.ci }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            api:
+              - 'api/**'
+              - 'config/crd/**'
+            controllers:
+              - 'controllers/**'
+            pkg:
+              - 'pkg/**'
+            cmd:
+              - 'cmd/**'
+            docs:
+              - 'docs/**'
+              - '*.md'
+            ci:
+              - '.github/workflows/**'
+              - 'Makefile'
+              - 'go.mod'
+              - 'go.sum'
+
+  # ---------------------------------------------------------------------------
   # 1) Generate (CRDs / codegen) - non-flaky,保留但不作為單一失敗點
   # ---------------------------------------------------------------------------
   generate:
     name: Generate CRDs
     runs-on: ubuntu-latest
+    needs: [hygiene, changes]
+    # Skip if only docs changed
+    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.api == 'true' || needs.changes.outputs.controllers == 'true'
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -79,7 +218,9 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: generate
+    needs: [hygiene, generate, changes]
+    # Skip if only docs changed
+    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.cmd == 'true' || needs.changes.outputs.pkg == 'true'
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -158,7 +299,9 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    needs: generate
+    needs: [hygiene, generate, changes]
+    # Skip if only docs changed
+    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.pkg == 'true' || needs.changes.outputs.controllers == 'true'
     timeout-minutes: 30
     services:
       redis:
@@ -240,7 +383,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    needs: generate
+    needs: [hygiene, generate]
     timeout-minutes: 10
     continue-on-error: true
     steps:
@@ -279,7 +422,7 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: generate
+    needs: [hygiene, generate]
     timeout-minutes: 10
     continue-on-error: true
     steps:
@@ -312,22 +455,24 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------------
-  # 6) 單一門檻 - 只 gate generate/build/test 三個
+  # 6) 單一門檻 - gate hygiene/generate/build/test
   # ---------------------------------------------------------------------------
   ci-status:
     name: CI Status Check
     runs-on: ubuntu-latest
-    needs: [generate, build, test]
+    needs: [hygiene, generate, build, test]
     if: always()
     timeout-minutes: 5
     steps:
       - name: Gate
         shell: bash
         run: |
+          echo "Hygiene:  ${{ needs.hygiene.result }}"
           echo "Generate: ${{ needs.generate.result }}"
           echo "Build:    ${{ needs.build.result }}"
           echo "Test:     ${{ needs.test.result }}"
-          if [[ "${{ needs.generate.result }}" != "success" || \
+          if [[ "${{ needs.hygiene.result }}"  != "success" || \
+                "${{ needs.generate.result }}" != "success" || \
                 "${{ needs.build.result }}"    != "success" || \
                 "${{ needs.test.result }}"     != "success" ]]; then
             echo "❌ CI Pipeline Failed"; exit 1; fi
@@ -339,11 +484,23 @@ jobs:
         run: |
           echo "## 🔄 CI Pipeline Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Generate | ${{ needs.generate.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build    | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Test     | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status | Description |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧹 Hygiene  | ${{ needs.hygiene.result }}  | Repository cleanliness checks |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⚙️ Generate | ${{ needs.generate.result }} | CRD and code generation |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔨 Build    | ${{ needs.build.result }}    | Binary compilation |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Test     | ${{ needs.test.result }}     | Unit and integration tests |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Add timing information
+          echo "### ⏱️ Timing Information" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Workflow Started | ${{ github.event.head_commit.timestamp }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Runner OS | ${{ runner.os }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Ref | ${{ github.ref }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SHA | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
 
   # ---------------------------------------------------------------------------
   # 7) Container Build（只在 main push 且前面綠燈時）
