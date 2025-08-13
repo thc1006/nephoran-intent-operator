@@ -1,0 +1,13 @@
+{
+  "commonEventHeader": {
+    "domain": "heartbeat",
+    "eventName": "o1.simulated.event",
+    "sequence": 1,
+    "sourceName": "o1-ves-sim",
+    "priority": "Normal",
+    "startEpochMicrosec": 1755012045176
+  },
+  "eventFields": {
+    "msg": "hello"
+  }
+}
