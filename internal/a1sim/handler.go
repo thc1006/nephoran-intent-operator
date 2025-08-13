@@ -47,7 +47,11 @@ return
 }
 name := time.Now().UTC().Format("20060102T150405Z") + ".json"
 path := filepath.Join(dir, name)
-b, _ := json.MarshalIndent(p, "", "  ")
+b, err := json.MarshalIndent(p, "", "  ")
+if err != nil {
+http.Error(w, "failed to marshal policy: "+err.Error(), http.StatusInternalServerError)
+return
+}
 if err := os.WriteFile(path, b, 0o644); err != nil {
 http.Error(w, err.Error(), http.StatusInternalServerError)
 return

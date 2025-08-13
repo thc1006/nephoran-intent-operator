@@ -1,9 +1,0 @@
-{
-  "policy_type": "scaling_policy",
-  "target": "nf-sim",
-  "namespace": "ran-a",
-  "min_replicas": 1,
-  "max_replicas": 8,
-  "high_threshold": 0.8,
-  "low_threshold": 0.3
-}

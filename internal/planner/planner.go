@@ -5,6 +5,7 @@ import (
 "encoding/json"
 "fmt"
 "net/http"
+"time"
 )
 
 // Intent matches the intent.schema.json contract
@@ -18,11 +19,22 @@ type Intent struct {
 	CorrelationID string `json:"correlation_id,omitempty"` // optional trace id
 }
 
+// httpClient is a reusable HTTP client with timeout
+var httpClient = &http.Client{
+	Timeout: 30 * time.Second,
+}
+
 func PostIntent(url string, in Intent) error {
-b, _ := json.Marshal(in)
-req, _ := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+b, err := json.Marshal(in)
+if err != nil {
+return fmt.Errorf("failed to marshal intent: %w", err)
+}
+req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(b))
+if err != nil {
+return fmt.Errorf("failed to create request: %w", err)
+}
 req.Header.Set("Content-Type", "application/json")
-resp, err := http.DefaultClient.Do(req)
+resp, err := httpClient.Do(req)
 if err != nil {
 return err
 }
