@@ -11,4 +11,4 @@
 | 2025-08-13T11:47:28.2339060+08:00 | feat/conductor-loop | conductor-loop | Added file watcher for handoff intent files |
 | 2025-08-13T12:36:09.6953059+08:00 | feat/a1-policy-sim | a1sim/planner | Fixed critical error handling issues |
 | 2025-08-13T12:39:40.2703177+08:00 | feat/e2-kpm-sim | kpm | Fixed critical issues in E2 KPM simulator |
-| 2025-08-13T13:06:17.5591944+08:00 | feat/e2-kpm-sim | kpm | Added godoc and improved code quality |
+| 2025-08-13T13:06:17.5591944+08:00 | feat/e2-kpm-sim | kpm | Added godoc and improved code quality || 2025-08-13T14:26:39.3830519+08:00 | feat/e2-kpm-sim | internal/kpm | Fixed deprecated rand.Seed and file permissions |

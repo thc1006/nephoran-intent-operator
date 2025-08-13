@@ -19,11 +19,14 @@ func main() {
 	)
 	flag.Parse()
 
-	if err := os.MkdirAll(*outputDir, 0755); err != nil {
+	if err := os.MkdirAll(*outputDir, 0750); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
 
-	generator := kpm.NewGenerator(*nodeID, *outputDir)
+	generator, err := kpm.NewGenerator(*nodeID, *outputDir)
+	if err != nil {
+		log.Fatalf("Failed to create generator: %v", err)
+	}
 
 	ticker := time.NewTicker(*period)
 	defer ticker.Stop()
@@ -33,16 +36,35 @@ func main() {
 
 	log.Printf("E2 KPM Simulator started: node=%s, output=%s, period=%v", *nodeID, *outputDir, *period)
 
+	var errorCount int
+	const maxRetries = 3
+
 	for {
 		select {
 		case <-ticker.C:
-			if err := generator.GenerateMetric(); err != nil {
-				log.Printf("Failed to generate metric: %v", err)
-			} else {
-				log.Printf("Metric generated for node %s", *nodeID)
+			// Retry logic for transient failures
+			var lastErr error
+			for retry := 0; retry < maxRetries; retry++ {
+				if err := generator.GenerateMetric(); err != nil {
+					lastErr = err
+					if retry < maxRetries-1 {
+						time.Sleep(100 * time.Millisecond * time.Duration(retry+1))
+						continue
+					}
+				} else {
+					log.Printf("Metric generated for node %s", *nodeID)
+					lastErr = nil
+					break
+				}
+			}
+			
+			if lastErr != nil {
+				errorCount++
+				log.Printf("Failed to generate metric after %d retries: %v (total errors: %d)", 
+					maxRetries, lastErr, errorCount)
 			}
 		case <-sigCh:
-			log.Println("Shutting down E2 KPM Simulator")
+			log.Printf("Shutting down E2 KPM Simulator (total errors: %d)", errorCount)
 			return
 		}
 	}
