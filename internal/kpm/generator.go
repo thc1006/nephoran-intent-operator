@@ -23,6 +23,8 @@ type Generator struct {
 }
 
 func NewGenerator(nodeID, outputDir string) *Generator {
+	// Initialize random seed for realistic metric values
+	rand.Seed(time.Now().UnixNano())
 	return &Generator{
 		nodeID:    nodeID,
 		outputDir: outputDir,
@@ -46,9 +48,9 @@ func (g *Generator) GenerateMetric() error {
 	filename := fmt.Sprintf("%s_%s.json", 
 		metric.Timestamp.Format("20060102T150405Z"),
 		g.nodeID)
-	filepath := filepath.Join(g.outputDir, filename)
+	fullPath := filepath.Join(g.outputDir, filename)
 
-	if err := os.WriteFile(filepath, data, 0644); err != nil {
+	if err := os.WriteFile(fullPath, data, 0644); err != nil {
 		return fmt.Errorf("write file: %w", err)
 	}
 

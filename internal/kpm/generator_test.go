@@ -72,29 +72,4 @@ func TestGenerateMetric(t *testing.T) {
 	}
 }
 
-func TestSample(t *testing.T) {
-	m := Sample("cpu", 0.75)
-	
-	if m.Metric != "cpu" {
-		t.Errorf("expected Metric to be 'cpu', got %s", m.Metric)
-	}
-	
-	if m.Value != 0.75 {
-		t.Errorf("expected Value to be 0.75, got %f", m.Value)
-	}
-	
-	if time.Since(m.TS) > 1*time.Second {
-		t.Errorf("timestamp is too old: %v", m.TS)
-	}
-	
-	// Test value clamping
-	m2 := Sample("memory", 1.5)
-	if m2.Value != 1.0 {
-		t.Errorf("expected Value to be clamped to 1.0, got %f", m2.Value)
-	}
-	
-	m3 := Sample("disk", -0.5)
-	if m3.Value != 0.0 {
-		t.Errorf("expected Value to be clamped to 0.0, got %f", m3.Value)
-	}
-}
+// TestSample is in builder_test.go since Sample is defined in builder.go
