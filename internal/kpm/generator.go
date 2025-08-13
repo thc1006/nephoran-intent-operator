@@ -28,29 +28,45 @@ type KPMMetric struct {
 type Generator struct {
 	nodeID    string
 	outputDir string
+	rng       *rand.Rand // instance-specific random number generator
 }
 
 // NewGenerator creates a new KPM metric generator for the specified node.
-// It initializes the random number generator for realistic metric values.
+// It validates inputs and initializes an instance-specific random number generator.
 // The nodeID identifies the E2 node and outputDir is where JSON files are written.
-func NewGenerator(nodeID, outputDir string) *Generator {
-	// Initialize random seed for realistic metric values
-	rand.Seed(time.Now().UnixNano())
+// Returns an error if inputs are invalid.
+func NewGenerator(nodeID, outputDir string) (*Generator, error) {
+	if nodeID == "" {
+		return nil, fmt.Errorf("nodeID cannot be empty")
+	}
+	if outputDir == "" {
+		return nil, fmt.Errorf("outputDir cannot be empty")
+	}
+	
 	return &Generator{
 		nodeID:    nodeID,
 		outputDir: outputDir,
-	}
+		rng:       rand.New(rand.NewSource(time.Now().UnixNano())),
+	}, nil
 }
 
 // GenerateMetric creates a new utilization metric and writes it to a timestamped JSON file.
 // The metric value is a random float64 between 0 and 1 representing resource utilization.
 // Returns an error if JSON marshaling or file writing fails.
 func (g *Generator) GenerateMetric() error {
+	// Generate value and ensure it's clamped to [0, 1] range
+	value := g.rng.Float64()
+	if value < 0 {
+		value = 0
+	} else if value > 1 {
+		value = 1
+	}
+	
 	metric := &KPMMetric{
 		NodeID:    g.nodeID,
 		Timestamp: time.Now().UTC(),
 		Metric:    "utilization",
-		Value:     rand.Float64(),
+		Value:     value,
 		Unit:      "ratio",
 	}
 
@@ -64,7 +80,7 @@ func (g *Generator) GenerateMetric() error {
 		g.nodeID)
 	metricPath := filepath.Join(g.outputDir, filename)
 
-	if err := os.WriteFile(metricPath, data, 0644); err != nil {
+	if err := os.WriteFile(metricPath, data, 0600); err != nil {
 		return fmt.Errorf("write file: %w", err)
 	}
 
