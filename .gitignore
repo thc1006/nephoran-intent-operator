@@ -10,6 +10,12 @@
 *.dll
 *.so
 *.dylib
+*.o
+**/*.exe
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.o
 
 # Go test binaries
 *.test
@@ -23,6 +29,9 @@
 config_coverage.*
 coverage*
 coverage/
+coverage.out
+**/*.coverage
+.excellence-reports/
 
 # Build directories
 /build
@@ -37,6 +46,7 @@ target/
 # -----------------------------------------------------------------------------
 vendor/
 node_modules/
+package-lock.json
 .pnp
 .pnp.js
 
@@ -152,6 +162,10 @@ tmp/
 *.pid
 *.seed
 *.pid.lock
+**/*.log
+**/*.tmp
+**/*.bak
+**/*.swp
 
 # Application specific logs
 build-*.log
@@ -253,3 +267,23 @@ test-results/
 grafana-data/
 prometheus-data/
 jaeger-data/
+# Additional build artifacts
+*.test.exe
+*.test.out
+__debug_bin
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# CI/CD artifacts
+.task/
+.cache/
+
+# Generated documentation
+/site/
+docs/_build/
+
