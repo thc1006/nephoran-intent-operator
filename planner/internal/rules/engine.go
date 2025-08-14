@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+// min returns the smaller of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
 type KPMData struct {
 	Timestamp       time.Time `json:"timestamp"`
 	NodeID          string    `json:"node_id"`
@@ -43,21 +51,37 @@ type Config struct {
 	PRBThresholdHigh     float64
 	PRBThresholdLow      float64
 	EvaluationWindow     time.Duration
+	// Performance optimization settings
+	MaxHistorySize       int           // Maximum metrics history size (default: 300)
+	PruneInterval        time.Duration // How often to prune history (default: 30s)
 }
 
 type RuleEngine struct {
-	config Config
-	state  *State
-	mu     sync.RWMutex
+	config          Config
+	state           *State
+	mu              sync.RWMutex
+	lastPruneTime   time.Time
+	pruneThreshold  time.Duration // Cached 24h threshold for pruning
 }
 
 func NewRuleEngine(cfg Config) *RuleEngine {
+	// Set default performance parameters if not configured
+	if cfg.MaxHistorySize <= 0 {
+		cfg.MaxHistorySize = 300 // ~5 hours at 1 metric/minute
+	}
+	if cfg.PruneInterval <= 0 {
+		cfg.PruneInterval = 30 * time.Second
+	}
+
 	engine := &RuleEngine{
-		config: cfg,
+		config:         cfg,
+		lastPruneTime:  time.Now(),
+		pruneThreshold: 24 * time.Hour,
 		state: &State{
 			CurrentReplicas: 1,
-			MetricsHistory:  make([]KPMData, 0),
-			DecisionHistory: make([]ScalingDecision, 0),
+			// Pre-allocate with reasonable capacity to reduce early reallocations
+			MetricsHistory:  make([]KPMData, 0, min(cfg.MaxHistorySize/4, 50)),
+			DecisionHistory: make([]ScalingDecision, 0, 20),
 		},
 	}
 
@@ -69,8 +93,8 @@ func (e *RuleEngine) Evaluate(data KPMData) *ScalingDecision {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.state.MetricsHistory = append(e.state.MetricsHistory, data)
-	e.pruneHistory()
+	e.addMetric(data)
+	e.conditionalPrune()
 
 	if !e.canMakeDecision() {
 		log.Printf("Cooldown active, skipping evaluation")
@@ -204,17 +228,56 @@ func (e *RuleEngine) calculateAverageMetrics() AverageMetrics {
 	}
 }
 
-func (e *RuleEngine) pruneHistory() {
-	cutoff := time.Now().Add(-24 * time.Hour)
-	newHistory := make([]KPMData, 0)
+// addMetric adds a new metric with capacity management
+func (e *RuleEngine) addMetric(data KPMData) {
+	// Check if we need to enforce capacity limit immediately
+	if len(e.state.MetricsHistory) >= e.config.MaxHistorySize {
+		// Emergency capacity management: remove oldest 25% to avoid frequent resizing
+		removeCount := e.config.MaxHistorySize / 4
+		if removeCount < 1 {
+			removeCount = 1
+		}
+		copy(e.state.MetricsHistory, e.state.MetricsHistory[removeCount:])
+		e.state.MetricsHistory = e.state.MetricsHistory[:len(e.state.MetricsHistory)-removeCount]
+	}
+	
+	e.state.MetricsHistory = append(e.state.MetricsHistory, data)
+}
 
-	for _, m := range e.state.MetricsHistory {
-		if m.Timestamp.After(cutoff) {
-			newHistory = append(newHistory, m)
+// conditionalPrune performs pruning only when needed based on time interval
+func (e *RuleEngine) conditionalPrune() {
+	now := time.Now()
+	if now.Sub(e.lastPruneTime) < e.config.PruneInterval {
+		return
+	}
+	
+	e.lastPruneTime = now
+	e.pruneHistoryInPlace()
+}
+
+// pruneHistoryInPlace performs in-place pruning to avoid slice reallocation
+func (e *RuleEngine) pruneHistoryInPlace() {
+	cutoff := time.Now().Add(-e.pruneThreshold)
+	
+	// Find first valid entry (binary search could be used for large datasets)
+	writeIndex := 0
+	for readIndex, metric := range e.state.MetricsHistory {
+		if metric.Timestamp.After(cutoff) {
+			if writeIndex != readIndex {
+				e.state.MetricsHistory[writeIndex] = metric
+			}
+			writeIndex++
 		}
 	}
-
-	e.state.MetricsHistory = newHistory
+	
+	// Truncate slice to new length without reallocation
+	if writeIndex < len(e.state.MetricsHistory) {
+		// Zero out unused elements to help GC
+		for i := writeIndex; i < len(e.state.MetricsHistory); i++ {
+			e.state.MetricsHistory[i] = KPMData{}
+		}
+		e.state.MetricsHistory = e.state.MetricsHistory[:writeIndex]
+	}
 }
 
 func (e *RuleEngine) loadState() {
@@ -235,6 +298,9 @@ func (e *RuleEngine) loadState() {
 	}
 }
 
+// saveState securely persists the rule engine state with O-RAN compliant permissions.
+// State files contain sensitive operational data including metrics history and scaling
+// decisions that must be protected from unauthorized access per O-RAN WG11 requirements.
 func (e *RuleEngine) saveState() {
 	if e.config.StateFile == "" {
 		return
@@ -246,7 +312,16 @@ func (e *RuleEngine) saveState() {
 		return
 	}
 
-	if err := os.WriteFile(e.config.StateFile, data, 0644); err != nil {
-		log.Printf("Error saving state: %v", err)
+	// SECURITY: Use 0600 permissions to ensure only the owner can read/write state files.
+	// This prevents unauthorized access to sensitive O-RAN operational data including:
+	// - Metrics history (PRB utilization, latency measurements)
+	// - Scaling decision history
+	// - Network function performance data
+	// Complies with O-RAN WG11 security specifications for operational data protection.
+	if err := os.WriteFile(e.config.StateFile, data, 0600); err != nil {
+		log.Printf("Error saving state with secure permissions: %v", err)
+		return
 	}
+
+	log.Printf("State saved securely to %s (permissions: 0600)", e.config.StateFile)
 }
