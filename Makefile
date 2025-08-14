@@ -621,6 +621,58 @@ mvp-scale-down: ## Scale down MVP deployment using porch/kpt patches
 	fi
 	@echo "MVP scale-down completed"
 
+##@ Planner
+
+.PHONY: planner-build
+planner-build: ## Build the closed-loop planner
+	@echo "Building closed-loop planner..."
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		go build -ldflags="-s -w -X main.Version=$(VERSION) -X main.Commit=$(COMMIT)" \
+		-o bin/planner ./planner/cmd/planner
+
+.PHONY: planner-run
+planner-run: planner-build ## Run the planner locally
+	@echo "Running planner..."
+	./bin/planner -config planner/config/config.yaml
+
+.PHONY: planner-test
+planner-test: ## Run planner tests
+	@echo "Testing planner..."
+	go test ./planner/... -v -race -coverprofile=.coverage/planner.out
+
+.PHONY: planner-demo
+planner-demo: planner-build ## Run planner demo
+	@echo "Running planner demo..."
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		powershell -ExecutionPolicy Bypass -File examples/planner/demo.ps1; \
+	else \
+		bash examples/planner/demo.sh; \
+	fi
+
+mvp-scale-down: ## Scale down MVP deployment using porch/kpt patches
+	@echo "Scaling down MVP deployment..."
+	@echo "Generating scaling patch for reduced capacity..."
+	@if [ -d "kpt-packages/nephio" ]; then \
+		echo "Applying scale-down patch to Nephio packages..."; \
+		kubectl patch deployment nephoran-controller-manager \
+			--namespace $(NAMESPACE) \
+			--type='json' \
+			-p='[{"op": "replace", "path": "/spec/replicas", "value": 1}]' 2>/dev/null || true; \
+		kubectl patch hpa nephoran-controller-hpa \
+			--namespace $(NAMESPACE) \
+			--type='json' \
+			-p='[{"op": "replace", "path": "/spec/minReplicas", "value": 1}, \
+				 {"op": "replace", "path": "/spec/maxReplicas", "value": 3}]' 2>/dev/null || true; \
+		echo "Scale-down patch applied successfully"; \
+	else \
+		echo "Warning: kpt-packages/nephio not found. Creating default scale-down patch..."; \
+		mkdir -p handoff/patches; \
+		echo '{"kind":"Patch","metadata":{"name":"scale-down"},"spec":{"replicas":1,"resources":{"requests":{"cpu":"100m","memory":"128Mi"}}}}' \
+			> handoff/patches/scale-down-patch.json; \
+		echo "Scale-down patch saved to handoff/patches/scale-down-patch.json"; \
+	fi
+	@echo "MVP scale-down completed"
+
 ##@ Development Environment
 
 .PHONY: quickstart

@@ -20,3 +20,8 @@
 | 2025-08-14T01:19:33.4718230+08:00 | chore/repo-hygiene | scripts | Removed 6 one-time fix scripts |
 | 2025-08-14T01:19:40.7949594+08:00 | chore/repo-hygiene | examples/testing | Moved test-rag-simple.sh from scripts to examples |
 | 2025-08-14T01:44:44.3975040+08:00 | chore/repo-hygiene | .github/workflows | Added CI hygiene, concurrency, path filters |
+| 2025-08-14T08:55:03.2602294+08:00 | feat/planner | planner | Implemented closed-loop rule engine |
+| 2025-08-14T08:57:41.8499830+08:00 | feat/planner | planner | Added Makefile targets and docs |
+| 2025-08-14T09:05:31.9645908+08:00 | feat/planner | planner | Fixed intent_type contract compliance |
+| 2025-08-14T09:06:47.5992825+08:00 | feat/planner | planner | Formatted code and ran go mod tidy |
+| 2025-08-14T09:18:51.9732779+08:00 | feat/planner | planner | Added local test with metrics dir support |
