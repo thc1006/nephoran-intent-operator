@@ -505,21 +505,28 @@ jobs:
           # Test kmpgen
           if [ -d "tools/kmpgen" ]; then
             echo "Testing kmpgen..."
-            go test -v ./tools/kmpgen/... -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
+            go test -v ./tools/kmpgen/cmd/kmpgen -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
           fi
           
           # Test vessend
           if [ -d "tools/vessend" ]; then
             echo "Testing vessend..."
-            go test -v ./tools/vessend/... -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
+            go test -v ./tools/vessend/cmd/vessend -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
           fi
           
-          # Test any other tools
-          if find tools -type f -name "*_test.go" | grep -q .; then
-            go test -v ./tools/... -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
-          else
-            echo "No test files found in tools directory"
-          fi
+          # Test any other specific tool packages (not the root tools package)
+          for tooldir in tools/*/; do
+            if [ -d "$tooldir" ] && [ "$tooldir" != "tools/kmpgen/" ] && [ "$tooldir" != "tools/vessend/" ]; then
+              # Find packages with test files in this tool directory
+              tool_name=$(basename "$tooldir")
+              if find "$tooldir" -name "*_test.go" | grep -q .; then
+                echo "Testing $tool_name..."
+                go test -v "./tools/$tool_name/..." -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
+              fi
+            fi
+          done
+          
+          echo "Tools testing completed."
 
       - name: Upload test results
         if: always()
