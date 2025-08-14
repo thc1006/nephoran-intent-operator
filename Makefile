@@ -930,6 +930,49 @@ quality-summary: ## Show quality summary
 		echo "No quality data available. Run 'make quality-gate' first."; \
 	fi
 
+##@ MVP Integration Targets
+
+.PHONY: mvp-scale-up
+mvp-scale-up: ## Scale up network functions using NetworkIntent
+	@echo "Scaling up network functions..."
+	@if command -v kpt >/dev/null 2>&1; then \
+		echo "Using kpt to apply scale-up intent..."; \
+		kpt fn eval kpt-packages/scale-up --image gcr.io/kpt-fn/set-annotations:v0.1 -- replicas=3; \
+		kpt live apply kpt-packages/scale-up; \
+	elif command -v kubectl >/dev/null 2>&1; then \
+		echo "Using kubectl to patch NetworkIntent..."; \
+		kubectl patch networkintent mvp-intent --type='merge' -p '{"spec":{"targetReplicas":3}}' || \
+		kubectl apply -f examples/networkintent-scale-up.yaml; \
+	else \
+		echo "ERROR: Neither kpt nor kubectl found. Please install one."; \
+		exit 1; \
+	fi
+	@echo "Scale-up complete."
+
+.PHONY: mvp-scale-down
+mvp-scale-down: ## Scale down network functions using NetworkIntent
+	@echo "Scaling down network functions..."
+	@if command -v kpt >/dev/null 2>&1; then \
+		echo "Using kpt to apply scale-down intent..."; \
+		kpt fn eval kpt-packages/scale-down --image gcr.io/kpt-fn/set-annotations:v0.1 -- replicas=1; \
+		kpt live apply kpt-packages/scale-down; \
+	elif command -v kubectl >/dev/null 2>&1; then \
+		echo "Using kubectl to patch NetworkIntent..."; \
+		kubectl patch networkintent mvp-intent --type='merge' -p '{"spec":{"targetReplicas":1}}' || \
+		kubectl apply -f examples/networkintent-scale-down.yaml; \
+	else \
+		echo "ERROR: Neither kpt nor kubectl found. Please install one."; \
+		exit 1; \
+	fi
+	@echo "Scale-down complete."
+
+.PHONY: mvp-status
+mvp-status: ## Check status of MVP network functions
+	@echo "Checking MVP network function status..."
+	@kubectl get networkintents -o wide || echo "No NetworkIntents found"
+	@kubectl get deployments -l app.kubernetes.io/managed-by=nephoran -o wide || echo "No managed deployments found"
+	@kubectl get pods -l app.kubernetes.io/managed-by=nephoran -o wide || echo "No managed pods found"
+
 ##@ Shortcuts and Aliases
 
 .PHONY: dev

@@ -1,0 +1,38 @@
+# CODEOWNERS for Nephoran Intent Operator
+# This file defines code ownership for automated review assignment
+# Currently in single-developer mode - teams will be activated when members join
+
+# Default owners for everything
+* @thc1006
+
+# API and Controllers - Future: Nephio team
+/api/ @thc1006 #@nephio-team
+/controllers/ @thc1006 #@nephio-team  
+/pkg/nephio/ @thc1006 #@nephio-team
+
+# RAN Simulation - Future: RAN sim team
+/sim/ @thc1006 #@ran-sim-team
+/planner/ @thc1006 #@ran-sim-team
+
+# CI/CD and Infrastructure
+/.github/ @thc1006
+/.github/workflows/ @thc1006
+/Makefile @thc1006
+/Dockerfile* @thc1006
+/CODEOWNERS @thc1006
+
+# Contracts and Documentation (Critical - multiple owners when team grows)
+/docs/contracts/ @thc1006 #@nephio-team @ran-sim-team
+/docs/ @thc1006
+
+# Scripts and Operations
+/scripts/ @thc1006
+/ops/ @thc1006
+
+# Integration and MVP
+/examples/ @thc1006
+/kpt-packages/ @thc1006
+
+# Test Infrastructure
+/tests/ @thc1006
+/test-*.sh @thc1006

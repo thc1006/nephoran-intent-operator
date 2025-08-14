@@ -20,3 +20,5 @@
 | 2025-08-14T01:19:33.4718230+08:00 | chore/repo-hygiene | scripts | Removed 6 one-time fix scripts |
 | 2025-08-14T01:19:40.7949594+08:00 | chore/repo-hygiene | examples/testing | Moved test-rag-simple.sh from scripts to examples |
 | 2025-08-14T01:44:44.3975040+08:00 | chore/repo-hygiene | .github/workflows | Added CI hygiene, concurrency, path filters |
+| 2025-08-14T09:01:57+08:00 | feat/ci-guard | .github/workflows | Added 9 module test jobs and integration gate |
+| 2025-08-14T09:27:38+08:00 | feat/ci-guard | .github/ | Complete CI guard with CODEOWNERS and branch protection |
