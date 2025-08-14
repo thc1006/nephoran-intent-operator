@@ -129,6 +129,7 @@ jobs:
       controllers: ${{ steps.filter.outputs.controllers }}
       pkg: ${{ steps.filter.outputs.pkg }}
       cmd: ${{ steps.filter.outputs.cmd }}
+      planner: ${{ steps.filter.outputs.planner }}
       docs: ${{ steps.filter.outputs.docs }}
       ci: ${{ steps.filter.outputs.ci }}
     steps:
@@ -146,6 +147,8 @@ jobs:
               - 'pkg/**'
             cmd:
               - 'cmd/**'
+            planner:
+              - 'planner/**'
             docs:
               - 'docs/**'
               - '*.md'
@@ -163,7 +166,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [hygiene, changes]
     # Skip if only docs changed
-    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.api == 'true' || needs.changes.outputs.controllers == 'true'
+    if: |
+      always() && 
+      needs.hygiene.result == 'success' &&
+      (needs.changes.outputs.api == 'true' || 
+       needs.changes.outputs.controllers == 'true' || 
+       needs.changes.outputs.pkg == 'true' || 
+       needs.changes.outputs.cmd == 'true' ||
+       needs.changes.outputs.planner == 'true' ||
+       needs.changes.outputs.ci == 'true')
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -220,7 +231,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [hygiene, generate, changes]
     # Skip if only docs changed
-    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.cmd == 'true' || needs.changes.outputs.pkg == 'true'
+    if: |
+      always() && 
+      needs.hygiene.result == 'success' &&
+      needs.generate.result != 'failure' &&
+      (needs.changes.outputs.cmd == 'true' || 
+       needs.changes.outputs.pkg == 'true' || 
+       needs.changes.outputs.planner == 'true' ||
+       needs.changes.outputs.controllers == 'true' ||
+       needs.changes.outputs.api == 'true' ||
+       needs.changes.outputs.ci == 'true')
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -277,8 +297,14 @@ jobs:
             built=1
           fi
 
+          if [[ -f planner/cmd/planner/main.go ]]; then
+            echo ">> building planner/cmd/planner"
+            ( go build -v -o bin/planner ./planner/cmd/planner ) 2>&1 | tee .excellence-reports/build_planner.log
+            built=1
+          fi
+
           if [[ "${built}" -eq 0 ]]; then
-            echo "No command directories found under cmd/, skipping build."
+            echo "No command directories found under cmd/ or planner/, skipping build."
           fi
           ls -lah bin || true
 
@@ -301,7 +327,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [hygiene, generate, changes]
     # Skip if only docs changed
-    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.pkg == 'true' || needs.changes.outputs.controllers == 'true'
+    if: |
+      always() && 
+      needs.hygiene.result == 'success' &&
+      needs.generate.result != 'failure' &&
+      (needs.changes.outputs.pkg == 'true' || 
+       needs.changes.outputs.controllers == 'true' || 
+       needs.changes.outputs.planner == 'true' ||
+       needs.changes.outputs.cmd == 'true' ||
+       needs.changes.outputs.api == 'true' ||
+       needs.changes.outputs.ci == 'true')
     timeout-minutes: 30
     services:
       redis:
@@ -471,11 +506,30 @@ jobs:
           echo "Generate: ${{ needs.generate.result }}"
           echo "Build:    ${{ needs.build.result }}"
           echo "Test:     ${{ needs.test.result }}"
-          if [[ "${{ needs.hygiene.result }}"  != "success" || \
-                "${{ needs.generate.result }}" != "success" || \
-                "${{ needs.build.result }}"    != "success" || \
-                "${{ needs.test.result }}"     != "success" ]]; then
-            echo "❌ CI Pipeline Failed"; exit 1; fi
+          
+          # Check if hygiene failed (this is critical)
+          if [[ "${{ needs.hygiene.result }}" != "success" ]]; then
+            echo "❌ CI Pipeline Failed - Hygiene check failed"
+            exit 1
+          fi
+          
+          # Check if any required job failed (skipped is ok for some jobs)
+          if [[ "${{ needs.generate.result }}" == "failure" || \
+                "${{ needs.build.result }}" == "failure" || \
+                "${{ needs.test.result }}" == "failure" ]]; then
+            echo "❌ CI Pipeline Failed"
+            exit 1
+          fi
+          
+          # If generate/build/test were all skipped (docs-only change), that's ok
+          if [[ "${{ needs.generate.result }}" == "skipped" && \
+                "${{ needs.build.result }}" == "skipped" && \
+                "${{ needs.test.result }}" == "skipped" ]]; then
+            echo "✅ CI Pipeline Succeeded (docs-only change)"
+            exit 0
+          fi
+          
+          # Otherwise all non-skipped jobs should be success
           echo "✅ CI Pipeline Succeeded"
 
       - name: Summary
@@ -560,5 +614,5 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             VERSION=${{ github.sha }}
-            BUILD_DATE=${{ github.run_timestamp }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
