@@ -499,12 +499,38 @@ jobs:
           echo "Generate: ${{ needs.generate.result }}"
           echo "Build:    ${{ needs.build.result }}"
           echo "Test:     ${{ needs.test.result }}"
-          if [[ "${{ needs.hygiene.result }}"  != "success" || \
-                "${{ needs.generate.result }}" != "success" || \
-                "${{ needs.build.result }}"    != "success" || \
-                "${{ needs.test.result }}"     != "success" ]]; then
-            echo "❌ CI Pipeline Failed"; exit 1; fi
-          echo "✅ CI Pipeline Succeeded"
+          
+          # Check for any failures (skipped is OK, failure is not)
+          failed=false
+          
+          # Hygiene must always succeed (never skipped)
+          if [[ "${{ needs.hygiene.result }}" != "success" ]]; then
+            echo "❌ Hygiene job failed or was cancelled"
+            failed=true
+          fi
+          
+          # Other jobs can be skipped or successful, but not failed
+          if [[ "${{ needs.generate.result }}" != "success" && "${{ needs.generate.result }}" != "skipped" ]]; then
+            echo "❌ Generate job failed"
+            failed=true
+          fi
+          
+          if [[ "${{ needs.build.result }}" != "success" && "${{ needs.build.result }}" != "skipped" ]]; then
+            echo "❌ Build job failed"
+            failed=true
+          fi
+          
+          if [[ "${{ needs.test.result }}" != "success" && "${{ needs.test.result }}" != "skipped" ]]; then
+            echo "❌ Test job failed"
+            failed=true
+          fi
+          
+          if [[ "$failed" == "true" ]]; then
+            echo "❌ CI Pipeline Failed"
+            exit 1
+          else
+            echo "✅ CI Pipeline Succeeded (some jobs may have been skipped based on path filters)"
+          fi
 
       - name: Summary
         if: always()
