@@ -129,6 +129,7 @@ jobs:
       controllers: ${{ steps.filter.outputs.controllers }}
       pkg: ${{ steps.filter.outputs.pkg }}
       cmd: ${{ steps.filter.outputs.cmd }}
+      planner: ${{ steps.filter.outputs.planner }}
       docs: ${{ steps.filter.outputs.docs }}
       ci: ${{ steps.filter.outputs.ci }}
     steps:
@@ -146,6 +147,8 @@ jobs:
               - 'pkg/**'
             cmd:
               - 'cmd/**'
+            planner:
+              - 'planner/**'
             docs:
               - 'docs/**'
               - '*.md'
@@ -277,8 +280,14 @@ jobs:
             built=1
           fi
 
+          if [[ -f planner/cmd/planner/main.go ]]; then
+            echo ">> building planner/cmd/planner"
+            ( go build -v -o bin/planner ./planner/cmd/planner ) 2>&1 | tee .excellence-reports/build_planner.log
+            built=1
+          fi
+
           if [[ "${built}" -eq 0 ]]; then
-            echo "No command directories found under cmd/, skipping build."
+            echo "No command directories found under cmd/ or planner/, skipping build."
           fi
           ls -lah bin || true
 
@@ -301,7 +310,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [hygiene, generate, changes]
     # Skip if only docs changed
-    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.pkg == 'true' || needs.changes.outputs.controllers == 'true'
+    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.pkg == 'true' || needs.changes.outputs.controllers == 'true' || needs.changes.outputs.planner == 'true'
     timeout-minutes: 30
     services:
       redis:
