@@ -20,4 +20,3 @@
 | 2025-08-14T01:19:33.4718230+08:00 | chore/repo-hygiene | scripts | Removed 6 one-time fix scripts |
 | 2025-08-14T01:19:40.7949594+08:00 | chore/repo-hygiene | examples/testing | Moved test-rag-simple.sh from scripts to examples |
 | 2025-08-14T01:44:44.3975040+08:00 | chore/repo-hygiene | .github/workflows | Added CI hygiene, concurrency, path filters |
-| 2025-08-14T08:53:17.2405978+08:00 | feat/examples-mvp | examples/mvp-oran-sim | Created MVP demo package with scripts and docs |
