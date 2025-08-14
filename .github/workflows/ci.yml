@@ -223,7 +223,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [hygiene, generate, changes]
     # Skip if only docs changed
-    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.cmd == 'true' || needs.changes.outputs.pkg == 'true'
+    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.cmd == 'true' || needs.changes.outputs.pkg == 'true' || needs.changes.outputs.planner == 'true'
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -569,5 +569,5 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             VERSION=${{ github.sha }}
-            BUILD_DATE=${{ github.run_timestamp }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
