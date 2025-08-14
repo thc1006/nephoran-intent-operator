@@ -21,7 +21,7 @@ import (
 	"time"
 )
 
-// KMPWindow represents a KPM measurement window with the three key metrics
+// KPMWindow represents a KPM measurement window with the three key metrics
 // defined in the E2SM-KPM profile.
 type KMPWindow struct {
 	// P95LatencyMs represents the 95th percentile latency in milliseconds
