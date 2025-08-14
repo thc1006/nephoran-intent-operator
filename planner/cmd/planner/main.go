@@ -20,6 +20,7 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/internal/planner"
 	"github.com/thc1006/nephoran-intent-operator/planner/internal/rules"
+	"github.com/thc1006/nephoran-intent-operator/planner/internal/security"
 )
 
 // Config represents the main application configuration
@@ -112,6 +113,9 @@ func main() {
 	flag.StringVar(&configFile, "config", "planner/config/config.yaml", "Configuration file path")
 	flag.Parse()
 
+	// Initialize security validator with default configuration
+	validator := security.NewValidator(security.DefaultValidationConfig())
+
 	cfg := &Config{
 		MetricsURL:      "http://localhost:9090/metrics/kmp",
 		EventsURL:       "http://localhost:9091/events/ves",
@@ -125,8 +129,13 @@ func main() {
 
 	var yamlConfig *YAMLConfig
 	if configFile != "" && fileExists(configFile) {
-		if err := loadConfig(configFile, cfg); err != nil {
-			log.Printf("Warning: Failed to load config file %s: %v", configFile, err)
+		// SECURITY: Validate configuration file path to prevent directory traversal
+		if err := validator.ValidateFilePath(configFile, "configuration file"); err != nil {
+			log.Fatalf("Security validation failed for config file path: %v", err)
+		}
+
+		if err := loadConfig(configFile, cfg, validator); err != nil {
+			log.Printf("Warning: Failed to load config file %s: %v", validator.SanitizeForLogging(configFile), err)
 			log.Printf("Using default configuration")
 		} else {
 			// Also load the full YAML config for rule engine configuration
@@ -139,22 +148,37 @@ func main() {
 		}
 	}
 
+	// SECURITY: Validate environment variables to prevent injection attacks
 	if envURL := os.Getenv("PLANNER_METRICS_URL"); envURL != "" {
+		if err := validator.ValidateEnvironmentVariable("PLANNER_METRICS_URL", envURL, "metrics URL configuration"); err != nil {
+			log.Fatalf("Security validation failed for PLANNER_METRICS_URL: %v", err)
+		}
 		cfg.MetricsURL = envURL
 	}
 	if envDir := os.Getenv("PLANNER_OUTPUT_DIR"); envDir != "" {
+		if err := validator.ValidateEnvironmentVariable("PLANNER_OUTPUT_DIR", envDir, "output directory configuration"); err != nil {
+			log.Fatalf("Security validation failed for PLANNER_OUTPUT_DIR: %v", err)
+		}
 		cfg.OutputDir = envDir
 	}
 	if envSim := os.Getenv("PLANNER_SIM_MODE"); envSim == "true" {
 		cfg.SimMode = true
 	}
 	if envMetricsDir := os.Getenv("PLANNER_METRICS_DIR"); envMetricsDir != "" {
+		if err := validator.ValidateEnvironmentVariable("PLANNER_METRICS_DIR", envMetricsDir, "metrics directory configuration"); err != nil {
+			log.Fatalf("Security validation failed for PLANNER_METRICS_DIR: %v", err)
+		}
 		cfg.MetricsDir = envMetricsDir
 	}
 
 	log.Printf("Starting Nephoran Closed-Loop Planner")
 	log.Printf("Config: MetricsURL=%s, OutputDir=%s, PollingInterval=%v, SimMode=%v",
-		cfg.MetricsURL, cfg.OutputDir, cfg.PollingInterval, cfg.SimMode)
+		validator.SanitizeForLogging(cfg.MetricsURL), validator.SanitizeForLogging(cfg.OutputDir), cfg.PollingInterval, cfg.SimMode)
+
+	// SECURITY: Validate output directory path before creation
+	if err := validator.ValidateFilePath(cfg.OutputDir, "output directory"); err != nil {
+		log.Fatalf("Security validation failed for output directory: %v", err)
+	}
 
 	if err := os.MkdirAll(cfg.OutputDir, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
@@ -163,6 +187,9 @@ func main() {
 	// Create rule engine configuration
 	ruleConfig := createRuleEngineConfig(cfg, yamlConfig)
 	engine := rules.NewRuleEngine(ruleConfig)
+
+	// Set the validator in the engine for KMP data validation
+	engine.SetValidator(validator)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -175,7 +202,7 @@ func main() {
 
 	go func() {
 		defer wg.Done()
-		runPlannerLoop(ctx, cfg, engine)
+		runPlannerLoop(ctx, cfg, engine, validator)
 	}()
 
 	<-sigChan
@@ -185,7 +212,7 @@ func main() {
 	log.Println("Planner stopped")
 }
 
-func runPlannerLoop(ctx context.Context, cfg *Config, engine *rules.RuleEngine) {
+func runPlannerLoop(ctx context.Context, cfg *Config, engine *rules.RuleEngine, validator *security.Validator) {
 	ticker := time.NewTicker(cfg.PollingInterval)
 	defer ticker.Stop()
 
@@ -194,21 +221,21 @@ func runPlannerLoop(ctx context.Context, cfg *Config, engine *rules.RuleEngine) 
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			processMetrics(cfg, engine)
+			processMetrics(cfg, engine, validator)
 		}
 	}
 }
 
-func processMetrics(cfg *Config, engine *rules.RuleEngine) {
+func processMetrics(cfg *Config, engine *rules.RuleEngine, validator *security.Validator) {
 	var kmpData rules.KPMData
 	var err error
 
 	if cfg.SimMode {
-		kmpData, err = loadSimData(cfg.SimDataFile)
+		kmpData, err = loadSimData(cfg.SimDataFile, validator)
 	} else if cfg.MetricsDir != "" {
-		kmpData, err = loadLatestMetricsFromDir(cfg.MetricsDir)
+		kmpData, err = loadLatestMetricsFromDir(cfg.MetricsDir, validator)
 	} else {
-		kmpData, err = fetchKPMMetrics(cfg.MetricsURL)
+		kmpData, err = fetchKPMMetrics(cfg.MetricsURL, validator)
 	}
 
 	if err != nil {
@@ -235,12 +262,12 @@ func processMetrics(cfg *Config, engine *rules.RuleEngine) {
 		CorrelationID: fmt.Sprintf("planner-%d", time.Now().Unix()),
 	}
 
-	if err := writeIntent(cfg.OutputDir, intent); err != nil {
+	if err := writeIntent(cfg.OutputDir, intent, validator); err != nil {
 		log.Printf("Error writing intent: %v", err)
 	}
 }
 
-func fetchKPMMetrics(url string) (rules.KPMData, error) {
+func fetchKPMMetrics(url string, validator *security.Validator) (rules.KPMData, error) {
 	resp, err := httpClient.Get(url)
 	if err != nil {
 		return rules.KPMData{}, fmt.Errorf("failed to fetch metrics from %s: %w", url, err)
@@ -261,10 +288,20 @@ func fetchKPMMetrics(url string) (rules.KPMData, error) {
 		return rules.KPMData{}, fmt.Errorf("failed to unmarshal KMP data: %w", err)
 	}
 
+	// SECURITY: Validate KMP data structure and values
+	if err := validator.ValidateKMPData(data); err != nil {
+		return rules.KPMData{}, fmt.Errorf("KMP data validation failed: %w", err)
+	}
+
 	return data, nil
 }
 
-func loadSimData(file string) (rules.KPMData, error) {
+func loadSimData(file string, validator *security.Validator) (rules.KPMData, error) {
+	// SECURITY: Validate simulation data file path
+	if err := validator.ValidateFilePath(file, "simulation data file"); err != nil {
+		return rules.KPMData{}, fmt.Errorf("simulation file path validation failed: %w", err)
+	}
+
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return rules.KPMData{}, err
@@ -275,10 +312,20 @@ func loadSimData(file string) (rules.KPMData, error) {
 		return rules.KPMData{}, err
 	}
 
+	// SECURITY: Validate KMP data structure and values
+	if err := validator.ValidateKMPData(kmpData); err != nil {
+		return rules.KPMData{}, fmt.Errorf("simulation KMP data validation failed: %w", err)
+	}
+
 	return kmpData, nil
 }
 
-func loadLatestMetricsFromDir(dir string) (rules.KPMData, error) {
+func loadLatestMetricsFromDir(dir string, validator *security.Validator) (rules.KPMData, error) {
+	// SECURITY: Validate metrics directory path
+	if err := validator.ValidateFilePath(dir, "metrics directory"); err != nil {
+		return rules.KPMData{}, fmt.Errorf("metrics directory path validation failed: %w", err)
+	}
+
 	// Read all JSON files from metrics directory
 	files, err := filepath.Glob(filepath.Join(dir, "kmp-*.json"))
 	if err != nil {
@@ -308,8 +355,8 @@ func loadLatestMetricsFromDir(dir string) (rules.KPMData, error) {
 	}
 
 	// Read the latest file for current data
-	log.Printf("Reading latest metrics from: %s", latestFile)
-	latestData, err := loadSimData(latestFile)
+	log.Printf("Reading latest metrics from: %s", validator.SanitizeForLogging(latestFile))
+	latestData, err := loadSimData(latestFile, validator)
 	if err != nil {
 		return rules.KPMData{}, err
 	}
@@ -322,7 +369,7 @@ func loadLatestMetricsFromDir(dir string) (rules.KPMData, error) {
 // writeIntent writes scaling intent to a secure file with O-RAN compliant permissions.
 // Intent files contain sensitive O-RAN network management data and must be protected
 // from unauthorized access according to O-RAN WG11 security specifications.
-func writeIntent(outputDir string, intent *planner.Intent) error {
+func writeIntent(outputDir string, intent *planner.Intent, validator *security.Validator) error {
 	data, err := json.MarshalIndent(intent, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal intent data: %w", err)
@@ -331,6 +378,11 @@ func writeIntent(outputDir string, intent *planner.Intent) error {
 	filename := fmt.Sprintf("intent-%d.json", time.Now().Unix())
 	path := filepath.Join(outputDir, filename)
 
+	// SECURITY: Validate intent file path to prevent directory traversal
+	if err := validator.ValidateFilePath(path, "intent output file"); err != nil {
+		return fmt.Errorf("intent file path validation failed: %w", err)
+	}
+
 	// SECURITY: Use 0600 permissions to ensure only the owner can read/write intent files.
 	// This prevents unauthorized access to sensitive O-RAN network management data.
 	// O-RAN WG11 security requirements mandate protection of operational data.
@@ -338,12 +390,12 @@ func writeIntent(outputDir string, intent *planner.Intent) error {
 		return fmt.Errorf("failed to write intent file with secure permissions: %w", err)
 	}
 
-	log.Printf("Intent written securely to %s (permissions: 0600)", path)
+	log.Printf("Intent written securely to %s (permissions: 0600)", validator.SanitizeForLogging(path))
 	return nil
 }
 
 // loadConfig reads and parses the YAML configuration file
-func loadConfig(file string, cfg *Config) error {
+func loadConfig(file string, cfg *Config, validator *security.Validator) error {
 	data, err := os.ReadFile(file)
 	if err != nil {
 		return fmt.Errorf("failed to read config file %s: %w", file, err)
@@ -355,32 +407,51 @@ func loadConfig(file string, cfg *Config) error {
 	}
 
 	// Apply planner configuration
-	if err := applyPlannerConfig(&yamlConfig.Planner, cfg); err != nil {
+	if err := applyPlannerConfig(&yamlConfig.Planner, cfg, validator); err != nil {
 		return fmt.Errorf("failed to apply planner config: %w", err)
 	}
 
-	log.Printf("Successfully loaded configuration from %s", file)
+	log.Printf("Successfully loaded configuration from %s", validator.SanitizeForLogging(file))
 	return nil
 }
 
 // applyPlannerConfig applies the planner section to the main Config struct
-func applyPlannerConfig(plannerCfg *PlannerConfig, cfg *Config) error {
+func applyPlannerConfig(plannerCfg *PlannerConfig, cfg *Config, validator *security.Validator) error {
+	// SECURITY: Validate all URLs and file paths from configuration
 	if plannerCfg.MetricsURL != "" {
+		if err := validator.ValidateURL(plannerCfg.MetricsURL, "configuration metrics URL"); err != nil {
+			return fmt.Errorf("metrics URL validation failed: %w", err)
+		}
 		cfg.MetricsURL = plannerCfg.MetricsURL
 	}
 	if plannerCfg.EventsURL != "" {
+		if err := validator.ValidateURL(plannerCfg.EventsURL, "configuration events URL"); err != nil {
+			return fmt.Errorf("events URL validation failed: %w", err)
+		}
 		cfg.EventsURL = plannerCfg.EventsURL
 	}
 	if plannerCfg.OutputDir != "" {
+		if err := validator.ValidateFilePath(plannerCfg.OutputDir, "configuration output directory"); err != nil {
+			return fmt.Errorf("output directory validation failed: %w", err)
+		}
 		cfg.OutputDir = plannerCfg.OutputDir
 	}
 	if plannerCfg.IntentEndpoint != "" {
+		if err := validator.ValidateURL(plannerCfg.IntentEndpoint, "configuration intent endpoint"); err != nil {
+			return fmt.Errorf("intent endpoint validation failed: %w", err)
+		}
 		cfg.IntentEndpoint = plannerCfg.IntentEndpoint
 	}
 	if plannerCfg.SimDataFile != "" {
+		if err := validator.ValidateFilePath(plannerCfg.SimDataFile, "configuration simulation data file"); err != nil {
+			return fmt.Errorf("simulation data file validation failed: %w", err)
+		}
 		cfg.SimDataFile = plannerCfg.SimDataFile
 	}
 	if plannerCfg.StateFile != "" {
+		if err := validator.ValidateFilePath(plannerCfg.StateFile, "configuration state file"); err != nil {
+			return fmt.Errorf("state file validation failed: %w", err)
+		}
 		cfg.StateFile = plannerCfg.StateFile
 	}
 	

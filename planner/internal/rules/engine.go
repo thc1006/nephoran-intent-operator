@@ -56,12 +56,19 @@ type Config struct {
 	PruneInterval        time.Duration // How often to prune history (default: 30s)
 }
 
+// Validator interface for KMP data validation
+type Validator interface {
+	ValidateKMPData(data KPMData) error
+	SanitizeForLogging(value string) string
+}
+
 type RuleEngine struct {
 	config          Config
 	state           *State
 	mu              sync.RWMutex
 	lastPruneTime   time.Time
 	pruneThreshold  time.Duration // Cached 24h threshold for pruning
+	validator       Validator     // Security validator for KMP data
 }
 
 func NewRuleEngine(cfg Config) *RuleEngine {
@@ -89,9 +96,24 @@ func NewRuleEngine(cfg Config) *RuleEngine {
 	return engine
 }
 
+// SetValidator sets the security validator for KMP data validation
+func (e *RuleEngine) SetValidator(validator Validator) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.validator = validator
+}
+
 func (e *RuleEngine) Evaluate(data KPMData) *ScalingDecision {
 	e.mu.Lock()
 	defer e.mu.Unlock()
+
+	// SECURITY: Validate KMP data if validator is available
+	if e.validator != nil {
+		if err := e.validator.ValidateKMPData(data); err != nil {
+			log.Printf("KMP data validation failed: %v", err)
+			return nil
+		}
+	}
 
 	e.addMetric(data)
 	e.conditionalPrune()
