@@ -972,3 +972,124 @@ init: check-tools deps ## Initialize the project for development
 	mkdir -p $(REPORTS_DIR)
 	@echo "Project initialized successfully!"
 	@echo "Run 'make help' to see available commands"
+
+##@ MVP Demo Commands
+
+MVP_DEMO_DIR = examples/mvp-oran-sim
+MVP_NAMESPACE = mvp-demo
+
+.PHONY: mvp-up
+mvp-up: ## Run complete MVP demo flow (install → prepare → send → apply → validate)
+	@echo "===== Starting MVP Demo Flow ====="
+	@echo "Step 1/5: Installing Porch components..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "01-install-porch.sh" ]; then \
+			bash 01-install-porch.sh; \
+		else \
+			pwsh -File 01-install-porch.ps1; \
+		fi
+	@echo ""
+	@echo "Step 2/5: Preparing NF simulator package..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "02-prepare-nf-sim.sh" ]; then \
+			bash 02-prepare-nf-sim.sh; \
+		else \
+			pwsh -File 02-prepare-nf-sim.ps1; \
+		fi
+	@echo ""
+	@echo "Step 3/5: Sending scaling intent..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "03-send-intent.sh" ]; then \
+			REPLICAS=3 bash 03-send-intent.sh; \
+		else \
+			pwsh -File 03-send-intent.ps1 -Replicas 3; \
+		fi
+	@echo ""
+	@echo "Step 4/5: Applying package with Porch/KPT..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "04-porch-apply.sh" ]; then \
+			bash 04-porch-apply.sh; \
+		else \
+			pwsh -File 04-porch-apply.ps1; \
+		fi
+	@echo ""
+	@echo "Step 5/5: Validating deployment..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "05-validate.sh" ]; then \
+			bash 05-validate.sh; \
+		else \
+			pwsh -File 05-validate.ps1; \
+		fi
+	@echo ""
+	@echo "===== MVP Demo Complete! ====="
+
+.PHONY: mvp-scale-up
+mvp-scale-up: ## Scale NF simulator up to 5 replicas
+	@echo "Scaling NF simulator to 5 replicas..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "03-send-intent.sh" ]; then \
+			REPLICAS=5 REASON="Scale up test" bash 03-send-intent.sh; \
+		else \
+			pwsh -File 03-send-intent.ps1 -Replicas 5 -Reason "Scale up test"; \
+		fi
+	@sleep 3
+	@kubectl patch deployment nf-sim -n $(MVP_NAMESPACE) -p '{"spec":{"replicas":5}}' || true
+	@echo "Waiting for scale up..."
+	@sleep 5
+	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE)
+
+.PHONY: mvp-scale-down
+mvp-scale-down: ## Scale NF simulator down to 1 replica
+	@echo "Scaling NF simulator to 1 replica..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "03-send-intent.sh" ]; then \
+			REPLICAS=1 REASON="Scale down test" bash 03-send-intent.sh; \
+		else \
+			pwsh -File 03-send-intent.ps1 -Replicas 1 -Reason "Scale down test"; \
+		fi
+	@sleep 3
+	@kubectl patch deployment nf-sim -n $(MVP_NAMESPACE) -p '{"spec":{"replicas":1}}' || true
+	@echo "Waiting for scale down..."
+	@sleep 5
+	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE)
+
+.PHONY: mvp-down
+mvp-down: mvp-scale-down ## Scale down and delete PackageRevision if created
+	@echo "Cleaning up PackageRevisions..."
+	@kubectl delete packagerevision nf-sim-package-v1 -n default 2>/dev/null || true
+	@echo "MVP scaled down"
+
+.PHONY: mvp-status
+mvp-status: ## Show current MVP deployment status
+	@echo "===== MVP Deployment Status ====="
+	@echo "Namespace: $(MVP_NAMESPACE)"
+	@kubectl get namespace $(MVP_NAMESPACE) 2>/dev/null || echo "Namespace not found"
+	@echo ""
+	@echo "Deployment:"
+	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE) 2>/dev/null || echo "Deployment not found"
+	@echo ""
+	@echo "Pods:"
+	@kubectl get pods -n $(MVP_NAMESPACE) -l app=nf-sim 2>/dev/null || echo "No pods found"
+	@echo ""
+	@echo "Service:"
+	@kubectl get service nf-sim -n $(MVP_NAMESPACE) 2>/dev/null || echo "Service not found"
+
+.PHONY: mvp-clean
+mvp-clean: ## Clean up all MVP demo resources
+	@echo "Cleaning up MVP demo resources..."
+	@echo "Deleting namespace $(MVP_NAMESPACE)..."
+	@kubectl delete namespace $(MVP_NAMESPACE) --ignore-not-found=true
+	@echo "Deleting PackageRevisions..."
+	@kubectl delete packagerevision -l app=nf-sim --all-namespaces --ignore-not-found=true 2>/dev/null || true
+	@echo "Cleaning up local package directories..."
+	@rm -rf $(MVP_DEMO_DIR)/package-* 2>/dev/null || true
+	@echo "MVP demo resources cleaned up"
+
+.PHONY: mvp-logs
+mvp-logs: ## Show logs from NF simulator pods
+	@echo "===== NF Simulator Logs ====="
+	@kubectl logs -n $(MVP_NAMESPACE) -l app=nf-sim --tail=50 2>/dev/null || echo "No logs available"
+
+.PHONY: mvp-watch
+mvp-watch: ## Watch MVP deployment status continuously
+	@watch -n 2 "kubectl get deployment,pods,service -n $(MVP_NAMESPACE) 2>/dev/null || echo 'Resources not found'"
