@@ -134,6 +134,7 @@ jobs:
       pkg-core: ${{ steps.filter.outputs.pkg-core }}
       cmd: ${{ steps.filter.outputs.cmd }}
       internal: ${{ steps.filter.outputs.internal }}
+      planner: ${{ steps.filter.outputs.planner }}
       docs: ${{ steps.filter.outputs.docs }}
       ci: ${{ steps.filter.outputs.ci }}
       scripts: ${{ steps.filter.outputs.scripts }}
@@ -172,6 +173,8 @@ jobs:
               - 'cmd/**'
             internal:
               - 'internal/**'
+            planner:
+              - 'planner/**'
             docs:
               - 'docs/**'
               - '*.md'
@@ -191,7 +194,15 @@ jobs:
     runs-on: ubuntu-latest
     needs: [hygiene, changes]
     # Skip if only docs changed
-    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.api == 'true' || needs.changes.outputs.controllers == 'true'
+    if: |
+      always() && 
+      needs.hygiene.result == 'success' &&
+      (needs.changes.outputs.api == 'true' || 
+       needs.changes.outputs.controllers == 'true' || 
+       needs.changes.outputs.pkg == 'true' || 
+       needs.changes.outputs.cmd == 'true' ||
+       needs.changes.outputs.planner == 'true' ||
+       needs.changes.outputs.ci == 'true')
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -248,7 +259,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [hygiene, generate, changes]
     # Skip if only docs changed
-    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.cmd == 'true' || needs.changes.outputs.pkg == 'true'
+    if: |
+      always() && 
+      needs.hygiene.result == 'success' &&
+      needs.generate.result != 'failure' &&
+      (needs.changes.outputs.cmd == 'true' || 
+       needs.changes.outputs.pkg == 'true' || 
+       needs.changes.outputs.planner == 'true' ||
+       needs.changes.outputs.controllers == 'true' ||
+       needs.changes.outputs.api == 'true' ||
+       needs.changes.outputs.ci == 'true')
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -305,8 +325,14 @@ jobs:
             built=1
           fi
 
+          if [[ -f planner/cmd/planner/main.go ]]; then
+            echo ">> building planner/cmd/planner"
+            ( go build -v -o bin/planner ./planner/cmd/planner ) 2>&1 | tee .excellence-reports/build_planner.log
+            built=1
+          fi
+
           if [[ "${built}" -eq 0 ]]; then
-            echo "No command directories found under cmd/, skipping build."
+            echo "No command directories found under cmd/ or planner/, skipping build."
           fi
           ls -lah bin || true
 
@@ -329,7 +355,16 @@ jobs:
     runs-on: ubuntu-latest
     needs: [hygiene, generate, changes]
     # Skip if only docs changed
-    if: needs.changes.outputs.docs != 'true' || needs.changes.outputs.pkg == 'true' || needs.changes.outputs.controllers == 'true'
+    if: |
+      always() && 
+      needs.hygiene.result == 'success' &&
+      needs.generate.result != 'failure' &&
+      (needs.changes.outputs.pkg == 'true' || 
+       needs.changes.outputs.controllers == 'true' || 
+       needs.changes.outputs.planner == 'true' ||
+       needs.changes.outputs.cmd == 'true' ||
+       needs.changes.outputs.api == 'true' ||
+       needs.changes.outputs.ci == 'true')
     timeout-minutes: 30
     services:
       redis:
@@ -703,6 +738,22 @@ jobs:
           go mod download
           go test -v ./internal/... -count=1 || echo "No tests found"
 
+  test-planner:
+    name: Test Planner Module
+    runs-on: ubuntu-latest
+    needs: [hygiene, changes]
+    if: needs.changes.outputs.planner == 'true'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Test Planner module
+        run: |
+          go mod download
+          go test -v ./planner/... -count=1 || echo "No tests found"
+
   # ---------------------------------------------------------------------------
   # Aggregate job for integrate/mvp branch - ensures all modules pass
   # ---------------------------------------------------------------------------
@@ -722,7 +773,8 @@ jobs:
       test-pkg-rag,
       test-pkg-core,
       test-cmd,
-      test-internal
+      test-internal,
+      test-planner
     ]
     if: |
       always() && 
@@ -766,6 +818,9 @@ jobs:
           fi
           if [[ "${{ needs.test-internal.result }}" != "skipped" ]]; then
             echo "| Internal Module | ${{ needs.test-internal.result }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [[ "${{ needs.test-planner.result }}" != "skipped" ]]; then
+            echo "| Planner Module | ${{ needs.test-planner.result }} |" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -826,6 +881,10 @@ jobs:
           fi
           if [[ "${{ needs.test-internal.result }}" != "skipped" && "${{ needs.test-internal.result }}" == "failure" ]]; then
             echo "❌ Module test test-internal failed"
+            failed=true
+          fi
+          if [[ "${{ needs.test-planner.result }}" != "skipped" && "${{ needs.test-planner.result }}" == "failure" ]]; then
+            echo "❌ Module test test-planner failed"
             failed=true
           fi
           
@@ -894,5 +953,5 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             VERSION=${{ github.sha }}
-            BUILD_DATE=${{ github.run_timestamp }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}
