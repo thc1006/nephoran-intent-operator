@@ -133,6 +133,7 @@ jobs:
       pkg-rag: ${{ steps.filter.outputs.pkg-rag }}
       pkg-core: ${{ steps.filter.outputs.pkg-core }}
       cmd: ${{ steps.filter.outputs.cmd }}
+      tools: ${{ steps.filter.outputs.tools }}
       internal: ${{ steps.filter.outputs.internal }}
       planner: ${{ steps.filter.outputs.planner }}
       docs: ${{ steps.filter.outputs.docs }}
@@ -171,6 +172,8 @@ jobs:
               - 'pkg/validation/**'
             cmd:
               - 'cmd/**'
+            tools:
+              - 'tools/**'
             internal:
               - 'internal/**'
             planner:
@@ -518,22 +521,104 @@ jobs:
           retention-days: 7
 
   # ---------------------------------------------------------------------------
-  # 6) 單一門檻 - gate hygiene/generate/build/test
+  # 5.5) Tools Test - Test the tools directory when changed
+  # ---------------------------------------------------------------------------
+  tools-test:
+    name: Tools Test
+    runs-on: ubuntu-latest
+    needs: [hygiene, changes]
+    # Only run when tools files are changed
+    if: needs.changes.outputs.tools == 'true'
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+
+      - name: Cache Go build/mod
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download deps
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run tools tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .excellence-reports
+          echo "Testing tools directory..."
+          
+          # Test kmpgen
+          if [ -d "tools/kmpgen" ]; then
+            echo "Testing kmpgen..."
+            go test -v ./tools/kmpgen/cmd/kmpgen -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
+          fi
+          
+          # Test vessend
+          if [ -d "tools/vessend" ]; then
+            echo "Testing vessend..."
+            go test -v ./tools/vessend/cmd/vessend -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
+          fi
+          
+          # Test any other specific tool packages (not the root tools package)
+          for tooldir in tools/*/; do
+            if [ -d "$tooldir" ] && [ "$tooldir" != "tools/kmpgen/" ] && [ "$tooldir" != "tools/vessend/" ]; then
+              # Find packages with test files in this tool directory
+              tool_name=$(basename "$tooldir")
+              if find "$tooldir" -name "*_test.go" | grep -q .; then
+                echo "Testing $tool_name..."
+                go test -v "./tools/$tool_name/..." -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
+              fi
+            fi
+          done
+          
+          echo "Tools testing completed."
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tools-test-results
+          path: |
+            .excellence-reports/tools-test.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  # ---------------------------------------------------------------------------
+  # 6) 單一門檻 - gate hygiene/generate/build/test/tools-test
   # ---------------------------------------------------------------------------
   ci-status:
     name: CI Status Check
     runs-on: ubuntu-latest
-    needs: [hygiene, generate, build, test]
+    needs: [hygiene, generate, build, test, tools-test]
     if: always()
     timeout-minutes: 5
     steps:
       - name: Gate
         shell: bash
         run: |
-          echo "Hygiene:  ${{ needs.hygiene.result }}"
-          echo "Generate: ${{ needs.generate.result }}"
-          echo "Build:    ${{ needs.build.result }}"
-          echo "Test:     ${{ needs.test.result }}"
+          echo "Hygiene:    ${{ needs.hygiene.result }}"
+          echo "Generate:   ${{ needs.generate.result }}"
+          echo "Build:      ${{ needs.build.result }}"
+          echo "Test:       ${{ needs.test.result }}"
+          echo "Tools-Test: ${{ needs.tools-test.result }}"
           
           # Check for any failures (skipped is OK, failure is not)
           failed=false
@@ -560,6 +645,11 @@ jobs:
             failed=true
           fi
           
+          if [[ "${{ needs.tools-test.result }}" != "success" && "${{ needs.tools-test.result }}" != "skipped" ]]; then
+            echo "❌ Tools-Test job failed"
+            failed=true
+          fi
+          
           if [[ "$failed" == "true" ]]; then
             echo "❌ CI Pipeline Failed"
             exit 1
@@ -575,10 +665,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status | Description |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|-------------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧹 Hygiene  | ${{ needs.hygiene.result }}  | Repository cleanliness checks |" >> $GITHUB_STEP_SUMMARY
-          echo "| ⚙️ Generate | ${{ needs.generate.result }} | CRD and code generation |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔨 Build    | ${{ needs.build.result }}    | Binary compilation |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧪 Test     | ${{ needs.test.result }}     | Unit and integration tests |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧹 Hygiene    | ${{ needs.hygiene.result }}    | Repository cleanliness checks |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⚙️ Generate   | ${{ needs.generate.result }}   | CRD and code generation |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔨 Build      | ${{ needs.build.result }}      | Binary compilation |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Test       | ${{ needs.test.result }}       | Unit and integration tests |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔧 Tools-Test | ${{ needs.tools-test.result }} | Test harness tools tests |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Add timing information
