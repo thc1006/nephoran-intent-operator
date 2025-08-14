@@ -22,3 +22,11 @@
 | 2025-08-14T01:44:44.3975040+08:00 | chore/repo-hygiene | .github/workflows | Added CI hygiene, concurrency, path filters |
 | 2025-08-14T09:01:57+08:00 | feat/ci-guard | .github/workflows | Added 9 module test jobs and integration gate |
 | 2025-08-14T09:27:38+08:00 | feat/ci-guard | .github/ | Complete CI guard with CODEOWNERS and branch protection |
+| 2025-08-14T12:33:56.8972017+08:00 | feat/ci-guard | docs/ci | Created CI workflow fixes proposal document |
+| 2025-08-14T12:38:47+08:00 | feat/ci-guard | docs | CI workflow fixes proposal for path filter issues |
+| 2025-08-14T14:15:32+08:00 | feat/ci-guard | docs/security | Security policy response for govulncheck v1.1.4 pinning |
+| 2025-08-14T12:48:58+08:00 | feat/ci-guard | docs/security | Security policy response for govulncheck version pinning |
+| 2025-08-14T13:04:03.4849920+08:00 | feat/ci-guard | Makefile | Refactored MVP scaling targets, extracted common helper functions |
+| 2025-08-14T13:19:20.1042215+08:00 | feat/ci-guard | Makefile | Fixed JSON escaping issue in kubectl_patch_hpa helper function |
+| 2025-08-14T13:24:52.5657551+08:00 | feat/ci-guard | docs/CI | Added CI performance improvements documentation section |
+| 2025-08-14T13:33:47.4100456+08:00 | feat/ci-guard | test-ci-validation.sh | Fixed Python dependency with yq fallback |

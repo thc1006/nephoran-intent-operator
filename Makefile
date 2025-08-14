@@ -6,6 +6,35 @@ VERSION ?= $(shell git describe --tags --always --dirty)
 COMMIT = $(shell git rev-parse --short HEAD)
 DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
+# Helper functions for MVP scaling operations
+define check_tool
+	@if ! command -v $(1) >/dev/null 2>&1; then \
+		echo "ERROR: $(1) is required but not installed"; \
+		exit 1; \
+	fi
+endef
+
+define kubectl_patch_deployment
+	kubectl patch deployment $(1) \
+		--namespace $(NAMESPACE) \
+		--type='json' \
+		-p='[{"op": "replace", "path": "/spec/replicas", "value": $(2)}]' 2>/dev/null || true
+endef
+
+define kubectl_patch_hpa
+	kubectl patch hpa $(1) \
+		--namespace $(NAMESPACE) \
+		--type='json' \
+		-p='[{"op": "replace", "path": "/spec/minReplicas", "value": $(2)}, {"op": "replace", "path": "/spec/maxReplicas", "value": $(3)}]' 2>/dev/null || true
+endef
+
+define create_patch_file
+	@mkdir -p handoff/patches; \
+	echo '{"kind":"Patch","metadata":{"name":"$(1)"},"spec":{"replicas":$(2),"resources":{"requests":{"cpu":"$(3)","memory":"$(4)"}}}}' \
+		> handoff/patches/$(1)-patch.json; \
+	echo "$(1) patch saved to handoff/patches/$(1)-patch.json"
+endef
+
 # Go configuration
 GO_VERSION = 1.24.1
 GOOS ?= $(shell go env GOOS)
@@ -571,55 +600,35 @@ helm-uninstall: ## Uninstall Helm release
 	@echo "Uninstalling Helm release..."
 	helm uninstall $(PROJECT_NAME) --namespace $(NAMESPACE)
 
-.PHONY: mvp-scale-up
-mvp-scale-up: ## Scale up MVP deployment using porch/kpt patches
-	@echo "Scaling up MVP deployment..."
+.PHONY: mvp-controller-scale-up
+mvp-controller-scale-up: ## Scale up MVP controller deployment using porch/kpt patches
+	@echo "Scaling up MVP controller deployment..."
 	@echo "Generating scaling patch for increased capacity..."
 	@if [ -d "kpt-packages/nephio" ]; then \
 		echo "Applying scale-up patch to Nephio packages..."; \
-		kubectl patch deployment nephoran-controller-manager \
-			--namespace $(NAMESPACE) \
-			--type='json' \
-			-p='[{"op": "replace", "path": "/spec/replicas", "value": 3}]' 2>/dev/null || true; \
-		kubectl patch hpa nephoran-controller-hpa \
-			--namespace $(NAMESPACE) \
-			--type='json' \
-			-p='[{"op": "replace", "path": "/spec/minReplicas", "value": 3}, \
-				 {"op": "replace", "path": "/spec/maxReplicas", "value": 10}]' 2>/dev/null || true; \
+		$(call kubectl_patch_deployment,nephoran-controller-manager,3); \
+		$(call kubectl_patch_hpa,nephoran-controller-hpa,3,10); \
 		echo "Scale-up patch applied successfully"; \
 	else \
 		echo "Warning: kpt-packages/nephio not found. Creating default scale-up patch..."; \
-		mkdir -p handoff/patches; \
-		echo '{"kind":"Patch","metadata":{"name":"scale-up"},"spec":{"replicas":3,"resources":{"requests":{"cpu":"500m","memory":"512Mi"}}}}' \
-			> handoff/patches/scale-up-patch.json; \
-		echo "Scale-up patch saved to handoff/patches/scale-up-patch.json"; \
+		$(call create_patch_file,scale-up,3,500m,512Mi); \
 	fi
-	@echo "MVP scale-up completed"
+	@echo "MVP controller scale-up completed"
 
-.PHONY: mvp-scale-down
-mvp-scale-down: ## Scale down MVP deployment using porch/kpt patches
-	@echo "Scaling down MVP deployment..."
+.PHONY: mvp-controller-scale-down
+mvp-controller-scale-down: ## Scale down MVP controller deployment using porch/kpt patches
+	@echo "Scaling down MVP controller deployment..."
 	@echo "Generating scaling patch for reduced capacity..."
 	@if [ -d "kpt-packages/nephio" ]; then \
 		echo "Applying scale-down patch to Nephio packages..."; \
-		kubectl patch deployment nephoran-controller-manager \
-			--namespace $(NAMESPACE) \
-			--type='json' \
-			-p='[{"op": "replace", "path": "/spec/replicas", "value": 1}]' 2>/dev/null || true; \
-		kubectl patch hpa nephoran-controller-hpa \
-			--namespace $(NAMESPACE) \
-			--type='json' \
-			-p='[{"op": "replace", "path": "/spec/minReplicas", "value": 1}, \
-				 {"op": "replace", "path": "/spec/maxReplicas", "value": 3}]' 2>/dev/null || true; \
+		$(call kubectl_patch_deployment,nephoran-controller-manager,1); \
+		$(call kubectl_patch_hpa,nephoran-controller-hpa,1,3); \
 		echo "Scale-down patch applied successfully"; \
 	else \
 		echo "Warning: kpt-packages/nephio not found. Creating default scale-down patch..."; \
-		mkdir -p handoff/patches; \
-		echo '{"kind":"Patch","metadata":{"name":"scale-down"},"spec":{"replicas":1,"resources":{"requests":{"cpu":"100m","memory":"128Mi"}}}}' \
-			> handoff/patches/scale-down-patch.json; \
-		echo "Scale-down patch saved to handoff/patches/scale-down-patch.json"; \
+		$(call create_patch_file,scale-down,1,100m,128Mi); \
 	fi
-	@echo "MVP scale-down completed"
+	@echo "MVP controller scale-down completed"
 
 ##@ Development Environment
 
@@ -965,6 +974,11 @@ mvp-scale-down: ## Scale down network functions using NetworkIntent
 		exit 1; \
 	fi
 	@echo "Scale-down complete."
+
+# Backward compatibility aliases for the renamed controller scaling targets
+.PHONY: mvp-controller-up mvp-controller-down
+mvp-controller-up: mvp-controller-scale-up ## Alias for mvp-controller-scale-up
+mvp-controller-down: mvp-controller-scale-down ## Alias for mvp-controller-scale-down
 
 .PHONY: mvp-status
 mvp-status: ## Check status of MVP network functions
