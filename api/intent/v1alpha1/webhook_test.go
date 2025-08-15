@@ -79,13 +79,13 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("should accept replicas at minimum boundary (1)", func() {
+			It("should accept replicas at minimum boundary (0)", func() {
 				ni := &NetworkIntent{
 					Spec: NetworkIntentSpec{
 						IntentType: "scaling",
 						Target:     "my-deployment",
 						Namespace:  "default",
-						Replicas:   1,
+						Replicas:   0,
 						Source:     "user",
 					},
 				}
@@ -95,13 +95,13 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 
-			It("should accept replicas at maximum boundary (100)", func() {
+			It("should accept large replicas values", func() {
 				ni := &NetworkIntent{
 					Spec: NetworkIntentSpec{
 						IntentType: "scaling",
 						Target:     "my-deployment",
 						Namespace:  "default",
-						Replicas:   100,
+						Replicas:   1000,
 						Source:     "user",
 					},
 				}
@@ -150,40 +150,6 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				Expect(err.Error()).To(ContainSubstring("only 'scaling' supported"))
 			})
 
-			It("should reject replicas below minimum (0)", func() {
-				ni := &NetworkIntent{
-					Spec: NetworkIntentSpec{
-						IntentType: "scaling",
-						Target:     "my-deployment",
-						Namespace:  "default",
-						Replicas:   0, // Below minimum
-						Source:     "user",
-					},
-				}
-
-				warnings, err := validator.ValidateCreate(ctx, ni)
-				Expect(warnings).To(BeNil())
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("must be between 1 and 100"))
-			})
-
-			It("should reject replicas above maximum (101)", func() {
-				ni := &NetworkIntent{
-					Spec: NetworkIntentSpec{
-						IntentType: "scaling",
-						Target:     "my-deployment",
-						Namespace:  "default",
-						Replicas:   101, // Above maximum
-						Source:     "user",
-					},
-				}
-
-				warnings, err := validator.ValidateCreate(ctx, ni)
-				Expect(warnings).To(BeNil())
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("must be between 1 and 100"))
-			})
-
 			It("should reject negative replicas", func() {
 				ni := &NetworkIntent{
 					Spec: NetworkIntentSpec{
@@ -198,8 +164,9 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				warnings, err := validator.ValidateCreate(ctx, ni)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("must be between 1 and 100"))
+				Expect(err.Error()).To(ContainSubstring("must be >= 0"))
 			})
+
 
 			It("should reject empty target", func() {
 				ni := &NetworkIntent{
@@ -258,7 +225,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 						IntentType: "invalid",  // Invalid
 						Target:     "",          // Empty
 						Namespace:  "",          // Empty
-						Replicas:   200,         // Above maximum
+						Replicas:   -5,          // Negative
 						Source:     "invalid",   // Invalid
 					},
 				}
@@ -270,7 +237,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				// Check for all expected error messages
 				errorMsg := err.Error()
 				Expect(errorMsg).To(ContainSubstring("only 'scaling' supported"))
-				Expect(errorMsg).To(ContainSubstring("must be between 1 and 100"))
+				Expect(errorMsg).To(ContainSubstring("must be >= 0"))
 				Expect(errorMsg).To(ContainSubstring("target"))
 				Expect(errorMsg).To(ContainSubstring("namespace"))
 				Expect(errorMsg).To(ContainSubstring("must be 'user', 'planner', or 'test'"))
@@ -294,7 +261,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 						IntentType: "scaling",
 						Target:     "my-deployment",
 						Namespace:  "default",
-						Replicas:   150, // Invalid - above maximum
+						Replicas:   -2, // Invalid - negative
 						Source:     "user",
 					},
 				}
@@ -302,7 +269,7 @@ var _ = Describe("NetworkIntent Webhook", func() {
 				warnings, err := validator.ValidateUpdate(ctx, oldNI, newNI)
 				Expect(warnings).To(BeNil())
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("must be between 1 and 100"))
+				Expect(err.Error()).To(ContainSubstring("must be >= 0"))
 			})
 		})
 

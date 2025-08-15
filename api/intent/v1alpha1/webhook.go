@@ -65,9 +65,9 @@ func validateNetworkIntent(obj runtime.Object) (admission.Warnings, error) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "intentType"), ni.Spec.IntentType, "only 'scaling' supported"))
 	}
 	
-	// Validate replicas - must be 1-100 per contract
-	if ni.Spec.Replicas < 1 || ni.Spec.Replicas > 100 {
-		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "replicas"), ni.Spec.Replicas, "must be between 1 and 100"))
+	// Validate replicas - must be >= 0
+	if ni.Spec.Replicas < 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "replicas"), ni.Spec.Replicas, "must be >= 0"))
 	}
 	
 	// Validate target - must be non-empty

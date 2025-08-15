@@ -3,21 +3,23 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 metadata:
-  name: nephoran-intent-operator-webhook
-  namespace: nephoran-intent-operator-system
+  name: nephoran-webhook-deployment
+  namespace: nephoran-system
 
 resources:
-- manifests.yaml
+- serviceaccount.yaml
+- service.yaml
+- deployment.yaml
+- mutating-webhook.yaml
+- validating-webhook.yaml
+- rbac-patch.yaml
 
-commonLabels:
-  app.kubernetes.io/name: nephoran-intent-operator
-  app.kubernetes.io/component: webhook
-  app.kubernetes.io/part-of: nephoran-intent-operator
-  app.kubernetes.io/version: v1.0.0
-
-patchesStrategicMerge:
-# Uncomment and customize these patches as needed
-# - webhook_patches.yaml
+labels:
+- pairs:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/version: v1.0.0
 
 # Certificate configuration
 configMapGenerator:
@@ -29,11 +31,26 @@ configMapGenerator:
   - VALIDATION_LOG_LEVEL=info
 
 # Namespace creation
-namespace:
-- nephoran-intent-operator-system
+namespace: nephoran-system
 
 # Image settings
 images:
-- name: controller
-  newName: nephoran/intent-operator
+- name: webhook-manager
+  newName: nephoran/webhook-manager
   newTag: latest
+
+# Replace placeholders in webhook configurations
+replacements:
+- source:
+    kind: Service
+    name: webhook-manager
+    fieldPath: metadata.namespace
+  targets:
+  - select:
+      kind: MutatingWebhookConfiguration
+    fieldPaths:
+    - webhooks.[name=mnetworkintent.nephoran.io].clientConfig.service.namespace
+  - select:
+      kind: ValidatingWebhookConfiguration
+    fieldPaths:
+    - webhooks.[name=vnetworkintent.nephoran.io].clientConfig.service.namespace

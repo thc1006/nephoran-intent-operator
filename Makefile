@@ -582,6 +582,59 @@ undeploy: ## Remove from the cluster
 	@echo "Removing from cluster..."
 	kustomize build config/default | kubectl delete -f -
 
+.PHONY: build-webhook
+build-webhook: ## Build the webhook manager binary
+	@echo "Building webhook manager binary..."
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(LDFLAGS) -o bin/webhook-manager cmd/webhook-manager/main.go
+
+.PHONY: docker-build-webhook
+docker-build-webhook: ## Build webhook manager Docker image
+	@echo "Building webhook manager Docker image..."
+	docker build -f Dockerfile \
+		--build-arg SERVICE_NAME=webhook-manager \
+		--build-arg SERVICE_TYPE=go \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(COMMIT) \
+		--target final \
+		-t nephoran/webhook-manager:$(IMAGE_TAG) \
+		--build-arg BINARY_PATH=./cmd/webhook-manager/main.go .
+	docker tag nephoran/webhook-manager:$(IMAGE_TAG) nephoran/webhook-manager:latest
+
+.PHONY: deploy-webhook
+deploy-webhook: docker-build-webhook ## Deploy webhook with cert-manager
+	@echo "Deploying webhook with cert-manager..."
+	@echo "Step 1: Verifying cert-manager is installed..."
+	@if ! kubectl get crd certificates.cert-manager.io >/dev/null 2>&1; then \
+		echo "ERROR: cert-manager is not installed. Please install cert-manager first:"; \
+		echo "  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml"; \
+		exit 1; \
+	fi
+	@echo "Step 2: Building webhook configuration..."
+	@if ! command -v kustomize >/dev/null 2>&1; then \
+		echo "Installing kustomize..."; \
+		go install sigs.k8s.io/kustomize/kustomize/v5@latest; \
+	fi
+	@echo "Step 3: Applying webhook deployment..."
+	kustomize build config/default | kubectl apply -f -
+	@echo "Step 4: Waiting for certificate to be ready..."
+	@kubectl wait --for=condition=Ready certificate/webhook-serving-cert -n $(NAMESPACE) --timeout=300s || true
+	@echo "Step 5: Waiting for webhook deployment to be ready..."
+	@kubectl wait --for=condition=Available deployment/webhook-manager -n $(NAMESPACE) --timeout=300s || true
+	@echo "✅ Webhook deployment completed successfully!"
+	@echo ""
+	@echo "Verification commands:"
+	@echo "  kubectl get certificates -n $(NAMESPACE)"
+	@echo "  kubectl get mutatingwebhookconfiguration nephoran-networkintent-mutating"
+	@echo "  kubectl get validatingwebhookconfiguration nephoran-networkintent-validating"
+	@echo "  kubectl get deployment webhook-manager -n $(NAMESPACE)"
+
+.PHONY: undeploy-webhook
+undeploy-webhook: ## Remove webhook deployment
+	@echo "Removing webhook deployment..."
+	kustomize build config/default | kubectl delete -f - --ignore-not-found=true
+	@echo "Webhook deployment removed"
+
 .PHONY: deploy-samples
 deploy-samples: ## Deploy sample resources
 	@echo "Deploying sample resources..."
