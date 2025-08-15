@@ -1118,6 +1118,14 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 // Additional DeepCopy methods would follow the same pattern...
 // This provides type-safe deep copying required for Kubernetes client-go
 
+// ContentMetrics represents metrics for package content
+type ContentMetrics struct {
+	FileCount      int            `json:"fileCount"`
+	TotalSize      int64          `json:"totalSize"`
+	ResourceCounts map[string]int `json:"resourceCounts"`
+	LastModified   time.Time      `json:"lastModified"`
+}
+
 // Error types for better error handling
 type PorchError struct {
 	Type    string
