@@ -1,0 +1,29 @@
+planner:
+  # For local testing with kpmgen
+  metrics_url: "file://./metrics"  # Read from local metrics directory
+  events_url: "http://localhost:9091/events/ves"
+  output_dir: "./handoff"
+  intent_endpoint: "http://localhost:8080/intent"
+  polling_interval: 5s  # Faster polling for testing
+  sim_mode: false
+  sim_data_file: ""
+  state_file: "planner-state.json"
+  metrics_dir: "../feat-test-harness/metrics"  # Path to kpmgen output
+
+scaling_rules:
+  cooldown_duration: 30s  # Shorter cooldown for testing
+  min_replicas: 1
+  max_replicas: 10
+  evaluation_window: 15s  # Shorter window for testing
+  
+  thresholds:
+    latency:
+      scale_out: 100.0
+      scale_in: 50.0
+    prb_utilization:
+      scale_out: 0.8
+      scale_in: 0.3
+
+logging:
+  level: "debug"
+  format: "json"
