@@ -1145,6 +1145,15 @@ type ContentManagerMetrics struct {
 	AverageLatency  int64 `json:"averageLatency"`
 }
 
+// ContentStore defines the interface for content storage operations
+type ContentStore interface {
+	Get(ctx context.Context, key string) ([]byte, error)
+	Put(ctx context.Context, key string, content []byte) error
+	Delete(ctx context.Context, key string) error
+	List(ctx context.Context, prefix string) ([]string, error)
+	Exists(ctx context.Context, key string) (bool, error)
+}
+
 // Error types for better error handling
 type PorchError struct {
 	Type    string
