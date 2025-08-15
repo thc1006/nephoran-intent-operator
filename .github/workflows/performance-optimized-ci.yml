@@ -547,7 +547,7 @@ jobs:
 
       - name: "📤 Upload Coverage to Codecov"
         if: matrix.test-type == 'unit' && github.event_name == 'pull_request'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: test-results/coverage.out
           flags: smart-testing,${{ matrix.test-type }}
