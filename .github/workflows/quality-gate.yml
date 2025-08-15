@@ -651,7 +651,7 @@ jobs:
       
       - name: 📊 Setup Pages
         if: github.ref == 'refs/heads/main'
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
       
       - name: 📤 Upload Pages Artifact
         if: github.ref == 'refs/heads/main'
