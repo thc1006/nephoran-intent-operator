@@ -1135,6 +1135,16 @@ type ContentManagerHealth struct {
 	ErrorCount     int       `json:"errorCount"`
 }
 
+// ContentManagerMetrics tracks metrics for content manager operations
+type ContentManagerMetrics struct {
+	TotalRequests   int64 `json:"totalRequests"`
+	SuccessCount    int64 `json:"successCount"`
+	ErrorCount      int64 `json:"errorCount"`
+	CacheHits       int64 `json:"cacheHits"`
+	CacheMisses     int64 `json:"cacheMisses"`
+	AverageLatency  int64 `json:"averageLatency"`
+}
+
 // Error types for better error handling
 type PorchError struct {
 	Type    string
