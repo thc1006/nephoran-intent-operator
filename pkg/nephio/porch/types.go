@@ -1160,6 +1160,20 @@ type TemplateEngine struct {
 	Functions map[string]interface{} `json:"-"`
 }
 
+// ContentValidator validates package content
+type ContentValidator struct {
+	Rules   []ContentValidationRule `json:"rules"`
+	Strict  bool                    `json:"strict"`
+}
+
+// ContentValidationRule defines a content validation rule
+type ContentValidationRule struct {
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Pattern  string `json:"pattern"`
+	Required bool   `json:"required"`
+}
+
 // Error types for better error handling
 type PorchError struct {
 	Type    string
