@@ -1126,6 +1126,15 @@ type ContentMetrics struct {
 	LastModified   time.Time      `json:"lastModified"`
 }
 
+// ContentManagerHealth represents health status of the content manager
+type ContentManagerHealth struct {
+	Status         string    `json:"status"`
+	LastCheck      time.Time `json:"lastCheck"`
+	CacheSize      int64     `json:"cacheSize"`
+	ActiveRequests int       `json:"activeRequests"`
+	ErrorCount     int       `json:"errorCount"`
+}
+
 // Error types for better error handling
 type PorchError struct {
 	Type    string
