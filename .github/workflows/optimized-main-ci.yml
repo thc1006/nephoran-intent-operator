@@ -468,7 +468,7 @@ jobs:
 
       - name: "📤 Upload Coverage to Codecov"
         if: matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           files: coverage/cover.out
           flags: unittests,go${{ matrix.go-version }},${{ matrix.os }}
