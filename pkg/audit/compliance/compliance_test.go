@@ -1,4 +1,4 @@
-package compliance
+package compliance_test
 
 import (
 	"context"
@@ -12,13 +12,14 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/compliance"
 )
 
 // ComplianceTestSuite tests compliance framework functionality
 type ComplianceTestSuite struct {
 	suite.Suite
-	complianceLogger *ComplianceLogger
-	retentionManager *RetentionManager
+	complianceLogger *compliance.ComplianceLogger
+	retentionManager *compliance.RetentionManager
 }
 
 func TestComplianceTestSuite(t *testing.T) {
@@ -32,7 +33,7 @@ func (suite *ComplianceTestSuite) SetupTest() {
 		audit.CompliancePCIDSS,
 	}
 
-	suite.complianceLogger = NewComplianceLogger(complianceMode)
+	suite.complianceLogger = compliance.NewComplianceLogger(complianceMode)
 
 	retentionConfig := &RetentionConfig{
 		ComplianceMode:     complianceMode,
@@ -44,7 +45,7 @@ func (suite *ComplianceTestSuite) SetupTest() {
 		CompressionEnabled: true,
 	}
 
-	suite.retentionManager = NewRetentionManager(retentionConfig)
+	suite.retentionManager = compliance.NewRetentionManager(retentionConfig)
 }
 
 // SOC2 Compliance Tests
@@ -779,181 +780,4 @@ type ComplianceStandardAnalysis struct {
 	RetentionPeriod time.Duration
 }
 
-// Mock implementations for testing (would be replaced with real implementations)
-
-type ComplianceLogger struct {
-	standards []audit.ComplianceStandard
-}
-
-func NewComplianceLogger(standards []audit.ComplianceStandard) *ComplianceLogger {
-	return &ComplianceLogger{standards: standards}
-}
-
-func (cl *ComplianceLogger) ProcessEvent(event *audit.AuditEvent) {
-	// Mock implementation
-}
-
-func (cl *ComplianceLogger) GenerateSOC2Report(events []*audit.AuditEvent, start, end time.Time) *SOC2Report {
-	return &SOC2Report{
-		ComplianceReport: ComplianceReport{
-			Standard:    "SOC2",
-			TotalEvents: int64(len(events)),
-			GeneratedAt: time.Now(),
-		},
-		TrustServices:      []string{"Security", "Confidentiality"},
-		ControlCoverage:    map[string]int64{"CC6.1": 5, "CC6.2": 3},
-		SecurityViolations: 1,
-	}
-}
-
-func (cl *ComplianceLogger) GenerateISO27001Report(events []*audit.AuditEvent, start, end time.Time) *ISO27001Report {
-	return &ISO27001Report{
-		ComplianceReport: ComplianceReport{
-			Standard:    "ISO27001",
-			TotalEvents: int64(len(events)),
-			GeneratedAt: time.Now(),
-		},
-		AnnexCoverage:  map[string]int64{"A.9": 2, "A.12": 1},
-		RiskAssessment: map[string]string{"Medium": "2", "High": "1"},
-	}
-}
-
-func (cl *ComplianceLogger) GeneratePCIDSSReport(events []*audit.AuditEvent, start, end time.Time) *PCIDSSReport {
-	cardholderDataEvents := int64(0)
-	for _, event := range events {
-		if event.Data != nil {
-			if chd, exists := event.Data["cardholder_data"]; exists && chd.(bool) {
-				cardholderDataEvents++
-			}
-		}
-	}
-
-	return &PCIDSSReport{
-		ComplianceReport: ComplianceReport{
-			Standard:    "PCI_DSS",
-			TotalEvents: int64(len(events)),
-			GeneratedAt: time.Now(),
-		},
-		CardholderDataAccess: cardholderDataEvents,
-		RequirementCoverage:  map[string]int64{"10.2.1": 1, "8.1.1": 1},
-	}
-}
-
-func (cl *ComplianceLogger) CollectEvidence(event *audit.AuditEvent, standards []audit.ComplianceStandard) *Evidence {
-	return &Evidence{
-		EventID:      event.ID,
-		Standard:     standards[0],
-		EvidenceType: "audit_log",
-		Metadata:     map[string]interface{}{"collected_at": time.Now()},
-		Hash:         "mock_hash",
-		PreviousHash: "mock_previous_hash",
-		Verified:     true,
-		Timestamp:    time.Now(),
-	}
-}
-
-func (cl *ComplianceLogger) VerifyEvidenceIntegrity(evidence *Evidence) bool {
-	// Simple mock verification - checks for tampering indicator
-	if tampering, exists := evidence.Metadata["tampered"]; exists && tampering == "true" {
-		return false
-	}
-	return true
-}
-
-func (cl *ComplianceLogger) AnalyzeMultiStandardCompliance(event *audit.AuditEvent, standards []audit.ComplianceStandard) *MultiStandardAnalysis {
-	analysis := &MultiStandardAnalysis{
-		Standards: make([]ComplianceStandardAnalysis, len(standards)),
-	}
-
-	maxRetention := time.Duration(0)
-
-	for i, standard := range standards {
-		var retention time.Duration
-		var controls []string
-
-		switch standard {
-		case audit.ComplianceSOC2:
-			retention = 7 * 365 * 24 * time.Hour
-			controls = []string{"CC6.1", "CC6.2"}
-		case audit.ComplianceISO27001:
-			retention = 3 * 365 * 24 * time.Hour
-			controls = []string{"A.9.2.1", "A.12.4.1"}
-		case audit.CompliancePCIDSS:
-			retention = 365 * 24 * time.Hour
-			controls = []string{"10.2.1", "8.1.1"}
-		}
-
-		analysis.Standards[i] = ComplianceStandardAnalysis{
-			Standard:        standard,
-			Controls:        controls,
-			RetentionPeriod: retention,
-		}
-
-		if retention > maxRetention {
-			maxRetention = retention
-		}
-	}
-
-	analysis.FinalRetentionPeriod = maxRetention
-	return analysis
-}
-
-type RetentionManager struct {
-	config *RetentionConfig
-}
-
-type RetentionConfig struct {
-	ComplianceMode     []audit.ComplianceStandard
-	DefaultRetention   time.Duration
-	MinRetention       time.Duration
-	MaxRetention       time.Duration
-	PurgeInterval      time.Duration
-	BackupBeforePurge  bool
-	CompressionEnabled bool
-}
-
-type RetentionPolicy struct {
-	EventType       audit.EventType
-	RetentionPeriod time.Duration
-}
-
-func NewRetentionManager(config *RetentionConfig) *RetentionManager {
-	return &RetentionManager{config: config}
-}
-
-func (rm *RetentionManager) CalculateRetentionPeriod(event *audit.AuditEvent, standards []audit.ComplianceStandard) time.Duration {
-	maxRetention := rm.config.DefaultRetention
-
-	for _, standard := range standards {
-		var retention time.Duration
-		switch standard {
-		case audit.ComplianceSOC2:
-			retention = 7 * 365 * 24 * time.Hour
-		case audit.ComplianceISO27001:
-			retention = 3 * 365 * 24 * time.Hour
-		case audit.CompliancePCIDSS:
-			retention = 365 * 24 * time.Hour
-		default:
-			retention = rm.config.DefaultRetention
-		}
-
-		if retention > maxRetention {
-			maxRetention = retention
-		}
-	}
-
-	// Security events may need longer retention
-	if event.EventType == audit.EventTypeSecurityViolation {
-		securityRetention := 7 * 365 * 24 * time.Hour
-		if securityRetention > maxRetention {
-			maxRetention = securityRetention
-		}
-	}
-
-	return maxRetention
-}
-
-func (rm *RetentionManager) ShouldRetainEvent(event *audit.AuditEvent, policy RetentionPolicy) bool {
-	age := time.Since(event.Timestamp)
-	return age < policy.RetentionPeriod
-}
+// Mock implementations removed - using actual implementations from compliance package

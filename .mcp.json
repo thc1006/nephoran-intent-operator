@@ -14,28 +14,41 @@
         "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "C:\\Users\\thc1006\\Desktop\\nephoran-intent-operator\\nephoran-intent-operator",
-        "C:\\Users\\thc1006\\Desktop\\nephoran-intent-operator"
+        "C:\\Users\\tingy\\Desktop\\dev\\nephoran-intent-operator"
       ]
     },
     "kubernetes": {
       "command": "npx",
       "args": ["-y", "mcp-server-kubernetes"],
       "env": {
-        "KUBECONFIG": "C:\\Users\\thc1006\\.kube\\config"
+        "KUBECONFIG": "C:\\Users\\tingy\\.kube\\config"
       }
     },
+    "godoc": {
+      "command": "C:\\Users\\tingy\\go\\bin\\godoc-mcp.exe",
+      "args": [],
+      "env": {
+        "GOPATH": "C:\\Users\\tingy\\go",
+        "GOMODCACHE": "C:\\Users\\tingy\\go\\pkg\\mod"
+      }
+    },
+    "mcp-k8s-go": {
+      "command": "C:\\Users\\tingy\\go\\bin\\mcp-k8s-go.exe",
+      "args": [],
+      "env": {
+        "KUBECONFIG": "C:\\Users\\tingy\\.kube\\config"
+      }
+    },
+    "docker-mcp": {
+      "command": "C:\\Users\\tingy\\AppData\\Roaming\\Python\\Python313\\Scripts\\docker-mcp.exe",
+      "args": []
+    },
     "helm": {
-      "command": "docker",
-      "args": [
-        "run", "-i", "--rm",
-        "-v", "C:\\Users\\thc1006\\.kube:/root/.kube",
-        "-v", "C:\\Users\\thc1006\\.helm:/root/.helm",
-        "-v", "C:\\Users\\thc1006\\.config\\helm:/root/.config/helm",
-        "-v", "C:\\Users\\thc1006\\.cache\\helm:/root/.cache/helm",
-        "ghcr.io/zekker6/mcp-helm:v0.0.5",
-        "-mode", "stdio"
-      ]
+      "command": "npx",
+      "args": ["-y", "helm-package-readme-mcp-server"],
+      "env": {
+        "ARTIFACT_HUB_API_URL": "https://artifacthub.io/api/v1"
+      }
     }
   }
 }

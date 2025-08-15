@@ -6,7 +6,7 @@
 
 **MVP: Demonstrating intent-driven network orchestration with AI-powered translation**
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/ci.yaml?branch=main&style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/ci.yaml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/ci.yml?branch=main&style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/ci.yml)
 [![Documentation](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/docs-unified.yml?branch=main&style=flat-square&logo=gitbook&label=docs)](https://thc1006.github.io/nephoran-intent-operator)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/thc1006/nephoran-intent-operator?style=flat-square&logo=go)](https://golang.org/)
 [![License](https://img.shields.io/github/license/thc1006/nephoran-intent-operator?style=flat-square)](LICENSE)
@@ -16,6 +16,7 @@
 [![O-RAN Ready](https://img.shields.io/badge/O--RAN-Ready-blue?style=flat-square&logo=verified)](https://www.o-ran.org/)
 [![Security Scan](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/security-consolidated.yml?branch=main&style=flat-square&logo=security&label=security)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/security-consolidated.yml)
 [![Release](https://img.shields.io/github/v/release/thc1006/nephoran-intent-operator?style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/releases)
+[![DOI](https://zenodo.org/badge/1026653090.svg)](https://doi.org/10.5281/zenodo.16813086)
 
 </div>
 
@@ -49,6 +50,7 @@ Currently an **MVP/proof-of-concept** demonstrating intent-driven network orches
 - **Intent Controller**: Processes NetworkIntent resources and manages lifecycle
 - **LLM Processor**: Translates natural language to structured network configurations
 - **RAG System**: Optional context enhancement (enabled via build tags)
+- **FCAPS Simulator**: Automated scaling decisions based on telecom events ([docs](docs/FCAPS_SIMULATOR.md))
 
 ### 🏗️ Cloud-Native Architecture
 - **Kubernetes-Native**: Custom resources, operators, and webhooks following K8s best practices
@@ -287,6 +289,28 @@ spec:
     - Resource allocation templates
     - Container deployment manifests
     - Development environment setup
+```
+
+### FCAPS-Driven Automated Scaling
+```bash
+# Start the intent ingest service
+go run ./cmd/intent-ingest &
+
+# Run FCAPS simulator with telecom events
+./fcaps-sim --verbose
+# Automatically detects:
+# - Critical faults → Scale up by 2 replicas
+# - High PRB utilization (>0.8) → Scale up by 1
+# - High latency (>100ms) → Scale up by 1
+
+# Generated intent (automatic):
+{
+  "intent_type": "scaling",
+  "target": "nf-sim",
+  "replicas": 3,
+  "reason": "Critical fault detected: LINK_DOWN",
+  "source": "planner"
+}
 ```
 
 ## 📚 Documentation & Learning

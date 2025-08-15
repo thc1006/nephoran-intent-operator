@@ -1,0 +1,16 @@
+{
+  "policyTypeId": "oran.sim.scaling.v1",
+  "scope": {
+    "namespace": "default",
+    "target": "cnf-simulator"
+  },
+  "rules": {
+    "metric": "kpm.p95_latency_ms",
+    "scale_out_threshold": 100,
+    "scale_in_threshold": 50,
+    "cooldown_seconds": 300,
+    "min_replicas": 1,
+    "max_replicas": 10
+  },
+  "notes": "Scale based on P95 latency thresholds"
+}
