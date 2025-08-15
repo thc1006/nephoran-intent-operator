@@ -1154,6 +1154,12 @@ type ContentStore interface {
 	Exists(ctx context.Context, key string) (bool, error)
 }
 
+// TemplateEngine handles template processing for package content
+type TemplateEngine struct {
+	Templates map[string]string `json:"templates"`
+	Functions map[string]interface{} `json:"-"`
+}
+
 // Error types for better error handling
 type PorchError struct {
 	Type    string
