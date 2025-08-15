@@ -1,0 +1,16 @@
+{
+  "policyTypeId": "oran.sim.scaling.v1",
+  "scope": {
+    "namespace": "default",
+    "target": "cnf-simulator"
+  },
+  "rules": {
+    "metric": "kpm.prb_utilization",
+    "scale_out_threshold": 0.8,
+    "scale_in_threshold": 0.3,
+    "cooldown_seconds": 180,
+    "min_replicas": 2,
+    "max_replicas": 8
+  },
+  "notes": "Scale based on Physical Resource Block utilization"
+}

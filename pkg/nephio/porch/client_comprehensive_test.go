@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package porch
+package porch_test
 
 import (
 	"context"
@@ -26,11 +26,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch/testutil"
 )
 
@@ -74,7 +75,7 @@ func TestClientCreation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			client, err := NewClient(tc.opts)
+			client, err := porch.NewClient(tc.opts)
 
 			if tc.expectError {
 				assert.Error(t, err)
@@ -403,7 +404,7 @@ func TestFunctionOperations(t *testing.T) {
 
 	t.Run("run_function", func(t *testing.T) {
 		request := &FunctionRequest{
-			FunctionConfig: FunctionConfig{
+			FunctionConfig: porch.FunctionConfig{
 				Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
 				ConfigMap: map[string]interface{}{
 					"env": "production",

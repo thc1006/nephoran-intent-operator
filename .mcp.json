@@ -14,7 +14,7 @@
         "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-ingest-tests"
+        "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-watch"
       ]
     },
     "kubernetes": {
@@ -22,6 +22,32 @@
       "args": ["-y", "mcp-server-kubernetes"],
       "env": {
         "KUBECONFIG": "C:\\Users\\tingy\\.kube\\config"
+      }
+    },
+    "godoc": {
+      "command": "C:\\Users\\tingy\\go\\bin\\godoc-mcp.exe",
+      "args": [],
+      "env": {
+        "GOPATH": "C:\\Users\\tingy\\go",
+        "GOMODCACHE": "C:\\Users\\tingy\\go\\pkg\\mod"
+      }
+    },
+    "mcp-k8s-go": {
+      "command": "C:\\Users\\tingy\\go\\bin\\mcp-k8s-go.exe",
+      "args": [],
+      "env": {
+        "KUBECONFIG": "C:\\Users\\tingy\\.kube\\config"
+      }
+    },
+    "docker-mcp": {
+      "command": "C:\\Users\\tingy\\AppData\\Roaming\\Python\\Python313\\Scripts\\docker-mcp.exe",
+      "args": []
+    },
+    "helm": {
+      "command": "npx",
+      "args": ["-y", "helm-package-readme-mcp-server"],
+      "env": {
+        "ARTIFACT_HUB_API_URL": "https://artifacthub.io/api/v1"
       }
     }
   }

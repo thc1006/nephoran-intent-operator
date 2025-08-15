@@ -2,6 +2,22 @@
 
 This directory contains development and testing utilities for the Nephoran Intent Operator project.
 
+## Tools
+
+### vessend - VES Event Sender
+Location: `tools/vessend/`
+
+A command-line tool for sending VES (Virtual Event Streaming) events to O-RAN VES collectors. Supports fault, measurement, and heartbeat events following the VES format defined in `docs/contracts/fcaps.ves.examples.json`.
+
+**Build and run:**
+```bash
+cd tools/vessend/cmd/vessend
+go build -o vessend.exe .
+./vessend.exe -collector "http://localhost:9990/eventListener/v7" -event-type measurement -count 10
+```
+
+See `tools/vessend/README.md` for full documentation.
+
 ## Files
 
 ### test_import_cycle.go
