@@ -1,0 +1,9 @@
+{
+  "intent_type": "scaling",
+  "target": "nf-sim",
+  "namespace": "ran-a",
+  "replicas": 3,
+  "reason": "Load increase detected",
+  "source": "planner",
+  "correlation_id": "test-001"
+}
