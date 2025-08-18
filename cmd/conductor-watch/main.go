@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -19,6 +20,17 @@ func main() {
 	schemaPath := flag.String("schema", "./docs/contracts/intent.schema.json", "Path to intent schema file")
 	debounceMs := flag.Int("debounce-ms", 300, "Debounce delay in milliseconds to handle partial writes")
 	flag.Parse()
+
+	// Validate POST URL if provided
+	if *postURL != "" {
+		if _, err := url.Parse(*postURL); err != nil {
+			log.Fatalf("Invalid POST URL '%s': %v", *postURL, err)
+		}
+		// Ensure it's HTTP or HTTPS
+		if parsedURL, _ := url.Parse(*postURL); parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+			log.Fatalf("POST URL must use HTTP or HTTPS scheme, got: %s", *postURL)
+		}
+	}
 
 	// Set up structured logging
 	log.SetPrefix("[conductor-watch] ")

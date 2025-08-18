@@ -2,6 +2,7 @@ package watch
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -191,10 +192,20 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 		log.Printf("WATCH:NEW %s", filename)
 	}
 
-	// Read file content
-	data, err := os.ReadFile(filePath)
+	// Read file content with retry for Windows file lock issues
+	var data []byte
+	var err error
+	for attempts := 0; attempts < 3; attempts++ {
+		data, err = os.ReadFile(filePath)
+		if err == nil {
+			break
+		}
+		if attempts < 2 {
+			time.Sleep(time.Duration(50*(attempts+1)) * time.Millisecond) // 50ms, 100ms
+		}
+	}
 	if err != nil {
-		log.Printf("WATCH:ERROR Failed to read %s: %v", filename, err)
+		log.Printf("WATCH:ERROR Failed to read %s after 3 attempts: %v", filename, err)
 		return
 	}
 
@@ -225,8 +236,10 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 func (w *Watcher) postIntent(filePath string, data []byte) {
 	filename := filepath.Base(filePath)
 	
-	// Create HTTP request
-	req, err := http.NewRequest("POST", w.config.PostURL, bytes.NewReader(data))
+	// Create HTTP request with context
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, "POST", w.config.PostURL, bytes.NewReader(data))
 	if err != nil {
 		log.Printf("WATCH:POST_ERROR %s - Failed to create request: %v", filename, err)
 		return
