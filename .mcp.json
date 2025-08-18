@@ -14,7 +14,7 @@
         "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "C:\\Users\\tingy\\Desktop\\dev\\nephoran-intent-operator"
+        "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-watch"
       ]
     },
     "kubernetes": {

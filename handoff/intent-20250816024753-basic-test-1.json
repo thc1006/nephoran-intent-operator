@@ -1,0 +1,9 @@
+{
+  "intent_type": "scaling",
+  "target": "nf-simulator",
+  "namespace": "test-ns",
+  "replicas": 3,
+  "reason": "Basic test - scale up",
+  "source": "test",
+  "correlation_id": "basic-test-1-20250816024753"
+}

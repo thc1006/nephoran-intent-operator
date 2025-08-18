@@ -1,0 +1,9 @@
+{
+  "intent_type": "scaling",
+  "target": "my-deployment",
+  "namespace": "default",
+  "replicas": 3,
+  "reason": "Testing conductor-watch with debouncing",
+  "source": "test",
+  "correlation_id": "test-001"
+}
