@@ -172,7 +172,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.37.0
 	go.opentelemetry.io/otel/exporters/prometheus v0.54.0
 	golang.org/x/mod v0.26.0
-	golang.org/x/net v0.42.0
+	golang.org/x/net v0.43.0
 	gonum.org/v1/gonum v0.16.0
 	google.golang.org/api v0.243.0
 	gopkg.in/square/go-jose.v2 v2.6.0
