@@ -3,6 +3,7 @@ package watch
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -34,6 +35,11 @@ type Config struct {
 	SchemaPath    string
 	PostURL       string
 	DebounceDelay time.Duration
+	// Security configuration
+	BearerToken        string // Optional Bearer token for HTTP auth
+	APIKey             string // Optional API key for HTTP auth
+	APIKeyHeader       string // Header name for API key (default: "X-API-Key")
+	InsecureSkipVerify bool   // Skip TLS certificate verification (for development only)
 }
 
 // Watcher watches for intent files with debouncing and validation
@@ -46,6 +52,9 @@ type Watcher struct {
 	mu         sync.Mutex
 	pending    map[string]*time.Timer
 	httpClient *http.Client
+	
+	// Worker pool for HTTP operations
+	httpSemaphore chan struct{}
 }
 
 // NewWatcher creates a new file watcher
@@ -73,14 +82,31 @@ func NewWatcher(config *Config) (*Watcher, error) {
 		return nil, fmt.Errorf("failed to add directory to watcher: %w", err)
 	}
 
+	// Set default API key header
+	if config.APIKeyHeader == "" {
+		config.APIKeyHeader = "X-API-Key"
+	}
+	
+	// Create HTTP client with TLS security
+	tlsConfig := &tls.Config{
+		MinVersion:         tls.VersionTLS12,
+		InsecureSkipVerify: config.InsecureSkipVerify,
+	}
+	
+	transport := &http.Transport{
+		TLSClientConfig: tlsConfig,
+	}
+	
 	return &Watcher{
 		config:    config,
 		validator: validator,
 		watcher:   fsWatcher,
 		pending:   make(map[string]*time.Timer),
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout:   30 * time.Second, // Extended timeout for secure connections
+			Transport: transport,
 		},
+		httpSemaphore: make(chan struct{}, 10), // Limit to 10 concurrent HTTP operations
 	}, nil
 }
 
@@ -126,6 +152,9 @@ func (w *Watcher) Stop() error {
 	for _, timer := range w.pending {
 		timer.Stop()
 	}
+
+	// Close semaphore channel to prevent new HTTP operations
+	close(w.httpSemaphore)
 
 	return w.watcher.Close()
 }
@@ -192,9 +221,21 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 		log.Printf("WATCH:NEW %s", filename)
 	}
 
+	// Check file size before reading (max 5MB for JSON)
+	fileInfo, err := os.Stat(filePath)
+	if err != nil {
+		log.Printf("WATCH:ERROR Failed to stat %s: %v", filename, err)
+		return
+	}
+	
+	const maxFileSize = 5 * 1024 * 1024 // 5MB
+	if fileInfo.Size() > maxFileSize {
+		log.Printf("WATCH:ERROR File %s too large: %d bytes (max %d)", filename, fileInfo.Size(), maxFileSize)
+		return
+	}
+
 	// Read file content with retry for Windows file lock issues
 	var data []byte
-	var err error
 	for attempts := 0; attempts < 3; attempts++ {
 		data, err = os.ReadFile(filePath)
 		if err == nil {
@@ -232,12 +273,16 @@ func (w *Watcher) processFile(filePath string, isNew bool) {
 	}
 }
 
-// postIntent sends the validated intent to an HTTP endpoint
+// postIntent sends the validated intent to an HTTP endpoint with worker pool management
 func (w *Watcher) postIntent(filePath string, data []byte) {
 	filename := filepath.Base(filePath)
 	
-	// Create HTTP request with context
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	// Acquire semaphore to limit concurrent HTTP operations
+	w.httpSemaphore <- struct{}{}
+	defer func() { <-w.httpSemaphore }()
+	
+	// Create HTTP request with context and timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 25*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(ctx, "POST", w.config.PostURL, bytes.NewReader(data))
 	if err != nil {
@@ -245,10 +290,18 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 		return
 	}
 
-	// Set headers
+	// Set standard headers
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Intent-File", filename)
 	req.Header.Set("X-Timestamp", time.Now().UTC().Format(time.RFC3339))
+	
+	// Add authentication headers if configured
+	if w.config.BearerToken != "" {
+		req.Header.Set("Authorization", "Bearer "+w.config.BearerToken)
+	}
+	if w.config.APIKey != "" {
+		req.Header.Set(w.config.APIKeyHeader, w.config.APIKey)
+	}
 
 	// Send request
 	resp, err := w.httpClient.Do(req)
@@ -258,8 +311,10 @@ func (w *Watcher) postIntent(filePath string, data []byte) {
 	}
 	defer resp.Body.Close()
 
-	// Read response body
-	body, err := io.ReadAll(resp.Body)
+	// Read response body with size limit (10MB)
+	const maxResponseSize = 10 * 1024 * 1024 // 10MB
+	limitedReader := io.LimitReader(resp.Body, maxResponseSize)
+	body, err := io.ReadAll(limitedReader)
 	if err != nil {
 		log.Printf("WATCH:POST_ERROR %s - Failed to read response: %v", filename, err)
 		return
