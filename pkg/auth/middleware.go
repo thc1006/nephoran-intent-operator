@@ -568,3 +568,13 @@ func matchesPermission(granted, required string) bool {
 
 	return false
 }
+
+// RequireOperator returns a middleware that requires operator role
+func (am *AuthMiddleware) RequireOperator() func(http.Handler) http.Handler {
+	return am.RequireRoleMiddleware("operator")
+}
+
+// RequireAdmin returns a middleware that requires admin role
+func (am *AuthMiddleware) RequireAdmin() func(http.Handler) http.Handler {
+	return am.RequireAdminMiddleware
+}

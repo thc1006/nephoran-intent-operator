@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
@@ -152,15 +155,6 @@ const (
 	HeavyCompression
 )
 
-// Priority represents request priority
-type Priority int
-
-const (
-	LowPriority Priority = iota
-	NormalPriority
-	HighPriority
-	CriticalPriority
-)
 
 // TokenEstimator provides token estimation for different models
 type TokenEstimator struct {
@@ -391,7 +385,7 @@ func (m *DynamicContextManager) determineContextLevel(
 
 	// Determine context level based on available tokens and priority
 	switch {
-	case availableTokens >= 8000 && request.Priority >= HighPriority:
+	case availableTokens >= 8000 && request.Priority >= PriorityHigh:
 		return ExpertContext
 	case availableTokens >= 4000:
 		return ComprehensiveContext

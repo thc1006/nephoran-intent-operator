@@ -96,6 +96,9 @@ type LDAPProvider interface {
 	// ValidateUserAttributes validates user attributes
 	ValidateUserAttributes(ctx context.Context, username string, requiredAttrs map[string]string) error
 
+	// TestConnection tests the LDAP connection
+	TestConnection(ctx context.Context) error
+
 	// Close closes LDAP connection
 	Close() error
 }

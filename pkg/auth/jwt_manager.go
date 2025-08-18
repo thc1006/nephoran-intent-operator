@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -193,7 +194,7 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        tokenID,
 			Subject:   userInfo.Subject,
-			Audience:  jwt.ClaimsStrings{jm.issuer},
+			Audience:  jwt.ClaimStrings{jm.issuer},
 			ExpiresAt: jwt.NewNumericDate(now.Add(jm.defaultTTL)),
 			NotBefore: jwt.NewNumericDate(now),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -272,7 +273,7 @@ func (jm *JWTManager) GenerateRefreshToken(ctx context.Context, userInfo *provid
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        tokenID,
 			Subject:   userInfo.Subject,
-			Audience:  jwt.ClaimsStrings{jm.issuer},
+			Audience:  jwt.ClaimStrings{jm.issuer},
 			ExpiresAt: jwt.NewNumericDate(now.Add(jm.refreshTTL)),
 			NotBefore: jwt.NewNumericDate(now),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -425,11 +426,9 @@ func (jm *JWTManager) RevokeToken(ctx context.Context, tokenString string) error
 	// Parse token to get expiration
 	token, err := jwt.ParseWithClaims(tokenString, &NephoranJWTClaims{}, nil)
 	if err != nil {
-		if ve, ok := err.(*jwt.ValidationError); ok {
-			// Token might be expired but we still want to blacklist it
-			if ve.Errors&jwt.ValidationErrorExpired == 0 {
-				return fmt.Errorf("failed to parse token for revocation: %w", err)
-			}
+		// Check if it's just an expired token - we still want to blacklist it
+		if !errors.Is(err, jwt.ErrTokenExpired) {
+			return fmt.Errorf("failed to parse token for revocation: %w", err)
 		}
 	}
 

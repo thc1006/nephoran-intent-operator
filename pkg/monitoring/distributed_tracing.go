@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
+	"os"
 	"sync"
 	"time"
 
@@ -123,12 +125,12 @@ const (
 	AlertTypeCircuitBreaker    TraceAlertType = "circuit_breaker"
 )
 
-// AlertSeverity constants for distributed tracing (using shared type from alerting.go)
+// AlertSeverity constants are imported from alerting.go
+// Using constants from alerting.go
 const (
-	SeverityLow      AlertSeverity = "low"
-	SeverityMedium   AlertSeverity = "medium"
-	SeverityHigh     AlertSeverity = "high"
-	SeverityCritical AlertSeverity = "critical"
+	SeverityHigh     = AlertSeverityError
+	SeverityCritical = AlertSeverityCritical
+	SeverityMedium   = AlertSeverityWarning
 )
 
 // TraceAlertManager manages trace-based alerting
@@ -168,6 +170,14 @@ type SpanMetrics struct {
 	Status        codes.Code        `json:"status"`
 	Tags          map[string]string `json:"tags"`
 	ErrorMessage  string            `json:"error_message,omitempty"`
+}
+
+// getEnv gets environment variable with default value
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 // DefaultTracingConfig returns default tracing configuration
@@ -421,7 +431,12 @@ func (dt *DistributedTracer) analyzeSpan(activeSpan *ActiveSpan, err error) {
 
 	// Record metrics
 	if dt.metricsRecorder != nil {
-		dt.metricsRecorder.RecordSpanMetrics(spanMetrics.Component, spanMetrics.OperationName, spanMetrics.Duration, spanMetrics.Status == codes.Error)
+		// Record span duration via SLI latency metrics
+		dt.metricsRecorder.RecordSLILatency(spanMetrics.Component, spanMetrics.OperationName, "default", 
+			spanMetrics.Duration.Seconds(), spanMetrics.Duration.Seconds())
+		if spanMetrics.Status == codes.Error {
+			dt.metricsRecorder.RecordError(spanMetrics.Component, "span_error")
+		}
 	}
 }
 
@@ -550,7 +565,7 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 	// Calculate statistics for latency anomaly detection
 	if config.LatencyAnomalyEnabled {
 		mean, stdDev := calculateStatistics(latencies)
-		threshold := mean + (stdDev * config.StandardDeviations)
+		threshold := mean + time.Duration(float64(stdDev)*config.StandardDeviations)
 
 		if spanMetrics.Duration > threshold {
 			// This is a latency anomaly
@@ -566,7 +581,7 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 
 			// Record anomaly metric
 			if sa.metricsRecorder != nil {
-				sa.metricsRecorder.RecordAnomalyDetection("latency", operationKey, float64(spanMetrics.Duration.Milliseconds()))
+				sa.metricsRecorder.RecordAnomalyDetection("latency", "high", operationKey, "statistical")
 			}
 		}
 	}
@@ -594,7 +609,8 @@ func (tam *TraceAlertManager) FireAlert(ctx context.Context, alert *TraceAlert) 
 
 	// Record alert metric
 	if tam.metricsRecorder != nil {
-		tam.metricsRecorder.RecordTraceAlert(string(alert.AlertType), string(alert.Severity), alert.Component)
+		// Record as an alert occurrence
+		tam.metricsRecorder.RecordAlert(string(alert.Severity), alert.Component)
 	}
 
 	// Call alert handlers
@@ -687,7 +703,7 @@ func calculateStatistics(durations []time.Duration) (mean time.Duration, stdDev 
 		variance += diff * diff
 	}
 	variance /= float64(len(durations))
-	stdDev = time.Duration(variance)
+	stdDev = time.Duration(math.Sqrt(variance))
 
 	return mean, stdDev
 }

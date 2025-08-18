@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package main
 
 import (
@@ -17,12 +20,12 @@ import (
 
 // ServiceManager manages the overall service lifecycle and components
 type ServiceManager struct {
-	config             *Config
+	config             *config.LLMProcessorConfig
 	logger             *slog.Logger
 	healthChecker      *health.HealthChecker
 	secretManager      *config.SecretManager
 	oauth2Manager      *auth.OAuth2Manager
-	processor          *IntentProcessor
+	processor          *handlers.IntentProcessor
 	streamingProcessor *llm.StreamingProcessor
 	circuitBreakerMgr  *llm.CircuitBreakerManager
 	tokenManager       *llm.TokenManager
@@ -32,7 +35,7 @@ type ServiceManager struct {
 }
 
 // NewServiceManager creates a new service manager
-func NewServiceManager(config *Config, logger *slog.Logger) *ServiceManager {
+func NewServiceManager(config *config.LLMProcessorConfig, logger *slog.Logger) *ServiceManager {
 	return &ServiceManager{
 		config: config,
 		logger: logger,
@@ -308,6 +311,9 @@ func (sm *ServiceManager) CreateRouter() *mux.Router {
 	router.HandleFunc("/healthz", sm.healthChecker.HealthzHandler).Methods("GET")
 	router.HandleFunc("/readyz", sm.healthChecker.ReadyzHandler).Methods("GET")
 	router.HandleFunc("/metrics", sm.metricsHandler).Methods("GET")
+	
+	// NL to Intent endpoint (public for now, can be protected later)
+	router.HandleFunc("/nl/intent", sm.handler.NLToIntentHandler).Methods("POST")
 
 	// Setup protected/unprotected routes based on configuration
 	handlers := &auth.RouteHandlers{
@@ -358,7 +364,7 @@ func (sm *ServiceManager) GetOAuth2Manager() *auth.OAuth2Manager {
 }
 
 // GetProcessor returns the intent processor
-func (sm *ServiceManager) GetProcessor() *IntentProcessor {
+func (sm *ServiceManager) GetProcessor() *handlers.IntentProcessor {
 	return sm.processor
 }
 

@@ -1,32 +1,31 @@
 package ingest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"time"
 )
 
 type Handler struct {
-	v      *Validator
-	outDir string
+	v        *Validator
+	outDir   string
+	provider IntentProvider
 }
 
-func NewHandler(v *Validator, outDir string) *Handler {
-	_ = os.MkdirAll(outDir, 0o755)
-	return &Handler{v: v, outDir: outDir}
+func NewHandler(v *Validator, outDir string, provider IntentProvider) *Handler {
+	_ = os.MkdirAll(outDir, 0755)
+	return &Handler{v: v, outDir: outDir, provider: provider}
 }
 
-var simple = regexp.MustCompile(`(?i)scale\s+([a-z0-9\-]+)\s+to\s+(\d+)\s+in\s+ns\s+([a-z0-9\-]+)`)
-
-// 支援兩種輸入：
-// 1) JSON（Content-Type: application/json）— 直接驗證
-// 2) 純文字（例如 "scale nf-sim to 5 in ns ran-a"）— 解析→轉 JSON→驗證
+// HandleIntent supports two input types:
+// 1) JSON (Content-Type: application/json) - direct validation
+// 2) Plain text (e.g., "scale nf-sim to 5 in ns ran-a") - parse → convert to JSON → validate
 func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -40,12 +39,21 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(ct, "application/json") || strings.HasPrefix(ct, "text/json") {
 		payload = body
 	} else {
-		m := simple.FindStringSubmatch(string(body))
-		if len(m) != 4 {
-			http.Error(w, "bad plain text, expect: scale <target> to <replicas> in ns <namespace>", http.StatusBadRequest)
+		// Use provider to parse natural language text
+		ctx := context.Background()
+		intent, err := h.provider.ParseIntent(ctx, string(body))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse intent: %v", err), http.StatusBadRequest)
 			return
 		}
-		payload = []byte(fmt.Sprintf(`{"intent_type":"scaling","target":"%s","namespace":"%s","replicas":%s,"source":"user"}`, m[1], m[3], m[2]))
+		
+		// Convert intent map to JSON
+		jsonData, err := json.Marshal(intent)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to marshal intent: %v", err), http.StatusInternalServerError)
+			return
+		}
+		payload = jsonData
 	}
 
 	intent, err := h.v.ValidateBytes(payload)
@@ -55,8 +63,9 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ts := time.Now().UTC().Format("20060102T150405Z")
-	outFile := filepath.Join(h.outDir, fmt.Sprintf("intent-%s.json", ts))
-	if err := os.WriteFile(outFile, payload, 0o644); err != nil {
+	fileName := fmt.Sprintf("intent-%s.json", ts)
+	outFile := filepath.Join(h.outDir, fileName)
+	if err := os.WriteFile(outFile, payload, 0644); err != nil {
 		http.Error(w, "write intent failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
