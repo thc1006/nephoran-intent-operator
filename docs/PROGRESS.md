@@ -61,3 +61,4 @@ Updates are tracked here in append-only format.
 | 2025-08-14T13:24:52.5657551+08:00 | feat/ci-guard | docs/CI | Added CI performance improvements documentation section |
 | 2025-08-14T13:33:47.4100456+08:00 | feat/ci-guard | test-ci-validation.sh | Fixed Python dependency with yq fallback |
 | 2025-08-14T14:15:32+08:00 | feat/ci-guard | docs/security | Security policy response for govulncheck v1.1.4 pinning |
+| 2025-08-17T01:18:06+08:00 | feat/admission-webhook | api,config,tests | Production-ready admission webhooks for NetworkIntent |

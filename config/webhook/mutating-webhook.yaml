@@ -1,0 +1,24 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: nephoran-networkintent-mutating
+  annotations:
+    cert-manager.io/inject-ca-from: nephoran-system/webhook-serving-cert
+webhooks:
+  - name: mnetworkintent.nephoran.io
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
+    reinvocationPolicy: IfNeeded
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: webhook-manager
+        namespace: nephoran-system
+        path: /mutate-intent-v1alpha1-networkintent
+    rules:
+      - apiGroups: ["intent.nephoran.io"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["networkintents"]
+        scope: "Namespaced"
+    timeoutSeconds: 10

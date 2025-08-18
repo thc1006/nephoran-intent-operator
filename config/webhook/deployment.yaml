@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webhook-manager
+  namespace: nephoran-system
+  labels:
+    app: webhook-manager
+    control-plane: webhook-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: webhook-manager
+      control-plane: webhook-manager
+  template:
+    metadata:
+      labels:
+        app: webhook-manager
+        control-plane: webhook-manager
+    spec:
+      serviceAccountName: webhook-manager
+      containers:
+      - name: webhook
+        image: webhook-manager:latest
+        imagePullPolicy: IfNotPresent
+        command:
+        - /manager
+        args:
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=:8080
+        - --webhook-port=9443
+        - --cert-dir=/tmp/k8s-webhook-server/serving-certs
+        ports:
+        - containerPort: 9443
+          name: webhook-server
+          protocol: TCP
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: probes
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: probes
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: probes
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 500m
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 64Mi
+        volumeMounts:
+        - mountPath: /tmp/k8s-webhook-server/serving-certs
+          name: cert
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+          runAsUser: 65532
+      volumes:
+      - name: cert
+        secret:
+          defaultMode: 420
+          secretName: webhook-serving-cert
+      terminationGracePeriodSeconds: 10
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

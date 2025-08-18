@@ -1,0 +1,13 @@
+# Invalid NetworkIntent that will be rejected by the validating webhook
+# Negative replicas are not allowed (must be >= 0)
+apiVersion: intent.nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: invalid-negative-replicas
+  namespace: default
+spec:
+  intentType: scaling
+  target: my-deployment
+  namespace: production
+  replicas: -1  # INVALID: negative replicas will be rejected
+  source: user
