@@ -21,4 +21,4 @@ spec:
   issuerRef:
     kind: Issuer
     name: selfsigned-issuer
-  secretName: webhook-server-cert # this secret will be created by cert-manager and mounted by the webhook
+  secretName: webhook-serving-cert # this secret will be created by cert-manager and mounted by the webhook

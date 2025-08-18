@@ -624,7 +624,7 @@ deploy-webhook-kind: ## Deploy webhook to kind cluster
 	@echo "Step 1: Creating namespace..."
 	kubectl create namespace nephoran-system --dry-run=client -o yaml | kubectl apply -f -
 	@echo "Step 2: Applying CRDs..."
-	kubectl apply -f deployments/crds/intent.nephoran.io_networkintents.yaml
+	kubectl apply -f deployments/crds/intent.nephoran.com_networkintents.yaml
 	@echo "Step 3: Building and loading Docker image..."
 	docker build -t nephoran/webhook-manager:latest -f Dockerfile --target webhook-manager .
 	kind load docker-image nephoran/webhook-manager:latest
