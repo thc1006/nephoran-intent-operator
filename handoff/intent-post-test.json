@@ -1,0 +1,1 @@
+{"intent_type":"scaling","target":"post-test-app","namespace":"production","replicas":10,"source":"test"}

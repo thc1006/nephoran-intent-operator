@@ -1,0 +1,59 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: nephoran-intent-operator-webhook-deployment
+  namespace: nephoran-system
+
+# Base resources for the complete webhook deployment
+resources:
+- ../certmanager
+- ../webhook
+
+labels:
+- pairs:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: webhook-deployment
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/version: v1.0.0
+
+# Namespace creation for the entire deployment
+namespace: nephoran-system
+
+# Image settings for webhook manager
+images:
+- name: webhook-manager
+  newName: nephoran/webhook-manager
+  newTag: latest
+
+# Configuration for the deployment
+configMapGenerator:
+- name: webhook-deployment-config
+  literals:
+  - NAMESPACE=nephoran-system
+  - WEBHOOK_SERVICE_NAME=webhook-manager
+  - CERT_MANAGER_ENABLED=true
+
+# Patches to ensure consistent configuration
+patches:
+- path: webhook-deployment-patch.yaml
+
+# JSON patches for fine-grained modifications
+- target:
+    group: admissionregistration.k8s.io
+    version: v1
+    kind: MutatingWebhookConfiguration
+    name: nephoran-networkintent-mutating
+  patch: |-
+    - op: replace
+      path: /webhooks/0/clientConfig/service/namespace
+      value: nephoran-system
+- target:
+    group: admissionregistration.k8s.io
+    version: v1
+    kind: ValidatingWebhookConfiguration
+    name: nephoran-networkintent-validating
+  patch: |-
+    - op: replace
+      path: /webhooks/0/clientConfig/service/namespace
+      value: nephoran-system

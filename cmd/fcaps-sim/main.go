@@ -46,6 +46,7 @@ func main() {
 		}
 	}
 
+
 	// Read FCAPS events from file
 	events, err := loadFCAPSEvents(config.InputFile)
 	if err != nil {
@@ -271,6 +272,7 @@ func writeReducerIntent(outDir string, intent *fcaps.ScalingIntent) string {
 	
 	return filename
 }
+
 
 func sendIntent(intentURL string, intent *ingest.Intent) error {
 	// Convert intent to JSON

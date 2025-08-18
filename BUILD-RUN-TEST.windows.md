@@ -1,3 +1,5 @@
+# BUILD-RUN-TEST.windows.md
+
 # FCAPS Simulator - Build, Run & Test Guide (Windows)
 
 ## Quick Start
@@ -341,11 +343,9 @@ go clean -modcache
 # Download dependencies
 go mod download
 
-# Rebuild
-go build -v ./cmd/fcaps-sim
+# Verify dependencies
+go mod verify
 ```
-
-## Performance Testing
 
 ### Load Test with Multiple Events
 
@@ -383,3 +383,303 @@ Remove-Item ./handoff/intent-*.json -Force
 Remove-Item *.exe -Force
 Remove-Item test-*.json -Force
 ```
+
+---
+
+# Conductor Watch - Build, Run, and Test Guide for Windows
+
+## Prerequisites
+
+- Go 1.24+ installed
+- PowerShell 5.0+
+- Git Bash (optional, for Unix-like commands)
+
+## Build Instructions
+
+### 1. Install Dependencies
+
+```powershell
+# Navigate to project root
+cd C:\Users\tingy\dev\_worktrees\nephoran\feat-conductor-watch
+
+# Download dependencies
+go mod download
+
+# Verify dependencies
+go mod verify
+```
+
+### 2. Build the Binary
+
+```powershell
+# Build the conductor-watch executable
+go build -o conductor-watch.exe .\cmd\conductor-watch
+
+# Verify build
+if (Test-Path .\conductor-watch.exe) {
+    Write-Host "✓ Build successful" -ForegroundColor Green
+    (Get-Item .\conductor-watch.exe).Length
+} else {
+    Write-Host "✗ Build failed" -ForegroundColor Red
+}
+```
+
+## Run Tests
+
+### 1. Unit Tests
+
+```powershell
+# Run all tests with verbose output
+go test -v ./internal/watch/...
+
+# Run tests with coverage
+go test -v -cover ./internal/watch/...
+
+# Run specific test
+go test -v -run TestValidator ./internal/watch
+```
+
+Expected output:
+```
+=== RUN   TestValidator
+=== RUN   TestValidator/valid_intent
+=== RUN   TestValidator/missing_required_field
+=== RUN   TestValidator/wrong_intent_type
+--- PASS: TestValidator (0.XX s)
+    --- PASS: TestValidator/valid_intent (0.00s)
+    --- PASS: TestValidator/missing_required_field (0.00s)
+    --- PASS: TestValidator/wrong_intent_type (0.00s)
+PASS
+```
+
+### 2. Integration Tests
+
+```powershell
+# Run main package tests
+go test -v ./cmd/conductor-watch/...
+```
+
+## Setup Test Environment
+
+### 1. Create Directory Structure
+
+```powershell
+# Create handoff directory
+New-Item -ItemType Directory -Force -Path .\handoff | Out-Null
+
+# Verify directory creation
+Get-ChildItem -Path . -Directory | Where-Object Name -eq "handoff"
+```
+
+### 2. Create Test Intent Files
+
+```powershell
+# Valid intent file
+@'
+{
+  "intent_type": "scaling",
+  "target": "my-deployment",
+  "namespace": "default",
+  "replicas": 3,
+  "reason": "Testing conductor-watch",
+  "source": "test",
+  "correlation_id": "test-001"
+}
+'@ | Out-File -FilePath .\handoff\intent-valid-001.json -Encoding utf8
+
+# Invalid intent (wrong type)
+@'
+{
+  "intent_type": "update",
+  "target": "my-deployment",
+  "namespace": "default",
+  "replicas": 3
+}
+'@ | Out-File -FilePath .\handoff\intent-invalid-type.json -Encoding utf8
+
+# Invalid intent (missing field)
+@'
+{
+  "intent_type": "scaling",
+  "target": "my-deployment",
+  "replicas": 3
+}
+'@ | Out-File -FilePath .\handoff\intent-invalid-missing.json -Encoding utf8
+
+# Verify files created
+Get-ChildItem .\handoff\intent-*.json | Select-Object Name, Length
+```
+
+## Run the Application
+
+### 1. Basic Run (Default Settings)
+
+```powershell
+.\conductor-watch.exe --handoff .\handoff
+```
+
+Expected output:
+```
+[conductor-watch] 2025/08/17 12:00:00.123456 Starting conductor-watch:
+[conductor-watch] 2025/08/17 12:00:00.123456   Watching: C:\Users\tingy\dev\_worktrees\nephoran\feat-conductor-watch\handoff
+[conductor-watch] 2025/08/17 12:00:00.123456   Schema: C:\Users\tingy\dev\_worktrees\nephoran\feat-conductor-watch\docs\contracts\intent.schema.json
+[conductor-watch] 2025/08/17 12:00:00.123456   Debounce: 300ms
+[conductor-watch] 2025/08/17 12:00:00.234567 WATCH:OK intent-valid-001.json - type=scaling target=my-deployment namespace=default replicas=3
+[conductor-watch] 2025/08/17 12:00:00.234567 WATCH:INVALID intent-invalid-type.json - schema validation failed: value must be 'scaling'
+[conductor-watch] 2025/08/17 12:00:00.234567 WATCH:INVALID intent-invalid-missing.json - schema validation failed: missing property 'namespace'
+[conductor-watch] 2025/08/17 12:00:00.234567 Processed 3 existing intent files on startup
+```
+
+### 2. Run with HTTP POST Endpoint
+
+```powershell
+# Start a test HTTP server (in another terminal)
+# Using Python:
+python -m http.server 8080
+
+# Or using netcat (if available):
+# nc -l -p 8080
+
+# Run conductor-watch with POST URL
+.\conductor-watch.exe --handoff .\handoff --post-url "http://localhost:8080/intents"
+```
+
+Expected additional output:
+```
+[conductor-watch] 2025/08/17 12:00:00.123456   POST URL: http://localhost:8080/intents
+[conductor-watch] 2025/08/17 12:00:00.345678 WATCH:POST_OK intent-valid-001.json - Status=200 Response=...
+```
+
+### 3. Run with Custom Debounce
+
+```powershell
+# Use 500ms debounce for slower file systems
+.\conductor-watch.exe --handoff .\handoff --debounce-ms 500
+```
+
+## Performance Testing
+
+### Batch File Creation
+
+```powershell
+# Create 100 intent files rapidly
+1..100 | ForEach-Object {
+    $intent = @{
+        intent_type = "scaling"
+        target = "app-$_"
+        namespace = "perf-test"
+        replicas = $_ % 10 + 1
+    } | ConvertTo-Json
+    
+    $intent | Out-File -FilePath ".\handoff\intent-perf-$_.json" -Encoding utf8
+}
+
+Write-Host "Created 100 test files" -ForegroundColor Green
+```
+
+The watcher should process all files with proper debouncing.
+
+## Cleanup
+
+```powershell
+# Remove test files
+Remove-Item .\handoff\intent-*.json -Force
+
+# Remove binary
+Remove-Item .\conductor-watch.exe -Force
+
+# Remove log file if created
+if (Test-Path .\conductor-watch.log) {
+    Remove-Item .\conductor-watch.log -Force
+}
+
+Write-Host "Cleanup completed" -ForegroundColor Green
+```
+
+---
+
+# Admission Webhook - Build, Run, and Test Guide for Windows
+
+## Prerequisites
+```powershell
+# Verify Go 1.24
+go version
+# go version go1.24.5 windows/amd64
+
+# Verify kubectl 
+kubectl version --client
+# Client Version: v1.29.0
+
+# Verify kind installed
+kind version
+# kind v0.20.0 go1.20.4 windows/amd64
+```
+
+## Step 1: Install controller-gen
+```powershell
+go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.15.0
+
+# Verify installation
+controller-gen --version
+# Version: v0.15.0
+```
+
+## Step 2: Generate DeepCopy and CRDs
+```powershell
+# Generate DeepCopy methods
+controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/intent/v1alpha1"
+
+# Expected: Creates api/intent/v1alpha1/zz_generated.deepcopy.go
+
+# Generate CRDs
+controller-gen crd paths="./api/intent/v1alpha1" output:crd:artifacts:config="./deployments/crds"
+
+# Expected: Creates deployments/crds/intent.nephoran.io_networkintents.yaml
+
+# Verify files exist
+ls api/intent/v1alpha1/zz_generated.deepcopy.go
+ls deployments/crds/intent.nephoran.io_networkintents.yaml
+```
+
+## Step 3: Build webhook manager
+```powershell
+# Build the webhook manager binary
+go build -o webhook-manager.exe ./cmd/webhook-manager
+
+# Expected: webhook-manager.exe created
+
+# Test binary
+./webhook-manager.exe --help
+# Expected output:
+# Usage of webhook-manager.exe:
+#   -cert-dir string
+#   -health-probe-bind-address string (default ":8081")
+#   -metrics-bind-address string (default ":8080")
+#   -webhook-port int (default 9443)
+```
+
+## Cleanup
+```powershell
+# Delete test resources
+kubectl delete networkintent --all -n default
+
+# Delete webhook deployment
+kubectl delete -k ./config/webhook/
+
+# Delete namespace
+kubectl delete namespace nephoran-system
+
+# Delete kind cluster
+kind delete cluster --name webhook-test
+```
+
+## Verification Summary
+✅ **Build successful**: `webhook-manager.exe` created
+✅ **CRDs generated**: `deployments/crds/intent.nephoran.io_networkintents.yaml`
+✅ **DeepCopy generated**: `api/intent/v1alpha1/zz_generated.deepcopy.go`
+✅ **Deployment successful**: Webhook pod running in `nephoran-system`
+✅ **Defaulting works**: Empty source field defaulted to "user"
+✅ **Validation works**: Invalid CRs rejected with clear error messages
+  - Negative replicas: "must be >= 0"
+  - Empty target: "must be non-empty"
+  - Invalid intentType: "only 'scaling' supported"
