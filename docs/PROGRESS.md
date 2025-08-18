@@ -64,3 +64,4 @@ Updates are tracked here in append-only format.
 | 2025-08-15T17:21:39.4454967+08:00 | feat/conductor-file-watcher | conductor-loop | Wire validation and porch integration |
 | 2025-08-15T23:27:59.2878948+08:00 | feat/conductor-file-watcher | conductor-watch | K8s controller for NetworkIntent to KRM |
 | 2025-08-16T02:48:46.7801498+08:00 | feat/conductor-file-watcher | conductor-watch | Windows PowerShell smoke tests and Makefile targets |
+| 2025-08-17T01:18:06+08:00 | feat/admission-webhook | api,config,tests | Production-ready admission webhooks for NetworkIntent |
