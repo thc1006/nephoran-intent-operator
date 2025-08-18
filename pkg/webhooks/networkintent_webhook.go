@@ -36,7 +36,7 @@ import (
 var networkIntentWebhookLog = logf.Log.WithName("networkintent-webhook")
 
 // NetworkIntentValidator provides validation logic for NetworkIntent resources
-// +kubebuilder:webhook:path=/validate-nephoran-io-v1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=nephoran.io,resources=networkintents,verbs=create;update,versions=v1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-nephoran-com-v1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=nephoran.com,resources=networkintents,verbs=create;update,versions=v1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
 
 type NetworkIntentValidator struct {
 	decoder admission.Decoder
@@ -549,7 +549,7 @@ func min(a, b int) int {
 func SetupNetworkIntentWebhookWithManager(mgr ctrl.Manager) error {
 	validator := NewNetworkIntentValidator()
 
-	mgr.GetWebhookServer().Register("/validate-nephoran-io-v1-networkintent",
+	mgr.GetWebhookServer().Register("/validate-nephoran-com-v1-networkintent",
 		&admission.Webhook{Handler: validator})
 
 	return nil

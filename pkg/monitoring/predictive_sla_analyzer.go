@@ -21,7 +21,7 @@ type PredictiveSLAAnalyzer struct {
 	throughputPredictor   *ThroughputPredictor
 
 	// Time series analysis
-	trendAnalyzer       *TrendAnalyzer
+	trendAnalyzer       *SLATrendAnalyzer
 	seasonalityDetector *SeasonalityDetector
 	anomalyDetector     *AnomalyDetector
 
@@ -604,8 +604,8 @@ func (fs *FeatureScaler) Transform(features []float64) []float64 {
 	return scaled
 }
 
-// TrendAnalyzer analyzes trends in SLA metrics
-type TrendAnalyzer struct {
+// SLATrendAnalyzer analyzes trends in SLA metrics
+type SLATrendAnalyzer struct {
 	config    *SLAMonitoringConfig
 	window    time.Duration
 	dataStore *TrendDataStore
@@ -630,8 +630,8 @@ type TrendResult struct {
 }
 
 // NewTrendAnalyzer creates a new trend analyzer
-func NewTrendAnalyzer(config *SLAMonitoringConfig) *TrendAnalyzer {
-	return &TrendAnalyzer{
+func NewTrendAnalyzer(config *SLAMonitoringConfig) *SLATrendAnalyzer {
+	return &SLATrendAnalyzer{
 		config: config,
 		window: 4 * time.Hour, // 4 hour analysis window
 		dataStore: &TrendDataStore{
@@ -644,7 +644,7 @@ func NewTrendAnalyzer(config *SLAMonitoringConfig) *TrendAnalyzer {
 }
 
 // AnalyzeAvailabilityTrend analyzes availability trend
-func (ta *TrendAnalyzer) AnalyzeAvailabilityTrend(ctx context.Context) (*TrendResult, error) {
+func (ta *SLATrendAnalyzer) AnalyzeAvailabilityTrend(ctx context.Context) (*TrendResult, error) {
 	// Get recent availability data
 	times, values := ta.dataStore.availabilityData.GetRecent(240) // 4 hours of data
 
@@ -656,7 +656,7 @@ func (ta *TrendAnalyzer) AnalyzeAvailabilityTrend(ctx context.Context) (*TrendRe
 }
 
 // AnalyzeLatencyTrend analyzes latency trend
-func (ta *TrendAnalyzer) AnalyzeLatencyTrend(ctx context.Context) (*TrendResult, error) {
+func (ta *SLATrendAnalyzer) AnalyzeLatencyTrend(ctx context.Context) (*TrendResult, error) {
 	times, values := ta.dataStore.latencyData.GetRecent(240)
 
 	if len(values) < 10 {
@@ -667,7 +667,7 @@ func (ta *TrendAnalyzer) AnalyzeLatencyTrend(ctx context.Context) (*TrendResult,
 }
 
 // AnalyzeThroughputTrend analyzes throughput trend
-func (ta *TrendAnalyzer) AnalyzeThroughputTrend(ctx context.Context) (*TrendResult, error) {
+func (ta *SLATrendAnalyzer) AnalyzeThroughputTrend(ctx context.Context) (*TrendResult, error) {
 	times, values := ta.dataStore.throughputData.GetRecent(240)
 
 	if len(values) < 10 {
@@ -678,7 +678,7 @@ func (ta *TrendAnalyzer) AnalyzeThroughputTrend(ctx context.Context) (*TrendResu
 }
 
 // analyzeTrend performs trend analysis on time series data
-func (ta *TrendAnalyzer) analyzeTrend(times []time.Time, values []float64) (*TrendResult, error) {
+func (ta *SLATrendAnalyzer) analyzeTrend(times []time.Time, values []float64) (*TrendResult, error) {
 	if len(times) != len(values) || len(values) < 2 {
 		return nil, fmt.Errorf("invalid data for trend analysis")
 	}
@@ -712,7 +712,7 @@ func (ta *TrendAnalyzer) analyzeTrend(times []time.Time, values []float64) (*Tre
 }
 
 // calculateSlope calculates the slope using least squares regression
-func (ta *TrendAnalyzer) calculateSlope(times []time.Time, values []float64) float64 {
+func (ta *SLATrendAnalyzer) calculateSlope(times []time.Time, values []float64) float64 {
 	n := len(values)
 	if n < 2 {
 		return 0
@@ -749,7 +749,7 @@ func (ta *TrendAnalyzer) calculateSlope(times []time.Time, values []float64) flo
 }
 
 // generateForecast generates future value predictions
-func (ta *TrendAnalyzer) generateForecast(times []time.Time, values []float64, slope float64, numPoints int) []float64 {
+func (ta *SLATrendAnalyzer) generateForecast(times []time.Time, values []float64, slope float64, numPoints int) []float64 {
 	if len(values) == 0 {
 		return nil
 	}

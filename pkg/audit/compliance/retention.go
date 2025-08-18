@@ -87,12 +87,12 @@ func (rm *RetentionManager) GetPolicyRecommendations(standards []types.Complianc
 
 	// Base recommendations
 	policies = append(policies, RetentionPolicy{
-		EventType:       types.EventTypeAccess,
+		EventType:       types.EventTypeDataAccess,
 		RetentionPeriod: 90 * 24 * time.Hour,
 	})
 
 	policies = append(policies, RetentionPolicy{
-		EventType:       types.EventTypeChange,
+		EventType:       types.EventTypeSystemChange,
 		RetentionPeriod: 365 * 24 * time.Hour,
 	})
 

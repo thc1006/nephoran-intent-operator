@@ -70,7 +70,7 @@ type NetworkIntentStatus struct {
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:path=networkintents,scope=Namespaced,shortName=ni
-//+kubebuilder:webhook:path=/validate-nephoran-io-v1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=nephoran.io,resources=networkintents,verbs=create;update,versions=v1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-nephoran-com-v1-networkintent,mutating=false,failurePolicy=fail,sideEffects=None,groups=nephoran.com,resources=networkintents,verbs=create;update,versions=v1,name=vnetworkintent.kb.io,admissionReviewVersions=v1
 
 // NetworkIntent is the Schema for the networkintents API
 type NetworkIntent struct {

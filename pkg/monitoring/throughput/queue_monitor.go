@@ -1,6 +1,7 @@
 package throughput
 
 import (
+	"fmt"
 	"sync"
 	"time"
 

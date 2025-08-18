@@ -53,7 +53,30 @@ type DefaultKeyManager struct {
 	keys map[string]*StoredKey
 }
 
-// NewDefaultKeyManager removed - use NewKeyManager from key_manager.go instead
+// NewKeyManager creates a new key manager instance
+func NewKeyManager(store interface{}) *DefaultKeyManager {
+	return &DefaultKeyManager{
+		keys: make(map[string]*StoredKey),
+	}
+}
+
+// GenerateMasterKey generates a master key
+func (dkm *DefaultKeyManager) GenerateMasterKey(keyType string, bits int) error {
+	// Placeholder implementation
+	return nil
+}
+
+// DeriveKey derives a key from the master key
+func (dkm *DefaultKeyManager) DeriveKey(purpose string, index int) (*StoredKey, error) {
+	// Placeholder implementation
+	key := &StoredKey{
+		ID:        generateKeyID(),
+		Type:      purpose,
+		Bits:      256,
+		CreatedAt: time.Now(),
+	}
+	return key, nil
+}
 
 // GenerateKey generates a new key pair
 func (dkm *DefaultKeyManager) GenerateKey(keyType string, bits int) (*StoredKey, error) {
@@ -117,4 +140,4 @@ func generateKeyID() string {
 }
 
 // Simple type aliases for backward compatibility
-type KeyManager = AdvancedKeyManager
+type KeyManager = DefaultKeyManager

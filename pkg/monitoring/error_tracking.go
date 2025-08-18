@@ -172,45 +172,9 @@ type PrometheusErrorMetrics struct {
 	registry prometheus.Registerer
 }
 
-// AlertRule defines conditions for triggering alerts
-type AlertRule struct {
-	Name             string            `json:"name"`
-	Description      string            `json:"description"`
-	Condition        string            `json:"condition"` // e.g., "error_rate > 0.05"
-	Threshold        float64           `json:"threshold"`
-	EvaluationWindow time.Duration     `json:"evaluationWindow"`
-	Severity         AlertSeverity     `json:"severity"`
-	Labels           map[string]string `json:"labels"`
-	Annotations      map[string]string `json:"annotations"`
+// Note: AlertRule and AlertSeverity types are defined in alerting.go
 
-	// Firing conditions
-	FireImmediately bool          `json:"fireImmediately"`
-	MinDuration     time.Duration `json:"minDuration"`
-
-	// Resolution
-	AutoResolve       bool          `json:"autoResolve"`
-	ResolutionTimeout time.Duration `json:"resolutionTimeout"`
-}
-
-// AlertSeverity defines alert severity levels
-type AlertSeverity string
-
-const (
-	SeverityCritical AlertSeverity = "critical"
-	SeverityHigh     AlertSeverity = "high"
-	SeverityMedium   AlertSeverity = "medium"
-	SeverityLow      AlertSeverity = "low"
-	SeverityInfo     AlertSeverity = "info"
-)
-
-// NotificationChannel defines how alerts are sent
-type NotificationChannel struct {
-	Name       string                  `json:"name"`
-	Type       NotificationChannelType `json:"type"`
-	Config     map[string]interface{}  `json:"config"`
-	Enabled    bool                    `json:"enabled"`
-	Severities []AlertSeverity         `json:"severities"`
-}
+// Note: NotificationChannel type is defined in alerting.go
 
 // NotificationChannelType defines notification channel types
 type NotificationChannelType string
@@ -223,18 +187,7 @@ const (
 	ChannelSMS       NotificationChannelType = "sms"
 )
 
-// AlertManager manages alert generation and routing
-type AlertManager struct {
-	rules               []AlertRule
-	activeAlerts        map[string]*ActiveAlert
-	notificationManager *NotificationManager
-
-	// State
-	evaluationTicker *time.Ticker
-	logger           logr.Logger
-	mutex            sync.RWMutex
-	stopChan         chan struct{}
-}
+// Note: AlertManager type is defined in alerting.go
 
 // ActiveAlert represents a currently active alert
 type ActiveAlert struct {
@@ -1047,9 +1000,7 @@ type AlertsWidget struct{ logger logr.Logger }
 type RecoveryStatsWidget struct{ logger logr.Logger }
 
 // Placeholder constructors
-func NewAlertManager(rules []AlertRule, logger logr.Logger) *AlertManager {
-	return &AlertManager{logger: logger, activeAlerts: make(map[string]*ActiveAlert)}
-}
+// Note: NewAlertManager function is defined in alerting.go
 
 func NewNotificationManager(channels []NotificationChannel, logger logr.Logger) *NotificationManager {
 	return &NotificationManager{logger: logger}
@@ -1086,8 +1037,7 @@ func NewErrorProcessingWorker(id int, stream chan *ErrorEvent, ets *ErrorTrackin
 }
 
 // Placeholder methods
-func (am *AlertManager) Start(ctx context.Context)          { /* Implementation */ }
-func (am *AlertManager) Stop()                              { /* Implementation */ }
+// Note: AlertManager Start/Stop methods are defined in alerting.go
 func (am *AlertManager) GetMetrics() map[string]interface{} { return make(map[string]interface{}) }
 
 func (dm *DashboardManager) Start(ctx context.Context) { /* Implementation */ }

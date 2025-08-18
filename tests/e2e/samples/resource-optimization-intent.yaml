@@ -1,0 +1,10 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: resource-optimization-intent
+  namespace: nephoran-system
+  labels:
+    test-scenario: resource-optimization
+    test-type: e2e
+spec:
+  intent: "Optimize ran-cluster with 80% CPU and 75% memory target utilization, enable autoscaling between 2-20 replicas for better resource efficiency"
