@@ -34,9 +34,6 @@ require (
 	// Prometheus for metrics
 	github.com/prometheus/client_golang v1.22.0
 
-	// Redis client for caching
-	github.com/redis/go-redis/v9 v9.8.0 // indirect; Updated from v8 to v9 for better performance
-
 	// === CIRCUIT BREAKER ===
 	github.com/sony/gobreaker v1.0.0
 
@@ -113,8 +110,8 @@ require (
 	cloud.google.com/go/container v1.43.0
 	cloud.google.com/go/monitoring v1.24.2
 	cloud.google.com/go/storage v1.56.0
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.0
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.2
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.18.2
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.10.1
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/compute/armcompute v1.0.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/containerservice/armcontainerservice v1.0.0
 	github.com/Azure/azure-sdk-for-go/sdk/resourcemanager/network/armnetwork v1.1.0
@@ -193,7 +190,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.7.0 // indirect
 	cloud.google.com/go/iam v1.5.2 // indirect
 	dario.cat/mergo v1.0.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.1 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.4.2 // indirect
@@ -323,7 +320,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/keybase/go-keychain v0.0.1 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
