@@ -1,16 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: webhook-manager
+  name: webhook-service
   namespace: nephoran-system
-  labels:
-    app: webhook-manager
 spec:
   ports:
-  - name: https
+  - name: webhook
     port: 443
+    targetPort: 9443
     protocol: TCP
-    targetPort: webhook-server
   selector:
     app: webhook-manager
-    control-plane: webhook-manager
