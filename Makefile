@@ -1202,3 +1202,64 @@ mvp-logs: ## Show logs from NF simulator pods
 .PHONY: mvp-watch
 mvp-watch: ## Watch MVP deployment status continuously
 	@watch -n 2 "kubectl get deployment,pods,service -n $(MVP_NAMESPACE) 2>/dev/null || echo 'Resources not found'"
+
+##@ Conductor Watch Commands
+
+.PHONY: conductor-watch-build
+conductor-watch-build: ## Build conductor-watch binary
+	@echo "Building conductor-watch..."
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o conductor-loop.exe ./cmd/conductor-loop/
+	@echo "✅ Conductor-watch built: conductor-loop.exe"
+
+.PHONY: conductor-watch-run
+conductor-watch-run: conductor-watch-build ## Run conductor-watch locally
+	@echo "Starting conductor-watch..."
+	@echo "Watching: ./handoff/"
+	@echo "Schema: ./docs/contracts/intent.schema.json"
+	@echo "Press Ctrl+C to stop"
+	./conductor-loop.exe -handoff-dir ./handoff -schema ./docs/contracts/intent.schema.json -batch-interval 2s
+
+.PHONY: conductor-watch-run-dry
+conductor-watch-run-dry: conductor-watch-build ## Run conductor-watch in dry-run mode
+	@echo "Starting conductor-watch in DRY-RUN mode..."
+	@echo "Watching: ./handoff/"
+	@echo "Schema: ./docs/contracts/intent.schema.json"
+	@echo "Press Ctrl+C to stop"
+	./conductor-loop.exe -handoff-dir ./handoff -schema ./docs/contracts/intent.schema.json -batch-interval 2s -porch-mode structured
+
+.PHONY: conductor-watch-smoke
+conductor-watch-smoke: ## Run comprehensive smoke test for conductor-watch
+	@echo "Running conductor-watch smoke test..."
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		pwsh -ExecutionPolicy Bypass -File hack/watcher-smoke.ps1; \
+	else \
+		echo "Smoke test script is Windows PowerShell specific"; \
+		echo "Run manually: pwsh hack/watcher-smoke.ps1"; \
+	fi
+
+.PHONY: conductor-watch-smoke-quick
+conductor-watch-smoke-quick: ## Quick smoke test (30s timeout)
+	@echo "Running quick conductor-watch smoke test..."
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		pwsh -ExecutionPolicy Bypass -File hack/watcher-smoke.ps1 -Timeout 15 -SkipBuild; \
+	else \
+		echo "Smoke test script is Windows PowerShell specific"; \
+		echo "Run manually: pwsh hack/watcher-smoke.ps1 -Timeout 15 -SkipBuild"; \
+	fi
+
+.PHONY: conductor-watch-test-basic
+conductor-watch-test-basic: ## Run basic conductor-watch test (no Kubernetes required)
+	@echo "Running basic conductor-watch test..."
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		pwsh -ExecutionPolicy Bypass -File hack/watcher-basic-test.ps1; \
+	else \
+		echo "Basic test script is Windows PowerShell specific"; \
+		echo "Run manually: pwsh hack/watcher-basic-test.ps1"; \
+	fi
+
+.PHONY: conductor-watch-clean
+conductor-watch-clean: ## Clean conductor-watch artifacts
+	@echo "Cleaning conductor-watch artifacts..."
+	@rm -f conductor-loop.exe conductor-watch.exe 2>/dev/null || true
+	@rm -f handoff/intent-*smoke-test*.json handoff/intent-*basic-test*.json 2>/dev/null || true
+	@echo "✅ Conductor-watch artifacts cleaned"
