@@ -1,0 +1,9 @@
+apiVersion: v1
+data:
+  namespace: default
+  replicas: "3"
+  target: example-deployment
+kind: ConfigMap
+metadata:
+  name: setters
+  namespace: default

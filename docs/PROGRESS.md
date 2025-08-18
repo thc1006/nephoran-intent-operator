@@ -48,6 +48,7 @@ Updates are tracked here in append-only format.
 | 2025-08-14T09:43:20+08:00 | feat/test-harness | tools | Completed kmpgen vessend test harness tools |
 | 2025-08-14T03:28:19Z | feat/planner | planner | Fixed YAML config loading with full error handling |
 | 2025-08-14T11:30:49.8752141+08:00 | feat/planner | planner | Optimized HTTP client for polling with connection pooling |
+| 2025-08-17T01:23:46.1427733+08:00 | feat/porch-structured-patch | patchgen | Implemented KRM structured patch generator with validation |
 | 2025-08-14T11:55:40+08:00 | feat/planner | planner | Enhanced test coverage for config and HTTP optimizations |
 | 2025-08-14T12:08:37.9653635+08:00 | feat/planner | planner/internal/rules | Optimized rule engine memory management with capacity limits and in-place pruning |
 | 2025-08-14T12:20:57+08:00 | feat/planner | planner | Fixed memory growth and pruning performance issues |
