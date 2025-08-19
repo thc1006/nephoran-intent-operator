@@ -72,3 +72,4 @@ Updates are tracked here in append-only format.
 | 2025-08-20T01:28:34.5291903+08:00 | feat/e2e | .gitleaks.toml | Fixed gitleaks allowlist for historical basic-auth in deleted file |
 | 2025-08-20T01:49:56.7642212+08:00 | feat/e2e | requirements-dev | Fixed pip-audit version 2.8.2 to valid 2.8.0 for CI compatibility |
 | 2025-08-20T02:51:41.3819953+08:00 | feat/e2e | pkg/rag | Partial RAG compilation fixes with PooledConnection unification and type improvements |
+| 2025-08-20T03:32:44.3169623+08:00 | feat/e2e | core | Unified types & restored build across controllers, monitoring, and servicemesh packages |
