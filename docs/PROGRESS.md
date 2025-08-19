@@ -69,3 +69,4 @@ Updates are tracked here in append-only format.
 | 2025-08-20T00:44:25.1638599+08:00 | feat/e2e | ci/security | Replaced problematic nancy scanner with official govulncheck vulnerability scanner |
 | 2025-08-20T01:23:27.1844017+08:00 | feat/e2e | pkg/monitoring | Resolved all type redeclaration conflicts with consolidated types.go |
 | 2025-08-20T01:27:12.5588744+08:00 | feat/e2e | requirements-dev | Fixed pre-commit version 4.0.2 to valid 4.0.1 for pip-audit compatibility |
+| 2025-08-20T01:28:34.5291903+08:00 | feat/e2e | .gitleaks.toml | Fixed gitleaks allowlist for historical basic-auth in deleted file |
