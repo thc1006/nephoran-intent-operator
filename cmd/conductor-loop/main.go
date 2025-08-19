@@ -172,11 +172,21 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to create watcher: %v", err)
 	}
-	defer watcher.Close()
+	
+	// Safe defer pattern - only register Close() after successful creation
+	defer func() {
+		if watcher != nil {
+			if err := watcher.Close(); err != nil {
+				log.Printf("Error closing watcher: %v", err)
+			}
+		}
+	}()
 
 	// Process existing files on startup (for idempotency)
-	if err := watcher.ProcessExistingFiles(); err != nil {
-		log.Printf("Warning: Failed to process existing files: %v", err)
+	if watcher != nil {
+		if err := watcher.ProcessExistingFiles(); err != nil {
+			log.Printf("Warning: Failed to process existing files: %v", err)
+		}
 	}
 
 	// Setup signal handling for graceful shutdown
@@ -186,7 +196,11 @@ func main() {
 	// Start watching
 	done := make(chan error, 1)
 	go func() {
-		done <- watcher.Start()
+		if watcher != nil {
+			done <- watcher.Start()
+		} else {
+			done <- fmt.Errorf("watcher is nil - cannot start")
+		}
 	}()
 
 	// Wait for either error or interrupt signal

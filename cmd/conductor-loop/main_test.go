@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // TestMain_FlagParsing tests the command-line flag parsing functionality
@@ -433,46 +434,13 @@ func createMockPorch(t *testing.T, tempDir string, exitCode int, stdout, stderr 
 		sleep = sleepDuration[0]
 	}
 
-	// On Windows, create a batch file
-	var mockPath string
-	if runtime.GOOS == "windows" {
-		mockPath = filepath.Join(tempDir, "mock-porch.bat")
-		sleepSeconds := int(sleep.Seconds())
-		if sleepSeconds == 0 && sleep > 0 {
-			sleepSeconds = 1 // Minimum 1 second for timeout command
-		}
-		
-		batchScript := fmt.Sprintf(`@echo off
-if "%%1"=="--help" (
-    echo Mock porch help
-    exit /b 0
-)
-if %d GTR 0 timeout /t %d /nobreak >nul 2>nul
-echo %s
-if not "%s"=="" echo %s >&2
-exit /b %d`, sleepSeconds, sleepSeconds, stdout, stderr, stderr, exitCode)
-		require.NoError(t, os.WriteFile(mockPath, []byte(batchScript), 0755))
-	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch")
-		sleepCmd := ""
-		if sleep > 0 {
-			sleepCmd = fmt.Sprintf("sleep %v", sleep.Seconds())
-		}
-		
-		script := fmt.Sprintf(`#!/bin/bash
-if [ "$1" = "--help" ]; then
-    echo "Mock porch help"
-    exit 0
-fi
-%s
-echo "%s"
-if [ -n "%s" ]; then
-    echo "%s" >&2
-fi
-exit %d`, sleepCmd, stdout, stderr, stderr, exitCode)
-		require.NoError(t, os.WriteFile(mockPath, []byte(script), 0755))
-	}
-
+	mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
+		ExitCode: exitCode,
+		Stdout:   stdout,
+		Stderr:   stderr,
+		Sleep:    sleep,
+	})
+	require.NoError(t, err)
 	return mockPath
 }
 
