@@ -1,0 +1,72 @@
+﻿2025-08-19T12:26:09.3279357Z ##[group]Run dependency-check/Dependency-Check_Action@main
+2025-08-19T12:26:09.3279699Z with:
+2025-08-19T12:26:09.3279878Z   project: conductor-loop
+2025-08-19T12:26:09.3280076Z   path: .
+2025-08-19T12:26:09.3280233Z   format: ALL
+2025-08-19T12:26:09.3280598Z   args: --enableRetired --enableExperimental --scan "**/*.go" --scan "**/go.mod" --scan "**/go.sum"
+
+2025-08-19T12:26:09.3281267Z   out: reports
+2025-08-19T12:26:09.3281427Z env:
+2025-08-19T12:26:09.3281583Z   GO_VERSION: 1.24
+2025-08-19T12:26:09.3281748Z   REGISTRY: ghcr.io
+2025-08-19T12:26:09.3281951Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T12:26:09.3282186Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T12:26:09.3282392Z ##[endgroup]
+2025-08-19T12:26:09.3413364Z ##[command]/usr/bin/docker run --name ce62e059db8b3f517f40ceb87103a22b7fe2c9_f76217 --label ce62e0 --workdir /github/workspace --rm -e "GO_VERSION" -e "REGISTRY" -e "IMAGE_NAME" -e "SECURITY_SCAN_LEVEL" -e "INPUT_PROJECT" -e "INPUT_PATH" -e "INPUT_FORMAT" -e "INPUT_ARGS" -e "INPUT_OUT" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKSPACE" -e "GITHUB_ACTION" -e "GITHUB_EVENT_PATH" -e "GITHUB_ACTION_REPOSITORY" -e "GITHUB_ACTION_REF" -e "GITHUB_PATH" -e "GITHUB_ENV" -e "GITHUB_STEP_SUMMARY" -e "GITHUB_STATE" -e "GITHUB_OUTPUT" -e "RUNNER_OS" -e "RUNNER_ARCH" -e "RUNNER_NAME" -e "RUNNER_ENVIRONMENT" -e "RUNNER_TOOL_CACHE" -e "RUNNER_TEMP" -e "RUNNER_WORKSPACE" -e "ACTIONS_RUNTIME_URL" -e "ACTIONS_RUNTIME_TOKEN" -e "ACTIONS_CACHE_URL" -e "ACTIONS_RESULTS_URL" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" -v "/home/runner/work/_temp/_runner_file_commands":"/github/file_commands" -v "/home/runner/work/nephoran-intent-operator/nephoran-intent-operator":"/github/workspace" ce62e0:59db8b3f517f40ceb87103a22b7fe2c9  "--project" "conductor-loop" "--scan" "/github/workspace/." "--format" "ALL" "--out" "/github/workspace/reports" "--noupdate" "--enableRetired --enableExperimental --scan \"**/*.go\" --scan \"**/go.mod\" --scan \"**/go.sum\"
+"
+2025-08-19T12:26:15.0767022Z [INFO] 
+2025-08-19T12:26:15.0767298Z 
+2025-08-19T12:26:15.0770900Z Dependency-Check is an open source tool performing a best effort analysis of 3rd party dependencies; false positives and false negatives may exist in the analysis performed by the tool. Use of the tool and the reporting provided constitutes acceptance for use in an AS IS condition, and there are NO warranties, implied or otherwise, with regard to the analysis or its use. Any use of the tool and the reporting provided is at the user's risk. In no event shall the copyright holder or OWASP be held liable for any damages whatsoever arising out of or in connection with the use of this tool, the analysis performed, or the resulting report.
+2025-08-19T12:26:15.0773463Z 
+2025-08-19T12:26:15.0773477Z 
+2025-08-19T12:26:15.0796193Z    About ODC: https://dependency-check.github.io/DependencyCheck/general/internals.html
+2025-08-19T12:26:15.0799528Z    False Positives: https://dependency-check.github.io/DependencyCheck/general/suppression.html
+2025-08-19T12:26:15.0800211Z 
+2025-08-19T12:26:15.0800738Z 💖 Sponsor: https://github.com/sponsors/jeremylong
+2025-08-19T12:26:15.0801093Z 
+2025-08-19T12:26:15.0801103Z 
+2025-08-19T12:26:15.0801243Z [INFO] Analysis Started
+2025-08-19T12:26:15.0850945Z [INFO] Finished File Name Analyzer (0 seconds)
+2025-08-19T12:26:15.0907214Z [INFO] Finished Python Package Analyzer (0 seconds)
+2025-08-19T12:26:15.1019443Z [INFO] Finished pip Analyzer (0 seconds)
+2025-08-19T12:26:15.1965523Z [WARN] While analyzing `/github/workspace/internal/security/go.mod` `go` generated the following warnings:
+2025-08-19T12:26:15.1969112Z go: github.com/davecgh/go-spew@v1.1.1: missing go.sum entry for go.mod file; to add it:
+2025-08-19T12:26:15.1969886Z 	go mod download github.com/davecgh/go-spew
+2025-08-19T12:26:15.1970205Z 
+2025-08-19T12:26:15.1971459Z [WARN] An error occurred while analyzing '/github/workspace/internal/security/go.mod' (Golang Mod Analyzer): Error analyzing '/github/workspace/internal/security/go.mod'; Error parsing output from `go list -json -m all`
+2025-08-19T12:26:17.2076115Z [INFO] Finished Golang Mod Analyzer (2 seconds)
+2025-08-19T12:26:17.2636220Z [INFO] Finished Dependency Merging Analyzer (0 seconds)
+2025-08-19T12:26:17.4406883Z [INFO] Finished Hint Analyzer (0 seconds)
+2025-08-19T12:26:17.4460018Z [INFO] Finished Version Filter Analyzer (0 seconds)
+2025-08-19T12:26:18.6561538Z Aug 19, 2025 12:26:18 PM org.apache.lucene.util.HotspotVMOptions <clinit>
+2025-08-19T12:26:18.6563354Z WARNING: Lucene cannot optimize algorithms or calculate object sizes for JVMs that are not based on Hotspot or a compatible implementation.
+2025-08-19T12:26:18.6717361Z WARNING: A restricted method in java.lang.foreign.Linker has been called
+2025-08-19T12:26:18.6719595Z WARNING: java.lang.foreign.Linker::downcallHandle has been called by the unnamed module
+2025-08-19T12:26:18.6720925Z WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for this module
+2025-08-19T12:26:18.6727522Z 
+2025-08-19T12:26:18.7677221Z Aug 19, 2025 12:26:18 PM org.apache.lucene.store.MemorySegmentIndexInputProvider <init>
+2025-08-19T12:26:18.7678904Z INFO: Using MemorySegmentIndexInput and native madvise support with Java 21 or later; to disable start with -Dorg.apache.lucene.store.MMapDirectory.enableMemorySegments=false
+2025-08-19T12:26:18.8363859Z Aug 19, 2025 12:26:18 PM org.apache.lucene.internal.vectorization.VectorizationProvider lookup
+2025-08-19T12:26:18.8367916Z WARNING: Java runtime is not using Hotspot VM; Java vector incubator API can't be enabled.
+2025-08-19T12:26:19.1772407Z [INFO] Created CPE Index (1 seconds)
+2025-08-19T12:26:19.3484236Z [INFO] Finished NPM CPE Analyzer (1 seconds)
+2025-08-19T12:26:21.2385033Z [INFO] Created CPE Index (1 seconds)
+2025-08-19T12:26:24.0327418Z [INFO] Finished CPE Analyzer (4 seconds)
+2025-08-19T12:26:24.0421533Z [INFO] Finished False Positive Analyzer (0 seconds)
+2025-08-19T12:26:24.3171077Z [INFO] Finished NVD CVE Analyzer (0 seconds)
+2025-08-19T12:26:24.5188502Z [INFO] Finished RetireJS Analyzer (0 seconds)
+2025-08-19T12:26:29.4818387Z [INFO] Finished Sonatype OSS Index Analyzer (4 seconds)
+2025-08-19T12:26:29.5024972Z [INFO] Finished Vulnerability Suppression Analyzer (0 seconds)
+2025-08-19T12:26:29.5188283Z [INFO] Finished Known Exploited Vulnerability Analyzer (0 seconds)
+2025-08-19T12:26:29.8883075Z [INFO] Finished Dependency Bundling Analyzer (0 seconds)
+2025-08-19T12:26:29.8911931Z [INFO] Finished Unused Suppression Rule Analyzer (0 seconds)
+2025-08-19T12:26:29.8966095Z [INFO] Analysis Complete (14 seconds)
+2025-08-19T12:26:29.9569996Z [INFO] Writing XML report to: /github/workspace/reports/dependency-check-report.xml
+2025-08-19T12:26:30.8066038Z [INFO] Writing HTML report to: /github/workspace/reports/dependency-check-report.html
+2025-08-19T12:26:31.3998999Z [INFO] Writing JSON report to: /github/workspace/reports/dependency-check-report.json
+2025-08-19T12:26:31.8059011Z [INFO] Writing CSV report to: /github/workspace/reports/dependency-check-report.csv
+2025-08-19T12:26:31.8898841Z [INFO] Writing SARIF report to: /github/workspace/reports/dependency-check-report.sarif
+2025-08-19T12:26:31.9704830Z [INFO] Writing JENKINS report to: /github/workspace/reports/dependency-check-jenkins.html
+2025-08-19T12:26:32.1548588Z [INFO] Writing JUNIT report to: /github/workspace/reports/dependency-check-junit.xml
+2025-08-19T12:26:32.2376169Z [INFO] Writing GITLAB report to: /github/workspace/reports/dependency-check-gitlab.json
+2025-08-19T12:26:32.3480238Z [ERROR] Error analyzing '/github/workspace/internal/security/go.mod'; Error parsing output from `go list -json -m all`

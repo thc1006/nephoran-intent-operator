@@ -1,0 +1,74 @@
+﻿2025-08-19T12:24:59.9740554Z ##[group]Run actions/checkout@v4
+2025-08-19T12:24:59.9740873Z with:
+2025-08-19T12:24:59.9741086Z   repository: thc1006/nephoran-intent-operator
+2025-08-19T12:24:59.9741523Z   token: ***
+2025-08-19T12:24:59.9741709Z   ssh-strict: true
+2025-08-19T12:24:59.9741922Z   ssh-user: git
+2025-08-19T12:24:59.9742155Z   persist-credentials: true
+2025-08-19T12:24:59.9742368Z   clean: true
+2025-08-19T12:24:59.9742559Z   sparse-checkout-cone-mode: true
+2025-08-19T12:24:59.9742884Z   fetch-depth: 1
+2025-08-19T12:24:59.9743104Z   fetch-tags: false
+2025-08-19T12:24:59.9743292Z   show-progress: true
+2025-08-19T12:24:59.9743478Z   lfs: false
+2025-08-19T12:24:59.9743648Z   submodules: false
+2025-08-19T12:24:59.9743831Z   set-safe-directory: true
+2025-08-19T12:24:59.9744036Z env:
+2025-08-19T12:24:59.9744193Z   GO_VERSION: 1.24
+2025-08-19T12:24:59.9744368Z   REGISTRY: ghcr.io
+2025-08-19T12:24:59.9744572Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T12:24:59.9744828Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T12:24:59.9745067Z ##[endgroup]
+2025-08-19T12:25:00.0766532Z Syncing repository: thc1006/nephoran-intent-operator
+2025-08-19T12:25:00.0768664Z ##[group]Getting Git version info
+2025-08-19T12:25:00.0769376Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-19T12:25:00.0770293Z [command]/usr/bin/git version
+2025-08-19T12:25:00.0814840Z git version 2.50.1
+2025-08-19T12:25:00.0843772Z ##[endgroup]
+2025-08-19T12:25:00.0865512Z Temporarily overriding HOME='/home/runner/work/_temp/e937be0b-e322-49bb-aa9e-52c0838aaa9d' before making global git config changes
+2025-08-19T12:25:00.0866411Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-19T12:25:00.0871439Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T12:25:00.0912206Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-19T12:25:00.0916827Z ##[group]Initializing the repository
+2025-08-19T12:25:00.0922134Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T12:25:00.1013004Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-08-19T12:25:00.1013984Z hint: is subject to change. To configure the initial branch name to use in all
+2025-08-19T12:25:00.1015068Z hint: of your new repositories, which will suppress this warning, call:
+2025-08-19T12:25:00.1015717Z hint:
+2025-08-19T12:25:00.1016151Z hint: 	git config --global init.defaultBranch <name>
+2025-08-19T12:25:00.1016648Z hint:
+2025-08-19T12:25:00.1017122Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-08-19T12:25:00.1017904Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-08-19T12:25:00.1018474Z hint:
+2025-08-19T12:25:00.1018814Z hint: 	git branch -m <name>
+2025-08-19T12:25:00.1019104Z hint:
+2025-08-19T12:25:00.1019434Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-08-19T12:25:00.1020508Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+2025-08-19T12:25:00.1031482Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+2025-08-19T12:25:00.1076942Z ##[endgroup]
+2025-08-19T12:25:00.1077397Z ##[group]Disabling automatic garbage collection
+2025-08-19T12:25:00.1083163Z [command]/usr/bin/git config --local gc.auto 0
+2025-08-19T12:25:00.1119113Z ##[endgroup]
+2025-08-19T12:25:00.1119785Z ##[group]Setting up auth
+2025-08-19T12:25:00.1128221Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-19T12:25:00.1165983Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-19T12:25:00.1488174Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-19T12:25:00.1522422Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-19T12:25:00.1784132Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-08-19T12:25:00.1830433Z ##[endgroup]
+2025-08-19T12:25:00.1831199Z ##[group]Fetching the repository
+2025-08-19T12:25:00.1841174Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +02369cd823a3dfeb3e1b06e186676dafb39d9fb7:refs/remotes/origin/feat/conductor-loop
+2025-08-19T12:25:02.5075173Z From https://github.com/thc1006/nephoran-intent-operator
+2025-08-19T12:25:02.5076518Z  * [new ref]         02369cd823a3dfeb3e1b06e186676dafb39d9fb7 -> origin/feat/conductor-loop
+2025-08-19T12:25:02.5102688Z ##[endgroup]
+2025-08-19T12:25:02.5103283Z ##[group]Determining the checkout info
+2025-08-19T12:25:02.5104847Z ##[endgroup]
+2025-08-19T12:25:02.5110351Z [command]/usr/bin/git sparse-checkout disable
+2025-08-19T12:25:02.5156991Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-08-19T12:25:02.5189438Z ##[group]Checking out the ref
+2025-08-19T12:25:02.5194252Z [command]/usr/bin/git checkout --progress --force -B feat/conductor-loop refs/remotes/origin/feat/conductor-loop
+2025-08-19T12:25:02.9368995Z Switched to a new branch 'feat/conductor-loop'
+2025-08-19T12:25:02.9372403Z branch 'feat/conductor-loop' set up to track 'origin/feat/conductor-loop'.
+2025-08-19T12:25:02.9384469Z ##[endgroup]
+2025-08-19T12:25:02.9426748Z [command]/usr/bin/git log -1 --format=%H
+2025-08-19T12:25:02.9454486Z 02369cd823a3dfeb3e1b06e186676dafb39d9fb7

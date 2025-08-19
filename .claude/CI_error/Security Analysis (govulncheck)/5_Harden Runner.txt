@@ -1,0 +1,25 @@
+﻿2025-08-19T12:25:29.5696825Z ##[group]Run step-security/harden-runner@v2
+2025-08-19T12:25:29.5697119Z with:
+2025-08-19T12:25:29.5697287Z   egress-policy: audit
+2025-08-19T12:25:29.5697792Z   allowed-endpoints: api.github.com:443 github.com:443 golang.org:443 proxy.golang.org:443 sum.golang.org:443 objects.githubusercontent.com:443
+
+2025-08-19T12:25:29.5698719Z   token: ***
+2025-08-19T12:25:29.5698897Z   disable-telemetry: false
+2025-08-19T12:25:29.5699102Z   disable-sudo: false
+2025-08-19T12:25:29.5699300Z   disable-sudo-and-containers: false
+2025-08-19T12:25:29.5699549Z   disable-file-monitoring: false
+2025-08-19T12:25:29.5699770Z env:
+2025-08-19T12:25:29.5699925Z   GO_VERSION: 1.24
+2025-08-19T12:25:29.5700099Z   REGISTRY: ghcr.io
+2025-08-19T12:25:29.5700296Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T12:25:29.5700536Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T12:25:29.5700745Z   STATE_disableSudo: false
+2025-08-19T12:25:29.5700963Z   STATE_disableSudoAndContainers: false
+2025-08-19T12:25:29.5701205Z   STATE_monitorStatusCode: 200
+2025-08-19T12:25:29.5701459Z   STATE_addSummary: false
+2025-08-19T12:25:29.5701711Z   STATE_correlation_id: eac24956-e73c-4902-b69d-4d1adeb0dd7e
+2025-08-19T12:25:29.5701996Z   STATE_isTLS: false
+2025-08-19T12:25:29.5702175Z ##[endgroup]
+2025-08-19T12:25:29.6443908Z [harden-runner] main-step
+2025-08-19T12:25:29.6451582Z [32mView security insights and recommended policy at:[0m
+2025-08-19T12:25:29.6452549Z https://app.stepsecurity.io/github/thc1006/nephoran-intent-operator/actions/runs/17069476080
