@@ -94,6 +94,13 @@ paths = [
     # Ignore configuration files that might contain template values
     '''values\.yaml$''',
     '''values-.*\.yaml$''',
+    # Ignore deleted/legacy files that contained resolved security issues
+    '''pkg/rag/client_weaviate_old\.go$''',
+]
+
+# Specific commit allowlist for resolved historical issues
+commits = [
+    "fa3de14963d6da858e443fd0e4133212675c1392", # Historical basic-auth in deleted file
 ]
 
 # Custom rules for telecommunications security
