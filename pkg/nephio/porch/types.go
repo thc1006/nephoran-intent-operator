@@ -1118,6 +1118,62 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 // Additional DeepCopy methods would follow the same pattern...
 // This provides type-safe deep copying required for Kubernetes client-go
 
+// ContentMetrics represents metrics for package content
+type ContentMetrics struct {
+	FileCount      int            `json:"fileCount"`
+	TotalSize      int64          `json:"totalSize"`
+	ResourceCounts map[string]int `json:"resourceCounts"`
+	LastModified   time.Time      `json:"lastModified"`
+}
+
+// ContentManagerHealth represents health status of the content manager
+type ContentManagerHealth struct {
+	Status         string    `json:"status"`
+	LastCheck      time.Time `json:"lastCheck"`
+	CacheSize      int64     `json:"cacheSize"`
+	ActiveRequests int       `json:"activeRequests"`
+	ErrorCount     int       `json:"errorCount"`
+}
+
+// ContentManagerMetrics tracks metrics for content manager operations
+type ContentManagerMetrics struct {
+	TotalRequests   int64 `json:"totalRequests"`
+	SuccessCount    int64 `json:"successCount"`
+	ErrorCount      int64 `json:"errorCount"`
+	CacheHits       int64 `json:"cacheHits"`
+	CacheMisses     int64 `json:"cacheMisses"`
+	AverageLatency  int64 `json:"averageLatency"`
+}
+
+// ContentStore defines the interface for content storage operations
+type ContentStore interface {
+	Get(ctx context.Context, key string) ([]byte, error)
+	Put(ctx context.Context, key string, content []byte) error
+	Delete(ctx context.Context, key string) error
+	List(ctx context.Context, prefix string) ([]string, error)
+	Exists(ctx context.Context, key string) (bool, error)
+}
+
+// TemplateEngine handles template processing for package content
+type TemplateEngine struct {
+	Templates map[string]string `json:"templates"`
+	Functions map[string]interface{} `json:"-"`
+}
+
+// ContentValidator validates package content
+type ContentValidator struct {
+	Rules   []ContentValidationRule `json:"rules"`
+	Strict  bool                    `json:"strict"`
+}
+
+// ContentValidationRule defines a content validation rule
+type ContentValidationRule struct {
+	Name     string `json:"name"`
+	Type     string `json:"type"`
+	Pattern  string `json:"pattern"`
+	Required bool   `json:"required"`
+}
+
 // Error types for better error handling
 type PorchError struct {
 	Type    string

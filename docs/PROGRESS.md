@@ -61,7 +61,13 @@ Updates are tracked here in append-only format.
 | 2025-08-14T13:24:52.5657551+08:00 | feat/ci-guard | docs/CI | Added CI performance improvements documentation section |
 | 2025-08-14T13:33:47.4100456+08:00 | feat/ci-guard | test-ci-validation.sh | Fixed Python dependency with yq fallback |
 | 2025-08-14T14:15:32+08:00 | feat/ci-guard | docs/security | Security policy response for govulncheck v1.1.4 pinning |
+| 2025-08-15T16:49:35.4526024+08:00 | feat/porch-direct | pkg/porch | Porch direct client for intent-based package creation |
 | 2025-08-15T17:21:39.4454967+08:00 | feat/conductor-file-watcher | conductor-loop | Wire validation and porch integration |
 | 2025-08-15T23:27:59.2878948+08:00 | feat/conductor-file-watcher | conductor-watch | K8s controller for NetworkIntent to KRM |
 | 2025-08-16T02:48:46.7801498+08:00 | feat/conductor-file-watcher | conductor-watch | Windows PowerShell smoke tests and Makefile targets |
 | 2025-08-17T01:18:06+08:00 | feat/admission-webhook | api,config,tests | Production-ready admission webhooks for NetworkIntent |
+| 2025-08-17T01:29:37.4814600+08:00 | feat/porch-direct | cmd/porch-direct | CLI tool for Porch API with dry-run and auto-approve |
+| 2025-08-19T11:53:25.7515798+08:00 | feat/porch-direct | merge | Resolved merge conflicts with main branch for PR #82 |
+| 2025-08-19T12:05:00.0000000+08:00 | feat/porch-direct | merge | Confirmed no actual conflicts, updated PR status for GitHub |
+| 2025-08-19T12:15:00.0000000+08:00 | feat/porch-direct | merge | Resolved real conflicts with integrate/mvp, merged all progress entries |
+| 2025-08-19T14:01:27.9260571+08:00 | feat/porch-direct | security/tests | Critical security fixes and comprehensive test coverage |

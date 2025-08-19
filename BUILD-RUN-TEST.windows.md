@@ -1,6 +1,261 @@
-# BUILD-RUN-TEST.windows.md
+# BUILD-RUN-TEST Guide for Windows
 
-# FCAPS Simulator - Build, Run & Test Guide (Windows)
+This guide covers building, running, and testing multiple components of the Nephoran Intent Operator on Windows.
+
+## Components Covered
+
+1. [Porch Direct CLI](#porch-direct-cli) - Intent-driven KRM package generator
+2. [FCAPS Simulator](#fcaps-simulator) - VES event simulator with burst detection  
+3. [Conductor Watch](#conductor-watch) - File watcher for intent processing
+4. [Admission Webhook](#admission-webhook) - Kubernetes admission control
+
+---
+
+# Porch Direct CLI
+
+## Overview
+
+The `porch-direct` CLI tool reads an intent JSON file and interacts with the Porch API to create/update KRM packages for network function scaling. It supports both dry-run mode (writes to `.\out\`) and live mode (calls Porch API).
+
+## Prerequisites
+
+- Windows 10/11 with PowerShell 5.1+
+- Go 1.24+ installed
+- Git for Windows
+
+## Build Instructions
+
+### PowerShell Commands
+
+```powershell
+# Clone and navigate to the repository
+cd C:\Users\tingy\dev\_worktrees\nephoran\feat-porch-direct
+
+# Build the CLI tool
+go build -o porch-direct.exe .\cmd\porch-direct
+
+# Verify the build
+.\porch-direct.exe --help
+```
+
+## Test Intent Files
+
+### Create Sample Intent (examples\intent.json)
+
+```powershell
+# Create examples directory if it doesn't exist
+New-Item -ItemType Directory -Force -Path .\examples | Out-Null
+
+# Create a sample intent file
+@'
+{
+  "intent_type": "scaling",
+  "target": "nf-sim",
+  "namespace": "ran-a",
+  "replicas": 3,
+  "reason": "Load increase detected",
+  "source": "planner",
+  "correlation_id": "test-001"
+}
+'@ | Out-File -FilePath .\examples\intent.json -Encoding UTF8
+```
+
+### Alternative Intent Examples
+
+```powershell
+# Minimal intent
+@'
+{
+  "intent_type": "scaling",
+  "target": "gnb",
+  "namespace": "ran-sim",
+  "replicas": 5
+}
+'@ | Out-File -FilePath .\examples\intent-minimal.json -Encoding UTF8
+
+# Scale-down intent
+@'
+{
+  "intent_type": "scaling",
+  "target": "upf",
+  "namespace": "core",
+  "replicas": 1,
+  "reason": "Night-time scale down"
+}
+'@ | Out-File -FilePath .\examples\intent-scaledown.json -Encoding UTF8
+```
+
+## Dry-Run Mode Testing
+
+### Basic Dry-Run
+
+```powershell
+# Create output directory
+New-Item -ItemType Directory -Force -Path .\out | Out-Null
+
+# Run in dry-run mode (writes to filesystem)
+.\porch-direct.exe `
+  --intent .\examples\intent.json `
+  --dry-run
+
+# Check generated files
+Get-ChildItem -Path .\examples\packages\direct\nf-sim-scaling\
+```
+
+### Dry-Run with Porch Parameters
+
+```powershell
+# Run with full Porch parameters (still dry-run)
+.\porch-direct.exe `
+  --intent .\examples\intent.json `
+  --repo my-repo `
+  --package nf-sim `
+  --workspace ws-001 `
+  --namespace ran-a `
+  --porch http://localhost:9443 `
+  --dry-run
+
+# With Porch URL + dry-run, it writes structured output to .\out\
+Get-ChildItem -Path .\out\ -Recurse
+```
+
+### Expected Dry-Run Output
+
+When using `--porch` with `--dry-run`, the tool creates:
+
+```
+.\out\
+├── porch-package-request.json     # Full Porch API request payload
+├── overlays\
+│   ├── deployment.yaml            # KRM Deployment overlay
+│   └── configmap.yaml            # ConfigMap with intent
+```
+
+#### Sample porch-package-request.json
+
+```json
+{
+  "repository": "my-repo",
+  "package": "nf-sim",
+  "workspace": "ws-001",
+  "namespace": "ran-a",
+  "intent": {
+    "intent_type": "scaling",
+    "target": "nf-sim",
+    "namespace": "ran-a",
+    "replicas": 3,
+    "reason": "Load increase detected",
+    "source": "planner",
+    "correlation_id": "test-001"
+  },
+  "files": {
+    "Kptfile": "...",
+    "deployment.yaml": "...",
+    "service.yaml": "...",
+    "README.md": "..."
+  }
+}
+```
+
+#### Sample overlays\deployment.yaml
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nf-sim
+  namespace: default
+spec:
+  replicas: 3
+```
+
+#### Sample overlays\configmap.yaml
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nf-sim-intent
+  namespace: default
+data:
+  intent.json: |
+    {
+      "intent_type": "scaling",
+      "target": "nf-sim",
+      "namespace": "ran-a",
+      "replicas": 3,
+      "reason": "Load increase detected",
+      "source": "planner",
+      "correlation_id": "test-001"
+    }
+```
+
+## Live Mode Testing (Requires Porch Server)
+
+### Start Local Porch Server (if available)
+
+```powershell
+# Port-forward to Porch server (if running in Kubernetes)
+kubectl port-forward -n porch-system svc/porch-server 9443:443
+```
+
+### Live API Call
+
+```powershell
+# Create/update package via Porch API
+.\porch-direct.exe `
+  --intent .\examples\intent.json `
+  --repo gitops-repo `
+  --package nf-sim-scaling `
+  --workspace default `
+  --namespace ran-a `
+  --porch http://localhost:9443
+
+# With auto-approval
+.\porch-direct.exe `
+  --intent .\examples\intent.json `
+  --repo gitops-repo `
+  --package nf-sim-scaling `
+  --workspace default `
+  --namespace ran-a `
+  --porch http://localhost:9443 `
+  --auto-approve
+```
+
+## Validation and Testing
+
+### Run Unit Tests
+
+```powershell
+# Run tests for the CLI
+go test .\cmd\porch-direct\...
+
+# Run tests for the Porch client
+go test .\pkg\porch\...
+
+# Run all tests with coverage
+go test -cover ./...
+```
+
+### Validate Intent JSON
+
+```powershell
+# Check if intent file is valid JSON
+$intent = Get-Content .\examples\intent.json -Raw | ConvertFrom-Json
+$intent | Format-List
+
+# Validate required fields
+if ($intent.intent_type -ne "scaling") {
+    Write-Error "Invalid intent_type"
+}
+if ($intent.replicas -lt 1 -or $intent.replicas -gt 100) {
+    Write-Error "Replicas out of range (1-100)"
+}
+```
+
+---
+
+# FCAPS Simulator
 
 ## Quick Start
 
@@ -111,282 +366,9 @@ Run the simulator with integrated reducer:
 - `--intent-url`: Intent service URL (optional, default: `http://localhost:8080/intent`)
 - `--verbose`: Enable verbose logging
 
-## Test Scenarios
-
-### Scenario 1: Normal Operation
-
-Test basic event processing without triggering scaling:
-
-```powershell
-# Terminal 1: Start reducer
-./fcaps-reducer.exe --verbose
-
-# Terminal 2: Send normal load events
-./fcaps-sim.exe --delay 10 --verbose
-```
-
-Expected: Events processed, no scaling intent generated.
-
-### Scenario 2: High Load Burst
-
-Simulate a burst of critical events to trigger scaling:
-
-1. Create a high-load test file:
-
-```powershell
-# Create test-high-load.json with multiple critical events
-@'
-{
-  "critical_1": {
-    "event": {
-      "commonEventHeader": {
-        "version": "4.1",
-        "domain": "fault",
-        "eventName": "Fault_Critical_1",
-        "eventId": "fault-001",
-        "sequence": 1,
-        "priority": "High",
-        "reportingEntityName": "nf-sim",
-        "sourceName": "nf-sim",
-        "nfVendorName": "nephoran",
-        "startEpochMicrosec": 1731000000000,
-        "lastEpochMicrosec": 1731000000000,
-        "timeZoneOffset": "+00:00"
-      },
-      "faultFields": {
-        "faultFieldsVersion": "4.0",
-        "alarmCondition": "OVERLOAD",
-        "eventSeverity": "CRITICAL",
-        "specificProblem": "System overload detected",
-        "eventSourceType": "other",
-        "vfStatus": "Degraded",
-        "alarmInterfaceA": "system"
-      }
-    }
-  },
-  "high_load_1": {
-    "event": {
-      "commonEventHeader": {
-        "version": "4.1",
-        "domain": "measurementsForVfScaling",
-        "eventName": "Perf_HighLoad",
-        "eventId": "perf-002",
-        "sequence": 2,
-        "priority": "High",
-        "reportingEntityName": "nf-sim",
-        "sourceName": "nf-sim",
-        "nfVendorName": "nephoran",
-        "startEpochMicrosec": 1731000010000,
-        "lastEpochMicrosec": 1731000010000,
-        "timeZoneOffset": "+00:00"
-      },
-      "measurementsForVfScalingFields": {
-        "measurementsForVfScalingVersion": "1.1",
-        "additionalFields": {
-          "kpm.p95_latency_ms": 250.0,
-          "kpm.prb_utilization": 0.92,
-          "kpm.cpu_utilization": 0.88
-        }
-      }
-    }
-  },
-  "critical_2": {
-    "event": {
-      "commonEventHeader": {
-        "version": "4.1",
-        "domain": "fault",
-        "eventName": "Fault_Critical_2",
-        "eventId": "fault-003",
-        "sequence": 3,
-        "priority": "Critical",
-        "reportingEntityName": "nf-sim",
-        "sourceName": "nf-sim",
-        "nfVendorName": "nephoran",
-        "startEpochMicrosec": 1731000020000,
-        "lastEpochMicrosec": 1731000020000,
-        "timeZoneOffset": "+00:00"
-      },
-      "faultFields": {
-        "faultFieldsVersion": "4.0",
-        "alarmCondition": "CONGESTION",
-        "eventSeverity": "CRITICAL",
-        "specificProblem": "Severe congestion",
-        "eventSourceType": "other",
-        "vfStatus": "Degraded",
-        "alarmInterfaceA": "eth0"
-      }
-    }
-  }
-}
-'@ > test-high-load.json
-```
-
-2. Run the test:
-
-```powershell
-# Terminal 1: Start reducer with low threshold
-./fcaps-reducer.exe --burst 2 --window 30 --verbose
-
-# Terminal 2: Send high load events
-./fcaps-sim.exe --input test-high-load.json --delay 1 --verbose
-```
-
-Expected output:
-- Reducer detects burst
-- Intent file created in `./handoff/intent-*.json`
-- Scaling intent shows increased replicas
-
-### Scenario 3: End-to-End with Intent Processing
-
-```powershell
-# Terminal 1: Start reducer
-./fcaps-reducer.exe --verbose
-
-# Terminal 2: Start intent ingest
-./intent-ingest.exe --out ./handoff
-
-# Terminal 3: Simulate events
-./fcaps-sim.exe --delay 2 --verbose
-```
-
-## Verification with curl
-
-### Test VES Collector Endpoint
-
-```bash
-# Send a test VES event
-curl -X POST http://localhost:9999/eventListener/v7 \
-  -H "Content-Type: application/json" \
-  -H "X-MinorVersion: 1" \
-  -H "X-PatchVersion: 0" \
-  -H "X-LatestVersion: 7.3" \
-  -d @docs/contracts/fcaps.ves.examples.json
-
-# Check health
-curl http://localhost:9999/health
-```
-
-### Test Intent Endpoint
-
-```bash
-# Send a scaling intent
-curl -X POST http://localhost:8080/intent \
-  -H "Content-Type: application/json" \
-  -d '{
-    "intent_type": "scaling",
-    "target": "nf-sim",
-    "namespace": "ran-a",
-    "replicas": 5,
-    "reason": "Manual scaling test",
-    "source": "curl"
-  }'
-```
-
-## Expected Log Output
-
-### Local Reducer Mode
-
-```
-2025/08/17 10:00:00 FCAPS Simulator starting with config: {...}
-2025/08/17 10:00:00 Loaded 6 FCAPS events from docs\contracts\fcaps.ves.examples.json
-2025/08/17 10:00:00 Local reducer enabled: burst=3, handoff=./handoff
-2025/08/17 10:00:01 Processing event: Fault_NFSim_LinkDown (domain: fault, source: nf-sim)
-2025/08/17 10:00:02 Processing event: Perf_NFSim_Metrics (domain: measurementsForVfScaling, source: nf-sim)
-2025/08/17 10:00:03 Processing event: Heartbeat_NFSim (domain: heartbeat, source: nf-sim)
-2025/08/17 10:00:04 Processing event: Perf_NFSim_HighLoad (domain: measurementsForVfScaling, source: nf-sim)
-2025/08/17 10:00:05 *** BURST DETECTED *** Intent written: handoff\intent-20250817T020005Z.json
-2025/08/17 10:00:05     Scaling nf-sim to 3 replicas (reason: Burst detected: 3 critical events in 1m0s window)
-```
-
-## Intent File Structure
-
-Generated intent files in `./handoff/` directory:
-
-```json
-{
-  "intent_type": "scaling",
-  "target": "nf-sim",
-  "namespace": "ran-a",
-  "replicas": 4,
-  "reason": "Burst detected: 3 critical events in 60s window",
-  "source": "fcaps-reducer",
-  "correlation_id": "burst-1731074400"
-}
-```
-
-## Troubleshooting
-
-### Port Already in Use
-
-```powershell
-# Find process using port 9999
-netstat -ano | findstr :9999
-
-# Kill the process (replace PID with actual process ID)
-taskkill /PID <PID> /F
-```
-
-### Permission Issues
-
-```powershell
-# Run as Administrator or ensure write permissions for handoff directory
-mkdir handoff
-icacls handoff /grant Everyone:F
-```
-
-### Build Errors
-
-```powershell
-# Clean module cache
-go clean -modcache
-
-# Download dependencies
-go mod download
-
-# Verify dependencies
-go mod verify
-```
-
-### Load Test with Multiple Events
-
-```powershell
-# Generate continuous load
-while ($true) {
-    ./fcaps-sim.exe --delay 1 --verbose
-    Start-Sleep -Seconds 5
-}
-```
-
-### Monitor Intent Generation
-
-```powershell
-# Watch for new intent files
-Get-ChildItem ./handoff -Filter "intent-*.json" | 
-    Sort-Object LastWriteTime -Descending | 
-    Select-Object -First 5
-```
-
-## Integration with Conductor
-
-The generated intent files in `./handoff/` are designed to be picked up by the conductor-watch loop:
-
-```powershell
-# Start conductor watch (in separate terminal)
-./conductor-watch.exe --input ./handoff --output ./processed
-```
-
-## Clean Up
-
-```powershell
-# Remove generated files
-Remove-Item ./handoff/intent-*.json -Force
-Remove-Item *.exe -Force
-Remove-Item test-*.json -Force
-```
-
 ---
 
-# Conductor Watch - Build, Run, and Test Guide for Windows
+# Conductor Watch
 
 ## Prerequisites
 
@@ -437,19 +419,6 @@ go test -v -cover ./internal/watch/...
 
 # Run specific test
 go test -v -run TestValidator ./internal/watch
-```
-
-Expected output:
-```
-=== RUN   TestValidator
-=== RUN   TestValidator/valid_intent
-=== RUN   TestValidator/missing_required_field
-=== RUN   TestValidator/wrong_intent_type
---- PASS: TestValidator (0.XX s)
-    --- PASS: TestValidator/valid_intent (0.00s)
-    --- PASS: TestValidator/missing_required_field (0.00s)
-    --- PASS: TestValidator/wrong_intent_type (0.00s)
-PASS
 ```
 
 ### 2. Integration Tests
@@ -518,18 +487,6 @@ Get-ChildItem .\handoff\intent-*.json | Select-Object Name, Length
 .\conductor-watch.exe --handoff .\handoff
 ```
 
-Expected output:
-```
-[conductor-watch] 2025/08/17 12:00:00.123456 Starting conductor-watch:
-[conductor-watch] 2025/08/17 12:00:00.123456   Watching: C:\Users\tingy\dev\_worktrees\nephoran\feat-conductor-watch\handoff
-[conductor-watch] 2025/08/17 12:00:00.123456   Schema: C:\Users\tingy\dev\_worktrees\nephoran\feat-conductor-watch\docs\contracts\intent.schema.json
-[conductor-watch] 2025/08/17 12:00:00.123456   Debounce: 300ms
-[conductor-watch] 2025/08/17 12:00:00.234567 WATCH:OK intent-valid-001.json - type=scaling target=my-deployment namespace=default replicas=3
-[conductor-watch] 2025/08/17 12:00:00.234567 WATCH:INVALID intent-invalid-type.json - schema validation failed: value must be 'scaling'
-[conductor-watch] 2025/08/17 12:00:00.234567 WATCH:INVALID intent-invalid-missing.json - schema validation failed: missing property 'namespace'
-[conductor-watch] 2025/08/17 12:00:00.234567 Processed 3 existing intent files on startup
-```
-
 ### 2. Run with HTTP POST Endpoint
 
 ```powershell
@@ -537,17 +494,8 @@ Expected output:
 # Using Python:
 python -m http.server 8080
 
-# Or using netcat (if available):
-# nc -l -p 8080
-
 # Run conductor-watch with POST URL
 .\conductor-watch.exe --handoff .\handoff --post-url "http://localhost:8080/intents"
-```
-
-Expected additional output:
-```
-[conductor-watch] 2025/08/17 12:00:00.123456   POST URL: http://localhost:8080/intents
-[conductor-watch] 2025/08/17 12:00:00.345678 WATCH:POST_OK intent-valid-001.json - Status=200 Response=...
 ```
 
 ### 3. Run with Custom Debounce
@@ -557,48 +505,9 @@ Expected additional output:
 .\conductor-watch.exe --handoff .\handoff --debounce-ms 500
 ```
 
-## Performance Testing
-
-### Batch File Creation
-
-```powershell
-# Create 100 intent files rapidly
-1..100 | ForEach-Object {
-    $intent = @{
-        intent_type = "scaling"
-        target = "app-$_"
-        namespace = "perf-test"
-        replicas = $_ % 10 + 1
-    } | ConvertTo-Json
-    
-    $intent | Out-File -FilePath ".\handoff\intent-perf-$_.json" -Encoding utf8
-}
-
-Write-Host "Created 100 test files" -ForegroundColor Green
-```
-
-The watcher should process all files with proper debouncing.
-
-## Cleanup
-
-```powershell
-# Remove test files
-Remove-Item .\handoff\intent-*.json -Force
-
-# Remove binary
-Remove-Item .\conductor-watch.exe -Force
-
-# Remove log file if created
-if (Test-Path .\conductor-watch.log) {
-    Remove-Item .\conductor-watch.log -Force
-}
-
-Write-Host "Cleanup completed" -ForegroundColor Green
-```
-
 ---
 
-# Admission Webhook - Build, Run, and Test Guide for Windows
+# Admission Webhook
 
 ## Prerequisites
 ```powershell
@@ -658,8 +567,75 @@ go build -o webhook-manager.exe ./cmd/webhook-manager
 #   -webhook-port int (default 9443)
 ```
 
-## Cleanup
+---
+
+# Common Troubleshooting
+
+## Performance Testing
+
 ```powershell
+# Generate multiple intents
+1..10 | ForEach-Object {
+    @{
+        intent_type = "scaling"
+        target = "nf-sim-$_"
+        namespace = "test"
+        replicas = $_
+    } | ConvertTo-Json | Out-File -FilePath ".\examples\intent-$_.json"
+}
+
+# Measure dry-run performance
+Measure-Command {
+    1..10 | ForEach-Object {
+        .\porch-direct.exe --intent ".\examples\intent-$_.json" --dry-run
+    }
+}
+
+# Clean up test files
+Remove-Item -Path .\examples\intent-*.json -Force
+```
+
+## Port Already in Use
+
+```powershell
+# Find process using port 9999
+netstat -ano | findstr :9999
+
+# Kill the process (replace PID with actual process ID)
+taskkill /PID <PID> /F
+```
+
+## Permission Issues
+
+```powershell
+# Run as Administrator or ensure write permissions for handoff directory
+mkdir handoff
+icacls handoff /grant Everyone:F
+```
+
+## Build Errors
+
+```powershell
+# Clean module cache
+go clean -modcache
+
+# Download dependencies
+go mod download
+
+# Verify dependencies
+go mod verify
+```
+
+## Cleanup
+
+```powershell
+# Remove generated files
+Remove-Item -Path .\out -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path .\examples\packages\direct -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item ./handoff/intent-*.json -Force
+Remove-Item *.exe -Force
+Remove-Item test-*.json -Force
+
 # Delete test resources
 kubectl delete networkintent --all -n default
 
@@ -673,13 +649,10 @@ kubectl delete namespace nephoran-system
 kind delete cluster --name webhook-test
 ```
 
-## Verification Summary
-✅ **Build successful**: `webhook-manager.exe` created
-✅ **CRDs generated**: `deployments/crds/intent.nephoran.io_networkintents.yaml`
-✅ **DeepCopy generated**: `api/intent/v1alpha1/zz_generated.deepcopy.go`
-✅ **Deployment successful**: Webhook pod running in `nephoran-system`
-✅ **Defaulting works**: Empty source field defaulted to "user"
-✅ **Validation works**: Invalid CRs rejected with clear error messages
-  - Negative replicas: "must be >= 0"
-  - Empty target: "must be non-empty"
-  - Invalid intentType: "only 'scaling' supported"
+## Security Considerations
+
+- Never commit Porch API credentials to the repository
+- Use environment variables for sensitive configuration
+- Validate all intent JSON inputs before processing
+- Run with minimal Windows permissions
+- Review generated KRM for security implications
