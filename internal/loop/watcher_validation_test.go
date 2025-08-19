@@ -117,8 +117,8 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_RecentEventsCl
 	watcher.fileState.recentEvents[testFile] = time.Now().Add(-2 * time.Minute) // Old event
 	watcher.fileState.mu.Unlock()
 
-	// Trigger cleanup manually
-	watcher.fileStateCleanupRoutine()
+	// Trigger cleanup manually using a helper method
+	watcher.cleanupOldFileState()
 
 	// Give cleanup time to run
 	time.Sleep(100 * time.Millisecond)

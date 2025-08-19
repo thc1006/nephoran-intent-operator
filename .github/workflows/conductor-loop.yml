@@ -70,14 +70,14 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mkdir -p test-results
-          go test -v -race -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
+          timeout 300 go test -v -race -timeout=5m -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
           go tool cover -html=test-results/coverage.out -o test-results/coverage.html
 
       - name: Run tests (Windows)
         if: runner.os == 'Windows'
         run: |
           mkdir test-results
-          go test -v -race -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
+          timeout 300 go test -v -race -timeout=5m -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
           go tool cover -html=test-results/coverage.out -o test-results/coverage.html
 
       - name: Upload test results
