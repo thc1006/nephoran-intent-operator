@@ -9,7 +9,7 @@ httpx==0.28.1  # For testing FastAPI
 # Code quality and linting  
 ruff==0.9.2  # Replaces black, flake8, isort - all in one, much faster
 mypy==1.14.1  # Type checking
-pre-commit==4.0.2  # Git hooks for code quality
+pre-commit==4.0.1  # Git hooks for code quality
 
 # Security scanning
 bandit[toml]==1.8.0  # Security linter
