@@ -1,0 +1,38 @@
+﻿2025-08-19T12:24:53.3588442Z Current runner version: '2.327.1'
+2025-08-19T12:24:53.3618779Z ##[group]Runner Image Provisioner
+2025-08-19T12:24:53.3620159Z Hosted Compute Agent
+2025-08-19T12:24:53.3621231Z Version: 20250818.377
+2025-08-19T12:24:53.3622272Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
+2025-08-19T12:24:53.3623363Z Build Date: 2025-08-18T14:52:18Z
+2025-08-19T12:24:53.3624179Z ##[endgroup]
+2025-08-19T12:24:53.3625199Z ##[group]Operating System
+2025-08-19T12:24:53.3626104Z Ubuntu
+2025-08-19T12:24:53.3626903Z 24.04.2
+2025-08-19T12:24:53.3627746Z LTS
+2025-08-19T12:24:53.3628225Z ##[endgroup]
+2025-08-19T12:24:53.3628877Z ##[group]Runner Image
+2025-08-19T12:24:53.3629564Z Image: ubuntu-24.04
+2025-08-19T12:24:53.3630347Z Version: 20250810.1.0
+2025-08-19T12:24:53.3631361Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250810.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-19T12:24:53.3632797Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250810.1
+2025-08-19T12:24:53.3634816Z ##[endgroup]
+2025-08-19T12:24:53.3636822Z ##[group]GITHUB_TOKEN Permissions
+2025-08-19T12:24:53.3639009Z Actions: read
+2025-08-19T12:24:53.3639597Z Checks: write
+2025-08-19T12:24:53.3640429Z Contents: read
+2025-08-19T12:24:53.3640945Z Metadata: read
+2025-08-19T12:24:53.3641467Z Packages: write
+2025-08-19T12:24:53.3642004Z PullRequests: write
+2025-08-19T12:24:53.3642521Z SecurityEvents: write
+2025-08-19T12:24:53.3643070Z ##[endgroup]
+2025-08-19T12:24:53.3645202Z Secret source: Actions
+2025-08-19T12:24:53.3645917Z Prepare workflow directory
+2025-08-19T12:24:53.4181428Z Prepare all required actions
+2025-08-19T12:24:53.4218674Z Getting action download info
+2025-08-19T12:24:53.8375912Z Download action repository 'step-security/harden-runner@v2' (SHA:ec9f2d5744a09debf3a187a3f4f675c53b671911)
+2025-08-19T12:24:54.1747920Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-08-19T12:24:54.3813819Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+2025-08-19T12:24:54.6368689Z Download action repository 'golangci/golangci-lint-action@v4' (SHA:d6238b002a20823d52840fda27e2d4891c5952dc)
+2025-08-19T12:24:54.8705455Z Download action repository 'codecov/codecov-action@v4' (SHA:b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238)
+2025-08-19T12:24:55.0857079Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-08-19T12:24:55.3017704Z Complete job name: Tests & Quality

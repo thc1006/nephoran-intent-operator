@@ -1,0 +1,27 @@
+﻿2025-08-19T12:24:55.3746174Z ##[group]Run step-security/harden-runner@v2
+2025-08-19T12:24:55.3747671Z with:
+2025-08-19T12:24:55.3748581Z   egress-policy: audit
+2025-08-19T12:24:55.3749746Z   token: ***
+2025-08-19T12:24:55.3750778Z   disable-telemetry: false
+2025-08-19T12:24:55.3751808Z   disable-sudo: false
+2025-08-19T12:24:55.3752717Z   disable-sudo-and-containers: false
+2025-08-19T12:24:55.3753838Z   disable-file-monitoring: false
+2025-08-19T12:24:55.3755252Z env:
+2025-08-19T12:24:55.3756060Z   GO_VERSION: 1.24
+2025-08-19T12:24:55.3756896Z   REGISTRY: ghcr.io
+2025-08-19T12:24:55.3757831Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T12:24:55.3758874Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T12:24:55.3759854Z ##[endgroup]
+2025-08-19T12:24:55.5504093Z [harden-runner] pre-step
+2025-08-19T12:24:55.5505324Z [!] Current Configuration: 
+2025-08-19T12:24:55.5511729Z {"repo":"thc1006/nephoran-intent-operator","run_id":"17069476080","correlation_id":"4cd2fe9c-fe13-4794-b159-1c63e89d07b2","working_directory":"/home/runner/work/nephoran-intent-operator/nephoran-intent-operator","api_url":"https://agent.api.stepsecurity.io/v1","allowed_endpoints":"","egress_policy":"audit","disable_telemetry":false,"disable_sudo":false,"disable_sudo_and_containers":false,"disable_file_monitoring":false,"private":false,"is_github_hosted":true,"is_debug":false,"one_time_key":""}
+2025-08-19T12:24:55.5517590Z 
+2025-08-19T12:24:55.5518424Z [32mView security insights and recommended policy at:[0m
+2025-08-19T12:24:55.5520586Z https://app.stepsecurity.io/github/thc1006/nephoran-intent-operator/actions/runs/17069476080
+2025-08-19T12:24:55.5522713Z RUNNER_NAME: GitHub Actions 1000010458
+2025-08-19T12:24:56.3230294Z Runner IP Address: 172.208.84.243
+2025-08-19T12:24:56.3232367Z Step Security Job Correlation ID: 4cd2fe9c-fe13-4794-b159-1c63e89d07b2
+2025-08-19T12:24:56.3436119Z [!] Checking TLS_STATUS: thc1006
+2025-08-19T12:24:56.7010486Z [!] TLS_NOT_ENABLED: thc1006
+2025-08-19T12:24:56.8580936Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/3ec3b6c1-ea92-4594-a10c-dcbf212fb841 -f /home/runner/work/_temp/da6585be-e03c-4cae-8474-84e78ea710eb
+2025-08-19T12:24:59.8574838Z Initialized

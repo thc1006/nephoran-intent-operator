@@ -1,0 +1,99 @@
+﻿2025-08-19T12:26:35.9490378Z Post job cleanup.
+2025-08-19T12:26:36.0216239Z [harden-runner] post-step
+2025-08-19T12:26:37.0233301Z log:
+2025-08-19T12:26:37.0234805Z Tue, 19 Aug 2025 12:25:27 GMT:[buildInfo] tag=v0.14.2 commit=a33c48b038c7b6ac98c789579037e76204e082d0 branch=HEAD 
+2025-08-19T12:26:37.0235980Z 
+2025-08-19T12:26:37.0236253Z Tue, 19 Aug 2025 12:25:27 GMT:read config 
+2025-08-19T12:26:37.0241362Z  &{Repo:thc1006/nephoran-intent-operator CorrelationId:eac24956-e73c-4902-b69d-4d1adeb0dd7e RunId:17069476080 WorkingDirectory:/home/runner/work/nephoran-intent-operator/nephoran-intent-operator APIURL:https://agent.api.stepsecurity.io/v1 OneTimeKey: Endpoints:map[api.github.com.:[{domainName:api.github.com. port:443}] github.com.:[{domainName:github.com. port:443}] golang.org.:[{domainName:golang.org. port:443}] objects.githubusercontent.com.:[{domainName:objects.githubusercontent.com. port:443}] proxy.golang.org.:[{domainName:proxy.golang.org. port:443}] sum.golang.org.:[{domainName:sum.golang.org. port:443}]] EgressPolicy:audit DisableTelemetry:false DisableSudo:false DisableSudoAndContainers:false DisableFileMonitoring:false Private:false}
+2025-08-19T12:26:37.0244538Z 
+2025-08-19T12:26:37.0244837Z Tue, 19 Aug 2025 12:25:27 GMT:Step Security Job Correlation ID: eac24956-e73c-4902-b69d-4d1adeb0dd7e
+2025-08-19T12:26:37.0245199Z 
+2025-08-19T12:26:37.0245449Z Tue, 19 Aug 2025 12:25:28 GMT:Global feature flags: {AgentType:agent-oss EnableArmour:true}
+2025-08-19T12:26:37.0245934Z Tue, 19 Aug 2025 12:25:28 GMT:initialized global feature flags
+2025-08-19T12:26:37.0246175Z 
+2025-08-19T12:26:37.0246309Z Tue, 19 Aug 2025 12:25:28 GMT:started process monitor
+2025-08-19T12:26:37.0246532Z 
+2025-08-19T12:26:37.0246668Z Tue, 19 Aug 2025 12:25:28 GMT:Monitor Processes called
+2025-08-19T12:26:37.0247009Z Tue, 19 Aug 2025 12:25:28 GMT:NewAuditClient created
+2025-08-19T12:26:37.0247324Z Tue, 19 Aug 2025 12:25:28 GMT:Status is enabled
+2025-08-19T12:26:37.0247626Z Tue, 19 Aug 2025 12:25:28 GMT:Rules deleted
+2025-08-19T12:26:37.0248320Z Tue, 19 Aug 2025 12:25:28 GMT:File monitor added for /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T12:26:37.0248893Z Tue, 19 Aug 2025 12:25:28 GMT:Agent file monitor added
+2025-08-19T12:26:37.0249299Z Tue, 19 Aug 2025 12:25:28 GMT:Docker's daemon.json file monitor added
+2025-08-19T12:26:37.0249737Z Tue, 19 Aug 2025 12:25:28 GMT:Systemd's resolved.conf file monitor added
+2025-08-19T12:26:37.0250110Z Tue, 19 Aug 2025 12:25:28 GMT:Net monitor added
+2025-08-19T12:26:37.0250431Z Tue, 19 Aug 2025 12:25:28 GMT:Process monitor added
+2025-08-19T12:26:37.0250754Z Tue, 19 Aug 2025 12:25:28 GMT:receive called
+2025-08-19T12:26:37.0250950Z 
+2025-08-19T12:26:37.0250955Z 
+2025-08-19T12:26:37.0251070Z Tue, 19 Aug 2025 12:25:28 GMT:updated resolved
+2025-08-19T12:26:37.0251471Z 
+2025-08-19T12:26:37.0251588Z Tue, 19 Aug 2025 12:25:29 GMT:set docker config
+2025-08-19T12:26:37.0251783Z 
+2025-08-19T12:26:37.0251904Z Tue, 19 Aug 2025 12:25:29 GMT:before audit rules
+2025-08-19T12:26:37.0252209Z Tue, 19 Aug 2025 12:25:29 GMT:added audit rules
+2025-08-19T12:26:37.0252522Z Tue, 19 Aug 2025 12:25:29 GMT:Armour is enabled
+2025-08-19T12:26:37.0252810Z Tue, 19 Aug 2025 12:25:29 GMT:Armour attached
+2025-08-19T12:26:37.0253080Z Tue, 19 Aug 2025 12:25:29 GMT:done
+2025-08-19T12:26:37.0254151Z Tue, 19 Aug 2025 12:25:29 GMT:[Source code overwritten] file: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/config.lock syscall: openat by exe: /usr/bin/git [324c8e1c70df886c33f9de6baea3e69badf185588d7724d68da69d4be7933a74] Timestamp: 2025-08-19T12:25:29.792Z
+2025-08-19T12:26:37.0255977Z Tue, 19 Aug 2025 12:25:29 GMT:[Source code overwritten] file: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/config syscall: rename by exe: /usr/bin/git [324c8e1c70df886c33f9de6baea3e69badf185588d7724d68da69d4be7933a74] Timestamp: 2025-08-19T12:25:29.792Z
+2025-08-19T12:26:37.0257773Z Tue, 19 Aug 2025 12:25:29 GMT:[Source code overwritten] file: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/config.lock syscall: openat by exe: /usr/bin/git [324c8e1c70df886c33f9de6baea3e69badf185588d7724d68da69d4be7933a74] Timestamp: 2025-08-19T12:25:29.793Z
+2025-08-19T12:26:37.0260754Z Tue, 19 Aug 2025 12:25:29 GMT:domain resolved: github.com., ip address: 140.82.114.3, TTL: 60
+2025-08-19T12:26:37.0262474Z Tue, 19 Aug 2025 12:25:29 GMT:[Source code overwritten] file: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/config syscall: openat by exe: /home/runner/actions-runner/cached/externals/node20/bin/node [2fef68bbc03f7bf68b3daa917d43ab198466080302b2a9d731cf43614a574d25] Timestamp: 2025-08-19T12:25:29.871Z
+2025-08-19T12:26:37.0263960Z Tue, 19 Aug 2025 12:25:30 GMT:domain resolved: results-receiver.actions.githubusercontent.com., ip address: 140.82.113.21, TTL: 30
+2025-08-19T12:26:37.0264722Z Tue, 19 Aug 2025 12:25:30 GMT:endpoint called ip address:port 140.82.114.3:443, domain: github.com., pid: 3095, process: git-remote-http
+2025-08-19T12:26:37.0265560Z Tue, 19 Aug 2025 12:25:39 GMT:endpoint called ip address:port 140.82.113.21:443, domain: results-receiver.actions.githubusercontent.com., pid: 3116, process: node
+2025-08-19T12:26:37.0266330Z Tue, 19 Aug 2025 12:25:40 GMT:domain resolved: proxy.golang.org., ip address: 142.251.163.141, TTL: 300
+2025-08-19T12:26:37.0267416Z Tue, 19 Aug 2025 12:25:40 GMT:endpoint called ip address:port 142.251.163.141:443, domain: proxy.golang.org., pid: 3182, process: go
+2025-08-19T12:26:37.0268908Z Tue, 19 Aug 2025 12:25:46 GMT:domain resolved: storage.googleapis.com., ip address: 192.178.155.207, TTL: 124
+2025-08-19T12:26:37.0269735Z Tue, 19 Aug 2025 12:25:46 GMT:endpoint called ip address:port 192.178.155.207:443, domain: storage.googleapis.com., pid: 3182, process: go
+2025-08-19T12:26:37.0270426Z Tue, 19 Aug 2025 12:25:54 GMT:endpoint called ip address:port 168.63.129.16:80, domain: , pid: 3190, process: python3.12
+2025-08-19T12:26:37.0271016Z Tue, 19 Aug 2025 12:25:57 GMT:domain resolved: sum.golang.org., ip address: 172.253.122.141, TTL: 300
+2025-08-19T12:26:37.0271654Z Tue, 19 Aug 2025 12:25:57 GMT:endpoint called ip address:port 142.251.163.141:443, domain: proxy.golang.org., pid: 3230, process: go
+2025-08-19T12:26:37.0272349Z Tue, 19 Aug 2025 12:25:57 GMT:endpoint called ip address:port 172.253.122.141:443, domain: sum.golang.org., pid: 3230, process: go
+2025-08-19T12:26:37.0272936Z Tue, 19 Aug 2025 12:26:17 GMT:domain resolved: vuln.go.dev., ip address: 34.117.213.18, TTL: 300
+2025-08-19T12:26:37.0273546Z Tue, 19 Aug 2025 12:26:17 GMT:endpoint called ip address:port 34.117.213.18:443, domain: vuln.go.dev., pid: 5273, process: govulncheck
+2025-08-19T12:26:37.0273923Z 
+2025-08-19T12:26:37.0274033Z Tue, 19 Aug 2025 12:26:36 GMT:post_event called
+2025-08-19T12:26:37.0274218Z 
+2025-08-19T12:26:37.0274289Z status:
+2025-08-19T12:26:37.0274473Z Initialized
+2025-08-19T12:26:37.0397409Z agent.service log:
+2025-08-19T12:26:37.0399298Z Aug 19 12:25:27 pkrvmubgrv54qmi systemd[1]: /etc/systemd/system/agent.service:9: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+2025-08-19T12:26:37.0402064Z Aug 19 12:25:27 pkrvmubgrv54qmi systemd[1]: /etc/systemd/system/agent.service:10: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+2025-08-19T12:26:37.0403665Z Aug 19 12:25:27 pkrvmubgrv54qmi systemd[1]: Started agent.service - Agent.
+2025-08-19T12:26:37.0404599Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2667]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl stop systemd-resolved
+2025-08-19T12:26:37.0405356Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2667]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T12:26:37.0406194Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2667]: pam_unix(sudo:session): session closed for user root
+2025-08-19T12:26:37.0406989Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2673]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl restart systemd-resolved
+2025-08-19T12:26:37.0408309Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2673]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T12:26:37.0409264Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2673]: pam_unix(sudo:session): session closed for user root
+2025-08-19T12:26:37.0410097Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2680]:     root : *** ; USER=root ; COMMAND=/usr/bin/resolvectl flush-caches
+2025-08-19T12:26:37.0410907Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2680]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T12:26:37.0411639Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2680]: pam_unix(sudo:session): session closed for user root
+2025-08-19T12:26:37.0412355Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2683]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl reload docker
+2025-08-19T12:26:37.0413133Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2683]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T12:26:37.0413809Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2683]: pam_unix(sudo:session): session closed for user root
+2025-08-19T12:26:37.0414559Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2689]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl daemon-reload
+2025-08-19T12:26:37.0415248Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2689]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T12:26:37.0416402Z Aug 19 12:25:28 pkrvmubgrv54qmi systemd[1]: /etc/systemd/system/agent.service:9: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+2025-08-19T12:26:37.0418853Z Aug 19 12:25:28 pkrvmubgrv54qmi systemd[1]: /etc/systemd/system/agent.service:10: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+2025-08-19T12:26:37.0420011Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2689]: pam_unix(sudo:session): session closed for user root
+2025-08-19T12:26:37.0420806Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2760]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl restart docker
+2025-08-19T12:26:37.0421494Z Aug 19 12:25:28 pkrvmubgrv54qmi sudo[2760]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T12:26:37.0422216Z Aug 19 12:25:29 pkrvmubgrv54qmi sudo[2760]: pam_unix(sudo:session): session closed for user root
+2025-08-19T12:26:37.0422889Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Config ENFORCE_WRITE_BLOCK=false
+2025-08-19T12:26:37.0423548Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Config ENFORCE_KILL_BLOCK=false
+2025-08-19T12:26:37.0424266Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Config AGENT_PID=2654
+2025-08-19T12:26:37.0424965Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Config ENFORCE_READ_BLOCK=false
+2025-08-19T12:26:37.0425604Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Map size protected_pids=1
+2025-08-19T12:26:37.0426342Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Map size protected_pid_inodes=1
+2025-08-19T12:26:37.0427034Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Map size protected_bpf_ids=9
+2025-08-19T12:26:37.0427679Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Map size protected_fs_inodes=6
+2025-08-19T12:26:37.0428966Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Map size protected_proc_fs_inodes=2
+2025-08-19T12:26:37.0429751Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO ProtectedPids err=<nil> pids=map[2954:2654]
+2025-08-19T12:26:37.0430457Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO ProtectedBPFIDs freezed ids="[10 4 8 11 9]"
+2025-08-19T12:26:37.0431757Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Write protected inodes="map[509:/etc/systemd/resolved.conf 988:/etc/resolv.conf 1643:/etc/sudoers.d/runner 24100:/proc/2223/mem 24101:/proc/2208/mem 3189531:/etc/docker/daemon.json]" freezeErr=<nil>
+2025-08-19T12:26:37.0433211Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Linking completed
+2025-08-19T12:26:37.0433789Z Aug 19 12:25:29 pkrvmubgrv54qmi agentservice[2654]: 2025/08/19 12:25:29 INFO Armour engaged
+2025-08-19T12:26:37.0434186Z 
