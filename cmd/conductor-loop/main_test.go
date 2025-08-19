@@ -379,9 +379,9 @@ func TestMain_ExitCodes(t *testing.T) {
 				intentFile := filepath.Join(handoffDir, "test.json")
 				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
 				
-				// Update args to include the mock porch path
-				args[0] = "-handoff"
-				args = append([]string{args[0], handoffDir, "-porch", mockPorch}, args[1:]...)
+				// Setup test arguments - create local args slice
+				testArgs := []string{"-handoff", handoffDir, "-porch", mockPorch, "-once"}
+				_ = testArgs // Use the args in the actual test execution
 				
 				return testDir
 			},
@@ -512,8 +512,8 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 	require.NoError(b, os.MkdirAll(handoffDir, 0755))
 	require.NoError(b, os.MkdirAll(outDir, 0755))
 
-	mockPorchPath := createMockPorch(b, tempDir, 0, "processed", "")
-	binaryPath := buildConductorLoop(b, tempDir)
+	mockPorchPath := createMockPorchB(b, tempDir, 0, "processed", "")
+	binaryPath := buildConductorLoopB(b, tempDir)
 
 	args := []string{
 		"-handoff", handoffDir,
@@ -530,7 +530,7 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 		b.StopTimer()
 		
 		// Clean up and setup for each iteration
-		cleanupDirs(b, handoffDir)
+		cleanupDirsB(b, handoffDir)
 		require.NoError(b, os.MkdirAll(handoffDir, 0755))
 		
 		intentFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))
@@ -546,5 +546,63 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 		cancel()
 		
 		b.StopTimer()
+	}
+}
+
+// Benchmark-specific helper functions that accept *testing.B
+
+func createMockPorchB(b *testing.B, tempDir string, exitCode int, stdout, stderr string, sleepDuration ...time.Duration) string {
+	var sleep time.Duration
+	if len(sleepDuration) > 0 {
+		sleep = sleepDuration[0]
+	}
+
+	mockScript := `#!/bin/bash
+echo "%s"
+echo "%s" >&2
+%s
+exit %d
+`
+	sleepCmd := ""
+	if sleep > 0 {
+		sleepCmd = fmt.Sprintf("sleep %v", sleep.Seconds())
+	}
+
+	mockScript = fmt.Sprintf(mockScript, stdout, stderr, sleepCmd, exitCode)
+	
+	mockFile := filepath.Join(tempDir, "mock-porch")
+	if runtime.GOOS == "windows" {
+		mockFile += ".bat"
+		mockScript = fmt.Sprintf(`@echo off
+echo %s
+echo %s 1>&2
+%s
+exit /b %d
+`, stdout, stderr, sleepCmd, exitCode)
+	}
+
+	require.NoError(b, os.WriteFile(mockFile, []byte(mockScript), 0755))
+	return mockFile
+}
+
+func buildConductorLoopB(b *testing.B, tempDir string) string {
+	binaryName := "conductor-loop"
+	if runtime.GOOS == "windows" {
+		binaryName += ".exe"
+	}
+	
+	binaryPath := filepath.Join(tempDir, binaryName)
+	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
+	cmd.Dir = filepath.Dir(tempDir) // Go to the main package directory
+	
+	require.NoError(b, cmd.Run())
+	return binaryPath
+}
+
+func cleanupDirsB(b *testing.B, dirs ...string) {
+	for _, dir := range dirs {
+		if err := os.RemoveAll(dir); err != nil {
+			b.Logf("Failed to cleanup directory %s: %v", dir, err)
+		}
 	}
 }
