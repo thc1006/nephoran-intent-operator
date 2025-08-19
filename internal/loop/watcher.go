@@ -1145,6 +1145,12 @@ func (w *Watcher) waitForWorkersToFinish() {
 
 // Close stops the watcher and releases resources
 func (w *Watcher) Close() error {
+	// Defensive nil check to prevent panic
+	if w == nil {
+		log.Printf("Close() called on nil Watcher - ignoring")
+		return nil
+	}
+	
 	log.Printf("Closing watcher...")
 	
 	// Cancel context to signal shutdown

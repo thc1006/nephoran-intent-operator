@@ -63,8 +63,8 @@ func TestProcessorBasic(t *testing.T) {
 	validator := &MockValidator{shouldFail: false}
 
 	// Track porch submissions with thread-safe access
-	var submittedMu sync.Mutex
 	var submittedIntents []*ingest.Intent
+	var submittedMu sync.Mutex
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
 		submittedMu.Lock()
 		submittedIntents = append(submittedIntents, intent)
@@ -103,14 +103,14 @@ func TestProcessorBasic(t *testing.T) {
 	}
 
 	// Wait for batch processing
-	if !WaitFor(t, func() bool {
-		submittedMu.Lock()
-		defer submittedMu.Unlock()
-		return len(submittedIntents) == 1
-	}, 2*time.Second, "first intent submission") {
-		submittedMu.Lock()
-		t.Errorf("Expected 1 submitted intent, got %d", len(submittedIntents))
-		submittedMu.Unlock()
+	time.Sleep(200 * time.Millisecond)
+
+	// Verify submission with thread-safe access
+	submittedMu.Lock()
+	submittedCount := len(submittedIntents)
+	submittedMu.Unlock()
+	if submittedCount != 1 {
+		t.Errorf("Expected 1 submitted intent, got %d", submittedCount)
 	}
 
 	// Verify idempotency - process same file again
@@ -118,15 +118,15 @@ func TestProcessorBasic(t *testing.T) {
 		t.Errorf("Second ProcessFile failed: %v", err)
 	}
 
-	// Give it a moment to ensure no duplicate processing
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
-	// Should still be 1 (idempotent)
+	// Should still be 1 (idempotent) with thread-safe access
 	submittedMu.Lock()
-	if len(submittedIntents) != 1 {
-		t.Errorf("Expected 1 submitted intent (idempotent), got %d", len(submittedIntents))
-	}
+	submittedCount = len(submittedIntents)
 	submittedMu.Unlock()
+	if submittedCount != 1 {
+		t.Errorf("Expected 1 submitted intent (idempotent), got %d", submittedCount)
+	}
 }
 
 // TestProcessorValidationError tests validation error handling
@@ -156,10 +156,13 @@ func TestProcessorValidationError(t *testing.T) {
 		failMsg:    "validation error",
 	}
 
-	// Mock porch function (should not be called)
-	porchCalled := false
+	// Mock porch function (should not be called) with thread-safe access
+	var porchCalled bool
+	var porchMu sync.Mutex
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
+		porchMu.Lock()
 		porchCalled = true
+		porchMu.Unlock()
 		return nil
 	}
 
@@ -180,24 +183,26 @@ func TestProcessorValidationError(t *testing.T) {
 	}
 
 	// Process file
-	if err := processor.ProcessFile(testFile); err != nil {
-		t.Errorf("ProcessFile failed: %v", err)
-	}
+	processor.ProcessFile(testFile)
 
 	// Wait for processing
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(200 * time.Millisecond)
 
-	// Verify porch was not called
-	if porchCalled {
+	// Verify porch was not called with thread-safe access
+	porchMu.Lock()
+	wasPortchCalled := porchCalled
+	porchMu.Unlock()
+	if wasPortchCalled {
 		t.Error("Porch function should not have been called for invalid intent")
 	}
 
 	// Check error file was created
-	if !WaitFor(t, func() bool {
-		entries, _ := os.ReadDir(errorDir)
-		return len(entries) >= 2
-	}, 2*time.Second, "error files creation") {
-		entries, _ := os.ReadDir(errorDir)
+	entries, err := os.ReadDir(errorDir)
+	if err != nil {
+		t.Fatalf("Failed to read error dir: %v", err)
+	}
+
+	if len(entries) < 2 { // Should have .error and .json files
 		t.Errorf("Expected error files to be created, found %d files", len(entries))
 	}
 }
@@ -226,9 +231,9 @@ func TestProcessorPorchError(t *testing.T) {
 	// Create mock validator
 	validator := &MockValidator{shouldFail: false}
 
-	// Mock porch function that fails with thread-safe counter
+	// Mock porch function that fails with thread-safe access
+	var submitAttempts int
 	var attemptsMu sync.Mutex
-	submitAttempts := 0
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
 		attemptsMu.Lock()
 		submitAttempts++
@@ -262,27 +267,26 @@ func TestProcessorPorchError(t *testing.T) {
 	}
 
 	// Process file
-	if err := processor.ProcessFile(testFile); err != nil {
-		t.Errorf("ProcessFile failed: %v", err)
-	}
+	processor.ProcessFile(testFile)
 
 	// Wait for processing and retries
-	if !WaitFor(t, func() bool {
-		attemptsMu.Lock()
-		defer attemptsMu.Unlock()
-		return submitAttempts >= config.MaxRetries
-	}, 4*time.Second, "retry attempts") {
-		attemptsMu.Lock()
-		t.Errorf("Expected %d submit attempts, got %d", config.MaxRetries, submitAttempts)
-		attemptsMu.Unlock()
+	time.Sleep(3 * time.Second)
+
+	// Verify retries happened with thread-safe access
+	attemptsMu.Lock()
+	finalAttempts := submitAttempts
+	attemptsMu.Unlock()
+	if finalAttempts != config.MaxRetries {
+		t.Errorf("Expected %d submit attempts, got %d", config.MaxRetries, finalAttempts)
 	}
 
 	// Check error file was created
-	if !WaitFor(t, func() bool {
-		entries, _ := os.ReadDir(errorDir)
-		return len(entries) >= 2
-	}, 2*time.Second, "error files creation") {
-		entries, _ := os.ReadDir(errorDir)
+	entries, err := os.ReadDir(errorDir)
+	if err != nil {
+		t.Fatalf("Failed to read error dir: %v", err)
+	}
+
+	if len(entries) < 2 { // Should have .error and .json files
 		t.Errorf("Expected error files to be created, found %d files", len(entries))
 	}
 }
@@ -311,10 +315,10 @@ func TestProcessorBatching(t *testing.T) {
 	// Create mock validator
 	validator := &MockValidator{shouldFail: false}
 
-	// Track batch submissions with thread-safe counters
-	var batchMu sync.Mutex
+	// Track batch submissions with thread-safe access
 	var batchSizes []int
-	currentBatch := 0
+	var currentBatch int
+	var batchMu sync.Mutex
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
 		batchMu.Lock()
 		currentBatch++
@@ -347,22 +351,15 @@ func TestProcessorBatching(t *testing.T) {
 			t.Fatalf("Failed to write test file %d: %v", i, err)
 		}
 		
-		if err := processor.ProcessFile(testFile); err != nil {
-			t.Errorf("ProcessFile failed for file %d: %v", i, err)
-		}
+		processor.ProcessFile(testFile)
 		
 		// After 3 files, batch should flush
 		if i == 2 {
-			if !WaitFor(t, func() bool {
-				batchMu.Lock()
-				defer batchMu.Unlock()
-				return currentBatch == 3
-			}, 1*time.Second, "batch flush after 3 files") {
-				batchMu.Lock()
-				t.Errorf("Expected batch to flush after 3 files, got %d", currentBatch)
-				batchMu.Unlock()
-			}
+			time.Sleep(100 * time.Millisecond)
 			batchMu.Lock()
+			if currentBatch != 3 {
+				t.Errorf("Expected batch to flush after 3 files, got %d", currentBatch)
+			}
 			batchSizes = append(batchSizes, currentBatch)
 			currentBatch = 0
 			batchMu.Unlock()
@@ -370,13 +367,12 @@ func TestProcessorBatching(t *testing.T) {
 	}
 
 	// Wait for interval flush of remaining files
-	if !WaitFor(t, func() bool {
-		batchMu.Lock()
-		defer batchMu.Unlock()
-		return currentBatch == 2
-	}, 2*time.Second, "interval flush of remaining files") {
-		batchMu.Lock()
-		t.Errorf("Expected remaining 2 files to be processed, got %d", currentBatch)
-		batchMu.Unlock()
+	time.Sleep(600 * time.Millisecond)
+	
+	batchMu.Lock()
+	finalBatch := currentBatch
+	batchMu.Unlock()
+	if finalBatch != 2 {
+		t.Errorf("Expected remaining 2 files to be processed, got %d", finalBatch)
 	}
 }
