@@ -13,6 +13,56 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
+// validateHandoffDir validates that a path exists and is accessible for directory operations.
+// It checks if the path exists, is a directory (not a file), and has read permissions.
+// Returns clear error messages for each failure case, working consistently across Windows, Linux, and macOS.
+func validateHandoffDir(path string) error {
+	if path == "" {
+		return fmt.Errorf("path cannot be empty")
+	}
+
+	// Clean the path to handle various path formats consistently across platforms
+	cleanPath := filepath.Clean(path)
+	
+	// Check if the path exists
+	info, err := os.Stat(cleanPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Path doesn't exist - check if parent directory exists and is accessible
+			parent := filepath.Dir(cleanPath)
+			
+			// Special case: if parent is the same as path, we've reached the root
+			if parent == cleanPath {
+				return fmt.Errorf("invalid path: %s (cannot validate root directory)", cleanPath)
+			}
+			
+			// Recursively check if parent is valid for directory creation
+			if err := validateHandoffDir(parent); err != nil {
+				return fmt.Errorf("invalid parent directory for %s: %v", cleanPath, err)
+			}
+			
+			// Parent exists and is valid, so we can create the directory
+			return nil
+		}
+		
+		// Other error (e.g., permission denied, invalid path format)
+		return fmt.Errorf("cannot access path %s: %v", cleanPath, err)
+	}
+	
+	// Path exists - verify it's a directory
+	if !info.IsDir() {
+		return fmt.Errorf("path %s exists but is not a directory", cleanPath)
+	}
+	
+	// Test read permission by attempting to read the directory
+	_, err = os.ReadDir(cleanPath)
+	if err != nil {
+		return fmt.Errorf("directory %s exists but is not readable: %v", cleanPath, err)
+	}
+	
+	return nil
+}
+
 // Config holds all command-line configuration
 type Config struct {
 	HandoffDir     string
@@ -32,7 +82,10 @@ func main() {
 	// Parse command-line flags
 	config := parseFlags()
 
-	// Ensure handoff directory exists
+	// Validate and create handoff directory
+	if err := validateHandoffDir(config.HandoffDir); err != nil {
+		log.Fatalf("Invalid handoff directory path %s: %v", config.HandoffDir, err)
+	}
 	if err := os.MkdirAll(config.HandoffDir, 0755); err != nil {
 		log.Fatalf("Failed to create handoff directory: %v", err)
 	}
@@ -44,7 +97,10 @@ func main() {
 	}
 	config.HandoffDir = absHandoffDir
 
-	// Ensure output directory exists
+	// Validate and create output directory
+	if err := validateHandoffDir(config.OutDir); err != nil {
+		log.Fatalf("Invalid output directory path %s: %v", config.OutDir, err)
+	}
 	if err := os.MkdirAll(config.OutDir, 0755); err != nil {
 		log.Fatalf("Failed to create output directory: %v", err)
 	}
@@ -141,14 +197,7 @@ func parseFlags() Config {
 		log.Fatalf("Error parsing flags: %v", err)
 	}
 	
-	// Create directories if they don't exist (not done in parseFlagsWithFlagSet for testing)
-	if err := os.MkdirAll(config.HandoffDir, 0755); err != nil {
-		log.Fatalf("Failed to create handoff directory: %v", err)
-	}
-	if err := os.MkdirAll(config.OutDir, 0755); err != nil {
-		log.Fatalf("Failed to create output directory: %v", err)
-	}
-	
+	// Note: directory creation is done in main() after validation
 	return config
 }
 
