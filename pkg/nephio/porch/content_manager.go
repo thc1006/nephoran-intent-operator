@@ -1277,5 +1277,100 @@ func (cm *contentManager) metricsCollectionLoop() {
 	}
 }
 
+// Additional missing types for compilation
+
+// ContentMetrics holds metrics about package content
+type ContentMetrics struct {
+	TotalFiles    int64   `json:"total_files"`
+	TotalSize     int64   `json:"total_size"`
+	LastModified  int64   `json:"last_modified"`
+	ResourceTypes int     `json:"resource_types"`
+	Complexity    float64 `json:"complexity"`
+}
+
+// ContentManagerHealth represents the health status of the content manager
+type ContentManagerHealth struct {
+	Status             string            `json:"status"`
+	ActiveConnections  int               `json:"active_connections"`
+	PendingOperations  int               `json:"pending_operations"`
+	ErrorRate          float64           `json:"error_rate"`
+	LastHealthCheck    int64             `json:"last_health_check"`
+	ComponentHealth    map[string]string `json:"component_health"`
+}
+
+// ContentManagerMetrics holds Prometheus metrics
+type ContentManagerMetrics struct {
+	contentOperations *prometheus.CounterVec
+	contentSize       *prometheus.GaugeVec
+	operationDuration *prometheus.HistogramVec
+}
+
+// ContentStore interface for content storage operations
+type ContentStore interface {
+	Store(ctx context.Context, key string, content []byte) error
+	Retrieve(ctx context.Context, key string) ([]byte, error)
+	Delete(ctx context.Context, key string) error
+	List(ctx context.Context, prefix string) ([]string, error)
+	Close() error
+}
+
+// TemplateEngine handles template processing
+type TemplateEngine struct {
+	templates map[string]*template.Template
+	funcs     template.FuncMap
+}
+
+// ContentValidator validates package content
+type ContentValidator struct {
+	schemas map[string]interface{}
+	rules   []ContentValidationRule
+}
+
+// ContentValidationRule defines content validation rules
+type ContentValidationRule struct {
+	Name        string
+	Pattern     string
+	Required    bool
+	ErrorMsg    string
+}
+
+// ConflictResolver handles content merge conflicts
+type ConflictResolver struct {
+	strategies map[string]ConflictStrategy
+}
+
+// ConflictStrategy defines how to resolve conflicts
+type ConflictStrategy interface {
+	Resolve(base, local, remote []byte) ([]byte, error)
+}
+
+// SecurityIssueType represents types of security issues
+type SecurityIssueType string
+
+const (
+	SecurityIssueTypeVulnerability SecurityIssueType = "vulnerability"
+	SecurityIssueTypeMisconfiguration SecurityIssueType = "misconfiguration"
+	SecurityIssueTypeSecretExposure SecurityIssueType = "secret_exposure"
+)
+
+// SecuritySeverity represents security issue severity levels
+type SecuritySeverity string
+
+const (
+	SecuritySeverityLow      SecuritySeverity = "low"
+	SecuritySeverityMedium   SecuritySeverity = "medium"
+	SecuritySeverityHigh     SecuritySeverity = "high"
+	SecuritySeverityCritical SecuritySeverity = "critical"
+)
+
+// QualityIssueType represents types of quality issues
+type QualityIssueType string
+
+const (
+	QualityIssueTypeComplexity     QualityIssueType = "complexity"
+	QualityIssueTypeDuplication    QualityIssueType = "duplication"
+	QualityIssueTypeMaintainability QualityIssueType = "maintainability"
+)
+
 // Many additional methods and types would be implemented here following the same patterns
 // This includes all the remaining interface methods and supporting functionality

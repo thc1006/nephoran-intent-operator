@@ -413,7 +413,7 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 // performGRPCSearch performs the actual gRPC search call
 func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorSearchRequest) (*VectorSearchResponse, error) {
 	// Get connection from pool
-	conn := c.connPool.GetConnection()
+	_ = c.connPool.GetConnection() // TODO: Use when actual gRPC implementation is ready
 
 	// Add authentication metadata
 	ctx = c.addAuthenticationContext(ctx)
@@ -505,7 +505,7 @@ func (c *GRPCWeaviateClient) addAuthenticationContext(ctx context.Context) conte
 
 // convertToSearchResponse converts gRPC response to standard SearchResponse
 func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchResponse, query string) *SearchResponse {
-	results := make([]*shared.SearchResult, len(grpcResp.Results))
+	results := make([]*SearchResult, len(grpcResp.Results))
 
 	for i, result := range grpcResp.Results {
 		doc := &shared.TelecomDocument{
@@ -520,7 +520,7 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 			doc.Title = title
 		}
 
-		results[i] = &shared.SearchResult{
+		results[i] = &SearchResult{
 			Document: doc,
 			Score:    result.Score,
 		}

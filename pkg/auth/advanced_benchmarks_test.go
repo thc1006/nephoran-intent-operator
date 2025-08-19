@@ -1070,29 +1070,29 @@ func isSignatureError(err error) bool {
 // Enhanced Auth System types and interfaces
 
 type EnhancedAuthSystem struct {
-	jwtManager       JWTManager
-	rbacEngine       RBACEngine
-	ldapClient       LDAPClient
-	oauth2Manager    OAuth2Manager
-	sessionManager   SessionManager
-	tokenCache       TokenCache
+	jwtManager       BenchmarkJWTManager
+	rbacEngine       BenchmarkRBACEngine
+	ldapClient       BenchmarkLDAPClient
+	oauth2Manager    BenchmarkOAuth2Manager
+	sessionManager   BenchmarkSessionManager
+	tokenCache       BenchmarkTokenCache
 	permissionMatrix *PermissionMatrix
-	metrics          AuthMetrics
+	metrics          BenchmarkAuthMetrics
 }
 
 type AuthSystemConfig struct {
-	JWTConfig       JWTConfig
-	LDAPConfig      LDAPConfig
-	OAuth2Providers []OAuth2Config
-	SessionConfig   SessionConfig
+	JWTConfig       BenchmarkJWTConfig
+	LDAPConfig      BenchmarkLDAPConfig
+	OAuth2Providers []BenchmarkOAuth2Config
+	SessionConfig   BenchmarkSessionConfig
 }
 
-type JWTConfig struct {
+type BenchmarkJWTConfig struct {
 	SigningMethod string
 	KeySize       int
 }
 
-type LDAPConfig struct {
+type BenchmarkLDAPConfig struct {
 	Host               string
 	BaseDN             string
 	UserSearchBase     string
@@ -1101,7 +1101,7 @@ type LDAPConfig struct {
 	UseConnectionPool  bool
 }
 
-type OAuth2Config struct {
+type BenchmarkOAuth2Config struct {
 	Provider     string
 	ClientID     string
 	ClientSecret string
@@ -1109,7 +1109,7 @@ type OAuth2Config struct {
 	Audience     string
 }
 
-type SessionConfig struct {
+type BenchmarkSessionConfig struct {
 	TTL             time.Duration
 	StorageBackend  string
 	CleanupInterval time.Duration
@@ -1120,19 +1120,19 @@ type TokenCacheConfig struct {
 	TTL     time.Duration
 }
 
-type RBACConfig struct {
-	Roles          []Role
-	Permissions    []Permission
+type BenchmarkRBACConfig struct {
+	Roles          []BenchmarkRole
+	Permissions    []BenchmarkPermission
 	UserGroups     []UserGroup
 	HierarchyDepth int
 }
 
-type Role struct {
+type BenchmarkRole struct {
 	Name        string
 	Permissions []string
 }
 
-type Permission struct {
+type BenchmarkPermission struct {
 	Name     string
 	Resource string
 	Action   string
@@ -1313,11 +1313,11 @@ func (a *EnhancedAuthSystem) EvaluatePermission(ctx context.Context, check Permi
 	return &PermissionEvaluationResult{Granted: true, MatrixLookups: 1, UsedCache: true}, nil
 }
 
-// Interface placeholders
-type JWTManager interface{}
-type RBACEngine interface{}
-type LDAPClient interface{}
-type OAuth2Manager interface{}
-type SessionManager interface{}
-type TokenCache interface{}
-type AuthMetrics interface{}
+// Interface placeholders for benchmarks
+type BenchmarkJWTManager interface{}
+type BenchmarkRBACEngine interface{}
+type BenchmarkLDAPClient interface{}
+type BenchmarkOAuth2Manager interface{}
+type BenchmarkSessionManager interface{}
+type BenchmarkTokenCache interface{}
+type BenchmarkAuthMetrics interface{}

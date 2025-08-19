@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net/http"
 	"sort"
 	"sync"
 	"time"
@@ -364,8 +365,8 @@ type StreamSubscriber struct {
 	SendBuffer   chan *MeasurementData `json:"-"`
 }
 
-// StreamFilter defines filtering rules for stream data
-type StreamFilter struct {
+// PerformanceStreamFilter defines filtering rules for performance stream data
+type PerformanceStreamFilter struct {
 	Field    string      `json:"field"`
 	Operator string      `json:"operator"`
 	Value    interface{} `json:"value"`

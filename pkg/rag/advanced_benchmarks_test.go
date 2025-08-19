@@ -906,18 +906,9 @@ type EnhancedRAGSystem struct {
 	metrics        RAGMetrics
 }
 
-type Document struct {
-	ID       string
-	Content  string
-	Metadata map[string]interface{}
-}
+// Document type is already defined in embedding_support.go
 
-type RetrievalConfig struct {
-	TopK            int
-	MinSimilarity   float64
-	IncludeMetadata bool
-	EnableReranking bool
-}
+// RetrievalConfig type is already defined in enhanced_retrieval_service.go
 
 type SearchConfig struct {
 	TopK             int
@@ -935,17 +926,17 @@ type ContextConfig struct {
 	Template        string
 }
 
-type ChunkingConfig struct {
-	Strategy  string
-	ChunkSize int
-	Overlap   int
-}
+// ChunkingConfig type is already defined in chunking_service.go
+// EmbeddingConfig type is already defined in embedding_service.go
+// CacheConfig type is already defined in rag_service.go
+// ConnectionPoolConfig type is already defined in optimized_connection_pool.go
 
+// Test-specific config types
 type RAGSystemConfig struct {
 	VectorDB       VectorDBConfig
-	Embedding      EmbeddingConfig
-	Cache          CacheConfig
-	ConnectionPool ConnectionPoolConfig
+	Embedding      EmbeddingConfigTest
+	Cache          CacheConfigTest
+	ConnectionPool ConnectionPoolConfigTest
 }
 
 type VectorDBConfig struct {
@@ -955,18 +946,18 @@ type VectorDBConfig struct {
 	Dimensions int
 }
 
-type EmbeddingConfig struct {
+type EmbeddingConfigTest struct {
 	Provider string
 	Model    string
 }
 
-type CacheConfig struct {
+type CacheConfigTest struct {
 	Enabled bool
 	MaxSize int
 	TTL     time.Duration
 }
 
-type ConnectionPoolConfig struct {
+type ConnectionPoolConfigTest struct {
 	MaxConnections int
 	MaxIdle        int
 	IdleTimeout    time.Duration
@@ -1004,9 +995,7 @@ func (r *EnhancedRAGSystem) ChunkDocument(doc Document, config ChunkingConfig) (
 	return []DocumentChunk{{Content: "chunk", TokenCount: 100}}, nil
 }
 
-type SearchResult struct {
-	Similarity float64
-}
+// SearchResult type is already defined in enhanced_rag_integration.go
 
 type IngestionResult struct {
 	ChunksCreated   int
@@ -1018,15 +1007,12 @@ type GeneratedContext struct {
 	TokenCount int
 }
 
-type DocumentChunk struct {
-	Content    string
-	TokenCount int
-}
+// DocumentChunk type is already defined in chunking_service.go
+// EmbeddingService type is already defined in embedding_service.go
+// RAGMetrics type is already defined elsewhere
 
 // Interface placeholders
 type VectorDB interface{}
-type EmbeddingService interface{}
 type DocumentChunker interface{}
 type SearchCache interface{}
 type ConnectionPool interface{}
-type RAGMetrics interface{}

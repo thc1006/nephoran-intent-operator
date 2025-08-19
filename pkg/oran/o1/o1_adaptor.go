@@ -61,8 +61,8 @@ type O1Adaptor struct {
 	kubeClient       client.Client
 }
 
-// O1Config holds O1 interface configuration
-type O1Config struct {
+// O1AdaptorConfig holds O1 interface adaptor configuration
+type O1AdaptorConfig struct {
 	DefaultPort    int
 	ConnectTimeout time.Duration
 	RequestTimeout time.Duration
@@ -126,8 +126,8 @@ type UsageRecord struct {
 	ChargingInfo  map[string]interface{} `json:"charging_info"`
 }
 
-// SecurityPolicy represents security configuration
-type SecurityPolicy struct {
+// AdaptorSecurityPolicy represents security configuration for adaptor
+type AdaptorSecurityPolicy struct {
 	PolicyID    string         `json:"policy_id"`
 	PolicyType  string         `json:"policy_type"`
 	Rules       []SecurityRule `json:"rules"`

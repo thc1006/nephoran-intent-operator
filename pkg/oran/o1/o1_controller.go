@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -61,8 +62,8 @@ type O1ControllerConfig struct {
 	StatusUpdateInterval    time.Duration `yaml:"status_update_interval"`
 }
 
-// O1Config represents O1 interface configuration
-type O1Config struct {
+// O1InterfaceConfig represents O1 interface configuration
+type O1InterfaceConfig struct {
 	NetconfPort           int               `yaml:"netconf_port"`
 	StreamingPort         int               `yaml:"streaming_port"`
 	EnableTLS             bool              `yaml:"enable_tls"`

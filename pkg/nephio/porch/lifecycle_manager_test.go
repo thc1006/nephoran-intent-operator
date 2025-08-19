@@ -28,8 +28,31 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch/testutil"
+	// "github.com/thc1006/nephoran-intent-operator/pkg/nephio/testutil" // Removed to prevent import cycle
 )
+
+// Simple mock implementations to prevent import cycle
+type MockTestFixture struct{}
+
+func NewMockTestFixture(ctx context.Context) *MockTestFixture {
+	return &MockTestFixture{}
+}
+
+type MockLifecyclePorchClient struct{}
+
+func NewMockLifecyclePorchClient() *MockLifecyclePorchClient {
+	return &MockLifecyclePorchClient{}
+}
+
+func GenerateLifecyclePackageContents() string {
+	return "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: test-config"
+}
+
+func WithLifecyclePackageLifecycle(lifecycle PackageRevisionLifecycle) func(*PackageRevision) {
+	return func(pkg *PackageRevision) {
+		pkg.Spec.Lifecycle = lifecycle
+	}
+}
 
 // MockLifecycleManager implements lifecycle management for testing
 type MockLifecycleManager struct {
@@ -475,10 +498,10 @@ func (m *MockLifecycleManager) Disable() {
 
 // TestLifecycleManagerCreation tests lifecycle manager creation
 func TestLifecycleManagerCreation(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	assert.NotNil(t, manager)
@@ -491,10 +514,10 @@ func TestLifecycleManagerCreation(t *testing.T) {
 
 // TestBasicLifecycleTransitions tests basic state transitions
 func TestBasicLifecycleTransitions(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	// Create a test package
@@ -502,7 +525,7 @@ func TestBasicLifecycleTransitions(t *testing.T) {
 	mockClient.AddPackageRevision(pkg)
 
 	// Add some content to the package
-	contents := testutil.GeneratePackageContents()
+	contents := GenerateLifecyclePackageContents()
 	err := mockClient.UpdatePackageContents(fixture.Context, "lifecycle-test", "v1.0.0", contents)
 	require.NoError(t, err)
 
@@ -574,10 +597,10 @@ func TestBasicLifecycleTransitions(t *testing.T) {
 
 // TestLifecycleValidation tests state validation
 func TestLifecycleValidation(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	testCases := []struct {
@@ -648,10 +671,10 @@ func TestLifecycleValidation(t *testing.T) {
 
 // TestLifecycleHooks tests lifecycle hooks execution
 func TestLifecycleHooks(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	// Track hook execution
@@ -676,7 +699,7 @@ func TestLifecycleHooks(t *testing.T) {
 	// Create and setup package
 	pkg := fixture.CreateTestPackageRevision("hook-test", "v1.0.0")
 	mockClient.AddPackageRevision(pkg)
-	contents := testutil.GeneratePackageContents()
+	contents := GenerateLifecyclePackageContents()
 	err := mockClient.UpdatePackageContents(fixture.Context, "hook-test", "v1.0.0", contents)
 	require.NoError(t, err)
 
@@ -696,10 +719,10 @@ func TestLifecycleHooks(t *testing.T) {
 
 // TestLifecycleHookErrors tests hook error handling
 func TestLifecycleHookErrors(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	// Register failing hook
@@ -710,7 +733,7 @@ func TestLifecycleHookErrors(t *testing.T) {
 	// Create and setup package
 	pkg := fixture.CreateTestPackageRevision("hook-error-test", "v1.0.0")
 	mockClient.AddPackageRevision(pkg)
-	contents := testutil.GeneratePackageContents()
+	contents := GenerateLifecyclePackageContents()
 	err := mockClient.UpdatePackageContents(fixture.Context, "hook-error-test", "v1.0.0", contents)
 	require.NoError(t, err)
 
@@ -723,10 +746,10 @@ func TestLifecycleHookErrors(t *testing.T) {
 
 // TestTransitionHistory tests transition history tracking
 func TestTransitionHistory(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	// Create multiple packages and perform transitions
@@ -744,7 +767,7 @@ func TestTransitionHistory(t *testing.T) {
 		mockClient.AddPackageRevision(pkg)
 
 		// Add content
-		contents := testutil.GeneratePackageContents()
+		contents := GenerateLifecyclePackageContents()
 		err := mockClient.UpdatePackageContents(fixture.Context, pkgInfo.name, pkgInfo.revision, contents)
 		require.NoError(t, err)
 
@@ -769,10 +792,10 @@ func TestTransitionHistory(t *testing.T) {
 
 // TestConcurrentTransitions tests concurrent lifecycle transitions
 func TestConcurrentTransitions(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	const numPackages = 10
@@ -786,7 +809,7 @@ func TestConcurrentTransitions(t *testing.T) {
 		mockClient.AddPackageRevision(pkg)
 
 		// Add content
-		contents := testutil.GeneratePackageContents()
+		contents := GenerateLifecyclePackageContents()
 		err := mockClient.UpdatePackageContents(fixture.Context, pkg.Spec.PackageName, pkg.Spec.Revision, contents)
 		require.NoError(t, err)
 	}
@@ -835,10 +858,10 @@ func TestConcurrentTransitions(t *testing.T) {
 
 // TestLifecycleManagerDisabled tests behavior when lifecycle management is disabled
 func TestLifecycleManagerDisabled(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	// Create package
@@ -856,7 +879,7 @@ func TestLifecycleManagerDisabled(t *testing.T) {
 
 	// Re-enable and try again
 	manager.Enable()
-	contents := testutil.GeneratePackageContents()
+	contents := GenerateLifecyclePackageContents()
 	err = mockClient.UpdatePackageContents(fixture.Context, "disabled-test", "v1.0.0", contents)
 	require.NoError(t, err)
 
@@ -867,10 +890,10 @@ func TestLifecycleManagerDisabled(t *testing.T) {
 
 // TestValidTransitions tests getting valid transitions for a package
 func TestValidTransitions(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	testCases := []struct {
@@ -912,7 +935,7 @@ func TestValidTransitions(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			pkg := fixture.CreateTestPackageRevision("transition-test", "v1.0.0",
-				testutil.WithPackageLifecycle(tc.currentState))
+				WithLifecyclePackageLifecycle(tc.currentState))
 
 			validTransitions := manager.GetValidTransitions(pkg)
 			assert.Equal(t, len(tc.expectedTransitions), len(validTransitions))
@@ -926,10 +949,10 @@ func TestValidTransitions(t *testing.T) {
 
 // TestComplexLifecycleScenarios tests complex real-world scenarios
 func TestComplexLifecycleScenarios(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	t.Run("complete_approval_workflow", func(t *testing.T) {
@@ -938,7 +961,7 @@ func TestComplexLifecycleScenarios(t *testing.T) {
 		mockClient.AddPackageRevision(pkg)
 
 		// Add content
-		contents := testutil.GeneratePackageContents()
+		contents := GenerateLifecyclePackageContents()
 		err := mockClient.UpdatePackageContents(fixture.Context, "approval-workflow", "v1.0.0", contents)
 		require.NoError(t, err)
 
@@ -972,7 +995,7 @@ func TestComplexLifecycleScenarios(t *testing.T) {
 		mockClient.AddPackageRevision(pkg)
 
 		// Add content
-		contents := testutil.GeneratePackageContents()
+		contents := GenerateLifecyclePackageContents()
 		err := mockClient.UpdatePackageContents(fixture.Context, "rejection-test", "v1.0.0", contents)
 		require.NoError(t, err)
 
@@ -1005,10 +1028,10 @@ func TestComplexLifecycleScenarios(t *testing.T) {
 
 // BenchmarkLifecycleTransitions benchmarks transition performance
 func BenchmarkLifecycleTransitions(b *testing.B) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	// Setup packages
@@ -1018,7 +1041,7 @@ func BenchmarkLifecycleTransitions(b *testing.B) {
 		packages[i] = pkg
 		mockClient.AddPackageRevision(pkg)
 
-		contents := testutil.GeneratePackageContents()
+		contents := GenerateLifecyclePackageContents()
 		err := mockClient.UpdatePackageContents(fixture.Context, pkg.Spec.PackageName, pkg.Spec.Revision, contents)
 		if err != nil {
 			b.Fatal(err)
@@ -1043,10 +1066,10 @@ func BenchmarkLifecycleTransitions(b *testing.B) {
 
 // TestLifecycleMetrics tests metrics collection during transitions
 func TestLifecycleMetrics(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewMockTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockLifecyclePorchClient()
 	manager := NewMockLifecycleManager(mockClient)
 
 	// Track metrics calls
@@ -1063,7 +1086,7 @@ func TestLifecycleMetrics(t *testing.T) {
 	pkg := fixture.CreateTestPackageRevision("metrics-test", "v1.0.0")
 	mockClient.AddPackageRevision(pkg)
 
-	contents := testutil.GeneratePackageContents()
+	contents := GenerateLifecyclePackageContents()
 	err := mockClient.UpdatePackageContents(fixture.Context, "metrics-test", "v1.0.0", contents)
 	require.NoError(t, err)
 

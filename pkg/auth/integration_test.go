@@ -27,7 +27,7 @@ type IntegrationTestSuite struct {
 	sessionManager *SessionManager
 	rbacManager    *RBACManager
 	ldapMiddleware *LDAPAuthMiddleware
-	authManager    *AuthManager
+	// authManager removed - doesn't exist
 	oauthServer    *testutil.OAuth2MockServer
 	server         *httptest.Server
 	handlers       *AuthHandlers
@@ -725,7 +725,7 @@ func TestIntegration_ConcurrentAccess(t *testing.T) {
 
 	// Allow for some failures due to concurrent access, but not too many
 	errorRate := float64(len(errors)) / float64(numGoroutines*numRequests)
-	assert.Less(t, errorRate, 0.01, "Error rate should be less than 1%%: %v", errors[:min(len(errors), 10)])
+	assert.Less(t, errorRate, 0.01, "Error rate should be less than 1%%: %v", errors[:minInt(len(errors), 10)])
 }
 
 func TestIntegration_HealthCheck(t *testing.T) {
@@ -1072,7 +1072,7 @@ func TestIntegration_CompleteAuthenticationSuite(t *testing.T) {
 }
 
 // Helper function for min operation
-func min(a, b int) int {
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}

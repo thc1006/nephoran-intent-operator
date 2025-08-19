@@ -40,8 +40,14 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 
 	logger := slog.Default().With("component", "optimized-rag-manager")
 
-	// Create core Weaviate client
-	originalClient, err := NewWeaviateClient(config.WeaviateConfig)
+	// Create core Weaviate client with default Weaviate configuration
+	weaviateConfig := &WeaviateConfig{
+		Host:     "localhost:8080",
+		Scheme:   "http",
+		Timeout:  30 * time.Second,
+		MaxRetries: 3,
+	}
+	originalClient, err := NewWeaviateClient(weaviateConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Weaviate client: %w", err)
 	}

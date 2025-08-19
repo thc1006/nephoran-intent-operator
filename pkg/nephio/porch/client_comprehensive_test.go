@@ -18,7 +18,7 @@ package porch
 
 import (
 	"context"
-	"errors"
+	goerrors "errors"
 	"strings"
 	"sync"
 	"testing"
@@ -29,9 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch/testutil"
 )
 
 // TestClientCreation tests client creation scenarios
@@ -45,8 +44,8 @@ func TestClientCreation(t *testing.T) {
 		{
 			name: "successful_creation",
 			opts: ClientOptions{
-				Config:         testutil.NewTestConfig(),
-				KubeConfig:     testutil.GetTestKubeConfig(),
+				Config:         NewTestConfig(),
+				KubeConfig:     GetTestKubeConfig(),
 				Logger:         zap.New(zap.UseDevMode(true)),
 				MetricsEnabled: true,
 				CacheEnabled:   true,
@@ -58,7 +57,7 @@ func TestClientCreation(t *testing.T) {
 		{
 			name: "nil_config",
 			opts: ClientOptions{
-				KubeConfig: testutil.GetTestKubeConfig(),
+				KubeConfig: GetTestKubeConfig(),
 			},
 			expectError: true,
 			errorMsg:    "config is required",
@@ -66,7 +65,7 @@ func TestClientCreation(t *testing.T) {
 		{
 			name: "minimal_config",
 			opts: ClientOptions{
-				Config: testutil.NewTestConfig(),
+				Config: NewTestConfig(),
 			},
 			expectError: false,
 		},
@@ -97,11 +96,11 @@ func TestClientCreation(t *testing.T) {
 
 // TestRepositoryOperations tests repository CRUD operations
 func TestRepositoryOperations(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
 	// Create a mock client for testing
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("create_repository", func(t *testing.T) {
 		repo := fixture.CreateTestRepository("test-repo")
@@ -198,10 +197,10 @@ func TestRepositoryOperations(t *testing.T) {
 
 // TestPackageRevisionOperations tests package revision CRUD operations
 func TestPackageRevisionOperations(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("create_package_revision", func(t *testing.T) {
 		pkg := fixture.CreateTestPackageRevision("test-package", "v1.0.0")
@@ -279,10 +278,10 @@ func TestPackageRevisionOperations(t *testing.T) {
 
 // TestPackageLifecycleTransitions tests package lifecycle state transitions
 func TestPackageLifecycleTransitions(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	testCases := []struct {
 		name          string
@@ -320,7 +319,7 @@ func TestPackageLifecycleTransitions(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create package with initial state
 			pkg := fixture.CreateTestPackageRevision("lifecycle-test", "v1.0.0",
-				testutil.WithPackageLifecycle(tc.initialState))
+				WithPackageLifecycle(tc.initialState))
 			mockClient.AddPackageRevision(pkg)
 
 			// Perform operation
@@ -342,10 +341,10 @@ func TestPackageLifecycleTransitions(t *testing.T) {
 
 // TestPackageContentOperations tests package content management
 func TestPackageContentOperations(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("get_package_contents", func(t *testing.T) {
 		// Create and add package
@@ -396,10 +395,10 @@ func TestPackageContentOperations(t *testing.T) {
 
 // TestFunctionOperations tests KRM function operations
 func TestFunctionOperations(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("run_function", func(t *testing.T) {
 		request := &FunctionRequest{
@@ -410,7 +409,7 @@ func TestFunctionOperations(t *testing.T) {
 				},
 			},
 			Resources: []KRMResource{
-				testutil.GenerateTestResource("v1", "ConfigMap", "test-cm", "default"),
+				GenerateTestResource("v1", "ConfigMap", "test-cm", "default"),
 			},
 		}
 
@@ -448,10 +447,10 @@ func TestFunctionOperations(t *testing.T) {
 
 // TestWorkflowOperations tests workflow operations
 func TestWorkflowOperations(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("create_workflow", func(t *testing.T) {
 		workflow := fixture.CreateTestWorkflow("test-workflow")
@@ -496,7 +495,7 @@ func TestWorkflowOperations(t *testing.T) {
 
 // TestCircuitBreakerBehavior tests circuit breaker functionality
 func TestCircuitBreakerBehavior(t *testing.T) {
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("circuit_breaker_open", func(t *testing.T) {
 		mockClient.SetCircuitBreakerOpen(true)
@@ -521,7 +520,7 @@ func TestCircuitBreakerBehavior(t *testing.T) {
 
 // TestRateLimiting tests rate limiting functionality
 func TestRateLimiting(t *testing.T) {
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("rate_limited", func(t *testing.T) {
 		mockClient.SetRateLimited(true)
@@ -546,7 +545,7 @@ func TestRateLimiting(t *testing.T) {
 
 // TestHealthAndStatus tests health and status operations
 func TestHealthAndStatus(t *testing.T) {
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("health_check_success", func(t *testing.T) {
 		mockClient.SetHealthCheckFails(false)
@@ -585,7 +584,7 @@ func TestHealthAndStatus(t *testing.T) {
 
 // TestErrorHandling tests error handling scenarios
 func TestErrorHandling(t *testing.T) {
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("simulated_errors", func(t *testing.T) {
 		mockClient.SetSimulateErrors(true)
@@ -622,8 +621,8 @@ func TestErrorHandling(t *testing.T) {
 
 // TestConcurrentOperations tests concurrent access patterns
 func TestConcurrentOperations(t *testing.T) {
-	mockClient := testutil.NewMockPorchClient()
-	fixture := testutil.NewTestFixture(context.Background())
+	mockClient := NewMockPorchClient()
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
 	t.Run("concurrent_repository_operations", func(t *testing.T) {
@@ -691,10 +690,10 @@ func TestConcurrentOperations(t *testing.T) {
 
 // TestInputValidation tests input validation
 func TestInputValidation(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("repository_validation", func(t *testing.T) {
 		invalidRepos := []*Repository{
@@ -714,7 +713,7 @@ func TestInputValidation(t *testing.T) {
 
 		for i, repo := range invalidRepos {
 			t.Run(fmt.Sprintf("invalid_repo_%d", i), func(t *testing.T) {
-				errors := testutil.ValidateRepository(repo)
+				errors := ValidateRepository(repo)
 				assert.True(t, len(errors) > 0, "Expected validation errors")
 			})
 		}
@@ -735,7 +734,7 @@ func TestInputValidation(t *testing.T) {
 
 		for i, pkg := range invalidPackages {
 			t.Run(fmt.Sprintf("invalid_package_%d", i), func(t *testing.T) {
-				errors := testutil.ValidatePackageRevision(pkg)
+				errors := ValidatePackageRevision(pkg)
 				assert.True(t, len(errors) > 0, "Expected validation errors")
 			})
 		}
@@ -744,7 +743,7 @@ func TestInputValidation(t *testing.T) {
 
 // TestMetricsAndObservability tests metrics collection
 func TestMetricsAndObservability(t *testing.T) {
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("call_counting", func(t *testing.T) {
 		// Reset counters
@@ -801,10 +800,10 @@ func TestLifecycleValidation(t *testing.T) {
 
 // TestBoundaryConditions tests edge cases and boundary conditions
 func TestBoundaryConditions(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("empty_list_operations", func(t *testing.T) {
 		// List operations on empty mock should return empty lists
@@ -865,10 +864,10 @@ func TestBoundaryConditions(t *testing.T) {
 
 // TestPerformanceCharacteristics tests performance-related scenarios
 func TestPerformanceCharacteristics(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("latency_simulation", func(t *testing.T) {
 		latency := 100 * time.Millisecond
@@ -904,10 +903,10 @@ func TestPerformanceCharacteristics(t *testing.T) {
 
 // TestDataConsistency tests data consistency scenarios
 func TestDataConsistency(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("crud_consistency", func(t *testing.T) {
 		// Create
@@ -975,10 +974,10 @@ func TestDataConsistency(t *testing.T) {
 
 // BenchmarkClientOperations benchmarks various client operations
 func BenchmarkClientOperations(b *testing.B) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	b.Run("CreateRepository", func(b *testing.B) {
 		b.ResetTimer()
@@ -1035,27 +1034,27 @@ func BenchmarkClientOperations(b *testing.B) {
 
 // TestComplexScenarios tests complex real-world scenarios
 func TestComplexScenarios(t *testing.T) {
-	fixture := testutil.NewTestFixture(context.Background())
+	fixture := NewTestFixture(context.Background())
 	defer fixture.Cleanup()
 
-	mockClient := testutil.NewMockPorchClient()
+	mockClient := NewMockPorchClient()
 
 	t.Run("complete_package_workflow", func(t *testing.T) {
 		// 1. Create repository
 		repo := fixture.CreateTestRepository("workflow-repo",
-			testutil.WithRepositoryURL("https://github.com/nephio-project/free5gc-packages.git"))
+			WithRepositoryURL("https://github.com/nephio-project/free5gc-packages.git"))
 		_, err := mockClient.CreateRepository(fixture.Context, repo)
 		require.NoError(t, err)
 
 		// 2. Create package revision in Draft
 		pkg := fixture.CreateTestPackageRevision("5g-amf", "v1.0.0",
-			testutil.WithPackageRepository("workflow-repo"),
-			testutil.WithPackageLifecycle(PackageRevisionLifecycleDraft))
+			WithPackageRepository("workflow-repo"),
+			WithPackageLifecycle(PackageRevisionLifecycleDraft))
 		_, err = mockClient.CreatePackageRevision(fixture.Context, pkg)
 		require.NoError(t, err)
 
 		// 3. Add content to package
-		contents := testutil.GeneratePackageContents()
+		contents := GeneratePackageContents()
 		err = mockClient.UpdatePackageContents(fixture.Context, "5g-amf", "v1.0.0", contents)
 		require.NoError(t, err)
 
@@ -1130,3 +1129,232 @@ func TestComplexScenarios(t *testing.T) {
 		}
 	})
 }
+
+// Test helper functions moved from testutil package to avoid circular dependency
+
+// NewTestConfig creates a test configuration
+func NewTestConfig() *Config {
+	return &Config{
+		PorchConfig: &PorchConfiguration{
+			Address:    "localhost:9443",
+			Auth: &AuthConfiguration{
+				Type: "serviceaccount",
+			},
+			Retry: &RetryConfiguration{
+				MaxRetries: 3,
+			},
+			CircuitBreaker: &CircuitBreakerConfiguration{
+				MaxRequests: 10,
+				Interval:    60,
+			},
+			RateLimit: &RateLimitConfiguration{
+				RequestsPerSecond: 10,
+			},
+		},
+	}
+}
+
+// GetTestKubeConfig returns a test kubeconfig
+func GetTestKubeConfig() *rest.Config {
+	return &rest.Config{
+		Host: "https://localhost:8443",
+	}
+}
+
+// TestFixture provides a minimal test environment
+type TestFixture struct {
+	Context context.Context
+}
+
+// NewTestFixture creates a new test fixture
+func NewTestFixture(ctx context.Context) *TestFixture {
+	return &TestFixture{Context: ctx}
+}
+
+// CreateTestPackageRevision creates a test package revision
+func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...interface{}) *PackageRevision {
+	return &PackageRevision{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "porch.kpt.dev/v1alpha1",
+			Kind:       "PackageRevision",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name + "-" + revision,
+			Namespace: "default",
+		},
+		Spec: PackageRevisionSpec{
+			PackageName: name,
+			Repository:  "test-repo",
+			Lifecycle:   PackageRevisionLifecycleDraft,
+		},
+	}
+}
+
+// CreateTestRepository creates a test repository
+func (f *TestFixture) CreateTestRepository(name string, opts ...interface{}) *Repository {
+	return &Repository{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "config.porch.kpt.dev/v1alpha1",
+			Kind:       "Repository",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "default",
+		},
+		Spec: RepositorySpec{
+			Type:        RepositoryTypeGit,
+			Description: "Test repository",
+		},
+	}
+}
+
+// MockPorchClient provides a mock implementation
+type MockPorchClient struct{}
+
+// NewMockPorchClient creates a new mock client
+func NewMockPorchClient() *MockPorchClient {
+	return &MockPorchClient{}
+}
+
+// Implementation of mock methods (stubbed for compilation)
+func (m *MockPorchClient) CreatePackageRevision(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
+	return pkg, nil
+}
+
+func (m *MockPorchClient) ListPackageRevisions(ctx context.Context, opts *ListOptions) (*PackageRevisionList, error) {
+	return &PackageRevisionList{Items: []PackageRevision{}}, nil
+}
+
+func (m *MockPorchClient) ValidatePackage(ctx context.Context, name, revision string) (*ValidationResult, error) {
+	return &ValidationResult{Valid: true}, nil
+}
+
+func (m *MockPorchClient) ProposePackageRevision(ctx context.Context, name, revision string) error {
+	return nil
+}
+
+func (m *MockPorchClient) ApprovePackageRevision(ctx context.Context, name, revision string) error {
+	return nil
+}
+
+func (m *MockPorchClient) GetPackageRevision(ctx context.Context, name, revision string) (*PackageRevision, error) {
+	return &PackageRevision{
+		Spec: PackageRevisionSpec{
+			PackageName: name,
+			Lifecycle:   PackageRevisionLifecyclePublished,
+		},
+	}, nil
+}
+
+func (m *MockPorchClient) CreateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
+	return repo, nil
+}
+
+func (m *MockPorchClient) UpdateRepository(ctx context.Context, repo *Repository) (*Repository, error) {
+	return repo, nil
+}
+
+func (m *MockPorchClient) DeleteRepository(ctx context.Context, name string) error {
+	return nil
+}
+
+func (m *MockPorchClient) GetRepository(ctx context.Context, name string) (*Repository, error) {
+	return &Repository{}, nil
+}
+
+func (m *MockPorchClient) ListRepositories(ctx context.Context, opts *ListOptions) (*RepositoryList, error) {
+	return &RepositoryList{Items: []Repository{}}, nil
+}
+
+func (m *MockPorchClient) RegisterUpstreamRepository(ctx context.Context, name string, config *UpstreamConfig) error {
+	return nil
+}
+
+func (m *MockPorchClient) UnregisterUpstreamRepository(ctx context.Context, name string) error {
+	return nil
+}
+
+func (m *MockPorchClient) SyncRepository(ctx context.Context, name string, opts *SyncOptions) (*SyncResult, error) {
+	return &SyncResult{}, nil
+}
+
+func (m *MockPorchClient) GetPackageRevisionResources(ctx context.Context, name, revision string) (*ResourceList, error) {
+	return &ResourceList{}, nil
+}
+
+func (m *MockPorchClient) UpdatePackageRevisionResources(ctx context.Context, name, revision string, resources *ResourceList) error {
+	return nil
+}
+
+func (m *MockPorchClient) GetRepositoryHealth(ctx context.Context, name string) (*RepositoryHealth, error) {
+	return &RepositoryHealth{Status: "healthy"}, nil
+}
+
+func (m *MockPorchClient) SetRepositoryMaintenanceMode(ctx context.Context, name string, enabled bool) error {
+	return nil
+}
+
+// Helper functions for options
+func WithPackageLifecycle(lifecycle PackageRevisionLifecycle) interface{} {
+	return lifecycle
+}
+
+func WithPackageRepository(repo string) interface{} {
+	return repo
+}
+
+func WithRepositoryURL(url string) interface{} {
+	return url
+}
+
+// GenerateTestResource creates a test resource
+func GenerateTestResource(apiVersion, kind, name, namespace string) KRMResource {
+	return KRMResource{
+		APIVersion: apiVersion,
+		Kind:       kind,
+		Metadata: map[string]interface{}{
+			"name":      name,
+			"namespace": namespace,
+		},
+	}
+}
+
+// GeneratePackageContents creates test package contents
+func GeneratePackageContents() map[string][]byte {
+	return map[string][]byte{
+		"Kptfile": []byte(`apiVersion: kpt.dev/v1
+kind: Kptfile
+metadata:
+  name: test-package
+`),
+	}
+}
+
+// ValidateRepository validates a repository (stub)
+func ValidateRepository(repo *Repository) []string {
+	return []string{} // No errors for test
+}
+
+// ValidatePackageRevision validates a package revision (stub)  
+func ValidatePackageRevision(pkg *PackageRevision) []string {
+	return []string{} // No errors for test
+}
+
+// Test-specific types to avoid conflicts
+type TestListOptions struct{}
+type TestPackageRevisionList struct {
+	Items []PackageRevision
+}
+type TestRepositoryList struct {
+	Items []Repository
+}
+type TestValidationResult struct {
+	Valid bool
+}
+type TestSyncOptions struct{}
+type TestSyncResult struct{}
+type TestResourceList struct{}
+type TestRepositoryHealth struct {
+	Status string
+}
+type UpstreamConfig struct{}

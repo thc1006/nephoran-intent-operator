@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
@@ -251,8 +250,8 @@ func NewConfigFactory() *ConfigFactory {
 }
 
 // CreateJWTConfig creates a JWT configuration for testing
-func (f *ConfigFactory) CreateJWTConfig() *auth.JWTConfig {
-	return &auth.JWTConfig{
+func (f *ConfigFactory) CreateJWTConfig() *JWTConfig {
+	return &JWTConfig{
 		Issuer:               "test-issuer",
 		DefaultTTL:           time.Hour,
 		RefreshTTL:           24 * time.Hour,
@@ -265,8 +264,8 @@ func (f *ConfigFactory) CreateJWTConfig() *auth.JWTConfig {
 }
 
 // CreateRBACConfig creates an RBAC configuration for testing
-func (f *ConfigFactory) CreateRBACConfig() *auth.RBACConfig {
-	return &auth.RBACConfig{
+func (f *ConfigFactory) CreateRBACConfig() *RBACConfig {
+	return &RBACConfig{
 		CacheTTL:           5 * time.Minute,
 		EnableHierarchical: true,
 		DefaultRole:        "viewer",
@@ -275,8 +274,8 @@ func (f *ConfigFactory) CreateRBACConfig() *auth.RBACConfig {
 }
 
 // CreateSessionConfig creates a session configuration for testing
-func (f *ConfigFactory) CreateSessionConfig() *auth.SessionConfig {
-	return &auth.SessionConfig{
+func (f *ConfigFactory) CreateSessionConfig() *SessionConfig {
+	return &SessionConfig{
 		SessionTTL:    time.Hour,
 		CleanupPeriod: time.Minute,
 		CookieName:    "test-session",
@@ -333,9 +332,9 @@ func NewRoleFactory() *RoleFactory {
 }
 
 // CreateBasicRole creates a basic role
-func (f *RoleFactory) CreateBasicRole() *auth.Role {
+func (f *RoleFactory) CreateBasicRole() *Role {
 	f.counter++
-	return &auth.Role{
+	return &Role{
 		ID:          fmt.Sprintf("role-%d", f.counter),
 		Name:        fmt.Sprintf("test-role-%d", f.counter),
 		Description: fmt.Sprintf("Test role %d", f.counter),
@@ -346,7 +345,7 @@ func (f *RoleFactory) CreateBasicRole() *auth.Role {
 }
 
 // CreateAdminRole creates an admin role
-func (f *RoleFactory) CreateAdminRole() *auth.Role {
+func (f *RoleFactory) CreateAdminRole() *Role {
 	role := f.CreateBasicRole()
 	role.Name = "admin"
 	role.Description = "Administrator role"
@@ -357,14 +356,14 @@ func (f *RoleFactory) CreateAdminRole() *auth.Role {
 }
 
 // CreateRoleWithPermissions creates a role with specific permissions
-func (f *RoleFactory) CreateRoleWithPermissions(permissions []string) *auth.Role {
+func (f *RoleFactory) CreateRoleWithPermissions(permissions []string) *Role {
 	role := f.CreateBasicRole()
 	role.Permissions = permissions
 	return role
 }
 
 // CreateHierarchicalRole creates a role with parent/child relationships
-func (f *RoleFactory) CreateHierarchicalRole(parentRoles, childRoles []string) *auth.Role {
+func (f *RoleFactory) CreateHierarchicalRole(parentRoles, childRoles []string) *Role {
 	role := f.CreateBasicRole()
 	role.ParentRoles = parentRoles
 	role.ChildRoles = childRoles
@@ -381,9 +380,9 @@ func NewPermissionFactory() *PermissionFactory {
 }
 
 // CreateBasicPermission creates a basic permission
-func (f *PermissionFactory) CreateBasicPermission() *auth.Permission {
+func (f *PermissionFactory) CreateBasicPermission() *Permission {
 	f.counter++
-	return &auth.Permission{
+	return &Permission{
 		ID:          fmt.Sprintf("perm-%d", f.counter),
 		Name:        fmt.Sprintf("test:permission:%d", f.counter),
 		Description: fmt.Sprintf("Test permission %d", f.counter),
@@ -396,11 +395,11 @@ func (f *PermissionFactory) CreateBasicPermission() *auth.Permission {
 }
 
 // CreateResourcePermissions creates permissions for a specific resource
-func (f *PermissionFactory) CreateResourcePermissions(resource string, actions []string) []*auth.Permission {
-	var permissions []*auth.Permission
+func (f *PermissionFactory) CreateResourcePermissions(resource string, actions []string) []*Permission {
+	var permissions []*Permission
 	for _, action := range actions {
 		f.counter++
-		perm := &auth.Permission{
+		perm := &Permission{
 			ID:          fmt.Sprintf("perm-%d", f.counter),
 			Name:        fmt.Sprintf("%s:%s", resource, action),
 			Description: fmt.Sprintf("%s permission on %s", action, resource),
@@ -416,9 +415,9 @@ func (f *PermissionFactory) CreateResourcePermissions(resource string, actions [
 }
 
 // CreateDenyPermission creates a deny permission
-func (f *PermissionFactory) CreateDenyPermission(resource, action string) *auth.Permission {
+func (f *PermissionFactory) CreateDenyPermission(resource, action string) *Permission {
 	f.counter++
-	return &auth.Permission{
+	return &Permission{
 		ID:          fmt.Sprintf("deny-perm-%d", f.counter),
 		Name:        fmt.Sprintf("deny:%s:%s", resource, action),
 		Description: fmt.Sprintf("Deny %s permission on %s", action, resource),
@@ -440,9 +439,9 @@ func NewSessionFactory() *SessionFactory {
 }
 
 // CreateBasicSession creates a basic session
-func (f *SessionFactory) CreateBasicSession(userID string) *auth.Session {
+func (f *SessionFactory) CreateBasicSession(userID string) *Session {
 	f.counter++
-	return &auth.Session{
+	return &Session{
 		ID:        fmt.Sprintf("session-%d", f.counter),
 		UserID:    userID,
 		CreatedAt: time.Now(),
@@ -457,14 +456,14 @@ func (f *SessionFactory) CreateBasicSession(userID string) *auth.Session {
 }
 
 // CreateExpiredSession creates an expired session
-func (f *SessionFactory) CreateExpiredSession(userID string) *auth.Session {
+func (f *SessionFactory) CreateExpiredSession(userID string) *Session {
 	session := f.CreateBasicSession(userID)
 	session.ExpiresAt = time.Now().Add(-time.Hour)
 	return session
 }
 
 // CreateSessionWithMetadata creates a session with custom metadata
-func (f *SessionFactory) CreateSessionWithMetadata(userID string, metadata map[string]interface{}) *auth.Session {
+func (f *SessionFactory) CreateSessionWithMetadata(userID string, metadata map[string]interface{}) *Session {
 	session := f.CreateBasicSession(userID)
 	session.Metadata = metadata
 	return session
@@ -532,16 +531,86 @@ func CreateTestData() map[string]interface{} {
 			"future":     tf.CreateTokenNotValidYet("test-user"),
 			"with_roles": tf.CreateTokenWithRoles("test-user", []string{"admin"}),
 		},
-		"roles": map[string]*auth.Role{
+		"roles": map[string]*Role{
 			"basic": rf.CreateBasicRole(),
 			"admin": rf.CreateAdminRole(),
 		},
 		"permissions": pf.CreateResourcePermissions("test", []string{"read", "write", "delete"}),
-		"sessions": map[string]*auth.Session{
+		"sessions": map[string]*Session{
 			"valid":   sf.CreateBasicSession("test-user"),
 			"expired": sf.CreateExpiredSession("test-user"),
 		},
 	}
 
 	return data
+}
+
+// Local test-only types to avoid circular dependency with pkg/auth
+// These mirror the types in pkg/auth but are defined here to break the import cycle
+
+// JWTConfig represents JWT configuration for testing
+type JWTConfig struct {
+	Issuer               string        `json:"issuer"`
+	DefaultTTL           time.Duration `json:"default_ttl"`
+	RefreshTTL           time.Duration `json:"refresh_ttl"`
+	KeyRotationPeriod    time.Duration `json:"key_rotation_period"`
+	RequireSecureCookies bool          `json:"require_secure_cookies"`
+	CookieDomain         string        `json:"cookie_domain"`
+	CookiePath           string        `json:"cookie_path"`
+	Algorithm            string        `json:"algorithm"`
+}
+
+// RBACConfig represents RBAC configuration for testing
+type RBACConfig struct {
+	CacheTTL           time.Duration `json:"cache_ttl"`
+	EnableHierarchical bool          `json:"enable_hierarchical"`
+	DefaultRole        string        `json:"default_role"`
+	SuperAdminRole     string        `json:"super_admin_role"`
+}
+
+// SessionConfig represents session configuration for testing
+type SessionConfig struct {
+	SessionTTL    time.Duration `json:"session_ttl"`
+	CleanupPeriod time.Duration `json:"cleanup_period"`
+	CookieName    string        `json:"cookie_name"`
+	CookiePath    string        `json:"cookie_path"`
+	CookieDomain  string        `json:"cookie_domain"`
+	SecureCookies bool          `json:"secure_cookies"`
+	HTTPOnly      bool          `json:"http_only"`
+	SameSite      int           `json:"same_site"`
+}
+
+// Role represents a role for testing
+type Role struct {
+	ID          string            `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Permissions []string          `json:"permissions"`
+	ParentRoles []string          `json:"parent_roles,omitempty"`
+	ChildRoles  []string          `json:"child_roles,omitempty"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+}
+
+// Permission represents a permission for testing
+type Permission struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Resource    string    `json:"resource"`
+	Action      string    `json:"action"`
+	Effect      string    `json:"effect"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// Session represents a session for testing
+type Session struct {
+	ID        string                 `json:"id"`
+	UserID    string                 `json:"user_id"`
+	CreatedAt time.Time              `json:"created_at"`
+	ExpiresAt time.Time              `json:"expires_at"`
+	IPAddress string                 `json:"ip_address"`
+	UserAgent string                 `json:"user_agent"`
+	Metadata  map[string]interface{} `json:"metadata"`
 }

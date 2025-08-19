@@ -20,7 +20,7 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
 )
 
 // TestBackendIntegrationSuite tests backend implementations with real connections
@@ -81,7 +81,7 @@ func (suite *TestBackendIntegrationSuite) TestFileBackend() {
 	})
 
 	suite.Run("write batch events", func() {
-		events := []*audit.AuditEvent{
+		events := []*types.AuditEvent{
 			createTestEvent("batch-1"),
 			createTestEvent("batch-2"),
 			createTestEvent("batch-3"),
@@ -255,7 +255,7 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 	})
 
 	suite.Run("write batch events", func() {
-		events := []*audit.AuditEvent{
+		events := []*types.AuditEvent{
 			createTestEvent("es-batch-1"),
 			createTestEvent("es-batch-2"),
 			createTestEvent("es-batch-3"),
@@ -340,7 +340,7 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 	})
 
 	suite.Run("write batch events", func() {
-		events := []*audit.AuditEvent{
+		events := []*types.AuditEvent{
 			createTestEvent("splunk-batch-1"),
 			createTestEvent("splunk-batch-2"),
 		}
@@ -357,11 +357,11 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 
 // Webhook Backend Tests
 func (suite *TestBackendIntegrationSuite) TestWebhookBackend() {
-	receivedEvents := make([]*audit.AuditEvent, 0)
+	receivedEvents := make([]*types.AuditEvent, 0)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			var event audit.AuditEvent
+			var event types.AuditEvent
 			body, err := ioutil.ReadAll(r.Body)
 			suite.NoError(err)
 
@@ -584,52 +584,52 @@ func (suite *TestBackendIntegrationSuite) TestBackendFactory() {
 // Test Filter Configuration
 func (suite *TestBackendIntegrationSuite) TestFilterConfiguration() {
 	filter := FilterConfig{
-		MinSeverity:   audit.SeverityWarning,
-		EventTypes:    []audit.EventType{audit.EventTypeAuthentication},
+		MinSeverity:   types.SeverityWarning,
+		EventTypes:    []types.EventType{types.EventTypeAuthentication},
 		Components:    []string{"auth", "api"},
-		ExcludeTypes:  []audit.EventType{audit.EventTypeHealthCheck},
+		ExcludeTypes:  []types.EventType{types.EventTypeHealthCheck},
 		IncludeFields: []string{"user_id", "action"},
 		ExcludeFields: []string{"debug_info"},
 	}
 
 	tests := []struct {
 		name         string
-		event        *audit.AuditEvent
+		event        *types.AuditEvent
 		shouldFilter bool
 	}{
 		{
 			name: "event passes all filters",
-			event: &audit.AuditEvent{
-				EventType: audit.EventTypeAuthentication,
+			event: &types.AuditEvent{
+				EventType: types.EventTypeAuthentication,
 				Component: "auth",
-				Severity:  audit.SeverityError,
+				Severity:  types.SeverityError,
 			},
 			shouldFilter: true,
 		},
 		{
 			name: "event filtered by severity",
-			event: &audit.AuditEvent{
-				EventType: audit.EventTypeAuthentication,
+			event: &types.AuditEvent{
+				EventType: types.EventTypeAuthentication,
 				Component: "auth",
-				Severity:  audit.SeverityInfo, // Below threshold
+				Severity:  types.SeverityInfo, // Below threshold
 			},
 			shouldFilter: false,
 		},
 		{
 			name: "event filtered by excluded type",
-			event: &audit.AuditEvent{
-				EventType: audit.EventTypeHealthCheck,
+			event: &types.AuditEvent{
+				EventType: types.EventTypeHealthCheck,
 				Component: "auth",
-				Severity:  audit.SeverityError,
+				Severity:  types.SeverityError,
 			},
 			shouldFilter: false,
 		},
 		{
 			name: "event filtered by component",
-			event: &audit.AuditEvent{
-				EventType: audit.EventTypeAuthentication,
+			event: &types.AuditEvent{
+				EventType: types.EventTypeAuthentication,
 				Component: "other",
-				Severity:  audit.SeverityError,
+				Severity:  types.SeverityError,
 			},
 			shouldFilter: false,
 		},
@@ -684,7 +684,7 @@ func (suite *TestBackendIntegrationSuite) TestBackendPerformance() {
 	defer backend.Close()
 
 	// Measure batch write performance
-	events := make([]*audit.AuditEvent, 100)
+	events := make([]*types.AuditEvent, 100)
 	for i := 0; i < len(events); i++ {
 		events[i] = createTestEvent(fmt.Sprintf("perf-test-%d", i))
 	}
@@ -705,23 +705,23 @@ func (suite *TestBackendIntegrationSuite) TestBackendPerformance() {
 
 // Helper functions
 
-func createTestEvent(action string) *audit.AuditEvent {
-	return &audit.AuditEvent{
+func createTestEvent(action string) *types.AuditEvent {
+	return &types.AuditEvent{
 		ID:        uuid.New().String(),
 		Timestamp: time.Now(),
-		EventType: audit.EventTypeAuthentication,
+		EventType: types.EventTypeAuthentication,
 		Component: "test",
 		Action:    action,
-		Severity:  audit.SeverityInfo,
-		Result:    audit.ResultSuccess,
-		UserContext: &audit.UserContext{
+		Severity:  types.SeverityInfo,
+		Result:    types.ResultSuccess,
+		UserContext: &types.UserContext{
 			UserID:   "test-user",
 			Username: "testuser",
 		},
-		NetworkContext: &audit.NetworkContext{
+		NetworkContext: &types.NetworkContext{
 			SourcePort: 8080,
 		},
-		ResourceContext: &audit.ResourceContext{
+		ResourceContext: &types.ResourceContext{
 			ResourceType: "deployment",
 			Operation:    "create",
 		},
@@ -808,7 +808,7 @@ func BenchmarkFileBackendWriteBatch(b *testing.B) {
 	require.NoError(b, err)
 	defer backend.Close()
 
-	events := make([]*audit.AuditEvent, 10)
+	events := make([]*types.AuditEvent, 10)
 	for i := 0; i < len(events); i++ {
 		events[i] = createTestEvent(fmt.Sprintf("benchmark-%d", i))
 	}
