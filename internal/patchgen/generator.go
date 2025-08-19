@@ -26,9 +26,10 @@ func generatePackageName(target string) string {
 	// Generate a random 4-digit suffix to minimize collision probability
 	randomSuffix, err := rand.Int(rand.Reader, big.NewInt(10000))
 	if err != nil {
-		// Fallback to just nanosecond timestamp if crypto/rand fails
+		// Enhanced fallback: use nanosecond timestamp with process ID for better uniqueness
 		nanoTime := now.Format("20060102-150405-000000000")
-		return fmt.Sprintf("%s-scaling-patch-%s", target, nanoTime)
+		pid := os.Getpid() % 10000 // Keep PID within 4 digits
+		return fmt.Sprintf("%s-scaling-patch-%s-%04d", target, nanoTime, pid)
 	}
 	
 	// Create a timestamp with random suffix that's valid for Kubernetes names
