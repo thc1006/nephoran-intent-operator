@@ -25,13 +25,13 @@ var _ = Describe("Production Scenarios E2E Tests", Ordered, func() {
 	BeforeAll(func() {
 		ctx, cancel = context.WithTimeout(testCtx, 20*time.Minute)
 		testNamespace = fmt.Sprintf("%s-prod-%d", testNamespace, time.Now().Unix())
-		
+
 		By(fmt.Sprintf("Creating production test namespace: %s", testNamespace))
 		ns := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: testNamespace,
 				Labels: map[string]string{
-					"test": "e2e-production",
+					"test":              "e2e-production",
 					"nephoran.com/test": "production-scenarios",
 				},
 			},
@@ -41,7 +41,7 @@ var _ = Describe("Production Scenarios E2E Tests", Ordered, func() {
 
 	AfterAll(func() {
 		defer cancel()
-		
+
 		if !skipCleanup {
 			By(fmt.Sprintf("Cleaning up production test namespace: %s", testNamespace))
 			ns := &corev1.Namespace{}
@@ -245,7 +245,7 @@ var _ = Describe("Production Scenarios E2E Tests", Ordered, func() {
 			By("Verifying all network slices are processing")
 			Eventually(func() int {
 				intents := &nephoranv1.NetworkIntentList{}
-				err := k8sClient.List(ctx, intents, 
+				err := k8sClient.List(ctx, intents,
 					client.InNamespace(testNamespace),
 					client.MatchingLabels{"scenario": "network-slicing"})
 				if err != nil {
@@ -344,17 +344,17 @@ var _ = Describe("Production Scenarios E2E Tests", Ordered, func() {
 			Eventually(func() bool {
 				primary := &nephoranv1.NetworkIntent{}
 				secondary := &nephoranv1.NetworkIntent{}
-				
+
 				err1 := k8sClient.Get(ctx, types.NamespacedName{
 					Name:      primaryIntent.Name,
 					Namespace: primaryIntent.Namespace,
 				}, primary)
-				
+
 				err2 := k8sClient.Get(ctx, types.NamespacedName{
 					Name:      secondaryIntent.Name,
 					Namespace: secondaryIntent.Namespace,
 				}, secondary)
-				
+
 				return err1 == nil && err2 == nil &&
 					primary.Status.Phase != "Pending" &&
 					secondary.Status.Phase != "Pending"

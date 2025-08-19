@@ -5,7 +5,6 @@ package performance
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"fmt"
 	"runtime"
 	"sync"

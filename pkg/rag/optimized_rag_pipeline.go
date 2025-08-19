@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"golang.org/x/sync/errgroup"
 )
 
 // OptimizedRAGPipeline provides a high-performance RAG processing pipeline
@@ -22,7 +21,7 @@ type OptimizedRAGPipeline struct {
 	semanticCache     *SemanticCache
 	queryPreprocessor *QueryPreprocessor
 	resultAggregator  *ResultAggregator
-	embeddingCache    *EmbeddingCache
+	embeddingCache    *OptimizedEmbeddingCache
 	weaviateClient    *WeaviateClient
 	batchSearchClient *OptimizedBatchSearchClient
 	connectionPool    *OptimizedConnectionPool
@@ -141,7 +140,7 @@ type ResultAggregatorMetrics struct {
 }
 
 // EmbeddingCache caches embedding vectors for reuse
-type EmbeddingCache struct {
+type OptimizedEmbeddingCache struct {
 	embeddings map[string]*CachedEmbedding
 	config     *RAGPipelineConfig
 	mutex      sync.RWMutex
@@ -235,7 +234,7 @@ func NewOptimizedRAGPipeline(
 	}
 
 	// Initialize embedding cache
-	embeddingCache := &EmbeddingCache{
+	embeddingCache := &OptimizedEmbeddingCache{
 		embeddings: make(map[string]*CachedEmbedding),
 		config:     config,
 		metrics:    &EmbeddingCacheMetrics{},
@@ -643,18 +642,8 @@ func (c *SemanticCache) calculateCosineSimilarity(vec1, vec2 []float32) float32 
 	return dotProduct / (float32(sqrt(float64(norm1))) * float32(sqrt(float64(norm2))))
 }
 
-func sqrt(x float64) float64 {
-	// Simple square root implementation
-	if x == 0 {
-		return 0
-	}
-	// Use Newton's method for square root approximation
-	z := x
-	for i := 0; i < 10; i++ {
-		z = (z + x/z) / 2
-	}
-	return z
-}
+// Use consolidated sqrt function from pkg/shared
+var sqrt = shared.Sqrt
 
 func (c *SemanticCache) updateCacheHit(entry *SemanticCacheEntry, exact bool) {
 	entry.LastAccessed = time.Now()
@@ -1060,7 +1049,7 @@ func (c *SemanticCache) cleanupExpired() {
 	c.logger.Debug("Semantic cache cleanup completed", "evicted", len(keysToDelete))
 }
 
-func (c *EmbeddingCache) cleanupExpired() {
+func (c *OptimizedEmbeddingCache) cleanupExpired() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 

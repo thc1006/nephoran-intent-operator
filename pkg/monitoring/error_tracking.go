@@ -18,7 +18,6 @@ package monitoring
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -170,6 +169,166 @@ type PrometheusErrorMetrics struct {
 	circuitBreakerTrips *prometheus.CounterVec
 
 	registry prometheus.Registerer
+}
+
+// NewPrometheusErrorMetrics creates a new PrometheusErrorMetrics instance
+func NewPrometheusErrorMetrics(namespace string) *PrometheusErrorMetrics {
+	metrics := &PrometheusErrorMetrics{
+		registry: prometheus.DefaultRegisterer,
+	}
+
+	// Initialize error counters
+	metrics.errorsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "errors_total",
+			Help:      "Total number of errors tracked",
+		},
+		[]string{"error_id", "category", "severity", "component"},
+	)
+
+	metrics.errorsByCategory = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "errors_by_category_total",
+			Help:      "Total errors grouped by category",
+		},
+		[]string{"category"},
+	)
+
+	metrics.errorsBySeverity = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "errors_by_severity_total",
+			Help:      "Total errors grouped by severity",
+		},
+		[]string{"severity"},
+	)
+
+	metrics.errorsByComponent = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "errors_by_component_total",
+			Help:      "Total errors grouped by component",
+		},
+		[]string{"component"},
+	)
+
+	// Initialize recovery metrics
+	metrics.recoveryAttemptsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "recovery_attempts_total",
+			Help:      "Total number of error recovery attempts",
+		},
+		[]string{"error_id", "strategy"},
+	)
+
+	metrics.recoverySuccessTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "recovery_success_total",
+			Help:      "Total number of successful error recoveries",
+		},
+		[]string{"error_id", "strategy"},
+	)
+
+	metrics.recoveryDurationHist = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: namespace,
+			Name:      "recovery_duration_seconds",
+			Help:      "Duration of error recovery attempts",
+			Buckets:   prometheus.DefBuckets,
+		},
+		[]string{"error_id", "strategy"},
+	)
+
+	// Initialize performance metrics
+	metrics.errorProcessingDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: namespace,
+			Name:      "error_processing_duration_seconds",
+			Help:      "Duration of error processing",
+			Buckets:   prometheus.DefBuckets,
+		},
+		[]string{"operation"},
+	)
+
+	metrics.errorProcessingRate = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "error_processing_rate",
+			Help:      "Rate of error processing",
+		},
+		[]string{"operation"},
+	)
+
+	// Initialize system health metrics
+	metrics.activeErrors = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "active_errors",
+			Help:      "Current number of active errors",
+		},
+		[]string{"category"},
+	)
+
+	metrics.errorRate = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "error_rate",
+			Help:      "Current error rate",
+		},
+		[]string{"window"},
+	)
+
+	metrics.meanTimeToRecovery = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "mean_time_to_recovery_seconds",
+			Help:      "Mean time to recovery for errors",
+		},
+		[]string{"category"},
+	)
+
+	// Initialize circuit breaker metrics
+	metrics.circuitBreakerState = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Name:      "circuit_breaker_state",
+			Help:      "Current state of circuit breakers (0=closed, 1=open, 2=half-open)",
+		},
+		[]string{"circuit"},
+	)
+
+	metrics.circuitBreakerTrips = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Name:      "circuit_breaker_trips_total",
+			Help:      "Total number of circuit breaker trips",
+		},
+		[]string{"circuit", "reason"},
+	)
+
+	// Register all metrics
+	metrics.registry.MustRegister(
+		metrics.errorsTotal,
+		metrics.errorsByCategory,
+		metrics.errorsBySeverity,
+		metrics.errorsByComponent,
+		metrics.recoveryAttemptsTotal,
+		metrics.recoverySuccessTotal,
+		metrics.recoveryDurationHist,
+		metrics.errorProcessingDuration,
+		metrics.errorProcessingRate,
+		metrics.activeErrors,
+		metrics.errorRate,
+		metrics.meanTimeToRecovery,
+		metrics.circuitBreakerState,
+		metrics.circuitBreakerTrips,
+	)
+
+	return metrics
 }
 
 // Note: AlertRule and AlertSeverity types are defined in alerting.go
@@ -611,7 +770,10 @@ func NewErrorTrackingSystem(config *ErrorTrackingConfig, errorAggregator *errors
 
 	// Initialize alerting if enabled
 	if config.AlertingEnabled {
-		ets.alertManager = NewAlertManager(config.AlertRules, logger)
+		alertConfig := &AlertManagerConfig{
+			EvaluationInterval: 30 * time.Second,
+		}
+		ets.alertManager = NewAlertManager(alertConfig, nil, nil)
 		ets.notificationManager = NewNotificationManager(config.NotificationChannels, logger)
 	}
 
@@ -760,7 +922,7 @@ func (ets *ErrorTrackingSystem) TrackError(ctx context.Context, err *errors.Proc
 	case ets.errorStream <- event:
 		return nil
 	default:
-		ets.logger.Warn("Error stream buffer full, dropping error event", "errorId", err.ID)
+		ets.logger.V(1).Info("Error stream buffer full, dropping error event", "errorId", err.ID)
 		return fmt.Errorf("error stream buffer full")
 	}
 }

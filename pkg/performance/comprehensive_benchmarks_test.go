@@ -12,12 +12,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	"unsafe"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // BenchmarkComprehensiveSuite provides end-to-end performance testing using Go 1.24+ features

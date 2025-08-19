@@ -1119,3 +1119,39 @@ type AnomalyDetectionResult struct {
 	DetectionTime     time.Time `json:"detection_time"`
 	RecommendedAction string    `json:"recommended_action"`
 }
+
+// RecordSpanMetrics records distributed tracing span metrics
+func (mr *MetricsRecorder) RecordSpanMetrics(spanName, operationType string, duration time.Duration, success bool) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	status := "success"
+	if !success {
+		status = "error"
+	}
+
+	// Record operation latency
+	if mr.llmLatency != nil {
+		mr.llmLatency.WithLabelValues(spanName, operationType, status).Observe(duration.Seconds())
+	}
+
+	// Record error count if failed
+	if !success && mr.errorCounts != nil {
+		mr.errorCounts.WithLabelValues("tracing", "span_error").Inc()
+	}
+}
+
+// RecordTraceAlert records trace-based alert events
+func (mr *MetricsRecorder) RecordTraceAlert(alertType, severity, component string) {
+	mr.mu.RLock()
+	defer mr.mu.RUnlock()
+
+	if mr.alertCounts != nil {
+		mr.alertCounts.WithLabelValues(severity, component).Inc()
+	}
+
+	// Also record as security incident if it's a security alert
+	if alertType == "security" && mr.securityIncidents != nil {
+		mr.securityIncidents.WithLabelValues(alertType, severity, component, "trace_analysis").Inc()
+	}
+}

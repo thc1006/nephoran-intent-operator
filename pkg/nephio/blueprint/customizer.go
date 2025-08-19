@@ -20,22 +20,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
-	"text/template"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // Customizer handles blueprint customization and parameterization based on NetworkIntent context

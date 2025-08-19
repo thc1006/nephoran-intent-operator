@@ -4,17 +4,14 @@ package regression
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
-	"sort"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat"
 	"k8s.io/klog/v2"
 )

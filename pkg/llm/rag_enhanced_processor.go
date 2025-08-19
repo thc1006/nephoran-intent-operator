@@ -1,8 +1,9 @@
+//go:build rag
+
 package llm
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strings"

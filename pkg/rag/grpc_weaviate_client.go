@@ -11,11 +11,9 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -114,8 +112,8 @@ type GRPCRateLimiter struct {
 	mutex             sync.Mutex
 }
 
-// Batch request structures for gRPC batching
-type BatchSearchRequest struct {
+// Batch request structures for gRPC batching (renamed to avoid conflicts with shared.BatchSearchRequest)
+type GRPCBatchSearchRequest struct {
 	Requests []*VectorSearchRequest `json:"requests"`
 	Metadata map[string]string      `json:"metadata"`
 }
@@ -128,7 +126,7 @@ type VectorSearchRequest struct {
 	Metadata map[string]string      `json:"metadata"`
 }
 
-type BatchSearchResponse struct {
+type GRPCBatchSearchResponse struct {
 	Responses []*VectorSearchResponse `json:"responses"`
 	Metadata  map[string]string       `json:"metadata"`
 	Took      time.Duration           `json:"took"`
@@ -380,7 +378,7 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 	startTime := time.Now()
 
 	// Convert to gRPC batch request
-	batchReq := &BatchSearchRequest{
+	batchReq := &GRPCBatchSearchRequest{
 		Requests: make([]*VectorSearchRequest, len(queries)),
 		Metadata: map[string]string{
 			"batch_size": fmt.Sprintf("%d", len(queries)),
@@ -456,7 +454,7 @@ func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorS
 }
 
 // performGRPCBatchSearch performs batch gRPC search
-func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *BatchSearchRequest) (*BatchSearchResponse, error) {
+func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *GRPCBatchSearchRequest) (*GRPCBatchSearchResponse, error) {
 	// Get connection from pool
 	conn := c.connPool.GetConnection()
 	_ = conn // Use the connection
@@ -488,7 +486,7 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *Ba
 		}
 	}
 
-	return &BatchSearchResponse{
+	return &GRPCBatchSearchResponse{
 		Responses: responses,
 		Metadata: map[string]string{
 			"batch_size": fmt.Sprintf("%d", len(req.Requests)),

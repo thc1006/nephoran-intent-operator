@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -65,8 +66,8 @@ func DefaultLogConfig() *LogConfig {
 		Level:       "info",
 		Format:      "json",
 		ServiceName: "nephoran-intent-operator",
-		Environment: getEnv("NEPHORAN_ENVIRONMENT", "production"),
-		Version:     getEnv("NEPHORAN_VERSION", "1.0.0"),
+		Environment: shared.GetEnv("NEPHORAN_ENVIRONMENT", "production"),
+		Version:     shared.GetEnv("NEPHORAN_VERSION", "1.0.0"),
 		Output:      "stdout",
 	}
 }

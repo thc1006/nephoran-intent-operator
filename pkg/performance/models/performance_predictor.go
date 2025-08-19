@@ -3,7 +3,6 @@ package models
 import (
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/optimize"
-	"math"
 )
 
 // PerformancePredictor uses machine learning techniques for performance forecasting

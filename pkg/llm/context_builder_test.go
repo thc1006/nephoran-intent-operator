@@ -3,6 +3,8 @@ package llm
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"strings"
 	"testing"
 	"time"
 

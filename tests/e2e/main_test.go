@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -34,7 +33,7 @@ var (
 	verbose       bool
 	parallel      int
 	timeout       time.Duration
-	
+
 	cfg        *rest.Config
 	k8sClient  client.Client
 	clientset  *kubernetes.Clientset
@@ -54,30 +53,30 @@ func init() {
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	
+
 	suiteConfig, reporterConfig := ginkgo.GinkgoConfiguration()
 	suiteConfig.Timeout = timeout
 	suiteConfig.ParallelTotal = parallel
-	
+
 	if verbose {
 		reporterConfig.Verbose = true
 		reporterConfig.VeryVerbose = true
 	}
-	
+
 	ginkgo.RunSpecs(t, "Nephoran E2E Test Suite", suiteConfig, reporterConfig)
 }
 
 var _ = ginkgo.BeforeSuite(func() {
 	ginkgo.By("Setting up E2E test environment")
-	
+
 	// Setup logging
 	opts := zap.Options{Development: verbose}
 	logger := zap.New(zap.UseFlagOptions(&opts))
 	logf.SetLogger(logger)
-	
+
 	// Setup test context
 	testCtx, testCancel = context.WithTimeout(context.Background(), timeout)
-	
+
 	// Setup Kubernetes client
 	var err error
 	if kubeconfig == "" {
@@ -95,30 +94,30 @@ var _ = ginkgo.BeforeSuite(func() {
 		cfg, err = clientcmd.BuildConfigFromFlags("", kubeconfig)
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to load kubeconfig from file")
 	}
-	
+
 	// Create clients
 	clientset, err = kubernetes.NewForConfig(cfg)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to create clientset")
-	
+
 	scheme := runtime.NewScheme()
 	err = nephoranv1.AddToScheme(scheme)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to add Nephoran to scheme")
-	
+
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme})
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to create controller-runtime client")
-	
+
 	// Verify cluster connectivity
 	ginkgo.By("Verifying cluster connectivity")
 	_, err = clientset.Discovery().ServerVersion()
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to connect to cluster")
-	
+
 	// Create test namespace
 	ginkgo.By(fmt.Sprintf("Creating test namespace: %s", testNamespace))
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: testNamespace,
 			Labels: map[string]string{
-				"test": "e2e",
+				"test":              "e2e",
 				"nephoran.com/test": "true",
 			},
 		},
@@ -127,13 +126,13 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err != nil && !errors.IsAlreadyExists(err) {
 		gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to create test namespace")
 	}
-	
+
 	// Verify CRDs are installed
 	ginkgo.By("Verifying CRDs are installed")
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	err = k8sClient.List(testCtx, crdList)
 	gomega.Expect(err).NotTo(gomega.HaveOccurred(), "Failed to list CRDs")
-	
+
 	foundNetworkIntent := false
 	foundE2NodeSet := false
 	for _, crd := range crdList.Items {
@@ -144,10 +143,10 @@ var _ = ginkgo.BeforeSuite(func() {
 			foundE2NodeSet = true
 		}
 	}
-	
+
 	gomega.Expect(foundNetworkIntent).To(gomega.BeTrue(), "NetworkIntent CRD not found")
 	gomega.Expect(foundE2NodeSet).To(gomega.BeTrue(), "E2NodeSet CRD not found")
-	
+
 	logger.Info("E2E test environment setup complete",
 		"cluster", clusterName,
 		"namespace", testNamespace,
@@ -156,10 +155,10 @@ var _ = ginkgo.BeforeSuite(func() {
 
 var _ = ginkgo.AfterSuite(func() {
 	defer testCancel()
-	
+
 	if !skipCleanup {
 		ginkgo.By(fmt.Sprintf("Cleaning up test namespace: %s", testNamespace))
-		
+
 		ns := &corev1.Namespace{}
 		err := k8sClient.Get(testCtx, types.NamespacedName{Name: testNamespace}, ns)
 		if err == nil {

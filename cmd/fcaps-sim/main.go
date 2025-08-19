@@ -28,7 +28,7 @@ type Config struct {
 
 func main() {
 	config := parseFlags()
-	
+
 	if config.Verbose {
 		log.Printf("FCAPS Simulator starting with config: %+v", config)
 	}
@@ -43,18 +43,18 @@ func main() {
 
 	// Create processor
 	processor := fcaps.NewProcessor(config.Target, config.Namespace)
-	
+
 	// Process events with configurable delay
 	for i, event := range events {
 		log.Printf("\n=== Processing Event %d/%d ===", i+1, len(events))
-		
+
 		// Process the event
 		decision := processor.ProcessEvent(event)
-		
+
 		if decision.ShouldScale {
-			log.Printf("Scaling decision: scale %s to %d replicas (reason: %s)", 
+			log.Printf("Scaling decision: scale %s to %d replicas (reason: %s)",
 				config.Target, decision.NewReplicas, decision.Reason)
-			
+
 			// Generate intent
 			intent, err := processor.GenerateIntent(decision)
 			if err != nil {
@@ -84,11 +84,11 @@ func main() {
 
 func parseFlags() Config {
 	var config Config
-	
+
 	// Get default input file path relative to repo root
 	repoRoot, _ := os.Getwd()
 	defaultInputFile := filepath.Join(repoRoot, "docs", "contracts", "fcaps.ves.examples.json")
-	
+
 	flag.StringVar(&config.InputFile, "input", defaultInputFile, "Path to FCAPS events JSON file")
 	flag.IntVar(&config.DelaySeconds, "delay", 5, "Delay in seconds between processing events")
 	flag.StringVar(&config.Target, "target", "nf-sim", "Target deployment name for scaling")
@@ -115,10 +115,10 @@ func loadFCAPSEvents(inputFile string) ([]fcaps.FCAPSEvent, error) {
 
 	// Convert map to slice for processing order
 	var events []fcaps.FCAPSEvent
-	
+
 	// Process in a predictable order: fault, measurement, heartbeat
 	orderedKeys := []string{"fault_example", "measurement_example", "heartbeat_example"}
-	
+
 	for _, key := range orderedKeys {
 		if event, exists := examples[key]; exists {
 			events = append(events, event)
@@ -187,6 +187,6 @@ func sendIntent(intentURL string, intent *ingest.Intent) error {
 
 	// Log successful response
 	log.Printf("Intent accepted by server: %s", strings.TrimSpace(string(responseBody)))
-	
+
 	return nil
 }

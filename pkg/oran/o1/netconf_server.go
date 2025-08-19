@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	"golang.org/x/crypto/ssh"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 )
 
 // PredefinedExperiments provides a catalog of pre-configured chaos experiments

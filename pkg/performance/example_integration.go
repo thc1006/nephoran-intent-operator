@@ -6,8 +6,9 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"runtime"
+	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"k8s.io/klog/v2"
 )

@@ -1,7 +1,6 @@
 package rag
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"

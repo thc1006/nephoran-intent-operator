@@ -14,7 +14,6 @@ import (
 	"github.com/google/pprof/profile"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // IntentProcessingBenchmarks validates all claimed performance metrics for intent processing

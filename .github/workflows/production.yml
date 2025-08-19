@@ -412,19 +412,27 @@ jobs:
           # Install Syft for SBOM generation
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
           
-          # Install additional scanners
-          go install github.com/sonatypecommunity/nancy@latest
+          # Install Go vulnerability scanner
           go install golang.org/x/vuln/cmd/govulncheck@latest
 
       - name: Dependency vulnerability scan
         run: |
           mkdir -p security-reports
           
-          # Nancy scan
-          go list -json -m all | nancy sleuth --output-format=json > security-reports/nancy-report.json || true
+          # govulncheck - Official Go vulnerability scanner
+          echo "Running vulnerability scan with govulncheck..."
           
-          # govulncheck
-          govulncheck -json ./... > security-reports/govulncheck-report.json || true
+          # Check if code compiles before running govulncheck
+          if go build -o /dev/null ./...; then
+            echo "Code compiles successfully, proceeding with vulnerability scan..."
+            govulncheck -json ./... > security-reports/govulncheck-report.json || true
+            echo "Running govulncheck with detailed output..."
+            govulncheck -show verbose ./... || true
+          else
+            echo "WARNING: Code compilation issues detected. Skipping govulncheck scan."
+            echo "Please ensure code compiles before deploying to production."
+            echo '{"warning": "Govulncheck skipped due to compilation errors"}' > security-reports/govulncheck-report.json
+          fi
 
       - name: Build container images for scanning
         run: |

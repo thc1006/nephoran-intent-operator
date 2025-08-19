@@ -12,7 +12,6 @@ import (
 	"github.com/prometheus/common/model"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
 // MonitoringIntegrations manages integrations with monitoring systems

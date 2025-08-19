@@ -11,6 +11,8 @@ import (
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	"net"
+	"strings"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"

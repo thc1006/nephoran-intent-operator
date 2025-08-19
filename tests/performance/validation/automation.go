@@ -690,16 +690,16 @@ func (ar *AutomationRunner) saveArtifacts(result *ValidationResult, artifactConf
 	if len(artifactConfig.Paths) == 0 {
 		return
 	}
-	
+
 	log.Printf("Saving validation artifacts...")
-	
+
 	// Create artifacts directory
 	artifactDir := filepath.Join(ar.outputDir, "artifacts")
 	if err := os.MkdirAll(artifactDir, 0755); err != nil {
 		log.Printf("Warning: Failed to create artifacts directory: %v", err)
 		return
 	}
-	
+
 	// Save result as JSON artifact
 	resultPath := filepath.Join(artifactDir, fmt.Sprintf("validation-result-%s.json", result.ID))
 	data, err := json.MarshalIndent(result, "", "  ")
@@ -707,12 +707,12 @@ func (ar *AutomationRunner) saveArtifacts(result *ValidationResult, artifactConf
 		log.Printf("Warning: Failed to marshal result: %v", err)
 		return
 	}
-	
+
 	if err := os.WriteFile(resultPath, data, 0644); err != nil {
 		log.Printf("Warning: Failed to save result artifact: %v", err)
 		return
 	}
-	
+
 	result.Artifacts = append(result.Artifacts, resultPath)
 	log.Printf("Saved validation artifacts to: %s", artifactDir)
 }
@@ -720,7 +720,7 @@ func (ar *AutomationRunner) saveArtifacts(result *ValidationResult, artifactConf
 // sendNotifications sends notifications based on validation results
 func (ar *AutomationRunner) sendNotifications(notificationConfig NotificationConfig, result *ValidationResult) {
 	log.Printf("Processing notifications for validation result: %s", result.Status)
-	
+
 	// Determine which targets to notify based on status
 	var targets []NotificationTarget
 	switch result.Status {
@@ -732,12 +732,12 @@ func (ar *AutomationRunner) sendNotifications(notificationConfig NotificationCon
 		// For other statuses like "warning", use regression targets
 		targets = notificationConfig.OnRegression
 	}
-	
+
 	if len(targets) == 0 {
 		log.Printf("No notification targets configured for status: %s", result.Status)
 		return
 	}
-	
+
 	// Process each notification target
 	for _, target := range targets {
 		notification := NotificationSent{
@@ -748,10 +748,10 @@ func (ar *AutomationRunner) sendNotifications(notificationConfig NotificationCon
 			Status:     "sent",
 			MessageID:  fmt.Sprintf("val-%s-%d", result.ID, time.Now().Unix()),
 		}
-		
+
 		// Log notification (in real implementation, would send to configured endpoints)
 		log.Printf("NOTIFICATION [%s]: %s", target.Type, notification.Subject)
-		
+
 		result.Notifications = append(result.Notifications, notification)
 	}
 }
@@ -759,7 +759,7 @@ func (ar *AutomationRunner) sendNotifications(notificationConfig NotificationCon
 // generateHTMLReport generates a comprehensive HTML report
 func (ar *AutomationRunner) generateHTMLReport(result *ValidationResult) (string, error) {
 	log.Printf("Generating HTML report for validation result: %s", result.ID)
-	
+
 	// Simple HTML template for the report
 	htmlTemplate := `
 <!DOCTYPE html>
@@ -807,7 +807,7 @@ func (ar *AutomationRunner) generateHTMLReport(result *ValidationResult) (string
     <p><em>Generated at: %s</em></p>
 </body>
 </html>`
-	
+
 	// Build claims section
 	claimsHTML := ""
 	for name, claim := range result.Claims {
@@ -821,7 +821,7 @@ func (ar *AutomationRunner) generateHTMLReport(result *ValidationResult) (string
             <p><strong>Confidence:</strong> %.2f%%</p>
         </div>`, name, statusClass, claim.Status, claim.Target, claim.Measured, claim.Confidence*100)
 	}
-	
+
 	// Build quality gates section
 	qualityGatesHTML := ""
 	for _, gate := range result.QualityGates {
@@ -834,13 +834,13 @@ func (ar *AutomationRunner) generateHTMLReport(result *ValidationResult) (string
             <p><strong>Action:</strong> %s</p>
         </div>`, gate.Name, statusClass, gate.Status, gate.Message, gate.Action)
 	}
-	
+
 	// Build artifacts section
 	artifactsHTML := ""
 	for _, artifact := range result.Artifacts {
 		artifactsHTML += fmt.Sprintf("<li>%s</li>", filepath.Base(artifact))
 	}
-	
+
 	// Fill in the template
 	htmlReport := fmt.Sprintf(htmlTemplate,
 		result.ID,
@@ -856,6 +856,6 @@ func (ar *AutomationRunner) generateHTMLReport(result *ValidationResult) (string
 		artifactsHTML,
 		time.Now().Format("2006-01-02 15:04:05"),
 	)
-	
+
 	return htmlReport, nil
 }

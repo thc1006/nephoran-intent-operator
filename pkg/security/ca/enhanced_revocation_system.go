@@ -6,8 +6,6 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -18,7 +16,6 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"golang.org/x/crypto/ocsp"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // EnhancedRevocationSystem provides comprehensive revocation checking with performance optimization

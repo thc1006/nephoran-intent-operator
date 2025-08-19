@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"math/big"
 	"net"
-	"net/url"
 	"strings"
 	"sync"
 	"time"

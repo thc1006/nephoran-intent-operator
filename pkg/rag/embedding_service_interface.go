@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // EmbeddingServiceInterface defines the interface for embedding services
@@ -182,24 +184,8 @@ func calculateCosineSimilarity(a, b []float32) float32 {
 	return dotProduct / (float32(sqrt(float64(normA))) * float32(sqrt(float64(normB))))
 }
 
-// sqrt implements square root for float64
-func sqrt(x float64) float64 {
-	if x < 0 {
-		return 0
-	}
-
-	// Simple Newton-Raphson method for square root
-	if x == 0 {
-		return 0
-	}
-
-	z := x
-	for i := 0; i < 10; i++ {
-		z = (z + x/z) / 2
-	}
-
-	return z
-}
+// Use consolidated sqrt function from pkg/shared
+var sqrt = shared.Sqrt
 
 // generateRequestID generates a unique request ID
 func generateRequestID(operation string) string {

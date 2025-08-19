@@ -17,7 +17,6 @@ limitations under the License.
 package porch
 
 import (
-	"context"
 	"os"
 	"testing"
 	"time"

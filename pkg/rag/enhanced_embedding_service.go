@@ -3,21 +3,13 @@
 package rag
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"log/slog"
-	"math"
-	"net/http"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/go-redis/redis/v8"
 )
 
 // MultiProviderEmbeddingService provides intelligent embedding generation with multiple providers

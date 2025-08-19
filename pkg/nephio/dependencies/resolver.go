@@ -20,14 +20,11 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/apimachinery/pkg/version"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"

@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"net/url"
-	"strconv"
 	"strings"
 	"time"
 

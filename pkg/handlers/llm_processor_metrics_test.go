@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"log/slog"
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	"log/slog"
 )
 
 // TestProcessIntentHandlerMetrics tests that metrics are recorded for the ProcessIntentHandler

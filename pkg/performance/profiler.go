@@ -1,10 +1,8 @@
 package performance
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/pprof"
 	"os"

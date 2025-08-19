@@ -3,6 +3,7 @@
 package generics
 
 import (
+	"fmt"
 	"slices"
 	"testing"
 )

@@ -5,15 +5,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"net"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // RealtimeValidationEngine provides real-time certificate validation during TLS handshakes

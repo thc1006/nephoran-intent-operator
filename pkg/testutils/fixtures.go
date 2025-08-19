@@ -110,8 +110,8 @@ func CreateNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.NetworkIntent
 		},
 		Spec: fixture.Expected,
 		Status: nephoranv1.NetworkIntentStatus{
-			Phase: "Pending",
-			LastMessage: "NetworkIntent has been created and is pending processing",
+			Phase:          "Pending",
+			LastMessage:    "NetworkIntent has been created and is pending processing",
 			LastUpdateTime: metav1.Now(),
 		},
 	}

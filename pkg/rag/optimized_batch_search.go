@@ -11,28 +11,12 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"golang.org/x/sync/errgroup"
 )
 
-// BatchSearchRequest represents a batch of search requests
-type BatchSearchRequest struct {
-	Queries           []*SearchQuery         `json:"queries"`
-	MaxConcurrency    int                    `json:"max_concurrency"`
-	EnableAggregation bool                   `json:"enable_aggregation"`
-	DeduplicationKey  string                 `json:"deduplication_key"`
-	Metadata          map[string]interface{} `json:"metadata"`
-}
-
-// BatchSearchResponse represents the response from batch search
-type BatchSearchResponse struct {
-	Results             []*SearchResponse      `json:"results"`
-	AggregatedResults   []*shared.SearchResult `json:"aggregated_results"`
-	TotalProcessingTime time.Duration          `json:"total_processing_time"`
-	ParallelQueries     int                    `json:"parallel_queries"`
-	CacheHits           int                    `json:"cache_hits"`
-	Metadata            map[string]interface{} `json:"metadata"`
-}
+// Use consolidated types from pkg/shared
+type BatchSearchRequest = shared.BatchSearchRequest
+type BatchSearchResponse = shared.BatchSearchResponse
 
 // SearchBatch represents a batch of related queries
 type SearchBatch struct {

@@ -4,8 +4,9 @@ package performance
 
 import (
 	"context"
-	"fmt"
 	"math"
+	"math/rand"
+	"sort"
 	"testing"
 	"time"
 

@@ -21,11 +21,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
 // ExporterConfig contains configuration for metrics export

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/tsenart/vegeta/v12/lib"
 	"golang.org/x/time/rate"
 	"k8s.io/klog/v2"
 )

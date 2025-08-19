@@ -10,18 +10,18 @@ import (
 
 // CommonEventHeader represents the common header for all VES events
 type CommonEventHeader struct {
-	Version              string `json:"version"`
-	Domain               string `json:"domain"`
-	EventName            string `json:"eventName"`
-	EventID              string `json:"eventId"`
-	Sequence             int    `json:"sequence"`
-	Priority             string `json:"priority"`
-	ReportingEntityName  string `json:"reportingEntityName"`
-	SourceName           string `json:"sourceName"`
-	NFVendorName         string `json:"nfVendorName"`
-	StartEpochMicrosec   int64  `json:"startEpochMicrosec"`
-	LastEpochMicrosec    int64  `json:"lastEpochMicrosec"`
-	TimeZoneOffset       string `json:"timeZoneOffset"`
+	Version             string `json:"version"`
+	Domain              string `json:"domain"`
+	EventName           string `json:"eventName"`
+	EventID             string `json:"eventId"`
+	Sequence            int    `json:"sequence"`
+	Priority            string `json:"priority"`
+	ReportingEntityName string `json:"reportingEntityName"`
+	SourceName          string `json:"sourceName"`
+	NFVendorName        string `json:"nfVendorName"`
+	StartEpochMicrosec  int64  `json:"startEpochMicrosec"`
+	LastEpochMicrosec   int64  `json:"lastEpochMicrosec"`
+	TimeZoneOffset      string `json:"timeZoneOffset"`
 }
 
 // FaultFields represents fault event specific fields
@@ -44,9 +44,9 @@ type MeasurementsForVfScalingFields struct {
 
 // VNicUsage represents network interface usage metrics
 type VNicUsage struct {
-	VnfNetworkInterface      string `json:"vnfNetworkInterface"`
-	ReceivedOctetsDelta      int64  `json:"receivedOctetsDelta"`
-	TransmittedOctetsDelta   int64  `json:"transmittedOctetsDelta"`
+	VnfNetworkInterface    string `json:"vnfNetworkInterface"`
+	ReceivedOctetsDelta    int64  `json:"receivedOctetsDelta"`
+	TransmittedOctetsDelta int64  `json:"transmittedOctetsDelta"`
 }
 
 // HeartbeatFields represents heartbeat event fields
@@ -76,10 +76,10 @@ type Processor struct {
 
 // ScalingDecision represents a scaling decision made by the processor
 type ScalingDecision struct {
-	ShouldScale   bool
-	NewReplicas   int
-	Reason        string
-	Severity      string
+	ShouldScale bool
+	NewReplicas int
+	Reason      string
+	Severity    string
 }
 
 // NewProcessor creates a new FCAPS processor
@@ -96,8 +96,8 @@ func NewProcessor(target, namespace string) *Processor {
 // ProcessEvent processes a FCAPS event and returns scaling decision
 func (p *Processor) ProcessEvent(event FCAPSEvent) ScalingDecision {
 	header := event.Event.CommonEventHeader
-	
-	log.Printf("Processing event: %s (domain: %s, source: %s)", 
+
+	log.Printf("Processing event: %s (domain: %s, source: %s)",
 		header.EventName, header.Domain, header.SourceName)
 
 	switch header.Domain {
@@ -120,7 +120,7 @@ func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
 	}
 
 	faultFields := event.Event.FaultFields
-	log.Printf("Fault event: severity=%s, condition=%s, problem=%s", 
+	log.Printf("Fault event: severity=%s, condition=%s, problem=%s",
 		faultFields.EventSeverity, faultFields.AlarmCondition, faultFields.SpecificProblem)
 
 	// For CRITICAL fault events, scale up by 2
@@ -131,7 +131,7 @@ func (p *Processor) processFaultEvent(event FCAPSEvent) ScalingDecision {
 		}
 
 		if newReplicas > p.currentReplicas {
-			reason := fmt.Sprintf("Critical fault detected: %s (%s)", 
+			reason := fmt.Sprintf("Critical fault detected: %s (%s)",
 				faultFields.SpecificProblem, faultFields.AlarmCondition)
 			return ScalingDecision{
 				ShouldScale: true,

@@ -2,6 +2,7 @@ package shared
 
 import (
 	"context"
+	"os"
 	"time"
 )
 
@@ -127,4 +128,78 @@ type ResourceUsage struct {
 	NetworkInMBps     float64 `json:"networkInMBps"`
 	NetworkOutMBps    float64 `json:"networkOutMBps"`
 	ActiveConnections int     `json:"activeConnections"`
+}
+
+// ==== CONSOLIDATED TYPES TO RESOLVE REDECLARATIONS ====
+
+// CircuitBreakerConfig holds configuration for circuit breaker (consolidated from pkg/llm)
+type CircuitBreakerConfig struct {
+	FailureThreshold    int64         `json:"failure_threshold"`
+	FailureRate         float64       `json:"failure_rate"`
+	MinimumRequestCount int64         `json:"minimum_request_count"`
+	Timeout             time.Duration `json:"timeout"`
+	HalfOpenTimeout     time.Duration `json:"half_open_timeout"`
+	SuccessThreshold    int64         `json:"success_threshold"`
+	HalfOpenMaxRequests int64         `json:"half_open_max_requests"`
+	ResetTimeout        time.Duration `json:"reset_timeout"`
+	SlidingWindowSize   int           `json:"sliding_window_size"`
+	EnableHealthCheck   bool          `json:"enable_health_check"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
+	HealthCheckTimeout  time.Duration `json:"health_check_timeout"`
+	// Advanced features
+	EnableAdaptiveTimeout bool `json:"enable_adaptive_timeout"`
+	MaxConcurrentRequests int  `json:"max_concurrent_requests"`
+}
+
+// BatchSearchRequest represents a batch of search requests (consolidated from pkg/rag)
+type BatchSearchRequest struct {
+	Queries           []*SearchQuery         `json:"queries"`
+	MaxConcurrency    int                    `json:"max_concurrency"`
+	EnableAggregation bool                   `json:"enable_aggregation"`
+	DeduplicationKey  string                 `json:"deduplication_key"`
+	Metadata          map[string]interface{} `json:"metadata"`
+}
+
+// BatchSearchResponse represents the response from batch search (consolidated from pkg/rag)
+type BatchSearchResponse struct {
+	Results             []*SearchResponse      `json:"results"`
+	AggregatedResults   []*SearchResult        `json:"aggregated_results"`
+	TotalProcessingTime time.Duration          `json:"total_processing_time"`
+	ParallelQueries     int                    `json:"parallel_queries"`
+	CacheHits           int                    `json:"cache_hits"`
+	Metadata            map[string]interface{} `json:"metadata"`
+}
+
+// EmbeddingCacheInterface defines the interface for embedding caches (consolidated from pkg/rag)
+type EmbeddingCacheInterface interface {
+	Get(key string) ([]float32, bool)
+	Set(key string, embedding []float32, ttl time.Duration) error
+	Delete(key string) error
+	Clear() error
+	Stats() EmbeddingCacheStats
+}
+
+// EmbeddingCacheStats represents embedding cache statistics (consolidated from pkg/rag)
+type EmbeddingCacheStats struct {
+	Size    int64   `json:"size"`
+	Hits    int64   `json:"hits"`
+	Misses  int64   `json:"misses"`
+	HitRate float64 `json:"hit_rate"`
+}
+
+// EmbeddingCacheEntry represents a cached embedding entry (consolidated from pkg/rag)
+type EmbeddingCacheEntry struct {
+	Text        string        `json:"text"`
+	Vector      []float32     `json:"vector"`
+	CreatedAt   time.Time     `json:"created_at"`
+	AccessCount int64         `json:"access_count"`
+	TTL         time.Duration `json:"ttl"`
+}
+
+// GetEnv is a utility function to get environment variables with default values
+func GetEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

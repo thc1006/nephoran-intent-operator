@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -68,7 +69,7 @@ func (e *CircuitBreakerError) Error() string {
 }
 
 // NewAdvancedCircuitBreaker creates a new advanced circuit breaker
-func NewAdvancedCircuitBreaker(config CircuitBreakerConfig) *AdvancedCircuitBreaker {
+func NewAdvancedCircuitBreaker(config shared.CircuitBreakerConfig) *AdvancedCircuitBreaker {
 	return &AdvancedCircuitBreaker{
 		failureThreshold:      int64(config.FailureThreshold),
 		successThreshold:      int64(config.SuccessThreshold),

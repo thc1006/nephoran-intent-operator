@@ -17,9 +17,13 @@ limitations under the License.
 package webui
 
 import (
+	"fmt"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 )
 
 // Cache provides thread-safe in-memory caching with TTL support

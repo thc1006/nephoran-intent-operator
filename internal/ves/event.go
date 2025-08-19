@@ -8,19 +8,19 @@ import (
 
 // CommonEventHeader represents the common header for all VES events (VES 7.x spec)
 type CommonEventHeader struct {
-	Domain               string `json:"domain"`                     // heartbeat, fault, measurement, etc.
-	EventID              string `json:"eventId"`                    // unique event identifier
-	EventName            string `json:"eventName"`                  // unique event name
-	EventType            string `json:"eventType,omitempty"`        // e.g., "applicationVnf"
-	LastEpochMicrosec    int64  `json:"lastEpochMicrosec"`          // last epoch in microseconds
-	Priority             string `json:"priority"`                   // High, Medium, Normal, Low
-	ReportingEntityID    string `json:"reportingEntityId,omitempty"`
-	ReportingEntityName  string `json:"reportingEntityName"`
-	Sequence             int    `json:"sequence"`                   // ordering sequence
-	SourceID             string `json:"sourceId,omitempty"`
-	SourceName           string `json:"sourceName"`                 // name of entity experiencing event
-	StartEpochMicrosec   int64  `json:"startEpochMicrosec"`         // start epoch in microseconds
-	Version              string `json:"version"`                    // version of event header spec
+	Domain                  string `json:"domain"`              // heartbeat, fault, measurement, etc.
+	EventID                 string `json:"eventId"`             // unique event identifier
+	EventName               string `json:"eventName"`           // unique event name
+	EventType               string `json:"eventType,omitempty"` // e.g., "applicationVnf"
+	LastEpochMicrosec       int64  `json:"lastEpochMicrosec"`   // last epoch in microseconds
+	Priority                string `json:"priority"`            // High, Medium, Normal, Low
+	ReportingEntityID       string `json:"reportingEntityId,omitempty"`
+	ReportingEntityName     string `json:"reportingEntityName"`
+	Sequence                int    `json:"sequence"` // ordering sequence
+	SourceID                string `json:"sourceId,omitempty"`
+	SourceName              string `json:"sourceName"`              // name of entity experiencing event
+	StartEpochMicrosec      int64  `json:"startEpochMicrosec"`      // start epoch in microseconds
+	Version                 string `json:"version"`                 // version of event header spec
 	VesEventListenerVersion string `json:"vesEventListenerVersion"` // VES collector API version
 }
 
@@ -33,13 +33,13 @@ type HeartbeatFields struct {
 
 // FaultFields represents fault domain specific fields
 type FaultFields struct {
-	FaultFieldsVersion  string `json:"faultFieldsVersion"`
-	AlarmCondition      string `json:"alarmCondition"`
-	EventSeverity       string `json:"eventSeverity"`
-	EventSourceType     string `json:"eventSourceType"`
-	SpecificProblem     string `json:"specificProblem"`
-	VfStatus            string `json:"vfStatus"`
-	AlarmInterfaceA     string `json:"alarmInterfaceA,omitempty"`
+	FaultFieldsVersion string `json:"faultFieldsVersion"`
+	AlarmCondition     string `json:"alarmCondition"`
+	EventSeverity      string `json:"eventSeverity"`
+	EventSourceType    string `json:"eventSourceType"`
+	SpecificProblem    string `json:"specificProblem"`
+	VfStatus           string `json:"vfStatus"`
+	AlarmInterfaceA    string `json:"alarmInterfaceA,omitempty"`
 }
 
 // Event represents a VES Common Event Format event
@@ -56,7 +56,7 @@ type Event struct {
 func NewHeartbeatEvent(sourceName string, interval int) *Event {
 	now := time.Now().UTC()
 	nowMicros := now.UnixNano() / 1000
-	
+
 	return &Event{
 		Event: struct {
 			CommonEventHeader CommonEventHeader      `json:"commonEventHeader"`
@@ -101,7 +101,7 @@ func generateRandomSuffix() string {
 func NewFaultEvent(sourceName, alarmCondition, severity string) *Event {
 	now := time.Now().UTC()
 	nowMicros := now.UnixNano() / 1000
-	
+
 	return &Event{
 		Event: struct {
 			CommonEventHeader CommonEventHeader      `json:"commonEventHeader"`
@@ -124,12 +124,12 @@ func NewFaultEvent(sourceName, alarmCondition, severity string) *Event {
 				VesEventListenerVersion: "7.0.1",
 			},
 			FaultFields: &FaultFields{
-				FaultFieldsVersion:  "4.0",
-				AlarmCondition:      alarmCondition,
-				EventSeverity:       severity,
-				EventSourceType:     "O-RAN-DU",
-				SpecificProblem:     alarmCondition + " detected",
-				VfStatus:            "Active",
+				FaultFieldsVersion: "4.0",
+				AlarmCondition:     alarmCondition,
+				EventSeverity:      severity,
+				EventSourceType:    "O-RAN-DU",
+				SpecificProblem:    alarmCondition + " detected",
+				VfStatus:           "Active",
 			},
 		},
 	}

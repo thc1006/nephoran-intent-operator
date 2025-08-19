@@ -1,15 +1,12 @@
 package security
 
 import (
-	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
 func TestAuditLogger(t *testing.T) {

@@ -23,11 +23,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
-	"github.com/thc1006/nephoran-intent-operator/pkg/services"
 	"log/slog"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/config"
+	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
 
 func TestRequestSizeLimits(t *testing.T) {

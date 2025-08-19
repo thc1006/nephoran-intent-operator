@@ -2,12 +2,6 @@
 
 package rag
 
-import (
-	"runtime"
-	"sync/atomic"
-	"time"
-)
-
 // MemoryMonitor and ProcessingPool definitions moved to document_loader.go to avoid duplicates
 
 // NoOpRedisCache definition moved to redis_cache.go to avoid duplicates

@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // EmbeddingService provides embedding generation for telecom documents
@@ -23,7 +25,7 @@ type EmbeddingService struct {
 	metrics       *EmbeddingMetrics
 	httpClient    *http.Client
 	rateLimiter   *RateLimiter
-	cache         EmbeddingCache
+	cache         shared.EmbeddingCacheInterface
 	redisCache    RedisEmbeddingCache
 	providers     map[string]BasicEmbeddingProvider
 	fallbackChain []string
@@ -185,21 +187,9 @@ type RateLimiter struct {
 }
 
 // EmbeddingCache interface for caching embeddings
-type EmbeddingCache interface {
-	Get(key string) ([]float32, bool)
-	Set(key string, embedding []float32, ttl time.Duration) error
-	Delete(key string) error
-	Clear() error
-	Stats() CacheStats
-}
-
-// CacheStats represents cache statistics
-type CacheStats struct {
-	Size    int64   `json:"size"`
-	Hits    int64   `json:"hits"`
-	Misses  int64   `json:"misses"`
-	HitRate float64 `json:"hit_rate"`
-}
+// Use consolidated types from pkg/shared
+type EmbeddingCache = shared.EmbeddingCacheInterface
+type CacheStats = shared.EmbeddingCacheStats
 
 // InMemoryCache is a simple in-memory cache implementation
 type InMemoryCache struct {

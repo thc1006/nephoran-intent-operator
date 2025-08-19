@@ -159,14 +159,14 @@ type EscrowAgent struct {
 
 // DetailedStoredKey provides detailed information about a stored key
 type DetailedStoredKey struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"`
-	Algorithm   string    `json:"algorithm"`
-	KeySize     int       `json:"key_size"`
-	CreatedAt   time.Time `json:"created_at"`
-	ExpiresAt   *time.Time `json:"expires_at,omitempty"`
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"`
+	Algorithm   string                 `json:"algorithm"`
+	KeySize     int                    `json:"key_size"`
+	CreatedAt   time.Time              `json:"created_at"`
+	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata"`
-	KeyMaterial []byte    `json:"key_material"`
+	KeyMaterial []byte                 `json:"key_material"`
 }
 
 // Simple type aliases for backward compatibility

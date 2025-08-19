@@ -36,14 +36,14 @@ func NewWatcher(dir string) (*Watcher, error) {
 // Start begins watching for file events
 func (w *Watcher) Start() error {
 	log.Printf("Watching directory: %s", w.dir)
-	
+
 	for {
 		select {
 		case event, ok := <-w.watcher.Events:
 			if !ok {
 				return fmt.Errorf("watcher events channel closed")
 			}
-			
+
 			// Process only Create and Write events
 			if event.Op&(fsnotify.Create|fsnotify.Write) != 0 {
 				// Check if this is an intent file
@@ -51,7 +51,7 @@ func (w *Watcher) Start() error {
 					w.handleIntentFile(event)
 				}
 			}
-			
+
 		case err, ok := <-w.watcher.Errors:
 			if !ok {
 				return fmt.Errorf("watcher errors channel closed")
@@ -72,9 +72,9 @@ func (w *Watcher) handleIntentFile(event fsnotify.Event) {
 	} else if event.Op&fsnotify.Write != 0 {
 		operation = "WRITE"
 	}
-	
+
 	log.Printf("[%s] Intent file detected: %s", operation, event.Name)
-	
+
 	// TODO: In future, trigger porch-publisher here
 	// For now, this is just a placeholder comment
 	// Example: publisherClient.PublishIntent(event.Name)

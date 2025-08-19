@@ -1,14 +1,8 @@
 package auth
 
 import (
-	"context"
-	"fmt"
 	"log/slog"
-	"net/http"
-	"time"
 
-	"github.com/gorilla/mux"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

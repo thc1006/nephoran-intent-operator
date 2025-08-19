@@ -16,7 +16,7 @@ func main() {
 
 	// Get the handoff directory path (relative to current working directory)
 	handoffDir := filepath.Join(".", "handoff")
-	
+
 	// Ensure handoff directory exists
 	if err := os.MkdirAll(handoffDir, 0755); err != nil {
 		log.Fatalf("Failed to create handoff directory: %v", err)

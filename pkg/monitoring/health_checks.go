@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -366,19 +367,19 @@ func (hc *HealthChecker) kubernetesAPIHealthCheck(ctx context.Context) *Componen
 
 // llmProcessorHealthCheck checks LLM processor service health
 func (hc *HealthChecker) llmProcessorHealthCheck(ctx context.Context) *ComponentHealth {
-	url := getEnv("LLM_PROCESSOR_URL", "http://llm-processor:8080")
+	url := shared.GetEnv("LLM_PROCESSOR_URL", "http://llm-processor:8080")
 	return hc.httpHealthCheck(ctx, "llm-processor", url+"/healthz")
 }
 
 // ragAPIHealthCheck checks RAG API service health
 func (hc *HealthChecker) ragAPIHealthCheck(ctx context.Context) *ComponentHealth {
-	url := getEnv("RAG_API_URL", "http://rag-api:8080")
+	url := shared.GetEnv("RAG_API_URL", "http://rag-api:8080")
 	return hc.httpHealthCheck(ctx, "rag-api", url+"/health")
 }
 
 // weaviateHealthCheck checks Weaviate health
 func (hc *HealthChecker) weaviateHealthCheck(ctx context.Context) *ComponentHealth {
-	url := getEnv("WEAVIATE_URL", "http://weaviate:8080")
+	url := shared.GetEnv("WEAVIATE_URL", "http://weaviate:8080")
 	return hc.httpHealthCheck(ctx, "weaviate", url+"/v1/.well-known/ready")
 }
 

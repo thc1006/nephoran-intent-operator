@@ -3,11 +3,10 @@
 package performance
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"k8s.io/klog/v2"

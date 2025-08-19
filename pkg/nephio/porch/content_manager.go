@@ -18,20 +18,13 @@ package porch
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"io"
-	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
-	"text/template"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-	"gopkg.in/yaml.v2"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -1329,9 +1322,9 @@ const (
 )
 
 const (
-	QualityIssueTypeFormatting  QualityIssueType = "formatting"
-	QualityIssueTypeNaming      QualityIssueType = "naming"
-	QualityIssueTypeComplexity  QualityIssueType = "complexity"
+	QualityIssueTypeFormatting QualityIssueType = "formatting"
+	QualityIssueTypeNaming     QualityIssueType = "naming"
+	QualityIssueTypeComplexity QualityIssueType = "complexity"
 )
 
 const (
@@ -1391,6 +1384,7 @@ type TemplateConfig struct{}
 type ValidationConfig struct{}
 type ConflictConfig struct{}
 type MergeConfig struct{}
+
 // Missing interface and struct definitions
 type ContentIndexer interface {
 	IndexContent(ctx context.Context, ref *PackageReference, content *PackageContent) error

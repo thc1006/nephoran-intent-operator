@@ -11,7 +11,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // StreamingService provides real-time streaming capabilities for O1 interface

@@ -20,9 +20,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"regexp"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 

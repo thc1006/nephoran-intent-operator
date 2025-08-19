@@ -13,6 +13,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ServiceManager manages the overall service lifecycle and components
@@ -270,10 +271,10 @@ func (sm *ServiceManager) loadSecureAPIKeys(ctx context.Context) (*config.APIKey
 	if sm.secretManager == nil {
 		// Fall back to environment variables
 		return &config.APIKeys{
-			OpenAI:    getEnv("OPENAI_API_KEY", ""),
-			Weaviate:  getEnv("WEAVIATE_API_KEY", ""),
-			Generic:   getEnv("API_KEY", ""),
-			JWTSecret: getEnv("JWT_SECRET_KEY", ""),
+			OpenAI:    shared.GetEnv("OPENAI_API_KEY", ""),
+			Weaviate:  shared.GetEnv("WEAVIATE_API_KEY", ""),
+			Generic:   shared.GetEnv("API_KEY", ""),
+			JWTSecret: shared.GetEnv("JWT_SECRET_KEY", ""),
 		}, nil
 	}
 

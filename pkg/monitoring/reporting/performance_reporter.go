@@ -3,20 +3,14 @@
 package reporting
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
-	"net/http"
-	"sort"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"gopkg.in/yaml.v3"
 )
 
 // PerformanceReporter handles automated performance reporting and notifications

@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"math"
 )
 
 // ASN1Codec provides ASN.1 PER (Packed Encoding Rules) encoding/decoding

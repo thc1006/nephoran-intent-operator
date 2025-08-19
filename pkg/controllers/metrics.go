@@ -11,10 +11,10 @@
 //   - networkintent_status: Current status gauge (0=Failed, 1=Processing, 2=Ready)
 //
 // Usage:
-//   metrics := NewControllerMetrics("networkintent")
-//   metrics.RecordSuccess("default", "my-intent")
-//   metrics.RecordProcessingDuration("default", "my-intent", "llm_processing", 1.5)
 //
+//	metrics := NewControllerMetrics("networkintent")
+//	metrics.RecordSuccess("default", "my-intent")
+//	metrics.RecordProcessingDuration("default", "my-intent", "llm_processing", 1.5)
 package controllers
 
 import (

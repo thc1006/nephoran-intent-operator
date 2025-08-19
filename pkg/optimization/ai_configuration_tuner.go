@@ -19,9 +19,7 @@ package optimization
 import (
 	"context"
 	"fmt"
-	"math"
 	"math/rand"
-	"sort"
 	"sync"
 	"time"
 

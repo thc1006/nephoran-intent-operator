@@ -5,7 +5,6 @@ package ml
 import (
 	"context"
 	"fmt"
-	"log"
 	"math/rand"
 	"sync"
 	"sync/atomic"

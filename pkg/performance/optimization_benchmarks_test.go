@@ -1,10 +1,7 @@
 package performance
 
 import (
-	"context"
 	"fmt"
-	"math"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"runtime"

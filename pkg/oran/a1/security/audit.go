@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
+	"log/slog"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 

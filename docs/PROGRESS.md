@@ -66,3 +66,4 @@ Updates are tracked here in append-only format.
 | 2025-08-15T17:23:28+08:00 | feat/e2e | hack/scripts | Fixed CRD API version and E2E tests pass successfully |
 | 2025-08-16T19:01:02Z | feat/e2e | cmd/intent-ingest,cmd/conductor-loop | Verified critical E2E components build and function correctly |
 | 2025-08-16T19:09:02Z | feat/e2e | e2e-harness | Enhanced E2E test harness with robust validation and error handling |
+| 2025-08-20T00:44:25.1638599+08:00 | feat/e2e | ci/security | Replaced problematic nancy scanner with official govulncheck vulnerability scanner |

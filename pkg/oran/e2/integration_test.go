@@ -2,7 +2,6 @@ package e2
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"testing"

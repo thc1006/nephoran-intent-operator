@@ -4,7 +4,6 @@ package generics
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"testing"
 	"time"

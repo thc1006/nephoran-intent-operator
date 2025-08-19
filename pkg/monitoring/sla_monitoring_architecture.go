@@ -185,7 +185,7 @@ type LatencySLO struct {
 	SustainedViolation time.Duration // Duration of sustained violation
 }
 
-// SLAPredictiveAnalyzer provides ML-based SLA violation prediction  
+// SLAPredictiveAnalyzer provides ML-based SLA violation prediction
 type SLAPredictiveAnalyzer struct {
 	// ML Models
 	AvailabilityPredictor *AvailabilityPredictor

@@ -2,8 +2,8 @@ package o2
 
 import (
 	"context"
+	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

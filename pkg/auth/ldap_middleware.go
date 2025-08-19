@@ -2,8 +2,6 @@ package auth
 
 import (
 	"context"
-	"crypto/subtle"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log/slog"

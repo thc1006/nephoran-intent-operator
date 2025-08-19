@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -174,9 +175,9 @@ type SpanMetrics struct {
 func DefaultTracingConfig() *TracingConfig {
 	return &TracingConfig{
 		ServiceName:     "nephoran-intent-operator",
-		ServiceVersion:  getEnv("NEPHORAN_VERSION", "1.0.0"),
-		Environment:     getEnv("NEPHORAN_ENVIRONMENT", "production"),
-		JaegerEndpoint:  getEnv("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
+		ServiceVersion:  shared.GetEnv("NEPHORAN_VERSION", "1.0.0"),
+		Environment:     shared.GetEnv("NEPHORAN_ENVIRONMENT", "production"),
+		JaegerEndpoint:  shared.GetEnv("JAEGER_ENDPOINT", "http://jaeger-collector:14268/api/traces"),
 		SamplingRatio:   0.1, // 10% sampling for production
 		BatchTimeout:    5 * time.Second,
 		MaxBatchSize:    512,
@@ -550,7 +551,7 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 	// Calculate statistics for latency anomaly detection
 	if config.LatencyAnomalyEnabled {
 		mean, stdDev := calculateStatistics(latencies)
-		threshold := mean + (stdDev * config.StandardDeviations)
+		threshold := mean + time.Duration(float64(stdDev)*config.StandardDeviations)
 
 		if spanMetrics.Duration > threshold {
 			// This is a latency anomaly
@@ -566,7 +567,7 @@ func (sa *SpanAnalyzer) checkAnomalies(operationKey string, spanMetrics *SpanMet
 
 			// Record anomaly metric
 			if sa.metricsRecorder != nil {
-				sa.metricsRecorder.RecordAnomalyDetection("latency", operationKey, float64(spanMetrics.Duration.Milliseconds()))
+				sa.metricsRecorder.RecordAnomalyDetection("latency", "high", operationKey, "statistical_analysis")
 			}
 		}
 	}

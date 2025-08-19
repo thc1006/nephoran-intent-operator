@@ -7,7 +7,6 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 

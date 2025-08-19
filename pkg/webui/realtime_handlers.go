@@ -17,11 +17,8 @@ limitations under the License.
 package webui
 
 import (
-	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
