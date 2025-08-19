@@ -1,29 +1,29 @@
-﻿2025-08-19T12:25:20.1074195Z ##[group]Run step-security/harden-runner@v2
-2025-08-19T12:25:20.1074759Z with:
-2025-08-19T12:25:20.1074950Z   egress-policy: audit
-2025-08-19T12:25:20.1075468Z   allowed-endpoints: api.github.com:443 github.com:443 golang.org:443 proxy.golang.org:443 sum.golang.org:443 objects.githubusercontent.com:443
+﻿2025-08-19T13:09:24.1705962Z ##[group]Run step-security/harden-runner@v2
+2025-08-19T13:09:24.1706572Z with:
+2025-08-19T13:09:24.1706757Z   egress-policy: audit
+2025-08-19T13:09:24.1707275Z   allowed-endpoints: api.github.com:443 github.com:443 golang.org:443 proxy.golang.org:443 sum.golang.org:443 objects.githubusercontent.com:443
 
-2025-08-19T12:25:20.1076138Z   token: ***
-2025-08-19T12:25:20.1076328Z   disable-telemetry: false
-2025-08-19T12:25:20.1076535Z   disable-sudo: false
-2025-08-19T12:25:20.1076744Z   disable-sudo-and-containers: false
-2025-08-19T12:25:20.1076986Z   disable-file-monitoring: false
-2025-08-19T12:25:20.1077369Z env:
-2025-08-19T12:25:20.1077534Z   GO_VERSION: 1.24
-2025-08-19T12:25:20.1077706Z   REGISTRY: ghcr.io
-2025-08-19T12:25:20.1077909Z   IMAGE_NAME: nephoran/conductor-loop
-2025-08-19T12:25:20.1078145Z   SECURITY_SCAN_LEVEL: standard
-2025-08-19T12:25:20.1078349Z ##[endgroup]
-2025-08-19T12:25:20.2736686Z [harden-runner] pre-step
-2025-08-19T12:25:20.2739695Z [!] Current Configuration: 
-2025-08-19T12:25:20.2743249Z {"repo":"thc1006/nephoran-intent-operator","run_id":"17069476080","correlation_id":"71cc6f13-78ca-4e9b-9568-7b5e5dead135","working_directory":"/home/runner/work/nephoran-intent-operator/nephoran-intent-operator","api_url":"https://agent.api.stepsecurity.io/v1","allowed_endpoints":"api.github.com:443 github.com:443 golang.org:443 proxy.golang.org:443 sum.golang.org:443 objects.githubusercontent.com:443","egress_policy":"audit","disable_telemetry":false,"disable_sudo":false,"disable_sudo_and_containers":false,"disable_file_monitoring":false,"private":false,"is_github_hosted":true,"is_debug":false,"one_time_key":""}
-2025-08-19T12:25:20.2746579Z 
-2025-08-19T12:25:20.2746966Z [32mView security insights and recommended policy at:[0m
-2025-08-19T12:25:20.2747495Z https://app.stepsecurity.io/github/thc1006/nephoran-intent-operator/actions/runs/17069476080
-2025-08-19T12:25:20.2747962Z RUNNER_NAME: GitHub Actions 1000010456
-2025-08-19T12:25:21.1289518Z Runner IP Address: 135.119.132.152
-2025-08-19T12:25:21.1290439Z Step Security Job Correlation ID: 71cc6f13-78ca-4e9b-9568-7b5e5dead135
-2025-08-19T12:25:21.1483254Z [!] Checking TLS_STATUS: thc1006
-2025-08-19T12:25:21.4821934Z [!] TLS_NOT_ENABLED: thc1006
-2025-08-19T12:25:21.6652708Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/5a0a414c-ca01-4176-97c9-f88ea70ab841 -f /home/runner/work/_temp/1117a89c-ad78-4c62-9bb4-b2e05b683510
-2025-08-19T12:25:24.6372050Z Initialized
+2025-08-19T13:09:24.1707973Z   token: ***
+2025-08-19T13:09:24.1708154Z   disable-telemetry: false
+2025-08-19T13:09:24.1708364Z   disable-sudo: false
+2025-08-19T13:09:24.1708570Z   disable-sudo-and-containers: false
+2025-08-19T13:09:24.1708820Z   disable-file-monitoring: false
+2025-08-19T13:09:24.1709237Z env:
+2025-08-19T13:09:24.1709398Z   GO_VERSION: 1.24
+2025-08-19T13:09:24.1709576Z   REGISTRY: ghcr.io
+2025-08-19T13:09:24.1709767Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:24.1710008Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:24.1710210Z ##[endgroup]
+2025-08-19T13:09:24.3428945Z [harden-runner] pre-step
+2025-08-19T13:09:24.3433121Z [!] Current Configuration: 
+2025-08-19T13:09:24.3437231Z {"repo":"thc1006/nephoran-intent-operator","run_id":"17070554235","correlation_id":"04213a56-b2da-4644-ba0d-855cd552f480","working_directory":"/home/runner/work/nephoran-intent-operator/nephoran-intent-operator","api_url":"https://agent.api.stepsecurity.io/v1","allowed_endpoints":"api.github.com:443 github.com:443 golang.org:443 proxy.golang.org:443 sum.golang.org:443 objects.githubusercontent.com:443","egress_policy":"audit","disable_telemetry":false,"disable_sudo":false,"disable_sudo_and_containers":false,"disable_file_monitoring":false,"private":false,"is_github_hosted":true,"is_debug":false,"one_time_key":""}
+2025-08-19T13:09:24.3439909Z 
+2025-08-19T13:09:24.3440339Z [32mView security insights and recommended policy at:[0m
+2025-08-19T13:09:24.3441053Z https://app.stepsecurity.io/github/thc1006/nephoran-intent-operator/actions/runs/17070554235
+2025-08-19T13:09:24.3441556Z RUNNER_NAME: GitHub Actions 1000010564
+2025-08-19T13:09:25.0497702Z Runner IP Address: 64.236.133.198
+2025-08-19T13:09:25.0498459Z Step Security Job Correlation ID: 04213a56-b2da-4644-ba0d-855cd552f480
+2025-08-19T13:09:25.0702708Z [!] Checking TLS_STATUS: thc1006
+2025-08-19T13:09:25.2717503Z [!] TLS_NOT_ENABLED: thc1006
+2025-08-19T13:09:25.4652970Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/b50b7de4-4467-4701-8a5d-637680ecb5b7 -f /home/runner/work/_temp/9348c739-5e7e-453c-af19-fbc4ceb09fbd
+2025-08-19T13:09:28.4548971Z Initialized

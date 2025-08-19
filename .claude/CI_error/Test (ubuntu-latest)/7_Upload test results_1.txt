@@ -1,0 +1,25 @@
+﻿2025-08-19T13:08:29.2778041Z ##[group]Run actions/upload-artifact@v4
+2025-08-19T13:08:29.2778472Z with:
+2025-08-19T13:08:29.2778755Z   name: test-results-ubuntu-latest
+2025-08-19T13:08:29.2779120Z   path: test-results/
+2025-08-19T13:08:29.2779427Z   retention-days: 3
+2025-08-19T13:08:29.2779929Z   if-no-files-found: warn
+2025-08-19T13:08:29.2780255Z   compression-level: 6
+2025-08-19T13:08:29.2780545Z   overwrite: false
+2025-08-19T13:08:29.2780847Z   include-hidden-files: false
+2025-08-19T13:08:29.2781160Z env:
+2025-08-19T13:08:29.2781404Z   REGISTRY: ghcr.io
+2025-08-19T13:08:29.2781702Z   IMAGE_NAME: conductor-loop
+2025-08-19T13:08:29.2782037Z   GO_VERSION: 1.24.x
+2025-08-19T13:08:29.2782330Z ##[endgroup]
+2025-08-19T13:08:29.5107374Z With the provided path, there will be 1 file uploaded
+2025-08-19T13:08:29.5113880Z Artifact name is valid!
+2025-08-19T13:08:29.5115248Z Root directory input is valid!
+2025-08-19T13:08:29.8071926Z Beginning upload of artifact content to blob storage
+2025-08-19T13:08:30.1303011Z Uploaded bytes 153
+2025-08-19T13:08:30.2110818Z Finished uploading artifact content to blob storage!
+2025-08-19T13:08:30.2113947Z SHA256 digest of uploaded artifact zip is d8cf9a22ea82942539b4529fbd5d4861e3f09666751ada56dd45f26d655704de
+2025-08-19T13:08:30.2115618Z Finalizing artifact upload
+2025-08-19T13:08:30.3501667Z Artifact test-results-ubuntu-latest.zip successfully finalized. Artifact ID 3798639392
+2025-08-19T13:08:30.3503469Z Artifact test-results-ubuntu-latest has been successfully uploaded! Final size is 153 bytes. Artifact ID is 3798639392
+2025-08-19T13:08:30.3511714Z Artifact download URL: https://github.com/thc1006/nephoran-intent-operator/actions/runs/17070554637/artifacts/3798639392

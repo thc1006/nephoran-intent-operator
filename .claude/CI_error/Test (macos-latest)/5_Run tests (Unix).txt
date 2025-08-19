@@ -1,0 +1,12 @@
+﻿2025-08-19T13:08:37.6746450Z ##[group]Run mkdir -p test-results
+2025-08-19T13:08:37.6746850Z [36;1mmkdir -p test-results[0m
+2025-08-19T13:08:37.6747330Z [36;1mtimeout 300 go test -v -race -timeout=5m -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop[0m
+2025-08-19T13:08:37.6748020Z [36;1mgo tool cover -html=test-results/coverage.out -o test-results/coverage.html[0m
+2025-08-19T13:08:37.6852480Z shell: /bin/bash -e {0}
+2025-08-19T13:08:37.6852840Z env:
+2025-08-19T13:08:37.6853090Z   REGISTRY: ghcr.io
+2025-08-19T13:08:37.6853300Z   IMAGE_NAME: conductor-loop
+2025-08-19T13:08:37.6853500Z   GO_VERSION: 1.24.x
+2025-08-19T13:08:37.6853770Z ##[endgroup]
+2025-08-19T13:08:37.7579080Z /Users/runner/work/_temp/af971588-3b3d-411a-911b-8c1d101793e4.sh: line 2: timeout: command not found
+2025-08-19T13:08:37.7590530Z ##[error]Process completed with exit code 127.

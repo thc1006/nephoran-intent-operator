@@ -1,0 +1,15 @@
+﻿2025-08-19T13:08:11.0236400Z ##[group]Run actions/upload-artifact@v4
+2025-08-19T13:08:11.0236730Z with:
+2025-08-19T13:08:11.0237610Z   name: test-results-macos-latest
+2025-08-19T13:08:11.0237870Z   path: test-results/
+2025-08-19T13:08:11.0238080Z   retention-days: 3
+2025-08-19T13:08:11.0238300Z   if-no-files-found: warn
+2025-08-19T13:08:11.0240220Z   compression-level: 6
+2025-08-19T13:08:11.0241280Z   overwrite: false
+2025-08-19T13:08:11.0241480Z   include-hidden-files: false
+2025-08-19T13:08:11.0241790Z env:
+2025-08-19T13:08:11.0241900Z   REGISTRY: ghcr.io
+2025-08-19T13:08:11.0242110Z   IMAGE_NAME: conductor-loop
+2025-08-19T13:08:11.0242420Z   GO_VERSION: 1.24.x
+2025-08-19T13:08:11.0244410Z ##[endgroup]
+2025-08-19T13:08:11.3779560Z ##[warning]No files were found with the provided path: test-results/. No artifacts will be uploaded.
