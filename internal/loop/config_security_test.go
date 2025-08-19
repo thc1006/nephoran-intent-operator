@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // TestConfig_Validate tests the comprehensive configuration validation
