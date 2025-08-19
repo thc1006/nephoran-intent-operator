@@ -384,6 +384,8 @@ spec:
                 type: string
               qualityScore:
                 description: QualityScore represents the quality of processing
+                maximum: 1
+                minimum: 0
                 type: number
               ragMetrics:
                 description: RAGMetrics contains retrieval-augmented generation metrics

@@ -793,7 +793,7 @@ func (eb *EventBus) matchesFilter(data interface{}, filter *StreamFilter) bool {
 }
 
 // Rate limiter implementations
-type RateLimit struct {
+type StreamingRateLimit struct {
 	tokens     int
 	maxTokens  int
 	refillRate int
@@ -820,7 +820,7 @@ func (crl *ConnectionRateLimiter) WaitIfNeeded() {
 	// Refill tokens
 	if elapsed > time.Second {
 		tokensToAdd := int(elapsed.Seconds()) * crl.refillRate
-		crl.tokens = min(crl.maxTokens, crl.tokens+tokensToAdd)
+		crl.tokens = minInt(crl.maxTokens, crl.tokens+tokensToAdd)
 		crl.lastRefill = now
 	}
 
@@ -833,7 +833,7 @@ func (crl *ConnectionRateLimiter) WaitIfNeeded() {
 	}
 }
 
-func min(a, b int) int {
+func minInt(a, b int) int {
 	if a < b {
 		return a
 	}

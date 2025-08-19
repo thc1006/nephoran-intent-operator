@@ -613,7 +613,8 @@ spec:
                     description: Confidence level of the estimate (0.0-1.0)
                     type: number
                   costBreakdown:
-                    additionalProperties: {}
+                    additionalProperties:
+                      type: number
                     description: CostBreakdown by component
                     type: object
                   currency:
@@ -687,7 +688,8 @@ spec:
                     description: ExpectedThroughput in requests per second
                     type: number
                   resourceUtilization:
-                    additionalProperties: {}
+                    additionalProperties:
+                      type: number
                     description: ResourceUtilization estimates
                     type: object
                   scalingRecommendations:

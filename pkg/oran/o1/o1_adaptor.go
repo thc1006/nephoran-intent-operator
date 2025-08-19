@@ -126,8 +126,8 @@ type UsageRecord struct {
 	ChargingInfo  map[string]interface{} `json:"charging_info"`
 }
 
-// SecurityPolicy represents security configuration
-type SecurityPolicy struct {
+// AdaptorSecurityPolicy represents security configuration for adaptor
+type AdaptorSecurityPolicy struct {
 	PolicyID    string         `json:"policy_id"`
 	PolicyType  string         `json:"policy_type"`
 	Rules       []SecurityRule `json:"rules"`

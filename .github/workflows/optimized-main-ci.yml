@@ -192,7 +192,7 @@ jobs:
               go install honnef.co/go/tools/cmd/staticcheck@latest
               ;;
             "gosec")
-              go install github.com/secureco dewarrior/gosec/v2/cmd/gosec@latest
+              go install github.com/securego/gosec/v2/cmd/gosec@latest
               ;;
             "ineffassign")
               go install github.com/gordonklaus/ineffassign@latest

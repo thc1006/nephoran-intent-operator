@@ -78,23 +78,22 @@ regexes = [
 
 paths = [
     # Ignore test files and examples
-    '''**/testdata/**''',
-    '''**/*_test.go''',
-    '''**/examples/**''',
-    '''**/docs/**''',
-    '''**/*.md''',
+    '''testdata/.*''',
+    '''.*_test\.go$''',
+    '''examples/.*''',
+    '''docs/.*''',
+    '''.*\.md$''',
     # Ignore vendor and build artifacts
-    '''**/vendor/**''',
-    '''**/node_modules/**''',
-    '''**/bin/**''',
-    '''**/*.log''',
+    '''vendor/.*''',
+    '''node_modules/.*''',
+    '''bin/.*''',
+    '''.*\.log$''',
     # Ignore git and CI files
-    '''.git/**''',
-    '''.github/**''',
-    '''**/.github/**''',
+    '''\.git/.*''',
+    '''\.github/.*''',
     # Ignore configuration files that might contain template values
-    '''**/values.yaml''',
-    '''**/values-*.yaml''',
+    '''values\.yaml$''',
+    '''values-.*\.yaml$''',
 ]
 
 # Custom rules for telecommunications security

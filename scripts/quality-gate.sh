@@ -344,7 +344,7 @@ run_security_analysis() {
         gosec -fmt=json -out="$gosec_report" ./... 2>/dev/null || true
     else
         info "Installing gosec for security analysis..."
-        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        go install github.com/securego/gosec/v2/cmd/gosec@latest
         gosec -fmt=json -out="$gosec_report" ./... 2>/dev/null || true
     fi
     

@@ -739,10 +739,13 @@ func (m *MockKeyStore) Store(ctx context.Context, key *DetailedStoredKey) error 
 
 func (m *MockKeyStore) Retrieve(ctx context.Context, keyID string) (*DetailedStoredKey, error) {
 	return &DetailedStoredKey{
-		ID:      keyID,
-		Version: 1,
-		Key:     make([]byte, 32),
-		Created: time.Now(),
+		ID:          keyID,
+		Type:        "test",
+		Algorithm:   "AES",
+		KeySize:     256,
+		CreatedAt:   time.Now(),
+		KeyMaterial: make([]byte, 32),
+		Metadata:    make(map[string]interface{}),
 	}, nil
 }
 

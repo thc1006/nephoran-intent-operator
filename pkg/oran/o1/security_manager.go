@@ -2092,13 +2092,13 @@ type ActivityExecution struct {
 
 // IncidentEscalation manages incident escalation
 type IncidentEscalation struct {
-	rules         []*EscalationRule
+	rules         []*SecurityEscalationRule
 	matrix        *EscalationMatrix
 	notifications *EscalationNotifications
 }
 
-// EscalationRule defines escalation conditions
-type EscalationRule struct {
+// SecurityEscalationRule defines security escalation conditions
+type SecurityEscalationRule struct {
 	ID            string
 	Name          string
 	Conditions    []string

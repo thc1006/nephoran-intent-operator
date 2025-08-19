@@ -1934,3 +1934,45 @@ func NewRevenueTrackingService(config *RevenueConfig) *RevenueTrackingService {
 		config:    config,
 	}
 }
+
+// Missing type definitions to resolve compilation errors
+
+type AuditRetentionPolicy struct {
+	Period      time.Duration `json:"period"`
+	Compression bool          `json:"compression"`
+	Encryption  bool          `json:"encryption"`
+	Location    string        `json:"location"`
+}
+
+type AuditEncryption struct {
+	Algorithm string `json:"algorithm"`
+	KeySize   int    `json:"key_size"`
+	Enabled   bool   `json:"enabled"`
+}
+
+type RetentionScheduler struct {
+	policies map[string]*AuditRetentionPolicy
+	running  bool
+	stopChan chan struct{}
+}
+
+type DataArchiver struct {
+	config      *ArchiveConfig
+	storage     ArchiveStorage
+	compression bool
+	encryption  bool
+}
+
+type ArchiveConfig struct {
+	Location    string        `json:"location"`
+	Interval    time.Duration `json:"interval"`
+	Compression bool          `json:"compression"`
+	Encryption  bool          `json:"encryption"`
+}
+
+type ArchiveStorage interface {
+	Store(key string, data []byte) error
+	Retrieve(key string) ([]byte, error)
+	Delete(key string) error
+	List(prefix string) ([]string, error)
+}

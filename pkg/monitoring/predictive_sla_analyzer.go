@@ -923,12 +923,7 @@ func (tp *ThroughputPredictor) Predict(ctx context.Context, features []float64) 
 
 // Placeholder for additional analyzer components
 type SeasonalityDetector struct{}
-type AnomalyDetector struct{}
 
 func NewSeasonalityDetector(config *SLAMonitoringConfig) *SeasonalityDetector {
 	return &SeasonalityDetector{}
-}
-
-func NewAnomalyDetector(config *SLAMonitoringConfig) *AnomalyDetector {
-	return &AnomalyDetector{}
 }

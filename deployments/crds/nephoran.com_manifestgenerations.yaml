@@ -580,6 +580,8 @@ spec:
                 type: string
               qualityScore:
                 description: QualityScore represents the quality of generated manifests
+                maximum: 1
+                minimum: 0
                 type: number
               resourceReferences:
                 description: ResourceReferences contains references to generated resources
@@ -638,6 +640,8 @@ spec:
                           type: boolean
                         score:
                           description: Score represents compliance score (0.0-1.0)
+                          maximum: 1
+                          minimum: 0
                           type: number
                         standard:
                           description: Standard being checked (PCI-DSS, SOC2, etc.)
@@ -657,6 +661,8 @@ spec:
                     type: array
                   overallScore:
                     description: OverallScore is the overall security score (0.0-1.0)
+                    maximum: 1
+                    minimum: 0
                     type: number
                   recommendations:
                     description: Recommendations provides security recommendations

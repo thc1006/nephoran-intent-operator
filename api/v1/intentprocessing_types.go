@@ -220,8 +220,6 @@ type LLMProcessingConfig struct {
 	// Temperature controls randomness in generation
 	// +optional
 	// +kubebuilder:default=0.1
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=2.0
 	Temperature *float64 `json:"temperature,omitempty"`
 
 	// MaxTokens limits the response length
@@ -262,8 +260,6 @@ type RAGConfig struct {
 	// RetrievalThreshold sets the minimum similarity threshold
 	// +optional
 	// +kubebuilder:default=0.7
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	RetrievalThreshold *float64 `json:"retrievalThreshold,omitempty"`
 
 	// KnowledgeBase specifies the knowledge base to use
@@ -374,12 +370,8 @@ type RAGMetrics struct {
 	// RetrievalDuration is the time taken to retrieve documents
 	RetrievalDuration metav1.Duration `json:"retrievalDuration"`
 	// AverageRelevanceScore is the average relevance of retrieved docs
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	AverageRelevanceScore float64 `json:"averageRelevanceScore"`
 	// TopRelevanceScore is the highest relevance score
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	TopRelevanceScore float64 `json:"topRelevanceScore"`
 	// KnowledgeBase used for retrieval
 	KnowledgeBase string `json:"knowledgeBase"`

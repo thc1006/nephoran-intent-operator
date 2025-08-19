@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
+	goruntime "runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -127,7 +127,7 @@ type TestEnvironment struct {
 	cleanupFuncs []func() error
 
 	// Webhook Server
-	webhookServer *webhook.Server
+	webhookServer webhook.Server
 
 	// Event Recorder
 	eventRecorder record.EventRecorder
@@ -264,8 +264,6 @@ func SetupTestEnvironmentWithOptions(options TestEnvironmentOptions) (*TestEnvir
 		AttachControlPlaneOutput: options.AttachControlPlaneOutput,
 		ControlPlaneStartTimeout: options.ControlPlaneStartTimeout,
 		ControlPlaneStopTimeout:  options.ControlPlaneStopTimeout,
-		KubeAPIServerFlags:       options.KubeAPIServerFlags,
-		EtcdServerFlags:          options.EtcdFlags,
 		Scheme:                   testScheme,
 	}
 
@@ -1072,7 +1070,7 @@ func resolveBinaryAssetsDirectory(customPath string) string {
 	}
 
 	// Add platform-specific paths
-	if runtime.GOOS == "windows" {
+	if goruntime.GOOS == "windows" {
 		windowsPaths := []string{
 			filepath.Join(os.Getenv("USERPROFILE"), ".local", "share", "kubebuilder-envtest", "k8s"),
 			filepath.Join("C:", "kubebuilder", "bin"),

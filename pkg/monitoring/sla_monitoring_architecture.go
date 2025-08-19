@@ -185,8 +185,8 @@ type LatencySLO struct {
 	SustainedViolation time.Duration // Duration of sustained violation
 }
 
-// PredictiveSLAAnalyzer provides ML-based SLA violation prediction
-type PredictiveSLAAnalyzer struct {
+// SLAPredictiveAnalyzer provides ML-based SLA violation prediction  
+type SLAPredictiveAnalyzer struct {
 	// ML Models
 	AvailabilityPredictor *AvailabilityPredictor
 	LatencyPredictor      *LatencyPredictor
@@ -446,6 +446,10 @@ func NewSLAMonitoringArchitecture(
 
 	return arch, nil
 }
+
+// Placeholder SLI types to resolve compilation errors
+type ServiceAvailabilitySLI struct{}
+type UserJourneyAvailabilitySLI struct{}
 
 // Start initializes and starts all monitoring components
 func (arch *SLAMonitoringArchitecture) Start(ctx context.Context) error {
