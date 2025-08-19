@@ -343,17 +343,20 @@ func TestMain_ExitCodes(t *testing.T) {
 		name         string
 		args         []string
 		expectedExit int
-		setupFunc    func(t *testing.T) string // returns temp directory
+		setupFunc    func(t *testing.T) (string, []string) // returns temp directory and updated args
 	}{
 		{
 			name: "invalid handoff directory",
 			args: []string{
-				"-handoff", "/nonexistent/directory",
+				"-handoff", "Z:\\nonexistent\\deeply\\nested\\invalid\\directory",
 				"-once",
 			},
 			expectedExit: 1,
-			setupFunc: func(t *testing.T) string {
-				return tempDir
+			setupFunc: func(t *testing.T) (string, []string) {
+				return tempDir, []string{
+					"-handoff", "Z:\\nonexistent\\deeply\\nested\\invalid\\directory",
+					"-once",
+				}
 			},
 		},
 		{
@@ -362,34 +365,42 @@ func TestMain_ExitCodes(t *testing.T) {
 				"-once",
 			},
 			expectedExit: 0,
-			setupFunc: func(t *testing.T) string {
+			setupFunc: func(t *testing.T) (string, []string) {
 				testDir := filepath.Join(tempDir, "success-test")
 				handoffDir := filepath.Join(testDir, "handoff")
 				require.NoError(t, os.MkdirAll(handoffDir, 0755))
 				
-				// Create mock porch and intent file
+				// Create mock porch
 				mockPorch := createMockPorch(t, testDir, 0, "success", "")
 				
+				// Create a valid intent file with all required fields
+				intentContent := `{
+					"intent_type": "scaling",
+					"target": "deployment/test-app",
+					"namespace": "default",
+					"replicas": 3,
+					"source": "test"
+				}`
 				intentFile := filepath.Join(handoffDir, "intent-test.json")
-				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
+				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
 				
-				// Setup test arguments - create local args slice
-				testArgs := []string{"-handoff", handoffDir, "-porch", mockPorch, "-once"}
-				_ = testArgs // Use the args in the actual test execution
-				
-				return testDir
+				return testDir, []string{
+					"-handoff", handoffDir,
+					"-porch", mockPorch,
+					"-once",
+				}
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			workDir := tt.setupFunc(t)
+			workDir, args := tt.setupFunc(t)
 			
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
-			cmd := exec.CommandContext(ctx, binaryPath, tt.args...)
+			cmd := exec.CommandContext(ctx, binaryPath, args...)
 			cmd.Dir = workDir
 
 			err := cmd.Run()
