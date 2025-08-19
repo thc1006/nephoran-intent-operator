@@ -1,0 +1,176 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: conductor-loop
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    monitoring: prometheus
+  annotations:
+    description: "ServiceMonitor for Conductor Loop metrics collection"
+spec:
+  selector:
+    matchLabels:
+      service.type: metrics
+  endpoints:
+    - port: http-metrics
+      interval: 30s
+      path: /metrics
+      scheme: http
+      scrapeTimeout: 10s
+      honorLabels: true
+      metricRelabelings:
+        - sourceLabels: [__name__]
+          regex: '(conductor_loop_.*|go_.*|process_.*)'
+          action: keep
+
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: conductor-loop-alerts
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    prometheus: kube-prometheus
+    role: alert-rules
+  annotations:
+    description: "Prometheus alerting rules for Conductor Loop"
+spec:
+  groups:
+    - name: conductor-loop.rules
+      interval: 30s
+      rules:
+        # Service availability alerts
+        - alert: ConductorLoopDown
+          expr: up{job="conductor-loop"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            component: conductor-loop
+          annotations:
+            summary: "Conductor Loop service is down"
+            description: "Conductor Loop service has been down for more than 1 minute"
+            runbook_url: "https://github.com/thc1006/nephoran-intent-operator/docs/runbooks/conductor-loop-down.md"
+        
+        - alert: ConductorLoopHighErrorRate
+          expr: rate(conductor_loop_errors_total[5m]) > 0.1
+          for: 2m
+          labels:
+            severity: warning
+            component: conductor-loop
+          annotations:
+            summary: "High error rate in Conductor Loop"
+            description: "Conductor Loop error rate is {{ $value }} errors per second over the last 5 minutes"
+        
+        # Performance alerts
+        - alert: ConductorLoopHighLatency
+          expr: histogram_quantile(0.95, rate(conductor_loop_request_duration_seconds_bucket[5m])) > 30
+          for: 5m
+          labels:
+            severity: warning
+            component: conductor-loop
+          annotations:
+            summary: "High latency in Conductor Loop"
+            description: "95th percentile latency is {{ $value }}s over the last 5 minutes"
+        
+        - alert: ConductorLoopHighMemoryUsage
+          expr: process_resident_memory_bytes{job="conductor-loop"} / 1024 / 1024 / 1024 > 0.4
+          for: 5m
+          labels:
+            severity: warning
+            component: conductor-loop
+          annotations:
+            summary: "High memory usage in Conductor Loop"
+            description: "Memory usage is {{ $value }}GB"
+        
+        # Queue and processing alerts
+        - alert: ConductorLoopQueueBacklog
+          expr: conductor_loop_queue_length > 50
+          for: 5m
+          labels:
+            severity: warning
+            component: conductor-loop
+          annotations:
+            summary: "Large backlog in Conductor Loop processing queue"
+            description: "Queue length is {{ $value }} items"
+        
+        - alert: ConductorLoopProcessingStalled
+          expr: increase(conductor_loop_processed_files_total[10m]) == 0 and conductor_loop_pending_files > 0
+          for: 10m
+          labels:
+            severity: critical
+            component: conductor-loop
+          annotations:
+            summary: "Conductor Loop processing appears to be stalled"
+            description: "No files processed in 10 minutes but {{ $value }} files are pending"
+        
+        # Porch integration alerts
+        - alert: ConductorLoopPorchConnectionFailed
+          expr: conductor_loop_porch_connection_errors_total > 0
+          for: 1m
+          labels:
+            severity: warning
+            component: conductor-loop
+          annotations:
+            summary: "Conductor Loop unable to connect to Porch"
+            description: "Failed to connect to Porch service {{ $value }} times"
+        
+        # Resource alerts
+        - alert: ConductorLoopPodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{container="conductor-loop",namespace="conductor-loop"}[5m]) > 0
+          for: 2m
+          labels:
+            severity: warning
+            component: conductor-loop
+          annotations:
+            summary: "Conductor Loop pod is crash looping"
+            description: "Pod {{ $labels.pod }} has restarted {{ $value }} times in the last 5 minutes"
+        
+        # Storage alerts
+        - alert: ConductorLoopDiskSpaceHigh
+          expr: (kubelet_volume_stats_used_bytes{persistentvolumeclaim="conductor-loop-data"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim="conductor-loop-data"}) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+            component: conductor-loop
+          annotations:
+            summary: "Conductor Loop data volume is running out of space"
+            description: "Data volume usage is at {{ $value | humanizePercentage }}"
+        
+        - alert: ConductorLoopLogVolumeHigh
+          expr: (kubelet_volume_stats_used_bytes{persistentvolumeclaim="conductor-loop-logs"} / kubelet_volume_stats_capacity_bytes{persistentvolumeclaim="conductor-loop-logs"}) > 0.9
+          for: 5m
+          labels:
+            severity: critical
+            component: conductor-loop
+          annotations:
+            summary: "Conductor Loop log volume is almost full"
+            description: "Log volume usage is at {{ $value | humanizePercentage }}"
+
+    - name: conductor-loop.recording
+      interval: 30s
+      rules:
+        # Recording rules for dashboards
+        - record: conductor_loop:error_rate
+          expr: rate(conductor_loop_errors_total[5m])
+        
+        - record: conductor_loop:request_rate
+          expr: rate(conductor_loop_requests_total[5m])
+        
+        - record: conductor_loop:success_rate
+          expr: rate(conductor_loop_successful_operations_total[5m])
+        
+        - record: conductor_loop:average_processing_time
+          expr: rate(conductor_loop_processing_duration_seconds_sum[5m]) / rate(conductor_loop_processing_duration_seconds_count[5m])
+        
+        - record: conductor_loop:queue_utilization
+          expr: conductor_loop_queue_length / conductor_loop_queue_capacity

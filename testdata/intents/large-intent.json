@@ -1,0 +1,252 @@
+{
+  "apiVersion": "nephoran.com/v1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "large-scale-oran-deployment",
+    "namespace": "oran-production",
+    "labels": {
+      "deployment.scale": "large",
+      "deployment.type": "multi-cnf",
+      "environment": "production"
+    },
+    "annotations": {
+      "deployment.description": "Large-scale O-RAN deployment with multiple CNFs and complex networking requirements",
+      "deployment.contact": "oran-ops@company.com",
+      "deployment.version": "v2.1.0"
+    }
+  },
+  "spec": {
+    "action": "deploy",
+    "target": {
+      "type": "oran-cluster",
+      "name": "oran-production-cluster",
+      "namespace": "oran-production",
+      "region": "us-west-2",
+      "availabilityZone": "us-west-2a"
+    },
+    "parameters": {
+      "networkFunctions": [
+        {
+          "name": "cucp-primary",
+          "type": "centralized-unit-control-plane",
+          "interfaces": ["e1", "f1c", "xn", "ng"],
+          "resources": {
+            "cpu": "8000m",
+            "memory": "16Gi",
+            "storage": "100Gi",
+            "accelerators": {
+              "nvidia.com/gpu": "2"
+            }
+          },
+          "replicas": 3,
+          "antiAffinity": true
+        },
+        {
+          "name": "cuup-primary",
+          "type": "centralized-unit-user-plane",
+          "interfaces": ["e1", "f1u", "xn"],
+          "resources": {
+            "cpu": "12000m",
+            "memory": "32Gi",
+            "storage": "200Gi",
+            "accelerators": {
+              "intel.com/fpga": "1"
+            }
+          },
+          "replicas": 5,
+          "antiAffinity": true
+        },
+        {
+          "name": "du-functions",
+          "type": "distributed-unit",
+          "interfaces": ["f1c", "f1u", "fronthaul"],
+          "resources": {
+            "cpu": "6000m",
+            "memory": "12Gi",
+            "storage": "50Gi"
+          },
+          "replicas": 10,
+          "placement": "edge"
+        },
+        {
+          "name": "ric-platform",
+          "type": "ran-intelligent-controller",
+          "interfaces": ["e2", "a1", "o1"],
+          "resources": {
+            "cpu": "4000m",
+            "memory": "8Gi",
+            "storage": "100Gi"
+          },
+          "replicas": 2,
+          "persistence": true
+        }
+      ],
+      "connectivity": {
+        "fronthaul": {
+          "interface": "cpri",
+          "bandwidth": "25Gbps",
+          "latency": "100us",
+          "jitter": "10us",
+          "protocol": "eCPRI"
+        },
+        "midhaul": {
+          "interface": "f1",
+          "bandwidth": "10Gbps",
+          "latency": "1ms",
+          "protocol": "f1ap"
+        },
+        "backhaul": {
+          "interface": "xn",
+          "bandwidth": "40Gbps",
+          "latency": "5ms",
+          "protocol": "xnap"
+        },
+        "management": {
+          "interface": "o1",
+          "bandwidth": "1Gbps",
+          "protocol": "netconf"
+        }
+      },
+      "sla": {
+        "availability": "99.999%",
+        "throughput": "50Gbps",
+        "latency": "1ms",
+        "jitter": "0.1ms",
+        "packetLoss": "0.001%",
+        "reliability": "99.99%"
+      },
+      "monitoring": {
+        "metrics": ["cpu", "memory", "network", "storage", "custom"],
+        "alerting": {
+          "enabled": true,
+          "channels": ["slack", "email", "pagerduty"],
+          "thresholds": {
+            "cpu": "80%",
+            "memory": "85%",
+            "network": "90%",
+            "availability": "99.9%"
+          }
+        },
+        "logging": {
+          "level": "info",
+          "retention": "30d",
+          "structured": true
+        },
+        "tracing": {
+          "enabled": true,
+          "sampling": "0.1",
+          "exporter": "jaeger"
+        }
+      },
+      "security": {
+        "encryption": {
+          "inTransit": true,
+          "atRest": true,
+          "algorithms": ["AES-256", "RSA-4096"]
+        },
+        "authentication": {
+          "type": "mtls",
+          "certificateAuthority": "internal-ca",
+          "autoRotation": true,
+          "rotationPeriod": "90d"
+        },
+        "authorization": {
+          "rbac": true,
+          "policies": ["network-admin", "read-only", "monitoring"]
+        },
+        "networkPolicies": [
+          "deny-all-ingress",
+          "allow-oran-communication",
+          "allow-monitoring",
+          "allow-management"
+        ]
+      }
+    },
+    "constraints": {
+      "placement": {
+        "nodeAffinity": {
+          "requiredDuringSchedulingIgnoredDuringExecution": {
+            "nodeSelectorTerms": [{
+              "matchExpressions": [
+                {
+                  "key": "node.type",
+                  "operator": "In",
+                  "values": ["edge-compute", "core-compute"]
+                },
+                {
+                  "key": "zone",
+                  "operator": "In",
+                  "values": ["us-west-2a", "us-west-2b", "us-west-2c"]
+                }
+              ]
+            }]
+          },
+          "preferredDuringSchedulingIgnoredDuringExecution": [{
+            "weight": 100,
+            "preference": {
+              "matchExpressions": [{
+                "key": "node.performance",
+                "operator": "In",
+                "values": ["high"]
+              }]
+            }
+          }]
+        },
+        "podAntiAffinity": {
+          "requiredDuringSchedulingIgnoredDuringExecution": [{
+            "labelSelector": {
+              "matchLabels": {
+                "app": "oran-cnf"
+              }
+            },
+            "topologyKey": "kubernetes.io/hostname"
+          }]
+        }
+      },
+      "resources": {
+        "limits": {
+          "cpu": "100",
+          "memory": "200Gi",
+          "storage": "1Ti",
+          "gpu": "10"
+        },
+        "requests": {
+          "cpu": "50",
+          "memory": "100Gi",
+          "storage": "500Gi"
+        }
+      },
+      "compliance": {
+        "standards": ["3gpp", "oran-alliance", "etsi"],
+        "certifications": ["nesas", "cc"],
+        "auditRequirements": ["soc2", "iso27001"]
+      },
+      "performance": {
+        "latencyBudget": "1ms",
+        "throughputTarget": "50Gbps",
+        "availabilityTarget": "99.999%",
+        "scalabilityTarget": "10x"
+      }
+    },
+    "validation": {
+      "preDeployment": [
+        "resource-availability",
+        "network-connectivity",
+        "security-compliance",
+        "performance-requirements"
+      ],
+      "postDeployment": [
+        "functional-tests",
+        "performance-tests",
+        "security-tests",
+        "integration-tests"
+      ],
+      "monitoring": [
+        "health-checks",
+        "metrics-collection",
+        "alert-verification",
+        "dashboard-validation"
+      ]
+    }
+  }
+}

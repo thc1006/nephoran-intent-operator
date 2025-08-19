@@ -1,0 +1,7 @@
+{
+  "intent_type": "scaling",
+  "target": "my-app; rm -rf /",
+  "namespace": "default || echo 'injected'",
+  "replicas": 3,
+  "timestamp": "2025-08-15T12:00:00Z"
+}

@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: conductor-loop-data
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    description: "Persistent storage for Conductor Loop handoff directories and logs"
+    volume.beta.kubernetes.io/storage-class: "standard"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+  volumeMode: Filesystem
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: conductor-loop-logs
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    description: "Log storage for Conductor Loop"
+    volume.beta.kubernetes.io/storage-class: "standard"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+  volumeMode: Filesystem

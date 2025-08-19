@@ -1,0 +1,105 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: conductor-loop-hpa
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    description: "Horizontal Pod Autoscaler for Conductor Loop based on CPU and custom metrics"
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: conductor-loop
+  
+  minReplicas: 2
+  maxReplicas: 10
+  
+  metrics:
+    # CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    
+    # Memory utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    
+    # Custom metric: files in handoff/in directory
+    - type: Pods
+      pods:
+        metric:
+          name: conductor_loop_pending_files
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: conductor-loop
+        target:
+          type: AverageValue
+          averageValue: "5"
+    
+    # Custom metric: processing queue length
+    - type: Pods
+      pods:
+        metric:
+          name: conductor_loop_queue_length
+          selector:
+            matchLabels:
+              app.kubernetes.io/name: conductor-loop
+        target:
+          type: AverageValue
+          averageValue: "10"
+  
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 15
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: conductor-loop-pdb
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    description: "Pod Disruption Budget to ensure availability during maintenance"
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+      app.kubernetes.io/instance: conductor-loop
