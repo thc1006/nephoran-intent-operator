@@ -416,7 +416,6 @@ const (
 	// Secure permission constants
 	SecureDirPerm  = 0700
 	SecureFilePerm = 0600
-	MaxJSONDepth   = 100
 )
 
 // Stub functions for demonstration - implement these in the actual code
