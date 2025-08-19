@@ -7,9 +7,8 @@ on:
   pull_request:
     branches: [ main, integrate/mvp ]
 
-# Updated concurrency to use ${{ github.ref }} only
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -20,106 +19,7 @@ env:
   IMAGE_NAME: nephoran-intent-operator
 
 jobs:
-  # ---------------------------------------------------------------------------
-  # 0) Hygiene Check - Fails on large non-LFS files
-  # ---------------------------------------------------------------------------
-  hygiene:
-    name: Repository Hygiene
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          lfs: true
-
-      - name: Check for large files not in LFS
-        id: large-files
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "## 🧹 Repository Hygiene Check" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Find files larger than 10MB not tracked by LFS
-          large_files=""
-          file_count=0
-          
-          echo "| File | Size | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
-          
-          while IFS= read -r file; do
-            if [ -f "$file" ]; then
-              size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo 0)
-              size_mb=$((size / 1048576))
-              
-              # Check if file is tracked by LFS
-              if git check-attr filter "$file" | grep -q "filter: lfs"; then
-                echo "| $file | ${size_mb}MB | ✅ LFS tracked |" >> $GITHUB_STEP_SUMMARY
-              else
-                if [ $size -gt 10485760 ]; then  # 10MB = 10 * 1024 * 1024
-                  echo "❌ Large file not in LFS: $file (${size_mb}MB)"
-                  echo "| $file | ${size_mb}MB | ❌ Not in LFS |" >> $GITHUB_STEP_SUMMARY
-                  large_files="${large_files}${file} (${size_mb}MB)\n"
-                  ((file_count++))
-                fi
-              fi
-            fi
-          done < <(find . -type f -size +1M -not -path "./.git/*" -not -path "./vendor/*" -not -path "./node_modules/*" 2>/dev/null || true)
-          
-          if [ $file_count -gt 0 ]; then
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### ❌ Failed: Found $file_count large files (>10MB) not tracked by Git LFS" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Action Required:** Add these files to Git LFS or remove them:" >> $GITHUB_STEP_SUMMARY
-            echo '```bash' >> $GITHUB_STEP_SUMMARY
-            echo "git lfs track \"path/to/file\"" >> $GITHUB_STEP_SUMMARY
-            echo "git add .gitattributes" >> $GITHUB_STEP_SUMMARY
-            echo "git add path/to/file" >> $GITHUB_STEP_SUMMARY
-            echo '```' >> $GITHUB_STEP_SUMMARY
-            exit 1
-          else
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### ✅ Passed: No large files found outside Git LFS" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: Check for common unwanted files
-        shell: bash
-        run: |
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📋 Additional Checks" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          unwanted_patterns=(
-            "*.log"
-            "*.tmp"
-            "*.bak"
-            "*.swp"
-            ".DS_Store"
-            "Thumbs.db"
-            "*.orig"
-          )
-          
-          found_unwanted=false
-          echo "| Pattern | Files Found |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|------------|" >> $GITHUB_STEP_SUMMARY
-          
-          for pattern in "${unwanted_patterns[@]}"; do
-            count=$(find . -name "$pattern" -not -path "./.git/*" 2>/dev/null | wc -l)
-            if [ $count -gt 0 ]; then
-              echo "| $pattern | $count file(s) |" >> $GITHUB_STEP_SUMMARY
-              found_unwanted=true
-            fi
-          done
-          
-          if [ "$found_unwanted" = false ]; then
-            echo "| - | None found ✅ |" >> $GITHUB_STEP_SUMMARY
-          fi
-
-  # ---------------------------------------------------------------------------
-  # Path filters for module-specific changes (Optional)
-  # ---------------------------------------------------------------------------
+  # Pre-validation checks with path filters
   changes:
     name: Detect Changes
     runs-on: ubuntu-latest
@@ -189,17 +89,13 @@ jobs:
             scripts:
               - 'scripts/**'
 
-  # ---------------------------------------------------------------------------
-  # 1) Generate (CRDs / codegen) - non-flaky,保留但不作為單一失敗點
-  # ---------------------------------------------------------------------------
+  # Generate CRDs and code
   generate:
     name: Generate CRDs
     runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    # Skip if only docs changed
+    needs: changes
     if: |
       always() && 
-      needs.hygiene.result == 'success' &&
       (needs.changes.outputs.api == 'true' || 
        needs.changes.outputs.controllers == 'true' || 
        needs.changes.outputs.pkg == 'true' || 
@@ -213,14 +109,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Go from go.mod
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           check-latest: true
           cache: false
 
-      - name: Cache Go build/mod
+      - name: Cache Go modules and build cache
         uses: actions/cache@v4
         with:
           path: |
@@ -230,63 +126,49 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Download deps
+      - name: Download and verify dependencies
         run: |
           go mod download
           go mod verify
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+          GOSUMDB: sum.golang.org
 
-      - name: Install controller-gen (pinned)
+      - name: Install controller-gen
         run: go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0
 
-      - name: Generate
-        run: |
-          set -e
-          make gen || true
-          # 若沒有 CRDs，也不要直接 fail；MVP 階段以穩定為主
-          mkdir -p deployments/crds
-          ls -lah deployments/crds || true
+      - name: Generate CRDs and code
+        run: make gen
 
-      - name: Upload generated CRDs
+      - name: Verify no uncommitted changes
+        run: |
+          git diff --exit-code || (echo "❌ Generated files are not up to date. Run 'make gen' and commit the changes." && exit 1)
+
+      - name: Upload CRD artifacts
         uses: actions/upload-artifact@v4
         with:
           name: generated-crds
           path: deployments/crds/
-          if-no-files-found: ignore
           retention-days: 1
 
-  # ---------------------------------------------------------------------------
-  # 2) Build - 明確編兩個 command；沒有就跳過但成功
-  # ---------------------------------------------------------------------------
+  # Build project binaries
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [hygiene, generate, changes]
-    # Skip if only docs changed
-    if: |
-      always() && 
-      needs.hygiene.result == 'success' &&
-      needs.generate.result != 'failure' &&
-      (needs.changes.outputs.cmd == 'true' || 
-       needs.changes.outputs.pkg == 'true' || 
-       needs.changes.outputs.planner == 'true' ||
-       needs.changes.outputs.controllers == 'true' ||
-       needs.changes.outputs.api == 'true' ||
-       needs.changes.outputs.ci == 'true')
+    needs: generate
     timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           check-latest: true
           cache: false
 
-      - name: Cache Go build/mod
+      - name: Cache Go modules and build cache
         uses: actions/cache@v4
         with:
           path: |
@@ -296,78 +178,35 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Download deps
+      - name: Download and verify dependencies
         run: |
           go mod download
           go mod verify
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+          GOSUMDB: sum.golang.org
 
-      - name: Download CRDs (optional)
+      - name: Download CRD artifacts
         uses: actions/download-artifact@v4
         with:
           name: generated-crds
           path: deployments/crds/
-        continue-on-error: true
 
-      - name: Build binaries (cmd/*)
-        id: build
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p bin .excellence-reports
-          built=0
-
-          if [[ -f cmd/intent-ingest/main.go ]]; then
-            echo ">> building cmd/intent-ingest"
-            ( go build -v -o bin/intent-ingest ./cmd/intent-ingest ) 2>&1 | tee .excellence-reports/build_intent-ingest.log
-            built=1
-          fi
-
-          if [[ -f cmd/porch-publisher/main.go ]]; then
-            echo ">> building cmd/porch-publisher"
-            ( go build -v -o bin/porch-publisher ./cmd/porch-publisher ) 2>&1 | tee .excellence-reports/build_porch-publisher.log
-            built=1
-          fi
-
-          if [[ -f planner/cmd/planner/main.go ]]; then
-            echo ">> building planner/cmd/planner"
-            ( go build -v -o bin/planner ./planner/cmd/planner ) 2>&1 | tee .excellence-reports/build_planner.log
-            built=1
-          fi
-
-          if [[ "${built}" -eq 0 ]]; then
-            echo "No command directories found under cmd/ or planner/, skipping build."
-          fi
-          ls -lah bin || true
+      - name: Build project
+        run: make build
 
       - name: Upload build artifacts
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
-          path: |
-            bin/
-            .excellence-reports/build_*.log
-          if-no-files-found: warn
+          path: bin/
           retention-days: 7
 
-  # ---------------------------------------------------------------------------
-  # 3) Test - 偵測有無 *_test.go；沒有就跳過但成功
-  # ---------------------------------------------------------------------------
+  # Run unit and integration tests
   test:
     name: Test
     runs-on: ubuntu-latest
-    needs: [hygiene, generate, changes]
-    # Skip if only docs changed
-    if: |
-      always() && 
-      needs.hygiene.result == 'success' &&
-      needs.generate.result != 'failure' &&
-      (needs.changes.outputs.pkg == 'true' || 
-       needs.changes.outputs.controllers == 'true' || 
-       needs.changes.outputs.planner == 'true' ||
-       needs.changes.outputs.cmd == 'true' ||
-       needs.changes.outputs.api == 'true' ||
-       needs.changes.outputs.ci == 'true')
+    needs: generate
     timeout-minutes: 30
     services:
       redis:
@@ -383,17 +222,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           check-latest: true
           cache: false
 
-      - name: Cache Go build/mod
+      - name: Cache Go modules and build cache
         uses: actions/cache@v4
         with:
           path: |
@@ -403,33 +240,30 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Download deps
+      - name: Download and verify dependencies
         run: |
           go mod download
           go mod verify
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+          GOSUMDB: sum.golang.org
 
-      - name: Download CRDs (optional)
-        uses: actions/download-artifact@v4
-        with:
-          name: generated-crds
-          path: deployments/crds/
-        continue-on-error: true
+      - name: Install envtest
+        run: |
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
 
-      - name: Run tests (skip if no *_test.go)
-        shell: bash
+      - name: Setup envtest environment
+        run: |
+          setup-envtest use 1.29.0 --bin-dir ~/.local/bin
+          echo "KUBEBUILDER_ASSETS=$(setup-envtest use 1.29.0 --bin-dir ~/.local/bin -p path)" >> $GITHUB_ENV
+
+      - name: Run tests with coverage
         env:
           USE_EXISTING_CLUSTER: false
+          ENVTEST_K8S_VERSION: 1.29.0
           REDIS_URL: redis://localhost:6379
         run: |
-          set -euo pipefail
-          mkdir -p .excellence-reports
-          if find . -type f -name "*_test.go" -not -path "./vendor/*" | head -n1 | grep -q .; then
-            ( go test -v ./... -count=1 -coverprofile=.excellence-reports/coverage.out ) 2>&1 | tee .excellence-reports/test.log
-            go tool cover -html=.excellence-reports/coverage.out -o .excellence-reports/coverage.html || true
-          else
-            echo "No *_test.go found. Skipping tests."
-            touch .excellence-reports/test.log
-          fi
+          make test
 
       - name: Upload test results
         if: always()
@@ -437,113 +271,29 @@ jobs:
         with:
           name: test-results
           path: |
-            .excellence-reports/test.log
             .excellence-reports/coverage.out
             .excellence-reports/coverage.html
           if-no-files-found: ignore
           retention-days: 7
 
-  # ---------------------------------------------------------------------------
-  # 4) Lint - 先非阻斷；用 CLI 自行控制 exit code，避開舊 config schema 爆掉
-  # ---------------------------------------------------------------------------
+  # Lint code
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    needs: [hygiene, generate]
-    timeout-minutes: 10
-    continue-on-error: true
+    needs: generate
+    timeout-minutes: 15
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          check-latest: true
-
-      - name: Install golangci-lint (pinned)
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
-
-      - name: Run golangci-lint (non-blocking)
-        shell: bash
-        run: |
-          mkdir -p .excellence-reports
-          golangci-lint version || true
-          # 舊版鍵值若觸發 config 錯誤，不讓 job fail
-          golangci-lint run --timeout=5m --out-format=github-actions || true
-
-      - name: Upload lint report (best-effort)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: lint-report
-          path: .excellence-reports/
-          if-no-files-found: ignore
-          retention-days: 7
-
-  # ---------------------------------------------------------------------------
-  # 5) Security - govulncheck JSON 輸出，非阻斷
-  # ---------------------------------------------------------------------------
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    needs: [hygiene, generate]
-    timeout-minutes: 10
-    continue-on-error: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-          check-latest: true
-
-      - name: Install govulncheck
-        run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
-
-      - name: Run govulncheck (non-blocking)
-        shell: bash
-        run: |
-          mkdir -p .excellence-reports
-          govulncheck -json ./... > .excellence-reports/govulncheck.json || true
-          echo "Report at .excellence-reports/govulncheck.json"
-
-      - name: Upload security report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: security-scan-results
-          path: .excellence-reports/govulncheck.json
-          if-no-files-found: ignore
-          retention-days: 7
-
-  # ---------------------------------------------------------------------------
-  # 5.5) Tools Test - Test the tools directory when changed
-  # ---------------------------------------------------------------------------
-  tools-test:
-    name: Tools Test
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    # Only run when tools files are changed
-    if: needs.changes.outputs.tools == 'true'
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
           check-latest: true
           cache: false
 
-      - name: Cache Go build/mod
+      - name: Cache Go modules and build cache
         uses: actions/cache@v4
         with:
           path: |
@@ -553,111 +303,106 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-      - name: Download deps
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61.0
+          only-new-issues: false
+          args: --config .golangci.yml --timeout=10m --out-format=github-actions
+
+  # Security and vulnerability scanning
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: generate
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+
+      - name: Cache Go modules and build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Cache govulncheck database
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-security-db
+          key: ${{ runner.os }}-govulncheck-db-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-govulncheck-db-
+
+      - name: Download and verify dependencies
         run: |
           go mod download
           go mod verify
+        env:
+          GOPROXY: https://proxy.golang.org,direct
+          GOSUMDB: sum.golang.org
 
-      - name: Run tools tests
-        shell: bash
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+
+      - name: Run vulnerability check
+        env:
+          GOVULNCHECK_DB: ~/.cache/go-security-db
         run: |
-          set -euo pipefail
-          mkdir -p .excellence-reports
-          echo "Testing tools directory..."
-          
-          # Test kmpgen
-          if [ -d "tools/kmpgen" ]; then
-            echo "Testing kmpgen..."
-            go test -v ./tools/kmpgen/cmd/kmpgen -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
-          fi
-          
-          # Test vessend
-          if [ -d "tools/vessend" ]; then
-            echo "Testing vessend..."
-            go test -v ./tools/vessend/cmd/vessend -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
-          fi
-          
-          # Test any other specific tool packages (not the root tools package)
-          for tooldir in tools/*/; do
-            if [ -d "$tooldir" ] && [ "$tooldir" != "tools/kmpgen/" ] && [ "$tooldir" != "tools/vessend/" ]; then
-              # Find packages with test files in this tool directory
-              tool_name=$(basename "$tooldir")
-              if find "$tooldir" -name "*_test.go" | grep -q .; then
-                echo "Testing $tool_name..."
-                go test -v "./tools/$tool_name/..." -count=1 2>&1 | tee -a .excellence-reports/tools-test.log
-              fi
-            fi
-          done
-          
-          echo "Tools testing completed."
+          echo "🔍 Running govulncheck..."
+          govulncheck ./...
 
-      - name: Upload test results
+      - name: Upload security scan results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tools-test-results
+          name: security-scan-results
           path: |
-            .excellence-reports/tools-test.log
+            ~/.cache/go-security-db/
           if-no-files-found: ignore
           retention-days: 7
 
-  # ---------------------------------------------------------------------------
-  # 6) 單一門檻 - gate hygiene/generate/build/test/tools-test
-  # ---------------------------------------------------------------------------
+  # Final CI status check
   ci-status:
     name: CI Status Check
     runs-on: ubuntu-latest
-    needs: [hygiene, generate, build, test, tools-test]
+    needs: [generate, build, test, lint, security]
     if: always()
     timeout-minutes: 5
     steps:
-      - name: Gate
+      - name: Gate on upstream job results
         shell: bash
         run: |
-          echo "Hygiene:    ${{ needs.hygiene.result }}"
-          echo "Generate:   ${{ needs.generate.result }}"
-          echo "Build:      ${{ needs.build.result }}"
-          echo "Test:       ${{ needs.test.result }}"
-          echo "Tools-Test: ${{ needs.tools-test.result }}"
-          
-          # Check for any failures (skipped is OK, failure is not)
-          failed=false
-          
-          # Hygiene must always succeed (never skipped)
-          if [[ "${{ needs.hygiene.result }}" != "success" ]]; then
-            echo "❌ Hygiene job failed or was cancelled"
-            failed=true
-          fi
-          
-          # Other jobs can be skipped or successful, but not failed
-          if [[ "${{ needs.generate.result }}" != "success" && "${{ needs.generate.result }}" != "skipped" ]]; then
-            echo "❌ Generate job failed"
-            failed=true
-          fi
-          
-          if [[ "${{ needs.build.result }}" != "success" && "${{ needs.build.result }}" != "skipped" ]]; then
-            echo "❌ Build job failed"
-            failed=true
-          fi
-          
-          if [[ "${{ needs.test.result }}" != "success" && "${{ needs.test.result }}" != "skipped" ]]; then
-            echo "❌ Test job failed"
-            failed=true
-          fi
-          
-          if [[ "${{ needs.tools-test.result }}" != "success" && "${{ needs.tools-test.result }}" != "skipped" ]]; then
-            echo "❌ Tools-Test job failed"
-            failed=true
-          fi
-          
-          if [[ "$failed" == "true" ]]; then
-            echo "❌ CI Pipeline Failed"
-            exit 1
-          else
-            echo "✅ CI Pipeline Succeeded (some jobs may have been skipped based on path filters)"
-          fi
+          echo "=== CI Pipeline Status ==="
+          echo "Generate: ${{ needs.generate.result }}"
+          echo "Build:    ${{ needs.build.result }}"
+          echo "Test:     ${{ needs.test.result }}"
+          echo "Lint:     ${{ needs.lint.result }}"
+          echo "Security: ${{ needs.security.result }}"
+          echo ""
 
-      - name: Summary
+          if [[ "${{ needs.generate.result }}" != "success" || \
+                "${{ needs.build.result }}"    != "success" || \
+                "${{ needs.test.result }}"     != "success" || \
+                "${{ needs.lint.result }}"     != "success" || \
+                "${{ needs.security.result }}" != "success" ]]; then
+            echo "❌ CI Pipeline Failed - One or more critical jobs failed"
+            exit 1
+          fi
+          echo "✅ CI Pipeline Succeeded - All jobs completed successfully"
+
+      - name: Generate CI summary
         if: always()
         shell: bash
         run: |
@@ -665,384 +410,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Job | Status | Description |" >> $GITHUB_STEP_SUMMARY
           echo "|-----|--------|-------------|" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧹 Hygiene    | ${{ needs.hygiene.result }}    | Repository cleanliness checks |" >> $GITHUB_STEP_SUMMARY
-          echo "| ⚙️ Generate   | ${{ needs.generate.result }}   | CRD and code generation |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔨 Build      | ${{ needs.build.result }}      | Binary compilation |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🧪 Test       | ${{ needs.test.result }}       | Unit and integration tests |" >> $GITHUB_STEP_SUMMARY
-          echo "| 🔧 Tools-Test | ${{ needs.tools-test.result }} | Test harness tools tests |" >> $GITHUB_STEP_SUMMARY
+          echo "| CRD Generation | ${{ needs.generate.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | CRD and code generation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Project compilation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test | ${{ needs.test.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Unit tests with envtest |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | ${{ needs.lint.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Code linting with golangci-lint |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result == 'success' && '✅ PASSED' || '❌ FAILED' }} | Vulnerability scanning with govulncheck |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Add timing information
-          echo "### ⏱️ Timing Information" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Workflow Started | ${{ github.event.head_commit.timestamp }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Runner OS | ${{ runner.os }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Ref | ${{ github.ref }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| SHA | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
-
-  # ---------------------------------------------------------------------------
-  # Module-specific tests - run only when module changes
-  # ---------------------------------------------------------------------------
-  test-api:
-    name: Test API Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.api == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test API module
-        run: |
-          go mod download
-          go test -v ./api/... -count=1 || echo "No tests found"
-
-  test-controllers:
-    name: Test Controllers Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.controllers == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test Controllers module
-        run: |
-          go mod download
-          go test -v ./controllers/... -count=1 || echo "No tests found"
-
-  test-pkg-nephio:
-    name: Test Pkg Nephio Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.pkg-nephio == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test Pkg Nephio module
-        run: |
-          go mod download
-          go test -v ./pkg/nephio/... ./pkg/packagerevision/... -count=1 || echo "No tests found"
-
-  test-pkg-oran:
-    name: Test Pkg O-RAN Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.pkg-oran == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test Pkg O-RAN module
-        run: |
-          go mod download
-          go test -v ./pkg/oran/... ./pkg/telecom/... -count=1 || echo "No tests found"
-
-  test-pkg-llm:
-    name: Test Pkg LLM Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.pkg-llm == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test Pkg LLM module
-        run: |
-          go mod download
-          go test -v ./pkg/llm/... ./pkg/ml/... -count=1 || echo "No tests found"
-
-  test-pkg-rag:
-    name: Test Pkg RAG Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.pkg-rag == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test Pkg RAG module
-        run: |
-          go mod download
-          go test -v ./pkg/rag/... ./pkg/knowledge/... -count=1 || echo "No tests found"
-
-  test-pkg-core:
-    name: Test Pkg Core Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.pkg-core == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test Pkg Core module
-        run: |
-          go mod download
-          go test -v ./pkg/auth/... ./pkg/config/... ./pkg/errors/... ./pkg/logging/... ./pkg/monitoring/... ./pkg/security/... ./pkg/validation/... -count=1 || echo "No tests found"
-
-  test-cmd:
-    name: Test CMD Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.cmd == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test CMD module
-        run: |
-          go mod download
-          go test -v ./cmd/... -count=1 || echo "No tests found"
-
-  test-internal:
-    name: Test Internal Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.internal == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test Internal module
-        run: |
-          go mod download
-          go test -v ./internal/... -count=1 || echo "No tests found"
-
-  test-planner:
-    name: Test Planner Module
-    runs-on: ubuntu-latest
-    needs: [hygiene, changes]
-    if: needs.changes.outputs.planner == 'true'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-      - name: Test Planner module
-        run: |
-          go mod download
-          go test -v ./planner/... -count=1 || echo "No tests found"
-
-  # ---------------------------------------------------------------------------
-  # Aggregate job for integrate/mvp branch - ensures all modules pass
-  # ---------------------------------------------------------------------------
-  integrate-mvp-gate:
-    name: Integration Gate (integrate/mvp)
-    runs-on: ubuntu-latest
-    needs: [
-      hygiene,
-      generate,
-      build,
-      test,
-      test-api,
-      test-controllers,
-      test-pkg-nephio,
-      test-pkg-oran,
-      test-pkg-llm,
-      test-pkg-rag,
-      test-pkg-core,
-      test-cmd,
-      test-internal,
-      test-planner
-    ]
-    if: |
-      always() && 
-      (github.ref == 'refs/heads/integrate/mvp' || 
-       (github.event_name == 'pull_request' && github.base_ref == 'integrate/mvp'))
-    timeout-minutes: 5
-    steps:
-      - name: Check all module tests
-        shell: bash
-        run: |
-          echo "## 🎯 Integration Gate Check for integrate/mvp" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Module | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|--------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Core Pipeline | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
-          
-          # Check module-specific tests if they ran
-          if [[ "${{ needs.test-api.result }}" != "skipped" ]]; then
-            echo "| API Module | ${{ needs.test-api.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ "${{ needs.test-controllers.result }}" != "skipped" ]]; then
-            echo "| Controllers Module | ${{ needs.test-controllers.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ "${{ needs.test-pkg-nephio.result }}" != "skipped" ]]; then
-            echo "| Pkg Nephio Module | ${{ needs.test-pkg-nephio.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ "${{ needs.test-pkg-oran.result }}" != "skipped" ]]; then
-            echo "| Pkg O-RAN Module | ${{ needs.test-pkg-oran.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ "${{ needs.test-pkg-llm.result }}" != "skipped" ]]; then
-            echo "| Pkg LLM Module | ${{ needs.test-pkg-llm.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ "${{ needs.test-pkg-rag.result }}" != "skipped" ]]; then
-            echo "| Pkg RAG Module | ${{ needs.test-pkg-rag.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ "${{ needs.test-pkg-core.result }}" != "skipped" ]]; then
-            echo "| Pkg Core Module | ${{ needs.test-pkg-core.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ "${{ needs.test-cmd.result }}" != "skipped" ]]; then
-            echo "| CMD Module | ${{ needs.test-cmd.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ "${{ needs.test-internal.result }}" != "skipped" ]]; then
-            echo "| Internal Module | ${{ needs.test-internal.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [[ "${{ needs.test-planner.result }}" != "skipped" ]]; then
-            echo "| Planner Module | ${{ needs.test-planner.result }} |" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Fail if any required job failed
-          failed=false
-          
-          # Check core jobs
-          if [[ "${{ needs.hygiene.result }}" == "failure" ]]; then
-            echo "❌ Required job hygiene failed"
-            failed=true
-          fi
-          if [[ "${{ needs.generate.result }}" == "failure" ]]; then
-            echo "❌ Required job generate failed"
-            failed=true
-          fi
-          if [[ "${{ needs.build.result }}" == "failure" ]]; then
-            echo "❌ Required job build failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test.result }}" == "failure" ]]; then
-            echo "❌ Required job test failed"
-            failed=true
-          fi
-          
-          # Check module tests only if they ran (not skipped)
-          if [[ "${{ needs.test-api.result }}" != "skipped" && "${{ needs.test-api.result }}" == "failure" ]]; then
-            echo "❌ Module test test-api failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test-controllers.result }}" != "skipped" && "${{ needs.test-controllers.result }}" == "failure" ]]; then
-            echo "❌ Module test test-controllers failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test-pkg-nephio.result }}" != "skipped" && "${{ needs.test-pkg-nephio.result }}" == "failure" ]]; then
-            echo "❌ Module test test-pkg-nephio failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test-pkg-oran.result }}" != "skipped" && "${{ needs.test-pkg-oran.result }}" == "failure" ]]; then
-            echo "❌ Module test test-pkg-oran failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test-pkg-llm.result }}" != "skipped" && "${{ needs.test-pkg-llm.result }}" == "failure" ]]; then
-            echo "❌ Module test test-pkg-llm failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test-pkg-rag.result }}" != "skipped" && "${{ needs.test-pkg-rag.result }}" == "failure" ]]; then
-            echo "❌ Module test test-pkg-rag failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test-pkg-core.result }}" != "skipped" && "${{ needs.test-pkg-core.result }}" == "failure" ]]; then
-            echo "❌ Module test test-pkg-core failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test-cmd.result }}" != "skipped" && "${{ needs.test-cmd.result }}" == "failure" ]]; then
-            echo "❌ Module test test-cmd failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test-internal.result }}" != "skipped" && "${{ needs.test-internal.result }}" == "failure" ]]; then
-            echo "❌ Module test test-internal failed"
-            failed=true
-          fi
-          if [[ "${{ needs.test-planner.result }}" != "skipped" && "${{ needs.test-planner.result }}" == "failure" ]]; then
-            echo "❌ Module test test-planner failed"
-            failed=true
-          fi
-          
-          if [[ "$failed" == "true" ]]; then
-            echo "### ❌ Integration gate failed - not ready for integrate/mvp" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          else
-            echo "### ✅ All checks passed - ready for integrate/mvp" >> $GITHUB_STEP_SUMMARY
-          fi
-
-  # ---------------------------------------------------------------------------
-  # 7) Container Build（只在 main push 且前面綠燈時）
-  # ---------------------------------------------------------------------------
-  container:
-    name: Container Build
-    runs-on: ubuntu-latest
-    needs: [build, test]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: ghcr login
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix={{branch}}-
-            type=raw,value=latest,enable={{is_default_branch}}
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-          path: bin/
-
-      - name: Build & push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: Dockerfile.production
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          build-args: |
-            VERSION=${{ github.sha }}
-            BUILD_DATE=${{ github.event.head_commit.timestamp }}
-            VCS_REF=${{ github.sha }}
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
