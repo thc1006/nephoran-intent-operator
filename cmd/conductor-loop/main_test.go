@@ -518,28 +518,33 @@ func createMockPorchB(b *testing.B, tempDir string, exitCode int, stdout, stderr
 		sleep = sleepDuration[0]
 	}
 
-	mockScript := `#!/bin/bash
-echo "%s"
-echo "%s" >&2
-%s
-exit %d
-`
-	sleepCmd := ""
-	if sleep > 0 {
-		sleepCmd = fmt.Sprintf("sleep %v", sleep.Seconds())
-	}
-
-	mockScript = fmt.Sprintf(mockScript, stdout, stderr, sleepCmd, exitCode)
+	var mockScript string
+	var mockFile string
 	
-	mockFile := filepath.Join(tempDir, "mock-porch")
 	if runtime.GOOS == "windows" {
-		mockFile += ".bat"
+		mockFile = filepath.Join(tempDir, "mock-porch.bat")
+		sleepCmd := ""
+		if sleep > 0 {
+			sleepCmd = fmt.Sprintf("timeout /t %d /nobreak >nul 2>nul", int(sleep.Seconds()))
+		}
 		mockScript = fmt.Sprintf(`@echo off
+%s
 echo %s
 echo %s 1>&2
-%s
 exit /b %d
-`, stdout, stderr, sleepCmd, exitCode)
+`, sleepCmd, stdout, stderr, exitCode)
+	} else {
+		mockFile = filepath.Join(tempDir, "mock-porch.sh")
+		sleepCmd := ""
+		if sleep > 0 {
+			sleepCmd = fmt.Sprintf("sleep %v", sleep.Seconds())
+		}
+		mockScript = fmt.Sprintf(`#!/bin/bash
+%s
+echo "%s"
+echo "%s" >&2
+exit %d
+`, sleepCmd, stdout, stderr, exitCode)
 	}
 
 	require.NoError(b, os.WriteFile(mockFile, []byte(mockScript), 0755))
