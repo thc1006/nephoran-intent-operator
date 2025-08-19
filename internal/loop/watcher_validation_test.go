@@ -540,7 +540,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 		{
 			name:        "malformed_json",
 			content:     `{"apiVersion": "v1", "kind": "NetworkIntent", "action":}`,
-			expectedErr: "invalid JSON format",
+			expectedErr: "JSON bomb detected",
 			desc:        "Malformed JSON syntax",
 		},
 		{
