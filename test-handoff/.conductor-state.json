@@ -1,0 +1,13 @@
+{
+  "version": "1.0",
+  "saved_at": "2025-08-17T01:39:36.2909065+08:00",
+  "states": {
+    "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\test-handoff\\intent-test.json": {
+      "file_path": "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop\\test-handoff\\intent-test.json",
+      "sha256": "91135f28387e86caf8dc56882373d7c25eb9a6d04a842a1a777f38ed52e82da7",
+      "size": 201,
+      "processed_at": "2025-08-17T01:39:36.2909065+08:00",
+      "status": "failed"
+    }
+  }
+}

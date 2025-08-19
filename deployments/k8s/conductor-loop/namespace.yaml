@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: conductor-loop
+  labels:
+    name: conductor-loop
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+    app.kubernetes.io/managed-by: kubernetes
+  annotations:
+    kubernetes.io/managed-by: "nephoran-intent-operator"
+    description: "Namespace for Nephoran Conductor Loop components"

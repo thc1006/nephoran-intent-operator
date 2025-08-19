@@ -1,0 +1,9 @@
+{
+  "apiVersion": "nephoran.com/v1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "invalid-intent-missing-spec"
+    // Missing namespace and spec intentionally for testing error scenarios
+  }
+  // Missing spec section
+}

@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conductor-loop-config
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    description: "Configuration for Conductor Loop service"
+data:
+  config.json: |
+    {
+      "server": {
+        "host": "0.0.0.0",
+        "port": 8080,
+        "metrics_port": 9090,
+        "read_timeout": "30s",
+        "write_timeout": "30s",
+        "shutdown_timeout": "10s"
+      },
+      "logging": {
+        "level": "info",
+        "format": "json",
+        "output": "stdout"
+      },
+      "conductor": {
+        "handoff_in_path": "/data/handoff/in",
+        "handoff_out_path": "/data/handoff/out",
+        "poll_interval": "10s",
+        "batch_size": 10,
+        "retry_attempts": 3,
+        "retry_backoff": "5s"
+      },
+      "porch": {
+        "endpoint": "http://porch-server:7007",
+        "timeout": "30s",
+        "repository": "nf-packages",
+        "package_prefix": "nf-sim"
+      },
+      "kubernetes": {
+        "namespace": "conductor-loop",
+        "leader_election": {
+          "enabled": true,
+          "lock_name": "conductor-loop-leader",
+          "lease_duration": "15s",
+          "renew_deadline": "10s",
+          "retry_period": "2s"
+        }
+      },
+      "storage": {
+        "type": "configmap",
+        "configmap_name": "conductor-loop-state"
+      },
+      "metrics": {
+        "enabled": true,
+        "path": "/metrics",
+        "include_go_metrics": true,
+        "include_process_metrics": true
+      },
+      "health": {
+        "path": "/healthz",
+        "ready_path": "/readyz",
+        "live_path": "/livez"
+      }
+    }
+
+  # Porch mock configuration for development
+  porch-mock.json: |
+    {
+      "repositories": [
+        {
+          "name": "nf-packages",
+          "type": "git",
+          "upstream": {
+            "git": {
+              "repo": "https://github.com/nephoran/nf-packages.git",
+              "branch": "main"
+            }
+          }
+        }
+      ],
+      "package_templates": [
+        {
+          "name": "nf-sim-template",
+          "description": "Network Function Simulator Template",
+          "path": "templates/nf-sim"
+        }
+      ]
+    }
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conductor-loop-state
+  namespace: conductor-loop
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/instance: conductor-loop
+    app.kubernetes.io/component: orchestration
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  annotations:
+    description: "State storage for Conductor Loop (managed automatically)"
+data:
+  # Initial state - will be managed by the application
+  last_processed_file: ""
+  processing_status: "idle"
+  last_error: ""
+  processed_count: "0"

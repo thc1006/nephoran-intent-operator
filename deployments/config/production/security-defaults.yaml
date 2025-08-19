@@ -1,0 +1,436 @@
+# Production Security Configuration for Conductor Loop
+# Secure defaults and configuration templates for production deployment
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conductor-loop-security-defaults
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    app.kubernetes.io/component: security-configuration
+    security.nephoran.com/policy-level: production
+data:
+  # ==========================================================================
+  # Application Security Configuration
+  # ==========================================================================
+  
+  app-security.yaml: |
+    security:
+      # Authentication and authorization
+      auth:
+        enabled: true
+        jwt_secret_file: "/config/secrets/jwt-secret"
+        session_timeout: "1h"
+        max_sessions_per_user: 5
+        require_mfa: true
+        password_policy:
+          min_length: 12
+          require_uppercase: true
+          require_lowercase: true
+          require_numbers: true
+          require_symbols: true
+          max_age: "90d"
+          history_count: 12
+        
+      # Input validation and sanitization
+      input_validation:
+        enabled: true
+        max_file_size: "10MB"
+        max_files_per_batch: 100
+        allowed_file_types: [".json", ".yaml", ".yml"]
+        blocked_extensions: [".exe", ".sh", ".bat", ".ps1", ".php", ".jsp"]
+        content_scanning: true
+        malware_detection: true
+        
+      # Rate limiting
+      rate_limiting:
+        enabled: true
+        requests_per_minute: 60
+        burst_size: 10
+        whitelist_ips: []
+        blacklist_ips: []
+        geo_blocking:
+          enabled: true
+          allowed_countries: ["US", "CA", "GB", "DE", "JP"]
+          
+      # Encryption settings
+      encryption:
+        at_rest:
+          enabled: true
+          algorithm: "AES-256-GCM"
+          key_rotation_days: 30
+        in_transit:
+          enforce_tls: true
+          min_tls_version: "1.2"
+          cipher_suites:
+            - "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384"
+            - "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256"
+        
+      # Security headers
+      headers:
+        content_security_policy: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+        x_frame_options: "DENY"
+        x_content_type_options: "nosniff"
+        referrer_policy: "strict-origin-when-cross-origin"
+        strict_transport_security: "max-age=31536000; includeSubDomains"
+
+  # ==========================================================================
+  # Network Security Configuration
+  # ==========================================================================
+  
+  network-security.yaml: |
+    network_security:
+      # Firewall configuration
+      firewall:
+        default_policy: "DENY"
+        ingress_rules:
+          - name: "health-checks"
+            source_cidr: "0.0.0.0/0"
+            port: 8080
+            protocol: "TCP"
+            action: "ALLOW"
+          - name: "metrics"
+            source_cidr: "10.0.0.0/8"
+            port: 9090
+            protocol: "TCP"
+            action: "ALLOW"
+        egress_rules:
+          - name: "dns"
+            destination_cidr: "0.0.0.0/0"
+            port: 53
+            protocol: "UDP"
+            action: "ALLOW"
+          - name: "https"
+            destination_cidr: "0.0.0.0/0"
+            port: 443
+            protocol: "TCP"
+            action: "ALLOW"
+            
+      # Network policies
+      policies:
+        deny_all_default: true
+        allow_monitoring: true
+        allow_health_checks: true
+        isolate_namespaces: true
+        
+      # Service mesh configuration
+      service_mesh:
+        enabled: true
+        mtls_mode: "STRICT"
+        authorization_policy: "DENY_ALL"
+        traffic_policy: "LEAST_PRIVILEGE"
+
+  # ==========================================================================
+  # Container Security Configuration
+  # ==========================================================================
+  
+  container-security.yaml: |
+    container_security:
+      # Security context
+      security_context:
+        run_as_non_root: true
+        run_as_user: 65532
+        run_as_group: 65532
+        fs_group: 65532
+        read_only_root_filesystem: true
+        allow_privilege_escalation: false
+        
+      # Capabilities
+      capabilities:
+        drop:
+          - ALL
+        add: []  # No additional capabilities
+        
+      # Resource limits
+      resources:
+        limits:
+          cpu: "1000m"
+          memory: "512Mi"
+          ephemeral_storage: "1Gi"
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+          ephemeral_storage: "256Mi"
+          
+      # Image security
+      image_security:
+        allowed_registries:
+          - "gcr.io/nephoran"
+          - "ghcr.io/nephoran"
+        image_scanning: true
+        vulnerability_threshold: "HIGH"
+        signature_verification: true
+        
+      # Runtime security
+      runtime_security:
+        seccomp_profile: "runtime/default"
+        apparmor_profile: "runtime/default"
+        selinux_options: {}
+
+  # ==========================================================================
+  # Data Security Configuration
+  # ==========================================================================
+  
+  data-security.yaml: |
+    data_security:
+      # Data classification
+      classification:
+        default_level: "INTERNAL"
+        levels:
+          PUBLIC: 1
+          INTERNAL: 2
+          CONFIDENTIAL: 3
+          RESTRICTED: 4
+          
+      # Data protection
+      protection:
+        encryption_at_rest: true
+        encryption_in_transit: true
+        data_masking: true
+        anonymization: true
+        
+      # Backup and recovery
+      backup:
+        enabled: true
+        encryption: true
+        retention_days: 30
+        geographic_replication: true
+        recovery_testing: true
+        
+      # Data retention
+      retention:
+        logs: "90d"
+        metrics: "30d"
+        audit_logs: "2555d"  # 7 years
+        user_data: "365d"
+        
+      # Privacy settings
+      privacy:
+        pii_detection: true
+        gdpr_compliance: true
+        data_minimization: true
+        consent_management: true
+
+  # ==========================================================================
+  # Monitoring and Alerting Security
+  # ==========================================================================
+  
+  monitoring-security.yaml: |
+    monitoring_security:
+      # Security monitoring
+      security_monitoring:
+        enabled: true
+        real_time_alerts: true
+        anomaly_detection: true
+        threat_intelligence: true
+        
+      # Audit logging
+      audit_logging:
+        enabled: true
+        log_level: "DETAILED"
+        retention_days: 90
+        tamper_protection: true
+        real_time_forwarding: true
+        
+      # Security metrics
+      metrics:
+        authentication_failures: true
+        authorization_denials: true
+        rate_limit_violations: true
+        suspicious_activities: true
+        security_scan_results: true
+        
+      # Alerting
+      alerting:
+        critical_security_events: true
+        failed_login_threshold: 5
+        privilege_escalation_alerts: true
+        data_breach_detection: true
+        compliance_violations: true
+
+  # ==========================================================================
+  # Compliance Configuration
+  # ==========================================================================
+  
+  compliance.yaml: |
+    compliance:
+      # Regulatory frameworks
+      frameworks:
+        gdpr:
+          enabled: true
+          data_protection_officer: "dpo@nephoran.com"
+          lawful_basis: "legitimate_interest"
+          privacy_notice_url: "https://nephoran.com/privacy"
+          
+        soc2:
+          enabled: true
+          controls:
+            - "CC6.1"  # Logical access controls
+            - "CC6.2"  # Transmission and disposal
+            - "CC6.3"  # Access management
+            - "CC7.1"  # System boundaries
+            
+        iso27001:
+          enabled: true
+          controls:
+            - "A.9.1.1"   # Access control policy
+            - "A.12.6.1"  # Vulnerability management
+            - "A.13.1.1"  # Network controls
+            - "A.14.2.1"  # Secure development
+            
+      # Audit requirements
+      auditing:
+        internal_audits: true
+        external_audits: true
+        penetration_testing: true
+        vulnerability_assessments: true
+        compliance_reporting: true
+        
+      # Documentation
+      documentation:
+        security_policies: true
+        incident_response_plan: true
+        business_continuity_plan: true
+        data_retention_policy: true
+        privacy_policy: true
+
+---
+# Secure configuration template for environment variables
+apiVersion: v1
+kind: Secret
+metadata:
+  name: conductor-loop-security-env
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/secret-type: environment
+type: Opaque
+stringData:
+  # Security environment variables (base64 encoded in actual deployment)
+  CONDUCTOR_SECURITY_MODE: "production"
+  CONDUCTOR_ENCRYPTION_ENABLED: "true"
+  CONDUCTOR_AUDIT_LOGGING: "true"
+  CONDUCTOR_RATE_LIMITING: "true"
+  CONDUCTOR_INPUT_VALIDATION: "true"
+  CONDUCTOR_TLS_ENFORCE: "true"
+  CONDUCTOR_AUTH_REQUIRED: "true"
+  
+  # JWT configuration
+  JWT_SECRET: "REPLACE_WITH_ACTUAL_SECRET"
+  JWT_ISSUER: "nephoran-conductor-loop"
+  JWT_AUDIENCE: "nephoran-api"
+  JWT_EXPIRY: "1h"
+  
+  # Database credentials (if applicable)
+  DB_PASSWORD: "REPLACE_WITH_ACTUAL_PASSWORD"
+  REDIS_PASSWORD: "REPLACE_WITH_ACTUAL_PASSWORD"
+  
+  # API keys and external service credentials
+  PORCH_API_KEY: "REPLACE_WITH_ACTUAL_API_KEY"
+  MONITORING_API_KEY: "REPLACE_WITH_ACTUAL_API_KEY"
+  
+  # Encryption keys
+  DATA_ENCRYPTION_KEY: "REPLACE_WITH_ACTUAL_KEY"
+  BACKUP_ENCRYPTION_KEY: "REPLACE_WITH_ACTUAL_KEY"
+
+---
+# Production readiness checklist
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: production-readiness-checklist
+  namespace: nephoran-conductor
+  labels:
+    app.kubernetes.io/name: conductor-loop
+    security.nephoran.com/checklist: production
+data:
+  checklist.yaml: |
+    production_readiness:
+      security:
+        - name: "Security policies configured"
+          required: true
+          status: "pending"
+          
+        - name: "RBAC permissions minimized"
+          required: true
+          status: "pending"
+          
+        - name: "Network policies implemented"
+          required: true
+          status: "pending"
+          
+        - name: "Secrets properly managed"
+          required: true
+          status: "pending"
+          
+        - name: "Container security hardened"
+          required: true
+          status: "pending"
+          
+        - name: "Vulnerability scanning enabled"
+          required: true
+          status: "pending"
+          
+      monitoring:
+        - name: "Health checks configured"
+          required: true
+          status: "pending"
+          
+        - name: "Metrics collection enabled"
+          required: true
+          status: "pending"
+          
+        - name: "Alerting rules configured"
+          required: true
+          status: "pending"
+          
+        - name: "Log aggregation setup"
+          required: true
+          status: "pending"
+          
+        - name: "Dashboards deployed"
+          required: true
+          status: "pending"
+          
+      reliability:
+        - name: "Resource limits set"
+          required: true
+          status: "pending"
+          
+        - name: "Pod disruption budget configured"
+          required: true
+          status: "pending"
+          
+        - name: "Backup strategy implemented"
+          required: true
+          status: "pending"
+          
+        - name: "Disaster recovery tested"
+          required: true
+          status: "pending"
+          
+        - name: "High availability configured"
+          required: true
+          status: "pending"
+          
+      compliance:
+        - name: "Audit logging enabled"
+          required: true
+          status: "pending"
+          
+        - name: "Data retention policies set"
+          required: true
+          status: "pending"
+          
+        - name: "Privacy controls implemented"
+          required: true
+          status: "pending"
+          
+        - name: "Compliance frameworks validated"
+          required: true
+          status: "pending"
+          
+        - name: "Documentation completed"
+          required: true
+          status: "pending"
