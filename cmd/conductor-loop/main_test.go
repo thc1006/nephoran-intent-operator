@@ -120,12 +120,12 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 			},
 			setupFiles: func(t *testing.T) {
 				intentContent := `{
-					"action": "scale",
+					"intent_type": "scaling",
 					"target": "deployment/test-app",
 					"replicas": 5,
 					"namespace": "default"
 				}`
-				intentFile := filepath.Join(handoffDir, "scale-intent.json")
+				intentFile := filepath.Join(handoffDir, "intent-scale.json")
 				require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
 			},
 			verifyResult: func(t *testing.T) {
@@ -134,14 +134,17 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 				processedFiles, err := os.ReadDir(processedDir)
 				require.NoError(t, err)
 				assert.Len(t, processedFiles, 1)
-				assert.Equal(t, "scale-intent.json", processedFiles[0].Name())
+				assert.Equal(t, "intent-scale.json", processedFiles[0].Name())
 
-				// Verify status file was created
-				statusFile := filepath.Join(handoffDir, "status", "scale-intent.json.status")
-				assert.FileExists(t, statusFile)
+				// Verify status file was created (with timestamp pattern)
+				statusDir := filepath.Join(handoffDir, "status")
+				statusFiles, err := os.ReadDir(statusDir)
+				require.NoError(t, err)
+				assert.Len(t, statusFiles, 1)
+				assert.Contains(t, statusFiles[0].Name(), "intent-scale.json")
 
 				// Verify original file is gone
-				originalFile := filepath.Join(handoffDir, "scale-intent.json")
+				originalFile := filepath.Join(handoffDir, "intent-scale.json")
 				assert.NoFileExists(t, originalFile)
 			},
 			timeout: 5 * time.Second,
@@ -159,8 +162,9 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 			setupFiles: func(t *testing.T) {
 				for i := 1; i <= 3; i++ {
 					intentContent := fmt.Sprintf(`{
-						"action": "scale",
+						"intent_type": "scaling",
 						"target": "deployment/app-%d",
+						"namespace": "default",
 						"replicas": %d
 					}`, i, i*2)
 					intentFile := filepath.Join(handoffDir, fmt.Sprintf("intent-%d.json", i))

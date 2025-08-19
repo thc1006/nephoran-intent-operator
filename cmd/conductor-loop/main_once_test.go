@@ -22,7 +22,7 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 			name: "all_files_processed_successfully",
 			setupFiles: func(t *testing.T, handoffDir string) {
 				// Create a valid intent file
-				content := `{"intent_type": "scaling", "target": "test", "replicas": 3}`
+				content := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
 				require.NoError(t, os.WriteFile(
 					filepath.Join(handoffDir, "intent-test1.json"),
 					[]byte(content), 0644))
@@ -34,7 +34,7 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 			name: "some_files_failed",
 			setupFiles: func(t *testing.T, handoffDir string) {
 				// Create a valid intent file
-				valid := `{"intent_type": "scaling", "target": "test", "replicas": 3}`
+				valid := `{"intent_type": "scaling", "target": "test", "namespace": "default", "replicas": 3}`
 				require.NoError(t, os.WriteFile(
 					filepath.Join(handoffDir, "intent-valid.json"),
 					[]byte(valid), 0644))
