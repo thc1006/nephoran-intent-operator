@@ -653,7 +653,7 @@ if not exist "%2" (
 echo Edge case processing completed
 exit /b 0`
 	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch-edge")
+		mockPath = filepath.Join(tempDir, "mock-porch-edge.sh")
 		mockScript = `#!/bin/bash
 if [ "$1" = "--help" ]; then
     echo "Mock porch help"
@@ -694,7 +694,7 @@ if not exist "%4" (
 echo Robust processing completed
 exit /b 0`
 	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch-robust")
+		mockPath = filepath.Join(tempDir, "mock-porch-robust.sh")
 		mockScript = `#!/bin/bash
 if [ "$1" = "--help" ]; then
     echo "Mock porch help"
@@ -730,7 +730,7 @@ timeout /t %d /nobreak >nul 2>&1
 echo Slow processing completed
 exit /b 0`, int(delay.Seconds())+1)
 	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch-slow")
+		mockPath = filepath.Join(tempDir, "mock-porch-slow.sh")
 		mockScript = fmt.Sprintf(`#!/bin/bash
 if [ "$1" = "--help" ]; then
     echo "Mock porch help"

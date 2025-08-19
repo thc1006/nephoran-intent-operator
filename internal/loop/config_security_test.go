@@ -835,20 +835,12 @@ func getFreePort(t *testing.T) int {
 
 // createMockPorchExecutable creates a mock porch executable for testing
 func createMockPorchExecutable(t *testing.T, dir string) string {
-	// Create a mock porch executable
-	porchPath := filepath.Join(dir, "porch")
-	if runtime.GOOS == "windows" {
-		porchPath += ".exe"
-	}
-	
-	// Create a simple script that just exits successfully
-	content := "#!/bin/bash\necho 'mock porch execution'\nexit 0\n"
-	if runtime.GOOS == "windows" {
-		content = "@echo off\necho mock porch execution\nexit /b 0\n"
-	}
-	
-	err := os.WriteFile(porchPath, []byte(content), 0755)
+	// Use the proper cross-platform mock creation from the porch package
+	mockPath, err := porch.CreateCrossPlatformMock(dir, porch.CrossPlatformMockOptions{
+		ExitCode: 0,
+		Stdout:   "mock porch execution",
+		Stderr:   "",
+	})
 	require.NoError(t, err)
-	
-	return porchPath
+	return mockPath
 }
