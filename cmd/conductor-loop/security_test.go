@@ -82,7 +82,7 @@ func TestPathTraversalSecurity(t *testing.T) {
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 
 			// Create malicious intent file
-			intentFile := filepath.Join(handoffDir, "malicious-intent.json")
+			intentFile := filepath.Join(handoffDir, "intent-malicious.json")
 			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentContent), 0644))
 
 			// Create mock porch executable
@@ -190,7 +190,7 @@ func TestCommandInjectionSecurity(t *testing.T) {
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 
 			// Create intent file
-			intentFile := filepath.Join(handoffDir, "test-intent.json")
+			intentFile := filepath.Join(handoffDir, "intent-test.json")
 			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentContent), 0644))
 
 			// Configure executor
@@ -282,7 +282,7 @@ func TestResourceExhaustionResilience(t *testing.T) {
 							"namespace": "default",
 							"replicas": 1
 						}`, i)
-						file := filepath.Join(handoffDir, fmt.Sprintf("rapid-%d.json", i))
+						file := filepath.Join(handoffDir, fmt.Sprintf("intent-rapid-%d.json", i))
 						_ = os.WriteFile(file, []byte(content), 0644)
 						time.Sleep(10 * time.Millisecond)
 					}
@@ -296,7 +296,7 @@ func TestResourceExhaustionResilience(t *testing.T) {
 						"namespace": "default",
 						"replicas": 1
 					}`, i)
-					file := filepath.Join(handoffDir, fmt.Sprintf("initial-%d.json", i))
+					file := filepath.Join(handoffDir, fmt.Sprintf("intent-initial-%d.json", i))
 					require.NoError(t, os.WriteFile(file, []byte(content), 0644))
 				}
 			},
@@ -369,7 +369,7 @@ func TestFilePermissionValidation(t *testing.T) {
 		"namespace": "default",
 		"replicas": 3
 	}`
-	intentFile := filepath.Join(handoffDir, "test-intent.json")
+	intentFile := filepath.Join(handoffDir, "intent-test.json")
 	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
 
 	// Create mock porch
@@ -412,8 +412,15 @@ func TestFilePermissionValidation(t *testing.T) {
 			expectedMode := fs.FileMode(0755)
 			assert.Equal(t, expectedMode, mode&0777, "Directory %s has incorrect permissions", path)
 		} else {
-			// Files should be readable/writable by owner, readable by group
-			expectedMode := fs.FileMode(0644)
+			// Determine expected permissions based on file type
+			var expectedMode fs.FileMode
+			if isExecutableScript(path) {
+				// Executable scripts need execute permissions on Unix systems
+				expectedMode = fs.FileMode(0755)
+			} else {
+				// Regular files should be readable/writable by owner, readable by group
+				expectedMode = fs.FileMode(0644)
+			}
 			assert.Equal(t, expectedMode, mode&0777, "File %s has incorrect permissions", path)
 		}
 
@@ -546,7 +553,7 @@ func TestInputValidation(t *testing.T) {
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 
 			// Create intent file
-			intentFile := filepath.Join(handoffDir, "test-intent.json")
+			intentFile := filepath.Join(handoffDir, "intent-test.json")
 			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentContent), 0644))
 
 			// Create mock porch
@@ -583,8 +590,8 @@ func TestInputValidation(t *testing.T) {
 			// Verify processing behavior
 			if tt.shouldProcess {
 				// Check that files were processed (moved to processed/failed directories)
-				processedExists := fileExists(t, filepath.Join(handoffDir, "processed", "test-intent.json"))
-				failedExists := fileExists(t, filepath.Join(handoffDir, "failed", "test-intent.json"))
+				processedExists := fileExists(t, filepath.Join(handoffDir, "processed", "intent-test.json"))
+				failedExists := fileExists(t, filepath.Join(handoffDir, "failed", "intent-test.json"))
 				assert.True(t, processedExists || failedExists, "File should have been processed")
 			}
 		})
@@ -642,7 +649,7 @@ func TestConcurrentFileProcessing(t *testing.T) {
 				"replicas": %d
 			}`, id, id%10+1)
 			
-			file := filepath.Join(handoffDir, fmt.Sprintf("concurrent-%d.json", id))
+			file := filepath.Join(handoffDir, fmt.Sprintf("intent-concurrent-%d.json", id))
 			
 			// Add small random delay to increase chance of race conditions
 			time.Sleep(time.Duration(id%10) * time.Millisecond)
@@ -674,73 +681,50 @@ func TestConcurrentFileProcessing(t *testing.T) {
 
 // Helper functions
 
-func createSecureMockPorch(t testing.TB, tempDir string) string {
-	var mockScript string
-	var mockPath string
-
-	if runtime.GOOS == "windows" {
-		mockPath = filepath.Join(tempDir, "mock-porch.bat")
-		mockScript = `@echo off
-if "%1"=="--help" (
-    echo Mock porch help
-    exit /b 0
-)
-echo Processing intent file: %2
-echo Output directory: %4
-exit /b 0`
-	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch")
-		mockScript = `#!/bin/bash
-if [ "$1" = "--help" ]; then
-    echo "Mock porch help"
-    exit 0
-fi
-echo "Processing intent file: $2"
-echo "Output directory: $4"
-exit 0`
+// isExecutableScript determines if a file is an executable script that requires execute permissions
+func isExecutableScript(path string) bool {
+	// Extract the filename for checking
+	filename := filepath.Base(path)
+	
+	// Check for common executable script patterns
+	switch {
+	case strings.HasSuffix(filename, ".sh"):
+		return true
+	case strings.HasSuffix(filename, ".bat"):
+		return false // Windows batch files don't need Unix executable permissions
+	case strings.Contains(filename, "mock-porch") && !strings.HasSuffix(filename, ".bat"):
+		return true // Unix mock-porch scripts
+	default:
+		return false
 	}
+}
 
-	require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0755))
+func createSecureMockPorch(t testing.TB, tempDir string) string {
+	mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
+		ExitCode: 0,
+		Stdout:   "Processing intent file completed successfully",
+	})
+	require.NoError(t, err)
 	return mockPath
 }
 
 func createMockPorchWithDelay(t testing.TB, tempDir string, delay time.Duration) string {
-	var mockScript string
-	var mockPath string
-
-	if runtime.GOOS == "windows" {
-		mockPath = filepath.Join(tempDir, "mock-porch-delay.bat")
-		mockScript = fmt.Sprintf(`@echo off
-if "%%1"=="--help" (
-    echo Mock porch help
-    exit /b 0
-)
-timeout /t %d /nobreak >nul
-echo Processing completed
-exit /b 0`, int(delay.Seconds()))
-	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch-delay")
-		mockScript = fmt.Sprintf(`#!/bin/bash
-if [ "$1" = "--help" ]; then
-    echo "Mock porch help"
-    exit 0
-fi
-sleep %v
-echo "Processing completed"
-exit 0`, delay.Seconds())
-	}
-
-	require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0755))
+	mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
+		ExitCode: 0,
+		Stdout:   "Processing completed",
+		Sleep:    delay,
+	})
+	require.NoError(t, err)
 	return mockPath
 }
 
 func createMockPorchWithRandomDelay(t testing.TB, tempDir string) string {
-	var mockScript string
-	var mockPath string
-
-	if runtime.GOOS == "windows" {
-		mockPath = filepath.Join(tempDir, "mock-porch-random.bat")
-		mockScript = `@echo off
+	mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
+		CustomScript: struct {
+			Windows string
+			Unix    string
+		}{
+			Windows: `@echo off
 if "%1"=="--help" (
     echo Mock porch help
     exit /b 0
@@ -748,10 +732,8 @@ if "%1"=="--help" (
 set /a delay=%RANDOM% %% 3 + 1
 timeout /t %delay% /nobreak >nul
 echo Processing completed
-exit /b 0`
-	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch-random")
-		mockScript = `#!/bin/bash
+exit /b 0`,
+			Unix: `#!/bin/bash
 if [ "$1" = "--help" ]; then
     echo "Mock porch help"
     exit 0
@@ -759,10 +741,10 @@ fi
 delay=$((RANDOM % 3 + 1))
 sleep $delay
 echo "Processing completed"
-exit 0`
-	}
-
-	require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0755))
+exit 0`,
+		},
+	})
+	require.NoError(t, err)
 	return mockPath
 }
 

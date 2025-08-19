@@ -104,9 +104,9 @@ func (c *Config) Validate() error {
 	}
 	
 	// Validate Mode
-	validModes := map[string]bool{"watch": true, "once": true, "periodic": true}
+	validModes := map[string]bool{"watch": true, "once": true, "periodic": true, "direct": true, "structured": true}
 	if c.Mode != "" && !validModes[c.Mode] {
-		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic", c.Mode)
+		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic, direct, structured", c.Mode)
 	}
 	
 	return nil
@@ -791,9 +791,24 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 	// Record this event
 	w.fileState.recentEvents[absPath] = now
 	
-	// Debounce the processing
+	// Debounce the processing with cross-platform file system timing
 	go func() {
-		time.Sleep(w.config.DebounceDur)
+		// Use adaptive debouncing based on runtime OS
+		debounceTime := w.config.DebounceDur
+		if runtime.GOOS == "windows" {
+			// Windows needs longer debounce due to file system latency
+			if debounceTime < 200*time.Millisecond {
+				debounceTime = 200 * time.Millisecond
+			}
+		}
+		
+		time.Sleep(debounceTime)
+		
+		// Additional file existence and stability check
+		if !w.isFileStable(absPath) {
+			log.Printf("LOOP:UNSTABLE - File %s not stable, skipping", filepath.Base(filePath))
+			return
+		}
 		
 		// Create work item with timeout context
 		workCtx, cancel := context.WithTimeout(w.ctx, 60*time.Second)
@@ -1133,6 +1148,19 @@ func (w *Watcher) cleanupRoutine() {
 func (w *Watcher) waitForWorkersToFinish() {
 	log.Printf("Signaling enhanced workers to stop...")
 	
+	// Wait for queue to drain first
+	for {
+		queueSize := len(w.workerPool.workQueue)
+		if queueSize == 0 {
+			break
+		}
+		log.Printf("Waiting for queue to drain: %d items remaining", queueSize)
+		time.Sleep(100 * time.Millisecond)
+	}
+	
+	// Give workers time to finish current processing
+	time.Sleep(200 * time.Millisecond)
+	
 	// Close work queue to signal workers to finish processing and exit
 	close(w.workerPool.workQueue)
 	
@@ -1420,29 +1448,63 @@ func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
 	// Required fields for scaling intent
 	requiredFields := []string{"intent_type", "target", "namespace", "replicas"}
 	for _, field := range requiredFields {
-		if _, exists := intent[field]; !exists {
-			return fmt.Errorf("missing required field: %s", field)
+		value, exists := intent[field]
+		if !exists || value == nil {
+			return fmt.Errorf("missing or null required field: %s", field)
 		}
 	}
 	
 	// Validate intent_type
-	if intentType, ok := intent["intent_type"].(string); !ok || intentType != "scaling" {
-		return fmt.Errorf("intent_type must be 'scaling'")
+	if intentType, ok := intent["intent_type"].(string); !ok {
+		return fmt.Errorf("intent_type must be a string")
+	} else {
+		validTypes := map[string]bool{"scaling": true, "deployment": true, "service": true}
+		if !validTypes[intentType] {
+			return fmt.Errorf("intent_type '%s' is not supported (supported: scaling, deployment, service)", intentType)
+		}
 	}
 	
 	// Validate target
-	if target, ok := intent["target"].(string); !ok || target == "" {
+	if targetVal := intent["target"]; targetVal == nil {
+		return fmt.Errorf("target cannot be null")
+	} else if target, ok := targetVal.(string); !ok || target == "" {
 		return fmt.Errorf("target must be a non-empty string")
 	}
 	
 	// Validate namespace
-	if namespace, ok := intent["namespace"].(string); !ok || namespace == "" {
+	if namespaceVal := intent["namespace"]; namespaceVal == nil {
+		return fmt.Errorf("namespace cannot be null")
+	} else if namespace, ok := namespaceVal.(string); !ok || namespace == "" {
 		return fmt.Errorf("namespace must be a non-empty string")
 	}
 	
-	// Validate replicas
-	if replicas, ok := intent["replicas"].(float64); !ok || replicas < 1 || replicas > 100 {
-		return fmt.Errorf("replicas must be an integer between 1 and 100")
+	// Validate replicas - handle both int and float64 from JSON
+	if replicasVal, exists := intent["replicas"]; exists {
+		if replicasVal == nil {
+			return fmt.Errorf("replicas cannot be null")
+		}
+		
+		var replicas float64
+		var ok bool
+		
+		// JSON unmarshaling can produce either int or float64
+		switch v := replicasVal.(type) {
+		case float64:
+			replicas = v
+			ok = true
+		case int:
+			replicas = float64(v)
+			ok = true
+		case int64:
+			replicas = float64(v)
+			ok = true
+		default:
+			ok = false
+		}
+		
+		if !ok || replicas < 0 || replicas > 1000 {
+			return fmt.Errorf("replicas must be a number between 0 and 1000")
+		}
 	}
 	
 	// Validate optional fields
@@ -1968,6 +2030,13 @@ func (w *Watcher) GetStats() (ProcessingStats, error) {
 
 // GetMetrics returns a copy of the current metrics
 func (w *Watcher) GetMetrics() *WatcherMetrics {
+	if w == nil {
+		return nil
+	}
+	if w.metrics == nil {
+		return &WatcherMetrics{}
+	}
+	
 	w.metrics.mu.RLock()
 	defer w.metrics.mu.RUnlock()
 	
@@ -2164,4 +2233,24 @@ func (w *Watcher) ensureDirectoryExists(dir string) {
 			log.Printf("Created directory: %s", dir)
 		}
 	})
+}
+
+// isFileStable checks if a file exists and is stable (not being written to)
+func (w *Watcher) isFileStable(filePath string) bool {
+	// Check if file exists
+	stat1, err := os.Stat(filePath)
+	if err != nil {
+		return false
+	}
+	
+	// Wait a small amount of time and check again
+	time.Sleep(50 * time.Millisecond)
+	
+	stat2, err := os.Stat(filePath)
+	if err != nil {
+		return false
+	}
+	
+	// File is stable if size and modification time haven't changed
+	return stat1.Size() == stat2.Size() && stat1.ModTime().Equal(stat2.ModTime())
 }
