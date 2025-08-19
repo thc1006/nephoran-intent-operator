@@ -40,16 +40,14 @@ func TestConfig_Validate(t *testing.T) {
 			config: Config{
 				MaxWorkers: 0,
 			},
-			wantErr: true,
-			errMsg:  "max_workers must be at least 1",
+			wantErr: false, // Validate() now auto-corrects instead of erroring
 		},
 		{
 			name: "MaxWorkers too high",
 			config: Config{
 				MaxWorkers: runtime.NumCPU()*4 + 1,
 			},
-			wantErr: true,
-			errMsg:  fmt.Sprintf("max_workers %d exceeds safe limit of %d", runtime.NumCPU()*4+1, runtime.NumCPU()*4),
+			wantErr: false, // Validate() now auto-corrects instead of erroring
 		},
 		{
 			name: "MaxWorkers at safe limit",
@@ -156,8 +154,7 @@ func TestConfig_Validate(t *testing.T) {
 				MaxWorkers:  2,
 				DebounceDur: 9 * time.Millisecond,
 			},
-			wantErr: true,
-			errMsg:  "debounce_duration must be at least 10ms to prevent CPU thrashing",
+			wantErr: false, // Validate() auto-corrects instead of erroring
 		},
 		{
 			name: "DebounceDur too high",
@@ -165,8 +162,7 @@ func TestConfig_Validate(t *testing.T) {
 				MaxWorkers:  2,
 				DebounceDur: 6 * time.Second,
 			},
-			wantErr: true,
-			errMsg:  "debounce_duration must not exceed 5s to prevent processing delays",
+			wantErr: false, // Validate() auto-corrects instead of erroring
 		},
 
 		// Period validation tests
@@ -413,7 +409,7 @@ func TestConfig_Validate(t *testing.T) {
 			err := tt.config.Validate()
 			if tt.wantErr {
 				assert.Error(t, err)
-				if tt.errMsg != "" {
+				if tt.errMsg != "" && err != nil {
 					assert.Contains(t, err.Error(), tt.errMsg)
 				}
 			} else {
@@ -817,7 +813,7 @@ func TestConfig_EdgeCases(t *testing.T) {
 			err := tt.config.Validate()
 			if tt.wantErr {
 				assert.Error(t, err)
-				if tt.errMsg != "" {
+				if tt.errMsg != "" && err != nil {
 					assert.Contains(t, err.Error(), tt.errMsg)
 				}
 			} else {

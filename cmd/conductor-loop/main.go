@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -123,40 +124,60 @@ func main() {
 
 // parseFlags parses and validates command-line flags
 func parseFlags() Config {
+	config, err := parseFlagsWithFlagSet(flag.CommandLine, os.Args[1:])
+	if err != nil {
+		log.Fatalf("Error parsing flags: %v", err)
+	}
+	
+	// Create directories if they don't exist (not done in parseFlagsWithFlagSet for testing)
+	if err := os.MkdirAll(config.HandoffDir, 0755); err != nil {
+		log.Fatalf("Failed to create handoff directory: %v", err)
+	}
+	if err := os.MkdirAll(config.OutDir, 0755); err != nil {
+		log.Fatalf("Failed to create output directory: %v", err)
+	}
+	
+	return config
+}
+
+// parseFlagsWithFlagSet parses flags using a specific FlagSet (for testing)
+func parseFlagsWithFlagSet(fs *flag.FlagSet, args []string) (Config, error) {
 	var config Config
 
-	flag.StringVar(&config.HandoffDir, "handoff", "./handoff", "Directory to watch for intent files")
-	flag.StringVar(&config.PorchPath, "porch", "porch", "Path to porch executable")
-	flag.StringVar(&config.PorchURL, "porch-url", "", "Porch HTTP URL (optional, for direct API calls)")
-	flag.StringVar(&config.Mode, "mode", "direct", "Processing mode: direct or structured")
-	flag.StringVar(&config.OutDir, "out", "./out", "Output directory for processed files")
-	flag.BoolVar(&config.Once, "once", false, "Process current backlog then exit")
+	fs.StringVar(&config.HandoffDir, "handoff", "./handoff", "Directory to watch for intent files")
+	fs.StringVar(&config.PorchPath, "porch", "porch", "Path to porch executable")
+	fs.StringVar(&config.PorchURL, "porch-url", "", "Porch HTTP URL (optional, for direct API calls)")
+	fs.StringVar(&config.Mode, "mode", "direct", "Processing mode: direct or structured")
+	fs.StringVar(&config.OutDir, "out", "./out", "Output directory for processed files")
+	fs.BoolVar(&config.Once, "once", false, "Process current backlog then exit")
 	
 	var debounceDurStr string
-	flag.StringVar(&debounceDurStr, "debounce", "500ms", "Debounce duration for file events (Windows optimization)")
+	fs.StringVar(&debounceDurStr, "debounce", "500ms", "Debounce duration for file events (Windows optimization)")
 	
 	var periodStr string
-	flag.StringVar(&periodStr, "period", "2s", "Polling period for scanning directory (default 2s)")
+	fs.StringVar(&periodStr, "period", "2s", "Polling period for scanning directory (default 2s)")
 
-	flag.Parse()
+	if err := fs.Parse(args); err != nil {
+		return config, err
+	}
 
 	// Parse debounce duration
 	var err error
 	config.DebounceDur, err = time.ParseDuration(debounceDurStr)
 	if err != nil {
-		log.Fatalf("Invalid debounce duration %q: %v", debounceDurStr, err)
+		return config, fmt.Errorf("invalid debounce duration %q: %v", debounceDurStr, err)
 	}
 
 	// Parse period duration
 	config.Period, err = time.ParseDuration(periodStr)
 	if err != nil {
-		log.Fatalf("Invalid period duration %q: %v", periodStr, err)
+		return config, fmt.Errorf("invalid period duration %q: %v", periodStr, err)
 	}
 
 	// Validate mode
 	if config.Mode != "direct" && config.Mode != "structured" {
-		log.Fatalf("Invalid mode %q: must be 'direct' or 'structured'", config.Mode)
+		return config, fmt.Errorf("invalid mode %q: must be 'direct' or 'structured'", config.Mode)
 	}
 
-	return config
+	return config, nil
 }

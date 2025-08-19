@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -69,27 +70,15 @@ func TestMain_FlagParsing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Save original args and flags
-			originalArgs := os.Args
-			defer func() { os.Args = originalArgs }()
+			// Create a new FlagSet for each test to avoid flag redefinition
+			fs := flag.NewFlagSet("test", flag.ContinueOnError)
 
-			// Set test args
-			os.Args = append([]string{"conductor-loop"}, tt.args...)
-
+			config, err := parseFlagsWithFlagSet(fs, tt.args)
+			
 			if tt.expectError {
-				// We can't easily test os.Exit calls in unit tests
-				// Instead, we test parseFlags directly
-				defer func() {
-					if r := recover(); r != nil {
-						// Expected for invalid inputs
-					}
-				}()
-				
-				// This should cause a fatal error
-				_ = parseFlags()
-				t.Error("Expected parseFlags to fail but it didn't")
+				assert.Error(t, err)
 			} else {
-				config := parseFlags()
+				assert.NoError(t, err)
 				tt.verify(t, config)
 			}
 		})
