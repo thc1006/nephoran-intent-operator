@@ -1,0 +1,23 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: nephoran-networkintent-validating
+  annotations:
+    cert-manager.io/inject-ca-from: nephoran-system/webhook-serving-cert
+webhooks:
+  - name: vnetworkintent.nephoran.io
+    admissionReviewVersions: ["v1", "v1beta1"]
+    sideEffects: None
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: webhook-manager
+        namespace: nephoran-system
+        path: /validate-intent-v1alpha1-networkintent
+    rules:
+      - apiGroups: ["intent.nephoran.io"]
+        apiVersions: ["v1alpha1"]
+        operations: ["CREATE", "UPDATE", "DELETE"]
+        resources: ["networkintents"]
+        scope: "Namespaced"
+    timeoutSeconds: 10

@@ -1,4 +1,17 @@
-# BUILD-RUN-TEST Guide for Windows (porch-direct)
+# BUILD-RUN-TEST Guide for Windows
+
+This guide covers building, running, and testing multiple components of the Nephoran Intent Operator on Windows.
+
+## Components Covered
+
+1. [Porch Direct CLI](#porch-direct-cli) - Intent-driven KRM package generator
+2. [FCAPS Simulator](#fcaps-simulator) - VES event simulator with burst detection  
+3. [Conductor Watch](#conductor-watch) - File watcher for intent processing
+4. [Admission Webhook](#admission-webhook) - Kubernetes admission control
+
+---
+
+# Porch Direct CLI
 
 ## Overview
 
@@ -240,55 +253,323 @@ if ($intent.replicas -lt 1 -or $intent.replicas -gt 100) {
 }
 ```
 
-### Clean Up
+---
+
+# FCAPS Simulator
+
+## Quick Start
 
 ```powershell
-# Remove generated files
-Remove-Item -Path .\out -Recurse -Force -ErrorAction SilentlyContinue
-Remove-Item -Path .\examples\packages\direct -Recurse -Force -ErrorAction SilentlyContinue
+# Build
+go build .\cmd\fcaps-sim
 
-# Remove binary
-Remove-Item -Path .\porch-direct.exe -Force -ErrorAction SilentlyContinue
+# Run with local reducer (burst detection)
+.\fcaps-sim.exe --delay 1 --burst 3 --nf-name nf-sim --out-handoff .\handoff
+
+# Check for generated intents
+Get-ChildItem .\handoff\intent-*.json
 ```
 
-## Troubleshooting
+## Overview
 
-### Common Issues
+The FCAPS simulator (`fcaps-sim`) emits VES (VNF Event Stream) JSON events to a configurable HTTP collector and triggers scaling intents based on event patterns. The reducer (`fcaps-reducer`) detects event bursts and generates scaling intents.
 
-1. **"go.mod not found" error**
-   ```powershell
-   # Ensure you're in the project root
-   cd C:\Users\tingy\dev\_worktrees\nephoran\feat-porch-direct
-   ```
+## Prerequisites
 
-2. **"intent validation failed" error**
-   - Check that `intent_type` is "scaling"
-   - Ensure `replicas` is between 1 and 100
-   - Verify all required fields are present
+- Go 1.21+ installed
+- Git Bash or PowerShell
+- Network access for HTTP communication
 
-3. **"failed to create output directory" error**
-   ```powershell
-   # Check permissions
-   icacls .\out
-   # Take ownership if needed
-   takeown /f .\out /r
-   ```
+## Build Instructions
 
-4. **Porch API connection error**
-   - Verify Porch server is running
-   - Check port-forward is active
-   - Test with curl: `curl http://localhost:9443/api/v1/repositories`
-
-### Debug Mode
+### 1. Build the FCAPS Simulator
 
 ```powershell
-# Enable verbose logging
-$env:DEBUG = "true"
-.\porch-direct.exe --intent .\examples\intent.json --dry-run
-
-# Check Windows file paths
-[System.IO.Path]::GetFullPath(".\out")
+# From repository root
+go build -o fcaps-sim.exe ./cmd/fcaps-sim
 ```
+
+### 2. Build the FCAPS Reducer
+
+```powershell
+# From repository root
+go build -o fcaps-reducer.exe ./cmd/fcaps-reducer
+```
+
+### 3. Build the Intent Ingest Service (Optional)
+
+```powershell
+# From repository root
+go build -o intent-ingest.exe ./cmd/intent-ingest
+```
+
+## Run Instructions
+
+### Component 1: FCAPS Reducer (VES Collector)
+
+Start the reducer first to collect VES events and detect bursts:
+
+```powershell
+# Basic startup
+./fcaps-reducer.exe
+
+# With custom configuration
+./fcaps-reducer.exe --listen :9999 --handoff ./handoff --burst 3 --window 60 --verbose
+```
+
+**Flags:**
+- `--listen`: HTTP listen address (default: `:9999`)
+- `--handoff`: Directory for intent files (default: `./handoff`)
+- `--burst`: Number of critical events to trigger scaling (default: 3)
+- `--window`: Time window in seconds for burst detection (default: 60)
+- `--verbose`: Enable detailed logging
+
+### Component 2: Intent Ingest Service (Optional)
+
+If you want to process intents directly:
+
+```powershell
+# Start intent ingest service
+./intent-ingest.exe --out ./handoff
+```
+
+### Component 3: FCAPS Simulator with Local Reducer
+
+Run the simulator with integrated reducer:
+
+```powershell
+# Local reducer mode (no external dependencies)
+./fcaps-sim.exe --delay 1 --burst 3 --nf-name nf-sim --out-handoff ./handoff
+
+# With verbose logging
+./fcaps-sim.exe --delay 1 --burst 3 --nf-name nf-sim --out-handoff ./handoff --verbose
+
+# Custom VES events
+./fcaps-sim.exe `
+  --input docs/contracts/fcaps.ves.examples.json `
+  --delay 2 `
+  --burst 2 `
+  --nf-name nf-sim `
+  --out-handoff ./handoff `
+  --verbose
+```
+
+**Flags:**
+- `--input`: Path to VES events JSON file (default: `docs/contracts/fcaps.ves.examples.json`)
+- `--delay`: Seconds between events (default: 5)
+- `--burst`: Critical event threshold for burst detection (default: 1)
+- `--target`: Target deployment name (default: `nf-sim`)
+- `--namespace`: Target namespace (default: `ran-a`)
+- `--nf-name`: Network Function name (default: `nf-sim`)
+- `--out-handoff`: Local handoff directory for reducer mode (enables local reducer)
+- `--collector-url`: VES collector URL (optional, default: `http://localhost:9999/eventListener/v7`)
+- `--intent-url`: Intent service URL (optional, default: `http://localhost:8080/intent`)
+- `--verbose`: Enable verbose logging
+
+---
+
+# Conductor Watch
+
+## Prerequisites
+
+- Go 1.24+ installed
+- PowerShell 5.0+
+- Git Bash (optional, for Unix-like commands)
+
+## Build Instructions
+
+### 1. Install Dependencies
+
+```powershell
+# Navigate to project root
+cd C:\Users\tingy\dev\_worktrees\nephoran\feat-conductor-watch
+
+# Download dependencies
+go mod download
+
+# Verify dependencies
+go mod verify
+```
+
+### 2. Build the Binary
+
+```powershell
+# Build the conductor-watch executable
+go build -o conductor-watch.exe .\cmd\conductor-watch
+
+# Verify build
+if (Test-Path .\conductor-watch.exe) {
+    Write-Host "✓ Build successful" -ForegroundColor Green
+    (Get-Item .\conductor-watch.exe).Length
+} else {
+    Write-Host "✗ Build failed" -ForegroundColor Red
+}
+```
+
+## Run Tests
+
+### 1. Unit Tests
+
+```powershell
+# Run all tests with verbose output
+go test -v ./internal/watch/...
+
+# Run tests with coverage
+go test -v -cover ./internal/watch/...
+
+# Run specific test
+go test -v -run TestValidator ./internal/watch
+```
+
+### 2. Integration Tests
+
+```powershell
+# Run main package tests
+go test -v ./cmd/conductor-watch/...
+```
+
+## Setup Test Environment
+
+### 1. Create Directory Structure
+
+```powershell
+# Create handoff directory
+New-Item -ItemType Directory -Force -Path .\handoff | Out-Null
+
+# Verify directory creation
+Get-ChildItem -Path . -Directory | Where-Object Name -eq "handoff"
+```
+
+### 2. Create Test Intent Files
+
+```powershell
+# Valid intent file
+@'
+{
+  "intent_type": "scaling",
+  "target": "my-deployment",
+  "namespace": "default",
+  "replicas": 3,
+  "reason": "Testing conductor-watch",
+  "source": "test",
+  "correlation_id": "test-001"
+}
+'@ | Out-File -FilePath .\handoff\intent-valid-001.json -Encoding utf8
+
+# Invalid intent (wrong type)
+@'
+{
+  "intent_type": "update",
+  "target": "my-deployment",
+  "namespace": "default",
+  "replicas": 3
+}
+'@ | Out-File -FilePath .\handoff\intent-invalid-type.json -Encoding utf8
+
+# Invalid intent (missing field)
+@'
+{
+  "intent_type": "scaling",
+  "target": "my-deployment",
+  "replicas": 3
+}
+'@ | Out-File -FilePath .\handoff\intent-invalid-missing.json -Encoding utf8
+
+# Verify files created
+Get-ChildItem .\handoff\intent-*.json | Select-Object Name, Length
+```
+
+## Run the Application
+
+### 1. Basic Run (Default Settings)
+
+```powershell
+.\conductor-watch.exe --handoff .\handoff
+```
+
+### 2. Run with HTTP POST Endpoint
+
+```powershell
+# Start a test HTTP server (in another terminal)
+# Using Python:
+python -m http.server 8080
+
+# Run conductor-watch with POST URL
+.\conductor-watch.exe --handoff .\handoff --post-url "http://localhost:8080/intents"
+```
+
+### 3. Run with Custom Debounce
+
+```powershell
+# Use 500ms debounce for slower file systems
+.\conductor-watch.exe --handoff .\handoff --debounce-ms 500
+```
+
+---
+
+# Admission Webhook
+
+## Prerequisites
+```powershell
+# Verify Go 1.24
+go version
+# go version go1.24.5 windows/amd64
+
+# Verify kubectl 
+kubectl version --client
+# Client Version: v1.29.0
+
+# Verify kind installed
+kind version
+# kind v0.20.0 go1.20.4 windows/amd64
+```
+
+## Step 1: Install controller-gen
+```powershell
+go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.15.0
+
+# Verify installation
+controller-gen --version
+# Version: v0.15.0
+```
+
+## Step 2: Generate DeepCopy and CRDs
+```powershell
+# Generate DeepCopy methods
+controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/intent/v1alpha1"
+
+# Expected: Creates api/intent/v1alpha1/zz_generated.deepcopy.go
+
+# Generate CRDs
+controller-gen crd paths="./api/intent/v1alpha1" output:crd:artifacts:config="./deployments/crds"
+
+# Expected: Creates deployments/crds/intent.nephoran.io_networkintents.yaml
+
+# Verify files exist
+ls api/intent/v1alpha1/zz_generated.deepcopy.go
+ls deployments/crds/intent.nephoran.io_networkintents.yaml
+```
+
+## Step 3: Build webhook manager
+```powershell
+# Build the webhook manager binary
+go build -o webhook-manager.exe ./cmd/webhook-manager
+
+# Expected: webhook-manager.exe created
+
+# Test binary
+./webhook-manager.exe --help
+# Expected output:
+# Usage of webhook-manager.exe:
+#   -cert-dir string
+#   -health-probe-bind-address string (default ":8081")
+#   -metrics-bind-address string (default ":8080")
+#   -webhook-port int (default 9443)
+```
+
+---
+
+# Common Troubleshooting
 
 ## Performance Testing
 
@@ -314,28 +595,58 @@ Measure-Command {
 Remove-Item -Path .\examples\intent-*.json -Force
 ```
 
-## CI/CD Integration
+## Port Already in Use
 
-### GitHub Actions Workflow
+```powershell
+# Find process using port 9999
+netstat -ano | findstr :9999
 
-```yaml
-name: Test porch-direct Windows
-on: [push, pull_request]
+# Kill the process (replace PID with actual process ID)
+taskkill /PID <PID> /F
+```
 
-jobs:
-  test-windows:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
-        with:
-          go-version: '1.24'
-      - run: go build -o porch-direct.exe .\cmd\porch-direct
-      - run: |
-          New-Item -ItemType Directory -Force -Path .\out
-          .\porch-direct.exe --intent .\examples\intent.json --dry-run
-        shell: powershell
-      - run: go test -cover ./...
+## Permission Issues
+
+```powershell
+# Run as Administrator or ensure write permissions for handoff directory
+mkdir handoff
+icacls handoff /grant Everyone:F
+```
+
+## Build Errors
+
+```powershell
+# Clean module cache
+go clean -modcache
+
+# Download dependencies
+go mod download
+
+# Verify dependencies
+go mod verify
+```
+
+## Cleanup
+
+```powershell
+# Remove generated files
+Remove-Item -Path .\out -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item -Path .\examples\packages\direct -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item ./handoff/intent-*.json -Force
+Remove-Item *.exe -Force
+Remove-Item test-*.json -Force
+
+# Delete test resources
+kubectl delete networkintent --all -n default
+
+# Delete webhook deployment
+kubectl delete -k ./config/webhook/
+
+# Delete namespace
+kubectl delete namespace nephoran-system
+
+# Delete kind cluster
+kind delete cluster --name webhook-test
 ```
 
 ## Security Considerations

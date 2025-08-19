@@ -1,0 +1,13 @@
+# Valid NetworkIntent that will be accepted by the webhook
+# The mutating webhook will default source to "user" if not specified
+apiVersion: intent.nephoran.com/v1alpha1
+kind: NetworkIntent
+metadata:
+  name: valid-scale-intent
+  namespace: default
+spec:
+  intentType: scaling
+  target: my-deployment
+  namespace: production
+  replicas: 3
+  # Note: source field is intentionally omitted to demonstrate defaulting

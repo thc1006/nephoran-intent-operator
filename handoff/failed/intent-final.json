@@ -1,0 +1,15 @@
+{
+  "apiVersion": "network.nephio.io/v1alpha1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "final-demo",
+    "namespace": "default"
+  },
+  "spec": {
+    "action": "scale",
+    "target": "ran-du-final",
+    "parameters": {
+      "replicas": 1
+    }
+  }
+}
