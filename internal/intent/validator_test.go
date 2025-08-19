@@ -724,7 +724,7 @@ func TestSchemaValidationErrorHandling(t *testing.T) {
 			name: "TooLongTarget",
 			input: &ScalingIntent{
 				IntentType: "scaling",
-				Target:     "this-is-a-very-long-target-name-that-exceeds-kubernetes-limits", // > 63 chars
+				Target:     "this-is-a-very-long-target-name-that-exceeds-kubernetes-limits-x", // 64 chars, > 63 limit
 				Namespace:  "test-namespace",
 				Replicas:   5,
 			},
@@ -895,17 +895,18 @@ func TestMalformedJSONInputs(t *testing.T) {
 				return
 			}
 
-			// Should have at least one error with field "json" for malformed input
+			// Should have at least one error - either JSON parsing error (field "json") 
+			// or schema validation error (field "/" for root-level type mismatch)
 			found := false
 			for _, err := range errors {
-				if err.Field == "json" {
+				if err.Field == "json" || err.Field == "/" {
 					found = true
 					break
 				}
 			}
 
 			if !found {
-				t.Errorf("Expected JSON parsing error for malformed input %s", tt.name)
+				t.Errorf("Expected validation error for input %s", tt.name)
 			}
 
 			// Log the error for debugging

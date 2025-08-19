@@ -29,8 +29,8 @@ func TestValidatorWithActualSchema(t *testing.T) {
 			t.Error("Expected has_schema to be true")
 		}
 
-		if info["uri"] != "https://example.com/schemas/intent.schema.json" {
-			t.Errorf("Expected correct schema URI, got %v", info["uri"])
+		if info["schema_uri"] != "https://example.com/schemas/intent.schema.json" {
+			t.Errorf("Expected correct schema URI, got %v", info["schema_uri"])
 		}
 	})
 
