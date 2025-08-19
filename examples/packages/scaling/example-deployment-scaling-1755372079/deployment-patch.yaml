@@ -1,0 +1,8 @@
+# kpt-file: deployment-patch.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: example-deployment
+  namespace: default
+spec:
+  replicas: 3
