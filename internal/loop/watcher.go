@@ -2107,6 +2107,32 @@ func (w *Watcher) retryWithBackoff(workItem WorkItem, cancelFunc context.CancelF
 	}
 }
 
+// cleanupOldFileState performs a single cleanup of old file state entries (for testing)
+func (w *Watcher) cleanupOldFileState() {
+	w.fileState.mu.Lock()
+	defer w.fileState.mu.Unlock()
+	
+	now := time.Now()
+	cleanedEvents := 0
+	cleanedLocks := 0
+	
+	// Clean up old events (older than 1 minute)
+	for filePath, timestamp := range w.fileState.recentEvents {
+		if now.Sub(timestamp) > time.Minute {
+			delete(w.fileState.recentEvents, filePath)
+			cleanedEvents++
+		}
+	}
+	
+	// Clean up old file locks (older than 30 seconds)
+	for filePath, timestamp := range w.fileState.fileLocks {
+		if now.Sub(timestamp) > 30*time.Second {
+			delete(w.fileState.fileLocks, filePath)
+			cleanedLocks++
+		}
+	}
+}
+
 // fileStateCleanupRoutine periodically cleans up old file state entries
 func (w *Watcher) fileStateCleanupRoutine() {
 	ticker := time.NewTicker(5 * time.Minute)
@@ -2117,38 +2143,7 @@ func (w *Watcher) fileStateCleanupRoutine() {
 		case <-w.ctx.Done():
 			return
 		case <-ticker.C:
-			w.fileState.mu.Lock()
-			now := time.Now()
-			cleanedEvents := 0
-			cleanedLocks := 0
-			
-			// Clean up old events (older than 1 minute)
-			for path, eventTime := range w.fileState.recentEvents {
-				if now.Sub(eventTime) > time.Minute {
-					delete(w.fileState.recentEvents, path)
-					cleanedEvents++
-				}
-			}
-			
-			// Clean up unused file locks
-			for path := range w.fileState.processing {
-				// Try to acquire lock immediately - if we can, no one is using it
-				if w.fileState.processing[path].TryLock() {
-					w.fileState.processing[path].Unlock()
-					// Check if file still exists
-					if _, err := os.Stat(path); os.IsNotExist(err) {
-						delete(w.fileState.processing, path)
-						cleanedLocks++
-					}
-				}
-			}
-			
-			w.fileState.mu.Unlock()
-			
-			if cleanedEvents > 0 || cleanedLocks > 0 {
-				log.Printf("LOOP:CLEANUP - Cleaned %d old events, %d unused locks", 
-					cleanedEvents, cleanedLocks)
-			}
+			w.cleanupOldFileState()
 		}
 	}
 }
