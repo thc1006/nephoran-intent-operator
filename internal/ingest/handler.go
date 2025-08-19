@@ -19,10 +19,6 @@ type ValidatorInterface interface {
 	ValidateBytes([]byte) (*Intent, error)
 }
 
-// IntentProvider interface for different parsing modes
-type IntentProvider interface {
-	ParseIntent(ctx context.Context, text string) (map[string]interface{}, error)
-}
 
 type Handler struct {
 	v        ValidatorInterface
@@ -121,35 +117,3 @@ func (h *Handler) HandleIntent(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// NewProvider creates an IntentProvider based on the mode
-func NewProvider(mode string, providerName string) (IntentProvider, error) {
-	switch mode {
-	case "llm":
-		// For now, return a mock provider for LLM mode
-		return &MockLLMProvider{}, nil
-	case "rules":
-		// Rules mode doesn't need a provider (uses regex)
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("unknown mode: %s", mode)
-	}
-}
-
-// MockLLMProvider is a mock implementation for testing
-type MockLLMProvider struct{}
-
-func (m *MockLLMProvider) ParseIntent(ctx context.Context, text string) (map[string]interface{}, error) {
-	// Simple mock that mimics the regex parser for testing
-	matches := simple.FindStringSubmatch(text)
-	if len(matches) != 4 {
-		return nil, fmt.Errorf("could not parse intent from text")
-	}
-	
-	return map[string]interface{}{
-		"intent_type": "scaling",
-		"target":      matches[1],
-		"namespace":   matches[3],
-		"replicas":    matches[2],
-		"source":      "user",
-	}, nil
-}
