@@ -722,3 +722,4 @@ Licensed under the [Apache License, Version 2.0](LICENSE).
 **[Documentation](https://thc1006.github.io/nephoran-intent-operator)** • **[Getting Started](QUICKSTART.md)** • **[API Reference](docs/API_REFERENCE.md)** • **[GitHub Issues](https://github.com/thc1006/nephoran-intent-operator/issues)**
 
 </div>
+</div>
