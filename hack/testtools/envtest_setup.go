@@ -27,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -37,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -822,7 +820,7 @@ func (te *TestEnvironment) cleanupPods(ctx context.Context, namespace string) er
 
 // waitForNamespaceCleanup waits for all resources to be deleted from namespace
 func (te *TestEnvironment) waitForNamespaceCleanup(ctx context.Context, namespace string) error {
-	return Eventually(func() bool {
+	Eventually(func() bool {
 		// Check if custom resources are gone
 		e2nodesetList := &nephoranv1.E2NodeSetList{}
 		if err := te.K8sClient.List(ctx, e2nodesetList, client.InNamespace(namespace)); err == nil {
@@ -855,6 +853,7 @@ func (te *TestEnvironment) waitForNamespaceCleanup(ctx context.Context, namespac
 
 		return true
 	}, 30*time.Second, 500*time.Millisecond).Should(BeTrue())
+	return nil
 }
 
 // CreateNamespace creates a namespace for testing
@@ -975,7 +974,7 @@ func (te *TestEnvironment) VerifyCRDInstallation() error {
 
 // verifySingleCRD verifies a single CRD is available
 func (te *TestEnvironment) verifySingleCRD(ctx context.Context, crdName string) error {
-	return Eventually(func() bool {
+	Eventually(func() bool {
 		switch {
 		case strings.Contains(crdName, "networkintents"):
 			niList := &nephoranv1.NetworkIntentList{}
@@ -992,6 +991,7 @@ func (te *TestEnvironment) verifySingleCRD(ctx context.Context, crdName string) 
 		}
 		return false
 	}, 30*time.Second, 1*time.Second).Should(BeTrue(), "CRD %s should be available", crdName)
+	return nil
 }
 
 // InstallCRDs installs CRDs from the specified directory
@@ -1023,10 +1023,11 @@ func (te *TestEnvironment) WaitForResourceReady(obj client.Object, timeout time.
 	defer cancel()
 
 	key := client.ObjectKeyFromObject(obj)
-	return Eventually(func() bool {
+	Eventually(func() bool {
 		err := te.K8sClient.Get(ctx, key, obj)
 		return err == nil
 	}, timeout, te.GetDefaultInterval()).Should(BeTrue(), "resource should be ready")
+	return nil
 }
 
 // Helper functions for path resolution and environment setup
@@ -1104,13 +1105,11 @@ func waitForAPIServerReady(cfg *rest.Config, timeout time.Duration) error {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
-
-	return Eventually(func() bool {
+	Eventually(func() bool {
 		_, err := client.Discovery().ServerVersion()
 		return err == nil
 	}, timeout, 1*time.Second).Should(BeTrue(), "API server should be ready")
+	return nil
 }
 
 // getLogLevel returns the appropriate log level based on verbose flag
@@ -1178,15 +1177,15 @@ func (te *TestEnvironment) ListTestObjects(list client.ObjectList, opts ...clien
 
 // Eventually wrapper for consistent timeout/interval usage
 func (te *TestEnvironment) Eventually(f func() bool, msgAndArgs ...interface{}) AsyncAssertion {
-	return Eventually(f, te.GetDefaultTimeout(), te.GetDefaultInterval(), msgAndArgs...)
+	return Eventually(f).WithTimeout(te.GetDefaultTimeout()).WithPolling(te.GetDefaultInterval())
 }
 
 // Consistently wrapper for consistent timeout/interval usage
 func (te *TestEnvironment) Consistently(f func() bool, msgAndArgs ...interface{}) AsyncAssertion {
 	if te.options.CIMode {
-		return Consistently(f, 3*time.Second, te.GetDefaultInterval(), msgAndArgs...)
+		return Consistently(f).WithTimeout(3*time.Second).WithPolling(te.GetDefaultInterval())
 	}
-	return Consistently(f, 5*time.Second, te.GetDefaultInterval(), msgAndArgs...)
+	return Consistently(f).WithTimeout(5*time.Second).WithPolling(te.GetDefaultInterval())
 }
 
 // Resource Creation Helpers
@@ -1218,7 +1217,7 @@ func (te *TestEnvironment) CreateTestE2NodeSet(name, namespace string, replicas 
 			Namespace: namespace,
 		},
 		Spec: nephoranv1.E2NodeSetSpec{
-			Replicas: &replicas,
+			Replicas: replicas,
 		},
 	}
 
@@ -1251,39 +1250,47 @@ func (te *TestEnvironment) CreateTestManagedElement(name, namespace string) (*ne
 // WaitForNetworkIntentReady waits for a NetworkIntent to be ready
 func (te *TestEnvironment) WaitForNetworkIntentReady(namespacedName types.NamespacedName) error {
 	ni := &nephoranv1.NetworkIntent{}
-	return te.Eventually(func() bool {
+	te.Eventually(func() bool {
 		err := te.GetTestObject(namespacedName, ni)
 		if err != nil {
 			return false
 		}
 		// Add condition checks here based on your NetworkIntent status
 		return ni.Status.Phase == "Ready" // Adjust according to your status structure
-	}, "NetworkIntent should be ready")
+	}).Should(BeTrue(), "NetworkIntent should be ready")
+	return nil
 }
 
 // WaitForE2NodeSetReady waits for an E2NodeSet to be ready
 func (te *TestEnvironment) WaitForE2NodeSetReady(namespacedName types.NamespacedName, expectedReplicas int32) error {
 	e2ns := &nephoranv1.E2NodeSet{}
-	return te.Eventually(func() bool {
+	te.Eventually(func() bool {
 		err := te.GetTestObject(namespacedName, e2ns)
 		if err != nil {
 			return false
 		}
 		return e2ns.Status.ReadyReplicas == expectedReplicas
-	}, "E2NodeSet should have expected ready replicas")
+	}).Should(BeTrue(), "E2NodeSet should have expected ready replicas")
+	return nil
 }
 
 // WaitForManagedElementReady waits for a ManagedElement to be ready
 func (te *TestEnvironment) WaitForManagedElementReady(namespacedName types.NamespacedName) error {
 	me := &nephoranv1.ManagedElement{}
-	return te.Eventually(func() bool {
+	te.Eventually(func() bool {
 		err := te.GetTestObject(namespacedName, me)
 		if err != nil {
 			return false
 		}
-		// Add condition checks here based on your ManagedElement status
-		return me.Status.Phase == "Ready" // Adjust according to your status structure
-	}, "ManagedElement should be ready")
+		// Check if Ready condition exists and is True
+		for _, condition := range me.Status.Conditions {
+			if condition.Type == "Ready" && condition.Status == metav1.ConditionTrue {
+				return true
+			}
+		}
+		return false
+	}).Should(BeTrue(), "ManagedElement should be ready")
+	return nil
 }
 
 // Unique Name Generators

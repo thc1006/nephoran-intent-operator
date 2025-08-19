@@ -31,7 +31,6 @@ import (
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 const (
@@ -44,16 +43,216 @@ const (
 	DefaultTestURL         = "https://github.com/test/test-repo.git"
 )
 
+// Local type definitions to avoid import cycles
+
+// Client represents a Porch client
+type Client struct {
+	Config *Config
+}
+
+// Config represents Porch configuration
+type Config struct {
+	PorchConfig *PorchConfiguration
+}
+
+// PorchConfiguration represents detailed Porch configuration
+type PorchConfiguration struct {
+	Endpoint       string                       `json:"endpoint"`
+	Auth           *AuthConfiguration           `json:"auth,omitempty"`
+	Timeout        *metav1.Duration             `json:"timeout,omitempty"`
+	Retry          *RetryConfiguration          `json:"retry,omitempty"`
+	CircuitBreaker *CircuitBreakerConfiguration `json:"circuit_breaker,omitempty"`
+	RateLimit      *RateLimitConfiguration      `json:"rate_limit,omitempty"`
+}
+
+// AuthConfiguration represents authentication configuration
+type AuthConfiguration struct {
+	Type string `json:"type"`
+}
+
+// RetryConfiguration represents retry configuration
+type RetryConfiguration struct {
+	MaxRetries   int              `json:"max_retries"`
+	BackoffDelay *metav1.Duration `json:"backoff_delay,omitempty"`
+}
+
+// CircuitBreakerConfiguration represents circuit breaker configuration
+type CircuitBreakerConfiguration struct {
+	Enabled          bool             `json:"enabled"`
+	FailureThreshold int              `json:"failure_threshold"`
+	Timeout          *metav1.Duration `json:"timeout,omitempty"`
+	HalfOpenMaxCalls int              `json:"half_open_max_calls"`
+}
+
+// RateLimitConfiguration represents rate limit configuration
+type RateLimitConfiguration struct {
+	Enabled           bool `json:"enabled"`
+	RequestsPerSecond int  `json:"requests_per_second"`
+	Burst             int  `json:"burst"`
+}
+
+// Repository represents a Porch repository
+type Repository struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              RepositorySpec   `json:"spec,omitempty"`
+	Status            RepositoryStatus `json:"status,omitempty"`
+}
+
+// RepositorySpec defines the desired state of Repository
+type RepositorySpec struct {
+	Type         string      `json:"type"`
+	URL          string      `json:"url"`
+	Branch       string      `json:"branch,omitempty"`
+	Directory    string      `json:"directory,omitempty"`
+	Capabilities []string    `json:"capabilities,omitempty"`
+	Auth         *AuthConfig `json:"auth,omitempty"`
+}
+
+// AuthConfig represents authentication configuration for repositories
+type AuthConfig struct {
+	Type   string `json:"type"`
+	Secret string `json:"secret,omitempty"`
+}
+
+// RepositoryHealth represents repository health status
+type RepositoryHealth string
+
+const (
+	RepositoryHealthHealthy   RepositoryHealth = "Healthy"
+	RepositoryHealthUnhealthy RepositoryHealth = "Unhealthy"
+)
+
+// RepositoryStatus defines the observed state of Repository
+type RepositoryStatus struct {
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	Health     RepositoryHealth   `json:"health,omitempty"`
+}
+
+// PackageRevision represents a package revision
+type PackageRevision struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              PackageRevisionSpec   `json:"spec,omitempty"`
+	Status            PackageRevisionStatus `json:"status,omitempty"`
+}
+
+// PackageRevisionLifecycle represents package lifecycle states
+type PackageRevisionLifecycle string
+
+const (
+	PackageRevisionLifecycleDraft     PackageRevisionLifecycle = "Draft"
+	PackageRevisionLifecycleProposed  PackageRevisionLifecycle = "Proposed"
+	PackageRevisionLifecyclePublished PackageRevisionLifecycle = "Published"
+)
+
+// PackageRevisionSpec defines the desired state of PackageRevision
+type PackageRevisionSpec struct {
+	PackageName string                   `json:"packageName"`
+	Repository  string                   `json:"repository"`
+	Revision    string                   `json:"revision"`
+	Lifecycle   PackageRevisionLifecycle `json:"lifecycle,omitempty"`
+	Resources   []KRMResource            `json:"resources,omitempty"`
+	Functions   []FunctionConfig         `json:"functions,omitempty"`
+}
+
+// KRMResource represents a Kubernetes Resource Model resource
+type KRMResource struct {
+	APIVersion string                 `json:"apiVersion"`
+	Kind       string                 `json:"kind"`
+	Metadata   map[string]interface{} `json:"metadata,omitempty"`
+	Spec       map[string]interface{} `json:"spec,omitempty"`
+	Data       map[string]interface{} `json:"data,omitempty"`
+}
+
+// FunctionConfig represents a function configuration
+type FunctionConfig struct {
+	Image     string                 `json:"image"`
+	ConfigMap map[string]interface{} `json:"configMap,omitempty"`
+}
+
+// PackageRevisionStatus defines the observed state of PackageRevision
+type PackageRevisionStatus struct {
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// Workflow represents a workflow
+type Workflow struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	Spec              WorkflowSpec   `json:"spec,omitempty"`
+	Status            WorkflowStatus `json:"status,omitempty"`
+}
+
+// WorkflowSpec defines the desired state of Workflow
+type WorkflowSpec struct {
+	Stages    []WorkflowStage `json:"stages,omitempty"`
+	Approvers []Approver      `json:"approvers,omitempty"`
+}
+
+// WorkflowStageType represents workflow stage types
+type WorkflowStageType string
+
+const (
+	WorkflowStageTypeValidation WorkflowStageType = "validation"
+	WorkflowStageTypeApproval   WorkflowStageType = "approval"
+)
+
+// WorkflowStage represents a workflow stage
+type WorkflowStage struct {
+	Name      string            `json:"name"`
+	Type      WorkflowStageType `json:"type"`
+	Actions   []WorkflowAction  `json:"actions,omitempty"`
+	Approvers []Approver        `json:"approvers,omitempty"`
+}
+
+// WorkflowAction represents a workflow action
+type WorkflowAction struct {
+	Type   string                 `json:"type"`
+	Config map[string]interface{} `json:"config,omitempty"`
+}
+
+// Approver represents a workflow approver
+type Approver struct {
+	Type string `json:"type"`
+	Name string `json:"name"`
+}
+
+// WorkflowPhase represents workflow phases
+type WorkflowPhase string
+
+const (
+	WorkflowPhasePending   WorkflowPhase = "Pending"
+	WorkflowPhaseRunning   WorkflowPhase = "Running"
+	WorkflowPhaseCompleted WorkflowPhase = "Completed"
+	WorkflowPhaseFailed    WorkflowPhase = "Failed"
+)
+
+// WorkflowStatus defines the observed state of Workflow
+type WorkflowStatus struct {
+	Phase WorkflowPhase `json:"phase,omitempty"`
+}
+
+// IsValidLifecycle checks if a lifecycle value is valid
+func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
+	switch lifecycle {
+	case PackageRevisionLifecycleDraft, PackageRevisionLifecycleProposed, PackageRevisionLifecyclePublished:
+		return true
+	default:
+		return false
+	}
+}
+
 // TestFixture provides a complete test environment for Porch operations
 type TestFixture struct {
 	Client       client.Client
-	PorchClient  *porch.Client
-	Config       *porch.Config
+	PorchClient  *Client
+	Config       *Config
 	Context      context.Context
 	Namespace    string
-	Repositories map[string]*porch.Repository
-	Packages     map[string]*porch.PackageRevision
-	Workflows    map[string]*porch.Workflow
+	Repositories map[string]*Repository
+	Packages     map[string]*PackageRevision
+	Workflows    map[string]*Workflow
 }
 
 // NewTestFixture creates a new test fixture with default configuration
@@ -76,34 +275,34 @@ func NewTestFixture(ctx context.Context) *TestFixture {
 		Config:       config,
 		Context:      ctx,
 		Namespace:    DefaultTestNamespace,
-		Repositories: make(map[string]*porch.Repository),
-		Packages:     make(map[string]*porch.PackageRevision),
-		Workflows:    make(map[string]*porch.Workflow),
+		Repositories: make(map[string]*Repository),
+		Packages:     make(map[string]*PackageRevision),
+		Workflows:    make(map[string]*Workflow),
 	}
 
 	return fixture
 }
 
 // NewTestConfig creates a test configuration for Porch
-func NewTestConfig() *porch.Config {
-	return &porch.Config{
-		PorchConfig: &porch.PorchConfiguration{
+func NewTestConfig() *Config {
+	return &Config{
+		PorchConfig: &PorchConfiguration{
 			Endpoint: "http://localhost:9080",
-			Auth: &porch.AuthConfiguration{
+			Auth: &AuthConfiguration{
 				Type: "none",
 			},
 			Timeout: &metav1.Duration{Duration: 30 * time.Second},
-			Retry: &porch.RetryConfiguration{
+			Retry: &RetryConfiguration{
 				MaxRetries:   3,
 				BackoffDelay: &metav1.Duration{Duration: 1 * time.Second},
 			},
-			CircuitBreaker: &porch.CircuitBreakerConfiguration{
+			CircuitBreaker: &CircuitBreakerConfiguration{
 				Enabled:          true,
 				FailureThreshold: 5,
 				Timeout:          &metav1.Duration{Duration: 60 * time.Second},
 				HalfOpenMaxCalls: 3,
 			},
-			RateLimit: &porch.RateLimitConfiguration{
+			RateLimit: &RateLimitConfiguration{
 				Enabled:           true,
 				RequestsPerSecond: 100,
 				Burst:             10,
@@ -113,12 +312,12 @@ func NewTestConfig() *porch.Config {
 }
 
 // CreateTestRepository creates a test repository fixture
-func (f *TestFixture) CreateTestRepository(name string, opts ...RepositoryOption) *porch.Repository {
+func (f *TestFixture) CreateTestRepository(name string, opts ...RepositoryOption) *Repository {
 	if name == "" {
 		name = fmt.Sprintf("test-repo-%s", GenerateRandomString(8))
 	}
 
-	repo := &porch.Repository{
+	repo := &Repository{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "config.porch.kpt.dev/v1alpha1",
 			Kind:       "Repository",
@@ -131,7 +330,7 @@ func (f *TestFixture) CreateTestRepository(name string, opts ...RepositoryOption
 				"test.nephoran.com/fixture": "true",
 			},
 		},
-		Spec: porch.RepositorySpec{
+		Spec: RepositorySpec{
 			Type:      "git",
 			URL:       DefaultTestURL,
 			Branch:    DefaultTestBranch,
@@ -141,7 +340,7 @@ func (f *TestFixture) CreateTestRepository(name string, opts ...RepositoryOption
 				"deployment",
 			},
 		},
-		Status: porch.RepositoryStatus{
+		Status: RepositoryStatus{
 			Conditions: []metav1.Condition{
 				{
 					Type:   "Ready",
@@ -149,7 +348,7 @@ func (f *TestFixture) CreateTestRepository(name string, opts ...RepositoryOption
 					Reason: "RepositoryReady",
 				},
 			},
-			Health: porch.RepositoryHealthHealthy,
+			Health: RepositoryHealthHealthy,
 		},
 	}
 
@@ -163,45 +362,45 @@ func (f *TestFixture) CreateTestRepository(name string, opts ...RepositoryOption
 }
 
 // RepositoryOption allows customization of test repositories
-type RepositoryOption func(*porch.Repository)
+type RepositoryOption func(*Repository)
 
 // WithRepositoryType sets the repository type
 func WithRepositoryType(repoType string) RepositoryOption {
-	return func(repo *porch.Repository) {
+	return func(repo *Repository) {
 		repo.Spec.Type = repoType
 	}
 }
 
 // WithRepositoryURL sets the repository URL
 func WithRepositoryURL(url string) RepositoryOption {
-	return func(repo *porch.Repository) {
+	return func(repo *Repository) {
 		repo.Spec.URL = url
 	}
 }
 
 // WithRepositoryBranch sets the repository branch
 func WithRepositoryBranch(branch string) RepositoryOption {
-	return func(repo *porch.Repository) {
+	return func(repo *Repository) {
 		repo.Spec.Branch = branch
 	}
 }
 
 // WithRepositoryAuth sets authentication configuration
-func WithRepositoryAuth(auth *porch.AuthConfig) RepositoryOption {
-	return func(repo *porch.Repository) {
+func WithRepositoryAuth(auth *AuthConfig) RepositoryOption {
+	return func(repo *Repository) {
 		repo.Spec.Auth = auth
 	}
 }
 
 // WithRepositoryCondition adds a condition to the repository
 func WithRepositoryCondition(condition metav1.Condition) RepositoryOption {
-	return func(repo *porch.Repository) {
+	return func(repo *Repository) {
 		repo.Status.Conditions = append(repo.Status.Conditions, condition)
 	}
 }
 
 // CreateTestPackageRevision creates a test package revision fixture
-func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...PackageOption) *porch.PackageRevision {
+func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...PackageOption) *PackageRevision {
 	if name == "" {
 		name = fmt.Sprintf("test-package-%s", GenerateRandomString(8))
 	}
@@ -209,7 +408,7 @@ func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...P
 		revision = DefaultTestRevision
 	}
 
-	pkg := &porch.PackageRevision{
+	pkg := &PackageRevision{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "porch.kpt.dev/v1alpha1",
 			Kind:       "PackageRevision",
@@ -224,12 +423,12 @@ func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...P
 				"porch.kpt.dev/revision":    revision,
 			},
 		},
-		Spec: porch.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: name,
 			Repository:  DefaultTestRepository,
 			Revision:    revision,
-			Lifecycle:   porch.PackageRevisionLifecycleDraft,
-			Resources: []porch.KRMResource{
+			Lifecycle:   PackageRevisionLifecycleDraft,
+			Resources: []KRMResource{
 				{
 					APIVersion: "v1",
 					Kind:       "ConfigMap",
@@ -243,7 +442,7 @@ func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...P
 				},
 			},
 		},
-		Status: porch.PackageRevisionStatus{
+		Status: PackageRevisionStatus{
 			Conditions: []metav1.Condition{
 				{
 					Type:   "Ready",
@@ -265,50 +464,50 @@ func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...P
 }
 
 // PackageOption allows customization of test packages
-type PackageOption func(*porch.PackageRevision)
+type PackageOption func(*PackageRevision)
 
 // WithPackageRepository sets the package repository
 func WithPackageRepository(repository string) PackageOption {
-	return func(pkg *porch.PackageRevision) {
+	return func(pkg *PackageRevision) {
 		pkg.Spec.Repository = repository
 	}
 }
 
 // WithPackageLifecycle sets the package lifecycle
-func WithPackageLifecycle(lifecycle porch.PackageRevisionLifecycle) PackageOption {
-	return func(pkg *porch.PackageRevision) {
+func WithPackageLifecycle(lifecycle PackageRevisionLifecycle) PackageOption {
+	return func(pkg *PackageRevision) {
 		pkg.Spec.Lifecycle = lifecycle
 	}
 }
 
 // WithPackageResource adds a resource to the package
-func WithPackageResource(resource porch.KRMResource) PackageOption {
-	return func(pkg *porch.PackageRevision) {
+func WithPackageResource(resource KRMResource) PackageOption {
+	return func(pkg *PackageRevision) {
 		pkg.Spec.Resources = append(pkg.Spec.Resources, resource)
 	}
 }
 
 // WithPackageFunction adds a function to the package
-func WithPackageFunction(function porch.FunctionConfig) PackageOption {
-	return func(pkg *porch.PackageRevision) {
+func WithPackageFunction(function FunctionConfig) PackageOption {
+	return func(pkg *PackageRevision) {
 		pkg.Spec.Functions = append(pkg.Spec.Functions, function)
 	}
 }
 
 // WithPackageCondition adds a condition to the package
 func WithPackageCondition(condition metav1.Condition) PackageOption {
-	return func(pkg *porch.PackageRevision) {
+	return func(pkg *PackageRevision) {
 		pkg.Status.Conditions = append(pkg.Status.Conditions, condition)
 	}
 }
 
 // CreateTestWorkflow creates a test workflow fixture
-func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *porch.Workflow {
+func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *Workflow {
 	if name == "" {
 		name = fmt.Sprintf("test-workflow-%s", GenerateRandomString(8))
 	}
 
-	workflow := &porch.Workflow{
+	workflow := &Workflow{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "porch.kpt.dev/v1alpha1",
 			Kind:       "Workflow",
@@ -321,12 +520,12 @@ func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *p
 				"test.nephoran.com/fixture": "true",
 			},
 		},
-		Spec: porch.WorkflowSpec{
-			Stages: []porch.WorkflowStage{
+		Spec: WorkflowSpec{
+			Stages: []WorkflowStage{
 				{
 					Name: "validation",
-					Type: porch.WorkflowStageTypeValidation,
-					Actions: []porch.WorkflowAction{
+					Type: WorkflowStageTypeValidation,
+					Actions: []WorkflowAction{
 						{
 							Type:   "validate",
 							Config: map[string]interface{}{},
@@ -335,14 +534,14 @@ func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *p
 				},
 				{
 					Name: "approval",
-					Type: porch.WorkflowStageTypeApproval,
-					Actions: []porch.WorkflowAction{
+					Type: WorkflowStageTypeApproval,
+					Actions: []WorkflowAction{
 						{
 							Type:   "approve",
 							Config: map[string]interface{}{},
 						},
 					},
-					Approvers: []porch.Approver{
+					Approvers: []Approver{
 						{
 							Type: "user",
 							Name: "admin",
@@ -351,8 +550,8 @@ func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *p
 				},
 			},
 		},
-		Status: porch.WorkflowStatus{
-			Phase: porch.WorkflowPhasePending,
+		Status: WorkflowStatus{
+			Phase: WorkflowPhasePending,
 		},
 	}
 
@@ -366,25 +565,25 @@ func (f *TestFixture) CreateTestWorkflow(name string, opts ...WorkflowOption) *p
 }
 
 // WorkflowOption allows customization of test workflows
-type WorkflowOption func(*porch.Workflow)
+type WorkflowOption func(*Workflow)
 
 // WithWorkflowStage adds a stage to the workflow
-func WithWorkflowStage(stage porch.WorkflowStage) WorkflowOption {
-	return func(workflow *porch.Workflow) {
+func WithWorkflowStage(stage WorkflowStage) WorkflowOption {
+	return func(workflow *Workflow) {
 		workflow.Spec.Stages = append(workflow.Spec.Stages, stage)
 	}
 }
 
 // WithWorkflowApprover adds an approver to the workflow
-func WithWorkflowApprover(approver porch.Approver) WorkflowOption {
-	return func(workflow *porch.Workflow) {
+func WithWorkflowApprover(approver Approver) WorkflowOption {
+	return func(workflow *Workflow) {
 		workflow.Spec.Approvers = append(workflow.Spec.Approvers, approver)
 	}
 }
 
 // WithWorkflowPhase sets the workflow phase
-func WithWorkflowPhase(phase porch.WorkflowPhase) WorkflowOption {
-	return func(workflow *porch.Workflow) {
+func WithWorkflowPhase(phase WorkflowPhase) WorkflowOption {
+	return func(workflow *Workflow) {
 		workflow.Status.Phase = phase
 	}
 }
@@ -493,8 +692,8 @@ func GenerateRandomString(length int) string {
 }
 
 // GenerateTestResource creates a test KRM resource
-func GenerateTestResource(apiVersion, kind, name, namespace string) porch.KRMResource {
-	return porch.KRMResource{
+func GenerateTestResource(apiVersion, kind, name, namespace string) KRMResource {
+	return KRMResource{
 		APIVersion: apiVersion,
 		Kind:       kind,
 		Metadata: map[string]interface{}{
@@ -511,8 +710,8 @@ func GenerateTestResource(apiVersion, kind, name, namespace string) porch.KRMRes
 }
 
 // GenerateTestFunction creates a test function configuration
-func GenerateTestFunction(image string) porch.FunctionConfig {
-	return porch.FunctionConfig{
+func GenerateTestFunction(image string) FunctionConfig {
+	return FunctionConfig{
 		Image: image,
 		ConfigMap: map[string]interface{}{
 			"param1": "value1",
@@ -572,9 +771,9 @@ spec:
 // Cleanup removes test resources and performs cleanup
 func (f *TestFixture) Cleanup() {
 	// Clear maps
-	f.Repositories = make(map[string]*porch.Repository)
-	f.Packages = make(map[string]*porch.PackageRevision)
-	f.Workflows = make(map[string]*porch.Workflow)
+	f.Repositories = make(map[string]*Repository)
+	f.Packages = make(map[string]*PackageRevision)
+	f.Workflows = make(map[string]*Workflow)
 }
 
 // AssertCondition checks if a condition exists and has expected values
@@ -620,8 +819,8 @@ func GetTestKubeConfig() *rest.Config {
 }
 
 // CreateMultipleTestPackages creates multiple test packages for bulk testing
-func (f *TestFixture) CreateMultipleTestPackages(count int, namePrefix string) []*porch.PackageRevision {
-	packages := make([]*porch.PackageRevision, count)
+func (f *TestFixture) CreateMultipleTestPackages(count int, namePrefix string) []*PackageRevision {
+	packages := make([]*PackageRevision, count)
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("%s-%d", namePrefix, i)
@@ -633,8 +832,8 @@ func (f *TestFixture) CreateMultipleTestPackages(count int, namePrefix string) [
 }
 
 // CreateMultipleTestRepositories creates multiple test repositories for bulk testing
-func (f *TestFixture) CreateMultipleTestRepositories(count int, namePrefix string) []*porch.Repository {
-	repositories := make([]*porch.Repository, count)
+func (f *TestFixture) CreateMultipleTestRepositories(count int, namePrefix string) []*Repository {
+	repositories := make([]*Repository, count)
 
 	for i := 0; i < count; i++ {
 		name := fmt.Sprintf("%s-%d", namePrefix, i)
@@ -645,7 +844,7 @@ func (f *TestFixture) CreateMultipleTestRepositories(count int, namePrefix strin
 }
 
 // ValidatePackageRevision performs basic validation on a package revision
-func ValidatePackageRevision(pkg *porch.PackageRevision) []string {
+func ValidatePackageRevision(pkg *PackageRevision) []string {
 	var errors []string
 
 	if pkg.Spec.PackageName == "" {
@@ -660,7 +859,7 @@ func ValidatePackageRevision(pkg *porch.PackageRevision) []string {
 		errors = append(errors, "revision is required")
 	}
 
-	if !porch.IsValidLifecycle(pkg.Spec.Lifecycle) {
+	if !IsValidLifecycle(pkg.Spec.Lifecycle) {
 		errors = append(errors, "invalid lifecycle")
 	}
 
@@ -668,7 +867,7 @@ func ValidatePackageRevision(pkg *porch.PackageRevision) []string {
 }
 
 // ValidateRepository performs basic validation on a repository
-func ValidateRepository(repo *porch.Repository) []string {
+func ValidateRepository(repo *Repository) []string {
 	var errors []string
 
 	if repo.Spec.URL == "" {
