@@ -134,6 +134,9 @@ func main() {
 
 		// Create and start the watcher with processor
 		watcher, err = loop.NewWatcherWithProcessor(absHandoffDir, processor)
+		if err != nil {
+			log.Fatalf("Failed to create watcher: %v", err)
+		}
 	} else {
 		// Legacy Config-based approach setup
 		// Ensure output directory exists
@@ -168,9 +171,9 @@ func main() {
 			DebounceDur:  config.DebounceDur,
 			Period:       config.Period,
 		})
-	}
-	if err != nil {
-		log.Fatalf("Failed to create watcher: %v", err)
+		if err != nil {
+			log.Fatalf("Failed to create watcher: %v", err)
+		}
 	}
 	
 	// Safe defer pattern - only register Close() after successful creation

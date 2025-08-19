@@ -249,7 +249,7 @@ func TestMain_SignalHandling(t *testing.T) {
 	binaryPath := buildConductorLoop(t, tempDir)
 
 	// Create an intent file
-	intentFile := filepath.Join(handoffDir, "signal-test.json")
+	intentFile := filepath.Join(handoffDir, "intent-signal-test.json")
 	intentContent := `{"action": "scale", "target": "deployment/test", "replicas": 3}`
 	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
 
@@ -370,7 +370,7 @@ func TestMain_ExitCodes(t *testing.T) {
 				// Create mock porch and intent file
 				mockPorch := createMockPorch(t, testDir, 0, "success", "")
 				
-				intentFile := filepath.Join(handoffDir, "test.json")
+				intentFile := filepath.Join(handoffDir, "intent-test.json")
 				require.NoError(t, os.WriteFile(intentFile, []byte(`{"test": "intent"}`), 0644))
 				
 				// Setup test arguments - create local args slice
@@ -518,37 +518,14 @@ func createMockPorchB(b *testing.B, tempDir string, exitCode int, stdout, stderr
 		sleep = sleepDuration[0]
 	}
 
-	var mockScript string
-	var mockFile string
-	
-	if runtime.GOOS == "windows" {
-		mockFile = filepath.Join(tempDir, "mock-porch.bat")
-		sleepCmd := ""
-		if sleep > 0 {
-			sleepCmd = fmt.Sprintf("timeout /t %d /nobreak >nul 2>nul", int(sleep.Seconds()))
-		}
-		mockScript = fmt.Sprintf(`@echo off
-%s
-echo %s
-echo %s 1>&2
-exit /b %d
-`, sleepCmd, stdout, stderr, exitCode)
-	} else {
-		mockFile = filepath.Join(tempDir, "mock-porch.sh")
-		sleepCmd := ""
-		if sleep > 0 {
-			sleepCmd = fmt.Sprintf("sleep %v", sleep.Seconds())
-		}
-		mockScript = fmt.Sprintf(`#!/bin/bash
-%s
-echo "%s"
-echo "%s" >&2
-exit %d
-`, sleepCmd, stdout, stderr, exitCode)
-	}
-
-	require.NoError(b, os.WriteFile(mockFile, []byte(mockScript), 0755))
-	return mockFile
+	mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
+		ExitCode: exitCode,
+		Stdout:   stdout,
+		Stderr:   stderr,
+		Sleep:    sleep,
+	})
+	require.NoError(b, err)
+	return mockPath
 }
 
 func buildConductorLoopB(b *testing.B, tempDir string) string {

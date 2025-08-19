@@ -187,7 +187,7 @@ func TestWatcher_FileDetectionWithinRequirement(t *testing.T) {
 	time.Sleep(200 * time.Millisecond)
 
 	// Create a new intent file
-	testFile := filepath.Join(tempDir, "new-intent.json")
+	testFile := filepath.Join(tempDir, "intent-new.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 5}`
 	
 	startTime := time.Now()
@@ -253,7 +253,7 @@ func TestWatcher_DebouncingRapidChanges(t *testing.T) {
 	// Wait for watcher to start
 	time.Sleep(200 * time.Millisecond)
 
-	testFile := filepath.Join(tempDir, "debounce-test.json")
+	testFile := filepath.Join(tempDir, "intent-debounce-test.json")
 	
 	// Write to file multiple times rapidly
 	for i := 0; i < 5; i++ {
@@ -293,7 +293,7 @@ func TestWatcher_IdempotentProcessing(t *testing.T) {
 	require.NoError(t, err)
 	defer watcher.Close()
 
-	testFile := filepath.Join(tempDir, "idempotent-test.json")
+	testFile := filepath.Join(tempDir, "intent-idempotent-test.json")
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 3}`
 	require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
 
@@ -337,7 +337,7 @@ func TestWatcher_ConcurrentFileProcessing(t *testing.T) {
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 1}`
 	
 	for i := 0; i < numFiles; i++ {
-		testFile := filepath.Join(tempDir, fmt.Sprintf("concurrent-test-%d.json", i))
+		testFile := filepath.Join(tempDir, fmt.Sprintf("intent-concurrent-test-%d.json", i))
 		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
 	}
 
@@ -581,44 +581,19 @@ func fileExists(filename string) bool {
 }
 
 // createMockPorch creates a mock porch executable for testing
-// This is the same helper as in executor_test.go
 func createMockPorch(t testing.TB, tempDir string, exitCode int, stdout, stderr string, sleepDuration ...time.Duration) string {
 	var sleep time.Duration
 	if len(sleepDuration) > 0 {
 		sleep = sleepDuration[0]
 	}
 
-	mockScript := fmt.Sprintf(`#!/bin/bash
-if [ "$1" = "--help" ]; then
-    echo "Mock porch help"
-    exit 0
-fi
-if [ "%d" -gt 0 ]; then
-    sleep %v
-fi
-echo "%s"
-echo "%s" >&2
-exit %d`, sleep.Milliseconds(), sleep, stdout, stderr, exitCode)
-
-	// On Windows, create a batch file
-	var mockPath string
-	if filepath.Separator == '\\' {
-		mockPath = filepath.Join(tempDir, "mock-porch.bat")
-		batchScript := fmt.Sprintf(`@echo off
-if "%%1"=="--help" (
-    echo Mock porch help
-    exit /b 0
-)
-if %d GTR 0 timeout /t %d /nobreak >nul 2>nul
-echo %s
-echo %s >&2
-exit /b %d`, exitCode, int(sleep.Seconds())+1, stdout, stderr, exitCode)
-		require.NoError(t, os.WriteFile(mockPath, []byte(batchScript), 0755))
-	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch")
-		require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0755))
-	}
-
+	mockPath, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
+		ExitCode: exitCode,
+		Stdout:   stdout,
+		Stderr:   stderr,
+		Sleep:    sleep,
+	})
+	require.NoError(t, err)
 	return mockPath
 }
 
@@ -646,7 +621,7 @@ func BenchmarkWatcher_ProcessSingleFile(b *testing.B) {
 		require.NoError(b, err)
 		
 		// Create test file
-		testFile := filepath.Join(tempDir, fmt.Sprintf("bench-%d.json", i))
+		testFile := filepath.Join(tempDir, fmt.Sprintf("intent-bench-%d.json", i))
 		require.NoError(b, os.WriteFile(testFile, []byte(testContent), 0644))
 		
 		b.StartTimer()

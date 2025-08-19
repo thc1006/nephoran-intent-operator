@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/internal/loop"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 func TestOnceMode_ExitCodes(t *testing.T) {
@@ -72,16 +73,12 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 			tt.setupFiles(t, handoffDir)
 			
 			// Create mock porch executable that fails for invalid files
-			mockPorch := filepath.Join(tempDir, "mock-porch.bat")
-			// This mock will fail if the intent file contains "invalid"
-			mockContent := `@echo off
-findstr /C:"invalid" "%2" >nul
-if %errorlevel% equ 0 (
-    echo Error: Invalid intent file
-    exit 1
-)
-exit 0`
-			require.NoError(t, os.WriteFile(mockPorch, []byte(mockContent), 0755))
+			mockPorch, err := porch.CreateCrossPlatformMock(tempDir, porch.CrossPlatformMockOptions{
+				ExitCode: 0,
+				Stdout:   "Mock porch processing completed successfully",
+				FailOnPattern: "invalid", // This will cause the mock to fail if input contains "invalid"
+			})
+			require.NoError(t, err)
 			
 			// Create watcher with once mode
 			config := loop.Config{
