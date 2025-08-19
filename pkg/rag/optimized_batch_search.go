@@ -357,8 +357,13 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 					existing.Score = result.Score
 				}
 			} else {
-				seen[key] = result
-				aggregated = append(aggregated, result)
+				// Convert local SearchResult to shared.SearchResult
+				sharedResult := &shared.SearchResult{
+					Document: result.Document, // Assuming Document can be directly assigned
+					Score:    result.Score,
+				}
+				seen[key] = sharedResult
+				aggregated = append(aggregated, sharedResult)
 			}
 		}
 	}

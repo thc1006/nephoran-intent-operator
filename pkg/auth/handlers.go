@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
 
 // AuthHandlers provides HTTP handlers for authentication endpoints

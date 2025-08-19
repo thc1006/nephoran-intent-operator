@@ -2,6 +2,7 @@ package nephio
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -10,6 +11,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
 )
@@ -21,7 +23,8 @@ import (
 // - "policy": Generates NetworkPolicy and A1 policy resources
 // If no intent type is specified, it defaults to "deployment"
 type PackageGenerator struct {
-	templates map[string]*template.Template
+	templates   map[string]*template.Template
+	porchClient porch.PorchClient // Optional Porch client for direct API calls
 }
 
 // NewPackageGenerator creates a new package generator
@@ -543,16 +546,44 @@ func generateSetters(params map[string]interface{}) string {
 }
 
 func generateScalingPatch(params map[string]interface{}) string {
-	// Generate a patch for scaling operations
+	// Generate a structured patch for scaling operations with enhanced metadata
 	patch := map[string]interface{}{
 		"apiVersion": "apps/v1",
 		"kind":       "Deployment",
 		"metadata": map[string]interface{}{
 			"name": params["target"],
+			"annotations": map[string]interface{}{
+				"porch.kpt.dev/managed": "true",
+				"nephoran.com/intent":   "scaling",
+				"nephoran.com/timestamp": time.Now().Format(time.RFC3339),
+			},
 		},
 		"spec": map[string]interface{}{
 			"replicas": params["replicas"],
 		},
+	}
+
+	// Add resource requests/limits if provided
+	if resources, ok := params["resources"].(map[string]interface{}); ok {
+		if patch["spec"].(map[string]interface{})["template"] == nil {
+			patch["spec"].(map[string]interface{})["template"] = map[string]interface{}{
+				"spec": map[string]interface{}{
+					"containers": []map[string]interface{}{
+						{
+							"name":      "main",
+							"resources": resources,
+						},
+					},
+				},
+			}
+		}
+	}
+
+	// Add HPA configuration if autoscaling is enabled
+	if autoscaling, ok := params["autoscaling"].(map[string]interface{}); ok {
+		if enabled, ok := autoscaling["enabled"].(bool); ok && enabled {
+			patch["spec"].(map[string]interface{})["autoscaling"] = autoscaling
+		}
 	}
 
 	yamlData, _ := yaml.Marshal(patch)
@@ -633,4 +664,105 @@ func extractNetworkSliceDetails(params map[string]interface{}) string {
 			sliceMap["sla_parameters"])
 	}
 	return "No network slice configuration in this package"
+}
+
+// GeneratePatchAndPublishToPorch generates a scaling patch from intent and publishes it to Porch
+func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, intent *v1.NetworkIntent) error {
+	if pg.porchClient == nil {
+		return fmt.Errorf("porch client not configured")
+	}
+
+	// Parse structured parameters from RawExtension
+	var params map[string]interface{}
+	if intent.Spec.Parameters.Raw != nil {
+		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+			return fmt.Errorf("failed to unmarshal parameters: %w", err)
+		}
+	}
+	if params == nil {
+		return fmt.Errorf("no parameters found in intent")
+	}
+
+	// Generate the scaling patch
+	patchContent := generateScalingPatch(params)
+	
+	// Generate setters for the patch
+	settersContent := generateScalingSetters(params)
+
+	// Prepare package contents for Porch
+	packageContents := map[string][]byte{
+		"scaling-patch.yaml": []byte(patchContent),
+		"setters.yaml":       []byte(settersContent),
+		"README.md":          []byte(fmt.Sprintf("# Scaling Patch for %s\n\nGenerated from intent: %s\n", params["target"], intent.Name)),
+	}
+
+	// Create Kptfile for the package
+	kptfile := map[string]interface{}{
+		"apiVersion": "kpt.dev/v1",
+		"kind":       "Kptfile",
+		"metadata": map[string]interface{}{
+			"name": fmt.Sprintf("%s-scaling-patch", intent.Name),
+			"annotations": map[string]interface{}{
+				"nephoran.com/intent-id":   string(intent.UID),
+				"nephoran.com/intent-type": "scaling",
+				"nephoran.com/generated":   time.Now().Format(time.RFC3339),
+			},
+		},
+		"info": map[string]interface{}{
+			"description": fmt.Sprintf("Scaling patch for %s", params["target"]),
+		},
+	}
+	kptfileYAML, _ := yaml.Marshal(kptfile)
+	packageContents["Kptfile"] = kptfileYAML
+
+	// Determine repository and package name
+	repository := "default"
+	if repo, ok := params["repository"].(string); ok {
+		repository = repo
+	}
+	packageName := fmt.Sprintf("%s-scaling-patch", intent.Name)
+	revision := "v1"
+
+	// Create package revision in Porch
+	packageRevision := &porch.PackageRevision{
+		Spec: porch.PackageRevisionSpec{
+			Repository:  repository,
+			PackageName: packageName,
+			Revision:    revision,
+			Lifecycle:   porch.PackageRevisionLifecycleDraft,
+		},
+	}
+
+	// Create the package revision
+	createdRevision, err := pg.porchClient.CreatePackageRevision(ctx, packageRevision)
+	if err != nil {
+		return fmt.Errorf("failed to create package revision in Porch: %w", err)
+	}
+
+	// Update package contents
+	if err := pg.porchClient.UpdatePackageContents(ctx, packageName, revision, packageContents); err != nil {
+		return fmt.Errorf("failed to update package contents in Porch: %w", err)
+	}
+
+	// Propose the package revision for review
+	if err := pg.porchClient.ProposePackageRevision(ctx, packageName, revision); err != nil {
+		return fmt.Errorf("failed to propose package revision: %w", err)
+	}
+
+	// If auto-approve is enabled in parameters, approve the package
+	if autoApprove, ok := params["auto_approve"].(bool); ok && autoApprove {
+		if err := pg.porchClient.ApprovePackageRevision(ctx, packageName, revision); err != nil {
+			return fmt.Errorf("failed to approve package revision: %w", err)
+		}
+	}
+
+	fmt.Printf("Successfully created and published scaling patch to Porch: %s/%s:%s\n", 
+		repository, packageName, createdRevision.Spec.Revision)
+	
+	return nil
+}
+
+// SetPorchClient sets the Porch client for API operations
+func (pg *PackageGenerator) SetPorchClient(client porch.PorchClient) {
+	pg.porchClient = client
 }

@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
@@ -34,7 +37,7 @@ type ProcessingEngine struct {
 	// Processing state
 	mutex          sync.RWMutex
 	activeStreams  map[string]*StreamContext
-	batchQueue     chan *BatchRequest
+	batchQueue     chan *ProcessingBatchRequest
 	batchProcessor *batchProcessor
 
 	// Metrics and monitoring
@@ -90,8 +93,8 @@ type StreamContext struct {
 	Flusher   http.Flusher
 }
 
-// BatchRequest represents a request for batch processing
-type BatchRequest struct {
+// ProcessingBatchRequest represents a request for batch processing
+type ProcessingBatchRequest struct {
 	ID         string                 `json:"id"`
 	Intent     string                 `json:"intent"`
 	IntentType string                 `json:"intent_type"`
@@ -113,8 +116,8 @@ type ProcessingResult struct {
 	Error          error                  `json:"error,omitempty"`
 }
 
-// StreamingRequest represents a streaming request payload
-type StreamingRequest struct {
+// ProcessingStreamingRequest represents a streaming request payload  
+type ProcessingStreamingRequest struct {
 	Query     string `json:"query"`
 	ModelName string `json:"model_name,omitempty"`
 	MaxTokens int    `json:"max_tokens,omitempty"`
@@ -125,8 +128,8 @@ type StreamingRequest struct {
 type batchProcessor struct {
 	config          *ProcessingConfig
 	baseClient      *Client
-	processingQueue chan *BatchRequest
-	activeBatches   map[string][]*BatchRequest
+	processingQueue chan *ProcessingBatchRequest
+	activeBatches   map[string][]*ProcessingBatchRequest
 	mutex           sync.RWMutex
 	logger          *slog.Logger
 	stopCh          chan struct{}
@@ -152,7 +155,7 @@ func NewProcessingEngine(baseClient *Client, config *ProcessingConfig) *Processi
 		httpClient:    httpClient,
 		ragAPIURL:     config.RAGAPIURL,
 		activeStreams: make(map[string]*StreamContext),
-		batchQueue:    make(chan *BatchRequest, 1000),
+		batchQueue:    make(chan *ProcessingBatchRequest, 1000),
 		metrics:       &ProcessingMetrics{},
 	}
 
@@ -165,7 +168,7 @@ func NewProcessingEngine(baseClient *Client, config *ProcessingConfig) *Processi
 			config:          config,
 			baseClient:      baseClient,
 			processingQueue: processor.batchQueue,
-			activeBatches:   make(map[string][]*BatchRequest),
+			activeBatches:   make(map[string][]*ProcessingBatchRequest),
 			logger:          processor.logger.With("component", "batch-processor"),
 			stopCh:          make(chan struct{}),
 		}
@@ -257,7 +260,7 @@ func (pe *ProcessingEngine) ProcessIntent(ctx context.Context, intent string) (*
 }
 
 // ProcessBatch processes multiple intents as a batch
-func (pe *ProcessingEngine) ProcessBatch(ctx context.Context, requests []*BatchRequest) ([]*ProcessingResult, error) {
+func (pe *ProcessingEngine) ProcessBatch(ctx context.Context, requests []*ProcessingBatchRequest) ([]*ProcessingResult, error) {
 	if !pe.config.EnableBatching {
 		return pe.processIndividually(ctx, requests)
 	}
@@ -272,7 +275,7 @@ func (pe *ProcessingEngine) ProcessBatch(ctx context.Context, requests []*BatchR
 
 	for _, group := range groups {
 		wg.Add(1)
-		go func(batch []*BatchRequest) {
+		go func(batch []*ProcessingBatchRequest) {
 			defer wg.Done()
 			pe.processBatchGroup(ctx, batch, results)
 		}(group)
@@ -465,13 +468,13 @@ func (pe *ProcessingEngine) processStreamingRequest(streamCtx *StreamContext, re
 }
 
 // processIndividually processes requests individually when batching is disabled
-func (pe *ProcessingEngine) processIndividually(ctx context.Context, requests []*BatchRequest) ([]*ProcessingResult, error) {
+func (pe *ProcessingEngine) processIndividually(ctx context.Context, requests []*ProcessingBatchRequest) ([]*ProcessingResult, error) {
 	results := make([]*ProcessingResult, len(requests))
 	var wg sync.WaitGroup
 
 	for i, req := range requests {
 		wg.Add(1)
-		go func(idx int, request *BatchRequest) {
+		go func(idx int, request *ProcessingBatchRequest) {
 			defer wg.Done()
 			result, _ := pe.ProcessIntent(ctx, request.Intent)
 			results[idx] = result
@@ -483,9 +486,9 @@ func (pe *ProcessingEngine) processIndividually(ctx context.Context, requests []
 }
 
 // groupSimilarRequests groups similar requests for batch processing
-func (pe *ProcessingEngine) groupSimilarRequests(requests []*BatchRequest) [][]*BatchRequest {
+func (pe *ProcessingEngine) groupSimilarRequests(requests []*ProcessingBatchRequest) [][]*ProcessingBatchRequest {
 	// Simple grouping by intent similarity
-	groups := make([][]*BatchRequest, 0)
+	groups := make([][]*ProcessingBatchRequest, 0)
 	processed := make(map[int]bool)
 
 	for i, req1 := range requests {
@@ -493,7 +496,7 @@ func (pe *ProcessingEngine) groupSimilarRequests(requests []*BatchRequest) [][]*
 			continue
 		}
 
-		group := []*BatchRequest{req1}
+		group := []*ProcessingBatchRequest{req1}
 		processed[i] = true
 
 		// Find similar requests
@@ -540,7 +543,7 @@ func (pe *ProcessingEngine) calculateSimilarity(intent1, intent2 string) float64
 }
 
 // processBatchGroup processes a group of similar requests
-func (pe *ProcessingEngine) processBatchGroup(ctx context.Context, batch []*BatchRequest, results []*ProcessingResult) {
+func (pe *ProcessingEngine) processBatchGroup(ctx context.Context, batch []*ProcessingBatchRequest, results []*ProcessingResult) {
 	pe.updateMetrics(func(m *ProcessingMetrics) {
 		m.BatchedRequests += int64(len(batch))
 	})

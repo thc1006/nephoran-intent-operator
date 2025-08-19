@@ -98,9 +98,9 @@ func (c *Config) Validate() error {
 	}
 	
 	// Validate Mode
-	validModes := map[string]bool{"watch": true, "once": true, "periodic": true}
+	validModes := map[string]bool{"watch": true, "once": true, "periodic": true, "direct": true}
 	if c.Mode != "" && !validModes[c.Mode] {
-		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic", c.Mode)
+		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic, direct", c.Mode)
 	}
 	
 	return nil
@@ -226,10 +226,32 @@ type Watcher struct {
 	ctx             context.Context
 	cancel          context.CancelFunc
 	shutdownComplete chan struct{}
+	
+	// IntentProcessor for new pattern support
+	processor       *IntentProcessor
 }
 
-// NewWatcher creates a new file system watcher for the specified directory
+// NewWatcher creates a new file system watcher (backward compatibility with Config approach)
 func NewWatcher(dir string, config Config) (*Watcher, error) {
+	return NewWatcherWithConfig(dir, config, nil)
+}
+
+// NewWatcherWithProcessor creates a new file system watcher with processor (new approach)
+func NewWatcherWithProcessor(dir string, processor *IntentProcessor) (*Watcher, error) {
+	// Use default config when using processor approach
+	defaultConfig := Config{
+		MaxWorkers:   2,
+		CleanupAfter: 7 * 24 * time.Hour,
+		DebounceDur:  100 * time.Millisecond,
+		MetricsAddr:  "127.0.0.1",
+		MetricsPort:  8080,
+		Mode:        "watch",
+	}
+	return NewWatcherWithConfig(dir, defaultConfig, processor)
+}
+
+// NewWatcherWithConfig creates a new file system watcher with both config and processor support
+func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor) (*Watcher, error) {
 	// Set defaults before validation
 	if config.MaxWorkers <= 0 {
 		config.MaxWorkers = 2
@@ -251,7 +273,6 @@ func NewWatcher(dir string, config Config) (*Watcher, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid configuration: %w", err)
 	}
-	
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create fsnotify watcher: %w", err)
@@ -263,31 +284,37 @@ func NewWatcher(dir string, config Config) (*Watcher, error) {
 		return nil, fmt.Errorf("failed to add directory %s to watcher: %w", dir, err)
 	}
 	
-	// Create state manager
-	stateManager, err := NewStateManager(dir)
-	if err != nil {
-		watcher.Close()
-		return nil, fmt.Errorf("failed to create state manager: %w", err)
-	}
+	// Create state manager (only if not using processor approach)
+	var stateManager *StateManager
+	var fileManager *FileManager
+	var executor *porch.StatefulExecutor
 	
-	// Create file manager
-	fileManager, err := NewFileManager(dir)
-	if err != nil {
-		watcher.Close()
-		return nil, fmt.Errorf("failed to create file manager: %w", err)
-	}
-	
-	// Create porch executor
-	executor := porch.NewStatefulExecutor(porch.ExecutorConfig{
-		PorchPath: config.PorchPath,
-		Mode:     config.Mode,
-		OutDir:   config.OutDir,
-		Timeout:  30 * time.Second,
-	})
-	
-	// Validate porch path
-	if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
-		log.Printf("Warning: Porch validation failed: %v", err)
+	if processor == nil {
+		stateManager, err = NewStateManager(dir)
+		if err != nil {
+			watcher.Close()
+			return nil, fmt.Errorf("failed to create state manager: %w", err)
+		}
+		
+		// Create file manager
+		fileManager, err = NewFileManager(dir)
+		if err != nil {
+			watcher.Close()
+			return nil, fmt.Errorf("failed to create file manager: %w", err)
+		}
+		
+		// Create porch executor
+		executor = porch.NewStatefulExecutor(porch.ExecutorConfig{
+			PorchPath: config.PorchPath,
+			Mode:     config.Mode,
+			OutDir:   config.OutDir,
+			Timeout:  30 * time.Second,
+		})
+		
+		// Validate porch path
+		if err := porch.ValidatePorchPath(config.PorchPath); err != nil {
+			log.Printf("Warning: Porch validation failed: %v", err)
+		}
 	}
 	
 	ctx, cancel := context.WithCancel(context.Background())
@@ -332,6 +359,7 @@ func NewWatcher(dir string, config Config) (*Watcher, error) {
 		ctx:             ctx,
 		cancel:          cancel,
 		shutdownComplete: make(chan struct{}),
+		processor:       processor, // Support for IntentProcessor pattern
 	}
 	
 	// Start metrics collection
@@ -340,7 +368,7 @@ func NewWatcher(dir string, config Config) (*Watcher, error) {
 	// Start metrics HTTP server
 	if err := w.startMetricsServer(); err != nil {
 		log.Printf("Warning: Failed to start metrics server: %v", err)
-	}
+		}
 	
 	return w, nil
 }
@@ -694,29 +722,73 @@ func percentile(values []int64, p int) int64 {
 	return values[index]
 }
 
+// ProcessExistingFiles processes any existing intent files in the directory (for restart idempotency)
+func (w *Watcher) ProcessExistingFiles() error {
+	// If using IntentProcessor pattern, delegate to processor
+	if w.processor != nil {
+		entries, err := os.ReadDir(w.dir)
+		if err != nil {
+			return fmt.Errorf("failed to read directory: %w", err)
+		}
+
+		count := 0
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+			
+			if IsIntentFile(entry.Name()) {
+				fullPath := filepath.Join(w.dir, entry.Name())
+				if err := w.processor.ProcessFile(fullPath); err != nil {
+					log.Printf("Error processing existing file %s: %v", fullPath, err)
+					// Continue processing other files
+				}
+				count++
+			}
+		}
+
+		if count > 0 {
+			log.Printf("Processed %d existing intent files", count)
+			// Flush any batched files
+			if err := w.processor.FlushBatch(); err != nil {
+				log.Printf("Error flushing batch after processing existing files: %v", err)
+			}
+		}
+
+		return nil
+	}
+	
+	// Fallback to legacy processing approach
+	return w.processExistingFiles()
+}
+
 // Start begins watching for file events
 func (w *Watcher) Start() error {
 	log.Printf("LOOP:START - Starting watcher on directory: %s", w.dir)
-	log.Printf("Configuration: workers=%d, debounce=%v, once=%t, period=%v, metrics_port=%d", 
-		w.config.MaxWorkers, w.config.DebounceDur, w.config.Once, w.config.Period, w.config.MetricsPort)
+	log.Printf("Configuration: workers=%d, debounce=%v, once=%t, period=%v, metrics_port=%d, processor=%t", 
+		w.config.MaxWorkers, w.config.DebounceDur, w.config.Once, w.config.Period, w.config.MetricsPort, w.processor != nil)
 	
-	// Start enhanced worker pool
-	w.startWorkerPool()
-	
-	// Start cleanup routine
-	go w.cleanupRoutine()
+	// Start enhanced worker pool (only if not using processor)
+	if w.processor == nil {
+		w.startWorkerPool()
+		
+		// Start cleanup routine
+		go w.cleanupRoutine()
+	}
 	
 	// Start file state cleanup routine
 	go w.fileStateCleanupRoutine()
 	
 	// If in "once" mode, process existing files first
 	if w.config.Once {
-		if err := w.processExistingFiles(); err != nil {
+		if err := w.ProcessExistingFiles(); err != nil {
 			log.Printf("Warning: failed to process existing files: %v", err)
 		}
 		
 		// In once mode, we don't start the file watcher loop
-		w.waitForWorkersToFinish()
+		if w.processor == nil {
+			w.waitForWorkersToFinish()
+		}
 		return nil
 	}
 	
@@ -730,27 +802,34 @@ func (w *Watcher) Start() error {
 		select {
 		case <-w.ctx.Done():
 			log.Printf("Watcher context cancelled, shutting down...")
-			w.waitForWorkersToFinish()
+			if w.processor == nil {
+				w.waitForWorkersToFinish()
+			}
 			return nil
 			
 		case event, ok := <-w.watcher.Events:
 			if !ok {
 				log.Printf("Watcher events channel closed")
-				w.waitForWorkersToFinish()
+				if w.processor == nil {
+					w.waitForWorkersToFinish()
+				}
 				return nil
 			}
 			
 			// Process only Create and Write events for intent files
 			if event.Op&(fsnotify.Create|fsnotify.Write) != 0 {
 				if IsIntentFile(filepath.Base(event.Name)) {
-					w.handleIntentFileWithEnhancedDebounce(event.Name, event.Op)
+					// Use hybrid processing approach
+					w.handleIntentFile(event)
 				}
 			}
 			
 		case err, ok := <-w.watcher.Errors:
 			if !ok {
 				log.Printf("Watcher errors channel closed")
-				w.waitForWorkersToFinish()
+				if w.processor == nil {
+					w.waitForWorkersToFinish()
+				}
 				return nil
 			}
 			if err != nil {
@@ -758,6 +837,29 @@ func (w *Watcher) Start() error {
 			}
 		}
 	}
+}
+
+// handleIntentFile processes detected intent files using hybrid approach
+func (w *Watcher) handleIntentFile(event fsnotify.Event) {
+	operation := "UNKNOWN"
+	if event.Op&fsnotify.Create != 0 {
+		operation = "CREATE"
+	} else if event.Op&fsnotify.Write != 0 {
+		operation = "WRITE"
+	}
+	
+	log.Printf("LOOP:%s - Intent file detected: %s", operation, filepath.Base(event.Name))
+	
+	// If we have a processor, use it directly
+	if w.processor != nil {
+		if err := w.processor.ProcessFile(event.Name); err != nil {
+			log.Printf("Error processing file %s: %v", event.Name, err)
+		}
+		return
+	}
+	
+	// Fallback to enhanced legacy processing with debouncing
+	w.handleIntentFileWithEnhancedDebounce(event.Name, event.Op)
 }
 
 // handleIntentFileWithEnhancedDebounce handles file events with enhanced debouncing to prevent duplicate processing
@@ -1139,7 +1241,9 @@ func (w *Watcher) Close() error {
 	log.Printf("Closing watcher...")
 	
 	// Cancel context to signal shutdown
-	w.cancel()
+	if w.cancel != nil {
+		w.cancel()
+	}
 	
 	// Close the metrics server
 	if w.metricsServer != nil {
@@ -1153,7 +1257,12 @@ func (w *Watcher) Close() error {
 		w.watcher.Close()
 	}
 	
-	// Save state
+	// Stop processor if using IntentProcessor pattern
+	if w.processor != nil {
+		w.processor.Stop()
+	}
+	
+	// Save state (only if using legacy approach)
 	if w.stateManager != nil {
 		if err := w.stateManager.Close(); err != nil {
 			log.Printf("Warning: failed to save state: %v", err)
@@ -1161,10 +1270,12 @@ func (w *Watcher) Close() error {
 	}
 	
 	// Clear file state tracking
-	w.fileState.mu.Lock()
-	w.fileState.recentEvents = make(map[string]time.Time)
-	w.fileState.processing = make(map[string]*sync.Mutex)
-	w.fileState.mu.Unlock()
+	if w.fileState != nil {
+		w.fileState.mu.Lock()
+		w.fileState.recentEvents = make(map[string]time.Time)
+		w.fileState.processing = make(map[string]*sync.Mutex)
+		w.fileState.mu.Unlock()
+	}
 	
 	log.Printf("Watcher closed")
 	return nil
@@ -1907,9 +2018,12 @@ func (w *Watcher) safeMarshalJSON(v interface{}, maxSize int) ([]byte, error) {
 	return data, nil
 }
 
-// GetStats returns processing statistics
+// GetStats returns processing statistics (only if using legacy approach)
 func (w *Watcher) GetStats() (ProcessingStats, error) {
-	return w.fileManager.GetStats()
+	if w.fileManager != nil {
+		return w.fileManager.GetStats()
+	}
+	return ProcessingStats{}, fmt.Errorf("stats not available when using IntentProcessor approach")
 }
 
 // GetMetrics returns a copy of the current metrics
@@ -2115,4 +2229,10 @@ func (w *Watcher) ensureDirectoryExists(dir string) {
 			log.Printf("Created directory: %s", dir)
 		}
 	})
+}
+
+// IsIntentFile checks if a filename matches the intent file pattern
+func IsIntentFile(filename string) bool {
+	// Check if file matches intent-*.json pattern
+	return strings.HasPrefix(filename, "intent-") && strings.HasSuffix(filename, ".json")
 }

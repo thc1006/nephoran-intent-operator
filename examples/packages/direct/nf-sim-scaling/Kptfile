@@ -1,0 +1,46 @@
+APIVersion: kpt.dev/v1
+Info:
+  Description: KRM package for nf-sim CNF scaling to 3 replicas
+  Keywords:
+  - nephoran
+  - scaling
+  - nf-simulator
+  - cnf
+  - oran
+  License: Apache-2.0
+  Site: https://github.com/thc1006/nephoran-intent-operator
+Kind: Kptfile
+Metadata:
+  Annotations:
+    config.kubernetes.io/local-config: "true"
+    nephoran.com/generated-at: "2025-08-15T19:19:01+08:00"
+    nephoran.com/intent-type: scaling
+    nephoran.com/namespace: ran-a
+    nephoran.com/replicas: "3"
+    nephoran.com/source: ""
+    nephoran.com/target: nf-sim
+  Labels:
+    app: nf-sim
+    app.kubernetes.io/component: nf-simulator
+    app.kubernetes.io/managed-by: porch-direct
+    app.kubernetes.io/name: nf-sim
+    app.kubernetes.io/part-of: nephoran-intent-operator
+  Name: nf-sim-package
+  Namespace: ran-a
+Pipeline:
+  Mutators:
+  - ConfigMap:
+      app: nf-sim
+      app.kubernetes.io/component: nf-simulator
+      app.kubernetes.io/managed-by: porch-direct
+      app.kubernetes.io/name: nf-sim
+      app.kubernetes.io/part-of: nephoran-intent-operator
+    ConfigPath: ""
+    Image: gcr.io/kpt-fn/set-labels:v0.2.0
+    Name: ""
+  - ConfigMap:
+      nephoran.com/intent-type: scaling
+      nephoran.com/source: ""
+    ConfigPath: ""
+    Image: gcr.io/kpt-fn/set-annotations:v0.1.4
+    Name: ""

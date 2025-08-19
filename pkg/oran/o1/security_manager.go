@@ -513,8 +513,8 @@ type PolicyEngine struct {
 	mutex      sync.RWMutex
 }
 
-// SecurityPolicy represents a security policy
-type SecurityPolicy struct {
+// SecurityManagerPolicy represents a security policy managed by security manager
+type SecurityManagerPolicy struct {
 	ID          string
 	Name        string
 	Type        string // ACCESS_CONTROL, ENCRYPTION, AUDIT
@@ -2097,8 +2097,8 @@ type IncidentEscalation struct {
 	notifications *EscalationNotifications
 }
 
-// EscalationRule defines escalation conditions
-type EscalationRule struct {
+// SecurityEscalationRule defines security escalation conditions
+type SecurityEscalationRule struct {
 	ID            string
 	Name          string
 	Conditions    []string

@@ -1,0 +1,8 @@
+{
+  "intent_type": "scaling",
+  "target": "cnf-simulator",
+  "namespace": "default",
+  "replicas": -1,
+  "reason": "Invalid test",
+  "source": "test"
+}

@@ -144,6 +144,25 @@ type AlarmEdge struct {
 	Weight        int     `json:"weight"`
 }
 
+// AlarmSeverity represents alarm severity levels
+type AlarmSeverity string
+
+const (
+	AlarmSeverityMinor    AlarmSeverity = "MINOR"
+	AlarmSeverityMajor    AlarmSeverity = "MAJOR"
+	AlarmSeverityCritical AlarmSeverity = "CRITICAL"
+	AlarmSeverityWarning  AlarmSeverity = "WARNING"
+)
+
+// EscalationRule defines alarm escalation rules
+type EscalationRule struct {
+	AlarmType     string        `yaml:"alarm_type"`
+	Severity      AlarmSeverity `yaml:"severity"`
+	EscalateAfter time.Duration `yaml:"escalate_after"`
+	Recipients    []string      `yaml:"recipients"`
+	Actions       []string      `yaml:"actions"`
+}
+
 // AlarmNotificationManager handles alarm notifications
 type AlarmNotificationManager struct {
 	channels        map[string]NotificationChannel
@@ -169,8 +188,8 @@ type NotificationTemplate struct {
 	Variables map[string]string `json:"variables"`
 }
 
-// EscalationRule defines when and how to escalate alarms
-type EscalationRule struct {
+// FaultEscalationRule defines when and how to escalate alarms
+type FaultEscalationRule struct {
 	ID       string        `json:"id"`
 	Severity []string      `json:"severity"`
 	Duration time.Duration `json:"duration"`

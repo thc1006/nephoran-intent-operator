@@ -48,7 +48,7 @@ type Client struct {
 	fallbackURLs []string
 
 	// Token and cost tracking
-	tokenTracker *TokenTracker
+	tokenTracker *SimpleTokenTracker
 }
 
 // ClientConfig holds unified configuration
@@ -83,107 +83,19 @@ type RetryConfig struct {
 	BackoffFactor float64       `json:"backoff_factor"`
 }
 
-// CircuitState represents the state of a circuit breaker
-type CircuitState int
+// Use CircuitState and constants from circuit_breaker.go to avoid duplicates
 
-const (
-	StateClosed CircuitState = iota
-	StateHalfOpen
-	StateOpen
-)
+// Use CircuitBreaker from circuit_breaker.go to avoid duplicates
 
-// CircuitBreaker implements basic circuit breaker functionality
-type CircuitBreaker struct {
-	name            string
-	config          *CircuitBreakerConfig
-	state           CircuitState
-	failureCount    int64
-	requestCount    int64
-	lastFailureTime time.Time
-	stateChangeTime time.Time
-	mutex           sync.RWMutex
-}
+// Use NewCircuitBreaker from circuit_breaker.go to avoid duplicates
 
-// NewCircuitBreaker creates a new circuit breaker
-func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreaker {
-	if config == nil {
-		config = getDefaultCircuitBreakerConfig()
-	}
+// Use Execute method from circuit_breaker.go to avoid duplicates
 
-	return &CircuitBreaker{
-		name:            name,
-		config:          config,
-		state:           StateClosed,
-		stateChangeTime: time.Now(),
-	}
-}
+// Use shouldTrip method from circuit_breaker.go to avoid duplicates
 
-// Execute executes an operation through the circuit breaker
-func (cb *CircuitBreaker) Execute(ctx context.Context, operation func(context.Context) (interface{}, error)) (interface{}, error) {
-	cb.mutex.RLock()
-	state := cb.state
-	cb.mutex.RUnlock()
+// Use Reset method from circuit_breaker.go to avoid duplicates
 
-	if state == StateOpen {
-		return nil, fmt.Errorf("circuit breaker is open")
-	}
-
-	result, err := operation(ctx)
-
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-
-	cb.requestCount++
-
-	if err != nil {
-		cb.failureCount++
-		cb.lastFailureTime = time.Now()
-
-		if cb.shouldTrip() {
-			cb.state = StateOpen
-			cb.stateChangeTime = time.Now()
-		}
-		return nil, err
-	}
-
-	if cb.state == StateHalfOpen {
-		cb.state = StateClosed
-		cb.stateChangeTime = time.Now()
-		cb.failureCount = 0
-	}
-
-	return result, nil
-}
-
-// shouldTrip determines if the circuit breaker should trip to open state
-func (cb *CircuitBreaker) shouldTrip() bool {
-	if cb.requestCount < cb.config.MinimumRequestCount {
-		return false
-	}
-
-	failureRate := float64(cb.failureCount) / float64(cb.requestCount)
-	return cb.failureCount >= cb.config.FailureThreshold || failureRate >= cb.config.FailureRate
-}
-
-// Reset resets the circuit breaker
-func (cb *CircuitBreaker) Reset() {
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-
-	cb.state = StateClosed
-	cb.failureCount = 0
-	cb.requestCount = 0
-	cb.stateChangeTime = time.Now()
-}
-
-// ForceOpen forces the circuit breaker to open state
-func (cb *CircuitBreaker) ForceOpen() {
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-
-	cb.state = StateOpen
-	cb.stateChangeTime = time.Now()
-}
+// Use ForceOpen method from circuit_breaker.go to avoid duplicates
 
 // NewClientMetrics creates new client metrics
 func NewClientMetrics() *ClientMetrics {
@@ -286,7 +198,7 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 			JitterEnabled: true,
 			BackoffFactor: 2.0,
 		},
-		tokenTracker: NewTokenTracker(),
+		tokenTracker: NewSimpleTokenTracker(),
 	}
 
 	// Initialize metrics integrator for Prometheus support

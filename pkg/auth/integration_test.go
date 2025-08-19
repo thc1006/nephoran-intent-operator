@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"bytes"
@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
 )
@@ -23,19 +24,19 @@ import (
 type IntegrationTestSuite struct {
 	t              *testing.T
 	tc             *testutil.TestContext
-	jwtManager     *JWTManager
-	sessionManager *SessionManager
-	rbacManager    *RBACManager
-	ldapMiddleware *LDAPAuthMiddleware
-	authManager    *AuthManager
+	jwtManager     *auth.JWTManager
+	sessionManager *auth.SessionManager
+	rbacManager    *auth.RBACManager
+	ldapMiddleware *auth.LDAPAuthMiddleware
+	authManager    *auth.AuthManager
 	oauthServer    *testutil.OAuth2MockServer
 	server         *httptest.Server
-	handlers       *AuthHandlers
+	handlers       *auth.AuthHandlers
 
 	// Test data
 	testUser       *providers.UserInfo
-	testRole       *Role
-	testPermission *Permission
+	testRole       *auth.Role
+	testPermission *auth.Permission
 
 	// Authentication state
 	accessToken  string
@@ -60,7 +61,7 @@ func NewIntegrationTestSuite(t *testing.T) *IntegrationTestSuite {
 	ldapProviders := map[string]*providers.LDAPProvider{
 		"test-ldap": mockLDAPProvider.(*providers.LDAPProvider),
 	}
-	suite.ldapMiddleware = NewLDAPAuthMiddleware(
+	suite.ldapMiddleware = auth.NewLDAPAuthMiddleware(
 		ldapProviders,
 		suite.sessionManager,
 		suite.jwtManager,
@@ -77,16 +78,16 @@ func NewIntegrationTestSuite(t *testing.T) *IntegrationTestSuite {
 	)
 
 	// Setup unified AuthManager
-	authConfig := &AuthConfig{
+	authConfig := &auth.AuthConfig{
 		JWTSecretKey: "test-secret-key",
 		TokenTTL:     time.Hour,
 		RefreshTTL:   24 * time.Hour,
-		RBAC: RBACConfig{
+		RBAC: auth.RBACConfig{
 			EnableRBAC: true,
 		},
 	}
 
-	authManager, err := NewAuthManager(authConfig, tc.Logger)
+	authManager, err := auth.NewAuthManager(authConfig, tc.Logger)
 	require.NoError(t, err)
 	suite.authManager = authManager
 
@@ -148,7 +149,7 @@ func (suite *IntegrationTestSuite) setupHTTPServer() {
 	})
 
 	// Create handlers
-	suite.handlers = NewAuthHandlers(&AuthHandlersConfig{
+	suite.handlers = auth.NewAuthHandlers(&auth.AuthHandlersConfig{
 		JWTManager:     suite.jwtManager,
 		SessionManager: suite.sessionManager,
 		RBACManager:    suite.rbacManager,

@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
@@ -823,7 +826,8 @@ func validateWorkerPoolConfig(config *WorkerPoolConfig) error {
 
 // Supporting type definitions
 
-type Priority int
+// Priority is defined in batch_processor.go
+// type Priority int
 type TaskType string
 type WorkerType string
 type WorkerState int
@@ -841,10 +845,10 @@ type FastJSONParser struct{}
 type ResponsePool struct{}
 
 const (
-	PriorityUrgent Priority = iota
-	PriorityHigh
-	PriorityNormal
-	PriorityLow
+	PriorityUrgent Priority = iota + 10 // Offset to avoid conflicts
+	// PriorityHigh - defined in batch_processor.go
+	// PriorityNormal - defined in batch_processor.go  
+	// PriorityLow - defined in batch_processor.go
 
 	TaskTypeLLMProcessing TaskType = "llm_processing"
 	TaskTypeValidation    TaskType = "validation"

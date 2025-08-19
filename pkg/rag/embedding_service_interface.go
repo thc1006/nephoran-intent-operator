@@ -1,3 +1,5 @@
+//go:build !disable_rag && !test
+
 package rag
 
 import (
@@ -182,24 +184,7 @@ func calculateCosineSimilarity(a, b []float32) float32 {
 	return dotProduct / (float32(sqrt(float64(normA))) * float32(sqrt(float64(normB))))
 }
 
-// sqrt implements square root for float64
-func sqrt(x float64) float64 {
-	if x < 0 {
-		return 0
-	}
-
-	// Simple Newton-Raphson method for square root
-	if x == 0 {
-		return 0
-	}
-
-	z := x
-	for i := 0; i < 10; i++ {
-		z = (z + x/z) / 2
-	}
-
-	return z
-}
+// Note: sqrt function is defined in optimized_rag_pipeline.go
 
 // generateRequestID generates a unique request ID
 func generateRequestID(operation string) string {

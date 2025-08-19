@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/internal/ingest"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
@@ -52,6 +54,15 @@ type HealthResponse struct {
 	Version   string `json:"version"`
 	Uptime    string `json:"uptime"`
 	Timestamp string `json:"timestamp"`
+}
+
+// ProcessIntentResult represents the result of intent processing
+type ProcessIntentResult struct {
+	Result         string                 `json:"result"`
+	RequestID      string                 `json:"request_id"`
+	ProcessingTime time.Duration          `json:"processing_time"`
+	Metadata       map[string]interface{} `json:"metadata,omitempty"`
+	Status         string                 `json:"status"`
 }
 
 // IntentProcessor handles the LLM processing logic with RAG enhancement
@@ -170,7 +181,7 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
 
-	result, err := h.processor.ProcessIntent(ctx, req.Intent)
+	result, err := h.processor.ProcessIntent(ctx, req.Intent, req.Metadata)
 	if err != nil {
 		h.logger.Error("Failed to process intent",
 			slog.String("error", err.Error()),
@@ -189,11 +200,12 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 	}
 
 	response := ProcessIntentResponse{
-		Result:         result,
-		Status:         "success",
+		Result:         result.Result,
+		Status:         result.Status,
 		ProcessingTime: time.Since(startTime).String(),
 		RequestID:      reqID,
 		ServiceVersion: h.config.ServiceVersion,
+		Metadata:       result.Metadata,
 	}
 
 	h.writeJSONResponse(w, response, http.StatusOK)
@@ -442,7 +454,7 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 }
 
 // ProcessIntent processes an intent using the configured processor
-func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
+func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string, metadata map[string]string) (*ProcessIntentResult, error) {
 	p.Logger.Debug("Processing intent with enhanced client", slog.String("intent", intent))
 
 	// Use circuit breaker for fault tolerance
@@ -462,10 +474,20 @@ func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (str
 
 	result, err := p.CircuitBreaker.Execute(ctx, operation)
 	if err != nil {
-		return "", fmt.Errorf("LLM processing failed: %w", err)
+		return nil, fmt.Errorf("LLM processing failed: %w", err)
 	}
 
-	return result.(string), nil
+	// Create ProcessIntentResult from the raw LLM response
+	processedResult := &ProcessIntentResult{
+		Result: result.(string),
+		Status: "success",
+		Metadata: map[string]interface{}{
+			"original_metadata": metadata,
+			"processing_method": "llm_enhanced",
+		},
+	}
+
+	return processedResult, nil
 }
 
 // Helper methods
@@ -476,6 +498,73 @@ func (h *LLMProcessorHandler) writeJSONResponse(w http.ResponseWriter, data inte
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		h.logger.Error("Failed to encode JSON response", slog.String("error", err.Error()))
 	}
+}
+
+// NLToIntentHandler handles natural language to intent conversion
+// POST /nl/intent - Accepts text/plain body and returns Intent JSON
+func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.Request) {
+	var statusCode int
+	startTime := time.Now()
+	defer func() {
+		duration := time.Since(startTime).Seconds()
+		if h.metricsCollector != nil {
+			h.metricsCollector.RecordHTTPRequest(
+				r.Method,
+				"/nl/intent",
+				strconv.Itoa(statusCode),
+				time.Duration(duration*float64(time.Second)),
+			)
+		}
+	}()
+
+	if r.Method != http.MethodPost {
+		statusCode = http.StatusMethodNotAllowed
+		h.writeErrorResponse(w, "Method not allowed", statusCode, "")
+		return
+	}
+
+	// Read the raw text body
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		statusCode = http.StatusBadRequest
+		h.writeErrorResponse(w, "Failed to read request body", statusCode, "")
+		return
+	}
+	defer r.Body.Close()
+
+	text := string(body)
+	if text == "" {
+		statusCode = http.StatusBadRequest
+		h.writeErrorResponse(w, "Empty request body", statusCode, "")
+		return
+	}
+
+	// Use the rule-based parser from internal/ingest
+	parser := ingest.NewRuleBasedIntentParser()
+	intent, err := parser.ParseIntent(text)
+	if err != nil {
+		h.logger.Error("Failed to parse intent",
+			slog.String("error", err.Error()),
+			slog.String("text", text),
+		)
+		statusCode = http.StatusBadRequest
+		h.writeErrorResponse(w, fmt.Sprintf("Failed to parse intent: %v", err), statusCode, "")
+		return
+	}
+
+	// Validate the intent structure with JSON schema
+	if err := ingest.ValidateIntentWithSchema(intent, ""); err != nil {
+		h.logger.Error("Invalid intent structure",
+			slog.String("error", err.Error()),
+			slog.Any("intent", intent),
+		)
+		statusCode = http.StatusBadRequest
+		h.writeErrorResponse(w, fmt.Sprintf("Invalid intent: %v", err), statusCode, "")
+		return
+	}
+
+	statusCode = http.StatusOK
+	h.writeJSONResponse(w, intent, statusCode)
 }
 
 func (h *LLMProcessorHandler) writeErrorResponse(w http.ResponseWriter, message string, statusCode int, requestID string) {

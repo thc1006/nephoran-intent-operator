@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
@@ -64,7 +67,7 @@ type L1Cache struct {
 
 // CacheSegment provides lock-free cache operations for a subset of keys
 type CacheSegment struct {
-	entries     map[string]*CacheEntry
+	entries     map[string]*IntelligentCacheEntry
 	accessOrder *AccessOrderManager
 	size        int64
 	lastAccess  time.Time
@@ -75,8 +78,8 @@ type CacheSegment struct {
 	writeBuffer   chan *CacheOperation
 }
 
-// CacheEntry represents a cached item with comprehensive metadata
-type CacheEntry struct {
+// IntelligentCacheEntry represents a cached item with comprehensive metadata
+type IntelligentCacheEntry struct {
 	// Data
 	Key           string
 	Value         []byte
@@ -282,7 +285,7 @@ func NewIntelligentCache(config *IntelligentCacheConfig) (*IntelligentCache, err
 		warmer:      warmer,
 		config:      config,
 		logger:      logger,
-		metrics:     NewCacheMetrics(),
+		metrics:     &CacheMetrics{},
 		state:       CacheStateActive,
 	}
 
@@ -355,7 +358,7 @@ func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface
 	}
 
 	// Create cache entry with comprehensive metadata
-	entry := &CacheEntry{
+	entry := &IntelligentCacheEntry{
 		Key:           key,
 		OriginalValue: value,
 		CreatedAt:     time.Now(),
@@ -427,7 +430,7 @@ func (ic *IntelligentCache) getSemanticMatch(ctx context.Context, key string) (i
 	}
 
 	bestSimilarity := 0.0
-	var bestMatch *CacheEntry
+	var bestMatch *IntelligentCacheEntry
 
 	// Compare with cached embeddings
 	ic.policies.SemanticSimilarity.embeddingsMutex.RLock()
@@ -622,14 +625,13 @@ func (ic *IntelligentCache) optimizationRoutine() {
 func NewL1Cache(config L1CacheConfig) (*L1Cache, error)                  { return nil, nil }
 func (l1 *L1Cache) Get(key string) (interface{}, bool)                   { return nil, false }
 func (l1 *L1Cache) Set(key string, value interface{}, ttl time.Duration) {}
-func (l1 *L1Cache) SetEntry(entry *CacheEntry)                           {}
-func (l1 *L1Cache) GetEntry(key string) (*CacheEntry, bool)              { return nil, false }
+func (l1 *L1Cache) SetEntry(entry *IntelligentCacheEntry)                           {}
+func (l1 *L1Cache) GetEntry(key string) (*IntelligentCacheEntry, bool)              { return nil, false }
 
 func NewDependencyGraph() *DependencyGraph                            { return &DependencyGraph{} }
 func (dg *DependencyGraph) AddDependencies(key string, deps []string) {}
 
 func NewPatternAnalyzer() *PatternAnalyzer { return &PatternAnalyzer{} }
-func NewCacheMetrics() *CacheMetrics       { return &CacheMetrics{} }
 
 func (cm *CacheMetrics) RecordOperation(op string, duration time.Duration) {}
 func (cm *CacheMetrics) RecordHit(level string)                            {}
@@ -727,7 +729,6 @@ type WarmingPredictor struct{}
 type WarmingScheduler struct{}
 type WarmingConfig struct{}
 
-type CacheMetrics struct{}
 
 type CacheOptions struct {
 	TTL           time.Duration

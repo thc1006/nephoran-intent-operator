@@ -861,8 +861,8 @@ func (cm *ContextMatcher) extractLatencyRequirement(intent string) *LatencyRequi
 
 func (cm *ContextMatcher) extractThroughputRequirement(intent string) *ThroughputRequirement {
 	patterns := []string{
-		`(?:throughput|bandwidth|speed).*?(\d+(?:\.\d+)?)\s*(mbps|gbps|kbps|mb/s|gb/s|kb/s)`,
-		`(\d+(?:\.\d+)?)\s*(mbps|gbps|kbps|mb/s|gb/s|kb/s).*?(?:throughput|bandwidth)`,
+		`(?i)(?:throughput|bandwidth|speed).*?(\d+(?:\.\d+)?)\s*(mbps|gbps|kbps|mb/s|gb/s|kb/s)`,
+		`(?i)(\d+(?:\.\d+)?)\s*(mbps|gbps|kbps|mb/s|gb/s|kb/s).*?(?:throughput|bandwidth)`,
 	}
 
 	for _, pattern := range patterns {
@@ -872,9 +872,10 @@ func (cm *ContextMatcher) extractThroughputRequirement(intent string) *Throughpu
 			if value, err := strconv.ParseFloat(matches[1], 64); err == nil {
 				unit := strings.ToLower(matches[2])
 				reqType := "aggregate"
-				if strings.Contains(intent, "uplink") || strings.Contains(intent, "ul") {
+				lowerIntent := strings.ToLower(intent)
+				if strings.Contains(lowerIntent, "uplink") || strings.Contains(lowerIntent, "ul") {
 					reqType = "uplink"
-				} else if strings.Contains(intent, "downlink") || strings.Contains(intent, "dl") {
+				} else if strings.Contains(lowerIntent, "downlink") || strings.Contains(lowerIntent, "dl") {
 					reqType = "downlink"
 				}
 

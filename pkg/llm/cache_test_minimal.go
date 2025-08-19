@@ -2,7 +2,7 @@
 // +build ignore
 
 // This is a standalone test file to verify ResponseCache Stop() functionality
-// Run with: go run cache_test_minimal.go llm.go prompt_templates.go
+// Run with: go run cache_test_minimal.go llm.go prompt_engine.go
 
 package main
 

@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"context"
@@ -9,19 +9,20 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
 )
 
 func TestNewJWTManager(t *testing.T) {
 	tests := []struct {
 		name        string
-		config      *JWTConfig
+		config      *auth.JWTConfig
 		expectError bool
-		checkConfig func(*testing.T, *JWTManager)
+		checkConfig func(*testing.T, *auth.JWTManager)
 	}{
 		{
 			name: "Valid configuration",
-			config: &JWTConfig{
+			config: &auth.JWTConfig{
 				Issuer:               "test-issuer",
 				DefaultTTL:           time.Hour,
 				RefreshTTL:           24 * time.Hour,
@@ -32,7 +33,7 @@ func TestNewJWTManager(t *testing.T) {
 				Algorithm:            "RS256",
 			},
 			expectError: false,
-			checkConfig: func(t *testing.T, manager *JWTManager) {
+			checkConfig: func(t *testing.T, manager *auth.JWTManager) {
 				assert.Equal(t, "test-issuer", manager.issuer)
 				assert.Equal(t, time.Hour, manager.defaultTTL)
 				assert.Equal(t, 24*time.Hour, manager.refreshTTL)
@@ -43,7 +44,7 @@ func TestNewJWTManager(t *testing.T) {
 			name:        "Nil configuration uses defaults",
 			config:      nil,
 			expectError: false,
-			checkConfig: func(t *testing.T, manager *JWTManager) {
+			checkConfig: func(t *testing.T, manager *auth.JWTManager) {
 				assert.Equal(t, "nephoran-intent-operator", manager.issuer)
 				assert.Equal(t, time.Hour, manager.defaultTTL)
 				assert.Equal(t, 24*time.Hour, manager.refreshTTL)
@@ -51,13 +52,13 @@ func TestNewJWTManager(t *testing.T) {
 		},
 		{
 			name: "Configuration with short TTL",
-			config: &JWTConfig{
+			config: &auth.JWTConfig{
 				Issuer:     "test-issuer",
 				DefaultTTL: 5 * time.Minute,
 				RefreshTTL: 30 * time.Minute,
 			},
 			expectError: false,
-			checkConfig: func(t *testing.T, manager *JWTManager) {
+			checkConfig: func(t *testing.T, manager *auth.JWTManager) {
 				assert.Equal(t, 5*time.Minute, manager.defaultTTL)
 				assert.Equal(t, 30*time.Minute, manager.refreshTTL)
 			},
@@ -69,7 +70,7 @@ func TestNewJWTManager(t *testing.T) {
 			tc := testutil.NewTestContext(t)
 			defer tc.Cleanup()
 
-			manager := NewJWTManager(tt.config, tc.Logger)
+			manager := auth.NewJWTManager(tt.config, tc.Logger)
 
 			if tt.expectError {
 				assert.Nil(t, manager)

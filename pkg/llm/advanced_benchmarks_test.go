@@ -291,7 +291,7 @@ func benchmarkCircuitBreakerBehavior(b *testing.B, ctx context.Context, processo
 // benchmarkCachePerformance tests cache efficiency and hit rates
 func benchmarkCachePerformance(b *testing.B, ctx context.Context, processor *EnhancedLLMProcessor) {
 	// Configure cache for testing
-	processor.cache.Configure(CacheConfig{
+	processor.cache.Configure(BenchmarkCacheConfig{
 		MaxSize:  1000,
 		TTL:      time.Minute * 5,
 		Strategy: "lru",
@@ -662,7 +662,7 @@ type IntelligentCache interface {
 	Has(key string) bool
 	GenerateKey(intent string, params map[string]interface{}) string
 	Clear()
-	Configure(config CacheConfig)
+	Configure(config BenchmarkCacheConfig)
 }
 
 type CircuitBreaker interface {
@@ -689,13 +689,13 @@ type ProcessorMetrics interface {
 }
 
 // Configuration types
-type CacheConfig struct {
+type BenchmarkCacheConfig struct {
 	MaxSize  int
 	TTL      time.Duration
 	Strategy string
 }
 
-type CircuitBreakerConfig struct {
+type TestCircuitBreakerConfig struct {
 	MaxFailures   int
 	ResetTimeout  time.Duration
 	HalfOpenLimit int
@@ -743,7 +743,7 @@ func (m *mockCache) Set(key string, value interface{})                          
 func (m *mockCache) Has(key string) bool                                             { return false }
 func (m *mockCache) GenerateKey(intent string, params map[string]interface{}) string { return intent }
 func (m *mockCache) Clear()                                                          {}
-func (m *mockCache) Configure(config CacheConfig)                                    {}
+func (m *mockCache) Configure(config BenchmarkCacheConfig)                                    {}
 
 type mockCircuitBreaker struct{}
 

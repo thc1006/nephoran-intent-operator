@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 package llm
 
 import (
@@ -13,8 +16,8 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-// BatchProcessor handles batch processing of LLM requests for improved efficiency
-type BatchProcessor struct {
+// BatchProcessorImpl handles batch processing of LLM requests for improved efficiency
+type BatchProcessorImpl struct {
 	config BatchConfig
 	logger *slog.Logger
 	tracer trace.Tracer
@@ -101,7 +104,7 @@ const (
 // BatchWorker processes batches
 type BatchWorker struct {
 	id        int
-	processor *BatchProcessor
+	processor *BatchProcessorImpl
 	client    *Client
 	logger    *slog.Logger
 	stopChan  chan bool
@@ -114,8 +117,8 @@ type PriorityQueue struct {
 }
 
 // NewBatchProcessor creates a new batch processor
-func NewBatchProcessor(config BatchConfig) *BatchProcessor {
-	bp := &BatchProcessor{
+func NewBatchProcessor(config BatchConfig) *BatchProcessorImpl {
+	bp := &BatchProcessorImpl{
 		config:        config,
 		logger:        slog.Default().With("component", "batch-processor"),
 		tracer:        otel.Tracer("nephoran-intent-operator/batch-processor"),
@@ -181,7 +184,7 @@ func (pq *PriorityQueue) Len() int {
 }
 
 // ProcessRequest processes a single request through batching
-func (bp *BatchProcessor) ProcessRequest(ctx context.Context, intent, intentType, modelName string, priority Priority) (*BatchResult, error) {
+func (bp *BatchProcessorImpl) ProcessRequest(ctx context.Context, intent, intentType, modelName string, priority Priority) (*BatchResult, error) {
 	bp.shutdownMutex.RLock()
 	if bp.isShutdown {
 		bp.shutdownMutex.RUnlock()
@@ -228,7 +231,7 @@ func (bp *BatchProcessor) ProcessRequest(ctx context.Context, intent, intentType
 }
 
 // startWorkers starts the batch processing workers
-func (bp *BatchProcessor) startWorkers() {
+func (bp *BatchProcessorImpl) startWorkers() {
 	for i := 0; i < bp.config.ConcurrentBatches; i++ {
 		worker := &BatchWorker{
 			id:        i,
@@ -244,7 +247,7 @@ func (bp *BatchProcessor) startWorkers() {
 }
 
 // batchFormationRoutine forms batches from incoming requests
-func (bp *BatchProcessor) batchFormationRoutine() {
+func (bp *BatchProcessorImpl) batchFormationRoutine() {
 	ticker := time.NewTicker(bp.config.BatchTimeout)
 	defer ticker.Stop()
 
@@ -286,7 +289,7 @@ func (bp *BatchProcessor) batchFormationRoutine() {
 }
 
 // processPriorityQueue processes requests from the priority queue
-func (bp *BatchProcessor) processPriorityQueue(pendingRequests map[string][]*BatchRequest) {
+func (bp *BatchProcessorImpl) processPriorityQueue(pendingRequests map[string][]*BatchRequest) {
 	// Move high priority requests from priority queue to processing
 	for bp.priorityQueue.Len() > 0 {
 		request := bp.priorityQueue.Pop()
@@ -310,7 +313,7 @@ func (bp *BatchProcessor) processPriorityQueue(pendingRequests map[string][]*Bat
 }
 
 // formBatch creates a batch from pending requests
-func (bp *BatchProcessor) formBatch(modelName string, requests []*BatchRequest) {
+func (bp *BatchProcessorImpl) formBatch(modelName string, requests []*BatchRequest) {
 	if len(requests) == 0 {
 		return
 	}
@@ -338,7 +341,7 @@ func (bp *BatchProcessor) formBatch(modelName string, requests []*BatchRequest) 
 }
 
 // assignBatchToWorker assigns a batch to an available worker
-func (bp *BatchProcessor) assignBatchToWorker(batch *Batch) {
+func (bp *BatchProcessorImpl) assignBatchToWorker(batch *Batch) {
 	// Simple round-robin assignment
 	for _, worker := range bp.workers {
 		select {
@@ -473,7 +476,7 @@ func (worker *BatchWorker) processRequest(ctx context.Context, request *BatchReq
 }
 
 // updateMetrics updates batch processing metrics
-func (bp *BatchProcessor) updateMetrics(batchSize int, processingTime time.Duration) {
+func (bp *BatchProcessorImpl) updateMetrics(batchSize int, processingTime time.Duration) {
 	bp.metricsMutex.Lock()
 	defer bp.metricsMutex.Unlock()
 
@@ -489,7 +492,7 @@ func (bp *BatchProcessor) updateMetrics(batchSize int, processingTime time.Durat
 }
 
 // GetStats returns current batch processor statistics
-func (bp *BatchProcessor) GetStats() BatchProcessorStats {
+func (bp *BatchProcessorImpl) GetStats() BatchProcessorStats {
 	bp.metricsMutex.RLock()
 	defer bp.metricsMutex.RUnlock()
 
@@ -522,7 +525,7 @@ type BatchProcessorStats struct {
 }
 
 // GetBatch returns information about a specific batch
-func (bp *BatchProcessor) GetBatch(batchID string) (*Batch, bool) {
+func (bp *BatchProcessorImpl) GetBatch(batchID string) (*Batch, bool) {
 	bp.batchesMutex.RLock()
 	defer bp.batchesMutex.RUnlock()
 
@@ -531,7 +534,7 @@ func (bp *BatchProcessor) GetBatch(batchID string) (*Batch, bool) {
 }
 
 // Close gracefully shuts down the batch processor
-func (bp *BatchProcessor) Close() error {
+func (bp *BatchProcessorImpl) Close() error {
 	bp.shutdownMutex.Lock()
 	bp.isShutdown = true
 	bp.shutdownMutex.Unlock()

@@ -1,0 +1,24 @@
+# The following manifests contain a self-signed issuer CR and a certificate CR.
+# More document can be found at https://docs.cert-manager.io
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+  namespace: system
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
+  namespace: system
+spec:
+  # service.namespace.svc and service.namespace.svc.cluster.local will be added automatically
+  dnsNames:
+  - webhook-service.nephoran-system.svc
+  - webhook-service.nephoran-system.svc.cluster.local
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: webhook-serving-cert # this secret will be created by cert-manager and mounted by the webhook
