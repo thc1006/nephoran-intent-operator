@@ -564,8 +564,8 @@ func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, do
 // GetMetrics returns processor metrics
 func (pcp *ParallelChunkProcessor) GetMetrics() interface{} {
 	return map[string]interface{}{
-		"processed_chunks": pcp.metrics.ProcessedChunks,
-		"failed_chunks":    pcp.metrics.FailedChunks,
+		"processed_chunks": pcp.metrics.tasksProcessed,
+		"failed_chunks":    pcp.metrics.tasksFailed,
 		"active_workers":   pcp.workerPool.activeWorkers,
 	}
 }

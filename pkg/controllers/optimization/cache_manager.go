@@ -41,9 +41,9 @@ type MultiLevelCacheManager struct {
 	config *PerformanceConfig
 
 	// Cache levels
-	l1Cache *L1Cache
-	l2Cache *L2Cache
-	l3Cache *L3Cache
+	l1Cache *Level1Cache
+	l2Cache *Level2Cache
+	l3Cache *Level3Cache
 
 	// Cache policies
 	policies map[string]*CachePolicy
@@ -767,71 +767,71 @@ func (c *CacheMetricsCollector) GetUsagePatterns() *CacheUsagePatterns {
 // Placeholder cache implementations - in production these would be fully implemented
 
 // L1Cache represents the in-memory local cache
-type L1Cache struct {
+type Level1Cache struct {
 	logger logr.Logger
 	// Implementation would include LRU cache, metrics, etc.
 }
 
-func NewL1Cache(size int64, logger logr.Logger) *L1Cache {
-	return &L1Cache{logger: logger.WithName("l1-cache")}
+func NewL1Cache(size int64, logger logr.Logger) *Level1Cache {
+	return &Level1Cache{logger: logger.WithName("l1-cache")}
 }
 
-func (c *L1Cache) Start(ctx context.Context) error                            { return nil }
-func (c *L1Cache) Stop(ctx context.Context) error                             { return nil }
-func (c *L1Cache) Get(key string) (interface{}, bool)                         { return nil, false }
-func (c *L1Cache) Set(key string, value interface{}, ttl time.Duration) error { return nil }
-func (c *L1Cache) Delete(key string) error                                    { return nil }
-func (c *L1Cache) Cleanup()                                                   {}
-func (c *L1Cache) Enable()                                                    {}
-func (c *L1Cache) Disable()                                                   {}
-func (c *L1Cache) GetSize() int64                                             { return 0 }
-func (c *L1Cache) GetItemCount() int64                                        { return 0 }
+func (c *Level1Cache) Start(ctx context.Context) error                            { return nil }
+func (c *Level1Cache) Stop(ctx context.Context) error                             { return nil }
+func (c *Level1Cache) Get(key string) (interface{}, bool)                         { return nil, false }
+func (c *Level1Cache) Set(key string, value interface{}, ttl time.Duration) error { return nil }
+func (c *Level1Cache) Delete(key string) error                                    { return nil }
+func (c *Level1Cache) Cleanup()                                                   {}
+func (c *Level1Cache) Enable()                                                    {}
+func (c *Level1Cache) Disable()                                                   {}
+func (c *Level1Cache) GetSize() int64                                             { return 0 }
+func (c *Level1Cache) GetItemCount() int64                                        { return 0 }
 
 // L2Cache represents the distributed Redis cache
-type L2Cache struct {
+type Level2Cache struct {
 	logger logr.Logger
 	client *redis.Client
 }
 
-func NewL2Cache(size int64, logger logr.Logger) *L2Cache {
-	return &L2Cache{logger: logger.WithName("l2-cache")}
+func NewL2Cache(size int64, logger logr.Logger) *Level2Cache {
+	return &Level2Cache{logger: logger.WithName("l2-cache")}
 }
 
-func (c *L2Cache) Start(ctx context.Context) error { return nil }
-func (c *L2Cache) Stop(ctx context.Context) error  { return nil }
-func (c *L2Cache) Get(ctx context.Context, key string) (interface{}, error) {
+func (c *Level2Cache) Start(ctx context.Context) error { return nil }
+func (c *Level2Cache) Stop(ctx context.Context) error  { return nil }
+func (c *Level2Cache) Get(ctx context.Context, key string) (interface{}, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (c *L2Cache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (c *Level2Cache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	return nil
 }
-func (c *L2Cache) Delete(ctx context.Context, key string) error { return nil }
-func (c *L2Cache) Cleanup(ctx context.Context)                  {}
-func (c *L2Cache) Enable()                                      {}
-func (c *L2Cache) Disable()                                     {}
-func (c *L2Cache) GetSize() int64                               { return 0 }
-func (c *L2Cache) GetItemCount() int64                          { return 0 }
+func (c *Level2Cache) Delete(ctx context.Context, key string) error { return nil }
+func (c *Level2Cache) Cleanup(ctx context.Context)                  {}
+func (c *Level2Cache) Enable()                                      {}
+func (c *Level2Cache) Disable()                                     {}
+func (c *Level2Cache) GetSize() int64                               { return 0 }
+func (c *Level2Cache) GetItemCount() int64                          { return 0 }
 
 // L3Cache represents the persistent storage cache
-type L3Cache struct {
+type Level3Cache struct {
 	logger logr.Logger
 }
 
-func NewL3Cache(logger logr.Logger) *L3Cache {
-	return &L3Cache{logger: logger.WithName("l3-cache")}
+func NewL3Cache(logger logr.Logger) *Level3Cache {
+	return &Level3Cache{logger: logger.WithName("l3-cache")}
 }
 
-func (c *L3Cache) Start(ctx context.Context) error { return nil }
-func (c *L3Cache) Stop(ctx context.Context) error  { return nil }
-func (c *L3Cache) Get(ctx context.Context, key string) (interface{}, error) {
+func (c *Level3Cache) Start(ctx context.Context) error { return nil }
+func (c *Level3Cache) Stop(ctx context.Context) error  { return nil }
+func (c *Level3Cache) Get(ctx context.Context, key string) (interface{}, error) {
 	return nil, fmt.Errorf("not implemented")
 }
-func (c *L3Cache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
+func (c *Level3Cache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	return nil
 }
-func (c *L3Cache) Delete(ctx context.Context, key string) error { return nil }
-func (c *L3Cache) Cleanup(ctx context.Context)                  {}
-func (c *L3Cache) Enable()                                      {}
-func (c *L3Cache) Disable()                                     {}
-func (c *L3Cache) GetSize() int64                               { return 0 }
-func (c *L3Cache) GetItemCount() int64                          { return 0 }
+func (c *Level3Cache) Delete(ctx context.Context, key string) error { return nil }
+func (c *Level3Cache) Cleanup(ctx context.Context)                  {}
+func (c *Level3Cache) Enable()                                      {}
+func (c *Level3Cache) Disable()                                     {}
+func (c *Level3Cache) GetSize() int64                               { return 0 }
+func (c *Level3Cache) GetItemCount() int64                          { return 0 }

@@ -199,11 +199,7 @@ type ChangePointAlgorithm interface {
 	GetName() string
 }
 
-// CUSUMDetector implements CUSUM algorithm for change point detection
-type CUSUMDetector struct {
-	threshold   float64
-	driftFactor float64
-}
+// CUSUMDetector is defined in cusum_detector.go - import that package instead
 
 // BayesianChangePointDetector implements Bayesian change point detection
 type BayesianChangePointDetector struct {
@@ -355,21 +351,7 @@ type FeedbackEntry struct {
 	Resolution   string    `json:"resolution"`
 }
 
-// NWDAFAnalyzer implements NWDAF patterns for telecom-specific analytics
-type NWDAFAnalyzer struct {
-	config               *NWDAFConfig
-	analyticsRepository  *AnalyticsRepository
-	networkSliceAnalyzer *NetworkSliceAnalyzer
-	serviceAnalyzer      *ServiceAnalyzer
-	mobilitycAnalyzer    *MobilityAnalyzer
-	qosAnalyzer          *QoSAnalyzer
-
-	// NWDAF Analytics Functions
-	loadAnalytics        *LoadAnalytics
-	performanceAnalytics *PerformanceAnalytics
-	capacityAnalytics    *CapacityAnalytics
-	anomalyAnalytics     *AnomalyAnalytics
-}
+// NWDAFAnalyzer is defined in nwdaf_analyzer.go - import that package instead
 
 // NetworkSliceAnalyzer provides slice-aware performance analysis
 type NetworkSliceAnalyzer struct {
@@ -1225,7 +1207,7 @@ type AnomalyDetectionConfig struct{}
 type ChangePointConfig struct{}
 type AlertManagerConfig struct{}
 type LearningConfig struct{}
-type NWDAFConfig struct{}
+// NWDAFConfig is defined in nwdaf_analyzer.go - import that package instead
 type AlertCorrelationEngine struct{}
 type EscalationPolicy struct{}
 type AlertHistory struct{}

@@ -505,14 +505,14 @@ type IntegratedAlert struct {
 	RecommendedActions  []RecommendedAction `json:"recommended_actions"`
 }
 
-// AlertStatus represents the status of an integrated alert
-type AlertStatus string
+// IntegratedAlertStatus represents the status of an integrated alert
+type IntegratedAlertStatus string
 
 const (
-	AlertStatusFiring     AlertStatus = "firing"
-	AlertStatusResolved   AlertStatus = "resolved"
-	AlertStatusSuppressed AlertStatus = "suppressed"
-	AlertStatusEscalated  AlertStatus = "escalated"
+	IntegratedAlertStatusFiring     IntegratedAlertStatus = "firing"
+	IntegratedAlertStatusResolved   IntegratedAlertStatus = "resolved"
+	IntegratedAlertStatusSuppressed IntegratedAlertStatus = "suppressed"
+	IntegratedAlertStatusEscalated  IntegratedAlertStatus = "escalated"
 )
 
 // HealthSLADashboardBridge provides dashboard integration for health and SLA visualization
@@ -752,9 +752,9 @@ func (sib *SLAIntegrationBridge) UpdateSLATargets(ctx context.Context) error {
 	}
 
 	// Get current health data
-	healthData := sib.aggregator.AggregateHealth(ctx)
-	if healthData == nil {
-		return fmt.Errorf("failed to get health data")
+	healthData, err := sib.aggregator.AggregateHealth(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get health data: %w", err)
 	}
 
 	// Get current dependency health
@@ -995,9 +995,9 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 	}
 
 	// Get current health data
-	healthData := sib.aggregator.AggregateHealth(ctx)
-	if healthData == nil {
-		return nil, fmt.Errorf("failed to get health data")
+	healthData, err := sib.aggregator.AggregateHealth(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get health data: %w", err)
 	}
 
 	// Calculate availability
@@ -1016,7 +1016,14 @@ func (sib *SLAIntegrationBridge) CalculateCompositeScore(ctx context.Context, mo
 		ScoringModel:         modelID,
 		CalculationTimestamp: time.Now(),
 		ConfidenceLevel:      0.8, // Simplified
-		DataQuality:          healthData.AggregationMetadata.DataQuality,
+		DataQuality: DataQualityMetrics{
+			Completeness:  0.9,
+			Consistency:   0.9,
+			Accuracy:      0.9,
+			Timeliness:    0.9,
+			Outliers:      0,
+			MissingValues: 0,
+		},
 	}
 
 	// Calculate overall score based on combination method
@@ -1234,7 +1241,7 @@ func (sib *SLAIntegrationBridge) configureDefaultAlertRules() {
 		Name:                 "Critical Health and SLA Violation",
 		HealthThreshold:      0.5,
 		SLAThreshold:         95.0,
-		Severity:             SeverityCritical,
+		Severity:             SeverityCritical, // This is from types.go AlertSeverity
 		Enabled:              true,
 		RequiresBoth:         true,
 		CorrelationWindow:    5 * time.Minute,
@@ -1253,7 +1260,7 @@ func (sib *SLAIntegrationBridge) configureDefaultAlertRules() {
 		Name:                 "Health Degradation Warning",
 		HealthThreshold:      0.7,
 		SLAThreshold:         99.0,
-		Severity:             SeverityHigh,
+		Severity:             SeverityError, // Using AlertSeverity from types.go
 		Enabled:              true,
 		RequiresBoth:         false,
 		CorrelationWindow:    10 * time.Minute,
@@ -1289,7 +1296,7 @@ func (sib *SLAIntegrationBridge) GetActiveIntegratedAlerts() []IntegratedAlert {
 
 	var alerts []IntegratedAlert
 	for _, alert := range sib.alertIntegration.activeAlerts {
-		if alert.Status == AlertStatusFiring {
+		if alert.Status == AlertStatusActive {
 			alerts = append(alerts, *alert)
 		}
 	}

@@ -821,31 +821,31 @@ func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config
 }
 
 // recordHealthMetrics records metrics for dependency health
-func (dht *DependencyHealthTracker) recordHealthMetrics(health *DependencyHealth, config *DependencyConfig) {
-	labels := []string{health.Name, string(health.Type), string(config.Criticality)}
+func (dht *DependencyHealthTracker) recordHealthMetrics(depHealth *DependencyHealth, config *DependencyConfig) {
+	labels := []string{depHealth.Name, string(depHealth.Type), string(config.Criticality)}
 
 	// Health status metric
 	statusValue := 0.0
-	if health.Status == health.StatusHealthy {
+	if depHealth.Status == health.StatusHealthy {
 		statusValue = 1.0
-	} else if health.Status == health.StatusDegraded {
+	} else if depHealth.Status == health.StatusDegraded {
 		statusValue = 0.5
 	}
 	dht.metrics.HealthStatus.WithLabelValues(labels...).Set(statusValue)
 
 	// Response time metric
-	dht.metrics.ResponseTime.WithLabelValues(health.Name, string(health.Type)).Observe(health.ResponseTime.Seconds())
+	dht.metrics.ResponseTime.WithLabelValues(depHealth.Name, string(depHealth.Type)).Observe(depHealth.ResponseTime.Seconds())
 
 	// Availability rate metric
-	dht.metrics.AvailabilityRate.WithLabelValues(health.Name, string(health.Type)).Set(health.AvailabilityRate)
+	dht.metrics.AvailabilityRate.WithLabelValues(depHealth.Name, string(depHealth.Type)).Set(depHealth.AvailabilityRate)
 
 	// Error count if there was an error
-	if health.LastError != "" {
+	if depHealth.LastError != "" {
 		errorType := "unknown"
-		if health.Status == health.StatusUnhealthy {
+		if depHealth.Status == health.StatusUnhealthy {
 			errorType = "unhealthy"
 		}
-		dht.metrics.ErrorCount.WithLabelValues(health.Name, string(health.Type), errorType).Inc()
+		dht.metrics.ErrorCount.WithLabelValues(depHealth.Name, string(depHealth.Type), errorType).Inc()
 	}
 }
 

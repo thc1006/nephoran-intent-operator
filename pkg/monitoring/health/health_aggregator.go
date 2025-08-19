@@ -475,7 +475,7 @@ const (
 	PriorityEmergency     RecommendationPriority = "emergency"
 	PriorityHigh          RecommendationPriority = "high"
 	PriorityMedium        RecommendationPriority = "medium"
-	PriorityLow           RecommendationPriority = "low"
+	// PriorityLow removed - use ActionPriority from types.go instead
 	PriorityInformational RecommendationPriority = "informational"
 )
 
@@ -1615,5 +1615,14 @@ func (ha *HealthAggregator) determinePriority(component ComponentHealthResult) R
 	} else if component.BusinessWeight > 0.5 {
 		return PriorityMedium
 	}
-	return PriorityLow
+	return PriorityInformational
+}
+
+// GetCheckHistory returns the historical data for a specific check
+// This method delegates to the enhanced checker for historical data
+func (ha *HealthAggregator) GetCheckHistory(checkName string, limit int) []EnhancedCheck {
+	if ha.enhancedChecker == nil {
+		return []EnhancedCheck{}
+	}
+	return ha.enhancedChecker.GetCheckHistory(checkName, limit)
 }

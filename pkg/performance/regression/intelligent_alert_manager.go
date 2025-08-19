@@ -954,5 +954,5 @@ type CorrelationFeedback struct{}
 type CorrelationMetrics struct{}
 type AlertRateLimiter struct{}
 type AlertMetrics struct{}
-type AlertLearningEngine struct{}
+// AlertLearningEngine is defined earlier in this file - removing duplicate
 type AlertHistory struct{}

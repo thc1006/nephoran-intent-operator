@@ -25,7 +25,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
+	"github.com/thc1006/nephoran-intent-operator/internal/runtime/errorsx"
 )
 
 // ResilienceManager manages all resilience patterns for the system
@@ -280,6 +280,20 @@ type BulkheadDetail struct {
 	SuccessRate       float64          `json:"successRate"`
 	LastScalingAction *ScalingDecision `json:"lastScalingAction"`
 	HealthStatus      string           `json:"healthStatus"`
+}
+
+// CircuitBreakerMetrics tracks circuit breaker-related metrics
+type CircuitBreakerMetrics struct {
+	TotalCircuitBreakers int              `json:"totalCircuitBreakers"`
+	OpenCircuits         int              `json:"openCircuits"`
+	HalfOpenCircuits     int              `json:"halfOpenCircuits"`
+	ClosedCircuits       int              `json:"closedCircuits"`
+	TotalRequests        int64            `json:"totalRequests"`
+	SuccessfulRequests   int64            `json:"successfulRequests"`
+	FailedRequests       int64            `json:"failedRequests"`
+	RejectedRequests     int64            `json:"rejectedRequests"`
+	AverageResponseTime  time.Duration    `json:"averageResponseTime"`
+	mutex                sync.RWMutex     `json:"-"`
 }
 
 // CircuitBreakerManager manages circuit breaker patterns
@@ -626,15 +640,15 @@ func (rm *ResilienceManager) Stop() error {
 	}
 
 	if rm.bulkheadManager != nil {
-		rm.bulkheadManager.Stop()
+		rm.bulkheadManager.Stop(context.Background())
 	}
 
 	if rm.circuitBreakerMgr != nil {
-		rm.circuitBreakerMgr.Stop()
+		rm.circuitBreakerMgr.Stop(context.Background())
 	}
 
 	if rm.rateLimiterMgr != nil {
-		rm.rateLimiterMgr.Stop()
+		rm.rateLimiterMgr.Stop(context.Background())
 	}
 
 	if rm.retryManager != nil {
@@ -668,10 +682,8 @@ func (rm *ResilienceManager) ExecuteWithResilience(ctx context.Context, operatio
 	if rm.rateLimiterMgr != nil {
 		if !rm.rateLimiterMgr.Allow(operationName) {
 			rm.updateMetrics(operationName, false, time.Since(startTime), "rate_limited")
-			return nil, errors.NewProcessingError("RATE_LIMITED",
-				"Operation rate limited",
-				"resilience_manager", operationName,
-				errors.CategoryRateLimit, errors.SeverityMedium)
+			return nil, errorsx.NewProcessingError(errorsx.CategoryRateLimit,
+				"Operation rate limited")
 		}
 	}
 
@@ -679,10 +691,8 @@ func (rm *ResilienceManager) ExecuteWithResilience(ctx context.Context, operatio
 	if rm.circuitBreakerMgr != nil {
 		if !rm.circuitBreakerMgr.CanExecute(operationName) {
 			rm.updateMetrics(operationName, false, time.Since(startTime), "circuit_breaker_open")
-			return nil, errors.NewProcessingError("CIRCUIT_BREAKER_OPEN",
-				"Circuit breaker is open",
-				"resilience_manager", operationName,
-				errors.CategoryCircuitBreaker, errors.SeverityHigh)
+			return nil, errorsx.NewProcessingError(errorsx.CategoryCapacity,
+				"Circuit breaker is open")
 		}
 	}
 
