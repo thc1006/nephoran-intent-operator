@@ -1003,7 +1003,7 @@ func (r *EnhancedRAGSystem) ChunkDocument(doc Document, config ChunkingConfig) (
 	return []DocumentChunk{{Content: "chunk", TokenCount: 100}}, nil
 }
 
-type SearchResult struct {
+type BenchmarkSearchResult struct {
 	Similarity float64
 }
 

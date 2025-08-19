@@ -434,7 +434,7 @@ func (lep *LocalEnhancedProvider) GenerateEmbeddings(ctx context.Context, texts 
 		embeddings[i] = embedding
 	}
 
-	tokenUsage := &TokenUsage{
+	tokenUsage := &EmbeddingTokenUsage{
 		PromptTokens:  len(texts) * 10, // Rough estimate
 		TotalTokens:   len(texts) * 10,
 		EstimatedCost: float64(len(texts)) * lep.config.CostPerToken,

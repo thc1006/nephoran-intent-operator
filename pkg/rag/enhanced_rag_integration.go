@@ -14,6 +14,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+
 	"go.uber.org/zap"
 )
 
@@ -659,17 +661,12 @@ func createVectorStore(config *EnhancedRAGConfig) (VectorStore, error) {
 // VectorStore interface
 type VectorStore interface {
 	Store(ctx context.Context, id string, embedding []float32, metadata map[string]interface{}) error
-	Search(ctx context.Context, queryEmbedding []float32, topK int) ([]*SearchResult, error)
+	Search(ctx context.Context, queryEmbedding []float32, topK int) ([]*EnhancedSearchResult, error)
 	Delete(ctx context.Context, id string) error
 }
 
 // SearchResult represents a vector search result
-type SearchResult struct {
-	ID       string                 `json:"id"`
-	Score    float32                `json:"score"`
-	Metadata map[string]interface{} `json:"metadata"`
-	Document *TelecomDocument       `json:"document"`
-}
+// EnhancedSearchResult definition moved to enhanced_retrieval_service.go to avoid duplication
 
 // QueryOptions holds options for RAG queries
 type QueryOptions struct {
@@ -682,7 +679,7 @@ type QueryOptions struct {
 // QueryResponse represents a RAG query response
 type QueryResponse struct {
 	Query          string          `json:"query"`
-	Results        []*SearchResult `json:"results"`
+	Results        []*EnhancedSearchResult `json:"results"`
 	ProcessingTime time.Duration   `json:"processing_time"`
 	EmbeddingCost  float64         `json:"embedding_cost"`
 	ProviderUsed   string          `json:"provider_used"`
@@ -716,19 +713,28 @@ func (m *MockVectorStore) Store(ctx context.Context, id string, embedding []floa
 	return nil
 }
 
-func (m *MockVectorStore) Search(ctx context.Context, queryEmbedding []float32, topK int) ([]*SearchResult, error) {
+func (m *MockVectorStore) Search(ctx context.Context, queryEmbedding []float32, topK int) ([]*EnhancedSearchResult, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	// Simple cosine similarity search
-	var results []*SearchResult
+	var results []*EnhancedSearchResult
 
 	for id, entry := range m.data {
 		score := cosineSimilarity(queryEmbedding, entry.embedding)
-		results = append(results, &SearchResult{
-			ID:       id,
-			Score:    score,
-			Metadata: entry.metadata,
+		results = append(results, &EnhancedSearchResult{
+			SearchResult: &SearchResult{
+				ID:       id,
+				Score:    score,
+				Metadata: entry.metadata,
+				Content:  "", // Add default empty content
+				Confidence: float64(score),
+			},
+			RelevanceScore: score,
+			QualityScore:   0.5, // Default value
+			FreshnessScore: 0.5, // Default value
+			AuthorityScore: 0.5, // Default value
+			CombinedScore:  score,
 		})
 	}
 

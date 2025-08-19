@@ -120,17 +120,17 @@ func TestWeaviateConnectionPool_ReturnConnection(t *testing.T) {
 
 	// Create a mock connection for testing
 	mockConn := &PooledConnection{
-		id:        "test-conn-1",
-		createdAt: time.Now(),
-		lastUsed:  time.Now(),
-		isHealthy: true,
-		inUse:     true,
+		ID:        "test-conn-1",
+		CreatedAt: time.Now(),
+		LastUsed:  time.Now(),
+		IsHealthy: true,
+		InUse:     true,
 	}
 
 	// Test returning connection
 	err = pool.ReturnConnection(mockConn)
 	assert.NoError(t, err)
-	assert.False(t, mockConn.inUse)
+	assert.False(t, mockConn.InUse)
 }
 
 func TestPooledConnection_ShouldDestroy(t *testing.T) {
@@ -145,19 +145,19 @@ func TestPooledConnection_ShouldDestroy(t *testing.T) {
 
 	// Test connection within limits
 	conn := &PooledConnection{
-		createdAt: now.Add(-30 * time.Minute),
-		lastUsed:  now.Add(-2 * time.Minute),
+		CreatedAt: now.Add(-30 * time.Minute),
+		LastUsed:  now.Add(-2 * time.Minute),
 		isHealthy: true,
 	}
 	assert.False(t, pool.shouldDestroyConnection(conn))
 
 	// Test connection exceeding max idle time
-	conn.lastUsed = now.Add(-10 * time.Minute)
+	conn.LastUsed = now.Add(-10 * time.Minute)
 	assert.True(t, pool.shouldDestroyConnection(conn))
 
 	// Test connection exceeding max lifetime
-	conn.lastUsed = now
-	conn.createdAt = now.Add(-2 * time.Hour)
+	conn.LastUsed = now
+	conn.CreatedAt = now.Add(-2 * time.Hour)
 	assert.True(t, pool.shouldDestroyConnection(conn))
 
 	// Test nil connection
@@ -199,20 +199,20 @@ func TestWeaviateConnectionPool_GetConnectionInfo(t *testing.T) {
 	// Add mock connections
 	now := time.Now()
 	conn1 := &PooledConnection{
-		id:         "conn-1",
-		createdAt:  now.Add(-1 * time.Hour),
-		lastUsed:   now.Add(-5 * time.Minute),
-		usageCount: 15,
-		isHealthy:  true,
-		inUse:      false,
+		ID:         "conn-1",
+		CreatedAt:  now.Add(-1 * time.Hour),
+		LastUsed:   now.Add(-5 * time.Minute),
+		UsageCount: 15,
+		IsHealthy:  true,
+		InUse:      false,
 	}
 	conn2 := &PooledConnection{
-		id:         "conn-2",
-		createdAt:  now.Add(-30 * time.Minute),
-		lastUsed:   now.Add(-1 * time.Minute),
-		usageCount: 8,
-		isHealthy:  true,
-		inUse:      true,
+		ID:         "conn-2",
+		CreatedAt:  now.Add(-30 * time.Minute),
+		LastUsed:   now.Add(-1 * time.Minute),
+		UsageCount: 8,
+		IsHealthy:  true,
+		InUse:      true,
 	}
 
 	pool.activeConns["conn-1"] = conn1
@@ -304,13 +304,13 @@ func TestWeaviateConnectionPool_IsConnectionHealthy(t *testing.T) {
 
 	// Test healthy connection
 	healthyConn := &PooledConnection{
-		isHealthy: true,
+		IsHealthy: true,
 	}
 	assert.True(t, pool.isConnectionHealthy(healthyConn))
 
 	// Test unhealthy connection
 	unhealthyConn := &PooledConnection{
-		isHealthy: false,
+		IsHealthy: false,
 	}
 	assert.False(t, pool.isConnectionHealthy(unhealthyConn))
 }
@@ -397,23 +397,23 @@ func TestWeaviateConnectionPool_EnsureMinimumConnections(t *testing.T) {
 
 func TestPooledConnection_UsageTracking(t *testing.T) {
 	conn := &PooledConnection{
-		id:        "test-conn",
-		createdAt: time.Now(),
-		lastUsed:  time.Now().Add(-5 * time.Minute),
-		isHealthy: true,
-		inUse:     false,
+		ID:        "test-conn",
+		CreatedAt: time.Now(),
+		LastUsed:  time.Now().Add(-5 * time.Minute),
+		IsHealthy: true,
+		InUse:     false,
 	}
 
 	// Simulate usage
 	conn.mu.Lock()
-	conn.lastUsed = time.Now()
-	conn.usageCount++
-	conn.inUse = true
+	conn.LastUsed = time.Now()
+	conn.UsageCount++
+	conn.InUse = true
 	conn.mu.Unlock()
 
-	assert.Equal(t, int64(1), conn.usageCount)
-	assert.True(t, conn.inUse)
-	assert.True(t, time.Since(conn.lastUsed) < time.Second)
+	assert.Equal(t, int64(1), conn.UsageCount)
+	assert.True(t, conn.InUse)
+	assert.True(t, time.Since(conn.LastUsed) < time.Second)
 }
 
 func TestWeaviateConnectionPool_ContextCancellation(t *testing.T) {
@@ -450,13 +450,13 @@ func BenchmarkWeaviateConnectionPool_GetReturnConnection(b *testing.B) {
 	// Create mock connections for benchmarking
 	for i := 0; i < 5; i++ {
 		conn := &PooledConnection{
-			id:        fmt.Sprintf("bench-conn-%d", i),
-			createdAt: time.Now(),
-			lastUsed:  time.Now(),
-			isHealthy: true,
+			ID:        fmt.Sprintf("bench-conn-%d", i),
+			CreatedAt: time.Now(),
+			LastUsed:  time.Now(),
+			IsHealthy: true,
 		}
 		pool.connections <- conn
-		pool.activeConns[conn.id] = conn
+		pool.activeConns[conn.ID] = conn
 	}
 	pool.started = true
 
@@ -493,13 +493,13 @@ func BenchmarkWeaviateConnectionPool_GetConnectionInfo(b *testing.B) {
 	// Create mock connections
 	for i := 0; i < 10; i++ {
 		conn := &PooledConnection{
-			id:         fmt.Sprintf("bench-conn-%d", i),
-			createdAt:  time.Now().Add(-time.Duration(i) * time.Minute),
-			lastUsed:   time.Now(),
-			usageCount: int64(i * 10),
-			isHealthy:  true,
+			ID:         fmt.Sprintf("bench-conn-%d", i),
+			CreatedAt:  time.Now().Add(-time.Duration(i) * time.Minute),
+			LastUsed:   time.Now(),
+			UsageCount: int64(i * 10),
+			IsHealthy:  true,
 		}
-		pool.activeConns[conn.id] = conn
+		pool.activeConns[conn.ID] = conn
 	}
 
 	b.ResetTimer()

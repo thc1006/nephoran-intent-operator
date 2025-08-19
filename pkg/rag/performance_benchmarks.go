@@ -86,11 +86,11 @@ type TestSuiteResults struct {
 	FailedTests  int                    `json:"failed_tests"`
 	TestCoverage float64                `json:"test_coverage"`
 	OverallScore float64                `json:"overall_score"`
-	TestResults  map[string]*TestResult `json:"test_results"`
+	TestResults  map[string]*BenchmarkTestResult `json:"test_results"`
 }
 
 // TestResult represents individual test result
-type TestResult struct {
+type BenchmarkTestResult struct {
 	TestName string                 `json:"test_name"`
 	Passed   bool                   `json:"passed"`
 	Duration time.Duration          `json:"duration"`
@@ -328,7 +328,7 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 	// Initialize results
 	pb.results = &BenchmarkResults{
-		TestSuite:         &TestSuiteResults{TestResults: make(map[string]*TestResult)},
+		TestSuite:         &TestSuiteResults{TestResults: make(map[string]*BenchmarkTestResult)},
 		TestTimestamp:     startTime,
 		TestConfiguration: pb.config,
 		SystemInfo:        pb.getSystemInfo(),
@@ -365,7 +365,7 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 		err := test.runner(ctx)
 
-		result := &TestResult{
+		result := &BenchmarkTestResult{
 			TestName: test.name,
 			Passed:   err == nil,
 			Duration: time.Since(testStart),

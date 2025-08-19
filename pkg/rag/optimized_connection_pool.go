@@ -132,16 +132,7 @@ type ConnectionPoolMetrics struct {
 	mutex                sync.RWMutex
 }
 
-// PooledConnection represents a connection from the pool
-type PooledConnection struct {
-	HTTPClient     *http.Client
-	FastHTTPClient *fasthttp.Client
-	WeaviateClient *weaviate.Client
-	CreatedAt      time.Time
-	LastUsed       time.Time
-	UseCount       int64
-	IsHealthy      bool
-}
+// PooledConnection is defined in weaviate_pool.go
 
 // NewOptimizedConnectionPool creates a new optimized connection pool
 func NewOptimizedConnectionPool(config *ConnectionPoolConfig) (*OptimizedConnectionPool, error) {
@@ -322,7 +313,7 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 	// Initialize encoder pool
 	codec.encoderPool.New = func() interface{} {
 		if codec.useSonic {
-			return sonic.ConfigDefault.NewEncoder()
+			return sonic.ConfigDefault.NewEncoder(nil) // Will be reset with actual writer
 		}
 		return json.NewEncoder(nil)
 	}
@@ -330,7 +321,7 @@ func newOptimizedJSONCodec(config *ConnectionPoolConfig) *OptimizedJSONCodec {
 	// Initialize decoder pool
 	codec.decoderPool.New = func() interface{} {
 		if codec.useSonic {
-			return sonic.ConfigDefault.NewDecoder()
+			return sonic.ConfigDefault.NewDecoder(nil) // Will be reset with actual reader
 		}
 		return json.NewDecoder(nil)
 	}
@@ -349,11 +340,11 @@ func (p *OptimizedConnectionPool) GetConnection() (*PooledConnection, error) {
 	index := atomic.AddInt64(&p.clientIndex, 1) % int64(len(p.weaviateClients))
 
 	connection := &PooledConnection{
-		WeaviateClient: p.weaviateClients[index],
-		CreatedAt:      time.Now(),
-		LastUsed:       time.Now(),
-		UseCount:       1,
-		IsHealthy:      true,
+		Client:     p.weaviateClients[index],
+		CreatedAt:  time.Now(),
+		LastUsed:   time.Now(),
+		UsageCount: 1,
+		IsHealthy:  true,
 	}
 
 	// Try to get HTTP client from pool
@@ -386,7 +377,7 @@ func (p *OptimizedConnectionPool) ReturnConnection(conn *PooledConnection) {
 	}
 
 	conn.LastUsed = time.Now()
-	conn.UseCount++
+	conn.UsageCount++
 
 	// Return HTTP client to pool
 	if conn.HTTPClient != nil {

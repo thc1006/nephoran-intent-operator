@@ -3,10 +3,12 @@ package rag
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/valyala/fasthttp"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/auth"
 )
@@ -49,14 +51,16 @@ type WeaviateConnectionPool struct {
 
 // PooledConnection represents a connection in the pool
 type PooledConnection struct {
-	client     *weaviate.Client
-	id         string
-	createdAt  time.Time
-	lastUsed   time.Time
-	usageCount int64
-	isHealthy  bool
-	inUse      bool
-	mu         sync.RWMutex
+	Client         *weaviate.Client  // Renamed from client
+	HTTPClient     *http.Client      // Added from optimized version  
+	FastHTTPClient *fasthttp.Client  // Added from optimized version
+	ID             string            // Renamed from id
+	CreatedAt      time.Time         // Renamed from createdAt
+	LastUsed       time.Time         // Renamed from lastUsed
+	UsageCount     int64             // Renamed from usageCount
+	IsHealthy      bool              // Renamed from isHealthy
+	InUse          bool              // Renamed from inUse
+	mu             sync.RWMutex      // Keep unexported for safety
 }
 
 // PoolConfig configures the connection pool
@@ -192,7 +196,7 @@ func (p *WeaviateConnectionPool) Start() error {
 		}
 
 		p.connections <- conn
-		p.activeConns[conn.id] = conn
+		p.activeConns[conn.ID] = conn
 	}
 
 	// Update initial metrics
@@ -256,9 +260,9 @@ func (p *WeaviateConnectionPool) GetConnection(ctx context.Context) (*PooledConn
 	case conn := <-p.connections:
 		if p.isConnectionHealthy(conn) {
 			conn.mu.Lock()
-			conn.lastUsed = time.Now()
-			conn.usageCount++
-			conn.inUse = true
+			conn.LastUsed = time.Now()
+			conn.UsageCount++
+			conn.InUse = true
 			conn.mu.Unlock()
 			return conn, nil
 		} else {
@@ -283,14 +287,14 @@ func (p *WeaviateConnectionPool) GetConnection(ctx context.Context) (*PooledConn
 		}
 
 		p.mu.Lock()
-		p.activeConns[conn.id] = conn
+		p.activeConns[conn.ID] = conn
 		p.mu.Unlock()
 
 		// Update pool size metrics after adding connection
 		p.updatePoolSizeMetrics()
 
 		conn.mu.Lock()
-		conn.inUse = true
+		conn.InUse = true
 		conn.mu.Unlock()
 
 		return conn, nil
@@ -305,9 +309,9 @@ func (p *WeaviateConnectionPool) GetConnection(ctx context.Context) (*PooledConn
 	case conn := <-p.connections:
 		if p.isConnectionHealthy(conn) {
 			conn.mu.Lock()
-			conn.lastUsed = time.Now()
-			conn.usageCount++
-			conn.inUse = true
+			conn.LastUsed = time.Now()
+			conn.UsageCount++
+			conn.InUse = true
 			conn.mu.Unlock()
 			return conn, nil
 		} else {
@@ -328,14 +332,14 @@ func (p *WeaviateConnectionPool) ReturnConnection(conn *PooledConnection) error 
 	}
 
 	conn.mu.Lock()
-	conn.inUse = false
-	conn.lastUsed = time.Now()
+	conn.InUse = false
+	conn.LastUsed = time.Now()
 	conn.mu.Unlock()
 
 	// Check if connection should be destroyed
 	if !p.isConnectionHealthy(conn) || p.shouldDestroyConnection(conn) {
 		p.mu.Lock()
-		delete(p.activeConns, conn.id)
+		delete(p.activeConns, conn.ID)
 		p.mu.Unlock()
 		p.destroyConnection(conn)
 		p.updatePoolSizeMetrics()
@@ -349,7 +353,7 @@ func (p *WeaviateConnectionPool) ReturnConnection(conn *PooledConnection) error 
 	default:
 		// Pool is full, destroy connection
 		p.mu.Lock()
-		delete(p.activeConns, conn.id)
+		delete(p.activeConns, conn.ID)
 		p.mu.Unlock()
 		p.destroyConnection(conn)
 		p.updatePoolSizeMetrics()
@@ -371,7 +375,7 @@ func (p *WeaviateConnectionPool) WithConnection(ctx context.Context, fn func(*we
 	}()
 
 	startTime := time.Now()
-	err = fn(conn.client)
+	err = fn(conn.Client)
 	duration := time.Since(startTime)
 
 	// Update metrics
@@ -441,12 +445,12 @@ func (p *WeaviateConnectionPool) GetConnectionInfo() []ConnectionInfo {
 	for _, conn := range p.activeConns {
 		conn.mu.RLock()
 		info = append(info, ConnectionInfo{
-			ID:         conn.id,
-			CreatedAt:  conn.createdAt,
-			LastUsed:   conn.lastUsed,
-			UsageCount: conn.usageCount,
-			IsHealthy:  conn.isHealthy,
-			InUse:      conn.inUse,
+			ID:         conn.ID,
+			CreatedAt:  conn.CreatedAt,
+			LastUsed:   conn.LastUsed,
+			UsageCount: conn.UsageCount,
+			IsHealthy:  conn.IsHealthy,
+			InUse:      conn.InUse,
 		})
 		conn.mu.RUnlock()
 	}
@@ -497,11 +501,11 @@ func (p *WeaviateConnectionPool) createConnection() (*PooledConnection, error) {
 	}
 
 	conn := &PooledConnection{
-		client:    client,
-		id:        fmt.Sprintf("conn-%d", time.Now().UnixNano()),
-		createdAt: time.Now(),
-		lastUsed:  time.Now(),
-		isHealthy: true,
+		Client:    client,
+		ID:        fmt.Sprintf("conn-%d", time.Now().UnixNano()),
+		CreatedAt: time.Now(),
+		LastUsed:  time.Now(),
+		IsHealthy: true,
 	}
 
 	atomic.AddInt64(&p.metrics.ConnectionsCreated, 1)
@@ -536,7 +540,7 @@ func (p *WeaviateConnectionPool) isConnectionHealthy(conn *PooledConnection) boo
 	}
 
 	conn.mu.RLock()
-	isHealthy := conn.isHealthy
+	isHealthy := conn.IsHealthy
 	conn.mu.RUnlock()
 
 	return isHealthy
@@ -553,12 +557,12 @@ func (p *WeaviateConnectionPool) shouldDestroyConnection(conn *PooledConnection)
 	now := time.Now()
 
 	// Check max lifetime
-	if p.config.MaxLifetime > 0 && now.Sub(conn.createdAt) > p.config.MaxLifetime {
+	if p.config.MaxLifetime > 0 && now.Sub(conn.CreatedAt) > p.config.MaxLifetime {
 		return true
 	}
 
 	// Check max idle time
-	if p.config.MaxIdleTime > 0 && now.Sub(conn.lastUsed) > p.config.MaxIdleTime {
+	if p.config.MaxIdleTime > 0 && now.Sub(conn.LastUsed) > p.config.MaxIdleTime {
 		return true
 	}
 
@@ -586,7 +590,7 @@ func (p *WeaviateConnectionPool) performHealthCheck() {
 
 	for _, conn := range connections {
 		conn.mu.RLock()
-		inUse := conn.inUse
+		inUse := conn.InUse
 		conn.mu.RUnlock()
 
 		if inUse {
@@ -595,11 +599,11 @@ func (p *WeaviateConnectionPool) performHealthCheck() {
 
 		// Perform health check
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		_, err := conn.client.Misc().ReadyChecker().Do(ctx)
+		_, err := conn.Client.Misc().ReadyChecker().Do(ctx)
 		cancel()
 
 		conn.mu.Lock()
-		conn.isHealthy = (err == nil)
+		conn.IsHealthy = (err == nil)
 		conn.mu.Unlock()
 
 		if err != nil {
@@ -610,7 +614,7 @@ func (p *WeaviateConnectionPool) performHealthCheck() {
 			}
 			// Remove unhealthy connection
 			p.mu.Lock()
-			delete(p.activeConns, conn.id)
+			delete(p.activeConns, conn.ID)
 			p.mu.Unlock()
 			p.destroyConnection(conn)
 		} else {
@@ -624,7 +628,7 @@ func (p *WeaviateConnectionPool) performHealthCheck() {
 		// Check if connection should be destroyed due to age/idle time
 		if p.shouldDestroyConnection(conn) {
 			p.mu.Lock()
-			delete(p.activeConns, conn.id)
+			delete(p.activeConns, conn.ID)
 			p.mu.Unlock()
 			p.destroyConnection(conn)
 		}
@@ -651,7 +655,7 @@ func (p *WeaviateConnectionPool) ensureMinimumConnections() {
 		}
 
 		p.mu.Lock()
-		p.activeConns[conn.id] = conn
+		p.activeConns[conn.ID] = conn
 		p.mu.Unlock()
 
 		// Try to add to pool

@@ -1,4 +1,4 @@
-//go:build !disable_rag && !test
+//go:build ignore
 
 package rag
 
@@ -25,12 +25,12 @@ type OptimizedRAGManager struct {
 	benchmarker *PerformanceBenchmarker
 
 	// Configuration
-	config *OptimizedRAGConfig
+	config *RAGManagerConfig
 	logger *slog.Logger
 }
 
 // OptimizedRAGConfig holds configuration for the optimized RAG manager
-type OptimizedRAGConfig struct {
+type RAGManagerConfig struct {
 	// Weaviate configuration
 	WeaviateConfig *WeaviateConfig `json:"weaviate_config"`
 
@@ -52,7 +52,7 @@ type OptimizedRAGConfig struct {
 }
 
 // PerformanceReport provides comprehensive performance analysis
-type PerformanceReport struct {
+type OptimizationReport struct {
 	// Performance improvements achieved
 	LatencyImprovement    float64 `json:"latency_improvement"`
 	ThroughputImprovement float64 `json:"throughput_improvement"`
@@ -75,9 +75,9 @@ type PerformanceReport struct {
 }
 
 // NewOptimizedRAGManager creates a new optimized RAG manager with all optimizations
-func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, error) {
+func NewOptimizedRAGManager(config *RAGManagerConfig) (*OptimizedRAGManager, error) {
 	if config == nil {
-		config = getDefaultOptimizedRAGConfig()
+		config = getDefaultRAGManagerConfig()
 	}
 
 	logger := slog.Default().With("component", "optimized-rag-manager")
@@ -155,8 +155,8 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 }
 
 // getDefaultOptimizedRAGConfig returns default configuration
-func getDefaultOptimizedRAGConfig() *OptimizedRAGConfig {
-	return &OptimizedRAGConfig{
+func getDefaultRAGManagerConfig() *RAGManagerConfig {
+	return &RAGManagerConfig{
 		WeaviateConfig: &WeaviateConfig{
 			Host:    "localhost:8080",
 			Scheme:  "http",
@@ -254,7 +254,7 @@ func (m *OptimizedRAGManager) OptimizeHNSWParameters(ctx context.Context, classN
 }
 
 // RunPerformanceBenchmark runs comprehensive performance benchmarks
-func (m *OptimizedRAGManager) RunPerformanceBenchmark(ctx context.Context) (*PerformanceReport, error) {
+func (m *OptimizedRAGManager) RunPerformanceBenchmark(ctx context.Context) (*OptimizationReport, error) {
 	if m.benchmarker == nil {
 		return nil, fmt.Errorf("performance benchmarker not available")
 	}
@@ -268,7 +268,7 @@ func (m *OptimizedRAGManager) RunPerformanceBenchmark(ctx context.Context) (*Per
 	}
 
 	// Create performance report
-	report := &PerformanceReport{
+	report := &OptimizationReport{
 		BenchmarkResults: benchmarkResults,
 	}
 
@@ -311,7 +311,7 @@ func (m *OptimizedRAGManager) RunPerformanceBenchmark(ctx context.Context) (*Per
 }
 
 // DemonstrateOptimizations provides a comprehensive demonstration of all optimizations
-func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*PerformanceReport, error) {
+func (m *OptimizedRAGManager) DemonstrateOptimizations(ctx context.Context) (*OptimizationReport, error) {
 	m.logger.Info("Starting comprehensive RAG optimization demonstration")
 
 	// Step 1: Run baseline performance test

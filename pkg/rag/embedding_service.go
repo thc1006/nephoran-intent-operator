@@ -118,7 +118,7 @@ type EmbeddingRequest struct {
 // EmbeddingResponse represents the response from embedding generation
 type EmbeddingResponse struct {
 	Embeddings     [][]float32            `json:"embeddings"`
-	TokenUsage     TokenUsage             `json:"token_usage"`
+	TokenUsage     EmbeddingTokenUsage    `json:"token_usage"`
 	ProcessingTime time.Duration          `json:"processing_time"`
 	CacheHits      int                    `json:"cache_hits"`
 	CacheMisses    int                    `json:"cache_misses"`
@@ -133,7 +133,7 @@ type EmbeddingResponse struct {
 }
 
 // TokenUsage tracks token consumption
-type TokenUsage struct {
+type EmbeddingTokenUsage struct {
 	PromptTokens  int     `json:"prompt_tokens"`
 	TotalTokens   int     `json:"total_tokens"`
 	EstimatedCost float64 `json:"estimated_cost"`
@@ -228,7 +228,7 @@ type ProviderConfig struct {
 
 // BasicEmbeddingProvider interface for different embedding providers
 type BasicEmbeddingProvider interface {
-	GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error)
+	GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, EmbeddingTokenUsage, error)
 	GetConfig() ProviderConfig
 	HealthCheck(ctx context.Context) error
 	GetCostEstimate(tokenCount int) float64
@@ -503,7 +503,7 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 	}
 
 	// Generate embeddings for texts not in cache using selected provider
-	var tokenUsage TokenUsage
+	var tokenUsage EmbeddingTokenUsage
 	var usedProvider string
 	if len(textsToEmbed) > 0 {
 		newEmbeddings, usage, provider, err := es.generateEmbeddingsWithProvider(ctx, textsToEmbed)
@@ -620,11 +620,11 @@ func (es *EmbeddingService) GenerateEmbeddings(ctx context.Context, request *Emb
 }
 
 // generateEmbeddingsWithProvider generates embeddings using the best available provider
-func (es *EmbeddingService) generateEmbeddingsWithProvider(ctx context.Context, texts []string) ([][]float32, TokenUsage, string, error) {
+func (es *EmbeddingService) generateEmbeddingsWithProvider(ctx context.Context, texts []string) ([][]float32, EmbeddingTokenUsage, string, error) {
 	// Select best provider based on load balancing strategy
 	provider, err := es.selectBestProvider(ctx, texts)
 	if err != nil {
-		return nil, TokenUsage{}, "", fmt.Errorf("no available providers: %w", err)
+		return nil, EmbeddingTokenUsage{}, "", fmt.Errorf("no available providers: %w", err)
 	}
 
 	// Try primary provider
@@ -663,14 +663,14 @@ func (es *EmbeddingService) generateEmbeddingsWithProvider(ctx context.Context, 
 		}
 	}
 
-	return nil, TokenUsage{}, "", fmt.Errorf("all providers failed, last error: %w", err)
+	return nil, EmbeddingTokenUsage{}, "", fmt.Errorf("all providers failed, last error: %w", err)
 }
 
 // generateEmbeddingsWithSpecificProvider generates embeddings using a specific provider
-func (es *EmbeddingService) generateEmbeddingsWithSpecificProvider(ctx context.Context, texts []string, provider BasicEmbeddingProvider) ([][]float32, TokenUsage, error) {
+func (es *EmbeddingService) generateEmbeddingsWithSpecificProvider(ctx context.Context, texts []string, provider BasicEmbeddingProvider) ([][]float32, EmbeddingTokenUsage, error) {
 	// Process in smaller batches to respect API limits
 	var allEmbeddings [][]float32
-	var totalUsage TokenUsage
+	var totalUsage EmbeddingTokenUsage
 	batchSize := es.config.BatchSize
 
 	// Adjust batch size based on provider configuration
@@ -861,13 +861,13 @@ func (es *EmbeddingService) estimateCost(texts []string) float64 {
 }
 
 // Legacy method for backward compatibility
-func (es *EmbeddingService) callEmbeddingAPI(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
+func (es *EmbeddingService) callEmbeddingAPI(ctx context.Context, texts []string) ([][]float32, EmbeddingTokenUsage, error) {
 	embeddings, usage, _, err := es.generateEmbeddingsWithProvider(ctx, texts)
 	return embeddings, usage, err
 }
 
 // callOpenAIAPI calls the OpenAI embeddings API
-func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
+func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) ([][]float32, EmbeddingTokenUsage, error) {
 	requestBody := OpenAIEmbeddingRequest{
 		Input: texts,
 		Model: es.config.ModelName,
@@ -875,12 +875,12 @@ func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) (
 
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to marshal request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", es.config.APIEndpoint, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to create request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Set headers
@@ -917,25 +917,25 @@ func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) (
 			// Wait before retrying
 			select {
 			case <-ctx.Done():
-				return nil, TokenUsage{}, ctx.Err()
+				return nil, EmbeddingTokenUsage{}, ctx.Err()
 			case <-time.After(es.config.RetryDelay * time.Duration(attempt+1)):
 			}
 		}
 	}
 
 	if lastErr != nil {
-		return nil, TokenUsage{}, fmt.Errorf("API request failed after %d attempts: %w", es.config.RetryAttempts+1, lastErr)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("API request failed after %d attempts: %w", es.config.RetryAttempts+1, lastErr)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, TokenUsage{}, fmt.Errorf("API returned status %d", resp.StatusCode)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("API returned status %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 
 	var apiResponse OpenAIEmbeddingResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to decode response: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to decode response: %w", err)
 	}
 
 	// Extract embeddings
@@ -948,7 +948,7 @@ func (es *EmbeddingService) callOpenAIAPI(ctx context.Context, texts []string) (
 	costPerToken := 0.00013 / 1000 // Approximate cost for text-embedding-3-large
 	estimatedCost := float64(apiResponse.Usage.TotalTokens) * costPerToken
 
-	usage := TokenUsage{
+	usage := EmbeddingTokenUsage{
 		PromptTokens:  apiResponse.Usage.PromptTokens,
 		TotalTokens:   apiResponse.Usage.TotalTokens,
 		EstimatedCost: estimatedCost,

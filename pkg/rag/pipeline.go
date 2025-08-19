@@ -180,6 +180,7 @@ type ProcessedDocument struct {
 
 // ProcessedChunk represents a processed chunk result
 type ProcessedChunk struct {
+	ID         string
 	Content    string
 	Embedding  []float32
 	Metadata   map[string]interface{}
@@ -714,8 +715,8 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 // Utility methods
 
 // convertChunkToTelecomDocument converts a DocumentChunk to TelecomDocument
-func (rp *RAGPipeline) convertChunkToTelecomDocument(chunk *DocumentChunk) *TelecomDocument {
-	return &TelecomDocument{
+func (rp *RAGPipeline) convertChunkToTelecomDocument(chunk *DocumentChunk) *shared.TelecomDocument {
+	return &shared.TelecomDocument{
 		ID:              chunk.ID,
 		Content:         chunk.CleanContent,
 		Title:           chunk.SectionTitle,

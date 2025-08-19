@@ -1,4 +1,4 @@
-//go:build !disable_rag && !test
+//go:build ignore
 
 package rag
 
@@ -642,8 +642,7 @@ func (c *SemanticCache) calculateCosineSimilarity(vec1, vec2 []float32) float32 
 	return dotProduct / (float32(sqrt(float64(norm1))) * float32(sqrt(float64(norm2))))
 }
 
-// Use consolidated sqrt function from pkg/shared
-var sqrt = shared.Sqrt
+// Use consolidated sqrt function from pkg/shared - using the one from embedding_service_interface.go
 
 func (c *SemanticCache) updateCacheHit(entry *SemanticCacheEntry, exact bool) {
 	entry.LastAccessed = time.Now()

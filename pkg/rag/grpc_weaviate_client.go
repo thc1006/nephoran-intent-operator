@@ -321,12 +321,12 @@ func newOptimizedCodec(config *GRPCClientConfig) *OptimizedCodec {
 
 	// Initialize encoder pool
 	codec.encoderPool.New = func() interface{} {
-		return &proto.Buffer{} // Protobuf encoder
+		return make([]byte, 0, 1024) // Buffer for encoding
 	}
 
 	// Initialize decoder pool
 	codec.decoderPool.New = func() interface{} {
-		return &proto.Buffer{} // Protobuf decoder
+		return make([]byte, 0, 1024) // Buffer for decoding
 	}
 
 	return codec
@@ -419,7 +419,7 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 // performGRPCSearch performs the actual gRPC search call
 func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorSearchRequest) (*VectorSearchResponse, error) {
 	// Get connection from pool
-	conn := c.connPool.GetConnection()
+	_ = c.connPool.GetConnection() // TODO: Use in actual gRPC implementation
 
 	// Add authentication metadata
 	ctx = c.addAuthenticationContext(ctx)
@@ -533,13 +533,34 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 	}
 
 	return &SearchResponse{
-		Results:     results,
-		Query:       query,
-		ProcessedAt: time.Now(),
-		Metadata: map[string]interface{}{
-			"grpc_metadata": grpcResp.Metadata,
-		},
+		Results:     convertSharedSearchResults(results),
+		Took:        0, // Timing should be calculated by the caller
+		Total:       int64(len(results)),
 	}
+}
+
+// convertSharedSearchResults converts shared.SearchResult to local SearchResult
+func convertSharedSearchResults(sharedResults []*shared.SearchResult) []*SearchResult {
+	results := make([]*SearchResult, len(sharedResults))
+	for i, sharedResult := range sharedResults {
+		// Extract fields from the shared result
+		id := ""
+		content := ""
+		if sharedResult.Document != nil {
+			id = sharedResult.Document.ID
+			content = sharedResult.Document.Content
+		}
+		
+		results[i] = &SearchResult{
+			ID:         id,
+			Content:    content,
+			Confidence: float64(sharedResult.Score), // Convert score to confidence
+			Metadata:   sharedResult.Metadata,
+			Score:      sharedResult.Score,
+			Document:   sharedResult.Document,
+		}
+	}
+	return results
 }
 
 // updateMetrics updates gRPC client metrics

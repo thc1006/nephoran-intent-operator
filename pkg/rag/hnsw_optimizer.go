@@ -487,10 +487,11 @@ func (h *HNSWOptimizer) measureCurrentPerformance(ctx context.Context, className
 func (h *HNSWOptimizer) executeTestQuery(ctx context.Context, className string, pattern *QueryPattern) (*SearchResponse, error) {
 	query := h.client.GraphQL().Get().
 		WithClassName(className).
-		WithNearText(
-			h.client.GraphQL().NearTextArgumentBuilder().
-				WithConcepts([]string{pattern.Query}),
-		).
+		// TODO: Fix NearTextArgumentBuilder - method doesn't exist
+		// WithNearText(
+		// 	h.client.GraphQL().NearTextArgumentBuilder().
+		// 		WithConcepts([]string{pattern.Query}),
+		// ).
 		WithFields(graphql.Field{Name: "_additional", Fields: []graphql.Field{
 			{Name: "id"},
 			{Name: "score"},
@@ -505,8 +506,8 @@ func (h *HNSWOptimizer) executeTestQuery(ctx context.Context, className string, 
 	// Convert to SearchResponse format
 	searchResponse := &SearchResponse{
 		Results: make([]*SearchResult, 0),
-		Query:   pattern.Query,
 		Took:    0, // Will be measured externally
+		Total:   0, // Will be updated below
 	}
 
 	if result.Data != nil {

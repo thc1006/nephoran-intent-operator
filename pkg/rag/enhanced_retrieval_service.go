@@ -311,7 +311,7 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 		Limit:         ers.calculateInitialLimit(request),
 		Filters:       ers.buildEnhancedFilters(request),
 		HybridSearch:  true,
-		HybridAlpha:   ers.config.DefaultHybridAlpha,
+		HybridAlpha:   &ers.config.DefaultHybridAlpha,
 		UseReranker:   false, // We'll do our own reranking
 		MinConfidence: request.MinQualityScore,
 		ExpandQuery:   false, // Already done in enhancement step
@@ -515,13 +515,14 @@ func (ers *EnhancedRetrievalService) convertToEnhancedResults(basicResults []*Se
 
 	for i, result := range basicResults {
 		enhanced[i] = &EnhancedSearchResult{
-			SearchResult:       result,
 			RelevanceScore:     result.Score,
 			QualityScore:       ers.calculateQualityScore(result),
 			FreshnessScore:     ers.calculateFreshnessScore(result),
 			AuthorityScore:     ers.calculateAuthorityScore(result),
 			SemanticSimilarity: result.Score, // Initial value
 		}
+		// Set the embedded SearchResult field after construction
+		enhanced[i].SearchResult = result
 
 		// Calculate combined score
 		enhanced[i].CombinedScore = ers.calculateCombinedScore(enhanced[i])

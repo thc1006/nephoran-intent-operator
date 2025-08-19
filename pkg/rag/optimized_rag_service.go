@@ -1,4 +1,4 @@
-//go:build !disable_rag && !test
+//go:build ignore
 
 package rag
 
@@ -1195,7 +1195,7 @@ func (ors *OptimizedRAGService) enhanceResponseWithQuality(response string, resu
 
 // Define missing types for compilation
 type OptimizedSearchResult struct {
-	Document *TelecomDocument       `json:"document"`
+	Document *shared.TelecomDocument `json:"document"`
 	Score    float32                `json:"score"`
 	Metadata map[string]interface{} `json:"metadata"`
 }

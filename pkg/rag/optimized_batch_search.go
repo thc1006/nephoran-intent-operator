@@ -173,7 +173,7 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 	)
 
 	// Step 1: Deduplicate and optimize queries
-	optimizedQueries := c.optimizeQueries(request.Queries)
+	optimizedQueries := c.optimizeQueries(c.convertSharedSearchQueries(request.Queries))
 
 	// Step 2: Check cache for existing results
 	cachedResults, remainingQueries := c.checkCache(ctx, optimizedQueries)
@@ -194,7 +194,7 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 	}
 
 	response := &BatchSearchResponse{
-		Results:             allResults,
+		Results:             c.convertToSharedSearchResponses(allResults),
 		AggregatedResults:   aggregatedResults,
 		TotalProcessingTime: time.Since(startTime),
 		ParallelQueries:     len(remainingQueries),
@@ -334,15 +334,23 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 				continue
 			}
 
+			// Convert to shared.SearchResult
+			sharedResult := &shared.SearchResult{
+				Document: result.Document,
+				Score:    result.Score,
+				Distance: 1.0 - result.Score, // Approximate distance from score
+				Metadata: result.Metadata,
+			}
+
 			key := result.Document.ID
 			if existing, exists := seen[key]; exists {
 				// Combine scores using max
-				if result.Score > existing.Score {
-					existing.Score = result.Score
+				if sharedResult.Score > existing.Score {
+					existing.Score = sharedResult.Score
 				}
 			} else {
-				seen[key] = result
-				aggregated = append(aggregated, result)
+				seen[key] = sharedResult
+				aggregated = append(aggregated, sharedResult)
 			}
 		}
 	}
@@ -509,6 +517,48 @@ func (c *OptimizedBatchSearchClient) GetMetrics() *BatchSearchMetrics {
 
 	metrics := *c.metrics
 	return &metrics
+}
+
+// convertSharedSearchQueries converts shared.SearchQuery to local SearchQuery
+func (c *OptimizedBatchSearchClient) convertSharedSearchQueries(sharedQueries []*shared.SearchQuery) []*SearchQuery {
+	queries := make([]*SearchQuery, len(sharedQueries))
+	for i, sq := range sharedQueries {
+		queries[i] = &SearchQuery{
+			Query:         sq.Query,
+			Limit:         sq.Limit,
+			Filters:       sq.Filters,
+			HybridSearch:  sq.HybridSearch,
+			HybridAlpha:   &sq.HybridAlpha, // Convert to pointer
+			UseReranker:   sq.UseReranker,
+			MinConfidence: sq.MinConfidence,
+			ExpandQuery:   false, // Default value for missing field
+		}
+	}
+	return queries
+}
+
+// convertToSharedSearchResponses converts local SearchResponse to shared.SearchResponse
+func (c *OptimizedBatchSearchClient) convertToSharedSearchResponses(responses []*SearchResponse) []*shared.SearchResponse {
+	sharedResponses := make([]*shared.SearchResponse, len(responses))
+	for i, resp := range responses {
+		// Convert SearchResult to shared.SearchResult
+		sharedResults := make([]*shared.SearchResult, len(resp.Results))
+		for j, result := range resp.Results {
+			sharedResults[j] = &shared.SearchResult{
+				Document: result.Document,
+				Score:    result.Score,
+				Distance: 1.0 - result.Score, // Approximate distance from score
+				Metadata: result.Metadata,
+			}
+		}
+		
+		sharedResponses[i] = &shared.SearchResponse{
+			Results: sharedResults,
+			Took:    int64(resp.Took.Nanoseconds()), // Convert duration to nanoseconds
+			Total:   resp.Total,
+		}
+	}
+	return sharedResponses
 }
 
 // Close cleans up resources
