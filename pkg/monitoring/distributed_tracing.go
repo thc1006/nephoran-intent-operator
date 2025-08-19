@@ -124,13 +124,7 @@ const (
 	AlertTypeCircuitBreaker    TraceAlertType = "circuit_breaker"
 )
 
-// AlertSeverity constants for distributed tracing (using shared type from alerting.go)
-const (
-	SeverityLow      AlertSeverity = "low"
-	SeverityMedium   AlertSeverity = "medium"
-	SeverityHigh     AlertSeverity = "high"
-	SeverityCritical AlertSeverity = "critical"
-)
+// AlertSeverity constants are defined in types.go
 
 // TraceAlertManager manages trace-based alerting
 type TraceAlertManager struct {
@@ -434,7 +428,7 @@ func (dt *DistributedTracer) checkSpanAlerts(spanMetrics *SpanMetrics) {
 	if spanMetrics.Duration > thresholds.HighLatencyThreshold {
 		severity := SeverityHigh
 		if spanMetrics.Duration > thresholds.CriticalLatencyThreshold {
-			severity = SeverityCritical
+			severity = AlertSeverityCritical
 		}
 
 		alert := &TraceAlert{

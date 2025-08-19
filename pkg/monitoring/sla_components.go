@@ -3,7 +3,6 @@ package monitoring
 
 import (
 	"context"
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -264,28 +263,11 @@ type SLATrendAnalyzer struct {
 	mu               sync.RWMutex
 }
 
-type TrendModel struct {
-	Name            string
-	Type            string // "linear", "polynomial", "seasonal"
-	Parameters      []float64
-	Accuracy        float64
-	LastUpdated     time.Time
-	PredictionRange time.Duration
-}
+// TrendModel is defined in types.go
 
-type SeasonalityDetector struct {
-	patterns        []SeasonalPattern
-	detectionWindow time.Duration
-	confidence      float64
-}
+// SeasonalityDetector is defined in types.go
 
-type SeasonalPattern struct {
-	Name      string
-	Period    time.Duration
-	Amplitude float64
-	Phase     float64
-	Strength  float64
-}
+// SeasonalPattern is defined in types.go
 
 // Business impact and cost analysis
 type BusinessImpactAnalyzer struct {
@@ -492,63 +474,7 @@ func (p2 *P2QuantileEstimator) exactQuantile() float64 {
 	return p2.markers[i] - d*(p2.markers[i]-p2.markers[i-1])/float64(p2.positions[i]-p2.positions[i-1])
 }
 
-// CircularBuffer provides efficient ring buffer for time series data
-type CircularBuffer struct {
-	data     []float64
-	times    []time.Time
-	capacity int
-	size     int
-	head     int
-	tail     int
-	mu       sync.RWMutex
-}
-
-// NewCircularBuffer creates a new circular buffer
-func NewCircularBuffer(capacity int) *CircularBuffer {
-	return &CircularBuffer{
-		data:     make([]float64, capacity),
-		times:    make([]time.Time, capacity),
-		capacity: capacity,
-	}
-}
-
-// Add adds a new value to the circular buffer
-func (cb *CircularBuffer) Add(timestamp time.Time, value float64) {
-	cb.mu.Lock()
-	defer cb.mu.Unlock()
-
-	cb.data[cb.head] = value
-	cb.times[cb.head] = timestamp
-	
-	cb.head = (cb.head + 1) % cb.capacity
-	
-	if cb.size < cb.capacity {
-		cb.size++
-	} else {
-		cb.tail = (cb.tail + 1) % cb.capacity
-	}
-}
-
-// GetRecent returns the most recent n values
-func (cb *CircularBuffer) GetRecent(n int) ([]time.Time, []float64) {
-	cb.mu.RLock()
-	defer cb.mu.RUnlock()
-	
-	if n > cb.size {
-		n = cb.size
-	}
-	
-	times := make([]time.Time, n)
-	values := make([]float64, n)
-	
-	for i := 0; i < n; i++ {
-		idx := (cb.head - 1 - i + cb.capacity) % cb.capacity
-		times[n-1-i] = cb.times[idx]
-		values[n-1-i] = cb.data[idx]
-	}
-	
-	return times, values
-}
+// CircularBuffer is defined in types.go
 
 // SLATimeSeries represents a time series for historical SLA data tracking
 type SLATimeSeries struct {
@@ -639,51 +565,11 @@ func (ts *SLATimeSeries) calculateSlope(points []TimePoint) float64 {
 	return slope
 }
 
-// TimeSeries represents a generic time series data structure
-type TimeSeries struct {
-	buffer     *CircularBuffer
-	aggregator func([]float64) float64
-	mu         sync.RWMutex
-}
+// TimeSeries is defined in types.go
 
-// NewTimeSeries creates a new generic TimeSeries
-func NewTimeSeries(capacity int) *TimeSeries {
-	return &TimeSeries{
-		buffer: NewCircularBuffer(capacity),
-		aggregator: func(values []float64) float64 {
-			if len(values) == 0 {
-				return 0.0
-			}
-			sum := 0.0
-			for _, v := range values {
-				sum += v
-			}
-			return sum / float64(len(values))
-		},
-	}
-}
+// NewTimeSeries is defined in types.go
 
-// Add adds a value to the time series
-func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
-	ts.mu.Lock()
-	defer ts.mu.Unlock()
-	ts.buffer.Add(timestamp, value)
-}
-
-// GetRecent returns the most recent values
-func (ts *TimeSeries) GetRecent(n int) ([]time.Time, []float64) {
-	ts.mu.RLock()
-	defer ts.mu.RUnlock()
-	return ts.buffer.GetRecent(n)
-}
-
-// Aggregate returns aggregated value over recent points
-func (ts *TimeSeries) Aggregate(n int) float64 {
-	ts.mu.RLock()
-	defer ts.mu.RUnlock()
-	_, values := ts.buffer.GetRecent(n)
-	return ts.aggregator(values)
-}
+// TimeSeries methods are defined in types.go
 
 // GetStatus methods for SLI types
 func (sli *ComponentAvailabilitySLI) GetStatus(ctx context.Context) (*AvailabilityStatus, error) {
@@ -753,10 +639,10 @@ type SLAAlert struct{}
 type AlertSilence struct{}
 type AlertCorrelator struct{}
 type AlertCondition struct{}
-type AlertSeverity int
+// AlertSeverity is defined in types.go
 type SLAHistoricalDataStore struct{}
 type SLAPredictor struct{}
-type AnomalyDetector struct{}
+// AnomalyDetector is defined in types.go
 type CostCalculator struct{}
 type RiskAssessment struct{}
 type BusinessMetricsCollector struct{}

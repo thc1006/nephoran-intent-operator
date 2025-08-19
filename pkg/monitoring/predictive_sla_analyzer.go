@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
-	"sort"
 	"sync"
 	"time"
 
@@ -72,27 +71,11 @@ type ThroughputPredictor struct {
 	lastUpdate time.Time
 }
 
-// Analysis components
-type TrendAnalyzer struct {
-	trendModels map[string]*TrendModel
-	windowSizes []time.Duration
-	confidence  float64
-}
+// TrendAnalyzer is defined in types.go
 
-type SeasonalityDetector struct {
-	patterns      []SeasonalPattern
-	detectionAlgo string // "fft", "autocorr", "stl"
-	minPeriod     time.Duration
-	maxPeriod     time.Duration
-}
+// SeasonalityDetector is defined in types.go
 
-type AnomalyDetector struct {
-	algorithm       string // "isolation_forest", "one_class_svm", "local_outlier_factor"
-	sensitivityLevel float64
-	windowSize      time.Duration
-	trainingSize    int
-	logger          *zap.Logger
-}
+// AnomalyDetector is defined in types.go
 
 // Data structures
 type TrainingDataSet struct {
@@ -176,22 +159,9 @@ type DataNormalization struct {
 	iqr      []float64
 }
 
-// Supporting types for analysis
-type TrendModel struct {
-	slope      float64
-	intercept  float64
-	r2         float64
-	direction  string // "increasing", "decreasing", "stable"
-	confidence float64
-}
+// TrendModel is defined in types.go
 
-type SeasonalPattern struct {
-	period     time.Duration
-	amplitude  float64
-	phase      float64
-	strength   float64
-	detected   bool
-}
+// SeasonalPattern is defined in types.go
 
 // NewPredictiveSLAAnalyzer creates a new predictive SLA analyzer
 func NewPredictiveSLAAnalyzer(config *SLAMonitoringConfig, logger *zap.Logger) *PredictiveSLAAnalyzer {
@@ -209,8 +179,8 @@ func NewPredictiveSLAAnalyzer(config *SLAMonitoringConfig, logger *zap.Logger) *
 	analyzer.throughputPredictor = NewThroughputPredictor(config)
 
 	// Initialize analyzers
-	analyzer.trendAnalyzer = NewTrendAnalyzer(config)
-	analyzer.seasonalityDetector = NewSeasonalityDetector(config)
+	analyzer.trendAnalyzer = NewTrendAnalyzer(logger)
+	analyzer.seasonalityDetector = NewSeasonalityDetector()
 	analyzer.anomalyDetector = NewAnomalyDetector(logger)
 
 	return analyzer
@@ -1017,32 +987,11 @@ func NewThroughputPredictor(config *SLAMonitoringConfig) *ThroughputPredictor {
 	}
 }
 
-func NewTrendAnalyzer(config *SLAMonitoringConfig) *TrendAnalyzer {
-	return &TrendAnalyzer{
-		trendModels: make(map[string]*TrendModel),
-		windowSizes: []time.Duration{15 * time.Minute, 1 * time.Hour, 4 * time.Hour, 24 * time.Hour},
-		confidence:  0.95,
-	}
-}
+// NewTrendAnalyzer is defined in types.go
 
-func NewSeasonalityDetector(config *SLAMonitoringConfig) *SeasonalityDetector {
-	return &SeasonalityDetector{
-		patterns:      make([]SeasonalPattern, 0),
-		detectionAlgo: "autocorr",
-		minPeriod:     15 * time.Minute,
-		maxPeriod:     7 * 24 * time.Hour, // Weekly patterns
-	}
-}
+// NewSeasonalityDetector is defined in types.go
 
-func NewAnomalyDetector(logger *zap.Logger) *AnomalyDetector {
-	return &AnomalyDetector{
-		algorithm:        "isolation_forest",
-		sensitivityLevel: 0.1,
-		windowSize:       1 * time.Hour,
-		trainingSize:     1000,
-		logger:          logger,
-	}
-}
+// NewAnomalyDetector is defined in types.go
 
 // Stub methods for completing the interface
 func (ap *AvailabilityPredictor) Predict(features []float64) float64 {
@@ -1061,15 +1010,7 @@ func (tp *ThroughputPredictor) Predict(features []float64) float64 {
 	return 1000.0 // Default prediction
 }
 
-func (sd *SeasonalityDetector) GetSeasonalAdjustment(timestamp time.Time, horizon time.Duration) float64 {
-	// Mock seasonal adjustment
-	hour := timestamp.Hour()
-	// Simple daily pattern: higher latency during business hours
-	if hour >= 9 && hour <= 17 {
-		return 100.0 // Add 100ms during business hours
-	}
-	return -50.0 // Reduce 50ms during off-hours
-}
+// GetSeasonalAdjustment is defined in types.go
 
 // Stub implementations for missing methods
 func (psa *PredictiveSLAAnalyzer) initializeModels(ctx context.Context) error {

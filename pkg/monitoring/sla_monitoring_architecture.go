@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -57,26 +58,10 @@ type ServiceLevelIndicatorFramework struct {
 	// Capacity and Efficiency SLIs
 	CapacityUtilization *CapacityUtilizationSLI
 	HeadroomTracking    *HeadroomTrackingSLI
-	ResourceEfficiency  *ResourceEfficiencySLI
+	ResourceEfficiency  *ResourceEfficiencySLI // Define as needed
 }
 
-// ComponentAvailabilitySLI measures multi-dimensional availability
-type ComponentAvailabilitySLI struct {
-	// Target: 99.95% availability (4.38 hours downtime/year max)
-	UptimeMetric      prometheus.Gauge
-	HealthCheckMetric prometheus.Gauge
-	ServiceMeshMetric prometheus.Gauge
-	DependencyMetric  prometheus.Gauge
-
-	// Composite availability calculation
-	CompositeAvailability prometheus.Gauge
-
-	// Error budget tracking
-	ErrorBudgetRemaining prometheus.Gauge
-	ErrorBudgetBurnRate  prometheus.Gauge
-
-	collector *MetricsCollector
-}
+// ComponentAvailabilitySLI is defined in sla_components.go
 
 // IntentProcessingLatencySLI measures end-to-end latency from intent to deployment
 type IntentProcessingLatencySLI struct {
@@ -97,23 +82,7 @@ type IntentProcessingLatencySLI struct {
 	LatencyViolations prometheus.Counter
 }
 
-// ThroughputSLI measures throughput capacity
-type ThroughputSLI struct {
-	// Target: 45 intents/minute sustained throughput
-	CurrentThroughput   prometheus.Gauge
-	PeakThroughput      prometheus.Gauge
-	SustainedThroughput prometheus.Gauge
-
-	// Capacity utilization
-	CapacityUtilization prometheus.Gauge
-	QueueDepth          prometheus.Gauge
-	ProcessingBacklog   prometheus.Gauge
-
-	// Burst handling (1000+ intents/second)
-	BurstCapacity     prometheus.Gauge
-	BurstDuration     *prometheus.HistogramVec
-	BurstRecoveryTime *prometheus.HistogramVec
-}
+// ThroughputSLI is defined in sla_components.go
 
 // WeightedErrorBudgetSLI implements business impact weighted error budgets
 type WeightedErrorBudgetSLI struct {
@@ -133,16 +102,23 @@ type WeightedErrorBudgetSLI struct {
 	UserImpactMetric    prometheus.Gauge
 }
 
+// GetStatus returns the error budget status
+func (sli *WeightedErrorBudgetSLI) GetStatus(ctx context.Context) (*ErrorBudgetStatus, error) {
+	return &ErrorBudgetStatus{
+		BurnRate: 0.1, // Mock 10% burn rate
+	}, nil
+}
+
 // ServiceLevelObjectiveEngine manages SLO definitions and tracking
 type ServiceLevelObjectiveEngine struct {
 	// SLO Definitions
 	AvailabilitySLO *AvailabilitySLO
 	LatencySLO      *LatencySLO
 	ThroughputSLO   *ThroughputSLO
-	ReliabilitySLO  *ReliabilitySLO
+	ReliabilitySLO  *ReliabilitySLO // Define as needed
 
 	// Error Budget Management
-	ErrorBudgetCalculator *ErrorBudgetCalculator
+	ErrorBudgetCalculator *ErrorBudgetCalculator // Define as needed
 	BurnRateAnalyzer      *BurnRateAnalyzer
 
 	// Multi-window alerting
@@ -153,37 +129,9 @@ type ServiceLevelObjectiveEngine struct {
 	ComplianceTracker *SLOComplianceTracker
 }
 
-// AvailabilitySLO defines availability service level objectives
-type AvailabilitySLO struct {
-	Target            float64 // 99.95%
-	ErrorBudget       float64 // 0.05% = 21.6 minutes/month
-	MeasurementWindow time.Duration
+// AvailabilitySLO is defined in sla_components.go
 
-	// Multi-dimensional availability
-	ComponentWeights   map[string]float64
-	DependencyWeights  map[string]float64
-	UserJourneyWeights map[string]float64
-
-	// Alerting thresholds
-	FastBurnThreshold float64 // 2% of error budget in 1 hour
-	SlowBurnThreshold float64 // 5% of error budget in 6 hours
-}
-
-// LatencySLO defines latency service level objectives
-type LatencySLO struct {
-	P95Target         time.Duration // 2 seconds
-	P99Target         time.Duration // 5 seconds
-	MeasurementWindow time.Duration
-
-	// Component latency targets
-	LLMProcessingTarget time.Duration // 1.5 seconds
-	RAGRetrievalTarget  time.Duration // 200 milliseconds
-	GitOpsTarget        time.Duration // 300 milliseconds
-
-	// Alerting configuration
-	ViolationThreshold int           // Number of violations before alert
-	SustainedViolation time.Duration // Duration of sustained violation
-}
+// LatencySLO is defined in sla_components.go
 
 // SLAPredictiveAnalyzer provides ML-based SLA violation prediction
 type SLAPredictiveAnalyzer struct {
@@ -300,27 +248,7 @@ type SLAStorageManager struct {
 	RetentionCompliance prometheus.Gauge
 }
 
-// SyntheticMonitor provides proactive monitoring
-type SyntheticMonitor struct {
-	// Synthetic test scenarios
-	IntentProcessingTests *IntentProcessingTestSuite
-	APIEndpointTests      *APIEndpointTestSuite
-	UserJourneyTests      *UserJourneyTestSuite
-
-	// Test execution
-	TestScheduler   *TestScheduler
-	TestExecutor    *TestExecutor
-	ResultProcessor *TestResultProcessor
-
-	// Synthetic metrics
-	SyntheticAvailability *prometheus.GaugeVec
-	SyntheticLatency      *prometheus.HistogramVec
-	SyntheticErrorRate    *prometheus.GaugeVec
-
-	// Test coverage tracking
-	TestCoverage    prometheus.Gauge
-	TestReliability prometheus.Gauge
-}
+// SyntheticMonitor is defined in sla_components.go
 
 // ChaosEngineeringIntegration validates resilience
 type ChaosEngineeringIntegration struct {
@@ -354,22 +282,7 @@ type SLACostOptimizer struct {
 	ROIMetric           prometheus.Gauge
 }
 
-// AutomatedRemediationEngine provides automated SLA remediation
-type AutomatedRemediationEngine struct {
-	// Remediation actions
-	ScalingActions        *AutoScalingActions
-	LoadBalancingActions  *LoadBalancingActions
-	CircuitBreakerActions *CircuitBreakerActions
-
-	// Decision engine
-	RemediationDecisionEngine *RemediationDecisionEngine
-	ActionPrioritizer         *ActionPrioritizer
-
-	// Remediation tracking
-	RemediationActions *prometheus.CounterVec
-	RemediationSuccess *prometheus.GaugeVec
-	RemediationTime    *prometheus.HistogramVec
-}
+// AutomatedRemediationEngine is defined in sla_components.go
 
 // SLAMonitoringConfig provides configuration for the monitoring architecture
 type SLAMonitoringConfig struct {
@@ -424,7 +337,8 @@ func NewSLAMonitoringArchitecture(
 	arch.SLOEngine = NewServiceLevelObjectiveEngine(config)
 
 	// Initialize Predictive Analyzer
-	arch.PredictiveAnalyzer = NewPredictiveSLAAnalyzer(config)
+	logger, _ := zap.NewProduction()
+	arch.PredictiveAnalyzer = NewPredictiveSLAAnalyzer(config, logger)
 
 	// Initialize Data Collection and Processing
 	arch.MetricsCollector = NewAdvancedMetricsCollector(config)
@@ -450,6 +364,66 @@ func NewSLAMonitoringArchitecture(
 // Placeholder SLI types to resolve compilation errors
 type ServiceAvailabilitySLI struct{}
 type UserJourneyAvailabilitySLI struct{}
+
+// Missing type definitions referenced in this file
+
+// ResourceEfficiencySLI measures resource efficiency
+type ResourceEfficiencySLI struct {
+	// Resource utilization metrics
+	CPUEfficiency    *prometheus.GaugeVec
+	MemoryEfficiency *prometheus.GaugeVec
+	NetworkEfficiency *prometheus.GaugeVec
+	StorageEfficiency *prometheus.GaugeVec
+}
+
+// ReliabilitySLO defines reliability service level objectives
+type ReliabilitySLO struct {
+	Target            float64       // Reliability target
+	MeasurementWindow time.Duration
+	FailureThreshold  int
+}
+
+// ErrorBudgetCalculator calculates error budgets
+type ErrorBudgetCalculator struct {
+	ErrorBudgetPeriod time.Duration
+	BurnRateThreshold float64
+}
+
+// Additional missing stub types
+type BurnRateAnalyzer struct{}
+type FastBurnDetector struct{}
+type SlowBurnDetector struct{}
+type SLOComplianceTracker struct{}
+type RemediationDecisionEngine struct{}
+type ActionPrioritizer struct{}
+type ComplianceReporter struct{}
+type StreamingMetricsCollector struct{}
+type BatchMetricsCollector struct{}
+type EdgeMetricsCollector struct{}
+type CardinalityManager struct{}
+type MetricsPruningEngine struct{}
+type MetricsCache struct{}
+type MetricsCompressionEngine struct{}
+type KafkaMetricsConsumer struct{}
+type StreamProcessor struct{}
+type AdvancedAlertManager struct{}
+type SLADashboardManager struct{}
+type RealTimeSLICalculator struct{}
+type ErrorBudgetStatus struct {
+	BurnRate float64
+}
+type PredictedViolation struct{}
+type SLARecommendation struct{}
+
+// Add method stubs for Start methods to prevent compilation errors
+func (c *AdvancedMetricsCollector) Start(ctx context.Context) error { return nil }
+func (d *RealTimeDataAggregator) Start(ctx context.Context) error { return nil }
+func (s *SLAStorageManager) Start(ctx context.Context) error { return nil }
+func (a *AdvancedAlertManager) Start(ctx context.Context) error { return nil }
+func (d *SLADashboardManager) Start(ctx context.Context) error { return nil }
+func (c *ChaosEngineeringIntegration) Start(ctx context.Context) error { return nil }
+func (s *SLACostOptimizer) Start(ctx context.Context) error { return nil }
+func (c *ComplianceReporter) Start(ctx context.Context) error { return nil }
 
 // Start initializes and starts all monitoring components
 func (arch *SLAMonitoringArchitecture) Start(ctx context.Context) error {
@@ -550,4 +524,53 @@ func (arch *SLAMonitoringArchitecture) calculateCompositeSLAScore(status *SLASta
 	score += (1.0 - status.ErrorBudgetStatus.BurnRate) * weights["reliability"]
 
 	return score
+}
+
+// Constructor functions for missing types
+func NewServiceLevelIndicatorFramework(config *SLAMonitoringConfig) *ServiceLevelIndicatorFramework {
+	return &ServiceLevelIndicatorFramework{}
+}
+
+func NewServiceLevelObjectiveEngine(config *SLAMonitoringConfig) *ServiceLevelObjectiveEngine {
+	return &ServiceLevelObjectiveEngine{}
+}
+
+func NewAdvancedMetricsCollector(config *SLAMonitoringConfig) *AdvancedMetricsCollector {
+	return &AdvancedMetricsCollector{}
+}
+
+func NewRealTimeDataAggregator(config *SLAMonitoringConfig) *RealTimeDataAggregator {
+	return &RealTimeDataAggregator{}
+}
+
+func NewSLAStorageManager(config *SLAMonitoringConfig) *SLAStorageManager {
+	return &SLAStorageManager{}
+}
+
+func NewAdvancedAlertManager(config *SLAMonitoringConfig) *AdvancedAlertManager {
+	return &AdvancedAlertManager{}
+}
+
+func NewSLADashboardManager(config *SLAMonitoringConfig) *SLADashboardManager {
+	return &SLADashboardManager{}
+}
+
+func NewSyntheticMonitor(config *SLAMonitoringConfig) *SyntheticMonitor {
+	return &SyntheticMonitor{}
+}
+
+func NewChaosEngineeringIntegration(config *SLAMonitoringConfig) *ChaosEngineeringIntegration {
+	return &ChaosEngineeringIntegration{}
+}
+
+func NewSLACostOptimizer(config *SLAMonitoringConfig) *SLACostOptimizer {
+	return &SLACostOptimizer{}
+}
+
+func NewAutomatedRemediationEngine(config *SLAMonitoringConfig) *AutomatedRemediationEngine {
+	return &AutomatedRemediationEngine{}
+}
+
+func NewComplianceReporter(config *SLAMonitoringConfig) *ComplianceReporter {
+	return &ComplianceReporter{}
 }

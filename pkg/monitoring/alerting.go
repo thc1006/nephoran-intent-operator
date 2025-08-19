@@ -12,15 +12,7 @@ import (
 	"time"
 )
 
-// AlertSeverity represents alert severity levels
-type AlertSeverity string
-
-const (
-	AlertSeverityInfo     AlertSeverity = "info"
-	AlertSeverityWarning  AlertSeverity = "warning"
-	AlertSeverityError    AlertSeverity = "error"
-	AlertSeverityCritical AlertSeverity = "critical"
-)
+// AlertSeverity is defined in types.go
 
 // AlertState represents the state of an alert
 type AlertState string
