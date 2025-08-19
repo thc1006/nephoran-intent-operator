@@ -1,0 +1,37 @@
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: nephoran-ca-cert
+  namespace: nephoran-system
+spec:
+  secretName: nephoran-ca-secret
+  duration: 8760h # 1 year
+  renewBefore: 720h # 30 days
+  isCA: true
+  commonName: "Nephoran Intent Operator CA"
+  subject:
+    organizationalUnits:
+    - "Nephoran Intent Operator"
+    organizations:
+    - "Nephoran"
+    countries:
+    - "US"
+  issuerRef:
+    name: selfsigned-issuer
+    kind: ClusterIssuer
+---
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: nephoran-ca-issuer
+  namespace: nephoran-system
+spec:
+  ca:
+    secretName: nephoran-ca-secret

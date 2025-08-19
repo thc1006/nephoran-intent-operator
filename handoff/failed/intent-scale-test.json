@@ -1,0 +1,15 @@
+{
+  "apiVersion": "network.nephio.io/v1alpha1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "scale-nf-sim",
+    "namespace": "ran-a"
+  },
+  "spec": {
+    "action": "scale",
+    "target": "nf-sim",
+    "parameters": {
+      "replicas": 3
+    }
+  }
+}

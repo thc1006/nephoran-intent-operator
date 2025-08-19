@@ -1,0 +1,9 @@
+{
+  "intent_type": "scaling",
+  "target": "example-deployment",
+  "namespace": "default",
+  "replicas": 3,
+  "reason": "Load increase detected",
+  "source": "monitoring-system",
+  "correlation_id": "scale-001"
+}

@@ -2,8 +2,6 @@ module github.com/thc1006/nephoran-intent-operator
 
 go 1.24.1
 
-toolchain go1.24.5
-
 // Go 1.24+ optimization directives for better performance
 //go:build go1.24
 
@@ -14,6 +12,9 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.37.2
 	github.com/aws/aws-sdk-go-v2/config v1.29.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.86.0
+
+	// === FILE SYSTEM WATCHER ===
+	github.com/fsnotify/fsnotify v1.9.0
 
 	// Git operations for GitOps workflows
 	github.com/go-git/go-git/v5 v5.16.2
@@ -80,9 +81,6 @@ require (
 require (
 	// Security scanning and SBOM generation
 	github.com/CycloneDX/cyclonedx-gomod v1.9.0
-
-	// File system notifications
-	github.com/fsnotify/fsnotify v1.9.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.38.0
 	// Testing essentials only

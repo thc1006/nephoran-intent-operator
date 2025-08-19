@@ -6,6 +6,35 @@ VERSION ?= $(shell git describe --tags --always --dirty)
 COMMIT = $(shell git rev-parse --short HEAD)
 DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 
+# Helper functions for MVP scaling operations
+define check_tool
+	@if ! command -v $(1) >/dev/null 2>&1; then \
+		echo "ERROR: $(1) is required but not installed"; \
+		exit 1; \
+	fi
+endef
+
+define kubectl_patch_deployment
+	kubectl patch deployment $(1) \
+		--namespace $(NAMESPACE) \
+		--type='json' \
+		-p='[{"op": "replace", "path": "/spec/replicas", "value": $(2)}]' 2>/dev/null || true
+endef
+
+define kubectl_patch_hpa
+	kubectl patch hpa $(1) \
+		--namespace $(NAMESPACE) \
+		--type='json' \
+		-p='[{"op": "replace", "path": "/spec/minReplicas", "value": $(2)}, {"op": "replace", "path": "/spec/maxReplicas", "value": $(3)}]' 2>/dev/null || true
+endef
+
+define create_patch_file
+	@mkdir -p handoff/patches; \
+	echo '{"kind":"Patch","metadata":{"name":"$(1)"},"spec":{"replicas":$(2),"resources":{"requests":{"cpu":"$(3)","memory":"$(4)"}}}}' \
+		> handoff/patches/$(1)-patch.json; \
+	echo "$(1) patch saved to handoff/patches/$(1)-patch.json"
+endef
+
 # Go configuration
 GO_VERSION = 1.24.1
 GOOS ?= $(shell go env GOOS)
@@ -553,6 +582,85 @@ undeploy: ## Remove from the cluster
 	@echo "Removing from cluster..."
 	kustomize build config/default | kubectl delete -f -
 
+.PHONY: build-webhook
+build-webhook: ## Build the webhook manager binary
+	@echo "Building webhook manager binary..."
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(LDFLAGS) -o bin/webhook-manager cmd/webhook-manager/main.go
+
+.PHONY: docker-build-webhook
+docker-build-webhook: ## Build webhook manager Docker image
+	@echo "Building webhook manager Docker image..."
+	docker build -f Dockerfile \
+		--build-arg SERVICE_NAME=webhook-manager \
+		--build-arg SERVICE_TYPE=go \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg BUILD_DATE=$(DATE) \
+		--build-arg VCS_REF=$(COMMIT) \
+		--target final \
+		-t nephoran/webhook-manager:$(IMAGE_TAG) \
+		--build-arg BINARY_PATH=./cmd/webhook-manager/main.go .
+	docker tag nephoran/webhook-manager:$(IMAGE_TAG) nephoran/webhook-manager:latest
+
+.PHONY: deploy-webhook
+deploy-webhook: docker-build-webhook ## Deploy webhook with cert-manager
+	@echo "Deploying webhook with cert-manager..."
+	@echo "Step 1: Verifying cert-manager is installed..."
+	@if ! kubectl get crd certificates.cert-manager.io >/dev/null 2>&1; then \
+		echo "ERROR: cert-manager is not installed. Please install cert-manager first:"; \
+		echo "  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml"; \
+		exit 1; \
+	fi
+	@echo "Step 2: Building webhook configuration..."
+	@if ! command -v kustomize >/dev/null 2>&1; then \
+		echo "Installing kustomize..."; \
+		go install sigs.k8s.io/kustomize/kustomize/v5@latest; \
+	fi
+	@echo "Step 3: Applying webhook deployment..."
+	kustomize build config/default | kubectl apply -f -
+
+.PHONY: deploy-webhook-kind
+deploy-webhook-kind: ## Deploy webhook to kind cluster
+	@echo "Deploying webhook to kind cluster..."
+	@echo "Step 1: Creating namespace..."
+	kubectl create namespace nephoran-system --dry-run=client -o yaml | kubectl apply -f -
+	@echo "Step 2: Applying CRDs..."
+	kubectl apply -f deployments/crds/intent.nephoran.com_networkintents.yaml
+	@echo "Step 3: Building and loading Docker image..."
+	docker build -t nephoran/webhook-manager:latest -f Dockerfile --target webhook-manager .
+	kind load docker-image nephoran/webhook-manager:latest
+	@echo "Step 4: Creating self-signed certificate secret..."
+	@kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: webhook-server-cert
+  namespace: nephoran-system
+type: kubernetes.io/tls
+data:
+  tls.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURQekNDQWllZ0F3SUJBZ0lVS1VpRGdJdUdEemRUS2tRanJQK0ZXSktPSEhrd0RRWUpLb1pJaHZjTkFRRUwKQlFBd0R6RU5NQXNHQTFVRUF3d0VkR1Z6ZERBZUZ3MHlNakEzTVRFd05qVXlNakJhRncwek1qQTNNRGd3TmpVeQpNakJhTUE4eERUQUxCZ05WQkFNTUJIUmxjM1F3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXdnZ0VLCkFvSUJBUURFd0NpYnpGMFo0MjZSM0xxRXdNOGtkaHRWQ3lIUStQZUlRbzBKM3hEaHJ0NEl2bklIQzJQenBhaE0KZ3FGUnRMWlk0L3RYYVhqdWxWTlhSUFhFOGlNR2VKT2g2cm9odHlCNURoOTBqRzBLaE5SWUlQOTRrNWlMaFZOdwpaU1o3bENUK2JVQUxtTzFEVGJOcER6SFBXMVhwVXBRRnJqVUxjbHNKRERJdk0ybUxJUnB2VkViWHY1akE0WnJUClA1bDRzMzRiL1ZsZ01sOGsxRmhGc1VmeWJxV1dzWDRJWmZHaVEwRWxBZUZRUEhwMEtJOGNPbGNYeUcyS2tVcFYKVTRSYWJtNEVkTExmSGdOZG5rOTJudEZQdlh0SFhKejA3bXRBenNicUp1ZHU0RUpnMG80eEJPeHBvQllOeDJRTwpJN0RkS2Q0di9GOURnSWpBelUyOUczQnB5aTVaQWdNQkFBR2pVekJSTUIwR0ExVWREZ1FXQkJRbjdBeDlEa2pVCkNQa2l0Uld2SUdSL0pTNEpCekFmQmdOVkhTTUVHREFXZ0JRbjdBeDlEa2pVQ1BraXRSV3ZJR1IvSlM0SkJ6QVAKCQVVER1RRUJBd0lCQmpBTkJna3Foa2lHOXcwQkFRc0ZBQU9DQVFFQWh3Q1ZESmVxOFl5Q3JMOCtMZXJxb3FGRwp1MEFyZXBwNWx1YkJzK3lTS0FNNDNGQzRHQjBDQ0draDR5NnhSTGRqVVB1S2tJaXJUTGswUzl5UG5EY3lOWFNtCkpxQnRaL2Z0UGR6NWo0TndPLzRid2xVeWw5MXBTelJtWTJpT2MyaUZLd05abjhqQmFKcFZzRnV0cnE2N0xJZmQKQjRiZEdad0xmWWh6KzJRdVJTTjd3a005c2kyaGpMNkJQTWVuM0JLbHRqQ2ZOcFJJN25mRmJEU0NXZGRBbEdDQwo3MEdZY3dQNGFQcDlwZXBwMkJqbU5ydVh0aEhLRmtIS3Y0TjZudEZZejYwQ3V5OGJMQjdXU3dqaGJHN08xL0prCmRJSktEakJQUEtBc2lROG5KenhrL0c1dnFwUVYvUjFqL0xrckR1akJqamNWdUNsNlRCZHRpemZlL3F1YW93PT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+  tls.key: LS0tLS1CRUdJTiBSU0EgUFJJVkFURSBLRVktLS0tLQpNSUlFcEFJQkFBS0NBUUVBeE1Bb204eGRHZU51a2R5NmhNRFBKSFliVlFzaDBQajNpRUtOQ2Q4UTRhN2VDTDV5CkJ3dGo4NldvVElLaFViUzJXT1A3VjJsNDdwVlRWMFQxeFBJakJuaVRvZXE2SWJjZ2VRNGZkSXh0Q29UVVdDRC8KZUpPWWk0VlRjR1VtZTVRay9tMUFDNWp0UTAyemFROHh6MXRWNlZLVUJhNDFDM0piQ1F3eUx6TnBpeUVhYjFSRwoxNytZd09HYTB6K1plTE4rRy8xWllESmZKTlJZUmJGSDhtNmxsckYrQ0dYeG9rTkJKUUhoVUR4NmRDaVBIRHBYCkY4aHRpcEZLVlZPRVdtNXVCSFN5M3g0RFhaNVBkcDdSVDcxN1IxeWM5TzVyUU03RzZpYm5idUJDWU5LT01RVHMKYUFXRGN0a0RpT3czU25lTC94ZlE0Q0l3TTFOZFJ0d2Fjb3VXUUlEQVFBQkFvSUJBQk1HS1NTSGtlT2tQQjJvagpGRzhybUhDSUFhRnFlc3JJN2F5ZjRZVGJGOGdIOVZUTXdVcHJQYkJPOFJxMW81Ym1vOHVoSS9YY0F1Z0x2NjA1CjJIRWJxaUtiZ3lWdnNvV1FhY3pMdEY0cElwTEFhaU9JcVBNdCtwWm9YL29kMjJYVlp6aE05TVRIaTlReUNJdHQKWGlFMEtneGJHWGN0a0xFL1JGR2hsd3hqMjNGVEpuaXBrYUtjSUErcnpmQzZQRnp1amw5SzJGRzlWVVRDRGZ1ZQoyUHNYUHlvQU9mVGRYUHRsZDFUb3JQSG9MZWpWaGdkL0RrbEtzVjN2YzN6Q3g5MnVJQjlOQjdBTGNES3BiZGF1CjVCN0FiZGVWUjJCMXI0VnpYN2hLdVhEYXpLNzhLQUhjMHBGaUpONkVEVm9jd1Y1SDdJRXFFY0k0UmtXMmQ4eG4KczQ4R1VnRUNnWUVBOHNGSVFodmtpb05OVGMveG5RdFF6MDlIQ2hWSVIwUU5oOFBSYVZBU08yU0NhTHBEL1dCRApWcTlKdlowQkxIWkZJSUdPR2xMTGN5Y0R6MUxxMVRCN0xvOWdTQitQVEFMMzA3SkJHVzVYRyt3bUVkUzF4OWx2CjBVQXNRRkh5eDlRbUtGcTJZOXdXTjdXbHFKUU5UWGJBNWhVTDFUQzRjUHJjN1VRckplMTB5UUVDZ1lFQXo5T0cKTGdGbGFKMVNRNkJDbUJiQlNQNzBzUGJCMWxYWGgxb3g5Y1Z4VnZ0UG9DK0VBb0JhcEl2M0xkRGluZGdhcC9oTwo1cGp1cDlUR01YRGpsMEJJQ0VYUGd0MlBKcXRoZHQ3Sk91R0ZwK08xZ3V2L1l0OU5sczR0UFJzekFjcjAzdUg5CnR2TlN0RTBJdWRRQ0lJdmJJc0xwN1hNcklJRjNQOFRaVytIUmJoa0NnWUVBNFg0S1FQcGhQRGFhdEtKUGV3cHcKN2Y4c1JySUtHczNweGl1b1NqRVpQQ3pMZHA3d0FRL3YvMUtkMDdqdEJJN1lQZTZIM3h3VGtGZXBJNTZlL0dtTwo0ekZpTUFmTE0vdU5jU3VYT3ZiSUZCT3d1N1haRGF5aDNkcnEvaFI0d2llTlNXdXNLRkFldGRKN3pUa1VQNXlECkhyN2RTSzZ2ejlpQ3JySkd5STRyQVFFQ2dZRUF3Qm1mTGdTb1lwVkptMFg3TVpyL09vRnhLME5YYzBCQ0JxdGQKNy9ENHN6em9tMFN0Uk01aGExRW5KMmJMbFRyOVJRRkR0ZmhIT0R3dDZPaEZUWHhQbEVnRks1NnJYZ0xzd2JVaQpCT2k1U0hGZ0lOaUQzRlFnR0hYaW9aeG16SW1IMVBXL1lCNGhUR2VLOGJTdHZLNTFJa3BSVzg0OGNGZzJodHVUClU1bjU3WWtDZ1lBa3ZJQkwwNFVIcTdRZ1ZJRE84bWpWOVJBZTRBTHRjeWtIaHFrbHBhaDVnbFFBOElEL2liTUsKN0dBNVZWUVJvQ3h1U3o1UU1xdktNdFBuMXRFSTRsT25OZ0lnV0ZQOXFJOGlRM1Zpb3I5cEFDUDBaQmxhS1JOYQowdlBUdXpuV1dPaU9xZXhQVnRpWkJzRGRJQ3UrRmhXUjREd1l5akxGZ0pFaFJzSk9PVzJaYWc9PQotLS0tLUVORCBSU0EgUFJJVkFURSBLRVktLS0tLQo=
+EOF
+	@echo "Step 5: Deploying webhook..."
+	kubectl apply -k config/webhook/
+	@echo "Webhook deployed successfully!"
+	@echo "Step 4: Waiting for certificate to be ready..."
+	@kubectl wait --for=condition=Ready certificate/webhook-serving-cert -n $(NAMESPACE) --timeout=300s || true
+	@echo "Step 5: Waiting for webhook deployment to be ready..."
+	@kubectl wait --for=condition=Available deployment/webhook-manager -n $(NAMESPACE) --timeout=300s || true
+	@echo "✅ Webhook deployment completed successfully!"
+	@echo ""
+	@echo "Verification commands:"
+	@echo "  kubectl get certificates -n $(NAMESPACE)"
+	@echo "  kubectl get mutatingwebhookconfiguration nephoran-networkintent-mutating"
+	@echo "  kubectl get validatingwebhookconfiguration nephoran-networkintent-validating"
+	@echo "  kubectl get deployment webhook-manager -n $(NAMESPACE)"
+
+.PHONY: undeploy-webhook
+undeploy-webhook: ## Remove webhook deployment
+	@echo "Removing webhook deployment..."
+	kustomize build config/default | kubectl delete -f - --ignore-not-found=true
+	@echo "Webhook deployment removed"
+
 .PHONY: deploy-samples
 deploy-samples: ## Deploy sample resources
 	@echo "Deploying sample resources..."
@@ -570,6 +678,88 @@ helm-install: ## Install using Helm chart
 helm-uninstall: ## Uninstall Helm release
 	@echo "Uninstalling Helm release..."
 	helm uninstall $(PROJECT_NAME) --namespace $(NAMESPACE)
+
+.PHONY: mvp-controller-scale-up
+mvp-controller-scale-up: ## Scale up MVP controller deployment using porch/kpt patches
+	@echo "Scaling up MVP controller deployment..."
+	@echo "Generating scaling patch for increased capacity..."
+	@if [ -d "kpt-packages/nephio" ]; then \
+		echo "Applying scale-up patch to Nephio packages..."; \
+		$(call kubectl_patch_deployment,nephoran-controller-manager,3); \
+		$(call kubectl_patch_hpa,nephoran-controller-hpa,3,10); \
+		echo "Scale-up patch applied successfully"; \
+	else \
+		echo "Warning: kpt-packages/nephio not found. Creating default scale-up patch..."; \
+		$(call create_patch_file,scale-up,3,500m,512Mi); \
+	fi
+	@echo "MVP controller scale-up completed"
+
+.PHONY: mvp-controller-scale-down
+mvp-controller-scale-down: ## Scale down MVP controller deployment using porch/kpt patches
+	@echo "Scaling down MVP controller deployment..."
+	@echo "Generating scaling patch for reduced capacity..."
+	@if [ -d "kpt-packages/nephio" ]; then \
+		echo "Applying scale-down patch to Nephio packages..."; \
+		$(call kubectl_patch_deployment,nephoran-controller-manager,1); \
+		$(call kubectl_patch_hpa,nephoran-controller-hpa,1,3); \
+		echo "Scale-down patch applied successfully"; \
+	else \
+		echo "Warning: kpt-packages/nephio not found. Creating default scale-down patch..."; \
+		$(call create_patch_file,scale-down,1,100m,128Mi); \
+	fi
+	@echo "MVP controller scale-down completed"
+
+##@ Planner
+
+.PHONY: planner-build
+planner-build: ## Build the closed-loop planner
+	@echo "Building closed-loop planner..."
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		go build -ldflags="-s -w -X main.Version=$(VERSION) -X main.Commit=$(COMMIT)" \
+		-o bin/planner ./planner/cmd/planner
+
+.PHONY: planner-run
+planner-run: planner-build ## Run the planner locally
+	@echo "Running planner..."
+	./bin/planner -config planner/config/config.yaml
+
+.PHONY: planner-test
+planner-test: ## Run planner tests
+	@echo "Testing planner..."
+	go test ./planner/... -v -race -coverprofile=.coverage/planner.out
+
+.PHONY: planner-demo
+planner-demo: planner-build ## Run planner demo
+	@echo "Running planner demo..."
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		powershell -ExecutionPolicy Bypass -File examples/planner/demo.ps1; \
+	else \
+		bash examples/planner/demo.sh; \
+	fi
+
+mvp-scale-down: ## Scale down MVP deployment using porch/kpt patches
+	@echo "Scaling down MVP deployment..."
+	@echo "Generating scaling patch for reduced capacity..."
+	@if [ -d "kpt-packages/nephio" ]; then \
+		echo "Applying scale-down patch to Nephio packages..."; \
+		kubectl patch deployment nephoran-controller-manager \
+			--namespace $(NAMESPACE) \
+			--type='json' \
+			-p='[{"op": "replace", "path": "/spec/replicas", "value": 1}]' 2>/dev/null || true; \
+		kubectl patch hpa nephoran-controller-hpa \
+			--namespace $(NAMESPACE) \
+			--type='json' \
+			-p='[{"op": "replace", "path": "/spec/minReplicas", "value": 1}, \
+				 {"op": "replace", "path": "/spec/maxReplicas", "value": 3}]' 2>/dev/null || true; \
+		echo "Scale-down patch applied successfully"; \
+	else \
+		echo "Warning: kpt-packages/nephio not found. Creating default scale-down patch..."; \
+		mkdir -p handoff/patches; \
+		echo '{"kind":"Patch","metadata":{"name":"scale-down"},"spec":{"replicas":1,"resources":{"requests":{"cpu":"100m","memory":"128Mi"}}}}' \
+			> handoff/patches/scale-down-patch.json; \
+		echo "Scale-down patch saved to handoff/patches/scale-down-patch.json"; \
+	fi
+	@echo "MVP scale-down completed"
 
 ##@ Development Environment
 
@@ -880,6 +1070,54 @@ quality-summary: ## Show quality summary
 		echo "No quality data available. Run 'make quality-gate' first."; \
 	fi
 
+##@ MVP Integration Targets
+
+.PHONY: mvp-scale-up
+mvp-scale-up: ## Scale up network functions using NetworkIntent
+	@echo "Scaling up network functions..."
+	@if command -v kpt >/dev/null 2>&1; then \
+		echo "Using kpt to apply scale-up intent..."; \
+		kpt fn eval kpt-packages/scale-up --image gcr.io/kpt-fn/set-annotations:v0.1 -- replicas=3; \
+		kpt live apply kpt-packages/scale-up; \
+	elif command -v kubectl >/dev/null 2>&1; then \
+		echo "Using kubectl to patch NetworkIntent..."; \
+		kubectl patch networkintent mvp-intent --type='merge' -p '{"spec":{"targetReplicas":3}}' || \
+		kubectl apply -f examples/networkintent-scale-up.yaml; \
+	else \
+		echo "ERROR: Neither kpt nor kubectl found. Please install one."; \
+		exit 1; \
+	fi
+	@echo "Scale-up complete."
+
+.PHONY: mvp-scale-down
+mvp-scale-down: ## Scale down network functions using NetworkIntent
+	@echo "Scaling down network functions..."
+	@if command -v kpt >/dev/null 2>&1; then \
+		echo "Using kpt to apply scale-down intent..."; \
+		kpt fn eval kpt-packages/scale-down --image gcr.io/kpt-fn/set-annotations:v0.1 -- replicas=1; \
+		kpt live apply kpt-packages/scale-down; \
+	elif command -v kubectl >/dev/null 2>&1; then \
+		echo "Using kubectl to patch NetworkIntent..."; \
+		kubectl patch networkintent mvp-intent --type='merge' -p '{"spec":{"targetReplicas":1}}' || \
+		kubectl apply -f examples/networkintent-scale-down.yaml; \
+	else \
+		echo "ERROR: Neither kpt nor kubectl found. Please install one."; \
+		exit 1; \
+	fi
+	@echo "Scale-down complete."
+
+# Backward compatibility aliases for the renamed controller scaling targets
+.PHONY: mvp-controller-up mvp-controller-down
+mvp-controller-up: mvp-controller-scale-up ## Alias for mvp-controller-scale-up
+mvp-controller-down: mvp-controller-scale-down ## Alias for mvp-controller-scale-down
+
+.PHONY: mvp-status
+mvp-status: ## Check status of MVP network functions
+	@echo "Checking MVP network function status..."
+	@kubectl get networkintents -o wide || echo "No NetworkIntents found"
+	@kubectl get deployments -l app.kubernetes.io/managed-by=nephoran -o wide || echo "No managed deployments found"
+	@kubectl get pods -l app.kubernetes.io/managed-by=nephoran -o wide || echo "No managed pods found"
+
 ##@ Shortcuts and Aliases
 
 .PHONY: dev
@@ -922,3 +1160,185 @@ init: check-tools deps ## Initialize the project for development
 	mkdir -p $(REPORTS_DIR)
 	@echo "Project initialized successfully!"
 	@echo "Run 'make help' to see available commands"
+
+##@ MVP Demo Commands
+
+MVP_DEMO_DIR = examples/mvp-oran-sim
+MVP_NAMESPACE = mvp-demo
+
+.PHONY: mvp-up
+mvp-up: ## Run complete MVP demo flow (install → prepare → send → apply → validate)
+	@echo "===== Starting MVP Demo Flow ====="
+	@echo "Step 1/5: Installing Porch components..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "01-install-porch.sh" ]; then \
+			bash 01-install-porch.sh; \
+		else \
+			pwsh -File 01-install-porch.ps1; \
+		fi
+	@echo ""
+	@echo "Step 2/5: Preparing NF simulator package..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "02-prepare-nf-sim.sh" ]; then \
+			bash 02-prepare-nf-sim.sh; \
+		else \
+			pwsh -File 02-prepare-nf-sim.ps1; \
+		fi
+	@echo ""
+	@echo "Step 3/5: Sending scaling intent..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "03-send-intent.sh" ]; then \
+			REPLICAS=3 bash 03-send-intent.sh; \
+		else \
+			pwsh -File 03-send-intent.ps1 -Replicas 3; \
+		fi
+	@echo ""
+	@echo "Step 4/5: Applying package with Porch/KPT..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "04-porch-apply.sh" ]; then \
+			bash 04-porch-apply.sh; \
+		else \
+			pwsh -File 04-porch-apply.ps1; \
+		fi
+	@echo ""
+	@echo "Step 5/5: Validating deployment..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "05-validate.sh" ]; then \
+			bash 05-validate.sh; \
+		else \
+			pwsh -File 05-validate.ps1; \
+		fi
+	@echo ""
+	@echo "===== MVP Demo Complete! ====="
+
+.PHONY: mvp-scale-up
+mvp-scale-up: ## Scale NF simulator up to 5 replicas
+	@echo "Scaling NF simulator to 5 replicas..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "03-send-intent.sh" ]; then \
+			REPLICAS=5 REASON="Scale up test" bash 03-send-intent.sh; \
+		else \
+			pwsh -File 03-send-intent.ps1 -Replicas 5 -Reason "Scale up test"; \
+		fi
+	@sleep 3
+	@kubectl patch deployment nf-sim -n $(MVP_NAMESPACE) -p '{"spec":{"replicas":5}}' || true
+	@echo "Waiting for scale up..."
+	@sleep 5
+	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE)
+
+.PHONY: mvp-scale-down
+mvp-scale-down: ## Scale NF simulator down to 1 replica
+	@echo "Scaling NF simulator to 1 replica..."
+	@cd $(MVP_DEMO_DIR) && \
+		if [ -f "03-send-intent.sh" ]; then \
+			REPLICAS=1 REASON="Scale down test" bash 03-send-intent.sh; \
+		else \
+			pwsh -File 03-send-intent.ps1 -Replicas 1 -Reason "Scale down test"; \
+		fi
+	@sleep 3
+	@kubectl patch deployment nf-sim -n $(MVP_NAMESPACE) -p '{"spec":{"replicas":1}}' || true
+	@echo "Waiting for scale down..."
+	@sleep 5
+	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE)
+
+.PHONY: mvp-down
+mvp-down: mvp-scale-down ## Scale down and delete PackageRevision if created
+	@echo "Cleaning up PackageRevisions..."
+	@kubectl delete packagerevision nf-sim-package-v1 -n default 2>/dev/null || true
+	@echo "MVP scaled down"
+
+.PHONY: mvp-status
+mvp-status: ## Show current MVP deployment status
+	@echo "===== MVP Deployment Status ====="
+	@echo "Namespace: $(MVP_NAMESPACE)"
+	@kubectl get namespace $(MVP_NAMESPACE) 2>/dev/null || echo "Namespace not found"
+	@echo ""
+	@echo "Deployment:"
+	@kubectl get deployment nf-sim -n $(MVP_NAMESPACE) 2>/dev/null || echo "Deployment not found"
+	@echo ""
+	@echo "Pods:"
+	@kubectl get pods -n $(MVP_NAMESPACE) -l app=nf-sim 2>/dev/null || echo "No pods found"
+	@echo ""
+	@echo "Service:"
+	@kubectl get service nf-sim -n $(MVP_NAMESPACE) 2>/dev/null || echo "Service not found"
+
+.PHONY: mvp-clean
+mvp-clean: ## Clean up all MVP demo resources
+	@echo "Cleaning up MVP demo resources..."
+	@echo "Deleting namespace $(MVP_NAMESPACE)..."
+	@kubectl delete namespace $(MVP_NAMESPACE) --ignore-not-found=true
+	@echo "Deleting PackageRevisions..."
+	@kubectl delete packagerevision -l app=nf-sim --all-namespaces --ignore-not-found=true 2>/dev/null || true
+	@echo "Cleaning up local package directories..."
+	@rm -rf $(MVP_DEMO_DIR)/package-* 2>/dev/null || true
+	@echo "MVP demo resources cleaned up"
+
+.PHONY: mvp-logs
+mvp-logs: ## Show logs from NF simulator pods
+	@echo "===== NF Simulator Logs ====="
+	@kubectl logs -n $(MVP_NAMESPACE) -l app=nf-sim --tail=50 2>/dev/null || echo "No logs available"
+
+.PHONY: mvp-watch
+mvp-watch: ## Watch MVP deployment status continuously
+	@watch -n 2 "kubectl get deployment,pods,service -n $(MVP_NAMESPACE) 2>/dev/null || echo 'Resources not found'"
+
+##@ Conductor Watch Commands
+
+.PHONY: conductor-watch-build
+conductor-watch-build: ## Build conductor-watch binary
+	@echo "Building conductor-watch..."
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o conductor-loop.exe ./cmd/conductor-loop/
+	@echo "✅ Conductor-watch built: conductor-loop.exe"
+
+.PHONY: conductor-watch-run
+conductor-watch-run: conductor-watch-build ## Run conductor-watch locally
+	@echo "Starting conductor-watch..."
+	@echo "Watching: ./handoff/"
+	@echo "Schema: ./docs/contracts/intent.schema.json"
+	@echo "Press Ctrl+C to stop"
+	./conductor-loop.exe -handoff-dir ./handoff -schema ./docs/contracts/intent.schema.json -batch-interval 2s
+
+.PHONY: conductor-watch-run-dry
+conductor-watch-run-dry: conductor-watch-build ## Run conductor-watch in dry-run mode
+	@echo "Starting conductor-watch in DRY-RUN mode..."
+	@echo "Watching: ./handoff/"
+	@echo "Schema: ./docs/contracts/intent.schema.json"
+	@echo "Press Ctrl+C to stop"
+	./conductor-loop.exe -handoff-dir ./handoff -schema ./docs/contracts/intent.schema.json -batch-interval 2s -porch-mode structured
+
+.PHONY: conductor-watch-smoke
+conductor-watch-smoke: ## Run comprehensive smoke test for conductor-watch
+	@echo "Running conductor-watch smoke test..."
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		pwsh -ExecutionPolicy Bypass -File hack/watcher-smoke.ps1; \
+	else \
+		echo "Smoke test script is Windows PowerShell specific"; \
+		echo "Run manually: pwsh hack/watcher-smoke.ps1"; \
+	fi
+
+.PHONY: conductor-watch-smoke-quick
+conductor-watch-smoke-quick: ## Quick smoke test (30s timeout)
+	@echo "Running quick conductor-watch smoke test..."
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		pwsh -ExecutionPolicy Bypass -File hack/watcher-smoke.ps1 -Timeout 15 -SkipBuild; \
+	else \
+		echo "Smoke test script is Windows PowerShell specific"; \
+		echo "Run manually: pwsh hack/watcher-smoke.ps1 -Timeout 15 -SkipBuild"; \
+	fi
+
+.PHONY: conductor-watch-test-basic
+conductor-watch-test-basic: ## Run basic conductor-watch test (no Kubernetes required)
+	@echo "Running basic conductor-watch test..."
+	@if [ "$(OS)" = "Windows_NT" ]; then \
+		pwsh -ExecutionPolicy Bypass -File hack/watcher-basic-test.ps1; \
+	else \
+		echo "Basic test script is Windows PowerShell specific"; \
+		echo "Run manually: pwsh hack/watcher-basic-test.ps1"; \
+	fi
+
+.PHONY: conductor-watch-clean
+conductor-watch-clean: ## Clean conductor-watch artifacts
+	@echo "Cleaning conductor-watch artifacts..."
+	@rm -f conductor-loop.exe conductor-watch.exe 2>/dev/null || true
+	@rm -f handoff/intent-*smoke-test*.json handoff/intent-*basic-test*.json 2>/dev/null || true
+	@echo "✅ Conductor-watch artifacts cleaned"

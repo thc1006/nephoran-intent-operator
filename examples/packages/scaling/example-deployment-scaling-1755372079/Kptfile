@@ -1,0 +1,13 @@
+apiVersion: kpt.dev/v1
+info:
+  description: Scaling patch for example-deployment
+kind: Kptfile
+metadata:
+  annotations:
+    config.kubernetes.io/local-config: "true"
+  name: example-deployment-scaling-1755372079
+pipeline:
+  mutators:
+  - configMap:
+      replicas: "3"
+    image: gcr.io/kpt-fn/apply-setters:v0.2.0

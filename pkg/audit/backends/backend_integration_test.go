@@ -1,4 +1,4 @@
-package backends
+package backends_test
 
 import (
 	"context"
@@ -20,7 +20,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/types"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 )
 
 // TestBackendIntegrationSuite tests backend implementations with real connections
@@ -52,8 +53,8 @@ func (suite *TestBackendIntegrationSuite) TearDownSuite() {
 func (suite *TestBackendIntegrationSuite) TestFileBackend() {
 	logFile := filepath.Join(suite.tempDir, "audit_test.log")
 
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "test-file",
 		Settings: map[string]interface{}{
@@ -81,7 +82,7 @@ func (suite *TestBackendIntegrationSuite) TestFileBackend() {
 	})
 
 	suite.Run("write batch events", func() {
-		events := []*types.AuditEvent{
+		events := []*audit.AuditEvent{
 			createTestEvent("batch-1"),
 			createTestEvent("batch-2"),
 			createTestEvent("batch-3"),
@@ -111,8 +112,8 @@ func (suite *TestBackendIntegrationSuite) TestFileBackend() {
 func (suite *TestBackendIntegrationSuite) TestFileBackendWithRotation() {
 	logFile := filepath.Join(suite.tempDir, "audit_rotation.log")
 
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "test-file-rotation",
 		Settings: map[string]interface{}{
@@ -145,8 +146,8 @@ func (suite *TestBackendIntegrationSuite) TestFileBackendWithRotation() {
 func (suite *TestBackendIntegrationSuite) TestFileBackendCompression() {
 	logFile := filepath.Join(suite.tempDir, "audit_compressed.log")
 
-	config := BackendConfig{
-		Type:        BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:        backends.BackendTypeFile,
 		Enabled:     true,
 		Name:        "test-compressed",
 		Compression: true,
@@ -233,8 +234,8 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 	}))
 	defer server.Close()
 
-	config := BackendConfig{
-		Type:    BackendTypeElasticsearch,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeElasticsearch,
 		Enabled: true,
 		Name:    "test-elasticsearch",
 		Settings: map[string]interface{}{
@@ -255,7 +256,7 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 	})
 
 	suite.Run("write batch events", func() {
-		events := []*types.AuditEvent{
+		events := []*audit.AuditEvent{
 			createTestEvent("es-batch-1"),
 			createTestEvent("es-batch-2"),
 			createTestEvent("es-batch-3"),
@@ -314,8 +315,8 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 	}))
 	defer server.Close()
 
-	config := BackendConfig{
-		Type:    BackendTypeSplunk,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeSplunk,
 		Enabled: true,
 		Name:    "test-splunk",
 		Settings: map[string]interface{}{
@@ -340,7 +341,7 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 	})
 
 	suite.Run("write batch events", func() {
-		events := []*types.AuditEvent{
+		events := []*audit.AuditEvent{
 			createTestEvent("splunk-batch-1"),
 			createTestEvent("splunk-batch-2"),
 		}
@@ -357,11 +358,11 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 
 // Webhook Backend Tests
 func (suite *TestBackendIntegrationSuite) TestWebhookBackend() {
-	receivedEvents := make([]*types.AuditEvent, 0)
+	receivedEvents := make([]*audit.AuditEvent, 0)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "POST" {
-			var event types.AuditEvent
+			var event audit.AuditEvent
 			body, err := ioutil.ReadAll(r.Body)
 			suite.NoError(err)
 
@@ -376,8 +377,8 @@ func (suite *TestBackendIntegrationSuite) TestWebhookBackend() {
 	}))
 	defer server.Close()
 
-	config := BackendConfig{
-		Type:    BackendTypeWebhook,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeWebhook,
 		Enabled: true,
 		Name:    "test-webhook",
 		Settings: map[string]interface{}{
@@ -415,8 +416,8 @@ func (suite *TestBackendIntegrationSuite) TestSyslogBackend() {
 	// For this test, we'll use a file-based syslog approach
 	syslogFile := filepath.Join(suite.tempDir, "syslog_test.log")
 
-	config := BackendConfig{
-		Type:    BackendTypeSyslog,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeSyslog,
 		Enabled: true,
 		Name:    "test-syslog",
 		Settings: map[string]interface{}{
@@ -474,8 +475,8 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchWithContainer() {
 
 	esURL := fmt.Sprintf("http://%s:%s", host, port.Port())
 
-	config := BackendConfig{
-		Type:    BackendTypeElasticsearch,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeElasticsearch,
 		Enabled: true,
 		Name:    "test-elasticsearch-container",
 		Settings: map[string]interface{}{
@@ -522,15 +523,15 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchWithContainer() {
 func (suite *TestBackendIntegrationSuite) TestBackendFactory() {
 	tests := []struct {
 		name        string
-		backendType BackendType
-		config      BackendConfig
+		backendType backends.BackendType
+		config      backends.BackendConfig
 		expectError bool
 	}{
 		{
 			name:        "file backend",
-			backendType: BackendTypeFile,
-			config: BackendConfig{
-				Type:    BackendTypeFile,
+			backendType: backends.BackendTypeFile,
+			config: backends.BackendConfig{
+				Type:    backends.BackendTypeFile,
 				Enabled: true,
 				Name:    "test-file",
 				Settings: map[string]interface{}{
@@ -541,9 +542,9 @@ func (suite *TestBackendIntegrationSuite) TestBackendFactory() {
 		},
 		{
 			name:        "disabled backend",
-			backendType: BackendTypeFile,
-			config: BackendConfig{
-				Type:    BackendTypeFile,
+			backendType: backends.BackendTypeFile,
+			config: backends.BackendConfig{
+				Type:    backends.BackendTypeFile,
 				Enabled: false,
 				Name:    "disabled-file",
 			},
@@ -563,7 +564,7 @@ func (suite *TestBackendIntegrationSuite) TestBackendFactory() {
 
 	for _, tt := range tests {
 		suite.Run(tt.name, func() {
-			backend, err := NewBackend(tt.config)
+			backend, err := backends.NewBackend(tt.config)
 
 			if tt.expectError {
 				suite.Error(err)
@@ -584,52 +585,52 @@ func (suite *TestBackendIntegrationSuite) TestBackendFactory() {
 // Test Filter Configuration
 func (suite *TestBackendIntegrationSuite) TestFilterConfiguration() {
 	filter := FilterConfig{
-		MinSeverity:   types.SeverityWarning,
-		EventTypes:    []types.EventType{types.EventTypeAuthentication},
+		MinSeverity:   audit.SeverityWarning,
+		EventTypes:    []audit.EventType{audit.EventTypeAuthentication},
 		Components:    []string{"auth", "api"},
-		ExcludeTypes:  []types.EventType{types.EventTypeHealthCheck},
+		ExcludeTypes:  []audit.EventType{audit.EventTypeHealthCheck},
 		IncludeFields: []string{"user_id", "action"},
 		ExcludeFields: []string{"debug_info"},
 	}
 
 	tests := []struct {
 		name         string
-		event        *types.AuditEvent
+		event        *audit.AuditEvent
 		shouldFilter bool
 	}{
 		{
 			name: "event passes all filters",
-			event: &types.AuditEvent{
-				EventType: types.EventTypeAuthentication,
+			event: &audit.AuditEvent{
+				EventType: audit.EventTypeAuthentication,
 				Component: "auth",
-				Severity:  types.SeverityError,
+				Severity:  audit.SeverityError,
 			},
 			shouldFilter: true,
 		},
 		{
 			name: "event filtered by severity",
-			event: &types.AuditEvent{
-				EventType: types.EventTypeAuthentication,
+			event: &audit.AuditEvent{
+				EventType: audit.EventTypeAuthentication,
 				Component: "auth",
-				Severity:  types.SeverityInfo, // Below threshold
+				Severity:  audit.SeverityInfo, // Below threshold
 			},
 			shouldFilter: false,
 		},
 		{
 			name: "event filtered by excluded type",
-			event: &types.AuditEvent{
-				EventType: types.EventTypeHealthCheck,
+			event: &audit.AuditEvent{
+				EventType: audit.EventTypeHealthCheck,
 				Component: "auth",
-				Severity:  types.SeverityError,
+				Severity:  audit.SeverityError,
 			},
 			shouldFilter: false,
 		},
 		{
 			name: "event filtered by component",
-			event: &types.AuditEvent{
-				EventType: types.EventTypeAuthentication,
+			event: &audit.AuditEvent{
+				EventType: audit.EventTypeAuthentication,
 				Component: "other",
-				Severity:  types.SeverityError,
+				Severity:  audit.SeverityError,
 			},
 			shouldFilter: false,
 		},
@@ -669,8 +670,8 @@ func (suite *TestBackendIntegrationSuite) TestRetryPolicy() {
 func (suite *TestBackendIntegrationSuite) TestBackendPerformance() {
 	logFile := filepath.Join(suite.tempDir, "performance_test.log")
 
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "performance-test",
 		Settings: map[string]interface{}{
@@ -684,7 +685,7 @@ func (suite *TestBackendIntegrationSuite) TestBackendPerformance() {
 	defer backend.Close()
 
 	// Measure batch write performance
-	events := make([]*types.AuditEvent, 100)
+	events := make([]*audit.AuditEvent, 100)
 	for i := 0; i < len(events); i++ {
 		events[i] = createTestEvent(fmt.Sprintf("perf-test-%d", i))
 	}
@@ -705,23 +706,23 @@ func (suite *TestBackendIntegrationSuite) TestBackendPerformance() {
 
 // Helper functions
 
-func createTestEvent(action string) *types.AuditEvent {
-	return &types.AuditEvent{
+func createTestEvent(action string) *audit.AuditEvent {
+	return &audit.AuditEvent{
 		ID:        uuid.New().String(),
 		Timestamp: time.Now(),
-		EventType: types.EventTypeAuthentication,
+		EventType: audit.EventTypeAuthentication,
 		Component: "test",
 		Action:    action,
-		Severity:  types.SeverityInfo,
-		Result:    types.ResultSuccess,
-		UserContext: &types.UserContext{
+		Severity:  audit.SeverityInfo,
+		Result:    audit.ResultSuccess,
+		UserContext: &audit.UserContext{
 			UserID:   "test-user",
 			Username: "testuser",
 		},
-		NetworkContext: &types.NetworkContext{
+		NetworkContext: &audit.NetworkContext{
 			SourcePort: 8080,
 		},
-		ResourceContext: &types.ResourceContext{
+		ResourceContext: &audit.ResourceContext{
 			ResourceType: "deployment",
 			Operation:    "create",
 		},
@@ -765,8 +766,8 @@ func BenchmarkFileBackendWriteEvent(b *testing.B) {
 	defer os.RemoveAll(tempDir)
 
 	logFile := filepath.Join(tempDir, "benchmark.log")
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "benchmark",
 		Settings: map[string]interface{}{
@@ -795,8 +796,8 @@ func BenchmarkFileBackendWriteBatch(b *testing.B) {
 	defer os.RemoveAll(tempDir)
 
 	logFile := filepath.Join(tempDir, "benchmark_batch.log")
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "benchmark-batch",
 		Settings: map[string]interface{}{
@@ -808,7 +809,7 @@ func BenchmarkFileBackendWriteBatch(b *testing.B) {
 	require.NoError(b, err)
 	defer backend.Close()
 
-	events := make([]*types.AuditEvent, 10)
+	events := make([]*audit.AuditEvent, 10)
 	for i := 0; i < len(events); i++ {
 		events[i] = createTestEvent(fmt.Sprintf("benchmark-%d", i))
 	}

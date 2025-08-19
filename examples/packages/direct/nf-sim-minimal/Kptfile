@@ -1,0 +1,18 @@
+APIVersion: kpt.dev/v1
+Info:
+  Description: Minimal KRM package for nf-sim scaling
+  Keywords: null
+  License: ""
+  Site: ""
+Kind: Kptfile
+Metadata:
+  Annotations:
+    config.kubernetes.io/local-config: "true"
+    nephoran.com/generated-at: "2025-08-15T19:12:03+08:00"
+    nephoran.com/intent-type: scaling
+  Labels:
+    app: nf-sim
+    app.kubernetes.io/managed-by: porch-direct
+  Name: nf-sim-package
+  Namespace: ""
+Pipeline: null
