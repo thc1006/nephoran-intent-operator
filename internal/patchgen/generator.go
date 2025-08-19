@@ -1,8 +1,10 @@
 package patchgen
 
 import (
+	"crypto/rand"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"path/filepath"
 	"time"
@@ -10,83 +12,28 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// PatchPackage represents a KRM patch package structure
-type PatchPackage struct {
-	Kptfile     *Kptfile    `yaml:"-"`
-	PatchFile   *PatchFile  `yaml:"-"`
-	OutputDir   string      `yaml:"-"`
-	Intent      *Intent     `yaml:"-"`
+// generateCollisionResistantTimestamp creates a timestamp with nanosecond precision
+// that's compatible with RFC3339 but includes microsecond precision to reduce collisions
+func generateCollisionResistantTimestamp() string {
+	now := time.Now().UTC()
+	// Use RFC3339Nano for maximum precision to minimize collision probability
+	return now.Format(time.RFC3339Nano)
 }
 
-// Kptfile represents the kpt package metadata
-type Kptfile struct {
-	APIVersion string      `yaml:"apiVersion"`
-	Kind       string      `yaml:"kind"`
-	Metadata   KptMetadata `yaml:"metadata"`
-	Info       KptInfo     `yaml:"info"`
-	Pipeline   KptPipeline `yaml:"pipeline"`
-}
-
-// KptMetadata contains package metadata
-type KptMetadata struct {
-	Name string `yaml:"name"`
-}
-
-// KptInfo contains package information
-type KptInfo struct {
-	Description string `yaml:"description"`
-}
-
-// KptPipeline defines the kpt pipeline configuration
-type KptPipeline struct {
-	Mutators []KptMutator `yaml:"mutators"`
-}
-
-// KptMutator defines a kpt mutator function
-type KptMutator struct {
-	Image  string            `yaml:"image"`
-	ConfigMap map[string]string `yaml:"configMap"`
-}
-
-// PatchFile represents a strategic merge patch
-type PatchFile struct {
-	APIVersion string            `yaml:"apiVersion"`
-	Kind       string            `yaml:"kind"`
-	Metadata   PatchMetadata     `yaml:"metadata"`
-	Spec       PatchSpec         `yaml:"spec"`
-}
-
-// PatchMetadata contains patch metadata
-type PatchMetadata struct {
-	Name        string            `yaml:"name"`
-	Namespace   string            `yaml:"namespace"`
-	Annotations map[string]string `yaml:"annotations"`
-}
-
-// PatchSpec contains the patch specification
-type PatchSpec struct {
-	Replicas int `yaml:"replicas"`
-}
-
-// readFile is a helper function to read files
-func readFile(path string) ([]byte, error) {
-	file, err := os.Open(path)
+// generatePackageName creates a collision-resistant package name that's valid for Kubernetes
+func generatePackageName(target string) string {
+	now := time.Now().UTC()
+	// Generate a random 4-digit suffix to minimize collision probability
+	randomSuffix, err := rand.Int(rand.Reader, big.NewInt(10000))
 	if err != nil {
-		return nil, err
+		// Fallback to just nanosecond timestamp if crypto/rand fails
+		nanoTime := now.Format("20060102-150405-000000000")
+		return fmt.Sprintf("%s-scaling-patch-%s", target, nanoTime)
 	}
-	defer file.Close()
-
-	return io.ReadAll(file)
-}
-
-// writeFile is a helper function to write files
-func writeFile(path string, data []byte) error {
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return err
-	}
-
-	return os.WriteFile(path, data, 0644)
+	
+	// Create a timestamp with random suffix that's valid for Kubernetes names
+	timestamp := fmt.Sprintf("%s-%04d", now.Format("20060102-150405"), randomSuffix.Int64())
+	return fmt.Sprintf("%s-scaling-patch-%s", target, timestamp)
 }
 
 // NewPatchPackage creates a new patch package from an intent
@@ -98,7 +45,7 @@ func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 			APIVersion: "kpt.dev/v1",
 			Kind:       "Kptfile",
 			Metadata: KptMetadata{
-				Name: fmt.Sprintf("%s-scaling-patch", intent.Target),
+				Name: generatePackageName(intent.Target),
 			},
 			Info: KptInfo{
 				Description: fmt.Sprintf("Structured patch to scale %s deployment to %d replicas", intent.Target, intent.Replicas),
@@ -123,7 +70,7 @@ func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 				Annotations: map[string]string{
 					"config.kubernetes.io/merge-policy": "replace",
 					"nephoran.io/intent-type":          intent.IntentType,
-					"nephoran.io/generated-at":         time.Now().UTC().Format(time.RFC3339),
+					"nephoran.io/generated-at":         generateCollisionResistantTimestamp(),
 				},
 			},
 			Spec: PatchSpec{
@@ -137,6 +84,13 @@ func NewPatchPackage(intent *Intent, outputDir string) *PatchPackage {
 func (p *PatchPackage) Generate() error {
 	packageDir := filepath.Join(p.OutputDir, p.Kptfile.Metadata.Name)
 	
+	// Ensure output directory is valid and accessible
+	if info, err := os.Stat(p.OutputDir); os.IsNotExist(err) {
+		return fmt.Errorf("output directory %s does not exist", p.OutputDir)
+	} else if !info.IsDir() {
+		return fmt.Errorf("output path %s is not a directory", p.OutputDir)
+	}
+
 	// Create package directory
 	if err := os.MkdirAll(packageDir, 0755); err != nil {
 		return fmt.Errorf("failed to create package directory %s: %w", packageDir, err)
@@ -223,4 +177,25 @@ Generated at: %s
 // GetPackagePath returns the full path to the generated package
 func (p *PatchPackage) GetPackagePath() string {
 	return filepath.Join(p.OutputDir, p.Kptfile.Metadata.Name)
+}
+
+// readFile is a helper function to read files
+func readFile(path string) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	return io.ReadAll(file)
+}
+
+// writeFile is a helper function to write files
+func writeFile(path string, data []byte) error {
+	dir := filepath.Dir(path)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	return os.WriteFile(path, data, 0644)
 }

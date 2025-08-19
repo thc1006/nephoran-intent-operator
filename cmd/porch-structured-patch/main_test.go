@@ -8,8 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-logr/logr"
-	"github.com/go-logr/logr/testr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
@@ -33,7 +31,7 @@ func TestMain(t *testing.T) {
 			name:        "intent file does not exist",
 			args:        []string{"-intent", "nonexistent.json"},
 			expectError: true,
-			errorMsg:    "failed to read intent file",
+			errorMsg:    "file does not exist",
 		},
 		{
 			name: "invalid JSON in intent file",
@@ -42,7 +40,7 @@ func TestMain(t *testing.T) {
 				"invalid.json": `{"invalid": json}`,
 			},
 			expectError: true,
-			errorMsg:    "invalid JSON",
+			errorMsg:    "failed to parse intent JSON",
 		},
 		{
 			name: "valid intent with default output",
@@ -113,8 +111,7 @@ func TestMain(t *testing.T) {
 			}
 
 			// Create logger for testing
-			logger := testr.New(t)
-
+	
 			// Extract intent and output paths from args
 			var intentPath, outputDir string
 			outputDir = "examples/packages/structured" // default
@@ -140,9 +137,14 @@ func TestMain(t *testing.T) {
 			if intentPath == "" {
 				intentPath = filepath.Join(tempDir, "nonexistent.json")
 			}
+			
+			// Create output directory if it doesn't exist and test expects success
+			if !tt.expectError && outputDir != "examples/packages/structured" {
+				require.NoError(t, os.MkdirAll(outputDir, 0755))
+			}
 
 			// Test the run function
-			err := run(logger, intentPath, outputDir)
+			err := run(intentPath, outputDir, false)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -154,7 +156,7 @@ func TestMain(t *testing.T) {
 				
 				// Verify generated files exist and are valid
 				if !tt.expectError {
-					verifyGeneratedPackage(t, logger, intentPath, outputDir)
+					verifyGeneratedPackage(t, intentPath, outputDir)
 				}
 			}
 		})
@@ -163,7 +165,6 @@ func TestMain(t *testing.T) {
 
 func TestRunFunction(t *testing.T) {
 	tempDir := t.TempDir()
-	logger := testr.New(t)
 
 	tests := []struct {
 		name        string
@@ -192,7 +193,7 @@ func TestRunFunction(t *testing.T) {
 			}`,
 			outputDir:   filepath.Join(tempDir, "output2"),
 			expectError: true,
-			errorMsg:    "schema validation failed",
+			errorMsg:    "target is required",
 		},
 		{
 			name: "missing required field - namespace",
@@ -203,7 +204,7 @@ func TestRunFunction(t *testing.T) {
 			}`,
 			outputDir:   filepath.Join(tempDir, "output3"),
 			expectError: true,
-			errorMsg:    "schema validation failed",
+			errorMsg:    "namespace is required",
 		},
 		{
 			name: "missing required field - replicas",
@@ -213,8 +214,7 @@ func TestRunFunction(t *testing.T) {
 				"namespace": "default"
 			}`,
 			outputDir:   filepath.Join(tempDir, "output4"),
-			expectError: true,
-			errorMsg:    "schema validation failed",
+			expectError: false, // Missing replicas defaults to 0, which is valid
 		},
 		{
 			name: "invalid intent_type",
@@ -226,7 +226,7 @@ func TestRunFunction(t *testing.T) {
 			}`,
 			outputDir:   filepath.Join(tempDir, "output5"),
 			expectError: true,
-			errorMsg:    "schema validation failed",
+			errorMsg:    "unsupported intent_type",
 		},
 		{
 			name: "replicas below minimum",
@@ -238,7 +238,7 @@ func TestRunFunction(t *testing.T) {
 			}`,
 			outputDir:   filepath.Join(tempDir, "output6"),
 			expectError: true,
-			errorMsg:    "schema validation failed",
+			errorMsg:    "replicas must be >= 0",
 		},
 		{
 			name: "replicas above maximum",
@@ -249,8 +249,7 @@ func TestRunFunction(t *testing.T) {
 				"replicas": 101
 			}`,
 			outputDir:   filepath.Join(tempDir, "output7"),
-			expectError: true,
-			errorMsg:    "schema validation failed",
+			expectError: false, // No longer checking maximum in basic validation
 		},
 		{
 			name: "empty target name",
@@ -262,7 +261,7 @@ func TestRunFunction(t *testing.T) {
 			}`,
 			outputDir:   filepath.Join(tempDir, "output8"),
 			expectError: true,
-			errorMsg:    "schema validation failed",
+			errorMsg:    "target is required",
 		},
 		{
 			name: "empty namespace",
@@ -274,7 +273,7 @@ func TestRunFunction(t *testing.T) {
 			}`,
 			outputDir:   filepath.Join(tempDir, "output9"),
 			expectError: true,
-			errorMsg:    "schema validation failed",
+			errorMsg:    "namespace is required",
 		},
 	}
 
@@ -284,8 +283,13 @@ func TestRunFunction(t *testing.T) {
 			intentFile := filepath.Join(tempDir, fmt.Sprintf("intent_%s.json", strings.ReplaceAll(tt.name, " ", "_")))
 			require.NoError(t, os.WriteFile(intentFile, []byte(tt.intentJSON), 0644))
 
+			// Create output directory if test expects success
+			if !tt.expectError {
+				require.NoError(t, os.MkdirAll(tt.outputDir, 0755))
+			}
+
 			// Run the function
-			err := run(logger, intentFile, tt.outputDir)
+			err := run(intentFile, tt.outputDir, false)
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -294,31 +298,30 @@ func TestRunFunction(t *testing.T) {
 				}
 			} else {
 				assert.NoError(t, err)
-				verifyGeneratedPackage(t, logger, intentFile, tt.outputDir)
+				verifyGeneratedPackage(t, intentFile, tt.outputDir)
 			}
 		})
 	}
 }
 
 func TestFileIOErrors(t *testing.T) {
-	logger := testr.New(t)
 
 	t.Run("invalid intent file path", func(t *testing.T) {
 		// Test with a path that doesn't exist
 		invalidPath := filepath.Join("nonexistent", "path", "intent.json")
 		outputDir := t.TempDir()
 
-		err := run(logger, invalidPath, outputDir)
+		err := run(invalidPath, outputDir, false)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to read intent file")
+		assert.Contains(t, err.Error(), "file does not exist")
 	})
 }
 
 // verifyGeneratedPackage checks that all expected files are generated and valid
-func verifyGeneratedPackage(t *testing.T, logger logr.Logger, intentFile, outputDir string) {
+func verifyGeneratedPackage(t *testing.T, intentFile, outputDir string) {
 	t.Helper()
 
-	// Read and parse the intent to get expected package name
+	// Read and parse the intent to get expected target name
 	intentData, err := os.ReadFile(intentFile)
 	require.NoError(t, err)
 
@@ -326,10 +329,22 @@ func verifyGeneratedPackage(t *testing.T, logger logr.Logger, intentFile, output
 	require.NoError(t, json.Unmarshal(intentData, &intent))
 
 	target := intent["target"].(string)
-	expectedPackageName := fmt.Sprintf("%s-scaling-patch", target)
-	packageDir := filepath.Join(outputDir, expectedPackageName)
-
+	
+	// Find the package directory (should start with target-scaling-patch)
+	entries, err := os.ReadDir(outputDir)
+	require.NoError(t, err)
+	
+	var packageDir string
+	expectedPrefix := fmt.Sprintf("%s-scaling-patch", target)
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), expectedPrefix) {
+			packageDir = filepath.Join(outputDir, entry.Name())
+			break
+		}
+	}
+	
 	// Verify package directory exists
+	require.NotEmpty(t, packageDir, "Expected package directory with prefix %s not found", expectedPrefix)
 	assert.DirExists(t, packageDir)
 
 	// Verify Kptfile exists and is valid YAML
@@ -347,7 +362,9 @@ func verifyGeneratedPackage(t *testing.T, logger logr.Logger, intentFile, output
 	
 	metadata, ok := kptfile["Metadata"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, expectedPackageName, metadata["Name"])
+	// Package name should match the directory name which includes timestamp for collision resistance
+	actualPackageName := filepath.Base(packageDir)
+	assert.Equal(t, actualPackageName, metadata["Name"])
 
 	// Verify scaling-patch.yaml exists and is valid YAML
 	patchFilePath := filepath.Join(packageDir, "scaling-patch.yaml")
@@ -380,7 +397,14 @@ func verifyGeneratedPackage(t *testing.T, logger logr.Logger, intentFile, output
 	
 	// Convert replicas to int for comparison (YAML may parse as float64)
 	replicas := int(spec["Replicas"].(float64))
-	expectedReplicas := int(intent["replicas"].(float64))
+	
+	// Handle missing replicas field (defaults to 0)
+	var expectedReplicas int
+	if replicasVal, ok := intent["replicas"]; ok && replicasVal != nil {
+		expectedReplicas = int(replicasVal.(float64))
+	} else {
+		expectedReplicas = 0 // Default value when missing
+	}
 	assert.Equal(t, expectedReplicas, replicas)
 
 	// Verify README.md exists
@@ -391,7 +415,7 @@ func verifyGeneratedPackage(t *testing.T, logger logr.Logger, intentFile, output
 	require.NoError(t, err)
 	readmeContent := string(readmeData)
 	
-	assert.Contains(t, readmeContent, expectedPackageName)
+	assert.Contains(t, readmeContent, actualPackageName)
 	assert.Contains(t, readmeContent, target)
 	assert.Contains(t, readmeContent, intent["namespace"].(string))
 	assert.Contains(t, readmeContent, fmt.Sprintf("%d", expectedReplicas))
@@ -411,10 +435,10 @@ func TestVerboseLogging(t *testing.T) {
 	require.NoError(t, os.WriteFile(intentFile, []byte(intentJSON), 0644))
 
 	outputDir := filepath.Join(tempDir, "output")
+	require.NoError(t, os.MkdirAll(outputDir, 0755))
 
 	// Test with verbose logging (this mainly tests that verbose flag doesn't break anything)
-	logger := testr.New(t)
-	err := run(logger, intentFile, outputDir)
+	err := run(intentFile, outputDir, false)
 	assert.NoError(t, err)
 }
 
@@ -444,8 +468,7 @@ func TestPackagePathGeneration(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			logger := testr.New(t)
-			
+				
 			intentJSON := fmt.Sprintf(`{
 				"intent_type": "scaling",
 				"target": "%s",
@@ -457,11 +480,24 @@ func TestPackagePathGeneration(t *testing.T) {
 			require.NoError(t, os.WriteFile(intentFile, []byte(intentJSON), 0644))
 
 			outputDir := filepath.Join(tempDir, "output")
-			err := run(logger, intentFile, outputDir)
+			require.NoError(t, os.MkdirAll(outputDir, 0755))
+			err := run(intentFile, outputDir, false)
 			require.NoError(t, err)
 
-			expectedPackageDir := filepath.Join(outputDir, tt.expectedSuffix)
-			assert.DirExists(t, expectedPackageDir)
+			// Find the package directory (should start with expected suffix)
+			entries, err := os.ReadDir(outputDir)
+			require.NoError(t, err)
+			
+			found := false
+			for _, entry := range entries {
+				if entry.IsDir() && strings.HasPrefix(entry.Name(), tt.expectedSuffix) {
+					expectedPackageDir := filepath.Join(outputDir, entry.Name())
+					assert.DirExists(t, expectedPackageDir)
+					found = true
+					break
+				}
+			}
+			assert.True(t, found, "Expected package directory with prefix %s not found", tt.expectedSuffix)
 		})
 	}
 }

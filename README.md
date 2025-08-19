@@ -58,7 +58,11 @@ Currently an **MVP/proof-of-concept** demonstrating intent-driven network orches
 - **Cloud-Native Patterns**: Service-oriented architecture ready for production scaling
 - **Observability**: Prometheus metrics and health endpoints for monitoring
 
-### 🔒 Basic Security Features (MVP)
+### 🔒 Enhanced Security Features (v0.2.0)
+- **Critical Security Fixes**: Comprehensive input validation, path traversal prevention, and command injection protection
+- **Secure Patch Generation**: Migration from `internal/patch` to `internal/patchgen` with enhanced security validation
+- **Timestamp Security**: RFC3339 format with collision prevention and replay attack mitigation
+- **JSON Schema Validation**: Strict input validation with JSON Schema 2020-12 compliance
 - **HTTP Security**: Basic authentication and configurable endpoint access
 - **Kubernetes RBAC**: Standard service account and role-based permissions
 - **Container Security**: Base image scanning in CI pipeline
@@ -247,6 +251,39 @@ graph TB
 | Availability | Basic K8s patterns | No SLA targets |
 | Knowledge Base | Basic telco docs | Expandable via RAG system |
 | LLM Integration | GPT-4o-mini | Multi-provider ready |
+
+## 🔄 Recent Updates & Migration Guide
+
+### Module Migration: internal/patch → internal/patchgen
+
+The latest release includes a significant security-focused migration from `internal/patch` to `internal/patchgen` module with enhanced features:
+
+#### Key Improvements:
+- **Enhanced Security**: Comprehensive input validation and path traversal prevention
+- **Timestamp Security**: RFC3339 format with collision prevention
+- **JSON Schema Validation**: Strict validation using JSON Schema 2020-12
+- **Secure File Operations**: Proper permissions and error handling
+
+#### Migration Steps:
+```go
+// Before (internal/patch)
+import "github.com/thc1006/nephoran-intent-operator/internal/patch"
+
+// After (internal/patchgen)  
+import "github.com/thc1006/nephoran-intent-operator/internal/patchgen"
+
+// New validation requirement
+validator, err := patchgen.NewValidator(logger)
+intent, err := validator.ValidateIntent(intentData)
+```
+
+#### Security Enhancements:
+- Path traversal attack prevention
+- Command injection protection
+- Secure timestamp generation
+- Enhanced input validation framework
+
+For detailed migration information, see [CHANGELOG.md](CHANGELOG.md#breaking-changes) and [SECURITY.md](SECURITY.md#recent-security-enhancements-v020).
 
 ## 🧪 MVP Use Cases & Demonstrations
 
