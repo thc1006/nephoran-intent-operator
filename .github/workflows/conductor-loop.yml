@@ -179,9 +179,9 @@ jobs:
           cache: true
 
       - name: Run Gosec Security Scanner
-        uses: securecodewarrior/github-action-gosec@master
-        with:
-          args: '-fmt sarif -out gosec-results.sarif ./cmd/conductor-loop/... ./internal/loop/...'
+        run: |
+          go install github.com/securego/gosec/v2/cmd/gosec@latest
+          gosec -fmt sarif -out gosec-results.sarif ./cmd/conductor-loop/... ./internal/loop/...
         continue-on-error: true
 
       - name: Upload SARIF file
