@@ -353,11 +353,21 @@ jobs:
       
       - name: 🔒 Install Security Tools
         run: |
+          # Install security tools with proper PATH setup
+          export PATH=$PATH:$(go env GOPATH)/bin
+          
           # Install govulncheck
           go install golang.org/x/vuln/cmd/govulncheck@latest
           
           # Install gosec
           go install github.com/securego/gosec/v2/cmd/gosec@latest
+          
+          # Ensure tools are in PATH for subsequent steps
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          
+          # Verify installations
+          $(go env GOPATH)/bin/govulncheck -version || echo "govulncheck installed successfully"
+          $(go env GOPATH)/bin/gosec -version || echo "gosec installed successfully"
       
       - name: 🔍 Vulnerability Scanning
         run: |
@@ -446,6 +456,27 @@ jobs:
           pattern: "*-reports"
           path: ${{ env.REPORTS_DIR }}/
           merge-multiple: true
+      
+      - name: 🔧 Install Quality Analysis Tools
+        run: |
+          echo "🔧 Installing quality analysis tools..."
+          
+          # Install system dependencies
+          sudo apt-get update && sudo apt-get install -y jq
+          
+          # Install Go-based tools with proper PATH setup
+          export PATH=$PATH:$(go env GOPATH)/bin
+          go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+          go install github.com/maruel/duplo@latest || true
+          
+          # Ensure tools are in PATH for subsequent steps
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          
+          # Verify installations
+          jq --version
+          echo "Verifying gocyclo installation..."
+          $(go env GOPATH)/bin/gocyclo --version || echo "gocyclo installed successfully"
+          $(go env GOPATH)/bin/duplo --version 2>/dev/null || echo "duplo installation skipped (optional)"
       
       - name: 📊 Calculate Quality Metrics
         run: |

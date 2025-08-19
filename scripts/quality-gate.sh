@@ -146,7 +146,7 @@ init_environment() {
     mkdir -p "$REPORTS_DIR/metrics"
     
     # Verify required tools
-    local required_tools=("go" "git")
+    local required_tools=("go" "git" "jq")
     
     if [[ "${SKIP_LINT:-false}" != "true" ]]; then
         required_tools+=("golangci-lint")
@@ -157,6 +157,11 @@ init_environment() {
             error "Required tool '$tool' not found"
             if [[ "$tool" == "golangci-lint" ]]; then
                 info "Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
+            elif [[ "$tool" == "jq" ]]; then
+                info "Install jq: https://jqlang.github.io/jq/download/"
+                info "Ubuntu/Debian: apt-get install jq"
+                info "macOS: brew install jq"
+                info "Windows: choco install jq"
             fi
             exit 1
         fi
@@ -381,6 +386,13 @@ calculate_quality_metrics() {
     # Cyclomatic complexity analysis
     info "Analyzing cyclomatic complexity..."
     local complexity_data
+    
+    # Ensure gocyclo is available
+    if ! command -v gocyclo &> /dev/null; then
+        info "Installing gocyclo for cyclomatic complexity analysis..."
+        go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+    fi
+    
     complexity_data=$(find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*" -not -name "*_test.go" -not -name "*generated*" | \
         xargs gocyclo -over 10 2>/dev/null | \
         awk '{complexity+=$1; files++} END {if(files>0) print complexity/files; else print 0}')
