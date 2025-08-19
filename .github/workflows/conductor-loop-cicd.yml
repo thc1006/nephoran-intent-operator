@@ -124,9 +124,9 @@ jobs:
     # Static Security Analysis
     - name: Run gosec Security Scanner
       if: matrix.scan-type == 'gosec'
-      uses: securecodewarrior/github-action-gosec@master
-      with:
-        args: '-severity medium -confidence medium -fmt sarif -out gosec-report.sarif ./...'
+      run: |
+        go install github.com/securego/gosec/v2/cmd/gosec@latest
+        gosec -severity medium -confidence medium -fmt sarif -out gosec-report.sarif ./...
         
     - name: Upload gosec SARIF
       if: matrix.scan-type == 'gosec'
