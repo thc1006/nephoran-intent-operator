@@ -562,18 +562,25 @@ func (s *SecurityTestSuite) testConcurrencySecurity(t *testing.T) {
 // testStateManagementSecurity tests state management security
 func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 	// Test state file manipulation
-	stateFile := filepath.Join(s.handoffDir, ".conductor-loop-state.json")
+	stateFile := filepath.Join(s.handoffDir, ".conductor-state.json")
 	
-	// Create malicious state file
+	// Create malicious state file with correct structure
 	maliciousState := map[string]interface{}{
-		"files": map[string]interface{}{
+		"version": "1.0",
+		"states": map[string]interface{}{
 			"../../../etc/passwd": map[string]interface{}{
-				"status":    "processed",
-				"timestamp": time.Now().Format(time.RFC3339),
+				"file_path":    "../../../etc/passwd",
+				"sha256":       "fake_hash",
+				"size":         1234,
+				"processed_at": time.Now().Format(time.RFC3339),
+				"status":       "processed",
 			},
 			"$(whoami)": map[string]interface{}{
-				"status":    "processed",
-				"timestamp": "2025-08-15T12:00:00Z",
+				"file_path":    "$(whoami)",
+				"sha256":       "fake_hash2",
+				"size":         5678,
+				"processed_at": "2025-08-15T12:00:00Z",
+				"status":       "processed",
 			},
 		},
 	}
@@ -588,7 +595,7 @@ func (s *SecurityTestSuite) testStateManagementSecurity(t *testing.T) {
 		"namespace": "default",
 		"replicas": 3
 	}`
-	intentFile := filepath.Join(s.handoffDir, "state-test.json")
+	intentFile := filepath.Join(s.handoffDir, "intent-state-test.json")
 	require.NoError(t, os.WriteFile(intentFile, []byte(content), 0644))
 
 	watcher, err := loop.NewWatcher(s.handoffDir, s.config)
@@ -777,7 +784,7 @@ func (s *SecurityTestSuite) assertNoRaceConditionSecurity(t *testing.T) {
 
 func (s *SecurityTestSuite) assertNoStateManipulationSecurity(t *testing.T) {
 	// Verify state manipulation didn't compromise security
-	stateFile := filepath.Join(s.handoffDir, ".conductor-loop-state.json")
+	stateFile := filepath.Join(s.handoffDir, ".conductor-state.json")
 	
 	if _, err := os.Stat(stateFile); err == nil {
 		content, err := os.ReadFile(stateFile)
@@ -838,8 +845,8 @@ if "%1"=="--help" (
     exit /b 0
 )
 
-REM Log all arguments for security analysis
-echo Arguments: %* >> "%TEMP%\porch-security-log.txt"
+REM Log all arguments for security analysis (use temp directory safely)
+echo Arguments: %* >> "%TEMP%\porch-security-log.txt" 2>nul
 
 REM Simulate processing
 echo Processing intent: %2
@@ -853,15 +860,16 @@ if exist "%4" (
 echo Comprehensive processing completed
 exit /b 0`
 	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch-comprehensive")
+		mockPath = filepath.Join(tempDir, "mock-porch-comprehensive.sh")
 		mockScript = `#!/bin/bash
 if [ "$1" = "--help" ]; then
     echo "Mock porch comprehensive help"
     exit 0
 fi
 
-# Log all arguments for security analysis
-echo "Arguments: $*" >> /tmp/porch-security-log.txt
+# Log all arguments for security analysis (create safe temp file)
+TEMP_LOG="${TMPDIR:-/tmp}/porch-security-log-$$.txt"
+echo "Arguments: $*" >> "$TEMP_LOG" 2>/dev/null
 
 # Simulate processing
 echo "Processing intent: $2"

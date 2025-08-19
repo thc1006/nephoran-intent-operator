@@ -1,39 +1,39 @@
-﻿2025-08-19T12:24:53.2844795Z Current runner version: '2.327.1'
-2025-08-19T12:24:53.2868051Z ##[group]Runner Image Provisioner
-2025-08-19T12:24:53.2869098Z Hosted Compute Agent
-2025-08-19T12:24:53.2869822Z Version: 20250818.377
-2025-08-19T12:24:53.2870394Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
-2025-08-19T12:24:53.2871106Z Build Date: 2025-08-18T14:52:18Z
-2025-08-19T12:24:53.2871744Z ##[endgroup]
-2025-08-19T12:24:53.2872264Z ##[group]Operating System
-2025-08-19T12:24:53.2872782Z Ubuntu
-2025-08-19T12:24:53.2873311Z 24.04.2
-2025-08-19T12:24:53.2873775Z LTS
-2025-08-19T12:24:53.2874214Z ##[endgroup]
-2025-08-19T12:24:53.2874750Z ##[group]Runner Image
-2025-08-19T12:24:53.2875252Z Image: ubuntu-24.04
-2025-08-19T12:24:53.2875784Z Version: 20250810.1.0
-2025-08-19T12:24:53.2876763Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250810.1/images/ubuntu/Ubuntu2404-Readme.md
-2025-08-19T12:24:53.2878150Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250810.1
-2025-08-19T12:24:53.2879529Z ##[endgroup]
-2025-08-19T12:24:53.2880949Z ##[group]GITHUB_TOKEN Permissions
-2025-08-19T12:24:53.2883477Z Actions: read
-2025-08-19T12:24:53.2884042Z Checks: write
-2025-08-19T12:24:53.2884534Z Contents: read
-2025-08-19T12:24:53.2885049Z Metadata: read
-2025-08-19T12:24:53.2885529Z Packages: write
-2025-08-19T12:24:53.2886087Z PullRequests: write
-2025-08-19T12:24:53.2886544Z SecurityEvents: write
-2025-08-19T12:24:53.2887128Z ##[endgroup]
-2025-08-19T12:24:53.2889249Z Secret source: Actions
-2025-08-19T12:24:53.2890234Z Prepare workflow directory
-2025-08-19T12:24:53.3401966Z Prepare all required actions
-2025-08-19T12:24:53.3438984Z Getting action download info
-2025-08-19T12:24:53.7089512Z Download action repository 'step-security/harden-runner@v2' (SHA:ec9f2d5744a09debf3a187a3f4f675c53b671911)
-2025-08-19T12:24:54.1095213Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
-2025-08-19T12:24:54.3898126Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
-2025-08-19T12:24:54.7232779Z Download action repository 'github/codeql-action@v3' (SHA:96f518a34f7a870018057716cc4d7a5c014bd61c)
-2025-08-19T12:24:59.8815228Z Download action repository 'semgrep/semgrep-action@v1' (SHA:713efdd345f3035192eaa63f56867b88e63e4e5d)
-2025-08-19T12:25:00.1547743Z Download action repository 'dependency-check/Dependency-Check_Action@main' (SHA:2ba636726705b0f74f126ebeaacaf2ad4600b967)
-2025-08-19T12:25:00.5210878Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
-2025-08-19T12:25:00.7053400Z Complete job name: Security Analysis (gosec)
+﻿2025-08-19T13:08:55.7224952Z Current runner version: '2.327.1'
+2025-08-19T13:08:55.7251155Z ##[group]Runner Image Provisioner
+2025-08-19T13:08:55.7252327Z Hosted Compute Agent
+2025-08-19T13:08:55.7252898Z Version: 20250818.377
+2025-08-19T13:08:55.7253495Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
+2025-08-19T13:08:55.7254127Z Build Date: 2025-08-18T14:52:18Z
+2025-08-19T13:08:55.7254798Z ##[endgroup]
+2025-08-19T13:08:55.7255329Z ##[group]Operating System
+2025-08-19T13:08:55.7255886Z Ubuntu
+2025-08-19T13:08:55.7256432Z 24.04.2
+2025-08-19T13:08:55.7256860Z LTS
+2025-08-19T13:08:55.7257295Z ##[endgroup]
+2025-08-19T13:08:55.7257807Z ##[group]Runner Image
+2025-08-19T13:08:55.7258363Z Image: ubuntu-24.04
+2025-08-19T13:08:55.7258877Z Version: 20250810.1.0
+2025-08-19T13:08:55.7260310Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250810.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-19T13:08:55.7261698Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250810.1
+2025-08-19T13:08:55.7263269Z ##[endgroup]
+2025-08-19T13:08:55.7264782Z ##[group]GITHUB_TOKEN Permissions
+2025-08-19T13:08:55.7267120Z Actions: read
+2025-08-19T13:08:55.7267653Z Checks: write
+2025-08-19T13:08:55.7268163Z Contents: read
+2025-08-19T13:08:55.7268642Z Metadata: read
+2025-08-19T13:08:55.7269149Z Packages: write
+2025-08-19T13:08:55.7269620Z PullRequests: write
+2025-08-19T13:08:55.7270229Z SecurityEvents: write
+2025-08-19T13:08:55.7270730Z ##[endgroup]
+2025-08-19T13:08:55.7273311Z Secret source: Actions
+2025-08-19T13:08:55.7274230Z Prepare workflow directory
+2025-08-19T13:08:55.7816777Z Prepare all required actions
+2025-08-19T13:08:55.7854801Z Getting action download info
+2025-08-19T13:08:56.1788284Z Download action repository 'step-security/harden-runner@v2' (SHA:ec9f2d5744a09debf3a187a3f4f675c53b671911)
+2025-08-19T13:08:56.6919194Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-08-19T13:08:57.0222568Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+2025-08-19T13:08:57.4512811Z Download action repository 'github/codeql-action@v3' (SHA:96f518a34f7a870018057716cc4d7a5c014bd61c)
+2025-08-19T13:09:02.7549569Z Download action repository 'semgrep/semgrep-action@v1' (SHA:713efdd345f3035192eaa63f56867b88e63e4e5d)
+2025-08-19T13:09:03.0640449Z Download action repository 'dependency-check/Dependency-Check_Action@main' (SHA:2ba636726705b0f74f126ebeaacaf2ad4600b967)
+2025-08-19T13:09:03.3627700Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-08-19T13:09:03.5498447Z Complete job name: Security Analysis (gosec)

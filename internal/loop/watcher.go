@@ -41,13 +41,15 @@ type Config struct {
 
 // Validate checks if the configuration is valid and secure
 func (c *Config) Validate() error {
-	// Validate MaxWorkers
+	// Validate MaxWorkers - handle extreme values gracefully
 	maxSafeWorkers := runtime.NumCPU() * 4
 	if c.MaxWorkers < 1 {
-		return fmt.Errorf("max_workers must be at least 1")
+		log.Printf("Warning: max_workers %d is too low, using default value 2", c.MaxWorkers)
+		c.MaxWorkers = 2
 	}
 	if c.MaxWorkers > maxSafeWorkers {
-		return fmt.Errorf("max_workers %d exceeds safe limit of %d (4x CPU cores)", c.MaxWorkers, maxSafeWorkers)
+		log.Printf("Warning: max_workers %d exceeds safe limit of %d (4x CPU cores), capping to safe limit", c.MaxWorkers, maxSafeWorkers)
+		c.MaxWorkers = maxSafeWorkers
 	}
 	
 	// Validate MetricsPort
@@ -57,13 +59,17 @@ func (c *Config) Validate() error {
 		}
 	}
 	
-	// Validate DebounceDur
+	// Validate DebounceDur - handle negative values gracefully
 	if c.DebounceDur != 0 {
-		if c.DebounceDur < 10*time.Millisecond {
-			return fmt.Errorf("debounce_duration must be at least 10ms to prevent CPU thrashing")
-		}
-		if c.DebounceDur > 5*time.Second {
-			return fmt.Errorf("debounce_duration must not exceed 5s to prevent processing delays")
+		if c.DebounceDur < 0 {
+			log.Printf("Warning: debounce_duration %v is negative, using default 100ms", c.DebounceDur)
+			c.DebounceDur = 100 * time.Millisecond
+		} else if c.DebounceDur < 10*time.Millisecond {
+			log.Printf("Warning: debounce_duration %v is too low, setting to 10ms to prevent CPU thrashing", c.DebounceDur)
+			c.DebounceDur = 10 * time.Millisecond
+		} else if c.DebounceDur > 5*time.Second {
+			log.Printf("Warning: debounce_duration %v is too high, capping to 5s to prevent processing delays", c.DebounceDur)
+			c.DebounceDur = 5 * time.Second
 		}
 	}
 	

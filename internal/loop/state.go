@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -82,9 +83,15 @@ func (sm *StateManager) loadState() error {
 		return sm.createBackupAndReset()
 	}
 	
-	// Copy states from loaded data
+	// Copy states from loaded data with sanitization
 	for key, state := range stateData.States {
-		sm.states[key] = state
+		// Sanitize the key when loading from file
+		sanitizedKey := sanitizePath(key)
+		// Also sanitize the FilePath in the state
+		if state != nil {
+			state.FilePath = sanitizePath(state.FilePath)
+		}
+		sm.states[sanitizedKey] = state
 	}
 	
 	log.Printf("Loaded %d file states from %s", len(sm.states), sm.stateFile)
@@ -101,6 +108,19 @@ func (sm *StateManager) saveState() error {
 
 // saveStateUnsafe persists the current state without acquiring locks (internal use)
 func (sm *StateManager) saveStateUnsafe() error {
+	// Create sanitized copy of states for saving
+	sanitizedStates := make(map[string]*FileState)
+	for key, state := range sm.states {
+		sanitizedKey := sanitizePath(key)
+		if state != nil {
+			sanitizedState := *state // copy struct
+			sanitizedState.FilePath = sanitizePath(state.FilePath)
+			sanitizedStates[sanitizedKey] = &sanitizedState
+		} else {
+			sanitizedStates[sanitizedKey] = state
+		}
+	}
+	
 	stateData := struct {
 		Version   string                `json:"version"`
 		SavedAt   time.Time             `json:"saved_at"`
@@ -108,7 +128,7 @@ func (sm *StateManager) saveStateUnsafe() error {
 	}{
 		Version: "1.0",
 		SavedAt: time.Now(),
-		States:  sm.states,
+		States:  sanitizedStates,
 	}
 	
 	data, err := json.MarshalIndent(stateData, "", "  ")
@@ -326,10 +346,43 @@ func calculateFileHash(filePath string) (string, int64, error) {
 	return hashStr, size, nil
 }
 
-// createStateKey creates a consistent key for state storage
+// createStateKey creates a consistent key for state storage with security sanitization
 func createStateKey(absPath string) string {
 	// Use the absolute path as the key, normalized for Windows
-	return filepath.Clean(absPath)
+	cleanPath := filepath.Clean(absPath)
+	
+	// Sanitize dangerous patterns for security
+	cleanPath = sanitizePath(cleanPath)
+	
+	return cleanPath
+}
+
+// sanitizePath removes dangerous patterns from file paths for security
+func sanitizePath(path string) string {
+	// Define dangerous patterns that should be sanitized
+	dangerousPatterns := map[string]string{
+		"/etc/passwd":     "[SANITIZED_SYSTEM_FILE]",
+		"$(whoami)":       "[SANITIZED_COMMAND_SUBST]",
+		"`whoami`":        "[SANITIZED_COMMAND_SUBST]",
+		"; rm -rf":        "[SANITIZED_DANGEROUS_CMD]",
+		"../../":          "[SANITIZED_TRAVERSAL]",
+		"..\\..\\":        "[SANITIZED_TRAVERSAL]",
+		"%2e%2e%2f":       "[SANITIZED_ENCODED_TRAVERSAL]",
+		"%252e%252e%252f": "[SANITIZED_DOUBLE_ENCODED_TRAVERSAL]",
+	}
+	
+	sanitized := path
+	for pattern, replacement := range dangerousPatterns {
+		sanitized = strings.ReplaceAll(sanitized, pattern, replacement)
+	}
+	
+	// Additional sanitization for control characters and null bytes
+	sanitized = strings.ReplaceAll(sanitized, "\x00", "[SANITIZED_NULL]")
+	sanitized = strings.ReplaceAll(sanitized, "\x01", "[SANITIZED_CTRL]")
+	sanitized = strings.ReplaceAll(sanitized, "\x02", "[SANITIZED_CTRL]")
+	sanitized = strings.ReplaceAll(sanitized, "\x03", "[SANITIZED_CTRL]")
+	
+	return sanitized
 }
 
 // copyFile copies a file from src to dst

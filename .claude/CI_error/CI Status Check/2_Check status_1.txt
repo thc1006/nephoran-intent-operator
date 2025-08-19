@@ -1,0 +1,38 @@
+﻿2025-08-19T13:08:35.6280936Z ##[group]Run echo "Test: failure"
+2025-08-19T13:08:35.6282137Z [36;1mecho "Test: failure"[0m
+2025-08-19T13:08:35.6283188Z [36;1mecho "Build: skipped"[0m
+2025-08-19T13:08:35.6284115Z [36;1mecho "Security: skipped"[0m
+2025-08-19T13:08:35.6285083Z [36;1mecho "Docker: skipped"[0m
+2025-08-19T13:08:35.6286632Z [36;1m[0m
+2025-08-19T13:08:35.6287479Z [36;1mif [[ "failure" != "success" ]]; then[0m
+2025-08-19T13:08:35.6288493Z [36;1m  echo "❌ Tests failed"[0m
+2025-08-19T13:08:35.6289383Z [36;1m  exit 1[0m
+2025-08-19T13:08:35.6290221Z [36;1mfi[0m
+2025-08-19T13:08:35.6290914Z [36;1m[0m
+2025-08-19T13:08:35.6291806Z [36;1mif [[ "skipped" != "success" ]]; then[0m
+2025-08-19T13:08:35.6292860Z [36;1m  echo "❌ Build failed"[0m
+2025-08-19T13:08:35.6293773Z [36;1m  exit 1[0m
+2025-08-19T13:08:35.6294623Z [36;1mfi[0m
+2025-08-19T13:08:35.6295320Z [36;1m[0m
+2025-08-19T13:08:35.6296303Z [36;1mif [[ "skipped" != "success" ]]; then[0m
+2025-08-19T13:08:35.6297652Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
+2025-08-19T13:08:35.6298905Z [36;1mfi[0m
+2025-08-19T13:08:35.6299589Z [36;1m[0m
+2025-08-19T13:08:35.6300506Z [36;1mif [[ "skipped" != "success" ]]; then[0m
+2025-08-19T13:08:35.6301565Z [36;1m  echo "❌ Docker build failed"[0m
+2025-08-19T13:08:35.6302566Z [36;1m  exit 1[0m
+2025-08-19T13:08:35.6303408Z [36;1mfi[0m
+2025-08-19T13:08:35.6304100Z [36;1m[0m
+2025-08-19T13:08:35.6304979Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
+2025-08-19T13:08:35.6797414Z shell: /usr/bin/bash -e {0}
+2025-08-19T13:08:35.6799401Z env:
+2025-08-19T13:08:35.6800284Z   REGISTRY: ghcr.io
+2025-08-19T13:08:35.6801175Z   IMAGE_NAME: conductor-loop
+2025-08-19T13:08:35.6918626Z   GO_VERSION: 1.24.x
+2025-08-19T13:08:35.6919470Z ##[endgroup]
+2025-08-19T13:08:35.7186610Z Test: failure
+2025-08-19T13:08:35.7187460Z Build: skipped
+2025-08-19T13:08:35.7188130Z Security: skipped
+2025-08-19T13:08:35.7188804Z Docker: skipped
+2025-08-19T13:08:35.7284472Z ❌ Tests failed
+2025-08-19T13:08:35.7301978Z ##[error]Process completed with exit code 1.
