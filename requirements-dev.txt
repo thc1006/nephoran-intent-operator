@@ -14,7 +14,7 @@ pre-commit==4.0.1  # Git hooks for code quality
 # Security scanning
 bandit[toml]==1.8.0  # Security linter
 safety==3.3.0  # Dependency vulnerability scanner
-pip-audit==2.8.2  # Audit Python packages for CVEs
+pip-audit==2.8.0  # Audit Python packages for CVEs
 
 # Documentation (if needed locally)
 mkdocs-material==9.6.0  # Only if building docs locally
