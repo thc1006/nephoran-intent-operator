@@ -70,14 +70,14 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mkdir -p test-results
-          go test -v -race -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop/... ./internal/loop/...
+          go test -v -race -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
           go tool cover -html=test-results/coverage.out -o test-results/coverage.html
 
       - name: Run tests (Windows)
         if: runner.os == 'Windows'
         run: |
           mkdir test-results
-          go test -v -race -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop/... ./internal/loop/...
+          go test -v -race -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
           go tool cover -html=test-results/coverage.out -o test-results/coverage.html
 
       - name: Upload test results
@@ -181,7 +181,7 @@ jobs:
       - name: Run Gosec Security Scanner
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec -fmt sarif -out gosec-results.sarif ./cmd/conductor-loop/... ./internal/loop/...
+          gosec -fmt sarif -out gosec-results.sarif ./cmd/conductor-loop ./internal/loop
         continue-on-error: true
 
       - name: Upload SARIF file
@@ -193,7 +193,7 @@ jobs:
       - name: Run govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
-          govulncheck ./cmd/conductor-loop/... ./internal/loop/...
+          govulncheck ./cmd/conductor-loop ./internal/loop
 
   # ---------------------------------------------------------------------------
   # Docker Build and Scan
@@ -316,7 +316,7 @@ jobs:
           kubectl create namespace conductor-loop-test
           
           # Run integration tests
-          go test -v -timeout=30m -tags=integration ./cmd/conductor-loop/... ./internal/loop/...
+          go test -v -timeout=30m -tags=integration ./cmd/conductor-loop ./internal/loop
 
       - name: Cleanup
         if: always()
@@ -345,7 +345,7 @@ jobs:
       - name: Run benchmarks
         run: |
           mkdir -p benchmark-results
-          go test -bench=. -benchmem -run=^$ ./internal/loop/... > benchmark-results/benchmark.txt 2>&1
+          go test -bench=. -benchmem -run=^$ ./internal/loop > benchmark-results/benchmark.txt 2>&1
 
       - name: Upload benchmark results
         uses: actions/upload-artifact@v4
