@@ -28,14 +28,7 @@ type RAGClient interface {
 	Shutdown(ctx context.Context) error
 }
 
-// SearchResult represents a search result from the RAG system
-// Deprecated: Use Doc instead
-type SearchResult struct {
-	ID         string
-	Content    string
-	Confidence float64
-	Metadata   map[string]interface{}
-}
+// Note: SearchResult is defined in enhanced_rag_integration.go
 
 // RAGClientConfig holds configuration for RAG clients
 type RAGClientConfig struct {
@@ -55,13 +48,7 @@ type RAGClientConfig struct {
 	Temperature float32
 }
 
-// TokenUsage tracks token usage for cost tracking
-type TokenUsage struct {
-	PromptTokens     int
-	CompletionTokens int
-	TotalTokens      int
-	EstimatedCost    float64
-}
+// Note: TokenUsage is defined in embedding_service.go
 
 // NewRAGClient creates a new RAG client based on build tags
 // With "rag" build tag: returns Weaviate-based implementation

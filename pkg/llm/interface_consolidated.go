@@ -2,6 +2,7 @@ package llm
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -21,10 +22,9 @@ type BatchProcessor interface {
 	GetMetrics() *ProcessingMetrics
 }
 
-// StreamingProcessor handles streaming requests
-type StreamingProcessor interface {
-	HandleStreamingRequest(w interface{}, r interface{}, req *StreamingRequest) error
-	GetMetrics() map[string]interface{}
+// StreamingProcessor handles streaming requests (concrete implementation for disable_rag builds)
+type StreamingProcessor struct {
+	// Stub implementation fields
 }
 
 // CacheProvider provides caching functionality
@@ -44,6 +44,102 @@ type PromptGenerator interface {
 
 // ESSENTIAL TYPES ONLY - Consolidated from scattered definitions
 
+// StreamingRequest represents a streaming request (stub for disable_rag builds)
+type StreamingRequest struct {
+	Content   string `json:"content"`
+	Query     string `json:"query"`
+	ModelName string `json:"model_name"`
+	MaxTokens int    `json:"max_tokens"`
+	EnableRAG bool   `json:"enable_rag"`
+}
+
+// BatchRequest represents a batch processing request (stub for disable_rag builds)
+type BatchRequest struct {
+	Content string `json:"content"`
+}
+
+// ProcessingResult represents a processing result (stub for disable_rag builds)
+type ProcessingResult struct {
+	Result string `json:"result"`
+}
+
+// ProcessingMetrics tracks processing metrics (stub for disable_rag builds)
+type ProcessingMetrics struct {
+	ProcessedCount int64 `json:"processed_count"`
+}
+
+// MetricsCollector collects metrics (stub for disable_rag builds)
+type MetricsCollector struct {
+	// Stub implementation
+}
+
+// NewMetricsCollector creates a new metrics collector (stub for disable_rag builds)
+func NewMetricsCollector() *MetricsCollector {
+	return &MetricsCollector{}
+}
+
+// MetricsIntegrator integrates metrics (stub for disable_rag builds)
+type MetricsIntegrator struct {
+	// Stub implementation
+	prometheusMetrics *PrometheusMetricsStub
+}
+
+// PrometheusMetricsStub provides stub prometheus metrics (disable_rag builds)
+type PrometheusMetricsStub struct{}
+
+func (pm *PrometheusMetricsStub) RecordError(errorType string, details string) {}
+
+// NewMetricsIntegrator creates a new metrics integrator (stub for disable_rag builds)
+func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
+	return &MetricsIntegrator{
+		prometheusMetrics: &PrometheusMetricsStub{},
+	}
+}
+
+// Stub methods for MetricsIntegrator (disable_rag builds)
+func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(event string, state string, info string) {}
+func (mi *MetricsIntegrator) RecordLLMRequest(backend string, model string, duration time.Duration, tokens int) {}
+func (mi *MetricsIntegrator) RecordCacheOperation(operation string, backend string, hit bool) {}
+func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {}
+func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} { return nil }
+
+// Additional stub types for disable_rag builds
+type TokenManager struct{}
+func (tm *TokenManager) GetSupportedModels() []string { return []string{} }
+
+type RelevanceScorer struct{}
+func (rs *RelevanceScorer) GetMetrics() map[string]interface{} { return map[string]interface{}{} }
+
+type RAGAwarePromptBuilder struct{}
+func (rpb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} { return map[string]interface{}{} }
+
+type RAGEnhancedProcessor struct{}
+func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
+	return "", fmt.Errorf("RAG functionality disabled with disable_rag build tag")
+}
+
+// Constructor functions for disable_rag builds
+func NewTokenManager() *TokenManager { return &TokenManager{} }
+func NewRelevanceScorer() *RelevanceScorer { return &RelevanceScorer{} }
+func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder { return &RAGAwarePromptBuilder{} }
+func NewRAGEnhancedProcessor() *RAGEnhancedProcessor { return &RAGEnhancedProcessor{} }
+func NewStreamingProcessor() *StreamingProcessor { return &StreamingProcessor{} }
+
+// Stub methods for StreamingProcessor (disable_rag builds)
+func (sp *StreamingProcessor) HandleStreamingRequest(w interface{}, r interface{}, req *StreamingRequest) error {
+	// Stub implementation - just return an error indicating streaming is disabled
+	return fmt.Errorf("streaming functionality is disabled with disable_rag build tag")
+}
+
+func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
+	return map[string]interface{}{"streaming_disabled": true}
+}
+
+func (sp *StreamingProcessor) Shutdown(ctx context.Context) error {
+	// Stub implementation - nothing to shutdown
+	return nil
+}
+
 // ClientMetrics tracks client performance (consolidated from multiple files)
 type ClientMetrics struct {
 	RequestsTotal    int64         `json:"requests_total"`
@@ -57,37 +153,22 @@ type ClientMetrics struct {
 	mutex            sync.RWMutex
 }
 
-// CircuitBreakerConfig holds configuration for circuit breaker (consolidated)
-type CircuitBreakerConfig struct {
-	FailureThreshold    int64         `json:"failure_threshold"`
-	FailureRate         float64       `json:"failure_rate"`
-	MinimumRequestCount int64         `json:"minimum_request_count"`
-	Timeout             time.Duration `json:"timeout"`
-	HalfOpenTimeout     time.Duration `json:"half_open_timeout"`
-	SuccessThreshold    int64         `json:"success_threshold"`
-	HalfOpenMaxRequests int64         `json:"half_open_max_requests"`
-	ResetTimeout        time.Duration `json:"reset_timeout"`
-	SlidingWindowSize   int           `json:"sliding_window_size"`
-	EnableHealthCheck   bool          `json:"enable_health_check"`
-	HealthCheckInterval time.Duration `json:"health_check_interval"`
-	HealthCheckTimeout  time.Duration `json:"health_check_timeout"`
-}
 
-// TokenTracker tracks token usage and costs
-type TokenTracker struct {
+// SimpleTokenTracker tracks token usage and costs
+type SimpleTokenTracker struct {
 	totalTokens  int64
 	totalCost    float64
 	requestCount int64
 	mutex        sync.RWMutex
 }
 
-// NewTokenTracker creates a new token tracker
-func NewTokenTracker() *TokenTracker {
-	return &TokenTracker{}
+// NewSimpleTokenTracker creates a new simple token tracker
+func NewSimpleTokenTracker() *SimpleTokenTracker {
+	return &SimpleTokenTracker{}
 }
 
 // RecordUsage records token usage
-func (tt *TokenTracker) RecordUsage(tokens int) {
+func (tt *SimpleTokenTracker) RecordUsage(tokens int) {
 	tt.mutex.Lock()
 	defer tt.mutex.Unlock()
 
@@ -100,7 +181,7 @@ func (tt *TokenTracker) RecordUsage(tokens int) {
 }
 
 // GetStats returns token usage statistics
-func (tt *TokenTracker) GetStats() map[string]interface{} {
+func (tt *SimpleTokenTracker) GetStats() map[string]interface{} {
 	tt.mutex.RLock()
 	defer tt.mutex.RUnlock()
 
@@ -163,53 +244,13 @@ func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
 	}
 }
 
-// RelevanceScorer stub implementation (consolidated from stubs.go)
-type RelevanceScorer struct{}
+// RelevanceScorer implementation moved to relevance_scorer.go
 
-func NewRelevanceScorer() *RelevanceScorer {
-	return &RelevanceScorer{}
-}
-
-func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"relevance_scorer_enabled": false,
-		"status":                   "not_implemented",
-	}
-}
-
-// RAGAwarePromptBuilder stub implementation (consolidated from stubs.go)
-type RAGAwarePromptBuilder struct{}
-
-func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder {
-	return &RAGAwarePromptBuilder{}
-}
-
-func (rpb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"prompt_builder_enabled": false,
-		"status":                 "not_implemented",
-	}
-}
+// RAGAwarePromptBuilder implementation moved to rag_aware_prompt_builder.go
 
 // UTILITY FUNCTIONS
 
-// getDefaultCircuitBreakerConfig returns default circuit breaker configuration
-func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
-	return &CircuitBreakerConfig{
-		FailureThreshold:    5,
-		FailureRate:         0.5,
-		MinimumRequestCount: 10,
-		Timeout:             30 * time.Second,
-		HalfOpenTimeout:     60 * time.Second,
-		SuccessThreshold:    3,
-		HalfOpenMaxRequests: 5,
-		ResetTimeout:        60 * time.Second,
-		SlidingWindowSize:   100,
-		EnableHealthCheck:   false,
-		HealthCheckInterval: 30 * time.Second,
-		HealthCheckTimeout:  10 * time.Second,
-	}
-}
+// Use getDefaultCircuitBreakerConfig from circuit_breaker.go to avoid duplicates
 
 // isValidKubernetesName validates Kubernetes resource names
 func isValidKubernetesName(name string) bool {

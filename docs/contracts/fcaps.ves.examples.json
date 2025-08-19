@@ -49,11 +49,13 @@
           "receivedOctetsDelta": 1200000,
           "transmittedOctetsDelta": 1800000
         }],
-        "additionalFields": {
-          "kpm.p95_latency_ms": 85.3,
-          "kpm.prb_utilization": 0.62,
-          "kpm.ue_count": 37
-        }
+        "cpuUsageArray": [{
+          "cpuIdentifier": "cpu0",
+          "percentUsage": 65.5
+        }],
+        "memoryUsageArray": [{
+          "memoryUsageMean": 4096.0
+        }]
       }
     }
   },
@@ -64,8 +66,8 @@
         "domain": "heartbeat",
         "eventName": "Heartbeat_NFSim",
         "eventId": "hb-0001",
-        "sequence": 10,
-        "priority": "Low",
+        "sequence": 0,
+        "priority": "Normal",
         "reportingEntityName": "nf-sim",
         "sourceName": "nf-sim",
         "nfVendorName": "nephoran",
@@ -91,8 +93,8 @@
         "reportingEntityName": "nf-sim",
         "sourceName": "nf-sim",
         "nfVendorName": "nephoran",
-        "startEpochMicrosec": 1731001000000,
-        "lastEpochMicrosec": 1731001060000,
+        "startEpochMicrosec": 1731000900000,
+        "lastEpochMicrosec": 1731000960000,
         "timeZoneOffset": "+00:00"
       },
       "measurementsForVfScalingFields": {
@@ -100,59 +102,37 @@
         "vNicUsageArray": [{
           "vnfNetworkInterface": "eth0",
           "receivedOctetsDelta": 9500000,
-          "transmittedOctetsDelta": 9800000
+          "transmittedOctetsDelta": 8700000
+        }],
+        "cpuUsageArray": [{
+          "cpuIdentifier": "cpu0",
+          "percentUsage": 92.3
+        }],
+        "memoryUsageArray": [{
+          "memoryUsageMean": 7680.0
         }],
         "additionalFields": {
-          "kpm.p95_latency_ms": 250.7,
-          "kpm.prb_utilization": 0.95,
-          "kpm.ue_count": 1250,
-          "kpm.cpu_utilization": 0.89,
-          "kpm.memory_utilization": 0.82
+          "prb_utilization": 0.92,
+          "active_ue_count": 1250,
+          "throughput_mbps": 980
         }
       }
     }
   },
-  "congestion_example": {
+  "threshold_crossing_example": {
     "event": {
       "commonEventHeader": {
         "version": "4.1",
-        "domain": "fault",
-        "eventName": "Fault_NFSim_Congestion",
-        "eventId": "fault-cong-001",
-        "sequence": 50,
-        "priority": "Critical",
+        "domain": "thresholdCrossingAlert",
+        "eventName": "TCA_PRB_High",
+        "eventId": "tca-0001",
+        "sequence": 0,
+        "priority": "High",
         "reportingEntityName": "nf-sim",
         "sourceName": "nf-sim",
         "nfVendorName": "nephoran",
         "startEpochMicrosec": 1731001200000,
         "lastEpochMicrosec": 1731001200000,
-        "timeZoneOffset": "+00:00"
-      },
-      "faultFields": {
-        "faultFieldsVersion": "4.0",
-        "alarmCondition": "CONGESTION",
-        "eventSeverity": "CRITICAL",
-        "specificProblem": "Resource congestion detected - CPU/Memory overload",
-        "eventSourceType": "virtualNetworkFunction",
-        "vfStatus": "Degraded",
-        "alarmInterfaceA": "system"
-      }
-    }
-  },
-  "threshold_breach_example": {
-    "event": {
-      "commonEventHeader": {
-        "version": "4.1",
-        "domain": "thresholdCrossingAlert",
-        "eventName": "TCA_NFSim_PRB_Threshold",
-        "eventId": "tca-001",
-        "sequence": 200,
-        "priority": "High",
-        "reportingEntityName": "nf-sim",
-        "sourceName": "nf-sim",
-        "nfVendorName": "nephoran",
-        "startEpochMicrosec": 1731001500000,
-        "lastEpochMicrosec": 1731001500000,
         "timeZoneOffset": "+00:00"
       },
       "thresholdCrossingAlertFields": {

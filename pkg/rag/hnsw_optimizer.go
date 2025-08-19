@@ -14,6 +14,8 @@ import (
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"github.com/weaviate/weaviate/entities/models"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // HNSWOptimizer provides dynamic HNSW parameter optimization
@@ -488,10 +490,8 @@ func (h *HNSWOptimizer) measureCurrentPerformance(ctx context.Context, className
 func (h *HNSWOptimizer) executeTestQuery(ctx context.Context, className string, pattern *QueryPattern) (*SearchResponse, error) {
 	query := h.client.GraphQL().Get().
 		WithClassName(className).
-		WithNearText(
-			h.client.GraphQL().NearTextArgumentBuilder().
-				WithConcepts([]string{pattern.Query}),
-		).
+		// TODO: Fix NearText implementation based on Weaviate client version
+		// WithNearText(...).
 		WithFields(graphql.Field{Name: "_additional", Fields: []graphql.Field{
 			{Name: "id"},
 			{Name: "score"},

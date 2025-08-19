@@ -114,12 +114,7 @@ type GRPCRateLimiter struct {
 	mutex             sync.Mutex
 }
 
-// Batch request structures for gRPC batching
-type BatchSearchRequest struct {
-	Requests []*VectorSearchRequest `json:"requests"`
-	Metadata map[string]string      `json:"metadata"`
-}
-
+// GRPC-specific request structures 
 type VectorSearchRequest struct {
 	Query    string                 `json:"query"`
 	Vector   []float32              `json:"vector"`
@@ -128,7 +123,8 @@ type VectorSearchRequest struct {
 	Metadata map[string]string      `json:"metadata"`
 }
 
-type BatchSearchResponse struct {
+// GRPC-specific batch response
+type GRPCBatchSearchResponse struct {
 	Responses []*VectorSearchResponse `json:"responses"`
 	Metadata  map[string]string       `json:"metadata"`
 	Took      time.Duration           `json:"took"`
@@ -321,14 +317,14 @@ func newOptimizedCodec(config *GRPCClientConfig) *OptimizedCodec {
 		return make([]byte, 0, 1024) // Initial capacity of 1KB
 	}
 
-	// Initialize encoder pool
+	// Initialize encoder pool - using bytes.Buffer as proto.Buffer is deprecated
 	codec.encoderPool.New = func() interface{} {
-		return &proto.Buffer{} // Protobuf encoder
+		return make([]byte, 0, 1024) // Protobuf encoder buffer
 	}
 
-	// Initialize decoder pool
+	// Initialize decoder pool - using bytes.Buffer as proto.Buffer is deprecated  
 	codec.decoderPool.New = func() interface{} {
-		return &proto.Buffer{} // Protobuf decoder
+		return make([]byte, 0, 1024) // Protobuf decoder buffer
 	}
 
 	return codec
@@ -379,20 +375,16 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 
 	startTime := time.Now()
 
-	// Convert to gRPC batch request
+	// Convert to gRPC batch request - using Queries field instead of Requests
 	batchReq := &BatchSearchRequest{
-		Requests: make([]*VectorSearchRequest, len(queries)),
-		Metadata: map[string]string{
+		Queries: make([]*SearchQuery, len(queries)),
+		Metadata: map[string]interface{}{
 			"batch_size": fmt.Sprintf("%d", len(queries)),
 		},
 	}
 
 	for i, query := range queries {
-		batchReq.Requests[i] = &VectorSearchRequest{
-			Query:   query.Query,
-			Limit:   query.Limit,
-			Filters: query.Filters,
-		}
+		batchReq.Queries[i] = query
 	}
 
 	// Perform batch search
@@ -421,7 +413,7 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 // performGRPCSearch performs the actual gRPC search call
 func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorSearchRequest) (*VectorSearchResponse, error) {
 	// Get connection from pool
-	conn := c.connPool.GetConnection()
+	_ = c.connPool.GetConnection() // TODO: Use when actual gRPC implementation is ready
 
 	// Add authentication metadata
 	ctx = c.addAuthenticationContext(ctx)
@@ -456,7 +448,7 @@ func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorS
 }
 
 // performGRPCBatchSearch performs batch gRPC search
-func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *BatchSearchRequest) (*BatchSearchResponse, error) {
+func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *BatchSearchRequest) (*GRPCBatchSearchResponse, error) {
 	// Get connection from pool
 	conn := c.connPool.GetConnection()
 	_ = conn // Use the connection
@@ -465,15 +457,15 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *Ba
 	ctx = c.addAuthenticationContext(ctx)
 
 	// Add timeout
-	ctx, cancel := context.WithTimeout(ctx, c.config.RequestTimeout*time.Duration(len(req.Requests)))
+	ctx, cancel := context.WithTimeout(ctx, c.config.RequestTimeout*time.Duration(len(req.Queries)))
 	defer cancel()
 
 	// This is a placeholder for actual gRPC batch call
 	time.Sleep(20 * time.Millisecond) // Simulate batch processing time
 
 	// Return mock batch response
-	responses := make([]*VectorSearchResponse, len(req.Requests))
-	for i := range req.Requests {
+	responses := make([]*VectorSearchResponse, len(req.Queries))
+	for i := range req.Queries {
 		responses[i] = &VectorSearchResponse{
 			Results: []*VectorResult{
 				{
@@ -488,10 +480,10 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *Ba
 		}
 	}
 
-	return &BatchSearchResponse{
+	return &GRPCBatchSearchResponse{
 		Responses: responses,
 		Metadata: map[string]string{
-			"batch_size": fmt.Sprintf("%d", len(req.Requests)),
+			"batch_size": fmt.Sprintf("%d", len(req.Queries)),
 		},
 	}, nil
 }
@@ -513,7 +505,7 @@ func (c *GRPCWeaviateClient) addAuthenticationContext(ctx context.Context) conte
 
 // convertToSearchResponse converts gRPC response to standard SearchResponse
 func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchResponse, query string) *SearchResponse {
-	results := make([]*shared.SearchResult, len(grpcResp.Results))
+	results := make([]*SearchResult, len(grpcResp.Results))
 
 	for i, result := range grpcResp.Results {
 		doc := &shared.TelecomDocument{
@@ -528,7 +520,7 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 			doc.Title = title
 		}
 
-		results[i] = &shared.SearchResult{
+		results[i] = &SearchResult{
 			Document: doc,
 			Score:    result.Score,
 		}

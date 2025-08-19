@@ -49,6 +49,10 @@ type CircuitBreakerConfig struct {
 	EnableHealthCheck   bool          `json:"enable_health_check"`
 	HealthCheckInterval time.Duration `json:"health_check_interval"`
 	HealthCheckTimeout  time.Duration `json:"health_check_timeout"`
+
+	// Advanced circuit breaker settings
+	MaxConcurrentRequests int  `json:"max_concurrent_requests"`
+	EnableAdaptiveTimeout bool `json:"enable_adaptive_timeout"`
 }
 
 // CircuitState represents the state of the circuit breaker

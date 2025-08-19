@@ -102,8 +102,8 @@ const (
 	BackpressureThrottle
 )
 
-// StreamFilter defines filtering criteria for streams
-type StreamFilter struct {
+// GeneralStreamFilter defines filtering criteria for general streams
+type GeneralStreamFilter struct {
 	SourceFilter     []string          `json:"source_filter,omitempty"`
 	SeverityFilter   []string          `json:"severity_filter,omitempty"`
 	TypeFilter       []string          `json:"type_filter,omitempty"`
@@ -792,8 +792,8 @@ func (eb *EventBus) matchesFilter(data interface{}, filter *StreamFilter) bool {
 	return true
 }
 
-// Rate limiter implementations
-type RateLimit struct {
+// Rate limiter implementations for streaming
+type StreamingRateLimit struct {
 	tokens     int
 	maxTokens  int
 	refillRate int
@@ -833,12 +833,7 @@ func (crl *ConnectionRateLimiter) WaitIfNeeded() {
 	}
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
+// min function is available in o1_helpers.go
 
 // Auth manager implementations (simplified)
 type TokenValidator struct{}

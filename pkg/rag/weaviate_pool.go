@@ -1,3 +1,5 @@
+//go:build !disable_rag && !test
+
 package rag
 
 import (
@@ -47,17 +49,7 @@ type WeaviateConnectionPool struct {
 	metricsRecorder WeaviatePoolMetricsRecorder
 }
 
-// PooledConnection represents a connection in the pool
-type PooledConnection struct {
-	client     *weaviate.Client
-	id         string
-	createdAt  time.Time
-	lastUsed   time.Time
-	usageCount int64
-	isHealthy  bool
-	inUse      bool
-	mu         sync.RWMutex
-}
+// Note: PooledConnection is defined in optimized_connection_pool.go
 
 // PoolConfig configures the connection pool
 type PoolConfig struct {

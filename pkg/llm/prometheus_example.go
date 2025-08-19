@@ -1,3 +1,6 @@
+//go:build !disable_rag
+// +build !disable_rag
+
 // Example usage of the Prometheus metrics implementation for the LLM client.
 //
 // This file demonstrates how to use the enhanced LLM client with Prometheus metrics

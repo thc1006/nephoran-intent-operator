@@ -22,9 +22,192 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
 )
+
+// Mock implementations for breaking import cycles
+
+// JWTManagerMock provides mock JWT functionality
+type JWTManagerMock struct {
+	privateKey *rsa.PrivateKey
+	keyID      string
+}
+
+func (j *JWTManagerMock) GenerateToken(claims jwt.MapClaims) (string, error) {
+	if j.privateKey == nil {
+		return "", fmt.Errorf("private key not set")
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, claims)
+	token.Header["kid"] = j.keyID
+	return token.SignedString(j.privateKey)
+}
+
+func (j *JWTManagerMock) ValidateToken(tokenString string) (*jwt.Token, error) {
+	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return &j.privateKey.PublicKey, nil
+	})
+}
+
+func (j *JWTManagerMock) RefreshToken(tokenString string) (string, error) {
+	claims := jwt.MapClaims{
+		"exp": time.Now().Add(time.Hour).Unix(),
+		"iat": time.Now().Unix(),
+	}
+	return j.GenerateToken(claims)
+}
+
+func (j *JWTManagerMock) RevokeToken(tokenString string) error {
+	return nil // Mock implementation
+}
+
+func (j *JWTManagerMock) SetSigningKey(privateKey *rsa.PrivateKey, keyID string) error {
+	j.privateKey = privateKey
+	j.keyID = keyID
+	return nil
+}
+
+func (j *JWTManagerMock) Close() {
+	// Mock implementation
+}
+
+// RBACManagerMock provides mock RBAC functionality
+type RBACManagerMock struct {
+	roles       map[string][]string // userID -> roles
+	permissions map[string][]string // role -> permissions
+}
+
+func (r *RBACManagerMock) CheckPermission(ctx context.Context, userID, resource, action string) (bool, error) {
+	return true, nil // Mock: always allow
+}
+
+func (r *RBACManagerMock) AssignRole(ctx context.Context, userID, role string) error {
+	if r.roles == nil {
+		r.roles = make(map[string][]string)
+	}
+	r.roles[userID] = append(r.roles[userID], role)
+	return nil
+}
+
+func (r *RBACManagerMock) RevokeRole(ctx context.Context, userID, role string) error {
+	if r.roles == nil {
+		return nil
+	}
+	roles := r.roles[userID]
+	for i, userRole := range roles {
+		if userRole == role {
+			r.roles[userID] = append(roles[:i], roles[i+1:]...)
+			break
+		}
+	}
+	return nil
+}
+
+func (r *RBACManagerMock) GetUserRoles(ctx context.Context, userID string) ([]string, error) {
+	if r.roles == nil {
+		return []string{}, nil
+	}
+	return r.roles[userID], nil
+}
+
+func (r *RBACManagerMock) GetRolePermissions(ctx context.Context, role string) ([]string, error) {
+	if r.permissions == nil {
+		return []string{}, nil
+	}
+	return r.permissions[role], nil
+}
+
+// SessionManagerMock provides mock session functionality
+type SessionManagerMock struct {
+	sessions map[string]*MockSession
+}
+
+type MockSession struct {
+	ID        string
+	UserID    string
+	UserInfo  *providers.UserInfo
+	CreatedAt time.Time
+	ExpiresAt time.Time
+	Data      map[string]interface{}
+}
+
+func (s *SessionManagerMock) CreateSession(ctx context.Context, userInfo *providers.UserInfo) (*MockSession, error) {
+	if s.sessions == nil {
+		s.sessions = make(map[string]*MockSession)
+	}
+	session := &MockSession{
+		ID:        fmt.Sprintf("test-session-%d", time.Now().UnixNano()),
+		UserID:    userInfo.Subject,
+		UserInfo:  userInfo,
+		CreatedAt: time.Now(),
+		ExpiresAt: time.Now().Add(time.Hour),
+		Data:      make(map[string]interface{}),
+	}
+	s.sessions[session.ID] = session
+	return session, nil
+}
+
+func (s *SessionManagerMock) GetSession(ctx context.Context, sessionID string) (*MockSession, error) {
+	if s.sessions == nil {
+		return nil, fmt.Errorf("session not found")
+	}
+	session, exists := s.sessions[sessionID]
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+	return session, nil
+}
+
+func (s *SessionManagerMock) UpdateSession(ctx context.Context, sessionID string, updates map[string]interface{}) error {
+	session, err := s.GetSession(ctx, sessionID)
+	if err != nil {
+		return err
+	}
+	for k, v := range updates {
+		session.Data[k] = v
+	}
+	return nil
+}
+
+func (s *SessionManagerMock) DeleteSession(ctx context.Context, sessionID string) error {
+	if s.sessions != nil {
+		delete(s.sessions, sessionID)
+	}
+	return nil
+}
+
+func (s *SessionManagerMock) ListUserSessions(ctx context.Context, userID string) ([]*MockSession, error) {
+	var sessions []*MockSession
+	if s.sessions != nil {
+		for _, session := range s.sessions {
+			if session.UserID == userID {
+				sessions = append(sessions, session)
+			}
+		}
+	}
+	return sessions, nil
+}
+
+func (s *SessionManagerMock) SetSessionCookie(w http.ResponseWriter, sessionID string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "test-session",
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // For testing
+	})
+}
+
+func (s *SessionManagerMock) GetSessionFromRequest(r *http.Request) (*MockSession, error) {
+	cookie, err := r.Cookie("test-session")
+	if err != nil {
+		return nil, err
+	}
+	return s.GetSession(r.Context(), cookie.Value)
+}
+
+func (s *SessionManagerMock) Close() {
+	// Mock implementation
+}
 
 // TestContext provides a complete testing environment for auth tests
 type TestContext struct {
@@ -41,10 +224,10 @@ type TestContext struct {
 	OAuthServer *httptest.Server
 	LDAPServer  *MockLDAPServer
 
-	// Managers under test
-	JWTManager     *auth.JWTManager
-	RBACManager    *auth.RBACManager
-	SessionManager *auth.SessionManager
+	// Mock implementations for testing
+	JWTManager     JWTManagerMock
+	RBACManager    RBACManagerMock
+	SessionManager SessionManagerMock
 
 	// Cleanup functions
 	cleanupFuncs []func()
@@ -77,79 +260,31 @@ func NewTestContext(t *testing.T) *TestContext {
 	return tc
 }
 
-// SetupJWTManager initializes JWT manager for testing
-func (tc *TestContext) SetupJWTManager() *auth.JWTManager {
-	if tc.JWTManager != nil {
-		return tc.JWTManager
-	}
-
-	config := &auth.JWTConfig{
-		Issuer:               "test-issuer",
-		DefaultTTL:           time.Hour,
-		RefreshTTL:           24 * time.Hour,
-		KeyRotationPeriod:    7 * 24 * time.Hour,
-		RequireSecureCookies: false, // Disable for testing
-		CookieDomain:         "localhost",
-		CookiePath:           "/",
-	}
-
-	jwtManager := auth.NewJWTManager(config, tc.Logger)
-
+// SetupJWTManager initializes JWT manager mock for testing
+func (tc *TestContext) SetupJWTManager() *JWTManagerMock {
 	// Set test keys
-	err := jwtManager.SetSigningKey(tc.PrivateKey, tc.KeyID)
+	err := tc.JWTManager.SetSigningKey(tc.PrivateKey, tc.KeyID)
 	require.NoError(tc.T, err)
 
-	tc.JWTManager = jwtManager
 	tc.AddCleanup(func() {
-		if tc.JWTManager != nil {
-			tc.JWTManager.Close()
-		}
+		tc.JWTManager.Close()
 	})
 
-	return jwtManager
+	return &tc.JWTManager
 }
 
-// SetupRBACManager initializes RBAC manager for testing
-func (tc *TestContext) SetupRBACManager() *auth.RBACManager {
-	if tc.RBACManager != nil {
-		return tc.RBACManager
-	}
-
-	config := &auth.RBACConfig{
-		CacheTTL:           5 * time.Minute,
-		EnableHierarchical: true,
-		DefaultRole:        "viewer",
-	}
-
-	tc.RBACManager = auth.NewRBACManager(config, tc.Logger)
-	return tc.RBACManager
+// SetupRBACManager initializes RBAC manager mock for testing
+func (tc *TestContext) SetupRBACManager() *RBACManagerMock {
+	return &tc.RBACManager
 }
 
-// SetupSessionManager initializes session manager for testing
-func (tc *TestContext) SetupSessionManager() *auth.SessionManager {
-	if tc.SessionManager != nil {
-		return tc.SessionManager
-	}
-
-	config := &auth.SessionConfig{
-		SessionTTL:    time.Hour,
-		CleanupPeriod: time.Minute,
-		CookieName:    "test-session",
-		CookiePath:    "/",
-		CookieDomain:  "localhost",
-		SecureCookies: false,
-		HTTPOnly:      true,
-		SameSite:      http.SameSiteStrictMode,
-	}
-
-	tc.SessionManager = auth.NewSessionManager(config, tc.Logger)
+// SetupSessionManager initializes session manager mock for testing
+func (tc *TestContext) SetupSessionManager() *SessionManagerMock {
 	tc.AddCleanup(func() {
-		if tc.SessionManager != nil {
-			tc.SessionManager.Close()
-		}
+		tc.SessionManager.Close()
 	})
 
-	return tc.SessionManager
+	return &tc.SessionManager
 }
 
 // SetupOAuthServer creates a mock OAuth2 server for testing
@@ -363,7 +498,7 @@ func (tc *TestContext) handleOAuthUserInfo(w http.ResponseWriter, r *http.Reques
 
 func (tc *TestContext) handleJWKS(w http.ResponseWriter, r *http.Request) {
 	// Convert public key to JWK format
-	publicKeyBytes, err := x509.MarshalPKIXPublicKey(tc.PublicKey)
+	_, err := x509.MarshalPKIXPublicKey(tc.PublicKey)
 	if err != nil {
 		http.Error(w, "Internal server error", http.StatusInternalServerError)
 		return
