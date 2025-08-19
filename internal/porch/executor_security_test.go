@@ -536,11 +536,11 @@ if "%%1"=="--help" (
     echo Mock porch help
     exit /b 0
 )
-timeout /t %d /nobreak >nul 2>&1
+powershell -command "Start-Sleep -Milliseconds %d"
 echo Processing completed
-exit /b 0`, int(delay.Seconds())+1)
+exit /b 0`, int(delay.Milliseconds()))
 	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch-delay")
+		mockPath = filepath.Join(tempDir, "mock-porch-delay.sh")
 		mockScript = fmt.Sprintf(`#!/bin/bash
 if [ "$1" = "--help" ]; then
     echo "Mock porch help"

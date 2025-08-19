@@ -127,7 +127,8 @@ jobs:
       if: matrix.scan-type == 'gosec'
       run: |
         go install github.com/securego/gosec/v2/cmd/gosec@v2.18.2
-        gosec -no-fail -exclude G104,G204 -severity medium -confidence medium -fmt sarif -out gosec-report.sarif ./cmd/conductor-loop ./internal/loop || echo "Gosec completed with warnings/errors"
+        # Use shorter exclusion list and lower severity threshold
+        gosec -no-fail -exclude G104 -severity low -confidence medium -fmt sarif -out gosec-report.sarif ./cmd/conductor-loop ./internal/loop || echo "Gosec completed with warnings/errors"
         # Ensure SARIF file exists even if no issues found
         if [ ! -f gosec-report.sarif ]; then
           echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"gosec","version":"2.18.2"}},"results":[]}]}' > gosec-report.sarif
@@ -141,7 +142,7 @@ jobs:
         sarif_file: gosec-report.sarif
         category: gosec
         
-    # Advanced Security Scanning with Semgrep
+    # Advanced Security Scanning with Semgrep - Fixed baseline branch configuration
     - name: Run Semgrep
       if: matrix.scan-type == 'semgrep'
       uses: semgrep/semgrep-action@v1
@@ -152,7 +153,8 @@ jobs:
         generate_sarif: "1"
       env:
         SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
-        SEMGREP_BASELINE_REF: main
+        # Fix: Use dynamic baseline branch resolution
+        SEMGREP_BASELINE_REF: ${{ github.event.pull_request.base.ref || 'integrate/mvp' }}
       continue-on-error: true
         
     # Dependency Security Check
@@ -219,7 +221,21 @@ jobs:
     # Run comprehensive tests
     - name: Run Unit Tests
       run: |
-        timeout 300 go test -v -race -timeout=5m -coverprofile=coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
+        # Use cross-platform timeout solution
+        if command -v gtimeout >/dev/null 2>&1; then
+          TIMEOUT_CMD="gtimeout 300"
+        elif command -v timeout >/dev/null 2>&1; then
+          TIMEOUT_CMD="timeout 300"
+        else
+          # Fallback: use Go's built-in timeout
+          TIMEOUT_CMD=""
+        fi
+        
+        if [ -n "$TIMEOUT_CMD" ]; then
+          $TIMEOUT_CMD go test -v -race -timeout=5m -coverprofile=coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
+        else
+          go test -v -race -timeout=5m -coverprofile=coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
+        fi
         go tool cover -html=coverage.out -o coverage.html
         
     - name: Run Integration Tests
@@ -228,8 +244,8 @@ jobs:
         mkdir -p test-data/{handoff,out,status}
         echo '{"intent": "test"}' > test-data/handoff/test-intent.json
         
-        # Run integration tests with timeout
-        timeout 5m go test -v -tags=integration ./cmd/conductor-loop ./internal/loop
+        # Run integration tests with timeout - use Go's built-in timeout for cross-platform compatibility
+        go test -v -tags=integration -timeout=5m ./cmd/conductor-loop ./internal/loop
         
     # Code quality analysis
     - name: Run golangci-lint

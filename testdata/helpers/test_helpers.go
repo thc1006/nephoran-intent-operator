@@ -39,11 +39,17 @@ func (tf *TestFixtures) GetIntentFile(name string) string {
 	return filepath.Join(tf.IntentsDir, name)
 }
 
-// GetMockExecutable returns the path to a mock executable
+// GetMockExecutable returns the path to a mock executable with proper platform extension
 func (tf *TestFixtures) GetMockExecutable(name string) string {
 	execPath := filepath.Join(tf.MockExecutablesDir, name)
-	if runtime.GOOS == "windows" && !filepath.Ext(name) != "" {
-		execPath += ".bat"
+	
+	// Only add extension if name doesn't already have one
+	if filepath.Ext(name) == "" {
+		if runtime.GOOS == "windows" {
+			execPath += ".bat"
+		} else {
+			execPath += ".sh"
+		}
 	}
 	return execPath
 }
@@ -108,6 +114,7 @@ func (tf *TestFixtures) CreateMockPorch(t testing.TB, exitCode int, stdout, stde
 	
 	var script string
 	var ext string
+	var executable bool = true
 	
 	if runtime.GOOS == "windows" {
 		ext = ".bat"
@@ -126,6 +133,8 @@ echo %s
 if not "%s"=="" echo %s >&2
 exit /b %d`, sleepSeconds, sleepSeconds, stdout, stderr, stderr, exitCode)
 	} else {
+		// Create shell script for Unix systems
+		ext = ".sh"
 		sleepCmd := ""
 		if sleepDuration > 0 {
 			sleepCmd = fmt.Sprintf("sleep %v", sleepDuration.Seconds())
@@ -145,8 +154,67 @@ exit %d`, sleepCmd, stdout, stderr, stderr, exitCode)
 	}
 	
 	mockPath := filepath.Join(tf.TempDir, mockName+ext)
-	require.NoError(t, os.WriteFile(mockPath, []byte(script), 0755))
 	
+	// Set appropriate permissions
+	var perm os.FileMode = 0644
+	if executable {
+		perm = 0755
+	}
+	
+	require.NoError(t, os.WriteFile(mockPath, []byte(script), perm))
+	
+	return mockPath
+}
+
+// CreateCrossPlatformMockScript creates a mock script that works on both Unix and Windows
+// This is useful for tests that need to run on CI across multiple platforms
+func (tf *TestFixtures) CreateCrossPlatformMockScript(t testing.TB, scriptName string, exitCode int, stdout, stderr string, sleepSeconds int) string {
+	if runtime.GOOS == "windows" {
+		return tf.createWindowsMockScript(t, scriptName, exitCode, stdout, stderr, sleepSeconds)
+	}
+	return tf.createUnixMockScript(t, scriptName, exitCode, stdout, stderr, sleepSeconds)
+}
+
+// createWindowsMockScript creates a Windows batch file
+func (tf *TestFixtures) createWindowsMockScript(t testing.TB, scriptName string, exitCode int, stdout, stderr string, sleepSeconds int) string {
+	script := fmt.Sprintf(`@echo off
+if "%%1"=="--help" (
+    echo Mock script help
+    exit /b 0
+)
+if %d GTR 0 timeout /t %d /nobreak >nul 2>nul
+if not "%s"=="" echo %s
+if not "%s"=="" echo %s >&2
+exit /b %d`, sleepSeconds, sleepSeconds, stdout, stdout, stderr, stderr, exitCode)
+
+	mockPath := filepath.Join(tf.TempDir, scriptName+".bat")
+	require.NoError(t, os.WriteFile(mockPath, []byte(script), 0755))
+	return mockPath
+}
+
+// createUnixMockScript creates a Unix shell script
+func (tf *TestFixtures) createUnixMockScript(t testing.TB, scriptName string, exitCode int, stdout, stderr string, sleepSeconds int) string {
+	sleepCmd := ""
+	if sleepSeconds > 0 {
+		sleepCmd = fmt.Sprintf("sleep %d", sleepSeconds)
+	}
+
+	script := fmt.Sprintf(`#!/bin/bash
+if [ "$1" = "--help" ]; then
+    echo "Mock script help"
+    exit 0
+fi
+%s
+if [ -n "%s" ]; then
+    echo "%s"
+fi
+if [ -n "%s" ]; then
+    echo "%s" >&2
+fi
+exit %d`, sleepCmd, stdout, stdout, stderr, stderr, exitCode)
+
+	mockPath := filepath.Join(tf.TempDir, scriptName+".sh")
+	require.NoError(t, os.WriteFile(mockPath, []byte(script), 0755))
 	return mockPath
 }
 
