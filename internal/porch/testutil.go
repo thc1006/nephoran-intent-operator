@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/internal/platform"
 )
 
 // CrossPlatformMockOptions configures the behavior of the cross-platform mock script
@@ -139,5 +141,77 @@ func CreateSimpleMock(tempDir string) (string, error) {
 	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
 		ExitCode: 0,
 		Stdout:   "Mock porch processing completed successfully",
+	})
+}
+
+// CreateAdvancedMock creates a mock script using the new platform utilities
+func CreateAdvancedMock(tempDir string, opts CrossPlatformMockOptions) (string, error) {
+	// Convert to platform.ScriptOptions
+	scriptOpts := platform.ScriptOptions{
+		ExitCode:      opts.ExitCode,
+		Stdout:        opts.Stdout,
+		Stderr:        opts.Stderr,
+		Sleep:         opts.Sleep,
+		FailOnPattern: opts.FailOnPattern,
+	}
+
+	// Set custom commands if provided
+	if opts.CustomScript.Windows != "" || opts.CustomScript.Unix != "" {
+		if opts.CustomScript.Windows != "" {
+			scriptOpts.CustomCommands.Windows = []string{opts.CustomScript.Windows}
+		}
+		if opts.CustomScript.Unix != "" {
+			scriptOpts.CustomCommands.Unix = []string{opts.CustomScript.Unix}
+		}
+	}
+
+	// Create the script using platform utilities
+	mockPath := platform.GetScriptPath(tempDir, "mock-porch")
+	err := platform.CreateCrossPlatformScript(mockPath, platform.MockPorchScript, scriptOpts)
+	if err != nil {
+		return "", fmt.Errorf("failed to create advanced mock script: %w", err)
+	}
+
+	return mockPath, nil
+}
+
+// GetMockPorchPath returns the correct mock porch path for the current platform
+func GetMockPorchPath(tempDir string) string {
+	return platform.GetScriptPath(tempDir, "mock-porch")
+}
+
+// ValidateMockExecutable ensures the mock script is executable on the current platform
+func ValidateMockExecutable(mockPath string) error {
+	if !platform.IsExecutable(mockPath) {
+		if err := platform.MakeExecutable(mockPath); err != nil {
+			return fmt.Errorf("failed to make mock executable: %w", err)
+		}
+	}
+	return nil
+}
+
+// CreateFailingMock creates a mock that simulates porch failures
+func CreateFailingMock(tempDir string, exitCode int, errorMessage string) (string, error) {
+	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
+		ExitCode: exitCode,
+		Stderr:   errorMessage,
+	})
+}
+
+// CreateSlowMock creates a mock that simulates slow porch execution
+func CreateSlowMock(tempDir string, delay time.Duration) (string, error) {
+	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
+		ExitCode: 0,
+		Sleep:    delay,
+		Stdout:   "Slow mock porch processing completed",
+	})
+}
+
+// CreatePatternFailingMock creates a mock that fails when specific patterns are found
+func CreatePatternFailingMock(tempDir string, failPattern string) (string, error) {
+	return CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
+		ExitCode:      1,
+		FailOnPattern: failPattern,
+		Stderr:        "Pattern-based failure triggered",
 	})
 }
