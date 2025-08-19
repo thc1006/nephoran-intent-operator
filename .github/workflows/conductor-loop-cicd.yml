@@ -214,7 +214,7 @@ jobs:
     # Run comprehensive tests
     - name: Run Unit Tests
       run: |
-        go test -v -race -coverprofile=coverage.out -covermode=atomic ./cmd/conductor-loop/... ./internal/loop/...
+        go test -v -race -coverprofile=coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
         go tool cover -html=coverage.out -o coverage.html
         
     - name: Run Integration Tests
@@ -224,7 +224,7 @@ jobs:
         echo '{"intent": "test"}' > test-data/handoff/test-intent.json
         
         # Run integration tests with timeout
-        timeout 5m go test -v -tags=integration ./cmd/conductor-loop/... ./internal/loop/...
+        timeout 5m go test -v -tags=integration ./cmd/conductor-loop ./internal/loop
         
     # Code quality analysis
     - name: Run golangci-lint

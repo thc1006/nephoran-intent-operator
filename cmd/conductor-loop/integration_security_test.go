@@ -9,7 +9,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -460,12 +459,13 @@ func (s *SecurityTestSuite) testFileSystemSecurity(t *testing.T) {
 		{
 			name: "FIFO pipe",
 			setupFunc: func(t *testing.T) string {
+				// Skip FIFO test on Windows since Mkfifo is not available
 				if runtime.GOOS == "windows" {
 					t.Skip("FIFO pipes not supported on Windows")
 				}
 				fifoFile := filepath.Join(s.handoffDir, "test-pipe.json")
-				err := syscall.Mkfifo(fifoFile, 0644)
-				if err != nil {
+				// Mkfifo is Unix-specific, will be handled by the runtime check above
+				if err := mkfifo(fifoFile, 0644); err != nil {
 					t.Skip("Cannot create FIFO pipe")
 				}
 				return fifoFile
@@ -886,3 +886,4 @@ func generateDeepNestedJSON(depth int) string {
 	}
 	return fmt.Sprintf(`{"level": %s}`, generateDeepNestedJSON(depth-1))
 }
+
