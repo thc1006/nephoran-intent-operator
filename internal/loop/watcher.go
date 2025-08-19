@@ -185,11 +185,12 @@ type MetricsSample struct {
 
 // Security and validation constants
 const (
-	MaxJSONSize        = 1 * 1024 * 1024   // 1MB max JSON size (reduced from 10MB for better DoS protection)
+	MaxJSONSize        = 5 * 1024 * 1024   // 5MB max JSON size for handling larger intent files
 	MaxStatusSize      = 256 * 1024        // 256KB max status file size (reduced for efficiency)
 	MaxMessageSize     = 64 * 1024         // 64KB max error message size
 	MaxFileNameLength  = 255               // Max filename length
 	MaxPathDepth       = 10                // Max directory depth for path traversal prevention
+	MaxJSONDepth       = 100               // Max JSON nesting depth for JSON bomb prevention
 	
 	// Metrics constants
 	LatencyRingBufferSize = 1000           // Size of latency ring buffer
@@ -1070,15 +1071,15 @@ func (w *Watcher) enhancedWorker(workerID int) {
 	
 	for {
 		select {
-		case <-w.workerPool.stopSignal:
-			log.Printf("Enhanced worker %d stopping", workerID)
-			return
-			
 		case <-w.ctx.Done():
 			log.Printf("Enhanced worker %d cancelled", workerID)
 			return
 			
-		case workItem := <-w.workerPool.workQueue:
+		case workItem, ok := <-w.workerPool.workQueue:
+			if !ok {
+				log.Printf("Enhanced worker %d: work queue closed, exiting", workerID)
+				return
+			}
 			w.processWorkItemWithLocking(workerID, workItem)
 		}
 	}
@@ -1227,7 +1228,9 @@ func (w *Watcher) cleanupRoutine() {
 // waitForWorkersToFinish waits for all workers to complete and cleans up
 func (w *Watcher) waitForWorkersToFinish() {
 	log.Printf("Signaling enhanced workers to stop...")
-	close(w.workerPool.stopSignal)
+	
+	// Close work queue to signal workers to finish processing and exit
+	close(w.workerPool.workQueue)
 	
 	log.Printf("Waiting for enhanced workers to finish...")
 	w.workerPool.workers.Wait()
@@ -1281,6 +1284,36 @@ func (w *Watcher) Close() error {
 	return nil
 }
 
+// validateJSONDepth checks if JSON has excessive nesting to prevent JSON bomb attacks
+func (w *Watcher) validateJSONDepth(reader io.Reader, maxDepth int) error {
+	decoder := json.NewDecoder(reader)
+	depth := 0
+	
+	for {
+		token, err := decoder.Token()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return err
+		}
+		
+		switch token := token.(type) {
+		case json.Delim:
+			if token == '{' || token == '[' {
+				depth++
+				if depth > maxDepth {
+					return fmt.Errorf("JSON nesting depth %d exceeds maximum %d", depth, maxDepth)
+				}
+			} else if token == '}' || token == ']' {
+				depth--
+			}
+		}
+	}
+	
+	return nil
+}
+
 // validateJSONFile validates that a JSON file is safe to parse and meets requirements
 func (w *Watcher) validateJSONFile(filePath string) error {
 	// Check file size
@@ -1311,6 +1344,15 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 	
 	// Use limited reader to prevent memory exhaustion
 	limitedReader := io.LimitReader(file, MaxJSONSize)
+	
+	// Check for JSON bomb (excessive nesting) before full parsing
+	if err := w.validateJSONDepth(limitedReader, MaxJSONDepth); err != nil {
+		return fmt.Errorf("JSON bomb detected: %w", err)
+	}
+	
+	// Reset reader position
+	file.Seek(0, 0)
+	limitedReader = io.LimitReader(file, MaxJSONSize)
 	
 	// Parse JSON with decoder (more memory efficient than ReadAll)
 	decoder := json.NewDecoder(limitedReader)

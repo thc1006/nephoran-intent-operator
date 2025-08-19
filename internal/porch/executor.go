@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -214,6 +215,7 @@ type ExecutorStats struct {
 type StatefulExecutor struct {
 	*Executor
 	stats ExecutorStats
+	mu    sync.RWMutex
 }
 
 // NewStatefulExecutor creates a new stateful executor that tracks execution statistics
@@ -245,7 +247,8 @@ func (se *StatefulExecutor) Execute(ctx context.Context, intentPath string) (*Ex
 		}
 	}
 	
-	// Update statistics
+	// Update statistics with thread safety
+	se.mu.Lock()
 	se.stats.TotalExecutions++
 	se.stats.TotalExecTime += result.Duration
 	se.stats.AverageExecTime = se.stats.TotalExecTime / time.Duration(se.stats.TotalExecutions)
@@ -260,18 +263,24 @@ func (se *StatefulExecutor) Execute(ctx context.Context, intentPath string) (*Ex
 			se.stats.TimeoutCount++
 		}
 	}
+	se.mu.Unlock()
 	
 	return result, err
 }
 
 // GetStats returns a copy of the current execution statistics
 func (se *StatefulExecutor) GetStats() ExecutorStats {
-	return se.stats
+	se.mu.RLock()
+	stats := se.stats
+	se.mu.RUnlock()
+	return stats
 }
 
 // ResetStats resets all execution statistics
 func (se *StatefulExecutor) ResetStats() {
+	se.mu.Lock()
 	se.stats = ExecutorStats{}
+	se.mu.Unlock()
 }
 
 // generateFallbackYAML creates a simple YAML output when porch is not available
