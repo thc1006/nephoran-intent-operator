@@ -792,7 +792,7 @@ func TestConfig_EdgeCases(t *testing.T) {
 				CleanupAfter: -1 * time.Hour,
 			},
 			wantErr: true,
-			errMsg:  "max_workers must be at least 1",
+			errMsg:  "metrics_port must be between 1024-65535 or 0 to disable", // Now returns error for negative port
 		},
 		{
 			name: "extreme values",
@@ -804,7 +804,7 @@ func TestConfig_EdgeCases(t *testing.T) {
 				CleanupAfter: 999999 * time.Hour,
 			},
 			wantErr: true,
-			errMsg:  "max_workers",
+			errMsg:  "metrics_port must be between 1024-65535 or 0 to disable", // Port validation fails first
 		},
 	}
 
