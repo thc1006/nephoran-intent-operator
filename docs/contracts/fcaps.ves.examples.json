@@ -78,5 +78,94 @@
         "heartbeatInterval": 30
       }
     }
+  },
+  "high_load_example": {
+    "event": {
+      "commonEventHeader": {
+        "version": "4.1",
+        "domain": "measurementsForVfScaling",
+        "eventName": "Perf_NFSim_HighLoad",
+        "eventId": "perf-high-001",
+        "sequence": 100,
+        "priority": "High",
+        "reportingEntityName": "nf-sim",
+        "sourceName": "nf-sim",
+        "nfVendorName": "nephoran",
+        "startEpochMicrosec": 1731001000000,
+        "lastEpochMicrosec": 1731001060000,
+        "timeZoneOffset": "+00:00"
+      },
+      "measurementsForVfScalingFields": {
+        "measurementsForVfScalingVersion": "1.1",
+        "vNicUsageArray": [{
+          "vnfNetworkInterface": "eth0",
+          "receivedOctetsDelta": 9500000,
+          "transmittedOctetsDelta": 9800000
+        }],
+        "additionalFields": {
+          "kpm.p95_latency_ms": 250.7,
+          "kpm.prb_utilization": 0.95,
+          "kpm.ue_count": 1250,
+          "kpm.cpu_utilization": 0.89,
+          "kpm.memory_utilization": 0.82
+        }
+      }
+    }
+  },
+  "congestion_example": {
+    "event": {
+      "commonEventHeader": {
+        "version": "4.1",
+        "domain": "fault",
+        "eventName": "Fault_NFSim_Congestion",
+        "eventId": "fault-cong-001",
+        "sequence": 50,
+        "priority": "Critical",
+        "reportingEntityName": "nf-sim",
+        "sourceName": "nf-sim",
+        "nfVendorName": "nephoran",
+        "startEpochMicrosec": 1731001200000,
+        "lastEpochMicrosec": 1731001200000,
+        "timeZoneOffset": "+00:00"
+      },
+      "faultFields": {
+        "faultFieldsVersion": "4.0",
+        "alarmCondition": "CONGESTION",
+        "eventSeverity": "CRITICAL",
+        "specificProblem": "Resource congestion detected - CPU/Memory overload",
+        "eventSourceType": "virtualNetworkFunction",
+        "vfStatus": "Degraded",
+        "alarmInterfaceA": "system"
+      }
+    }
+  },
+  "threshold_breach_example": {
+    "event": {
+      "commonEventHeader": {
+        "version": "4.1",
+        "domain": "thresholdCrossingAlert",
+        "eventName": "TCA_NFSim_PRB_Threshold",
+        "eventId": "tca-001",
+        "sequence": 200,
+        "priority": "High",
+        "reportingEntityName": "nf-sim",
+        "sourceName": "nf-sim",
+        "nfVendorName": "nephoran",
+        "startEpochMicrosec": 1731001500000,
+        "lastEpochMicrosec": 1731001500000,
+        "timeZoneOffset": "+00:00"
+      },
+      "thresholdCrossingAlertFields": {
+        "thresholdCrossingFieldsVersion": "4.0",
+        "alertDescription": "PRB utilization exceeded threshold",
+        "alertType": "INTERFACE",
+        "eventSeverity": "MAJOR",
+        "alertValue": "0.92",
+        "dataCollector": "PM",
+        "elementType": "RAN",
+        "networkService": "5G-NR",
+        "possibleRootCause": "High traffic load"
+      }
+    }
   }
 }

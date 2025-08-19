@@ -1,0 +1,15 @@
+{
+  "apiVersion": "network.nephio.io/v1alpha1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "success-test",
+    "namespace": "default"
+  },
+  "spec": {
+    "action": "scale",
+    "target": "ran-du-success",
+    "parameters": {
+      "replicas": 2
+    }
+  }
+}

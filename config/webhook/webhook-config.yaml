@@ -1,0 +1,42 @@
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: nephoran-networkintent-mutating
+webhooks:
+  - name: mnetworkintent.nephoran.io
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    reinvocationPolicy: IfNeeded
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: webhook-manager
+        namespace: nephoran-system
+        path: /mutate-intent-v1alpha1-networkintent
+      caBundle: ${CA_BUNDLE}
+    rules:
+      - apiGroups:   ["intent.nephoran.io"]
+        apiVersions: ["v1alpha1"]
+        operations:  ["CREATE","UPDATE"]
+        resources:   ["networkintents"]
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: nephoran-networkintent-validating
+webhooks:
+  - name: vnetworkintent.nephoran.io
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: Fail
+    clientConfig:
+      service:
+        name: webhook-manager
+        namespace: nephoran-system
+        path: /validate-intent-v1alpha1-networkintent
+      caBundle: ${CA_BUNDLE}
+    rules:
+      - apiGroups:   ["intent.nephoran.io"]
+        apiVersions: ["v1alpha1"]
+        operations:  ["CREATE","UPDATE","DELETE"]
+        resources:   ["networkintents"]
