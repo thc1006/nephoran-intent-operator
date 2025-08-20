@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -23,10 +24,16 @@ type ProcessorConfig struct {
 	BatchSize     int
 	BatchInterval time.Duration
 	MaxRetries    int
+	SendTimeout   time.Duration // Timeout for sending to batch coordinator
+	WorkerCount   int           // Number of concurrent workers
 }
 
 // DefaultConfig returns default processor configuration
 func DefaultConfig() *ProcessorConfig {
+	sendTimeout := 5 * time.Second
+	if runtime.GOOS == "windows" {
+		sendTimeout = 10 * time.Second // Longer timeout on Windows
+	}
 	return &ProcessorConfig{
 		HandoffDir:    "./handoff",
 		ErrorDir:      "./handoff/errors",
@@ -34,6 +41,8 @@ func DefaultConfig() *ProcessorConfig {
 		BatchSize:     10,
 		BatchInterval: 5 * time.Second,
 		MaxRetries:    3,
+		SendTimeout:   sendTimeout,
+		WorkerCount:   runtime.NumCPU(),
 	}
 }
 
@@ -97,6 +106,12 @@ func NewProcessor(config *ProcessorConfig, validator Validator, porchFunc PorchS
 
 	ctx, cancel := context.WithCancel(context.Background())
 
+	// Use larger buffer based on worker count to prevent blocking
+	channelBuffer := config.BatchSize * 2
+	if config.WorkerCount > 0 {
+		channelBuffer = max(channelBuffer, config.WorkerCount*2)
+	}
+
 	return &IntentProcessor{
 		config:     config,
 		validator:  validator,
@@ -104,7 +119,7 @@ func NewProcessor(config *ProcessorConfig, validator Validator, porchFunc PorchS
 		processed:  processed,
 		ctx:        ctx,
 		cancel:     cancel,
-		inCh:       make(chan string, config.BatchSize*2), // Buffer for backpressure
+		inCh:       make(chan string, channelBuffer), // Larger buffer to prevent blocking
 		stopCh:     make(chan struct{}),
 		coordReady: make(chan struct{}),
 	}, nil
@@ -119,14 +134,29 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 		return nil
 	}
 
+	// Use configured timeout or default
+	sendTimeout := p.config.SendTimeout
+	if sendTimeout == 0 {
+		sendTimeout = 5 * time.Second
+		if runtime.GOOS == "windows" {
+			sendTimeout = 10 * time.Second
+		}
+	}
+
 	// Send to batch coordinator via channel
 	select {
 	case p.inCh <- filename:
 		return nil
 	case <-p.ctx.Done():
 		return fmt.Errorf("processor is shutting down")
-	case <-time.After(5 * time.Second):
-		return fmt.Errorf("timeout sending file to batch coordinator")
+	case <-time.After(sendTimeout):
+		// Try non-blocking send as last resort
+		select {
+		case p.inCh <- filename:
+			return nil
+		default:
+			return fmt.Errorf("timeout sending file to batch coordinator (buffer full after %v)", sendTimeout)
+		}
 	}
 }
 

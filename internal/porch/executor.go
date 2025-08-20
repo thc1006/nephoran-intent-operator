@@ -89,7 +89,8 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 	// On Windows, if the command is a batch file, run it via cmd.exe
 	var execCmd *exec.Cmd
 	if pathutil.IsWindowsBatchFile(cmd[0]) {
-		// Run batch file via cmd.exe /c for proper stdout capture
+		// Run batch file directly without extra quoting for cmd.exe
+		// cmd.exe /c already handles the command properly
 		cmdArgs := append([]string{"/c", cmd[0]}, cmd[1:]...)
 		execCmd = exec.CommandContext(timeoutCtx, "cmd.exe", cmdArgs...)
 		log.Printf("Executing Windows batch file via cmd.exe: %s", strings.Join(cmd, " "))
@@ -98,21 +99,30 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 		log.Printf("Executing porch command: %s", strings.Join(cmd, " "))
 	}
 	
-	// Use CombinedOutput for more reliable output capture
-	output, err := execCmd.CombinedOutput()
+	// Use separate stdout/stderr capture for better reliability
+	var stdout, stderr bytes.Buffer
+	execCmd.Stdout = &stdout
+	execCmd.Stderr = &stderr
+	
+	err = execCmd.Run()
 	duration := time.Since(startTime)
 	
-	// Normalize CRLF to LF on Windows
-	output = pathutil.NormalizeCRLF(output)
+	// Get output from buffers
+	stdoutBytes := stdout.Bytes()
+	stderrBytes := stderr.Bytes()
 	
-	// Split stdout and stderr if possible (for now, treat all as stdout)
-	outputStr := strings.TrimSpace(string(output))
+	// Normalize CRLF to LF on Windows
+	stdoutBytes = pathutil.NormalizeCRLF(stdoutBytes)
+	stderrBytes = pathutil.NormalizeCRLF(stderrBytes)
+	
+	outputStr := strings.TrimSpace(string(stdoutBytes))
+	errorStr := strings.TrimSpace(string(stderrBytes))
 	
 	result := &ExecutionResult{
 		Success:  err == nil,
 		ExitCode: getExitCode(execCmd, err),
 		Stdout:   outputStr,
-		Stderr:   "", // CombinedOutput merges stderr into stdout
+		Stderr:   errorStr,
 		Duration: duration,
 		Command:  strings.Join(cmd, " "),
 	}

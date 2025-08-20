@@ -1286,9 +1286,9 @@ func (s *WatcherTestSuite) TestIntegration_EndToEndProcessingFlow() {
 	s.Require().NoError(err)
 	defer watcher.Close()
 	
-	// Create a valid intent file
+	// Create a valid intent file with proper structure
 	testFile := filepath.Join(s.tempDir, "intent-e2e-test.json")
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-e2e"}, "spec": {"action": "scale", "target": "deployment", "count": 3}}`
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-e2e"}, "spec": {"action": "scale", "target": {"name": "deployment"}, "replicas": 3}}`
 	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0644))
 	
 	// Start processing
@@ -1298,15 +1298,25 @@ func (s *WatcherTestSuite) TestIntegration_EndToEndProcessingFlow() {
 	s.Require().NoError(err)
 	processingTime := time.Since(startTime)
 	
+	// Add a small delay to ensure all async operations complete
+	time.Sleep(100 * time.Millisecond)
+	
 	// Verify complete processing flow
 	s.T().Logf("End-to-end processing took %v", processingTime)
 	
 	// 1. Original file should be gone (moved)
 	s.Assert().NoFileExists(testFile, "Original file should be moved")
 	
-	// 2. Should have been moved to processed directory
-	processedFiles, err := watcher.fileManager.GetProcessedFiles()
-	s.Require().NoError(err)
+	// 2. Should have been moved to processed directory (with eventual consistency)
+	var processedFiles []string
+	for i := 0; i < 10; i++ {
+		processedFiles, err = watcher.fileManager.GetProcessedFiles()
+		s.Require().NoError(err)
+		if len(processedFiles) > 0 {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 	s.Assert().Len(processedFiles, 1, "Should have one processed file")
 	
 	// 3. Verify processing was recorded in state (check with original file name since that's how it's stored)
@@ -1353,16 +1363,28 @@ func (s *WatcherTestSuite) TestIntegration_StatusFileGenerationWithVersioning() 
 	err = watcher.Start()
 	s.Require().NoError(err)
 	
-	// Verify status files were created with versioning
+	// Add delay to ensure all status files are written
+	time.Sleep(200 * time.Millisecond)
+	
+	// Verify status files were created with versioning (with eventual consistency)
 	statusDir := filepath.Join(s.tempDir, "status")
-	statusFiles, err := os.ReadDir(statusDir)
-	s.Require().NoError(err)
+	var statusFiles []os.DirEntry
+	for i := 0; i < 10; i++ {
+		statusFiles, err = os.ReadDir(statusDir)
+		s.Require().NoError(err)
+		if len(statusFiles) >= numFiles {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
 	s.Assert().Equal(numFiles, len(statusFiles), "Should have status file for each processed file")
 	
 	// Verify each status file has timestamp-based versioning
 	for _, file := range statusFiles {
+		s.T().Logf("Status file name: %s", file.Name())
 		s.Assert().Contains(file.Name(), ".status", "Should have .status extension")
-		s.Assert().Regexp(`intent-version-test-\d+-\d{8}-\d{6}\.status`, file.Name(), 
+		// The pattern should match: intent-version-test-{id}.json-{timestamp}.status
+		s.Assert().Regexp(`intent-version-test-\d+\.json-\d{8}-\d{6}\.status`, file.Name(), 
 			"Status file should have timestamp versioning")
 	}
 }

@@ -287,8 +287,13 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 		BatchSize:     5,
 		BatchInterval: 100 * time.Millisecond,
 		MaxRetries:    3,
+		SendTimeout:   5 * time.Second, // Add timeout configuration
+		WorkerCount:   4,                // Set worker count
 	}, mockValidator, mockPorchFunc)
 	s.Require().NoError(err)
+	
+	// Start the batch processor to handle incoming files
+	processor.StartBatchProcessor()
 	defer processor.Stop()
 
 	// Create multiple intent files
