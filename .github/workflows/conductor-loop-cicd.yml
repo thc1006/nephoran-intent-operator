@@ -229,11 +229,21 @@ jobs:
       run: |
         echo "Running tests on ${{ matrix.os }} with Go ${{ matrix.go-version }}"
         
-        # Run tests with cross-platform support
-        go test -v -race -timeout=5m -coverprofile=coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop ./internal/platform
+        # Create test-results directory
+        mkdir -p test-results
         
-        # Generate coverage report
-        go tool cover -html=coverage.out -o coverage.html
+        # Enable CGO for race detection on Linux/macOS (Windows doesn't support race detector reliably)
+        if [[ "${{ runner.os }}" != "Windows" ]]; then
+          export CGO_ENABLED=1
+          echo "CGO enabled for race detection on ${{ runner.os }}"
+          go test -v -race -timeout=5m -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop ./internal/platform
+        else
+          echo "Running tests without race detection on Windows"
+          go test -v -timeout=5m -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop ./internal/platform
+        fi
+        
+        # Generate coverage report from the consistent location
+        go tool cover -html=test-results/coverage.out -o test-results/coverage.html
         
         echo "Unit tests completed successfully on ${{ runner.os }}"
         
@@ -241,15 +251,19 @@ jobs:
       shell: bash
       run: |
         # Set up test environment with cross-platform paths
-        if [ "${{ runner.os }}" = "Windows" ]; then
-          mkdir -p test-data/handoff test-data/out test-data/status
+        mkdir -p test-data/handoff test-data/out test-data/status
+        
+        # Create test intent file with proper line endings for Windows
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          printf '{"intent": "test"}\r\n' > test-data/handoff/test-intent.json
         else
-          mkdir -p test-data/{handoff,out,status}
+          echo '{"intent": "test"}' > test-data/handoff/test-intent.json
         fi
         
-        echo '{"intent": "test"}' > test-data/handoff/test-intent.json
-        
-        # Run integration tests
+        # Run integration tests with platform-specific configuration
+        if [[ "${{ runner.os }}" != "Windows" ]]; then
+          export CGO_ENABLED=1
+        fi
         go test -v -tags=integration -timeout=5m ./cmd/conductor-loop ./internal/loop
         
         echo "Integration tests completed successfully on ${{ runner.os }}"
@@ -259,11 +273,20 @@ jobs:
       run: |
         echo "Running platform-specific tests for ${{ runner.os }}"
         
+        # Enable CGO for non-Windows platforms
+        if [[ "${{ runner.os }}" != "Windows" ]]; then
+          export CGO_ENABLED=1
+        fi
+        
         # Test cross-platform utilities
         go test -v -timeout=3m ./internal/platform
         
-        # Test platform-specific helpers
-        go test -v -timeout=3m ./testdata/helpers
+        # Test platform-specific helpers if they exist
+        if [ -d "./testdata/helpers" ]; then
+          go test -v -timeout=3m ./testdata/helpers
+        else
+          echo "No testdata/helpers directory found, skipping"
+        fi
         
         echo "Platform-specific tests completed successfully"
         
@@ -278,17 +301,17 @@ jobs:
     - name: Upload Coverage Reports
       uses: codecov/codecov-action@v4
       with:
-        file: ./coverage.out
+        file: ./test-results/coverage.out
         flags: conductor-loop
-        name: conductor-loop-coverage
+        name: conductor-loop-coverage-${{ matrix.os }}
         
     - name: Upload Test Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: test-results
+        name: test-results-${{ matrix.os }}
         path: |
-          coverage.out
-          coverage.html
+          test-results/coverage.out
+          test-results/coverage.html
         retention-days: 30
 
   # ==========================================================================

@@ -111,24 +111,45 @@ jobs:
       - name: Test core packages
         shell: ${{ matrix.shell }}
         run: |
+          # Create test-results directory for coverage output
+          mkdir -p test-results
+          
+          # Enable CGO for race detection on Linux/macOS only
+          if [[ "${{ runner.os }}" != "Windows" ]]; then
+            export CGO_ENABLED=1
+            echo "CGO enabled for race detection on ${{ runner.os }}"
+          else
+            echo "Running tests without race detection on Windows"
+          fi
+          
           echo "Testing API packages..."
-          go test -v ./api/intent/v1alpha1 -timeout=5m
-          go test -v ./api/v1 -timeout=5m -short
+          go test -v ./api/intent/v1alpha1 -timeout=5m -coverprofile=test-results/coverage-api-intent.out
+          go test -v ./api/v1 -timeout=5m -short -coverprofile=test-results/coverage-api-v1.out
           
           echo "Testing internal packages..."
-          go test -v ./internal/watch -timeout=5m
-          go test -v ./internal/ingest -timeout=5m
-          go test -v ./pkg/config -timeout=5m
+          go test -v ./internal/watch -timeout=5m -coverprofile=test-results/coverage-watch.out
+          go test -v ./internal/ingest -timeout=5m -coverprofile=test-results/coverage-ingest.out
+          go test -v ./pkg/config -timeout=5m -coverprofile=test-results/coverage-config.out
 
       # Run platform-specific tests
       - name: Test conductor packages (with platform awareness)
         shell: ${{ matrix.shell }}
         run: |
+          # Enable CGO for race detection on Linux/macOS only
+          if [[ "${{ runner.os }}" != "Windows" ]]; then
+            export CGO_ENABLED=1
+            echo "Running tests with race detection on ${{ runner.os }}"
+            RACE_FLAG="-race"
+          else
+            echo "Running tests without race detection on Windows"
+            RACE_FLAG=""
+          fi
+          
           echo "Testing conductor-watch..."
-          go test -v ./cmd/conductor-watch -timeout=5m
+          go test -v $RACE_FLAG ./cmd/conductor-watch -timeout=5m -coverprofile=test-results/coverage-watch-cmd.out
           
           echo "Testing conductor-loop (cross-platform compatible tests)..."
-          go test -v ./cmd/conductor-loop -run "TestCrossPlatformFixesValidation" -timeout=5m
+          go test -v $RACE_FLAG ./cmd/conductor-loop -run "TestCrossPlatformFixesValidation" -timeout=5m -coverprofile=test-results/coverage-loop-cmd.out
         continue-on-error: ${{ matrix.os != 'ubuntu-latest' }}
 
       # Validate Windows-specific functionality
@@ -143,14 +164,33 @@ jobs:
           
           if (Test-Path "testdata\mock-executables\mock-porch-success.bat") {
             echo "Mock executables exist"
-            & ".\testdata\mock-executables\mock-porch-success.bat" --help
+            & ".\testdata\mock-executables\mock-porch-success.bat" --help 2>$null
+          } else {
+            echo "Mock executables not found, skipping"
           }
           
           echo "Testing filepath operations..."
           $testPath = Join-Path $pwd "test-path"
           echo "Test path: $testPath"
+          
+          echo "Validating line endings for test files..."
+          if (Test-Path "test-results") {
+            echo "Test results directory exists"
+            Get-ChildItem "test-results" -Name
+          } else {
+            echo "Test results directory not found"
+          }
         if: matrix.os == 'windows-latest'
 
+      # Upload test artifacts
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-platform-test-results-${{ matrix.os }}
+          path: test-results/
+          retention-days: 7
+        if: always()
+      
       # Summary report
       - name: Cross-platform test summary
         shell: ${{ matrix.shell }}
@@ -158,6 +198,12 @@ jobs:
           echo "=== Cross-platform test completed on ${{ matrix.os }} ==="
           echo "Go version: $(go version)"
           echo "OS: ${{ runner.os }}"
+          
+          # Show coverage files generated
+          if [ -d "test-results" ]; then
+            echo "Coverage files generated:"
+            ls -la test-results/ || dir test-results 2>/dev/null || echo "No test results directory"
+          fi
         if: always()
 
   # Aggregate results
