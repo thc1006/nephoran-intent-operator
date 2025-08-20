@@ -112,6 +112,49 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic, direct, structured", c.Mode)
 	}
 	
+	// Validate OutDir - check if directory exists or can be created
+	if c.OutDir != "" {
+		// Check if directory exists
+		info, err := os.Stat(c.OutDir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				// Directory doesn't exist - check if parent directory exists and is writable
+				parentDir := filepath.Dir(c.OutDir)
+				parentInfo, parentErr := os.Stat(parentDir)
+				if parentErr != nil {
+					if os.IsNotExist(parentErr) {
+						return fmt.Errorf("output directory parent does not exist: %s", parentDir)
+					}
+					return fmt.Errorf("cannot access output directory parent %s: %w", parentDir, parentErr)
+				}
+				if !parentInfo.IsDir() {
+					return fmt.Errorf("output directory parent is not a directory: %s", parentDir)
+				}
+				// Test if we can create the directory by attempting to create and remove it
+				if err := os.MkdirAll(c.OutDir, 0755); err != nil {
+					return fmt.Errorf("cannot create output directory %s: %w", c.OutDir, err)
+				}
+				// Clean up the test directory if we created it
+				os.Remove(c.OutDir)
+			} else {
+				return fmt.Errorf("cannot access output directory %s: %w", c.OutDir, err)
+			}
+		} else {
+			// Directory exists - check if it's actually a directory
+			if !info.IsDir() {
+				return fmt.Errorf("output path is not a directory: %s", c.OutDir)
+			}
+			
+			// Check if directory is writable by attempting to create a temp file
+			testFile := filepath.Join(c.OutDir, ".conductor-test-write")
+			if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+				return fmt.Errorf("output directory is not writable: %s (%w)", c.OutDir, err)
+			}
+			// Clean up test file
+			os.Remove(testFile)
+		}
+	}
+	
 	return nil
 }
 

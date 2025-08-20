@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
@@ -402,10 +404,74 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: true,
 			errMsg:  `invalid mode "invalid", must be one of: watch, once, periodic`,
 		},
+
+		// OutDir validation tests
+		{
+			name: "OutDir empty (valid)",
+			config: Config{
+				MaxWorkers: 2,
+				OutDir:     "",
+			},
+			wantErr: false,
+		},
+		{
+			name: "OutDir deeply nested nonexistent",
+			config: Config{
+				MaxWorkers: 2,
+				OutDir:     "/nonexistent/deeply/nested/directory",
+			},
+			wantErr: true,
+			errMsg:  "output directory parent does not exist",
+		},
+		{
+			name: "OutDir points to file not directory",
+			config: Config{
+				MaxWorkers: 2,
+				OutDir:     "", // Will be set to a test file in the test
+			},
+			wantErr: true,
+			errMsg:  "output path is not a directory",
+		},
+		{
+			name: "OutDir valid writable directory",
+			config: Config{
+				MaxWorkers: 2,
+				OutDir:     "", // Will be set to a temp directory in the test
+			},
+			wantErr: false,
+		},
+		{
+			name: "OutDir creatable in existing parent",
+			config: Config{
+				MaxWorkers: 2,
+				OutDir:     "", // Will be set to a subdirectory of temp directory in the test
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Special setup for file-based tests
+			if tt.name == "OutDir points to file not directory" {
+				// Create a temporary file
+				tempFile, err := os.CreateTemp("", "test-file-*")
+				require.NoError(t, err)
+				defer os.Remove(tempFile.Name())
+				tempFile.Close()
+				
+				// Set OutDir to point to the file
+				tt.config.OutDir = tempFile.Name()
+			} else if tt.name == "OutDir valid writable directory" {
+				// Create a temporary directory
+				tempDir := t.TempDir()
+				tt.config.OutDir = tempDir
+			} else if tt.name == "OutDir creatable in existing parent" {
+				// Create a temporary directory and set OutDir to a subdirectory that doesn't exist yet
+				tempDir := t.TempDir()
+				tt.config.OutDir = filepath.Join(tempDir, "subdir")
+			}
+			
 			err := tt.config.Validate()
 			if tt.wantErr {
 				assert.Error(t, err)

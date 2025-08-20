@@ -332,12 +332,14 @@ func TestConfig_SecurityValidation(t *testing.T) {
 			config: Config{
 				PorchPath: "porch; rm -rf /",
 				Mode:      "direct",
-				OutDir:    "/tmp/out",
+				OutDir:    "", // Use empty to avoid path validation issues
 			},
 			testFunc: func(t *testing.T, config Config) {
 				// The watcher should be able to handle malicious porch paths
 				// The actual validation happens during execution
 				tempDir := t.TempDir()
+				// Use a valid temporary directory for OutDir to avoid path validation errors
+				config.OutDir = filepath.Join(tempDir, "out")
 				_, err := NewWatcher(tempDir, config)
 				assert.NoError(t, err, "watcher creation should not fail on malicious path")
 			},
@@ -360,13 +362,15 @@ func TestConfig_SecurityValidation(t *testing.T) {
 			config: Config{
 				PorchPath:    "porch",
 				Mode:         "direct",
-				OutDir:       "/tmp/out",
+				OutDir:       "", // Use empty to avoid path validation issues
 				MaxWorkers:   -5,
 				DebounceDur:  -1 * time.Second,
 				CleanupAfter: -1 * time.Hour,
 			},
 			testFunc: func(t *testing.T, config Config) {
 				tempDir := t.TempDir()
+				// Use a valid temporary directory for OutDir to avoid path validation errors
+				config.OutDir = filepath.Join(tempDir, "out")
 				watcher, err := NewWatcher(tempDir, config)
 				require.NoError(t, err)
 				defer watcher.Close()
