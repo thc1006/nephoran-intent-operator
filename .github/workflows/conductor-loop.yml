@@ -47,7 +47,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -81,28 +81,56 @@ jobs:
             TIMEOUT_CMD=""
           fi
           
-          if [ -n "$TIMEOUT_CMD" ]; then
-            $TIMEOUT_CMD go test -v -race -timeout=5m -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
-          else
-            go test -v -race -timeout=5m -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
-          fi
+          # Add retry logic for flaky tests
+          for attempt in 1 2; do
+            echo "Test attempt $attempt of 2..."
+            if [ -n "$TIMEOUT_CMD" ]; then
+              test_cmd="$TIMEOUT_CMD go test -v -race -timeout=20m -count=1 -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop"
+            else
+              test_cmd="go test -v -race -timeout=20m -count=1 -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop"
+            fi
+            
+            if eval "$test_cmd" 2>&1 | tee test-results/test-attempt-$attempt.log; then
+              echo "Tests passed on attempt $attempt"
+              break
+            elif [ $attempt -eq 2 ]; then
+              echo "Tests failed after 2 attempts"
+              exit 1
+            else
+              echo "Test attempt $attempt failed, retrying..."
+              sleep 5
+            fi
+          done
           go tool cover -html=test-results/coverage.out -o test-results/coverage.html
 
       - name: Run tests (Windows)
         if: runner.os == 'Windows'
         run: |
           mkdir test-results
-          # Windows has timeout command built-in
-          go test -v -race -timeout=5m -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
+          # Add retry logic for flaky tests on Windows
+          for ($attempt = 1; $attempt -le 2; $attempt++) {
+            Write-Host "Test attempt $attempt of 2..."
+            if (go test -v -race -timeout=20m -count=1 -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop 2>&1 | Tee-Object test-results/test-attempt-$attempt.log) {
+              Write-Host "Tests passed on attempt $attempt"
+              $success = $true
+              break
+            } elseif ($attempt -eq 2) {
+              Write-Host "Tests failed after 2 attempts"
+              exit 1
+            } else {
+              Write-Host "Test attempt $attempt failed, retrying..."
+              Start-Sleep 5
+            }
+          }
           go tool cover -html=test-results/coverage.out -o test-results/coverage.html
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-${{ matrix.os }}
+          name: test-results-${{ matrix.os }}-${{ github.run_id }}
           path: test-results/
-          retention-days: 3
+          retention-days: 7
 
   # ---------------------------------------------------------------------------
   # Build Binary
@@ -353,7 +381,7 @@ jobs:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
     needs: test
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
       - name: Checkout

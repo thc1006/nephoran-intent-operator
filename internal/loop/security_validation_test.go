@@ -3,6 +3,7 @@ package loop
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -418,21 +419,40 @@ const (
 	SecureFilePerm = 0600
 )
 
-// Stub functions for demonstration - implement these in the actual code
+// ParseIntentFile parses an intent file with comprehensive security checks
 func ParseIntentFile(filePath string) (map[string]interface{}, error) {
-	// This would be implemented with size limits and validation
+	// Open the file
+	file, err := os.Open(filePath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open file: %w", err)
+	}
+	defer file.Close()
+	
+	// First, check file size before reading to prevent memory exhaustion
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat file: %w", err)
+	}
+	
+	if stat.Size() > MaxJSONSize {
+		return nil, fmt.Errorf("file exceeds maximum size of %d bytes (got %d bytes)", MaxJSONSize, stat.Size())
+	}
+	
+	// Read the file content with size limit
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
 	
-	if len(data) > MaxJSONSize {
-		return nil, fmt.Errorf("file exceeds maximum size of %d bytes", MaxJSONSize)
+	// Check for JSON bomb (excessive nesting) before full parsing
+	if err := validateJSONDepth(data, 100); err != nil {
+		return nil, fmt.Errorf("JSON bomb detected: %w", err)
 	}
 	
+	// Parse the JSON
 	var result map[string]interface{}
 	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse JSON: %w", err)
 	}
 	
 	return result, nil
@@ -477,6 +497,43 @@ func validateIntent(filePath string) error {
 		if strings.Contains(target, pattern) {
 			return fmt.Errorf("dangerous pattern '%s' detected in target", pattern)
 		}
+	}
+	
+	return nil
+}
+
+// validateJSONDepth checks if JSON has excessive nesting to prevent JSON bomb attacks
+func validateJSONDepth(data []byte, maxDepth int) error {
+	decoder := json.NewDecoder(strings.NewReader(string(data)))
+	depth := 0
+	
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("failed to parse JSON: %w", err)
+		}
+		
+		switch token := token.(type) {
+		case json.Delim:
+			if token == '{' || token == '[' {
+				depth++
+				if depth > maxDepth {
+					return fmt.Errorf("JSON nesting depth %d exceeds maximum %d", depth, maxDepth)
+				}
+			} else if token == '}' || token == ']' {
+				depth--
+				if depth < 0 {
+					return fmt.Errorf("invalid JSON structure: unbalanced delimiters")
+				}
+			}
+		}
+	}
+	
+	if depth != 0 {
+		return fmt.Errorf("invalid JSON structure: unclosed delimiters")
 	}
 	
 	return nil

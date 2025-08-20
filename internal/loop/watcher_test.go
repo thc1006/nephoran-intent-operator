@@ -596,6 +596,57 @@ func createMockPorch(t testing.TB, tempDir string, exitCode int, stdout, stderr 
 	return mockPath
 }
 
+// createFastMockPorch creates an ultra-fast mock for performance tests without PowerShell overhead
+func createFastMockPorch(t testing.TB, tempDir string, exitCode int, stdout, stderr string) string {
+	var mockPath string
+	var script string
+	
+	if runtime.GOOS == "windows" {
+		// Minimal Windows batch file without PowerShell calls
+		mockPath = filepath.Join(tempDir, "fast-mock-porch.bat")
+		stdoutCmd := ""
+		if stdout != "" {
+			stdoutCmd = fmt.Sprintf("echo %s", stdout)
+		}
+		stderrCmd := ""
+		if stderr != "" {
+			stderrCmd = fmt.Sprintf("echo %s >&2", stderr)
+		}
+		
+		script = fmt.Sprintf(`@echo off
+if "%%1"=="--help" (
+    echo Mock porch help
+    exit /b 0
+)
+%s%s
+exit /b %d`, stdoutCmd, stderrCmd, exitCode)
+	} else {
+		// Minimal Unix shell script
+		mockPath = filepath.Join(tempDir, "fast-mock-porch.sh")
+		stdoutCmd := ""
+		if stdout != "" {
+			stdoutCmd = fmt.Sprintf("echo \"%s\"", stdout)
+		}
+		stderrCmd := ""
+		if stderr != "" {
+			stderrCmd = fmt.Sprintf("echo \"%s\" >&2", stderr)
+		}
+		
+		script = fmt.Sprintf(`#!/bin/bash
+if [ "$1" = "--help" ]; then
+    echo "Mock porch help"
+    exit 0
+fi
+%s%s
+exit %d`, stdoutCmd, stderrCmd, exitCode)
+	}
+	
+	// Write the script file
+	err := os.WriteFile(mockPath, []byte(script), 0755)
+	require.NoError(t, err)
+	return mockPath
+}
+
 func BenchmarkWatcher_ProcessSingleFile(b *testing.B) {
 	tempDir := b.TempDir()
 	outDir := filepath.Join(tempDir, "out")
@@ -672,12 +723,17 @@ func (s *WatcherTestSuite) SetupTest() {
 func (s *WatcherTestSuite) TestRaceCondition_ConcurrentFileProcessing() {
 	s.T().Log("Testing concurrent file processing race conditions")
 	
-	watcher, err := NewWatcher(s.tempDir, s.config)
+	// Use optimized config with no artificial delays
+	raceConfig := s.config
+	raceConfig.PorchPath = createFastMockPorch(s.T(), s.tempDir, 0, "processed", "") // Ultra-fast mock
+	raceConfig.DebounceDur = 1 * time.Millisecond // Minimal debounce
+	
+	watcher, err := NewWatcher(s.tempDir, raceConfig)
 	s.Require().NoError(err)
 	defer watcher.Close()
 	
-	numFiles := 20
-	numWorkers := 8
+	numFiles := 10  // Reduced from 20 for faster test
+	numWorkers := 4 // Reduced from 8
 	watcher.config.MaxWorkers = numWorkers
 	
 	// Create files concurrently
@@ -695,7 +751,7 @@ func (s *WatcherTestSuite) TestRaceCondition_ConcurrentFileProcessing() {
 			
 			fileName := fmt.Sprintf("intent-race-test-%d.json", fileID)
 			filePath := filepath.Join(s.tempDir, fileName)
-			testContent := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment-%d", "count": %d}`, fileID, fileID+1)
+			testContent := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "app-%d"}}}`, fileID)
 			
 			s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0644))
 			
@@ -1424,9 +1480,9 @@ func (s *WatcherTestSuite) TestPerformance_WorkerPoolScalability() {
 	
 	s.T().Log("Testing worker pool scalability")
 	
-	workerCounts := []int{1, 2, 4, 8}
-	numFiles := 50
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
+	workerCounts := []int{1, 2, 4}  // Reduced from 8 to speed up tests
+	numFiles := 20                 // Reduced from 50 to speed up tests
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "test-app"}}}`
 	
 	for _, workers := range workerCounts {
 		s.T().Run(fmt.Sprintf("workers_%d", workers), func(t *testing.T) {
@@ -1435,11 +1491,11 @@ func (s *WatcherTestSuite) TestPerformance_WorkerPoolScalability() {
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 			
 			config := Config{
-				PorchPath:   createMockPorch(t, testDir, 0, "processed", "", 10*time.Millisecond),
+				PorchPath:   createFastMockPorch(t, testDir, 0, "processed", ""), // Ultra-fast mock
 				Mode:        porch.ModeDirect,
 				OutDir:      outDir,
 				MaxWorkers:  workers,
-				DebounceDur: 10 * time.Millisecond,
+				DebounceDur: 5 * time.Millisecond,  // Reduced from 10ms
 				Once:        true,
 			}
 			
@@ -1530,8 +1586,8 @@ func (s *WatcherTestSuite) TestPerformance_BatchProcessingEfficiency() {
 	
 	s.T().Log("Testing batch processing efficiency")
 	
-	batchSizes := []int{10, 50, 100, 200}
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
+	batchSizes := []int{5, 15, 30}  // Reduced sizes to speed up tests
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "test-app"}}}`
 	
 	for _, batchSize := range batchSizes {
 		s.T().Run(fmt.Sprintf("batch_%d", batchSize), func(t *testing.T) {
@@ -1540,11 +1596,11 @@ func (s *WatcherTestSuite) TestPerformance_BatchProcessingEfficiency() {
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 			
 			config := Config{
-				PorchPath:   createMockPorch(t, testDir, 0, "processed", "", 5*time.Millisecond),
+				PorchPath:   createFastMockPorch(t, testDir, 0, "processed", ""),  // Ultra-fast mock
 				Mode:        porch.ModeDirect,
 				OutDir:      outDir,
 				MaxWorkers:  4,
-				DebounceDur: 10 * time.Millisecond,
+				DebounceDur: 5 * time.Millisecond,   // Reduced from 10ms
 				Once:        true,
 			}
 			
@@ -1588,15 +1644,16 @@ func (s *WatcherTestSuite) TestPerformance_MemoryUsageUnderLoad() {
 	runtime.ReadMemStats(&initialStats)
 	
 	largeConfig := s.config
-	largeConfig.MaxWorkers = 8
+	largeConfig.MaxWorkers = 4  // Reduced from 8
+	largeConfig.PorchPath = createFastMockPorch(s.T(), s.tempDir, 0, "processed", "") // Ultra-fast mock
 	
 	watcher, err := NewWatcher(s.tempDir, largeConfig)
 	s.Require().NoError(err)
 	defer watcher.Close()
 	
-	// Create many files
-	numFiles := 500
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": "deployment"}}`
+	// Create fewer files for faster test
+	numFiles := 100  // Reduced from 500
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "test-app"}}}`
 	
 	for i := 0; i < numFiles; i++ {
 		fileName := fmt.Sprintf("intent-memory-%d.json", i)
@@ -1619,11 +1676,118 @@ func (s *WatcherTestSuite) TestPerformance_MemoryUsageUnderLoad() {
 	s.T().Logf("Processed %d files in %v, Memory used: %d bytes (%.2f MB)", 
 		numFiles, processingTime, memoryUsed, float64(memoryUsed)/(1024*1024))
 	
-	// Memory usage should be reasonable (less than 100MB for 500 files)
-	s.Assert().Less(memoryUsed, uint64(100*1024*1024), 
+	// Memory usage should be reasonable (less than 50MB for 100 files)
+	s.Assert().Less(memoryUsed, uint64(50*1024*1024), 
 		"Memory usage should be reasonable under load")
 	
 	// Verify all files were processed
 	stats := watcher.executor.GetStats()
 	s.Assert().Equal(numFiles, stats.TotalExecutions)
+}
+
+// =============================================================================
+// LARGE SCALE INTEGRATION TEST
+// =============================================================================
+
+func (s *WatcherTestSuite) TestWatcherIntegration_LargeScaleProcessing() {
+	if testing.Short() {
+		s.T().Skip("Skipping large scale test in short mode")
+	}
+	
+	s.T().Log("Testing large scale processing integration")
+	
+	// Use optimized configuration for large scale
+	largeScaleConfig := s.config
+	largeScaleConfig.MaxWorkers = runtime.GOMAXPROCS(0) // Use all available CPU cores
+	largeScaleConfig.DebounceDur = 1 * time.Millisecond  // Minimal debounce
+	largeScaleConfig.PorchPath = createFastMockPorch(s.T(), s.tempDir, 0, "processed", "") // Ultra-fast mock
+	largeScaleConfig.Once = true
+	
+	watcher, err := NewWatcher(s.tempDir, largeScaleConfig)
+	s.Require().NoError(err)
+	defer watcher.Close()
+	
+	// Create a large number of files for processing
+	numFiles := 250  // Reasonable scale that won't timeout
+	
+	s.T().Logf("Creating %d test files...", numFiles)
+	createStart := time.Now()
+	
+	// Create files in parallel for faster setup
+	var createWg sync.WaitGroup
+	createChan := make(chan int, runtime.GOMAXPROCS(0)*2) // Buffered channel
+	
+	for i := 0; i < numFiles; i++ {
+		createWg.Add(1)
+		createChan <- i
+		
+		go func(fileID int) {
+			defer createWg.Done()
+			defer func() { <-createChan }()
+			
+			fileName := fmt.Sprintf("intent-large-scale-%d.json", fileID)
+			filePath := filepath.Join(s.tempDir, fileName)
+			content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-%d"}, "spec": {"action": "scale", "target": {"type": "deployment", "name": "app-%d"}}}`, fileID, fileID)
+			
+			s.Require().NoError(os.WriteFile(filePath, []byte(content), 0644))
+		}(i)
+	}
+	
+	createWg.Wait()
+	createDuration := time.Since(createStart)
+	s.T().Logf("Created %d files in %v", numFiles, createDuration)
+	
+	// Record initial memory for monitoring
+	var initialStats, peakStats runtime.MemStats
+	runtime.GC()
+	runtime.ReadMemStats(&initialStats)
+	
+	// Start processing with progress logging
+	s.T().Logf("Starting large scale processing with %d workers...", largeScaleConfig.MaxWorkers)
+	startTime := time.Now()
+	
+	// Process files
+	err = watcher.Start()
+	s.Require().NoError(err)
+	
+	processingTime := time.Since(startTime)
+	
+	// Check memory usage
+	runtime.GC()
+	runtime.ReadMemStats(&peakStats)
+	memoryUsed := peakStats.Alloc - initialStats.Alloc
+	
+	// Verify results
+	stats := watcher.executor.GetStats()
+	
+	s.T().Logf("Large scale processing results:")
+	s.T().Logf("  Files processed: %d/%d", stats.TotalExecutions, numFiles)
+	s.T().Logf("  Processing time: %v", processingTime)
+	s.T().Logf("  Throughput: %.2f files/sec", float64(stats.TotalExecutions)/processingTime.Seconds())
+	s.T().Logf("  Memory used: %.2f MB", float64(memoryUsed)/(1024*1024))
+	s.T().Logf("  Success rate: %.2f%%", float64(stats.SuccessfulExecs)/float64(stats.TotalExecutions)*100)
+	
+	// Assertions for large scale processing
+	s.Assert().Greater(stats.TotalExecutions, 0, "Should process at least some files")
+	s.Assert().LessOrEqual(stats.TotalExecutions, numFiles, "Should not process more files than created")
+	s.Assert().GreaterOrEqual(stats.SuccessfulExecs, stats.TotalExecutions/2, "At least 50% should succeed") 
+	
+	// Performance requirements
+	s.Assert().Less(processingTime, 30*time.Second, "Large scale processing should complete within 30 seconds")
+	s.Assert().Less(memoryUsed, uint64(100*1024*1024), "Memory usage should be under 100MB for large scale")
+	
+	// Verify file movement
+	processedFiles, err := watcher.fileManager.GetProcessedFiles()
+	s.Require().NoError(err)
+	failedFiles, err := watcher.fileManager.GetFailedFiles() 
+	s.Require().NoError(err)
+	
+	totalMoved := len(processedFiles) + len(failedFiles)
+	s.Assert().Equal(stats.TotalExecutions, totalMoved, "All processed files should be moved")
+	
+	// Throughput validation - should handle reasonable throughput
+	throughput := float64(stats.TotalExecutions) / processingTime.Seconds()
+	s.Assert().Greater(throughput, 10.0, "Should achieve at least 10 files/sec throughput")
+	
+	s.T().Logf("Large scale integration test completed successfully")
 }

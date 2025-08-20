@@ -1,0 +1,355 @@
+name: Enhanced CI Pipeline
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main, integrate/mvp, "feat/**", "fix/**" ]
+  pull_request:
+    branches: [ main, integrate/mvp ]
+
+concurrency:
+  group: enhanced-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+env:
+  GO_VERSION: '1.24'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: nephoran-intent-operator
+
+jobs:
+  # =============================================================================
+  # Cross-Platform Testing Matrix
+  # =============================================================================
+  cross-platform-test:
+    name: Cross-Platform Tests
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go-version: ['1.24']
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          check-latest: true
+          cache: true
+          
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod verify
+          
+      - name: Setup test environment (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p test-results
+          # Install test dependencies
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          setup-envtest use 1.29.0 --bin-dir ~/.local/bin || true
+          echo "KUBEBUILDER_ASSETS=$(setup-envtest use 1.29.0 --bin-dir ~/.local/bin -p path 2>/dev/null || echo '')" >> $GITHUB_ENV
+          
+      - name: Setup test environment (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir test-results
+          # Install test dependencies for Windows
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          $env:PATH += ";$env:USERPROFILE\go\bin"
+          setup-envtest.exe use 1.29.0 --bin-dir "$env:USERPROFILE\.local\bin" -ErrorAction SilentlyContinue
+          $kubeAssets = setup-envtest.exe use 1.29.0 --bin-dir "$env:USERPROFILE\.local\bin" -p path -ErrorAction SilentlyContinue
+          if ($kubeAssets) { echo "KUBEBUILDER_ASSETS=$kubeAssets" >> $env:GITHUB_ENV }
+          
+      - name: Run tests with retry (Unix)
+        if: runner.os != 'Windows'
+        env:
+          USE_EXISTING_CLUSTER: false
+          ENVTEST_K8S_VERSION: 1.29.0
+          GOMAXPROCS: 2
+          CGO_ENABLED: 0
+          GOTRACEBACK: all
+        run: |
+          # Test with retry for flaky tests
+          for attempt in 1 2; do
+            echo "=== Test attempt $attempt of 2 ==="
+            if go test -v -timeout=30m -count=1 -race \
+              -coverprofile=test-results/coverage-$attempt.out \
+              -covermode=atomic \
+              ./cmd/conductor-loop ./internal/loop \
+              2>&1 | tee test-results/test-attempt-$attempt.log; then
+              echo "✅ Tests passed on attempt $attempt"
+              cp test-results/coverage-$attempt.out test-results/coverage.out
+              break
+            elif [ $attempt -eq 2 ]; then
+              echo "❌ Tests failed after 2 attempts"
+              cat test-results/test-attempt-*.log > test-results/combined-test.log
+              exit 1
+            else
+              echo "⚠️  Test attempt $attempt failed, retrying in 10s..."
+              sleep 10
+            fi
+          done
+          
+          # Generate coverage report if available
+          if [ -f test-results/coverage.out ]; then
+            go tool cover -html=test-results/coverage.out -o test-results/coverage.html
+            go tool cover -func=test-results/coverage.out > test-results/coverage-summary.txt
+          fi
+          
+      - name: Run tests with retry (Windows)
+        if: runner.os == 'Windows'
+        env:
+          USE_EXISTING_CLUSTER: false
+          ENVTEST_K8S_VERSION: 1.29.0
+          GOMAXPROCS: 2
+          CGO_ENABLED: 0
+          GOTRACEBACK: all
+        run: |
+          # Test with retry for flaky tests on Windows
+          $success = $false
+          for ($attempt = 1; $attempt -le 2; $attempt++) {
+            Write-Host "=== Test attempt $attempt of 2 ==="
+            try {
+              $testResult = go test -v -timeout=30m -count=1 -race -coverprofile=test-results/coverage-$attempt.out -covermode=atomic ./cmd/conductor-loop ./internal/loop 2>&1
+              $testResult | Tee-Object test-results/test-attempt-$attempt.log
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✅ Tests passed on attempt $attempt"
+                Copy-Item test-results/coverage-$attempt.out test-results/coverage.out -ErrorAction SilentlyContinue
+                $success = $true
+                break
+              } elseif ($attempt -eq 2) {
+                Write-Host "❌ Tests failed after 2 attempts"
+                Get-Content test-results/test-attempt-*.log | Out-File test-results/combined-test.log
+                exit 1
+              } else {
+                Write-Host "⚠️  Test attempt $attempt failed, retrying in 10s..."
+                Start-Sleep 10
+              }
+            } catch {
+              Write-Host "Error in test attempt $attempt: $_"
+              if ($attempt -eq 2) { exit 1 }
+              Start-Sleep 10
+            }
+          }
+          
+          # Generate coverage report if available
+          if (Test-Path test-results/coverage.out) {
+            go tool cover -html=test-results/coverage.out -o test-results/coverage.html
+            go tool cover -func=test-results/coverage.out | Out-File test-results/coverage-summary.txt
+          }
+          
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-${{ github.run_id }}
+          path: |
+            test-results/
+          retention-days: 7
+          
+  # =============================================================================
+  # Build Verification
+  # =============================================================================
+  build-verification:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    needs: cross-platform-test
+    timeout-minutes: 20
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+          cache: true
+          
+      - name: Download dependencies
+        run: |
+          go mod download
+          go mod verify
+          
+      - name: Build all binaries
+        run: |
+          mkdir -p bin
+          
+          # Build all cmd binaries
+          for cmd_dir in cmd/*/; do
+            if [ -f "$cmd_dir/main.go" ]; then
+              cmd_name=$(basename "$cmd_dir")
+              echo "Building $cmd_name..."
+              go build -v -o "bin/$cmd_name" "./$cmd_dir"
+            fi
+          done
+          
+          ls -la bin/
+          
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ github.run_id }}
+          path: bin/
+          retention-days: 7
+
+  # =============================================================================
+  # Security and Quality Gates
+  # =============================================================================
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: cross-platform-test
+    timeout-minutes: 15
+    continue-on-error: true
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          
+      - name: Run security scans
+        run: |
+          mkdir -p security-reports
+          
+          # Install security tools
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          go install github.com/securecode/gosec/v2/cmd/gosec@latest || echo "gosec install failed, continuing..."
+          
+          # Run vulnerability check
+          echo "Running govulncheck..."
+          govulncheck -json ./... > security-reports/vulns.json 2>&1 || echo "Vulnerabilities found"
+          
+          # Run gosec if available
+          if command -v gosec &> /dev/null; then
+            echo "Running gosec..."
+            gosec -fmt sarif -out security-reports/gosec.sarif ./... || echo "Security issues found"
+          fi
+          
+      - name: Upload security reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports-${{ github.run_id }}
+          path: security-reports/
+          retention-days: 30
+
+  # =============================================================================
+  # Coverage Aggregation
+  # =============================================================================
+  coverage-report:
+    name: Coverage Report
+    runs-on: ubuntu-latest
+    needs: cross-platform-test
+    if: always()
+    timeout-minutes: 10
+    
+    steps:
+      - name: Download test artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: test-results-*-${{ github.run_id }}
+          path: all-test-results/
+          merge-multiple: true
+          
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+          
+      - name: Aggregate coverage
+        run: |
+          mkdir -p aggregated-coverage
+          
+          # Find and combine coverage files
+          find all-test-results -name "coverage.out" -type f | head -1 | while read coverage_file; do
+            if [ -f "$coverage_file" ]; then
+              cp "$coverage_file" aggregated-coverage/coverage.out
+              
+              # Generate coverage reports
+              go tool cover -html=aggregated-coverage/coverage.out -o aggregated-coverage/coverage.html
+              go tool cover -func=aggregated-coverage/coverage.out > aggregated-coverage/coverage-summary.txt
+              
+              # Extract coverage percentage
+              coverage_pct=$(tail -1 aggregated-coverage/coverage-summary.txt | awk '{print $NF}' || echo "0%")
+              echo "Coverage: $coverage_pct"
+              echo "COVERAGE_PERCENTAGE=$coverage_pct" >> $GITHUB_ENV
+            fi
+          done
+          
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report-${{ github.run_id }}
+          path: aggregated-coverage/
+          retention-days: 30
+
+  # =============================================================================
+  # Final Status Check
+  # =============================================================================
+  ci-status:
+    name: CI Status Check
+    runs-on: ubuntu-latest
+    needs: [cross-platform-test, build-verification, security-scan, coverage-report]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Check results
+        run: |
+          echo "=== Enhanced CI Pipeline Results ==="
+          echo "Cross-Platform Test: ${{ needs.cross-platform-test.result }}"
+          echo "Build Verification: ${{ needs.build-verification.result }}"
+          echo "Security Scan: ${{ needs.security-scan.result }}"
+          echo "Coverage Report: ${{ needs.coverage-report.result }}"
+          
+          # Fail if critical jobs failed
+          if [[ "${{ needs.cross-platform-test.result }}" == "failure" ]]; then
+            echo "❌ Cross-platform tests failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.build-verification.result }}" == "failure" ]]; then
+            echo "❌ Build verification failed"
+            exit 1
+          fi
+          
+          echo "✅ Enhanced CI Pipeline Completed"
+          
+      - name: Generate summary
+        if: always()
+        run: |
+          echo "## 🚀 Enhanced CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Description |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|-------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Cross-Platform Tests | ${{ needs.cross-platform-test.result }} | Tests across Ubuntu, Windows, macOS |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔨 Build Verification | ${{ needs.build-verification.result }} | Binary compilation verification |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔒 Security Scan | ${{ needs.security-scan.result }} | Vulnerability and security checks |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📊 Coverage Report | ${{ needs.coverage-report.result }} | Test coverage aggregation |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⏱️ Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflow**: ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run ID**: ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

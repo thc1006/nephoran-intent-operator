@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -315,13 +316,19 @@ func TestProcessorBatching(t *testing.T) {
 	// Create mock validator
 	validator := &MockValidator{shouldFail: false}
 
-	// Track batch submissions with thread-safe access
-	var currentBatch int
-	var batchMu sync.Mutex
+	// Track batch submissions with atomic counters and synchronization
+	var totalProcessed int64
+	var firstBatchDone = make(chan struct{})
+	var firstBatchOnce sync.Once
+	
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
-		batchMu.Lock()
-		currentBatch++
-		batchMu.Unlock()
+		count := atomic.AddInt64(&totalProcessed, 1)
+		// Signal when first batch (3 files) is complete
+		if count == 3 {
+			firstBatchOnce.Do(func() {
+				close(firstBatchDone)
+			})
+		}
 		return nil
 	}
 
@@ -336,7 +343,7 @@ func TestProcessorBatching(t *testing.T) {
 	<-processor.coordReady  // Wait for coordinator to start
 	defer processor.Stop()
 
-	// Create multiple test files
+	// Create and submit 5 test files
 	for i := 0; i < 5; i++ {
 		intent := ingest.Intent{
 			IntentType: "scaling",
@@ -351,27 +358,39 @@ func TestProcessorBatching(t *testing.T) {
 			t.Fatalf("Failed to write test file %d: %v", i, err)
 		}
 		
-		processor.ProcessFile(testFile)
-		
-		// After 3 files, batch should flush
-		if i == 2 {
-			time.Sleep(100 * time.Millisecond)
-			batchMu.Lock()
-			if currentBatch != 3 {
-				t.Errorf("Expected batch to flush after 3 files, got %d", currentBatch)
-			}
-			currentBatch = 0
-			batchMu.Unlock()
+		if err := processor.ProcessFile(testFile); err != nil {
+			t.Errorf("Failed to process file %d: %v", i, err)
 		}
 	}
 
-	// Wait for interval flush of remaining files
-	time.Sleep(600 * time.Millisecond)
+	// Wait for first batch (3 files) to complete
+	select {
+	case <-firstBatchDone:
+		// First batch completed successfully
+		count := atomic.LoadInt64(&totalProcessed)
+		if count != 3 {
+			t.Errorf("Expected first batch to process 3 files, got %d", count)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Timeout waiting for first batch to complete")
+	}
+
+	// Wait for interval flush of remaining files (2 files)
+	// Use a longer timeout to account for the batch interval
+	timeout := time.After(1 * time.Second)
+	ticker := time.NewTicker(50 * time.Millisecond)
+	defer ticker.Stop()
 	
-	batchMu.Lock()
-	finalBatch := currentBatch
-	batchMu.Unlock()
-	if finalBatch != 2 {
-		t.Errorf("Expected remaining 2 files to be processed, got %d", finalBatch)
+	for {
+		select {
+		case <-timeout:
+			t.Fatal("Timeout waiting for remaining files to be processed")
+		case <-ticker.C:
+			count := atomic.LoadInt64(&totalProcessed)
+			if count == 5 {
+				// All files processed successfully
+				return
+			}
+		}
 	}
 }

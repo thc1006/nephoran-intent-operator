@@ -43,13 +43,8 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 		if opts.CustomScript.Windows != "" {
 			script = opts.CustomScript.Windows
 		} else {
-			sleepSeconds := int(opts.Sleep.Seconds())
-			if sleepSeconds == 0 && opts.Sleep > 0 {
-				sleepSeconds = 1
-			}
-			
 			sleepCmd := ""
-			if sleepSeconds > 0 {
+			if opts.Sleep > 0 {
 				// Use powershell Start-Sleep for more precise timing on Windows
 				sleepCmd = fmt.Sprintf("powershell -command \"Start-Sleep -Milliseconds %d\"", int(opts.Sleep.Milliseconds()))
 			}
@@ -78,10 +73,7 @@ if "%%1"=="--help" (
     echo Mock porch help
     exit /b 0
 )
-%s
-%s
-%s
-%s
+%s%s%s%s
 exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 		}
 	} else {

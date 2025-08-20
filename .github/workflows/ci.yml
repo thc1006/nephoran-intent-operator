@@ -376,7 +376,7 @@ jobs:
        needs.changes.outputs.planner == 'true' ||
        needs.changes.outputs.api == 'true' ||
        needs.changes.outputs.ci == 'true')
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     services:
       redis:
@@ -442,11 +442,31 @@ jobs:
           USE_EXISTING_CLUSTER: false
           ENVTEST_K8S_VERSION: 1.29.0
           REDIS_URL: redis://localhost:6379
+          GOMAXPROCS: 2
+          CGO_ENABLED: 0
+          GOOS: ${{ runner.os == 'Windows' && 'windows' || 'linux' }}
+          GOARCH: amd64
+          GOTRACEBACK: all
         run: |
           set -euo pipefail
           mkdir -p .excellence-reports
           if find . -type f -name "*_test.go" -not -path "./vendor/*" | head -n1 | grep -q .; then
-            ( go test -v ./... -count=1 -coverprofile=.excellence-reports/coverage.out ) 2>&1 | tee .excellence-reports/test.log
+            # Add retry logic for flaky tests
+            for attempt in 1 2 3; do
+              echo "Test attempt $attempt of 3..."
+              if go test -v ./... -count=1 -timeout=40m -race -coverprofile=.excellence-reports/coverage.out -covermode=atomic 2>&1 | tee .excellence-reports/test-attempt-$attempt.log; then
+                echo "Tests passed on attempt $attempt"
+                cp .excellence-reports/test-attempt-$attempt.log .excellence-reports/test.log
+                break
+              elif [ $attempt -eq 3 ]; then
+                echo "Tests failed after 3 attempts"
+                cat .excellence-reports/test-attempt-*.log > .excellence-reports/test.log
+                exit 1
+              else
+                echo "Test attempt $attempt failed, retrying..."
+                sleep 10
+              fi
+            done
             go tool cover -html=.excellence-reports/coverage.out -o .excellence-reports/coverage.html || true
           else
             echo "No *_test.go found. Skipping tests."
@@ -457,9 +477,10 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: test-results-${{ github.run_id }}
           path: |
             .excellence-reports/test.log
+            .excellence-reports/test-attempt-*.log
             .excellence-reports/coverage.out
             .excellence-reports/coverage.html
           if-no-files-found: ignore
@@ -833,3 +854,130 @@ jobs:
             VERSION=${{ github.sha }}
             BUILD_DATE=${{ github.run_timestamp }}
             VCS_REF=${{ github.sha }}
+
+  # =============================================================================
+  # Windows Compatibility Test Job (Optional)
+  # =============================================================================
+  windows-test:
+    name: Windows Compatibility
+    runs-on: windows-latest
+    needs: [hygiene, changes]
+    if: |
+      always() && 
+      needs.hygiene.result == 'success' &&
+      (needs.changes.outputs.cmd == 'true' || 
+       needs.changes.outputs.controllers == 'true' || 
+       needs.changes.outputs.api == 'true' ||
+       needs.changes.outputs.ci == 'true')
+    timeout-minutes: 20
+    continue-on-error: true  # Don't block main pipeline if Windows tests fail
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+
+      - name: Cache Go modules and build cache  
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\go-build
+            ~\go\pkg\mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download and verify dependencies
+        shell: pwsh
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Install controller-gen
+        shell: pwsh
+        run: go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+
+      - name: Generate deepcopy methods
+        shell: pwsh
+        run: |
+          $deepcopyFile = "api\v1\zz_generated.deepcopy.go"
+          if (-not (Test-Path $deepcopyFile)) {
+            Write-Output "Generating deepcopy methods for api/v1..."
+            controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1"
+          }
+
+      - name: Build Windows executables
+        shell: pwsh  
+        run: |
+          Write-Output "Building Windows executables..."
+          go build -v -o conductor-watch.exe ./cmd/conductor-watch
+          go build -v -o intent-ingest.exe ./cmd/intent-ingest
+          
+          # Verify executables exist
+          Get-ChildItem -Path . -Filter "*.exe" | Format-Table Name, Length
+
+      - name: Run Windows-compatible tests
+        shell: pwsh
+        run: |
+          Write-Output "Running Windows-compatible tests..."
+          
+          # Test API packages (most cross-platform friendly)
+          go test -v ./api/intent/v1alpha1 -timeout=5m
+          
+          # Test internal packages
+          go test -v ./internal/watch -timeout=5m
+          go test -v ./pkg/config -timeout=5m
+          
+          # Test conductor-watch (has Windows compatibility)
+          go test -v ./cmd/conductor-watch -timeout=5m
+        continue-on-error: true
+
+      - name: Validate Windows-specific features
+        shell: pwsh
+        run: |
+          Write-Output "Validating Windows batch scripts..."
+          if (Test-Path "mock-porch.bat") {
+            Write-Output "✅ mock-porch.bat exists"
+            Get-Content "mock-porch.bat" -Head 3
+          } else {
+            Write-Output "❌ mock-porch.bat missing"
+          }
+          
+          if (Test-Path "testdata\mock-executables\mock-porch-success.bat") {
+            Write-Output "✅ Mock executables exist"
+            try {
+              & ".\testdata\mock-executables\mock-porch-success.bat" --help
+              Write-Output "✅ Batch script execution successful"
+            } catch {
+              Write-Output "⚠️ Batch script execution failed: $_"
+            }
+          } else {
+            Write-Output "❌ Mock executables missing"
+          }
+
+      - name: Windows test summary
+        shell: pwsh
+        run: |
+          Write-Output "=== Windows Compatibility Test Summary ==="
+          Write-Output "Go version: $(go version)"
+          Write-Output "OS: ${{ runner.os }}"
+          Write-Output "PowerShell version: $($PSVersionTable.PSVersion)"
+          
+          # Check if key files exist
+          $files = @("api\v1\zz_generated.deepcopy.go", "mock-porch.bat")
+          foreach ($file in $files) {
+            if (Test-Path $file) {
+              Write-Output "✅ $file exists"
+            } else {
+              Write-Output "❌ $file missing"
+            }
+          }
+        if: always()

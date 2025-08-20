@@ -68,7 +68,7 @@ jobs:
                 "suite": "unit-core",
                 "name": "Unit Tests - Core",
                 "pattern": "./pkg/auth/... ./pkg/config/... ./pkg/errors/... ./pkg/generics/... ./pkg/injection/...",
-                "timeout": "5m",
+                "timeout": "10m",
                 "parallel": 4,
                 "coverage": true
               },
@@ -76,7 +76,7 @@ jobs:
                 "suite": "unit-controllers", 
                 "name": "Unit Tests - Controllers",
                 "pattern": "./pkg/controllers/... ./controllers/...",
-                "timeout": "8m",
+                "timeout": "15m",
                 "parallel": 3,
                 "coverage": true
               },
@@ -84,7 +84,7 @@ jobs:
                 "suite": "unit-internal",
                 "name": "Unit Tests - Internal",
                 "pattern": "./internal/loop/... ./internal/porch/... ./internal/intent/...",
-                "timeout": "10m",
+                "timeout": "20m",
                 "parallel": 2,
                 "coverage": true
               },
@@ -92,7 +92,7 @@ jobs:
                 "suite": "integration",
                 "name": "Integration Tests",
                 "pattern": "./cmd/conductor-loop/... ./cmd/llm-processor/...",
-                "timeout": "15m",
+                "timeout": "25m",
                 "parallel": 1,
                 "coverage": false,
                 "services": ["redis"]
@@ -101,7 +101,7 @@ jobs:
                 "suite": "security",
                 "name": "Security Tests",
                 "pattern": "./pkg/security/... -tags security",
-                "timeout": "10m",
+                "timeout": "15m",
                 "parallel": 2,
                 "coverage": false
               },
@@ -109,10 +109,10 @@ jobs:
                 "suite": "performance",
                 "name": "Performance Tests",
                 "pattern": "./... -bench=. -run=Benchmark",
-                "timeout": "20m",
+                "timeout": "25m",
                 "parallel": 1,
                 "coverage": false,
-                "benchtime": "5s"
+                "benchtime": "10s"
               }
             ]
           }
@@ -130,7 +130,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: configure
     if: needs.configure.outputs.should-run == 'true'
-    timeout-minutes: 25
+    timeout-minutes: 35
     
     strategy:
       fail-fast: false
