@@ -260,7 +260,7 @@ func (a *CrossPlatformAssertions) AssertScriptWorks(scriptPath string) {
 	require.NoError(a.t, err, "Script failed to execute: %s", scriptPath)
 }
 
-// CreateTestIntent returns a sample intent for testing
+// CreateTestIntent returns a sample intent for testing with object-based target
 func CreateTestIntent(action string, replicas int) string {
 	return fmt.Sprintf(`{
 	"metadata": {
@@ -269,15 +269,19 @@ func CreateTestIntent(action string, replicas int) string {
 	},
 	"spec": {
 		"action": "%s",
-		"target": "deployment/test-app",
+		"target": {
+			"type": "deployment",
+			"name": "test-app",
+			"namespace": "default"
+		},
 		"replicas": %d
 	}
 }`, action, replicas)
 }
 
-// CreateMinimalIntent returns a minimal intent for testing
+// CreateMinimalIntent returns a minimal intent for testing with object-based target
 func CreateMinimalIntent() string {
-	return `{"action": "scale", "target": "deployment/test", "replicas": 1}`
+	return `{"action": "scale", "target": {"type": "deployment", "name": "test"}, "replicas": 1}`
 }
 
 // CreateComplexIntent returns a complex intent for testing
@@ -293,7 +297,11 @@ func CreateComplexIntent() string {
 	},
 	"spec": {
 		"action": "scale",
-		"target": "deployment/web-app",
+		"target": {
+			"type": "deployment",
+			"name": "web-app",
+			"namespace": "production"
+		},
 		"replicas": 5,
 		"resources": {
 			"cpu": "500m",
@@ -314,4 +322,92 @@ func CreateComplexIntent() string {
 		}
 	}
 }`
+}
+
+// CreateLegacyStringTargetIntent returns an intent with legacy string target format for backward compatibility testing
+func CreateLegacyStringTargetIntent(action string, replicas int) string {
+	return fmt.Sprintf(`{
+	"metadata": {
+		"name": "legacy-intent",
+		"namespace": "default"
+	},
+	"spec": {
+		"action": "%s",
+		"target": "deployment/legacy-app",
+		"replicas": %d
+	}
+}`, action, replicas)
+}
+
+// CreateValidObjectTargetIntent returns an intent with valid object-based target for validation testing
+func CreateValidObjectTargetIntent(targetType, targetName, targetNamespace, action string, replicas int) string {
+	return fmt.Sprintf(`{
+	"metadata": {
+		"name": "valid-object-intent",
+		"namespace": "default"
+	},
+	"spec": {
+		"action": "%s",
+		"target": {
+			"type": "%s",
+			"name": "%s",
+			"namespace": "%s"
+		},
+		"replicas": %d
+	}
+}`, action, targetType, targetName, targetNamespace, replicas)
+}
+
+// CreateInvalidTargetIntent returns an intent with invalid target structure for negative testing
+func CreateInvalidTargetIntent(invalidType string) string {
+	switch invalidType {
+	case "missing_type":
+		return `{
+	"metadata": {"name": "invalid-intent"},
+	"spec": {
+		"action": "scale",
+		"target": {"name": "test-app"},
+		"replicas": 1
+	}
+}`
+	case "missing_name":
+		return `{
+	"metadata": {"name": "invalid-intent"},
+	"spec": {
+		"action": "scale",
+		"target": {"type": "deployment"},
+		"replicas": 1
+	}
+}`
+	case "empty_target":
+		return `{
+	"metadata": {"name": "invalid-intent"},
+	"spec": {
+		"action": "scale",
+		"target": {},
+		"replicas": 1
+	}
+}`
+	case "null_target":
+		return `{
+	"metadata": {"name": "invalid-intent"},
+	"spec": {
+		"action": "scale",
+		"target": null,
+		"replicas": 1
+	}
+}`
+	case "string_target":
+		return `{
+	"metadata": {"name": "invalid-intent"},
+	"spec": {
+		"action": "scale",
+		"target": "deployment/legacy-format",
+		"replicas": 1
+	}
+}`
+	default:
+		return CreateLegacyStringTargetIntent("scale", 1)
+	}
+}
 }
