@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 )
 
 const (
@@ -31,6 +33,7 @@ type FileState struct {
 type StateManager struct {
 	mu         sync.RWMutex
 	stateFile  string
+	baseDir    string
 	states     map[string]*FileState
 	autoSave   bool
 }
@@ -41,6 +44,7 @@ func NewStateManager(baseDir string) (*StateManager, error) {
 	
 	sm := &StateManager{
 		stateFile: stateFile,
+		baseDir:   baseDir,
 		states:    make(map[string]*FileState),
 		autoSave:  true,
 	}
@@ -136,6 +140,12 @@ func (sm *StateManager) saveStateUnsafe() error {
 		return fmt.Errorf("failed to marshal state data: %w", err)
 	}
 	
+	// Ensure directory exists before writing
+	dir := filepath.Dir(sm.stateFile)
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return fmt.Errorf("failed to create state directory %s: %w", dir, err)
+	}
+
 	// Write atomically by using a temporary file
 	tempFile := sm.stateFile + ".tmp"
 	if err := os.WriteFile(tempFile, data, 0644); err != nil {
@@ -173,14 +183,19 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	
-	// Calculate current file hash and size
-	hash, size, err := calculateFileHash(filePath)
+	// Calculate current file hash and size using safe path joining
+	hash, size, err := calculateFileHash(sm.baseDir, filePath)
 	if err != nil {
 		return false, fmt.Errorf("failed to calculate file hash: %w", err)
 	}
 	
-	// Create state key from absolute path
-	absPath, err := filepath.Abs(filePath)
+	// Create safe absolute path for state key
+	safePath, err := pathutil.SafeJoin(sm.baseDir, filePath)
+	if err != nil {
+		return false, fmt.Errorf("unsafe file path: %w", err)
+	}
+	
+	absPath, err := filepath.Abs(safePath)
 	if err != nil {
 		return false, fmt.Errorf("failed to get absolute path: %w", err)
 	}
@@ -216,14 +231,19 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	
-	// Calculate file hash and size
-	hash, size, err := calculateFileHash(filePath)
+	// Calculate file hash and size using safe path joining
+	hash, size, err := calculateFileHash(sm.baseDir, filePath)
 	if err != nil {
 		return fmt.Errorf("failed to calculate file hash: %w", err)
 	}
 	
-	// Create absolute path for consistent state keys
-	absPath, err := filepath.Abs(filePath)
+	// Create safe absolute path for consistent state keys
+	safePath, err := pathutil.SafeJoin(sm.baseDir, filePath)
+	if err != nil {
+		return fmt.Errorf("unsafe file path: %w", err)
+	}
+	
+	absPath, err := filepath.Abs(safePath)
 	if err != nil {
 		return fmt.Errorf("failed to get absolute path: %w", err)
 	}
@@ -307,7 +327,7 @@ func (sm *StateManager) CleanupOldEntries(olderThan time.Duration) error {
 
 // CalculateFileSHA256 calculates the SHA256 hash of a file
 func (sm *StateManager) CalculateFileSHA256(filePath string) (string, error) {
-	hash, _, err := calculateFileHash(filePath)
+	hash, _, err := calculateFileHash(sm.baseDir, filePath)
 	if err != nil {
 		return "", err
 	}
@@ -329,8 +349,15 @@ func (sm *StateManager) IsProcessedBySHA(sha256Hash string) (bool, error) {
 }
 
 // calculateFileHash calculates SHA256 hash and size of a file
-func calculateFileHash(filePath string) (string, int64, error) {
-	file, err := os.Open(filePath)
+// It safely joins the relative filePath with baseDir to prevent directory traversal
+func calculateFileHash(baseDir, filePath string) (string, int64, error) {
+	// Use SafeJoin to prevent directory traversal attacks
+	safePath, err := pathutil.SafeJoin(baseDir, filePath)
+	if err != nil {
+		return "", 0, fmt.Errorf("unsafe file path: %w", err)
+	}
+	
+	file, err := os.Open(safePath)
 	if err != nil {
 		return "", 0, fmt.Errorf("failed to open file: %w", err)
 	}

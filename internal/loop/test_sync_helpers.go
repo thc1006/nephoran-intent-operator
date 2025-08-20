@@ -91,6 +91,10 @@ func (h *TestSyncHelper) CreateIntentFile(filename, content string) string {
 	h.createdFiles[filename] = true
 	h.mu.Unlock()
 	
+	// Ensure directory exists before creating file
+	dir := filepath.Dir(filePath)
+	require.NoError(h.t, os.MkdirAll(dir, 0o755), "Failed to create directory for test file")
+
 	// Create file atomically
 	tempPath := filePath + ".tmp"
 	require.NoError(h.t, os.WriteFile(tempPath, []byte(content), 0644))

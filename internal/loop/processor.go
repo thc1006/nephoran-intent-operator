@@ -216,6 +216,12 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 		log.Printf("Processor: File %s failed with real error: %s", filename, err.Error())
 	}
 	
+	// Ensure error directory exists before writing files
+	if err := os.MkdirAll(p.config.ErrorDir, 0o755); err != nil {
+		log.Printf("Failed to create error directory %s: %v", p.config.ErrorDir, err)
+		return err
+	}
+
 	// Write error file
 	errorFile := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.error", basename, timestamp))
 	if writeErr := os.WriteFile(errorFile, []byte(errorContent), 0644); writeErr != nil {
