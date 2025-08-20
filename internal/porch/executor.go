@@ -12,6 +12,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	
+	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 )
 
 const (
@@ -84,23 +86,33 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 	defer cancel()
 	
 	// Set up command with context
-	execCmd := exec.CommandContext(timeoutCtx, cmd[0], cmd[1:]...)
+	// On Windows, if the command is a batch file, run it via cmd.exe
+	var execCmd *exec.Cmd
+	if pathutil.IsWindowsBatchFile(cmd[0]) {
+		// Run batch file via cmd.exe /c for proper stdout capture
+		cmdArgs := append([]string{"/c", cmd[0]}, cmd[1:]...)
+		execCmd = exec.CommandContext(timeoutCtx, "cmd.exe", cmdArgs...)
+		log.Printf("Executing Windows batch file via cmd.exe: %s", strings.Join(cmd, " "))
+	} else {
+		execCmd = exec.CommandContext(timeoutCtx, cmd[0], cmd[1:]...)
+		log.Printf("Executing porch command: %s", strings.Join(cmd, " "))
+	}
 	
-	var stdout, stderr bytes.Buffer
-	execCmd.Stdout = &stdout
-	execCmd.Stderr = &stderr
-	
-	log.Printf("Executing porch command: %s", strings.Join(cmd, " "))
-	
-	// Execute the command
-	err = execCmd.Run()
+	// Use CombinedOutput for more reliable output capture
+	output, err := execCmd.CombinedOutput()
 	duration := time.Since(startTime)
+	
+	// Normalize CRLF to LF on Windows
+	output = pathutil.NormalizeCRLF(output)
+	
+	// Split stdout and stderr if possible (for now, treat all as stdout)
+	outputStr := strings.TrimSpace(string(output))
 	
 	result := &ExecutionResult{
 		Success:  err == nil,
 		ExitCode: getExitCode(execCmd, err),
-		Stdout:   strings.TrimSpace(stdout.String()),
-		Stderr:   strings.TrimSpace(stderr.String()),
+		Stdout:   outputStr,
+		Stderr:   "", // CombinedOutput merges stderr into stdout
 		Duration: duration,
 		Command:  strings.Join(cmd, " "),
 	}

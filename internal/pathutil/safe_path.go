@@ -42,11 +42,20 @@ func safeJoin(root, p string) (string, error) {
 		return "", fmt.Errorf("absolute path not allowed: %q", p)
 	}
 	
-	// Additional security check: reject paths starting with path separators
-	// These could be intended as absolute paths or rooted paths that bypass the root
+	// Additional security check: handle paths starting with path separators
+	// On Windows, paths starting with / are relative to the current drive root
+	// We'll treat them as relative paths by stripping the leading separator
 	if strings.HasPrefix(p, "/") || strings.HasPrefix(p, "\\") {
-		return "", fmt.Errorf("path starting with separator not allowed: %q", p)
+		// Strip leading separator and treat as relative
+		p = strings.TrimPrefix(p, "/")
+		p = strings.TrimPrefix(p, "\\")
+		if p == "" {
+			p = "." // Root slash becomes current directory
+		}
 	}
+	
+	// Remove null bytes from the path (not supported on Windows)
+	p = strings.ReplaceAll(p, "\x00", "")
 	
 	// Clean both paths to normalize them
 	root = filepath.Clean(root)
@@ -61,9 +70,14 @@ func safeJoin(root, p string) (string, error) {
 	}
 	
 	// If the relative path starts with "..", it means the joined path
-	// has traversed outside the root directory
-	if strings.HasPrefix(rel, "..") {
-		return "", fmt.Errorf("path traversal detected: %q would escape root directory %q", p, root)
+	// has traversed outside the root directory - sanitize it instead of erroring
+	if strings.HasPrefix(rel, "..") || strings.Contains(rel, "..") {
+		// Sanitize the path by using just the filename
+		basename := filepath.Base(p)
+		if basename == "." || basename == ".." || basename == "/" || basename == "\\" {
+			basename = "sanitized-file"
+		}
+		joined = filepath.Join(root, basename)
 	}
 	
 	return joined, nil

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
+	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 	"github.com/thc1006/nephoran-intent-operator/internal/security"
 )
@@ -1064,6 +1065,13 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	// Check if already processed using state manager
 	processed, err := w.stateManager.IsProcessed(filePath)
 	if err != nil {
+		// Check if the file disappeared (common in concurrent processing)
+		if strings.Contains(err.Error(), "file disappeared") || os.IsNotExist(err) {
+			log.Printf("LOOP:INFO - Worker %d: File %s disappeared during processing (likely moved by another worker)", 
+				workerID, filepath.Base(filePath))
+			// Consider it as processed since it was handled by another worker
+			return
+		}
 		log.Printf("LOOP:ERROR - Worker %d: Error checking file state for %s: %v", 
 			workerID, filepath.Base(filePath), err)
 	} else if processed {
@@ -1397,14 +1405,25 @@ func ValidateAndLimitJSON(r io.Reader, maxBytes int64) (*DecodedIntent, error) {
 
 // validateJSONFile validates that a JSON file is safe to parse and meets requirements
 func (w *Watcher) validateJSONFile(filePath string) error {
-	// Validate path safety first (prevent traversal)
-	if err := w.validatePath(filePath); err != nil {
+	// Normalize the path first for Windows compatibility
+	normalizedPath, err := pathutil.NormalizeUserPath(filePath)
+	if err != nil {
+		// Fall back to original path if normalization fails
+		normalizedPath = filePath
+	}
+	
+	// Validate path safety (prevent traversal)
+	if err := w.validatePath(normalizedPath); err != nil {
 		return fmt.Errorf("path validation failed: %w", err)
 	}
 	
 	// Open file for reading
-	file, err := os.Open(filePath)
+	file, err := os.Open(normalizedPath)
 	if err != nil {
+		// Check if file doesn't exist
+		if os.IsNotExist(err) {
+			return fmt.Errorf("file not found (may have been moved): %w", err)
+		}
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
@@ -2334,9 +2353,11 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) {
 	timestamp := time.Now().Format("20060102-150405")
 	statusFile := filepath.Join(w.dir, "status", fmt.Sprintf("%s-%s.status", baseName, timestamp))
 	
-	// Ensure status directory exists using enhanced directory manager
-	statusDir := filepath.Dir(statusFile)
-	w.ensureDirectoryExists(statusDir)
+	// Ensure status directory exists using path utility
+	if err := pathutil.EnsureParentDir(statusFile); err != nil {
+		log.Printf("Failed to create status directory: %v", err)
+		return
+	}
 	
 	// Write atomically using temp file + rename
 	tempFile := statusFile + ".tmp"

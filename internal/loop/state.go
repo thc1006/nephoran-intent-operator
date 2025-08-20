@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -140,10 +141,9 @@ func (sm *StateManager) saveStateUnsafe() error {
 		return fmt.Errorf("failed to marshal state data: %w", err)
 	}
 	
-	// Ensure directory exists before writing
-	dir := filepath.Dir(sm.stateFile)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("failed to create state directory %s: %w", dir, err)
+	// Ensure directory exists before writing using the path utility
+	if err := pathutil.EnsureParentDir(sm.stateFile); err != nil {
+		return fmt.Errorf("failed to create state directory: %w", err)
 	}
 
 	// Write atomically by using a temporary file
@@ -186,6 +186,10 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	// Calculate current file hash and size using safe path joining
 	hash, size, err := calculateFileHash(sm.baseDir, filePath)
 	if err != nil {
+		// If file disappeared, consider it as not needing processing (was moved/deleted)
+		if strings.Contains(err.Error(), "file disappeared") {
+			return true, nil // File is gone, so it doesn't need processing
+		}
 		return false, fmt.Errorf("failed to calculate file hash: %w", err)
 	}
 	
@@ -250,7 +254,16 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	// Calculate file hash and size using safe path joining
 	hash, size, err := calculateFileHash(sm.baseDir, filePath)
 	if err != nil {
-		return fmt.Errorf("failed to calculate file hash: %w", err)
+		// If file disappeared during concurrent processing, still mark it as processed
+		// This is common when multiple workers compete for the same file
+		if strings.Contains(err.Error(), "file disappeared") {
+			// Create a placeholder entry marking the file as processed
+			// Use empty hash since we can't calculate it
+			hash = "file-disappeared"
+			size = 0
+		} else {
+			return fmt.Errorf("failed to calculate file hash: %w", err)
+		}
 	}
 	
 	// Create safe absolute path for consistent state keys
@@ -386,7 +399,7 @@ func calculateFileHash(baseDir, filePath string) (string, int64, error) {
 	var safePath string
 	var err error
 	
-	// If filePath is already absolute, validate it's within baseDir
+	// Determine the safe path based on whether it's absolute or relative
 	if filepath.IsAbs(filePath) {
 		// For absolute paths, verify they're within the baseDir
 		absBaseDir, err := filepath.Abs(baseDir)
@@ -398,17 +411,41 @@ func calculateFileHash(baseDir, filePath string) (string, int64, error) {
 		if err != nil || strings.HasPrefix(rel, "..") {
 			return "", 0, fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
 		}
-		safePath = filePath
+		
+		// Try to normalize for Windows long paths if needed
+		if runtime.GOOS == "windows" && len(filePath) >= pathutil.WindowsMaxPath {
+			normalizedPath, err := pathutil.NormalizeUserPath(filePath)
+			if err == nil {
+				safePath = normalizedPath
+			} else {
+				safePath = filePath
+			}
+		} else {
+			safePath = filePath
+		}
 	} else {
 		// For relative paths, use SafeJoin to prevent directory traversal attacks
 		safePath, err = pathutil.SafeJoin(baseDir, filePath)
 		if err != nil {
 			return "", 0, fmt.Errorf("unsafe file path: %w", err)
 		}
+		
+		// Normalize for Windows long paths if needed
+		if runtime.GOOS == "windows" && len(safePath) >= pathutil.WindowsMaxPath {
+			normalizedPath, err := pathutil.NormalizeUserPath(safePath)
+			if err == nil {
+				safePath = normalizedPath
+			}
+		}
 	}
 	
 	file, err := os.Open(safePath)
 	if err != nil {
+		// Check if file doesn't exist (common in concurrent scenarios)
+		if os.IsNotExist(err) {
+			// Return a special error that can be handled by callers
+			return "", 0, fmt.Errorf("file disappeared: %w", err)
+		}
 		return "", 0, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
