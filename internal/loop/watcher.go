@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -203,6 +204,15 @@ const (
 	MetricsUpdateInterval = 10 * time.Second // Metrics update frequency
 )
 
+var (
+	// MaxJSONBytes is the configurable maximum JSON size (can be overridden via env)
+	MaxJSONBytes int64 = 1 << 20 // 1MB default, configurable via CONDUCTOR_MAX_BYTES
+	
+	// Validation errors
+	ErrFileTooLarge       = fmt.Errorf("file exceeds maximum size limit")
+	ErrInvalidReplicasType = fmt.Errorf("spec.scaling.replicas must be an integer")
+)
+
 // IntentSchema defines the expected structure of an intent file
 type IntentSchema struct {
 	APIVersion string                 `json:"apiVersion"`
@@ -238,6 +248,9 @@ type Watcher struct {
 	gracefulShutdown atomic.Bool
 	shutdownStartTime time.Time
 	shutdownMutex    sync.RWMutex
+	
+	// Idempotent teardown
+	closeOnce       sync.Once
 }
 
 // NewWatcher creates a new file system watcher for the specified directory
@@ -1201,46 +1214,53 @@ func (w *Watcher) Close() error {
 		return nil
 	}
 	
-	log.Printf("Closing watcher...")
+	var closeErr error
 	
-	// Mark graceful shutdown started
-	w.shutdownMutex.Lock()
-	w.gracefulShutdown.Store(true)
-	w.shutdownStartTime = time.Now()
-	w.shutdownMutex.Unlock()
-	
-	log.Printf("Graceful shutdown initiated at %s", w.shutdownStartTime.Format(time.RFC3339))
-	
-	// Cancel context to signal shutdown
-	w.cancel()
-	
-	// Close the metrics server
-	if w.metricsServer != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		w.metricsServer.Shutdown(ctx)
-	}
-	
-	// Close the file system watcher
-	if w.watcher != nil {
-		w.watcher.Close()
-	}
-	
-	// Save state
-	if w.stateManager != nil {
-		if err := w.stateManager.Close(); err != nil {
-			log.Printf("Warning: failed to save state: %v", err)
+	// Use sync.Once to ensure idempotent teardown
+	w.closeOnce.Do(func() {
+		log.Printf("Closing watcher...")
+		
+		// Mark graceful shutdown started
+		w.shutdownMutex.Lock()
+		w.gracefulShutdown.Store(true)
+		w.shutdownStartTime = time.Now()
+		w.shutdownMutex.Unlock()
+		
+		log.Printf("Graceful shutdown initiated at %s", w.shutdownStartTime.Format(time.RFC3339))
+		
+		// Cancel context to signal shutdown
+		w.cancel()
+		
+		// Close the metrics server
+		if w.metricsServer != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			w.metricsServer.Shutdown(ctx)
 		}
-	}
+		
+		// Close the file system watcher
+		if w.watcher != nil {
+			w.watcher.Close()
+		}
+		
+		// Save state
+		if w.stateManager != nil {
+			if err := w.stateManager.Close(); err != nil {
+				log.Printf("Warning: failed to save state: %v", err)
+				closeErr = err
+			}
+		}
+		
+		// Clear file state tracking
+		w.fileState.mu.Lock()
+		w.fileState.recentEvents = make(map[string]time.Time)
+		w.fileState.processing = make(map[string]*sync.Mutex)
+		w.fileState.mu.Unlock()
+		
+		log.Printf("Watcher closed")
+	})
 	
-	// Clear file state tracking
-	w.fileState.mu.Lock()
-	w.fileState.recentEvents = make(map[string]time.Time)
-	w.fileState.processing = make(map[string]*sync.Mutex)
-	w.fileState.mu.Unlock()
-	
-	log.Printf("Watcher closed")
-	return nil
+	return closeErr
 }
 
 // validateJSONDepth checks if JSON has excessive nesting to prevent JSON bomb attacks
@@ -1271,6 +1291,83 @@ func (w *Watcher) validateJSONDepth(reader io.Reader, maxDepth int) error {
 	}
 	
 	return nil
+}
+
+// DecodedIntent represents a validated and decoded intent
+type DecodedIntent struct {
+	APIVersion string
+	Kind       string
+	Data       map[string]interface{}
+}
+
+// ValidateAndLimitJSON validates JSON with size limits and type checks
+func ValidateAndLimitJSON(r io.Reader, maxBytes int64) (*DecodedIntent, error) {
+	// Initialize max bytes from environment if set
+	if envMax := os.Getenv("CONDUCTOR_MAX_BYTES"); envMax != "" {
+		if parsed, err := strconv.ParseInt(envMax, 10, 64); err == nil && parsed > 0 {
+			maxBytes = parsed
+		}
+	}
+	
+	// Wrap reader with limit (+1 to detect oversized files)
+	limitedReader := io.LimitReader(r, maxBytes+1)
+	
+	// Read all content
+	data, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read JSON: %w", err)
+	}
+	
+	// Check if we hit the size limit
+	if int64(len(data)) > maxBytes {
+		return nil, ErrFileTooLarge
+	}
+	
+	// Parse JSON
+	var intent map[string]interface{}
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber() // Preserve number precision
+	
+	if err := decoder.Decode(&intent); err != nil {
+		return nil, fmt.Errorf("invalid JSON: %w", err)
+	}
+	
+	// Validate required fields
+	apiVersion, ok := intent["apiVersion"].(string)
+	if !ok || apiVersion == "" {
+		return nil, fmt.Errorf("missing or invalid apiVersion field")
+	}
+	
+	kind, ok := intent["kind"].(string)
+	if !ok || kind == "" {
+		return nil, fmt.Errorf("missing or invalid kind field")
+	}
+	
+	// Validate spec.scaling.replicas if present
+	if spec, hasSpec := intent["spec"].(map[string]interface{}); hasSpec {
+		if scaling, hasScaling := spec["scaling"].(map[string]interface{}); hasScaling {
+			if replicas, hasReplicas := scaling["replicas"]; hasReplicas {
+				switch v := replicas.(type) {
+				case json.Number:
+					if _, err := v.Int64(); err != nil {
+						return nil, fmt.Errorf("%w: got %v", ErrInvalidReplicasType, v)
+					}
+				case float64:
+					if v != float64(int64(v)) {
+						return nil, fmt.Errorf("%w: got non-integer %v", ErrInvalidReplicasType, v)
+					}
+				default:
+					return nil, fmt.Errorf("%w: got type %T", ErrInvalidReplicasType, v)
+				}
+			}
+		}
+	}
+	
+	return &DecodedIntent{
+		APIVersion: apiVersion,
+		Kind:       kind,
+		Data:       intent,
+	}, nil
 }
 
 // validateJSONFile validates that a JSON file is safe to parse and meets requirements

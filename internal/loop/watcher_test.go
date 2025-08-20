@@ -959,14 +959,15 @@ func (s *WatcherTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 	if MaxJSONSize <= 100 {
 		s.T().Skip("MaxJSONSize too small for test")
 	}
-	padding := strings.Repeat("x", MaxJSONSize-100)
+	// Create a file that EXCEEDS the limit (not MaxJSONSize-100, but MaxJSONSize+100)
+	padding := strings.Repeat("x", MaxJSONSize+100)
 	largeJSON := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
 	
 	s.Require().NoError(os.WriteFile(largeFileName, []byte(largeJSON), 0644))
 	
 	err = watcher.validateJSONFile(largeFileName)
-	s.Assert().Error(err, "File exceeding size limit should be rejected")
-	s.Assert().Contains(err.Error(), "exceeds maximum", "Error should mention size limit")
+	s.Require().NotNil(err, "File exceeding size limit MUST return non-nil error")
+	s.Assert().Contains(err.Error(), "exceeds maximum", "Error MUST contain 'exceeds maximum'")
 }
 
 func (s *WatcherTestSuite) TestJSONValidation_PathTraversalPrevention() {
