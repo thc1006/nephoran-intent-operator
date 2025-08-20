@@ -264,6 +264,11 @@ jobs:
     timeout-minutes: 10
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          
       - name: Download test artifacts
         uses: actions/download-artifact@v4
         with:
@@ -275,7 +280,12 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache: false
+          cache: true
+          
+      - name: Download Go dependencies
+        run: |
+          go mod download
+          go mod verify
           
       - name: Aggregate coverage
         run: |

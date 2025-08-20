@@ -362,6 +362,22 @@ jobs:
     timeout-minutes: 10
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+          
+      - name: Download Go dependencies
+        run: |
+          go mod download
+          go mod verify
+          
       - name: Download all test artifacts
         uses: actions/download-artifact@v4
         with:
