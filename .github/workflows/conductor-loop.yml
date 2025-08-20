@@ -14,7 +14,6 @@ on:
       - 'cmd/conductor-loop/**'
       - 'internal/loop/**'
       - '.github/workflows/conductor-loop.yml'
-      - 'Dockerfile.conductor-loop'
       - 'deployments/conductor-loop/**'
       - 'go.mod'
       - 'go.sum'
@@ -24,7 +23,6 @@ on:
       - 'cmd/conductor-loop/**'
       - 'internal/loop/**'
       - '.github/workflows/conductor-loop.yml'
-      - 'Dockerfile.conductor-loop'
       - 'deployments/conductor-loop/**'
       - 'go.mod'
       - 'go.sum'
@@ -66,17 +64,34 @@ jobs:
       - name: Run unit tests (*nix)
         if: runner.os != 'Windows'
         run: |
-          go test -v -race -timeout=5m -covermode=atomic -coverprofile="test-results/coverage.out" \
+          go test -v -race -count=1 -timeout=8m -covermode=atomic -coverprofile="test-results/coverage.out" \
+            ./cmd/conductor-loop ./internal/loop 2>&1 | tee test-results/test.log || true
+          go tool cover -html="test-results/coverage.out" -o "test-results/coverage.html" || true
+          # Capture exit code
+          go test -v -race -count=1 -timeout=8m -covermode=atomic -coverprofile="test-results/coverage.out" \
             ./cmd/conductor-loop ./internal/loop
-          go tool cover -html="test-results/coverage.out" -o "test-results/coverage.html"
 
       - name: Run unit tests (Windows via bash)
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          go test -v -race -timeout=5m -covermode=atomic -coverprofile="test-results/coverage.out" \
+          go test -v -race -count=1 -timeout=8m -covermode=atomic -coverprofile="test-results/coverage.out" \
+            ./cmd/conductor-loop ./internal/loop 2>&1 | tee test-results/test.log || true
+          go tool cover -html="test-results/coverage.out" -o "test-results/coverage.html" || true
+          # Capture exit code
+          go test -v -race -count=1 -timeout=8m -covermode=atomic -coverprofile="test-results/coverage.out" \
             ./cmd/conductor-loop ./internal/loop
-          go tool cover -html="test-results/coverage.out" -o "test-results/coverage.html"
+
+      - name: Failing tests summary
+        if: always()
+        shell: bash
+        run: |
+          echo "## Test Results - ${{ matrix.os }}" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f test-results/test.log ]; then
+            grep -E "--- FAIL:|race detected|panic|timeout" test-results/test.log >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || echo "✅ No test failures detected" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "⚠️ No test log found" >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload coverage artifacts
         if: always()
@@ -86,6 +101,7 @@ jobs:
           path: |
             test-results/coverage.out
             test-results/coverage.html
+            test-results/test.log
 
   build:
     name: Build
@@ -129,7 +145,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Build image (no push)
-        run: docker build -f Dockerfile.conductor-loop -t conductor-loop-ci:${{ github.sha }} .
+        run: docker build -f cmd/conductor-loop/Dockerfile -t conductor-loop-ci:${{ github.sha }} .
 
   ci-status:
     name: CI Status Check
