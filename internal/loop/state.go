@@ -190,14 +190,30 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	}
 	
 	// Create safe absolute path for state key
-	safePath, err := pathutil.SafeJoin(sm.baseDir, filePath)
-	if err != nil {
-		return false, fmt.Errorf("unsafe file path: %w", err)
-	}
-	
-	absPath, err := filepath.Abs(safePath)
-	if err != nil {
-		return false, fmt.Errorf("failed to get absolute path: %w", err)
+	var absPath string
+	if filepath.IsAbs(filePath) {
+		// For absolute paths, verify they're within the baseDir
+		absBaseDir, err := filepath.Abs(sm.baseDir)
+		if err != nil {
+			return false, fmt.Errorf("failed to get absolute base directory: %w", err)
+		}
+		
+		rel, err := filepath.Rel(absBaseDir, filePath)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			return false, fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
+		}
+		absPath = filePath
+	} else {
+		// For relative paths, use SafeJoin
+		safePath, err := pathutil.SafeJoin(sm.baseDir, filePath)
+		if err != nil {
+			return false, fmt.Errorf("unsafe file path: %w", err)
+		}
+		
+		absPath, err = filepath.Abs(safePath)
+		if err != nil {
+			return false, fmt.Errorf("failed to get absolute path: %w", err)
+		}
 	}
 	
 	key := createStateKey(absPath)
@@ -238,14 +254,30 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	}
 	
 	// Create safe absolute path for consistent state keys
-	safePath, err := pathutil.SafeJoin(sm.baseDir, filePath)
-	if err != nil {
-		return fmt.Errorf("unsafe file path: %w", err)
-	}
-	
-	absPath, err := filepath.Abs(safePath)
-	if err != nil {
-		return fmt.Errorf("failed to get absolute path: %w", err)
+	var absPath string
+	if filepath.IsAbs(filePath) {
+		// For absolute paths, verify they're within the baseDir
+		absBaseDir, err := filepath.Abs(sm.baseDir)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute base directory: %w", err)
+		}
+		
+		rel, err := filepath.Rel(absBaseDir, filePath)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			return fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
+		}
+		absPath = filePath
+	} else {
+		// For relative paths, use SafeJoin
+		safePath, err := pathutil.SafeJoin(sm.baseDir, filePath)
+		if err != nil {
+			return fmt.Errorf("unsafe file path: %w", err)
+		}
+		
+		absPath, err = filepath.Abs(safePath)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path: %w", err)
+		}
 	}
 	
 	key := createStateKey(absPath)
@@ -351,10 +383,28 @@ func (sm *StateManager) IsProcessedBySHA(sha256Hash string) (bool, error) {
 // calculateFileHash calculates SHA256 hash and size of a file
 // It safely joins the relative filePath with baseDir to prevent directory traversal
 func calculateFileHash(baseDir, filePath string) (string, int64, error) {
-	// Use SafeJoin to prevent directory traversal attacks
-	safePath, err := pathutil.SafeJoin(baseDir, filePath)
-	if err != nil {
-		return "", 0, fmt.Errorf("unsafe file path: %w", err)
+	var safePath string
+	var err error
+	
+	// If filePath is already absolute, validate it's within baseDir
+	if filepath.IsAbs(filePath) {
+		// For absolute paths, verify they're within the baseDir
+		absBaseDir, err := filepath.Abs(baseDir)
+		if err != nil {
+			return "", 0, fmt.Errorf("failed to get absolute base directory: %w", err)
+		}
+		
+		rel, err := filepath.Rel(absBaseDir, filePath)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			return "", 0, fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
+		}
+		safePath = filePath
+	} else {
+		// For relative paths, use SafeJoin to prevent directory traversal attacks
+		safePath, err = pathutil.SafeJoin(baseDir, filePath)
+		if err != nil {
+			return "", 0, fmt.Errorf("unsafe file path: %w", err)
+		}
 	}
 	
 	file, err := os.Open(safePath)

@@ -436,7 +436,7 @@ func TestCalculateFileHash(t *testing.T) {
 			testFile := filepath.Join(dir, "test.json")
 			require.NoError(t, os.WriteFile(testFile, []byte(tt.content), 0644))
 
-			hash, size, err := calculateFileHash(testFile)
+			hash, size, err := calculateFileHash(dir, "test.json")
 			if tt.expectError {
 				assert.Error(t, err)
 				return
@@ -455,7 +455,7 @@ func TestCalculateFileHash(t *testing.T) {
 	}
 
 	// Test nonexistent file
-	_, _, err := calculateFileHash(filepath.Join(dir, "nonexistent.json"))
+	_, _, err := calculateFileHash(dir, "nonexistent.json")
 	assert.Error(t, err)
 }
 

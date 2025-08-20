@@ -128,6 +128,9 @@ func TestStateManager_SecurityBehavior(t *testing.T) {
 			name:     "very long file path",
 			filePath: "/" + strings.Repeat("a", 1000) + "/intent.json",
 			testFunc: func(t *testing.T, sm *StateManager, filePath string) {
+				if runtime.GOOS == "windows" {
+					t.Skip("long path exceeds Windows CI limit without LongPathsEnabled")
+				}
 				err := sm.MarkProcessed(filePath)
 				assert.NoError(t, err, "should handle very long paths")
 

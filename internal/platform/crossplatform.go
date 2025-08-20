@@ -182,6 +182,11 @@ if not "%%4"=="" (
     echo Processing completed successfully
 )
 
+%s
+%s
+%s
+%s
+%s
 exit /b %d`, failOnPatternCmd, sleepCmd, customCmds, stdoutCmd, stderrCmd, opts.ExitCode)
 }
 

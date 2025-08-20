@@ -73,7 +73,10 @@ if "%%1"=="--help" (
     echo Mock porch help
     exit /b 0
 )
-%s%s%s%s
+%s
+%s
+%s
+%s
 exit /b %d`, failOnPatternCmd, sleepCmd, stdoutCmd, stderrCmd, opts.ExitCode)
 		}
 	} else {
