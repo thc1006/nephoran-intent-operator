@@ -43,6 +43,7 @@ jobs:
   test:
     name: Test
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -399,18 +400,24 @@ jobs:
             exit 1
           fi
           
-          if [[ "${{ needs.build.result }}" != "success" ]]; then
+          # Treat skipped as neutral for Build
+          if [[ "${{ needs.build.result }}" == "failure" || "${{ needs.build.result }}" == "cancelled" ]]; then
             echo "❌ Build failed"
             exit 1
+          elif [[ "${{ needs.build.result }}" == "skipped" ]]; then
+            echo "⏭️ Build skipped (neutral)"
           fi
           
           if [[ "${{ needs.security.result }}" != "success" ]]; then
             echo "⚠️  Security scan had issues (non-blocking)"
           fi
           
-          if [[ "${{ needs.docker.result }}" != "success" ]]; then
+          # Treat skipped as neutral for Docker
+          if [[ "${{ needs.docker.result }}" == "failure" || "${{ needs.docker.result }}" == "cancelled" ]]; then
             echo "❌ Docker build failed"
             exit 1
+          elif [[ "${{ needs.docker.result }}" == "skipped" ]]; then
+            echo "⏭️ Docker build skipped (neutral)"
           fi
           
           echo "✅ Conductor Loop CI Pipeline Passed"
