@@ -20,6 +20,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/thc1006/nephoran-intent-operator/internal/porch"
+	"github.com/thc1006/nephoran-intent-operator/internal/security"
 )
 
 // Config holds configuration for the watcher
@@ -1372,54 +1373,45 @@ func ValidateAndLimitJSON(r io.Reader, maxBytes int64) (*DecodedIntent, error) {
 
 // validateJSONFile validates that a JSON file is safe to parse and meets requirements
 func (w *Watcher) validateJSONFile(filePath string) error {
-	// Check file size
-	stat, err := os.Stat(filePath)
-	if err != nil {
-		return fmt.Errorf("failed to stat file: %w", err)
-	}
-	
-	if stat.Size() > MaxJSONSize {
-		return fmt.Errorf("file size %d exceeds maximum %d bytes", stat.Size(), MaxJSONSize)
-	}
-	
-	if stat.Size() == 0 {
-		return fmt.Errorf("file is empty")
-	}
-	
-	// Validate path safety (prevent traversal)
+	// Validate path safety first (prevent traversal)
 	if err := w.validatePath(filePath); err != nil {
 		return fmt.Errorf("path validation failed: %w", err)
 	}
 	
-	// Read and validate JSON structure
+	// Open file for reading
 	file, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
 	
-	// Use limited reader to prevent memory exhaustion
-	limitedReader := io.LimitReader(file, MaxJSONSize)
+	// Use security helper for robust size validation BEFORE any JSON parsing
+	// This prevents memory exhaustion from maliciously large files
+	jsonData, err := security.ValidateAndLimitJSON(file, security.MaxJSONBytes)
+	if err != nil {
+		return fmt.Errorf("JSON size validation failed: %w", err)
+	}
+	
+	if len(jsonData) == 0 {
+		return fmt.Errorf("file is empty")
+	}
 	
 	// Check for JSON bomb (excessive nesting) before full parsing
-	if err := w.validateJSONDepth(limitedReader, MaxJSONDepth); err != nil {
+	reader := bytes.NewReader(jsonData)
+	if err := w.validateJSONDepth(reader, MaxJSONDepth); err != nil {
 		return fmt.Errorf("JSON bomb detected: %w", err)
 	}
 	
-	// Reset reader position
-	file.Seek(0, 0)
-	limitedReader = io.LimitReader(file, MaxJSONSize)
-	
-	// Parse JSON with decoder (more memory efficient than ReadAll)
-	decoder := json.NewDecoder(limitedReader)
+	// Parse JSON with decoder (using the validated data)
+	reader = bytes.NewReader(jsonData)
+	decoder := json.NewDecoder(reader)
 	decoder.DisallowUnknownFields() // Strict validation
 	
 	var intent IntentSchema
 	if err := decoder.Decode(&intent); err != nil {
 		// Try as generic map if schema validation fails
-		file.Seek(0, 0)
-		limitedReader = io.LimitReader(file, MaxJSONSize)
-		decoder = json.NewDecoder(limitedReader)
+		reader = bytes.NewReader(jsonData)
+		decoder = json.NewDecoder(reader)
 		
 		var genericIntent map[string]interface{}
 		if err := decoder.Decode(&genericIntent); err != nil {
@@ -1629,8 +1621,8 @@ func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
 			ok = false
 		}
 		
-		if !ok || replicas < 0 || replicas > 1000 {
-			return fmt.Errorf("replicas must be a number between 0 and 1000")
+		if !ok || replicas < 1 || replicas > 100 {
+			return fmt.Errorf("replicas must be an integer between 1 and 100")
 		}
 	}
 	

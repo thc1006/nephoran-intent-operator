@@ -403,12 +403,21 @@ jobs:
           GOMAXPROCS: 4
           TEST_CATEGORY: ci
           SKIP_SLOW_TESTS: ${{ github.event.inputs.skip_slow_tests }}
+          # Enable CGO on Windows for race detection
+          CGO_ENABLED: ${{ matrix.os == 'windows-latest' && '1' || '0' }}
         run: |
           mkdir -p test-results coverage
           echo "🧪 Running comprehensive test suite..."
           
-          # Determine test flags based on input
-          test_flags="-race -coverprofile=coverage/cover.out -covermode=atomic -timeout=30m -parallel=4"
+          # Determine test flags based on input and OS
+          # Disable race detector on Windows if CGO is not available
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            # Skip race detector on Windows to avoid CGO requirement
+            test_flags="-coverprofile=coverage/cover.out -covermode=atomic -timeout=30m -parallel=4"
+          else
+            # Use race detector on Unix systems
+            test_flags="-race -coverprofile=coverage/cover.out -covermode=atomic -timeout=30m -parallel=4"
+          fi
           
           if [[ "${{ github.event.inputs.skip_slow_tests }}" == "true" ]]; then
             test_flags="$test_flags -short"

@@ -382,6 +382,9 @@ func (c *ORANComplianceChecker) assessSecureCommunication(system interface{}) Co
 	hasO1InterfaceSecurity := false
 	hasO2InterfaceSecurity := false
 	
+	// Suppress unused variable warnings - these will be implemented later
+	_, _, _, _ = hasE2InterfaceSecurity, hasA1InterfaceSecurity, hasO1InterfaceSecurity, hasO2InterfaceSecurity
+	
 	// Currently partial implementation
 	result.Status = StatusPartial
 	result.Recommendations = append(result.Recommendations, 
@@ -403,6 +406,9 @@ func (c *ORANComplianceChecker) assessThreatProtection(system interface{}) Compl
 	hasIntrusionDetection := false
 	hasIncidentResponse := false
 	hasThreatIntelligence := false
+	
+	// Suppress unused variable warnings - these will be implemented later
+	_, _, _, _ = hasAnomalyDetection, hasIntrusionDetection, hasIncidentResponse, hasThreatIntelligence
 	
 	result.Status = StatusNonCompliant
 	result.Recommendations = append(result.Recommendations, 

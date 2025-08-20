@@ -605,9 +605,9 @@ func validateIntentContent(content []byte) error {
 		return fmt.Errorf("invalid namespace: contains suspicious characters")
 	}
 	
-	// Validate replicas
-	if replicas < 0 || replicas > 1000 {
-		return fmt.Errorf("invalid replicas: must be between 0 and 1000")
+	// Validate replicas - match the real validation logic bounds
+	if replicas < 1 || replicas > 100 {
+		return fmt.Errorf("replicas must be an integer between 1 and 100")
 	}
 	
 	return nil

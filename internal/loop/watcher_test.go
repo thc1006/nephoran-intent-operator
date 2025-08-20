@@ -2,7 +2,6 @@ package loop
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -1194,18 +1193,18 @@ func (s *WatcherTestSuite) TestSecurity_FileSizeLimits() {
 				err := os.WriteFile(filePath, []byte(content), 0644)
 				require.NoError(t, err)
 			} else {
-				// Create oversized file
-				f, err := os.Create(filePath)
-				require.NoError(t, err)
-				defer f.Close()
+				// Create oversized file with well-formed JSON
+				// Calculate padding size to exceed MaxJSONSize
+				baseJSON := `{"apiVersion": "v1", "kind": "NetworkIntent", "data": ""}`
+				baseSizeWithoutData := len(baseJSON) - 2 // Subtract 2 for the empty quotes
+				paddingSize := int(tt.size) - baseSizeWithoutData
 				
-				// Write valid JSON prefix
-				f.WriteString(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "`)
-				// Fill with random data
-				data := make([]byte, tt.size-100)
-				rand.Read(data)
-				f.Write(data)
-				f.WriteString(`"}`)
+				// Generate deterministic padding with 'A' characters instead of random data
+				padding := strings.Repeat("A", paddingSize)
+				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
+				
+				err := os.WriteFile(filePath, []byte(content), 0644)
+				require.NoError(t, err)
 			}
 			
 			err := watcher.validateJSONFile(filePath)

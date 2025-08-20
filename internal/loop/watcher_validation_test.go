@@ -615,7 +615,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 
 			err = watcher.validateJSONFile(filePath)
 			assert.Error(t, err, "Should reject invalid JSON: %s", tc.desc)
-			if tc.expectedErr != "" {
+			if tc.expectedErr != "" && err != nil {
 				assert.Contains(t, err.Error(), tc.expectedErr, "Should contain expected error message")
 			}
 		})
@@ -702,20 +702,18 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 				err := os.WriteFile(filePath, []byte(content), 0644)
 				require.NoError(t, err)
 			} else {
-				// Create oversized file
-				f, err := os.Create(filePath)
+				// Create oversized file with well-formed JSON
+				// Calculate padding size to exceed MaxJSONSize
+				baseJSON := `{"apiVersion": "v1", "kind": "NetworkIntent", "data": ""}`
+				baseSizeWithoutData := len(baseJSON) - 2 // Subtract 2 for the empty quotes
+				paddingSize := tt.size - baseSizeWithoutData
+				
+				// Generate deterministic padding with 'A' characters for consistency
+				padding := strings.Repeat("A", paddingSize)
+				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
+				
+				err := os.WriteFile(filePath, []byte(content), 0644)
 				require.NoError(t, err)
-				defer f.Close()
-
-				// Write JSON prefix
-				f.WriteString(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "`)
-				// Write padding data
-				padding := make([]byte, tt.size-100)
-				for i := range padding {
-					padding[i] = 'x'
-				}
-				f.Write(padding)
-				f.WriteString(`"}`)
 			}
 
 			err := watcher.validateJSONFile(filePath)
