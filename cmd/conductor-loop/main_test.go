@@ -250,7 +250,7 @@ func TestMain_SignalHandling(t *testing.T) {
 
 	// Create an intent file
 	intentFile := filepath.Join(handoffDir, "intent-signal-test.json")
-	intentContent := `{"action": "scale", "target": "deployment/test", "replicas": 3}`
+	intentContent := `{"intent_type": "scaling", "target": "deployment/test", "namespace": "default", "replicas": 3}`
 	require.NoError(t, os.WriteFile(intentFile, []byte(intentContent), 0644))
 
 	// Start conductor-loop (without -once, so it runs continuously)
@@ -495,7 +495,7 @@ func BenchmarkMain_SingleFileProcessing(b *testing.B) {
 		"-debounce", "10ms",
 	}
 
-	intentContent := `{"action": "scale", "target": "deployment/test", "replicas": 1}`
+	intentContent := `{"intent_type": "scaling", "target": "deployment/test", "namespace": "default", "replicas": 1}`
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

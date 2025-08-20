@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"context"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -81,7 +80,7 @@ func TestMockPorchWithOptions(t *testing.T) {
 func TestCreateIntentFile(t *testing.T) {
 	env := NewCrossPlatformTestEnvironment(t)
 	
-	content := `{"action": "test", "target": "deployment/test", "replicas": 1}`
+	content := `{"action": "test", "target": {"type": "deployment", "name": "test"}, "replicas": 1}`
 	intentPath := env.CreateIntentFile("test-intent.json", content)
 	
 	assert.FileExists(t, intentPath)
@@ -172,7 +171,8 @@ func TestCreateTestIntentFunctions(t *testing.T) {
 	intent := CreateTestIntent("scale", 3)
 	assert.Contains(t, intent, `"action": "scale"`)
 	assert.Contains(t, intent, `"replicas": 3`)
-	assert.Contains(t, intent, `"target": "deployment/test-app"`)
+	assert.Contains(t, intent, `"type": "deployment"`)
+	assert.Contains(t, intent, `"name": "test-app"`)
 	
 	// Test CreateMinimalIntent
 	minimal := CreateMinimalIntent()

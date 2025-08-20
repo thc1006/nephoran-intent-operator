@@ -8,16 +8,25 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // IntentData represents the structure of a network intent
+// This uses the flat structure expected by validateIntentFields
 type IntentData struct {
-	APIVersion string    `json:"apiVersion"`
-	Kind       string    `json:"kind"`
-	Metadata   Metadata  `json:"metadata"`
-	Spec       Spec      `json:"spec"`
+	IntentType string                 `json:"intent_type"`
+	Target     string                 `json:"target"`
+	Namespace  string                 `json:"namespace"`
+	Replicas   int                    `json:"replicas,omitempty"`
+	Source     string                 `json:"source,omitempty"`
+	Resources  map[string]interface{} `json:"resources,omitempty"`
+	Labels     map[string]string      `json:"labels,omitempty"`
+	Timestamp  string                 `json:"timestamp,omitempty"`
+
+	// Keep legacy fields for invalid test cases that expect object targets
+	APIVersion *string    `json:"apiVersion,omitempty"`
+	Kind       *string    `json:"kind,omitempty"`
+	Metadata   *Metadata  `json:"metadata,omitempty"`
+	Spec       *Spec      `json:"spec,omitempty"`
 }
 
 type Metadata struct {
@@ -59,45 +68,33 @@ func NewIntentFactory(baseDir string) *IntentFactory {
 }
 
 // CreateValidIntent creates a valid network intent with realistic data
+// Uses string-based target format as expected by validateIntentFields
 func (f *IntentFactory) CreateValidIntent(name string) IntentData {
 	f.Counter++
 	
-	actions := []string{"scale", "deploy", "update", "delete"}
+	intentTypes := []string{"scaling", "deployment", "service"}
 	namespaces := []string{"default", "production", "staging", "development"}
+	resourceTypes := []string{"deployment", "statefulset", "daemonset"}
+	
+	ns := namespaces[f.rand.Intn(len(namespaces))]
+	resourceType := resourceTypes[f.rand.Intn(len(resourceTypes))]
 	
 	return IntentData{
-		APIVersion: "v1",
-		Kind:       "NetworkIntent",
-		Metadata: Metadata{
-			Name:      fmt.Sprintf("%s-%d", name, f.Counter),
-			Namespace: namespaces[f.rand.Intn(len(namespaces))],
-			Labels: map[string]string{
-				"app":         name,
-				"version":     fmt.Sprintf("v1.%d", f.rand.Intn(10)),
-				"environment": "test",
-			},
-			Annotations: map[string]string{
-				"conductor-loop/created-by": "test-factory",
-				"conductor-loop/test-id":    uuid.New().String(),
-			},
-			Timestamp: time.Now().Format(time.RFC3339),
+		IntentType: intentTypes[f.rand.Intn(len(intentTypes))],
+		Target:     fmt.Sprintf("%s/%s", resourceType, name),
+		Namespace:  ns,
+		Replicas:   f.rand.Intn(10) + 1,
+		Source:     "test-factory",
+		Resources: map[string]interface{}{
+			"cpu":    fmt.Sprintf("%dm", f.rand.Intn(1000)+100),
+			"memory": fmt.Sprintf("%dMi", f.rand.Intn(1024)+128),
 		},
-		Spec: Spec{
-			Action: actions[f.rand.Intn(len(actions))],
-			Target: Target{
-				Type:      "deployment",
-				Name:      name,
-				Namespace: namespaces[f.rand.Intn(len(namespaces))],
-			},
-			Replicas: f.rand.Intn(10) + 1,
-			Resources: map[string]interface{}{
-				"cpu":    fmt.Sprintf("%dm", f.rand.Intn(1000)+100),
-				"memory": fmt.Sprintf("%dMi", f.rand.Intn(1024)+128),
-			},
-			Selector: map[string]string{
-				"app": name,
-			},
+		Labels: map[string]string{
+			"app":         name,
+			"version":     fmt.Sprintf("v1.%d", f.rand.Intn(10)),
+			"environment": "test",
 		},
+		Timestamp: time.Now().Format(time.RFC3339),
 	}
 }
 
@@ -105,18 +102,9 @@ func (f *IntentFactory) CreateValidIntent(name string) IntentData {
 func (f *IntentFactory) CreateMinimalValidIntent(name string) IntentData {
 	f.Counter++
 	return IntentData{
-		APIVersion: "v1",
-		Kind:       "NetworkIntent",
-		Metadata: Metadata{
-			Name: fmt.Sprintf("%s-minimal-%d", name, f.Counter),
-		},
-		Spec: Spec{
-			Action: "scale",
-			Target: Target{
-				Type: "deployment",
-				Name: name,
-			},
-		},
+		IntentType: "scaling",
+		Target:     fmt.Sprintf("deployment/%s", name),
+		Namespace:  "default",
 	}
 }
 
@@ -125,11 +113,8 @@ func (f *IntentFactory) CreateIntentWithTarget(name string, targetType, targetNa
 	f.Counter++
 	intent := f.CreateValidIntent(name)
 	
-	intent.Spec.Target = Target{
-		Type:      targetType,
-		Name:      targetName,
-		Namespace: targetNamespace,
-	}
+	intent.Target = fmt.Sprintf("%s/%s", targetType, targetName)
+	intent.Namespace = targetNamespace
 	
 	return intent
 }
@@ -138,7 +123,7 @@ func (f *IntentFactory) CreateIntentWithTarget(name string, targetType, targetNa
 func (f *IntentFactory) CreateValidIntentWithReplicas(name string, replicas int) IntentData {
 	f.Counter++
 	intent := f.CreateValidIntent(name)
-	intent.Spec.Replicas = replicas
+	intent.Replicas = replicas
 	return intent
 }
 
@@ -150,8 +135,8 @@ func (f *IntentFactory) CreateValidScaleUpIntent(name string) IntentData {
 // CreateValidScaleDownIntent creates a valid scale-down intent
 func (f *IntentFactory) CreateValidScaleDownIntent(name string) IntentData {
 	intent := f.CreateIntentWithTarget(name, "deployment", fmt.Sprintf("%s-app", name), "production")
-	intent.Spec.Action = "scale"
-	intent.Spec.Replicas = 1 // Scale down to minimum
+	intent.IntentType = "scaling"
+	intent.Replicas = 1 // Scale down to minimum
 	return intent
 }
 
@@ -165,47 +150,92 @@ func (f *IntentFactory) CreateValidDaemonSetIntent(name string) IntentData {
 	return f.CreateIntentWithTarget(name, "daemonset", fmt.Sprintf("%s-agent", name), "monitoring")
 }
 
-// CreateIntentWithCustomFields creates an intent with custom specification
-func (f *IntentFactory) CreateIntentWithCustomFields(name string, customSpec map[string]interface{}) IntentData {
+// CreateIntentWithCustomFields creates an intent with custom fields
+func (f *IntentFactory) CreateIntentWithCustomFields(name string, customFields map[string]interface{}) IntentData {
 	f.Counter++
 	intent := f.CreateValidIntent(name)
 	
-	// Merge custom fields into spec
-	specMap := make(map[string]interface{})
-	specBytes, _ := json.Marshal(intent.Spec)
-	json.Unmarshal(specBytes, &specMap)
+	// Merge custom fields into intent
+	intentMap := make(map[string]interface{})
+	intentBytes, _ := json.Marshal(intent)
+	json.Unmarshal(intentBytes, &intentMap)
 	
-	for key, value := range customSpec {
-		specMap[key] = value
+	for key, value := range customFields {
+		intentMap[key] = value
 	}
 	
-	// Convert back to Spec (with potential custom fields)
-	specBytes, _ = json.Marshal(specMap)
-	json.Unmarshal(specBytes, &intent.Spec)
+	// Convert back to IntentData (with potential custom fields)
+	intentBytes, _ = json.Marshal(intentMap)
+	json.Unmarshal(intentBytes, &intent)
 	
 	return intent
+}
+
+// CreateInvalidObjectTargetIntent creates intents with object-based targets (should be rejected)
+func (f *IntentFactory) CreateInvalidObjectTargetIntent(name string) []byte {
+	f.Counter++
+	invalid := map[string]interface{}{
+		"intent_type": "scaling",
+		"target": map[string]interface{}{
+			"type": "deployment",
+			"name": name,
+		},
+		"namespace": "default",
+		"replicas":  3,
+	}
+	
+	bytes, _ := json.Marshal(invalid)
+	return bytes
+}
+
+// CreateKubernetesStyleIntent creates intents in Kubernetes CRD style (should be handled differently)
+func (f *IntentFactory) CreateKubernetesStyleIntent(name string) IntentData {
+	f.Counter++
+	apiVersion := "v1"
+	kind := "NetworkIntent"
+	
+	return IntentData{
+		APIVersion: &apiVersion,
+		Kind:       &kind,
+		Metadata: &Metadata{
+			Name:      fmt.Sprintf("%s-%d", name, f.Counter),
+			Namespace: "default",
+			Labels: map[string]string{
+				"app": name,
+			},
+			Timestamp: time.Now().Format(time.RFC3339),
+		},
+		Spec: &Spec{
+			Action: "scale",
+			Target: Target{
+				Type: "deployment",
+				Name: name,
+			},
+			Replicas: 3,
+		},
+	}
 }
 
 // CreateMalformedIntent creates various types of malformed JSON for testing
 func (f *IntentFactory) CreateMalformedIntent(malformationType string) []byte {
 	switch malformationType {
 	case "missing_comma":
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent" "action": "scale"}`)
+		return []byte(`{"intent_type": "scaling", "target": "deployment/test" "namespace": "default"}`)
 	case "missing_closing_brace":
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale"`)
+		return []byte(`{"intent_type": "scaling", "target": "deployment/test", "namespace": "default"`)
 	case "invalid_json_syntax":
-		return []byte(`{apiVersion: "v1", kind: "NetworkIntent", action: "scale"}`)
+		return []byte(`{intent_type: "scaling", target: "deployment/test", namespace: "default"}`)
 	case "trailing_comma":
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale",}`)
+		return []byte(`{"intent_type": "scaling", "target": "deployment/test", "namespace": "default",}`)
 	case "duplicate_keys":
-		return []byte(`{"apiVersion": "v1", "apiVersion": "v2", "kind": "NetworkIntent"}`)
+		return []byte(`{"intent_type": "scaling", "intent_type": "deployment", "target": "deployment/test"}`)
 	case "incomplete_string":
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale`)
+		return []byte(`{"intent_type": "scaling", "target": "deployment/test", "namespace": "default`)
 	case "invalid_escape":
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "invalid\xescape"}`)
+		return []byte(`{"intent_type": "scaling", "target": "deployment/test", "data": "invalid\xescape"}`)
 	default:
 		// Default malformed - missing closing quote
-		return []byte(`{"apiVersion": "v1, "kind": "NetworkIntent", "action": "scale"}`)
+		return []byte(`{"intent_type": "scaling, "target": "deployment/test", "namespace": "default"}`)
 	}
 }
 
@@ -213,16 +243,11 @@ func (f *IntentFactory) CreateMalformedIntent(malformationType string) []byte {
 func (f *IntentFactory) CreateOversizedIntent(targetSize int) []byte {
 	padding := strings.Repeat("x", targetSize-200) // Leave room for JSON structure
 	oversized := map[string]interface{}{
-		"apiVersion": "v1",
-		"kind":       "NetworkIntent",
-		"metadata": map[string]interface{}{
-			"name": "oversized-intent",
-		},
-		"spec": map[string]interface{}{
-			"action": "scale",
-			"target": "deployment/test",
-			"data":   padding,
-		},
+		"intent_type": "scaling",
+		"target":      "deployment/test",
+		"namespace":   "default",
+		"replicas":    3,
+		"data":        padding,
 	}
 	
 	bytes, _ := json.Marshal(oversized)
@@ -233,17 +258,17 @@ func (f *IntentFactory) CreateOversizedIntent(targetSize int) []byte {
 func (f *IntentFactory) CreateSuspiciousIntent(suspiciousType string) []byte {
 	switch suspiciousType {
 	case "path_traversal":
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"target": "../../../etc/passwd"}}`)
+		return []byte(`{"intent_type": "scaling", "target": "../../../etc/passwd", "namespace": "default"}`)
 	case "script_injection":
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"command": "<script>alert('xss')</script>"}}`)
+		return []byte(`{"intent_type": "scaling", "target": "deployment/test", "namespace": "<script>alert('xss')</script>", "command": "<script>alert('xss')</script>"}`)
 	case "sql_injection":
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"query": "'; DROP TABLE users; --"}}`)
+		return []byte(`{"intent_type": "scaling", "target": "deployment/test", "namespace": "'; DROP TABLE users; --", "query": "'; DROP TABLE users; --"}`)
 	case "command_injection":
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"cmd": "ls && rm -rf /"}}`)
+		return []byte(`{"intent_type": "scaling", "target": "deployment/test", "namespace": "default", "cmd": "ls && rm -rf /"}`)
 	case "null_bytes":
-		return []byte("{\x00\"apiVersion\": \"v1\", \"kind\": \"NetworkIntent\"}")
+		return []byte("{\x00\"intent_type\": \"scaling\", \"target\": \"deployment/test\", \"namespace\": \"default\"}")
 	default:
-		return []byte(`{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"suspicious": "payload"}}`)
+		return []byte(`{"intent_type": "scaling", "target": "deployment/test", "namespace": "default", "suspicious": "payload"}`)
 	}
 }
 
@@ -254,7 +279,7 @@ func (f *IntentFactory) CreateDeepNestedIntent(depth int) []byte {
 		nested = fmt.Sprintf(`{"level%d": %s}`, i, nested)
 	}
 	
-	content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"nested": %s}}`, nested)
+	content := fmt.Sprintf(`{"intent_type": "scaling", "target": "deployment/test", "namespace": "default", "nested": %s}`, nested)
 	return []byte(content)
 }
 
@@ -322,8 +347,11 @@ func (f *IntentFactory) CreateConcurrentTestFiles(prefix string, count int, stag
 		intent := f.CreateValidIntent(fmt.Sprintf("%s-concurrent-%d", prefix, i))
 		
 		// Add unique identifiers for tracking concurrent processing
-		intent.Metadata.Annotations["concurrent-test-id"] = fmt.Sprintf("%d", i)
-		intent.Metadata.Annotations["created-at"] = time.Now().Format(time.RFC3339Nano)
+		if intent.Labels == nil {
+			intent.Labels = make(map[string]string)
+		}
+		intent.Labels["concurrent-test-id"] = fmt.Sprintf("%d", i)
+		intent.Labels["created-at"] = time.Now().Format(time.RFC3339Nano)
 		
 		filename := fmt.Sprintf("%s-concurrent-%d.json", prefix, i)
 		filePath, err := f.CreateIntentFile(filename, intent)

@@ -410,4 +410,3 @@ func CreateInvalidTargetIntent(invalidType string) string {
 		return CreateLegacyStringTargetIntent("scale", 1)
 	}
 }
-}
