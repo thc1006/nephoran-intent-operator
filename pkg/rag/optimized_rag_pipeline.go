@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build !test
 
 package rag
 
@@ -468,9 +468,9 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 // executeBatchSearch performs optimized batch search
 func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests []*RAGRequest) ([]*RAGResponse, error) {
 	// Convert to search queries
-	searchQueries := make([]*SearchQuery, len(requests))
+	searchQueries := make([]*shared.SearchQuery, len(requests))
 	for i, request := range requests {
-		searchQueries[i] = &SearchQuery{
+		searchQueries[i] = &shared.SearchQuery{
 			Query:         request.Query,
 			Limit:         request.MaxResults,
 			Filters:       request.SearchFilters,
@@ -495,12 +495,21 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 	// Convert to RAG responses
 	ragResponses := make([]*RAGResponse, len(batchResponse.Results))
 	for i, searchResponse := range batchResponse.Results {
+		// Convert shared.SearchResult to local SearchResult for confidence calculation
+		localResults := make([]*SearchResult, len(searchResponse.Results))
+		for j, sharedResult := range searchResponse.Results {
+			localResults[j] = &SearchResult{
+				Score:    sharedResult.Score,
+				Document: sharedResult.Document,
+			}
+		}
+		
 		ragResponses[i] = &RAGResponse{
 			Answer:          "",
 			SourceDocuments: make([]*shared.SearchResult, len(searchResponse.Results)),
-			Confidence:      p.calculateAggregateConfidence(searchResponse.Results),
-			ProcessingTime:  searchResponse.Took,
-			RetrievalTime:   searchResponse.Took,
+			Confidence:      p.calculateAggregateConfidence(localResults),
+			ProcessingTime:  time.Duration(searchResponse.Took) * time.Millisecond,
+			RetrievalTime:   time.Duration(searchResponse.Took) * time.Millisecond,
 			Query:           requests[i].Query,
 			ProcessedAt:     time.Now(),
 		}

@@ -133,22 +133,8 @@ type SearchResponse struct {
 	Query   string          `json:"query"`
 }
 
-// Missing types for compilation
-type OptimizedRAGPipeline struct {
-	// Placeholder for optimized pipeline
-}
-
-type OptimizedRAGService struct {
-	// Placeholder for optimized service
-}
-
-type OptimizedRAGConfig struct {
-	// Placeholder for optimized config
-}
-
-type OptimizedRAGMetrics struct {
-	// Placeholder for optimized metrics
-}
+// Note: OptimizedRAGPipeline, OptimizedRAGService, OptimizedRAGConfig, and OptimizedRAGMetrics
+// are defined in their respective files to avoid redeclaration errors
 
 // Note: ProcessedChunk and DocumentChunk are defined in their respective files
 // to avoid redeclaration errors

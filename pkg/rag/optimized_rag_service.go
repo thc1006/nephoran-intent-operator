@@ -1,4 +1,4 @@
-//go:build ignore
+//go:build !test
 
 package rag
 
@@ -247,7 +247,8 @@ func (ors *OptimizedRAGService) ProcessQuery(ctx context.Context, request *RAGRe
 	}
 
 	// Cache miss - process query with error handling
-	response, err := ors.errorHandler.ExecuteWithErrorHandling(
+	var response *RAGResponse
+	err := ors.errorHandler.ExecuteWithErrorHandling(
 		ctx,
 		"rag-service",
 		"ProcessQuery",
@@ -310,8 +311,9 @@ func (ors *OptimizedRAGService) processQueryWithOptimizations(ctx context.Contex
 
 	var searchResponse *SearchResponse
 	err := ors.weaviatePool.ExecuteWithRetry(ctx, func(client *weaviate.Client) error {
-		// This would use the actual Weaviate client to perform the search
+		// This would use the actual Weaviate client to perform the search with searchQuery
 		// For now, we'll simulate the response
+		_ = searchQuery // TODO: Use searchQuery when implementing actual Weaviate search
 		searchResponse = &SearchResponse{
 			Results: []*SearchResult{},
 			Total:   0,
@@ -332,11 +334,11 @@ func (ors *OptimizedRAGService) processQueryWithOptimizations(ctx context.Contex
 
 	// Step 2: Convert results and prepare context
 	sharedResults := ors.convertToSharedResults(searchResponse.Results)
-	context, contextMetadata := ors.prepareOptimizedContext(sharedResults, request)
+	contextStr, contextMetadata := ors.prepareOptimizedContext(sharedResults, request)
 
 	// Step 3: Generate response using LLM with error handling
 	generationStart := time.Now()
-	llmPrompt := ors.buildEnhancedLLMPrompt(request.Query, context, request.IntentType)
+	llmPrompt := ors.buildEnhancedLLMPrompt(request.Query, contextStr, request.IntentType)
 
 	var llmResponse string
 	err = ors.errorHandler.ExecuteWithErrorHandling(
@@ -374,7 +376,7 @@ func (ors *OptimizedRAGService) processQueryWithOptimizations(ctx context.Contex
 		IntentType:      request.IntentType,
 		ProcessedAt:     time.Now(),
 		Metadata: map[string]interface{}{
-			"context_length":       len(context),
+			"context_length":       len(contextStr),
 			"documents_used":       len(searchResponse.Results),
 			"search_took":          searchResponse.Took,
 			"context_metadata":     contextMetadata,
@@ -427,7 +429,7 @@ func (ors *OptimizedRAGService) tryMultiLevelCache(ctx context.Context, cacheKey
 			}
 
 			// Store in memory cache for faster future access
-			ors.memoryCache.SetWithCategory(cacheKey, response, "query_result", ors.config.DefaultTTL, nil)
+			ors.memoryCache.SetWithCategory(cacheKey, response, "query_result", ors.config.RAGConfig.CacheTTL, nil)
 
 			ors.prometheusMetrics.RecordRedisCacheHit("query_result")
 			ors.updateMetrics(func(m *OptimizedRAGMetrics) {
@@ -444,7 +446,7 @@ func (ors *OptimizedRAGService) tryMultiLevelCache(ctx context.Context, cacheKey
 
 func (ors *OptimizedRAGService) storeInMultiLevelCache(ctx context.Context, cacheKey string, response *RAGResponse, request *RAGRequest) {
 	// Store in memory cache
-	err := ors.memoryCache.SetWithCategory(cacheKey, response, "query_result", ors.config.DefaultTTL, map[string]interface{}{
+	err := ors.memoryCache.SetWithCategory(cacheKey, response, "query_result", ors.config.RAGConfig.CacheTTL, map[string]interface{}{
 		"intent_type": request.IntentType,
 		"quality":     response.Metadata["response_quality"],
 	})
@@ -810,7 +812,7 @@ func (ors *OptimizedRAGService) buildSearchQuery(request *RAGRequest) *SearchQue
 		Limit:         request.MaxResults,
 		Filters:       request.SearchFilters,
 		HybridSearch:  request.UseHybridSearch,
-		HybridAlpha:   ors.config.DefaultHybridAlpha,
+		HybridAlpha:   &ors.config.RAGConfig.DefaultHybridAlpha,
 		UseReranker:   request.EnableReranking && ors.config.EnableReranking,
 		MinConfidence: request.MinConfidence,
 		ExpandQuery:   ors.config.EnableQueryExpansion,
