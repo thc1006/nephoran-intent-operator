@@ -142,7 +142,13 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 				statusFiles, err := os.ReadDir(statusDir)
 				require.NoError(t, err)
 				assert.Len(t, statusFiles, 1)
-				assert.Contains(t, statusFiles[0].Name(), "intent-scale.json")
+				
+				// Status file should follow pattern: intent-scale-YYYYMMDD-HHMMSS.status
+				// Rather than checking filename contains original filename, check content
+				statusContent, err := os.ReadFile(filepath.Join(statusDir, statusFiles[0].Name()))
+				require.NoError(t, err)
+				statusStr := string(statusContent)
+				assert.Contains(t, statusStr, `"intent_file": "intent-scale.json"`)
 
 				// Verify original file is gone
 				originalFile := filepath.Join(handoffDir, "intent-scale.json")
