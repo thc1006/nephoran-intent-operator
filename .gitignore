@@ -214,6 +214,11 @@ hadolint-*
 # CI/CD artifacts
 .github/workflows/*.log
 .gitlab-ci-local/
+.claude/CI_error/
+.claude/ci-diagnostics/
+CI_error/
+ci-logs/
+ci-diagnostics/
 
 # -----------------------------------------------------------------------------
 # MCP and AI Tools

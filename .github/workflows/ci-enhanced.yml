@@ -337,6 +337,89 @@ jobs:
             Get-Content test-results/coverage-summary.txt -Tail 5
           }
           
+      - name: Collect CI Diagnostics on Failure (Unix)
+        if: failure() && runner.os != 'Windows'
+        run: |
+          echo "📋 Collecting diagnostics for failed test run..."
+          mkdir -p ci-diagnostics
+          
+          # Copy test results if they exist
+          if [ -d "test-results" ]; then
+            cp -r test-results ci-diagnostics/ 2>/dev/null || true
+          fi
+          
+          # Collect environment information
+          echo "=== Environment Info ===" > ci-diagnostics/environment.txt
+          echo "OS: ${{ runner.os }}" >> ci-diagnostics/environment.txt
+          echo "Go Version: ${{ matrix.go-version }}" >> ci-diagnostics/environment.txt
+          echo "Runner: ${{ matrix.os }}" >> ci-diagnostics/environment.txt
+          echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> ci-diagnostics/environment.txt
+          echo "GitHub Run ID: ${{ github.run_id }}" >> ci-diagnostics/environment.txt
+          echo "GitHub Run Number: ${{ github.run_number }}" >> ci-diagnostics/environment.txt
+          go version >> ci-diagnostics/environment.txt 2>&1 || true
+          go env >> ci-diagnostics/environment.txt 2>&1 || true
+          
+          # Collect go module information
+          echo "=== Go Modules ===" > ci-diagnostics/go-modules.txt
+          go list -m all >> ci-diagnostics/go-modules.txt 2>&1 || true
+          
+          # System diagnostics
+          echo "=== System Info ===" > ci-diagnostics/system.txt
+          uname -a >> ci-diagnostics/system.txt 2>&1 || true
+          df -h >> ci-diagnostics/system.txt 2>&1 || true
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            free -h >> ci-diagnostics/system.txt 2>&1 || true
+          fi
+          
+          echo "✅ Diagnostics collected in ci-diagnostics/"
+          ls -la ci-diagnostics/ || true
+        shell: bash
+        continue-on-error: true
+        
+      - name: Collect CI Diagnostics on Failure (Windows)
+        if: failure() && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "📋 Collecting diagnostics for failed test run..."
+          New-Item -ItemType Directory -Path ci-diagnostics -Force | Out-Null
+          
+          # Copy test results if they exist
+          if (Test-Path "test-results") {
+            Copy-Item -Path test-results -Destination ci-diagnostics/ -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          
+          # Collect environment information
+          @"
+=== Environment Info ===
+OS: ${{ runner.os }}
+Go Version: ${{ matrix.go-version }}
+Runner: ${{ matrix.os }}
+Timestamp: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss UTC')
+GitHub Run ID: ${{ github.run_id }}
+GitHub Run Number: ${{ github.run_number }}
+"@ | Out-File ci-diagnostics/environment.txt
+          
+          go version 2>&1 | Out-File ci-diagnostics/environment.txt -Append
+          go env 2>&1 | Out-File ci-diagnostics/environment.txt -Append
+          
+          # Collect go module information
+          "=== Go Modules ===" | Out-File ci-diagnostics/go-modules.txt
+          go list -m all 2>&1 | Out-File ci-diagnostics/go-modules.txt -Append
+          
+          # System diagnostics
+          @"
+=== System Info ===
+Computer Name: $env:COMPUTERNAME
+OS Version: $([System.Environment]::OSVersion.VersionString)
+Processor Count: $([System.Environment]::ProcessorCount)
+"@ | Out-File ci-diagnostics/system.txt
+          
+          Get-PSDrive -PSProvider FileSystem | Out-File ci-diagnostics/system.txt -Append
+          
+          Write-Host "✅ Diagnostics collected in ci-diagnostics/"
+          Get-ChildItem ci-diagnostics/ -ErrorAction SilentlyContinue
+        continue-on-error: true
+          
       - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -344,7 +427,9 @@ jobs:
           name: test-results-${{ matrix.os }}-${{ github.run_id }}
           path: |
             test-results/
-          retention-days: 7
+            ci-diagnostics/
+          retention-days: 30
+          if-no-files-found: warn
           
   # =============================================================================
   # Build Verification
