@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -420,9 +421,23 @@ func TestWatcher_FailureScenarios(t *testing.T) {
 				require.NoError(t, err)
 				assert.Len(t, processedFiles, 1)
 				
-				// Verify status file was created
-				statusFile := filepath.Join(tempDir, "status", filepath.Base(testFile)+".status")
-				assert.FileExists(t, statusFile)
+				// Verify status file was created (with timestamp pattern)
+				statusDir := filepath.Join(tempDir, "status")
+				statusFiles, err := os.ReadDir(statusDir)
+				require.NoError(t, err)
+				assert.Greater(t, len(statusFiles), 0, "Should have at least one status file")
+				
+				// Check that status file follows the expected naming pattern
+				baseNameWithoutExt := strings.TrimSuffix(filepath.Base(testFile), filepath.Ext(filepath.Base(testFile)))
+				expectedPattern := fmt.Sprintf("%s-\\d{8}-\\d{6}\\.status", regexp.QuoteMeta(baseNameWithoutExt))
+				found := false
+				for _, file := range statusFiles {
+					if matched, _ := regexp.MatchString(expectedPattern, file.Name()); matched {
+						found = true
+						break
+					}
+				}
+				assert.True(t, found, "Should find status file matching pattern %s", expectedPattern)
 			}
 
 			if tt.expectedFailed {
@@ -448,7 +463,7 @@ func TestWatcher_CleanupRoutine(t *testing.T) {
 		Mode:        porch.ModeDirect,
 		OutDir:      outDir,
 		MaxWorkers:  1,
-		CleanupAfter: 100 * time.Millisecond, // Very short for testing
+		CleanupAfter: 2 * time.Hour, // Minimum valid duration for testing
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -556,9 +571,23 @@ func TestWatcher_StatusFileGeneration(t *testing.T) {
 	err = watcher.Start()
 	require.NoError(t, err)
 
-	// Verify status file was created
-	statusFile := filepath.Join(tempDir, "status", "intent-status-test.json.status")
-	assert.FileExists(t, statusFile)
+	// Verify status file was created (with timestamp pattern)
+	statusDir := filepath.Join(tempDir, "status")
+	statusFiles, err := os.ReadDir(statusDir)
+	require.NoError(t, err)
+	assert.Greater(t, len(statusFiles), 0, "Should have at least one status file")
+	
+	// Find the status file with expected pattern
+	baseNameWithoutExt := "intent-status-test"
+	expectedPattern := fmt.Sprintf("%s-\\d{8}-\\d{6}\\.status", regexp.QuoteMeta(baseNameWithoutExt))
+	var statusFile string
+	for _, file := range statusFiles {
+		if matched, _ := regexp.MatchString(expectedPattern, file.Name()); matched {
+			statusFile = filepath.Join(statusDir, file.Name())
+			break
+		}
+	}
+	assert.NotEmpty(t, statusFile, "Should find status file matching pattern %s", expectedPattern)
 
 	// Verify status file content
 	statusContent, err := os.ReadFile(statusFile)

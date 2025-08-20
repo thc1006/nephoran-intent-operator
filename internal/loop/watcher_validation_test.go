@@ -608,7 +608,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 		{
 			name:        "missing_legacy_fields",
 			content:     `{"intent_type": "scaling", "target": "app"}`,
-			expectedErr: "missing required field: namespace",
+			expectedErr: "missing or null required field: namespace",
 			desc:        "Missing required fields in legacy format",
 		},
 	}

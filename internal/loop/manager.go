@@ -5,9 +5,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 )
 
 // FileManager manages the organization and movement of processed files
@@ -37,6 +39,47 @@ func NewFileManager(baseDir string) (*FileManager, error) {
 	return fm, nil
 }
 
+// sanitizeErrorMessage removes control characters, path traversal sequences, and other potentially dangerous content from error messages
+func sanitizeErrorMessage(msg string) string {
+	// Remove path traversal sequences first
+	pathTraversalRegex := regexp.MustCompile(`\.\.[\\/]`)
+	msg = pathTraversalRegex.ReplaceAllString(msg, "")
+	
+	// Replace control characters (including null bytes) with placeholders, except newlines and tabs
+	var sanitized strings.Builder
+	for _, r := range msg {
+		if r == '\n' || r == '\t' || r == '\r' {
+			sanitized.WriteRune(r)
+		} else if unicode.IsControl(r) || r == 0 {
+			// Replace control characters (including null bytes) with a placeholder
+			sanitized.WriteString("[?]")
+		} else {
+			sanitized.WriteRune(r)
+		}
+	}
+	
+	result := sanitized.String()
+	
+	// Remove multiple consecutive newlines
+	result = regexp.MustCompile(`\n{3,}`).ReplaceAllString(result, "\n\n")
+	
+	// Trim excessive whitespace
+	result = strings.TrimSpace(result)
+	
+	// Truncate overly long messages after processing
+	const maxLength = 1024
+	if len(result) > maxLength {
+		result = result[:maxLength] + "...[truncated]"
+	}
+	
+	// If the message is empty after sanitization, provide a default
+	if result == "" {
+		result = "[error message sanitized]"
+	}
+	
+	return result
+}
+
 // ensureDirectories creates the processed and failed directories if they don't exist
 func (fm *FileManager) ensureDirectories() error {
 	dirs := []string{fm.processedDir, fm.failedDir}
@@ -63,13 +106,16 @@ func (fm *FileManager) MoveToFailed(filePath string, errorMsg string) error {
 	fm.mu.Lock()
 	defer fm.mu.Unlock()
 	
+	// Sanitize the error message before persisting
+	sanitizedError := sanitizeErrorMessage(errorMsg)
+	
 	// Move the file to failed directory
 	if err := fm.moveFileToDirectory(filePath, fm.failedDir); err != nil {
 		return err
 	}
 	
-	// Create error log file
-	return fm.createErrorLog(filePath, errorMsg)
+	// Create error log file with sanitized error
+	return fm.createErrorLog(filePath, sanitizedError)
 }
 
 // moveFileToDirectory atomically moves a file to a target directory

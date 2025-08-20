@@ -2348,10 +2348,12 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) {
 		return
 	}
 	
-	// Create versioned status filename based on intent filename
+	// Create versioned status filename based on intent filename (without extension)
 	baseName := filepath.Base(intentFile)
+	// Strip the extension before adding timestamp
+	baseNameWithoutExt := strings.TrimSuffix(baseName, filepath.Ext(baseName))
 	timestamp := time.Now().Format("20060102-150405")
-	statusFile := filepath.Join(w.dir, "status", fmt.Sprintf("%s-%s.status", baseName, timestamp))
+	statusFile := filepath.Join(w.dir, "status", fmt.Sprintf("%s-%s.status", baseNameWithoutExt, timestamp))
 	
 	// Ensure status directory exists using path utility
 	if err := pathutil.EnsureParentDir(statusFile); err != nil {

@@ -66,6 +66,10 @@ type IntentProcessor struct {
 	stopCh     chan struct{}   // Stop signal for coordinator
 	coordReady chan struct{}   // Signals coordinator is ready
 	
+	// Task tracking for graceful shutdown
+	taskWg     sync.WaitGroup  // Tracks in-flight tasks
+	tasksQueued atomic.Int64    // Number of tasks queued
+	
 	// Stats tracking (atomic for thread safety)
 	processedCount      int64
 	failedCount         int64
@@ -134,6 +138,10 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 		return nil
 	}
 
+	// Track this task
+	p.taskWg.Add(1)
+	p.tasksQueued.Add(1)
+
 	// Use configured timeout or default
 	sendTimeout := p.config.SendTimeout
 	if sendTimeout == 0 {
@@ -143,20 +151,38 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 		}
 	}
 
-	// Send to batch coordinator via channel
+	// Try to send with exponential backoff
+	backoff := time.Millisecond * 100
+	maxBackoff := sendTimeout / 2
+	deadline := time.Now().Add(sendTimeout)
+	
+	for time.Now().Before(deadline) {
+		select {
+		case p.inCh <- filename:
+			// Successfully queued
+			return nil
+		case <-p.ctx.Done():
+			p.taskWg.Done()
+			p.tasksQueued.Add(-1)
+			return fmt.Errorf("processor is shutting down")
+		default:
+			// Channel full, wait with backoff
+			time.Sleep(backoff)
+			backoff = backoff * 2
+			if backoff > maxBackoff {
+				backoff = maxBackoff
+			}
+		}
+	}
+	
+	// Last attempt before giving up
 	select {
 	case p.inCh <- filename:
 		return nil
-	case <-p.ctx.Done():
-		return fmt.Errorf("processor is shutting down")
-	case <-time.After(sendTimeout):
-		// Try non-blocking send as last resort
-		select {
-		case p.inCh <- filename:
-			return nil
-		default:
-			return fmt.Errorf("timeout sending file to batch coordinator (buffer full after %v)", sendTimeout)
-		}
+	default:
+		p.taskWg.Done()
+		p.tasksQueued.Add(-1)
+		return fmt.Errorf("timeout sending file to batch coordinator (buffer full after %v)", sendTimeout)
 	}
 }
 
@@ -173,6 +199,9 @@ func (p *IntentProcessor) processBatch(files []string) {
 			log.Printf("Error processing %s: %v", file, err)
 			// Continue processing other files
 		}
+		// Mark task as complete
+		p.taskWg.Done()
+		p.tasksQueued.Add(-1)
 	}
 }
 
@@ -344,9 +373,17 @@ func (p *IntentProcessor) StartBatchProcessor() {
 // Stop stops the processor and waits for all goroutines to finish
 func (p *IntentProcessor) Stop() {
 	p.MarkGracefulShutdown()
+	
+	// Wait for all tasks to be processed
+	log.Printf("Waiting for %d queued tasks to complete...", p.tasksQueued.Load())
+	p.taskWg.Wait()
+	
+	// Now safe to stop the coordinator
 	close(p.stopCh)  // Signal coordinator to stop
 	p.cancel()        // Cancel context
 	p.wg.Wait()       // Wait for all goroutines
+	
+	log.Printf("Processor stopped gracefully")
 }
 
 // DefaultPorchSubmit is the default porch submission function
