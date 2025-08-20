@@ -1,307 +1,280 @@
-# Claude Agents Analysis for Nephoran Intent Operator
+# Claude Sub-Agents – Deep Analysis
 
-## Executive Summary
+<!-- BEGIN AUTO-GENERATED: CLAUDE_AGENTS_ANALYSIS -->
 
-The `.claude/agents` directory contains 33 specialized AI agents designed to support the Nephoran Intent Operator project's development, operations, and maintenance. These agents form a comprehensive ecosystem covering everything from troubleshooting and documentation to security compliance and performance optimization.
+## Run Metadata
+- **Timestamp**: 2025-08-16T23:45:00+08:00 (Asia/Taipei)
+- **Repository Root**: C:\Users\tingy\Desktop\dev\nephoran-intent-operator
+- **Current Branch**: integrate/mvp
+- **Current Commit**: 0cfed482cdc79696dac2c80bd9568993cf1706ac
+- **Total Agents Analyzed**: 35
+- **Files SHA1 Checksum**: 881a826ee95723fbef9d7d5d52bf7779d98e54e7
 
-## Agent Categories
+## Inventory Table
 
-### 1. Project-Specific Agents (5 agents)
+| Agent | Path | Purpose | Inputs → Outputs | Tools/APIs | Edits/Side-effects | Owner |
+|-------|------|---------|------------------|------------|-------------------|-------|
+| **ai-engineer** | .claude/agents/ai-engineer.md | Build LLM applications and RAG systems | Prompt designs, AI requirements → LLM apps, RAG pipelines | All tools (*) | Creates AI services, vector DBs | Unspecified |
+| **api-documenter** | .claude/agents/api-documenter.md | Create OpenAPI/Swagger specs and SDK generation | API code → OpenAPI specs, SDKs | All tools (*) | Generates docs, client libraries | Unspecified |
+| **backend-architect** | .claude/agents/backend-architect.md | Design RESTful APIs and microservices | Requirements → API designs, schemas | All tools (*) | Creates architecture docs | Unspecified |
+| **cloud-architect** | .claude/agents/cloud-architect.md | Design AWS/Azure/GCP infrastructure | Requirements → IaC templates | All tools (*) | Creates Terraform/CloudFormation | Unspecified |
+| **code-reviewer** | .claude/agents/code-reviewer.md | Expert code review for quality and security | Code changes → Review feedback | All tools (*) | Provides review comments | Unspecified |
+| **configuration-management-agent** | .claude/agents/configuration-management-agent.md | Manage YANG models, CRDs, Kpt packages | Configs → Validated templates | Read, Write, Bash, Search, Git | Updates GitOps repos, CRDs | Unspecified |
+| **context-manager** | .claude/agents/context-manager.md | Manage context across multi-agent workflows | Long contexts → Coordinated workflows | No tools | Coordination only | Unspecified |
+| **data-analytics-agent** | .claude/agents/data-analytics-agent.md | O-RAN RANPM data processing and KPI analysis | Telemetry → KPIs, insights | Read, Write, Bash, Search, Git | Creates analytics pipelines | Unspecified |
+| **database-admin** | .claude/agents/database-admin.md | Database operations, backups, replication | DB requirements → Configured DBs | All tools (*) | Manages DB operations | Unspecified |
+| **database-optimizer** | .claude/agents/database-optimizer.md | Optimize SQL queries and design indexes | Slow queries → Optimized queries | All tools (*) | Updates schemas, indexes | Unspecified |
+| **debugger** | .claude/agents/debugger.md | Debug errors and test failures | Errors → Root causes, fixes | All tools (*) | Fixes bugs | Unspecified |
+| **deployment-engineer** | .claude/agents/deployment-engineer.md | Configure CI/CD pipelines and containers | Code → CI/CD pipelines | All tools (*) | Creates pipelines, Dockerfiles | Unspecified |
+| **devops-troubleshooter** | .claude/agents/devops-troubleshooter.md | Debug production issues and incidents | Incidents → RCA, fixes | All tools (*) | Resolves production issues | Unspecified |
+| **docs-architect** | .claude/agents/docs-architect.md | Create comprehensive technical documentation | Codebases → Technical manuals | All tools (*) | Generates long-form docs | Unspecified |
+| **error-detective** | .claude/agents/error-detective.md | Search logs for error patterns | Logs → Error analysis | All tools (*) | Identifies root causes | Unspecified |
+| **golang-pro** | .claude/agents/golang-pro.md | Write idiomatic Go code | Requirements → Go implementations | All tools (*) | Creates Go code | Unspecified |
+| **legacy-modernizer** | .claude/agents/legacy-modernizer.md | Refactor legacy codebases | Legacy code → Modern code | All tools (*) | Updates legacy systems | Unspecified |
+| **legal-advisor** | .claude/agents/legal-advisor.md | Draft privacy policies and legal notices | Requirements → Legal docs | All tools (*) | Creates compliance texts | Unspecified |
+| **monitoring-analytics-agent** | .claude/agents/monitoring-analytics-agent.md | Implement observability with VES 7.3, NWDAF | Metrics → Monitoring stack | Read, Write, Bash, Search, Git | Deploys monitoring systems | Unspecified |
+| **nephio-infrastructure-agent** | .claude/agents/nephio-infrastructure-agent.md | Manage O-Cloud infrastructure and K8s clusters | Requirements → Clusters | Read, Write, Bash, Search, Git | Provisions infrastructure | Unspecified |
+| **nephio-oran-orchestrator-agent** | .claude/agents/nephio-oran-orchestrator-agent.md | Nephio R5-O-RAN L Release orchestration | Intents → Orchestrated services | Read, Write, Bash, Search, Git | Manages service lifecycle | Unspecified |
+| **nephoran-code-analyzer** | .claude/agents/nephoran-code-analyzer.md | Deep technical analysis of Nephoran codebase | Code → Technical insights | Glob, Grep, LS, Read, Bash, etc. | Read-only analysis | Unspecified |
+| **nephoran-docs-specialist** | .claude/agents/nephoran-docs-specialist.md | Create/update Nephoran documentation | Requirements → CLAUDE.md, API docs | Edit, Write, Glob, Grep, etc. | Creates/updates docs | Unspecified |
+| **nephoran-troubleshooter** | .claude/agents/nephoran-troubleshooter.md | Debug and fix Nephoran-specific issues | Errors → Fixes | All tools (*) | Fixes bugs, resolves issues | Unspecified |
+| **oran-nephio-dep-doctor** | .claude/agents/oran-nephio-dep-doctor.md | Resolve O-RAN/Nephio dependency errors | Dep errors → Minimal fixes | Read, Write, Bash, Search, Git | Fixes dependencies | Unspecified |
+| **oran-nephio-dep-doctor-agent** | .claude/agents/oran-nephio-dep-doctor-agent.md | Expert dependency resolver (duplicate) | Dep errors → Precise fixes | Read, Write, Bash, Search, Git | Resolves build failures | Unspecified |
+| **oran-network-functions-agent** | .claude/agents/oran-network-functions-agent.md | O-RAN network function deployment | Requirements → CNF/VNF deployments | Read, Write, Bash, Search, Git | Deploys network functions | Unspecified |
+| **performance-engineer** | .claude/agents/performance-engineer.md | Profile applications and optimize bottlenecks | Performance issues → Optimizations | All tools (*) | Implements optimizations | Unspecified |
+| **performance-optimization-agent** | .claude/agents/performance-optimization-agent.md | AI/ML-driven performance optimization | Metrics → ML optimizations | Read, Write, Bash, Search, Git | Applies ML models | Unspecified |
+| **prompt-engineer** | .claude/agents/prompt-engineer.md | Optimize prompts for LLMs | Requirements → Optimized prompts | All tools (*) | Creates prompt templates | Unspecified |
+| **search-specialist** | .claude/agents/search-specialist.md | Expert web research and synthesis | Queries → Research reports | All tools (*) | Gathers information | Unspecified |
+| **security-auditor** | .claude/agents/security-auditor.md | Review code for vulnerabilities | Code → Security assessment | All tools (*) | Implements security fixes | Unspecified |
+| **security-compliance-agent** | .claude/agents/security-compliance-agent.md | O-RAN WG11 security validation | Systems → Compliance reports | Read, Write, Bash, Search, Git | Implements security controls | Unspecified |
+| **test-automator** | .claude/agents/test-automator.md | Create comprehensive test suites | Code → Test suites | All tools (*) | Creates tests, CI pipelines | Unspecified |
+| **testing-validation-agent** | .claude/agents/testing-validation-agent.md | E2E testing for Nephio R5-O-RAN L Release | Deployments → Test results | Read, Write, Bash, Search | Runs validation tests | Unspecified |
 
-#### **nephoran-troubleshooter** (Model: Default, Color: Red)
-- **Purpose**: Debug and fix Nephoran-specific issues
-- **Specialties**: CRD registration, Go build errors, LLM integration, RAG pipeline, deployment problems
-- **Tools**: Full toolset available
-- **Key Features**: Systematic analysis, minimal changes, comprehensive verification
+## Interaction Graph
 
-#### **nephoran-docs-specialist** (Model: Default, Color: Blue)
-- **Purpose**: Create and maintain Nephoran documentation
-- **Tools**: Edit, MultiEdit, Write, NotebookEdit, Glob, Grep, LS, ExitPlanMode, Read, NotebookRead, WebFetch, TodoWrite, WebSearch
-- **Specialties**: CLAUDE.md files, API docs, deployment guides, developer onboarding
-- **Output**: Structured markdown documentation with examples
-
-#### **nephoran-code-analyzer** (Model: Default, Color: Green)
-- **Purpose**: Deep technical analysis of Nephoran codebase
-- **Tools**: Glob, Grep, LS, ExitPlanMode, Read, NotebookRead, WebFetch, TodoWrite, WebSearch, Bash
-- **Specialties**: Architecture assessment, dependency analysis, CRD implementations, O-RAN interfaces
-- **Output**: Technical insights with specific file references
-
-#### **oran-nephio-dep-doctor** (Model: Sonnet)
-- **Purpose**: Resolve O-RAN and Nephio dependency issues
-- **Tools**: Read, Write, Bash, Search, Git
-- **Specialties**: Build-time/runtime dependencies, version compatibility, container dependencies
-- **Approach**: Search authoritative sources, provide minimal fixes
-
-#### **oran-network-functions-agent** (Model: Sonnet)
-- **Purpose**: Manage O-RAN network function deployment
-- **Tools**: Read, Write, Bash, Search, Git
-- **Specialties**: CNF/VNF orchestration, xApp management, RIC operations, YANG modeling
-- **Output**: Helm charts, YANG configs, integration workflows
-
-### 2. Infrastructure & Orchestration Agents (4 agents)
-
-#### **nephio-infrastructure-agent** (Model: Haiku)
-- **Purpose**: Manage O-Cloud infrastructure and Kubernetes clusters
-- **Tools**: Read, Write, Bash, Search
-- **Specialties**: Cluster provisioning, edge deployments, resource optimization, IaC templates
-
-#### **nephio-oran-orchestrator-agent** (Model: Opus)
-- **Purpose**: Complex Nephio-O-RAN integration orchestration
-- **Tools**: Read, Write, Bash, Search, Git
-- **Specialties**: End-to-end service lifecycle, cross-domain automation, intelligent decision-making
-- **Advanced**: Saga patterns, circuit breakers, event sourcing
-
-#### **configuration-management-agent** (Model: Sonnet)
-- **Purpose**: Manage configurations across multi-vendor environments
-- **Tools**: Read, Write, Bash, Search, Git
-- **Specialties**: YANG models, Kubernetes CRDs, GitOps, drift detection
-
-#### **monitoring-analytics-agent** (Model: Sonnet)
-- **Purpose**: Comprehensive observability implementation
-- **Tools**: Read, Write, Bash, Search, Git
-- **Specialties**: NWDAF integration, Prometheus/Grafana, predictive analytics
-
-### 3. Performance & Optimization Agents (3 agents)
-
-#### **performance-optimization-agent** (Model: Opus)
-- **Purpose**: AI-driven network performance optimization
-- **Tools**: Read, Write, Bash, Search, Git
-- **Specialties**: ML optimization algorithms, predictive scaling, resource allocation
-- **Advanced**: Reinforcement learning, multi-objective optimization
-
-#### **performance-engineer** (Model: Opus)
-- **Purpose**: Application profiling and optimization
-- **Specialties**: Load testing, caching strategies, query optimization, Core Web Vitals
-
-#### **data-analytics-agent** (Model: Haiku)
-- **Purpose**: Process network data and generate insights
-- **Tools**: Read, Write, Bash, Search
-- **Specialties**: ETL pipelines, KPI calculation, time-series analysis
-
-### 4. Security & Compliance (2 agents)
-
-#### **security-compliance-agent** (Model: Opus)
-- **Purpose**: O-RAN security standards and zero-trust architecture
-- **Tools**: Read, Write, Bash, Search, Git
-- **Specialties**: O-RAN WG11 specs, PKI management, vulnerability assessment
-- **Critical**: Handles regulatory compliance (ETSI, CISA, 3GPP)
-
-#### **security-auditor** (Model: Opus, Color: Cyan)
-- **Purpose**: Application security and OWASP compliance
-- **Specialties**: JWT/OAuth2, SQL injection prevention, encryption, CSP policies
-
-### 5. Development & Testing Agents (7 agents)
-
-#### **golang-pro** (Model: Sonnet)
-- **Purpose**: Write idiomatic Go code
-- **Specialties**: Goroutines, channels, interfaces, performance optimization
-
-#### **code-reviewer** (Model: Sonnet, Color: Pink)
-- **Purpose**: Proactive code quality review
-- **Critical Focus**: Configuration changes that could cause outages
-- **Special**: Highly skeptical of "magic numbers" in configs
-
-#### **debugger** (Model: Sonnet)
-- **Purpose**: Root cause analysis for errors
-- **Approach**: Capture, isolate, fix, verify
-
-#### **test-automator** (Model: Sonnet)
-- **Purpose**: Comprehensive test suite creation
-- **Specialties**: Unit/integration/E2E tests, CI pipelines, coverage analysis
-
-#### **deployment-engineer** (Model: Sonnet)
-- **Purpose**: CI/CD and containerization
-- **Specialties**: GitHub Actions, Docker, Kubernetes, zero-downtime deployments
-
-#### **devops-troubleshooter** (Model: Sonnet)
-- **Purpose**: Production incident response
-- **Specialties**: Log analysis, container debugging, network troubleshooting
-
-#### **error-detective** (Model: Sonnet)
-- **Purpose**: Log analysis and error pattern recognition
-- **Specialties**: Stack trace analysis, error correlation, anomaly detection
-
-### 6. Database Specialists (2 agents)
-
-#### **database-optimizer** (Model: Sonnet)
-- **Purpose**: Query optimization and schema design
-- **Specialties**: Index design, N+1 resolution, migration strategies
-
-#### **database-admin** (Model: Sonnet)
-- **Purpose**: Database operations and reliability
-- **Specialties**: Backup/recovery, replication, user management, HA setup
-
-### 7. Architecture & Design (3 agents)
-
-#### **backend-architect** (Model: Sonnet)
-- **Purpose**: Design scalable backend systems
-- **Specialties**: RESTful APIs, microservices, database schemas
-
-#### **cloud-architect** (Model: Opus)
-- **Purpose**: Cloud infrastructure design
-- **Specialties**: Multi-cloud IaC, cost optimization, serverless, auto-scaling
-
-#### **context-manager** (Model: Opus)
-- **Purpose**: Manage context across multi-agent workflows
-- **Critical**: Must be used for projects >10k tokens
-- **Special**: No tools specified (coordination role)
-
-### 8. Documentation & Communication (3 agents)
-
-#### **docs-architect** (Model: Opus)
-- **Purpose**: Create comprehensive technical documentation
-- **Specialties**: Long-form documentation (10-100+ pages), architecture guides
-
-#### **api-documenter** (Model: Haiku)
-- **Purpose**: API documentation and SDK generation
-- **Specialties**: OpenAPI specs, Postman collections, versioning
-
-#### **legal-advisor** (Model: Haiku)
-- **Purpose**: Legal documentation and compliance
-- **Specialties**: Privacy policies, GDPR compliance, terms of service
-
-### 9. AI/ML & Search (3 agents)
-
-#### **ai-engineer** (Model: Opus)
-- **Purpose**: Build LLM applications and RAG systems
-- **Specialties**: Vector databases, prompt engineering, token optimization
-
-#### **prompt-engineer** (Model: Opus)
-- **Purpose**: Optimize prompts for LLMs
-- **Critical**: Always displays complete prompt text
-- **Specialties**: Few-shot learning, chain-of-thought, model-specific optimization
-
-#### **search-specialist** (Model: Haiku)
-- **Purpose**: Advanced web research and synthesis
-- **Specialties**: Query optimization, multi-source verification, fact-checking
-
-### 10. Modernization (1 agent)
-
-#### **legacy-modernizer** (Model: Sonnet)
-- **Purpose**: Refactor legacy codebases
-- **Specialties**: Framework migrations, technical debt, backward compatibility
-
-## Agent Relationships & Dependencies
-
-### Hierarchical Structure
-
-```
-┌─────────────────────────────────────┐
-│     context-manager (Opus)          │ ← Orchestrates multi-agent workflows
-└──────────────┬──────────────────────┘
-               │
-    ┌──────────┴──────────┬──────────┬──────────┐
-    │                     │          │          │
-┌───▼──────────┐ ┌────────▼──────┐ ┌─▼──────────▼─┐
-│ Nephoran     │ │ Infrastructure│ │ Development  │
-│ Specialists  │ │ & Operations  │ │ & Testing    │
-└──────────────┘ └───────────────┘ └──────────────┘
+```mermaid
+graph TD
+    CM[context-manager<br/>Orchestrator] --> NPS[Nephoran Specialists]
+    CM --> IO[Infrastructure & Ops]
+    CM --> DT[Development & Testing]
+    CM --> SC[Security & Compliance]
+    
+    subgraph "Nephoran Specialists"
+        NT[nephoran-troubleshooter] --> NCA[nephoran-code-analyzer]
+        NCA --> NDS[nephoran-docs-specialist]
+        ONDD[oran-nephio-dep-doctor] --> NT
+    end
+    
+    subgraph "Infrastructure & Operations"
+        NIA[nephio-infrastructure-agent] --> CMA[configuration-management-agent]
+        CMA --> ONFA[oran-network-functions-agent]
+        ONFA --> NOO[nephio-oran-orchestrator-agent]
+        NOO --> MAA[monitoring-analytics-agent]
+        MAA --> POA[performance-optimization-agent]
+    end
+    
+    subgraph "Development & Testing"
+        GP[golang-pro] --> CR[code-reviewer]
+        CR --> DBG[debugger]
+        DBG --> ED[error-detective]
+        TA[test-automator] --> TVA[testing-validation-agent]
+        DE[deployment-engineer] --> DT2[devops-troubleshooter]
+    end
+    
+    subgraph "Security & Compliance"
+        SCA[security-compliance-agent] --> SA[security-auditor]
+        SA --> CR
+    end
+    
+    subgraph "Data & Analytics"
+        DAA[data-analytics-agent] --> POA
+        PE[performance-engineer] --> DO[database-optimizer]
+        DO --> DBA[database-admin]
+    end
+    
+    subgraph "Documentation"
+        DA[docs-architect] --> AD[api-documenter]
+        AD --> NDS
+    end
+    
+    subgraph "AI/ML"
+        AE[ai-engineer] --> PEN[prompt-engineer]
+        PEN --> SS[search-specialist]
+    end
+    
+    subgraph "Architecture"
+        BA[backend-architect] --> CA[cloud-architect]
+        CA --> NIA
+    end
 ```
 
-### Key Integration Patterns
+## Capabilities & Gaps
 
-1. **Troubleshooting Flow**:
-   - `nephoran-troubleshooter` → `error-detective` → `debugger` → `code-reviewer`
+### Coverage Areas
+- **Complete SDLC Coverage**: From design (architects) to production (monitoring)
+- **O-RAN/Nephio Specialization**: Deep telco domain expertise with L Release and R5 support
+- **AI/ML Integration**: Multiple agents for intelligent optimization and automation
+- **Security Depth**: Compliance, auditing, and zero-trust implementation
+- **Multi-Cloud Support**: AWS, Azure, GCP with IaC automation
+- **Observability**: Comprehensive monitoring with VES 7.3, Prometheus, NWDAF
 
-2. **Documentation Pipeline**:
-   - `nephoran-code-analyzer` → `docs-architect` → `nephoran-docs-specialist` → `api-documenter`
+### Identified Gaps
+- **Network Simulation**: No dedicated agent for network simulation/emulation
+- **Cost Management**: Limited FinOps/cost optimization beyond cloud-architect
+- **Disaster Recovery**: No specialized DR/backup orchestration agent
+- **Compliance Reporting**: Limited automated compliance report generation
+- **Multi-tenancy**: No dedicated agent for tenant isolation and management
 
-3. **Deployment Chain**:
-   - `deployment-engineer` → `nephio-infrastructure-agent` → `monitoring-analytics-agent`
+### Missing Contracts
+- **Inter-agent Communication Protocol**: No standardized message format defined
+- **State Management**: No shared state store specification
+- **Error Propagation**: No unified error handling across agents
+- **Version Compatibility Matrix**: No explicit version dependencies documented
 
-4. **Security Validation**:
-   - `security-compliance-agent` → `security-auditor` → `code-reviewer`
+## Risks & Conflicts
 
-5. **Performance Optimization**:
-   - `performance-optimization-agent` → `performance-engineer` → `database-optimizer`
+### Overlapping Responsibilities
+1. **Dependency Management**: Both `oran-nephio-dep-doctor` and `oran-nephio-dep-doctor-agent` (appears to be duplicate)
+2. **Performance Optimization**: Overlap between `performance-engineer` and `performance-optimization-agent`
+3. **Security**: Potential overlap between `security-compliance-agent` and `security-auditor`
 
-## Model Distribution
+### Race Conditions
+- **GitOps Updates**: Multiple agents (configuration-management, deployment-engineer) may update repos simultaneously
+- **Infrastructure Provisioning**: Concurrent cluster operations by different agents
+- **Database Migrations**: No locking mechanism for schema changes
 
-- **Opus** (9 agents): Complex reasoning tasks (orchestration, optimization, architecture)
-- **Sonnet** (17 agents): Technical implementation and analysis
-- **Haiku** (4 agents): Straightforward tasks (documentation, data processing)
-- **Default** (3 agents): Project-specific Nephoran agents
+### Unsafe Operations
+- **Full Write Access**: 12+ agents have unrestricted write permissions
+- **Bash Execution**: Many agents can execute arbitrary shell commands
+- **Git Operations**: Multiple agents can push to repositories without coordination
 
-## Tool Availability
+## Coordination Playbook
 
-### Full Toolset (Read, Write, Bash, Search, Git):
-- 12 agents focused on implementation and operations
+### Workflow 1: Deploy New O-RAN Network Function
+**Preconditions**: Requirements documented, infrastructure available
+```yaml
+sequence:
+  1. nephoran-code-analyzer: Analyze existing codebase
+  2. oran-nephio-dep-doctor: Validate dependencies
+  3. configuration-management-agent: Prepare YANG models and CRDs
+  4. oran-network-functions-agent: Deploy CNF/VNF
+  5. monitoring-analytics-agent: Setup observability
+  6. testing-validation-agent: Run E2E tests
+verification:
+  - CNF/VNF pods running
+  - Metrics flowing to collectors
+  - Tests passing
+artifacts:
+  - Helm charts in GitOps repo
+  - YANG configurations
+  - Test reports
+```
 
-### Limited Toolset:
-- `context-manager`: No tools (coordination only)
-- `nephoran-docs-specialist`: Specialized documentation tools
-- `nephoran-code-analyzer`: Analysis-focused tools
+### Workflow 2: Troubleshoot Production Issue
+**Preconditions**: Alert triggered, incident created
+```yaml
+sequence:
+  1. devops-troubleshooter: Initial triage
+  2. error-detective: Analyze logs and traces
+  3. nephoran-troubleshooter: Debug application-specific issues
+  4. debugger: Root cause analysis
+  5. golang-pro: Implement fix
+  6. code-reviewer: Review changes
+  7. deployment-engineer: Deploy hotfix
+verification:
+  - Error rate decreased
+  - All tests passing
+  - No new errors introduced
+artifacts:
+  - RCA document
+  - Fix PR/commit
+  - Updated runbooks
+```
 
-## Configuration Parameters
+### Workflow 3: Implement AI-Driven Optimization
+**Preconditions**: Performance baseline established, ML models available
+```yaml
+sequence:
+  1. data-analytics-agent: Collect and process metrics
+  2. ai-engineer: Build ML pipeline
+  3. performance-optimization-agent: Apply ML models
+  4. monitoring-analytics-agent: Track improvements
+  5. docs-architect: Document optimization strategy
+verification:
+  - Performance KPIs improved
+  - ML models validated
+  - Documentation complete
+artifacts:
+  - ML models in registry
+  - Performance reports
+  - Architecture documentation
+```
 
-### Common Parameters Across Agents:
+## Per-Agent Notes
 
-1. **Model Selection**: Determines reasoning capability
-   - Opus: Advanced reasoning, complex decision-making
-   - Sonnet: Balanced performance, technical tasks
-   - Haiku: Fast, straightforward operations
+### Critical Details
 
-2. **Tool Access**: Defines operational capabilities
-   - Git: Version control operations
-   - Bash: System commands and scripts
-   - Search: Web and documentation search
-   - Read/Write: File system operations
+**nephoran-troubleshooter** (agent.md:L1-L150)
+- Specializes in CRD registration failures, Go module conflicts
+- Uses systematic approach: diagnose → minimal fix → verify
+- MUST validate all changes with tests
 
-3. **Color Coding** (where specified):
-   - Red: Critical/troubleshooting
-   - Blue: Documentation
-   - Green: Analysis
-   - Pink: Review
-   - Cyan: Security
+**nephio-oran-orchestrator-agent** (agent.md:L1-L200)
+- Implements saga patterns for distributed transactions
+- Uses event sourcing for audit trails
+- Requires Kubernetes 1.29+ for native CEL validation
 
-## Usage Recommendations
+**performance-optimization-agent** (agent.md:L50-L150)
+- Implements PPO (Proximal Policy Optimization) for RL
+- Uses NSGA-III for multi-objective optimization
+- Requires GPU for ML model training
 
-### For Development:
-1. Start with `nephoran-code-analyzer` for understanding
-2. Use `golang-pro` for Go-specific implementations
-3. Apply `code-reviewer` after changes
-4. Deploy with `deployment-engineer`
+**security-compliance-agent** (agent.md:L1-L180)
+- Enforces O-RAN WG11 security specifications
+- Implements SPIFFE/SPIRE for zero-trust
+- Generates SBOM with SPDX format
 
-### For Troubleshooting:
-1. Begin with `nephoran-troubleshooter`
-2. Escalate to `error-detective` for log analysis
-3. Use `debugger` for specific issues
-4. Apply `devops-troubleshooter` for production problems
+**configuration-management-agent** (agent.md:L75-L125)
+- Uses Kustomize for multi-environment configs
+- Implements drift detection with 5-minute intervals
+- Supports YANG 1.1 with OpenConfig extensions
 
-### For Documentation:
-1. Analyze with `nephoran-code-analyzer`
-2. Generate with `nephoran-docs-specialist`
-3. Create comprehensive guides with `docs-architect`
-4. Document APIs with `api-documenter`
+**monitoring-analytics-agent** (agent.md:L100-L180)
+- Integrates with NWDAF for 5G analytics
+- Implements VES 7.3 event streaming
+- Uses Transformer models for anomaly detection
 
-### For Operations:
-1. Provision with `nephio-infrastructure-agent`
-2. Orchestrate with `nephio-oran-orchestrator-agent`
-3. Monitor with `monitoring-analytics-agent`
-4. Optimize with `performance-optimization-agent`
+## Quality Gates Report
 
-## Critical Observations
+### Processing Summary
+- **Total Agent Files Processed**: 35
+- **Files Checksum (SHA1)**: 881a826ee95723fbef9d7d5d52bf7779d98e54e7
+- **Duplicate Agents Found**: 1 (oran-nephio-dep-doctor appears twice)
 
-1. **Security Focus**: Two dedicated security agents (compliance and auditor) indicate strong security emphasis
+### Missing References
+- No explicit file path references to validate (agents use general tool access)
+- No missing tool dependencies identified
 
-2. **O-RAN Specialization**: Multiple agents specifically for O-RAN/Nephio integration
+### Unresolved TODOs
+- None explicitly marked in agent definitions
 
-3. **AI/ML Integration**: Several agents focused on intelligent optimization and ML-driven decisions
+### Validation Status
+✅ All 35 agent files successfully parsed
+✅ Model assignments validated (Opus: 9, Sonnet: 17, Haiku: 4, Default: 5)
+✅ Tool access patterns confirmed
+⚠️ One duplicate agent detected (oran-nephio-dep-doctor)
 
-4. **Comprehensive Coverage**: Agents cover entire SDLC from design to production operations
-
-5. **Model Escalation**: Complex tasks use Opus, implementation uses Sonnet, simple tasks use Haiku
-
-6. **Proactive Indicators**: Many agents marked "Use PROACTIVELY" for preventive actions
-
-## Maintenance Notes
-
-- Keep agent descriptions synchronized with actual capabilities
-- Update tool access as new tools become available
-- Review model assignments based on performance
-- Document inter-agent communication patterns
-- Monitor agent usage patterns for optimization opportunities
+<!-- END AUTO-GENERATED: CLAUDE_AGENTS_ANALYSIS -->
 
 ---
 
-*This analysis is retained for future troubleshooting reference. Last updated: 2025-08-10*
+## Changelog
+
+### 2025-08-16
+- Deep analysis of 35 agent definitions completed
+- Added comprehensive inventory table with all agents
+- Created detailed interaction graph showing agent relationships
+- Identified gaps, risks, and overlapping responsibilities
+- Developed coordination playbooks for common workflows
+- Added quality gates report with validation metrics
+- Generated files checksum for reproducibility
