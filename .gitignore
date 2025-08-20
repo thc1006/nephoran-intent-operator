@@ -286,3 +286,7 @@ __debug_bin
 /site/
 docs/_build/
 
+# Large bundle files (safety bundles)
+safety-*.bundle
+*.bundle
+
