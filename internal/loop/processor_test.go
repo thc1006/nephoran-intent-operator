@@ -316,10 +316,12 @@ func TestProcessorBatching(t *testing.T) {
 	// Create mock validator
 	validator := &MockValidator{shouldFail: false}
 
-	// Track batch submissions with atomic counters and synchronization
+	// Track batch submissions with atomic counters and proper synchronization
 	var totalProcessed int64
 	var firstBatchDone = make(chan struct{})
+	var allDone = make(chan struct{})
 	var firstBatchOnce sync.Once
+	var allDoneOnce sync.Once
 	
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
 		count := atomic.AddInt64(&totalProcessed, 1)
@@ -327,6 +329,12 @@ func TestProcessorBatching(t *testing.T) {
 		if count == 3 {
 			firstBatchOnce.Do(func() {
 				close(firstBatchDone)
+			})
+		}
+		// Signal when all files (5) are complete
+		if count == 5 {
+			allDoneOnce.Do(func() {
+				close(allDone)
 			})
 		}
 		return nil
@@ -375,22 +383,17 @@ func TestProcessorBatching(t *testing.T) {
 		t.Fatal("Timeout waiting for first batch to complete")
 	}
 
-	// Wait for interval flush of remaining files (2 files)
-	// Use a longer timeout to account for the batch interval
-	timeout := time.After(1 * time.Second)
-	ticker := time.NewTicker(50 * time.Millisecond)
-	defer ticker.Stop()
-	
-	for {
-		select {
-		case <-timeout:
-			t.Fatal("Timeout waiting for remaining files to be processed")
-		case <-ticker.C:
-			count := atomic.LoadInt64(&totalProcessed)
-			if count == 5 {
-				// All files processed successfully
-				return
-			}
+	// Wait for all remaining files (5 total) to complete using channel signaling
+	// This eliminates the race condition by using proper channel synchronization
+	select {
+	case <-allDone:
+		// All files processed successfully
+		count := atomic.LoadInt64(&totalProcessed)
+		if count != 5 {
+			t.Errorf("Expected all 5 files to be processed, got %d", count)
 		}
+	case <-time.After(2 * time.Second):
+		count := atomic.LoadInt64(&totalProcessed)
+		t.Fatalf("Timeout waiting for all files to be processed. Got %d, expected 5", count)
 	}
 }
