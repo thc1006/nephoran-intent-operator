@@ -236,11 +236,11 @@ jobs:
           for ($attempt = 1; $attempt -le 2; $attempt++) {
             Write-Host "=== Test attempt $attempt of 2 ==="
             Write-Host "🔧 Running tests without -race flag due to CGO_ENABLED=0"
-            Write-Host "📋 Command: go test -v -timeout=30m -count=1 -coverprofile=test-results/coverage-$attempt.out -covermode=atomic ./cmd/conductor-loop ./internal/loop"
+            Write-Host "📋 Command: go test -v -timeout=30m -count=1 -coverprofile=\"test-results/coverage-$attempt.out\" -covermode=atomic ./cmd/conductor-loop ./internal/loop"
             try {
               # Run tests on all packages with coverage
               # Note: -race flag requires CGO_ENABLED=1, we use CGO_ENABLED=0 for static builds
-              $testResult = go test -v -timeout=30m -count=1 -coverprofile=test-results/coverage-$attempt.out -covermode=atomic ./cmd/conductor-loop ./internal/loop 2>&1
+              $testResult = go test -v -timeout=30m -count=1 -coverprofile="test-results/coverage-$attempt.out" -covermode=atomic ./cmd/conductor-loop ./internal/loop 2>&1
               $testResult | Tee-Object test-results/test-attempt-$attempt.log
               if ($LASTEXITCODE -eq 0) {
                 Write-Host "✅ Tests passed on attempt $attempt"
