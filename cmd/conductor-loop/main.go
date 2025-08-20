@@ -272,15 +272,25 @@ func main() {
 		if err != nil {
 			log.Printf("Watcher error: %v", err)
 			exitCode = 1
-		} else if (!*useProcessor && config.Once) {
-			// In once mode, check if any files failed (only for legacy approach)
+		} else {
+			// Check if any files failed for both approaches - use stats if available
 			stats, statsErr := watcher.GetStats()
 			if statsErr != nil {
 				log.Printf("Failed to get processing stats: %v", statsErr)
-				exitCode = 1
-			} else if stats.FailedCount > 0 {
-				log.Printf("Completed with %d failed files", stats.FailedCount)
+				// For legacy approach in once mode, this is an error
+				// For processor approach, stats might not be available (not an error)
+				if !*useProcessor && config.Once {
+					exitCode = 1
+				}
+			} else if stats.RealFailedCount > 0 {
+				// Only real failures should affect exit code, not shutdown failures
+				log.Printf("Completed with %d real failures and %d shutdown failures (total: %d failed files)", 
+					stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
 				exitCode = 8
+			} else if stats.ShutdownFailedCount > 0 {
+				// Only shutdown failures - this is acceptable during graceful shutdown
+				log.Printf("Completed with %d shutdown failures (no real failures)", stats.ShutdownFailedCount)
+				exitCode = 0
 			} else {
 				log.Printf("All files processed successfully")
 				exitCode = 0
@@ -289,7 +299,25 @@ func main() {
 	case sig := <-sigChan:
 		log.Printf("Received signal %v, shutting down gracefully", sig)
 		watcher.Close()
-		exitCode = 0
+		
+		// Check stats after graceful shutdown to distinguish shutdown vs real failures
+		stats, statsErr := watcher.GetStats()
+		if statsErr != nil {
+			log.Printf("Failed to get processing stats after shutdown: %v", statsErr)
+			exitCode = 0 // Graceful shutdown should still exit 0 even if stats unavailable
+		} else if stats.RealFailedCount > 0 {
+			// Only real failures should affect exit code, not shutdown failures
+			log.Printf("Graceful shutdown completed with %d real failures and %d shutdown failures (total: %d failed files)", 
+				stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
+			exitCode = 8
+		} else if stats.ShutdownFailedCount > 0 {
+			// Only shutdown failures - this is acceptable during graceful shutdown
+			log.Printf("Graceful shutdown completed with %d shutdown failures (no real failures)", stats.ShutdownFailedCount)
+			exitCode = 0
+		} else {
+			log.Printf("Graceful shutdown completed - all files processed successfully")
+			exitCode = 0
+		}
 	}
 
 	log.Println("Conductor-loop stopped")

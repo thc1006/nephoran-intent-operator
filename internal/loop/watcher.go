@@ -234,6 +234,11 @@ type Watcher struct {
 	cancel          context.CancelFunc
 	shutdownComplete chan struct{}
 	
+	// Graceful shutdown tracking
+	gracefulShutdown atomic.Bool
+	shutdownStartTime time.Time
+	shutdownMutex    sync.RWMutex
+	
 	// IntentProcessor for new pattern support
 	processor       *IntentProcessor
 }
@@ -1186,11 +1191,6 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		
 		log.Printf("LOOP:DONE - Worker %d: Successfully processed %s", workerID, filepath.Base(filePath))
 	} else {
-		// Mark as failed in state manager
-		if err := w.stateManager.MarkFailed(filePath); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed: %v", workerID, err)
-		}
-		
 		// Create error message
 		errorMsg := "Unknown error"
 		if result.Error != nil {
@@ -1205,18 +1205,40 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 			errorMsg += " (stderr: " + result.Stderr + ")"
 		}
 		
-		// Record processing error
-		w.recordProcessingError(errorMsg)
+		// Check if this is a graceful shutdown failure
+		isShutdownFailure := w.IsShutdownFailure(result.Error, errorMsg)
 		
-		// Move to failed directory
-		if err := w.fileManager.MoveToFailed(filePath, errorMsg); err != nil {
-			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
+		if isShutdownFailure {
+			log.Printf("LOOP:SHUTDOWN - Worker %d: File %s failed due to graceful shutdown (expected): %s", 
+				workerID, filepath.Base(filePath), errorMsg)
+			
+			// Move to failed directory but mark as shutdown failure
+			shutdownErrorMsg := fmt.Sprintf("SHUTDOWN_FAILURE: %s", errorMsg)
+			if err := w.fileManager.MoveToFailed(filePath, shutdownErrorMsg); err != nil {
+				log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
+			}
+			
+			// Write failure status with shutdown marker
+			w.writeStatusFileAtomic(filePath, "shutdown_failed", fmt.Sprintf("Failed during graceful shutdown: %s", errorMsg))
+		} else {
+			log.Printf("LOOP:ERROR - Worker %d: Failed to process %s: %s", workerID, filepath.Base(filePath), errorMsg)
+			
+			// Mark as failed in state manager (only for real failures)
+			if err := w.stateManager.MarkFailed(filePath); err != nil {
+				log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed: %v", workerID, err)
+			}
+			
+			// Record processing error (only for real failures)
+			w.recordProcessingError(errorMsg)
+			
+			// Move to failed directory
+			if err := w.fileManager.MoveToFailed(filePath, errorMsg); err != nil {
+				log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
+			}
+			
+			// Write failure status
+			w.writeStatusFileAtomic(filePath, "failed", errorMsg)
 		}
-		
-		// Write failure status
-		w.writeStatusFileAtomic(filePath, "failed", errorMsg)
-		
-		log.Printf("LOOP:ERROR - Worker %d: Failed to process %s: %s", workerID, filepath.Base(filePath), errorMsg)
 	}
 }
 
@@ -1287,6 +1309,14 @@ func (w *Watcher) Close() error {
 	}
 	
 	log.Printf("Closing watcher...")
+	
+	// Mark graceful shutdown started
+	w.shutdownMutex.Lock()
+	w.gracefulShutdown.Store(true)
+	w.shutdownStartTime = time.Now()
+	w.shutdownMutex.Unlock()
+	
+	log.Printf("Graceful shutdown initiated at %s", w.shutdownStartTime.Format(time.RFC3339))
 	
 	// Cancel context to signal shutdown
 	if w.cancel != nil {
@@ -2139,12 +2169,17 @@ func (w *Watcher) safeMarshalJSON(v interface{}, maxSize int) ([]byte, error) {
 	return data, nil
 }
 
-// GetStats returns processing statistics (only if using legacy approach)
+// GetStats returns processing statistics for both legacy and processor approaches
 func (w *Watcher) GetStats() (ProcessingStats, error) {
 	if w.fileManager != nil {
+		// Legacy approach - use file manager
 		return w.fileManager.GetStats()
 	}
-	return ProcessingStats{}, fmt.Errorf("stats not available when using IntentProcessor approach")
+	if w.processor != nil {
+		// New processor approach - use processor
+		return w.processor.GetStats()
+	}
+	return ProcessingStats{}, fmt.Errorf("stats not available - no file manager or processor configured")
 }
 
 // GetMetrics returns a copy of the current metrics
@@ -2378,4 +2413,85 @@ func (w *Watcher) isFileStable(filePath string) bool {
 	
 	// File is stable if size and modification time haven't changed
 	return stat1.Size() == stat2.Size() && stat1.ModTime().Equal(stat2.ModTime())
+}
+
+// IsShutdownFailure determines if a processing failure was caused by graceful shutdown
+func (w *Watcher) IsShutdownFailure(err error, errorMsg string) bool {
+	// Check if graceful shutdown is active
+	if !w.gracefulShutdown.Load() {
+		return false
+	}
+	
+	// If graceful shutdown is active, any failure is likely due to shutdown
+	// unless it's clearly a validation or configuration error
+	
+	// Check for context cancellation patterns
+	contextCancelPatterns := []string{
+		"context canceled",
+		"context cancelled", 
+		"signal: killed",
+		"signal: interrupt",
+		"signal: terminated",
+		"exit status -1",
+		"exit status 1",    // Added: Windows process termination
+		"process was killed",
+		"operation was canceled",
+		"the operation was canceled",
+	}
+	
+	for _, pattern := range contextCancelPatterns {
+		if strings.Contains(strings.ToLower(errorMsg), pattern) {
+			return true
+		}
+	}
+	
+	// Check the actual error for context cancellation
+	if err != nil {
+		if err == context.Canceled {
+			return true
+		}
+		
+		// Check error chain for context cancellation
+		errorStr := strings.ToLower(err.Error())
+		for _, pattern := range contextCancelPatterns {
+			if strings.Contains(errorStr, pattern) {
+				return true
+			}
+		}
+	}
+	
+	// Check timing - if failure occurs after shutdown was initiated, 
+	// and it's not a clear validation error, consider it a shutdown failure
+	w.shutdownMutex.RLock()
+	shutdownTime := w.shutdownStartTime
+	w.shutdownMutex.RUnlock()
+	
+	if !shutdownTime.IsZero() {
+		// If error occurred after shutdown and is not a validation error, 
+		// it's likely due to process termination
+		validationErrorPatterns := []string{
+			"json",
+			"validation failed",
+			"invalid format",
+			"schema",
+			"missing field",
+			"bad request",
+		}
+		
+		isValidationError := false
+		errorMsgLower := strings.ToLower(errorMsg)
+		for _, pattern := range validationErrorPatterns {
+			if strings.Contains(errorMsgLower, pattern) {
+				isValidationError = true
+				break
+			}
+		}
+		
+		// If it's not a validation error and shutdown is active, treat as shutdown failure
+		if !isValidationError {
+			return true
+		}
+	}
+	
+	return false
 }
