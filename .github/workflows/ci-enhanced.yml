@@ -128,7 +128,7 @@ jobs:
               echo "KUBEBUILDER_ASSETS=" >> $env:GITHUB_ENV
             }
           } catch {
-            Write-Host "⚠️ Warning: Exception during envtest setup: $_"
+            Write-Host "⚠️ Warning: Exception during envtest setup: $($_.Exception.Message)"
             Write-Host "Tests that don't require envtest will still run."
             echo "KUBEBUILDER_ASSETS=" >> $env:GITHUB_ENV
           }
@@ -296,7 +296,7 @@ jobs:
                 }
               }
             } catch {
-              Write-Host "Error in test attempt $attempt: $_"
+              Write-Host "Error in test attempt $attempt: $($_.Exception.Message)"
               
               # Check for partial coverage even on exception
               $coverageFile = "test-results/coverage-$attempt.out"

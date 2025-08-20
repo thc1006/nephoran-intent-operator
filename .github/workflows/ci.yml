@@ -957,7 +957,7 @@ jobs:
               & ".\testdata\mock-executables\mock-porch-success.bat" --help
               Write-Output "✅ Batch script execution successful"
             } catch {
-              Write-Output "⚠️ Batch script execution failed: $_"
+              Write-Output "⚠️ Batch script execution failed: $($_.Exception.Message)"
             }
           } else {
             Write-Output "❌ Mock executables missing"

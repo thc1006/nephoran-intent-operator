@@ -108,14 +108,19 @@ jobs:
         run: |
           mkdir test-results
           # Add retry logic for flaky tests on Windows
+          $success = $false
           for ($attempt = 1; $attempt -le 2; $attempt++) {
             Write-Host "Test attempt $attempt of 2..."
-            if (go test -v -race -timeout=20m -count=1 -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop 2>&1 | Tee-Object test-results/test-attempt-$attempt.log) {
+            $testOutput = go test -v -race -timeout=20m -count=1 -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop 2>&1
+            $testOutput | Out-File test-results/test-attempt-$attempt.log
+            if ($LASTEXITCODE -eq 0) {
               Write-Host "Tests passed on attempt $attempt"
               $success = $true
               break
             } elseif ($attempt -eq 2) {
               Write-Host "Tests failed after 2 attempts"
+              Write-Host "Last test output:"
+              $testOutput
               exit 1
             } else {
               Write-Host "Test attempt $attempt failed, retrying..."
