@@ -6,14 +6,13 @@ version: "2"
 
 run:
   # Total timeout for the whole run.
-  timeout: 5m
+  timeout: 10m
   # Make paths relative to go.mod so filters work the same locally/CI.
   relative-path-mode: gomod
   # Avoid modifying go.mod/go.sum during lint.
   modules-download-mode: readonly
-  # 🚦 IMPORTANT: do not fail CI because of linter findings during MVP.
-  # 0 means: exit code 0 even if issues are found.
-  issues-exit-code: 0
+  # Change from 0 to 1 to properly fail on linter issues
+  issues-exit-code: 1
   # Keep tests included (some linters look at *_test.go).
   tests: true
   # Allow multiple runners on CI to reduce flakiness.

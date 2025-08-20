@@ -37,6 +37,7 @@ endef
 
 # Go configuration
 GO_VERSION = 1.24.1
+CONTROLLER_GEN_VERSION ?= v0.18.0
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 CGO_ENABLED ?= 0
@@ -104,7 +105,7 @@ deps: ## Install development dependencies
 	fi
 	@if ! command -v controller-gen >/dev/null 2>&1; then \
 		echo "Installing controller-gen..."; \
-		go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
+		go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION); \
 	fi
 	@if ! command -v kustomize >/dev/null 2>&1; then \
 		echo "Installing kustomize..."; \
@@ -186,7 +187,7 @@ gen: ## Generate CRDs and deep copy methods (output to deployments/crds/)
 	@mkdir -p deployments/crds
 	@if ! command -v controller-gen >/dev/null 2>&1; then \
 		echo "Installing controller-gen..."; \
-		go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest; \
+		go install sigs.k8s.io/controller-tools/cmd/controller-gen@$(CONTROLLER_GEN_VERSION); \
 	fi
 	@echo "Attempting to generate deep copy methods..."
 	@controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" || echo "⚠️  Deep copy generation failed due to compilation errors"
