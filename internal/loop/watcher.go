@@ -311,7 +311,7 @@ func NewWatcher(dir string, config Config) (*Watcher, error) {
 	}
 	
 	workerPool := &WorkerPool{
-		workQueue:  make(chan WorkItem, config.MaxWorkers*3), // increased buffer
+		workQueue:  make(chan WorkItem, config.MaxWorkers*10), // increased buffer for concurrent loads
 		stopSignal: make(chan struct{}),
 		maxWorkers: config.MaxWorkers,
 	}
