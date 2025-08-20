@@ -47,19 +47,21 @@ type IntentProcessor struct {
 	config     *ProcessorConfig
 	validator  Validator
 	porchFunc  PorchSubmitFunc
-	batch      []string
-	batchMu    sync.Mutex
 	processed  *SafeSet // for idempotency
 	ctx        context.Context
 	cancel     context.CancelFunc
 	wg         sync.WaitGroup
 	
-	// Stats tracking
+	// Batch coordinator channels
+	inCh       chan string     // Input channel for file paths
+	stopCh     chan struct{}   // Stop signal for coordinator
+	coordReady chan struct{}   // Signals coordinator is ready
+	
+	// Stats tracking (atomic for thread safety)
 	processedCount      int64
 	failedCount         int64
 	realFailedCount     int64
 	shutdownFailedCount int64
-	statsMu            sync.RWMutex
 	
 	// Graceful shutdown tracking
 	gracefulShutdown    atomic.Bool
@@ -96,13 +98,15 @@ func NewProcessor(config *ProcessorConfig, validator Validator, porchFunc PorchS
 	ctx, cancel := context.WithCancel(context.Background())
 
 	return &IntentProcessor{
-		config:    config,
-		validator: validator,
-		porchFunc: porchFunc,
-		batch:     make([]string, 0, config.BatchSize),
-		processed: processed,
-		ctx:       ctx,
-		cancel:    cancel,
+		config:     config,
+		validator:  validator,
+		porchFunc:  porchFunc,
+		processed:  processed,
+		ctx:        ctx,
+		cancel:     cancel,
+		inCh:       make(chan string, config.BatchSize*2), // Buffer for backpressure
+		stopCh:     make(chan struct{}),
+		coordReady: make(chan struct{}),
 	}, nil
 }
 
@@ -115,32 +119,23 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 		return nil
 	}
 
-	// Add to batch
-	p.batchMu.Lock()
-	p.batch = append(p.batch, filename)
-	shouldFlush := len(p.batch) >= p.config.BatchSize
-	p.batchMu.Unlock()
-
-	if shouldFlush {
-		return p.FlushBatch()
+	// Send to batch coordinator via channel
+	select {
+	case p.inCh <- filename:
+		return nil
+	case <-p.ctx.Done():
+		return fmt.Errorf("processor is shutting down")
+	case <-time.After(5 * time.Second):
+		return fmt.Errorf("timeout sending file to batch coordinator")
 	}
-
-	return nil
 }
 
-// FlushBatch processes all files in the current batch
-func (p *IntentProcessor) FlushBatch() error {
-	p.batchMu.Lock()
-	if len(p.batch) == 0 {
-		p.batchMu.Unlock()
-		return nil
+// processBatch processes a batch of files
+func (p *IntentProcessor) processBatch(files []string) {
+	if len(files) == 0 {
+		return
 	}
 	
-	files := make([]string, len(p.batch))
-	copy(files, p.batch)
-	p.batch = p.batch[:0]
-	p.batchMu.Unlock()
-
 	log.Printf("Processing batch of %d files", len(files))
 	
 	for _, file := range files {
@@ -149,8 +144,6 @@ func (p *IntentProcessor) FlushBatch() error {
 			// Continue processing other files
 		}
 	}
-
-	return nil
 }
 
 // processSingleFile handles the actual processing of one file
@@ -203,6 +196,14 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 	// Check if this is a shutdown failure
 	isShutdownErr := p.IsShutdownFailure(err)
 	
+	// Increment appropriate counter atomically
+	if isShutdownErr {
+		atomic.AddInt64(&p.shutdownFailedCount, 1)
+	} else {
+		atomic.AddInt64(&p.realFailedCount, 1)
+	}
+	atomic.AddInt64(&p.failedCount, 1)
+	
 	// Prepare error content with shutdown marker if needed
 	var errorContent string
 	if isShutdownErr {
@@ -235,6 +236,9 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 func (p *IntentProcessor) markProcessed(filename string) {
 	basename := filepath.Base(filename)
 	p.processed.Add(basename)
+	
+	// Increment processed count atomically
+	atomic.AddInt64(&p.processedCount, 1)
 
 	// Persist to file
 	processedFile := filepath.Join(p.config.HandoffDir, ".processed")
@@ -250,23 +254,51 @@ func (p *IntentProcessor) markProcessed(filename string) {
 	}
 }
 
-// StartBatchProcessor starts the background batch processor
+// StartBatchProcessor starts the background batch coordinator
 func (p *IntentProcessor) StartBatchProcessor() {
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
+		
+		// Single owner of the batch slice
+		batch := make([]string, 0, p.config.BatchSize)
 		ticker := time.NewTicker(p.config.BatchInterval)
 		defer ticker.Stop()
 		
+		// Signal that coordinator is ready
+		close(p.coordReady)
+		
 		for {
 			select {
-			case <-ticker.C:
-				if err := p.FlushBatch(); err != nil {
-					log.Printf("Error flushing batch: %v", err)
+			case file := <-p.inCh:
+				// Append to batch (only this goroutine touches the batch)
+				batch = append(batch, file)
+				
+				// Check if batch is full
+				if len(batch) >= p.config.BatchSize {
+					p.processBatch(batch)
+					batch = batch[:0] // Reset batch
 				}
-			case <-p.ctx.Done():
+				
+			case <-ticker.C:
+				// Flush batch on interval
+				if len(batch) > 0 {
+					p.processBatch(batch)
+					batch = batch[:0] // Reset batch
+				}
+				
+			case <-p.stopCh:
 				// Flush remaining batch before stopping
-				p.FlushBatch()
+				if len(batch) > 0 {
+					p.processBatch(batch)
+				}
+				return
+				
+			case <-p.ctx.Done():
+				// Context cancelled, flush and exit
+				if len(batch) > 0 {
+					p.processBatch(batch)
+				}
 				return
 			}
 		}
@@ -276,8 +308,9 @@ func (p *IntentProcessor) StartBatchProcessor() {
 // Stop stops the processor and waits for all goroutines to finish
 func (p *IntentProcessor) Stop() {
 	p.MarkGracefulShutdown()
-	p.cancel()
-	p.wg.Wait()
+	close(p.stopCh)  // Signal coordinator to stop
+	p.cancel()        // Cancel context
+	p.wg.Wait()       // Wait for all goroutines
 }
 
 // DefaultPorchSubmit is the default porch submission function

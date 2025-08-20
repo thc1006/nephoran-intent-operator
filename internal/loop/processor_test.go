@@ -316,7 +316,6 @@ func TestProcessorBatching(t *testing.T) {
 	validator := &MockValidator{shouldFail: false}
 
 	// Track batch submissions with thread-safe access
-	var batchSizes []int
 	var currentBatch int
 	var batchMu sync.Mutex
 	mockPorchFunc := func(ctx context.Context, intent *ingest.Intent, mode string) error {
@@ -332,8 +331,9 @@ func TestProcessorBatching(t *testing.T) {
 		t.Fatalf("Failed to create processor: %v", err)
 	}
 
-	// Start batch processor
+	// Start batch processor and wait for it to be ready
 	processor.StartBatchProcessor()
+	<-processor.coordReady  // Wait for coordinator to start
 	defer processor.Stop()
 
 	// Create multiple test files
@@ -360,7 +360,6 @@ func TestProcessorBatching(t *testing.T) {
 			if currentBatch != 3 {
 				t.Errorf("Expected batch to flush after 3 files, got %d", currentBatch)
 			}
-			batchSizes = append(batchSizes, currentBatch)
 			currentBatch = 0
 			batchMu.Unlock()
 		}
