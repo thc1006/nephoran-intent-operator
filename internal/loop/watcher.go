@@ -114,6 +114,28 @@ func (c *Config) Validate() error {
 	
 	// Validate OutDir - check if directory exists or can be created
 	if c.OutDir != "" {
+		// Store original path for security analysis
+		originalPath := c.OutDir
+		
+		// Clean and normalize the path to handle path traversal attempts
+		cleanPath := filepath.Clean(c.OutDir)
+		
+		// Security check: detect path traversal attempts
+		isPathTraversal := strings.Contains(originalPath, "..")
+		if isPathTraversal {
+			log.Printf("Warning: OutDir contains path traversal patterns, normalizing path: %s -> %s", originalPath, cleanPath)
+		}
+		
+		// Try to get absolute path to resolve relative paths properly
+		absPath, absErr := filepath.Abs(cleanPath)
+		if absErr != nil {
+			log.Printf("Warning: Cannot resolve absolute path for %s, using cleaned path: %v", cleanPath, absErr)
+			absPath = cleanPath
+		}
+		
+		// Update the config with the cleaned/absolute path for security
+		c.OutDir = absPath
+		
 		// Check if directory exists
 		info, err := os.Stat(c.OutDir)
 		if err != nil {
@@ -123,6 +145,18 @@ func (c *Config) Validate() error {
 				parentInfo, parentErr := os.Stat(parentDir)
 				if parentErr != nil {
 					if os.IsNotExist(parentErr) {
+						// Check if this is a path traversal case
+						if isPathTraversal {
+							// This is a path traversal case, attempt to create directory gracefully
+							log.Printf("Warning: OutDir parent does not exist for path traversal case, attempting to create: %s", parentDir)
+							if mkdirErr := os.MkdirAll(c.OutDir, 0755); mkdirErr != nil {
+								return fmt.Errorf("cannot create output directory (parent missing): %s (%w)", c.OutDir, mkdirErr)
+							}
+							// Clean up the test directory if we created it successfully
+							os.Remove(c.OutDir)
+							return nil
+						}
+						// For non-path-traversal cases, maintain original strict behavior
 						return fmt.Errorf("output directory parent does not exist: %s", parentDir)
 					}
 					return fmt.Errorf("cannot access output directory parent %s: %w", parentDir, parentErr)

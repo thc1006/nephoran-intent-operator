@@ -418,7 +418,7 @@ func TestConfig_Validate(t *testing.T) {
 			name: "OutDir deeply nested nonexistent",
 			config: Config{
 				MaxWorkers: 2,
-				OutDir:     "/nonexistent/deeply/nested/directory",
+				OutDir:     "/this-path-definitely-does-not-exist-12345/deeply/nested/directory",
 			},
 			wantErr: true,
 			errMsg:  "output directory parent does not exist",
