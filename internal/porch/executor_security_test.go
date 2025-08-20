@@ -496,92 +496,49 @@ func TestStatefulExecutor_SecurityStats(t *testing.T) {
 // Helper functions
 
 func createSecureMockPorch(t testing.TB, tempDir string) string {
-	var mockScript string
-	var mockPath string
-
-	if runtime.GOOS == "windows" {
-		mockPath = filepath.Join(tempDir, "mock-porch.bat")
-		mockScript = `@echo off
-if "%1"=="--help" (
-    echo Mock porch help
-    exit /b 0
-)
-echo Processing intent: %2
-echo Output dir: %4
-exit /b 0`
-	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch")
-		mockScript = `#!/bin/bash
-if [ "$1" = "--help" ]; then
-    echo "Mock porch help"
-    exit 0
-fi
-echo "Processing intent: $2"
-echo "Output dir: $4"
-exit 0`
-	}
-
-	require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0755))
+	mockPath, err := CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
+		ExitCode: 0,
+		Stdout:   "Processing intent completed successfully",
+	})
+	require.NoError(t, err)
 	return mockPath
 }
 
 func createMockPorchWithDelay(t testing.TB, tempDir string, delay time.Duration) string {
-	var mockScript string
-	var mockPath string
-
-	if runtime.GOOS == "windows" {
-		mockPath = filepath.Join(tempDir, "mock-porch-delay.bat")
-		mockScript = fmt.Sprintf(`@echo off
-if "%%1"=="--help" (
-    echo Mock porch help
-    exit /b 0
-)
-powershell -command "Start-Sleep -Milliseconds %d"
-echo Processing completed
-exit /b 0`, int(delay.Milliseconds()))
-	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch-delay.sh")
-		mockScript = fmt.Sprintf(`#!/bin/bash
-if [ "$1" = "--help" ]; then
-    echo "Mock porch help"
-    exit 0
-fi
-sleep %v
-echo "Processing completed"
-exit 0`, delay.Seconds())
-	}
-
-	require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0755))
+	mockPath, err := CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
+		ExitCode: 0,
+		Stdout:   "Processing completed",
+		Sleep:    delay,
+	})
+	require.NoError(t, err)
 	return mockPath
 }
 
 func createMockPorchWithFileCreation(t testing.TB, tempDir, outDir string) string {
-	var mockScript string
-	var mockPath string
-
-	if runtime.GOOS == "windows" {
-		mockPath = filepath.Join(tempDir, "mock-porch-create.bat")
-		mockScript = fmt.Sprintf(`@echo off
+	mockPath, err := CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
+		CustomScript: struct {
+			Windows string
+			Unix    string
+		}{
+			Windows: fmt.Sprintf(`@echo off
 if "%%1"=="--help" (
     echo Mock porch help
     exit /b 0
 )
 echo Test output > "%s\\test-output.txt"
 echo Processing completed
-exit /b 0`, outDir)
-	} else {
-		mockPath = filepath.Join(tempDir, "mock-porch-create")
-		mockScript = fmt.Sprintf(`#!/bin/bash
+exit /b 0`, outDir),
+			Unix: fmt.Sprintf(`#!/bin/bash
 if [ "$1" = "--help" ]; then
     echo "Mock porch help"
     exit 0
 fi
 echo "Test output" > "%s/test-output.txt"
 echo "Processing completed"
-exit 0`, outDir)
-	}
-
-	require.NoError(t, os.WriteFile(mockPath, []byte(mockScript), 0755))
+exit 0`, outDir),
+		},
+	})
+	require.NoError(t, err)
 	return mockPath
 }
 

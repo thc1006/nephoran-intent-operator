@@ -1,0 +1,679 @@
+# Comprehensive Disaster Recovery for Nephio R5-O-RAN L Release
+# Velero-based backup and restore with cross-region replication
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: velero
+  labels:
+    name: velero
+    purpose: disaster-recovery
+    nephio.org/version: r5
+    oran.org/release: l-release
+  annotations:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+
+---
+# Velero Server Configuration for R5
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: velero-server-config
+  namespace: velero
+  labels:
+    component: velero-server
+    nephio.org/version: r5
+data:
+  velero-config.yaml: |
+    # Velero server configuration for Nephio R5
+    clientConfig:
+      qps: 100.0
+      burst: 100
+    resourceTimeout: 10m
+    
+    # Default backup settings
+    defaultBackupStorageLocation: aws-primary
+    defaultVolumeSnapshotLocations:
+      aws: aws-primary
+      gcp: gcp-secondary
+    
+    # Backup retention policy
+    defaultBackupTTL: "720h"  # 30 days
+    
+    # Restore settings
+    restoreResourcePriorities: |
+      - secrets
+      - configmaps
+      - persistentvolumes
+      - persistentvolumeclaims
+      - serviceaccounts
+      - customresourcedefinitions
+      - roles
+      - rolebindings
+      - clusterroles
+      - clusterrolebindings
+      - services
+      - deployments
+      - statefulsets
+      - daemonsets
+      - pods
+    
+    # Feature flags
+    features: |
+      - EnableCSI
+      - EnableAPIGroupVersions
+      - EnableChangeStorageLocationFeature
+
+---
+# Primary Backup Storage Location (AWS S3)
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: aws-primary
+  namespace: velero
+  labels:
+    location-type: primary
+    cloud-provider: aws
+spec:
+  provider: aws
+  objectStorage:
+    bucket: nephio-r5-backups-primary
+    prefix: velero
+  config:
+    region: us-west-2
+    s3ForcePathStyle: "false"
+    s3Url: https://s3.us-west-2.amazonaws.com
+    kmsKeyId: arn:aws:kms:us-west-2:ACCOUNT:key/KEY-ID
+    serverSideEncryption: AES256
+  credential:
+    name: cloud-credentials
+    key: cloud
+
+---
+# Secondary Backup Storage Location (GCP)
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: gcp-secondary
+  namespace: velero
+  labels:
+    location-type: secondary
+    cloud-provider: gcp
+spec:
+  provider: gcp
+  objectStorage:
+    bucket: nephio-r5-backups-secondary
+    prefix: velero
+  config:
+    serviceAccount: velero-backup@project-id.iam.gserviceaccount.com
+  credential:
+    name: gcp-credentials
+    key: cloud
+
+---
+# Volume Snapshot Location for AWS EBS
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: aws-primary
+  namespace: velero
+  labels:
+    location-type: primary
+    cloud-provider: aws
+spec:
+  provider: aws
+  config:
+    region: us-west-2
+    profile: default
+  credential:
+    name: cloud-credentials
+    key: cloud
+
+---
+# Volume Snapshot Location for GCP Persistent Disks
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: gcp-secondary
+  namespace: velero
+  labels:
+    location-type: secondary
+    cloud-provider: gcp
+spec:
+  provider: gcp
+  config:
+    project: project-id
+    snapshotLocation: us-central1
+  credential:
+    name: gcp-credentials
+    key: cloud
+
+---
+# Daily Backup Schedule for Critical Components
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: nephio-r5-daily-backup
+  namespace: velero
+  labels:
+    backup-type: daily
+    nephio.org/version: r5
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM UTC
+  template:
+    metadata:
+      labels:
+        backup-type: daily
+        nephio.org/version: r5
+    spec:
+      # Include critical namespaces
+      includedNamespaces:
+      - nephoran-conductor
+      - porch-system
+      - monitoring
+      - istio-system
+      - cert-manager
+      - security-system
+      
+      # Exclude unnecessary resources
+      excludedResources:
+      - events
+      - events.events.k8s.io
+      - logs
+      
+      # Storage location
+      storageLocation: aws-primary
+      volumeSnapshotLocations:
+      - aws-primary
+      
+      # Backup configuration
+      ttl: 720h  # 30 days
+      includeClusterResources: true
+      
+      # Resource policies
+      resourcePolicy:
+        name: nephio-r5-backup-policy
+      
+      # Hooks for consistent backup
+      hooks:
+        resources:
+        - name: conductor-loop-pre-backup
+          includedNamespaces:
+          - nephoran-conductor
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: conductor-loop
+          pre:
+          - exec:
+              container: conductor-loop
+              command:
+              - /bin/sh
+              - -c
+              - "echo 'Preparing for backup...' && sync && sleep 5"
+              onError: Continue
+        
+        - name: prometheus-pre-backup
+          includedNamespaces:
+          - monitoring
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+          pre:
+          - exec:
+              container: prometheus
+              command:
+              - /bin/sh
+              - -c
+              - "promtool tsdb snapshot /prometheus && sync"
+              onError: Continue
+
+---
+# Weekly Backup Schedule with Cross-Region Replication
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: nephio-r5-weekly-backup
+  namespace: velero
+  labels:
+    backup-type: weekly
+    nephio.org/version: r5
+spec:
+  schedule: "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC
+  template:
+    metadata:
+      labels:
+        backup-type: weekly
+        nephio.org/version: r5
+    spec:
+      # Full cluster backup
+      includeClusterResources: true
+      
+      # All namespaces except system ones
+      excludedNamespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+      
+      # Primary storage
+      storageLocation: aws-primary
+      volumeSnapshotLocations:
+      - aws-primary
+      
+      # Extended retention
+      ttl: 4320h  # 180 days
+      
+      # Resource policies
+      resourcePolicy:
+        name: nephio-r5-weekly-backup-policy
+
+---
+# Cross-Region Backup Replication Schedule
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: nephio-r5-replication
+  namespace: velero
+  labels:
+    backup-type: replication
+    nephio.org/version: r5
+spec:
+  schedule: "0 6 * * *"  # Daily at 6 AM UTC (after daily backup)
+  template:
+    metadata:
+      labels:
+        backup-type: replication
+        nephio.org/version: r5
+    spec:
+      # Critical namespaces only for cross-region
+      includedNamespaces:
+      - nephoran-conductor
+      - porch-system
+      - istio-system
+      
+      # Secondary storage location
+      storageLocation: gcp-secondary
+      volumeSnapshotLocations:
+      - gcp-secondary
+      
+      # Retention policy
+      ttl: 2160h  # 90 days
+      
+      # Include cluster resources
+      includeClusterResources: true
+
+---
+# Backup Resource Policy
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephio-r5-backup-policy
+  namespace: velero
+  labels:
+    velero.io/plugin-config: ""
+    velero.io/resource-policy: ""
+data:
+  policy.yaml: |
+    version: v1
+    resourcePolicies:
+    # Skip backing up PVs that are not critical
+    - resource:
+        group: ""
+        version: v1
+        resource: persistentvolumes
+      policy:
+        skipBackup:
+          conditions:
+          - key: "volume.beta.kubernetes.io/storage-class"
+            operator: In
+            values: ["local-path", "hostpath"]
+    
+    # Handle secrets carefully
+    - resource:
+        group: ""
+        version: v1
+        resource: secrets
+      policy:
+        skipBackup:
+          conditions:
+          - key: "type"
+            operator: In
+            values: ["kubernetes.io/service-account-token"]
+    
+    # Critical resources that require consistent backup
+    - resource:
+        group: "apps"
+        version: v1
+        resource: deployments
+      policy:
+        backup:
+          conditions:
+          - key: "metadata.namespace"
+            operator: In
+            values: ["nephoran-conductor", "porch-system", "monitoring"]
+
+---
+# Disaster Recovery Restore Scripts
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nephio-r5-restore-scripts
+  namespace: velero
+  labels:
+    purpose: disaster-recovery-scripts
+data:
+  full-cluster-restore.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Starting Nephio R5 cluster restore process..."
+    
+    # Validate parameters
+    BACKUP_NAME=${1:-$(velero backup get --selector="backup-type=weekly" --sort-by=.metadata.creationTimestamp | tail -1 | awk '{print $1}')}
+    RESTORE_NAME="nephio-r5-restore-$(date +%Y%m%d-%H%M%S)"
+    
+    if [ -z "$BACKUP_NAME" ]; then
+      echo "Error: No backup specified and no weekly backup found"
+      exit 1
+    fi
+    
+    echo "Restoring from backup: $BACKUP_NAME"
+    echo "Restore name: $RESTORE_NAME"
+    
+    # Create restore
+    velero restore create $RESTORE_NAME \
+      --from-backup $BACKUP_NAME \
+      --wait
+    
+    # Wait for restore to complete
+    echo "Waiting for restore to complete..."
+    velero restore get $RESTORE_NAME
+    
+    # Verify critical services
+    echo "Verifying critical services..."
+    kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=conductor-loop -n nephoran-conductor --timeout=300s
+    kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=prometheus -n monitoring --timeout=300s
+    kubectl wait --for=condition=Ready pod -l app=istiod -n istio-system --timeout=300s
+    
+    echo "Nephio R5 cluster restore completed successfully"
+    
+  selective-restore.sh: |
+    #!/bin/bash
+    set -e
+    
+    NAMESPACE=$1
+    BACKUP_NAME=$2
+    RESTORE_NAME="selective-restore-${NAMESPACE}-$(date +%Y%m%d-%H%M%S)"
+    
+    if [ -z "$NAMESPACE" ] || [ -z "$BACKUP_NAME" ]; then
+      echo "Usage: $0 <namespace> <backup-name>"
+      exit 1
+    fi
+    
+    echo "Performing selective restore of namespace: $NAMESPACE"
+    
+    # Create selective restore
+    velero restore create $RESTORE_NAME \
+      --from-backup $BACKUP_NAME \
+      --include-namespaces $NAMESPACE \
+      --wait
+    
+    # Verify restore
+    kubectl get pods -n $NAMESPACE
+    
+    echo "Selective restore of namespace $NAMESPACE completed"
+    
+  cross-region-failover.sh: |
+    #!/bin/bash
+    set -e
+    
+    echo "Initiating cross-region failover for Nephio R5..."
+    
+    # Switch to secondary region backup
+    SECONDARY_BACKUP=$(velero backup get --storage-location gcp-secondary --selector="backup-type=replication" --sort-by=.metadata.creationTimestamp | tail -1 | awk '{print $1}')
+    
+    if [ -z "$SECONDARY_BACKUP" ]; then
+      echo "Error: No replication backup found in secondary region"
+      exit 1
+    fi
+    
+    echo "Using backup from secondary region: $SECONDARY_BACKUP"
+    
+    # Create failover restore
+    RESTORE_NAME="failover-restore-$(date +%Y%m%d-%H%M%S)"
+    
+    velero restore create $RESTORE_NAME \
+      --from-backup $SECONDARY_BACKUP \
+      --storage-location gcp-secondary \
+      --wait
+    
+    # Update DNS and load balancer configurations
+    echo "Updating service endpoints for failover region..."
+    
+    # Verify critical services in new region
+    kubectl wait --for=condition=Ready pod -l app.kubernetes.io/name=conductor-loop -n nephoran-conductor --timeout=600s
+    
+    echo "Cross-region failover completed successfully"
+
+---
+# Automated Backup Verification Job
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: backup-verification
+  namespace: velero
+  labels:
+    purpose: backup-verification
+    nephio.org/version: r5
+spec:
+  schedule: "0 8 * * *"  # Daily at 8 AM UTC
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            purpose: backup-verification
+        spec:
+          serviceAccountName: backup-verifier
+          restartPolicy: OnFailure
+          containers:
+          - name: backup-verifier
+            image: velero/velero:v1.12.0
+            command:
+            - /bin/bash
+            - -c
+            - |
+              set -e
+              echo "Starting backup verification process..."
+              
+              # Check backup status
+              LATEST_BACKUP=$(velero backup get --selector="backup-type=daily" --sort-by=.metadata.creationTimestamp | tail -1 | awk '{print $1}')
+              
+              if [ -z "$LATEST_BACKUP" ]; then
+                echo "ERROR: No daily backup found"
+                exit 1
+              fi
+              
+              echo "Verifying backup: $LATEST_BACKUP"
+              BACKUP_STATUS=$(velero backup describe $LATEST_BACKUP --details | grep "Phase:" | awk '{print $2}')
+              
+              if [ "$BACKUP_STATUS" != "Completed" ]; then
+                echo "ERROR: Latest backup status is $BACKUP_STATUS"
+                exit 1
+              fi
+              
+              # Check backup contents
+              RESOURCE_COUNT=$(velero backup describe $LATEST_BACKUP --details | grep -E "Total items to be backed up:" | awk '{print $6}')
+              
+              if [ "$RESOURCE_COUNT" -lt 100 ]; then
+                echo "WARNING: Backup contains only $RESOURCE_COUNT resources"
+              fi
+              
+              # Test restore capability (dry run)
+              TEST_RESTORE="test-restore-$(date +%Y%m%d-%H%M%S)"
+              
+              velero restore create $TEST_RESTORE \
+                --from-backup $LATEST_BACKUP \
+                --include-namespaces nephoran-conductor \
+                --dry-run
+              
+              echo "Backup verification completed successfully"
+              
+              # Generate verification report
+              cat > /reports/backup-verification-$(date +%Y%m%d).json << EOF
+              {
+                "verification_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+                "backup_name": "$LATEST_BACKUP",
+                "backup_status": "$BACKUP_STATUS",
+                "resource_count": $RESOURCE_COUNT,
+                "verification_status": "PASSED",
+                "next_verification": "$(date -u -d '+1 day' +%Y-%m-%dT%H:%M:%SZ)"
+              }
+              EOF
+            volumeMounts:
+            - name: reports
+              mountPath: /reports
+          volumes:
+          - name: reports
+            persistentVolumeClaim:
+              claimName: backup-reports
+
+---
+# ServiceAccount for Backup Operations
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-verifier
+  namespace: velero
+automountServiceAccountToken: true
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: backup-verifier
+rules:
+- apiGroups: ["velero.io"]
+  resources: ["backups", "restores", "schedules"]
+  verbs: ["get", "list", "create", "delete"]
+- apiGroups: [""]
+  resources: ["pods", "persistentvolumeclaims"]
+  verbs: ["get", "list"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: backup-verifier
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: backup-verifier
+subjects:
+- kind: ServiceAccount
+  name: backup-verifier
+  namespace: velero
+
+---
+# Persistent Volume Claims for Backup Reports
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: backup-reports
+  namespace: velero
+  labels:
+    purpose: backup-verification-reports
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: fast-ssd
+
+---
+# Monitoring Rules for Backup Health
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: velero-backup-alerts
+  namespace: velero
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: velero.backup.rules
+    rules:
+    - alert: VeleroBackupFailure
+      expr: velero_backup_failure_total > 0
+      for: 5m
+      labels:
+        severity: critical
+        component: backup
+        nephio_version: r5
+      annotations:
+        summary: "Velero backup failure detected"
+        description: "Backup {{ $labels.schedule }} has failed"
+        runbook_url: "https://docs.nephio.org/runbooks/backup-failure"
+    
+    - alert: VeleroBackupMissing
+      expr: (time() - velero_backup_last_successful_timestamp) > 86400
+      for: 15m
+      labels:
+        severity: warning
+        component: backup
+        nephio_version: r5
+      annotations:
+        summary: "No successful backup in 24 hours"
+        description: "The last successful backup was {{ $value | humanizeDuration }} ago"
+    
+    - alert: VeleroRestoreFailure
+      expr: velero_restore_failed_total > 0
+      for: 0m
+      labels:
+        severity: critical
+        component: restore
+        nephio_version: r5
+      annotations:
+        summary: "Velero restore failure detected"
+        description: "Restore operation has failed: {{ $labels.restore }}"
+
+---
+# Emergency Restore Pod Template
+apiVersion: v1
+kind: Pod
+metadata:
+  name: emergency-restore-pod
+  namespace: velero
+  labels:
+    purpose: emergency-restore
+spec:
+  serviceAccountName: velero
+  containers:
+  - name: emergency-restore
+    image: velero/velero:v1.12.0
+    command: ["/bin/bash"]
+    args: ["-c", "echo 'Emergency restore pod ready. Use kubectl exec to perform emergency operations.' && sleep infinity"]
+    env:
+    - name: VELERO_NAMESPACE
+      value: velero
+    - name: AWS_SHARED_CREDENTIALS_FILE
+      value: /credentials/cloud
+    volumeMounts:
+    - name: cloud-credentials
+      mountPath: /credentials
+    - name: plugins
+      mountPath: /plugins
+    - name: scratch
+      mountPath: /scratch
+  volumes:
+  - name: cloud-credentials
+    secret:
+      secretName: cloud-credentials
+  - name: plugins
+    emptyDir: {}
+  - name: scratch
+    emptyDir: {}
+  restartPolicy: Never

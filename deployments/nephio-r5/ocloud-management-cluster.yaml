@@ -1,0 +1,245 @@
+# Nephio R5 O-Cloud Management Cluster Deployment
+# Integrated with O-RAN L Release specifications
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: nephio-r5-management
+  namespace: default
+  labels:
+    cluster-type: management
+    nephio-version: r5
+    oran-release: l-release
+    ocloud: enabled
+  annotations:
+    nephio.org/version: r5
+    oran.org/release: l-release
+    ocloud.oran.org/profile: management
+spec:
+  clusterNetwork:
+    pods:
+      cidrBlocks: ["10.244.0.0/16", "fd00:10:244::/56"]
+    services:
+      cidrBlocks: ["10.96.0.0/12", "fd00:10:96::/112"]
+    serviceDomain: cluster.local
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: nephio-r5-management-control-plane
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: DockerCluster
+    name: nephio-r5-management
+
+---
+# Control Plane Configuration for R5
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: nephio-r5-management-control-plane
+  namespace: default
+spec:
+  version: v1.29.0
+  replicas: 3
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerMachineTemplate
+      name: nephio-r5-management-control-plane
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      controllerManager:
+        extraArgs:
+          enable-hostpath-provisioner: "true"
+          feature-gates: "APIResponseCompression=true,APIServerIdentity=true"
+      apiServer:
+        extraArgs:
+          enable-admission-plugins: "NodeRestriction,PodSecurityPolicy,ResourceQuota"
+          feature-gates: "APIResponseCompression=true,APIServerIdentity=true"
+          audit-log-path: "/var/log/kubernetes/audit.log"
+          audit-policy-file: "/etc/kubernetes/audit-policy.yaml"
+      scheduler:
+        extraArgs:
+          feature-gates: "APIResponseCompression=true"
+      etcd:
+        local:
+          extraArgs:
+            listen-metrics-urls: "http://0.0.0.0:2381"
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-labels: "nephio.org/role=control-plane,nephio.org/version=r5,ocloud=enabled"
+          feature-gates: "PodSecurityPolicy=true"
+          cgroup-driver: "systemd"
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-labels: "nephio.org/role=control-plane,nephio.org/version=r5,ocloud=enabled"
+          feature-gates: "PodSecurityPolicy=true"
+          cgroup-driver: "systemd"
+    files:
+    - path: /etc/kubernetes/audit-policy.yaml
+      content: |
+        apiVersion: audit.k8s.io/v1
+        kind: Policy
+        rules:
+        - level: Metadata
+          resources:
+          - group: ""
+            resources: ["secrets", "configmaps"]
+        - level: RequestResponse
+          resources:
+          - group: "nephio.org"
+            resources: ["*"]
+        - level: Request
+          resources:
+          - group: ""
+            resources: ["events"]
+
+---
+# Infrastructure Template for Management Cluster
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerCluster
+metadata:
+  name: nephio-r5-management
+  namespace: default
+spec:
+  failureDomains:
+    fd-1:
+      controlPlane: true
+    fd-2:
+      controlPlane: true
+    fd-3:
+      controlPlane: true
+
+---
+# Control Plane Machine Template
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: nephio-r5-management-control-plane
+  namespace: default
+spec:
+  template:
+    spec:
+      extraMounts:
+      - containerPath: /var/lib/etcd
+        hostPath: /tmp/etcd-data
+      - containerPath: /var/log/kubernetes
+        hostPath: /tmp/k8s-logs
+      customImage: "kindest/node:v1.29.0@sha256:eaa1450915475849a73a9227b8f201df25e55e268e5d619312131292e324c570"
+
+---
+# Worker Nodes for Management Cluster
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: nephio-r5-management-workers
+  namespace: default
+  labels:
+    cluster.x-k8s.io/cluster-name: nephio-r5-management
+spec:
+  clusterName: nephio-r5-management
+  replicas: 5
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: nephio-r5-management
+      pool: worker-pool
+  template:
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: nephio-r5-management
+        pool: worker-pool
+    spec:
+      version: v1.29.0
+      clusterName: nephio-r5-management
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: nephio-r5-management-workers
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachineTemplate
+        name: nephio-r5-management-workers
+
+---
+# Worker Node Bootstrap Configuration
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: nephio-r5-management-workers
+  namespace: default
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            node-labels: "nephio.org/role=worker,nephio.org/version=r5,ocloud=enabled"
+            feature-gates: "PodSecurityPolicy=true"
+            cgroup-driver: "systemd"
+
+---
+# Worker Node Machine Template
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: nephio-r5-management-workers
+  namespace: default
+spec:
+  template:
+    spec:
+      customImage: "kindest/node:v1.29.0@sha256:eaa1450915475849a73a9227b8f201df25e55e268e5d619312131292e324c570"
+      extraMounts:
+      - containerPath: /var/log/pods
+        hostPath: /tmp/pod-logs
+
+---
+# O-Cloud Resource Pool Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ocloud-resource-pool-config
+  namespace: default
+  labels:
+    nephio.org/version: r5
+    oran.org/release: l-release
+data:
+  resource-pool.yaml: |
+    apiVersion: o2.oran.org/v1beta1
+    kind: ResourcePool
+    metadata:
+      name: management-resource-pool
+      namespace: o-cloud
+    spec:
+      # Infrastructure Inventory
+      inventory:
+        compute:
+        - id: mgmt-node-01
+          type: kubernetes-node
+          cpu:
+            cores: 8
+            architecture: x86_64
+          memory:
+            size: 32Gi
+        - id: mgmt-node-02
+          type: kubernetes-node
+          cpu:
+            cores: 8
+            architecture: x86_64
+          memory:
+            size: 32Gi
+        storage:
+        - id: management-storage
+          type: local-path
+          capacity: 1Ti
+      # Resource Allocation Strategy
+      allocation:
+        strategy: HighAvailability
+        overcommit:
+          cpu: 1.0
+          memory: 0.9
+        reservations:
+          system: 10%
+          monitoring: 5%

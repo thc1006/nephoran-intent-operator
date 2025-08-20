@@ -1,0 +1,1 @@
+{"intent_type": "scaling", "target": {"type": "deployment", "name": "test-app"}, "namespace": "default", "replicas": 3}

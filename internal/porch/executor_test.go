@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -550,64 +549,13 @@ func createMockPorch(t testing.TB, tempDir string, exitCode int, stdout, stderr 
 		sleep = sleepDuration[0]
 	}
 
-	var mockPath string
-	var script string
-	
-	if runtime.GOOS == "windows" {
-		// Create Windows batch file
-		mockPath = filepath.Join(tempDir, "mock-porch.bat")
-		sleepSeconds := int(sleep.Seconds())
-		if sleepSeconds == 0 && sleep > 0 {
-			sleepSeconds = 1
-		}
-		
-		sleepCmd := ""
-		if sleepSeconds > 0 {
-			// Use powershell Start-Sleep for more precise timing on Windows
-			sleepCmd = fmt.Sprintf("powershell -command \"Start-Sleep -Milliseconds %d\"", int(sleep.Milliseconds()))
-		}
-		
-		stdoutCmd := ""
-		if stdout != "" {
-			stdoutCmd = fmt.Sprintf("echo %s", stdout)
-		}
-		
-		stderrCmd := ""
-		if stderr != "" {
-			stderrCmd = fmt.Sprintf("echo %s >&2", stderr)
-		}
-		
-		script = fmt.Sprintf(`@echo off
-if "%%1"=="--help" (
-    echo Mock porch help
-    exit /b 0
-)
-%s
-%s
-%s
-exit /b %d`, sleepCmd, stdoutCmd, stderrCmd, exitCode)
-	} else {
-		// Create Unix shell script
-		mockPath = filepath.Join(tempDir, "mock-porch.sh")
-		sleepCmd := ""
-		if sleep > 0 {
-			sleepCmd = fmt.Sprintf("sleep %v", sleep.Seconds())
-		}
-		
-		script = fmt.Sprintf(`#!/bin/bash
-if [ "$1" = "--help" ]; then
-    echo "Mock porch help"
-    exit 0
-fi
-%s
-echo "%s"
-if [ -n "%s" ]; then
-    echo "%s" >&2
-fi
-exit %d`, sleepCmd, stdout, stderr, stderr, exitCode)
-	}
-
-	require.NoError(t, os.WriteFile(mockPath, []byte(script), 0755))
+	mockPath, err := CreateCrossPlatformMock(tempDir, CrossPlatformMockOptions{
+		ExitCode: exitCode,
+		Stdout:   stdout,
+		Stderr:   stderr,
+		Sleep:    sleep,
+	})
+	require.NoError(t, err)
 	return mockPath
 }
 
