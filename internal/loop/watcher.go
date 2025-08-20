@@ -1184,26 +1184,50 @@ func (w *Watcher) cleanupRoutine() {
 func (w *Watcher) waitForWorkersToFinish() {
 	log.Printf("Signaling enhanced workers to stop...")
 	
-	// Wait for queue to drain first
+	// Set a timeout for draining the queue to prevent infinite wait
+	drainTimeout := time.After(2 * time.Second)
+	
+	// Wait for queue to drain first with timeout
 	for {
-		queueSize := len(w.workerPool.workQueue)
-		if queueSize == 0 {
-			break
+		select {
+		case <-drainTimeout:
+			log.Printf("Queue drain timeout reached, forcing shutdown with %d items remaining", 
+				len(w.workerPool.workQueue))
+			goto closeQueue
+		case <-w.ctx.Done():
+			log.Printf("Context cancelled during queue drain")
+			goto closeQueue
+		default:
+			queueSize := len(w.workerPool.workQueue)
+			if queueSize == 0 {
+				goto closeQueue
+			}
+			log.Printf("Waiting for queue to drain: %d items remaining", queueSize)
+			time.Sleep(100 * time.Millisecond)
 		}
-		log.Printf("Waiting for queue to drain: %d items remaining", queueSize)
-		time.Sleep(100 * time.Millisecond)
 	}
 	
+closeQueue:
 	// Give workers time to finish current processing
 	time.Sleep(200 * time.Millisecond)
 	
 	// Close work queue to signal workers to finish processing and exit
 	close(w.workerPool.workQueue)
 	
-	log.Printf("Waiting for enhanced workers to finish...")
-	w.workerPool.workers.Wait()
+	// Use a timeout for waiting on workers to prevent infinite wait
+	workersDone := make(chan struct{})
+	go func() {
+		w.workerPool.workers.Wait()
+		close(workersDone)
+	}()
 	
-	log.Printf("All enhanced workers stopped")
+	select {
+	case <-workersDone:
+		log.Printf("All enhanced workers stopped")
+	case <-time.After(2 * time.Second):
+		log.Printf("Worker shutdown timeout reached, proceeding with shutdown")
+	}
+	
 	close(w.shutdownComplete)
 }
 

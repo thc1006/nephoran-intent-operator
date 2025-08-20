@@ -83,23 +83,29 @@ func TestGracefulShutdownExitCode(t *testing.T) {
 
 	// Start processing in background
 	done := make(chan error, 1)
+	started := make(chan struct{})
 	go func() {
+		close(started) // Signal that Start() has been called
 		done <- watcher.Start()
 	}()
 
-	// Let processing start, then simulate graceful shutdown
-	time.Sleep(100 * time.Millisecond)
+	// Wait for Start() to be called
+	<-started
+	
+	// Let processing begin, then simulate graceful shutdown
+	// Give enough time for files to be queued but not necessarily completed
+	time.Sleep(200 * time.Millisecond)
 	
 	// Trigger graceful shutdown
 	watcher.Close()
 
-	// Wait for processing to complete
+	// Wait for processing to complete with appropriate timeout
 	select {
 	case err := <-done:
 		if err != nil {
 			t.Logf("Watcher returned error (expected during shutdown): %v", err)
 		}
-	case <-time.After(5 * time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("Timeout waiting for watcher to complete")
 	}
 
