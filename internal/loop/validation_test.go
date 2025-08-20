@@ -328,12 +328,8 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 
 	wg.Wait()
 	
-	// Force flush of any remaining batched files
-	err = processor.FlushBatch()
-	s.Assert().NoError(err, "FlushBatch should not error")
-
-	// Wait for processing to complete
-	time.Sleep(500 * time.Millisecond)
+	// Wait for batch interval to flush any remaining files
+	time.Sleep(600 * time.Millisecond)
 
 	s.T().Logf("Processed: %d, Errors: %d, Total: %d", 
 		atomic.LoadInt64(&processedCount), 

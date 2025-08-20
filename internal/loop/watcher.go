@@ -324,7 +324,7 @@ func NewWatcher(dir string, config Config) (*Watcher, error) {
 	}
 	
 	workerPool := &WorkerPool{
-		workQueue:  make(chan WorkItem, config.MaxWorkers*10), // increased buffer for concurrent loads
+		workQueue:  make(chan WorkItem, config.MaxWorkers*100), // large buffer to handle bulk loads
 		stopSignal: make(chan struct{}),
 		maxWorkers: config.MaxWorkers,
 	}
