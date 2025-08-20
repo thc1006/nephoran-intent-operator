@@ -61,9 +61,9 @@ jobs:
           # Create test results directory
           mkdir -p test-results
           
-          # Install setup-envtest with a specific version for stability
+          # Install setup-envtest tool
           echo "Installing setup-envtest tool..."
-          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.17.0
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
           
           # Create local bin directory
           mkdir -p ~/.local/bin
@@ -93,9 +93,9 @@ jobs:
           # Create test results directory
           New-Item -ItemType Directory -Path test-results -Force | Out-Null
           
-          # Install setup-envtest with a specific version for stability
+          # Install setup-envtest tool
           Write-Host "Installing setup-envtest tool..."
-          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@v0.17.0
+          go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
           
           # Add Go bin to PATH for this session
           $goPath = go env GOPATH
