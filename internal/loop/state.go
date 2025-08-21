@@ -221,19 +221,10 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	key := createStateKey(absPath)
 	state, exists := sm.states[key]
 	
-	// If no state entry exists, check if the file exists for error handling
+	// If no state entry exists, treat as not processed (don't error on ENOENT)
+	// This makes the state check robust to concurrent file operations
 	if !exists {
-		// Check if the file exists to determine appropriate behavior
-		fullPath := filePath
-		if !filepath.IsAbs(filePath) {
-			fullPath = filepath.Join(sm.baseDir, filePath)
-		}
-		if _, statErr := os.Stat(fullPath); os.IsNotExist(statErr) {
-			// For the specific test case that expects an error for nonexistent files,
-			// return an error only when checking a truly nonexistent file with no state entry
-			return false, fmt.Errorf("file does not exist: %s", filePath)
-		}
-		// File exists but hasn't been processed yet
+		// File hasn't been processed yet (whether it exists or not)
 		return false, nil
 	}
 	
@@ -252,10 +243,22 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 		if errors.Is(err, ErrFileGone) {
 			return state.Status == "processed", nil
 		}
-		// For other file-not-found errors, treat as non-fatal (file not processed)
-		if os.IsNotExist(err) {
-			return false, nil
+		// Check for file not found errors (including wrapped ones)
+		// We need to check the unwrapped error because calculateFileHash wraps the error
+		var pathErr *os.PathError
+		if errors.As(err, &pathErr) && errors.Is(pathErr.Err, os.ErrNotExist) {
+			// File doesn't exist - treat as processed if it was marked as such
+			return state.Status == "processed", nil
 		}
+		// Also check if the error string contains common patterns
+		errStr := err.Error()
+		if strings.Contains(errStr, "cannot find the file") || 
+		   strings.Contains(errStr, "no such file or directory") ||
+		   strings.Contains(errStr, "The system cannot find") {
+			// File doesn't exist - treat as processed if it was marked as such
+			return state.Status == "processed", nil
+		}
+		// For other errors, propagate them
 		return false, fmt.Errorf("failed to check if processed: %w", err)
 	}
 	

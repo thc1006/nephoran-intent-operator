@@ -1267,50 +1267,79 @@ func (w *Watcher) cleanupRoutine() {
 
 // waitForWorkersToFinish waits for all workers to complete and cleans up
 func (w *Watcher) waitForWorkersToFinish() {
-	log.Printf("Signaling enhanced workers to stop...")
+	log.Printf("Waiting for workers to process queued files...")
 	
-	// Set a timeout for draining the queue to prevent infinite wait
-	drainTimeout := time.After(2 * time.Second)
+	// In once mode, wait longer for processing to complete
+	// Use a more generous timeout to allow files to be processed
+	var drainTimeout time.Duration
+	if w.config.Once {
+		// In once mode, wait up to 30 seconds for queue to drain
+		drainTimeout = 30 * time.Second
+	} else {
+		// In normal mode, use shorter timeout
+		drainTimeout = 5 * time.Second
+	}
 	
-	// Wait for queue to drain first with timeout
+	drainTimer := time.NewTimer(drainTimeout)
+	defer drainTimer.Stop()
+	
+	// Wait for queue to drain AND workers to finish processing
 	for {
 		select {
-		case <-drainTimeout:
-			log.Printf("Queue drain timeout reached, forcing shutdown with %d items remaining", 
-				len(w.workerPool.workQueue))
+		case <-drainTimer.C:
+			queueSize := len(w.workerPool.workQueue)
+			activeWorkers := atomic.LoadInt64(&w.workerPool.activeWorkers)
+			if queueSize > 0 || activeWorkers > 0 {
+				log.Printf("Drain timeout reached after %v, forcing shutdown with %d items queued and %d workers active", 
+					drainTimeout, queueSize, activeWorkers)
+			}
 			goto closeQueue
 		case <-w.ctx.Done():
 			log.Printf("Context cancelled during queue drain")
 			goto closeQueue
 		default:
 			queueSize := len(w.workerPool.workQueue)
-			if queueSize == 0 {
+			activeWorkers := atomic.LoadInt64(&w.workerPool.activeWorkers)
+			
+			// Wait for both queue to be empty AND no active workers
+			if queueSize == 0 && activeWorkers == 0 {
+				log.Printf("Queue drained and all workers idle, proceeding with shutdown")
 				goto closeQueue
 			}
-			log.Printf("Waiting for queue to drain: %d items remaining", queueSize)
+			
+			if queueSize > 0 || activeWorkers > 0 {
+				log.Printf("Waiting for processing to complete: %d items queued, %d workers active", 
+					queueSize, activeWorkers)
+			}
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
 	
 closeQueue:
-	// Give workers time to finish current processing
-	time.Sleep(200 * time.Millisecond)
+	// Give a brief moment for any final status writes
+	time.Sleep(100 * time.Millisecond)
 	
-	// Close work queue to signal workers to finish processing and exit
+	// Close work queue to signal workers to exit
 	close(w.workerPool.workQueue)
 	
-	// Use a timeout for waiting on workers to prevent infinite wait
+	// Wait for all workers to finish with a timeout
 	workersDone := make(chan struct{})
 	go func() {
 		w.workerPool.workers.Wait()
 		close(workersDone)
 	}()
 	
+	// Use longer timeout for worker shutdown in once mode
+	workerTimeout := 5 * time.Second
+	if w.config.Once {
+		workerTimeout = 10 * time.Second
+	}
+	
 	select {
 	case <-workersDone:
-		log.Printf("All enhanced workers stopped")
-	case <-time.After(2 * time.Second):
-		log.Printf("Worker shutdown timeout reached, proceeding with shutdown")
+		log.Printf("All workers stopped gracefully")
+	case <-time.After(workerTimeout):
+		log.Printf("Worker shutdown timeout reached after %v, proceeding with shutdown", workerTimeout)
 	}
 	
 	close(w.shutdownComplete)
@@ -2425,12 +2454,11 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) {
 		return
 	}
 	
-	// Create versioned status filename based on intent filename (without extension)
+	// Create versioned status filename based on intent filename (WITH extension)
+	// Format: <base.json>-YYYYMMDD-HHMMSS.status
 	baseName := filepath.Base(intentFile)
-	// Strip the extension before adding timestamp
-	baseNameWithoutExt := strings.TrimSuffix(baseName, filepath.Ext(baseName))
 	timestamp := time.Now().Format("20060102-150405")
-	statusFile := filepath.Join(w.dir, "status", fmt.Sprintf("%s-%s.status", baseNameWithoutExt, timestamp))
+	statusFile := filepath.Join(w.dir, "status", fmt.Sprintf("%s-%s.status", baseName, timestamp))
 	
 	// Ensure status directory exists using path utility
 	if err := pathutil.EnsureParentDir(statusFile); err != nil {
