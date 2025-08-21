@@ -110,10 +110,17 @@ func NewProcessor(config *ProcessorConfig, validator Validator, porchFunc PorchS
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	// Use larger buffer based on worker count to prevent blocking
-	channelBuffer := config.BatchSize * 2
+	// Size channel buffer to prevent coordinator send timeouts during normal operation
+	// Formula: BatchSize * 4 + WorkerCount * 4 ensures adequate buffering
+	// This prevents the "timeout sending file to batch coordinator" errors
+	channelBuffer := config.BatchSize * 4
 	if config.WorkerCount > 0 {
-		channelBuffer = max(channelBuffer, config.WorkerCount*2)
+		channelBuffer = max(channelBuffer, config.WorkerCount*4)
+	}
+
+	// Ensure minimum buffer size to handle burst load
+	if channelBuffer < 50 {
+		channelBuffer = 50
 	}
 
 	return &IntentProcessor{
@@ -141,12 +148,24 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 	// Track this task
 	p.taskWg.Add(1)
 	p.tasksQueued.Add(1)
+	
+	// During shutdown, don't attempt to queue new work
+	if p.gracefulShutdown.Load() {
+		p.taskWg.Done()
+		p.tasksQueued.Add(-1)
+		return fmt.Errorf("processor is shutting down")
+	}
 
-	// Use configured timeout or default
+	// For normal operation, use non-blocking send with minimal retry
+	// Only use timeout during shutdown to drain remaining work
 	sendTimeout := p.config.SendTimeout
 	if sendTimeout == 0 {
 		sendTimeout = 5 * time.Second
-		if runtime.GOOS == "windows" {
+		// Reduce timeout on Windows during normal operation
+		if runtime.GOOS == "windows" && !p.gracefulShutdown.Load() {
+			sendTimeout = 2 * time.Second
+		}
+		if runtime.GOOS == "windows" && p.gracefulShutdown.Load() {
 			sendTimeout = 10 * time.Second
 		}
 	}
@@ -154,19 +173,32 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 	// Try to send with exponential backoff
 	backoff := time.Millisecond * 100
 	maxBackoff := sendTimeout / 2
-	deadline := time.Now().Add(sendTimeout)
 	
-	for time.Now().Before(deadline) {
+	// During shutdown, use shorter timeout; during normal ops, try immediate send first
+	if !p.gracefulShutdown.Load() {
+		// Normal operation: try immediate send, then short backoff
 		select {
 		case p.inCh <- filename:
-			// Successfully queued
 			return nil
 		case <-p.ctx.Done():
 			p.taskWg.Done()
 			p.tasksQueued.Add(-1)
-			return fmt.Errorf("processor is shutting down")
+			return fmt.Errorf("processor context cancelled")
 		default:
-			// Channel full, wait with backoff
+			// Channel full, but during normal ops this should be rare
+		}
+	}
+	
+	deadline := time.Now().Add(sendTimeout)
+	for time.Now().Before(deadline) {
+		select {
+		case p.inCh <- filename:
+			return nil
+		case <-p.ctx.Done():
+			p.taskWg.Done()
+			p.tasksQueued.Add(-1)
+			return fmt.Errorf("processor context cancelled")
+		default:
 			time.Sleep(backoff)
 			backoff = backoff * 2
 			if backoff > maxBackoff {
@@ -175,15 +207,9 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 		}
 	}
 	
-	// Last attempt before giving up
-	select {
-	case p.inCh <- filename:
-		return nil
-	default:
-		p.taskWg.Done()
-		p.tasksQueued.Add(-1)
-		return fmt.Errorf("timeout sending file to batch coordinator (buffer full after %v)", sendTimeout)
-	}
+	p.taskWg.Done()
+	p.tasksQueued.Add(-1)
+	return fmt.Errorf("timeout sending file to batch coordinator (buffer full after %v)", sendTimeout)
 }
 
 // processBatch processes a batch of files
@@ -377,18 +403,33 @@ func (p *IntentProcessor) StartBatchProcessor() {
 	}()
 }
 
-// Stop stops the processor and waits for all goroutines to finish
+// Stop implements graceful shutdown with proper drain sequencing:
+// 1. Stop accepting new files (mark shutdown)
+// 2. Wait for queued tasks to complete (drain)
+// 3. Stop coordinator and cancel context
+// 4. Wait for all goroutines to finish
 func (p *IntentProcessor) Stop() {
+	log.Printf("Processor shutdown initiated - stopping new file acceptance")
 	p.MarkGracefulShutdown()
 	
-	// Wait for all tasks to be processed
-	log.Printf("Waiting for %d queued tasks to complete...", p.tasksQueued.Load())
+	// Phase 1: Wait for all queued tasks to drain
+	queuedCount := p.tasksQueued.Load()
+	log.Printf("Processor drain phase: waiting for %d queued tasks to complete", queuedCount)
 	p.taskWg.Wait()
+	log.Printf("Processor drain completed - all %d tasks processed", queuedCount)
 	
-	// Now safe to stop the coordinator
-	close(p.stopCh)  // Signal coordinator to stop
-	p.cancel()        // Cancel context
-	p.wg.Wait()       // Wait for all goroutines
+	// Phase 2: Stop coordinator and cancel context
+	log.Printf("Processor shutdown phase: stopping coordinator and cancelling context")
+	select {
+	case <-p.stopCh:
+		// Already closed
+	default:
+		close(p.stopCh)
+	}
+	p.cancel()
+	
+	// Phase 3: Wait for all background goroutines
+	p.wg.Wait()
 	
 	log.Printf("Processor stopped gracefully")
 }

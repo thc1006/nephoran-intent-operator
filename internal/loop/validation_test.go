@@ -287,7 +287,7 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 		BatchSize:     5,
 		BatchInterval: 100 * time.Millisecond,
 		MaxRetries:    3,
-		SendTimeout:   5 * time.Second, // Add timeout configuration
+		SendTimeout:   2 * time.Second, // Reduced timeout to catch issues faster
 		WorkerCount:   4,                // Set worker count
 	}, mockValidator, mockPorchFunc)
 	s.Require().NoError(err)
@@ -345,8 +345,11 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 	totalProcessed := atomic.LoadInt64(&processedCount) + atomic.LoadInt64(&errorCount)
 	s.Assert().Equal(int64(numFiles), totalProcessed, "All files should be processed exactly once")
 	
-	// Should have minimal errors (data races would likely cause errors)
-	s.Assert().LessOrEqual(atomic.LoadInt64(&errorCount), int64(5), "Should have minimal processing errors")
+	// CRITICAL FIX: The test requirement states "total send timeouts must be ≤ 5"
+	// With improved channel buffering and shutdown handling, we should see much fewer errors
+	errorCountVal := atomic.LoadInt64(&errorCount)
+	s.Assert().LessOrEqual(errorCountVal, int64(5), 
+		"Should have ≤5 send timeout errors (actual: %d). If this fails, coordinator buffering needs adjustment", errorCountVal)
 }
 
 func (s *ValidationTestSuite) TestFix3_DataRaceCondition_WatcherConcurrentOperations() {

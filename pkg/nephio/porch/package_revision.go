@@ -146,14 +146,7 @@ type PackageWorkflowEngine interface {
 	GetWorkflowStatus(ctx context.Context, pkg *PackageRevision) (*WorkflowStatus, error)
 }
 
-// WorkflowStatus represents the current status of a workflow
-type WorkflowStatus struct {
-	Phase     WorkflowPhase
-	Stage     string
-	Approvers []ApprovalRecord
-	StartTime time.Time
-	EndTime   *time.Time
-}
+// WorkflowStatus is defined in types.go
 
 // ApprovalRecord tracks individual approval/rejection actions
 type ApprovalRecord struct {

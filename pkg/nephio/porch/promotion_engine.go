@@ -1184,6 +1184,129 @@ type PromotionError struct {
 	Timestamp time.Time
 }
 
+// RollbackOption represents an option for rolling back a promotion
+type RollbackOption struct {
+	ID          string
+	Description string
+	TargetState string
+	Timestamp   time.Time
+	Risk        RiskLevel
+	Impact      string
+}
+
+// PromotionCheckpoint represents a checkpoint for rollback purposes
+type PromotionCheckpoint struct {
+	ID          string
+	PackageRef  *PackageReference
+	Environment string
+	State       map[string]interface{}
+	CreatedAt   time.Time
+	Description string
+	Size        int64
+}
+
+// RollbackOptions configures rollback behavior
+type RollbackOptions struct {
+	CheckpointID  string
+	Force         bool
+	DryRun        bool
+	StopOnError   bool
+	Timeout       time.Duration
+}
+
+// CheckpointRollbackResult contains the result of rolling back to a checkpoint
+type CheckpointRollbackResult struct {
+	Success     bool
+	CheckpointID string
+	RollbackTime time.Duration
+	Changes     []string
+	Errors      []string
+}
+
+// HealthWaitResult contains the result of waiting for health checks
+type HealthWaitResult struct {
+	Healthy     bool
+	WaitTime    time.Duration
+	HealthCheck string
+	Details     map[string]interface{}
+}
+
+// ChainValidationResult contains the result of validating a promotion chain
+type ChainValidationResult struct {
+	Valid       bool
+	Chain       []string
+	Errors      []string
+	Warnings    []string
+	Dependencies map[string][]string
+}
+
+// PipelineExecutionResult contains the result of pipeline execution
+type PipelineExecutionResult struct {
+	PipelineID   string
+	Success      bool
+	Duration     time.Duration
+	StagesRun    int
+	StagesFailed int
+	Results      map[string]interface{}
+	Logs         []string
+}
+
+// PromotionReportOptions configures promotion report generation
+type PromotionReportOptions struct {
+	Format       string
+	IncludeLogs  bool
+	DetailLevel  string
+	TimeRange    *TimeRange
+}
+
+// PromotionReport contains comprehensive promotion information
+type PromotionReport struct {
+	PromotionID  string
+	PackageRef   *PackageReference
+	Timeline     []PromotionEvent
+	Performance  *PromotionMetrics
+	Issues       []PromotionIssue
+	GeneratedAt  time.Time
+}
+
+// PromotionEvent represents an event in the promotion timeline
+type PromotionEvent struct {
+	Timestamp   time.Time
+	Event       string
+	Description string
+	Actor       string
+	Details     map[string]interface{}
+}
+
+
+// PromotionIssue represents an issue during promotion
+type PromotionIssue struct {
+	Type        string
+	Severity    string
+	Message     string
+	Component   string
+	Timestamp   time.Time
+	Resolution  string
+}
+
+// PromotionEngineHealth represents the health of the promotion engine
+type PromotionEngineHealth struct {
+	Status          string
+	LastCheck       time.Time
+	ActivePromotions int
+	QueueSize       int
+	ErrorRate       float64
+	AverageTime     time.Duration
+}
+
+// PipelineRollbackPolicy defines rollback policies for pipelines
+type PipelineRollbackPolicy struct {
+	AutoRollback    bool
+	RollbackOnError bool
+	MaxRetries      int
+	BackoffInterval time.Duration
+}
+
 type RollbackInfo struct {
 	Available  bool
 	Options    []*RollbackOption

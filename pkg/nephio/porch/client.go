@@ -57,14 +57,7 @@ type ClientConfig struct {
 	PorchConfig *PorchConfig
 }
 
-// AuthConfig defines authentication configuration
-type AuthConfig struct {
-	Type       string // kubeconfig, bearer, basic
-	Token      string
-	Username   string
-	Password   string
-	Kubeconfig string
-}
+// AuthConfig is defined in types.go
 
 // ClientTLSConfig defines TLS configuration
 type ClientTLSConfig struct {

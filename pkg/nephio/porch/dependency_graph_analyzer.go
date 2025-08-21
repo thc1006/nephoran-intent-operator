@@ -62,6 +62,75 @@ type TarjanSCC struct {
 	components [][]*DependencyNode
 }
 
+// KosarajuSCC implements Kosaraju's strongly connected components algorithm
+type KosarajuSCC struct {
+	visited    map[string]bool
+	stack      []*DependencyNode
+	components [][]*DependencyNode
+}
+
+// DijkstraShortestPath implements Dijkstra's shortest path algorithm
+type DijkstraShortestPath struct {
+	distances map[string]float64
+	previous  map[string]*DependencyNode
+	visited   map[string]bool
+}
+
+// BellmanFordShortestPath implements Bellman-Ford shortest path algorithm
+type BellmanFordShortestPath struct {
+	distances     map[string]float64
+	previous      map[string]*DependencyNode
+	hasNegCycle   bool
+}
+
+// FloydWarshallAllPairs implements Floyd-Warshall all-pairs shortest path algorithm
+type FloydWarshallAllPairs struct {
+	distances map[string]map[string]float64
+	next      map[string]map[string]*DependencyNode
+}
+
+// KruskalMST implements Kruskal's minimum spanning tree algorithm
+type KruskalMST struct {
+	parent map[string]*DependencyNode
+	rank   map[string]int
+	edges  []*Edge
+}
+
+// PrimMST implements Prim's minimum spanning tree algorithm
+type PrimMST struct {
+	key      map[string]float64
+	parent   map[string]*DependencyNode
+	inMST    map[string]bool
+}
+
+// PageRankAlgorithm implements PageRank algorithm for node importance
+type PageRankAlgorithm struct {
+	scores     map[string]float64
+	dampingFactor float64
+	iterations int
+	tolerance  float64
+}
+
+// BetweennessCentrality implements betweenness centrality calculation
+type BetweennessCentrality struct {
+	centrality map[string]float64
+	sigma      map[string]float64
+	delta      map[string]float64
+}
+
+// CommunityDetection implements community detection algorithms
+type CommunityDetection struct {
+	communities [][]*DependencyNode
+	modularity  float64
+}
+
+// Edge represents a weighted edge in the graph
+type Edge struct {
+	From   *DependencyNode
+	To     *DependencyNode
+	Weight float64
+}
+
 // GraphAnalysisResult contains comprehensive graph analysis results
 type GraphAnalysisResult struct {
 	TopologicalOrder  []*DependencyNode

@@ -16,9 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	ProviderTypeGCP = "gcp"
-)
+// ProviderTypeGCP is defined in interface.go
 
 // GCPProvider implements CloudProvider for Google Cloud Platform
 type GCPProvider struct {
