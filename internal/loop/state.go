@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -20,6 +21,12 @@ import (
 const (
 	StateFileName = ".conductor-state.json"
 )
+
+// ErrFileGone is returned when a file disappears during processing (common on Windows).
+// This occurs due to non-atomic os.Rename operations on Windows that can cause
+// transient ENOENT errors during concurrent file operations.
+// See: https://pkg.go.dev/os#Rename (Note about Windows behavior)
+var ErrFileGone = errors.New("file disappeared after retries")
 
 // FileState represents the processing state of a file
 type FileState struct {
@@ -239,11 +246,17 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	// For entries with real hashes, verify the file still matches
 	hash, size, err := calculateFileHash(sm.baseDir, filePath)
 	if err != nil {
-		// If file disappeared after being processed, still consider it processed
-		if strings.Contains(err.Error(), "file disappeared") {
+		// If file disappeared after being processed, still consider it processed.
+		// This handles Windows filesystem race conditions where files may temporarily
+		// appear missing during concurrent operations.
+		if errors.Is(err, ErrFileGone) {
 			return state.Status == "processed", nil
 		}
-		return false, fmt.Errorf("failed to calculate file hash: %w", err)
+		// For other file-not-found errors, treat as non-fatal (file not processed)
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check if processed: %w", err)
 	}
 	
 	// Check if file has changed since processing
@@ -275,7 +288,7 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	if err != nil {
 		// If file disappeared during concurrent processing, still mark it as processed
 		// This is common when multiple workers compete for the same file
-		if strings.Contains(err.Error(), "file disappeared") {
+		if errors.Is(err, ErrFileGone) {
 			// Create a placeholder entry marking the file as processed
 			// Use empty hash since we can't calculate it
 			hash = "file-disappeared"
@@ -412,9 +425,53 @@ func (sm *StateManager) IsProcessedBySHA(sha256Hash string) (bool, error) {
 	return false, nil
 }
 
-// calculateFileHash calculates SHA256 hash and size of a file
-// It safely joins the relative filePath with baseDir to prevent directory traversal
+// calculateFileHash calculates SHA256 hash and size of a file with retry logic
+// to handle Windows ENOENT race conditions during concurrent file operations.
+// On Windows, os.Rename is not atomic and can cause temporary file unavailability.
 func calculateFileHash(baseDir, filePath string) (string, int64, error) {
+	return calcFileHashWithRetry(baseDir, filePath)
+}
+
+// calcFileHashWithRetry implements exponential backoff retry for file hash calculation
+// to handle Windows file system race conditions where files temporarily disappear
+// during concurrent operations (especially os.Rename which is non-atomic on Windows).
+func calcFileHashWithRetry(baseDir, filePath string) (string, int64, error) {
+	const maxRetries = 5
+	const baseDelayMs = 25
+	
+	var lastErr error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		hash, size, err := calcFileHashOnce(baseDir, filePath)
+		if err == nil {
+			return hash, size, nil
+		}
+		
+		// Only retry on file not found errors
+		if !os.IsNotExist(err) {
+			return "", 0, err
+		}
+		
+		lastErr = err
+		
+		// Don't sleep on the last attempt
+		if attempt < maxRetries-1 {
+			// Exponential backoff: 25ms, 50ms, 100ms, 200ms
+			delay := time.Duration(baseDelayMs*(1<<uint(attempt))) * time.Millisecond
+			time.Sleep(delay)
+		}
+	}
+	
+	// If we exhausted retries due to file not existing, return ErrFileGone
+	if os.IsNotExist(lastErr) {
+		return "", 0, ErrFileGone
+	}
+	
+	return "", 0, lastErr
+}
+
+// calcFileHashOnce calculates SHA256 hash and size of a file (single attempt)
+// It safely joins the relative filePath with baseDir to prevent directory traversal
+func calcFileHashOnce(baseDir, filePath string) (string, int64, error) {
 	var safePath string
 	var err error
 	
@@ -460,11 +517,6 @@ func calculateFileHash(baseDir, filePath string) (string, int64, error) {
 	
 	file, err := os.Open(safePath)
 	if err != nil {
-		// Check if file doesn't exist (common in concurrent scenarios)
-		if os.IsNotExist(err) {
-			// Return a special error that can be handled by callers
-			return "", 0, fmt.Errorf("file disappeared: %w", err)
-		}
 		return "", 0, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
