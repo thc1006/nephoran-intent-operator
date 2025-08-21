@@ -108,9 +108,9 @@ func TestOnceMode_ExitCodes(t *testing.T) {
 			assert.Equal(t, tt.expectedFailed, stats.FailedCount,
 				"Failed count mismatch. Failed files: %v", stats.FailedFiles)
 			
-			// Simulate what main.go would do
+			// Simulate what main.go would do - only real failures should affect exit code
 			var exitCode int
-			if stats.FailedCount > 0 {
+			if stats.RealFailedCount > 0 {
 				exitCode = 8
 			} else {
 				exitCode = 0

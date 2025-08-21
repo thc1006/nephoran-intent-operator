@@ -7,11 +7,40 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
+
+// isExpectedShutdownError identifies expected errors during shutdown that don't indicate infrastructure issues
+func isExpectedShutdownError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	errorMsg := strings.ToLower(err.Error())
+	
+	// Expected shutdown patterns - these indicate graceful cleanup is in progress
+	expectedPatterns := []string{
+		"stats not available - no file manager configured",
+		"failed to read directory", // Directory may be temporarily inaccessible during cleanup
+		"permission denied",        // Cleanup processes may temporarily lock resources
+		"file does not exist",      // Status files may be cleaned up during shutdown
+		"no such file or directory", // Similar to above, for different OS error formats
+		"directory not found",      // Status directories may be cleaned up
+		"access is denied",         // Windows equivalent of permission denied
+	}
+	
+	for _, pattern := range expectedPatterns {
+		if strings.Contains(errorMsg, pattern) {
+			return true
+		}
+	}
+	
+	return false
+}
 
 // validateHandoffDir validates that a path exists and is accessible for directory operations.
 // It checks if the path exists, is a directory (not a file), and has read permissions.
@@ -170,8 +199,15 @@ func main() {
 			// In once mode, check if any files failed
 			stats, statsErr := watcher.GetStats()
 			if statsErr != nil {
-				log.Printf("Failed to get processing stats: %v", statsErr)
-				exitCode = 1
+				if isExpectedShutdownError(statsErr) {
+					log.Printf("Stats unavailable due to expected shutdown conditions: %v", statsErr)
+					log.Printf("Once mode completed - stats collection temporarily unavailable (expected)")
+					exitCode = 3 // Stats unavailable due to expected shutdown conditions
+				} else {
+					log.Printf("Failed to get processing stats due to unexpected error: %v", statsErr)
+					log.Printf("This indicates potential infrastructure issues with status directories or file system")
+					exitCode = 2 // Unexpected stats error (infrastructure issues)
+				}
 			} else if stats.RealFailedCount > 0 {
 				// Only real failures should affect exit code, not shutdown failures
 				log.Printf("Completed with %d real failures and %d shutdown failures (total: %d failed files)", 
@@ -193,8 +229,15 @@ func main() {
 		// Check stats after graceful shutdown to distinguish shutdown vs real failures
 		stats, statsErr := watcher.GetStats()
 		if statsErr != nil {
-			log.Printf("Failed to get processing stats after shutdown: %v", statsErr)
-			exitCode = 0 // Graceful shutdown should still exit 0 even if stats unavailable
+			if isExpectedShutdownError(statsErr) {
+				log.Printf("Stats unavailable due to expected shutdown conditions: %v", statsErr)
+				log.Printf("Graceful shutdown completed - stats collection temporarily unavailable (expected)")
+				exitCode = 3 // Stats unavailable due to expected shutdown conditions
+			} else {
+				log.Printf("Failed to get processing stats after shutdown due to unexpected error: %v", statsErr)
+				log.Printf("This indicates potential infrastructure issues with status directories or file system")
+				exitCode = 2 // Unexpected stats error (infrastructure issues)
+			}
 		} else if stats.RealFailedCount > 0 {
 			// Only real failures should affect exit code, not shutdown failures
 			log.Printf("Graceful shutdown completed with %d real failures and %d shutdown failures (total: %d failed files)", 

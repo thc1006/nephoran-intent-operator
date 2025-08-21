@@ -145,7 +145,7 @@ func TestStateManager_IsProcessed(t *testing.T) {
 				return filepath.Join(dir, "nonexistent.json")
 			},
 			expectedResult: false,
-			wantErr:        true,
+			wantErr:        false, // No error for nonexistent files (race condition handling)
 		},
 	}
 

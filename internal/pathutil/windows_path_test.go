@@ -9,12 +9,130 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestValidateWindowsPath(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows-specific test")
+	}
+
+	tests := []struct {
+		name        string
+		input       string
+		wantErr     bool
+		errContains string
+	}{
+		// Valid paths
+		{
+			name:    "valid absolute path with drive",
+			input:   "C:\\temp\\file.txt",
+			wantErr: false,
+		},
+		{
+			name:    "valid UNC path",
+			input:   "\\\\server\\share\\file.txt",
+			wantErr: false,
+		},
+		{
+			name:    "valid long path with prefix",
+			input:   "\\\\?\\C:\\temp\\file.txt",
+			wantErr: false,
+		},
+		{
+			name:    "valid relative path",
+			input:   "temp\\file.txt",
+			wantErr: false,
+		},
+		// Edge cases that should fail
+		{
+			name:        "drive letter only (relative)",
+			input:       "C:",
+			wantErr:     true,
+			errContains: "drive letter without path",
+		},
+		{
+			name:        "empty path",
+			input:       "",
+			wantErr:     true,
+			errContains: "empty path",
+		},
+		{
+			name:        "invalid character <",
+			input:       "C:\\temp\\<file>.txt",
+			wantErr:     true,
+			errContains: "invalid character",
+		},
+		{
+			name:        "invalid character >",
+			input:       "C:\\temp\\>file.txt",
+			wantErr:     true,
+			errContains: "invalid character",
+		},
+		{
+			name:        "invalid character |",
+			input:       "C:\\temp\\file|.txt",
+			wantErr:     true,
+			errContains: "invalid character",
+		},
+		{
+			name:        "multiple colons",
+			input:       "C:\\temp:colon\\file.txt",
+			wantErr:     true,
+			errContains: "multiple colons",
+		},
+		{
+			name:        "colon in wrong position",
+			input:       "temp:C\\file.txt",
+			wantErr:     true,
+			errContains: "colon in invalid position",
+		},
+		{
+			name:        "reserved name CON",
+			input:       "C:\\temp\\CON.txt",
+			wantErr:     true,
+			errContains: "reserved filename",
+		},
+		{
+			name:        "reserved name PRN",
+			input:       "C:\\temp\\PRN",
+			wantErr:     true,
+			errContains: "reserved filename",
+		},
+		{
+			name:        "reserved name COM1",
+			input:       "C:\\temp\\com1.log",
+			wantErr:     true,
+			errContains: "reserved filename",
+		},
+		{
+			name:        "path too long without prefix",
+			input:       "C:\\" + strings.Repeat("a", 256),
+			wantErr:     true,
+			errContains: "path too long",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateWindowsPath(tt.input)
+			
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestNormalizeUserPath(t *testing.T) {
 	tests := []struct {
-		name      string
-		input     string
-		wantErr   bool
+		name        string
+		input       string
+		wantErr     bool
 		errContains string
+		expected    string // Expected result on Windows
 	}{
 		{
 			name:    "valid relative path",
@@ -22,8 +140,28 @@ func TestNormalizeUserPath(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name:    "valid absolute path",
+			name:    "valid absolute path Unix style",
 			input:   "/tmp/test/file.json",
+			wantErr: false,
+		},
+		{
+			name:    "valid Windows absolute path",
+			input:   "C:\\temp\\file.json",
+			wantErr: false,
+		},
+		{
+			name:    "mixed separators",
+			input:   "C:/temp\\file.json",
+			wantErr: false,
+		},
+		{
+			name:        "drive with relative path",
+			input:       "C:temp\\file.json",
+			wantErr:     false, // Should be converted to absolute
+		},
+		{
+			name:    "UNC path",
+			input:   "\\\\server\\share\\file.json",
 			wantErr: false,
 		},
 		{
@@ -44,6 +182,12 @@ func TestNormalizeUserPath(t *testing.T) {
 			wantErr:     true,
 			errContains: "path traversal",
 		},
+		{
+			name:        "Windows invalid characters",
+			input:       "C:\\temp\\file<test>.txt",
+			wantErr:     true,
+			errContains: "Windows path validation failed",
+		},
 	}
 
 	for _, tt := range tests {
@@ -59,9 +203,13 @@ func TestNormalizeUserPath(t *testing.T) {
 				require.NoError(t, err)
 				assert.NotEmpty(t, result)
 				// Result should be absolute
-				assert.True(t, strings.HasPrefix(result, "/") || 
-					(runtime.GOOS == "windows" && (strings.Contains(result, ":") || strings.HasPrefix(result, `\\?\`))),
-					"Path should be absolute: %s", result)
+				if runtime.GOOS == "windows" {
+					assert.True(t, IsAbsoluteWindowsPath(result),
+						"Path should be absolute on Windows: %s", result)
+				} else {
+					assert.True(t, strings.HasPrefix(result, "/"),
+						"Path should be absolute on Unix: %s", result)
+				}
 			}
 		})
 	}
@@ -80,6 +228,160 @@ func TestNormalizeUserPath_WindowsLongPath(t *testing.T) {
 	
 	// Should have UNC prefix for long paths
 	assert.True(t, strings.HasPrefix(result, `\\?\`), "Long path should have UNC prefix: %s", result)
+}
+
+func TestNormalizeUserPath_WindowsEdgeCases(t *testing.T) {
+	if runtime.GOOS != "windows" {
+		t.Skip("Windows-specific test")
+	}
+
+	tests := []struct {
+		name     string
+		input    string
+		wantErr  bool
+		contains string // What the result should contain
+	}{
+		{
+			name:     "drive with relative path conversion",
+			input:    "C:temp\\file.txt",
+			wantErr:  false,
+			contains: "C:\\", // Should be converted to absolute
+		},
+		{
+			name:    "mixed separators normalization",
+			input:   "C:/temp\\file.txt",
+			wantErr: false,
+		},
+		{
+			name:    "UNC path preservation",
+			input:   "\\\\server\\share\\file.txt",
+			wantErr: false,
+		},
+		{
+			name:    "device path preservation",
+			input:   "\\\\?\\C:\\temp\\file.txt",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := NormalizeUserPath(tt.input)
+			
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+				assert.NotEmpty(t, result)
+				if tt.contains != "" {
+					assert.Contains(t, result, tt.contains)
+				}
+				// Result should be absolute
+				assert.True(t, IsAbsoluteWindowsPath(result),
+					"Path should be absolute: %s", result)
+			}
+		})
+	}
+}
+
+func TestWindowsPathHelpers(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		isUNC    bool
+		isDevice bool
+		isAbs    bool
+	}{
+		{
+			name:     "regular absolute path",
+			path:     "C:\\temp\\file.txt",
+			isUNC:    false,
+			isDevice: false,
+			isAbs:    true,
+		},
+		{
+			name:     "UNC path",
+			path:     "\\\\server\\share\\file.txt",
+			isUNC:    true,
+			isDevice: false,
+			isAbs:    true,
+		},
+		{
+			name:     "device path \\\\?\\",
+			path:     "\\\\?\\C:\\temp\\file.txt",
+			isUNC:    false,
+			isDevice: true,
+			isAbs:    true,
+		},
+		{
+			name:     "device path \\\\.\\  ",
+			path:     "\\\\.\\C:\\temp\\file.txt",
+			isUNC:    false,
+			isDevice: true,
+			isAbs:    true,
+		},
+		{
+			name:     "relative path",
+			path:     "temp\\file.txt",
+			isUNC:    false,
+			isDevice: false,
+			isAbs:    false,
+		},
+		{
+			name:     "drive relative",
+			path:     "C:temp",
+			isUNC:    false,
+			isDevice: false,
+			isAbs:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.isUNC, IsUNCPath(tt.path), "IsUNCPath mismatch")
+			assert.Equal(t, tt.isDevice, IsWindowsDevicePath(tt.path), "IsWindowsDevicePath mismatch")
+			
+			if runtime.GOOS == "windows" {
+				assert.Equal(t, tt.isAbs, IsAbsoluteWindowsPath(tt.path), "IsAbsoluteWindowsPath mismatch")
+			}
+		})
+	}
+}
+
+func TestNormalizePathSeparators(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "mixed separators on Windows",
+			input:    "C:/temp\\file.txt",
+			expected: func() string {
+				if runtime.GOOS == "windows" {
+					return "C:\\temp\\file.txt"
+				}
+				return "C:/temp/file.txt"
+			}(),
+		},
+		{
+			name:     "Unix path on Windows",
+			input:    "/usr/local/bin",
+			expected: func() string {
+				if runtime.GOOS == "windows" {
+					return "\\usr\\local\\bin"
+				}
+				return "/usr/local/bin"
+			}(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := NormalizePathSeparators(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
 }
 
 func TestEnsureParentDir(t *testing.T) {

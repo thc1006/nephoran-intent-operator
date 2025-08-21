@@ -142,20 +142,10 @@ func (fm *FileManager) moveFileToDirectory(filePath, targetDir string) error {
 	return nil
 }
 
-// atomicMove performs an atomic file move operation
+// atomicMove performs an atomic file move operation with Windows-specific handling
 func (fm *FileManager) atomicMove(src, dst string) error {
-	// On Windows, os.Rename is not truly atomic across different volumes,
-	// but it's the best we can do within the same volume.
-	// For cross-volume moves, we would need copy+delete, but that's not atomic.
-	
-	// First, try direct rename (works if on same volume)
-	if err := os.Rename(src, dst); err == nil {
-		return nil
-	}
-	
-	// If rename fails, fall back to copy+delete (not atomic but safer than partial state)
-	log.Printf("Direct rename failed, falling back to copy+delete for %s -> %s", src, dst)
-	return fm.copyAndDelete(src, dst)
+	// Use our robust moveFileAtomic that handles Windows race conditions
+	return moveFileAtomic(src, dst)
 }
 
 // copyAndDelete copies a file and then deletes the original (fallback for cross-volume moves)

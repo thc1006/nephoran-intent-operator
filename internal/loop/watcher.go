@@ -166,11 +166,13 @@ type FileProcessingState struct {
 
 // WorkerPool manages a pool of workers with backpressure control
 type WorkerPool struct {
-	workQueue     chan WorkItem
-	workers       sync.WaitGroup
-	stopSignal    chan struct{}
-	maxWorkers    int
-	activeWorkers int64 // atomic counter
+	workQueue        chan WorkItem
+	workers          sync.WaitGroup
+	stopSignal       chan struct{}
+	maxWorkers       int
+	activeWorkers    int64 // atomic counter
+	processingItems  int64 // atomic counter for items being processed
+	queueClosed      sync.Once // ensures queue is only closed once
 }
 
 // WorkItem represents a unit of work for the worker pool
@@ -292,6 +294,7 @@ type Watcher struct {
 	gracefulShutdown atomic.Bool
 	shutdownStartTime time.Time
 	shutdownMutex    sync.RWMutex
+	shutdownOnce     sync.Once // ensures shutdown operations happen only once
 	
 	// Idempotent teardown
 	closeOnce       sync.Once
@@ -1068,6 +1071,10 @@ func (w *Watcher) enhancedWorker(workerID int) {
 
 // processWorkItemWithLocking processes a work item with file-level locking
 func (w *Watcher) processWorkItemWithLocking(workerID int, workItem WorkItem) {
+	// Increment processing counter
+	atomic.AddInt64(&w.workerPool.processingItems, 1)
+	defer atomic.AddInt64(&w.workerPool.processingItems, -1)
+	
 	defer func() {
 		if workItem.Ctx != nil {
 			workItem.Ctx.Done()
@@ -1123,10 +1130,14 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		// Record validation error
 		w.recordValidationError(err.Error())
 		
+		// Write failure status FIRST (before moving the file)
+		w.writeStatusFileAtomic(filePath, "failed", fmt.Sprintf("JSON validation failed: %v", err))
+		
 		// Mark as failed with precomputed hash
 		w.stateManager.MarkFailedWithHash(filePath, fileHash, fileSize)
+		
+		// Move to failed directory LAST
 		w.fileManager.MoveToFailed(filePath, fmt.Sprintf("Validation failed: %v", err))
-		w.writeStatusFileAtomic(filePath, "failed", fmt.Sprintf("JSON validation failed: %v", err))
 		return
 	}
 	
@@ -1138,18 +1149,18 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	w.recordProcessingLatency(processingDuration)
 	
 	if result.Success {
+		// Write success status FIRST (before moving the file)
+		w.writeStatusFileAtomic(filePath, "success", fmt.Sprintf("Processed by worker %d in %v", workerID, result.Duration))
+		
 		// Mark as processed in state manager with precomputed hash
 		if err := w.stateManager.MarkProcessedWithHash(filePath, fileHash, fileSize); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as processed: %v", workerID, err)
 		}
 		
-		// Move to processed directory
+		// Move to processed directory LAST (after status is written)
 		if err := w.fileManager.MoveToProcessed(filePath); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to move file to processed: %v", workerID, err)
 		}
-		
-		// Write success status
-		w.writeStatusFileAtomic(filePath, "success", fmt.Sprintf("Processed by worker %d in %v", workerID, result.Duration))
 		
 		// Record successful processing
 		atomic.AddInt64(&w.metrics.FilesProcessedTotal, 1)
@@ -1177,16 +1188,19 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 			log.Printf("LOOP:SHUTDOWN - Worker %d: File %s failed due to graceful shutdown (expected): %s", 
 				workerID, filepath.Base(filePath), errorMsg)
 			
-			// Move to failed directory but mark as shutdown failure
+			// Write failure status with shutdown marker FIRST
+			w.writeStatusFileAtomic(filePath, "shutdown_failed", fmt.Sprintf("Failed during graceful shutdown: %s", errorMsg))
+			
+			// Move to failed directory but mark as shutdown failure LAST
 			shutdownErrorMsg := fmt.Sprintf("SHUTDOWN_FAILURE: %s", errorMsg)
 			if err := w.fileManager.MoveToFailed(filePath, shutdownErrorMsg); err != nil {
 				log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
 			}
-			
-			// Write failure status with shutdown marker
-			w.writeStatusFileAtomic(filePath, "shutdown_failed", fmt.Sprintf("Failed during graceful shutdown: %s", errorMsg))
 		} else {
 			log.Printf("LOOP:ERROR - Worker %d: Failed to process %s: %s", workerID, filepath.Base(filePath), errorMsg)
+			
+			// Write failure status FIRST
+			w.writeStatusFileAtomic(filePath, "failed", errorMsg)
 			
 			// Mark as failed in state manager with precomputed hash (only for real failures)
 			if err := w.stateManager.MarkFailedWithHash(filePath, fileHash, fileSize); err != nil {
@@ -1196,13 +1210,10 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 			// Record processing error (only for real failures)
 			w.recordProcessingError(errorMsg)
 			
-			// Move to failed directory
+			// Move to failed directory LAST
 			if err := w.fileManager.MoveToFailed(filePath, errorMsg); err != nil {
 				log.Printf("LOOP:WARNING - Worker %d: Failed to move file to failed: %v", workerID, err)
 			}
-			
-			// Write failure status
-			w.writeStatusFileAtomic(filePath, "failed", errorMsg)
 		}
 	}
 }
@@ -1240,6 +1251,14 @@ func (w *Watcher) cleanupRoutine() {
 
 // waitForWorkersToFinish waits for all workers to complete and cleans up
 func (w *Watcher) waitForWorkersToFinish() {
+	// Use sync.Once to ensure this only runs once, even if called multiple times
+	w.shutdownOnce.Do(func() {
+		w.waitForWorkersToFinishInternal()
+	})
+}
+
+// waitForWorkersToFinishInternal does the actual work of waiting for workers
+func (w *Watcher) waitForWorkersToFinishInternal() {
 	log.Printf("Waiting for workers to process queued files...")
 	
 	// In once mode, wait longer for processing to complete
@@ -1273,16 +1292,25 @@ func (w *Watcher) waitForWorkersToFinish() {
 		default:
 			queueSize := len(w.workerPool.workQueue)
 			activeWorkers := atomic.LoadInt64(&w.workerPool.activeWorkers)
+			processingItems := atomic.LoadInt64(&w.workerPool.processingItems)
 			
-			// Wait for both queue to be empty AND no active workers
-			if queueSize == 0 && activeWorkers == 0 {
-				log.Printf("Queue drained and all workers idle, proceeding with shutdown")
-				goto closeQueue
+			// In once mode, wait for both queue to be empty AND no items being processed
+			if w.config.Once {
+				if queueSize == 0 && processingItems == 0 {
+					log.Printf("Queue drained and no items processing in once mode, proceeding with shutdown")
+					goto closeQueue
+				}
+			} else {
+				// In continuous mode, wait for both queue to be empty AND no active workers
+				if queueSize == 0 && activeWorkers == 0 {
+					log.Printf("Queue drained and all workers idle, proceeding with shutdown")
+					goto closeQueue
+				}
 			}
 			
-			if queueSize > 0 || activeWorkers > 0 {
-				log.Printf("Waiting for processing to complete: %d items queued, %d workers active", 
-					queueSize, activeWorkers)
+			if queueSize > 0 || processingItems > 0 {
+				log.Printf("Waiting for processing to complete: %d items queued, %d processing, %d workers active", 
+					queueSize, processingItems, activeWorkers)
 			}
 			time.Sleep(100 * time.Millisecond)
 		}
@@ -1292,8 +1320,10 @@ closeQueue:
 	// Give a brief moment for any final status writes
 	time.Sleep(100 * time.Millisecond)
 	
-	// Close work queue to signal workers to exit
-	close(w.workerPool.workQueue)
+	// Close work queue to signal workers to exit (only once)
+	w.workerPool.queueClosed.Do(func() {
+		close(w.workerPool.workQueue)
+	})
 	
 	// Wait for all workers to finish with a timeout
 	workersDone := make(chan struct{})
@@ -1496,11 +1526,11 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 		return fmt.Errorf("path validation failed: %w", err)
 	}
 	
-	// Open file for reading
-	file, err := os.Open(normalizedPath)
+	// Open file for reading with retry logic for Windows race conditions
+	file, err := openFileWithRetry(normalizedPath)
 	if err != nil {
 		// Check if file doesn't exist
-		if os.IsNotExist(err) {
+		if os.IsNotExist(err) || err == ErrFileGone {
 			return fmt.Errorf("file not found (may have been moved): %w", err)
 		}
 		return fmt.Errorf("failed to open file: %w", err)
@@ -1563,14 +1593,35 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 }
 
 // validatePath ensures the file path is safe and within expected boundaries
+// It includes Windows-specific validation for drive letters, UNC paths, and edge cases
 func (w *Watcher) validatePath(filePath string) error {
-	// Clean the path to remove any ../ or ./ sequences
-	cleanPath := filepath.Clean(filePath)
+	// Import pathutil for Windows-specific validation
+	// Perform initial Windows-specific validation
+	if runtime.GOOS == "windows" {
+		if err := pathutil.ValidateWindowsPath(filePath); err != nil {
+			return fmt.Errorf("Windows path validation failed: %w", err)
+		}
+	}
 	
-	// Ensure the path is absolute
-	absPath, err := filepath.Abs(cleanPath)
-	if err != nil {
-		return fmt.Errorf("failed to get absolute path: %w", err)
+	// Normalize path separators for consistent handling
+	normalizedPath := pathutil.NormalizePathSeparators(filePath)
+	
+	// Clean the path to remove any ../ or ./ sequences
+	cleanPath := filepath.Clean(normalizedPath)
+	
+	// Ensure the path is absolute - use Windows-aware check
+	var absPath string
+	var err error
+	
+	if runtime.GOOS == "windows" && pathutil.IsAbsoluteWindowsPath(cleanPath) {
+		// Path is already absolute on Windows
+		absPath = cleanPath
+	} else {
+		// Convert to absolute path
+		absPath, err = filepath.Abs(cleanPath)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path: %w", err)
+		}
 	}
 	
 	// Check if path is within the watched directory
@@ -1579,8 +1630,29 @@ func (w *Watcher) validatePath(filePath string) error {
 		return fmt.Errorf("failed to get watched directory absolute path: %w", err)
 	}
 	
+	// Windows path comparison needs to be case-insensitive and separator-aware
+	var isWithinWatchedDir bool
+	if runtime.GOOS == "windows" {
+		// Normalize both paths for comparison
+		normAbsPath := strings.ToLower(pathutil.NormalizePathSeparators(absPath))
+		normWatchedDir := strings.ToLower(pathutil.NormalizePathSeparators(watchedDir))
+		
+		// Ensure watched directory ends with separator for accurate prefix checking
+		if !strings.HasSuffix(normWatchedDir, "\\") {
+			normWatchedDir += "\\"
+		}
+		
+		isWithinWatchedDir = strings.HasPrefix(normAbsPath+"\\", normWatchedDir)
+	} else {
+		// Unix-style path comparison
+		if !strings.HasSuffix(watchedDir, "/") {
+			watchedDir += "/"
+		}
+		isWithinWatchedDir = strings.HasPrefix(absPath+"/", watchedDir)
+	}
+	
 	// Ensure the file is within the watched directory
-	if !strings.HasPrefix(absPath, watchedDir) {
+	if !isWithinWatchedDir {
 		return fmt.Errorf("file path %s is outside watched directory %s", absPath, watchedDir)
 	}
 	
@@ -1601,21 +1673,32 @@ func (w *Watcher) validatePath(filePath string) error {
 		return fmt.Errorf("filename length %d exceeds maximum %d", len(filename), MaxFileNameLength)
 	}
 	
-	// Check for suspicious patterns in filename
-	suspiciousPatterns := []string{
-		"..",
-		"~",
-		"$",
-		"*",
-		"?",
-		"[",
-		"]",
-		"{",
-		"}",
-		"|",
-		"<",
-		">",
-		"\x00", // null byte
+	// Check for suspicious patterns in filename - use OS-specific patterns
+	var suspiciousPatterns []string
+	if runtime.GOOS == "windows" {
+		// Windows-specific suspicious patterns (some patterns are allowed in Windows paths)
+		suspiciousPatterns = []string{
+			"..",
+			"\x00", // null byte
+			// Note: <, >, |, ?, * are already validated by ValidateWindowsPath
+		}
+	} else {
+		// Unix-style suspicious patterns
+		suspiciousPatterns = []string{
+			"..",
+			"~",
+			"$",
+			"*",
+			"?",
+			"[",
+			"]",
+			"{",
+			"}",
+			"|",
+			"<",
+			">",
+			"\x00", // null byte
+		}
 	}
 	
 	for _, pattern := range suspiciousPatterns {
@@ -2308,9 +2391,9 @@ func (w *Watcher) GetMetrics() *WatcherMetrics {
 // computeFileHashSafely computes the hash of a file safely with retries
 // This is used to compute the hash once before any processing to avoid race conditions
 func (w *Watcher) computeFileHashSafely(filePath string) (string, int64, error) {
-	// Read the entire file content into memory to compute the hash
+	// Read the entire file content into memory to compute the hash with retry logic
 	// This prevents issues if the file is moved while we're hashing
-	data, err := os.ReadFile(filePath)
+	data, err := readFileWithRetry(filePath)
 	if err != nil {
 		return "", 0, err
 	}
@@ -2457,17 +2540,9 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) {
 		return
 	}
 	
-	// Write atomically using temp file + rename
-	tempFile := statusFile + ".tmp"
-	if err := os.WriteFile(tempFile, data, 0644); err != nil {
-		log.Printf("Failed to write temporary status file: %v", err)
-		return
-	}
-	
-	// Atomic rename
-	if err := os.Rename(tempFile, statusFile); err != nil {
-		os.Remove(tempFile) // Clean up on failure
-		log.Printf("Failed to rename temporary status file: %v", err)
+	// Use robust atomic write with proper syncing and retry logic
+	if err := atomicWriteFile(statusFile, data, 0644); err != nil {
+		log.Printf("Failed to write status file atomically: %v", err)
 		return
 	}
 	

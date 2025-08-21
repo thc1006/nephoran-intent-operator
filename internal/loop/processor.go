@@ -207,9 +207,14 @@ func (p *IntentProcessor) processBatch(files []string) {
 
 // processSingleFile handles the actual processing of one file
 func (p *IntentProcessor) processSingleFile(filename string) error {
-	// Read file
-	data, err := os.ReadFile(filename)
+	// Read file with retry logic for Windows race conditions
+	data, err := readFileWithRetry(filename)
 	if err != nil {
+		// If file disappeared, it was likely processed by another worker
+		if err == ErrFileGone {
+			log.Printf("File %s disappeared (likely processed by another worker)", filename)
+			return nil
+		}
 		return p.handleError(filename, fmt.Errorf("failed to read file: %w", err))
 	}
 
@@ -281,17 +286,19 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 		return err
 	}
 
-	// Write error file
+	// Write error file with atomic operation
 	errorFile := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.error", basename, timestamp))
-	if writeErr := os.WriteFile(errorFile, []byte(errorContent), 0644); writeErr != nil {
+	if writeErr := atomicWriteFile(errorFile, []byte(errorContent), 0644); writeErr != nil {
 		log.Printf("Failed to write error file %s: %v", errorFile, writeErr)
 	}
 
-	// Copy original file to error directory
-	origData, _ := os.ReadFile(filename)
-	origCopy := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.json", basename, timestamp))
-	if writeErr := os.WriteFile(origCopy, origData, 0644); writeErr != nil {
-		log.Printf("Failed to copy original file to error dir: %v", writeErr)
+	// Copy original file to error directory with retry
+	origData, _ := readFileWithRetry(filename)
+	if origData != nil {
+		origCopy := filepath.Join(p.config.ErrorDir, fmt.Sprintf("%s.%s.json", basename, timestamp))
+		if writeErr := atomicWriteFile(origCopy, origData, 0644); writeErr != nil {
+			log.Printf("Failed to copy original file to error dir: %v", writeErr)
+		}
 	}
 
 	return err

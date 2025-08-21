@@ -659,7 +659,12 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_PathTraversalPrevention(
 		},
 		{
 			name: "absolute_path",
-			path: "/etc/passwd",
+			path: func() string {
+				if runtime.GOOS == "windows" {
+					return "C:\\Windows\\System32\\drivers\\etc\\hosts"
+				}
+				return "/etc/passwd"
+			}(),
 			desc: "Absolute path outside watched directory",
 		},
 	}
@@ -676,6 +681,133 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_PathTraversalPrevention(
 			assert.Error(t, err, "Should reject path traversal: %s", tc.desc)
 			assert.Contains(t, err.Error(), "outside watched directory", 
 				"Error should mention path restriction")
+		})
+	}
+}
+
+func (s *WatcherValidationTestSuite) TestWindowsPathValidation_EdgeCases() {
+	if runtime.GOOS != "windows" {
+		s.T().Skip("Windows-specific test")
+	}
+
+	s.T().Log("Testing Windows path validation edge cases")
+
+	watcher, err := NewWatcher(s.tempDir, s.config)
+	s.Require().NoError(err)
+	defer watcher.Close()
+
+	windowsPathCases := []struct {
+		name        string
+		path        string
+		desc        string
+		shouldError bool
+		errorContains string
+	}{
+		{
+			name:        "drive_letter_only",
+			path:        "C:",
+			desc:        "Drive letter only (relative path)",
+			shouldError: true,
+			errorContains: "Windows path validation failed",
+		},
+		{
+			name:        "drive_with_relative_path",
+			path:        "C:temp\\file.json",
+			desc:        "Drive letter with relative path",
+			shouldError: false, // Should be converted to absolute
+		},
+		{
+			name:        "mixed_separators",
+			path:        filepath.Join(s.tempDir, "mixed/path\\file.json"),
+			desc:        "Mixed path separators",
+			shouldError: false, // Should be normalized
+		},
+		{
+			name:        "unc_path_outside_watched",
+			path:        "\\\\server\\share\\file.json",
+			desc:        "UNC path outside watched directory",
+			shouldError: true,
+			errorContains: "outside watched directory",
+		},
+		{
+			name:        "long_device_path",
+			path:        "\\\\?\\C:\\temp\\file.json",
+			desc:        "Long device path outside watched directory",
+			shouldError: true,
+			errorContains: "outside watched directory",
+		},
+		{
+			name:        "invalid_chars_lt_gt",
+			path:        filepath.Join(s.tempDir, "file<test>.json"),
+			desc:        "Invalid characters < and >",
+			shouldError: true,
+			errorContains: "Windows path validation failed",
+		},
+		{
+			name:        "invalid_chars_pipe",
+			path:        filepath.Join(s.tempDir, "file|test.json"),
+			desc:        "Invalid character pipe",
+			shouldError: true,
+			errorContains: "Windows path validation failed",
+		},
+		{
+			name:        "reserved_filename_con",
+			path:        filepath.Join(s.tempDir, "CON.json"),
+			desc:        "Reserved filename CON",
+			shouldError: true,
+			errorContains: "Windows path validation failed",
+		},
+		{
+			name:        "reserved_filename_com1",
+			path:        filepath.Join(s.tempDir, "COM1.log"),
+			desc:        "Reserved filename COM1",
+			shouldError: true,
+			errorContains: "Windows path validation failed",
+		},
+		{
+			name:        "case_insensitive_path_comparison",
+			path:        strings.ToUpper(filepath.Join(s.tempDir, "file.json")),
+			desc:        "Case insensitive path comparison",
+			shouldError: false, // Windows paths should be case-insensitive
+		},
+		{
+			name:        "very_long_path_without_prefix",
+			path:        filepath.Join(s.tempDir, strings.Repeat("a", 250), "file.json"),
+			desc:        "Very long path without \\\\?\\ prefix",
+			shouldError: true,
+			errorContains: "Windows path validation failed",
+		},
+	}
+
+	validContent := `{"apiVersion": "v1", "kind": "NetworkIntent"}`
+
+	for _, tc := range windowsPathCases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			// Create the file if path is within temp directory
+			if strings.Contains(tc.path, s.tempDir) || (!strings.Contains(tc.path, ":") && !strings.HasPrefix(tc.path, "\\\\")) {
+				// Create parent directories
+				if dir := filepath.Dir(tc.path); dir != "." {
+					os.MkdirAll(dir, 0755)
+				}
+				os.WriteFile(tc.path, []byte(validContent), 0644)
+			}
+
+			err := watcher.validatePath(tc.path)
+			if tc.shouldError {
+				assert.Error(t, err, "Should reject path: %s", tc.desc)
+				if tc.errorContains != "" {
+					assert.Contains(t, err.Error(), tc.errorContains, 
+						"Error should contain expected message for: %s", tc.desc)
+				}
+			} else {
+				// For paths that should be valid, we need to ensure they're within watched dir
+				if !strings.Contains(tc.path, s.tempDir) && !filepath.IsAbs(tc.path) {
+					// Skip validation for relative paths outside temp dir
+					t.Skipf("Skipping validation for relative path outside temp dir: %s", tc.path)
+				} else {
+					assert.NoError(t, err, "Should accept path: %s", tc.desc)
+				}
+			}
 		})
 	}
 }

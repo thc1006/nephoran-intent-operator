@@ -70,9 +70,9 @@ func (sm *StateManager) loadState() error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 	
-	data, err := os.ReadFile(sm.stateFile)
+	data, err := readFileWithRetry(sm.stateFile)
 	if err != nil {
-		if os.IsNotExist(err) {
+		if os.IsNotExist(err) || err == ErrFileGone {
 			// State file doesn't exist yet, which is fine
 			return nil
 		}
@@ -153,16 +153,9 @@ func (sm *StateManager) saveStateUnsafe() error {
 		return fmt.Errorf("failed to create state directory: %w", err)
 	}
 
-	// Write atomically by using a temporary file
-	tempFile := sm.stateFile + ".tmp"
-	if err := os.WriteFile(tempFile, data, 0644); err != nil {
-		return fmt.Errorf("failed to write temporary state file: %w", err)
-	}
-	
-	// Atomic rename on Windows - use os.Rename which handles cross-device moves
-	if err := os.Rename(tempFile, sm.stateFile); err != nil {
-		os.Remove(tempFile) // Clean up temp file on failure
-		return fmt.Errorf("failed to rename temporary state file: %w", err)
+	// Use robust atomic write with proper syncing
+	if err := atomicWriteFile(sm.stateFile, data, 0644); err != nil {
+		return fmt.Errorf("failed to write state file atomically: %w", err)
 	}
 	
 	return nil
@@ -422,14 +415,23 @@ func (sm *StateManager) markWithStatusAndHash(filePath string, status string, ha
 }
 
 // GetProcessedFiles returns a list of all successfully processed files
+// Limited to prevent unbounded memory growth in long-running processes
 func (sm *StateManager) GetProcessedFiles() []string {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	
+	const maxFiles = 10000 // Limit to prevent memory exhaustion
+	
 	var files []string
+	count := 0
 	for _, state := range sm.states {
 		if state.Status == "processed" {
 			files = append(files, state.FilePath)
+			count++
+			if count >= maxFiles {
+				log.Printf("Warning: Processed files list truncated at %d entries", maxFiles)
+				break
+			}
 		}
 	}
 	
@@ -437,18 +439,45 @@ func (sm *StateManager) GetProcessedFiles() []string {
 }
 
 // GetFailedFiles returns a list of all failed files
+// Limited to prevent unbounded memory growth in long-running processes
 func (sm *StateManager) GetFailedFiles() []string {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	
+	const maxFiles = 10000 // Limit to prevent memory exhaustion
+	
 	var files []string
+	count := 0
 	for _, state := range sm.states {
 		if state.Status == "failed" {
 			files = append(files, state.FilePath)
+			count++
+			if count >= maxFiles {
+				log.Printf("Warning: Failed files list truncated at %d entries", maxFiles)
+				break
+			}
 		}
 	}
 	
 	return files
+}
+
+// GetStats returns processing statistics without building large arrays
+// This is more memory-efficient than GetProcessedFiles/GetFailedFiles
+func (sm *StateManager) GetStats() (processed int, failed int) {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	
+	for _, state := range sm.states {
+		switch state.Status {
+		case "processed":
+			processed++
+		case "failed":
+			failed++
+		}
+	}
+	
+	return processed, failed
 }
 
 // CleanupOldEntries removes entries older than the specified duration
