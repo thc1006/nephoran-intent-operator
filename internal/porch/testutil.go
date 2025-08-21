@@ -46,17 +46,17 @@ func CreateCrossPlatformMock(tempDir string, opts CrossPlatformMockOptions) (str
 			sleepCmd := ""
 			if opts.Sleep > 0 {
 				// Use powershell Start-Sleep for more precise timing on Windows
-				sleepCmd = fmt.Sprintf("powershell -command \"Start-Sleep -Milliseconds %d\"", int(opts.Sleep.Milliseconds()))
+				sleepCmd = fmt.Sprintf("powershell -command \"Start-Sleep -Milliseconds %d\"\n", int(opts.Sleep.Milliseconds()))
 			}
 			
 			stdoutCmd := ""
 			if opts.Stdout != "" {
-				stdoutCmd = fmt.Sprintf("echo %s", opts.Stdout)
+				stdoutCmd = fmt.Sprintf("echo %s\n", opts.Stdout)
 			}
 			
 			stderrCmd := ""
 			if opts.Stderr != "" {
-				stderrCmd = fmt.Sprintf("echo %s >&2", opts.Stderr)
+				stderrCmd = fmt.Sprintf("echo %s >&2\n", opts.Stderr)
 			}
 			
 			failOnPatternCmd := ""
