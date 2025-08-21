@@ -127,7 +127,7 @@ func TestWindowsFileRaceConditions(t *testing.T) {
 		require.NoError(t, os.WriteFile(intentFile, []byte(`{"intent": "test"}`), 0644))
 		
 		// Write status file first
-		statusFile := filepath.Join(statusDir, "intent.json-20250101-120000.status")
+		statusFile := filepath.Join(statusDir, "intent-20250101-120000.status")
 		err := atomicWriteFile(statusFile, []byte(`{"status": "success"}`), 0644)
 		require.NoError(t, err)
 		

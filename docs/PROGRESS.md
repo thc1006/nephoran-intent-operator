@@ -9,3 +9,6 @@
 | 2025-08-21T07:15:08+08:00 | fix/graceful-shutdown-exit-codes | pkg/testutils | Implemented comprehensive Windows test performance optimizations: 2x faster CI, 90% fewer timeouts |
 | 2025-08-21T07:47:03.5952705+08:00 | fix/graceful-shutdown-exit-codes | conductor-loop | Windows CI reliability fixes pushed to PR #89 - comprehensive path handling, test isolation, and build optimizations |
 | 2025-08-22T00:34:32.8061789+08:00 | fix/graceful-shutdown-exit-codes | platform/porch | Fixed Windows BAT script concatenation issue causing PowerShell parameter binding errors |
+| 2025-08-22T03:55:07.9055786+08:00 | fix/graceful-shutdown-exit-codes | internal/platform | Fix PowerShell command separation with -NoProfile flag |
+|  | fix/graceful-shutdown-exit-codes | Windows CI fixes | Comprehensive Windows CI reliability improvements with 4800+ lines
+| 2025-08-22T05:34:26+08:00 | fix/graceful-shutdown-exit-codes | Windows CI fixes | Comprehensive Windows CI reliability improvements with 4800+ lines

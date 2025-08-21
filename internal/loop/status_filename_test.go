@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestStatusFilenameGeneration verifies that status files include the .json extension
-// in their filename as expected: <base.json>-YYYYMMDD-HHMMSS.status
+// TestStatusFilenameGeneration verifies that status files follow the canonical pattern
+// in their filename as expected: <base>-YYYYMMDD-HHMMSS.status (without .json extension)
 func TestStatusFilenameGeneration(t *testing.T) {
 	tempDir := t.TempDir()
 	
@@ -39,22 +39,22 @@ func TestStatusFilenameGeneration(t *testing.T) {
 		{
 			name:           "StandardIntentFile",
 			intentFile:     "intent-scale.json",
-			expectedPrefix: "intent-scale.json-",
+			expectedPrefix: "intent-scale-",
 		},
 		{
 			name:           "IntentWithMultipleDots",
 			intentFile:     "intent.scale.test.json",
-			expectedPrefix: "intent.scale.test.json-",
+			expectedPrefix: "intent.scale.test-",
 		},
 		{
 			name:           "IntentWithUnderscore",
 			intentFile:     "intent_deployment.json",
-			expectedPrefix: "intent_deployment.json-",
+			expectedPrefix: "intent_deployment-",
 		},
 		{
 			name:           "IntentWithNumbers",
 			intentFile:     "intent-123.json",
-			expectedPrefix: "intent-123.json-",
+			expectedPrefix: "intent-123-",
 		},
 	}
 
@@ -90,7 +90,7 @@ func TestStatusFilenameGeneration(t *testing.T) {
 			assert.NotEmpty(t, foundStatusFile, 
 				"Status file should exist with prefix %s", tc.expectedPrefix)
 
-			// Verify the full format: <base.json>-YYYYMMDD-HHMMSS.status
+			// Verify the full format: <base>-YYYYMMDD-HHMMSS.status
 			if foundStatusFile != "" {
 				assert.True(t, strings.HasSuffix(foundStatusFile, ".status"),
 					"Status file should end with .status")
@@ -103,9 +103,9 @@ func TestStatusFilenameGeneration(t *testing.T) {
 				assert.GreaterOrEqual(t, len(parts), 3,
 					"Status filename should include timestamp")
 				
-				// The base name should still have .json
-				assert.Contains(t, foundStatusFile, ".json-",
-					"Status filename should contain .json before timestamp")
+				// The base name should NOT have .json extension
+				assert.NotContains(t, foundStatusFile, ".json-",
+					"Status filename should not contain .json before timestamp")
 			}
 
 			// Clean up for next test
@@ -115,7 +115,7 @@ func TestStatusFilenameGeneration(t *testing.T) {
 }
 
 // TestStatusFilenameConsistency verifies that multiple status files for the same
-// intent maintain the .json extension in their naming
+// intent follow the canonical naming pattern without .json extension
 func TestStatusFilenameConsistency(t *testing.T) {
 	tempDir := t.TempDir()
 	mockPorch := createMockPorch(t, tempDir, 0, "processed", "")
@@ -161,11 +161,11 @@ func TestStatusFilenameConsistency(t *testing.T) {
 		return
 	}
 
-	// All status files should maintain the .json in their name
+	// All status files should follow the canonical pattern without .json
 	for _, entry := range entries {
-		if strings.HasPrefix(entry.Name(), "intent-versioning.json-") {
-			assert.Contains(t, entry.Name(), ".json-",
-				"Status file %s should contain .json before timestamp", entry.Name())
+		if strings.HasPrefix(entry.Name(), "intent-versioning-") {
+			assert.NotContains(t, entry.Name(), ".json-",
+				"Status file %s should not contain .json before timestamp", entry.Name())
 			assert.True(t, strings.HasSuffix(entry.Name(), ".status"),
 				"Status file %s should end with .status", entry.Name())
 		}
