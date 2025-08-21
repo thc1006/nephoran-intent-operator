@@ -145,8 +145,11 @@ func readFileWithRetry(filename string) ([]byte, error) {
 func openFileWithRetry(filename string) (*os.File, error) {
 	var lastErr error
 	delay := baseRetryDelay
+	
+	// Use fewer retries for open operations since they're more frequent
+	const openMaxRetries = 3
 
-	for i := 0; i < maxFileRetries; i++ {
+	for i := 0; i < openMaxRetries; i++ {
 		file, err := os.Open(filename)
 		if err == nil {
 			return file, nil
@@ -154,25 +157,27 @@ func openFileWithRetry(filename string) (*os.File, error) {
 
 		lastErr = err
 
+		// If file doesn't exist, don't retry - return immediately
+		if os.IsNotExist(err) {
+			return nil, err
+		}
+
 		// Check if error is retryable
 		if !isRetryableError(err) {
 			return nil, err
 		}
 
-		// Wait before retry
-		time.Sleep(delay)
-		delay *= 2
-		if delay > maxRetryDelay {
-			delay = maxRetryDelay
+		// Wait before retry with shorter delays
+		if i < openMaxRetries-1 {
+			time.Sleep(delay)
+			delay *= 2
+			if delay > 50*time.Millisecond {
+				delay = 50 * time.Millisecond
+			}
 		}
 	}
 
-	// If we exhausted retries due to file not existing, return ErrFileGone
-	if os.IsNotExist(lastErr) {
-		return nil, ErrFileGone
-	}
-
-	return nil, fmt.Errorf("open failed after %d retries: %w", maxFileRetries, lastErr)
+	return nil, fmt.Errorf("open failed after %d retries: %w", openMaxRetries, lastErr)
 }
 
 // copyFileWithSync copies a file with proper syncing on Windows

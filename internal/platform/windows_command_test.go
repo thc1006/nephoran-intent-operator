@@ -48,7 +48,7 @@ func TestWindowsCommandSeparation(t *testing.T) {
 	var powershellLine, echoLine string
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "powershell -command") {
+		if strings.HasPrefix(trimmed, "powershell -NoProfile -Command") {
 			powershellLine = trimmed
 		}
 		if strings.HasPrefix(trimmed, "echo Mock porch completed") {

@@ -233,21 +233,7 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 		// If file disappeared after being processed, still consider it processed.
 		// This handles Windows filesystem race conditions where files may temporarily
 		// appear missing during concurrent operations.
-		if errors.Is(err, ErrFileGone) {
-			return state.Status == "processed", nil
-		}
-		// Check for file not found errors (including wrapped ones)
-		// We need to check the unwrapped error because calculateFileHash wraps the error
-		var pathErr *os.PathError
-		if errors.As(err, &pathErr) && errors.Is(pathErr.Err, os.ErrNotExist) {
-			// File doesn't exist - treat as processed if it was marked as such
-			return state.Status == "processed", nil
-		}
-		// Also check if the error string contains common patterns
-		errStr := err.Error()
-		if strings.Contains(errStr, "cannot find the file") || 
-		   strings.Contains(errStr, "no such file or directory") ||
-		   strings.Contains(errStr, "The system cannot find") {
+		if isFileNotFoundError(err) {
 			// File doesn't exist - treat as processed if it was marked as such
 			return state.Status == "processed", nil
 		}
@@ -309,9 +295,9 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	if err != nil {
 		// If file disappeared during concurrent processing, still mark it as processed
 		// This is common when multiple workers compete for the same file
-		if errors.Is(err, ErrFileGone) {
+		if isFileNotFoundError(err) {
 			// Create a placeholder entry marking the file as processed
-			// Use empty hash since we can't calculate it
+			// Use special hash to indicate file was missing
 			hash = "file-disappeared"
 			size = 0
 		} else {
@@ -539,8 +525,15 @@ func calculateFileHash(baseDir, filePath string) (string, int64, error) {
 // to handle Windows file system race conditions where files temporarily disappear
 // during concurrent operations (especially os.Rename which is non-atomic on Windows).
 func calcFileHashWithRetry(baseDir, filePath string) (string, int64, error) {
-	const maxRetries = 5
-	const baseDelayMs = 25
+	// On non-Windows, use minimal retry since file operations are more reliable
+	maxRetries := 2
+	baseDelayMs := 10
+	
+	if runtime.GOOS == "windows" {
+		// Windows needs more aggressive retry due to non-atomic rename
+		maxRetries = 3
+		baseDelayMs = 20
+	}
 	
 	var lastErr error
 	for attempt := 0; attempt < maxRetries; attempt++ {
@@ -549,8 +542,8 @@ func calcFileHashWithRetry(baseDir, filePath string) (string, int64, error) {
 			return hash, size, nil
 		}
 		
-		// Only retry on file not found errors
-		if !os.IsNotExist(err) {
+		// Check various forms of file not found errors
+		if !isFileNotFoundError(err) {
 			return "", 0, err
 		}
 		
@@ -558,14 +551,17 @@ func calcFileHashWithRetry(baseDir, filePath string) (string, int64, error) {
 		
 		// Don't sleep on the last attempt
 		if attempt < maxRetries-1 {
-			// Exponential backoff: 25ms, 50ms, 100ms, 200ms
+			// Exponential backoff but capped at reasonable delay
 			delay := time.Duration(baseDelayMs*(1<<uint(attempt))) * time.Millisecond
+			if delay > 100*time.Millisecond {
+				delay = 100 * time.Millisecond
+			}
 			time.Sleep(delay)
 		}
 	}
 	
 	// If we exhausted retries due to file not existing, return ErrFileGone
-	if os.IsNotExist(lastErr) {
+	if isFileNotFoundError(lastErr) {
 		return "", 0, ErrFileGone
 	}
 	
@@ -618,9 +614,17 @@ func calcFileHashOnce(baseDir, filePath string) (string, int64, error) {
 		}
 	}
 	
-	file, err := os.Open(safePath)
+	// Use openFileWithRetry for robust file opening on Windows
+	var file *os.File
+	if runtime.GOOS == "windows" {
+		// On Windows, use the retry-enabled function from fsync_windows.go
+		file, err = openFileWithRetry(safePath)
+	} else {
+		file, err = os.Open(safePath)
+	}
 	if err != nil {
-		return "", 0, fmt.Errorf("failed to open file: %w", err)
+		// Don't wrap the error here to preserve os.IsNotExist checks
+		return "", 0, err
 	}
 	defer file.Close()
 	
@@ -675,6 +679,12 @@ func sanitizePath(path string) string {
 
 // copyFile copies a file from src to dst
 func copyFile(src, dst string) error {
+	// On Windows, use the robust version with retry
+	if runtime.GOOS == "windows" {
+		return copyFileWithSync(src, dst)
+	}
+	
+	// On Unix, use simple copy
 	srcFile, err := os.Open(src)
 	if err != nil {
 		return err
@@ -689,6 +699,50 @@ func copyFile(src, dst string) error {
 	
 	_, err = io.Copy(dstFile, srcFile)
 	return err
+}
+
+// isFileNotFoundError checks if an error indicates a file doesn't exist
+// This handles various error types and messages across platforms
+func isFileNotFoundError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	// Check standard os.IsNotExist
+	if os.IsNotExist(err) {
+		return true
+	}
+	
+	// Check for our custom ErrFileGone
+	if errors.Is(err, ErrFileGone) {
+		return true
+	}
+	
+	// Check for wrapped path errors
+	var pathErr *os.PathError
+	if errors.As(err, &pathErr) {
+		if errors.Is(pathErr.Err, os.ErrNotExist) {
+			return true
+		}
+	}
+	
+	// Check error messages for Windows-specific patterns
+	errStr := strings.ToLower(err.Error())
+	fileNotFoundPatterns := []string{
+		"cannot find the file",
+		"no such file or directory",
+		"the system cannot find the file",
+		"the system cannot find the path",
+		"file does not exist",
+	}
+	
+	for _, pattern := range fileNotFoundPatterns {
+		if strings.Contains(errStr, pattern) {
+			return true
+		}
+	}
+	
+	return false
 }
 
 // Close saves the state and performs cleanup

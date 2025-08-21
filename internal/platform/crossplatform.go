@@ -115,7 +115,8 @@ func generateWindowsMockPorchScript(opts ScriptOptions) string {
 	sleepCmd := ""
 	if opts.Sleep > 0 {
 		// Use powershell Start-Sleep for more precise timing on Windows
-		sleepCmd = fmt.Sprintf("powershell -command \"Start-Sleep -Milliseconds %d\"\n", int(opts.Sleep.Milliseconds()))
+		// -NoProfile improves startup time and ensures consistent behavior
+		sleepCmd = fmt.Sprintf("powershell -NoProfile -Command \"Start-Sleep -Milliseconds %d\"\n", int(opts.Sleep.Milliseconds()))
 	}
 
 	stdoutCmd := ""

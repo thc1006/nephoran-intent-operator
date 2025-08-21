@@ -60,7 +60,7 @@ func TestBatCommandSeparation(t *testing.T) {
 			if strings.Contains(trimmed, "Start-Sleep -Milliseconds 50") {
 				sleepLineFound = true
 				// Verify the line doesn't continue with other commands
-				assert.Equal(t, "powershell -command \"Start-Sleep -Milliseconds 50\"", trimmed,
+				assert.Equal(t, "powershell -NoProfile -Command \"Start-Sleep -Milliseconds 50\"", trimmed,
 					"Start-Sleep command should be on its own line")
 			}
 			if strings.Contains(trimmed, "echo Mock porch completed") {
@@ -172,7 +172,7 @@ func TestBatCommandSeparation(t *testing.T) {
 			if strings.Contains(line, "Start-Sleep") {
 				// Should be properly terminated and not continue with other commands
 				trimmed := strings.TrimSpace(line)
-				assert.True(t, strings.HasPrefix(trimmed, "powershell -command \"Start-Sleep"),
+				assert.True(t, strings.HasPrefix(trimmed, "powershell -NoProfile -Command \"Start-Sleep"),
 					"PowerShell command should be properly formatted")
 				assert.True(t, strings.HasSuffix(trimmed, "\""),
 					"PowerShell command should be properly closed")
