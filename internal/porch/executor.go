@@ -89,11 +89,12 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 	// On Windows, if the command is a batch file, run it via cmd.exe
 	var execCmd *exec.Cmd
 	if pathutil.IsWindowsBatchFile(cmd[0]) {
-		// Run batch file directly without extra quoting for cmd.exe
-		// cmd.exe /c already handles the command properly
-		cmdArgs := append([]string{"/c", cmd[0]}, cmd[1:]...)
-		execCmd = exec.CommandContext(timeoutCtx, "cmd.exe", cmdArgs...)
-		log.Printf("Executing Windows batch file via cmd.exe: %s", strings.Join(cmd, " "))
+		// Use safe Windows quoting to prevent cmd.exe parsing errors
+		// This prevents issues like "echo was unexpected at this time" when
+		// arguments contain special characters like &, |, (), <>, or ^
+		cmdLine := cmdSafeQuoteWindows(cmd)
+		execCmd = exec.CommandContext(timeoutCtx, "cmd.exe", "/S", "/C", cmdLine)
+		log.Printf("Executing Windows batch file via cmd.exe with safe quoting: %s", cmdLine)
 	} else {
 		execCmd = exec.CommandContext(timeoutCtx, cmd[0], cmd[1:]...)
 		log.Printf("Executing porch command: %s", strings.Join(cmd, " "))
