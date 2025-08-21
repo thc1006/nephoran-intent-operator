@@ -281,6 +281,31 @@ func (sm *StateManager) MarkFailed(filePath string) error {
 	return sm.markWithStatus(filePath, "failed")
 }
 
+// MarkProcessedWithHash marks a file as successfully processed with a precomputed hash
+// This avoids recalculating the hash which can fail if the file was already moved
+func (sm *StateManager) MarkProcessedWithHash(filePath, hash string, size int64) error {
+	return sm.markWithStatusAndHash(filePath, "processed", hash, size)
+}
+
+// MarkFailedWithHash marks a file as failed with a precomputed hash
+// This avoids recalculating the hash which can fail if the file was already moved
+func (sm *StateManager) MarkFailedWithHash(filePath, hash string, size int64) error {
+	return sm.markWithStatusAndHash(filePath, "failed", hash, size)
+}
+
+// IsProcessedByHash checks if a file with the given hash has already been processed
+func (sm *StateManager) IsProcessedByHash(hash string) (bool, error) {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	
+	for _, state := range sm.states {
+		if state.SHA256 == hash && state.Status == "processed" {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // markWithStatus marks a file with the given status
 func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	sm.mu.Lock()
@@ -345,6 +370,52 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 			log.Printf("Warning: failed to save state: %v", err)
 			return err
 		}
+	}
+	
+	return nil
+}
+
+// markWithStatusAndHash marks a file with the given status and precomputed hash
+func (sm *StateManager) markWithStatusAndHash(filePath string, status string, hash string, size int64) error {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	
+	// Create safe absolute path for consistent state keys
+	var absPath string
+	if filepath.IsAbs(filePath) {
+		// For absolute paths, verify they're within the baseDir
+		absBaseDir, err := filepath.Abs(sm.baseDir)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute base directory: %w", err)
+		}
+		
+		rel, err := filepath.Rel(absBaseDir, filePath)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			return fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
+		}
+		absPath = filePath
+	} else {
+		// For relative paths, use SafeJoin
+		safePath, err := pathutil.SafeJoin(sm.baseDir, filePath)
+		if err != nil {
+			return fmt.Errorf("unsafe file path: %w", err)
+		}
+		
+		absPath, err = filepath.Abs(safePath)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path: %w", err)
+		}
+	}
+	
+	key := createStateKey(absPath)
+	
+	// Create or update state entry with precomputed hash
+	sm.states[key] = &FileState{
+		FilePath:    absPath,
+		SHA256:      hash,
+		Size:        size,
+		Status:      status,
+		ProcessedAt: time.Now(),
 	}
 	
 	return nil
