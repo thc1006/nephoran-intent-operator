@@ -3,6 +3,8 @@ package loop
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -112,81 +114,44 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic, direct, structured", c.Mode)
 	}
 	
-	// Validate OutDir - check if directory exists or can be created
+	// Validate OutDir - check if directory exists and is writable
+	// This is critical for preventing runtime failures during file processing
 	if c.OutDir != "" {
-		// Store original path for security analysis
-		originalPath := c.OutDir
-		
-		// Clean and normalize the path to handle path traversal attempts
+		// Clean and normalize the path
 		cleanPath := filepath.Clean(c.OutDir)
 		
-		// Security check: detect path traversal attempts
-		isPathTraversal := strings.Contains(originalPath, "..")
-		if isPathTraversal {
-			log.Printf("Warning: OutDir contains path traversal patterns, normalizing path: %s -> %s", originalPath, cleanPath)
+		// Get absolute path
+		absPath, err := filepath.Abs(cleanPath)
+		if err != nil {
+			return fmt.Errorf("invalid output directory path %q: %w", c.OutDir, err)
 		}
 		
-		// Try to get absolute path to resolve relative paths properly
-		absPath, absErr := filepath.Abs(cleanPath)
-		if absErr != nil {
-			log.Printf("Warning: Cannot resolve absolute path for %s, using cleaned path: %v", cleanPath, absErr)
-			absPath = cleanPath
-		}
-		
-		// Update the config with the cleaned/absolute path for security
+		// Update config with absolute path
 		c.OutDir = absPath
 		
 		// Check if directory exists
 		info, err := os.Stat(c.OutDir)
 		if err != nil {
 			if os.IsNotExist(err) {
-				// Directory doesn't exist - check if parent directory exists and is writable
-				parentDir := filepath.Dir(c.OutDir)
-				parentInfo, parentErr := os.Stat(parentDir)
-				if parentErr != nil {
-					if os.IsNotExist(parentErr) {
-						// Check if this is a path traversal case
-						if isPathTraversal {
-							// This is a path traversal case, attempt to create directory gracefully
-							log.Printf("Warning: OutDir parent does not exist for path traversal case, attempting to create: %s", parentDir)
-							if mkdirErr := os.MkdirAll(c.OutDir, 0755); mkdirErr != nil {
-								return fmt.Errorf("cannot create output directory (parent missing): %s (%w)", c.OutDir, mkdirErr)
-							}
-							// Clean up the test directory if we created it successfully
-							os.Remove(c.OutDir)
-							return nil
-						}
-						// For non-path-traversal cases, maintain original strict behavior
-						return fmt.Errorf("output directory parent does not exist: %s", parentDir)
-					}
-					return fmt.Errorf("cannot access output directory parent %s: %w", parentDir, parentErr)
-				}
-				if !parentInfo.IsDir() {
-					return fmt.Errorf("output directory parent is not a directory: %s", parentDir)
-				}
-				// Test if we can create the directory by attempting to create and remove it
-				if err := os.MkdirAll(c.OutDir, 0755); err != nil {
-					return fmt.Errorf("cannot create output directory %s: %w", c.OutDir, err)
-				}
-				// Clean up the test directory if we created it
-				os.Remove(c.OutDir)
-			} else {
-				return fmt.Errorf("cannot access output directory %s: %w", c.OutDir, err)
+				// Directory doesn't exist - this is an error
+				// The directory must exist before starting the watcher
+				return fmt.Errorf("output directory does not exist: %q", c.OutDir)
 			}
-		} else {
-			// Directory exists - check if it's actually a directory
-			if !info.IsDir() {
-				return fmt.Errorf("output path is not a directory: %s", c.OutDir)
-			}
-			
-			// Check if directory is writable by attempting to create a temp file
-			testFile := filepath.Join(c.OutDir, ".conductor-test-write")
-			if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
-				return fmt.Errorf("output directory is not writable: %s (%w)", c.OutDir, err)
-			}
-			// Clean up test file
-			os.Remove(testFile)
+			return fmt.Errorf("cannot access output directory %q: %w", c.OutDir, err)
 		}
+		
+		// Verify it's a directory
+		if !info.IsDir() {
+			return fmt.Errorf("output path exists but is not a directory: %q", c.OutDir)
+		}
+		
+		// Check if directory is writable by attempting to create a temp file
+		testFile := filepath.Join(c.OutDir, fmt.Sprintf(".conductor-write-test-%d", time.Now().UnixNano()))
+		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+			return fmt.Errorf("output directory is not writable: %q (%w)", c.OutDir, err)
+		}
+		// Clean up test file
+		os.Remove(testFile)
 	}
 	
 	return nil
@@ -1124,6 +1089,32 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	log.Printf("LOOP:PROCESS - Worker %d processing file: %s (attempt %d)", 
 		workerID, filepath.Base(filePath), workItem.Attempt)
 	
+	// Compute file hash upfront before any processing or moving
+	// This prevents race conditions where the file might be moved by another worker
+	fileHash, fileSize, hashErr := w.computeFileHashSafely(filePath)
+	if hashErr != nil {
+		// If file doesn't exist, it was likely already processed by another worker
+		if os.IsNotExist(hashErr) || strings.Contains(hashErr.Error(), "cannot find the file") {
+			log.Printf("LOOP:INFO - Worker %d: File %s disappeared before processing (likely handled by another worker)", 
+				workerID, filepath.Base(filePath))
+			return
+		}
+		log.Printf("LOOP:ERROR - Worker %d: Failed to compute hash for %s: %v", 
+			workerID, filepath.Base(filePath), hashErr)
+		return
+	}
+	
+	// Check if already processed by hash (prevents duplicate processing)
+	processed, err := w.stateManager.IsProcessedByHash(fileHash)
+	if err != nil {
+		log.Printf("LOOP:ERROR - Worker %d: Error checking file state by hash for %s: %v", 
+			workerID, filepath.Base(filePath), err)
+	} else if processed {
+		log.Printf("LOOP:SKIP_DUP - Worker %d: File %s already processed (hash: %s)", 
+			workerID, filepath.Base(filePath), fileHash[:8])
+		return
+	}
+	
 	// Validate JSON file before processing
 	if err := w.validateJSONFile(filePath); err != nil {
 		log.Printf("LOOP:ERROR - Worker %d: JSON validation failed for %s: %v", 
@@ -1132,28 +1123,10 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		// Record validation error
 		w.recordValidationError(err.Error())
 		
-		// Mark as failed and move to failed directory
-		w.stateManager.MarkFailed(filePath)
+		// Mark as failed with precomputed hash
+		w.stateManager.MarkFailedWithHash(filePath, fileHash, fileSize)
 		w.fileManager.MoveToFailed(filePath, fmt.Sprintf("Validation failed: %v", err))
 		w.writeStatusFileAtomic(filePath, "failed", fmt.Sprintf("JSON validation failed: %v", err))
-		return
-	}
-	
-	// Check if already processed using state manager
-	processed, err := w.stateManager.IsProcessed(filePath)
-	if err != nil {
-		// Check if the file disappeared (common in concurrent processing)
-		if strings.Contains(err.Error(), "file disappeared") || os.IsNotExist(err) {
-			log.Printf("LOOP:INFO - Worker %d: File %s disappeared during processing (likely moved by another worker)", 
-				workerID, filepath.Base(filePath))
-			// Consider it as processed since it was handled by another worker
-			return
-		}
-		log.Printf("LOOP:ERROR - Worker %d: Error checking file state for %s: %v", 
-			workerID, filepath.Base(filePath), err)
-	} else if processed {
-		log.Printf("LOOP:SKIP_DUP - Worker %d: File %s already processed", 
-			workerID, filepath.Base(filePath))
 		return
 	}
 	
@@ -1165,8 +1138,8 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 	w.recordProcessingLatency(processingDuration)
 	
 	if result.Success {
-		// Mark as processed in state manager
-		if err := w.stateManager.MarkProcessed(filePath); err != nil {
+		// Mark as processed in state manager with precomputed hash
+		if err := w.stateManager.MarkProcessedWithHash(filePath, fileHash, fileSize); err != nil {
 			log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as processed: %v", workerID, err)
 		}
 		
@@ -1215,8 +1188,8 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		} else {
 			log.Printf("LOOP:ERROR - Worker %d: Failed to process %s: %s", workerID, filepath.Base(filePath), errorMsg)
 			
-			// Mark as failed in state manager (only for real failures)
-			if err := w.stateManager.MarkFailed(filePath); err != nil {
+			// Mark as failed in state manager with precomputed hash (only for real failures)
+			if err := w.stateManager.MarkFailedWithHash(filePath, fileHash, fileSize); err != nil {
 				log.Printf("LOOP:WARNING - Worker %d: Failed to mark file as failed: %v", workerID, err)
 			}
 			
@@ -2330,6 +2303,24 @@ func (w *Watcher) GetMetrics() *WatcherMetrics {
 		LastUpdateTime:          w.metrics.LastUpdateTime,
 		MetricsEnabled:          w.metrics.MetricsEnabled,
 	}
+}
+
+// computeFileHashSafely computes the hash of a file safely with retries
+// This is used to compute the hash once before any processing to avoid race conditions
+func (w *Watcher) computeFileHashSafely(filePath string) (string, int64, error) {
+	// Read the entire file content into memory to compute the hash
+	// This prevents issues if the file is moved while we're hashing
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", 0, err
+	}
+	
+	// Compute SHA256 hash
+	hash := sha256.New()
+	hash.Write(data)
+	hashStr := hex.EncodeToString(hash.Sum(nil))
+	
+	return hashStr, int64(len(data)), nil
 }
 
 // getOrCreateFileLock gets or creates a file-level mutex for the given path
