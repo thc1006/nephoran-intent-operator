@@ -148,7 +148,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 				OutDir:       outDir,
 				Once:         true,
 				DebounceDur:  100 * time.Millisecond,
-				MaxWorkers:   1,
+				MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
 				CleanupAfter: time.Hour,
 			}
 
@@ -291,7 +291,7 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 				OutDir:       outDir,
 				Once:         true,
 				DebounceDur:  50 * time.Millisecond,
-				MaxWorkers:   1,
+				MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
 				CleanupAfter: time.Hour,
 			}
 

@@ -95,7 +95,7 @@ func TestPathTraversalSecurity(t *testing.T) {
 				OutDir:       outDir,
 				Once:         true,
 				DebounceDur:  100 * time.Millisecond,
-				MaxWorkers:   1,
+				MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
 				CleanupAfter: time.Hour,
 			}
 
@@ -382,7 +382,7 @@ func TestFilePermissionValidation(t *testing.T) {
 		OutDir:       outDir,
 		Once:         true,
 		DebounceDur:  100 * time.Millisecond,
-		MaxWorkers:   1,
+		MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
 		CleanupAfter: time.Hour,
 	}
 

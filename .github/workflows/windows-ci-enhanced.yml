@@ -29,7 +29,7 @@ env:
   CGO_ENABLED: 0  # Disable CGO for Windows builds by default
   GOMAXPROCS: 4   # Optimize for GitHub runners
   GOTRACEBACK: all
-  GO_TEST_TIMEOUT_SCALE: 3  # Scale timeouts for Windows
+  GO_TEST_TIMEOUT_SCALE: 1.5  # Optimized timeout scaling (reduced from 3.0 for faster CI)
 
 permissions:
   contents: read

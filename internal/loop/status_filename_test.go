@@ -123,7 +123,7 @@ func TestStatusFilenameConsistency(t *testing.T) {
 	
 	config := &Config{
 		DebounceDur: 10 * time.Millisecond,
-		MaxWorkers:  1,
+		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
 		PorchPath:   mockPorch,
 		Once:        false,
 		Period:      100 * time.Millisecond,

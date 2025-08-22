@@ -161,7 +161,7 @@ func TestShutdownFailureDetection(t *testing.T) {
 		PorchPath:   "mock-porch",
 		Mode:        "direct",
 		OutDir:      tempDir,
-		MaxWorkers:  1,
+		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
 		DebounceDur: 100 * time.Millisecond,
 	}
 

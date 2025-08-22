@@ -50,7 +50,7 @@ func TestCriticalFixes_NilPointerDereference(t *testing.T) {
 			Mode:         "direct",
 			OutDir:       outDir,
 			Once:         true,
-			MaxWorkers:   1,
+			MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
 			DebounceDur:  100 * time.Millisecond,
 			CleanupAfter: time.Hour,
 		}

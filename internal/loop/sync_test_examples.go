@@ -167,7 +167,7 @@ func ExampleFailureHandling(t *testing.T) {
 		OutDir:      syncHelper.GetOutDir(),
 		Once:        true,
 		DebounceDur: 25 * time.Millisecond,
-		MaxWorkers:  1,
+		MaxWorkers:  3, // Use production-like worker count
 	}
 	
 	// Create enhanced watcher
@@ -224,7 +224,7 @@ func ExampleCrossPlatformTiming(t *testing.T) {
 		OutDir:      syncHelper.GetOutDir(),
 		Once:        true,
 		DebounceDur: syncHelper.baseDelay,    // Platform-aware base delay
-		MaxWorkers:  1,
+		MaxWorkers:  3, // Use production-like worker count
 	}
 	
 	// Test with enhanced once mode synchronization
@@ -346,7 +346,7 @@ func ExampleDebugTracking(t *testing.T) {
 		OutDir:      syncHelper.GetOutDir(),
 		Once:        true,
 		DebounceDur: 50 * time.Millisecond,
-		MaxWorkers:  1,
+		MaxWorkers:  3, // Use production-like worker count
 	}
 	
 	// Start with synchronizer

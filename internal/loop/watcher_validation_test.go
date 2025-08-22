@@ -1187,7 +1187,7 @@ func BenchmarkWatcherValidation_JSONValidation(b *testing.B) {
 		PorchPath:   createMockPorch(b, tempDir, 0, "processed", ""),
 		Mode:        porch.ModeDirect,
 		OutDir:      filepath.Join(tempDir, "out"),
-		MaxWorkers:  1,
+		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
 		DebounceDur: 10 * time.Millisecond,
 	}
 
@@ -1224,7 +1224,7 @@ func BenchmarkWatcherValidation_DirectoryCreation(b *testing.B) {
 		PorchPath:   createMockPorch(b, tempDir, 0, "processed", ""),
 		Mode:        porch.ModeDirect,
 		OutDir:      filepath.Join(tempDir, "out"),
-		MaxWorkers:  1,
+		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
 	}
 
 	watcher, err := NewWatcher(tempDir, config)
@@ -1244,7 +1244,7 @@ func BenchmarkWatcherValidation_EventDebouncing(b *testing.B) {
 		PorchPath:   createMockPorch(b, tempDir, 0, "processed", ""),
 		Mode:        porch.ModeDirect,
 		OutDir:      filepath.Join(tempDir, "out"),
-		MaxWorkers:  1,
+		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
 		DebounceDur: 1 * time.Millisecond, // Very short for benchmarking
 	}
 

@@ -67,7 +67,7 @@ func (s *ValidationTestSuite) TestFix1_NilPointerDereference_SafeDefers() {
 		Mode:         "direct",
 		OutDir:       outDir,
 		Once:         true,
-		MaxWorkers:   1,
+		MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
 		DebounceDur:  100 * time.Millisecond,
 		CleanupAfter: time.Hour,
 	}
@@ -98,7 +98,7 @@ func (s *ValidationTestSuite) TestFix1_NilPointerDereference_ComponentsNil() {
 		Mode:         "direct", 
 		OutDir:       outDir,
 		Once:         true,
-		MaxWorkers:   1,
+		MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
 		CleanupAfter: time.Hour,
 	}
 

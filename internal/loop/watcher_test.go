@@ -167,7 +167,7 @@ func TestWatcher_FileDetectionWithinRequirement(t *testing.T) {
 		Mode:       porch.ModeDirect,
 		OutDir:     outDir,
 		DebounceDur: 100 * time.Millisecond, // Short debounce for testing
-		MaxWorkers: 1,
+		MaxWorkers: 2, // Production-like worker count for better concurrency testing
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -234,7 +234,7 @@ func TestWatcher_DebouncingRapidChanges(t *testing.T) {
 		Mode:       porch.ModeDirect,
 		OutDir:     outDir,
 		DebounceDur: 500 * time.Millisecond, // Longer debounce for testing
-		MaxWorkers: 1,
+		MaxWorkers: 2, // Production-like worker count for better concurrency testing
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -286,7 +286,7 @@ func TestWatcher_IdempotentProcessing(t *testing.T) {
 		Mode:       porch.ModeDirect,
 		OutDir:     outDir,
 		DebounceDur: 100 * time.Millisecond,
-		MaxWorkers: 1,
+		MaxWorkers: 2, // Production-like worker count for better concurrency testing
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -399,7 +399,7 @@ func TestWatcher_FailureScenarios(t *testing.T) {
 				Mode:       porch.ModeDirect,
 				OutDir:     outDir,
 				Once:       true,
-				MaxWorkers: 1,
+				MaxWorkers: 2, // Production-like worker count for better concurrency testing
 			}
 			
 			watcher, err := NewWatcher(tempDir, config)
@@ -462,7 +462,7 @@ func TestWatcher_CleanupRoutine(t *testing.T) {
 		PorchPath:    createMockPorch(t, tempDir, 0, "processed", ""),
 		Mode:        porch.ModeDirect,
 		OutDir:      outDir,
-		MaxWorkers:  1,
+		MaxWorkers:  2, // Use production-like worker count for better concurrency testing
 		CleanupAfter: 2 * time.Hour, // Minimum valid duration for testing
 	}
 	
@@ -555,7 +555,7 @@ func TestWatcher_StatusFileGeneration(t *testing.T) {
 		Mode:       porch.ModeStructured,
 		OutDir:     outDir,
 		Once:       true,
-		MaxWorkers: 1,
+		MaxWorkers: 2, // Production-like worker count for better concurrency testing
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -686,7 +686,7 @@ func BenchmarkWatcher_ProcessSingleFile(b *testing.B) {
 		Mode:       porch.ModeDirect,
 		OutDir:     outDir,
 		Once:       true,
-		MaxWorkers: 1,
+		MaxWorkers: 2, // Production-like worker count for better concurrency testing
 	}
 	
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 1}`
@@ -1586,7 +1586,7 @@ func (s *WatcherTestSuite) TestPerformance_DebouncingMechanism() {
 	
 	debounceConfig := s.config
 	debounceConfig.DebounceDur = 200 * time.Millisecond
-	debounceConfig.MaxWorkers = 1
+	debounceConfig.MaxWorkers = 2 // Production-like worker count for better concurrency testing
 	
 	watcher, err := NewWatcher(s.tempDir, debounceConfig)
 	s.Require().NoError(err)

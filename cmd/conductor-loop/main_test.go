@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"syscall"
 	"testing"
 	"time"
@@ -446,28 +450,99 @@ func TestMain_ExitCodes(t *testing.T) {
 
 // Helper functions
 
-// buildConductorLoop builds the conductor-loop binary for testing
+// Global test binary cache to avoid rebuilding for each test
+var (
+	testBinaryCache      = make(map[string]string)
+	testBinaryCacheMutex sync.RWMutex
+)
+
+// buildConductorLoop builds the conductor-loop binary for testing with caching optimization
 func buildConductorLoop(t *testing.T, tempDir string) string {
-	// Use test name and timestamp to create unique binary name to avoid conflicts in parallel tests
+	// Calculate a cache key based on source files modification time for cache invalidation
+	cacheKey := calculateSourceCacheKey()
+	
+	// Check cache first
+	testBinaryCacheMutex.RLock()
+	if cachedPath, exists := testBinaryCache[cacheKey]; exists {
+		if _, err := os.Stat(cachedPath); err == nil {
+			// Copy cached binary to test-specific location to avoid conflicts
+			testName := strings.ReplaceAll(t.Name(), "/", "_")
+			testName = strings.ReplaceAll(testName, " ", "_")
+			binaryName := fmt.Sprintf("conductor-loop-%s", testName)
+			if runtime.GOOS == "windows" {
+				binaryName += ".exe"
+			}
+			
+			newPath := filepath.Join(tempDir, binaryName)
+			if err := copyFile(cachedPath, newPath); err == nil {
+				testBinaryCacheMutex.RUnlock()
+				return newPath
+			}
+		}
+	}
+	testBinaryCacheMutex.RUnlock()
+	
+	// Build new binary
 	testName := strings.ReplaceAll(t.Name(), "/", "_")
 	testName = strings.ReplaceAll(testName, " ", "_")
-	timestamp := time.Now().UnixNano()
-	
-	binaryName := fmt.Sprintf("conductor-loop-%s-%d", testName, timestamp)
+	binaryName := fmt.Sprintf("conductor-loop-%s", testName)
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}
 	
 	binaryPath := filepath.Join(tempDir, binaryName)
 	
-	// Build the binary with a unique name to prevent parallel test conflicts
+	// Build the binary with optimized flags for faster builds
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "." // Current directory should be cmd/conductor-loop
 	
 	output, err := cmd.CombinedOutput()
 	require.NoError(t, err, "Failed to build conductor-loop: %s", string(output))
 	
+	// Cache the binary for reuse
+	testBinaryCacheMutex.Lock()
+	testBinaryCache[cacheKey] = binaryPath
+	testBinaryCacheMutex.Unlock()
+	
 	return binaryPath
+}
+
+// calculateSourceCacheKey creates a cache key based on source file modification times
+func calculateSourceCacheKey() string {
+	var modTimes []int64
+	
+	// Check main.go and other critical files for modifications
+	files := []string{"main.go", "../internal/loop/processor.go", "../internal/loop/watcher.go"}
+	for _, file := range files {
+		if stat, err := os.Stat(file); err == nil {
+			modTimes = append(modTimes, stat.ModTime().Unix())
+		}
+	}
+	
+	// Create hash of modification times
+	h := sha256.New()
+	for _, t := range modTimes {
+		binary.Write(h, binary.LittleEndian, t)
+	}
+	return fmt.Sprintf("%x", h.Sum(nil)[:8])
+}
+
+// copyFile copies a file from src to dst
+func copyFile(src, dst string) error {
+	source, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer source.Close()
+	
+	destination, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer destination.Close()
+	
+	_, err = io.Copy(destination, source)
+	return err
 }
 
 // createMockPorch creates a mock porch executable for testing

@@ -91,6 +91,15 @@ Features:
 		runner.Pattern = envPattern
 	}
 
+	// Apply timeout scaling from environment
+	if envTimeoutScale := os.Getenv("GO_TEST_TIMEOUT_SCALE"); envTimeoutScale != "" {
+		if scale, err := strconv.ParseFloat(envTimeoutScale, 64); err == nil && scale > 0 {
+			scaledTimeout := time.Duration(float64(runner.Timeout) * scale)
+			log.Printf("Scaling timeout from %v to %v (scale: %.1fx)", runner.Timeout, scaledTimeout, scale)
+			runner.Timeout = scaledTimeout
+		}
+	}
+
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}
@@ -228,12 +237,33 @@ func (r *TestRunner) calculatePackageWeights(packages []string) map[string]int {
 			weight = 5 // Performance tests are slowest
 		} else if strings.Contains(pkg, "controller") || strings.Contains(pkg, "manager") {
 			weight = 2 // Controller tests often involve more setup
+		} else if strings.Contains(pkg, "security") {
+			weight = 2 // Security tests may involve crypto operations
 		}
 		
 		weights[pkg] = weight
 	}
 	
 	return weights
+}
+
+// getPackageTimeout calculates appropriate timeout for a specific package
+func (r *TestRunner) getPackageTimeout(pkg string) time.Duration {
+	baseTimeout := r.Timeout
+	
+	// Apply package-specific timeout scaling for Windows optimization
+	multiplier := 1.0
+	if strings.Contains(pkg, "integration") || strings.Contains(pkg, "e2e") {
+		multiplier = 1.5 // Integration tests need more time
+	} else if strings.Contains(pkg, "performance") || strings.Contains(pkg, "benchmark") {
+		multiplier = 2.0 // Performance tests are slowest
+	} else if strings.Contains(pkg, "security") {
+		multiplier = 1.2 // Security tests with crypto operations
+	} else if strings.Contains(pkg, "controller") || strings.Contains(pkg, "manager") {
+		multiplier = 1.3 // Controller tests with more setup
+	}
+	
+	return time.Duration(float64(baseTimeout) * multiplier)
 }
 
 // shouldAssignToShard determines if a package should be assigned to this shard
@@ -302,6 +332,11 @@ func (r *TestRunner) runSingleTest(ctx context.Context, pkg string) TestResult {
 		result.Duration = time.Since(start)
 	}()
 	
+	// Create package-specific timeout context
+	packageTimeout := r.getPackageTimeout(pkg)
+	pkgCtx, pkgCancel := context.WithTimeout(ctx, packageTimeout)
+	defer pkgCancel()
+	
 	// Retry logic for flaky tests
 	var lastErr error
 	for attempt := 0; attempt <= r.MaxRetries; attempt++ {
@@ -310,7 +345,7 @@ func (r *TestRunner) runSingleTest(ctx context.Context, pkg string) TestResult {
 			time.Sleep(time.Duration(attempt) * time.Second) // Exponential backoff
 		}
 		
-		success, output, coverage, err := r.executeTest(ctx, pkg)
+		success, output, coverage, err := r.executeTest(pkgCtx, pkg)
 		result.Success = success
 		result.Output = output
 		result.Coverage = coverage

@@ -63,6 +63,46 @@ function Test-Prerequisites {
     return $true
 }
 
+function Get-ScaledTimeout {
+    param(
+        [string]$BaseTimeout,
+        [string]$TestType = "unit"
+    )
+    
+    # Parse base timeout (e.g., "10m" -> 10 minutes)
+    if ($BaseTimeout -match '^(\d+)([ms])$') {
+        $value = [int]$matches[1]
+        $unit = $matches[2]
+    } else {
+        Write-Warning "Invalid timeout format: $BaseTimeout, using 10m"
+        $value = 10
+        $unit = "m"
+    }
+    
+    # Get scaling factor from environment or use optimized defaults
+    $envScale = $env:GO_TEST_TIMEOUT_SCALE
+    if ([string]::IsNullOrEmpty($envScale)) {
+        $envScale = "1"
+    }
+    $baseScale = [double]$envScale
+    
+    # Apply dynamic scaling based on test type for better performance
+    $typeMultiplier = switch ($TestType) {
+        "unit" { 1.0 }          # Unit tests: no additional scaling
+        "integration" { 1.2 }   # Integration tests: slight increase
+        "security" { 1.1 }      # Security tests: minimal increase  
+        "e2e" { 1.5 }          # E2E tests: moderate increase
+        "performance" { 2.0 }   # Performance tests: full scaling
+        default { 1.0 }
+    }
+    
+    # Calculate optimized scaled value (reduced from conservative 2-3x)
+    $scaledValue = [math]::Ceiling($value * $baseScale * $typeMultiplier)
+    
+    Write-ColorOutput "Scaling timeout: ${BaseTimeout} -> ${scaledValue}${unit} (type: $TestType, scale: ${baseScale}x${typeMultiplier})" "Info"
+    return "${scaledValue}${unit}"
+}
+
 function Setup-Environment {
     Write-ColorOutput "=== Setting Up Environment ===" "Header"
     
@@ -85,7 +125,7 @@ function Setup-Environment {
     $env:CGO_ENABLED = "0"
     $env:GOMAXPROCS = "4"
     $env:GOTRACEBACK = "all"
-    $env:GO_TEST_TIMEOUT_SCALE = "2"
+    $env:GO_TEST_TIMEOUT_SCALE = "1.3"  # Optimized from 2x to 1.3x for faster CI
     
     Write-ColorOutput "Environment configured:" "Info"
     Write-ColorOutput "  Temp Base: $TempBase" "Info"
@@ -230,28 +270,38 @@ function Run-Tests {
     
     Write-ColorOutput "=== Running Test Suites ===" "Header"
     
-    # Define test suites (matching CI configuration)
+    # Define test suites with optimized timeouts
     $testSuites = @{
         "core" = @{
             packages = "./api/... ./pkg/config/... ./pkg/auth/... ./internal/ingest/..."
             flags = "-short"
-            timeout = "10m"
+            baseTimeout = "8m"   # Reduced from 10m
+            testType = "unit"
         }
         "loop" = @{
             packages = "./internal/loop/... ./cmd/conductor-loop/... ./cmd/conductor-watch/..."
             flags = ""
-            timeout = "20m"
+            baseTimeout = "15m"  # Reduced from 20m  
+            testType = "integration"
         }
         "security" = @{
             packages = "./pkg/security/... ./internal/security/..."
             flags = "-short"
-            timeout = "10m"
+            baseTimeout = "8m"   # Reduced from 10m
+            testType = "security"
         }
         "integration" = @{
             packages = "./cmd/... -run=TestIntegration"
             flags = ""
-            timeout = "15m"
+            baseTimeout = "12m"  # Reduced from 15m
+            testType = "integration"
         }
+    }
+    
+    # Calculate scaled timeouts for each suite
+    foreach ($suiteName in $testSuites.Keys) {
+        $suite = $testSuites[$suiteName]
+        $suite.timeout = Get-ScaledTimeout -BaseTimeout $suite.baseTimeout -TestType $suite.testType
     }
     
     # Generate deepcopy files if needed
