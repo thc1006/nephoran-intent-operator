@@ -20,7 +20,7 @@ on:
       - '.github/**'
       - '!.github/workflows/quality-gate.yml'
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, integrate/mvp ]
     paths-ignore:
       - '**.md'
       - 'docs/**'

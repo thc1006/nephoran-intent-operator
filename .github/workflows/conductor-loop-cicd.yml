@@ -59,7 +59,7 @@ permissions:
 
 # Concurrency: Prevent overlapping runs per branch
 concurrency:
-  group: conductor-loop-${{ github.ref }}
+  group: conductor-cicd-${{ github.ref }}
   cancel-in-progress: true
 
 # Environment variables
