@@ -133,7 +133,7 @@ func NewOptimizedWatcher(dir string, config Config) (*OptimizedWatcher, error) {
 }
 
 // ProcessFileOptimized uses all optimization techniques
-func (ow *OptimizedWatcher) ProcessFileOptimized(filePath string, fileInfo FileInfo) error {
+func (ow *OptimizedWatcher) ProcessFileOptimized(filePath string, fileInfo OptimizedFileInfo) error {
 	startTime := time.Now()
 
 	// Fast path: Check if already processed using lock-free atomic
@@ -388,9 +388,9 @@ func (ow *OptimizedWatcher) startOptimizers() {
 // Helper functions for implementation
 
 // Placeholder implementations - would be fully implemented in production
-func (ow *OptimizedWatcher) isAlreadyProcessedFast(string, FileInfo) bool { return false }
-func (ow *OptimizedWatcher) getAIContext(string, FileInfo) *AIContext { return &AIContext{} }
-func (ow *OptimizedWatcher) calculatePriority(FileInfo, *AIContext) uint8 { return 1 }
+func (ow *OptimizedWatcher) isAlreadyProcessedFast(string, OptimizedFileInfo) bool { return false }
+func (ow *OptimizedWatcher) getAIContext(string, OptimizedFileInfo) *AIContext { return &AIContext{} }
+func (ow *OptimizedWatcher) calculatePriority(OptimizedFileInfo, *AIContext) uint8 { return 1 }
 func (ow *OptimizedWatcher) canBatch(*AsyncWorkItem) bool { return true }
 func (ow *OptimizedWatcher) addToBatch(*AsyncWorkItem) error { return nil }
 func (ow *OptimizedWatcher) processImmediately(*AsyncWorkItem) error { return nil }
@@ -417,7 +417,7 @@ func (ow *OptimizedWatcher) validateSchemaFast([]byte) error { return nil }
 func enableFIPSMode() error { return nil }
 
 // Type definitions for AI/ML components
-type FileInfo struct {
+type OptimizedFileInfo struct {
 	Size    int64
 	ModTime time.Time
 }

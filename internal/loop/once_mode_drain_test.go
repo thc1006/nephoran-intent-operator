@@ -166,7 +166,13 @@ func TestOnceModeQueueDrainageUnderLoad(t *testing.T) {
 	for i := 0; i < numFiles; i++ {
 		filename := fmt.Sprintf("intent-load-%d.json", i)
 		filePath := filepath.Join(tempDir, filename)
-		content := fmt.Sprintf(`{"id": %d}`, i)
+		content := fmt.Sprintf(`{
+			"intent_type": "scaling",
+			"target": "test-deployment-%d",
+			"namespace": "default",
+			"replicas": %d,
+			"source": "test"
+		}`, i, (i%5)+1)
 		err := os.WriteFile(filePath, []byte(content), 0644)
 		require.NoError(t, err)
 	}

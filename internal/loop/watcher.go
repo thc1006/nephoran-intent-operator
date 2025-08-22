@@ -114,7 +114,7 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic, direct, structured", c.Mode)
 	}
 	
-	// Validate OutDir - check if directory exists and is writable
+	// Validate OutDir - check if directory exists or can be created, and is writable
 	// This is critical for preventing runtime failures during file processing
 	if c.OutDir != "" {
 		// Clean and normalize the path
@@ -133,16 +133,37 @@ func (c *Config) Validate() error {
 		info, err := os.Stat(c.OutDir)
 		if err != nil {
 			if os.IsNotExist(err) {
-				// Directory doesn't exist - this is an error
-				// The directory must exist before starting the watcher
-				return fmt.Errorf("output directory does not exist: %q", c.OutDir)
+				// Directory doesn't exist - check if we can create it
+				parentDir := filepath.Dir(c.OutDir)
+				parentInfo, parentErr := os.Stat(parentDir)
+				if parentErr != nil {
+					if os.IsNotExist(parentErr) {
+						// Parent directory doesn't exist - use expected error message
+						return fmt.Errorf("output directory parent does not exist")
+					}
+					return fmt.Errorf("cannot access output directory parent %q: %w", parentDir, parentErr)
+				}
+				
+				// Verify parent is a directory
+				if !parentInfo.IsDir() {
+					return fmt.Errorf("output directory parent is not a directory: %q", parentDir)
+				}
+				
+				// Try to create the directory to verify we have write permissions
+				if err := os.MkdirAll(c.OutDir, 0755); err != nil {
+					return fmt.Errorf("cannot create output directory %q: %w", c.OutDir, err)
+				}
+				
+				// Directory was created successfully, continue with write test below
+			} else {
+				return fmt.Errorf("cannot access output directory %q: %w", c.OutDir, err)
 			}
-			return fmt.Errorf("cannot access output directory %q: %w", c.OutDir, err)
-		}
-		
-		// Verify it's a directory
-		if !info.IsDir() {
-			return fmt.Errorf("output path exists but is not a directory: %q", c.OutDir)
+		} else {
+			// Directory exists - verify it's actually a directory
+			if !info.IsDir() {
+				// Use expected error message for file vs directory check
+				return fmt.Errorf("output path is not a directory")
+			}
 		}
 		
 		// Check if directory is writable by attempting to create a temp file
@@ -295,6 +316,10 @@ type Watcher struct {
 	shutdownStartTime time.Time
 	shutdownMutex    sync.RWMutex
 	shutdownOnce     sync.Once // ensures shutdown operations happen only once
+	
+	// Once mode completion tracking
+	onceModeExpectedFiles atomic.Int64 // Track expected files in once mode
+	onceModeQueuedFiles   atomic.Int64 // Track queued files in once mode
 	
 	// Idempotent teardown
 	closeOnce       sync.Once
@@ -745,14 +770,14 @@ func (w *Watcher) getLatencyPercentiles() map[string]float64 {
 	
 	// Simple percentile calculation (for production, consider using a proper algorithm)
 	return map[string]float64{
-		"50": float64(percentile(latencies, 50)) / 1e9, // Convert to seconds
-		"95": float64(percentile(latencies, 95)) / 1e9,
-		"99": float64(percentile(latencies, 99)) / 1e9,
+		"50": float64(percentileInt64(latencies, 50)) / 1e9, // Convert to seconds
+		"95": float64(percentileInt64(latencies, 95)) / 1e9,
+		"99": float64(percentileInt64(latencies, 99)) / 1e9,
 	}
 }
 
-// percentile calculates the nth percentile of a slice of int64 values
-func percentile(values []int64, p int) int64 {
+// percentileInt64 calculates the nth percentile of a slice of int64 values
+func percentileInt64(values []int64, p int) int64 {
 	if len(values) == 0 {
 		return 0
 	}
@@ -911,6 +936,30 @@ func (w *Watcher) processExistingFiles() error {
 		return fmt.Errorf("failed to read directory: %w", err)
 	}
 	
+	// First pass: count expected files
+	expectedFiles := 0
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		
+		filename := entry.Name()
+		if IsIntentFile(filename) {
+			expectedFiles++
+		}
+	}
+	
+	// Set expected files count for drain validation
+	w.onceModeExpectedFiles.Store(int64(expectedFiles))
+	log.Printf("Once mode: expecting to process %d intent files", expectedFiles)
+	
+	// If no files to process, we can return immediately
+	if expectedFiles == 0 {
+		log.Printf("Once mode: no intent files found, nothing to process")
+		return nil
+	}
+	
+	// Second pass: queue files for processing
 	filesQueued := 0
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -931,6 +980,7 @@ func (w *Watcher) processExistingFiles() error {
 			select {
 			case w.workerPool.workQueue <- workItem:
 				filesQueued++
+				w.onceModeQueuedFiles.Add(1)
 			case <-w.ctx.Done():
 				cancel()
 				return nil
@@ -953,7 +1003,7 @@ func (w *Watcher) startPolling() error {
 	log.Printf("LOOP:SCAN - Starting polling mode with period: %v", w.config.Period)
 	
 	// Track processed files to avoid duplicates
-	processedFiles := make(map[string]string) // filename -> SHA256
+	processedFiles := make(map[string]bool) // filePath -> processed
 	
 	for {
 		select {
@@ -987,26 +1037,19 @@ func (w *Watcher) startPolling() error {
 				filesFound++
 				filePath := filepath.Join(w.dir, filename)
 				
-				// Check if file is already being processed
-				sha256Hash, err := w.stateManager.CalculateFileSHA256(filePath)
+				// Check if this specific file (by path+identity) has already been processed
+				processed, err := w.stateManager.IsProcessedByIdentity(filePath)
 				if err != nil {
-					log.Printf("LOOP:ERROR - Failed to calculate SHA256 for %s: %v", filePath, err)
+					log.Printf("LOOP:ERROR - Failed to check file identity for %s: %v", filePath, err)
 					continue
-				}
-				
-				// Check if this exact file (by SHA) was already processed
-				if prevSHA, exists := processedFiles[filename]; exists && prevSHA == sha256Hash {
-					log.Printf("LOOP:SKIP_DUP - File %s unchanged (SHA: %s), skipping", filename, sha256Hash[:8])
-					continue
-				}
-				
-				// Check state manager for historical processing
-				processed, err := w.stateManager.IsProcessedBySHA(sha256Hash)
-				if err != nil {
-					log.Printf("LOOP:ERROR - Failed to check state for %s: %v", filePath, err)
 				} else if processed {
-					log.Printf("LOOP:SKIP_DUP - File %s already processed (SHA: %s), skipping", filename, sha256Hash[:8])
-					processedFiles[filename] = sha256Hash
+					log.Printf("LOOP:SKIP_DUP - File %s already processed by identity, skipping", filename)
+					continue
+				}
+				
+				// Check if file has been processed in this session (local deduplication)
+				if _, exists := processedFiles[filePath]; exists {
+					log.Printf("LOOP:SKIP_DUP - File %s already processed in this session, skipping", filename)
 					continue
 				}
 				
@@ -1021,7 +1064,7 @@ func (w *Watcher) startPolling() error {
 				select {
 				case w.workerPool.workQueue <- workItem:
 					filesQueued++
-					processedFiles[filename] = sha256Hash
+					processedFiles[filePath] = true
 					log.Printf("LOOP:PROCESS - Queued file %s for processing", filename)
 				default:
 					cancel()
@@ -1111,14 +1154,14 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		return
 	}
 	
-	// Check if already processed by hash (prevents duplicate processing)
-	processed, err := w.stateManager.IsProcessedByHash(fileHash)
+	// Check if already processed by identity (prevents duplicate processing)
+	processed, err := w.stateManager.IsProcessedByIdentity(filePath)
 	if err != nil {
-		log.Printf("LOOP:ERROR - Worker %d: Error checking file state by hash for %s: %v", 
+		log.Printf("LOOP:ERROR - Worker %d: Error checking file identity for %s: %v", 
 			workerID, filepath.Base(filePath), err)
 	} else if processed {
-		log.Printf("LOOP:SKIP_DUP - Worker %d: File %s already processed (hash: %s)", 
-			workerID, filepath.Base(filePath), fileHash[:8])
+		log.Printf("LOOP:SKIP_DUP - Worker %d: File %s already processed by identity", 
+			workerID, filepath.Base(filePath))
 		return
 	}
 	
@@ -1242,9 +1285,11 @@ func (w *Watcher) cleanupRoutine() {
 			}
 			
 			// Log statistics
-			stats := w.executor.GetStats()
-			log.Printf("Executor stats: total=%d, success=%d, failed=%d, avg_time=%v",
-				stats.TotalExecutions, stats.SuccessfulExecs, stats.FailedExecs, stats.AverageExecTime)
+			if w.executor != nil {
+				stats := w.executor.GetStats()
+				log.Printf("Executor stats: total=%d, success=%d, failed=%d, avg_time=%v",
+					stats.TotalExecutions, stats.SuccessfulExecs, stats.FailedExecs, stats.AverageExecTime)
+			}
 		}
 	}
 }
@@ -1295,9 +1340,30 @@ func (w *Watcher) waitForWorkersToFinishInternal() {
 			processingItems := atomic.LoadInt64(&w.workerPool.processingItems)
 			
 			// In once mode, wait for both queue to be empty AND no items being processed
+			// AND verify all expected files have been processed by the executor
 			if w.config.Once {
+				// Check if queue is drained and no items are being processed
 				if queueSize == 0 && processingItems == 0 {
-					log.Printf("Queue drained and no items processing in once mode, proceeding with shutdown")
+					// Additional validation: ensure all expected files are processed (success or failure)
+					expectedFiles := w.onceModeExpectedFiles.Load()
+					if expectedFiles > 0 && w.fileManager != nil {
+						fileStats, err := w.fileManager.GetStats()
+						if err != nil {
+							log.Printf("Once mode: warning - failed to get file stats: %v", err)
+						} else {
+							processedTotal := int64(fileStats.ProcessedCount + fileStats.FailedCount)
+							if processedTotal < expectedFiles {
+								log.Printf("Once mode: waiting for completion - handled %d of %d expected files (processed: %d, failed: %d)", 
+									processedTotal, expectedFiles, fileStats.ProcessedCount, fileStats.FailedCount)
+								time.Sleep(100 * time.Millisecond)
+								continue
+							}
+							log.Printf("Queue drained and all %d expected files handled in once mode (processed: %d, failed: %d), proceeding with shutdown", 
+								expectedFiles, fileStats.ProcessedCount, fileStats.FailedCount)
+						}
+					} else {
+						log.Printf("Queue drained and no items processing in once mode, proceeding with shutdown")
+					}
 					goto closeQueue
 				}
 			} else {
@@ -1309,16 +1375,37 @@ func (w *Watcher) waitForWorkersToFinishInternal() {
 			}
 			
 			if queueSize > 0 || processingItems > 0 {
-				log.Printf("Waiting for processing to complete: %d items queued, %d processing, %d workers active", 
-					queueSize, processingItems, activeWorkers)
+				if w.config.Once {
+					expectedFiles := w.onceModeExpectedFiles.Load()
+					handledTotal := int64(0)
+					processedCount := 0
+					failedCount := 0
+					if w.fileManager != nil {
+						if fileStats, err := w.fileManager.GetStats(); err == nil {
+							handledTotal = int64(fileStats.ProcessedCount + fileStats.FailedCount)
+							processedCount = fileStats.ProcessedCount
+							failedCount = fileStats.FailedCount
+						}
+					}
+					log.Printf("Once mode: waiting for completion - %d queued, %d processing, %d/%d handled (processed: %d, failed: %d)", 
+						queueSize, processingItems, handledTotal, expectedFiles, processedCount, failedCount)
+				} else {
+					log.Printf("Waiting for processing to complete: %d items queued, %d processing, %d workers active", 
+						queueSize, processingItems, activeWorkers)
+				}
 			}
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
 	
 closeQueue:
-	// Give a brief moment for any final status writes
-	time.Sleep(100 * time.Millisecond)
+	// Give additional time for final status writes in once mode
+	if w.config.Once {
+		log.Printf("Once mode: allowing extra time for final status file writes...")
+		time.Sleep(500 * time.Millisecond) // More generous timing for once mode
+	} else {
+		time.Sleep(100 * time.Millisecond)
+	}
 	
 	// Close work queue to signal workers to exit (only once)
 	w.workerPool.queueClosed.Do(func() {

@@ -183,6 +183,13 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
 	
+	// Validate Windows path before any filesystem operations
+	if runtime.GOOS == "windows" {
+		if err := pathutil.ValidateWindowsPath(filePath); err != nil {
+			return false, fmt.Errorf("Windows path validation failed: %w", err)
+		}
+	}
+	
 	// Create safe absolute path for state key first
 	var absPath string
 	var err error
@@ -273,6 +280,8 @@ func (sm *StateManager) MarkFailedWithHash(filePath, hash string, size int64) er
 }
 
 // IsProcessedByHash checks if a file with the given hash has already been processed
+// DEPRECATED: This method causes false positives when files have identical content
+// but are different files. Use IsProcessedByIdentity instead.
 func (sm *StateManager) IsProcessedByHash(hash string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
@@ -285,10 +294,93 @@ func (sm *StateManager) IsProcessedByHash(hash string) (bool, error) {
 	return false, nil
 }
 
+// IsProcessedByIdentity checks if a specific file (by path and metadata) has already been processed
+// This prevents false duplicates when different files have identical content
+func (sm *StateManager) IsProcessedByIdentity(filePath string) (bool, error) {
+	sm.mu.RLock()
+	defer sm.mu.RUnlock()
+	
+	// Validate Windows path before any filesystem operations
+	if runtime.GOOS == "windows" {
+		if err := pathutil.ValidateWindowsPath(filePath); err != nil {
+			return false, fmt.Errorf("Windows path validation failed: %w", err)
+		}
+	}
+	
+	// Create safe absolute path for state key
+	var absPath string
+	var err error
+	if filepath.IsAbs(filePath) {
+		// For absolute paths, verify they're within the baseDir
+		absBaseDir, err := filepath.Abs(sm.baseDir)
+		if err != nil {
+			return false, fmt.Errorf("failed to get absolute base directory: %w", err)
+		}
+		
+		rel, err := filepath.Rel(absBaseDir, filePath)
+		if err != nil || strings.HasPrefix(rel, "..") {
+			return false, fmt.Errorf("unsafe file path: absolute path outside base directory: %q", filePath)
+		}
+		absPath = filePath
+	} else {
+		// For relative paths, use SafeJoin
+		safePath, err := pathutil.SafeJoin(sm.baseDir, filePath)
+		if err != nil {
+			return false, fmt.Errorf("unsafe file path: %w", err)
+		}
+		
+		absPath, err = filepath.Abs(safePath)
+		if err != nil {
+			return false, fmt.Errorf("failed to get absolute path: %w", err)
+		}
+	}
+	
+	key := createStateKey(absPath)
+	state, exists := sm.states[key]
+	if !exists {
+		return false, nil
+	}
+	
+	// If state entry exists but has a placeholder hash (file was missing when marked),
+	// we consider it processed regardless of current file state
+	if state.SHA256 == "file-disappeared" {
+		return state.Status == "processed", nil
+	}
+	
+	// For entries with real hashes, verify the file still matches its recorded identity
+	hash, size, err := calculateFileHash(sm.baseDir, filePath)
+	if err != nil {
+		// If file disappeared after being processed, still consider it processed.
+		// This handles Windows filesystem race conditions where files may temporarily
+		// appear missing during concurrent operations.
+		if isFileNotFoundError(err) {
+			// File doesn't exist - treat as processed if it was marked as such
+			return state.Status == "processed", nil
+		}
+		// For other errors, propagate them
+		return false, fmt.Errorf("failed to check file identity: %w", err)
+	}
+	
+	// Check if file has changed since processing (content or size)
+	if state.SHA256 != hash || state.Size != size {
+		return false, nil
+	}
+	
+	// Only consider successfully processed files
+	return state.Status == "processed", nil
+}
+
 // markWithStatus marks a file with the given status
 func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
+	
+	// Validate Windows path before any filesystem operations
+	if runtime.GOOS == "windows" {
+		if err := pathutil.ValidateWindowsPath(filePath); err != nil {
+			return fmt.Errorf("Windows path validation failed: %w", err)
+		}
+	}
 	
 	// Calculate file hash and size using safe path joining
 	hash, size, err := calculateFileHash(sm.baseDir, filePath)
