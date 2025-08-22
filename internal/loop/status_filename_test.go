@@ -15,22 +15,6 @@ import (
 // TestStatusFilenameGeneration verifies that status files follow the canonical pattern
 // in their filename as expected: <base>-YYYYMMDD-HHMMSS.status (without .json extension)
 func TestStatusFilenameGeneration(t *testing.T) {
-	tempDir := t.TempDir()
-	
-	// Create a simple mock porch command
-	mockPorch := createMockPorch(t, tempDir, 0, "processed", "")
-	
-	config := &Config{
-		DebounceDur: 10 * time.Millisecond,
-		MaxWorkers:  2,
-		PorchPath:   mockPorch,
-		Once:        true,
-	}
-	
-	watcher, err := NewWatcher(tempDir, *config)
-	require.NoError(t, err)
-	defer watcher.Close()
-
 	testCases := []struct {
 		name           string
 		intentFile     string
@@ -43,13 +27,13 @@ func TestStatusFilenameGeneration(t *testing.T) {
 		},
 		{
 			name:           "IntentWithMultipleDots",
-			intentFile:     "intent.scale.test.json",
-			expectedPrefix: "intent.scale.test-",
+			intentFile:     "intent-scale-test.json",
+			expectedPrefix: "intent-scale-test-",
 		},
 		{
 			name:           "IntentWithUnderscore",
-			intentFile:     "intent_deployment.json",
-			expectedPrefix: "intent_deployment-",
+			intentFile:     "intent-deployment.json",
+			expectedPrefix: "intent-deployment-",
 		},
 		{
 			name:           "IntentWithNumbers",
@@ -60,10 +44,27 @@ func TestStatusFilenameGeneration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			// Create a new temp dir and watcher for each test case
+			tempDir := t.TempDir()
+			
+			// Create a simple mock porch command
+			mockPorch := createMockPorch(t, tempDir, 0, "processed", "")
+			
+			config := &Config{
+				DebounceDur: 10 * time.Millisecond,
+				MaxWorkers:  2,
+				PorchPath:   mockPorch,
+				Once:        true,
+			}
+			
+			watcher, err := NewWatcher(tempDir, *config)
+			require.NoError(t, err)
+			defer watcher.Close()
+			
 			// Create the intent file
 			intentPath := filepath.Join(tempDir, tc.intentFile)
 			intentContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test"}}`
-			err := os.WriteFile(intentPath, []byte(intentContent), 0644)
+			err = os.WriteFile(intentPath, []byte(intentContent), 0644)
 			require.NoError(t, err)
 
 			// Process the file

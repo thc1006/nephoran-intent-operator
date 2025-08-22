@@ -9,7 +9,7 @@ import (
 
 // ComputeStatusFileName generates a canonical status filename for the given source path and timestamp.
 // 
-// The canonical naming pattern is: <baseNameWithoutExt>-<YYYYMMDD>-<HHMMSS>.status
+// The canonical naming pattern is: <sanitizedBaseNameWithoutExt>-<YYYYMMDD>-<HHMMSS>.status
 // 
 // Examples:
 //   - "intent-test-0.json" + timestamp -> "intent-test-0-20250821-143022.status"
@@ -31,9 +31,12 @@ func ComputeStatusFileName(srcPath string, timestamp time.Time) string {
 	// Remove file extension from base name
 	baseNameWithoutExt := strings.TrimSuffix(baseName, filepath.Ext(baseName))
 	
+	// Sanitize the filename for cross-platform compatibility
+	sanitizedName := sanitizeStatusFilename(baseNameWithoutExt)
+	
 	// Format timestamp as YYYYMMDD-HHMMSS
 	timestampStr := timestamp.Format("20060102-150405")
 	
 	// Return the complete status filename
-	return fmt.Sprintf("%s-%s.status", baseNameWithoutExt, timestampStr)
+	return fmt.Sprintf("%s-%s.status", sanitizedName, timestampStr)
 }
