@@ -443,7 +443,12 @@ func TestConfig_SecurityValidation(t *testing.T) {
 				_, err := NewWatcher(tempDir, config)
 				// Should fail due to path traversal in output directory
 				if err != nil {
-					assert.Contains(t, err.Error(), "output directory does not exist", "should mention directory validation")
+					// Accept multiple possible error messages for cross-platform compatibility
+					assertErrorContainsAny(t, err,
+						"path traversal detected",
+						"output directory does not exist",
+						"output directory parent does not exist",
+					)
 				} else {
 					t.Log("Note: Path traversal validation may be handled by OS-level restrictions")
 				}
