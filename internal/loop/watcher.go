@@ -189,11 +189,13 @@ type FileProcessingState struct {
 type WorkerPool struct {
 	workQueue        chan WorkItem
 	workers          sync.WaitGroup
+	senders          sync.WaitGroup // tracks all goroutines that send to workQueue
 	stopSignal       chan struct{}
 	maxWorkers       int
 	activeWorkers    int64 // atomic counter
 	processingItems  int64 // atomic counter for items being processed
 	queueClosed      sync.Once // ensures queue is only closed once
+	shutdownStarted  int32 // atomic flag to prevent sends during shutdown
 }
 
 // WorkItem represents a unit of work for the worker pool
@@ -908,6 +910,12 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 			Ctx:      workCtx,
 		}
 		
+		// Check if shutdown has started to prevent sending on closed channel
+		if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
+			cancel()
+			return
+		}
+		
 		// Queue work item with backpressure handling
 		select {
 		case w.workerPool.workQueue <- workItem:
@@ -924,13 +932,21 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 			atomic.AddInt64(&w.metrics.BackpressureEventsTotal, 1)
 			
 			// Try again with exponential backoff
-			go w.retryWithBackoff(workItem, cancel)
+			w.workerPool.senders.Add(1) // Track the retry goroutine
+			go func() {
+				defer w.workerPool.senders.Done()
+				w.retryWithBackoff(workItem, cancel)
+			}()
 		}
 	}()
 }
 
 // processExistingFiles processes all existing intent files in the directory (for -once mode)
 func (w *Watcher) processExistingFiles() error {
+	// Register this function as a sender to the work queue
+	w.workerPool.senders.Add(1)
+	defer w.workerPool.senders.Done()
+	
 	entries, err := os.ReadDir(w.dir)
 	if err != nil {
 		return fmt.Errorf("failed to read directory: %w", err)
@@ -977,6 +993,12 @@ func (w *Watcher) processExistingFiles() error {
 				Ctx:      workCtx,
 			}
 			
+			// Check if shutdown has started to prevent sending on closed channel
+			if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
+				cancel()
+				return fmt.Errorf("shutdown in progress")
+			}
+			
 			select {
 			case w.workerPool.workQueue <- workItem:
 				filesQueued++
@@ -997,6 +1019,10 @@ func (w *Watcher) processExistingFiles() error {
 
 // startPolling starts the polling-based file monitoring
 func (w *Watcher) startPolling() error {
+	// Register this function as a sender to the work queue
+	w.workerPool.senders.Add(1)
+	defer w.workerPool.senders.Done()
+	
 	ticker := time.NewTicker(w.config.Period)
 	defer ticker.Stop()
 	
@@ -1061,11 +1087,20 @@ func (w *Watcher) startPolling() error {
 					Ctx:      workCtx,
 				}
 				
+				// Check if shutdown has started to prevent sending on closed channel
+				if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
+					cancel()
+					return nil
+				}
+				
 				select {
 				case w.workerPool.workQueue <- workItem:
 					filesQueued++
 					processedFiles[filePath] = true
 					log.Printf("LOOP:PROCESS - Queued file %s for processing", filename)
+				case <-w.ctx.Done():
+					cancel()
+					return nil
 				default:
 					cancel()
 					log.Printf("LOOP:WARNING - Work queue full, skipping file %s", filename)
@@ -1304,6 +1339,9 @@ func (w *Watcher) waitForWorkersToFinish() {
 
 // waitForWorkersToFinishInternal does the actual work of waiting for workers
 func (w *Watcher) waitForWorkersToFinishInternal() {
+	// Signal that shutdown has started to prevent new sends to the channel
+	atomic.StoreInt32(&w.workerPool.shutdownStarted, 1)
+	
 	log.Printf("Waiting for workers to process queued files...")
 	
 	// In once mode, wait longer for processing to complete
@@ -1406,6 +1444,10 @@ closeQueue:
 	} else {
 		time.Sleep(100 * time.Millisecond)
 	}
+	
+	// Wait for all senders to finish before closing the channel
+	// This is the canonical Go pattern: only close after all senders are done
+	w.workerPool.senders.Wait()
 	
 	// Close work queue to signal workers to exit (only once)
 	w.workerPool.queueClosed.Do(func() {
@@ -2526,6 +2568,14 @@ func (w *Watcher) retryWithBackoff(workItem WorkItem, cancelFunc context.CancelF
 			cancelFunc()
 			return
 		case <-timer.C:
+			// Check if shutdown has started to prevent sending on closed channel
+			if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
+				log.Printf("LOOP:RETRY_ABORT - Shutdown in progress, aborting retry for %s",
+					filepath.Base(workItem.FilePath))
+				cancelFunc()
+				return
+			}
+			
 			// Try to queue again
 			select {
 			case w.workerPool.workQueue <- workItem:
