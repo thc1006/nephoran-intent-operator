@@ -901,16 +901,46 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 			err := watcher.validatePath(filePath)
 			assert.Error(t, err, "Should reject suspicious filename: %s", pattern)
 			
-			// On Windows, null bytes in filenames cause filepath.Abs to fail
-			// with "invalid argument" before we reach the suspicious pattern check
-			if runtime.GOOS == "windows" && pattern == "intent-test\x00.json" {
-				if err != nil {
-					assert.Contains(t, err.Error(), "failed to get absolute path",
-						"Error should mention absolute path failure on Windows for null bytes")
+			// On Windows, handle OS-specific validation behavior
+			if runtime.GOOS == "windows" {
+				// Windows-invalid characters get caught by Windows path validation first
+				windowsInvalidChars := []string{"*", "?", "|", "<", ">", ":", "\""}
+				isWindowsInvalidChar := false
+				for _, char := range windowsInvalidChars {
+					if strings.Contains(pattern, char) {
+						isWindowsInvalidChar = true
+						break
+					}
+				}
+				
+				if pattern == "intent-test\x00.json" {
+					// Null bytes cause filepath.Abs to fail with "invalid argument" 
+					// before we reach any validation check
+					if err != nil {
+						assert.Contains(t, err.Error(), "failed to get absolute path",
+							"Error should mention absolute path failure on Windows for null bytes")
+					} else {
+						t.Log("Note: OS-level null byte handling may prevent this error")
+					}
+				} else if isWindowsInvalidChar {
+					// Windows-invalid characters are caught by Windows path validation
+					if err != nil {
+						assert.Contains(t, err.Error(), "Windows path validation failed",
+							"Error should mention Windows path validation failure for Windows-invalid characters")
+					} else {
+						t.Log("Note: Windows path validation may handle this differently")
+					}
 				} else {
-					t.Log("Note: OS-level null byte handling may prevent this error")
+					// Other patterns should still be caught by suspicious pattern validation
+					if err != nil {
+						assert.Contains(t, err.Error(), "suspicious pattern",
+							"Error should mention suspicious pattern")
+					} else {
+						t.Log("Note: Suspicious pattern validation may be handled differently")
+					}
 				}
 			} else {
+				// On non-Windows systems, all patterns should be caught by suspicious pattern validation
 				if err != nil {
 					assert.Contains(t, err.Error(), "suspicious pattern",
 						"Error should mention suspicious pattern")

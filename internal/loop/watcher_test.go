@@ -1240,8 +1240,31 @@ func (s *WatcherTestSuite) TestSecurity_SuspiciousFilenamePatterns() {
 			
 			err := watcher.validatePath(filePath)
 			assert.Error(t, err, "Should reject suspicious filename: %s", name)
-			assert.Contains(t, err.Error(), "suspicious pattern", 
-				"Error should mention suspicious pattern")
+			
+			// On Windows, certain characters are invalid Windows path characters
+			// and will trigger "Windows path validation failed" before suspicious pattern check
+			if runtime.GOOS == "windows" {
+				// Windows-invalid characters: *, ?, |, <, >
+				windowsInvalidChars := map[string]bool{
+					"intent-test*.json": true,
+					"intent-test?.json": true,
+					"intent-test|.json": true,
+					"intent-test<.json": true,
+					"intent-test>.json": true,
+				}
+				
+				if windowsInvalidChars[name] {
+					assert.Contains(t, err.Error(), "Windows path validation failed",
+						"Error should mention Windows path validation for invalid char: %s", name)
+				} else {
+					assert.Contains(t, err.Error(), "suspicious pattern",
+						"Error should mention suspicious pattern for: %s", name)
+				}
+			} else {
+				// On non-Windows, all should be suspicious patterns
+				assert.Contains(t, err.Error(), "suspicious pattern",
+					"Error should mention suspicious pattern")
+			}
 		})
 	}
 }

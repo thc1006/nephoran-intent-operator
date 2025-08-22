@@ -1833,19 +1833,29 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 // validatePath ensures the file path is safe and within expected boundaries
 // It includes Windows-specific validation for drive letters, UNC paths, and edge cases
 func (w *Watcher) validatePath(filePath string) error {
-	// Validate intent filename patterns first (before Windows validation)
-	// This ensures consistent error messages across platforms
-	filename := filepath.Base(filePath)
-	if err := w.validateIntentFilename(filename); err != nil {
-		return err
+	// On Windows, null bytes in paths cause filepath operations to fail
+	// Check this first before any other validation
+	if runtime.GOOS == "windows" && strings.Contains(filePath, "\x00") {
+		// Try to get absolute path to trigger the OS error
+		_, err := filepath.Abs(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to get absolute path: %w", err)
+		}
 	}
 	
-	// Import pathutil for Windows-specific validation
-	// Perform initial Windows-specific validation
+	// Perform Windows-specific validation first on Windows systems
+	// This catches Windows path validation errors before general filename validation
 	if runtime.GOOS == "windows" {
 		if err := pathutil.ValidateWindowsPath(filePath); err != nil {
 			return fmt.Errorf("Windows path validation failed: %w", err)
 		}
+	}
+	
+	// Validate intent filename patterns (after Windows validation)
+	// This ensures Windows-specific errors are caught first
+	filename := filepath.Base(filePath)
+	if err := w.validateIntentFilename(filename); err != nil {
+		return err
 	}
 	
 	// Normalize path separators for consistent handling
@@ -2938,4 +2948,60 @@ func (w *Watcher) IsShutdownFailure(err error, errorMsg string) bool {
 	}
 	
 	return false
+}
+
+// safeQueueWorkItem safely queues a work item with comprehensive checks to prevent
+// "send on closed channel" panics. It checks shutdown state, context cancellation,
+// and handles backpressure gracefully.
+func (w *Watcher) safeQueueWorkItem(workItem WorkItem, cancelFunc context.CancelFunc) error {
+	// First check - shutdown has started
+	if atomic.LoadInt32(&w.workerPool.shutdownStarted) == 1 {
+		if cancelFunc != nil {
+			cancelFunc()
+		}
+		return fmt.Errorf("shutdown in progress")
+	}
+	
+	// Second check - context is already done
+	select {
+	case <-w.ctx.Done():
+		if cancelFunc != nil {
+			cancelFunc()
+		}
+		return fmt.Errorf("context cancelled")
+	default:
+		// Context is still active, continue
+	}
+	
+	// Third check - try to queue with proper cancellation handling
+	select {
+	case w.workerPool.workQueue <- workItem:
+		// Successfully queued
+		return nil
+	case <-w.ctx.Done():
+		if cancelFunc != nil {
+			cancelFunc()
+		}
+		return fmt.Errorf("context cancelled during queue")
+	default:
+		// Work queue is full, implement backpressure
+		log.Printf("LOOP:BACKPRESSURE - Work queue full, applying backpressure for %s", 
+			filepath.Base(workItem.FilePath))
+		
+		// Record backpressure event
+		atomic.AddInt64(&w.metrics.BackpressureEventsTotal, 1)
+		
+		// For once mode, we should retry; for regular mode, it's optional
+		if w.config.Once {
+			// Try again with exponential backoff in once mode
+			w.workerPool.senders.Add(1)
+			go func() {
+				defer w.workerPool.senders.Done()
+				w.retryWithBackoff(workItem, cancelFunc)
+			}()
+			return nil
+		}
+		
+		return fmt.Errorf("work queue full")
+	}
 }
