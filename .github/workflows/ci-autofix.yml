@@ -1,0 +1,183 @@
+name: Auto-fix Windows CI with Claude Code (OAuth)
+
+on:
+  workflow_run:
+    workflows: ["Conductor Loop CI"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+
+jobs:
+  autofix:
+    if: ${{ github.event.workflow_run.conclusion != 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      RUN_ID: ${{ github.event.workflow_run.id }}
+      HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+      HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+      BASE_REPO: ${{ github.repository }}
+      API: https://api.github.com
+
+    steps:
+      - name: (Optional) Use GitHub App token if available
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        continue-on-error: true
+
+      - name: Choose auth token
+        id: choose-token
+        run: |
+          if [ -n "${{ steps.app-token.outputs.token }}" ]; then
+            echo "token=${{ steps.app-token.outputs.token }}" >> $GITHUB_OUTPUT
+          else
+            echo "token=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HEAD_REPO }}
+          ref: ${{ env.HEAD_BRANCH }}
+          token: ${{ steps.choose-token.outputs.token }}
+
+      - name: Install tools (gh/jq/unzip)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq unzip curl
+          if ! command -v gh >/dev/null 2>&1; then
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+            sudo apt-get update -y && sudo apt-get install -y gh
+          fi
+
+      - name: Detect failed Windows test job
+        id: detect
+        env:
+          GH_TOKEN: ${{ steps.choose-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          gh run view "${RUN_ID}" --json jobs > jobs.json
+          jq -r '.jobs[] | select((.name|contains("Test (windows-latest)")) and .conclusion!="success") | .id' jobs.json > win_failed_ids.txt
+          if [ -s win_failed_ids.txt ]; then
+            echo "WINDOWS_FAILED=1" >> $GITHUB_ENV
+            echo "Windows failed jobs:"; cat win_failed_ids.txt
+          else
+            echo "WINDOWS_FAILED=0" >> $GITHUB_ENV
+            echo "No failed Windows test job; exiting."
+          fi
+
+      - name: Early exit when no Windows failure
+        if: env.WINDOWS_FAILED != '1'
+        run: exit 0
+
+      - name: Resolve PR info (base must be integrate/mvp)
+        id: pr
+        env:
+          GH_TOKEN: ${{ steps.choose-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
+          PRS_JSON=$(curl -sSfL -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+            "${API}/repos/${BASE_REPO}/commits/${HEAD_SHA}/pulls")
+          echo "${PRS_JSON}" | jq '.' > prs.json
+          PRN=$(jq -r '.[] | select(.base.ref=="integrate/mvp") | .number' prs.json | head -n1)
+          if [ -z "${PRN}" ]; then
+            echo "No PR to base integrate/mvp found; nothing to fix."
+            echo "continue=0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          PRA=$(jq -r ".[] | select(.number==${PRN}) | .html_url" prs.json)
+          echo "Found PR #${PRN} (${PRA}) targeting integrate/mvp"
+          echo "number=${PRN}" >> $GITHUB_OUTPUT
+          echo "url=${PRA}"   >> $GITHUB_OUTPUT
+          echo "continue=1"   >> $GITHUB_OUTPUT
+
+      - name: Stop if target PR not integrate/mvp
+        if: steps.pr.outputs.continue != '1'
+        run: exit 0
+
+      - name: Collect failed Windows job logs
+        env:
+          GH_TOKEN: ${{ steps.choose-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p ci_logs
+          while read -r JID; do
+            echo "Fetching logs for job ${JID}"
+            if ! gh run view --job "$JID" --log-failed > "ci_logs/job_${JID}.log"; then
+              echo "gh --log-failed failed; fallback to REST (download run logs)"
+              curl -L -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
+                "${API}/repos/${BASE_REPO}/actions/runs/${RUN_ID}/logs" -o run_logs.zip
+              unzip -p run_logs.zip > "ci_logs/run_all.log" || true
+            fi
+          done < win_failed_ids.txt
+
+          {
+            echo "==== FAILED RUN ${RUN_ID} (repo=${BASE_REPO}, head=${HEAD_REPO}@${HEAD_BRANCH}) ===="
+            echo "---- Extracted error lines ----"
+            for f in ci_logs/*; do
+              echo "## file: $f"
+              grep -Ei '(^Error:|^##\[error\]|FAIL|panic:|Traceback|Exception|Undefined|Segmentation fault|Build FAILED|exited with code|fatal:|checksum mismatch)' "$f" || true
+              echo ""
+              echo "---- tail context ----"
+              tail -n 200 "$f" || true
+              echo ""
+            done
+          } > ci_failed_logs.txt
+
+      - name: Setup Go (match go.mod)
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Claude Code — fix Windows CI (OAuth)
+        id: claude
+        uses: anthropics/claude-code-base-action@beta
+        with:
+          prompt_file: ".github/claude-prompts/ci_autofix.md"
+          allowed_tools: "Bash(git:*),View,GlobTool,GrepTool,BatchTool"
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          max_turns: "8"
+          timeout_minutes: "45"
+
+      - name: Configure committer
+        run: |
+          git config user.name "ci-autofix[bot]"
+          git config user.email "ci-autofix[bot]@users.noreply.github.com"
+
+      - name: Commit changes (if any)
+        id: commit
+        run: |
+          set -e
+          git add -A
+          if git diff --cached --quiet; then
+            echo "no_changes=true" >> $GITHUB_OUTPUT
+            echo "No changes to commit."
+          else
+            git commit -m "ci(autofix): fix Windows CI for integrate/mvp via Claude Code (OAuth)"
+            echo "no_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Push back to PR head branch
+        if: steps.commit.outputs.no_changes == 'false'
+        env:
+          PUSH_TOKEN: ${{ steps.choose-token.outputs.token }}
+        run: |
+          set -e
+          git push "https://x-access-token:${PUSH_TOKEN}@github.com/${HEAD_REPO}.git" "HEAD:${HEAD_BRANCH}"
+
+      # （可選）自動合併：需 Repo 啟用 Allow auto-merge；線性歷史可用 --rebase
+      - name: Enable auto-merge (rebase) on the PR
+        if: steps.pr.outputs.number != '' && steps.commit.outputs.no_changes == 'false'
+        env:
+          GH_TOKEN: ${{ steps.choose-token.outputs.token }}
+        run: |
+          gh pr merge --auto --rebase "${{ steps.pr.outputs.url }}"
