@@ -1,8 +1,8 @@
-name: Auto-fix Windows CI (Conductor Loop) with Claude Code
+name: Auto-fix Windows CI with Claude Code (OAuth)
 
 on:
   workflow_run:
-    workflows: ["Conductor Loop CI"]   # ← 你的 CI workflow 名稱
+    workflows: ["Conductor Loop CI"]
     types: [completed]
 
 permissions:
@@ -22,15 +22,13 @@ jobs:
       API: https://api.github.com
 
     steps:
-      # （可選）用 GitHub App token，對 fork/權限更穩
-      - name: Use GitHub App token if available
+      - name: (Optional) Use GitHub App token if available
         id: app-token
         uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
         continue-on-error: true
-        # docs: actions/create-github-app-token :contentReference[oaicite:2]{index=2}
 
       - name: Choose auth token
         id: choose-token
@@ -59,15 +57,13 @@ jobs:
             sudo apt-get update -y && sudo apt-get install -y gh
           fi
 
-      # 僅當 Windows 測試 job 失敗才繼續
       - name: Detect failed Windows test job
         id: detect
         env:
           GH_TOKEN: ${{ steps.choose-token.outputs.token }}
         run: |
           set -euo pipefail
-          gh run view "${RUN_ID}" --json jobs > jobs.json   # gh run view 說明見手冊
-          # 找出名稱包含 "Test (windows-latest)" 且非 success 的 job
+          gh run view "${RUN_ID}" --json jobs > jobs.json
           jq -r '.jobs[] | select((.name|contains("Test (windows-latest)")) and .conclusion!="success") | .id' jobs.json > win_failed_ids.txt
           if [ -s win_failed_ids.txt ]; then
             echo "WINDOWS_FAILED=1" >> $GITHUB_ENV
@@ -76,13 +72,11 @@ jobs:
             echo "WINDOWS_FAILED=0" >> $GITHUB_ENV
             echo "No failed Windows test job; exiting."
           fi
-        # gh run view --json / --log-failed :contentReference[oaicite:3]{index=3}
 
       - name: Early exit when no Windows failure
         if: env.WINDOWS_FAILED != '1'
         run: exit 0
 
-      # 反查 PR：用 head SHA 找到關聯的 PR，過濾 base=integrate/mvp（你的受保護分支）
       - name: Resolve PR info (base must be integrate/mvp)
         id: pr
         env:
@@ -90,11 +84,9 @@ jobs:
         run: |
           set -euo pipefail
           HEAD_SHA="${{ github.event.workflow_run.head_sha }}"
-          # REST: List pull requests associated with a commit
           PRS_JSON=$(curl -sSfL -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
             "${API}/repos/${BASE_REPO}/commits/${HEAD_SHA}/pulls")
           echo "${PRS_JSON}" | jq '.' > prs.json
-          # 取第一個 base.ref == "integrate/mvp" 的 PR
           PRN=$(jq -r '.[] | select(.base.ref=="integrate/mvp") | .number' prs.json | head -n1)
           if [ -z "${PRN}" ]; then
             echo "No PR to base integrate/mvp found; nothing to fix."
@@ -106,7 +98,6 @@ jobs:
           echo "number=${PRN}" >> $GITHUB_OUTPUT
           echo "url=${PRA}"   >> $GITHUB_OUTPUT
           echo "continue=1"   >> $GITHUB_OUTPUT
-        # API: List pull requests associated with a commit :contentReference[oaicite:4]{index=4}
 
       - name: Stop if target PR not integrate/mvp
         if: steps.pr.outputs.continue != '1'
@@ -120,7 +111,6 @@ jobs:
           mkdir -p ci_logs
           while read -r JID; do
             echo "Fetching logs for job ${JID}"
-            # 先試 --log-failed；若 CLI 有問題，fallback 到 REST 下載整包 run/job logs
             if ! gh run view --job "$JID" --log-failed > "ci_logs/job_${JID}.log"; then
               echo "gh --log-failed failed; fallback to REST (download run logs)"
               curl -L -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github+json" \
@@ -141,7 +131,6 @@ jobs:
               echo ""
             done
           } > ci_failed_logs.txt
-        # gh run view --log-failed 手冊；REST 下載 run/job logs 端點；gh 有時對 --log / --log-failed 有已知 issue，故準備 fallback。:contentReference[oaicite:5]{index=5}
 
       - name: Setup Go (match go.mod)
         uses: actions/setup-go@v5
@@ -149,16 +138,15 @@ jobs:
           go-version-file: go.mod
           cache: true
 
-      - name: Claude Code — fix Windows CI
+      - name: Claude Code — fix Windows CI (OAuth)
         id: claude
-        uses: anthropics/claude-code-base-action@v1
+        uses: anthropics/claude-code-base-action@beta
         with:
           prompt_file: ".github/claude-prompts/ci_autofix.md"
           allowed_tools: "Bash(git:*),View,GlobTool,GrepTool,BatchTool"
-          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           max_turns: "8"
           timeout_minutes: "45"
-        # Claude Code Base Action 官方說明（prompt_file/allowed_tools 等）:contentReference[oaicite:6]{index=6}
 
       - name: Configure committer
         run: |
@@ -174,7 +162,7 @@ jobs:
             echo "no_changes=true" >> $GITHUB_OUTPUT
             echo "No changes to commit."
           else
-            git commit -m "ci(autofix): fix Windows CI for integrate/mvp via Claude Code"
+            git commit -m "ci(autofix): fix Windows CI for integrate/mvp via Claude Code (OAuth)"
             echo "no_changes=false" >> $GITHUB_OUTPUT
           fi
 
@@ -184,14 +172,12 @@ jobs:
           PUSH_TOKEN: ${{ steps.choose-token.outputs.token }}
         run: |
           set -e
-          # PR head branch 不受你的保護規則限制（保護只套 main/integrate/mvp），因此直接 push 仍是線性歷史
           git push "https://x-access-token:${PUSH_TOKEN}@github.com/${HEAD_REPO}.git" "HEAD:${HEAD_BRANCH}"
 
-      # （可選）為該 PR 開啟 auto-merge（rebase/squash 皆符合線性歷史）
+      # （可選）自動合併：需 Repo 啟用 Allow auto-merge；線性歷史可用 --rebase
       - name: Enable auto-merge (rebase) on the PR
         if: steps.pr.outputs.number != '' && steps.commit.outputs.no_changes == 'false'
         env:
           GH_TOKEN: ${{ steps.choose-token.outputs.token }}
         run: |
           gh pr merge --auto --rebase "${{ steps.pr.outputs.url }}"
-        # gh pr merge --auto、Auto-merge 文件（需 repo 啟用允許 auto-merge）:contentReference[oaicite:7]{index=7}
