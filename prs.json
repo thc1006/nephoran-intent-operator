@@ -34,10 +34,10 @@
     },
     "body": "This pull request adds a new CI error log for the Windows test runner, documenting the full environment setup, actions executed, and the error encountered during the workflow. The log provides detailed information about the runner, operating system, actions used, environment variables, and the specific failure that occurred.\r\n\r\nCI/CD and workflow diagnostics:\r\n\r\n* Added `.claude/CI_error/0_Test (windows-latest).txt` to capture the output and error details from the \"Test (windows-latest)\" GitHub Actions workflow, including runner version, OS info, action steps, environment variables, and the cancellation error.",
     "created_at": "2025-08-20T05:34:05Z",
-    "updated_at": "2025-08-22T20:14:10Z",
+    "updated_at": "2025-08-22T20:27:17Z",
     "closed_at": null,
     "merged_at": null,
-    "merge_commit_sha": "3ed5cddec516ba41711b656bba72a2b67871dac1",
+    "merge_commit_sha": "7dccd5b10c2af85b7925398ea57982d843eb56d0",
     "assignee": null,
     "assignees": [],
     "requested_reviewers": [],
@@ -49,11 +49,11 @@
     "review_comments_url": "https://api.github.com/repos/thc1006/nephoran-intent-operator/pulls/89/comments",
     "review_comment_url": "https://api.github.com/repos/thc1006/nephoran-intent-operator/pulls/comments{/number}",
     "comments_url": "https://api.github.com/repos/thc1006/nephoran-intent-operator/issues/89/comments",
-    "statuses_url": "https://api.github.com/repos/thc1006/nephoran-intent-operator/statuses/6716a02d796aeca93e963d017727e25f4e45ca79",
+    "statuses_url": "https://api.github.com/repos/thc1006/nephoran-intent-operator/statuses/eab699d6a84b98c565ea882813ca8f876839ae99",
     "head": {
       "label": "thc1006:fix/graceful-shutdown-exit-codes",
       "ref": "fix/graceful-shutdown-exit-codes",
-      "sha": "6716a02d796aeca93e963d017727e25f4e45ca79",
+      "sha": "eab699d6a84b98c565ea882813ca8f876839ae99",
       "user": {
         "login": "thc1006",
         "id": 84045975,
@@ -144,7 +144,7 @@
         "deployments_url": "https://api.github.com/repos/thc1006/nephoran-intent-operator/deployments",
         "created_at": "2025-07-26T10:26:51Z",
         "updated_at": "2025-08-22T18:58:20Z",
-        "pushed_at": "2025-08-22T20:14:09Z",
+        "pushed_at": "2025-08-22T20:27:15Z",
         "git_url": "git://github.com/thc1006/nephoran-intent-operator.git",
         "ssh_url": "git@github.com:thc1006/nephoran-intent-operator.git",
         "clone_url": "https://github.com/thc1006/nephoran-intent-operator.git",
@@ -296,7 +296,7 @@
         "deployments_url": "https://api.github.com/repos/thc1006/nephoran-intent-operator/deployments",
         "created_at": "2025-07-26T10:26:51Z",
         "updated_at": "2025-08-22T18:58:20Z",
-        "pushed_at": "2025-08-22T20:14:09Z",
+        "pushed_at": "2025-08-22T20:27:15Z",
         "git_url": "git://github.com/thc1006/nephoran-intent-operator.git",
         "ssh_url": "git@github.com:thc1006/nephoran-intent-operator.git",
         "clone_url": "https://github.com/thc1006/nephoran-intent-operator.git",
@@ -377,11 +377,36 @@
         "href": "https://api.github.com/repos/thc1006/nephoran-intent-operator/pulls/89/commits"
       },
       "statuses": {
-        "href": "https://api.github.com/repos/thc1006/nephoran-intent-operator/statuses/6716a02d796aeca93e963d017727e25f4e45ca79"
+        "href": "https://api.github.com/repos/thc1006/nephoran-intent-operator/statuses/eab699d6a84b98c565ea882813ca8f876839ae99"
       }
     },
     "author_association": "OWNER",
-    "auto_merge": null,
+    "auto_merge": {
+      "enabled_by": {
+        "login": "github-actions[bot]",
+        "id": 41898282,
+        "node_id": "MDM6Qm90NDE4OTgyODI=",
+        "avatar_url": "https://avatars.githubusercontent.com/in/15368?v=4",
+        "gravatar_id": "",
+        "url": "https://api.github.com/users/github-actions%5Bbot%5D",
+        "html_url": "https://github.com/apps/github-actions",
+        "followers_url": "https://api.github.com/users/github-actions%5Bbot%5D/followers",
+        "following_url": "https://api.github.com/users/github-actions%5Bbot%5D/following{/other_user}",
+        "gists_url": "https://api.github.com/users/github-actions%5Bbot%5D/gists{/gist_id}",
+        "starred_url": "https://api.github.com/users/github-actions%5Bbot%5D/starred{/owner}{/repo}",
+        "subscriptions_url": "https://api.github.com/users/github-actions%5Bbot%5D/subscriptions",
+        "organizations_url": "https://api.github.com/users/github-actions%5Bbot%5D/orgs",
+        "repos_url": "https://api.github.com/users/github-actions%5Bbot%5D/repos",
+        "events_url": "https://api.github.com/users/github-actions%5Bbot%5D/events{/privacy}",
+        "received_events_url": "https://api.github.com/users/github-actions%5Bbot%5D/received_events",
+        "type": "Bot",
+        "user_view_type": "public",
+        "site_admin": false
+      },
+      "merge_method": "rebase",
+      "commit_title": null,
+      "commit_message": null
+    },
     "active_lock_reason": null
   }
 ]
