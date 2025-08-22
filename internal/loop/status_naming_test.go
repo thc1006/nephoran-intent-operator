@@ -100,14 +100,14 @@ func TestComputeStatusFileName(t *testing.T) {
 		{
 			name:             "SpecialCharacters",
 			srcPath:          "intent-test@special#chars.json",
-			expectedFilename: "intent-test@special#chars-" + expectedTimestamp + ".status",
-			description:      "Should preserve special characters in filenames",
+			expectedFilename: "intent-test-special-chars-" + expectedTimestamp + ".status",
+			description:      "Should sanitize special characters in filenames for cross-platform compatibility",
 		},
 		{
 			name:             "UnicodeCharacters",
 			srcPath:          "intent-测试-файл.json",
-			expectedFilename: "intent-测试-файл-" + expectedTimestamp + ".status",
-			description:      "Should handle Unicode characters",
+			expectedFilename: "intent-" + expectedTimestamp + ".status",
+			description:      "Should sanitize Unicode characters for ASCII-only cross-platform compatibility",
 		},
 	}
 
