@@ -9,7 +9,7 @@
 [![Build Status](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/ci.yml?branch=main&style=flat-square&logo=github)](https://github.com/thc1006/nephoran-intent-operator/actions/workflows/ci.yml)
 [![Documentation](https://img.shields.io/github/actions/workflow/status/thc1006/nephoran-intent-operator/docs-unified.yml?branch=main&style=flat-square&logo=gitbook&label=docs)](https://thc1006.github.io/nephoran-intent-operator)
 
-<!-- CI Trigger: Force workflow execution for graceful shutdown exit codes PR -->
+<!-- CI Trigger: Force workflow execution for graceful shutdown exit codes PR - Updated for merge readiness -->
 [![Go Version](https://img.shields.io/github/go-mod/go-version/thc1006/nephoran-intent-operator?style=flat-square&logo=go)](https://golang.org/)
 [![License](https://img.shields.io/github/license/thc1006/nephoran-intent-operator?style=flat-square)](LICENSE)
 [![Code Coverage](https://img.shields.io/codecov/c/github/thc1006/nephoran-intent-operator?style=flat-square&logo=codecov)](https://codecov.io/gh/thc1006/nephoran-intent-operator)
