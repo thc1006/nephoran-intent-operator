@@ -2,7 +2,7 @@ name: CI Status Gate
 
 on:
   workflow_run:
-    workflows: ["Conductor Loop CI"]
+    workflows: ["CI", "Conductor Loop CI"]
     types: [completed]
 
 permissions:
@@ -44,4 +44,4 @@ jobs:
             -f state="${STATE}" \
             -f context="CI Status Check" \
             -f target_url="${TARGET_URL}" \
-            -f description="Conductor Loop CI overall: ${{ github.event.workflow_run.conclusion }}"
+            -f description="${{ github.event.workflow_run.name }} overall: ${{ github.event.workflow_run.conclusion }}"
