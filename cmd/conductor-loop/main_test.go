@@ -197,6 +197,14 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Set a test-level timeout to prevent hanging
+			if deadline, ok := t.Deadline(); ok {
+				remaining := time.Until(deadline)
+				if remaining < tt.timeout {
+					t.Skipf("Not enough time remaining (%v) for test timeout (%v)", remaining, tt.timeout)
+				}
+			}
+
 			// Clean up directories before each test
 			cleanupDirs(t, handoffDir)
 			require.NoError(t, os.MkdirAll(handoffDir, 0755))
@@ -206,6 +214,13 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 
 			// Build the conductor-loop binary
 			binaryPath := buildConductorLoop(t, tempDir)
+			
+			// Clean up binary after test to prevent file locking issues
+			defer func() {
+				if err := os.Remove(binaryPath); err != nil {
+					t.Logf("Warning: failed to cleanup binary %s: %v", binaryPath, err)
+				}
+			}()
 
 			// Run conductor-loop
 			ctx, cancel := context.WithTimeout(context.Background(), tt.timeout)
@@ -219,7 +234,13 @@ func TestMain_EndToEndWorkflow(t *testing.T) {
 			
 			// In once mode, the command should exit successfully
 			if strings.Contains(strings.Join(tt.args, " "), "-once") {
-				assert.NoError(t, err, "Command output: %s", string(output))
+				if err != nil {
+					// Check if it's a timeout error
+					if ctx.Err() == context.DeadlineExceeded {
+						t.Fatalf("Test timed out after %v. Command output: %s", tt.timeout, string(output))
+					}
+					assert.NoError(t, err, "Command output: %s", string(output))
+				}
 			}
 
 			t.Logf("Command output: %s", string(output))
@@ -427,14 +448,19 @@ func TestMain_ExitCodes(t *testing.T) {
 
 // buildConductorLoop builds the conductor-loop binary for testing
 func buildConductorLoop(t *testing.T, tempDir string) string {
-	binaryName := "conductor-loop"
+	// Use test name and timestamp to create unique binary name to avoid conflicts in parallel tests
+	testName := strings.ReplaceAll(t.Name(), "/", "_")
+	testName = strings.ReplaceAll(testName, " ", "_")
+	timestamp := time.Now().UnixNano()
+	
+	binaryName := fmt.Sprintf("conductor-loop-%s-%d", testName, timestamp)
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}
 	
 	binaryPath := filepath.Join(tempDir, binaryName)
 	
-	// Build the binary
+	// Build the binary with a unique name to prevent parallel test conflicts
 	cmd := exec.Command("go", "build", "-o", binaryPath, ".")
 	cmd.Dir = "." // Current directory should be cmd/conductor-loop
 	
@@ -546,7 +572,12 @@ func createMockPorchB(b *testing.B, tempDir string, exitCode int, stdout, stderr
 }
 
 func buildConductorLoopB(b *testing.B, tempDir string) string {
-	binaryName := "conductor-loop"
+	// Use benchmark name and timestamp to create unique binary name to avoid conflicts in parallel tests
+	benchName := strings.ReplaceAll(b.Name(), "/", "_")
+	benchName = strings.ReplaceAll(benchName, " ", "_")
+	timestamp := time.Now().UnixNano()
+	
+	binaryName := fmt.Sprintf("conductor-loop-%s-%d", benchName, timestamp)
 	if runtime.GOOS == "windows" {
 		binaryName += ".exe"
 	}

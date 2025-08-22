@@ -2,7 +2,10 @@ package loop
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -42,20 +45,35 @@ func TestShutdownSequencing(t *testing.T) {
 
 	processor.StartBatchProcessor()
 
-	// Queue some work before shutdown
+	// Create actual test files and queue work before shutdown
 	var wg sync.WaitGroup
 	numFiles := 10
 	var queueErrors int64
+	
+	// Create valid test intent files
+	validIntent := ingest.Intent{
+		IntentType: "scaling",
+		Target:     "test-deployment",
+		Namespace:  "default",
+		Replicas:   3,
+	}
+	
+	intentData, err := json.Marshal(validIntent)
+	require.NoError(t, err)
 
 	for i := 0; i < numFiles; i++ {
+		// Create actual file on disk
+		testFile := filepath.Join(handoffDir, fmt.Sprintf("file-%d.json", i))
+		require.NoError(t, os.WriteFile(testFile, intentData, 0644))
+		
 		wg.Add(1)
-		go func(id int) {
+		go func(id int, filename string) {
 			defer wg.Done()
-			if err := processor.ProcessFile(fmt.Sprintf("file-%d.json", id)); err != nil {
+			if err := processor.ProcessFile(filename); err != nil {
 				atomic.AddInt64(&queueErrors, 1)
 				t.Logf("Queue error for file-%d: %v", id, err)
 			}
-		}(i)
+		}(i, testFile)
 	}
 
 	// Wait for files to be queued

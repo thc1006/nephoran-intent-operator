@@ -972,7 +972,11 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 	w.fileState.recentEvents[absPath] = now
 	
 	// Debounce the processing with cross-platform file system timing
+	// Register this goroutine as a sender to prevent race conditions during shutdown
+	w.workerPool.senders.Add(1)
 	go func() {
+		defer w.workerPool.senders.Done()
+		
 		// Use adaptive debouncing based on runtime OS
 		debounceTime := w.config.DebounceDur
 		if runtime.GOOS == "windows" {
@@ -982,7 +986,14 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 			}
 		}
 		
-		time.Sleep(debounceTime)
+		// Sleep with context cancellation check
+		select {
+		case <-time.After(debounceTime):
+			// Debounce period completed normally
+		case <-w.ctx.Done():
+			// Context cancelled during debounce
+			return
+		}
 		
 		// Additional file existence and stability check
 		if !w.isFileStable(absPath) {
@@ -996,6 +1007,16 @@ func (w *Watcher) handleIntentFileWithEnhancedDebounce(filePath string, eventOp 
 			FilePath: absPath,
 			Attempt:  1,
 			Ctx:      workCtx,
+		}
+		
+		// Guard against sending on closed channel with double-check
+		select {
+		case <-w.ctx.Done():
+			// Context cancelled, don't send
+			cancel()
+			return
+		default:
+			// Context is still active, proceed to send
 		}
 		
 		// Check if shutdown has started to prevent sending on closed channel
@@ -1812,6 +1833,13 @@ func (w *Watcher) validateJSONFile(filePath string) error {
 // validatePath ensures the file path is safe and within expected boundaries
 // It includes Windows-specific validation for drive letters, UNC paths, and edge cases
 func (w *Watcher) validatePath(filePath string) error {
+	// Validate intent filename patterns first (before Windows validation)
+	// This ensures consistent error messages across platforms
+	filename := filepath.Base(filePath)
+	if err := w.validateIntentFilename(filename); err != nil {
+		return err
+	}
+	
 	// Import pathutil for Windows-specific validation
 	// Perform initial Windows-specific validation
 	if runtime.GOOS == "windows" {
@@ -1884,38 +1912,45 @@ func (w *Watcher) validatePath(filePath string) error {
 		return fmt.Errorf("path depth %d exceeds maximum %d", depth, MaxPathDepth)
 	}
 	
-	// Check filename length
-	filename := filepath.Base(absPath)
+	// Check filename length - use the original filename for consistency
+	// filename is already declared at the top of the function
 	if len(filename) > MaxFileNameLength {
 		return fmt.Errorf("filename length %d exceeds maximum %d", len(filename), MaxFileNameLength)
 	}
 	
-	// Check for suspicious patterns in filename - use OS-specific patterns
-	var suspiciousPatterns []string
-	if runtime.GOOS == "windows" {
-		// Windows-specific suspicious patterns (some patterns are allowed in Windows paths)
-		suspiciousPatterns = []string{
-			"..",
-			"\x00", // null byte
-			// Note: <, >, |, ?, * are already validated by ValidateWindowsPath
+	return nil
+}
+
+// validateIntentFilename checks for suspicious patterns in intent filenames
+// This includes backup file patterns, shell metacharacters, and other potentially dangerous patterns
+func (w *Watcher) validateIntentFilename(filename string) error {
+	// Check for backup file patterns (trailing tilde before extension, .tmp, .bak, .swp extensions)
+	if strings.Contains(filename, "~") {
+		return fmt.Errorf("filename contains suspicious pattern: backup file indicator ~")
+	}
+	
+	// Check for temporary file extensions
+	suspiciousExtensions := []string{".tmp", ".bak", ".swp", ".old", ".backup"}
+	for _, ext := range suspiciousExtensions {
+		if strings.HasSuffix(strings.ToLower(filename), ext) {
+			return fmt.Errorf("filename contains suspicious pattern: temporary/backup file extension %s", ext)
 		}
-	} else {
-		// Unix-style suspicious patterns
-		suspiciousPatterns = []string{
-			"..",
-			"~",
-			"$",
-			"*",
-			"?",
-			"[",
-			"]",
-			"{",
-			"}",
-			"|",
-			"<",
-			">",
-			"\x00", // null byte
-		}
+	}
+	
+	// Check for shell metacharacters and other suspicious patterns
+	suspiciousPatterns := []string{
+		"..", // path traversal
+		"$",  // shell variable expansion
+		"*",  // shell glob
+		"?",  // shell glob
+		"[",  // shell glob
+		"]",  // shell glob  
+		"{",  // shell brace expansion
+		"}",  // shell brace expansion
+		"|",  // shell pipe
+		"<",  // shell redirection
+		">",  // shell redirection
+		"\x00", // null byte
 	}
 	
 	for _, pattern := range suspiciousPatterns {

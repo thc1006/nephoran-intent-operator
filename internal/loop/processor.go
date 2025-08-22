@@ -138,6 +138,11 @@ func NewProcessor(config *ProcessorConfig, validator Validator, porchFunc PorchS
 
 // ProcessFile processes a single intent file
 func (p *IntentProcessor) ProcessFile(filename string) error {
+	// During shutdown, don't attempt to queue new work
+	if p.gracefulShutdown.Load() {
+		return fmt.Errorf("processor is shutting down")
+	}
+
 	// Check if already processed (idempotency)
 	basename := filepath.Base(filename)
 	if p.processed.Has(basename) {
@@ -145,15 +150,29 @@ func (p *IntentProcessor) ProcessFile(filename string) error {
 		return nil
 	}
 
-	// Track this task
+	// Track this task AFTER shutdown check to avoid phantom tasks
 	p.taskWg.Add(1)
 	p.tasksQueued.Add(1)
 	
-	// During shutdown, don't attempt to queue new work
+	// Double-check shutdown after task tracking to handle race condition
 	if p.gracefulShutdown.Load() {
 		p.taskWg.Done()
 		p.tasksQueued.Add(-1)
 		return fmt.Errorf("processor is shutting down")
+	}
+
+	// Wait for coordinator to be ready to accept work
+	select {
+	case <-p.coordReady:
+		// Coordinator is ready
+	case <-p.ctx.Done():
+		p.taskWg.Done()
+		p.tasksQueued.Add(-1)
+		return fmt.Errorf("processor context cancelled")
+	case <-time.After(5 * time.Second):
+		p.taskWg.Done()
+		p.tasksQueued.Add(-1)
+		return fmt.Errorf("timeout waiting for batch coordinator to start")
 	}
 
 	// For normal operation, use non-blocking send with minimal retry
@@ -404,21 +423,49 @@ func (p *IntentProcessor) StartBatchProcessor() {
 }
 
 // Stop implements graceful shutdown with proper drain sequencing:
-// 1. Stop accepting new files (mark shutdown)
-// 2. Wait for queued tasks to complete (drain)
-// 3. Stop coordinator and cancel context
-// 4. Wait for all goroutines to finish
+// 1. Allow current tasks to start processing (brief delay)
+// 2. Stop accepting new files (mark shutdown)
+// 3. Wait for queued tasks to complete (drain with timeout)
+// 4. Stop coordinator and cancel context
+// 5. Wait for all goroutines to finish
 func (p *IntentProcessor) Stop() {
-	log.Printf("Processor shutdown initiated - stopping new file acceptance")
+	log.Printf("Processor shutdown initiated")
+	
+	// Phase 0: Allow queued tasks to start processing before blocking new ones
+	// This prevents the race where tasks are queued but shutdown begins immediately
+	queuedBeforeShutdown := p.tasksQueued.Load()
+	if queuedBeforeShutdown > 0 {
+		log.Printf("Allowing %d queued tasks to start processing before shutdown", queuedBeforeShutdown)
+		// Give workers a moment to pick up queued work
+		time.Sleep(100 * time.Millisecond)
+	}
+	
+	// Phase 1: Stop accepting new files (mark shutdown)
+	log.Printf("Stopping new file acceptance")
 	p.MarkGracefulShutdown()
 	
-	// Phase 1: Wait for all queued tasks to drain
+	// Phase 2: Wait for all queued tasks to drain with timeout
 	queuedCount := p.tasksQueued.Load()
 	log.Printf("Processor drain phase: waiting for %d queued tasks to complete", queuedCount)
-	p.taskWg.Wait()
-	log.Printf("Processor drain completed - all %d tasks processed", queuedCount)
 	
-	// Phase 2: Stop coordinator and cancel context
+	// Use a timeout channel to prevent indefinite blocking
+	drainTimeout := 8 * time.Second
+	drainDone := make(chan struct{})
+	
+	go func() {
+		p.taskWg.Wait()
+		close(drainDone)
+	}()
+	
+	select {
+	case <-drainDone:
+		log.Printf("Processor drain completed - all tasks processed")
+	case <-time.After(drainTimeout):
+		remaining := p.tasksQueued.Load()
+		log.Printf("Processor drain timeout after %v - %d tasks may still be processing", drainTimeout, remaining)
+	}
+	
+	// Phase 3: Stop coordinator and cancel context
 	log.Printf("Processor shutdown phase: stopping coordinator and cancelling context")
 	select {
 	case <-p.stopCh:
@@ -428,7 +475,7 @@ func (p *IntentProcessor) Stop() {
 	}
 	p.cancel()
 	
-	// Phase 3: Wait for all background goroutines
+	// Phase 4: Wait for all background goroutines
 	p.wg.Wait()
 	
 	log.Printf("Processor stopped gracefully")

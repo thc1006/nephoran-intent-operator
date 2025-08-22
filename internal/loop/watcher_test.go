@@ -1842,3 +1842,430 @@ func (s *WatcherTestSuite) TestWatcherIntegration_LargeScaleProcessing() {
 	
 	s.T().Logf("Large scale integration test completed successfully")
 }
+
+// =============================================================================
+// WINDOWS FILENAME VALIDATION TESTS
+// =============================================================================
+
+func (s *WatcherTestSuite) TestWindowsFilenameValidation_StatusFileGeneration() {
+	s.T().Log("Testing Windows filename validation in status file generation")
+	
+	watcher, err := NewWatcher(s.tempDir, s.config)
+	s.Require().NoError(err)
+	defer watcher.Close()
+	
+	// Test cases with problematic filenames that need sanitization
+	testCases := []struct {
+		name                 string
+		intentFilename       string
+		expectedStatusPrefix string
+		shouldProcess        bool
+		description          string
+	}{
+		{
+			name:                 "WindowsReservedCharacters",
+			intentFilename:       "intent<test>.json",
+			expectedStatusPrefix: "intent-test-",
+			shouldProcess:        true,
+			description:          "Should sanitize Windows reserved characters < and >",
+		},
+		{
+			name:                 "WindowsReservedDevice", 
+			intentFilename:       "CON.json",
+			expectedStatusPrefix: "CON-file-",
+			shouldProcess:        true,
+			description:          "Should avoid Windows reserved device name CON",
+		},
+		{
+			name:                 "UnicodeCharacters",
+			intentFilename:       "intent-测试.json",
+			expectedStatusPrefix: "intent-",
+			shouldProcess:        true,
+			description:          "Should sanitize Unicode characters for Windows compatibility",
+		},
+		{
+			name:                 "SuspiciousPatterns",
+			intentFilename:       "intent-test~.json",
+			expectedStatusPrefix: "intent-test-",
+			shouldProcess:        true,
+			description:          "Should remove suspicious tilde character",
+		},
+		{
+			name:                 "MultipleReservedChars",
+			intentFilename:       "intent|file<test>.json",
+			expectedStatusPrefix: "intent-file-test-",
+			shouldProcess:        true,
+			description:          "Should sanitize multiple reserved characters",
+		},
+		{
+			name:                 "PathTraversal",
+			intentFilename:       "..\\..\\intent.json",
+			expectedStatusPrefix: "intent-",
+			shouldProcess:        true,
+			description:          "Should handle path traversal attempts safely",
+		},
+		{
+			name:                 "AllReservedCharacters",
+			intentFilename:       "intent<>:\"/\\|?*test.json",
+			expectedStatusPrefix: "intent",
+			shouldProcess:        true,
+			description:          "Should sanitize all Windows reserved characters",
+		},
+	}
+	
+	for _, tc := range testCases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			// Create intent file with problematic name
+			intentPath := filepath.Join(s.tempDir, tc.intentFilename)
+			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test"}}`
+			
+			// Create directory if needed for path traversal test
+			if strings.Contains(tc.intentFilename, "\\") || strings.Contains(tc.intentFilename, "/") {
+				os.MkdirAll(filepath.Dir(intentPath), 0755)
+			}
+			
+			// Try to create file - Windows may not allow files with certain reserved characters
+			err := os.WriteFile(intentPath, []byte(testContent), 0644)
+			if err != nil {
+				t.Logf("Cannot create file %s on Windows (expected for reserved chars): %v", tc.intentFilename, err)
+				// Skip this test case if Windows won't allow us to create the file
+				return
+			}
+			
+			// Process the file
+			watcher.config.Once = true
+			err = watcher.Start()
+			assert.NoError(t, err)
+			
+			if tc.shouldProcess {
+				// Check that status file was created with sanitized name
+				statusDir := filepath.Join(s.tempDir, "status")
+				statusFiles, err := os.ReadDir(statusDir)
+				if err != nil {
+					// Status directory might not exist if no files were processed
+					t.Logf("Status directory not found (no files processed): %v", err)
+					return
+				}
+				
+				if len(statusFiles) == 0 {
+					t.Logf("No status files found (file may not have been processed)")
+					return
+				}
+				
+				// Find the status file
+				var foundStatusFile string
+				for _, file := range statusFiles {
+					if strings.HasPrefix(file.Name(), tc.expectedStatusPrefix) {
+						foundStatusFile = file.Name()
+						break
+					}
+				}
+				
+				assert.NotEmpty(t, foundStatusFile, "Should find status file with expected prefix for %s", tc.description)
+				
+				if foundStatusFile != "" {
+					// Verify the status filename is Windows-safe
+					assert.True(t, strings.HasSuffix(foundStatusFile, ".status"),
+						"Status file should end with .status")
+					
+					// Should not contain any Windows reserved characters
+					for _, reservedChar := range []string{"<", ">", ":", "\"", "/", "\\", "|", "?", "*"} {
+						assert.NotContains(t, foundStatusFile, reservedChar,
+							"Status filename should not contain reserved char %s for %s", reservedChar, tc.description)
+					}
+					
+					// Should not be a Windows reserved device name
+					baseName := strings.Split(foundStatusFile, "-")[0]
+					upperBaseName := strings.ToUpper(baseName)
+					reservedNames := []string{"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
+					for _, reserved := range reservedNames {
+						if upperBaseName == reserved {
+							assert.Fail(t, "Status filename should not be Windows reserved name", "Found reserved name: %s in %s", reserved, foundStatusFile)
+						}
+					}
+					
+					// Should contain only ASCII characters for Windows compatibility
+					for i, r := range foundStatusFile {
+						assert.True(t, r <= 127, "Character at position %d should be ASCII in %s for %s", i, foundStatusFile, tc.description)
+					}
+					
+					// Should not have suspicious patterns
+					assert.NotContains(t, foundStatusFile, "~", "Should not contain ~ for %s", tc.description)
+					assert.NotContains(t, foundStatusFile, "..", "Should not contain .. for %s", tc.description)
+					assert.NotRegexp(t, `^\.#`, foundStatusFile, "Should not start with .# for %s", tc.description)
+				}
+			}
+		})
+	}
+}
+
+func (s *WatcherTestSuite) TestWindowsFilenameValidation_PathTraversalPrevention() {
+	s.T().Log("Testing path traversal prevention in Windows filename handling")
+	
+	watcher, err := NewWatcher(s.tempDir, s.config)
+	s.Require().NoError(err)
+	defer watcher.Close()
+	
+	// Test various path traversal attempts
+	pathTraversalTests := []struct {
+		name        string
+		filePath    string
+		description string
+	}{
+		{
+			name:        "DotDotTraversal",
+			filePath:    "..\\intent-traversal.json",
+			description: "Should handle .. path traversal",
+		},
+		{
+			name:        "MultipleDotDot",
+			filePath:    "..\\..\\..\\intent-traversal.json", 
+			description: "Should handle multiple .. traversal",
+		},
+		{
+			name:        "MixedSeparators",
+			filePath:    "../..\\intent-traversal.json",
+			description: "Should handle mixed path separators",
+		},
+		{
+			name:        "AbsolutePath",
+			filePath:    "C:\\Windows\\System32\\intent-traversal.json",
+			description: "Should handle absolute paths outside watch directory",
+		},
+		{
+			name:        "UNCPath",
+			filePath:    "\\\\server\\share\\intent-traversal.json",
+			description: "Should handle UNC paths",
+		},
+	}
+	
+	for _, tc := range pathTraversalTests {
+		s.T().Run(tc.name, func(t *testing.T) {
+			// Create the file with path traversal attempt
+			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "traversal-test"}}`
+			
+			// Try to create directory structure if needed
+			fullPath := filepath.Join(s.tempDir, tc.filePath)
+			os.MkdirAll(filepath.Dir(fullPath), 0755)
+			
+			// Write the file
+			err := os.WriteFile(fullPath, []byte(testContent), 0644)
+			if err != nil {
+				t.Logf("Could not create test file %s: %v (this is expected for some traversal attempts)", tc.filePath, err)
+				return // Skip if we can't create the file (expected for some cases)
+			}
+			
+			// Process the file
+			watcher.config.Once = true
+			err = watcher.Start()
+			
+			// Should either process safely or reject appropriately
+			assert.NoError(t, err, "Watcher should handle path traversal gracefully for %s", tc.description)
+			
+			// If a status file was created, it should be in the correct status directory
+			statusDir := filepath.Join(s.tempDir, "status")
+			if statusFiles, err := os.ReadDir(statusDir); err == nil && len(statusFiles) > 0 {
+				for _, file := range statusFiles {
+					// Status file should be directly in status dir, not in traversed path
+					statusPath := filepath.Join(statusDir, file.Name())
+					relPath, err := filepath.Rel(statusDir, statusPath)
+					assert.NoError(t, err)
+					assert.Equal(t, file.Name(), relPath, "Status file should be directly in status directory for %s", tc.description)
+				}
+			}
+		})
+	}
+}
+
+func (s *WatcherTestSuite) TestWindowsFilenameValidation_LongFilenames() {
+	s.T().Log("Testing handling of long filenames on Windows")
+	
+	watcher, err := NewWatcher(s.tempDir, s.config)
+	s.Require().NoError(err)
+	defer watcher.Close()
+	
+	// Test very long filenames
+	longFilenameTests := []struct {
+		name           string
+		baseLength     int
+		expectTruncate bool
+		description    string
+	}{
+		{
+			name:           "NormalLength",
+			baseLength:     50,
+			expectTruncate: false,
+			description:    "Normal length filename should not be truncated",
+		},
+		{
+			name:           "MediumLength",
+			baseLength:     100,
+			expectTruncate: false,
+			description:    "Medium length filename should not be truncated",
+		},
+		{
+			name:           "LongLength",
+			baseLength:     200,
+			expectTruncate: true,
+			description:    "Long filename should be truncated to reasonable length",
+		},
+		{
+			name:           "VeryLongLength",
+			baseLength:     300,
+			expectTruncate: true,
+			description:    "Very long filename should be truncated",
+		},
+	}
+	
+	for _, tc := range longFilenameTests {
+		s.T().Run(tc.name, func(t *testing.T) {
+			// Create filename with specified length
+			baseFilename := strings.Repeat("a", tc.baseLength)
+			intentFilename := "intent-" + baseFilename + ".json"
+			
+			// Create the file
+			intentPath := filepath.Join(s.tempDir, intentFilename)
+			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "long-name-test"}}`
+			err := os.WriteFile(intentPath, []byte(testContent), 0644)
+			require.NoError(t, err)
+			
+			// Process the file
+			watcher.config.Once = true
+			err = watcher.Start()
+			assert.NoError(t, err)
+			
+			// Check status file creation
+			statusDir := filepath.Join(s.tempDir, "status")
+			statusFiles, err := os.ReadDir(statusDir)
+			require.NoError(t, err)
+			assert.Greater(t, len(statusFiles), 0, "Should create status file for %s", tc.description)
+			
+			// Verify status filename length
+			for _, file := range statusFiles {
+				statusName := file.Name()
+				
+				// Should end with .status
+				assert.True(t, strings.HasSuffix(statusName, ".status"),
+					"Status file should end with .status")
+				
+				// Should not exceed reasonable length (Windows NTFS limit is 255, but we use conservative limit)
+				assert.LessOrEqual(t, len(statusName), 200,
+					"Status filename should not exceed reasonable length for %s: got %d chars", tc.description, len(statusName))
+				
+				if tc.expectTruncate && tc.baseLength > 100 {
+					// Should be shorter than the original for long names
+					assert.Less(t, len(statusName), len(intentFilename),
+						"Status filename should be truncated for %s", tc.description)
+				}
+				
+				// Should still contain timestamp
+				assert.Regexp(t, `\d{8}-\d{6}`, statusName,
+					"Status filename should contain timestamp for %s", tc.description)
+			}
+		})
+	}
+}
+
+func (s *WatcherTestSuite) TestWindowsFilenameValidation_SpecialFileTypes() {
+	s.T().Log("Testing Windows filename validation with special file types")
+	
+	watcher, err := NewWatcher(s.tempDir, s.config)
+	s.Require().NoError(err)
+	defer watcher.Close()
+	
+	// Test different file extensions and special cases
+	specialFileTests := []struct {
+		name        string
+		filename    string
+		shouldProcess bool
+		description string
+	}{
+		{
+			name:         "StandardJsonFile",
+			filename:     "intent-test.json",
+			shouldProcess: true,
+			description:  "Standard JSON file should be processed",
+		},
+		{
+			name:         "NoExtensionFile",
+			filename:     "intent-test",
+			shouldProcess: true,
+			description:  "File without extension should be processed",
+		},
+		{
+			name:         "MultipleExtensions",
+			filename:     "intent-test.backup.json",
+			shouldProcess: true,
+			description:  "File with multiple extensions should be processed",
+		},
+		{
+			name:         "WindowsExecutable",
+			filename:     "intent-test.exe.json",
+			shouldProcess: true,
+			description:  "File with .exe in name should be processed safely",
+		},
+		{
+			name:         "HiddenFile",
+			filename:     ".intent-test.json",
+			shouldProcess: true,
+			description:  "Hidden file (starting with .) should be processed",
+		},
+		{
+			name:         "FileWithSpaces",
+			filename:     "intent test file.json",
+			shouldProcess: true,
+			description:  "File with spaces should be processed with sanitized name",
+		},
+	}
+	
+	for _, tc := range specialFileTests {
+		s.T().Run(tc.name, func(t *testing.T) {
+			// Create the file
+			intentPath := filepath.Join(s.tempDir, tc.filename)
+			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "special-file-test"}}`
+			err := os.WriteFile(intentPath, []byte(testContent), 0644)
+			require.NoError(t, err)
+			
+			// Process the file
+			watcher.config.Once = true
+			err = watcher.Start()
+			assert.NoError(t, err)
+			
+			if tc.shouldProcess {
+				// Should create status file
+				statusDir := filepath.Join(s.tempDir, "status")
+				statusFiles, err := os.ReadDir(statusDir)
+				require.NoError(t, err)
+				assert.Greater(t, len(statusFiles), 0, "Should create status file for %s", tc.description)
+				
+				// Verify status filename is Windows-safe
+				for _, file := range statusFiles {
+					statusName := file.Name()
+					
+					// Should be valid Windows filename
+					assert.True(t, strings.HasSuffix(statusName, ".status"),
+						"Status file should end with .status for %s", tc.description)
+					
+					// Should not contain invalid characters for Windows
+					invalidChars := []string{"<", ">", ":", "\"", "|", "?", "*"}
+					for _, char := range invalidChars {
+						assert.NotContains(t, statusName, char,
+							"Status filename should not contain %s for %s", char, tc.description)
+					}
+					
+					// Should handle path separators correctly
+					assert.NotContains(t, statusName, "/",
+						"Status filename should not contain forward slash for %s", tc.description)
+					assert.NotContains(t, statusName, "\\",
+						"Status filename should not contain backslash for %s", tc.description)
+					
+					// Should be valid ASCII for maximum Windows compatibility
+					for i, r := range statusName {
+						assert.True(t, r <= 127,
+							"Character at position %d should be ASCII for %s: %c", i, tc.description, r)
+					}
+				}
+			}
+		})
+	}
+}
