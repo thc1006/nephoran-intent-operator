@@ -1,250 +1,252 @@
-==== FAILED RUN 17165797971 (repo=thc1006/nephoran-intent-operator, head=thc1006/nephoran-intent-operator@fix/graceful-shutdown-exit-codes) ====
+==== FAILED RUN 17165841383 (repo=thc1006/nephoran-intent-operator, head=thc1006/nephoran-intent-operator@fix/graceful-shutdown-exit-codes) ====
 ---- Extracted error lines ----
 ## file: ci_logs/job_null.log
 
 ---- tail context ----
 
 ## file: ci_logs/run_all.log
-2025-08-22T20:57:12.8442288Z [36;1m    echo "Tests failed after 2 attempts"[0m
-2025-08-22T20:57:12.8443415Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T20:57:40.5307598Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
-2025-08-22T20:57:40.5317435Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
-2025-08-22T20:57:40.5318444Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
-2025-08-22T20:57:40.5319262Z FAIL
-2025-08-22T20:57:12.8442284Z [36;1m    echo "Tests failed after 2 attempts"[0m
-2025-08-22T20:57:12.8443412Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T20:57:40.5307565Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
-2025-08-22T20:57:40.5317395Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
-2025-08-22T20:57:40.5318439Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
-2025-08-22T20:57:40.5319257Z FAIL
-2025-08-22T20:59:19.6748728Z [36;1m    Write-Host "Tests failed after 2 attempts"[0m
-2025-08-22T20:59:19.6749861Z [36;1m    Write-Host "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T20:59:19.6748726Z [36;1m    Write-Host "Tests failed after 2 attempts"[0m
-2025-08-22T20:59:19.6749859Z [36;1m    Write-Host "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T20:57:51.0216620Z [36;1m    echo "Tests failed after 2 attempts"[0m
-2025-08-22T20:57:51.0255720Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T20:57:52.2486190Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
-2025-08-22T20:57:55.5485130Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
-2025-08-22T20:57:55.5485790Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
-2025-08-22T20:57:55.5486250Z FAIL
-2025-08-22T20:57:51.0216620Z [36;1m    echo "Tests failed after 2 attempts"[0m
-2025-08-22T20:57:51.0255720Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T20:57:52.2486160Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
-2025-08-22T20:57:55.5485050Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
-2025-08-22T20:57:55.5485790Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
-2025-08-22T20:57:55.5486250Z FAIL
-2025-08-22T20:59:27.3312991Z [36;1m  echo "❌ Tests failed"[0m
-2025-08-22T20:59:27.3317818Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T20:59:27.3319029Z [36;1m  echo "❌ Build failed"[0m
-2025-08-22T20:59:27.3330533Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T20:59:27.3332233Z [36;1m  echo "❌ Docker build failed"[0m
-2025-08-22T20:59:27.4199519Z ❌ Tests failed
-2025-08-22T20:59:27.3312976Z [36;1m  echo "❌ Tests failed"[0m
-2025-08-22T20:59:27.3317800Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T20:59:27.3319021Z [36;1m  echo "❌ Build failed"[0m
-2025-08-22T20:59:27.3330526Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T20:59:27.3332211Z [36;1m  echo "❌ Docker build failed"[0m
-2025-08-22T20:59:27.4199489Z ❌ Tests failed
+2025-08-22T21:00:46.1636710Z [36;1m    echo "Tests failed after 2 attempts"[0m
+2025-08-22T21:00:46.1637590Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
+2025-08-22T21:00:48.0006930Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
+2025-08-22T21:00:53.2816680Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
+2025-08-22T21:00:53.2821990Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
+2025-08-22T21:00:53.2822330Z FAIL
+2025-08-22T21:00:46.1636700Z [36;1m    echo "Tests failed after 2 attempts"[0m
+2025-08-22T21:00:46.1637590Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
+2025-08-22T21:00:48.0006900Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
+2025-08-22T21:00:53.2816580Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
+2025-08-22T21:00:53.2821980Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
+2025-08-22T21:00:53.2822330Z FAIL
+2025-08-22T21:02:10.0656425Z [36;1m    Write-Host "Tests failed after 2 attempts"[0m
+2025-08-22T21:02:10.0657480Z [36;1m    Write-Host "Test attempt $attempt failed, retrying..."[0m
+2025-08-22T21:11:13.5392797Z Test attempt 1 failed, retrying...
+2025-08-22T21:02:10.0656423Z [36;1m    Write-Host "Tests failed after 2 attempts"[0m
+2025-08-22T21:02:10.0657478Z [36;1m    Write-Host "Test attempt $attempt failed, retrying..."[0m
+2025-08-22T21:11:13.5392696Z Test attempt 1 failed, retrying...
+2025-08-22T21:00:00.4811322Z [36;1m    echo "Tests failed after 2 attempts"[0m
+2025-08-22T21:00:00.4811976Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
+2025-08-22T21:00:32.9028042Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
+2025-08-22T21:00:32.9187794Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
+2025-08-22T21:00:32.9188789Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
+2025-08-22T21:00:32.9189400Z FAIL
+2025-08-22T21:00:00.4811320Z [36;1m    echo "Tests failed after 2 attempts"[0m
+2025-08-22T21:00:00.4811974Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
+2025-08-22T21:00:32.9028019Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
+2025-08-22T21:00:32.9187712Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
+2025-08-22T21:00:32.9188783Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
+2025-08-22T21:00:32.9189395Z FAIL
+2025-08-22T21:12:32.9409607Z [36;1m  echo "❌ Tests failed"[0m
+2025-08-22T21:12:32.9412486Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
+2025-08-22T21:12:32.9413245Z [36;1m  echo "❌ Build failed"[0m
+2025-08-22T21:12:32.9420069Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
+2025-08-22T21:12:32.9420782Z [36;1m  echo "❌ Docker build failed"[0m
+2025-08-22T21:12:33.0153168Z ❌ Tests failed
+2025-08-22T21:12:32.9409602Z [36;1m  echo "❌ Tests failed"[0m
+2025-08-22T21:12:32.9412482Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
+2025-08-22T21:12:32.9413241Z [36;1m  echo "❌ Build failed"[0m
+2025-08-22T21:12:32.9420065Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
+2025-08-22T21:12:32.9420779Z [36;1m  echo "❌ Docker build failed"[0m
+2025-08-22T21:12:33.0153119Z ❌ Tests failed
 
 ---- tail context ----
-2025-08-22T20:57:56.4287490Z Finalizing artifact upload
-2025-08-22T20:57:56.5641270Z Artifact test-results-macos-latest-17165797971.zip successfully finalized. Artifact ID 3832000751
-2025-08-22T20:57:56.5642090Z Artifact test-results-macos-latest-17165797971 has been successfully uploaded! Final size is 1434 bytes. Artifact ID is 3832000751
-2025-08-22T20:57:56.5642940Z Artifact download URL: https://github.com/thc1006/nephoran-intent-operator/actions/runs/17165797971/artifacts/3832000751
-﻿2025-08-22T20:57:56.5699430Z Post job cleanup.
-2025-08-22T20:57:56.6916940Z [command]/Users/runner/hostedtoolcache/go/1.24.6/arm64/bin/go env GOMODCACHE
-2025-08-22T20:57:56.6940510Z [command]/Users/runner/hostedtoolcache/go/1.24.6/arm64/bin/go env GOCACHE
-2025-08-22T20:57:56.6995220Z /Users/runner/go/pkg/mod
-2025-08-22T20:57:56.7000100Z /Users/runner/Library/Caches/go-build
-2025-08-22T20:57:56.7010720Z Cache hit occurred on the primary key setup-go-macOS-arm64-go-1.24.6-583fed57d4cf4dd6f943285f723932abe219c2045356bcefc416fcf717aeff8b, not saving cache.
-﻿2025-08-22T20:57:56.7072360Z Post job cleanup.
-2025-08-22T20:57:56.7870830Z [command]/opt/homebrew/bin/git version
-2025-08-22T20:57:56.8105420Z git version 2.50.1
-2025-08-22T20:57:56.8131660Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/61ab55b3-00c0-4358-8858-7df9cbc830c6/.gitconfig'
-2025-08-22T20:57:56.8138570Z Temporarily overriding HOME='/Users/runner/work/_temp/61ab55b3-00c0-4358-8858-7df9cbc830c6' before making global git config changes
-2025-08-22T20:57:56.8139260Z Adding repository directory to the temporary git global config as a safe directory
-2025-08-22T20:57:56.8142480Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/nephoran-intent-operator/nephoran-intent-operator
-2025-08-22T20:57:56.8249940Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
-2025-08-22T20:57:56.8310230Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2025-08-22T20:57:56.9136050Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2025-08-22T20:57:56.9185300Z http.https://github.com/.extraheader
-2025-08-22T20:57:56.9193070Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader
-2025-08-22T20:57:56.9278640Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-﻿2025-08-22T20:57:56.9931280Z Cleaning up orphan processes
-﻿2025-08-22T20:59:27.1553781Z Current runner version: '2.328.0'
-2025-08-22T20:59:27.1578206Z ##[group]Runner Image Provisioner
-2025-08-22T20:59:27.1579084Z Hosted Compute Agent
-2025-08-22T20:59:27.1579649Z Version: 20250818.377
-2025-08-22T20:59:27.1580262Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
-2025-08-22T20:59:27.1580973Z Build Date: 2025-08-18T14:52:18Z
-2025-08-22T20:59:27.1581523Z ##[endgroup]
-2025-08-22T20:59:27.1582366Z ##[group]Operating System
-2025-08-22T20:59:27.1582962Z Ubuntu
-2025-08-22T20:59:27.1583439Z 24.04.2
-2025-08-22T20:59:27.1583844Z LTS
-2025-08-22T20:59:27.1584361Z ##[endgroup]
-2025-08-22T20:59:27.1584851Z ##[group]Runner Image
-2025-08-22T20:59:27.1585371Z Image: ubuntu-24.04
-2025-08-22T20:59:27.1585945Z Version: 20250818.1.0
-2025-08-22T20:59:27.1586905Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250818.1/images/ubuntu/Ubuntu2404-Readme.md
-2025-08-22T20:59:27.1589283Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250818.1
-2025-08-22T20:59:27.1590929Z ##[endgroup]
-2025-08-22T20:59:27.1593307Z ##[group]GITHUB_TOKEN Permissions
-2025-08-22T20:59:27.1596112Z Contents: read
-2025-08-22T20:59:27.1596960Z Metadata: read
-2025-08-22T20:59:27.1598033Z Packages: write
-2025-08-22T20:59:27.1598924Z SecurityEvents: write
-2025-08-22T20:59:27.1599835Z ##[endgroup]
-2025-08-22T20:59:27.1602960Z Secret source: Actions
-2025-08-22T20:59:27.1603996Z Prepare workflow directory
-2025-08-22T20:59:27.2156853Z Prepare all required actions
-2025-08-22T20:59:27.2237161Z Complete job name: CI Status Check
-2025-08-22T20:59:27.3305234Z ##[group]Run echo "Test: cancelled"
-2025-08-22T20:59:27.3306439Z [36;1mecho "Test: cancelled"[0m
-2025-08-22T20:59:27.3307527Z [36;1mecho "Build: cancelled"[0m
-2025-08-22T20:59:27.3308416Z [36;1mecho "Security: cancelled"[0m
-2025-08-22T20:59:27.3309419Z [36;1mecho "Docker: cancelled"[0m
-2025-08-22T20:59:27.3310951Z [36;1m[0m
-2025-08-22T20:59:27.3311740Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
-2025-08-22T20:59:27.3312991Z [36;1m  echo "❌ Tests failed"[0m
-2025-08-22T20:59:27.3314088Z [36;1m  exit 1[0m
-2025-08-22T20:59:27.3314880Z [36;1mfi[0m
-2025-08-22T20:59:27.3315538Z [36;1m[0m
-2025-08-22T20:59:27.3316466Z [36;1m# Treat skipped as neutral for Build[0m
-2025-08-22T20:59:27.3317818Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T20:59:27.3319029Z [36;1m  echo "❌ Build failed"[0m
-2025-08-22T20:59:27.3320016Z [36;1m  exit 1[0m
-2025-08-22T20:59:27.3320871Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
-2025-08-22T20:59:27.3322615Z [36;1m  echo "⏭️ Build skipped (neutral)"[0m
-2025-08-22T20:59:27.3323595Z [36;1mfi[0m
-2025-08-22T20:59:27.3324357Z [36;1m[0m
-2025-08-22T20:59:27.3325244Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
-2025-08-22T20:59:27.3326466Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
-2025-08-22T20:59:27.3327492Z [36;1mfi[0m
-2025-08-22T20:59:27.3328385Z [36;1m[0m
-2025-08-22T20:59:27.3329276Z [36;1m# Treat skipped as neutral for Docker[0m
-2025-08-22T20:59:27.3330533Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T20:59:27.3332233Z [36;1m  echo "❌ Docker build failed"[0m
-2025-08-22T20:59:27.3333223Z [36;1m  exit 1[0m
-2025-08-22T20:59:27.3334174Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
-2025-08-22T20:59:27.3335398Z [36;1m  echo "⏭️ Docker build skipped (neutral)"[0m
-2025-08-22T20:59:27.3336540Z [36;1mfi[0m
-2025-08-22T20:59:27.3337299Z [36;1m[0m
-2025-08-22T20:59:27.3338176Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
-2025-08-22T20:59:27.3774016Z shell: /usr/bin/bash -e {0}
-2025-08-22T20:59:27.3775268Z env:
-2025-08-22T20:59:27.3775884Z   REGISTRY: ghcr.io
-2025-08-22T20:59:27.3776567Z   IMAGE_NAME: conductor-loop
-2025-08-22T20:59:27.3777296Z   GO_VERSION: 1.24.x
-2025-08-22T20:59:27.3777953Z ##[endgroup]
-2025-08-22T20:59:27.4059767Z Test: cancelled
-2025-08-22T20:59:27.4060530Z Build: cancelled
-2025-08-22T20:59:27.4061178Z Security: cancelled
-2025-08-22T20:59:27.4062533Z Docker: cancelled
-2025-08-22T20:59:27.4199519Z ❌ Tests failed
-2025-08-22T20:59:27.4223049Z ##[error]Process completed with exit code 1.
-2025-08-22T20:59:27.4370867Z ##[group]Run echo "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY
-2025-08-22T20:59:27.4371813Z [36;1mecho "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4372813Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4373401Z [36;1mecho "| Job | Status |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4374030Z [36;1mecho "|-----|--------|" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4374676Z [36;1mecho "| 🧪 Test | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4375365Z [36;1mecho "| 🔨 Build | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4376055Z [36;1mecho "| 🔒 Security | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4376757Z [36;1mecho "| 🐳 Docker | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4417624Z shell: /usr/bin/bash -e {0}
-2025-08-22T20:59:27.4418103Z env:
-2025-08-22T20:59:27.4418453Z   REGISTRY: ghcr.io
-2025-08-22T20:59:27.4418895Z   IMAGE_NAME: conductor-loop
-2025-08-22T20:59:27.4419331Z   GO_VERSION: 1.24.x
-2025-08-22T20:59:27.4419722Z ##[endgroup]
-2025-08-22T20:59:27.4545768Z Cleaning up orphan processes
-﻿2025-08-22T20:59:27.1552844Z Current runner version: '2.328.0'
-2025-08-22T20:59:27.1578180Z ##[group]Runner Image Provisioner
-2025-08-22T20:59:27.1579079Z Hosted Compute Agent
-2025-08-22T20:59:27.1579646Z Version: 20250818.377
-2025-08-22T20:59:27.1580258Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
-2025-08-22T20:59:27.1580970Z Build Date: 2025-08-18T14:52:18Z
-2025-08-22T20:59:27.1581520Z ##[endgroup]
-2025-08-22T20:59:27.1582359Z ##[group]Operating System
-2025-08-22T20:59:27.1582958Z Ubuntu
-2025-08-22T20:59:27.1583436Z 24.04.2
-2025-08-22T20:59:27.1583841Z LTS
-2025-08-22T20:59:27.1584355Z ##[endgroup]
-2025-08-22T20:59:27.1584847Z ##[group]Runner Image
-2025-08-22T20:59:27.1585368Z Image: ubuntu-24.04
-2025-08-22T20:59:27.1585942Z Version: 20250818.1.0
-2025-08-22T20:59:27.1586901Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250818.1/images/ubuntu/Ubuntu2404-Readme.md
-2025-08-22T20:59:27.1588882Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250818.1
-2025-08-22T20:59:27.1590909Z ##[endgroup]
-2025-08-22T20:59:27.1593283Z ##[group]GITHUB_TOKEN Permissions
-2025-08-22T20:59:27.1596089Z Contents: read
-2025-08-22T20:59:27.1596944Z Metadata: read
-2025-08-22T20:59:27.1598014Z Packages: write
-2025-08-22T20:59:27.1598908Z SecurityEvents: write
-2025-08-22T20:59:27.1599819Z ##[endgroup]
-2025-08-22T20:59:27.1602936Z Secret source: Actions
-2025-08-22T20:59:27.1603985Z Prepare workflow directory
-2025-08-22T20:59:27.2156804Z Prepare all required actions
-2025-08-22T20:59:27.2237118Z Complete job name: CI Status Check
-﻿2025-08-22T20:59:27.3305198Z ##[group]Run echo "Test: cancelled"
-2025-08-22T20:59:27.3306422Z [36;1mecho "Test: cancelled"[0m
-2025-08-22T20:59:27.3307517Z [36;1mecho "Build: cancelled"[0m
-2025-08-22T20:59:27.3308410Z [36;1mecho "Security: cancelled"[0m
-2025-08-22T20:59:27.3309408Z [36;1mecho "Docker: cancelled"[0m
-2025-08-22T20:59:27.3310933Z [36;1m[0m
-2025-08-22T20:59:27.3311734Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
-2025-08-22T20:59:27.3312976Z [36;1m  echo "❌ Tests failed"[0m
-2025-08-22T20:59:27.3314070Z [36;1m  exit 1[0m
-2025-08-22T20:59:27.3314873Z [36;1mfi[0m
-2025-08-22T20:59:27.3315534Z [36;1m[0m
-2025-08-22T20:59:27.3316456Z [36;1m# Treat skipped as neutral for Build[0m
-2025-08-22T20:59:27.3317800Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T20:59:27.3319021Z [36;1m  echo "❌ Build failed"[0m
-2025-08-22T20:59:27.3320007Z [36;1m  exit 1[0m
-2025-08-22T20:59:27.3320858Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
-2025-08-22T20:59:27.3322308Z [36;1m  echo "⏭️ Build skipped (neutral)"[0m
-2025-08-22T20:59:27.3323588Z [36;1mfi[0m
-2025-08-22T20:59:27.3324346Z [36;1m[0m
-2025-08-22T20:59:27.3325226Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
-2025-08-22T20:59:27.3326457Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
-2025-08-22T20:59:27.3327485Z [36;1mfi[0m
-2025-08-22T20:59:27.3328369Z [36;1m[0m
-2025-08-22T20:59:27.3329264Z [36;1m# Treat skipped as neutral for Docker[0m
-2025-08-22T20:59:27.3330526Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T20:59:27.3332211Z [36;1m  echo "❌ Docker build failed"[0m
-2025-08-22T20:59:27.3333204Z [36;1m  exit 1[0m
-2025-08-22T20:59:27.3334168Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
-2025-08-22T20:59:27.3335385Z [36;1m  echo "⏭️ Docker build skipped (neutral)"[0m
-2025-08-22T20:59:27.3336524Z [36;1mfi[0m
-2025-08-22T20:59:27.3337292Z [36;1m[0m
-2025-08-22T20:59:27.3338146Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
-2025-08-22T20:59:27.3773976Z shell: /usr/bin/bash -e {0}
-2025-08-22T20:59:27.3775247Z env:
-2025-08-22T20:59:27.3775874Z   REGISTRY: ghcr.io
-2025-08-22T20:59:27.3776561Z   IMAGE_NAME: conductor-loop
-2025-08-22T20:59:27.3777291Z   GO_VERSION: 1.24.x
-2025-08-22T20:59:27.3777949Z ##[endgroup]
-2025-08-22T20:59:27.4059728Z Test: cancelled
-2025-08-22T20:59:27.4060523Z Build: cancelled
-2025-08-22T20:59:27.4061172Z Security: cancelled
-2025-08-22T20:59:27.4062520Z Docker: cancelled
-2025-08-22T20:59:27.4199489Z ❌ Tests failed
-2025-08-22T20:59:27.4223024Z ##[error]Process completed with exit code 1.
-﻿2025-08-22T20:59:27.4370847Z ##[group]Run echo "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY
-2025-08-22T20:59:27.4371808Z [36;1mecho "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4372806Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4373398Z [36;1mecho "| Job | Status |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4374018Z [36;1mecho "|-----|--------|" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4374673Z [36;1mecho "| 🧪 Test | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4375361Z [36;1mecho "| 🔨 Build | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4376052Z [36;1mecho "| 🔒 Security | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4376754Z [36;1mecho "| 🐳 Docker | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T20:59:27.4417611Z shell: /usr/bin/bash -e {0}
-2025-08-22T20:59:27.4418100Z env:
-2025-08-22T20:59:27.4418449Z   REGISTRY: ghcr.io
-2025-08-22T20:59:27.4418858Z   IMAGE_NAME: conductor-loop
-2025-08-22T20:59:27.4419328Z   GO_VERSION: 1.24.x
-2025-08-22T20:59:27.4419720Z ##[endgroup]
-﻿2025-08-22T20:59:27.4545749Z Cleaning up orphan processes
+2025-08-22T21:00:33.8781690Z SHA256 digest of uploaded artifact zip is b2d2b1c06fed78cc17e591432b62343ce6cc2e3dd643fbeb623884a1c4dac35e
+2025-08-22T21:00:33.8783531Z Finalizing artifact upload
+2025-08-22T21:00:33.9791115Z Artifact test-results-ubuntu-latest-17165841383.zip successfully finalized. Artifact ID 3832015916
+2025-08-22T21:00:33.9792790Z Artifact test-results-ubuntu-latest-17165841383 has been successfully uploaded! Final size is 1434 bytes. Artifact ID is 3832015916
+2025-08-22T21:00:33.9799155Z Artifact download URL: https://github.com/thc1006/nephoran-intent-operator/actions/runs/17165841383/artifacts/3832015916
+﻿2025-08-22T21:00:33.9948469Z Post job cleanup.
+2025-08-22T21:00:34.1563674Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOMODCACHE
+2025-08-22T21:00:34.1605597Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOCACHE
+2025-08-22T21:00:34.1630234Z /home/runner/go/pkg/mod
+2025-08-22T21:00:34.1658459Z /home/runner/.cache/go-build
+2025-08-22T21:00:34.1665006Z Cache hit occurred on the primary key setup-go-Linux-x64-ubuntu24-go-1.24.6-583fed57d4cf4dd6f943285f723932abe219c2045356bcefc416fcf717aeff8b, not saving cache.
+﻿2025-08-22T21:00:34.1776935Z Post job cleanup.
+2025-08-22T21:00:34.2731918Z [command]/usr/bin/git version
+2025-08-22T21:00:34.2768736Z git version 2.51.0
+2025-08-22T21:00:34.2820846Z Temporarily overriding HOME='/home/runner/work/_temp/7c4cb746-7d5a-4a04-9ad0-87752166613b' before making global git config changes
+2025-08-22T21:00:34.2822168Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-22T21:00:34.2827289Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-22T21:00:34.2863082Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-22T21:00:34.2896549Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-22T21:00:34.3133037Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-22T21:00:34.3155671Z http.https://github.com/.extraheader
+2025-08-22T21:00:34.3169129Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-08-22T21:00:34.3201248Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+﻿2025-08-22T21:00:34.3538515Z Cleaning up orphan processes
+﻿2025-08-22T21:12:32.8167872Z Current runner version: '2.328.0'
+2025-08-22T21:12:32.8192900Z ##[group]Runner Image Provisioner
+2025-08-22T21:12:32.8194476Z Hosted Compute Agent
+2025-08-22T21:12:32.8195486Z Version: 20250818.377
+2025-08-22T21:12:32.8196499Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
+2025-08-22T21:12:32.8197943Z Build Date: 2025-08-18T14:52:18Z
+2025-08-22T21:12:32.8198977Z ##[endgroup]
+2025-08-22T21:12:32.8199979Z ##[group]Operating System
+2025-08-22T21:12:32.8200918Z Ubuntu
+2025-08-22T21:12:32.8201789Z 24.04.2
+2025-08-22T21:12:32.8202455Z LTS
+2025-08-22T21:12:32.8203171Z ##[endgroup]
+2025-08-22T21:12:32.8204237Z ##[group]Runner Image
+2025-08-22T21:12:32.8205187Z Image: ubuntu-24.04
+2025-08-22T21:12:32.8206058Z Version: 20250818.1.0
+2025-08-22T21:12:32.8207412Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250818.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-22T21:12:32.8209014Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250818.1
+2025-08-22T21:12:32.8210008Z ##[endgroup]
+2025-08-22T21:12:32.8211172Z ##[group]GITHUB_TOKEN Permissions
+2025-08-22T21:12:32.8213338Z Contents: read
+2025-08-22T21:12:32.8214136Z Metadata: read
+2025-08-22T21:12:32.8214665Z Packages: write
+2025-08-22T21:12:32.8215190Z SecurityEvents: write
+2025-08-22T21:12:32.8215728Z ##[endgroup]
+2025-08-22T21:12:32.8217846Z Secret source: Actions
+2025-08-22T21:12:32.8218642Z Prepare workflow directory
+2025-08-22T21:12:32.8606320Z Prepare all required actions
+2025-08-22T21:12:32.8660368Z Complete job name: CI Status Check
+2025-08-22T21:12:32.9405024Z ##[group]Run echo "Test: cancelled"
+2025-08-22T21:12:32.9405795Z [36;1mecho "Test: cancelled"[0m
+2025-08-22T21:12:32.9406421Z [36;1mecho "Build: cancelled"[0m
+2025-08-22T21:12:32.9407039Z [36;1mecho "Security: cancelled"[0m
+2025-08-22T21:12:32.9407704Z [36;1mecho "Docker: cancelled"[0m
+2025-08-22T21:12:32.9408470Z [36;1m[0m
+2025-08-22T21:12:32.9408993Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
+2025-08-22T21:12:32.9409607Z [36;1m  echo "❌ Tests failed"[0m
+2025-08-22T21:12:32.9410248Z [36;1m  exit 1[0m
+2025-08-22T21:12:32.9410738Z [36;1mfi[0m
+2025-08-22T21:12:32.9411144Z [36;1m[0m
+2025-08-22T21:12:32.9411729Z [36;1m# Treat skipped as neutral for Build[0m
+2025-08-22T21:12:32.9412486Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
+2025-08-22T21:12:32.9413245Z [36;1m  echo "❌ Build failed"[0m
+2025-08-22T21:12:32.9413951Z [36;1m  exit 1[0m
+2025-08-22T21:12:32.9414532Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
+2025-08-22T21:12:32.9415258Z [36;1m  echo "⏭️ Build skipped (neutral)"[0m
+2025-08-22T21:12:32.9415974Z [36;1mfi[0m
+2025-08-22T21:12:32.9416391Z [36;1m[0m
+2025-08-22T21:12:32.9416874Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
+2025-08-22T21:12:32.9417665Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
+2025-08-22T21:12:32.9418292Z [36;1mfi[0m
+2025-08-22T21:12:32.9418771Z [36;1m[0m
+2025-08-22T21:12:32.9419283Z [36;1m# Treat skipped as neutral for Docker[0m
+2025-08-22T21:12:32.9420069Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
+2025-08-22T21:12:32.9420782Z [36;1m  echo "❌ Docker build failed"[0m
+2025-08-22T21:12:32.9421441Z [36;1m  exit 1[0m
+2025-08-22T21:12:32.9421988Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
+2025-08-22T21:12:32.9422641Z [36;1m  echo "⏭️ Docker build skipped (neutral)"[0m
+2025-08-22T21:12:32.9423363Z [36;1mfi[0m
+2025-08-22T21:12:32.9423904Z [36;1m[0m
+2025-08-22T21:12:32.9424444Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
+2025-08-22T21:12:32.9678079Z shell: /usr/bin/bash -e {0}
+2025-08-22T21:12:32.9678965Z env:
+2025-08-22T21:12:32.9679421Z   REGISTRY: ghcr.io
+2025-08-22T21:12:32.9680006Z   IMAGE_NAME: conductor-loop
+2025-08-22T21:12:32.9680564Z   GO_VERSION: 1.24.x
+2025-08-22T21:12:32.9681022Z ##[endgroup]
+2025-08-22T21:12:33.0055609Z Test: cancelled
+2025-08-22T21:12:33.0056404Z Build: cancelled
+2025-08-22T21:12:33.0057118Z Security: cancelled
+2025-08-22T21:12:33.0058348Z Docker: cancelled
+2025-08-22T21:12:33.0153168Z ❌ Tests failed
+2025-08-22T21:12:33.0171524Z ##[error]Process completed with exit code 1.
+2025-08-22T21:12:33.0284526Z ##[group]Run echo "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY
+2025-08-22T21:12:33.0286028Z [36;1mecho "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0287177Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0288218Z [36;1mecho "| Job | Status |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0289322Z [36;1mecho "|-----|--------|" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0290439Z [36;1mecho "| 🧪 Test | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0291648Z [36;1mecho "| 🔨 Build | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0292880Z [36;1mecho "| 🔒 Security | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0294406Z [36;1mecho "| 🐳 Docker | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0340067Z shell: /usr/bin/bash -e {0}
+2025-08-22T21:12:33.0340557Z env:
+2025-08-22T21:12:33.0340912Z   REGISTRY: ghcr.io
+2025-08-22T21:12:33.0341362Z   IMAGE_NAME: conductor-loop
+2025-08-22T21:12:33.0341808Z   GO_VERSION: 1.24.x
+2025-08-22T21:12:33.0342214Z ##[endgroup]
+2025-08-22T21:12:33.0479069Z Cleaning up orphan processes
+﻿2025-08-22T21:12:32.8167019Z Current runner version: '2.328.0'
+2025-08-22T21:12:32.8192873Z ##[group]Runner Image Provisioner
+2025-08-22T21:12:32.8194453Z Hosted Compute Agent
+2025-08-22T21:12:32.8195469Z Version: 20250818.377
+2025-08-22T21:12:32.8196484Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
+2025-08-22T21:12:32.8197918Z Build Date: 2025-08-18T14:52:18Z
+2025-08-22T21:12:32.8198964Z ##[endgroup]
+2025-08-22T21:12:32.8199959Z ##[group]Operating System
+2025-08-22T21:12:32.8200901Z Ubuntu
+2025-08-22T21:12:32.8201776Z 24.04.2
+2025-08-22T21:12:32.8202449Z LTS
+2025-08-22T21:12:32.8203162Z ##[endgroup]
+2025-08-22T21:12:32.8204219Z ##[group]Runner Image
+2025-08-22T21:12:32.8205173Z Image: ubuntu-24.04
+2025-08-22T21:12:32.8206046Z Version: 20250818.1.0
+2025-08-22T21:12:32.8207403Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250818.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-22T21:12:32.8208793Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250818.1
+2025-08-22T21:12:32.8210004Z ##[endgroup]
+2025-08-22T21:12:32.8211168Z ##[group]GITHUB_TOKEN Permissions
+2025-08-22T21:12:32.8213319Z Contents: read
+2025-08-22T21:12:32.8214130Z Metadata: read
+2025-08-22T21:12:32.8214661Z Packages: write
+2025-08-22T21:12:32.8215187Z SecurityEvents: write
+2025-08-22T21:12:32.8215725Z ##[endgroup]
+2025-08-22T21:12:32.8217827Z Secret source: Actions
+2025-08-22T21:12:32.8218636Z Prepare workflow directory
+2025-08-22T21:12:32.8606279Z Prepare all required actions
+2025-08-22T21:12:32.8660349Z Complete job name: CI Status Check
+﻿2025-08-22T21:12:32.9404995Z ##[group]Run echo "Test: cancelled"
+2025-08-22T21:12:32.9405790Z [36;1mecho "Test: cancelled"[0m
+2025-08-22T21:12:32.9406418Z [36;1mecho "Build: cancelled"[0m
+2025-08-22T21:12:32.9407036Z [36;1mecho "Security: cancelled"[0m
+2025-08-22T21:12:32.9407701Z [36;1mecho "Docker: cancelled"[0m
+2025-08-22T21:12:32.9408465Z [36;1m[0m
+2025-08-22T21:12:32.9408990Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
+2025-08-22T21:12:32.9409602Z [36;1m  echo "❌ Tests failed"[0m
+2025-08-22T21:12:32.9410244Z [36;1m  exit 1[0m
+2025-08-22T21:12:32.9410695Z [36;1mfi[0m
+2025-08-22T21:12:32.9411140Z [36;1m[0m
+2025-08-22T21:12:32.9411725Z [36;1m# Treat skipped as neutral for Build[0m
+2025-08-22T21:12:32.9412482Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
+2025-08-22T21:12:32.9413241Z [36;1m  echo "❌ Build failed"[0m
+2025-08-22T21:12:32.9413946Z [36;1m  exit 1[0m
+2025-08-22T21:12:32.9414528Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
+2025-08-22T21:12:32.9415172Z [36;1m  echo "⏭️ Build skipped (neutral)"[0m
+2025-08-22T21:12:32.9415971Z [36;1mfi[0m
+2025-08-22T21:12:32.9416388Z [36;1m[0m
+2025-08-22T21:12:32.9416871Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
+2025-08-22T21:12:32.9417660Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
+2025-08-22T21:12:32.9418289Z [36;1mfi[0m
+2025-08-22T21:12:32.9418768Z [36;1m[0m
+2025-08-22T21:12:32.9419279Z [36;1m# Treat skipped as neutral for Docker[0m
+2025-08-22T21:12:32.9420065Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
+2025-08-22T21:12:32.9420779Z [36;1m  echo "❌ Docker build failed"[0m
+2025-08-22T21:12:32.9421438Z [36;1m  exit 1[0m
+2025-08-22T21:12:32.9421985Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
+2025-08-22T21:12:32.9422637Z [36;1m  echo "⏭️ Docker build skipped (neutral)"[0m
+2025-08-22T21:12:32.9423360Z [36;1mfi[0m
+2025-08-22T21:12:32.9423900Z [36;1m[0m
+2025-08-22T21:12:32.9424431Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
+2025-08-22T21:12:32.9678053Z shell: /usr/bin/bash -e {0}
+2025-08-22T21:12:32.9678955Z env:
+2025-08-22T21:12:32.9679418Z   REGISTRY: ghcr.io
+2025-08-22T21:12:32.9680003Z   IMAGE_NAME: conductor-loop
+2025-08-22T21:12:32.9680560Z   GO_VERSION: 1.24.x
+2025-08-22T21:12:32.9681019Z ##[endgroup]
+2025-08-22T21:12:33.0055565Z Test: cancelled
+2025-08-22T21:12:33.0056387Z Build: cancelled
+2025-08-22T21:12:33.0057103Z Security: cancelled
+2025-08-22T21:12:33.0058332Z Docker: cancelled
+2025-08-22T21:12:33.0153119Z ❌ Tests failed
+2025-08-22T21:12:33.0171498Z ##[error]Process completed with exit code 1.
+﻿2025-08-22T21:12:33.0284501Z ##[group]Run echo "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY
+2025-08-22T21:12:33.0286012Z [36;1mecho "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0287163Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0288200Z [36;1mecho "| Job | Status |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0289314Z [36;1mecho "|-----|--------|" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0290430Z [36;1mecho "| 🧪 Test | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0291639Z [36;1mecho "| 🔨 Build | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0292871Z [36;1mecho "| 🔒 Security | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0294364Z [36;1mecho "| 🐳 Docker | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:12:33.0340054Z shell: /usr/bin/bash -e {0}
+2025-08-22T21:12:33.0340553Z env:
+2025-08-22T21:12:33.0340908Z   REGISTRY: ghcr.io
+2025-08-22T21:12:33.0341323Z   IMAGE_NAME: conductor-loop
+2025-08-22T21:12:33.0341805Z   GO_VERSION: 1.24.x
+2025-08-22T21:12:33.0342211Z ##[endgroup]
+﻿2025-08-22T21:12:33.0479050Z Cleaning up orphan processes
 
