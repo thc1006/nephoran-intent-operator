@@ -1,252 +1,528 @@
-==== FAILED RUN 17165841383 (repo=thc1006/nephoran-intent-operator, head=thc1006/nephoran-intent-operator@fix/graceful-shutdown-exit-codes) ====
+==== FAILED RUN 17166096282 (repo=thc1006/nephoran-intent-operator, head=thc1006/nephoran-intent-operator@fix/graceful-shutdown-exit-codes) ====
 ---- Extracted error lines ----
 ## file: ci_logs/job_null.log
 
 ---- tail context ----
 
 ## file: ci_logs/run_all.log
-2025-08-22T21:00:46.1636710Z [36;1m    echo "Tests failed after 2 attempts"[0m
-2025-08-22T21:00:46.1637590Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T21:00:48.0006930Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
-2025-08-22T21:00:53.2816680Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
-2025-08-22T21:00:53.2821990Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
-2025-08-22T21:00:53.2822330Z FAIL
-2025-08-22T21:00:46.1636700Z [36;1m    echo "Tests failed after 2 attempts"[0m
-2025-08-22T21:00:46.1637590Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T21:00:48.0006900Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
-2025-08-22T21:00:53.2816580Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
-2025-08-22T21:00:53.2821980Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
-2025-08-22T21:00:53.2822330Z FAIL
-2025-08-22T21:02:10.0656425Z [36;1m    Write-Host "Tests failed after 2 attempts"[0m
-2025-08-22T21:02:10.0657480Z [36;1m    Write-Host "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T21:11:13.5392797Z Test attempt 1 failed, retrying...
-2025-08-22T21:02:10.0656423Z [36;1m    Write-Host "Tests failed after 2 attempts"[0m
-2025-08-22T21:02:10.0657478Z [36;1m    Write-Host "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T21:11:13.5392696Z Test attempt 1 failed, retrying...
-2025-08-22T21:00:00.4811322Z [36;1m    echo "Tests failed after 2 attempts"[0m
-2025-08-22T21:00:00.4811976Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T21:00:32.9028042Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
-2025-08-22T21:00:32.9187794Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
-2025-08-22T21:00:32.9188789Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
-2025-08-22T21:00:32.9189400Z FAIL
-2025-08-22T21:00:00.4811320Z [36;1m    echo "Tests failed after 2 attempts"[0m
-2025-08-22T21:00:00.4811974Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
-2025-08-22T21:00:32.9028019Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
-2025-08-22T21:00:32.9187712Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
-2025-08-22T21:00:32.9188783Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
-2025-08-22T21:00:32.9189395Z FAIL
-2025-08-22T21:12:32.9409607Z [36;1m  echo "❌ Tests failed"[0m
-2025-08-22T21:12:32.9412486Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T21:12:32.9413245Z [36;1m  echo "❌ Build failed"[0m
-2025-08-22T21:12:32.9420069Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T21:12:32.9420782Z [36;1m  echo "❌ Docker build failed"[0m
-2025-08-22T21:12:33.0153168Z ❌ Tests failed
-2025-08-22T21:12:32.9409602Z [36;1m  echo "❌ Tests failed"[0m
-2025-08-22T21:12:32.9412482Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T21:12:32.9413241Z [36;1m  echo "❌ Build failed"[0m
-2025-08-22T21:12:32.9420065Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T21:12:32.9420779Z [36;1m  echo "❌ Docker build failed"[0m
-2025-08-22T21:12:33.0153119Z ❌ Tests failed
+2025-08-22T21:14:10.9264870Z [36;1m    echo "Tests failed after 2 attempts"[0m
+2025-08-22T21:14:10.9266760Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
+2025-08-22T21:14:17.5473220Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
+2025-08-22T21:14:22.4602000Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
+2025-08-22T21:14:22.4703340Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
+2025-08-22T21:14:22.4803850Z FAIL
+2025-08-22T21:14:10.9264860Z [36;1m    echo "Tests failed after 2 attempts"[0m
+2025-08-22T21:14:10.9266750Z [36;1m    echo "Test attempt $attempt failed, retrying..."[0m
+2025-08-22T21:14:17.5473190Z ##[error]internal/porch/executor.go:95:14: undefined: cmdSafeQuoteWindows
+2025-08-22T21:14:22.4601710Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop [build failed]
+2025-08-22T21:14:22.4703290Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
+2025-08-22T21:14:22.4803810Z FAIL
+2025-08-22T21:15:46.2839744Z [36;1m    Write-Host "Tests failed after 2 attempts"[0m
+2025-08-22T21:15:46.2840925Z [36;1m    Write-Host "Test attempt $attempt failed, retrying..."[0m
+2025-08-22T21:24:49.7674882Z Test attempt 1 failed, retrying...
+2025-08-22T21:33:29.0079909Z Tests failed after 2 attempts
+2025-08-22T21:33:29.0162363Z 2025/08/22 21:24:58 Once mode: waiting for completion - 1 queued, 2 processing, 0/3 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0191885Z 2025/08/22 21:24:58 Once mode: waiting for completion - 0 queued, 1 processing, 2/3 handled (processed: 2, failed: 0)
+2025-08-22T21:33:29.0203197Z     graceful_shutdown_test.go:120:   Total failed: 0
+2025-08-22T21:33:29.0203646Z     graceful_shutdown_test.go:121:   Real failures: 0
+2025-08-22T21:33:29.0204111Z     graceful_shutdown_test.go:122:   Shutdown failures: 0
+2025-08-22T21:33:29.0205238Z     graceful_shutdown_test.go:136: ✅ No real failures detected - exit code should be 0
+2025-08-22T21:33:29.0206425Z === RUN   TestShutdownFailureDetection
+2025-08-22T21:33:29.0207510Z 2025/08/22 21:25:01 Warning: Porch validation failed: porch validation failed: exec: "mock-porch": executable file not found in %PATH%
+2025-08-22T21:33:29.0208948Z === RUN   TestShutdownFailureDetection/context_canceled_during_shutdown
+2025-08-22T21:33:29.0209766Z 2025/08/22 21:25:02 Warning: Porch validation failed: porch validation failed: exec: "mock-porch": executable file not found in %PATH%
+2025-08-22T21:33:29.0212709Z === RUN   TestShutdownFailureDetection/signal_killed_during_shutdown
+2025-08-22T21:33:29.0213676Z 2025/08/22 21:25:02 Loaded 0 file states from C:\Users\RUNNER~1\AppData\Local\Temp\TestShutdownFailureDetection3798522045\001\handoff\.conductor-state.json
+2025-08-22T21:33:29.0214993Z 2025/08/22 21:25:02 Warning: Porch validation failed: porch validation failed: exec: "mock-porch": executable file not found in %PATH%
+2025-08-22T21:33:29.0217742Z === RUN   TestShutdownFailureDetection/normal_validation_error
+2025-08-22T21:33:29.0218925Z 2025/08/22 21:25:02 Loaded 0 file states from C:\Users\RUNNER~1\AppData\Local\Temp\TestShutdownFailureDetection3798522045\001\handoff\.conductor-state.json
+2025-08-22T21:33:29.0220030Z 2025/08/22 21:25:02 Warning: Porch validation failed: porch validation failed: exec: "mock-porch": executable file not found in %PATH%
+2025-08-22T21:33:29.0222677Z === RUN   TestShutdownFailureDetection/context_canceled_without_shutdown
+2025-08-22T21:33:29.0223589Z 2025/08/22 21:25:02 Loaded 0 file states from C:\Users\RUNNER~1\AppData\Local\Temp\TestShutdownFailureDetection3798522045\001\handoff\.conductor-state.json
+2025-08-22T21:33:29.0225030Z 2025/08/22 21:25:02 Warning: Porch validation failed: porch validation failed: exec: "mock-porch": executable file not found in %PATH%
+2025-08-22T21:33:29.0229468Z --- PASS: TestShutdownFailureDetection (3.44s)
+2025-08-22T21:33:29.0230230Z     --- PASS: TestShutdownFailureDetection/context_canceled_during_shutdown (1.67s)
+2025-08-22T21:33:29.0231078Z     --- PASS: TestShutdownFailureDetection/signal_killed_during_shutdown (0.03s)
+2025-08-22T21:33:29.0231886Z     --- PASS: TestShutdownFailureDetection/normal_validation_error (0.03s)
+2025-08-22T21:33:29.0232513Z     --- PASS: TestShutdownFailureDetection/context_canceled_without_shutdown (0.03s)
+2025-08-22T21:33:29.0366562Z 2025/08/22 21:25:09 Warning: Porch validation failed: porch validation failed: exec: "porch; rm -rf /": executable file not found in %PATH%
+2025-08-22T21:33:29.0382875Z 2025/08/22 21:25:09 Warning: Porch validation failed: porch validation failed: exec: "porch | cat /etc/passwd": executable file not found in %PATH%
+2025-08-22T21:33:29.0398126Z 2025/08/22 21:25:10 Warning: Porch validation failed: porch validation failed: exec: "porch && echo 'injected'": executable file not found in %PATH%
+2025-08-22T21:33:29.0414089Z 2025/08/22 21:25:10 Warning: Porch validation failed: porch validation failed: exec: "porch `whoami`": executable file not found in %PATH%
+2025-08-22T21:33:29.0430061Z 2025/08/22 21:25:11 Warning: Porch validation failed: porch validation failed: exec: "porch $(id)": executable file not found in %PATH%
+2025-08-22T21:33:29.0565837Z 2025/08/22 21:25:14 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0579699Z 2025/08/22 21:25:14 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.0629111Z --- FAIL: TestComprehensiveSecuritySuite (12.04s)
+2025-08-22T21:33:29.0655698Z     --- FAIL: TestComprehensiveSecuritySuite/StateManagementSecurity (0.63s)
+2025-08-22T21:33:29.0656516Z     --- FAIL: TestComprehensiveSecuritySuite/ConfigurationSecurity (0.07s)
+2025-08-22T21:33:29.0661602Z         --- FAIL: TestComprehensiveSecuritySuite/ConfigurationSecurity/Path_traversal_in_output_directory (0.00s)
+2025-08-22T21:33:29.0670603Z 2025/08/22 21:25:16 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0682674Z 2025/08/22 21:25:16 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.0687692Z === RUN   TestOnceMode_ExitCodes/some_files_failed
+2025-08-22T21:33:29.0689584Z 2025/08/22 21:25:18 LOOP:START - Starting watcher on directory: C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\handoff
+2025-08-22T21:33:29.0696515Z 2025/08/22 21:25:18 Once mode: waiting for completion - 0 queued, 2 processing, 0/2 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0697622Z 2025/08/22 21:25:18 LOOP:ERROR - Worker 1: JSON validation failed for intent-invalid.json: JSON bomb detected: invalid character 'i'
+2025-08-22T21:33:29.0699983Z 2025/08/22 21:25:18 Executing Windows batch file via cmd.exe with safe quoting: C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\mock-porch.bat -intent C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\handoff\intent-valid.json -out C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\out
+2025-08-22T21:33:29.0702812Z 2025/08/22 21:25:18 Status written atomically to: C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\handoff\status\intent-invalid-20250822-212518.status
+2025-08-22T21:33:29.0704992Z 2025/08/22 21:25:18 Moved file C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\handoff\intent-invalid.json to C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\handoff\failed\intent-invalid.json
+2025-08-22T21:33:29.0706860Z 2025/08/22 21:25:18 Created error log: C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\handoff\failed\intent-invalid.json.error.log
+2025-08-22T21:33:29.0709777Z 2025/08/22 21:25:18 Status written atomically to: C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\handoff\status\intent-valid-20250822-212518.status
+2025-08-22T21:33:29.0711901Z 2025/08/22 21:25:18 Moved file C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\handoff\intent-valid.json to C:\Users\RUNNER~1\AppData\Local\Temp\TestOnceMode_ExitCodessome_files_failed2794273843\001\handoff\processed\intent-valid.json
+2025-08-22T21:33:29.0714519Z 2025/08/22 21:25:19 Queue drained and all 2 expected files handled in once mode (processed: 1, failed: 1), proceeding with shutdown
+2025-08-22T21:33:29.0741072Z     --- PASS: TestOnceMode_ExitCodes/some_files_failed (2.37s)
+2025-08-22T21:33:29.0767514Z         [conductor-loop] 2025/08/22 21:25:25.047212 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0780979Z         [conductor-loop] 2025/08/22 21:25:25.147306 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.0807489Z         [conductor-loop] 2025/08/22 21:25:28.758165 Once mode: waiting for completion - 1 queued, 2 processing, 0/3 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0848103Z         [conductor-loop] 2025/08/22 21:25:28.859272 Queue drained and all 3 expected files handled in once mode (processed: 3, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.0869141Z 2025/08/22 21:25:34 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0880869Z 2025/08/22 21:25:34 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.0893067Z 2025/08/22 21:25:37 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0905112Z 2025/08/22 21:25:37 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.0917534Z 2025/08/22 21:25:39 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0929128Z 2025/08/22 21:25:39 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.0942418Z 2025/08/22 21:25:41 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.0954033Z 2025/08/22 21:25:41 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.0966402Z 2025/08/22 21:25:42 Porch command failed (exit code -1) in 0s: exec: "porch; rm -rf /": executable file not found in %PATH%
+2025-08-22T21:33:29.0973032Z 2025/08/22 21:25:42 Porch command failed (exit code -1) in 576.6µs: exec: "porch | cat /etc/passwd": executable file not found in %PATH%
+2025-08-22T21:33:29.0999585Z 2025/08/22 21:25:44 Once mode: waiting for completion - 97 queued, 3 processing, 0/100 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.1013155Z 2025/08/22 21:25:44 Once mode: waiting for completion - 97 queued, 3 processing, 0/100 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.1014215Z 2025/08/22 21:25:44 Once mode: waiting for completion - 97 queued, 3 processing, 0/100 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.1015221Z 2025/08/22 21:25:44 Once mode: waiting for completion - 97 queued, 3 processing, 0/100 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.1039889Z 2025/08/22 21:25:44 Once mode: waiting for completion - 95 queued, 3 processing, 2/100 handled (processed: 2, failed: 0)
+2025-08-22T21:33:29.1049775Z 2025/08/22 21:25:44 Once mode: waiting for completion - 94 queued, 3 processing, 3/100 handled (processed: 3, failed: 0)
+2025-08-22T21:33:29.1050411Z 2025/08/22 21:25:44 Once mode: waiting for completion - 94 queued, 3 processing, 3/100 handled (processed: 3, failed: 0)
+2025-08-22T21:33:29.1051043Z 2025/08/22 21:25:44 Once mode: waiting for completion - 94 queued, 3 processing, 3/100 handled (processed: 3, failed: 0)
+2025-08-22T21:33:29.1071115Z 2025/08/22 21:25:44 Once mode: waiting for completion - 91 queued, 3 processing, 6/100 handled (processed: 6, failed: 0)
+2025-08-22T21:33:29.1074449Z 2025/08/22 21:25:44 Once mode: waiting for completion - 91 queued, 3 processing, 6/100 handled (processed: 6, failed: 0)
+2025-08-22T21:33:29.1075724Z 2025/08/22 21:25:45 Once mode: waiting for completion - 91 queued, 3 processing, 6/100 handled (processed: 6, failed: 0)
+2025-08-22T21:33:29.1077176Z 2025/08/22 21:25:45 Once mode: waiting for completion - 91 queued, 3 processing, 6/100 handled (processed: 6, failed: 0)
+2025-08-22T21:33:29.1093592Z 2025/08/22 21:25:45 Once mode: waiting for completion - 88 queued, 3 processing, 9/100 handled (processed: 9, failed: 0)
+2025-08-22T21:33:29.1099826Z 2025/08/22 21:25:45 Once mode: waiting for completion - 88 queued, 3 processing, 9/100 handled (processed: 9, failed: 0)
+2025-08-22T21:33:29.1100454Z 2025/08/22 21:25:45 Once mode: waiting for completion - 88 queued, 3 processing, 9/100 handled (processed: 9, failed: 0)
+2025-08-22T21:33:29.1108426Z 2025/08/22 21:25:45 Once mode: waiting for completion - 87 queued, 3 processing, 10/100 handled (processed: 10, failed: 0)
+2025-08-22T21:33:29.1123956Z 2025/08/22 21:25:45 Once mode: waiting for completion - 85 queued, 3 processing, 12/100 handled (processed: 12, failed: 0)
+2025-08-22T21:33:29.1124727Z 2025/08/22 21:25:45 Once mode: waiting for completion - 85 queued, 3 processing, 12/100 handled (processed: 12, failed: 0)
+2025-08-22T21:33:29.1125353Z 2025/08/22 21:25:45 Once mode: waiting for completion - 85 queued, 3 processing, 12/100 handled (processed: 12, failed: 0)
+2025-08-22T21:33:29.1134930Z 2025/08/22 21:25:46 Once mode: waiting for completion - 84 queued, 3 processing, 13/100 handled (processed: 13, failed: 0)
+2025-08-22T21:33:29.1150145Z 2025/08/22 21:25:46 Once mode: waiting for completion - 82 queued, 3 processing, 15/100 handled (processed: 15, failed: 0)
+2025-08-22T21:33:29.1150785Z 2025/08/22 21:25:46 Once mode: waiting for completion - 82 queued, 3 processing, 15/100 handled (processed: 15, failed: 0)
+2025-08-22T21:33:29.1158688Z 2025/08/22 21:25:46 Once mode: waiting for completion - 81 queued, 3 processing, 16/100 handled (processed: 16, failed: 0)
+2025-08-22T21:33:29.1159327Z 2025/08/22 21:25:46 Once mode: waiting for completion - 81 queued, 3 processing, 16/100 handled (processed: 16, failed: 0)
+2025-08-22T21:33:29.1174651Z 2025/08/22 21:25:46 Once mode: waiting for completion - 79 queued, 3 processing, 18/100 handled (processed: 18, failed: 0)
+2025-08-22T21:33:29.1175284Z 2025/08/22 21:25:46 Once mode: waiting for completion - 79 queued, 3 processing, 18/100 handled (processed: 18, failed: 0)
+2025-08-22T21:33:29.1183365Z 2025/08/22 21:25:46 Once mode: waiting for completion - 78 queued, 3 processing, 19/100 handled (processed: 19, failed: 0)
+2025-08-22T21:33:29.1191936Z 2025/08/22 21:25:46 Once mode: waiting for completion - 77 queued, 3 processing, 20/100 handled (processed: 20, failed: 0)
+2025-08-22T21:33:29.1199181Z 2025/08/22 21:25:46 Once mode: waiting for completion - 76 queued, 3 processing, 21/100 handled (processed: 21, failed: 0)
+2025-08-22T21:33:29.1204569Z 2025/08/22 21:25:47 Once mode: waiting for completion - 75 queued, 3 processing, 22/100 handled (processed: 22, failed: 0)
+2025-08-22T21:33:29.1207953Z 2025/08/22 21:25:47 Once mode: waiting for completion - 75 queued, 3 processing, 22/100 handled (processed: 22, failed: 0)
+2025-08-22T21:33:29.1210461Z 2025/08/22 21:25:47 Once mode: waiting for completion - 75 queued, 3 processing, 22/100 handled (processed: 22, failed: 0)
+2025-08-22T21:33:29.1223911Z 2025/08/22 21:25:47 Once mode: waiting for completion - 73 queued, 3 processing, 24/100 handled (processed: 24, failed: 0)
+2025-08-22T21:33:29.1224548Z 2025/08/22 21:25:47 Once mode: waiting for completion - 73 queued, 3 processing, 24/100 handled (processed: 24, failed: 0)
+2025-08-22T21:33:29.1233100Z 2025/08/22 21:25:47 Once mode: waiting for completion - 72 queued, 3 processing, 25/100 handled (processed: 25, failed: 0)
+2025-08-22T21:33:29.1235119Z 2025/08/22 21:25:47 Once mode: waiting for completion - 72 queued, 3 processing, 25/100 handled (processed: 25, failed: 0)
+2025-08-22T21:33:29.1249255Z 2025/08/22 21:25:47 Once mode: waiting for completion - 70 queued, 3 processing, 27/100 handled (processed: 27, failed: 0)
+2025-08-22T21:33:29.1257231Z 2025/08/22 21:25:47 Once mode: waiting for completion - 69 queued, 3 processing, 28/100 handled (processed: 28, failed: 0)
+2025-08-22T21:33:29.1257871Z 2025/08/22 21:25:48 Once mode: waiting for completion - 69 queued, 3 processing, 28/100 handled (processed: 28, failed: 0)
+2025-08-22T21:33:29.1273246Z 2025/08/22 21:25:48 Once mode: waiting for completion - 67 queued, 3 processing, 30/100 handled (processed: 30, failed: 0)
+2025-08-22T21:33:29.1273882Z 2025/08/22 21:25:48 Once mode: waiting for completion - 67 queued, 3 processing, 30/100 handled (processed: 30, failed: 0)
+2025-08-22T21:33:29.1282110Z 2025/08/22 21:25:48 Once mode: waiting for completion - 66 queued, 3 processing, 31/100 handled (processed: 31, failed: 0)
+2025-08-22T21:33:29.1282746Z 2025/08/22 21:25:48 Once mode: waiting for completion - 66 queued, 3 processing, 31/100 handled (processed: 31, failed: 0)
+2025-08-22T21:33:29.1298088Z 2025/08/22 21:25:48 Once mode: waiting for completion - 64 queued, 3 processing, 33/100 handled (processed: 33, failed: 0)
+2025-08-22T21:33:29.1299396Z 2025/08/22 21:25:48 Once mode: waiting for completion - 64 queued, 3 processing, 33/100 handled (processed: 33, failed: 0)
+2025-08-22T21:33:29.1307440Z 2025/08/22 21:25:48 Once mode: waiting for completion - 63 queued, 3 processing, 34/100 handled (processed: 34, failed: 0)
+2025-08-22T21:33:29.1317150Z 2025/08/22 21:25:48 Once mode: waiting for completion - 62 queued, 3 processing, 36/100 handled (processed: 36, failed: 0)
+2025-08-22T21:33:29.1323237Z 2025/08/22 21:25:48 Once mode: waiting for completion - 61 queued, 3 processing, 36/100 handled (processed: 36, failed: 0)
+2025-08-22T21:33:29.1331285Z 2025/08/22 21:25:49 Once mode: waiting for completion - 60 queued, 3 processing, 37/100 handled (processed: 37, failed: 0)
+2025-08-22T21:33:29.1331917Z 2025/08/22 21:25:49 Once mode: waiting for completion - 60 queued, 3 processing, 37/100 handled (processed: 37, failed: 0)
+2025-08-22T21:33:29.1347499Z 2025/08/22 21:25:49 Once mode: waiting for completion - 58 queued, 3 processing, 39/100 handled (processed: 39, failed: 0)
+2025-08-22T21:33:29.1348242Z 2025/08/22 21:25:49 Once mode: waiting for completion - 58 queued, 3 processing, 39/100 handled (processed: 39, failed: 0)
+2025-08-22T21:33:29.1356141Z 2025/08/22 21:25:49 Once mode: waiting for completion - 57 queued, 3 processing, 40/100 handled (processed: 40, failed: 0)
+2025-08-22T21:33:29.1356761Z 2025/08/22 21:25:49 Once mode: waiting for completion - 57 queued, 3 processing, 40/100 handled (processed: 40, failed: 0)
+2025-08-22T21:33:29.1371749Z 2025/08/22 21:25:49 Once mode: waiting for completion - 55 queued, 3 processing, 42/100 handled (processed: 42, failed: 0)
+2025-08-22T21:33:29.1373034Z 2025/08/22 21:25:49 Once mode: waiting for completion - 55 queued, 3 processing, 42/100 handled (processed: 42, failed: 0)
+2025-08-22T21:33:29.1380156Z 2025/08/22 21:25:49 Once mode: waiting for completion - 54 queued, 3 processing, 43/100 handled (processed: 43, failed: 0)
+2025-08-22T21:33:29.1389851Z 2025/08/22 21:25:50 Once mode: waiting for completion - 52 queued, 3 processing, 45/100 handled (processed: 45, failed: 0)
+2025-08-22T21:33:29.1395836Z 2025/08/22 21:25:50 Once mode: waiting for completion - 52 queued, 3 processing, 45/100 handled (processed: 45, failed: 0)
+2025-08-22T21:33:29.1396473Z 2025/08/22 21:25:50 Once mode: waiting for completion - 52 queued, 3 processing, 45/100 handled (processed: 45, failed: 0)
+2025-08-22T21:33:29.1404275Z 2025/08/22 21:25:50 Once mode: waiting for completion - 51 queued, 3 processing, 46/100 handled (processed: 46, failed: 0)
+2025-08-22T21:33:29.1420325Z 2025/08/22 21:25:50 Once mode: waiting for completion - 49 queued, 3 processing, 48/100 handled (processed: 48, failed: 0)
+2025-08-22T21:33:29.1420973Z 2025/08/22 21:25:50 Once mode: waiting for completion - 49 queued, 3 processing, 48/100 handled (processed: 48, failed: 0)
+2025-08-22T21:33:29.1428860Z 2025/08/22 21:25:50 Once mode: waiting for completion - 48 queued, 3 processing, 49/100 handled (processed: 49, failed: 0)
+2025-08-22T21:33:29.1429495Z 2025/08/22 21:25:50 Once mode: waiting for completion - 48 queued, 3 processing, 49/100 handled (processed: 49, failed: 0)
+2025-08-22T21:33:29.1445073Z 2025/08/22 21:25:50 Once mode: waiting for completion - 46 queued, 3 processing, 51/100 handled (processed: 51, failed: 0)
+2025-08-22T21:33:29.1445774Z 2025/08/22 21:25:50 Once mode: waiting for completion - 46 queued, 3 processing, 51/100 handled (processed: 51, failed: 0)
+2025-08-22T21:33:29.1466795Z 2025/08/22 21:25:51 Once mode: waiting for completion - 45 queued, 3 processing, 52/100 handled (processed: 52, failed: 0)
+2025-08-22T21:33:29.1480395Z 2025/08/22 21:25:51 Once mode: waiting for completion - 43 queued, 3 processing, 54/100 handled (processed: 54, failed: 0)
+2025-08-22T21:33:29.1483982Z 2025/08/22 21:25:51 Once mode: waiting for completion - 43 queued, 3 processing, 54/100 handled (processed: 54, failed: 0)
+2025-08-22T21:33:29.1492610Z 2025/08/22 21:25:51 Once mode: waiting for completion - 42 queued, 3 processing, 55/100 handled (processed: 55, failed: 0)
+2025-08-22T21:33:29.1493288Z 2025/08/22 21:25:51 Once mode: waiting for completion - 42 queued, 3 processing, 55/100 handled (processed: 55, failed: 0)
+2025-08-22T21:33:29.1509610Z 2025/08/22 21:25:51 Once mode: waiting for completion - 40 queued, 3 processing, 57/100 handled (processed: 57, failed: 0)
+2025-08-22T21:33:29.1510292Z 2025/08/22 21:25:51 Once mode: waiting for completion - 40 queued, 3 processing, 57/100 handled (processed: 57, failed: 0)
+2025-08-22T21:33:29.1518669Z 2025/08/22 21:25:51 Once mode: waiting for completion - 39 queued, 3 processing, 58/100 handled (processed: 58, failed: 0)
+2025-08-22T21:33:29.1526418Z 2025/08/22 21:25:51 Once mode: waiting for completion - 37 queued, 3 processing, 60/100 handled (processed: 60, failed: 0)
+2025-08-22T21:33:29.1528172Z 2025/08/22 21:25:52 Once mode: waiting for completion - 37 queued, 3 processing, 60/100 handled (processed: 60, failed: 0)
+2025-08-22T21:33:29.1532103Z 2025/08/22 21:25:52 Once mode: waiting for completion - 36 queued, 3 processing, 61/100 handled (processed: 61, failed: 0)
+2025-08-22T21:33:29.1532399Z 2025/08/22 21:25:52 Once mode: waiting for completion - 36 queued, 3 processing, 61/100 handled (processed: 61, failed: 0)
+2025-08-22T21:33:29.1540109Z 2025/08/22 21:25:52 Once mode: waiting for completion - 34 queued, 3 processing, 63/100 handled (processed: 63, failed: 0)
+2025-08-22T21:33:29.1542596Z 2025/08/22 21:25:52 Once mode: waiting for completion - 33 queued, 3 processing, 64/100 handled (processed: 64, failed: 0)
+2025-08-22T21:33:29.1544349Z 2025/08/22 21:25:52 Once mode: waiting for completion - 33 queued, 3 processing, 64/100 handled (processed: 64, failed: 0)
+2025-08-22T21:33:29.1548994Z 2025/08/22 21:25:52 Once mode: waiting for completion - 31 queued, 3 processing, 66/100 handled (processed: 66, failed: 0)
+2025-08-22T21:33:29.1551997Z 2025/08/22 21:25:52 Once mode: waiting for completion - 31 queued, 3 processing, 66/100 handled (processed: 66, failed: 0)
+2025-08-22T21:33:29.1555788Z 2025/08/22 21:25:52 Once mode: waiting for completion - 30 queued, 3 processing, 67/100 handled (processed: 67, failed: 0)
+2025-08-22T21:33:29.1556137Z 2025/08/22 21:25:52 Once mode: waiting for completion - 30 queued, 3 processing, 67/100 handled (processed: 67, failed: 0)
+2025-08-22T21:33:29.1563256Z 2025/08/22 21:25:53 Once mode: waiting for completion - 28 queued, 3 processing, 69/100 handled (processed: 69, failed: 0)
+2025-08-22T21:33:29.1563803Z 2025/08/22 21:25:53 Once mode: waiting for completion - 28 queued, 3 processing, 69/100 handled (processed: 69, failed: 0)
+2025-08-22T21:33:29.1567400Z 2025/08/22 21:25:53 Once mode: waiting for completion - 27 queued, 3 processing, 70/100 handled (processed: 70, failed: 0)
+2025-08-22T21:33:29.1568241Z 2025/08/22 21:25:53 Once mode: waiting for completion - 27 queued, 3 processing, 70/100 handled (processed: 70, failed: 0)
+2025-08-22T21:33:29.1575646Z 2025/08/22 21:25:53 Once mode: waiting for completion - 25 queued, 3 processing, 72/100 handled (processed: 72, failed: 0)
+2025-08-22T21:33:29.1579539Z 2025/08/22 21:25:53 Once mode: waiting for completion - 24 queued, 3 processing, 73/100 handled (processed: 73, failed: 0)
+2025-08-22T21:33:29.1579825Z 2025/08/22 21:25:53 Once mode: waiting for completion - 24 queued, 3 processing, 73/100 handled (processed: 73, failed: 0)
+2025-08-22T21:33:29.1584199Z 2025/08/22 21:25:53 Once mode: waiting for completion - 22 queued, 3 processing, 75/100 handled (processed: 75, failed: 0)
+2025-08-22T21:33:29.1587946Z 2025/08/22 21:25:53 Once mode: waiting for completion - 22 queued, 3 processing, 75/100 handled (processed: 75, failed: 0)
+2025-08-22T21:33:29.1591650Z 2025/08/22 21:25:54 Once mode: waiting for completion - 21 queued, 3 processing, 76/100 handled (processed: 76, failed: 0)
+2025-08-22T21:33:29.1591926Z 2025/08/22 21:25:54 Once mode: waiting for completion - 21 queued, 3 processing, 76/100 handled (processed: 76, failed: 0)
+2025-08-22T21:33:29.1599465Z 2025/08/22 21:25:54 Once mode: waiting for completion - 19 queued, 3 processing, 78/100 handled (processed: 78, failed: 0)
+2025-08-22T21:33:29.1599743Z 2025/08/22 21:25:54 Once mode: waiting for completion - 19 queued, 3 processing, 78/100 handled (processed: 78, failed: 0)
+2025-08-22T21:33:29.1603428Z 2025/08/22 21:25:54 Once mode: waiting for completion - 18 queued, 3 processing, 79/100 handled (processed: 79, failed: 0)
+2025-08-22T21:33:29.1607930Z 2025/08/22 21:25:54 Once mode: waiting for completion - 16 queued, 3 processing, 81/100 handled (processed: 81, failed: 0)
+2025-08-22T21:33:29.1610862Z 2025/08/22 21:25:54 Once mode: waiting for completion - 16 queued, 3 processing, 81/100 handled (processed: 81, failed: 0)
+2025-08-22T21:33:29.1614501Z 2025/08/22 21:25:54 Once mode: waiting for completion - 15 queued, 3 processing, 82/100 handled (processed: 82, failed: 0)
+2025-08-22T21:33:29.1615385Z 2025/08/22 21:25:54 Once mode: waiting for completion - 15 queued, 3 processing, 82/100 handled (processed: 82, failed: 0)
+2025-08-22T21:33:29.1621975Z 2025/08/22 21:25:55 Once mode: waiting for completion - 13 queued, 3 processing, 84/100 handled (processed: 84, failed: 0)
+2025-08-22T21:33:29.1626719Z 2025/08/22 21:25:55 Once mode: waiting for completion - 12 queued, 3 processing, 85/100 handled (processed: 85, failed: 0)
+2025-08-22T21:33:29.1627011Z 2025/08/22 21:25:55 Once mode: waiting for completion - 12 queued, 3 processing, 85/100 handled (processed: 85, failed: 0)
+2025-08-22T21:33:29.1634181Z 2025/08/22 21:25:55 Once mode: waiting for completion - 10 queued, 3 processing, 87/100 handled (processed: 87, failed: 0)
+2025-08-22T21:33:29.1634466Z 2025/08/22 21:25:55 Once mode: waiting for completion - 10 queued, 3 processing, 87/100 handled (processed: 87, failed: 0)
+2025-08-22T21:33:29.1638942Z 2025/08/22 21:25:55 Once mode: waiting for completion - 9 queued, 3 processing, 88/100 handled (processed: 88, failed: 0)
+2025-08-22T21:33:29.1641307Z 2025/08/22 21:25:55 Once mode: waiting for completion - 9 queued, 3 processing, 88/100 handled (processed: 88, failed: 0)
+2025-08-22T21:33:29.1646458Z 2025/08/22 21:25:55 Once mode: waiting for completion - 7 queued, 3 processing, 90/100 handled (processed: 90, failed: 0)
+2025-08-22T21:33:29.1650243Z 2025/08/22 21:25:55 Once mode: waiting for completion - 6 queued, 3 processing, 91/100 handled (processed: 91, failed: 0)
+2025-08-22T21:33:29.1650522Z 2025/08/22 21:25:55 Once mode: waiting for completion - 6 queued, 3 processing, 91/100 handled (processed: 91, failed: 0)
+2025-08-22T21:33:29.1658267Z 2025/08/22 21:25:56 Once mode: waiting for completion - 4 queued, 3 processing, 93/100 handled (processed: 93, failed: 0)
+2025-08-22T21:33:29.1658548Z 2025/08/22 21:25:56 Once mode: waiting for completion - 4 queued, 3 processing, 93/100 handled (processed: 93, failed: 0)
+2025-08-22T21:33:29.1662262Z 2025/08/22 21:25:56 Once mode: waiting for completion - 3 queued, 3 processing, 94/100 handled (processed: 94, failed: 0)
+2025-08-22T21:33:29.1662541Z 2025/08/22 21:25:56 Once mode: waiting for completion - 3 queued, 3 processing, 94/100 handled (processed: 94, failed: 0)
+2025-08-22T21:33:29.1670308Z 2025/08/22 21:25:56 Once mode: waiting for completion - 1 queued, 3 processing, 96/100 handled (processed: 96, failed: 0)
+2025-08-22T21:33:29.1672681Z 2025/08/22 21:25:56 Once mode: waiting for completion - 1 queued, 3 processing, 96/100 handled (processed: 96, failed: 0)
+2025-08-22T21:33:29.1674372Z 2025/08/22 21:25:56 Once mode: waiting for completion - 0 queued, 3 processing, 97/100 handled (processed: 97, failed: 0)
+2025-08-22T21:33:29.1677173Z 2025/08/22 21:25:56 Once mode: waiting for completion - 0 queued, 2 processing, 98/100 handled (processed: 98, failed: 0)
+2025-08-22T21:33:29.1679484Z 2025/08/22 21:25:56 Once mode: waiting for completion - 0 queued, 1 processing, 99/100 handled (processed: 99, failed: 0)
+2025-08-22T21:33:29.1681966Z 2025/08/22 21:25:57 Queue drained and all 100 expected files handled in once mode (processed: 100, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.1716164Z 2025/08/22 21:26:01 Once mode: waiting for completion - 57 queued, 3 processing, 0/60 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.1722992Z 2025/08/22 21:26:01 Once mode: waiting for completion - 57 queued, 3 processing, 0/60 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.1723623Z 2025/08/22 21:26:01 Once mode: waiting for completion - 57 queued, 3 processing, 0/60 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.1724105Z 2025/08/22 21:26:01 Once mode: waiting for completion - 57 queued, 3 processing, 0/60 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.1741272Z 2025/08/22 21:26:01 Once mode: waiting for completion - 54 queued, 3 processing, 3/60 handled (processed: 3, failed: 0)
+2025-08-22T21:33:29.1743378Z 2025/08/22 21:26:01 Once mode: waiting for completion - 54 queued, 3 processing, 3/60 handled (processed: 3, failed: 0)
+2025-08-22T21:33:29.1743678Z 2025/08/22 21:26:02 Once mode: waiting for completion - 54 queued, 3 processing, 3/60 handled (processed: 3, failed: 0)
+2025-08-22T21:33:29.1743971Z 2025/08/22 21:26:02 Once mode: waiting for completion - 54 queued, 3 processing, 3/60 handled (processed: 3, failed: 0)
+2025-08-22T21:33:29.1763524Z 2025/08/22 21:26:02 Once mode: waiting for completion - 51 queued, 3 processing, 6/60 handled (processed: 6, failed: 0)
+2025-08-22T21:33:29.1763995Z 2025/08/22 21:26:02 Once mode: waiting for completion - 51 queued, 3 processing, 6/60 handled (processed: 6, failed: 0)
+2025-08-22T21:33:29.1764343Z 2025/08/22 21:26:02 Once mode: waiting for completion - 51 queued, 3 processing, 6/60 handled (processed: 6, failed: 0)
+2025-08-22T21:33:29.1764632Z 2025/08/22 21:26:02 Once mode: waiting for completion - 51 queued, 3 processing, 6/60 handled (processed: 6, failed: 0)
+2025-08-22T21:33:29.1783669Z 2025/08/22 21:26:02 Once mode: waiting for completion - 48 queued, 3 processing, 9/60 handled (processed: 9, failed: 0)
+2025-08-22T21:33:29.1783963Z 2025/08/22 21:26:02 Once mode: waiting for completion - 48 queued, 3 processing, 9/60 handled (processed: 9, failed: 0)
+2025-08-22T21:33:29.1784253Z 2025/08/22 21:26:02 Once mode: waiting for completion - 48 queued, 3 processing, 9/60 handled (processed: 9, failed: 0)
+2025-08-22T21:33:29.1793053Z 2025/08/22 21:26:03 Once mode: waiting for completion - 47 queued, 3 processing, 10/60 handled (processed: 10, failed: 0)
+2025-08-22T21:33:29.1805378Z 2025/08/22 21:26:03 Once mode: waiting for completion - 45 queued, 3 processing, 12/60 handled (processed: 12, failed: 0)
+2025-08-22T21:33:29.1805690Z 2025/08/22 21:26:03 Once mode: waiting for completion - 45 queued, 3 processing, 12/60 handled (processed: 12, failed: 0)
+2025-08-22T21:33:29.1806025Z 2025/08/22 21:26:03 Once mode: waiting for completion - 45 queued, 3 processing, 12/60 handled (processed: 12, failed: 0)
+2025-08-22T21:33:29.1824326Z 2025/08/22 21:26:03 Once mode: waiting for completion - 43 queued, 3 processing, 14/60 handled (processed: 14, failed: 0)
+2025-08-22T21:33:29.1827466Z 2025/08/22 21:26:03 Once mode: waiting for completion - 42 queued, 3 processing, 15/60 handled (processed: 15, failed: 0)
+2025-08-22T21:33:29.1827776Z 2025/08/22 21:26:03 Once mode: waiting for completion - 42 queued, 3 processing, 15/60 handled (processed: 15, failed: 0)
+2025-08-22T21:33:29.1828252Z 2025/08/22 21:26:03 Once mode: waiting for completion - 42 queued, 3 processing, 15/60 handled (processed: 15, failed: 0)
+2025-08-22T21:33:29.1847016Z 2025/08/22 21:26:03 Once mode: waiting for completion - 39 queued, 3 processing, 18/60 handled (processed: 18, failed: 0)
+2025-08-22T21:33:29.1849316Z 2025/08/22 21:26:03 Once mode: waiting for completion - 39 queued, 3 processing, 18/60 handled (processed: 18, failed: 0)
+2025-08-22T21:33:29.1849620Z 2025/08/22 21:26:04 Once mode: waiting for completion - 39 queued, 3 processing, 18/60 handled (processed: 18, failed: 0)
+2025-08-22T21:33:29.1854574Z 2025/08/22 21:26:04 Once mode: waiting for completion - 38 queued, 3 processing, 19/60 handled (processed: 19, failed: 0)
+2025-08-22T21:33:29.1869874Z 2025/08/22 21:26:04 Once mode: waiting for completion - 36 queued, 3 processing, 21/60 handled (processed: 21, failed: 0)
+2025-08-22T21:33:29.1870222Z 2025/08/22 21:26:04 Once mode: waiting for completion - 36 queued, 3 processing, 21/60 handled (processed: 21, failed: 0)
+2025-08-22T21:33:29.1870542Z 2025/08/22 21:26:04 Once mode: waiting for completion - 36 queued, 3 processing, 21/60 handled (processed: 21, failed: 0)
+2025-08-22T21:33:29.1877917Z 2025/08/22 21:26:04 Once mode: waiting for completion - 35 queued, 3 processing, 22/60 handled (processed: 22, failed: 0)
+2025-08-22T21:33:29.1890454Z 2025/08/22 21:26:04 Once mode: waiting for completion - 33 queued, 3 processing, 24/60 handled (processed: 24, failed: 0)
+2025-08-22T21:33:29.1890883Z 2025/08/22 21:26:04 Once mode: waiting for completion - 33 queued, 3 processing, 24/60 handled (processed: 24, failed: 0)
+2025-08-22T21:33:29.1891387Z 2025/08/22 21:26:04 Once mode: waiting for completion - 33 queued, 3 processing, 24/60 handled (processed: 24, failed: 0)
+2025-08-22T21:33:29.1898155Z 2025/08/22 21:26:05 Once mode: waiting for completion - 32 queued, 3 processing, 25/60 handled (processed: 25, failed: 0)
+2025-08-22T21:33:29.1910464Z 2025/08/22 21:26:05 Once mode: waiting for completion - 30 queued, 3 processing, 27/60 handled (processed: 27, failed: 0)
+2025-08-22T21:33:29.1911552Z 2025/08/22 21:26:05 Once mode: waiting for completion - 30 queued, 3 processing, 27/60 handled (processed: 27, failed: 0)
+2025-08-22T21:33:29.1912471Z 2025/08/22 21:26:05 Once mode: waiting for completion - 30 queued, 3 processing, 27/60 handled (processed: 27, failed: 0)
+2025-08-22T21:33:29.1918026Z 2025/08/22 21:26:05 Once mode: waiting for completion - 29 queued, 3 processing, 28/60 handled (processed: 28, failed: 0)
+2025-08-22T21:33:29.1931201Z 2025/08/22 21:26:05 Once mode: waiting for completion - 27 queued, 3 processing, 30/60 handled (processed: 30, failed: 0)
+2025-08-22T21:33:29.1931498Z 2025/08/22 21:26:05 Once mode: waiting for completion - 27 queued, 3 processing, 30/60 handled (processed: 30, failed: 0)
+2025-08-22T21:33:29.1939320Z 2025/08/22 21:26:05 Once mode: waiting for completion - 26 queued, 3 processing, 31/60 handled (processed: 31, failed: 0)
+2025-08-22T21:33:29.1945938Z 2025/08/22 21:26:05 Once mode: waiting for completion - 25 queued, 3 processing, 32/60 handled (processed: 32, failed: 0)
+2025-08-22T21:33:29.1950873Z 2025/08/22 21:26:05 Once mode: waiting for completion - 24 queued, 3 processing, 33/60 handled (processed: 33, failed: 0)
+2025-08-22T21:33:29.1951338Z 2025/08/22 21:26:06 Once mode: waiting for completion - 24 queued, 3 processing, 33/60 handled (processed: 33, failed: 0)
+2025-08-22T21:33:29.1959037Z 2025/08/22 21:26:06 Once mode: waiting for completion - 23 queued, 3 processing, 34/60 handled (processed: 34, failed: 0)
+2025-08-22T21:33:29.1969232Z 2025/08/22 21:26:06 Once mode: waiting for completion - 21 queued, 3 processing, 36/60 handled (processed: 36, failed: 0)
+2025-08-22T21:33:29.1969531Z 2025/08/22 21:26:06 Once mode: waiting for completion - 21 queued, 3 processing, 36/60 handled (processed: 36, failed: 0)
+2025-08-22T21:33:29.1977024Z 2025/08/22 21:26:06 Once mode: waiting for completion - 20 queued, 3 processing, 37/60 handled (processed: 37, failed: 0)
+2025-08-22T21:33:29.1978283Z 2025/08/22 21:26:06 Once mode: waiting for completion - 20 queued, 3 processing, 37/60 handled (processed: 37, failed: 0)
+2025-08-22T21:33:29.1991727Z 2025/08/22 21:26:06 Once mode: waiting for completion - 18 queued, 3 processing, 39/60 handled (processed: 39, failed: 0)
+2025-08-22T21:33:29.1992041Z 2025/08/22 21:26:06 Once mode: waiting for completion - 18 queued, 3 processing, 39/60 handled (processed: 39, failed: 0)
+2025-08-22T21:33:29.1998472Z 2025/08/22 21:26:06 Once mode: waiting for completion - 17 queued, 3 processing, 40/60 handled (processed: 40, failed: 0)
+2025-08-22T21:33:29.2008897Z 2025/08/22 21:26:07 Once mode: waiting for completion - 15 queued, 3 processing, 42/60 handled (processed: 42, failed: 0)
+2025-08-22T21:33:29.2011448Z 2025/08/22 21:26:07 Once mode: waiting for completion - 15 queued, 3 processing, 42/60 handled (processed: 42, failed: 0)
+2025-08-22T21:33:29.2017248Z 2025/08/22 21:26:07 Once mode: waiting for completion - 14 queued, 3 processing, 43/60 handled (processed: 43, failed: 0)
+2025-08-22T21:33:29.2019147Z 2025/08/22 21:26:07 Once mode: waiting for completion - 14 queued, 3 processing, 43/60 handled (processed: 43, failed: 0)
+2025-08-22T21:33:29.2031195Z 2025/08/22 21:26:07 Once mode: waiting for completion - 12 queued, 3 processing, 45/60 handled (processed: 45, failed: 0)
+2025-08-22T21:33:29.2031536Z 2025/08/22 21:26:07 Once mode: waiting for completion - 12 queued, 3 processing, 45/60 handled (processed: 45, failed: 0)
+2025-08-22T21:33:29.2039075Z 2025/08/22 21:26:07 Once mode: waiting for completion - 11 queued, 3 processing, 46/60 handled (processed: 46, failed: 0)
+2025-08-22T21:33:29.2045144Z 2025/08/22 21:26:07 Once mode: waiting for completion - 10 queued, 3 processing, 47/60 handled (processed: 47, failed: 0)
+2025-08-22T21:33:29.2051916Z 2025/08/22 21:26:07 Once mode: waiting for completion - 9 queued, 3 processing, 48/60 handled (processed: 48, failed: 0)
+2025-08-22T21:33:29.2057774Z 2025/08/22 21:26:07 Once mode: waiting for completion - 8 queued, 3 processing, 49/60 handled (processed: 49, failed: 0)
+2025-08-22T21:33:29.2059977Z 2025/08/22 21:26:08 Once mode: waiting for completion - 8 queued, 3 processing, 49/60 handled (processed: 49, failed: 0)
+2025-08-22T21:33:29.2067736Z 2025/08/22 21:26:08 Once mode: waiting for completion - 7 queued, 3 processing, 50/60 handled (processed: 50, failed: 0)
+2025-08-22T21:33:29.2074299Z 2025/08/22 21:26:08 Once mode: waiting for completion - 6 queued, 3 processing, 51/60 handled (processed: 51, failed: 0)
+2025-08-22T21:33:29.2080826Z 2025/08/22 21:26:08 Once mode: waiting for completion - 5 queued, 3 processing, 52/60 handled (processed: 52, failed: 0)
+2025-08-22T21:33:29.2085755Z 2025/08/22 21:26:08 Once mode: waiting for completion - 4 queued, 3 processing, 53/60 handled (processed: 53, failed: 0)
+2025-08-22T21:33:29.2092734Z 2025/08/22 21:26:08 Once mode: waiting for completion - 3 queued, 3 processing, 54/60 handled (processed: 54, failed: 0)
+2025-08-22T21:33:29.2095631Z 2025/08/22 21:26:08 Once mode: waiting for completion - 3 queued, 3 processing, 54/60 handled (processed: 54, failed: 0)
+2025-08-22T21:33:29.2102770Z 2025/08/22 21:26:08 Once mode: waiting for completion - 2 queued, 3 processing, 55/60 handled (processed: 55, failed: 0)
+2025-08-22T21:33:29.2109532Z 2025/08/22 21:26:08 Once mode: waiting for completion - 1 queued, 3 processing, 56/60 handled (processed: 56, failed: 0)
+2025-08-22T21:33:29.2116179Z 2025/08/22 21:26:09 Once mode: waiting for completion - 0 queued, 3 processing, 57/60 handled (processed: 57, failed: 0)
+2025-08-22T21:33:29.2119713Z 2025/08/22 21:26:09 Once mode: waiting for completion - 0 queued, 2 processing, 58/60 handled (processed: 58, failed: 0)
+2025-08-22T21:33:29.2123592Z 2025/08/22 21:26:09 Once mode: waiting for completion - 0 queued, 1 processing, 59/60 handled (processed: 59, failed: 0)
+2025-08-22T21:33:29.2127110Z 2025/08/22 21:26:09 Once mode: waiting for completion - 0 queued, 1 processing, 59/60 handled (processed: 59, failed: 0)
+2025-08-22T21:33:29.2129524Z 2025/08/22 21:26:09 Queue drained and all 60 expected files handled in once mode (processed: 60, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.2152859Z 2025/08/22 21:26:11 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.2153707Z 2025/08/22 21:26:11 LOOP:ERROR - Worker 0: JSON validation failed for intent-test.json: JSON bomb detected: invalid character '{'
+2025-08-22T21:33:29.2155938Z 2025/08/22 21:26:11 Moved file C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationmalformed_JSON2059786888\001\handoff\intent-test.json to C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationmalformed_JSON2059786888\001\handoff\failed\intent-test.json
+2025-08-22T21:33:29.2156529Z 2025/08/22 21:26:11 Created error log: C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationmalformed_JSON2059786888\001\handoff\failed\intent-test.json.error.log
+2025-08-22T21:33:29.2157422Z 2025/08/22 21:26:11 Queue drained and all 1 expected files handled in once mode (processed: 0, failed: 1), proceeding with shutdown
+2025-08-22T21:33:29.2171638Z 2025/08/22 21:26:13 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.2172552Z 2025/08/22 21:26:13 LOOP:ERROR - Worker 0: JSON validation failed for intent-test.json: intent validation failed: missing or null required field: target
+2025-08-22T21:33:29.2174779Z 2025/08/22 21:26:13 Moved file C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationmissing_required_fields2748778953\001\handoff\intent-test.json to C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationmissing_required_fields2748778953\001\handoff\failed\intent-test.json
+2025-08-22T21:33:29.2175510Z 2025/08/22 21:26:13 Created error log: C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationmissing_required_fields2748778953\001\handoff\failed\intent-test.json.error.log
+2025-08-22T21:33:29.2175948Z 2025/08/22 21:26:14 Queue drained and all 1 expected files handled in once mode (processed: 0, failed: 1), proceeding with shutdown
+2025-08-22T21:33:29.2191352Z 2025/08/22 21:26:16 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.2192229Z 2025/08/22 21:26:16 LOOP:ERROR - Worker 0: JSON validation failed for intent-test.json: intent validation failed: intent_type 'invalid' is not supported (supported: scaling, deployment, service)
+2025-08-22T21:33:29.2194976Z 2025/08/22 21:26:16 Moved file C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationinvalid_intent_type926710760\001\handoff\intent-test.json to C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationinvalid_intent_type926710760\001\handoff\failed\intent-test.json
+2025-08-22T21:33:29.2195755Z 2025/08/22 21:26:16 Created error log: C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationinvalid_intent_type926710760\001\handoff\failed\intent-test.json.error.log
+2025-08-22T21:33:29.2196238Z 2025/08/22 21:26:16 Queue drained and all 1 expected files handled in once mode (processed: 0, failed: 1), proceeding with shutdown
+2025-08-22T21:33:29.2210450Z 2025/08/22 21:26:18 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.2211603Z 2025/08/22 21:26:18 LOOP:ERROR - Worker 0: JSON validation failed for intent-test.json: intent validation failed: replicas must be an integer between 1 and 100
+2025-08-22T21:33:29.2213998Z 2025/08/22 21:26:18 Moved file C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationnegative_replicas1259917339\001\handoff\intent-test.json to C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationnegative_replicas1259917339\001\handoff\failed\intent-test.json
+2025-08-22T21:33:29.2214854Z 2025/08/22 21:26:18 Created error log: C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationnegative_replicas1259917339\001\handoff\failed\intent-test.json.error.log
+2025-08-22T21:33:29.2215403Z 2025/08/22 21:26:18 Queue drained and all 1 expected files handled in once mode (processed: 0, failed: 1), proceeding with shutdown
+2025-08-22T21:33:29.2227958Z 2025/08/22 21:26:20 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.2228780Z 2025/08/22 21:26:20 LOOP:ERROR - Worker 0: JSON validation failed for intent-test.json: intent validation failed: replicas must be an integer between 1 and 100
+2025-08-22T21:33:29.2231728Z 2025/08/22 21:26:20 Moved file C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationextremely_large_replicas3986788809\001\handoff\intent-test.json to C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationextremely_large_replicas3986788809\001\handoff\failed\intent-test.json
+2025-08-22T21:33:29.2233016Z 2025/08/22 21:26:20 Created error log: C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationextremely_large_replicas3986788809\001\handoff\failed\intent-test.json.error.log
+2025-08-22T21:33:29.2233678Z 2025/08/22 21:26:20 Queue drained and all 1 expected files handled in once mode (processed: 0, failed: 1), proceeding with shutdown
+2025-08-22T21:33:29.2240687Z 2025/08/22 21:26:23 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.2241471Z 2025/08/22 21:26:23 LOOP:ERROR - Worker 0: JSON validation failed for intent-test.json: intent validation failed: missing or null required field: intent_type
+2025-08-22T21:33:29.2244163Z 2025/08/22 21:26:23 Moved file C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationnull_values2938949652\001\handoff\intent-test.json to C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationnull_values2938949652\001\handoff\failed\intent-test.json
+2025-08-22T21:33:29.2245279Z 2025/08/22 21:26:23 Created error log: C:\Users\RUNNER~1\AppData\Local\Temp\TestInputValidationnull_values2938949652\001\handoff\failed\intent-test.json.error.log
+2025-08-22T21:33:29.2245917Z 2025/08/22 21:26:23 Queue drained and all 1 expected files handled in once mode (processed: 0, failed: 1), proceeding with shutdown
+2025-08-22T21:33:29.2251869Z 2025/08/22 21:26:25 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.2258874Z 2025/08/22 21:26:25 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.2266004Z 2025/08/22 21:26:27 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.2272544Z 2025/08/22 21:26:27 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.2279319Z 2025/08/22 21:26:29 Once mode: waiting for completion - 0 queued, 1 processing, 0/1 handled (processed: 0, failed: 0)
+2025-08-22T21:33:29.2286375Z 2025/08/22 21:26:29 Queue drained and all 1 expected files handled in once mode (processed: 1, failed: 0), proceeding with shutdown
+2025-08-22T21:33:29.2626053Z FAIL
+2025-08-22T21:33:29.2626387Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop	103.351s
 
 ---- tail context ----
-2025-08-22T21:00:33.8781690Z SHA256 digest of uploaded artifact zip is b2d2b1c06fed78cc17e591432b62343ce6cc2e3dd643fbeb623884a1c4dac35e
-2025-08-22T21:00:33.8783531Z Finalizing artifact upload
-2025-08-22T21:00:33.9791115Z Artifact test-results-ubuntu-latest-17165841383.zip successfully finalized. Artifact ID 3832015916
-2025-08-22T21:00:33.9792790Z Artifact test-results-ubuntu-latest-17165841383 has been successfully uploaded! Final size is 1434 bytes. Artifact ID is 3832015916
-2025-08-22T21:00:33.9799155Z Artifact download URL: https://github.com/thc1006/nephoran-intent-operator/actions/runs/17165841383/artifacts/3832015916
-﻿2025-08-22T21:00:33.9948469Z Post job cleanup.
-2025-08-22T21:00:34.1563674Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOMODCACHE
-2025-08-22T21:00:34.1605597Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOCACHE
-2025-08-22T21:00:34.1630234Z /home/runner/go/pkg/mod
-2025-08-22T21:00:34.1658459Z /home/runner/.cache/go-build
-2025-08-22T21:00:34.1665006Z Cache hit occurred on the primary key setup-go-Linux-x64-ubuntu24-go-1.24.6-583fed57d4cf4dd6f943285f723932abe219c2045356bcefc416fcf717aeff8b, not saving cache.
-﻿2025-08-22T21:00:34.1776935Z Post job cleanup.
-2025-08-22T21:00:34.2731918Z [command]/usr/bin/git version
-2025-08-22T21:00:34.2768736Z git version 2.51.0
-2025-08-22T21:00:34.2820846Z Temporarily overriding HOME='/home/runner/work/_temp/7c4cb746-7d5a-4a04-9ad0-87752166613b' before making global git config changes
-2025-08-22T21:00:34.2822168Z Adding repository directory to the temporary git global config as a safe directory
-2025-08-22T21:00:34.2827289Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
-2025-08-22T21:00:34.2863082Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
-2025-08-22T21:00:34.2896549Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
-2025-08-22T21:00:34.3133037Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
-2025-08-22T21:00:34.3155671Z http.https://github.com/.extraheader
-2025-08-22T21:00:34.3169129Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
-2025-08-22T21:00:34.3201248Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
-﻿2025-08-22T21:00:34.3538515Z Cleaning up orphan processes
-﻿2025-08-22T21:12:32.8167872Z Current runner version: '2.328.0'
-2025-08-22T21:12:32.8192900Z ##[group]Runner Image Provisioner
-2025-08-22T21:12:32.8194476Z Hosted Compute Agent
-2025-08-22T21:12:32.8195486Z Version: 20250818.377
-2025-08-22T21:12:32.8196499Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
-2025-08-22T21:12:32.8197943Z Build Date: 2025-08-18T14:52:18Z
-2025-08-22T21:12:32.8198977Z ##[endgroup]
-2025-08-22T21:12:32.8199979Z ##[group]Operating System
-2025-08-22T21:12:32.8200918Z Ubuntu
-2025-08-22T21:12:32.8201789Z 24.04.2
-2025-08-22T21:12:32.8202455Z LTS
-2025-08-22T21:12:32.8203171Z ##[endgroup]
-2025-08-22T21:12:32.8204237Z ##[group]Runner Image
-2025-08-22T21:12:32.8205187Z Image: ubuntu-24.04
-2025-08-22T21:12:32.8206058Z Version: 20250818.1.0
-2025-08-22T21:12:32.8207412Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250818.1/images/ubuntu/Ubuntu2404-Readme.md
-2025-08-22T21:12:32.8209014Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250818.1
-2025-08-22T21:12:32.8210008Z ##[endgroup]
-2025-08-22T21:12:32.8211172Z ##[group]GITHUB_TOKEN Permissions
-2025-08-22T21:12:32.8213338Z Contents: read
-2025-08-22T21:12:32.8214136Z Metadata: read
-2025-08-22T21:12:32.8214665Z Packages: write
-2025-08-22T21:12:32.8215190Z SecurityEvents: write
-2025-08-22T21:12:32.8215728Z ##[endgroup]
-2025-08-22T21:12:32.8217846Z Secret source: Actions
-2025-08-22T21:12:32.8218642Z Prepare workflow directory
-2025-08-22T21:12:32.8606320Z Prepare all required actions
-2025-08-22T21:12:32.8660368Z Complete job name: CI Status Check
-2025-08-22T21:12:32.9405024Z ##[group]Run echo "Test: cancelled"
-2025-08-22T21:12:32.9405795Z [36;1mecho "Test: cancelled"[0m
-2025-08-22T21:12:32.9406421Z [36;1mecho "Build: cancelled"[0m
-2025-08-22T21:12:32.9407039Z [36;1mecho "Security: cancelled"[0m
-2025-08-22T21:12:32.9407704Z [36;1mecho "Docker: cancelled"[0m
-2025-08-22T21:12:32.9408470Z [36;1m[0m
-2025-08-22T21:12:32.9408993Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
-2025-08-22T21:12:32.9409607Z [36;1m  echo "❌ Tests failed"[0m
-2025-08-22T21:12:32.9410248Z [36;1m  exit 1[0m
-2025-08-22T21:12:32.9410738Z [36;1mfi[0m
-2025-08-22T21:12:32.9411144Z [36;1m[0m
-2025-08-22T21:12:32.9411729Z [36;1m# Treat skipped as neutral for Build[0m
-2025-08-22T21:12:32.9412486Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T21:12:32.9413245Z [36;1m  echo "❌ Build failed"[0m
-2025-08-22T21:12:32.9413951Z [36;1m  exit 1[0m
-2025-08-22T21:12:32.9414532Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
-2025-08-22T21:12:32.9415258Z [36;1m  echo "⏭️ Build skipped (neutral)"[0m
-2025-08-22T21:12:32.9415974Z [36;1mfi[0m
-2025-08-22T21:12:32.9416391Z [36;1m[0m
-2025-08-22T21:12:32.9416874Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
-2025-08-22T21:12:32.9417665Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
-2025-08-22T21:12:32.9418292Z [36;1mfi[0m
-2025-08-22T21:12:32.9418771Z [36;1m[0m
-2025-08-22T21:12:32.9419283Z [36;1m# Treat skipped as neutral for Docker[0m
-2025-08-22T21:12:32.9420069Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T21:12:32.9420782Z [36;1m  echo "❌ Docker build failed"[0m
-2025-08-22T21:12:32.9421441Z [36;1m  exit 1[0m
-2025-08-22T21:12:32.9421988Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
-2025-08-22T21:12:32.9422641Z [36;1m  echo "⏭️ Docker build skipped (neutral)"[0m
-2025-08-22T21:12:32.9423363Z [36;1mfi[0m
-2025-08-22T21:12:32.9423904Z [36;1m[0m
-2025-08-22T21:12:32.9424444Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
-2025-08-22T21:12:32.9678079Z shell: /usr/bin/bash -e {0}
-2025-08-22T21:12:32.9678965Z env:
-2025-08-22T21:12:32.9679421Z   REGISTRY: ghcr.io
-2025-08-22T21:12:32.9680006Z   IMAGE_NAME: conductor-loop
-2025-08-22T21:12:32.9680564Z   GO_VERSION: 1.24.x
-2025-08-22T21:12:32.9681022Z ##[endgroup]
-2025-08-22T21:12:33.0055609Z Test: cancelled
-2025-08-22T21:12:33.0056404Z Build: cancelled
-2025-08-22T21:12:33.0057118Z Security: cancelled
-2025-08-22T21:12:33.0058348Z Docker: cancelled
-2025-08-22T21:12:33.0153168Z ❌ Tests failed
-2025-08-22T21:12:33.0171524Z ##[error]Process completed with exit code 1.
-2025-08-22T21:12:33.0284526Z ##[group]Run echo "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY
-2025-08-22T21:12:33.0286028Z [36;1mecho "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0287177Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0288218Z [36;1mecho "| Job | Status |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0289322Z [36;1mecho "|-----|--------|" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0290439Z [36;1mecho "| 🧪 Test | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0291648Z [36;1mecho "| 🔨 Build | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0292880Z [36;1mecho "| 🔒 Security | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0294406Z [36;1mecho "| 🐳 Docker | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0340067Z shell: /usr/bin/bash -e {0}
-2025-08-22T21:12:33.0340557Z env:
-2025-08-22T21:12:33.0340912Z   REGISTRY: ghcr.io
-2025-08-22T21:12:33.0341362Z   IMAGE_NAME: conductor-loop
-2025-08-22T21:12:33.0341808Z   GO_VERSION: 1.24.x
-2025-08-22T21:12:33.0342214Z ##[endgroup]
-2025-08-22T21:12:33.0479069Z Cleaning up orphan processes
-﻿2025-08-22T21:12:32.8167019Z Current runner version: '2.328.0'
-2025-08-22T21:12:32.8192873Z ##[group]Runner Image Provisioner
-2025-08-22T21:12:32.8194453Z Hosted Compute Agent
-2025-08-22T21:12:32.8195469Z Version: 20250818.377
-2025-08-22T21:12:32.8196484Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
-2025-08-22T21:12:32.8197918Z Build Date: 2025-08-18T14:52:18Z
-2025-08-22T21:12:32.8198964Z ##[endgroup]
-2025-08-22T21:12:32.8199959Z ##[group]Operating System
-2025-08-22T21:12:32.8200901Z Ubuntu
-2025-08-22T21:12:32.8201776Z 24.04.2
-2025-08-22T21:12:32.8202449Z LTS
-2025-08-22T21:12:32.8203162Z ##[endgroup]
-2025-08-22T21:12:32.8204219Z ##[group]Runner Image
-2025-08-22T21:12:32.8205173Z Image: ubuntu-24.04
-2025-08-22T21:12:32.8206046Z Version: 20250818.1.0
-2025-08-22T21:12:32.8207403Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250818.1/images/ubuntu/Ubuntu2404-Readme.md
-2025-08-22T21:12:32.8208793Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250818.1
-2025-08-22T21:12:32.8210004Z ##[endgroup]
-2025-08-22T21:12:32.8211168Z ##[group]GITHUB_TOKEN Permissions
-2025-08-22T21:12:32.8213319Z Contents: read
-2025-08-22T21:12:32.8214130Z Metadata: read
-2025-08-22T21:12:32.8214661Z Packages: write
-2025-08-22T21:12:32.8215187Z SecurityEvents: write
-2025-08-22T21:12:32.8215725Z ##[endgroup]
-2025-08-22T21:12:32.8217827Z Secret source: Actions
-2025-08-22T21:12:32.8218636Z Prepare workflow directory
-2025-08-22T21:12:32.8606279Z Prepare all required actions
-2025-08-22T21:12:32.8660349Z Complete job name: CI Status Check
-﻿2025-08-22T21:12:32.9404995Z ##[group]Run echo "Test: cancelled"
-2025-08-22T21:12:32.9405790Z [36;1mecho "Test: cancelled"[0m
-2025-08-22T21:12:32.9406418Z [36;1mecho "Build: cancelled"[0m
-2025-08-22T21:12:32.9407036Z [36;1mecho "Security: cancelled"[0m
-2025-08-22T21:12:32.9407701Z [36;1mecho "Docker: cancelled"[0m
-2025-08-22T21:12:32.9408465Z [36;1m[0m
-2025-08-22T21:12:32.9408990Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
-2025-08-22T21:12:32.9409602Z [36;1m  echo "❌ Tests failed"[0m
-2025-08-22T21:12:32.9410244Z [36;1m  exit 1[0m
-2025-08-22T21:12:32.9410695Z [36;1mfi[0m
-2025-08-22T21:12:32.9411140Z [36;1m[0m
-2025-08-22T21:12:32.9411725Z [36;1m# Treat skipped as neutral for Build[0m
-2025-08-22T21:12:32.9412482Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T21:12:32.9413241Z [36;1m  echo "❌ Build failed"[0m
-2025-08-22T21:12:32.9413946Z [36;1m  exit 1[0m
-2025-08-22T21:12:32.9414528Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
-2025-08-22T21:12:32.9415172Z [36;1m  echo "⏭️ Build skipped (neutral)"[0m
-2025-08-22T21:12:32.9415971Z [36;1mfi[0m
-2025-08-22T21:12:32.9416388Z [36;1m[0m
-2025-08-22T21:12:32.9416871Z [36;1mif [[ "cancelled" != "success" ]]; then[0m
-2025-08-22T21:12:32.9417660Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
-2025-08-22T21:12:32.9418289Z [36;1mfi[0m
-2025-08-22T21:12:32.9418768Z [36;1m[0m
-2025-08-22T21:12:32.9419279Z [36;1m# Treat skipped as neutral for Docker[0m
-2025-08-22T21:12:32.9420065Z [36;1mif [[ "cancelled" == "failure" || "cancelled" == "cancelled" ]]; then[0m
-2025-08-22T21:12:32.9420779Z [36;1m  echo "❌ Docker build failed"[0m
-2025-08-22T21:12:32.9421438Z [36;1m  exit 1[0m
-2025-08-22T21:12:32.9421985Z [36;1melif [[ "cancelled" == "skipped" ]]; then[0m
-2025-08-22T21:12:32.9422637Z [36;1m  echo "⏭️ Docker build skipped (neutral)"[0m
-2025-08-22T21:12:32.9423360Z [36;1mfi[0m
-2025-08-22T21:12:32.9423900Z [36;1m[0m
-2025-08-22T21:12:32.9424431Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
-2025-08-22T21:12:32.9678053Z shell: /usr/bin/bash -e {0}
-2025-08-22T21:12:32.9678955Z env:
-2025-08-22T21:12:32.9679418Z   REGISTRY: ghcr.io
-2025-08-22T21:12:32.9680003Z   IMAGE_NAME: conductor-loop
-2025-08-22T21:12:32.9680560Z   GO_VERSION: 1.24.x
-2025-08-22T21:12:32.9681019Z ##[endgroup]
-2025-08-22T21:12:33.0055565Z Test: cancelled
-2025-08-22T21:12:33.0056387Z Build: cancelled
-2025-08-22T21:12:33.0057103Z Security: cancelled
-2025-08-22T21:12:33.0058332Z Docker: cancelled
-2025-08-22T21:12:33.0153119Z ❌ Tests failed
-2025-08-22T21:12:33.0171498Z ##[error]Process completed with exit code 1.
-﻿2025-08-22T21:12:33.0284501Z ##[group]Run echo "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY
-2025-08-22T21:12:33.0286012Z [36;1mecho "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0287163Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0288200Z [36;1mecho "| Job | Status |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0289314Z [36;1mecho "|-----|--------|" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0290430Z [36;1mecho "| 🧪 Test | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0291639Z [36;1mecho "| 🔨 Build | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0292871Z [36;1mecho "| 🔒 Security | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0294364Z [36;1mecho "| 🐳 Docker | cancelled |" >> $GITHUB_STEP_SUMMARY[0m
-2025-08-22T21:12:33.0340054Z shell: /usr/bin/bash -e {0}
-2025-08-22T21:12:33.0340553Z env:
-2025-08-22T21:12:33.0340908Z   REGISTRY: ghcr.io
-2025-08-22T21:12:33.0341323Z   IMAGE_NAME: conductor-loop
-2025-08-22T21:12:33.0341805Z   GO_VERSION: 1.24.x
-2025-08-22T21:12:33.0342211Z ##[endgroup]
-﻿2025-08-22T21:12:33.0479050Z Cleaning up orphan processes
+2025-08-22T21:13:45.8980750Z SHA256 digest of uploaded artifact zip is aa61db050578b363d18b222f74c28dc88d1ca22d4de42ede50883cf15b153c60
+2025-08-22T21:13:45.8981970Z Finalizing artifact upload
+2025-08-22T21:13:46.0019149Z Artifact test-results-ubuntu-latest-17166096282.zip successfully finalized. Artifact ID 3832097336
+2025-08-22T21:13:46.0020841Z Artifact test-results-ubuntu-latest-17166096282 has been successfully uploaded! Final size is 1434 bytes. Artifact ID is 3832097336
+2025-08-22T21:13:46.0026784Z Artifact download URL: https://github.com/thc1006/nephoran-intent-operator/actions/runs/17166096282/artifacts/3832097336
+﻿2025-08-22T21:13:46.0163838Z Post job cleanup.
+2025-08-22T21:13:46.1722353Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOMODCACHE
+2025-08-22T21:13:46.1761500Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOCACHE
+2025-08-22T21:13:46.1786726Z /home/runner/go/pkg/mod
+2025-08-22T21:13:46.1816571Z /home/runner/.cache/go-build
+2025-08-22T21:13:46.1822369Z Cache hit occurred on the primary key setup-go-Linux-x64-ubuntu24-go-1.24.6-583fed57d4cf4dd6f943285f723932abe219c2045356bcefc416fcf717aeff8b, not saving cache.
+﻿2025-08-22T21:13:46.1929613Z Post job cleanup.
+2025-08-22T21:13:46.2923177Z [command]/usr/bin/git version
+2025-08-22T21:13:46.2963637Z git version 2.51.0
+2025-08-22T21:13:46.3015461Z Temporarily overriding HOME='/home/runner/work/_temp/570d4ae7-b5f8-4879-892f-0170e826a210' before making global git config changes
+2025-08-22T21:13:46.3017096Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-22T21:13:46.3020363Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-22T21:13:46.3055686Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-22T21:13:46.3088023Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-22T21:13:46.3340209Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-22T21:13:46.3361912Z http.https://github.com/.extraheader
+2025-08-22T21:13:46.3374921Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-08-22T21:13:46.3404897Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+﻿2025-08-22T21:13:46.3736318Z Cleaning up orphan processes
+﻿2025-08-22T21:33:40.2555474Z Current runner version: '2.328.0'
+2025-08-22T21:33:40.2581029Z ##[group]Runner Image Provisioner
+2025-08-22T21:33:40.2581972Z Hosted Compute Agent
+2025-08-22T21:33:40.2582631Z Version: 20250821.380
+2025-08-22T21:33:40.2583265Z Commit: 438d12cb4fe092871db9867344e3bc0bc5319035
+2025-08-22T21:33:40.2584069Z Build Date: 2025-08-21T20:49:43Z
+2025-08-22T21:33:40.2584751Z ##[endgroup]
+2025-08-22T21:33:40.2585355Z ##[group]Operating System
+2025-08-22T21:33:40.2586015Z Ubuntu
+2025-08-22T21:33:40.2586551Z 24.04.2
+2025-08-22T21:33:40.2587079Z LTS
+2025-08-22T21:33:40.2587552Z ##[endgroup]
+2025-08-22T21:33:40.2588168Z ##[group]Runner Image
+2025-08-22T21:33:40.2588742Z Image: ubuntu-24.04
+2025-08-22T21:33:40.2589341Z Version: 20250818.1.0
+2025-08-22T21:33:40.2590788Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250818.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-22T21:33:40.2592396Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250818.1
+2025-08-22T21:33:40.2593499Z ##[endgroup]
+2025-08-22T21:33:40.2594779Z ##[group]GITHUB_TOKEN Permissions
+2025-08-22T21:33:40.2596937Z Contents: read
+2025-08-22T21:33:40.2597573Z Metadata: read
+2025-08-22T21:33:40.2598128Z Packages: write
+2025-08-22T21:33:40.2598792Z SecurityEvents: write
+2025-08-22T21:33:40.2599362Z ##[endgroup]
+2025-08-22T21:33:40.2601739Z Secret source: Actions
+2025-08-22T21:33:40.2602628Z Prepare workflow directory
+2025-08-22T21:33:40.2991987Z Prepare all required actions
+2025-08-22T21:33:40.3045583Z Complete job name: CI Status Check
+2025-08-22T21:33:40.3777247Z ##[group]Run echo "Test: failure"
+2025-08-22T21:33:40.3777973Z [36;1mecho "Test: failure"[0m
+2025-08-22T21:33:40.3778657Z [36;1mecho "Build: skipped"[0m
+2025-08-22T21:33:40.3779207Z [36;1mecho "Security: skipped"[0m
+2025-08-22T21:33:40.3779796Z [36;1mecho "Docker: skipped"[0m
+2025-08-22T21:33:40.3780965Z [36;1m[0m
+2025-08-22T21:33:40.3781539Z [36;1mif [[ "failure" != "success" ]]; then[0m
+2025-08-22T21:33:40.3782227Z [36;1m  echo "❌ Tests failed"[0m
+2025-08-22T21:33:40.3782812Z [36;1m  exit 1[0m
+2025-08-22T21:33:40.3783281Z [36;1mfi[0m
+2025-08-22T21:33:40.3783675Z [36;1m[0m
+2025-08-22T21:33:40.3784272Z [36;1m# Treat skipped as neutral for Build[0m
+2025-08-22T21:33:40.3785009Z [36;1mif [[ "skipped" == "failure" || "skipped" == "cancelled" ]]; then[0m
+2025-08-22T21:33:40.3785734Z [36;1m  echo "❌ Build failed"[0m
+2025-08-22T21:33:40.3786321Z [36;1m  exit 1[0m
+2025-08-22T21:33:40.3786858Z [36;1melif [[ "skipped" == "skipped" ]]; then[0m
+2025-08-22T21:33:40.3787616Z [36;1m  echo "⏭️ Build skipped (neutral)"[0m
+2025-08-22T21:33:40.3788272Z [36;1mfi[0m
+2025-08-22T21:33:40.3788690Z [36;1m[0m
+2025-08-22T21:33:40.3789209Z [36;1mif [[ "skipped" != "success" ]]; then[0m
+2025-08-22T21:33:40.3790072Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
+2025-08-22T21:33:40.3790719Z [36;1mfi[0m
+2025-08-22T21:33:40.3791204Z [36;1m[0m
+2025-08-22T21:33:40.3791711Z [36;1m# Treat skipped as neutral for Docker[0m
+2025-08-22T21:33:40.3792496Z [36;1mif [[ "skipped" == "failure" || "skipped" == "cancelled" ]]; then[0m
+2025-08-22T21:33:40.3793189Z [36;1m  echo "❌ Docker build failed"[0m
+2025-08-22T21:33:40.3793846Z [36;1m  exit 1[0m
+2025-08-22T21:33:40.3794393Z [36;1melif [[ "skipped" == "skipped" ]]; then[0m
+2025-08-22T21:33:40.3795067Z [36;1m  echo "⏭️ Docker build skipped (neutral)"[0m
+2025-08-22T21:33:40.3795733Z [36;1mfi[0m
+2025-08-22T21:33:40.3796141Z [36;1m[0m
+2025-08-22T21:33:40.3796702Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
+2025-08-22T21:33:40.6950188Z shell: /usr/bin/bash -e {0}
+2025-08-22T21:33:40.6951200Z env:
+2025-08-22T21:33:40.6951636Z   REGISTRY: ghcr.io
+2025-08-22T21:33:40.6952114Z   IMAGE_NAME: conductor-loop
+2025-08-22T21:33:40.6952617Z   GO_VERSION: 1.24.x
+2025-08-22T21:33:40.6953066Z ##[endgroup]
+2025-08-22T21:33:40.7148440Z Test: failure
+2025-08-22T21:33:40.7149317Z Build: skipped
+2025-08-22T21:33:40.7150362Z Security: skipped
+2025-08-22T21:33:40.7151135Z Docker: skipped
+2025-08-22T21:33:40.7316007Z ❌ Tests failed
+2025-08-22T21:33:40.7333512Z ##[error]Process completed with exit code 1.
+2025-08-22T21:33:40.7440215Z ##[group]Run echo "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY
+2025-08-22T21:33:40.7441230Z [36;1mecho "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7441959Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7442604Z [36;1mecho "| Job | Status |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7443269Z [36;1mecho "|-----|--------|" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7443977Z [36;1mecho "| 🧪 Test | failure |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7444714Z [36;1mecho "| 🔨 Build | skipped |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7445489Z [36;1mecho "| 🔒 Security | skipped |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7446251Z [36;1mecho "| 🐳 Docker | skipped |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7487132Z shell: /usr/bin/bash -e {0}
+2025-08-22T21:33:40.7487669Z env:
+2025-08-22T21:33:40.7488057Z   REGISTRY: ghcr.io
+2025-08-22T21:33:40.7488548Z   IMAGE_NAME: conductor-loop
+2025-08-22T21:33:40.7489036Z   GO_VERSION: 1.24.x
+2025-08-22T21:33:40.7489470Z ##[endgroup]
+2025-08-22T21:33:40.7655312Z Cleaning up orphan processes
+﻿2025-08-22T21:33:40.2554560Z Current runner version: '2.328.0'
+2025-08-22T21:33:40.2581004Z ##[group]Runner Image Provisioner
+2025-08-22T21:33:40.2581966Z Hosted Compute Agent
+2025-08-22T21:33:40.2582627Z Version: 20250821.380
+2025-08-22T21:33:40.2583261Z Commit: 438d12cb4fe092871db9867344e3bc0bc5319035
+2025-08-22T21:33:40.2584065Z Build Date: 2025-08-21T20:49:43Z
+2025-08-22T21:33:40.2584748Z ##[endgroup]
+2025-08-22T21:33:40.2585351Z ##[group]Operating System
+2025-08-22T21:33:40.2586011Z Ubuntu
+2025-08-22T21:33:40.2586548Z 24.04.2
+2025-08-22T21:33:40.2587076Z LTS
+2025-08-22T21:33:40.2587549Z ##[endgroup]
+2025-08-22T21:33:40.2588165Z ##[group]Runner Image
+2025-08-22T21:33:40.2588739Z Image: ubuntu-24.04
+2025-08-22T21:33:40.2589338Z Version: 20250818.1.0
+2025-08-22T21:33:40.2590777Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250818.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-22T21:33:40.2592200Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250818.1
+2025-08-22T21:33:40.2593494Z ##[endgroup]
+2025-08-22T21:33:40.2594774Z ##[group]GITHUB_TOKEN Permissions
+2025-08-22T21:33:40.2596917Z Contents: read
+2025-08-22T21:33:40.2597569Z Metadata: read
+2025-08-22T21:33:40.2598124Z Packages: write
+2025-08-22T21:33:40.2598788Z SecurityEvents: write
+2025-08-22T21:33:40.2599359Z ##[endgroup]
+2025-08-22T21:33:40.2601720Z Secret source: Actions
+2025-08-22T21:33:40.2602623Z Prepare workflow directory
+2025-08-22T21:33:40.2991958Z Prepare all required actions
+2025-08-22T21:33:40.3045563Z Complete job name: CI Status Check
+﻿2025-08-22T21:33:40.3777220Z ##[group]Run echo "Test: failure"
+2025-08-22T21:33:40.3777967Z [36;1mecho "Test: failure"[0m
+2025-08-22T21:33:40.3778617Z [36;1mecho "Build: skipped"[0m
+2025-08-22T21:33:40.3779203Z [36;1mecho "Security: skipped"[0m
+2025-08-22T21:33:40.3779792Z [36;1mecho "Docker: skipped"[0m
+2025-08-22T21:33:40.3780955Z [36;1m[0m
+2025-08-22T21:33:40.3781535Z [36;1mif [[ "failure" != "success" ]]; then[0m
+2025-08-22T21:33:40.3782128Z [36;1m  echo "❌ Tests failed"[0m
+2025-08-22T21:33:40.3782808Z [36;1m  exit 1[0m
+2025-08-22T21:33:40.3783277Z [36;1mfi[0m
+2025-08-22T21:33:40.3783671Z [36;1m[0m
+2025-08-22T21:33:40.3784267Z [36;1m# Treat skipped as neutral for Build[0m
+2025-08-22T21:33:40.3785005Z [36;1mif [[ "skipped" == "failure" || "skipped" == "cancelled" ]]; then[0m
+2025-08-22T21:33:40.3785729Z [36;1m  echo "❌ Build failed"[0m
+2025-08-22T21:33:40.3786317Z [36;1m  exit 1[0m
+2025-08-22T21:33:40.3786855Z [36;1melif [[ "skipped" == "skipped" ]]; then[0m
+2025-08-22T21:33:40.3787507Z [36;1m  echo "⏭️ Build skipped (neutral)"[0m
+2025-08-22T21:33:40.3788268Z [36;1mfi[0m
+2025-08-22T21:33:40.3788687Z [36;1m[0m
+2025-08-22T21:33:40.3789205Z [36;1mif [[ "skipped" != "success" ]]; then[0m
+2025-08-22T21:33:40.3790067Z [36;1m  echo "⚠️  Security scan had issues (non-blocking)"[0m
+2025-08-22T21:33:40.3790715Z [36;1mfi[0m
+2025-08-22T21:33:40.3791200Z [36;1m[0m
+2025-08-22T21:33:40.3791707Z [36;1m# Treat skipped as neutral for Docker[0m
+2025-08-22T21:33:40.3792492Z [36;1mif [[ "skipped" == "failure" || "skipped" == "cancelled" ]]; then[0m
+2025-08-22T21:33:40.3793185Z [36;1m  echo "❌ Docker build failed"[0m
+2025-08-22T21:33:40.3793842Z [36;1m  exit 1[0m
+2025-08-22T21:33:40.3794389Z [36;1melif [[ "skipped" == "skipped" ]]; then[0m
+2025-08-22T21:33:40.3795062Z [36;1m  echo "⏭️ Docker build skipped (neutral)"[0m
+2025-08-22T21:33:40.3795730Z [36;1mfi[0m
+2025-08-22T21:33:40.3796137Z [36;1m[0m
+2025-08-22T21:33:40.3796685Z [36;1mecho "✅ Conductor Loop CI Pipeline Passed"[0m
+2025-08-22T21:33:40.6950145Z shell: /usr/bin/bash -e {0}
+2025-08-22T21:33:40.6951187Z env:
+2025-08-22T21:33:40.6951632Z   REGISTRY: ghcr.io
+2025-08-22T21:33:40.6952110Z   IMAGE_NAME: conductor-loop
+2025-08-22T21:33:40.6952614Z   GO_VERSION: 1.24.x
+2025-08-22T21:33:40.6953062Z ##[endgroup]
+2025-08-22T21:33:40.7148405Z Test: failure
+2025-08-22T21:33:40.7149295Z Build: skipped
+2025-08-22T21:33:40.7150343Z Security: skipped
+2025-08-22T21:33:40.7151123Z Docker: skipped
+2025-08-22T21:33:40.7315977Z ❌ Tests failed
+2025-08-22T21:33:40.7333485Z ##[error]Process completed with exit code 1.
+﻿2025-08-22T21:33:40.7440193Z ##[group]Run echo "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY
+2025-08-22T21:33:40.7441224Z [36;1mecho "## 🔄 Conductor Loop CI Results" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7441949Z [36;1mecho "" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7442599Z [36;1mecho "| Job | Status |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7443265Z [36;1mecho "|-----|--------|" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7443972Z [36;1mecho "| 🧪 Test | failure |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7444711Z [36;1mecho "| 🔨 Build | skipped |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7445484Z [36;1mecho "| 🔒 Security | skipped |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7446247Z [36;1mecho "| 🐳 Docker | skipped |" >> $GITHUB_STEP_SUMMARY[0m
+2025-08-22T21:33:40.7487119Z shell: /usr/bin/bash -e {0}
+2025-08-22T21:33:40.7487665Z env:
+2025-08-22T21:33:40.7488053Z   REGISTRY: ghcr.io
+2025-08-22T21:33:40.7488505Z   IMAGE_NAME: conductor-loop
+2025-08-22T21:33:40.7489031Z   GO_VERSION: 1.24.x
+2025-08-22T21:33:40.7489466Z ##[endgroup]
+﻿2025-08-22T21:33:40.7655280Z Cleaning up orphan processes
 
