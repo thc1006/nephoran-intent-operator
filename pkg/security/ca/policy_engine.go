@@ -20,7 +20,7 @@ import (
 
 // PolicyEngine enforces certificate security policies
 type PolicyEngine struct {
-	config           *PolicyConfig
+	config           *PolicyEngineConfig
 	logger           *logging.StructuredLogger
 	rules            map[string]PolicyRule
 	pinningStore     *CertificatePinningStore
@@ -30,8 +30,8 @@ type PolicyEngine struct {
 	mu               sync.RWMutex
 }
 
-// PolicyConfig configures the policy engine
-type PolicyConfig struct {
+// PolicyEngineConfig configures the policy engine
+type PolicyEngineConfig struct {
 	Enabled                   bool                      `yaml:"enabled"`
 	Rules                     []PolicyRule              `yaml:"rules"`
 	CertificatePinning        bool                      `yaml:"certificate_pinning"`
@@ -177,7 +177,7 @@ type PolicyMetrics struct {
 }
 
 // NewPolicyEngine creates a new policy engine
-func NewPolicyEngine(config *PolicyConfig, logger *logging.StructuredLogger) (*PolicyEngine, error) {
+func NewPolicyEngine(config *PolicyEngineConfig, logger *logging.StructuredLogger) (*PolicyEngine, error) {
 	if config == nil {
 		return nil, fmt.Errorf("policy config is required")
 	}

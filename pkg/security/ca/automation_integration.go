@@ -17,11 +17,11 @@ type AutomationIntegration struct {
 	logger           *logging.StructuredLogger
 	caManager        *CAManager
 	automationEngine *AutomationEngine
-	config           *IntegrationConfig
+	config           *AutomationIntegrationConfig
 }
 
-// IntegrationConfig configures the automation integration
-type IntegrationConfig struct {
+// AutomationIntegrationConfig configures the automation integration
+type AutomationIntegrationConfig struct {
 	// CA Manager configuration
 	CAManagerConfig *Config `yaml:"ca_manager"`
 
@@ -48,7 +48,7 @@ type IntegrationConfig struct {
 func NewAutomationIntegration(
 	mgr manager.Manager,
 	logger *logging.StructuredLogger,
-	config *IntegrationConfig,
+	config *AutomationIntegrationConfig,
 ) (*AutomationIntegration, error) {
 	if config == nil {
 		return nil, fmt.Errorf("integration config is required")

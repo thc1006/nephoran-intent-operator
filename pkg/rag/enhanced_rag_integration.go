@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"go.uber.org/zap"
 )
 
@@ -663,13 +664,9 @@ type VectorStore interface {
 	Delete(ctx context.Context, id string) error
 }
 
-// SearchResult represents a vector search result
-type SearchResult struct {
-	ID       string                 `json:"id"`
-	Score    float32                `json:"score"`
-	Metadata map[string]interface{} `json:"metadata"`
-	Document *TelecomDocument       `json:"document"`
-}
+// Type aliases for shared types
+type SearchResult = shared.SearchResult
+type TelecomDocument = shared.TelecomDocument
 
 // QueryOptions holds options for RAG queries
 type QueryOptions struct {

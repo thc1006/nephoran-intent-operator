@@ -10,8 +10,8 @@ import (
 )
 
 // Type aliases for compatibility with shared types
+// Note: SearchResult is handled in enhanced_rag_integration.go
 type TelecomDocument = shared.TelecomDocument
-// SearchResult is already defined in enhanced_rag_integration.go
 type SearchQuery = shared.SearchQuery
 
 // Additional types not available in shared package

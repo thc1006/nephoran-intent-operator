@@ -32,6 +32,12 @@ require (
 	// === CACHING ===
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 
+	// === NEPHIO/PORCH DEPENDENCIES ===
+	// Nephio API components (network intent APIs)
+	github.com/nephio-project/api v1.0.0
+	// Porch API and client (package management)
+	github.com/nephio-project/porch v1.5.2
+
 	// Prometheus for metrics
 	github.com/prometheus/client_golang v1.22.0
 
