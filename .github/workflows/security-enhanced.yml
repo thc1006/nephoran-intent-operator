@@ -281,7 +281,7 @@ jobs:
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: gitleaks-results.sarif
+          sarif_file: results.sarif
           category: gitleaks
           
       - name: "Run TruffleHog"
