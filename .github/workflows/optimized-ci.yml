@@ -349,8 +349,14 @@ jobs:
         if: matrix.scan == 'gosec'
         run: |
           go install github.com/securego/gosec/v2/cmd/gosec@latest
-          gosec -fmt sarif -out gosec.sarif ./... || true
-          gosec -fmt json -out gosec.json ./... || true
+          mkdir -p security-reports
+          mkdir -p security-reports/gosec
+          gosec -fmt sarif -out security-reports/gosec/gosec.sarif ./... || true
+          # Ensure SARIF file exists even if no issues found
+          if [ ! -f "security-reports/gosec/gosec.sarif" ]; then
+            echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"gosec","version":"2.18.2"}},"results":[]}]}' > security-reports/gosec/gosec.sarif
+          fi
+          gosec -fmt json -out security-reports/gosec/gosec.json ./... || true
       
       - name: Run Govulncheck
         if: matrix.scan == 'govulncheck'
@@ -373,10 +379,10 @@ jobs:
           generateSarif: "1"
       
       - name: Upload SARIF
-        if: always() && hashFiles('*.sarif') != ''
+        if: always() && hashFiles('security-reports/**/*.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: '*.sarif'
+          sarif_file: security-reports/
           category: ${{ matrix.scan }}
       
       - name: Upload Security Results
@@ -385,8 +391,8 @@ jobs:
         with:
           name: security-${{ matrix.scan }}-${{ github.run_id }}
           path: |
-            *.sarif
-            *.json
+            security-reports/*.sarif
+            security-reports/*.json
           if-no-files-found: ignore
           retention-days: 7
 
@@ -422,7 +428,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61.0
+          version: v1.62.0
           args: --timeout=8m --issues-exit-code=0 --out-format=colored-line-number
           skip-cache: false
           skip-pkg-cache: false

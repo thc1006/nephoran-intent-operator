@@ -127,19 +127,20 @@ jobs:
       if: matrix.scan-type == 'gosec'
       run: |
         go install github.com/securego/gosec/v2/cmd/gosec@v2.18.2
+        mkdir -p security-reports/gosec
         # Use shorter exclusion list and lower severity threshold
-        gosec -no-fail -exclude G104 -severity low -confidence medium -fmt sarif -out gosec-report.sarif ./cmd/conductor-loop ./internal/loop || echo "Gosec completed with warnings/errors"
+        gosec -no-fail -exclude G104 -severity low -confidence medium -fmt sarif -out security-reports/gosec/gosec.sarif ./cmd/conductor-loop ./internal/loop || echo "Gosec completed with warnings/errors"
         # Ensure SARIF file exists even if no issues found
-        if [ ! -f gosec-report.sarif ]; then
-          echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"gosec","version":"2.18.2"}},"results":[]}]}' > gosec-report.sarif
+        if [ ! -f security-reports/gosec/gosec.sarif ]; then
+          echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"gosec","version":"2.18.2"}},"results":[]}]}' > security-reports/gosec/gosec.sarif
         fi
       continue-on-error: true
         
     - name: Upload gosec SARIF
-      if: matrix.scan-type == 'gosec' && hashFiles('gosec-report.sarif') != ''
+      if: matrix.scan-type == 'gosec' && hashFiles('security-reports/gosec/gosec.sarif') != ''
       uses: github/codeql-action/upload-sarif@v3
       with:
-        sarif_file: gosec-report.sarif
+        sarif_file: security-reports/gosec/gosec.sarif
         category: gosec
         
     # Advanced Security Scanning with Semgrep - Fixed baseline branch configuration
@@ -294,7 +295,7 @@ jobs:
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.61.0
+        version: v1.62.0
         args: --timeout=10m --config=.golangci.yml --out-format=colored-line-number
         
     # Upload test results

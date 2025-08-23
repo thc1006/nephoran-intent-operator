@@ -23,9 +23,8 @@ prometheus-client==0.21.1  # Updated
 
 # Security
 cryptography>=44.0.1  # Critical security updates for OpenSSL
-python-jose[cryptography]>=3.4.0  # JWT handling - security fixes
-# Note: ecdsa transitive dependency has known timing attack (GHSA-wj6h-64fc-37mp)
-# but maintainers consider it out of scope with no planned fix
+PyJWT[crypto]>=2.10.1  # JWT handling - replaces python-jose, no ecdsa dependency
+# Note: Replaced python-jose with PyJWT to eliminate ecdsa timing attack vulnerability (GHSA-wj6h-64fc-37mp)
 
 # === DEVELOPMENT DEPENDENCIES (requirements-dev.txt) ===
 # Move these to separate requirements-dev.txt:

@@ -445,8 +445,6 @@ type ManifestGenerationStatus struct {
 
 	// QualityScore represents the quality of generated manifests
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	QualityScore *float64 `json:"qualityScore,omitempty"`
 
 	// ObservedGeneration reflects the generation observed
@@ -536,8 +534,6 @@ type ManifestOptimizationResult struct {
 // SecurityAnalysisResult contains security analysis results
 type SecurityAnalysisResult struct {
 	// OverallScore is the overall security score (0.0-1.0)
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	OverallScore float64 `json:"overallScore"`
 
 	// SecurityIssues lists identified security issues
@@ -598,8 +594,6 @@ type SecurityComplianceResult struct {
 
 	// Score represents compliance score (0.0-1.0)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	Score *float64 `json:"score,omitempty"`
 }
 

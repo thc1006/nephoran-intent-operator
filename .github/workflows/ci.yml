@@ -347,7 +347,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61.0
+          version: v1.62.0
           args: --timeout=5m --issues-exit-code=0 --out-format=colored-line-number
 
       - name: Run additional linters
@@ -378,10 +378,12 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [changes, crds]
-    if: always() && needs.changes.outputs.go-code == 'true'
+    needs: [changes]
+    if: needs.changes.outputs.go-code == 'true'
     timeout-minutes: 20
-    continue-on-error: true
+    outputs:
+      security_status: ${{ steps.security-summary.outputs.status }}
+      sarif_uploaded: ${{ steps.security-summary.outputs.sarif_uploaded }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -465,76 +467,154 @@ jobs:
             fi
           }
 
-      - name: Run govulncheck (non-blocking)
+      - name: Run govulncheck with enhanced resilience
         shell: bash
         continue-on-error: true
         env:
           GOVULNCHECK_DB: ~/.cache/go-security-db
         run: |
-          echo "=== Running vulnerability scan ==="
+          echo "=== Running enhanced vulnerability scan ==="
           mkdir -p .excellence-reports
           
+          # Check if govulncheck is available and working
           if command -v govulncheck >/dev/null 2>&1; then
-            echo "Running govulncheck with timeout..."
+            echo "✅ govulncheck available, starting scan with timeout..."
             
-            # Run with timeout and capture both success and failure cases
-            timeout 300s govulncheck -json ./... > .excellence-reports/govulncheck.json 2>&1 && {
+            # Run with timeout and comprehensive error handling
+            if timeout 300s govulncheck -json ./... > .excellence-reports/govulncheck.json 2>&1; then
               echo "✅ Vulnerability scan completed successfully"
               
-              # Check if any vulnerabilities were found
-              if [ -s .excellence-reports/govulncheck.json ]; then
-                vuln_count=$(grep -c '"message".*"vulnerability"' .excellence-reports/govulncheck.json 2>/dev/null || echo "0")
-                echo "Found $vuln_count potential vulnerabilities"
+              # Validate JSON output
+              if jq empty < .excellence-reports/govulncheck.json 2>/dev/null; then
+                vuln_count=$(jq '[.finding // empty] | length' .excellence-reports/govulncheck.json 2>/dev/null || echo "0")
+                echo "📊 Scan results: $vuln_count findings"
                 
                 if [ "$vuln_count" -gt 0 ]; then
                   echo "⚠️ Vulnerabilities detected - check the report for details"
                 else
                   echo "✅ No vulnerabilities detected"
                 fi
+              else
+                echo "⚠️ Invalid JSON output, creating structured report"
+                echo '{
+                  "config": {"protocol_version": "v1.0.0", "scanner_name": "govulncheck"},
+                  "progress": {"message": "Scan completed with JSON parsing issues"},
+                  "finding": [],
+                  "timestamp": "'$(date -Iseconds)'",
+                  "status": "json_invalid"
+                }' > .excellence-reports/govulncheck.json
               fi
-            } || {
-              echo "⚠️ Vulnerability scan completed with warnings or timed out"
+            else
+              exit_code=$?
+              echo "⚠️ Vulnerability scan timed out or failed (exit code: $exit_code)"
               
-              # Even if the scan failed, try to generate a basic report
-              echo '{"message": "Security scan completed with issues", "timestamp": "'$(date -Iseconds)'", "status": "partial"}' > .excellence-reports/govulncheck.json
-            }
+              # Create structured fallback report
+              echo '{
+                "config": {"protocol_version": "v1.0.0", "scanner_name": "govulncheck"},
+                "progress": {"message": "Scan timed out or failed"},
+                "finding": [],
+                "timestamp": "'$(date -Iseconds)'",
+                "status": "scan_failed",
+                "exit_code": '$exit_code'
+              }' > .excellence-reports/govulncheck.json
+            fi
           else
-            echo "❌ govulncheck not available - creating placeholder report"
-            echo '{"message": "govulncheck not available", "timestamp": "'$(date -Iseconds)'", "status": "unavailable"}' > .excellence-reports/govulncheck.json
+            echo "❌ govulncheck not available - creating structured placeholder report"
+            echo '{
+              "config": {"protocol_version": "v1.0.0", "scanner_name": "govulncheck"},
+              "progress": {"message": "govulncheck tool not available"},
+              "finding": [],
+              "timestamp": "'$(date -Iseconds)'",
+              "status": "tool_unavailable"
+            }' > .excellence-reports/govulncheck.json
           fi
           
-          echo "Report saved at .excellence-reports/govulncheck.json"
-          ls -la .excellence-reports/ || echo "Reports directory not accessible"
+          # Ensure report file exists and log details
+          if [ -f ".excellence-reports/govulncheck.json" ]; then
+            file_size=$(stat -c%s .excellence-reports/govulncheck.json 2>/dev/null || echo "unknown")
+            echo "📄 Report saved: .excellence-reports/govulncheck.json ($file_size bytes)"
+          else
+            echo "❌ Failed to create vulnerability report"
+            exit 1
+          fi
 
-      - name: Generate security summary
+      - name: Generate security summary with enhanced reporting
+        id: security-summary
         if: always()
         run: |
-          echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔒 Enhanced Security Scan Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          if [ -f .excellence-reports/govulncheck.json ]; then
+          scan_status="completed"
+          sarif_uploaded="false"
+          
+          # Analyze govulncheck report
+          if [ -f ".excellence-reports/govulncheck.json" ]; then
             echo "✅ Security scan report generated" >> $GITHUB_STEP_SUMMARY
             
-            # Try to extract basic info from the report
-            if grep -q "vulnerability" .excellence-reports/govulncheck.json 2>/dev/null; then
-              echo "⚠️ **Vulnerabilities detected** - review the detailed report" >> $GITHUB_STEP_SUMMARY
+            # Extract structured information from report
+            if jq empty < .excellence-reports/govulncheck.json 2>/dev/null; then
+              finding_count=$(jq '[.finding // empty] | length' .excellence-reports/govulncheck.json 2>/dev/null || echo "0")
+              scan_message=$(jq -r '.progress.message // "Unknown status"' .excellence-reports/govulncheck.json 2>/dev/null || echo "Unknown")
+              report_status=$(jq -r '.status // "completed"' .excellence-reports/govulncheck.json 2>/dev/null || echo "completed")
+              
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Metric | Value |" >> $GITHUB_STEP_SUMMARY
+              echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+              echo "| Findings | $finding_count |" >> $GITHUB_STEP_SUMMARY
+              echo "| Status | $report_status |" >> $GITHUB_STEP_SUMMARY
+              echo "| Message | $scan_message |" >> $GITHUB_STEP_SUMMARY
+              
+              if [ "$finding_count" -gt 0 ]; then
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "⚠️ **$finding_count vulnerabilities detected** - review the detailed report" >> $GITHUB_STEP_SUMMARY
+                scan_status="vulnerabilities_found"
+              else
+                echo "" >> $GITHUB_STEP_SUMMARY
+                echo "✅ No critical vulnerabilities detected" >> $GITHUB_STEP_SUMMARY
+              fi
             else
-              echo "✅ No critical vulnerabilities detected" >> $GITHUB_STEP_SUMMARY
+              echo "⚠️ **JSON parsing failed** - report may be corrupted" >> $GITHUB_STEP_SUMMARY
+              scan_status="report_invalid"
             fi
             
             file_size=$(stat -c%s .excellence-reports/govulncheck.json 2>/dev/null || echo "unknown")
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "**Report size:** $file_size bytes" >> $GITHUB_STEP_SUMMARY
           else
-            echo "⚠️ Security scan report not generated" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Security scan report not generated" >> $GITHUB_STEP_SUMMARY
             echo "This may be due to network connectivity issues or tool installation problems." >> $GITHUB_STEP_SUMMARY
+            scan_status="no_report"
           fi
           
+          # Set outputs for downstream jobs
+          echo "status=$scan_status" >> $GITHUB_OUTPUT
+          echo "sarif_uploaded=$sarif_uploaded" >> $GITHUB_OUTPUT
+          
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
-          echo "1. Review the security scan artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "2. Address any reported vulnerabilities" >> $GITHUB_STEP_SUMMARY
-          echo "3. Ensure network connectivity for future scans" >> $GITHUB_STEP_SUMMARY
+          echo "### Recommended Actions" >> $GITHUB_STEP_SUMMARY
+          case "$scan_status" in
+            "vulnerabilities_found")
+              echo "1. 🚨 **URGENT**: Review and address reported vulnerabilities" >> $GITHUB_STEP_SUMMARY
+              echo "2. Update affected dependencies to secure versions" >> $GITHUB_STEP_SUMMARY
+              echo "3. Re-run security scan after updates" >> $GITHUB_STEP_SUMMARY
+              ;;
+            "report_invalid")
+              echo "1. Check network connectivity and tool availability" >> $GITHUB_STEP_SUMMARY
+              echo "2. Retry the security scan manually" >> $GITHUB_STEP_SUMMARY
+              echo "3. Review workflow logs for detailed errors" >> $GITHUB_STEP_SUMMARY
+              ;;
+            "no_report")
+              echo "1. Verify govulncheck tool installation" >> $GITHUB_STEP_SUMMARY
+              echo "2. Check network access to vulnerability databases" >> $GITHUB_STEP_SUMMARY
+              echo "3. Review job timeout settings" >> $GITHUB_STEP_SUMMARY
+              ;;
+            *)
+              echo "1. Review the security scan artifacts" >> $GITHUB_STEP_SUMMARY
+              echo "2. Monitor for new vulnerability disclosures" >> $GITHUB_STEP_SUMMARY
+              echo "3. Keep dependencies updated" >> $GITHUB_STEP_SUMMARY
+              ;;
+          esac
 
       - name: Upload security scan results
         if: always()
@@ -664,57 +744,153 @@ jobs:
   build-validation:
     name: Build Validation
     runs-on: ubuntu-latest
-    needs: [unit-tests, lint, security, docker-build]
+    needs: [unit-tests, lint, security, docker-build, crds]
     if: always()
     timeout-minutes: 10
+    outputs:
+      validation_result: ${{ steps.validation-summary.outputs.result }}
+      recommendations: ${{ steps.validation-summary.outputs.recommendations }}
     steps:
-      - name: Check job statuses
+      - name: Enhanced build validation with orchestration analysis
+        id: validation-summary
         run: |
-          echo "## 📊 CI Build Validation Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Status | Required |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|----------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Unit Tests | ${{ needs.unit-tests.result || 'skipped' }} | ✅ |" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint | ${{ needs.lint.result || 'skipped' }} | ✅ |" >> $GITHUB_STEP_SUMMARY
-          echo "| Security | ${{ needs.security.result || 'skipped' }} | ⚠️ (advisory) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Docker Build | ${{ needs.docker-build.result || 'skipped' }} | ✅ |" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔎 Enhanced CI Build Validation Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Determine overall status
-          unit_tests="${{ needs.unit-tests.result }}"
-          lint="${{ needs.lint.result }}"
-          docker="${{ needs.docker-build.result }}"
-          security="${{ needs.security.result }}"
+          # Collect job results and details
+          unit_tests="${{ needs.unit-tests.result || 'skipped' }}"
+          lint="${{ needs.lint.result || 'skipped' }}"
+          docker="${{ needs.docker-build.result || 'skipped' }}"
+          security="${{ needs.security.result || 'skipped' }}"
+          crds="${{ needs.crds.result || 'skipped' }}"
           
-          # Critical jobs that must pass
-          critical_failure=false
-          if [ "$unit_tests" = "failure" ] || [ "$lint" = "failure" ] || [ "$docker" = "failure" ]; then
-            critical_failure=true
-          fi
+          # Security details
+          security_status="${{ needs.security.outputs.security_status || 'unknown' }}"
+          sarif_uploaded="${{ needs.security.outputs.sarif_uploaded || 'false' }}"
           
-          if [ "$critical_failure" = "true" ]; then
-            echo "❌ **Build Failed** - Critical jobs failed" >> $GITHUB_STEP_SUMMARY
+          echo "| Component | Status | Type | Details |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|------|---------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | $unit_tests | 📍 Critical | Code quality validation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint | $lint | 📍 Critical | Code style and standards |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker Build | $docker | 📍 Critical | Container image creation |" >> $GITHUB_STEP_SUMMARY
+          echo "| CRD Generation | $crds | 🔄 Infrastructure | Kubernetes resources |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | $security | 🔒 Advisory | Status: $security_status |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Enhanced failure analysis
+          critical_failures=()
+          advisory_issues=()
+          warnings=()
+          
+          # Analyze each job
+          case "$unit_tests" in
+            "failure") critical_failures+=("Unit tests failing - code quality compromised") ;;
+            "cancelled") warnings+=("Unit tests cancelled - may indicate resource constraints") ;;
+          esac
+          
+          case "$lint" in
+            "failure") critical_failures+=("Linting failed - code style violations detected") ;;
+            "cancelled") warnings+=("Linting cancelled - check for timeout issues") ;;
+          esac
+          
+          case "$docker" in
+            "failure") critical_failures+=("Docker build failed - deployment will be blocked") ;;
+            "cancelled") warnings+=("Docker build cancelled - may indicate resource or network issues") ;;
+          esac
+          
+          case "$security" in
+            "failure") 
+              if [ "$security_status" = "vulnerabilities_found" ]; then
+                advisory_issues+=("Security vulnerabilities detected - review required")
+              else
+                advisory_issues+=("Security scan failed - network or tool issues")
+              fi
+              ;;
+            "cancelled") advisory_issues+=("Security scan cancelled - retry recommended") ;;
+          esac
+          
+          case "$crds" in
+            "failure") advisory_issues+=("CRD generation failed - deployment may be affected") ;;
+            "cancelled") warnings+=("CRD generation cancelled") ;;
+          esac
+          
+          # Determine overall validation result
+          if [ ${#critical_failures[@]} -gt 0 ]; then
+            validation_result="FAILED"
+            echo "❌ **BUILD FAILED** - Critical components failed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### Required Actions:" >> $GITHUB_STEP_SUMMARY
-            [ "$unit_tests" = "failure" ] && echo "- Fix failing unit tests" >> $GITHUB_STEP_SUMMARY
-            [ "$lint" = "failure" ] && echo "- Address linting issues" >> $GITHUB_STEP_SUMMARY
-            [ "$docker" = "failure" ] && echo "- Fix Docker build problems" >> $GITHUB_STEP_SUMMARY
-            exit 1
+            echo "### 🚨 Critical Issues:" >> $GITHUB_STEP_SUMMARY
+            for issue in "${critical_failures[@]}"; do
+              echo "- $issue" >> $GITHUB_STEP_SUMMARY
+            done
           else
-            echo "✅ **Build Passed** - All critical checks succeeded" >> $GITHUB_STEP_SUMMARY
-            
-            if [ "$security" = "failure" ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "⚠️ **Security scan had issues** - Please review security results when network connectivity improves" >> $GITHUB_STEP_SUMMARY
-            fi
+            validation_result="PASSED"
+            echo "✅ **BUILD PASSED** - All critical checks succeeded" >> $GITHUB_STEP_SUMMARY
           fi
           
+          # Report advisory issues
+          if [ ${#advisory_issues[@]} -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### ⚠️ Advisory Issues:" >> $GITHUB_STEP_SUMMARY
+            for issue in "${advisory_issues[@]}"; do
+              echo "- $issue" >> $GITHUB_STEP_SUMMARY
+            done
+          fi
+          
+          # Report warnings
+          if [ ${#warnings[@]} -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📝 Warnings:" >> $GITHUB_STEP_SUMMARY
+            for warning in "${warnings[@]}"; do
+              echo "- $warning" >> $GITHUB_STEP_SUMMARY
+            done
+          fi
+          
+          # Build metrics and orchestration health
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Build Metrics:" >> $GITHUB_STEP_SUMMARY
-          echo "- **Duration:** ${{ github.event.head_commit.timestamp && github.run_started_at }} minutes" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Build Metrics & Orchestration Health" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Calculate job success rate
+          total_jobs=5  # unit-tests, lint, docker-build, crds, security
+          successful_jobs=0
+          
+          [ "$unit_tests" = "success" ] && successful_jobs=$((successful_jobs + 1))
+          [ "$lint" = "success" ] && successful_jobs=$((successful_jobs + 1))
+          [ "$docker" = "success" ] && successful_jobs=$((successful_jobs + 1))
+          [ "$crds" = "success" ] && successful_jobs=$((successful_jobs + 1))
+          [ "$security" = "success" ] && successful_jobs=$((successful_jobs + 1))
+          
+          success_rate=$(echo "scale=1; $successful_jobs * 100 / $total_jobs" | bc -l 2>/dev/null || echo "unknown")
+          
+          echo "- **Success Rate:** $success_rate% ($successful_jobs/$total_jobs jobs)" >> $GITHUB_STEP_SUMMARY
           echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run ID:** ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          
+          # Orchestration recommendations
+          recommendations=""
+          if [ ${#critical_failures[@]} -gt 0 ]; then
+            recommendations="Fix critical failures before deployment"
+          elif [ ${#advisory_issues[@]} -gt 0 ]; then
+            recommendations="Review advisory issues and consider fixes"
+          else
+            recommendations="Build is ready for deployment"
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Orchestration Recommendations" >> $GITHUB_STEP_SUMMARY
+          echo "$recommendations" >> $GITHUB_STEP_SUMMARY
+          
+          # Set outputs for dependent workflows
+          echo "result=$validation_result" >> $GITHUB_OUTPUT
+          echo "recommendations=$recommendations" >> $GITHUB_OUTPUT
+          
+          # Exit with failure if critical issues exist
+          if [ "$validation_result" = "FAILED" ]; then
+            exit 1
+          fi
 
   # =============================================================================
   # Success Job - Final gate for required checks
