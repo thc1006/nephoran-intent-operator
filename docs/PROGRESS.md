@@ -14,3 +14,4 @@
 | 2025-08-22T05:34:26+08:00 | fix/graceful-shutdown-exit-codes | Windows CI fixes | Comprehensive Windows CI reliability improvements with 4800+ lines
 |  | fix/graceful-shutdown-exit-codes | cmd/conductor-loop | Fix test timeout issues via unique binaries and parallelization control |
 | 2025-08-22T14:26:07.190Z | fix/graceful-shutdown-exit-codes | cmd/conductor-loop | Fix test timeout issues via unique binaries and parallelization control |
+| 2025-08-23T17:19:02+08:00 | fix/graceful-shutdown-exit-codes | .github/workflows | Fixed Nancy vulnerability scanner with pre-built v1.0.51 binary replacing broken go install |
