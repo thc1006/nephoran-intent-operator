@@ -56,9 +56,17 @@ jobs:
 
       - name: Set up Go
         uses: actions/setup-go@v5
+          id: setup-go
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
+
+
+      - name: Print Go version
+        run: |
+              echo "Go version: $(go version)"
+              echo "Go env:"
+              go env
 
       - name: Generate version
         id: version
@@ -165,9 +173,17 @@ jobs:
 
       - name: Set up Go ${{ matrix.go-version }}
         uses: actions/setup-go@v5
+          id: setup-go
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: go.mod
           cache: true
+
+
+      - name: Print Go version
+        run: |
+              echo "Go version: $(go version)"
+              echo "Go env:"
+              go env
 
       - name: Install test dependencies
         run: |
@@ -252,9 +268,17 @@ jobs:
 
       - name: Set up Go
         uses: actions/setup-go@v5
+          id: setup-go
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
+
+
+      - name: Print Go version
+        run: |
+              echo "Go version: $(go version)"
+              echo "Go env:"
+              go env
 
       - name: Install performance testing tools
         run: |
@@ -395,9 +419,17 @@ jobs:
 
       - name: Set up Go
         uses: actions/setup-go@v5
+          id: setup-go
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
+
+
+      - name: Print Go version
+        run: |
+              echo "Go version: $(go version)"
+              echo "Go env:"
+              go env
 
       - name: Install security tools
         run: |

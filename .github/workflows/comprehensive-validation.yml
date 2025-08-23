@@ -42,7 +42,6 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}/nephoran-intent-operator
-  GO_VERSION: "1.24"
   KUBEBUILDER_VERSION: "3.12.0"
   KUBERNETES_VERSION: "1.28.0"
 

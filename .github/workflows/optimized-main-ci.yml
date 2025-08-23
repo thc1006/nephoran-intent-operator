@@ -278,18 +278,12 @@ jobs:
       fail-fast: false
       max-parallel: 8
       matrix:
-        go-version: ['1.23.4', '1.24.1']
+        go-version: ['1.24.1']
         os: [ubuntu-latest, windows-latest]
         include:
           - go-version: '1.24.1'
             os: macos-latest
             experimental: false
-          - go-version: '1.25rc1'
-            os: ubuntu-latest
-            experimental: true
-        exclude:
-          - go-version: '1.23.4'
-            os: windows-latest  # Reduce matrix size for older versions
 
     continue-on-error: ${{ matrix.experimental || false }}
 
@@ -323,10 +317,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: "🐹 Setup Go ${{ matrix.go-version }}"
+      - name: "🐹 Setup Go"
+        id: setup-go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: go.mod
           cache: true
           cache-dependency-path: |
             go.sum

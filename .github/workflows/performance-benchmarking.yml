@@ -57,10 +57,18 @@ jobs:
           
       - name: "Setup Go"
         uses: actions/setup-go@v5
+          id: setup-go
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
           
+
+      - name: Print Go version
+        run: |
+              echo "Go version: $(go version)"
+              echo "Go env:"
+              go env
+
       - name: "Setup Performance Test Environment"
         id: setup
         run: |
