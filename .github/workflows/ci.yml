@@ -430,18 +430,54 @@ jobs:
       - name: Run gosec with error handling
         run: |
           echo "🔒 Running gosec security scan..."
-          if ! gosec ./... -fmt sarif -out security-reports/gosec/gosec-raw.sarif -verbose 2>&1; then
-            echo "Warning: gosec encountered issues, creating empty SARIF"
-            echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"gosec","version":"2.21.4"}},"results":[]}]}' > security-reports/gosec/gosec-raw.sarif
+          # Ensure the output directory exists
+          mkdir -p security-reports/gosec
+          
+          # Run gosec and capture the exit code
+          if gosec ./... -fmt sarif -out security-reports/gosec/gosec-raw.sarif -verbose 2>&1; then
+            echo "✅ gosec scan completed successfully"
+          else
+            echo "⚠️ gosec encountered issues (likely due to code errors), creating fallback SARIF"
+            # Create a valid but empty SARIF file
+            cat > security-reports/gosec/gosec-raw.sarif << 'EOF'
+          {
+            "version": "2.1.0",
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "runs": [{
+              "tool": {
+                "driver": {
+                  "name": "gosec",
+                  "version": "2.21.4",
+                  "informationUri": "https://github.com/securego/gosec"
+                }
+              },
+              "results": [],
+              "invocations": [{
+                "executionSuccessful": false,
+                "exitCode": 1,
+                "exitCodeDescription": "Scan failed due to compilation errors"
+              }]
+            }]
+          }
+          EOF
           fi
 
       - name: Fix SARIF startLine issues
         run: |
-          echo "🔧 Fixing SARIF startLine issues..."
+          echo "🔧 Processing SARIF file..."
           if [ -f "security-reports/gosec/gosec-raw.sarif" ]; then
-            jq '(.runs[]?.results[]?.locations[]?.physicalLocation?.region? | select(.startLine == 0).startLine) = 1' \
-               security-reports/gosec/gosec-raw.sarif > security-reports/gosec/gosec.sarif || \
-            cp security-reports/gosec/gosec-raw.sarif security-reports/gosec/gosec.sarif
+            # Try to fix startLine issues with jq, fallback to copy if jq fails
+            if command -v jq &> /dev/null; then
+              jq '(.runs[]?.results[]?.locations[]?.physicalLocation?.region? | select(.startLine == 0).startLine) = 1' \
+                 security-reports/gosec/gosec-raw.sarif > security-reports/gosec/gosec.sarif 2>/dev/null || \
+              cp security-reports/gosec/gosec-raw.sarif security-reports/gosec/gosec.sarif
+            else
+              cp security-reports/gosec/gosec-raw.sarif security-reports/gosec/gosec.sarif
+            fi
+            echo "✅ SARIF file created at: security-reports/gosec/gosec.sarif"
+            ls -la security-reports/gosec/
+          else
+            echo "⚠️ No SARIF file to process"
           fi
 
       - name: Run vulnerability check
