@@ -79,6 +79,11 @@ jobs:
           # Install Grype for vulnerability scanning
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.70.0
           
+      - name: "Create Reports Directory"
+        run: |
+          echo "=== Creating Security Reports Directory ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
+          
       - name: "Verify Module Integrity"
         run: |
           echo "=== Verifying Go Module Integrity ==="
@@ -196,6 +201,11 @@ jobs:
           go-version-file: go.mod
           cache: true
           
+      - name: "Create Reports Directory"
+        run: |
+          echo "=== Creating Security Reports Directory ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
+          
       - name: "Install Analysis Tools"
         run: |
           # Security tools
@@ -274,6 +284,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
+      - name: "Create Reports Directory"
+        run: |
+          echo "=== Creating Security Reports Directory ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
+          
       - name: "Run TruffleHog"
         run: |
           pip install truffleHog3
@@ -334,6 +349,11 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
           vuln-type: 'os,library'
+          
+      - name: "Create Reports Directory"
+        run: |
+          echo "=== Creating Security Reports Directory ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
           
       - name: "Run Snyk Container Scan"
         continue-on-error: true
