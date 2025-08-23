@@ -353,11 +353,15 @@ jobs:
         with:
           fetch-depth: 0
           
+      - name: "Create security reports directory"
+        run: |
+          mkdir -p security-reports
+          
       - name: "Run Gitleaks"
         uses: gitleaks/gitleaks-action@v2
         with:
           config-path: .gitleaks.toml
-          args: --report-format sarif --report-path gitleaks-results.sarif
+          args: --redact -v --exit-code=2 --report-format sarif --report-path security-reports/gitleaks.sarif
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
@@ -365,9 +369,9 @@ jobs:
       - name: "Ensure SARIF file exists"
         if: always()
         run: |
-          if [ ! -f "gitleaks-results.sarif" ]; then
+          if [ ! -f "security-reports/gitleaks.sarif" ]; then
             echo "Creating empty SARIF file for upload"
-            cat > gitleaks-results.sarif << 'EOF'
+            cat > security-reports/gitleaks.sarif << 'EOF'
           {
             "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
             "version": "2.1.0",
@@ -390,7 +394,7 @@ jobs:
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: gitleaks-results.sarif
+          sarif_file: security-reports/gitleaks.sarif
           category: gitleaks
           
       - name: "Run TruffleHog"
