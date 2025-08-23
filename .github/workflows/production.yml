@@ -463,11 +463,18 @@ jobs:
 
       - name: Secrets scanning
         run: |
+          # Create security reports directory
+          mkdir -p security-reports
+          
           # Install and run gitleaks
           curl -L https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64 -o gitleaks
           chmod +x gitleaks && sudo mv gitleaks /usr/local/bin/
           
-          gitleaks detect --source . --report-format json --report-path security-reports/gitleaks-report.json || true
+          # Run gitleaks with proper flags for SARIF generation
+          gitleaks detect --source . --redact -v --exit-code=2 --report-format sarif --report-path security-reports/gitleaks.sarif || true
+          
+          # Also generate JSON report for additional processing
+          gitleaks detect --source . --redact -v --exit-code=2 --report-format json --report-path security-reports/gitleaks-report.json || true
 
       - name: Security vulnerability analysis
         id: vuln-check

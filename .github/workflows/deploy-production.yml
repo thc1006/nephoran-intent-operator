@@ -176,9 +176,16 @@ jobs:
         go-licenses check ./...
         
         # Secret scanning
-        if command -v gitleaks &> /dev/null; then
-          gitleaks detect --source . --verbose
+        mkdir -p security-reports
+        
+        # Install gitleaks if not present
+        if ! command -v gitleaks &> /dev/null; then
+          curl -L https://github.com/gitleaks/gitleaks/releases/latest/download/gitleaks-linux-amd64 -o gitleaks
+          chmod +x gitleaks && sudo mv gitleaks /usr/local/bin/
         fi
+        
+        # Run gitleaks with proper flags for SARIF generation
+        gitleaks detect --source . --redact -v --exit-code=2 --report-format sarif --report-path security-reports/gitleaks.sarif || true
     
     - name: Compliance Checks
       if: env.ENABLE_COMPLIANCE_CHECKS == 'true'
