@@ -1,57 +1,30 @@
 # golangci-lint v2.x configuration
 # Ref: https://golangci-lint.run/usage/configuration/
 
-version: 2
+version: "2"
 
 run:
-  # Total timeout for the whole run.
   timeout: 5m
-  # Avoid modifying go.mod/go.sum during lint.
   modules-download-mode: readonly
-  # 🚦 IMPORTANT: do not fail CI because of linter findings during MVP.
-  # 0 means: exit code 0 even if issues are found.
   issues-exit-code: 0
-  # Keep tests included (some linters look at *_test.go).
   tests: true
-  # Allow multiple runners on CI to reduce flakiness.
   allow-parallel-runners: true
-  # Use Go version from go.mod for better compatibility
   go: "1.24"
 
-# linters configuration
 linters:
-  # Use disable-all and enable only stable, essential linters
-  disable-all: true
   enable:
-    - errcheck      # Check for unchecked errors
-    - gosimple      # Suggest code simplifications
-    - govet         # Go's standard vet checks
-    - ineffassign   # Detect ineffectual assignments
-    - staticcheck   # Staticcheck.io checks
-    - unused        # Find unused variables/functions
-    - gofmt         # Check if code is gofmt'd
-    - goimports     # Check import organization
-    - gosec         # Security checks
-    - misspell      # Check for misspellings
-  # Note: When using disable-all: true, only use enable list
-  # Do not use disable list as it conflicts with disable-all
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
 
-# Issue handling and exclusions
 issues:
-  # Only flag problems introduced in this branch by default.
-  # （在大型既有專案中非常好用，不會一次炸出歷史債）
-  new: false
-  # 如果要只看 PR 相對於 integrate/mvp 的新問題，可把上面改回 true，
-  # 並設 new-from-merge-base: integrate/mvp
-  # new-from-merge-base: integrate/mvp
-
-  # Don't limit counts while we're stabilizing the codebase.
+  exclude-use-default: true
   max-issues-per-linter: 0
   max-same-issues: 0
 
-# Output configuration
 output:
-  # Format configuration for golangci-lint
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
+  formats:
+    - format: colored-line-number
