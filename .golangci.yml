@@ -27,4 +27,5 @@ issues:
 
 output:
   formats:
-    - format: colored-line-number
+    default:
+      format: colored-line-number
