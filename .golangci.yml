@@ -20,5 +20,7 @@ issues:
   max-same-issues: 0
 
 output:
-  formats:
-    - format: colored-line-number
+  sort-results: true
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
