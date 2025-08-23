@@ -120,7 +120,7 @@ jobs:
       - name: 🐹 Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
       
       - name: 📋 Cache Go Modules
@@ -246,7 +246,7 @@ jobs:
       - name: 🐹 Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
       
       - name: 🔍 Cache golangci-lint
@@ -348,7 +348,7 @@ jobs:
       - name: 🐹 Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
       
       - name: 🔒 Install Security Tools
@@ -436,7 +436,7 @@ jobs:
       - name: 🐹 Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
       
       - name: 🔧 Install Quality Analysis Tools
@@ -451,7 +451,7 @@ jobs:
           go install github.com/uudashr/gocognit/cmd/gocognit@v1.1.2
           
           echo "Installing code duplication detector..."
-          go install github.com/maruel/duplo@latest
+          go install github.com/mibk/dupl@latest
           
           # Add Go bin to PATH for subsequent steps
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
