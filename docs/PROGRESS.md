@@ -15,4 +15,4 @@
 |  | fix/graceful-shutdown-exit-codes | cmd/conductor-loop | Fix test timeout issues via unique binaries and parallelization control |
 | 2025-08-22T14:26:07.190Z | fix/graceful-shutdown-exit-codes | cmd/conductor-loop | Fix test timeout issues via unique binaries and parallelization control |
 | 2025-08-23T17:19:02+08:00 | fix/graceful-shutdown-exit-codes | .github/workflows | Fixed Nancy vulnerability scanner with pre-built v1.0.51 binary replacing broken go install |
-| 2025-08-23T17:42:13+08:00 | fix/graceful-shutdown-exit-codes | .github/workflows | Fixed golangci-lint v2 compatibility upgrading from v1.61.0 to v2.4.0 |
+| 2025-08-23T17:42:13+08:00 | fix/graceful-shutdown-exit-codes | .github/workflows | Fixed golangci-lint v2 compatibility upgrading from v1.61.0 to v2.4.0 || 2025-08-23T10:50:46Z | fix/graceful-shutdown-exit-codes | deps,rag | Fixed Go compilation errors blocking security scan - Helm v3.18.5, type conflicts, missing functions |
