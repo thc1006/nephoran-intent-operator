@@ -193,7 +193,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install pip-audit safety bandit[toml]
+          pip install pip-audit bandit[toml]
 
       - name: Run pip-audit
         run: |
@@ -220,29 +220,11 @@ jobs:
               print(f"[pip-audit] Could not parse report: {e}")
           PY
 
-      - name: Run safety scan
-        run: |
-          safety scan -r ${{ matrix.requirements }} --detailed-output --output json > safety-${{ matrix.requirements }}.json
-          safety scan -r ${{ matrix.requirements }}
-          
-          # Generate safety summary
-          python3 - <<'PY'
-          import json
-          try:
-              with open("safety-${{ matrix.requirements }}.json", "r") as f:
-                  data = json.load(f)
-              
-              # Safety v3 structure may vary, handle both old/new formats
-              vulns = data.get("vulnerabilities", data.get("report", {}).get("vulnerabilities", []))
-              print(f"[safety] Found {len(vulns)} vulnerabilities in ${{ matrix.requirements }}")
-              
-              for vuln in vulns[:5]:  # Show top 5
-                  pkg = vuln.get("package_name", vuln.get("package", "unknown"))
-                  vuln_id = vuln.get("vulnerability_id", vuln.get("id", "unknown"))
-                  print(f"- {pkg}: {vuln_id}")
-          except Exception as e:
-              print(f"[safety] Could not parse report: {e}")
-          PY
+      - name: Python Dependency Security Scan
+        uses: pyupio/safety-action@v1
+        with:
+          api-key: ${{ secrets.SAFETY_API_KEY }}
+          requirements: ${{ matrix.requirements }}
 
       - name: Run bandit security linter
         if: matrix.requirements == 'requirements-rag.txt'
@@ -288,7 +270,6 @@ jobs:
           name: security-reports-${{ matrix.requirements }}
           path: |
             pip-audit-${{ matrix.requirements }}.json
-            safety-${{ matrix.requirements }}.json
             bandit-report.json
           if-no-files-found: ignore
 
