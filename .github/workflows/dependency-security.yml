@@ -192,11 +192,14 @@ jobs:
 
       - name: Install dependencies
         run: |
+          set -euo pipefail
           pip install --upgrade pip
-          pip install pip-audit safety bandit[toml]
+          # Pin Safety to v3.6.x for stability
+          pip install pip-audit "safety>=3.6,<3.7" bandit[toml]
 
       - name: Run pip-audit
         run: |
+          set -euo pipefail
           pip-audit -r ${{ matrix.requirements }} --format json --output pip-audit-${{ matrix.requirements }}.json
           pip-audit -r ${{ matrix.requirements }}
           
@@ -224,17 +227,43 @@ jobs:
         env:
           SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
-          # Run Safety with API key for non-interactive execution
-          safety --key "${SAFETY_API_KEY}" scan -r ${{ matrix.requirements }} \
-            --output json --detailed-output --save-as json safety-${{ matrix.requirements }}.json
+          set -euo pipefail
           
-          # Verify JSON report was created
-          if [ ! -f "safety-${{ matrix.requirements }}.json" ] || [ ! -s "safety-${{ matrix.requirements }}.json" ]; then
-            echo "❌ Error: Safety JSON report was not created or is empty"
+          # Validate API key is present
+          if [ -z "${SAFETY_API_KEY:-}" ]; then
+            echo "❌ Error: SAFETY_API_KEY is not set. Please configure the secret in repository settings."
+            echo "Without an API key, Safety v3 will attempt interactive authentication which fails in CI."
             exit 1
           fi
           
-          echo "✅ Safety scan completed, JSON report created"
+          # Run Safety with API key for non-interactive execution
+          echo "Running Safety scan for ${{ matrix.requirements }}..."
+          safety --key "${SAFETY_API_KEY}" scan -r ${{ matrix.requirements }} \
+            --output json --detailed-output --save-as json safety-${{ matrix.requirements }}.json
+          
+          # Verify JSON report was created and is valid
+          REPORT_FILE="safety-${{ matrix.requirements }}.json"
+          if [ ! -f "${REPORT_FILE}" ]; then
+            echo "❌ Error: Safety JSON report '${REPORT_FILE}' was not created."
+            echo "This may indicate Safety failed to run or authenticate properly."
+            exit 1
+          fi
+          
+          if [ ! -s "${REPORT_FILE}" ]; then
+            echo "❌ Error: Safety JSON report '${REPORT_FILE}' exists but is empty."
+            echo "This may indicate an issue with Safety scan execution."
+            exit 1
+          fi
+          
+          # Validate JSON structure
+          if ! python3 -m json.tool "${REPORT_FILE}" > /dev/null 2>&1; then
+            echo "❌ Error: Safety JSON report '${REPORT_FILE}' contains invalid JSON."
+            echo "Report content (first 500 chars):"
+            head -c 500 "${REPORT_FILE}"
+            exit 1
+          fi
+          
+          echo "✅ Safety scan completed successfully, valid JSON report created"
           
           # Generate safety summary
           python3 - <<'PY'
