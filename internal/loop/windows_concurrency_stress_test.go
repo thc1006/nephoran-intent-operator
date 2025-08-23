@@ -17,6 +17,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // TestWindowsConcurrencyStress provides comprehensive stress testing for Windows
@@ -140,8 +141,12 @@ func TestWindowsConcurrencyStress(t *testing.T) {
 
 		require.NoError(t, os.MkdirAll(watchDir, 0755))
 
+		// Create cross-platform mock porch executable
+		mockPorch, err := porch.CreateSimpleMock(baseDir)
+		require.NoError(t, err, "Failed to create mock porch executable")
+
 		config := Config{
-			PorchPath: "/tmp/stress-test",
+			PorchPath: mockPorch,
 			Mode:      "once",
 		}
 
@@ -687,8 +692,12 @@ func TestWindowsConcurrencyRegressionPrevention(t *testing.T) {
 		watchDir := filepath.Join(baseDir, "watch-race")
 		require.NoError(t, os.MkdirAll(watchDir, 0755))
 
+		// Create cross-platform mock porch executable
+		mockPorch, err := porch.CreateSimpleMock(baseDir)
+		require.NoError(t, err, "Failed to create mock porch executable")
+
 		config := Config{
-			PorchPath: "/tmp/race-test",
+			PorchPath: mockPorch,
 			Mode:      "once",
 		}
 
@@ -744,7 +753,7 @@ func TestWindowsConcurrencyRegressionPrevention(t *testing.T) {
 
 		// Verify that the status directory was created despite race conditions
 		statusDir := filepath.Join(watchDir, "status")
-		_, err := os.Stat(statusDir)
+		_, err = os.Stat(statusDir)
 		assert.NoError(t, err, "Status directory should exist after concurrent writes")
 
 		// Verify that some status files were created successfully

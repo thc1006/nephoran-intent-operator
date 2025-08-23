@@ -15,6 +15,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // TestWindowsParentDirectoryCreation provides comprehensive coverage for parent directory
@@ -48,7 +49,7 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 			{
 				name:      "windows_drive_relative",
 				structure: []string{},
-				statusDir: filepath.Join(baseDir, "relative", "status"),
+				statusDir: "status", // Relative to testBaseDir, watcher writes to watchDir/status
 				testFile:  "drive-intent.json",
 			},
 			{
@@ -87,9 +88,13 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 				_, err := os.Stat(expectedStatusDir)
 				require.True(t, os.IsNotExist(err), "Status directory should not exist initially")
 
+				// Create cross-platform mock porch executable
+				mockPorch, err := porch.CreateSimpleMock(baseDir)
+				require.NoError(t, err, "Failed to create mock porch executable")
+
 				// Create watcher
 				config := Config{
-					PorchPath: "/tmp/test-porch",
+					PorchPath: mockPorch,
 					Mode:      "once",
 				}
 
@@ -182,6 +187,8 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 				// Create a test file to mark as processed
 				if !tc.relativePath {
 					testFile := filepath.Join(stateDir, "test.json")
+					// Ensure parent directory exists before creating test file
+					require.NoError(t, os.MkdirAll(filepath.Dir(testFile), 0755))
 					require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
 				} else {
 					// For relative paths, create in current dir
@@ -393,8 +400,12 @@ func TestWindowsParentDirectoryCreation(t *testing.T) {
 		// Create watch directory but not status directory
 		require.NoError(t, os.MkdirAll(watchDir, 0755))
 
+		// Create cross-platform mock porch executable
+		mockPorch, err := porch.CreateSimpleMock(baseDir)
+		require.NoError(t, err, "Failed to create mock porch executable")
+
 		config := Config{
-			PorchPath: "/tmp/test-porch",
+			PorchPath: mockPorch,
 			Mode:      "once",
 		}
 
@@ -512,9 +523,13 @@ func TestWindowsParentDirectoryRegressionPrevention(t *testing.T) {
 		_, err := os.Stat(statusDir)
 		require.True(t, os.IsNotExist(err), "Status directory should not exist initially")
 
+		// Create cross-platform mock porch executable
+		mockPorch, err := porch.CreateSimpleMock(baseDir)
+		require.NoError(t, err, "Failed to create mock porch executable")
+
 		// Create watcher
 		config := Config{
-			PorchPath: "/tmp/regression-test",
+			PorchPath: mockPorch,
 			Mode:      "once",
 		}
 
@@ -559,8 +574,12 @@ func TestWindowsParentDirectoryRegressionPrevention(t *testing.T) {
 		// Create only the watch directory
 		require.NoError(t, os.MkdirAll(deepPath, 0755))
 
+		// Create cross-platform mock porch executable
+		mockPorch, err := porch.CreateSimpleMock(baseDir)
+		require.NoError(t, err, "Failed to create mock porch executable")
+
 		config := Config{
-			PorchPath: "/tmp/deep-path-test",
+			PorchPath: mockPorch,
 			Mode:      "once",
 		}
 
@@ -600,8 +619,12 @@ func TestWindowsParentDirectoryRegressionPrevention(t *testing.T) {
 		// Create watch directory
 		require.NoError(t, os.MkdirAll(watchDir, 0755))
 
+		// Create cross-platform mock porch executable
+		mockPorch, err := porch.CreateSimpleMock(baseDir)
+		require.NoError(t, err, "Failed to create mock porch executable")
+
 		config := Config{
-			PorchPath: "/tmp/backslash-test",
+			PorchPath: mockPorch,
 			Mode:      "once",
 		}
 

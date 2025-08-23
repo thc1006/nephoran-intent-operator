@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // TestDirectoryErrorHandlingScenarios tests comprehensive error handling
@@ -113,8 +114,12 @@ func TestDirectoryErrorHandlingScenarios(t *testing.T) {
 			t.Run(tc.name, func(t *testing.T) {
 				watchDir := tc.setupDir()
 				
+				// Create cross-platform mock porch executable
+				mockPorch, err := porch.CreateSimpleMock(tempDir)
+				require.NoError(t, err, "Failed to create mock porch executable")
+				
 				config := Config{
-					PorchPath: "/tmp/test-porch",
+					PorchPath: mockPorch,
 					Mode:      "once",
 				}
 				

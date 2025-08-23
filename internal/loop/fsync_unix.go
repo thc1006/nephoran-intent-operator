@@ -22,6 +22,10 @@ const (
 
 // atomicWriteFile writes data to a file atomically on Unix with proper syncing
 func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
+	if filename == "" {
+		return fmt.Errorf("empty filename provided")
+	}
+	
 	dir := filepath.Dir(filename)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
@@ -33,6 +37,12 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 	// Write with sync
 	if err := writeFileWithSync(tempFile, data, perm); err != nil {
 		return fmt.Errorf("failed to write temp file: %w", err)
+	}
+
+	// Ensure directory still exists before rename (in case of race conditions)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		os.Remove(tempFile) // Clean up on failure
+		return fmt.Errorf("failed to ensure directory before rename: %w", err)
 	}
 
 	// Atomic rename (truly atomic on Unix)

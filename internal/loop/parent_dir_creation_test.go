@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/internal/porch"
 )
 
 // TestParentDirectoryCreation validates that all file write operations
@@ -55,9 +56,13 @@ func TestParentDirectoryCreation(t *testing.T) {
 		_, err := os.Stat(statusDir)
 		require.True(t, os.IsNotExist(err), "Status directory should not exist initially")
 		
+		// Create cross-platform mock porch executable
+		mockPorch, err := porch.CreateSimpleMock(tempDir)
+		require.NoError(t, err, "Failed to create mock porch executable")
+		
 		// Create watcher config
 		config := Config{
-			PorchPath: "/tmp/test-porch",
+			PorchPath: mockPorch,
 			Mode:      "once",
 		}
 		
