@@ -295,8 +295,8 @@ jobs:
     - name: Run golangci-lint
       uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.62.0
-        args: --timeout=10m --config=.golangci.yml --out-format=colored-line-number
+        version: v2.4.0
+        args: --timeout=10m --config=.golangci.yml
         
     # Upload test results
     - name: Upload Coverage Reports

@@ -16,10 +16,18 @@
 #     --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
 # =============================================================================
 
+# Global build platform arguments (must be at the very top)
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+
+# Version arguments
 ARG GO_VERSION=1.24
 ARG PYTHON_VERSION=3.11
 ARG ALPINE_VERSION=3.22
 ARG DISTROLESS_VERSION=nonroot
+ARG SERVICE_TYPE=go
 
 # =============================================================================
 # STAGE: GO Dependencies
@@ -46,11 +54,11 @@ RUN go mod download && go mod verify
 # =============================================================================
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-builder
 
+# Re-declare build platform ARGs for this stage
 ARG TARGETPLATFORM
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
+ARG TARGETOS
+ARG TARGETARCH
 ARG SERVICE
-ARG SERVICE_TYPE=go
 ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
@@ -58,7 +66,7 @@ ARG VCS_REF
 # Validate required build arguments
 RUN if [ -z "$SERVICE" ]; then \
     echo "ERROR: SERVICE build argument is required. Use --build-arg SERVICE=<service-name>" >&2; \
-    echo "Valid services: llm-processor, nephio-bridge, oran-adaptor, manager, controller" >&2; \
+    echo "Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" >&2; \
     exit 1; \
     fi
 
@@ -85,12 +93,14 @@ USER nonroot
 # Build service based on SERVICE argument
 RUN set -ex; \
     case "$SERVICE" in \
-        "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
+        "conductor-loop") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        "intent-ingest") CMD_PATH="./cmd/intent-ingest/main.go" ;; \
         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
+        "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
         "manager") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
         "controller") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
-        *) echo "Unknown service: $SERVICE" && exit 1 ;; \
+        *) echo "Unknown service: $SERVICE. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" && exit 1 ;; \
     esac; \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
         -buildmode=pie \
@@ -151,8 +161,8 @@ RUN python -m compileall -b . && \
 # =============================================================================
 FROM gcr.io/distroless/static:${DISTROLESS_VERSION} AS go-runtime
 
+# Re-declare ARGs for this stage
 ARG SERVICE
-ARG SERVICE_TYPE=go
 ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF

@@ -1,5 +1,7 @@
-# golangci-lint config. This file is designed to pass in CI for MVP.
+# golangci-lint v2.x configuration
 # Ref: https://golangci-lint.run/docs/configuration/file/
+
+version: "2"
 
 run:
   # Total timeout for the whole run.
@@ -14,30 +16,15 @@ run:
   # Allow multiple runners on CI to reduce flakiness.
   allow-parallel-runners: true
   allow-serial-runners: true
+  # Use Go version from go.mod for better compatibility
+  go: "1.24"
 
+# v2 linters configuration
 linters:
-  # Start minimal: enable a few safe/default linters.
-  # You can add more later without breaking CI.
-  disable-all: true
-  enable:
-    - govet
-    - staticcheck
-    - errcheck
-    - revive
+  # Use standard set of linters instead of disable-all/enable pattern
+  default: standard
 
-linters-settings:
-  revive:
-    # A gentle ruleset; strict ones can be added later.
-    severity: warning
-    rules:
-      - name: blank-imports
-      - name: context-as-argument
-      - name: exported
-        arguments: ["disableStutteringCheck"]
-      - name: receiver-naming
-      - name: increment-decrement
-
-# All issue-related filters and exclusions live under "issues" in v2.
+# Issue handling and exclusions
 issues:
   # Only flag problems introduced in this branch by default.
   # （在大型既有專案中非常好用，不會一次炸出歷史債）
@@ -46,23 +33,20 @@ issues:
   # 並設 new-from-merge-base: integrate/mvp
   # new-from-merge-base: integrate/mvp
 
-  # Don’t limit counts while we’re stabilizing the codebase.
+  # Don't limit counts while we're stabilizing the codebase.
   max-issues-per-linter: 0
   max-same-issues: 0
-  
-  # Exclude specific directories from analysis
-  exclude-dirs:
-    - docs
-    - examples
-    - deployments
-    - testdata
-    - vendor
-  
-  # Exclude generated files
-  exclude-generated: lax
 
-# Optional: Output configuration
+# Output configuration
 output:
-  # Default format for CI
   formats:
-    - format: colored-line-number
+    text:
+      path: stdout
+
+# Severity configuration
+severity:
+  default: error
+  rules:
+    - linters:
+        - revive
+      severity: warning

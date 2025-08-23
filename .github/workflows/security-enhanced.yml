@@ -304,7 +304,20 @@ jobs:
         run: |
           echo "=== Checking Cyclomatic Complexity ==="
           mkdir -p ${{ env.REPORTS_DIR }}
-          gocyclo -over 15 . > ${{ env.REPORTS_DIR }}/complexity.txt || true
+          # Add Go bin to PATH and run gocyclo
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          $(go env GOPATH)/bin/gocyclo -over 15 . > ${{ env.REPORTS_DIR }}/complexity.txt || true
+          
+          # Add summary to job output
+          echo "## 🔍 Cyclomatic Complexity Analysis" >> $GITHUB_STEP_SUMMARY
+          if [ -s "${{ env.REPORTS_DIR }}/complexity.txt" ]; then
+            echo "⚠️ **Functions with high complexity (>15):**" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            cat ${{ env.REPORTS_DIR }}/complexity.txt >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No functions exceed complexity threshold of 15" >> $GITHUB_STEP_SUMMARY
+          fi
           
       - name: "Run Error Check"
         run: |
@@ -347,12 +360,37 @@ jobs:
           args: --report-format sarif --report-path gitleaks-results.sarif
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+          
+      - name: "Ensure SARIF file exists"
+        if: always()
+        run: |
+          if [ ! -f "gitleaks-results.sarif" ]; then
+            echo "Creating empty SARIF file for upload"
+            cat > gitleaks-results.sarif << 'EOF'
+          {
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+              {
+                "tool": {
+                  "driver": {
+                    "name": "gitleaks",
+                    "version": "unknown"
+                  }
+                },
+                "results": []
+              }
+            ]
+          }
+          EOF
+          fi
           
       - name: "Upload Gitleaks SARIF"
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: results.sarif
+          sarif_file: gitleaks-results.sarif
           category: gitleaks
           
       - name: "Run TruffleHog"

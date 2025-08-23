@@ -428,8 +428,8 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.62.0
-          args: --timeout=8m --issues-exit-code=0 --out-format=colored-line-number
+          version: v2.4.0
+          args: --timeout=8m --issues-exit-code=0
           skip-cache: false
           skip-pkg-cache: false
           skip-build-cache: false

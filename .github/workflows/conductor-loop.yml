@@ -305,7 +305,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: cmd/conductor-loop/Dockerfile
+          file: Dockerfile
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
@@ -313,6 +313,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
+            SERVICE=conductor-loop
+            SERVICE_TYPE=go
             VERSION=${{ github.sha }}
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             VCS_REF=${{ github.sha }}

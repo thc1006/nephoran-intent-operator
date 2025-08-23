@@ -83,7 +83,7 @@ regexes = [
     # Allow documentation examples
     '''example\.com''',
     # Allow test fixtures
-    '''testdata/''',
+    '''(^|/)testdata(/|$)''',
     # Allow license headers
     '''Copyright \(c\)''',
     # Allow REPLACE_WITH patterns
@@ -95,22 +95,22 @@ regexes = [
 ]
 
 paths = [
-    # Ignore test files and examples
-    '''testdata/''',
+    # Ignore test files and examples - using proper RE2 regex
+    '''(^|/)testdata(/|$)''',
     '''.*_test\.go$''',
-    '''examples/''',
-    '''docs/''',
+    '''(^|/)examples(/|$)''',
+    '''(^|/)docs(/|$)''',
     '''.*\.md$''',
     # Ignore vendor and build artifacts
-    '''vendor/''',
-    '''node_modules/''',
-    '''bin/''',
+    '''(^|/)vendor(/|$)''',
+    '''(^|/)node_modules(/|$)''',
+    '''(^|/)bin(/|$)''',
     '''.*\.log$''',
     # Ignore git and CI files
-    '''.git/''',
-    '''.github/''',
+    '''(^|/)\.git(/|$)''',
+    '''(^|/)\.github(/|$)''',
     # Ignore Claude-specific directories
-    '''.claude/''',
+    '''(^|/)\.claude(/|$)''',
     # Ignore configuration files that might contain template values
     '''values\.yaml$''',
     '''values-.*\.yaml$''',

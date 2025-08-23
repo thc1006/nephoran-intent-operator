@@ -347,8 +347,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.62.0
-          args: --timeout=5m --issues-exit-code=0 --out-format=colored-line-number
+          version: v2.4.0
+          args: --timeout=5m --issues-exit-code=0
 
       - name: Run additional linters
         run: |
@@ -358,13 +358,31 @@ jobs:
           go install honnef.co/go/tools/cmd/staticcheck@latest
           go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
           
+          # Add Go bin to PATH
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          
           # Run staticcheck
           echo "Running staticcheck..."
-          staticcheck ./... || echo "Staticcheck completed with warnings"
+          $(go env GOPATH)/bin/staticcheck ./... || echo "Staticcheck completed with warnings"
           
-          # Check cyclomatic complexity
+          # Check cyclomatic complexity and capture results
           echo "Checking cyclomatic complexity..."
-          gocyclo -over 15 . || echo "High complexity functions found"
+          echo "## 🔍 Cyclomatic Complexity Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Run gocyclo and capture output
+          if complexity_output=$($(go env GOPATH)/bin/gocyclo -over 15 ./... 2>&1); then
+            if [ -z "$complexity_output" ]; then
+              echo "✅ No functions exceed complexity threshold of 15" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️ **High complexity functions found:**" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+              echo "$complexity_output" >> $GITHUB_STEP_SUMMARY
+              echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            fi
+          else
+            echo "❌ Cyclomatic complexity analysis failed" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Lint summary
         run: |
@@ -714,7 +732,7 @@ jobs:
             ${{ runner.os }}-buildx-${{ matrix.service }}-
 
       - name: Build Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
@@ -725,6 +743,9 @@ jobs:
           build-args: |
             SERVICE=${{ matrix.service }}
             SERVICE_TYPE=${{ matrix.service_type }}
+            VERSION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VCS_REF=${{ github.sha }}
 
       # Move cache to prevent unlimited growth
       - name: Move cache
