@@ -59,32 +59,32 @@ func validateNetworkIntent(obj runtime.Object) (admission.Warnings, error) {
 		return nil, fmt.Errorf("expected *NetworkIntent, got %T", obj)
 	}
 	var allErrs field.ErrorList
-	
+
 	// Validate intentType - must be "scaling" per contract
 	if ni.Spec.IntentType != "scaling" {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "intentType"), ni.Spec.IntentType, "only 'scaling' supported"))
 	}
-	
+
 	// Validate replicas - must be >= 0
 	if ni.Spec.Replicas < 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "replicas"), ni.Spec.Replicas, "must be >= 0"))
 	}
-	
+
 	// Validate target - must be non-empty
 	if len(ni.Spec.Target) == 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "target"), ni.Spec.Target, "must be non-empty"))
 	}
-	
+
 	// Validate namespace - must be non-empty
 	if len(ni.Spec.Namespace) == 0 {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "namespace"), ni.Spec.Namespace, "must be non-empty"))
 	}
-	
+
 	// Validate source if provided - must be user, planner, or test per contract
 	if ni.Spec.Source != "" && ni.Spec.Source != "user" && ni.Spec.Source != "planner" && ni.Spec.Source != "test" {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "source"), ni.Spec.Source, "must be 'user', 'planner', or 'test'"))
 	}
-	
+
 	if len(allErrs) > 0 {
 		return nil, allErrs.ToAggregate()
 	}
