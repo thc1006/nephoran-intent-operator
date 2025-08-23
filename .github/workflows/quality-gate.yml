@@ -262,7 +262,7 @@ jobs:
       - name: 🔧 Install golangci-lint
         uses: golangci/golangci-lint-action@v4
         with:
-          version: v2.0.0
+          version: latest
           install-mode: "goinstall"
           only-new-issues: false
       
