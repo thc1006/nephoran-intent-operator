@@ -202,7 +202,7 @@ jobs:
 
       - name: Run safety check
         run: |
-          safety check -r ${{ matrix.requirements }} --json --output safety-${{ matrix.requirements }}.json
+          safety check -r ${{ matrix.requirements }} --output json > safety-${{ matrix.requirements }}.json
           safety check -r ${{ matrix.requirements }}
 
       - name: Run bandit security linter
