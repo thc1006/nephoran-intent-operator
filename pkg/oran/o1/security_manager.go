@@ -18,6 +18,14 @@ import (
 
 // ComprehensiveSecurityManager provides complete O-RAN security management
 // following O-RAN.WG10.O1-Interface.0-v07.00 specification
+// SecurityPolicyEngine evaluates security policies (forward declaration)
+type SecurityPolicyEngine struct {
+	policies   map[string]*SecurityPolicy
+	evaluators []PolicyEvaluator
+	cache      *PolicyCache
+	mutex      sync.RWMutex
+}
+
 type ComprehensiveSecurityManager struct {
 	config               *SecurityManagerConfig
 	certificateManager   *CertificateLifecycleManager
@@ -71,7 +79,7 @@ type CAConfig struct {
 
 // EncryptionConfig defines encryption standards and algorithms
 type EncryptionConfig struct {
-	MinTLSVersion         tls.VersionType
+	MinTLSVersion         uint16
 	CipherSuites          []uint16
 	SymmetricAlgorithms   []string // AES-256, ChaCha20-Poly1305
 	AsymmetricAlgorithms  []string // RSA-4096, ECDSA-P384
@@ -235,6 +243,15 @@ type TrustStore struct {
 	mutex           sync.RWMutex
 }
 
+// ValidationResult represents certificate validation results
+type ValidationResult struct {
+	Valid      bool
+	Errors     []string
+	Warnings   []string
+	Checked    time.Time
+	Expiration time.Time
+}
+
 // CertificateValidator interface for certificate validation
 type CertificateValidator interface {
 	ValidateCertificate(cert *x509.Certificate) *ValidationResult
@@ -394,12 +411,28 @@ type TOTPService struct {
 	period       int
 }
 
+// RateLimiter provides rate limiting functionality
+type RateLimiter struct {
+	MaxRequests int
+	WindowSize  time.Duration
+	requests    map[string][]time.Time
+	mutex       sync.RWMutex
+}
+
 // SMSService sends SMS-based authentication codes
 type SMSService struct {
 	provider  string
 	apiKey    string
 	templates map[string]string
 	rateLimit *RateLimiter
+}
+
+// EmailTemplate represents an email template
+type EmailTemplate struct {
+	Subject   string
+	Body      string
+	Format    string // TEXT, HTML
+	Variables map[string]string
 }
 
 // EmailService sends email-based authentication codes
@@ -412,10 +445,51 @@ type EmailService struct {
 	rateLimit  *RateLimiter
 }
 
+// PushProvider interface for push notification providers
+type PushProvider interface {
+	SendNotification(ctx context.Context, deviceID string, message string) error
+	GetProviderName() string
+}
+
+// PushConfig holds push notification configuration
+type PushConfig struct {
+	Providers map[string]map[string]interface{}
+	Timeout   time.Duration
+	Retries   int
+}
+
 // PushNotificationService sends push notifications for MFA
 type PushNotificationService struct {
 	providers map[string]PushProvider
 	config    *PushConfig
+}
+
+// SAMLProvider provides SAML authentication
+type SAMLProvider struct {
+	EntityID    string
+	SSO_URL     string
+	Certificate *x509.Certificate
+	PrivateKey  interface{}
+	MetadataURL string
+}
+
+// OIDCProvider provides OpenID Connect authentication
+type OIDCProvider struct {
+	Issuer       string
+	ClientID     string
+	ClientSecret string
+	RedirectURL  string
+	Scopes       []string
+}
+
+// OAuth2Config holds OAuth2 configuration
+type OAuth2Config struct {
+	ClientID     string
+	ClientSecret string
+	AuthURL      string
+	TokenURL     string
+	RedirectURL  string
+	Scopes       []string
 }
 
 // SingleSignOnProvider provides SSO integration
@@ -651,6 +725,46 @@ type CryptographicKey struct {
 	Metadata     map[string]interface{}
 }
 
+// AccessControlRule defines access control rules for keys
+type AccessControlRule struct {
+	ID         string
+	Subject    string
+	Action     string
+	Resource   string
+	Conditions []string
+	Effect     string // ALLOW, DENY
+}
+
+// RotationPolicy defines key rotation policies
+type RotationPolicy struct {
+	Enabled    bool
+	Interval   time.Duration
+	Threshold  time.Duration
+	Conditions []string
+}
+
+// KeyAuditPolicy defines audit policies for keys
+type KeyAuditPolicy struct {
+	ID         string
+	Name       string
+	EventTypes []string
+	Objects    []string
+	Actions    []string
+	Conditions []string
+	RiskLevel  string
+	Enabled    bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+// ExpirationPolicy defines key expiration policies
+type ExpirationPolicy struct {
+	MaxAge        time.Duration
+	WarningPeriod time.Duration
+	AutoRenew     bool
+	Notifications []string
+}
+
 // KeyPolicy defines key usage policies
 type KeyPolicy struct {
 	KeyID               string
@@ -659,7 +773,7 @@ type KeyPolicy struct {
 	AccessControlRules  []*AccessControlRule
 	RotationPolicy      *RotationPolicy
 	EscrowPolicy        *EscrowPolicy
-	AuditPolicy         *AuditPolicy
+	AuditPolicy         *KeyAuditPolicy
 	ExpirationPolicy    *ExpirationPolicy
 }
 
@@ -791,6 +905,37 @@ type EscrowPolicy struct {
 	AccessConditions  []string
 	RetentionPeriod   time.Duration
 	AuditRequirements []string
+}
+
+// EscrowAccessRule defines escrow access rules
+type EscrowAccessRule struct {
+	ID         string
+	Subject    string
+	Conditions []string
+	Approvers  []string
+	Effect     string
+}
+
+// EscrowApprover represents an escrow approver
+type EscrowApprover struct {
+	ID     string
+	Name   string
+	Email  string
+	Role   string
+	Weight int
+	Active bool
+}
+
+// EscrowAccessRequest represents an escrow access request
+type EscrowAccessRequest struct {
+	ID          string
+	RequesterID string
+	KeyID       string
+	Reason      string
+	Status      string
+	CreatedAt   time.Time
+	Approvers   []string
+	Approvals   map[string]bool
 }
 
 // EscrowAccessControl manages escrow access control
@@ -966,6 +1111,19 @@ type SecurityMLModel struct {
 	ModelPath    string
 }
 
+// StatisticalSummary provides statistical data summary
+type StatisticalSummary struct {
+	Mean        float64
+	Median      float64
+	Mode        float64
+	StdDev      float64
+	Variance    float64
+	Min         float64
+	Max         float64
+	Count       int64
+	Percentiles map[int]float64
+}
+
 // BehaviorProfile represents normal behavior patterns
 type BehaviorProfile struct {
 	EntityID     string
@@ -974,6 +1132,17 @@ type BehaviorProfile struct {
 	AnomalyScore float64
 	LastUpdate   time.Time
 	ProfileData  map[string]interface{}
+}
+
+// CorrelationRule defines alert correlation rules
+type CorrelationRule struct {
+	ID         string
+	Name       string
+	Conditions []string
+	TimeWindow time.Duration
+	Threshold  int
+	Action     string
+	Enabled    bool
 }
 
 // AlertCorrelationEngine correlates security alerts
@@ -1017,6 +1186,18 @@ type CustodyRecord struct {
 	Location  string
 	Notes     string
 	Signature string
+}
+
+// EscalationRule defines escalation rules
+type EscalationRule struct {
+	ID            string
+	Name          string
+	Conditions    []string
+	Severity      string
+	TimeThreshold time.Duration
+	Target        string
+	Action        string
+	Enabled       bool
 }
 
 // AutomatedResponseEngine provides automated incident response
@@ -1081,6 +1262,13 @@ type IDSConfig struct {
 	ThreatIntelEnabled bool
 	MLModelsEnabled    bool
 	CorrelationEnabled bool
+}
+
+// ComplianceReportGenerator generates compliance reports
+type ComplianceReportGenerator struct {
+	templates  map[string]*ReportTemplate
+	generators map[string]*ReportGenerator
+	schedulers map[string]*ReportScheduler
 }
 
 // SecurityAuditManager manages security auditing
@@ -1165,6 +1353,17 @@ type AuditPolicy struct {
 	Enabled    bool
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
+}
+
+// RetentionRule defines retention rules
+type RetentionRule struct {
+	ID              string
+	Name            string
+	RetentionPeriod time.Duration
+	ArchiveAfter    time.Duration
+	DeleteAfter     time.Duration
+	Conditions      []string
+	Enabled         bool
 }
 
 // LogRetentionPolicy defines log retention policies
@@ -1591,6 +1790,12 @@ type ComplianceEvidence struct {
 	Metadata    map[string]interface{}
 }
 
+// TimeRange represents a time range
+type TimeRange struct {
+	Start time.Time
+	End   time.Time
+}
+
 // ComplianceReport represents a compliance report
 type ComplianceReport struct {
 	ID               string
@@ -1681,6 +1886,62 @@ type ScanFinding struct {
 	Remediation string
 }
 
+// ReportTemplate defines report templates
+type ReportTemplate struct {
+	ID       string
+	Name     string
+	Type     string
+	Format   string
+	Sections []string
+	Template string
+}
+
+// ReportGenerator generates reports
+type ReportGenerator interface {
+	GenerateReport(ctx context.Context, template *ReportTemplate, data interface{}) (*ComplianceReport, error)
+	GetSupportedFormats() []string
+}
+
+// ReportScheduler schedules report generation
+type ReportScheduler struct {
+	schedules map[string]*ReportSchedule
+	ticker    *time.Ticker
+	running   bool
+	stopChan  chan struct{}
+}
+
+// ReportSchedule represents a scheduled report
+type ReportSchedule struct {
+	ID       string
+	Name     string
+	Template string
+	Schedule string
+	Enabled  bool
+	NextRun  time.Time
+}
+
+// ReportDistributor distributes reports
+type ReportDistributor struct {
+	channels map[string]*DistributionChannel
+	config   *DistributionConfig
+}
+
+// DistributionChannel represents a report distribution channel
+type DistributionChannel struct {
+	ID       string
+	Type     string // EMAIL, WEBHOOK, SFTP
+	Endpoint string
+	Config   map[string]interface{}
+	Enabled  bool
+}
+
+// DistributionConfig holds distribution configuration
+type DistributionConfig struct {
+	MaxRetries int
+	Timeout    time.Duration
+	BatchSize  int
+}
+
 // ComplianceReporter generates compliance reports
 type ComplianceReporter struct {
 	templates    map[string]*ReportTemplate
@@ -1733,6 +1994,15 @@ type SecureChannel struct {
 	BytesReceived  uint64
 }
 
+// VPNConfig holds VPN configuration
+type VPNConfig struct {
+	MaxConnections    int
+	ConnectionTimeout time.Duration
+	KeepAliveInterval time.Duration
+	DefaultRoutes     []string
+	DNSServers        []string
+}
+
 // VPNManager manages VPN connections
 type VPNManager struct {
 	connections map[string]*VPNConnection
@@ -1780,6 +2050,14 @@ type VPNCredentials struct {
 	PSK         string
 }
 
+// TunnelConfig holds tunnel configuration
+type TunnelConfig struct {
+	MaxTunnels         int
+	IdleTimeout        time.Duration
+	MaxConnections     int
+	CompressionEnabled bool
+}
+
 // TunnelManager manages secure tunnels
 type TunnelManager struct {
 	tunnels map[string]*SecureTunnel
@@ -1798,6 +2076,25 @@ type SecureTunnel struct {
 	CreatedAt    time.Time
 	LastActivity time.Time
 	Connections  int64
+}
+
+// ScanScheduler schedules vulnerability scans
+type ScanScheduler struct {
+	schedules map[string]*VulnScanSchedule
+	ticker    *time.Ticker
+	running   bool
+	stopChan  chan struct{}
+}
+
+// VulnScanSchedule represents a vulnerability scan schedule
+type VulnScanSchedule struct {
+	ID        string
+	ScannerID string
+	Schedule  string
+	Targets   []string
+	Enabled   bool
+	LastRun   time.Time
+	NextRun   time.Time
 }
 
 // VulnerabilityScanner scans for security vulnerabilities
@@ -1948,6 +2245,49 @@ type CVSSv3Score struct {
 	AvailabilityImpact    string
 }
 
+// VulnReportTemplate defines vulnerability report templates
+type VulnReportTemplate struct {
+	ID       string
+	Name     string
+	Format   string
+	Sections []string
+	Template string
+}
+
+// VulnReportGenerator generates vulnerability reports
+type VulnReportGenerator interface {
+	GenerateReport(ctx context.Context, data interface{}) (*VulnerabilityReport, error)
+	GetSupportedFormats() []string
+}
+
+// VulnReportDistributor distributes vulnerability reports
+type VulnReportDistributor struct {
+	channels map[string]*DistributionChannel
+	config   *DistributionConfig
+}
+
+// VulnerabilityReport represents a vulnerability report
+type VulnerabilityReport struct {
+	ID          string
+	Title       string
+	GeneratedAt time.Time
+	Summary     string
+	Findings    []*VulnerabilityFinding
+	Content     []byte
+	Format      string
+}
+
+// VulnerabilityFinding represents a vulnerability finding
+type VulnerabilityFinding struct {
+	ID          string
+	VulnID      string
+	Severity    string
+	Description string
+	Location    string
+	Evidence    []string
+	Remediation string
+}
+
 // VulnerabilityReporter generates vulnerability reports
 type VulnerabilityReporter struct {
 	templates    map[string]*VulnReportTemplate
@@ -1977,6 +2317,25 @@ type IncidentResponseManager struct {
 	forensics     *DigitalForensics
 	config        *IncidentResponseConfig
 	mutex         sync.RWMutex
+}
+
+// ResponseChecklist represents a response checklist
+type ResponseChecklist struct {
+	ID          string
+	Name        string
+	Description string
+	Items       []*ChecklistItem
+	Required    bool
+}
+
+// ChecklistItem represents a checklist item
+type ChecklistItem struct {
+	ID          string
+	Description string
+	Completed   bool
+	CompletedBy string
+	CompletedAt time.Time
+	Notes       string
 }
 
 // IncidentPlaybook defines incident response procedures
@@ -2117,6 +2476,22 @@ type EscalationLevel struct {
 	TimeLimit time.Duration
 	Authority []string
 	NextLevel int
+}
+
+// NotificationChannel interface for notification channels
+type NotificationChannel interface {
+	SendNotification(ctx context.Context, message *NotificationMessage) error
+	GetChannelType() string
+}
+
+// NotificationMessage represents a notification message
+type NotificationMessage struct {
+	ID        string
+	Subject   string
+	Content   string
+	Priority  string
+	Timestamp time.Time
+	Metadata  map[string]interface{}
 }
 
 // EscalationNotifications manages escalation notifications
@@ -2490,9 +2865,9 @@ func NewComprehensiveSecurityManager(config *SecurityManagerConfig) *Comprehensi
 	}
 
 	csm := &ComprehensiveSecurityManager{
-		config:   config,
-		metrics:  initializeSecurityMetrics(),
-		stopChan: make(chan struct{}),
+		config:          config,
+		securityMetrics: initializeSecurityMetrics(),
+		stopChan:        make(chan struct{}),
 	}
 
 	// Initialize all security components
@@ -2631,6 +3006,14 @@ func (csm *ComprehensiveSecurityManager) AuthorizeAccess(ctx context.Context, re
 // IssueCertificate issues a new certificate
 func (csm *ComprehensiveSecurityManager) IssueCertificate(ctx context.Context, request *CertificateRequest) (*ManagedCertificate, error) {
 	return csm.certificateManager.IssueCertificate(ctx, request)
+}
+
+// SecurityStatus represents the overall security status
+type SecurityStatus struct {
+	ComplianceLevel string
+	ActiveThreats   []string
+	LastAudit       time.Time
+	Metrics         map[string]interface{}
 }
 
 // GetSecurityStatus returns overall security status

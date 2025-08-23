@@ -76,3 +76,4 @@ Updates are tracked here in append-only format.
 | 2025-08-20T06:53:34.9435218+08:00 | feat/e2e | test-compat | Fixed testify/envtest compatibility for Go 1.24+ and controller-runtime v0.21.0 |
 | 2025-08-20T13:26:00.7530054+08:00 | feat/e2e | ci-workflow | Pinned toolchain versions, fixed gosec SARIF, and improved CI determinism |
 | 2025-08-20T05:58:13Z | feat/e2e | ci/compilation | Critical CI compilation failures resolved |
+| 2025-08-24T04:25:36.6704673+08:00 | feat/e2e | porch | Fixed compilation issues with missing types and ContentProcessor redeclaration |

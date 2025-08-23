@@ -1039,3 +1039,48 @@ type SecurityProfile struct {
 	PodSecurity     string
 	SELinux         bool
 }
+
+// Additional missing types for SAT solver and dependencies
+
+// SATSolver, SATSolverConfig, and NewSATSolver are defined in dependency_sat_solver.go
+
+// VersionRequirement defines a version constraint requirement
+type VersionRequirement struct {
+	PackageRef  *PackageReference
+	Constraint  *VersionConstraint
+	Priority    int
+	Mandatory   bool
+	Description string
+}
+
+// VersionSolution contains the result of version solving
+type VersionSolution struct {
+	Satisfied  bool
+	Solution   map[string]string // package -> version mapping
+	Conflicts  []*VersionConflict
+	Warnings   []string
+	Statistics *SolutionStatistics
+}
+
+// DependencyConstraints defines constraints for dependency resolution
+type DependencyConstraints struct {
+	VersionConstraints  []*VersionConstraint
+	ScopeConstraints    []*ScopeConstraint
+	SecurityConstraints []*SecurityConstraint
+	PolicyConstraints   []*PolicyConstraint
+	ExclusionRules      []*ExclusionRule
+	InclusionRules      []*InclusionRule
+	GlobalConstraints   map[string]interface{}
+}
+
+// TelcoProfile and ClusterCapabilities are defined in dependency_context_selector.go
+
+// EffortLevel defines the effort required for a task
+type EffortLevel string
+
+const (
+	EffortLevelLow      EffortLevel = "low"
+	EffortLevelMedium   EffortLevel = "medium"
+	EffortLevelHigh     EffortLevel = "high"
+	EffortLevelCritical EffortLevel = "critical"
+)

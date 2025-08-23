@@ -434,6 +434,8 @@ func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 		if percentage > 0.1 { // Only include functions > 0.1%
 			spots = append(spots, HotSpot{
 				Function:   funcName,
+				File:       "", // File info not available in this context
+				Line:       0,  // Line info not available in this context
 				Samples:    int(samples),
 				Percentage: percentage,
 			})

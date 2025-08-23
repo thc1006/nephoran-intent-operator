@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	"k8s.io/client-go/kubernetes"
@@ -61,7 +62,7 @@ type ConsulMesh struct {
 	config        *rest.Config
 	meshConfig    *Config
 	certProvider  *ConsulCertificateProvider
-	logger        log.Logger
+	logger        logr.Logger
 }
 
 // NewConsulMesh creates a new Consul mesh implementation

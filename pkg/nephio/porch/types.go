@@ -1115,6 +1115,168 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 // Additional DeepCopy methods would follow the same pattern...
 // This provides type-safe deep copying required for Kubernetes client-go
 
+// Missing type definitions for porch package compilation
+
+// OptimizationType defines optimization strategy types
+type OptimizationType string
+
+const (
+	OptimizationTypeLatency      OptimizationType = "latency"
+	OptimizationTypeThroughput   OptimizationType = "throughput"
+	OptimizationTypeResource     OptimizationType = "resource"
+	OptimizationTypeCost         OptimizationType = "cost"
+	OptimizationTypeReliability  OptimizationType = "reliability"
+)
+
+// ConflictAnalysis provides analysis of dependency conflicts
+type ConflictAnalysis struct {
+	ConflictType        string                 `json:"conflictType"`
+	ConflictingPackages []*PackageReference    `json:"conflictingPackages"`
+	Severity           string                 `json:"severity"`
+	Impact             string                 `json:"impact"`
+	ResolutionOptions  []ConflictResolution   `json:"resolutionOptions"`
+	Recommendations    []string               `json:"recommendations"`
+}
+
+// ConflictResolution is defined in content_manager.go
+
+// VersionConstraint defines version constraint requirements
+type VersionConstraint struct {
+	Operator     string `json:"operator"` // =, !=, >, <, >=, <=, ~, ^
+	Version      string `json:"version"`
+	Prerelease   bool   `json:"prerelease,omitempty"`
+	BuildMeta    string `json:"buildMeta,omitempty"`
+	ConstraintID string `json:"constraintId,omitempty"`
+}
+
+// ResolutionResult contains the result of dependency resolution
+type ResolutionResult struct {
+	Success          bool                        `json:"success"`
+	ResolvedPackages map[string]*ResolvedPackage `json:"resolvedPackages"`
+	Conflicts        []*ConflictAnalysis         `json:"conflicts,omitempty"`
+	Warnings         []string                    `json:"warnings,omitempty"`
+	Errors           []string                    `json:"errors,omitempty"`
+	ResolutionTime   time.Duration               `json:"resolutionTime"`
+	Metadata         map[string]interface{}      `json:"metadata,omitempty"`
+}
+
+// ResolvedPackage contains information about a resolved package
+type ResolvedPackage struct {
+	Reference        *PackageReference   `json:"reference"`
+	ResolvedVersion  string              `json:"resolvedVersion"`
+	Source           string              `json:"source"`
+	Dependencies     []*PackageReference `json:"dependencies,omitempty"`
+	Constraints      []*VersionConstraint `json:"constraints,omitempty"`
+	SelectionReason  string              `json:"selectionReason"`
+}
+
+// DependencyGraph represents the complete dependency graph
+type DependencyGraph struct {
+	RootPackages []*PackageReference     `json:"rootPackages"`
+	Nodes        map[string]*GraphNode   `json:"nodes"`
+	Edges        []*DependencyEdge      `json:"edges"`
+	Metadata     *GraphMetadata         `json:"metadata,omitempty"`
+}
+
+// GraphNode represents a node in the dependency graph
+type GraphNode struct {
+	PackageRef   *PackageReference   `json:"packageRef"`
+	Version      string              `json:"version"`
+	Dependencies []*PackageReference `json:"dependencies,omitempty"`
+	Dependents   []*PackageReference `json:"dependents,omitempty"`
+	Level        int                 `json:"level"`
+	Status       string              `json:"status"`
+}
+
+// DependencyEdge represents an edge in the dependency graph
+type DependencyEdge struct {
+	From         *PackageReference  `json:"from"`
+	To           *PackageReference  `json:"to"`
+	Constraint   *VersionConstraint `json:"constraint,omitempty"`
+	EdgeType     DependencyType     `json:"edgeType"`
+	Optional     bool               `json:"optional,omitempty"`
+}
+
+// GraphMetadata contains metadata about the dependency graph
+type GraphMetadata struct {
+	NodeCount      int                    `json:"nodeCount"`
+	EdgeCount      int                    `json:"edgeCount"`
+	MaxDepth       int                    `json:"maxDepth"`
+	HasCycles      bool                   `json:"hasCycles"`
+	Cycles         []*DependencyCycle     `json:"cycles,omitempty"`
+	BuildTime      time.Time              `json:"buildTime"`
+	GeneratedBy    string                 `json:"generatedBy"`
+}
+
+// DependencyCycle represents a circular dependency
+type DependencyCycle struct {
+	Packages []*PackageReference `json:"packages"`
+	Path     []string            `json:"path"`
+	Severity string              `json:"severity"`
+}
+
+// DependencyType defines types of dependencies
+type DependencyType string
+
+const (
+	DependencyTypeDirect     DependencyType = "direct"
+	DependencyTypeTransitive DependencyType = "transitive"
+	DependencyTypeOptional   DependencyType = "optional"
+	DependencyTypeDev        DependencyType = "dev"
+	DependencyTypeTest       DependencyType = "test"
+	DependencyTypePeer       DependencyType = "peer"
+)
+
+// DependencyScope defines dependency scopes
+type DependencyScope string
+
+const (
+	DependencyScopeRuntime     DependencyScope = "runtime"
+	DependencyScopeCompile     DependencyScope = "compile"
+	DependencyScopeTest        DependencyScope = "test"
+	DependencyScopeDevelopment DependencyScope = "development"
+	DependencyScopeProvided    DependencyScope = "provided"
+)
+
+// ConflictType is defined in content_manager.go
+
+// DependencyConflict represents a specific dependency conflict
+type DependencyConflict struct {
+	Type            ConflictType        `json:"type"`
+	PackageRef      *PackageReference   `json:"packageRef"`
+	ConflictingWith []*PackageReference `json:"conflictingWith"`
+	Reason          string              `json:"reason"`
+	Severity        string              `json:"severity"`
+}
+
+// GraphAnalysisResult contains results of graph analysis
+type GraphAnalysisResult struct {
+	Statistics      *GraphStatistics         `json:"statistics"`
+	Conflicts       []*DependencyConflict    `json:"conflicts,omitempty"`
+	Cycles          []*DependencyCycle       `json:"cycles,omitempty"`
+	Optimizations   []OptimizationSuggestion `json:"optimizations,omitempty"`
+	Recommendations []string                 `json:"recommendations,omitempty"`
+}
+
+// OptimizationSuggestion is defined in content_manager.go
+
+// GraphBuildOptions defines options for building dependency graphs
+type GraphBuildOptions struct {
+	IncludeTransitive bool            `json:"includeTransitive"`
+	IncludeOptional   bool            `json:"includeOptional"`
+	MaxDepth          int             `json:"maxDepth,omitempty"`
+	Filter            *PackageFilter  `json:"filter,omitempty"`
+	Optimization      OptimizationType `json:"optimization,omitempty"`
+}
+
+// PackageFilter defines filtering criteria for packages
+type PackageFilter struct {
+	IncludePatterns []string `json:"includePatterns,omitempty"`
+	ExcludePatterns []string `json:"excludePatterns,omitempty"`
+	Scopes          []string `json:"scopes,omitempty"`
+	Types           []string `json:"types,omitempty"`
+}
+
 // Error types for better error handling
 type PorchError struct {
 	Type    string
@@ -1184,3 +1346,140 @@ const (
 	LabelNetworkSlice    = "porch.nephoran.com/network-slice"
 	LabelORANInterface   = "porch.nephoran.com/oran-interface"
 )
+
+// Additional missing types for compilation
+
+// AuthConfig is defined in client.go
+
+// SyncConfig DeepCopy methods are defined in deepcopy.go
+
+// WorkflowStatus is defined in package_revision.go
+
+// VersionInfo is defined in dependency_types.go
+
+// Missing types for promotion_engine.go
+
+// RollbackOptions defines options for rollback operations
+type RollbackOptions struct {
+	Target       string            `json:"target"`
+	DryRun       bool              `json:"dryRun,omitempty"`
+	Force        bool              `json:"force,omitempty"`
+	SkipValidation bool            `json:"skipValidation,omitempty"`
+	Metadata     map[string]string `json:"metadata,omitempty"`
+}
+
+// PromotionCheckpoint represents a checkpoint during promotion
+type PromotionCheckpoint struct {
+	ID          string                 `json:"id"`
+	Timestamp   time.Time              `json:"timestamp"`
+	Stage       string                 `json:"stage"`
+	State       map[string]interface{} `json:"state"`
+	Reversible  bool                   `json:"reversible"`
+	Description string                 `json:"description,omitempty"`
+}
+
+// CheckpointRollbackResult contains the result of a checkpoint rollback
+type CheckpointRollbackResult struct {
+	Success     bool              `json:"success"`
+	Checkpoint  *PromotionCheckpoint `json:"checkpoint"`
+	RestoreTime time.Time         `json:"restoreTime"`
+	Error       string            `json:"error,omitempty"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
+}
+
+// RollbackOption defines a rollback option
+type RollbackOption struct {
+	Type        string                 `json:"type"`
+	Description string                 `json:"description"`
+	Parameters  map[string]interface{} `json:"parameters,omitempty"`
+	Risk        RiskLevel              `json:"risk"`
+}
+
+// PipelineRollbackPolicy defines rollback behavior for pipelines
+type PipelineRollbackPolicy struct {
+	EnableAutoRollback bool              `json:"enableAutoRollback"`
+	RollbackTimeout    time.Duration     `json:"rollbackTimeout,omitempty"`
+	MaxRetries         int32             `json:"maxRetries,omitempty"`
+	Conditions         []RollbackCondition `json:"conditions,omitempty"`
+}
+
+// RollbackCondition defines when to trigger rollback
+type RollbackCondition struct {
+	Type       string `json:"type"`
+	Threshold  string `json:"threshold,omitempty"`
+	TimeWindow string `json:"timeWindow,omitempty"`
+}
+
+// Additional missing types for promotion_engine.go
+
+// HealthWaitResult contains the result of a health wait operation
+type HealthWaitResult struct {
+	Success   bool          `json:"success"`
+	Duration  time.Duration `json:"duration"`
+	Status    string        `json:"status"`
+	Error     string        `json:"error,omitempty"`
+	Checkups  []HealthCheck `json:"checkups,omitempty"`
+}
+
+// HealthCheck is defined in promotion_engine.go
+
+// ChainValidationResult contains the result of chain validation
+type ChainValidationResult struct {
+	Valid     bool                   `json:"valid"`
+	Chain     []string               `json:"chain"`
+	Issues    []ValidationIssue      `json:"issues,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// ValidationIssue is defined in content_manager.go
+
+// PipelineExecutionResult contains the result of pipeline execution
+type PipelineExecutionResult struct {
+	Success    bool                   `json:"success"`
+	Stage      string                 `json:"stage"`
+	Duration   time.Duration          `json:"duration"`
+	Output     map[string]interface{} `json:"output,omitempty"`
+	Error      string                 `json:"error,omitempty"`
+	Logs       []string               `json:"logs,omitempty"`
+}
+
+// PromotionReportOptions defines options for promotion reporting
+type PromotionReportOptions struct {
+	IncludeDetails    bool     `json:"includeDetails"`
+	IncludeMetrics    bool     `json:"includeMetrics"`
+	IncludeLogs       bool     `json:"includeLogs"`
+	Format            string   `json:"format,omitempty"`
+	Sections          []string `json:"sections,omitempty"`
+}
+
+// PromotionReport contains a complete promotion report
+type PromotionReport struct {
+	ID           string                 `json:"id"`
+	Timestamp    time.Time              `json:"timestamp"`
+	Status       string                 `json:"status"`
+	Summary      string                 `json:"summary"`
+	Duration     time.Duration          `json:"duration"`
+	Stages       []StageReport          `json:"stages"`
+	Metrics      map[string]interface{} `json:"metrics,omitempty"`
+	Logs         []string               `json:"logs,omitempty"`
+	Metadata     map[string]string      `json:"metadata,omitempty"`
+}
+
+// StageReport contains a report for a single stage
+type StageReport struct {
+	Name      string        `json:"name"`
+	Status    string        `json:"status"`
+	Duration  time.Duration `json:"duration"`
+	Message   string        `json:"message,omitempty"`
+	Details   []string      `json:"details,omitempty"`
+}
+
+// PromotionEngineHealth represents the health status of the promotion engine
+type PromotionEngineHealth struct {
+	Status          string                 `json:"status"`
+	ActivePromotions int                   `json:"activePromotions"`
+	QueuedPromotions int                   `json:"queuedPromotions"`
+	LastPromotion   time.Time              `json:"lastPromotion,omitempty"`
+	Metrics         map[string]interface{} `json:"metrics,omitempty"`
+	Errors          []string               `json:"errors,omitempty"`
+}

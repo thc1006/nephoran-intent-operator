@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"math"
+	"sort"
 
 	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/gonum/stat/distuv"
@@ -35,22 +36,38 @@ func (sa *StatisticalAnalyzer) ExtractValues() []float64 {
 // DescriptiveStatistics computes comprehensive statistical descriptions
 func (sa *StatisticalAnalyzer) DescriptiveStatistics() DescriptiveStats {
 	values := sa.ExtractValues()
+	if len(values) == 0 {
+		return DescriptiveStats{}
+	}
+	
+	sortedValues := make([]float64, len(values))
+	copy(sortedValues, values)
+	sort.Float64s(sortedValues)
+	
 	return DescriptiveStats{
 		Mean:         stat.Mean(values, nil),
-		Median:       stat.Median(values),
+		Median:       median(sortedValues),
 		StdDev:       stat.StdDev(values, nil),
-		Min:          stat.Min(values),
-		Max:          stat.Max(values),
-		Percentile95: stat.Quantile(0.95, values, nil),
+		Min:          min(values),
+		Max:          max(values),
+		Percentile95: percentile(sortedValues, 0.95),
 	}
 }
 
 // OutlierDetection uses multiple methods for robust outlier identification
 func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 	values := sa.ExtractValues()
+	if len(values) == 0 {
+		return OutlierResult{}
+	}
+
+	sortedValues := make([]float64, len(values))
+	copy(sortedValues, values)
+	sort.Float64s(sortedValues)
 
 	// IQR Method
-	q1, q3 := stat.Quartile(values)
+	q1 := percentile(sortedValues, 0.25)
+	q3 := percentile(sortedValues, 0.75)
 	iqr := q3 - q1
 	lowerBound := q1 - 1.5*iqr
 	upperBound := q3 + 1.5*iqr
@@ -62,9 +79,11 @@ func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 	iqrOutliers := make([]float64, 0)
 
 	for _, val := range values {
-		zScore := (val - mean) / stdDev
-		if math.Abs(zScore) > 3 {
-			zScoreOutliers = append(zScoreOutliers, val)
+		if stdDev > 0 {
+			zScore := (val - mean) / stdDev
+			if math.Abs(zScore) > 3 {
+				zScoreOutliers = append(zScoreOutliers, val)
+			}
 		}
 		if val < lowerBound || val > upperBound {
 			iqrOutliers = append(iqrOutliers, val)
@@ -97,6 +116,72 @@ func (sa *StatisticalAnalyzer) HypothesisTesting(expectedMean float64) Hypothesi
 		PValue:           pValue,
 		Significant:      pValue < 0.05,
 	}
+}
+
+// Helper functions for statistical calculations
+
+// median calculates the median of a sorted slice
+func median(sortedValues []float64) float64 {
+	n := len(sortedValues)
+	if n == 0 {
+		return 0
+	}
+	if n%2 == 0 {
+		return (sortedValues[n/2-1] + sortedValues[n/2]) / 2
+	}
+	return sortedValues[n/2]
+}
+
+// percentile calculates the percentile of a sorted slice
+func percentile(sortedValues []float64, p float64) float64 {
+	if len(sortedValues) == 0 {
+		return 0
+	}
+	if p <= 0 {
+		return sortedValues[0]
+	}
+	if p >= 1 {
+		return sortedValues[len(sortedValues)-1]
+	}
+	
+	index := p * float64(len(sortedValues)-1)
+	lower := int(index)
+	upper := lower + 1
+	
+	if upper >= len(sortedValues) {
+		return sortedValues[lower]
+	}
+	
+	weight := index - float64(lower)
+	return sortedValues[lower]*(1-weight) + sortedValues[upper]*weight
+}
+
+// min finds the minimum value in a slice
+func min(values []float64) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+	minVal := values[0]
+	for _, v := range values[1:] {
+		if v < minVal {
+			minVal = v
+		}
+	}
+	return minVal
+}
+
+// max finds the maximum value in a slice
+func max(values []float64) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+	maxVal := values[0]
+	for _, v := range values[1:] {
+		if v > maxVal {
+			maxVal = v
+		}
+	}
+	return maxVal
 }
 
 // Structs for returning complex results

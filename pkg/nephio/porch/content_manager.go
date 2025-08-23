@@ -1396,9 +1396,7 @@ type BinaryContentStore interface {
 	Close() error
 }
 
-type ContentProcessor interface {
-	Process(ctx context.Context, content []byte) ([]byte, error)
-}
+// ContentProcessor interface is defined in package_revision.go to avoid redeclaration
 
 type ContentCache interface {
 	Get(key string) ([]byte, bool)
