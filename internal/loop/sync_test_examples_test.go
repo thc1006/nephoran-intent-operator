@@ -10,8 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ExampleFixedOnceMode demonstrates how to fix race conditions in once mode tests
-func ExampleFixedOnceMode(t *testing.T) {
+// TestExampleFixedOnceMode demonstrates how to fix race conditions in once mode tests
+func TestExampleFixedOnceMode(t *testing.T) {
 	// Create test synchronization helper
 	syncHelper := NewTestSyncHelper(t)
 	defer syncHelper.Cleanup()
@@ -73,8 +73,8 @@ func ExampleFixedOnceMode(t *testing.T) {
 	t.Logf("Successfully processed %d files in once mode", len(expectedFiles))
 }
 
-// ExampleConcurrentFileProcessing demonstrates race condition-free concurrent testing
-func ExampleConcurrentFileProcessing(t *testing.T) {
+// TestExampleConcurrentFileProcessing demonstrates race condition-free concurrent testing
+func TestExampleConcurrentFileProcessing(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 	defer syncHelper.Cleanup()
 	
@@ -136,8 +136,8 @@ func ExampleConcurrentFileProcessing(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// ExampleFailureHandling demonstrates proper failure handling synchronization
-func ExampleFailureHandling(t *testing.T) {
+// TestExampleFailureHandling demonstrates proper failure handling synchronization
+func TestExampleFailureHandling(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 	defer syncHelper.Cleanup()
 	
@@ -189,8 +189,8 @@ func ExampleFailureHandling(t *testing.T) {
 	t.Log("Successfully handled mixed valid/invalid files")
 }
 
-// ExampleCrossPlatformTiming demonstrates cross-platform timing considerations
-func ExampleCrossPlatformTiming(t *testing.T) {
+// TestExampleCrossPlatformTiming demonstrates cross-platform timing considerations
+func TestExampleCrossPlatformTiming(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 	defer syncHelper.Cleanup()
 	
@@ -245,8 +245,8 @@ func ExampleCrossPlatformTiming(t *testing.T) {
 	t.Log("Cross-platform timing test completed successfully")
 }
 
-// ExampleFilePatternValidation demonstrates fixing filename pattern issues
-func ExampleFilePatternValidation(t *testing.T) {
+// TestExampleFilePatternValidation demonstrates fixing filename pattern issues
+func TestExampleFilePatternValidation(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 	defer syncHelper.Cleanup()
 	
@@ -310,8 +310,8 @@ func ExampleFilePatternValidation(t *testing.T) {
 	t.Log("Filename pattern validation test completed successfully")
 }
 
-// ExampleDebugTracking demonstrates comprehensive debug tracking
-func ExampleDebugTracking(t *testing.T) {
+// TestExampleDebugTracking demonstrates comprehensive debug tracking
+func TestExampleDebugTracking(t *testing.T) {
 	syncHelper := NewTestSyncHelper(t)
 	defer syncHelper.Cleanup()
 	
