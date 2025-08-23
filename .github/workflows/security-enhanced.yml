@@ -71,9 +71,6 @@ jobs:
           # Install with version pinning for reproducibility
           go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.7.0
           
-          # Install in-toto CLI tool (correct package path)
-          go install github.com/in-toto/in-toto-golang/in_toto@v0.9.0
-          
           # Install Syft for SBOM generation
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v0.95.0
           
@@ -123,7 +120,7 @@ jobs:
           echo "=== Generating Build Provenance ==="
           mkdir -p ${{ env.REPORTS_DIR }}/provenance
           
-          # Generate in-toto link metadata
+          # Generate SLSA provenance metadata
           cat > ${{ env.REPORTS_DIR }}/provenance/provenance.json << EOF
           {
             "_type": "https://in-toto.io/Statement/v0.1",
