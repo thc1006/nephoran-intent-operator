@@ -1,7 +1,5 @@
-# golangci-lint v2.x configuration
+# golangci-lint v1.x configuration
 # Ref: https://golangci-lint.run/docs/configuration/file/
-
-version: "2"
 
 run:
   # Total timeout for the whole run.
@@ -15,14 +13,31 @@ run:
   tests: true
   # Allow multiple runners on CI to reduce flakiness.
   allow-parallel-runners: true
-  allow-serial-runners: true
   # Use Go version from go.mod for better compatibility
   go: "1.24"
 
-# v2 linters configuration
+# linters configuration
 linters:
-  # Use standard set of linters instead of disable-all/enable pattern
-  default: standard
+  # Use disable-all and enable only stable, essential linters
+  disable-all: true
+  enable:
+    - errcheck      # Check for unchecked errors
+    - gosimple      # Suggest code simplifications
+    - govet         # Go's standard vet checks
+    - ineffassign   # Detect ineffectual assignments
+    - staticcheck   # Staticcheck.io checks
+    - typecheck     # Type checking errors
+    - unused        # Find unused variables/functions
+    - gofmt         # Check if code is gofmt'd
+    - goimports     # Check import organization
+    - gosec         # Security checks
+    - misspell      # Check for misspellings
+  # Explicitly disable problematic linters
+  disable:
+    - asciicheck    # Repository issues
+    - exhaustruct   # Too strict for MVP phase
+    - gochecknoglobals  # May be too restrictive
+    - gocyclo       # Complexity checks can be added later
 
 # Issue handling and exclusions
 issues:
@@ -39,14 +54,6 @@ issues:
 
 # Output configuration
 output:
-  formats:
-    text:
-      path: stdout
-
-# Severity configuration
-severity:
-  default: error
-  rules:
-    - linters:
-        - revive
-      severity: warning
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
