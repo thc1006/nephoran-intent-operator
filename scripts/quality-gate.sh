@@ -63,6 +63,7 @@ OPTIONS:
     --skip-tests              Skip test execution (use existing coverage)
     --skip-lint               Skip linting checks
     --skip-security           Skip security scanning
+    --skip-complexity         Skip cyclomatic complexity analysis
     --verbose                 Enable verbose output
     --help                    Show this help message
 
@@ -115,6 +116,10 @@ parse_args() {
                 ;;
             --skip-security)
                 SKIP_SECURITY=true
+                shift
+                ;;
+            --skip-complexity)
+                SKIP_COMPLEXITY=true
                 shift
                 ;;
             --verbose)
@@ -381,10 +386,36 @@ calculate_quality_metrics() {
     # Cyclomatic complexity analysis
     info "Analyzing cyclomatic complexity..."
     local complexity_data
-    complexity_data=$(find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*" -not -name "*_test.go" -not -name "*generated*" | \
-        xargs gocyclo -over 10 2>/dev/null | \
-        awk '{complexity+=$1; files++} END {if(files>0) print complexity/files; else print 0}')
-    complexity_data=${complexity_data:-0}
+    
+    # Check if complexity analyzer is available and install if needed
+    if ! command -v gocyclo &> /dev/null; then
+        if [[ "${SKIP_COMPLEXITY:-false}" == "true" ]]; then
+            warning "Complexity analysis skipped (SKIP_COMPLEXITY=1)"
+            complexity_data=0
+        else
+            warning "gocyclo not found, attempting to install..."
+            if go install github.com/fzipp/gocyclo/cmd/gocyclo@v0.6.0; then
+                # Ensure Go bin is in PATH
+                export PATH="$PATH:$(go env GOPATH)/bin"
+                success "gocyclo installed successfully"
+            else
+                warning "Failed to install gocyclo, skipping complexity analysis"
+                complexity_data=0
+            fi
+        fi
+    fi
+    
+    # Run complexity analysis if tool is available
+    if command -v gocyclo &> /dev/null && [[ "${SKIP_COMPLEXITY:-false}" != "true" ]]; then
+        complexity_data=$(find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*" -not -name "*_test.go" -not -name "*generated*" | \
+            xargs gocyclo -over 10 2>/dev/null | \
+            awk '{complexity+=$1; files++} END {if(files>0) print complexity/files; else print 0}')
+        complexity_data=${complexity_data:-0}
+        info "Complexity analysis completed (average: $complexity_data)"
+    else
+        warning "Complexity analysis skipped - gocyclo not available"
+        complexity_data=0
+    fi
     
     # Line count analysis
     local total_lines
