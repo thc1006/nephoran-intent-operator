@@ -533,7 +533,8 @@ jobs:
         continue-on-error: true
 
       - name: Install golangci-lint (pinned)
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.4.0
 
       - name: Run golangci-lint (non-blocking)
         shell: bash
