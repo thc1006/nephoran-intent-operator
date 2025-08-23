@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: '1.24.1'
+  # Go version now read from go.mod in all jobs for consistency
   REGISTRY: ghcr.io
   IMAGE_NAME: nephoran-intent-operator
 
@@ -117,10 +117,17 @@ jobs:
 
       - name: Set up Go
         uses: actions/setup-go@v5
+        id: setup-go
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           check-latest: true
           cache: false
+
+      - name: Print Go version
+        run: |
+          echo "Go version: $(go version)"
+          echo "Go env:"
+          go env
 
       - name: Cache Go modules and build cache
         uses: actions/cache@v4
@@ -178,10 +185,17 @@ jobs:
 
       - name: Set up Go
         uses: actions/setup-go@v5
+        id: setup-go
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           check-latest: true
           cache: false
+
+      - name: Print Go version
+        run: |
+          echo "Go version: $(go version)"
+          echo "Go env:"
+          go env
 
       - name: Cache Go modules and build cache
         uses: actions/cache@v4
@@ -243,10 +257,17 @@ jobs:
 
       - name: Set up Go
         uses: actions/setup-go@v5
+        id: setup-go
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           check-latest: true
           cache: false
+
+      - name: Print Go version
+        run: |
+          echo "Go version: $(go version)"
+          echo "Go env:"
+          go env
 
       - name: Cache Go modules and build cache
         uses: actions/cache@v4
@@ -301,30 +322,33 @@ jobs:
     needs: [generate]
     if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped')
     timeout-minutes: 15
-    env:
-      # Isolate code quality to Go 1.23.x for linter compatibility
-      GO_QUALITY_VERSION: '1.23.x'
-      GOTOOLCHAIN: local
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go for Code Quality
+      - name: Set up Go
         uses: actions/setup-go@v5
+        id: setup-go
         with:
-          go-version: ${{ env.GO_QUALITY_VERSION }}
+          go-version-file: go.mod
           check-latest: true
           cache: false
 
-      - name: Restore Go modules cache
-        uses: actions/cache/restore@v4
+      - name: Print Go version
+        run: |
+          echo "Go version: $(go version)"
+          echo "Go env:"
+          go env
+
+      - name: Cache Go modules and build cache
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-quality-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-quality-
+            ${{ runner.os }}-go-
 
       - name: Download and verify dependencies
         run: |
@@ -343,14 +367,6 @@ jobs:
           skip-pkg-cache: true
           skip-build-cache: true
 
-      - name: Save Go modules cache
-        uses: actions/cache/save@v4
-        if: always()
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-quality-${{ hashFiles('**/go.sum') }}
 
   # Security and vulnerability scanning
   security:
@@ -359,30 +375,33 @@ jobs:
     needs: [generate]
     if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped')
     timeout-minutes: 15
-    env:
-      # Isolate code quality to Go 1.23.x for security tool compatibility
-      GO_QUALITY_VERSION: '1.23.x'
-      GOTOOLCHAIN: local
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Go for Security Analysis
+      - name: Set up Go
         uses: actions/setup-go@v5
+        id: setup-go
         with:
-          go-version: ${{ env.GO_QUALITY_VERSION }}
+          go-version-file: go.mod
           check-latest: true
           cache: false
 
-      - name: Restore Go modules cache
-        uses: actions/cache/restore@v4
+      - name: Print Go version
+        run: |
+          echo "Go version: $(go version)"
+          echo "Go env:"
+          go env
+
+      - name: Cache Go modules and build cache
+        uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: ${{ runner.os }}-go-security-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-security-
+            ${{ runner.os }}-go-
 
       - name: Restore govulncheck database cache
         uses: actions/cache/restore@v4
@@ -440,14 +459,6 @@ jobs:
           category: gosec
         continue-on-error: true
 
-      - name: Save Go modules cache
-        uses: actions/cache/save@v4
-        if: always()
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-security-${{ hashFiles('**/go.sum') }}
 
       - name: Save govulncheck database cache
         uses: actions/cache/save@v4

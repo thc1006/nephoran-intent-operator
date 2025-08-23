@@ -27,7 +27,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
-  GO_VERSION: '1.24'
+  # Go version read from go.mod for consistency
   SECURITY_DIR: './security'
   REPORTS_DIR: './security-reports'
 
@@ -57,7 +57,7 @@ jobs:
       - name: "Setup Go with Checksum Verification"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
           check-latest: true
           
@@ -192,7 +192,7 @@ jobs:
       - name: "Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
           
       - name: "Install Analysis Tools"

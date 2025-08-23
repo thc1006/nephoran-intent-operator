@@ -47,7 +47,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
-  GO_VERSION: '1.24.1'
+  # Go version read from go.mod for consistency
   COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '80' }}
   GOPROXY: https://proxy.golang.org,direct
   GOSUMDB: sum.golang.org
@@ -114,7 +114,7 @@ jobs:
       - name: "🔑 Generate Cache Key"
         id: cache
         run: |
-          cache_key="go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum', '**/go.mod', '.golangci.yml') }}"
+          cache_key="go-${{ hashFiles('**/go.sum', '**/go.mod', '.golangci.yml') }}"
           echo "cache_key=${cache_key}" >> $GITHUB_OUTPUT
           echo "📦 Cache key: ${cache_key}"
 
@@ -154,7 +154,7 @@ jobs:
       - name: "🐹 Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
           cache-dependency-path: |
             go.sum
@@ -169,7 +169,7 @@ jobs:
             ~/.cache/golangci-lint
           key: ${{ needs.detect-changes.outputs.cache_key }}
           restore-keys: |
-            go-${{ env.GO_VERSION }}-
+            go-
           save-always: true
 
       - name: "📦 Download Dependencies"
@@ -540,7 +540,7 @@ jobs:
       - name: "🐹 Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: "🚀 Restore Build Cache"
@@ -753,7 +753,7 @@ jobs:
       - name: "🐹 Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: "🔧 Setup Kind Cluster"
@@ -924,7 +924,7 @@ jobs:
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Go Version:** ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Go Version:** $(go version | awk '{print $3}')" >> $GITHUB_STEP_SUMMARY
           echo "- **Coverage Threshold:** ${{ env.COVERAGE_THRESHOLD }}%" >> $GITHUB_STEP_SUMMARY
 
       - name: "🚨 Fail on Critical Issues"

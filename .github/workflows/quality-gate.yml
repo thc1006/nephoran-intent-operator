@@ -51,7 +51,7 @@ on:
         type: boolean
 
 env:
-  GO_VERSION: '1.24.1'
+  # Go version read from go.mod for consistency
   COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '90' }}
   QUALITY_THRESHOLD: ${{ github.event.inputs.quality_threshold || '8.0' }}
   REPORTS_DIR: '.quality-reports'
@@ -120,7 +120,7 @@ jobs:
       - name: 🐹 Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
       
       - name: 📋 Cache Go Modules
@@ -237,9 +237,8 @@ jobs:
     needs: pre-checks
     if: needs.pre-checks.outputs.should-run-full-analysis == 'true'
     env:
-      # Isolate code quality to Go 1.23.x for linter compatibility
-      GO_QUALITY_VERSION: '1.23.x'
-      GOTOOLCHAIN: local
+      # Use go.mod Go version for linter compatibility
+      GOTOOLCHAIN: auto
     
     steps:
       - name: 📥 Checkout Code
@@ -250,7 +249,7 @@ jobs:
       - name: 🐹 Setup Go for Code Quality
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_QUALITY_VERSION }}
+          go-version-file: go.mod
           cache: false
       
       - name: 🔍 Restore golangci-lint cache
@@ -362,9 +361,8 @@ jobs:
     needs: pre-checks
     if: needs.pre-checks.outputs.should-run-full-analysis == 'true'
     env:
-      # Isolate security analysis to Go 1.23.x for tool compatibility
-      GO_QUALITY_VERSION: '1.23.x'
-      GOTOOLCHAIN: local
+      # Use go.mod Go version for security tool compatibility
+      GOTOOLCHAIN: auto
     
     steps:
       - name: 📥 Checkout Code
@@ -375,7 +373,7 @@ jobs:
       - name: 🐹 Setup Go for Security Analysis
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_QUALITY_VERSION }}
+          go-version-file: go.mod
           cache: false
       
       - name: 🔧 Download and verify dependencies
@@ -487,7 +485,7 @@ jobs:
       - name: 🐹 Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
       
       - name: 📥 Download Artifacts
