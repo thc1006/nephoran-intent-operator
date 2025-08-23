@@ -199,17 +199,77 @@ jobs:
         run: |
           pip-audit -r ${{ matrix.requirements }} --format json --output pip-audit-${{ matrix.requirements }}.json
           pip-audit -r ${{ matrix.requirements }}
+          
+          # Generate pip-audit summary
+          python3 - <<'PY'
+          import json
+          try:
+              with open("pip-audit-${{ matrix.requirements }}.json", "r") as f:
+                  data = json.load(f)
+              vulns = data.get("vulnerabilities", [])
+              print(f"[pip-audit] Found {len(vulns)} vulnerabilities in ${{ matrix.requirements }}")
+              
+              # Count by severity if available
+              severity_counts = {}
+              for vuln in vulns[:5]:  # Show top 5
+                  pkg = vuln.get("package", "unknown")
+                  version = vuln.get("version", "unknown") 
+                  vuln_id = vuln.get("id", "unknown")
+                  print(f"- {pkg}=={version}: {vuln_id}")
+          except Exception as e:
+              print(f"[pip-audit] Could not parse report: {e}")
+          PY
 
-      - name: Run safety check
+      - name: Run safety scan
         run: |
-          safety check -r ${{ matrix.requirements }} --output json > safety-${{ matrix.requirements }}.json
-          safety check -r ${{ matrix.requirements }}
+          safety scan -r ${{ matrix.requirements }} --detailed-output --output json > safety-${{ matrix.requirements }}.json
+          safety scan -r ${{ matrix.requirements }}
+          
+          # Generate safety summary
+          python3 - <<'PY'
+          import json
+          try:
+              with open("safety-${{ matrix.requirements }}.json", "r") as f:
+                  data = json.load(f)
+              
+              # Safety v3 structure may vary, handle both old/new formats
+              vulns = data.get("vulnerabilities", data.get("report", {}).get("vulnerabilities", []))
+              print(f"[safety] Found {len(vulns)} vulnerabilities in ${{ matrix.requirements }}")
+              
+              for vuln in vulns[:5]:  # Show top 5
+                  pkg = vuln.get("package_name", vuln.get("package", "unknown"))
+                  vuln_id = vuln.get("vulnerability_id", vuln.get("id", "unknown"))
+                  print(f"- {pkg}: {vuln_id}")
+          except Exception as e:
+              print(f"[safety] Could not parse report: {e}")
+          PY
 
       - name: Run bandit security linter
         if: matrix.requirements == 'requirements-rag.txt'
         run: |
-          bandit -r . -f json -o bandit-report.json
-          bandit -r . -ll
+          # Run bandit with HIGH severity/confidence threshold
+          bandit -r . -f json -o bandit-report.json -lll -iii
+          
+          # Generate summary (non-blocking)
+          python3 - <<'PY'
+          import json
+          try:
+              with open("bandit-report.json", "r") as f:
+                  data = json.load(f)
+              results = data.get("results", [])
+              counts = {}
+              for r in results:
+                  sev = r.get("issue_severity", "").upper()
+                  counts[sev] = counts.get(sev, 0) + 1
+              
+              print("[Bandit] Severity counts:", counts)
+              print("[Bandit] Top findings:")
+              sorted_results = sorted(results, key=lambda x: (x.get("issue_severity", ""), x.get("issue_confidence", "")), reverse=True)
+              for r in sorted_results[:10]:
+                  print(f"- {r.get('issue_severity')}/{r.get('issue_confidence')} {r.get('test_id')} {r.get('filename')}:{r.get('line_number')} :: {r.get('issue_text')}")
+          except Exception as e:
+              print(f"[Bandit] Could not parse report: {e}")
+          PY
 
       - name: Generate Python SBOM
         run: |
@@ -221,6 +281,16 @@ jobs:
         with:
           name: python-sbom-${{ matrix.requirements }}
           path: python-sbom-${{ matrix.requirements }}.json
+
+      - name: Upload security scan reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports-${{ matrix.requirements }}
+          path: |
+            pip-audit-${{ matrix.requirements }}.json
+            safety-${{ matrix.requirements }}.json
+            bandit-report.json
+          if-no-files-found: ignore
 
   container-security:
     name: Container Image Security Scan

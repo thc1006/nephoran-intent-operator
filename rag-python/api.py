@@ -378,5 +378,5 @@ if __name__ == '__main__':
     # For production, use a reverse proxy and bind to localhost
     import os
     debug_mode = os.environ.get('FLASK_DEBUG', '').lower() in ('1', 'true', 'yes')
-    host = '0.0.0.0' if debug_mode else '127.0.0.1'  # nosec B104 - conditional binding based on debug mode
+    host = '0.0.0.0' if debug_mode else '127.0.0.1'  # nosec B104
     app.run(host=host, port=5001, debug=debug_mode)
