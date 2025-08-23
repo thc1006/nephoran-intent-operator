@@ -426,13 +426,11 @@ jobs:
           fail-on-cache-miss: true
       
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: latest
-          args: --timeout=8m --issues-exit-code=0
-          skip-cache: false
-          skip-pkg-cache: false
-          skip-build-cache: false
+          install-mode: binary
+          version: v2.4.0
+          args: --timeout=8m
 
   # =============================================================================
   # Smart Container Build (Only when needed)

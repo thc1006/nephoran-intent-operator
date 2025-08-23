@@ -28,7 +28,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           lfs: true
@@ -121,7 +121,7 @@ jobs:
       python-code: ${{ steps.changes.outputs.python-code }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -201,12 +201,12 @@ jobs:
       crd-status: ${{ steps.generate.outputs.status }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
 
       - name: Cache controller tools
@@ -269,12 +269,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
 
       - name: Cache test dependencies
@@ -326,29 +326,41 @@ jobs:
           retention-days: 7
 
   # =============================================================================
-  # Lint Job - Code quality and style checks
+  # Lint Job - Code quality and style checks with best practices
   # =============================================================================
   lint:
     name: Lint
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.go-code == 'true'
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
 
+      - name: Run go vet
+        run: |
+          echo "=== Running go vet ==="
+          go vet ./...
+
+      - name: Run go tests (quick validation)
+        run: |
+          echo "=== Running go test for validation ==="
+          go test ./... -run Test -count=1 -short
+
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: latest
-          args: --timeout=5m --issues-exit-code=0
+          version: v2.3.0
+          args: --timeout=10m --verbose
+          skip-cache: false
+          skip-save-cache: false
 
       - name: Run additional linters
         run: |
@@ -404,12 +416,12 @@ jobs:
       sarif_uploaded: ${{ steps.security-summary.outputs.sarif_uploaded }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
 
       - name: Cache Go modules and security databases
@@ -650,14 +662,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
           cache: true
 
       - name: Test tools
@@ -710,7 +722,7 @@ jobs:
             service_type: go
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
