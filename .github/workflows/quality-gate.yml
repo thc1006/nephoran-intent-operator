@@ -274,8 +274,8 @@ jobs:
       - name: 🔧 Install golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61.2
-          install-only: true
+          version: latest
+          args: --version
           skip-cache: true
       
       - name: 🔍 Run Comprehensive Linting

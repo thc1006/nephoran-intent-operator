@@ -361,7 +361,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: v1.61.2
+          version: latest
           args: --verbose --timeout=5m
           skip-cache: true
           skip-pkg-cache: true
