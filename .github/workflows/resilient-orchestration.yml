@@ -510,7 +510,7 @@ jobs:
             if [ -f "$req_file" ]; then
               echo "Generating SBOM for $req_file"
               filename=$(basename "$req_file" .txt)
-              cyclonedx-py requirements "$req_file" --format json --output "${{ env.SBOM_DIR }}/python/python-sbom-$filename.json" || {
+              cyclonedx-py requirements "$req_file" -o "${{ env.SBOM_DIR }}/python/python-sbom-$filename.json" || {
                 echo "⚠️ Failed to generate SBOM for $req_file"
               }
             fi
