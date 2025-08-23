@@ -229,7 +229,7 @@ jobs:
           mkdir -p deployments/crds
           
           echo "=== Generating CRDs ==="
-          ~/go/bin/controller-gen crd:crdVersions=v1 rbac:roleName=manager-role webhook paths="./api/..." output:crd:artifacts:config=deployments/crds/
+          ~/go/bin/controller-gen crd:crdVersions=v1,allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./api/..." output:crd:artifacts:config=deployments/crds/
           
           # Check if any CRDs were generated
           crd_count=$(find deployments/crds -name '*.yaml' | wc -l)

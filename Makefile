@@ -191,7 +191,7 @@ gen: ## Generate CRDs and deep copy methods (output to deployments/crds/)
 	@echo "Attempting to generate deep copy methods..."
 	@controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" || echo "⚠️  Deep copy generation failed due to compilation errors"
 	@echo "Attempting to generate CRDs..."
-	@controller-gen crd rbac:roleName=manager-role webhook paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || \
+	@controller-gen crd:crdVersions=v1,allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || \
 		(echo "⚠️  CRD generation failed, using existing CRDs..." && \
 		 cp deployments/crds/*.yaml deployments/crds/ 2>/dev/null || echo "No existing CRDs found")
 	@echo "✅ Gen target completed (check warnings above for any issues)"
@@ -200,7 +200,7 @@ gen: ## Generate CRDs and deep copy methods (output to deployments/crds/)
 .PHONY: manifests
 manifests: deps ## Generate Kubernetes manifests
 	@echo "Generating Kubernetes manifests..."
-	controller-gen crd rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	controller-gen crd:crdVersions=v1,allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: fmt
 fmt: ## Format Go code
