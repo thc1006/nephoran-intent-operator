@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// cmdSafeQuoteWindows creates a properly quoted command line for Windows cmd.exe.
+// cmdSafeQuote creates a properly quoted command line for Windows cmd.exe.
 //
 // When using exec.Command("cmd.exe", "/S", "/C", commandLine), the commandLine
 // must be properly quoted to handle special characters and spaces. Windows cmd.exe
@@ -24,7 +24,7 @@ import (
 // References:
 // - https://ss64.com/nt/syntax-esc.html
 // - https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/cmd
-func cmdSafeQuoteWindows(args []string) string {
+func cmdSafeQuote(args []string) string {
 	if len(args) == 0 {
 		return ""
 	}

@@ -92,7 +92,7 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 		// Use safe Windows quoting to prevent cmd.exe parsing errors
 		// This prevents issues like "echo was unexpected at this time" when
 		// arguments contain special characters like &, |, (), <>, or ^
-		cmdLine := cmdSafeQuoteWindows(cmd)
+		cmdLine := cmdSafeQuote(cmd)
 		execCmd = exec.CommandContext(timeoutCtx, "cmd.exe", "/S", "/C", cmdLine)
 		log.Printf("Executing Windows batch file via cmd.exe with safe quoting: %s", cmdLine)
 	} else {

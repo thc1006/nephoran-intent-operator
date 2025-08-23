@@ -94,7 +94,7 @@ func TestCmdSafeQuoteWindows(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := cmdSafeQuoteWindows(tt.args)
+			result := cmdSafeQuote(tt.args)
 			assert.Equal(t, tt.expected, result, tt.desc)
 		})
 	}
@@ -146,7 +146,7 @@ func TestCmdSafeQuoteWindowsExecution(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cmdLine := cmdSafeQuoteWindows(tt.args)
+			cmdLine := cmdSafeQuote(tt.args)
 			
 			// Execute the command using cmd.exe with /S /C
 			cmd := exec.Command("cmd.exe", "/S", "/C", cmdLine)
