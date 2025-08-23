@@ -104,7 +104,7 @@ require (
 	google.golang.org/protobuf v1.36.6
 
 	// Helm integration for package management
-	helm.sh/helm/v3 v3.18.4
+	helm.sh/helm/v3 v3.18.5
 
 	// Code generation tools (build-time only)
 	k8s.io/code-generator v0.33.3

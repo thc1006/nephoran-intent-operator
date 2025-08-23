@@ -532,17 +532,15 @@ jobs:
           path: deployments/crds/
         continue-on-error: true
 
-      - name: Install golangci-lint (pinned)
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/HEAD/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.4.0
-
       - name: Run golangci-lint (non-blocking)
-        shell: bash
-        run: |
-          mkdir -p .excellence-reports
-          golangci-lint version || true
-          # Avoid config schema errors in MVP stage
-          golangci-lint run --timeout=5m --out-format=github-actions || true
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61.0
+          args: --timeout=5m
+          skip-cache: false
+          skip-pkg-cache: false
+          skip-build-cache: false
+        continue-on-error: true
 
       - name: Upload lint report (best-effort)
         if: always()

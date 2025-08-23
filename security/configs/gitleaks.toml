@@ -73,15 +73,15 @@ paths = [
     '''.*test.*''',
     '''.*example.*''',
     '''.*mock.*''',
-    '''testdata/.*'''
+    '''^.*/testdata/.*'''
 ]
 
 [[allowlist]]
 description = "Allow documentation"
 paths = [
     '''.*\.md$''',
-    '''docs/.*''',
-    '''README.*'''
+    '''^docs/.*''',
+    '''^README.*'''
 ]
 
 [[allowlist]]

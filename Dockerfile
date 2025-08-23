@@ -50,9 +50,17 @@ ARG TARGETPLATFORM
 ARG TARGETOS=linux
 ARG TARGETARCH=amd64
 ARG SERVICE
+ARG SERVICE_TYPE=go
 ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
+
+# Validate required build arguments
+RUN if [ -z "$SERVICE" ]; then \
+    echo "ERROR: SERVICE build argument is required. Use --build-arg SERVICE=<service-name>" >&2; \
+    echo "Valid services: llm-processor, nephio-bridge, oran-adaptor, manager, controller" >&2; \
+    exit 1; \
+    fi
 
 # Install minimal build tools
 RUN apk add --no-cache git ca-certificates tzdata binutils && \
@@ -142,6 +150,7 @@ RUN python -m compileall -b . && \
 FROM gcr.io/distroless/static:${DISTROLESS_VERSION} AS go-runtime
 
 ARG SERVICE
+ARG SERVICE_TYPE=go
 ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
@@ -224,6 +233,7 @@ CMD ["api.pyc"]
 # =============================================================================
 # Select the appropriate runtime based on SERVICE argument
 ARG SERVICE
+ARG SERVICE_TYPE=go
 FROM go-runtime AS final-go
 FROM python-runtime AS final-python
 

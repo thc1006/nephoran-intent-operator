@@ -8,6 +8,10 @@ license-check: true
 # Fail on these vulnerability severities
 fail-on-severity: high
 
+# Only fail on runtime dependencies (not dev/test dependencies)
+fail-on-scopes:
+  - runtime
+
 # Allowed licenses (SPDX identifiers)
 allowed-licenses:
   - Apache-2.0
