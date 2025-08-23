@@ -535,14 +535,30 @@ jobs:
             - [Security Scan Reports](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             `;
             
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🚨 Security Scan Failures - ${new Date().toISOString().split('T')[0]}`,
-              body: issueBody,
-              labels: ['security', 'critical', 'automated'],
-              assignees: [context.actor]
-            });
+            // Only create issues for non-PR events or PRs from the same repo (not forks)
+            const isPR = context.eventName === 'pull_request' || context.eventName === 'pull_request_target';
+            const isFromFork = isPR && context.payload.pull_request && 
+                               context.payload.pull_request.head.repo.full_name !== context.payload.repository.full_name;
+            
+            if (!isFromFork && failedJobs.length > 0) {
+              try {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: `🚨 Security Scan Failures - ${new Date().toISOString().split('T')[0]}`,
+                  body: issueBody,
+                  labels: ['security', 'critical', 'automated'],
+                  assignees: [context.actor]
+                });
+                console.log('Security issue created successfully');
+              } catch (error) {
+                console.log(`Unable to create issue (expected for PRs from forks): ${error.message}`);
+                console.log('Security scan failures detected - review the workflow run for details');
+              }
+            } else if (failedJobs.length > 0) {
+              console.log('Security scan failures detected in PR from fork - cannot create issue due to permissions');
+              console.log(`Failed jobs: ${failedJobs.join(', ')}`);
+            }
             
       - name: "Upload Final Security Report"
         uses: actions/upload-artifact@v4
