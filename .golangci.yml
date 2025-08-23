@@ -1,6 +1,8 @@
 # golangci-lint v2.x configuration
 # Ref: https://golangci-lint.run/usage/configuration/
 
+version: v2
+
 run:
   # Total timeout for the whole run.
   timeout: 5m
