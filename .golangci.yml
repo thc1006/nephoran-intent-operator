@@ -28,7 +28,6 @@ linters:
     - govet         # Go's standard vet checks
     - ineffassign   # Detect ineffectual assignments
     - staticcheck   # Staticcheck.io checks
-    - typecheck     # Type checking errors
     - unused        # Find unused variables/functions
     - gofmt         # Check if code is gofmt'd
     - goimports     # Check import organization
