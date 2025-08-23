@@ -347,8 +347,8 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
-          args: --timeout=5m --issues-exit-code=0 --out-format=github-actions
+          version: v1.61.0
+          args: --timeout=5m --issues-exit-code=0 --out-format=colored-line-number
 
       - name: Run additional linters
         run: |

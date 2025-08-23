@@ -420,10 +420,10 @@ jobs:
           fail-on-cache-miss: true
       
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
-          args: --timeout=8m --issues-exit-code=0
+          version: v1.61.0
+          args: --timeout=8m --issues-exit-code=0 --out-format=colored-line-number
           skip-cache: false
           skip-pkg-cache: false
           skip-build-cache: false

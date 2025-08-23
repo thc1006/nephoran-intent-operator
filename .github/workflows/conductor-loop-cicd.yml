@@ -292,10 +292,10 @@ jobs:
         
     # Code quality analysis
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v4
+      uses: golangci/golangci-lint-action@v6
       with:
         version: v1.61.0
-        args: --timeout=10m --config=.golangci.yml
+        args: --timeout=10m --config=.golangci.yml --out-format=colored-line-number
         
     # Upload test results
     - name: Upload Coverage Reports
