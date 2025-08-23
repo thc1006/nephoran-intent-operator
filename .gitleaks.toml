@@ -105,6 +105,7 @@ paths = [
     '''(^|/)vendor(/|$)''',
     '''(^|/)node_modules(/|$)''',
     '''(^|/)bin(/|$)''',
+    '''(^|/)pkg/mod(/|$)''',  # Ignore Go module cache
     '''.*\.log$''',
     # Ignore git and CI files
     '''(^|/)\.git(/|$)''',
@@ -123,6 +124,9 @@ paths = [
     '''.*test.*\.json$''',
     # Ignore text files (logs, reports)
     '''.*\.txt$''',
+    # Ignore SARIF and security reports
+    '''.*\.sarif$''',
+    '''security-reports/.*''',
 ]
 
 # Custom rules for telecommunications security
