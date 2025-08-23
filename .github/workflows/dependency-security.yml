@@ -221,9 +221,20 @@ jobs:
           PY
 
       - name: Run safety scan
+        env:
+          SAFETY_API_KEY: ${{ secrets.SAFETY_API_KEY }}
         run: |
-          safety scan -r ${{ matrix.requirements }} --detailed-output --output json > safety-${{ matrix.requirements }}.json
-          safety scan -r ${{ matrix.requirements }}
+          # Run Safety with API key for non-interactive execution
+          safety --key "${SAFETY_API_KEY}" scan -r ${{ matrix.requirements }} \
+            --output json --detailed-output --save-as json safety-${{ matrix.requirements }}.json
+          
+          # Verify JSON report was created
+          if [ ! -f "safety-${{ matrix.requirements }}.json" ] || [ ! -s "safety-${{ matrix.requirements }}.json" ]; then
+            echo "❌ Error: Safety JSON report was not created or is empty"
+            exit 1
+          fi
+          
+          echo "✅ Safety scan completed, JSON report created"
           
           # Generate safety summary
           python3 - <<'PY'
