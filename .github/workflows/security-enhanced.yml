@@ -70,7 +70,7 @@ jobs:
         run: |
           # Install with version pinning for reproducibility
           go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.4.0
-          go install github.com/in-toto/in-toto-golang/in-toto@v0.9.0
+          # Note: in-toto CLI is installed via different method if needed
           
           # Install Syft for SBOM generation
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v0.95.0
