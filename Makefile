@@ -262,6 +262,20 @@ test-regression: ## Run regression testing suite
 .PHONY: test-all
 test-all: test test-integration test-e2e test-excellence test-regression ## Run all test suites
 
+.PHONY: test-ci
+test-ci: ## Run unit tests with CI-compatible coverage reporting
+	@echo "Running unit tests with CI-compatible coverage..."
+	mkdir -p .test-reports
+	go test ./... -v -coverprofile=.test-reports/coverage.out -covermode=atomic -timeout=10m
+	@if [ -f .test-reports/coverage.out ]; then \
+		go tool cover -html=.test-reports/coverage.out -o .test-reports/coverage.html; \
+		echo "Coverage report generated: .test-reports/coverage.html"; \
+		coverage_percent=$$(go tool cover -func=.test-reports/coverage.out | grep total | awk '{print $$3}'); \
+		echo "Coverage: $$coverage_percent"; \
+	else \
+		echo "Warning: Coverage file not generated"; \
+	fi
+
 .PHONY: coverage
 coverage: test ## Generate and view test coverage report
 	@echo "Generating coverage report..."

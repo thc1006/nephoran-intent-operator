@@ -372,8 +372,12 @@ Please provide your response in valid YAML format with:
         api_config = self.config.get('api', {})
         model = variant.parameters.get('model', 'gpt-4')
         
-        # Simulate API call delay
-        await asyncio.sleep(random.uniform(0.5, 2.0))
+        # Simulate API call delay with secure random for timing variation
+        # Note: For demo purposes only. In real deployment, use fixed timeouts for testing
+        import secrets
+        # Use secure random for demonstration, but fixed delays preferred for tests
+        delay = 0.5 + (secrets.randbelow(1500) / 1000.0)  # 0.5 to 2.0 seconds
+        await asyncio.sleep(delay)
         
         # For demonstration, return a mock response
         mock_response = f"""apiVersion: networking.nephoran.io/v1
