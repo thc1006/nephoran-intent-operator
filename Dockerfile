@@ -8,8 +8,9 @@
 #   docker build --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
 #   docker build --build-arg SERVICE=nephio-bridge -t nephoran/nephio-bridge:latest .
 #   docker build --build-arg SERVICE=oran-adaptor -t nephoran/oran-adaptor:latest .
-#   docker build --build-arg SERVICE=rag-api -t nephoran/rag-api:latest .
 #   docker build --build-arg SERVICE=manager -t nephoran/manager:latest .
+#   docker build --build-arg SERVICE=conductor -t nephoran/conductor:latest .
+#   docker build --build-arg SERVICE=porch-publisher -t nephoran/porch-publisher:latest .
 #
 # Multi-arch build:
 #   docker buildx build --platform linux/amd64,linux/arm64 \
@@ -79,7 +80,15 @@ RUN set -ex; \
         "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
-        "manager"|"controller") CMD_PATH="./main.go" ;; \
+        "a1-sim") CMD_PATH="./cmd/a1-sim/main.go" ;; \
+        "conductor") CMD_PATH="./cmd/conductor/main.go" ;; \
+        "conductor-loop") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        "e2-kpm-sim") CMD_PATH="./cmd/e2-kpm-sim/main.go" ;; \
+        "fcaps-sim") CMD_PATH="./cmd/fcaps-sim/main.go" ;; \
+        "intent-ingest") CMD_PATH="./cmd/intent-ingest/main.go" ;; \
+        "o1-ves-sim") CMD_PATH="./cmd/o1-ves-sim/main.go" ;; \
+        "porch-publisher") CMD_PATH="./cmd/porch-publisher/main.go" ;; \
+        "manager"|"controller") CMD_PATH="./cmd/main.go" ;; \
         *) echo "Unknown service: $SERVICE" && exit 1 ;; \
     esac; \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \

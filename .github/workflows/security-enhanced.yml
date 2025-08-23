@@ -38,6 +38,7 @@ permissions:
   id-token: write  # For OIDC and signing
   packages: read
   pull-requests: write  # For PR comments
+  issues: write  # For creating security issues
 
 jobs:
   # =============================================================================
