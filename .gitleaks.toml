@@ -109,6 +109,8 @@ paths = [
     # Ignore git and CI files
     '''.git/''',
     '''.github/''',
+    # Ignore Claude-specific directories
+    '''.claude/''',
     # Ignore configuration files that might contain template values
     '''values\.yaml$''',
     '''values-.*\.yaml$''',
@@ -119,6 +121,8 @@ paths = [
     # Ignore test configuration files
     '''.*test.*\.yaml$''',
     '''.*test.*\.json$''',
+    # Ignore text files (logs, reports)
+    '''.*\.txt$''',
 ]
 
 # Custom rules for telecommunications security
