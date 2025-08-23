@@ -1,15 +1,9 @@
 # golangci-lint v2.x configuration
-# Ref: https://golangci-lint.run/usage/configuration/
-
 version: "2"
 
 run:
   timeout: 5m
-  modules-download-mode: readonly
   issues-exit-code: 0
-  tests: true
-  allow-parallel-runners: true
-  go: "1.24"
 
 linters:
   enable:
@@ -19,13 +13,3 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-
-issues:
-  exclude-use-default: true
-  max-issues-per-linter: 0
-  max-same-issues: 0
-
-output:
-  formats:
-    default:
-      format: colored-line-number
