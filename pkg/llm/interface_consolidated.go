@@ -15,8 +15,8 @@ type LLMProcessor interface {
 	Shutdown()
 }
 
-// BatchProcessor handles batch processing of multiple intents
-type BatchProcessor interface {
+// BatchProcessorInterface handles batch processing of multiple intents
+type BatchProcessorInterface interface {
 	ProcessBatch(ctx context.Context, requests []*BatchRequest) ([]*ProcessingResult, error)
 	GetMetrics() *ProcessingMetrics
 }

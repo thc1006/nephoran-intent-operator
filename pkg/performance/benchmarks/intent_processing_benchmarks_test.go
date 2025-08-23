@@ -166,7 +166,9 @@ func (b *IntentProcessingBenchmarks) BenchmarkIntentProcessingLatency(tb testing
 		"persistance":    make([]time.Duration, 0),
 	}
 
-	tb.ResetTimer()
+	if bench, ok := tb.(*testing.B); ok {
+		bench.ResetTimer()
+	}
 
 	for i := 0; i < b.config.StatisticalSamples; i++ {
 		start := time.Now()
@@ -201,7 +203,9 @@ func (b *IntentProcessingBenchmarks) BenchmarkIntentProcessingLatency(tb testing
 		}
 	}
 
-	tb.StopTimer()
+	if bench, ok := tb.(*testing.B); ok {
+		bench.StopTimer()
+	}
 
 	// Calculate comprehensive latency metrics
 	latencyMetrics := b.analyzeLatencyMetrics(samples, componentLatencies)
@@ -413,7 +417,9 @@ func (b *IntentProcessingBenchmarks) BenchmarkRAGRetrievalLatency(tb testing.TB)
 	cacheHits := 0
 	cacheMisses := 0
 
-	tb.ResetTimer()
+	if bench, ok := tb.(*testing.B); ok {
+		bench.ResetTimer()
+	}
 
 	for i := 0; i < b.config.StatisticalSamples; i++ {
 		start := time.Now()
@@ -429,7 +435,9 @@ func (b *IntentProcessingBenchmarks) BenchmarkRAGRetrievalLatency(tb testing.TB)
 		samples = append(samples, latency)
 	}
 
-	tb.StopTimer()
+	if bench, ok := tb.(*testing.B); ok {
+		bench.StopTimer()
+	}
 
 	// Analyze RAG performance
 	ragMetrics := b.analyzeRAGMetrics(samples, cacheHits, cacheMisses)

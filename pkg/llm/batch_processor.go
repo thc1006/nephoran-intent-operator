@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -489,7 +490,7 @@ func (bp *BatchProcessor) updateMetrics(batchSize int, processingTime time.Durat
 }
 
 // GetStats returns current batch processor statistics
-func (bp *BatchProcessor) GetStats() BatchProcessorStats {
+func (bp *BatchProcessor) GetStats() types.BatchProcessorStats {
 	bp.metricsMutex.RLock()
 	defer bp.metricsMutex.RUnlock()
 
@@ -497,7 +498,7 @@ func (bp *BatchProcessor) GetStats() BatchProcessorStats {
 	activeBatches := len(bp.batches)
 	bp.batchesMutex.RUnlock()
 
-	return BatchProcessorStats{
+	return types.BatchProcessorStats{
 		ProcessedBatches:    bp.processedBatches,
 		TotalRequests:       bp.totalRequests,
 		ActiveBatches:       int64(activeBatches),
@@ -510,16 +511,7 @@ func (bp *BatchProcessor) GetStats() BatchProcessorStats {
 }
 
 // BatchProcessorStats holds batch processor statistics
-type BatchProcessorStats struct {
-	ProcessedBatches    int64         `json:"processed_batches"`
-	TotalRequests       int64         `json:"total_requests"`
-	ActiveBatches       int64         `json:"active_batches"`
-	AverageBatchSize    float64       `json:"average_batch_size"`
-	AverageProcessTime  time.Duration `json:"average_process_time"`
-	QueueLength         int64         `json:"queue_length"`
-	PriorityQueueLength int64         `json:"priority_queue_length"`
-	WorkerCount         int64         `json:"worker_count"`
-}
+// BatchProcessorStats is now defined in pkg/shared/types/common_types.go
 
 // GetBatch returns information about a specific batch
 func (bp *BatchProcessor) GetBatch(batchID string) (*Batch, bool) {

@@ -10,6 +10,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
 // BenchmarkRAGSystemSuite provides comprehensive RAG system benchmarks using Go 1.24+ features
@@ -158,7 +160,7 @@ func benchmarkDocumentIngestion(b *testing.B, ctx context.Context, ragSystem *En
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				document := Document{
+				document := types.Document{
 					ID:      fmt.Sprintf("bench-doc-%d", i),
 					Content: docSize.content,
 					Metadata: map[string]interface{}{
@@ -689,7 +691,7 @@ func generateTextContent(sizeBytes int) string {
 	return content[:sizeBytes]
 }
 
-func generateTelecomDocument(sizeBytes int) Document {
+func generateTelecomDocument(sizeBytes int) types.Document {
 	content := `# 5G Core Network Function Deployment Guide
 
 ## AMF (Access and Mobility Management Function)
@@ -733,7 +735,7 @@ Each slice can have different QoS characteristics and service requirements.
 		content += "\n\n" + content
 	}
 
-	return Document{
+	return types.Document{
 		ID:      "benchmark-telecom-doc",
 		Content: content[:sizeBytes],
 		Metadata: map[string]interface{}{
@@ -843,7 +845,7 @@ func calculateChunkSizeVariance(sizes []int) float64 {
 
 func populateTestDocuments(ragSystem *EnhancedRAGSystem) {
 	// Pre-populate with representative telecom documents for consistent benchmarking
-	testDocs := []Document{
+	testDocs := []types.Document{
 		{
 			ID:       "amf-deployment-guide",
 			Content:  generateTextContent(10000),
@@ -905,11 +907,7 @@ type EnhancedRAGSystem struct {
 	metrics        RAGMetrics
 }
 
-type Document struct {
-	ID       string
-	Content  string
-	Metadata map[string]interface{}
-}
+// Document is now defined in pkg/shared/types/common_types.go
 
 type RetrievalConfig struct {
 	TopK            int
@@ -981,7 +979,7 @@ func (r *EnhancedRAGSystem) RetrieveDocuments(ctx context.Context, query string,
 	return []SearchResult{{Similarity: 0.8}}, nil
 }
 func (r *EnhancedRAGSystem) IsFromCache(query string) bool { return false }
-func (r *EnhancedRAGSystem) IngestDocument(ctx context.Context, doc Document) (*IngestionResult, error) {
+func (r *EnhancedRAGSystem) IngestDocument(ctx context.Context, doc types.Document) (*IngestionResult, error) {
 	return &IngestionResult{ChunksCreated: 5, TokensProcessed: 1000}, nil
 }
 func (r *EnhancedRAGSystem) AdvancedSearch(ctx context.Context, query string, config SearchConfig) ([]SearchResult, error) {
@@ -999,7 +997,7 @@ func (r *EnhancedRAGSystem) GenerateEmbeddings(ctx context.Context, texts []stri
 	return embeddings, nil
 }
 func (r *EnhancedRAGSystem) UsedConnectionPool() bool { return true }
-func (r *EnhancedRAGSystem) ChunkDocument(doc Document, config ChunkingConfig) ([]DocumentChunk, error) {
+func (r *EnhancedRAGSystem) ChunkDocument(doc types.Document, config ChunkingConfig) ([]DocumentChunk, error) {
 	return []DocumentChunk{{Content: "chunk", TokenCount: 100}}, nil
 }
 

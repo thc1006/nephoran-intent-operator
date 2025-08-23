@@ -15,6 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
@@ -61,7 +63,7 @@ type ClientMetrics struct {
 
 // ResponseCache provides simple in-memory caching
 type ResponseCache struct {
-	entries  map[string]*CacheEntry
+	entries  map[string]*types.CacheEntry
 	mutex    sync.RWMutex
 	ttl      time.Duration
 	maxSize  int
@@ -70,12 +72,7 @@ type ResponseCache struct {
 	stopped  bool
 }
 
-type CacheEntry struct {
-	Response   string
-	Timestamp  time.Time
-	LastAccess time.Time
-	HitCount   int64
-}
+// CacheEntry is now defined in pkg/shared/types/common_types.go
 
 // ValidationError represents a validation error with missing fields
 type ValidationError struct {
@@ -261,7 +258,7 @@ func NewClientMetrics() *ClientMetrics {
 // NewResponseCache creates a new response cache
 func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 	cache := &ResponseCache{
-		entries: make(map[string]*CacheEntry),
+		entries: make(map[string]*types.CacheEntry),
 		ttl:     ttl,
 		maxSize: maxSize,
 		stopCh:  make(chan struct{}),
@@ -365,7 +362,7 @@ func (c *ResponseCache) Set(key, response string) {
 	}
 
 	now := time.Now()
-	c.entries[key] = &CacheEntry{
+	c.entries[key] = &types.CacheEntry{
 		Response:   response,
 		Timestamp:  now,
 		LastAccess: now, // Initialize LastAccess

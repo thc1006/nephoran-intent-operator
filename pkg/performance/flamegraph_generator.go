@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/google/pprof/profile"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"k8s.io/klog/v2"
 )
 
@@ -37,7 +38,7 @@ type ProfileData struct {
 	ProfilePath  string
 	FlameGraph   string
 	TotalSamples int64
-	HotSpots     []HotSpot
+	HotSpots     []types.HotSpot
 	Metrics      ProfileMetrics
 }
 
@@ -428,23 +429,26 @@ func (fg *FlameGraphGenerator) analyzeProfile(profileData *ProfileData) error {
 	}
 
 	// Sort and convert to HotSpot slice
-	var spots []HotSpot
+	var spots []types.HotSpot
 	for funcName, samples := range hotSpots {
 		percentage := float64(samples) / float64(totalSamples) * 100
 		if percentage > 0.1 { // Only include functions > 0.1%
-			spots = append(spots, HotSpot{
-				Function:   funcName,
-				File:       "", // File info not available in this context
-				Line:       0,  // Line info not available in this context
-				Samples:    int(samples),
-				Percentage: percentage,
+			spots = append(spots, types.HotSpot{
+				Function:     funcName,
+				File:         "", // File info not available in this context
+				Line:         0,  // Line info not available in this context
+				SampleCount:  samples,
+				SelfPercent:  percentage,
+				TotalPercent: percentage, // Assuming self == total for top-level analysis
+				SelfCost:     samples,
+				TotalCost:    samples,
 			})
 		}
 	}
 
 	// Sort by percentage descending
 	sort.Slice(spots, func(i, j int) bool {
-		return spots[i].Percentage > spots[j].Percentage
+		return spots[i].SelfPercent > spots[j].SelfPercent
 	})
 
 	// Keep top 20 hot spots
@@ -631,12 +635,12 @@ func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData)
 	changes := make([]HotSpotChange, 0)
 
 	// Create maps for easy lookup
-	beforeMap := make(map[string]HotSpot)
+	beforeMap := make(map[string]types.HotSpot)
 	for _, spot := range before.HotSpots {
 		beforeMap[spot.Function] = spot
 	}
 
-	afterMap := make(map[string]HotSpot)
+	afterMap := make(map[string]types.HotSpot)
 	for _, spot := range after.HotSpots {
 		afterMap[spot.Function] = spot
 	}
@@ -645,14 +649,14 @@ func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData)
 	for funcName, beforeSpot := range beforeMap {
 		change := HotSpotChange{
 			Function:      funcName,
-			BeforeSamples: int64(beforeSpot.Samples),
-			BeforePercent: beforeSpot.Percentage,
+			BeforeSamples: beforeSpot.SampleCount,
+			BeforePercent: beforeSpot.SelfPercent,
 		}
 
 		if afterSpot, exists := afterMap[funcName]; exists {
-			change.AfterSamples = int64(afterSpot.Samples)
-			change.AfterPercent = afterSpot.Percentage
-			change.ChangePercent = afterSpot.Percentage - beforeSpot.Percentage
+			change.AfterSamples = afterSpot.SampleCount
+			change.AfterPercent = afterSpot.SelfPercent
+			change.ChangePercent = afterSpot.SelfPercent - beforeSpot.SelfPercent
 
 			if change.ChangePercent < -50 {
 				change.Status = "eliminated"
@@ -674,8 +678,8 @@ func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData)
 		if _, exists := beforeMap[funcName]; !exists {
 			changes = append(changes, HotSpotChange{
 				Function:      funcName,
-				AfterSamples:  int64(afterSpot.Samples),
-				AfterPercent:  afterSpot.Percentage,
+				AfterSamples:  afterSpot.SampleCount,
+				AfterPercent:  afterSpot.SelfPercent,
 				ChangePercent: 100,
 				Status:        "new",
 			})
@@ -935,7 +939,7 @@ func (fg *FlameGraphGenerator) GetComparisonReport() string {
 	var report strings.Builder
 	report.WriteString("=== PERFORMANCE OPTIMIZATION FLAMEGRAPH REPORT ===\n\n")
 
-	for profileType, comparison := range fg.comparisons {
+	for _, comparison := range fg.comparisons {
 		report.WriteString(comparison.Summary)
 		report.WriteString(fmt.Sprintf("\nFlameGraphs:\n"))
 		report.WriteString(fmt.Sprintf("  Before: %s\n", comparison.BeforeProfile.FlameGraph))

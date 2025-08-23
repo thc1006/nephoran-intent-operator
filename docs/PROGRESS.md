@@ -77,3 +77,4 @@ Updates are tracked here in append-only format.
 | 2025-08-20T13:26:00.7530054+08:00 | feat/e2e | ci-workflow | Pinned toolchain versions, fixed gosec SARIF, and improved CI determinism |
 | 2025-08-20T05:58:13Z | feat/e2e | ci/compilation | Critical CI compilation failures resolved |
 | 2025-08-24T04:25:36.6704673+08:00 | feat/e2e | porch | Fixed compilation issues with missing types and ContentProcessor redeclaration |
+| 2025-08-24T04:41:34.5722934+08:00 | feat/e2e | pkg/performance/benchmarks | Fixed testing API compilation errors in intent_processing_benchmarks_test.go |

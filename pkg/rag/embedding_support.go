@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
 // LoadBalancer manages provider selection and load distribution
@@ -168,12 +169,7 @@ type ProviderHealthMonitor struct {
 	mutex         sync.RWMutex
 }
 
-// Document represents a document for processing
-type Document struct {
-	ID       string                 `json:"id"`
-	Content  string                 `json:"content"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
-}
+// Document is now defined in pkg/shared/types/common_types.go
 
 func NewCostManager(limits CostLimits) *CostManager {
 	return &CostManager{

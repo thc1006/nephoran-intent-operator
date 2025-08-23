@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog/v2"
 )
@@ -24,7 +25,7 @@ type Profiler struct {
 	mutexProfile   *os.File
 	traceFile      *os.File
 	goroutineStats GoroutineStats
-	memoryStats    MemoryStats
+	memoryStats    LocalMemoryStats
 	profileDir     string
 	isActive       bool
 	httpServer     *http.Server
@@ -41,18 +42,12 @@ type GoroutineStats struct {
 	LastSnapshot time.Time
 }
 
-// MemoryStats tracks memory metrics
-type MemoryStats struct {
-	HeapAlloc    uint64
-	HeapSys      uint64
-	HeapInuse    uint64
-	HeapReleased uint64
-	GCPauseTotal time.Duration
-	GCPauseAvg   time.Duration
-	GCCount      uint32
-	LastGC       time.Time
-	MemoryLeaks  []MemoryLeak
-	LastSnapshot time.Time
+// LocalMemoryStats tracks memory metrics with specific fields for this profiler
+// (Extends the shared types.MemoryStats with profiler-specific fields)
+type LocalMemoryStats struct {
+	types.MemoryStats  // Embed shared memory stats
+	MemoryLeaks        []MemoryLeak
+	LastSnapshot       time.Time
 }
 
 // MemoryLeak represents a detected memory leak
@@ -64,29 +59,25 @@ type MemoryLeak struct {
 	Description string
 }
 
-// ProfileReport contains comprehensive profiling results
-type ProfileReport struct {
-	StartTime      time.Time
-	EndTime        time.Time
-	Duration       time.Duration
-	CPUProfile     string
-	MemoryProfile  string
-	BlockProfile   string
-	MutexProfile   string
-	GoroutineStats GoroutineStats
-	MemoryStats    MemoryStats
-	HotSpots       []HotSpot
-	Contentions    []Contention
-	Allocations    []Allocation
+// LocalProfileReport contains comprehensive profiling results with profiler-specific fields
+// (Extends the shared types.ProfileReport)
+type LocalProfileReport struct {
+	types.ProfileReport  // Embed shared profile report
+	CPUProfile           string
+	MemoryProfile        string
+	BlockProfile         string
+	MutexProfile         string
+	GoroutineStats       GoroutineStats
+	LocalMemoryStats     LocalMemoryStats // Use local version
+	Contentions          []Contention
+	Allocations          []Allocation
 }
 
-// HotSpot represents a CPU hotspot
-type HotSpot struct {
-	Function   string
-	File       string
-	Line       int
-	Samples    int
-	Percentage float64
+// LocalHotSpot represents a CPU hotspot with profiler-specific fields
+// (Extends the shared types.HotSpot)
+type LocalHotSpot struct {
+	types.HotSpot  // Embed shared hotspot
+	Samples        int // Additional field for this profiler
 }
 
 // Contention represents lock contention
@@ -113,7 +104,7 @@ func NewProfiler() *Profiler {
 		goroutineStats: GoroutineStats{
 			StackTraces: make(map[string]int),
 		},
-		memoryStats: MemoryStats{
+		memoryStats: LocalMemoryStats{
 			MemoryLeaks: make([]MemoryLeak, 0),
 		},
 	}
