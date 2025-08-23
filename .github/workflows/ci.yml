@@ -698,17 +698,13 @@ jobs:
     timeout-minutes: 20
     strategy:
       matrix:
-        service: [conductor-loop, intent-ingest, nephio-bridge]
+        service: [conductor-loop, intent-ingest]
         include:
           - service: conductor-loop
             dockerfile: Dockerfile
             context: .
             service_type: go
           - service: intent-ingest
-            dockerfile: Dockerfile
-            context: .
-            service_type: go
-          - service: nephio-bridge
             dockerfile: Dockerfile
             context: .
             service_type: go
