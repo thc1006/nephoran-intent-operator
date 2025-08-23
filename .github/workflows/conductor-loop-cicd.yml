@@ -120,7 +120,6 @@ jobs:
         go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
         govulncheck -json ./cmd/conductor-loop ./internal/loop > govulncheck-report.json
         echo "::notice title=Vulnerability Scan::govulncheck completed successfully"
-      continue-on-error: true
         
     # Static Security Analysis
     - name: Run gosec Security Scanner
@@ -134,7 +133,6 @@ jobs:
         if [ ! -f security-reports/gosec/gosec.sarif ]; then
           echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"gosec","version":"2.18.2"}},"results":[]}]}' > security-reports/gosec/gosec.sarif
         fi
-      continue-on-error: true
         
     - name: Upload gosec SARIF
       if: matrix.scan-type == 'gosec' && hashFiles('security-reports/gosec/gosec.sarif') != ''
@@ -156,7 +154,6 @@ jobs:
         SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
         # Fix: Use dynamic baseline branch resolution
         SEMGREP_BASELINE_REF: ${{ github.event.pull_request.base.ref || 'integrate/mvp' }}
-      continue-on-error: true
         
     # Dependency Security Check
     - name: Run Dependency Check
@@ -170,7 +167,6 @@ jobs:
           --enableRetired
           --scan "**/go.mod"
           --scan "**/go.sum"
-      continue-on-error: true
           
     - name: Upload Dependency Check Results
       if: matrix.scan-type == 'dependency-check'

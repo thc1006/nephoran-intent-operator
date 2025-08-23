@@ -364,7 +364,6 @@ jobs:
           args: --redact -v --exit-code=2 --report-format sarif --report-path security-reports/gitleaks.sarif
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
           
       - name: "Ensure SARIF file exists"
         if: always()

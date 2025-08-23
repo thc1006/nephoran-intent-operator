@@ -432,7 +432,6 @@ jobs:
 
       - name: Download and verify dependencies (resilient)
         shell: bash
-        continue-on-error: true
         run: |
           echo "=== Attempting to download and verify dependencies ==="
           
@@ -467,10 +466,8 @@ jobs:
         with:
           name: generated-crds
           path: deployments/crds/
-        continue-on-error: true
 
       - name: Install security tools (resilient)
-        continue-on-error: true
         run: |
           echo "=== Installing security scanning tools ==="
           
@@ -487,7 +484,6 @@ jobs:
 
       - name: Run govulncheck with enhanced resilience
         shell: bash
-        continue-on-error: true
         env:
           GOVULNCHECK_DB: ~/.cache/go-security-db
         run: |
