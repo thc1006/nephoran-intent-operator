@@ -50,8 +50,7 @@ issues:
 
 # Output configuration
 output:
-  # Use formats array instead of format field (golangci-lint v1.50+)
-  formats:
-    - format: colored-line-number
+  # Format configuration for golangci-lint
+  format: colored-line-number
   print-issued-lines: true
   print-linter-name: true
