@@ -481,7 +481,6 @@ jobs:
           vuln-type: 'os,library'
           
       - name: "Run Snyk Container Scan"
-        continue-on-error: true
         run: |
           mkdir -p ${{ env.REPORTS_DIR }}
           npm install -g snyk

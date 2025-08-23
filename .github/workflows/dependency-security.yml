@@ -33,7 +33,6 @@ jobs:
         run: go mod tidy
 
       - name: Run govulncheck (Enhanced)
-        continue-on-error: true
         run: |
           echo "=== Installing and running govulncheck ==="
           
@@ -142,7 +141,6 @@ jobs:
         with:
           fail-on-severity: high
           deny-licenses: GPL-3.0, AGPL-3.0
-        continue-on-error: true
 
   python-security:
     name: Python Dependency Security Scan
@@ -174,7 +172,6 @@ jobs:
         run: |
           safety check -r ${{ matrix.requirements }} --json --output safety-${{ matrix.requirements }}.json
           safety check -r ${{ matrix.requirements }}
-        continue-on-error: true
 
       - name: Run bandit security linter
         if: matrix.requirements == 'requirements-rag.txt'
