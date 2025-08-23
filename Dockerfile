@@ -71,6 +71,7 @@ RUN addgroup -g 65532 -S nonroot && \
     adduser -u 65532 -S nonroot -G nonroot
 
 WORKDIR /build
+RUN chown nonroot:nonroot /build
 
 # Copy dependencies from previous stage
 COPY --from=go-deps /go/pkg /go/pkg
@@ -87,7 +88,8 @@ RUN set -ex; \
         "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
-        "manager"|"controller") CMD_PATH="./main.go" ;; \
+        "manager") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        "controller") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
         *) echo "Unknown service: $SERVICE" && exit 1 ;; \
     esac; \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
@@ -231,12 +233,7 @@ CMD ["api.pyc"]
 # =============================================================================
 # STAGE: Final Runtime Selection
 # =============================================================================
-# Select the appropriate runtime based on SERVICE argument
-ARG SERVICE
-ARG SERVICE_TYPE=go
-FROM go-runtime AS final-go
-FROM python-runtime AS final-python
+# Default to go-runtime for all services except rag-api
+# rag-api service should be built with SERVICE_TYPE=python
 
-# This is a clever Docker trick: the last FROM wins based on build-arg conditions
-# Use conditional logic for service type detection
 FROM go-runtime AS final
