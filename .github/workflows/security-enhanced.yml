@@ -80,6 +80,7 @@ jobs:
       - name: "Verify Module Integrity"
         run: |
           echo "=== Verifying Go Module Integrity ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
           go mod verify
           go mod graph > ${{ env.REPORTS_DIR }}/dependency-graph.txt
           
@@ -225,17 +226,20 @@ jobs:
       - name: "Run Staticcheck"
         run: |
           echo "=== Running Staticcheck ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
           staticcheck -f sarif ./... > ${{ env.REPORTS_DIR }}/staticcheck.sarif || true
           staticcheck ./... > ${{ env.REPORTS_DIR }}/staticcheck.txt || true
           
       - name: "Check Cyclomatic Complexity"
         run: |
           echo "=== Checking Cyclomatic Complexity ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
           gocyclo -over 15 . > ${{ env.REPORTS_DIR }}/complexity.txt || true
           
       - name: "Run Error Check"
         run: |
           echo "=== Running Error Check ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
           errcheck -ignoretests ./... > ${{ env.REPORTS_DIR }}/errcheck.txt || true
           
       - name: "Upload SARIF Results"
@@ -268,7 +272,7 @@ jobs:
       - name: "Run Gitleaks"
         uses: gitleaks/gitleaks-action@v2
         with:
-          config-path: ${{ env.SECURITY_DIR }}/configs/gitleaks.toml
+          config-path: .gitleaks.toml
           args: --report-format sarif --report-path gitleaks-results.sarif
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -282,6 +286,7 @@ jobs:
           
       - name: "Run TruffleHog"
         run: |
+          mkdir -p ${{ env.REPORTS_DIR }}
           pip install truffleHog3
           trufflehog3 --output ${{ env.REPORTS_DIR }}/trufflehog.json --format json . || true
           
@@ -347,6 +352,7 @@ jobs:
       - name: "Run Snyk Container Scan"
         continue-on-error: true
         run: |
+          mkdir -p ${{ env.REPORTS_DIR }}
           npm install -g snyk
           snyk container test nephoran-operator:security-scan \
             --severity-threshold=high \
@@ -354,6 +360,7 @@ jobs:
             
       - name: "Run Anchore Grype"
         run: |
+          mkdir -p ${{ env.REPORTS_DIR }}
           curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
           grype nephoran-operator:security-scan \
             --output json \

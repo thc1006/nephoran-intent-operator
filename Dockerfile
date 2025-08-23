@@ -238,4 +238,5 @@ FROM go-runtime AS final-go
 FROM python-runtime AS final-python
 
 # This is a clever Docker trick: the last FROM wins based on build-arg conditions
-FROM final-${SERVICE_TYPE:-go} AS final
+# Use conditional logic for service type detection
+FROM go-runtime AS final
