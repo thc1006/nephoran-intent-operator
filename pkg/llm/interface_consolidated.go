@@ -21,8 +21,8 @@ type BatchProcessorInterface interface {
 	GetMetrics() *ProcessingMetrics
 }
 
-// StreamingProcessor handles streaming requests
-type StreamingProcessor interface {
+// StreamingHandler handles streaming requests
+type StreamingHandler interface {
 	HandleStreamingRequest(w interface{}, r interface{}, req *StreamingRequest) error
 	GetMetrics() map[string]interface{}
 }
@@ -59,18 +59,6 @@ type ClientMetrics struct {
 
 // CircuitBreakerConfig is defined in circuit_breaker.go as shared.CircuitBreakerConfig
 
-// TokenTracker tracks token usage and costs
-type TokenTracker struct {
-	totalTokens  int64
-	totalCost    float64
-	requestCount int64
-	mutex        sync.RWMutex
-}
-
-// NewTokenTracker creates a new token tracker
-func NewTokenTracker() *TokenTracker {
-	return &TokenTracker{}
-}
 
 // RecordUsage records token usage
 func (tt *TokenTracker) RecordUsage(tokens int) {
@@ -132,70 +120,9 @@ type IntentResponse struct {
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
-// STUB IMPLEMENTATIONS - Consolidated from stubs.go
-// These provide default implementations for components not yet fully implemented
-
-// ContextBuilder stub implementation (consolidated from stubs.go)
-type ContextBuilder struct{}
-
-func NewContextBuilder() *ContextBuilder {
-	return &ContextBuilder{}
-}
-
-func (cb *ContextBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"context_builder_enabled": false,
-		"status":                  "not_implemented",
-	}
-}
-
-// RelevanceScorer stub implementation (consolidated from stubs.go)
-type RelevanceScorer struct{}
-
-func NewRelevanceScorer() *RelevanceScorer {
-	return &RelevanceScorer{}
-}
-
-func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"relevance_scorer_enabled": false,
-		"status":                   "not_implemented",
-	}
-}
-
-// RAGAwarePromptBuilder stub implementation (consolidated from stubs.go)
-type RAGAwarePromptBuilder struct{}
-
-func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder {
-	return &RAGAwarePromptBuilder{}
-}
-
-func (rpb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"prompt_builder_enabled": false,
-		"status":                 "not_implemented",
-	}
-}
 
 // UTILITY FUNCTIONS
 
-// getDefaultCircuitBreakerConfig returns default circuit breaker configuration
-func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
-	return &CircuitBreakerConfig{
-		FailureThreshold:    5,
-		FailureRate:         0.5,
-		MinimumRequestCount: 10,
-		Timeout:             30 * time.Second,
-		HalfOpenTimeout:     60 * time.Second,
-		SuccessThreshold:    3,
-		HalfOpenMaxRequests: 5,
-		ResetTimeout:        60 * time.Second,
-		SlidingWindowSize:   100,
-		EnableHealthCheck:   false,
-		HealthCheckInterval: 30 * time.Second,
-		HealthCheckTimeout:  10 * time.Second,
-	}
-}
 
 // isValidKubernetesName validates Kubernetes resource names
 func isValidKubernetesName(name string) bool {

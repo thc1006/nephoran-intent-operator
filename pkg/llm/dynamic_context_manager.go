@@ -151,15 +151,6 @@ const (
 	HeavyCompression
 )
 
-// Priority represents request priority
-type Priority int
-
-const (
-	LowPriority Priority = iota
-	NormalPriority
-	HighPriority
-	CriticalPriority
-)
 
 // TokenEstimator provides token estimation for different models
 type TokenEstimator struct {

@@ -89,15 +89,6 @@ const (
 	BatchStatusFailed
 )
 
-// Priority levels for request prioritization
-type Priority int
-
-const (
-	PriorityLow Priority = iota
-	PriorityNormal
-	PriorityHigh
-	PriorityCritical
-)
 
 // BatchWorker processes batches
 type BatchWorker struct {

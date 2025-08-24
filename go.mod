@@ -36,7 +36,7 @@ require (
 	github.com/prometheus/client_golang v1.22.0
 
 	// Redis client for caching - UPDATED TO V9 FOR SECURITY
-	github.com/redis/go-redis/v9 v9.8.0 // indirect
+	github.com/redis/go-redis/v9 v9.8.0
 
 	// === CIRCUIT BREAKER ===
 	github.com/sony/gobreaker v1.0.0
@@ -64,13 +64,13 @@ require (
 
 	// === KUBERNETES ECOSYSTEM ===
 
-	// Kubernetes core APIs - aligned to v0.33.3
-	k8s.io/api v0.33.3
-	k8s.io/apiextensions-apiserver v0.33.3
-	k8s.io/apimachinery v0.33.3
-	k8s.io/client-go v0.33.3
+	// Kubernetes core APIs - aligned to v0.30.x (stable)
+	k8s.io/api v0.33.2
+	k8s.io/apiextensions-apiserver v0.33.2
+	k8s.io/apimachinery v0.33.2
+	k8s.io/client-go v0.33.2
 	k8s.io/klog/v2 v2.130.1
-	sigs.k8s.io/controller-runtime v0.21.0
+	sigs.k8s.io/controller-runtime v0.19.0
 
 	// Configuration management - single YAML library
 	sigs.k8s.io/yaml v1.6.0 // Replaces gopkg.in/yaml.v2
@@ -95,13 +95,13 @@ require (
 
 	// gRPC for internal services
 	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.6 // indirect
 
 	// Helm integration for package management
 	helm.sh/helm/v3 v3.18.4
 
 	// Code generation tools (build-time only)
-	k8s.io/code-generator v0.33.3
+	k8s.io/code-generator v0.33.2
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	sigs.k8s.io/controller-tools v0.18.0
 )
@@ -179,7 +179,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.6.1
-	k8s.io/metrics v0.33.3
+	k8s.io/metrics v0.33.2
 	sigs.k8s.io/kustomize/api v0.19.0
 	sigs.k8s.io/kustomize/kyaml v0.19.0
 )
@@ -441,9 +441,9 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/neurosnap/sentences.v1 v1.0.6 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
-	k8s.io/apiserver v0.33.3 // indirect
+	k8s.io/apiserver v0.33.2 // indirect
 	k8s.io/cli-runtime v0.33.2 // indirect
-	k8s.io/component-base v0.33.3 // indirect
+	k8s.io/component-base v0.33.2 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250207200755-1244d31929d7 // indirect
 	k8s.io/kubectl v0.33.2 // indirect
 	k8s.io/utils v0.0.0-20250321185631-1f6e0b77f77e // indirect

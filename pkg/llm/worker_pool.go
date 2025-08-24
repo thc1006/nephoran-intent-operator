@@ -309,7 +309,7 @@ func NewWorkerPool(config *WorkerPoolConfig) (*WorkerPool, error) {
 	pool.scaler.pool = pool
 
 	// Initialize priority queues
-	for _, priority := range []Priority{PriorityUrgent, PriorityHigh, PriorityNormal, PriorityLow} {
+	for _, priority := range []Priority{PriorityUrgent, HighPriority, NormalPriority, LowPriority} {
 		queueSize := config.PriorityQueueSizes[priority]
 		if queueSize == 0 {
 			queueSize = config.TaskQueueSize / 4 // Default split
@@ -419,7 +419,7 @@ func (wp *WorkerPool) taskDispatcher() {
 			var found bool
 
 			// Check priority queues in order
-			for _, priority := range []Priority{PriorityUrgent, PriorityHigh, PriorityNormal, PriorityLow} {
+			for _, priority := range []Priority{PriorityUrgent, HighPriority, NormalPriority, LowPriority} {
 				select {
 				case task = <-wp.priorityQueues[priority]:
 					found = true
@@ -801,9 +801,9 @@ func getDefaultWorkerPoolConfig() *WorkerPoolConfig {
 		HealthCheckEnabled: true,
 		PriorityQueueSizes: map[Priority]int{
 			PriorityUrgent: 100,
-			PriorityHigh:   250,
-			PriorityNormal: 500,
-			PriorityLow:    250,
+			HighPriority:   250,
+			NormalPriority: 500,
+			LowPriority:    250,
 		},
 	}
 }
@@ -842,9 +842,9 @@ type ResponsePool struct{}
 
 const (
 	PriorityUrgent Priority = iota
-	PriorityHigh
-	PriorityNormal
-	PriorityLow
+	HighPriority
+	NormalPriority
+	LowPriority
 
 	TaskTypeLLMProcessing TaskType = "llm_processing"
 	TaskTypeValidation    TaskType = "validation"

@@ -19,13 +19,6 @@ import (
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 )
 
-// StreamingProcessor handles streaming requests with server-sent events
-type StreamingProcessor struct {
-	httpClient *http.Client
-	ragAPIURL  string
-	logger     *slog.Logger
-	mutex      sync.RWMutex
-}
 
 // StreamingRequest represents a streaming request payload
 type StreamingRequest struct {

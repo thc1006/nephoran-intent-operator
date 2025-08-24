@@ -20,27 +20,27 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
-// Client is a client for the LLM processor.
-type Client struct {
+// LegacyClient is a client for the LLM processor (legacy version).
+type LegacyClient struct {
 	httpClient   *http.Client
 	url          string
 	promptEngine *TelecomPromptEngine
-	retryConfig  RetryConfig
+	retryConfig  LegacyRetryConfig
 	validator    *ResponseValidator
 	apiKey       string
 	modelName    string
 	maxTokens    int
 	backendType  string
 	logger       *slog.Logger
-	metrics      *ClientMetrics
+	metrics      *LegacyClientMetrics
 	mutex        sync.RWMutex
-	cache        *ResponseCache
+	cache        *LegacyResponseCache
 	fallbackURLs []string
 	ragClient    rag.RAGClient // Optional RAG client for enhanced processing
 }
 
-// RetryConfig defines retry behavior
-type RetryConfig struct {
+// LegacyRetryConfig defines retry behavior for legacy client
+type LegacyRetryConfig struct {
 	MaxRetries    int
 	BaseDelay     time.Duration
 	MaxDelay      time.Duration
@@ -48,8 +48,8 @@ type RetryConfig struct {
 	BackoffFactor float64
 }
 
-// ClientMetrics tracks client performance metrics
-type ClientMetrics struct {
+// LegacyClientMetrics tracks client performance metrics for legacy client
+type LegacyClientMetrics struct {
 	RequestsTotal    int64
 	RequestsSuccess  int64
 	RequestsFailure  int64
@@ -62,7 +62,7 @@ type ClientMetrics struct {
 }
 
 // ResponseCache provides simple in-memory caching
-type ResponseCache struct {
+type LegacyResponseCache struct {
 	entries  map[string]*types.CacheEntry
 	mutex    sync.RWMutex
 	ttl      time.Duration
@@ -94,8 +94,8 @@ type ResponseValidator struct {
 }
 
 // NewClient creates a new LLM client with enhanced capabilities.
-func NewClient(url string) *Client {
-	return NewClientWithConfig(url, ClientConfig{
+func NewLegacyClient(url string) *LegacyClient {
+	return NewLegacyClientWithConfig(url, LegacyClientConfig{
 		APIKey:          "",
 		ModelName:       "gpt-4o-mini",
 		MaxTokens:       2048,
@@ -107,7 +107,7 @@ func NewClient(url string) *Client {
 }
 
 // ClientConfig holds configuration for LLM client
-type ClientConfig struct {
+type LegacyClientConfig struct {
 	APIKey              string
 	ModelName           string
 	MaxTokens           int
@@ -120,7 +120,7 @@ type ClientConfig struct {
 
 // allowInsecureClient checks if insecure TLS is allowed via environment variable
 // This follows the principle of requiring explicit opt-in for insecure behavior
-func allowInsecureClient() bool {
+func legacyAllowInsecureClient() bool {
 	// Only allow insecure connections if explicitly enabled
 	// This requires setting ALLOW_INSECURE_CLIENT=true
 	envValue := os.Getenv("ALLOW_INSECURE_CLIENT")
@@ -128,7 +128,7 @@ func allowInsecureClient() bool {
 }
 
 // NewClientWithConfig creates a new LLM client with specific configuration
-func NewClientWithConfig(url string, config ClientConfig) *Client {
+func NewLegacyClientWithConfig(url string, config LegacyClientConfig) *LegacyClient {
 	// Initialize logger early for security logging
 	logger := slog.Default().With("component", "llm-client")
 
@@ -147,7 +147,7 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 
 	// Security check: Only allow skipping TLS verification when both conditions are met
 	if config.SkipTLSVerification {
-		if !allowInsecureClient() {
+		if !legacyAllowInsecureClient() {
 			// Log security violation attempt
 			logger.Error("SECURITY VIOLATION: Attempted to skip TLS verification without proper authorization",
 				slog.String("url", url),
@@ -216,8 +216,8 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		maxTokens:    config.MaxTokens,
 		backendType:  config.BackendType,
 		logger:       logger,
-		metrics:      NewClientMetrics(),
-		cache:        NewResponseCache(5*time.Minute, cacheMaxEntries), // Use environment variable
+		metrics:      NewLegacyClientMetrics(),
+		cache:        NewLegacyResponseCache(5*time.Minute, cacheMaxEntries), // Use environment variable
 		fallbackURLs: []string{},                                       // Can be configured for redundancy
 	}
 
@@ -251,13 +251,13 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 }
 
 // NewClientMetrics creates a new metrics tracker
-func NewClientMetrics() *ClientMetrics {
-	return &ClientMetrics{}
+func NewLegacyClientMetrics() *LegacyClientMetrics {
+	return &LegacyClientMetrics{}
 }
 
 // NewResponseCache creates a new response cache
-func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
-	cache := &ResponseCache{
+func NewLegacyResponseCache(ttl time.Duration, maxSize int) *LegacyResponseCache {
+	cache := &LegacyResponseCache{
 		entries: make(map[string]*types.CacheEntry),
 		ttl:     ttl,
 		maxSize: maxSize,
@@ -383,14 +383,14 @@ func (c *ResponseCache) Stop() {
 }
 
 // GetMetrics returns current client metrics
-func (c *Client) GetMetrics() ClientMetrics {
+func (c *LegacyClient) GetMetrics() LegacyClientMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 	return *c.metrics
 }
 
 // updateMetrics updates client metrics
-func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
+func (c *LegacyClient) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
 
@@ -423,7 +423,7 @@ func NewResponseValidator() *ResponseValidator {
 	}
 }
 
-func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, error) {
+func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	start := time.Now()
 	var success bool
 	var cacheHit bool
@@ -548,20 +548,20 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 }
 
 // generateCacheKey creates a cache key for the given intent
-func (c *Client) generateCacheKey(intent string) string {
+func (c *LegacyClient) generateCacheKey(intent string) string {
 	// Simple hash-based cache key (in production, consider using a proper hash function)
 	return fmt.Sprintf("%s:%s:%s", c.backendType, c.modelName, intent)
 }
 
 // SetFallbackURLs configures fallback URLs for redundancy
-func (c *Client) SetFallbackURLs(urls []string) {
+func (c *LegacyClient) SetFallbackURLs(urls []string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.fallbackURLs = urls
 }
 
 // Shutdown gracefully shuts down the client and its resources
-func (c *Client) Shutdown() {
+func (c *LegacyClient) Shutdown() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -586,7 +586,7 @@ func (c *Client) Shutdown() {
 }
 
 // classifyIntent determines the type of network intent
-func (c *Client) classifyIntent(intent string) string {
+func (c *LegacyClient) classifyIntent(intent string) string {
 	lowerIntent := strings.ToLower(intent)
 
 	scaleIndicators := []string{"scale", "increase", "decrease", "replicas", "instances", "resize"}
@@ -608,7 +608,7 @@ func (c *Client) classifyIntent(intent string) string {
 }
 
 // processWithLLMBackend handles processing with different LLM backends
-func (c *Client) processWithLLMBackend(ctx context.Context, intent, intentType string, extractedParams map[string]interface{}) (string, error) {
+func (c *LegacyClient) processWithLLMBackend(ctx context.Context, intent, intentType string, extractedParams map[string]interface{}) (string, error) {
 	// Generate appropriate prompt based on intent type
 	systemPrompt := c.promptEngine.GeneratePrompt(intentType, intent)
 
@@ -625,7 +625,7 @@ func (c *Client) processWithLLMBackend(ctx context.Context, intent, intentType s
 }
 
 // processWithChatCompletion handles OpenAI/Mistral-style chat completions
-func (c *Client) processWithChatCompletion(ctx context.Context, systemPrompt, intent string) (string, error) {
+func (c *LegacyClient) processWithChatCompletion(ctx context.Context, systemPrompt, intent string) (string, error) {
 	requestBody := map[string]interface{}{
 		"model": c.modelName,
 		"messages": []map[string]string{
@@ -701,7 +701,7 @@ func (c *Client) processWithChatCompletion(ctx context.Context, systemPrompt, in
 }
 
 // processWithRAGAPI handles RAG API requests
-func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
+func (c *LegacyClient) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
 	// Use the RAG client interface if available
 	if c.ragClient != nil {
 		// Use the new Retrieve method to get relevant documents
@@ -785,7 +785,7 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 }
 
 // retryWithExponentialBackoff implements retry logic with exponential backoff and jitter
-func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func() error) error {
+func (c *LegacyClient) retryWithExponentialBackoff(ctx context.Context, operation func() error) error {
 	var lastErr error
 	delay := c.retryConfig.BaseDelay
 
@@ -844,7 +844,7 @@ func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func
 }
 
 // isRetryableError determines if an error warrants a retry
-func (c *Client) isRetryableError(err error) bool {
+func (c *LegacyClient) isRetryableError(err error) bool {
 	errorStr := strings.ToLower(err.Error())
 
 	// Network-related errors are typically retryable
@@ -909,7 +909,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 
 	// Validate name field format (Kubernetes naming)
 	if name, ok := response["name"].(string); ok {
-		if !isValidKubernetesName(name) {
+		if !legacyIsValidKubernetesName(name) {
 			return fmt.Errorf("invalid Kubernetes name format: %s", name)
 		}
 	} else {
@@ -918,7 +918,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 
 	// Validate namespace field format
 	if namespace, ok := response["namespace"].(string); ok {
-		if !isValidKubernetesName(namespace) {
+		if !legacyIsValidKubernetesName(namespace) {
 			return fmt.Errorf("invalid Kubernetes namespace format: %s", namespace)
 		}
 	} else {
@@ -1028,7 +1028,7 @@ func (v *ResponseValidator) validateScaleSpec(spec map[string]interface{}) error
 }
 
 // Helper validation functions
-func isValidKubernetesName(name string) bool {
+func legacyIsValidKubernetesName(name string) bool {
 	if len(name) == 0 || len(name) > 253 {
 		return false
 	}

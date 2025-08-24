@@ -110,10 +110,10 @@ const (
 type Priority int
 
 const (
-	PriorityLow Priority = iota
-	PriorityNormal
-	PriorityHigh
-	PriorityCritical
+	LowPriority Priority = iota
+	NormalPriority
+	HighPriority
+	CriticalPriority
 )
 
 // TaskCallback defines the callback function for task completion

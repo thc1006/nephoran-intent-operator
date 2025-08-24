@@ -47,8 +47,13 @@ rules:
   G101:
     severity: CRITICAL
     confidence: HIGH
-    # Pattern for additional credential detection
-    pattern: '''(?i)(api|key|token|secret|password)'''
+    # Enhanced patterns for telecom-specific credentials
+    patterns:
+      - '''(?i)(api|key|token|secret|password)'''
+      - '''(?i)(a1|o1|o2|e2)[-_]?(credential|password|secret|key|token)'''
+      - '''(?i)(openai|anthropic|claude|gpt|mistral)[-_]?(api[-_]?key|token)'''
+      - '''(?i)(weaviate|pinecone|qdrant|chroma)[-_]?(api[-_]?key|password|token)'''
+      - '''(?i)(nephio|porch|kpt)[-_]?(token|key|secret|password)'''
   
   # File permissions
   G301:
@@ -139,6 +144,27 @@ rules:
   G602:
     severity: MEDIUM
     confidence: MEDIUM
+
+  # Additional Nephoran-specific security rules
+  G603:
+    severity: HIGH
+    confidence: MEDIUM
+    description: "Kubernetes client insecure configuration"
+    
+  G604:
+    severity: CRITICAL
+    confidence: HIGH  
+    description: "TLS configuration bypass"
+    
+  G701:
+    severity: HIGH
+    confidence: HIGH
+    description: "O-RAN interface insecure implementation"
+    
+  G702:
+    severity: MEDIUM
+    confidence: HIGH
+    description: "LLM prompt injection vulnerability"
 
 # Exclude paths and files
 excludes:

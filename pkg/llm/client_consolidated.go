@@ -94,8 +94,8 @@ func NewClientMetrics() *ClientMetrics {
 	return &ClientMetrics{}
 }
 
-// NewClient creates a new unified LLM client
-func NewClient(url string) *Client {
+// NewUnifiedClient creates a new unified LLM client
+func NewUnifiedClient(url string) *Client {
 	return NewClientWithConfig(url, ClientConfig{
 		ModelName:   "gpt-4o-mini",
 		MaxTokens:   2048,

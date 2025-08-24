@@ -690,7 +690,6 @@ type WarmingPredictor struct{}
 type WarmingScheduler struct{}
 type WarmingConfig struct{}
 
-type CacheMetrics struct{}
 
 type CacheOptions struct {
 	TTL           time.Duration
