@@ -148,8 +148,8 @@ func (sm *StateManager) saveStateUnsafe() error {
 		return fmt.Errorf("failed to marshal state data: %w", err)
 	}
 	
-	// Ensure directory exists before writing using the path utility
-	if err := pathutil.EnsureParentDir(sm.stateFile); err != nil {
+	// Ensure directory exists before writing using the robust path utility
+	if err := pathutil.EnsureParentDirectory(sm.stateFile); err != nil {
 		return fmt.Errorf("failed to create state directory: %w", err)
 	}
 

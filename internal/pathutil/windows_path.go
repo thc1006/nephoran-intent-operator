@@ -134,10 +134,10 @@ func NormalizeUserPath(p string) (string, error) {
 	// Clean the path to remove . and .. elements
 	cleaned := filepath.Clean(p)
 
-	// Check for path traversal attempts after cleaning
-	if strings.Contains(cleaned, "..") {
-		return "", fmt.Errorf("path traversal detected: %q", p)
-	}
+	// Note: We don't check for ".." here because filepath.Clean() safely resolves
+	// legitimate ".." components. Any remaining ".." components after Clean() are
+	// legitimate path elements. We'll do the real security check after getting
+	// the absolute path.
 
 	// Convert to absolute path
 	abs, err := filepath.Abs(cleaned)

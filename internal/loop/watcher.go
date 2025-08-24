@@ -2808,8 +2808,8 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) {
 	timestamp := time.Now().Format("20060102-150405")
 	statusFile := filepath.Join(w.dir, "status", fmt.Sprintf("%s-%s.status", sanitizedName, timestamp))
 	
-	// Ensure status directory exists using path utility
-	if err := pathutil.EnsureParentDir(statusFile); err != nil {
+	// Ensure status directory exists using robust path utility
+	if err := pathutil.EnsureParentDirectory(statusFile); err != nil {
 		log.Printf("Failed to create status directory: %v", err)
 		return
 	}

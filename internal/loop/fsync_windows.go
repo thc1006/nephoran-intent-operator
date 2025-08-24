@@ -10,6 +10,8 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 )
 
 // Windows-specific file sync operations with retry logic for race conditions
@@ -24,13 +26,23 @@ const (
 
 // atomicWriteFile writes data to a file atomically on Windows with proper syncing
 func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
-	dir := filepath.Dir(filename)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create directory: %w", err)
+	if filename == "" {
+		return fmt.Errorf("empty filename")
+	}
+
+	// Normalize path for Windows (handles long paths, drive-relative, etc.)
+	normalizedPath, err := pathutil.NormalizeWindowsPath(filename)
+	if err != nil {
+		return fmt.Errorf("failed to normalize path %q: %w", filename, err)
+	}
+
+	// Ensure parent directory exists using robust utility
+	if err := pathutil.EnsureParentDirectory(normalizedPath); err != nil {
+		return fmt.Errorf("failed to create parent directory for %q: %w", normalizedPath, err)
 	}
 
 	// Write to temporary file first
-	tempFile := filename + ".tmp"
+	tempFile := normalizedPath + ".tmp"
 	
 	// Write with sync
 	if err := writeFileWithSync(tempFile, data, perm); err != nil {
@@ -38,7 +50,7 @@ func atomicWriteFile(filename string, data []byte, perm os.FileMode) error {
 	}
 
 	// Atomic rename with retry for Windows
-	if err := renameFileWithRetry(tempFile, filename); err != nil {
+	if err := renameFileWithRetry(tempFile, normalizedPath); err != nil {
 		os.Remove(tempFile) // Clean up on failure
 		return fmt.Errorf("failed to rename file: %w", err)
 	}
