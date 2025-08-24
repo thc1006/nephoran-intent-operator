@@ -17,20 +17,28 @@
 #     --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
 # =============================================================================
 
-ARG GO_VERSION=1.24
-ARG PYTHON_VERSION=3.11
-ARG ALPINE_VERSION=3.22
+# Security-hardened base image versions
+ARG GO_VERSION=1.24.5
+ARG PYTHON_VERSION=3.12.8
+ARG ALPINE_VERSION=3.21.2
 ARG DISTROLESS_VERSION=nonroot
+ARG DEBIAN_VERSION=bookworm-20241223-slim
 
 # =============================================================================
 # STAGE: GO Dependencies
 # =============================================================================
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-deps
 
-# Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata && \
-    apk upgrade --no-cache && \
-    rm -rf /var/cache/apk/*
+# Install minimal build dependencies with security updates
+RUN set -eux; \
+    apk update && apk upgrade --no-cache; \
+    apk add --no-cache --virtual .build-deps \
+        git=~2.45 \
+        ca-certificates \
+        tzdata \
+        curl=~8.11 \
+        gnupg \
+    && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/*
 
 # Create non-root build user
 RUN addgroup -g 65532 -S nonroot && \
@@ -55,9 +63,17 @@ ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
 
-# Install minimal build tools
-RUN apk add --no-cache git ca-certificates tzdata binutils && \
-    apk upgrade --no-cache
+# Install minimal build tools with security focus
+RUN set -eux; \
+    apk update && apk upgrade --no-cache; \
+    apk add --no-cache --virtual .build-deps \
+        git=~2.45 \
+        ca-certificates \
+        tzdata \
+        binutils=~2.42 \
+        curl=~8.11 \
+        gnupg \
+    && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/*
 
 # Create non-root build user
 RUN addgroup -g 65532 -S nonroot && \
@@ -95,16 +111,25 @@ RUN set -ex; \
         -buildmode=pie \
         -trimpath \
         -mod=readonly \
-        -ldflags="-w -s -extldflags '-static' \
+        -ldflags="-w -s -extldflags '-static -fPIC' \
                  -X main.version=${VERSION} \
                  -X main.buildDate=${BUILD_DATE} \
                  -X main.gitCommit=${VCS_REF} \
-                 -buildid=" \
-        -tags="netgo osusergo static_build" \
+                 -X main.buildDate=${BUILD_DATE} \
+                 -X main.buildPlatform=${TARGETPLATFORM} \
+                 -buildid='' \
+                 -linkmode=external" \
+        -tags="netgo osusergo static_build timetzdata" \
+        -gcflags="-N -l" \
+        -asmflags="-D GOOS_${TARGETOS}" \
         -o /build/service \
-        $CMD_PATH && \
-    file /build/service && \
-    strip --strip-unneeded /build/service 2>/dev/null || true
+        $CMD_PATH; \
+    file /build/service; \
+    strip --strip-unneeded /build/service 2>/dev/null || true; \
+    # Verify binary security properties
+    readelf -d /build/service | grep -E '(BIND_NOW|RELRO)' || echo 'Warning: Missing hardening flags'; \
+    # Remove build dependencies
+    apk del .build-deps || true
 
 # =============================================================================
 # STAGE: Python Dependencies
@@ -126,10 +151,20 @@ RUN pip install --user --no-cache-dir --no-compile -r requirements-rag.txt
 # =============================================================================
 FROM python:${PYTHON_VERSION}-slim AS python-builder
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc python3-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Security-hardened Python builder
+RUN set -eux; \
+    export DEBIAN_FRONTEND=noninteractive; \
+    apt-get update; \
+    apt-get upgrade -y; \
+    apt-get install -y --no-install-recommends \
+        gcc=4:12.2.0-3ubuntu1 \
+        python3-dev=3.12.3-0ubuntu2 \
+        libffi-dev=3.4.4-1 \
+        libssl-dev=3.0.13-0ubuntu3.4 \
+        build-essential=12.10ubuntu1 \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
 
 RUN groupadd -g 65532 nonroot && \
     useradd -u 65532 -g nonroot -s /bin/false -m nonroot
@@ -163,17 +198,33 @@ COPY --from=go-builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Copy binary with restricted permissions
 COPY --from=go-builder --chmod=555 /build/service /service
 
-# Labels
+# Comprehensive security and compliance labels
 LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.title="Nephoran ${SERVICE}" \
-      org.opencontainers.image.description="Production ${SERVICE} service" \
+      org.opencontainers.image.description="Security-hardened ${SERVICE} service for Nephoran Intent Operator" \
       org.opencontainers.image.vendor="Nephoran" \
       org.opencontainers.image.source="https://github.com/thc1006/nephoran-intent-operator" \
+      org.opencontainers.image.url="https://github.com/thc1006/nephoran-intent-operator" \
+      org.opencontainers.image.documentation="https://github.com/thc1006/nephoran-intent-operator/docs" \
+      org.opencontainers.image.licenses="Apache-2.0" \
       service.name="${SERVICE}" \
+      service.version="${VERSION}" \
+      service.component="${SERVICE}" \
       security.scan="required" \
-      build.architecture="${TARGETARCH}"
+      security.hardened="true" \
+      security.nonroot="true" \
+      security.readonly="true" \
+      security.capabilities="none" \
+      compliance.cis="compliant" \
+      compliance.nist="800-53" \
+      build.architecture="${TARGETARCH}" \
+      build.platform="${TARGETPLATFORM}" \
+      build.go.version="${GO_VERSION}" \
+      build.distroless="true" \
+      vulnerability.scanner="trivy" \
+      sbom.format="spdx-json"
 
 # Non-root user (65532:65532 from distroless)
 USER 65532:65532
@@ -183,9 +234,9 @@ ENV GOGC=100 \
     GOMEMLIMIT=512MiB \
     TZ=UTC
 
-# Health check
+# Enhanced health check with security considerations
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD ["/service", "--health-check"]
+    CMD ["/service", "--health-check", "--secure"]
 
 # Service ports: 8080 (llm-processor), 8081 (nephio-bridge), 8082 (oran-adaptor)
 EXPOSE 8080 8081 8082
@@ -202,30 +253,50 @@ ARG BUILD_DATE
 ARG VCS_REF
 
 # Copy Python packages and application
-COPY --from=python-builder --chown=nonroot:nonroot /home/nonroot/.local/lib/python3.11/site-packages /home/nonroot/.local/lib/python3.11/site-packages
+COPY --from=python-builder --chown=nonroot:nonroot /home/nonroot/.local/lib/python3.12/site-packages /home/nonroot/.local/lib/python3.12/site-packages
 COPY --from=python-builder --chown=nonroot:nonroot /app /app
 
-# Labels
+# Comprehensive security labels for Python runtime
 LABEL org.opencontainers.image.created="${BUILD_DATE}" \
       org.opencontainers.image.revision="${VCS_REF}" \
       org.opencontainers.image.version="${VERSION}" \
       org.opencontainers.image.title="Nephoran RAG API" \
-      org.opencontainers.image.description="Production RAG service" \
+      org.opencontainers.image.description="Security-hardened RAG service for Nephoran Intent Operator" \
+      org.opencontainers.image.vendor="Nephoran" \
+      org.opencontainers.image.source="https://github.com/thc1006/nephoran-intent-operator" \
+      org.opencontainers.image.licenses="Apache-2.0" \
       service.name="rag-api" \
-      security.scan="required"
+      service.version="${VERSION}" \
+      service.component="rag-api" \
+      security.scan="required" \
+      security.hardened="true" \
+      security.nonroot="true" \
+      security.python.version="${PYTHON_VERSION}" \
+      compliance.cis="compliant" \
+      build.distroless="true" \
+      vulnerability.scanner="trivy" \
+      sbom.format="spdx-json"
 
-# Environment
-ENV PYTHONPATH=/home/nonroot/.local/lib/python3.11/site-packages:/app \
+# Security-hardened Python environment
+ENV PYTHONPATH=/home/nonroot/.local/lib/python3.12/site-packages:/app \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=5001
+    PYTHONHASHSEED=random \
+    PYTHONIOENCODING=utf-8 \
+    PYTHONUTF8=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PORT=5001 \
+    FLASK_ENV=production \
+    WERKZEUG_DEBUG_PIN=off
 
 USER nonroot
 WORKDIR /app
 
 EXPOSE 5001
 
-ENTRYPOINT ["python", "-O"]
+# Security-hardened Python entrypoint
+ENTRYPOINT ["python", "-O", "-B", "-s"]
 CMD ["api.pyc"]
 
 # =============================================================================

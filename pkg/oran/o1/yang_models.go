@@ -22,19 +22,7 @@ type YANGModelRegistry struct {
 }
 
 // YANGModel represents a YANG model definition
-type YANGModel struct {
-	Name         string                 `json:"name"`
-	Namespace    string                 `json:"namespace"`
-	Version      string                 `json:"version"`
-	Revision     string                 `json:"revision"`
-	Description  string                 `json:"description"`
-	Contact      string                 `json:"contact,omitempty"`
-	Organization string                 `json:"organization,omitempty"`
-	Schema       map[string]interface{} `json:"schema"`
-	Dependencies []string               `json:"dependencies,omitempty"`
-	ModulePath   string                 `json:"module_path,omitempty"`
-	LoadTime     time.Time              `json:"load_time"`
-}
+// YANGModel defined in netconf_server.go
 
 // YANGValidator provides validation functionality for YANG models
 type YANGValidator interface {

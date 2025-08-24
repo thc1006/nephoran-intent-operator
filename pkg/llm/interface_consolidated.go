@@ -57,21 +57,7 @@ type ClientMetrics struct {
 	mutex            sync.RWMutex
 }
 
-// CircuitBreakerConfig holds configuration for circuit breaker (consolidated)
-type CircuitBreakerConfig struct {
-	FailureThreshold    int64         `json:"failure_threshold"`
-	FailureRate         float64       `json:"failure_rate"`
-	MinimumRequestCount int64         `json:"minimum_request_count"`
-	Timeout             time.Duration `json:"timeout"`
-	HalfOpenTimeout     time.Duration `json:"half_open_timeout"`
-	SuccessThreshold    int64         `json:"success_threshold"`
-	HalfOpenMaxRequests int64         `json:"half_open_max_requests"`
-	ResetTimeout        time.Duration `json:"reset_timeout"`
-	SlidingWindowSize   int           `json:"sliding_window_size"`
-	EnableHealthCheck   bool          `json:"enable_health_check"`
-	HealthCheckInterval time.Duration `json:"health_check_interval"`
-	HealthCheckTimeout  time.Duration `json:"health_check_timeout"`
-}
+// CircuitBreakerConfig is defined in circuit_breaker.go as shared.CircuitBreakerConfig
 
 // TokenTracker tracks token usage and costs
 type TokenTracker struct {

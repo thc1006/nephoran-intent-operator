@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/expfmt"
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
@@ -23,7 +24,7 @@ type ObservabilityIntegration struct {
 	metricsRegistry *prometheus.Registry
 	tracer          trace.Tracer
 	meter           metric.Meter
-	logger          log.Logger
+	logger          logr.Logger
 
 	// Metrics
 	mtlsConnections      metric.Int64Counter

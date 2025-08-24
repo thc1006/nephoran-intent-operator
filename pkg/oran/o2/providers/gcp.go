@@ -15,10 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	ProviderTypeGCP = "gcp"
-)
-
 // GCPProvider implements CloudProvider for Google Cloud Platform
 type GCPProvider struct {
 	name      string

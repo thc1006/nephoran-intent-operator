@@ -11,6 +11,65 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// Accounting-specific type definitions to avoid conflicts with other managers
+
+// AccountingStatisticalSummary provides statistical data summary for accounting metrics
+type AccountingStatisticalSummary struct {
+	Mean        float64         `json:"mean"`
+	Median      float64         `json:"median"`
+	StdDev      float64         `json:"std_dev"`
+	Min         float64         `json:"min"`
+	Max         float64         `json:"max"`
+	Percentiles map[int]float64 `json:"percentiles"`
+	SampleCount int64           `json:"sample_count"`
+	Timestamp   time.Time       `json:"timestamp"`
+}
+
+// AccountingCorrelationRule defines correlation rules for accounting fraud detection
+type AccountingCorrelationRule struct {
+	ID         string
+	Name       string
+	Conditions []string
+	TimeWindow time.Duration
+	Threshold  int
+	Action     string
+	Enabled    bool
+}
+
+// AccountingReportTemplate defines accounting report structure and content
+type AccountingReportTemplate struct {
+	ID                 string           `json:"id"`
+	Name               string           `json:"name"`
+	Description        string           `json:"description"`
+	ReportType         string           `json:"report_type"` // BILLING, USAGE, REVENUE, FRAUD
+	Sections           []string         `json:"sections"`
+	Template           string           `json:"template"`
+}
+
+// AccountingReportGeneratorInterface generates accounting reports
+type AccountingReportGeneratorInterface interface {
+	GenerateReport(ctx context.Context, template *AccountingReportTemplate, data interface{}) (*AccountingReport, error)
+	GetSupportedFormats() []string
+}
+
+// AccountingReportScheduler schedules accounting report generation
+type AccountingReportScheduler struct {
+	schedules map[string]*ReportSchedule
+	ticker    *time.Ticker
+	running   bool
+	stopChan  chan struct{}
+}
+
+// AccountingReport represents a generated accounting report
+type AccountingReport struct {
+	ID          string                 `json:"id"`
+	TemplateID  string                 `json:"template_id"`
+	GeneratedAt time.Time              `json:"generated_at"`
+	Content     map[string]interface{} `json:"content"`
+	Format      string                 `json:"format"`
+	Status      string                 `json:"status"`
+}
+
 // ComprehensiveAccountingManager provides complete O-RAN accounting management
 // following O-RAN.WG10.O1-Interface.0-v07.00 specification
 type ComprehensiveAccountingManager struct {
@@ -20,7 +79,7 @@ type ComprehensiveAccountingManager struct {
 	billingEngine     *BillingEngine
 	chargingManager   *ChargingManager
 	usageAggregator   *UsageAggregator
-	reportGenerator   *AccountingReportGenerator
+	reportGenerator   *AccountingReportGeneratorImpl
 	auditTrail        *AccountingAuditTrail
 	dataRetention     *DataRetentionManager
 	rateLimitManager  *RateLimitManager
@@ -28,7 +87,7 @@ type ComprehensiveAccountingManager struct {
 	fraudDetection    *FraudDetectionEngine
 	settlementManager *SettlementManager
 	revenueTracking   *RevenueTrackingService
-	usageStorage      *UsageDataStorage
+	usageStorage      UsageDataStorage
 	metrics           *AccountingMetrics
 	running           bool
 	stopChan          chan struct{}
@@ -801,12 +860,12 @@ type AggregationQuery struct {
 	Limit         int                    `json:"limit,omitempty"`
 }
 
-// AccountingReportGenerator generates accounting reports
-type AccountingReportGenerator struct {
-	templates   map[string]*ReportTemplate
-	generators  map[string]ReportGenerator
-	scheduler   *ReportScheduler
-	distributor *ReportDistributor
+// AccountingReportGeneratorImpl implements accounting report generation
+type AccountingReportGeneratorImpl struct {
+	templates   map[string]*AccountingReportTemplate
+	generators  map[string]AccountingReportGeneratorInterface
+	scheduler   *AccountingReportScheduler
+	distributor ReportDistributor
 	config      *ReportingConfig
 }
 
@@ -1012,7 +1071,7 @@ type FraudMLModel struct {
 type UsageBaseline struct {
 	ResourceType string
 	UserID       string
-	Statistics   *StatisticalSummary
+	Statistics   *AccountingStatisticalSummary
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -1035,9 +1094,19 @@ type RiskScoringModel struct {
 	Enabled bool
 }
 
+// RiskFactor represents risk factors
+type RiskFactor struct {
+	ID          string
+	Name        string
+	Type        string
+	Weight      float64
+	Threshold   float64
+	Description string
+}
+
 // FraudCorrelationEngine correlates fraud events
 type FraudCorrelationEngine struct {
-	rules     []*CorrelationRule
+	rules     []*AccountingCorrelationRule
 	incidents map[string]*FraudIncident
 	networks  map[string]*FraudNetwork
 }
@@ -1256,6 +1325,45 @@ type UsageQuery struct {
 	Offset        int                    `json:"offset,omitempty"`
 }
 
+// DeletionCriteria defines criteria for data deletion
+type DeletionCriteria struct {
+	OlderThan  time.Time `json:"older_than"`
+	DataType   string    `json:"data_type"`
+	Quality    string    `json:"quality"`
+	ObjectIDs  []string  `json:"object_ids,omitempty"`
+	Conditions map[string]interface{} `json:"conditions,omitempty"`
+}
+
+// StorageStatistics provides storage usage statistics
+type StorageStatistics struct {
+	TotalRecords     int64     `json:"total_records"`
+	StorageSize      int64     `json:"storage_size_bytes"`
+	OldestRecord     time.Time `json:"oldest_record"`
+	NewestRecord     time.Time `json:"newest_record"`
+	CompressionRatio float64   `json:"compression_ratio"`
+}
+
+// AuditEntry represents an audit trail entry
+type AuditEntry struct {
+	ID         string                 `json:"id"`
+	Timestamp  time.Time              `json:"timestamp"`
+	UserID     string                 `json:"user_id"`
+	Action     string                 `json:"action"`
+	Resource   string                 `json:"resource"`
+	ResourceID string                 `json:"resource_id"`
+	Result     string                 `json:"result"`
+	Details    map[string]interface{} `json:"details"`
+	IPAddress  string                 `json:"ip_address"`
+	UserAgent  string                 `json:"user_agent"`
+}
+
+// AuditStorage interface for audit storage backends
+type AuditStorage interface {
+	Store(ctx context.Context, entry *AuditEntry) error
+	Query(ctx context.Context, filters map[string]interface{}) ([]*AuditEntry, error)
+	Delete(ctx context.Context, criteria *DeletionCriteria) error
+}
+
 // AccountingMetrics holds Prometheus metrics for accounting management
 type AccountingMetrics struct {
 	UsageEventsProcessed   prometheus.Counter
@@ -1378,6 +1486,58 @@ type RevenueConfig struct {
 	TargetAccuracy      float64
 }
 
+// Additional support types
+type AuditRetentionPolicy struct {
+	Period      time.Duration `json:"period"`
+	Compression bool          `json:"compression"`
+	Encryption  bool          `json:"encryption"`
+	Location    string        `json:"location"`
+}
+
+type AuditEncryption struct {
+	Algorithm string `json:"algorithm"`
+	KeySize   int    `json:"key_size"`
+	Enabled   bool   `json:"enabled"`
+}
+
+type RetentionPolicy struct {
+	Policies map[string]*RetentionRule `json:"policies"`
+}
+
+type RetentionRule struct {
+	ObjectPattern   string        `json:"object_pattern"`
+	RetentionPeriod time.Duration `json:"retention_period"`
+	AggregationRule string        `json:"aggregation_rule"`
+	CompressionRule string        `json:"compression_rule"`
+}
+
+type RetentionScheduler struct {
+	policies map[string]*AuditRetentionPolicy
+	running  bool
+	stopChan chan struct{}
+}
+
+type DataArchiver struct {
+	config      *ArchiveConfig
+	storage     ArchiveStorage
+	compression bool
+	encryption  bool
+}
+
+type ArchiveConfig struct {
+	Location    string        `json:"location"`
+	Interval    time.Duration `json:"interval"`
+	Compression bool          `json:"compression"`
+	Encryption  bool          `json:"encryption"`
+}
+
+type ArchiveStorage interface {
+	Store(key string, data []byte) error
+	Retrieve(key string) ([]byte, error)
+	Delete(key string) error
+	List(prefix string) ([]string, error)
+}
+
 // NewComprehensiveAccountingManager creates a new accounting manager
 func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *ComprehensiveAccountingManager {
 	if config == nil {
@@ -1401,10 +1561,14 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 		}
 	}
 
+	// Create a simple in-memory storage implementation
+	usageStorage := NewInMemoryUsageStorage()
+
 	cam := &ComprehensiveAccountingManager{
-		config:   config,
-		metrics:  initializeAccountingMetrics(),
-		stopChan: make(chan struct{}),
+		config:      config,
+		metrics:     initializeAccountingMetrics(),
+		stopChan:    make(chan struct{}),
+		usageStorage: usageStorage,
 	}
 
 	// Initialize components
@@ -1447,7 +1611,7 @@ func NewComprehensiveAccountingManager(config *AccountingManagerConfig) *Compreh
 		CompressionEnabled: true,
 	})
 
-	cam.reportGenerator = NewAccountingReportGenerator(&ReportingConfig{
+	cam.reportGenerator = NewAccountingReportGeneratorImpl(&ReportingConfig{
 		DefaultFormat:        "PDF",
 		MaxReportSize:        100 * 1024 * 1024, // 100MB
 		RetentionPeriod:      365 * 24 * time.Hour,
@@ -1751,6 +1915,91 @@ type AccountingStatistics struct {
 	Timestamp           time.Time `json:"timestamp"`
 }
 
+// InMemoryUsageStorage provides a simple in-memory implementation
+type InMemoryUsageStorage struct {
+	events []*UsageEvent
+	mutex  sync.RWMutex
+}
+
+func NewInMemoryUsageStorage() *InMemoryUsageStorage {
+	return &InMemoryUsageStorage{
+		events: make([]*UsageEvent, 0),
+	}
+}
+
+func (imus *InMemoryUsageStorage) Store(ctx context.Context, events []*UsageEvent) error {
+	imus.mutex.Lock()
+	defer imus.mutex.Unlock()
+	
+	imus.events = append(imus.events, events...)
+	return nil
+}
+
+func (imus *InMemoryUsageStorage) Query(ctx context.Context, query *UsageQuery) ([]*UsageEvent, error) {
+	imus.mutex.RLock()
+	defer imus.mutex.RUnlock()
+	
+	var results []*UsageEvent
+	for _, event := range imus.events {
+		// Simple filtering logic
+		if event.Timestamp.After(query.StartTime) && event.Timestamp.Before(query.EndTime) {
+			results = append(results, event)
+		}
+	}
+	
+	// Apply limit if specified
+	if query.Limit > 0 && len(results) > query.Limit {
+		results = results[:query.Limit]
+	}
+	
+	return results, nil
+}
+
+func (imus *InMemoryUsageStorage) Delete(ctx context.Context, criteria *DeletionCriteria) error {
+	imus.mutex.Lock()
+	defer imus.mutex.Unlock()
+	
+	// Simple deletion logic
+	var filtered []*UsageEvent
+	for _, event := range imus.events {
+		if !event.Timestamp.Before(criteria.OlderThan) {
+			filtered = append(filtered, event)
+		}
+	}
+	
+	imus.events = filtered
+	return nil
+}
+
+func (imus *InMemoryUsageStorage) GetStatistics() *StorageStatistics {
+	imus.mutex.RLock()
+	defer imus.mutex.RUnlock()
+	
+	if len(imus.events) == 0 {
+		return &StorageStatistics{}
+	}
+	
+	oldest := imus.events[0].Timestamp
+	newest := imus.events[0].Timestamp
+	
+	for _, event := range imus.events {
+		if event.Timestamp.Before(oldest) {
+			oldest = event.Timestamp
+		}
+		if event.Timestamp.After(newest) {
+			newest = event.Timestamp
+		}
+	}
+	
+	return &StorageStatistics{
+		TotalRecords:     int64(len(imus.events)),
+		StorageSize:      int64(len(imus.events) * 1024), // Rough estimate
+		OldestRecord:     oldest,
+		NewestRecord:     newest,
+		CompressionRatio: 1.0,
+	}
+}
+
 // Placeholder implementations for major components
 // In production, each would be fully implemented
 
@@ -1758,7 +2007,7 @@ func NewUsageDataCollector(config *CollectorConfig) *UsageDataCollector {
 	return &UsageDataCollector{
 		collectors:      make(map[string]*ResourceCollector),
 		collectionQueue: make(chan *UsageEvent, config.MaxEventQueueSize),
-		processors:      make([]UsageProcessor, 0),
+		processors:      make([]*UsageProcessor, 0),
 		workerPool:      NewUsageWorkerPool(config.MaxConcurrentWorkers),
 		config:          config,
 	}
@@ -1850,10 +2099,10 @@ func NewUsageAggregator(config *AggregationConfig) *UsageAggregator {
 func (ua *UsageAggregator) Start(ctx context.Context) error { ua.running = true; return nil }
 func (ua *UsageAggregator) Stop(ctx context.Context) error  { ua.running = false; return nil }
 
-func NewAccountingReportGenerator(config *ReportingConfig) *AccountingReportGenerator {
-	return &AccountingReportGenerator{
-		templates:  make(map[string]*ReportTemplate),
-		generators: make(map[string]ReportGenerator),
+func NewAccountingReportGeneratorImpl(config *ReportingConfig) *AccountingReportGeneratorImpl {
+	return &AccountingReportGeneratorImpl{
+		templates:  make(map[string]*AccountingReportTemplate),
+		generators: make(map[string]AccountingReportGeneratorInterface),
 		config:     config,
 	}
 }
@@ -1931,46 +2180,4 @@ func NewRevenueTrackingService(config *RevenueConfig) *RevenueTrackingService {
 		kpis:      make(map[string]*RevenueKPI),
 		config:    config,
 	}
-}
-
-// Missing type definitions to resolve compilation errors
-
-type AuditRetentionPolicy struct {
-	Period      time.Duration `json:"period"`
-	Compression bool          `json:"compression"`
-	Encryption  bool          `json:"encryption"`
-	Location    string        `json:"location"`
-}
-
-type AuditEncryption struct {
-	Algorithm string `json:"algorithm"`
-	KeySize   int    `json:"key_size"`
-	Enabled   bool   `json:"enabled"`
-}
-
-type RetentionScheduler struct {
-	policies map[string]*AuditRetentionPolicy
-	running  bool
-	stopChan chan struct{}
-}
-
-type DataArchiver struct {
-	config      *ArchiveConfig
-	storage     ArchiveStorage
-	compression bool
-	encryption  bool
-}
-
-type ArchiveConfig struct {
-	Location    string        `json:"location"`
-	Interval    time.Duration `json:"interval"`
-	Compression bool          `json:"compression"`
-	Encryption  bool          `json:"encryption"`
-}
-
-type ArchiveStorage interface {
-	Store(key string, data []byte) error
-	Retrieve(key string) ([]byte, error)
-	Delete(key string) error
-	List(prefix string) ([]string, error)
 }

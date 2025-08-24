@@ -20,10 +20,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	ProviderTypeOpenStack = "openstack"
-)
-
 // OpenStackProvider implements CloudProvider for OpenStack clouds
 type OpenStackProvider struct {
 	name           string

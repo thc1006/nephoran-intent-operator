@@ -18,7 +18,22 @@ import (
 	"github.com/google/pprof/profile"
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog/v2"
+
+	// "github.com/nephoran/intent-operator/pkg/performance/regression"
 )
+
+// TrendAnalyzer interface for trend analysis (simplified for compilation)
+type TrendAnalyzer interface {
+	// AnalyzeTrends analyzes performance trends from profile data
+	AnalyzeTrends(data map[string]interface{}) error
+}
+
+// NoOpTrendAnalyzer provides a no-op implementation
+type NoOpTrendAnalyzer struct{}
+
+func (n *NoOpTrendAnalyzer) AnalyzeTrends(data map[string]interface{}) error {
+	return nil
+}
 
 // EnhancedProfiler provides advanced profiling capabilities leveraging Go 1.24+ features
 // including continuous profiling, automated analysis, and intelligent optimization suggestions
@@ -89,7 +104,7 @@ type ProfileAnalyzer struct {
 	config           *AnalyzerConfig
 	hotspotDetector  *HotspotDetector
 	leakDetector     *LeakDetector
-	trendAnalyzer    *TrendAnalyzer
+	trendAnalyzer    TrendAnalyzer
 	baselineProfiles map[string]*profile.Profile
 }
 
@@ -689,7 +704,7 @@ func (ep *EnhancedProfiler) StartHTTPProfiler() error {
 	// Custom endpoints
 	mux.HandleFunc("/debug/nephoran/profiles", ep.handleProfileList)
 	mux.HandleFunc("/debug/nephoran/analysis", ep.handleAnalysisResults)
-	mux.HandleFunc("/debug/nephoran/suggestions", ep.handleOptimizationSuggestions)
+	mux.HandleFunc("/debug/nephoran/suggestions", ep.handleOptimizationSuggestionsHTTP)
 	mux.HandleFunc("/debug/nephoran/metrics", ep.handleMetricsEndpoint)
 
 	ep.httpServer = &http.Server{
@@ -722,7 +737,7 @@ func (ep *EnhancedProfiler) handleAnalysisResults(w http.ResponseWriter, r *http
 	fmt.Fprintf(w, `{"status": "analysis results endpoint"}`)
 }
 
-func (ep *EnhancedProfiler) handleOptimizationSuggestions(w http.ResponseWriter, r *http.Request) {
+func (ep *EnhancedProfiler) handleOptimizationSuggestionsHTTP(w http.ResponseWriter, r *http.Request) {
 	suggestions := ep.optimizer.GetRecentSuggestions()
 
 	w.Header().Set("Content-Type", "application/json")

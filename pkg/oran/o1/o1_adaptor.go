@@ -134,13 +134,6 @@ type AdaptorSecurityPolicy struct {
 	Enforcement string         `json:"enforcement"` // STRICT, PERMISSIVE
 }
 
-// SecurityRule represents a security rule
-type SecurityRule struct {
-	RuleID     string                 `json:"rule_id"`
-	Action     string                 `json:"action"` // ALLOW, DENY, LOG
-	Conditions map[string]interface{} `json:"conditions"`
-}
-
 // SecurityStatus represents current security status
 type SecurityStatus struct {
 	ComplianceLevel string                 `json:"compliance_level"`
@@ -630,7 +623,7 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.Manage
 		}
 	}
 
-	if err := client.Subscribe(alarmXPath, eventCallback); err != nil {
+	if err := client.Subscribe(alarmXPath, func(event interface{}) { eventCallback(event.(*NetconfEvent)) }); err != nil {
 		return fmt.Errorf("failed to create alarm subscription: %w", err)
 	}
 
@@ -639,7 +632,7 @@ func (a *O1Adaptor) SubscribeToAlarms(ctx context.Context, me *nephoranv1.Manage
 	if a.subscriptions[clientID] == nil {
 		a.subscriptions[clientID] = make([]EventCallback, 0)
 	}
-	a.subscriptions[clientID] = append(a.subscriptions[clientID], eventCallback)
+	a.subscriptions[clientID] = append(a.subscriptions[clientID], func(event interface{}) { eventCallback(event.(*NetconfEvent)) })
 	a.subsMux.Unlock()
 
 	logger.Info("alarm subscription established", "managedElement", me.Name)

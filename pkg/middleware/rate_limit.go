@@ -24,6 +24,9 @@ type RateLimiterConfig struct {
 	IPTimeout time.Duration
 }
 
+// RateLimitConfig is an alias for compatibility
+type RateLimitConfig = RateLimiterConfig
+
 // DefaultRateLimiterConfig returns a configuration with sensible defaults
 func DefaultRateLimiterConfig() RateLimiterConfig {
 	return RateLimiterConfig{
@@ -32,6 +35,12 @@ func DefaultRateLimiterConfig() RateLimiterConfig {
 		CleanupInterval: 10 * time.Minute,
 		IPTimeout:       1 * time.Hour,
 	}
+}
+
+// DefaultRateLimitConfig returns a configuration with sensible defaults (alias for compatibility)
+func DefaultRateLimitConfig() *RateLimitConfig {
+	config := DefaultRateLimiterConfig()
+	return &config
 }
 
 // ipRateLimiter tracks the rate limiter and last access time for an IP
@@ -50,7 +59,11 @@ type RateLimiter struct {
 }
 
 // NewRateLimiter creates a new IP-based rate limiter with the given configuration
-func NewRateLimiter(config RateLimiterConfig, logger *slog.Logger) *RateLimiter {
+func NewRateLimiter(config *RateLimiterConfig, logger *slog.Logger) *RateLimiter {
+	if config == nil {
+		cfg := DefaultRateLimiterConfig()
+		config = &cfg
+	}
 	if config.QPS <= 0 {
 		config.QPS = 20
 	}
@@ -65,7 +78,7 @@ func NewRateLimiter(config RateLimiterConfig, logger *slog.Logger) *RateLimiter 
 	}
 
 	rl := &RateLimiter{
-		config: config,
+		config: *config,
 		logger: logger.With(slog.String("component", "rate_limiter")),
 		stopCh: make(chan struct{}),
 	}
@@ -303,7 +316,7 @@ type PostOnlyRateLimiter struct {
 // NewPostOnlyRateLimiter creates a rate limiter that only applies to POST requests
 func NewPostOnlyRateLimiter(config RateLimiterConfig, logger *slog.Logger) *PostOnlyRateLimiter {
 	return &PostOnlyRateLimiter{
-		rateLimiter: NewRateLimiter(config, logger),
+		rateLimiter: NewRateLimiter(&config, logger),
 		logger:      logger.With(slog.String("component", "post_only_rate_limiter")),
 	}
 }

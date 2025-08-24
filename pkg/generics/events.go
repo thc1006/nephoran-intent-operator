@@ -213,24 +213,24 @@ type EventMiddleware[T any] interface {
 	Process(ctx context.Context, event Event[T]) Result[Event[T], error]
 }
 
-// LoggingMiddleware logs events as they pass through.
-type LoggingMiddleware[T any] struct {
+// EventLoggingMiddleware logs events as they pass through.
+type EventLoggingMiddleware[T any] struct {
 	Logger func(Event[T])
 }
 
-func (m LoggingMiddleware[T]) Process(ctx context.Context, event Event[T]) Result[Event[T], error] {
+func (m EventLoggingMiddleware[T]) Process(ctx context.Context, event Event[T]) Result[Event[T], error] {
 	m.Logger(event)
 	return Ok[Event[T], error](event)
 }
 
-// MetricsMiddleware collects metrics on events.
-type MetricsMiddleware[T any] struct {
+// EventMetricsMiddleware collects metrics on events.
+type EventMetricsMiddleware[T any] struct {
 	Counter  func(string)                // Count events by type
 	Latency  func(string, time.Duration) // Track processing latency
 	recorder func(Event[T])
 }
 
-func (m MetricsMiddleware[T]) Process(ctx context.Context, event Event[T]) Result[Event[T], error] {
+func (m EventMetricsMiddleware[T]) Process(ctx context.Context, event Event[T]) Result[Event[T], error] {
 	start := time.Now()
 	m.Counter(event.Type)
 

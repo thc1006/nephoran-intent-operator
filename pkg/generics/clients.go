@@ -142,7 +142,6 @@ func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request T
 	// Transform request to HTTP body
 	bodyResult := c.transformer.Transform(ctx, request)
 	if bodyResult.IsErr() {
-		var zero TResponse
 		return Err[TResponse, error](bodyResult.Error())
 	}
 
@@ -150,7 +149,6 @@ func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request T
 	url := c.baseURL + c.endpoint
 	httpReq, err := http.NewRequestWithContext(ctx, c.method, url, bodyResult.Value())
 	if err != nil {
-		var zero TResponse
 		return Err[TResponse, error](fmt.Errorf("failed to create HTTP request: %w", err))
 	}
 
@@ -167,14 +165,12 @@ func (c *HTTPClient[TRequest, TResponse]) Execute(ctx context.Context, request T
 	// Execute request
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
-		var zero TResponse
 		return Err[TResponse, error](fmt.Errorf("HTTP request failed: %w", err))
 	}
 	defer resp.Body.Close()
 
 	// Check status code
 	if resp.StatusCode >= 400 {
-		var zero TResponse
 		body, _ := io.ReadAll(resp.Body)
 		return Err[TResponse, error](fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body)))
 	}
@@ -202,7 +198,6 @@ func (c *HTTPClient[TRequest, TResponse]) ExecuteWithRetry(ctx context.Context, 
 			select {
 			case <-ctx.Done():
 				timer.Stop()
-				var zero TResponse
 				return Err[TResponse, error](ctx.Err())
 			case <-timer.C:
 				// Continue to next attempt
@@ -210,7 +205,6 @@ func (c *HTTPClient[TRequest, TResponse]) ExecuteWithRetry(ctx context.Context, 
 		}
 	}
 
-	var zero TResponse
 	return Err[TResponse, error](fmt.Errorf("all retry attempts failed, last error: %w", lastErr))
 }
 
@@ -291,15 +285,15 @@ func NewKubernetesClient[T client.Object](config KubernetesClientConfig, obj T) 
 		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 
-	gvk, err := config.Scheme.ObjectKinds(obj)
-	if err != nil || len(gvk) == 0 {
+	gvks, _, err := config.Scheme.ObjectKinds(obj)
+	if err != nil || len(gvks) == 0 {
 		return nil, fmt.Errorf("failed to determine GVK for object type: %w", err)
 	}
 
 	return &KubernetesClient[T]{
 		client:    k8sClient,
 		scheme:    config.Scheme,
-		gvk:       gvk[0],
+		gvk:       gvks[0],
 		namespace: config.Namespace,
 	}, nil
 }
@@ -307,7 +301,6 @@ func NewKubernetesClient[T client.Object](config KubernetesClientConfig, obj T) 
 // Create creates a new Kubernetes object.
 func (c *KubernetesClient[T]) Create(ctx context.Context, obj T) Result[T, error] {
 	if err := c.client.Create(ctx, obj); err != nil {
-		var zero T
 		return Err[T, error](fmt.Errorf("failed to create object: %w", err))
 	}
 	return Ok[T, error](obj)
@@ -322,7 +315,6 @@ func (c *KubernetesClient[T]) Get(ctx context.Context, name string) Result[T, er
 	}
 
 	if err := c.client.Get(ctx, namespacedName, obj); err != nil {
-		var zero T
 		return Err[T, error](fmt.Errorf("failed to get object: %w", err))
 	}
 
@@ -332,7 +324,6 @@ func (c *KubernetesClient[T]) Get(ctx context.Context, name string) Result[T, er
 // Update updates a Kubernetes object.
 func (c *KubernetesClient[T]) Update(ctx context.Context, obj T) Result[T, error] {
 	if err := c.client.Update(ctx, obj); err != nil {
-		var zero T
 		return Err[T, error](fmt.Errorf("failed to update object: %w", err))
 	}
 	return Ok[T, error](obj)
@@ -347,28 +338,23 @@ func (c *KubernetesClient[T]) Delete(ctx context.Context, obj T) Result[bool, er
 }
 
 // List retrieves a list of Kubernetes objects.
-func (c *KubernetesClient[T]) List(ctx context.Context, opts ...client.ListOption) Result[[]T, error] {
-	var list T
-	listObj := client.ObjectList(list)
+func (c *KubernetesClient[T]) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) Result[client.ObjectList, error] {
 
 	// Apply namespace option if set
 	if c.namespace != "" {
 		opts = append(opts, client.InNamespace(c.namespace))
 	}
 
-	if err := c.client.List(ctx, listObj, opts...); err != nil {
-		return Err[[]T, error](fmt.Errorf("failed to list objects: %w", err))
+	if err := c.client.List(ctx, list, opts...); err != nil {
+		return Err[client.ObjectList, error](fmt.Errorf("failed to list objects: %w", err))
 	}
 
-	// Extract items from the list (this is simplified for the example)
-	var items []T
-	return Ok[[]T, error](items)
+	return Ok[client.ObjectList, error](list)
 }
 
 // Patch applies a patch to a Kubernetes object.
 func (c *KubernetesClient[T]) Patch(ctx context.Context, obj T, patch client.Patch) Result[T, error] {
 	if err := c.client.Patch(ctx, obj, patch); err != nil {
-		var zero T
 		return Err[T, error](fmt.Errorf("failed to patch object: %w", err))
 	}
 	return Ok[T, error](obj)
@@ -464,7 +450,6 @@ func NewClientPool[TRequest, TResponse any](clients ...ClientInterface[TRequest,
 // Execute executes a request using round-robin client selection.
 func (p *ClientPool[TRequest, TResponse]) Execute(ctx context.Context, request TRequest) Result[TResponse, error] {
 	if len(p.clients) == 0 {
-		var zero TResponse
 		return Err[TResponse, error](fmt.Errorf("no clients available"))
 	}
 
@@ -486,7 +471,6 @@ func (p *ClientPool[TRequest, TResponse]) ExecuteWithFailover(ctx context.Contex
 		lastErr = result.Error()
 	}
 
-	var zero TResponse
 	return Err[TResponse, error](fmt.Errorf("all clients failed, last error: %w", lastErr))
 }
 

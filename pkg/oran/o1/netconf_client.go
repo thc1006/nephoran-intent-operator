@@ -58,9 +58,6 @@ type ConfigData struct {
 	Operation string // merge, replace, create, delete
 }
 
-// EventCallback is called when NETCONF events are received
-type EventCallback func(event *NetconfEvent)
-
 // NetconfEvent represents a NETCONF notification event
 type NetconfEvent struct {
 	Type      string                 `json:"type"`

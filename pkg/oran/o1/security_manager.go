@@ -243,8 +243,8 @@ type TrustStore struct {
 	mutex           sync.RWMutex
 }
 
-// ValidationResult represents certificate validation results
-type ValidationResult struct {
+// SecurityValidationResult represents certificate validation results
+type SecurityValidationResult struct {
 	Valid      bool
 	Errors     []string
 	Warnings   []string
@@ -254,7 +254,7 @@ type ValidationResult struct {
 
 // CertificateValidator interface for certificate validation
 type CertificateValidator interface {
-	ValidateCertificate(cert *x509.Certificate) *ValidationResult
+	ValidateCertificate(cert *x509.Certificate) *SecurityValidationResult
 	GetValidatorName() string
 }
 
@@ -582,22 +582,6 @@ type PolicyEngine struct {
 	mutex      sync.RWMutex
 }
 
-// SecurityPolicy represents a security policy
-type SecurityPolicy struct {
-	ID          string
-	Name        string
-	Type        string // ACCESS_CONTROL, ENCRYPTION, AUDIT
-	Rules       []*PolicyRule
-	Enforcement string // STRICT, PERMISSIVE, DISABLED
-	AppliesTo   []string
-	Exceptions  []string
-	ValidFrom   time.Time
-	ValidUntil  time.Time
-	CreatedBy   string
-	ApprovedBy  string
-	Version     string
-	Metadata    map[string]interface{}
-}
 
 // PolicyEvaluator interface for policy evaluation
 type PolicyEvaluator interface {
@@ -1111,8 +1095,8 @@ type SecurityMLModel struct {
 	ModelPath    string
 }
 
-// StatisticalSummary provides statistical data summary
-type StatisticalSummary struct {
+// SecurityStatisticalSummary provides statistical data summary for security metrics
+type SecurityStatisticalSummary struct {
 	Mean        float64
 	Median      float64
 	Mode        float64
@@ -1128,14 +1112,14 @@ type StatisticalSummary struct {
 type BehaviorProfile struct {
 	EntityID     string
 	EntityType   string // USER, HOST, APPLICATION
-	BaselineData *StatisticalSummary
+	BaselineData *SecurityStatisticalSummary
 	AnomalyScore float64
 	LastUpdate   time.Time
 	ProfileData  map[string]interface{}
 }
 
-// CorrelationRule defines alert correlation rules
-type CorrelationRule struct {
+// SecurityCorrelationRule defines security alert correlation rules
+type SecurityCorrelationRule struct {
 	ID         string
 	Name       string
 	Conditions []string
@@ -1147,7 +1131,7 @@ type CorrelationRule struct {
 
 // AlertCorrelationEngine correlates security alerts
 type AlertCorrelationEngine struct {
-	correlationRules []*CorrelationRule
+	correlationRules []*SecurityCorrelationRule
 	incidents        map[string]*SecurityIncident
 	mutex            sync.RWMutex
 }
@@ -1189,7 +1173,7 @@ type CustodyRecord struct {
 }
 
 // EscalationRule defines escalation rules
-type EscalationRule struct {
+type SecurityEscalationRule struct {
 	ID            string
 	Name          string
 	Conditions    []string
@@ -1204,7 +1188,7 @@ type EscalationRule struct {
 type AutomatedResponseEngine struct {
 	playbooks       map[string]*ResponsePlaybook
 	activeResponses map[string]*ActiveResponse
-	escalationRules []*EscalationRule
+	escalationRules []*SecurityEscalationRule
 	mutex           sync.RWMutex
 }
 
@@ -1266,9 +1250,9 @@ type IDSConfig struct {
 
 // ComplianceReportGenerator generates compliance reports
 type ComplianceReportGenerator struct {
-	templates  map[string]*ReportTemplate
-	generators map[string]*ReportGenerator
-	schedulers map[string]*ReportScheduler
+	templates  map[string]*SecurityReportTemplate
+	generators map[string]*SecurityReportGenerator
+	schedulers map[string]*SecurityReportScheduler
 }
 
 // SecurityAuditManager manages security auditing
@@ -1290,32 +1274,6 @@ type AuditLog struct {
 	mutex      sync.RWMutex
 }
 
-// AuditEntry represents a single audit log entry
-type AuditEntry struct {
-	ID          string
-	Timestamp   time.Time
-	EventType   string
-	Subject     string
-	Object      string
-	Action      string
-	Result      string // SUCCESS, FAILURE, UNKNOWN
-	Source      string
-	Destination string
-	UserAgent   string
-	SessionID   string
-	RemoteAddr  string
-	Details     map[string]interface{}
-	Risk        string // LOW, MEDIUM, HIGH, CRITICAL
-	Checksum    string
-}
-
-// AuditStorage interface for audit log storage
-type AuditStorage interface {
-	Store(entry *AuditEntry) error
-	Query(filter *AuditFilter) ([]*AuditEntry, error)
-	Archive(before time.Time) error
-	GetStatistics() *AuditStatistics
-}
 
 // AuditFilter defines filtering criteria for audit logs
 type AuditFilter struct {
@@ -1356,7 +1314,7 @@ type AuditPolicy struct {
 }
 
 // RetentionRule defines retention rules
-type RetentionRule struct {
+type SecurityRetentionRule struct {
 	ID              string
 	Name            string
 	RetentionPeriod time.Duration
@@ -1368,7 +1326,7 @@ type RetentionRule struct {
 
 // LogRetentionPolicy defines log retention policies
 type LogRetentionPolicy struct {
-	Policies map[string]*RetentionRule
+	Policies map[string]*SecurityRetentionRule
 }
 
 // LogShippingService ships logs to external systems
@@ -1530,15 +1488,7 @@ type RiskModel struct {
 }
 
 // RiskFactor represents a risk factor
-type RiskFactor struct {
-	ID          string
-	Name        string
-	Type        string
-	Weight      float64
-	Scale       string // ORDINAL, INTERVAL, RATIO
-	Values      []string
-	Description string
-}
+// RiskFactor defined in accounting_manager.go
 
 // RiskAssessment represents a risk assessment result
 type RiskAssessment struct {
@@ -1620,7 +1570,7 @@ type MitigationPlaybook struct {
 	ThreatTypes       []string
 	TriggerConditions []string
 	Strategies        []string
-	Escalation        []*EscalationRule
+	Escalation        []*SecurityEscalationRule
 	Approval          *ApprovalRequirement
 	Enabled           bool
 }
@@ -1791,7 +1741,7 @@ type ComplianceEvidence struct {
 }
 
 // TimeRange represents a time range
-type TimeRange struct {
+type SecurityTimeRange struct {
 	Start time.Time
 	End   time.Time
 }
@@ -1803,7 +1753,7 @@ type ComplianceReport struct {
 	ReportType       string
 	Framework        string
 	GeneratedAt      time.Time
-	ReportPeriod     *TimeRange
+	ReportPeriod     *SecurityTimeRange
 	ExecutiveSummary string
 	OverallScore     float64
 	ComplianceLevel  string
@@ -1887,7 +1837,7 @@ type ScanFinding struct {
 }
 
 // ReportTemplate defines report templates
-type ReportTemplate struct {
+type SecurityReportTemplate struct {
 	ID       string
 	Name     string
 	Type     string
@@ -1896,14 +1846,14 @@ type ReportTemplate struct {
 	Template string
 }
 
-// ReportGenerator generates reports
-type ReportGenerator interface {
-	GenerateReport(ctx context.Context, template *ReportTemplate, data interface{}) (*ComplianceReport, error)
+// SecurityReportGenerator generates security reports
+type SecurityReportGenerator interface {
+	GenerateReport(ctx context.Context, template *SecurityReportTemplate, data interface{}) (*ComplianceReport, error)
 	GetSupportedFormats() []string
 }
 
-// ReportScheduler schedules report generation
-type ReportScheduler struct {
+// SecurityReportScheduler schedules security report generation
+type SecurityReportScheduler struct {
 	schedules map[string]*ReportSchedule
 	ticker    *time.Ticker
 	running   bool
@@ -1911,29 +1861,13 @@ type ReportScheduler struct {
 }
 
 // ReportSchedule represents a scheduled report
-type ReportSchedule struct {
-	ID       string
-	Name     string
-	Template string
-	Schedule string
-	Enabled  bool
-	NextRun  time.Time
-}
+// ReportSchedule defined in common_types.go
 
 // ReportDistributor distributes reports
-type ReportDistributor struct {
-	channels map[string]*DistributionChannel
-	config   *DistributionConfig
-}
+// ReportDistributor defined in common_types.go
 
 // DistributionChannel represents a report distribution channel
-type DistributionChannel struct {
-	ID       string
-	Type     string // EMAIL, WEBHOOK, SFTP
-	Endpoint string
-	Config   map[string]interface{}
-	Enabled  bool
-}
+// DistributionChannel defined in common_types.go
 
 // DistributionConfig holds distribution configuration
 type DistributionConfig struct {
@@ -1944,9 +1878,9 @@ type DistributionConfig struct {
 
 // ComplianceReporter generates compliance reports
 type ComplianceReporter struct {
-	templates    map[string]*ReportTemplate
-	generators   map[string]*ReportGenerator
-	schedulers   map[string]*ReportScheduler
+	templates    map[string]*SecurityReportTemplate
+	generators   map[string]*SecurityReportGenerator
+	schedulers   map[string]*SecurityReportScheduler
 	distributors map[string]*ReportDistributor
 }
 
@@ -2451,17 +2385,6 @@ type IncidentEscalation struct {
 	notifications *EscalationNotifications
 }
 
-// SecurityEscalationRule defines security escalation conditions
-type SecurityEscalationRule struct {
-	ID            string
-	Name          string
-	Conditions    []string
-	Severity      string
-	TimeThreshold time.Duration
-	Target        string
-	Action        string
-	Enabled       bool
-}
 
 // EscalationMatrix defines escalation paths
 type EscalationMatrix struct {
@@ -2479,10 +2402,7 @@ type EscalationLevel struct {
 }
 
 // NotificationChannel interface for notification channels
-type NotificationChannel interface {
-	SendNotification(ctx context.Context, message *NotificationMessage) error
-	GetChannelType() string
-}
+// NotificationChannel defined in common_types.go
 
 // NotificationMessage represents a notification message
 type NotificationMessage struct {
@@ -3009,12 +2929,7 @@ func (csm *ComprehensiveSecurityManager) IssueCertificate(ctx context.Context, r
 }
 
 // SecurityStatus represents the overall security status
-type SecurityStatus struct {
-	ComplianceLevel string
-	ActiveThreats   []string
-	LastAudit       time.Time
-	Metrics         map[string]interface{}
-}
+// SecurityStatus defined in o1_adaptor.go
 
 // GetSecurityStatus returns overall security status
 func (csm *ComprehensiveSecurityManager) GetSecurityStatus(ctx context.Context) (*SecurityStatus, error) {

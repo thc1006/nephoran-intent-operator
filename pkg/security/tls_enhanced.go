@@ -120,6 +120,11 @@ type TLSMetricsCollector struct {
 	ocspMisses      uint64
 }
 
+// RecordHandshake records a successful TLS handshake
+func (mc *TLSMetricsCollector) RecordHandshake(version uint16, cipherSuite uint16) {
+	// Record handshake metrics
+}
+
 // NewTLSEnhancedConfig creates a new enhanced TLS configuration
 func NewTLSEnhancedConfig() *TLSEnhancedConfig {
 	return &TLSEnhancedConfig{

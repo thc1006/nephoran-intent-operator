@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	corev1 "k8s.io/api/core/v1"
@@ -72,7 +73,7 @@ type IstioMesh struct {
 	meshConfig    *Config
 	certProvider  *IstioCertificateProvider
 	metrics       *IstioMetrics
-	logger        log.Logger
+	logger        logr.Logger
 }
 
 // NewIstioMesh creates a new Istio mesh implementation
@@ -144,7 +145,7 @@ func (m *IstioMesh) verifyIstioInstallation(ctx context.Context) error {
 	}
 
 	for _, crd := range crds {
-		_, err := m.kubeClient.RESTClient().
+		_, err := m.kubeClient.Discovery().RESTClient().
 			Get().
 			AbsPath("/apis/apiextensions.k8s.io/v1/customresourcedefinitions/" + crd).
 			DoRaw(ctx)
@@ -721,7 +722,7 @@ func (m *IstioMesh) GetServiceStatus(ctx context.Context, serviceName string, na
 	}
 
 	// Check if service exists
-	svc, err := m.kubeClient.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
+	_, err := m.kubeClient.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("service not found: %w", err)
 	}
@@ -830,7 +831,7 @@ func (m *IstioMesh) GetServiceDependencies(ctx context.Context, namespace string
 	dynamicClient := dynamic.NewForConfigOrDie(m.config)
 	virtualServices, err := dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	if err == nil {
-		for _, vs := range virtualServices.Items {
+		for range virtualServices.Items {
 			// Parse virtual service to determine connections
 			// This is simplified - actual implementation would parse the spec
 		}

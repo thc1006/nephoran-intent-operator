@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"k8s.io/klog/v2"
 )
 
@@ -45,9 +45,13 @@ type GoroutineStats struct {
 // LocalMemoryStats tracks memory metrics with specific fields for this profiler
 // (Extends the shared types.MemoryStats with profiler-specific fields)
 type LocalMemoryStats struct {
-	types.MemoryStats  // Embed shared memory stats
-	MemoryLeaks        []MemoryLeak
-	LastSnapshot       time.Time
+	types.MemoryStats // Embed shared memory stats
+	MemoryLeaks       []MemoryLeak
+	LastSnapshot      time.Time
+	// Additional fields for profiler
+	GCCount      uint32
+	GCPauseTotal time.Duration
+	GCPauseAvg   time.Duration
 }
 
 // MemoryLeak represents a detected memory leak
@@ -59,25 +63,31 @@ type MemoryLeak struct {
 	Description string
 }
 
-// LocalProfileReport contains comprehensive profiling results with profiler-specific fields
-// (Extends the shared types.ProfileReport)
-type LocalProfileReport struct {
-	types.ProfileReport  // Embed shared profile report
-	CPUProfile           string
-	MemoryProfile        string
-	BlockProfile         string
-	MutexProfile         string
-	GoroutineStats       GoroutineStats
-	LocalMemoryStats     LocalMemoryStats // Use local version
-	Contentions          []Contention
-	Allocations          []Allocation
+// ProfilerReport contains comprehensive profiling results with profiler-specific fields
+// This extends the shared version to add missing fields
+type ProfilerReport struct {
+	types.ProfileReport // Embed shared profile report
+	CPUProfile          string
+	MemoryProfile       string
+	BlockProfile        string
+	MutexProfile        string
+	GoroutineStats      GoroutineStats
+	LocalMemoryStats    LocalMemoryStats // Use local version
+	Contentions         []Contention
+	Allocations         []Allocation
+	// Additional fields that were missing
+	StartTime time.Time
+	EndTime   time.Time
+	HotSpots  []ProfilerHotSpot
 }
 
-// LocalHotSpot represents a CPU hotspot with profiler-specific fields
-// (Extends the shared types.HotSpot)
-type LocalHotSpot struct {
-	types.HotSpot  // Embed shared hotspot
-	Samples        int // Additional field for this profiler
+// ProfilerHotSpot represents a CPU hotspot with profiler-specific fields
+type ProfilerHotSpot struct {
+	Function   string
+	File       string
+	Line       int
+	Samples    int
+	Percentage float64
 }
 
 // Contention represents lock contention
@@ -422,7 +432,7 @@ func (p *Profiler) updateGoroutineStats() {
 	n := runtime.Stack(buf, true)
 
 	// Parse stack traces (simplified)
-	stacks := string(buf[:n])
+	_ = string(buf[:n]) // stacks variable was unused
 	p.goroutineStats.StackTraces = make(map[string]int)
 	// In real implementation, parse stacks and count unique traces
 
@@ -440,7 +450,7 @@ func (p *Profiler) updateMemoryStats(memStats *runtime.MemStats) {
 	if memStats.NumGC > 0 {
 		p.memoryStats.GCPauseTotal = time.Duration(memStats.PauseTotalNs)
 		p.memoryStats.GCPauseAvg = time.Duration(memStats.PauseTotalNs / uint64(memStats.NumGC))
-		p.memoryStats.LastGC = time.Unix(0, int64(memStats.LastGC))
+		p.memoryStats.LastGC = memStats.LastGC // Keep as uint64
 	}
 
 	p.memoryStats.LastSnapshot = time.Now()
@@ -541,10 +551,10 @@ func (p *Profiler) GenerateFlameGraph(profilePath string) (string, error) {
 }
 
 // AnalyzeProfile analyzes a profile and returns hotspots
-func (p *Profiler) AnalyzeProfile(profilePath string) (*ProfileReport, error) {
-	report := &ProfileReport{
+func (p *Profiler) AnalyzeProfile(profilePath string) (*ProfilerReport, error) {
+	report := &ProfilerReport{
 		StartTime:   time.Now(),
-		HotSpots:    []HotSpot{},
+		HotSpots:    []ProfilerHotSpot{},
 		Contentions: []Contention{},
 		Allocations: []Allocation{},
 	}
@@ -553,7 +563,7 @@ func (p *Profiler) AnalyzeProfile(profilePath string) (*ProfileReport, error) {
 	// and identify hotspots, contentions, etc.
 
 	// Example hotspot
-	report.HotSpots = append(report.HotSpots, HotSpot{
+	report.HotSpots = append(report.HotSpots, ProfilerHotSpot{
 		Function:   "example.function",
 		File:       "example.go",
 		Line:       100,

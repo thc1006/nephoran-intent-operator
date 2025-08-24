@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -1098,6 +1099,171 @@ func (k *KubernetesProvider) convertDeploymentToResponse(deployment *appsv1.Depl
 		Annotations:  deployment.Annotations,
 		CreatedAt:    deployment.CreationTimestamp.Time,
 		UpdatedAt:    time.Now(),
+	}
+}
+
+// createService creates a Kubernetes Service
+func (k *KubernetesProvider) createService(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
+	// Convert request specification to Service
+	spec, ok := req.Specification["service"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid service specification")
+	}
+
+	// Create Kubernetes Service object
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        req.Name,
+			Namespace:   req.Namespace,
+			Labels:      req.Labels,
+			Annotations: req.Annotations,
+		},
+		Spec: corev1.ServiceSpec{
+			Type: corev1.ServiceTypeClusterIP, // Default service type
+		},
+	}
+
+	// Parse service spec from request
+	if selector, ok := spec["selector"].(map[string]interface{}); ok {
+		service.Spec.Selector = make(map[string]string)
+		for k, v := range selector {
+			if str, ok := v.(string); ok {
+				service.Spec.Selector[k] = str
+			}
+		}
+	}
+
+	// Parse ports
+	if ports, ok := spec["ports"].([]interface{}); ok {
+		for _, portInterface := range ports {
+			if portMap, ok := portInterface.(map[string]interface{}); ok {
+				port := corev1.ServicePort{
+					Protocol: corev1.ProtocolTCP, // Default protocol
+				}
+
+				if name, ok := portMap["name"].(string); ok {
+					port.Name = name
+				}
+				if portNum, ok := portMap["port"].(float64); ok {
+					port.Port = int32(portNum)
+				}
+				if targetPort, ok := portMap["targetPort"].(float64); ok {
+					port.TargetPort = intstr.FromInt(int(targetPort))
+				}
+				if protocol, ok := portMap["protocol"].(string); ok {
+					port.Protocol = corev1.Protocol(protocol)
+				}
+
+				service.Spec.Ports = append(service.Spec.Ports, port)
+			}
+		}
+	}
+
+	// Create the service
+	createdService, err := k.clientset.CoreV1().Services(req.Namespace).Create(ctx, service, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create service: %w", err)
+	}
+
+	// Convert to response format
+	return k.convertServiceToResourceResponse(createdService), nil
+}
+
+// createConfigMap creates a Kubernetes ConfigMap
+func (k *KubernetesProvider) createConfigMap(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
+	// Convert request specification to ConfigMap
+	spec, ok := req.Specification["configmap"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid configmap specification")
+	}
+
+	// Create Kubernetes ConfigMap object
+	configMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        req.Name,
+			Namespace:   req.Namespace,
+			Labels:      req.Labels,
+			Annotations: req.Annotations,
+		},
+		Data: make(map[string]string),
+	}
+
+	// Parse data from specification
+	if data, ok := spec["data"].(map[string]interface{}); ok {
+		for k, v := range data {
+			if str, ok := v.(string); ok {
+				configMap.Data[k] = str
+			}
+		}
+	}
+
+	// Parse binary data if present
+	if binaryData, ok := spec["binaryData"].(map[string]interface{}); ok {
+		configMap.BinaryData = make(map[string][]byte)
+		for k, v := range binaryData {
+			if str, ok := v.(string); ok {
+				configMap.BinaryData[k] = []byte(str)
+			} else if bytes, ok := v.([]byte); ok {
+				configMap.BinaryData[k] = bytes
+			}
+		}
+	}
+
+	// Create the configmap
+	createdConfigMap, err := k.clientset.CoreV1().ConfigMaps(req.Namespace).Create(ctx, configMap, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create configmap: %w", err)
+	}
+
+	// Convert to response format
+	return k.convertConfigMapToResourceResponse(createdConfigMap), nil
+}
+
+// convertServiceToResourceResponse converts a Kubernetes Service to ResourceResponse
+func (k *KubernetesProvider) convertServiceToResourceResponse(service *corev1.Service) *ResourceResponse {
+	status := "active"
+	health := HealthStatusHealthy
+
+	return &ResourceResponse{
+		ID:        string(service.UID),
+		Name:      service.Name,
+		Type:      "service",
+		Namespace: service.Namespace,
+		Status:    status,
+		Health:    health,
+		Specification: map[string]interface{}{
+			"type":      string(service.Spec.Type),
+			"clusterIP": service.Spec.ClusterIP,
+			"selector":  service.Spec.Selector,
+			"ports":     service.Spec.Ports,
+		},
+		Labels:      service.Labels,
+		Annotations: service.Annotations,
+		CreatedAt:   service.CreationTimestamp.Time,
+		UpdatedAt:   time.Now(),
+	}
+}
+
+// convertConfigMapToResourceResponse converts a Kubernetes ConfigMap to ResourceResponse
+func (k *KubernetesProvider) convertConfigMapToResourceResponse(configMap *corev1.ConfigMap) *ResourceResponse {
+	status := "active"
+	health := HealthStatusHealthy
+
+	return &ResourceResponse{
+		ID:        string(configMap.UID),
+		Name:      configMap.Name,
+		Type:      "configmap",
+		Namespace: configMap.Namespace,
+		Status:    status,
+		Health:    health,
+		Specification: map[string]interface{}{
+			"data":       configMap.Data,
+			"binaryData": configMap.BinaryData,
+		},
+		Labels:      configMap.Labels,
+		Annotations: configMap.Annotations,
+		CreatedAt:   configMap.CreationTimestamp.Time,
+		UpdatedAt:   time.Now(),
 	}
 }
 

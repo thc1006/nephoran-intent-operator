@@ -157,14 +157,14 @@ type MeasurementCollection struct {
 
 // MeasurementFilter defines filtering criteria for data collection
 type MeasurementFilter struct {
-	TimeRange        *TimeRange              `json:"time_range,omitempty"`
+	TimeRange        *PerformanceTimeRange              `json:"time_range,omitempty"`
 	ValueFilters     map[string]*ValueFilter `json:"value_filters,omitempty"`
 	AttributeFilters map[string]string       `json:"attribute_filters,omitempty"`
 	SamplingRate     float64                 `json:"sampling_rate,omitempty"`
 }
 
-// TimeRange defines a time range for filtering
-type TimeRange struct {
+// PerformanceTimeRange defines a time range for filtering performance data
+type PerformanceTimeRange struct {
 	StartTime time.Time `json:"start_time"`
 	EndTime   time.Time `json:"end_time"`
 }
@@ -408,21 +408,6 @@ type HistoricalQuery struct {
 	Offset           int                    `json:"offset,omitempty"`
 }
 
-// DeletionCriteria defines criteria for data deletion
-type DeletionCriteria struct {
-	ObjectIDs []string  `json:"object_ids,omitempty"`
-	OlderThan time.Time `json:"older_than,omitempty"`
-	Quality   string    `json:"quality,omitempty"`
-}
-
-// StorageStatistics provides storage usage statistics
-type StorageStatistics struct {
-	TotalRecords     int64     `json:"total_records"`
-	StorageSize      int64     `json:"storage_size_bytes"`
-	OldestRecord     time.Time `json:"oldest_record"`
-	NewestRecord     time.Time `json:"newest_record"`
-	CompressionRatio float64   `json:"compression_ratio"`
-}
 
 // DataIndexManager manages data indexing for fast queries
 type DataIndexManager struct {
@@ -432,13 +417,8 @@ type DataIndexManager struct {
 	mutex            sync.RWMutex
 }
 
-// RetentionPolicy defines data retention policies
-type RetentionPolicy struct {
-	Policies map[string]*RetentionRule `json:"policies"`
-}
-
-// RetentionRule defines a specific retention rule
-type RetentionRule struct {
+// PerformanceRetentionRule defines a specific performance data retention rule
+type PerformanceRetentionRule struct {
 	ObjectPattern   string        `json:"object_pattern"`
 	RetentionPeriod time.Duration `json:"retention_period"`
 	AggregationRule string        `json:"aggregation_rule"`
@@ -519,15 +499,15 @@ type BaselineManager struct {
 type PerformanceBaseline struct {
 	ObjectID        string              `json:"object_id"`
 	MeasurementType string              `json:"measurement_type"`
-	BaselineData    *StatisticalSummary `json:"baseline_data"`
+	BaselineData    *PerformanceStatisticalSummary `json:"baseline_data"`
 	CreatedAt       time.Time           `json:"created_at"`
 	UpdatedAt       time.Time           `json:"updated_at"`
 	ValidUntil      time.Time           `json:"valid_until"`
 	Confidence      float64             `json:"confidence"`
 }
 
-// StatisticalSummary provides statistical summary of measurement data
-type StatisticalSummary struct {
+// PerformanceStatisticalSummary provides statistical summary of performance measurement data
+type PerformanceStatisticalSummary struct {
 	Mean        float64         `json:"mean"`
 	Median      float64         `json:"median"`
 	StdDev      float64         `json:"std_dev"`
@@ -580,14 +560,14 @@ type AnomalyDetectionConfig struct {
 
 // PerformanceReportGenerator generates performance reports
 type PerformanceReportGenerator struct {
-	templates    map[string]*ReportTemplate
-	generators   map[string]ReportGenerator
-	scheduler    *ReportScheduler
+	templates    map[string]*PerformanceReportTemplate
+	generators   map[string]PerformanceReportGenerator
+	scheduler    *PerformanceReportScheduler
 	distribution *ReportDistribution
 }
 
-// ReportTemplate defines report structure and content
-type ReportTemplate struct {
+// PerformanceReportTemplate defines performance report structure and content
+type PerformanceReportTemplate struct {
 	ID                 string           `json:"id"`
 	Name               string           `json:"name"`
 	Description        string           `json:"description"`
@@ -622,20 +602,9 @@ type Visualization struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-// ReportSchedule defines when reports are generated
-type ReportSchedule struct {
-	Frequency  string    `json:"frequency"` // HOURLY, DAILY, WEEKLY, MONTHLY
-	DayOfWeek  int       `json:"day_of_week,omitempty"`
-	DayOfMonth int       `json:"day_of_month,omitempty"`
-	Hour       int       `json:"hour"`
-	Minute     int       `json:"minute"`
-	TimeZone   string    `json:"time_zone"`
-	NextRun    time.Time `json:"next_run"`
-}
-
 // ReportGenerator interface for different report generation methods
-type ReportGenerator interface {
-	GenerateReport(ctx context.Context, template *ReportTemplate, data []*MeasurementData) (*GeneratedReport, error)
+type PerformanceReportGeneratorInterface interface {
+	GenerateReport(ctx context.Context, template *PerformanceReportTemplate, data []*MeasurementData) (*GeneratedReport, error)
 	GetSupportedFormats() []string
 	GetGeneratorType() string
 }
@@ -653,7 +622,7 @@ type GeneratedReport struct {
 }
 
 // ReportScheduler manages scheduled report generation
-type ReportScheduler struct {
+type PerformanceReportScheduler struct {
 	scheduledReports map[string]*ScheduledReport
 	ticker           *time.Ticker
 	running          bool
@@ -663,7 +632,7 @@ type ReportScheduler struct {
 
 // ScheduledReport represents a scheduled report
 type ScheduledReport struct {
-	Template   *ReportTemplate
+	Template   *PerformanceReportTemplate
 	NextRun    time.Time
 	Enabled    bool
 	LastRun    time.Time
@@ -674,12 +643,6 @@ type ScheduledReport struct {
 // ReportDistribution handles report distribution
 type ReportDistribution struct {
 	distributors map[string]ReportDistributor
-}
-
-// ReportDistributor interface for report distribution methods
-type ReportDistributor interface {
-	DistributeReport(ctx context.Context, report *GeneratedReport, recipients []string) error
-	GetDistributorType() string
 }
 
 // KPICalculator calculates Key Performance Indicators
@@ -1107,7 +1070,7 @@ func (cpm *CompletePerformanceManager) GetMeasurementData(ctx context.Context, q
 		AggregatedData: aggregatedData,
 		QueryTime:      time.Now(),
 		DataPointCount: len(allData),
-		TimeRange: &TimeRange{
+		TimeRange: &PerformanceTimeRange{
 			StartTime: query.StartTime,
 			EndTime:   query.EndTime,
 		},
@@ -1255,7 +1218,7 @@ type MeasurementQueryResult struct {
 	AggregatedData []*AggregatedData  `json:"aggregated_data,omitempty"`
 	QueryTime      time.Time          `json:"query_time"`
 	DataPointCount int                `json:"data_point_count"`
-	TimeRange      *TimeRange         `json:"time_range"`
+	TimeRange      *PerformanceTimeRange         `json:"time_range"`
 	ExecutionTime  time.Duration      `json:"execution_time"`
 }
 
@@ -1544,8 +1507,8 @@ func (pad *PerformanceAnomalyDetector) GetStatistics() *AnomalyStatistics {
 
 func NewPerformanceReportGenerator() *PerformanceReportGenerator {
 	return &PerformanceReportGenerator{
-		templates:  make(map[string]*ReportTemplate),
-		generators: make(map[string]ReportGenerator),
+		templates:  make(map[string]*PerformanceReportTemplate),
+		generators: make(map[string]PerformanceReportGenerator),
 	}
 }
 

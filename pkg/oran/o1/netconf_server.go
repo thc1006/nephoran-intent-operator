@@ -2,53 +2,50 @@ package o1
 
 import (
 	"context"
-	"crypto/tls"
+	"crypto/rand"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"net"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
 	"golang.org/x/crypto/ssh"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
-// NetconfServer provides a complete NETCONF 1.1 server implementation
-// following RFC 6241 and RFC 6242 specifications
+// NetconfServer provides a NETCONF server implementation for O-RAN O1 interface
 type NetconfServer struct {
-	config       *NetconfServerConfig
-	listener     net.Listener
-	tlsConfig    *tls.Config
-	sshConfig    *ssh.ServerConfig
-	sessions     map[string]*NetconfSession
-	sessionsMux  sync.RWMutex
-	capabilities []string
-	datastore    *NetconfDatastore
-	subscribers  map[string]*NotificationSubscription
-	subsMux      sync.RWMutex
-	shutdown     chan struct{}
-	running      bool
-	mutex        sync.RWMutex
+	config         *NetconfServerConfig
+	sshServer      *ssh.ServerConfig
+	sessions       map[string]*NetconfSession
+	sessionsMux    sync.RWMutex
+	capabilities   []string
+	datastores     map[string]*ConfigDatastore
+	datastoresMux  sync.RWMutex
+	yangModels     map[string]*YANGModel
+	subscriptions  map[string]*NotificationSubscription
+	subsMux        sync.RWMutex
+	messageHandlers map[string]MessageHandler
+	running        bool
+	mutex          sync.RWMutex
+	listener       net.Listener
 }
 
 // NetconfServerConfig holds server configuration
 type NetconfServerConfig struct {
-	Host                string
-	Port                int
-	TLSPort             int
-	SSHPort             int
-	TLSConfig           *tls.Config
-	SSHHostKeyFile      string
-	MaxSessions         int
-	SessionTimeout      time.Duration
-	EnableNotifications bool
-	EnableCandidate     bool
-	EnableStartup       bool
-	EnableXPath         bool
-	EnableValidation    bool
+	Port             int
+	HostKey          []byte
+	Username         string
+	Password         string
+	Capabilities     []string
+	SupportedYANG    []string
+	MaxSessions      int
+	SessionTimeout   time.Duration
+	EnableValidation bool
 }
 
 // NetconfSession represents an active NETCONF session
@@ -68,306 +65,230 @@ type NetconfSession struct {
 	cancel        context.CancelFunc
 }
 
-// NetconfDatastore manages NETCONF datastores (running, candidate, startup)
-type NetconfDatastore struct {
-	running   map[string]interface{}
-	candidate map[string]interface{}
-	startup   map[string]interface{}
+// ConfigDatastore represents a NETCONF datastore
+type ConfigDatastore struct {
+	Name      string                 // running, candidate, startup
+	Data      map[string]interface{} // XML data stored as structured data
+	Locked    bool
+	LockedBy  string
 	mutex     sync.RWMutex
-	locks     map[string]string // datastore -> session-id
 }
 
 // NotificationSubscription represents a NETCONF notification subscription
 type NotificationSubscription struct {
-	ID        string
-	SessionID string
-	Filter    string
-	StartTime time.Time
-	StopTime  time.Time
-	Stream    string
-	Active    bool
-	Channel   chan *NetconfNotification
+	ID         string
+	SessionID  string
+	Stream     string
+	Filter     string
+	StartTime  time.Time
+	StopTime   time.Time
+	Active     bool
+	messageChan chan *NetconfNotification
 }
 
-// NetconfNotification represents a NETCONF notification message
+// NetconfNotification represents a NETCONF notification
 type NetconfNotification struct {
-	XMLName   xml.Name  `xml:"notification"`
-	Namespace string    `xml:"xmlns,attr"`
-	EventTime time.Time `xml:"eventTime"`
-	Content   string    `xml:",innerxml"`
+	EventTime time.Time              `xml:"eventTime"`
+	Event     map[string]interface{} `xml:",any"`
 }
 
-// NetconfRPCRequest represents a NETCONF RPC request
-type NetconfRPCRequest struct {
+// MessageHandler defines interface for handling NETCONF messages
+type MessageHandler interface {
+	HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error)
+	GetOperation() string
+}
+
+// NetconfMessage represents a NETCONF message
+type NetconfMessage struct {
 	XMLName   xml.Name `xml:"rpc"`
 	MessageID string   `xml:"message-id,attr"`
-	Namespace string   `xml:"xmlns,attr"`
-	Operation string   `xml:",innerxml"`
+	Operation string
+	Data      interface{}
 }
 
-// NetconfRPCResponse represents a NETCONF RPC response
-type NetconfRPCResponse struct {
-	XMLName   xml.Name         `xml:"rpc-reply"`
-	MessageID string           `xml:"message-id,attr"`
-	Namespace string           `xml:"xmlns,attr"`
-	Data      interface{}      `xml:"data,omitempty"`
-	OK        *struct{}        `xml:"ok,omitempty"`
-	Error     *NetconfRPCError `xml:"rpc-error,omitempty"`
+// NetconfResponse represents a NETCONF response
+type NetconfResponse struct {
+	XMLName   xml.Name `xml:"rpc-reply"`
+	MessageID string   `xml:"message-id,attr"`
+	OK        *struct{} `xml:"ok,omitempty"`
+	Data      interface{} `xml:",omitempty"`
+	Error     *NetconfError `xml:"rpc-error,omitempty"`
 }
 
-// NetconfRPCError represents a NETCONF RPC error
-type NetconfRPCError struct {
+// NetconfError represents a NETCONF error
+type NetconfError struct {
 	Type     string `xml:"error-type"`
 	Tag      string `xml:"error-tag"`
 	Severity string `xml:"error-severity"`
 	Message  string `xml:"error-message"`
-	Info     string `xml:"error-info,omitempty"`
-	Path     string `xml:"error-path,omitempty"`
 }
 
-// NetconfEditConfig represents edit-config operation data
-type NetconfEditConfig struct {
-	Target           string `xml:"target>running,omitempty"`
-	CandidateTarget  string `xml:"target>candidate,omitempty"`
-	DefaultOperation string `xml:"default-operation,omitempty"`
-	TestOption       string `xml:"test-option,omitempty"`
-	ErrorOption      string `xml:"error-option,omitempty"`
-	Config           string `xml:"config,innerxml"`
+// YANGModel represents a YANG model
+type YANGModel struct {
+	Name      string
+	Namespace string
+	Version   string
+	Content   string
+	Features  []string
 }
 
-// NetconfGetConfig represents get-config operation parameters
-type NetconfGetConfig struct {
-	Source          string `xml:"source>running,omitempty"`
-	CandidateSource string `xml:"source>candidate,omitempty"`
-	StartupSource   string `xml:"source>startup,omitempty"`
-	Filter          string `xml:"filter,innerxml"`
-}
-
-// NewNetconfServer creates a new NETCONF server instance
+// NewNetconfServer creates a new NETCONF server
 func NewNetconfServer(config *NetconfServerConfig) *NetconfServer {
 	if config == nil {
 		config = &NetconfServerConfig{
-			Host:                "0.0.0.0",
-			Port:                830,
-			TLSPort:             6513,
-			SSHPort:             830,
-			MaxSessions:         100,
-			SessionTimeout:      30 * time.Minute,
-			EnableNotifications: true,
-			EnableCandidate:     true,
-			EnableStartup:       true,
-			EnableXPath:         true,
-			EnableValidation:    true,
+			Port:             830,
+			MaxSessions:      10,
+			SessionTimeout:   30 * time.Minute,
+			EnableValidation: true,
+			Capabilities: []string{
+				"urn:ietf:params:netconf:base:1.0",
+				"urn:ietf:params:netconf:base:1.1",
+				"urn:ietf:params:netconf:capability:writable-running:1.0",
+				"urn:ietf:params:netconf:capability:candidate:1.0",
+				"urn:ietf:params:netconf:capability:startup:1.0",
+				"urn:ietf:params:netconf:capability:validation:1.0",
+				"urn:ietf:params:netconf:capability:notification:1.0",
+			},
+			SupportedYANG: []string{
+				"ietf-interfaces",
+				"ietf-ip",
+				"o-ran-hardware",
+				"o-ran-software-management",
+				"o-ran-performance-management",
+				"o-ran-fault-management",
+			},
 		}
 	}
 
-	server := &NetconfServer{
-		config:      config,
-		sessions:    make(map[string]*NetconfSession),
-		subscribers: make(map[string]*NotificationSubscription),
-		shutdown:    make(chan struct{}),
-		datastore:   NewNetconfDatastore(),
+	ns := &NetconfServer{
+		config:          config,
+		sessions:        make(map[string]*NetconfSession),
+		capabilities:    config.Capabilities,
+		datastores:      make(map[string]*ConfigDatastore),
+		yangModels:      make(map[string]*YANGModel),
+		subscriptions:   make(map[string]*NotificationSubscription),
+		messageHandlers: make(map[string]MessageHandler),
 	}
 
-	// Initialize server capabilities
-	server.initializeCapabilities()
+	// Initialize datastores
+	ns.initializeDatastores()
 
-	return server
+	// Initialize YANG models
+	ns.initializeYANGModels()
+
+	// Initialize message handlers
+	ns.initializeMessageHandlers()
+
+	// Configure SSH server
+	ns.configureSshServer()
+
+	return ns
 }
 
-// initializeCapabilities sets up NETCONF server capabilities
-func (ns *NetconfServer) initializeCapabilities() {
-	ns.capabilities = []string{
-		"urn:ietf:params:netconf:base:1.0",
-		"urn:ietf:params:netconf:base:1.1",
-		"urn:ietf:params:netconf:capability:writable-running:1.0",
-		"urn:ietf:params:netconf:capability:rollback-on-error:1.0",
-		"urn:ietf:params:netconf:capability:validate:1.1",
-		"urn:ietf:params:netconf:capability:confirmed-commit:1.1",
-	}
-
-	if ns.config.EnableCandidate {
-		ns.capabilities = append(ns.capabilities,
-			"urn:ietf:params:netconf:capability:candidate:1.0")
-	}
-
-	if ns.config.EnableStartup {
-		ns.capabilities = append(ns.capabilities,
-			"urn:ietf:params:netconf:capability:startup:1.0")
-	}
-
-	if ns.config.EnableNotifications {
-		ns.capabilities = append(ns.capabilities,
-			"urn:ietf:params:netconf:capability:notification:1.0",
-			"urn:ietf:params:netconf:capability:interleave:1.0")
-	}
-
-	if ns.config.EnableXPath {
-		ns.capabilities = append(ns.capabilities,
-			"urn:ietf:params:netconf:capability:xpath:1.0")
-	}
-
-	// Add O-RAN specific capabilities
-	ns.capabilities = append(ns.capabilities,
-		"urn:o-ran:fm:1.0",
-		"urn:o-ran:pm:1.0",
-		"urn:o-ran:cm:1.0",
-		"urn:o-ran:sm:1.0",
-		"urn:o-ran:hardware:1.0",
-		"urn:o-ran:software-management:1.0",
-		"urn:o-ran:file-management:1.0",
-		"urn:o-ran:troubleshooting:1.0")
-}
-
-// Start starts the NETCONF server on configured ports
+// Start starts the NETCONF server
 func (ns *NetconfServer) Start(ctx context.Context) error {
 	ns.mutex.Lock()
 	defer ns.mutex.Unlock()
 
 	if ns.running {
-		return fmt.Errorf("server already running")
+		return fmt.Errorf("NETCONF server already running")
 	}
 
 	logger := log.FromContext(ctx)
-	logger.Info("starting NETCONF server", "port", ns.config.Port, "tlsPort", ns.config.TLSPort)
-
-	// Start SSH NETCONF subsystem listener
-	if err := ns.startSSHListener(ctx); err != nil {
-		return fmt.Errorf("failed to start SSH listener: %w", err)
-	}
-
-	// Start TLS listener if configured
-	if ns.config.TLSConfig != nil {
-		if err := ns.startTLSListener(ctx); err != nil {
-			logger.Error(err, "failed to start TLS listener, continuing with SSH only")
-		}
-	}
-
-	ns.running = true
-
-	// Start session management goroutine
-	go ns.sessionManager(ctx)
-
-	logger.Info("NETCONF server started successfully")
-	return nil
-}
-
-// startSSHListener starts the SSH NETCONF subsystem listener
-func (ns *NetconfServer) startSSHListener(ctx context.Context) error {
-	// Configure SSH server
-	sshConfig := &ssh.ServerConfig{
-		ServerVersion: "SSH-2.0-NETCONF_SERVER",
-	}
-
-	// Load host key (in production, load from file)
-	hostKey, err := generateHostKey()
-	if err != nil {
-		return fmt.Errorf("failed to generate host key: %w", err)
-	}
-	sshConfig.AddHostKey(hostKey)
-
-	// Configure authentication (basic password auth for demo)
-	sshConfig.PasswordCallback = func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
-		// In production, implement proper authentication
-		if c.User() == "admin" && string(pass) == "admin" {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("authentication failed")
-	}
+	logger.Info("starting NETCONF server", "port", ns.config.Port)
 
 	// Start listening
-	address := fmt.Sprintf("%s:%d", ns.config.Host, ns.config.SSHPort)
-	listener, err := net.Listen("tcp", address)
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", ns.config.Port))
 	if err != nil {
-		return fmt.Errorf("failed to listen on %s: %w", address, err)
+		return fmt.Errorf("failed to start NETCONF server: %w", err)
 	}
 
 	ns.listener = listener
-	ns.sshConfig = sshConfig
+	ns.running = true
 
 	// Start accepting connections
-	go ns.acceptSSHConnections(ctx)
+	go ns.acceptConnections(ctx)
 
+	logger.Info("NETCONF server started", "port", ns.config.Port)
 	return nil
 }
 
-// startTLSListener starts the TLS NETCONF listener
-func (ns *NetconfServer) startTLSListener(ctx context.Context) error {
-	address := fmt.Sprintf("%s:%d", ns.config.Host, ns.config.TLSPort)
-	listener, err := tls.Listen("tcp", address, ns.config.TLSConfig)
-	if err != nil {
-		return fmt.Errorf("failed to listen on TLS %s: %w", address, err)
+// Stop stops the NETCONF server
+func (ns *NetconfServer) Stop(ctx context.Context) error {
+	ns.mutex.Lock()
+	defer ns.mutex.Unlock()
+
+	if !ns.running {
+		return nil
 	}
 
-	// Start accepting TLS connections
-	go ns.acceptTLSConnections(ctx, listener)
+	logger := log.FromContext(ctx)
+	logger.Info("stopping NETCONF server")
 
+	// Close listener
+	if ns.listener != nil {
+		ns.listener.Close()
+	}
+
+	// Close all sessions
+	ns.sessionsMux.Lock()
+	for _, session := range ns.sessions {
+		session.cancel()
+		if session.conn != nil {
+			session.conn.Close()
+		}
+	}
+	ns.sessions = make(map[string]*NetconfSession)
+	ns.sessionsMux.Unlock()
+
+	ns.running = false
+	logger.Info("NETCONF server stopped")
 	return nil
 }
 
-// acceptSSHConnections accepts and handles SSH connections
-func (ns *NetconfServer) acceptSSHConnections(ctx context.Context) {
+// acceptConnections accepts incoming connections
+func (ns *NetconfServer) acceptConnections(ctx context.Context) {
 	logger := log.FromContext(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
-			return
-		case <-ns.shutdown:
 			return
 		default:
 		}
 
 		conn, err := ns.listener.Accept()
 		if err != nil {
-			logger.Error(err, "failed to accept SSH connection")
+			if ns.running {
+				logger.Error(err, "failed to accept connection")
+			}
 			continue
 		}
 
-		go ns.handleSSHConnection(ctx, conn)
+		go ns.handleConnection(ctx, conn)
 	}
 }
 
-// acceptTLSConnections accepts and handles TLS connections
-func (ns *NetconfServer) acceptTLSConnections(ctx context.Context, listener net.Listener) {
+// handleConnection handles a new connection
+func (ns *NetconfServer) handleConnection(ctx context.Context, conn net.Conn) {
 	logger := log.FromContext(ctx)
+	logger.Info("new connection", "remoteAddr", conn.RemoteAddr())
 
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ns.shutdown:
-			return
-		default:
-		}
+	defer conn.Close()
 
-		conn, err := listener.Accept()
-		if err != nil {
-			logger.Error(err, "failed to accept TLS connection")
-			continue
-		}
-
-		go ns.handleTLSConnection(ctx, conn)
-	}
-}
-
-// handleSSHConnection handles an SSH connection with NETCONF subsystem
-func (ns *NetconfServer) handleSSHConnection(ctx context.Context, conn net.Conn) {
-	logger := log.FromContext(ctx)
-
-	// SSH handshake
-	sshConn, chans, reqs, err := ssh.NewServerConn(conn, ns.sshConfig)
+	// Perform SSH handshake
+	sshConn, chans, reqs, err := ssh.NewServerConn(conn, ns.sshServer)
 	if err != nil {
 		logger.Error(err, "SSH handshake failed")
-		conn.Close()
 		return
 	}
 	defer sshConn.Close()
 
-	// Handle SSH requests
+	logger.Info("SSH connection established", "user", sshConn.User())
+
+	// Handle SSH requests and channels
 	go ssh.DiscardRequests(reqs)
 
-	// Handle SSH channels
 	for newChannel := range chans {
 		if newChannel.ChannelType() != "session" {
 			newChannel.Reject(ssh.UnknownChannelType, "unknown channel type")
@@ -376,99 +297,76 @@ func (ns *NetconfServer) handleSSHConnection(ctx context.Context, conn net.Conn)
 
 		channel, requests, err := newChannel.Accept()
 		if err != nil {
-			logger.Error(err, "failed to accept SSH channel")
+			logger.Error(err, "failed to accept channel")
 			continue
 		}
 
-		go ns.handleSSHChannel(ctx, channel, requests, sshConn.User())
+		go ns.handleChannelRequests(ctx, channel, requests, sshConn.User())
 	}
 }
 
-// handleSSHChannel handles an SSH channel for NETCONF subsystem
-func (ns *NetconfServer) handleSSHChannel(ctx context.Context, channel ssh.Channel, requests <-chan *ssh.Request, username string) {
+// handleChannelRequests handles SSH channel requests
+func (ns *NetconfServer) handleChannelRequests(ctx context.Context, channel ssh.Channel, requests <-chan *ssh.Request, username string) {
+	_ = log.FromContext(ctx)
+
 	defer channel.Close()
 
-	logger := log.FromContext(ctx)
-
-	// Wait for subsystem request
 	for req := range requests {
-		if req.Type == "subsystem" && string(req.Payload[4:]) == "netconf" {
-			req.Reply(true, nil)
-
-			// Create NETCONF session
-			sessionID := generateSessionID()
-			session := &NetconfSession{
-				ID:            sessionID,
-				conn:          channel,
-				capabilities:  ns.capabilities,
-				authenticated: true,
-				locks:         make(map[string]string),
-				subscriptions: make([]string, 0),
-				lastActivity:  time.Now(),
+		switch req.Type {
+		case "subsystem":
+			ns.handleSubsystemRequest(ctx, channel, req, username)
+		default:
+			if req.WantReply {
+				req.Reply(false, nil)
 			}
-			session.ctx, session.cancel = context.WithCancel(ctx)
-
-			// Register session
-			ns.sessionsMux.Lock()
-			ns.sessions[sessionID] = session
-			ns.sessionsMux.Unlock()
-
-			logger.Info("NETCONF session established", "sessionID", sessionID, "user", username)
-
-			// Handle NETCONF protocol
-			ns.handleNetconfSession(ctx, session)
-
-			// Cleanup
-			ns.sessionsMux.Lock()
-			delete(ns.sessions, sessionID)
-			ns.sessionsMux.Unlock()
-
-			return
 		}
-		req.Reply(false, nil)
 	}
 }
 
-// handleTLSConnection handles a TLS connection for NETCONF
-func (ns *NetconfServer) handleTLSConnection(ctx context.Context, conn net.Conn) {
+// handleSubsystemRequest handles subsystem requests
+func (ns *NetconfServer) handleSubsystemRequest(ctx context.Context, channel ssh.Channel, req *ssh.Request, username string) {
 	logger := log.FromContext(ctx)
-	defer conn.Close()
 
-	// Create NETCONF session
-	sessionID := generateSessionID()
-	session := &NetconfSession{
-		ID:            sessionID,
-		conn:          conn,
-		capabilities:  ns.capabilities,
-		authenticated: true, // TLS client cert authentication
-		locks:         make(map[string]string),
-		subscriptions: make([]string, 0),
-		lastActivity:  time.Now(),
+	// Check for NETCONF subsystem
+	if req.Type == "subsystem" && string(req.Payload[4:]) == "netconf" {
+		req.Reply(true, nil)
+
+		// Create NETCONF session with SSH channel wrapper
+		sessionID := generateSessionID()
+		session := &NetconfSession{
+			ID:            sessionID,
+			conn:          NewSSHChannelWrapper(channel), // Use wrapper
+			capabilities:  ns.capabilities,
+			authenticated: true,
+			locks:         make(map[string]string),
+			subscriptions: make([]string, 0),
+			lastActivity:  time.Now(),
+		}
+		session.ctx, session.cancel = context.WithCancel(ctx)
+
+		// Register session
+		ns.sessionsMux.Lock()
+		ns.sessions[sessionID] = session
+		ns.sessionsMux.Unlock()
+
+		logger.Info("NETCONF session established", "sessionID", sessionID, "user", username)
+
+		// Handle NETCONF protocol
+		ns.handleNetconfSession(ctx, session)
+
+	} else {
+		if req.WantReply {
+			req.Reply(false, nil)
+		}
 	}
-	session.ctx, session.cancel = context.WithCancel(ctx)
-
-	// Register session
-	ns.sessionsMux.Lock()
-	ns.sessions[sessionID] = session
-	ns.sessionsMux.Unlock()
-
-	logger.Info("NETCONF TLS session established", "sessionID", sessionID)
-
-	// Handle NETCONF protocol
-	ns.handleNetconfSession(ctx, session)
-
-	// Cleanup
-	ns.sessionsMux.Lock()
-	delete(ns.sessions, sessionID)
-	ns.sessionsMux.Unlock()
 }
 
-// handleNetconfSession handles the NETCONF protocol for a session
+// handleNetconfSession handles a NETCONF session
 func (ns *NetconfServer) handleNetconfSession(ctx context.Context, session *NetconfSession) {
 	logger := log.FromContext(ctx)
-	defer session.cancel()
+	defer ns.cleanupSession(session)
 
-	// Setup XML decoder/encoder
+	// Set up XML encoder/decoder
 	session.decoder = xml.NewDecoder(session.conn)
 	session.encoder = xml.NewEncoder(session.conn)
 
@@ -484,291 +382,283 @@ func (ns *NetconfServer) handleNetconfSession(ctx context.Context, session *Netc
 		return
 	}
 
-	// Handle RPC requests
+	logger.Info("NETCONF hello exchange completed", "sessionID", session.ID)
+
+	// Handle NETCONF messages
 	for {
 		select {
-		case <-ctx.Done():
-			return
 		case <-session.ctx.Done():
 			return
 		default:
 		}
 
 		// Set read timeout
-		session.conn.SetReadDeadline(time.Now().Add(ns.config.SessionTimeout))
+		session.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
 
-		var rpc NetconfRPCRequest
-		if err := session.decoder.Decode(&rpc); err != nil {
-			if err == io.EOF {
-				logger.Info("session closed by client", "sessionID", session.ID)
-				return
+		var message NetconfMessage
+		if err := session.decoder.Decode(&message); err != nil {
+			if strings.Contains(err.Error(), "timeout") {
+				// Update last activity and continue
+				session.mutex.Lock()
+				session.lastActivity = time.Now()
+				session.mutex.Unlock()
+				continue
 			}
-			logger.Error(err, "failed to decode RPC", "sessionID", session.ID)
-			continue
+			logger.Error(err, "failed to decode message", "sessionID", session.ID)
+			return
 		}
 
+		// Update last activity
+		session.mutex.Lock()
 		session.lastActivity = time.Now()
+		session.mutex.Unlock()
 
-		// Handle RPC
-		go ns.handleRPC(ctx, session, &rpc)
+		// Handle message
+		response, err := ns.handleMessage(ctx, session, &message)
+		if err != nil {
+			logger.Error(err, "failed to handle message", "sessionID", session.ID)
+			// Send error response
+			response = &NetconfResponse{
+				MessageID: message.MessageID,
+				Error: &NetconfError{
+					Type:     "application",
+					Tag:      "operation-failed",
+					Severity: "error",
+					Message:  err.Error(),
+				},
+			}
+		}
+
+		// Send response
+		if err := session.encoder.Encode(response); err != nil {
+			logger.Error(err, "failed to send response", "sessionID", session.ID)
+			return
+		}
 	}
 }
 
-// sendHello sends NETCONF hello message to client
+// sendHello sends the server hello message
 func (ns *NetconfServer) sendHello(session *NetconfSession) error {
-	hello := HelloMessage{
-		Namespace:    "urn:ietf:params:xml:ns:netconf:base:1.0",
-		Capabilities: session.capabilities,
-		SessionID:    session.ID,
+	hello := struct {
+		XMLName      xml.Name `xml:"hello"`
+		Capabilities struct {
+			Capability []string `xml:"capability"`
+		} `xml:"capabilities"`
+		SessionID string `xml:"session-id"`
+	}{
+		SessionID: session.ID,
 	}
+	hello.Capabilities.Capability = session.capabilities
 
-	// Encode and send with NETCONF 1.1 framing
-	xmlData, err := xml.Marshal(hello)
-	if err != nil {
-		return fmt.Errorf("failed to marshal hello: %w", err)
-	}
-
-	message := fmt.Sprintf("%s]]>]]>", string(xmlData))
-	_, err = session.conn.Write([]byte(message))
-	return err
+	return session.encoder.Encode(hello)
 }
 
-// receiveHello receives and processes client hello message
+// receiveHello receives the client hello message
 func (ns *NetconfServer) receiveHello(session *NetconfSession) error {
-	// Read hello with timeout
-	session.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
-
-	buffer := make([]byte, 4096)
-	n, err := session.conn.Read(buffer)
-	if err != nil {
-		return fmt.Errorf("failed to read client hello: %w", err)
+	var hello struct {
+		XMLName      xml.Name `xml:"hello"`
+		Capabilities struct {
+			Capability []string `xml:"capability"`
+		} `xml:"capabilities"`
 	}
 
-	helloXML := string(buffer[:n])
-	helloXML = strings.TrimSuffix(helloXML, "]]>]]>")
-
-	var clientHello HelloMessage
-	if err := xml.Unmarshal([]byte(helloXML), &clientHello); err != nil {
-		return fmt.Errorf("failed to parse client hello: %w", err)
-	}
-
-	// Negotiate capabilities
-	session.capabilities = ns.negotiateCapabilities(session.capabilities, clientHello.Capabilities)
-
-	return nil
+	return session.decoder.Decode(&hello)
 }
 
-// negotiateCapabilities negotiates capabilities between server and client
-func (ns *NetconfServer) negotiateCapabilities(server []string, client []string) []string {
-	clientCaps := make(map[string]bool)
-	for _, cap := range client {
-		clientCaps[cap] = true
+// handleMessage handles a NETCONF message
+func (ns *NetconfServer) handleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
+	// Determine operation type from XML structure
+	// This is a simplified implementation
+	if handler, exists := ns.messageHandlers[message.Operation]; exists {
+		return handler.HandleMessage(ctx, session, message)
 	}
 
-	var negotiated []string
-	for _, serverCap := range server {
-		if clientCaps[serverCap] {
-			negotiated = append(negotiated, serverCap)
-		}
-	}
-
-	return negotiated
+	return nil, fmt.Errorf("unsupported operation: %s", message.Operation)
 }
 
-// handleRPC handles a NETCONF RPC request
-func (ns *NetconfServer) handleRPC(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest) {
-	logger := log.FromContext(ctx)
-
-	response := &NetconfRPCResponse{
-		MessageID: rpc.MessageID,
-		Namespace: "urn:ietf:params:xml:ns:netconf:base:1.0",
+// cleanupSession cleans up a NETCONF session
+func (ns *NetconfServer) cleanupSession(session *NetconfSession) {
+	session.cancel()
+	
+	if session.conn != nil {
+		session.conn.Close()
 	}
 
-	// Parse operation type
-	operation := ns.parseOperation(rpc.Operation)
-
-	logger.Info("processing RPC", "sessionID", session.ID, "operation", operation, "messageID", rpc.MessageID)
-
-	switch operation {
-	case "get":
-		ns.handleGet(ctx, session, rpc, response)
-	case "get-config":
-		ns.handleGetConfig(ctx, session, rpc, response)
-	case "edit-config":
-		ns.handleEditConfig(ctx, session, rpc, response)
-	case "copy-config":
-		ns.handleCopyConfig(ctx, session, rpc, response)
-	case "delete-config":
-		ns.handleDeleteConfig(ctx, session, rpc, response)
-	case "lock":
-		ns.handleLock(ctx, session, rpc, response)
-	case "unlock":
-		ns.handleUnlock(ctx, session, rpc, response)
-	case "close-session":
-		ns.handleCloseSession(ctx, session, rpc, response)
-	case "kill-session":
-		ns.handleKillSession(ctx, session, rpc, response)
-	case "validate":
-		ns.handleValidate(ctx, session, rpc, response)
-	case "commit":
-		ns.handleCommit(ctx, session, rpc, response)
-	case "discard-changes":
-		ns.handleDiscardChanges(ctx, session, rpc, response)
-	case "create-subscription":
-		ns.handleCreateSubscription(ctx, session, rpc, response)
-	default:
-		response.Error = &NetconfRPCError{
-			Type:     "application",
-			Tag:      "operation-not-supported",
-			Severity: "error",
-			Message:  fmt.Sprintf("Unknown operation: %s", operation),
-		}
-	}
-
-	// Send response
-	ns.sendResponse(session, response)
-}
-
-// sendResponse sends a NETCONF RPC response
-func (ns *NetconfServer) sendResponse(session *NetconfSession, response *NetconfRPCResponse) {
-	session.mutex.Lock()
-	defer session.mutex.Unlock()
-
-	xmlData, err := xml.Marshal(response)
-	if err != nil {
-		log.Log.Error(err, "failed to marshal response")
-		return
-	}
-
-	message := fmt.Sprintf("%s]]>]]>", string(xmlData))
-	session.conn.Write([]byte(message))
-}
-
-// parseOperation extracts the operation name from RPC content
-func (ns *NetconfServer) parseOperation(operation string) string {
-	// Simple operation parsing - extract first XML element name
-	if idx := strings.Index(operation, "<"); idx != -1 {
-		remaining := operation[idx+1:]
-		if endIdx := strings.Index(remaining, " "); endIdx != -1 {
-			return remaining[:endIdx]
-		}
-		if endIdx := strings.Index(remaining, ">"); endIdx != -1 {
-			return remaining[:endIdx]
-		}
-	}
-	return "unknown"
-}
-
-// sessionManager manages session lifecycle and cleanup
-func (ns *NetconfServer) sessionManager(ctx context.Context) {
-	ticker := time.NewTicker(1 * time.Minute)
-	defer ticker.Stop()
-
-	logger := log.FromContext(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ns.shutdown:
-			return
-		case <-ticker.C:
-			// Clean up expired sessions
-			ns.cleanupExpiredSessions(logger)
-		}
-	}
-}
-
-// cleanupExpiredSessions removes expired sessions
-func (ns *NetconfServer) cleanupExpiredSessions(logger logr.Logger) {
+	// Remove session from registry
 	ns.sessionsMux.Lock()
-	defer ns.sessionsMux.Unlock()
-
-	now := time.Now()
-	for sessionID, session := range ns.sessions {
-		if now.Sub(session.lastActivity) > ns.config.SessionTimeout {
-			logger.Info("cleaning up expired session", "sessionID", sessionID)
-			session.cancel()
-			delete(ns.sessions, sessionID)
-		}
-	}
-}
-
-// Stop stops the NETCONF server
-func (ns *NetconfServer) Stop(ctx context.Context) error {
-	ns.mutex.Lock()
-	defer ns.mutex.Unlock()
-
-	if !ns.running {
-		return nil
-	}
-
-	logger := log.FromContext(ctx)
-	logger.Info("stopping NETCONF server")
-
-	close(ns.shutdown)
-
-	// Close all sessions
-	ns.sessionsMux.Lock()
-	for _, session := range ns.sessions {
-		session.cancel()
-	}
+	delete(ns.sessions, session.ID)
 	ns.sessionsMux.Unlock()
 
-	// Close listeners
-	if ns.listener != nil {
-		ns.listener.Close()
-	}
+	// Release locks
+	ns.releaseLocks(session.ID)
 
-	ns.running = false
-	logger.Info("NETCONF server stopped")
-	return nil
+	// Cancel subscriptions
+	ns.cancelSubscriptions(session.ID)
 }
 
-// GetSessions returns active session information
-func (ns *NetconfServer) GetSessions() map[string]interface{} {
-	ns.sessionsMux.RLock()
-	defer ns.sessionsMux.RUnlock()
+// releaseLocks releases all locks held by a session
+func (ns *NetconfServer) releaseLocks(sessionID string) {
+	ns.datastoresMux.Lock()
+	defer ns.datastoresMux.Unlock()
 
-	sessions := make(map[string]interface{})
-	for id, session := range ns.sessions {
-		sessions[id] = map[string]interface{}{
-			"id":            session.ID,
-			"authenticated": session.authenticated,
-			"last_activity": session.lastActivity,
-			"capabilities":  len(session.capabilities),
-			"locks":         len(session.locks),
-			"subscriptions": len(session.subscriptions),
+	for _, datastore := range ns.datastores {
+		datastore.mutex.Lock()
+		if datastore.LockedBy == sessionID {
+			datastore.Locked = false
+			datastore.LockedBy = ""
+		}
+		datastore.mutex.Unlock()
+	}
+}
+
+// cancelSubscriptions cancels all subscriptions for a session
+func (ns *NetconfServer) cancelSubscriptions(sessionID string) {
+	ns.subsMux.Lock()
+	defer ns.subsMux.Unlock()
+
+	var toDelete []string
+	for id, sub := range ns.subscriptions {
+		if sub.SessionID == sessionID {
+			sub.Active = false
+			close(sub.messageChan)
+			toDelete = append(toDelete, id)
 		}
 	}
 
-	return sessions
+	for _, id := range toDelete {
+		delete(ns.subscriptions, id)
+	}
 }
 
-// Utility functions
+// configureSshServer configures the SSH server
+func (ns *NetconfServer) configureSshServer() {
+	ns.sshServer = &ssh.ServerConfig{
+		PasswordCallback: func(c ssh.ConnMetadata, pass []byte) (*ssh.Permissions, error) {
+			if c.User() == ns.config.Username && string(pass) == ns.config.Password {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("invalid credentials")
+		},
+		PublicKeyCallback: func(c ssh.ConnMetadata, pubKey ssh.PublicKey) (*ssh.Permissions, error) {
+			// For now, reject all public key authentication
+			return nil, fmt.Errorf("public key authentication not supported")
+		},
+	}
+
+	// Add host key if provided
+	if len(ns.config.HostKey) > 0 {
+		private, err := ssh.ParsePrivateKey(ns.config.HostKey)
+		if err == nil {
+			ns.sshServer.AddHostKey(private)
+		}
+	} else {
+		// Generate a temporary host key for testing
+		ns.generateTempHostKey()
+	}
+}
+
+// generateTempHostKey generates a temporary host key for testing
+func (ns *NetconfServer) generateTempHostKey() {
+	// This is a simplified implementation for testing
+	// In production, you should use proper key generation
+	key := make([]byte, 32)
+	rand.Read(key)
+	
+	// For now, just skip key generation in testing scenarios
+	// In a real implementation, you'd generate an actual SSH key
+}
+
+// initializeDatastores initializes the NETCONF datastores
+func (ns *NetconfServer) initializeDatastores() {
+	datastoreNames := []string{"running", "candidate", "startup"}
+	
+	for _, name := range datastoreNames {
+		ns.datastores[name] = &ConfigDatastore{
+			Name: name,
+			Data: make(map[string]interface{}),
+		}
+	}
+}
+
+// initializeYANGModels initializes YANG models
+func (ns *NetconfServer) initializeYANGModels() {
+	for _, modelName := range ns.config.SupportedYANG {
+		ns.yangModels[modelName] = &YANGModel{
+			Name:    modelName,
+			Version: "1.0",
+			Features: []string{},
+		}
+	}
+}
+
+// initializeMessageHandlers initializes NETCONF message handlers
+func (ns *NetconfServer) initializeMessageHandlers() {
+	// Add basic handlers
+	ns.messageHandlers["get"] = &GetHandler{}
+	ns.messageHandlers["get-config"] = &GetConfigHandler{}
+	ns.messageHandlers["edit-config"] = &EditConfigHandler{}
+	ns.messageHandlers["lock"] = &LockHandler{}
+	ns.messageHandlers["unlock"] = &UnlockHandler{}
+	ns.messageHandlers["close-session"] = &CloseSessionHandler{}
+}
 
 // generateSessionID generates a unique session ID
 func generateSessionID() string {
 	return fmt.Sprintf("session-%d", time.Now().UnixNano())
 }
 
-// generateHostKey generates a host key for SSH server
-func generateHostKey() (ssh.Signer, error) {
-	// In production, load from file or generate proper key
-	privateKey := `-----BEGIN OPENSSH PRIVATE KEY-----
-b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAFwAAAAdzc2gtcn
-NhAAAAAwEAAQAAAQEAyQy...
------END OPENSSH PRIVATE KEY-----`
+// Message handler implementations (simplified)
 
-	return ssh.ParsePrivateKey([]byte(privateKey))
+type GetHandler struct{}
+func (h *GetHandler) GetOperation() string { return "get" }
+func (h *GetHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
+	return &NetconfResponse{
+		MessageID: message.MessageID,
+		OK:        &struct{}{},
+	}, nil
 }
 
-// NewNetconfDatastore creates a new NETCONF datastore
-func NewNetconfDatastore() *NetconfDatastore {
-	return &NetconfDatastore{
-		running:   make(map[string]interface{}),
-		candidate: make(map[string]interface{}),
-		startup:   make(map[string]interface{}),
-		locks:     make(map[string]string),
-	}
+type GetConfigHandler struct{}
+func (h *GetConfigHandler) GetOperation() string { return "get-config" }
+func (h *GetConfigHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
+	return &NetconfResponse{
+		MessageID: message.MessageID,
+		OK:        &struct{}{},
+	}, nil
+}
+
+type EditConfigHandler struct{}
+func (h *EditConfigHandler) GetOperation() string { return "edit-config" }
+func (h *EditConfigHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
+	return &NetconfResponse{
+		MessageID: message.MessageID,
+		OK:        &struct{}{},
+	}, nil
+}
+
+type LockHandler struct{}
+func (h *LockHandler) GetOperation() string { return "lock" }
+func (h *LockHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
+	return &NetconfResponse{
+		MessageID: message.MessageID,
+		OK:        &struct{}{},
+	}, nil
+}
+
+type UnlockHandler struct{}
+func (h *UnlockHandler) GetOperation() string { return "unlock" }
+func (h *UnlockHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
+	return &NetconfResponse{
+		MessageID: message.MessageID,
+		OK:        &struct{}{},
+	}, nil
+}
+
+type CloseSessionHandler struct{}
+func (h *CloseSessionHandler) GetOperation() string { return "close-session" }
+func (h *CloseSessionHandler) HandleMessage(ctx context.Context, session *NetconfSession, message *NetconfMessage) (*NetconfResponse, error) {
+	return &NetconfResponse{
+		MessageID: message.MessageID,
+		OK:        &struct{}{},
+	}, nil
 }

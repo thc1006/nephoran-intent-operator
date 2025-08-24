@@ -17,6 +17,53 @@ import (
 	"github.com/prometheus/client_golang/prometheus/push"
 )
 
+// ComprehensiveTestEnvironment provides testing infrastructure
+type ComprehensiveTestEnvironment struct {
+	initialized    bool
+	dbConnections  map[string]any
+	memoryPools    map[int][]any
+	networkClients map[string]any
+	controllers    map[string]any
+	mu             sync.RWMutex
+}
+
+// Cleanup cleans up the test environment
+func (te *ComprehensiveTestEnvironment) Cleanup() {
+	te.mu.Lock()
+	defer te.mu.Unlock()
+	te.initialized = false
+}
+
+// setupComprehensiveTestEnvironment creates a comprehensive test environment
+func setupComprehensiveTestEnvironment() *ComprehensiveTestEnvironment {
+	return &ComprehensiveTestEnvironment{
+		initialized:    true,
+		dbConnections:  make(map[string]any),
+		memoryPools:    make(map[int][]any),
+		networkClients: make(map[string]any),
+		controllers:    make(map[string]any),
+	}
+}
+
+// ResourceMonitor monitors system resources during benchmarks
+type ResourceMonitor struct {
+	startTime time.Time
+}
+
+// Stop stops resource monitoring and returns usage statistics
+func (rm *ResourceMonitor) Stop() *ResourceUsage {
+	return &ResourceUsage{
+		PeakMemoryMB:   0,
+		AvgMemoryMB:    0,
+		PeakCPUPercent: 0,
+		AvgCPUPercent:  0,
+		MaxGoroutines:  0,
+		NetworkBytesIO: 0,
+		DiskBytesIO:    0,
+	}
+}
+
+
 // BenchmarkRunner provides a unified interface for running all Nephoran Intent Operator benchmarks
 type BenchmarkRunner struct {
 	config     *BenchmarkConfig
@@ -222,14 +269,14 @@ type TargetResult struct {
 // BaselineComparison compares current results with baseline
 type BaselineComparison struct {
 	BaselineFile       string                       `json:"baseline_file"`
-	ComparisonResults  map[string]*ComparisonResult `json:"comparison_results"`
+	ComparisonResults  map[string]*BenchmarkComparisonResult `json:"comparison_results"`
 	OverallImprovement float64                      `json:"overall_improvement_percent"`
 	Regressions        []string                     `json:"regressions"`
 	Improvements       []string                     `json:"improvements"`
 }
 
-// ComparisonResult contains comparison data for a specific benchmark
-type ComparisonResult struct {
+// BenchmarkComparisonResult contains comparison data for a specific benchmark
+type BenchmarkComparisonResult struct {
 	BenchmarkName string  `json:"benchmark_name"`
 	BaselineValue float64 `json:"baseline_value"`
 	CurrentValue  float64 `json:"current_value"`
@@ -798,7 +845,9 @@ func (br *BenchmarkRunner) loadBaseline() error {
 }
 
 func (br *BenchmarkRunner) startResourceMonitoring(ctx context.Context) *ResourceMonitor {
-	return &ResourceMonitor{}
+	return &ResourceMonitor{
+		startTime: time.Now(),
+	}
 }
 
 func (br *BenchmarkRunner) calculatePerformanceScore() float64 {

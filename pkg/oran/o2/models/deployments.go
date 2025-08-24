@@ -37,15 +37,6 @@ type DeploymentTemplate struct {
 	UpdatedBy  string                 `json:"updatedBy,omitempty"`
 }
 
-// TemplateDependency represents a dependency of a deployment template
-type TemplateDependency struct {
-	Name        string `json:"name"`
-	Version     string `json:"version"`
-	Type        string `json:"type"` // TEMPLATE, RESOURCE, SERVICE
-	Required    bool   `json:"required"`
-	Description string `json:"description,omitempty"`
-}
-
 // TemplateSpecification defines the deployment template specification
 type TemplateSpecification struct {
 	Type            string                           `json:"type"` // HEAT, HELM, KUBERNETES, TERRAFORM
@@ -102,35 +93,10 @@ type AffinityRules struct {
 	PodAntiAffinity *PodAffinity  `json:"podAntiAffinity,omitempty"`
 }
 
-// NodeAffinity represents node affinity rules
-type NodeAffinity struct {
-	RequiredDuringSchedulingIgnoredDuringExecution  []*NodeSelectorTerm        `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
-	PreferredDuringSchedulingIgnoredDuringExecution []*PreferredSchedulingTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
-}
-
 // PodAffinity represents pod affinity rules
 type PodAffinity struct {
 	RequiredDuringSchedulingIgnoredDuringExecution  []*PodAffinityTerm         `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	PreferredDuringSchedulingIgnoredDuringExecution []*WeightedPodAffinityTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
-}
-
-// NodeSelectorTerm represents a node selector term
-type NodeSelectorTerm struct {
-	MatchExpressions []*NodeSelectorRequirement `json:"matchExpressions,omitempty"`
-	MatchFields      []*NodeSelectorRequirement `json:"matchFields,omitempty"`
-}
-
-// NodeSelectorRequirement represents a node selector requirement
-type NodeSelectorRequirement struct {
-	Key      string   `json:"key"`
-	Operator string   `json:"operator"` // In, NotIn, Exists, DoesNotExist, Gt, Lt
-	Values   []string `json:"values,omitempty"`
-}
-
-// PreferredSchedulingTerm represents a preferred scheduling term
-type PreferredSchedulingTerm struct {
-	Weight     int32             `json:"weight"`
-	Preference *NodeSelectorTerm `json:"preference"`
 }
 
 // PodAffinityTerm represents a pod affinity term
@@ -144,19 +110,6 @@ type PodAffinityTerm struct {
 type WeightedPodAffinityTerm struct {
 	Weight          int32            `json:"weight"`
 	PodAffinityTerm *PodAffinityTerm `json:"podAffinityTerm"`
-}
-
-// LabelSelector represents a label selector
-type LabelSelector struct {
-	MatchLabels      map[string]string           `json:"matchLabels,omitempty"`
-	MatchExpressions []*LabelSelectorRequirement `json:"matchExpressions,omitempty"`
-}
-
-// LabelSelectorRequirement represents a label selector requirement
-type LabelSelectorRequirement struct {
-	Key      string   `json:"key"`
-	Operator string   `json:"operator"` // In, NotIn, Exists, DoesNotExist
-	Values   []string `json:"values,omitempty"`
 }
 
 // Deployment represents a deployment instance created from a template
@@ -457,6 +410,318 @@ type SystemInfo struct {
 	SupportedResourceTypes []string               `json:"supportedResourceTypes"`
 	Extensions             map[string]interface{} `json:"extensions"`
 	Timestamp              time.Time              `json:"timestamp"`
+}
+
+// Supporting types for template specifications
+
+// DeploymentHook represents hooks for deployment lifecycle events
+type DeploymentHook struct {
+	Name        string                `json:"name"`
+	Phase       string                `json:"phase"` // PRE_DEPLOY, POST_DEPLOY, PRE_UPDATE, POST_UPDATE, PRE_DELETE, POST_DELETE
+	Type        string                `json:"type"`  // SCRIPT, HTTP, KUBERNETES_JOB
+	Config      *runtime.RawExtension `json:"config"`
+	Timeout     time.Duration         `json:"timeout,omitempty"`
+	OnFailure   string                `json:"onFailure,omitempty"` // CONTINUE, ABORT, RETRY
+	RetryPolicy *RetryPolicy          `json:"retryPolicy,omitempty"`
+}
+
+// ResourceMapping defines how template resources map to infrastructure
+type ResourceMapping struct {
+	TemplateResource   string                 `json:"templateResource"`
+	InfrastructureType string                 `json:"infrastructureType"`
+	Mapping            map[string]interface{} `json:"mapping"`
+	Constraints        []string               `json:"constraints,omitempty"`
+}
+
+// NetworkMapping defines network resource mappings
+type NetworkMapping struct {
+	NetworkName string                 `json:"networkName"`
+	NetworkType string                 `json:"networkType"` // INTERNAL, EXTERNAL, MANAGEMENT
+	CIDR        string                 `json:"cidr,omitempty"`
+	VLAN        *int                   `json:"vlan,omitempty"`
+	Properties  map[string]interface{} `json:"properties,omitempty"`
+}
+
+// StorageMapping defines storage resource mappings
+type StorageMapping struct {
+	StorageName string                 `json:"storageName"`
+	StorageType string                 `json:"storageType"` // BLOCK, OBJECT, FILE
+	Size        string                 `json:"size"`
+	Performance string                 `json:"performance,omitempty"` // HIGH, MEDIUM, LOW
+	Properties  map[string]interface{} `json:"properties,omitempty"`
+}
+
+// Prerequisite represents a prerequisite for template deployment
+type Prerequisite struct {
+	Type        string                `json:"type"` // RESOURCE, SERVICE, CAPABILITY, POLICY
+	Name        string                `json:"name"`
+	Version     string                `json:"version,omitempty"`
+	Description string                `json:"description,omitempty"`
+	Validation  *runtime.RawExtension `json:"validation,omitempty"`
+	Required    bool                  `json:"required"`
+}
+
+// ScalingPolicy defines scaling behavior
+type ScalingPolicy struct {
+	Enabled         bool         `json:"enabled"`
+	MinInstances    int          `json:"minInstances"`
+	MaxInstances    int          `json:"maxInstances"`
+	TargetCPU       *int         `json:"targetCpu,omitempty"`
+	TargetMemory    *int         `json:"targetMemory,omitempty"`
+	ScaleUpPolicy   *ScalePolicy `json:"scaleUpPolicy,omitempty"`
+	ScaleDownPolicy *ScalePolicy `json:"scaleDownPolicy,omitempty"`
+	Metrics         []string     `json:"metrics,omitempty"`
+}
+
+// ScalePolicy defines scaling policy parameters
+type ScalePolicy struct {
+	Type                string `json:"type"` // PODS, PERCENT
+	Value               int    `json:"value"`
+	PeriodSeconds       int    `json:"periodSeconds"`
+	StabilizationWindow int    `json:"stabilizationWindow"`
+}
+
+// MonitoringConfig defines monitoring configuration
+type MonitoringConfig struct {
+	Enabled         bool         `json:"enabled"`
+	MetricsEndpoint string       `json:"metricsEndpoint,omitempty"`
+	HealthEndpoint  string       `json:"healthEndpoint,omitempty"`
+	LogsEnabled     bool         `json:"logsEnabled"`
+	TracingEnabled  bool         `json:"tracingEnabled"`
+	Dashboards      []string     `json:"dashboards,omitempty"`
+	Alerts          []*AlertRule `json:"alerts,omitempty"`
+}
+
+// AlertRule defines an alert rule
+type AlertRule struct {
+	Name        string            `json:"name"`
+	Expression  string            `json:"expression"`
+	Duration    time.Duration     `json:"duration"`
+	Severity    string            `json:"severity"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
+// SecurityConfiguration defines security settings
+type SecurityConfiguration struct {
+	NetworkPolicies   []*NetworkPolicy      `json:"networkPolicies,omitempty"`
+	PodSecurityPolicy *PodSecurityPolicy    `json:"podSecurityPolicy,omitempty"`
+	ServiceAccount    *ServiceAccountConfig `json:"serviceAccount,omitempty"`
+	RBAC              *RBACConfig           `json:"rbac,omitempty"`
+	SecretManagement  *SecretConfig         `json:"secretManagement,omitempty"`
+}
+
+// NetworkPolicy defines network security policies
+type NetworkPolicy struct {
+	Name        string               `json:"name"`
+	PodSelector map[string]string    `json:"podSelector"`
+	Ingress     []*NetworkPolicyRule `json:"ingress,omitempty"`
+	Egress      []*NetworkPolicyRule `json:"egress,omitempty"`
+}
+
+// NetworkPolicyRule defines network policy rules
+type NetworkPolicyRule struct {
+	From  []*NetworkPolicyPeer `json:"from,omitempty"`
+	To    []*NetworkPolicyPeer `json:"to,omitempty"`
+	Ports []*NetworkPolicyPort `json:"ports,omitempty"`
+}
+
+// NetworkPolicyPeer defines network policy peer
+type NetworkPolicyPeer struct {
+	PodSelector       map[string]string `json:"podSelector,omitempty"`
+	NamespaceSelector map[string]string `json:"namespaceSelector,omitempty"`
+	IPBlock           *IPBlock          `json:"ipBlock,omitempty"`
+}
+
+// NetworkPolicyPort defines network policy port
+type NetworkPolicyPort struct {
+	Protocol string `json:"protocol,omitempty"`
+	Port     string `json:"port,omitempty"`
+}
+
+// IPBlock defines IP block for network policies
+type IPBlock struct {
+	CIDR   string   `json:"cidr"`
+	Except []string `json:"except,omitempty"`
+}
+
+// PodSecurityPolicy defines pod security policies
+type PodSecurityPolicy struct {
+	RunAsUser                *int64   `json:"runAsUser,omitempty"`
+	RunAsGroup               *int64   `json:"runAsGroup,omitempty"`
+	RunAsNonRoot             *bool    `json:"runAsNonRoot,omitempty"`
+	ReadOnlyRootFS           *bool    `json:"readOnlyRootFS,omitempty"`
+	AllowedCapabilities      []string `json:"allowedCapabilities,omitempty"`
+	RequiredDropCapabilities []string `json:"requiredDropCapabilities,omitempty"`
+}
+
+// ServiceAccountConfig defines service account configuration
+type ServiceAccountConfig struct {
+	Name        string            `json:"name"`
+	Annotations map[string]string `json:"annotations,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+}
+
+// RBACConfig defines RBAC configuration
+type RBACConfig struct {
+	Roles        []*Role        `json:"roles,omitempty"`
+	ClusterRoles []*ClusterRole `json:"clusterRoles,omitempty"`
+	RoleBindings []*RoleBinding `json:"roleBindings,omitempty"`
+}
+
+// Role defines a role
+type Role struct {
+	Name  string      `json:"name"`
+	Rules []*RoleRule `json:"rules"`
+}
+
+// ClusterRole defines a cluster role
+type ClusterRole struct {
+	Name  string      `json:"name"`
+	Rules []*RoleRule `json:"rules"`
+}
+
+// RoleRule defines role rules
+type RoleRule struct {
+	APIGroups []string `json:"apiGroups"`
+	Resources []string `json:"resources"`
+	Verbs     []string `json:"verbs"`
+}
+
+// RoleBinding defines role bindings
+type RoleBinding struct {
+	Name     string     `json:"name"`
+	RoleRef  *RoleRef   `json:"roleRef"`
+	Subjects []*Subject `json:"subjects"`
+}
+
+// RoleRef defines role reference
+type RoleRef struct {
+	Kind     string `json:"kind"`
+	Name     string `json:"name"`
+	APIGroup string `json:"apiGroup"`
+}
+
+// Subject defines RBAC subject
+type Subject struct {
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Namespace string `json:"namespace,omitempty"`
+}
+
+// SecretConfig defines secret management configuration
+type SecretConfig struct {
+	Secrets  []*SecretSpec `json:"secrets,omitempty"`
+	Provider string        `json:"provider,omitempty"` // KUBERNETES, VAULT, AWS_SECRETS_MANAGER
+}
+
+// SecretSpec defines secret specification
+type SecretSpec struct {
+	Name       string            `json:"name"`
+	Type       string            `json:"type"`
+	Data       map[string]string `json:"data,omitempty"`
+	StringData map[string]string `json:"stringData,omitempty"`
+}
+
+// Additional supporting types for resource requirements
+
+// NetworkRequirement defines network requirements
+type NetworkRequirement struct {
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"` // INTERNAL, EXTERNAL, MANAGEMENT
+	Bandwidth  string                 `json:"bandwidth,omitempty"`
+	Latency    time.Duration          `json:"latency,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
+}
+
+// StorageRequirement defines storage requirements
+type StorageRequirement struct {
+	Name         string                 `json:"name"`
+	Type         string                 `json:"type"` // BLOCK, OBJECT, FILE
+	Size         string                 `json:"size"`
+	IOPS         *int                   `json:"iops,omitempty"`
+	Throughput   string                 `json:"throughput,omitempty"`
+	AccessModes  []string               `json:"accessModes,omitempty"`
+	StorageClass string                 `json:"storageClass,omitempty"`
+	Properties   map[string]interface{} `json:"properties,omitempty"`
+}
+
+// AcceleratorRequirement defines accelerator requirements (GPU, FPGA, etc.)
+type AcceleratorRequirement struct {
+	Type       string                 `json:"type"` // GPU, FPGA, TPU
+	Count      int                    `json:"count"`
+	Model      string                 `json:"model,omitempty"`
+	Memory     string                 `json:"memory,omitempty"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
+}
+
+// TemplateParameter represents a parameter for a deployment template
+type TemplateParameter struct {
+	Name         string                `json:"name"`
+	Type         string                `json:"type"` // string, integer, boolean, array, object
+	Description  string                `json:"description,omitempty"`
+	Required     bool                  `json:"required"`
+	DefaultValue *runtime.RawExtension `json:"defaultValue,omitempty"`
+	Constraints  *ParameterConstraints `json:"constraints,omitempty"`
+}
+
+// ParameterConstraints defines constraints for template parameters
+type ParameterConstraints struct {
+	MinValue      *float64               `json:"minValue,omitempty"`
+	MaxValue      *float64               `json:"maxValue,omitempty"`
+	MinLength     *int                   `json:"minLength,omitempty"`
+	MaxLength     *int                   `json:"maxLength,omitempty"`
+	Pattern       string                 `json:"pattern,omitempty"`
+	AllowedValues []interface{}          `json:"allowedValues,omitempty"`
+	Validation    map[string]interface{} `json:"validation,omitempty"`
+}
+
+// ValidationRule defines validation rules for templates
+type ValidationRule struct {
+	RuleID     string                 `json:"ruleId"`
+	Name       string                 `json:"name"`
+	Type       string                 `json:"type"` // SYNTAX, SEMANTIC, RESOURCE, POLICY
+	Expression string                 `json:"expression"`
+	Message    string                 `json:"message,omitempty"`
+	Severity   string                 `json:"severity"` // ERROR, WARNING, INFO
+	Context    map[string]interface{} `json:"context,omitempty"`
+}
+
+// CompatibilityInfo defines compatibility information
+type CompatibilityInfo struct {
+	Platform     string   `json:"platform"`
+	Versions     []string `json:"versions"`
+	Dependencies []string `json:"dependencies,omitempty"`
+	Constraints  []string `json:"constraints,omitempty"`
+}
+
+// TemplateStatus represents the status of a deployment template
+type TemplateStatus struct {
+	State            string              `json:"state"`            // DRAFT, ACTIVE, DEPRECATED, ARCHIVED
+	ValidationStatus string              `json:"validationStatus"` // PENDING, VALID, INVALID
+	LastValidated    *time.Time          `json:"lastValidated,omitempty"`
+	ValidationErrors []string            `json:"validationErrors,omitempty"`
+	Usage            *TemplateUsageStats `json:"usage,omitempty"`
+	Health           string              `json:"health,omitempty"`
+}
+
+// TemplateUsageStats provides usage statistics for templates
+type TemplateUsageStats struct {
+	TotalDeployments  int           `json:"totalDeployments"`
+	ActiveDeployments int           `json:"activeDeployments"`
+	FailedDeployments int           `json:"failedDeployments"`
+	SuccessRate       float64       `json:"successRate"`
+	AverageDeployTime time.Duration `json:"averageDeployTime"`
+	LastUsed          *time.Time    `json:"lastUsed,omitempty"`
+}
+
+// TemplateDependency represents a dependency of a deployment template
+type TemplateDependency struct {
+	Name        string `json:"name"`
+	Version     string `json:"version"`
+	Type        string `json:"type"` // TEMPLATE, RESOURCE, SERVICE
+	Required    bool   `json:"required"`
+	Description string `json:"description,omitempty"`
 }
 
 // Constants for deployment management

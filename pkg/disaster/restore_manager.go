@@ -513,8 +513,8 @@ func (rm *RestoreManager) downloadBackupMetadata(ctx context.Context, backupID s
 	rm.logger.Info("Downloading backup metadata", "key", key)
 
 	result, err := rm.s3Client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(rm.config.S3Config.Bucket),
-		Key:    aws.String(key),
+		Bucket: &rm.config.S3Config.Bucket,
+		Key:    &key,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to download backup metadata: %w", err)
@@ -928,8 +928,8 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 
 	// Download file
 	result, err := rm.s3Client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Bucket: &bucket,
+		Key:    &key,
 	})
 	if err != nil {
 		os.Remove(tmpFile.Name())

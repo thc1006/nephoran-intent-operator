@@ -724,7 +724,7 @@ func TestUniqueSliceValidator(t *testing.T) {
 		Items []int
 	}
 
-	validator := UniqueSlice("items", func(d ListData) []int { return d.Items })
+	validator := ValidateUniqueSlice("items", func(d ListData) []int { return d.Items })
 
 	tests := []struct {
 		name  string

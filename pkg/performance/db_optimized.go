@@ -22,7 +22,7 @@ type OptimizedDBManager struct {
 	preparedStmts   *PreparedStatementCache
 	queryOptimizer  *QueryOptimizer
 	txnManager      *TransactionManager
-	batchProcessor  *BatchProcessor
+	batchProcessor  *DBBatchProcessor
 	metrics         *DBMetrics
 	config          *DBConfig
 	healthChecker   *DBHealthChecker
@@ -163,8 +163,8 @@ type TxnOperation struct {
 	rowsAffected int64
 }
 
-// BatchProcessor handles batch database operations
-type BatchProcessor struct {
+// DBBatchProcessor handles batch database operations
+type DBBatchProcessor struct {
 	batches      map[string]*Batch
 	batchTimeout time.Duration
 	maxBatchSize int
@@ -283,7 +283,7 @@ func NewOptimizedDBManager(config *DBConfig) (*OptimizedDBManager, error) {
 		preparedStmts:   NewPreparedStatementCache(config.PreparedStmtCache),
 		queryOptimizer:  NewQueryOptimizer(),
 		txnManager:      NewTransactionManager(),
-		batchProcessor:  NewBatchProcessor(config.BatchSize, config.BatchTimeout),
+		batchProcessor:  NewDBBatchProcessor(config.BatchSize, config.BatchTimeout),
 		metrics:         &DBMetrics{},
 		config:          config,
 		shutdown:        make(chan struct{}),
@@ -808,9 +808,9 @@ func (tm *TransactionManager) CompleteTransaction(txnID string, duration time.Du
 	}
 }
 
-// NewBatchProcessor creates a new batch processor
-func NewBatchProcessor(maxBatchSize int, timeout time.Duration) *BatchProcessor {
-	return &BatchProcessor{
+// NewDBBatchProcessor creates a new DB batch processor
+func NewDBBatchProcessor(maxBatchSize int, timeout time.Duration) *DBBatchProcessor {
+	return &DBBatchProcessor{
 		batches:      make(map[string]*Batch),
 		batchTimeout: timeout,
 		maxBatchSize: maxBatchSize,
@@ -818,7 +818,7 @@ func NewBatchProcessor(maxBatchSize int, timeout time.Duration) *BatchProcessor 
 }
 
 // ExecuteBatch executes a batch of database operations
-func (bp *BatchProcessor) ExecuteBatch(ctx context.Context, db *sql.DB, operations []BatchOperation) ([]BatchResult, error) {
+func (bp *DBBatchProcessor) ExecuteBatch(ctx context.Context, db *sql.DB, operations []BatchOperation) ([]BatchResult, error) {
 	start := time.Now()
 	results := make([]BatchResult, len(operations))
 
@@ -854,7 +854,7 @@ func (bp *BatchProcessor) ExecuteBatch(ctx context.Context, db *sql.DB, operatio
 }
 
 // groupOperations groups operations by type for batch optimization
-func (bp *BatchProcessor) groupOperations(operations []BatchOperation) [][]BatchOperation {
+func (bp *DBBatchProcessor) groupOperations(operations []BatchOperation) [][]BatchOperation {
 	// Simple grouping by operation type
 	groups := make(map[string][]BatchOperation)
 	for _, op := range operations {
@@ -871,7 +871,7 @@ func (bp *BatchProcessor) groupOperations(operations []BatchOperation) [][]Batch
 }
 
 // executeGroup executes a group of similar operations
-func (bp *BatchProcessor) executeGroup(ctx context.Context, db *sql.DB, operations []BatchOperation) ([]BatchResult, error) {
+func (bp *DBBatchProcessor) executeGroup(ctx context.Context, db *sql.DB, operations []BatchOperation) ([]BatchResult, error) {
 	results := make([]BatchResult, len(operations))
 
 	for i, op := range operations {

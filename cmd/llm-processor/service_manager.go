@@ -210,7 +210,7 @@ func (sm *ServiceManager) registerHealthChecks() {
 			// Check if any circuit breakers are open
 			var openBreakers []string
 			for name, state := range stats {
-				if cbStats, ok := state.(map[string]interface{}); ok {
+				if cbStats, ok := state.(map[string]any); ok {
 					if cbState, exists := cbStats["state"]; exists && cbState == "open" {
 						openBreakers = append(openBreakers, name)
 					}
@@ -238,7 +238,7 @@ func (sm *ServiceManager) registerHealthChecks() {
 			return &health.Check{
 				Status:  health.StatusHealthy,
 				Message: fmt.Sprintf("Token manager operational with %d supported models", len(models)),
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"supported_models": models,
 				},
 			}
@@ -439,7 +439,7 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 
 // statusHandler provides service status information
 func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) {
-	status := map[string]interface{}{
+	status := map[string]any{
 		"service":        "llm-processor",
 		"version":        sm.config.ServiceVersion,
 		"uptime":         time.Since(startTime).String(),
@@ -458,7 +458,7 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 
 // metricsHandler provides comprehensive metrics
 func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request) {
-	metrics := map[string]interface{}{
+	metrics := map[string]any{
 		"service": "llm-processor",
 		"version": sm.config.ServiceVersion,
 		"uptime":  time.Since(startTime).String(),

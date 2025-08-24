@@ -67,7 +67,7 @@ func (a *llmClientAdapter) GetModelCapabilities(modelName string) (*shared.Model
 		SupportsFunction:  false,
 		SupportsStreaming: false,
 		CostPerToken:      0.001,
-		Features:          make(map[string]interface{}),
+		Features:          make(map[string]any),
 	}, nil
 }
 

@@ -37,10 +37,10 @@ func ExampleNetworkIntentPipeline() {
 	// 2. Validation Pipeline
 	validator := NewValidationBuilder[NetworkIntent]().
 		Required("id", func(ni NetworkIntent) any { return ni.ID }).
-		OneOf("type", []string{"5G-Core", "RAN", "Edge"},
-			func(ni NetworkIntent) string { return ni.Type }).
-		OneOf("region", []string{"us-east", "us-west", "eu-central"},
-			func(ni NetworkIntent) string { return ni.Region }).
+		OneOf("type", []interface{}{"5G-Core", "RAN", "Edge"},
+			func(ni NetworkIntent) interface{} { return ni.Type }).
+		OneOf("region", []interface{}{"us-east", "us-west", "eu-central"},
+			func(ni NetworkIntent) interface{} { return ni.Region }).
 		Range("priority", 1, 10,
 			func(ni NetworkIntent) int64 { return int64(ni.Priority) }).
 		Build()
@@ -115,7 +115,7 @@ func ExampleNetworkIntentPipeline() {
 		// Process with middleware
 		request := ProcessingRequest{
 			Intent: intent,
-			Config: config.Value().(map[string]any),
+			Config: config.Value(),
 		}
 
 		result := chain.Execute(ctx, request, processor)
@@ -373,8 +373,8 @@ func ExampleAdvancedValidation() {
 	// Build complex validator
 	validator := NewValidationBuilder[NetworkConfig]().
 		Required("environment", func(nc NetworkConfig) any { return nc.Environment }).
-		OneOf("environment", []string{"dev", "staging", "prod"},
-			func(nc NetworkConfig) string { return nc.Environment }).
+		OneOf("environment", []interface{}{"dev", "staging", "prod"},
+			func(nc NetworkConfig) interface{} { return nc.Environment }).
 		Required("region", func(nc NetworkConfig) any { return nc.Region }).
 		Range("cpu", 1, 64, func(nc NetworkConfig) int64 { return int64(nc.Resources.CPU) }).
 		Range("memory", 1, 256, func(nc NetworkConfig) int64 { return int64(nc.Resources.Memory) }).

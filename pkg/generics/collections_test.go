@@ -458,7 +458,14 @@ func TestSortBySlice(t *testing.T) {
 	slice := NewSlice("apple", "pie", "banana", "kiwi")
 
 	// Sort by length
-	SortBySlice(slice, func(a, b string) bool { return len(a) < len(b) })
+	SortBySlice(slice, func(a, b string) int {
+		if len(a) < len(b) {
+			return -1
+		} else if len(a) > len(b) {
+			return 1
+		}
+		return 0
+	})
 
 	expected := []string{"pie", "kiwi", "apple", "banana"}
 	actual := slice.ToSlice()

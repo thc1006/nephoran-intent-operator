@@ -17,10 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	ProviderTypeVMware = "vmware"
-)
-
 // VMwareProvider implements CloudProvider for VMware vSphere environments
 type VMwareProvider struct {
 	name          string

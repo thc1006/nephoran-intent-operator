@@ -472,7 +472,7 @@ func (processor *OptimizedJSONProcessor) marshalSequential(obj interface{}) ([]b
 	defer processor.bufferPool.PutBuffer(buffer)
 
 	buf := bytes.NewBuffer(buffer[:0])
-	encoder.(*json.Encoder).Reset(buf)
+	encoder = json.NewEncoder(buf)
 
 	err := encoder.(*json.Encoder).Encode(obj)
 	if err != nil {
@@ -561,7 +561,7 @@ func (processor *OptimizedJSONProcessor) unmarshalSequential(data []byte, target
 	defer processor.decoderPool.Put(decoder)
 
 	buf := bytes.NewReader(data)
-	decoder.(*json.Decoder).Reset(buf)
+	decoder = json.NewDecoder(buf)
 
 	err := decoder.(*json.Decoder).Decode(target)
 	if err != nil {

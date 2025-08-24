@@ -127,7 +127,6 @@ func AuthenticationMiddleware[TRequest, TResponse any](authenticator Authenticat
 			// Authenticate the request
 			authResult := authenticator.Authenticate(ctx, request)
 			if authResult.IsErr() {
-				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("authentication failed: %w", authResult.Error()))
 			}
 
@@ -195,25 +194,21 @@ func AuthorizationMiddleware[TRequest, TResponse any](authorizer Authorizer[TReq
 			// Get user from context
 			userVal := ctx.Value("authenticated_user")
 			if userVal == nil {
-				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("no authenticated user found"))
 			}
 
 			user, ok := userVal.(User)
 			if !ok {
-				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("invalid user type in context"))
 			}
 
 			// Check authorization
 			authResult := authorizer.Authorize(ctx, user, request)
 			if authResult.IsErr() {
-				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("authorization failed: %w", authResult.Error()))
 			}
 
 			if !authResult.Value() {
-				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("access denied"))
 			}
 
@@ -270,12 +265,10 @@ func RateLimitingMiddleware[TRequest, TResponse any](limiter RateLimiter[TReques
 			// Check rate limit
 			limitResult := limiter.Allow(ctx, request)
 			if limitResult.IsErr() {
-				var zero TResponse
 				return Err[TResponse, error](limitResult.Error())
 			}
 
 			if !limitResult.Value() {
-				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("rate limit exceeded"))
 			}
 
@@ -511,7 +504,6 @@ func CircuitBreakerMiddleware[TRequest, TResponse any](breaker CircuitBreaker[TR
 		return func(ctx context.Context, request TRequest) Result[TResponse, error] {
 			// Check if circuit breaker allows the request
 			if !breaker.Allow(ctx, request) {
-				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("circuit breaker is open"))
 			}
 
@@ -559,7 +551,6 @@ func TimeoutMiddleware[TRequest, TResponse any](timeout time.Duration) Middlewar
 			case result := <-resultChan:
 				return result
 			case <-timeoutCtx.Done():
-				var zero TResponse
 				return Err[TResponse, error](fmt.Errorf("request timeout after %v", timeout))
 			}
 		}

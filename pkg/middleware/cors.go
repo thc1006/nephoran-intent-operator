@@ -36,6 +36,29 @@ type CORSConfig struct {
 	MaxAge           time.Duration
 }
 
+// DefaultCORSConfig returns a secure default CORS configuration
+func DefaultCORSConfig() *CORSConfig {
+	return &CORSConfig{
+		AllowedOrigins:   []string{},  // Must be explicitly configured
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"},
+		ExposedHeaders:   []string{},
+		AllowCredentials: false,
+		MaxAge:           24 * time.Hour,
+	}
+}
+
+// CORS is an alias for CORSMiddleware for compatibility
+type CORS = CORSMiddleware
+
+// NewCORS creates a new CORS middleware with security-focused defaults
+func NewCORS(config *CORSConfig, logger *slog.Logger) *CORS {
+	if config == nil {
+		config = DefaultCORSConfig()
+	}
+	return NewCORSMiddleware(*config, logger)
+}
+
 // NewCORSMiddleware creates a new CORS middleware with security-focused defaults
 func NewCORSMiddleware(config CORSConfig, logger *slog.Logger) *CORSMiddleware {
 	// Security-focused defaults

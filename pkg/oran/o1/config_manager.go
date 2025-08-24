@@ -243,7 +243,7 @@ type ConfigurationValidationEngine struct {
 
 // ConfigurationValidator interface for configuration validation
 type ConfigurationValidator interface {
-	ValidateConfiguration(ctx context.Context, config map[string]interface{}, modelName string) *ValidationResult
+	ValidateConfiguration(ctx context.Context, config map[string]interface{}, modelName string) *ConfigValidationResult
 	GetValidatorName() string
 	GetSupportedModels() []string
 }
@@ -261,8 +261,8 @@ type ValidationRule struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-// ValidationResult represents validation results
-type ValidationResult struct {
+// ConfigValidationResult represents configuration validation results
+type ConfigValidationResult struct {
 	Valid     bool               `json:"valid"`
 	Errors    []*ValidationError `json:"errors"`
 	Warnings  []*ValidationError `json:"warnings"`
@@ -352,7 +352,7 @@ type ConfigurationOperation struct {
 type OperationResult struct {
 	Success          bool                   `json:"success"`
 	Error            string                 `json:"error,omitempty"`
-	ValidationResult *ValidationResult      `json:"validation_result,omitempty"`
+	ValidationResult *ConfigValidationResult      `json:"validation_result,omitempty"`
 	AppliedAt        time.Time              `json:"applied_at"`
 	Metadata         map[string]interface{} `json:"metadata"`
 }
@@ -580,7 +580,7 @@ func (acm *AdvancedConfigurationManager) ApplyConfigurationProfile(ctx context.C
 }
 
 // ValidateConfiguration validates a configuration without applying it
-func (acm *AdvancedConfigurationManager) ValidateConfiguration(ctx context.Context, elementID string, config map[string]interface{}) (*ValidationResult, error) {
+func (acm *AdvancedConfigurationManager) ValidateConfiguration(ctx context.Context, elementID string, config map[string]interface{}) (*ConfigValidationResult, error) {
 	return acm.validationEngine.ValidateConfiguration(ctx, config, elementID), nil
 }
 
@@ -928,9 +928,9 @@ func NewConfigurationValidationEngine(yangRegistry *ExtendedYANGModelRegistry) *
 	}
 }
 
-func (cve *ConfigurationValidationEngine) ValidateConfiguration(ctx context.Context, config map[string]interface{}, modelName string) *ValidationResult {
+func (cve *ConfigurationValidationEngine) ValidateConfiguration(ctx context.Context, config map[string]interface{}, modelName string) *ConfigValidationResult {
 	// Placeholder - would implement comprehensive validation
-	return &ValidationResult{
+	return &ConfigValidationResult{
 		Valid:     true,
 		Errors:    make([]*ValidationError, 0),
 		Warnings:  make([]*ValidationError, 0),

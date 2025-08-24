@@ -962,11 +962,12 @@ func (cm *contentManager) GetContent(ctx context.Context, ref *PackageReference,
 
 	// Add binary content if requested
 	if opts.IncludeBinaryFiles && cm.binaryStore != nil {
-		binaryFiles, err := cm.binaryStore.ListBinaryContent(ctx, ref)
+		_, err := cm.binaryStore.ListBinaryContent(ctx, ref)
 		if err != nil {
 			cm.logger.Error(err, "Failed to list binary content", "package", ref.GetPackageKey())
 		} else {
-			// Binary content metadata would be included here
+			// TODO: Binary content metadata would be included here
+			// Currently, binary files are not added to the package content
 		}
 	}
 

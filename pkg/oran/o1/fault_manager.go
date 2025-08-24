@@ -81,15 +81,15 @@ type AlarmHistoryEntry struct {
 
 // AlarmCorrelationEngine performs alarm correlation and root cause analysis
 type AlarmCorrelationEngine struct {
-	rules            map[string]*CorrelationRule
+	rules            map[string]*FaultCorrelationRule
 	correlationGraph *AlarmGraph
 	temporalWindow   time.Duration
 	spatialRules     map[string]*SpatialCorrelationRule
 	mutex            sync.RWMutex
 }
 
-// CorrelationRule defines alarm correlation rules
-type CorrelationRule struct {
+// FaultCorrelationRule defines alarm correlation rules for fault management
+type FaultCorrelationRule struct {
 	ID             string         `json:"id"`
 	Name           string         `json:"name"`
 	TriggerPattern []AlarmPattern `json:"trigger_pattern"`
@@ -146,29 +146,12 @@ type AlarmEdge struct {
 type AlarmNotificationManager struct {
 	channels        map[string]NotificationChannel
 	templates       map[string]*NotificationTemplate
-	escalationRules []*EscalationRule
+	escalationRules []*FaultEscalationRule
 	mutex           sync.RWMutex
 }
 
-// NotificationChannel interface for different notification methods
-type NotificationChannel interface {
-	SendNotification(ctx context.Context, alarm *EnhancedAlarm, template *NotificationTemplate) error
-	GetChannelType() string
-	IsEnabled() bool
-}
-
-// NotificationTemplate defines notification formatting
-type NotificationTemplate struct {
-	ID        string            `json:"id"`
-	Name      string            `json:"name"`
-	Subject   string            `json:"subject"`
-	Body      string            `json:"body"`
-	Format    string            `json:"format"` // TEXT, HTML, JSON
-	Variables map[string]string `json:"variables"`
-}
-
 // EscalationRule defines when and how to escalate alarms
-type EscalationRule struct {
+type FaultEscalationRule struct {
 	ID       string        `json:"id"`
 	Severity []string      `json:"severity"`
 	Duration time.Duration `json:"duration"`
@@ -888,7 +871,7 @@ func initializeFaultMetrics() *FaultMetrics {
 
 func NewAlarmCorrelationEngine(window time.Duration) *AlarmCorrelationEngine {
 	return &AlarmCorrelationEngine{
-		rules: make(map[string]*CorrelationRule),
+		rules: make(map[string]*FaultCorrelationRule),
 		correlationGraph: &AlarmGraph{
 			nodes: make(map[string]*AlarmNode),
 			edges: make(map[string][]*AlarmEdge),
@@ -919,7 +902,7 @@ func NewAlarmNotificationManager() *AlarmNotificationManager {
 	return &AlarmNotificationManager{
 		channels:        make(map[string]NotificationChannel),
 		templates:       make(map[string]*NotificationTemplate),
-		escalationRules: make([]*EscalationRule, 0),
+		escalationRules: make([]*FaultEscalationRule, 0),
 	}
 }
 

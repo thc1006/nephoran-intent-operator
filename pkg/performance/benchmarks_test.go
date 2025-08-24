@@ -267,13 +267,13 @@ func BenchmarkEnhancedGoroutinePool(b *testing.B) {
 // BenchmarkOptimizedCache tests cache performance
 func BenchmarkOptimizedCache(b *testing.B) {
 	config := DefaultCacheConfig()
-	cache := NewOptimizedCache[string, interface{}](config)
+	cache := NewOptimizedCache[string, any](config)
 	defer cache.Shutdown(context.Background())
 
 	// Pre-populate cache
 	for i := 0; i < 1000; i++ {
 		key := fmt.Sprintf("key_%d", i)
-		value := map[string]interface{}{
+		value := map[string]any{
 			"id":   i,
 			"name": fmt.Sprintf("Item %d", i),
 			"data": make([]byte, 100),
@@ -298,7 +298,7 @@ func BenchmarkOptimizedCache(b *testing.B) {
 			i := 0
 			for pb.Next() {
 				key := fmt.Sprintf("new_key_%d", i)
-				value := map[string]interface{}{
+				value := map[string]any{
 					"id":   i,
 					"name": fmt.Sprintf("New Item %d", i),
 					"data": make([]byte, 100),
@@ -317,8 +317,8 @@ func BenchmarkOptimizedCache(b *testing.B) {
 			i := 0
 			for pb.Next() {
 				key := fmt.Sprintf("getorset_key_%d", i%500)
-				_, _ = cache.GetOrSet(key, func() interface{} {
-					return map[string]interface{}{
+				_, _ = cache.GetOrSet(key, func() any {
+					return map[string]any{
 						"id":   i,
 						"name": fmt.Sprintf("GetOrSet Item %d", i),
 						"data": make([]byte, 50),
@@ -370,7 +370,7 @@ func BenchmarkPerformanceIntegration(b *testing.B) {
 	defer goroutinePool.Shutdown(context.Background())
 
 	cacheConfig := DefaultCacheConfig()
-	cache := NewOptimizedCache[string, interface{}](cacheConfig)
+	cache := NewOptimizedCache[string, any](cacheConfig)
 	defer cache.Shutdown(context.Background())
 
 	b.Run("IntegratedWorkload", func(b *testing.B) {
@@ -382,7 +382,7 @@ func BenchmarkPerformanceIntegration(b *testing.B) {
 					ID: uint64(time.Now().UnixNano()),
 					Function: func() error {
 						// JSON processing
-						testData := map[string]interface{}{
+						testData := map[string]any{
 							"timestamp": time.Now(),
 							"data":      "test payload",
 							"metrics":   []int{1, 2, 3, 4, 5},
@@ -558,7 +558,7 @@ func BenchmarkStandardComparison(b *testing.B) {
 	})
 
 	b.Run("MapAccess/Standard", func(b *testing.B) {
-		m := make(map[string]interface{})
+		m := make(map[string]any)
 		for i := 0; i < 1000; i++ {
 			m[fmt.Sprintf("key_%d", i)] = fmt.Sprintf("value_%d", i)
 		}

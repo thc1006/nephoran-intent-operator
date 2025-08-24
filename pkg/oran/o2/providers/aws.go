@@ -22,10 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	ProviderTypeAWS = "aws"
-)
-
 // AWSProvider implements CloudProvider for Amazon Web Services
 type AWSProvider struct {
 	name             string
@@ -274,7 +270,7 @@ func (a *AWSProvider) HealthCheck(ctx context.Context) error {
 		// It's okay if we can't get user info (might be using role)
 		// Just check if we can make IAM calls
 		_, err = a.iamClient.ListRoles(ctx, &iam.ListRolesInput{
-			MaxItems: aws.Int32(1),
+			MaxItems: 1,
 		})
 		if err != nil {
 			return fmt.Errorf("health check failed: unable to access IAM service: %w", err)
@@ -529,7 +525,7 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 		for _, reservation := range ec2Result.Reservations {
 			for _, instance := range reservation.Instances {
 				totalInstances++
-				if instance.State != nil && *instance.State.Name == "running" {
+				if instance.State != nil && instance.State.Name == "running" {
 					runningInstances++
 				}
 			}
@@ -599,8 +595,8 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 
 		if len(result.Reservations) > 0 && len(result.Reservations[0].Instances) > 0 {
 			instance := result.Reservations[0].Instances[0]
-			metrics["state"] = *instance.State.Name
-			metrics["instance_type"] = *instance.InstanceType
+			metrics["state"] = instance.State.Name
+			metrics["instance_type"] = string(instance.InstanceType)
 			if instance.CpuOptions != nil {
 				metrics["vcpus"] = *instance.CpuOptions.CoreCount * *instance.CpuOptions.ThreadsPerCore
 			}
@@ -617,7 +613,7 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 	case "rds_instance":
 		// Get RDS instance metrics
 		result, err := a.rdsClient.DescribeDBInstances(ctx, &rds.DescribeDBInstancesInput{
-			DBInstanceIdentifier: aws.String(id),
+			DBInstanceIdentifier: &id,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to get RDS instance: %w", err)

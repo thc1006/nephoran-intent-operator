@@ -1269,10 +1269,10 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 		}
 
 		_, err = bm.s3Client.PutObject(ctx, &s3.PutObjectInput{
-			Bucket:       aws.String(bm.config.S3Config.Bucket),
-			Key:          aws.String(key),
+			Bucket:       &bm.config.S3Config.Bucket,
+			Key:          &key,
 			Body:         file,
-			StorageClass: aws.String(bm.config.S3Config.StorageClass),
+			StorageClass: &bm.config.S3Config.StorageClass,
 		})
 		file.Close()
 
@@ -1293,10 +1293,10 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 	}
 
 	_, err = bm.s3Client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket:       aws.String(bm.config.S3Config.Bucket),
-		Key:          aws.String(metadataKey),
+		Bucket:       &bm.config.S3Config.Bucket,
+		Key:          &metadataKey,
 		Body:         strings.NewReader(string(metadataData)),
-		StorageClass: aws.String(bm.config.S3Config.StorageClass),
+		StorageClass: &bm.config.S3Config.StorageClass,
 	})
 
 	if err != nil {
@@ -1410,8 +1410,8 @@ func (bm *BackupManager) deleteFromS3(ctx context.Context, record *BackupRecord)
 
 	// List objects to delete
 	listResult, err := bm.s3Client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-		Bucket: aws.String(bm.config.S3Config.Bucket),
-		Prefix: aws.String(prefix),
+		Bucket: &bm.config.S3Config.Bucket,
+		Prefix: &prefix,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to list objects for deletion: %w", err)
@@ -1420,7 +1420,7 @@ func (bm *BackupManager) deleteFromS3(ctx context.Context, record *BackupRecord)
 	// Delete each object
 	for _, obj := range listResult.Contents {
 		_, err := bm.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-			Bucket: aws.String(bm.config.S3Config.Bucket),
+			Bucket: &bm.config.S3Config.Bucket,
 			Key:    obj.Key,
 		})
 		if err != nil {

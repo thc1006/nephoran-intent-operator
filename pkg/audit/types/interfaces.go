@@ -14,7 +14,7 @@ type AuditLogger interface {
 	LogEvents(ctx context.Context, events []*AuditEvent) error
 
 	// Query searches for audit events
-	Query(ctx context.Context, query interface{}) ([]*AuditEvent, error)
+	Query(ctx context.Context, query any) ([]*AuditEvent, error)
 
 	// Health checks the audit system health
 	Health(ctx context.Context) error
@@ -29,7 +29,7 @@ type Backend interface {
 	Type() string
 
 	// Initialize sets up the backend with configuration
-	Initialize(config interface{}) error
+	Initialize(config any) error
 
 	// WriteEvent writes a single audit event
 	WriteEvent(ctx context.Context, event *AuditEvent) error
@@ -38,7 +38,7 @@ type Backend interface {
 	WriteEvents(ctx context.Context, events []*AuditEvent) error
 
 	// Query searches for audit events (optional for compliance reporting)
-	Query(ctx context.Context, query interface{}) (interface{}, error)
+	Query(ctx context.Context, query any) (any, error)
 
 	// Health checks the backend connectivity and status
 	Health(ctx context.Context) error
@@ -53,13 +53,13 @@ type ComplianceTracker interface {
 	ProcessEvent(event *AuditEvent)
 
 	// GetStatus returns current compliance status
-	GetStatus() interface{}
+	GetStatus() any
 
 	// GenerateReport generates a compliance report
-	GenerateReport(ctx context.Context, startTime, endTime time.Time) (interface{}, error)
+	GenerateReport(ctx context.Context, startTime, endTime time.Time) (any, error)
 
 	// GetViolations returns compliance violations
-	GetViolations() []interface{}
+	GetViolations() []any
 }
 
 // AuditEntry represents a generic audit entry interface

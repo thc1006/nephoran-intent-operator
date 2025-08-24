@@ -46,16 +46,6 @@ type O1InterfaceController struct {
 	config               *O1ControllerConfig
 }
 
-// O1ControllerConfig holds configuration for the O1 controller
-type O1ControllerConfig struct {
-	ReconcileInterval       time.Duration `yaml:"reconcile_interval"`
-	MaxConcurrentReconciles int           `yaml:"max_concurrent_reconciles"`
-	EnableMetrics           bool          `yaml:"enable_metrics"`
-	EnableWebhooks          bool          `yaml:"enable_webhooks"`
-	DefaultO1Config         *O1Config     `yaml:"default_o1_config"`
-	HealthCheckInterval     time.Duration `yaml:"health_check_interval"`
-	StatusUpdateInterval    time.Duration `yaml:"status_update_interval"`
-}
 
 // O1ControllerConfig represents O1 controller specific configuration
 type O1ControllerConfig struct {
@@ -69,6 +59,10 @@ type O1ControllerConfig struct {
 	PerformanceCollection PerformanceConfig `yaml:"performance_collection"`
 	FaultManagement       FaultConfig       `yaml:"fault_management"`
 	SecurityPolicies      SecurityConfig    `yaml:"security_policies"`
+	EnableMetrics           bool              `yaml:"enable_metrics"`
+	MaxConcurrentReconciles int               `yaml:"max_concurrent_reconciles"`
+	ReconcileInterval       time.Duration     `yaml:"reconcile_interval"`
+	HealthCheckInterval     time.Duration     `yaml:"health_check_interval"`
 }
 
 // PerformanceConfig holds performance management configuration
@@ -262,7 +256,7 @@ func NewO1InterfaceController(
 		EnableAuth:              true,
 		RateLimitPerSecond:      100,
 	}
-	streamingService := NewStreamingService(streamingConfig, logger.WithName("streaming"))
+	streamingService := NewStreamingService(streamingConfig, nil)
 
 	return &O1InterfaceController{
 		Client:               client,

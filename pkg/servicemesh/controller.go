@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/abstraction"
 	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/consul"  // Register consul provider
 	_ "github.com/thc1006/nephoran-intent-operator/pkg/servicemesh/istio"   // Register istio provider
@@ -32,7 +33,7 @@ type ServiceMeshController struct {
 	meshFactory *abstraction.ServiceMeshFactory
 	mesh        abstraction.ServiceMeshInterface
 	meshConfig  *abstraction.ServiceMeshConfig
-	logger      log.Logger
+	logger      logr.Logger
 }
 
 // NewServiceMeshController creates a new service mesh controller
@@ -369,7 +370,7 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 
 		if !result.Valid {
 			totalIssues++
-			r.logger.Warn("Policy validation failed",
+			r.logger.V(1).Info("Policy validation failed",
 				"namespace", ns.Name,
 				"errors", len(result.Errors),
 				"warnings", len(result.Warnings),
