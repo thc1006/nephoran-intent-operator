@@ -1,0 +1,39 @@
+# Trivy ignore file for known false positives and accepted risks
+# Format: CVE-ID or vulnerability ID per line with optional comments
+
+# ==============================================================================
+# ACCEPTED RISKS - High-level management decision to accept these vulnerabilities
+# ==============================================================================
+
+# Go standard library - waiting for upstream fix
+# CVE-2023-45284 - path/filepath vulnerability in Windows-specific code (not applicable to Linux containers)
+
+# Dependencies with no available fixes
+# Remove these as fixes become available
+
+# ==============================================================================
+# FALSE POSITIVES - Known safe usage patterns
+# ==============================================================================
+
+# Test-only dependencies
+# Remove vulnerabilities that only affect test code and not production
+
+# Dev-only tools
+# CycloneDX, testing frameworks, etc.
+
+# ==============================================================================
+# EXPIRED IGNORES - Review these periodically
+# ==============================================================================
+# Format: CVE-ID # expires: YYYY-MM-DD
+
+# Example:
+# CVE-2023-12345 # expires: 2024-12-31
+
+# ==============================================================================
+# INSTRUCTIONS FOR MAINTENANCE
+# ==============================================================================
+# 1. Review this file monthly
+# 2. Remove expired ignores
+# 3. Check if fixes are available for accepted risks
+# 4. Document why each vulnerability is ignored
+# 5. Get security team approval for new ignores
