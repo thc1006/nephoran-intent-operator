@@ -56,8 +56,8 @@ require (
 	go.opentelemetry.io/otel/trace v1.37.0
 	go.uber.org/zap v1.27.0
 	
-	// Updated secure crypto libraries
-	golang.org/x/crypto v0.45.0
+	// Updated secure crypto libraries - using current stable version
+	golang.org/x/crypto v0.41.0
 	golang.org/x/oauth2 v0.30.0
 
 	// === ESSENTIAL UTILITIES ===
@@ -240,7 +240,7 @@ require (
 	github.com/cloudflare/circl v1.6.1 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
 	github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443 // indirect
-	// UPDATED CONTAINERD TO LATEST SECURE VERSION (fixed version)
+	// UPDATED CONTAINERD TO LATEST SECURE VERSION
 	github.com/containerd/containerd v1.7.28 // indirect
 	github.com/containerd/errdefs v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect

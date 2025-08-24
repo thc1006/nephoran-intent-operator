@@ -69,7 +69,7 @@ type APIMetrics struct {
 type HealthChecker struct {
 	config         *HealthCheckConfig
 	healthChecks   map[string]ComponentHealthCheck
-	lastHealthData *HealthCheck
+	lastHealthData *common.HealthCheck
 	ticker         *time.Ticker
 	stopCh         chan struct{}
 }
@@ -520,9 +520,9 @@ func (s *O2APIServer) imsServiceHealthCheck(ctx context.Context) common.Componen
 	}
 }
 
-func (s *O2APIServer) resourceManagerHealthCheck(ctx context.Context) ComponentCheck {
+func (s *O2APIServer) resourceManagerHealthCheck(ctx context.Context) common.ComponentCheck {
 	// Implement actual health check for resource manager
-	return ComponentCheck{
+	return common.ComponentCheck{
 		Name:      "resource-manager",
 		Status:    "UP",
 		Message:   "Resource manager is healthy",
@@ -530,9 +530,9 @@ func (s *O2APIServer) resourceManagerHealthCheck(ctx context.Context) ComponentC
 	}
 }
 
-func (s *O2APIServer) inventoryServiceHealthCheck(ctx context.Context) ComponentCheck {
+func (s *O2APIServer) inventoryServiceHealthCheck(ctx context.Context) common.ComponentCheck {
 	// Implement actual health check for inventory service
-	return ComponentCheck{
+	return common.ComponentCheck{
 		Name:      "inventory-service",
 		Status:    "UP",
 		Message:   "Inventory service is healthy",
@@ -540,9 +540,9 @@ func (s *O2APIServer) inventoryServiceHealthCheck(ctx context.Context) Component
 	}
 }
 
-func (s *O2APIServer) monitoringServiceHealthCheck(ctx context.Context) ComponentCheck {
+func (s *O2APIServer) monitoringServiceHealthCheck(ctx context.Context) common.ComponentCheck {
 	// Implement actual health check for monitoring service
-	return ComponentCheck{
+	return common.ComponentCheck{
 		Name:      "monitoring-service",
 		Status:    "UP",
 		Message:   "Monitoring service is healthy",

@@ -95,3 +95,5 @@ Updates are tracked here in append-only format.
 |  | feat/e2e | pkg/oran/o2/providers | Implemented missing Kubernetes provider methods - getDeployment, getService, getConfigMap, getSecret, getPVC, update methods, scaling, health checks |
 | 2025-08-24T08:36:13Z | feat/e2e | pkg/oran/o2/providers | Implemented missing Kubernetes provider methods - getDeployment, getService, getConfigMap, getSecret, getPVC, update methods, scaling, health checks |
 | 2025-08-24T16:39:11+08:00 | feat/e2e | test-stabilization | Fixed TLS config tests with env guards, performance test bounds/timeout issues with mocks |
+|  | feat/e2e | k8s-validation | K8s compilation fixes validated and committed - time arithmetic, RESTMapper, imports, json tags |
+| 2025-08-24T16:41:25.9292260+08:00 | feat/e2e | k8s-validation | K8s compilation fixes validated and committed - time arithmetic, RESTMapper, imports, json tags |
