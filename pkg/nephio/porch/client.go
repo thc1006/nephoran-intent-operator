@@ -160,8 +160,8 @@ func (c *ClientConfig) GetKubernetesConfig() (*rest.Config, error) {
 
 // DefaultPorchConfig returns default Porch configuration
 func DefaultPorchConfig() *ClientConfig {
-	return &Config{
-		PorchConfig: &PorchConfig{
+	return &ClientConfig{
+		PorchConfig: &PorchServiceConfig{
 			DefaultNamespace:  "default",
 			DefaultRepository: "default",
 			CircuitBreaker: &ClientCircuitBreakerConfig{

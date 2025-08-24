@@ -52,10 +52,10 @@ type PolicyRule struct {
 type RuleSeverity string
 
 const (
-	SeverityInfo     RuleSeverity = "info"
-	SeverityWarning  RuleSeverity = "warning"
-	SeverityError    RuleSeverity = "error"
-	SeverityCritical RuleSeverity = "critical"
+	RuleSeverityInfo     RuleSeverity = "info"
+	RuleSeverityWarning  RuleSeverity = "warning"
+	RuleSeverityError    RuleSeverity = "error"
+	RuleSeverityCritical RuleSeverity = "critical"
 )
 
 // CertificateValidator interface for custom validators
@@ -82,6 +82,23 @@ type CTLogEntry struct {
 	SignedEntry  string    `json:"signed_entry"`
 }
 
+// ValidationResult represents overall certificate validation results
+type ValidationResult struct {
+	Valid             bool                       `json:"valid"`
+	SerialNumber      string                     `json:"serial_number"`
+	Subject           string                     `json:"subject"`
+	Issuer            string                     `json:"issuer"`
+	ValidFrom         time.Time                  `json:"valid_from"`
+	ValidTo           time.Time                  `json:"valid_to"`
+	Errors            []string                   `json:"errors"`
+	Warnings          []string                   `json:"warnings"`
+	ChainResult       *ChainValidationResult     `json:"chain_result,omitempty"`
+	RevocationResult  *RevocationCheckResult     `json:"revocation_result,omitempty"`
+	PolicyResult      *PolicyValidationResult    `json:"policy_result,omitempty"`
+	CTResult          *CTValidationResult        `json:"ct_result,omitempty"`
+	ValidationTime    time.Time                  `json:"validation_time"`
+	ValidationDuration time.Duration              `json:"validation_duration"`
+}
 // ChainValidationResult represents chain validation results
 type ChainValidationResult struct {
 	Valid         bool                    `json:"valid"`
@@ -99,11 +116,11 @@ type ChainValidationDetails struct {
 	KeyUsageValid    bool              `json:"key_usage_valid"`
 	BasicConstraints bool              `json:"basic_constraints"`
 	NameConstraints  bool              `json:"name_constraints"`
-	CertificateInfo  []CertificateInfo `json:"certificate_info"`
+	CertificateInfo  []ValidationCertificateInfo `json:"certificate_info"`
 }
 
 // CertificateInfo represents information about a certificate in the chain
-type CertificateInfo struct {
+type ValidationCertificateInfo struct {
 	Subject      string    `json:"subject"`
 	Issuer       string    `json:"issuer"`
 	SerialNumber string    `json:"serial_number"`
@@ -152,7 +169,24 @@ type PolicyValidationDetails struct {
 	Categories      map[string]int `json:"categories"`
 	Recommendations []string       `json:"recommendations"`
 }
+// CTValidationResult represents Certificate Transparency validation results
+type CTValidationResult struct {
+	Verified    bool          `json:"verified"`
+	LogEntries  []CTLogEntry  `json:"log_entries"`
+	Errors      []string      `json:"errors"`
+	Warnings    []string      `json:"warnings"`
+	Details     *CTDetails    `json:"details,omitempty"`
+}
 
+// CTDetails provides detailed Certificate Transparency information
+type CTDetails struct {
+	LogsChecked     int        `json:"logs_checked"`
+	LogsResponded   int        `json:"logs_responded"`
+	EarliestEntry   *time.Time `json:"earliest_entry,omitempty"`
+	LatestEntry     *time.Time `json:"latest_entry,omitempty"`
+	PrecertEntries  int        `json:"precert_entries"`
+	FinalEntries    int        `json:"final_entries"`
+}
 // NewValidationFramework creates a new validation framework
 func NewValidationFramework(config *ValidationConfig, logger *logging.StructuredLogger) (*ValidationFramework, error) {
 	framework := &ValidationFramework{
@@ -267,7 +301,7 @@ func (vf *ValidationFramework) ValidateCertificate(ctx context.Context, cert *x5
 		} else if !policyResult.Valid {
 			result.Valid = false
 			for _, violation := range policyResult.Violations {
-				if violation.Severity == SeverityError || violation.Severity == SeverityCritical {
+				if violation.Severity == RuleSeverityError || violation.Severity == RuleSeverityCritical {
 					result.Errors = append(result.Errors, violation.Description)
 				}
 			}
@@ -568,16 +602,16 @@ func (vf *ValidationFramework) validatePolicy(cert *x509.Certificate) (*PolicyVa
 		if violation != nil {
 			result.Violations = append(result.Violations, *violation)
 			result.Details.RulesFailed++
-			if violation.Severity == SeverityError || violation.Severity == SeverityCritical {
+			if violation.Severity == RuleSeverityError || violation.Severity == RuleSeverityCritical {
 				result.Valid = false
 			}
 			// Reduce score based on severity
 			switch violation.Severity {
-			case SeverityCritical:
+			case RuleSeverityCritical:
 				result.Score -= 25.0
-			case SeverityError:
+			case RuleSeverityError:
 				result.Score -= 15.0
-			case SeverityWarning:
+			case RuleSeverityWarning:
 				result.Score -= 5.0
 			}
 		} else if warning != nil {

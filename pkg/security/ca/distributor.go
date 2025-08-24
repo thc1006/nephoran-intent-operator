@@ -80,7 +80,7 @@ type DistributionStatus string
 const (
 	StatusPendingDist DistributionStatus = "pending"
 	StatusInProgress  DistributionStatus = "in_progress"
-	StatusCompleted   DistributionStatus = "completed"
+	DistStatusCompleted DistributionStatus = "completed"
 	StatusFailedDist  DistributionStatus = "failed"
 	StatusRetrying    DistributionStatus = "retrying"
 )
@@ -264,7 +264,7 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 			target.ErrorMessage = err.Error()
 			job.Errors = append(job.Errors, fmt.Sprintf("%s: %v", target.Name, err))
 		} else {
-			target.Status = StatusCompleted
+			target.Status = DistStatusCompleted
 			target.LastUpdated = time.Now()
 			target.Hash = d.calculateCertificateHash(job.Certificate)
 			successCount++
@@ -275,7 +275,7 @@ func (d *CertificateDistributor) processDistributionJob(job *DistributionJob) {
 
 	// Update job status
 	if successCount == totalTargets {
-		job.Status = StatusCompleted
+		job.Status = DistStatusCompleted
 		d.logger.Info("distribution job completed successfully",
 			"job_id", job.ID,
 			"targets", totalTargets)

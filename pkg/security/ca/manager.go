@@ -235,12 +235,12 @@ type CertificateResponse struct {
 type CertificateStatus string
 
 const (
-	StatusPending CertificateStatus = "pending"
+	CertStatusPending CertificateStatus = "pending"
 	StatusIssued  CertificateStatus = "issued"
 	StatusRenewed CertificateStatus = "renewed"
 	StatusRevoked CertificateStatus = "revoked"
 	StatusExpired CertificateStatus = "expired"
-	StatusFailed  CertificateStatus = "failed"
+	CertStatusFailed  CertificateStatus = "failed"
 )
 
 // Backend defines the interface for CA backends
