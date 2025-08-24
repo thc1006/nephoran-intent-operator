@@ -270,7 +270,7 @@ func (a *AWSProvider) HealthCheck(ctx context.Context) error {
 		// It's okay if we can't get user info (might be using role)
 		// Just check if we can make IAM calls
 		_, err = a.iamClient.ListRoles(ctx, &iam.ListRolesInput{
-			MaxItems: 1,
+			MaxItems: func() *int32 { v := int32(1); return &v }(),
 		})
 		if err != nil {
 			return fmt.Errorf("health check failed: unable to access IAM service: %w", err)

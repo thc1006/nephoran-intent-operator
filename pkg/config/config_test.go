@@ -1,32 +1,51 @@
 package config
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/nephoran/intent-operator/pkg/testutil"
 )
 
 func TestDefaultConfig(t *testing.T) {
-	cfg := DefaultConfig()
+	// Ensure test isolation
+	envGuard := testutil.NewEnvironmentGuard(t)
+	testutil.CleanupCommonEnvVars(t)
+	
+	ctx, cancel := testutil.ContextWithTimeout(t)
+	defer cancel()
+	
+	// Test with clean environment
+	select {
+	case <-ctx.Done():
+		t.Fatal("test timeout")
+	default:
+		cfg := DefaultConfig()
+		require.NotNil(t, cfg, "default config should not be nil")
 
-	assert.Equal(t, ":8080", cfg.MetricsAddr)
-	assert.Equal(t, ":8081", cfg.ProbeAddr)
-	assert.False(t, cfg.EnableLeaderElection)
-	assert.Equal(t, "http://llm-processor.default.svc.cluster.local:8080", cfg.LLMProcessorURL)
-	assert.Equal(t, 30*time.Second, cfg.LLMProcessorTimeout)
-	assert.Equal(t, "http://rag-api.default.svc.cluster.local:5001", cfg.RAGAPIURLInternal)
-	assert.Equal(t, "http://localhost:5001", cfg.RAGAPIURLExternal)
-	assert.Equal(t, 30*time.Second, cfg.RAGAPITimeout)
-	assert.Equal(t, "main", cfg.GitBranch)
-	assert.Equal(t, "http://weaviate.default.svc.cluster.local:8080", cfg.WeaviateURL)
-	assert.Equal(t, "telecom_knowledge", cfg.WeaviateIndex)
-	assert.Equal(t, "gpt-4o-mini", cfg.OpenAIModel)
-	assert.Equal(t, "text-embedding-3-large", cfg.OpenAIEmbeddingModel)
-	assert.Equal(t, "default", cfg.Namespace)
-	assert.Equal(t, "deployments/crds", cfg.CRDPath)
+		assert.Equal(t, ":8080", cfg.MetricsAddr)
+		assert.Equal(t, ":8081", cfg.ProbeAddr)
+		assert.False(t, cfg.EnableLeaderElection)
+		assert.Equal(t, "http://llm-processor.default.svc.cluster.local:8080", cfg.LLMProcessorURL)
+		assert.Equal(t, 30*time.Second, cfg.LLMProcessorTimeout)
+		assert.Equal(t, "http://rag-api.default.svc.cluster.local:5001", cfg.RAGAPIURLInternal)
+		assert.Equal(t, "http://localhost:5001", cfg.RAGAPIURLExternal)
+		assert.Equal(t, 30*time.Second, cfg.RAGAPITimeout)
+		assert.Equal(t, "main", cfg.GitBranch)
+		assert.Equal(t, "http://weaviate.default.svc.cluster.local:8080", cfg.WeaviateURL)
+		assert.Equal(t, "telecom_knowledge", cfg.WeaviateIndex)
+		assert.Equal(t, "gpt-4o-mini", cfg.OpenAIModel)
+		assert.Equal(t, "text-embedding-3-large", cfg.OpenAIEmbeddingModel)
+		assert.Equal(t, "default", cfg.Namespace)
+		assert.Equal(t, "deployments/crds", cfg.CRDPath)
+	}
+	
+	// Verify cleanup
+	_ = envGuard
 }
 
 func TestConfig_Validate_RequiredFields(t *testing.T) {
@@ -200,23 +219,34 @@ func TestConfig_Validate_EnhancedValidation(t *testing.T) {
 }
 
 func TestLoadFromEnv_ValidConfiguration(t *testing.T) {
-	// Clean environment
-	cleanupEnv(t)
+	envGuard := testutil.NewEnvironmentGuard(t)
+	testutil.CleanupCommonEnvVars(t)
+	
+	ctx, cancel := testutil.ContextWithTimeout(t)
+	defer cancel()
 
-	// Set required environment variables
-	os.Setenv("OPENAI_API_KEY", "sk-test-api-key")
+	// Set required environment variables using environment guard
+	envGuard.Set("OPENAI_API_KEY", "sk-test-api-key")
 
-	cfg, err := LoadFromEnv()
-	require.NoError(t, err)
-	assert.NotNil(t, cfg)
-	assert.Equal(t, "sk-test-api-key", cfg.OpenAIAPIKey)
+	select {
+	case <-ctx.Done():
+		t.Fatal("test timeout")
+	default:
+		cfg, err := LoadFromEnv()
+		require.NoError(t, err)
+		require.NotNil(t, cfg, "config should not be nil")
+		assert.Equal(t, "sk-test-api-key", cfg.OpenAIAPIKey)
+	}
 }
 
 func TestLoadFromEnv_EnvironmentOverrides(t *testing.T) {
-	// Clean environment
-	cleanupEnv(t)
+	envGuard := testutil.NewEnvironmentGuard(t)
+	testutil.CleanupCommonEnvVars(t)
+	
+	ctx, cancel := testutil.ContextWithTimeout(t)
+	defer cancel()
 
-	// Set test environment variables
+	// Set test environment variables using environment guard
 	envVars := map[string]string{
 		"METRICS_ADDR":           ":9090",
 		"PROBE_ADDR":             ":9091",
@@ -239,48 +269,62 @@ func TestLoadFromEnv_EnvironmentOverrides(t *testing.T) {
 	}
 
 	for key, value := range envVars {
-		os.Setenv(key, value)
+		envGuard.Set(key, value)
 	}
 
-	cfg, err := LoadFromEnv()
-	require.NoError(t, err)
-	assert.NotNil(t, cfg)
+	select {
+	case <-ctx.Done():
+		t.Fatal("test timeout")
+	default:
+		cfg, err := LoadFromEnv()
+		require.NoError(t, err)
+		require.NotNil(t, cfg, "config should not be nil")
 
-	// Verify all environment variables were loaded correctly
-	assert.Equal(t, ":9090", cfg.MetricsAddr)
-	assert.Equal(t, ":9091", cfg.ProbeAddr)
-	assert.True(t, cfg.EnableLeaderElection)
-	assert.Equal(t, "http://custom-llm:8080", cfg.LLMProcessorURL)
-	assert.Equal(t, 60*time.Second, cfg.LLMProcessorTimeout)
-	assert.Equal(t, "http://custom-rag:5001", cfg.RAGAPIURLInternal)
-	assert.Equal(t, "http://custom-rag-external:5001", cfg.RAGAPIURLExternal)
-	assert.Equal(t, 45*time.Second, cfg.RAGAPITimeout)
-	assert.Equal(t, "https://github.com/custom/repo.git", cfg.GitRepoURL)
-	assert.Equal(t, "custom_token", cfg.GitToken)
-	assert.Equal(t, "develop", cfg.GitBranch)
-	assert.Equal(t, "http://custom-weaviate:8080", cfg.WeaviateURL)
-	assert.Equal(t, "custom_index", cfg.WeaviateIndex)
-	assert.Equal(t, "sk-custom-api-key", cfg.OpenAIAPIKey)
-	assert.Equal(t, "gpt-4", cfg.OpenAIModel)
-	assert.Equal(t, "text-embedding-ada-002", cfg.OpenAIEmbeddingModel)
-	assert.Equal(t, "custom-namespace", cfg.Namespace)
-	assert.Equal(t, "custom/crds", cfg.CRDPath)
+		// Verify all environment variables were loaded correctly
+		assert.Equal(t, ":9090", cfg.MetricsAddr)
+		assert.Equal(t, ":9091", cfg.ProbeAddr)
+		assert.True(t, cfg.EnableLeaderElection)
+		assert.Equal(t, "http://custom-llm:8080", cfg.LLMProcessorURL)
+		assert.Equal(t, 60*time.Second, cfg.LLMProcessorTimeout)
+		assert.Equal(t, "http://custom-rag:5001", cfg.RAGAPIURLInternal)
+		assert.Equal(t, "http://custom-rag-external:5001", cfg.RAGAPIURLExternal)
+		assert.Equal(t, 45*time.Second, cfg.RAGAPITimeout)
+		assert.Equal(t, "https://github.com/custom/repo.git", cfg.GitRepoURL)
+		assert.Equal(t, "custom_token", cfg.GitToken)
+		assert.Equal(t, "develop", cfg.GitBranch)
+		assert.Equal(t, "http://custom-weaviate:8080", cfg.WeaviateURL)
+		assert.Equal(t, "custom_index", cfg.WeaviateIndex)
+		assert.Equal(t, "sk-custom-api-key", cfg.OpenAIAPIKey)
+		assert.Equal(t, "gpt-4", cfg.OpenAIModel)
+		assert.Equal(t, "text-embedding-ada-002", cfg.OpenAIEmbeddingModel)
+		assert.Equal(t, "custom-namespace", cfg.Namespace)
+		assert.Equal(t, "custom/crds", cfg.CRDPath)
+	}
 }
 
 func TestLoadFromEnv_InvalidConfiguration(t *testing.T) {
-	// Clean environment
-	cleanupEnv(t)
+	envGuard := testutil.NewEnvironmentGuard(t)
+	testutil.CleanupCommonEnvVars(t)
+	
+	ctx, cancel := testutil.ContextWithTimeout(t)
+	defer cancel()
 
 	// Don't set required OPENAI_API_KEY
-	cfg, err := LoadFromEnv()
-	assert.Error(t, err)
-	assert.Nil(t, cfg)
-	assert.Contains(t, err.Error(), "OPENAI_API_KEY is required")
+	select {
+	case <-ctx.Done():
+		t.Fatal("test timeout")
+	default:
+		cfg, err := LoadFromEnv()
+		assert.Error(t, err)
+		assert.Nil(t, cfg)
+		assert.Contains(t, err.Error(), "OPENAI_API_KEY is required")
+	}
+	_ = envGuard
 }
 
 func TestLoadFromEnv_InvalidDurationValues(t *testing.T) {
-	// Clean environment
-	cleanupEnv(t)
+	envGuard := testutil.NewEnvironmentGuard(t)
+	testutil.CleanupCommonEnvVars(t)
 
 	tests := []struct {
 		name    string
@@ -310,12 +354,13 @@ func TestLoadFromEnv_InvalidDurationValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean environment first
-			cleanupEnv(t)
+			// Use dedicated environment guard for subtest
+			subEnvGuard := testutil.NewEnvironmentGuard(t)
+			testutil.CleanupCommonEnvVars(t)
 
 			// Set required environment variables
-			os.Setenv("OPENAI_API_KEY", "sk-test-api-key")
-			os.Setenv(tt.envVar, tt.value)
+			subEnvGuard.Set("OPENAI_API_KEY", "sk-test-api-key")
+			subEnvGuard.Set(tt.envVar, tt.value)
 
 			cfg, err := LoadFromEnv()
 			if tt.wantErr {
@@ -361,12 +406,13 @@ func TestLoadFromEnv_InvalidBooleanValues(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clean environment first
-			cleanupEnv(t)
+			// Use dedicated environment guard for subtest
+			subEnvGuard := testutil.NewEnvironmentGuard(t)
+			testutil.CleanupCommonEnvVars(t)
 
 			// Set required environment variables
-			os.Setenv("OPENAI_API_KEY", "sk-test-api-key")
-			os.Setenv(tt.envVar, tt.value)
+			subEnvGuard.Set("OPENAI_API_KEY", "sk-test-api-key")
+			subEnvGuard.Set(tt.envVar, tt.value)
 
 			cfg, err := LoadFromEnv()
 			require.NoError(t, err)
@@ -589,14 +635,15 @@ func TestEnvironmentVariables(t *testing.T) {
 			for _, tc := range test.testCases {
 				t.Run(tc.name, func(t *testing.T) {
 					// Clean environment
-					cleanupTargetEnv(t)
+					testEnvGuard := testutil.NewEnvironmentGuard(t)
+					testutil.CleanupCommonEnvVars(t)
 
 					// Set required API key
-					os.Setenv("OPENAI_API_KEY", "sk-test-key")
+					testEnvGuard.Set("OPENAI_API_KEY", "sk-test-key")
 
 					// Set test environment variable if value is not empty (to test default behavior)
 					if tc.value != "" {
-						os.Setenv(test.envVar, tc.value)
+						testEnvGuard.Set(test.envVar, tc.value)
 					}
 
 					cfg, err := LoadFromEnv()
@@ -636,8 +683,9 @@ func TestEnvironmentVariables(t *testing.T) {
 
 // TestEnvironmentVariablesDefaultValues specifically tests that default values are correct
 func TestEnvironmentVariablesDefaultValues(t *testing.T) {
-	cleanupTargetEnv(t)
-	os.Setenv("OPENAI_API_KEY", "sk-test-key")
+	envGuard := testutil.NewEnvironmentGuard(t)
+	testutil.CleanupCommonEnvVars(t)
+	envGuard.Set("OPENAI_API_KEY", "sk-test-key")
 
 	cfg, err := LoadFromEnv()
 	require.NoError(t, err)
@@ -730,8 +778,9 @@ func TestEnvironmentVariablesEdgeCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cleanupTargetEnv(t)
-			os.Setenv("OPENAI_API_KEY", "sk-test-key")
+			edgeEnvGuard := testutil.NewEnvironmentGuard(t)
+			testutil.CleanupCommonEnvVars(t)
+			edgeEnvGuard.Set("OPENAI_API_KEY", "sk-test-key")
 
 			tt.setupEnv()
 
@@ -803,9 +852,10 @@ func TestSpecialLLMTimeoutSecsConversion(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cleanupTargetEnv(t)
-			os.Setenv("OPENAI_API_KEY", "sk-test-key")
-			os.Setenv("LLM_TIMEOUT_SECS", tt.envValue)
+			timeoutEnvGuard := testutil.NewEnvironmentGuard(t)
+			testutil.CleanupCommonEnvVars(t)
+			timeoutEnvGuard.Set("OPENAI_API_KEY", "sk-test-key")
+			timeoutEnvGuard.Set("LLM_TIMEOUT_SECS", tt.envValue)
 
 			cfg, err := LoadFromEnv()
 			require.NoError(t, err)
@@ -816,70 +866,5 @@ func TestSpecialLLMTimeoutSecsConversion(t *testing.T) {
 	}
 }
 
-// cleanupTargetEnv cleans up the specific 8 environment variables we're testing
-func cleanupTargetEnv(t *testing.T) {
-	targetEnvVars := []string{
-		"ENABLE_NETWORK_INTENT",
-		"ENABLE_LLM_INTENT",
-		"LLM_TIMEOUT_SECS",
-		"LLM_MAX_RETRIES",
-		"LLM_CACHE_MAX_ENTRIES",
-		"HTTP_MAX_BODY",
-		"METRICS_ENABLED",
-		"METRICS_ALLOWED_IPS",
-		"OPENAI_API_KEY", // Required for validation
-	}
-
-	for _, envVar := range targetEnvVars {
-		os.Unsetenv(envVar)
-	}
-
-	t.Cleanup(func() {
-		for _, envVar := range targetEnvVars {
-			os.Unsetenv(envVar)
-		}
-	})
-}
-
-// cleanupEnv cleans up environment variables that might affect tests
-func cleanupEnv(t *testing.T) {
-	envVars := []string{
-		"METRICS_ADDR",
-		"PROBE_ADDR",
-		"ENABLE_LEADER_ELECTION",
-		"LLM_PROCESSOR_URL",
-		"LLM_PROCESSOR_TIMEOUT",
-		"RAG_API_URL",
-		"RAG_API_URL_EXTERNAL",
-		"RAG_API_TIMEOUT",
-		"GIT_REPO_URL",
-		"GIT_TOKEN",
-		"GIT_BRANCH",
-		"WEAVIATE_URL",
-		"WEAVIATE_INDEX",
-		"OPENAI_API_KEY",
-		"OPENAI_MODEL",
-		"OPENAI_EMBEDDING_MODEL",
-		"NAMESPACE",
-		"CRD_PATH",
-		// Add the 8 target environment variables
-		"ENABLE_NETWORK_INTENT",
-		"ENABLE_LLM_INTENT",
-		"LLM_TIMEOUT_SECS",
-		"LLM_MAX_RETRIES",
-		"LLM_CACHE_MAX_ENTRIES",
-		"HTTP_MAX_BODY",
-		"METRICS_ENABLED",
-		"METRICS_ALLOWED_IPS",
-	}
-
-	for _, envVar := range envVars {
-		os.Unsetenv(envVar)
-	}
-
-	t.Cleanup(func() {
-		for _, envVar := range envVars {
-			os.Unsetenv(envVar)
-		}
-	})
-}
+// NOTE: The old cleanup functions have been replaced with testutil.NewEnvironmentGuard
+// and testutil.CleanupCommonEnvVars for better test isolation and reliability.

@@ -91,3 +91,7 @@ Updates are tracked here in append-only format.
 |  | feat/e2e | security | TLS/mTLS security audit completed - O-RAN WG11 compliant configurations |
 | 2025-08-24T11:46:51+08:00 | feat/e2e | security | TLS/mTLS security audit completed - O-RAN WG11 compliant configurations |
 | 2025-08-24T16:06:23+08:00 | feat/e2e | ci/lint | Fix golangci-lint v1.64.x schema and workflow inputs |
+| 2025-08-24T16:35:14+08:00 | feat/e2e | test-automation | Add comprehensive environment guards and mocks across all test files |
+|  | feat/e2e | pkg/oran/o2/providers | Implemented missing Kubernetes provider methods - getDeployment, getService, getConfigMap, getSecret, getPVC, update methods, scaling, health checks |
+| 2025-08-24T08:36:13Z | feat/e2e | pkg/oran/o2/providers | Implemented missing Kubernetes provider methods - getDeployment, getService, getConfigMap, getSecret, getPVC, update methods, scaling, health checks |
+| 2025-08-24T16:39:11+08:00 | feat/e2e | test-stabilization | Fixed TLS config tests with env guards, performance test bounds/timeout issues with mocks |

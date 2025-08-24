@@ -90,22 +90,22 @@ type RelevanceScore struct {
 
 // RelevanceRequest represents a relevance scoring request
 type RelevanceRequest struct {
-	Query         string                  `json:"query"`
-	IntentType    string                  `json:"intent_type"`
+	Query         string                 `json:"query"`
+	IntentType    string                 `json:"intent_type"`
 	Document      *types.TelecomDocument `json:"document"`
-	Position      int                     `json:"position"`
-	OriginalScore float32                 `json:"original_score"`
-	Context       string                  `json:"context"`
-	UserProfile   map[string]interface{}  `json:"user_profile,omitempty"`
+	Position      int                    `json:"position"`
+	OriginalScore float32                `json:"original_score"`
+	Context       string                 `json:"context"`
+	UserProfile   map[string]interface{} `json:"user_profile,omitempty"`
 }
 
 // ScoredDocument represents a document with relevance scoring
 type ScoredDocument struct {
 	Document       *types.TelecomDocument `json:"document"`
-	RelevanceScore *RelevanceScore         `json:"relevance_score"`
-	OriginalScore  float32                 `json:"original_score"`
-	Position       int                     `json:"position"`
-	TokenCount     int                     `json:"token_count"`
+	RelevanceScore *RelevanceScore        `json:"relevance_score"`
+	OriginalScore  float32                `json:"original_score"`
+	Position       int                    `json:"position"`
+	TokenCount     int                    `json:"token_count"`
 }
 
 // EmbeddingServiceInterface defines the interface for semantic similarity calculations

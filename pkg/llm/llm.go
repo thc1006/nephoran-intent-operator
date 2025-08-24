@@ -199,11 +199,11 @@ func NewLegacyClientWithConfig(url string, config LegacyClientConfig) *LegacyCli
 		cacheMaxEntries = 512 // Fallback default
 	}
 
-	client := &Client{
+	client := &LegacyClient{
 		httpClient:   httpClient,
 		url:          url,
 		promptEngine: NewTelecomPromptEngine(),
-		retryConfig: RetryConfig{
+		retryConfig: LegacyRetryConfig{
 			MaxRetries:    maxRetries, // Use config value passed in
 			BaseDelay:     time.Second,
 			MaxDelay:      30 * time.Second,
@@ -218,7 +218,7 @@ func NewLegacyClientWithConfig(url string, config LegacyClientConfig) *LegacyCli
 		logger:       logger,
 		metrics:      NewLegacyClientMetrics(),
 		cache:        NewLegacyResponseCache(5*time.Minute, cacheMaxEntries), // Use environment variable
-		fallbackURLs: []string{},                                       // Can be configured for redundancy
+		fallbackURLs: []string{},                                             // Can be configured for redundancy
 	}
 
 	// Initialize RAG client if backend type is "rag"
@@ -270,7 +270,6 @@ func NewLegacyResponseCache(ttl time.Duration, maxSize int) *LegacyResponseCache
 
 	return cache
 }
-
 
 // GetMetrics returns current client metrics
 func (c *LegacyClient) GetMetrics() LegacyClientMetrics {
@@ -774,7 +773,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 
 	// Return structured error if any fields are missing
 	if len(missingFields) > 0 {
-		return &ValidationError{
+		return &FieldValidationError{
 			Message:       "Response validation failed",
 			MissingFields: missingFields,
 		}

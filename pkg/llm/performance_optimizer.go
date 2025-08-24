@@ -77,13 +77,13 @@ type PerformanceMetrics struct {
 
 // PerformanceConfig holds configuration for performance optimization
 type PerformanceConfig struct {
-	LatencyBufferSize     int                  `json:"latency_buffer_size"`
-	OptimizationInterval  time.Duration        `json:"optimization_interval"`
+	LatencyBufferSize     int                             `json:"latency_buffer_size"`
+	OptimizationInterval  time.Duration                   `json:"optimization_interval"`
 	CircuitBreakerConfig  PerformanceCircuitBreakerConfig `json:"circuit_breaker"`
-	BatchProcessingConfig BatchConfig          `json:"batch_processing"`
-	MetricsExportInterval time.Duration        `json:"metrics_export_interval"`
-	EnableTracing         bool                 `json:"enable_tracing"`
-	TraceSamplingRatio    float64              `json:"trace_sampling_ratio"`
+	BatchProcessingConfig BatchConfig                     `json:"batch_processing"`
+	MetricsExportInterval time.Duration                   `json:"metrics_export_interval"`
+	EnableTracing         bool                            `json:"enable_tracing"`
+	TraceSamplingRatio    float64                         `json:"trace_sampling_ratio"`
 }
 
 // PerformanceCircuitBreakerConfig holds advanced circuit breaker configuration for performance optimizer
@@ -128,10 +128,10 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	// Initialize circuit breaker
 	// Convert to regular CircuitBreakerConfig for the circuit breaker
 	cbConfig := &CircuitBreakerConfig{
-		FailureThreshold:    config.CircuitBreakerConfig.FailureThreshold,
-		SuccessThreshold:    config.CircuitBreakerConfig.SuccessThreshold,
-		Timeout:             config.CircuitBreakerConfig.Timeout,
-		MaxRequests:         config.CircuitBreakerConfig.MaxConcurrentRequests,
+		FailureThreshold: config.CircuitBreakerConfig.FailureThreshold,
+		SuccessThreshold: config.CircuitBreakerConfig.SuccessThreshold,
+		Timeout:          config.CircuitBreakerConfig.Timeout,
+		MaxRequests:      config.CircuitBreakerConfig.MaxConcurrentRequests,
 	}
 	po.circuitBreaker = NewAdvancedCircuitBreaker(cbConfig)
 

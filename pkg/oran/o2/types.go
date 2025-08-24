@@ -13,6 +13,7 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
@@ -514,47 +515,6 @@ type ResponseInfo struct {
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// HealthCheck represents health status information for O2 IMS
-type HealthCheck struct {
-	Status     string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
-	Timestamp  time.Time              `json:"timestamp"`
-	Version    string                 `json:"version,omitempty"`
-	Uptime     time.Duration          `json:"uptime,omitempty"`
-	Components map[string]interface{} `json:"components,omitempty"`
-	Checks     []ComponentCheck       `json:"checks,omitempty"`
-	Services   []ServiceStatus        `json:"services,omitempty"`
-	Resources  *ResourceHealthSummary `json:"resources,omitempty"`
-}
-
-// ComponentCheck represents individual component health status
-type ComponentCheck struct {
-	Name      string                 `json:"name" validate:"required"`
-	Status    string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
-	Message   string                 `json:"message,omitempty"`
-	Timestamp time.Time              `json:"timestamp"`
-	Duration  time.Duration          `json:"duration,omitempty"`
-	Details   map[string]interface{} `json:"details,omitempty"`
-	CheckType string                 `json:"check_type,omitempty"` // connectivity, resource, dependency
-}
-
-// ServiceStatus represents the status of external service dependencies
-type ServiceStatus struct {
-	ServiceName string        `json:"service_name"`
-	Status      string        `json:"status"`
-	Endpoint    string        `json:"endpoint,omitempty"`
-	LastCheck   time.Time     `json:"last_check"`
-	Latency     time.Duration `json:"latency,omitempty"`
-	Error       string        `json:"error,omitempty"`
-}
-
-// ResourceHealthSummary provides a summary of resource health across the infrastructure
-type ResourceHealthSummary struct {
-	TotalResources     int `json:"total_resources"`
-	HealthyResources   int `json:"healthy_resources"`
-	DegradedResources  int `json:"degraded_resources"`
-	UnhealthyResources int `json:"unhealthy_resources"`
-	UnknownResources   int `json:"unknown_resources"`
-}
 
 // Common HTTP status codes used in O2 IMS interface
 const (
@@ -745,15 +705,6 @@ func (cp CloudProvider) String() string {
 	return string(cp)
 }
 
-// IsHealthy returns true if the health check status is UP
-func (hc *HealthCheck) IsHealthy() bool {
-	return hc.Status == "UP"
-}
-
-// IsDegraded returns true if the health check status is DEGRADED
-func (hc *HealthCheck) IsDegraded() bool {
-	return hc.Status == "DEGRADED"
-}
 
 // Validate validates the CloudProviderConfig
 func (cpc *CloudProviderConfig) Validate() error {

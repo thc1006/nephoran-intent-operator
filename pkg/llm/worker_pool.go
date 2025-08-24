@@ -163,6 +163,7 @@ type WorkerPoolConfig struct {
 
 	// Queue configuration
 	TaskQueueSize      int              `json:"task_queue_size"`
+	QueueSize          int              `json:"queue_size"` // Alias for TaskQueueSize
 	ResultQueueSize    int              `json:"result_queue_size"`
 	PriorityQueueSizes map[Priority]int `json:"priority_queue_sizes"`
 
@@ -187,9 +188,10 @@ type WorkerPoolConfig struct {
 	CPULimitPerWorker    float64 `json:"cpu_limit_per_worker"`
 
 	// Monitoring
-	MetricsEnabled     bool `json:"metrics_enabled"`
-	TracingEnabled     bool `json:"tracing_enabled"`
-	HealthCheckEnabled bool `json:"health_check_enabled"`
+	MetricsEnabled      bool          `json:"metrics_enabled"`
+	TracingEnabled      bool          `json:"tracing_enabled"`
+	HealthCheckEnabled  bool          `json:"health_check_enabled"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
 }
 
 // DynamicScaler handles automatic worker scaling based on load
@@ -346,6 +348,57 @@ func NewWorkerPool(config *WorkerPoolConfig) (*WorkerPool, error) {
 	)
 
 	return pool, nil
+}
+
+// Start starts the worker pool (explicit start method)
+func (wp *WorkerPool) Start(ctx context.Context) error {
+	if wp.getState() != WorkerPoolStateStarting && wp.getState() != WorkerPoolStateRunning {
+		return fmt.Errorf("worker pool is not in a startable state")
+	}
+
+	wp.setState(WorkerPoolStateRunning)
+	wp.logger.Info("Worker pool started")
+	return nil
+}
+
+// Shutdown gracefully shuts down the worker pool
+func (wp *WorkerPool) Shutdown(ctx context.Context) error {
+	wp.shutdownOnce.Do(func() {
+		wp.logger.Info("Shutting down worker pool")
+		wp.setState(WorkerPoolStateShutdown)
+
+		// Signal shutdown to all goroutines
+		close(wp.shutdownCh)
+
+		// Signal all workers to shutdown
+		wp.stateMutex.RLock()
+		for _, worker := range wp.workers {
+			select {
+			case worker.controlChan <- WorkerControlShutdown:
+			default:
+				// Channel might be full, worker will get shutdown signal from shutdownCh
+			}
+		}
+		wp.stateMutex.RUnlock()
+
+		// Wait for all workers to finish with timeout
+		done := make(chan struct{})
+		go func() {
+			wp.workerWG.Wait()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			wp.logger.Info("All workers shut down gracefully")
+		case <-ctx.Done():
+			wp.logger.Warn("Shutdown timeout exceeded, some workers may not have finished gracefully")
+		case <-time.After(30 * time.Second):
+			wp.logger.Warn("Shutdown timeout exceeded after 30s")
+		}
+	})
+
+	return nil
 }
 
 // Submit submits a task to the worker pool
@@ -840,9 +893,11 @@ type FastJSONParser struct{}
 type ResponsePool struct{}
 
 const (
-	TaskTypeLLMProcessing TaskType = "llm_processing"
-	TaskTypeValidation    TaskType = "validation"
-	TaskTypeCaching       TaskType = "caching"
+	TaskTypeLLMProcessing   TaskType = "llm_processing"
+	TaskTypeValidation      TaskType = "validation"
+	TaskTypeCaching         TaskType = "caching"
+	TaskTypeRAGProcessing   TaskType = "rag_processing"
+	TaskTypeBatchProcessing TaskType = "batch_processing"
 
 	WorkerTypeLLM     WorkerType = "llm"
 	WorkerTypeGeneral WorkerType = "general"

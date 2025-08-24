@@ -64,7 +64,6 @@ const (
 	BatchStatusFailed
 )
 
-
 // BatchWorker processes batches
 type BatchWorker struct {
 	id        int

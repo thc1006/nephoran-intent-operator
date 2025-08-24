@@ -7,26 +7,52 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"runtime"
 	"sync/atomic"
 	"testing"
 	"time"
 	"unsafe"
+
+	"github.com/stretchr/testify/require"
+	"github.com/nephoran/intent-operator/pkg/testutil"
 )
 
 // BenchmarkOptimizedHTTPClient tests HTTP client performance
 func BenchmarkOptimizedHTTPClient(b *testing.B) {
+	testutil.SkipIfShort(b)
+	
+	// Create mock HTTP server instead of using external service
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"test": "data", "benchmark": true}`))
+	}))
+	defer mockServer.Close()
+
 	config := DefaultHTTPConfig()
+	require.NotNil(b, config, "HTTP config should not be nil")
+	
 	client := NewOptimizedHTTPClient(config)
-	defer client.Shutdown(context.Background())
+	require.NotNil(b, client, "HTTP client should not be nil")
+	
+	ctx, cancel := testutil.ContextWithDeadline(b, 30*time.Second)
+	defer cancel()
+	defer client.Shutdown(ctx)
 
 	b.Run("ConcurrentRequests", func(b *testing.B) {
 		b.SetParallelism(runtime.NumCPU())
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				req, _ := http.NewRequest("GET", "http://httpbin.org/json", nil)
-				ctx := context.WithValue(context.Background(), "test", true)
-				resp, err := client.DoWithOptimizations(ctx, req)
+				req, err := http.NewRequest("GET", mockServer.URL, nil)
+				if err != nil {
+					b.Fatalf("Failed to create request: %v", err)
+				}
+				
+				requestCtx, requestCancel := context.WithTimeout(ctx, 5*time.Second)
+				resp, err := client.DoWithOptimizations(requestCtx, req)
+				requestCancel()
+				
 				if err != nil {
 					b.Errorf("HTTP request failed: %v", err)
 					continue
@@ -39,18 +65,24 @@ func BenchmarkOptimizedHTTPClient(b *testing.B) {
 	})
 
 	b.Run("ConnectionPooling", func(b *testing.B) {
+		require.NotNil(b, client.connectionPool, "connection pool should not be nil")
+		
 		for i := 0; i < b.N; i++ {
 			clientFromPool := client.connectionPool.GetClient()
 			if clientFromPool == nil {
 				b.Error("Failed to get client from pool")
+				continue
 			}
 			client.connectionPool.ReturnClient(clientFromPool)
 		}
 	})
 
 	b.Run("BufferPooling", func(b *testing.B) {
+		require.NotNil(b, client.bufferPool, "buffer pool should not be nil")
+		
 		for i := 0; i < b.N; i++ {
 			buffer := client.bufferPool.GetBuffer(1024)
+			require.NotNil(b, buffer, "buffer should not be nil")
 			client.bufferPool.PutBuffer(buffer)
 		}
 	})
@@ -58,8 +90,16 @@ func BenchmarkOptimizedHTTPClient(b *testing.B) {
 
 // BenchmarkMemoryPoolManager tests memory pool performance
 func BenchmarkMemoryPoolManager(b *testing.B) {
+	testutil.SkipIfShort(b)
+	
 	config := DefaultMemoryConfig()
+	require.NotNil(b, config, "memory config should not be nil")
+	
 	mpm := NewMemoryPoolManager(config)
+	require.NotNil(b, mpm, "memory pool manager should not be nil")
+	
+	ctx, cancel := testutil.ContextWithDeadline(b, 30*time.Second)
+	defer cancel()
 	defer mpm.Shutdown()
 
 	b.Run("ObjectPool", func(b *testing.B) {
@@ -67,30 +107,50 @@ func BenchmarkMemoryPoolManager(b *testing.B) {
 		stringPool := NewObjectPool[string](
 			"test_strings",
 			func() string { return "" },
-			func(s string) { _ = s[:0] }, // Reset string
+			func(s string) { 
+				// Safe reset operation - avoid potential panic on slice bounds
+				if len(s) > 0 {
+					_ = s[:0] 
+				}
+			},
 		)
+		require.NotNil(b, stringPool, "string pool should not be nil")
 
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				obj := stringPool.Get()
-				_ = obj + "test"
-				stringPool.Put(obj)
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					obj := stringPool.Get()
+					_ = obj + "test"
+					stringPool.Put(obj)
+				}
 			}
 		})
 	})
 
 	b.Run("RingBuffer", func(b *testing.B) {
 		ringBuffer := NewRingBuffer(1024)
+		require.NotNil(b, ringBuffer, "ring buffer should not be nil")
+		
 		mpm.RegisterRingBuffer("test_ring", ringBuffer)
 
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				data := "test data"
-				if !ringBuffer.Push(unsafe.Pointer(&data)) {
-					b.Error("Failed to push to ring buffer")
-				}
-				if _, ok := ringBuffer.Pop(); !ok {
-					b.Error("Failed to pop from ring buffer")
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					data := "test data"
+					if !ringBuffer.Push(unsafe.Pointer(&data)) {
+						b.Error("Failed to push to ring buffer")
+						continue
+					}
+					if _, ok := ringBuffer.Pop(); !ok {
+						b.Error("Failed to pop from ring buffer")
+						continue
+					}
 				}
 			}
 		})
@@ -98,10 +158,16 @@ func BenchmarkMemoryPoolManager(b *testing.B) {
 
 	b.Run("GCOptimization", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			mpm.ForceGC()
-			metrics := mpm.GetMemoryStats()
-			if metrics.GCCount == 0 {
-				b.Error("GC not triggered")
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				mpm.ForceGC()
+				metrics := mpm.GetMemoryStats()
+				require.NotNil(b, metrics, "memory metrics should not be nil")
+				if metrics.GCCount == 0 {
+					b.Error("GC not triggered")
+				}
 			}
 		}
 	})
@@ -109,9 +175,17 @@ func BenchmarkMemoryPoolManager(b *testing.B) {
 
 // BenchmarkOptimizedJSONProcessor tests JSON processing performance
 func BenchmarkOptimizedJSONProcessor(b *testing.B) {
+	testutil.SkipIfShort(b)
+	
 	config := DefaultJSONConfig()
+	require.NotNil(b, config, "JSON config should not be nil")
+	
 	processor := NewOptimizedJSONProcessor(config)
-	defer processor.Shutdown(context.Background())
+	require.NotNil(b, processor, "JSON processor should not be nil")
+	
+	ctx, cancel := testutil.ContextWithDeadline(b, 30*time.Second)
+	defer cancel()
+	defer processor.Shutdown(ctx)
 
 	testData := struct {
 		Name     string            `json:"name"`
@@ -137,9 +211,16 @@ func BenchmarkOptimizedJSONProcessor(b *testing.B) {
 	b.Run("MarshalOptimized", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				_, err := processor.MarshalOptimized(context.Background(), testData)
-				if err != nil {
-					b.Errorf("Marshal failed: %v", err)
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					marshalCtx, marshalCancel := context.WithTimeout(ctx, 5*time.Second)
+					_, err := processor.MarshalOptimized(marshalCtx, testData)
+					marshalCancel()
+					if err != nil {
+						b.Errorf("Marshal failed: %v", err)
+					}
 				}
 			}
 		})
@@ -148,16 +229,23 @@ func BenchmarkOptimizedJSONProcessor(b *testing.B) {
 	b.Run("UnmarshalOptimized", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				var target struct {
-					Name     string            `json:"name"`
-					Age      int               `json:"age"`
-					Email    string            `json:"email"`
-					Metadata map[string]string `json:"metadata"`
-					Items    []string          `json:"items"`
-				}
-				err := processor.UnmarshalOptimized(context.Background(), testJSON, &target)
-				if err != nil {
-					b.Errorf("Unmarshal failed: %v", err)
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					var target struct {
+						Name     string            `json:"name"`
+						Age      int               `json:"age"`
+						Email    string            `json:"email"`
+						Metadata map[string]string `json:"metadata"`
+						Items    []string          `json:"items"`
+					}
+					unmarshalCtx, unmarshalCancel := context.WithTimeout(ctx, 5*time.Second)
+					err := processor.UnmarshalOptimized(unmarshalCtx, testJSON, &target)
+					unmarshalCancel()
+					if err != nil {
+						b.Errorf("Unmarshal failed: %v", err)
+					}
 				}
 			}
 		})
@@ -193,18 +281,35 @@ func BenchmarkOptimizedJSONProcessor(b *testing.B) {
 
 // BenchmarkEnhancedGoroutinePool tests goroutine pool performance
 func BenchmarkEnhancedGoroutinePool(b *testing.B) {
+	testutil.SkipIfShort(b)
+	
 	config := DefaultPoolConfig()
+	require.NotNil(b, config, "pool config should not be nil")
+	
 	pool := NewEnhancedGoroutinePool(config)
-	defer pool.Shutdown(context.Background())
+	require.NotNil(b, pool, "goroutine pool should not be nil")
+	
+	ctx, cancel := testutil.ContextWithDeadline(b, 30*time.Second)
+	defer cancel()
+	defer pool.Shutdown(ctx)
 
 	b.Run("TaskSubmission", func(b *testing.B) {
+		if b.N <= 0 {
+			b.Skip("invalid benchmark N value")
+			return
+		}
+		
 		tasks := make([]*Task, b.N)
 		for i := 0; i < b.N; i++ {
 			tasks[i] = &Task{
 				ID: uint64(i),
 				Function: func() error {
-					time.Sleep(time.Microsecond)
-					return nil
+					select {
+					case <-ctx.Done():
+						return ctx.Err()
+					case <-time.After(time.Microsecond):
+						return nil
+					}
 				},
 				Priority: PriorityNormal,
 			}
@@ -212,9 +317,21 @@ func BenchmarkEnhancedGoroutinePool(b *testing.B) {
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			err := pool.SubmitTask(tasks[i])
-			if err != nil {
-				b.Errorf("Task submission failed: %v", err)
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				// Bounds check
+				if i >= len(tasks) {
+					b.Fatalf("task index %d out of bounds for tasks slice of length %d", i, len(tasks))
+				}
+				task := tasks[i]
+				require.NotNil(b, task, "task should not be nil")
+				
+				err := pool.SubmitTask(task)
+				if err != nil {
+					b.Errorf("Task submission failed: %v", err)
+				}
 			}
 		}
 	})
@@ -223,17 +340,27 @@ func BenchmarkEnhancedGoroutinePool(b *testing.B) {
 		b.SetParallelism(runtime.NumCPU())
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				task := &Task{
-					ID: uint64(time.Now().UnixNano()),
-					Function: func() error {
-						runtime.Gosched()
-						return nil
-					},
-					Priority: PriorityNormal,
-				}
-				err := pool.SubmitTask(task)
-				if err != nil {
-					b.Errorf("Concurrent task submission failed: %v", err)
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					task := &Task{
+						ID: uint64(time.Now().UnixNano()),
+						Function: func() error {
+							select {
+							case <-ctx.Done():
+								return ctx.Err()
+							default:
+								runtime.Gosched()
+								return nil
+							}
+						},
+						Priority: PriorityNormal,
+					}
+					err := pool.SubmitTask(task)
+					if err != nil {
+						b.Errorf("Concurrent task submission failed: %v", err)
+					}
 				}
 			}
 		})

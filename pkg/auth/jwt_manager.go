@@ -544,8 +544,9 @@ func (jm *JWTManager) initializeSigningKey(config *JWTConfig) error {
 			return fmt.Errorf("failed to parse signing key: %w", err)
 		}
 	} else {
-		// Generate new key
-		privateKey, err = rsa.GenerateKey(rand.Reader, 2048)
+		// CRITICAL SECURITY FIX: Use 4096-bit RSA keys for O-RAN security compliance
+		// 2048-bit keys are insufficient against advanced persistent threats
+		privateKey, err = rsa.GenerateKey(rand.Reader, 4096)
 		if err != nil {
 			return fmt.Errorf("failed to generate signing key: %w", err)
 		}
@@ -579,8 +580,8 @@ func (jm *JWTManager) rotateSigningKey() error {
 	jm.mutex.Lock()
 	defer jm.mutex.Unlock()
 
-	// Generate new key
-	newKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	// CRITICAL SECURITY FIX: Use 4096-bit RSA keys for rotation consistency
+	newKey, err := rsa.GenerateKey(rand.Reader, 4096)
 	if err != nil {
 		return fmt.Errorf("failed to generate new signing key: %w", err)
 	}

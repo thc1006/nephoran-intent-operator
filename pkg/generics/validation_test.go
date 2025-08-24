@@ -7,6 +7,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/nephoran/intent-operator/pkg/testutil"
 )
 
 // Test data structures
@@ -18,10 +21,16 @@ type TestUser struct {
 }
 
 func TestValidationBuilder_Required(t *testing.T) {
+	ctx, cancel := testutil.ContextWithTimeout(t)
+	defer cancel()
+	
 	builder := NewValidationBuilder[TestUser]()
+	require.NotNil(t, builder, "validation builder should not be nil")
+	
 	validator := builder.
 		Required("name", func(u TestUser) any { return u.Name }).
 		Build()
+	require.NotNil(t, validator, "validator should not be nil")
 
 	tests := []struct {
 		name  string
@@ -42,12 +51,18 @@ func TestValidationBuilder_Required(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := validator(tt.user)
-			if result.Valid != tt.valid {
-				t.Errorf("Expected valid=%v, got %v", tt.valid, result.Valid)
-			}
+			select {
+			case <-ctx.Done():
+				t.Fatal("test timeout")
+			default:
+				result := validator(tt.user)
+				require.NotNil(t, result, "validation result should not be nil")
+				
+				if result.Valid != tt.valid {
+					t.Errorf("Expected valid=%v, got %v", tt.valid, result.Valid)
+				}
 
-			if !tt.valid && len(result.Errors) == 0 {
+				if !tt.valid && len(result.Errors) == 0 {
 				t.Error("Expected validation errors for invalid case")
 			}
 		})

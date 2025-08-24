@@ -16,6 +16,12 @@ const (
 	NormalPriority
 	HighPriority
 	CriticalPriority
+	PriorityUrgent = CriticalPriority
+)
+
+// Aliases for compatibility
+const (
+	PriorityNormal = NormalPriority
 )
 
 // String returns the string representation of the priority

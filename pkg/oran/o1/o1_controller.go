@@ -449,23 +449,19 @@ func (r *O1InterfaceController) reconcileDeletion(ctx context.Context, o1Interfa
 
 // validateO1InterfaceSpec validates the O1Interface specification
 func (r *O1InterfaceController) validateO1InterfaceSpec(o1Interface *oranv1.O1Interface) error {
-	// Validate network function reference
-	if o1Interface.Spec.NetworkFunction == "" {
-		return fmt.Errorf("networkFunction is required")
+	// Validate host is required
+	if o1Interface.Spec.Host == "" {
+		return fmt.Errorf("host is required")
 	}
 
-	// Validate O1 configuration
-	if o1Interface.Spec.O1Config.NetconfPort < 1 || o1Interface.Spec.O1Config.NetconfPort > 65535 {
-		return fmt.Errorf("invalid netconf port: %d", o1Interface.Spec.O1Config.NetconfPort)
+	// Validate port configuration
+	if o1Interface.Spec.Port < 1 || o1Interface.Spec.Port > 65535 {
+		return fmt.Errorf("invalid port: %d", o1Interface.Spec.Port)
 	}
 
-	if o1Interface.Spec.O1Config.StreamingPort < 1 || o1Interface.Spec.O1Config.StreamingPort > 65535 {
-		return fmt.Errorf("invalid streaming port: %d", o1Interface.Spec.O1Config.StreamingPort)
-	}
-
-	// Validate TLS configuration
-	if o1Interface.Spec.O1Config.EnableTLS && o1Interface.Spec.O1Config.TLSCertSecret == "" {
-		return fmt.Errorf("TLS certificate secret is required when TLS is enabled")
+	// Validate protocol
+	if o1Interface.Spec.Protocol != "" && o1Interface.Spec.Protocol != "ssh" && o1Interface.Spec.Protocol != "tls" {
+		return fmt.Errorf("invalid protocol: %s", o1Interface.Spec.Protocol)
 	}
 
 	return nil
@@ -480,11 +476,9 @@ func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, 
 
 	// Check if instance already exists
 	if instance, exists := r.o1AdapterManager.adapters[instanceKey]; exists {
-		// Update configuration if needed
-		if !reflect.DeepEqual(instance.Config, &o1Interface.Spec.O1Config) {
-			instance.Config = &o1Interface.Spec.O1Config
-			instance.LastUpdate = time.Now()
-		}
+		// Update configuration if needed - temporarily disabled due to API mismatch
+		// TODO: Fix when O1Config structure is properly defined
+		instance.LastUpdate = time.Now()
 		return instance, nil
 	}
 
@@ -508,9 +502,9 @@ func (r *O1InterfaceController) getOrCreateAdapterInstance(ctx context.Context, 
 	instance := &O1AdaptorInstance{
 		Name:            o1Interface.Name,
 		Namespace:       o1Interface.Namespace,
-		NetworkFunction: o1Interface.Spec.NetworkFunction,
+		NetworkFunction: "default-nf", // TODO: Add proper field to API spec
 		O1Adaptor:       o1Adaptor,
-		Config:          &o1Interface.Spec.O1Config,
+		Config:          nil, // TODO: Fix when O1Config structure is properly defined
 		CreatedAt:       time.Now(),
 		LastUpdate:      time.Now(),
 		Status: O1InstanceStatus{
@@ -571,14 +565,14 @@ func (r *O1InterfaceController) reconcileStreamingService(ctx context.Context, o
 
 // initializeFCAPSManagers initializes FCAPS management components
 func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1Interface *oranv1.O1Interface, instance *O1AdaptorInstance) error {
-	// Initialize fault manager
-	if o1Interface.Spec.O1Config.FaultManagement.Enabled {
+	// Initialize fault manager - using available API fields
+	if o1Interface.Spec.FCAPS.FaultManagement.Enabled {
 		faultConfig := &EnhancedFaultManagerConfig{
 			EnableRealTimeStreaming: true,
-			EnableCorrelation:       o1Interface.Spec.O1Config.FaultManagement.CorrelationEnabled,
-			EnableRootCauseAnalysis: true,
-			NotificationTargets:     o1Interface.Spec.O1Config.FaultManagement.NotificationTargets,
-			SeverityFilters:         o1Interface.Spec.O1Config.FaultManagement.SeverityFilters,
+			EnableCorrelation:       o1Interface.Spec.FCAPS.FaultManagement.CorrelationEnabled,
+			EnableRootCauseAnalysis: o1Interface.Spec.FCAPS.FaultManagement.RootCauseAnalysis,
+			NotificationTargets:     []string{}, // TODO: Add to API spec if needed
+			SeverityFilters:         o1Interface.Spec.FCAPS.FaultManagement.SeverityFilter,
 		}
 
 		faultManager, err := NewEnhancedFaultManager(faultConfig, r.Log.WithName("fault-manager"))
@@ -591,14 +585,14 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 	}
 
 	// Initialize performance manager
-	if o1Interface.Spec.O1Config.PerformanceCollection.Enabled {
+	if o1Interface.Spec.FCAPS.PerformanceManagement.Enabled {
 		perfConfig := &CompletePerformanceManagerConfig{
-			CollectionInterval:       o1Interface.Spec.O1Config.PerformanceCollection.CollectionInterval,
-			RetentionPeriod:          o1Interface.Spec.O1Config.PerformanceCollection.RetentionPeriod,
+			CollectionInterval:       time.Duration(o1Interface.Spec.FCAPS.PerformanceManagement.CollectionInterval) * time.Second,
+			RetentionPeriod:          time.Duration(30) * 24 * time.Hour, // Default 30 days
 			EnableRealTimeStreaming:  true,
-			EnableAnomalyDetection:   true,
+			EnableAnomalyDetection:   o1Interface.Spec.FCAPS.PerformanceManagement.AnomalyDetection,
 			EnableGrafanaIntegration: true,
-			Metrics:                  o1Interface.Spec.O1Config.PerformanceCollection.Metrics,
+			Metrics:                  []string{}, // TODO: Add metrics field to API if needed
 		}
 
 		perfManager, err := NewCompletePerformanceManager(perfConfig, r.Log.WithName("performance-manager"))
@@ -628,15 +622,15 @@ func (r *O1InterfaceController) initializeFCAPSManagers(ctx context.Context, o1I
 	instance.O1Adaptor.configManager = configManager
 
 	// Initialize security manager
-	if o1Interface.Spec.O1Config.SecurityPolicies.EnableAuthentication {
+	if o1Interface.Spec.FCAPS.SecurityManagement.Enabled {
 		securityConfig := &ComprehensiveSecurityManagerConfig{
-			EnableCertificateManagement: true,
-			EnableIntrusionDetection:    true,
-			EnableComplianceMonitoring:  true,
+			EnableCertificateManagement: o1Interface.Spec.FCAPS.SecurityManagement.CertificateManagement,
+			EnableIntrusionDetection:    o1Interface.Spec.FCAPS.SecurityManagement.IntrusionDetection,
+			EnableComplianceMonitoring:  o1Interface.Spec.FCAPS.SecurityManagement.ComplianceMonitoring,
 			EnableIncidentResponse:      true,
-			RequiredRoles:               o1Interface.Spec.O1Config.SecurityPolicies.RequiredRoles,
-			CertificateValidation:       o1Interface.Spec.O1Config.SecurityPolicies.CertificateValidation,
-			AuditLogging:                o1Interface.Spec.O1Config.SecurityPolicies.AuditLogging,
+			RequiredRoles:               []string{}, // TODO: Add to API spec if needed
+			CertificateValidation:       true,
+			AuditLogging:                true,
 		}
 
 		securityManager, err := NewComprehensiveSecurityManager(securityConfig, r.Log.WithName("security-manager"))
@@ -749,39 +743,44 @@ func (r *O1InterfaceController) performHealthCheck(instance *O1AdaptorInstance) 
 
 func (r *O1InterfaceController) buildNetconfServerConfig(o1Interface *oranv1.O1Interface) *NetconfServerConfig {
 	return &NetconfServerConfig{
-		Port:           o1Interface.Spec.O1Config.NetconfPort,
-		EnableTLS:      o1Interface.Spec.O1Config.EnableTLS,
+		Port:           o1Interface.Spec.Port,
+		EnableTLS:      o1Interface.Spec.Protocol == "tls",
 		TLSCertPath:    "/etc/certs/tls.crt",
 		TLSKeyPath:     "/etc/certs/tls.key",
-		SessionTimeout: o1Interface.Spec.O1Config.SessionTimeout,
-		MaxSessions:    o1Interface.Spec.O1Config.MaxConnections,
-		EnableAuth:     o1Interface.Spec.O1Config.SecurityPolicies.EnableAuthentication,
-		EnableSSH:      true,
-		SSHPort:        o1Interface.Spec.O1Config.NetconfPort + 1000,
+		SessionTimeout: 60 * time.Second, // Default
+		MaxSessions:    100,              // Default
+		EnableAuth:     o1Interface.Spec.FCAPS.SecurityManagement.Enabled,
+		EnableSSH:      o1Interface.Spec.Protocol == "ssh",
+		SSHPort:        o1Interface.Spec.Port + 1000,
 	}
 }
 
 func (r *O1InterfaceController) buildPerformanceConfig(o1Interface *oranv1.O1Interface) interface{} {
-	return o1Interface.Spec.O1Config.PerformanceCollection
+	return o1Interface.Spec.FCAPS.PerformanceManagement
 }
 
 func (r *O1InterfaceController) buildFaultConfig(o1Interface *oranv1.O1Interface) interface{} {
-	return o1Interface.Spec.O1Config.FaultManagement
+	return o1Interface.Spec.FCAPS.FaultManagement
 }
 
 func (r *O1InterfaceController) buildSecurityConfig(o1Interface *oranv1.O1Interface) interface{} {
-	return o1Interface.Spec.O1Config.SecurityPolicies
+	return o1Interface.Spec.FCAPS.SecurityManagement
 }
 
 func (r *O1InterfaceController) buildStreamingConfig(o1Interface *oranv1.O1Interface) interface{} {
+	maxConnections := 100 // Default
+	if o1Interface.Spec.StreamingConfig != nil {
+		maxConnections = o1Interface.Spec.StreamingConfig.MaxConnections
+	}
+	
 	return &StreamingConfig{
-		MaxConnections:          o1Interface.Spec.O1Config.MaxConnections,
-		ConnectionTimeout:       o1Interface.Spec.O1Config.SessionTimeout,
+		MaxConnections:          maxConnections,
+		ConnectionTimeout:       60 * time.Second, // Default
 		HeartbeatInterval:       30 * time.Second,
 		MaxSubscriptionsPerConn: 100,
 		BufferSize:              1024,
 		CompressionEnabled:      true,
-		EnableAuth:              o1Interface.Spec.O1Config.SecurityPolicies.EnableAuthentication,
+		EnableAuth:              o1Interface.Spec.FCAPS.SecurityManagement.Enabled,
 		RateLimitPerSecond:      100,
 	}
 }
@@ -803,12 +802,12 @@ func (r *O1InterfaceController) buildNetconfService(o1Interface *oranv1.O1Interf
 			Ports: []corev1.ServicePort{
 				{
 					Name:     "netconf",
-					Port:     int32(o1Interface.Spec.O1Config.NetconfPort),
+					Port:     int32(o1Interface.Spec.Port),
 					Protocol: corev1.ProtocolTCP,
 				},
 				{
 					Name:     "netconf-ssh",
-					Port:     int32(o1Interface.Spec.O1Config.NetconfPort + 1000),
+					Port:     int32(o1Interface.Spec.Port + 1000),
 					Protocol: corev1.ProtocolTCP,
 				},
 			},
@@ -837,7 +836,7 @@ func (r *O1InterfaceController) buildStreamingService(o1Interface *oranv1.O1Inte
 			Ports: []corev1.ServicePort{
 				{
 					Name:     "streaming",
-					Port:     int32(o1Interface.Spec.O1Config.StreamingPort),
+					Port:     int32(8080), // Default streaming port
 					Protocol: corev1.ProtocolTCP,
 				},
 			},

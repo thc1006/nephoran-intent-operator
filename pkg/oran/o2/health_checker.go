@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
 )
 
 // newHealthChecker creates a new health checker instance
@@ -24,7 +25,7 @@ func newHealthChecker(config *HealthCheckConfig, logger *logging.StructuredLogge
 	return &HealthChecker{
 		config:       config,
 		healthChecks: make(map[string]ComponentHealthCheck),
-		lastHealthData: &HealthCheck{
+		lastHealthData: &common.HealthCheck{
 			Status:     "UP",
 			Timestamp:  time.Now(),
 			Components: make(map[string]interface{}),
@@ -68,7 +69,7 @@ func (h *HealthChecker) Stop() {
 }
 
 // GetHealthStatus returns the current health status
-func (h *HealthChecker) GetHealthStatus() *HealthCheck {
+func (h *HealthChecker) GetHealthStatus() *common.HealthCheck {
 	// Return a copy to prevent modifications
 	healthCopy := *h.lastHealthData
 	return &healthCopy
@@ -110,7 +111,7 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 	overallStatus := h.calculateOverallStatus(checks)
 
 	// Update health data
-	h.lastHealthData = &HealthCheck{
+	h.lastHealthData = &common.HealthCheck{
 		Status:     overallStatus,
 		Timestamp:  time.Now(),
 		Version:    "1.0.0",                // Could be injected from build
@@ -123,7 +124,7 @@ func (h *HealthChecker) performHealthCheck(ctx context.Context) {
 }
 
 // calculateOverallStatus determines the overall health status based on component checks
-func (h *HealthChecker) calculateOverallStatus(checks []ComponentCheck) string {
+func (h *HealthChecker) calculateOverallStatus(checks []common.ComponentCheck) string {
 	if len(checks) == 0 {
 		return "UNKNOWN"
 	}
@@ -150,7 +151,7 @@ func (h *HealthChecker) calculateOverallStatus(checks []ComponentCheck) string {
 }
 
 // buildComponentsMap builds a map of component health information
-func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]interface{} {
+func (h *HealthChecker) buildComponentsMap(checks []common.ComponentCheck) map[string]interface{} {
 	components := make(map[string]interface{})
 
 	for _, check := range checks {
@@ -168,12 +169,12 @@ func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]i
 }
 
 // getServiceStatuses returns the status of external service dependencies
-func (h *HealthChecker) getServiceStatuses() []ServiceStatus {
+func (h *HealthChecker) getServiceStatuses() []common.ServiceStatus {
 	// This would typically check external dependencies like databases, message queues, etc.
-	var services []ServiceStatus
+	var services []common.ServiceStatus
 
 	// Example service status check
-	services = append(services, ServiceStatus{
+	services = append(services, common.ServiceStatus{
 		ServiceName: "database",
 		Status:      "UP",
 		Endpoint:    "postgresql://localhost:5432",
@@ -185,9 +186,9 @@ func (h *HealthChecker) getServiceStatuses() []ServiceStatus {
 }
 
 // getResourceHealthSummary returns a summary of resource health
-func (h *HealthChecker) getResourceHealthSummary() *ResourceHealthSummary {
+func (h *HealthChecker) getResourceHealthSummary() *common.ResourceHealthSummary {
 	// This would typically aggregate resource health across all providers
-	return &ResourceHealthSummary{
+	return &common.ResourceHealthSummary{
 		TotalResources:     100,
 		HealthyResources:   95,
 		DegradedResources:  3,

@@ -151,7 +151,6 @@ const (
 	HeavyCompression
 )
 
-
 // TokenEstimator provides token estimation for different models
 type TokenEstimator struct {
 	modelTokenRatios map[string]float64

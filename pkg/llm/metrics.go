@@ -42,7 +42,6 @@ type GlobalMetrics struct {
 	mutex               sync.RWMutex
 }
 
-
 // NewMetricsCollector creates a new unified metrics collector
 func NewMetricsCollector() *MetricsCollector {
 	return &MetricsCollector{

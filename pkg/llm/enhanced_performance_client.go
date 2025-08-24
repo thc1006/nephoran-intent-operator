@@ -314,14 +314,12 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 			Help: "Current number of in-flight LLM requests",
 		}, []string{"model"}),
 
-		tokensUsed: *promauto.NewCounterVec(prometheus.CounterVec{
-			CounterOpts: prometheus.CounterOpts{
-				Name: "llm_tokens_used_total",
-				Help: "Total number of tokens used",
-			},
+		tokensUsed: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "llm_tokens_used_total",
+			Help: "Total number of tokens used",
 		}, []string{"model", "token_type", "intent_type"}),
 
-		tokenCosts: *promauto.NewCounterVec(prometheus.CounterOpts{
+		tokenCosts: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_token_costs_usd_total",
 			Help: "Total cost of token usage in USD",
 		}, []string{"model", "intent_type"}),

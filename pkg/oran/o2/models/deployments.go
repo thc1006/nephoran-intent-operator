@@ -16,6 +16,7 @@ type DeploymentTemplate struct {
 	Version              string `json:"version"`
 	Provider             string `json:"provider,omitempty"`
 	Category             string `json:"category,omitempty"` // VNF, CNF, PNF, NS
+	Author               string `json:"author,omitempty"`   // Added missing field
 
 	// Template specifications
 	TemplateSpec        *TemplateSpecification `json:"templateSpec"`

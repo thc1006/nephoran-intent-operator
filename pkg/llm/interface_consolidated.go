@@ -59,7 +59,6 @@ type ClientMetrics struct {
 
 // CircuitBreakerConfig is defined in circuit_breaker.go as shared.CircuitBreakerConfig
 
-
 // RecordUsage records token usage
 func (tt *TokenTracker) RecordUsage(tokens int) {
 	tt.mutex.Lock()
@@ -120,9 +119,7 @@ type IntentResponse struct {
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
-
 // UTILITY FUNCTIONS
-
 
 // isValidKubernetesName validates Kubernetes resource names
 func isValidKubernetesName(name string) bool {

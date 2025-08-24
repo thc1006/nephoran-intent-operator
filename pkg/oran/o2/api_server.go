@@ -16,6 +16,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
@@ -509,9 +510,9 @@ func (s *O2APIServer) parseResourcePoolFilter(r *http.Request) *models.ResourceP
 }
 
 // Helper methods for service health checks
-func (s *O2APIServer) imsServiceHealthCheck(ctx context.Context) ComponentCheck {
+func (s *O2APIServer) imsServiceHealthCheck(ctx context.Context) common.ComponentCheck {
 	// Implement actual health check for IMS service
-	return ComponentCheck{
+	return common.ComponentCheck{
 		Name:      "ims-service",
 		Status:    "UP",
 		Message:   "IMS service is healthy",

@@ -6,46 +6,58 @@ import (
 	"fmt"
 	"slices"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/nephoran/intent-operator/pkg/testutil"
 )
 
 func TestSet_BasicOperations(t *testing.T) {
+	ctx, cancel := testutil.ContextWithTimeout(t)
+	defer cancel()
+	
 	set := NewSet[int]()
+	require.NotNil(t, set, "set should not be nil")
 
-	// Test empty set
-	if !set.IsEmpty() {
-		t.Error("New set should be empty")
-	}
+	select {
+	case <-ctx.Done():
+		t.Fatal("test timeout")
+	default:
+		// Test empty set
+		if !set.IsEmpty() {
+			t.Error("New set should be empty")
+		}
 
-	if set.Size() != 0 {
-		t.Errorf("Expected size 0, got %d", set.Size())
-	}
+		if set.Size() != 0 {
+			t.Errorf("Expected size 0, got %d", set.Size())
+		}
 
-	// Test add operations
-	set.Add(1)
-	set.Add(2)
-	set.Add(3)
+		// Test add operations
+		set.Add(1)
+		set.Add(2)
+		set.Add(3)
 
-	if set.Size() != 3 {
-		t.Errorf("Expected size 3, got %d", set.Size())
-	}
+		if set.Size() != 3 {
+			t.Errorf("Expected size 3, got %d", set.Size())
+		}
 
-	if set.IsEmpty() {
-		t.Error("Set should not be empty after adding elements")
-	}
+		if set.IsEmpty() {
+			t.Error("Set should not be empty after adding elements")
+		}
 
-	// Test contains
-	if !set.Contains(1) {
-		t.Error("Set should contain 1")
-	}
+		// Test contains
+		if !set.Contains(1) {
+			t.Error("Set should contain 1")
+		}
 
-	if set.Contains(4) {
-		t.Error("Set should not contain 4")
-	}
+		if set.Contains(4) {
+			t.Error("Set should not contain 4")
+		}
 
-	// Test remove
-	set.Remove(2)
-	if set.Contains(2) {
-		t.Error("Set should not contain 2 after removal")
+		// Test remove
+		set.Remove(2)
+		if set.Contains(2) {
+			t.Error("Set should not contain 2 after removal")
+		}
 	}
 
 	if set.Size() != 2 {

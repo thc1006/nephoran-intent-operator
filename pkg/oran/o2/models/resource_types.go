@@ -573,6 +573,7 @@ type ResourceManagementInfo struct {
 type ResourceTypeFilter struct {
 	Names           []string          `json:"names,omitempty"`
 	Vendors         []string          `json:"vendors,omitempty"`
+	Models          []string          `json:"models,omitempty"`    // Added missing field
 	Versions        []string          `json:"versions,omitempty"`
 	Categories      []string          `json:"categories,omitempty"`
 	ResourceClasses []string          `json:"resourceClasses,omitempty"`

@@ -585,8 +585,8 @@ func (ic *IntelligentCache) optimizationRoutine() {
 func NewL1Cache(config L1CacheConfig) (*L1Cache, error)                  { return nil, nil }
 func (l1 *L1Cache) Get(key string) (interface{}, bool)                   { return nil, false }
 func (l1 *L1Cache) Set(key string, value interface{}, ttl time.Duration) {}
-func (l1 *L1Cache) SetEntry(entry *types.CacheEntry)                           {}
-func (l1 *L1Cache) GetEntry(key string) (*types.CacheEntry, bool)              { return nil, false }
+func (l1 *L1Cache) SetEntry(entry *types.CacheEntry)                     {}
+func (l1 *L1Cache) GetEntry(key string) (*types.CacheEntry, bool)        { return nil, false }
 
 func NewDependencyGraph() *DependencyGraph                            { return &DependencyGraph{} }
 func (dg *DependencyGraph) AddDependencies(key string, deps []string) {}
@@ -689,7 +689,6 @@ type PatternAnalyzer struct{}
 type WarmingPredictor struct{}
 type WarmingScheduler struct{}
 type WarmingConfig struct{}
-
 
 type CacheOptions struct {
 	TTL           time.Duration

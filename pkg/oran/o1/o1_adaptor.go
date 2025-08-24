@@ -254,10 +254,9 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 	if a.config.TLSConfig != nil {
 		// SECURITY FIX: Never skip TLS verification - always validate certificates
 		// If custom CA is needed, use proper certificate loading instead
-		if a.config.TLSConfig.SkipVerify {
+		if a.config.TLSConfig != nil && a.config.TLSConfig.SkipVerify {
 			log.Log.Error(nil, "SECURITY VIOLATION: TLS verification cannot be disabled for O1 interface",
-				"managedElement", a.config.ManagedElementName,
-				"endpoint", a.config.Endpoint)
+				"config", fmt.Sprintf("%+v", a.config))
 			return nil, fmt.Errorf("security violation: TLS verification is mandatory for O1 interface")
 		}
 

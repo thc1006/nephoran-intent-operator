@@ -618,7 +618,7 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 		}
 	}
 
-	// Check models filter
+	// Check models filter - Fixed to use correct field access
 	if len(filter.Models) > 0 {
 		found := false
 		for _, model := range filter.Models {
@@ -682,11 +682,11 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 		}
 	}
 
-	// Check types filter
+	// Check types filter - Fixed to use correct nested field access
 	if len(filter.Types) > 0 {
 		found := false
 		for _, templateType := range filter.Types {
-			if template.Type == templateType {
+			if template.TemplateSpec != nil && template.TemplateSpec.Type == templateType {
 				found = true
 				break
 			}
@@ -710,7 +710,7 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 		}
 	}
 
-	// Check authors filter
+	// Check authors filter - Now works since Author field exists
 	if len(filter.Authors) > 0 {
 		found := false
 		for _, author := range filter.Authors {
@@ -818,7 +818,10 @@ func (c *CatalogService) updateStats() {
 
 	for _, template := range c.deploymentTemplates {
 		templatesByCategory[template.Category]++
-		templatesByType[template.Type]++
+		// Fixed to use correct nested field access
+		if template.TemplateSpec != nil {
+			templatesByType[template.TemplateSpec.Type]++
+		}
 	}
 	c.dtMutex.RUnlock()
 
@@ -881,14 +884,17 @@ func (v *DefaultTemplateValidator) ValidateTemplate(ctx context.Context, templat
 	if template.Category == "" {
 		return fmt.Errorf("template category is required")
 	}
-	if template.Type == "" {
+	if template.TemplateSpec == nil {
+		return fmt.Errorf("template specification is required")
+	}
+	if template.TemplateSpec.Type == "" {
 		return fmt.Errorf("template type is required")
 	}
-	if template.Content == nil {
+	if template.TemplateSpec.Content == nil {
 		return fmt.Errorf("template content is required")
 	}
 
-	// Validate template type
+	// Validate template type - Fixed to use correct field access
 	validTypes := []string{
 		models.TemplateTypeHelm,
 		models.TemplateTypeKubernetes,
@@ -898,14 +904,14 @@ func (v *DefaultTemplateValidator) ValidateTemplate(ctx context.Context, templat
 
 	validType := false
 	for _, validT := range validTypes {
-		if template.Type == validT {
+		if template.TemplateSpec.Type == validT {
 			validType = true
 			break
 		}
 	}
 
 	if !validType {
-		return fmt.Errorf("invalid template type: %s", template.Type)
+		return fmt.Errorf("invalid template type: %s", template.TemplateSpec.Type)
 	}
 
 	return nil
@@ -941,14 +947,23 @@ func NewDefaultTemplateProcessor() TemplateProcessor {
 func (p *DefaultTemplateProcessor) ProcessTemplate(ctx context.Context, template *models.DeploymentTemplate, parameters map[string]interface{}) (*ProcessedTemplate, error) {
 	// Basic template processing
 	// In a full implementation, this would render templates with actual templating engines
+	var renderedContent string
+	if template.TemplateSpec != nil && template.TemplateSpec.Content != nil {
+		renderedContent = string(template.TemplateSpec.Content.Raw)
+	}
+
 	processed := &ProcessedTemplate{
-		RenderedContent: string(template.Content.Raw),
+		RenderedContent: renderedContent,
 		Parameters:      parameters,
 		Metadata: map[string]string{
 			"template_id":   template.DeploymentTemplateID,
-			"template_type": template.Type,
 			"processed_at":  time.Now().Format(time.RFC3339),
 		},
+	}
+
+	// Fixed to use correct field access
+	if template.TemplateSpec != nil {
+		processed.Metadata["template_type"] = template.TemplateSpec.Type
 	}
 
 	return processed, nil
@@ -960,7 +975,7 @@ func (p *DefaultTemplateProcessor) ExtractParameters(ctx context.Context, templa
 	var parameters []TemplateParameter
 
 	// Basic implementation - would be enhanced for production
-	if template.InputSchema != nil {
+	if template.SupportedParameters != nil {
 		// Parse JSON schema and extract parameters
 		// For now, return empty list
 	}

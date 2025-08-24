@@ -303,13 +303,7 @@ type PerformanceForecast struct {
 	RiskAreas    []ForecastRisk
 }
 
-// ForecastPoint represents a single forecast prediction
-type ForecastPoint struct {
-	Timestamp      time.Time
-	PredictedValue float64
-	LowerBound     float64
-	UpperBound     float64
-}
+// ForecastPoint removed - defined in intelligent_regression_engine.go
 
 // ForecastRisk represents predicted performance risks
 type ForecastRisk struct {

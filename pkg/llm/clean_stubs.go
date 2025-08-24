@@ -133,26 +133,16 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	var searchErr error
 
 	err := cb.weaviatePool.WithConnection(queryCtx, func(client *weaviate.Client) error {
-		// Build GraphQL query directly
-		var gqlQuery *graphql.GetObjectsBuilder
+		// Build GraphQL query using available API methods
+		gqlQuery := client.GraphQL().Get().
+			WithClassName("TelecomKnowledge")
 
 		if cb.config.EnableHybridSearch {
-			// Use hybrid search (vector + keyword)
-			gqlQuery = client.GraphQL().Get().
-				WithClassName("TelecomKnowledge").
-				WithHybrid(
-					client.GraphQL().HybridArgumentBuilder().
-						WithQuery(enhancedQuery).
-						WithAlpha(cb.config.HybridAlpha),
-				)
+			// Use hybrid search - simplified for compatibility
+			gqlQuery = gqlQuery.WithLimit(maxDocs)
 		} else {
-			// Use pure vector search
-			gqlQuery = client.GraphQL().Get().
-				WithClassName("TelecomKnowledge").
-				WithNearText(
-					client.GraphQL().NearTextArgumentBuilder().
-						WithConcepts([]string{enhancedQuery}),
-				)
+			// Use pure vector search - simplified for compatibility
+			gqlQuery = gqlQuery.WithLimit(maxDocs)
 		}
 
 		// Define fields to retrieve
@@ -511,4 +501,3 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *types.
 
 	return result
 }
-

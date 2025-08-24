@@ -128,7 +128,7 @@ type PromptRequest struct {
 	Query              string                 `json:"query"`
 	IntentType         string                 `json:"intent_type"`
 	ModelName          string                 `json:"model_name"`
-	RAGContext         []*types.SearchResult `json:"rag_context"`
+	RAGContext         []*types.SearchResult  `json:"rag_context"`
 	Domain             string                 `json:"domain,omitempty"`
 	ExistingContext    string                 `json:"existing_context,omitempty"`
 	TemplateType       string                 `json:"template_type,omitempty"`

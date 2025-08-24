@@ -10,6 +10,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -1278,4 +1279,752 @@ func (k *KubernetesProvider) deployHelmTemplate(ctx context.Context, req *Deploy
 	return nil, fmt.Errorf("helm deployment not yet implemented")
 }
 
-// Additional helper methods would be implemented to complete the provider...
+// Missing method implementations for compilation
+
+func (k *KubernetesProvider) createSecret(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
+	// Convert request specification to Secret
+	spec, ok := req.Specification["secret"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid secret specification")
+	}
+
+	// Create Kubernetes Secret object
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        req.Name,
+			Namespace:   req.Namespace,
+			Labels:      req.Labels,
+			Annotations: req.Annotations,
+		},
+		Type: corev1.SecretTypeOpaque, // Default secret type
+		Data: make(map[string][]byte),
+	}
+
+	// Parse data from specification
+	if data, ok := spec["data"].(map[string]interface{}); ok {
+		for k, v := range data {
+			if str, ok := v.(string); ok {
+				secret.Data[k] = []byte(str)
+			}
+		}
+	}
+
+	// Parse string data if present
+	if stringData, ok := spec["stringData"].(map[string]interface{}); ok {
+		secret.StringData = make(map[string]string)
+		for k, v := range stringData {
+			if str, ok := v.(string); ok {
+				secret.StringData[k] = str
+			}
+		}
+	}
+
+	// Set secret type if specified
+	if secretType, ok := spec["type"].(string); ok {
+		secret.Type = corev1.SecretType(secretType)
+	}
+
+	// Create the secret
+	createdSecret, err := k.clientset.CoreV1().Secrets(req.Namespace).Create(ctx, secret, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create secret: %w", err)
+	}
+
+	// Convert to response format
+	return k.convertSecretToResourceResponse(createdSecret), nil
+}
+
+func (k *KubernetesProvider) createPersistentVolumeClaim(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
+	// Convert request specification to PVC
+	spec, ok := req.Specification["persistentVolumeClaim"].(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("invalid pvc specification")
+	}
+
+	// Create Kubernetes PVC object
+	pvc := &corev1.PersistentVolumeClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        req.Name,
+			Namespace:   req.Namespace,
+			Labels:      req.Labels,
+			Annotations: req.Annotations,
+		},
+		Spec: corev1.PersistentVolumeClaimSpec{},
+	}
+
+	// Parse access modes
+	if accessModes, ok := spec["accessModes"].([]interface{}); ok {
+		for _, mode := range accessModes {
+			if modeStr, ok := mode.(string); ok {
+				pvc.Spec.AccessModes = append(pvc.Spec.AccessModes, corev1.PersistentVolumeAccessMode(modeStr))
+			}
+		}
+	}
+
+	// Parse storage size
+	if size, ok := spec["size"].(string); ok {
+		quantity, err := parseQuantity(size)
+		if err == nil {
+			pvc.Spec.Resources = corev1.ResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: quantity,
+				},
+			}
+		}
+	}
+
+	// Set storage class if specified
+	if storageClass, ok := spec["storageClass"].(string); ok {
+		pvc.Spec.StorageClassName = &storageClass
+	}
+
+	// Create the PVC
+	createdPVC, err := k.clientset.CoreV1().PersistentVolumeClaims(req.Namespace).Create(ctx, pvc, metav1.CreateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create pvc: %w", err)
+	}
+
+	// Convert to response format
+	return k.convertPVCToResourceResponse(createdPVC), nil
+}
+
+func (k *KubernetesProvider) createIngress(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
+	return nil, fmt.Errorf("createIngress not yet implemented - requires networking/v1 imports")
+}
+
+func (k *KubernetesProvider) getDeployment(ctx context.Context, namespace, name string) (*ResourceResponse, error) {
+	deployment, err := k.clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment: %w", err)
+	}
+
+	return k.convertDeploymentToResourceResponse(deployment), nil
+}
+
+func (k *KubernetesProvider) getService(ctx context.Context, namespace, name string) (*ResourceResponse, error) {
+	service, err := k.clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get service: %w", err)
+	}
+
+	return k.convertServiceToResourceResponse(service), nil
+}
+
+func (k *KubernetesProvider) getConfigMap(ctx context.Context, namespace, name string) (*ResourceResponse, error) {
+	configMap, err := k.clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configmap: %w", err)
+	}
+
+	return k.convertConfigMapToResourceResponse(configMap), nil
+}
+
+func (k *KubernetesProvider) getSecret(ctx context.Context, namespace, name string) (*ResourceResponse, error) {
+	secret, err := k.clientset.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret: %w", err)
+	}
+
+	return k.convertSecretToResourceResponse(secret), nil
+}
+
+func (k *KubernetesProvider) getPersistentVolumeClaim(ctx context.Context, namespace, name string) (*ResourceResponse, error) {
+	pvc, err := k.clientset.CoreV1().PersistentVolumeClaims(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pvc: %w", err)
+	}
+
+	return k.convertPVCToResourceResponse(pvc), nil
+}
+
+func (k *KubernetesProvider) updateDeployment(ctx context.Context, namespace, name string, req *UpdateResourceRequest) (*ResourceResponse, error) {
+	// Get current deployment
+	deployment, err := k.clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get deployment for update: %w", err)
+	}
+
+	// Update labels if provided
+	if req.Labels != nil {
+		if deployment.Labels == nil {
+			deployment.Labels = make(map[string]string)
+		}
+		for k, v := range req.Labels {
+			deployment.Labels[k] = v
+		}
+	}
+
+	// Update annotations if provided
+	if req.Annotations != nil {
+		if deployment.Annotations == nil {
+			deployment.Annotations = make(map[string]string)
+		}
+		for k, v := range req.Annotations {
+			deployment.Annotations[k] = v
+		}
+	}
+
+	// Update spec if provided
+	if req.Specification != nil {
+		// Handle replica count update
+		if replicas, ok := req.Specification["replicas"].(float64); ok {
+			rep := int32(replicas)
+			deployment.Spec.Replicas = &rep
+		}
+	}
+
+	// Update the deployment
+	updatedDeployment, err := k.clientset.AppsV1().Deployments(namespace).Update(ctx, deployment, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update deployment: %w", err)
+	}
+
+	return k.convertDeploymentToResourceResponse(updatedDeployment), nil
+}
+
+// updateService updates a Kubernetes Service
+func (k *KubernetesProvider) updateService(ctx context.Context, namespace, name string, req *UpdateResourceRequest) (*ResourceResponse, error) {
+	// Get current service
+	service, err := k.clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get service for update: %w", err)
+	}
+
+	// Update labels if provided
+	if req.Labels != nil {
+		if service.Labels == nil {
+			service.Labels = make(map[string]string)
+		}
+		for k, v := range req.Labels {
+			service.Labels[k] = v
+		}
+	}
+
+	// Update annotations if provided
+	if req.Annotations != nil {
+		if service.Annotations == nil {
+			service.Annotations = make(map[string]string)
+		}
+		for k, v := range req.Annotations {
+			service.Annotations[k] = v
+		}
+	}
+
+	// Update the service
+	updatedService, err := k.clientset.CoreV1().Services(namespace).Update(ctx, service, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update service: %w", err)
+	}
+
+	return k.convertServiceToResourceResponse(updatedService), nil
+}
+
+// updateConfigMap updates a Kubernetes ConfigMap
+func (k *KubernetesProvider) updateConfigMap(ctx context.Context, namespace, name string, req *UpdateResourceRequest) (*ResourceResponse, error) {
+	// Get current configmap
+	configMap, err := k.clientset.CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configmap for update: %w", err)
+	}
+
+	// Update labels if provided
+	if req.Labels != nil {
+		if configMap.Labels == nil {
+			configMap.Labels = make(map[string]string)
+		}
+		for k, v := range req.Labels {
+			configMap.Labels[k] = v
+		}
+	}
+
+	// Update annotations if provided
+	if req.Annotations != nil {
+		if configMap.Annotations == nil {
+			configMap.Annotations = make(map[string]string)
+		}
+		for k, v := range req.Annotations {
+			configMap.Annotations[k] = v
+		}
+	}
+
+	// Update data if provided
+	if req.Specification != nil {
+		if data, ok := req.Specification["data"].(map[string]interface{}); ok {
+			if configMap.Data == nil {
+				configMap.Data = make(map[string]string)
+			}
+			for k, v := range data {
+				if str, ok := v.(string); ok {
+					configMap.Data[k] = str
+				}
+			}
+		}
+	}
+
+	// Update the configmap
+	updatedConfigMap, err := k.clientset.CoreV1().ConfigMaps(namespace).Update(ctx, configMap, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update configmap: %w", err)
+	}
+
+	return k.convertConfigMapToResourceResponse(updatedConfigMap), nil
+}
+
+// updateSecret updates a Kubernetes Secret
+func (k *KubernetesProvider) updateSecret(ctx context.Context, namespace, name string, req *UpdateResourceRequest) (*ResourceResponse, error) {
+	// Get current secret
+	secret, err := k.clientset.CoreV1().Secrets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get secret for update: %w", err)
+	}
+
+	// Update labels if provided
+	if req.Labels != nil {
+		if secret.Labels == nil {
+			secret.Labels = make(map[string]string)
+		}
+		for k, v := range req.Labels {
+			secret.Labels[k] = v
+		}
+	}
+
+	// Update annotations if provided
+	if req.Annotations != nil {
+		if secret.Annotations == nil {
+			secret.Annotations = make(map[string]string)
+		}
+		for k, v := range req.Annotations {
+			secret.Annotations[k] = v
+		}
+	}
+
+	// Update data if provided
+	if req.Specification != nil {
+		if data, ok := req.Specification["data"].(map[string]interface{}); ok {
+			if secret.Data == nil {
+				secret.Data = make(map[string][]byte)
+			}
+			for k, v := range data {
+				if str, ok := v.(string); ok {
+					secret.Data[k] = []byte(str)
+				}
+			}
+		}
+	}
+
+	// Update the secret
+	updatedSecret, err := k.clientset.CoreV1().Secrets(namespace).Update(ctx, secret, metav1.UpdateOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to update secret: %w", err)
+	}
+
+	return k.convertSecretToResourceResponse(updatedSecret), nil
+}
+
+// Helper function to parse quantity
+func parseQuantity(size string) (resource.Quantity, error) {
+	// Simple implementation - in a real environment, use proper quantity parsing
+	// For now, create a simple quantity from the size string
+	return resource.MustParse(size), nil
+}
+
+// convertSecretToResourceResponse converts a Kubernetes Secret to ResourceResponse
+func (k *KubernetesProvider) convertSecretToResourceResponse(secret *corev1.Secret) *ResourceResponse {
+	status := "active"
+	health := HealthStatusHealthy
+
+	return &ResourceResponse{
+		ID:        string(secret.UID),
+		Name:      secret.Name,
+		Type:      "secret",
+		Namespace: secret.Namespace,
+		Status:    status,
+		Health:    health,
+		Specification: map[string]interface{}{
+			"type": string(secret.Type),
+			// Don't expose actual secret data in response
+			"dataKeys": func() []string {
+				keys := make([]string, 0, len(secret.Data))
+				for k := range secret.Data {
+					keys = append(keys, k)
+				}
+				return keys
+			}(),
+		},
+		Labels:      secret.Labels,
+		Annotations: secret.Annotations,
+		CreatedAt:   secret.CreationTimestamp.Time,
+		UpdatedAt:   time.Now(),
+	}
+}
+
+// convertPVCToResourceResponse converts a Kubernetes PVC to ResourceResponse
+func (k *KubernetesProvider) convertPVCToResourceResponse(pvc *corev1.PersistentVolumeClaim) *ResourceResponse {
+	status := string(pvc.Status.Phase)
+	health := HealthStatusUnknown
+
+	switch pvc.Status.Phase {
+	case corev1.ClaimBound:
+		health = HealthStatusHealthy
+		status = "bound"
+	case corev1.ClaimPending:
+		health = HealthStatusUnhealthy
+		status = "pending"
+	case corev1.ClaimLost:
+		health = HealthStatusUnhealthy
+		status = "lost"
+	}
+
+	spec := map[string]interface{}{
+		"accessModes": pvc.Spec.AccessModes,
+	}
+
+	if pvc.Spec.Resources.Requests != nil {
+		if storage, ok := pvc.Spec.Resources.Requests[corev1.ResourceStorage]; ok {
+			spec["size"] = storage.String()
+		}
+	}
+
+	if pvc.Spec.StorageClassName != nil {
+		spec["storageClass"] = *pvc.Spec.StorageClassName
+	}
+
+	return &ResourceResponse{
+		ID:            string(pvc.UID),
+		Name:          pvc.Name,
+		Type:          "persistentvolumeclaim",
+		Namespace:     pvc.Namespace,
+		Status:        status,
+		Health:        health,
+		Specification: spec,
+		Labels:        pvc.Labels,
+		Annotations:   pvc.Annotations,
+		CreatedAt:     pvc.CreationTimestamp.Time,
+		UpdatedAt:     time.Now(),
+	}
+}
+
+// Additional missing helper methods
+
+// listResourcesByType lists resources by type with filtering
+func (k *KubernetesProvider) listResourcesByType(ctx context.Context, resourceType string, filter *ResourceFilter) ([]*ResourceResponse, error) {
+	var resources []*ResourceResponse
+
+	// Determine namespaces to search
+	namespaces := filter.Namespaces
+	if len(namespaces) == 0 {
+		namespaces = []string{"default"}
+	}
+
+	switch strings.ToLower(resourceType) {
+	case "deployment":
+		for _, namespace := range namespaces {
+			deployments, err := k.clientset.AppsV1().Deployments(namespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				continue
+			}
+			for _, deployment := range deployments.Items {
+				resources = append(resources, k.convertDeploymentToResourceResponse(&deployment))
+			}
+		}
+	case "service":
+		for _, namespace := range namespaces {
+			services, err := k.clientset.CoreV1().Services(namespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				continue
+			}
+			for _, service := range services.Items {
+				resources = append(resources, k.convertServiceToResourceResponse(&service))
+			}
+		}
+	case "configmap":
+		for _, namespace := range namespaces {
+			configMaps, err := k.clientset.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				continue
+			}
+			for _, cm := range configMaps.Items {
+				resources = append(resources, k.convertConfigMapToResourceResponse(&cm))
+			}
+		}
+	case "secret":
+		for _, namespace := range namespaces {
+			secrets, err := k.clientset.CoreV1().Secrets(namespace).List(ctx, metav1.ListOptions{})
+			if err != nil {
+				continue
+			}
+			for _, secret := range secrets.Items {
+				resources = append(resources, k.convertSecretToResourceResponse(&secret))
+			}
+		}
+	}
+
+	return resources, nil
+}
+
+// applyResourceFilters applies additional filtering to resources
+func (k *KubernetesProvider) applyResourceFilters(resources []*ResourceResponse, filter *ResourceFilter) []*ResourceResponse {
+	if filter == nil {
+		return resources
+	}
+
+	var filtered []*ResourceResponse
+
+	for _, resource := range resources {
+		// Apply status filter
+		if len(filter.Statuses) > 0 {
+			found := false
+			for _, status := range filter.Statuses {
+				if resource.Status == status {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		// Apply label filter
+		if filter.Labels != nil {
+			match := true
+			for filterKey, filterValue := range filter.Labels {
+				if resource.Labels == nil || resource.Labels[filterKey] != filterValue {
+					match = false
+					break
+				}
+			}
+			if !match {
+				continue
+			}
+		}
+
+		filtered = append(filtered, resource)
+	}
+
+	// Apply limit
+	if filter.Limit > 0 && len(filtered) > filter.Limit {
+		filtered = filtered[:filter.Limit]
+	}
+
+	return filtered
+}
+
+// scaleDeployment scales a deployment
+func (k *KubernetesProvider) scaleDeployment(ctx context.Context, namespace, name string, req *ScaleRequest) error {
+	scale, err := k.clientset.AppsV1().Deployments(namespace).GetScale(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get deployment scale: %w", err)
+	}
+
+	// Update replica count based on request
+	if req.Amount > 0 {
+		if req.Direction == ScaleDirectionUp {
+			scale.Spec.Replicas += req.Amount
+		} else if req.Direction == ScaleDirectionDown {
+			scale.Spec.Replicas -= req.Amount
+			if scale.Spec.Replicas < 0 {
+				scale.Spec.Replicas = 0
+			}
+		}
+	}
+
+	if req.MinReplicas != nil && scale.Spec.Replicas < *req.MinReplicas {
+		scale.Spec.Replicas = *req.MinReplicas
+	}
+
+	if req.MaxReplicas != nil && scale.Spec.Replicas > *req.MaxReplicas {
+		scale.Spec.Replicas = *req.MaxReplicas
+	}
+
+	_, err = k.clientset.AppsV1().Deployments(namespace).UpdateScale(ctx, name, scale, metav1.UpdateOptions{})
+	return err
+}
+
+// scaleStatefulSet scales a statefulset
+func (k *KubernetesProvider) scaleStatefulSet(ctx context.Context, namespace, name string, req *ScaleRequest) error {
+	scale, err := k.clientset.AppsV1().StatefulSets(namespace).GetScale(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get statefulset scale: %w", err)
+	}
+
+	// Update replica count based on request
+	if req.Amount > 0 {
+		if req.Direction == ScaleDirectionUp {
+			scale.Spec.Replicas += req.Amount
+		} else if req.Direction == ScaleDirectionDown {
+			scale.Spec.Replicas -= req.Amount
+			if scale.Spec.Replicas < 0 {
+				scale.Spec.Replicas = 0
+			}
+		}
+	}
+
+	_, err = k.clientset.AppsV1().StatefulSets(namespace).UpdateScale(ctx, name, scale, metav1.UpdateOptions{})
+	return err
+}
+
+// getDeploymentHealth returns deployment health status
+func (k *KubernetesProvider) getDeploymentHealth(ctx context.Context, namespace, name string) (*HealthStatus, error) {
+	deployment, err := k.clientset.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return &HealthStatus{
+			Status:      HealthStatusUnknown,
+			Message:     fmt.Sprintf("Failed to get deployment: %v", err),
+			LastUpdated: time.Now(),
+		}, nil
+	}
+
+	status := HealthStatusHealthy
+	message := "Deployment is healthy"
+
+	if deployment.Status.ReadyReplicas == 0 {
+		status = HealthStatusUnhealthy
+		message = "No ready replicas"
+	} else if deployment.Status.ReadyReplicas < *deployment.Spec.Replicas {
+		status = HealthStatusUnhealthy
+		message = fmt.Sprintf("Only %d of %d replicas ready", deployment.Status.ReadyReplicas, *deployment.Spec.Replicas)
+	}
+
+	return &HealthStatus{
+		Status:      status,
+		Message:     message,
+		LastUpdated: time.Now(),
+	}, nil
+}
+
+// getServiceHealth returns service health status
+func (k *KubernetesProvider) getServiceHealth(ctx context.Context, namespace, name string) (*HealthStatus, error) {
+	service, err := k.clientset.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return &HealthStatus{
+			Status:      HealthStatusUnknown,
+			Message:     fmt.Sprintf("Failed to get service: %v", err),
+			LastUpdated: time.Now(),
+		}, nil
+	}
+
+	status := HealthStatusHealthy
+	message := "Service is healthy"
+
+	// Check if service has endpoints
+	endpoints, err := k.clientset.CoreV1().Endpoints(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err == nil {
+		endpointCount := 0
+		for _, subset := range endpoints.Subsets {
+			endpointCount += len(subset.Addresses)
+		}
+		if endpointCount == 0 {
+			status = HealthStatusUnhealthy
+			message = "Service has no endpoints"
+		}
+	}
+
+	return &HealthStatus{
+		Status:      status,
+		Message:     message,
+		LastUpdated: time.Now(),
+		Metadata: map[string]interface{}{
+			"clusterIP": service.Spec.ClusterIP,
+			"type":      string(service.Spec.Type),
+		},
+	}, nil
+}
+
+// getPodHealth returns pod health status
+func (k *KubernetesProvider) getPodHealth(ctx context.Context, namespace, name string) (*HealthStatus, error) {
+	pod, err := k.clientset.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+	if err != nil {
+		return &HealthStatus{
+			Status:      HealthStatusUnknown,
+			Message:     fmt.Sprintf("Failed to get pod: %v", err),
+			LastUpdated: time.Now(),
+		}, nil
+	}
+
+	status := HealthStatusHealthy
+	message := string(pod.Status.Phase)
+
+	switch pod.Status.Phase {
+	case corev1.PodRunning:
+		status = HealthStatusHealthy
+	case corev1.PodPending:
+		status = HealthStatusUnhealthy
+	case corev1.PodFailed:
+		status = HealthStatusUnhealthy
+	case corev1.PodSucceeded:
+		status = HealthStatusHealthy
+	default:
+		status = HealthStatusUnknown
+	}
+
+	return &HealthStatus{
+		Status:      status,
+		Message:     message,
+		LastUpdated: time.Now(),
+	}, nil
+}
+
+// watchEvents watches Kubernetes events
+func (k *KubernetesProvider) watchEvents(ctx context.Context) {
+	// Simple implementation - in production, use watch interface
+	logger := log.FromContext(ctx)
+	logger.Info("watchEvents not fully implemented")
+}
+
+// Stub implementations for remaining methods that require more complex implementations
+func (k *KubernetesProvider) updateKubernetesDeployment(ctx context.Context, deploymentID string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
+	return nil, fmt.Errorf("updateKubernetesDeployment not implemented")
+}
+
+func (k *KubernetesProvider) updateHelmDeployment(ctx context.Context, deploymentID string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
+	return nil, fmt.Errorf("updateHelmDeployment not implemented")
+}
+
+func (k *KubernetesProvider) createKubernetesService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("createKubernetesService not implemented")
+}
+
+func (k *KubernetesProvider) getKubernetesService(ctx context.Context, namespace, name string) (*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("getKubernetesService not implemented")
+}
+
+func (k *KubernetesProvider) createKubernetesIngress(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("createKubernetesIngress not implemented")
+}
+
+func (k *KubernetesProvider) getKubernetesIngress(ctx context.Context, namespace, name string) (*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("getKubernetesIngress not implemented")
+}
+
+func (k *KubernetesProvider) createNetworkPolicy(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("createNetworkPolicy not implemented")
+}
+
+func (k *KubernetesProvider) getKubernetesNetworkPolicy(ctx context.Context, namespace, name string) (*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("getKubernetesNetworkPolicy not implemented")
+}
+
+func (k *KubernetesProvider) listNetworkServicesByType(ctx context.Context, serviceType, namespace string, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("listNetworkServicesByType not implemented")
+}
+
+func (k *KubernetesProvider) createPVC(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
+	return nil, fmt.Errorf("createPVC not implemented")
+}
+
+func (k *KubernetesProvider) getPVC(ctx context.Context, namespace, name string) (*StorageResourceResponse, error) {
+	return nil, fmt.Errorf("getPVC not implemented")
+}
+
+func (k *KubernetesProvider) createStorageClass(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
+	return nil, fmt.Errorf("createStorageClass not implemented")
+}
+
+func (k *KubernetesProvider) getStorageClass(ctx context.Context, name string) (*StorageResourceResponse, error) {
+	return nil, fmt.Errorf("getStorageClass not implemented")
+}
+
+func (k *KubernetesProvider) listStorageResourcesByType(ctx context.Context, resourceType string, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
+	return nil, fmt.Errorf("listStorageResourcesByType not implemented")
+}
