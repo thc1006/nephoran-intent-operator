@@ -291,12 +291,12 @@ jobs:
             ${{ runner.os }}-test-cache-
 
       - name: Run unit tests with coverage
-        timeout-minutes: 8
+        timeout-minutes: 5
         env:
           CGO_ENABLED: 1
           GOMAXPROCS: 2
         run: |
-          echo "=== Running Unit Tests with Coverage (Hardened) ==="
+          echo "=== Running Unit Tests (Fast, No Integration) ==="
           mkdir -p .test-reports
           
           # Set deterministic test environment
@@ -304,13 +304,14 @@ jobs:
           export GO111MODULE=on
           export GOTESTSUM_FORMAT=short-verbose
           
-          # Run tests with coverage and timeout safety
-          echo "Starting tests with 8m timeout ceiling..."
-          timeout 8m go test -v -race -timeout=7m30s \
+          # Run tests with coverage and timeout safety (excluding integration tests)
+          echo "Starting fast unit tests with 5m timeout..."
+          timeout 5m go test -v -race -timeout=4m30s \
             -coverprofile=.test-reports/coverage.out \
             -covermode=atomic \
             -count=1 \
-            -parallel=2 \
+            -parallel=4 \
+            -short \
             ./... | tee .test-reports/test.log || {
               echo "Test execution completed (may have timed out)"
               echo "test_timeout=true" >> .test-reports/test-status.txt
@@ -330,7 +331,7 @@ jobs:
             echo "coverage_available=false" >> .test-reports/test-status.txt
           fi
           
-          echo "## 🧪 Unit Test Results (Hardened)" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Unit Test Results (Fast Mode)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Coverage:** $coverage_percent" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

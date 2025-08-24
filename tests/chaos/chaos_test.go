@@ -1,3 +1,5 @@
+//go:build integration
+
 // Package chaos provides comprehensive chaos engineering testing for resilience validation
 package chaos
 

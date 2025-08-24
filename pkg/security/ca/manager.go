@@ -510,7 +510,7 @@ func (m *CAManager) RenewCertificate(ctx context.Context, serialNumber string) (
 
 	// Create renewal request based on existing certificate
 	req := &CertificateRequest{
-		ID:               generateRequestID(),
+		ID:               generateManagerRequestID(),
 		TenantID:         existingCert.Metadata["tenant_id"],
 		CommonName:       existingCert.Certificate.Subject.CommonName,
 		DNSNames:         existingCert.Certificate.DNSNames,
@@ -702,8 +702,8 @@ func (m *CAManager) processExpiringCertificates() {
 	}
 }
 
-// generateRequestID generates a unique request ID
-func generateRequestID() string {
+// generateManagerRequestID generates a unique request ID for manager operations
+func generateManagerRequestID() string {
 	// Generate a random request ID
 	randomBytes := make([]byte, 8)
 	rand.Read(randomBytes)

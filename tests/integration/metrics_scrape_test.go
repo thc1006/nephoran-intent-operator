@@ -1,3 +1,5 @@
+//go:build integration
+
 // Package integration provides integration tests for the Nephoran Intent Operator.
 //
 // This test validates Prometheus metrics endpoint functionality including:

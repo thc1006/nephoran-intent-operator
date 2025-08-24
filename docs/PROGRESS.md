@@ -6,3 +6,4 @@
 | 2025-08-23T21:41:23+08:00 | fix/graceful-shutdown-exit-codes | CI/DevOps | Updated golangci-lint to v1.62.0 across all workflows to fix Go 1.24 compatibility issues |
 | 2025-08-24T04:06:57+08:00 | fix/graceful-shutdown-exit-codes | ci | fix quality-gate exit 127 via gocyclo auto-install |
 | 2025-08-24T04:25:32+08:00 | fix/graceful-shutdown-exit-codes | generator | fix regex syntax; add tests; make Go 1.24.1 build green |
+| 2025-08-24T23:54:44+08:00 | chore/migrate-golangci-v2 | testing | Implemented build tags for test separation |

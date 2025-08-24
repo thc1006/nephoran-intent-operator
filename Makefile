@@ -227,32 +227,36 @@ lint: ## Run golangci-lint (matches CI configuration)
 ##@ Testing
 
 .PHONY: test
-test: ## Run unit tests (hardened)
-	@echo "Running hardened unit tests..."
+test: ## Run unit tests (fast, no external dependencies)
+	@echo "Running unit tests (excluding integration tests)..."
 	mkdir -p $(REPORTS_DIR)
 	@export CGO_ENABLED=1 GOMAXPROCS=2 GODEBUG=gocachehash=1; \
-	timeout 8m go test ./... -v -race -timeout=7m30s \
+	timeout 5m go test ./... -v -race -timeout=4m30s \
 		-coverprofile=$(REPORTS_DIR)/coverage.out \
 		-covermode=atomic \
 		-count=1 \
-		-parallel=2 || echo "Tests completed (may have reached timeout ceiling)"
+		-parallel=4 \
+		-short || echo "Tests completed (may have reached timeout ceiling)"
 	@if [ -f "$(REPORTS_DIR)/coverage.out" ] && [ -s "$(REPORTS_DIR)/coverage.out" ]; then \
 		echo "Coverage report generated successfully"; \
 	else \
 		echo "Warning: Coverage file not generated or empty"; \
 	fi
 
+.PHONY: test-unit
+test-unit: test ## Alias for test (unit tests only)
+
 .PHONY: test-integration
-test-integration: ## Run integration tests
-	@echo "Running integration tests..."
+test-integration: ## Run integration tests (requires external resources)
+	@echo "Running integration tests with build tag..."
 	mkdir -p $(REPORTS_DIR)
-	go test ./tests/integration/... -v -timeout=30m
+	go test ./... -tags=integration -v -timeout=30m -race
 
 .PHONY: test-e2e
 test-e2e: ## Run end-to-end tests
 	@echo "Running end-to-end tests..."
 	mkdir -p $(REPORTS_DIR)
-	go test ./tests/e2e/... -v -timeout=45m
+	go test ./tests/e2e/... -tags=integration -v -timeout=45m
 
 .PHONY: test-excellence
 test-excellence: ## Run excellence validation test suite
@@ -273,15 +277,16 @@ test-regression: ## Run regression testing suite
 test-all: test test-integration test-e2e test-excellence test-regression ## Run all test suites
 
 .PHONY: test-ci
-test-ci: ## Run unit tests with CI-compatible coverage reporting (hardened)
-	@echo "Running hardened unit tests with CI-compatible coverage..."
+test-ci: ## Run unit tests with CI-compatible coverage reporting (fast, no integration)
+	@echo "Running unit tests with CI-compatible coverage (no integration tests)..."
 	mkdir -p .test-reports
 	@export CGO_ENABLED=1 GOMAXPROCS=2 GODEBUG=gocachehash=1 GO111MODULE=on; \
-	timeout 8m go test ./... -v -race -timeout=7m30s \
+	timeout 5m go test ./... -v -race -timeout=4m30s \
 		-coverprofile=.test-reports/coverage.out \
 		-covermode=atomic \
 		-count=1 \
-		-parallel=2 || echo "Tests completed (may have reached 8m timeout ceiling)"
+		-parallel=4 \
+		-short || echo "Tests completed (may have reached 5m timeout ceiling)"
 	@if [ -f ".test-reports/coverage.out" ] && [ -s ".test-reports/coverage.out" ]; then \
 		go tool cover -html=.test-reports/coverage.out -o .test-reports/coverage.html; \
 		echo "Coverage report generated: .test-reports/coverage.html"; \

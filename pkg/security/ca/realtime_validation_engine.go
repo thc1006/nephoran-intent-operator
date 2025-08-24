@@ -94,7 +94,7 @@ type RealtimeValidationConfig struct {
 	DetailedMetrics      bool            `yaml:"detailed_metrics"`
 	WebhookNotifications bool            `yaml:"webhook_notifications"`
 	WebhookEndpoints     []string        `yaml:"webhook_endpoints"`
-	AlertThresholds      AlertThresholds `yaml:"alert_thresholds"`
+	AlertThresholds      ValidationAlertThresholds `yaml:"alert_thresholds"`
 
 	// Emergency procedures
 	EmergencyBypassEnabled  bool          `yaml:"emergency_bypass_enabled"`
@@ -103,8 +103,8 @@ type RealtimeValidationConfig struct {
 	BypassAuditEnabled      bool          `yaml:"bypass_audit_enabled"`
 }
 
-// AlertThresholds defines thresholds for validation alerts
-type AlertThresholds struct {
+// ValidationAlertThresholds defines thresholds for validation alerts
+type ValidationAlertThresholds struct {
 	ValidationFailureRate      float64       `yaml:"validation_failure_rate"`
 	RevocationCheckFailureRate float64       `yaml:"revocation_check_failure_rate"`
 	ResponseTimeP95            time.Duration `yaml:"response_time_p95"`
@@ -126,6 +126,16 @@ type ValidationStatistics struct {
 	// Performance metrics
 	ValidationDurations []time.Duration
 	mu                  sync.RWMutex
+}
+
+// L2ValidationCache represents distributed cache for validation results
+type L2ValidationCache struct {
+	// Placeholder for distributed cache implementation
+}
+
+// PreloadCache represents pre-validated certificates cache
+type PreloadCache struct {
+	// Placeholder for preload cache implementation
 }
 
 // ValidationCacheOptimized provides optimized caching for validation results
