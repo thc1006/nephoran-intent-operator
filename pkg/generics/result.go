@@ -75,9 +75,9 @@ func (r Result[T, E]) ValueOr(defaultValue T) T {
 	return defaultValue
 }
 
-// Map transforms the value using the provided function if the Result is successful.
+// MapResult transforms the value using the provided function if the Result is successful.
 // Returns a new Result with the transformed value, or the original error.
-func Map[T, U, E any](r Result[T, E], fn func(T) U) Result[U, E] {
+func MapResult[T, U, E any](r Result[T, E], fn func(T) U) Result[U, E] {
 	if !r.ok {
 		return Err[U, E](r.err)
 	}
@@ -218,7 +218,7 @@ func NewChain[T, E any](r Result[T, E]) *Chain[T, E] {
 
 // Map applies a transformation function.
 func (c *Chain[T, E]) Map(fn func(T) T) *Chain[T, E] {
-	c.result = Map(c.result, fn)
+	c.result = MapResult(c.result, fn)
 	return c
 }
 

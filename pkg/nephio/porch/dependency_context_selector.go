@@ -522,12 +522,12 @@ func (cads *ContextAwareDependencySelector) hasDependency(
 	name string,
 ) bool {
 	for _, dep := range deps.PrimaryDependencies {
-		if dep.PackageRef.Name == name {
+		if dep.PackageRef.PackageName == name {
 			return true
 		}
 	}
 	for _, dep := range deps.OptionalDependencies {
-		if dep.PackageRef.Name == name {
+		if dep.PackageRef.PackageName == name {
 			return true
 		}
 	}
@@ -538,7 +538,7 @@ func (cads *ContextAwareDependencySelector) hasXAppDependency(
 	deps *ContextualDependencies,
 ) bool {
 	for _, dep := range deps.PrimaryDependencies {
-		if strings.HasPrefix(dep.PackageRef.Name, "xapp-") {
+		if strings.HasPrefix(dep.PackageRef.PackageName, "xapp-") {
 			return true
 		}
 	}
@@ -550,7 +550,7 @@ func (cads *ContextAwareDependencySelector) findLightweightVersion(
 ) string {
 	// In production, this would query the package repository
 	// for lightweight/edge versions
-	if strings.HasSuffix(pkg.Name, "-edge") {
+	if strings.HasSuffix(pkg.PackageName, "-edge") {
 		return "edge-latest"
 	}
 	return ""

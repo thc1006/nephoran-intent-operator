@@ -301,6 +301,16 @@ func (cbm *CircuitBreakerManager) GetAllMetrics() map[string]CircuitBreakerMetri
 	return metrics
 }
 
+// GetStats returns statistics for all circuit breakers (interface-compatible method)
+func (cbm *CircuitBreakerManager) GetStats() (map[string]interface{}, error) {
+	metrics := cbm.GetAllMetrics()
+	stats := make(map[string]interface{})
+	for name, metric := range metrics {
+		stats[name] = metric
+	}
+	return stats, nil
+}
+
 // ResetAll resets all circuit breakers
 func (cbm *CircuitBreakerManager) ResetAll() {
 	cbm.mutex.RLock()

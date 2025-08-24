@@ -10,7 +10,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -507,8 +506,8 @@ func (r *RecoveryTester) checkPodsCrashed(ctx context.Context, namespace string)
 	}
 
 	for _, pod := range podList.Items {
-		if pod.Status.Phase == corev1.PodPhaseFailed ||
-			pod.Status.Phase == corev1.PodPhaseUnknown {
+		if pod.Status.Phase == corev1.PodFailed ||
+			pod.Status.Phase == corev1.PodUnknown {
 			return true
 		}
 		for _, containerStatus := range pod.Status.ContainerStatuses {

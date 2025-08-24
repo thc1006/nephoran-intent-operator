@@ -4,6 +4,7 @@ package rag
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -512,6 +513,42 @@ func (pha *ProviderHealthAdapter) IsHealthy() bool {
 // GetLatency implements EmbeddingProvider
 func (pha *ProviderHealthAdapter) GetLatency() time.Duration {
 	return pha.provider.GetLatency()
+}
+
+// GenerateEmbedding implements EmbeddingProvider (from enhanced_rag_integration.go)
+func (pha *ProviderHealthAdapter) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
+	response, err := pha.provider.GenerateEmbeddings(ctx, []string{text})
+	if err != nil {
+		return nil, err
+	}
+	
+	if len(response.Embeddings) == 0 {
+		return nil, fmt.Errorf("no embeddings returned")
+	}
+	
+	return response.Embeddings[0], nil
+}
+
+// GenerateBatchEmbeddings implements EmbeddingProvider (from enhanced_rag_integration.go)
+func (pha *ProviderHealthAdapter) GenerateBatchEmbeddings(ctx context.Context, texts []string) ([][]float32, error) {
+	response, err := pha.provider.GenerateEmbeddings(ctx, texts)
+	if err != nil {
+		return nil, err
+	}
+	
+	return response.Embeddings, nil
+}
+
+// GetDimensions implements EmbeddingProvider (from enhanced_rag_integration.go)
+func (pha *ProviderHealthAdapter) GetDimensions() int {
+	// Try to get dimensions from model info if available
+	modelInfo := pha.provider.GetModelInfo()
+	if modelInfo.Dimensions > 0 {
+		return modelInfo.Dimensions
+	}
+	
+	// Default fallback - most common embedding dimensions
+	return 384
 }
 
 // Enhanced types that were referenced but not defined

@@ -766,7 +766,7 @@ func (c *Calculator) performCalculation() {
 	defer func() {
 		duration := time.Since(start)
 		c.metrics.CalculationLatency.WithLabelValues("full_cycle").Observe(duration.Seconds())
-		atomic.AddUint64(&c.calculationCount, 1)
+		c.calculationCount.Add(1)
 	}()
 
 	// Calculate each SLI dimension
@@ -1019,7 +1019,7 @@ func (c *Calculator) calculateSLOCompliance(state *SLIState) {
 		}
 	}
 	state.ViolationCount = violationCount
-	atomic.StoreUint64(&c.violationCount, uint64(violationCount))
+	c.violationCount.Store(uint64(violationCount))
 }
 
 // updateSLIMetrics updates Prometheus metrics with current SLI values
@@ -1241,7 +1241,6 @@ func NewDowntimeTracker() *DowntimeTracker { return &DowntimeTracker{} }
 type LatencyTimeSeries struct{}
 type LatencyViolationTracker struct{}
 type CapacityTracker struct{}
-type QueueDepthMonitor struct{}
 type PeakTracker struct{}
 type SLOComplianceTracker struct{}
 type DowntimeTracker struct{}

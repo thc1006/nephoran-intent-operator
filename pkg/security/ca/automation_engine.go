@@ -659,7 +659,7 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 			}
 			// Perform health check
 			result, err := e.healthChecker.PerformHealthCheck(session)
-			if err != nil || !result.Healthy {
+			if err != nil || !result.Success {
 				unhealthyCount++
 				e.logger.Warn("Service health check failed", map[string]interface{}{
 					"service": service.Name,
@@ -668,7 +668,7 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 							return err.Error()
 						}
 						if result != nil {
-							return result.Error
+							return result.ErrorMessage
 						}
 						return "unknown error"
 					}(),
@@ -827,22 +827,19 @@ func (e *AutomationEngine) processProvisioningRequest(req *AutomationRequest) *A
 			}
 		}
 
-		// Wait for health check result
-		select {
-		case result := <-healthSession.Results():
-			if !result.Healthy {
-				return &AutomationResponse{
-					Status:    StatusFailed,
-					Message:   "service health check failed after certificate provisioning",
-					Error:     result.Error,
-					Timestamp: time.Now(),
-					Duration:  time.Since(startTime),
-				}
+		// Get health check result
+		result, err := e.healthChecker.PerformHealthCheck(healthSession)
+		if err != nil || (result != nil && !result.Success) {
+			errorMsg := "unknown error"
+			if err != nil {
+				errorMsg = err.Error()
+			} else if result != nil {
+				errorMsg = result.ErrorMessage
 			}
-		case <-time.After(req.HealthCheckConfig.Timeout):
 			return &AutomationResponse{
 				Status:    StatusFailed,
-				Message:   "health check timeout after certificate provisioning",
+				Message:   "service health check failed after certificate provisioning",
+				Error:     errorMsg,
 				Timestamp: time.Now(),
 				Duration:  time.Since(startTime),
 			}
@@ -886,7 +883,7 @@ func (e *AutomationEngine) processRenewalRequest(req *AutomationRequest) *Automa
 	return &AutomationResponse{
 		Status:      StatusCompleted,
 		Message:     "certificate renewed successfully",
-		Certificate: newCert,
+		Certificate: newCert.Certificate,
 		Timestamp:   time.Now(),
 		Duration:    time.Since(startTime),
 	}
@@ -910,7 +907,7 @@ func (e *AutomationEngine) processRevocationRequest(req *AutomationRequest) *Aut
 
 	revokedCount := 0
 	for _, cert := range certs {
-		if err := e.manager.RevokeCertificate(context.Background(), cert.SerialNumber, "service_deleted"); err != nil {
+		if err := e.manager.RevokeCertificate(context.Background(), cert.SerialNumber, 1, "service_deleted"); err != nil {
 			e.logger.Warn("Failed to revoke certificate", map[string]interface{}{
 				"serial": cert.SerialNumber,
 				"error":  err.Error(),
@@ -1047,13 +1044,26 @@ func (e *AutomationEngine) generateServiceCertificate(serviceName, namespace str
 		},
 	}
 
+	// Create certificate request from template
+	req := &CertificateRequest{
+		ID:               fmt.Sprintf("auto-%s-%s", serviceName, namespace),
+		TenantID:         "default",
+		CommonName:       template.Subject.CommonName,
+		DNSNames:         template.DNSNames,
+		KeySize:          2048,
+		ValidityDuration: 24 * time.Hour * 365, // 1 year
+		KeyUsage:         []string{"digital_signature", "key_encipherment"},
+		ExtKeyUsage:      []string{"server_auth", "client_auth"},
+		AutoRenew:        true,
+	}
+
 	// Generate certificate
-	cert, err := e.manager.IssueCertificate(context.Background(), template)
+	cert, err := e.manager.IssueCertificate(context.Background(), req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to issue certificate: %w", err)
 	}
 
-	return cert, nil
+	return cert.Certificate, nil
 }
 
 // storeServiceCertificate stores a certificate for a service
@@ -1143,7 +1153,35 @@ func (e *AutomationEngine) GetDiscoveredServices(ctx context.Context) ([]*Servic
 	return e.discoverServices(ctx)
 }
 
-// ProcessManualRequest processes a manual automation request
+// ProcessManualRequest processes a manual automation request synchronously
 func (e *AutomationEngine) ProcessManualRequest(req *AutomationRequest) *AutomationResponse {
-	return e.processAutomationRequest(req)
+	startTime := time.Now()
+	
+	switch req.Type {
+	case AutomationTypeProvisioning:
+		return e.processProvisioningRequest(req)
+	case AutomationTypeRenewal:
+		return e.processRenewalRequest(req)
+	case AutomationTypeRevocation:
+		return e.processRevocationRequest(req)
+	default:
+		return &AutomationResponse{
+			Status:    StatusFailed,
+			Message:   fmt.Sprintf("unknown automation type: %s", req.Type),
+			Timestamp: time.Now(),
+			Duration:  time.Since(startTime),
+		}
+	}
+}
+
+// GetProvisioningQueueSize returns the current size of the provisioning queue
+func (e *AutomationEngine) GetProvisioningQueueSize() int {
+	return len(e.requestQueue)
+}
+
+// GetRenewalQueueSize returns the current size of the renewal queue
+func (e *AutomationEngine) GetRenewalQueueSize() int {
+	// For now, return 0 as we don't have a separate renewal queue
+	// In a full implementation, this would track renewal-specific requests
+	return 0
 }

@@ -19,7 +19,6 @@ package resilience
 import (
 	"context"
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -255,7 +254,7 @@ func (tm *TimeoutManager) monitorTimeout(operation *TimeoutOperation) {
 func (tm *TimeoutManager) handleTimeout(operation *TimeoutOperation) {
 	duration := time.Since(operation.StartTime)
 
-	tm.logger.Warn("Operation timed out",
+	tm.logger.Info("Operation timed out",
 		"operationId", operation.ID,
 		"timeout", operation.Timeout,
 		"actualDuration", duration)

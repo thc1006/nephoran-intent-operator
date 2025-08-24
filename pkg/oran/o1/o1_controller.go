@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	oranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 const (
@@ -57,7 +58,7 @@ type O1ControllerConfig struct {
 	MaxConcurrentReconciles int           `yaml:"max_concurrent_reconciles"`
 	EnableMetrics           bool          `yaml:"enable_metrics"`
 	EnableWebhooks          bool          `yaml:"enable_webhooks"`
-	DefaultO1Config         *O1Config     `yaml:"default_o1_config"`
+	DefaultO1Config         *oran.O1Config     `yaml:"default_o1_config"`
 	HealthCheckInterval     time.Duration `yaml:"health_check_interval"`
 	StatusUpdateInterval    time.Duration `yaml:"status_update_interval"`
 }
@@ -130,7 +131,7 @@ type O1AdaptorInstance struct {
 	NetconfServer    *NetconfServer
 	StreamingHandler *StreamingService
 	Status           O1InstanceStatus
-	Config           *O1Config
+	Config           *oran.O1Config
 	CreatedAt        time.Time
 	LastUpdate       time.Time
 }

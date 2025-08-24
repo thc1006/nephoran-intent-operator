@@ -39,7 +39,7 @@ type O1AdaptorInterface interface {
 	GetUsageRecords(ctx context.Context, me *nephoranv1.ManagedElement, filter *UsageFilter) ([]*UsageRecord, error)
 
 	// Security Management (SM)
-	UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.ManagedElement, policy *SecurityPolicy) error
+	UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.ManagedElement, policy *oran.SecurityPolicy) error
 	GetSecurityStatus(ctx context.Context, me *nephoranv1.ManagedElement) (*SecurityStatus, error)
 
 	// Connection Management
@@ -52,7 +52,7 @@ type O1AdaptorInterface interface {
 type O1Adaptor struct {
 	clients          map[string]*NetconfClient
 	clientsMux       sync.RWMutex
-	config           *O1Config
+	config           *oran.O1Config
 	yangRegistry     *YANGModelRegistry
 	subscriptions    map[string][]EventCallback
 	subsMux          sync.RWMutex

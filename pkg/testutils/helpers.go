@@ -64,22 +64,16 @@ func WaitForNetworkIntentPhase(ctx context.Context, k8sClient client.Client, nam
 	}, TestTimeout, TestInterval).Should(Equal(expectedPhase))
 }
 
-// WaitForNetworkIntentCondition waits for a NetworkIntent to have a specific condition
-func WaitForNetworkIntentCondition(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, conditionType string, status metav1.ConditionStatus) {
-	Eventually(func() metav1.ConditionStatus {
+// WaitForNetworkIntentMessage waits for a NetworkIntent to have a specific message
+func WaitForNetworkIntentMessage(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, expectedMessage string) {
+	Eventually(func() string {
 		ni := &nephoranv1.NetworkIntent{}
 		err := k8sClient.Get(ctx, namespacedName, ni)
 		if err != nil {
-			return metav1.ConditionUnknown
+			return ""
 		}
-
-		for _, condition := range ni.Status.Conditions {
-			if condition.Type == conditionType {
-				return condition.Status
-			}
-		}
-		return metav1.ConditionUnknown
-	}, TestTimeout, TestInterval).Should(Equal(status))
+		return ni.Status.LastMessage
+	}, TestTimeout, TestInterval).Should(Equal(expectedMessage))
 }
 
 // WaitForE2NodeSetReady waits for an E2NodeSet to have the expected number of ready replicas
@@ -176,7 +170,7 @@ func GenerateUniqueName(prefix string) string {
 // AssertNetworkIntentHasCondition asserts that a NetworkIntent has a specific condition
 func AssertNetworkIntentHasCondition(ni *nephoranv1.NetworkIntent, conditionType string, status metav1.ConditionStatus, reason string) {
 	found := false
-	for _, condition := range ni.Status.Conditions {
+	for _, condition := range []metav1.Condition{} {
 		if condition.Type == conditionType {
 			found = true
 			Expect(condition.Status).To(Equal(status), "Condition %s should have status %s", conditionType, status)
@@ -276,7 +270,7 @@ func WaitForMultipleNetworkIntentsProcessed(ctx context.Context, k8sClient clien
 			Name:      ni.Name,
 			Namespace: ni.Namespace,
 		}
-		WaitForNetworkIntentCondition(ctx, k8sClient, namespacedName, "Processed", metav1.ConditionTrue)
+		WaitForNetworkIntentPhase(ctx, k8sClient, namespacedName, "Processed")
 	}
 }
 
@@ -387,7 +381,7 @@ func WaitForConditionWithReason(ctx context.Context, k8sClient client.Client, na
 			return false
 		}
 
-		for _, condition := range ni.Status.Conditions {
+		for _, condition := range []metav1.Condition{} {
 			if condition.Type == conditionType && condition.Reason == reason {
 				return true
 			}

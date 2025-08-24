@@ -9,9 +9,49 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
+
+// UserSession represents a user session with tracking information
+type UserSession struct {
+	SessionID   string            `json:"sessionId"`
+	UserID      string            `json:"userId"`
+	StartTime   time.Time         `json:"startTime"`
+	LastActive  time.Time         `json:"lastActive"`
+	Metadata    map[string]string `json:"metadata"`
+	IntentCount int               `json:"intentCount"`
+}
+
+// CircularBuffer represents a circular buffer for storing historical data
+type CircularBuffer struct {
+	buffer []interface{}
+	size   int
+	head   int
+	tail   int
+	count  int
+	mutex  sync.RWMutex
+}
+
+// NewCircularBuffer creates a new circular buffer
+func NewCircularBuffer(size int) *CircularBuffer {
+	return &CircularBuffer{
+		buffer: make([]interface{}, size),
+		size:   size,
+	}
+}
+
+// Add adds an item to the buffer
+func (cb *CircularBuffer) Add(item interface{}) {
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+	cb.buffer[cb.head] = item
+	cb.head = (cb.head + 1) % cb.size
+	if cb.count < cb.size {
+		cb.count++
+	} else {
+		cb.tail = (cb.tail + 1) % cb.size
+	}
+}
 
 // E2ELatencyTracker tracks end-to-end latency from intent submission to deployment completion
 type E2ELatencyTracker struct {
@@ -282,7 +322,7 @@ func NewE2ELatencyTracker(config *E2ETrackerConfig) *E2ELatencyTracker {
 
 // StartIntent begins tracking a new intent
 func (t *E2ELatencyTracker) StartIntent(ctx context.Context, intentID, intentType string) context.Context {
-	trace := &IntentTrace{
+	intentTrace := &IntentTrace{
 		ID:         fmt.Sprintf("trace-%s-%d", intentID, time.Now().UnixNano()),
 		IntentID:   intentID,
 		IntentType: intentType,
@@ -293,19 +333,19 @@ func (t *E2ELatencyTracker) StartIntent(ctx context.Context, intentID, intentTyp
 
 	// Extract trace context if available
 	if span := trace.SpanFromContext(ctx); span != nil {
-		trace.TraceContext = span.SpanContext()
+		intentTrace.TraceContext = span.SpanContext()
 	}
 
 	// Store active trace
 	t.mu.Lock()
-	t.activeIntents[intentID] = trace
+	t.activeIntents[intentID] = intentTrace
 	t.mu.Unlock()
 
 	// Update statistics
 	t.stats.TotalIntents.Add(1)
 
 	// Store trace ID in context
-	ctx = context.WithValue(ctx, "e2e_trace_id", trace.ID)
+	ctx = context.WithValue(ctx, "e2e_trace_id", intentTrace.ID)
 
 	return ctx
 }

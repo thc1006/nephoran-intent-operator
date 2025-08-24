@@ -639,6 +639,11 @@ func (cbm *CircuitBreakerManager) GetAllStats() map[string]interface{} {
 	return stats
 }
 
+// GetStats returns statistics for all circuit breakers (interface-compatible method)
+func (cbm *CircuitBreakerManager) GetStats() (map[string]interface{}, error) {
+	return cbm.GetAllStats(), nil
+}
+
 // Shutdown gracefully shuts down all circuit breakers
 func (cbm *CircuitBreakerManager) Shutdown() {
 	cbm.mutex.Lock()

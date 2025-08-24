@@ -34,6 +34,9 @@ const (
 	CategoryResource   ErrorCategory = "resource"
 	CategoryConfig     ErrorCategory = "config"
 	CategoryInternal   ErrorCategory = "internal"
+	CategoryCapacity      ErrorCategory = "capacity"
+	CategoryRateLimit     ErrorCategory = "rate_limit"
+	CategoryCircuitBreaker ErrorCategory = "circuit_breaker"
 )
 
 // RecoveryStrategy represents different error recovery strategies

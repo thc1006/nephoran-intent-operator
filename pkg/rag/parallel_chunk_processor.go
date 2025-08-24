@@ -219,7 +219,7 @@ func (p *ParallelChunkProcessor) ProcessChunks(
 	tasks := make([]*ChunkTask, len(chunks))
 	for i, chunk := range chunks {
 		task := p.memoryPool.Get().(*ChunkTask)
-		task.ID = chunk.ID
+		task.ID = fmt.Sprintf("chunk-%d", chunk.ChunkIndex)
 		task.Chunk = chunk
 		task.Processor = processor
 		task.Priority = 0
@@ -547,10 +547,11 @@ func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, do
 		}
 
 		chunk := &DocumentChunk{
-			ID:       fmt.Sprintf("%s-chunk-%d", doc.ID, i/chunkSize),
-			Text:     content[i:end],
-			Source:   doc.SourcePath,
-			Metadata: doc.Metadata,
+			ID:         fmt.Sprintf("%s-chunk-%d", doc.ID, i/chunkSize),
+			DocumentID: doc.ID,
+			Content:    content[i:end],
+			ChunkIndex: i / chunkSize,
+			DocumentMetadata: doc.Metadata,
 		}
 		chunks = append(chunks, chunk)
 	}
@@ -561,8 +562,9 @@ func (pcp *ParallelChunkProcessor) ProcessDocumentChunks(ctx context.Context, do
 // GetMetrics returns processor metrics
 func (pcp *ParallelChunkProcessor) GetMetrics() interface{} {
 	return map[string]interface{}{
-		"processed_chunks": pcp.metrics.ProcessedChunks,
-		"failed_chunks":    pcp.metrics.FailedChunks,
-		"active_workers":   pcp.workerPool.activeWorkers,
+		"processed_tasks": pcp.metrics.tasksProcessed,
+		"failed_tasks":    pcp.metrics.tasksFailed,
+		"active_workers":  pcp.metrics.activeWorkers,
+		"queue_depth":     pcp.metrics.queueDepth,
 	}
 }

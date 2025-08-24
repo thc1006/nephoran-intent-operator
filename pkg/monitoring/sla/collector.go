@@ -536,14 +536,14 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 	// Apply rate limiting
 	if !c.rateLimiter.Allow() {
 		c.metrics.DroppedMetrics.WithLabelValues("rate_limited").Inc()
-		atomic.AddUint64(&c.droppedMetrics, 1)
+		c.droppedMetrics.Add(1)
 		return fmt.Errorf("rate limit exceeded")
 	}
 
 	// Check cardinality limits
 	if !c.cardinalityMgr.ShouldAcceptMetric(sample.Name, sample.Labels) {
 		c.metrics.DroppedMetrics.WithLabelValues("cardinality_limit").Inc()
-		atomic.AddUint64(&c.droppedMetrics, 1)
+		c.droppedMetrics.Add(1)
 		return fmt.Errorf("cardinality limit exceeded")
 	}
 
@@ -551,7 +551,7 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 	if c.config.AdaptiveSampling {
 		if !c.shouldSample() {
 			c.metrics.SampledMetrics.Inc()
-			atomic.AddUint64(&c.sampledMetrics, 1)
+			c.sampledMetrics.Add(1)
 			return nil // Sampled out
 		}
 	}
@@ -560,7 +560,7 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 	select {
 	case c.metricsBuffer <- sample:
 		c.metrics.MetricsCollected.WithLabelValues(sample.Source, string(sample.Type), "success").Inc()
-		atomic.AddUint64(&c.collectionCount, 1)
+		c.collectionCount.Add(1)
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -568,7 +568,7 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 		// Buffer full, apply backpressure
 		c.metrics.BufferOverflows.Inc()
 		c.metrics.DroppedMetrics.WithLabelValues("buffer_full").Inc()
-		atomic.AddUint64(&c.droppedMetrics, 1)
+		c.droppedMetrics.Add(1)
 		return fmt.Errorf("collection buffer full")
 	}
 }
@@ -682,7 +682,7 @@ func (c *Collector) processMetricSample(ctx context.Context, worker *CollectorWo
 	// Process the metric sample
 	if err := c.storeSample(ctx, sample); err != nil {
 		worker.metrics.Errors.Inc()
-		atomic.AddUint64(&c.processingErrors, 1)
+		c.processingErrors.Add(1)
 		c.logger.ErrorWithContext("Failed to store metric sample",
 			err,
 			"worker_id", worker.id,
@@ -693,7 +693,7 @@ func (c *Collector) processMetricSample(ctx context.Context, worker *CollectorWo
 
 	// Update cardinality tracking
 	c.cardinalityMgr.UpdateCardinality(sample.Name, sample.Labels)
-	atomic.AddUint64(&c.processingRate, 1)
+	c.processingRate.Add(1)
 }
 
 // runBatchProcessor runs the batch processor

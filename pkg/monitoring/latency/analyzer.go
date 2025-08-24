@@ -791,8 +791,8 @@ func (t *TrendAnalyzer) AnalyzeTrend(component string, latency time.Duration) *T
 
 	// Analyze using multiple methods
 	linearTrend := t.linearRegression.Analyze(component, latency)
-	expTrend := t.exponentialSmoothing.Analyze(component, latency)
-	maTrend := t.movingAverage.Analyze(component, latency)
+	_ = t.exponentialSmoothing.Analyze(component, latency)
+	_ = t.movingAverage.Analyze(component, latency)
 
 	// Combine results (simplified - in production, use ensemble methods)
 	if linearTrend > 0.1 {

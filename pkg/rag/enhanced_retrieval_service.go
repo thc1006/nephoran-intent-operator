@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // EnhancedRetrievalService provides advanced retrieval capabilities with query enhancement
@@ -141,7 +143,7 @@ type EnhancedSearchResponse struct {
 // EnhancedSearchResult extends SearchResult with additional information
 type EnhancedSearchResult struct {
 	// Basic result information
-	*SearchResult
+	*shared.SearchResult
 
 	// Enhanced scoring
 	RelevanceScore float32 `json:"relevance_score"`

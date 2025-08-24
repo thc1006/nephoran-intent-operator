@@ -211,12 +211,6 @@ type LifecycleHook struct {
 	Timeout time.Duration          `json:"timeout"`
 }
 
-type AuthConfig struct {
-	Type     string `json:"type"` // basic, bearer, oauth2
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Token    string `json:"token"`
-}
 
 // NewSMOManager creates a new SMO manager
 func NewSMOManager(config *SMOConfig) (*SMOManager, error) {

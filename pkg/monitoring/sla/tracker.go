@@ -13,6 +13,37 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
+// CircularBuffer represents a circular buffer for storing historical data
+type CircularBuffer struct {
+	buffer []interface{}
+	size   int
+	head   int
+	tail   int
+	count  int
+	mutex  sync.RWMutex
+}
+
+// NewCircularBuffer creates a new circular buffer
+func NewCircularBuffer(size int) *CircularBuffer {
+	return &CircularBuffer{
+		buffer: make([]interface{}, size),
+		size:   size,
+	}
+}
+
+// Add adds an item to the circular buffer
+func (cb *CircularBuffer) Add(item interface{}) {
+	cb.mutex.Lock()
+	defer cb.mutex.Unlock()
+	cb.buffer[cb.head] = item
+	cb.head = (cb.head + 1) % cb.size
+	if cb.count < cb.size {
+		cb.count++
+	} else {
+		cb.tail = (cb.tail + 1) % cb.size
+	}
+}
+
 // Tracker provides end-to-end intent processing tracking with distributed tracing correlation
 type Tracker struct {
 	config  *TrackerConfig
@@ -540,7 +571,7 @@ func (t *Tracker) StartIntent(ctx context.Context, intentType, userID, requestID
 	t.intentsMu.Unlock()
 
 	// Update metrics
-	atomic.AddUint64(&t.trackingCount, 1)
+	t.trackingCount.Add(1)
 	t.metrics.ActiveIntents.Inc()
 	t.metrics.IntentsTracked.WithLabelValues(intentType, t.getUserType(userID)).Inc()
 
@@ -608,7 +639,7 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 	t.intentsMu.Unlock()
 
 	// Update metrics
-	atomic.AddUint64(&t.completionCount, 1)
+	t.completionCount.Add(1)
 	t.metrics.ActiveIntents.Dec()
 
 	criticalPathStr := "false"
@@ -619,7 +650,7 @@ func (t *Tracker) CompleteIntent(intentID string, success bool, errorDetails *In
 	statusStr := "completed"
 	if !success {
 		statusStr = "failed"
-		atomic.AddUint64(&t.errorCount, 1)
+		t.errorCount.Add(1)
 
 		if intent.CriticalPath {
 			t.metrics.CriticalPathErrors.Inc()
@@ -877,7 +908,7 @@ func (t *Tracker) performCleanup() {
 			intent.mu.Unlock()
 
 			expiredIntents = append(expiredIntents, intentID)
-			atomic.AddUint64(&t.timeoutCount, 1)
+			t.timeoutCount.Add(1)
 
 			// Record timeout metrics
 			criticalPathStr := "false"
@@ -974,7 +1005,7 @@ func (t *Tracker) recordComponentLatency(component, intentType string, latency t
 
 	// Check for SLO violations
 	if timeout, exists := t.config.ComponentTimeouts[component]; exists && latency > timeout {
-		atomic.AddUint64(&tracker.violationCount, 1)
+		tracker.violationCount.Add(1)
 		t.metrics.ComponentErrors.WithLabelValues(component, "timeout", "medium").Inc()
 
 		t.logger.WarnWithContext("Component latency SLO violation",

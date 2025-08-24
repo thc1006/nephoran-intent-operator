@@ -18,7 +18,6 @@ package optimization
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sync"
 	"time"
@@ -31,9 +30,9 @@ import (
 type CacheLevel int
 
 const (
-	L1Cache CacheLevel = iota + 1 // In-memory local cache
-	L2Cache                       // Distributed Redis cache
-	L3Cache                       // Persistent storage cache
+	L1CacheLevel CacheLevel = iota + 1 // In-memory local cache
+	L2CacheLevel                       // Distributed Redis cache
+	L3CacheLevel                       // Persistent storage cache
 )
 
 // MultiLevelCacheManager implements a multi-level caching strategy
@@ -185,32 +184,32 @@ func (cm *MultiLevelCacheManager) Get(ctx context.Context, key string) (interfac
 	// Try each cache level in order
 	for _, level := range policy.Levels {
 		switch level {
-		case L1Cache:
+		case L1CacheLevel:
 			if value, found := cm.l1Cache.Get(key); found {
 				cm.metrics.RecordCacheHit(level, key)
 				return value, nil
 			}
 			cm.metrics.RecordCacheMiss(level, key)
 
-		case L2Cache:
+		case L2CacheLevel:
 			if value, err := cm.l2Cache.Get(ctx, key); err == nil {
 				cm.metrics.RecordCacheHit(level, key)
 				// Backfill to L1 if enabled
-				if cm.shouldBackfill(policy, L1Cache) {
+				if cm.shouldBackfill(policy, L1CacheLevel) {
 					cm.l1Cache.Set(key, value, policy.TTL)
 				}
 				return value, nil
 			}
 			cm.metrics.RecordCacheMiss(level, key)
 
-		case L3Cache:
+		case L3CacheLevel:
 			if value, err := cm.l3Cache.Get(ctx, key); err == nil {
 				cm.metrics.RecordCacheHit(level, key)
 				// Backfill to higher levels
-				if cm.shouldBackfill(policy, L2Cache) {
+				if cm.shouldBackfill(policy, L2CacheLevel) {
 					cm.l2Cache.Set(ctx, key, value, policy.TTL)
 				}
-				if cm.shouldBackfill(policy, L1Cache) {
+				if cm.shouldBackfill(policy, L1CacheLevel) {
 					cm.l1Cache.Set(key, value, policy.TTL)
 				}
 				return value, nil
@@ -234,21 +233,21 @@ func (cm *MultiLevelCacheManager) Set(ctx context.Context, key string, value int
 	// Store in all configured cache levels
 	for _, level := range policy.Levels {
 		switch level {
-		case L1Cache:
+		case L1CacheLevel:
 			if err := cm.l1Cache.Set(key, value, ttl); err != nil {
 				errors = append(errors, fmt.Errorf("L1 cache set failed: %w", err))
 			} else {
 				cm.metrics.RecordCacheSet(level, key)
 			}
 
-		case L2Cache:
+		case L2CacheLevel:
 			if err := cm.l2Cache.Set(ctx, key, value, ttl); err != nil {
 				errors = append(errors, fmt.Errorf("L2 cache set failed: %w", err))
 			} else {
 				cm.metrics.RecordCacheSet(level, key)
 			}
 
-		case L3Cache:
+		case L3CacheLevel:
 			if err := cm.l3Cache.Set(ctx, key, value, ttl); err != nil {
 				errors = append(errors, fmt.Errorf("L3 cache set failed: %w", err))
 			} else {
@@ -390,7 +389,7 @@ func (cm *MultiLevelCacheManager) initializeDefaultPolicies() {
 		TTL:                30 * time.Minute,
 		MaxSize:            1000,
 		EvictionPolicy:     EvictionLRU,
-		Levels:             []CacheLevel{L1Cache, L2Cache},
+		Levels:             []CacheLevel{L1CacheLevel, L2CacheLevel},
 		CompressionEnabled: true,
 		PrefetchEnabled:    false,
 		ReplicationFactor:  2,
@@ -401,7 +400,7 @@ func (cm *MultiLevelCacheManager) initializeDefaultPolicies() {
 		TTL:                2 * time.Hour,
 		MaxSize:            5000,
 		EvictionPolicy:     EvictionLFU,
-		Levels:             []CacheLevel{L1Cache, L2Cache, L3Cache},
+		Levels:             []CacheLevel{L1CacheLevel, L2CacheLevel, L3CacheLevel},
 		CompressionEnabled: true,
 		PrefetchEnabled:    true,
 		ReplicationFactor:  3,
@@ -412,7 +411,7 @@ func (cm *MultiLevelCacheManager) initializeDefaultPolicies() {
 		TTL:                15 * time.Minute,
 		MaxSize:            2000,
 		EvictionPolicy:     EvictionLRU,
-		Levels:             []CacheLevel{L1Cache, L2Cache},
+		Levels:             []CacheLevel{L1CacheLevel, L2CacheLevel},
 		CompressionEnabled: false,
 		PrefetchEnabled:    false,
 		ReplicationFactor:  2,
@@ -423,7 +422,7 @@ func (cm *MultiLevelCacheManager) initializeDefaultPolicies() {
 		TTL:                1 * time.Hour,
 		MaxSize:            1000,
 		EvictionPolicy:     EvictionLFU,
-		Levels:             []CacheLevel{L1Cache, L2Cache, L3Cache},
+		Levels:             []CacheLevel{L1CacheLevel, L2CacheLevel, L3CacheLevel},
 		CompressionEnabled: true,
 		PrefetchEnabled:    true,
 		ReplicationFactor:  2,
@@ -434,7 +433,7 @@ func (cm *MultiLevelCacheManager) initializeDefaultPolicies() {
 		TTL:                10 * time.Minute,
 		MaxSize:            500,
 		EvictionPolicy:     EvictionLRU,
-		Levels:             []CacheLevel{L1Cache},
+		Levels:             []CacheLevel{L1CacheLevel},
 		CompressionEnabled: false,
 		PrefetchEnabled:    false,
 		ReplicationFactor:  1,

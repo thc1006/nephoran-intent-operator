@@ -19,6 +19,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // ComprehensiveSecurityManager provides complete O-RAN security management
@@ -76,7 +78,7 @@ type CAConfig struct {
 
 // EncryptionConfig defines encryption standards and algorithms
 type EncryptionConfig struct {
-	MinTLSVersion         tls.VersionType
+	MinTLSVersion         uint16
 	CipherSuites          []uint16
 	SymmetricAlgorithms   []string // AES-256, ChaCha20-Poly1305
 	AsymmetricAlgorithms  []string // RSA-4096, ECDSA-P384
@@ -404,7 +406,7 @@ type SMSService struct {
 	provider  string
 	apiKey    string
 	templates map[string]string
-	rateLimit *RateLimiter
+	rateLimit oran.RateLimiter
 }
 
 // EmailService sends email-based authentication codes
@@ -413,8 +415,8 @@ type EmailService struct {
 	smtpPort   int
 	username   string
 	password   string
-	templates  map[string]*EmailTemplate
-	rateLimit  *RateLimiter
+	templates  map[string]*oran.EmailTemplate
+	rateLimit  oran.RateLimiter
 }
 
 // PushNotificationService sends push notifications for MFA

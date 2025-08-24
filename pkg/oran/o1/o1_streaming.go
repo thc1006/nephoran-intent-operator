@@ -12,6 +12,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // StreamingService provides real-time streaming capabilities for O1 interface
@@ -60,7 +62,7 @@ type StreamConnection struct {
 type StreamSubscription struct {
 	ID                   string
 	Type                 StreamType
-	Filter               *StreamFilter
+	Filter               *oran.StreamFilter
 	Connection           *StreamConnection
 	CreatedAt            time.Time
 	LastMessage          time.Time

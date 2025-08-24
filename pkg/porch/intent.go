@@ -8,13 +8,13 @@ import (
 
 // ScalingIntent represents the MVP scaling intent structure
 type ScalingIntent struct {
-	IntentType     string  `json:"intent_type"`
-	Target         string  `json:"target"`
-	Namespace      string  `json:"namespace"`
-	Replicas       int     `json:"replicas"`
-	Reason         *string `json:"reason,omitempty"`
-	Source         *string `json:"source,omitempty"`
-	CorrelationID  *string `json:"correlation_id,omitempty"`
+	IntentType     string `json:"intent_type"`
+	Target         string `json:"target"`
+	Namespace      string `json:"namespace"`
+	Replicas       int    `json:"replicas"`
+	Reason         string `json:"reason,omitempty"`
+	Source         string `json:"source,omitempty"`
+	CorrelationID  string `json:"correlation_id,omitempty"`
 }
 
 // ValidateIntent validates the scaling intent

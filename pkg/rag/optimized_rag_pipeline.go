@@ -211,7 +211,7 @@ func NewOptimizedRAGPipeline(
 	}
 
 	// Initialize embedding cache - use the in-memory implementation
-	embeddingCache := NewInMemoryCache(config.EmbeddingCacheSize)
+	embeddingCache := NewInMemoryCache(int64(config.EmbeddingCacheSize))
 
 	pipeline := &OptimizedRAGPipeline{
 		config:            config,

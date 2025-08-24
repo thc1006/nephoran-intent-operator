@@ -46,17 +46,17 @@ metadata:
     scaling.nephio.org/replicas: "%d"
 `, intent.Target, intent.Namespace, intent.IntentType, intent.Replicas)
 	
-	if intent.Reason != nil {
+	if intent.Reason != "" {
 		deploymentPatch += fmt.Sprintf(`    scaling.nephio.org/reason: "%s"
-`, *intent.Reason)
+`, intent.Reason)
 	}
-	if intent.Source != nil {
+	if intent.Source != "" {
 		deploymentPatch += fmt.Sprintf(`    scaling.nephio.org/source: "%s"
-`, *intent.Source)
+`, intent.Source)
 	}
-	if intent.CorrelationID != nil {
+	if intent.CorrelationID != "" {
 		deploymentPatch += fmt.Sprintf(`    scaling.nephio.org/correlation-id: "%s"
-`, *intent.CorrelationID)
+`, intent.CorrelationID)
 	}
 	
 	deploymentPatch += fmt.Sprintf(`spec:

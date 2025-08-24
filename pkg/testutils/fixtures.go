@@ -3,7 +3,6 @@ package testutils
 import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // NetworkIntentFixture represents a test fixture for NetworkIntent resources
@@ -30,9 +29,6 @@ var NetworkIntentFixtures = []NetworkIntentFixture{
 		Intent:    "Deploy UPF with 3 replicas for high availability",
 		Expected: nephoranv1.NetworkIntentSpec{
 			Intent: "Deploy UPF with 3 replicas for high availability",
-			Parameters: runtime.RawExtension{
-				Raw: []byte(`{"replicas": 3, "type": "upf", "namespace": "5g-core"}`),
-			},
 		},
 	},
 	{
@@ -41,9 +37,6 @@ var NetworkIntentFixtures = []NetworkIntentFixture{
 		Intent:    "Scale AMF instances to 5 replicas to handle increased signaling load",
 		Expected: nephoranv1.NetworkIntentSpec{
 			Intent: "Scale AMF instances to 5 replicas to handle increased signaling load",
-			Parameters: runtime.RawExtension{
-				Raw: []byte(`{"replicas": 5, "type": "amf", "operation": "scale"}`),
-			},
 		},
 	},
 	{
@@ -52,9 +45,6 @@ var NetworkIntentFixtures = []NetworkIntentFixture{
 		Intent:    "Set up Near-RT RIC with xApp support for intelligent traffic management",
 		Expected: nephoranv1.NetworkIntentSpec{
 			Intent: "Set up Near-RT RIC with xApp support for intelligent traffic management",
-			Parameters: runtime.RawExtension{
-				Raw: []byte(`{"type": "near-rt-ric", "namespace": "o-ran", "xapp_support": true}`),
-			},
 		},
 	},
 	{
@@ -63,9 +53,6 @@ var NetworkIntentFixtures = []NetworkIntentFixture{
 		Intent:    "Configure edge computing node with GPU acceleration for video processing",
 		Expected: nephoranv1.NetworkIntentSpec{
 			Intent: "Configure edge computing node with GPU acceleration for video processing",
-			Parameters: runtime.RawExtension{
-				Raw: []byte(`{"type": "mec", "namespace": "edge-apps", "gpu": true, "workload": "video-processing"}`),
-			},
 		},
 	},
 	{
@@ -74,9 +61,6 @@ var NetworkIntentFixtures = []NetworkIntentFixture{
 		Intent:    "Increase UPF resources to 4 CPU cores and 8GB memory for high throughput",
 		Expected: nephoranv1.NetworkIntentSpec{
 			Intent: "Increase UPF resources to 4 CPU cores and 8GB memory for high throughput",
-			Parameters: runtime.RawExtension{
-				Raw: []byte(`{"type": "upf", "operation": "scale", "cpu": "4000m", "memory": "8Gi"}`),
-			},
 		},
 	},
 }
@@ -126,16 +110,8 @@ func CreateNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.NetworkIntent
 		},
 		Spec: fixture.Expected,
 		Status: nephoranv1.NetworkIntentStatus{
-			Phase: "Pending",
-			Conditions: []metav1.Condition{
-				{
-					Type:               "Processing",
-					Status:             metav1.ConditionFalse,
-					LastTransitionTime: metav1.Now(),
-					Reason:             "Initialized",
-					Message:            "NetworkIntent has been created and is pending processing",
-				},
-			},
+			Phase:       "Pending",
+			LastMessage: "NetworkIntent has been created and is pending processing",
 		},
 	}
 }
@@ -160,22 +136,7 @@ func CreateE2NodeSet(fixture E2NodeSetFixture) *nephoranv1.E2NodeSet {
 func CreateProcessedNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.NetworkIntent {
 	ni := CreateNetworkIntent(fixture)
 	ni.Status.Phase = "Processed"
-	ni.Status.Conditions = []metav1.Condition{
-		{
-			Type:               "Processing",
-			Status:             metav1.ConditionTrue,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "ProcessingComplete",
-			Message:            "Intent has been successfully processed by LLM",
-		},
-		{
-			Type:               "Deployment",
-			Status:             metav1.ConditionFalse,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "DeploymentPending",
-			Message:            "Deployment is pending GitOps processing",
-		},
-	}
+	ni.Status.LastMessage = "Intent has been successfully processed by LLM"
 	return ni
 }
 
@@ -183,23 +144,7 @@ func CreateProcessedNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.Netw
 func CreateDeployedNetworkIntent(fixture NetworkIntentFixture) *nephoranv1.NetworkIntent {
 	ni := CreateProcessedNetworkIntent(fixture)
 	ni.Status.Phase = "Deployed"
-	ni.Status.Conditions = []metav1.Condition{
-		{
-			Type:               "Processing",
-			Status:             metav1.ConditionTrue,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "ProcessingComplete",
-			Message:            "Intent has been successfully processed by LLM",
-		},
-		{
-			Type:               "Deployment",
-			Status:             metav1.ConditionTrue,
-			LastTransitionTime: metav1.Now(),
-			Reason:             "DeploymentComplete",
-			Message:            "Resources have been successfully deployed via GitOps",
-		},
-	}
-	ni.Status.GitCommitHash = "abc123def456"
+	ni.Status.LastMessage = "Resources have been successfully deployed via GitOps"
 	return ni
 }
 

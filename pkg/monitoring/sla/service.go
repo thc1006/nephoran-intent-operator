@@ -690,7 +690,7 @@ func (s *Service) processTask(ctx context.Context, worker *Worker, task Task) {
 	if err != nil {
 		worker.metrics.Errors.Inc()
 		s.metrics.TasksProcessed.WithLabelValues(taskType, "error").Inc()
-		atomic.AddUint64(&s.errorRate, 1)
+		s.errorRate.Add(1)
 
 		s.logger.ErrorWithContext("Task execution failed",
 			err,
@@ -700,7 +700,7 @@ func (s *Service) processTask(ctx context.Context, worker *Worker, task Task) {
 		)
 	} else {
 		s.metrics.TasksProcessed.WithLabelValues(taskType, "success").Inc()
-		atomic.AddUint64(&s.processingRate, 1)
+		s.processingRate.Add(1)
 	}
 
 	s.metrics.ProcessingLatency.WithLabelValues(taskType).Observe(duration.Seconds())

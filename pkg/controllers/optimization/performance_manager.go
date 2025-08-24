@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"k8s.io/client-go/util/workqueue"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
@@ -615,7 +614,7 @@ func (pm *PerformanceManager) makeScalingDecisions(ctx context.Context) {
 			"confidence", decision.Confidence)
 
 		// Apply scaling decisions (this would integrate with Kubernetes HPA or custom scaling logic)
-		if err := pm.applyScalingDecision(ctx, decision); err != nil {
+		if err := pm.applyScalingDecision(ctx, &decision); err != nil {
 			pm.logger.Error(err, "Failed to apply scaling decision", "action", decision.Action)
 		}
 	}

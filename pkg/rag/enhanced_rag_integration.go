@@ -46,6 +46,12 @@ type EmbeddingProvider interface {
 	
 	// GetDimensions returns the embedding dimension size
 	GetDimensions() int
+	
+	// IsHealthy returns the health status of the provider (for health monitoring compatibility)
+	IsHealthy() bool
+	
+	// GetLatency returns the average latency of the provider (for health monitoring compatibility)
+	GetLatency() time.Duration
 }
 
 // VectorStore defines the interface for vector storage

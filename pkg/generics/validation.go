@@ -4,6 +4,7 @@ package generics
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -11,6 +12,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -652,8 +654,8 @@ func InPast[T any](fieldName string, extractor func(T) time.Time) Validator[T] {
 	}
 }
 
-// UniqueSlice validates that slice elements are unique.
-func UniqueSlice[T any, E Comparable](fieldName string, extractor func(T) []E) Validator[T] {
+// ValidateUniqueSlice validates that slice elements are unique.
+func ValidateUniqueSlice[T any, E Comparable](fieldName string, extractor func(T) []E) Validator[T] {
 	return func(obj T) ValidationResult {
 		values := extractor(obj)
 		result := NewValidationResult()
