@@ -3,6 +3,7 @@
 Updates are tracked here in append-only format.
 
 | Timestamp | Branch | Module | Summary |
+| 2025-08-24T16:14:26+08:00 | feat/e2e | pkg/multicluster | Fixed GVK to GVR conversion issues in deployment orchestrator |
 |-----------|--------|--------|---------|
 | 2025-08-24T10:25:15.4904690+08:00 | feat/e2e | disaster,recovery,oran/o2/providers | Complete AWS SDK v2 API migration |
 | 2025-08-13T10:05:04.8691052+08:00 | feat/conductor-loop | conductor-loop | wire -handoff/-out flags planning |
@@ -89,3 +90,4 @@ Updates are tracked here in append-only format.
 | 2025-08-24T11:27:53.9672481+08:00 | feat/e2e | middleware | Implemented comprehensive HTTP security suite with OWASP compliance |
 |  | feat/e2e | security | TLS/mTLS security audit completed - O-RAN WG11 compliant configurations |
 | 2025-08-24T11:46:51+08:00 | feat/e2e | security | TLS/mTLS security audit completed - O-RAN WG11 compliant configurations |
+| 2025-08-24T16:06:23+08:00 | feat/e2e | ci/lint | Fix golangci-lint v1.64.x schema and workflow inputs |

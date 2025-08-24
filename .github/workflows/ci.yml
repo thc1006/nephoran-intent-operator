@@ -374,8 +374,6 @@ jobs:
           version: v1.64.3
           args: --verbose --timeout=10m
           skip-cache: true
-          skip-pkg-cache: true
-          skip-build-cache: true
         env:
           GOTOOLCHAIN: local
 

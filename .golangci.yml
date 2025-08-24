@@ -70,9 +70,9 @@ issues:
       linters:
         - all
 
-# v2: Output formats must be an array, not an object
+# v2: Output formats for golangci-lint v1.64.x schema
 output:
   # Support both colored output for terminals and GitHub Actions annotations
   formats:
-    - "colored-line-number"
-    - "github-actions"
+    - format: colored-line-number
+    - format: github-actions
