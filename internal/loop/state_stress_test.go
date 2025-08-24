@@ -132,7 +132,9 @@ func TestConcurrentStateStress(t *testing.T) {
 	assert.Less(t, errorRate, 0.20, "Error rate should be less than 20% for concurrent operations")
 
 	// Verify state consistency
-	processed, failed := sm.GetStats()
+	processedFiles := sm.GetProcessedFiles()
+	failedFiles := sm.GetFailedFiles()
+	processed, failed := len(processedFiles), len(failedFiles)
 	t.Logf("  Final state: %d processed, %d failed", processed, failed)
 
 	// State should be persisted
@@ -140,7 +142,9 @@ func TestConcurrentStateStress(t *testing.T) {
 	require.NoError(t, err)
 	defer sm2.Close()
 
-	processed2, failed2 := sm2.GetStats()
+	processedFiles2 := sm2.GetProcessedFiles()
+	failedFiles2 := sm2.GetFailedFiles()
+	processed2, failed2 := len(processedFiles2), len(failedFiles2)
 	assert.Equal(t, processed, processed2, "Processed count should be persisted")
 	assert.Equal(t, failed, failed2, "Failed count should be persisted")
 }

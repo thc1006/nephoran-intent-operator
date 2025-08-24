@@ -613,7 +613,11 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 			err := os.WriteFile(filePath, []byte(tc.content), 0644)
 			require.NoError(t, err)
 
-			err = watcher.validateJSONFile(filePath)
+			// Wrap validation in NotPanics for safety, especially for invalid_scaling_replicas test
+			require.NotPanics(t, func() {
+				err = watcher.validateJSONFile(filePath)
+			}, "validateJSONFile should not panic on invalid input: %s", tc.desc)
+
 			assert.Error(t, err, "Should reject invalid JSON: %s", tc.desc)
 			if tc.expectedErr != "" {
 				assert.Contains(t, err.Error(), tc.expectedErr, "Should contain expected error message")

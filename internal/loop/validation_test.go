@@ -328,9 +328,7 @@ func (s *ValidationTestSuite) TestFix3_DataRaceCondition_ProcessorConcurrentAcce
 
 	wg.Wait()
 	
-	// Force flush of any remaining batched files
-	err = processor.FlushBatch()
-	s.Assert().NoError(err, "FlushBatch should not error")
+	// IntentProcessor doesn't use batching, no need to flush
 
 	// Wait for processing to complete
 	time.Sleep(500 * time.Millisecond)

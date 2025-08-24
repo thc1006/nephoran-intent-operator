@@ -149,7 +149,7 @@ func (ow *OptimizedWatcher) ProcessFileOptimized(filePath string, fileInfo FileI
 	workItem := &AsyncWorkItem{
 		FilePath:  filePath,
 		FileSize:  fileInfo.Size,
-		ModTime:   fileInfo.ModTime,
+		ModTime:   fileInfo.Timestamp,
 		Priority:  ow.calculatePriority(fileInfo, aiCtx),
 		Deadline:  startTime.Add(aiCtx.ProcessingTimeEstimate * 2),
 		AIContext: aiCtx,
@@ -416,11 +416,7 @@ func readFileFast(string) ([]byte, error) { return nil, nil }
 func (ow *OptimizedWatcher) validateSchemaFast([]byte) error { return nil }
 func enableFIPSMode() error { return nil }
 
-// Type definitions for AI/ML components
-type FileInfo struct {
-	Size    int64
-	ModTime time.Time
-}
+// Note: FileInfo type is defined in bounded_stats.go
 
 type MLPredictor struct{}
 func NewMLPredictor() *MLPredictor { return &MLPredictor{} }

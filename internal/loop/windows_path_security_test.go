@@ -5,11 +5,35 @@ package loop
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// isPathSafe checks if a path is within the allowed base directory (security check)
+func isPathSafe(path, baseDir string) bool {
+	// Clean and make absolute paths for comparison
+	cleanPath, err := filepath.Abs(filepath.Clean(path))
+	if err != nil {
+		return false
+	}
+	
+	cleanBase, err := filepath.Abs(filepath.Clean(baseDir))
+	if err != nil {
+		return false
+	}
+	
+	// Check if the path is within the base directory
+	rel, err := filepath.Rel(cleanBase, cleanPath)
+	if err != nil {
+		return false
+	}
+	
+	// Path is safe if it doesn't start with ".." (meaning it's within base)
+	return !strings.HasPrefix(rel, "..") && !strings.Contains(rel, string(filepath.Separator)+"..")
+}
 
 // TestWindowsPathSecurityValidation tests Windows-specific path security scenarios
 func TestWindowsPathSecurityValidation(t *testing.T) {
@@ -238,7 +262,8 @@ func TestWindowsPathNormalization(t *testing.T) {
 			
 			// Check if path is considered safe (within temp directory)
 			if tt.safe {
-				assert.True(t, isPathSafe(abs, tempDir), "Path should be considered safe")
+				safe := isPathSafe(abs, tempDir)
+				assert.True(t, safe, "Path should be considered safe")
 			}
 		})
 	}

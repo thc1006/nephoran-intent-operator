@@ -274,10 +274,14 @@ func (fm *FileManager) GetStats() (ProcessingStats, error) {
 
 // ProcessingStats holds statistics about file processing
 type ProcessingStats struct {
-	ProcessedCount int      `json:"processed_count"`
-	FailedCount    int      `json:"failed_count"`
-	ProcessedFiles []string `json:"processed_files,omitempty"`
-	FailedFiles    []string `json:"failed_files,omitempty"`
+	ProcessedCount      int      `json:"processed_count"`
+	FailedCount         int      `json:"failed_count"`
+	ShutdownFailedCount int      `json:"shutdown_failed_count"`
+	RealFailedCount     int      `json:"real_failed_count"`
+	ProcessedFiles      []string `json:"processed_files,omitempty"`
+	FailedFiles         []string `json:"failed_files,omitempty"`
+	ShutdownFailedFiles []string `json:"shutdown_failed_files,omitempty"`
+	RealFailedFiles     []string `json:"real_failed_files,omitempty"`
 }
 
 // IsEmpty checks if both processed and failed directories are empty

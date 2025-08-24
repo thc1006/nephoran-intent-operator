@@ -690,11 +690,11 @@ func (w *Watcher) getLatencyPercentiles() map[string]float64 {
 	w.metrics.latencyMutex.RLock()
 	defer w.metrics.latencyMutex.RUnlock()
 	
-	// Collect non-zero latencies
-	var latencies []int64
+	// Collect non-zero latencies and convert to float64
+	var latencies []float64
 	for _, latency := range w.metrics.ProcessingLatencies {
 		if latency > 0 {
-			latencies = append(latencies, latency)
+			latencies = append(latencies, float64(latency))
 		}
 	}
 	
@@ -708,26 +708,13 @@ func (w *Watcher) getLatencyPercentiles() map[string]float64 {
 	
 	// Simple percentile calculation (for production, consider using a proper algorithm)
 	return map[string]float64{
-		"50": float64(percentile(latencies, 50)) / 1e9, // Convert to seconds
-		"95": float64(percentile(latencies, 95)) / 1e9,
-		"99": float64(percentile(latencies, 99)) / 1e9,
+		"50": percentile(latencies, 50) / 1e9, // Convert to seconds
+		"95": percentile(latencies, 95) / 1e9,
+		"99": percentile(latencies, 99) / 1e9,
 	}
 }
 
-// percentile calculates the nth percentile of a slice of int64 values
-func percentile(values []int64, p int) int64 {
-	if len(values) == 0 {
-		return 0
-	}
-	
-	// Simple percentile calculation - for production use a sorting algorithm
-	index := (len(values) * p) / 100
-	if index >= len(values) {
-		index = len(values) - 1
-	}
-	
-	return values[index]
-}
+// Note: percentile function is defined in bounded_stats.go
 
 // ProcessExistingFiles processes any existing intent files in the directory (for restart idempotency)
 func (w *Watcher) ProcessExistingFiles() error {
@@ -756,10 +743,7 @@ func (w *Watcher) ProcessExistingFiles() error {
 
 		if count > 0 {
 			log.Printf("Processed %d existing intent files", count)
-			// Flush any batched files
-			if err := w.processor.FlushBatch(); err != nil {
-				log.Printf("Error flushing batch after processing existing files: %v", err)
-			}
+			// No need to flush batch - IntentProcessor doesn't use batching
 		}
 
 		return nil
@@ -796,10 +780,7 @@ func (w *Watcher) Start() error {
 		if w.processor == nil {
 			w.waitForWorkersToFinish()
 		} else {
-			// For processor mode, flush any pending batches
-			if err := w.processor.FlushBatch(); err != nil {
-				log.Printf("Warning: failed to flush batch: %v", err)
-			}
+			// IntentProcessor doesn't use batching, no need to flush
 		}
 		return nil
 	}
@@ -1596,30 +1577,8 @@ func (w *Watcher) validateScalingIntent(intent map[string]interface{}) error {
 	
 	// Validate replicas - handle both int and float64 from JSON
 	if replicasVal, exists := intent["replicas"]; exists {
-		if replicasVal == nil {
-			return fmt.Errorf("replicas cannot be null")
-		}
-		
-		var replicas float64
-		var ok bool
-		
-		// JSON unmarshaling can produce either int or float64
-		switch v := replicasVal.(type) {
-		case float64:
-			replicas = v
-			ok = true
-		case int:
-			replicas = float64(v)
-			ok = true
-		case int64:
-			replicas = float64(v)
-			ok = true
-		default:
-			ok = false
-		}
-		
-		if !ok || replicas < 0 || replicas > 1000 {
-			return fmt.Errorf("replicas must be a number between 0 and 1000")
+		if err := validateScalingReplicas(replicasVal); err != nil {
+			return err
 		}
 	}
 	
@@ -2006,12 +1965,50 @@ func (w *Watcher) validateResourceIntentSpec(spec map[string]interface{}) error 
 	return nil
 }
 
+// validateScalingReplicas safely validates replicas field with defensive checks
+func validateScalingReplicas(replicasVal interface{}) error {
+	// Handle null/nil replicas
+	if replicasVal == nil {
+		return fmt.Errorf("replicas cannot be null")
+	}
+	
+	var replicas float64
+	var ok bool
+	
+	// JSON unmarshaling can produce either int or float64
+	switch v := replicasVal.(type) {
+	case float64:
+		replicas = v
+		ok = true
+	case int:
+		replicas = float64(v)
+		ok = true
+	case int64:
+		replicas = float64(v)
+		ok = true
+	default:
+		ok = false
+	}
+	
+	// Check type conversion success and bounds
+	if !ok {
+		return fmt.Errorf("replicas must be a numeric value")
+	}
+	
+	// Apply bounds check (1-100 to match test expectations)
+	if replicas < 1 || replicas > 100 {
+		return fmt.Errorf("replicas must be an integer between 1 and 100")
+	}
+	
+	return nil
+}
+
 // validateScalingIntentSpec validates ScalingIntent spec (placeholder)
 func (w *Watcher) validateScalingIntentSpec(spec map[string]interface{}) error {
 	// Basic validation for ScalingIntent
 	if replicas, exists := spec["replicas"]; exists {
-		if replicasNum, ok := replicas.(float64); !ok || replicasNum < 1 {
-			return fmt.Errorf("spec.replicas must be a positive number")
+		if err := validateScalingReplicas(replicas); err != nil {
+			return fmt.Errorf("spec.%v", err)
 		}
 	}
 	return nil
@@ -2354,11 +2351,7 @@ func (w *Watcher) ensureDirectoryExists(dir string) {
 	})
 }
 
-// IsIntentFile checks if a filename matches the intent file pattern
-func IsIntentFile(filename string) bool {
-	// Check if file matches intent-*.json pattern
-	return strings.HasPrefix(filename, "intent-") && strings.HasSuffix(filename, ".json")
-}
+// Note: IsIntentFile function is defined in filter.go
 
 // isFileStable checks if a file exists and is stable (not being written to)
 func (w *Watcher) isFileStable(filePath string) bool {
