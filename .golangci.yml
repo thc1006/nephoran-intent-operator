@@ -2,10 +2,8 @@
 # Compatible with golangci-lint v2.4.0+ and Go 1.24.x
 # Ubuntu-only CI targeting O-RAN/Nephio orchestration requirements
 
-version: "2"
-
 run:
-  # Timeout for analysis
+  # Timeout for analysis - increased for comprehensive checks
   timeout: 5m
   
   # Exit code when at least one issue was found
@@ -16,19 +14,43 @@ run:
   
   # Go version for staticcheck
   go: "1.24"
+  
+  # Skip directories and files (generated code, vendor, etc.)
+  skip-dirs:
+    - vendor
+    - testdata
+    - examples
+    - bin
+    - build
+    - dist
+    - .git
+  
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*_generated\\.go$"
+    - ".*_gen\\.go$"
+    - "zz_generated\\..*\\.go$"
+    - "mock_.*\\.go$"
 
-# Output configuration (v2 schema)
+# Output configuration
 output:
-  show-stats: true
   formats:
-    text: {}  # Use text format for output
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  unique-by-line: true
+  sort-results: true
 
-# Linters configuration (v2 schema)
+# Linters configuration
 linters:
+  # Disable all linters first, then enable specific ones
+  disable-all: true
+  
   # Enable essential linters for security and code quality
   enable:
+    - typecheck      # Basic type checking (always enabled in v2)
     - revive         # Golint replacement with more rules
-    - staticcheck    # Advanced static analysis (includes gosimple, stylecheck)
+    - staticcheck    # Advanced static analysis
     - govet          # Official Go tool for static analysis
     - ineffassign    # Detects ineffectual assignments
     - errcheck       # Checks for unchecked errors
@@ -38,61 +60,95 @@ linters:
     - unconvert      # Unnecessary type conversions
     - prealloc       # Slice preallocation
     - gosec          # Security-focused linter (G series)
+    - gofmt          # Formatting checks
+    - goimports      # Import formatting
 
-  # Linter-specific settings (v2 schema)
-  settings:
-    # govet configuration (v2 schema)
-    govet:
-      enable:
-        - shadow
-      enable-all: true
-      
-    # gosec configuration for O-RAN security requirements
-    gosec:
-      excludes: []
-      includes: ["G101", "G102", "G103", "G104", "G106", "G107", "G108", "G109", "G110", "G201", "G202", "G203", "G204", "G301", "G302", "G303", "G304", "G305", "G401", "G402", "G403", "G404", "G501", "G502", "G503", "G504", "G505", "G601"]
-      severity: "medium"
-      confidence: "medium"
-      
-    # errcheck configuration
-    errcheck:
-      check-type-assertions: true
-      check-blank: true
-      exclude-functions:
-        - (*github.com/sirupsen/logrus.Entry).Debug
-        - (*github.com/sirupsen/logrus.Entry).Debugf
-        - (*github.com/sirupsen/logrus.Entry).Info
-        - (*github.com/sirupsen/logrus.Entry).Infof
-        - (*github.com/sirupsen/logrus.Entry).Warn
-        - (*github.com/sirupsen/logrus.Entry).Warnf
-        
-    # gocritic configuration
-    gocritic:
-      enabled-tags:
-        - diagnostic
-        - style
-        - performance
-      disabled-checks:
-        - commentedOutCode
-        - whyNoLint
+# Linter settings
+linters-settings:
+  # govet configuration
+  govet:
+    enable:
+      - shadow
+      - printf
+      - atomic
+      - bools
+      - buildtag
+      - copylocks
+      - httpresponse
+      - loopclosure
+      - lostcancel
+      - nilfunc
+      - structtag
+      - tests
+      - unmarshal
+      - unreachable
+      - unusedresult
+  
+  # gosec configuration for O-RAN security requirements
+  gosec:
+    severity: "medium"
+    confidence: "medium"
+    excludes:
+      - G104  # Unhandled errors - covered by errcheck
+    config:
+      global:
+        audit: true
+  
+  # errcheck configuration
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+    exclude-functions:
+      - (github.com/sirupsen/logrus.Logger).Debug
+      - (github.com/sirupsen/logrus.Logger).Debugf
+      - (github.com/sirupsen/logrus.Logger).Info
+      - (github.com/sirupsen/logrus.Logger).Infof
+      - (github.com/sirupsen/logrus.Logger).Warn
+      - (github.com/sirupsen/logrus.Logger).Warnf
+      - io.Copy(*bytes.Buffer)
+      - io.Copy(os.Stdout)
+  
+  # gocritic configuration
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+      - experimental
+    disabled-checks:
+      - commentedOutCode
+      - whyNoLint
+      - hugeParam
+  
+  # revive configuration
+  revive:
+    severity: warning
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+  
+  # staticcheck configuration
+  staticcheck:
+    checks: ["all", "-ST1000", "-ST1003", "-ST1016"]
 
-  # Exclusions configuration (v2 schema)
-  exclusions:
-    # Paths to exclude from analysis
-    paths:
-      - vendor
-      - testdata
-      - examples
-      - ".*\\.pb\\.go"
-      - ".*_generated\\.go"
-      - "zz_generated\\..*\\.go"
-      - .git
-      - bin
-      - build
-      - dist
-      - "_test\\.go"  # Exclude test files from certain checks
-
-# Issues configuration (v2 schema)
+# Issues configuration
 issues:
   # Unlimited issue reporting for thorough analysis
   max-issues-per-linter: 0
@@ -100,12 +156,70 @@ issues:
   
   # Don't auto-fix issues
   fix: false
+  
+  # Exclude certain files and patterns
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_generated\\.go$"
+    - ".*_gen\\.go$"
+    - "zz_generated\\..*\\.go$"
+    - "mock_.*\\.go$"
+    - "vendor/.*"
+  
+  # Exclude certain issue patterns
+  exclude-rules:
+    # Exclude test files from certain linters
+    - path: _test\.go
+      linters:
+        - gosec
+        - unparam
+        - errcheck
+    
+    # Exclude generated files from all linters
+    - path: "(.*\\.pb\\.go|.*_generated\\.go|zz_generated\\..*\\.go)"
+      linters:
+        - revive
+        - gocritic
+        - gosec
+    
+    # Allow certain patterns in test files
+    - path: _test\.go
+      text: "should not use dot imports"
+      linters:
+        - revive
+    
+    # Exclude vendor directory
+    - path: vendor/
+      linters:
+        - typecheck
+        - revive
+        - gocritic
+  
+  # Independently of issue text, exclude the following linters in specific paths
+  exclude-dirs:
+    - vendor
+    - testdata
+    - examples
+    - third_party
+  
+  # Show all issues from these linters
+  include:
+    - EXC0002  # disable excluding issues about comments from golint
+    - EXC0003  # disable excluding issues about comments from revive
+    - EXC0004  # disable excluding issues about comments from gocritic
+    - EXC0005  # disable excluding issues about ineffectual assignments from ineffassign
+    - EXC0011  # disable excluding issues about missing comments for exported types/functions
+    - EXC0012  # disable excluding issues about missing comments for packages
+    - EXC0013  # disable excluding issues about missing comments for constants
+    - EXC0014  # disable excluding issues about missing comments for variables
+    - EXC0015  # disable excluding issues about missing comments for type aliases
 
-# Severity configuration (v2 schema)
+# Severity configuration
 severity:
-  default: "error"
+  default-severity: error
   rules:
-    - linters: [misspell]
-      severity: warning
-    - linters: [gocritic]
+    - linters:
+        - misspell
+        - gocritic
+        - revive
       severity: warning
