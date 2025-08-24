@@ -4,6 +4,8 @@
 package security
 
 import (
+	"context"
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -247,7 +249,7 @@ func (m *MTLSManager) initializeCertificates() error {
 }
 
 // initializeCA initializes or loads the Certificate Authority
-func (m *MTLSManager) initializeCA() (*x509.Certificate, interface{}, error) {
+func (m *MTLSManager) initializeCA() (*x509.Certificate, *rsa.PrivateKey, error) {
 	// In production, this would load from secure storage (K8s secrets, Vault, etc.)
 	// For now, generate a self-signed CA
 	
@@ -469,11 +471,9 @@ func (m *MTLSManager) CreateGRPCServerOptions() ([]grpc.ServerOption, error) {
 }
 
 // grpcUnaryServerInterceptor adds security logging for unary calls
-func (m *MTLSManager) grpcUnaryServerInterceptor(ctx interface{}, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+func (m *MTLSManager) grpcUnaryServerInterceptor(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 	// Extract peer information
-	if p, ok := peer.FromContext(ctx.(interface {
-		Value(key interface{}) interface{}
-	})); ok {
+	if p, ok := peer.FromContext(ctx); ok {
 		if tlsInfo, ok := p.AuthInfo.(credentials.TLSInfo); ok {
 			m.logger.Debug("gRPC unary call with mTLS",
 				zap.String("method", info.FullMethod),

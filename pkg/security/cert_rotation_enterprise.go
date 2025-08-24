@@ -212,6 +212,15 @@ func NewCertRotationManager(config *CertRotationConfig, k8sClient kubernetes.Int
 	return manager, nil
 }
 
+// NewRotationScheduler creates a new rotation scheduler
+func NewRotationScheduler(manager *CertRotationManager, logger *zap.Logger) *RotationScheduler {
+	return &RotationScheduler{
+		manager:      manager,
+		logger:       logger,
+		rotationJobs: make(map[string]*time.Timer),
+	}
+}
+
 // Start begins the certificate rotation monitoring and management
 func (m *CertRotationManager) Start(ctx context.Context) error {
 	m.logger.Info("Starting certificate rotation manager",
@@ -547,7 +556,7 @@ func (m *CertRotationManager) rotateCertificate(ctx context.Context, tracker *Ce
 		m.metrics.mu.Unlock()
 		
 		// Send failure notification
-		m.notifier.SendRotationFailureNotification(tracker, rotationErr)
+		m.notifier.SendRotationFailureNotification(tracker.Name, rotationErr)
 		
 		return fmt.Errorf("certificate rotation failed after %d attempts: %w", m.config.RenewalRetryAttempts, rotationErr)
 	}
@@ -596,7 +605,7 @@ func (m *CertRotationManager) rotateCertificate(ctx context.Context, tracker *Ce
 	go m.cleanupOldBackups(ctx, tracker)
 	
 	// Send success notification
-	m.notifier.SendRotationSuccessNotification(tracker, rotationDuration)
+	m.notifier.SendRotationSuccessNotification(tracker.Name)
 	
 	m.logger.Info("Certificate rotation completed successfully",
 		zap.String("name", tracker.Name),
@@ -725,7 +734,7 @@ func (n *RotationNotifier) SendRotationSuccessNotification(name string) error {
 }
 
 // Start starts the rotation scheduler
-func (rs *RotationScheduler) Start() error {
+func (rs *RotationScheduler) Start(ctx context.Context) error {
 	// Implementation placeholder
 	return nil
 }
@@ -759,4 +768,22 @@ func (m *CertRotationManager) rollbackCertificate(ctx context.Context, tracker *
 func (m *CertRotationManager) cleanupOldBackups(ctx context.Context, tracker *CertificateTracker) error {
 	// Implementation placeholder
 	return nil
+}
+
+// renewWithExternalCA renews certificate with external CA
+func (m *CertRotationManager) renewWithExternalCA(ctx context.Context, tracker *CertificateTracker) error {
+	// Implementation placeholder
+	return fmt.Errorf("external CA renewal not yet implemented")
+}
+
+// renewSelfSignedCertificate renews self-signed certificate
+func (m *CertRotationManager) renewSelfSignedCertificate(ctx context.Context, tracker *CertificateTracker) error {
+	// Implementation placeholder
+	return fmt.Errorf("self-signed certificate renewal not yet implemented")
+}
+
+// parseCertificateFromPEM parses certificate from PEM encoded data
+func parseCertificateFromPEM(pemData []byte) (*x509.Certificate, error) {
+	// Implementation placeholder
+	return nil, fmt.Errorf("certificate parsing not yet implemented")
 }

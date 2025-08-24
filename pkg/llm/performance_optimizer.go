@@ -128,8 +128,8 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	// Initialize circuit breaker
 	// Convert to regular CircuitBreakerConfig for the circuit breaker
 	cbConfig := &CircuitBreakerConfig{
-		FailureThreshold: config.CircuitBreakerConfig.FailureThreshold,
-		SuccessThreshold: config.CircuitBreakerConfig.SuccessThreshold,
+		FailureThreshold: int64(config.CircuitBreakerConfig.FailureThreshold),
+		SuccessThreshold: int64(config.CircuitBreakerConfig.SuccessThreshold),
 		Timeout:          config.CircuitBreakerConfig.Timeout,
 		MaxRequests:      config.CircuitBreakerConfig.MaxConcurrentRequests,
 	}

@@ -175,10 +175,7 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	}
 
 	// Create batch processor
-	batchProcessor, err := NewBatchProcessor(config.BatchConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create batch processor: %w", err)
-	}
+	batchProcessor := NewBatchProcessor(*config.BatchConfig)
 
 	// Create JSON processor
 	jsonProcessor := NewFastJSONProcessor(config.JSONOptimization)
@@ -269,11 +266,11 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 			ctx, intent, intentType, "gpt-4o-mini", PriorityNormal,
 		)
 
-		if err == nil && batchResponse.Success {
-			response.Content = batchResponse.Response.(string)
+		if err == nil && batchResponse.Error == "" {
+			response.Content = batchResponse.Response
 			response.FromBatch = true
 			response.ProcessingTime = time.Since(start)
-			response.TokensUsed = batchResponse.TokensUsed
+			response.TokensUsed = batchResponse.Tokens
 
 			// Cache the result
 			oci.cache.Set(ctx, cacheKey, response.Content)
@@ -282,7 +279,7 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 
 			span.SetAttributes(
 				attribute.Bool("batch.processed", true),
-				attribute.Int("tokens.used", batchResponse.TokensUsed),
+				attribute.Int("tokens.used", batchResponse.Tokens),
 			)
 
 			return oci.cloneResponse(response), nil
@@ -398,7 +395,7 @@ func (oci *OptimizedControllerIntegration) buildOptimizedRequest(
 		Payload: payload,
 		Headers: map[string]string{
 			"Content-Type":  "application/json",
-			"Authorization": "Bearer " + oci.config.HTTPClientConfig.BaseConfig.APIKey,
+			"Authorization": "Bearer " + oci.config.HTTPClientConfig.APIKey,
 		},
 		Timeout: 30 * time.Second,
 	}, nil
@@ -623,7 +620,13 @@ func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
 		HTTPClientConfig: getDefaultOptimizedClientConfig(),
 		CacheConfig:      getDefaultIntelligentCacheConfig(),
 		WorkerPoolConfig: getDefaultWorkerPoolConfig(),
-		BatchConfig:      getDefaultBatchProcessorConfig(),
+		BatchConfig:      &BatchProcessorConfig{
+			BatchSize:       10,
+			FlushInterval:   100 * time.Millisecond,
+			MaxConcurrency:  5,
+			RetryAttempts:   3,
+			TimeoutDuration: 30 * time.Second,
+		},
 
 		JSONOptimization: JSONOptimizationConfig{
 			UseUnsafeOperations:     true,

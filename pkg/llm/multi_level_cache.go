@@ -129,7 +129,7 @@ func NewMultiLevelCache(config *MultiLevelCacheConfig, redisCache RedisCache) *M
 		l2Cache: redisCache,
 		config:  config,
 		logger:  slog.Default().With("component", "multi-level-cache"),
-		metrics: &CacheMetrics{LastUpdated: time.Now()},
+		metrics: &MultiLevelCacheMetrics{LastUpdated: time.Now()},
 	}
 }
 
@@ -162,7 +162,7 @@ func getDefaultCacheConfig() *MultiLevelCacheConfig {
 func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, bool, error) {
 	startTime := time.Now()
 	defer func() {
-		mlc.updateMetrics(func(m *CacheMetrics) {
+		mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 			m.AverageGetTime = (m.AverageGetTime*time.Duration(m.TotalHits+m.TotalMisses-1) + time.Since(startTime)) / time.Duration(m.TotalHits+m.TotalMisses)
 		})
 	}()
@@ -174,7 +174,7 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 
 	// Try L1 cache first
 	if value, found := mlc.l1Cache.Get(key); found {
-		mlc.updateMetrics(func(m *CacheMetrics) {
+		mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 			m.L1Hits++
 			m.TotalHits++
 		})
@@ -183,7 +183,7 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 		return value, true, nil
 	}
 
-	mlc.updateMetrics(func(m *CacheMetrics) {
+	mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 		m.L1Misses++
 	})
 
@@ -201,7 +201,7 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 					// Store in L1 cache for faster future access
 					mlc.l1Cache.Set(key, &entry, mlc.config.L1TTL)
 
-					mlc.updateMetrics(func(m *CacheMetrics) {
+					mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 						m.L2Hits++
 						m.TotalHits++
 					})
@@ -211,18 +211,18 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 				}
 			}
 		} else if err != nil {
-			mlc.updateMetrics(func(m *CacheMetrics) {
+			mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 				m.L2Errors++
 			})
 			mlc.logger.Warn("L2 cache error", "key", key, "error", err)
 		}
 
-		mlc.updateMetrics(func(m *CacheMetrics) {
+		mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 			m.L2Misses++
 		})
 	}
 
-	mlc.updateMetrics(func(m *CacheMetrics) {
+	mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 		m.TotalMisses++
 	})
 
@@ -234,7 +234,7 @@ func (mlc *MultiLevelCache) Get(ctx context.Context, key string) (interface{}, b
 func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface{}, ttl time.Duration) error {
 	startTime := time.Now()
 	defer func() {
-		mlc.updateMetrics(func(m *CacheMetrics) {
+		mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 			setCount := m.L1Sets
 			if mlc.config.RedisEnabled {
 				setCount = m.L1Sets + m.L2Sets
@@ -269,7 +269,7 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 
 	// Store in L1 cache
 	mlc.l1Cache.Set(key, entry, ttl)
-	mlc.updateMetrics(func(m *CacheMetrics) {
+	mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 		m.L1Sets++
 	})
 
@@ -293,12 +293,12 @@ func (mlc *MultiLevelCache) Set(ctx context.Context, key string, value interface
 			}
 
 			if err := mlc.l2Cache.Set(ctx, key, data, l2TTL); err != nil {
-				mlc.updateMetrics(func(m *CacheMetrics) {
+				mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 					m.L2Errors++
 				})
 				mlc.logger.Warn("Failed to store in L2 cache", "key", key, "error", err)
 			} else {
-				mlc.updateMetrics(func(m *CacheMetrics) {
+				mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 					m.L2Sets++
 				})
 			}
@@ -321,7 +321,7 @@ func (mlc *MultiLevelCache) Delete(ctx context.Context, key string) error {
 	// Delete from L2 cache if enabled
 	if mlc.config.RedisEnabled && mlc.l2Cache != nil {
 		if err := mlc.l2Cache.Del(ctx, key); err != nil {
-			mlc.updateMetrics(func(m *CacheMetrics) {
+			mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
 				m.L2Errors++
 			})
 			mlc.logger.Warn("Failed to delete from L2 cache", "key", key, "error", err)
@@ -428,7 +428,7 @@ func (mlc *MultiLevelCache) calculateSize(value interface{}) int64 {
 }
 
 // updateMetrics safely updates cache metrics
-func (mlc *MultiLevelCache) updateMetrics(updater func(*CacheMetrics)) {
+func (mlc *MultiLevelCache) updateMetrics(updater func(*MultiLevelCacheMetrics)) {
 	mlc.metrics.mutex.Lock()
 	defer mlc.metrics.mutex.Unlock()
 
@@ -440,7 +440,7 @@ func (mlc *MultiLevelCache) updateMetrics(updater func(*CacheMetrics)) {
 }
 
 // GetMetrics returns current cache metrics
-func (mlc *MultiLevelCache) GetMetrics() *CacheMetrics {
+func (mlc *MultiLevelCache) GetMetrics() *MultiLevelCacheMetrics {
 	mlc.metrics.mutex.RLock()
 	defer mlc.metrics.mutex.RUnlock()
 
@@ -501,8 +501,8 @@ func (mlc *MultiLevelCache) Clear(ctx context.Context) error {
 	}
 
 	// Reset metrics
-	mlc.updateMetrics(func(m *CacheMetrics) {
-		*m = CacheMetrics{LastUpdated: time.Now()}
+	mlc.updateMetrics(func(m *MultiLevelCacheMetrics) {
+		*m = MultiLevelCacheMetrics{LastUpdated: time.Now()}
 	})
 
 	mlc.logger.Info("Cache cleared")

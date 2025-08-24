@@ -95,7 +95,7 @@ type ResponseValidator struct {
 
 // NewClient creates a new LLM client with enhanced capabilities.
 func NewLegacyClient(url string) *LegacyClient {
-	return NewLegacyClientWithConfig(url, LegacyClientConfig{
+	client, err := NewLegacyClientWithConfig(url, LegacyClientConfig{
 		APIKey:          "",
 		ModelName:       "gpt-4o-mini",
 		MaxTokens:       2048,
@@ -104,6 +104,12 @@ func NewLegacyClient(url string) *LegacyClient {
 		MaxRetries:      2,   // Default retry count
 		CacheMaxEntries: 512, // Default cache size
 	})
+	if err != nil {
+		// Log the error and return a minimal client or panic
+		// For now, we'll panic since this is a critical initialization error
+		panic(fmt.Sprintf("Failed to create LLM client: %v", err))
+	}
+	return client
 }
 
 // ClientConfig holds configuration for LLM client
@@ -128,7 +134,7 @@ func legacyAllowInsecureClient() bool {
 }
 
 // NewClientWithConfig creates a new LLM client with specific configuration
-func NewLegacyClientWithConfig(url string, config LegacyClientConfig) *LegacyClient {
+func NewLegacyClientWithConfig(url string, config LegacyClientConfig) (*LegacyClient, error) {
 	// Initialize logger early for security logging
 	logger := slog.Default().With("component", "llm-client")
 
@@ -241,7 +247,7 @@ func NewLegacyClientWithConfig(url string, config LegacyClientConfig) *LegacyCli
 		}
 	}
 
-	return client
+	return client, nil
 }
 
 // NewClientMetrics creates a new metrics tracker
@@ -346,7 +352,7 @@ func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string
 		c.logger.Debug("Cache hit for intent", slog.String("cache_key", cacheKey))
 		cacheHit = true
 		success = true
-		return cached, nil
+		return cached.Response, nil
 	}
 	cacheHit = false
 
@@ -416,7 +422,11 @@ func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string
 	}
 
 	// Cache successful response
-	c.cache.Set(cacheKey, result)
+	cacheEntry := &types.CacheEntry{
+		Response:  result,
+		Timestamp: time.Now(),
+	}
+	c.cache.Set(cacheKey, cacheEntry)
 	c.logger.Info("Response cached successfully")
 	c.logger.Debug("Response cached", slog.String("cache_key", cacheKey))
 
@@ -979,4 +989,86 @@ func isValidMemoryFormat(memory string) bool {
 	}
 
 	return false
+}
+
+// cleanup starts a goroutine that periodically cleans expired cache entries
+func (c *LegacyResponseCache) cleanup() {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ticker.C:
+			c.mutex.Lock()
+			now := time.Now()
+			for key, entry := range c.entries {
+				if now.Sub(entry.Timestamp) > c.ttl {
+					delete(c.entries, key)
+				}
+			}
+			c.mutex.Unlock()
+		case <-c.stopCh:
+			return
+		}
+	}
+}
+
+// Get retrieves a cache entry
+func (c *LegacyResponseCache) Get(key string) (*types.CacheEntry, bool) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	
+	if c.stopped {
+		return nil, false
+	}
+	
+	entry, exists := c.entries[key]
+	if !exists {
+		return nil, false
+	}
+	
+	// Check if entry has expired
+	if time.Since(entry.Timestamp) > c.ttl {
+		delete(c.entries, key)
+		return nil, false
+	}
+	
+	return entry, true
+}
+
+// Set stores a cache entry
+func (c *LegacyResponseCache) Set(key string, entry *types.CacheEntry) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	
+	if c.stopped {
+		return
+	}
+	
+	// If cache is full, remove oldest entry
+	if len(c.entries) >= c.maxSize {
+		var oldestKey string
+		var oldestTime time.Time
+		first := true
+		for k, e := range c.entries {
+			if first || e.Timestamp.Before(oldestTime) {
+				oldestKey = k
+				oldestTime = e.Timestamp
+				first = false
+			}
+		}
+		if oldestKey != "" {
+			delete(c.entries, oldestKey)
+		}
+	}
+	
+	c.entries[key] = entry
+}
+
+// Stop stops the cache cleanup routine
+func (c *LegacyResponseCache) Stop() {
+	c.stopOnce.Do(func() {
+		c.stopped = true
+		close(c.stopCh)
+	})
 }

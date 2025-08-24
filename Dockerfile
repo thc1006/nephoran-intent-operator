@@ -86,6 +86,9 @@ RUN addgroup -g 65532 -S nonroot && \
 
 WORKDIR /build
 
+# Set ownership of build directory to nonroot user
+RUN chown -R nonroot:nonroot /build
+
 # Copy dependencies from previous stage
 COPY --from=go-deps /go/pkg /go/pkg
 COPY --from=go-deps /workspace/go.mod /workspace/go.sum ./
@@ -116,14 +119,13 @@ RUN set -ex; \
         -buildmode=pie \
         -trimpath \
         -mod=readonly \
-        -ldflags="-w -s -extldflags '-static -fPIC' \
+        -ldflags="-w -s \
                  -X main.version=${VERSION} \
                  -X main.buildDate=${BUILD_DATE} \
                  -X main.gitCommit=${VCS_REF} \
                  -X main.buildDate=${BUILD_DATE} \
                  -X main.buildPlatform=${TARGETPLATFORM} \
-                 -buildid='' \
-                 -linkmode=external" \
+                 -buildid=''" \
         -tags="netgo osusergo static_build timetzdata" \
         -gcflags="-N -l" \
         -asmflags="-D GOOS_${TARGETOS}" \
