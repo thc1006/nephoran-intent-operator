@@ -94,9 +94,9 @@ type PredictionModel struct {
 	featureScalers map[string]*FeatureScaler `json:"-"`
 
 	// Performance metrics
-	mae     float64 `json:"mae"`      // Mean Absolute Error
-	rmse    float64 `json:"rmse"`     // Root Mean Square Error
-	r2Score float64 `json:"r2_score"` // R-squared score
+	MAE     float64 `json:"mae"`      // Mean Absolute Error
+	RMSE    float64 `json:"rmse"`     // Root Mean Square Error
+	R2Score float64 `json:"r2_score"` // R-squared score
 }
 
 // ModelAlgorithm represents different ML algorithms for prediction
@@ -855,7 +855,7 @@ func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainin
 	model.weights[numFeatures] = biasSum / float64(numSamples) // bias term
 
 	// Calculate accuracy metrics
-	model.Accuracy, model.mae, model.rmse, model.r2Score = hp.calculateModelAccuracy(model, trainingData)
+	model.Accuracy, model.MAE, model.RMSE, model.R2Score = hp.calculateModelAccuracy(model, trainingData)
 
 	return nil
 }
@@ -871,7 +871,7 @@ func (hp *HealthPredictor) trainMovingAverage(model *PredictionModel, trainingDa
 	model.weights = []float64{float64(windowSize)}
 
 	// Calculate accuracy using moving average predictions
-	model.Accuracy, model.mae, model.rmse, model.r2Score = hp.calculateModelAccuracy(model, trainingData)
+	model.Accuracy, model.MAE, model.RMSE, model.R2Score = hp.calculateModelAccuracy(model, trainingData)
 
 	return nil
 }
@@ -887,7 +887,7 @@ func (hp *HealthPredictor) trainExponentialSmoothing(model *PredictionModel, tra
 	model.weights = []float64{alpha}
 
 	// Calculate accuracy
-	model.Accuracy, model.mae, model.rmse, model.r2Score = hp.calculateModelAccuracy(model, trainingData)
+	model.Accuracy, model.MAE, model.RMSE, model.R2Score = hp.calculateModelAccuracy(model, trainingData)
 
 	return nil
 }

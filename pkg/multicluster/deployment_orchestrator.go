@@ -9,7 +9,11 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/discovery/cached/memory"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/restmapper"
 )
 
 // PackageDeploymentOrchestrator manages package deployments across multiple clusters
@@ -26,7 +30,42 @@ func NewPackageDeploymentOrchestrator(registry *ClusterRegistry, logger *zap.Log
 	}
 }
 
+// gvkToGVR converts a GroupVersionKind to GroupVersionResource using RESTMapper
+func (pdo *PackageDeploymentOrchestrator) gvkToGVR(ctx context.Context, gvk schema.GroupVersionKind, discoveryClient discovery.DiscoveryInterface) (schema.GroupVersionResource, error) {
+	// Create a cached discovery client
+	cachedDiscoveryClient := memory.NewMemCacheClient(discoveryClient)
+	mapper := restmapper.NewDeferredDiscoveryRESTMapper(cachedDiscoveryClient)
+	mapping, err := mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return schema.GroupVersionResource{}, fmt.Errorf("failed to get REST mapping for %s: %w", gvk, err)
+	}
+	return mapping.Resource, nil
+}
+
 // PropagatePackage deploys a package to selected target clusters
+func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
+	ctx context.Context,
+	packageName string,
+	options *PropagationOptions,
+) ([]*DeploymentTarget, error) {
+	// For now, return all registered clusters as targets
+	// TODO: Implement intelligent target selection based on options
+	clusters := pdo.clusterRegistry.ListClusters()
+	targets := make([]*DeploymentTarget, 0, len(clusters))
+	
+	for _, cluster := range clusters {
+		target := &DeploymentTarget{
+			Cluster:     cluster,
+			Constraints: []PlacementConstraint{},
+			Priority:    1,
+			Fitness:     1.0,
+		}
+		targets = append(targets, target)
+	}
+	
+	return targets, nil
+}
+
 func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 	ctx context.Context,
 	packageName string,
@@ -68,6 +107,7 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 				wg.Done()
 			}()
 
+			deploymentStart := time.Now()
 			_, err := pdo.deployToCluster(ctx, packageName, t, options)
 
 			mu.Lock()
@@ -115,6 +155,12 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 		return false, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
+	// Create discovery client for REST mapping
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(target.Cluster.KubeConfig)
+	if err != nil {
+		return false, fmt.Errorf("failed to create discovery client: %w", err)
+	}
+
 	// TODO: Implement package retrieval and parsing logic
 	// This would typically involve fetching the package from a package repository
 	// or using Nephio Porch API to get package details
@@ -135,8 +181,15 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 			resource.SetNamespace("default")
 		}
 
-		// Create or update resource
-		_, err := dynamicClient.Resource(resource.GroupVersionKind()).Namespace(resource.GetNamespace()).Create(
+		// Convert GVK to GVR using RESTMapper
+		gvk := resource.GroupVersionKind()
+		gvr, err := pdo.gvkToGVR(ctx, gvk, discoveryClient)
+		if err != nil {
+			return false, fmt.Errorf("failed to convert GVK to GVR for resource %s: %w", resource.GetName(), err)
+		}
+
+		// Create or update resource using correct GVR
+		_, err = dynamicClient.Resource(gvr).Namespace(resource.GetNamespace()).Create(
 			ctx,
 			resource,
 			metav1.CreateOptions{},
