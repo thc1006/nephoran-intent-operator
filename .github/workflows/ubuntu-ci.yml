@@ -1,0 +1,176 @@
+name: Ubuntu CI
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
+  pull_request:
+    branches: [ main, integrate/mvp ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.22.x"
+  GOLANGCI_LINT_VERSION: "v2.4.0"
+
+jobs:
+  # ==========================================================================
+  # Lint Job - Ubuntu Only
+  # ==========================================================================
+  lint:
+    name: Code Quality (golangci-lint v2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Download dependencies
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run golangci-lint (v2 schema)
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          args: --config=.golangci.yml
+
+  # ==========================================================================
+  # Test Job - Ubuntu Only
+  # ==========================================================================
+  test:
+    name: Test Suite (Ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Download dependencies
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Run tests with coverage
+        run: |
+          mkdir -p test-results
+          go test -v -race -coverprofile=test-results/coverage.out -covermode=atomic ./...
+
+      - name: Generate coverage report
+        if: always()
+        run: |
+          if [ -f "test-results/coverage.out" ]; then
+            go tool cover -html=test-results/coverage.out -o test-results/coverage.html
+            go tool cover -func=test-results/coverage.out
+          fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-ubuntu
+          path: test-results/
+          retention-days: 7
+
+  # ==========================================================================
+  # Build Verification - Ubuntu Only  
+  # ==========================================================================
+  build:
+    name: Build Verification
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
+      - name: Build all packages
+        run: |
+          echo "Building all packages..."
+          go build -v ./...
+          
+          echo "Building main executables..."
+          mkdir -p bin/
+          go build -o bin/ ./cmd/...
+          
+          echo "Listing built executables:"
+          ls -la bin/
+
+      - name: Verify executables
+        run: |
+          for exe in bin/*; do
+            if [ -x "$exe" ]; then
+              echo "✅ $exe is executable"
+            else
+              echo "❌ $exe is not executable"
+              exit 1
+            fi
+          done
+
+  # ==========================================================================
+  # Status Check - Ubuntu CI Complete
+  # ==========================================================================
+  ubuntu-ci-complete:
+    name: Ubuntu CI Status
+    runs-on: ubuntu-latest
+    needs: [lint, test, build]
+    if: always()
+    
+    steps:
+      - name: Check status
+        run: |
+          echo "=== Ubuntu CI Results ==="
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Test: ${{ needs.test.result }}"  
+          echo "Build: ${{ needs.build.result }}"
+          
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            echo "❌ Lint job failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.test.result }}" != "success" ]]; then
+            echo "❌ Test job failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.build.result }}" != "success" ]]; then
+            echo "❌ Build job failed" 
+            exit 1
+          fi
+          
+          echo "✅ All Ubuntu CI jobs passed successfully!"

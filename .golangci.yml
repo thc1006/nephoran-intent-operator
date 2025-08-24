@@ -1,13 +1,11 @@
 # golangci-lint configuration for nephoran-intent-operator (v2 schema)
-# Compatible with Go 1.24.x and golangci-lint v2.4.0+
-#
-# This configuration balances code quality with pragmatic development needs
-# while ensuring security best practices for O-RAN/Nephio orchestration.
+# Compatible with golangci-lint v2.4.0+ and Go 1.22.x
+# Ubuntu-only CI targeting O-RAN/Nephio orchestration requirements
 
 version: "2"
 
 run:
-  # Timeout for analysis, overrides CI args if specified
+  # Timeout for analysis
   timeout: 5m
   
   # Exit code when at least one issue was found
@@ -16,10 +14,8 @@ run:
   # Include test files in linting
   tests: true
   
-  # Allow packages to be skipped for analysis (auto-detection)
+  # Skip vendor and generated files
   skip-dirs-use-default: true
-  
-  # Skip vendor directories
   skip-dirs:
     - vendor/
     - .git/
@@ -27,7 +23,6 @@ run:
     - build/
     - dist/
   
-  # Skip files with these patterns
   skip-files:
     - ".*\\.pb\\.go$"
     - ".*_generated\\.go$"
@@ -35,78 +30,55 @@ run:
 
 # Output configuration
 output:
-  # Colored output for better readability
   color: true
-  
-  # Output format: colored-line-number, line-number, json, tab, checkstyle, code-climate
   format: colored-line-number
-  
-  # Print lines of code with issue
   print-issued-lines: true
-  
-  # Print linter name in the end of issue text
   print-linter-name: true
-  
-  # Make issues output unique by line
   uniq-by-line: true
-  
-  # Sort results by file path, line number, column number
   sort-results: true
 
-# Linters configuration
+# Linters configuration (v2 schema - explicit minimal policy)
 linters:
-  # Use standard preset for CI performance (replaces --fast flag)
-  preset: standard
+  # Disable all defaults, enable only curated set
+  default: none
   
   # Enable essential linters for security and code quality
   enable:
-    # Core Go static analysis
-    - govet          # Official Go tool for static analysis
-    - staticcheck    # Advanced static analysis (SA series)
-    - errcheck       # Checks for unchecked errors
     - revive         # Golint replacement with more rules
-    - gofmt          # Checks if code was gofmt-ed
-    - goimports      # Checks if imports are sorted
-    
-    # Additional quality linters
+    - staticcheck    # Advanced static analysis (includes gosimple, stylecheck)
+    - govet          # Official Go tool for static analysis
     - ineffassign    # Detects ineffectual assignments
-    - unused         # Finds unused constants, variables, functions and types
-    - typecheck      # Type checking (similar to go build)
+    - errcheck       # Checks for unchecked errors
+    - gocritic       # Meta-linter with various checks
+    - misspell       # Spelling mistakes
+    - unparam        # Unused function parameters
+    - unconvert      # Unnecessary type conversions
+    - prealloc       # Slice preallocation
     - gosec          # Security-focused linter (G series)
 
-  # Linters settings (v2 schema uses linters.settings instead of linters-settings)
+  # Linter-specific settings (v2 schema)
   settings:
+    # staticcheck configuration (replaces gosimple, stylecheck, staticcheck)
+    staticcheck:
+      go: "1.22"
+      checks: ["all"]
+      
     # govet configuration
     govet:
-      # Enable all govet checks
       check-shadowing: true
       enable-all: true
       
-    # staticcheck configuration
-    staticcheck:
-      # Select the Go version to target
-      go: "1.24"
-      # Enable all SA checks
-      checks: ["all"]
-      
-    # gosec configuration for security
+    # gosec configuration for O-RAN security requirements
     gosec:
-      # Exclude specific rule IDs (use cautiously)
       excludes: []
-      # Include rules for O-RAN security requirements
       includes: ["G101", "G102", "G103", "G104", "G106", "G107", "G108", "G109", "G110", "G201", "G202", "G203", "G204", "G301", "G302", "G303", "G304", "G305", "G401", "G402", "G403", "G404", "G501", "G502", "G503", "G504", "G505", "G601"]
-      # Severity configuration
       severity: "medium"
-      # Confidence level
       confidence: "medium"
       
     # errcheck configuration
     errcheck:
-      # Report about not checking of errors in type assertions
       check-type-assertions: true
-      # Report about assignment of errors to blank identifier
       check-blank: true
-      # List of functions to exclude from checking
       exclude-functions:
         - (*github.com/sirupsen/logrus.Entry).Debug
         - (*github.com/sirupsen/logrus.Entry).Debugf
@@ -114,63 +86,65 @@ linters:
         - (*github.com/sirupsen/logrus.Entry).Infof
         - (*github.com/sirupsen/logrus.Entry).Warn
         - (*github.com/sirupsen/logrus.Entry).Warnf
+        
+    # gocritic configuration
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        - commentedOutCode
+        - whyNoLint
+
+# Formatters configuration (v2 schema - moved from linters)
+formatters:
+  enable:
+    - gofmt          # Standard Go formatter
+    - goimports      # Import formatter and organizer
+  
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/thc1006/nephoran-intent-operator
 
 # Issues configuration
 issues:
-  # List of regexps of issue texts to exclude
+  # Exclude common false positives
   exclude:
-    # Exclude common false positives
     - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
     - "exported (type|method|function) (.+) should have comment or be unexported"
     - "ST1000: at least one file in a package should have a package comment"
     
   # Exclude specific linters for certain patterns
   exclude-rules:
-    # Exclude gosec G104 (audit errors not checked) for defer statements
+    # Allow test files to have relaxed rules
     - linters: [gosec]
       text: "G104: Errors unhandled"
       path: "_test\\.go"
     
-    # Allow long functions in test files
-    - linters: [funlen]
-      path: "_test\\.go"
-    
-    # Exclude certain security checks for test files
     - linters: [gosec]
       text: "G101|G102|G103" # Hardcoded credentials in tests
       path: "_test\\.go"
       
-  # Exclude specific directories from all checks
+  # Exclude specific directories
   exclude-dirs:
     - vendor/
     - testdata/
     - examples/
     
-  # Show only new issues created in git patch
-  new: false
-  
-  # Show only new issues created in git patch with revisions
-  new-from-rev: ""
-  
-  # Maximum issues count per one linter (0 = unlimited)
+  # Unlimited issue reporting for thorough analysis
   max-issues-per-linter: 0
-  
-  # Maximum count of issues with the same text (0 = unlimited)
   max-same-issues: 0
   
-  # Fix issues automatically when possible
+  # Don't auto-fix issues
   fix: false
 
 # Severity configuration
 severity:
-  # Default severity for issues
   default-severity: "error"
-  
-  # Custom severity rules
   rules:
     - linters: [misspell]
       severity: warning
-    - linters: [gocognit, gocyclo]
+    - linters: [gocritic]
       severity: warning
-    - linters: [funlen]
-      severity: info
