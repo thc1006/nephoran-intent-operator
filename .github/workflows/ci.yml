@@ -208,7 +208,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-          cache: true
+          cache: false
 
       - name: Cache controller tools
         uses: actions/cache@v4
@@ -277,7 +277,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-          cache: true
+          cache: false
 
       - name: Cache test dependencies
         uses: actions/cache@v4
@@ -375,7 +375,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-          cache: true
+          cache: false
 
       - name: Pre-lint smoke test
         run: |
@@ -387,12 +387,34 @@ jobs:
           go env
           echo ""
           
-          # Quick compile test targeting only real packages (avoid .out directories)
-          echo "Running smoke test compilation..."
-          go test -run Test -count=1 $(go list ./... | grep -v '\.out' | grep -v '/test-results/' | head -5) || {
-            echo "❌ Smoke test failed - basic compilation issues detected"
+          # Step 1: Build all packages to catch compile-time errors early
+          echo "Step 1: Building all packages..."
+          if ! go build $(go list ./... | grep -v '\.out' | grep -v '/test-results/'); then
+            echo "❌ Build failed - compilation errors detected"
+            echo "This typically indicates symbol collisions or missing dependencies"
             exit 1
-          }
+          fi
+          echo "✅ All packages built successfully"
+          
+          # Step 2: Compile test binaries (without running) to catch test compilation issues
+          echo "Step 2: Compiling test binaries..."
+          if ! go test -c $(go list ./... | grep -v '\.out' | grep -v '/test-results/' | head -10); then
+            echo "❌ Test compilation failed - test code has compilation issues"
+            exit 1
+          fi
+          echo "✅ Test binaries compiled successfully"
+          
+          # Step 3: Guard against stub files without proper build tags
+          echo "Step 3: Checking for stub files with incorrect build tags..."
+          for stub_file in $(find . -name "*missing_types*.go" -o -name "*stub*.go" | grep -v vendor); do
+            if ! head -3 "$stub_file" | grep -qE "//go:build.*stub|// \+build.*stub"; then
+              echo "❌ Stub file $stub_file lacks proper build tag constraint"
+              echo "Add '//go:build <tag>_stub' to prevent default compilation"
+              exit 1
+            fi
+          done
+          echo "✅ All stub files have proper build constraints"
+          
           echo "✅ Smoke test passed - proceeding with lint"
 
       - name: Cache golangci-lint
@@ -479,7 +501,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-          cache: true
+          cache: false
 
       - name: Cache Go modules and security databases
         uses: actions/cache@v4
@@ -728,7 +750,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-          cache: true
+          cache: false
 
       - name: Test tools
         run: |
