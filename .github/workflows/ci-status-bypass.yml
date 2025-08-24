@@ -23,19 +23,27 @@ jobs:
           REPO: ${{ github.repository }}
           SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
-          echo "Waiting for main CI to complete..."
-          timeout 600 bash -c '
+          echo "Checking for CI workflow completion..."
+          timeout 300 bash -c '
             while true; do
-              status=$(gh api repos/$REPO/commits/$SHA/status --jq ".state // \"pending\"")
-              if [ "$status" = "success" ]; then
-                echo "Main CI completed successfully"
-                break
-              elif [ "$status" = "failure" ]; then
-                echo "Main CI failed"
-                exit 1
+              # Check for the specific CI workflow run
+              runs=$(gh api repos/$REPO/actions/runs --method GET \
+                -f head_sha=$SHA \
+                -f status=completed \
+                --jq ".workflow_runs[] | select(.name == \"CI\") | .conclusion")
+              
+              if [ -n "$runs" ]; then
+                if echo "$runs" | grep -q "success"; then
+                  echo "CI workflow completed successfully"
+                  break
+                elif echo "$runs" | grep -q "failure\|cancelled"; then
+                  echo "CI workflow failed or was cancelled"
+                  exit 1
+                fi
               fi
-              echo "Main CI status: $status, waiting..."
-              sleep 30
+              
+              echo "CI workflow still running, waiting..."
+              sleep 20
             done
           '
 
