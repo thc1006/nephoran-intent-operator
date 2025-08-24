@@ -155,7 +155,6 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/microcosm-cc/bluemonday v1.0.27
 	// Use standard mapstructure instead of problematic go-viper version
-	github.com/mitchellh/mapstructure v1.5.0
 	github.com/montanaflynn/stats v0.7.1
 	github.com/pkg/errors v0.9.1
 	github.com/pquerna/otp v1.5.0
@@ -191,5 +190,4 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.19.0
 )
 
-// Replace problematic dependencies that can't be resolved
-replace github.com/go-viper/mapstructure/v2 => github.com/mitchellh/mapstructure v1.5.0
+// Note: mapstructure replace removed due to module path conflict

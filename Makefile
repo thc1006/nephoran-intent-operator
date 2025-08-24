@@ -230,8 +230,9 @@ lint: ## Run golangci-lint
 .PHONY: test
 test: ## Run unit tests
 	@echo "Running unit tests..."
-	mkdir -p $(REPORTS_DIR)
-	go test ./... -v -race -coverprofile=$(REPORTS_DIR)/coverage.out -covermode=atomic
+	mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)/coverage
+	go test ./... -v -race -coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic
+	cp $(QUALITY_REPORTS_DIR)/coverage/coverage.out $(REPORTS_DIR)/coverage.out 2>/dev/null || true
 
 .PHONY: test-integration
 test-integration: ## Run integration tests
