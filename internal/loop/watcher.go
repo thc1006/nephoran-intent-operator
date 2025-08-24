@@ -58,12 +58,14 @@ func (w *Watcher) ProcessExistingFiles() error {
 		if entry.IsDir() {
 			continue
 		}
-		
+
 		if IsIntentFile(entry.Name()) {
 			fullPath := filepath.Join(w.dir, entry.Name())
-			if err := w.processor.ProcessFile(fullPath); err != nil {
-				log.Printf("Error processing existing file %s: %v", fullPath, err)
-				// Continue processing other files
+			if w.processor != nil {
+				if err := w.processor.ProcessFile(fullPath); err != nil {
+					log.Printf("Error processing existing file %s: %v", fullPath, err)
+					// Continue processing other files
+				}
 			}
 			count++
 		}
@@ -72,8 +74,10 @@ func (w *Watcher) ProcessExistingFiles() error {
 	if count > 0 {
 		log.Printf("Processed %d existing intent files", count)
 		// Flush any batched files
-		if err := w.processor.FlushBatch(); err != nil {
-			log.Printf("Error flushing batch after processing existing files: %v", err)
+		if w.processor != nil {
+			if err := w.processor.FlushBatch(); err != nil {
+				log.Printf("Error flushing batch after processing existing files: %v", err)
+			}
 		}
 	}
 
@@ -83,14 +87,14 @@ func (w *Watcher) ProcessExistingFiles() error {
 // Start begins watching for file events
 func (w *Watcher) Start() error {
 	log.Printf("Watching directory: %s", w.dir)
-	
+
 	for {
 		select {
 		case event, ok := <-w.watcher.Events:
 			if !ok {
 				return fmt.Errorf("watcher events channel closed")
 			}
-			
+
 			// Process only Create and Write events
 			if event.Op&(fsnotify.Create|fsnotify.Write) != 0 {
 				// Check if this is an intent file
@@ -98,7 +102,7 @@ func (w *Watcher) Start() error {
 					w.handleIntentFile(event)
 				}
 			}
-			
+
 		case err, ok := <-w.watcher.Errors:
 			if !ok {
 				return fmt.Errorf("watcher errors channel closed")
@@ -118,9 +122,9 @@ func (w *Watcher) handleIntentFile(event fsnotify.Event) {
 	} else if event.Op&fsnotify.Write != 0 {
 		operation = "WRITE"
 	}
-	
+
 	log.Printf("[%s] Intent file detected: %s", operation, event.Name)
-	
+
 	// If we have a processor, use it
 	if w.processor != nil {
 		if err := w.processor.ProcessFile(event.Name); err != nil {
