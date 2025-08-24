@@ -149,11 +149,11 @@ type ClusterStatistics struct {
 	ShardCount       int            `json:"shard_count"`
 	VectorDimensions map[string]int `json:"vector_dimensions"`
 	IndexSize        int64          `json:"index_size"`
-	QueryLatency     LatencyMetrics `json:"query_latency"`
+	QueryLatency     WeaviateLatencyMetrics `json:"query_latency"`
 }
 
 // LatencyMetrics holds latency statistics
-type LatencyMetrics struct {
+type WeaviateLatencyMetrics struct {
 	P50 time.Duration `json:"p50"`
 	P95 time.Duration `json:"p95"`
 	P99 time.Duration `json:"p99"`
@@ -1164,7 +1164,7 @@ type simpleWeaviateRAGClient struct {
 }
 
 // newRAGClientImpl creates a simple Weaviate-based RAG client for the RAGClient interface
-func newRAGClientImpl(config *RAGClientConfig) RAGClient {
+func newComplexRAGClientImpl(config *RAGClientConfig) RAGClient {
 	return &simpleWeaviateRAGClient{
 		config: config,
 		httpClient: &http.Client{

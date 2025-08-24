@@ -49,7 +49,7 @@ jobs:
         with:
           go-version-file: go.mod
           check-latest: true
-          cache: true
+          cache: false
 
       - name: Install Kind
         run: |
@@ -173,7 +173,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-          cache: true
+          cache: false
 
       - name: Install Chaos Mesh
         run: |

@@ -51,10 +51,13 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 	}
 
 	// Create optimized connection pool (using default config)
-	poolConfig := &PoolConfig{
-		MaxConnections: 10,
-		MinConnections: 2,
-		MaxIdleTime:    5 * time.Minute,
+	poolConfig := &ConnectionPoolConfig{
+		MaxIdleConnections:    10,
+		MaxConnectionsPerHost: 5,
+		PoolSize:              10,
+		IdleConnectionTimeout: 5 * time.Minute,
+		ConnectionTimeout:     30 * time.Second,
+		HealthCheckInterval:   30 * time.Second,
 	}
 	connectionPool, err := NewOptimizedConnectionPool(poolConfig)
 	if err != nil {
@@ -63,9 +66,13 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 
 	// Create batch search client (using default config)
 	batchConfig := &BatchSearchConfig{
-		BatchSize:   100,
-		MaxWorkers:  4,
-		FlushInterval: 1 * time.Second,
+		MaxBatchSize:            100,
+		MaxConcurrency:          4,
+		MaxWaitTime:             1 * time.Second,
+		EnableVectorCaching:     true,
+		EnableQueryOptimization: true,
+		EnableDeduplication:     true,
+		SimilarityThreshold:     0.8,
 	}
 	batchSearchClient := NewOptimizedBatchSearchClient(originalClient, batchConfig)
 
