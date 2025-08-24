@@ -23,14 +23,14 @@ type RAGService struct {
 	llmClient      shared.ClientInterface
 	config         *RAGConfig
 	logger         *slog.Logger
-	metrics        *RAGMetrics
+	metrics        *ServiceRAGMetrics
 	errorBuilder   *errors.ErrorBuilder
-	cache          *RAGCache
+	cache          *ServiceRAGCache
 	mutex          sync.RWMutex
 }
 
 // RAGCache provides caching for RAG responses
-type RAGCache struct {
+type ServiceRAGCache struct {
 	data    map[string]*CachedResponse
 	mutex   sync.RWMutex
 	config  *CacheConfig
@@ -87,7 +87,7 @@ type RAGConfig struct {
 }
 
 // RAGMetrics holds performance and usage metrics
-type RAGMetrics struct {
+type ServiceRAGMetrics struct {
 	TotalQueries          int64         `json:"total_queries"`
 	SuccessfulQueries     int64         `json:"successful_queries"`
 	FailedQueries         int64         `json:"failed_queries"`
@@ -151,7 +151,7 @@ func NewRAGService(weaviateClient *WeaviateClient, llmClient shared.ClientInterf
 		llmClient:      llmClient,
 		config:         config,
 		logger:         logger,
-		metrics:        &RAGMetrics{LastUpdated: time.Now()},
+		metrics:        &ServiceRAGMetrics{LastUpdated: time.Now()},
 		errorBuilder:   errors.NewErrorBuilder("rag-service", "", logger),
 		cache:          cache,
 	}
@@ -226,7 +226,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	)
 
 	// Update metrics
-	rs.updateMetrics(func(m *RAGMetrics) {
+	rs.updateMetrics(func(m *ServiceRAGMetrics) {
 		m.TotalQueries++
 	})
 
@@ -236,7 +236,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		if cachedResponse := rs.cache.Get(cacheKey); cachedResponse != nil {
 			rs.logger.Debug("Cache hit for RAG query", "cache_key", cacheKey)
 			cachedResponse.UsedCache = true
-			rs.updateMetrics(func(m *RAGMetrics) {
+			rs.updateMetrics(func(m *ServiceRAGMetrics) {
 				m.SuccessfulQueries++
 				m.CacheHitRate = float64(rs.cache.metrics.Hits) / float64(rs.cache.metrics.Hits+rs.cache.metrics.Misses)
 			})
@@ -260,7 +260,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 	searchResponse, err := rs.weaviateClient.Search(ctx, searchQuery)
 	if err != nil {
-		rs.updateMetrics(func(m *RAGMetrics) {
+		rs.updateMetrics(func(m *ServiceRAGMetrics) {
 			m.FailedQueries++
 		})
 
@@ -297,7 +297,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 
 	llmResponse, err := rs.llmClient.ProcessIntent(ctx, llmPrompt)
 	if err != nil {
-		rs.updateMetrics(func(m *RAGMetrics) {
+		rs.updateMetrics(func(m *ServiceRAGMetrics) {
 			m.FailedQueries++
 		})
 
@@ -345,7 +345,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	}
 
 	// Update success metrics
-	rs.updateMetrics(func(m *RAGMetrics) {
+	rs.updateMetrics(func(m *ServiceRAGMetrics) {
 		m.SuccessfulQueries++
 		m.AverageLatency = (m.AverageLatency*time.Duration(m.SuccessfulQueries-1) + ragResponse.ProcessingTime) / time.Duration(m.SuccessfulQueries)
 		m.AverageRetrievalTime = (m.AverageRetrievalTime*time.Duration(m.SuccessfulQueries-1) + retrievalTime) / time.Duration(m.SuccessfulQueries)
@@ -589,14 +589,14 @@ func (rs *RAGService) calculateConfidence(results []*shared.SearchResult) float3
 }
 
 // updateMetrics safely updates the metrics
-func (rs *RAGService) updateMetrics(updater func(*RAGMetrics)) {
+func (rs *RAGService) updateMetrics(updater func(*ServiceRAGMetrics)) {
 	rs.metrics.mutex.Lock()
 	defer rs.metrics.mutex.Unlock()
 	updater(rs.metrics)
 }
 
 // GetMetrics returns the current metrics
-func (rs *RAGService) GetMetrics() *RAGMetrics {
+func (rs *RAGService) GetMetrics() *ServiceRAGMetrics {
 	rs.metrics.mutex.RLock()
 	defer rs.metrics.mutex.RUnlock()
 
@@ -706,8 +706,8 @@ func (rs *RAGService) startCacheCleanup() {
 }
 
 // newRAGCache creates a new RAG cache
-func newRAGCache(config *CacheConfig) *RAGCache {
-	return &RAGCache{
+func newRAGCache(config *CacheConfig) *ServiceRAGCache {
+	return &ServiceRAGCache{
 		data:    make(map[string]*CachedResponse),
 		config:  config,
 		metrics: &CacheMetrics{},
@@ -715,7 +715,7 @@ func newRAGCache(config *CacheConfig) *RAGCache {
 }
 
 // Get retrieves a cached response
-func (c *RAGCache) Get(key string) *RAGResponse {
+func (c *ServiceRAGCache) Get(key string) *RAGResponse {
 	if !c.config.EnableCache {
 		return nil
 	}
@@ -746,7 +746,7 @@ func (c *RAGCache) Get(key string) *RAGResponse {
 }
 
 // Set stores a response in the cache
-func (c *RAGCache) Set(key string, response *RAGResponse) {
+func (c *ServiceRAGCache) Set(key string, response *RAGResponse) {
 	if !c.config.EnableCache {
 		return
 	}
@@ -770,7 +770,7 @@ func (c *RAGCache) Set(key string, response *RAGResponse) {
 }
 
 // remove removes an item from cache
-func (c *RAGCache) remove(key string) {
+func (c *ServiceRAGCache) remove(key string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -784,7 +784,7 @@ func (c *RAGCache) remove(key string) {
 }
 
 // evictLRU evicts the least recently used item
-func (c *RAGCache) evictLRU() {
+func (c *ServiceRAGCache) evictLRU() {
 	if len(c.data) == 0 {
 		return
 	}
@@ -809,7 +809,7 @@ func (c *RAGCache) evictLRU() {
 }
 
 // Cleanup removes expired entries
-func (c *RAGCache) Cleanup() {
+func (c *ServiceRAGCache) Cleanup() {
 	if !c.config.EnableCache {
 		return
 	}
@@ -836,7 +836,7 @@ func (c *RAGCache) Cleanup() {
 }
 
 // GetMetrics returns cache metrics
-func (c *RAGCache) GetMetrics() *CacheMetrics {
+func (c *ServiceRAGCache) GetMetrics() *CacheMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 
@@ -845,7 +845,7 @@ func (c *RAGCache) GetMetrics() *CacheMetrics {
 }
 
 // updateMetrics safely updates cache metrics
-func (c *RAGCache) updateMetrics(updater func(*CacheMetrics)) {
+func (c *ServiceRAGCache) updateMetrics(updater func(*CacheMetrics)) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
 	updater(c.metrics)

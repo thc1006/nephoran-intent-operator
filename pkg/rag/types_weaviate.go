@@ -7,8 +7,9 @@ import (
 	"time"
 )
 
-// EmbeddingProvider interface for embedding providers
-type EmbeddingProvider interface {
+// WeaviateEmbeddingProvider interface for Weaviate-specific embedding providers
+// NOTE: Renamed to avoid collision with the main EmbeddingProvider in enhanced_rag_integration.go
+type WeaviateEmbeddingProvider interface {
 	GetEmbeddings(ctx context.Context, texts []string) ([][]float64, error)
 	IsHealthy() bool
 	GetLatency() time.Duration

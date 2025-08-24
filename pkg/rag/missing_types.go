@@ -1,4 +1,10 @@
-//go:build !disable_rag && !test
+//go:build rag_stub
+// +build rag_stub
+
+// This file contains stub implementations for types that may be missing
+// in certain build configurations. It should ONLY be compiled when explicitly
+// needed via the rag_stub build tag to avoid symbol collisions with actual
+// implementations in optimized_*.go files.
 
 package rag
 
