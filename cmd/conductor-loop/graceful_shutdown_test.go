@@ -223,7 +223,8 @@ func TestShutdownFailureDetection(t *testing.T) {
 				newWatcher.Close() // This triggers graceful shutdown state
 			}
 			
-			result := newWatcher.IsShutdownFailure(tc.err, tc.errorMsg)
+			// IsShutdownFailure is on the processor, not the watcher
+			result := newWatcher.processor != nil && newWatcher.processor.IsShutdownFailure(tc.err)
 			if result != tc.expectedShutdown {
 				t.Errorf("Expected shutdown failure detection to be %v, got %v", 
 					tc.expectedShutdown, result)
