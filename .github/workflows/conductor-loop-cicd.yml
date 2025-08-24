@@ -107,7 +107,7 @@ jobs:
       with:
         go-version-file: go.mod
         check-latest: true
-        cache: true
+        cache: false
         
     - name: Download Dependencies
       run: |
@@ -218,7 +218,7 @@ jobs:
       with:
         go-version-file: go.mod
         check-latest: true
-        cache: true
+        cache: false
         
     - name: Install Dependencies
       run: |
