@@ -99,26 +99,21 @@ const (
 // CNFResources defines resource requirements for CNF
 type CNFResources struct {
 	// CPU resource requirements
-	// +kubebuilder:validation:Pattern=`^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$`
 	CPU resource.Quantity `json:"cpu"`
 
 	// Memory resource requirements
-	// +kubebuilder:validation:Pattern=`^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$`
 	Memory resource.Quantity `json:"memory"`
 
 	// Storage resource requirements
 	// +optional
-	// +kubebuilder:validation:Pattern=`^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$`
 	Storage *resource.Quantity `json:"storage,omitempty"`
 
 	// Maximum CPU resource limit
 	// +optional
-	// +kubebuilder:validation:Pattern=`^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$`
 	MaxCPU *resource.Quantity `json:"maxCpu,omitempty"`
 
 	// Maximum Memory resource limit
 	// +optional
-	// +kubebuilder:validation:Pattern=`^([+-]?[0-9.]+)([eEinumkKMGTP]*[-+]?[0-9]*)$`
 	MaxMemory *resource.Quantity `json:"maxMemory,omitempty"`
 
 	// GPU resource requirements

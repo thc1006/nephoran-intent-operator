@@ -16,10 +16,18 @@
 #     --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
 # =============================================================================
 
+# Global build platform arguments (must be at the very top)
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+
+# Version arguments
 ARG GO_VERSION=1.24
 ARG PYTHON_VERSION=3.11
 ARG ALPINE_VERSION=3.22
 ARG DISTROLESS_VERSION=nonroot
+ARG SERVICE_TYPE=go
 
 # =============================================================================
 # STAGE: GO Dependencies
@@ -46,13 +54,21 @@ RUN go mod download && go mod verify
 # =============================================================================
 FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-builder
 
+# Re-declare build platform ARGs for this stage
 ARG TARGETPLATFORM
-ARG TARGETOS=linux
-ARG TARGETARCH=amd64
+ARG TARGETOS
+ARG TARGETARCH
 ARG SERVICE
 ARG VERSION=v2.0.0
 ARG BUILD_DATE
 ARG VCS_REF
+
+# Validate required build arguments
+RUN if [ -z "$SERVICE" ]; then \
+    echo "ERROR: SERVICE build argument is required. Use --build-arg SERVICE=<service-name>" >&2; \
+    echo "Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" >&2; \
+    exit 1; \
+    fi
 
 # Install minimal build tools
 RUN apk add --no-cache git ca-certificates tzdata binutils && \
@@ -63,6 +79,7 @@ RUN addgroup -g 65532 -S nonroot && \
     adduser -u 65532 -S nonroot -G nonroot
 
 WORKDIR /build
+RUN chown nonroot:nonroot /build
 
 # Copy dependencies from previous stage
 COPY --from=go-deps /go/pkg /go/pkg
@@ -76,11 +93,14 @@ USER nonroot
 # Build service based on SERVICE argument
 RUN set -ex; \
     case "$SERVICE" in \
-        "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
+        "conductor-loop") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        "intent-ingest") CMD_PATH="./cmd/intent-ingest/main.go" ;; \
         "nephio-bridge") CMD_PATH="./cmd/nephio-bridge/main.go" ;; \
+        "llm-processor") CMD_PATH="./cmd/llm-processor/main.go" ;; \
         "oran-adaptor") CMD_PATH="./cmd/oran-adaptor/main.go" ;; \
-        "manager"|"controller") CMD_PATH="./main.go" ;; \
-        *) echo "Unknown service: $SERVICE" && exit 1 ;; \
+        "manager") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        "controller") CMD_PATH="./cmd/conductor-loop/main.go" ;; \
+        *) echo "Unknown service: $SERVICE. Valid services: conductor-loop, intent-ingest, nephio-bridge, llm-processor, oran-adaptor, manager, controller" && exit 1 ;; \
     esac; \
     CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build \
         -buildmode=pie \
@@ -141,6 +161,7 @@ RUN python -m compileall -b . && \
 # =============================================================================
 FROM gcr.io/distroless/static:${DISTROLESS_VERSION} AS go-runtime
 
+# Re-declare ARGs for this stage
 ARG SERVICE
 ARG VERSION=v2.0.0
 ARG BUILD_DATE
@@ -222,10 +243,7 @@ CMD ["api.pyc"]
 # =============================================================================
 # STAGE: Final Runtime Selection
 # =============================================================================
-# Select the appropriate runtime based on SERVICE argument
-ARG SERVICE
-FROM go-runtime AS final-go
-FROM python-runtime AS final-python
+# Default to go-runtime for all services except rag-api
+# rag-api service should be built with SERVICE_TYPE=python
 
-# This is a clever Docker trick: the last FROM wins based on build-arg conditions
-FROM final-${SERVICE_TYPE:-go} AS final
+FROM go-runtime AS final

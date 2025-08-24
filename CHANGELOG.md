@@ -23,6 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Secure OAuth2 client secret loading**: Implemented robust OAuth2 client secret loading mechanism with file-based and environment variable fallbacks for enhanced security and deployment flexibility
 - **OAuth2 provider configuration**: Completed comprehensive OAuth2 provider configuration system with secure provider enumeration and validation
 - **Multi-provider API keys management**: Added comprehensive API keys loading system supporting multiple providers (OpenAI, Anthropic, Google, Azure) with validation and secure fallback mechanisms
+- **Pre-parse JSON Size Validation**: Added JSON size limit validation before parsing to prevent memory exhaustion attacks through oversized JSON payloads (PR #89)
+- **Security Helper Module**: Added `internal/security/jsonlimit.go` with `ValidateAndLimitJSON` function for secure JSON handling (PR #89)
 
 #### O-RAN Functionality Improvements
 - **Enhanced E2 control message handling**: Implemented explicit node ID targeting in E2 control messages for precise O-RAN network element management
@@ -65,6 +67,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced RAG service health checking with proper component monitoring
 - Improved service startup dependencies and initialization order
 - Fixed build target dependencies in Makefile for individual services
+
+#### Validation & Testing
+- **Fixed nil pointer dereference**: Resolved nil pointer dereference in `invalid_scaling_replicas` validation test (PR #89)
+- **Corrected replica validation bounds**: Fixed replica validation range from 0-1000 to proper 1-100 bounds (PR #89)
+- **Improved test determinism**: Replaced non-deterministic random binary data with deterministic JSON in oversized file tests for consistent CI results (PR #89)
+- **Windows CI compatibility**: Disabled race detector on Windows builds to avoid CGO requirement issues in CI environment (PR #89)
 
 ### Security
 

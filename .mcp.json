@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@modelcontextprotocol/server-github"],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
       }
@@ -14,12 +14,12 @@
         "npx",
         "-y",
         "@modelcontextprotocol/server-filesystem",
-        "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-watch"
+        "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-conductor-loop"
       ]
     },
     "kubernetes": {
-      "command": "npx",
-      "args": ["-y", "mcp-server-kubernetes"],
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "mcp-server-kubernetes"],
       "env": {
         "KUBECONFIG": "C:\\Users\\tingy\\.kube\\config"
       }
@@ -44,8 +44,8 @@
       "args": []
     },
     "helm": {
-      "command": "npx",
-      "args": ["-y", "helm-package-readme-mcp-server"],
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "helm-package-readme-mcp-server"],
       "env": {
         "ARTIFACT_HUB_API_URL": "https://artifacthub.io/api/v1"
       }

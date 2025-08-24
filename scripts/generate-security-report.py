@@ -13,7 +13,17 @@ import argparse
 import datetime
 from pathlib import Path
 from typing import Dict, List, Any
-import xml.etree.ElementTree as ET
+# Use defusedxml for secure XML parsing to prevent XXE attacks
+try:
+    from defusedxml.ElementTree import parse as safe_parse
+    import defusedxml.ElementTree as ET
+except ImportError:
+    # Fallback to standard library with warning
+    import xml.etree.ElementTree as ET
+    import warnings
+    warnings.warn("defusedxml not available. Using xml.etree.ElementTree with potential security risks. Install defusedxml for secure XML parsing.", 
+                  category=UserWarning)
+    safe_parse = ET.parse
 
 def parse_gosec_report(report_path: str) -> Dict[str, Any]:
     """Parse gosec JSON report."""

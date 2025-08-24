@@ -29,6 +29,7 @@ ARG TARGETPLATFORM
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETVARIANT
+ARG SERVICE_TYPE=go
 
 # =============================================================================
 # STAGE: Build Information
@@ -289,17 +290,8 @@ USER 65532:65532
 
 # Environment with architecture-specific tuning
 ENV GOGC=100 \
-    TZ=UTC
-
-# Set GOMEMLIMIT based on architecture
-ENV GOMEMLIMIT=$( \
-    case "$TARGETARCH" in \
-        "amd64") echo "1GiB" ;; \
-        "arm64") echo "768MiB" ;; \
-        "arm") echo "512MiB" ;; \
-        *) echo "512MiB" ;; \
-    esac \
-)
+    TZ=UTC \
+    GOMEMLIMIT=512MiB
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
@@ -353,7 +345,6 @@ CMD ["api.pyc"]
 # =============================================================================
 # STAGE: Final Runtime Selection
 # =============================================================================
-ARG SERVICE_TYPE=go
 FROM go-runtime AS final-go
 FROM python-runtime AS final-python
 

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # BUILD-RUN-TEST - Conductor Loop
 
 ## Overview

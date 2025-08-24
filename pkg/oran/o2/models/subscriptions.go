@@ -56,29 +56,8 @@ type SubscriptionFilter struct {
 	TimeWindow *TimeWindow `json:"timeWindow,omitempty"`
 }
 
-// LocationFilter defines geographic location-based filtering
-type LocationFilter struct {
-	Regions     []string        `json:"regions,omitempty"`
-	Zones       []string        `json:"zones,omitempty"`
-	DataCenters []string        `json:"dataCenters,omitempty"`
-	Coordinates *GeographicArea `json:"coordinates,omitempty"`
-}
-
-// GeographicArea defines a geographic area for filtering
-type GeographicArea struct {
-	CenterLatitude  float64      `json:"centerLatitude"`
-	CenterLongitude float64      `json:"centerLongitude"`
-	Radius          float64      `json:"radius"` // in kilometers
-	BoundingBox     *BoundingBox `json:"boundingBox,omitempty"`
-}
-
-// BoundingBox defines a rectangular geographic boundary
-type BoundingBox struct {
-	NorthLatitude float64 `json:"northLatitude"`
-	SouthLatitude float64 `json:"southLatitude"`
-	EastLongitude float64 `json:"eastLongitude"`
-	WestLongitude float64 `json:"westLongitude"`
-}
+// LocationFilter, GeographicArea, and BoundingBox are defined in resource_types.go
+// to avoid duplicate declarations across the package
 
 // TimeWindow defines a time-based filter
 type TimeWindow struct {

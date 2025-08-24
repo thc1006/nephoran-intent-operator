@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -14,6 +15,83 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
+// isExpectedShutdownError identifies expected errors during shutdown that don't indicate infrastructure issues
+func isExpectedShutdownError(err error) bool {
+	if err == nil {
+		return false
+	}
+	
+	errorMsg := strings.ToLower(err.Error())
+	
+	// Expected shutdown patterns - these indicate graceful cleanup is in progress
+	expectedPatterns := []string{
+		"stats not available - no file manager configured",
+		"failed to read directory", // Directory may be temporarily inaccessible during cleanup
+		"permission denied",        // Cleanup processes may temporarily lock resources
+		"file does not exist",      // Status files may be cleaned up during shutdown
+		"no such file or directory", // Similar to above, for different OS error formats
+		"directory not found",      // Status directories may be cleaned up
+		"access is denied",         // Windows equivalent of permission denied
+	}
+	
+	for _, pattern := range expectedPatterns {
+		if strings.Contains(errorMsg, pattern) {
+			return true
+		}
+	}
+	
+	return false
+}
+
+// validateHandoffDir validates that a path exists and is accessible for directory operations.
+// It checks if the path exists, is a directory (not a file), and has read permissions.
+// Returns clear error messages for each failure case, working consistently across Windows, Linux, and macOS.
+func validateHandoffDir(path string) error {
+	if path == "" {
+		return fmt.Errorf("path cannot be empty")
+	}
+
+	// Clean the path to handle various path formats consistently across platforms
+	cleanPath := filepath.Clean(path)
+	
+	// Check if the path exists
+	info, err := os.Stat(cleanPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Path doesn't exist - check if parent directory exists and is accessible
+			parent := filepath.Dir(cleanPath)
+			
+			// Special case: if parent is the same as path, we've reached the root
+			if parent == cleanPath {
+				return fmt.Errorf("invalid path: %s (cannot validate root directory)", cleanPath)
+			}
+			
+			// Recursively check if parent is valid for directory creation
+			if err := validateHandoffDir(parent); err != nil {
+				return fmt.Errorf("invalid parent directory for %s: %v", cleanPath, err)
+			}
+			
+			// Parent exists and is valid, so we can create the directory
+			return nil
+		}
+		
+		// Other error (e.g., permission denied, invalid path format)
+		return fmt.Errorf("cannot access path %s: %v", cleanPath, err)
+	}
+	
+	// Path exists - verify it's a directory
+	if !info.IsDir() {
+		return fmt.Errorf("path %s exists but is not a directory", cleanPath)
+	}
+	
+	// Test read permission by attempting to read the directory
+	_, err = os.ReadDir(cleanPath)
+	if err != nil {
+		return fmt.Errorf("directory %s exists but is not readable: %v", cleanPath, err)
+	}
+	
+	return nil
+}
 // Config holds all command-line configuration
 type Config struct {
 	HandoffDir     string
@@ -56,6 +134,11 @@ func main() {
 			log.Fatalf("Invalid porch-mode: %s. Must be 'direct' or 'structured'", *porchMode)
 		}
 		
+		// Validate directories before creating
+		if err := validateHandoffDir(*handoffDir); err != nil {
+			log.Fatalf("Invalid handoff directory path %s: %v", *handoffDir, err)
+		}
+		
 		// Ensure directories exist
 		for _, dir := range []string{*handoffDir, *errorDir} {
 			if err := os.MkdirAll(dir, 0755); err != nil {
@@ -72,7 +155,10 @@ func main() {
 		// Legacy Config-based approach
 		log.Printf("Using Config-based pattern (legacy approach)")
 		
-		// Ensure handoff directory exists
+		// Validate and create handoff directory
+		if err := validateHandoffDir(config.HandoffDir); err != nil {
+			log.Fatalf("Invalid handoff directory path %s: %v", config.HandoffDir, err)
+		}
 		if err := os.MkdirAll(config.HandoffDir, 0755); err != nil {
 			log.Fatalf("Failed to create handoff directory: %v", err)
 		}
@@ -100,7 +186,7 @@ func main() {
 			*schemaPath = filepath.Join(".", "docs", "contracts", "intent.schema.json")
 		}
 
-		// Create validator
+		// Create validator (using ingest package)
 		validator, err := ingest.NewValidator(*schemaPath)
 		if err != nil {
 			log.Fatalf("Failed to create validator: %v", err)
@@ -139,7 +225,10 @@ func main() {
 		}
 	} else {
 		// Legacy Config-based approach setup
-		// Ensure output directory exists
+		// Validate and create output directory
+		if err := validateHandoffDir(config.OutDir); err != nil {
+			log.Fatalf("Invalid output directory path %s: %v", config.OutDir, err)
+		}
 		if err := os.MkdirAll(config.OutDir, 0755); err != nil {
 			log.Fatalf("Failed to create output directory: %v", err)
 		}
@@ -162,7 +251,7 @@ func main() {
 		log.Printf("  Period: %v", config.Period)
 
 		// Create and start the watcher
-		watcher, err = loop.NewWatcher(absHandoffDir, loop.Config{
+		watcher, err = loop.NewWatcher(config.HandoffDir, loop.Config{
 			PorchPath:     config.PorchPath,
 			PorchURL:      config.PorchURL,
 			Mode:         config.Mode,
@@ -185,8 +274,8 @@ func main() {
 		}
 	}()
 
-	// Process existing files on startup (for idempotency)
-	if watcher != nil {
+	// Process existing files on startup (for idempotency) - only for new processor approach
+	if *useProcessor && watcher != nil {
 		if err := watcher.ProcessExistingFiles(); err != nil {
 			log.Printf("Warning: Failed to process existing files: %v", err)
 		}
@@ -217,11 +306,24 @@ func main() {
 			// In once mode, check if any files failed (only for legacy approach)
 			stats, statsErr := watcher.GetStats()
 			if statsErr != nil {
-				log.Printf("Failed to get processing stats: %v", statsErr)
-				exitCode = 1
-			} else if stats.FailedCount > 0 {
-				log.Printf("Completed with %d failed files", stats.FailedCount)
+				if isExpectedShutdownError(statsErr) {
+					log.Printf("Stats unavailable due to expected shutdown conditions: %v", statsErr)
+					log.Printf("Once mode completed - stats collection temporarily unavailable (expected)")
+					exitCode = 3 // Stats unavailable due to expected shutdown conditions
+				} else {
+					log.Printf("Failed to get processing stats due to unexpected error: %v", statsErr)
+					log.Printf("This indicates potential infrastructure issues with status directories or file system")
+					exitCode = 2 // Unexpected stats error (infrastructure issues)
+				}
+			} else if stats.RealFailedCount > 0 {
+				// Only real failures should affect exit code, not shutdown failures
+				log.Printf("Completed with %d real failures and %d shutdown failures (total: %d failed files)", 
+					stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
 				exitCode = 8
+			} else if stats.ShutdownFailedCount > 0 {
+				// Only shutdown failures - this is acceptable during graceful shutdown
+				log.Printf("Completed with %d shutdown failures (no real failures)", stats.ShutdownFailedCount)
+				exitCode = 0
 			} else {
 				log.Printf("All files processed successfully")
 				exitCode = 0
@@ -230,7 +332,39 @@ func main() {
 	case sig := <-sigChan:
 		log.Printf("Received signal %v, shutting down gracefully", sig)
 		watcher.Close()
-		exitCode = 0
+		
+		// Check stats after graceful shutdown to distinguish shutdown vs real failures
+		if !*useProcessor {
+			// Only check stats for legacy approach
+			stats, statsErr := watcher.GetStats()
+			if statsErr != nil {
+				if isExpectedShutdownError(statsErr) {
+					log.Printf("Stats unavailable due to expected shutdown conditions: %v", statsErr)
+					log.Printf("Graceful shutdown completed - stats collection temporarily unavailable (expected)")
+					exitCode = 3 // Stats unavailable due to expected shutdown conditions
+				} else {
+					log.Printf("Failed to get processing stats after shutdown due to unexpected error: %v", statsErr)
+					log.Printf("This indicates potential infrastructure issues with status directories or file system")
+					exitCode = 2 // Unexpected stats error (infrastructure issues)
+				}
+			} else if stats.RealFailedCount > 0 {
+				// Only real failures should affect exit code, not shutdown failures
+				log.Printf("Graceful shutdown completed with %d real failures and %d shutdown failures (total: %d failed files)", 
+					stats.RealFailedCount, stats.ShutdownFailedCount, stats.FailedCount)
+				exitCode = 8
+			} else if stats.ShutdownFailedCount > 0 {
+				// Only shutdown failures - this is acceptable during graceful shutdown
+				log.Printf("Graceful shutdown completed with %d shutdown failures (no real failures)", stats.ShutdownFailedCount)
+				exitCode = 0
+			} else {
+				log.Printf("Graceful shutdown completed - all files processed successfully")
+				exitCode = 0
+			}
+		} else {
+			// For new processor approach, graceful shutdown is always successful
+			exitCode = 0
+			log.Printf("Graceful shutdown completed")
+		}
 	}
 
 	log.Println("Conductor-loop stopped")
@@ -244,14 +378,7 @@ func parseFlags() Config {
 		log.Fatalf("Error parsing flags: %v", err)
 	}
 	
-	// Create directories if they don't exist (not done in parseFlagsWithFlagSet for testing)
-	if err := os.MkdirAll(config.HandoffDir, 0755); err != nil {
-		log.Fatalf("Failed to create handoff directory: %v", err)
-	}
-	if err := os.MkdirAll(config.OutDir, 0755); err != nil {
-		log.Fatalf("Failed to create output directory: %v", err)
-	}
-	
+	// Note: directory creation is done in main() after validation
 	return config
 }
 

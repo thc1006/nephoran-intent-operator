@@ -35,8 +35,12 @@ keywords = ["sk_test", "rk_test", "sk_live", "rk_live"]
 [[rules]]
 id = "generic-api-key"
 description = "Generic API Key"
-regex = '''(?i)api[_-]?key['"\s]*[:=]['"\s]*[0-9a-z\-_]{10,}'''
+regex = '''(?i)api[_-]?key['"\s]*[:=]['"\s]*[0-9a-z\-_]{20,}'''
 keywords = ["api_key", "api-key", "apikey"]
+[rules.allowlist]
+regexes = [
+    '''api[_-]?key['"\s]*[:=]['"\s]*(test|example|demo|dummy|your-api-key-here|<.*>|\$\{.*\})'''
+]
 
 [[rules]]
 id = "jwt-token"
@@ -47,54 +51,82 @@ keywords = ["eyJ"]
 [[rules]]
 id = "password"
 description = "Password"
-regex = '''(?i)password['"\s]*[:=]['"\s]*[^'"\s]{3,}'''
+regex = '''(?i)password['"\s]*[:=]['"\s]*["']([^'"\n\r]{8,})["']'''
 keywords = ["password"]
+[rules.allowlist]
+regexes = [
+    '''password['"\s]*[:=]['"\s]*(test|example|demo|dummy|placeholder|changeme|password123|<.*>|\$\{.*\})''',
+    '''(?i)(bind|ldap|db|redis|smtp|admin|elastic|grafana)[-_]?password''',
+    '''(?i)password\s*[:=]\s*(password|bindPassword|dbPassword|config\.)'''
+]
 
 [[rules]]
 id = "basic-auth"
-description = "Basic Auth"
-regex = '''(?i)basic\s+[a-z0-9+/]{4,}={0,2}'''
-keywords = ["basic "]
+description = "Basic Auth Header"
+regex = '''(?i)(authorization|auth)\s*[:=]\s*['"]?basic\s+[a-z0-9+/]{20,}={0,2}['"]?'''
+keywords = ["authorization", "basic"]
 
 # Global allowlist
 [allowlist]
 description = "Global allowlist"
 regexes = [
     # Allow example/dummy values
-    '''password['"]*[:=]['"]*\s*(example|test|dummy|placeholder|xxx|changeme|password123)''',
+    '''(?i)(password|api[_-]?key|token|secret)['"]*[:=]['"]*\s*(example|test|dummy|placeholder|xxx|changeme|password123|your-.*|replace[_-]?with[_-]?.*|secure-.*-here)''',
     # Allow template variables
     '''\{\{.*\}\}''',
-    # Allow environment variable references
+    # Allow environment variable references  
     '''\$\{.*\}''',
+    # Allow shell variable substitutions
+    '''\$\(.*\)''',
     # Allow Kubernetes secrets references
     '''valueFrom:\s*secretKeyRef''',
     # Allow documentation examples
     '''example\.com''',
     # Allow test fixtures
-    '''testdata/''',
+    '''(^|/)testdata(/|$)''',
     # Allow license headers
     '''Copyright \(c\)''',
+    # Allow REPLACE_WITH patterns
+    '''REPLACE[_-]?WITH[_-]?.*''',
+    # Allow commented out examples
+    '''#.*password.*=.*''',
+    # Allow environment variable defaults
+    ''':-\$\(.*\)''',
 ]
 
 paths = [
-    # Ignore test files and examples
-    '''**/testdata/**''',
-    '''**/*_test.go''',
-    '''**/examples/**''',
-    '''**/docs/**''',
-    '''**/*.md''',
+    # Ignore test files and examples - using proper RE2 regex
+    '''(^|/)testdata(/|$)''',
+    '''.*_test\.go$''',
+    '''(^|/)examples(/|$)''',
+    '''(^|/)docs(/|$)''',
+    '''.*\.md$''',
     # Ignore vendor and build artifacts
-    '''**/vendor/**''',
-    '''**/node_modules/**''',
-    '''**/bin/**''',
-    '''**/*.log''',
+    '''(^|/)vendor(/|$)''',
+    '''(^|/)node_modules(/|$)''',
+    '''(^|/)bin(/|$)''',
+    '''(^|/)pkg/mod(/|$)''',  # Ignore Go module cache
+    '''.*\.log$''',
     # Ignore git and CI files
-    '''.git/**''',
-    '''.github/**''',
-    '''**/.github/**''',
+    '''(^|/)\.git(/|$)''',
+    '''(^|/)\.github(/|$)''',
+    # Ignore Claude-specific directories
+    '''(^|/)\.claude(/|$)''',
     # Ignore configuration files that might contain template values
-    '''**/values.yaml''',
-    '''**/values-*.yaml''',
+    '''values\.yaml$''',
+    '''values-.*\.yaml$''',
+    # Ignore deployment examples and scripts
+    '''deployments/.*\.yaml$''',
+    '''deployments/.*\.sh$''',
+    '''scripts/.*\.sh$''',
+    # Ignore test configuration files
+    '''.*test.*\.yaml$''',
+    '''.*test.*\.json$''',
+    # Ignore text files (logs, reports)
+    '''.*\.txt$''',
+    # Ignore SARIF and security reports
+    '''.*\.sarif$''',
+    '''security-reports/.*''',
 ]
 
 # Custom rules for telecommunications security

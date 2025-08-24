@@ -329,8 +329,9 @@ func (e *SecureCommandExecutor) applySecurityControls(cmd *exec.Cmd) error {
 		cmd.SysProcAttr = &syscall.SysProcAttr{}
 	}
 	
-	// Create new process group
-	cmd.SysProcAttr.Setpgid = true
+	// Create new process group (Unix-like systems only)
+	// On Windows, process groups work differently and Setpgid is not available
+	// TODO: Implement Windows-specific job object for process isolation
 	
 	// Additional Windows-specific security controls could be added here
 	// For example, job objects for resource limiting

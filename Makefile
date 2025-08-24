@@ -191,7 +191,7 @@ gen: ## Generate CRDs and deep copy methods (output to deployments/crds/)
 	@echo "Attempting to generate deep copy methods..."
 	@controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" || echo "⚠️  Deep copy generation failed due to compilation errors"
 	@echo "Attempting to generate CRDs..."
-	@controller-gen crd rbac:roleName=manager-role webhook paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || \
+	@controller-gen crd:crdVersions=v1,allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || \
 		(echo "⚠️  CRD generation failed, using existing CRDs..." && \
 		 cp deployments/crds/*.yaml deployments/crds/ 2>/dev/null || echo "No existing CRDs found")
 	@echo "✅ Gen target completed (check warnings above for any issues)"
@@ -200,7 +200,7 @@ gen: ## Generate CRDs and deep copy methods (output to deployments/crds/)
 .PHONY: manifests
 manifests: deps ## Generate Kubernetes manifests
 	@echo "Generating Kubernetes manifests..."
-	controller-gen crd rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	controller-gen crd:crdVersions=v1,allowDangerousTypes=true rbac:roleName=manager-role webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: fmt
 fmt: ## Format Go code
@@ -261,6 +261,20 @@ test-regression: ## Run regression testing suite
 
 .PHONY: test-all
 test-all: test test-integration test-e2e test-excellence test-regression ## Run all test suites
+
+.PHONY: test-ci
+test-ci: ## Run unit tests with CI-compatible coverage reporting
+	@echo "Running unit tests with CI-compatible coverage..."
+	mkdir -p .test-reports
+	go test ./... -v -coverprofile=.test-reports/coverage.out -covermode=atomic -timeout=10m
+	@if [ -f .test-reports/coverage.out ]; then \
+		go tool cover -html=.test-reports/coverage.out -o .test-reports/coverage.html; \
+		echo "Coverage report generated: .test-reports/coverage.html"; \
+		coverage_percent=$$(go tool cover -func=.test-reports/coverage.out | grep total | awk '{print $$3}'); \
+		echo "Coverage: $$coverage_percent"; \
+	else \
+		echo "Warning: Coverage file not generated"; \
+	fi
 
 .PHONY: coverage
 coverage: test ## Generate and view test coverage report

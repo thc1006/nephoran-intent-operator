@@ -15,6 +15,7 @@
 ARG GO_VERSION=1.24
 ARG PYTHON_VERSION=3.11
 ARG ALPINE_VERSION=3.22
+ARG SERVICE_TYPE=go
 
 # =============================================================================
 # STAGE: GO Development Environment
@@ -296,7 +297,6 @@ CMD ["bash"]
 # =============================================================================
 # STAGE: Final Stage Selection
 # =============================================================================
-ARG SERVICE_TYPE=go
 FROM ${SERVICE_TYPE}-dev AS final
 
 # Common development labels

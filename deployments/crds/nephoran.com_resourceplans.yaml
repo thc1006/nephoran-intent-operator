@@ -202,6 +202,7 @@ spec:
                     properties:
                       availabilityTarget:
                         description: AvailabilityTarget as percentage (e.g., 99.99)
+                        type: number
                       maxLatency:
                         description: MaxLatency in milliseconds
                         format: int32
@@ -209,6 +210,7 @@ spec:
                         type: integer
                       maxPacketLoss:
                         description: MaxPacketLoss as percentage
+                        type: number
                       minThroughput:
                         description: MinThroughput in Mbps
                         format: int32
@@ -275,6 +277,7 @@ spec:
                       type: string
                     weight:
                       description: Weight specifies the relative weight
+                      type: number
                   required:
                   - priority
                   - type
@@ -608,8 +611,10 @@ spec:
                     type: string
                   confidence:
                     description: Confidence level of the estimate (0.0-1.0)
+                    type: number
                   costBreakdown:
-                    additionalProperties: {}
+                    additionalProperties:
+                      type: number
                     description: CostBreakdown by component
                     type: object
                   currency:
@@ -622,6 +627,7 @@ spec:
                     type: string
                   totalCost:
                     description: TotalCost is the total estimated cost
+                    type: number
                 required:
                 - billingPeriod
                 - currency
@@ -647,6 +653,7 @@ spec:
                       type: string
                     improvementPercent:
                       description: ImprovementPercent achieved
+                      type: number
                     optimizedAt:
                       description: OptimizedAt timestamp
                       format: date-time
@@ -673,12 +680,16 @@ spec:
                     type: array
                   expectedAvailability:
                     description: ExpectedAvailability as percentage
+                    type: number
                   expectedLatency:
                     description: ExpectedLatency in milliseconds
+                    type: number
                   expectedThroughput:
                     description: ExpectedThroughput in requests per second
+                    type: number
                   resourceUtilization:
-                    additionalProperties: {}
+                    additionalProperties:
+                      type: number
                     description: ResourceUtilization estimates
                     type: object
                   scalingRecommendations:
@@ -688,6 +699,7 @@ spec:
                       properties:
                         confidence:
                           description: Confidence in the recommendation (0.0-1.0)
+                          type: number
                         impact:
                           description: Impact of the scaling
                           type: string
@@ -769,6 +781,7 @@ spec:
                       type: array
                     estimatedCost:
                       description: EstimatedCost for the resource
+                      type: number
                     labels:
                       additionalProperties:
                         type: string
@@ -897,6 +910,7 @@ spec:
                 type: string
               qualityScore:
                 description: QualityScore represents the quality of the plan
+                type: number
               resourceAllocation:
                 description: ResourceAllocation contains the detailed resource allocation
                 type: object

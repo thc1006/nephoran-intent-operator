@@ -18,9 +18,11 @@ package porch
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -331,8 +333,8 @@ type RepositoryConfig struct {
 	Capabilities []string    `json:"capabilities,omitempty"`
 }
 
-// GitAuthConfig defines Git authentication configuration
-type GitAuthConfig struct {
+// AuthConfig defines authentication configuration
+type AuthConfig struct {
 	Type       string            `json:"type"` // basic, token, ssh
 	Username   string            `json:"username,omitempty"`
 	Password   string            `json:"password,omitempty"`
@@ -393,6 +395,8 @@ type PackageMetadata struct {
 	Emails      []string          `json:"emails,omitempty"`
 	License     string            `json:"license,omitempty"`
 	Tags        map[string]string `json:"tags,omitempty"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	Annotations map[string]string `json:"annotations,omitempty"`
 }
 
 // Pipeline defines the KRM function pipeline
@@ -505,8 +509,8 @@ type WorkflowSpec struct {
 	RetryPolicy *RetryPolicy      `json:"retryPolicy,omitempty"`
 }
 
-// GeneralWorkflowStatus defines the general observed state of a workflow
-type GeneralWorkflowStatus struct {
+// WorkflowStatus defines the observed state of a workflow
+type WorkflowStatus struct {
 	Phase      WorkflowPhase      `json:"phase"`
 	Stage      string             `json:"stage,omitempty"`
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -783,8 +787,8 @@ type ComponentHealth struct {
 	Error  string `json:"error,omitempty"`
 }
 
-// BuildVersionInfo contains build version information
-type BuildVersionInfo struct {
+// VersionInfo contains build version information
+type VersionInfo struct {
 	Version   string `json:"version"`
 	GitCommit string `json:"gitCommit,omitempty"`
 	BuildTime string `json:"buildTime,omitempty"`
@@ -1115,8 +1119,7 @@ func (rs *RepositoryStatus) DeepCopyInto(out *RepositoryStatus) {
 	}
 }
 
-// Additional DeepCopy methods would follow the same pattern...
-// This provides type-safe deep copying required for Kubernetes client-go
+// DeepCopy methods are implemented in deepcopy.go
 
 // ContentMetrics represents metrics for package content
 type ContentMetrics struct {
@@ -1133,45 +1136,6 @@ type ContentManagerHealth struct {
 	CacheSize      int64     `json:"cacheSize"`
 	ActiveRequests int       `json:"activeRequests"`
 	ErrorCount     int       `json:"errorCount"`
-}
-
-// ContentManagerMetrics tracks metrics for content manager operations
-type ContentManagerMetrics struct {
-	TotalRequests   int64 `json:"totalRequests"`
-	SuccessCount    int64 `json:"successCount"`
-	ErrorCount      int64 `json:"errorCount"`
-	CacheHits       int64 `json:"cacheHits"`
-	CacheMisses     int64 `json:"cacheMisses"`
-	AverageLatency  int64 `json:"averageLatency"`
-}
-
-// ContentStore defines the interface for content storage operations
-type ContentStore interface {
-	Get(ctx context.Context, key string) ([]byte, error)
-	Put(ctx context.Context, key string, content []byte) error
-	Delete(ctx context.Context, key string) error
-	List(ctx context.Context, prefix string) ([]string, error)
-	Exists(ctx context.Context, key string) (bool, error)
-}
-
-// TemplateEngine handles template processing for package content
-type TemplateEngine struct {
-	Templates map[string]string `json:"templates"`
-	Functions map[string]interface{} `json:"-"`
-}
-
-// ContentValidator validates package content
-type ContentValidator struct {
-	Rules   []ContentValidationRule `json:"rules"`
-	Strict  bool                    `json:"strict"`
-}
-
-// ContentValidationRule defines a content validation rule
-type ContentValidationRule struct {
-	Name     string `json:"name"`
-	Type     string `json:"type"`
-	Pattern  string `json:"pattern"`
-	Required bool   `json:"required"`
 }
 
 // Error types for better error handling
