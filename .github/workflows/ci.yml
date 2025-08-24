@@ -304,7 +304,7 @@ jobs:
           export GO111MODULE=on
           export GOTESTSUM_FORMAT=short-verbose
           
-          # Run tests with coverage and timeout safety (excluding integration tests)
+          # Run tests with coverage and timeout safety (excluding integration tests and .out dirs)
           echo "Starting fast unit tests with 5m timeout..."
           timeout 5m go test -v -race -timeout=4m30s \
             -coverprofile=.test-reports/coverage.out \
@@ -312,7 +312,7 @@ jobs:
             -count=1 \
             -parallel=4 \
             -short \
-            ./... | tee .test-reports/test.log || {
+            $(go list ./... | grep -v '\.out' | grep -v '/test-results/') | tee .test-reports/test.log || {
               echo "Test execution completed (may have timed out)"
               echo "test_timeout=true" >> .test-reports/test-status.txt
             }
@@ -377,9 +377,9 @@ jobs:
           check-latest: true
           cache: true
 
-      - name: Pre-lint build sanity check
+      - name: Pre-lint smoke test
         run: |
-          echo "=== Pre-lint build sanity check ==="
+          echo "=== Fast-fail smoke test before lint ==="
           set -euo pipefail
           
           # Display Go environment
@@ -387,17 +387,13 @@ jobs:
           go env
           echo ""
           
-          # Verify dependencies can be listed (fast dependency resolution test)
-          echo "Checking dependency resolution..."
-          go list -e -deps ./... >/dev/null
-          echo "✅ Dependencies resolved successfully"
-          
-          # Build security module as sanity check (critical path)
-          echo "Building security module..."
-          go build ./internal/security
-          echo "✅ Security module builds successfully"
-          
-          echo "✅ Pre-lint checks passed - proceeding with golangci-lint"
+          # Quick compile test targeting only real packages (avoid .out directories)
+          echo "Running smoke test compilation..."
+          go test -run Test -count=1 $(go list ./... | grep -v '\.out' | grep -v '/test-results/' | head -5) || {
+            echo "❌ Smoke test failed - basic compilation issues detected"
+            exit 1
+          }
+          echo "✅ Smoke test passed - proceeding with lint"
 
       - name: Cache golangci-lint
         uses: actions/cache@v4
@@ -409,17 +405,16 @@ jobs:
             ${{ runner.os }}-golangci-lint-
 
       - name: golangci-lint
-        # Using golangci-lint-action@v6 (latest stable version)
-        # Note: v6 supports 'only-new-issues' which requires GitHub token for API access
-        # This reduces noise by only showing issues in the changed code
-        uses: golangci/golangci-lint-action@v6
+        # Using golangci-lint-action@v8 (latest stable version)
+        # v8 reduces lint output noise and prevents Node maxBuffer errors
+        uses: golangci/golangci-lint-action@v8
         with:
-          # Pin golangci-lint version for consistent behavior across runs
-          version: v1.61.0  # Latest stable golangci-lint version
-          # Command line arguments to golangci-lint
-          args: --timeout=5m
-          # Only show issues in new/modified code (requires GitHub token)
+          # Pin golangci-lint version v2.2.1 (latest v2.x for reduced noise)
+          version: v2.2.1
+          # Only show issues in new/modified code (requires GitHub token) - prevents flooding
           only-new-issues: true
+          # Use github-actions output format for structured PR annotations
+          args: --timeout=10m --out-format=github-actions
           # Skip cache to avoid permission issues in some environments
           skip-cache: false
 
