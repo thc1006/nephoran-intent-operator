@@ -4,10 +4,10 @@
 
 set -euo pipefail
 
-# Configuration
-COVERAGE_THRESHOLD=90
-QUALITY_THRESHOLD=8.0
-REPORTS_DIR=".quality-reports"
+# Configuration - Use environment variables first, then CLI args, then defaults
+COVERAGE_THRESHOLD="${COVERAGE_THRESHOLD:-90}"
+QUALITY_THRESHOLD="${QUALITY_THRESHOLD:-8.0}"
+REPORTS_DIR="${REPORTS_DIR:-.quality-reports}"
 TEMP_DIR=$(mktemp -d)
 EXIT_CODE=0
 
@@ -64,6 +64,7 @@ OPTIONS:
     --skip-lint               Skip linting checks
     --skip-security           Skip security scanning
     --skip-complexity         Skip cyclomatic complexity analysis
+    --reports-only            Generate reports only, don't fail on quality gate violations
     --verbose                 Enable verbose output
     --help                    Show this help message
 
@@ -122,6 +123,10 @@ parse_args() {
                 SKIP_COMPLEXITY=true
                 shift
                 ;;
+            --reports-only)
+                REPORTS_ONLY=true
+                shift
+                ;;
             --verbose)
                 VERBOSE=true
                 shift
@@ -163,7 +168,13 @@ init_environment() {
             if [[ "$tool" == "golangci-lint" ]]; then
                 info "Install with: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest"
             fi
-            exit 1
+            
+            # In reports-only mode, continue with warnings instead of failing
+            if [[ "${REPORTS_ONLY:-false}" == "true" ]]; then
+                warning "Continuing in reports-only mode without $tool"
+            else
+                exit 1
+            fi
         fi
     done
     
@@ -847,7 +858,7 @@ main() {
     else
         error "❌ QUALITY GATE FAILURES DETECTED"
         
-        if [[ "${CI_MODE:-false}" == "true" ]]; then
+        if [[ "${CI_MODE:-false}" == "true" ]] && [[ "${REPORTS_ONLY:-false}" != "true" ]]; then
             error "Failing CI build due to quality gate failures"
         fi
     fi
@@ -858,7 +869,13 @@ main() {
     echo "Dashboard: $REPORTS_DIR/quality-dashboard.html"
     echo "============================================================================="
     
-    exit $EXIT_CODE
+    # Only exit with failure code if not in reports-only mode
+    if [[ "${REPORTS_ONLY:-false}" == "true" ]]; then
+        success "Reports generated successfully (reports-only mode, ignoring quality gate failures)"
+        exit 0
+    else
+        exit $EXIT_CODE
+    fi
 }
 
 # Parse arguments and run main function
@@ -867,6 +884,8 @@ CI_MODE=false
 SKIP_TESTS=false
 SKIP_LINT=false
 SKIP_SECURITY=false
+SKIP_COMPLEXITY=false
+REPORTS_ONLY=false
 VERBOSE=false
 
 parse_args "$@"

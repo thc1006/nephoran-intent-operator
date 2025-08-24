@@ -499,7 +499,7 @@ jobs:
           # Run quality dashboard generator (from quality-gate.sh)
           if [[ -f "scripts/quality-gate.sh" ]]; then
             chmod +x scripts/quality-gate.sh
-            ./scripts/quality-gate.sh --skip-tests --skip-lint --skip-security --reports-dir="${{ env.REPORTS_DIR }}"
+            ./scripts/quality-gate.sh --skip-tests --skip-lint --skip-security --reports-only --reports-dir="${{ env.REPORTS_DIR }}"
           fi
       
       - name: 📄 Generate Metrics Summary
@@ -524,12 +524,35 @@ jobs:
           
           cat metrics-summary.md >> $GITHUB_STEP_SUMMARY
       
+      - name: 🐛 Debug Reports Directory Structure
+        if: always()
+        run: |
+          echo "🐛 Debugging ${{ env.REPORTS_DIR }} directory structure:"
+          if [ -d "${{ env.REPORTS_DIR }}" ]; then
+            echo "📁 Directory exists, listing contents:"
+            find "${{ env.REPORTS_DIR }}" -type f | head -20 | while read file; do
+              echo "📄 $file ($(stat -c%s "$file" 2>/dev/null || echo 'unknown') bytes)"
+            done
+            echo ""
+            echo "📊 Directory size summary:"
+            du -sh "${{ env.REPORTS_DIR }}"/* 2>/dev/null || echo "No subdirectories found"
+            echo ""
+            echo "📈 Total files: $(find "${{ env.REPORTS_DIR }}" -type f | wc -l)"
+            echo "📈 Total size: $(du -sh "${{ env.REPORTS_DIR }}" | cut -f1)"
+          else
+            echo "❌ ERROR: ${{ env.REPORTS_DIR }} directory does not exist!"
+            echo "📁 Current working directory contents:"
+            ls -la
+            exit 1
+          fi
+      
       - name: 💾 Upload Quality Artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: quality-dashboard
           path: ${{ env.REPORTS_DIR }}/
+          if-no-files-found: error
           retention-days: 30
 
   # ================================================================
@@ -544,10 +567,55 @@ jobs:
     
     steps:
       - name: 📥 Download Quality Reports
+        id: download-artifacts
         uses: actions/download-artifact@v4
         with:
           name: quality-dashboard
           path: ${{ env.REPORTS_DIR }}/
+        continue-on-error: true
+      
+      - name: 🔍 Fallback: List Available Artifacts
+        if: steps.download-artifacts.outcome == 'failure'
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            console.log('❌ Failed to download quality-dashboard artifact');
+            console.log('🔍 Listing all available artifacts for debugging:');
+            
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
+            
+            if (artifacts.data.artifacts.length === 0) {
+              console.log('⚠️  No artifacts found in this workflow run');
+            } else {
+              console.log(`📦 Found ${artifacts.data.artifacts.length} artifact(s):`);
+              for (const artifact of artifacts.data.artifacts) {
+                console.log(`  - ${artifact.name} (${artifact.size_in_bytes} bytes, created: ${artifact.created_at})`);
+              }
+            }
+            
+            core.setFailed('quality-dashboard artifact is missing. Check the Quality Metrics Calculation job for errors.');
+      
+      - name: 🔍 Verify Downloaded Artifacts
+        if: steps.download-artifacts.outcome == 'success'
+        run: |
+          echo "✅ Successfully downloaded quality-dashboard artifact"
+          echo "🔍 Verifying downloaded content:"
+          if [ -d "${{ env.REPORTS_DIR }}" ]; then
+            echo "📁 Reports directory structure:"
+            find "${{ env.REPORTS_DIR }}" -type f | head -10 | while read file; do
+              echo "  📄 $file ($(stat -c%s "$file" 2>/dev/null || echo 'unknown') bytes)"
+            done
+            echo ""
+            echo "📊 Total files: $(find "${{ env.REPORTS_DIR }}" -type f | wc -l)"
+          else
+            echo "❌ ERROR: Reports directory not found after download!"
+            exit 1
+          fi
       
       - name: 🔍 Evaluate Quality Gate
         id: quality-gate
@@ -669,7 +737,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: quality-dashboard
-          path: quality-reports/
+          path: ${{ env.REPORTS_DIR }}/
       
       - name: 📊 Setup Pages
         if: github.ref == 'refs/heads/main'
@@ -679,7 +747,7 @@ jobs:
         if: github.ref == 'refs/heads/main'
         uses: actions/upload-pages-artifact@v4
         with:
-          path: quality-reports/
+          path: ${{ env.REPORTS_DIR }}/
       
       - name: 🚀 Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main'
