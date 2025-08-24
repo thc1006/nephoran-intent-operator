@@ -2,6 +2,9 @@ package llm
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"sync"
 	"time"
 )
 
@@ -78,6 +81,48 @@ type RequestContext struct {
 	Metadata  map[string]interface{}
 }
 
+// Missing types for undefined references
+
+// HealthChecker provides health check functionality
+type HealthChecker struct {
+	// Implementation details would go here
+}
+
+// EndpointPool manages connection pooling for endpoints
+type EndpointPool struct {
+	// Implementation details would go here
+}
+
+// BatchProcessorConfig holds configuration for batch processing
+type BatchProcessorConfig struct {
+	BatchSize       int           `json:"batch_size"`
+	FlushInterval   time.Duration `json:"flush_interval"`
+	MaxConcurrency  int           `json:"max_concurrency"`
+	RetryAttempts   int           `json:"retry_attempts"`
+	TimeoutDuration time.Duration `json:"timeout_duration"`
+}
+
+// TokenManager manages token allocation and tracking
+type TokenManager interface {
+	AllocateTokens(request string) (int, error)
+	ReleaseTokens(count int) error
+	GetAvailableTokens() int
+}
+
+// StreamingContextManager manages streaming request contexts
+type StreamingContextManager struct {
+	activeStreams map[string]*StreamingContext
+	mutex         sync.RWMutex
+}
+
+// StreamingContext holds context for a streaming request
+type StreamingContext struct {
+	SessionID string
+	StartTime time.Time
+	LastSeen  time.Time
+	Metadata  map[string]interface{}
+}
+
 // NetworkTopology represents network topology information for processing
 type NetworkTopology struct {
 	Region           string            `json:"region"`
@@ -116,4 +161,11 @@ type ProcessingResult struct {
 	Batched        bool                   `json:"batched"`
 	Metadata       map[string]interface{} `json:"metadata"`
 	Error          error                  `json:"error,omitempty"`
+}
+
+// generateRequestID generates a unique request identifier
+func generateRequestID() string {
+	bytes := make([]byte, 8)
+	rand.Read(bytes)
+	return hex.EncodeToString(bytes)
 }

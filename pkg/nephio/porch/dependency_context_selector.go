@@ -342,8 +342,9 @@ func (cads *ContextAwareDependencySelector) apply5GCoreRules(
 	if cads.hasDependency(deps, "amf") && !cads.hasDependency(deps, "udm") {
 		udmDep := &ContextualDependency{
 			PackageRef: &PackageReference{
-				Name:      "udm",
-				Namespace: "5g-core",
+				Repository:  "5g-core",
+				PackageName: "udm",
+				Revision:    "latest",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for AMF authentication",
@@ -356,8 +357,9 @@ func (cads *ContextAwareDependencySelector) apply5GCoreRules(
 	if cads.hasDependency(deps, "smf") && !cads.hasDependency(deps, "upf") {
 		upfDep := &ContextualDependency{
 			PackageRef: &PackageReference{
-				Name:      "upf",
-				Namespace: "5g-core",
+				Repository:  "5g-core",
+				PackageName: "upf",
+				Revision:    "latest",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for SMF user plane",
@@ -370,8 +372,9 @@ func (cads *ContextAwareDependencySelector) apply5GCoreRules(
 	if cads.hasDependency(deps, "nssf") && !cads.hasDependency(deps, "nrf") {
 		nrfDep := &ContextualDependency{
 			PackageRef: &PackageReference{
-				Name:      "nrf",
-				Namespace: "5g-core",
+				Repository:  "5g-core",
+				PackageName: "nrf",
+				Revision:    "latest",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for NSSF service discovery",
@@ -393,8 +396,9 @@ func (cads *ContextAwareDependencySelector) applyORANRules(
 		// Add E2 termination dependency
 		e2termDep := &ContextualDependency{
 			PackageRef: &PackageReference{
-				Name:      "e2-termination",
-				Namespace: "oran",
+				Repository:  "oran",
+				PackageName: "e2-termination",
+				Revision:    "latest",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for Near-RT RIC E2 interface",
@@ -405,8 +409,9 @@ func (cads *ContextAwareDependencySelector) applyORANRules(
 		// Add A1 mediator dependency
 		a1medDep := &ContextualDependency{
 			PackageRef: &PackageReference{
-				Name:      "a1-mediator",
-				Namespace: "oran",
+				Repository:  "oran",
+				PackageName: "a1-mediator",
+				Revision:    "latest",
 			},
 			Version:         "latest",
 			PlacementReason: "Required for Near-RT RIC A1 interface",
@@ -419,8 +424,9 @@ func (cads *ContextAwareDependencySelector) applyORANRules(
 	if cads.hasXAppDependency(deps) && !cads.hasDependency(deps, "near-rt-ric") {
 		ricDep := &ContextualDependency{
 			PackageRef: &PackageReference{
-				Name:      "near-rt-ric-platform",
-				Namespace: "oran",
+				Repository:  "oran",
+				PackageName: "near-rt-ric-platform",
+				Revision:    "latest",
 			},
 			Version:         "latest",
 			PlacementReason: "Required platform for xApps",
@@ -449,8 +455,9 @@ func (cads *ContextAwareDependencySelector) applyEdgeRules(
 	if !cads.hasDependency(deps, "edge-monitor") {
 		monitorDep := &ContextualDependency{
 			PackageRef: &PackageReference{
-				Name:      "edge-monitor",
-				Namespace: "monitoring",
+				Repository:  "monitoring",
+				PackageName: "edge-monitor",
+				Revision:    "latest",
 			},
 			Version:         "latest",
 			PlacementReason: "Edge deployment monitoring",
@@ -484,8 +491,9 @@ func (cads *ContextAwareDependencySelector) applySliceRules(
 	if !cads.hasDependency(deps, "slice-orchestrator") {
 		orchDep := &ContextualDependency{
 			PackageRef: &PackageReference{
-				Name:      "slice-orchestrator",
-				Namespace: "nsmf",
+				Repository:  "nsmf",
+				PackageName: "slice-orchestrator",
+				Revision:    "latest",
 			},
 			Version:         "latest",
 			PlacementReason: fmt.Sprintf("%s slice management", profile.SliceType),
@@ -522,12 +530,12 @@ func (cads *ContextAwareDependencySelector) hasDependency(
 	name string,
 ) bool {
 	for _, dep := range deps.PrimaryDependencies {
-		if dep.PackageRef.Name == name {
+		if dep.PackageRef.PackageName == name {
 			return true
 		}
 	}
 	for _, dep := range deps.OptionalDependencies {
-		if dep.PackageRef.Name == name {
+		if dep.PackageRef.PackageName == name {
 			return true
 		}
 	}
@@ -538,7 +546,7 @@ func (cads *ContextAwareDependencySelector) hasXAppDependency(
 	deps *ContextualDependencies,
 ) bool {
 	for _, dep := range deps.PrimaryDependencies {
-		if strings.HasPrefix(dep.PackageRef.Name, "xapp-") {
+		if strings.HasPrefix(dep.PackageRef.PackageName, "xapp-") {
 			return true
 		}
 	}
@@ -550,7 +558,7 @@ func (cads *ContextAwareDependencySelector) findLightweightVersion(
 ) string {
 	// In production, this would query the package repository
 	// for lightweight/edge versions
-	if strings.HasSuffix(pkg.Name, "-edge") {
+	if strings.HasSuffix(pkg.PackageName, "-edge") {
 		return "edge-latest"
 	}
 	return ""

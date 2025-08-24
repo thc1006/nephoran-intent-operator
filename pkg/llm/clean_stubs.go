@@ -15,93 +15,14 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 )
 
-func (sp *StreamingProcessor) HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *StreamingRequest) error {
-	sp.logger.Info("Handling streaming request", slog.String("query", req.Query))
+// HandleStreamingRequest implementation is in streaming_processor.go
 
-	// Set SSE headers
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	// Create request to RAG API stream endpoint
-	reqBody, err := json.Marshal(req)
-	if err != nil {
-		return fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	streamURL := sp.ragAPIURL + "/stream"
-	httpReq, err := http.NewRequestWithContext(r.Context(), "POST", streamURL, bytes.NewBuffer(reqBody))
-	if err != nil {
-		return fmt.Errorf("failed to create stream request: %w", err)
-	}
-
-	httpReq.Header.Set("Content-Type", "application/json")
-	httpReq.Header.Set("Accept", "text/event-stream")
-
-	// Execute the request
-	resp, err := sp.httpClient.Do(httpReq)
-	if err != nil {
-		return fmt.Errorf("failed to connect to RAG API stream: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("RAG API returned status %d: %s", resp.StatusCode, string(body))
-	}
-
-	// Stream the response using bufio.Scanner
-	scanner := bufio.NewScanner(resp.Body)
-	flusher, ok := w.(http.Flusher)
-	if !ok {
-		return fmt.Errorf("streaming not supported")
-	}
-
-	for scanner.Scan() {
-		line := scanner.Text()
-
-		// Forward the SSE event to client
-		fmt.Fprintf(w, "%s\n", line)
-
-		// Flush after each line for SSE
-		if line == "" {
-			flusher.Flush()
-		}
-
-		// Check if client disconnected
-		select {
-		case <-r.Context().Done():
-			sp.logger.Info("Client disconnected from stream")
-			return nil
-		default:
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("error reading stream: %w", err)
-	}
-
-	sp.logger.Info("Streaming request completed successfully")
-	return nil
-}
-
-func (sp *StreamingProcessor) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"streaming_enabled": true,
-		"status":            "active",
-		"rag_api_url":       sp.ragAPIURL,
-	}
-}
-
-func (sp *StreamingProcessor) Shutdown(ctx context.Context) error {
-	sp.logger.Info("Shutting down streaming processor")
-	return nil
-}
+// GetMetrics and Shutdown implementations are in streaming_processor.go
 
 // ContextBuilder provides RAG context building capabilities
 type ContextBuilder struct {
@@ -208,7 +129,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 	defer cancel()
 
 	// Perform semantic search using the connection pool
-	var searchResults []*shared.SearchResult
+	var searchResults []*types.SearchResult
 	var searchErr error
 
 	err := cb.weaviatePool.WithConnection(queryCtx, func(client *weaviate.Client) error {
@@ -267,7 +188,7 @@ func (cb *ContextBuilder) BuildContext(ctx context.Context, intent string, maxDo
 		}
 
 		// Parse results
-		searchResults = make([]*shared.SearchResult, 0)
+		searchResults = make([]*types.SearchResult, 0)
 		if result.Data != nil {
 			if data, ok := result.Data["Get"].(map[string]interface{}); ok {
 				if telecomData, ok := data["TelecomKnowledge"].([]interface{}); ok {
@@ -499,9 +420,9 @@ func (cb *ContextBuilder) getCacheHitRate() float64 {
 }
 
 // parseSearchResult converts a GraphQL result item to a SearchResult
-func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared.SearchResult {
-	doc := &shared.TelecomDocument{}
-	result := &shared.SearchResult{Document: doc}
+func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *types.SearchResult {
+	doc := &types.TelecomDocument{}
+	result := &types.SearchResult{Document: doc}
 
 	// Parse document fields
 	if val, ok := item["content"].(string); ok {

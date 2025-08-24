@@ -437,7 +437,7 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 func (c *EnhancedPerformanceClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	return c.ProcessIntentWithOptions(ctx, &IntentProcessingOptions{
 		Intent:     intent,
-		Priority:   PriorityNormal,
+		Priority:   NormalPriority,
 		UseBatch:   true,
 		UseCache:   true,
 		IntentType: "NetworkFunctionDeployment", // Default

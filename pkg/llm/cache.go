@@ -196,7 +196,7 @@ func (c *ResponseCache) Set(key, response string) {
 		LastAccess: time.Now(),
 		HitCount:   0,
 		TTL:        ttl,
-		Size:       len(response),
+		Size:       int64(len(response)),
 		Keywords:   keywords,
 		Level:      1,
 	}

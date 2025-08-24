@@ -94,6 +94,11 @@ func NewClientMetrics() *ClientMetrics {
 	return &ClientMetrics{}
 }
 
+// NewClient creates a new LLM client with default configuration
+func NewClient(url string) *Client {
+	return NewUnifiedClient(url)
+}
+
 // NewUnifiedClient creates a new unified LLM client
 func NewUnifiedClient(url string) *Client {
 	return NewClientWithConfig(url, ClientConfig{

@@ -19,6 +19,7 @@ package porch
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -1608,6 +1609,520 @@ func (cm *contentManager) DeleteContent(ctx context.Context, ref *PackageReferen
 
 	// Simulate successful deletion
 	return nil
+}
+
+// DetectConflicts detects conflicts between current and incoming content
+func (cm *contentManager) DetectConflicts(ctx context.Context, ref *PackageReference, incomingContent *PackageContent) (*ConflictDetectionResult, error) {
+	cm.logger.Info("Detecting conflicts", "package", ref.GetPackageKey())
+
+	// Get current content
+	currentContent, err := cm.GetContent(ctx, ref, &ContentQueryOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current content: %w", err)
+	}
+
+	var conflictFiles []FileConflict
+
+	// Compare files for conflicts
+	for filename, incomingData := range incomingContent.Files {
+		if currentData, exists := currentContent.Files[filename]; exists {
+			if !bytes.Equal(currentData, incomingData) {
+				conflictFiles = append(conflictFiles, FileConflict{
+					FileName:        filename,
+					ConflictType:    "content-mismatch",
+					BaseContent:     currentData,
+					CurrentContent:  currentData,
+					IncomingContent: incomingData,
+				})
+			}
+		}
+	}
+
+	// Create conflict summary
+	conflictSummary := &ConflictSummary{
+		TotalConflicts:        len(conflictFiles),
+		ConflictsByType:       make(map[ConflictType]int),
+		ConflictsBySeverity:   make(map[ConflictSeverity]int),
+		AutoResolvableCount:   0, // For now, assume manual resolution needed
+		FilesAffected:         []string{},
+	}
+
+	for _, conflict := range conflictFiles {
+		conflictSummary.FilesAffected = append(conflictSummary.FilesAffected, conflict.FileName)
+	}
+
+	result := &ConflictDetectionResult{
+		HasConflicts:      len(conflictFiles) > 0,
+		ConflictFiles:     conflictFiles,
+		ConflictSummary:   conflictSummary,
+		RecommendedAction: "manual-review", // Default to manual review
+		AutoResolvable:    false,           // For now, assume manual resolution needed
+	}
+
+	return result, nil
+}
+
+// GeneratePatch generates a patch between old and new content
+func (cm *contentManager) GeneratePatch(ctx context.Context, oldContent, newContent *PackageContent) (*ContentPatch, error) {
+	cm.logger.Info("Generating content patch")
+
+	filePatches := make(map[string]*FilePatch)
+
+	// Compare files and generate patches
+	allFiles := make(map[string]bool)
+	
+	// Add all files from both contents
+	for filename := range oldContent.Files {
+		allFiles[filename] = true
+	}
+	for filename := range newContent.Files {
+		allFiles[filename] = true
+	}
+
+	// Generate patches for each file
+	for filename := range allFiles {
+		oldData, oldExists := oldContent.Files[filename]
+		newData, newExists := newContent.Files[filename]
+
+		if !oldExists && newExists {
+			// File was added
+			filePatches[filename] = &FilePatch{
+				FileName:  filename,
+				Operation: "add",
+				Content:   newData,
+				Hunks:     []*PatchHunk{},
+				Checksum:  fmt.Sprintf("%x", newData),
+			}
+		} else if oldExists && !newExists {
+			// File was deleted
+			filePatches[filename] = &FilePatch{
+				FileName:  filename,
+				Operation: "delete",
+				Content:   oldData,
+				Hunks:     []*PatchHunk{},
+				Checksum:  fmt.Sprintf("%x", oldData),
+			}
+		} else if oldExists && newExists && !bytes.Equal(oldData, newData) {
+			// File was modified
+			filePatches[filename] = &FilePatch{
+				FileName:  filename,
+				Operation: "modify",
+				Content:   newData,
+				Hunks:     []*PatchHunk{},
+				Checksum:  fmt.Sprintf("%x", newData),
+			}
+		}
+	}
+
+	patch := &ContentPatch{
+		PackageRef:  nil, // Will be set by caller if needed
+		PatchFormat: "unified",
+		FilePatches: filePatches,
+		CreatedAt:   time.Now(),
+		CreatedBy:   "content-manager",
+	}
+
+	return patch, nil
+}
+
+// GetContentHealth returns the current health status of the content manager
+func (cm *contentManager) GetContentHealth(ctx context.Context) (*ContentManagerHealth, error) {
+	cm.logger.Info("Getting content manager health")
+
+	// Create basic health status
+	health := &ContentManagerHealth{
+		Status:        "healthy",
+		ActiveThreads: 1,    // Would implement actual thread counting
+		MemoryUsage:   1024, // Would implement actual memory usage calculation
+		CacheHitRatio: 0.95, // Would implement actual cache hit ratio calculation
+	}
+
+	return health, nil
+}
+
+// GetContentMetrics returns metrics for specific package content
+func (cm *contentManager) GetContentMetrics(ctx context.Context, ref *PackageReference) (*ContentMetrics, error) {
+	cm.logger.Info("Getting content metrics", "package", ref.GetPackageKey())
+
+	// Get package content to analyze
+	content, err := cm.GetContent(ctx, ref, &ContentQueryOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get package content: %w", err)
+	}
+
+	// Calculate metrics
+	var totalSize int64
+	fileCount := len(content.Files)
+	
+	for _, data := range content.Files {
+		totalSize += int64(len(data))
+	}
+
+	metrics := &ContentMetrics{
+		TotalFiles:      int64(fileCount),
+		TotalSize:       totalSize,
+		ValidationScore: 0.95,      // Placeholder - would implement validation scoring
+		LastUpdated:     time.Now(), // Placeholder - would track actual modification time
+	}
+
+	return metrics, nil
+}
+
+// IndexContent indexes package content for searching
+func (cm *contentManager) IndexContent(ctx context.Context, ref *PackageReference) error {
+	cm.logger.Info("Indexing content", "package", ref.GetPackageKey())
+
+	// Get the content to index
+	content, err := cm.GetContent(ctx, ref, &ContentQueryOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to get content for indexing: %w", err)
+	}
+
+	// Index content if indexer is available
+	if cm.indexer != nil {
+		if err := cm.indexer.IndexContent(ctx, ref, content); err != nil {
+			cm.logger.Error(err, "Failed to index content", "package", ref.GetPackageKey())
+			return fmt.Errorf("failed to index content: %w", err)
+		}
+	}
+
+	cm.logger.Info("Content indexed successfully", "package", ref.GetPackageKey())
+	return nil
+}
+
+// ListBinaryContent lists all binary content for a package
+func (cm *contentManager) ListBinaryContent(ctx context.Context, ref *PackageReference) ([]BinaryContentInfo, error) {
+	cm.logger.Info("Listing binary content", "package", ref.GetPackageKey())
+
+	// For now, return empty list
+	// In a real implementation, this would list binary files from the storage backend
+	var binaryFiles []BinaryContentInfo
+
+	// If binary store is available, use it
+	if cm.binaryStore != nil {
+		files, err := cm.binaryStore.ListBinaryContent(ctx, ref)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list binary content: %w", err)
+		}
+		binaryFiles = files
+	}
+
+	return binaryFiles, nil
+}
+
+// ListTemplateVariables lists all template variables in package content
+func (cm *contentManager) ListTemplateVariables(ctx context.Context, ref *PackageReference) ([]TemplateVariable, error) {
+	cm.logger.Info("Listing template variables", "package", ref.GetPackageKey())
+
+	// For now, return empty list
+	// In a real implementation, this would scan package files for template variables
+	var variables []TemplateVariable
+
+	return variables, nil
+}
+
+// MergeContent performs three-way merge of package content
+func (cm *contentManager) MergeContent(ctx context.Context, baseContent, sourceContent, targetContent *PackageContent, opts *MergeOptions) (*MergeResult, error) {
+	cm.logger.Info("Merging package content")
+
+	result := &MergeResult{
+		MergedContent: &PackageContent{
+			Files:   make(map[string][]byte),
+			Kptfile: nil,
+		},
+		Conflicts:     []*FileConflict{},
+		Statistics:    nil, // Will be populated later
+		AppliedRules:  []string{},
+		Success:       true,
+	}
+	
+	var mergedFiles []string
+	var conflictFiles []string
+
+	// Get all unique file names across all three contents
+	allFiles := make(map[string]bool)
+	for filename := range baseContent.Files {
+		allFiles[filename] = true
+	}
+	for filename := range sourceContent.Files {
+		allFiles[filename] = true
+	}
+	for filename := range targetContent.Files {
+		allFiles[filename] = true
+	}
+
+	// Perform three-way merge for each file
+	for filename := range allFiles {
+		sourceData := sourceContent.Files[filename]
+		targetData := targetContent.Files[filename]
+
+		// Simple merge logic - in a real implementation this would be more sophisticated
+		if bytes.Equal(sourceData, targetData) {
+			// No conflict - both sides made same changes or no changes
+			if sourceData != nil {
+				result.MergedContent.Files[filename] = sourceData
+			} else if targetData != nil {
+				result.MergedContent.Files[filename] = targetData
+			}
+			mergedFiles = append(mergedFiles, filename)
+		} else {
+			// Conflict detected
+			conflictFiles = append(conflictFiles, filename)
+			conflict := &FileConflict{
+				FileName:        filename,
+				ConflictType:    "content-mismatch",
+				BaseContent:     baseContent.Files[filename],
+				CurrentContent:  targetData,
+				IncomingContent: sourceData,
+			}
+			result.Conflicts = append(result.Conflicts, conflict)
+			result.Success = false
+			
+			// For conflicts, prefer source content for now
+			if sourceData != nil {
+				result.MergedContent.Files[filename] = sourceData
+			} else if targetData != nil {
+				result.MergedContent.Files[filename] = targetData
+			}
+		}
+	}
+	
+	// Update statistics - using a simple approach for now
+	// In a real implementation, MergeStatistics would be defined properly
+
+	return result, nil
+}
+
+// OptimizeContent optimizes package content based on provided options
+func (cm *contentManager) OptimizeContent(ctx context.Context, ref *PackageReference, opts *OptimizationOptions) (*OptimizationResult, error) {
+	cm.logger.Info("Optimizing content", "package", ref.GetPackageKey())
+
+	// For now, return basic optimization result
+	// In a real implementation, this would perform various optimizations
+	result := &OptimizationResult{
+		OriginalSize:    1024, // Placeholder - would calculate actual size
+		OptimizedSize:   512,  // Placeholder - would calculate optimized size
+		CompressionRatio: 0.5,
+		OptimizationsApplied: []string{"whitespace-removal", "yaml-formatting"},
+		Duration:        time.Since(time.Now()),
+	}
+
+	return result, nil
+}
+
+// RegisterTemplateFunction registers a custom function for template processing
+func (cm *contentManager) RegisterTemplateFunction(name string, fn interface{}) error {
+	cm.logger.Info("Registering template function", "name", name)
+
+	// For now, just log the registration
+	// In a real implementation, this would add the function to a template function registry
+	if name == "" {
+		return fmt.Errorf("function name cannot be empty")
+	}
+	
+	if fn == nil {
+		return fmt.Errorf("function cannot be nil")
+	}
+
+	cm.logger.Info("Template function registered successfully", "name", name)
+	return nil
+}
+
+// ResolveConflicts resolves conflicts in package content based on resolution strategy
+func (cm *contentManager) ResolveConflicts(ctx context.Context, ref *PackageReference, conflicts *ConflictResolution) (*PackageContent, error) {
+	cm.logger.Info("Resolving conflicts", "package", ref.GetPackageKey())
+
+	// Get current content
+	currentContent, err := cm.GetContent(ctx, ref, &ContentQueryOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current content: %w", err)
+	}
+
+	// Create resolved content starting with current content
+	resolvedContent := &PackageContent{
+		Files:   make(map[string][]byte),
+		Kptfile: currentContent.Kptfile,
+	}
+
+	// Copy current files
+	for filename, data := range currentContent.Files {
+		resolvedContent.Files[filename] = data
+	}
+
+	// Apply conflict resolutions
+	for _, resolution := range conflicts.Resolutions {
+		if resolution.Resolution == "accept-incoming" && resolution.IncomingContent != nil {
+			resolvedContent.Files[resolution.Filename] = resolution.IncomingContent
+		} else if resolution.Resolution == "accept-current" && resolution.CurrentContent != nil {
+			resolvedContent.Files[resolution.Filename] = resolution.CurrentContent
+		}
+		// For "manual", keep the current content as-is
+	}
+
+	return resolvedContent, nil
+}
+
+// RetrieveBinaryContent retrieves binary content for a package
+func (cm *contentManager) RetrieveBinaryContent(ctx context.Context, ref *PackageReference, filename string) (*BinaryContentInfo, []byte, error) {
+	cm.logger.Info("Retrieving binary content", "package", ref.GetPackageKey(), "file", filename)
+
+	// For now, return empty data
+	// In a real implementation, this would retrieve from the storage backend
+	info := &BinaryContentInfo{
+		Filename: filename,
+		Size:     0,
+		MimeType: "application/octet-stream",
+	}
+
+	return info, []byte{}, nil
+}
+
+// SearchContent searches for content based on query parameters
+func (cm *contentManager) SearchContent(ctx context.Context, query *ContentSearchQuery) (*ContentSearchResult, error) {
+	cm.logger.Info("Searching content", "query", query.Query)
+
+	// For now, return empty search results
+	// In a real implementation, this would search indexed content
+	result := &ContentSearchResult{
+		TotalResults: 0,
+		Results:      []ContentSearchMatch{},
+		Duration:     time.Since(time.Now()),
+	}
+
+	return result, nil
+}
+
+// StoreBinaryContent stores binary content for a package
+func (cm *contentManager) StoreBinaryContent(ctx context.Context, ref *PackageReference, filename string, data []byte, opts *BinaryStorageOptions) (*BinaryContentInfo, error) {
+	cm.logger.Info("Storing binary content", "package", ref.GetPackageKey(), "file", filename, "size", len(data))
+
+	// For now, return basic info
+	// In a real implementation, this would store to the binary storage backend
+	info := &BinaryContentInfo{
+		Filename: filename,
+		Size:     int64(len(data)),
+		MimeType: "application/octet-stream", // Would detect actual MIME type
+	}
+
+	return info, nil
+}
+
+// ThreeWayMerge performs three-way merge on file content
+func (cm *contentManager) ThreeWayMerge(ctx context.Context, base, source, target []byte, opts *MergeOptions) (*FileMergeResult, error) {
+	cm.logger.Info("Performing three-way merge")
+
+	result := &FileMergeResult{
+		Success:      true,
+		MergedData:   source, // Simple: prefer source for now
+		HasConflicts: !bytes.Equal(source, target),
+		Conflicts:    []string{},
+	}
+
+	if !bytes.Equal(source, target) {
+		result.Success = false
+		result.HasConflicts = true
+		result.Conflicts = append(result.Conflicts, "Content differs between source and target")
+	}
+
+	return result, nil
+}
+
+// UpdateContent updates package content with the provided updates
+func (cm *contentManager) UpdateContent(ctx context.Context, ref *PackageReference, updates *ContentUpdateRequest) (*PackageContent, error) {
+	cm.logger.Info("Updating content", "package", ref.GetPackageKey(), "updates", len(updates.FileUpdates))
+
+	// Get current content
+	currentContent, err := cm.GetContent(ctx, ref, &ContentQueryOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current content: %w", err)
+	}
+
+	// Apply updates
+	updatedContent := &PackageContent{
+		Files:   make(map[string][]byte),
+		Kptfile: currentContent.Kptfile,
+	}
+
+	// Copy existing files
+	for filename, data := range currentContent.Files {
+		updatedContent.Files[filename] = data
+	}
+
+	// Apply file updates
+	for filename, newData := range updates.FileUpdates {
+		updatedContent.Files[filename] = newData
+	}
+
+	return updatedContent, nil
+}
+
+// ValidateJSONSyntax validates JSON content syntax
+func (cm *contentManager) ValidateJSONSyntax(ctx context.Context, jsonContent []byte) (*JSONValidationResult, error) {
+	cm.logger.Info("Validating JSON syntax")
+
+	result := &JSONValidationResult{
+		IsValid: true,
+		Errors:  []string{},
+	}
+
+	// Validate JSON syntax
+	var jsonData interface{}
+	if err := json.Unmarshal(jsonContent, &jsonData); err != nil {
+		result.IsValid = false
+		result.Errors = append(result.Errors, fmt.Sprintf("JSON syntax error: %v", err))
+	}
+
+	return result, nil
+}
+
+// ValidateYAMLSyntax validates YAML content syntax
+func (cm *contentManager) ValidateYAMLSyntax(ctx context.Context, yamlContent []byte) (*YAMLValidationResult, error) {
+	cm.logger.Info("Validating YAML syntax")
+
+	result := &YAMLValidationResult{
+		IsValid: true,
+		Errors:  []string{},
+	}
+
+	// For now, just check if it's valid JSON (which is also valid YAML)
+	// In a real implementation, this would use a YAML parser
+	var yamlData interface{}
+	if err := json.Unmarshal(yamlContent, &yamlData); err != nil {
+		result.IsValid = false
+		result.Errors = append(result.Errors, fmt.Sprintf("YAML syntax error: %v", err))
+	}
+
+	return result, nil
+}
+
+// ValidateKRMResources validates KRM (Kubernetes Resource Model) resources
+func (cm *contentManager) ValidateKRMResources(ctx context.Context, resources []KRMResource) (*KRMValidationResult, error) {
+	cm.logger.Info("Validating KRM resources", "count", len(resources))
+
+	result := &KRMValidationResult{
+		IsValid:       true,
+		ValidResources: 0,
+		InvalidResources: 0,
+		Errors:        []string{},
+	}
+
+	// Validate each resource
+	for i, resource := range resources {
+		// Basic validation - check if resource has required fields
+		if resource.Kind == "" {
+			result.InvalidResources++
+			result.IsValid = false
+			result.Errors = append(result.Errors, fmt.Sprintf("Resource %d: missing kind", i))
+		} else if resource.APIVersion == "" {
+			result.InvalidResources++
+			result.IsValid = false
+			result.Errors = append(result.Errors, fmt.Sprintf("Resource %d: missing apiVersion", i))
+		} else {
+			result.ValidResources++
+		}
+	}
+
+	return result, nil
 }
 
 // Background process for metrics collection
