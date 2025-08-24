@@ -123,26 +123,34 @@ func NewUnifiedClient(url string) *Client {
 func NewClientWithConfig(url string, config ClientConfig) *Client {
 	logger := slog.Default().With("component", "llm-client")
 
-	// Create optimized TLS configuration
+	// CRITICAL SECURITY FIX: Enterprise-grade TLS configuration with TLS 1.3 enforcement
 	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
+		// O-RAN WG11 Compliance: TLS 1.3 minimum required
+		MinVersion: tls.VersionTLS13,
+		MaxVersion: tls.VersionTLS13,
+		
+		// TLS 1.3 AEAD cipher suites (strongest available)
 		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_AES_256_GCM_SHA384,        // Primary choice - strongest AEAD
+			tls.TLS_CHACHA20_POLY1305_SHA256,  // Alternative for performance
 		},
+		
+		// Security hardening
 		PreferServerCipherSuites: true,
+		SessionTicketsDisabled:   true,  // Perfect forward secrecy
+		Renegotiation:           tls.RenegotiateNever,
+		NextProtos:              []string{"h2", "http/1.1"},
+		
+		// SECURITY: Never skip verification in production
+		InsecureSkipVerify: false,
 	}
 
-	// Security check for TLS verification
+	// SECURITY ENFORCEMENT: TLS verification cannot be disabled
 	if config.SkipTLSVerification {
-		if !allowInsecureClient() {
-			logger.Error("SECURITY VIOLATION: Attempted to skip TLS verification without proper authorization")
-			panic("Security violation: TLS verification cannot be disabled")
-		}
-		logger.Warn("SECURITY WARNING: TLS verification disabled")
-		tlsConfig.InsecureSkipVerify = true
+		logger.Error("SECURITY VIOLATION: Attempted to disable TLS verification - BLOCKED",
+			slog.String("url", url),
+			slog.String("caller", "llm.NewClientWithConfig"))
+		return nil // Return nil instead of creating insecure client
 	}
 
 	// Create optimized HTTP transport

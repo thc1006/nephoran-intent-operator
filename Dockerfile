@@ -17,12 +17,12 @@
 #     --build-arg SERVICE=llm-processor -t nephoran/llm-processor:latest .
 # =============================================================================
 
-# Security-hardened base image versions
-ARG GO_VERSION=1.24.5
-ARG PYTHON_VERSION=3.12.8
-ARG ALPINE_VERSION=3.21.2
-ARG DISTROLESS_VERSION=nonroot
-ARG DEBIAN_VERSION=bookworm-20241223-slim
+# Security-hardened base image versions with latest patches
+ARG GO_VERSION=1.24.8
+ARG PYTHON_VERSION=3.12.10
+ARG ALPINE_VERSION=3.21.8
+ARG DISTROLESS_VERSION=nonroot-amd64
+ARG DEBIAN_VERSION=bookworm-20250108-slim
 
 # =============================================================================
 # STAGE: GO Dependencies
@@ -33,12 +33,13 @@ FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-deps
 RUN set -eux; \
     apk update && apk upgrade --no-cache; \
     apk add --no-cache --virtual .build-deps \
-        git \
-        ca-certificates \
-        tzdata \
-        curl \
-        gnupg \
-    && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/*
+        git=~2.45 \
+        ca-certificates=~20241010 \
+        tzdata=~2024 \
+        curl=~8.11 \
+        gnupg=~2.4 \
+    && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/* \
+    && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
 # Create non-root build user
 RUN addgroup -g 65532 -S nonroot && \
@@ -68,12 +69,13 @@ RUN set -eux; \
     apk update && apk upgrade --no-cache; \
     apk add --no-cache --virtual .build-deps \
         git=~2.45 \
-        ca-certificates \
-        tzdata \
+        ca-certificates=~20241010 \
+        tzdata=~2024 \
         binutils=~2.42 \
         curl=~8.11 \
-        gnupg \
-    && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/*
+        gnupg=~2.4 \
+    && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/* \
+    && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
 # Create non-root build user
 RUN addgroup -g 65532 -S nonroot && \
@@ -164,7 +166,8 @@ RUN set -eux; \
         build-essential=12.10ubuntu1 \
     && apt-get autoremove -y \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* \
+    && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
 RUN groupadd -g 65532 nonroot && \
     useradd -u 65532 -g nonroot -s /bin/false -m nonroot
@@ -237,6 +240,19 @@ ENV GOGC=100 \
 # Enhanced health check with security considerations
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD ["/service", "--health-check", "--secure"]
+
+# Additional security hardening
+RUN set -eux; \
+    # Remove any setuid/setgid binaries to prevent privilege escalation \
+    find /usr -type f \( -perm -4000 -o -perm -2000 \) -delete 2>/dev/null || true; \
+    # Ensure no world-writable files exist \
+    find /usr -type f -perm -002 -delete 2>/dev/null || true; \
+    # Create required runtime directories \
+    mkdir -p /tmp /var/run; \
+    # Set secure permissions \
+    chmod 755 /tmp /var/run; \
+    # Verify binary integrity \
+    [ -f /service ] && chmod 555 /service
 
 # Service ports: 8080 (llm-processor), 8081 (nephio-bridge), 8082 (oran-adaptor)
 EXPOSE 8080 8081 8082

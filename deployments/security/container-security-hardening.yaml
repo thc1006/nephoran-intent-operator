@@ -1,0 +1,446 @@
+# ==============================================================================
+# Container Security Hardening Configuration
+# ==============================================================================
+# This file provides comprehensive security hardening for all container deployments
+# Implements CIS Kubernetes Benchmark recommendations and NIST guidelines
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: container-security-config
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: security
+    security.hardened: "true"
+data:
+  # Container Security Policies
+  security-policy.yaml: |
+    # Pod Security Standards - Restricted Profile
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      fsGroup: 65532
+      fsGroupChangePolicy: "OnRootMismatch"
+      seccompProfile:
+        type: RuntimeDefault
+      supplementalGroups: []
+      sysctls: []
+    
+    # Container Security Context
+    containerSecurityContext:
+      allowPrivilegeEscalation: false
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+          - ALL
+      runAsNonRoot: true
+      runAsUser: 65532
+      runAsGroup: 65532
+      seccompProfile:
+        type: RuntimeDefault
+    
+    # Resource Limits (DoS Prevention)
+    resources:
+      limits:
+        cpu: "2000m"
+        memory: "2Gi"
+        ephemeral-storage: "4Gi"
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+        ephemeral-storage: "100Mi"
+
+  # Network Security Policies
+  network-security.yaml: |
+    # Default deny-all network policy
+    networkPolicies:
+      - name: default-deny-all
+        podSelector: {}
+        policyTypes:
+          - Ingress
+          - Egress
+      
+      # Allow specific service communication
+      - name: allow-nephoran-services
+        podSelector:
+          matchLabels:
+            app: nephoran
+        ingress:
+          - from:
+            - podSelector:
+                matchLabels:
+                  app: nephoran
+            ports:
+            - protocol: TCP
+              port: 8080
+            - protocol: TCP
+              port: 8081
+            - protocol: TCP
+              port: 8082
+            - protocol: TCP
+              port: 5001
+        egress:
+          - to:
+            - podSelector:
+                matchLabels:
+                  app: nephoran
+            ports:
+            - protocol: TCP
+              port: 8080
+            - protocol: TCP
+              port: 8081
+            - protocol: TCP
+              port: 8082
+            - protocol: TCP
+              port: 5001
+          # Allow DNS resolution
+          - to: []
+            ports:
+            - protocol: UDP
+              port: 53
+          # Allow HTTPS to external services (LLM APIs, etc.)
+          - to: []
+            ports:
+            - protocol: TCP
+              port: 443
+
+  # Runtime Security Configuration
+  runtime-security.yaml: |
+    # AppArmor profiles
+    appArmorProfiles:
+      default: |
+        #include <tunables/global>
+        profile nephoran-default flags=(audit,mediate_deleted) {
+          #include <abstractions/base>
+          
+          # Deny dangerous capabilities
+          deny capability sys_admin,
+          deny capability sys_module,
+          deny capability sys_rawio,
+          deny capability sys_ptrace,
+          deny capability sys_chroot,
+          deny capability setuid,
+          deny capability setgid,
+          
+          # Allow necessary file access
+          /service r,
+          /tmp/** rw,
+          /var/run/** rw,
+          /etc/ssl/certs/** r,
+          /usr/share/zoneinfo/** r,
+          
+          # Deny sensitive paths
+          deny /proc/sys/** w,
+          deny /sys/** w,
+          deny /dev/mem r,
+          deny /dev/kmem r,
+          deny /boot/** r,
+        }
+    
+    # SELinux policies (if applicable)
+    selinuxPolicies:
+      - name: nephoran_container_t
+        rules: |
+          allow nephoran_container_t self:capability { net_bind_service };
+          allow nephoran_container_t tmp_t:dir { read write };
+          allow nephoran_container_t var_run_t:dir { read write };
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docker-daemon-security
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: security
+    type: daemon-config
+data:
+  daemon.json: |
+    {
+      "default-ulimits": {
+        "nofile": {
+          "Hard": 64000,
+          "Name": "nofile",
+          "Soft": 64000
+        },
+        "nproc": {
+          "Hard": 4096,
+          "Name": "nproc",
+          "Soft": 2048
+        }
+      },
+      "icc": false,
+      "userland-proxy": false,
+      "no-new-privileges": true,
+      "seccomp-profile": "/etc/docker/seccomp/default.json",
+      "disable-legacy-registry": true,
+      "max-concurrent-downloads": 3,
+      "max-concurrent-uploads": 5,
+      "default-shm-size": "64M",
+      "userns-remap": "default",
+      "live-restore": true,
+      "log-driver": "json-file",
+      "log-opts": {
+        "max-size": "10m",
+        "max-file": "3"
+      },
+      "storage-driver": "overlay2",
+      "storage-opts": [
+        "overlay2.override_kernel_check=true"
+      ],
+      "experimental": false,
+      "metrics-addr": "127.0.0.1:9323",
+      "hosts": ["unix:///var/run/docker.sock"]
+    }
+
+---
+# Image Security Scanning Job
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: trivy-security-scan
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: security-scanner
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: trivy-scanner
+        image: aquasec/trivy:0.58.2
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "Starting comprehensive security scan..."
+          
+          # Scan all Nephoran images
+          IMAGES="
+          nephoran/llm-processor:latest
+          nephoran/nephio-bridge:latest
+          nephoran/oran-adaptor:latest
+          nephoran/manager:latest
+          nephoran/rag-api:latest
+          "
+          
+          mkdir -p /tmp/scan-results
+          
+          for image in $IMAGES; do
+            echo "Scanning $image..."
+            
+            # Vulnerability scan
+            trivy image \
+              --format json \
+              --output /tmp/scan-results/${image##*/}-vulnerabilities.json \
+              --severity HIGH,CRITICAL \
+              $image || echo "Scan failed for $image"
+            
+            # Secret scan
+            trivy image \
+              --format json \
+              --output /tmp/scan-results/${image##*/}-secrets.json \
+              --scanners secret \
+              $image || echo "Secret scan failed for $image"
+            
+            # Configuration scan
+            trivy image \
+              --format json \
+              --output /tmp/scan-results/${image##*/}-config.json \
+              --scanners config \
+              $image || echo "Config scan failed for $image"
+          done
+          
+          echo "Security scans completed. Results saved to /tmp/scan-results/"
+          ls -la /tmp/scan-results/
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+        
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+            ephemeral-storage: 4Gi
+          requests:
+            cpu: 200m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+        
+        volumeMounts:
+        - name: scan-results
+          mountPath: /tmp/scan-results
+        - name: tmp
+          mountPath: /tmp
+      
+      volumes:
+      - name: scan-results
+        emptyDir: {}
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+
+---
+# Container Runtime Security Monitor
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: falco-security-monitor
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: runtime-security
+spec:
+  selector:
+    matchLabels:
+      name: falco-security-monitor
+  template:
+    metadata:
+      labels:
+        name: falco-security-monitor
+    spec:
+      serviceAccount: falco
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: falco
+        image: falcosecurity/falco-no-driver:0.38.2
+        args:
+        - /usr/bin/falco
+        - --cri=/run/containerd/containerd.sock
+        - --cri-timeout=30s
+        - --disable-source=k8s_audit
+        - --k8s-node-name=${NODE_NAME}
+        - --print-additional=container_id,container_name,k8s_namespace,k8s_pod_name
+        - --rule-file=/etc/falco/falco_rules.yaml
+        - --rule-file=/etc/falco/rules.d
+        
+        env:
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+        
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+        
+        volumeMounts:
+        - name: containerd-socket
+          mountPath: /run/containerd/containerd.sock
+          readOnly: true
+        - name: falco-config
+          mountPath: /etc/falco
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        - name: var-run
+          mountPath: /var/run
+      
+      volumes:
+      - name: containerd-socket
+        hostPath:
+          path: /run/containerd/containerd.sock
+          type: Socket
+      - name: falco-config
+        configMap:
+          name: falco-config
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: var-run
+        emptyDir:
+          sizeLimit: 100Mi
+      
+      tolerations:
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/master
+        operator: Exists
+      - effect: NoSchedule
+        key: node-role.kubernetes.io/control-plane
+        operator: Exists
+
+---
+# RBAC for Falco
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: falco
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: runtime-security
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: falco
+  labels:
+    app: nephoran
+    component: runtime-security
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "namespaces", "pods", "replicationcontrollers", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["extensions"]
+  resources: ["daemonsets", "deployments", "replicasets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: falco
+  labels:
+    app: nephoran
+    component: runtime-security
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: falco
+subjects:
+- kind: ServiceAccount
+  name: falco
+  namespace: nephoran-system

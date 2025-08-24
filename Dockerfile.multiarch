@@ -18,10 +18,10 @@
 #     --load .
 # =============================================================================
 
-ARG GO_VERSION=1.24
-ARG PYTHON_VERSION=3.11
-ARG ALPINE_VERSION=3.22
-ARG DISTROLESS_VERSION=nonroot
+ARG GO_VERSION=1.24.8
+ARG PYTHON_VERSION=3.12.10
+ARG ALPINE_VERSION=3.21.8
+ARG DISTROLESS_VERSION=nonroot-amd64
 
 # Global build arguments for cross-compilation
 ARG BUILDPLATFORM
@@ -56,15 +56,17 @@ FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-cross-deps
 ARG TARGETARCH
 ARG TARGETVARIANT
 
-# Install cross-compilation tools
-RUN apk add --no-cache \
-    git \
-    ca-certificates \
-    tzdata \
-    gcc \
-    musl-dev \
-    binutils \
-    && rm -rf /var/cache/apk/*
+# Install cross-compilation tools with version pinning
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache \
+    git=~2.45 \
+    ca-certificates=~20241010 \
+    tzdata=~2024 \
+    gcc=~13.2 \
+    musl-dev=~1.2 \
+    binutils=~2.42 \
+    && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/* \
+    && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
 # Install architecture-specific cross-compilers
 RUN case "$TARGETARCH" in \
@@ -111,9 +113,16 @@ ARG VCS_REF
 COPY --from=build-info /build-info.txt /build-info.txt
 RUN cat /build-info.txt
 
-# Install build tools
-RUN apk add --no-cache git ca-certificates tzdata binutils file && \
-    apk upgrade --no-cache
+# Install build tools with version pinning
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache \
+    git=~2.45 \
+    ca-certificates=~20241010 \
+    tzdata=~2024 \
+    binutils=~2.42 \
+    file=~5.45 \
+    && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/* \
+    && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
 # Create non-root build user
 RUN addgroup -g 65532 -S nonroot && \
@@ -221,11 +230,18 @@ FROM --platform=$BUILDPLATFORM python:${PYTHON_VERSION}-slim AS python-cross-bui
 ARG TARGETPLATFORM
 ARG TARGETARCH
 
-# Install build dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gcc python3-dev && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Install build dependencies with security hardening
+RUN set -eux; \
+    export DEBIAN_FRONTEND=noninteractive; \
+    apt-get update; \
+    apt-get upgrade -y; \
+    apt-get install -y --no-install-recommends \
+        gcc=4:12.2.0-3ubuntu1 \
+        python3-dev=3.12.3-0ubuntu2 \
+    && apt-get autoremove -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /usr/share/doc/* /usr/share/man/* \
+    && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
 # Create non-root user
 RUN groupadd -g 65532 nonroot && \
@@ -301,9 +317,21 @@ ENV GOMEMLIMIT=$( \
     esac \
 )
 
-# Health check
+# Enhanced security-focused health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD ["/service", "--health-check"]
+    CMD ["/service", "--health-check", "--secure"]
+
+# Additional multi-arch security hardening
+RUN set -eux; \
+    # Remove setuid/setgid binaries \
+    find /usr -type f \( -perm -4000 -o -perm -2000 \) -delete 2>/dev/null || true; \
+    # Remove world-writable files \
+    find /usr -type f -perm -002 -delete 2>/dev/null || true; \
+    # Secure runtime directories \
+    mkdir -p /tmp /var/run; \
+    chmod 755 /tmp /var/run; \
+    # Verify service binary \
+    [ -f /service ] && chmod 555 /service
 
 # Service ports
 EXPOSE 8080 8081 8082

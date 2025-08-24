@@ -145,29 +145,23 @@ func NewLegacyClientWithConfig(url string, config LegacyClientConfig) *LegacyCli
 		PreferServerCipherSuites: true,
 	}
 
-	// Security check: Only allow skipping TLS verification when both conditions are met
+	// CRITICAL SECURITY FIX: Completely disable TLS verification bypass
 	if config.SkipTLSVerification {
-		if !legacyAllowInsecureClient() {
-			// Log security violation attempt
-			logger.Error("SECURITY VIOLATION: Attempted to skip TLS verification without proper authorization",
-				slog.String("url", url),
-				slog.Bool("skip_tls_requested", true),
-				slog.String("env_allow_insecure", os.Getenv("ALLOW_INSECURE_CLIENT")),
-			)
-			// Fail securely - do not create client with insecure settings
-			panic("Security violation: TLS verification cannot be disabled without explicit environment permission")
-		}
-
-		// Both conditions met - log security warning
-		logger.Warn("SECURITY WARNING: TLS verification disabled - THIS IS INSECURE",
+		// Log security violation and block creation of insecure client
+		logger.Error("SECURITY VIOLATION BLOCKED: TLS verification bypass is not permitted",
 			slog.String("url", url),
-			slog.String("reason", "both SkipTLSVerification=true and ALLOW_INSECURE_CLIENT=true"),
-			slog.String("recommendation", "Only use in development/testing environments"),
+			slog.String("violation", "attempted to disable TLS certificate verification"),
+			slog.String("compliance", "O-RAN WG11 security requirements mandate proper TLS verification"),
 		)
-
-		// Apply insecure settings
-		tlsConfig.InsecureSkipVerify = true
+		// Return error instead of creating insecure client
+		return nil, fmt.Errorf("SECURITY ERROR: TLS verification cannot be disabled - violates security policy")
 	}
+	
+	// Enforce additional TLS security measures
+	tlsConfig.MinVersion = tls.VersionTLS13  // Upgrade to TLS 1.3 minimum
+	tlsConfig.MaxVersion = tls.VersionTLS13  // Lock to TLS 1.3 only
+	tlsConfig.SessionTicketsDisabled = true  // Perfect forward secrecy
+	tlsConfig.Renegotiation = tls.RenegotiateNever
 
 	// Create HTTP client with enhanced configuration
 	transport := &http.Transport{
