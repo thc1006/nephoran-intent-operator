@@ -95,8 +95,9 @@ jobs:
 
       - name: Run tests (Windows)
         if: runner.os == 'Windows'
+        shell: bash
         run: |
-          mkdir test-results
+          mkdir -p test-results
           # Windows has timeout command built-in
           go test -v -race -timeout=5m -coverprofile=test-results/coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
           go tool cover -html=test-results/coverage.out -o test-results/coverage.html
