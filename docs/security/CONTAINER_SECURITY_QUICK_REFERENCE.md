@@ -123,7 +123,7 @@ spec:
 ### Dockerfile Security Template
 ```dockerfile
 # Use specific, security-hardened base image
-FROM golang:1.24.8-alpine AS builder
+FROM golang:1.24.1-alpine AS builder
 
 # Install security updates
 RUN apk update && apk upgrade --no-cache && \

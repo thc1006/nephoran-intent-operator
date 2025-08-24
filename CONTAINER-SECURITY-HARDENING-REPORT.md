@@ -17,7 +17,7 @@ This report documents the comprehensive container security hardening implementat
 ### 1. Base Image Security Hardening
 
 #### Updated Base Images with Latest Security Patches:
-- **Go**: Updated from 1.24.5 → 1.24.8
+- **Go**: Updated from 1.24.5 → 1.24.1
 - **Python**: Updated from 3.12.8 → 3.12.10  
 - **Alpine**: Updated from 3.21.2 → 3.21.8
 - **Distroless**: Using architecture-specific variants

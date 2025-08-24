@@ -18,11 +18,14 @@
 # =============================================================================
 
 # Security-hardened base image versions with latest patches
-ARG GO_VERSION=1.24.8
+ARG GO_VERSION=1.24.1
 ARG PYTHON_VERSION=3.12.10
 ARG ALPINE_VERSION=3.21.8
 ARG DISTROLESS_VERSION=nonroot-amd64
 ARG DEBIAN_VERSION=bookworm-20250108-slim
+
+# Build arguments for service selection
+ARG SERVICE_TYPE=go
 
 # =============================================================================
 # STAGE: GO Dependencies
