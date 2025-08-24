@@ -488,7 +488,7 @@ func (c *CatalogService) validateResourceType(resourceType *models.ResourceType)
 	if resourceType.Name == "" {
 		return fmt.Errorf("resource type name is required")
 	}
-	
+
 	// Use adapter to validate - this makes validation future-proof
 	internal := modeladapter.FromGenerated(resourceType)
 	if internal.Specifications == nil {
@@ -556,6 +556,20 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 			if !found {
 				return false
 			}
+		}
+	}
+
+	// Check vendors filter
+	if len(filter.Vendors) > 0 {
+		found := false
+		for _, vendor := range filter.Vendors {
+			if rt.Vendor == vendor {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
 		}
 	}
 
