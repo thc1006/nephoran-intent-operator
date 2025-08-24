@@ -16,7 +16,7 @@ mkdocs-minify-plugin==0.8.0  # HTML optimization
 
 # Minimal additional dependencies
 PyYAML==6.0.2  # Config parsing (shares with main requirements)
-jinja2==3.1.5  # Templating (security updates)
+jinja2>=3.1.4  # Templating (security updates)
 
 # Note: Removed unnecessary plugins:
 # - mkdocs-swagger-ui-tag (use built-in API docs)

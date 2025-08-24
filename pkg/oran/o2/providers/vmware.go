@@ -21,9 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	ProviderTypeVMware = "vmware"
-)
+// ProviderTypeVMware is defined in interface.go
 
 // VMwareProvider implements CloudProvider for VMware vSphere environments
 type VMwareProvider struct {

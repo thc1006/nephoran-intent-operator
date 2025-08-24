@@ -22,9 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	ProviderTypeAWS = "aws"
-)
+// ProviderTypeAWS is defined in interface.go
 
 // AWSProvider implements CloudProvider for Amazon Web Services
 type AWSProvider struct {

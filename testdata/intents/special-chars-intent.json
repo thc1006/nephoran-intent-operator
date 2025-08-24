@@ -1,0 +1,31 @@
+{
+  "apiVersion": "nephoran.com/v1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "special-chars-test-デプロイメント-测试",
+    "namespace": "test-ñámespace-with-spëcial-chàrs",
+    "labels": {
+      "test.type": "special-characters",
+      "unicode.support": "true",
+      "encoding": "utf-8"
+    }
+  },
+  "spec": {
+    "action": "deploy",
+    "target": {
+      "type": "deployment",
+      "name": "app-with-spëcial-nämé",
+      "namespace": "test-ñámespace-with-spëcial-chàrs"
+    },
+    "parameters": {
+      "description": "Testing with various special characters: ñáéíóú, äöü, øæå, çñ, Japanese: こんにちは, Chinese: 你好, Arabic: مرحبا, Emoji: 🚀🔧⚙️",
+      "replicas": 1,
+      "annotations": {
+        "special.chars": "Testing unicode: ñáéíóú äöü øæå çñ こんにちは 你好 مرحبا 🚀🔧⚙️",
+        "file.path": "C:\\Windows\\System32\\drivers\\etc\\hosts",
+        "unix.path": "/var/log/application.log",
+        "regex.pattern": "^[a-zA-Z0-9]([a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])?$"
+      }
+    }
+  }
+}

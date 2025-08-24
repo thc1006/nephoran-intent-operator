@@ -90,11 +90,12 @@ type NormalityTestResult struct {
 
 // PowerAnalysis evaluates the statistical power of the test
 type PowerAnalysis struct {
-	EffectSize       float64
-	Power            float64
-	RequiredSamples  int
-	DetectableEffect float64
-	Recommendation   string
+	EffectSize        float64
+	Power             float64
+	RequiredSamples   int
+	DetectableEffect  float64
+	Recommendation    string
+	EffectSizeTable   map[string]int // Maps effect size categories to required samples
 }
 
 // RegressionAnalysis compares current metrics against baseline/historical data
@@ -421,8 +422,11 @@ func (sv *StatisticalValidator) performPowerAnalysis(currentSampleSize int, stan
 	// Effect size calculation (Cohen's d)
 	// Small effect: 0.2, Medium: 0.5, Large: 0.8
 	effectSizes := []float64{0.2, 0.5, 0.8}
+	effectSizeLabels := []string{"small", "medium", "large"}
 
-	analysis := &PowerAnalysis{}
+	analysis := &PowerAnalysis{
+		EffectSizeTable: make(map[string]int),
+	}
 
 	// Calculate power for medium effect size (0.5)
 	effectSize := 0.5
@@ -434,9 +438,14 @@ func (sv *StatisticalValidator) performPowerAnalysis(currentSampleSize int, stan
 	zAlpha := sv.normalQuantile(1 - alpha/2)
 	zBeta := sv.normalQuantile(sv.powerThreshold)
 
-	// Required sample size for desired power
-	requiredN := int(math.Pow((zAlpha+zBeta)/effectSize, 2) * 2)
-	analysis.RequiredSamples = requiredN
+	// Calculate required sample sizes for different effect sizes using the effectSizes array
+	for i, es := range effectSizes {
+		requiredN := int(math.Pow((zAlpha+zBeta)/es, 2) * 2)
+		analysis.EffectSizeTable[effectSizeLabels[i]] = requiredN
+	}
+
+	// Required sample size for medium effect (primary analysis)
+	analysis.RequiredSamples = analysis.EffectSizeTable["medium"]
 
 	// Calculate actual power with current sample size
 	if currentSampleSize > 0 {
@@ -451,8 +460,9 @@ func (sv *StatisticalValidator) performPowerAnalysis(currentSampleSize int, stan
 
 	// Generate recommendation
 	if analysis.Power < sv.powerThreshold {
-		analysis.Recommendation = fmt.Sprintf("Increase sample size to %d for %.1f%% power to detect medium effects",
-			requiredN, sv.powerThreshold*100)
+		analysis.Recommendation = fmt.Sprintf("Increase sample size to %d for %.1f%% power to detect medium effects (small: %d, large: %d)",
+			analysis.RequiredSamples, sv.powerThreshold*100, 
+			analysis.EffectSizeTable["small"], analysis.EffectSizeTable["large"])
 	} else {
 		analysis.Recommendation = fmt.Sprintf("Current sample size provides adequate power (%.1f%%)", analysis.Power*100)
 	}

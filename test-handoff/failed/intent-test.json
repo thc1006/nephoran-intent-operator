@@ -1,0 +1,10 @@
+{
+  "action": "scale",
+  "target": "deployment/test-app",
+  "replicas": 3,
+  "namespace": "default",
+  "metadata": {
+    "createdBy": "test-user",
+    "timestamp": "2025-08-16T17:45:00Z"
+  }
+}

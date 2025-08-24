@@ -1,0 +1,74 @@
+{
+  "apiVersion": "nephoran.com/v1",
+  "kind": "NetworkIntent",
+  "metadata": {
+    "name": "oran-network-function-deployment",
+    "namespace": "oran-system",
+    "labels": {
+      "deployment.type": "oran-cnf",
+      "oran.profile": "cus-profile",
+      "priority": "critical"
+    }
+  },
+  "spec": {
+    "action": "deploy",
+    "target": {
+      "type": "oran-cnf",
+      "name": "cucp-function",
+      "namespace": "oran-workloads",
+      "profile": "5g-sa-profile"
+    },
+    "parameters": {
+      "networkFunctions": [
+        {
+          "name": "cucp",
+          "type": "centralized-unit-control-plane",
+          "interfaces": ["e1", "f1c", "xn"],
+          "resources": {
+            "cpu": "4000m",
+            "memory": "8Gi",
+            "storage": "20Gi"
+          }
+        }
+      ],
+      "connectivity": {
+        "fronthaul": {
+          "interface": "e1",
+          "bandwidth": "25Gbps",
+          "latency": "1ms"
+        },
+        "backhaul": {
+          "interface": "xn",
+          "bandwidth": "10Gbps",
+          "latency": "5ms"
+        }
+      },
+      "sla": {
+        "availability": "99.999%",
+        "throughput": "1Gbps",
+        "latency": "1ms",
+        "jitter": "0.1ms"
+      }
+    },
+    "constraints": {
+      "placement": {
+        "nodeAffinity": {
+          "requiredDuringSchedulingIgnoredDuringExecution": {
+            "nodeSelectorTerms": [{
+              "matchExpressions": [{
+                "key": "node.type",
+                "operator": "In",
+                "values": ["edge-compute"]
+              }]
+            }]
+          }
+        }
+      },
+      "security": {
+        "networkPolicies": ["oran-isolation"],
+        "podSecurityStandards": "restricted",
+        "mtls": true
+      }
+    }
+  }
+}

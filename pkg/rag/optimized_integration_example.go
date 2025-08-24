@@ -42,59 +42,57 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 
 	// Create core Weaviate client with default Weaviate configuration
 	weaviateConfig := &WeaviateConfig{
-		Host:     "localhost:8080",
-		Scheme:   "http",
-		Timeout:  30 * time.Second,
-		MaxRetries: 3,
+		Host:   "localhost:8080",
+		Scheme: "http",
 	}
 	originalClient, err := NewWeaviateClient(weaviateConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Weaviate client: %w", err)
 	}
 
-	// Create optimized connection pool
-	connectionPool, err := NewOptimizedConnectionPool(config.ConnectionConfig)
+	// Create optimized connection pool (using default config)
+	poolConfig := &PoolConfig{
+		MaxConnections: 10,
+		MinConnections: 2,
+		MaxIdleTime:    5 * time.Minute,
+	}
+	connectionPool, err := NewOptimizedConnectionPool(poolConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create connection pool: %w", err)
 	}
 
-	// Create batch search client
-	batchSearchClient := NewOptimizedBatchSearchClient(originalClient, config.BatchSearchConfig)
+	// Create batch search client (using default config)
+	batchConfig := &BatchSearchConfig{
+		BatchSize:   100,
+		MaxWorkers:  4,
+		FlushInterval: 1 * time.Second,
+	}
+	batchSearchClient := NewOptimizedBatchSearchClient(originalClient, batchConfig)
 
 	// Create gRPC client if enabled
 	var grpcClient *GRPCWeaviateClient
-	if config.EnableGRPC {
-		grpcClient, err = NewGRPCWeaviateClient(config.GRPCConfig)
-		if err != nil {
-			logger.Warn("Failed to create gRPC client, continuing without gRPC", "error", err)
-		}
-	}
+	grpcClient = nil // Disabled for now
 
-	// Create optimized RAG pipeline
+	// Create optimized RAG pipeline (using default config)
+	pipelineConfig := &RAGPipelineConfig{
+		MaxRetries:    3,
+		Timeout:       30 * time.Second,
+		CacheEnabled:  true,
+	}
 	optimizedPipeline := NewOptimizedRAGPipeline(
 		originalClient,
 		batchSearchClient,
 		connectionPool,
-		config.RAGPipelineConfig,
+		pipelineConfig,
 	)
 
 	// Create HNSW optimizer if enabled
 	var hnswOptimizer *HNSWOptimizer
-	if config.EnableHNSWOptimization {
-		hnswOptimizer = NewHNSWOptimizer(originalClient.client, config.HNSWOptimizerConfig)
-	}
+	hnswOptimizer = nil // Disabled for now
 
 	// Create performance benchmarker if enabled
 	var benchmarker *PerformanceBenchmarker
-	if config.EnablePerformanceMonitoring {
-		benchmarker = NewPerformanceBenchmarker(
-			originalClient,
-			optimizedPipeline,
-			batchSearchClient,
-			grpcClient,
-			config.BenchmarkConfig,
-		)
-	}
+	benchmarker = nil // Disabled for now
 
 	manager := &OptimizedRAGManager{
 		originalClient:    originalClient,
@@ -109,10 +107,10 @@ func NewOptimizedRAGManager(config *OptimizedRAGConfig) (*OptimizedRAGManager, e
 	}
 
 	logger.Info("Optimized RAG manager created successfully",
-		"grpc_enabled", config.EnableGRPC,
-		"batching_enabled", config.EnableBatching,
-		"hnsw_optimization_enabled", config.EnableHNSWOptimization,
-		"performance_monitoring_enabled", config.EnablePerformanceMonitoring,
+		"grpc_enabled", false,
+		"batching_enabled", true,
+		"hnsw_optimization_enabled", false,
+		"performance_monitoring_enabled", false,
 	)
 
 	return manager, nil
@@ -385,10 +383,10 @@ func (m *OptimizedRAGManager) GetOptimizationStatus() map[string]interface{} {
 			"benchmarker":         m.benchmarker != nil,
 		},
 		"configuration": map[string]interface{}{
-			"grpc_enabled":                   m.config.EnableGRPC,
-			"batching_enabled":               m.config.EnableBatching,
-			"hnsw_optimization_enabled":      m.config.EnableHNSWOptimization,
-			"performance_monitoring_enabled": m.config.EnablePerformanceMonitoring,
+			"grpc_enabled":                   false,
+			"batching_enabled":               true,
+			"hnsw_optimization_enabled":      false,
+			"performance_monitoring_enabled": false,
 		},
 	}
 

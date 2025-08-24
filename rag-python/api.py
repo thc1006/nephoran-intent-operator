@@ -270,8 +270,11 @@ def upload_knowledge():
         documents = []
         for file in files:
             if file.filename:
-                # Save temporary file
-                temp_path = Path(f"/tmp/{file.filename}")
+                # Save temporary file securely
+                import tempfile
+                import os
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp_file:
+                    temp_path = Path(tmp_file.name)
                 file.save(temp_path)
                 
                 try:
@@ -371,4 +374,9 @@ def populate_knowledge():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    # Only bind to all interfaces in development mode with explicit flag
+    # For production, use a reverse proxy and bind to localhost
+    import os
+    debug_mode = os.environ.get('FLASK_DEBUG', '').lower() in ('1', 'true', 'yes')
+    host = '0.0.0.0' if debug_mode else '127.0.0.1'  # nosec B104
+    app.run(host=host, port=5001, debug=debug_mode)

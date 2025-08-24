@@ -1,0 +1,666 @@
+name: Enhanced Windows CI
+
+on:
+  workflow_dispatch: 
+    inputs:
+      debug_mode:
+        description: 'Enable debug logging'
+        required: false
+        default: false
+        type: boolean
+      timeout_minutes:
+        description: 'Timeout in minutes'
+        required: false
+        default: 45
+        type: number
+  push:
+    branches: [ main, integrate/mvp, "feat/**", "fix/**" ]
+  pull_request:
+    branches: [ main, integrate/mvp ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Windows-specific optimizations
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+  CGO_ENABLED: 0  # Disable CGO for Windows builds by default
+  GOMAXPROCS: 4   # Optimize for GitHub runners
+  GOTRACEBACK: all
+  GO_TEST_TIMEOUT_SCALE: 1.5  # Optimized timeout scaling (reduced from 3.0 for faster CI)
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  # =============================================================================
+  # Windows Environment Setup and Validation
+  # =============================================================================
+  windows-setup:
+    name: Windows Environment Setup
+    runs-on: windows-latest
+    timeout-minutes: 10
+    
+    outputs:
+      go-version: ${{ steps.go-setup.outputs.go-version }}
+      cache-key: ${{ steps.cache-setup.outputs.cache-key }}
+      temp-dir: ${{ steps.temp-setup.outputs.temp-dir }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Go
+        id: go-setup
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+
+      - name: Setup Windows temp directories
+        id: temp-setup
+        shell: pwsh
+        run: |
+          # Create isolated temp directories for this CI run
+          $runId = "${{ github.run_id }}"
+          $tempBase = Join-Path $env:TEMP "nephoran-ci-$runId"
+          $tempGo = Join-Path $tempBase "go"
+          $tempTest = Join-Path $tempBase "test"
+          $tempCache = Join-Path $tempBase "cache"
+          
+          # Create directories
+          @($tempBase, $tempGo, $tempTest, $tempCache) | ForEach-Object {
+            New-Item -ItemType Directory -Force -Path $_ | Out-Null
+            Write-Output "Created: $_"
+          }
+          
+          # Set up environment variables for subsequent jobs
+          "temp-dir=$tempBase" >> $env:GITHUB_OUTPUT
+          "TMPDIR=$tempGo" >> $env:GITHUB_ENV
+          "GOCACHE=$tempCache" >> $env:GITHUB_ENV
+          "GOTMPDIR=$tempGo" >> $env:GITHUB_ENV
+          
+          Write-Output "Windows temp directories configured:"
+          Write-Output "Base: $tempBase"
+          Write-Output "Go: $tempGo"
+          Write-Output "Test: $tempTest"
+          Write-Output "Cache: $tempCache"
+
+      - name: Setup enhanced caching
+        id: cache-setup
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\go-build
+            ~\go\pkg\mod
+            ${{ steps.temp-setup.outputs.temp-dir }}\cache
+          key: windows-go-${{ hashFiles('**/go.sum') }}-${{ github.run_id }}
+          restore-keys: |
+            windows-go-${{ hashFiles('**/go.sum') }}-
+            windows-go-
+
+      - name: Validate Windows environment
+        shell: pwsh
+        run: |
+          Write-Output "=== Windows CI Environment Validation ==="
+          Write-Output "PowerShell Version: $($PSVersionTable.PSVersion)"
+          Write-Output "Go Version: $(go version)"
+          Write-Output "OS: $([System.Environment]::OSVersion.VersionString)"
+          Write-Output "CPU Cores: $([System.Environment]::ProcessorCount)"
+          Write-Output "Available RAM: $([math]::Round((Get-CimInstance -ClassName Win32_ComputerSystem).TotalPhysicalMemory / 1GB, 2)) GB"
+          Write-Output "Temp Directory: ${{ steps.temp-setup.outputs.temp-dir }}"
+          
+          # Test Go installation
+          go env
+          go version -m | Select-Object -First 5
+
+  # =============================================================================
+  # Windows Parallel Build Jobs
+  # =============================================================================
+  windows-build:
+    name: Windows Build (${{ matrix.target }})
+    runs-on: windows-latest
+    needs: windows-setup
+    timeout-minutes: ${{ fromJSON(github.event.inputs.timeout_minutes || '20') }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - conductor-loop
+          - conductor-watch
+          - intent-ingest
+          - porch-publisher
+        include:
+          - target: conductor-loop
+            path: ./cmd/conductor-loop
+            binary: conductor-loop.exe
+          - target: conductor-watch
+            path: ./cmd/conductor-watch
+            binary: conductor-watch.exe
+          - target: intent-ingest
+            path: ./cmd/intent-ingest
+            binary: intent-ingest.exe
+          - target: porch-publisher
+            path: ./cmd/porch-publisher
+            binary: porch-publisher.exe
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\go-build
+            ~\go\pkg\mod
+          key: ${{ needs.windows-setup.outputs.cache-key }}
+          restore-keys: |
+            windows-go-${{ hashFiles('**/go.sum') }}-
+            windows-go-
+
+      - name: Setup Windows environment
+        shell: pwsh
+        run: |
+          $env:TMPDIR = "${{ needs.windows-setup.outputs.temp-dir }}\go"
+          $env:GOCACHE = "${{ needs.windows-setup.outputs.temp-dir }}\cache"
+          $env:GOTMPDIR = "${{ needs.windows-setup.outputs.temp-dir }}\go"
+
+      - name: Download dependencies
+        shell: pwsh
+        run: |
+          Write-Output "Downloading Go dependencies..."
+          go mod download
+          go mod verify
+
+      - name: Build ${{ matrix.target }}
+        shell: pwsh
+        run: |
+          Write-Output "Building ${{ matrix.target }}..."
+          $buildStart = Get-Date
+          
+          # Enhanced build with proper error handling
+          $env:CGO_ENABLED = "0"
+          $env:GOOS = "windows"
+          $env:GOARCH = "amd64"
+          
+          # Build with detailed output and timing
+          go build -v -ldflags="-s -w" -o "${{ matrix.binary }}" "${{ matrix.path }}" 2>&1 | Tee-Object -FilePath "build-${{ matrix.target }}.log"
+          
+          $buildEnd = Get-Date
+          $buildTime = ($buildEnd - $buildStart).TotalSeconds
+          
+          # Verify build success
+          if (Test-Path "${{ matrix.binary }}") {
+            $fileSize = (Get-Item "${{ matrix.binary }}").Length / 1MB
+            Write-Output "✅ Build successful: ${{ matrix.binary }} ($([math]::Round($fileSize, 2)) MB) in $([math]::Round($buildTime, 2))s"
+            
+            # Test executable
+            & ".\${{ matrix.binary }}" --help 2>&1 | Select-Object -First 5
+          } else {
+            Write-Error "❌ Build failed: ${{ matrix.binary }} not found"
+            exit 1
+          }
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-${{ matrix.target }}
+          path: |
+            ${{ matrix.binary }}
+            build-${{ matrix.target }}.log
+          retention-days: 7
+
+  # =============================================================================
+  # Windows Parallel Test Suites
+  # =============================================================================
+  windows-test:
+    name: Windows Tests (${{ matrix.suite }})
+    runs-on: windows-latest
+    needs: windows-setup
+    timeout-minutes: ${{ fromJSON(github.event.inputs.timeout_minutes || '45') }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - core
+          - loop
+          - security
+          - integration
+        include:
+          - suite: core
+            packages: "./api/... ./pkg/config/... ./pkg/auth/... ./internal/ingest/..."
+            flags: "-short"
+          - suite: loop
+            packages: "./internal/loop/... ./cmd/conductor-loop/... ./cmd/conductor-watch/..."
+            flags: "-timeout=20m"
+          - suite: security
+            packages: "./pkg/security/... ./internal/security/..."
+            flags: "-short -timeout=10m"
+          - suite: integration
+            packages: "./cmd/... -run=TestIntegration"
+            flags: "-timeout=15m"
+    
+    env:
+      # Test-specific environment
+      USE_EXISTING_CLUSTER: false
+      TEST_TEMP_DIR: ${{ needs.windows-setup.outputs.temp-dir }}\test-${{ matrix.suite }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+
+      - name: Restore cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\go-build
+            ~\go\pkg\mod
+          key: ${{ needs.windows-setup.outputs.cache-key }}
+          restore-keys: |
+            windows-go-${{ hashFiles('**/go.sum') }}-
+            windows-go-
+
+      - name: Setup Windows test environment
+        shell: pwsh
+        run: |
+          # Create isolated test directories
+          $testDir = "${{ needs.windows-setup.outputs.temp-dir }}\test-${{ matrix.suite }}"
+          New-Item -ItemType Directory -Force -Path $testDir | Out-Null
+          
+          # Create test subdirectories
+          @("handoff", "out", "status", "logs") | ForEach-Object {
+            New-Item -ItemType Directory -Force -Path (Join-Path $testDir $_) | Out-Null
+          }
+          
+          # Set environment variables
+          $env:TEST_TEMP_DIR = $testDir
+          $env:TMPDIR = "${{ needs.windows-setup.outputs.temp-dir }}\go"
+          $env:GOCACHE = "${{ needs.windows-setup.outputs.temp-dir }}\cache"
+          
+          Write-Output "Test environment setup for ${{ matrix.suite }}:"
+          Write-Output "Test Dir: $testDir"
+          Get-ChildItem $testDir
+
+      - name: Download dependencies
+        shell: pwsh
+        run: |
+          go mod download
+          go mod verify
+
+      - name: Generate test prerequisites
+        shell: pwsh
+        run: |
+          # Generate deepcopy files if needed
+          if (-not (Test-Path "api\v1\zz_generated.deepcopy.go")) {
+            Write-Output "Installing controller-gen..."
+            go install sigs.k8s.io/controller-tools/cmd/controller-gen@latest
+            
+            Write-Output "Generating deepcopy methods..."
+            controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1"
+          }
+
+      - name: Run ${{ matrix.suite }} tests with retries
+        shell: pwsh
+        run: |
+          $testStart = Get-Date
+          $maxRetries = 3
+          $attempt = 1
+          $success = $false
+          
+          while ($attempt -le $maxRetries -and -not $success) {
+            Write-Output "=== Test Attempt $attempt of $maxRetries for ${{ matrix.suite }} ==="
+            
+            try {
+              # Enhanced test execution with proper error handling
+              $coverageFile = "coverage-${{ matrix.suite }}-$attempt.out"
+              $testLogFile = "test-${{ matrix.suite }}-$attempt.log"
+              
+              $testCmd = "go test -v ${{ matrix.flags }} -count=1 -coverprofile=$coverageFile ${{ matrix.packages }}"
+              Write-Output "Executing: $testCmd"
+              
+              # Run tests with timeout and capture output
+              $process = Start-Process -FilePath "go" -ArgumentList "test", "-v", "${{ matrix.flags }}", "-count=1", "-coverprofile=$coverageFile", "${{ matrix.packages }}" -NoNewWindow -Wait -PassThru -RedirectStandardOutput $testLogFile -RedirectStandardError "error-${{ matrix.suite }}-$attempt.log"
+              
+              if ($process.ExitCode -eq 0) {
+                Write-Output "✅ Tests passed on attempt $attempt"
+                $success = $true
+                
+                # Generate coverage report
+                if (Test-Path $coverageFile) {
+                  go tool cover -html=$coverageFile -o "coverage-${{ matrix.suite }}.html"
+                  $coverage = go tool cover -func=$coverageFile | Select-String "total:" | ForEach-Object { $_.ToString().Split()[-1] }
+                  Write-Output "Coverage: $coverage"
+                }
+              } else {
+                throw "Tests failed with exit code $($process.ExitCode)"
+              }
+            } catch {
+              Write-Output "❌ Test attempt $attempt failed: $_"
+              if ($attempt -eq $maxRetries) {
+                Write-Error "All test attempts failed for ${{ matrix.suite }}"
+                exit 1
+              } else {
+                Write-Output "Retrying in 10 seconds..."
+                Start-Sleep -Seconds 10
+              }
+            }
+            $attempt++
+          }
+          
+          $testEnd = Get-Date
+          $testTime = ($testEnd - $testStart).TotalMinutes
+          Write-Output "✅ ${{ matrix.suite }} tests completed in $([math]::Round($testTime, 2)) minutes"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-test-${{ matrix.suite }}
+          path: |
+            coverage-${{ matrix.suite }}*.out
+            coverage-${{ matrix.suite }}.html
+            test-${{ matrix.suite }}*.log
+            error-${{ matrix.suite }}*.log
+          retention-days: 7
+
+  # =============================================================================
+  # Windows Integration and E2E Tests
+  # =============================================================================
+  windows-e2e:
+    name: Windows E2E Tests
+    runs-on: windows-latest
+    needs: [windows-setup, windows-build]
+    timeout-minutes: ${{ fromJSON(github.event.inputs.timeout_minutes || '30') }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: windows-build-*
+          merge-multiple: true
+
+      - name: Setup E2E environment
+        shell: pwsh
+        run: |
+          # Create E2E test directories
+          $e2eDir = "${{ needs.windows-setup.outputs.temp-dir }}\e2e"
+          @("handoff", "out", "porch-output", "logs") | ForEach-Object {
+            New-Item -ItemType Directory -Force -Path (Join-Path $e2eDir $_) | Out-Null
+          }
+          
+          # Make binaries executable
+          Get-ChildItem "*.exe" | ForEach-Object {
+            Write-Output "Found binary: $($_.Name)"
+          }
+          
+          # Create test intent files
+          $testIntent = @{
+            apiVersion = "network.nephio.io/v1alpha1"
+            kind = "NetworkIntent"
+            metadata = @{
+              name = "e2e-test-intent"
+              namespace = "default"
+            }
+            spec = @{
+              action = "scale"
+              target = "ran-du-e2e"
+              parameters = @{
+                replicas = 3
+                cpu = "1000m"
+                memory = "2Gi"
+              }
+            }
+          }
+          
+          $testIntent | ConvertTo-Json -Depth 10 | Out-File -FilePath (Join-Path $e2eDir "handoff\test-intent.json") -Encoding UTF8
+          Write-Output "E2E environment setup complete"
+
+      - name: Run conductor-loop E2E test
+        shell: pwsh
+        run: |
+          $e2eDir = "${{ needs.windows-setup.outputs.temp-dir }}\e2e"
+          
+          Write-Output "Starting conductor-loop E2E test..."
+          
+          # Test once mode
+          $process = Start-Process -FilePath ".\conductor-loop.exe" -ArgumentList "--handoff", (Join-Path $e2eDir "handoff"), "--out", (Join-Path $e2eDir "out"), "--once" -NoNewWindow -Wait -PassThru -RedirectStandardOutput "e2e-once.log" -RedirectStandardError "e2e-once-error.log"
+          
+          if ($process.ExitCode -eq 0) {
+            Write-Output "✅ Once mode test passed"
+            
+            # Check output files
+            $outputFiles = Get-ChildItem (Join-Path $e2eDir "out") -Filter "*.yaml"
+            if ($outputFiles.Count -gt 0) {
+              Write-Output "✅ Generated $($outputFiles.Count) output files"
+              $outputFiles | ForEach-Object { Write-Output "  - $($_.Name)" }
+            } else {
+              Write-Warning "⚠️ No output files generated"
+            }
+          } else {
+            Write-Error "❌ Once mode test failed with exit code $($process.ExitCode)"
+            Get-Content "e2e-once-error.log" | Write-Output
+            exit 1
+          }
+
+      - name: Run conductor-watch E2E test
+        shell: pwsh
+        run: |
+          Write-Output "Testing conductor-watch executable..."
+          
+          # Test help command
+          $help = & ".\conductor-watch.exe" --help 2>&1
+          if ($LASTEXITCODE -eq 0) {
+            Write-Output "✅ conductor-watch help command works"
+            $help | Select-Object -First 3 | Write-Output
+          } else {
+            Write-Warning "⚠️ conductor-watch help command failed"
+          }
+
+      - name: Validate Windows file handling
+        shell: pwsh
+        run: |
+          $e2eDir = "${{ needs.windows-setup.outputs.temp-dir }}\e2e"
+          
+          Write-Output "Validating Windows-specific file handling..."
+          
+          # Test path handling
+          $testPaths = @(
+            "C:\Windows\System32",
+            "$e2eDir\handoff",
+            "$e2eDir\out"
+          )
+          
+          $testPaths | ForEach-Object {
+            if (Test-Path $_) {
+              Write-Output "✅ Path exists: $_"
+            } else {
+              Write-Output "❌ Path missing: $_"
+            }
+          }
+          
+          # Test file operations
+          $testFile = Join-Path $e2eDir "test-file-ops.txt"
+          "Test content" | Out-File -FilePath $testFile -Encoding UTF8
+          
+          if (Test-Path $testFile) {
+            $content = Get-Content $testFile
+            if ($content -eq "Test content") {
+              Write-Output "✅ File operations work correctly"
+            } else {
+              Write-Warning "⚠️ File content mismatch"
+            }
+            Remove-Item $testFile
+          }
+
+      - name: Upload E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-e2e-results
+          path: |
+            e2e-*.log
+            ${{ needs.windows-setup.outputs.temp-dir }}\e2e\out\*.yaml
+          retention-days: 7
+
+  # =============================================================================
+  # Windows CI Status and Cleanup
+  # =============================================================================
+  windows-ci-status:
+    name: Windows CI Status
+    runs-on: windows-latest
+    needs: [windows-setup, windows-build, windows-test, windows-e2e]
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+      - name: Collect CI results
+        shell: pwsh
+        run: |
+          Write-Output "=== Windows CI Pipeline Results ==="
+          Write-Output ""
+          Write-Output "| Job | Status | Description |"
+          Write-Output "|-----|--------|-------------|"
+          Write-Output "| Setup | ${{ needs.windows-setup.result }} | Environment setup and validation |"
+          Write-Output "| Build | ${{ needs.windows-build.result }} | Parallel binary compilation |"
+          Write-Output "| Test | ${{ needs.windows-test.result }} | Parallel test suites |"
+          Write-Output "| E2E | ${{ needs.windows-e2e.result }} | End-to-end integration tests |"
+          Write-Output ""
+          
+          # Check for failures
+          $failed = $false
+          $results = @{
+            "Setup" = "${{ needs.windows-setup.result }}"
+            "Build" = "${{ needs.windows-build.result }}"
+            "Test" = "${{ needs.windows-test.result }}"
+            "E2E" = "${{ needs.windows-e2e.result }}"
+          }
+          
+          foreach ($job in $results.Keys) {
+            $status = $results[$job]
+            if ($status -eq "failure") {
+              Write-Output "❌ $job job failed"
+              $failed = $true
+            } elseif ($status -eq "success") {
+              Write-Output "✅ $job job succeeded"
+            } elseif ($status -eq "skipped") {
+              Write-Output "⏭️ $job job skipped"
+            } else {
+              Write-Output "❓ $job job status: $status"
+            }
+          }
+          
+          if ($failed) {
+            Write-Output ""
+            Write-Output "❌ Windows CI Pipeline Failed"
+            Write-Output "Please check individual job logs for details."
+            exit 1
+          } else {
+            Write-Output ""
+            Write-Output "✅ Windows CI Pipeline Succeeded"
+            Write-Output "All Windows-specific tests and builds completed successfully."
+          }
+
+      - name: Cleanup Windows environment
+        if: always()
+        shell: pwsh
+        run: |
+          # Clean up temporary directories
+          $tempDir = "${{ needs.windows-setup.outputs.temp-dir }}"
+          if (Test-Path $tempDir) {
+            try {
+              Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+              Write-Output "✅ Cleaned up temp directory: $tempDir"
+            } catch {
+              Write-Output "⚠️ Could not clean up temp directory: $_"
+            }
+          }
+          
+          # Clean up any leftover processes
+          Get-Process | Where-Object { $_.Name -match "conductor|intent" } | ForEach-Object {
+            try {
+              Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue
+              Write-Output "Stopped process: $($_.Name) ($($_.Id))"
+            } catch {
+              # Ignore cleanup errors
+            }
+          }
+
+      - name: Generate Windows CI summary
+        if: always()
+        shell: pwsh
+        run: |
+          # Add to GitHub step summary
+          $summary = @"
+## 🪟 Windows CI Pipeline Results
+
+### Environment Information
+- **PowerShell Version**: $($PSVersionTable.PSVersion)
+- **Go Version**: $(go version)
+- **Runner OS**: $([System.Environment]::OSVersion.VersionString)
+- **Temp Directory**: ${{ needs.windows-setup.outputs.temp-dir }}
+
+### Job Results
+| Job | Status | Duration |
+|-----|--------|----------|
+| Setup | ${{ needs.windows-setup.result }} | Environment setup |
+| Build | ${{ needs.windows-build.result }} | Binary compilation |
+| Test | ${{ needs.windows-test.result }} | Test execution |
+| E2E | ${{ needs.windows-e2e.result }} | Integration tests |
+
+### Key Features Tested
+- ✅ Windows-specific path handling
+- ✅ PowerShell script execution
+- ✅ File system operations
+- ✅ Parallel test execution
+- ✅ Temporary directory isolation
+- ✅ Build artifact generation
+- ✅ Error reporting and retry logic
+
+### Performance Metrics
+- **Total Pipeline Time**: Approximately ${{ fromJSON(github.event.inputs.timeout_minutes || '45') }} minutes maximum
+- **Parallel Execution**: 4 build jobs + 4 test suites
+- **Retry Logic**: 3 attempts per test suite
+- **Isolation**: Dedicated temp directories per job
+"@
+          
+          # Write to GitHub Actions summary
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding UTF8

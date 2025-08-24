@@ -1,0 +1,579 @@
+# Istio Ambient Service Mesh for Nephio R5-O-RAN L Release
+# Sidecar-less service mesh for improved performance
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    name: istio-system
+    security.oran.org/zone: service-mesh
+    nephio.org/version: r5
+    oran.org/release: l-release
+  annotations:
+    istio-injection: enabled
+
+---
+# Istio Control Plane Configuration for Ambient Mesh
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  name: nephio-r5-ambient-controlplane
+  namespace: istio-system
+  labels:
+    nephio.org/version: r5
+    deployment-type: ambient
+spec:
+  values:
+    pilot:
+      env:
+        PILOT_ENABLE_AMBIENT: true
+        EXTERNAL_ISTIOD: true
+        ENABLE_ENHANCED_RESOURCE_SCOPING: true
+        PILOT_ENABLE_ALPHA_GATEWAY_API: true
+    global:
+      meshID: nephio-r5-mesh
+      meshConfig:
+        defaultConfig:
+          proxyStatsMatcher:
+            inclusionRegexps:
+            - ".*outlier_detection.*"
+            - ".*circuit_breakers.*"
+            - ".*upstream_rq_retry.*"
+            - ".*_cx_.*"
+        extensionProviders:
+        - name: otel
+          envoyOtelAls:
+            service: opentelemetry-collector.observability.svc.cluster.local
+            port: 4317
+        - name: prometheus
+          prometheus:
+            configOverride:
+              metric_relabeling_configs:
+              - source_labels: [__name__]
+                regex: "(request_total|request_duration_milliseconds.*)"
+                action: keep
+      network: nephio-r5-network
+      logAsJson: true
+  components:
+    pilot:
+      k8s:
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        hpaSpec:
+          minReplicas: 2
+          maxReplicas: 10
+          metrics:
+          - type: Resource
+            resource:
+              name: cpu
+              target:
+                type: Utilization
+                averageUtilization: 70
+        podDisruptionBudget:
+          minAvailable: 1
+        affinity:
+          podAntiAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: istiod
+              topologyKey: kubernetes.io/hostname
+        env:
+        - name: PILOT_ENABLE_WORKLOAD_ENTRY_CROSS_CLUSTER
+          value: "true"
+        - name: PILOT_ENABLE_AMBIENT_CONTROLLERS
+          value: "true"
+
+---
+# CNI DaemonSet for Ambient Mesh
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: istio-cni-node
+  namespace: istio-system
+  labels:
+    app: istio-cni-node
+    nephio.org/version: r5
+spec:
+  selector:
+    matchLabels:
+      app: istio-cni-node
+  template:
+    metadata:
+      labels:
+        app: istio-cni-node
+        nephio.org/version: r5
+      annotations:
+        sidecar.istio.io/inject: "false"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      - operator: Exists
+      serviceAccountName: istio-cni
+      containers:
+      - name: install-cni
+        image: docker.io/istio/install-cni:1.21.0
+        securityContext:
+          runAsNonRoot: false
+          runAsUser: 0
+          privileged: true
+        command: ["/opt/cni/bin/install-cni"]
+        args:
+        - --log-level=info
+        - --cni-conf-dir=/etc/cni/net.d
+        - --cni-bin-dir=/opt/cni/bin
+        env:
+        - name: CNI_CONF_NAME
+          value: "10-istio-cni.conflist"
+        - name: CNI_NETWORK_CONFIG
+          valueFrom:
+            configMapKeyRef:
+              name: istio-cni-config
+              key: cni_network_config
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        volumeMounts:
+        - name: cni-bin-dir
+          mountPath: /opt/cni/bin
+        - name: cni-net-dir
+          mountPath: /etc/cni/net.d
+        - name: cni-log-dir
+          mountPath: /var/log/istio-cni
+      volumes:
+      - name: cni-bin-dir
+        hostPath:
+          path: /opt/cni/bin
+      - name: cni-net-dir
+        hostPath:
+          path: /etc/cni/net.d
+      - name: cni-log-dir
+        hostPath:
+          path: /var/log/istio-cni
+
+---
+# ztunnel DaemonSet for Ambient Data Plane
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ztunnel
+  namespace: istio-system
+  labels:
+    app: ztunnel
+    nephio.org/version: r5
+spec:
+  selector:
+    matchLabels:
+      app: ztunnel
+  template:
+    metadata:
+      labels:
+        app: ztunnel
+        nephio.org/version: r5
+      annotations:
+        sidecar.istio.io/inject: "false"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "15020"
+        prometheus.io/path: "/metrics"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+      - operator: Exists
+      serviceAccountName: ztunnel
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: istio-proxy
+        image: docker.io/istio/proxyv2:1.21.0
+        args:
+        - proxy
+        - ztunnel
+        securityContext:
+          privileged: true
+          runAsUser: 0
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: ISTIO_META_CLUSTER_ID
+          value: "Kubernetes"
+        - name: PILOT_SDS_ENABLED
+          value: "true"
+        - name: ISTIO_META_MESH_ID
+          value: "nephio-r5-mesh"
+        - name: ISTIO_META_NETWORK
+          value: "nephio-r5-network"
+        resources:
+          requests:
+            cpu: 200m
+            memory: 512Mi
+          limits:
+            cpu: 1000m
+            memory: 2Gi
+        ports:
+        - name: metrics
+          containerPort: 15020
+          protocol: TCP
+        volumeMounts:
+        - name: istio-token
+          mountPath: /var/run/secrets/tokens
+          readOnly: true
+        - name: istiod-ca-cert
+          mountPath: /var/run/secrets/istio
+          readOnly: true
+        - name: ztunnel-config
+          mountPath: /etc/ztunnel
+          readOnly: true
+      volumes:
+      - name: istio-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: istio-ca
+              expirationSeconds: 43200
+              path: istio-token
+      - name: istiod-ca-cert
+        configMap:
+          name: istio-ca-root-cert
+      - name: ztunnel-config
+        configMap:
+          name: ztunnel-config
+
+---
+# Gateway API Gateway for North-South Traffic
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: Gateway
+metadata:
+  name: nephio-r5-gateway
+  namespace: istio-system
+  labels:
+    nephio.org/version: r5
+    gateway-type: north-south
+spec:
+  gatewayClassName: istio
+  listeners:
+  - name: default
+    hostname: "*.nephio-r5.local"
+    port: 80
+    protocol: HTTP
+    allowedRoutes:
+      namespaces:
+        from: All
+  - name: secure
+    hostname: "*.nephio-r5.local"
+    port: 443
+    protocol: HTTPS
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: nephio-r5-tls-cert
+        namespace: cert-manager
+    allowedRoutes:
+      namespaces:
+        from: All
+
+---
+# HTTPRoute for Conductor Loop Service
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: conductor-loop-route
+  namespace: nephoran-conductor
+  labels:
+    nephio.org/version: r5
+    component: conductor-loop
+spec:
+  parentRefs:
+  - name: nephio-r5-gateway
+    namespace: istio-system
+  hostnames:
+  - "conductor-loop.nephio-r5.local"
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /healthz
+    backendRefs:
+    - name: conductor-loop
+      port: 8080
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /metrics
+    backendRefs:
+    - name: conductor-loop
+      port: 9090
+
+---
+# Service Entry for External Porch Service
+apiVersion: networking.istio.io/v1beta1
+kind: ServiceEntry
+metadata:
+  name: porch-external-service
+  namespace: istio-system
+  labels:
+    nephio.org/version: r5
+spec:
+  hosts:
+  - porch-server.porch-system.svc.cluster.local
+  ports:
+  - number: 7007
+    name: http-porch
+    protocol: HTTP
+  location: MESH_EXTERNAL
+  resolution: DNS
+
+---
+# Virtual Service for Porch Load Balancing
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: porch-load-balancer
+  namespace: istio-system
+  labels:
+    nephio.org/version: r5
+spec:
+  hosts:
+  - porch-server.porch-system.svc.cluster.local
+  http:
+  - match:
+    - uri:
+        prefix: /
+    route:
+    - destination:
+        host: porch-server.porch-system.svc.cluster.local
+        port:
+          number: 7007
+    retries:
+      attempts: 3
+      perTryTimeout: 30s
+    timeout: 90s
+
+---
+# Destination Rule for Circuit Breaker
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: porch-circuit-breaker
+  namespace: istio-system
+  labels:
+    nephio.org/version: r5
+spec:
+  host: porch-server.porch-system.svc.cluster.local
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+      http:
+        http1MaxPendingRequests: 50
+        maxRequestsPerConnection: 10
+    outlierDetection:
+      consecutiveErrors: 3
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+
+---
+# Telemetry Configuration for Enhanced Observability
+apiVersion: telemetry.istio.io/v1alpha1
+kind: Telemetry
+metadata:
+  name: nephio-r5-telemetry
+  namespace: istio-system
+  labels:
+    nephio.org/version: r5
+spec:
+  metrics:
+  - providers:
+    - name: prometheus
+  - overrides:
+    - match:
+        metric: ALL_METRICS
+      tagOverrides:
+        nephio_version:
+          value: "r5"
+        oran_release:
+          value: "l-release"
+  tracing:
+  - providers:
+    - name: otel
+  accessLogging:
+  - providers:
+    - name: otel
+
+---
+# Authorization Policy for Secure Communication
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: conductor-loop-authz
+  namespace: nephoran-conductor
+  labels:
+    nephio.org/version: r5
+    component: conductor-loop
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: conductor-loop
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics"]
+  - from:
+    - source:
+        namespaces: ["kube-system"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/healthz", "/ready", "/startup"]
+  - from:
+    - source:
+        namespaces: ["istio-system"]
+    to:
+    - operation:
+        methods: ["GET"]
+
+---
+# Peer Authentication for mTLS
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: nephoran-conductor
+  labels:
+    nephio.org/version: r5
+spec:
+  mtls:
+    mode: STRICT
+
+---
+# Workload Entry for External Services
+apiVersion: networking.istio.io/v1beta1
+kind: WorkloadEntry
+metadata:
+  name: external-database
+  namespace: nephoran-conductor
+  labels:
+    nephio.org/version: r5
+    app: external-database
+spec:
+  address: 10.0.1.100
+  ports:
+    http: 5432
+  labels:
+    app: external-database
+    version: v1
+
+---
+# Sidecar Configuration for Resource Optimization
+apiVersion: networking.istio.io/v1beta1
+kind: Sidecar
+metadata:
+  name: conductor-loop-sidecar
+  namespace: nephoran-conductor
+  labels:
+    nephio.org/version: r5
+spec:
+  workloadSelector:
+    labels:
+      app.kubernetes.io/name: conductor-loop
+  egress:
+  - port:
+      number: 7007
+      protocol: HTTP
+      name: porch
+    hosts:
+    - "./porch-server.porch-system.svc.cluster.local"
+  - port:
+      number: 6379
+      protocol: TCP
+      name: redis
+    hosts:
+    - "./redis.nephoran-conductor.svc.cluster.local"
+  - port:
+      number: 53
+      protocol: DNS
+      name: dns
+    hosts:
+    - "*"
+
+---
+# EnvoyFilter for Performance Optimization
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: conductor-loop-performance
+  namespace: nephoran-conductor
+  labels:
+    nephio.org/version: r5
+spec:
+  workloadSelector:
+    labels:
+      app.kubernetes.io/name: conductor-loop
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.filters.network.http_connection_manager"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.local_ratelimit
+        typed_config:
+          "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+          type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+          value:
+            stat_prefix: local_rate_limiter
+            token_bucket:
+              max_tokens: 100
+              tokens_per_fill: 10
+              fill_interval: 60s
+
+---
+# Ambient Waypoint Proxy for L4 Processing
+apiVersion: gateway.networking.k8s.io/v1alpha2
+kind: Gateway
+metadata:
+  name: conductor-loop-waypoint
+  namespace: nephoran-conductor
+  labels:
+    nephio.org/version: r5
+    istio.io/gateway-name: conductor-loop-waypoint
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+  - name: mesh
+    port: 15008
+    protocol: HBONE

@@ -582,13 +582,7 @@ type VersionHistory struct {
 	Versions   []*VersionInfo
 }
 
-type VersionInfo struct {
-	Version     string
-	ReleaseDate time.Time
-	Deprecated  bool
-	Supported   bool
-	Changelog   string
-}
+// VersionInfo is defined in types.go
 
 type VersionDistance struct {
 	Major int
@@ -1039,3 +1033,164 @@ type SecurityProfile struct {
 	PodSecurity     string
 	SELinux         bool
 }
+
+// NodeResolution contains information about how a dependency node was resolved
+type NodeResolution struct {
+	Method          ResolutionMethod
+	ResolvedVersion string
+	Source          string
+	Strategy        string
+	Timestamp       time.Time
+	Confidence      float64
+	Alternatives    []string
+	Reason          string
+}
+
+// ResolutionMethod defines how a dependency was resolved
+type ResolutionMethod string
+
+const (
+	ResolutionMethodExact     ResolutionMethod = "exact"
+	ResolutionMethodLatest    ResolutionMethod = "latest"
+	ResolutionMethodRange     ResolutionMethod = "range"
+	ResolutionMethodFallback  ResolutionMethod = "fallback"
+	ResolutionMethodManual    ResolutionMethod = "manual"
+)
+
+// GraphModification represents modifications made to a dependency graph
+type GraphModification struct {
+	ModificationType ModificationType
+	NodesAdded       []*DependencyNode
+	NodesRemoved     []*DependencyNode
+	EdgesAdded       []*DependencyEdge
+	EdgesRemoved     []*DependencyEdge
+	Reason           string
+	Impact           string
+}
+
+// ModificationType defines types of graph modifications
+type ModificationType string
+
+const (
+	ModificationTypeAdd    ModificationType = "add"
+	ModificationTypeRemove ModificationType = "remove"
+	ModificationTypeUpdate ModificationType = "update"
+	ModificationTypeResolve ModificationType = "resolve"
+)
+
+// OptimizedGraph represents a graph after optimization
+type OptimizedGraph struct {
+	OriginalGraph *DependencyGraph
+	OptimizedGraph *DependencyGraph
+	Optimizations []Optimization
+	Performance   *PerformanceMetrics
+}
+
+// Optimization represents a single optimization applied
+type Optimization struct {
+	Type        OptimizationType
+	Description string
+	Impact      string
+	Confidence  float64
+}
+
+// PerformanceMetrics tracks performance improvements
+type PerformanceMetrics struct {
+	OriginalComplexity int
+	OptimizedComplexity int
+	ImprovementRatio   float64
+	ExecutionTime      time.Duration
+}
+
+// UpdatePlanOptions configures update plan generation
+type UpdatePlanOptions struct {
+	AllowBreaking bool
+	MaxRetries    int
+	DryRun        bool
+	Rollback      bool
+}
+
+// UpdatePlan represents a plan for updating dependencies
+type UpdatePlan struct {
+	Steps        []UpdateStep
+	EstimatedTime time.Duration
+	RiskLevel     RiskLevel
+	Prerequisites []string
+}
+
+// UpdateStep represents a single step in an update plan
+type UpdateStep struct {
+	Action      UpdateAction
+	Target      string
+	FromVersion string
+	ToVersion   string
+	Dependencies []string
+}
+
+// UpdateAction defines types of update actions
+type UpdateAction string
+
+const (
+	UpdateActionUpgrade   UpdateAction = "upgrade"
+	UpdateActionDowngrade UpdateAction = "downgrade"
+	UpdateActionInstall   UpdateAction = "install"
+	UpdateActionRemove    UpdateAction = "remove"
+)
+
+
+// ConflictSuggestion provides suggestions for resolving conflicts
+type ConflictSuggestion struct {
+	Type        SuggestionType
+	Description string
+	Action      string
+	Confidence  float64
+	Risks       []string
+}
+
+// UpdateConflict represents a conflict during updates
+type UpdateConflict struct {
+	Type        ConflictType
+	Source      string
+	Target      string
+	Description string
+	Severity    ConflictSeverity
+	Suggestions []ConflictSuggestion
+}
+
+// PropagationStatistics tracks dependency change propagation
+type PropagationStatistics struct {
+	NodesAffected   int
+	EdgesAffected   int
+	LevelsAffected  int
+	PropagationTime time.Duration
+	ChangeImpact    float64
+}
+
+// RecommendedAction suggests actions to take
+type RecommendedAction struct {
+	Action      ActionType
+	Priority    Priority
+	Description string
+	Rationale   string
+	Impact      string
+}
+
+// ActionType defines types of recommended actions
+type ActionType string
+
+const (
+	ActionTypeUpdate   ActionType = "update"
+	ActionTypeResolve  ActionType = "resolve"
+	ActionTypeIgnore   ActionType = "ignore"
+	ActionTypeEscalate ActionType = "escalate"
+)
+
+// Priority defines priority levels
+type Priority string
+
+const (
+	PriorityLow      Priority = "low"
+	PriorityMedium   Priority = "medium"
+	PriorityHigh     Priority = "high"
+	PriorityCritical Priority = "critical"
+)

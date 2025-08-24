@@ -1,0 +1,7 @@
+{
+  "intent_type": "scaling",
+  "target": "e2-node",
+  "replicas": 5,
+  "timestamp": "2025-08-15T16:00:00Z",
+  "requestor": "demo-user"
+}

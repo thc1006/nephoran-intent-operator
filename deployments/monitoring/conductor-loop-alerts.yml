@@ -1,0 +1,395 @@
+# Prometheus Alerting Rules for Conductor Loop
+# Production-ready alerts for monitoring application health, performance, and security
+
+groups:
+
+# ==========================================================================
+# Application Health Alerts
+# ==========================================================================
+
+- name: conductor-loop.health
+  interval: 30s
+  rules:
+  
+  # Service availability
+  - alert: ConductorLoopDown
+    expr: up{job="conductor-loop"} == 0
+    for: 30s
+    labels:
+      severity: critical
+      service: conductor-loop
+      component: availability
+    annotations:
+      summary: "Conductor Loop service is down"
+      description: "Conductor Loop service has been down for more than 30 seconds. Instance: {{ $labels.instance }}"
+      runbook_url: "https://docs.nephoran.com/runbooks/conductor-loop-down"
+      
+  # Health check failures
+  - alert: ConductorLoopHealthCheckFailed
+    expr: conductor_loop_health_check_failures_total > 3
+    for: 1m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: health
+    annotations:
+      summary: "Conductor Loop health check failing"
+      description: "Health check for {{ $labels.instance }} has failed {{ $value }} times in the last minute"
+      
+  # Startup probe failures
+  - alert: ConductorLoopStartupFailed
+    expr: conductor_loop_startup_duration_seconds > 60
+    for: 2m
+    labels:
+      severity: critical
+      service: conductor-loop
+      component: startup
+    annotations:
+      summary: "Conductor Loop taking too long to start"
+      description: "Conductor Loop startup duration is {{ $value }}s, which exceeds the 60s threshold"
+
+# ==========================================================================
+# Performance Alerts
+# ==========================================================================
+
+- name: conductor-loop.performance
+  interval: 30s
+  rules:
+  
+  # High CPU usage
+  - alert: ConductorLoopHighCPU
+    expr: rate(process_cpu_seconds_total{job="conductor-loop"}[5m]) * 100 > 80
+    for: 5m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: performance
+    annotations:
+      summary: "High CPU usage on Conductor Loop"
+      description: "CPU usage is {{ humanizePercentage $value }} on {{ $labels.instance }}"
+      
+  # High memory usage
+  - alert: ConductorLoopHighMemory
+    expr: process_resident_memory_bytes{job="conductor-loop"} / 1024 / 1024 / 1024 > 0.4
+    for: 3m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: performance
+    annotations:
+      summary: "High memory usage on Conductor Loop"
+      description: "Memory usage is {{ humanize $value }}GB on {{ $labels.instance }}"
+      
+  # Memory leak detection
+  - alert: ConductorLoopMemoryLeak
+    expr: increase(process_resident_memory_bytes{job="conductor-loop"}[1h]) > 100 * 1024 * 1024
+    for: 2h
+    labels:
+      severity: critical
+      service: conductor-loop
+      component: performance
+    annotations:
+      summary: "Potential memory leak in Conductor Loop"
+      description: "Memory usage increased by {{ humanize $value }}B in the last hour on {{ $labels.instance }}"
+      
+  # High goroutine count
+  - alert: ConductorLoopHighGoroutines
+    expr: go_goroutines{job="conductor-loop"} > 1000
+    for: 5m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: performance
+    annotations:
+      summary: "High number of goroutines in Conductor Loop"
+      description: "Goroutine count is {{ $value }} on {{ $labels.instance }}"
+
+# ==========================================================================
+# File Processing Alerts
+# ==========================================================================
+
+- name: conductor-loop.file-processing
+  interval: 1m
+  rules:
+  
+  # High error rate
+  - alert: ConductorLoopHighErrorRate
+    expr: rate(conductor_loop_file_processing_errors_total[5m]) / rate(conductor_loop_file_processing_total[5m]) > 0.1
+    for: 2m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: file-processing
+    annotations:
+      summary: "High error rate in file processing"
+      description: "Error rate is {{ humanizePercentage $value }} over the last 5 minutes on {{ $labels.instance }}"
+      
+  # Processing queue backup
+  - alert: ConductorLoopQueueBackup
+    expr: conductor_loop_queue_depth > 100
+    for: 5m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: file-processing
+    annotations:
+      summary: "File processing queue backup"
+      description: "Queue depth is {{ $value }} files on {{ $labels.instance }}"
+      
+  # Long processing time
+  - alert: ConductorLoopSlowProcessing
+    expr: histogram_quantile(0.95, rate(conductor_loop_file_processing_duration_seconds_bucket[5m])) > 30
+    for: 3m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: file-processing
+    annotations:
+      summary: "Slow file processing detected"
+      description: "95th percentile processing time is {{ humanizeDuration $value }} on {{ $labels.instance }}"
+      
+  # No files processed
+  - alert: ConductorLoopNoFilesProcessed
+    expr: increase(conductor_loop_files_processed_total[10m]) == 0
+    for: 10m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: file-processing
+    annotations:
+      summary: "No files processed recently"
+      description: "No files have been processed in the last 10 minutes on {{ $labels.instance }}"
+
+# ==========================================================================
+# Security Alerts
+# ==========================================================================
+
+- name: conductor-loop.security
+  interval: 30s
+  rules:
+  
+  # Authentication failures
+  - alert: ConductorLoopAuthFailures
+    expr: increase(conductor_loop_auth_failures_total[5m]) > 10
+    for: 1m
+    labels:
+      severity: critical
+      service: conductor-loop
+      component: security
+    annotations:
+      summary: "High number of authentication failures"
+      description: "{{ $value }} authentication failures in the last 5 minutes on {{ $labels.instance }}"
+      runbook_url: "https://docs.nephoran.com/runbooks/security-incident"
+      
+  # Rate limiting triggered
+  - alert: ConductorLoopRateLimitHit
+    expr: increase(conductor_loop_rate_limit_hits_total[1m]) > 0
+    for: 0s
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: security
+    annotations:
+      summary: "Rate limiting activated"
+      description: "Rate limiting triggered {{ $value }} times in the last minute on {{ $labels.instance }}"
+      
+  # Suspicious file activity
+  - alert: ConductorLoopSuspiciousFiles
+    expr: increase(conductor_loop_suspicious_files_total[5m]) > 0
+    for: 0s
+    labels:
+      severity: critical
+      service: conductor-loop
+      component: security
+    annotations:
+      summary: "Suspicious files detected"
+      description: "{{ $value }} suspicious files detected in the last 5 minutes on {{ $labels.instance }}"
+      runbook_url: "https://docs.nephoran.com/runbooks/security-incident"
+      
+  # Security scan failures
+  - alert: ConductorLoopSecurityScanFailed
+    expr: conductor_loop_security_scan_status != 1
+    for: 5m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: security
+    annotations:
+      summary: "Security scan failing"
+      description: "Security scanning is not functioning properly on {{ $labels.instance }}"
+
+# ==========================================================================
+# Dependency Alerts
+# ==========================================================================
+
+- name: conductor-loop.dependencies
+  interval: 1m
+  rules:
+  
+  # Porch connectivity issues
+  - alert: ConductorLoopPorchUnavailable
+    expr: conductor_loop_porch_connection_status != 1
+    for: 2m
+    labels:
+      severity: critical
+      service: conductor-loop
+      component: dependencies
+    annotations:
+      summary: "Porch service unavailable"
+      description: "Cannot connect to Porch service from {{ $labels.instance }}"
+      
+  # Redis connectivity issues
+  - alert: ConductorLoopRedisUnavailable
+    expr: conductor_loop_redis_connection_status != 1
+    for: 1m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: dependencies
+    annotations:
+      summary: "Redis service unavailable"
+      description: "Cannot connect to Redis from {{ $labels.instance }}"
+      
+  # High dependency response time
+  - alert: ConductorLoopSlowDependencies
+    expr: histogram_quantile(0.95, rate(conductor_loop_dependency_request_duration_seconds_bucket[5m])) > 10
+    for: 3m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: dependencies
+    annotations:
+      summary: "Slow dependency responses"
+      description: "95th percentile dependency response time is {{ humanizeDuration $value }} on {{ $labels.instance }}"
+
+# ==========================================================================
+# Storage and Disk Alerts
+# ==========================================================================
+
+- name: conductor-loop.storage
+  interval: 2m
+  rules:
+  
+  # Low disk space
+  - alert: ConductorLoopLowDiskSpace
+    expr: (node_filesystem_avail_bytes{mountpoint="/data"} / node_filesystem_size_bytes{mountpoint="/data"}) * 100 < 20
+    for: 5m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: storage
+    annotations:
+      summary: "Low disk space on data volume"
+      description: "Disk space is {{ humanizePercentage $value }} full on {{ $labels.instance }}"
+      
+  # Critical disk space
+  - alert: ConductorLoopCriticalDiskSpace
+    expr: (node_filesystem_avail_bytes{mountpoint="/data"} / node_filesystem_size_bytes{mountpoint="/data"}) * 100 < 10
+    for: 2m
+    labels:
+      severity: critical
+      service: conductor-loop
+      component: storage
+    annotations:
+      summary: "Critical disk space on data volume"
+      description: "Disk space is {{ humanizePercentage $value }} full on {{ $labels.instance }}"
+      
+  # High disk I/O wait
+  - alert: ConductorLoopHighIOWait
+    expr: rate(node_cpu_seconds_total{mode="iowait"}[5m]) * 100 > 30
+    for: 5m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: storage
+    annotations:
+      summary: "High disk I/O wait time"
+      description: "I/O wait time is {{ humanizePercentage $value }} on {{ $labels.instance }}"
+
+# ==========================================================================
+# Business Logic Alerts
+# ==========================================================================
+
+- name: conductor-loop.business
+  interval: 5m
+  rules:
+  
+  # Intent processing failures
+  - alert: ConductorLoopIntentFailures
+    expr: increase(conductor_loop_intent_processing_failures_total[15m]) > 5
+    for: 0s
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: business-logic
+    annotations:
+      summary: "High intent processing failure rate"
+      description: "{{ $value }} intent processing failures in the last 15 minutes on {{ $labels.instance }}"
+      
+  # Scaling operations failing
+  - alert: ConductorLoopScalingFailures
+    expr: increase(conductor_loop_scaling_operations_failed_total[30m]) > 3
+    for: 0s
+    labels:
+      severity: critical
+      service: conductor-loop
+      component: business-logic
+    annotations:
+      summary: "Scaling operations failing"
+      description: "{{ $value }} scaling operations failed in the last 30 minutes on {{ $labels.instance }}"
+      
+  # Configuration drift detected
+  - alert: ConductorLoopConfigDrift
+    expr: conductor_loop_config_hash != on(instance) group_left() conductor_loop_expected_config_hash
+    for: 5m
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: configuration
+    annotations:
+      summary: "Configuration drift detected"
+      description: "Configuration has drifted from expected state on {{ $labels.instance }}"
+
+# ==========================================================================
+# SLA and Business Metrics
+# ==========================================================================
+
+- name: conductor-loop.sla
+  interval: 10m
+  rules:
+  
+  # SLA violation - availability
+  - alert: ConductorLoopSLAAvailability
+    expr: (avg_over_time(up{job="conductor-loop"}[10m])) < 0.99
+    for: 0s
+    labels:
+      severity: critical
+      service: conductor-loop
+      component: sla
+    annotations:
+      summary: "SLA availability violation"
+      description: "Service availability {{ humanizePercentage $value }} is below 99% SLA"
+      
+  # SLA violation - response time
+  - alert: ConductorLoopSLAResponseTime
+    expr: histogram_quantile(0.95, rate(conductor_loop_request_duration_seconds_bucket[10m])) > 5
+    for: 0s
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: sla
+    annotations:
+      summary: "SLA response time violation"
+      description: "95th percentile response time {{ humanizeDuration $value }} exceeds 5s SLA"
+      
+  # SLA violation - error rate
+  - alert: ConductorLoopSLAErrorRate
+    expr: (rate(conductor_loop_errors_total[10m]) / rate(conductor_loop_requests_total[10m])) > 0.01
+    for: 0s
+    labels:
+      severity: warning
+      service: conductor-loop
+      component: sla
+    annotations:
+      summary: "SLA error rate violation"
+      description: "Error rate {{ humanizePercentage $value }} exceeds 1% SLA"

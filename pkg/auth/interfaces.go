@@ -50,3 +50,30 @@ type AuthHandlersInterface interface {
 	LogoutHandler(w http.ResponseWriter, r *http.Request)
 	GetUserInfoHandler(w http.ResponseWriter, r *http.Request)
 }
+
+// UserSession represents an active user session
+type UserSession struct {
+	ID           string                 `json:"id"`
+	UserID       string                 `json:"user_id"`
+	UserInfo     *providers.UserInfo    `json:"user_info"`
+	Provider     string                 `json:"provider"`
+	AccessToken  string                 `json:"access_token"`
+	RefreshToken string                 `json:"refresh_token"`
+	IDToken      string                 `json:"id_token,omitempty"`
+	CreatedAt    time.Time              `json:"created_at"`
+	LastActivity time.Time              `json:"last_activity"`
+	ExpiresAt    time.Time              `json:"expires_at"`
+	IPAddress    string                 `json:"ip_address"`
+	UserAgent    string                 `json:"user_agent"`
+	Roles        []string               `json:"roles"`
+	Permissions  []string               `json:"permissions"`
+	Attributes   map[string]interface{} `json:"attributes,omitempty"`
+
+	// SSO state
+	SSOEnabled     bool              `json:"sso_enabled"`
+	LinkedSessions map[string]string `json:"linked_sessions,omitempty"` // provider -> session_id
+
+	// Security
+	CSRFToken     string `json:"csrf_token"`
+	SecureContext bool   `json:"secure_context"`
+}

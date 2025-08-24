@@ -1,10 +1,11 @@
 package analysis
 
 import (
-	"gonum.org/v1/gonum/mat"
+	"gonum.org/v1/gonum/floats"
 	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/gonum/stat/distuv"
 	"math"
+	"sort"
 )
 
 // PerformanceMetric represents a single performance measurement
@@ -35,22 +36,56 @@ func (sa *StatisticalAnalyzer) ExtractValues() []float64 {
 // DescriptiveStatistics computes comprehensive statistical descriptions
 func (sa *StatisticalAnalyzer) DescriptiveStatistics() DescriptiveStats {
 	values := sa.ExtractValues()
+	if len(values) == 0 {
+		return DescriptiveStats{}
+	}
+
+	// Handle single value case
+	if len(values) == 1 {
+		val := values[0]
+		return DescriptiveStats{
+			Mean:         val,
+			Median:       val,
+			StdDev:       0.0,
+			Min:          val,
+			Max:          val,
+			Percentile95: val,
+		}
+	}
+
+	// Create a copy and sort for percentile calculations
+	sortedValues := make([]float64, len(values))
+	copy(sortedValues, values)
+	sort.Float64s(sortedValues)
+
 	return DescriptiveStats{
 		Mean:         stat.Mean(values, nil),
-		Median:       stat.Median(values),
+		Median:       stat.Quantile(0.5, stat.Empirical, sortedValues, nil),
 		StdDev:       stat.StdDev(values, nil),
-		Min:          stat.Min(values),
-		Max:          stat.Max(values),
-		Percentile95: stat.Quantile(0.95, values, nil),
+		Min:          floats.Min(values),
+		Max:          floats.Max(values),
+		Percentile95: stat.Quantile(0.95, stat.Empirical, sortedValues, nil),
 	}
 }
 
 // OutlierDetection uses multiple methods for robust outlier identification
 func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 	values := sa.ExtractValues()
+	if len(values) <= 1 {
+		return OutlierResult{
+			ZScoreOutliers: []float64{},
+			IQROutliers:    []float64{},
+		}
+	}
+
+	// Create sorted copy for quantile calculations
+	sortedValues := make([]float64, len(values))
+	copy(sortedValues, values)
+	sort.Float64s(sortedValues)
 
 	// IQR Method
-	q1, q3 := stat.Quartile(values)
+	q1 := stat.Quantile(0.25, stat.Empirical, sortedValues, nil)
+	q3 := stat.Quantile(0.75, stat.Empirical, sortedValues, nil)
 	iqr := q3 - q1
 	lowerBound := q1 - 1.5*iqr
 	upperBound := q3 + 1.5*iqr
@@ -61,10 +96,13 @@ func (sa *StatisticalAnalyzer) OutlierDetection() OutlierResult {
 	zScoreOutliers := make([]float64, 0)
 	iqrOutliers := make([]float64, 0)
 
+	// Avoid division by zero for standard deviation
 	for _, val := range values {
-		zScore := (val - mean) / stdDev
-		if math.Abs(zScore) > 3 {
-			zScoreOutliers = append(zScoreOutliers, val)
+		if stdDev > 0 {
+			zScore := (val - mean) / stdDev
+			if math.Abs(zScore) > 2.5 {
+				zScoreOutliers = append(zScoreOutliers, val)
+			}
 		}
 		if val < lowerBound || val > upperBound {
 			iqrOutliers = append(iqrOutliers, val)

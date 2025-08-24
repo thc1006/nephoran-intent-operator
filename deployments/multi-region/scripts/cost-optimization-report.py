@@ -32,8 +32,8 @@ class CostOptimizationAnalyzer:
         """Analyze costs for the specified period"""
         print(f"Analyzing costs for the last {days} days...")
         
-        # Query BigQuery billing data
-        query = f"""
+        # Use parameterized query to prevent SQL injection
+        query = """
         SELECT
             service.description as service,
             location.location as region,
@@ -42,14 +42,22 @@ class CostOptimizationAnalyzer:
             SUM(usage.amount) as usage_amount,
             usage.unit as usage_unit,
             COUNT(*) as line_items
-        FROM `{self.project_id}.billing_export.gcp_billing_export_v1`
-        WHERE DATE(_PARTITIONTIME) >= DATE_SUB(CURRENT_DATE(), INTERVAL {days} DAY)
-            AND project.id = '{self.project_id}'
+        FROM `@project_id.billing_export.gcp_billing_export_v1`
+        WHERE DATE(_PARTITIONTIME) >= DATE_SUB(CURRENT_DATE(), INTERVAL @days DAY)
+            AND project.id = @project_id
         GROUP BY service, region, sku, usage_unit
         ORDER BY total_cost DESC
         """
         
-        df = self.bq_client.query(query).to_dataframe()
+        # Configure parameterized query
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("project_id", "STRING", self.project_id),
+                bigquery.ScalarQueryParameter("days", "INT64", days),
+            ]
+        )
+        
+        df = self.bq_client.query(query, job_config=job_config).to_dataframe()
         
         return {
             'total_cost': df['total_cost'].sum(),

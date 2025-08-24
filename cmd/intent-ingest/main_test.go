@@ -59,7 +59,8 @@ func setupTestServer(t *testing.T) (*httptest.Server, string, func()) {
 	}
 	
 	// Create handler with test directories
-	h := ingest.NewHandler(v, handoffDir)
+	provider := ingest.NewRulesProvider()
+	h := ingest.NewHandler(v, handoffDir, provider)
 	
 	// Set up HTTP mux exactly like main()
 	mux := http.NewServeMux()

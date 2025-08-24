@@ -23,9 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-const (
-	ProviderTypeOpenStack = "openstack"
-)
+// ProviderTypeOpenStack is defined in interface.go
 
 // OpenStackProvider implements CloudProvider for OpenStack clouds
 type OpenStackProvider struct {
