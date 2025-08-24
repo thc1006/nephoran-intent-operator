@@ -53,6 +53,9 @@ output:
 
 # Linters configuration
 linters:
+  # Use fast linter preset for CI performance (replaces --fast flag)
+  default: fast
+  
   # Disable all linters first, then explicitly enable required ones
   disable-all: true
   

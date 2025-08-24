@@ -405,13 +405,10 @@ jobs:
             ${{ runner.os }}-golangci-lint-
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v8
         with:
           version: v2.4.0
-          args: --timeout=5m --issues-exit-code=1 --fast
-          skip-cache: false
-          skip-pkg-cache: false
-          skip-build-cache: false
+          args: --timeout=5m --issues-exit-code=1
 
       - name: Run additional linters
         run: |
