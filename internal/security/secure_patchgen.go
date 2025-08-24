@@ -53,10 +53,7 @@ func NewSecurePatchGenerator(intent *patchgen.Intent, outputDir string, logger l
 		return nil, fmt.Errorf("failed to initialize OWASP validator: %w", err)
 	}
 	
-	crypto, err := NewCryptoSecureIdentifier()
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize crypto generator: %w", err)
-	}
+	crypto := NewCryptoSecureIdentifier()
 	
 	auditor := &GeneratorAuditor{
 		enabled: true,
@@ -488,6 +485,43 @@ func containsIgnoreCase(s, substr string) bool {
 		   len(substr) > 0 && 
 		   strings.ToLower(s)[:len(strings.ToLower(substr))] == strings.ToLower(substr) ||
 		   (len(s) > len(substr) && strings.Contains(strings.ToLower(s), strings.ToLower(substr)))
+}
+
+// validateKubernetesName validates that a name conforms to Kubernetes naming rules
+func validateKubernetesName(name string) error {
+	if name == "" {
+		return fmt.Errorf("name cannot be empty")
+	}
+	
+	// Kubernetes names must be lowercase alphanumeric with hyphens
+	// Must start and end with alphanumeric, max 253 chars
+	if len(name) > 253 {
+		return fmt.Errorf("name exceeds maximum length of 253 characters")
+	}
+	
+	// Must start and end with alphanumeric
+	if !isAlphanumeric(name[0]) || !isAlphanumeric(name[len(name)-1]) {
+		return fmt.Errorf("name must start and end with alphanumeric character")
+	}
+	
+	// Check each character
+	for i, char := range name {
+		if !isAlphanumeric(byte(char)) && char != '-' {
+			return fmt.Errorf("invalid character at position %d: %c", i, char)
+		}
+		
+		// No uppercase allowed
+		if char >= 'A' && char <= 'Z' {
+			return fmt.Errorf("uppercase letters not allowed in Kubernetes names: %c", char)
+		}
+	}
+	
+	return nil
+}
+
+// isAlphanumeric checks if a byte is alphanumeric (lowercase)
+func isAlphanumeric(b byte) bool {
+	return (b >= '0' && b <= '9') || (b >= 'a' && b <= 'z')
 }
 
 // LogGeneration logs patch generation events

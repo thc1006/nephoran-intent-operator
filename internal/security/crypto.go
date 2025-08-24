@@ -212,6 +212,51 @@ func (h *SecureHasher) hash(data []byte) []byte {
 	return hasher.Sum(nil)
 }
 
+// GenerateSecurePackageName creates a secure, collision-resistant package name
+func (c *CryptoSecureIdentifier) GenerateSecurePackageName(target string) (string, error) {
+	// Generate a secure timestamp
+	timestamp, err := c.GenerateCollisionResistantTimestamp()
+	if err != nil {
+		return "", fmt.Errorf("failed to generate timestamp: %w", err)
+	}
+	
+	// Create unique entropy
+	entropy := make([]byte, 8)
+	if _, err := c.entropy.reader.Read(entropy); err != nil {
+		return "", fmt.Errorf("failed to generate entropy: %w", err)
+	}
+	
+	// Hash target + timestamp + entropy for collision resistance
+	combined := fmt.Sprintf("%s-%s-%x", target, timestamp, entropy)
+	hashedName := c.hasher.hash([]byte(combined))
+	
+	// Use first 8 bytes as suffix for readability
+	suffix := hex.EncodeToString(hashedName[:4])
+	
+	// Format: target-scaling-patch-timestamp-suffix
+	packageName := fmt.Sprintf("%s-scaling-patch-%s-%s", target, timestamp, suffix)
+	
+	return packageName, nil
+}
+
+// GenerateCollisionResistantTimestamp creates a timestamp with nanosecond precision
+func (c *CryptoSecureIdentifier) GenerateCollisionResistantTimestamp() (string, error) {
+	now := time.Now().UTC()
+	
+	// Add some entropy to prevent collisions in rapid succession
+	entropy := make([]byte, 2)
+	if _, err := c.entropy.reader.Read(entropy); err != nil {
+		return "", fmt.Errorf("failed to generate entropy for timestamp: %w", err)
+	}
+	
+	// Format: YYYYMMDD-HHMMSS-NNNN (where NNNN is entropy-based)
+	timestamp := fmt.Sprintf("%s-%04x", 
+		now.Format("20060102-150405"), 
+		entropy)
+	
+	return timestamp, nil
+}
+
 // RegenerateSalt creates a new salt for the hasher (should be done periodically)
 func (h *SecureHasher) RegenerateSalt() error {
 	newSalt := make([]byte, 32)

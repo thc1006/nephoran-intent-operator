@@ -11,8 +11,7 @@ import (
 )
 
 func TestCryptoSecureIdentifier(t *testing.T) {
-	crypto, err := NewCryptoSecureIdentifier()
-	require.NoError(t, err)
+	crypto := NewCryptoSecureIdentifier()
 	
 	t.Run("GenerateSecurePackageName", func(t *testing.T) {
 		target := "test-app"
@@ -291,8 +290,7 @@ func TestSecurityVulnerabilities(t *testing.T) {
 	})
 	
 	t.Run("TimestampCollisionResistance", func(t *testing.T) {
-		crypto, err := NewCryptoSecureIdentifier()
-		require.NoError(t, err)
+		crypto := NewCryptoSecureIdentifier()
 		
 		// Generate many timestamps quickly to test collision resistance
 		timestamps := make(map[string]bool)
@@ -366,7 +364,7 @@ func TestInputValidationEdgeCases(t *testing.T) {
 
 // Benchmark tests to ensure security controls don't severely impact performance
 func BenchmarkSecureOperations(b *testing.B) {
-	crypto, _ := NewCryptoSecureIdentifier()
+	crypto := NewCryptoSecureIdentifier()
 	validator, _ := NewOWASPValidator()
 	
 	b.Run("SecurePackageNameGeneration", func(b *testing.B) {

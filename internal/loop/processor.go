@@ -507,41 +507,23 @@ func DefaultPorchSubmit(ctx context.Context, intent *ingest.Intent, mode string)
 	return porch.WriteIntent(intent, outDir, format)
 }
 
-// GetStats returns processing statistics compatible with FileManager.GetStats()
+// GetStats returns processing statistics using atomic counters
 func (p *IntentProcessor) GetStats() (ProcessingStats, error) {
-	// Get stats from the error directory using similar logic to FileManager
-	processedFiles, err := p.getProcessedFiles()
-	if err != nil {
-		return ProcessingStats{}, fmt.Errorf("failed to get processed files: %w", err)
-	}
-	
-	failedFiles, err := p.getFailedFiles()
-	if err != nil {
-		return ProcessingStats{}, fmt.Errorf("failed to get failed files: %w", err)
-	}
-	
-	// Categorize failed files into shutdown failures vs real failures
-	var shutdownFailedFiles []string
-	var realFailedFiles []string
-	
-	for _, failedFile := range failedFiles {
-		// Check error log to determine failure type
-		if p.isShutdownFailure(failedFile) {
-			shutdownFailedFiles = append(shutdownFailedFiles, failedFile)
-		} else {
-			realFailedFiles = append(realFailedFiles, failedFile)
-		}
-	}
+	// Use atomic counters for accurate real-time stats
+	processedCount := atomic.LoadInt64(&p.processedCount)
+	failedCount := atomic.LoadInt64(&p.failedCount)
+	realFailedCount := atomic.LoadInt64(&p.realFailedCount)
+	shutdownFailedCount := atomic.LoadInt64(&p.shutdownFailedCount)
 	
 	return ProcessingStats{
-		ProcessedCount:       len(processedFiles),
-		FailedCount:          len(failedFiles),
-		ShutdownFailedCount:  len(shutdownFailedFiles),
-		RealFailedCount:      len(realFailedFiles),
-		ProcessedFiles:       processedFiles,
-		FailedFiles:          failedFiles,
-		ShutdownFailedFiles:  shutdownFailedFiles,
-		RealFailedFiles:      realFailedFiles,
+		ProcessedCount:       int(processedCount),
+		FailedCount:          int(failedCount),
+		ShutdownFailedCount:  int(shutdownFailedCount),
+		RealFailedCount:      int(realFailedCount),
+		ProcessedFiles:       []string{}, // Can be populated if needed
+		FailedFiles:          []string{}, // Can be populated if needed
+		ShutdownFailedFiles:  []string{}, // Can be populated if needed
+		RealFailedFiles:      []string{}, // Can be populated if needed
 	}, nil
 }
 
@@ -655,47 +637,7 @@ func (p *IntentProcessor) MarkGracefulShutdown() {
 }
 
 // IsShutdownFailure determines if a processing failure was caused by graceful shutdown
+// This delegates to the centralized IsShutdownFailure function
 func (p *IntentProcessor) IsShutdownFailure(err error) bool {
-	// Check if graceful shutdown is active
-	if !p.gracefulShutdown.Load() {
-		return false
-	}
-	
-	// If graceful shutdown is active, any failure is likely due to shutdown
-	errorMsg := strings.ToLower(err.Error())
-	shutdownPatterns := []string{
-		"context canceled",
-		"context cancelled",
-		"signal: killed",
-		"signal: interrupt",
-		"signal: terminated",
-	}
-	
-	for _, pattern := range shutdownPatterns {
-		if strings.Contains(errorMsg, pattern) {
-			return true
-		}
-	}
-	
-	// Check timing - if failure occurs after shutdown was initiated, 
-	// and it's not a clear validation error, consider it a shutdown failure
-	p.shutdownMutex.RLock()
-	shutdownTime := p.shutdownStartTime
-	p.shutdownMutex.RUnlock()
-	
-	if !shutdownTime.IsZero() {
-		// If error occurred after shutdown and is not a validation error, 
-		// treat as shutdown failure
-		isValidationError := strings.Contains(errorMsg, "validation") ||
-			strings.Contains(errorMsg, "invalid") ||
-			strings.Contains(errorMsg, "schema") ||
-			strings.Contains(errorMsg, "format")
-		
-		// If it's not a validation error and shutdown is active, treat as shutdown failure
-		if !isValidationError {
-			return true
-		}
-	}
-	
-	return false
+	return IsShutdownFailure(p.gracefulShutdown.Load(), err)
 }
