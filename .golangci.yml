@@ -50,32 +50,29 @@ issues:
   # 並設 new-from-merge-base: integrate/mvp
   # new-from-merge-base: integrate/mvp
 
-  # Don’t limit counts while we’re stabilizing the codebase.
+  # Don't limit counts while we're stabilizing the codebase.
   max-issues-per-linter: 0
   max-same-issues: 0
   uniq-by-line: true
 
-  # v2：請用 exclusions/paths 來取代 run.skip-files / run.skip-dirs
-  exclusions:
-    generated: lax
-    warn-unused: true
-    # 針對特定訊息或特定 linter 的例外可在這裡新增 rules
-    rules: []
+  # v2: Use exclude-rules instead of deprecated exclusions
+  exclude-rules:
+    # Exclude generated files
+    - path: "_generated\\.go$"
+      linters:
+        - all
+    # Exclude vendor directory
+    - path: "^vendor/"
+      linters:
+        - all
+    # Exclude docs, examples, deployments, testdata
+    - path: "^(docs|examples|deployments|testdata)/"
+      linters:
+        - all
 
-  # 這些 path 仍會被分析，但不會回報 issue（取代舊 skip-*）
-  # 使用相對 go.mod 的路徑；Windows/CI 皆適用（/ 會自動換成系統分隔符）
-  paths:
-    - "^docs/.*"
-    - "^examples/.*"
-    - "^deployments/.*"
-    - "^testdata/.*"
-    - "^vendor/.*"
-  # 若要取消前述某些排除，可放在 paths-except
-  paths-except: []
-
-# Optional: 未來若你要輸出 JUnit/SARIF 報告，可在這裡加上。
+# v2: Output formats must be an array, not an object
 output:
-  # 預設 text 輸出即可；CI Action 會轉成 annotation。
+  # Support both colored output for terminals and GitHub Actions annotations
   formats:
-    text:
-      path: stdout
+    - "colored-line-number"
+    - "github-actions"
