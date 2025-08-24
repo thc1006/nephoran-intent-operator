@@ -1,0 +1,138 @@
+{
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "spdxVersion": "SPDX-2.3",
+  "creationInfo": {
+    "created": "2025-08-24T00:00:00Z",
+    "creators": ["Tool: claude-code-manual-sbom"],
+    "licenseListVersion": "3.19"
+  },
+  "name": "nephoran-intent-operator-sbom",
+  "dataLicense": "CC0-1.0",
+  "documentNamespace": "https://github.com/thc1006/nephoran-intent-operator/sbom",
+  "packages": [
+    {
+      "SPDXID": "SPDXRef-Package-Root",
+      "name": "nephoran-intent-operator",
+      "downloadLocation": "git+https://github.com/thc1006/nephoran-intent-operator.git",
+      "filesAnalyzed": false,
+      "packageVerificationCode": {
+        "packageVerificationCodeValue": "0000000000000000000000000000000000000000"
+      },
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE_MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:golang/github.com/thc1006/nephoran-intent-operator@main"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-aws-sdk-go-v2",
+      "name": "aws-sdk-go-v2",
+      "downloadLocation": "https://github.com/aws/aws-sdk-go-v2",
+      "filesAnalyzed": false,
+      "versionInfo": "1.37.2",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE_MANAGER", 
+          "referenceType": "purl",
+          "referenceLocator": "pkg:golang/github.com/aws/aws-sdk-go-v2@1.37.2"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-kubernetes-api",
+      "name": "kubernetes-api", 
+      "downloadLocation": "https://github.com/kubernetes/api",
+      "filesAnalyzed": false,
+      "versionInfo": "0.30.5",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE_MANAGER",
+          "referenceType": "purl", 
+          "referenceLocator": "pkg:golang/k8s.io/api@0.30.5"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-controller-runtime",
+      "name": "controller-runtime",
+      "downloadLocation": "https://github.com/kubernetes-sigs/controller-runtime",
+      "filesAnalyzed": false,
+      "versionInfo": "0.18.5",
+      "copyrightText": "NOASSERTION", 
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE_MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:golang/sigs.k8s.io/controller-runtime@0.18.5"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-weaviate-client",
+      "name": "weaviate-go-client",
+      "downloadLocation": "https://github.com/weaviate/weaviate-go-client",
+      "filesAnalyzed": false,
+      "versionInfo": "4.16.1",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE_MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:golang/github.com/weaviate/weaviate-go-client/v4@4.16.1"
+        }
+      ]
+    },
+    {
+      "SPDXID": "SPDXRef-Package-prometheus",
+      "name": "prometheus-client-golang",
+      "downloadLocation": "https://github.com/prometheus/client_golang", 
+      "filesAnalyzed": false,
+      "versionInfo": "1.22.0",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE_MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:golang/github.com/prometheus/client_golang@1.22.0"
+        }
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-DOCUMENT", 
+      "relationshipType": "DESCRIBES",
+      "relatedSpdxElement": "SPDXRef-Package-Root"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-Root",
+      "relationshipType": "DEPENDS_ON", 
+      "relatedSpdxElement": "SPDXRef-Package-aws-sdk-go-v2"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-kubernetes-api"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-Root", 
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-controller-runtime"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-Root",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-weaviate-client"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-Root",
+      "relationshipType": "DEPENDS_ON", 
+      "relatedSpdxElement": "SPDXRef-Package-prometheus"
+    }
+  ]
+}
