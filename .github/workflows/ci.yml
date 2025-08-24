@@ -206,7 +206,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
+          check-latest: true
           cache: true
 
       - name: Cache controller tools
@@ -274,7 +275,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
+          check-latest: true
           cache: true
 
       - name: Cache test dependencies
@@ -370,7 +372,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24.6'
+          go-version-file: go.mod
+          check-latest: true
           cache: true
 
       - name: Pre-lint build sanity check
@@ -408,7 +411,8 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.4.0
-          args: --timeout=5m --issues-exit-code=1
+          args: --config=.golangci.yml --timeout=5m
+          verify-config: true
 
       - name: Run additional linters
         run: |
@@ -469,7 +473,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
+          check-latest: true
           cache: true
 
       - name: Cache Go modules and security databases
@@ -717,7 +722,8 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version-file: go.mod
+          check-latest: true
           cache: true
 
       - name: Test tools

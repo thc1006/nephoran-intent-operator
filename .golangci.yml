@@ -1,5 +1,5 @@
 # golangci-lint configuration for nephoran-intent-operator (v2 schema)
-# Compatible with golangci-lint v2.4.0+ and Go 1.22.x
+# Compatible with golangci-lint v2.4.0+ and Go 1.24.x
 # Ubuntu-only CI targeting O-RAN/Nephio orchestration requirements
 
 version: "2"
@@ -14,33 +14,17 @@ run:
   # Include test files in linting
   tests: true
   
-  # Skip vendor and generated files
-  skip-dirs-use-default: true
-  skip-dirs:
-    - vendor/
-    - .git/
-    - bin/
-    - build/
-    - dist/
-  
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - "zz_generated\\..*\\.go$"
+  # Go version for staticcheck
+  go: "1.24"
 
-# Output configuration
+# Output configuration (v2 schema)
 output:
-  color: true
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-  uniq-by-line: true
-  sort-results: true
+  show-stats: true
 
-# Linters configuration (v2 schema - explicit minimal policy)
+# Linters configuration (v2 schema)
 linters:
   # Disable all defaults, enable only curated set
-  default: none
+  disable-all: true
   
   # Enable essential linters for security and code quality
   enable:
@@ -58,14 +42,10 @@ linters:
 
   # Linter-specific settings (v2 schema)
   settings:
-    # staticcheck configuration (replaces gosimple, stylecheck, staticcheck)
-    staticcheck:
-      go: "1.22"
-      checks: ["all"]
-      
-    # govet configuration
+    # govet configuration (v2 schema)
     govet:
-      check-shadowing: true
+      enable:
+        - shadow
       enable-all: true
       
     # gosec configuration for O-RAN security requirements
@@ -97,42 +77,36 @@ linters:
         - commentedOutCode
         - whyNoLint
 
-# Formatters configuration (v2 schema - moved from linters)
-formatters:
-  enable:
-    - gofmt          # Standard Go formatter
-    - goimports      # Import formatter and organizer
-  
-  settings:
-    goimports:
-      local-prefixes:
-        - github.com/thc1006/nephoran-intent-operator
+  # Exclusions configuration (v2 schema)
+  exclusions:
+    # Exclude specific directories and files
+    paths:
+      - vendor/
+      - testdata/
+      - examples/
+      - ".*\\.pb\\.go$"
+      - ".*_generated\\.go$"
+      - "zz_generated\\..*\\.go$"
+      - .git/
+      - bin/
+      - build/
+      - dist/
+    
+    # Exclude common false positives
+    rules:
+      - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
+      - text: "exported (type|method|function) (.+) should have comment or be unexported"
+      - text: "ST1000: at least one file in a package should have a package comment"
+      # Allow test files to have relaxed rules
+      - linters: [gosec]
+        text: "G104: Errors unhandled"
+        path: "_test\\.go"
+      - linters: [gosec]
+        text: "G101|G102|G103" # Hardcoded credentials in tests
+        path: "_test\\.go"
 
-# Issues configuration
+# Issues configuration (v2 schema)
 issues:
-  # Exclude common false positives
-  exclude:
-    - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
-    - "exported (type|method|function) (.+) should have comment or be unexported"
-    - "ST1000: at least one file in a package should have a package comment"
-    
-  # Exclude specific linters for certain patterns
-  exclude-rules:
-    # Allow test files to have relaxed rules
-    - linters: [gosec]
-      text: "G104: Errors unhandled"
-      path: "_test\\.go"
-    
-    - linters: [gosec]
-      text: "G101|G102|G103" # Hardcoded credentials in tests
-      path: "_test\\.go"
-      
-  # Exclude specific directories
-  exclude-dirs:
-    - vendor/
-    - testdata/
-    - examples/
-    
   # Unlimited issue reporting for thorough analysis
   max-issues-per-linter: 0
   max-same-issues: 0
@@ -140,9 +114,9 @@ issues:
   # Don't auto-fix issues
   fix: false
 
-# Severity configuration
+# Severity configuration (v2 schema)
 severity:
-  default-severity: "error"
+  default: "error"
   rules:
     - linters: [misspell]
       severity: warning
