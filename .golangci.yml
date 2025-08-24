@@ -12,33 +12,24 @@ run:
   # Include test files in linting
   tests: true
   
-  # Go version for staticcheck
-  go: "1.24"
+  # Go version for staticcheck (must be <= golangci-lint build version)
+  go: "1.23"
   
-  # Skip directories and files (generated code, vendor, etc.)
-  skip-dirs:
-    - vendor
-    - testdata
-    - examples
-    - bin
-    - build
-    - dist
-    - .git
+  # Build tags for conditional compilation
+  build-tags:
+    - integration
+    - e2e
   
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - ".*_gen\\.go$"
-    - "zz_generated\\..*\\.go$"
-    - "mock_.*\\.go$"
+  # Module download mode
+  modules-download-mode: readonly
 
 # Output configuration
 output:
   formats:
     - format: colored-line-number
+  # show-stats: true  # Show stats after run
   print-issued-lines: true
   print-linter-name: true
-  unique-by-line: true
   sort-results: true
 
 # Linters configuration
@@ -188,10 +179,9 @@ issues:
       linters:
         - revive
     
-    # Exclude vendor directory
+    # Exclude vendor directory (but keep typecheck for dependency validation)
     - path: vendor/
       linters:
-        - typecheck
         - revive
         - gocritic
   
