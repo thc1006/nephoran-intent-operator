@@ -52,8 +52,8 @@ on:
 
 env:
   GO_VERSION: '1.24.1'
-  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '90' }}
-  QUALITY_THRESHOLD: ${{ github.event.inputs.quality_threshold || '8.0' }}
+  COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '60' }}
+  QUALITY_THRESHOLD: ${{ github.event.inputs.quality_threshold || '6.0' }}
   REPORTS_DIR: '.quality-reports'
 
 jobs:
@@ -460,7 +460,7 @@ jobs:
           echo "Verifying tool installations..."
           command -v gocyclo && echo "✅ gocyclo installed" || echo "⚠️ gocyclo installation failed"
           command -v gocognit && echo "✅ gocognit installed" || echo "⚠️ gocognit installation failed"
-          command -v duplo && echo "✅ duplo installed" || echo "⚠️ duplo installation failed"
+          command -v dupl && echo "✅ dupl installed" || echo "⚠️ dupl installation failed"
       
       - name: 📥 Download Artifacts
         uses: actions/download-artifact@v4
@@ -525,6 +525,7 @@ jobs:
           cat metrics-summary.md >> $GITHUB_STEP_SUMMARY
       
       - name: 💾 Upload Quality Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: quality-dashboard

@@ -438,7 +438,7 @@ func (sv *StatisticalValidator) performPowerAnalysis(currentSampleSize int, stan
 	zAlpha := sv.normalQuantile(1 - alpha/2)
 	zBeta := sv.normalQuantile(sv.powerThreshold)
 
-	// Calculate required sample sizes for different effect sizes
+	// Calculate required sample sizes for different effect sizes using the effectSizes array
 	for i, es := range effectSizes {
 		requiredN := int(math.Pow((zAlpha+zBeta)/es, 2) * 2)
 		analysis.EffectSizeTable[effectSizeLabels[i]] = requiredN
