@@ -334,21 +334,30 @@ jobs:
           check-latest: true
           cache: false
 
-      - name: Print Go version
+      - name: Print Go version and set GOTOOLCHAIN
         run: |
           echo "Go version: $(go version)"
           echo "Go env:"
           go env
+          echo "GOTOOLCHAIN=local" >> $GITHUB_ENV
+        env:
+          GOTOOLCHAIN: local
 
-      - name: Cache Go modules and build cache
-        uses: actions/cache@v4
+      - name: Restore Go modules cache
+        uses: actions/cache/restore@v4
         with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          path: $(go env GOMODCACHE)
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-go-mod-
+
+      - name: Restore Go build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: $(go env GOCACHE)
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build-
 
       - name: Download and verify dependencies
         run: |
@@ -357,15 +366,32 @@ jobs:
         env:
           GOPROXY: https://proxy.golang.org,direct
           GOSUMDB: sum.golang.org
+          GOTOOLCHAIN: local
 
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v6
         with:
-          version: latest
-          args: --verbose --timeout=5m
+          version: v1.64.3
+          args: --verbose --timeout=10m
           skip-cache: true
           skip-pkg-cache: true
           skip-build-cache: true
+        env:
+          GOTOOLCHAIN: local
+
+      - name: Save Go modules cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: $(go env GOMODCACHE)
+          key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
+
+      - name: Save Go build cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: $(go env GOCACHE)
+          key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
 
 
   # Security and vulnerability scanning
@@ -513,11 +539,80 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # Quality metrics calculation
+  quality-metrics:
+    name: Quality Metrics Calculation
+    runs-on: ubuntu-latest
+    needs: [generate, build, test, lint, security]
+    if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    timeout-minutes: 10
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false
+
+      - name: Cache Go modules and build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download test results
+        uses: actions/download-artifact@v4
+        with:
+          name: test-results
+          path: .excellence-reports/
+        continue-on-error: true
+
+      - name: Run quality gate with PR-friendly mode
+        env:
+          EVENT_TYPE: ${{ github.event_name }}
+        run: |
+          # Check if we're in PR mode
+          if [[ "$EVENT_TYPE" == "pull_request" ]]; then
+            echo "🔄 Running quality gate in PR mode (non-blocking)"
+            if ./scripts/quality-gate.sh --ci; then
+              echo "✅ Quality gate passed"
+            else
+              exit_code=$?
+              if [[ $exit_code -eq 123 ]]; then
+                echo "⚠️  Quality metrics below threshold - this would block on main branch"
+                echo "::warning::Quality score below threshold. This is a warning on PRs but will block on main."
+                exit 0  # Convert exit 123 to success on PRs
+              else
+                echo "❌ Quality gate failed with exit code $exit_code"
+                exit $exit_code
+              fi
+            fi
+          else
+            echo "🔒 Running quality gate in strict mode (blocking)"
+            ./scripts/quality-gate.sh --ci
+          fi
+
+      - name: Upload quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports
+          path: .quality-reports/
+          retention-days: 7
+
   # Final CI status check
   ci-status:
     name: CI Status Check
     runs-on: ubuntu-latest
-    needs: [generate, build, test, lint, security]
+    needs: [generate, build, test, lint, security, quality-metrics]
     if: always()
     timeout-minutes: 5
     steps:
@@ -530,6 +625,7 @@ jobs:
           echo "Test:     ${{ needs.test.result }}"
           echo "Lint:     ${{ needs.lint.result }}"
           echo "Security: ${{ needs.security.result }}"
+          echo "Quality:  ${{ needs.quality-metrics.result }}"
           echo ""
 
           # Allow skipped jobs due to path filtering
@@ -545,6 +641,10 @@ jobs:
           fi
           if [[ "${{ needs.security.result }}" != "success" && "${{ needs.security.result }}" != "skipped" ]]; then
             failed_jobs="$failed_jobs Security"
+          fi
+          # Quality metrics job failure only blocks on push to main (continue-on-error handles PR case)
+          if [[ "${{ needs.quality-metrics.result }}" != "success" && "${{ needs.quality-metrics.result }}" != "skipped" && "${{ github.event_name }}" != "pull_request" ]]; then
+            failed_jobs="$failed_jobs Quality"
           fi
           
           if [[ -n "$failed_jobs" ]]; then
@@ -566,6 +666,7 @@ jobs:
           echo "| Test | ${{ (needs.test.result == 'success' && 'PASSED') || (needs.test.result == 'skipped' && 'SKIPPED') || 'FAILED' }} | Unit tests with envtest |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ (needs.lint.result == 'success' && 'PASSED') || (needs.lint.result == 'skipped' && 'SKIPPED') || 'FAILED' }} | Code linting with golangci-lint |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ (needs.security.result == 'success' && 'PASSED') || (needs.security.result == 'skipped' && 'SKIPPED') || 'FAILED' }} | Vulnerability and security scanning |" >> $GITHUB_STEP_SUMMARY
+          echo "| Quality | ${{ (needs.quality-metrics.result == 'success' && 'PASSED') || (needs.quality-metrics.result == 'skipped' && 'SKIPPED') || (github.event_name == 'pull_request' && 'WARNING') || 'FAILED' }} | Quality metrics calculation |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY

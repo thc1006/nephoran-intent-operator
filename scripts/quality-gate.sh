@@ -241,7 +241,10 @@ EOF
         success "Coverage check PASSED: ${coverage_percent}% >= ${COVERAGE_THRESHOLD}%"
     else
         error "Coverage check FAILED: ${coverage_percent}% < ${COVERAGE_THRESHOLD}%"
-        EXIT_CODE=1
+        # Use exit code 123 for threshold failures to distinguish from other errors
+        if [[ $EXIT_CODE -eq 0 ]]; then
+            EXIT_CODE=123  # Special exit code for below threshold
+        fi
     fi
     
     info "Coverage reports generated in $REPORTS_DIR/coverage/"
@@ -523,7 +526,7 @@ EOF
         success "Quality score check PASSED: ${quality_score} >= ${QUALITY_THRESHOLD}"
     else
         error "Quality score check FAILED: ${quality_score} < ${QUALITY_THRESHOLD}"
-        EXIT_CODE=1
+        EXIT_CODE=123  # Special exit code for below threshold
     fi
     
     info "Quality metrics generated in $metrics_dir/"
