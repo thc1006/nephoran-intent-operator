@@ -3,7 +3,6 @@
 package loop
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,10 +14,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 )
 
-// Common error definitions
-var (
-	ErrFileGone = errors.New("file disappeared during processing")
-)
+// Removed error definition - now in errors.go
 
 // Windows-specific file sync operations with retry logic for race conditions
 
