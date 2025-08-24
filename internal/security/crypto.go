@@ -15,9 +15,9 @@ import (
 
 // CryptoSecureIdentifier provides OWASP-compliant unique identifier generation
 type CryptoSecureIdentifier struct {
-	entropy  *EntropySource
-	hasher   *SecureHasher
-	encoder  *SafeEncoder
+	entropy *EntropySource
+	hasher  *SecureHasher
+	encoder *SafeEncoder
 }
 
 // EntropySource provides cryptographically secure random number generation
@@ -38,16 +38,16 @@ type SafeEncoder struct {
 // NewCryptoSecureIdentifier creates a new secure identifier generator
 func NewCryptoSecureIdentifier() *CryptoSecureIdentifier {
 	entropy := &EntropySource{reader: rand.Reader}
-	
+
 	// Generate a secure salt for hashing
 	salt := make([]byte, 32)
 	if _, err := rand.Read(salt); err != nil {
 		panic("Failed to generate secure salt: " + err.Error())
 	}
-	
+
 	hasher := &SecureHasher{salt: salt}
 	encoder := &SafeEncoder{encoding: base32.StdEncoding.WithPadding(base32.NoPadding)}
-	
+
 	return &CryptoSecureIdentifier{
 		entropy: entropy,
 		hasher:  hasher,
@@ -66,18 +66,18 @@ func (c *CryptoSecureIdentifier) GenerateSecureToken(length int) (string, error)
 	if length < 16 {
 		return "", fmt.Errorf("token length must be at least 16 bytes for security")
 	}
-	
+
 	bytes := make([]byte, length)
 	if _, err := c.entropy.reader.Read(bytes); err != nil {
 		return "", fmt.Errorf("failed to generate secure random bytes: %w", err)
 	}
-	
+
 	// Hash the random bytes with salt for additional security
 	hashedBytes := c.hasher.hash(bytes)
-	
+
 	// Encode using safe base32 (URL-safe, no padding)
 	token := c.encoder.encoding.EncodeToString(hashedBytes)
-	
+
 	return token, nil
 }
 
@@ -88,23 +88,23 @@ func (c *CryptoSecureIdentifier) GenerateSessionID() (string, error) {
 	if _, err := c.entropy.reader.Read(sessionBytes); err != nil {
 		return "", fmt.Errorf("failed to generate session ID: %w", err)
 	}
-	
+
 	// Add timestamp to ensure uniqueness
 	timestamp := time.Now().UnixNano()
 	timestampBytes := make([]byte, 8)
 	for i := 0; i < 8; i++ {
 		timestampBytes[i] = byte(timestamp >> (8 * i))
 	}
-	
+
 	// Combine session bytes and timestamp
 	combined := append(sessionBytes, timestampBytes...)
-	
+
 	// Hash the combined data
 	hashedSession := c.hasher.hash(combined)
-	
+
 	// Encode as hex for session IDs (more readable in logs)
 	sessionID := hex.EncodeToString(hashedSession)
-	
+
 	return sessionID, nil
 }
 
@@ -115,21 +115,21 @@ func (c *CryptoSecureIdentifier) GenerateAPIKey(prefix string) (string, error) {
 	if _, err := c.entropy.reader.Read(keyBytes); err != nil {
 		return "", fmt.Errorf("failed to generate API key: %w", err)
 	}
-	
+
 	// Add prefix for key identification
 	if prefix == "" {
 		prefix = "neph" // Default prefix for Nephoran
 	}
-	
+
 	// Hash the key bytes
 	hashedKey := c.hasher.hash(keyBytes)
-	
+
 	// Encode as base32 for API keys
 	encodedKey := c.encoder.encoding.EncodeToString(hashedKey)
-	
+
 	// Format: prefix_encodedkey
 	apiKey := fmt.Sprintf("%s_%s", prefix, encodedKey)
-	
+
 	return apiKey, nil
 }
 
@@ -139,7 +139,7 @@ func (c *CryptoSecureIdentifier) ValidateTokenFormat(token string) bool {
 	if len(token) < 32 {
 		return false
 	}
-	
+
 	// Check for valid base32 characters (A-Z, 2-7)
 	validChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 	for _, char := range token {
@@ -147,24 +147,24 @@ func (c *CryptoSecureIdentifier) ValidateTokenFormat(token string) bool {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
-// ValidateSessionIDFormat checks if a session ID has a valid format  
+// ValidateSessionIDFormat checks if a session ID has a valid format
 func (c *CryptoSecureIdentifier) ValidateSessionIDFormat(sessionID string) bool {
 	// Session IDs should be 64 hex characters (32 bytes * 2)
 	if len(sessionID) != 64 {
 		return false
 	}
-	
+
 	// Check for valid hex characters
 	for _, char := range sessionID {
 		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -175,32 +175,32 @@ func (c *CryptoSecureIdentifier) ValidateAPIKeyFormat(apiKey string) bool {
 	if len(parts) != 2 {
 		return false
 	}
-	
+
 	prefix, key := parts[0], parts[1]
-	
+
 	// Validate prefix (should be alphanumeric, 3-10 chars)
 	if len(prefix) < 3 || len(prefix) > 10 {
 		return false
 	}
-	
+
 	for _, char := range prefix {
 		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z')) {
 			return false
 		}
 	}
-	
+
 	// Validate key part (should be valid base32)
 	if len(key) < 32 {
 		return false
 	}
-	
+
 	validChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
 	for _, char := range key {
 		if !strings.ContainsRune(validChars, char) {
 			return false
 		}
 	}
-	
+
 	return true
 }
 
@@ -219,41 +219,41 @@ func (c *CryptoSecureIdentifier) GenerateSecurePackageName(target string) (strin
 	if err != nil {
 		return "", fmt.Errorf("failed to generate timestamp: %w", err)
 	}
-	
+
 	// Create unique entropy
 	entropy := make([]byte, 8)
 	if _, err := c.entropy.reader.Read(entropy); err != nil {
 		return "", fmt.Errorf("failed to generate entropy: %w", err)
 	}
-	
+
 	// Hash target + timestamp + entropy for collision resistance
 	combined := fmt.Sprintf("%s-%s-%x", target, timestamp, entropy)
 	hashedName := c.hasher.hash([]byte(combined))
-	
+
 	// Use first 8 bytes as suffix for readability
 	suffix := hex.EncodeToString(hashedName[:4])
-	
+
 	// Format: target-scaling-patch-timestamp-suffix
 	packageName := fmt.Sprintf("%s-scaling-patch-%s-%s", target, timestamp, suffix)
-	
+
 	return packageName, nil
 }
 
 // GenerateCollisionResistantTimestamp creates a timestamp with nanosecond precision
 func (c *CryptoSecureIdentifier) GenerateCollisionResistantTimestamp() (string, error) {
 	now := time.Now().UTC()
-	
+
 	// Add some entropy to prevent collisions in rapid succession
 	entropy := make([]byte, 2)
 	if _, err := c.entropy.reader.Read(entropy); err != nil {
 		return "", fmt.Errorf("failed to generate entropy for timestamp: %w", err)
 	}
-	
+
 	// Format: YYYYMMDD-HHMMSS-NNNN (where NNNN is entropy-based)
-	timestamp := fmt.Sprintf("%s-%04x", 
-		now.Format("20060102-150405"), 
+	timestamp := fmt.Sprintf("%s-%04x",
+		now.Format("20060102-150405"),
 		entropy)
-	
+
 	return timestamp, nil
 }
 
