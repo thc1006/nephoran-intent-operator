@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // RAGPipeline orchestrates the complete RAG processing pipeline
@@ -23,7 +23,7 @@ type RAGPipeline struct {
 	weaviateClient    *WeaviateClient
 	weaviatePool      *WeaviateConnectionPool
 	enhancedRetrieval *EnhancedRetrievalService
-	llmClient         shared.ClientInterface
+	llmClient         types.ClientInterface
 	redisCache        *RedisCache
 	monitor           *RAGMonitor
 
@@ -112,7 +112,7 @@ type PipelineStatus struct {
 // DocumentJob represents an async document processing job
 type DocumentJob struct {
 	ID         string
-	Documents  []Document
+	Documents  []*LoadedDocument
 	Callback   func([]ProcessedDocument, error)
 	Context    context.Context
 	StartTime  time.Time
@@ -218,7 +218,7 @@ type QueryParameters struct {
 }
 
 // NewRAGPipeline creates a new RAG pipeline with all components
-func NewRAGPipeline(config *PipelineConfig, llmClient shared.ClientInterface) (*RAGPipeline, error) {
+func NewRAGPipeline(config *PipelineConfig, llmClient types.ClientInterface) (*RAGPipeline, error) {
 	if config == nil {
 		config = getDefaultPipelineConfig()
 	}
@@ -295,10 +295,7 @@ func (rp *RAGPipeline) initializeComponents() error {
 	// Initialize chunking service
 	rp.chunkingService = NewChunkingService(rp.config.ChunkingConfig)
 
-	// Load secrets from files
-	if err := LoadRAGPipelineSecrets(rp.config, rp.logger); err != nil {
-		rp.logger.Warn("Failed to load some secrets from files", "error", err.Error())
-	}
+	// Note: Secret loading is handled through environment variables or external secret management
 
 	// Initialize embedding service
 	rp.embeddingService = NewEmbeddingService(rp.config.EmbeddingConfig)
@@ -715,8 +712,18 @@ func (rp *RAGPipeline) ProcessIntent(ctx context.Context, intent string) (string
 // Utility methods
 
 // convertChunkToTelecomDocument converts a DocumentChunk to TelecomDocument
-func (rp *RAGPipeline) convertChunkToTelecomDocument(chunk *DocumentChunk) *shared.TelecomDocument {
-	return &shared.TelecomDocument{
+func (rp *RAGPipeline) convertChunkToTelecomDocument(chunk *DocumentChunk) *TelecomDocument {
+	// Convert to metadata map
+	metadata := make(map[string]interface{})
+	if chunk.DocumentMetadata != nil {
+		metadata["processed_at"] = chunk.ProcessedAt.Format(time.RFC3339)
+		metadata["quality_score"] = chunk.QualityScore
+		metadata["section_title"] = chunk.SectionTitle
+		metadata["working_group"] = chunk.DocumentMetadata.WorkingGroup
+		metadata["subcategory"] = chunk.DocumentMetadata.Subcategory
+	}
+
+	return &TelecomDocument{
 		ID:              chunk.ID,
 		Content:         chunk.CleanContent,
 		Title:           chunk.SectionTitle,
@@ -730,7 +737,7 @@ func (rp *RAGPipeline) convertChunkToTelecomDocument(chunk *DocumentChunk) *shar
 		NetworkFunction: rp.getNetworkFunctionsFromMetadata(chunk.DocumentMetadata),
 		Technology:      rp.getTechnologiesFromMetadata(chunk.DocumentMetadata),
 		UseCase:         []string{}, // Could be extracted from chunk analysis
-		Timestamp:       chunk.ProcessedAt,
+		Metadata:        metadata,
 	}
 }
 
@@ -768,6 +775,20 @@ func (rp *RAGPipeline) getTechnologiesFromMetadata(metadata *DocumentMetadata) [
 		return metadata.Technologies
 	}
 	return []string{}
+}
+
+func (rp *RAGPipeline) getSubcategoryFromMetadata(metadata *DocumentMetadata) string {
+	if metadata != nil {
+		return metadata.Subcategory
+	}
+	return ""
+}
+
+func (rp *RAGPipeline) getWorkingGroupFromMetadata(metadata *DocumentMetadata) string {
+	if metadata != nil {
+		return metadata.WorkingGroup
+	}
+	return ""
 }
 
 // classifyIntent performs simple intent classification
@@ -1003,7 +1024,7 @@ func (rp *RAGPipeline) initializeAsyncProcessing() error {
 }
 
 // ProcessDocumentsAsync processes documents asynchronously
-func (rp *RAGPipeline) ProcessDocumentsAsync(ctx context.Context, jobID string, documents []Document, callback func([]ProcessedDocument, error)) error {
+func (rp *RAGPipeline) ProcessDocumentsAsync(ctx context.Context, jobID string, documents []*LoadedDocument, callback func([]ProcessedDocument, error)) error {
 	if !rp.config.AsyncProcessing {
 		return rp.processDocumentsSync(ctx, documents, callback)
 	}
@@ -1103,11 +1124,7 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 
 	for _, doc := range job.Documents {
 		// Process document through pipeline
-		chunks, err := rp.chunkingService.ChunkDocument(ctx, &LoadedDocument{
-			ID:       doc.ID,
-			Content:  doc.Content,
-			Metadata: &DocumentMetadata{},
-		})
+		chunks, err := rp.chunkingService.ChunkDocument(ctx, doc)
 		if err != nil {
 			processedDocs = append(processedDocs, ProcessedDocument{
 				ID:    doc.ID,
@@ -1141,11 +1158,27 @@ func (rp *RAGPipeline) processDocumentJob(ctx context.Context, payload interface
 			}
 		}
 
+		// Convert DocumentMetadata to map[string]interface{}
+		metadata := make(map[string]interface{})
+		if doc.Metadata != nil {
+			metadata["source"] = doc.Metadata.Source
+			metadata["document_type"] = doc.Metadata.DocumentType
+			metadata["version"] = doc.Metadata.Version
+			metadata["working_group"] = doc.Metadata.WorkingGroup
+			metadata["category"] = doc.Metadata.Category
+			metadata["subcategory"] = doc.Metadata.Subcategory
+			metadata["technologies"] = doc.Metadata.Technologies
+			metadata["network_functions"] = doc.Metadata.NetworkFunctions
+			metadata["use_cases"] = doc.Metadata.UseCases
+			metadata["keywords"] = doc.Metadata.Keywords
+			metadata["confidence"] = doc.Metadata.Confidence
+		}
+
 		processedDocs = append(processedDocs, ProcessedDocument{
 			ID:          doc.ID,
 			Chunks:      processedChunks,
 			Embeddings:  embeddings,
-			Metadata:    doc.Metadata,
+			Metadata:    metadata,
 			ProcessTime: time.Since(startTime),
 		})
 	}
@@ -1218,7 +1251,7 @@ func (rp *RAGPipeline) processQueryJob(ctx context.Context, payload interface{})
 }
 
 // processDocumentsSync processes documents synchronously (fallback)
-func (rp *RAGPipeline) processDocumentsSync(ctx context.Context, documents []Document, callback func([]ProcessedDocument, error)) error {
+func (rp *RAGPipeline) processDocumentsSync(ctx context.Context, documents []*LoadedDocument, callback func([]ProcessedDocument, error)) error {
 	job := DocumentJob{
 		Documents: documents,
 		Context:   ctx,

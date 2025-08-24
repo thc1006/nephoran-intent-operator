@@ -17,7 +17,7 @@ import (
 
 	"bytes"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 // RedisCache provides Redis-based caching for RAG components
@@ -100,6 +100,9 @@ type RedisCacheMetrics struct {
 	LastCleanup time.Time `json:"last_cleanup"`
 
 	LastUpdated time.Time `json:"last_updated"`
+	
+	// Added for compatibility with prometheus_metrics.go
+	CategoryStats map[string]interface{} `json:"category_stats,omitempty"`
 	mutex       sync.RWMutex
 }
 
@@ -170,7 +173,7 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 		DialTimeout:  config.DialTimeout,
 		ReadTimeout:  config.ReadTimeout,
 		WriteTimeout: config.WriteTimeout,
-		IdleTimeout:  config.IdleTimeout,
+		ConnMaxIdleTime:  config.IdleTimeout,
 	})
 
 	cache := &RedisCache{
@@ -986,7 +989,7 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 	}
 
 	pipe := rc.client.Pipeline()
-	defer pipe.Close()
+	// Note: Redis pipeline doesn't need explicit close, it's handled by the client
 
 	for textHash, item := range embeddings {
 		key := rc.buildEmbeddingKey(item.Text, item.ModelName)

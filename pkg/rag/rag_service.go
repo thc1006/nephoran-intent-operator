@@ -14,13 +14,13 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // RAGService provides Retrieval-Augmented Generation capabilities for telecom domain
 type RAGService struct {
 	weaviateClient *WeaviateClient
-	llmClient      shared.ClientInterface
+	llmClient      types.ClientInterface
 	config         *RAGConfig
 	logger         *slog.Logger
 	metrics        *RAGMetrics
@@ -118,7 +118,7 @@ type RAGRequest struct {
 // RAGResponse represents the response from RAG processing
 type RAGResponse struct {
 	Answer          string                 `json:"answer"`
-	SourceDocuments []*shared.SearchResult `json:"source_documents"`
+	SourceDocuments []*types.SearchResult `json:"source_documents"`
 	Confidence      float32                `json:"confidence"`
 	ProcessingTime  time.Duration          `json:"processing_time"`
 	RetrievalTime   time.Duration          `json:"retrieval_time"`
@@ -131,7 +131,7 @@ type RAGResponse struct {
 }
 
 // NewRAGService creates a new RAG service instance
-func NewRAGService(weaviateClient *WeaviateClient, llmClient shared.ClientInterface, config *RAGConfig) *RAGService {
+func NewRAGService(weaviateClient *WeaviateClient, llmClient types.ClientInterface, config *RAGConfig) *RAGService {
 	if config == nil {
 		config = getDefaultRAGConfig()
 	}
@@ -252,7 +252,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		Limit:         request.MaxResults,
 		Filters:       rs.buildSearchFilters(request),
 		HybridSearch:  request.UseHybridSearch,
-		HybridAlpha:   rs.config.DefaultHybridAlpha,
+		HybridAlpha:   func() *float32 { v := rs.config.DefaultHybridAlpha; return &v }(),
 		UseReranker:   request.EnableReranking && rs.config.EnableReranking,
 		MinConfidence: request.MinConfidence,
 		ExpandQuery:   rs.config.EnableQueryExpansion,
@@ -278,10 +278,10 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 	retrievalTime := time.Since(retrievalStart)
 
 	// Step 2: Convert local results to shared results and prepare context
-	sharedResults := make([]*shared.SearchResult, len(searchResponse.Results))
+	sharedResults := make([]*types.SearchResult, len(searchResponse.Results))
 	for i, result := range searchResponse.Results {
-		sharedResults[i] = &shared.SearchResult{
-			Document: &shared.TelecomDocument{
+		sharedResults[i] = &types.SearchResult{
+			Document: &types.TelecomDocument{
 				ID:      result.Document.ID,
 				Content: result.Document.Content,
 				Source:  result.Document.Source,
@@ -398,7 +398,7 @@ func (rs *RAGService) buildSearchFilters(request *RAGRequest) map[string]interfa
 }
 
 // prepareContext creates a context string from retrieved documents
-func (rs *RAGService) prepareContext(results []*shared.SearchResult, request *RAGRequest) (string, map[string]interface{}) {
+func (rs *RAGService) prepareContext(results []*types.SearchResult, request *RAGRequest) (string, map[string]interface{}) {
 	var contextParts []string
 	var totalTokens int
 	documentsUsed := 0
@@ -443,7 +443,7 @@ func (rs *RAGService) prepareContext(results []*shared.SearchResult, request *RA
 }
 
 // formatDocumentForContext formats a document for inclusion in the LLM context
-func (rs *RAGService) formatDocumentForContext(result *shared.SearchResult, index int) string {
+func (rs *RAGService) formatDocumentForContext(result *types.SearchResult, index int) string {
 	doc := result.Document
 
 	var parts []string
@@ -529,7 +529,7 @@ Guidelines:
 }
 
 // enhanceResponse post-processes the LLM response to add source references and formatting
-func (rs *RAGService) enhanceResponse(llmResponse string, sourceDocuments []*shared.SearchResult, request *RAGRequest) string {
+func (rs *RAGService) enhanceResponse(llmResponse string, sourceDocuments []*types.SearchResult, request *RAGRequest) string {
 	response := llmResponse
 
 	// Add source references if requested
@@ -558,7 +558,7 @@ func (rs *RAGService) enhanceResponse(llmResponse string, sourceDocuments []*sha
 }
 
 // calculateConfidence calculates an overall confidence score for the response
-func (rs *RAGService) calculateConfidence(results []*shared.SearchResult) float32 {
+func (rs *RAGService) calculateConfidence(results []*types.SearchResult) float32 {
 	if len(results) == 0 {
 		return 0.0
 	}

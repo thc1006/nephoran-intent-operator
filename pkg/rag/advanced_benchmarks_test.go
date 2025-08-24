@@ -81,11 +81,11 @@ func benchmarkVectorRetrieval(b *testing.B, ctx context.Context, ragSystem *Enha
 
 	for _, scenario := range retrievalScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
-			config := RetrievalConfig{
-				TopK:            scenario.topK,
-				MinSimilarity:   scenario.minScore,
-				IncludeMetadata: true,
-				EnableReranking: true,
+			config := &RetrievalConfig{
+				DefaultLimit:              scenario.topK,
+				MinConfidenceThreshold:    float32(scenario.minScore),
+				IncludeSourceMetadata:     true,
+				EnableSemanticReranking:   true,
 			}
 
 			var totalLatency int64
@@ -148,7 +148,7 @@ func benchmarkDocumentIngestion(b *testing.B, ctx context.Context, ragSystem *En
 	for _, docSize := range documentSizes {
 		b.Run(docSize.name, func(b *testing.B) {
 			// Enhanced memory tracking for ingestion
-			var startMemStats, peakMemStats runtime.MemStats
+			var startMemStats runtime.MemStats
 			runtime.GC()
 			runtime.ReadMemStats(&startMemStats)
 			peakMemory := int64(startMemStats.Alloc)
@@ -185,7 +185,6 @@ func benchmarkDocumentIngestion(b *testing.B, ctx context.Context, ragSystem *En
 				currentAlloc := int64(currentMemStats.Alloc)
 				if currentAlloc > peakMemory {
 					peakMemory = currentAlloc
-					peakMemStats = currentMemStats
 				}
 			}
 
@@ -254,7 +253,7 @@ func benchmarkSemanticSearch(b *testing.B, ctx context.Context, ragSystem *Enhan
 
 					// Collect relevance scores for quality analysis
 					for _, result := range results {
-						relevanceScores = append(relevanceScores, result.Similarity)
+						relevanceScores = append(relevanceScores, result.Confidence)
 					}
 				}
 
@@ -441,9 +440,9 @@ func benchmarkConcurrentRetrieval(b *testing.B, ctx context.Context, ragSystem *
 
 					start := time.Now()
 
-					config := RetrievalConfig{
-						TopK:          10,
-						MinSimilarity: 0.6,
+					config := &RetrievalConfig{
+						DefaultLimit:              10,
+						MinConfidenceThreshold:    0.6,
 					}
 
 					results, err := ragSystem.RetrieveDocuments(ctx, query, config)
@@ -493,7 +492,7 @@ func benchmarkConcurrentRetrieval(b *testing.B, ctx context.Context, ragSystem *
 // benchmarkMemoryUsageUnderLoad tests memory behavior during sustained load
 func benchmarkMemoryUsageUnderLoad(b *testing.B, ctx context.Context, ragSystem *EnhancedRAGSystem) {
 	// Enhanced memory profiling using Go 1.24+ runtime features
-	var initialMemStats, peakMemStats, finalMemStats runtime.MemStats
+	var initialMemStats, finalMemStats runtime.MemStats
 	var initialGCStats, finalGCStats debug.GCStats
 
 	runtime.GC()
@@ -538,7 +537,6 @@ func benchmarkMemoryUsageUnderLoad(b *testing.B, ctx context.Context, ragSystem 
 
 						if currentAlloc > peakMemory {
 							peakMemory = currentAlloc
-							peakMemStats = memStats
 						}
 					}
 				}
@@ -565,7 +563,7 @@ func benchmarkMemoryUsageUnderLoad(b *testing.B, ctx context.Context, ragSystem 
 						query := fmt.Sprintf("test query %d for %s load",
 							atomic.AddInt64(&requestCount, 1), scenario.complexity)
 
-						config := RetrievalConfig{TopK: 5, MinSimilarity: 0.5}
+						config := &RetrievalConfig{DefaultLimit: 5, MinConfidenceThreshold: 0.5}
 						ragSystem.RetrieveDocuments(ctx, query, config)
 					}()
 				}
@@ -620,10 +618,11 @@ func benchmarkChunkingEfficiency(b *testing.B, ctx context.Context, ragSystem *E
 
 	for _, strategy := range chunkingStrategies {
 		b.Run(strategy.name, func(b *testing.B) {
-			chunkConfig := ChunkingConfig{
-				Strategy:  strategy.strategy,
-				ChunkSize: strategy.chunkSize,
-				Overlap:   strategy.overlap,
+			chunkConfig := &ChunkingConfig{
+				ChunkSize:     strategy.chunkSize,
+				ChunkOverlap:  strategy.overlap,
+				MinChunkSize:  100,
+				MaxChunkSize:  strategy.chunkSize * 2,
 			}
 
 			var totalChunks, totalTokens int64
@@ -648,7 +647,7 @@ func benchmarkChunkingEfficiency(b *testing.B, ctx context.Context, ragSystem *E
 
 					for _, chunk := range chunks {
 						chunkingSizes = append(chunkingSizes, len(chunk.Content))
-						atomic.AddInt64(&totalTokens, int64(chunk.TokenCount))
+						atomic.AddInt64(&totalTokens, int64(chunk.WordCount))
 					}
 				}
 			}
@@ -878,18 +877,19 @@ func setupBenchmarkRAGSystem() *EnhancedRAGSystem {
 			Dimensions: 1536,
 		},
 		Embedding: EmbeddingConfig{
-			Provider: "openai",
-			Model:    "text-embedding-3-small",
+			Provider:   "openai",
+			ModelName:  "text-embedding-3-small",
+			Dimensions: 1536,
 		},
 		Cache: CacheConfig{
-			Enabled: true,
-			MaxSize: 1000,
-			TTL:     time.Minute * 10,
+			EnableCache:     true,
+			MaxSize:        1000,
+			TTL:            time.Minute * 10,
 		},
 		ConnectionPool: ConnectionPoolConfig{
-			MaxConnections: 50,
-			MaxIdle:        10,
-			IdleTimeout:    time.Minute * 5,
+			MaxIdleConnections:    50,
+			MaxConnectionsPerHost: 10,
+			IdleConnectionTimeout: time.Minute * 5,
 		},
 	}
 
@@ -909,12 +909,6 @@ type EnhancedRAGSystem struct {
 
 // Document is now defined in pkg/shared/types/common_types.go
 
-type RetrievalConfig struct {
-	TopK            int
-	MinSimilarity   float64
-	IncludeMetadata bool
-	EnableReranking bool
-}
 
 type SearchConfig struct {
 	TopK             int
@@ -932,11 +926,6 @@ type ContextConfig struct {
 	Template        string
 }
 
-type ChunkingConfig struct {
-	Strategy  string
-	ChunkSize int
-	Overlap   int
-}
 
 type RAGSystemConfig struct {
 	VectorDB       VectorDBConfig
@@ -952,22 +941,8 @@ type VectorDBConfig struct {
 	Dimensions int
 }
 
-type EmbeddingConfig struct {
-	Provider string
-	Model    string
-}
 
-type CacheConfig struct {
-	Enabled bool
-	MaxSize int
-	TTL     time.Duration
-}
 
-type ConnectionPoolConfig struct {
-	MaxConnections int
-	MaxIdle        int
-	IdleTimeout    time.Duration
-}
 
 // Placeholder implementations
 func NewEnhancedRAGSystem(config RAGSystemConfig) *EnhancedRAGSystem {
@@ -975,15 +950,15 @@ func NewEnhancedRAGSystem(config RAGSystemConfig) *EnhancedRAGSystem {
 }
 
 func (r *EnhancedRAGSystem) Cleanup() {}
-func (r *EnhancedRAGSystem) RetrieveDocuments(ctx context.Context, query string, config RetrievalConfig) ([]SearchResult, error) {
-	return []SearchResult{{Similarity: 0.8}}, nil
+func (r *EnhancedRAGSystem) RetrieveDocuments(ctx context.Context, query string, config *RetrievalConfig) ([]SearchResult, error) {
+	return []SearchResult{{Confidence: 0.8, Score: 0.8}}, nil
 }
 func (r *EnhancedRAGSystem) IsFromCache(query string) bool { return false }
 func (r *EnhancedRAGSystem) IngestDocument(ctx context.Context, doc types.Document) (*IngestionResult, error) {
 	return &IngestionResult{ChunksCreated: 5, TokensProcessed: 1000}, nil
 }
 func (r *EnhancedRAGSystem) AdvancedSearch(ctx context.Context, query string, config SearchConfig) ([]SearchResult, error) {
-	return []SearchResult{{Similarity: 0.8}}, nil
+	return []SearchResult{{Confidence: 0.8, Score: 0.8}}, nil
 }
 func (r *EnhancedRAGSystem) RerankResults(results []SearchResult, query string) {}
 func (r *EnhancedRAGSystem) GenerateContext(ctx context.Context, query string, config ContextConfig) (*GeneratedContext, error) {
@@ -997,8 +972,8 @@ func (r *EnhancedRAGSystem) GenerateEmbeddings(ctx context.Context, texts []stri
 	return embeddings, nil
 }
 func (r *EnhancedRAGSystem) UsedConnectionPool() bool { return true }
-func (r *EnhancedRAGSystem) ChunkDocument(doc types.Document, config ChunkingConfig) ([]DocumentChunk, error) {
-	return []DocumentChunk{{Content: "chunk", TokenCount: 100}}, nil
+func (r *EnhancedRAGSystem) ChunkDocument(doc types.Document, config *ChunkingConfig) ([]*DocumentChunk, error) {
+	return []*DocumentChunk{{Content: "chunk", CharacterCount: 100, WordCount: 20}}, nil
 }
 
 type BenchmarkSearchResult struct {
@@ -1015,15 +990,9 @@ type GeneratedContext struct {
 	TokenCount int
 }
 
-type DocumentChunk struct {
-	Content    string
-	TokenCount int
-}
 
 // Interface placeholders
 type VectorDB interface{}
-type EmbeddingService interface{}
 type DocumentChunker interface{}
 type SearchCache interface{}
 type ConnectionPool interface{}
-type RAGMetrics interface{}

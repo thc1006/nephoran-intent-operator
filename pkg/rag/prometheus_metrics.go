@@ -3,7 +3,6 @@
 package rag
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -594,19 +593,42 @@ func (pm *PrometheusMetrics) RecordResponseQuality(intentType, enhancementUsed s
 // Batch update methods for efficiency
 
 func (pm *PrometheusMetrics) UpdateRedisCacheMetrics(metrics *RedisCacheMetrics) {
-	categories := []string{"embedding", "document", "query_result", "context"}
+	// Update basic metrics
+	pm.UpdateRedisCacheSize("total_requests", metrics.TotalRequests)
+	pm.UpdateRedisCacheSize("hits", metrics.Hits)
+	pm.UpdateRedisCacheSize("misses", metrics.Misses)
+	pm.UpdateRedisCacheSize("sets", metrics.Sets)
+	pm.UpdateRedisCacheSize("deletes", metrics.Deletes)
+	pm.UpdateRedisCacheSize("errors", metrics.Errors)
 
-	for _, category := range categories {
-		if stats, exists := metrics.CategoryStats[category]; exists {
-			// Update hits/misses
-			pm.UpdateRedisCacheSize(category, stats.SizeBytes)
+	// Update category-specific metrics
+	pm.UpdateRedisCacheSize("embedding_hits", metrics.EmbeddingHits)
+	pm.UpdateRedisCacheSize("embedding_misses", metrics.EmbeddingMisses)
+	pm.UpdateRedisCacheSize("document_hits", metrics.DocumentHits)
+	pm.UpdateRedisCacheSize("document_misses", metrics.DocumentMisses)
+	pm.UpdateRedisCacheSize("query_result_hits", metrics.QueryResultHits)
+	pm.UpdateRedisCacheSize("query_result_misses", metrics.QueryResultMisses)
 
-			// Calculate and update hit rate
-			if stats.Hits+stats.Misses > 0 {
-				hitRate := float64(stats.Hits) / float64(stats.Hits+stats.Misses)
-				pm.UpdateRedisCacheSize(fmt.Sprintf("%s_hit_rate", category), int64(hitRate*100))
-			}
-		}
+	// Calculate and update overall hit rate
+	if metrics.Hits+metrics.Misses > 0 {
+		hitRate := float64(metrics.Hits) / float64(metrics.Hits+metrics.Misses)
+		pm.UpdateRedisCacheSize("hit_rate_percent", int64(hitRate*100))
+	}
+
+	// Calculate category-specific hit rates
+	if metrics.EmbeddingHits+metrics.EmbeddingMisses > 0 {
+		hitRate := float64(metrics.EmbeddingHits) / float64(metrics.EmbeddingHits+metrics.EmbeddingMisses)
+		pm.UpdateRedisCacheSize("embedding_hit_rate_percent", int64(hitRate*100))
+	}
+
+	if metrics.DocumentHits+metrics.DocumentMisses > 0 {
+		hitRate := float64(metrics.DocumentHits) / float64(metrics.DocumentHits+metrics.DocumentMisses)
+		pm.UpdateRedisCacheSize("document_hit_rate_percent", int64(hitRate*100))
+	}
+
+	if metrics.QueryResultHits+metrics.QueryResultMisses > 0 {
+		hitRate := float64(metrics.QueryResultHits) / float64(metrics.QueryResultHits+metrics.QueryResultMisses)
+		pm.UpdateRedisCacheSize("query_result_hit_rate_percent", int64(hitRate*100))
 	}
 }
 

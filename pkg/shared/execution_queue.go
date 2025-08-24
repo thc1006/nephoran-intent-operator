@@ -24,13 +24,13 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
 )
 
 // ExecutionTask represents a task to be executed
 type ExecutionTask struct {
 	IntentName   types.NamespacedName       `json:"intentName"`
-	Phase        interfaces.ProcessingPhase `json:"phase"`
+	Phase        contracts.ProcessingPhase `json:"phase"`
 	Priority     int                        `json:"priority"`
 	Timestamp    time.Time                  `json:"timestamp"`
 	Context      map[string]interface{}     `json:"context"`
@@ -292,7 +292,7 @@ func (eq *ExecutionQueue) ListPendingTasks() []*ExecutionTask {
 }
 
 // CancelTask cancels a pending or active task
-func (eq *ExecutionQueue) CancelTask(intentName types.NamespacedName, phase interfaces.ProcessingPhase) error {
+func (eq *ExecutionQueue) CancelTask(intentName types.NamespacedName, phase contracts.ProcessingPhase) error {
 	eq.mutex.Lock()
 	defer eq.mutex.Unlock()
 
@@ -447,7 +447,7 @@ type QueueStats struct {
 type TaskFilter struct {
 	IntentNamespace string                     `json:"intentNamespace,omitempty"`
 	IntentName      string                     `json:"intentName,omitempty"`
-	Phase           interfaces.ProcessingPhase `json:"phase,omitempty"`
+	Phase           contracts.ProcessingPhase `json:"phase,omitempty"`
 	MinPriority     *int                       `json:"minPriority,omitempty"`
 	MaxPriority     *int                       `json:"maxPriority,omitempty"`
 	CreatedAfter    *time.Time                 `json:"createdAfter,omitempty"`

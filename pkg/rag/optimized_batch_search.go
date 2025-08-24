@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"golang.org/x/sync/errgroup"
 )
 
-// Use consolidated types from pkg/shared
-type BatchSearchRequest = shared.BatchSearchRequest
-type BatchSearchResponse = shared.BatchSearchResponse
+// Use consolidated types from pkg/types
+type BatchSearchRequest = types.BatchSearchRequest
+type BatchSearchResponse = types.BatchSearchResponse
 
 // SearchBatch represents a batch of related queries
 type SearchBatch struct {
@@ -188,7 +188,7 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 	allResults := append(cachedResults, freshResults...)
 
 	// Step 5: Aggregate results if requested
-	var aggregatedResults []*shared.SearchResult
+	var aggregatedResults []*types.SearchResult
 	if request.EnableAggregation {
 		aggregatedResults = c.aggregateResults(allResults)
 	}
@@ -324,9 +324,9 @@ func (c *OptimizedBatchSearchClient) executeParallelSearch(ctx context.Context, 
 }
 
 // aggregateResults aggregates and deduplicates search results
-func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchResponse) []*shared.SearchResult {
-	seen := make(map[string]*shared.SearchResult)
-	var aggregated []*shared.SearchResult
+func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchResponse) []*types.SearchResult {
+	seen := make(map[string]*types.SearchResult)
+	var aggregated []*types.SearchResult
 
 	for _, response := range responses {
 		for _, result := range response.Results {
@@ -334,8 +334,8 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 				continue
 			}
 
-			// Convert to shared.SearchResult
-			sharedResult := &shared.SearchResult{
+			// Convert to types.SearchResult
+			sharedResult := &types.SearchResult{
 				Document: result.Document,
 				Score:    result.Score,
 				Distance: 1.0 - result.Score, // Approximate distance from score
@@ -425,7 +425,7 @@ func (c *OptimizedBatchSearchClient) StreamingBatchSearch(ctx context.Context, q
 func (c *OptimizedBatchSearchClient) createQueryKey(query *SearchQuery) string {
 	key := fmt.Sprintf("%s|%d|%t|%.2f|%t",
 		query.Query, query.Limit, query.HybridSearch,
-		query.HybridAlpha, query.UseReranker)
+		*query.HybridAlpha, query.UseReranker)
 
 	// Add filters to key
 	if len(query.Filters) > 0 {
@@ -519,8 +519,8 @@ func (c *OptimizedBatchSearchClient) GetMetrics() *BatchSearchMetrics {
 	return &metrics
 }
 
-// convertSharedSearchQueries converts shared.SearchQuery to local SearchQuery
-func (c *OptimizedBatchSearchClient) convertSharedSearchQueries(sharedQueries []*shared.SearchQuery) []*SearchQuery {
+// convertSharedSearchQueries converts types.SearchQuery to local SearchQuery
+func (c *OptimizedBatchSearchClient) convertSharedSearchQueries(sharedQueries []*types.SearchQuery) []*SearchQuery {
 	queries := make([]*SearchQuery, len(sharedQueries))
 	for i, sq := range sharedQueries {
 		queries[i] = &SearchQuery{
@@ -537,14 +537,14 @@ func (c *OptimizedBatchSearchClient) convertSharedSearchQueries(sharedQueries []
 	return queries
 }
 
-// convertToSharedSearchResponses converts local SearchResponse to shared.SearchResponse
-func (c *OptimizedBatchSearchClient) convertToSharedSearchResponses(responses []*SearchResponse) []*shared.SearchResponse {
-	sharedResponses := make([]*shared.SearchResponse, len(responses))
+// convertToSharedSearchResponses converts local SearchResponse to types.SearchResponse
+func (c *OptimizedBatchSearchClient) convertToSharedSearchResponses(responses []*SearchResponse) []*types.SearchResponse {
+	sharedResponses := make([]*types.SearchResponse, len(responses))
 	for i, resp := range responses {
-		// Convert SearchResult to shared.SearchResult
-		sharedResults := make([]*shared.SearchResult, len(resp.Results))
+		// Convert SearchResult to types.SearchResult
+		sharedResults := make([]*types.SearchResult, len(resp.Results))
 		for j, result := range resp.Results {
-			sharedResults[j] = &shared.SearchResult{
+			sharedResults[j] = &types.SearchResult{
 				Document: result.Document,
 				Score:    result.Score,
 				Distance: 1.0 - result.Score, // Approximate distance from score
@@ -552,7 +552,7 @@ func (c *OptimizedBatchSearchClient) convertToSharedSearchResponses(responses []
 			}
 		}
 		
-		sharedResponses[i] = &shared.SearchResponse{
+		sharedResponses[i] = &types.SearchResponse{
 			Results: sharedResults,
 			Took:    int64(resp.Took.Nanoseconds()), // Convert duration to nanoseconds
 			Total:   resp.Total,

@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 )
@@ -516,7 +516,7 @@ func (h *HNSWOptimizer) executeTestQuery(ctx context.Context, className string, 
 				for _, item := range classData {
 					if itemMap, ok := item.(map[string]interface{}); ok {
 						searchResult := &SearchResult{
-							Document: &shared.TelecomDocument{},
+							Document: &types.TelecomDocument{},
 							Score:    0.0,
 						}
 

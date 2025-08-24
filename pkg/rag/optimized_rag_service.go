@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 )
 
@@ -20,7 +20,7 @@ import (
 type OptimizedRAGService struct {
 	// Core components
 	weaviatePool *WeaviateConnectionPool
-	llmClient    shared.ClientInterface
+	llmClient    types.ClientInterface
 	config       *OptimizedRAGConfig
 	logger       *slog.Logger
 
@@ -150,7 +150,7 @@ type OptimizedCacheEntry struct {
 // NewOptimizedRAGService creates a new optimized RAG service
 func NewOptimizedRAGService(
 	weaviatePool *WeaviateConnectionPool,
-	llmClient shared.ClientInterface,
+	llmClient types.ClientInterface,
 	config *OptimizedRAGConfig,
 ) (*OptimizedRAGService, error) {
 	if config == nil {
@@ -540,7 +540,7 @@ func (ors *OptimizedRAGService) getOptimalResultCount(intentType string) int {
 
 // Enhanced context and response methods
 
-func (ors *OptimizedRAGService) prepareOptimizedContext(results []*shared.SearchResult, request *RAGRequest) (string, map[string]interface{}) {
+func (ors *OptimizedRAGService) prepareOptimizedContext(results []*types.SearchResult, request *RAGRequest) (string, map[string]interface{}) {
 	var contextParts []string
 	var totalTokens int
 	documentsUsed := 0
@@ -671,7 +671,7 @@ Requirements:
 
 // Quality and confidence calculation methods
 
-func (ors *OptimizedRAGService) calculateAdvancedConfidence(results []*shared.SearchResult, response string) float32 {
+func (ors *OptimizedRAGService) calculateAdvancedConfidence(results []*types.SearchResult, response string) float32 {
 	if len(results) == 0 {
 		return 0.0
 	}
@@ -819,11 +819,11 @@ func (ors *OptimizedRAGService) buildSearchQuery(request *RAGRequest) *SearchQue
 	}
 }
 
-func (ors *OptimizedRAGService) convertToSharedResults(results []*SearchResult) []*shared.SearchResult {
-	sharedResults := make([]*shared.SearchResult, len(results))
+func (ors *OptimizedRAGService) convertToSharedResults(results []*SearchResult) []*types.SearchResult {
+	sharedResults := make([]*types.SearchResult, len(results))
 	for i, result := range results {
-		sharedResults[i] = &shared.SearchResult{
-			Document: &shared.TelecomDocument{
+		sharedResults[i] = &types.SearchResult{
+			Document: &types.TelecomDocument{
 				ID:              result.Document.ID,
 				Content:         result.Document.Content,
 				Source:          result.Document.Source,
@@ -839,10 +839,10 @@ func (ors *OptimizedRAGService) convertToSharedResults(results []*SearchResult) 
 	return sharedResults
 }
 
-func (ors *OptimizedRAGService) sortResultsByQuality(results []*shared.SearchResult) []*shared.SearchResult {
+func (ors *OptimizedRAGService) sortResultsByQuality(results []*types.SearchResult) []*types.SearchResult {
 	// Simple quality-based sorting
 	// In production, this would use more sophisticated quality metrics
-	sortedResults := make([]*shared.SearchResult, len(results))
+	sortedResults := make([]*types.SearchResult, len(results))
 	copy(sortedResults, results)
 
 	// Sort by score (descending)
@@ -873,7 +873,7 @@ func (ors *OptimizedRAGService) estimateTokens(text string) int {
 	return tokens
 }
 
-func (ors *OptimizedRAGService) formatDocumentForOptimizedContext(result *shared.SearchResult, index int) string {
+func (ors *OptimizedRAGService) formatDocumentForOptimizedContext(result *types.SearchResult, index int) string {
 	doc := result.Document
 	var parts []string
 
@@ -1158,22 +1158,50 @@ func getDefaultOptimizedRAGConfig() *OptimizedRAGConfig {
 
 // Utility functions - implement missing helper functions
 
-func (ors *OptimizedRAGService) buildResponseFromResults(results []*OptimizedSearchResult, request *RAGRequest) string {
+func (ors *OptimizedRAGService) buildResponseFromResults(results []*EnhancedSearchResult, request *RAGRequest) string {
 	// Placeholder implementation
-	return "Generated response from cached results"
+	// Simple placeholder - in production would generate response from cached results
+	if len(results) == 0 {
+		return "No cached results available"
+	}
+	return fmt.Sprintf("Generated response based on %d cached results", len(results))
 }
 
-func (ors *OptimizedRAGService) convertEnhancedToSharedResults(results []*OptimizedSearchResult) []*shared.SearchResult {
-	// Placeholder implementation
-	return []*shared.SearchResult{}
+func (ors *OptimizedRAGService) convertEnhancedToSharedResults(results []*EnhancedSearchResult) []*types.SearchResult {
+	converted := make([]*types.SearchResult, len(results))
+	for i, result := range results {
+		converted[i] = &types.SearchResult{
+			Document: result.Document,
+			Score:    result.Score,
+			Metadata: result.Metadata,
+		}
+	}
+	return converted
 }
 
-func (ors *OptimizedRAGService) convertSharedToEnhancedResults(results []*shared.SearchResult) []*OptimizedSearchResult {
-	// Placeholder implementation
-	return []*OptimizedSearchResult{}
+func (ors *OptimizedRAGService) convertSharedToEnhancedResults(results []*types.SearchResult) []*EnhancedSearchResult {
+	enhanced := make([]*EnhancedSearchResult, len(results))
+	for i, result := range results {
+		enhanced[i] = &EnhancedSearchResult{
+			SearchResult: &SearchResult{
+				ID:         result.Document.ID,
+				Content:    result.Document.Content,
+				Confidence: float64(result.Score),
+				Metadata:   result.Metadata,
+				Score:      result.Score,
+				Document:   result.Document,
+			},
+			RelevanceScore: result.Score,
+			QualityScore:   0.8, // Default quality score
+			FreshnessScore: 1.0, // Default freshness score
+			AuthorityScore: 0.9, // Default authority score
+			CombinedScore:  result.Score,
+		}
+	}
+	return enhanced
 }
 
-func (ors *OptimizedRAGService) enhanceResponseWithQuality(response string, results []*shared.SearchResult, request *RAGRequest) string {
+func (ors *OptimizedRAGService) enhanceResponseWithQuality(response string, results []*types.SearchResult, request *RAGRequest) string {
 	// Enhanced response processing with quality improvements
 	enhanced := response
 
@@ -1197,8 +1225,8 @@ func (ors *OptimizedRAGService) enhanceResponseWithQuality(response string, resu
 
 // Define missing types for compilation
 type OptimizedSearchResult struct {
-	Document *shared.TelecomDocument `json:"document"`
-	Score    float32                `json:"score"`
+	Document *types.TelecomDocument `json:"document"`
+	Score    float32               `json:"score"`
 	Metadata map[string]interface{} `json:"metadata"`
 }
 

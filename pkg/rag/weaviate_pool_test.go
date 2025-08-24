@@ -147,7 +147,7 @@ func TestPooledConnection_ShouldDestroy(t *testing.T) {
 	conn := &PooledConnection{
 		CreatedAt: now.Add(-30 * time.Minute),
 		LastUsed:  now.Add(-2 * time.Minute),
-		isHealthy: true,
+		IsHealthy: true,
 	}
 	assert.False(t, pool.shouldDestroyConnection(conn))
 
@@ -460,7 +460,7 @@ func BenchmarkWeaviateConnectionPool_GetReturnConnection(b *testing.B) {
 	}
 	pool.started = true
 
-	ctx := context.Background()
+	_ = context.Background()
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {

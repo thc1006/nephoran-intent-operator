@@ -7,7 +7,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // Doc represents a document retrieved from the RAG system
@@ -40,7 +40,7 @@ type SearchResult struct {
 	Metadata   map[string]interface{}
 	// Additional fields for compatibility
 	Score      float32 `json:"score"`
-	Document   *shared.TelecomDocument `json:"document"`
+	Document   *types.TelecomDocument `json:"document"`
 }
 
 // RAGClientConfig holds configuration for RAG clients
@@ -74,11 +74,16 @@ type WeaviateClient struct {
 	// This is a stub - actual implementation in weaviate_client_complex.go with build tag
 }
 
+// TelecomDocument is an alias to types.TelecomDocument for backwards compatibility
+// This is used in conditional compilation where the actual implementation may differ
+type TelecomDocument = types.TelecomDocument
+
 // WeaviateHealthStatus represents the health status of Weaviate (stub for conditional compilation)
 type WeaviateHealthStatus struct {
 	IsHealthy bool                   `json:"is_healthy"`
 	LastCheck time.Time              `json:"last_check"`
 	Details   map[string]interface{} `json:"details"`
+	Version   string                 `json:"version,omitempty"`
 }
 
 // Search is a stub method for conditional compilation
@@ -95,6 +100,12 @@ func (w *WeaviateClient) GetHealthStatus() *WeaviateHealthStatus {
 		LastCheck: time.Now(),
 		Details:   make(map[string]interface{}),
 	}
+}
+
+// AddDocument is a stub method for conditional compilation
+func (w *WeaviateClient) AddDocument(ctx context.Context, doc *TelecomDocument) error {
+	// Stub implementation - actual implementation in weaviate_client_complex.go with build tag
+	return nil
 }
 
 // Close is a stub method for conditional compilation
@@ -154,3 +165,7 @@ func NewRAGClient(config *RAGClientConfig) RAGClient {
 	// - noop/client.go (no build tag)
 	return newRAGClientImpl(config)
 }
+
+// newRAGClientImpl is implemented in:
+// - client_noop.go (for !rag build tag)
+// - weaviate_client_complex.go (for rag build tag)

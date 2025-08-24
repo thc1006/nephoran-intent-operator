@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
 )
 
 // RecoveryManager handles error recovery and state restoration
@@ -36,7 +36,7 @@ type RecoveryManager struct {
 	eventBus     EventBus
 
 	// Recovery strategies
-	strategies map[interfaces.ProcessingPhase]*RecoveryStrategy
+	strategies map[contracts.ProcessingPhase]*RecoveryStrategy
 
 	// Recovery tracking
 	recoveryAttempts map[string]*RecoveryAttempt
@@ -119,7 +119,7 @@ type RecoveryHandler func(ctx context.Context, attempt *RecoveryAttempt) error
 type RecoveryAttempt struct {
 	ID                  string                     `json:"id"`
 	IntentName          types.NamespacedName       `json:"intentName"`
-	Phase               interfaces.ProcessingPhase `json:"phase"`
+	Phase               contracts.ProcessingPhase `json:"phase"`
 	Strategy            *RecoveryStrategy          `json:"strategy"`
 	StartTime           time.Time                  `json:"startTime"`
 	EndTime             time.Time                  `json:"endTime"`
@@ -150,7 +150,7 @@ func NewRecoveryManager(stateManager *StateManager, eventBus EventBus) *Recovery
 		logger:           ctrl.Log.WithName("recovery-manager"),
 		stateManager:     stateManager,
 		eventBus:         eventBus,
-		strategies:       make(map[interfaces.ProcessingPhase]*RecoveryStrategy),
+		strategies:       make(map[contracts.ProcessingPhase]*RecoveryStrategy),
 		recoveryAttempts: make(map[string]*RecoveryAttempt),
 		config:           config,
 		stopChan:         make(chan bool),
@@ -228,7 +228,7 @@ func (rm *RecoveryManager) Stop(ctx context.Context) error {
 }
 
 // RecoverIntent attempts to recover a failed intent
-func (rm *RecoveryManager) RecoverIntent(ctx context.Context, intentName types.NamespacedName, phase interfaces.ProcessingPhase, reason string) error {
+func (rm *RecoveryManager) RecoverIntent(ctx context.Context, intentName types.NamespacedName, phase contracts.ProcessingPhase, reason string) error {
 	rm.logger.Info("Attempting intent recovery", "intent", intentName, "phase", phase, "reason", reason)
 
 	// Get recovery strategy for the phase
@@ -269,7 +269,7 @@ func (rm *RecoveryManager) RecoverIntent(ctx context.Context, intentName types.N
 }
 
 // RegisterRecoveryStrategy registers a custom recovery strategy for a phase
-func (rm *RecoveryManager) RegisterRecoveryStrategy(phase interfaces.ProcessingPhase, strategy *RecoveryStrategy) {
+func (rm *RecoveryManager) RegisterRecoveryStrategy(phase contracts.ProcessingPhase, strategy *RecoveryStrategy) {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
 
@@ -338,12 +338,12 @@ func (rm *RecoveryManager) initializeDefaultStrategies() {
 	}
 
 	// Apply to all phases
-	phases := []interfaces.ProcessingPhase{
-		interfaces.PhaseLLMProcessing,
-		interfaces.PhaseResourcePlanning,
-		interfaces.PhaseManifestGeneration,
-		interfaces.PhaseGitOpsCommit,
-		interfaces.PhaseDeploymentVerification,
+	phases := []contracts.ProcessingPhase{
+		contracts.PhaseLLMProcessing,
+		contracts.PhaseResourcePlanning,
+		contracts.PhaseManifestGeneration,
+		contracts.PhaseGitOpsCommit,
+		contracts.PhaseDeploymentVerification,
 	}
 
 	for _, phase := range phases {
@@ -358,7 +358,7 @@ func (rm *RecoveryManager) initializeDefaultStrategies() {
 		InitialBackoff:    2 * time.Second,
 		MaxBackoff:        60 * time.Second,
 	}
-	rm.strategies[interfaces.PhaseDeploymentVerification] = deploymentStrategy
+	rm.strategies[contracts.PhaseDeploymentVerification] = deploymentStrategy
 }
 
 func (rm *RecoveryManager) subscribeToEvents() error {
@@ -397,7 +397,7 @@ func (rm *RecoveryManager) handleFailureEvent(ctx context.Context, event Process
 	}
 
 	// Extract phase from event
-	phase := interfaces.ProcessingPhase(event.Phase)
+	phase := contracts.ProcessingPhase(event.Phase)
 
 	// Attempt recovery
 	return rm.RecoverIntent(ctx, intentName, phase, "automatic_recovery_on_failure")
@@ -424,7 +424,7 @@ func (rm *RecoveryManager) handleStateCorruptionEvent(ctx context.Context, event
 	}
 }
 
-func (rm *RecoveryManager) getRecoveryStrategy(phase interfaces.ProcessingPhase) *RecoveryStrategy {
+func (rm *RecoveryManager) getRecoveryStrategy(phase contracts.ProcessingPhase) *RecoveryStrategy {
 	rm.mutex.RLock()
 	defer rm.mutex.RUnlock()
 
@@ -442,7 +442,7 @@ func (rm *RecoveryManager) getRecoveryStrategy(phase interfaces.ProcessingPhase)
 	}
 }
 
-func (rm *RecoveryManager) shouldAttemptRecovery(intentName types.NamespacedName, phase interfaces.ProcessingPhase, strategy *RecoveryStrategy) bool {
+func (rm *RecoveryManager) shouldAttemptRecovery(intentName types.NamespacedName, phase contracts.ProcessingPhase, strategy *RecoveryStrategy) bool {
 	// Check current attempt count
 	attemptNumber := rm.getAttemptNumber(intentName, phase)
 	if attemptNumber >= strategy.MaxAttempts {
@@ -463,7 +463,7 @@ func (rm *RecoveryManager) shouldAttemptRecovery(intentName types.NamespacedName
 	return true
 }
 
-func (rm *RecoveryManager) getAttemptNumber(intentName types.NamespacedName, phase interfaces.ProcessingPhase) int {
+func (rm *RecoveryManager) getAttemptNumber(intentName types.NamespacedName, phase contracts.ProcessingPhase) int {
 	rm.mutex.RLock()
 	defer rm.mutex.RUnlock()
 
@@ -491,7 +491,7 @@ func (rm *RecoveryManager) getRunningRecoveryCount() int {
 	return count
 }
 
-func (rm *RecoveryManager) checkRecoveryConditions(conditions []RecoveryCondition, intentName types.NamespacedName, phase interfaces.ProcessingPhase) bool {
+func (rm *RecoveryManager) checkRecoveryConditions(conditions []RecoveryCondition, intentName types.NamespacedName, phase contracts.ProcessingPhase) bool {
 	// If no conditions, allow recovery
 	if len(conditions) == 0 {
 		return true
@@ -507,7 +507,7 @@ func (rm *RecoveryManager) checkRecoveryConditions(conditions []RecoveryConditio
 	return true
 }
 
-func (rm *RecoveryManager) evaluateCondition(condition RecoveryCondition, intentName types.NamespacedName, phase interfaces.ProcessingPhase) bool {
+func (rm *RecoveryManager) evaluateCondition(condition RecoveryCondition, intentName types.NamespacedName, phase contracts.ProcessingPhase) bool {
 	// Simplified condition evaluation
 	// In a real implementation, this would be more comprehensive
 	switch condition.Type {
@@ -651,7 +651,7 @@ func (rm *RecoveryManager) executeSkipRecovery(ctx context.Context, attempt *Rec
 	nextPhase := rm.getNextPhase(attempt.Phase)
 	if nextPhase == "" {
 		// Mark as completed if no next phase
-		nextPhase = interfaces.PhaseCompleted
+		nextPhase = contracts.PhaseCompleted
 	}
 
 	// Transition to next phase
@@ -687,35 +687,35 @@ func (rm *RecoveryManager) addRecoveryAction(attempt *RecoveryAttempt, actionTyp
 	attempt.RecoveryActions = append(attempt.RecoveryActions, action)
 }
 
-func (rm *RecoveryManager) getPreviousPhase(currentPhase interfaces.ProcessingPhase) interfaces.ProcessingPhase {
+func (rm *RecoveryManager) getPreviousPhase(currentPhase contracts.ProcessingPhase) contracts.ProcessingPhase {
 	// Simplified previous phase mapping
 	switch currentPhase {
-	case interfaces.PhaseResourcePlanning:
-		return interfaces.PhaseLLMProcessing
-	case interfaces.PhaseManifestGeneration:
-		return interfaces.PhaseResourcePlanning
-	case interfaces.PhaseGitOpsCommit:
-		return interfaces.PhaseManifestGeneration
-	case interfaces.PhaseDeploymentVerification:
-		return interfaces.PhaseGitOpsCommit
+	case contracts.PhaseResourcePlanning:
+		return contracts.PhaseLLMProcessing
+	case contracts.PhaseManifestGeneration:
+		return contracts.PhaseResourcePlanning
+	case contracts.PhaseGitOpsCommit:
+		return contracts.PhaseManifestGeneration
+	case contracts.PhaseDeploymentVerification:
+		return contracts.PhaseGitOpsCommit
 	default:
 		return ""
 	}
 }
 
-func (rm *RecoveryManager) getNextPhase(currentPhase interfaces.ProcessingPhase) interfaces.ProcessingPhase {
+func (rm *RecoveryManager) getNextPhase(currentPhase contracts.ProcessingPhase) contracts.ProcessingPhase {
 	// Simplified next phase mapping
 	switch currentPhase {
-	case interfaces.PhaseLLMProcessing:
-		return interfaces.PhaseResourcePlanning
-	case interfaces.PhaseResourcePlanning:
-		return interfaces.PhaseManifestGeneration
-	case interfaces.PhaseManifestGeneration:
-		return interfaces.PhaseGitOpsCommit
-	case interfaces.PhaseGitOpsCommit:
-		return interfaces.PhaseDeploymentVerification
-	case interfaces.PhaseDeploymentVerification:
-		return interfaces.PhaseCompleted
+	case contracts.PhaseLLMProcessing:
+		return contracts.PhaseResourcePlanning
+	case contracts.PhaseResourcePlanning:
+		return contracts.PhaseManifestGeneration
+	case contracts.PhaseManifestGeneration:
+		return contracts.PhaseGitOpsCommit
+	case contracts.PhaseGitOpsCommit:
+		return contracts.PhaseDeploymentVerification
+	case contracts.PhaseDeploymentVerification:
+		return contracts.PhaseCompleted
 	default:
 		return ""
 	}

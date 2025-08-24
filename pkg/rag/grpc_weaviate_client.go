@@ -9,12 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/protobuf/proto"
 )
 
 // GRPCWeaviateClient provides high-performance gRPC-based Weaviate client
@@ -343,7 +342,7 @@ func (c *GRPCWeaviateClient) Search(ctx context.Context, query *SearchQuery) (*S
 		Filters: query.Filters,
 		Metadata: map[string]string{
 			"hybrid_search": fmt.Sprintf("%t", query.HybridSearch),
-			"hybrid_alpha":  fmt.Sprintf("%.2f", query.HybridAlpha),
+			"hybrid_alpha":  fmt.Sprintf("%.2f", *query.HybridAlpha),
 		},
 	}
 
@@ -511,10 +510,10 @@ func (c *GRPCWeaviateClient) addAuthenticationContext(ctx context.Context) conte
 
 // convertToSearchResponse converts gRPC response to standard SearchResponse
 func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchResponse, query string) *SearchResponse {
-	results := make([]*shared.SearchResult, len(grpcResp.Results))
+	results := make([]*types.SearchResult, len(grpcResp.Results))
 
 	for i, result := range grpcResp.Results {
-		doc := &shared.TelecomDocument{
+		doc := &types.TelecomDocument{
 			ID: result.ID,
 		}
 
@@ -526,7 +525,7 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 			doc.Title = title
 		}
 
-		results[i] = &shared.SearchResult{
+		results[i] = &types.SearchResult{
 			Document: doc,
 			Score:    result.Score,
 		}
@@ -540,7 +539,7 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 }
 
 // convertSharedSearchResults converts shared.SearchResult to local SearchResult
-func convertSharedSearchResults(sharedResults []*shared.SearchResult) []*SearchResult {
+func convertSharedSearchResults(sharedResults []*types.SearchResult) []*SearchResult {
 	results := make([]*SearchResult, len(sharedResults))
 	for i, sharedResult := range sharedResults {
 		// Extract fields from the shared result

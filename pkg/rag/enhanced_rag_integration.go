@@ -14,8 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-
 	"go.uber.org/zap"
 )
 

@@ -14,7 +14,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // PerformanceBenchmarker provides comprehensive performance benchmarking
@@ -244,7 +244,7 @@ type SystemInfo struct {
 type TestDataset struct {
 	Queries         []*TestQuery                      `json:"queries"`
 	ExpectedResults map[string]*ExpectedResult        `json:"expected_results"`
-	GroundTruth     map[string][]*shared.SearchResult `json:"ground_truth"`
+	GroundTruth     map[string][]*types.SearchResult `json:"ground_truth"`
 	QueryComplexity map[string]string                 `json:"query_complexity"`
 }
 
@@ -488,10 +488,10 @@ func (pb *PerformanceBenchmarker) measureBatchQueryLatency(ctx context.Context) 
 		}
 
 		// Create batch of queries
-		queries := make([]*SearchQuery, batchSize)
+		queries := make([]*types.SearchQuery, batchSize)
 		for i := 0; i < batchSize; i++ {
 			testQuery := pb.testData.Queries[i%len(pb.testData.Queries)]
-			queries[i] = &SearchQuery{
+			queries[i] = &types.SearchQuery{
 				Query: testQuery.Query,
 				Limit: 10,
 			}
@@ -714,10 +714,10 @@ func (pb *PerformanceBenchmarker) measureBatchThroughput(ctx context.Context, ba
 		}
 
 		// Create batch
-		queries := make([]*SearchQuery, endIndex-i)
+		queries := make([]*types.SearchQuery, endIndex-i)
 		for j := i; j < endIndex; j++ {
 			testQuery := pb.testData.Queries[j%len(pb.testData.Queries)]
-			queries[j-i] = &SearchQuery{
+			queries[j-i] = &types.SearchQuery{
 				Query: testQuery.Query,
 				Limit: 10,
 			}
@@ -1628,7 +1628,7 @@ func generateTestDataset() *TestDataset {
 	return &TestDataset{
 		Queries:         queries,
 		ExpectedResults: make(map[string]*ExpectedResult),
-		GroundTruth:     make(map[string][]*shared.SearchResult),
+		GroundTruth:     make(map[string][]*types.SearchResult),
 		QueryComplexity: make(map[string]string),
 	}
 }
