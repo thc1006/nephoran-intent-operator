@@ -19,7 +19,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog/v2"
 
-	// "github.com/nephoran/intent-operator/pkg/performance/regression"
+	// "github.com/thc1006/nephoran-intent-operator/pkg/performance/regression"
 )
 
 // TrendAnalyzer interface for trend analysis (simplified for compilation)

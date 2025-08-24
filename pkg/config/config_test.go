@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/nephoran/intent-operator/pkg/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutil"
 )
 
 func TestDefaultConfig(t *testing.T) {
@@ -868,3 +868,8 @@ func TestSpecialLLMTimeoutSecsConversion(t *testing.T) {
 
 // NOTE: The old cleanup functions have been replaced with testutil.NewEnvironmentGuard
 // and testutil.CleanupCommonEnvVars for better test isolation and reliability.
+
+// Helper function for backward compatibility
+func cleanupEnv(t *testing.T) {
+	testutil.CleanupCommonEnvVars(t)
+}

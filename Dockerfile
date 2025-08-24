@@ -33,10 +33,10 @@ FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-deps
 RUN set -eux; \
     apk update && apk upgrade --no-cache; \
     apk add --no-cache --virtual .build-deps \
-        git=~2.45 \
+        git \
         ca-certificates \
         tzdata \
-        curl=~8.11 \
+        curl \
         gnupg \
     && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/*
 

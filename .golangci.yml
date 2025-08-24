@@ -1,8 +1,6 @@
-# golangci-lint config (v2). This file is designed to pass in CI for MVP.
-# It uses the new schema/keys so config verification won't fail.
+# golangci-lint config. This file is designed to pass in CI for MVP.
+# It uses the correct schema/keys so config verification won't fail.
 # Ref: https://golangci-lint.run/docs/configuration/file/
-
-version: "2"
 
 run:
   # Total timeout for the whole run.
@@ -20,9 +18,9 @@ run:
   allow-serial-runners: true
 
 linters:
-  # Start minimal: enable a few safe/default linters.
+  # Start minimal: enable a few safe linters.
   # You can add more later without breaking CI.
-  default: none
+  disable-all: true
   enable:
     - govet
     - staticcheck
@@ -41,13 +39,13 @@ linters-settings:
       - name: receiver-naming
       - name: increment-decrement
 
-# All issue-related filters and exclusions live under "issues" in v2.
+# All issue-related filters and exclusions live under "issues".
 issues:
   # Only flag problems introduced in this branch by default.
-  # （在大型既有專案中非常好用，不會一次炸出歷史債）
+  # This is helpful in large existing projects to avoid flooding with historical debt
   new: false
-  # 如果要只看 PR 相對於 integrate/mvp 的新問題，可把上面改回 true，
-  # 並設 new-from-merge-base: integrate/mvp
+  # To only see PR issues relative to integrate/mvp, set new: true above,
+  # and uncomment the line below:
   # new-from-merge-base: integrate/mvp
 
   # Don't limit counts while we're stabilizing the codebase.
@@ -55,7 +53,7 @@ issues:
   max-same-issues: 0
   uniq-by-line: true
 
-  # v2: Use exclude-rules instead of deprecated exclusions
+  # Use exclude-rules instead of deprecated exclusions
   exclude-rules:
     # Exclude generated files
     - path: "_generated\\.go$"
@@ -70,7 +68,7 @@ issues:
       linters:
         - all
 
-# v2: Output formats for golangci-lint v1.64.x schema
+# Output formats for golangci-lint v1.64.x schema
 output:
   # Support both colored output for terminals and GitHub Actions annotations
   formats:

@@ -190,3 +190,6 @@ require (
 	sigs.k8s.io/kustomize/api v0.19.0
 	sigs.k8s.io/kustomize/kyaml v0.19.0
 )
+
+// Replace problematic dependencies that can't be resolved
+replace github.com/go-viper/mapstructure/v2 => github.com/mitchellh/mapstructure v1.5.0

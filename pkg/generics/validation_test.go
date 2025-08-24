@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/nephoran/intent-operator/pkg/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/testutil"
 )
 
 // Test data structures
