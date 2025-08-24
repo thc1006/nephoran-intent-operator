@@ -61,9 +61,10 @@ jobs:
       - name: Generate Go SBOM with CycloneDX
         run: |
           go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
-          cyclonedx-gomod mod -json -output go-sbom.json
+          cyclonedx-gomod mod -json -output go-sbom.json .
 
       - name: Upload Go SBOM
+        if: always() && hashFiles('go-sbom.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: go-sbom
@@ -120,6 +121,7 @@ jobs:
           cyclonedx-py requirements ${{ matrix.requirements }} --format json --output python-sbom-${{ matrix.requirements }}.json
 
       - name: Upload Python SBOM
+        if: always() && hashFiles('python-sbom-${{ matrix.requirements }}.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: python-sbom-${{ matrix.requirements }}
@@ -170,6 +172,7 @@ jobs:
           ./cyclonedx-linux-x64 merge --input-files go-sbom.json python-sbom-*.json --output-file consolidated-sbom.json
 
       - name: Upload consolidated SBOM
+        if: always() && hashFiles('consolidated-sbom.json') != ''
         uses: actions/upload-artifact@v4
         with:
           name: consolidated-sbom

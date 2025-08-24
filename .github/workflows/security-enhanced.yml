@@ -96,8 +96,8 @@ jobs:
           mkdir -p ${{ env.REPORTS_DIR }}/sbom
           
           # CycloneDX format
-          cyclonedx-gomod mod -json -output-file ${{ env.REPORTS_DIR }}/sbom/sbom-cyclonedx.json
-          cyclonedx-gomod mod -xml -output-file ${{ env.REPORTS_DIR }}/sbom/sbom-cyclonedx.xml
+          cyclonedx-gomod mod -json -output ${{ env.REPORTS_DIR }}/sbom/sbom-cyclonedx.json .
+          cyclonedx-gomod mod -xml -output ${{ env.REPORTS_DIR }}/sbom/sbom-cyclonedx.xml .
           
           # SPDX format with Syft
           syft . -o spdx-json > ${{ env.REPORTS_DIR }}/sbom/sbom-spdx.json
@@ -171,6 +171,7 @@ jobs:
         uses: sigstore/cosign-installer@v3
         
       - name: "Upload Supply Chain Artifacts"
+        if: always() && (hashFiles('${{ env.REPORTS_DIR }}/sbom/*') != '' || hashFiles('${{ env.REPORTS_DIR }}/provenance/*') != '' || hashFiles('${{ env.REPORTS_DIR }}/*.json') != '')
         uses: actions/upload-artifact@v4
         with:
           name: supply-chain-artifacts
@@ -251,12 +252,14 @@ jobs:
           errcheck -ignoretests ./... > ${{ env.REPORTS_DIR }}/errcheck.txt || true
           
       - name: "Upload SARIF Results"
+        if: always() && hashFiles('${{ env.REPORTS_DIR }}/gosec/gosec.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ env.REPORTS_DIR }}/gosec/gosec.sarif
           category: "gosec-enhanced"
           
       - name: "Upload Analysis Reports"
+        if: always() && hashFiles('${{ env.REPORTS_DIR }}/**/*') != ''
         uses: actions/upload-artifact@v4
         with:
           name: static-analysis-reports
@@ -308,7 +311,7 @@ jobs:
             . > ${{ env.REPORTS_DIR }}/secrets/pattern-scan.txt || true
             
       - name: "Upload Secret Detection Reports"
-        if: always()
+        if: always() && hashFiles('${{ env.REPORTS_DIR }}/**/*') != ''
         uses: actions/upload-artifact@v4
         with:
           name: secret-detection-reports
@@ -386,6 +389,7 @@ jobs:
           fi
           
       - name: "Upload Container Security Reports"
+        if: always() && (hashFiles('trivy-results.sarif') != '' || hashFiles('${{ env.REPORTS_DIR }}/**/*') != '')
         uses: actions/upload-artifact@v4
         with:
           name: container-security-reports
@@ -461,6 +465,7 @@ jobs:
           EOF
           
       - name: "Upload Compliance Reports"
+        if: always() && hashFiles('${{ env.REPORTS_DIR }}/compliance/**/*') != ''
         uses: actions/upload-artifact@v4
         with:
           name: compliance-reports
