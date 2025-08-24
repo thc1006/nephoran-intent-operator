@@ -275,7 +275,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
-          args: --version
+          install-mode: goinstall
           skip-cache: true
       
       - name: 🔍 Run Comprehensive Linting
@@ -284,7 +284,7 @@ jobs:
           echo "🔍 Running comprehensive code quality analysis..."
           
           # Run golangci-lint with JSON output
-          golangci-lint run --out-format=json --issues-exit-code=0 \
+          golangci-lint run --timeout=10m --config=.golangci.yml --out-format=json --issues-exit-code=0 \
                            > ${{ env.REPORTS_DIR }}/lint/golangci-lint-report.json 2>&1 || true
           
           # Count issues
@@ -294,7 +294,7 @@ jobs:
           echo "🔍 Found $LINT_ISSUES code quality issues"
           
           # Generate human-readable report
-          golangci-lint run --out-format=colored-line-number \
+          golangci-lint run --timeout=10m --config=.golangci.yml --out-format=colored-line-number \
                            > ${{ env.REPORTS_DIR }}/lint/golangci-lint-report.txt 2>&1 || true
       
       - name: 🔍 Save golangci-lint cache
