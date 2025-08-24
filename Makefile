@@ -214,14 +214,14 @@ vet: ## Run go vet
 	go vet ./...
 
 .PHONY: lint
-lint: ## Run golangci-lint
+lint: ## Run golangci-lint (matches CI configuration)
 	@echo "Running golangci-lint..."
 	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run --config .golangci.yml; \
+		golangci-lint run --config=.golangci.yml --timeout=5m --issues-exit-code=1; \
 	else \
 		echo "Installing golangci-lint..."; \
-		go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; \
-		golangci-lint run --config .golangci.yml; \
+		go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.61.0; \
+		golangci-lint run --config=.golangci.yml --timeout=5m --issues-exit-code=1; \
 	fi
 
 ##@ Testing

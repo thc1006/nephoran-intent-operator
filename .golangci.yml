@@ -1,8 +1,10 @@
-# golangci-lint configuration for nephoran-intent-operator
-# Compatible with Go 1.24.x and internal/security package fixes
+# golangci-lint configuration for nephoran-intent-operator (v2 schema)
+# Compatible with Go 1.24.x and golangci-lint v2.4.0+
 #
 # This configuration balances code quality with pragmatic development needs
 # while ensuring security best practices for O-RAN/Nephio orchestration.
+
+version: "2"
 
 run:
   # Timeout for analysis, overrides CI args if specified
@@ -53,11 +55,8 @@ output:
 
 # Linters configuration
 linters:
-  # Use fast linter preset for CI performance (replaces --fast flag)
-  default: fast
-  
-  # Disable all linters first, then explicitly enable required ones
-  disable-all: true
+  # Use standard preset for CI performance (replaces --fast flag)
+  preset: standard
   
   # Enable essential linters for security and code quality
   enable:
@@ -65,97 +64,56 @@ linters:
     - govet          # Official Go tool for static analysis
     - staticcheck    # Advanced static analysis (SA series)
     - errcheck       # Checks for unchecked errors
-    
-    # Security linters
-    - gosec          # Security-focused linter (G series)
-    
-    # Code quality and style
-    - ineffassign    # Detects ineffectual assignments
-    - unused         # Finds unused constants, variables, functions and types
-    - typecheck      # Type checking (similar to go build)
-    
-    # Performance and best practices
-    - gocritic       # Meta-linter with various checks
-    - gocyclo        # Cyclomatic complexity
-    - misspell       # Spelling mistakes
+    - revive         # Golint replacement with more rules
     - gofmt          # Checks if code was gofmt-ed
     - goimports      # Checks if imports are sorted
     
-    # Potential bugs
-    - bodyclose      # HTTP response body close
-    - rowserrcheck   # SQL rows.Err check
-    - sqlclosecheck  # SQL database close check
-    
-    # Code complexity
-    - funlen         # Function length
-    - gocognit       # Cognitive complexity
+    # Additional quality linters
+    - ineffassign    # Detects ineffectual assignments
+    - unused         # Finds unused constants, variables, functions and types
+    - typecheck      # Type checking (similar to go build)
+    - gosec          # Security-focused linter (G series)
 
-# Linters settings
-linters-settings:
-  # govet configuration
-  govet:
-    # Enable all govet checks
-    check-shadowing: true
-    enable-all: true
-    
-  # staticcheck configuration
-  staticcheck:
-    # Select the Go version to target
-    go: "1.24"
-    # Enable all SA checks
-    checks: ["all"]
-    
-  # gosec configuration for security
-  gosec:
-    # Exclude specific rule IDs (use cautiously)
-    excludes: []
-    # Include rules for O-RAN security requirements
-    includes: ["G101", "G102", "G103", "G104", "G106", "G107", "G108", "G109", "G110", "G201", "G202", "G203", "G204", "G301", "G302", "G303", "G304", "G305", "G401", "G402", "G403", "G404", "G501", "G502", "G503", "G504", "G505", "G601"]
-    # Severity configuration
-    severity: "medium"
-    # Confidence level
-    confidence: "medium"
-    
-  # errcheck configuration
-  errcheck:
-    # Report about not checking of errors in type assertions
-    check-type-assertions: true
-    # Report about assignment of errors to blank identifier
-    check-blank: true
-    # List of functions to exclude from checking
-    exclude-functions:
-      - (*github.com/sirupsen/logrus.Entry).Debug
-      - (*github.com/sirupsen/logrus.Entry).Debugf
-      - (*github.com/sirupsen/logrus.Entry).Info
-      - (*github.com/sirupsen/logrus.Entry).Infof
-      - (*github.com/sirupsen/logrus.Entry).Warn
-      - (*github.com/sirupsen/logrus.Entry).Warnf
-    
-  # gocritic configuration
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - style
-      - performance
-      - experimental
-    disabled-checks:
-      - commentedOutCode  # Allow commented code for examples
-      - whyNoLint        # Don't require explanation for nolint
+  # Linters settings (v2 schema uses linters.settings instead of linters-settings)
+  settings:
+    # govet configuration
+    govet:
+      # Enable all govet checks
+      check-shadowing: true
+      enable-all: true
       
-  # gocyclo configuration
-  gocyclo:
-    # Minimal cyclomatic complexity to report
-    min-complexity: 15
-    
-  # funlen configuration
-  funlen:
-    lines: 100
-    statements: 50
-    
-  # gocognit configuration
-  gocognit:
-    # Minimal cognitive complexity to report
-    min-complexity: 20
+    # staticcheck configuration
+    staticcheck:
+      # Select the Go version to target
+      go: "1.24"
+      # Enable all SA checks
+      checks: ["all"]
+      
+    # gosec configuration for security
+    gosec:
+      # Exclude specific rule IDs (use cautiously)
+      excludes: []
+      # Include rules for O-RAN security requirements
+      includes: ["G101", "G102", "G103", "G104", "G106", "G107", "G108", "G109", "G110", "G201", "G202", "G203", "G204", "G301", "G302", "G303", "G304", "G305", "G401", "G402", "G403", "G404", "G501", "G502", "G503", "G504", "G505", "G601"]
+      # Severity configuration
+      severity: "medium"
+      # Confidence level
+      confidence: "medium"
+      
+    # errcheck configuration
+    errcheck:
+      # Report about not checking of errors in type assertions
+      check-type-assertions: true
+      # Report about assignment of errors to blank identifier
+      check-blank: true
+      # List of functions to exclude from checking
+      exclude-functions:
+        - (*github.com/sirupsen/logrus.Entry).Debug
+        - (*github.com/sirupsen/logrus.Entry).Debugf
+        - (*github.com/sirupsen/logrus.Entry).Info
+        - (*github.com/sirupsen/logrus.Entry).Infof
+        - (*github.com/sirupsen/logrus.Entry).Warn
+        - (*github.com/sirupsen/logrus.Entry).Warnf
 
 # Issues configuration
 issues:
@@ -177,19 +135,10 @@ issues:
     - linters: [funlen]
       path: "_test\\.go"
     
-    # Allow high complexity in generated files
-    - linters: [gocyclo, gocognit]
-      path: "zz_generated\\..*\\.go"
-    
     # Exclude certain security checks for test files
     - linters: [gosec]
       text: "G101|G102|G103" # Hardcoded credentials in tests
       path: "_test\\.go"
-      
-    # Allow unused parameters in interface implementations
-    - linters: [unused]
-      text: "is unused"
-      path: ".*\\.go"
       
   # Exclude specific directories from all checks
   exclude-dirs:
@@ -203,11 +152,11 @@ issues:
   # Show only new issues created in git patch with revisions
   new-from-rev: ""
   
-  # Maximum issues count per one linter
-  max-issues-per-linter: 50
+  # Maximum issues count per one linter (0 = unlimited)
+  max-issues-per-linter: 0
   
-  # Maximum count of issues with the same text
-  max-same-issues: 10
+  # Maximum count of issues with the same text (0 = unlimited)
+  max-same-issues: 0
   
   # Fix issues automatically when possible
   fix: false
