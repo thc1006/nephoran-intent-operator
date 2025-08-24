@@ -425,7 +425,7 @@ func (sv *StatisticalValidator) performPowerAnalysis(currentSampleSize int, stan
 	analysis := &PowerAnalysis{}
 
 	// Calculate power for medium effect size (0.5)
-	effectSize := 0.5
+	effectSize := effectSizes[1] // Use medium effect size
 	analysis.EffectSize = effectSize
 
 	// Simplified power calculation using normal approximation

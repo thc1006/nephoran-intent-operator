@@ -127,9 +127,30 @@ func (po *PerformanceOptimizer) CollectMetrics() *PerformanceMetrics {
 	// Note: CPU usage collection would require additional system monitoring
 	// For now, we'll use a placeholder implementation
 
-	// Return a copy of the metrics
-	metricsCopy := *po.metrics
-	return &metricsCopy
+	// Return a copy of the metrics without the mutex
+	metricsCopy := &PerformanceMetrics{
+		CPUUsage:                po.metrics.CPUUsage,
+		MemoryUsage:             po.metrics.MemoryUsage,
+		GoroutineCount:          po.metrics.GoroutineCount,
+		HeapSize:                po.metrics.HeapSize,
+		GCPauses:                make([]time.Duration, len(po.metrics.GCPauses)),
+		AverageLatency:          po.metrics.AverageLatency,
+		ThroughputRPM:           po.metrics.ThroughputRPM,
+		ErrorRate:               po.metrics.ErrorRate,
+		CacheHitRate:            po.metrics.CacheHitRate,
+		DocumentProcessingTime:  po.metrics.DocumentProcessingTime,
+		EmbeddingGenerationTime: po.metrics.EmbeddingGenerationTime,
+		RetrievalTime:           po.metrics.RetrievalTime,
+		ContextAssemblyTime:     po.metrics.ContextAssemblyTime,
+		OptimizationsApplied:    po.metrics.OptimizationsApplied,
+		LastOptimization:        po.metrics.LastOptimization,
+		PerformanceGain:         po.metrics.PerformanceGain,
+	}
+	
+	// Deep copy slice
+	copy(metricsCopy.GCPauses, po.metrics.GCPauses)
+	
+	return metricsCopy
 }
 
 // OptimizePerformance analyzes current performance and applies optimizations

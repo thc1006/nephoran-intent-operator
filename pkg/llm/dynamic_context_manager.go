@@ -55,12 +55,12 @@ type NetworkState struct {
 	E2Nodes          []E2Node
 	Alarms           []Alarm
 	PerformanceKPIs  map[string]float64
-	Topology         *NetworkTopology
+	Topology         *PhysicalNetworkTopology
 	RecentEvents     []NetworkEvent
 }
 
-// NetworkTopology represents network topology information
-type NetworkTopology struct {
+// PhysicalNetworkTopology represents physical network topology information
+type PhysicalNetworkTopology struct {
 	Sites       []Site
 	Connections []Connection
 	Coverage    []CoverageArea

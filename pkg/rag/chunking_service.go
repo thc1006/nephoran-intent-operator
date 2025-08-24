@@ -1348,9 +1348,28 @@ func (cs *ChunkingService) GetMetrics() *ChunkingMetrics {
 	cs.metrics.mutex.RLock()
 	defer cs.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *cs.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &ChunkingMetrics{
+		TotalDocuments:        cs.metrics.TotalDocuments,
+		TotalChunks:           cs.metrics.TotalChunks,
+		AverageChunksPerDoc:   cs.metrics.AverageChunksPerDoc,
+		AverageChunkSize:      cs.metrics.AverageChunkSize,
+		AverageProcessingTime: cs.metrics.AverageProcessingTime,
+		QualityMetrics:        cs.metrics.QualityMetrics,
+		TypeDistribution:      make(map[string]int64),
+		HierarchyDepthStats:   make(map[int]int64),
+		LastProcessedAt:       cs.metrics.LastProcessedAt,
+	}
+	
+	// Deep copy maps
+	for k, v := range cs.metrics.TypeDistribution {
+		metrics.TypeDistribution[k] = v
+	}
+	for k, v := range cs.metrics.HierarchyDepthStats {
+		metrics.HierarchyDepthStats[k] = v
+	}
+	
+	return metrics
 }
 
 // ChunkDocuments processes multiple documents in parallel

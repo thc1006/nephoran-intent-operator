@@ -148,11 +148,12 @@ type PackageWorkflowEngine interface {
 
 // WorkflowStatus represents the current status of a workflow
 type WorkflowStatus struct {
-	Phase     WorkflowPhase
-	Stage     string
-	Approvers []ApprovalRecord
-	StartTime time.Time
-	EndTime   *time.Time
+	Phase      WorkflowPhase
+	Stage      string
+	Approvers  []ApprovalRecord
+	Conditions []metav1.Condition
+	StartTime  time.Time
+	EndTime    *time.Time
 }
 
 // ApprovalRecord tracks individual approval/rejection actions

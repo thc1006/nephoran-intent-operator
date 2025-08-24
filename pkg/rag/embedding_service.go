@@ -1103,9 +1103,28 @@ func (es *EmbeddingService) GetMetrics() *EmbeddingMetrics {
 	es.metrics.mutex.RLock()
 	defer es.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *es.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &EmbeddingMetrics{
+		TotalRequests:      es.metrics.TotalRequests,
+		SuccessfulRequests: es.metrics.SuccessfulRequests,
+		FailedRequests:     es.metrics.FailedRequests,
+		TotalTexts:         es.metrics.TotalTexts,
+		TotalTokens:        es.metrics.TotalTokens,
+		TotalCost:          es.metrics.TotalCost,
+		AverageLatency:     es.metrics.AverageLatency,
+		AverageTextLength:  es.metrics.AverageTextLength,
+		CacheStats:         es.metrics.CacheStats,
+		RateLimitingStats:  es.metrics.RateLimitingStats,
+		ModelStats:         make(map[string]ModelUsageStats),
+		LastUpdated:        es.metrics.LastUpdated,
+	}
+	
+	// Deep copy map
+	for k, v := range es.metrics.ModelStats {
+		metrics.ModelStats[k] = v
+	}
+	
+	return metrics
 }
 
 // startMetricsCollection starts background metrics collection

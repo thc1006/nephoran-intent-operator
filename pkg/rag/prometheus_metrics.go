@@ -650,7 +650,7 @@ func (pm *PrometheusMetrics) UpdateMemoryCacheMetrics(metrics *MemoryCacheMetric
 	}
 }
 
-func (pm *PrometheusMetrics) UpdateWeaviatePoolMetrics(poolMetrics PoolMetrics) {
+func (pm *PrometheusMetrics) UpdateWeaviatePoolMetrics(poolMetrics *PoolMetrics) {
 	pm.UpdateWeaviatePoolConnections("active", int(poolMetrics.ActiveConnections))
 	pm.UpdateWeaviatePoolConnections("idle", int(poolMetrics.IdleConnections))
 	pm.UpdateWeaviatePoolConnections("total", int(poolMetrics.TotalConnections))

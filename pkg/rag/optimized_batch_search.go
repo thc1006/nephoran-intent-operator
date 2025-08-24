@@ -515,8 +515,17 @@ func (c *OptimizedBatchSearchClient) GetMetrics() *BatchSearchMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 
-	metrics := *c.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &BatchSearchMetrics{
+		TotalBatches:         c.metrics.TotalBatches,
+		TotalQueries:         c.metrics.TotalQueries,
+		AverageLatency:       c.metrics.AverageLatency,
+		ThroughputQPS:        c.metrics.ThroughputQPS,
+		CacheHitRate:         c.metrics.CacheHitRate,
+		ParallelizationRatio: c.metrics.ParallelizationRatio,
+		DeduplicationSavings: c.metrics.DeduplicationSavings,
+	}
+	return metrics
 }
 
 // convertSharedSearchQueries converts types.SearchQuery to local SearchQuery

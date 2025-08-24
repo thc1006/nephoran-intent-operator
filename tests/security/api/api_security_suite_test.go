@@ -260,8 +260,6 @@ func TestSecurityHeaders(t *testing.T) {
 
 // TestTLSEnforcement tests TLS/HTTPS enforcement
 func TestTLSEnforcement(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
-
 	t.Run("TLS_Version_Check", func(t *testing.T) {
 		// Test minimum TLS version
 		tlsVersions := []struct {

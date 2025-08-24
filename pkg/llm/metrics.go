@@ -42,21 +42,6 @@ type GlobalMetrics struct {
 	mutex               sync.RWMutex
 }
 
-// CircuitMetrics tracks circuit breaker performance (consolidated)
-type CircuitMetrics struct {
-	TotalRequests      int64         `json:"total_requests"`
-	SuccessfulRequests int64         `json:"successful_requests"`
-	FailedRequests     int64         `json:"failed_requests"`
-	RejectedRequests   int64         `json:"rejected_requests"`
-	TimeoutRequests    int64         `json:"timeout_requests"`
-	StateTransitions   int64         `json:"state_transitions"`
-	CurrentState       string        `json:"current_state"`
-	LastStateChange    time.Time     `json:"last_state_change"`
-	FailureRate        float64       `json:"failure_rate"`
-	AverageLatency     time.Duration `json:"average_latency"`
-	LastUpdated        time.Time     `json:"last_updated"`
-	mutex              sync.RWMutex
-}
 
 // NewMetricsCollector creates a new unified metrics collector
 func NewMetricsCollector() *MetricsCollector {

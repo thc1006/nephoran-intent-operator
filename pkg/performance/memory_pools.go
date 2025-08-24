@@ -15,7 +15,7 @@ import (
 
 // MemoryPoolManager provides advanced memory management with Go 1.24+ optimizations
 type MemoryPoolManager struct {
-	objectPools map[string]*ObjectPool[any]
+	objectPools map[string]interface{} // Using interface{} for heterogeneous pools
 	ringBuffers map[string]*RingBuffer
 	memStats    *MemoryStats
 	gcOptimizer *GCOptimizer
@@ -131,7 +131,7 @@ func NewMemoryPoolManager(config *MemoryConfig) *MemoryPoolManager {
 	}
 
 	mpm := &MemoryPoolManager{
-		objectPools: make(map[string]*ObjectPool[interface{}]),
+		objectPools: make(map[string]interface{}),
 		ringBuffers: make(map[string]*RingBuffer),
 		memStats:    &MemoryStats{},
 		gcOptimizer: NewGCOptimizer(config.GCTargetPercent),

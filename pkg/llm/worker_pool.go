@@ -823,7 +823,6 @@ func validateWorkerPoolConfig(config *WorkerPoolConfig) error {
 
 // Supporting type definitions
 
-type Priority int
 type TaskType string
 type WorkerType string
 type WorkerState int
@@ -841,11 +840,6 @@ type FastJSONParser struct{}
 type ResponsePool struct{}
 
 const (
-	PriorityUrgent Priority = iota
-	HighPriority
-	NormalPriority
-	LowPriority
-
 	TaskTypeLLMProcessing TaskType = "llm_processing"
 	TaskTypeValidation    TaskType = "validation"
 	TaskTypeCaching       TaskType = "caching"

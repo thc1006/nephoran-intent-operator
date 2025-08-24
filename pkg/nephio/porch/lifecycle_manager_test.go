@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package porch
+package porch_test
 
 import (
 	"context"
@@ -28,7 +28,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
+	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/porch"
 )
 
 // MockLifecycleManager implements lifecycle management for testing

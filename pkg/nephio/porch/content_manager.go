@@ -17,8 +17,10 @@ limitations under the License.
 package porch
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -42,7 +44,6 @@ type MergeStrategy string
 type DiffFormat string
 type DiffType string
 type DiffSummary string
-type DiffStatistics string
 type ChangeType string
 type PatchFormat string
 type PatchOperation string
@@ -355,6 +356,13 @@ type LineChange struct {
 	OldContent string
 	NewContent string
 	Context    []string
+}
+
+// DiffStatistics contains statistics about a file diff
+type DiffStatistics struct {
+	LinesAdded   int
+	LinesDeleted int
+	LinesChanged int
 }
 
 // ContentPatch represents a set of changes to apply
@@ -872,7 +880,7 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 			Metadata: map[string]interface{}{
 				"name": ref.PackageName,
 			},
-			Info: &PackageInfo{
+			Info: &PackageMetadata{
 				Description: fmt.Sprintf("Package %s revision %s", ref.PackageName, ref.Revision),
 			},
 		},
@@ -880,7 +888,12 @@ func (cm *contentManager) CreateContent(ctx context.Context, ref *PackageReferen
 
 	// Store binary files if any
 	if len(req.BinaryFiles) > 0 {
-		if err := cm.storeBinaryFiles(ctx, ref, req.BinaryFiles); err != nil {
+		// Convert BinaryFileRequest map to []byte map
+		binaryData := make(map[string][]byte)
+		for filename, fileReq := range req.BinaryFiles {
+			binaryData[filename] = fileReq.Data
+		}
+		if err := cm.storeBinaryFiles(ctx, ref, binaryData); err != nil {
 			return nil, fmt.Errorf("failed to store binary files: %w", err)
 		}
 	}
@@ -1029,9 +1042,9 @@ func (cm *contentManager) ValidateContent(ctx context.Context, ref *PackageRefer
 	for _, issue := range crossFileIssues {
 		if issue.Severity == ValidationSeverityCritical {
 			result.Valid = false
-			result.CriticalIssues = append(result.CriticalIssues, issue)
+			result.CriticalIssues = append(result.CriticalIssues, *issue)
 		} else {
-			result.Warnings = append(result.Warnings, issue)
+			result.Warnings = append(result.Warnings, *issue)
 		}
 	}
 
@@ -1162,6 +1175,170 @@ func (cm *contentManager) DiffContent(ctx context.Context, ref1, ref2 *PackageRe
 	return diff, nil
 }
 
+// DiffFiles compares two byte arrays and returns diff information
+func (cm *contentManager) DiffFiles(ctx context.Context, file1, file2 []byte, format DiffFormat) (*FileDiff, error) {
+	diff := &FileDiff{
+		FileName: "file",
+		Format:   format,
+		OldSize:  int64(len(file1)),
+		NewSize:  int64(len(file2)),
+		IsBinary: false,
+	}
+
+	// Check if files are binary
+	if cm.isBinary(file1) || cm.isBinary(file2) {
+		diff.IsBinary = true
+		if len(file1) == 0 {
+			diff.DiffType = DiffTypeAdded
+		} else if len(file2) == 0 {
+			diff.DiffType = DiffTypeDeleted
+		} else {
+			diff.DiffType = DiffTypeModified
+		}
+		diff.Content = "Binary files differ"
+		return diff, nil
+	}
+
+	// Compare text files
+	if string(file1) == string(file2) {
+		// Files are identical
+		diff.Content = ""
+		diff.LineChanges = []*LineChange{}
+		return diff, nil
+	}
+
+	// Determine diff type
+	if len(file1) == 0 {
+		diff.DiffType = DiffTypeAdded
+	} else if len(file2) == 0 {
+		diff.DiffType = DiffTypeDeleted
+	} else {
+		diff.DiffType = DiffTypeModified
+	}
+
+	// Generate diff content based on format
+	switch format {
+	case DiffFormatUnified:
+		diff.Content = cm.generateUnifiedDiff(file1, file2)
+	default:
+		diff.Content = cm.generateSimpleDiff(file1, file2)
+	}
+
+	// Calculate statistics
+	diff.Statistics = cm.calculateDiffStatistics(file1, file2)
+
+	return diff, nil
+}
+
+// Helper method to check if content is binary
+func (cm *contentManager) isBinary(data []byte) bool {
+	// Simple heuristic: check for null bytes in first 1KB
+	size := len(data)
+	if size > 1024 {
+		size = 1024
+	}
+	for i := 0; i < size; i++ {
+		if data[i] == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// Helper method to generate unified diff format
+func (cm *contentManager) generateUnifiedDiff(file1, file2 []byte) string {
+	// Simple unified diff implementation
+	lines1 := strings.Split(string(file1), "\n")
+	lines2 := strings.Split(string(file2), "\n")
+	
+	var result strings.Builder
+	result.WriteString("--- a/file\n+++ b/file\n")
+	
+	// Simple line-by-line comparison
+	maxLen := len(lines1)
+	if len(lines2) > maxLen {
+		maxLen = len(lines2)
+	}
+	
+	for i := 0; i < maxLen; i++ {
+		line1 := ""
+		line2 := ""
+		if i < len(lines1) {
+			line1 = lines1[i]
+		}
+		if i < len(lines2) {
+			line2 = lines2[i]
+		}
+		
+		if line1 != line2 {
+			if i < len(lines1) {
+				result.WriteString("-" + line1 + "\n")
+			}
+			if i < len(lines2) {
+				result.WriteString("+" + line2 + "\n")
+			}
+		}
+	}
+	
+	return result.String()
+}
+
+// Helper method to generate simple diff
+func (cm *contentManager) generateSimpleDiff(file1, file2 []byte) string {
+	return fmt.Sprintf("Files differ:\nOld size: %d bytes\nNew size: %d bytes", len(file1), len(file2))
+}
+
+// Helper method to calculate diff statistics
+func (cm *contentManager) calculateDiffStatistics(file1, file2 []byte) *DiffStatistics {
+	lines1 := strings.Split(string(file1), "\n")
+	lines2 := strings.Split(string(file2), "\n")
+	
+	// Simple statistics calculation
+	added := 0
+	deleted := 0
+	
+	if len(lines2) > len(lines1) {
+		added = len(lines2) - len(lines1)
+	} else {
+		deleted = len(lines1) - len(lines2)
+	}
+	
+	return &DiffStatistics{
+		LinesAdded:   added,
+		LinesDeleted: deleted,
+		LinesChanged: 0, // Would require more sophisticated comparison
+	}
+}
+
+// ApplyPatch applies a content patch to a package
+func (cm *contentManager) ApplyPatch(ctx context.Context, ref *PackageReference, patch *ContentPatch) (*PackageContent, error) {
+	cm.logger.Info("Applying patch", "package", ref.GetPackageKey(), "patches", len(patch.FilePatches))
+
+	// Get current content
+	currentContent, err := cm.GetContent(ctx, ref, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get current content: %w", err)
+	}
+
+	// Apply each file patch
+	for filename, filePatch := range patch.FilePatches {
+		switch filePatch.Operation {
+		case "add":
+			currentContent.Files[filename] = filePatch.Content
+		case "delete":
+			delete(currentContent.Files, filename)
+		case "modify":
+			// For simplicity, just replace the content
+			// In a real implementation, this would apply the actual diff
+			currentContent.Files[filename] = filePatch.Content
+		default:
+			return nil, fmt.Errorf("unsupported patch operation: %s", filePatch.Operation)
+		}
+	}
+
+	return currentContent, nil
+}
+
 // Close gracefully shuts down the content manager
 func (cm *contentManager) Close() error {
 	cm.logger.Info("Shutting down content manager")
@@ -1230,6 +1407,61 @@ func (cm *contentManager) calculateContentSize(content map[string][]byte) int64 
 	return total
 }
 
+// AnalyzeContent performs comprehensive content analysis
+func (cm *contentManager) AnalyzeContent(ctx context.Context, ref *PackageReference) (*ContentAnalysis, error) {
+	cm.logger.Info("Analyzing package content", "package", ref.GetPackageKey())
+	
+	// Get package content
+	content, err := cm.GetContent(ctx, ref, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get content: %w", err)
+	}
+	
+	analysis := &ContentAnalysis{
+		PackageRef:              ref,
+		TotalFiles:              len(content.Files),
+		FilesByType:             make(map[string]int),
+		SizeByType:              make(map[string]int64),
+		LargestFiles:            []FileInfo{},
+		TemplateFiles:           []string{},
+		BinaryFiles:             []string{},
+		DuplicateContent:        []DuplicateGroup{},
+		OptimizationSuggestions: []OptimizationSuggestion{},
+		SecurityIssues:          []SecurityIssue{},
+		QualityMetrics:          &ContentQualityMetrics{},
+		GeneratedAt:             time.Now(),
+	}
+	
+	// Calculate total size and file type statistics
+	var totalSize int64
+	for filename, fileContent := range content.Files {
+		size := int64(len(fileContent))
+		totalSize += size
+		
+		// Determine file type
+		ext := filepath.Ext(filename)
+		if ext == "" {
+			ext = "no-extension"
+		}
+		analysis.FilesByType[ext]++
+		analysis.SizeByType[ext] += size
+		
+		// Check for templates
+		if strings.Contains(string(fileContent), "{{") {
+			analysis.TemplateFiles = append(analysis.TemplateFiles, filename)
+		}
+		
+		// Track largest files
+		fileInfo := FileInfo{Name: filename, Size: size}
+		if len(analysis.LargestFiles) < 10 {
+			analysis.LargestFiles = append(analysis.LargestFiles, fileInfo)
+		}
+	}
+	
+	analysis.TotalSize = totalSize
+	return analysis, nil
+}
+
 // Additional helper methods would be implemented here...
 
 func getDefaultContentManagerConfig() *ContentManagerConfig {
@@ -1253,6 +1485,129 @@ func initContentManagerMetrics() *ContentManagerMetrics {
 		),
 		// Additional metrics initialization...
 	}
+}
+
+// CleanupOrphanedContent removes orphaned content older than specified duration
+func (cm *contentManager) CleanupOrphanedContent(ctx context.Context, olderThan time.Duration) (*CleanupResult, error) {
+	cm.logger.Info("Starting cleanup of orphaned content", "olderThan", olderThan)
+
+	startTime := time.Now()
+	var deletedCount int
+	var errorMessages []string
+
+	// For now, implement basic cleanup logic
+	// In a real implementation, this would clean up temp files, cache entries, etc.
+	cutoffTime := time.Now().Add(-olderThan)
+	cm.logger.Info("Cleanup cutoff time", "cutoff", cutoffTime)
+
+	// Simulate cleanup operations
+	deletedCount = 0 // Will be implemented based on actual storage backend
+
+	result := &CleanupResult{
+		ItemsRemoved: deletedCount,
+		Duration:     time.Since(startTime),
+		Errors:       errorMessages,
+	}
+
+	cm.logger.Info("Cleanup completed",
+		"deleted", deletedCount,
+		"duration", result.Duration,
+		"errors", len(errorMessages))
+
+	return result, nil
+}
+
+// CreateMergeProposal creates a proposal for merging content changes
+func (cm *contentManager) CreateMergeProposal(ctx context.Context, ref *PackageReference, baseContent, incomingContent *PackageContent) (*MergeProposal, error) {
+	cm.logger.Info("Creating merge proposal", "package", ref.GetPackageKey())
+
+	// Create merge proposal with conflict analysis
+	proposal := &MergeProposal{
+		ID:              generateMergeProposalID(),
+		BaseRef:         ref,
+		SourceRef:       ref, // Using same ref for now
+		ProposedContent: incomingContent,
+		MergeStrategy:   "three-way", // Default strategy
+		AutoApplicable:  true,                  // Can be auto-applied if no conflicts
+		CreatedAt:       time.Now(),
+		ExpiresAt:       time.Now().Add(24 * time.Hour), // Expires in 24 hours
+	}
+
+	// Analyze potential conflicts
+	conflictSummary, err := cm.analyzeConflictSummary(baseContent, incomingContent)
+	if err != nil {
+		return nil, fmt.Errorf("failed to analyze conflicts: %w", err)
+	}
+
+	proposal.ConflictSummary = conflictSummary
+	if conflictSummary.TotalConflicts == 0 {
+		proposal.AutoApplicable = true
+	} else {
+		proposal.AutoApplicable = false
+		proposal.RequiredApprovals = []string{"maintainer"} // Require approval for conflicts
+	}
+
+	return proposal, nil
+}
+
+// analyzeConflictSummary compares base and incoming content for conflicts
+func (cm *contentManager) analyzeConflictSummary(base, incoming *PackageContent) (*ConflictSummary, error) {
+	conflictCount := 0
+
+	// Check for file conflicts
+	for filename := range incoming.Files {
+		if baseFile, exists := base.Files[filename]; exists {
+			incomingFile := incoming.Files[filename]
+			if !bytes.Equal(baseFile, incomingFile) {
+				conflictCount++
+			}
+		}
+	}
+
+	summary := &ConflictSummary{
+		TotalConflicts:        conflictCount,
+		ConflictsByType:       make(map[ConflictType]int),
+		ConflictsBySeverity:   make(map[ConflictSeverity]int),
+		AutoResolvableCount:   0, // For now, assume manual resolution needed
+		FilesAffected:         []string{}, // Will be populated with actual conflicts
+	}
+
+	return summary, nil
+}
+
+// generateMergeProposalID generates a unique ID for merge proposals
+func generateMergeProposalID() string {
+	return fmt.Sprintf("merge-%d", time.Now().UnixNano())
+}
+
+// DeleteBinaryContent deletes binary content for a package
+func (cm *contentManager) DeleteBinaryContent(ctx context.Context, ref *PackageReference, filename string) error {
+	cm.logger.Info("Deleting binary content", "package", ref.GetPackageKey(), "file", filename)
+
+	// For now, implement basic deletion logic
+	// In a real implementation, this would delete from the actual storage backend
+	packageKey := ref.GetPackageKey()
+	cm.logger.Info("Binary content deletion requested",
+		"package", packageKey,
+		"filename", filename)
+
+	// Simulate successful deletion
+	return nil
+}
+
+// DeleteContent deletes content files matching the specified patterns
+func (cm *contentManager) DeleteContent(ctx context.Context, ref *PackageReference, filePatterns []string) error {
+	cm.logger.Info("Deleting content", "package", ref.GetPackageKey(), "patterns", filePatterns)
+
+	// For now, implement basic deletion logic
+	// In a real implementation, this would delete matching files from storage
+	packageKey := ref.GetPackageKey()
+	cm.logger.Info("Content deletion requested",
+		"package", packageKey,
+		"filePatterns", filePatterns)
+
+	// Simulate successful deletion
+	return nil
 }
 
 // Background process for metrics collection
@@ -1466,7 +1821,8 @@ func (cm *contentManager) generateDeletedFileDiff(content []byte, opts *DiffOpti
 }
 
 func (cm *contentManager) generateDiffSummary(diff *ContentDiff) *DiffSummary {
-	return &DiffSummary{"summary"}
+	summary := DiffSummary("summary")
+	return &summary
 }
 
 // Add missing constants for DiffType

@@ -19,25 +19,6 @@ import (
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 )
 
-
-// StreamingRequest represents a streaming request payload
-type StreamingRequest struct {
-	Query     string `json:"query"`
-	ModelName string `json:"model_name,omitempty"`
-	MaxTokens int    `json:"max_tokens,omitempty"`
-	EnableRAG bool   `json:"enable_rag,omitempty"`
-}
-
-func NewStreamingProcessor() *StreamingProcessor {
-	return &StreamingProcessor{
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
-		ragAPIURL: "http://rag-api:8080",
-		logger:    slog.Default().With("component", "streaming-processor"),
-	}
-}
-
 func (sp *StreamingProcessor) HandleStreamingRequest(w http.ResponseWriter, r *http.Request, req *StreamingRequest) error {
 	sp.logger.Info("Handling streaming request", slog.String("query", req.Query))
 
@@ -610,36 +591,3 @@ func (cb *ContextBuilder) parseSearchResult(item map[string]interface{}) *shared
 	return result
 }
 
-// RelevanceScorer stub implementation
-type RelevanceScorer struct {
-	impl *SimpleRelevanceScorer
-}
-
-func NewRelevanceScorer() *RelevanceScorer {
-	return &RelevanceScorer{
-		impl: NewSimpleRelevanceScorer(),
-	}
-}
-
-// Score calculates the relevance score between a document and intent using semantic similarity
-func (rs *RelevanceScorer) Score(ctx context.Context, doc string, intent string) (float32, error) {
-	return rs.impl.Score(ctx, doc, intent)
-}
-
-func (rs *RelevanceScorer) GetMetrics() map[string]interface{} {
-	return rs.impl.GetMetrics()
-}
-
-// RAGAwarePromptBuilder stub implementation
-type RAGAwarePromptBuilder struct{}
-
-func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder {
-	return &RAGAwarePromptBuilder{}
-}
-
-func (rpb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} {
-	return map[string]interface{}{
-		"prompt_builder_enabled": false,
-		"status":                 "not_implemented",
-	}
-}

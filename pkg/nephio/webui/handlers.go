@@ -152,6 +152,7 @@ func (h *PackageHandlers) DeletePackage(w http.ResponseWriter, r *http.Request) 
 	packageID := vars["id"]
 
 	// TODO: Implement package deletion logic with Nephio Porch
+	h.logger.Info("Delete package requested", zap.String("packageID", packageID))
 
 	w.WriteHeader(http.StatusNoContent)
 }

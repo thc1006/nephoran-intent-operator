@@ -725,8 +725,6 @@ func (p *PredefinedExperiments) RunExperimentSuite(ctx context.Context, suite *E
 		zap.String("suite", suite.Name),
 		zap.Int("experiments", len(suite.Experiments)))
 
-	results := make([]*ExperimentResult, 0, len(suite.Experiments))
-
 	switch suite.RunSequence {
 	case RunSequenceSerial:
 		return p.runSerialExperiments(ctx, suite.Experiments)

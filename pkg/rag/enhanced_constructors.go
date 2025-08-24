@@ -42,12 +42,22 @@ func NewEnhancedCostManager(limits EnhancedCostLimits) *EnhancedCostManager {
 
 	// Create enhanced version by embedding the base type data
 	enhanced := &EnhancedCostManager{
-		dailySpend:   baseCostManager.dailySpend,
-		monthlySpend: baseCostManager.monthlySpend,
+		dailySpend:   make(map[string]float64),
+		monthlySpend: make(map[string]float64),
 		limits:       limits,
 		alerts:       []EnhancedCostAlert{}, // Convert alerts when needed
-		mutex:        baseCostManager.mutex,
+		// Don't copy mutex - initialize a new one
 	}
+	
+	// Copy the data from base manager without copying the mutex
+	baseCostManager.mutex.RLock()
+	for k, v := range baseCostManager.dailySpend {
+		enhanced.dailySpend[k] = v
+	}
+	for k, v := range baseCostManager.monthlySpend {
+		enhanced.monthlySpend[k] = v
+	}
+	baseCostManager.mutex.RUnlock()
 
 	return enhanced
 }

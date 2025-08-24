@@ -294,8 +294,20 @@ func newFastHTTPConnectionPool(config *ConnectionPoolConfig, logger *slog.Logger
 
 	// Pre-warm the connection pool
 	for i := 0; i < config.PoolSize; i++ {
-		clientCopy := *client
-		pool.connections <- &clientCopy
+		// Create a new client instead of copying to avoid copying noCopy field
+		newClient := &fasthttp.Client{
+			MaxConnsPerHost:               client.MaxConnsPerHost,
+			MaxIdleConnDuration:           client.MaxIdleConnDuration,
+			MaxConnDuration:               client.MaxConnDuration,
+			MaxConnWaitTimeout:            client.MaxConnWaitTimeout,
+			ReadTimeout:                   client.ReadTimeout,
+			WriteTimeout:                  client.WriteTimeout,
+			MaxResponseBodySize:           client.MaxResponseBodySize,
+			DisableHeaderNamesNormalizing: client.DisableHeaderNamesNormalizing,
+			DisablePathNormalizing:        client.DisablePathNormalizing,
+			NoDefaultUserAgentHeader:      client.NoDefaultUserAgentHeader,
+		}
+		pool.connections <- newClient
 	}
 
 	return pool
@@ -640,8 +652,21 @@ func (p *OptimizedConnectionPool) GetMetrics() *ConnectionPoolMetrics {
 	p.metrics.mutex.RLock()
 	defer p.metrics.mutex.RUnlock()
 
-	metrics := *p.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &ConnectionPoolMetrics{
+		ActiveConnections:    p.metrics.ActiveConnections,
+		IdleConnections:      p.metrics.IdleConnections,
+		TotalConnections:     p.metrics.TotalConnections,
+		FailedConnections:    p.metrics.FailedConnections,
+		ConnectionsCreated:   p.metrics.ConnectionsCreated,
+		ConnectionsDestroyed: p.metrics.ConnectionsDestroyed,
+		AverageResponseTime:  p.metrics.AverageResponseTime,
+		ConnectionPoolHits:   p.metrics.ConnectionPoolHits,
+		ConnectionPoolMisses: p.metrics.ConnectionPoolMisses,
+		CircuitBreakerTrips:  p.metrics.CircuitBreakerTrips,
+		LoadBalancerSwitches: p.metrics.LoadBalancerSwitches,
+	}
+	return metrics
 }
 
 // GetJSONCodecMetrics returns JSON codec metrics
@@ -649,8 +674,20 @@ func (p *OptimizedConnectionPool) GetJSONCodecMetrics() *JSONCodecMetrics {
 	p.jsonCodec.metrics.mutex.RLock()
 	defer p.jsonCodec.metrics.mutex.RUnlock()
 
-	metrics := *p.jsonCodec.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &JSONCodecMetrics{
+		TotalEncodes:        p.jsonCodec.metrics.TotalEncodes,
+		TotalDecodes:        p.jsonCodec.metrics.TotalDecodes,
+		AverageEncodeTime:   p.jsonCodec.metrics.AverageEncodeTime,
+		AverageDecodeTime:   p.jsonCodec.metrics.AverageDecodeTime,
+		BytesEncoded:        p.jsonCodec.metrics.BytesEncoded,
+		BytesDecoded:        p.jsonCodec.metrics.BytesDecoded,
+		CompressionSavings:  p.jsonCodec.metrics.CompressionSavings,
+		PoolHitRate:         p.jsonCodec.metrics.PoolHitRate,
+		StreamingOperations: p.jsonCodec.metrics.StreamingOperations,
+		ValidationErrors:    p.jsonCodec.metrics.ValidationErrors,
+	}
+	return metrics
 }
 
 // Close closes the connection pool and all connections

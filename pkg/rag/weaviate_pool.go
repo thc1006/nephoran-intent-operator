@@ -419,7 +419,7 @@ func (p *WeaviateConnectionPool) ExecuteWithRetry(ctx context.Context, fn func(*
 }
 
 // GetMetrics returns current pool metrics
-func (p *WeaviateConnectionPool) GetMetrics() PoolMetrics {
+func (p *WeaviateConnectionPool) GetMetrics() *PoolMetrics {
 	p.metrics.mu.RLock()
 	defer p.metrics.mu.RUnlock()
 
@@ -428,12 +428,22 @@ func (p *WeaviateConnectionPool) GetMetrics() PoolMetrics {
 	idleCount := int64(len(p.connections))
 	p.mu.RUnlock()
 
-	metrics := *p.metrics
-	metrics.ActiveConnections = activeCount
-	metrics.IdleConnections = idleCount
-	metrics.TotalConnections = activeCount + idleCount
-
-	return metrics
+	// Return a copy without the mutex
+	metrics := PoolMetrics{
+		TotalConnections:     activeCount + idleCount,
+		ActiveConnections:    activeCount,
+		IdleConnections:      idleCount,
+		ConnectionsCreated:   p.metrics.ConnectionsCreated,
+		ConnectionsDestroyed: p.metrics.ConnectionsDestroyed,
+		ConnectionRequests:   p.metrics.ConnectionRequests,
+		ConnectionFailures:   p.metrics.ConnectionFailures,
+		HealthCheckPassed:    p.metrics.HealthCheckPassed,
+		HealthCheckFailed:    p.metrics.HealthCheckFailed,
+		AverageLatency:       p.metrics.AverageLatency,
+		TotalLatency:         p.metrics.TotalLatency,
+	}
+	
+	return &metrics
 }
 
 // GetConnectionInfo returns information about all connections

@@ -102,20 +102,6 @@ const (
 	StatusCancelled StreamingStatus = "cancelled"
 )
 
-// StreamingRequest represents a request for streaming processing
-type StreamingRequest struct {
-	Query       string                 `json:"query"`
-	IntentType  string                 `json:"intent_type"`
-	ModelName   string                 `json:"model_name"`
-	MaxTokens   int                    `json:"max_tokens"`
-	Temperature float32                `json:"temperature"`
-	Context     string                 `json:"context,omitempty"`
-	EnableRAG   bool                   `json:"enable_rag"`
-	SessionID   string                 `json:"session_id,omitempty"`
-	ClientID    string                 `json:"client_id,omitempty"`
-	Metadata    map[string]interface{} `json:"metadata,omitempty"`
-}
-
 // StreamingChunk represents a chunk of streaming data
 type StreamingChunk struct {
 	Type       string                 `json:"type"`

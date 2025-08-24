@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch/testutil"
+	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/porch"
 )
 
 // TestClientCreation tests client creation scenarios

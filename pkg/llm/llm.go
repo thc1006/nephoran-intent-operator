@@ -74,14 +74,14 @@ type LegacyResponseCache struct {
 
 // CacheEntry is now defined in pkg/shared/types/common_types.go
 
-// ValidationError represents a validation error with missing fields
-type ValidationError struct {
+// FieldValidationError represents a validation error with missing fields
+type FieldValidationError struct {
 	Message       string   `json:"message"`
 	MissingFields []string `json:"missing_fields"`
 }
 
 // Error implements the error interface
-func (ve *ValidationError) Error() string {
+func (ve *FieldValidationError) Error() string {
 	if len(ve.MissingFields) == 0 {
 		return ve.Message
 	}
@@ -271,116 +271,6 @@ func NewLegacyResponseCache(ttl time.Duration, maxSize int) *LegacyResponseCache
 	return cache
 }
 
-// cleanup removes expired cache entries
-func (c *ResponseCache) cleanup() {
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-c.stopCh:
-			// Graceful shutdown signal received
-			return
-		case <-ticker.C:
-			// Check if we've been stopped during the cleanup operation
-			c.mutex.RLock()
-			if c.stopped {
-				c.mutex.RUnlock()
-				return
-			}
-			c.mutex.RUnlock()
-
-			// Perform cleanup
-			c.mutex.Lock()
-			now := time.Now()
-			for key, entry := range c.entries {
-				if now.Sub(entry.Timestamp) > c.ttl {
-					delete(c.entries, key)
-				}
-			}
-			c.mutex.Unlock()
-		}
-	}
-}
-
-// Get retrieves a cached response
-func (c *ResponseCache) Get(key string) (string, bool) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	// Return false if cache is stopped
-	if c.stopped {
-		return "", false
-	}
-
-	entry, exists := c.entries[key]
-	if !exists {
-		return "", false
-	}
-
-	if time.Since(entry.Timestamp) > c.ttl {
-		return "", false
-	}
-
-	entry.HitCount++
-	entry.LastAccess = time.Now() // Update access time for LRU
-	return entry.Response, true
-}
-
-// Set stores a response in cache with LRU eviction
-func (c *ResponseCache) Set(key, response string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	// Don't set if cache is stopped
-	if c.stopped {
-		return
-	}
-
-	// LRU eviction when capacity is exceeded
-	for len(c.entries) >= c.maxSize {
-		// Find the least recently used entry (oldest LastAccess)
-		lruKey := ""
-		lruTime := time.Now()
-
-		for k, v := range c.entries {
-			// Use LastAccess if available, otherwise use Timestamp
-			accessTime := v.Timestamp
-			if !v.LastAccess.IsZero() {
-				accessTime = v.LastAccess
-			}
-
-			if accessTime.Before(lruTime) {
-				lruTime = accessTime
-				lruKey = k
-			}
-		}
-
-		if lruKey != "" {
-			delete(c.entries, lruKey)
-		}
-	}
-
-	now := time.Now()
-	c.entries[key] = &types.CacheEntry{
-		Response:   response,
-		Timestamp:  now,
-		LastAccess: now, // Initialize LastAccess
-		HitCount:   0,
-	}
-}
-
-// Stop gracefully shuts down the cache cleanup goroutine
-func (c *ResponseCache) Stop() {
-	c.stopOnce.Do(func() {
-		c.mutex.Lock()
-		c.stopped = true
-		c.mutex.Unlock()
-
-		// Signal the cleanup goroutine to stop
-		close(c.stopCh)
-	})
-}
 
 // GetMetrics returns current client metrics
 func (c *LegacyClient) GetMetrics() LegacyClientMetrics {

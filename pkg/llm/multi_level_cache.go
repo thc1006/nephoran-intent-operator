@@ -17,14 +17,14 @@ import (
 type MultiLevelCache struct {
 	l1Cache *InMemoryCache
 	l2Cache RedisCache
-	config  *CacheConfig
+	config  *MultiLevelCacheConfig
 	logger  *slog.Logger
-	metrics *CacheMetrics
+	metrics *MultiLevelCacheMetrics
 	mutex   sync.RWMutex
 }
 
-// CacheConfig holds configuration for the multi-level cache
-type CacheConfig struct {
+// MultiLevelCacheConfig holds configuration for the multi-level cache
+type MultiLevelCacheConfig struct {
 	// L1 Cache (In-Memory)
 	L1MaxSize        int           `json:"l1_max_size"`
 	L1TTL            time.Duration `json:"l1_ttl"`
@@ -55,8 +55,8 @@ type CacheConfig struct {
 	PromptPrefix  string `json:"prompt_prefix"`
 }
 
-// CacheMetrics tracks cache performance across levels
-type CacheMetrics struct {
+// MultiLevelCacheMetrics tracks cache performance across levels
+type MultiLevelCacheMetrics struct {
 	// L1 Metrics
 	L1Hits      int64 `json:"l1_hits"`
 	L1Misses    int64 `json:"l1_misses"`
@@ -119,7 +119,7 @@ type EvictionNode struct {
 }
 
 // NewMultiLevelCache creates a new multi-level cache
-func NewMultiLevelCache(config *CacheConfig, redisCache RedisCache) *MultiLevelCache {
+func NewMultiLevelCache(config *MultiLevelCacheConfig, redisCache RedisCache) *MultiLevelCache {
 	if config == nil {
 		config = getDefaultCacheConfig()
 	}
@@ -134,8 +134,8 @@ func NewMultiLevelCache(config *CacheConfig, redisCache RedisCache) *MultiLevelC
 }
 
 // getDefaultCacheConfig returns default cache configuration
-func getDefaultCacheConfig() *CacheConfig {
-	return &CacheConfig{
+func getDefaultCacheConfig() *MultiLevelCacheConfig {
+	return &MultiLevelCacheConfig{
 		L1MaxSize:            1000,
 		L1TTL:                15 * time.Minute,
 		L1EvictionPolicy:     "LRU",

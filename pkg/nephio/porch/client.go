@@ -56,11 +56,13 @@ type ClientConfig struct {
 
 // AuthConfig defines authentication configuration
 type AuthConfig struct {
-	Type       string // kubeconfig, bearer, basic
+	Type       string            // kubeconfig, bearer, basic
 	Token      string
 	Username   string
 	Password   string
 	Kubeconfig string
+	SecretRef  *SecretReference
+	Headers    map[string]string
 }
 
 // ClientTLSConfig defines TLS configuration
@@ -164,7 +166,7 @@ func (c *ClientConfig) GetKubernetesConfig() (*rest.Config, error) {
 
 // DefaultPorchConfig returns default Porch configuration
 func DefaultPorchConfig() *ClientConfig {
-	return &Config{
+	return &ClientConfig{
 		PorchConfig: &PorchConfig{
 			DefaultNamespace:  "default",
 			DefaultRepository: "default",

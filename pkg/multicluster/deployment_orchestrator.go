@@ -68,8 +68,7 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 				wg.Done()
 			}()
 
-			deploymentStart := time.Now()
-			deploymentResult, err := pdo.deployToCluster(ctx, packageName, t, options)
+			_, err := pdo.deployToCluster(ctx, packageName, t, options)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -192,7 +191,7 @@ func (pdo *PackageDeploymentOrchestrator) rollbackFailedDeployments(
 	result *PropagationResult,
 ) {
 	for _, clusterID := range result.FailedDeployments {
-		cluster, err := pdo.clusterRegistry.GetCluster(clusterID)
+		_, err := pdo.clusterRegistry.GetCluster(clusterID)
 		if err != nil {
 			pdo.logger.Error("Failed to get cluster for rollback",
 				zap.String("clusterID", clusterID),

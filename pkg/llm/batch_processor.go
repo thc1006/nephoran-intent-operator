@@ -43,31 +43,6 @@ type BatchProcessor struct {
 	metricsMutex       sync.RWMutex
 }
 
-// BatchRequest represents a request to be processed in a batch
-type BatchRequest struct {
-	ID         string
-	Intent     string
-	IntentType string
-	ModelName  string
-	Priority   Priority
-	Context    context.Context
-	ResultChan chan *BatchResult
-	Metadata   map[string]interface{}
-	SubmitTime time.Time
-	Timeout    time.Duration
-}
-
-// BatchResult represents the result of a batch request
-type BatchResult struct {
-	RequestID   string
-	Response    string
-	Error       error
-	ProcessTime time.Duration
-	BatchID     string
-	BatchSize   int
-	QueueTime   time.Duration
-}
-
 // Batch represents a collection of requests to be processed together
 type Batch struct {
 	ID          string

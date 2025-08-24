@@ -79,15 +79,15 @@ type PerformanceMetrics struct {
 type PerformanceConfig struct {
 	LatencyBufferSize     int                  `json:"latency_buffer_size"`
 	OptimizationInterval  time.Duration        `json:"optimization_interval"`
-	CircuitBreakerConfig  CircuitBreakerConfig `json:"circuit_breaker"`
+	CircuitBreakerConfig  PerformanceCircuitBreakerConfig `json:"circuit_breaker"`
 	BatchProcessingConfig BatchConfig          `json:"batch_processing"`
 	MetricsExportInterval time.Duration        `json:"metrics_export_interval"`
 	EnableTracing         bool                 `json:"enable_tracing"`
 	TraceSamplingRatio    float64              `json:"trace_sampling_ratio"`
 }
 
-// CircuitBreakerConfig holds advanced circuit breaker configuration
-type CircuitBreakerConfig struct {
+// PerformanceCircuitBreakerConfig holds advanced circuit breaker configuration for performance optimizer
+type PerformanceCircuitBreakerConfig struct {
 	FailureThreshold      int           `json:"failure_threshold"`
 	SuccessThreshold      int           `json:"success_threshold"`
 	Timeout               time.Duration `json:"timeout"`
@@ -126,7 +126,14 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	po.initializeMetrics()
 
 	// Initialize circuit breaker
-	po.circuitBreaker = NewAdvancedCircuitBreaker(config.CircuitBreakerConfig)
+	// Convert to regular CircuitBreakerConfig for the circuit breaker
+	cbConfig := &CircuitBreakerConfig{
+		FailureThreshold:    config.CircuitBreakerConfig.FailureThreshold,
+		SuccessThreshold:    config.CircuitBreakerConfig.SuccessThreshold,
+		Timeout:             config.CircuitBreakerConfig.Timeout,
+		MaxRequests:         config.CircuitBreakerConfig.MaxConcurrentRequests,
+	}
+	po.circuitBreaker = NewAdvancedCircuitBreaker(cbConfig)
 
 	// Initialize batch processor
 	po.batchProcessor = NewBatchProcessor(config.BatchProcessingConfig)
@@ -145,7 +152,7 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 		MetricsExportInterval: 30 * time.Second,
 		EnableTracing:         true,
 		TraceSamplingRatio:    0.1,
-		CircuitBreakerConfig: CircuitBreakerConfig{
+		CircuitBreakerConfig: PerformanceCircuitBreakerConfig{
 			FailureThreshold:      5,
 			SuccessThreshold:      3,
 			Timeout:               30 * time.Second,
