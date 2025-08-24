@@ -349,7 +349,11 @@ func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface
 		entry.Value = serializedValue
 	}
 
-	entry.Size = int64(len(entry.Value))
+	if valueBytes, ok := entry.Value.([]byte); ok {
+		entry.Size = int64(len(valueBytes))
+	} else {
+		entry.Size = int64(len(serializedValue))
+	}
 	entry.SerializationType = opts.Serialization
 
 	// Calculate TTL with adaptive policy
@@ -592,7 +596,17 @@ func NewDependencyGraph() *DependencyGraph                            { return &
 func (dg *DependencyGraph) AddDependencies(key string, deps []string) {}
 
 func NewPatternAnalyzer() *PatternAnalyzer { return &PatternAnalyzer{} }
-func NewCacheMetrics() *CacheMetrics       { return &CacheMetrics{} }
+type CacheMetrics struct {
+	hits       int64
+	misses     int64
+	operations map[string]time.Duration
+}
+
+func NewCacheMetrics() *CacheMetrics { 
+	return &CacheMetrics{
+		operations: make(map[string]time.Duration),
+	} 
+}
 
 func (cm *CacheMetrics) RecordOperation(op string, duration time.Duration) {}
 func (cm *CacheMetrics) RecordHit(level string)                            {}

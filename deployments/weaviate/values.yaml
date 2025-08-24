@@ -1,51 +1,135 @@
+# ==============================================================================
+# Weaviate Vector Database Configuration
+# ==============================================================================
+# This values file configures Weaviate for production deployments in the
+# Nephoran Intent Operator ecosystem. Weaviate provides vector storage and
+# semantic search capabilities for the RAG (Retrieval-Augmented Generation)
+# pipeline, enabling context-aware intent processing.
+#
+# Key Features:
+# - Vector embeddings storage for telecom domain knowledge
+# - Semantic similarity search for intent matching
+# - Multi-tenant support for isolated workspaces
+# - High-performance vector operations with HNSW indexing
+# - Production-grade security and compliance features
 
-# Security hardening
+# ==============================================================================
+# Security Hardening Configuration
+# ==============================================================================
+# Comprehensive security settings for production deployments
+# Ensures compliance with enterprise security requirements
+
 security:
-  # Pod security standards
+  # Pod security standards implementation
+  # Controls the security context for Weaviate pods
   podSecurity:
+    # Enable pod security policies/standards
     enabled: true
+    
+    # Security standard level: "privileged", "baseline", or "restricted"
+    # "restricted" provides maximum security isolation
     standard: "restricted"
+    
+    # Enforce the security standard (vs. audit/warn only)
     enforce: true
-  # Network security
+  # Network security configuration
+  # Protects data in transit and at rest
   networkSecurity:
+    # Enable network security features
     enabled: true
+    
+    # Encryption settings for data protection
     encryption:
+      # Encrypt all network traffic (TLS/SSL)
       inTransit: true
+      
+      # Encrypt data stored on disk
       atRest: true
+    
+    # Minimum TLS version for secure connections
+    # TLS 1.3 provides the best security and performance
     tlsVersion: "1.3"
-  # Authentication and authorization
+  # Authentication and authorization configuration
+  # Controls access to Weaviate APIs and data
   auth:
-    # API key management
+    # API key management for service authentication
     apiKey:
+      # Automatic key rotation for enhanced security
       rotation:
+        # Enable automatic API key rotation
         enabled: true
+        
+        # Rotation interval (90 days recommended for compliance)
         interval: "90d"
+      
+      # API key complexity requirements
       complexity:
+        # Minimum key length in characters
         length: 32
+        
+        # Character set for key generation
+        # Options: "alphanumeric", "alphanumeric+symbols"
         characters: "alphanumeric+symbols"
-    # OAuth2 integration
+    # OAuth2 integration for user authentication
+    # Provides SSO and federated identity management
     oauth2:
+      # Enable OAuth2 authentication
+      # Set to true for production deployments with SSO
       enabled: false  # Disabled for initial deployment
+      
+      # OAuth2 provider configuration
+      # Supported: "keycloak", "okta", "auth0", "azure-ad"
       provider: "keycloak"
-    # mTLS for service-to-service communication
+    # mTLS (Mutual TLS) for service-to-service communication
+    # Provides bidirectional authentication between services
     mtls:
+      # Enable mTLS for all internal communications
       enabled: true
+      
+      # Certificate Authority name for certificate validation
       ca: "nephoran-ca"
+      
+      # Automatic certificate rotation before expiry
       autoRotation: true
-  # Vulnerability scanning
+  # Vulnerability scanning configuration
+  # Regular security scans for compliance and threat detection
   scanning:
+    # Enable automated vulnerability scanning
     enabled: true
+    
+    # Scan schedule in cron format
+    # Default: Daily at 6 AM UTC
     schedule: "0 6 * * *"  # Daily at 6 AM
+    
+    # Minimum severity level to report
+    # Options: "low", "medium", "high", "critical"
     severity: "medium"     # Minimum severity to report
-  # Compliance
+  # Compliance and audit configuration
+  # Ensures adherence to regulatory requirements
   compliance:
+    # Enable compliance features and reporting
     enabled: true
+    
+    # List of compliance standards to enforce
+    # Add standards as required by your organization
     standards:
-      - "SOC2"
-      - "ISO27001"
+      - "SOC2"      # Service Organization Control 2
+      - "ISO27001"  # Information Security Management
+    
+    # Audit logging configuration
     audit:
+      # Enable comprehensive audit logging
       enabled: true
+      
+      # Audit log retention period
+      # Adjust based on regulatory requirements
       retention: "7y"
+
+# ==============================================================================
+# Performance Tuning Configuration
+# ==============================================================================
+# Optimizes Weaviate for high-throughput vector operations
+# Settings are tuned for telecom workloads and large-scale deployments
 
 # Performance tuning
 performance:

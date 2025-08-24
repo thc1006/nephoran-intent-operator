@@ -555,7 +555,7 @@ func (c *SpecializedResourcePlanningController) parseNetworkFunctions(llmRespons
 		for i, nfInterface := range nfs {
 			nf, err := c.parseNetworkFunction(nfInterface, i)
 			if err != nil {
-				c.Logger.Warn("Failed to parse network function", "index", i, "error", err)
+				c.Logger.Info("Failed to parse network function", "index", i, "error", err)
 				continue
 			}
 			networkFunctions = append(networkFunctions, *nf)
@@ -1636,7 +1636,7 @@ func (s *ResourceConstraintSolver) ValidateConstraints(ctx context.Context, plan
 	}
 
 	if len(violations) > 0 {
-		s.logger.Warn("Soft constraints violated", "violations", violations)
+		s.logger.Info("Soft constraints violated", "violations", violations)
 	}
 
 	return nil

@@ -110,8 +110,8 @@ func (sm *SecretManager) GetSecret(ctx context.Context, key string) (string, err
 	return "", fmt.Errorf("secret %s not found in environment", key)
 }
 
-// SecurityHeaders adds security headers to HTTP responses
-func SecurityHeaders(next http.Handler) http.Handler {
+// SecurityHeadersMiddleware adds security headers to HTTP responses
+func SecurityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Security headers
 		w.Header().Set("X-Content-Type-Options", "nosniff")

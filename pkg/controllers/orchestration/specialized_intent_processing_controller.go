@@ -522,7 +522,7 @@ func (c *SpecializedIntentProcessingController) parseValidateLLMResponse(respons
 	requiredFields := []string{"network_functions", "deployment_pattern", "resources"}
 	for _, field := range requiredFields {
 		if _, exists := result[field]; !exists {
-			c.Logger.Warn("Missing required field in LLM response", "field", field)
+			c.Logger.Info("Missing required field in LLM response", "field", field)
 		}
 	}
 
@@ -869,7 +869,7 @@ func (c *SpecializedIntentProcessingController) Stop(ctx context.Context) error 
 
 		select {
 		case <-timeout.C:
-			c.Logger.Warn("Timeout waiting for active processing to complete", "activeCount", activeCount)
+			c.Logger.Info("Timeout waiting for active processing to complete", "activeCount", activeCount)
 			break
 		case <-time.After(100 * time.Millisecond):
 			// Continue waiting

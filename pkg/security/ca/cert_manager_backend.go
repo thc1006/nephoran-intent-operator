@@ -10,6 +10,7 @@ import (
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	cmmetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	certmanagerclientset "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	corev1 "k8s.io/api/core/v1"
@@ -240,11 +241,14 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 			Subject: &certmanagerv1.X509Subject{
 				Organizations: []string{"Nephoran"},
 			},
-			KeySize:      req.KeySize,
-			KeyAlgorithm: certmanagerv1.RSAKeyAlgorithm,
-			KeyUsages:    b.convertKeyUsages(req.KeyUsage, req.ExtKeyUsage),
-			SecretName:   b.generateSecretName(req),
-			IssuerRef: certmanagerv1.ObjectReference{
+			PrivateKey: &certmanagerv1.CertificatePrivateKey{
+				Algorithm: certmanagerv1.RSAKeyAlgorithm,
+				Size:      req.KeySize,
+				Encoding:  certmanagerv1.PKCS1,
+			},
+			Usages:     b.convertKeyUsages(req.KeyUsage, req.ExtKeyUsage),
+			SecretName: b.generateSecretName(req),
+			IssuerRef: cmmetav1.ObjectReference{
 				Name: b.config.IssuerName,
 				Kind: b.config.IssuerKind,
 			},

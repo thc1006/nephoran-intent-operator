@@ -719,7 +719,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 				"nf":   nf.Name,
 			}
 		} else {
-			c.Logger.Warn("Failed to generate service manifest", "nf", nf.Name, "error", err)
+			c.Logger.Error(err, "Failed to generate service manifest", "nf", nf.Name)
 		}
 	}
 
@@ -733,7 +733,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 				"nf":   nf.Name,
 			}
 		} else {
-			c.Logger.Warn("Failed to generate configmap manifest", "nf", nf.Name, "error", err)
+			c.Logger.Error(err, "Failed to generate configmap manifest", "nf", nf.Name)
 		}
 	}
 
@@ -748,7 +748,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 				}
 			}
 		} else {
-			c.Logger.Warn("Failed to generate RBAC manifests", "nf", nf.Name, "error", err)
+			c.Logger.Error(err, "Failed to generate RBAC manifests", "nf", nf.Name)
 		}
 	}
 

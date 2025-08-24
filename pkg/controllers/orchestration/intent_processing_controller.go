@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -612,7 +613,7 @@ func (r *IntentProcessingController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.IntentProcessing{}).
 		Named("intentprocessing").
-		WithOptions(ctrl.Options{
+		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.Config.MaxConcurrentProcessing,
 		}).
 		Complete(r)

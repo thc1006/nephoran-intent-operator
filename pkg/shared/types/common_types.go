@@ -37,6 +37,15 @@ type CacheEntry struct {
 	Keywords        []string `json:"keywords,omitempty"`
 	SimilarityScore float64  `json:"similarity_score"`
 
+	// Intent-specific fields
+	IntentType   string   `json:"intent_type,omitempty"`
+	Parameters   map[string]interface{} `json:"parameters,omitempty"`
+	Dependencies []string `json:"dependencies,omitempty"`
+
+	// Compression fields
+	CompressionType   interface{} `json:"compression_type,omitempty"`
+	SerializationType interface{} `json:"serialization_type,omitempty"`
+
 	// Generic metadata for extension
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }

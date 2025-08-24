@@ -21,7 +21,9 @@ const (
 
 // Aliases for compatibility
 const (
+	PriorityLow    = LowPriority
 	PriorityNormal = NormalPriority
+	PriorityHigh   = HighPriority
 )
 
 // String returns the string representation of the priority

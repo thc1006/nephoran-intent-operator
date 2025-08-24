@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -616,7 +617,7 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 				log.Error(err, "Failed to publish conflict resolution event")
 			}
 		} else {
-			log.Warn("Conflict could not be resolved automatically", "conflictId", conflict.ID)
+			log.Info("Conflict could not be resolved automatically", "conflictId", conflict.ID)
 			// Manual intervention required
 			r.Recorder.Event(networkIntent, "Warning", "ConflictDetected",
 				fmt.Sprintf("Conflict detected and requires manual intervention: %s", conflict.Description))
@@ -816,7 +817,7 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 func (r *CoordinationController) handleRecoveryFailure(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult, coordCtx *CoordinationContext) (ctrl.Result, error) {
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
-	log.Warn("Recovery failed, falling back to normal retry logic")
+	log.Info("Recovery failed, falling back to normal retry logic")
 	r.Recorder.Event(networkIntent, "Warning", "RecoveryFailed",
 		fmt.Sprintf("Failed to recover from %s failure, falling back to retry", phase))
 
@@ -989,7 +990,7 @@ func (r *CoordinationController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Named("coordination").
-		WithOptions(ctrl.Options{
+		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.Config.MaxConcurrentIntents,
 		}).
 		Complete(r)
@@ -1037,7 +1038,7 @@ func (r *CoordinationController) performHealthChecks(ctx context.Context) {
 
 		// Check for stale intents (no activity for too long)
 		if time.Since(lastActivity) > r.Config.PhaseTimeout*2 {
-			r.Logger.Warn("Detected stale intent", "intentId", intentID, "lastActivity", lastActivity, "currentPhase", currentPhase)
+			r.Logger.Info("Detected stale intent", "intentId", intentID, "lastActivity", lastActivity, "currentPhase", currentPhase)
 			// In a production system, you might want to trigger recovery or cleanup
 		}
 

@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -635,7 +636,7 @@ func (o *IntentOrchestrator) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Named("intent-orchestrator").
-		WithOptions(ctrl.Options{
+		WithOptions(controller.Options{
 			MaxConcurrentReconciles: o.Config.MaxConcurrentIntents,
 		}).
 		Complete(o)
