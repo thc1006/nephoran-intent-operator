@@ -11,20 +11,22 @@ import (
 
 // NormalizeWindowsPath normalizes a Windows path and handles edge cases.
 // It resolves drive-relative paths, normalizes separators, and adds \\?\ prefix for long paths.
+// This function is platform-agnostic but handles Windows long path issues.
 func NormalizeWindowsPath(p string) (string, error) {
-	if runtime.GOOS != "windows" {
-		// On non-Windows, just clean the path
-		return filepath.Clean(p), nil
-	}
-
 	if p == "" {
 		return "", fmt.Errorf("empty path")
 	}
 
-	// Step 1: Convert forward slashes to backslashes for consistency
+	// On non-Windows, just clean the path and return
+	if runtime.GOOS != "windows" {
+		return filepath.Clean(p), nil
+	}
+
+	// Step 1: Convert forward slashes to backslashes for Windows consistency
 	p = strings.ReplaceAll(p, "/", "\\")
 
 	// Step 2: Handle drive-relative paths (e.g., C:foo\bar)
+	// These are relative to the current directory on the specified drive
 	if len(p) >= 2 && p[1] == ':' && (len(p) == 2 || (len(p) > 2 && p[2] != '\\')) {
 		// This is a drive-relative path
 		// Use filepath.Abs to resolve it properly
@@ -36,7 +38,7 @@ func NormalizeWindowsPath(p string) (string, error) {
 	}
 
 	// Step 3: Clean the path (removes redundant separators, . and .. elements)
-	// Note: filepath.Clean already handles most normalization
+	// filepath.Clean handles most normalization and is safe with .. segments
 	cleaned := filepath.Clean(p)
 
 	// Step 4: Convert to absolute path if not already
@@ -48,9 +50,10 @@ func NormalizeWindowsPath(p string) (string, error) {
 		cleaned = absPath
 	}
 
-	// Step 5: Add \\?\ prefix for long paths (≥248 chars)
-	// But don't add it if already present or if it's a UNC path
+	// Step 5: Handle long paths by adding \\?\ prefix when needed
+	// Don't add prefix if path is already using it or if it's a UNC path
 	if len(cleaned) >= 248 && !strings.HasPrefix(cleaned, `\\?\`) && !strings.HasPrefix(cleaned, `\\`) {
+		// Add extended-length path prefix for long paths
 		cleaned = `\\?\` + cleaned
 	}
 
@@ -136,30 +139,48 @@ func ResolveDriveRelativePath(p string) (string, error) {
 }
 
 // EnsureParentDirectory creates the parent directory of the given path if it doesn't exist.
+// This function is resilient to concurrent directory creation and handles edge cases.
 func EnsureParentDirectory(path string) error {
 	if path == "" {
 		return fmt.Errorf("empty path")
 	}
 
-	// Normalize the path first
+	// Normalize the path first for consistent handling
 	normalized, err := NormalizeWindowsPath(path)
 	if err != nil {
-		// If normalization fails, try with the original path
-		normalized = path
+		// If normalization fails, try with the original path as fallback
+		// This allows the function to work even with malformed paths
+		normalized = filepath.Clean(path)
 	}
 
 	dir := filepath.Dir(normalized)
-	if dir == "" || dir == "." {
-		return nil // Current directory, assume it exists
+	if dir == "" || dir == "." || dir == "/" {
+		return nil // Current directory or root, assume it exists
 	}
 
-	// Check if directory exists
-	if _, err := os.Stat(dir); err == nil {
-		return nil // Already exists
+	// Handle absolute paths that resolve to drive root on Windows
+	if runtime.GOOS == "windows" && len(dir) == 3 && dir[1] == ':' && dir[2] == '\\' {
+		return nil // Drive root like C:\, assume it exists
 	}
 
-	// Create the directory with all parents
+	// Check if directory already exists (os.MkdirAll is idempotent but this avoids syscall)
+	if info, err := os.Stat(dir); err == nil {
+		if !info.IsDir() {
+			return fmt.Errorf("parent path exists but is not a directory: %q", dir)
+		}
+		return nil // Directory already exists
+	}
+
+	// Create the directory with all parents using os.MkdirAll
+	// os.MkdirAll is safe for concurrent use and handles existing directories gracefully
 	if err := os.MkdirAll(dir, 0755); err != nil {
+		// Check if error is due to concurrent creation (directory exists now)
+		if os.IsExist(err) {
+			// Double-check that it's actually a directory
+			if info, statErr := os.Stat(dir); statErr == nil && info.IsDir() {
+				return nil // Successfully created by another goroutine
+			}
+		}
 		return fmt.Errorf("failed to create parent directory %q: %w", dir, err)
 	}
 

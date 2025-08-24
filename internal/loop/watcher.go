@@ -120,6 +120,76 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid mode %q, must be one of: watch, once, periodic, direct, structured", c.Mode)
 	}
 	
+	// Validate OutDir permissions if specified
+	if c.OutDir != "" {
+		if err := validateOutputDirectory(c.OutDir); err != nil {
+			return fmt.Errorf("cannot write to output directory %q: %w", c.OutDir, err)
+		}
+	}
+	
+	return nil
+}
+
+// validateOutputDirectory checks if the output directory exists and is writable
+func validateOutputDirectory(outDir string) error {
+	// Check if directory exists
+	info, err := os.Stat(outDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Try to create parent directory to test permissions
+			return validateParentDirectoryWritable(outDir)
+		}
+		return fmt.Errorf("cannot access directory: %w", err)
+	}
+	
+	// Check if it's actually a directory
+	if !info.IsDir() {
+		return fmt.Errorf("path exists but is not a directory")
+	}
+	
+	// Test write permissions by creating a temporary file
+	testFile := filepath.Join(outDir, ".permission-test-"+fmt.Sprintf("%d", time.Now().UnixNano()))
+	f, err := os.Create(testFile)
+	if err != nil {
+		return fmt.Errorf("permission denied")
+	}
+	f.Close()
+	os.Remove(testFile) // Clean up
+	
+	return nil
+}
+
+// validateParentDirectoryWritable checks if the parent directory of the given path is writable
+func validateParentDirectoryWritable(path string) error {
+	parentDir := filepath.Dir(path)
+	if parentDir == path || parentDir == "." || parentDir == "/" {
+		return fmt.Errorf("output directory parent does not exist")
+	}
+	
+	// Check if parent exists
+	info, err := os.Stat(parentDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Recursively check parent's parent
+			return validateParentDirectoryWritable(parentDir)
+		}
+		return fmt.Errorf("cannot access parent directory: %w", err)
+	}
+	
+	// Check if parent is a directory
+	if !info.IsDir() {
+		return fmt.Errorf("parent path exists but is not a directory")
+	}
+	
+	// Test write permissions on parent directory
+	testFile := filepath.Join(parentDir, ".permission-test-"+fmt.Sprintf("%d", time.Now().UnixNano()))
+	f, err := os.Create(testFile)
+	if err != nil {
+		return fmt.Errorf("permission denied")
+	}
+	f.Close()
+	os.Remove(testFile) // Clean up
+	
 	return nil
 }
 
@@ -1142,7 +1212,9 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		// Mark as failed and move to failed directory
 		w.stateManager.MarkFailed(filePath)
 		w.fileManager.MoveToFailed(filePath, fmt.Sprintf("Validation failed: %v", err))
-		w.writeStatusFileAtomic(filePath, "failed", fmt.Sprintf("JSON validation failed: %v", err))
+		if statusErr := w.writeStatusFileAtomic(filePath, "failed", fmt.Sprintf("JSON validation failed: %v", err)); statusErr != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
+		}
 		return
 	}
 	
@@ -1176,7 +1248,9 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		}
 		
 		// Write success status
-		w.writeStatusFileAtomic(filePath, "success", fmt.Sprintf("Processed by worker %d in %v", workerID, result.Duration))
+		if statusErr := w.writeStatusFileAtomic(filePath, "success", fmt.Sprintf("Processed by worker %d in %v", workerID, result.Duration)); statusErr != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
+		}
 		
 		// Record successful processing
 		atomic.AddInt64(&w.metrics.FilesProcessedTotal, 1)
@@ -1211,7 +1285,9 @@ func (w *Watcher) processIntentFileWithContext(workerID int, workItem WorkItem) 
 		}
 		
 		// Write failure status
-		w.writeStatusFileAtomic(filePath, "failed", errorMsg)
+		if statusErr := w.writeStatusFileAtomic(filePath, "failed", errorMsg); statusErr != nil {
+			log.Printf("LOOP:WARNING - Worker %d: Failed to write status file for %s: %v", workerID, filepath.Base(filePath), statusErr)
+		}
 		
 		log.Printf("LOOP:ERROR - Worker %d: Failed to process %s: %s", workerID, filepath.Base(filePath), errorMsg)
 	}
@@ -2320,7 +2396,7 @@ func (w *Watcher) fileStateCleanupRoutine() {
 }
 
 // writeStatusFileAtomic atomically writes a status file with directory creation
-func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) {
+func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) error {
 	// Truncate message if too large
 	if len(message) > MaxMessageSize {
 		message = message[:MaxMessageSize-3] + "..."
@@ -2342,7 +2418,7 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) {
 	data, err := w.safeMarshalJSON(statusData, MaxStatusSize)
 	if err != nil {
 		log.Printf("Failed to marshal status data: %v", err)
-		return
+		return fmt.Errorf("failed to marshal status data: %w", err)
 	}
 	
 	// Create versioned status filename based on intent filename
@@ -2352,27 +2428,31 @@ func (w *Watcher) writeStatusFileAtomic(intentFile, status, message string) {
 	
 	// Ensure status directory exists using enhanced directory manager
 	statusDir := filepath.Dir(statusFile)
-	w.ensureDirectoryExists(statusDir)
+	if err := w.ensureDirectoryExists(statusDir); err != nil {
+		log.Printf("Failed to create status directory %s: %v", statusDir, err)
+		return fmt.Errorf("failed to create status directory: %w", err)
+	}
 	
 	// Write atomically using temp file + rename
 	tempFile := statusFile + ".tmp"
 	if err := os.WriteFile(tempFile, data, 0644); err != nil {
 		log.Printf("Failed to write temporary status file: %v", err)
-		return
+		return fmt.Errorf("failed to write temporary status file: %w", err)
 	}
 	
 	// Atomic rename
 	if err := os.Rename(tempFile, statusFile); err != nil {
 		os.Remove(tempFile) // Clean up on failure
 		log.Printf("Failed to rename temporary status file: %v", err)
-		return
+		return fmt.Errorf("failed to rename temporary status file: %w", err)
 	}
 	
 	log.Printf("Status written atomically to: %s", statusFile)
+	return nil
 }
 
 // ensureDirectoryExists ensures a directory exists using sync.Once pattern
-func (w *Watcher) ensureDirectoryExists(dir string) {
+func (w *Watcher) ensureDirectoryExists(dir string) error {
 	w.dirManager.mu.RLock()
 	onceFunc, exists := w.dirManager.dirOnce[dir]
 	w.dirManager.mu.RUnlock()
@@ -2388,13 +2468,26 @@ func (w *Watcher) ensureDirectoryExists(dir string) {
 	}
 	
 	// Use sync.Once to ensure directory is created only once
+	var creationError error
 	onceFunc.Do(func() {
 		if err := os.MkdirAll(dir, 0755); err != nil {
+			creationError = err
 			log.Printf("Failed to create directory %s: %v", dir, err)
 		} else {
 			log.Printf("Created directory: %s", dir)
 		}
 	})
+	
+	// If directory creation failed in sync.Once, check if it exists now
+	if creationError != nil {
+		if _, err := os.Stat(dir); err != nil {
+			return fmt.Errorf("directory creation failed and directory does not exist: %w", creationError)
+		}
+		// Directory exists now, so ignore the creation error
+		creationError = nil
+	}
+	
+	return creationError
 }
 
 // Note: IsIntentFile function is defined in filter.go

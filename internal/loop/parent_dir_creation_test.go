@@ -35,7 +35,7 @@ func TestParentDirectoryCreation(t *testing.T) {
 		
 		// Mark the file as processed - this should trigger state file write
 		// and test that the StateManager can create parent directories for its state file
-		err = sm.MarkProcessed("test.json")
+		err = sm.MarkProcessed(testFile)
 		require.NoError(t, err, "MarkProcessed should succeed")
 		
 		// Verify the state file was created

@@ -169,6 +169,7 @@ func (sm *StateManager) createBackupAndReset() error {
 }
 
 // IsProcessed checks if a file has been processed successfully
+// Returns false gracefully if the file doesn't exist (common in rapid file churn scenarios)
 func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
@@ -176,6 +177,11 @@ func (sm *StateManager) IsProcessed(filePath string) (bool, error) {
 	// Calculate current file hash and size
 	hash, size, err := calculateFileHash(filePath)
 	if err != nil {
+		// Handle file gone gracefully - not an error, just return false
+		if err == ErrFileGone {
+			return false, nil
+		}
+		// Other errors are still genuine errors
 		return false, fmt.Errorf("failed to calculate file hash: %w", err)
 	}
 	
@@ -219,6 +225,10 @@ func (sm *StateManager) markWithStatus(filePath string, status string) error {
 	// Calculate file hash and size
 	hash, size, err := calculateFileHash(filePath)
 	if err != nil {
+		// Handle file gone gracefully - file disappeared during processing
+		if err == ErrFileGone {
+			return ErrFileGone
+		}
 		return fmt.Errorf("failed to calculate file hash: %w", err)
 	}
 	
@@ -309,6 +319,7 @@ func (sm *StateManager) CleanupOldEntries(olderThan time.Duration) error {
 func (sm *StateManager) CalculateFileSHA256(filePath string) (string, error) {
 	hash, _, err := calculateFileHash(filePath)
 	if err != nil {
+		// Keep ErrFileGone as-is for consistency
 		return "", err
 	}
 	return hash, nil
@@ -328,22 +339,56 @@ func (sm *StateManager) IsProcessedBySHA(sha256Hash string) (bool, error) {
 	return false, nil
 }
 
-// calculateFileHash calculates SHA256 hash and size of a file
+// calculateFileHash calculates SHA256 hash and size of a file with retry logic
 func calculateFileHash(filePath string) (string, int64, error) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return "", 0, fmt.Errorf("failed to open file: %w", err)
-	}
-	defer file.Close()
+	return calculateFileHashWithRetry(filePath, 3, 10*time.Millisecond)
+}
+
+// calculateFileHashWithRetry calculates SHA256 hash and size with retry logic for transient failures
+func calculateFileHashWithRetry(filePath string, maxRetries int, baseDelay time.Duration) (string, int64, error) {
+	var lastErr error
 	
-	hash := sha256.New()
-	size, err := io.Copy(hash, file)
-	if err != nil {
-		return "", 0, fmt.Errorf("failed to read file: %w", err)
+	for attempt := 0; attempt <= maxRetries; attempt++ {
+		file, err := os.Open(filePath)
+		if err != nil {
+			// Check if file is truly gone (not transient error)
+			if os.IsNotExist(err) {
+				// For rapid file churn, return ErrFileGone instead of wrapped error
+				return "", 0, ErrFileGone
+			}
+			
+			lastErr = err
+			
+			// Retry on other errors (like sharing violations on Windows)
+			if attempt < maxRetries {
+				delay := baseDelay * time.Duration(1<<attempt) // exponential backoff
+				time.Sleep(delay)
+				continue
+			}
+			
+			return "", 0, fmt.Errorf("failed to open file after %d attempts: %w", maxRetries+1, lastErr)
+		}
+		
+		hash := sha256.New()
+		size, err := io.Copy(hash, file)
+		file.Close()
+		
+		if err != nil {
+			lastErr = err
+			// Retry on read errors
+			if attempt < maxRetries {
+				delay := baseDelay * time.Duration(1<<attempt)
+				time.Sleep(delay)
+				continue
+			}
+			return "", 0, fmt.Errorf("failed to read file after %d attempts: %w", maxRetries+1, lastErr)
+		}
+		
+		hashStr := hex.EncodeToString(hash.Sum(nil))
+		return hashStr, size, nil
 	}
 	
-	hashStr := hex.EncodeToString(hash.Sum(nil))
-	return hashStr, size, nil
+	return "", 0, fmt.Errorf("failed to calculate hash after %d attempts: %w", maxRetries+1, lastErr)
 }
 
 // createStateKey creates a consistent key for state storage with security sanitization

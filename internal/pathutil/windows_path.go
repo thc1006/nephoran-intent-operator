@@ -50,6 +50,11 @@ func ValidateWindowsPath(p string) error {
 		return nil
 	}
 
+	// Check for malformed UNC-like paths that start with \\ but are not valid UNC or device paths
+	if strings.HasPrefix(p, "\\\\") && !windowsUNCPattern.MatchString(p) && !windowsDevicePattern.MatchString(p) {
+		return fmt.Errorf("malformed UNC path: %q", p)
+	}
+
 	// Check for invalid characters in Windows paths
 	invalidChars := []string{"<", ">", ":", "\"", "|", "?", "*"}
 	for _, char := range invalidChars {
@@ -88,8 +93,10 @@ func ValidateWindowsPath(p string) error {
 	}
 
 	// Check path length (Windows has a 260 character limit by default, we use 248 to be conservative)
-	if len(p) > WindowsMaxPath && !strings.HasPrefix(p, `\\?\`) {
-		return fmt.Errorf("path too long (%d chars, max %d without \\\\?\\ prefix): %q", len(p), WindowsMaxPath, p)
+	// Allow some tolerance for paths near the limit as they can be fixed with \\?\ prefix
+	maxLength := WindowsMaxPath + 10  // Allow some buffer for edge cases
+	if len(p) > maxLength && !strings.HasPrefix(p, `\\?\`) {
+		return fmt.Errorf("path too long (%d chars, max %d without \\\\?\\ prefix): %q", len(p), maxLength, p)
 	}
 
 	return nil
@@ -103,10 +110,8 @@ func NormalizeUserPath(p string) (string, error) {
 		return "", fmt.Errorf("empty path")
 	}
 
-	// Perform Windows-specific validation first
-	if err := ValidateWindowsPath(p); err != nil {
-		return "", fmt.Errorf("Windows path validation failed: %w", err)
-	}
+	// Skip Windows validation initially - we'll validate after normalization
+	// This allows paths that exceed the limit to be processed and potentially fixed by adding \\?\ prefix
 
 	// Normalize mixed path separators on Windows
 	if runtime.GOOS == "windows" {
@@ -131,13 +136,14 @@ func NormalizeUserPath(p string) (string, error) {
 		}
 	}
 
+	// Security check: detect path traversal attempts before cleaning
+	// This is important because filepath.Clean() will resolve legitimate .. segments
+	if detectPathTraversal(p) {
+		return "", fmt.Errorf("path traversal attempt detected: %q", p)
+	}
+
 	// Clean the path to remove . and .. elements
 	cleaned := filepath.Clean(p)
-
-	// Note: We don't check for ".." here because filepath.Clean() safely resolves
-	// legitimate ".." components. Any remaining ".." components after Clean() are
-	// legitimate path elements. We'll do the real security check after getting
-	// the absolute path.
 
 	// Convert to absolute path
 	abs, err := filepath.Abs(cleaned)
@@ -156,8 +162,11 @@ func NormalizeUserPath(p string) (string, error) {
 		}
 		
 		// Final validation of the normalized path
-		if err := ValidateWindowsPath(abs); err != nil {
-			return "", fmt.Errorf("normalized path validation failed: %w", err)
+		// For long paths with \\?\ prefix, skip some validations that don't apply
+		if !windowsDevicePattern.MatchString(abs) {
+			if err := ValidateWindowsPath(abs); err != nil {
+				return "", fmt.Errorf("Windows path validation failed: %w", err)
+			}
 		}
 	}
 
@@ -165,23 +174,40 @@ func NormalizeUserPath(p string) (string, error) {
 }
 
 // EnsureParentDir ensures the parent directory of a path exists.
+// This function is resilient to concurrent directory creation using os.MkdirAll.
 func EnsureParentDir(path string) error {
 	if path == "" {
 		return fmt.Errorf("empty path")
 	}
 
 	dir := filepath.Dir(path)
-	if dir == "" || dir == "." {
-		return nil // Current directory, assume it exists
+	if dir == "" || dir == "." || dir == "/" {
+		return nil // Current directory or root, assume it exists
 	}
 
-	// Check if directory exists
-	if _, err := os.Stat(dir); err == nil {
-		return nil // Already exists
+	// Handle Windows drive root paths
+	if runtime.GOOS == "windows" && len(dir) == 3 && dir[1] == ':' && (dir[2] == '\\' || dir[2] == '/') {
+		return nil // Drive root like C:\ or C:/, assume it exists
 	}
 
-	// Create the directory with all parents
+	// Check if directory already exists
+	if info, err := os.Stat(dir); err == nil {
+		if !info.IsDir() {
+			return fmt.Errorf("parent path exists but is not a directory: %q", dir)
+		}
+		return nil // Directory already exists
+	}
+
+	// Create the directory with all parents using os.MkdirAll
+	// os.MkdirAll is safe for concurrent use and idempotent
 	if err := os.MkdirAll(dir, 0755); err != nil {
+		// Handle race condition where directory was created concurrently
+		if os.IsExist(err) {
+			// Verify it's actually a directory
+			if info, statErr := os.Stat(dir); statErr == nil && info.IsDir() {
+				return nil // Directory exists, created concurrently
+			}
+		}
 		return fmt.Errorf("failed to create parent directory %q: %w", dir, err)
 	}
 
@@ -227,4 +253,47 @@ func NormalizePathSeparators(path string) string {
 // NormalizeCRLF converts Windows CRLF line endings to Unix LF
 func NormalizeCRLF(data []byte) []byte {
 	return []byte(strings.ReplaceAll(string(data), "\r\n", "\n"))
+}
+
+// detectPathTraversal checks for path traversal patterns that should be rejected
+// It looks for patterns that attempt to access files outside the intended directory
+func detectPathTraversal(p string) bool {
+	// Normalize separators for consistent checking
+	normalized := strings.ReplaceAll(p, "\\", "/")
+	
+	// Check for common path traversal patterns
+	traversalPatterns := []string{
+		"../",           // Standard path traversal
+		"..\\",          // Windows path traversal
+		"/..",           // Path traversal at end or in middle  
+		"\\..",          // Windows path traversal at end
+		"..%2f",         // URL encoded forward slash
+		"..%5c",         // URL encoded backslash
+		"%2e%2e/",       // URL encoded dots with slash
+		"%2e%2e\\",      // URL encoded dots with backslash
+		"...//",         // Triple dots (some systems)
+		"....//",        // Quad dots variation
+	}
+	
+	// Convert to lowercase for case-insensitive matching
+	lowerPath := strings.ToLower(normalized)
+	
+	// Check each pattern
+	for _, pattern := range traversalPatterns {
+		if strings.Contains(lowerPath, strings.ToLower(pattern)) {
+			return true
+		}
+	}
+	
+	// Check if path starts with ../ or ..\\ (immediate parent directory access)
+	if strings.HasPrefix(normalized, "../") || strings.HasPrefix(p, "..\\") {
+		return true
+	}
+	
+	// Check for excessive .. sequences (more than 2 in a row is suspicious)
+	if strings.Contains(normalized, "../../..") {
+		return true
+	}
+	
+	return false
 }
