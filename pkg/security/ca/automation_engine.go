@@ -648,7 +648,34 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 				ExpectedStatus: 200,
 			}
 
-t		session, err := e.healthChecker.StartHealthCheck(target, config)			if err != nil {				e.logger.Warn("Failed to start health check", map[string]interface{}{					"service": service.Name,					"error":   err.Error(),				})				unhealthyCount++				continue			}			// Perform health check			result, err := e.healthChecker.PerformHealthCheck(session)			if err != nil || !result.Healthy {				unhealthyCount++				e.logger.Warn("Service health check failed", map[string]interface{}{					"service": service.Name,					"error":   func() string {						if err != nil {							return err.Error()						}						if result != nil {							return result.Error						}						return "unknown error"					}(),				})			} else {				healthyCount++			}
+		session, err := e.healthChecker.StartHealthCheck(target, config)
+			if err != nil {
+				e.logger.Warn("Failed to start health check", map[string]interface{}{
+					"service": service.Name,
+					"error":   err.Error(),
+				})
+				unhealthyCount++
+				continue
+			}
+			// Perform health check
+			result, err := e.healthChecker.PerformHealthCheck(session)
+			if err != nil || !result.Healthy {
+				unhealthyCount++
+				e.logger.Warn("Service health check failed", map[string]interface{}{
+					"service": service.Name,
+					"error": func() string {
+						if err != nil {
+							return err.Error()
+						}
+						if result != nil {
+							return result.Error
+						}
+						return "unknown error"
+					}(),
+				})
+			} else {
+				healthyCount++
+			}
 		}
 	}
 
