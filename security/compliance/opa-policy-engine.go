@@ -637,7 +637,7 @@ has_dpia_annotation(deployment) if {
 contains_excessive_personal_data(configmap) if {
     # Check for PII patterns in ConfigMap data
     value := configmap.data[_]
-    regex.match(`\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b`, value)
+    regex.match("\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Z|a-z]{2,}\\b", value)
     not configmap.metadata.annotations["gdpr.purpose-limitation"] == "documented"
 }
 

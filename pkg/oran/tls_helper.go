@@ -1,9 +1,11 @@
 package oran
 
 import (
+	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"os"
 	"time"
 )
@@ -796,8 +798,3 @@ func (auditor *TLSConfigAuditor) GetAuditTrail() []TLSAuditEvent {
 	return auditor.auditTrail
 }
 
-// Required import for net package
-import (
-	"crypto/rsa"
-	"net"
-)

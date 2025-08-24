@@ -63,7 +63,8 @@ func TestValidationBuilder_Required(t *testing.T) {
 				}
 
 				if !tt.valid && len(result.Errors) == 0 {
-				t.Error("Expected validation errors for invalid case")
+					t.Error("Expected validation errors for invalid case")
+				}
 			}
 		})
 	}
