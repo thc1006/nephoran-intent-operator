@@ -20,12 +20,11 @@ run:
 # Output configuration (v2 schema)
 output:
   show-stats: true
+  formats:
+    text: {}  # Use text format for output
 
 # Linters configuration (v2 schema)
 linters:
-  # Disable default presets, enable only curated set
-  presets: []
-  
   # Enable essential linters for security and code quality
   enable:
     - revive         # Golint replacement with more rules
@@ -40,8 +39,8 @@ linters:
     - prealloc       # Slice preallocation
     - gosec          # Security-focused linter (G series)
 
-# Linter-specific settings (v2 schema)
-linters-settings:
+  # Linter-specific settings (v2 schema)
+  settings:
     # govet configuration (v2 schema)
     govet:
       enable:
@@ -77,34 +76,24 @@ linters-settings:
         - commentedOutCode
         - whyNoLint
 
+  # Exclusions configuration (v2 schema)
+  exclusions:
+    # Paths to exclude from analysis
+    paths:
+      - vendor
+      - testdata
+      - examples
+      - ".*\\.pb\\.go"
+      - ".*_generated\\.go"
+      - "zz_generated\\..*\\.go"
+      - .git
+      - bin
+      - build
+      - dist
+      - "_test\\.go"  # Exclude test files from certain checks
+
 # Issues configuration (v2 schema)
 issues:
-  # Exclude specific directories and files
-  exclude-files:
-    - vendor/
-    - testdata/
-    - examples/
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - "zz_generated\\..*\\.go$"
-    - .git/
-    - bin/
-    - build/
-    - dist/
-  
-  # Exclude common false positives
-  exclude-rules:
-    - text: "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
-    - text: "exported (type|method|function) (.+) should have comment or be unexported"
-    - text: "ST1000: at least one file in a package should have a package comment"
-    # Allow test files to have relaxed rules
-    - linters: [gosec]
-      text: "G104: Errors unhandled"
-      path: "_test\\.go"
-    - linters: [gosec]
-      text: "G101|G102|G103" # Hardcoded credentials in tests
-      path: "_test\\.go"
-  
   # Unlimited issue reporting for thorough analysis
   max-issues-per-linter: 0
   max-same-issues: 0

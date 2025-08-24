@@ -51,7 +51,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]  # Production deployment target
-        # Removed windows-latest and macos-latest - telecom/Nephio deployments are Linux-only
+        # Nephoran is a Kubernetes operator - runs only on Linux clusters
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
 
@@ -73,8 +73,7 @@ jobs:
           go mod download
           go mod verify
 
-      - name: Run tests (Unix)
-        if: runner.os != 'Windows'
+      - name: Run tests
         timeout-minutes: 8
         env:
           CGO_ENABLED: 1
