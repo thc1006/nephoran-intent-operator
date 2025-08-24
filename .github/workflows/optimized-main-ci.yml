@@ -227,7 +227,7 @@ jobs:
           esac
 
       - name: "📤 Upload SARIF Results"
-        if: matrix.tool == 'staticcheck' || matrix.tool == 'gosec'
+        if: (matrix.tool == 'staticcheck' || matrix.tool == 'gosec') && hashFiles('reports/${{ matrix.tool }}.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: reports/${{ matrix.tool }}.sarif
@@ -257,8 +257,8 @@ jobs:
           echo "passed=$passed" >> $GITHUB_OUTPUT
 
       - name: "💾 Upload Analysis Results"
+        if: always() && hashFiles('reports/**/*') != ''
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: code-quality-${{ matrix.tool }}
           path: reports/
@@ -602,6 +602,7 @@ jobs:
     needs: [detect-changes, build-matrix]
     if: |
       always() && 
+      needs.build-matrix.result == 'success' &&
       (needs.detect-changes.outputs.go_changed == 'true' || 
        needs.detect-changes.outputs.docker_changed == 'true')
     timeout-minutes: 30
@@ -621,6 +622,7 @@ jobs:
           use: true
 
       - name: "📥 Download Linux AMD64 Binary"
+        if: needs.build-matrix.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: binary-linux-amd64
@@ -685,8 +687,8 @@ jobs:
           fi
 
       - name: "📤 Upload Trivy SARIF Results"
+        if: always() && hashFiles('security-reports/trivy-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
         with:
           sarif_file: security-reports/trivy-results.sarif
           category: trivy-container
@@ -700,8 +702,8 @@ jobs:
           docker history ${{ env.IMAGE_NAME }}:test-${{ github.sha }} --no-trunc
 
       - name: "💾 Upload Security Reports"
+        if: always() && hashFiles('security-reports/**/*') != ''
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: container-security-reports
           path: security-reports/
