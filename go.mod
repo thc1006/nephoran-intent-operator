@@ -138,7 +138,6 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.11
 	github.com/go-logr/zapr v1.3.0
 	github.com/go-playground/validator/v10 v10.26.0
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang/mock v1.6.0
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6
 	github.com/gophercloud/gophercloud v1.14.1
@@ -375,7 +374,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/procfs v0.17.0 // indirect
-	github.com/redis/go-redis/extra/redisotel/v9 v9.5.3 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rs/dnscache v0.0.0-20230804202142-fc85eb664529 // indirect
 	github.com/rs/zerolog v1.33.0 // indirect

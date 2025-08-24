@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 // CacheLevel represents different levels of caching
