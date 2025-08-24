@@ -252,14 +252,20 @@ func (a *O1Adaptor) buildTLSConfig(ctx context.Context, me *nephoranv1.ManagedEl
 
 	// Apply TLS configuration from O1Config if available
 	if a.config.TLSConfig != nil {
+		// SECURITY FIX: Never skip TLS verification - always validate certificates
+		// If custom CA is needed, use proper certificate loading instead
 		if a.config.TLSConfig.SkipVerify {
-			tlsConfig.InsecureSkipVerify = true
+			log.Log.Error(nil, "SECURITY VIOLATION: TLS verification cannot be disabled for O1 interface",
+				"managedElement", a.config.ManagedElementName,
+				"endpoint", a.config.Endpoint)
+			return nil, fmt.Errorf("security violation: TLS verification is mandatory for O1 interface")
 		}
 
 		// Load CA certificate if specified
 		if a.config.TLSConfig.CAFile != "" {
-			// In a complete implementation, we would load CA cert from file or secret
-			// For now, we'll use the system's root CA pool
+			// TODO: Implement proper CA certificate loading from file or Kubernetes secret
+			// This should load the CA certificate and add it to the certificate pool
+			log.Log.Info("CA file specified but not implemented yet", "caFile", a.config.TLSConfig.CAFile)
 		}
 	}
 

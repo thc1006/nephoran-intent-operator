@@ -3158,3 +3158,4 @@ type SecureChannelConfig struct {
 	MaxConnections    int
 	IdleTimeout       time.Duration
 }
+

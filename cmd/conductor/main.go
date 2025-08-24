@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -111,14 +112,36 @@ func isIntentFile(path string) bool {
 
 // processIntentFile triggers porch-publisher for the given intent file
 func processIntentFile(intentPath string, outDir string) {
+	// SECURITY FIX: Validate and sanitize input paths to prevent command injection
+	if !isValidPath(intentPath) {
+		log.Printf("SECURITY VIOLATION: Invalid intent path rejected: %s", intentPath)
+		return
+	}
+	if !isValidPath(outDir) {
+		log.Printf("SECURITY VIOLATION: Invalid output directory rejected: %s", outDir)
+		return
+	}
+
 	// Try to extract correlation_id from the intent file
 	correlationID := extractCorrelationID(intentPath)
 	if correlationID != "" {
 		log.Printf("Processing intent with correlation_id: %s", correlationID)
 	}
 
-	// Build the command to run porch-publisher
-	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", intentPath, "-out", outDir)
+	// Build the command to run porch-publisher with sanitized paths
+	// Use absolute paths to prevent directory traversal attacks
+	absIntentPath, err := filepath.Abs(intentPath)
+	if err != nil {
+		log.Printf("Error resolving absolute path for intent: %v", err)
+		return
+	}
+	absOutDir, err := filepath.Abs(outDir)
+	if err != nil {
+		log.Printf("Error resolving absolute path for output directory: %v", err)
+		return
+	}
+
+	cmd := exec.Command("go", "run", "./cmd/porch-publisher", "-intent", absIntentPath, "-out", absOutDir)
 
 	// Capture output
 	output, err := cmd.CombinedOutput()
@@ -130,6 +153,35 @@ func processIntentFile(intentPath string, outDir string) {
 
 	log.Printf("Successfully processed intent file: %s", intentPath)
 	log.Printf("Porch-publisher output: %s", strings.TrimSpace(string(output)))
+}
+
+// isValidPath validates file paths to prevent command injection and directory traversal
+func isValidPath(path string) bool {
+	// Reject paths containing dangerous characters or patterns
+	dangerousPatterns := []string{
+		";", "|", "&", "$", "`", "$(", "${",  // Command injection
+		"../", "..\\",                         // Directory traversal
+		"\x00",                                // Null byte
+	}
+	
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(path, pattern) {
+			return false
+		}
+	}
+	
+	// Only allow alphanumeric, dash, underscore, dot, slash, and backslash
+	validPathRegex := regexp.MustCompile(`^[a-zA-Z0-9._/\-\\:]+$`)
+	if !validPathRegex.MatchString(path) {
+		return false
+	}
+	
+	// Reject paths that are too long (potential buffer overflow)
+	if len(path) > 4096 {
+		return false
+	}
+	
+	return true
 }
 
 // extractCorrelationID reads the intent file and extracts correlation_id if present

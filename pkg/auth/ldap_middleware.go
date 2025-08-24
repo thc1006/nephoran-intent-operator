@@ -14,7 +14,7 @@ import (
 
 // LDAPAuthMiddleware provides LDAP-based authentication middleware
 type LDAPAuthMiddleware struct {
-	providers      map[string]*providers.LDAPProvider
+	providers      map[string]providers.LDAPProvider
 	sessionManager *SessionManager
 	jwtManager     *JWTManager
 	rbacManager    *RBACManager
@@ -84,7 +84,7 @@ type LDAPUserResponse struct {
 }
 
 // NewLDAPAuthMiddleware creates new LDAP authentication middleware
-func NewLDAPAuthMiddleware(providers map[string]*providers.LDAPProvider, sessionManager *SessionManager, jwtManager *JWTManager, rbacManager *RBACManager, config *LDAPMiddlewareConfig, logger *slog.Logger) *LDAPAuthMiddleware {
+func NewLDAPAuthMiddleware(providers map[string]providers.LDAPProvider, sessionManager *SessionManager, jwtManager *JWTManager, rbacManager *RBACManager, config *LDAPMiddlewareConfig, logger *slog.Logger) *LDAPAuthMiddleware {
 	if config == nil {
 		config = &LDAPMiddlewareConfig{
 			Realm:             "Nephoran Intent Operator",
@@ -574,7 +574,7 @@ func (lm *LDAPAuthMiddleware) writeErrorResponse(w http.ResponseWriter, status i
 // Utility methods for integration
 
 // GetLDAPProviders returns available LDAP providers
-func (lm *LDAPAuthMiddleware) GetLDAPProviders() map[string]*providers.LDAPProvider {
+func (lm *LDAPAuthMiddleware) GetLDAPProviders() map[string]providers.LDAPProvider {
 	return lm.providers
 }
 
@@ -582,7 +582,7 @@ func (lm *LDAPAuthMiddleware) GetLDAPProviders() map[string]*providers.LDAPProvi
 func (lm *LDAPAuthMiddleware) TestLDAPConnection(ctx context.Context) map[string]error {
 	results := make(map[string]error)
 	for name, provider := range lm.providers {
-		if err := provider.TestConnection(ctx); err != nil {
+		if err := provider.Connect(ctx); err != nil {
 			results[name] = err
 			lm.logger.Error("LDAP connection test failed", "provider", name, "error", err)
 		} else {
@@ -595,7 +595,7 @@ func (lm *LDAPAuthMiddleware) TestLDAPConnection(ctx context.Context) map[string
 
 // GetUserInfo retrieves user information from LDAP without authentication
 func (lm *LDAPAuthMiddleware) GetUserInfo(ctx context.Context, username, providerName string) (*providers.UserInfo, error) {
-	var provider *providers.LDAPProvider
+	var provider providers.LDAPProvider
 	var exists bool
 
 	if providerName != "" {

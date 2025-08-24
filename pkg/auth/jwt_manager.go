@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"log/slog"
 	"sync"
@@ -193,7 +194,7 @@ func (jm *JWTManager) GenerateAccessToken(ctx context.Context, userInfo *provide
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        tokenID,
 			Subject:   userInfo.Subject,
-			Audience:  jwt.ClaimsStrings{jm.issuer},
+			Audience:  jwt.ClaimStrings{jm.issuer},
 			ExpiresAt: jwt.NewNumericDate(now.Add(jm.defaultTTL)),
 			NotBefore: jwt.NewNumericDate(now),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -272,7 +273,7 @@ func (jm *JWTManager) GenerateRefreshToken(ctx context.Context, userInfo *provid
 		RegisteredClaims: jwt.RegisteredClaims{
 			ID:        tokenID,
 			Subject:   userInfo.Subject,
-			Audience:  jwt.ClaimsStrings{jm.issuer},
+			Audience:  jwt.ClaimStrings{jm.issuer},
 			ExpiresAt: jwt.NewNumericDate(now.Add(jm.refreshTTL)),
 			NotBefore: jwt.NewNumericDate(now),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -425,11 +426,12 @@ func (jm *JWTManager) RevokeToken(ctx context.Context, tokenString string) error
 	// Parse token to get expiration
 	token, err := jwt.ParseWithClaims(tokenString, &NephoranJWTClaims{}, nil)
 	if err != nil {
-		if ve, ok := err.(*jwt.ValidationError); ok {
-			// Token might be expired but we still want to blacklist it
-			if ve.Errors&jwt.ValidationErrorExpired == 0 {
-				return fmt.Errorf("failed to parse token for revocation: %w", err)
-			}
+		// Check for expired token - we still want to blacklist expired tokens
+		// In JWT v5, check for specific validation errors
+		if errors.Is(err, jwt.ErrTokenExpired) {
+			// Token is expired, still blacklist it
+		} else {
+			return fmt.Errorf("failed to parse token for revocation: %w", err)
 		}
 	}
 
@@ -494,6 +496,33 @@ func (jm *JWTManager) GetMetrics() *JWTMetrics {
 	// Return a copy to avoid race conditions
 	metrics := *jm.metrics
 	return &metrics
+}
+
+// CreateAccessToken creates an access token (compatibility method for LDAP middleware)
+func (jm *JWTManager) CreateAccessToken(username, sessionID, provider string, roles, groups []string, attributes map[string]interface{}) (string, error) {
+	userInfo := &providers.UserInfo{
+		Subject:    username,
+		Username:   username,
+		Roles:      roles,
+		Groups:     groups,
+		Provider:   provider,
+		Attributes: attributes,
+	}
+
+	tokenString, _, err := jm.GenerateAccessToken(context.Background(), userInfo, sessionID)
+	return tokenString, err
+}
+
+// CreateRefreshToken creates a refresh token (compatibility method for LDAP middleware)
+func (jm *JWTManager) CreateRefreshToken(username, sessionID, provider string) (string, error) {
+	userInfo := &providers.UserInfo{
+		Subject:  username,
+		Username: username,
+		Provider: provider,
+	}
+
+	tokenString, _, err := jm.GenerateRefreshToken(context.Background(), userInfo, sessionID)
+	return tokenString, err
 }
 
 // Private methods

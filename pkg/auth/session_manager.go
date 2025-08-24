@@ -75,6 +75,21 @@ type AuthState struct {
 	CustomParams map[string]string `json:"custom_params,omitempty"`
 }
 
+// SessionData represents session data for creation
+type SessionData struct {
+	UserID      string                 `json:"user_id"`
+	Username    string                 `json:"username"`
+	Email       string                 `json:"email"`
+	DisplayName string                 `json:"display_name"`
+	Provider    string                 `json:"provider"`
+	Groups      []string               `json:"groups"`
+	Roles       []string               `json:"roles"`
+	Attributes  map[string]interface{} `json:"attributes,omitempty"`
+	ExpiresAt   time.Time              `json:"expires_at"`
+	IPAddress   string                 `json:"ip_address,omitempty"`
+	UserAgent   string                 `json:"user_agent,omitempty"`
+}
+
 // SessionConfig represents session configuration
 type SessionConfig struct {
 	SessionTimeout   time.Duration `json:"session_timeout"`
@@ -361,6 +376,100 @@ func (sm *SessionManager) HandleCallback(ctx context.Context, request *CallbackR
 		IDToken:      session.IDToken,
 		UserInfo:     userInfo,
 	}, nil
+}
+
+// CreateSession creates a new user session from SessionData
+func (sm *SessionManager) CreateSession(ctx context.Context, sessionData *SessionData) (*SessionInfo, error) {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	// Generate session ID and CSRF token
+	sessionID := sm.generateSessionID()
+	csrfToken := sm.generateCSRFToken()
+
+	// Create user info for consistency
+	userInfo := &providers.UserInfo{
+		Subject:    sessionData.UserID,
+		Username:   sessionData.Username,
+		Email:      sessionData.Email,
+		Name:       sessionData.DisplayName,
+		Groups:     sessionData.Groups,
+		Roles:      sessionData.Roles,
+		Provider:   sessionData.Provider,
+		Attributes: sessionData.Attributes,
+	}
+
+	// Create session
+	session := &UserSession{
+		ID:             sessionID,
+		UserID:         sessionData.UserID,
+		UserInfo:       userInfo,
+		Provider:       sessionData.Provider,
+		CreatedAt:      time.Now(),
+		LastActivity:   time.Now(),
+		ExpiresAt:      sessionData.ExpiresAt,
+		IPAddress:      sessionData.IPAddress,
+		UserAgent:      sessionData.UserAgent,
+		Roles:          sessionData.Roles,
+		Permissions:    []string{}, // Will be populated by RBAC if available
+		Attributes:     sessionData.Attributes,
+		SSOEnabled:     sm.config.EnableSSO,
+		LinkedSessions: make(map[string]string),
+		CSRFToken:      csrfToken,
+		SecureContext:  sm.config.RequireHTTPS,
+	}
+
+	// Get permissions from RBAC if available
+	if sm.rbacManager != nil {
+		session.Permissions = sm.rbacManager.GetUserPermissions(ctx, sessionData.UserID)
+	}
+
+	// Check session limits
+	if err := sm.enforceSessionLimits(sessionData.UserID); err != nil {
+		return nil, fmt.Errorf("session limit exceeded: %w", err)
+	}
+
+	// Store session
+	sm.sessions[sessionID] = session
+
+	sm.logger.Info("Session created",
+		"session_id", sessionID,
+		"user_id", sessionData.UserID,
+		"provider", sessionData.Provider)
+
+	return &SessionInfo{
+		ID:           session.ID,
+		UserID:       session.UserID,
+		Provider:     session.Provider,
+		CreatedAt:    session.CreatedAt,
+		LastActivity: session.LastActivity,
+		ExpiresAt:    session.ExpiresAt,
+		IPAddress:    session.IPAddress,
+		UserAgent:    session.UserAgent,
+		Roles:        session.Roles,
+		SSOEnabled:   session.SSOEnabled,
+		UserInfo:     session.UserInfo,
+	}, nil
+}
+
+// InvalidateSession invalidates a session
+func (sm *SessionManager) InvalidateSession(ctx context.Context, sessionID string) error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	session, exists := sm.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("session not found")
+	}
+
+	// Remove session
+	delete(sm.sessions, sessionID)
+
+	sm.logger.Info("Session invalidated",
+		"session_id", sessionID,
+		"user_id", session.UserID)
+
+	return nil
 }
 
 // CreateSession creates a new user session

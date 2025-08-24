@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"bytes"
@@ -14,8 +14,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
+	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
 // IntegrationTestSuite provides a complete test environment for integration testing
@@ -56,8 +57,8 @@ func NewIntegrationTestSuite(t *testing.T) *IntegrationTestSuite {
 
 	// Setup LDAP middleware with mock provider
 	mockLDAPProvider := testutil.NewMockLDAPProvider("test-ldap")
-	ldapProviders := map[string]*providers.LDAPProvider{
-		"test-ldap": mockLDAPProvider.(*providers.LDAPProvider),
+	ldapProviders := map[string]providers.LDAPProvider{
+		"test-ldap": mockLDAPProvider.(providers.LDAPProvider),
 	}
 	suite.ldapMiddleware = NewLDAPAuthMiddleware(
 		ldapProviders,

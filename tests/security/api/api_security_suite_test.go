@@ -221,7 +221,6 @@ func TestSecurityHeaders(t *testing.T) {
 
 	for _, endpoint := range suite.endpoints {
 		t.Run(endpoint.Name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/api/v1/health", nil)
 			w := httptest.NewRecorder()
 
 			// Simulate security headers middleware

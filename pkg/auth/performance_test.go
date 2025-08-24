@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
+	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
 // BenchmarkSuite provides comprehensive performance benchmarking
