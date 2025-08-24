@@ -72,7 +72,45 @@ type CacheMetrics struct {
 	L2HitRate              float64 `json:"l2_hit_rate"`
 	SemanticHits           int64   `json:"semantic_hits"`
 	AdaptiveTTLAdjustments int64   `json:"adaptive_ttl_adjustments"`
+	operations             map[string]time.Duration
 	mutex                  sync.RWMutex
+}
+
+// NewCacheMetrics creates a new CacheMetrics instance
+func NewCacheMetrics() *CacheMetrics {
+	return &CacheMetrics{
+		operations: make(map[string]time.Duration),
+	}
+}
+
+// RecordOperation records an operation duration
+func (cm *CacheMetrics) RecordOperation(op string, duration time.Duration) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	cm.operations[op] = duration
+}
+
+// RecordHit records a cache hit
+func (cm *CacheMetrics) RecordHit(level string) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	if level == "L1" {
+		cm.L1Hits++
+	} else if level == "L2" {
+		cm.L2Hits++
+	}
+}
+
+// RecordMiss records a cache miss
+func (cm *CacheMetrics) RecordMiss() {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	cm.Misses++
+}
+
+// RecordSet records a cache set operation
+func (cm *CacheMetrics) RecordSet() {
+	// Implementation placeholder
 }
 
 // CacheConfig holds configuration for the cache system

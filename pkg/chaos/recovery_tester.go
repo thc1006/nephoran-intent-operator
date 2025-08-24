@@ -506,8 +506,8 @@ func (r *RecoveryTester) checkPodsCrashed(ctx context.Context, namespace string)
 	}
 
 	for _, pod := range podList.Items {
-		if pod.Status.Phase == corev1.PodPhaseFailed ||
-			pod.Status.Phase == corev1.PodPhaseUnknown {
+		if pod.Status.Phase == corev1.PodPhase("Failed") ||
+			pod.Status.Phase == corev1.PodPhase("Unknown") {
 			return true
 		}
 		for _, containerStatus := range pod.Status.ContainerStatuses {

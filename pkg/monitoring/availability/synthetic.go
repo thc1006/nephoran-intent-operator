@@ -723,3 +723,75 @@ func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since time.Ti
 
 	return metric, nil
 }
+
+// NewHTTPCheckExecutor creates a new HTTP check executor
+func NewHTTPCheckExecutor(httpClient *http.Client) CheckExecutor {
+	return &httpCheckExecutor{httpClient: httpClient}
+}
+
+type httpCheckExecutor struct {
+	httpClient *http.Client
+}
+
+func (e *httpCheckExecutor) Execute(check *SyntheticCheck) (*CheckResult, error) {
+	// Implementation placeholder
+	return &CheckResult{Success: true}, nil
+}
+
+// NewIntentFlowExecutor creates a new intent flow executor
+func NewIntentFlowExecutor(httpClient *http.Client, apiEndpoint, apiToken string) CheckExecutor {
+	return &intentFlowExecutor{
+		httpClient:  httpClient,
+		apiEndpoint: apiEndpoint,
+		apiToken:    apiToken,
+	}
+}
+
+type intentFlowExecutor struct {
+	httpClient  *http.Client
+	apiEndpoint string
+	apiToken    string
+}
+
+func (e *intentFlowExecutor) Execute(check *SyntheticCheck) (*CheckResult, error) {
+	// Implementation placeholder
+	return &CheckResult{Success: true}, nil
+}
+
+// NewDatabaseCheckExecutor creates a new database check executor
+func NewDatabaseCheckExecutor() CheckExecutor {
+	return &databaseCheckExecutor{}
+}
+
+type databaseCheckExecutor struct{}
+
+func (e *databaseCheckExecutor) Execute(check *SyntheticCheck) (*CheckResult, error) {
+	// Implementation placeholder
+	return &CheckResult{Success: true}, nil
+}
+
+// NewExternalServiceExecutor creates a new external service executor
+func NewExternalServiceExecutor(httpClient *http.Client) CheckExecutor {
+	return &externalServiceExecutor{httpClient: httpClient}
+}
+
+type externalServiceExecutor struct {
+	httpClient *http.Client
+}
+
+func (e *externalServiceExecutor) Execute(check *SyntheticCheck) (*CheckResult, error) {
+	// Implementation placeholder
+	return &CheckResult{Success: true}, nil
+}
+
+// NewChaosCheckExecutor creates a new chaos check executor
+func NewChaosCheckExecutor() CheckExecutor {
+	return &chaosCheckExecutor{}
+}
+
+type chaosCheckExecutor struct{}
+
+func (e *chaosCheckExecutor) Execute(check *SyntheticCheck) (*CheckResult, error) {
+	// Implementation placeholder
+	return &CheckResult{Success: true}, nil
+}

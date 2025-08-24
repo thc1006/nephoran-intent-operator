@@ -825,6 +825,46 @@ func (wp *WorkerPool) getState() WorkerPoolState {
 
 func (ds *DynamicScaler) evaluateScaling() {}
 func (wp *WorkerPool) updateMetrics()      {}
+
+// GetMetrics returns current worker pool metrics
+func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
+	wp.metrics.mu.RLock()
+	defer wp.metrics.mu.RUnlock()
+	
+	// Return a copy of the metrics
+	return &WorkerPoolMetrics{
+		TotalTasks:        wp.metrics.TotalTasks,
+		CompletedTasks:    wp.metrics.CompletedTasks,
+		FailedTasks:       wp.metrics.FailedTasks,
+		ActiveWorkers:     wp.metrics.ActiveWorkers,
+		IdleWorkers:       wp.metrics.IdleWorkers,
+		QueueSize:         wp.metrics.QueueSize,
+		AverageWaitTime:   wp.metrics.AverageWaitTime,
+		AverageProcessTime: wp.metrics.AverageProcessTime,
+		TasksPerSecond:    wp.metrics.TasksPerSecond,
+		ErrorRate:         wp.metrics.ErrorRate,
+		Utilization:       wp.metrics.Utilization,
+		WorkerStates:      wp.metrics.WorkerStates,
+		TasksByType:       wp.metrics.TasksByType,
+		TasksByPriority:   wp.metrics.TasksByPriority,
+		LastUpdated:       wp.metrics.LastUpdated,
+	}
+}
+
+// GetStatus returns current worker pool status
+func (wp *WorkerPool) GetStatus() string {
+	state := wp.getState()
+	switch state {
+	case WorkerPoolStateRunning:
+		return "running"
+	case WorkerPoolStatePaused:
+		return "paused"
+	case WorkerPoolStateShutdown:
+		return "shutdown"
+	default:
+		return "starting"
+	}
+}
 func (w *Worker) processValidationTask(ctx context.Context, task *Task) (interface{}, error) {
 	return nil, nil
 }

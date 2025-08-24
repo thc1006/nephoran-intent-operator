@@ -203,6 +203,7 @@ type ContentQueryOptions struct {
 type ContentUpdateRequest struct {
 	FilesToAdd         map[string][]byte
 	FilesToUpdate      map[string][]byte
+	FileUpdates        map[string][]byte // Alias for FilesToUpdate
 	FilesToDelete      []string
 	TemplateData       interface{}
 	ProcessTemplates   bool
@@ -425,6 +426,8 @@ type MergeResult struct {
 type FileMergeResult struct {
 	Success       bool
 	MergedContent []byte
+	MergedData    []byte // Alias for MergedContent
+	HasConflicts  bool
 	Conflicts     []*ConflictMarker
 	Statistics    *FileMergeStatistics
 }

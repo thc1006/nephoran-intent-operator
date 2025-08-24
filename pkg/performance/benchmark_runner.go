@@ -34,16 +34,6 @@ func (te *ComprehensiveTestEnvironment) Cleanup() {
 	te.initialized = false
 }
 
-// setupComprehensiveTestEnvironment creates a comprehensive test environment
-func setupComprehensiveTestEnvironment() *ComprehensiveTestEnvironment {
-	return &ComprehensiveTestEnvironment{
-		initialized:    true,
-		dbConnections:  make(map[string]any),
-		memoryPools:    make(map[int][]any),
-		networkClients: make(map[string]any),
-		controllers:    make(map[string]any),
-	}
-}
 
 // ResourceMonitor monitors system resources during benchmarks
 type ResourceMonitor struct {

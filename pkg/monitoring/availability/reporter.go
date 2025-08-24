@@ -1077,3 +1077,30 @@ func (ar *AvailabilityReporter) exportReportAsPDF(report *AvailabilityReport) ([
 func (ar *AvailabilityReporter) exportReportAsPrometheusMetrics(report *AvailabilityReport) ([]byte, error) {
 	return []byte{}, nil
 }
+
+// DependencyChainTracker tracks dependency chains for availability reporting
+type DependencyChainTracker struct {
+	dependencies map[string][]string
+	mu           sync.RWMutex
+}
+
+// NewDependencyChainTracker creates a new dependency chain tracker
+func NewDependencyChainTracker() *DependencyChainTracker {
+	return &DependencyChainTracker{
+		dependencies: make(map[string][]string),
+	}
+}
+
+// AddDependency adds a dependency relationship
+func (d *DependencyChainTracker) AddDependency(service, dependency string) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.dependencies[service] = append(d.dependencies[service], dependency)
+}
+
+// GetDependencies gets dependencies for a service
+func (d *DependencyChainTracker) GetDependencies(service string) []string {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	return d.dependencies[service]
+}

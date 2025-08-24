@@ -656,3 +656,107 @@ func (m *CertRotationManager) discoverCertificates(ctx context.Context) error {
 }
 
 // Additional helper methods would be implemented here...
+
+// CertManagerInterface wraps cert-manager operations
+type CertManagerInterface struct {
+	k8sClient kubernetes.Interface
+	namespace string
+	logger    *zap.Logger
+}
+
+// NewCertManagerInterface creates a new cert-manager interface
+func NewCertManagerInterface(k8sClient kubernetes.Interface, namespace string, logger *zap.Logger) (*CertManagerInterface, error) {
+	return &CertManagerInterface{
+		k8sClient: k8sClient,
+		namespace: namespace,
+		logger:    logger,
+	}, nil
+}
+
+
+// RotationNotifier handles rotation notifications
+type RotationNotifier struct {
+	config *CertRotationConfig
+	logger *zap.Logger
+}
+
+// NewRotationNotifier creates a new rotation notifier
+func NewRotationNotifier(config *CertRotationConfig, logger *zap.Logger) *RotationNotifier {
+	return &RotationNotifier{
+		config: config,
+		logger: logger,
+	}
+}
+
+// RotationEvent represents a rotation event
+type RotationEvent struct {
+	Type      string
+	Timestamp time.Time
+	Details   map[string]interface{}
+}
+
+// SendNotification sends a rotation notification
+func (n *RotationNotifier) SendNotification(event RotationEvent) error {
+	// Implementation placeholder
+	return nil
+}
+
+// SendRotationFailureNotification sends a failure notification
+func (n *RotationNotifier) SendRotationFailureNotification(name string, err error) error {
+	return n.SendNotification(RotationEvent{
+		Type:      "failure",
+		Timestamp: time.Now(),
+		Details: map[string]interface{}{
+			"name":  name,
+			"error": err.Error(),
+		},
+	})
+}
+
+// SendRotationSuccessNotification sends a success notification  
+func (n *RotationNotifier) SendRotationSuccessNotification(name string) error {
+	return n.SendNotification(RotationEvent{
+		Type:      "success",
+		Timestamp: time.Now(),
+		Details: map[string]interface{}{
+			"name": name,
+		},
+	})
+}
+
+// Start starts the rotation scheduler
+func (rs *RotationScheduler) Start() error {
+	// Implementation placeholder
+	return nil
+}
+
+// Stop stops the rotation scheduler
+func (rs *RotationScheduler) Stop() error {
+	// Implementation placeholder
+	return nil
+}
+
+// RenewCertificate renews a certificate
+func (cm *CertManagerInterface) RenewCertificate(ctx context.Context, name, namespace string) error {
+	// Implementation placeholder
+	return nil
+}
+
+// createCertificateBackup creates a backup of a certificate
+func (m *CertRotationManager) createCertificateBackup(ctx context.Context, tracker *CertificateTracker) (string, error) {
+	// Implementation placeholder
+	backupName := fmt.Sprintf("%s-backup-%d", tracker.SecretName, time.Now().Unix())
+	return backupName, nil
+}
+
+// rollbackCertificate rolls back to a backup certificate
+func (m *CertRotationManager) rollbackCertificate(ctx context.Context, tracker *CertificateTracker, backupName string) error {
+	// Implementation placeholder
+	return nil
+}
+
+// cleanupOldBackups cleans up old certificate backups
+func (m *CertRotationManager) cleanupOldBackups(ctx context.Context, tracker *CertificateTracker) error {
+	// Implementation placeholder
+	return nil
+}

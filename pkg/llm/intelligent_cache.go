@@ -596,22 +596,6 @@ func NewDependencyGraph() *DependencyGraph                            { return &
 func (dg *DependencyGraph) AddDependencies(key string, deps []string) {}
 
 func NewPatternAnalyzer() *PatternAnalyzer { return &PatternAnalyzer{} }
-type CacheMetrics struct {
-	hits       int64
-	misses     int64
-	operations map[string]time.Duration
-}
-
-func NewCacheMetrics() *CacheMetrics { 
-	return &CacheMetrics{
-		operations: make(map[string]time.Duration),
-	} 
-}
-
-func (cm *CacheMetrics) RecordOperation(op string, duration time.Duration) {}
-func (cm *CacheMetrics) RecordHit(level string)                            {}
-func (cm *CacheMetrics) RecordMiss()                                       {}
-func (cm *CacheMetrics) RecordSet()                                        {}
 
 func (ic *IntelligentCache) serializeJSON(v interface{}) ([]byte, error)    { return nil, nil }
 func (ic *IntelligentCache) serializeMsgPack(v interface{}) ([]byte, error) { return nil, nil }
