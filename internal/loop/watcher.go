@@ -2374,8 +2374,3 @@ func (w *Watcher) isFileStable(filePath string) bool {
 	return stat1.Size() == stat2.Size() && stat1.ModTime().Equal(stat2.ModTime())
 }
 
-// IsIntentFile checks if a filename matches the intent file pattern
-func IsIntentFile(filename string) bool {
-	// Check if file matches intent-*.json pattern
-	return strings.HasPrefix(filename, "intent-") && strings.HasSuffix(filename, ".json")
-}
