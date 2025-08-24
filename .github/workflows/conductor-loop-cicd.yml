@@ -272,12 +272,8 @@ jobs:
       run: |
         echo "Running hardened integration tests with 8m timeout ceiling..."
         
-        # Set up test environment with cross-platform paths
-        if [ "${{ runner.os }}" = "Windows" ]; then
-          mkdir -p test-data/handoff test-data/out test-data/status
-        else
-          mkdir -p test-data/{handoff,out,status}
-        fi
+        # Set up test environment
+        mkdir -p test-data/{handoff,out,status}
         
         echo '{"intent": "test"}' > test-data/handoff/test-intent.json
         
