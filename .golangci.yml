@@ -23,14 +23,16 @@ run:
   # Module download mode
   modules-download-mode: readonly
 
-# Output configuration
+# Output configuration for v2 schema compatibility
 output:
   formats:
     - format: colored-line-number
-  # show-stats: true  # Show stats after run
-  print-issued-lines: true
+    - format: github-actions  # Added for CI integration
+  # Reduce output verbosity to prevent Node.js maxBuffer issues in CI
+  print-issued-lines: false  # Changed from true to reduce output
   print-linter-name: true
   sort-results: true
+  uniq-by-line: true  # Deduplicate issues by line
 
 # Linters configuration
 linters:
@@ -156,6 +158,8 @@ issues:
     - "zz_generated\\..*\\.go$"
     - "mock_.*\\.go$"
     - "vendor/.*"
+    - ".*/out/.*\\.go$"          # Exclude .out directories
+    - ".*/test-results/.*\\.go$"  # Exclude test-results directories
   
   # Exclude certain issue patterns
   exclude-rules:
@@ -191,6 +195,8 @@ issues:
     - testdata
     - examples
     - third_party
+    - out              # Exclude .out directories
+    - test-results     # Exclude test-results directories
   
   # Show all issues from these linters
   include:
