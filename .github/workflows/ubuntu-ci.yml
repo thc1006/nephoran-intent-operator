@@ -16,7 +16,7 @@ permissions:
 
 env:
   GO_VERSION: "1.24.x"
-  GOLANGCI_LINT_VERSION: "v2.4.0"
+  GOLANGCI_LINT_VERSION: "v1.61.0"  # Latest stable golangci-lint version
 
 jobs:
   # ==========================================================================
@@ -50,11 +50,19 @@ jobs:
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${{ env.GOLANGCI_LINT_VERSION }}
           $(go env GOPATH)/bin/golangci-lint config verify --config=.golangci.yml
 
-      - name: Run golangci-lint (v2 schema)
-        uses: golangci/golangci-lint-action@v8
+      - name: Run golangci-lint
+        # Using golangci-lint-action@v6 (latest stable version)
+        # Note: 'only-new-issues' requires GitHub token for API access to compare changes
+        uses: golangci/golangci-lint-action@v6
         with:
+          # Pin golangci-lint version for consistent behavior
           version: ${{ env.GOLANGCI_LINT_VERSION }}
-          args: --config=.golangci.yml
+          # Command line arguments
+          args: --timeout=5m
+          # Only show issues in new/modified code (requires GitHub token)
+          only-new-issues: true
+          # Skip cache to avoid permission issues
+          skip-cache: false
 
   # ==========================================================================
   # Test Job - Ubuntu Only

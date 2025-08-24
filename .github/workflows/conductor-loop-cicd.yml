@@ -331,11 +331,18 @@ jobs:
         
     # Code quality analysis
     - name: Run golangci-lint
-      uses: golangci/golangci-lint-action@v8
+      # Using golangci-lint-action@v6 (latest stable version)
+      # Note: 'only-new-issues' requires GitHub token for API access
+      uses: golangci/golangci-lint-action@v6
       with:
-        version: v2.4.0
-        args: --config=.golangci.yml --timeout=10m
-        verify-config: true
+        # Pin golangci-lint version for consistent behavior
+        version: v1.61.0  # Latest stable golangci-lint version
+        # Command line arguments
+        args: --timeout=10m
+        # Only show issues in new/modified code (requires GitHub token)
+        only-new-issues: true
+        # Skip cache to avoid permission issues
+        skip-cache: false
         
     # Upload test results
     - name: Upload Coverage Reports

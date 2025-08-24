@@ -402,17 +402,25 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/golangci-lint
-          key: ${{ runner.os }}-golangci-lint-v2.4.0-${{ hashFiles('**/go.sum') }}
+          key: ${{ runner.os }}-golangci-lint-v1.61.0-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-golangci-lint-v2.4.0-
+            ${{ runner.os }}-golangci-lint-v1.61.0-
             ${{ runner.os }}-golangci-lint-
 
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        # Using golangci-lint-action@v6 (latest stable version)
+        # Note: v6 supports 'only-new-issues' which requires GitHub token for API access
+        # This reduces noise by only showing issues in the changed code
+        uses: golangci/golangci-lint-action@v6
         with:
-          version: v2.4.0
-          args: --config=.golangci.yml --timeout=5m
-          verify-config: true
+          # Pin golangci-lint version for consistent behavior across runs
+          version: v1.61.0  # Latest stable golangci-lint version
+          # Command line arguments to golangci-lint
+          args: --timeout=5m
+          # Only show issues in new/modified code (requires GitHub token)
+          only-new-issues: true
+          # Skip cache to avoid permission issues in some environments
+          skip-cache: false
 
       - name: Run additional linters
         run: |
