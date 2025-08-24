@@ -48,9 +48,9 @@ type IntentProcessor struct {
 	porchFunc  PorchSubmitFunc
 	batch      []string
 	batchMu    sync.Mutex
-	processed  map[string]bool // for idempotency
-	processedMu sync.RWMutex
-	stopCh     chan struct{}
+	processed  *SafeSet // for idempotency
+	ctx        context.Context
+	cancel     context.CancelFunc
 	wg         sync.WaitGroup
 }
 
@@ -69,16 +69,18 @@ func NewProcessor(config *ProcessorConfig, validator Validator, porchFunc PorchS
 	}
 
 	// Load processed intents for idempotency
-	processed := make(map[string]bool)
+	processed := NewSafeSet()
 	processedFile := filepath.Join(config.HandoffDir, ".processed")
 	if data, err := os.ReadFile(processedFile); err == nil {
 		lines := strings.Split(string(data), "\n")
 		for _, line := range lines {
 			if line != "" {
-				processed[line] = true
+				processed.Add(line)
 			}
 		}
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	return &IntentProcessor{
 		config:    config,
@@ -86,20 +88,19 @@ func NewProcessor(config *ProcessorConfig, validator Validator, porchFunc PorchS
 		porchFunc: porchFunc,
 		batch:     make([]string, 0, config.BatchSize),
 		processed: processed,
-		stopCh:    make(chan struct{}),
+		ctx:       ctx,
+		cancel:    cancel,
 	}, nil
 }
 
 // ProcessFile processes a single intent file
 func (p *IntentProcessor) ProcessFile(filename string) error {
 	// Check if already processed (idempotency)
-	p.processedMu.RLock()
-	if p.processed[filepath.Base(filename)] {
-		p.processedMu.RUnlock()
+	basename := filepath.Base(filename)
+	if p.processed.Has(basename) {
 		log.Printf("File already processed (idempotent): %s", filename)
 		return nil
 	}
-	p.processedMu.RUnlock()
 
 	// Add to batch
 	p.batchMu.Lock()
@@ -207,10 +208,7 @@ func (p *IntentProcessor) handleError(filename string, err error) error {
 // markProcessed marks a file as processed for idempotency
 func (p *IntentProcessor) markProcessed(filename string) {
 	basename := filepath.Base(filename)
-	
-	p.processedMu.Lock()
-	p.processed[basename] = true
-	p.processedMu.Unlock()
+	p.processed.Add(basename)
 
 	// Persist to file
 	processedFile := filepath.Join(p.config.HandoffDir, ".processed")
@@ -240,7 +238,7 @@ func (p *IntentProcessor) StartBatchProcessor() {
 				if err := p.FlushBatch(); err != nil {
 					log.Printf("Error flushing batch: %v", err)
 				}
-			case <-p.stopCh:
+			case <-p.ctx.Done():
 				// Flush remaining batch before stopping
 				p.FlushBatch()
 				return
@@ -249,9 +247,9 @@ func (p *IntentProcessor) StartBatchProcessor() {
 	}()
 }
 
-// Stop stops the processor
+// Stop stops the processor and waits for all goroutines to finish
 func (p *IntentProcessor) Stop() {
-	close(p.stopCh)
+	p.cancel()
 	p.wg.Wait()
 }
 

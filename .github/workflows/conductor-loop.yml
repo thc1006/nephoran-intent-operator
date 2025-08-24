@@ -3,12 +3,17 @@ name: Conductor Loop CI
 on:
   workflow_dispatch: {}
   push:
-    branches: [ feat/conductor-loop ]
+    branches:
+      - main
+      - integrate/mvp
+      - 'feat/**'
+      - 'fix/**'
+      - 'chore/**'
+      - 'refactor/**'
     paths:
       - 'cmd/conductor-loop/**'
       - 'internal/loop/**'
       - '.github/workflows/conductor-loop.yml'
-      - 'Dockerfile.conductor-loop'
       - 'deployments/conductor-loop/**'
       - 'go.mod'
       - 'go.sum'
@@ -18,8 +23,9 @@ on:
       - 'cmd/conductor-loop/**'
       - 'internal/loop/**'
       - '.github/workflows/conductor-loop.yml'
-      - 'Dockerfile.conductor-loop'
       - 'deployments/conductor-loop/**'
+      - 'go.mod'
+      - 'go.sum'
 
 # Concurrency control aligned with existing CI
 concurrency:
