@@ -152,6 +152,18 @@ func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
 	}
 }
 
+// Call executes a simple function through the circuit breaker
+// This method provides a simpler interface compared to Execute for functions that don't need context
+func (cb *CircuitBreaker) Call(fn func() error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), cb.config.Timeout)
+	defer cancel()
+	
+	_, err := cb.Execute(ctx, func(context.Context) (interface{}, error) {
+		return nil, fn()
+	})
+	return err
+}
+
 // Execute executes an operation through the circuit breaker
 func (cb *CircuitBreaker) Execute(ctx context.Context, operation CircuitOperation) (interface{}, error) {
 	startTime := time.Now()
