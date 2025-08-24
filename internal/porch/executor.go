@@ -64,12 +64,12 @@ func NewExecutor(config ExecutorConfig) *Executor {
 	}
 }
 
-// Execute runs the porch command for the given intent file
+// Execute runs the porch command for the given intent file with graceful handling
 func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionResult, error) {
 	startTime := time.Now()
 	
 	// Build command based on mode
-	cmd, err := e.buildCommand(intentPath)
+	cmdArgs, err := e.buildCommand(intentPath)
 	if err != nil {
 		return &ExecutionResult{
 			Success:  false,
@@ -83,26 +83,27 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 	timeoutCtx, cancel := context.WithTimeout(ctx, e.config.Timeout)
 	defer cancel()
 	
-	// Set up command with context
-	execCmd := exec.CommandContext(timeoutCtx, cmd[0], cmd[1:]...)
+	// Create graceful command instead of regular exec.Command
+	gracefulCmd := NewGracefulCommand(timeoutCtx, cmdArgs[0], cmdArgs[1:]...)
+	gracefulCmd.SetGracePeriod(5 * time.Second) // 5 second grace period for SIGTERM->SIGKILL
 	
 	var stdout, stderr bytes.Buffer
-	execCmd.Stdout = &stdout
-	execCmd.Stderr = &stderr
+	gracefulCmd.Stdout = &stdout
+	gracefulCmd.Stderr = &stderr
 	
-	log.Printf("Executing porch command: %s", strings.Join(cmd, " "))
+	log.Printf("Executing porch command: %s", strings.Join(cmdArgs, " "))
 	
-	// Execute the command
-	err = execCmd.Run()
+	// Execute the command with graceful shutdown support
+	err = gracefulCmd.RunWithGracefulShutdown()
 	duration := time.Since(startTime)
 	
 	result := &ExecutionResult{
 		Success:  err == nil,
-		ExitCode: getExitCode(execCmd, err),
+		ExitCode: getExitCode(gracefulCmd.Cmd, err),
 		Stdout:   strings.TrimSpace(stdout.String()),
 		Stderr:   strings.TrimSpace(stderr.String()),
 		Duration: duration,
-		Command:  strings.Join(cmd, " "),
+		Command:  strings.Join(cmdArgs, " "),
 	}
 	
 	if err != nil {

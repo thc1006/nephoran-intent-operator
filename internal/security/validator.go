@@ -27,19 +27,19 @@ type PathValidator struct {
 
 // ContentValidator validates file and JSON content
 type ContentValidator struct {
-	maxFileSize     int64
+	maxFileSize      int64
 	allowedMimeTypes []string
 }
 
 // SecurityViolation represents a security validation error
 type SecurityViolation struct {
-	Field       string                 `json:"field"`
-	Type        string                 `json:"type"`
-	Severity    string                 `json:"severity"`
-	Message     string                 `json:"message"`
-	Value       interface{}            `json:"value,omitempty"`
-	Remediation string                 `json:"remediation"`
-	OWASPRule   string                 `json:"owasp_rule"`
+	Field       string      `json:"field"`
+	Type        string      `json:"type"`
+	Severity    string      `json:"severity"`
+	Message     string      `json:"message"`
+	Value       interface{} `json:"value,omitempty"`
+	Remediation string      `json:"remediation"`
+	OWASPRule   string      `json:"owasp_rule"`
 }
 
 // ValidationResult contains validation results with security context
@@ -57,17 +57,17 @@ func NewOWASPValidator() (*OWASPValidator, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to compile intent schema: %w", err)
 	}
-	
+
 	pathValidator := &PathValidator{
 		allowedPaths: getAllowedBasePaths(),
 		maxPathLen:   4096, // OWASP recommended max path length
 	}
-	
+
 	contentValidator := &ContentValidator{
-		maxFileSize:     1048576, // 1MB max file size
+		maxFileSize:      1048576, // 1MB max file size
 		allowedMimeTypes: []string{"application/json", "text/plain"},
 	}
-	
+
 	return &OWASPValidator{
 		intentSchema:     schema,
 		pathValidator:    pathValidator,
@@ -83,13 +83,13 @@ func (v *OWASPValidator) ValidateIntentFile(filePath string) (*ValidationResult,
 		ThreatLevel: "LOW",
 		Timestamp:   generateSecureTimestamp(),
 	}
-	
+
 	// 1. Path traversal and injection validation
 	if violations := v.pathValidator.ValidatePath(filePath); len(violations) > 0 {
 		result.Violations = append(result.Violations, violations...)
 		result.ThreatLevel = "HIGH"
 	}
-	
+
 	// 2. File system security validation
 	if violations := v.validateFileSystem(filePath); len(violations) > 0 {
 		result.Violations = append(result.Violations, violations...)
@@ -97,7 +97,7 @@ func (v *OWASPValidator) ValidateIntentFile(filePath string) (*ValidationResult,
 			result.ThreatLevel = "MEDIUM"
 		}
 	}
-	
+
 	// 3. Content validation
 	data, err := v.secureReadFile(filePath)
 	if err != nil {
@@ -111,7 +111,7 @@ func (v *OWASPValidator) ValidateIntentFile(filePath string) (*ValidationResult,
 		})
 		return result, nil
 	}
-	
+
 	// 4. JSON schema validation with security context
 	if violations := v.validateIntentContent(data); len(violations) > 0 {
 		result.Violations = append(result.Violations, violations...)
@@ -119,17 +119,17 @@ func (v *OWASPValidator) ValidateIntentFile(filePath string) (*ValidationResult,
 			result.ThreatLevel = "MEDIUM"
 		}
 	}
-	
+
 	// Set validation result
 	result.IsValid = len(result.Violations) == 0
-	
+
 	return result, nil
 }
 
 // ValidatePath performs comprehensive path security validation
 func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 	var violations []SecurityViolation
-	
+
 	// Path length validation
 	if len(path) > pv.maxPathLen {
 		violations = append(violations, SecurityViolation{
@@ -142,7 +142,7 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 			OWASPRule:   "A3:2021-Injection",
 		})
 	}
-	
+
 	// Path traversal detection
 	if strings.Contains(path, "..") || strings.Contains(path, "~") {
 		violations = append(violations, SecurityViolation{
@@ -155,7 +155,7 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 			OWASPRule:   "A3:2021-Injection",
 		})
 	}
-	
+
 	// Null byte injection
 	if strings.Contains(path, "\x00") {
 		violations = append(violations, SecurityViolation{
@@ -168,7 +168,7 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 			OWASPRule:   "A3:2021-Injection",
 		})
 	}
-	
+
 	// Canonical path validation
 	cleanPath := filepath.Clean(path)
 	if cleanPath != path {
@@ -182,7 +182,7 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 			OWASPRule:   "A1:2021-Broken Access Control",
 		})
 	}
-	
+
 	// Whitelist validation
 	absPath, err := filepath.Abs(cleanPath)
 	if err == nil {
@@ -195,7 +195,7 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 				}
 			}
 		}
-		
+
 		if !allowed {
 			violations = append(violations, SecurityViolation{
 				Field:       "file_path",
@@ -208,14 +208,14 @@ func (pv *PathValidator) ValidatePath(path string) []SecurityViolation {
 			})
 		}
 	}
-	
+
 	return violations
 }
 
 // validateFileSystem performs file system level security checks
 func (v *OWASPValidator) validateFileSystem(path string) []SecurityViolation {
 	var violations []SecurityViolation
-	
+
 	info, err := os.Stat(path)
 	if err != nil {
 		violations = append(violations, SecurityViolation{
@@ -228,7 +228,7 @@ func (v *OWASPValidator) validateFileSystem(path string) []SecurityViolation {
 		})
 		return violations
 	}
-	
+
 	// File size validation
 	if info.Size() > v.contentValidator.maxFileSize {
 		violations = append(violations, SecurityViolation{
@@ -241,7 +241,7 @@ func (v *OWASPValidator) validateFileSystem(path string) []SecurityViolation {
 			OWASPRule:   "A4:2021-Insecure Design",
 		})
 	}
-	
+
 	// Permission validation
 	mode := info.Mode()
 	if mode.Perm()&0022 != 0 { // World or group writable
@@ -255,7 +255,7 @@ func (v *OWASPValidator) validateFileSystem(path string) []SecurityViolation {
 			OWASPRule:   "A5:2021-Security Misconfiguration",
 		})
 	}
-	
+
 	return violations
 }
 
@@ -266,31 +266,31 @@ func (v *OWASPValidator) secureReadFile(path string) ([]byte, error) {
 		return nil, fmt.Errorf("failed to open file: %w", err)
 	}
 	defer file.Close()
-	
+
 	// Validate file size before reading
 	info, err := file.Stat()
 	if err != nil {
 		return nil, fmt.Errorf("failed to stat file: %w", err)
 	}
-	
+
 	if info.Size() > v.contentValidator.maxFileSize {
 		return nil, fmt.Errorf("file size %d exceeds maximum %d", info.Size(), v.contentValidator.maxFileSize)
 	}
-	
+
 	// Read with size limit
 	data := make([]byte, info.Size())
 	n, err := file.Read(data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
-	
+
 	return data[:n], nil
 }
 
 // validateIntentContent validates JSON content with security checks
 func (v *OWASPValidator) validateIntentContent(data []byte) []SecurityViolation {
 	var violations []SecurityViolation
-	
+
 	// JSON bomb detection
 	if len(data) > 0 {
 		// Check for excessive nesting or repeated keys
@@ -307,7 +307,7 @@ func (v *OWASPValidator) validateIntentContent(data []byte) []SecurityViolation 
 			return violations
 		}
 	}
-	
+
 	// Schema validation
 	var intentData interface{}
 	if err := json.Unmarshal(data, &intentData); err == nil {
@@ -322,7 +322,7 @@ func (v *OWASPValidator) validateIntentContent(data []byte) []SecurityViolation 
 			})
 		}
 	}
-	
+
 	// Content injection detection
 	contentStr := string(data)
 	injectionPatterns := []string{
@@ -336,7 +336,7 @@ func (v *OWASPValidator) validateIntentContent(data []byte) []SecurityViolation 
 		`popen`,
 		`proc_open`,
 	}
-	
+
 	for _, pattern := range injectionPatterns {
 		if matched, _ := regexp.MatchString(`(?i)`+pattern, contentStr); matched {
 			violations = append(violations, SecurityViolation{
@@ -349,7 +349,7 @@ func (v *OWASPValidator) validateIntentContent(data []byte) []SecurityViolation 
 			})
 		}
 	}
-	
+
 	return violations
 }
 
@@ -402,19 +402,19 @@ func compileIntentSchema() (*jsonschema.Schema, error) {
 		"required": ["intent_type", "target", "namespace", "replicas"],
 		"additionalProperties": false
 	}`
-	
+
 	compiler := jsonschema.NewCompiler()
 	compiler.DefaultDraft(jsonschema.Draft2020)
-	
+
 	var schemaDoc interface{}
 	if err := json.Unmarshal([]byte(schemaContent), &schemaDoc); err != nil {
 		return nil, fmt.Errorf("failed to parse schema: %w", err)
 	}
-	
+
 	if err := compiler.AddResource("https://nephoran.io/schemas/secure-intent.json", schemaDoc); err != nil {
 		return nil, fmt.Errorf("failed to add schema resource: %w", err)
 	}
-	
+
 	return compiler.Compile("https://nephoran.io/schemas/secure-intent.json")
 }
 
@@ -423,7 +423,7 @@ func getAllowedBasePaths() []string {
 	return []string{
 		".",
 		"./examples",
-		"./packages", 
+		"./packages",
 		"./output",
 		os.TempDir(),
 	}

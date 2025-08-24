@@ -402,6 +402,54 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: true,
 			errMsg:  `invalid mode "invalid", must be one of: watch, once, periodic`,
 		},
+		// GracePeriod validation tests
+		{
+			name: "GracePeriod disabled (0)",
+			config: Config{
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 0,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GracePeriod minimum valid (1s)",
+			config: Config{
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 1 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GracePeriod maximum valid (30s)",
+			config: Config{
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 30 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GracePeriod too low",
+			config: Config{
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 999 * time.Millisecond,
+			},
+			wantErr: true,
+			errMsg:  "grace_period must be at least 1 second",
+		},
+		{
+			name: "GracePeriod too high",
+			config: Config{
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 31 * time.Second,
+			},
+			wantErr: true,
+			errMsg:  "grace_period must not exceed 30 seconds",
+		},
 	}
 
 	for _, tt := range tests {

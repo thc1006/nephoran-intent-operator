@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"syscall"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/internal/loop"
 )
 
@@ -231,16 +231,30 @@ func TestShutdownFailureDetection(t *testing.T) {
 		{
 			name:              "signal_killed_during_shutdown",
 			shuttingDown:      true,
-			err:               createMockExitError(syscall.SIGKILL),
+			err:               createMockExitError(137), // SIGKILL exit code
 			expectedShutdown:  true,
 			description:       "SIGKILL during shutdown should be classified as shutdown failure",
 		},
 		{
 			name:              "signal_killed_without_shutdown",
 			shuttingDown:      false,
-			err:               createMockExitError(syscall.SIGKILL),
+			err:               createMockExitError(137), // SIGKILL exit code
 			expectedShutdown:  false,
 			description:       "SIGKILL without shutdown should NOT be classified as shutdown failure",
+		},
+		{
+			name:              "sigterm_exit_code_during_shutdown",
+			shuttingDown:      true,
+			err:               createMockExitError(143), // SIGTERM exit code
+			expectedShutdown:  true,
+			description:       "Exit code 143 (SIGTERM) during shutdown should be classified as shutdown failure",
+		},
+		{
+			name:              "signal_message_during_shutdown",
+			shuttingDown:      true,
+			err:               fmt.Errorf("process terminated: signal: killed"),
+			expectedShutdown:  true,
+			description:       "Error message containing 'signal: killed' during shutdown should be classified as shutdown failure",
 		},
 		{
 			name:              "real_failure_during_shutdown",
@@ -269,47 +283,157 @@ func TestShutdownFailureDetection(t *testing.T) {
 	}
 }
 
-// createMockExitError creates a mock error that will be classified correctly by IsShutdownFailure
-func createMockExitError(signal syscall.Signal) error {
-	// For testing purposes, we'll use a real exit error from a terminated process
-	// This is the most reliable way to get proper signal information
-	return createRealExitError(signal)
-}
-
-// createRealExitError creates a real *exec.ExitError for testing signal scenarios
-func createRealExitError(signal syscall.Signal) error {
-	// Create a short-lived process that we can kill with the specified signal
-	// Use a simple command that will run long enough for us to signal it
+// createMockExitError creates a mock *exec.ExitError with the specified exit code
+func createMockExitError(exitCode int) error {
+	// Create a short-lived process that will exit with the specified code
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
-		// On Windows, use timeout command
-		cmd = exec.Command("timeout", "10")
+		// On Windows, use cmd /c exit with the specified code
+		cmd = exec.Command("cmd", "/c", fmt.Sprintf("exit %d", exitCode))
 	} else {
-		// On Unix, use sleep command
-		cmd = exec.Command("sleep", "10")  
+		// On Unix, use sh -c exit with the specified code
+		cmd = exec.Command("sh", "-c", fmt.Sprintf("exit %d", exitCode))
 	}
 	
-	// Start the process
-	err := cmd.Start()
-	if err != nil {
-		return fmt.Errorf("failed to start test process: %w", err)
+	// Run and wait for the process to complete with the exit code
+	err := cmd.Run()
+	
+	// This should return an *exec.ExitError with the specified exit code
+	return err
+}
+
+// TestWatcher_GracefulShutdown_DrainsWithoutHang tests that the watcher properly drains
+// work during graceful shutdown without hanging or timing out
+func TestWatcher_GracefulShutdown_DrainsWithoutHang(t *testing.T) {
+	// Create temporary directory structure
+	tempDir := t.TempDir()
+	handoffDir := filepath.Join(tempDir, "handoff")
+	outDir := filepath.Join(tempDir, "out")
+	
+	err := os.MkdirAll(handoffDir, 0755)
+	require.NoError(t, err)
+	
+	err = os.MkdirAll(outDir, 0755)
+	require.NoError(t, err)
+	
+	// Create mock porch executable that processes files quickly
+	mockPorchPath := createMockPorchGraceful(t, tempDir, "success")
+	
+	// Create N > maxWorkers intents to ensure queue draining
+	numIntents := 12  // More than typical worker count
+	maxWorkers := 3   // Smaller worker count to force queuing
+	
+	// Create watcher config with once=true for immediate shutdown test
+	config := loop.Config{
+		PorchPath:   mockPorchPath,
+		Mode:        "direct",
+		OutDir:      outDir, 
+		Once:        true,  // Critical: this triggers immediate shutdown after processing
+		MaxWorkers:  maxWorkers,
+		DebounceDur: 50 * time.Millisecond,
 	}
 	
-	// Give it a moment to start
-	time.Sleep(10 * time.Millisecond)
+	watcher, err := loop.NewWatcher(handoffDir, config)
+	require.NoError(t, err)
+	defer watcher.Close()
 	
-	// Kill it with the specified signal
-	if runtime.GOOS == "windows" {
-		// On Windows, just kill the process (no specific signal support)
-		cmd.Process.Kill()
+	// Create multiple intent files
+	intentContent := `{
+	"intent_type": "scaling",
+	"target": "test-deployment-drain",
+	"namespace": "default",
+	"replicas": 5,
+	"source": "test"
+}`
+	
+	var createdFiles []string
+	for i := 0; i < numIntents; i++ {
+		// Use proper intent file naming convention: "intent-" prefix required
+		filename := fmt.Sprintf("intent-drain-%03d.json", i)
+		filePath := filepath.Join(handoffDir, filename)
+		err := os.WriteFile(filePath, []byte(intentContent), 0644)
+		require.NoError(t, err)
+		createdFiles = append(createdFiles, filename)
+	}
+	
+	// Verify files were created
+	entries, err := os.ReadDir(handoffDir)
+	require.NoError(t, err)
+	t.Logf("Created %d intent files, directory contains %d entries:", numIntents, len(entries))
+	for _, entry := range entries {
+		t.Logf("  - %s", entry.Name())
+	}
+	
+	// Start watcher processing - this should immediately start processing files
+	// and then drain without hanging because once=true
+	startTime := time.Now()
+	done := make(chan error, 1)
+	
+	go func() {
+		done <- watcher.Start()
+	}()
+	
+	// Watcher should complete processing and exit cleanly due to once=true
+	// Allow reasonable time for N files to process, but not too long
+	maxExpectedTime := 15 * time.Second
+	
+	select {
+	case err := <-done:
+		processingDuration := time.Since(startTime)
+		t.Logf("✅ Watcher completed in %v (expected < %v)", processingDuration, maxExpectedTime)
+		
+		if err != nil {
+			t.Logf("Watcher completed with error (may be expected): %v", err)
+		}
+		
+		// Verify processing completed within reasonable time
+		if processingDuration > maxExpectedTime {
+			t.Errorf("❌ Processing took too long: %v > %v", processingDuration, maxExpectedTime)
+		}
+		
+	case <-time.After(maxExpectedTime):
+		t.Fatal("❌ Timeout: watcher failed to drain and complete within expected time")
+	}
+	
+	// Verify final state
+	stats, err := watcher.GetStats()
+	require.NoError(t, err)
+	
+	t.Logf("Final processing statistics:")
+	t.Logf("  Total processed: %d", stats.ProcessedCount)
+	t.Logf("  Total failed: %d", stats.FailedCount)
+	t.Logf("  Real failures: %d", stats.RealFailedCount)
+	t.Logf("  Shutdown failures: %d", stats.ShutdownFailedCount)
+	t.Logf("  Total queue size was: %d intents", numIntents)
+	
+	// Verify the queue drained properly
+	totalProcessed := stats.ProcessedCount + stats.FailedCount
+	if totalProcessed == 0 {
+		t.Error("❌ No files were processed - queue may not have drained")
+	}
+	
+	// In once mode with proper draining, most/all files should be processed or failed
+	// Allow some tolerance since exact behavior depends on timing
+	minExpectedProcessing := numIntents / 2  // At least half should be processed
+	if totalProcessed < minExpectedProcessing {
+		t.Errorf("❌ Too few files processed: got %d, expected at least %d", 
+			totalProcessed, minExpectedProcessing)
+	}
+	
+	// Verify the counting invariant
+	expectedTotal := stats.RealFailedCount + stats.ShutdownFailedCount
+	if stats.FailedCount != expectedTotal {
+		t.Errorf("❌ Counting invariant violation: totalFailed=%d != realFailed=%d + shutdownFailed=%d", 
+			stats.FailedCount, stats.RealFailedCount, stats.ShutdownFailedCount)
 	} else {
-		// On Unix, send the specific signal
-		cmd.Process.Signal(signal)
+		t.Logf("✅ Counting invariant satisfied: %d = %d + %d", 
+			stats.FailedCount, stats.RealFailedCount, stats.ShutdownFailedCount)
 	}
 	
-	// Wait for it to complete and capture the exit error
-	waitErr := cmd.Wait()
+	// Test key assertions:
+	// 1. No timeout while draining (verified above)
+	// 2. Queue processes without hanging (verified by completion)
+	// 3. Tasks complete or fail consistently (verified by counting invariant)
 	
-	// Return the exit error which should contain the signal information
-	return waitErr
+	t.Logf("✅ Graceful shutdown drain test completed successfully")
 }

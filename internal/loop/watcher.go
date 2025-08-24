@@ -32,6 +32,7 @@ type Config struct {
 	Period         time.Duration `json:"period"`
 	MaxWorkers     int           `json:"max_workers"`
 	CleanupAfter   time.Duration `json:"cleanup_after"`
+	GracePeriod    time.Duration `json:"grace_period"`    // Grace period for graceful shutdown (default: 5s)
 	MetricsPort    int           `json:"metrics_port"`    // HTTP port for metrics endpoint
 	MetricsAddr    string        `json:"metrics_addr"`    // Bind address for metrics (default: localhost)
 	MetricsAuth    bool          `json:"metrics_auth"`    // Enable basic auth for metrics
@@ -93,6 +94,16 @@ func (c *Config) Validate() error {
 		}
 	}
 	
+	// Validate GracePeriod
+	if c.GracePeriod != 0 {
+		if c.GracePeriod < 1*time.Second {
+			return fmt.Errorf("grace_period must be at least 1 second")
+		}
+		if c.GracePeriod > 30*time.Second {
+			return fmt.Errorf("grace_period must not exceed 30 seconds")
+		}
+	}
+	
 	// Validate metrics authentication
 	if c.MetricsAuth {
 		if c.MetricsUser == "" || c.MetricsPass == "" {
@@ -126,6 +137,7 @@ type WorkerPool struct {
 	stopSignal    chan struct{}
 	maxWorkers    int
 	activeWorkers int64 // atomic counter
+	closed        int32 // atomic flag to prevent double closes
 }
 
 // WorkItem represents a unit of work for the worker pool
@@ -274,6 +286,9 @@ func NewWatcherWithConfig(dir string, config Config, processor *IntentProcessor)
 	}
 	if config.MetricsPort < 0 {
 		config.MetricsPort = 8080 // Default metrics port
+	}
+	if config.GracePeriod <= 0 {
+		config.GracePeriod = 5 * time.Second // Default grace period
 	}
 	
 	// Validate configuration for security
@@ -1250,8 +1265,10 @@ func (w *Watcher) waitForWorkersToFinish() {
 	// Give workers time to finish current processing
 	time.Sleep(200 * time.Millisecond)
 	
-	// Close work queue to signal workers to finish processing and exit
-	close(w.workerPool.workQueue)
+	// Close work queue to signal workers to finish processing and exit (if not already closed)
+	if atomic.CompareAndSwapInt32(&w.workerPool.closed, 0, 1) {
+		close(w.workerPool.workQueue)
+	}
 	
 	log.Printf("Waiting for enhanced workers to finish...")
 	w.workerPool.workers.Wait()
@@ -1260,7 +1277,7 @@ func (w *Watcher) waitForWorkersToFinish() {
 	close(w.shutdownComplete)
 }
 
-// Close stops the watcher and releases resources
+// Close stops the watcher and releases resources using staged graceful shutdown
 func (w *Watcher) Close() error {
 	// Defensive nil check to prevent panic
 	if w == nil {
@@ -1268,18 +1285,39 @@ func (w *Watcher) Close() error {
 		return nil
 	}
 	
-	log.Printf("Closing watcher...")
+	log.Printf("Starting graceful shutdown...")
 	
-	// Cancel context to signal shutdown
-	if w.cancel != nil {
-		w.cancel()
+	// Stage 1: Stop accepting new work - close work queue if using legacy approach
+	if w.processor == nil && w.workerPool != nil {
+		log.Printf("Stage 1: Stopping new work acceptance...")
+		if atomic.CompareAndSwapInt32(&w.workerPool.closed, 0, 1) {
+			close(w.workerPool.workQueue)
+		}
 	}
 	
-	// Close the metrics server
-	if w.metricsServer != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		w.metricsServer.Shutdown(ctx)
+	// Stage 2: Wait for in-flight tasks to complete with timeout
+	if w.processor == nil && w.workerPool != nil {
+		log.Printf("Stage 2: Waiting for in-flight tasks to complete (grace period: %v)...", w.config.GracePeriod)
+		
+		// Wait for workers to finish with timeout
+		done := make(chan struct{})
+		go func() {
+			defer close(done)
+			w.workerPool.workers.Wait()
+		}()
+		
+		select {
+		case <-done:
+			log.Printf("All workers completed gracefully")
+		case <-time.After(w.config.GracePeriod):
+			log.Printf("Grace period expired, escalating to forceful shutdown")
+		}
+	}
+	
+	// Stage 3: Cancel context to terminate remaining operations
+	log.Printf("Stage 3: Canceling context for remaining operations...")
+	if w.cancel != nil {
+		w.cancel()
 	}
 	
 	// Close the file system watcher
@@ -1290,6 +1328,13 @@ func (w *Watcher) Close() error {
 	// Stop processor if using IntentProcessor pattern
 	if w.processor != nil {
 		w.processor.Stop()
+	}
+	
+	// Close the metrics server with its own timeout
+	if w.metricsServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		w.metricsServer.Shutdown(ctx)
 	}
 	
 	// Save state (only if using legacy approach)
@@ -1307,7 +1352,7 @@ func (w *Watcher) Close() error {
 		w.fileState.mu.Unlock()
 	}
 	
-	log.Printf("Watcher closed")
+	log.Printf("Graceful shutdown completed")
 	return nil
 }
 
