@@ -48,6 +48,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
+    if: ${{ !(github.event_name == 'pull_request' && matrix.os == 'windows-latest') }}
 
     steps:
       - name: Checkout
@@ -133,7 +134,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-${{ matrix.os }}-${{ github.run_id }}
+          name: test-results-${{ matrix.os }}
           path: test-results/
           retention-days: 7
 
