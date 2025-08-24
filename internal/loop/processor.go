@@ -264,6 +264,9 @@ func (p *IntentProcessor) processSingleFile(filename string) error {
 	}
 
 	// Validate using the same validation as admission webhook
+	if p.validator == nil {
+		return p.handleError(filename, fmt.Errorf("validator is nil"))
+	}
 	intent, err := p.validator.ValidateBytes(data)
 	if err != nil {
 		return p.handleError(filename, fmt.Errorf("validation failed: %w", err))
@@ -272,6 +275,13 @@ func (p *IntentProcessor) processSingleFile(filename string) error {
 	// Submit to porch
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+
+	if p.config == nil {
+		return p.handleError(filename, fmt.Errorf("config is nil"))
+	}
+	if p.porchFunc == nil {
+		return p.handleError(filename, fmt.Errorf("porchFunc is nil"))
+	}
 
 	var submitErr error
 	for retry := 0; retry < p.config.MaxRetries; retry++ {
@@ -358,7 +368,11 @@ func (p *IntentProcessor) markProcessed(filename string) {
 	atomic.AddInt64(&p.processedCount, 1)
 
 	// Persist to file
-	processedFile := filepath.Join(p.config.HandoffDir, ".processed")
+	handoffDir := "./handoff"
+	if p.config != nil {
+		handoffDir = p.config.HandoffDir
+	}
+	processedFile := filepath.Join(handoffDir, ".processed")
 	f, err := os.OpenFile(processedFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Printf("Failed to open processed file: %v", err)
@@ -376,7 +390,6 @@ func (p *IntentProcessor) StartBatchProcessor() {
 	p.wg.Add(1)
 	go func() {
 		defer p.wg.Done()
-		
 		// Single owner of the batch slice
 		batch := make([]string, 0, p.config.BatchSize)
 		ticker := time.NewTicker(p.config.BatchInterval)

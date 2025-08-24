@@ -733,9 +733,11 @@ func (w *Watcher) ProcessExistingFiles() error {
 			
 			if IsIntentFile(entry.Name()) {
 				fullPath := filepath.Join(w.dir, entry.Name())
-				if err := w.processor.ProcessFile(fullPath); err != nil {
-					log.Printf("Error processing existing file %s: %v", fullPath, err)
-					// Continue processing other files
+				if w.processor != nil {
+					if err := w.processor.ProcessFile(fullPath); err != nil {
+						log.Printf("Error processing existing file %s: %v", fullPath, err)
+						// Continue processing other files
+					}
 				}
 				count++
 			}
@@ -808,7 +810,6 @@ func (w *Watcher) Start() error {
 				}
 				return nil
 			}
-			
 			// Process only Create and Write events for intent files
 			if event.Op&(fsnotify.Create|fsnotify.Write) != 0 {
 				if IsIntentFile(filepath.Base(event.Name)) {
@@ -816,7 +817,7 @@ func (w *Watcher) Start() error {
 					w.handleIntentFile(event)
 				}
 			}
-			
+
 		case err, ok := <-w.watcher.Errors:
 			if !ok {
 				log.Printf("Watcher errors channel closed")
@@ -2371,4 +2372,10 @@ func (w *Watcher) isFileStable(filePath string) bool {
 	
 	// File is stable if size and modification time haven't changed
 	return stat1.Size() == stat2.Size() && stat1.ModTime().Equal(stat2.ModTime())
+}
+
+// IsIntentFile checks if a filename matches the intent file pattern
+func IsIntentFile(filename string) bool {
+	// Check if file matches intent-*.json pattern
+	return strings.HasPrefix(filename, "intent-") && strings.HasSuffix(filename, ".json")
 }

@@ -30,173 +30,194 @@ type SecureHasher struct {
 	salt []byte
 }
 
-// SafeEncoder provides secure base encoding
+// SafeEncoder provides safe base32 encoding without padding
 type SafeEncoder struct {
 	encoding *base32.Encoding
 }
 
 // NewCryptoSecureIdentifier creates a new secure identifier generator
-func NewCryptoSecureIdentifier() (*CryptoSecureIdentifier, error) {
+func NewCryptoSecureIdentifier() *CryptoSecureIdentifier {
 	entropy := &EntropySource{reader: rand.Reader}
 	
-	// Generate cryptographically secure salt
+	// Generate a secure salt for hashing
 	salt := make([]byte, 32)
 	if _, err := rand.Read(salt); err != nil {
-		return nil, fmt.Errorf("failed to generate salt: %w", err)
+		panic("Failed to generate secure salt: " + err.Error())
 	}
 	
 	hasher := &SecureHasher{salt: salt}
-	
-	// Use base32 without padding for safe filename encoding
-	encoder := &SafeEncoder{
-		encoding: base32.StdEncoding.WithPadding(base32.NoPadding),
-	}
+	encoder := &SafeEncoder{encoding: base32.StdEncoding.WithPadding(base32.NoPadding)}
 	
 	return &CryptoSecureIdentifier{
 		entropy: entropy,
 		hasher:  hasher,
 		encoder: encoder,
-	}, nil
+	}
 }
 
-// GenerateSecurePackageName creates a collision-resistant package name
-// following OWASP secure coding practices
-func (c *CryptoSecureIdentifier) GenerateSecurePackageName(target string) (string, error) {
-	// Input validation and sanitization
-	if err := validateKubernetesName(target); err != nil {
-		return "", fmt.Errorf("invalid target name: %w", err)
-	}
-	
-	// Generate UUID v4 for guaranteed uniqueness
-	packageUUID := uuid.New()
-	
-	// Create high-precision timestamp
-	now := time.Now().UTC()
-	timestamp := now.Format("20060102-150405")
-	nanoseconds := fmt.Sprintf("%09d", now.Nanosecond())
-	
-	// Generate additional entropy
-	entropy := make([]byte, 16)
-	if _, err := rand.Read(entropy); err != nil {
-		return "", fmt.Errorf("failed to generate entropy: %w", err)
-	}
-	
-	// Create compound identifier with multiple entropy sources
-	compound := fmt.Sprintf("%s-%s-%s-%s", 
-		target, 
-		timestamp, 
-		nanoseconds,
-		packageUUID.String())
-	
-	// Hash for collision resistance and length normalization
-	hash := sha256.Sum256(append(c.hasher.salt, []byte(compound)...))
-	hashString := hex.EncodeToString(hash[:12]) // Use first 12 bytes for reasonable length
-	
-	// Combine readable timestamp with secure hash
-	securePackageName := fmt.Sprintf("%s-scaling-patch-%s-%s", 
-		sanitizeTarget(target),
-		timestamp,
-		hashString)
-	
-	// Final validation
-	if err := validatePackageName(securePackageName); err != nil {
-		return "", fmt.Errorf("generated package name validation failed: %w", err)
-	}
-	
-	return securePackageName, nil
+// GenerateSecureUUID creates a cryptographically secure UUID v4
+func (c *CryptoSecureIdentifier) GenerateSecureUUID() string {
+	id := uuid.New()
+	return id.String()
 }
 
-// GenerateCollisionResistantTimestamp creates RFC3339 timestamp with maximum entropy
-func (c *CryptoSecureIdentifier) GenerateCollisionResistantTimestamp() (string, error) {
-	now := time.Now().UTC()
-	
-	// Add cryptographic randomness to the timestamp
-	randomBytes := make([]byte, 8)
-	if _, err := rand.Read(randomBytes); err != nil {
-		return "", fmt.Errorf("failed to generate random bytes: %w", err)
+// GenerateSecureToken creates a secure token for authentication/authorization
+func (c *CryptoSecureIdentifier) GenerateSecureToken(length int) (string, error) {
+	if length < 16 {
+		return "", fmt.Errorf("token length must be at least 16 bytes for security")
 	}
 	
-	// Create compound timestamp with entropy
-	compound := fmt.Sprintf("%s-%s", 
-		now.Format(time.RFC3339Nano),
-		hex.EncodeToString(randomBytes))
+	bytes := make([]byte, length)
+	if _, err := c.entropy.reader.Read(bytes); err != nil {
+		return "", fmt.Errorf("failed to generate secure random bytes: %w", err)
+	}
 	
-	return compound, nil
+	// Hash the random bytes with salt for additional security
+	hashedBytes := c.hasher.hash(bytes)
+	
+	// Encode using safe base32 (URL-safe, no padding)
+	token := c.encoder.encoding.EncodeToString(hashedBytes)
+	
+	return token, nil
 }
 
-// validateKubernetesName validates Kubernetes resource naming conventions
-func validateKubernetesName(name string) error {
-	if len(name) == 0 || len(name) > 63 {
-		return fmt.Errorf("name length must be 1-63 characters")
+// GenerateSessionID creates a secure session identifier
+func (c *CryptoSecureIdentifier) GenerateSessionID() (string, error) {
+	// Create a 32-byte secure session ID
+	sessionBytes := make([]byte, 32)
+	if _, err := c.entropy.reader.Read(sessionBytes); err != nil {
+		return "", fmt.Errorf("failed to generate session ID: %w", err)
 	}
 	
-	// Must start and end with alphanumeric
-	if !isAlphaNumeric(name[0]) || !isAlphaNumeric(name[len(name)-1]) {
-		return fmt.Errorf("name must start and end with alphanumeric character")
+	// Add timestamp to ensure uniqueness
+	timestamp := time.Now().UnixNano()
+	timestampBytes := make([]byte, 8)
+	for i := 0; i < 8; i++ {
+		timestampBytes[i] = byte(timestamp >> (8 * i))
 	}
 	
-	// Check each character for valid Kubernetes naming
-	for _, char := range name {
-		if !isAlphaNumeric(byte(char)) && char != '-' {
-			return fmt.Errorf("name contains invalid character: %c", char)
+	// Combine session bytes and timestamp
+	combined := append(sessionBytes, timestampBytes...)
+	
+	// Hash the combined data
+	hashedSession := c.hasher.hash(combined)
+	
+	// Encode as hex for session IDs (more readable in logs)
+	sessionID := hex.EncodeToString(hashedSession)
+	
+	return sessionID, nil
+}
+
+// GenerateAPIKey creates a secure API key with metadata
+func (c *CryptoSecureIdentifier) GenerateAPIKey(prefix string) (string, error) {
+	// Generate 32 bytes of entropy for the key
+	keyBytes := make([]byte, 32)
+	if _, err := c.entropy.reader.Read(keyBytes); err != nil {
+		return "", fmt.Errorf("failed to generate API key: %w", err)
+	}
+	
+	// Add prefix for key identification
+	if prefix == "" {
+		prefix = "neph" // Default prefix for Nephoran
+	}
+	
+	// Hash the key bytes
+	hashedKey := c.hasher.hash(keyBytes)
+	
+	// Encode as base32 for API keys
+	encodedKey := c.encoder.encoding.EncodeToString(hashedKey)
+	
+	// Format: prefix_encodedkey
+	apiKey := fmt.Sprintf("%s_%s", prefix, encodedKey)
+	
+	return apiKey, nil
+}
+
+// ValidateTokenFormat checks if a token has a valid format
+func (c *CryptoSecureIdentifier) ValidateTokenFormat(token string) bool {
+	// Basic validation: minimum length and character set
+	if len(token) < 32 {
+		return false
+	}
+	
+	// Check for valid base32 characters (A-Z, 2-7)
+	validChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+	for _, char := range token {
+		if !strings.ContainsRune(validChars, char) {
+			return false
 		}
 	}
 	
-	return nil
+	return true
 }
 
-// sanitizeTarget removes potential security risks from target name
-func sanitizeTarget(target string) string {
-	// Convert to lowercase
-	target = strings.ToLower(target)
+// ValidateSessionIDFormat checks if a session ID has a valid format  
+func (c *CryptoSecureIdentifier) ValidateSessionIDFormat(sessionID string) bool {
+	// Session IDs should be 64 hex characters (32 bytes * 2)
+	if len(sessionID) != 64 {
+		return false
+	}
 	
-	// Replace invalid characters with hyphens
-	var sanitized strings.Builder
-	for _, char := range target {
-		if isAlphaNumeric(byte(char)) {
-			sanitized.WriteRune(char)
-		} else {
-			sanitized.WriteRune('-')
+	// Check for valid hex characters
+	for _, char := range sessionID {
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
+			return false
 		}
 	}
 	
-	result := sanitized.String()
-	
-	// Remove consecutive hyphens
-	for strings.Contains(result, "--") {
-		result = strings.ReplaceAll(result, "--", "-")
-	}
-	
-	// Trim hyphens from ends
-	result = strings.Trim(result, "-")
-	
-	// Ensure minimum length
-	if len(result) == 0 {
-		result = "sanitized-target"
-	}
-	
-	return result
+	return true
 }
 
-// validatePackageName validates the generated package name
-func validatePackageName(name string) error {
-	if len(name) == 0 || len(name) > 253 {
-		return fmt.Errorf("package name length must be 1-253 characters")
+// ValidateAPIKeyFormat checks if an API key has a valid format
+func (c *CryptoSecureIdentifier) ValidateAPIKeyFormat(apiKey string) bool {
+	// API key format: prefix_base32encodedkey
+	parts := strings.Split(apiKey, "_")
+	if len(parts) != 2 {
+		return false
 	}
 	
-	// Additional security checks
-	if strings.Contains(name, "..") {
-		return fmt.Errorf("package name contains path traversal sequence")
+	prefix, key := parts[0], parts[1]
+	
+	// Validate prefix (should be alphanumeric, 3-10 chars)
+	if len(prefix) < 3 || len(prefix) > 10 {
+		return false
 	}
 	
-	if strings.ContainsAny(name, `<>:"/\|?*`) {
-		return fmt.Errorf("package name contains invalid characters")
+	for _, char := range prefix {
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z')) {
+			return false
+		}
 	}
 	
+	// Validate key part (should be valid base32)
+	if len(key) < 32 {
+		return false
+	}
+	
+	validChars := "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
+	for _, char := range key {
+		if !strings.ContainsRune(validChars, char) {
+			return false
+		}
+	}
+	
+	return true
+}
+
+// hash creates a secure hash with salt
+func (h *SecureHasher) hash(data []byte) []byte {
+	hasher := sha256.New()
+	hasher.Write(h.salt)
+	hasher.Write(data)
+	return hasher.Sum(nil)
+}
+
+// RegenerateSalt creates a new salt for the hasher (should be done periodically)
+func (h *SecureHasher) RegenerateSalt() error {
+	newSalt := make([]byte, 32)
+	if _, err := rand.Read(newSalt); err != nil {
+		return fmt.Errorf("failed to regenerate salt: %w", err)
+	}
+	h.salt = newSalt
 	return nil
-}
-
-// isAlphaNumeric checks if byte is lowercase alphanumeric
-func isAlphaNumeric(b byte) bool {
-	return (b >= 'a' && b <= 'z') || (b >= '0' && b <= '9')
 }

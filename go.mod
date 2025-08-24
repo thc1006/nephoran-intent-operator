@@ -138,7 +138,6 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.11
 	github.com/go-logr/zapr v1.3.0
 	github.com/go-playground/validator/v10 v10.26.0
-	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang/mock v1.6.0
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6
 	github.com/gophercloud/gophercloud v1.14.1

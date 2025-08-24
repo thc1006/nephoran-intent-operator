@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"bytes"
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 // RedisCache provides Redis-based caching for RAG components
