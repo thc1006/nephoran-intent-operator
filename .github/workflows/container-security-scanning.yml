@@ -48,10 +48,11 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: nephoran-intent-operator
-  TRIVY_VERSION: 0.58.1
-  GRYPE_VERSION: 0.85.0
-  COSIGN_VERSION: 2.4.1
-  SYFT_VERSION: 1.18.1
+  # Security tool versions - will fallback to latest if not available
+  TRIVY_VERSION: 0.57.1  # More widely available version
+  GRYPE_VERSION: 0.84.0  # More stable version
+  COSIGN_VERSION: 2.4.0  # Stable release
+  SYFT_VERSION: 1.17.0   # Stable version
 
 jobs:
   # Build and scan container images
@@ -98,24 +99,129 @@ jobs:
 
     - name: Install security scanning tools
       run: |
-        echo "Installing Trivy..."
+        set -euo pipefail
+        
+        # Function to check if a version exists on GitHub releases
+        check_github_version() {
+          local repo=$1
+          local version=$2
+          local url="https://api.github.com/repos/${repo}/releases/tags/v${version}"
+          if curl -sL "$url" | grep -q '"tag_name"'; then
+            echo "Version v${version} exists for ${repo}"
+            return 0
+          else
+            echo "Version v${version} not found for ${repo}, will use latest"
+            return 1
+          fi
+        }
+        
+        # Function to get latest release version from GitHub
+        get_latest_version() {
+          local repo=$1
+          curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'
+        }
+        
+        echo "🔧 Installing security scanning tools for Ubuntu $(lsb_release -rs)..."
         sudo apt-get update
-        sudo apt-get install wget apt-transport-https gnupg lsb-release
-        wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
-        echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee -a /etc/apt/sources.list.d/trivy.list
-        sudo apt-get update
-        sudo apt-get install trivy=${TRIVY_VERSION}
+        sudo apt-get install -y wget apt-transport-https gnupg lsb-release curl jq
         
-        echo "Installing Grype..."
-        curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v${GRYPE_VERSION}
+        echo "📦 Installing Trivy..."
+        # Use modern GPG key management for Trivy
+        if ! wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy-keyring.gpg; then
+          echo "⚠️ Failed to add Trivy GPG key, falling back to binary installation"
+          TRIVY_FALLBACK=true
+        else
+          echo "deb [signed-by=/usr/share/keyrings/trivy-keyring.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          
+          # Try to install specific version, fall back to available version
+          if sudo apt-get install -y trivy=${TRIVY_VERSION} 2>/dev/null; then
+            echo "✅ Trivy ${TRIVY_VERSION} installed from repository"
+          elif sudo apt-get install -y trivy 2>/dev/null; then
+            echo "✅ Trivy latest available version installed from repository"
+          else
+            echo "⚠️ Repository installation failed, falling back to binary"
+            TRIVY_FALLBACK=true
+          fi
+        fi
         
-        echo "Installing Syft for SBOM generation..."
-        curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v${SYFT_VERSION}
+        # Fallback to binary installation for Trivy
+        if [ "${TRIVY_FALLBACK:-false}" = "true" ]; then
+          echo "📥 Installing Trivy from GitHub releases..."
+          if check_github_version "aquasecurity/trivy" "${TRIVY_VERSION}"; then
+            TRIVY_INSTALL_VERSION="${TRIVY_VERSION}"
+          else
+            TRIVY_INSTALL_VERSION=$(get_latest_version "aquasecurity/trivy")
+            echo "Using Trivy version: ${TRIVY_INSTALL_VERSION}"
+          fi
+          
+          wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_INSTALL_VERSION}/trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"
+          tar -xzf "trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"
+          sudo mv trivy /usr/local/bin/
+          sudo chmod +x /usr/local/bin/trivy
+          rm -f "trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"
+          echo "✅ Trivy ${TRIVY_INSTALL_VERSION} installed from binary"
+        fi
         
-        echo "Installing Cosign for signing..."
-        curl -O -L "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64"
-        sudo mv cosign-linux-amd64 /usr/local/bin/cosign
-        sudo chmod +x /usr/local/bin/cosign
+        echo "📦 Installing Grype..."
+        # Check if specific version exists, fall back to latest
+        if check_github_version "anchore/grype" "${GRYPE_VERSION}"; then
+          GRYPE_INSTALL_VERSION="${GRYPE_VERSION}"
+        else
+          GRYPE_INSTALL_VERSION=$(get_latest_version "anchore/grype")
+          echo "Using Grype version: ${GRYPE_INSTALL_VERSION}"
+        fi
+        
+        if curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin "v${GRYPE_INSTALL_VERSION}"; then
+          echo "✅ Grype ${GRYPE_INSTALL_VERSION} installed"
+        else
+          echo "⚠️ Grype installation failed, trying latest"
+          curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin
+          echo "✅ Grype latest version installed"
+        fi
+        
+        echo "📦 Installing Syft for SBOM generation..."
+        # Check if specific version exists, fall back to latest
+        if check_github_version "anchore/syft" "${SYFT_VERSION}"; then
+          SYFT_INSTALL_VERSION="${SYFT_VERSION}"
+        else
+          SYFT_INSTALL_VERSION=$(get_latest_version "anchore/syft")
+          echo "Using Syft version: ${SYFT_INSTALL_VERSION}"
+        fi
+        
+        if curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin "v${SYFT_INSTALL_VERSION}"; then
+          echo "✅ Syft ${SYFT_INSTALL_VERSION} installed"
+        else
+          echo "⚠️ Syft installation failed, trying latest"
+          curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin
+          echo "✅ Syft latest version installed"
+        fi
+        
+        echo "📦 Installing Cosign for signing..."
+        # Check if specific version exists, fall back to latest
+        if check_github_version "sigstore/cosign" "${COSIGN_VERSION}"; then
+          COSIGN_INSTALL_VERSION="${COSIGN_VERSION}"
+        else
+          COSIGN_INSTALL_VERSION=$(get_latest_version "sigstore/cosign")
+          echo "Using Cosign version: ${COSIGN_INSTALL_VERSION}"
+        fi
+        
+        if wget -q "https://github.com/sigstore/cosign/releases/download/v${COSIGN_INSTALL_VERSION}/cosign-linux-amd64"; then
+          sudo mv cosign-linux-amd64 /usr/local/bin/cosign
+          sudo chmod +x /usr/local/bin/cosign
+          echo "✅ Cosign ${COSIGN_INSTALL_VERSION} installed"
+        else
+          echo "❌ Failed to install Cosign"
+          exit 1
+        fi
+        
+        echo "🔍 Verifying installations..."
+        echo "Trivy version: $(trivy --version || echo 'Not found')"
+        echo "Grype version: $(grype version || echo 'Not found')"
+        echo "Syft version: $(syft version || echo 'Not found')"
+        echo "Cosign version: $(cosign version || echo 'Not found')"
+        
+        echo "✅ All security scanning tools installed successfully"
 
     - name: Build container image
       env:

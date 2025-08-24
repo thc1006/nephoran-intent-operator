@@ -383,10 +383,68 @@ jobs:
     
     - name: Security Scan Images
       run: |
+        set -euo pipefail
+        
         echo "🔍 Scanning container images for vulnerabilities..."
         
-        # Install Trivy scanner
-        curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+        # Function to get latest release version from GitHub
+        get_latest_version() {
+          local repo=$1
+          curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'
+        }
+        
+        # Function to check if a version exists on GitHub releases
+        check_github_version() {
+          local repo=$1
+          local version=$2
+          local url="https://api.github.com/repos/${repo}/releases/tags/v${version}"
+          if curl -sL "$url" | grep -q '"tag_name"'; then
+            echo "Version v${version} exists for ${repo}"
+            return 0
+          else
+            echo "Version v${version} not found for ${repo}, will use latest"
+            return 1
+          fi
+        }
+        
+        # Install Trivy with robust version checking
+        echo "📦 Installing Trivy..."
+        TRIVY_TARGET_VERSION="0.57.1"
+        if check_github_version "aquasecurity/trivy" "${TRIVY_TARGET_VERSION}"; then
+          TRIVY_INSTALL_VERSION="${TRIVY_TARGET_VERSION}"
+        else
+          TRIVY_INSTALL_VERSION=$(get_latest_version "aquasecurity/trivy")
+          echo "Using Trivy version: ${TRIVY_INSTALL_VERSION}"
+        fi
+        
+        # Try repository installation first (with modern GPG key management)
+        if ! wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy-keyring.gpg; then
+          echo "⚠️ Failed to add Trivy GPG key, falling back to binary installation"
+          TRIVY_FALLBACK=true
+        else
+          sudo apt-get update
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          echo "deb [signed-by=/usr/share/keyrings/trivy-keyring.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          
+          if ! sudo apt-get install -y trivy 2>/dev/null; then
+            echo "⚠️ Repository installation failed, falling back to binary"
+            TRIVY_FALLBACK=true
+          fi
+        fi
+        
+        # Fallback to binary installation
+        if [ "${TRIVY_FALLBACK:-false}" = "true" ]; then
+          echo "📥 Installing Trivy from GitHub releases..."
+          wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_INSTALL_VERSION}/trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"
+          tar -xzf "trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"
+          sudo mv trivy /usr/local/bin/
+          sudo chmod +x /usr/local/bin/trivy
+          rm -f "trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"
+          echo "✅ Trivy ${TRIVY_INSTALL_VERSION} installed from binary"
+        else
+          echo "✅ Trivy installed from repository"
+        fi
         
         # Scan main image
         trivy image --format sarif --output trivy-results.sarif "nephoran/intent-operator:${{ github.sha }}"

@@ -69,15 +69,77 @@ jobs:
           
       - name: "Install Supply Chain Tools"
         run: |
+          set -euo pipefail
+          
+          # Function to get latest release version from GitHub
+          get_latest_version() {
+            local repo=$1
+            curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'
+          }
+          
+          # Function to check if a version exists on GitHub releases
+          check_github_version() {
+            local repo=$1
+            local version=$2
+            local url="https://api.github.com/repos/${repo}/releases/tags/v${version}"
+            if curl -sL "$url" | grep -q '"tag_name"'; then
+              echo "Version v${version} exists for ${repo}"
+              return 0
+            else
+              echo "Version v${version} not found for ${repo}, will use latest"
+              return 1
+            fi
+          }
+          
+          echo "📦 Installing Supply Chain Security Tools..."
+          
           # Install with version pinning for reproducibility
-          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.4.0
-          # Note: in-toto CLI is installed via different method if needed
+          echo "Installing CycloneDX GoMod..."
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.4.0 || {
+            echo "⚠️ Failed to install specific version, trying latest"
+            go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+          }
           
-          # Install Syft for SBOM generation
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v0.95.0
+          # Install Syft for SBOM generation with version checking
+          echo "📦 Installing Syft..."
+          SYFT_TARGET_VERSION="0.95.0"
+          if check_github_version "anchore/syft" "${SYFT_TARGET_VERSION}"; then
+            SYFT_INSTALL_VERSION="${SYFT_TARGET_VERSION}"
+          else
+            SYFT_INSTALL_VERSION=$(get_latest_version "anchore/syft")
+            echo "Using Syft version: ${SYFT_INSTALL_VERSION}"
+          fi
           
-          # Install Grype for vulnerability scanning
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.70.0
+          if curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin "v${SYFT_INSTALL_VERSION}"; then
+            echo "✅ Syft ${SYFT_INSTALL_VERSION} installed"
+          else
+            echo "⚠️ Syft installation failed, trying latest"
+            curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin
+            echo "✅ Syft latest version installed"
+          fi
+          
+          # Install Grype for vulnerability scanning with version checking
+          echo "📦 Installing Grype..."
+          GRYPE_TARGET_VERSION="0.70.0"
+          if check_github_version "anchore/grype" "${GRYPE_TARGET_VERSION}"; then
+            GRYPE_INSTALL_VERSION="${GRYPE_TARGET_VERSION}"
+          else
+            GRYPE_INSTALL_VERSION=$(get_latest_version "anchore/grype")
+            echo "Using Grype version: ${GRYPE_INSTALL_VERSION}"
+          fi
+          
+          if curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin "v${GRYPE_INSTALL_VERSION}"; then
+            echo "✅ Grype ${GRYPE_INSTALL_VERSION} installed"
+          else
+            echo "⚠️ Grype installation failed, trying latest"
+            curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin
+            echo "✅ Grype latest version installed"
+          fi
+          
+          echo "🔍 Verifying installations..."
+          echo "CycloneDX GoMod: $(cyclonedx-gomod --version || echo 'Not found')"
+          echo "Syft version: $(syft version || echo 'Not found')"
+          echo "Grype version: $(grype version || echo 'Not found')"
           
       - name: "Create Reports Directory"
         run: |
@@ -410,7 +472,28 @@ jobs:
             
       - name: "Run Anchore Grype"
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          set -euo pipefail
+          
+          # Function to get latest release version from GitHub
+          get_latest_version() {
+            local repo=$1
+            curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'
+          }
+          
+          echo "📦 Installing Grype for container scanning..."
+          if curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin; then
+            echo "✅ Grype installed successfully"
+          else
+            echo "⚠️ Grype installation failed, trying direct download"
+            GRYPE_VERSION=$(get_latest_version "anchore/grype")
+            wget -q "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+            tar -xzf "grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+            sudo mv grype /usr/local/bin/
+            sudo chmod +x /usr/local/bin/grype
+            rm -f "grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+            echo "✅ Grype ${GRYPE_VERSION} installed from binary"
+          fi
+          
           grype nephoran-operator:security-scan \
             --output json \
             --file ${{ env.REPORTS_DIR }}/grype-container.json

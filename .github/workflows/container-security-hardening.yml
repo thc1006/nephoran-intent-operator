@@ -52,10 +52,10 @@ env:
   IMAGE_NAME_PREFIX: ${{ github.repository }}
   COSIGN_EXPERIMENTAL: 1
   
-  # Security scanning configuration
-  TRIVY_VERSION: "0.58.2"
-  COSIGN_VERSION: "v2.2.2"
-  SYFT_VERSION: "v1.19.0"
+  # Security scanning configuration - will fallback to latest if not available
+  TRIVY_VERSION: "0.57.1"
+  COSIGN_VERSION: "v2.4.0"
+  SYFT_VERSION: "v1.17.0"
   
   # Security thresholds
   VULNERABILITY_THRESHOLD: "HIGH"
@@ -394,12 +394,44 @@ EOF
       
       - name: Run Grype vulnerability scanner
         run: |
-          set -e
+          set -euo pipefail
           
-          # Install Grype with retry
-          if ! curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin; then
-            echo "Failed to install Grype from main branch, trying alternative..."
-            curl -sSfL https://raw.githubusercontent.com/anchore/grype/v0.79.4/install.sh | sh -s -- -b /usr/local/bin
+          # Function to get latest release version from GitHub
+          get_latest_version() {
+            local repo=$1
+            curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'
+          }
+          
+          # Function to check if a version exists on GitHub releases
+          check_github_version() {
+            local repo=$1
+            local version=$2
+            local url="https://api.github.com/repos/${repo}/releases/tags/v${version}"
+            if curl -sL "$url" | grep -q '"tag_name"'; then
+              echo "Version v${version} exists for ${repo}"
+              return 0
+            else
+              echo "Version v${version} not found for ${repo}, will use latest"
+              return 1
+            fi
+          }
+          
+          # Install Grype with robust version checking
+          echo "📦 Installing Grype..."
+          GRYPE_TARGET_VERSION="0.84.0"
+          if check_github_version "anchore/grype" "${GRYPE_TARGET_VERSION}"; then
+            GRYPE_INSTALL_VERSION="${GRYPE_TARGET_VERSION}"
+          else
+            GRYPE_INSTALL_VERSION=$(get_latest_version "anchore/grype")
+            echo "Using Grype version: ${GRYPE_INSTALL_VERSION}"
+          fi
+          
+          if curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin "v${GRYPE_INSTALL_VERSION}"; then
+            echo "✅ Grype ${GRYPE_INSTALL_VERSION} installed"
+          else
+            echo "⚠️ Grype installation failed, trying latest"
+            curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin
+            echo "✅ Grype latest version installed"
           fi
           
           # Run Grype scan with error handling
@@ -439,12 +471,44 @@ EOF
       - name: Generate SBOM with Syft
         if: github.event.inputs.generate_sbom != 'false'
         run: |
-          set -e
+          set -euo pipefail
           
-          # Install Syft with retry
-          if ! curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin; then
-            echo "Failed to install Syft from main branch, trying specific version..."
-            curl -sSfL https://raw.githubusercontent.com/anchore/syft/v1.19.0/install.sh | sh -s -- -b /usr/local/bin
+          # Function to get latest release version from GitHub
+          get_latest_version() {
+            local repo=$1
+            curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'
+          }
+          
+          # Function to check if a version exists on GitHub releases
+          check_github_version() {
+            local repo=$1
+            local version=$2
+            local url="https://api.github.com/repos/${repo}/releases/tags/v${version}"
+            if curl -sL "$url" | grep -q '"tag_name"'; then
+              echo "Version v${version} exists for ${repo}"
+              return 0
+            else
+              echo "Version v${version} not found for ${repo}, will use latest"
+              return 1
+            fi
+          }
+          
+          # Install Syft with robust version checking
+          echo "📦 Installing Syft..."
+          SYFT_TARGET_VERSION="1.17.0"
+          if check_github_version "anchore/syft" "${SYFT_TARGET_VERSION}"; then
+            SYFT_INSTALL_VERSION="${SYFT_TARGET_VERSION}"
+          else
+            SYFT_INSTALL_VERSION=$(get_latest_version "anchore/syft")
+            echo "Using Syft version: ${SYFT_INSTALL_VERSION}"
+          fi
+          
+          if curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin "v${SYFT_INSTALL_VERSION}"; then
+            echo "✅ Syft ${SYFT_INSTALL_VERSION} installed"
+          else
+            echo "⚠️ Syft installation failed, trying latest"
+            curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin
+            echo "✅ Syft latest version installed"
           fi
           
           # Generate SBOM with error handling
