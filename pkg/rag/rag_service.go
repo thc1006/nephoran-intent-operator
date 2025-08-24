@@ -53,7 +53,7 @@ type CacheConfig struct {
 	CleanupInterval time.Duration `json:"cleanup_interval"`
 }
 
-// CacheMetrics definition moved to embedding_support.go to avoid duplicates
+// CacheMetrics is defined in embedding_support.go
 
 // RAGConfig holds configuration for the RAG service
 type RAGConfig struct {

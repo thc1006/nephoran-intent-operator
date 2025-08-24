@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -172,7 +173,7 @@ func (l *StreamingDocumentLoader) processStreamingDocument(
 		zap.String("document_id", doc.ID),
 		zap.Int64("size_bytes", doc.Size))
 
-	reader := bufio.NewReaderSize(doc.Content, l.bufferSize)
+	reader := bufio.NewReaderSize(strings.NewReader(doc.Content), l.bufferSize)
 	var buffer []byte
 	chunkIndex := 0
 	bytesRead := int64(0)
@@ -224,18 +225,35 @@ func (l *StreamingDocumentLoader) processRegularDocument(
 	chunkProcessor func(ProcessedChunk) error,
 ) error {
 	// Read entire document
-	content, err := io.ReadAll(doc.Content)
+	content, err := io.ReadAll(strings.NewReader(doc.Content))
 	if err != nil {
 		return fmt.Errorf("failed to read document: %w", err)
 	}
 
 	l.metrics.bytesProcessed.Add(float64(len(content)))
 
+	// Convert to LoadedDocument for chunking
+	loadedDoc := &LoadedDocument{
+		ID:      doc.ID,
+		Content: string(content),
+		Size:    int64(len(content)),
+		LoadedAt: time.Now(),
+	}
+	
 	// Chunk the document
-	chunks := l.chunkingService.ChunkText(string(content))
+	chunks, err := l.chunkingService.ChunkDocument(ctx, loadedDoc)
+	if err != nil {
+		return fmt.Errorf("failed to chunk document: %w", err)
+	}
+
+	// Convert DocumentChunk objects to strings for parallel processing
+	chunkStrings := make([]string, len(chunks))
+	for i, chunk := range chunks {
+		chunkStrings[i] = chunk.CleanContent
+	}
 
 	// Process chunks in parallel
-	return l.processChunksParallel(ctx, doc, chunks, chunkProcessor)
+	return l.processChunksParallel(ctx, doc, chunkStrings, chunkProcessor)
 }
 
 // processChunk processes a single chunk
@@ -247,10 +265,9 @@ func (l *StreamingDocumentLoader) processChunk(
 	processor func(ProcessedChunk) error,
 ) error {
 	chunk := ProcessedChunk{
-		ID:       fmt.Sprintf("%s_chunk_%d", doc.ID, position),
-		Content:  content,
-		Metadata: doc.Metadata,
-		Position: position,
+		Content:    content,
+		Metadata:   doc.Metadata,
+		ChunkIndex: position,
 	}
 
 	l.metrics.chunksProcessed.Inc()
@@ -382,5 +399,5 @@ func (l *StreamingDocumentLoader) Shutdown() {
 	close(l.processPool.documentWorkers)
 	close(l.processPool.chunkWorkers)
 	close(l.processPool.embeddingWorkers)
-	l.processPool.wg.Wait()
+	l.processPool.activeTasks.Wait()
 }

@@ -10,21 +10,21 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
-// MockWeaviateClient implements a mock for WeaviateClient
-type MockWeaviateClient struct {
+// MockWeaviateClientRAG implements a mock for WeaviateClient for RAG service tests
+type MockWeaviateClientRAG struct {
 	searchResponse *SearchResponse
 	searchError    error
 	healthStatus   *HealthStatus
 }
 
-func (m *MockWeaviateClient) Search(ctx context.Context, query *SearchQuery) (*SearchResponse, error) {
+func (m *MockWeaviateClientRAG) Search(ctx context.Context, query *SearchQuery) (*SearchResponse, error) {
 	if m.searchError != nil {
 		return nil, m.searchError
 	}
 	return m.searchResponse, nil
 }
 
-func (m *MockWeaviateClient) GetHealthStatus() *HealthStatus {
+func (m *MockWeaviateClientRAG) GetHealthStatus() *HealthStatus {
 	if m.healthStatus != nil {
 		return m.healthStatus
 	}

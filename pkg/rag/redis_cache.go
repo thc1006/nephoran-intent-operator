@@ -169,7 +169,7 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 		DialTimeout:  config.DialTimeout,
 		ReadTimeout:  config.ReadTimeout,
 		WriteTimeout: config.WriteTimeout,
-		IdleTimeout:  config.IdleTimeout,
+		ConnMaxIdleTime: config.IdleTimeout,
 	})
 
 	cache := &RedisCache{
@@ -985,7 +985,6 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 	}
 
 	pipe := rc.client.Pipeline()
-	defer pipe.Close()
 
 	for textHash, item := range embeddings {
 		key := rc.buildEmbeddingKey(item.Text, item.ModelName)

@@ -135,13 +135,21 @@ type EmbeddingCacheManager struct {
 
 // CacheMetrics tracks cache performance
 type CacheMetrics struct {
-	L1Hits       int64
-	L1Misses     int64
-	L2Hits       int64
-	L2Misses     int64
-	L1HitRate    float64
-	L2HitRate    float64
-	TotalHitRate float64
+	// Basic cache metrics
+	Hits       int64        `json:"hits"`
+	Misses     int64        `json:"misses"`
+	TotalItems int64        `json:"total_items"`
+	Evictions  int64        `json:"evictions"`
+	mutex      sync.RWMutex `json:"-"`
+	
+	// L1/L2 cache specific metrics
+	L1Hits       int64   `json:"l1_hits"`
+	L1Misses     int64   `json:"l1_misses"`
+	L2Hits       int64   `json:"l2_hits"`
+	L2Misses     int64   `json:"l2_misses"`
+	L1HitRate    float64 `json:"l1_hit_rate"`
+	L2HitRate    float64 `json:"l2_hit_rate"`
+	TotalHitRate float64 `json:"total_hit_rate"`
 }
 
 // LRUCache implements an LRU cache for embeddings
@@ -176,6 +184,7 @@ type ProviderHealthMonitor struct {
 type Document struct {
 	ID       string                 `json:"id"`
 	Content  string                 `json:"content"`
+	Size     int64                  `json:"size"`     // Size in bytes for streaming threshold checks
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 

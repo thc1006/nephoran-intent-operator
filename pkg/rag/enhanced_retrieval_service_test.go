@@ -320,12 +320,12 @@ var _ = Describe("EnhancedRetrievalService", func() {
 
 	Describe("GetHealthStatus", func() {
 		var (
-			mockWeaviateClient   *MockWeaviateClient
+			mockWeaviateClient   *MockWeaviateClientEnhanced
 			mockEmbeddingService *MockEmbeddingService
 		)
 
 		BeforeEach(func() {
-			mockWeaviateClient = &MockWeaviateClient{}
+			mockWeaviateClient = &MockWeaviateClientEnhanced{}
 			mockEmbeddingService = &MockEmbeddingService{}
 
 			// Create service with mocked dependencies
@@ -486,19 +486,19 @@ var _ = Describe("EnhancedRetrievalService", func() {
 	})
 })
 
-// MockWeaviateClient for testing
-type MockWeaviateClient struct {
+// MockWeaviateClientEnhanced for enhanced retrieval service testing
+type MockWeaviateClientEnhanced struct {
 	isHealthy bool
 	lastCheck time.Time
 }
 
-func (m *MockWeaviateClient) SetHealthStatus(healthy bool, lastCheck time.Time) {
+func (m *MockWeaviateClientEnhanced) SetHealthStatus(healthy bool, lastCheck time.Time) {
 	m.isHealthy = healthy
 	m.lastCheck = lastCheck
 }
 
-func (m *MockWeaviateClient) GetHealthStatus() *WeaviateHealthStatus {
-	return &WeaviateHealthStatus{
+func (m *MockWeaviateClientEnhanced) GetHealthStatus() *WeaviateHealthStatusEnhanced {
+	return &WeaviateHealthStatusEnhanced{
 		IsHealthy: m.isHealthy,
 		LastCheck: m.lastCheck,
 	}
@@ -529,8 +529,8 @@ func (m *MockEmbeddingService) CheckStatus(ctx context.Context) (*ComponentStatu
 	}, nil
 }
 
-// WeaviateHealthStatus represents Weaviate health status
-type WeaviateHealthStatus struct {
+// WeaviateHealthStatusEnhanced represents Weaviate health status for enhanced tests
+type WeaviateHealthStatusEnhanced struct {
 	IsHealthy bool
 	LastCheck time.Time
 }

@@ -1477,8 +1477,11 @@ func (mm *MemoryMonitor) GetMemoryUsage() (int64, int64) {
 
 // ProcessingPool manages concurrent PDF processing tasks
 type ProcessingPool struct {
-	workers     chan struct{}
-	activeTasks sync.WaitGroup
+	workers          chan struct{}
+	activeTasks      sync.WaitGroup
+	documentWorkers  chan func()  // For streaming document loader compatibility
+	chunkWorkers     chan func()  // For streaming document loader compatibility
+	embeddingWorkers chan func()  // For streaming document loader compatibility
 }
 
 // NewProcessingPool creates a new processing pool

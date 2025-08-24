@@ -1,4 +1,7 @@
-// Package o2 implements missing type definitions for O2 IMS complete implementation
+//go:build o2_stub
+// +build o2_stub
+
+// Package o2 implements missing type definitions for O2 IMS complete implementation  
 package o2
 
 import (

@@ -112,8 +112,11 @@ type TestResult struct {
 	Status   string        `json:"status"` // PASS, FAIL, SKIP, ERROR
 	Duration time.Duration `json:"duration"`
 	ErrorMsg string        `json:"error_msg,omitempty"`
+	Error    string        `json:"error,omitempty"` // Alias for ErrorMsg for compatibility
 	Details  string        `json:"details,omitempty"`
 	Critical bool          `json:"critical"`
+	Passed   bool          `json:"passed"`   // For compatibility with performance_benchmarks.go
+	Score    float64       `json:"score"`    // For compatibility with performance_benchmarks.go
 }
 
 // PerformanceTestResult extends TestResult with performance metrics

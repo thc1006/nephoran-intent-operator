@@ -24,15 +24,15 @@ var (
 // PrometheusMetrics holds all LLM-related Prometheus metrics
 type PrometheusMetrics struct {
 	// Counter metrics
-	RequestsTotal         *prometheus.CounterVec
-	ErrorsTotal           *prometheus.CounterVec
-	CacheHitsTotal        *prometheus.CounterVec
-	CacheMissesTotal      *prometheus.CounterVec
-	FallbackAttemptsTotal *prometheus.CounterVec
-	RetryAttemptsTotal    *prometheus.CounterVec
+	RequestsTotal         prometheus.CounterVec
+	ErrorsTotal           prometheus.CounterVec
+	CacheHitsTotal        prometheus.CounterVec
+	CacheMissesTotal      prometheus.CounterVec
+	FallbackAttemptsTotal prometheus.CounterVec
+	RetryAttemptsTotal    prometheus.CounterVec
 
 	// Histogram metrics
-	ProcessingDurationSeconds *prometheus.HistogramVec
+	ProcessingDurationSeconds prometheus.HistogramVec
 
 	// Registration flag
 	registered bool

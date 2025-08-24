@@ -37,6 +37,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/prometheus/client_golang/prometheus"
@@ -1273,7 +1274,7 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 			Bucket:       aws.String(bm.config.S3Config.Bucket),
 			Key:          aws.String(key),
 			Body:         file,
-			StorageClass: aws.String(bm.config.S3Config.StorageClass),
+			StorageClass: types.StorageClass(bm.config.S3Config.StorageClass),
 		})
 		file.Close()
 
@@ -1297,7 +1298,7 @@ func (bm *BackupManager) uploadToS3(ctx context.Context, record *BackupRecord) e
 		Bucket:       aws.String(bm.config.S3Config.Bucket),
 		Key:          aws.String(metadataKey),
 		Body:         strings.NewReader(string(metadataData)),
-		StorageClass: aws.String(bm.config.S3Config.StorageClass),
+		StorageClass: types.StorageClass(bm.config.S3Config.StorageClass),
 	})
 
 	if err != nil {

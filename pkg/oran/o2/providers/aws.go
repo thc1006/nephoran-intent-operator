@@ -527,7 +527,7 @@ func (a *AWSProvider) GetMetrics(ctx context.Context) (map[string]interface{}, e
 		for _, reservation := range ec2Result.Reservations {
 			for _, instance := range reservation.Instances {
 				totalInstances++
-				if instance.State != nil && *instance.State.Name == "running" {
+				if instance.State != nil && string(instance.State.Name) == "running" {
 					runningInstances++
 				}
 			}
@@ -597,8 +597,8 @@ func (a *AWSProvider) GetResourceMetrics(ctx context.Context, resourceID string)
 
 		if len(result.Reservations) > 0 && len(result.Reservations[0].Instances) > 0 {
 			instance := result.Reservations[0].Instances[0]
-			metrics["state"] = *instance.State.Name
-			metrics["instance_type"] = *instance.InstanceType
+			metrics["state"] = string(instance.State.Name)
+			metrics["instance_type"] = string(instance.InstanceType)
 			if instance.CpuOptions != nil {
 				metrics["vcpus"] = *instance.CpuOptions.CoreCount * *instance.CpuOptions.ThreadsPerCore
 			}

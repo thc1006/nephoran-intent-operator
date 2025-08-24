@@ -166,8 +166,8 @@ type TokenEstimator struct {
 type contextMetrics struct {
 	requestsTotal      prometheus.Counter
 	tokensUsed         prometheus.Histogram
-	contextLevels      *prometheus.CounterVec
-	compressionUsed    *prometheus.CounterVec
+	contextLevels      prometheus.CounterVec
+	compressionUsed    prometheus.CounterVec
 	budgetExceeded     prometheus.Counter
 	processingDuration prometheus.Histogram
 }

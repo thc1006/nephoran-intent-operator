@@ -319,12 +319,12 @@ type RoutingStatistics struct {
 
 // AlertRouterMetrics contains Prometheus metrics for the alert router
 type AlertRouterMetrics struct {
-	AlertsRouted        *prometheus.CounterVec
-	AlertsDeduped       *prometheus.CounterVec
-	NotificationsSent   *prometheus.CounterVec
-	NotificationsFailed *prometheus.CounterVec
-	RoutingLatency      *prometheus.HistogramVec
-	RuleMatches         *prometheus.CounterVec
+	AlertsRouted        prometheus.CounterVec
+	AlertsDeduped       prometheus.CounterVec
+	NotificationsSent   prometheus.CounterVec
+	NotificationsFailed prometheus.CounterVec
+	RoutingLatency      prometheus.HistogramVec
+	RuleMatches         prometheus.CounterVec
 	QueueDepth          prometheus.Gauge
 }
 

@@ -52,6 +52,7 @@ type TelecomDocument struct {
 	UseCase         []string               `json:"use_case"`
 	Confidence      float32                `json:"confidence"`
 	Metadata        map[string]interface{} `json:"metadata"`
+	Timestamp       time.Time              `json:"timestamp"`  // For compatibility with some components
 	CreatedAt       time.Time              `json:"created_at"`
 	UpdatedAt       time.Time              `json:"updated_at"`
 }

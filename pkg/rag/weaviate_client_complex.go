@@ -262,18 +262,7 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 		authConfig = auth.ApiKey{Value: config.APIKey}
 	}
 
-	// Create HTTP client with optimized settings
-	httpClient := &http.Client{
-		Timeout: config.Timeout,
-		Transport: &http.Transport{
-			MaxIdleConns:          config.ConnectionPool.MaxIdleConns,
-			MaxConnsPerHost:       config.ConnectionPool.MaxConnsPerHost,
-			IdleConnTimeout:       config.ConnectionPool.IdleConnTimeout,
-			DisableCompression:    config.ConnectionPool.DisableCompression,
-			MaxIdleConnsPerHost:   10,
-			ResponseHeaderTimeout: 30 * time.Second,
-		},
-	}
+	// HTTP client configuration removed for compatibility with Weaviate Go client v4
 
 	// Create Weaviate client configuration
 	clientConfig := weaviate.Config{
@@ -281,7 +270,6 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 		Scheme:     config.Scheme,
 		AuthConfig: authConfig,
 		Headers:    config.Headers,
-		Client:     httpClient,
 	}
 
 	// Create client
@@ -298,9 +286,11 @@ func NewWeaviateClient(config *WeaviateConfig) (*WeaviateClient, error) {
 			LastCheck: time.Now(),
 		},
 		circuitBreaker: &CircuitBreaker{
-			maxFailures:  config.CircuitBreaker.MaxFailures,
-			timeout:      config.CircuitBreaker.Timeout,
-			currentState: CircuitClosed,
+			config: CircuitBreakerConfig{
+				FailureThreshold: int32(config.CircuitBreaker.MaxFailures),
+				RecoveryTimeout:  config.CircuitBreaker.Timeout,
+				SuccessThreshold: 3, // Default success threshold for half-open state
+			},
 		},
 		rateLimiter: &WeaviateRateLimiter{
 			requestsPerMinute: config.RateLimiting.RequestsPerMinute,
