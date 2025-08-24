@@ -8,6 +8,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/ims/modeladapter"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
@@ -466,70 +467,16 @@ func (c *CatalogService) Shutdown(ctx context.Context) error {
 // Private helper methods
 
 func (c *CatalogService) initializeDefaultResourceTypes() {
-	// Initialize common O-RAN resource types
-	defaultTypes := []*models.ResourceType{
-		{
-			ResourceTypeID: "compute-deployment",
-			Name:           "Kubernetes Deployment",
-			Description:    "Kubernetes Deployment for compute workloads",
-			Vendor:         "Kubernetes",
-			Model:          "Deployment",
-			Version:        "apps/v1",
-			Specifications: &models.ResourceTypeSpec{
-				Category: models.ResourceCategoryCompute,
-				MinResources: map[string]string{
-					"cpu":    "100m",
-					"memory": "128Mi",
-				},
-				DefaultResources: map[string]string{
-					"cpu":    "500m",
-					"memory": "512Mi",
-				},
-			},
-			SupportedActions: []string{"create", "update", "delete", "scale"},
-			CreatedAt:        time.Now(),
-			UpdatedAt:        time.Now(),
-		},
-		{
-			ResourceTypeID: "network-service",
-			Name:           "Kubernetes Service",
-			Description:    "Kubernetes Service for network connectivity",
-			Vendor:         "Kubernetes",
-			Model:          "Service",
-			Version:        "v1",
-			Specifications: &models.ResourceTypeSpec{
-				Category: models.ResourceCategoryNetwork,
-				Properties: map[string]interface{}{
-					"serviceTypes": []string{"ClusterIP", "NodePort", "LoadBalancer"},
-					"protocols":    []string{"TCP", "UDP"},
-				},
-			},
-			SupportedActions: []string{"create", "update", "delete"},
-			CreatedAt:        time.Now(),
-			UpdatedAt:        time.Now(),
-		},
-		{
-			ResourceTypeID: "storage-pvc",
-			Name:           "Persistent Volume Claim",
-			Description:    "Kubernetes Persistent Volume Claim for storage",
-			Vendor:         "Kubernetes",
-			Model:          "PersistentVolumeClaim",
-			Version:        "v1",
-			Specifications: &models.ResourceTypeSpec{
-				Category: models.ResourceCategoryStorage,
-				Properties: map[string]interface{}{
-					"accessModes": []string{"ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany"},
-					"volumeModes": []string{"Filesystem", "Block"},
-				},
-			},
-			SupportedActions: []string{"create", "delete"},
-			CreatedAt:        time.Now(),
-			UpdatedAt:        time.Now(),
-		},
+	// Use adapter to create stable default resource types
+	defaultInternalTypes := []*modeladapter.InternalResourceType{
+		modeladapter.CreateDefaultComputeResourceType(),
+		modeladapter.CreateDefaultNetworkResourceType(),
+		modeladapter.CreateDefaultStorageResourceType(),
 	}
 
-	// Register default types
-	for _, resourceType := range defaultTypes {
+	// Convert to generated model format and register
+	for _, internalType := range defaultInternalTypes {
+		resourceType := internalType.ToGenerated()
 		c.resourceTypes[resourceType.ResourceTypeID] = resourceType
 	}
 }
@@ -541,10 +488,13 @@ func (c *CatalogService) validateResourceType(resourceType *models.ResourceType)
 	if resourceType.Name == "" {
 		return fmt.Errorf("resource type name is required")
 	}
-	if resourceType.Specifications == nil {
+	
+	// Use adapter to validate - this makes validation future-proof
+	internal := modeladapter.FromGenerated(resourceType)
+	if internal.Specifications == nil {
 		return fmt.Errorf("resource type specifications are required")
 	}
-	if resourceType.Specifications.Category == "" {
+	if internal.Specifications.Category == "" {
 		return fmt.Errorf("resource type category is required")
 	}
 
@@ -554,18 +504,20 @@ func (c *CatalogService) validateResourceType(resourceType *models.ResourceType)
 		models.ResourceCategoryStorage,
 		models.ResourceCategoryNetwork,
 		models.ResourceCategoryAccelerator,
+		models.ResourceCategorySecurity,
+		models.ResourceCategoryMonitoring,
 	}
 
 	validCategory := false
 	for _, category := range validCategories {
-		if resourceType.Specifications.Category == category {
+		if internal.Specifications.Category == category {
 			validCategory = true
 			break
 		}
 	}
 
 	if !validCategory {
-		return fmt.Errorf("invalid resource type category: %s", resourceType.Specifications.Category)
+		return fmt.Errorf("invalid resource type category: %s", internal.Specifications.Category)
 	}
 
 	return nil
@@ -590,17 +542,20 @@ func (c *CatalogService) matchesResourceTypeFilter(rt *models.ResourceType, filt
 		}
 	}
 
-	// Check categories filter
-	if len(filter.Categories) > 0 && rt.Specifications != nil {
-		found := false
-		for _, category := range filter.Categories {
-			if rt.Specifications.Category == category {
-				found = true
-				break
+	// Check categories filter using adapter for future-proofing
+	if len(filter.Categories) > 0 {
+		internal := modeladapter.FromGenerated(rt)
+		if internal.Specifications != nil {
+			found := false
+			for _, category := range filter.Categories {
+				if internal.Specifications.Category == category {
+					found = true
+					break
+				}
 			}
-		}
-		if !found {
-			return false
+			if !found {
+				return false
+			}
 		}
 	}
 
@@ -728,17 +683,9 @@ func (c *CatalogService) matchesTemplateFilter(template *models.DeploymentTempla
 }
 
 func (c *CatalogService) copyResourceType(rt *models.ResourceType) *models.ResourceType {
-	// Deep copy the resource type
-	copy := *rt
-	if rt.Specifications != nil {
-		specCopy := *rt.Specifications
-		copy.Specifications = &specCopy
-	}
-	if rt.AlarmDictionary != nil {
-		alarmCopy := *rt.AlarmDictionary
-		copy.AlarmDictionary = &alarmCopy
-	}
-	return &copy
+	// Use adapter for safe copying - this prevents issues with model changes
+	internal := modeladapter.FromGenerated(rt)
+	return internal.ToGenerated()
 }
 
 func (c *CatalogService) copyDeploymentTemplate(template *models.DeploymentTemplate) *models.DeploymentTemplate {
