@@ -312,11 +312,11 @@ func (sm *SecurityManager) GetCSRFManager() *CSRFManager {
 // Enhanced CSRF middleware with double-submit cookie pattern
 type CSRFMiddleware struct {
 	csrfManager *CSRFManager
-	config      *CSRFConfig
+	config      *CSRFMiddlewareConfig
 }
 
-// CSRFConfig represents CSRF middleware configuration
-type CSRFConfig struct {
+// CSRFMiddlewareConfig represents CSRF middleware configuration
+type CSRFMiddlewareConfig struct {
 	TokenHeader    string        `json:"token_header"`
 	CookieName     string        `json:"cookie_name"`
 	SafeMethods    []string      `json:"safe_methods"`
@@ -328,9 +328,9 @@ type CSRFConfig struct {
 }
 
 // NewCSRFMiddleware creates new CSRF middleware
-func NewCSRFMiddleware(csrfManager *CSRFManager, config *CSRFConfig) *CSRFMiddleware {
+func NewCSRFMiddleware(csrfManager *CSRFManager, config *CSRFMiddlewareConfig) *CSRFMiddleware {
 	if config == nil {
-		config = &CSRFConfig{
+		config = &CSRFMiddlewareConfig{
 			TokenHeader:    "X-CSRF-Token",
 			CookieName:     "csrf_token",
 			SafeMethods:    []string{"GET", "HEAD", "OPTIONS", "TRACE"},

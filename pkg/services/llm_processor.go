@@ -14,7 +14,7 @@ import (
 // LLMProcessorService manages the lifecycle of LLM processor components
 type LLMProcessorService struct {
 	config             *config.LLMProcessorConfig
-	secretManager      *config.SecretManager
+	secretManager      config.SecretManager
 	processor          *handlers.IntentProcessor
 	streamingProcessor *llm.StreamingProcessor
 	circuitBreakerMgr  *llm.CircuitBreakerManager

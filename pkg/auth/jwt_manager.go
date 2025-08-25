@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -676,7 +677,7 @@ func (jm *JWTManager) validateTokenRisk(ctx context.Context, claims *NephoranJWT
 	riskFactors := []string{}
 	
 	// Check for unusual timestamp patterns
-	if time.Since(claims.IssuedAt) > 24*time.Hour {
+	if time.Since(claims.IssuedAt.Time) > 24*time.Hour {
 		riskFactors = append(riskFactors, "old_token")
 	}
 	

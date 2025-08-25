@@ -130,6 +130,12 @@ type OptimizedClientConfig struct {
 	LoadBalancingEnabled bool     `json:"load_balancing_enabled"`
 	BackendURLs          []string `json:"backend_urls"`
 
+	// Batch processing
+	BatchConfig *BatchProcessorConfig `json:"batch_config,omitempty"`
+
+	// API Configuration
+	APIKey string `json:"api_key,omitempty"`
+
 	// TLS optimization
 	TLSOptimization TLSConfig `json:"tls_optimization"`
 }

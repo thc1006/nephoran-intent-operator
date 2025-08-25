@@ -182,6 +182,14 @@ type PipelineValidationResult struct {
 	Score    float64           `json:"score"`
 }
 
+// PipelineValidationResult for internal pipeline processing (distinct from security_validator.ValidationResult)
+type PipelineInputValidationResult struct {
+	Valid    bool              `json:"valid"`
+	Score    float64           `json:"score"`
+	Errors   []ValidationError `json:"errors,omitempty"`
+	Warnings []ValidationError `json:"warnings,omitempty"`
+}
+
 // ResponseTransformer modifies and enhances LLM responses
 type ResponseTransformer struct {
 	transformers map[string]TransformationFunc
@@ -203,7 +211,7 @@ type ProcessingContext struct {
 	Intent           string                 `json:"intent"`
 	Classification   ClassificationResult   `json:"classification"`
 	EnrichmentData   *EnrichmentContext     `json:"enrichment_data"`
-	ValidationResult *ValidationResult      `json:"validation_result"`
+	ValidationResult *PipelineInputValidationResult `json:"validation_result"`
 	ProcessingStart  time.Time              `json:"processing_start"`
 	Metadata         map[string]interface{} `json:"metadata"`
 }
@@ -662,8 +670,8 @@ func (iv *InputValidator) initializeRules() {
 }
 
 // Validate performs comprehensive input validation
-func (iv *InputValidator) Validate(intent string) ValidationResult {
-	result := ValidationResult{
+func (iv *InputValidator) Validate(intent string) PipelineInputValidationResult {
+	result := PipelineInputValidationResult{
 		Valid: true,
 		Score: 1.0,
 	}

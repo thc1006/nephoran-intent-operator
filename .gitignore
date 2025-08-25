@@ -287,3 +287,24 @@ __debug_bin
 /site/
 docs/_build/
 
+
+# Additional binary exclusions
+test-main
+**/test-main
+bin/nephio-bridge
+bin/oran-adaptor
+bin/llm-processor
+bin/kpt
+kind
+
+# Prevent any large binaries
+*.bin
+*.out
+**/bin/*
+!**/bin/.gitkeep
+
+# Go build artifacts in root
+/nephio-bridge
+/oran-adaptor
+/llm-processor
+/test-*

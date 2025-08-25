@@ -16,6 +16,11 @@ run:
   # Allow multiple runners on CI to reduce flakiness.
   allow-parallel-runners: true
   allow-serial-runners: true
+  # Skip directories during build/lint
+  skip-dirs:
+    - _examples
+    - tools
+    - testdata
 
 linters:
   # Start minimal: enable a few safe linters.
@@ -63,8 +68,8 @@ issues:
     - path: "^vendor/"
       linters:
         - all
-    # Exclude docs, examples, deployments, testdata
-    - path: "^(docs|examples|deployments|testdata)/"
+    # Exclude docs, examples, deployments, testdata, _examples, tools
+    - path: "^(docs|examples|deployments|testdata|_examples|tools)/"
       linters:
         - all
 

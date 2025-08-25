@@ -14,6 +14,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // PerformanceOptimizer provides comprehensive performance monitoring and optimization
@@ -127,13 +129,13 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 
 	// Initialize circuit breaker
 	// Convert to regular CircuitBreakerConfig for the circuit breaker
-	cbConfig := &CircuitBreakerConfig{
-		FailureThreshold: int64(config.CircuitBreakerConfig.FailureThreshold),
-		SuccessThreshold: int64(config.CircuitBreakerConfig.SuccessThreshold),
-		Timeout:          config.CircuitBreakerConfig.Timeout,
-		MaxRequests:      config.CircuitBreakerConfig.MaxConcurrentRequests,
+	cbConfig := &shared.CircuitBreakerConfig{
+		FailureThreshold:      int64(config.CircuitBreakerConfig.FailureThreshold),
+		SuccessThreshold:      int64(config.CircuitBreakerConfig.SuccessThreshold),
+		Timeout:               config.CircuitBreakerConfig.Timeout,
+		MaxConcurrentRequests: config.CircuitBreakerConfig.MaxConcurrentRequests,
 	}
-	po.circuitBreaker = NewAdvancedCircuitBreaker(cbConfig)
+	po.circuitBreaker = NewAdvancedCircuitBreaker(*cbConfig)
 
 	// Initialize batch processor
 	po.batchProcessor = NewBatchProcessor(config.BatchProcessingConfig)

@@ -175,7 +175,14 @@ func NewOptimizedControllerIntegration(config *OptimizedControllerConfig) (*Opti
 	}
 
 	// Create batch processor
-	batchProcessor := NewBatchProcessor(*config.BatchConfig)
+	// Convert BatchProcessorConfig to BatchConfig
+	batchConfig := BatchConfig{
+		MaxBatchSize:         config.BatchConfig.BatchSize,
+		BatchTimeout:         config.BatchConfig.FlushInterval,
+		ConcurrentBatches:    config.BatchConfig.MaxConcurrency,
+		EnablePrioritization: true, // Default to true
+	}
+	batchProcessor := NewBatchProcessor(batchConfig)
 
 	// Create JSON processor
 	jsonProcessor := NewFastJSONProcessor(config.JSONOptimization)
@@ -266,7 +273,7 @@ func (oci *OptimizedControllerIntegration) ProcessLLMPhaseOptimized(
 			ctx, intent, intentType, "gpt-4o-mini", PriorityNormal,
 		)
 
-		if err == nil && batchResponse.Error == "" {
+		if err == nil && batchResponse.Error == nil {
 			response.Content = batchResponse.Response
 			response.FromBatch = true
 			response.ProcessingTime = time.Since(start)

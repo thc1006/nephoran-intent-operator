@@ -51,6 +51,7 @@ type BatchRequest struct {
 	Priority   Priority
 	Context    context.Context
 	ResultChan chan *BatchResult
+	ResponseCh chan *ProcessingResult // Added for processing.go compatibility
 	Metadata   map[string]interface{}
 	SubmitTime time.Time
 	Timeout    time.Duration
@@ -65,6 +66,7 @@ type BatchResult struct {
 	BatchID     string
 	BatchSize   int
 	QueueTime   time.Duration
+	Tokens      int // Added for optimized_controller.go compatibility
 }
 
 // StreamingRequest represents a request for streaming processing
@@ -162,14 +164,19 @@ type ValidationError struct {
 
 // ProcessingResult represents the result of LLM processing
 type ProcessingResult struct {
-	Content        string                 `json:"content"`
-	TokensUsed     int                    `json:"tokens_used"`
-	ProcessingTime time.Duration          `json:"processing_time"`
-	CacheHit       bool                   `json:"cache_hit"`
-	Batched        bool                   `json:"batched"`
-	Metadata       map[string]interface{} `json:"metadata"`
-	Error          error                  `json:"error,omitempty"`
+	Content           string                 `json:"content"`
+	TokensUsed        int                    `json:"tokens_used"`
+	ProcessingTime    time.Duration          `json:"processing_time"`
+	CacheHit          bool                   `json:"cache_hit"`
+	Batched           bool                   `json:"batched"`
+	Metadata          map[string]interface{} `json:"metadata"`
+	Error             error                  `json:"error,omitempty"`
+	ProcessingContext *ProcessingContext     `json:"processing_context,omitempty"` // Added for processing_pipeline.go
+	Success           bool                   `json:"success"`                      // Added for processing_pipeline.go
 }
+
+// ProcessingContext, ClassificationResult, EnrichmentContext, ValidationResult
+// are defined in processing_pipeline.go and security_validator.go
 
 // generateRequestID generates a unique request identifier
 func generateRequestID() string {
