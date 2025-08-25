@@ -52,7 +52,7 @@ jobs:
           
           # Build all packages
           echo "Building all packages..."
-          if ! go test -c ./...; then
+          if ! go build ./...; then
             echo "❌ Build failed - compilation errors detected"
             exit 1
           fi

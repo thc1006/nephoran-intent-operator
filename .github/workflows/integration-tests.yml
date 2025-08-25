@@ -58,7 +58,7 @@ jobs:
           
           # Build all packages
           echo "Building all packages..."
-          if ! go test -c ./...; then
+          if ! go build ./...; then
             echo "❌ Build failed - compilation errors detected"
             exit 1
           fi
@@ -72,9 +72,9 @@ jobs:
           fi
           echo "✅ Go vet passed successfully"
           
-          # Compile test binaries
+          # Compile test binaries (without running to avoid filename collisions)
           echo "Compiling test binaries..."
-          if ! go test -c ./...; then
+          if ! go test -run=^$ ./...; then
             echo "❌ Test compilation failed - test code has compilation issues"
             exit 1
           fi

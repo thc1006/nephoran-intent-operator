@@ -389,7 +389,7 @@ jobs:
           
           # Step 1: Build all packages to catch compile-time errors early
           echo "Step 1: Building all packages..."
-          if ! go test -c ./...; then
+          if ! go build ./...; then
             echo "❌ Build failed - compilation errors detected"
             echo "This typically indicates symbol collisions or missing dependencies"
             exit 1
@@ -406,7 +406,7 @@ jobs:
           
           # Step 3: Compile test binaries (without running) to catch test compilation issues
           echo "Step 3: Compiling test binaries..."
-          if ! go test -c ./...; then
+          if ! go test -run=^$ ./...; then
             echo "❌ Test compilation failed - test code has compilation issues"
             exit 1
           fi
