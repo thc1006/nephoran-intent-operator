@@ -12,8 +12,8 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
-// PerformanceValidator validates performance claims against test results
-type PerformanceValidator struct {
+// PerformanceValidatorImpl validates performance claims against test results
+type PerformanceValidatorImpl struct {
 	config     *LoadTestConfig
 	logger     *zap.Logger
 	thresholds ValidationThresholds
@@ -27,12 +27,12 @@ type StatisticalValidator interface {
 }
 
 // NewPerformanceValidator creates a new performance validator
-func NewPerformanceValidator(config *LoadTestConfig, logger *zap.Logger) *PerformanceValidator {
+func NewPerformanceValidator(config *LoadTestConfig, logger *zap.Logger) *PerformanceValidatorImpl {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
-	validator := &PerformanceValidator{
+	validator := &PerformanceValidatorImpl{
 		config: config,
 		logger: logger,
 		thresholds: ValidationThresholds{
@@ -59,7 +59,7 @@ func NewPerformanceValidator(config *LoadTestConfig, logger *zap.Logger) *Perfor
 }
 
 // Validate checks if performance meets requirements
-func (v *PerformanceValidator) Validate(results *LoadTestResults) ValidationReport {
+func (v *PerformanceValidatorImpl) Validate(results *LoadTestResults) ValidationReport {
 	report := ValidationReport{
 		Passed:          true,
 		Score:           100.0,
@@ -88,7 +88,7 @@ func (v *PerformanceValidator) Validate(results *LoadTestResults) ValidationRepo
 }
 
 // ValidateRealtime performs real-time validation during test execution
-func (v *PerformanceValidator) ValidateRealtime(metrics GeneratorMetrics) bool {
+func (v *PerformanceValidatorImpl) ValidateRealtime(metrics GeneratorMetrics) bool {
 	// Check error rate
 	if metrics.ErrorRate > v.thresholds.MaxErrorRate {
 		v.logger.Warn("Real-time validation failed: high error rate",
@@ -118,13 +118,13 @@ func (v *PerformanceValidator) ValidateRealtime(metrics GeneratorMetrics) bool {
 }
 
 // GetThresholds returns validation thresholds
-func (v *PerformanceValidator) GetThresholds() ValidationThresholds {
+func (v *PerformanceValidatorImpl) GetThresholds() ValidationThresholds {
 	return v.thresholds
 }
 
 // Private validation methods
 
-func (v *PerformanceValidator) validateConcurrentIntents(results *LoadTestResults, report *ValidationReport) {
+func (v *PerformanceValidatorImpl) validateConcurrentIntents(results *LoadTestResults, report *ValidationReport) {
 	// Check if system handled 200+ concurrent intents
 	maxConcurrent := v.calculateMaxConcurrent(results)
 
@@ -154,7 +154,7 @@ func (v *PerformanceValidator) validateConcurrentIntents(results *LoadTestResult
 	report.DetailedResults["concurrent_intents"] = maxConcurrent
 }
 
-func (v *PerformanceValidator) validateThroughput(results *LoadTestResults, report *ValidationReport) {
+func (v *PerformanceValidatorImpl) validateThroughput(results *LoadTestResults, report *ValidationReport) {
 	// Check if system achieved 45 intents per minute
 	targetThroughput := 45.0
 
@@ -195,7 +195,7 @@ func (v *PerformanceValidator) validateThroughput(results *LoadTestResults, repo
 	}
 }
 
-func (v *PerformanceValidator) validateLatency(results *LoadTestResults, report *ValidationReport) {
+func (v *PerformanceValidatorImpl) validateLatency(results *LoadTestResults, report *ValidationReport) {
 	// Check if P95 latency is under 2 seconds
 	targetP95 := 2000 * time.Millisecond
 
@@ -240,7 +240,7 @@ func (v *PerformanceValidator) validateLatency(results *LoadTestResults, report 
 	}
 }
 
-func (v *PerformanceValidator) validateAvailability(results *LoadTestResults, report *ValidationReport) {
+func (v *PerformanceValidatorImpl) validateAvailability(results *LoadTestResults, report *ValidationReport) {
 	// Check if system achieved 99.95% availability
 	targetAvailability := 0.9995
 
@@ -280,7 +280,7 @@ func (v *PerformanceValidator) validateAvailability(results *LoadTestResults, re
 	report.DetailedResults["availability"] = results.Availability
 }
 
-func (v *PerformanceValidator) validateResourceUsage(results *LoadTestResults, report *ValidationReport) {
+func (v *PerformanceValidatorImpl) validateResourceUsage(results *LoadTestResults, report *ValidationReport) {
 	evidence := Evidence{
 		Type:        "resource_usage",
 		Description: "Resource utilization during test",
@@ -326,7 +326,7 @@ func (v *PerformanceValidator) validateResourceUsage(results *LoadTestResults, r
 	}
 }
 
-func (v *PerformanceValidator) validateStatisticalSignificance(results *LoadTestResults, report *ValidationReport) {
+func (v *PerformanceValidatorImpl) validateStatisticalSignificance(results *LoadTestResults, report *ValidationReport) {
 	if results.StatisticalAnalysis == nil {
 		report.Warnings = append(report.Warnings, "No statistical analysis available")
 		return
@@ -378,7 +378,7 @@ func (v *PerformanceValidator) validateStatisticalSignificance(results *LoadTest
 	}
 }
 
-func (v *PerformanceValidator) initializeTests() {
+func (v *PerformanceValidatorImpl) initializeTests() {
 	// Add statistical test validators
 	v.tests = append(v.tests, &TTestValidator{logger: v.logger})
 	v.tests = append(v.tests, &MannWhitneyValidator{logger: v.logger})
@@ -386,7 +386,7 @@ func (v *PerformanceValidator) initializeTests() {
 	v.tests = append(v.tests, &AndersonDarlingValidator{logger: v.logger})
 }
 
-func (v *PerformanceValidator) calculateMaxConcurrent(results *LoadTestResults) int {
+func (v *PerformanceValidatorImpl) calculateMaxConcurrent(results *LoadTestResults) int {
 	// Calculate based on Little's Law: L = λW
 	// L = average number in system
 	// λ = arrival rate (throughput)
@@ -409,7 +409,7 @@ func (v *PerformanceValidator) calculateMaxConcurrent(results *LoadTestResults) 
 	return maxConcurrent
 }
 
-func (v *PerformanceValidator) calculateScore(report *ValidationReport) float64 {
+func (v *PerformanceValidatorImpl) calculateScore(report *ValidationReport) float64 {
 	score := 100.0
 
 	// Deduct points for failed criteria
@@ -428,7 +428,7 @@ func (v *PerformanceValidator) calculateScore(report *ValidationReport) float64 
 	return score
 }
 
-func (v *PerformanceValidator) generateRecommendations(results *LoadTestResults, report *ValidationReport) {
+func (v *PerformanceValidatorImpl) generateRecommendations(results *LoadTestResults, report *ValidationReport) {
 	// Based on validation results, generate recommendations
 
 	if results.Availability < v.thresholds.MinAvailability {

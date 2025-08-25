@@ -437,7 +437,7 @@ func NewApplicationMetricsCollector(config *LoadTestConfig, logger *zap.Logger) 
 	return &ApplicationMetricsCollector{
 		config:   config,
 		logger:   logger,
-		registry: prometheus.DefaultRegistry,
+		registry: prometheus.DefaultRegisterer.(*prometheus.Registry),
 	}
 }
 
@@ -798,7 +798,7 @@ func (a *PredictiveAnalyzer) predictTimeToExhaustion(metric string, threshold fl
 	}
 
 	// Calculate rate of change
-	slope, intercept := linearRegression(timeSeries)
+	slope, _ := linearRegression(timeSeries)
 
 	if slope <= 0 {
 		return time.Hour * 24 // No exhaustion predicted if decreasing
