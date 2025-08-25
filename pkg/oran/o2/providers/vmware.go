@@ -560,10 +560,10 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 			if h.Runtime.ConnectionState == types.HostSystemConnectionStateConnected {
 				connectedHosts++
 				if h.Summary.Hardware != nil {
-					totalCPU += h.Summary.Hardware.NumCpuCores
+					totalCPU += int32(h.Summary.Hardware.NumCpuCores)
 					totalMemory += h.Summary.Hardware.MemorySize
 				}
-				if h.Summary.QuickStats != nil {
+				if h.Summary.QuickStats.OverallCpuUsage > 0 {
 					usedCPU += h.Summary.QuickStats.OverallCpuUsage
 					usedMemory += int64(h.Summary.QuickStats.OverallMemoryUsage) * 1024 * 1024
 				}
@@ -620,7 +620,7 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 				continue
 			}
 
-			if dsObj.Summary != nil {
+			if dsObj.Summary.Capacity > 0 {
 				totalCapacity += dsObj.Summary.Capacity
 				freeSpace += dsObj.Summary.FreeSpace
 			}
@@ -660,18 +660,19 @@ func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID stri
 
 		metrics["power_state"] = string(vmObj.Runtime.PowerState)
 		metrics["connection_state"] = string(vmObj.Runtime.ConnectionState)
-		if vmObj.Summary != nil {
-			if vmObj.Summary.QuickStats != nil {
-				metrics["cpu_mhz_used"] = vmObj.Summary.QuickStats.OverallCpuUsage
-				metrics["memory_mb_used"] = vmObj.Summary.QuickStats.GuestMemoryUsage
-				metrics["storage_bytes_committed"] = vmObj.Summary.QuickStats.CommittedStorage
-				metrics["storage_bytes_uncommitted"] = vmObj.Summary.QuickStats.UncommittedStorage
-			}
-			if vmObj.Summary.Config != nil {
-				metrics["vcpus"] = vmObj.Summary.Config.NumCpu
-				metrics["memory_mb"] = vmObj.Summary.Config.MemorySizeMB
-			}
+		// Add VM metrics from summary
+		if vmObj.Summary.QuickStats.OverallCpuUsage > 0 {
+			metrics["cpu_mhz_used"] = vmObj.Summary.QuickStats.OverallCpuUsage
 		}
+		if vmObj.Summary.QuickStats.GuestMemoryUsage > 0 {
+			metrics["memory_mb_used"] = vmObj.Summary.QuickStats.GuestMemoryUsage
+		}
+		// Note: CommittedStorage and UncommittedStorage might not be available in all govmomi versions
+		// Skipping these fields for now
+		
+		// Add VM config metrics
+		metrics["vcpus"] = vmObj.Summary.Config.NumCpu
+		metrics["memory_mb"] = vmObj.Summary.Config.MemorySizeMB
 
 	case "datastore":
 		ds, err := v.finder.Datastore(ctx, name)
@@ -685,7 +686,7 @@ func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID stri
 			return nil, fmt.Errorf("failed to get datastore properties: %w", err)
 		}
 
-		if dsObj.Summary != nil {
+		if dsObj.Summary.Capacity > 0 {
 			metrics["capacity_bytes"] = dsObj.Summary.Capacity
 			metrics["free_bytes"] = dsObj.Summary.FreeSpace
 			metrics["uncommitted_bytes"] = dsObj.Summary.Uncommitted

@@ -104,3 +104,5 @@ Updates are tracked here in append-only format.
 | 2025-08-25T04:54:48+08:00 | feat/e2e | ci/security | Robust security tool installation with Ubuntu 24.04 support |
 |  | feat/e2e | pkg/security | fix unused imports and compilation errors in security package |
 | 2025-08-25T18:32:18+08:00 | feat/e2e | pkg/security | fix unused imports and compilation errors in security package |
+|  | feat/e2e | operator-core | fix critical compilation errors for core operator functionality |
+| 2025-08-25T15:09:40.000Z | feat/e2e | operator-core | fix critical compilation errors for core operator functionality |

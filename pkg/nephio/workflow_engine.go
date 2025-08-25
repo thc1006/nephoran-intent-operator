@@ -763,8 +763,8 @@ func (nwo *NephioWorkflowOrchestrator) createStandardDeploymentWorkflow() *Workf
 	return &WorkflowDefinition{
 		Name:        "standard-deployment",
 		Description: "Standard Nephio deployment workflow",
-		IntentTypes: []v1.NetworkIntentType{
-			v1.NetworkIntentTypeDeployment,
+		IntentTypes: []string{
+			"deployment",
 		},
 		Phases: []WorkflowPhase{
 			{
@@ -897,8 +897,8 @@ func (nwo *NephioWorkflowOrchestrator) createStandardConfigurationWorkflow() *Wo
 	return &WorkflowDefinition{
 		Name:        "standard-configuration",
 		Description: "Standard Nephio configuration workflow",
-		IntentTypes: []v1.NetworkIntentType{
-			v1.NetworkIntentTypeConfiguration,
+		IntentTypes: []string{
+			"configuration",
 		},
 		Phases: []WorkflowPhase{
 			{
@@ -986,8 +986,8 @@ func (nwo *NephioWorkflowOrchestrator) createStandardScalingWorkflow() *Workflow
 	return &WorkflowDefinition{
 		Name:        "standard-scaling",
 		Description: "Standard Nephio scaling workflow",
-		IntentTypes: []v1.NetworkIntentType{
-			v1.NetworkIntentTypeScaling,
+		IntentTypes: []string{
+			"scaling",
 		},
 		Phases: []WorkflowPhase{
 			{
@@ -1072,8 +1072,8 @@ func (nwo *NephioWorkflowOrchestrator) createORANDeploymentWorkflow() *WorkflowD
 	return &WorkflowDefinition{
 		Name:        "oran-deployment",
 		Description: "O-RAN compliant deployment workflow",
-		IntentTypes: []v1.NetworkIntentType{
-			v1.NetworkIntentTypeDeployment,
+		IntentTypes: []string{
+			"deployment",
 		},
 		Phases: []WorkflowPhase{
 			{
@@ -1174,8 +1174,8 @@ func (nwo *NephioWorkflowOrchestrator) create5GCoreDeploymentWorkflow() *Workflo
 	return &WorkflowDefinition{
 		Name:        "5g-core-deployment",
 		Description: "5G Core network functions deployment workflow",
-		IntentTypes: []v1.NetworkIntentType{
-			v1.NetworkIntentTypeDeployment,
+		IntentTypes: []string{
+			"deployment",
 		},
 		Phases: []WorkflowPhase{
 			{

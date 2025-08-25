@@ -318,7 +318,7 @@ type ForecastRisk struct {
 // NotificationManager handles regression alerts and notifications
 type NotificationManager struct {
 	config       *NotificationConfig
-	channels     map[string]NotificationChannel
+	channels     map[string]RegressionNotificationChannel
 	alertHistory *AlertHistory
 }
 
@@ -332,8 +332,8 @@ type NotificationConfig struct {
 	MaintenanceWindows []TimeWindow
 }
 
-// NotificationChannel represents different notification methods
-type NotificationChannel interface {
+// RegressionNotificationChannel represents different notification methods
+type RegressionNotificationChannel interface {
 	SendAlert(alert *RegressionAlert) error
 	TestConnection() error
 	GetConfig() map[string]interface{}
@@ -996,7 +996,7 @@ func (ta *TrendAnalyzer) AnalyzeTrends(ctx context.Context, measurement *Perform
 func NewNotificationManager(config *NotificationConfig) *NotificationManager {
 	return &NotificationManager{
 		config:   config,
-		channels: make(map[string]NotificationChannel),
+		channels: make(map[string]RegressionNotificationChannel),
 	}
 }
 
@@ -1008,7 +1008,6 @@ func (nm *NotificationManager) SendAlert(alert *RegressionAlert) error {
 // Additional types for completeness
 type HistoricalDataStore struct{}
 type SeasonalModel struct{}
-type AlertHistory struct{}
 type EscalationRule struct{}
 type TimeWindow struct {
 	Start time.Time

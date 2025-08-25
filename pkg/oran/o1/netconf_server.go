@@ -6,7 +6,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"net"
-	"strconv"
+	// "strconv" // unused import removed
 	"strings"
 	"sync"
 	"time"
@@ -14,7 +14,7 @@ import (
 	"golang.org/x/crypto/ssh"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	// nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1" // unused import removed
 )
 
 // NetconfServer provides a NETCONF server implementation for O-RAN O1 interface

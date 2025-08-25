@@ -20,7 +20,7 @@ import (
 // OPACompliancePolicyEngine implements comprehensive policy enforcement for all compliance frameworks
 type OPACompliancePolicyEngine struct {
 	opaStore         storage.Store
-	regoPolicies     map[string]*rego.PreparedQuery
+	regoPolicies     map[string]*rego.PreparedEvalQuery
 	admissionWebhook *AdmissionWebhookController
 	networkPolicies  *NetworkPolicyEnforcer
 	rbacPolicies     *RBACPolicyEnforcer

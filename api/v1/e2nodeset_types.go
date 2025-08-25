@@ -161,6 +161,26 @@ type E2NodeSetSpec struct {
 	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9.-]+:[0-9]+$`
 	// +optional
 	RicEndpoint string `json:"ricEndpoint,omitempty"`
+	
+	// E2InterfaceVersion specifies the E2 interface version
+	// +kubebuilder:validation:Enum=v1.0;v1.1;v2.0;v2.1;v3.0
+	// +optional
+	E2InterfaceVersion string `json:"e2InterfaceVersion,omitempty"`
+	
+	// RICEndpoint specifies the RIC endpoint URL (alternative naming)
+	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9.-]+:[0-9]+$`
+	// +optional
+	RICEndpoint string `json:"ricEndpoint,omitempty"`
+	
+	// HeartbeatInterval specifies the interval for heartbeat messages
+	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`
+	// +kubebuilder:default="10s"
+	// +optional
+	HeartbeatInterval string `json:"heartbeatInterval,omitempty"`
+	
+	// RANFunctions lists the RAN functions supported by nodes in this set
+	// +optional
+	RANFunctions []RANFunction `json:"ranFunctions,omitempty"`
 }
 
 // E2NodeLifecycleState represents the lifecycle state of E2 nodes
@@ -266,6 +286,15 @@ type E2NodeSetStatus struct {
 	// LastUpdateTime is the last time the status was updated
 	// +optional
 	LastUpdateTime *metav1.Time `json:"lastUpdateTime,omitempty"`
+	
+	// ReadyNodes is the number of ready nodes (alias for ReadyReplicas)
+	ReadyNodes int32 `json:"readyNodes,omitempty"`
+	
+	// CurrentNodes is the current number of nodes (alias for CurrentReplicas)  
+	CurrentNodes int32 `json:"currentNodes,omitempty"`
+	
+	// Phase represents the current phase of the E2NodeSet
+	Phase string `json:"phase,omitempty"`
 }
 
 //+kubebuilder:object:root=true

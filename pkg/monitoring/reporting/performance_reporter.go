@@ -11,6 +11,8 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/types"
 )
 
 // PerformanceReporter handles automated performance reporting and notifications
@@ -105,10 +107,10 @@ type PerformanceReport struct {
 	CapacityAnalysis CapacityAnalysis `json:"capacityAnalysis"`
 
 	// Business impact
-	BusinessImpact BusinessImpact `json:"businessImpact"`
+	BusinessImpact types.BusinessImpact `json:"businessImpact"`
 
 	// Recommendations
-	Recommendations []Recommendation `json:"recommendations"`
+	Recommendations []types.Recommendation `json:"recommendations"`
 
 	// Alerts summary
 	AlertsSummary AlertsSummary `json:"alertsSummary"`
@@ -282,18 +284,10 @@ type ResourceBottleneck struct {
 	Mitigation  string  `json:"mitigation"`  // Recommended action
 }
 
-// BusinessImpact provides business-focused performance analysis
-type BusinessImpact struct {
-	CostPerIntent        float64 `json:"costPerIntent"`        // dollars
-	RevenueImpact        float64 `json:"revenueImpact"`        // dollars per hour
-	CustomerSatisfaction float64 `json:"customerSatisfaction"` // 0-100 score
-	SLAViolationCost     float64 `json:"slaViolationCost"`     // dollars
-	PerformanceROI       float64 `json:"performanceROI"`       // percentage
-	CompetitivePosition  string  `json:"competitivePosition"`  // Leading, Competitive, Lagging
-}
+// Note: BusinessImpact and Recommendation are now defined in pkg/monitoring/types/common_types.go
 
-// Recommendation provides actionable performance improvement suggestions
-type Recommendation struct {
+// RecommendationImpl provides actionable performance improvement suggestions (kept for compatibility)
+type RecommendationImpl struct {
 	ID           string   `json:"id"`
 	Category     string   `json:"category"` // Performance, Cost, Reliability
 	Priority     string   `json:"priority"` // Critical, High, Medium, Low

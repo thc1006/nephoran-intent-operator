@@ -1483,3 +1483,98 @@ type PromotionEngineHealth struct {
 	Metrics         map[string]interface{} `json:"metrics,omitempty"`
 	Errors          []string               `json:"errors,omitempty"`
 }
+
+// TimeRange represents a time period
+type TimeRange struct {
+	Start time.Time `json:"start"`
+	End   time.Time `json:"end"`
+}
+
+// Vulnerability represents a security vulnerability
+type Vulnerability struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Severity    string `json:"severity"`
+	CVSS        string `json:"cvss,omitempty"`
+}
+
+// VersionInfo represents version information
+type VersionInfo struct {
+	Version   string    `json:"version"`
+	GitCommit string    `json:"gitCommit,omitempty"`
+	BuildTime time.Time `json:"buildTime,omitempty"`
+}
+
+// RiskLevel represents the risk level
+type RiskLevel string
+
+const (
+	RiskLevelLow    RiskLevel = "low"
+	RiskLevelMedium RiskLevel = "medium"
+	RiskLevelHigh   RiskLevel = "high"
+)
+
+// GraphStatistics contains statistical information about a dependency graph
+type GraphStatistics struct {
+	NodeCount            int     `json:"nodeCount"`
+	EdgeCount            int     `json:"edgeCount"`
+	MaxDepth             int     `json:"maxDepth"`
+	AverageOutDegree     float64 `json:"averageOutDegree"`
+	AverageInDegree      float64 `json:"averageInDegree"`
+	CyclicComplexity     int     `json:"cyclicComplexity"`
+	StronglyConnectedComponents int `json:"stronglyConnectedComponents"`
+}
+
+// WorkflowStatus represents the status of a workflow
+type WorkflowStatus struct {
+	Phase       string            `json:"phase"`
+	Message     string            `json:"message,omitempty"`
+	Conditions  []metav1.Condition `json:"conditions,omitempty"`
+	StartTime   *time.Time        `json:"startTime,omitempty"`
+	EndTime     *time.Time        `json:"endTime,omitempty"`
+}
+
+// ConflictResolution defines resolution strategies for conflicts
+type ConflictResolution string
+
+const (
+	ConflictResolutionAutomatic ConflictResolution = "automatic"
+	ConflictResolutionManual    ConflictResolution = "manual"
+)
+
+// ConflictType defines types of conflicts
+type ConflictType string
+
+const (
+	ConflictTypeVersion   ConflictType = "version"
+	ConflictTypeResource  ConflictType = "resource"
+	ConflictTypePolicy    ConflictType = "policy"
+)
+
+// OptimizationSuggestion represents a suggestion for optimization
+type OptimizationSuggestion struct {
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	Impact      string `json:"impact"`
+	Priority    int    `json:"priority"`
+}
+
+// HealthCheck represents a health check configuration
+type HealthCheck struct {
+	Name        string        `json:"name"`
+	Type        string        `json:"type"`
+	Interval    time.Duration `json:"interval"`
+	Timeout     time.Duration `json:"timeout"`
+	Retries     int           `json:"retries"`
+	Endpoint    string        `json:"endpoint,omitempty"`
+	Command     []string      `json:"command,omitempty"`
+}
+
+// ValidationIssue represents a validation problem
+type ValidationIssue struct {
+	Severity    string `json:"severity"`
+	Message     string `json:"message"`
+	Path        string `json:"path,omitempty"`
+	Suggestion  string `json:"suggestion,omitempty"`
+}

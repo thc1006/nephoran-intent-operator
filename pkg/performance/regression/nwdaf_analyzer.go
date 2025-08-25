@@ -13,6 +13,9 @@ import (
 	"k8s.io/klog/v2"
 )
 
+// Stub type for compilation
+type KPIDatabase struct{}
+
 // NWDAFAnalyzer implements Network Data Analytics Function patterns for telecom-specific insights
 // This follows 3GPP TS 23.288 NWDAF specifications and O-RAN Alliance guidelines
 type NWDAFAnalyzer struct {

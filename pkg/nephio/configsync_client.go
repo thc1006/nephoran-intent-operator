@@ -339,7 +339,7 @@ func (csc *ConfigSyncClient) SyncPackageToCluster(ctx context.Context, pkg *porc
 	if err != nil {
 		span.RecordError(err)
 		csc.metrics.SyncErrors.WithLabelValues(cluster.Name, "preparation_failed").Inc()
-		return nil, errors.WithContext(err, "failed to prepare package content")
+		return nil, fmt.Errorf("failed to prepare package content: %w", err)
 	}
 
 	// Step 2: Create cluster-specific directory structure
@@ -350,7 +350,7 @@ func (csc *ConfigSyncClient) SyncPackageToCluster(ctx context.Context, pkg *porc
 	if err := csc.writePackageToRepository(ctx, packageDir, deploymentContent); err != nil {
 		span.RecordError(err)
 		csc.metrics.SyncErrors.WithLabelValues(cluster.Name, "write_failed").Inc()
-		return nil, errors.WithContext(err, "failed to write package to repository")
+		return nil, fmt.Errorf("failed to write package to repository: %w", err)
 	}
 
 	// Step 4: Commit and push changes
@@ -361,13 +361,13 @@ func (csc *ConfigSyncClient) SyncPackageToCluster(ctx context.Context, pkg *porc
 	if err := csc.gitClient.Commit(ctx, commitMessage, files); err != nil {
 		span.RecordError(err)
 		csc.metrics.GitOperations.WithLabelValues("commit", csc.config.Repository, "failed").Inc()
-		return nil, errors.WithContext(err, "failed to commit package changes")
+		return nil, fmt.Errorf("failed to commit package changes: %w", err)
 	}
 
 	if err := csc.gitClient.Push(ctx); err != nil {
 		span.RecordError(err)
 		csc.metrics.GitOperations.WithLabelValues("push", csc.config.Repository, "failed").Inc()
-		return nil, errors.WithContext(err, "failed to push package changes")
+		return nil, fmt.Errorf("failed to push package changes: %w", err)
 	}
 
 	// Step 5: Monitor sync status
@@ -419,15 +419,24 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 	content := make(map[string][]byte)
 
 	// Convert KRM resources to YAML files
-	for _, resource := range pkg.Spec.Resources {
-		// Generate filename
-		filename := fmt.Sprintf("%s-%s.yaml", strings.ToLower(resource.Kind), resource.Name)
+	for i, resource := range pkg.Spec.Resources {
+		// Extract name from metadata
+		resourceName := "unnamed"
+		if metadata, ok := resource.Metadata["name"].(string); ok && metadata != "" {
+			resourceName = metadata
+		}
 
-		// Convert resource content to YAML
-		yamlContent, err := yaml.Marshal(resource.Content)
+		// Generate filename
+		filename := fmt.Sprintf("%s-%s.yaml", strings.ToLower(resource.Kind), resourceName)
+		if resourceName == "unnamed" {
+			filename = fmt.Sprintf("%s-%d.yaml", strings.ToLower(resource.Kind), i)
+		}
+
+		// Convert entire resource to YAML
+		yamlContent, err := yaml.Marshal(resource)
 		if err != nil {
 			span.RecordError(err)
-			return nil, errors.WithContext(err, fmt.Sprintf("failed to marshal resource %s", resource.Name))
+			return nil, fmt.Errorf("failed to marshal resource: %w", err)
 		}
 
 		content[filename] = yamlContent
@@ -461,7 +470,7 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 	kustomizationYAML, err := yaml.Marshal(kustomization)
 	if err != nil {
 		span.RecordError(err)
-		return nil, errors.WithContext(err, "failed to generate kustomization.yaml")
+		return nil, fmt.Errorf("failed to generate kustomization.yaml: %w", err)
 	}
 	content["kustomization.yaml"] = kustomizationYAML
 
@@ -483,7 +492,7 @@ func (csc *ConfigSyncClient) preparePackageContent(ctx context.Context, pkg *por
 		namespaceYAML, err := yaml.Marshal(namespace)
 		if err != nil {
 			span.RecordError(err)
-			return nil, errors.WithContext(err, "failed to generate namespace")
+			return nil, fmt.Errorf("failed to generate namespace: %w", err)
 		}
 		content["namespace.yaml"] = namespaceYAML
 	}
@@ -504,7 +513,7 @@ func (csc *ConfigSyncClient) writePackageToRepository(ctx context.Context, packa
 	// Create directory structure
 	if err := os.MkdirAll(packageDir, 0755); err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to create package directory")
+		return fmt.Errorf("failed to create package directory: %w", err)
 	}
 
 	// Write all files
@@ -512,7 +521,7 @@ func (csc *ConfigSyncClient) writePackageToRepository(ctx context.Context, packa
 		filePath := filepath.Join(packageDir, filename)
 		if err := os.WriteFile(filePath, data, 0644); err != nil {
 			span.RecordError(err)
-			return errors.WithContext(err, fmt.Sprintf("failed to write file %s", filename))
+			return fmt.Errorf("failed to write file %s: %w", filename, err)
 		}
 	}
 

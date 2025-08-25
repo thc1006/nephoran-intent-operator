@@ -225,13 +225,13 @@ func (ni *NephioIntegration) ProcessNetworkIntent(ctx context.Context, intent *v
 
 	// Validate intent for Nephio processing
 	if err := ni.validateIntentForNephio(ctx, intent); err != nil {
-		return nil, errors.WithContext(err, "intent validation failed for Nephio processing")
+		return nil, fmt.Errorf("intent validation failed for Nephio processing: %w", err)
 	}
 
 	// Execute Nephio workflow
 	execution, err := ni.workflowOrchestrator.ExecuteNephioWorkflow(ctx, intent)
 	if err != nil {
-		return nil, errors.WithContext(err, "failed to execute Nephio workflow")
+		return nil, fmt.Errorf("failed to execute Nephio workflow: %w", err)
 	}
 
 	logger.Info("Nephio workflow execution initiated",

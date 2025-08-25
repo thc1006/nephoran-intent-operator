@@ -274,7 +274,7 @@ type PackageVariant struct {
 	Specialization    *SpecializationRequest `json:"specialization"`
 	Status            PackageVariantStatus   `json:"status"`
 	PackageRevision   *porch.PackageRevision `json:"packageRevision"`
-	DeploymentStatus  *DeploymentStatus      `json:"deploymentStatus,omitempty"`
+	DeploymentStatus  *porch.DeploymentStatus      `json:"deploymentStatus,omitempty"`
 	ValidationResults []*ValidationResult    `json:"validationResults,omitempty"`
 	Errors            []string               `json:"errors,omitempty"`
 	CreatedAt         time.Time              `json:"createdAt"`

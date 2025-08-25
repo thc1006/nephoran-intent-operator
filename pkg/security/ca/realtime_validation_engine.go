@@ -91,7 +91,7 @@ type RealtimeValidationConfig struct {
 	DetailedMetrics      bool            `yaml:"detailed_metrics"`
 	WebhookNotifications bool            `yaml:"webhook_notifications"`
 	WebhookEndpoints     []string        `yaml:"webhook_endpoints"`
-	AlertThresholds      AlertThresholds `yaml:"alert_thresholds"`
+	AlertThresholds      ValidationAlertThresholds `yaml:"alert_thresholds"`
 
 	// Emergency procedures
 	EmergencyBypassEnabled  bool          `yaml:"emergency_bypass_enabled"`
@@ -101,7 +101,7 @@ type RealtimeValidationConfig struct {
 }
 
 // AlertThresholds defines thresholds for validation alerts
-type AlertThresholds struct {
+type ValidationAlertThresholds struct {
 	ValidationFailureRate      float64       `yaml:"validation_failure_rate"`
 	RevocationCheckFailureRate float64       `yaml:"revocation_check_failure_rate"`
 	ResponseTimeP95            time.Duration `yaml:"response_time_p95"`

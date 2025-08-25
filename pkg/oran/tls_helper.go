@@ -32,6 +32,7 @@ type TLSConfig struct {
 	// FIPS compliance - COMPLIANCE: FIPS 140-3 Level 2
 	FIPSMode       bool     `json:"fips_mode" default:"true"`
 	AllowedCiphers []string `json:"allowed_ciphers,omitempty"`
+	NextProtos     []string `json:"next_protos,omitempty"`
 	
 	// Security hardening
 	SessionTicketsDisabled bool `json:"session_tickets_disabled" default:"true"`
@@ -556,8 +557,10 @@ func CreateSecureTLSDialer(config *TLSConfig) (*tls.Dialer, error) {
 	}
 	
 	dialer := &tls.Dialer{
-		Config:  tlsConfig,
-		Timeout: 30 * time.Second, // COMPLIANCE: Reasonable timeout for connections
+		Config: tlsConfig,
+		NetDialer: &net.Dialer{
+			Timeout: 30 * time.Second, // COMPLIANCE: Reasonable timeout for connections
+		},
 	}
 	
 	return dialer, nil

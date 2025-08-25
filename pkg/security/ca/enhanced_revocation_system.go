@@ -163,7 +163,7 @@ type RevocationCacheManager struct {
 	l1Cache      *L1RevocationCache
 	l2Cache      *L2RevocationCache
 	preloadCache *PreloadRevocationCache
-	stats        *CacheStatistics
+	stats        *RevocationCacheStatistics
 	mu           sync.RWMutex
 }
 
@@ -336,7 +336,7 @@ func NewEnhancedRevocationSystem(
 				maxSize: config.L1CacheSize,
 				ttl:     config.L1CacheTTL,
 			},
-			stats: &CacheStatistics{},
+			stats: &RevocationCacheStatistics{},
 		}
 
 		if config.L2CacheEnabled {
@@ -1335,7 +1335,7 @@ type ResultCollector struct {
 	mu      sync.RWMutex
 }
 
-type CacheStatistics struct {
+type RevocationCacheStatistics struct {
 	Hits      atomic.Uint64
 	Misses    atomic.Uint64
 	Evictions atomic.Uint64

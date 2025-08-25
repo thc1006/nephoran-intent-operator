@@ -1072,6 +1072,3 @@ func (e *AutomationEngine) GetActiveHealthCheckSessions() []*HealthCheckSession 
 }
 
 // generateRequestID generates a unique request ID
-func generateRequestID() string {
-	return fmt.Sprintf("req-%d", time.Now().UnixNano())
-}

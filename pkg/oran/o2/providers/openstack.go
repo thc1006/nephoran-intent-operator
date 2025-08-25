@@ -10,10 +10,12 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack"
 	"github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
+	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/extendedstatus"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/hypervisors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/external"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	"github.com/gophercloud/gophercloud/openstack/orchestration/v1/stacks"
@@ -469,11 +471,11 @@ func (o *OpenStackProvider) Deploy(ctx context.Context, req *DeploymentRequest) 
 
 	// Create Heat stack from template
 	createOpts := stacks.CreateOpts{
-		Name:       req.Name,
-		Template:   req.Template,
-		Parameters: req.Parameters,
-		Tags:       convertLabelsToTags(req.Labels),
-		Timeout:    int(req.Timeout.Minutes()),
+		Name:         req.Name,
+		TemplateOpts: &stacks.Template{TE: stacks.TE{Bin: []byte(req.Template)}},
+		Parameters:   req.Parameters,
+		Tags:         convertLabelsToTags(req.Labels),
+		Timeout:      int(req.Timeout.Minutes()),
 	}
 
 	result := stacks.Create(o.heatClient, createOpts)
@@ -500,7 +502,7 @@ func (o *OpenStackProvider) GetDeployment(ctx context.Context, deploymentID stri
 		return nil, fmt.Errorf("failed to get Heat stack: %w", err)
 	}
 
-	return o.convertStackToDeploymentResponse(stack), nil
+	return o.convertRetrievedStackToDeploymentResponse(stack), nil
 }
 
 // UpdateDeployment updates a Heat stack deployment
@@ -512,10 +514,10 @@ func (o *OpenStackProvider) UpdateDeployment(ctx context.Context, deploymentID s
 	stackName, stackID := parseStackIdentifier(deploymentID)
 
 	updateOpts := stacks.UpdateOpts{
-		Template:   req.Template,
-		Parameters: req.Parameters,
-		Tags:       convertLabelsToTags(req.Labels),
-		Timeout:    int(req.Timeout.Minutes()),
+		TemplateOpts: &stacks.Template{TE: stacks.TE{Bin: []byte(req.Template)}},
+		Parameters:   req.Parameters,
+		Tags:         convertLabelsToTags(req.Labels),
+		Timeout:      int(req.Timeout.Minutes()),
 	}
 
 	err := stacks.Update(o.heatClient, stackName, stackID, updateOpts).ExtractErr()
@@ -567,7 +569,7 @@ func (o *OpenStackProvider) ListDeployments(ctx context.Context, filter *Deploym
 
 	var deployments []*DeploymentResponse
 	for _, stack := range stackList {
-		deployments = append(deployments, o.convertStackToDeploymentResponse(&stack))
+		deployments = append(deployments, o.convertListedStackToDeploymentResponse(&stack))
 	}
 
 	return deployments, nil
@@ -769,10 +771,26 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 			return nil, fmt.Errorf("failed to get server: %w", err)
 		}
 
-		metrics["status"] = server.Status
-		metrics["power_state"] = server.PowerState
-		metrics["vm_state"] = server.VmState
-		metrics["task_state"] = server.TaskState
+		// Use extended server information to get detailed status
+		var extendedServer struct {
+			servers.Server
+			extendedstatus.ServerExtendedStatusExt
+		}
+		
+		// Extract the server with extended status information
+		err = servers.Get(o.computeClient, server.ID).ExtractInto(&extendedServer)
+		if err == nil {
+			metrics["status"] = extendedServer.Status
+			metrics["power_state"] = extendedServer.PowerState
+			metrics["vm_state"] = extendedServer.VmState
+			metrics["task_state"] = extendedServer.TaskState
+		} else {
+			// Fallback to basic status
+			metrics["status"] = server.Status
+			metrics["power_state"] = "unknown"
+			metrics["vm_state"] = "unknown" 
+			metrics["task_state"] = "unknown"
+		}
 		metrics["created"] = server.Created
 		metrics["updated"] = server.Updated
 
@@ -801,18 +819,25 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 		metrics["updated_at"] = volume.UpdatedAt
 
 	case "network":
-		network, err := networks.Get(o.networkClient, id).Extract()
+		// Use extended network information to get external field
+		var extendedNetwork struct {
+			networks.Network
+			external.NetworkExternalExt
+		}
+		
+		var err error
+		err = networks.Get(o.networkClient, id).ExtractInto(&extendedNetwork)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get network: %w", err)
 		}
 
-		metrics["status"] = network.Status
-		metrics["admin_state_up"] = network.AdminStateUp
-		metrics["shared"] = network.Shared
-		metrics["external"] = network.External
-		metrics["port_security_enabled"] = network.PortSecurityEnabled
-		metrics["created_at"] = network.CreatedAt
-		metrics["updated_at"] = network.UpdatedAt
+		metrics["status"] = extendedNetwork.Status
+		metrics["admin_state_up"] = extendedNetwork.AdminStateUp
+		metrics["shared"] = extendedNetwork.Shared
+		metrics["external"] = extendedNetwork.External
+		// Note: PortSecurityEnabled field not available on this struct
+		metrics["created_at"] = extendedNetwork.CreatedAt
+		metrics["updated_at"] = extendedNetwork.UpdatedAt
 	}
 
 	metrics["timestamp"] = time.Now().Unix()
@@ -1229,9 +1254,35 @@ func (o *OpenStackProvider) convertStackToDeploymentResponse(stack *stacks.Creat
 	// Implementation would convert Heat stack to deployment response
 	return &DeploymentResponse{
 		ID:           stack.ID,
-		Name:         stack.Name,
+		Name:         "heat-stack", // CreatedStack doesn't have Name field
 		Status:       "creating",
 		Phase:        "initializing",
+		TemplateType: "heat",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+}
+
+func (o *OpenStackProvider) convertRetrievedStackToDeploymentResponse(stack *stacks.RetrievedStack) *DeploymentResponse {
+	// Implementation would convert RetrievedStack to deployment response
+	return &DeploymentResponse{
+		ID:           stack.ID,
+		Name:         stack.Name,
+		Status:       stack.Status,
+		Phase:        "running",
+		TemplateType: "heat",
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
+	}
+}
+
+func (o *OpenStackProvider) convertListedStackToDeploymentResponse(stack *stacks.ListedStack) *DeploymentResponse {
+	// Implementation would convert ListedStack to deployment response
+	return &DeploymentResponse{
+		ID:           stack.ID,
+		Name:         stack.Name,
+		Status:       stack.Status,
+		Phase:        "running",
 		TemplateType: "heat",
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),

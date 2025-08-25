@@ -188,27 +188,27 @@ func NewStreamingService(config *StreamingConfig, logger *zap.Logger) *Streaming
 			Name: "o1_streaming_total_connections",
 			Help: "Total number of streaming connections",
 		}),
-		MessagesStreamed: prometheus.NewCounterVec(prometheus.CounterOpts{
+		MessagesStreamed: *prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "o1_streaming_messages_total",
 			Help: "Total number of messages streamed",
 		}, []string{"stream_type", "connection_id"}),
-		StreamingLatency: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		StreamingLatency: *prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name: "o1_streaming_latency_seconds",
 			Help: "Streaming latency in seconds",
 		}, []string{"stream_type"}),
-		SubscriptionCount: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		SubscriptionCount: *prometheus.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "o1_streaming_subscriptions",
 			Help: "Number of active subscriptions",
 		}, []string{"stream_type"}),
-		ConnectionDuration: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		ConnectionDuration: *prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name: "o1_streaming_connection_duration_seconds",
 			Help: "Connection duration in seconds",
 		}, []string{"client_type"}),
-		ErrorCount: prometheus.NewCounterVec(prometheus.CounterOpts{
+		ErrorCount: *prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "o1_streaming_errors_total",
 			Help: "Total number of streaming errors",
 		}, []string{"error_type"}),
-		BackpressureEvents: prometheus.NewCounterVec(prometheus.CounterOpts{
+		BackpressureEvents: *prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: "o1_streaming_backpressure_events_total",
 			Help: "Total number of backpressure events",
 		}, []string{"strategy", "stream_type"}),

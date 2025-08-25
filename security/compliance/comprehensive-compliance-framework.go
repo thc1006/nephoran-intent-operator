@@ -2,17 +2,13 @@ package compliance
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"regexp"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -133,6 +129,9 @@ type APIServerCISChecks struct {
 // =============================================================================
 // NIST Cybersecurity Framework Implementation
 // =============================================================================
+
+// NIST function types (stub implementations - detailed versions follow)
+// Note: Detailed versions are defined below
 
 type NISTCybersecurityFramework struct {
 	identifyFunction *NISTIdentifyFunction
@@ -1271,7 +1270,7 @@ type OPARBACPolicyEngine struct {
 	ServiceAccountPolicies   bool `opa:"rbac.serviceaccounts" validate:"eq=true"`
 }
 
-type OPACompliancePolicyEngine struct {
+type OPACompliancePolicyFlags struct {
 	CISPoliciesActive        bool `opa:"compliance.cis" validate:"eq=true"`
 	NISTControlsEnforced     bool `opa:"compliance.nist" validate:"eq=true"`
 	OWASPProtectionsActive   bool `opa:"compliance.owasp" validate:"eq=true"`

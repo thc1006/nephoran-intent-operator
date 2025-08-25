@@ -307,14 +307,9 @@ func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, e
 func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Parse structured parameters from RawExtension
-	var params map[string]interface{}
-	if intent.Spec.Parameters.Raw != nil {
-		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
-		}
-	}
-	if params == nil {
+	// Get structured parameters 
+	params := intent.Spec.Parameters
+	if params == nil || len(params) == 0 {
 		return nil, fmt.Errorf("no parameters found in intent")
 	}
 
@@ -356,14 +351,9 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Parse structured parameters from RawExtension
-	var params map[string]interface{}
-	if intent.Spec.Parameters.Raw != nil {
-		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
-		}
-	}
-	if params == nil {
+	// Get structured parameters 
+	params := intent.Spec.Parameters
+	if params == nil || len(params) == 0 {
 		return nil, fmt.Errorf("no parameters found in intent")
 	}
 
@@ -382,14 +372,9 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Parse structured parameters from RawExtension
-	var params map[string]interface{}
-	if intent.Spec.Parameters.Raw != nil {
-		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
-		}
-	}
-	if params == nil {
+	// Get structured parameters 
+	params := intent.Spec.Parameters
+	if params == nil || len(params) == 0 {
 		return nil, fmt.Errorf("no parameters found in intent")
 	}
 
@@ -417,8 +402,8 @@ func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, er
 		"GeneratedAt":         time.Now().Format("2006-01-02 15:04:05 UTC"),
 		"Description":         fmt.Sprintf("This package was automatically generated from the NetworkIntent '%s'", intent.Name),
 		"Contents":            "- Kubernetes manifests\n- O-RAN configuration\n- Network slice parameters\n- Setters for customization",
-		"ORANDetails":         pg.extractORANDetailsFromRaw(intent.Spec.Parameters),
-		"NetworkSliceDetails": pg.extractNetworkSliceDetailsFromRaw(intent.Spec.Parameters),
+		"ORANDetails":         pg.extractORANDetails(intent.Spec.Parameters),
+		"NetworkSliceDetails": pg.extractNetworkSliceDetails(intent.Spec.Parameters),
 	}
 
 	var buf bytes.Buffer
@@ -440,6 +425,11 @@ func (pg *PackageGenerator) extractORANDetailsFromRaw(rawExt runtime.RawExtensio
 	return extractORANDetails(params)
 }
 
+// extractORANDetails extracts O-RAN details from parameters map
+func (pg *PackageGenerator) extractORANDetails(params map[string]interface{}) string {
+	return extractORANDetails(params)
+}
+
 // extractNetworkSliceDetailsFromRaw extracts network slice details from RawExtension
 func (pg *PackageGenerator) extractNetworkSliceDetailsFromRaw(rawExt runtime.RawExtension) string {
 	var params map[string]interface{}
@@ -448,6 +438,11 @@ func (pg *PackageGenerator) extractNetworkSliceDetailsFromRaw(rawExt runtime.Raw
 			return "Unable to parse parameters"
 		}
 	}
+	return extractNetworkSliceDetails(params)
+}
+
+// extractNetworkSliceDetails extracts network slice details from parameters map
+func (pg *PackageGenerator) extractNetworkSliceDetails(params map[string]interface{}) string {
 	return extractNetworkSliceDetails(params)
 }
 

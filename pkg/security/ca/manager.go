@@ -47,7 +47,7 @@ type Config struct {
 	BackendConfigs     map[CABackendType]interface{} `yaml:"backend_configs"`
 	CertificateStore   *CertificateStoreConfig       `yaml:"certificate_store"`
 	DistributionConfig *DistributionConfig           `yaml:"distribution_config"`
-	PolicyConfig       *PolicyConfig                 `yaml:"policy_config"`
+	PolicyConfig       *CertificatePolicyConfig      `yaml:"policy_config"`
 	MonitoringConfig   *MonitoringConfig             `yaml:"monitoring_config"`
 
 	// Lifecycle settings
@@ -115,7 +115,7 @@ type SlackConfig struct {
 }
 
 // PolicyConfig configures certificate policies
-type PolicyConfig struct {
+type CertificatePolicyConfig struct {
 	Enabled          bool                       `yaml:"enabled"`
 	PolicyTemplates  map[string]*PolicyTemplate `yaml:"policy_templates"`
 	ValidationRules  []ValidationRule           `yaml:"validation_rules"`

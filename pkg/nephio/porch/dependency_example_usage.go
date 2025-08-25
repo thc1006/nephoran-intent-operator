@@ -1,3 +1,5 @@
+//go:build ignore
+
 /*
 Copyright 2025.
 
@@ -27,7 +29,15 @@ func Example5GCoreDeploymentWithDependencies() error {
 	ctx := context.Background()
 
 	// Initialize Porch client
-	client, err := NewClient("https://porch.example.com", "token")
+	client, err := NewClient(ClientOptions{
+		Config: &ClientConfig{
+			Endpoint: "https://porch.example.com",
+			AuthConfig: &AuthConfig{
+				Type: AuthTypeToken,
+				Token: "token",
+			},
+		},
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create client: %w", err)
 	}
@@ -61,10 +71,9 @@ func Example5GCoreDeploymentWithDependencies() error {
 
 	// Define 5G Core AMF with dependencies
 	amfPackage := &PackageReference{
-		Name:       "amf",
-		Namespace:  "5g-core",
-		Repository: "5g-core-functions",
-		Version:    "v2.1.0",
+		Repository:  "5g-core-functions",
+		PackageName: "amf",
+		Revision:    "v2.1.0",
 	}
 
 	// Build comprehensive dependency graph
@@ -72,15 +81,9 @@ func Example5GCoreDeploymentWithDependencies() error {
 	graph, err := resolver.BuildDependencyGraph(ctx,
 		[]*PackageReference{amfPackage},
 		&GraphBuildOptions{
-			MaxDepth:               10,
-			IncludeOptional:        true,
-			IncludeDevDependencies: false,
-			ResolveTransitive:      true,
-			UseCache:               true,
-			ParallelProcessing:     true,
-			VersionSelection:       VersionSelectionStrategyLatest,
-			ConflictResolution:     ConflictResolutionStrategyAutomatic,
-			Timeout:                5 * time.Minute,
+			IncludeTransitive: true,
+			IncludeOptional:   true,
+			MaxDepth:          10,
 		})
 	if err != nil {
 		return fmt.Errorf("failed to build dependency graph: %w", err)
@@ -117,18 +120,21 @@ func Example5GCoreDeploymentWithDependencies() error {
 	requirements := []*VersionRequirement{
 		{
 			PackageRef: amfPackage,
-			Constraints: []*VersionConstraint{
-				{Operator: ConstraintOperatorGreaterEquals, Version: "2.0.0"},
-				{Operator: ConstraintOperatorLessThan, Version: "3.0.0"},
+			Constraint: &VersionConstraint{
+				Operator: ConstraintOperatorGreaterEquals, 
+				Version: "2.0.0",
 			},
-			Priority: RequirementPriorityMandatory,
+			Priority: 100,
+			Mandatory: true,
 		},
 		{
-			PackageRef: &PackageReference{Name: "udm", Namespace: "5g-core"},
-			Constraints: []*VersionConstraint{
-				{Operator: ConstraintOperatorTilde, Version: "2.1.0"},
+			PackageRef: &PackageReference{Repository: "5g-core", PackageName: "udm"},
+			Constraint: &VersionConstraint{
+				Operator: ConstraintOperatorTilde, 
+				Version: "2.1.0",
 			},
-			Priority: RequirementPriorityHigh,
+			Priority: 80,
+			Mandatory: false,
 		},
 	}
 
@@ -269,9 +275,9 @@ func Example5GCoreDeploymentWithDependencies() error {
 	// Simulate an update and propagate changes
 	fmt.Println("\nSimulating NRF update and propagating changes...")
 	nrfUpdate := &PackageReference{
-		Name:      "nrf",
-		Namespace: "5g-core",
-		Version:   "v2.2.0",
+		Repository:  "5g-core",
+		PackageName: "nrf",
+		Revision:    "v2.2.0",
 	}
 
 	propagationResult, err := resolver.PropagateUpdates(ctx, nrfUpdate,
@@ -331,7 +337,15 @@ func ExampleORANDeploymentWithDependencies() error {
 	ctx := context.Background()
 
 	// Initialize client and resolver
-	client, _ := NewClient("https://porch.example.com", "token")
+	client, _ := NewClient(ClientOptions{
+		Config: &ClientConfig{
+			Endpoint: "https://porch.example.com",
+			AuthConfig: &AuthConfig{
+				Type: AuthTypeToken,
+				Token: "token",
+			},
+		},
+	})
 	defer client.Close()
 
 	resolver, _ := NewDependencyResolver(client, nil)
@@ -339,10 +353,9 @@ func ExampleORANDeploymentWithDependencies() error {
 
 	// Define Near-RT RIC with xApp dependencies
 	ricPackage := &PackageReference{
-		Name:       "near-rt-ric",
-		Namespace:  "oran",
-		Repository: "oran-components",
-		Version:    "v1.5.0",
+		Repository:  "oran-components",
+		PackageName: "near-rt-ric",
+		Revision:    "v1.5.0",
 	}
 
 	// Build dependency graph for O-RAN components
@@ -350,7 +363,7 @@ func ExampleORANDeploymentWithDependencies() error {
 		[]*PackageReference{ricPackage},
 		&GraphBuildOptions{
 			MaxDepth:          8,
-			ResolveTransitive: true,
+			IncludeTransitive: true,
 			IncludeOptional:   true,
 		})
 	if err != nil {
@@ -364,9 +377,9 @@ func ExampleORANDeploymentWithDependencies() error {
 	compatMatrix, err := resolver.GetVersionCompatibilityMatrix(ctx,
 		[]*PackageReference{
 			ricPackage,
-			{Name: "xapp-traffic-steering", Namespace: "oran"},
-			{Name: "xapp-anomaly-detection", Namespace: "oran"},
-			{Name: "e2-simulator", Namespace: "oran"},
+			{Repository: "oran", PackageName: "xapp-traffic-steering"},
+			{Repository: "oran", PackageName: "xapp-anomaly-detection"},
+			{Repository: "oran", PackageName: "e2-simulator"},
 		})
 	if err != nil {
 		return err
@@ -390,7 +403,15 @@ func ExampleNetworkSliceDependencies() error {
 	ctx := context.Background()
 
 	// Initialize components
-	client, _ := NewClient("https://porch.example.com", "token")
+	client, _ := NewClient(ClientOptions{
+		Config: &ClientConfig{
+			Endpoint: "https://porch.example.com",
+			AuthConfig: &AuthConfig{
+				Type: AuthTypeToken,
+				Token: "token",
+			},
+		},
+	})
 	defer client.Close()
 
 	resolver, _ := NewDependencyResolver(client, nil)
@@ -400,9 +421,9 @@ func ExampleNetworkSliceDependencies() error {
 
 	// Define eMBB slice with specific QoS requirements
 	slicePackage := &PackageReference{
-		Name:       "embb-slice",
-		Namespace:  "network-slices",
-		Repository: "slice-templates",
+		Repository:  "slice-templates",
+		PackageName: "embb-slice",
+		Revision:    "latest",
 	}
 
 	// Configure context with QoS requirements

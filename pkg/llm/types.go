@@ -117,6 +117,16 @@ type TokenManager interface {
 	AllocateTokens(request string) (int, error)
 	ReleaseTokens(count int) error
 	GetAvailableTokens() int
+	
+	// Model capability methods
+	EstimateTokensForModel(model string, text string) (int, error)
+	SupportsSystemPrompt(model string) bool
+	SupportsChatFormat(model string) bool
+	TruncateToFit(text string, maxTokens int, model string) (string, error)
+	
+	// Additional methods for compatibility
+	GetTokenCount(text string) int
+	ValidateModel(model string) error
 }
 
 // StreamingContextManager manages streaming request contexts

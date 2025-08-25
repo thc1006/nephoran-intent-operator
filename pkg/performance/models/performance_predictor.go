@@ -69,7 +69,7 @@ func (pp *PerformancePredictor) Train() error {
 	}
 
 	// Perform optimization
-	result, err := optimize.Minimize(&problem, make([]float64, nFeatures+1), nil, nil)
+	result, err := optimize.Minimize(problem, make([]float64, nFeatures+1), nil, nil)
 	if err != nil {
 		return err
 	}

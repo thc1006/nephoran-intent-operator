@@ -15,7 +15,7 @@ import (
 
 // RAGAwarePromptBuilder builds telecom-specific prompts with RAG context integration
 type RAGAwarePromptBuilder struct {
-	tokenManager         *TokenManager
+	tokenManager         TokenManager
 	telecomQueryEnhancer *TelecomQueryEnhancer
 	promptTemplates      *TelecomPromptTemplates
 	config               *PromptBuilderConfig
@@ -154,7 +154,7 @@ type PromptResponse struct {
 }
 
 // NewRAGAwarePromptBuilder creates a new RAG-aware prompt builder
-func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config *PromptBuilderConfig) *RAGAwarePromptBuilder {
+func NewRAGAwarePromptBuilder(tokenManager TokenManager, config *PromptBuilderConfig) *RAGAwarePromptBuilder {
 	if config == nil {
 		config = getDefaultPromptBuilderConfig()
 	}
@@ -272,7 +272,7 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 	}
 
 	// Calculate final token count
-	tokenCount := pb.tokenManager.EstimateTokensForModel(fullPrompt, request.ModelName)
+	tokenCount, _ := pb.tokenManager.EstimateTokensForModel(request.ModelName, fullPrompt)
 
 	// Create response
 	response := &PromptResponse{
@@ -394,10 +394,7 @@ func (pb *RAGAwarePromptBuilder) addContextualHints(query, intentType string) st
 // buildSystemPrompt builds the system prompt based on request parameters
 func (pb *RAGAwarePromptBuilder) buildSystemPrompt(request *PromptRequest, domain string) (string, error) {
 	templateType := pb.getTemplateType(request)
-	template, err := pb.promptTemplates.GetSystemPrompt(templateType)
-	if err != nil {
-		return "", fmt.Errorf("failed to get system prompt template: %w", err)
-	}
+	template := pb.promptTemplates.GetSystemPrompt(templateType)
 
 	// Replace template variables
 	systemPrompt := template
@@ -638,7 +635,7 @@ func (pb *RAGAwarePromptBuilder) combinePrompts(systemPrompt, userPrompt, modelN
 
 // optimizeForTokens optimizes the prompt to fit within token budget
 func (pb *RAGAwarePromptBuilder) optimizeForTokens(fullPrompt, systemPrompt, userPrompt string, maxTokens int, modelName string) (string, []string, error) {
-	currentTokens := pb.tokenManager.EstimateTokensForModel(fullPrompt, modelName)
+	currentTokens, _ := pb.tokenManager.EstimateTokensForModel(modelName, fullPrompt)
 	if currentTokens <= maxTokens {
 		return fullPrompt, nil, nil
 	}
@@ -647,11 +644,13 @@ func (pb *RAGAwarePromptBuilder) optimizeForTokens(fullPrompt, systemPrompt, use
 	optimizedPrompt := fullPrompt
 
 	// Reserve tokens for system prompt
-	availableTokens := maxTokens - pb.tokenManager.EstimateTokensForModel(systemPrompt, modelName)
+	systemTokens, _ := pb.tokenManager.EstimateTokensForModel(modelName, systemPrompt)
+	availableTokens := maxTokens - systemTokens
 
 	// Truncate user prompt if necessary
-	if pb.tokenManager.EstimateTokensForModel(userPrompt, modelName) > availableTokens {
-		truncatedUserPrompt := pb.tokenManager.TruncateToFit(userPrompt, availableTokens, modelName)
+	userTokens, _ := pb.tokenManager.EstimateTokensForModel(modelName, userPrompt)
+	if userTokens > availableTokens {
+		truncatedUserPrompt, _ := pb.tokenManager.TruncateToFit(userPrompt, availableTokens, modelName)
 		optimizedPrompt = pb.combinePrompts(systemPrompt, truncatedUserPrompt, modelName)
 		optimizations = append(optimizations, "user_prompt_truncation")
 	}
@@ -923,9 +922,9 @@ func (tpt *TelecomPromptTemplates) GetExamples(intentType string) []PromptExampl
 	examples := make([]PromptExample, len(fewShotExamples))
 	for i, fse := range fewShotExamples {
 		examples[i] = PromptExample{
-			Input:       fse.UserInput,
-			Output:      fse.ExpectedOutput,
-			Explanation: fse.Explanation,
+			Input:       fse.Query,
+			Output:      fse.Response,
+			Explanation: fse.Context, // Use Context as explanation
 		}
 	}
 	return examples

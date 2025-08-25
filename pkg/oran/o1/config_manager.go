@@ -28,7 +28,7 @@ type AdvancedConfigurationManager struct {
 	bulkOperations   *BulkConfigurationManager
 	netconfClients   map[string]*NetconfClient
 	clientsMux       sync.RWMutex
-	yangRegistry     *ExtendedYANGModelRegistry
+	yangRegistry     *YANGModelRegistry
 	metrics          *ConfigMetrics
 }
 
@@ -236,7 +236,7 @@ type DriftDetectionRule struct {
 type ConfigurationValidationEngine struct {
 	validators       map[string]ConfigurationValidator
 	validationRules  []*ValidationRule
-	yangRegistry     *ExtendedYANGModelRegistry
+	yangRegistry     *YANGModelRegistry
 	customValidators map[string]CustomValidator
 	mutex            sync.RWMutex
 }
@@ -377,7 +377,7 @@ type ConfigMetrics struct {
 }
 
 // NewAdvancedConfigurationManager creates a new advanced configuration manager
-func NewAdvancedConfigurationManager(config *ConfigManagerConfig, yangRegistry *ExtendedYANGModelRegistry) *AdvancedConfigurationManager {
+func NewAdvancedConfigurationManager(config *ConfigManagerConfig, yangRegistry *YANGModelRegistry) *AdvancedConfigurationManager {
 	if config == nil {
 		config = &ConfigManagerConfig{
 			MaxVersions:          100,
@@ -919,7 +919,7 @@ func (cpm *ConfigurationProfileManager) ResolveProfileConfiguration(profile *Con
 	return profile.Configuration, nil
 }
 
-func NewConfigurationValidationEngine(yangRegistry *ExtendedYANGModelRegistry) *ConfigurationValidationEngine {
+func NewConfigurationValidationEngine(yangRegistry *YANGModelRegistry) *ConfigurationValidationEngine {
 	return &ConfigurationValidationEngine{
 		validators:       make(map[string]ConfigurationValidator),
 		validationRules:  make([]*ValidationRule, 0),

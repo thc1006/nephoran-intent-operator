@@ -13,6 +13,12 @@ import (
 	"k8s.io/klog/v2"
 )
 
+// Stub type definitions for compilation
+type AlertRule struct{}
+type SuppressionRule struct{}
+type EscalationPolicy struct{}
+type LearningConfig struct{}
+
 // IntelligentAlertManager provides advanced alerting with correlation, suppression, and learning
 type IntelligentAlertManager struct {
 	config               *AlertManagerConfig

@@ -17,6 +17,7 @@ limitations under the License.
 package v1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -50,6 +51,29 @@ type NetworkIntentSpec struct {
 	// +kubebuilder:validation:MaxLength=1000
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9\s\-_.,;:()\[\]]*$`
 	Intent string `json:"intent"`
+	
+	// IntentType specifies the type of network intent
+	// +kubebuilder:validation:Enum=scaling;deployment;configuration;optimization;maintenance
+	IntentType string `json:"intentType,omitempty"`
+	
+	// Parameters contains structured parameters extracted from the intent
+	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	
+	// TargetCluster specifies the target cluster for deployment
+	TargetCluster string `json:"targetCluster,omitempty"`
+	
+	// Priority defines the processing priority
+	// +kubebuilder:validation:Enum=low;normal;high;critical
+	Priority string `json:"priority,omitempty"`
+	
+	// TargetComponents specifies the target components for the intent
+	TargetComponents []string `json:"targetComponents,omitempty"`
+	
+	// ResourceRequirements specifies resource requirements
+	ResourceRequirements *ResourceRequirements `json:"resourceRequirements,omitempty"`
+	
+	// Constraints defines deployment constraints
+	Constraints map[string]string `json:"constraints,omitempty"`
 }
 
 // NetworkIntentStatus defines the observed state of NetworkIntent
@@ -65,6 +89,24 @@ type NetworkIntentStatus struct {
 
 	// LastUpdateTime indicates when the status was last updated
 	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+	
+	// Conditions represent the current conditions of the NetworkIntent
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	
+	// ProcessingCompletionTime indicates when processing completed
+	ProcessingCompletionTime *metav1.Time `json:"processingCompletionTime,omitempty"`
+	
+	// ResourcePlan contains the generated resource deployment plan
+	ResourcePlan *NetworkResourcePlan `json:"resourcePlan,omitempty"`
+	
+	// ValidationErrors contains any validation errors
+	ValidationErrors []string `json:"validationErrors,omitempty"`
+	
+	// DeploymentStatus indicates the current deployment status
+	DeploymentStatus string `json:"deploymentStatus,omitempty"`
+	
+	// ProcessingResults contains structured processing results
+	ProcessingResults map[string]interface{} `json:"processingResults,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -88,6 +130,93 @@ type NetworkIntentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []NetworkIntent `json:"items"`
+}
+
+// ResourceRequirements specifies resource requirements for deployments
+type ResourceRequirements struct {
+	// CPU requirements
+	CPU string `json:"cpu,omitempty"`
+	
+	// Memory requirements  
+	Memory string `json:"memory,omitempty"`
+	
+	// Storage requirements
+	Storage string `json:"storage,omitempty"`
+	
+	// Kubernetes resource requirements
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
+}
+
+// NetworkResourcePlan contains the generated resource deployment plan
+type NetworkResourcePlan struct {
+	// Resources to be deployed
+	Resources []NetworkPlannedResource `json:"resources,omitempty"`
+	
+	// Dependencies between resources
+	Dependencies []NetworkResourceDependency `json:"dependencies,omitempty"`
+	
+	// Deployment phases
+	Phases []NetworkDeploymentPhase `json:"phases,omitempty"`
+	
+	// Estimated cost
+	EstimatedCost *ResourceCost `json:"estimatedCost,omitempty"`
+}
+
+// NetworkPlannedResource represents a resource to be deployed
+type NetworkPlannedResource struct {
+	// Name of the resource
+	Name string `json:"name"`
+	
+	// Type of resource (e.g., "CNF", "VNF", "Service")
+	Type string `json:"type"`
+	
+	// Configuration for the resource
+	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	
+	// Target cluster
+	TargetCluster string `json:"targetCluster,omitempty"`
+	
+	// Status of the resource
+	Status string `json:"status,omitempty"`
+}
+
+// NetworkResourceDependency represents dependency between resources
+type NetworkResourceDependency struct {
+	// Source resource name
+	Source string `json:"source"`
+	
+	// Target resource name  
+	Target string `json:"target"`
+	
+	// Dependency type
+	Type string `json:"type"`
+}
+
+// NetworkDeploymentPhase represents a deployment phase
+type NetworkDeploymentPhase struct {
+	// Name of the phase
+	Name string `json:"name"`
+	
+	// Resources to deploy in this phase
+	Resources []string `json:"resources"`
+	
+	// Phase order
+	Order int `json:"order"`
+}
+
+// ResourceCost represents estimated resource costs
+type ResourceCost struct {
+	// CPU cost per hour
+	CPUCostPerHour float64 `json:"cpuCostPerHour,omitempty"`
+	
+	// Memory cost per hour
+	MemoryCostPerHour float64 `json:"memoryCostPerHour,omitempty"`
+	
+	// Storage cost per hour
+	StorageCostPerHour float64 `json:"storageCostPerHour,omitempty"`
+	
+	// Total estimated cost per hour
+	TotalCostPerHour float64 `json:"totalCostPerHour,omitempty"`
 }
 
 func init() {

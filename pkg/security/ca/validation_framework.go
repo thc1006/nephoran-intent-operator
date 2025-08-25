@@ -50,10 +50,10 @@ type PolicyRule struct {
 type RuleSeverity string
 
 const (
-	SeverityInfo     RuleSeverity = "info"
-	SeverityWarning  RuleSeverity = "warning"
-	SeverityError    RuleSeverity = "error"
-	SeverityCritical RuleSeverity = "critical"
+	RuleSeverityInfo     RuleSeverity = "info"
+	RuleSeverityWarning  RuleSeverity = "warning"
+	RuleSeverityError    RuleSeverity = "error"
+	RuleSeverityCritical RuleSeverity = "critical"
 )
 
 // CertificateValidator interface for custom validators
@@ -265,7 +265,7 @@ func (vf *ValidationFramework) ValidateCertificate(ctx context.Context, cert *x5
 		} else if !policyResult.Valid {
 			result.Valid = false
 			for _, violation := range policyResult.Violations {
-				if violation.Severity == SeverityError || violation.Severity == SeverityCritical {
+				if violation.Severity == RuleSeverityError || violation.Severity == RuleSeverityCritical {
 					result.Errors = append(result.Errors, violation.Description)
 				}
 			}
@@ -566,16 +566,16 @@ func (vf *ValidationFramework) validatePolicy(cert *x509.Certificate) (*PolicyVa
 		if violation != nil {
 			result.Violations = append(result.Violations, *violation)
 			result.Details.RulesFailed++
-			if violation.Severity == SeverityError || violation.Severity == SeverityCritical {
+			if violation.Severity == RuleSeverityError || violation.Severity == RuleSeverityCritical {
 				result.Valid = false
 			}
 			// Reduce score based on severity
 			switch violation.Severity {
-			case SeverityCritical:
+			case RuleSeverityCritical:
 				result.Score -= 25.0
-			case SeverityError:
+			case RuleSeverityError:
 				result.Score -= 15.0
-			case SeverityWarning:
+			case RuleSeverityWarning:
 				result.Score -= 5.0
 			}
 		} else if warning != nil {

@@ -1016,7 +1016,7 @@ func (k *KubernetesProvider) ValidateConfiguration(ctx context.Context, config *
 // Example of a private helper method:
 func (k *KubernetesProvider) createDeployment(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
 	// Convert request specification to Deployment
-	spec, ok := req.Specification["deployment"].(map[string]interface{})
+	_, ok := req.Specification["deployment"].(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("invalid deployment specification")
 	}
@@ -1365,7 +1365,7 @@ func (k *KubernetesProvider) createPersistentVolumeClaim(ctx context.Context, re
 	if size, ok := spec["size"].(string); ok {
 		quantity, err := parseQuantity(size)
 		if err == nil {
-			pvc.Spec.Resources = corev1.ResourceRequirements{
+			pvc.Spec.Resources = corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: quantity,
 				},

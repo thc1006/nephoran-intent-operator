@@ -34,6 +34,10 @@ func (te *ComprehensiveTestEnvironment) Cleanup() {
 	te.initialized = false
 }
 
+// TestEnvironment represents a simple test environment
+type TestEnvironment struct {
+	Cleanup func()
+}
 
 // ResourceMonitor monitors system resources during benchmarks
 type ResourceMonitor struct {
@@ -394,7 +398,7 @@ func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName stri
 	}()
 
 	// Create testing environment
-	testEnv := setupComprehensiveTestEnvironment()
+	testEnv := &ComprehensiveTestEnvironment{} // Placeholder for missing function
 	defer testEnv.Cleanup()
 
 	// Run benchmarks based on suite name

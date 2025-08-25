@@ -40,7 +40,7 @@ type ServiceDiscoveryConfig struct {
 	AutoProvisionEnabled    bool                    `yaml:"auto_provision_enabled"`
 	TemplateMatching        *TemplateMatchingConfig `yaml:"template_matching"`
 	PreProvisioningEnabled  bool                    `yaml:"pre_provisioning_enabled"`
-	ServiceMeshIntegration  *ServiceMeshIntegration `yaml:"service_mesh_integration"`
+	ServiceMeshIntegration  *BasicServiceMeshIntegration `yaml:"service_mesh_integration"`
 }
 
 // TemplateMatchingConfig configures certificate template matching
@@ -63,7 +63,7 @@ type TemplateMatchingRule struct {
 }
 
 // ServiceMeshIntegration configures service mesh integration
-type ServiceMeshIntegration struct {
+type BasicServiceMeshIntegration struct {
 	Enabled          bool   `yaml:"enabled"`
 	MeshType         string `yaml:"mesh_type"` // "istio", "linkerd", "consul"
 	MTLSEnabled      bool   `yaml:"mtls_enabled"`

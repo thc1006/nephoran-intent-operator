@@ -19,6 +19,7 @@ package nephio
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -470,7 +471,7 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 
 	logger := log.FromContext(ctx).WithName("package-catalog").WithValues(
 		"intentType", string(intent.Spec.IntentType),
-		"targetComponent", intent.Spec.TargetComponent,
+		"targetComponents", strings.Join(intent.Spec.TargetComponents, ","),
 	)
 
 	startTime := time.Now()
@@ -481,7 +482,7 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 	}()
 
 	// Check cache first
-	cacheKey := fmt.Sprintf("blueprint:%s:%s", intent.Spec.IntentType, intent.Spec.TargetComponent)
+	cacheKey := fmt.Sprintf("blueprint:%s:%s", intent.Spec.IntentType, strings.Join(intent.Spec.TargetComponents, ","))
 	if cached, found := npc.blueprints.Load(cacheKey); found {
 		npc.metrics.CacheHitRate.Inc()
 		if blueprint, ok := cached.(*BlueprintPackage); ok {
@@ -584,7 +585,7 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 		npc.metrics.VariantCreations.WithLabelValues(
 			blueprint.Name, specialization.ClusterContext.Name, "failed",
 		).Inc()
-		return nil, errors.WithContext(err, "failed to find target cluster")
+		return nil, fmt.Errorf("failed to find target cluster: %w", err)
 	}
 	variant.TargetCluster = cluster
 
@@ -595,7 +596,7 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 		npc.metrics.VariantCreations.WithLabelValues(
 			blueprint.Name, specialization.ClusterContext.Name, "failed",
 		).Inc()
-		return nil, errors.WithContext(err, "failed to create specialized package revision")
+		return nil, fmt.Errorf("failed to create specialized package revision: %w", err)
 	}
 
 	variant.PackageRevision = packageRevision
@@ -674,10 +675,7 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 	// In a real implementation, this would use the Porch client
 	createdPackage := packageRevision.DeepCopy()
 	createdPackage.Status = porch.PackageRevisionStatus{
-		Phase:        "Draft",
-		UpstreamLock: nil,
-		PublishedBy:  "nephoran-intent-operator",
-		PublishedAt:  metav1.NewTime(time.Now()),
+		PublishTime: &metav1.Time{Time: time.Now()},
 	}
 
 	span.SetAttributes(
@@ -700,10 +698,12 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 		specializedResource := npc.applySpecialization(template, variant.Specialization)
 
 		resource := porch.KRMResource{
-			Name:       template.Name,
 			Kind:       template.Kind,
 			APIVersion: template.APIVersion,
-			Content:    specializedResource,
+			Metadata: map[string]interface{}{
+				"name": template.Name,
+			},
+			Spec: specializedResource,
 		}
 
 		resources = append(resources, resource)
@@ -794,20 +794,15 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 	// Namespace resource
 	namespaceResource := porch.KRMResource{
-		Name:       "namespace",
 		Kind:       "Namespace",
 		APIVersion: "v1",
-		Content: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Namespace",
-			"metadata": map[string]interface{}{
-				"name": fmt.Sprintf("%s-ns", variant.Name),
-				"labels": map[string]interface{}{
-					"cluster":    cluster.Name,
-					"region":     cluster.Region,
-					"zone":       cluster.Zone,
-					"managed-by": "nephoran-intent-operator",
-				},
+		Metadata: map[string]interface{}{
+			"name": fmt.Sprintf("%s-ns", variant.Name),
+			"labels": map[string]interface{}{
+				"cluster":    cluster.Name,
+				"region":     cluster.Region,
+				"zone":       cluster.Zone,
+				"managed-by": "nephoran-intent-operator",
 			},
 		},
 	}
@@ -815,22 +810,17 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 	// ConfigMap with cluster info
 	configMapResource := porch.KRMResource{
-		Name:       "cluster-info",
 		Kind:       "ConfigMap",
 		APIVersion: "v1",
-		Content: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
-				"name":      fmt.Sprintf("%s-cluster-info", variant.Name),
-				"namespace": fmt.Sprintf("%s-ns", variant.Name),
-			},
-			"data": map[string]interface{}{
-				"cluster.name":   cluster.Name,
-				"cluster.region": cluster.Region,
-				"cluster.zone":   cluster.Zone,
-				"variant.name":   variant.Name,
-			},
+		Metadata: map[string]interface{}{
+			"name":      fmt.Sprintf("%s-cluster-info", variant.Name),
+			"namespace": fmt.Sprintf("%s-ns", variant.Name),
+		},
+		Data: map[string]interface{}{
+			"cluster.name":   cluster.Name,
+			"cluster.region": cluster.Region,
+			"cluster.zone":   cluster.Zone,
+			"variant.name":   variant.Name,
 		},
 	}
 	resources = append(resources, configMapResource)
@@ -959,10 +949,10 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			Version:     "1.0.0",
 			Description: "5G Access and Mobility Management Function",
 			Category:    "5g-core",
-			IntentTypes: []v1.NetworkIntentType{
-				v1.NetworkIntentTypeDeployment,
-				v1.NetworkIntentTypeConfiguration,
-				v1.NetworkIntentTypeScaling,
+			IntentTypes: []string{
+				"deployment",
+				"configuration",
+				"scaling",
 			},
 			Dependencies: []PackageDependency{
 				{
@@ -1004,10 +994,10 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			Version:     "1.0.0",
 			Description: "5G User Plane Function",
 			Category:    "5g-core",
-			IntentTypes: []v1.NetworkIntentType{
-				v1.NetworkIntentTypeDeployment,
-				v1.NetworkIntentTypeConfiguration,
-				v1.NetworkIntentTypeScaling,
+			IntentTypes: []string{
+				"deployment",
+				"configuration",
+				"scaling",
 			},
 			Dependencies: []PackageDependency{
 				{
@@ -1042,9 +1032,9 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			Version:     "1.0.0",
 			Description: "O-RAN RIC Platform",
 			Category:    "oran",
-			IntentTypes: []v1.NetworkIntentType{
-				v1.NetworkIntentTypeDeployment,
-				v1.NetworkIntentTypeConfiguration,
+			IntentTypes: []string{
+				"deployment",
+				"configuration",
 			},
 			Dependencies: []PackageDependency{
 				{
