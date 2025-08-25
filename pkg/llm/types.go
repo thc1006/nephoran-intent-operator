@@ -112,6 +112,11 @@ type BatchProcessorConfig struct {
 	TimeoutDuration time.Duration `json:"timeout_duration"`
 }
 
+// LLMClient interface for LLM operations
+type LLMClient interface {
+	ProcessIntent(ctx context.Context, intent string) (string, error)
+}
+
 // TokenManager manages token allocation and tracking
 type TokenManager interface {
 	AllocateTokens(request string) (int, error)
@@ -128,6 +133,7 @@ type TokenManager interface {
 	// Additional methods for compatibility
 	GetTokenCount(text string) int
 	ValidateModel(model string) error
+	GetSupportedModels() []string
 }
 
 // StreamingContextManager manages streaming request contexts

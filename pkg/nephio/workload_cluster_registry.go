@@ -30,7 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
 
 // WorkloadClusterConfig defines configuration for workload cluster management
@@ -294,7 +293,7 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 		wcr.metrics.RegistrationErrors.WithLabelValues(
 			cluster.Name, "validation_failed",
 		).Inc()
-		return errors.WithContext(err, "cluster validation failed")
+		return fmt.Errorf("cluster validation failed: %w", err)
 	}
 
 	// Check if cluster already exists

@@ -590,7 +590,7 @@ func (me *MetricsExporter) performAggregation(ctx context.Context, name string, 
 
 	// Perform aggregation for each group
 	aggregatedMetrics := make([]MetricPoint, 0)
-	for groupKey, points := range groups {
+	for _, points := range groups {
 		aggregated := me.aggregatePoints(points, aggregator.config.Function)
 		if aggregated != nil {
 			aggregated.Name = fmt.Sprintf("%s_%s", name, aggregator.config.Function)

@@ -219,7 +219,7 @@ func (cb *LLMCircuitBreaker) updateMetrics(failed bool, latency time.Duration) {
 	if failed {
 		cb.metricsCollector.RecordLLMRequestError(cb.name, "circuit_breaker_failure")
 	} else {
-		cb.metricsCollector.RecordLLMRequest(cb.name, latency)
+		cb.metricsCollector.RecordLLMRequestSimple(cb.name, latency)
 	}
 
 	// Record circuit breaker state

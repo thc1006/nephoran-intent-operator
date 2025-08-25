@@ -19,7 +19,7 @@ import (
 // A1Handlers implements HTTP handlers for all A1 interfaces
 type A1Handlers struct {
 	service        A1Service
-	validator      A1Validator
+	validator      A1ValidatorInterface
 	storage        A1Storage
 	metrics        A1Metrics
 	logger         *logging.StructuredLogger
@@ -30,7 +30,7 @@ type A1Handlers struct {
 // NewA1Handlers creates a new A1 handlers instance
 func NewA1Handlers(
 	service A1Service,
-	validator A1Validator,
+	validator A1ValidatorInterface,
 	storage A1Storage,
 	metrics A1Metrics,
 	logger *logging.StructuredLogger,
@@ -681,7 +681,7 @@ func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Reque
 	consumerID := vars["consumer_id"]
 	if consumerID == "" {
 		h.handleError(w, r, NewInvalidRequestError("Consumer ID is required"))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "RegisterConsumer", http.StatusBadRequest)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "RegisterConsumer", http.StatusBadRequest)
 		return
 	}
 
@@ -692,7 +692,7 @@ func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Reque
 
 	defer func() {
 		duration := time.Since(startTime)
-		h.metrics.RecordRequestDuration(A1ConsumerInterface, "RegisterConsumer", duration)
+		h.metrics.RecordRequestDuration(A1ConsumerInterfaceType, "RegisterConsumer", duration)
 	}()
 
 	// Validate content type
@@ -701,7 +701,7 @@ func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Reque
 			r.Header.Get("Content-Type"),
 			[]string{ContentTypeJSON},
 		))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "RegisterConsumer", http.StatusUnsupportedMediaType)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "RegisterConsumer", http.StatusUnsupportedMediaType)
 		return
 	}
 
@@ -709,14 +709,14 @@ func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Reque
 	body, err := h.readRequestBody(r, 1024*1024) // 1MB limit
 	if err != nil {
 		h.handleError(w, r, NewInvalidRequestError(fmt.Sprintf("Failed to read request body: %v", err)))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "RegisterConsumer", http.StatusBadRequest)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "RegisterConsumer", http.StatusBadRequest)
 		return
 	}
 
 	var consumerInfo ConsumerInfo
 	if err := json.Unmarshal(body, &consumerInfo); err != nil {
 		h.handleError(w, r, NewInvalidRequestError(fmt.Sprintf("Invalid JSON: %v", err)))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "RegisterConsumer", http.StatusBadRequest)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "RegisterConsumer", http.StatusBadRequest)
 		return
 	}
 
@@ -729,21 +729,21 @@ func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Reque
 	if validationResult := h.validator.ValidateConsumerInfo(&consumerInfo); !validationResult.Valid {
 		h.handleError(w, r, NewConsumerInvalidCallbackError(consumerID, consumerInfo.CallbackURL,
 			fmt.Errorf("validation failed: %v", validationResult.Errors)))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "RegisterConsumer", http.StatusBadRequest)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "RegisterConsumer", http.StatusBadRequest)
 		return
 	}
 
 	// Check if consumer already exists
 	if _, err := h.service.GetConsumer(ctx, consumerID); err == nil {
 		h.handleError(w, r, NewConsumerAlreadyExistsError(consumerID))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "RegisterConsumer", http.StatusConflict)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "RegisterConsumer", http.StatusConflict)
 		return
 	}
 
 	// Register consumer
 	if err := h.service.RegisterConsumer(ctx, consumerID, &consumerInfo); err != nil {
 		h.handleError(w, r, WrapError(err, "Failed to register consumer"))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "RegisterConsumer", http.StatusInternalServerError)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "RegisterConsumer", http.StatusInternalServerError)
 		return
 	}
 
@@ -757,11 +757,11 @@ func (h *A1Handlers) HandleRegisterConsumer(w http.ResponseWriter, r *http.Reque
 			"request_id", requestID,
 			"consumer_id", consumerID,
 		)
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "RegisterConsumer", http.StatusInternalServerError)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "RegisterConsumer", http.StatusInternalServerError)
 		return
 	}
 
-	h.metrics.IncrementRequestCount(A1ConsumerInterface, "RegisterConsumer", http.StatusCreated)
+	h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "RegisterConsumer", http.StatusCreated)
 	h.logger.InfoWithContext("Consumer registered successfully",
 		"request_id", requestID,
 		"consumer_id", consumerID,
@@ -781,7 +781,7 @@ func (h *A1Handlers) HandleUnregisterConsumer(w http.ResponseWriter, r *http.Req
 	consumerID := vars["consumer_id"]
 	if consumerID == "" {
 		h.handleError(w, r, NewInvalidRequestError("Consumer ID is required"))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "UnregisterConsumer", http.StatusBadRequest)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "UnregisterConsumer", http.StatusBadRequest)
 		return
 	}
 
@@ -792,27 +792,27 @@ func (h *A1Handlers) HandleUnregisterConsumer(w http.ResponseWriter, r *http.Req
 
 	defer func() {
 		duration := time.Since(startTime)
-		h.metrics.RecordRequestDuration(A1ConsumerInterface, "UnregisterConsumer", duration)
+		h.metrics.RecordRequestDuration(A1ConsumerInterfaceType, "UnregisterConsumer", duration)
 	}()
 
 	// Check if consumer exists
 	if _, err := h.service.GetConsumer(ctx, consumerID); err != nil {
 		h.handleError(w, r, NewConsumerNotFoundError(consumerID))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "UnregisterConsumer", http.StatusNotFound)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "UnregisterConsumer", http.StatusNotFound)
 		return
 	}
 
 	// Unregister consumer
 	if err := h.service.UnregisterConsumer(ctx, consumerID); err != nil {
 		h.handleError(w, r, WrapError(err, "Failed to unregister consumer"))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "UnregisterConsumer", http.StatusInternalServerError)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "UnregisterConsumer", http.StatusInternalServerError)
 		return
 	}
 
 	// Return 204 No Content
 	w.WriteHeader(http.StatusNoContent)
 
-	h.metrics.IncrementRequestCount(A1ConsumerInterface, "UnregisterConsumer", http.StatusNoContent)
+	h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "UnregisterConsumer", http.StatusNoContent)
 	h.logger.InfoWithContext("Consumer unregistered successfully",
 		"request_id", requestID,
 		"consumer_id", consumerID,
@@ -832,7 +832,7 @@ func (h *A1Handlers) HandleGetConsumer(w http.ResponseWriter, r *http.Request) {
 	consumerID := vars["consumer_id"]
 	if consumerID == "" {
 		h.handleError(w, r, NewInvalidRequestError("Consumer ID is required"))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "GetConsumer", http.StatusBadRequest)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "GetConsumer", http.StatusBadRequest)
 		return
 	}
 
@@ -843,14 +843,14 @@ func (h *A1Handlers) HandleGetConsumer(w http.ResponseWriter, r *http.Request) {
 
 	defer func() {
 		duration := time.Since(startTime)
-		h.metrics.RecordRequestDuration(A1ConsumerInterface, "GetConsumer", duration)
+		h.metrics.RecordRequestDuration(A1ConsumerInterfaceType, "GetConsumer", duration)
 	}()
 
 	// Get consumer from service
 	consumer, err := h.service.GetConsumer(ctx, consumerID)
 	if err != nil {
 		h.handleError(w, r, NewConsumerNotFoundError(consumerID))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "GetConsumer", http.StatusNotFound)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "GetConsumer", http.StatusNotFound)
 		return
 	}
 
@@ -863,11 +863,11 @@ func (h *A1Handlers) HandleGetConsumer(w http.ResponseWriter, r *http.Request) {
 			"request_id", requestID,
 			"consumer_id", consumerID,
 		)
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "GetConsumer", http.StatusInternalServerError)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "GetConsumer", http.StatusInternalServerError)
 		return
 	}
 
-	h.metrics.IncrementRequestCount(A1ConsumerInterface, "GetConsumer", http.StatusOK)
+	h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "GetConsumer", http.StatusOK)
 	h.logger.InfoWithContext("Consumer retrieved successfully",
 		"request_id", requestID,
 		"consumer_id", consumerID,
@@ -888,14 +888,14 @@ func (h *A1Handlers) HandleListConsumers(w http.ResponseWriter, r *http.Request)
 
 	defer func() {
 		duration := time.Since(startTime)
-		h.metrics.RecordRequestDuration(A1ConsumerInterface, "ListConsumers", duration)
+		h.metrics.RecordRequestDuration(A1ConsumerInterfaceType, "ListConsumers", duration)
 	}()
 
 	// Get consumers from service
 	consumers, err := h.service.ListConsumers(ctx)
 	if err != nil {
 		h.handleError(w, r, WrapError(err, "Failed to list consumers"))
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "ListConsumers", http.StatusInternalServerError)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "ListConsumers", http.StatusInternalServerError)
 		return
 	}
 
@@ -907,11 +907,11 @@ func (h *A1Handlers) HandleListConsumers(w http.ResponseWriter, r *http.Request)
 		h.logger.ErrorWithContext("Failed to encode list consumers response", err,
 			"request_id", requestID,
 		)
-		h.metrics.IncrementRequestCount(A1ConsumerInterface, "ListConsumers", http.StatusInternalServerError)
+		h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "ListConsumers", http.StatusInternalServerError)
 		return
 	}
 
-	h.metrics.IncrementRequestCount(A1ConsumerInterface, "ListConsumers", http.StatusOK)
+	h.metrics.IncrementRequestCount(A1ConsumerInterfaceType, "ListConsumers", http.StatusOK)
 	h.metrics.RecordConsumerCount(len(consumers))
 	h.logger.InfoWithContext("Consumers listed successfully",
 		"request_id", requestID,

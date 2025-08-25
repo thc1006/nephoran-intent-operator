@@ -309,12 +309,22 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 
 	// Get structured parameters 
 	params := intent.Spec.Parameters
-	if params == nil || len(params) == 0 {
+	if params == nil {
+		return nil, fmt.Errorf("no parameters found in intent")
+	}
+
+	// Unmarshal RawExtension to map
+	paramMap, err := pg.unmarshalParameters(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+	}
+
+	if len(paramMap) == 0 {
 		return nil, fmt.Errorf("no parameters found in intent")
 	}
 
 	// Extract deployment details from parameters
-	deploymentData := extractDeploymentData(params)
+	deploymentData := extractDeploymentData(paramMap)
 
 	// Generate deployment YAML
 	var buf bytes.Buffer
@@ -325,14 +335,14 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 
 	// Generate service YAML
 	buf.Reset()
-	serviceData := extractServiceData(params)
+	serviceData := extractServiceData(paramMap)
 	if err := pg.templates["service"].Execute(&buf, serviceData); err != nil {
 		return nil, fmt.Errorf("failed to execute service template: %w", err)
 	}
 	resources["service.yaml"] = strings.TrimSpace(buf.String())
 
 	// Generate ConfigMap for O-RAN configuration if present
-	if oranConfig := extractORANConfig(params); oranConfig != nil {
+	if oranConfig := extractORANConfig(paramMap); oranConfig != nil {
 		buf.Reset()
 		if err := pg.templates["configmap"].Execute(&buf, oranConfig); err != nil {
 			return nil, fmt.Errorf("failed to execute configmap template: %w", err)
@@ -341,7 +351,7 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 	}
 
 	// Generate setters configuration
-	setters := generateSetters(params)
+	setters := generateSetters(paramMap)
 	resources["setters.yaml"] = setters
 
 	return resources, nil
@@ -353,16 +363,26 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 
 	// Get structured parameters 
 	params := intent.Spec.Parameters
-	if params == nil || len(params) == 0 {
+	if params == nil {
+		return nil, fmt.Errorf("no parameters found in intent")
+	}
+
+	// Unmarshal RawExtension to map
+	paramMap, err := pg.unmarshalParameters(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+	}
+
+	if len(paramMap) == 0 {
 		return nil, fmt.Errorf("no parameters found in intent")
 	}
 
 	// Generate scaling patch
-	patch := generateScalingPatch(params)
+	patch := generateScalingPatch(paramMap)
 	resources["scaling-patch.yaml"] = patch
 
 	// Generate setters for scaling parameters
-	setters := generateScalingSetters(params)
+	setters := generateScalingSetters(paramMap)
 	resources["setters.yaml"] = setters
 
 	return resources, nil
@@ -374,16 +394,26 @@ func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (m
 
 	// Get structured parameters 
 	params := intent.Spec.Parameters
-	if params == nil || len(params) == 0 {
+	if params == nil {
+		return nil, fmt.Errorf("no parameters found in intent")
+	}
+
+	// Unmarshal RawExtension to map
+	paramMap, err := pg.unmarshalParameters(params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+	}
+
+	if len(paramMap) == 0 {
 		return nil, fmt.Errorf("no parameters found in intent")
 	}
 
 	// Generate NetworkPolicy or other policy resources
-	policy := generatePolicyResource(params)
+	policy := generatePolicyResource(paramMap)
 	resources["policy.yaml"] = policy
 
 	// Generate A1 policy configuration if applicable
-	if a1Policy := extractA1Policy(params); a1Policy != nil {
+	if a1Policy := extractA1Policy(paramMap); a1Policy != nil {
 		a1Yaml, err := yaml.Marshal(a1Policy)
 		if err != nil {
 			return nil, fmt.Errorf("failed to marshal A1 policy: %w", err)
@@ -402,8 +432,8 @@ func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, er
 		"GeneratedAt":         time.Now().Format("2006-01-02 15:04:05 UTC"),
 		"Description":         fmt.Sprintf("This package was automatically generated from the NetworkIntent '%s'", intent.Name),
 		"Contents":            "- Kubernetes manifests\n- O-RAN configuration\n- Network slice parameters\n- Setters for customization",
-		"ORANDetails":         pg.extractORANDetails(intent.Spec.Parameters),
-		"NetworkSliceDetails": pg.extractNetworkSliceDetails(intent.Spec.Parameters),
+		"ORANDetails":         pg.extractORANDetails(intent),
+		"NetworkSliceDetails": pg.extractNetworkSliceDetails(intent),
 	}
 
 	var buf bytes.Buffer
@@ -414,37 +444,6 @@ func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, er
 	return strings.TrimSpace(buf.String()), nil
 }
 
-// extractORANDetailsFromRaw extracts O-RAN details from RawExtension
-func (pg *PackageGenerator) extractORANDetailsFromRaw(rawExt runtime.RawExtension) string {
-	var params map[string]interface{}
-	if rawExt.Raw != nil {
-		if err := json.Unmarshal(rawExt.Raw, &params); err != nil {
-			return "Unable to parse parameters"
-		}
-	}
-	return extractORANDetails(params)
-}
-
-// extractORANDetails extracts O-RAN details from parameters map
-func (pg *PackageGenerator) extractORANDetails(params map[string]interface{}) string {
-	return extractORANDetails(params)
-}
-
-// extractNetworkSliceDetailsFromRaw extracts network slice details from RawExtension
-func (pg *PackageGenerator) extractNetworkSliceDetailsFromRaw(rawExt runtime.RawExtension) string {
-	var params map[string]interface{}
-	if rawExt.Raw != nil {
-		if err := json.Unmarshal(rawExt.Raw, &params); err != nil {
-			return "Unable to parse parameters"
-		}
-	}
-	return extractNetworkSliceDetails(params)
-}
-
-// extractNetworkSliceDetails extracts network slice details from parameters map
-func (pg *PackageGenerator) extractNetworkSliceDetails(params map[string]interface{}) string {
-	return extractNetworkSliceDetails(params)
-}
 
 // generateFunctionConfig generates the function configuration
 func (pg *PackageGenerator) generateFunctionConfig(intent *v1.NetworkIntent) (string, error) {
@@ -597,8 +596,14 @@ func extractA1Policy(params map[string]interface{}) map[string]interface{} {
 	return nil
 }
 
-func extractORANDetails(params map[string]interface{}) string {
+func (pg *PackageGenerator) extractORANDetails(intent *v1.NetworkIntent) string {
 	details := []string{}
+
+	// Try to extract parameters, return default message if unable
+	params, err := pg.unmarshalParameters(intent.Spec.Parameters)
+	if err != nil {
+		return "No O-RAN specific configuration in this package"
+	}
 
 	if _, ok := params["o1_config"]; ok {
 		details = append(details, "- O1 Interface: Configured for FCAPS management")
@@ -617,7 +622,13 @@ func extractORANDetails(params map[string]interface{}) string {
 	return strings.Join(details, "\n")
 }
 
-func extractNetworkSliceDetails(params map[string]interface{}) string {
+func (pg *PackageGenerator) extractNetworkSliceDetails(intent *v1.NetworkIntent) string {
+	// Try to extract parameters, return default message if unable
+	params, err := pg.unmarshalParameters(intent.Spec.Parameters)
+	if err != nil {
+		return "No network slice configuration in this package"
+	}
+
 	if slice, ok := params["network_slice"]; ok {
 		sliceMap := slice.(map[string]interface{})
 		return fmt.Sprintf(`- Slice ID: %s
@@ -628,4 +639,18 @@ func extractNetworkSliceDetails(params map[string]interface{}) string {
 			sliceMap["sla_parameters"])
 	}
 	return "No network slice configuration in this package"
+}
+
+// unmarshalParameters converts runtime.RawExtension to map[string]interface{}
+func (pg *PackageGenerator) unmarshalParameters(rawParams *runtime.RawExtension) (map[string]interface{}, error) {
+	if rawParams == nil || rawParams.Raw == nil {
+		return make(map[string]interface{}), nil
+	}
+
+	var params map[string]interface{}
+	if err := json.Unmarshal(rawParams.Raw, &params); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
+	}
+
+	return params, nil
 }

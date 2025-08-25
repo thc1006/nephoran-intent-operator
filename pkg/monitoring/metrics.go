@@ -70,6 +70,12 @@ type MetricsCollector struct {
 	WeaviatePoolSize                 prometheus.Gauge
 	WeaviatePoolHealthChecksPassed   prometheus.Counter
 	WeaviatePoolHealthChecksFailed   prometheus.Counter
+
+	// Circuit breaker and resilience metrics
+	CircuitBreakerState *prometheus.GaugeVec
+	LLMRequestErrors    *prometheus.CounterVec
+	OperationDuration   *prometheus.HistogramVec
+	OperationsTotal     *prometheus.CounterVec
 }
 
 // NewMetricsCollector creates a new metrics collector with all Prometheus metrics
@@ -288,6 +294,28 @@ func NewMetricsCollector() *MetricsCollector {
 			Name: "nephoran_weaviate_pool_health_checks_failed_total",
 			Help: "Total number of failed Weaviate connection health checks",
 		}),
+
+		// Circuit breaker and resilience metrics
+		CircuitBreakerState: promauto.NewGaugeVec(prometheus.GaugeOpts{
+			Name: "nephoran_circuit_breaker_state",
+			Help: "Circuit breaker state (0=closed, 0.5=half-open, 1=open)",
+		}, []string{"service", "state"}),
+
+		LLMRequestErrors: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "nephoran_llm_request_errors_total",
+			Help: "Total number of LLM request errors by service and error type",
+		}, []string{"service", "error_type"}),
+
+		OperationDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "nephoran_operation_duration_seconds",
+			Help:    "Duration of operations by type and result",
+			Buckets: []float64{0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0},
+		}, []string{"operation_type", "result"}),
+
+		OperationsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "nephoran_operations_total",
+			Help: "Total number of operations by type and result",
+		}, []string{"operation_type", "result"}),
 	}
 
 	// Register all metrics with controller-runtime metrics registry
@@ -333,6 +361,10 @@ func NewMetricsCollector() *MetricsCollector {
 			mc.WeaviatePoolSize,
 			mc.WeaviatePoolHealthChecksPassed,
 			mc.WeaviatePoolHealthChecksFailed,
+			mc.CircuitBreakerState,
+			mc.LLMRequestErrors,
+			mc.OperationDuration,
+			mc.OperationsTotal,
 		)
 	})
 
@@ -525,6 +557,76 @@ func (mc *MetricsCollector) RecordWeaviatePoolHealthCheckFailed() {
 func (mc *MetricsCollector) UpdateWeaviatePoolMetrics(activeCount, totalCount int) {
 	mc.UpdateWeaviatePoolActiveConnections(activeCount)
 	mc.UpdateWeaviatePoolSize(totalCount)
+}
+
+// Circuit breaker and resilience methods
+
+// RecordLLMRequestError records an LLM request error
+func (mc *MetricsCollector) RecordLLMRequestError(serviceName, errorType string) {
+	mc.LLMRequestErrors.WithLabelValues(serviceName, errorType).Inc()
+}
+
+// RecordLLMRequestSimple records an LLM request with simplified signature for circuit breaker usage
+func (mc *MetricsCollector) RecordLLMRequestSimple(serviceName string, duration time.Duration) {
+	mc.LLMRequestsTotal.Inc()
+	mc.LLMRequestDuration.Observe(duration.Seconds())
+}
+
+// GetGauge returns a gauge metric with the specified labels
+func (mc *MetricsCollector) GetGauge(metricName string, labels map[string]string) prometheus.Gauge {
+	switch metricName {
+	case "circuit_breaker_state":
+		labelValues := make([]string, 0, len(labels))
+		labelOrder := []string{"service", "state"} // Order must match the metric definition
+		for _, key := range labelOrder {
+			if val, ok := labels[key]; ok {
+				labelValues = append(labelValues, val)
+			} else {
+				labelValues = append(labelValues, "")
+			}
+		}
+		return mc.CircuitBreakerState.WithLabelValues(labelValues...)
+	default:
+		return nil
+	}
+}
+
+// GetHistogram returns a histogram metric with the specified labels
+func (mc *MetricsCollector) GetHistogram(metricName string, labels map[string]string) prometheus.Observer {
+	switch metricName {
+	case "operation_duration_seconds":
+		labelValues := make([]string, 0, len(labels))
+		labelOrder := []string{"operation_type", "result"} // Order must match the metric definition
+		for _, key := range labelOrder {
+			if val, ok := labels[key]; ok {
+				labelValues = append(labelValues, val)
+			} else {
+				labelValues = append(labelValues, "")
+			}
+		}
+		return mc.OperationDuration.WithLabelValues(labelValues...)
+	default:
+		return nil
+	}
+}
+
+// GetCounter returns a counter metric with the specified labels
+func (mc *MetricsCollector) GetCounter(metricName string, labels map[string]string) prometheus.Counter {
+	switch metricName {
+	case "operations_total":
+		labelValues := make([]string, 0, len(labels))
+		labelOrder := []string{"operation_type", "result"} // Order must match the metric definition
+		for _, key := range labelOrder {
+			if val, ok := labels[key]; ok {
+				labelValues = append(labelValues, val)
+			} else {
+				labelValues = append(labelValues, "")
+			}
+		}
+		return mc.OperationsTotal.WithLabelValues(labelValues...)
+	default:
+		return nil
+	}
 }
 
 // HealthChecker functionality moved to health_checks.go to avoid duplication

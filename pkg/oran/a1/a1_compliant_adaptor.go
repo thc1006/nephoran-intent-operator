@@ -30,23 +30,6 @@ type A1ErrorResponse struct {
 	Instance string `json:"instance,omitempty"`
 }
 
-// EnrichmentInfoType represents A1-EI type definition
-type EnrichmentInfoType struct {
-	EiTypeID          string                 `json:"ei_type_id"`
-	EiJobDataSchema   map[string]interface{} `json:"ei_job_data_schema"`
-	EiJobResultSchema map[string]interface{} `json:"ei_job_result_schema,omitempty"`
-}
-
-// EnrichmentInfoJob represents A1-EI job definition
-type EnrichmentInfoJob struct {
-	EiJobID      string                 `json:"ei_job_id"`
-	EiTypeID     string                 `json:"ei_type_id"`
-	EiJobData    map[string]interface{} `json:"ei_job_data"`
-	TargetURI    string                 `json:"target_uri"`
-	JobOwner     string                 `json:"job_owner"`
-	JobStatusURL string                 `json:"job_status_url,omitempty"`
-}
-
 // O-RAN Compliant A1-P Interface Methods
 
 // CreatePolicyTypeCompliant creates a policy type using O-RAN compliant endpoints

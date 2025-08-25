@@ -73,24 +73,36 @@ type MockA1Validator struct {
 	mock.Mock
 }
 
-func (m *MockA1Validator) ValidatePolicyType(policyType *PolicyType) error {
+func (m *MockA1Validator) ValidatePolicyType(policyType *PolicyType) *ValidationResult {
 	args := m.Called(policyType)
-	return args.Error(0)
+	return args.Get(0).(*ValidationResult)
 }
 
-func (m *MockA1Validator) ValidatePolicyInstance(policyType *PolicyType, instance *PolicyInstance) error {
-	args := m.Called(policyType, instance)
-	return args.Error(0)
+func (m *MockA1Validator) ValidatePolicyInstance(policyTypeID int, instance *PolicyInstance) *ValidationResult {
+	args := m.Called(policyTypeID, instance)
+	return args.Get(0).(*ValidationResult)
 }
 
-func (m *MockA1Validator) ValidateEIType(eiType *EnrichmentInfoType) error {
+
+
+func (m *MockA1Validator) ValidateConsumerInfo(info *ConsumerInfo) *ValidationResult {
+	args := m.Called(info)
+	return args.Get(0).(*ValidationResult)
+}
+
+func (m *MockA1Validator) ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *ValidationResult {
 	args := m.Called(eiType)
-	return args.Error(0)
+	return args.Get(0).(*ValidationResult)
 }
 
-func (m *MockA1Validator) ValidateEIJob(eiType *EnrichmentInfoType, job *EnrichmentInfoJob) error {
-	args := m.Called(eiType, job)
-	return args.Error(0)
+func (m *MockA1Validator) ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *ValidationResult {
+	args := m.Called(job)
+	return args.Get(0).(*ValidationResult)
+}
+
+func (m *MockA1Validator) ValidateEntity(ctx context.Context, entity interface{}) *ValidationResult {
+	args := m.Called(ctx, entity)
+	return args.Get(0).(*ValidationResult)
 }
 
 // MockA1Storage provides a mock implementation of A1Storage for testing
@@ -938,12 +950,6 @@ type A1Service interface {
 	GetPolicyStatus(ctx context.Context, policyTypeID int, policyID string) (*PolicyStatus, error)
 }
 
-type A1Validator interface {
-	ValidatePolicyType(policyType *PolicyType) error
-	ValidatePolicyInstance(policyType *PolicyType, instance *PolicyInstance) error
-	ValidateEIType(eiType *EnrichmentInfoType) error
-	ValidateEIJob(eiType *EnrichmentInfoType, job *EnrichmentInfoJob) error
-}
 
 type A1Storage interface {
 	StorePolicyType(ctx context.Context, policyType *PolicyType) error

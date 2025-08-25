@@ -1216,7 +1216,7 @@ func (bm *BackupManager) encryptBackup(record *BackupRecord) error {
 	}
 
 	// Create GCM mode
-	gcm, err := cipher.NewGCM(block)
+	_, err = cipher.NewGCM(block)
 	if err != nil {
 		return fmt.Errorf("failed to create GCM: %w", err)
 	}

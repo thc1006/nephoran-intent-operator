@@ -9,16 +9,15 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
 )
 
 // A1Interface represents the three O-RAN A1 interface variants
 type A1Interface string
 
 const (
-	A1PolicyInterface     A1Interface = "A1-P"  // Policy interface
-	A1ConsumerInterface   A1Interface = "A1-C"  // Consumer interface
-	A1EnrichmentInterface A1Interface = "A1-EI" // Enrichment Information interface
+	A1PolicyInterface       A1Interface = "A1-P"  // Policy interface
+	A1ConsumerInterfaceType A1Interface = "A1-C"  // Consumer interface
+	A1EnrichmentInterface   A1Interface = "A1-EI" // Enrichment Information interface
 )
 
 // A1Version represents supported A1 API versions
@@ -300,15 +299,6 @@ type A1Handler interface {
 	HandleGetEIJobStatus(w http.ResponseWriter, r *http.Request)
 }
 
-// A1Validator defines the validation interface for A1 requests
-type A1Validator interface {
-	ValidatePolicyType(policyType *PolicyType) error
-	ValidatePolicyInstance(policyTypeID int, instance *PolicyInstance) error
-	ValidateConsumerInfo(info *ConsumerInfo) error
-	ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) error
-	ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) error
-}
-
 // A1Storage defines the storage interface for A1 data persistence
 type A1Storage interface {
 	// Policy Type Storage
@@ -344,6 +334,16 @@ type A1Storage interface {
 	UpdateEIJobStatus(ctx context.Context, eiJobID string, status *EnrichmentInfoJobStatus) error
 }
 
+// A1ValidatorInterface defines the interface for A1 validation operations
+type A1ValidatorInterface interface {
+	ValidatePolicyType(policyType *PolicyType) *ValidationResult
+	ValidatePolicyInstance(policyTypeID int, instance *PolicyInstance) *ValidationResult
+	ValidateConsumerInfo(info *ConsumerInfo) *ValidationResult
+	ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *ValidationResult
+	ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *ValidationResult
+	ValidateEntity(ctx context.Context, entity interface{}) *ValidationResult
+}
+
 // A1Metrics defines metrics collection interface
 type A1Metrics interface {
 	IncrementRequestCount(interface_ A1Interface, method string, statusCode int)
@@ -376,6 +376,23 @@ type ResponseInfo struct {
 	Headers       map[string][]string `json:"headers,omitempty"`
 }
 
+// HealthCheck represents health check response
+type HealthCheck struct {
+	Status     interface{}          `json:"status"`
+	Timestamp  time.Time            `json:"timestamp"`
+	Version    string               `json:"version,omitempty"`
+	Components map[string]interface{} `json:"components,omitempty"`
+	Checks     []ComponentCheck     `json:"checks,omitempty"`
+}
+
+// ComponentCheck represents a single component health check
+type ComponentCheck struct {
+	Name      string        `json:"name"`
+	Status    string        `json:"status"`
+	Message   string        `json:"message,omitempty"`
+	Timestamp time.Time     `json:"timestamp"`
+	Duration  time.Duration `json:"duration,omitempty"`
+}
 
 // Common HTTP status codes used in A1 interface
 const (
@@ -531,4 +548,3 @@ func (s State) String() string {
 		return "UNKNOWN"
 	}
 }
-

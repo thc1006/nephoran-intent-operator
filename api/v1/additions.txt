@@ -1,0 +1,127 @@
+
+// Alias types for backward compatibility with existing code
+// These provide shorter names that match the existing usage patterns
+
+// TargetComponent aliases for NetworkTargetComponent (for compatibility)
+type TargetComponent = NetworkTargetComponent
+
+const (
+	// O-RAN Core Network Functions
+	TargetComponentAMF    = NetworkTargetComponentAMF
+	TargetComponentSMF    = NetworkTargetComponentSMF
+	TargetComponentUPF    = NetworkTargetComponentUPF
+	TargetComponentNRF    = NetworkTargetComponentNRF
+	TargetComponentUDM    = NetworkTargetComponentUDM
+	TargetComponentUDR    = NetworkTargetComponentUDR
+	TargetComponentPCF    = NetworkTargetComponentPCF
+	TargetComponentAUSF   = NetworkTargetComponentAUSF
+	TargetComponentNSSF   = NetworkTargetComponentNSSF
+	
+	// O-RAN RAN Functions
+	TargetComponentCUCP   = NetworkTargetComponentCUCP
+	TargetComponentCUUP   = NetworkTargetComponentCUUP
+	TargetComponentDU     = NetworkTargetComponentDU
+	TargetComponentNEF    = NetworkTargetComponentNEF
+	TargetComponentNWDAF  = NetworkTargetComponentNWDAF
+	TargetComponentAF     = NetworkTargetComponentAF
+	
+	// Additional O-RAN components referenced in the codebase
+	TargetComponentSMO         TargetComponent = "SMO"         // Service Management and Orchestration
+	TargetComponentNearRTRIC   TargetComponent = "Near-RT-RIC" // Near Real-Time RAN Intelligent Controller
+	TargetComponentNonRTRIC    TargetComponent = "Non-RT-RIC"  // Non Real-Time RAN Intelligent Controller
+	TargetComponentXApp        TargetComponent = "xApp"        // RIC xApplication
+	TargetComponentRApp        TargetComponent = "rApp"        // RIC rApplication
+	TargetComponentGNodeB      TargetComponent = "gNodeB"      // 5G Base Station
+	TargetComponentENodeB      TargetComponent = "eNodeB"      // 4G Base Station
+	TargetComponentODU         TargetComponent = "O-DU"        // O-RAN Distributed Unit
+	TargetComponentOCUCP       TargetComponent = "O-CU-CP"     // O-RAN Centralized Unit Control Plane
+	TargetComponentOCUUP       TargetComponent = "O-CU-UP"     // O-RAN Centralized Unit User Plane
+)
+
+// Priority aliases for NetworkPriority (for compatibility)
+type Priority = NetworkPriority
+
+const (
+	PriorityLow      = NetworkPriorityLow
+	PriorityNormal   = NetworkPriorityNormal  
+	PriorityHigh     = NetworkPriorityHigh
+	PriorityCritical = NetworkPriorityCritical
+	PriorityMedium   Priority = "medium"  // Additional priority level used in tests
+)
+
+// NetworkIntent processing phases
+const (
+	// NetworkIntentPhase constants for workflow orchestrator
+	NetworkIntentPhaseProcessing = "Processing"
+	NetworkIntentPhaseReady      = "Ready" 
+	NetworkIntentPhaseFailed     = "Failed"
+	
+	// Phase constants for general use (shorter names)
+	PhasePending            = "Pending"
+	PhaseProcessing         = "Processing"
+	PhaseResourcePlanning   = "ResourcePlanning"
+	PhaseManifestGeneration = "ManifestGeneration"
+	PhaseDeployed          = "Deployed"
+	PhaseFailed            = "Failed"
+)
+
+// PackageRevisionReference represents a reference to a Porch package revision
+type PackageRevisionReference struct {
+	// Repository is the name of the repository containing the package
+	Repository string `json:"repository"`
+	
+	// PackageName is the name of the package
+	PackageName string `json:"packageName"`
+	
+	// Revision is the specific revision of the package
+	Revision string `json:"revision"`
+}
+
+// DeploymentStatus represents the status of a deployment
+type DeploymentStatus struct {
+	// Phase indicates the current deployment phase
+	Phase string `json:"phase,omitempty"`
+	
+	// Targets contains the status of individual deployment targets
+	Targets []DeploymentTargetStatus `json:"targets,omitempty"`
+	
+	// Message contains additional status information
+	Message string `json:"message,omitempty"`
+	
+	// LastUpdateTime indicates when the deployment status was last updated
+	LastUpdateTime *metav1.Time `json:"lastUpdateTime,omitempty"`
+}
+
+// DeploymentTargetStatus represents the status of a specific deployment target
+type DeploymentTargetStatus struct {
+	// Cluster is the name of the target cluster
+	Cluster string `json:"cluster"`
+	
+	// Namespace is the target namespace
+	Namespace string `json:"namespace"`
+	
+	// Status indicates the deployment status for this target
+	Status string `json:"status"`
+	
+	// Message contains additional status information for this target
+	Message string `json:"message,omitempty"`
+	
+	// Resources contains information about deployed resources
+	Resources []DeployedResource `json:"resources,omitempty"`
+}
+
+// DeployedResource represents a deployed resource
+type DeployedResource struct {
+	// Name of the deployed resource
+	Name string `json:"name"`
+	
+	// Kind of the resource (Deployment, Service, etc.)
+	Kind string `json:"kind"`
+	
+	// APIVersion of the resource
+	APIVersion string `json:"apiVersion,omitempty"`
+	
+	// Status of the resource
+	Status string `json:"status"`
+}
+

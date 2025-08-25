@@ -787,7 +787,7 @@ func (pe *PolicyEngine) validateValidityPeriod(cert *x509.Certificate, policy *S
 
 	if policy.MinimumValidityDays > 0 && validityDays < policy.MinimumValidityDays {
 		violation := PolicyViolation{
-			Severity:    SeverityWarning,
+			Severity:    RuleSeverityWarning,
 			Field:       "validity_period",
 			Value:       fmt.Sprintf("%d days", validityDays),
 			Expected:    fmt.Sprintf(">= %d days", policy.MinimumValidityDays),
@@ -934,11 +934,11 @@ func (pe *PolicyEngine) calculateScore(result *PolicyValidationResult) float64 {
 
 	for _, violation := range result.Violations {
 		switch violation.Severity {
-		case SeverityCritical:
+		case RuleSeverityCritical:
 			score -= 25.0
-		case SeverityError:
+		case RuleSeverityError:
 			score -= 15.0
-		case SeverityWarning:
+		case RuleSeverityWarning:
 			score -= 5.0
 		}
 	}

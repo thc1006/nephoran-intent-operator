@@ -391,7 +391,7 @@ func (cd *CUSUMDetector) validateChangePoint(cp *CUSUMChangePoint, data []float6
 	tStat := math.Abs(afterMean-beforeMean) / pooledSE
 
 	// Degrees of freedom (Welch's formula)
-	df := math.Pow(beforeVar/n1+afterVar/n2, 2) /
+	_ = math.Pow(beforeVar/n1+afterVar/n2, 2) /
 		(math.Pow(beforeVar/n1, 2)/(n1-1) + math.Pow(afterVar/n2, 2)/(n2-1))
 
 	// Simplified p-value calculation (would use proper t-distribution in production)

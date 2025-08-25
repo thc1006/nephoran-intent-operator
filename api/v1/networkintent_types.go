@@ -19,6 +19,7 @@ package v1
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // IntentType represents the type of network intent
@@ -65,6 +66,17 @@ const (
 	NetworkPriorityCritical NetworkPriority = "critical"
 )
 
+// NetworkIntentPhase represents the processing phase of a NetworkIntent
+type NetworkIntentPhase string
+
+const (
+	NetworkIntentPhasePending    NetworkIntentPhase = "Pending"
+	NetworkIntentPhaseProcessing NetworkIntentPhase = "Processing"
+	NetworkIntentPhaseReady      NetworkIntentPhase = "Ready"
+	NetworkIntentPhaseFailed     NetworkIntentPhase = "Failed"
+	NetworkIntentPhaseCompleted  NetworkIntentPhase = "Completed"
+)
+
 // NetworkIntentSpec defines the desired state of NetworkIntent
 type NetworkIntentSpec struct {
 	// Intent is the natural language intent from the user describing the desired network configuration.
@@ -101,7 +113,7 @@ type NetworkIntentSpec struct {
 	IntentType IntentType `json:"intentType,omitempty"`
 	
 	// Parameters contains structured parameters extracted from the intent
-	Parameters map[string]interface{} `json:"parameters,omitempty"`
+	Parameters *runtime.RawExtension `json:"parameters,omitempty"`
 	
 	// TargetCluster specifies the target cluster for deployment
 	TargetCluster string `json:"targetCluster,omitempty"`
@@ -138,7 +150,7 @@ type NetworkIntentSpec struct {
 	MaxRetries *int32 `json:"maxRetries,omitempty"`
 	
 	// ProcessedParameters contains parameters extracted during processing
-	ProcessedParameters map[string]interface{} `json:"processedParameters,omitempty"`
+	ProcessedParameters *runtime.RawExtension `json:"processedParameters,omitempty"`
 }
 
 // NetworkIntentStatus defines the observed state of NetworkIntent
@@ -147,13 +159,16 @@ type NetworkIntentStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// Phase represents the current phase of the NetworkIntent processing
-	Phase string `json:"phase,omitempty"`
+	Phase NetworkIntentPhase `json:"phase,omitempty"`
 
 	// LastMessage contains the last status message
 	LastMessage string `json:"lastMessage,omitempty"`
 
 	// LastUpdateTime indicates when the status was last updated
 	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+	
+	// LastProcessed indicates when the intent was last processed
+	LastProcessed *metav1.Time `json:"lastProcessed,omitempty"`
 	
 	// Conditions represent the current conditions of the NetworkIntent
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
@@ -167,11 +182,14 @@ type NetworkIntentStatus struct {
 	// ValidationErrors contains any validation errors
 	ValidationErrors []string `json:"validationErrors,omitempty"`
 	
-	// DeploymentStatus indicates the current deployment status
-	DeploymentStatus string `json:"deploymentStatus,omitempty"`
+	// DeploymentStatus contains detailed deployment status information
+	DeploymentStatus *DeploymentStatus `json:"deploymentStatus,omitempty"`
+	
+	// PackageRevision contains reference to the generated package revision
+	PackageRevision *PackageRevisionReference `json:"packageRevision,omitempty"`
 	
 	// ProcessingResults contains structured processing results
-	ProcessingResults map[string]interface{} `json:"processingResults,omitempty"`
+	ProcessingResults *runtime.RawExtension `json:"processingResults,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -257,7 +275,7 @@ type NetworkPlannedResource struct {
 	Type string `json:"type"`
 	
 	// Configuration for the resource
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
+	Configuration *runtime.RawExtension `json:"configuration,omitempty"`
 	
 	// Target cluster
 	TargetCluster string `json:"targetCluster,omitempty"`
@@ -320,6 +338,62 @@ func (np NetworkPriority) String() string {
 	return string(np)
 }
 
+// PackageRevisionReference contains reference information for a package revision
+type PackageRevisionReference struct {
+	// Repository name where the package is stored
+	Repository string `json:"repository"`
+	
+	// PackageName name of the package
+	PackageName string `json:"packageName"`
+	
+	// Revision specific revision of the package
+	Revision string `json:"revision"`
+	
+	// WorkspaceName name of the workspace (optional)
+	WorkspaceName string `json:"workspaceName,omitempty"`
+}
+
+// DeploymentStatus contains comprehensive deployment status information
+type DeploymentStatus struct {
+	// Phase current phase of deployment
+	Phase string `json:"phase,omitempty"`
+	
+	// Targets list of deployment target statuses
+	Targets []DeploymentTargetStatus `json:"targets,omitempty"`
+	
+	// StartedAt timestamp when deployment started
+	StartedAt *metav1.Time `json:"startedAt,omitempty"`
+	
+	// CompletedAt timestamp when deployment completed
+	CompletedAt *metav1.Time `json:"completedAt,omitempty"`
+	
+	// Conditions current deployment conditions
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+}
+
+// DeploymentTargetStatus represents the deployment status for a specific target
+type DeploymentTargetStatus struct {
+	// Cluster name of the target cluster
+	Cluster string `json:"cluster"`
+	
+	// Namespace target namespace
+	Namespace string `json:"namespace"`
+	
+	// Status deployment status for this target
+	Status string `json:"status"`
+	
+	// Message optional status message
+	Message string `json:"message,omitempty"`
+	
+	// LastUpdateTime when this status was last updated
+	LastUpdateTime *metav1.Time `json:"lastUpdateTime,omitempty"`
+	
+	// Resources deployed resources for this target
+	Resources []DeployedResourceStatus `json:"resources,omitempty"`
+}
+
+// NetworkDeployedResourceStatus is deprecated, use DeployedResourceStatus from gitopsdeployment_types.go
+
 // NetworkTargetComponentsToStrings converts a slice of NetworkTargetComponent to []string
 func NetworkTargetComponentsToStrings(components []NetworkTargetComponent) []string {
 	result := make([]string, len(components))
@@ -328,6 +402,7 @@ func NetworkTargetComponentsToStrings(components []NetworkTargetComponent) []str
 	}
 	return result
 }
+
 
 func init() {
 	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})

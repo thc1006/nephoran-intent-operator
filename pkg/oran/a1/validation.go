@@ -936,8 +936,8 @@ func validateISO8601DateTime(fl validator.FieldLevel) bool {
 	return false
 }
 
-// ValidateWithContext validates any A1 entity with request context
-func (av *A1Validator) ValidateWithContext(ctx context.Context, entity interface{}) *ValidationResult {
+// ValidateEntity validates any A1 entity with request context
+func (av *A1Validator) ValidateEntity(ctx context.Context, entity interface{}) *ValidationResult {
 	switch e := entity.(type) {
 	case *PolicyType:
 		return av.ValidatePolicyType(e)

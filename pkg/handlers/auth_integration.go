@@ -36,7 +36,7 @@ func NewAuthenticatedLLMProcessorHandler(
 // ProcessIntentHandler wraps original with authentication
 func (ah *AuthenticatedLLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *http.Request) {
 	if ah.config.AuthEnabled && ah.config.RequireAuth {
-		authContext := auth.GetAuthContext(r)
+		authContext := auth.GetAuthContext(r.Context())
 		if authContext == nil {
 			ah.writeAuthError(w, "Authentication required")
 			return

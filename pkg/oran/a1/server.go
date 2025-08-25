@@ -14,6 +14,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"golang.org/x/net/http2"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
@@ -25,7 +26,7 @@ type A1Server struct {
 	logger    *logging.StructuredLogger
 	handlers  *A1Handlers
 	service   A1Service
-	validator A1Validator
+	validator A1ValidatorInterface
 	storage   A1Storage
 	metrics   A1Metrics
 
@@ -77,7 +78,7 @@ type A1MetricsCollector struct {
 }
 
 // NewA1Server creates a new A1 server instance
-func NewA1Server(config *A1ServerConfig, service A1Service, validator A1Validator, storage A1Storage) (*A1Server, error) {
+func NewA1Server(config *A1ServerConfig, service A1Service, validator A1ValidatorInterface, storage A1Storage) (*A1Server, error) {
 	if config == nil {
 		config = DefaultA1ServerConfig()
 	}
@@ -137,8 +138,8 @@ func NewA1Server(config *A1ServerConfig, service A1Service, validator A1Validato
 	}
 
 	// Enable HTTP/2
-	if err := http.ConfigureTransport(server.httpServer); err != nil {
-		logger.WarnWithContext("Failed to configure HTTP/2 transport", "error", err)
+	if err := http2.ConfigureServer(server.httpServer, &http2.Server{}); err != nil {
+		logger.WarnWithContext("Failed to configure HTTP/2 server", "error", err)
 	}
 
 	return server, nil
@@ -753,7 +754,7 @@ func (cb *CircuitBreaker) currentState(now time.Time) (State, uint64) {
 			cb.setState(StateHalfOpen, now)
 		}
 	}
-	return cb.state, cb.counts.Requests
+	return cb.state, uint64(cb.counts.Requests)
 }
 
 // onSuccess handles successful request

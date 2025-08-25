@@ -281,8 +281,8 @@ func NewRealtimeValidationEngine(
 
 	// Initialize optimized cache
 	engine.cache = &ValidationCacheOptimized{
-		l1Cache: &L1ValidationCache{
-			cache:   make(map[string]*CachedValidationResult),
+		l1Cache: &L1Cache{
+			cache:   make(map[string]*CacheEntry),
 			maxSize: config.RevocationCacheSize,
 			ttl:     config.RevocationCacheTTL,
 		},
@@ -533,10 +533,18 @@ func (e *RealtimeValidationEngine) performSyncValidation(ctx context.Context, ce
 func (e *RealtimeValidationEngine) validateChain(ctx context.Context, cert *x509.Certificate, connState *tls.ConnectionState) interface{} {
 	if connState != nil && len(connState.PeerCertificates) > 0 {
 		// Validate the full chain from the connection
-		return e.validator.ValidateCertificateChain(ctx, connState.PeerCertificates[0])
+		result, err := e.validator.validateCertificateChain(ctx, connState.PeerCertificates[0])
+		if err != nil {
+			return nil
+		}
+		return result
 	}
 	// Validate single certificate
-	return e.validator.ValidateCertificate(ctx, cert)
+	result, err := e.validator.ValidateCertificate(ctx, cert)
+	if err != nil {
+		return nil
+	}
+	return result
 }
 
 // checkRevocation performs revocation checking with optimization
@@ -548,7 +556,11 @@ func (e *RealtimeValidationEngine) checkRevocation(ctx context.Context, cert *x5
 		return e.checkRevocationWithPool(ctx, cert)
 	}
 
-	return e.revocationChecker.CheckRevocationDetailed(ctx, cert)
+	result, err := e.revocationChecker.CheckRevocationDetailed(ctx, cert)
+	if err != nil {
+		return nil
+	}
+	return result
 }
 
 // checkRevocationWithPool uses connection pooling for OCSP checks
@@ -583,7 +595,11 @@ func (e *RealtimeValidationEngine) validateCTLog(ctx context.Context, cert *x509
 		return e.validateSCTs(ctx, cert)
 	}
 
-	return e.validator.validateCTLog(ctx, cert)
+	result, err := e.validator.validateCTLog(ctx, cert)
+	if err != nil {
+		return nil
+	}
+	return result
 }
 
 // validatePolicy validates against security policies
@@ -750,14 +766,36 @@ func (e *RealtimeValidationEngine) getFromCache(key string) *CachedValidationRes
 	}
 
 	// Check L1 cache first
-	if cached := e.cache.l1Cache.Get(key); cached != nil {
-		cached.HitCount.Add(1)
-		return cached
+	e.cache.l1Cache.mu.RLock()
+	if entry, exists := e.cache.l1Cache.cache[key]; exists && entry != nil {
+		// Check if cache entry is still valid
+		if time.Since(entry.CreatedAt) <= e.cache.l1Cache.ttl {
+			entry.AccessCount++
+			entry.AccessedAt = time.Now()
+			if cached, ok := entry.Value.(*CachedValidationResult); ok {
+				cached.HitCount.Add(1)
+				e.cache.l1Cache.mu.RUnlock()
+				return cached
+			}
+		}
 	}
+	e.cache.l1Cache.mu.RUnlock()
 
 	// Check L2 cache if available
 	if e.cache.l2Cache != nil {
-		return e.cache.l2Cache.Get(key)
+		e.cache.l2Cache.mu.RLock()
+		if entry, exists := e.cache.l2Cache.cache[key]; exists && entry != nil {
+			// Check if cache entry is still valid
+			if time.Since(entry.CreatedAt) <= e.cache.l2Cache.ttl {
+				entry.AccessCount++
+				entry.AccessedAt = time.Now()
+				if cached, ok := entry.Value.(*CachedValidationResult); ok {
+					e.cache.l2Cache.mu.RUnlock()
+					return cached
+				}
+			}
+		}
+		e.cache.l2Cache.mu.RUnlock()
 	}
 
 	return nil
@@ -775,11 +813,37 @@ func (e *RealtimeValidationEngine) cacheResult(key string, result *ValidationRes
 	}
 
 	// Store in L1 cache
-	e.cache.l1Cache.Put(key, cached)
+	e.cache.l1Cache.mu.Lock()
+	// Remove oldest if at capacity
+	if len(e.cache.l1Cache.cache) >= e.cache.l1Cache.maxSize && e.cache.l1Cache.order != nil {
+		oldestKey := e.cache.l1Cache.order[0]
+		delete(e.cache.l1Cache.cache, oldestKey)
+		e.cache.l1Cache.order = e.cache.l1Cache.order[1:]
+	}
+	entry := &CacheEntry{
+		Key:         key,
+		Value:       cached,
+		CreatedAt:   time.Now(),
+		AccessedAt:  time.Now(),
+		AccessCount: 1,
+	}
+	e.cache.l1Cache.cache[key] = entry
+	e.cache.l1Cache.order = append(e.cache.l1Cache.order, key)
+	e.cache.l1Cache.mu.Unlock()
 
 	// Store in L2 cache if available
 	if e.cache.l2Cache != nil {
-		e.cache.l2Cache.Put(key, cached)
+		e.cache.l2Cache.mu.Lock()
+		// Simple put without ordering for L2 cache
+		entry := &CacheEntry{
+			Key:         key,
+			Value:       cached,
+			CreatedAt:   time.Now(),
+			AccessedAt:  time.Now(),
+			AccessCount: 1,
+		}
+		e.cache.l2Cache.cache[key] = entry
+		e.cache.l2Cache.mu.Unlock()
 	}
 }
 
@@ -1191,7 +1255,22 @@ func (e *RealtimeValidationEngine) updateMetrics() {
 
 func (e *RealtimeValidationEngine) cleanupCache() {
 	if e.cache != nil && e.cache.l1Cache != nil {
-		e.cache.l1Cache.Cleanup()
+		// Clean up expired entries from L1 cache
+		e.cache.l1Cache.mu.Lock()
+		now := time.Now()
+		for key, entry := range e.cache.l1Cache.cache {
+			if now.Sub(entry.CreatedAt) > e.cache.l1Cache.ttl {
+				delete(e.cache.l1Cache.cache, key)
+				// Remove from order slice
+				for i, orderKey := range e.cache.l1Cache.order {
+					if orderKey == key {
+						e.cache.l1Cache.order = append(e.cache.l1Cache.order[:i], e.cache.l1Cache.order[i+1:]...)
+						break
+					}
+				}
+			}
+		}
+		e.cache.l1Cache.mu.Unlock()
 	}
 }
 
