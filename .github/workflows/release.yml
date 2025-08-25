@@ -27,7 +27,7 @@ jobs:
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -75,7 +75,7 @@ jobs:
           - darwin/arm64
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -149,7 +149,7 @@ jobs:
     needs: validate
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -206,7 +206,7 @@ jobs:
     needs: [validate, build, container]
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -298,7 +298,7 @@ jobs:
     needs: [validate, release]
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Update Documentation
         run: |
