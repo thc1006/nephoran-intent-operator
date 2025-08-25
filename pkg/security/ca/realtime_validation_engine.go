@@ -127,9 +127,9 @@ type ValidationStatistics struct {
 
 // ValidationCacheOptimized provides optimized caching for validation results
 type ValidationCacheOptimized struct {
-	l1Cache      *L1ValidationCache // In-memory hot cache
-	l2Cache      *L2ValidationCache // Distributed cache
-	preloadCache *PreloadCache      // Pre-validated certificates
+	l1Cache      *L1Cache                  // In-memory hot cache
+	l2Cache      *L2Cache                  // Distributed cache
+	preloadCache *PreProvisioningCache     // Pre-validated certificates
 	stats        *CacheStatistics
 	mu           sync.RWMutex
 }

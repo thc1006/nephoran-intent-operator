@@ -448,6 +448,13 @@ func (cb *CircuitBreaker) updateMetrics(updater func(*CircuitMetrics)) {
 	updater(cb.metrics)
 }
 
+// GetState returns the current state of the circuit breaker
+func (cb *CircuitBreaker) GetState() CircuitState {
+	cb.mutex.RLock()
+	defer cb.mutex.RUnlock()
+	return cb.state
+}
+
 // GetMetrics returns current circuit breaker metrics
 func (cb *CircuitBreaker) GetMetrics() *CircuitMetrics {
 	cb.metrics.mutex.RLock()

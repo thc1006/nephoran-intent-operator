@@ -77,7 +77,7 @@ type YANGValidator interface {
 type yangValidator struct {
 	// Core dependencies
 	logger  logr.Logger
-	metrics *ValidatorMetrics
+	metrics *ValidationMetrics
 
 	// Model storage and compilation
 	models         map[string]*YANGModel
@@ -1752,7 +1752,11 @@ func (v *yangValidator) LoadModelFromContent(ctx context.Context, modelName, con
 		Source:   "inline",
 	}
 
-	return v.RegisterModel(ctx, model)
+	err := v.RegisterModel(ctx, model)
+	if err != nil {
+		return nil, err
+	}
+	return model, nil
 }
 
 func (v *yangValidator) RegisterModel(ctx context.Context, model *YANGModel) error {

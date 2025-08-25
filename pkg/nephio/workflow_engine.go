@@ -148,10 +148,11 @@ type TimeoutStrategy struct {
 
 // ValidationResult represents workflow validation results
 type ValidationResult struct {
-	Valid    bool                `json:"valid"`
-	Errors   []ValidationError   `json:"errors,omitempty"`
-	Warnings []ValidationWarning `json:"warnings,omitempty"`
-	Metrics  *ValidationMetrics  `json:"metrics,omitempty"`
+	PackageName string              `json:"packageName,omitempty"`
+	Valid       bool                `json:"valid"`
+	Errors      []ValidationError   `json:"errors,omitempty"`
+	Warnings    []ValidationWarning `json:"warnings,omitempty"`
+	Metrics     *ValidationMetrics  `json:"metrics,omitempty"`
 }
 
 // ValidationError represents a validation error

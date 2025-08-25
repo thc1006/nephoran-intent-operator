@@ -346,7 +346,7 @@ func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result
 
 	if weakAlgorithms[cert.SignatureAlgorithm] {
 		violation := PolicyViolation{
-			Severity:    SeverityCritical,
+			Severity:    RuleSeverityCritical,
 			Field:       "signature_algorithm",
 			Value:       cert.SignatureAlgorithm.String(),
 			Expected:    "SHA256 or stronger",
@@ -363,7 +363,7 @@ func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result
 		keySize := rsaKey.N.BitLen()
 		if keySize < pe.config.MinimumRSAKeySize {
 			violation := PolicyViolation{
-				Severity:    SeverityError,
+				Severity:    RuleSeverityError,
 				Field:       "rsa_key_size",
 				Value:       fmt.Sprintf("%d bits", keySize),
 				Expected:    fmt.Sprintf(">= %d bits", pe.config.MinimumRSAKeySize),
@@ -388,7 +388,7 @@ func (pe *PolicyEngine) validateAlgorithmStrength(cert *x509.Certificate, result
 		}
 		if !allowed {
 			violation := PolicyViolation{
-				Severity:    SeverityError,
+				Severity:    RuleSeverityError,
 				Field:       "ec_curve",
 				Value:       curveName,
 				Expected:    strings.Join(pe.config.AllowedECCurves, ", "),
@@ -418,7 +418,7 @@ func (pe *PolicyEngine) validateCertificatePinning(cert *x509.Certificate, resul
 	if pin != nil {
 		if pin.Fingerprint != fingerprint && pin.PublicKeyHash != publicKeyHash {
 			violation := PolicyViolation{
-				Severity:    SeverityCritical,
+				Severity:    RuleSeverityCritical,
 				Field:       "certificate_pin",
 				Value:       fingerprint,
 				Expected:    pin.Fingerprint,
@@ -508,7 +508,7 @@ func (pe *PolicyEngine) validateExtendedValidation(cert *x509.Certificate, resul
 
 	if !hasEV {
 		violation := PolicyViolation{
-			Severity:    SeverityError,
+			Severity:    RuleSeverityError,
 			Field:       "extended_validation",
 			Value:       "not present",
 			Expected:    "EV certificate required",
@@ -562,7 +562,7 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 
 		if !hasExtension {
 			violation := PolicyViolation{
-				Severity:    SeverityError,
+				Severity:    RuleSeverityError,
 				Field:       "oran_extension",
 				Value:       "missing",
 				Expected:    requiredOID,
@@ -585,7 +585,7 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 		securityLevel := pe.oranValidator.securityAnalyzer.AnalyzeSecurityLevel(cert)
 		if securityLevel < pe.oranValidator.config.MinimumSecurityLevel {
 			violation := PolicyViolation{
-				Severity:    SeverityError,
+				Severity:    RuleSeverityError,
 				Field:       "security_level",
 				Value:       fmt.Sprintf("%d", securityLevel),
 				Expected:    fmt.Sprintf(">= %d", pe.oranValidator.config.MinimumSecurityLevel),
@@ -602,7 +602,7 @@ func (pe *PolicyEngine) validateORANCompliance(ctx context.Context, cert *x509.C
 	for _, forbidden := range pe.oranValidator.config.ForbiddenAlgorithms {
 		if cert.SignatureAlgorithm.String() == forbidden {
 			violation := PolicyViolation{
-				Severity:    SeverityCritical,
+				Severity:    RuleSeverityCritical,
 				Field:       "signature_algorithm",
 				Value:       cert.SignatureAlgorithm.String(),
 				Expected:    "not " + forbidden,
@@ -648,7 +648,7 @@ func (pe *PolicyEngine) validateORANNaming(cert *x509.Certificate, result *Polic
 		if !pattern.MatchString(value) {
 			if rule.Required {
 				violation := PolicyViolation{
-					Severity:    SeverityError,
+					Severity:    RuleSeverityError,
 					Field:       rule.Field,
 					Value:       value,
 					Expected:    rule.Pattern,
@@ -687,7 +687,7 @@ func (pe *PolicyEngine) validateHSMProtection(cert *x509.Certificate, result *Po
 
 	if !hasHSMIndicator {
 		violation := PolicyViolation{
-			Severity:    SeverityError,
+			Severity:    RuleSeverityError,
 			Field:       "hsm_protection",
 			Value:       "not detected",
 			Expected:    "HSM-protected key",
@@ -714,7 +714,7 @@ func (pe *PolicyEngine) applyServicePolicy(cert *x509.Certificate, policy *Servi
 		}
 		if !found {
 			violation := PolicyViolation{
-				Severity:    SeverityCritical,
+				Severity:    RuleSeverityCritical,
 				Field:       "service_pin",
 				Value:       fingerprint,
 				Expected:    "pinned certificate",
@@ -731,7 +731,7 @@ func (pe *PolicyEngine) applyServicePolicy(cert *x509.Certificate, policy *Servi
 		for _, required := range policy.RequiredKeyUsage {
 			if cert.KeyUsage&required == 0 {
 				violation := PolicyViolation{
-					Severity:    SeverityError,
+					Severity:    RuleSeverityError,
 					Field:       "key_usage",
 					Value:       fmt.Sprintf("%d", cert.KeyUsage),
 					Expected:    fmt.Sprintf("includes %d", required),
@@ -769,7 +769,7 @@ func (pe *PolicyEngine) validateAllowedDNSNames(cert *x509.Certificate, policy *
 		}
 		if !allowed {
 			violation := PolicyViolation{
-				Severity:    SeverityError,
+				Severity:    RuleSeverityError,
 				Field:       "dns_name",
 				Value:       dnsName,
 				Expected:    strings.Join(policy.AllowedDNSNames, ", "),
@@ -799,7 +799,7 @@ func (pe *PolicyEngine) validateValidityPeriod(cert *x509.Certificate, policy *S
 
 	if policy.MaximumValidityDays > 0 && validityDays > policy.MaximumValidityDays {
 		violation := PolicyViolation{
-			Severity:    SeverityError,
+			Severity:    RuleSeverityError,
 			Field:       "validity_period",
 			Value:       fmt.Sprintf("%d days", validityDays),
 			Expected:    fmt.Sprintf("<= %d days", policy.MaximumValidityDays),

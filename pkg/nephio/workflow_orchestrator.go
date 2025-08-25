@@ -19,6 +19,7 @@ package nephio
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -353,6 +354,7 @@ const (
 	WorkflowPhaseTypeApproval              WorkflowPhaseType = "Approval"
 	WorkflowPhaseTypeDeployment            WorkflowPhaseType = "Deployment"
 	WorkflowPhaseTypeMonitoring            WorkflowPhaseType = "Monitoring"
+	WorkflowPhaseTypeConfiguration         WorkflowPhaseType = "Configuration"
 	WorkflowPhaseTypeRollback              WorkflowPhaseType = "Rollback"
 )
 
@@ -583,7 +585,7 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 	workflow, err := nwo.selectWorkflow(ctx, intent)
 	if err != nil {
 		span.RecordError(err)
-		return nil, errors.WithContext(err, "failed to select workflow")
+		return nil, fmt.Errorf("failed to select workflow: %w", err)
 	}
 
 	// Step 2: Create workflow execution
@@ -706,7 +708,7 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhases(ctx context.Context
 
 			if !phaseDefinition.ContinueOnError {
 				execution.Status = WorkflowExecutionStatusFailed
-				return errors.WithContext(err, fmt.Sprintf("phase %s failed", phaseExecution.Name))
+				return fmt.Errorf("phase %s failed: %w", phaseExecution.Name, err)
 			}
 		} else {
 			phaseExecution.Status = WorkflowExecutionStatusCompleted
@@ -776,6 +778,8 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhase(ctx context.Context,
 		return nwo.executeDeploymentPhase(phaseCtx, execution, phaseExec, phaseDef)
 	case WorkflowPhaseTypeMonitoring:
 		return nwo.executeMonitoringPhase(phaseCtx, execution, phaseExec, phaseDef)
+	case WorkflowPhaseTypeConfiguration:
+		return nwo.executeConfigurationPhase(phaseCtx, execution, phaseExec, phaseDef)
 	case WorkflowPhaseTypeRollback:
 		return nwo.executeRollbackPhase(phaseCtx, execution, phaseExec, phaseDef)
 	default:
@@ -794,7 +798,7 @@ func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx contex
 	blueprint, err := nwo.packageCatalog.FindBlueprintForIntent(ctx, execution.Intent)
 	if err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to find blueprint for intent")
+		return fmt.Errorf("failed to find blueprint for intent: %w", err)
 	}
 
 	if blueprint == nil {
@@ -840,7 +844,7 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 	clusters, err := nwo.getTargetClusters(ctx, execution.Intent)
 	if err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to get target clusters")
+		return fmt.Errorf("failed to get target clusters: %w", err)
 	}
 
 	execution.PackageVariants = make([]*PackageVariant, 0, len(clusters))
@@ -917,8 +921,8 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 		validationResults = append(validationResults, &ValidationResult{
 			PackageName: variant.PackageRevision.Spec.PackageName,
 			Valid:       result.Valid,
-			Errors:      result.Errors,
-			Warnings:    result.Warnings,
+			Errors:      convertPorchValidationErrors(result.Errors),
+			Warnings:    convertPorchValidationWarnings(result.Warnings),
 		})
 
 		if !result.Valid {
@@ -928,8 +932,8 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 		variant.ValidationResults = []*ValidationResult{{
 			PackageName: variant.PackageRevision.Spec.PackageName,
 			Valid:       result.Valid,
-			Errors:      result.Errors,
-			Warnings:    result.Warnings,
+			Errors:      convertPorchValidationErrors(result.Errors),
+			Warnings:    convertPorchValidationWarnings(result.Warnings),
 		}}
 	}
 
@@ -1302,4 +1306,50 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 	intent.Status.LastProcessed = &now
 
 	return nwo.client.Status().Update(ctx, intent)
+}
+
+// executeConfigurationPhase executes configuration phase
+func (nwo *NephioWorkflowOrchestrator) executeConfigurationPhase(ctx context.Context, execution *WorkflowExecution, phaseExec *WorkflowPhaseExecution, phaseDef *WorkflowPhase) error {
+	ctx, span := nwo.tracer.Start(ctx, "configuration-phase")
+	defer span.End()
+	
+	logger := log.FromContext(ctx).WithName("configuration")
+	logger.Info("Starting configuration phase")
+	
+	// Execute configuration actions
+	for _, action := range phaseDef.Actions {
+		if err := nwo.executeAction(ctx, execution, &action); err != nil {
+			return fmt.Errorf("configuration action %s failed: %w", action.Name, err)
+		}
+	}
+	
+	logger.Info("Configuration phase completed successfully")
+	return nil
+}
+
+// convertPorchValidationErrors converts porch ValidationErrors to workflow ValidationErrors
+func convertPorchValidationErrors(porchErrors []porch.ValidationError) []ValidationError {
+	errors := make([]ValidationError, len(porchErrors))
+	for i, err := range porchErrors {
+		errors[i] = ValidationError{
+			Code:     err.Code,
+			Message:  err.Message,
+			Path:     err.Path,
+			Severity: err.Severity,
+		}
+	}
+	return errors
+}
+
+// convertPorchValidationWarnings converts porch ValidationErrors to workflow ValidationWarnings
+func convertPorchValidationWarnings(porchWarnings []porch.ValidationError) []ValidationWarning {
+	warnings := make([]ValidationWarning, len(porchWarnings))
+	for i, warning := range porchWarnings {
+		warnings[i] = ValidationWarning{
+			Code:    warning.Code,
+			Message: warning.Message,
+			Path:    warning.Path,
+		}
+	}
+	return warnings
 }

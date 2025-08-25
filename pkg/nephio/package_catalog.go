@@ -470,8 +470,8 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 	defer span.End()
 
 	logger := log.FromContext(ctx).WithName("package-catalog").WithValues(
-		"intentType", string(intent.Spec.IntentType),
-		"targetComponents", strings.Join(intent.Spec.TargetComponents, ","),
+		"intentType", intent.Spec.IntentType.String(),
+		"targetComponents", strings.Join(v1.NetworkTargetComponentsToStrings(intent.Spec.TargetComponents), ","),
 	)
 
 	startTime := time.Now()
@@ -482,7 +482,7 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 	}()
 
 	// Check cache first
-	cacheKey := fmt.Sprintf("blueprint:%s:%s", intent.Spec.IntentType, strings.Join(intent.Spec.TargetComponents, ","))
+	cacheKey := fmt.Sprintf("blueprint:%s:%s", intent.Spec.IntentType.String(), strings.Join(v1.NetworkTargetComponentsToStrings(intent.Spec.TargetComponents), ","))
 	if cached, found := npc.blueprints.Load(cacheKey); found {
 		npc.metrics.CacheHitRate.Inc()
 		if blueprint, ok := cached.(*BlueprintPackage); ok {
@@ -503,7 +503,7 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 		if blueprint, ok := value.(*BlueprintPackage); ok {
 			// Check if blueprint supports this intent type
 			for _, intentType := range blueprint.IntentTypes {
-				if intentType == intent.Spec.IntentType {
+				if intentType == intent.Spec.IntentType.String() {
 					candidates = append(candidates, blueprint)
 					break
 				}

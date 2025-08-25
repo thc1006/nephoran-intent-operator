@@ -118,9 +118,7 @@ func (ai *AutomationIntegration) Start(ctx context.Context) error {
 
 	// Start CA Manager background processes
 	go func() {
-		if err := ai.caManager.runCertificateLifecycleManager(); err != nil {
-			ai.logger.Error("CA manager lifecycle error", "error", err)
-		}
+		ai.caManager.runCertificateLifecycleManager()
 	}()
 
 	// Start Automation Engine
@@ -296,11 +294,6 @@ func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, ser
 
 func (ai *AutomationIntegration) initializeCAManager() error {
 	ai.logger.Info("initializing CA manager")
-
-	kubeClient, err := kubernetes.NewForConfig(ai.manager.GetConfig())
-	if err != nil {
-		return fmt.Errorf("failed to create kubernetes client: %w", err)
-	}
 
 	caManager, err := NewCAManager(ai.config.CAManagerConfig, ai.logger, ai.manager.GetClient())
 	if err != nil {

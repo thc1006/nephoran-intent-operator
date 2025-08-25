@@ -1,20 +1,14 @@
 package llm
 
 import (
-	"bufio"
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"

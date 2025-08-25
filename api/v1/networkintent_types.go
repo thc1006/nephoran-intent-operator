@@ -21,6 +21,50 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// IntentType represents the type of network intent
+// +kubebuilder:validation:Enum=scaling;deployment;configuration;optimization;maintenance
+type IntentType string
+
+const (
+	IntentTypeScaling       IntentType = "scaling"
+	IntentTypeDeployment    IntentType = "deployment"
+	IntentTypeConfiguration IntentType = "configuration"
+	IntentTypeOptimization  IntentType = "optimization"
+	IntentTypeMaintenance   IntentType = "maintenance"
+)
+
+// NetworkTargetComponent represents target components for network intents (to avoid conflict with disaster recovery)
+type NetworkTargetComponent string
+
+const (
+	NetworkTargetComponentAMF    NetworkTargetComponent = "AMF"
+	NetworkTargetComponentSMF    NetworkTargetComponent = "SMF"
+	NetworkTargetComponentUPF    NetworkTargetComponent = "UPF"
+	NetworkTargetComponentNRF    NetworkTargetComponent = "NRF"
+	NetworkTargetComponentUDM    NetworkTargetComponent = "UDM"
+	NetworkTargetComponentUDR    NetworkTargetComponent = "UDR"
+	NetworkTargetComponentPCF    NetworkTargetComponent = "PCF"
+	NetworkTargetComponentAUSF   NetworkTargetComponent = "AUSF"
+	NetworkTargetComponentNSSF   NetworkTargetComponent = "NSSF"
+	NetworkTargetComponentCUCP   NetworkTargetComponent = "CU-CP"
+	NetworkTargetComponentCUUP   NetworkTargetComponent = "CU-UP"
+	NetworkTargetComponentDU     NetworkTargetComponent = "DU"
+	NetworkTargetComponentNEF    NetworkTargetComponent = "NEF"
+	NetworkTargetComponentNWDAF  NetworkTargetComponent = "NWDAF"
+	NetworkTargetComponentAF     NetworkTargetComponent = "AF"
+)
+
+// NetworkPriority represents processing priority levels (to avoid conflict with disaster recovery)
+// +kubebuilder:validation:Enum=low;normal;high;critical
+type NetworkPriority string
+
+const (
+	NetworkPriorityLow      NetworkPriority = "low"
+	NetworkPriorityNormal   NetworkPriority = "normal"
+	NetworkPriorityHigh     NetworkPriority = "high"
+	NetworkPriorityCritical NetworkPriority = "critical"
+)
+
 // NetworkIntentSpec defines the desired state of NetworkIntent
 type NetworkIntentSpec struct {
 	// Intent is the natural language intent from the user describing the desired network configuration.
@@ -54,7 +98,7 @@ type NetworkIntentSpec struct {
 	
 	// IntentType specifies the type of network intent
 	// +kubebuilder:validation:Enum=scaling;deployment;configuration;optimization;maintenance
-	IntentType string `json:"intentType,omitempty"`
+	IntentType IntentType `json:"intentType,omitempty"`
 	
 	// Parameters contains structured parameters extracted from the intent
 	Parameters map[string]interface{} `json:"parameters,omitempty"`
@@ -64,16 +108,37 @@ type NetworkIntentSpec struct {
 	
 	// Priority defines the processing priority
 	// +kubebuilder:validation:Enum=low;normal;high;critical
-	Priority string `json:"priority,omitempty"`
+	Priority NetworkPriority `json:"priority,omitempty"`
 	
 	// TargetComponents specifies the target components for the intent
-	TargetComponents []string `json:"targetComponents,omitempty"`
+	TargetComponents []NetworkTargetComponent `json:"targetComponents,omitempty"`
 	
 	// ResourceRequirements specifies resource requirements
 	ResourceRequirements *ResourceRequirements `json:"resourceRequirements,omitempty"`
 	
 	// Constraints defines deployment constraints
 	Constraints map[string]string `json:"constraints,omitempty"`
+	
+	// ResourceConstraints defines resource constraints for deployments
+	ResourceConstraints *NetworkResourceConstraints `json:"resourceConstraints,omitempty"`
+	
+	// TargetNamespace specifies the target namespace for deployment
+	TargetNamespace string `json:"targetNamespace,omitempty"`
+	
+	// NetworkSlice identifies the network slice for this intent
+	NetworkSlice string `json:"networkSlice,omitempty"`
+	
+	// Region specifies the target region for deployment
+	Region string `json:"region,omitempty"`
+	
+	// TimeoutSeconds specifies the timeout for operations in seconds
+	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
+	
+	// MaxRetries specifies the maximum number of retry attempts
+	MaxRetries *int32 `json:"maxRetries,omitempty"`
+	
+	// ProcessedParameters contains parameters extracted during processing
+	ProcessedParameters map[string]interface{} `json:"processedParameters,omitempty"`
 }
 
 // NetworkIntentStatus defines the observed state of NetworkIntent
@@ -147,6 +212,27 @@ type ResourceRequirements struct {
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
+// NetworkResourceConstraints defines resource constraints for network operations (to avoid conflict with disaster recovery)
+type NetworkResourceConstraints struct {
+	// Maximum CPU allocation
+	MaxCPU string `json:"maxCpu,omitempty"`
+	
+	// Maximum memory allocation
+	MaxMemory string `json:"maxMemory,omitempty"`
+	
+	// Maximum storage allocation
+	MaxStorage string `json:"maxStorage,omitempty"`
+	
+	// Minimum resource requirements
+	MinResources *corev1.ResourceRequirements `json:"minResources,omitempty"`
+	
+	// Maximum resource limits
+	MaxResources *corev1.ResourceRequirements `json:"maxResources,omitempty"`
+	
+	// Resource quotas
+	ResourceQuota map[string]string `json:"resourceQuota,omitempty"`
+}
+
 // NetworkResourcePlan contains the generated resource deployment plan
 type NetworkResourcePlan struct {
 	// Resources to be deployed
@@ -217,6 +303,30 @@ type ResourceCost struct {
 	
 	// Total estimated cost per hour
 	TotalCostPerHour float64 `json:"totalCostPerHour,omitempty"`
+}
+
+// String returns the string representation of IntentType
+func (it IntentType) String() string {
+	return string(it)
+}
+
+// String returns the string representation of NetworkTargetComponent
+func (ntc NetworkTargetComponent) String() string {
+	return string(ntc)
+}
+
+// String returns the string representation of NetworkPriority
+func (np NetworkPriority) String() string {
+	return string(np)
+}
+
+// NetworkTargetComponentsToStrings converts a slice of NetworkTargetComponent to []string
+func NetworkTargetComponentsToStrings(components []NetworkTargetComponent) []string {
+	result := make([]string, len(components))
+	for i, component := range components {
+		result[i] = component.String()
+	}
+	return result
 }
 
 func init() {

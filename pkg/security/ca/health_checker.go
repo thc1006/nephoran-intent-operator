@@ -574,16 +574,27 @@ func (hc *HealthChecker) determineHealthStatus(session *HealthCheckSession) Heal
 
 	successRate := hc.calculateSuccessRate(session)
 
-	// Use thresholds from config or defaults
-	healthyThreshold := hc.config.DefaultHealthyThreshold
-	unhealthyThreshold := hc.config.DefaultUnhealthyThreshold
+	// Use overall success rate as fallback if no recent results
+	if len(session.Results) < 5 && successRate > 0 {
+		if successRate >= float64(hc.config.DefaultHealthyThreshold)/100.0 {
+			return HealthCheckStatusHealthy
+		} else if successRate >= float64(hc.config.DefaultUnhealthyThreshold)/100.0 {
+			return HealthCheckStatusDegraded
+		} else {
+			return HealthCheckStatusUnhealthy
+		}
+	}
+
+	// Use thresholds from config or defaults (convert to float64 percentages)
+	healthyThreshold := float64(hc.config.DefaultHealthyThreshold) / 100.0
+	unhealthyThreshold := float64(hc.config.DefaultUnhealthyThreshold) / 100.0
 
 	if session.Config != nil {
 		if session.Config.HealthyThreshold > 0 {
-			healthyThreshold = session.Config.HealthyThreshold
+			healthyThreshold = float64(session.Config.HealthyThreshold) / 100.0
 		}
 		if session.Config.UnhealthyThreshold > 0 {
-			unhealthyThreshold = session.Config.UnhealthyThreshold
+			unhealthyThreshold = float64(session.Config.UnhealthyThreshold) / 100.0
 		}
 	}
 
@@ -606,9 +617,9 @@ func (hc *HealthChecker) determineHealthStatus(session *HealthCheckSession) Heal
 
 	recentSuccessRate := float64(recentSuccess) / float64(recentChecks)
 
-	if recentSuccessRate >= 0.8 { // 80% success rate
+	if recentSuccessRate >= healthyThreshold {
 		return HealthCheckStatusHealthy
-	} else if recentSuccessRate >= 0.5 { // 50% success rate
+	} else if recentSuccessRate >= unhealthyThreshold {
 		return HealthCheckStatusDegraded
 	} else {
 		return HealthCheckStatusUnhealthy

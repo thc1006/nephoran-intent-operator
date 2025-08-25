@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 )
@@ -26,7 +27,7 @@ func (m *MockWeaviateConnectionPool) GetConnection() (*weaviate.Client, error) {
 	return &weaviate.Client{}, nil
 }
 
-func (m *MockWeaviateConnectionPool) Search(ctx context.Context, query *shared.SearchQuery) (*shared.SearchResponse, error) {
+func (m *MockWeaviateConnectionPool) Search(ctx context.Context, query *rag.SearchQuery) (*rag.SearchResponse, error) {
 	if m.searchError != nil {
 		return nil, m.searchError
 	}
@@ -37,10 +38,16 @@ func (m *MockWeaviateConnectionPool) Search(ctx context.Context, query *shared.S
 		limit = len(m.searchResults)
 	}
 
-	filteredResults := make([]*shared.SearchResult, limit)
-	copy(filteredResults, m.searchResults[:limit])
+	filteredResults := make([]*rag.SearchResult, limit)
+	for i := 0; i < limit; i++ {
+		// Convert mock results to rag.SearchResult
+		filteredResults[i] = &rag.SearchResult{
+			Content: m.searchResults[i].Content,
+			Score:   m.searchResults[i].Score,
+		}
+	}
 
-	return &shared.SearchResponse{
+	return &rag.SearchResponse{
 		Results: filteredResults,
 		Took:    10,
 		Total:   int64(len(m.searchResults)),
@@ -584,7 +591,7 @@ func TestContextBuilder_ConcurrentAccess(t *testing.T) {
 
 // Helper functions
 
-func contains(haystack, needle string) bool {
+func contextContains(haystack, needle string) bool {
 	return len(needle) == 0 || (len(haystack) > 0 && len(needle) <= len(haystack) && haystack[len(haystack)-len(needle):] == needle) ||
 		(len(haystack) >= len(needle) && haystack[:len(needle)] == needle) ||
 		(len(haystack) > len(needle) && strings.Contains(haystack, needle))
@@ -631,7 +638,7 @@ func generateLongIntent() string {
 }
 
 // NewContextBuilderWithPool creates a context builder with a custom connection pool for testing
-func NewContextBuilderWithPool(config *ContextBuilderConfig, pool interface{}) *ContextBuilder {
+func NewTestContextBuilderWithPool(config *ContextBuilderConfig, pool interface{}) *ContextBuilder {
 	if config == nil {
 		config = &ContextBuilderConfig{
 			WeaviateURL:           "http://localhost:8080",

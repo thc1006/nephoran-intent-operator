@@ -582,7 +582,7 @@ func (s *NephoranAPIServer) getPackageDeploymentStatus(w http.ResponseWriter, r 
 
 	// Cache the result
 	if s.cache != nil {
-		s.cache.Set(cacheKey, deploymentStatus, 1*time.Minute) // Shorter cache for deployment status
+		s.cache.SetWithTTL(cacheKey, deploymentStatus, 1*time.Minute) // Shorter cache for deployment status
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, deploymentStatus)

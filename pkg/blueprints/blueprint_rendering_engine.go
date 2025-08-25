@@ -108,8 +108,8 @@ type BlueprintMetadata struct {
 	Description    string             `json:"description" yaml:"description"`
 	Labels         map[string]string  `json:"labels" yaml:"labels"`
 	Annotations    map[string]string  `json:"annotations" yaml:"annotations"`
-	ComponentType  v1.TargetComponent `json:"componentType" yaml:"componentType"`
-	IntentType     v1.IntentType      `json:"intentType" yaml:"intentType"`
+	ComponentType  v1.NetworkTargetComponent `json:"componentType" yaml:"componentType"`
+	IntentType     v1.IntentType             `json:"intentType" yaml:"intentType"`
 	ORANCompliant  bool               `json:"oranCompliant" yaml:"oranCompliant"`
 	InterfaceTypes []string           `json:"interfaceTypes" yaml:"interfaceTypes"`
 	NetworkSlice   string             `json:"networkSlice,omitempty" yaml:"networkSlice,omitempty"`
@@ -681,13 +681,13 @@ func (bre *BlueprintRenderingEngine) optimizeResourceConfigurations(rendered *Re
 	}
 
 	// Apply priority-based configurations
-	if req.Intent.Spec.Priority == v1.PriorityCritical {
+	if req.Intent.Spec.Priority == v1.NetworkPriorityCritical {
 		bre.applyCriticalPriorityOptimizations(rendered)
 	}
 }
 
 // applyResourceConstraints applies resource constraints to a resource
-func (bre *BlueprintRenderingEngine) applyResourceConstraints(resource *KRMResource, constraints *v1.ResourceConstraints) {
+func (bre *BlueprintRenderingEngine) applyResourceConstraints(resource *KRMResource, constraints *v1.NetworkResourceConstraints) {
 	// Navigate to container spec and apply constraints
 	if spec, ok := resource.Spec["template"].(map[string]interface{}); ok {
 		if podSpec, ok := spec["spec"].(map[string]interface{}); ok {
@@ -859,7 +859,7 @@ func (bre *BlueprintRenderingEngine) buildResourceLabels(context map[string]inte
 		labels["nephoran.com/intent"] = intentName
 	}
 
-	if componentType, ok := context["ComponentType"].(v1.TargetComponent); ok {
+	if componentType, ok := context["ComponentType"].(v1.NetworkTargetComponent); ok {
 		labels["nephoran.com/component"] = string(componentType)
 	}
 

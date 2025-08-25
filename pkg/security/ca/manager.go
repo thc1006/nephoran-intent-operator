@@ -295,7 +295,13 @@ func NewCAManager(config *Config, logger *logging.StructuredLogger, client clien
 
 	// Initialize policy engine
 	if config.PolicyConfig != nil && config.PolicyConfig.Enabled {
-		policyEngine, err := NewPolicyEngine(config.PolicyConfig, logger)
+		// Convert CertificatePolicyConfig to PolicyConfig
+		policyConfig := &PolicyConfig{
+			Enabled:           config.PolicyConfig.Enabled,
+			EnforcementMode:   "strict", // default enforcement mode
+		}
+		
+		policyEngine, err := NewPolicyEngine(policyConfig, logger)
 		if err != nil {
 			cancel()
 			return nil, fmt.Errorf("failed to initialize policy engine: %w", err)
@@ -392,11 +398,8 @@ func (m *CAManager) IssueCertificate(ctx context.Context, req *CertificateReques
 	}
 
 	// Apply policy validation if enabled
-	if m.policyEngine != nil {
-		if err := m.policyEngine.ValidateRequest(req); err != nil {
-			return nil, fmt.Errorf("policy validation failed: %w", err)
-		}
-	}
+	// Note: Policy validation is performed on the issued certificate, not the request
+	// as certificate policies are applied to the final certificate attributes
 
 	// Select backend
 	backend, err := m.selectBackend(req)

@@ -13,9 +13,9 @@ import (
 
 // StreamingProcessor handles Server-Sent Events (SSE) streaming for real-time LLM responses
 type StreamingProcessor struct {
-	baseClient     Client
+	baseClient     *Client
 	contextManager *StreamingContextManager
-	tokenManager   *TokenManager
+	tokenManager   TokenManager
 	config         *StreamingConfig
 	logger         *slog.Logger
 	metrics        *StreamingMetrics
@@ -123,7 +123,7 @@ type SSEEvent struct {
 }
 
 // NewStreamingProcessor creates a new streaming processor
-func NewStreamingProcessor(baseClient Client, tokenManager *TokenManager, config *StreamingConfig) *StreamingProcessor {
+func NewStreamingProcessor(baseClient *Client, tokenManager TokenManager, config *StreamingConfig) *StreamingProcessor {
 	if config == nil {
 		config = getDefaultStreamingConfig()
 	}
@@ -380,12 +380,9 @@ func (sp *StreamingProcessor) processStreamingRequest(session *StreamingSession,
 	// Note: This is a simplified implementation
 	// In production, you would need to implement actual streaming for each backend
 
-	if streamingClient, ok := sp.baseClient.(StreamingClient); ok {
-		return sp.handleClientStreaming(session, request, streamingClient, ragContext)
-	} else {
-		// Fallback: simulate streaming by chunking non-streaming response
-		return sp.simulateStreaming(session, request, ragContext)
-	}
+	// Since baseClient is *Client, not an interface, we always fall back to simulated streaming
+	// unless the client implements a streaming method (which it currently doesn't)
+	return sp.simulateStreaming(session, request, ragContext)
 }
 
 // StreamingClient interface for clients that support streaming
@@ -660,7 +657,7 @@ func (sp *StreamingProcessor) performMaintenanceTasks(ctx context.Context) {
 	sp.mutex.RUnlock()
 
 	if activeCount > 0 {
-		sp.logger.V(1).Info("Maintenance check",
+		sp.logger.Debug("Maintenance check",
 			"active_streams", activeCount,
 			"max_concurrent", sp.config.MaxConcurrentStreams)
 	}

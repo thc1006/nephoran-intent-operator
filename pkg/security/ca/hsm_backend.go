@@ -308,6 +308,7 @@ func (b *HSMBackend) IssueCertificate(ctx context.Context, req *CertificateReque
 		ExtKeyUsage:           b.convertExtKeyUsage(req.ExtKeyUsage),
 		BasicConstraintsValid: true,
 		IsCA:                  false,
+		PublicKey:             pubKey,
 	}
 
 	// Add SANs
@@ -628,7 +629,7 @@ func (b *HSMBackend) convertKeyUsage(keyUsages []string) x509.KeyUsage {
 		case "data_encipherment":
 			usage |= x509.KeyUsageDataEncipherment
 		case "cert_sign":
-			usage |= x509.KeyUsageKeyCertSign
+			usage |= x509.KeyUsageCertSign
 		case "crl_sign":
 			usage |= x509.KeyUsageCRLSign
 		}

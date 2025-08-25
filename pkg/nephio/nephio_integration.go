@@ -384,7 +384,7 @@ func (ni *NephioIntegration) validateIntentForNephio(ctx context.Context, intent
 
 	for _, workflow := range workflows {
 		for _, intentType := range workflow.IntentTypes {
-			if intentType == intent.Spec.IntentType {
+			if intentType == intent.Spec.IntentType.String() {
 				return nil // Found supporting workflow
 			}
 		}

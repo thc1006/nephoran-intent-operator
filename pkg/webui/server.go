@@ -47,7 +47,7 @@ type NephoranAPIServer struct {
 	// Core dependencies
 	intentManager  *controllers.IntentManager
 	packageManager *packagerevision.PackageRevisionManager
-	clusterManager *multicluster.ClusterPropagationManager
+	clusterManager multicluster.ClusterPropagationManager
 	llmProcessor   *services.LLMProcessor
 	kubeClient     kubernetes.Interface
 
@@ -222,7 +222,7 @@ type FilterParams struct {
 func NewNephoranAPIServer(
 	intentManager *controllers.IntentManager,
 	packageManager *packagerevision.PackageRevisionManager,
-	clusterManager *multicluster.ClusterPropagationManager,
+	clusterManager multicluster.ClusterPropagationManager,
 	llmProcessor *services.LLMProcessor,
 	kubeClient kubernetes.Interface,
 	config *ServerConfig,

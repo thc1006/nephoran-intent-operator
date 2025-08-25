@@ -315,7 +315,7 @@ func (s *NephoranAPIServer) getCluster(w http.ResponseWriter, r *http.Request) {
 
 	// Cache the result
 	if s.cache != nil {
-		s.cache.Set(cacheKey, response, 1*time.Minute) // Shorter cache for detailed cluster info
+		s.cache.SetWithTTL(cacheKey, response, 1*time.Minute) // Shorter cache for detailed cluster info
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, response)
@@ -361,7 +361,7 @@ func (s *NephoranAPIServer) getClusterStatus(w http.ResponseWriter, r *http.Requ
 
 	// Cache with very short TTL for real-time status
 	if s.cache != nil {
-		s.cache.Set(cacheKey, status, 10*time.Second)
+		s.cache.SetWithTTL(cacheKey, status, 10*time.Second)
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, status)
@@ -497,7 +497,7 @@ func (s *NephoranAPIServer) getNetworkTopology(w http.ResponseWriter, r *http.Re
 
 	// Cache the result
 	if s.cache != nil {
-		s.cache.Set(cacheKey, topology, 2*time.Minute)
+		s.cache.SetWithTTL(cacheKey, topology, 2*time.Minute)
 	}
 
 	s.writeJSONResponse(w, http.StatusOK, topology)
@@ -700,6 +700,126 @@ func (s *NephoranAPIServer) broadcastClusterUpdate(update *ClusterStatusUpdate) 
 func generateClusterID() string {
 	// Simple cluster ID generation - would use UUID in production
 	return fmt.Sprintf("cluster-%d", time.Now().UnixNano())
+}
+
+// deleteClusterDeployment handles DELETE /api/v1/clusters/{id}/deployments/{deployment}
+func (s *NephoranAPIServer) deleteClusterDeployment(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vars := mux.Vars(r)
+	clusterID := vars["id"]
+	deploymentID := vars["deployment"]
+
+	// Check admin permissions for deployment deletion
+	if s.authMiddleware != nil && !auth.HasPermission(ctx, auth.PermissionManageSystem) {
+		s.writeErrorResponse(w, http.StatusForbidden, "insufficient_permissions",
+			"System management permission required for deployment deletion")
+		return
+	}
+
+	s.logger.Info("Deleting cluster deployment",
+		"cluster", clusterID, "deployment", deploymentID)
+
+	if s.clusterManager == nil {
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
+			"Multi-cluster management service is not available")
+		return
+	}
+
+	// Perform deletion (mock implementation)
+	result := map[string]interface{}{
+		"cluster_id":    clusterID,
+		"deployment_id": deploymentID,
+		"status":        "deleted",
+		"message":       fmt.Sprintf("Deployment %s deleted from cluster %s", deploymentID, clusterID),
+		"deleted_at":    time.Now(),
+	}
+
+	// Invalidate cache
+	if s.cache != nil {
+		s.cache.Invalidate(fmt.Sprintf("cluster-deployments:%s", clusterID))
+		s.cache.Invalidate(fmt.Sprintf("cluster:%s", clusterID))
+	}
+
+	// Broadcast deletion event
+	s.broadcastClusterUpdate(&ClusterStatusUpdate{
+		ClusterName: clusterID,
+		Message:     fmt.Sprintf("Deployment %s deleted", deploymentID),
+		Timestamp:   time.Now(),
+		EventType:   "deployment",
+	})
+
+	s.writeJSONResponse(w, http.StatusOK, result)
+}
+
+// getClusterNetwork handles GET /api/v1/clusters/{id}/network
+func (s *NephoranAPIServer) getClusterNetwork(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	vars := mux.Vars(r)
+	clusterID := vars["id"]
+
+	// Check cache first
+	cacheKey := fmt.Sprintf("cluster-network:%s", clusterID)
+	if s.cache != nil {
+		if cached, found := s.cache.Get(cacheKey); found {
+			s.metrics.CacheHits.Inc()
+			s.writeJSONResponse(w, http.StatusOK, cached)
+			return
+		}
+		s.metrics.CacheMisses.Inc()
+	}
+
+	if s.clusterManager == nil {
+		s.writeErrorResponse(w, http.StatusServiceUnavailable, "cluster_manager_unavailable",
+			"Multi-cluster management service is not available")
+		return
+	}
+
+	// Mock network information - would integrate with actual cluster manager
+	networkInfo := map[string]interface{}{
+		"cluster_id":  clusterID,
+		"network_info": &NetworkInformation{
+			ClusterCIDR:        "10.244.0.0/16",
+			ServiceCIDR:        "10.96.0.0/12",
+			PodCIDR:            "10.244.0.0/16",
+			DNSClusterIP:       "10.96.0.10",
+			LoadBalancers: []*LoadBalancerInfo{
+				{
+					Name:       "nginx-lb",
+					Type:       "LoadBalancer",
+					ExternalIP: "203.0.113.10",
+					Status:     "Active",
+				},
+			},
+			IngressControllers: []*IngressControllerInfo{
+				{
+					Name:         "nginx-ingress",
+					Class:        "nginx",
+					Status:       "Running",
+					LoadBalancer: "nginx-lb",
+				},
+			},
+		},
+		"connectivity": map[string]interface{}{
+			"internal_dns_resolved": true,
+			"external_access":       true,
+			"service_mesh_enabled":  true,
+			"network_policies":      []string{"deny-all", "allow-dns", "allow-egress"},
+		},
+		"performance": map[string]interface{}{
+			"bandwidth_utilization": 45.2,
+			"latency_ms":           12.5,
+			"packet_loss_percent":  0.01,
+			"connection_count":     1250,
+		},
+		"last_updated": time.Now(),
+	}
+
+	// Cache the result
+	if s.cache != nil {
+		s.cache.Set(cacheKey, networkInfo)
+	}
+
+	s.writeJSONResponse(w, http.StatusOK, networkInfo)
 }
 
 // Additional cluster operation handlers would be implemented here:

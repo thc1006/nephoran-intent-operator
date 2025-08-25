@@ -122,6 +122,7 @@ type TokenManager interface {
 	EstimateTokensForModel(model string, text string) (int, error)
 	SupportsSystemPrompt(model string) bool
 	SupportsChatFormat(model string) bool
+	SupportsStreaming(model string) bool
 	TruncateToFit(text string, maxTokens int, model string) (string, error)
 	
 	// Additional methods for compatibility
@@ -131,8 +132,10 @@ type TokenManager interface {
 
 // StreamingContextManager manages streaming request contexts
 type StreamingContextManager struct {
-	activeStreams map[string]*StreamingContext
-	mutex         sync.RWMutex
+	activeStreams     map[string]*StreamingContext
+	mutex             sync.RWMutex
+	tokenManager      TokenManager
+	injectionOverhead time.Duration
 }
 
 // StreamingContext holds context for a streaming request
@@ -141,6 +144,25 @@ type StreamingContext struct {
 	StartTime time.Time
 	LastSeen  time.Time
 	Metadata  map[string]interface{}
+}
+
+// NewStreamingContextManager creates a new streaming context manager
+func NewStreamingContextManager(tokenManager TokenManager, injectionOverhead time.Duration) *StreamingContextManager {
+	return &StreamingContextManager{
+		activeStreams:     make(map[string]*StreamingContext),
+		tokenManager:      tokenManager,
+		injectionOverhead: injectionOverhead,
+	}
+}
+
+// Close cleans up the streaming context manager
+func (scm *StreamingContextManager) Close() error {
+	scm.mutex.Lock()
+	defer scm.mutex.Unlock()
+	
+	// Clear all active streams
+	scm.activeStreams = make(map[string]*StreamingContext)
+	return nil
 }
 
 // NetworkTopology represents network topology information for processing

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
@@ -629,7 +628,7 @@ func (rs *RelevanceScorer) calculateDomainScore(request *RelevanceRequest) float
 	matchCount := 0
 
 	// Check domain keywords
-	for domain, keywords := range rs.config.DomainKeywords {
+	for _, keywords := range rs.config.DomainKeywords {
 		domainMatch := false
 		for _, keyword := range keywords {
 			if strings.Contains(query, keyword) && strings.Contains(content, keyword) {

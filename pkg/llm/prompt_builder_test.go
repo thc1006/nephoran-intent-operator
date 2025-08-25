@@ -859,6 +859,6 @@ func generateVeryLongQuery(wordCount int) string {
 }
 
 // contains helper function (already defined in context_builder_test.go but included for completeness)
-func contains(haystack, needle string) bool {
+func promptContains(haystack, needle string) bool {
 	return strings.Contains(haystack, needle)
 }

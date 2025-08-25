@@ -249,7 +249,7 @@ func (re *RetryEngine) ExecuteWithRetryAndStrategy(ctx context.Context, operatio
 		// Check if circuit breaker allows the request
 		if re.circuitBreaker != nil && !re.circuitBreaker.IsRequestAllowed() {
 			lastError = &CircuitBreakerError{
-				State:   re.circuitBreaker.GetState(),
+				State:   CircuitState(re.circuitBreaker.GetState()),
 				Message: "circuit breaker is open",
 			}
 			break

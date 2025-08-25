@@ -828,26 +828,31 @@ func (wp *WorkerPool) updateMetrics()      {}
 
 // GetMetrics returns current worker pool metrics
 func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
-	wp.metrics.mu.RLock()
-	defer wp.metrics.mu.RUnlock()
+	wp.metrics.mutex.RLock()
+	defer wp.metrics.mutex.RUnlock()
 	
 	// Return a copy of the metrics
 	return &WorkerPoolMetrics{
-		TotalTasks:        wp.metrics.TotalTasks,
-		CompletedTasks:    wp.metrics.CompletedTasks,
-		FailedTasks:       wp.metrics.FailedTasks,
-		ActiveWorkers:     wp.metrics.ActiveWorkers,
-		IdleWorkers:       wp.metrics.IdleWorkers,
-		QueueSize:         wp.metrics.QueueSize,
-		AverageWaitTime:   wp.metrics.AverageWaitTime,
-		AverageProcessTime: wp.metrics.AverageProcessTime,
-		TasksPerSecond:    wp.metrics.TasksPerSecond,
-		ErrorRate:         wp.metrics.ErrorRate,
-		Utilization:       wp.metrics.Utilization,
-		WorkerStates:      wp.metrics.WorkerStates,
-		TasksByType:       wp.metrics.TasksByType,
-		TasksByPriority:   wp.metrics.TasksByPriority,
-		LastUpdated:       wp.metrics.LastUpdated,
+		TasksSubmitted:      wp.metrics.TasksSubmitted,
+		TasksCompleted:      wp.metrics.TasksCompleted,
+		TasksFailed:         wp.metrics.TasksFailed,
+		TasksRetried:        wp.metrics.TasksRetried,
+		TasksDropped:        wp.metrics.TasksDropped,
+		TotalProcessingTime: wp.metrics.TotalProcessingTime,
+		AverageQueueTime:    wp.metrics.AverageQueueTime,
+		AverageProcessTime:  wp.metrics.AverageProcessTime,
+		ActiveWorkers:       wp.metrics.ActiveWorkers,
+		IdleWorkers:         wp.metrics.IdleWorkers,
+		TotalWorkers:        wp.metrics.TotalWorkers,
+		WorkerUtilization:   wp.metrics.WorkerUtilization,
+		QueueLength:         wp.metrics.QueueLength,
+		MaxQueueLength:      wp.metrics.MaxQueueLength,
+		QueueUtilization:    wp.metrics.QueueUtilization,
+		TotalMemoryUsage:    wp.metrics.TotalMemoryUsage,
+		TotalCPUUsage:       wp.metrics.TotalCPUUsage,
+		ThroughputRPS:       wp.metrics.ThroughputRPS,
+		LatencyP95:          wp.metrics.LatencyP95,
+		LatencyP99:          wp.metrics.LatencyP99,
 	}
 }
 

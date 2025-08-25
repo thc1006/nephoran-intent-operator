@@ -55,7 +55,7 @@ func TestProcessIntentWithTimeout(t *testing.T) {
 }
 
 // TestProcessIntentWithRetry tests retry behavior with LLM_MAX_RETRIES
-func TestProcessIntentWithRetry(t *testing.T) {
+func TestProcessIntentWithRetryRobustness(t *testing.T) {
 	// Set environment variable for max retries
 	os.Setenv("LLM_MAX_RETRIES", "3")
 	defer os.Unsetenv("LLM_MAX_RETRIES")
