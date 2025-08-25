@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/multicluster"
 )
 
 // PorchClient defines the interface for interacting with Porch API
@@ -213,14 +214,14 @@ type RepositoryStatus struct {
 	Health RepositoryHealth `json:"health,omitempty"`
 }
 
-// PackageRevision represents a package revision in Porch
-type PackageRevision struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   PackageRevisionSpec   `json:"spec,omitempty"`
-	Status PackageRevisionStatus `json:"status,omitempty"`
-}
+// Type aliases to multicluster types for consistency
+type PackageRevision = multicluster.PackageRevision
+type PackageRevisionSpec = multicluster.PackageRevisionSpec
+type PackageRevisionStatus = multicluster.PackageRevisionStatus
+type PackageRevisionLifecycle = multicluster.PackageRevisionLifecycle
+type Task = multicluster.Task
+type UpstreamLock = multicluster.UpstreamLock
+type GitLock = multicluster.GitLock
 
 // PackageRevisionList contains a list of package revisions
 type PackageRevisionList struct {
@@ -228,57 +229,6 @@ type PackageRevisionList struct {
 	metav1.ListMeta `json:"metadata,omitempty"`
 
 	Items []PackageRevision `json:"items"`
-}
-
-// PackageRevisionSpec defines the desired state of a package revision
-type PackageRevisionSpec struct {
-	// Package name
-	PackageName string `json:"packageName"`
-
-	// Repository name
-	Repository string `json:"repository"`
-
-	// Revision identifier
-	Revision string `json:"revision"`
-
-	// Lifecycle stage
-	Lifecycle PackageRevisionLifecycle `json:"lifecycle"`
-
-	// Package content
-	Resources []KRMResource `json:"resources,omitempty"`
-
-	// Function pipeline
-	Functions []FunctionConfig `json:"functions,omitempty"`
-
-	// Package metadata
-	PackageMetadata *PackageMetadata `json:"packageMetadata,omitempty"`
-
-	// Approval workflow
-	WorkflowLock *WorkflowLock `json:"workflowLock,omitempty"`
-}
-
-// PackageRevisionStatus defines the observed state of a package revision
-type PackageRevisionStatus struct {
-	// Conditions represent the current state
-	Conditions []metav1.Condition `json:"conditions,omitempty"`
-
-	// Publishing timestamp
-	PublishTime *metav1.Time `json:"publishTime,omitempty"`
-
-	// Validation results
-	ValidationResults []*ValidationResult `json:"validationResults,omitempty"`
-
-	// Rendering results
-	RenderingResults *RenderResult `json:"renderingResults,omitempty"`
-
-	// Deployment status
-	DeploymentStatus *DeploymentStatus `json:"deploymentStatus,omitempty"`
-
-	// Package size
-	PackageSize int64 `json:"packageSize,omitempty"`
-
-	// Downstream packages using this revision
-	Downstream []PackageReference `json:"downstream,omitempty"`
 }
 
 // Workflow represents a package approval workflow
@@ -300,14 +250,12 @@ type WorkflowList struct {
 
 // Supporting Types and Enums
 
-// PackageRevisionLifecycle defines the lifecycle stages of a package revision
-type PackageRevisionLifecycle string
-
+// Import lifecycle constants from multicluster
 const (
-	PackageRevisionLifecycleDraft     PackageRevisionLifecycle = "Draft"
-	PackageRevisionLifecycleProposed  PackageRevisionLifecycle = "Proposed"
-	PackageRevisionLifecyclePublished PackageRevisionLifecycle = "Published"
-	PackageRevisionLifecycleDeletable PackageRevisionLifecycle = "Deletable"
+	PackageRevisionLifecycleDraft     = multicluster.PackageRevisionLifecycleDraft
+	PackageRevisionLifecycleProposed  = multicluster.PackageRevisionLifecycleProposed
+	PackageRevisionLifecyclePublished = multicluster.PackageRevisionLifecyclePublished
+	PackageRevisionLifecycleDeletable PackageRevisionLifecycle = "Deletable" // Additional lifecycle state
 )
 
 // RepositoryHealth represents the health status of a repository

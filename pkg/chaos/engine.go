@@ -199,12 +199,12 @@ type KillSwitch struct {
 
 // ChaosMetrics tracks chaos engineering metrics
 type ChaosMetrics struct {
-	experimentsTotal    prometheus.CounterVec
+	experimentsTotal    *prometheus.CounterVec
 	experimentsActive   prometheus.Gauge
-	experimentsDuration prometheus.HistogramVec
-	slaViolations       prometheus.CounterVec
-	recoveryTime        prometheus.HistogramVec
-	rollbacksTotal      prometheus.CounterVec
+	experimentsDuration *prometheus.HistogramVec
+	slaViolations       *prometheus.CounterVec
+	recoveryTime        *prometheus.HistogramVec
+	rollbacksTotal      *prometheus.CounterVec
 }
 
 // NewChaosEngine creates a new chaos engineering orchestration engine

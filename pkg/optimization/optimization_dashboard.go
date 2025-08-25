@@ -399,9 +399,9 @@ type OptimizationMetricsCollector struct {
 	pipeline *AutomatedOptimizationPipeline
 
 	// Prometheus metrics
-	optimizationCounter  prometheus.CounterVec
-	optimizationDuration prometheus.HistogramVec
-	optimizationGauge    prometheus.GaugeVec
+	optimizationCounter  *prometheus.CounterVec
+	optimizationDuration *prometheus.HistogramVec
+	optimizationGauge    *prometheus.GaugeVec
 	performanceGauges    map[string]prometheus.Gauge
 
 	mutex sync.RWMutex

@@ -25,9 +25,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/redis/go-redis/v9"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -702,7 +702,7 @@ func (r *RedisHealthChecker) GetDependencies() []string {
 // Service restart methods using Kubernetes API
 
 // restartRedis restarts Redis deployment
-func (drm *DisasterRecoveryManager) restartRedis(ctx context.Context) error {
+func (drm *DisasterRecoveryManager) restartRedis(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "redis"
 	namespace := "nephoran-system"
 
@@ -712,7 +712,7 @@ func (drm *DisasterRecoveryManager) restartRedis(ctx context.Context) error {
 }
 
 // restartWeaviate restarts Weaviate StatefulSet
-func (drm *DisasterRecoveryManager) restartWeaviate(ctx context.Context) error {
+func (drm *DisasterRecoveryManager) restartWeaviate(ctx context.Context, _ *DisasterRecoveryManager) error {
 	statefulSetName := "weaviate"
 	namespace := "nephoran-system"
 
@@ -722,7 +722,7 @@ func (drm *DisasterRecoveryManager) restartWeaviate(ctx context.Context) error {
 }
 
 // restartPrometheus restarts Prometheus deployment
-func (drm *DisasterRecoveryManager) restartPrometheus(ctx context.Context) error {
+func (drm *DisasterRecoveryManager) restartPrometheus(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "prometheus"
 	namespace := "nephoran-system"
 
@@ -732,7 +732,7 @@ func (drm *DisasterRecoveryManager) restartPrometheus(ctx context.Context) error
 }
 
 // restartLLMProcessor restarts LLM Processor deployment
-func (drm *DisasterRecoveryManager) restartLLMProcessor(ctx context.Context) error {
+func (drm *DisasterRecoveryManager) restartLLMProcessor(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "llm-processor"
 	namespace := "nephoran-system"
 
@@ -742,7 +742,7 @@ func (drm *DisasterRecoveryManager) restartLLMProcessor(ctx context.Context) err
 }
 
 // restartNephioBridge restarts Nephio Bridge deployment
-func (drm *DisasterRecoveryManager) restartNephioBridge(ctx context.Context) error {
+func (drm *DisasterRecoveryManager) restartNephioBridge(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "nephio-bridge"
 	namespace := "nephoran-system"
 
@@ -752,7 +752,7 @@ func (drm *DisasterRecoveryManager) restartNephioBridge(ctx context.Context) err
 }
 
 // restartORANAdaptor restarts O-RAN Adaptor deployment
-func (drm *DisasterRecoveryManager) restartORANAdaptor(ctx context.Context) error {
+func (drm *DisasterRecoveryManager) restartORANAdaptor(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "oran-adaptor"
 	namespace := "nephoran-system"
 
@@ -762,7 +762,7 @@ func (drm *DisasterRecoveryManager) restartORANAdaptor(ctx context.Context) erro
 }
 
 // restartGrafana restarts Grafana deployment
-func (drm *DisasterRecoveryManager) restartGrafana(ctx context.Context) error {
+func (drm *DisasterRecoveryManager) restartGrafana(ctx context.Context, _ *DisasterRecoveryManager) error {
 	deploymentName := "grafana"
 	namespace := "nephoran-system"
 

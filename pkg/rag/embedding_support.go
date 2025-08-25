@@ -4,12 +4,8 @@ package rag
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
 	"math"
-	"math/rand"
-	"sort"
 	"sync"
 	"time"
 

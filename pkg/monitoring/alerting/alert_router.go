@@ -319,12 +319,12 @@ type RoutingStatistics struct {
 
 // AlertRouterMetrics contains Prometheus metrics for the alert router
 type AlertRouterMetrics struct {
-	AlertsRouted        prometheus.CounterVec
-	AlertsDeduped       prometheus.CounterVec
-	NotificationsSent   prometheus.CounterVec
-	NotificationsFailed prometheus.CounterVec
-	RoutingLatency      prometheus.HistogramVec
-	RuleMatches         prometheus.CounterVec
+	AlertsRouted        *prometheus.CounterVec
+	AlertsDeduped       *prometheus.CounterVec
+	NotificationsSent   *prometheus.CounterVec
+	NotificationsFailed *prometheus.CounterVec
+	RoutingLatency      *prometheus.HistogramVec
+	RuleMatches         *prometheus.CounterVec
 	QueueDepth          prometheus.Gauge
 }
 
@@ -398,6 +398,11 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 			Buckets: prometheus.ExponentialBuckets(0.001, 2, 10),
 		}, []string{"stage"}),
 
+		RuleMatches: prometheus.NewCounterVec(prometheus.CounterOpts{
+			Name: "alert_router_rule_matches_total",
+			Help: "Total number of rule matches",
+		}, []string{"rule_name"}),
+
 		QueueDepth: prometheus.NewGauge(prometheus.GaugeOpts{
 			Name: "alert_router_queue_depth",
 			Help: "Number of alerts in the routing queue",
@@ -411,6 +416,7 @@ func NewAlertRouter(config *AlertRouterConfig, logger *logging.StructuredLogger)
 		metrics.NotificationsSent,
 		metrics.NotificationsFailed,
 		metrics.RoutingLatency,
+		metrics.RuleMatches,
 		metrics.QueueDepth,
 	)
 

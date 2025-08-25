@@ -41,12 +41,12 @@ import (
 
 // ConfigSyncMetrics provides Config Sync metrics
 type ConfigSyncMetrics struct {
-	SyncOperations     prometheus.CounterVec
-	SyncDuration       prometheus.HistogramVec
-	SyncErrors         prometheus.CounterVec
-	GitOperations      prometheus.CounterVec
-	RepositoryHealth   prometheus.GaugeVec
-	PackageDeployments prometheus.CounterVec
+	SyncOperations     *prometheus.CounterVec
+	SyncDuration       *prometheus.HistogramVec
+	SyncErrors         *prometheus.CounterVec
+	GitOperations      *prometheus.CounterVec
+	RepositoryHealth   *prometheus.GaugeVec
+	PackageDeployments *prometheus.CounterVec
 }
 
 // GitClient implements Git operations for Config Sync
@@ -69,9 +69,9 @@ type GitConfig struct {
 
 // GitClientMetrics provides Git client metrics
 type GitClientMetrics struct {
-	GitCommands     prometheus.CounterVec
-	CommandDuration prometheus.HistogramVec
-	GitErrors       prometheus.CounterVec
+	GitCommands     *prometheus.CounterVec
+	CommandDuration *prometheus.HistogramVec
+	GitErrors       *prometheus.CounterVec
 }
 
 // ConfigSyncResult extends SyncResult with additional Config Sync information

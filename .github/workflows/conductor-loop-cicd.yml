@@ -196,12 +196,7 @@ jobs:
   
   test-and-quality:
     name: Tests & Quality
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]  # Production deployment target - telecom/Nephio are Linux-only
-        go-version: ['1.24']
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest  # Production deployment target - telecom/Nephio are Linux-only
     timeout-minutes: 25
     
     steps:
@@ -235,7 +230,7 @@ jobs:
         GODEBUG: gocachehash=1
         GO111MODULE: on
       run: |
-        echo "Running hardened tests on ${{ matrix.os }} with Go ${{ matrix.go-version }}"
+        echo "Running hardened tests on ubuntu-latest with Go 1.24"
         
         # Run tests with deterministic execution and timeout safety
         echo "Starting unit tests with 8m timeout ceiling..."
@@ -260,7 +255,7 @@ jobs:
           echo "unit_coverage_generated=false" >> test-status.txt
         fi
         
-        echo "Unit tests completed successfully on ${{ runner.os }}"
+        echo "Unit tests completed successfully on ubuntu-latest"
         
     - name: Run Integration Tests
       shell: bash
@@ -270,7 +265,7 @@ jobs:
         GOMAXPROCS: 2
         GODEBUG: gocachehash=1
       run: |
-        echo "Running hardened integration tests with 8m timeout ceiling..."
+        echo "Running hardened integration tests with 8m timeout ceiling on ubuntu-latest..."
         
         # Set up test environment
         mkdir -p test-data/{handoff,out,status}
@@ -287,7 +282,7 @@ jobs:
             echo "integration_test_exit_code=$integration_exit" >> test-status.txt
           }
         
-        echo "Integration tests completed successfully on ${{ runner.os }}"
+        echo "Integration tests completed successfully on ubuntu-latest"
         
     - name: Run Cross-Platform Specific Tests
       shell: bash
@@ -297,7 +292,7 @@ jobs:
         GOMAXPROCS: 2
         GODEBUG: gocachehash=1
       run: |
-        echo "Running hardened platform-specific tests for ${{ runner.os }} with 8m timeout ceiling..."
+        echo "Running hardened platform-specific tests for ubuntu-latest with 8m timeout ceiling..."
         
         # Test cross-platform utilities with timeout safety
         if [ -d "./internal/platform" ]; then
@@ -329,10 +324,45 @@ jobs:
         
         echo "Platform-specific tests completed successfully"
         
+    # Build/vet gate before linting
+    - name: Build and vet gate
+      run: |
+        echo "=== Build and vet gate before linting ==="
+        set -euo pipefail
+        
+        # Build all packages
+        echo "Building all packages..."
+        if ! go test -c ./...; then
+          echo "❌ Build failed - compilation errors detected"
+          exit 1
+        fi
+        echo "✅ All packages built successfully"
+        
+        # Run go vet
+        echo "Running go vet..."
+        if ! go vet ./...; then
+          echo "❌ Go vet failed - potential issues detected"
+          exit 1
+        fi
+        echo "✅ Go vet passed successfully"
+        
+        # Guard against stub files without proper build tags
+        echo "Checking for stub files with incorrect build tags..."
+        for stub_file in $(find . -name "*missing_types*.go" -o -name "*stub*.go" | grep -v vendor); do
+          if ! head -3 "$stub_file" | grep -qE "//go:build.*stub|// \+build.*stub"; then
+            echo "❌ Stub file $stub_file lacks proper build tag constraint"
+            echo "Add '//go:build <tag>_stub' to prevent default compilation"
+            exit 1
+          fi
+        done
+        echo "✅ All stub files have proper build constraints"
+        
+        echo "✅ Build/vet gate passed - proceeding with lint"
+        
     # Code quality analysis
     - name: Run golangci-lint
-      # Using golangci-lint-action@v6 (latest stable version)
-      # Note: 'only-new-issues' requires GitHub token for API access
+      # Using golangci-lint-action@v6 (current major release)
+      # Pin golangci-lint version for consistent behavior
       uses: golangci/golangci-lint-action@v6
       with:
         # Pin golangci-lint version for consistent behavior
@@ -359,7 +389,7 @@ jobs:
       if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: test-results-${{ matrix.os }}-go${{ matrix.go-version }}
+        name: test-results-ubuntu-latest-go1.24
         path: |
           coverage.out
           coverage.html

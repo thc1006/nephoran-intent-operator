@@ -11,33 +11,33 @@ import (
 // ControllerMetrics provides performance metrics for optimized controllers
 type ControllerMetrics struct {
 	// Reconcile metrics
-	ReconcileDuration prometheus.HistogramVec
-	ReconcileTotal    prometheus.CounterVec
-	ReconcileErrors   prometheus.CounterVec
-	ReconcileRequeue  prometheus.CounterVec
+	ReconcileDuration *prometheus.HistogramVec
+	ReconcileTotal    *prometheus.CounterVec
+	ReconcileErrors   *prometheus.CounterVec
+	ReconcileRequeue  *prometheus.CounterVec
 
 	// Backoff metrics
-	BackoffDelay   prometheus.HistogramVec
-	BackoffRetries prometheus.HistogramVec
-	BackoffResets  prometheus.CounterVec
+	BackoffDelay   *prometheus.HistogramVec
+	BackoffRetries *prometheus.HistogramVec
+	BackoffResets  *prometheus.CounterVec
 
 	// Status batcher metrics
-	StatusBatchSize      prometheus.HistogramVec
-	StatusBatchDuration  prometheus.HistogramVec
-	StatusUpdatesQueued  prometheus.CounterVec
-	StatusUpdatesDropped prometheus.CounterVec
-	StatusUpdatesFailed  prometheus.CounterVec
-	StatusQueueSize      prometheus.GaugeVec
+	StatusBatchSize      *prometheus.HistogramVec
+	StatusBatchDuration  *prometheus.HistogramVec
+	StatusUpdatesQueued  *prometheus.CounterVec
+	StatusUpdatesDropped *prometheus.CounterVec
+	StatusUpdatesFailed  *prometheus.CounterVec
+	StatusQueueSize      *prometheus.GaugeVec
 
 	// API client metrics
-	ApiCallDuration prometheus.HistogramVec
-	ApiCallTotal    prometheus.CounterVec
-	ApiCallErrors   prometheus.CounterVec
+	ApiCallDuration *prometheus.HistogramVec
+	ApiCallTotal    *prometheus.CounterVec
+	ApiCallErrors   *prometheus.CounterVec
 
 	// Resource metrics
-	ActiveReconcilers prometheus.GaugeVec
-	MemoryUsage       prometheus.GaugeVec
-	GoroutineCount    prometheus.GaugeVec
+	ActiveReconcilers *prometheus.GaugeVec
+	MemoryUsage       *prometheus.GaugeVec
+	GoroutineCount    *prometheus.GaugeVec
 }
 
 // NewControllerMetrics creates a new ControllerMetrics instance

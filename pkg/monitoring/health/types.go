@@ -1,3 +1,5 @@
+// Package health provides unified type definitions for health monitoring across the Nephoran Intent Operator.
+// This serves as the single source of truth for all health-related types to avoid duplicates.
 package health
 
 import (
@@ -5,6 +7,140 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 )
+
+// HealthTier represents different tiers of health monitoring
+type HealthTier int
+
+const (
+	TierSystem HealthTier = iota
+	TierService
+	TierComponent
+	TierDependency
+)
+
+// String returns the string representation of HealthTier
+func (ht HealthTier) String() string {
+	switch ht {
+	case TierSystem:
+		return "system"
+	case TierService:
+		return "service"
+	case TierComponent:
+		return "component"
+	case TierDependency:
+		return "dependency"
+	default:
+		return "unknown"
+	}
+}
+
+// HealthContext represents different operational contexts for health checks
+type HealthContext int
+
+const (
+	ContextStartup HealthContext = iota
+	ContextSteadyState
+	ContextShutdown
+	ContextHighLoad
+	ContextMaintenance
+)
+
+// String returns the string representation of HealthContext
+func (hc HealthContext) String() string {
+	switch hc {
+	case ContextStartup:
+		return "startup"
+	case ContextSteadyState:
+		return "steady_state"
+	case ContextShutdown:
+		return "shutdown"
+	case ContextHighLoad:
+		return "high_load"
+	case ContextMaintenance:
+		return "maintenance"
+	default:
+		return "unknown"
+	}
+}
+
+// HealthWeight represents the business criticality weight of a component
+type HealthWeight float64
+
+const (
+	WeightLow      HealthWeight = 0.2
+	WeightNormal   HealthWeight = 0.5
+	WeightHigh     HealthWeight = 0.8
+	WeightCritical HealthWeight = 1.0
+)
+
+// AlertSeverity represents the severity level of alerts (unified definition)
+type AlertSeverity string
+
+const (
+	SeverityInfo     AlertSeverity = "info"
+	SeverityWarning  AlertSeverity = "warning"
+	SeverityError    AlertSeverity = "error"
+	SeverityCritical AlertSeverity = "critical"
+)
+
+// AlertStatus represents the status of alerts (unified definition)
+type AlertStatus string
+
+const (
+	AlertStatusActive     AlertStatus = "active"
+	AlertStatusResolved   AlertStatus = "resolved"
+	AlertStatusSuppressed AlertStatus = "suppressed"
+)
+
+// AlertThresholds provides common alert threshold configuration
+type AlertThresholds struct {
+	LatencyThreshold  time.Duration `json:"latency_threshold"`
+	ErrorRatePercent  float64       `json:"error_rate_percent"`
+	SuccessRateMin    float64       `json:"success_rate_min"`
+	UptimeMin         float64       `json:"uptime_min"`
+	ResponseTimeMax   time.Duration `json:"response_time_max"`
+}
+
+// StateTransition tracks health state changes over time
+type StateTransition struct {
+	From      health.Status `json:"from"`
+	To        health.Status `json:"to"`
+	Timestamp time.Time     `json:"timestamp"`
+	Reason    string        `json:"reason,omitempty"`
+}
+
+// EnhancedCheck represents an enhanced health check with additional metadata
+type EnhancedCheck struct {
+	// Basic health check information
+	Name      string        `json:"name"`
+	Status    health.Status `json:"status"`
+	Message   string        `json:"message,omitempty"`
+	Error     string        `json:"error,omitempty"`
+	Duration  time.Duration `json:"duration"`
+	Timestamp time.Time     `json:"timestamp"`
+	Component string        `json:"component"`
+
+	// Enhanced metadata
+	Tier        HealthTier    `json:"tier"`
+	Weight      HealthWeight  `json:"weight"`
+	Context     HealthContext `json:"context"`
+	Score       float64       `json:"score"`
+	Criticality string        `json:"criticality"`
+
+	// State tracking
+	StateTransitions []StateTransition `json:"state_transitions,omitempty"`
+	ConsecutiveFails int               `json:"consecutive_fails"`
+	LastHealthy      time.Time         `json:"last_healthy,omitempty"`
+
+	// Performance metrics
+	AverageLatency time.Duration `json:"average_latency"`
+	MaxLatency     time.Duration `json:"max_latency"`
+	SuccessRate    float64       `json:"success_rate"`
+
+	// Additional context
+	Metadata     map[string]interface{} `json:"metadata,omitempty"`
+	Dependencies []string               `json:"dependencies,omitempty"`
+}
 
 // EnhancedHealthResponse represents a comprehensive health check response
 type EnhancedHealthResponse struct {
@@ -127,24 +263,7 @@ const (
 	AlertTypePredictiveFailure   HealthAlertType = "predictive_failure"
 )
 
-// AlertSeverity represents the severity of an alert
-type AlertSeverity string
-
-const (
-	SeverityInfo     AlertSeverity = "info"
-	SeverityWarning  AlertSeverity = "warning"
-	SeverityError    AlertSeverity = "error"
-	SeverityCritical AlertSeverity = "critical"
-)
-
-// AlertStatus represents the status of an alert
-type AlertStatus string
-
-const (
-	AlertStatusActive     AlertStatus = "active"
-	AlertStatusResolved   AlertStatus = "resolved"
-	AlertStatusSuppressed AlertStatus = "suppressed"
-)
+// Note: AlertSeverity and AlertStatus are already defined above
 
 // DependencyGraph represents health dependencies between components
 type DependencyGraph struct {

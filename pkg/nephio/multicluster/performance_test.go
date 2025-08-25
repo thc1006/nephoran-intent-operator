@@ -19,11 +19,12 @@ package multicluster
 import (
 	"context"
 	"fmt"
-	"runtime"
+	goruntime "runtime"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,10 +35,10 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
 )
 
 // Performance test utilities
+// MockAlertHandler is defined in multicluster_comprehensive_test.go
 type PerformanceMetrics struct {
 	OperationsPerSecond float64
 	AverageLatency      time.Duration
@@ -92,8 +93,8 @@ func measureLatencies(measurements []LatencyMeasurement) (avg, p95, p99 time.Dur
 }
 
 func getMemoryUsage() float64 {
-	var m runtime.MemStats
-	runtime.ReadMemStats(&m)
+	var m goruntime.MemStats
+	goruntime.ReadMemStats(&m)
 	return float64(m.Alloc) / 1024 / 1024 // Convert to MB
 }
 
@@ -130,14 +131,42 @@ func setupPerformanceTestEnvironment(t *testing.T, numClusters int) *ClusterMana
 	return clusterMgr
 }
 
-// Benchmark Tests
-func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
+func setupBenchmarkEnvironment(b *testing.B, numClusters int) *ClusterManager {
 	scheme := runtime.NewScheme()
-	require.NoError(b, corev1.AddToScheme(scheme))
+	if err := corev1.AddToScheme(scheme); err != nil {
+		b.Fatalf("Failed to add scheme: %v", err)
+	}
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
-	logger := testr.New(b)
+	// Create a simple logger for benchmarks
+	logger := logr.Discard()
 	clusterMgr := NewClusterManager(client, logger)
+
+	// Pre-populate clusters for benchmarks
+	config := &rest.Config{Host: "https://benchmark.example.com"}
+	for i := 0; i < numClusters; i++ {
+		clusterName := types.NamespacedName{
+			Name:      fmt.Sprintf("bench-cluster-%d", i),
+			Namespace: "default",
+		}
+
+		clusterInfo := &ClusterInfo{
+			Name:       clusterName,
+			Kubeconfig: config,
+			ResourceUtilization: ResourceUtilization{
+				CPUTotal:    8.0,
+				MemoryTotal: 16 * 1024 * 1024 * 1024,
+			},
+		}
+		clusterMgr.clusters[clusterName] = clusterInfo
+	}
+
+	return clusterMgr
+}
+
+// Benchmark Tests
+func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
+	clusterMgr := setupBenchmarkEnvironment(b, 0) // Start with empty cluster manager
 
 	config := &rest.Config{Host: "https://benchmark-cluster.example.com"}
 	ctx := context.Background()
@@ -157,7 +186,7 @@ func BenchmarkClusterManager_RegisterCluster(b *testing.B) {
 }
 
 func BenchmarkClusterManager_SelectTargetClusters_10_Clusters(b *testing.B) {
-	clusterMgr := setupPerformanceTestEnvironment(b, 10)
+	clusterMgr := setupBenchmarkEnvironment(b, 10)
 	packageRevision := createTestPackageRevision("bench-package", "v1.0.0")
 
 	candidates := make([]types.NamespacedName, 10)
@@ -180,7 +209,7 @@ func BenchmarkClusterManager_SelectTargetClusters_10_Clusters(b *testing.B) {
 }
 
 func BenchmarkClusterManager_SelectTargetClusters_100_Clusters(b *testing.B) {
-	clusterMgr := setupPerformanceTestEnvironment(b, 100)
+	clusterMgr := setupBenchmarkEnvironment(b, 100)
 	packageRevision := createTestPackageRevision("bench-package", "v1.0.0")
 
 	candidates := make([]types.NamespacedName, 100)
@@ -203,7 +232,7 @@ func BenchmarkClusterManager_SelectTargetClusters_100_Clusters(b *testing.B) {
 }
 
 func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
-	clusterMgr := setupPerformanceTestEnvironment(b, 1000)
+	clusterMgr := setupBenchmarkEnvironment(b, 1000)
 	packageRevision := createTestPackageRevision("bench-package", "v1.0.0")
 
 	candidates := make([]types.NamespacedName, 1000)
@@ -225,44 +254,16 @@ func BenchmarkClusterManager_SelectTargetClusters_1000_Clusters(b *testing.B) {
 	}
 }
 
-func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
-	scheme := runtime.NewScheme()
-	require.NoError(b, corev1.AddToScheme(scheme))
-
-	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
-	logger := testr.New(b)
-
-	healthMonitor := NewHealthMonitor(client, logger)
-	mockHandler := &MockAlertHandler{}
-	healthMonitor.RegisterAlertHandler(mockHandler)
-
-	alerts := []Alert{
-		{
-			Severity:  SeverityWarning,
-			Type:      AlertTypeResourcePressure,
-			Message:   "Benchmark alert",
-			Timestamp: time.Now(),
-		},
-		{
-			Severity:  SeverityCritical,
-			Type:      AlertTypeComponentFailure,
-			Message:   "Critical benchmark alert",
-			Timestamp: time.Now(),
-		},
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		healthMonitor.processAlerts(alerts)
-	}
-}
+// BenchmarkHealthMonitor_ProcessAlerts is defined in multicluster_comprehensive_test.go to avoid duplication
 
 func BenchmarkSyncEngine_SyncPackageToCluster(b *testing.B) {
 	scheme := runtime.NewScheme()
-	require.NoError(b, corev1.AddToScheme(scheme))
+	if err := corev1.AddToScheme(scheme); err != nil {
+		b.Fatalf("Failed to add scheme: %v", err)
+	}
 
 	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
-	logger := testr.New(b)
+	logger := logr.Discard()
 
 	syncEngine := NewSyncEngine(client, logger)
 	packageRevision := createTestPackageRevision("bench-sync-package", "v1.0.0")
@@ -333,7 +334,7 @@ func TestPerformance_ConcurrentClusterSelection(t *testing.T) {
 	operationsPerSecond := float64(totalOperations) / totalDuration.Seconds()
 	avgLatency, p95Latency, p99Latency := measureLatencies(measurements)
 	memoryUsage := getMemoryUsage()
-	goroutineCount := runtime.NumGoroutine()
+	goroutineCount := goruntime.NumGoroutine()
 
 	metrics := PerformanceMetrics{
 		OperationsPerSecond: operationsPerSecond,
@@ -479,7 +480,7 @@ func TestPerformance_AlertProcessingThroughput(t *testing.T) {
 
 func TestPerformance_MemoryLeaks(t *testing.T) {
 	// Monitor memory usage during prolonged operations
-	runtime.GC()
+	goruntime.GC()
 	initialMemory := getMemoryUsage()
 
 	clusterMgr := setupPerformanceTestEnvironment(t, 10)
@@ -503,14 +504,14 @@ func TestPerformance_MemoryLeaks(t *testing.T) {
 
 		// Force GC periodically
 		if i%100 == 0 {
-			runtime.GC()
+			goruntime.GC()
 		}
 	}
 
 	// Final GC and memory check
-	runtime.GC()
+	goruntime.GC()
 	time.Sleep(100 * time.Millisecond) // Allow GC to complete
-	runtime.GC()
+	goruntime.GC()
 
 	finalMemory := getMemoryUsage()
 	memoryGrowth := finalMemory - initialMemory

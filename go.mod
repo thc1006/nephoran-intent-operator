@@ -100,6 +100,8 @@ require (
 	// Helm integration for package management
 	helm.sh/helm/v3 v3.18.6
 
+	// Porch (kpt) API for package management - using local mock types instead of external dependency
+
 	// Code generation tools (build-time only)
 	k8s.io/code-generator v0.33.3
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect

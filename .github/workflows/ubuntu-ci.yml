@@ -45,14 +45,48 @@ jobs:
           go mod download
           go mod verify
 
+      - name: Build and vet gate
+        run: |
+          echo "=== Build and vet gate before linting ==="
+          set -euo pipefail
+          
+          # Build all packages
+          echo "Building all packages..."
+          if ! go test -c ./...; then
+            echo "❌ Build failed - compilation errors detected"
+            exit 1
+          fi
+          echo "✅ All packages built successfully"
+          
+          # Run go vet
+          echo "Running go vet..."
+          if ! go vet ./...; then
+            echo "❌ Go vet failed - potential issues detected"
+            exit 1
+          fi
+          echo "✅ Go vet passed successfully"
+          
+          # Guard against stub files without proper build tags
+          echo "Checking for stub files with incorrect build tags..."
+          for stub_file in $(find . -name "*missing_types*.go" -o -name "*stub*.go" | grep -v vendor); do
+            if ! head -3 "$stub_file" | grep -qE "//go:build.*stub|// \+build.*stub"; then
+              echo "❌ Stub file $stub_file lacks proper build tag constraint"
+              echo "Add '//go:build <tag>_stub' to prevent default compilation"
+              exit 1
+            fi
+          done
+          echo "✅ All stub files have proper build constraints"
+          
+          echo "✅ Build/vet gate passed - proceeding with lint"
+
       - name: Verify golangci-lint config (v2 schema)
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin ${{ env.GOLANGCI_LINT_VERSION }}
           $(go env GOPATH)/bin/golangci-lint config verify --config=.golangci.yml
 
       - name: Run golangci-lint
-        # Using golangci-lint-action@v6 (latest stable version)
-        # Note: 'only-new-issues' requires GitHub token for API access to compare changes
+        # Using golangci-lint-action@v6 (current major release)
+        # Pin golangci-lint version for consistent behavior
         uses: golangci/golangci-lint-action@v6
         with:
           # Pin golangci-lint version for consistent behavior

@@ -235,13 +235,13 @@ type CacheMetrics struct {
 
 // FunctionManagerMetrics provides comprehensive metrics
 type FunctionManagerMetrics struct {
-	FunctionExecutions    prometheus.CounterVec
-	ExecutionDuration     prometheus.HistogramVec
+	FunctionExecutions    *prometheus.CounterVec
+	ExecutionDuration     *prometheus.HistogramVec
 	FunctionRegistrations prometheus.Gauge
-	ExecutionErrors       prometheus.CounterVec
-	CachePerformance      prometheus.HistogramVec
-	SecurityViolations    prometheus.CounterVec
-	ResourceUtilization   prometheus.GaugeVec
+	ExecutionErrors       *prometheus.CounterVec
+	CachePerformance      *prometheus.HistogramVec
+	SecurityViolations    *prometheus.CounterVec
+	ResourceUtilization   *prometheus.GaugeVec
 }
 
 // Default configuration

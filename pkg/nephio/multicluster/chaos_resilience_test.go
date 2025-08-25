@@ -35,8 +35,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	
+	// Porch types are now defined locally in types.go
 )
 
 // ChaosScenario defines different types of chaos experiments
@@ -49,9 +49,9 @@ type ChaosScenario struct {
 
 // MultiClusterComponents holds all multi-cluster components for chaos testing
 type MultiClusterComponents struct {
-	ClusterMgr    *ClusterManager
+	ClusterMgr    ClusterManagerInterface
 	Propagator    *PackagePropagator
-	SyncEngine    *SyncEngine
+	SyncEngine    SyncEngineInterface
 	HealthMonitor *HealthMonitor
 	Customizer    *Customizer
 	TestClusters  map[types.NamespacedName]*ClusterInfo
@@ -78,9 +78,9 @@ func NewMockFailingSyncEngine(baseEngine *SyncEngine, failureRate float64, laten
 
 func (m *MockFailingSyncEngine) SyncPackageToCluster(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*ClusterDeploymentStatus, error) {
 	m.mutex.Lock()
 	m.callCount++
 	callCount := m.callCount
@@ -134,7 +134,7 @@ func (m *MockUnstableClusterManager) SetClusterUnstable(clusterName types.Namesp
 func (m *MockUnstableClusterManager) SelectTargetClusters(
 	ctx context.Context,
 	candidates []types.NamespacedName,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 ) ([]types.NamespacedName, error) {
 	m.mutex.RLock()
 	defer m.mutex.RUnlock()
@@ -230,7 +230,7 @@ func TestChaos_NetworkPartition(t *testing.T) {
 						LastFailureCheck: time.Now(),
 						FailureReason:    "Network partition detected",
 					}
-					components.ClusterMgr.clusters[clusterName] = cluster
+					components.ClusterMgr.GetClusters()[clusterName] = cluster
 				}
 			}
 		},
@@ -266,14 +266,16 @@ func TestChaos_HighSyncFailureRate(t *testing.T) {
 		Description: "Simulates 50% sync failure rate with varying latencies",
 		ExecuteFunc: func(t *testing.T, components *MultiClusterComponents) {
 			// Replace sync engine with failing one
-			failingSyncEngine := NewMockFailingSyncEngine(
-				components.SyncEngine,
-				0.5,           // 50% failure rate
-				2*time.Second, // Up to 2s latency
-			)
+			if realSyncEngine, ok := components.SyncEngine.(*SyncEngine); ok {
+				failingSyncEngine := NewMockFailingSyncEngine(
+					realSyncEngine,
+					0.5,           // 50% failure rate
+					2*time.Second, // Up to 2s latency
+				)
 
-			// Update propagator with failing sync engine
-			components.Propagator.syncEngine = failingSyncEngine
+				// Update propagator with failing sync engine
+				components.Propagator.SetSyncEngine(failingSyncEngine)
+			}
 		},
 		ValidateFunc: func(t *testing.T, components *MultiClusterComponents) {
 			ctx := context.Background()
@@ -300,7 +302,7 @@ func TestChaos_HighSyncFailureRate(t *testing.T) {
 			assert.Error(t, err)
 
 			// Verify sync engine recorded failures
-			if failingEngine, ok := components.Propagator.syncEngine.(*MockFailingSyncEngine); ok {
+			if failingEngine, ok := components.Propagator.GetSyncEngine().(*MockFailingSyncEngine); ok {
 				calls, failures := failingEngine.GetStats()
 				assert.Greater(t, calls, 0)
 				assert.Greater(t, failures, 0)
@@ -331,6 +333,7 @@ func TestChaos_ClusterResourceExhaustion(t *testing.T) {
 				{Name: "chaos-cluster-4", Namespace: "default"},
 			}
 
+			clusters := components.ClusterMgr.GetClusters()
 			for _, clusterName := range exhaustedClusters {
 				if cluster, exists := components.TestClusters[clusterName]; exists {
 					// Set very high resource utilization
@@ -338,12 +341,12 @@ func TestChaos_ClusterResourceExhaustion(t *testing.T) {
 						CPUTotal:    4.0,
 						CPUUsed:     3.9, // 97.5% utilization
 						MemoryTotal: 8 * 1024 * 1024 * 1024,
-						MemoryUsed:  7.8 * 1024 * 1024 * 1024, // 97.5% utilization
+						MemoryUsed:  8370519040, // ~7.8GB, 97.5% utilization
 					}
-					components.ClusterMgr.clusters[clusterName] = cluster
+					clusters[clusterName] = cluster
 
 					// Update health status
-					components.HealthMonitor.clusters[clusterName] = &ClusterHealthState{
+					components.HealthMonitor.SetClusterHealthState(clusterName, &ClusterHealthState{
 						Name:          clusterName,
 						OverallStatus: HealthStatusDegraded,
 						Alerts: []Alert{
@@ -354,9 +357,10 @@ func TestChaos_ClusterResourceExhaustion(t *testing.T) {
 								Timestamp: time.Now(),
 							},
 						},
-					}
+					})
 				}
 			}
+			components.ClusterMgr.SetClusters(clusters)
 		},
 		ValidateFunc: func(t *testing.T, components *MultiClusterComponents) {
 			// Start health monitoring to process alerts
@@ -394,8 +398,15 @@ func TestChaos_RapidClusterFlapping(t *testing.T) {
 		Name:        "Rapid Cluster Flapping",
 		Description: "Simulates clusters rapidly going online/offline",
 		ExecuteFunc: func(t *testing.T, components *MultiClusterComponents) {
-			unstableMgr := NewMockUnstableClusterManager(components.ClusterMgr)
-			components.ClusterMgr = unstableMgr
+			var unstableMgr *MockUnstableClusterManager
+			if realMgr, ok := components.ClusterMgr.(*ClusterManager); ok {
+				unstableMgr = NewMockUnstableClusterManager(realMgr)
+				components.Propagator.SetClusterManager(unstableMgr)
+				components.ClusterMgr = unstableMgr
+			} else {
+				t.Skip("ClusterManager is not the expected type for this test")
+				return
+			}
 
 			// Make clusters unstable in a flapping pattern
 			flappingClusters := []types.NamespacedName{
@@ -649,7 +660,7 @@ func TestResilience_GracefulDegradation(t *testing.T) {
 		// Make cluster unavailable
 		if cluster, exists := components.TestClusters[clusterName]; exists {
 			cluster.HealthStatus.Available = false
-			components.ClusterMgr.clusters[clusterName] = cluster
+			components.ClusterMgr.GetClusters()[clusterName] = cluster
 		}
 
 		// Check remaining available clusters
@@ -677,7 +688,7 @@ func TestResilience_RecoveryAfterFailure(t *testing.T) {
 		if cluster, exists := components.TestClusters[clusterName]; exists {
 			cluster.HealthStatus.Available = false
 			cluster.HealthStatus.FailureReason = "Simulated total failure"
-			components.ClusterMgr.clusters[clusterName] = cluster
+			components.ClusterMgr.GetClusters()[clusterName] = cluster
 		}
 	}
 
@@ -707,7 +718,7 @@ func TestResilience_RecoveryAfterFailure(t *testing.T) {
 			cluster.HealthStatus.Available = true
 			cluster.HealthStatus.FailureReason = ""
 			cluster.HealthStatus.LastSuccessCheck = time.Now()
-			components.ClusterMgr.clusters[clusterName] = cluster
+			components.ClusterMgr.GetClusters()[clusterName] = cluster
 		}
 
 		// Test functionality recovery

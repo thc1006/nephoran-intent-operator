@@ -431,7 +431,7 @@ func (s *StreamingService) handleStreamingMessage(conn *StreamConnection, messag
 type StreamingRequest struct {
 	Action         string        `json:"action"`
 	StreamType     StreamType    `json:"stream_type,omitempty"`
-	Filter         *StreamFilter `json:"filter,omitempty"`
+	Filter         *oran.StreamFilter `json:"filter,omitempty"`
 	SubscriptionID string        `json:"subscription_id,omitempty"`
 	QoSLevel       QoSLevel      `json:"qos_level,omitempty"`
 	BufferSize     int           `json:"buffer_size,omitempty"`
@@ -788,7 +788,7 @@ func (eb *EventBus) handleSubscription(subscription *StreamSubscription, ch chan
 	}
 }
 
-func (eb *EventBus) matchesFilter(data interface{}, filter *StreamFilter) bool {
+func (eb *EventBus) matchesFilter(data interface{}, filter *oran.StreamFilter) bool {
 	// Simplified filter implementation
 	// In production, implement comprehensive filtering based on all filter criteria
 	return true

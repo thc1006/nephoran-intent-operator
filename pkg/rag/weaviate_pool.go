@@ -36,8 +36,8 @@ func (n *NoOpMetricsRecorder) RecordWeaviatePoolHealthCheckFailed()          {}
 // WeaviateConnectionPool manages a pool of Weaviate client connections
 type WeaviateConnectionPool struct {
 	config        *PoolConfig
-	connections   chan *PooledConnection
-	activeConns   map[string]*PooledConnection
+	connections   chan *WeaviatePooledConnection
+	activeConns   map[string]*WeaviatePooledConnection
 	metrics       *PoolMetrics
 	mu            sync.RWMutex
 	started       bool
@@ -49,7 +49,17 @@ type WeaviateConnectionPool struct {
 	metricsRecorder WeaviatePoolMetricsRecorder
 }
 
-// Note: PooledConnection is defined in optimized_connection_pool.go
+// WeaviatePooledConnection represents a Weaviate client connection in the pool
+type WeaviatePooledConnection struct {
+	client     *weaviate.Client
+	id         string
+	createdAt  time.Time
+	lastUsed   time.Time
+	usageCount int64
+	isHealthy  bool
+	inUse      bool
+	mu         sync.RWMutex
+}
 
 // PoolConfig configures the connection pool
 type PoolConfig struct {
@@ -118,8 +128,8 @@ func NewWeaviateConnectionPool(config *PoolConfig) *WeaviateConnectionPool {
 
 	pool := &WeaviateConnectionPool{
 		config:      config,
-		connections: make(chan *PooledConnection, config.MaxConnections),
-		activeConns: make(map[string]*PooledConnection),
+		connections: make(chan *WeaviatePooledConnection, config.MaxConnections),
+		activeConns: make(map[string]*WeaviatePooledConnection),
 		metrics:     &PoolMetrics{},
 		ctx:         ctx,
 		cancel:      cancel,
@@ -134,8 +144,8 @@ func NewWeaviateConnectionPoolWithMetrics(config *PoolConfig, metricsRecorder We
 
 	pool := &WeaviateConnectionPool{
 		config:          config,
-		connections:     make(chan *PooledConnection, config.MaxConnections),
-		activeConns:     make(map[string]*PooledConnection),
+		connections:     make(chan *WeaviatePooledConnection, config.MaxConnections),
+		activeConns:     make(map[string]*WeaviatePooledConnection),
 		metrics:         &PoolMetrics{},
 		ctx:             ctx,
 		cancel:          cancel,
@@ -225,14 +235,14 @@ func (p *WeaviateConnectionPool) Stop() error {
 	for _, conn := range p.activeConns {
 		p.destroyConnection(conn)
 	}
-	p.activeConns = make(map[string]*PooledConnection)
+	p.activeConns = make(map[string]*WeaviatePooledConnection)
 
 	p.started = false
 	return nil
 }
 
 // GetConnection retrieves a connection from the pool
-func (p *WeaviateConnectionPool) GetConnection(ctx context.Context) (*PooledConnection, error) {
+func (p *WeaviateConnectionPool) GetConnection(ctx context.Context) (*WeaviatePooledConnection, error) {
 	p.mu.Lock()
 	if !p.started {
 		p.mu.Unlock()
@@ -314,7 +324,7 @@ func (p *WeaviateConnectionPool) GetConnection(ctx context.Context) (*PooledConn
 }
 
 // ReturnConnection returns a connection to the pool
-func (p *WeaviateConnectionPool) ReturnConnection(conn *PooledConnection) error {
+func (p *WeaviateConnectionPool) ReturnConnection(conn *WeaviatePooledConnection) error {
 	if conn == nil {
 		return fmt.Errorf("cannot return nil connection")
 	}
@@ -458,7 +468,7 @@ type ConnectionInfo struct {
 
 // Private methods
 
-func (p *WeaviateConnectionPool) createConnection() (*PooledConnection, error) {
+func (p *WeaviateConnectionPool) createConnection() (*WeaviatePooledConnection, error) {
 	cfg := weaviate.Config{
 		Host:   p.config.Host,
 		Scheme: p.config.Scheme,
@@ -488,7 +498,7 @@ func (p *WeaviateConnectionPool) createConnection() (*PooledConnection, error) {
 		return nil, fmt.Errorf("connection health check failed: %w", err)
 	}
 
-	conn := &PooledConnection{
+	conn := &WeaviatePooledConnection{
 		client:    client,
 		id:        fmt.Sprintf("conn-%d", time.Now().UnixNano()),
 		createdAt: time.Now(),
@@ -506,7 +516,7 @@ func (p *WeaviateConnectionPool) createConnection() (*PooledConnection, error) {
 	return conn, nil
 }
 
-func (p *WeaviateConnectionPool) destroyConnection(conn *PooledConnection) {
+func (p *WeaviateConnectionPool) destroyConnection(conn *WeaviatePooledConnection) {
 	if conn == nil {
 		return
 	}
@@ -522,7 +532,7 @@ func (p *WeaviateConnectionPool) destroyConnection(conn *PooledConnection) {
 	}
 }
 
-func (p *WeaviateConnectionPool) isConnectionHealthy(conn *PooledConnection) bool {
+func (p *WeaviateConnectionPool) isConnectionHealthy(conn *WeaviatePooledConnection) bool {
 	if conn == nil {
 		return false
 	}
@@ -534,7 +544,7 @@ func (p *WeaviateConnectionPool) isConnectionHealthy(conn *PooledConnection) boo
 	return isHealthy
 }
 
-func (p *WeaviateConnectionPool) shouldDestroyConnection(conn *PooledConnection) bool {
+func (p *WeaviateConnectionPool) shouldDestroyConnection(conn *WeaviatePooledConnection) bool {
 	if conn == nil {
 		return true
 	}
@@ -570,7 +580,7 @@ func (p *WeaviateConnectionPool) healthCheckLoop() {
 
 func (p *WeaviateConnectionPool) performHealthCheck() {
 	p.mu.RLock()
-	connections := make([]*PooledConnection, 0, len(p.activeConns))
+	connections := make([]*WeaviatePooledConnection, 0, len(p.activeConns))
 	for _, conn := range p.activeConns {
 		connections = append(connections, conn)
 	}

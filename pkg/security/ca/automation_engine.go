@@ -13,8 +13,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
@@ -31,6 +29,8 @@ type AutomationEngine struct {
 	stopCh         chan struct{}
 	running        bool
 	runningMux     sync.RWMutex
+	requestQueue   []*AutomationRequest
+	requestQueueMux sync.RWMutex
 }
 
 // AutomationConfig holds automation configuration
@@ -194,8 +194,13 @@ const (
 )
 
 // NewAutomationEngine creates a new automation engine
-func NewAutomationEngine(config *AutomationConfig, manager *CAManager, healthChecker *HealthChecker, kubeClient kubernetes.Interface, logger *logging.StructuredLogger) *AutomationEngine {
-	return &AutomationEngine{
+func NewAutomationEngine(config *AutomationConfig, logger *logging.StructuredLogger, manager *CAManager, kubeClient kubernetes.Interface, k8sClient interface{}) (*AutomationEngine, error) {
+	// Create a health checker if not provided
+	healthChecker := &HealthChecker{
+		logger: logger,
+	}
+
+	engine := &AutomationEngine{
 		logger:        logger,
 		config:        config,
 		manager:       manager,
@@ -203,7 +208,10 @@ func NewAutomationEngine(config *AutomationConfig, manager *CAManager, healthChe
 		kubeClient:    kubeClient,
 		watchers:      make(map[string]*ServiceWatcher),
 		stopCh:        make(chan struct{}),
+		requestQueue:  make([]*AutomationRequest, 0),
 	}
+
+	return engine, nil
 }
 
 // Start starts the automation engine
@@ -907,9 +915,9 @@ func (e *AutomationEngine) processRevocationRequest(req *AutomationRequest) *Aut
 
 	revokedCount := 0
 	for _, cert := range certs {
-		if err := e.manager.RevokeCertificate(context.Background(), cert.SerialNumber, 1, "service_deleted"); err != nil {
+		if err := e.manager.RevokeCertificate(context.Background(), cert.SerialNumber.String(), 1, "service_deleted"); err != nil {
 			e.logger.Warn("Failed to revoke certificate", map[string]interface{}{
-				"serial": cert.SerialNumber,
+				"serial": cert.SerialNumber.String(),
 				"error":  err.Error(),
 			})
 		} else {
@@ -1074,7 +1082,7 @@ func (e *AutomationEngine) storeServiceCertificate(serviceName, namespace string
 	e.logger.Debug("Storing service certificate", map[string]interface{}{
 		"service":   serviceName,
 		"namespace": namespace,
-		"serial":    cert.SerialNumber,
+		"serial":    cert.SerialNumber.String(),
 	})
 
 	return nil
@@ -1158,16 +1166,16 @@ func (e *AutomationEngine) ProcessManualRequest(req *AutomationRequest) *Automat
 	startTime := time.Now()
 	
 	switch req.Type {
-	case AutomationTypeProvisioning:
+	case RequestTypeProvisioning:
 		return e.processProvisioningRequest(req)
-	case AutomationTypeRenewal:
+	case RequestTypeRenewal:
 		return e.processRenewalRequest(req)
-	case AutomationTypeRevocation:
+	case RequestTypeRevocation:
 		return e.processRevocationRequest(req)
 	default:
 		return &AutomationResponse{
 			Status:    StatusFailed,
-			Message:   fmt.Sprintf("unknown automation type: %s", req.Type),
+			Message:   fmt.Sprintf("unknown request type: %s", req.Type),
 			Timestamp: time.Now(),
 			Duration:  time.Since(startTime),
 		}

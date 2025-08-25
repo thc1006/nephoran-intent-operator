@@ -8,9 +8,14 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	
+	// Porch types are now defined locally in types.go
 )
+
+// SyncEngineInterface defines the interface for package synchronization
+type SyncEngineInterface interface {
+	SyncPackageToCluster(ctx context.Context, packageRevision *PackageRevision, targetCluster types.NamespacedName) (*ClusterDeploymentStatus, error)
+}
 
 // SyncEngine manages synchronization of packages across clusters
 type SyncEngine struct {
@@ -57,9 +62,9 @@ const (
 // SyncPackageToCluster synchronizes a package to a target cluster
 func (se *SyncEngine) SyncPackageToCluster(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*ClusterDeploymentStatus, error) {
 	// 1. Prepare sync options
 	opts := SyncOptions{
 		SyncMethod:         SyncMethodConfigSync,
@@ -86,7 +91,7 @@ func (se *SyncEngine) SyncPackageToCluster(
 // validatePackage performs comprehensive package validation
 func (se *SyncEngine) validatePackage(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	opts SyncOptions,
 ) error {
 	// Implement package validation logic based on validation mode
@@ -112,10 +117,10 @@ func (se *SyncEngine) validatePackage(
 // performSync executes the actual package synchronization
 func (se *SyncEngine) performSync(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
 	opts SyncOptions,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*ClusterDeploymentStatus, error) {
 	var lastErr error
 
 	// Retry sync with exponential backoff
@@ -143,10 +148,10 @@ func (se *SyncEngine) performSync(
 // executeSyncMethod selects and executes the appropriate sync method
 func (se *SyncEngine) executeSyncMethod(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
 	opts SyncOptions,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*ClusterDeploymentStatus, error) {
 	switch opts.SyncMethod {
 	case SyncMethodConfigSync:
 		return se.syncWithConfigSync(ctx, packageRevision, targetCluster, opts)
@@ -162,14 +167,14 @@ func (se *SyncEngine) executeSyncMethod(
 // syncWithConfigSync implements ConfigSync synchronization
 func (se *SyncEngine) syncWithConfigSync(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
 	opts SyncOptions,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*ClusterDeploymentStatus, error) {
 	// Implement ConfigSync synchronization logic
-	status := &nephiov1alpha1.ClusterDeploymentStatus{
+	status := &ClusterDeploymentStatus{
 		ClusterName: targetCluster.String(),
-		Status:      nephiov1alpha1.DeploymentStatusSucceeded,
+		Status:      DeploymentStatusSucceeded,
 		Timestamp:   time.Now(),
 	}
 	return status, nil
@@ -178,14 +183,14 @@ func (se *SyncEngine) syncWithConfigSync(
 // syncWithArgoCD implements ArgoCD synchronization
 func (se *SyncEngine) syncWithArgoCD(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
 	opts SyncOptions,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*ClusterDeploymentStatus, error) {
 	// Implement ArgoCD synchronization logic
-	status := &nephiov1alpha1.ClusterDeploymentStatus{
+	status := &ClusterDeploymentStatus{
 		ClusterName: targetCluster.String(),
-		Status:      nephiov1alpha1.DeploymentStatusSucceeded,
+		Status:      DeploymentStatusSucceeded,
 		Timestamp:   time.Now(),
 	}
 	return status, nil
@@ -194,14 +199,14 @@ func (se *SyncEngine) syncWithArgoCD(
 // syncWithFleet implements Google Cloud Fleet synchronization
 func (se *SyncEngine) syncWithFleet(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
 	opts SyncOptions,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*ClusterDeploymentStatus, error) {
 	// Implement Fleet synchronization logic
-	status := &nephiov1alpha1.ClusterDeploymentStatus{
+	status := &ClusterDeploymentStatus{
 		ClusterName: targetCluster.String(),
-		Status:      nephiov1alpha1.DeploymentStatusSucceeded,
+		Status:      DeploymentStatusSucceeded,
 		Timestamp:   time.Now(),
 	}
 	return status, nil
@@ -210,9 +215,9 @@ func (se *SyncEngine) syncWithFleet(
 // monitorSyncStatus tracks the synchronization progress
 func (se *SyncEngine) monitorSyncStatus(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
-) (*nephiov1alpha1.ClusterDeploymentStatus, error) {
+) (*ClusterDeploymentStatus, error) {
 	// Implement sync status monitoring
 	return nil, nil
 }
@@ -220,7 +225,7 @@ func (se *SyncEngine) monitorSyncStatus(
 // handleSyncConflicts resolves conflicts during package synchronization
 func (se *SyncEngine) handleSyncConflicts(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
 	strategy ConflictResolutionStrategy,
 ) error {

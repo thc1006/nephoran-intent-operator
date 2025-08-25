@@ -2,15 +2,11 @@ package multicluster
 
 import (
 	"context"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
 )
@@ -333,4 +329,24 @@ func NewHealthMonitor(
 		healthChannels: make(map[types.NamespacedName]chan HealthUpdate),
 		alertHandlers:  make([]AlertHandler, 0),
 	}
+}
+
+// GetClusterHealthStates returns the cluster health states for testing purposes
+func (hm *HealthMonitor) GetClusterHealthStates() map[types.NamespacedName]*ClusterHealthState {
+	hm.clusterLock.RLock()
+	defer hm.clusterLock.RUnlock()
+	
+	// Return a copy to avoid concurrent access issues
+	clusters := make(map[types.NamespacedName]*ClusterHealthState)
+	for k, v := range hm.clusters {
+		clusters[k] = v
+	}
+	return clusters
+}
+
+// SetClusterHealthState sets a cluster health state for testing purposes
+func (hm *HealthMonitor) SetClusterHealthState(name types.NamespacedName, state *ClusterHealthState) {
+	hm.clusterLock.Lock()
+	defer hm.clusterLock.Unlock()
+	hm.clusters[name] = state
 }

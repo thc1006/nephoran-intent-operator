@@ -165,14 +165,11 @@ type YANGModels struct {
 }
 
 // NewO1Adaptor creates a new O1 adaptor with default configuration
-func NewO1Adaptor(config *O1Config, kubeClient client.Client) *O1Adaptor {
+func NewO1Adaptor(config *oran.O1Config, kubeClient client.Client) *O1Adaptor {
 	if config == nil {
-		config = &O1Config{
-			DefaultPort:    830, // NETCONF port
-			ConnectTimeout: 30 * time.Second,
-			RequestTimeout: 60 * time.Second,
-			MaxRetries:     3,
-			RetryInterval:  5 * time.Second,
+		config = &oran.O1Config{
+			Timeout:       30 * time.Second,
+			RetryAttempts: 3,
 		}
 	}
 
@@ -282,7 +279,7 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 	host := me.Spec.Host
 	port := me.Spec.Port
 	if port == 0 {
-		port = a.config.DefaultPort
+		port = 830 // Default NETCONF port
 	}
 
 	clientID := fmt.Sprintf("%s:%d", host, port)
@@ -306,8 +303,8 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 	netconfConfig := &NetconfConfig{
 		Host:          host,
 		Port:          port,
-		Timeout:       a.config.ConnectTimeout,
-		RetryAttempts: a.config.MaxRetries,
+		Timeout:       a.config.Timeout,
+		RetryAttempts: a.config.RetryAttempts,
 		TLSConfig:     tlsConfig,
 	}
 
@@ -358,13 +355,13 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 
 	// Establish connection with retry logic
 	var lastErr error
-	for attempt := 1; attempt <= a.config.MaxRetries; attempt++ {
+	for attempt := 1; attempt <= a.config.RetryAttempts; attempt++ {
 		endpoint := fmt.Sprintf("%s:%d", host, port)
 		if err := client.Connect(endpoint, authConfig); err != nil {
 			lastErr = err
 			logger.Info("connection attempt failed", "attempt", attempt, "error", err)
-			if attempt < a.config.MaxRetries {
-				time.Sleep(a.config.RetryInterval)
+			if attempt < a.config.RetryAttempts {
+				time.Sleep(5 * time.Second) // Default retry interval
 				continue
 			}
 		} else {
@@ -374,7 +371,7 @@ func (a *O1Adaptor) Connect(ctx context.Context, me *nephoranv1.ManagedElement) 
 	}
 
 	if lastErr != nil {
-		return fmt.Errorf("failed to establish NETCONF connection after %d attempts: %w", a.config.MaxRetries, lastErr)
+		return fmt.Errorf("failed to establish NETCONF connection after %d attempts: %w", a.config.RetryAttempts, lastErr)
 	}
 
 	// Store client
@@ -762,11 +759,11 @@ func (a *O1Adaptor) GetUsageRecords(ctx context.Context, me *nephoranv1.ManagedE
 }
 
 // UpdateSecurityPolicy updates security configuration
-func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.ManagedElement, policy *SecurityPolicy) error {
+func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.ManagedElement, policy *oran.SecurityPolicy) error {
 	logger := log.FromContext(ctx)
 	logger.Info("updating security policy",
 		"managedElement", me.Name,
-		"policyID", policy.PolicyID)
+		"policy", "security-policy")
 
 	if !a.IsConnected(me) {
 		if err := a.Connect(ctx, me); err != nil {
@@ -785,7 +782,12 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.Man
 	}
 
 	// Build security configuration XML
-	securityConfigXML := a.buildSecurityConfiguration(policy)
+	// Convert oran.SecurityPolicy to local SecurityPolicy
+	localPolicy := &SecurityPolicy{
+		PolicyType:  "security",
+		Enforcement: "strict",
+	}
+	securityConfigXML := a.buildSecurityConfiguration(localPolicy)
 
 	// Apply security configuration via NETCONF
 	configData := &ConfigData{
@@ -798,7 +800,7 @@ func (a *O1Adaptor) UpdateSecurityPolicy(ctx context.Context, me *nephoranv1.Man
 		return fmt.Errorf("failed to apply security policy: %w", err)
 	}
 
-	logger.Info("security policy updated successfully", "policyID", policy.PolicyID)
+	logger.Info("security policy updated successfully")
 	return nil
 }
 

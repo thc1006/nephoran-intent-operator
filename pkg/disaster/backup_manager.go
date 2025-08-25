@@ -39,6 +39,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -843,7 +844,7 @@ func (bm *BackupManager) cloneRepository(ctx context.Context, repo GitRepository
 	}
 
 	if repo.Branch != "" {
-		cloneOptions.ReferenceName = git.ReferenceName("refs/heads/" + repo.Branch)
+		cloneOptions.ReferenceName = plumbing.ReferenceName("refs/heads/" + repo.Branch)
 	}
 
 	// Set depth if not including full history

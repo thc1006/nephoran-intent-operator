@@ -50,12 +50,12 @@ type WorkloadClusterConfig struct {
 
 // ClusterRegistryMetrics provides cluster registry metrics
 type ClusterRegistryMetrics struct {
-	ClusterRegistrations prometheus.CounterVec
-	ClusterHealth        prometheus.GaugeVec
-	HealthCheckDuration  prometheus.HistogramVec
-	ClusterCapabilities  prometheus.GaugeVec
-	RegistrationErrors   prometheus.CounterVec
-	ClusterEvents        prometheus.CounterVec
+	ClusterRegistrations *prometheus.CounterVec
+	ClusterHealth        *prometheus.GaugeVec
+	HealthCheckDuration  *prometheus.HistogramVec
+	ClusterCapabilities  *prometheus.GaugeVec
+	RegistrationErrors   *prometheus.CounterVec
+	ClusterEvents        *prometheus.CounterVec
 }
 
 // ClusterHealth represents the health status of a workload cluster

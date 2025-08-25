@@ -385,17 +385,17 @@ type FunctionExecutionResult struct {
 
 // PipelineMetrics provides comprehensive metrics for pipeline execution
 type PipelineMetrics struct {
-	PipelineExecutions   prometheus.CounterVec
-	ExecutionDuration    prometheus.HistogramVec
-	StageExecutions      prometheus.CounterVec
-	StageDuration        prometheus.HistogramVec
-	FunctionExecutions   prometheus.CounterVec
-	FunctionDuration     prometheus.HistogramVec
-	ErrorRate            prometheus.CounterVec
-	RetryCount           prometheus.CounterVec
+	PipelineExecutions   *prometheus.CounterVec
+	ExecutionDuration    *prometheus.HistogramVec
+	StageExecutions      *prometheus.CounterVec
+	StageDuration        *prometheus.HistogramVec
+	FunctionExecutions   *prometheus.CounterVec
+	FunctionDuration     *prometheus.HistogramVec
+	ErrorRate            *prometheus.CounterVec
+	RetryCount           *prometheus.CounterVec
 	QueueDepth           prometheus.Gauge
 	ActiveExecutions     prometheus.Gauge
-	CheckpointOperations prometheus.CounterVec
+	CheckpointOperations *prometheus.CounterVec
 }
 
 // Default pipeline configuration

@@ -50,6 +50,48 @@ jobs:
           go-version-file: go.mod
           check-latest: true
           cache: false
+          
+      - name: Build and vet gate
+        run: |
+          echo "=== Build and vet gate before integration tests ==="
+          set -euo pipefail
+          
+          # Build all packages
+          echo "Building all packages..."
+          if ! go test -c ./...; then
+            echo "❌ Build failed - compilation errors detected"
+            exit 1
+          fi
+          echo "✅ All packages built successfully"
+          
+          # Run go vet
+          echo "Running go vet..."
+          if ! go vet ./...; then
+            echo "❌ Go vet failed - potential issues detected"
+            exit 1
+          fi
+          echo "✅ Go vet passed successfully"
+          
+          # Compile test binaries
+          echo "Compiling test binaries..."
+          if ! go test -c ./...; then
+            echo "❌ Test compilation failed - test code has compilation issues"
+            exit 1
+          fi
+          echo "✅ Test binaries compiled successfully"
+          
+          # Guard against stub files without proper build tags
+          echo "Checking for stub files with incorrect build tags..."
+          for stub_file in $(find . -name "*missing_types*.go" -o -name "*stub*.go" | grep -v vendor); do
+            if ! head -3 "$stub_file" | grep -qE "//go:build.*stub|// \+build.*stub"; then
+              echo "❌ Stub file $stub_file lacks proper build tag constraint"
+              echo "Add '//go:build <tag>_stub' to prevent default compilation"
+              exit 1
+            fi
+          done
+          echo "✅ All stub files have proper build constraints"
+          
+          echo "✅ Build/vet gate passed - proceeding with integration tests"
 
       - name: Install Kind
         run: |

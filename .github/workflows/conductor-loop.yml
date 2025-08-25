@@ -48,11 +48,8 @@ jobs:
   # ---------------------------------------------------------------------------
   test:
     name: Test
-    strategy:
-      matrix:
-        os: [ubuntu-latest]  # Production deployment target
-        # Nephoran is a Kubernetes operator - runs only on Linux clusters
-    runs-on: ${{ matrix.os }}
+    # Production deployment target - Nephoran is a Kubernetes operator running only on Linux clusters
+    runs-on: ubuntu-latest
     timeout-minutes: 15
 
     steps:
@@ -165,7 +162,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.os }}
+          name: test-results-ubuntu-latest
           path: test-results/
           if-no-files-found: warn
           retention-days: 3

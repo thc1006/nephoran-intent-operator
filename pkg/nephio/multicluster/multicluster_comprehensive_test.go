@@ -18,10 +18,12 @@ package multicluster
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/testr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -33,8 +35,8 @@ import (
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	
+	// Porch types are now defined locally in types.go
 )
 
 // MockAlertHandler implements AlertHandler for testing
@@ -125,18 +127,18 @@ func createTestCustomizer(t *testing.T) *Customizer {
 	return NewCustomizer(client, logger)
 }
 
-func createTestPackageRevision(name, revision string) *porchv1alpha1.PackageRevision {
-	return &porchv1alpha1.PackageRevision{
+func createTestPackageRevision(name, revision string) *PackageRevision {
+	return &PackageRevision{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name + "-" + revision,
 			Namespace: "default",
 		},
-		Spec: porchv1alpha1.PackageRevisionSpec{
+		Spec: PackageRevisionSpec{
 			PackageName: name,
 			Revision:    revision,
-			Lifecycle:   porchv1alpha1.PackageRevisionLifecycleDraft,
+			Lifecycle:   PackageRevisionLifecycleDraft,
 		},
-		Status: porchv1alpha1.PackageRevisionStatus{
+		Status: PackageRevisionStatus{
 			Conditions: []metav1.Condition{},
 		},
 	}
@@ -229,7 +231,7 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 	tests := []struct {
 		name             string
 		candidates       []types.NamespacedName
-		packageRevision  *porchv1alpha1.PackageRevision
+		packageRevision  *PackageRevision
 		setupFunc        func(*ClusterManager)
 		expectedClusters int
 		expectedError    bool
@@ -243,7 +245,6 @@ func TestClusterManager_SelectTargetClusters(t *testing.T) {
 			packageRevision: createTestPackageRevision("test-package", "v1.0.0"),
 			setupFunc: func(cm *ClusterManager) {
 				// Register test clusters
-				ctx := context.Background()
 				config := createTestClusterConfig()
 
 				clusterInfo1 := &ClusterInfo{
@@ -355,6 +356,7 @@ func TestPackagePropagator_DeployPackage_Sequential(t *testing.T) {
 	ctx := context.Background()
 	config := createTestClusterConfig()
 
+	clusters := make(map[types.NamespacedName]*ClusterInfo)
 	for _, clusterName := range targetClusters {
 		clusterInfo := &ClusterInfo{
 			Name:            clusterName,
@@ -366,7 +368,12 @@ func TestPackagePropagator_DeployPackage_Sequential(t *testing.T) {
 				MemoryTotal: 16 * 1024 * 1024 * 1024,
 			},
 		}
-		propagator.clusterMgr.clusters[clusterName] = clusterInfo
+		clusters[clusterName] = clusterInfo
+	}
+	
+	// Set clusters in the cluster manager
+	if clusterMgr, ok := propagator.GetClusterManager().(*ClusterManager); ok {
+		clusterMgr.SetClusters(clusters)
 	}
 
 	deploymentOptions := DeploymentOptions{
@@ -398,6 +405,7 @@ func TestPackagePropagator_DeployPackage_Parallel(t *testing.T) {
 	ctx := context.Background()
 	config := createTestClusterConfig()
 
+	clusters := make(map[types.NamespacedName]*ClusterInfo)
 	for _, clusterName := range targetClusters {
 		clusterInfo := &ClusterInfo{
 			Name:            clusterName,
@@ -409,7 +417,12 @@ func TestPackagePropagator_DeployPackage_Parallel(t *testing.T) {
 				MemoryTotal: 16 * 1024 * 1024 * 1024,
 			},
 		}
-		propagator.clusterMgr.clusters[clusterName] = clusterInfo
+		clusters[clusterName] = clusterInfo
+	}
+	
+	// Set clusters in the cluster manager
+	if clusterMgr, ok := propagator.GetClusterManager().(*ClusterManager); ok {
+		clusterMgr.SetClusters(clusters)
 	}
 
 	deploymentOptions := DeploymentOptions{
@@ -488,7 +501,7 @@ func TestSyncEngine_SyncPackageToCluster(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, status)
 	assert.Equal(t, targetCluster.String(), status.ClusterName)
-	assert.Equal(t, nephiov1alpha1.DeploymentStatusSucceeded, status.Status)
+	assert.Equal(t, DeploymentStatusSucceeded, status.Status)
 }
 
 func TestSyncEngine_ValidatePackage(t *testing.T) {
@@ -895,7 +908,15 @@ func BenchmarkClusterManager_SelectTargetClusters(b *testing.B) {
 }
 
 func BenchmarkHealthMonitor_ProcessAlerts(b *testing.B) {
-	hm := createTestHealthMonitor(b)
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		b.Fatalf("Failed to add scheme: %v", err)
+	}
+
+	client := fakeclient.NewClientBuilder().WithScheme(scheme).Build()
+	logger := logr.Discard()
+
+	hm := NewHealthMonitor(client, logger)
 	mockHandler := &MockAlertHandler{}
 	hm.RegisterAlertHandler(mockHandler)
 
