@@ -1045,9 +1045,9 @@ func (wm *WorkloadMonitor) checkNodeHealth(ctx context.Context, cluster *Cluster
 	metrics["node_readiness_ratio"] = readinessRatio
 
 	if readinessRatio >= wm.healthChecker.thresholds.NodeReadiness {
-		return "healthy"
+		return "healthy", metrics
 	} else if readinessRatio > 0.5 {
-		return "degraded"
+		return "degraded", metrics
 	}
 
 	return "unhealthy", metrics
@@ -1088,9 +1088,9 @@ func (wm *WorkloadMonitor) checkPodHealth(ctx context.Context, cluster *ClusterE
 
 	failureRate := float64(failedPods) / float64(totalPods)
 	if failureRate <= 0.05 {
-		return "healthy"
+		return "healthy", metrics
 	} else if failureRate <= 0.15 {
-		return "degraded"
+		return "degraded", metrics
 	}
 
 	return "unhealthy", metrics
@@ -1234,7 +1234,7 @@ func (wm *WorkloadMonitor) collectCPUMetrics(ctx context.Context, cluster *Clust
 	// This would typically integrate with metrics-server or Prometheus
 	// Placeholder implementation
 	return CPUMetrics{
-		TotalCores:         cluster.Metadata.Resources.TotalCPU / 1000, // Convert millicores to cores
+		TotalCores:         int(cluster.Metadata.Resources.TotalCPU / 1000), // Convert millicores to cores
 		UsedCores:          float64(cluster.Metadata.Resources.TotalCPU-cluster.Metadata.Resources.AvailableCPU) / 1000,
 		UtilizationPercent: cluster.Metadata.Resources.Utilization * 100,
 		LoadAverage1m:      2.5, // Placeholder

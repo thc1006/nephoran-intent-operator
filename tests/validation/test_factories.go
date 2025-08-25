@@ -77,7 +77,7 @@ func (nif *NetworkIntentFactory) CreateBasicNetworkIntent(name, intent string) *
 			Intent: intent,
 		},
 		Status: nephranv1.NetworkIntentStatus{
-			Phase: nephranv1.PhasePending,
+			Phase: "Pending",
 		},
 	}
 }
@@ -86,8 +86,7 @@ func (nif *NetworkIntentFactory) CreateBasicNetworkIntent(name, intent string) *
 func (nif *NetworkIntentFactory) CreateProcessingNetworkIntent(name, intent string) *nephranv1.NetworkIntent {
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["test-type"] = "processing"
-	ni.Status.Phase = nephranv1.PhaseProcessing
-	ni.Status.ProcessingStartTime = &metav1.Time{Time: time.Now().Add(-30 * time.Second)}
+	ni.Status.Phase = "Processing"
 
 	return ni
 }
@@ -96,20 +95,13 @@ func (nif *NetworkIntentFactory) CreateProcessingNetworkIntent(name, intent stri
 func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string) *nephranv1.NetworkIntent {
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["test-type"] = "deployed"
-	ni.Status.Phase = nephranv1.PhaseDeployed
-	now := metav1.Now()
-	ni.Status.ProcessingStartTime = &metav1.Time{Time: now.Add(-2 * time.Minute)}
-	ni.Status.CompletionTime = &now
+	ni.Status.Phase = "Deployed"
 
 	// Add processing results
+	confidenceScore := float64(0.95)
 	ni.Status.ProcessingResults = &nephranv1.ProcessingResult{
-		LLMResponse:         "Successfully processed intent for AMF deployment",
 		NetworkFunctionType: "AMF",
-		DeploymentParameters: map[string]string{
-			"replicas":   "3",
-			"region":     "us-west-2",
-			"ha-enabled": "true",
-		},
+		ConfidenceScore:     &confidenceScore,
 	}
 
 	return ni
@@ -119,11 +111,8 @@ func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string
 func (nif *NetworkIntentFactory) CreateFailedNetworkIntent(name, intent string, errorMsg string) *nephranv1.NetworkIntent {
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["test-type"] = "failed"
-	ni.Status.Phase = nephranv1.PhaseFailed
-	now := metav1.Now()
-	ni.Status.ProcessingStartTime = &metav1.Time{Time: now.Add(-1 * time.Minute)}
-	ni.Status.CompletionTime = &now
-	ni.Status.ErrorMessage = errorMsg
+	ni.Status.Phase = "Failed"
+	ni.Status.LastMessage = errorMsg
 
 	return ni
 }
@@ -242,8 +231,8 @@ func (enf *E2NodeSetFactory) CreateBasicE2NodeSet(name string, replicas int32) *
 			Replicas: replicas,
 		},
 		Status: nephranv1.E2NodeSetStatus{
-			Replicas:      replicas,
-			ReadyReplicas: 0,
+			CurrentReplicas: replicas,
+			ReadyReplicas:   0,
 		},
 	}
 }
@@ -255,9 +244,9 @@ func (enf *E2NodeSetFactory) CreateReadyE2NodeSet(name string, replicas int32) *
 	e2ns.Status.ReadyReplicas = replicas
 
 	// Add conditions
-	e2ns.Status.Conditions = []metav1.Condition{
+	e2ns.Status.Conditions = []nephranv1.E2NodeSetCondition{
 		{
-			Type:               "Ready",
+			Type:               nephranv1.E2NodeSetConditionAvailable,
 			Status:             metav1.ConditionTrue,
 			LastTransitionTime: metav1.Now(),
 			Reason:             "AllReplicasReady",
@@ -275,9 +264,9 @@ func (enf *E2NodeSetFactory) CreateScalingE2NodeSet(name string, currentReplicas
 	e2ns.Status.ReadyReplicas = currentReplicas
 
 	// Add scaling condition
-	e2ns.Status.Conditions = []metav1.Condition{
+	e2ns.Status.Conditions = []nephranv1.E2NodeSetCondition{
 		{
-			Type:               "Scaling",
+			Type:               nephranv1.E2NodeSetConditionProgressing,
 			Status:             metav1.ConditionTrue,
 			LastTransitionTime: metav1.Now(),
 			Reason:             "ScalingInProgress",

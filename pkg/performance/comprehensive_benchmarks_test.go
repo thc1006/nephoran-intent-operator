@@ -1067,21 +1067,6 @@ func (tr *TestResource) GetName() string {
 	return tr.Name
 }
 
-type ResourceMonitor struct {
-	cpuUsage    float64
-	memoryUsage float64
-}
-
-func (rm *ResourceMonitor) Stop() {}
-func (rm *ResourceMonitor) GetCPUUsage() float64 {
-	return rm.cpuUsage + float64(time.Now().UnixNano()%20)
-}
-func (rm *ResourceMonitor) GetMemoryUsage() float64 {
-	return rm.memoryUsage + float64(time.Now().UnixNano()%500)
-}
-
-// Placeholder implementations for ComprehensiveTestEnvironment methods
-func (env *ComprehensiveTestEnvironment) Cleanup() {}
 
 func (env *ComprehensiveTestEnvironment) ConfigureDatabase(config DatabaseConfig) {}
 

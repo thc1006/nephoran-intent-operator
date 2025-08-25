@@ -3,18 +3,14 @@ package ca
 import (
 	"context"
 	"crypto/rand"
-	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/pem"
 	"fmt"
-	"math/big"
 	"net/url"
 	"sync"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

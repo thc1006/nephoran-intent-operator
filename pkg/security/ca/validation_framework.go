@@ -1,12 +1,10 @@
 package ca
 
 import (
-	"bytes"
 	"context"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"

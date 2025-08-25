@@ -474,7 +474,7 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 				continue
 			}
 
-			if testIntent.Status.Phase != "" && testIntent.Status.Phase != nephranv1.PhasePending {
+			if testIntent.Status.Phase != "" && testIntent.Status.Phase != "Pending" {
 				// Processing started - calculate response time score
 				responseTime := time.Since(startTime)
 
@@ -490,7 +490,7 @@ func (rv *ReliabilityValidator) measureProcessingAvailability(ctx context.Contex
 				}
 			}
 
-			if testIntent.Status.Phase == nephranv1.PhaseFailed {
+			if testIntent.Status.Phase == "Failed" {
 				return 0.0
 			}
 		}
@@ -544,10 +544,10 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 			}
 
 			// If processing progresses, restart tolerance is good
-			if testIntent.Status.Phase == nephranv1.PhaseProcessing ||
-				testIntent.Status.Phase == nephranv1.PhaseResourcePlanning ||
-				testIntent.Status.Phase == nephranv1.PhaseManifestGeneration ||
-				testIntent.Status.Phase == nephranv1.PhaseDeployed {
+			if testIntent.Status.Phase == "Processing" ||
+				testIntent.Status.Phase == "ResourcePlanning" ||
+				testIntent.Status.Phase == "ManifestGeneration" ||
+				testIntent.Status.Phase == "Deployed" {
 				return true
 			}
 		}
@@ -589,7 +589,7 @@ func (rv *ReliabilityValidator) testNetworkFaultTolerance(ctx context.Context) b
 	}
 
 	// If the intent is being processed or has progressed, network tolerance is adequate
-	return testIntent.Status.Phase != "" && testIntent.Status.Phase != nephranv1.PhaseFailed
+	return testIntent.Status.Phase != "" && testIntent.Status.Phase != "Failed"
 }
 
 // testResourceConstraintTolerance tests tolerance to resource constraints
@@ -638,7 +638,7 @@ func (rv *ReliabilityValidator) testResourceConstraintTolerance(ctx context.Cont
 	processedCount := 0
 	for _, intent := range testIntents {
 		err := rv.k8sClient.Get(ctx, client.ObjectKeyFromObject(intent), intent)
-		if err == nil && intent.Status.Phase != "" && intent.Status.Phase != nephranv1.PhaseFailed {
+		if err == nil && intent.Status.Phase != "" && intent.Status.Phase != "Failed" {
 			processedCount++
 		}
 	}

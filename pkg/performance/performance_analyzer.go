@@ -4,8 +4,10 @@ package performance
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -534,14 +536,14 @@ func (pa *PerformanceAnalyzer) checkTargetAchievement() map[string]bool {
 func (pr *PerformanceReport) PrintPerformanceReport() {
 	fmt.Println("\n" + "="*80)
 	fmt.Println("NEPHORAN INTENT OPERATOR - GO 1.24+ PERFORMANCE OPTIMIZATION REPORT")
-	fmt.Println("=" * 80)
+	fmt.Println("================================================================================")
 	fmt.Printf("Report Generated: %s\n", pr.Timestamp.Format(time.RFC3339))
 	fmt.Printf("Analysis Duration: %v\n", pr.AnalysisDuration)
 	fmt.Println()
 
 	// Baseline metrics
 	fmt.Println("BASELINE METRICS (Pre-optimization)")
-	fmt.Println("-" * 40)
+	fmt.Println("----------------------------------------")
 	fmt.Printf("HTTP Latency: %v\n", pr.Baseline.HTTPLatency)
 	fmt.Printf("Memory Usage: %d bytes\n", pr.Baseline.MemoryUsage)
 	fmt.Printf("JSON Process Time: %v\n", pr.Baseline.JSONProcessTime)
@@ -552,7 +554,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// HTTP Performance
 	fmt.Println("HTTP LAYER PERFORMANCE")
-	fmt.Println("-" * 40)
+	fmt.Println("----------------------------------------")
 	fmt.Printf("Requests/sec: %.2f\n", pr.HTTP.RequestsPerSecond)
 	fmt.Printf("Average Latency: %v\n", pr.HTTP.AverageLatency)
 	fmt.Printf("Connection Pool Hit Rate: %.2f%%\n", pr.HTTP.ConnectionPoolHitRate*100)
@@ -565,7 +567,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Memory Performance
 	fmt.Println("MEMORY OPTIMIZATION PERFORMANCE")
-	fmt.Println("-" * 40)
+	fmt.Println("----------------------------------------")
 	fmt.Printf("Heap Size: %d bytes\n", pr.Memory.HeapSize)
 	fmt.Printf("GC Pause Time: %v\n", pr.Memory.GCPauseTime)
 	fmt.Printf("GC Frequency: %.2f/hour\n", pr.Memory.GCFrequency)
@@ -578,7 +580,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// JSON Performance
 	fmt.Println("JSON PROCESSING PERFORMANCE")
-	fmt.Println("-" * 40)
+	fmt.Println("----------------------------------------")
 	fmt.Printf("Marshal ops/sec: %.2f\n", pr.JSON.MarshalOpsPerSec)
 	fmt.Printf("Unmarshal ops/sec: %.2f\n", pr.JSON.UnmarshalOpsPerSec)
 	fmt.Printf("Average Process Time: %v\n", pr.JSON.AverageProcessTime)
@@ -592,7 +594,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Goroutine Performance
 	fmt.Println("GOROUTINE POOL PERFORMANCE")
-	fmt.Println("-" * 40)
+	fmt.Println("----------------------------------------")
 	fmt.Printf("Tasks/sec: %.2f\n", pr.Goroutine.TasksPerSecond)
 	fmt.Printf("Average Wait Time: %v\n", pr.Goroutine.AverageWaitTime)
 	fmt.Printf("Average Process Time: %v\n", pr.Goroutine.AverageProcessTime)
@@ -604,7 +606,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Cache Performance
 	fmt.Println("CACHE OPTIMIZATION PERFORMANCE")
-	fmt.Println("-" * 40)
+	fmt.Println("----------------------------------------")
 	fmt.Printf("Hit Rate: %.2f%%\n", pr.Cache.HitRate*100)
 	fmt.Printf("Average Access Time: %v\n", pr.Cache.AverageAccessTime)
 	fmt.Printf("Eviction Efficiency: %.2f%%\n", pr.Cache.EvictionEfficiency*100)
@@ -615,7 +617,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Database Performance
 	fmt.Println("DATABASE OPTIMIZATION PERFORMANCE")
-	fmt.Println("-" * 40)
+	fmt.Println("----------------------------------------")
 	fmt.Printf("Queries/sec: %.2f\n", pr.Database.QueriesPerSecond)
 	fmt.Printf("Average Query Time: %v\n", pr.Database.AverageQueryTime)
 	fmt.Printf("Connection Utilization: %.2f%%\n", pr.Database.ConnectionUtilization*100)
@@ -628,7 +630,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Overall Performance
 	fmt.Println("OVERALL SYSTEM PERFORMANCE")
-	fmt.Println("-" * 40)
+	fmt.Println("----------------------------------------")
 	fmt.Printf("Total Throughput: %.2f ops/sec\n", pr.Overall.TotalThroughput)
 	fmt.Printf("System Latency: %v\n", pr.Overall.SystemLatency)
 	fmt.Printf("Resource Utilization: %.2f%%\n", pr.Overall.ResourceUtilization*100)
@@ -640,7 +642,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Target Achievement
 	fmt.Println("PERFORMANCE TARGET ACHIEVEMENT")
-	fmt.Println("-" * 40)
+	fmt.Println("----------------------------------------")
 	for target, achieved := range pr.AchievedTargets {
 		status := "❌ MISSED"
 		if achieved {

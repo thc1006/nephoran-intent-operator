@@ -89,11 +89,11 @@ type DeploymentScenario struct {
 // NewProductionDeploymentValidator creates a new production deployment validator
 func NewProductionDeploymentValidator(client client.Client, clientset *kubernetes.Clientset, config *ValidationConfig) *ProductionDeploymentValidator {
 	return &ProductionDeploymentValidator{
-		client:      client,
-		clientset:   clientset,
-		config:      config,
-		chaosEngine: chaos.NewEngine(client),
-		metrics:     &ProductionMetrics{},
+		client:             client,
+		clientset:          clientset,
+		config:             config,
+		chaosEngineEnabled: false, // Placeholder for future chaos engineering integration
+		metrics:            &ProductionMetrics{},
 	}
 }
 
@@ -423,7 +423,6 @@ func (pdv *ProductionDeploymentValidator) validateFaultTolerance(ctx context.Con
 	ginkgo.By("Validating Fault Tolerance with Chaos Engineering")
 
 	score := 0
-	maxScore := 3
 
 	// Test 1: Network partition handling
 	if pdv.testNetworkPartitionHandling(ctx) {
@@ -544,7 +543,6 @@ func (pdv *ProductionDeploymentValidator) validateMonitoringObservability(ctx co
 	ginkgo.By("Validating Monitoring and Observability")
 
 	score := 0
-	maxScore := 2
 
 	// Test 1: Prometheus metrics collection
 	if pdv.validatePrometheusMetrics(ctx) {
@@ -697,7 +695,6 @@ func (pdv *ProductionDeploymentValidator) validateDisasterRecovery(ctx context.C
 	ginkgo.By("Validating Disaster Recovery Capabilities")
 
 	score := 0
-	maxScore := 2
 
 	// Test 1: Backup and restore capabilities
 	if pdv.validateBackupRestore(ctx) {

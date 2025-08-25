@@ -798,7 +798,7 @@ func (pool *EnhancedGoroutinePool) GetMetrics() PoolMetrics {
 		Throughput:         pool.metrics.Throughput,
 		CPUUtilization:     pool.metrics.CPUUtilization,
 		MemoryUsage:        atomic.LoadInt64(&pool.metrics.MemoryUsage),
-		GoroutineCount:     int(atomic.LoadInt64(&pool.metrics.GoroutineCount)),
+		GoroutineCount:     int64(atomic.LoadInt64(&pool.metrics.GoroutineCount)),
 		ScalingEvents:      atomic.LoadInt64(&pool.metrics.ScalingEvents),
 		PreemptionEvents:   atomic.LoadInt64(&pool.metrics.PreemptionEvents),
 		AffinityViolations: atomic.LoadInt64(&pool.metrics.AffinityViolations),

@@ -261,7 +261,7 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 
 	// Create processing context
 	processingCtx := &ProcessingContext{
-		RequestID:       generateRequestID(),
+		RequestID:       fmt.Sprintf("req_%d", time.Now().UnixNano()),
 		Intent:          intent,
 		ProcessingStart: start,
 		Metadata:        metadata,
@@ -589,7 +589,7 @@ func (ce *ContextEnricher) buildNetworkTopology(ctx *ProcessingContext) *Pipelin
 	return &PipelineNetworkTopology{
 		Region:           "us-west-2",
 		AvailabilityZone: "us-west-2a",
-		NetworkSlices: []NetworkSlice{
+		NetworkSlices: []PipelineNetworkSlice{
 			{ID: "slice-embb-001", Type: "eMBB", Status: "active", Capacity: 1000, Utilization: 0.65},
 			{ID: "slice-urllc-001", Type: "URLLC", Status: "active", Capacity: 500, Utilization: 0.30},
 		},

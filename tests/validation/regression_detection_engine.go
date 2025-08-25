@@ -134,7 +134,7 @@ func (rde *RegressionDetectionEngine) detectPerformanceRegressions(baseline *Bas
 
 	// Check Throughput regression (inverted - lower is worse)
 	if baseline.Results.ThroughputAchieved > 0 && current.ThroughputAchieved > 0 {
-		degradation := rde.calculatePercentDegradation(
+		_ = rde.calculatePercentDegradation(
 			baseline.Results.ThroughputAchieved,
 			current.ThroughputAchieved,
 		)

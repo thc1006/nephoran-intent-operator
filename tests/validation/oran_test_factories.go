@@ -90,9 +90,9 @@ func (otf *ORANTestFactory) CreateA1PolicyManagementIntent(scenario string) *nep
 			Intent:     intent,
 			IntentType: nephranv1.IntentTypeOptimization,
 			Priority:   nephranv1.PriorityMedium,
-			TargetComponents: []nephranv1.TargetComponent{
-				nephranv1.TargetComponentNearRTRIC,
-				nephranv1.TargetComponentXApp,
+			TargetComponents: []nephranv1.ORANComponent{
+				nephranv1.ORANComponentNearRTRIC,
+				nephranv1.ORANComponentXApp,
 			},
 		},
 	}
@@ -262,9 +262,9 @@ func (otf *ORANTestFactory) CreateE2NodeManagementIntent(scenario string) *nephr
 			Intent:     intent,
 			IntentType: nephranv1.IntentTypeDeployment,
 			Priority:   nephranv1.PriorityMedium,
-			TargetComponents: []nephranv1.TargetComponent{
-				nephranv1.TargetComponentNearRTRIC,
-				nephranv1.TargetComponentGNodeB,
+			TargetComponents: []nephranv1.ORANComponent{
+				nephranv1.ORANComponentNearRTRIC,
+				nephranv1.ORANComponentGNodeB,
 			},
 		},
 	}
@@ -592,11 +592,11 @@ func (otf *ORANTestFactory) CreateO1FCAPSIntent(scenario string) *nephranv1.Netw
 			Intent:     intent,
 			IntentType: nephranv1.IntentTypeOptimization,
 			Priority:   nephranv1.PriorityMedium,
-			TargetComponents: []nephranv1.TargetComponent{
-				nephranv1.TargetComponentSMO,
-				nephranv1.TargetComponentAMF,
-				nephranv1.TargetComponentSMF,
-				nephranv1.TargetComponentUPF,
+			TargetComponents: []nephranv1.ORANComponent{
+				nephranv1.ORANComponentSMO,
+				nephranv1.ORANComponentAMF,
+				nephranv1.ORANComponentSMF,
+				nephranv1.ORANComponentUPF,
 			},
 		},
 	}
@@ -813,10 +813,10 @@ func (otf *ORANTestFactory) CreateO2CloudInfraIntent(scenario string) *nephranv1
 			Intent:     intent,
 			IntentType: nephranv1.IntentTypeDeployment,
 			Priority:   nephranv1.PriorityHigh,
-			TargetComponents: []nephranv1.TargetComponent{
-				nephranv1.TargetComponentAMF,
-				nephranv1.TargetComponentSMF,
-				nephranv1.TargetComponentUPF,
+			TargetComponents: []nephranv1.ORANComponent{
+				nephranv1.ORANComponentAMF,
+				nephranv1.ORANComponentSMF,
+				nephranv1.ORANComponentUPF,
 			},
 		},
 	}

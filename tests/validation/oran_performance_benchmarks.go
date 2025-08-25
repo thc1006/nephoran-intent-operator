@@ -118,6 +118,15 @@ func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx
 // runInterfaceBenchmark runs performance benchmark for a specific interface
 func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context, interfaceName string) *ORANBenchmarkResult {
 	result := &ORANBenchmarkResult{
+		BenchmarkResult: &BenchmarkResult{
+			Name:        interfaceName,
+			MetricValue: 0,
+			MetricUnit:  "rps",
+			Threshold:   0,
+			Passed:      false,
+			Score:       0,
+			MaxScore:    100,
+		},
 		InterfaceName:       interfaceName,
 		StartTime:           time.Now(),
 		ConcurrencyLevel:    opb.concurrencyLimits[interfaceName],
@@ -195,6 +204,15 @@ func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context
 		result.P95Latency = opb.calculatePercentile(latencies, 0.95)
 		result.P99Latency = opb.calculatePercentile(latencies, 0.99)
 	}
+
+	// Update benchmark result based on performance
+	if result.ErrorRate > 5.0 {
+		result.BenchmarkResult.Passed = false
+	} else {
+		result.BenchmarkResult.Passed = true
+	}
+	result.BenchmarkResult.MetricValue = result.ThroughputRPS
+	result.BenchmarkResult.Score = int(100 - result.ErrorRate)
 
 	return result
 }
@@ -580,10 +598,19 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 
 // GetBenchmarkResults returns all benchmark results
 func (opb *ORANPerformanceBenchmarker) GetBenchmarkResults() map[string]*BenchmarkResult {
-	return opb.benchmarkResults
+	results := make(map[string]*BenchmarkResult)
+	for k, v := range opb.benchmarkResults {
+		if v != nil && v.BenchmarkResult != nil {
+			results[k] = v.BenchmarkResult
+		}
+	}
+	return results
 }
 
 // GetInterfaceBenchmark returns benchmark result for a specific interface
 func (opb *ORANPerformanceBenchmarker) GetInterfaceBenchmark(interfaceName string) *BenchmarkResult {
-	return opb.benchmarkResults[interfaceName]
+	if result, ok := opb.benchmarkResults[interfaceName]; ok && result != nil {
+		return result.BenchmarkResult
+	}
+	return nil
 }

@@ -214,7 +214,7 @@ type WorkloadDeployment struct {
 	Type         string                `json:"type"`
 	Replicas     int                   `json:"replicas"`
 	Distribution map[string]int        `json:"distribution"`
-	Resources    resource.Requirements `json:"resources"`
+	Resources    ResourceRequirements  `json:"resources"`
 	Status       WorkloadStatus        `json:"status"`
 	CreatedAt    time.Time             `json:"created_at"`
 }
@@ -239,7 +239,7 @@ type WorkloadScheduler struct {
 // LoadBalancer handles load balancing across clusters
 type LoadBalancer struct {
 	backends     map[string]*LoadBalancerBackend
-	healthChecks map[string]*HealthCheck
+	healthChecks map[string]*LoadBalancerHealthCheck
 	algorithm    LoadBalancingAlgorithm
 	mu           sync.RWMutex
 }
@@ -254,8 +254,8 @@ type LoadBalancerBackend struct {
 	LastCheck   time.Time `json:"last_check"`
 }
 
-// HealthCheck represents a health check configuration
-type HealthCheck struct {
+// LoadBalancerHealthCheck represents a health check configuration for load balancer
+type LoadBalancerHealthCheck struct {
 	Path     string        `json:"path"`
 	Interval time.Duration `json:"interval"`
 	Timeout  time.Duration `json:"timeout"`
@@ -298,6 +298,15 @@ type FleetPredictions struct {
 	ScalingEvents       []ScalingEvent   `json:"scaling_events"`
 	MaintenanceWindows  []time.Time      `json:"maintenance_windows"`
 }
+
+// ResourceRequirements represents resource requirements for a workload
+type ResourceRequirements struct {
+	Requests ResourceList `json:"requests,omitempty"`
+	Limits   ResourceList `json:"limits,omitempty"`
+}
+
+// ResourceList represents a list of resources
+type ResourceList map[string]resource.Quantity
 
 // ScalingEvent represents a predicted scaling event
 type ScalingEvent struct {
@@ -401,7 +410,7 @@ func NewFleetManager(registry *ClusterRegistry, logger logr.Logger) *FleetManage
 
 	loadBalancer := &LoadBalancer{
 		backends:     make(map[string]*LoadBalancerBackend),
-		healthChecks: make(map[string]*HealthCheck),
+		healthChecks: make(map[string]*LoadBalancerHealthCheck),
 		algorithm:    LoadBalancingRoundRobin,
 	}
 
@@ -587,7 +596,7 @@ func (fm *FleetManager) DeployWorkload(ctx context.Context, fleetID string, work
 
 	// Calculate placement
 	timer := prometheus.NewTimer(fm.metrics.placementDuration.WithLabelValues(string(fleet.Policy.PlacementPolicy.Strategy)))
-	decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, fleet.Policy.PlacementPolicy)
+	decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, &fleet.Policy.PlacementPolicy)
 	timer.ObserveDuration()
 
 	if err != nil {
@@ -642,7 +651,7 @@ func (fm *FleetManager) ScaleWorkload(ctx context.Context, fleetID string, workl
 
 	// Recalculate distribution
 	clusters := fm.getFleetClusters(fleet)
-	decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, fleet.Policy.PlacementPolicy)
+	decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, &fleet.Policy.PlacementPolicy)
 	if err != nil {
 		workload.Replicas = oldReplicas // Rollback
 		return fmt.Errorf("failed to reschedule workload: %w", err)
@@ -729,7 +738,7 @@ func (fm *FleetManager) BalanceFleet(ctx context.Context, fleetID string) error 
 	for i := range fleet.Status.Workloads {
 		workload := &fleet.Status.Workloads[i]
 
-		decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, fleet.Policy.PlacementPolicy)
+		decision, err := fm.scheduler.ScheduleWorkload(ctx, workload, clusters, &fleet.Policy.PlacementPolicy)
 		if err != nil {
 			fm.logger.Error(err, "Failed to rebalance workload", "workload", workload.ID)
 			continue

@@ -363,3 +363,7 @@ func (t *DummyTestingT) FailNow() {
 func (t *DummyTestingT) Failed() bool {
 	return t.failed
 }
+
+func (t *DummyTestingT) Fail() {
+	t.failed = true
+}

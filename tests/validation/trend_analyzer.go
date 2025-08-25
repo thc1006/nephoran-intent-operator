@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -576,7 +577,7 @@ func (ta *TrendAnalyzer) detectAnomalies(baselines []*BaselineSnapshot) []*Trend
 	mean, stdDev := ta.calculateMeanAndStdDev(scores)
 	threshold := 2.0 * stdDev // 2-sigma threshold
 
-	for i, baseline := range baselines {
+	for _, baseline := range baselines {
 		score := float64(baseline.Results.TotalScore)
 		deviation := math.Abs(score - mean)
 

@@ -50,7 +50,74 @@ type NetworkIntentSpec struct {
 	// +kubebuilder:validation:MaxLength=1000
 	// +kubebuilder:validation:Pattern=`^[a-zA-Z0-9\s\-_.,;:()\[\]]*$`
 	Intent string `json:"intent"`
+
+	// IntentType specifies the type of intent
+	// +optional
+	IntentType IntentType `json:"intentType,omitempty"`
+
+	// Priority specifies the processing priority
+	// +optional
+	Priority Priority `json:"priority,omitempty"`
+
+	// TargetComponents specifies the target components for the intent
+	// +optional
+	TargetComponents []ORANComponent `json:"targetComponents,omitempty"`
 }
+
+// ProcessingResult contains the results of intent processing
+type ProcessingResult struct {
+	// NetworkFunctionType contains the detected network function type
+	NetworkFunctionType string `json:"networkFunctionType,omitempty"`
+
+	// ProcessedParameters contains the structured parameters
+	ProcessedParameters *ProcessedParameters `json:"processedParameters,omitempty"`
+
+	// ConfidenceScore represents the confidence in the processing results
+	ConfidenceScore *float64 `json:"confidenceScore,omitempty"`
+
+	// ProcessingTimestamp when the processing completed
+	ProcessingTimestamp *metav1.Time `json:"processingTimestamp,omitempty"`
+}
+
+// IntentType represents the type of intent
+type IntentType string
+
+const (
+	// IntentTypeDeployment represents deployment intents
+	IntentTypeDeployment IntentType = "deployment"
+	// IntentTypeOptimization represents optimization intents
+	IntentTypeOptimization IntentType = "optimization"
+	// IntentTypeScaling represents scaling intents
+	IntentTypeScaling IntentType = "scaling"
+	// IntentTypeMaintenance represents maintenance intents
+	IntentTypeMaintenance IntentType = "maintenance"
+)
+
+// ORANComponent represents O-RAN target components for intents
+type ORANComponent string
+
+const (
+	// ORANComponentNearRTRIC represents Near-RT RIC component
+	ORANComponentNearRTRIC ORANComponent = "near-rt-ric"
+	// ORANComponentSMO represents SMO component
+	ORANComponentSMO ORANComponent = "smo"
+	// ORANComponentO1 represents O1 interface component
+	ORANComponentO1 ORANComponent = "o1"
+	// ORANComponentE2 represents E2 interface component
+	ORANComponentE2 ORANComponent = "e2"
+	// ORANComponentA1 represents A1 interface component
+	ORANComponentA1 ORANComponent = "a1"
+	// ORANComponentXApp represents xApp component
+	ORANComponentXApp ORANComponent = "xapp"
+	// ORANComponentGNodeB represents gNodeB component
+	ORANComponentGNodeB ORANComponent = "gnodeb"
+	// ORANComponentAMF represents AMF component
+	ORANComponentAMF ORANComponent = "amf"
+	// ORANComponentSMF represents SMF component
+	ORANComponentSMF ORANComponent = "smf"
+	// ORANComponentUPF represents UPF component
+	ORANComponentUPF ORANComponent = "upf"
+)
 
 // NetworkIntentStatus defines the observed state of NetworkIntent
 type NetworkIntentStatus struct {
@@ -65,6 +132,10 @@ type NetworkIntentStatus struct {
 
 	// LastUpdateTime indicates when the status was last updated
 	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+
+	// ProcessingResults contains the results of intent processing
+	// +optional
+	ProcessingResults *ProcessingResult `json:"processingResults,omitempty"`
 }
 
 //+kubebuilder:object:root=true

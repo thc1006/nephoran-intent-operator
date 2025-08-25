@@ -610,11 +610,19 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 
 	// Step 3: Priority calculation
 	priority, _ := ar.priorityCalculator.CalculatePriority(enrichedAlert.SLAAlert)
-	enrichedAlert.Priority = priority
+	priorityInt := ar.convertPriorityToInt(priority)
+	enrichedAlert.Priority = prioritityInt
 
 	// Step 4: Business impact analysis
 	impact, _ := ar.impactAnalyzer.AnalyzeImpact(enrichedAlert.SLAAlert)
-	enrichedAlert.BusinessImpact = impact.Severity
+	businessImpact := BusinessImpactScore{
+		OverallScore: 50.0,
+		UserImpact: 40.0,
+		RevenueImpact: 30.0,
+		ReputationImpact: 20.0,
+		ServiceTier: impact.Severity,
+	}
+	enrichedAlert.BusinessImpact = businessImpact
 
 	// Step 5: Apply routing rules
 	routingDecision, err := ar.applyRoutingRules(enrichedAlert)
@@ -623,8 +631,11 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 			slog.String("alert_id", enrichedAlert.ID),
 		)
 		// Use fallback routing
-		fallbackRule := ar.getFallbackRouting()
-		routingDecision = &RoutingDecision{RoutingRule: *fallbackRule}
+		routingDecision = &RoutingDecision{
+			MatchedRules: []string{"fallback"},
+			SelectedChannels: []string{"default"},
+			Suppressed: false,
+		}
 	}
 	enrichedAlert.RoutingDecision = routingDecision
 
@@ -673,13 +684,17 @@ func (ar *AlertRouter) enrichAlert(ctx context.Context, alert *SLAAlert) (*Enric
 	if ar.config.EnableGeographicRouting && ar.geographicRouter != nil {
 		// TODO: Implement GetContextForAlert method
 		enriched.AffectedRegions = []string{}
-		enriched.TimezoneInfo = map[string]interface{}{}
+		enriched.TimezoneInfo = TimezoneInfo{
+			Timezone: "UTC",
+			LocalTime: time.Now(),
+			BusinessHours: true,
+		}
 	}
 
 	// Add runbook actions  
 	if ar.runbookManager != nil {
 		// TODO: Implement GetActionsForAlert method
-		enriched.RunbookActions = []string{}
+		enriched.RunbookActions = []RunbookAction{}
 	}
 
 	return enriched, nil
@@ -713,7 +728,7 @@ func (ar *AlertRouter) deduplicateAlert(alert *EnrichedAlert) bool {
 		existingGroup.UpdatedAt = time.Now()
 
 		// Update representative if new alert is more severe
-		if ar.isMoreSevere(alert.Severity, existingGroup.Representative.Severity) {
+		if ar.isMoreSevere(string(alert.Severity), string(existingGroup.Representative.Severity)) {
 			existingGroup.Representative = alert.SLAAlert
 		}
 
@@ -777,7 +792,7 @@ func (ar *AlertRouter) applyRoutingRules(alert *EnrichedAlert) (*RoutingDecision
 		}
 
 		// Check if rule matches
-		if ar.evaluateRuleConditions(alert, rule.Conditions) {
+		if ar.evaluateRuleConditions(alert.SLAAlert, rule.Conditions) {
 			decision.MatchedRules = append(decision.MatchedRules, rule.Name)
 			ar.routingStats.RuleMatchCounts[rule.Name]++
 			ar.metrics.RuleMatches.WithLabelValues(rule.Name).Inc()

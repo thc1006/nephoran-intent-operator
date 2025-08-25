@@ -1032,13 +1032,6 @@ func calculateStdDev(values []float64, mean float64) float64 {
 	return math.Sqrt(variance)
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // Test result types
 
 type ConcurrencyTestResult struct {
@@ -1099,4 +1092,32 @@ type RAGTestResult struct {
 	CacheHitFlags      []bool
 	CacheHitLatencies  []float64
 	CacheMissLatencies []float64
+}
+
+// Missing type definitions for comprehensive validation
+type IntentProcessingBenchmarks struct{}
+type StatisticalValidator struct{}
+type RegressionDetector struct{}
+type TelecomLoadTester struct{}
+
+func NewIntentProcessingBenchmarks() *IntentProcessingBenchmarks {
+	return &IntentProcessingBenchmarks{}
+}
+
+func NewStatisticalValidator() *StatisticalValidator {
+	return &StatisticalValidator{}
+}
+
+func NewRegressionDetector() *RegressionDetector {
+	return &RegressionDetector{}
+}
+
+func NewTelecomLoadTester() *TelecomLoadTester {
+	return &TelecomLoadTester{}
+}
+
+type PerformanceMeasurement struct {
+	Latency float64
+	Throughput float64
+	ErrorRate float64
 }

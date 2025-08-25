@@ -37,7 +37,7 @@ type PerformanceOptimizer struct {
 	circuitBreaker *AdvancedCircuitBreaker
 
 	// Batch processor
-	batchProcessor *BatchProcessor
+	batchProcessor BatchProcessor
 
 	// Configuration
 	config *PerformanceConfig
@@ -129,7 +129,23 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	po.initializeMetrics()
 
 	// Initialize circuit breaker
-	po.circuitBreaker = NewAdvancedCircuitBreaker(config.CircuitBreakerConfig)
+	cbConfig := CircuitBreakerConfig{
+		FailureThreshold:      int64(config.CircuitBreakerConfig.FailureThreshold),
+		SuccessThreshold:      int64(config.CircuitBreakerConfig.SuccessThreshold),
+		Timeout:               config.CircuitBreakerConfig.Timeout,
+		MaxConcurrentRequests: config.CircuitBreakerConfig.MaxConcurrentRequests,
+		EnableAdaptiveTimeout: config.CircuitBreakerConfig.EnableAdaptiveTimeout,
+		FailureRate:           0.5,  // Default
+		MinimumRequestCount:   10,   // Default
+		HalfOpenTimeout:       5 * time.Second, // Default
+		HalfOpenMaxRequests:   3,    // Default
+		ResetTimeout:          60 * time.Second, // Default
+		SlidingWindowSize:     100,  // Default
+		EnableHealthCheck:     false, // Default
+		HealthCheckInterval:   30 * time.Second, // Default
+		HealthCheckTimeout:    5 * time.Second,  // Default
+	}
+	po.circuitBreaker = NewAdvancedCircuitBreaker(cbConfig)
 
 	// Initialize batch processor
 	po.batchProcessor = NewBatchProcessor(config.BatchProcessingConfig)
@@ -551,7 +567,7 @@ func (po *PerformanceOptimizer) GetCircuitBreaker() *AdvancedCircuitBreaker {
 }
 
 // GetBatchProcessor returns the batch processor instance
-func (po *PerformanceOptimizer) GetBatchProcessor() *BatchProcessor {
+func (po *PerformanceOptimizer) GetBatchProcessor() BatchProcessor {
 	return po.batchProcessor
 }
 

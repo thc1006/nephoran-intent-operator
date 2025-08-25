@@ -14,7 +14,7 @@ import (
 	"github.com/google/pprof/profile"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	// "github.com/stretchr/testify/require"
 )
 
 // IntentProcessingBenchmarks validates all claimed performance metrics for intent processing
@@ -167,7 +167,7 @@ func (b *IntentProcessingBenchmarks) BenchmarkIntentProcessingLatency(tb testing
 		"persistance":    make([]time.Duration, 0),
 	}
 
-	tb.ResetTimer()
+	// b.ResetTimer()
 
 	for i := 0; i < b.config.StatisticalSamples; i++ {
 		start := time.Now()
@@ -202,7 +202,7 @@ func (b *IntentProcessingBenchmarks) BenchmarkIntentProcessingLatency(tb testing
 		}
 	}
 
-	tb.StopTimer()
+	// b.StopTimer()
 
 	// Calculate comprehensive latency metrics
 	latencyMetrics := b.analyzeLatencyMetrics(samples, componentLatencies)
@@ -414,7 +414,7 @@ func (b *IntentProcessingBenchmarks) BenchmarkRAGRetrievalLatency(tb testing.TB)
 	cacheHits := 0
 	cacheMisses := 0
 
-	tb.ResetTimer()
+	// b.ResetTimer()
 
 	for i := 0; i < b.config.StatisticalSamples; i++ {
 		start := time.Now()
@@ -430,7 +430,7 @@ func (b *IntentProcessingBenchmarks) BenchmarkRAGRetrievalLatency(tb testing.TB)
 		samples = append(samples, latency)
 	}
 
-	tb.StopTimer()
+	// b.StopTimer()
 
 	// Analyze RAG performance
 	ragMetrics := b.analyzeRAGMetrics(samples, cacheHits, cacheMisses)

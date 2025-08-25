@@ -450,6 +450,8 @@ type RenderError struct {
 
 // WorkflowSpec defines the desired state of a workflow
 type WorkflowSpec struct {
+	Name        string            `json:"name"`
+	Namespace   string            `json:"namespace"`
 	Stages      []WorkflowStage   `json:"stages"`
 	Triggers    []WorkflowTrigger `json:"triggers,omitempty"`
 	Approvers   []Approver        `json:"approvers,omitempty"`

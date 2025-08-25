@@ -164,7 +164,6 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 
-	success := false
 
 	for {
 		select {
@@ -178,11 +177,10 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 			}
 
 			// Consider latency measured when intent reaches processing phase
-			if testIntent.Status.Phase == nephranv1.PhaseProcessing ||
-				testIntent.Status.Phase == nephranv1.PhaseResourcePlanning ||
-				testIntent.Status.Phase == nephranv1.PhaseManifestGeneration ||
-				testIntent.Status.Phase == nephranv1.PhaseDeployed {
-				success = true
+			if testIntent.Status.Phase == "Processing" ||
+				testIntent.Status.Phase == "ResourcePlanning" ||
+				testIntent.Status.Phase == "ManifestGeneration" ||
+				testIntent.Status.Phase == "Deployed" {
 				latency := time.Since(startTime)
 
 				// Cleanup
@@ -194,7 +192,7 @@ func (pb *PerformanceBenchmarker) measureSingleRequestLatency(ctx context.Contex
 			}
 
 			// If failed, cleanup and return
-			if testIntent.Status.Phase == nephranv1.PhaseFailed {
+			if testIntent.Status.Phase == "Failed" {
 				pb.k8sClient.Delete(ctx, testIntent)
 				return 0, false
 			}
@@ -332,7 +330,7 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 				continue
 			}
 
-			if testIntent.Status.Phase != "" && testIntent.Status.Phase != nephranv1.PhasePending {
+			if testIntent.Status.Phase != "" && testIntent.Status.Phase != "Pending" {
 				latency := time.Since(startTime)
 
 				// Async cleanup
@@ -340,7 +338,7 @@ func (pb *PerformanceBenchmarker) processThroughputIntent(ctx context.Context, w
 					pb.k8sClient.Delete(context.Background(), testIntent)
 				}()
 
-				return latency, testIntent.Status.Phase != nephranv1.PhaseFailed
+				return latency, testIntent.Status.Phase != "Failed"
 			}
 		}
 	}
@@ -430,8 +428,8 @@ func (pb *PerformanceBenchmarker) runScalabilityTest(ctx context.Context, concur
 						continue
 					}
 
-					if testIntent.Status.Phase != "" && testIntent.Status.Phase != nephranv1.PhasePending {
-						if testIntent.Status.Phase != nephranv1.PhaseFailed {
+					if testIntent.Status.Phase != "" && testIntent.Status.Phase != "Pending" {
+						if testIntent.Status.Phase != "Failed" {
 							atomic.AddInt64(&successCount, 1)
 						} else {
 							atomic.AddInt64(&failCount, 1)

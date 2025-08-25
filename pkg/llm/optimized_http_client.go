@@ -278,13 +278,18 @@ type OptimizedRequest struct {
 
 // OptimizedResponse represents a pooled HTTP response
 type OptimizedResponse struct {
-	StatusCode int
-	Headers    map[string]string
-	Body       []byte
-	Size       int
-	Latency    time.Duration
-	FromCache  bool
-	Metadata   map[string]interface{}
+	StatusCode     int
+	Headers        map[string]string
+	Body           []byte
+	Size           int
+	Latency        time.Duration
+	FromCache      bool
+	Content        string // LLM response content
+	FromBatch      bool   // Whether from batch processing
+	TokensUsed     int    // Number of tokens used
+	ProcessingTime time.Duration // Processing time
+	Response       string // Alias for Content
+	Metadata       map[string]interface{}
 }
 
 // ProcessLLMRequest processes an LLM request with all optimizations

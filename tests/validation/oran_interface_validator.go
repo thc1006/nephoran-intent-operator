@@ -1084,6 +1084,10 @@ func (oiv *ORANInterfaceValidator) testNETCONFOperations(ctx context.Context) bo
 		"transport": "SSH",
 		"status":    "active",
 	}
+	// Validate session establishment
+	if session["status"] != "active" {
+		return false
+	}
 
 	// Test get operation
 	getConfig := map[string]interface{}{
@@ -1411,3 +1415,4 @@ func (oiv *ORANInterfaceValidator) Cleanup() {
 		oiv.e2MockService.Cleanup()
 	}
 }
+

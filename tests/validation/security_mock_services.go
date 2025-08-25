@@ -5,10 +5,14 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/tls"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"math/big"
+	mathrand "math/rand"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -259,7 +263,7 @@ func (o *OAuthMockService) refreshAccessToken(refreshToken string) TokenInfo {
 }
 
 func (o *OAuthMockService) generateRandomToken() string {
-	return fmt.Sprintf("tok_%d_%d", time.Now().UnixNano(), rand.Int63())
+	return fmt.Sprintf("tok_%d_%d", time.Now().UnixNano(), mathrand.Int63())
 }
 
 // Cleanup stops the OAuth mock server
@@ -370,9 +374,9 @@ func (t *TLSMockService) generateCertificate(commonName string, caCert *x509.Cer
 	// Create certificate template
 	template := x509.Certificate{
 		SerialNumber: big.NewInt(1),
-		Subject: x509.Certificate{
+		Subject: pkix.Name{
 			CommonName: commonName,
-		}.Subject,
+		},
 		NotBefore:   time.Now(),
 		NotAfter:    time.Now().Add(365 * 24 * time.Hour),
 		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
@@ -625,7 +629,7 @@ func (v *VulnerabilityScanMock) SimulateDependencyScan() bool {
 	vulnerableDeps := 0
 	for _, dep := range dependencies {
 		// Simulate 90% pass rate
-		if rand.Intn(10) < 1 {
+		if mathrand.Intn(10) < 1 {
 			vulnerableDeps++
 			ginkgo.By(fmt.Sprintf("⚠️ Vulnerable dependency found: %s", dep))
 		}
@@ -780,7 +784,7 @@ func (s *SecurityPolicyMock) ValidatePolicy(policyName string) bool {
 	violations := 0
 	for _, rule := range policy.Rules {
 		// Simulate 95% compliance rate
-		if rand.Intn(100) < 5 {
+		if mathrand.Intn(100) < 5 {
 			violations++
 			s.violations = append(s.violations, PolicyViolation{
 				Rule:        rule.RuleID,
