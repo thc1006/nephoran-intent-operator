@@ -84,15 +84,15 @@ type PorchIntegrationConfig struct {
 
 // PorchIntegrationMetrics provides comprehensive metrics for Porch integration
 type PorchIntegrationMetrics struct {
-	PackageCreations   prometheus.CounterVec
-	PackageRevisions   prometheus.CounterVec
-	FunctionExecutions prometheus.CounterVec
-	PipelineExecutions prometheus.CounterVec
-	ExecutionDuration  prometheus.HistogramVec
-	PackageSize        prometheus.HistogramVec
+	PackageCreations   *prometheus.CounterVec
+	PackageRevisions   *prometheus.CounterVec
+	FunctionExecutions *prometheus.CounterVec
+	PipelineExecutions *prometheus.CounterVec
+	ExecutionDuration  *prometheus.HistogramVec
+	PackageSize        *prometheus.HistogramVec
 	CacheHitRate       prometheus.Counter
 	CacheMissRate      prometheus.Counter
-	ErrorRate          prometheus.CounterVec
+	ErrorRate          *prometheus.CounterVec
 }
 
 // FunctionEvalTask represents a function evaluation task for Porch

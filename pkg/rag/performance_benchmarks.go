@@ -4,16 +4,17 @@ package rag
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"golang.org/x/sync/errgroup"
 )
 
 // PerformanceBenchmarker provides comprehensive performance benchmarking

@@ -21,6 +21,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
+// RevocationStatus represents the revocation status of a certificate
+type RevocationStatus string
+
+const (
+	RevocationStatusUnknown RevocationStatus = "unknown"
+	RevocationStatusValid   RevocationStatus = "valid"
+	RevocationStatusRevoked RevocationStatus = "revoked"
+)
 // EnhancedRevocationSystem provides comprehensive revocation checking with performance optimization
 type EnhancedRevocationSystem struct {
 	config            *EnhancedRevocationConfig
@@ -180,6 +188,7 @@ type L1RevocationCache struct {
 }
 
 // RevocationCacheEntry represents a cached revocation check result
+// RevocationStatus represents the revocation status of a certificate
 type RevocationCacheEntry struct {
 	SerialNumber string
 	Status       RevocationStatus

@@ -21,9 +21,13 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"k8s.io/client-go/util/flowcontrol"
 )
 
 // Mock Porch v1alpha1 types
@@ -63,91 +67,57 @@ const (
 )
 
 type Task struct {
-	Type   string             `json:"type"`
-	Clone  *PackageCloneTask  `json:"clone,omitempty"`
-	Patch  *PackagePatchTask  `json:"patch,omitempty"`
-	Edit   *PackageEditTask   `json:"edit,omitempty"`
-	Eval   *FunctionEvalTask  `json:"eval,omitempty"`
+	Type string `json:"type,omitempty"`
 }
-
-type PackageCloneTask struct {
-	Upstream UpstreamPackage `json:"upstream"`
-}
-
-type PackagePatchTask struct {
-	Patches []PatchSpec `json:"patches"`
-}
-
-type PackageEditTask struct {
-	Source *PackageEditTaskSource `json:"source,omitempty"`
-}
-
-type PackageEditTaskSource struct {
-	Git *GitPackage `json:"git,omitempty"`
-}
-
-type GitPackage struct {
-	Repo      string `json:"repo"`
-	Ref       string `json:"ref"`
-	Directory string `json:"directory"`
-}
-
-type FunctionEvalTask struct {
-	Image        string                 `json:"image"`
-	ConfigMap    map[string]string      `json:"configMap,omitempty"`
-	Exec         string                 `json:"exec,omitempty"`
-	EnableStderr bool                   `json:"enableStderr,omitempty"`
-	Env          []runtime.RawExtension `json:"env,omitempty"`
-}
-
-type PatchSpec struct {
-	File      string `json:"file"`
-	Contents  string `json:"contents"`
-	PatchType string `json:"patchType,omitempty"`
-}
-
-type UpstreamPackage struct {
-	Git  *GitPackage  `json:"git,omitempty"`
-	Oci  *OciPackage  `json:"oci,omitempty"`
-	Type OriginType   `json:"type,omitempty"`
-}
-
-type OciPackage struct {
-	Image string `json:"image"`
-}
-
-type OriginType string
-
-const (
-	OriginTypeGit OriginType = "git"
-	OriginTypeOci OriginType = "oci"
-)
 
 type UpstreamLock struct {
-	Type OriginType   `json:"type"`
-	Git  *GitLock     `json:"git,omitempty"`
-	Oci  *OciLock     `json:"oci,omitempty"`
+	Type string `json:"type,omitempty"`
+	Git  GitLock `json:"git,omitempty"`
 }
 
 type GitLock struct {
-	Repo      string `json:"repo"`
-	Directory string `json:"directory"`
-	Ref       string `json:"ref"`
-	Commit    string `json:"commit"`
-}
-
-type OciLock struct {
-	Image  string `json:"image"`
-	Digest string `json:"digest"`
+	Repo      string `json:"repo,omitempty"`
+	Directory string `json:"directory,omitempty"`
+	Ref       string `json:"ref,omitempty"`
+	Commit    string `json:"commit,omitempty"`
 }
 
 type DeploymentStatus struct {
-	Status     string `json:"status,omitempty"`
-	Message    string `json:"message,omitempty"`
-	LastUpdate string `json:"lastUpdate,omitempty"`
+	Status string `json:"status,omitempty"`
 }
 
-// Repository mocks the Nephio Porch Repository type
+// PackageRevisionResources mocks the resources associated with a PackageRevision
+type PackageRevisionResources struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+	
+	Spec   PackageRevisionResourcesSpec   `json:"spec,omitempty"`
+	Status PackageRevisionResourcesStatus `json:"status,omitempty"`
+}
+
+type PackageRevisionResourcesSpec struct {
+	PackageName string            `json:"packageName,omitempty"`
+	Revision    string            `json:"revision,omitempty"`
+	Resources   map[string]string `json:"resources,omitempty"`
+}
+
+type PackageRevisionResourcesStatus struct {
+	RenderStatus RenderStatus `json:"renderStatus,omitempty"`
+}
+
+type RenderStatus struct {
+	Result string            `json:"result,omitempty"`
+	Errors []RenderError     `json:"errors,omitempty"`
+}
+
+type RenderError struct {
+	File    string `json:"file,omitempty"`
+	Index   int    `json:"index,omitempty"`
+	Path    string `json:"path,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+// Repository mocks the Porch Repository type
 type Repository struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -157,76 +127,76 @@ type Repository struct {
 }
 
 type RepositorySpec struct {
-	Description string         `json:"description,omitempty"`
-	Type        RepositoryType `json:"type"`
-	Content     RepositoryContent `json:"content,omitempty"`
-	Deployment  RepositoryDeployment `json:"deployment,omitempty"`
-	Git         *GitRepository       `json:"git,omitempty"`
-	Oci         *OciRepository       `json:"oci,omitempty"`
+	Type        string     `json:"type,omitempty"`
+	Content     string     `json:"content,omitempty"`
+	Deployment  bool       `json:"deployment,omitempty"`
+	Git         *GitSpec   `json:"git,omitempty"`
+	Oci         *OciSpec   `json:"oci,omitempty"`
+	Description string     `json:"description,omitempty"`
 }
 
-type RepositoryType string
-
-const (
-	RepositoryTypeGit RepositoryType = "git"
-	RepositoryTypeOci RepositoryType = "oci"
-)
-
-type RepositoryContent string
-
-const (
-	RepositoryContentPackage RepositoryContent = "Package"
-	RepositoryContentFunction RepositoryContent = "Function"
-)
-
-type RepositoryDeployment bool
-
-type GitRepository struct {
-	Repo      string `json:"repo"`
-	Branch    string `json:"branch"`
-	Directory string `json:"directory"`
-	SecretRef SecretRef `json:"secretRef,omitempty"`
+type GitSpec struct {
+	Repo      string          `json:"repo,omitempty"`
+	Branch    string          `json:"branch,omitempty"`
+	Directory string          `json:"directory,omitempty"`
+	SecretRef *SecretReference `json:"secretRef,omitempty"`
 }
 
-type OciRepository struct {
-	Registry string `json:"registry"`
+type OciSpec struct {
+	Registry  string          `json:"registry,omitempty"`
+	SecretRef *SecretReference `json:"secretRef,omitempty"`
 }
 
-type SecretRef struct {
-	Name string `json:"name"`
+type SecretReference struct {
+	Name string `json:"name,omitempty"`
 }
 
 type RepositoryStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
-// Mock Intent v1alpha1 types
-
-// Intent mocks the Nephio Intent type
-type Intent struct {
+// Function represents a Porch Function
+type Function struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 	
-	Spec   IntentSpec   `json:"spec,omitempty"`
-	Status IntentStatus `json:"status,omitempty"`
+	Spec   FunctionSpec   `json:"spec,omitempty"`
+	Status FunctionStatus `json:"status,omitempty"`
 }
 
-type IntentSpec struct {
-	PackageName string            `json:"packageName"`
-	Repository  string            `json:"repository"`
-	Revision    string            `json:"revision,omitempty"`
-	Lifecycle   string            `json:"lifecycle,omitempty"`
-	Parameters  map[string]string `json:"parameters,omitempty"`
+type FunctionSpec struct {
+	Image        string            `json:"image,omitempty"`
+	Description  string            `json:"description,omitempty"`
+	RepositoryRef RepositoryRef    `json:"repositoryRef,omitempty"`
+	Keywords     []string          `json:"keywords,omitempty"`
 }
 
-type IntentStatus struct {
+type RepositoryRef struct {
+	Name string `json:"name,omitempty"`
+}
+
+type FunctionStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
-	Phase      string             `json:"phase,omitempty"`
-	Message    string             `json:"message,omitempty"`
 }
 
-// Mock client interface
-type Client interface {
+// Mock REST Config
+type MockRESTConfig struct {
+	HostURL     string
+	APIPathURL  string
+	Username    string
+	Password    string
+}
+
+func (m *MockRESTConfig) Host() string {
+	return m.HostURL
+}
+
+func (m *MockRESTConfig) APIPath() string {
+	return m.APIPathURL
+}
+
+// Client interface to match controller-runtime client
+type MockClient interface {
 	Get(ctx context.Context, key client.ObjectKey, obj client.Object) error
 	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error
 	Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error
@@ -281,16 +251,292 @@ func (m *MockNephioClient) Patch(ctx context.Context, obj client.Object, patch c
 	return nil
 }
 
-// Test environment setup helpers
-func NewTestConfig() *rest.Config {
-	return &rest.Config{
-		Host:    "http://localhost:8080",
-		QPS:     100,
-		Burst:   150,
-		Timeout: 30 * time.Second,
+func (m *MockNephioClient) DeleteAllOf(ctx context.Context, obj client.Object, opts ...client.DeleteAllOfOption) error {
+	// Mock implementation
+	return nil
+}
+
+func (m *MockNephioClient) Status() client.StatusWriter {
+	return &MockStatusWriter{}
+}
+
+func (m *MockNephioClient) Scheme() *runtime.Scheme {
+	return runtime.NewScheme()
+}
+
+func (m *MockNephioClient) RESTMapper() meta.RESTMapper {
+	return &MockRESTMapper{}
+}
+
+// Mock StatusWriter
+type MockStatusWriter struct{}
+
+func (m *MockStatusWriter) Update(ctx context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
+	return nil
+}
+
+func (m *MockStatusWriter) Create(ctx context.Context, obj client.Object, subResource client.Object, opts ...client.SubResourceCreateOption) error {
+	return nil
+}
+
+func (m *MockStatusWriter) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
+	return nil
+}
+
+// Mock RESTMapper
+type MockRESTMapper struct{}
+
+func (m *MockRESTMapper) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
+	return schema.GroupVersionKind{}, nil
+}
+
+func (m *MockRESTMapper) KindsFor(resource schema.GroupVersionResource) ([]schema.GroupVersionKind, error) {
+	return nil, nil
+}
+
+func (m *MockRESTMapper) ResourceFor(input schema.GroupVersionResource) (schema.GroupVersionResource, error) {
+	return schema.GroupVersionResource{}, nil
+}
+
+func (m *MockRESTMapper) ResourcesFor(input schema.GroupVersionResource) ([]schema.GroupVersionResource, error) {
+	return nil, nil
+}
+
+func (m *MockRESTMapper) RESTMapping(gk schema.GroupKind, versions ...string) (*meta.RESTMapping, error) {
+	return nil, nil
+}
+
+func (m *MockRESTMapper) RESTMappings(gk schema.GroupKind, versions ...string) ([]*meta.RESTMapping, error) {
+	return nil, nil
+}
+
+func (m *MockRESTMapper) ResourceSingularizer(resource string) (singular string, err error) {
+	return "", nil
+}
+
+// Porch Service mocks
+
+type MockPorchService struct {
+	Packages    []*PackageRevision
+	Repositories []*Repository
+	Functions    []*Function
+}
+
+func NewMockPorchService() *MockPorchService {
+	return &MockPorchService{
+		Packages:    []*PackageRevision{},
+		Repositories: []*Repository{},
+		Functions:    []*Function{},
 	}
 }
 
-func SetupTestEnvironment() (*rest.Config, error) {
-	return NewTestConfig(), nil
+func (m *MockPorchService) CreatePackage(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
+	// Mock package creation
+	pkg.Status.Conditions = []metav1.Condition{
+		{
+			Type:               "Ready",
+			Status:             metav1.ConditionTrue,
+			Reason:             "Created",
+			Message:            "Package created successfully",
+			LastTransitionTime: metav1.NewTime(time.Now()),
+		},
+	}
+	m.Packages = append(m.Packages, pkg)
+	return pkg, nil
+}
+
+func (m *MockPorchService) GetPackage(ctx context.Context, name, namespace string) (*PackageRevision, error) {
+	for _, pkg := range m.Packages {
+		if pkg.Name == name && pkg.Namespace == namespace {
+			return pkg, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *MockPorchService) UpdatePackage(ctx context.Context, pkg *PackageRevision) (*PackageRevision, error) {
+	for i, existingPkg := range m.Packages {
+		if existingPkg.Name == pkg.Name && existingPkg.Namespace == pkg.Namespace {
+			m.Packages[i] = pkg
+			return pkg, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *MockPorchService) DeletePackage(ctx context.Context, name, namespace string) error {
+	for i, pkg := range m.Packages {
+		if pkg.Name == name && pkg.Namespace == namespace {
+			m.Packages = append(m.Packages[:i], m.Packages[i+1:]...)
+			return nil
+		}
+	}
+	return nil
+}
+
+func (m *MockPorchService) ListPackages(ctx context.Context, namespace string) ([]*PackageRevision, error) {
+	var result []*PackageRevision
+	for _, pkg := range m.Packages {
+		if pkg.Namespace == namespace || namespace == "" {
+			result = append(result, pkg)
+		}
+	}
+	return result, nil
+}
+
+func (m *MockPorchService) PublishPackage(ctx context.Context, name, namespace string) (*PackageRevision, error) {
+	for _, pkg := range m.Packages {
+		if pkg.Name == name && pkg.Namespace == namespace {
+			pkg.Spec.Lifecycle = PackageRevisionLifecyclePublished
+			pkg.Status.PublishedBy = "mock-user"
+			now := metav1.NewTime(time.Now())
+			pkg.Status.PublishedAt = &now
+			return pkg, nil
+		}
+	}
+	return nil, nil
+}
+
+// Additional helper functions for tests
+
+func CreateMockPackageRevision(name, namespace, packageName string) *PackageRevision {
+	return &PackageRevision{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "porch.kpt.dev/v1alpha1",
+			Kind:       "PackageRevision",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: PackageRevisionSpec{
+			PackageName: packageName,
+			Repository:  "mock-repo",
+			Revision:    "v1.0.0",
+			Lifecycle:   PackageRevisionLifecycleDraft,
+		},
+		Status: PackageRevisionStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               "Ready",
+					Status:             metav1.ConditionTrue,
+					Reason:             "Initialized",
+					Message:            "Package revision initialized",
+					LastTransitionTime: metav1.NewTime(time.Now()),
+				},
+			},
+		},
+	}
+}
+
+func CreateMockRepository(name, namespace, repoType string) *Repository {
+	return &Repository{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "config.porch.kpt.dev/v1alpha1",
+			Kind:       "Repository",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: RepositorySpec{
+			Type:       repoType,
+			Content:    "Package",
+			Deployment: true,
+			Git: &GitSpec{
+				Repo:   "https://github.com/example/repo.git",
+				Branch: "main",
+			},
+		},
+		Status: RepositoryStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               "Ready",
+					Status:             metav1.ConditionTrue,
+					Reason:             "Registered",
+					Message:            "Repository registered successfully",
+					LastTransitionTime: metav1.NewTime(time.Now()),
+				},
+			},
+		},
+	}
+}
+
+func CreateMockFunction(name, namespace, image string) *Function {
+	return &Function{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "config.porch.kpt.dev/v1alpha1",
+			Kind:       "Function",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: FunctionSpec{
+			Image:       image,
+			Description: "Mock function for testing",
+			Keywords:    []string{"mock", "test"},
+		},
+		Status: FunctionStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               "Ready",
+					Status:             metav1.ConditionTrue,
+					Reason:             "Available",
+					Message:            "Function is available",
+					LastTransitionTime: metav1.NewTime(time.Now()),
+				},
+			},
+		},
+	}
+}
+
+// Mock REST Config factory
+func NewMockRESTConfig() *rest.Config {
+	return &rest.Config{
+		Host:        "http://mock-api-server:8080",
+		APIPath:     "/api",
+		Username:    "mock-user",
+		Password:    "mock-password",
+	}
+}
+
+// Mock client factory
+func NewMockRESTClient() rest.Interface {
+	return &MockRESTClient{}
+}
+
+// Mock REST Client implementation
+type MockRESTClient struct{}
+
+func (m *MockRESTClient) GetRateLimiter() flowcontrol.RateLimiter {
+	return nil
+}
+
+func (m *MockRESTClient) Verb(verb string) *rest.Request {
+	return &rest.Request{}
+}
+
+func (m *MockRESTClient) Post() *rest.Request {
+	return &rest.Request{}
+}
+
+func (m *MockRESTClient) Put() *rest.Request {
+	return &rest.Request{}
+}
+
+func (m *MockRESTClient) Patch(pt types.PatchType) *rest.Request {
+	return &rest.Request{}
+}
+
+func (m *MockRESTClient) Get() *rest.Request {
+	return &rest.Request{}
+}
+
+func (m *MockRESTClient) Delete() *rest.Request {
+	return &rest.Request{}
+}
+
+func (m *MockRESTClient) APIVersion() schema.GroupVersion {
+	return schema.GroupVersion{Group: "", Version: "v1"}
 }

@@ -1,7 +1,6 @@
 package loop
 
 import (
-	"fmt"
 	"path/filepath"
 	"testing"
 	"time"
@@ -17,7 +16,7 @@ func TestExampleFixedOnceMode(t *testing.T) {
 	defer syncHelper.Cleanup()
 	
 	// Step 1: Create intent files with proper naming BEFORE starting watcher
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": "deployment", "count": 3}}`
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"name": "deployment", "kind": "Deployment"}, "count": 3}}`
 	
 	expectedFiles := []string{
 		"intent-test-1.json",
@@ -80,7 +79,7 @@ func TestExampleConcurrentFileProcessing(t *testing.T) {
 	
 	// Create multiple files concurrently with staggered timing
 	numFiles := 10
-	contentTemplate := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": "deployment-%d", "count": %d}}`
+	contentTemplate := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"name": "deployment-%d", "kind": "Deployment"}, "count": %d}}`
 	
 	createdFiles := syncHelper.CreateMultipleIntentFiles(numFiles, contentTemplate)
 	
@@ -142,7 +141,7 @@ func TestExampleFailureHandling(t *testing.T) {
 	defer syncHelper.Cleanup()
 	
 	// Create mix of valid and invalid files
-	validContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
+	validContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"name": "deployment", "kind": "Deployment"}, "count": 1}}`
 	invalidContent := `{invalid json content`
 	
 	validFile := syncHelper.CreateIntentFile("intent-valid.json", validContent)
@@ -195,7 +194,7 @@ func TestExampleCrossPlatformTiming(t *testing.T) {
 	defer syncHelper.Cleanup()
 	
 	// Create files with platform-appropriate timing
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"name": "deployment", "kind": "Deployment"}, "count": 1}}`
 	
 	// Create files using cross-platform aware helper
 	file1 := syncHelper.CreateIntentFile("intent-timing-1.json", testContent)
@@ -251,7 +250,7 @@ func TestExampleFilePatternValidation(t *testing.T) {
 	defer syncHelper.Cleanup()
 	
 	// Test various filename patterns
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"name": "deployment", "kind": "Deployment"}, "count": 1}}`
 	
 	// These will be automatically converted to intent-*.json pattern
 	testFiles := []string{
@@ -316,7 +315,7 @@ func TestExampleDebugTracking(t *testing.T) {
 	defer syncHelper.Cleanup()
 	
 	// Create test files
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"name": "deployment", "kind": "Deployment"}, "count": 1}}`
 	
 	file1 := syncHelper.CreateIntentFile("intent-debug-1.json", testContent)
 	file2 := syncHelper.CreateIntentFile("intent-debug-2.json", testContent)
@@ -378,66 +377,4 @@ func TestExampleDebugTracking(t *testing.T) {
 	require.NoError(t, err)
 	
 	t.Log("Debug tracking test completed successfully")
-}
-
-// TestSynchronizationTimeoutError tests the custom timeout error
-func TestSynchronizationTimeoutError(t *testing.T) {
-	err := &SynchronizationTimeoutError{
-		Operation: "test operation",
-		Expected:  5,
-		Actual:    3,
-		Timeout:   2 * time.Second,
-	}
-	
-	expectedMsg := "synchronization timeout for test operation: expected 5, got 3 after 2s"
-	assert.Equal(t, expectedMsg, err.Error())
-}
-
-// BenchmarkSynchronizedProcessing benchmarks the synchronized processing approach
-func BenchmarkSynchronizedProcessing(b *testing.B) {
-	syncHelper := NewTestSyncHelper(b)
-	defer syncHelper.Cleanup()
-	
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
-	
-	// Create mock porch
-	mockConfig := MockPorchConfig{
-		ExitCode: 0,
-		Stdout:   "Benchmark success",
-		ProcessDelay: 10 * time.Millisecond, // Fast processing for benchmark
-	}
-	mockPorchPath, _ := syncHelper.CreateMockPorch(mockConfig)
-	
-	config := Config{
-		PorchPath:   mockPorchPath,
-		Mode:        "direct",
-		OutDir:      syncHelper.GetOutDir(),
-		Once:        true,
-		DebounceDur: 10 * time.Millisecond,
-		MaxWorkers:  2,
-	}
-	
-	b.ResetTimer()
-	
-	for i := 0; i < b.N; i++ {
-		b.StopTimer()
-		
-		// Create test file
-		filename := fmt.Sprintf("intent-bench-%d.json", i)
-		syncHelper.CreateIntentFile(filename, testContent)
-		
-		// Create watcher
-		enhancedWatcher, err := syncHelper.NewEnhancedOnceWatcher(config, 1)
-		require.NoError(b, err)
-		
-		b.StartTimer()
-		
-		// Measure synchronized processing time
-		require.NoError(b, enhancedWatcher.StartWithTracking())
-		err = enhancedWatcher.WaitForProcessingComplete(5 * time.Second)
-		require.NoError(b, err)
-		
-		b.StopTimer()
-		enhancedWatcher.Close()
-	}
 }

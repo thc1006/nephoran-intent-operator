@@ -12,6 +12,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"k8s.io/apimachinery/pkg/util/wait"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // StreamingService provides real-time streaming capabilities for O1 interface
@@ -60,7 +62,7 @@ type StreamConnection struct {
 type StreamSubscription struct {
 	ID                   string
 	Type                 StreamType
-	Filter               *StreamFilter
+	Filter               *oran.StreamFilter
 	Connection           *StreamConnection
 	CreatedAt            time.Time
 	LastMessage          time.Time
@@ -429,7 +431,7 @@ func (s *StreamingService) handleStreamingMessage(conn *StreamConnection, messag
 type StreamingRequest struct {
 	Action         string        `json:"action"`
 	StreamType     StreamType    `json:"stream_type,omitempty"`
-	Filter         *StreamFilter `json:"filter,omitempty"`
+	Filter         *oran.StreamFilter `json:"filter,omitempty"`
 	SubscriptionID string        `json:"subscription_id,omitempty"`
 	QoSLevel       QoSLevel      `json:"qos_level,omitempty"`
 	BufferSize     int           `json:"buffer_size,omitempty"`
@@ -786,7 +788,7 @@ func (eb *EventBus) handleSubscription(subscription *StreamSubscription, ch chan
 	}
 }
 
-func (eb *EventBus) matchesFilter(data interface{}, filter *StreamFilter) bool {
+func (eb *EventBus) matchesFilter(data interface{}, filter *oran.StreamFilter) bool {
 	// Simplified filter implementation
 	// In production, implement comprehensive filtering based on all filter criteria
 	return true

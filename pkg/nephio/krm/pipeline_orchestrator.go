@@ -496,13 +496,13 @@ type StateStorage interface {
 
 // PipelineOrchestratorMetrics provides comprehensive metrics
 type PipelineOrchestratorMetrics struct {
-	PipelineExecutions   prometheus.CounterVec
-	ExecutionDuration    prometheus.HistogramVec
-	StageExecutions      prometheus.CounterVec
-	StageDuration        prometheus.HistogramVec
-	DependencyResolution prometheus.HistogramVec
-	ErrorRate            prometheus.CounterVec
-	ResourceUtilization  prometheus.GaugeVec
+	PipelineExecutions   *prometheus.CounterVec
+	ExecutionDuration    *prometheus.HistogramVec
+	StageExecutions      *prometheus.CounterVec
+	StageDuration        *prometheus.HistogramVec
+	DependencyResolution *prometheus.HistogramVec
+	ErrorRate            *prometheus.CounterVec
+	ResourceUtilization  *prometheus.GaugeVec
 	ActivePipelines      prometheus.Gauge
 	QueueDepth           prometheus.Gauge
 }

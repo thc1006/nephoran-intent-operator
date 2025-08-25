@@ -103,7 +103,7 @@ func (ts *TaskScheduler) processDependencies(task *Task) {
 		case ts.readyTasks <- task:
 			// Task queued successfully
 		default:
-			ts.logger.Warn("Ready task queue full", "taskId", task.ID)
+			ts.logger.Info("Ready task queue full", "taskId", task.ID)
 		}
 	} else {
 		ts.logger.Info("Dependencies not satisfied, waiting", "taskId", task.ID)
@@ -249,7 +249,7 @@ func NewPriorityFirstStrategy() *PriorityFirstStrategy {
 // ScheduleTask schedules a task using priority-first strategy
 func (pfs *PriorityFirstStrategy) ScheduleTask(task *Task, availableWorkers map[string]int) (string, error) {
 	// Map task type to pool name
-	poolName := ts.getPoolNameForTaskType(task.Type)
+	poolName := getPoolNameForTaskType(task.Type)
 
 	// Check if pool has capacity
 	if available, exists := availableWorkers[poolName]; exists && available > 0 {

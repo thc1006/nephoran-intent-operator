@@ -594,20 +594,33 @@ func (pm *PrometheusMetrics) RecordResponseQuality(intentType, enhancementUsed s
 // Batch update methods for efficiency
 
 func (pm *PrometheusMetrics) UpdateRedisCacheMetrics(metrics *RedisCacheMetrics) {
-	categories := []string{"embedding", "document", "query_result", "context"}
-
-	for _, category := range categories {
-		if stats, exists := metrics.CategoryStats[category]; exists {
-			// Update hits/misses
-			pm.UpdateRedisCacheSize(category, stats.SizeBytes)
-
-			// Calculate and update hit rate
-			if stats.Hits+stats.Misses > 0 {
-				hitRate := float64(stats.Hits) / float64(stats.Hits+stats.Misses)
-				pm.UpdateRedisCacheSize(fmt.Sprintf("%s_hit_rate", category), int64(hitRate*100))
-			}
-		}
+	// Update embedding metrics
+	if metrics.EmbeddingHits+metrics.EmbeddingMisses > 0 {
+		hitRate := float64(metrics.EmbeddingHits) / float64(metrics.EmbeddingHits+metrics.EmbeddingMisses)
+		pm.UpdateRedisCacheSize("embedding_hit_rate", int64(hitRate*100))
 	}
+
+	// Update document metrics  
+	if metrics.DocumentHits+metrics.DocumentMisses > 0 {
+		hitRate := float64(metrics.DocumentHits) / float64(metrics.DocumentHits+metrics.DocumentMisses)
+		pm.UpdateRedisCacheSize("document_hit_rate", int64(hitRate*100))
+	}
+
+	// Update query result metrics
+	if metrics.QueryResultHits+metrics.QueryResultMisses > 0 {
+		hitRate := float64(metrics.QueryResultHits) / float64(metrics.QueryResultHits+metrics.QueryResultMisses)
+		pm.UpdateRedisCacheSize("query_result_hit_rate", int64(hitRate*100))
+	}
+
+	// Update context metrics
+	if metrics.ContextHits+metrics.ContextMisses > 0 {
+		hitRate := float64(metrics.ContextHits) / float64(metrics.ContextHits+metrics.ContextMisses)
+		pm.UpdateRedisCacheSize("context_hit_rate", int64(hitRate*100))
+	}
+
+	// Update overall metrics
+	pm.UpdateRedisCacheSize("memory_usage", metrics.MemoryUsage)
+	pm.UpdateRedisCacheSize("key_count", metrics.KeyCount)
 }
 
 func (pm *PrometheusMetrics) UpdateMemoryCacheMetrics(metrics *MemoryCacheMetrics) {

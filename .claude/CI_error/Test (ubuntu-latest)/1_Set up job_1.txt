@@ -1,0 +1,32 @@
+﻿2025-08-19T13:07:33.9961287Z Current runner version: '2.327.1'
+2025-08-19T13:07:33.9985591Z ##[group]Runner Image Provisioner
+2025-08-19T13:07:33.9986399Z Hosted Compute Agent
+2025-08-19T13:07:33.9987058Z Version: 20250818.377
+2025-08-19T13:07:33.9987637Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
+2025-08-19T13:07:33.9988325Z Build Date: 2025-08-18T14:52:18Z
+2025-08-19T13:07:33.9988974Z ##[endgroup]
+2025-08-19T13:07:33.9989692Z ##[group]Operating System
+2025-08-19T13:07:33.9990338Z Ubuntu
+2025-08-19T13:07:33.9990835Z 24.04.2
+2025-08-19T13:07:33.9991331Z LTS
+2025-08-19T13:07:33.9991746Z ##[endgroup]
+2025-08-19T13:07:33.9992256Z ##[group]Runner Image
+2025-08-19T13:07:33.9992800Z Image: ubuntu-24.04
+2025-08-19T13:07:33.9993306Z Version: 20250810.1.0
+2025-08-19T13:07:33.9994256Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250810.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-19T13:07:33.9995677Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250810.1
+2025-08-19T13:07:33.9996845Z ##[endgroup]
+2025-08-19T13:07:33.9998071Z ##[group]GITHUB_TOKEN Permissions
+2025-08-19T13:07:34.0000081Z Contents: read
+2025-08-19T13:07:34.0000787Z Metadata: read
+2025-08-19T13:07:34.0001310Z Packages: write
+2025-08-19T13:07:34.0001844Z SecurityEvents: write
+2025-08-19T13:07:34.0002450Z ##[endgroup]
+2025-08-19T13:07:34.0004486Z Secret source: Actions
+2025-08-19T13:07:34.0005431Z Prepare workflow directory
+2025-08-19T13:07:34.0445708Z Prepare all required actions
+2025-08-19T13:07:34.0482859Z Getting action download info
+2025-08-19T13:07:34.4919452Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-08-19T13:07:35.2241808Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+2025-08-19T13:07:36.0944552Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-08-19T13:07:36.2747098Z Complete job name: Test (ubuntu-latest)

@@ -81,20 +81,20 @@ type CacheConfig struct {
 // DependencyResolverMetrics tracks resolver metrics
 type DependencyResolverMetrics struct {
 	resolutionsTotal        *prometheus.CounterVec
-	resolutionTime          *prometheus.Histogram
-	resolutionCacheHits     *prometheus.Counter
-	resolutionCacheMisses   *prometheus.Counter
-	graphsBuilt             *prometheus.Counter
-	graphBuildTime          *prometheus.Histogram
-	graphNodeCount          *prometheus.Histogram
-	graphEdgeCount          *prometheus.Histogram
-	graphCacheHits          *prometheus.Counter
-	graphCacheMisses        *prometheus.Counter
-	versionSolveTime        *prometheus.Histogram
-	versionSolvesTotal      *prometheus.CounterVec
-	updatePropagationsTotal *prometheus.Counter
-	updatePropagationTime   *prometheus.Histogram
-	propagatedUpdates       *prometheus.Counter
+	resolutionTime          prometheus.Histogram
+	resolutionCacheHits     prometheus.Counter
+	resolutionCacheMisses   prometheus.Counter
+	graphsBuilt             prometheus.Counter
+	graphBuildTime          prometheus.Histogram
+	graphNodeCount          prometheus.Histogram
+	graphEdgeCount          prometheus.Histogram
+	graphCacheHits          prometheus.Counter
+	graphCacheMisses        prometheus.Counter
+	versionSolveTime        prometheus.Histogram
+	versionSolvesTotal      prometheus.CounterVec
+	updatePropagationsTotal prometheus.Counter
+	updatePropagationTime   prometheus.Histogram
+	propagatedUpdates       prometheus.Counter
 }
 
 // Version Solver supporting types
@@ -339,7 +339,7 @@ func (rp *ResolverPool) worker() {
 	defer rp.wg.Done()
 	for {
 		select {
-		case task := <-rp.queue:
+		case _ = <-rp.queue:
 			// Process resolution task
 			// Implementation would handle the actual resolution
 		case <-rp.shutdown:

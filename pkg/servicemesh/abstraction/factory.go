@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -33,7 +34,7 @@ type ServiceMeshFactory struct {
 	dynamicClient client.Client
 	config        *rest.Config
 	detector      *ServiceMeshDetector
-	logger        log.Logger
+	logger        logr.Logger
 }
 
 // NewServiceMeshFactory creates a new service mesh factory

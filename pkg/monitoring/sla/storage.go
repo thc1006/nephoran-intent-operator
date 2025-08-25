@@ -583,7 +583,7 @@ func (sm *StorageManager) WriteDataPoint(seriesName string, point *DataPoint) er
 	start := time.Now()
 	defer func() {
 		sm.metrics.WriteLatency.WithLabelValues(seriesName, "single").Observe(time.Since(start).Seconds())
-		atomic.AddUint64(&sm.writesCount, 1)
+		sm.writesCount.Add(1)
 	}()
 
 	// Add to write buffer
@@ -608,7 +608,7 @@ func (sm *StorageManager) WriteDataPoints(seriesName string, points []*DataPoint
 	start := time.Now()
 	defer func() {
 		sm.metrics.WriteLatency.WithLabelValues(seriesName, "batch").Observe(time.Since(start).Seconds())
-		atomic.AddUint64(&sm.writesCount, uint64(len(points)))
+		sm.writesCount.Add(uint64(len(points)))
 	}()
 
 	sm.writeBuffer.mu.Lock()
@@ -632,7 +632,7 @@ func (sm *StorageManager) ReadTimeSeries(seriesName string, start, end time.Time
 	readStart := time.Now()
 	defer func() {
 		sm.metrics.ReadLatency.WithLabelValues(seriesName, "combined").Observe(time.Since(readStart).Seconds())
-		atomic.AddUint64(&sm.readsCount, 1)
+		sm.readsCount.Add(1)
 	}()
 
 	// Generate cache key
@@ -1169,7 +1169,7 @@ func (sm *StorageManager) performCompaction(task *CompactionTask) {
 	defer func() {
 		sm.metrics.CompactionLatency.Observe(time.Since(start).Seconds())
 		sm.metrics.CompactionsTotal.Inc()
-		atomic.AddUint64(&sm.compactionsCount, 1)
+		sm.compactionsCount.Add(1)
 	}()
 
 	sm.logger.InfoWithContext("Performing compaction", "task_type", task.Type)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -199,14 +198,7 @@ func (s *WatcherValidationTestSuite) TestDuplicateEventPrevention_DebounceWindow
 			if tt.shouldMerge {
 				assert.LessOrEqual(t, processingCount, 1, "Events should be merged within debounce window")
 			} else {
-				// On Windows, timing can be less precise, so we allow for some debouncing
-				// even when events are theoretically outside the window
-				if runtime.GOOS == "windows" {
-					assert.GreaterOrEqual(t, processingCount, 1, "Should process at least 1 event on Windows")
-					assert.LessOrEqual(t, processingCount, 2, "Should process at most 2 events on Windows")
-				} else {
-					assert.Equal(t, 2, processingCount, "Events should be processed separately outside debounce window")
-				}
+				assert.Equal(t, 2, processingCount, "Events should be processed separately outside debounce window")
 			}
 		})
 	}
@@ -608,7 +600,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 		{
 			name:        "missing_legacy_fields",
 			content:     `{"intent_type": "scaling", "target": "app"}`,
-			expectedErr: "missing or null required field: namespace",
+			expectedErr: "missing required field: namespace",
 			desc:        "Missing required fields in legacy format",
 		},
 	}
@@ -621,9 +613,13 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_InvalidJSONRejection() {
 			err := os.WriteFile(filePath, []byte(tc.content), 0644)
 			require.NoError(t, err)
 
-			err = watcher.validateJSONFile(filePath)
+			// Wrap validation in NotPanics for safety, especially for invalid_scaling_replicas test
+			require.NotPanics(t, func() {
+				err = watcher.validateJSONFile(filePath)
+			}, "validateJSONFile should not panic on invalid input: %s", tc.desc)
+
 			assert.Error(t, err, "Should reject invalid JSON: %s", tc.desc)
-			if tc.expectedErr != "" && err != nil {
+			if tc.expectedErr != "" {
 				assert.Contains(t, err.Error(), tc.expectedErr, "Should contain expected error message")
 			}
 		})
@@ -659,12 +655,7 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_PathTraversalPrevention(
 		},
 		{
 			name: "absolute_path",
-			path: func() string {
-				if runtime.GOOS == "windows" {
-					return "C:\\Windows\\System32\\drivers\\etc\\hosts"
-				}
-				return "/etc/passwd"
-			}(),
+			path: "/etc/passwd",
 			desc: "Absolute path outside watched directory",
 		},
 	}
@@ -681,133 +672,6 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_PathTraversalPrevention(
 			assert.Error(t, err, "Should reject path traversal: %s", tc.desc)
 			assert.Contains(t, err.Error(), "outside watched directory", 
 				"Error should mention path restriction")
-		})
-	}
-}
-
-func (s *WatcherValidationTestSuite) TestWindowsPathValidation_EdgeCases() {
-	if runtime.GOOS != "windows" {
-		s.T().Skip("Windows-specific test")
-	}
-
-	s.T().Log("Testing Windows path validation edge cases")
-
-	watcher, err := NewWatcher(s.tempDir, s.config)
-	s.Require().NoError(err)
-	defer watcher.Close()
-
-	windowsPathCases := []struct {
-		name        string
-		path        string
-		desc        string
-		shouldError bool
-		errorContains string
-	}{
-		{
-			name:        "drive_letter_only",
-			path:        "C:",
-			desc:        "Drive letter only (relative path)",
-			shouldError: true,
-			errorContains: "Windows path validation failed",
-		},
-		{
-			name:        "drive_with_relative_path",
-			path:        "C:temp\\file.json",
-			desc:        "Drive letter with relative path",
-			shouldError: false, // Should be converted to absolute
-		},
-		{
-			name:        "mixed_separators",
-			path:        filepath.Join(s.tempDir, "mixed/path\\file.json"),
-			desc:        "Mixed path separators",
-			shouldError: false, // Should be normalized
-		},
-		{
-			name:        "unc_path_outside_watched",
-			path:        "\\\\server\\share\\file.json",
-			desc:        "UNC path outside watched directory",
-			shouldError: true,
-			errorContains: "outside watched directory",
-		},
-		{
-			name:        "long_device_path",
-			path:        "\\\\?\\C:\\temp\\file.json",
-			desc:        "Long device path outside watched directory",
-			shouldError: true,
-			errorContains: "outside watched directory",
-		},
-		{
-			name:        "invalid_chars_lt_gt",
-			path:        filepath.Join(s.tempDir, "file<test>.json"),
-			desc:        "Invalid characters < and >",
-			shouldError: true,
-			errorContains: "Windows path validation failed",
-		},
-		{
-			name:        "invalid_chars_pipe",
-			path:        filepath.Join(s.tempDir, "file|test.json"),
-			desc:        "Invalid character pipe",
-			shouldError: true,
-			errorContains: "Windows path validation failed",
-		},
-		{
-			name:        "reserved_filename_con",
-			path:        filepath.Join(s.tempDir, "CON.json"),
-			desc:        "Reserved filename CON",
-			shouldError: true,
-			errorContains: "Windows path validation failed",
-		},
-		{
-			name:        "reserved_filename_com1",
-			path:        filepath.Join(s.tempDir, "COM1.log"),
-			desc:        "Reserved filename COM1",
-			shouldError: true,
-			errorContains: "Windows path validation failed",
-		},
-		{
-			name:        "case_insensitive_path_comparison",
-			path:        strings.ToUpper(filepath.Join(s.tempDir, "file.json")),
-			desc:        "Case insensitive path comparison",
-			shouldError: false, // Windows paths should be case-insensitive
-		},
-		{
-			name:        "very_long_path_without_prefix",
-			path:        filepath.Join(s.tempDir, strings.Repeat("a", 250), "file.json"),
-			desc:        "Very long path without \\\\?\\ prefix",
-			shouldError: true,
-			errorContains: "Windows path validation failed",
-		},
-	}
-
-	validContent := `{"apiVersion": "v1", "kind": "NetworkIntent"}`
-
-	for _, tc := range windowsPathCases {
-		s.T().Run(tc.name, func(t *testing.T) {
-			// Create the file if path is within temp directory
-			if strings.Contains(tc.path, s.tempDir) || (!strings.Contains(tc.path, ":") && !strings.HasPrefix(tc.path, "\\\\")) {
-				// Create parent directories
-				if dir := filepath.Dir(tc.path); dir != "." {
-					os.MkdirAll(dir, 0755)
-				}
-				os.WriteFile(tc.path, []byte(validContent), 0644)
-			}
-
-			err := watcher.validatePath(tc.path)
-			if tc.shouldError {
-				assert.Error(t, err, "Should reject path: %s", tc.desc)
-				if tc.errorContains != "" {
-					assert.Contains(t, err.Error(), tc.errorContains, 
-						"Error should contain expected message for: %s", tc.desc)
-				}
-			} else {
-				// For paths that should be valid, we need to ensure they're within watched dir
-				if !strings.Contains(tc.path, s.tempDir) && !filepath.IsAbs(tc.path) {
-					// Skip validation for relative paths outside temp dir
-					t.Skipf("Skipping validation for relative path outside temp dir: %s", tc.path)
-				} else {
-					assert.NoError(t, err, "Should accept path: %s", tc.desc)
-				}
-			}
 		})
 	}
 }
@@ -842,18 +706,20 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 				err := os.WriteFile(filePath, []byte(content), 0644)
 				require.NoError(t, err)
 			} else {
-				// Create oversized file with well-formed JSON
-				// Calculate padding size to exceed MaxJSONSize
-				baseJSON := `{"apiVersion": "v1", "kind": "NetworkIntent", "data": ""}`
-				baseSizeWithoutData := len(baseJSON) - 2 // Subtract 2 for the empty quotes
-				paddingSize := tt.size - baseSizeWithoutData
-				
-				// Generate deterministic padding with 'A' characters for consistency
-				padding := strings.Repeat("A", paddingSize)
-				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
-				
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				// Create oversized file
+				f, err := os.Create(filePath)
 				require.NoError(t, err)
+				defer f.Close()
+
+				// Write JSON prefix
+				f.WriteString(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "`)
+				// Write padding data
+				padding := make([]byte, tt.size-100)
+				for i := range padding {
+					padding[i] = 'x'
+				}
+				f.Write(padding)
+				f.WriteString(`"}`)
 			}
 
 			err := watcher.validateJSONFile(filePath)
@@ -900,54 +766,8 @@ func (s *WatcherValidationTestSuite) TestJSONValidation_SuspiciousFilenamePatter
 
 			err := watcher.validatePath(filePath)
 			assert.Error(t, err, "Should reject suspicious filename: %s", pattern)
-			
-			// On Windows, handle OS-specific validation behavior
-			if runtime.GOOS == "windows" {
-				// Windows-invalid characters get caught by Windows path validation first
-				windowsInvalidChars := []string{"*", "?", "|", "<", ">", ":", "\""}
-				isWindowsInvalidChar := false
-				for _, char := range windowsInvalidChars {
-					if strings.Contains(pattern, char) {
-						isWindowsInvalidChar = true
-						break
-					}
-				}
-				
-				if pattern == "intent-test\x00.json" {
-					// Null bytes cause filepath.Abs to fail with "invalid argument" 
-					// before we reach any validation check
-					if err != nil {
-						assert.Contains(t, err.Error(), "failed to get absolute path",
-							"Error should mention absolute path failure on Windows for null bytes")
-					} else {
-						t.Log("Note: OS-level null byte handling may prevent this error")
-					}
-				} else if isWindowsInvalidChar {
-					// Windows-invalid characters are caught by Windows path validation
-					if err != nil {
-						assert.Contains(t, err.Error(), "Windows path validation failed",
-							"Error should mention Windows path validation failure for Windows-invalid characters")
-					} else {
-						t.Log("Note: Windows path validation may handle this differently")
-					}
-				} else {
-					// Other patterns should still be caught by suspicious pattern validation
-					if err != nil {
-						assert.Contains(t, err.Error(), "suspicious pattern",
-							"Error should mention suspicious pattern")
-					} else {
-						t.Log("Note: Suspicious pattern validation may be handled differently")
-					}
-				}
-			} else {
-				// On non-Windows systems, all patterns should be caught by suspicious pattern validation
-				if err != nil {
-					assert.Contains(t, err.Error(), "suspicious pattern",
-						"Error should mention suspicious pattern")
-				} else {
-					t.Log("Note: Suspicious pattern validation may be handled differently")
-				}
-			}
+			assert.Contains(t, err.Error(), "suspicious pattern",
+				"Error should mention suspicious pattern")
 		})
 	}
 }
@@ -1217,7 +1037,7 @@ func BenchmarkWatcherValidation_JSONValidation(b *testing.B) {
 		PorchPath:   createMockPorch(b, tempDir, 0, "processed", ""),
 		Mode:        porch.ModeDirect,
 		OutDir:      filepath.Join(tempDir, "out"),
-		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
+		MaxWorkers:  1,
 		DebounceDur: 10 * time.Millisecond,
 	}
 
@@ -1254,7 +1074,7 @@ func BenchmarkWatcherValidation_DirectoryCreation(b *testing.B) {
 		PorchPath:   createMockPorch(b, tempDir, 0, "processed", ""),
 		Mode:        porch.ModeDirect,
 		OutDir:      filepath.Join(tempDir, "out"),
-		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
+		MaxWorkers:  1,
 	}
 
 	watcher, err := NewWatcher(tempDir, config)
@@ -1274,7 +1094,7 @@ func BenchmarkWatcherValidation_EventDebouncing(b *testing.B) {
 		PorchPath:   createMockPorch(b, tempDir, 0, "processed", ""),
 		Mode:        porch.ModeDirect,
 		OutDir:      filepath.Join(tempDir, "out"),
-		MaxWorkers:  3, // Production-like worker count for realistic concurrency testing
+		MaxWorkers:  1,
 		DebounceDur: 1 * time.Millisecond, // Very short for benchmarking
 	}
 

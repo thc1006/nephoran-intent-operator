@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package security_test
 
 import (
@@ -703,27 +706,3 @@ func isArgon2Hash(hash string) bool {
 	return strings.HasPrefix(hash, "$argon2")
 }
 
-// Stub functions for test utilities
-func createAuthenticatedClient(t *testing.T, user string, roles []string) *http.Client {
-	// Implementation would create authenticated HTTP client
-	return &http.Client{}
-}
-
-func createResource(t *testing.T, client *http.Client, name string) *Resource {
-	// Implementation would create a test resource
-	return &Resource{ID: "test-id"}
-}
-
-func modifyResource(client *http.Client, id string) error {
-	// Implementation would attempt to modify resource
-	return nil
-}
-
-func performAdminAction(client *http.Client, action string) error {
-	// Implementation would attempt admin action
-	return nil
-}
-
-type Resource struct {
-	ID string
-}

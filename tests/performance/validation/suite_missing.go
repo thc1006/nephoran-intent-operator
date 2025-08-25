@@ -1,9 +1,11 @@
+//go:build !integration
+// +build !integration
+
 package validation
 
 import (
 	"context"
 	"fmt"
-	"log"
 	"runtime"
 	"time"
 )

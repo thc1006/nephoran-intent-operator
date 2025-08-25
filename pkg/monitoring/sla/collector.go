@@ -536,14 +536,14 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 	// Apply rate limiting
 	if !c.rateLimiter.Allow() {
 		c.metrics.DroppedMetrics.WithLabelValues("rate_limited").Inc()
-		atomic.AddUint64(&c.droppedMetrics, 1)
+		c.droppedMetrics.Add(1)
 		return fmt.Errorf("rate limit exceeded")
 	}
 
 	// Check cardinality limits
 	if !c.cardinalityMgr.ShouldAcceptMetric(sample.Name, sample.Labels) {
 		c.metrics.DroppedMetrics.WithLabelValues("cardinality_limit").Inc()
-		atomic.AddUint64(&c.droppedMetrics, 1)
+		c.droppedMetrics.Add(1)
 		return fmt.Errorf("cardinality limit exceeded")
 	}
 
@@ -551,7 +551,7 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 	if c.config.AdaptiveSampling {
 		if !c.shouldSample() {
 			c.metrics.SampledMetrics.Inc()
-			atomic.AddUint64(&c.sampledMetrics, 1)
+			c.sampledMetrics.Add(1)
 			return nil // Sampled out
 		}
 	}
@@ -560,7 +560,7 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 	select {
 	case c.metricsBuffer <- sample:
 		c.metrics.MetricsCollected.WithLabelValues(sample.Source, string(sample.Type), "success").Inc()
-		atomic.AddUint64(&c.collectionCount, 1)
+		c.collectionCount.Add(1)
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
@@ -568,7 +568,7 @@ func (c *Collector) CollectMetric(ctx context.Context, sample *MetricSample) err
 		// Buffer full, apply backpressure
 		c.metrics.BufferOverflows.Inc()
 		c.metrics.DroppedMetrics.WithLabelValues("buffer_full").Inc()
-		atomic.AddUint64(&c.droppedMetrics, 1)
+		c.droppedMetrics.Add(1)
 		return fmt.Errorf("collection buffer full")
 	}
 }
@@ -605,12 +605,12 @@ func (c *Collector) CollectBatch(ctx context.Context, samples []*MetricSample) e
 // GetStats returns current collector statistics
 func (c *Collector) GetStats() CollectorStats {
 	return CollectorStats{
-		MetricsCollected:  atomic.LoadUint64(&c.collectionCount),
-		ProcessingErrors:  atomic.LoadUint64(&c.processingErrors),
-		SampledMetrics:    atomic.LoadUint64(&c.sampledMetrics),
-		DroppedMetrics:    atomic.LoadUint64(&c.droppedMetrics),
+		MetricsCollected:  c.collectionCount.Load(),
+		ProcessingErrors:  c.processingErrors.Load(),
+		SampledMetrics:    c.sampledMetrics.Load(),
+		DroppedMetrics:    c.droppedMetrics.Load(),
 		BufferUtilization: float64(len(c.metricsBuffer)) / float64(cap(c.metricsBuffer)) * 100,
-		ProcessingRate:    atomic.LoadUint64(&c.processingRate),
+		ProcessingRate:    c.processingRate.Load(),
 		TotalCardinality:  c.cardinalityMgr.totalCardinality.Load(),
 	}
 }
@@ -638,7 +638,7 @@ func (c *Collector) runCollectionLoop(ctx context.Context) {
 			return
 		case sample := <-c.metricsBuffer:
 			// Distribute to workers using round-robin
-			workerIndex := int(atomic.LoadUint64(&c.collectionCount)) % c.workerCount
+			workerIndex := int(c.collectionCount.Load()) % c.workerCount
 			worker := c.workers[workerIndex]
 
 			select {
@@ -682,7 +682,7 @@ func (c *Collector) processMetricSample(ctx context.Context, worker *CollectorWo
 	// Process the metric sample
 	if err := c.storeSample(ctx, sample); err != nil {
 		worker.metrics.Errors.Inc()
-		atomic.AddUint64(&c.processingErrors, 1)
+		c.processingErrors.Add(1)
 		c.logger.ErrorWithContext("Failed to store metric sample",
 			err,
 			"worker_id", worker.id,
@@ -693,7 +693,7 @@ func (c *Collector) processMetricSample(ctx context.Context, worker *CollectorWo
 
 	// Update cardinality tracking
 	c.cardinalityMgr.UpdateCardinality(sample.Name, sample.Labels)
-	atomic.AddUint64(&c.processingRate, 1)
+	c.processingRate.Add(1)
 }
 
 // runBatchProcessor runs the batch processor
@@ -739,7 +739,7 @@ func (c *Collector) updateMetrics(ctx context.Context) {
 			duration := now.Sub(lastUpdate).Seconds()
 
 			// Calculate collection rate
-			currentCollected := atomic.LoadUint64(&c.collectionCount)
+			currentCollected := c.collectionCount.Load()
 			rate := float64(currentCollected-lastCollected) / duration
 			c.metrics.CollectionRate.Set(rate)
 
@@ -765,7 +765,7 @@ func (c *Collector) shouldSample() bool {
 		return true
 	}
 
-	currentRate := atomic.LoadUint64(&c.processingRate)
+	currentRate := c.processingRate.Load()
 	if currentRate < uint64(c.config.SamplingThreshold) {
 		return true
 	}
@@ -788,7 +788,7 @@ func (c *Collector) getCurrentSamplingRate() float64 {
 		return c.config.SamplingRate
 	}
 
-	currentRate := atomic.LoadUint64(&c.processingRate)
+	currentRate := c.processingRate.Load()
 	if currentRate < uint64(c.config.SamplingThreshold) {
 		return 1.0
 	}

@@ -1,0 +1,32 @@
+﻿2025-08-19T13:07:35.1952100Z Current runner version: '2.327.1'
+2025-08-19T13:07:35.1965240Z ##[group]Runner Image Provisioner
+2025-08-19T13:07:35.1965690Z Hosted Compute Agent
+2025-08-19T13:07:35.1966010Z Version: 20250818.377
+2025-08-19T13:07:35.1966370Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
+2025-08-19T13:07:35.1966780Z Build Date: 2025-08-18T14:52:18Z
+2025-08-19T13:07:35.1967160Z ##[endgroup]
+2025-08-19T13:07:35.1967470Z ##[group]Operating System
+2025-08-19T13:07:35.1967810Z macOS
+2025-08-19T13:07:35.1968090Z 15.5
+2025-08-19T13:07:35.1968360Z 24F74
+2025-08-19T13:07:35.1968630Z ##[endgroup]
+2025-08-19T13:07:35.1968920Z ##[group]Runner Image
+2025-08-19T13:07:35.1969240Z Image: macos-15-arm64
+2025-08-19T13:07:35.1969540Z Version: 20250811.2170
+2025-08-19T13:07:35.1970190Z Included Software: https://github.com/actions/runner-images/blob/macos-15-arm64/20250811.2170/images/macos/macos-15-arm64-Readme.md
+2025-08-19T13:07:35.1971080Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-15-arm64%2F20250811.2170
+2025-08-19T13:07:35.1971720Z ##[endgroup]
+2025-08-19T13:07:35.1972430Z ##[group]GITHUB_TOKEN Permissions
+2025-08-19T13:07:35.1973260Z Contents: read
+2025-08-19T13:07:35.1973570Z Metadata: read
+2025-08-19T13:07:35.1973850Z Packages: write
+2025-08-19T13:07:35.1974150Z SecurityEvents: write
+2025-08-19T13:07:35.1974460Z ##[endgroup]
+2025-08-19T13:07:35.1975610Z Secret source: Actions
+2025-08-19T13:07:35.1976000Z Prepare workflow directory
+2025-08-19T13:07:35.2194390Z Prepare all required actions
+2025-08-19T13:07:35.2218370Z Getting action download info
+2025-08-19T13:07:35.7185460Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-08-19T13:07:36.4423870Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+2025-08-19T13:07:37.0723610Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-08-19T13:07:37.2646910Z Complete job name: Test (macos-latest)

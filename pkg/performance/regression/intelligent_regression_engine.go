@@ -202,11 +202,6 @@ type ChangePointAlgorithm interface {
 	GetName() string
 }
 
-// CUSUMDetector implements CUSUM algorithm for change point detection
-type CUSUMDetector struct {
-	threshold   float64
-	driftFactor float64
-}
 
 // BayesianChangePointDetector implements Bayesian change point detection
 type BayesianChangePointDetector struct {
@@ -280,17 +275,6 @@ type RiskIndicator struct {
 	Mitigation   []string  `json:"mitigation"`
 }
 
-// IntelligentAlertManager handles advanced alerting with correlation
-type IntelligentAlertManager struct {
-	config               *AlertManagerConfig
-	alertRules           []*AlertRule
-	suppressionRules     []*SuppressionRule
-	correlationEngine    *AlertCorrelationEngine
-	escalationPolicies   []*EscalationPolicy
-	notificationChannels map[string]NotificationChannel
-	alertHistory         *AlertHistory
-	rateLimiter          *AlertRateLimiter
-}
 
 // AlertRule defines conditions for triggering alerts
 type AlertRule struct {
@@ -358,21 +342,6 @@ type FeedbackEntry struct {
 	Resolution   string    `json:"resolution"`
 }
 
-// NWDAFAnalyzer implements NWDAF patterns for telecom-specific analytics
-type NWDAFAnalyzer struct {
-	config               *NWDAFConfig
-	analyticsRepository  *AnalyticsRepository
-	networkSliceAnalyzer *NetworkSliceAnalyzer
-	serviceAnalyzer      *ServiceAnalyzer
-	mobilitycAnalyzer    *MobilityAnalyzer
-	qosAnalyzer          *QoSAnalyzer
-
-	// NWDAF Analytics Functions
-	loadAnalytics        *LoadAnalytics
-	performanceAnalytics *PerformanceAnalytics
-	capacityAnalytics    *CapacityAnalytics
-	anomalyAnalytics     *AnomalyAnalytics
-}
 
 // NetworkSliceAnalyzer provides slice-aware performance analysis
 type NetworkSliceAnalyzer struct {
@@ -507,9 +476,9 @@ func NewIntelligentRegressionEngine(config *IntelligentRegressionConfig) (*Intel
 		anomalyDetector:     NewAnomalyDetector(config),
 		changePointDetector: NewChangePointDetector(config),
 		forecastingEngine:   NewForecastingEngine(config),
-		alertManager:        NewIntelligentAlertManager(config),
+		alertManager:        NewIntelligentAlertManager(convertToAlertManagerConfig(config)),
 		learningSystem:      NewContinuousLearningSystem(config),
-		nwdafAnalyzer:       NewNWDAFAnalyzer(config),
+		nwdafAnalyzer:       NewNWDAFAnalyzer(convertToNWDAFConfig(config)),
 		metricStore:         NewMetricStore(config),
 		correlationEngine:   NewCorrelationEngine(config),
 
@@ -945,19 +914,11 @@ func NewForecastingEngine(config *IntelligentRegressionConfig) *ForecastingEngin
 	}
 }
 
-func NewIntelligentAlertManager(config *IntelligentRegressionConfig) *IntelligentAlertManager {
-	return &IntelligentAlertManager{
-		notificationChannels: make(map[string]NotificationChannel),
-	}
-}
 
 func NewContinuousLearningSystem(config *IntelligentRegressionConfig) *ContinuousLearningSystem {
 	return &ContinuousLearningSystem{}
 }
 
-func NewNWDAFAnalyzer(config *IntelligentRegressionConfig) *NWDAFAnalyzer {
-	return &NWDAFAnalyzer{}
-}
 
 func NewCorrelationEngine(config *IntelligentRegressionConfig) *CorrelationEngine {
 	return &CorrelationEngine{
@@ -1220,19 +1181,61 @@ type AlertSuppression struct {
 	ExpiresAt time.Time `json:"expiresAt"`
 }
 
+// convertToAlertManagerConfig converts IntelligentRegressionConfig to AlertManagerConfig
+func convertToAlertManagerConfig(config *IntelligentRegressionConfig) *AlertManagerConfig {
+	return &AlertManagerConfig{
+		MaxConcurrentWorkers:        5,
+		AlertProcessingTimeout:      30 * time.Second,
+		AlertRetentionPeriod:        30 * 24 * time.Hour,
+		CorrelationEnabled:          true,
+		CorrelationWindow:           config.AlertCorrelationWindow,
+		MaxCorrelatedAlerts:         config.MaxConcurrentAlerts,
+		MinCorrelationScore:         0.7,
+		RateLimitingEnabled:         true,
+		MaxAlertsPerMinute:          10,
+		MaxAlertsPerHour:            100,
+		BurstAllowance:              5,
+		AutoSuppressionEnabled:      true,
+		DuplicateSuppressionTime:    15 * time.Minute,
+		MaintenanceWindowsEnabled:   true,
+		LearningEnabled:             config.LearningEnabled,
+		FeedbackProcessingEnabled:   config.FeedbackProcessingEnabled,
+		AdaptiveThresholdsEnabled:   config.AdaptiveThresholdsEnabled,
+		DefaultNotificationChannels: []string{"console"},
+		EscalationEnabled:           true,
+		AcknowledgmentRequired:      false,
+		AcknowledgmentTimeout:       4 * time.Hour,
+	}
+}
+
+// convertToNWDAFConfig converts IntelligentRegressionConfig to NWDAFConfig
+func convertToNWDAFConfig(config *IntelligentRegressionConfig) *NWDAFConfig {
+	return &NWDAFConfig{
+		EnableLoadAnalytics:        true,
+		EnablePerformanceAnalytics: true,
+		EnableAnomalyAnalytics:     config.AnomalyDetectionEnabled,
+		EnableCapacityAnalytics:    true,
+		EnableQoEAnalytics:         true,
+		EnableSliceAnalytics:       config.NetworkSliceAwareAnalysis,
+		AnalyticsInterval:          config.DetectionInterval,
+		PredictionHorizon:          24 * time.Hour,
+		HistoricalDataRetention:    30 * 24 * time.Hour,
+		MinDataPointsForAnalysis:   config.MinDataPoints,
+		EventCorrelationEnabled:    true,
+		EventCorrelationWindow:     config.AlertCorrelationWindow,
+		ExternalDataSources:        []string{},
+		NorthboundIntegration:      config.ExternalSystemsEnabled,
+	}
+}
+
 // Additional placeholder types and interfaces for compilation
 type TimeSeriesData struct{}
 type PredictionCache struct{}
 type AccuracyMetrics struct{}
 type AnomalyDetectionConfig struct{}
 type ChangePointConfig struct{}
-type AlertManagerConfig struct{}
 type LearningConfig struct{}
-type NWDAFConfig struct{}
-type AlertCorrelationEngine struct{}
 type EscalationPolicy struct{}
-type AlertHistory struct{}
-type AlertRateLimiter struct{}
 type ModelRepository struct{}
 type TrainingScheduler struct{}
 type LearningPerformanceTracker struct{}
@@ -1246,10 +1249,6 @@ type AnalyticsRepository struct{}
 type ServiceAnalyzer struct{}
 type MobilityAnalyzer struct{}
 type QoSAnalyzer struct{}
-type LoadAnalytics struct{}
-type PerformanceAnalytics struct{}
-type CapacityAnalytics struct{}
-type AnomalyAnalytics struct{}
 type SliceKPIs struct{}
 type SLAViolation struct{}
 type ResourceAllocation struct{}
@@ -1269,7 +1268,6 @@ type CachedAggregateData struct{}
 type UserExperienceImpact struct{}
 type BusinessImpactAssessment struct{}
 type RollbackPlan struct{}
-type NWDAFInsights struct{}
 type LearningFeedback struct{}
 type IsolationTree struct{}
 type TrendComponent struct{}
@@ -1300,19 +1298,11 @@ func (ce *CorrelationEngine) AnalyzeCorrelations(metrics map[string]float64) (*C
 	return &CorrelationAnalysis{}, nil
 }
 
-func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[string]float64, regressions []*MetricRegression) (*NWDAFInsights, error) {
-	// Placeholder implementation
-	return &NWDAFInsights{}, nil
-}
 
 func (cls *ContinuousLearningSystem) ProcessAnalysis(analysis *RegressionAnalysisResult) {
 	// Placeholder implementation
 }
 
-func (iam *IntelligentAlertManager) ProcessRegressionAnalysis(analysis *RegressionAnalysisResult) error {
-	// Placeholder implementation
-	return nil
-}
 
 func (bm *BaselineManager) GetBaseline(metricName string) *DynamicBaseline {
 	bm.mutex.RLock()

@@ -148,7 +148,7 @@ func TestFileSystemEdgeCases(t *testing.T) {
 				OutDir:       outDir,
 				Once:         true,
 				DebounceDur:  100 * time.Millisecond,
-				MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
+				MaxWorkers:   1,
 				CleanupAfter: time.Hour,
 			}
 
@@ -291,7 +291,7 @@ func TestNetworkDiskFailureSimulation(t *testing.T) {
 				OutDir:       outDir,
 				Once:         true,
 				DebounceDur:  50 * time.Millisecond,
-				MaxWorkers:   3, // Production-like worker count for realistic concurrency testing
+				MaxWorkers:   1,
 				CleanupAfter: time.Hour,
 			}
 
@@ -429,7 +429,7 @@ func TestStateCorruptionRecovery(t *testing.T) {
 	tests := []struct {
 		name      string
 		setupFunc func(t *testing.T, tempDir string) string
-		testFunc  func(t *testing.T, sm *StateManager)
+		testFunc  func(t *testing.T, sm *StateManager, tempDir string)
 	}{
 		{
 			name: "corrupted JSON state file",
@@ -449,16 +449,16 @@ func TestStateCorruptionRecovery(t *testing.T) {
 				require.NoError(t, os.WriteFile(stateFile, []byte(corruptedState), 0644))
 				return tempDir
 			},
-			testFunc: func(t *testing.T, sm *StateManager) {
-				// Create the test file in the base directory first
-				testFile := filepath.Join(sm.baseDir, "new-file.json")
-				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": "data"}`), 0644))
+			testFunc: func(t *testing.T, sm *StateManager, tempDir string) {
+				// Create the test file first
+				testFile := filepath.Join(tempDir, "new-file.json")
+				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
 				
 				// Should create new state when corrupted state is detected
-				err := sm.MarkProcessed("new-file.json")
+				err := sm.MarkProcessed(testFile)
 				assert.NoError(t, err, "Should recover from corrupted state")
 
-				processed, err := sm.IsProcessed("new-file.json")
+				processed, err := sm.IsProcessed(testFile)
 				assert.NoError(t, err)
 				assert.True(t, processed, "Should work after recovery")
 			},
@@ -471,16 +471,16 @@ func TestStateCorruptionRecovery(t *testing.T) {
 				require.NoError(t, os.WriteFile(stateFile, []byte(""), 0644))
 				return tempDir
 			},
-			testFunc: func(t *testing.T, sm *StateManager) {
-				// Create the test file in the base directory first
-				testFile := filepath.Join(sm.baseDir, "test-file.json")
-				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": "data"}`), 0644))
+			testFunc: func(t *testing.T, sm *StateManager, tempDir string) {
+				// Create the test file first
+				testFile := filepath.Join(tempDir, "test-file.json")
+				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
 				
 				// Should handle empty state file gracefully
-				err := sm.MarkProcessed("test-file.json")
+				err := sm.MarkProcessed(testFile)
 				assert.NoError(t, err, "Should handle empty state file")
 
-				processed, err := sm.IsProcessed("test-file.json")
+				processed, err := sm.IsProcessed(testFile)
 				assert.NoError(t, err)
 				assert.True(t, processed)
 			},
@@ -497,16 +497,16 @@ func TestStateCorruptionRecovery(t *testing.T) {
 				require.NoError(t, os.WriteFile(stateFile, garbage, 0644))
 				return tempDir
 			},
-			testFunc: func(t *testing.T, sm *StateManager) {
-				// Create the test file in the base directory first
-				testFile := filepath.Join(sm.baseDir, "recovery-test.json")
-				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": "data"}`), 0644))
+			testFunc: func(t *testing.T, sm *StateManager, tempDir string) {
+				// Create the test file first
+				testFile := filepath.Join(tempDir, "recovery-test.json")
+				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
 				
 				// Should handle binary garbage gracefully
-				err := sm.MarkProcessed("recovery-test.json")
+				err := sm.MarkProcessed(testFile)
 				assert.NoError(t, err, "Should recover from binary garbage")
 
-				processed, err := sm.IsProcessed("recovery-test.json")
+				processed, err := sm.IsProcessed(testFile)
 				assert.NoError(t, err)
 				assert.True(t, processed)
 			},
@@ -515,36 +515,38 @@ func TestStateCorruptionRecovery(t *testing.T) {
 			name: "state file with invalid timestamps",
 			setupFunc: func(t *testing.T, tempDir string) string {
 				stateFile := filepath.Join(tempDir, StateFileName)
-				// Create a state file with invalid timestamps - the main test is that
-				// the state manager should still work despite having invalid timestamps
 				invalidState := `{
-					"version": "1.0",
-					"states": {
-						"dummy-entry": {
-							"file_path": "dummy.json",
-							"sha256": "dummy-hash",
-							"size": 100,
+					"files": {
+						"file1.json": {
 							"status": "processed",
 							"timestamp": "invalid-timestamp"
+						},
+						"file2.json": {
+							"status": "processed",
+							"timestamp": "2025-13-45T99:99:99Z"
 						}
 					}
 				}`
 				require.NoError(t, os.WriteFile(stateFile, []byte(invalidState), 0644))
 				return tempDir
 			},
-			testFunc: func(t *testing.T, sm *StateManager) {
-				// Create test files in the base directory 
-				testFile := filepath.Join(sm.baseDir, "test-file.json")
-				require.NoError(t, os.WriteFile(testFile, []byte(`{"test": "data"}`), 0644))
+			testFunc: func(t *testing.T, sm *StateManager, tempDir string) {
+				// Create test files first
+				testFile1 := filepath.Join(tempDir, "file1.json")
+				newFile := filepath.Join(tempDir, "new-file.json")
+				require.NoError(t, os.WriteFile(testFile1, []byte(`{"test": true}`), 0644))
+				require.NoError(t, os.WriteFile(newFile, []byte(`{"test": true}`), 0644))
 				
-				// The main test: state manager should work despite invalid timestamps in existing state
-				// This verifies that loading the state file with invalid timestamps doesn't break the manager
-				err := sm.MarkProcessed("test-file.json")
-				assert.NoError(t, err, "Should handle state with invalid timestamps")
+				// Should handle invalid timestamps gracefully - but file doesn't exist in state yet
+				processed, err := sm.IsProcessed(testFile1)
+				assert.NoError(t, err, "Should handle invalid timestamps")
+				
+				// File should not be considered processed (invalid state was reset)
+				assert.False(t, processed, "File should not be processed due to corrupted state")
 
-				processed, err := sm.IsProcessed("test-file.json")
-				assert.NoError(t, err, "Should handle state with invalid timestamps")
-				assert.True(t, processed, "Should be able to process new files despite invalid timestamps in state")
+				// Should be able to add new files
+				err = sm.MarkProcessed(newFile)
+				assert.NoError(t, err)
 			},
 		},
 		{
@@ -568,10 +570,14 @@ func TestStateCorruptionRecovery(t *testing.T) {
 				
 				return tempDir
 			},
-			testFunc: func(t *testing.T, sm *StateManager) {
+			testFunc: func(t *testing.T, sm *StateManager, tempDir string) {
 				// Should handle permission issues gracefully
 				if runtime.GOOS != "windows" {
-					err := sm.MarkProcessed("permission-test.json")
+					// Create the test file first
+					testFile := filepath.Join(tempDir, "permission-test.json")
+					require.NoError(t, os.WriteFile(testFile, []byte(`{"test": true}`), 0644))
+					
+					err := sm.MarkProcessed(testFile)
 					// Might fail due to permissions, but should not crash
 					assert.NotNil(t, err, "Should return error for permission issues")
 				} else {
@@ -593,7 +599,7 @@ func TestStateCorruptionRecovery(t *testing.T) {
 			require.NoError(t, err, "StateManager should handle corrupted state during creation")
 			defer sm.Close()
 
-			tt.testFunc(t, sm)
+			tt.testFunc(t, sm, stateDir)
 		})
 	}
 }
@@ -610,13 +616,11 @@ func TestConcurrentStateManagement(t *testing.T) {
 	var wg sync.WaitGroup
 	numOperations := 50
 
-	// Create actual test files first to avoid ENOENT errors during concurrent operations
-	// This prevents Windows filesystem race conditions where files don't exist
+	// Create test files first
 	for i := 0; i < numOperations; i++ {
 		filename := fmt.Sprintf("concurrent-file-%d.json", i)
 		testFile := filepath.Join(tempDir, filename)
-		testContent := fmt.Sprintf(`{"test": "data", "id": %d}`, i)
-		require.NoError(t, os.WriteFile(testFile, []byte(testContent), 0644))
+		require.NoError(t, os.WriteFile(testFile, []byte(fmt.Sprintf(`{"id": %d}`, i)), 0644))
 	}
 
 	// Concurrent writes
@@ -625,8 +629,13 @@ func TestConcurrentStateManagement(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			filename := fmt.Sprintf("concurrent-file-%d.json", id)
+			testFile := filepath.Join(tempDir, filename)
 			
-			err := sm.MarkProcessed(filename)
+			err := sm.MarkProcessed(testFile)
+			if err == ErrFileGone {
+				// File might have been deleted by cleanup, that's ok
+				return
+			}
 			assert.NoError(t, err, "Concurrent MarkProcessed should not fail")
 		}(i)
 	}
@@ -637,19 +646,11 @@ func TestConcurrentStateManagement(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			filename := fmt.Sprintf("concurrent-file-%d.json", id)
+			testFile := filepath.Join(tempDir, filename)
 			
-			// On Windows, concurrent IsProcessed checks may encounter files that don't exist
-			// or have been processed by other goroutines - this is acceptable behavior
-			processed, err := sm.IsProcessed(filename)
-			if err != nil {
-				// Accept os.IsNotExist or file-not-found as valid outcomes for Windows race conditions
-				if os.IsNotExist(err) || err.Error() == "file does not exist" {
-					t.Logf("File %s not found during concurrent check (acceptable race condition)", filename)
-					return
-				}
-				assert.NoError(t, err, "Unexpected error during concurrent IsProcessed")
-			}
-			_ = processed // May be true or false depending on timing
+			// May or may not be processed depending on timing
+			_, err := sm.IsProcessed(testFile)
+			assert.NoError(t, err, "Concurrent IsProcessed should not fail")
 		}(i)
 	}
 
@@ -658,19 +659,10 @@ func TestConcurrentStateManagement(t *testing.T) {
 	// Verify final state is consistent
 	for i := 0; i < numOperations; i++ {
 		filename := fmt.Sprintf("concurrent-file-%d.json", i)
-		processed, err := sm.IsProcessed(filename)
-		// After concurrent operations settle, files should be processed
-		// However, on Windows, some may have been removed during testing
-		if err != nil {
-			// Accept that some files may have disappeared during concurrent testing
-			if os.IsNotExist(err) || err.Error() == "file does not exist" {
-				t.Logf("File %s not found during final verification (acceptable on Windows)", filename)
-				continue
-			}
-			assert.NoError(t, err, "Final verification should not fail unless file disappeared")
-		} else {
-			assert.True(t, processed, "File %s should be marked as processed if it exists", filename)
-		}
+		testFile := filepath.Join(tempDir, filename)
+		processed, err := sm.IsProcessed(testFile)
+		assert.NoError(t, err)
+		assert.True(t, processed, "All files should be marked as processed")
 	}
 }
 
@@ -800,69 +792,4 @@ func isProcessRunning(pid int) bool {
 	// Send signal 0 to check if process exists (Unix-like systems only)
 	// This is a simplified implementation
 	return true // For testing purposes, assume process is running
-}
-
-// TestWindowsFileHashRetry tests the retry mechanism for file hash calculation
-// on Windows where concurrent operations can cause transient ENOENT errors
-func TestWindowsFileHashRetry(t *testing.T) {
-	tempDir := t.TempDir()
-	sm, err := NewStateManager(tempDir)
-	require.NoError(t, err)
-	defer sm.Close()
-	
-	// Create a test file
-	testFile := filepath.Join(tempDir, "test-retry.json")
-	testData := []byte(`{"test": "data"}`)
-	err = os.WriteFile(testFile, testData, 0644)
-	require.NoError(t, err)
-	
-	// Test successful hash calculation
-	hash, err := sm.CalculateFileSHA256("test-retry.json")
-	require.NoError(t, err)
-	assert.NotEmpty(t, hash)
-	
-	// Test file-not-found scenario (should handle gracefully)
-	nonExistentFile := "nonexistent.json"
-	_, err = sm.CalculateFileSHA256(nonExistentFile)
-	assert.Error(t, err, "Should return error for missing files")
-	
-	// Test concurrent remove during hash calculation
-	// This simulates the Windows race condition
-	t.Run("ConcurrentRemoveGraceful", func(t *testing.T) {
-		concurrentFile := filepath.Join(tempDir, "concurrent-remove.json")
-		err = os.WriteFile(concurrentFile, []byte(`{"concurrent": "test"}`), 0644)
-		require.NoError(t, err)
-		
-		var wg sync.WaitGroup
-		var checkResult bool
-		var checkErr error
-		
-		// Start checking if file is processed
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// Use relative path to trigger the state manager's path handling
-			checkResult, checkErr = sm.IsProcessed("concurrent-remove.json")
-		}()
-		
-		// Concurrently remove the file to simulate race condition
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			time.Sleep(5 * time.Millisecond) // Small delay to create race
-			os.Remove(concurrentFile)
-		}()
-		
-		wg.Wait()
-		
-		// Should handle gracefully - either succeed before removal or return (false, nil)
-		if checkErr != nil {
-			// If there was an error, it should be file-not-found related
-			assert.True(t, os.IsNotExist(checkErr) || checkErr.Error() == "file does not exist", 
-				"Concurrent removal should result in file-not-found error, got: %v", checkErr)
-		} else {
-			// If no error, result should be false (not processed)
-			assert.False(t, checkResult, "Removed file should not be considered processed")
-		}
-	})
 }

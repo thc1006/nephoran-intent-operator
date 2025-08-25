@@ -30,7 +30,7 @@ type ComprehensiveAccountingManager struct {
 	fraudDetection    *FraudDetectionEngine
 	settlementManager *SettlementManager
 	revenueTracking   *RevenueTrackingService
-	usageStorage      *UsageDataStorage
+	usageStorage      UsageDataStorage
 	metrics           *AccountingMetrics
 	running           bool
 	stopChan          chan struct{}
@@ -1768,7 +1768,7 @@ func NewUsageDataCollector(config *CollectorConfig) *UsageDataCollector {
 	return &UsageDataCollector{
 		collectors:      make(map[string]*ResourceCollector),
 		collectionQueue: make(chan *UsageEvent, config.MaxEventQueueSize),
-		processors:      make([]UsageProcessor, 0),
+		processors:      make([]*UsageProcessor, 0),
 		workerPool:      NewUsageWorkerPool(config.MaxConcurrentWorkers),
 		config:          config,
 	}

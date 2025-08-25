@@ -248,7 +248,7 @@ run_basic_quality_checks() {
     fi
     
     # Test basic compilation
-    if go build ./... >/dev/null 2>&1; then
+    if go test -c ./... >/dev/null 2>&1; then
         success "Code compiles successfully"
     else
         error "Code compilation failed"

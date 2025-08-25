@@ -9,9 +9,70 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
+
+// UserSession represents a user session with tracking information
+type UserSession struct {
+	SessionID       string            `json:"sessionId"`
+	UserID          string            `json:"userId"`
+	StartTime       time.Time         `json:"startTime"`
+	LastActive      time.Time         `json:"lastActive"`
+	Metadata        map[string]string `json:"metadata"`
+	IntentCount     int               `json:"intentCount"`
+	AverageLatency  time.Duration     `json:"averageLatency"`
+	ExperienceScore float64           `json:"experienceScore"`
+}
+
+// CircularBuffer for storing completed intents
+type CircularBuffer struct {
+	mu       sync.RWMutex
+	items    []*IntentTrace
+	capacity int
+	head     int
+	tail     int
+	size     int
+}
+
+// NewCircularBuffer creates a new circular buffer
+func NewCircularBuffer(capacity int) *CircularBuffer {
+	return &CircularBuffer{
+		items:    make([]*IntentTrace, capacity),
+		capacity: capacity,
+	}
+}
+
+// Add adds an item to the buffer
+func (c *CircularBuffer) Add(trace interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Type assertion to handle both interface{} and *IntentTrace
+	var intentTrace *IntentTrace
+	if trace != nil {
+		if t, ok := trace.(*IntentTrace); ok {
+			intentTrace = t
+		}
+	}
+	
+	c.items[c.tail] = intentTrace
+	c.tail = (c.tail + 1) % c.capacity
+
+	if c.size < c.capacity {
+		c.size++
+	} else {
+		c.head = (c.head + 1) % c.capacity
+	}
+}
+
+// RemoveOlderThan removes items older than the cutoff time
+func (c *CircularBuffer) RemoveOlderThan(cutoff time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// This is a simplified implementation
+	// In production, would implement proper removal
+}
 
 // E2ELatencyTracker tracks end-to-end latency from intent submission to deployment completion
 type E2ELatencyTracker struct {
@@ -282,7 +343,7 @@ func NewE2ELatencyTracker(config *E2ETrackerConfig) *E2ELatencyTracker {
 
 // StartIntent begins tracking a new intent
 func (t *E2ELatencyTracker) StartIntent(ctx context.Context, intentID, intentType string) context.Context {
-	trace := &IntentTrace{
+	intentTrace := &IntentTrace{
 		ID:         fmt.Sprintf("trace-%s-%d", intentID, time.Now().UnixNano()),
 		IntentID:   intentID,
 		IntentType: intentType,
@@ -293,19 +354,19 @@ func (t *E2ELatencyTracker) StartIntent(ctx context.Context, intentID, intentTyp
 
 	// Extract trace context if available
 	if span := trace.SpanFromContext(ctx); span != nil {
-		trace.TraceContext = span.SpanContext()
+		intentTrace.TraceContext = span.SpanContext()
 	}
 
 	// Store active trace
 	t.mu.Lock()
-	t.activeIntents[intentID] = trace
+	t.activeIntents[intentID] = intentTrace
 	t.mu.Unlock()
 
 	// Update statistics
 	t.stats.TotalIntents.Add(1)
 
 	// Store trace ID in context
-	ctx = context.WithValue(ctx, "e2e_trace_id", trace.ID)
+	ctx = context.WithValue(ctx, "e2e_trace_id", intentTrace.ID)
 
 	return ctx
 }
@@ -701,17 +762,8 @@ type LatencyAnomalyEvent struct {
 	Description  string        `json:"description"`
 }
 
-type MonitoringUserSession struct {
-	SessionID       string        `json:"session_id"`
-	UserID          string        `json:"user_id"`
-	StartTime       time.Time     `json:"start_time"`
-	IntentCount     int           `json:"intent_count"`
-	AverageLatency  time.Duration `json:"average_latency"`
-	ExperienceScore float64       `json:"experience_score"`
-}
-
 type UserImpactAnalyzer struct {
-	sessions map[string]*MonitoringUserSession
+	sessions map[string]*UserSession
 }
 
 type ComplianceSnapshot struct {
@@ -1421,44 +1473,6 @@ func (u *UserExperienceCorrelator) calculateCategoryScore(min, max float64) floa
 	return float64(count) / float64(len(u.experienceScores)) * 100
 }
 
-// CircularBuffer for storing completed intents
-type CircularBuffer struct {
-	mu       sync.RWMutex
-	items    []*IntentTrace
-	capacity int
-	head     int
-	tail     int
-	size     int
-}
-
-func NewCircularBuffer(capacity int) *CircularBuffer {
-	return &CircularBuffer{
-		items:    make([]*IntentTrace, capacity),
-		capacity: capacity,
-	}
-}
-
-func (c *CircularBuffer) Add(trace *IntentTrace) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.items[c.tail] = trace
-	c.tail = (c.tail + 1) % c.capacity
-
-	if c.size < c.capacity {
-		c.size++
-	} else {
-		c.head = (c.head + 1) % c.capacity
-	}
-}
-
-func (c *CircularBuffer) RemoveOlderThan(cutoff time.Time) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// This is a simplified implementation
-	// In production, would implement proper removal
-}
 
 // Default configuration
 func DefaultE2EConfig() *E2ETrackerConfig {

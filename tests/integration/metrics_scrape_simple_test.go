@@ -1,3 +1,5 @@
+//go:build integration
+
 // Package integration provides integration tests for metrics scraping functionality.
 // This is a simplified version that doesn't depend on problematic internal packages.
 package integration

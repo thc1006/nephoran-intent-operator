@@ -28,7 +28,7 @@ func TestFixedRaceConditions(t *testing.T) {
 			{"intent-valid.json", "intent-valid.json"}, // Already correct
 		}
 		
-		testContent := `{"intent_type": "scaling", "target": "test-deployment", "namespace": "default", "replicas": 3}`
+		testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
 		
 		for _, tc := range testCases {
 			path := syncHelper.CreateIntentFile(tc.input, testContent)
@@ -45,18 +45,17 @@ func TestFixedRaceConditions(t *testing.T) {
 		syncHelper := NewTestSyncHelper(t)
 		defer syncHelper.Cleanup()
 		
-		// Step 1: Create files FIRST with different content to avoid duplicate detection
-		expectedFiles := []struct {
-			name string
-			content string
-		}{
-			{"intent-race-fix-1.json", `{"intent_type": "scaling", "target": "test-deployment-1", "namespace": "default", "replicas": 3}`},
-			{"intent-race-fix-2.json", `{"intent_type": "scaling", "target": "test-deployment-2", "namespace": "default", "replicas": 5}`},
+		testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
+		
+		// Step 1: Create files FIRST
+		expectedFiles := []string{
+			"intent-race-fix-1.json",
+			"intent-race-fix-2.json",
 		}
 		
 		var createdPaths []string
-		for _, file := range expectedFiles {
-			path := syncHelper.CreateIntentFile(file.name, file.content)
+		for _, filename := range expectedFiles {
+			path := syncHelper.CreateIntentFile(filename, testContent)
 			createdPaths = append(createdPaths, path)
 		}
 		
@@ -83,7 +82,7 @@ func TestFixedRaceConditions(t *testing.T) {
 		}
 		
 		// Step 5: Use enhanced once watcher for proper completion tracking
-		enhancedWatcher, err := syncHelper.NewEnhancedOnceWatcher(config, 2)
+		enhancedWatcher, err := syncHelper.NewEnhancedOnceWatcher(config, len(expectedFiles))
 		require.NoError(t, err)
 		defer enhancedWatcher.Close()
 		
@@ -95,7 +94,7 @@ func TestFixedRaceConditions(t *testing.T) {
 		require.NoError(t, err)
 		
 		// Step 8: Verify results
-		err = syncHelper.VerifyProcessingResults(2, 0)
+		err = syncHelper.VerifyProcessingResults(len(expectedFiles), 0)
 		require.NoError(t, err)
 		
 		t.Log("Fixed race condition: files exist before watcher starts")
@@ -108,9 +107,11 @@ func TestFixedRaceConditions(t *testing.T) {
 		syncHelper := NewTestSyncHelper(t)
 		defer syncHelper.Cleanup()
 		
-		// Create test files with different content to avoid duplicate detection
-		file1 := syncHelper.CreateIntentFile("intent-once-timing-1.json", `{"intent_type": "scaling", "target": "test-timing-1", "namespace": "default", "replicas": 2}`)
-		file2 := syncHelper.CreateIntentFile("intent-once-timing-2.json", `{"intent_type": "scaling", "target": "test-timing-2", "namespace": "default", "replicas": 4}`)
+		testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
+		
+		// Create test files
+		file1 := syncHelper.CreateIntentFile("intent-once-timing-1.json", testContent)
+		file2 := syncHelper.CreateIntentFile("intent-once-timing-2.json", testContent)
 		
 		// Ensure files are visible
 		syncGuard := syncHelper.NewFileSystemSyncGuard()
@@ -169,7 +170,7 @@ func TestFixedRaceConditions(t *testing.T) {
 		t.Logf("Using platform-aware timing: baseDelay=%v, fileSettle=%v, processWait=%v",
 			syncHelper.baseDelay, syncHelper.fileSettle, syncHelper.processWait)
 		
-		testContent := `{"intent_type": "scaling", "target": "test-deployment", "namespace": "default", "replicas": 3}`
+		testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
 		
 		// Create files using platform-aware helper
 		file := syncHelper.CreateIntentFile("intent-cross-platform.json", testContent)
@@ -314,7 +315,7 @@ func BenchmarkSynchronizationOverhead(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			syncHelper := NewTestSyncHelper(b)
 			
-			testContent := `{"intent_type": "scaling", "target": "test-deployment", "namespace": "default", "replicas": 3}`
+			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
 			syncHelper.CreateIntentFile("intent-benchmark.json", testContent)
 			
 			syncHelper.Cleanup()
@@ -326,7 +327,7 @@ func BenchmarkSynchronizationOverhead(b *testing.B) {
 			// Direct file creation without synchronization helpers
 			tempDir := b.TempDir()
 			file := filepath.Join(tempDir, "intent-benchmark.json")
-			testContent := `{"intent_type": "scaling", "target": "test-deployment", "namespace": "default", "replicas": 3}`
+			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
 			
 			_ = file
 			_ = testContent

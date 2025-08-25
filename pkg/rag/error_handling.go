@@ -731,7 +731,7 @@ func isConnectionError(err error) bool {
 	}
 
 	for _, pattern := range connectionPatterns {
-		if contains(errStr, pattern) {
+		if errorContains(errStr, pattern) {
 			return true
 		}
 	}
@@ -749,7 +749,7 @@ func isResourceError(err error) bool {
 	}
 
 	for _, pattern := range resourcePatterns {
-		if contains(errStr, pattern) {
+		if errorContains(errStr, pattern) {
 			return true
 		}
 	}
@@ -766,7 +766,7 @@ func isValidationError(err error) bool {
 	}
 
 	for _, pattern := range validationPatterns {
-		if contains(errStr, pattern) {
+		if errorContains(errStr, pattern) {
 			return true
 		}
 	}
@@ -782,7 +782,7 @@ func isConfigurationError(err error) bool {
 	}
 
 	for _, pattern := range configPatterns {
-		if contains(errStr, pattern) {
+		if errorContains(errStr, pattern) {
 			return true
 		}
 	}
@@ -799,17 +799,17 @@ func isSystemError(err error) bool {
 	}
 
 	for _, pattern := range systemPatterns {
-		if contains(errStr, pattern) {
+		if errorContains(errStr, pattern) {
 			return true
 		}
 	}
 	return false
 }
 
-func contains(str, substr string) bool {
+func errorContains(str, substr string) bool {
 	return len(str) >= len(substr) &&
 		(len(substr) == 0 || str[0:len(substr)] == substr ||
-			(len(str) > len(substr) && contains(str[1:], substr)))
+			(len(str) > len(substr) && errorContains(str[1:], substr)))
 }
 
 // Metrics initialization

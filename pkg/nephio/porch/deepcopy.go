@@ -93,102 +93,14 @@ func (sc *SyncConfig) DeepCopyInto(out *SyncConfig) {
 
 // PackageRevision DeepCopy methods
 
-func (pr *PackageRevision) DeepCopy() *PackageRevision {
-	if pr == nil {
-		return nil
-	}
-	out := new(PackageRevision)
-	pr.DeepCopyInto(out)
-	return out
-}
+// DeepCopy methods for PackageRevision are in multicluster package
 
-func (pr *PackageRevision) DeepCopyInto(out *PackageRevision) {
-	*out = *pr
-	out.TypeMeta = pr.TypeMeta
-	pr.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
-	pr.Spec.DeepCopyInto(&out.Spec)
-	pr.Status.DeepCopyInto(&out.Status)
-}
 
-func (prs *PackageRevisionSpec) DeepCopyInto(out *PackageRevisionSpec) {
-	*out = *prs
-	if prs.Resources != nil {
-		out.Resources = make([]KRMResource, len(prs.Resources))
-		for i := range prs.Resources {
-			prs.Resources[i].DeepCopyInto(&out.Resources[i])
-		}
-	}
-	if prs.Functions != nil {
-		out.Functions = make([]FunctionConfig, len(prs.Functions))
-		for i := range prs.Functions {
-			prs.Functions[i].DeepCopyInto(&out.Functions[i])
-		}
-	}
-	if prs.PackageMetadata != nil {
-		out.PackageMetadata = new(PackageMetadata)
-		prs.PackageMetadata.DeepCopyInto(out.PackageMetadata)
-	}
-	if prs.WorkflowLock != nil {
-		out.WorkflowLock = new(WorkflowLock)
-		prs.WorkflowLock.DeepCopyInto(out.WorkflowLock)
-	}
-}
+// PackageRevisionSpec DeepCopy methods are in multicluster package
 
-func (prs *PackageRevisionStatus) DeepCopyInto(out *PackageRevisionStatus) {
-	*out = *prs
-	if prs.Conditions != nil {
-		out.Conditions = make([]metav1.Condition, len(prs.Conditions))
-		for i := range prs.Conditions {
-			prs.Conditions[i].DeepCopyInto(&out.Conditions[i])
-		}
-	}
-	if prs.PublishTime != nil {
-		out.PublishTime = new(metav1.Time)
-		prs.PublishTime.DeepCopyInto(out.PublishTime)
-	}
-	if prs.ValidationResults != nil {
-		out.ValidationResults = make([]*ValidationResult, len(prs.ValidationResults))
-		for i := range prs.ValidationResults {
-			if prs.ValidationResults[i] != nil {
-				out.ValidationResults[i] = new(ValidationResult)
-				prs.ValidationResults[i].DeepCopyInto(out.ValidationResults[i])
-			}
-		}
-	}
-	if prs.RenderingResults != nil {
-		out.RenderingResults = new(RenderResult)
-		prs.RenderingResults.DeepCopyInto(out.RenderingResults)
-	}
-	if prs.DeploymentStatus != nil {
-		out.DeploymentStatus = new(DeploymentStatus)
-		prs.DeploymentStatus.DeepCopyInto(out.DeploymentStatus)
-	}
-	if prs.Downstream != nil {
-		out.Downstream = make([]PackageReference, len(prs.Downstream))
-		copy(out.Downstream, prs.Downstream)
-	}
-}
+// PackageRevisionStatus DeepCopy methods are in multicluster package
 
-func (prl *PackageRevisionList) DeepCopy() *PackageRevisionList {
-	if prl == nil {
-		return nil
-	}
-	out := new(PackageRevisionList)
-	prl.DeepCopyInto(out)
-	return out
-}
-
-func (prl *PackageRevisionList) DeepCopyInto(out *PackageRevisionList) {
-	*out = *prl
-	out.TypeMeta = prl.TypeMeta
-	prl.ListMeta.DeepCopyInto(&out.ListMeta)
-	if prl.Items != nil {
-		out.Items = make([]PackageRevision, len(prl.Items))
-		for i := range prl.Items {
-			prl.Items[i].DeepCopyInto(&out.Items[i])
-		}
-	}
-}
+// Note: PackageRevision-related DeepCopy methods moved to multicluster package
 
 // KRMResource DeepCopy methods
 

@@ -112,15 +112,15 @@ func ExamplePorchClientUsage() error {
 			Repository:  "example-repo",
 			Revision:    "v1.0.0",
 			Lifecycle:   PackageRevisionLifecycleDraft,
-			Resources: []KRMResource{
-				{
-					APIVersion: "v1",
-					Kind:       "ConfigMap",
-					Metadata: map[string]interface{}{
+			Resources: []interface{}{
+				map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
 						"name":      "example-config",
 						"namespace": "default",
 					},
-					Data: map[string]interface{}{
+					"data": map[string]interface{}{
 						"message": "Hello from Porch!",
 						"version": "1.0.0",
 					},

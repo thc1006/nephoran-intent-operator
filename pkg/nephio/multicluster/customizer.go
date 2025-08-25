@@ -3,15 +3,15 @@ package multicluster
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kustomize/api/krusty"
-	"sigs.k8s.io/kustomize/api/types"
+	ktypes "sigs.k8s.io/kustomize/api/types"
 	"sigs.k8s.io/kustomize/kyaml/filesys"
-	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
+	
+	// Porch types are now defined locally in types.go
 )
 
 // Customizer manages package customization for different clusters
@@ -51,9 +51,9 @@ type ResourceCustomization struct {
 // CustomizePackage creates a cluster-specific package variant
 func (c *Customizer) CustomizePackage(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
-) (*porchv1alpha1.PackageRevision, error) {
+) (*PackageRevision, error) {
 	// 1. Extract customization requirements
 	options, err := c.extractCustomizationOptions(ctx, packageRevision, targetCluster)
 	if err != nil {
@@ -83,7 +83,7 @@ func (c *Customizer) CustomizePackage(
 // extractCustomizationOptions determines package customization requirements
 func (c *Customizer) extractCustomizationOptions(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	targetCluster types.NamespacedName,
 ) (*CustomizationOptions, error) {
 	// Implement logic to extract customization options
@@ -114,10 +114,10 @@ func (c *Customizer) extractCustomizationOptions(
 // customizeWithTemplate applies Golang template-based customization
 func (c *Customizer) customizeWithTemplate(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	options *CustomizationOptions,
 	workspaceDir string,
-) (*porchv1alpha1.PackageRevision, error) {
+) (*PackageRevision, error) {
 	// Implement template-based customization
 	// Use Go's text/template to process Kubernetes manifests
 	return nil, fmt.Errorf("template customization not implemented")
@@ -126,10 +126,10 @@ func (c *Customizer) customizeWithTemplate(
 // customizeWithKustomize applies Kustomize-based customization
 func (c *Customizer) customizeWithKustomize(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	options *CustomizationOptions,
 	workspaceDir string,
-) (*porchv1alpha1.PackageRevision, error) {
+) (*PackageRevision, error) {
 	// Create Kustomization file
 	kustomizationContent := c.generateKustomizationFile(options)
 	err := c.writeKustomizationFile(workspaceDir, kustomizationContent)
@@ -168,10 +168,10 @@ func (c *Customizer) customizeWithKustomize(
 // customizeWithGeneration generates new resources based on cluster requirements
 func (c *Customizer) customizeWithGeneration(
 	ctx context.Context,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 	options *CustomizationOptions,
 	workspaceDir string,
-) (*porchv1alpha1.PackageRevision, error) {
+) (*PackageRevision, error) {
 	// Implement adaptive resource generation
 	// Could involve:
 	// - Dynamic resource scaling
@@ -182,7 +182,7 @@ func (c *Customizer) customizeWithGeneration(
 
 // Helper methods for package customization
 func (c *Customizer) createTempWorkspace(
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 ) (string, error) {
 	// Create a temporary workspace for package processing
 	return "", nil
@@ -194,10 +194,10 @@ func (c *Customizer) cleanupWorkspace(dir string) {
 
 func (c *Customizer) generateKustomizationFile(
 	options *CustomizationOptions,
-) *types.Kustomization {
+) *ktypes.Kustomization {
 	// Generate Kustomization configuration
-	kustomization := &types.Kustomization{
-		TypeMeta: types.TypeMeta{
+	kustomization := &ktypes.Kustomization{
+		TypeMeta: ktypes.TypeMeta{
 			Kind:       "Kustomization",
 			APIVersion: "kustomize.config.k8s.io/v1beta1",
 		},
@@ -208,7 +208,7 @@ func (c *Customizer) generateKustomizationFile(
 			"environment": options.Environment,
 			"region":      options.Region,
 		},
-		Patches: []types.Patch{
+		Patches: []ktypes.Patch{
 			{
 				Patch: `
 apiVersion: apps/v1
@@ -232,7 +232,7 @@ spec:
 
 func (c *Customizer) writeKustomizationFile(
 	workspaceDir string,
-	kustomization *types.Kustomization,
+	kustomization *ktypes.Kustomization,
 ) error {
 	// Write Kustomization file to workspace
 	return nil
@@ -240,9 +240,9 @@ func (c *Customizer) writeKustomizationFile(
 
 func (c *Customizer) createCustomizedPackageRevision(
 	ctx context.Context,
-	originalPackage *porchv1alpha1.PackageRevision,
+	originalPackage *PackageRevision,
 	customizedResources []byte,
-) (*porchv1alpha1.PackageRevision, error) {
+) (*PackageRevision, error) {
 	// Create a new package revision with customized resources
 	return nil, nil
 }

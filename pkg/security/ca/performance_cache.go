@@ -22,7 +22,7 @@ type PerformanceCache struct {
 	preProvCache *PreProvisioningCache // Pre-provisioned certificates
 
 	// Cache statistics
-	stats *CacheStatistics
+	stats *PerfCacheStatistics
 
 	// Control
 	ctx    context.Context
@@ -46,8 +46,8 @@ type PerformanceCacheConfig struct {
 	CleanupInterval        time.Duration `yaml:"cleanup_interval"`
 }
 
-// CacheStatistics tracks cache performance metrics
-type CacheStatistics struct {
+// PerfCacheStatistics tracks cache performance metrics
+type PerfCacheStatistics struct {
 	L1Hits                int64 `json:"l1_hits"`
 	L1Misses              int64 `json:"l1_misses"`
 	L2Hits                int64 `json:"l2_hits"`
@@ -148,7 +148,7 @@ func NewPerformanceCache(
 	pc := &PerformanceCache{
 		logger: logger,
 		config: config,
-		stats:  &CacheStatistics{},
+		stats:  &PerfCacheStatistics{},
 		ctx:    ctx,
 		cancel: cancel,
 	}
@@ -319,12 +319,12 @@ func (pc *PerformanceCache) AddPreProvisionedCertificate(cert *PreProvisionedCer
 }
 
 // GetStatistics returns cache statistics
-func (pc *PerformanceCache) GetStatistics() *CacheStatistics {
+func (pc *PerformanceCache) GetStatistics() *PerfCacheStatistics {
 	pc.stats.mu.RLock()
 	defer pc.stats.mu.RUnlock()
 
 	// Return a copy
-	return &CacheStatistics{
+	return &PerfCacheStatistics{
 		L1Hits:                pc.stats.L1Hits,
 		L1Misses:              pc.stats.L1Misses,
 		L2Hits:                pc.stats.L2Hits,

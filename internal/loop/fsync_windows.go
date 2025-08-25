@@ -14,6 +14,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 )
 
+// Removed error definition - now in errors.go
+
 // Windows-specific file sync operations with retry logic for race conditions
 
 const (

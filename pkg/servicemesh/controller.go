@@ -14,15 +14,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // ServiceMeshController manages service mesh integration
@@ -34,7 +33,7 @@ type ServiceMeshController struct {
 	meshFactory *abstraction.ServiceMeshFactory
 	mesh        abstraction.ServiceMeshInterface
 	meshConfig  *abstraction.ServiceMeshConfig
-	logger      log.Logger
+	logger      logr.Logger
 }
 
 // NewServiceMeshController creates a new service mesh controller
@@ -371,7 +370,7 @@ func (r *ServiceMeshController) ValidateServiceMeshHealth(ctx context.Context) e
 
 		if !result.Valid {
 			totalIssues++
-			r.logger.Warn("Policy validation failed",
+			r.logger.Info("Policy validation failed",
 				"namespace", ns.Name,
 				"errors", len(result.Errors),
 				"warnings", len(result.Warnings),

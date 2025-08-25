@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"sort"
 	"sync"
 	"time"
@@ -348,16 +347,6 @@ type BusinessHours struct {
 	Holidays     []time.Time `json:"holidays"`
 }
 
-// MaintenanceWindow represents planned maintenance windows
-type MaintenanceWindow struct {
-	ID               string    `json:"id"`
-	Name             string    `json:"name"`
-	StartTime        time.Time `json:"start_time"`
-	EndTime          time.Time `json:"end_time"`
-	Services         []string  `json:"services"`
-	Recurring        bool      `json:"recurring"`
-	RecurringPattern string    `json:"recurring_pattern"` // daily, weekly, monthly
-}
 
 // AlertThresholds represents alerting thresholds for availability
 type AlertThresholds struct {
@@ -369,6 +358,8 @@ type AlertThresholds struct {
 	ResponseTimeCritical time.Duration `json:"response_time_critical"`
 	ErrorRateWarning     float64       `json:"error_rate_warning"`  // 0-1
 	ErrorRateCritical    float64       `json:"error_rate_critical"` // 0-1
+	ResponseTime         float64       `json:"response_time"`        // milliseconds
+	ErrorRate            float64       `json:"error_rate"`           // percentage
 }
 
 // AvailabilityReporter provides comprehensive availability reporting capabilities

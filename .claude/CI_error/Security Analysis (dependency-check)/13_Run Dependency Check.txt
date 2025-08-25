@@ -1,0 +1,53 @@
+﻿2025-08-19T13:09:52.7761614Z ##[group]Run dependency-check/Dependency-Check_Action@main
+2025-08-19T13:09:52.7761956Z with:
+2025-08-19T13:09:52.7762139Z   project: conductor-loop
+2025-08-19T13:09:52.7762388Z   path: ./cmd/conductor-loop ./internal/loop
+2025-08-19T13:09:52.7762649Z   format: SARIF
+2025-08-19T13:09:52.7762939Z   args: --enableRetired --scan "**/go.mod" --scan "**/go.sum"
+
+2025-08-19T13:09:52.7763227Z   out: reports
+2025-08-19T13:09:52.7763392Z env:
+2025-08-19T13:09:52.7763548Z   GO_VERSION: 1.24
+2025-08-19T13:09:52.7763718Z   REGISTRY: ghcr.io
+2025-08-19T13:09:52.7763916Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:52.7764171Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:52.7764380Z ##[endgroup]
+2025-08-19T13:09:52.7886404Z ##[command]/usr/bin/docker run --name c735e9af7272de405bb14bb7069b8b0733_0930bf --label 0843c7 --workdir /github/workspace --rm -e "GO_VERSION" -e "REGISTRY" -e "IMAGE_NAME" -e "SECURITY_SCAN_LEVEL" -e "INPUT_PROJECT" -e "INPUT_PATH" -e "INPUT_FORMAT" -e "INPUT_ARGS" -e "INPUT_OUT" -e "HOME" -e "GITHUB_JOB" -e "GITHUB_REF" -e "GITHUB_SHA" -e "GITHUB_REPOSITORY" -e "GITHUB_REPOSITORY_OWNER" -e "GITHUB_REPOSITORY_OWNER_ID" -e "GITHUB_RUN_ID" -e "GITHUB_RUN_NUMBER" -e "GITHUB_RETENTION_DAYS" -e "GITHUB_RUN_ATTEMPT" -e "GITHUB_ACTOR_ID" -e "GITHUB_ACTOR" -e "GITHUB_WORKFLOW" -e "GITHUB_HEAD_REF" -e "GITHUB_BASE_REF" -e "GITHUB_EVENT_NAME" -e "GITHUB_SERVER_URL" -e "GITHUB_API_URL" -e "GITHUB_GRAPHQL_URL" -e "GITHUB_REF_NAME" -e "GITHUB_REF_PROTECTED" -e "GITHUB_REF_TYPE" -e "GITHUB_WORKFLOW_REF" -e "GITHUB_WORKFLOW_SHA" -e "GITHUB_REPOSITORY_ID" -e "GITHUB_TRIGGERING_ACTOR" -e "GITHUB_WORKSPACE" -e "GITHUB_ACTION" -e "GITHUB_EVENT_PATH" -e "GITHUB_ACTION_REPOSITORY" -e "GITHUB_ACTION_REF" -e "GITHUB_PATH" -e "GITHUB_ENV" -e "GITHUB_STEP_SUMMARY" -e "GITHUB_STATE" -e "GITHUB_OUTPUT" -e "RUNNER_OS" -e "RUNNER_ARCH" -e "RUNNER_NAME" -e "RUNNER_ENVIRONMENT" -e "RUNNER_TOOL_CACHE" -e "RUNNER_TEMP" -e "RUNNER_WORKSPACE" -e "ACTIONS_RUNTIME_URL" -e "ACTIONS_RUNTIME_TOKEN" -e "ACTIONS_CACHE_URL" -e "ACTIONS_RESULTS_URL" -e GITHUB_ACTIONS=true -e CI=true -v "/var/run/docker.sock":"/var/run/docker.sock" -v "/home/runner/work/_temp/_github_home":"/github/home" -v "/home/runner/work/_temp/_github_workflow":"/github/workflow" -v "/home/runner/work/_temp/_runner_file_commands":"/github/file_commands" -v "/home/runner/work/nephoran-intent-operator/nephoran-intent-operator":"/github/workspace" 0843c7:35e9af7272de405bb14bb7069b8b0733  "--project" "conductor-loop" "--scan" "/github/workspace/./cmd/conductor-loop ./internal/loop" "--format" "SARIF" "--out" "/github/workspace/reports" "--noupdate" "--enableRetired --scan \"**/go.mod\" --scan \"**/go.sum\"
+"
+2025-08-19T13:09:56.5810487Z [INFO] 
+2025-08-19T13:09:56.5810797Z 
+2025-08-19T13:09:56.5814250Z Dependency-Check is an open source tool performing a best effort analysis of 3rd party dependencies; false positives and false negatives may exist in the analysis performed by the tool. Use of the tool and the reporting provided constitutes acceptance for use in an AS IS condition, and there are NO warranties, implied or otherwise, with regard to the analysis or its use. Any use of the tool and the reporting provided is at the user's risk. In no event shall the copyright holder or OWASP be held liable for any damages whatsoever arising out of or in connection with the use of this tool, the analysis performed, or the resulting report.
+2025-08-19T13:09:56.5816616Z 
+2025-08-19T13:09:56.5816622Z 
+2025-08-19T13:09:56.5816961Z    About ODC: https://dependency-check.github.io/DependencyCheck/general/internals.html
+2025-08-19T13:09:56.5817881Z    False Positives: https://dependency-check.github.io/DependencyCheck/general/suppression.html
+2025-08-19T13:09:56.5818253Z 
+2025-08-19T13:09:56.5818627Z 💖 Sponsor: https://github.com/sponsors/jeremylong
+2025-08-19T13:09:56.5818840Z 
+2025-08-19T13:09:56.5818845Z 
+2025-08-19T13:09:56.5818935Z [INFO] Analysis Started
+2025-08-19T13:09:56.5843578Z [INFO] Finished File Name Analyzer (0 seconds)
+2025-08-19T13:09:56.5845687Z [INFO] Finished Dependency Merging Analyzer (0 seconds)
+2025-08-19T13:09:56.6786028Z [INFO] Finished Hint Analyzer (0 seconds)
+2025-08-19T13:09:56.6793140Z [INFO] Finished Version Filter Analyzer (0 seconds)
+2025-08-19T13:09:57.0872503Z Aug 19, 2025 1:09:57 PM org.apache.lucene.util.HotspotVMOptions <clinit>
+2025-08-19T13:09:57.0873673Z WARNING: Lucene cannot optimize algorithms or calculate object sizes for JVMs that are not based on Hotspot or a compatible implementation.
+2025-08-19T13:09:57.1067190Z WARNING: A restricted method in java.lang.foreign.Linker has been called
+2025-08-19T13:09:57.1074875Z WARNING: java.lang.foreign.Linker::downcallHandle has been called by the unnamed module
+2025-08-19T13:09:57.1076013Z WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for this module
+2025-08-19T13:09:57.1076589Z 
+2025-08-19T13:09:57.1947341Z Aug 19, 2025 1:09:57 PM org.apache.lucene.store.MemorySegmentIndexInputProvider <init>
+2025-08-19T13:09:57.1949263Z INFO: Using MemorySegmentIndexInput and native madvise support with Java 21 or later; to disable start with -Dorg.apache.lucene.store.MMapDirectory.enableMemorySegments=false
+2025-08-19T13:09:57.2592974Z Aug 19, 2025 1:09:57 PM org.apache.lucene.internal.vectorization.VectorizationProvider lookup
+2025-08-19T13:09:57.2593739Z WARNING: Java runtime is not using Hotspot VM; Java vector incubator API can't be enabled.
+2025-08-19T13:09:59.0005466Z [INFO] Created CPE Index (2 seconds)
+2025-08-19T13:09:59.2008553Z [INFO] Finished CPE Analyzer (2 seconds)
+2025-08-19T13:09:59.2013824Z [INFO] Finished False Positive Analyzer (0 seconds)
+2025-08-19T13:09:59.2014407Z [INFO] Finished NVD CVE Analyzer (0 seconds)
+2025-08-19T13:09:59.2014985Z [INFO] Finished Sonatype OSS Index Analyzer (0 seconds)
+2025-08-19T13:09:59.2015650Z [INFO] Finished Vulnerability Suppression Analyzer (0 seconds)
+2025-08-19T13:09:59.2321896Z [INFO] Finished Known Exploited Vulnerability Analyzer (0 seconds)
+2025-08-19T13:09:59.2323255Z [INFO] Finished Dependency Bundling Analyzer (0 seconds)
+2025-08-19T13:09:59.2327071Z [INFO] Finished Unused Suppression Rule Analyzer (0 seconds)
+2025-08-19T13:09:59.2341307Z [INFO] Analysis Complete (2 seconds)
+2025-08-19T13:09:59.2949210Z [INFO] Writing SARIF report to: /github/workspace/reports/dependency-check-report.sarif

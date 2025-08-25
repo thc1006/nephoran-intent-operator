@@ -304,13 +304,6 @@ type PerformanceForecast struct {
 	RiskAreas    []ForecastRisk
 }
 
-// ForecastPoint represents a single forecast prediction
-type ForecastPoint struct {
-	Timestamp      time.Time
-	PredictedValue float64
-	LowerBound     float64
-	UpperBound     float64
-}
 
 // ForecastRisk represents predicted performance risks
 type ForecastRisk struct {
@@ -339,12 +332,6 @@ type NotificationConfig struct {
 	MaintenanceWindows []TimeWindow
 }
 
-// NotificationChannel represents different notification methods
-type NotificationChannel interface {
-	SendAlert(alert *RegressionAlert) error
-	TestConnection() error
-	GetConfig() map[string]interface{}
-}
 
 // RegressionAlert represents a regression detection alert
 type RegressionAlert struct {
@@ -1015,7 +1002,6 @@ func (nm *NotificationManager) SendAlert(alert *RegressionAlert) error {
 // Additional types for completeness
 type HistoricalDataStore struct{}
 type SeasonalModel struct{}
-type AlertHistory struct{}
 type EscalationRule struct{}
 type TimeWindow struct {
 	Start time.Time

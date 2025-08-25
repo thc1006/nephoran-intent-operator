@@ -101,11 +101,11 @@ type E2NodeSetReconciler struct {
 	Recorder record.EventRecorder
 
 	// Metrics
-	nodesTotal      prometheus.GaugeVec
-	nodesReady      prometheus.GaugeVec
-	reconcilesTotal prometheus.CounterVec
-	reconcileErrors prometheus.CounterVec
-	heartbeatsTotal prometheus.CounterVec
+	nodesTotal      *prometheus.GaugeVec
+	nodesReady      *prometheus.GaugeVec
+	reconcilesTotal *prometheus.CounterVec
+	reconcileErrors *prometheus.CounterVec
+	heartbeatsTotal *prometheus.CounterVec
 }
 
 // RegisterMetrics registers Prometheus metrics

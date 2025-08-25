@@ -10,12 +10,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/common/model"
+	"google.golang.org/grpc"
 	"sigs.k8s.io/controller-runtime/pkg/log"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 )
 
 // CompletePerformanceManager provides comprehensive O-RAN performance management
@@ -358,7 +362,7 @@ type StreamSubscriber struct {
 	StreamIDs    []string              `json:"stream_ids"`
 	Endpoint     string                `json:"endpoint"`
 	Protocol     string                `json:"protocol"` // HTTP, WEBSOCKET, GRPC
-	FilterRules  []*StreamFilter       `json:"filter_rules"`
+	FilterRules  []*oran.StreamFilter  `json:"filter_rules"`
 	BufferSize   int                   `json:"buffer_size"`
 	LastActivity time.Time             `json:"last_activity"`
 	Active       bool                  `json:"active"`

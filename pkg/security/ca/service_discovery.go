@@ -43,7 +43,7 @@ type ServiceDiscoveryConfig struct {
 	AutoProvisionEnabled    bool                    `yaml:"auto_provision_enabled"`
 	TemplateMatching        *TemplateMatchingConfig `yaml:"template_matching"`
 	PreProvisioningEnabled  bool                    `yaml:"pre_provisioning_enabled"`
-	ServiceMeshIntegration  *ServiceMeshIntegration `yaml:"service_mesh_integration"`
+	ServiceMeshIntegration  *ServiceMeshIntegrationConfig `yaml:"service_mesh_integration"`
 }
 
 // TemplateMatchingConfig configures certificate template matching
@@ -65,8 +65,8 @@ type TemplateMatchingRule struct {
 	Template            string            `yaml:"template"`
 }
 
-// ServiceMeshIntegration configures service mesh integration
-type ServiceMeshIntegration struct {
+// ServiceMeshIntegrationConfig configures service mesh integration
+type ServiceMeshIntegrationConfig struct {
 	Enabled          bool   `yaml:"enabled"`
 	MeshType         string `yaml:"mesh_type"` // "istio", "linkerd", "consul"
 	MTLSEnabled      bool   `yaml:"mtls_enabled"`
@@ -79,7 +79,7 @@ type DiscoveredService struct {
 	Namespace       string            `json:"namespace"`
 	Labels          map[string]string `json:"labels"`
 	Annotations     map[string]string `json:"annotations"`
-	Ports           []ServicePort     `json:"ports"`
+	Ports           []DiscoveryServicePort     `json:"ports"`
 	Template        string            `json:"template"`
 	CertProvisioned bool              `json:"cert_provisioned"`
 	DiscoveredAt    time.Time         `json:"discovered_at"`
@@ -88,7 +88,7 @@ type DiscoveredService struct {
 }
 
 // ServicePort represents a service port
-type ServicePort struct {
+type DiscoveryServicePort struct {
 	Name       string `json:"name"`
 	Port       int32  `json:"port"`
 	Protocol   string `json:"protocol"`
@@ -748,10 +748,10 @@ func (sp servicePorts) isTLSPort(port v1.ServicePort) bool {
 		strings.Contains(port.Name, "ssl")
 }
 
-func (sp servicePorts) ToServicePorts() []ServicePort {
-	var result []ServicePort
+func (sp servicePorts) ToServicePorts() []DiscoveryServicePort {
+	var result []DiscoveryServicePort
 	for _, port := range sp {
-		result = append(result, ServicePort{
+		result = append(result, DiscoveryServicePort{
 			Name:       port.Name,
 			Port:       port.Port,
 			Protocol:   string(port.Protocol),
@@ -761,7 +761,7 @@ func (sp servicePorts) ToServicePorts() []ServicePort {
 	return result
 }
 
-func (sd *ServiceDiscovery) countTLSPorts(ports []ServicePort) int {
+func (sd *ServiceDiscovery) countTLSPorts(ports []DiscoveryServicePort) int {
 	count := 0
 	for _, port := range ports {
 		if port.TLSEnabled {

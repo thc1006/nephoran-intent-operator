@@ -10,16 +10,19 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/health"
 )
 
-// AlertSeverity represents alert severity levels
-type AlertSeverity string
+// Type alias for backward compatibility
+type AlertSeverity = health.AlertSeverity
 
+// Use constants from health package
 const (
-	AlertSeverityInfo     AlertSeverity = "info"
-	AlertSeverityWarning  AlertSeverity = "warning"
-	AlertSeverityError    AlertSeverity = "error"
-	AlertSeverityCritical AlertSeverity = "critical"
+	AlertSeverityInfo     = health.SeverityInfo
+	AlertSeverityWarning  = health.SeverityWarning
+	AlertSeverityError    = health.SeverityError
+	AlertSeverityCritical = health.SeverityCritical
 )
 
 // AlertState represents the state of an alert

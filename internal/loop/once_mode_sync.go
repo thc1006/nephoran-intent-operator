@@ -23,7 +23,6 @@ type OnceModeSynchronizer struct {
 	started        bool
 	completed      bool
 	mu             sync.RWMutex
-	completedOnce  sync.Once // Ensures completeChan is closed only once
 	
 	// Context for cancellation
 	ctx            context.Context
@@ -127,10 +126,7 @@ func (oms *OnceModeSynchronizer) markCompleted() {
 	
 	if !oms.completed {
 		oms.completed = true
-		// Use sync.Once to ensure channel is closed exactly once
-		oms.completedOnce.Do(func() {
-			close(oms.completeChan)
-		})
+		close(oms.completeChan)
 	}
 }
 
@@ -156,7 +152,6 @@ type FileCreationSynchronizer struct {
 	createdFiles  map[string]bool
 	mu            sync.RWMutex
 	allCreated    chan struct{}
-	allCreatedOnce sync.Once // Ensures allCreated is closed only once
 	timeout       time.Duration
 }
 
@@ -186,10 +181,12 @@ func (fcs *FileCreationSynchronizer) NotifyFileCreated(filename string) {
 		
 		// Check if all files are created
 		if len(fcs.createdFiles) == len(fcs.expectedFiles) {
-			// Use sync.Once to ensure channel is closed exactly once
-			fcs.allCreatedOnce.Do(func() {
+			select {
+			case <-fcs.allCreated:
+				// Already closed
+			default:
 				close(fcs.allCreated)
-			})
+			}
 		}
 	}
 }

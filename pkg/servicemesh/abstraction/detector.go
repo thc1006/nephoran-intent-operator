@@ -9,6 +9,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -16,7 +17,7 @@ import (
 type ServiceMeshDetector struct {
 	kubeClient kubernetes.Interface
 	config     *rest.Config
-	logger     log.Logger
+	logger     logr.Logger
 }
 
 // NewServiceMeshDetector creates a new service mesh detector

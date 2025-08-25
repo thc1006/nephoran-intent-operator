@@ -427,7 +427,7 @@ func (s *CostAwareEmbeddingService) tryProvider(
 	start := time.Now()
 
 	// Get embeddings
-	embeddings, err := provider.GetEmbeddings(ctx, []string{request.Text})
+	embeddings, err := provider.GenerateBatchEmbeddings(ctx, []string{request.Text})
 
 	duration := time.Since(start)
 
@@ -450,11 +450,17 @@ func (s *CostAwareEmbeddingService) tryProvider(
 	// Record success
 	s.recordSuccess(providerName, duration)
 
+	// Convert embeddings for quality assessment (float32 to float64)
+	embedding64 := make([]float64, len(embeddings[0]))
+	for i, v := range embeddings[0] {
+		embedding64[i] = float64(v)
+	}
+	
 	// Assess quality
-	quality := s.assessQuality(embeddings[0])
+	quality := s.assessQuality(embedding64)
 
 	response := &CostAwareEmbeddingResponse{
-		Embeddings: embeddings[0],
+		Embeddings: embedding64,
 		Provider:   providerName,
 		Cost:       cost,
 		Latency:    duration,
@@ -695,7 +701,7 @@ func (s *CostAwareEmbeddingService) checkProviderHealth(name string, provider Em
 	start := time.Now()
 
 	// Simple health check - try to get embeddings for a small text
-	_, err := provider.GetEmbeddings(ctx, []string{"health check"})
+	_, err := provider.GenerateBatchEmbeddings(ctx, []string{"health check"})
 
 	duration := time.Since(start)
 

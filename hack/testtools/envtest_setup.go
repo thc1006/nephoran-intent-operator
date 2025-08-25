@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
+	goruntime "runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -1072,7 +1072,7 @@ func resolveBinaryAssetsDirectory(customPath string) string {
 	}
 
 	// Add platform-specific paths
-	if runtime.GOOS == "windows" {
+	if goruntime.GOOS == "windows" {
 		windowsPaths := []string{
 			filepath.Join(os.Getenv("USERPROFILE"), ".local", "share", "kubebuilder-envtest", "k8s"),
 			filepath.Join("C:", "kubebuilder", "bin"),

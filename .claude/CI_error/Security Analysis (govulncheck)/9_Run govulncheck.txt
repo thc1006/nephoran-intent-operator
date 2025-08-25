@@ -1,0 +1,16 @@
+﻿2025-08-19T13:09:47.6720906Z ##[group]Run go install golang.org/x/vuln/cmd/govulncheck@v1.1.4
+2025-08-19T13:09:47.6721381Z [36;1mgo install golang.org/x/vuln/cmd/govulncheck@v1.1.4[0m
+2025-08-19T13:09:47.6721868Z [36;1mgovulncheck -json ./cmd/conductor-loop ./internal/loop > govulncheck-report.json[0m
+2025-08-19T13:09:47.6722401Z [36;1mecho "::notice title=Vulnerability Scan::govulncheck completed successfully"[0m
+2025-08-19T13:09:47.6772385Z shell: /usr/bin/bash -e {0}
+2025-08-19T13:09:47.6772613Z env:
+2025-08-19T13:09:47.6772782Z   GO_VERSION: 1.24
+2025-08-19T13:09:47.6772974Z   REGISTRY: ghcr.io
+2025-08-19T13:09:47.6773194Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:47.6773449Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:47.6773667Z ##[endgroup]
+2025-08-19T13:09:48.0111213Z go: downloading golang.org/x/telemetry v0.0.0-20240522233618-39ace7a40ae7
+2025-08-19T13:09:48.6908968Z go: downloading golang.org/x/sync v0.10.0
+2025-08-19T13:09:49.1675145Z go: downloading golang.org/x/mod v0.22.0
+2025-08-19T13:09:49.1676325Z go: downloading golang.org/x/tools v0.29.0
+2025-08-19T13:10:12.9302259Z ##[notice]govulncheck completed successfully

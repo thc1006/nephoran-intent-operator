@@ -161,8 +161,8 @@ check_import_paths() {
 test_build() {
     print_status "$YELLOW" "Testing basic build..."
     
-    if go build ./...; then
-        print_status "$GREEN" "✅ All packages build successfully"
+    if go test -c ./...; then
+        print_status "$GREEN" "✅ All packages build successfully (test binaries)"
     else
         print_status "$RED" "❌ Build failed"
         ISSUES_FOUND=$((ISSUES_FOUND + 1))

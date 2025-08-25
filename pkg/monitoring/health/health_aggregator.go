@@ -1373,7 +1373,7 @@ func (ha *HealthAggregator) generateRecommendations(result *AggregatedHealthResu
 				Actions: []RecommendedAction{
 					{
 						Action:      fmt.Sprintf("investigate_%s", name),
-						Priority:    PriorityUrgent,
+						Priority:    ActionPriorityUrgent,
 						Description: fmt.Sprintf("Investigate root cause of %s issues", name),
 						Automated:   false,
 						ETA:         15 * time.Minute,
@@ -1401,7 +1401,7 @@ func (ha *HealthAggregator) generateRecommendations(result *AggregatedHealthResu
 			Actions: []RecommendedAction{
 				{
 					Action:      "activate_incident_response",
-					Priority:    PriorityImmediate,
+					Priority:    ActionPriorityImmediate,
 					Description: "Activate incident response procedures",
 					Automated:   true,
 					ETA:         5 * time.Minute,
@@ -1616,4 +1616,21 @@ func (ha *HealthAggregator) determinePriority(component ComponentHealthResult) R
 		return PriorityMedium
 	}
 	return PriorityLow
+}
+
+// GetCheckHistory returns historical health data for a component
+func (ha *HealthAggregator) GetCheckHistory(component string, limit int) []HealthDataPoint {
+	ha.historyMu.RLock()
+	defer ha.historyMu.RUnlock()
+	
+	history, exists := ha.historicalData[component]
+	if !exists {
+		return nil
+	}
+	
+	if limit > 0 && len(history) > limit {
+		return history[len(history)-limit:]
+	}
+	
+	return history
 }

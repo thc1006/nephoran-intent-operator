@@ -12,8 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	
-	"github.com/thc1006/nephoran-intent-operator/internal/pathutil"
 )
 
 const (
@@ -66,12 +64,12 @@ func NewExecutor(config ExecutorConfig) *Executor {
 	}
 }
 
-// Execute runs the porch command for the given intent file
+// Execute runs the porch command for the given intent file with graceful handling
 func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionResult, error) {
 	startTime := time.Now()
 	
 	// Build command based on mode
-	cmd, err := e.buildCommand(intentPath)
+	cmdArgs, err := e.buildCommand(intentPath)
 	if err != nil {
 		return &ExecutionResult{
 			Success:  false,
@@ -85,47 +83,27 @@ func (e *Executor) Execute(ctx context.Context, intentPath string) (*ExecutionRe
 	timeoutCtx, cancel := context.WithTimeout(ctx, e.config.Timeout)
 	defer cancel()
 	
-	// Set up command with context
-	// On Windows, if the command is a batch file, run it via cmd.exe
-	var execCmd *exec.Cmd
-	if pathutil.IsWindowsBatchFile(cmd[0]) {
-		// Use safe Windows quoting to prevent cmd.exe parsing errors
-		// This prevents issues like "echo was unexpected at this time" when
-		// arguments contain special characters like &, |, (), <>, or ^
-		cmdLine := cmdSafeQuote(cmd)
-		execCmd = exec.CommandContext(timeoutCtx, "cmd.exe", "/S", "/C", cmdLine)
-		log.Printf("Executing Windows batch file via cmd.exe with safe quoting: %s", cmdLine)
-	} else {
-		execCmd = exec.CommandContext(timeoutCtx, cmd[0], cmd[1:]...)
-		log.Printf("Executing porch command: %s", strings.Join(cmd, " "))
-	}
+	// Create graceful command instead of regular exec.Command
+	gracefulCmd := NewGracefulCommand(timeoutCtx, cmdArgs[0], cmdArgs[1:]...)
+	gracefulCmd.SetGracePeriod(5 * time.Second) // 5 second grace period for SIGTERM->SIGKILL
 	
-	// Use separate stdout/stderr capture for better reliability
 	var stdout, stderr bytes.Buffer
-	execCmd.Stdout = &stdout
-	execCmd.Stderr = &stderr
+	gracefulCmd.Stdout = &stdout
+	gracefulCmd.Stderr = &stderr
 	
-	err = execCmd.Run()
+	log.Printf("Executing porch command: %s", strings.Join(cmdArgs, " "))
+	
+	// Execute the command with graceful shutdown support
+	err = gracefulCmd.RunWithGracefulShutdown()
 	duration := time.Since(startTime)
-	
-	// Get output from buffers
-	stdoutBytes := stdout.Bytes()
-	stderrBytes := stderr.Bytes()
-	
-	// Normalize CRLF to LF on Windows
-	stdoutBytes = pathutil.NormalizeCRLF(stdoutBytes)
-	stderrBytes = pathutil.NormalizeCRLF(stderrBytes)
-	
-	outputStr := strings.TrimSpace(string(stdoutBytes))
-	errorStr := strings.TrimSpace(string(stderrBytes))
 	
 	result := &ExecutionResult{
 		Success:  err == nil,
-		ExitCode: getExitCode(execCmd, err),
-		Stdout:   outputStr,
-		Stderr:   errorStr,
+		ExitCode: getExitCode(gracefulCmd.Cmd, err),
+		Stdout:   strings.TrimSpace(stdout.String()),
+		Stderr:   strings.TrimSpace(stderr.String()),
 		Duration: duration,
-		Command:  strings.Join(cmd, " "),
+		Command:  strings.Join(cmdArgs, " "),
 	}
 	
 	if err != nil {

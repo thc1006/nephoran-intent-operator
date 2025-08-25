@@ -5,11 +5,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
-	"unicode"
 )
 
 // FileManager manages the organization and movement of processed files
@@ -39,47 +37,6 @@ func NewFileManager(baseDir string) (*FileManager, error) {
 	return fm, nil
 }
 
-// sanitizeErrorMessage removes control characters, path traversal sequences, and other potentially dangerous content from error messages
-func sanitizeErrorMessage(msg string) string {
-	// Remove path traversal sequences first
-	pathTraversalRegex := regexp.MustCompile(`\.\.[\\/]`)
-	msg = pathTraversalRegex.ReplaceAllString(msg, "")
-	
-	// Replace control characters (including null bytes) with placeholders, except newlines and tabs
-	var sanitized strings.Builder
-	for _, r := range msg {
-		if r == '\n' || r == '\t' || r == '\r' {
-			sanitized.WriteRune(r)
-		} else if unicode.IsControl(r) || r == 0 {
-			// Replace control characters (including null bytes) with a placeholder
-			sanitized.WriteString("[?]")
-		} else {
-			sanitized.WriteRune(r)
-		}
-	}
-	
-	result := sanitized.String()
-	
-	// Remove multiple consecutive newlines
-	result = regexp.MustCompile(`\n{3,}`).ReplaceAllString(result, "\n\n")
-	
-	// Trim excessive whitespace
-	result = strings.TrimSpace(result)
-	
-	// Truncate overly long messages after processing
-	const maxLength = 1024
-	if len(result) > maxLength {
-		result = result[:maxLength] + "...[truncated]"
-	}
-	
-	// If the message is empty after sanitization, provide a default
-	if result == "" {
-		result = "[error message sanitized]"
-	}
-	
-	return result
-}
-
 // ensureDirectories creates the processed and failed directories if they don't exist
 func (fm *FileManager) ensureDirectories() error {
 	dirs := []string{fm.processedDir, fm.failedDir}
@@ -106,16 +63,13 @@ func (fm *FileManager) MoveToFailed(filePath string, errorMsg string) error {
 	fm.mu.Lock()
 	defer fm.mu.Unlock()
 	
-	// Sanitize the error message before persisting
-	sanitizedError := sanitizeErrorMessage(errorMsg)
-	
 	// Move the file to failed directory
 	if err := fm.moveFileToDirectory(filePath, fm.failedDir); err != nil {
 		return err
 	}
 	
-	// Create error log file with sanitized error
-	return fm.createErrorLog(filePath, sanitizedError)
+	// Create error log file
+	return fm.createErrorLog(filePath, errorMsg)
 }
 
 // moveFileToDirectory atomically moves a file to a target directory
@@ -142,10 +96,20 @@ func (fm *FileManager) moveFileToDirectory(filePath, targetDir string) error {
 	return nil
 }
 
-// atomicMove performs an atomic file move operation with Windows-specific handling
+// atomicMove performs an atomic file move operation
 func (fm *FileManager) atomicMove(src, dst string) error {
-	// Use our robust moveFileAtomic that handles Windows race conditions
-	return moveFileAtomic(src, dst)
+	// On Windows, os.Rename is not truly atomic across different volumes,
+	// but it's the best we can do within the same volume.
+	// For cross-volume moves, we would need copy+delete, but that's not atomic.
+	
+	// First, try direct rename (works if on same volume)
+	if err := os.Rename(src, dst); err == nil {
+		return nil
+	}
+	
+	// If rename fails, fall back to copy+delete (not atomic but safer than partial state)
+	log.Printf("Direct rename failed, falling back to copy+delete for %s -> %s", src, dst)
+	return fm.copyAndDelete(src, dst)
 }
 
 // copyAndDelete copies a file and then deletes the original (fallback for cross-volume moves)
@@ -300,41 +264,24 @@ func (fm *FileManager) GetStats() (ProcessingStats, error) {
 		return ProcessingStats{}, fmt.Errorf("failed to get failed files: %w", err)
 	}
 	
-	// Categorize failed files into shutdown failures vs real failures
-	var shutdownFailedFiles []string
-	var realFailedFiles []string
-	
-	for _, failedFile := range failedFiles {
-		// Check error log to determine failure type
-		if fm.isShutdownFailure(failedFile) {
-			shutdownFailedFiles = append(shutdownFailedFiles, failedFile)
-		} else {
-			realFailedFiles = append(realFailedFiles, failedFile)
-		}
-	}
-	
 	return ProcessingStats{
-		ProcessedCount:       len(processedFiles),
-		FailedCount:          len(failedFiles),
-		ShutdownFailedCount:  len(shutdownFailedFiles),
-		RealFailedCount:      len(realFailedFiles),
-		ProcessedFiles:       processedFiles,
-		FailedFiles:          failedFiles,
-		ShutdownFailedFiles:  shutdownFailedFiles,
-		RealFailedFiles:      realFailedFiles,
+		ProcessedCount: len(processedFiles),
+		FailedCount:    len(failedFiles),
+		ProcessedFiles: processedFiles,
+		FailedFiles:    failedFiles,
 	}, nil
 }
 
 // ProcessingStats holds statistics about file processing
 type ProcessingStats struct {
-	ProcessedCount       int      `json:"processed_count"`
-	FailedCount          int      `json:"failed_count"`
-	ShutdownFailedCount  int      `json:"shutdown_failed_count"`
-	RealFailedCount      int      `json:"real_failed_count"`
-	ProcessedFiles       []string `json:"processed_files,omitempty"`
-	FailedFiles          []string `json:"failed_files,omitempty"`
-	ShutdownFailedFiles  []string `json:"shutdown_failed_files,omitempty"`
-	RealFailedFiles      []string `json:"real_failed_files,omitempty"`
+	ProcessedCount      int      `json:"processed_count"`
+	FailedCount         int      `json:"failed_count"`
+	ShutdownFailedCount int      `json:"shutdown_failed_count"`
+	RealFailedCount     int      `json:"real_failed_count"`
+	ProcessedFiles      []string `json:"processed_files,omitempty"`
+	FailedFiles         []string `json:"failed_files,omitempty"`
+	ShutdownFailedFiles []string `json:"shutdown_failed_files,omitempty"`
+	RealFailedFiles     []string `json:"real_failed_files,omitempty"`
 }
 
 // IsEmpty checks if both processed and failed directories are empty
@@ -345,27 +292,4 @@ func (fm *FileManager) IsEmpty() (bool, error) {
 	}
 	
 	return stats.ProcessedCount == 0 && stats.FailedCount == 0, nil
-}
-
-// isShutdownFailure checks if a failed file was caused by graceful shutdown
-func (fm *FileManager) isShutdownFailure(failedFilePath string) bool {
-	// Read the error log file for this failed file
-	baseName := filepath.Base(failedFilePath)
-	errorLogPath := filepath.Join(fm.baseDir, "failed", baseName+".error.log")  // Fixed: use .error.log extension
-	
-	errorContent, err := os.ReadFile(errorLogPath)
-	if err != nil {
-		// If we can't read the error log, assume it's a real failure
-		return false
-	}
-	
-	errorMsg := string(errorContent)
-	
-	// Check for shutdown failure marker or patterns
-	return strings.Contains(errorMsg, "SHUTDOWN_FAILURE:") ||
-		   strings.Contains(strings.ToLower(errorMsg), "context canceled") ||
-		   strings.Contains(strings.ToLower(errorMsg), "context cancelled") ||
-		   strings.Contains(strings.ToLower(errorMsg), "signal: killed") ||
-		   strings.Contains(strings.ToLower(errorMsg), "signal: interrupt") ||
-		   strings.Contains(strings.ToLower(errorMsg), "signal: terminated")
 }

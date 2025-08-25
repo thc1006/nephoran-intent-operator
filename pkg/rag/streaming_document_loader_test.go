@@ -36,10 +36,10 @@ func (m *MockChunkingService) countWords(content string) int {
 	return len(strings.Fields(content))
 }
 
-// MockEmbeddingService for testing
-type MockEmbeddingService struct{}
+// MockEmbeddingServiceStreaming for streaming document loader testing
+type MockEmbeddingServiceStreaming struct{}
 
-func (m *MockEmbeddingService) GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
+func (m *MockEmbeddingServiceStreaming) GenerateEmbeddings(ctx context.Context, request *EmbeddingRequest) (*EmbeddingResponse, error) {
 	embeddings := make([][]float32, len(request.Texts))
 	for i := range embeddings {
 		embeddings[i] = []float32{0.1, 0.2, 0.3} // Mock embedding
@@ -52,7 +52,7 @@ func (m *MockEmbeddingService) GenerateEmbeddings(ctx context.Context, request *
 	}, nil
 }
 
-func (m *MockEmbeddingService) GenerateEmbeddingsForChunks(ctx context.Context, chunks []*DocumentChunk) error {
+func (m *MockEmbeddingServiceStreaming) GenerateEmbeddingsForChunks(ctx context.Context, chunks []*DocumentChunk) error {
 	return nil
 }
 
@@ -81,7 +81,7 @@ func TestStreamingDocumentProcessor_ProcessDocumentStream(t *testing.T) {
 		},
 	}
 
-	embeddingService := &MockEmbeddingService{}
+	embeddingService := &MockEmbeddingServiceStreaming{}
 
 	processor := NewStreamingDocumentProcessor(config, chunkingService, embeddingService)
 	defer processor.Shutdown(5 * time.Second)
@@ -157,7 +157,7 @@ func TestStreamingDocumentProcessor_Backpressure(t *testing.T) {
 		},
 	}
 
-	embeddingService := &MockEmbeddingService{}
+	embeddingService := &MockEmbeddingServiceStreaming{}
 
 	processor := NewStreamingDocumentProcessor(config, chunkingService, embeddingService)
 	defer processor.Shutdown(5 * time.Second)
@@ -217,7 +217,7 @@ func TestStreamingDocumentProcessor_ConcurrentProcessing(t *testing.T) {
 		},
 	}
 
-	embeddingService := &MockEmbeddingService{}
+	embeddingService := &MockEmbeddingServiceStreaming{}
 
 	processor := NewStreamingDocumentProcessor(config, chunkingService, embeddingService)
 	defer processor.Shutdown(5 * time.Second)
@@ -405,7 +405,7 @@ func TestStreamingDocumentProcessor_StreamingBehavior(t *testing.T) {
 		},
 	}
 
-	embeddingService := &MockEmbeddingService{}
+	embeddingService := &MockEmbeddingServiceStreaming{}
 
 	processor := NewStreamingDocumentProcessor(config, chunkingService, embeddingService)
 
@@ -466,7 +466,7 @@ func BenchmarkStreamingDocumentProcessor(b *testing.B) {
 		},
 	}
 
-	embeddingService := &MockEmbeddingService{}
+	embeddingService := &MockEmbeddingServiceStreaming{}
 
 	processor := NewStreamingDocumentProcessor(config, chunkingService, embeddingService)
 	defer processor.Shutdown(5 * time.Second)

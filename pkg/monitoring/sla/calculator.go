@@ -180,7 +180,7 @@ type AvailabilityCalculator struct {
 	journeyStates    map[string]*JourneyState
 
 	// Historical tracking
-	availabilityHistory *TimeSeries
+	availabilityHistory *CircularBuffer
 	downtimeTracker     *DowntimeTracker
 
 	// Configuration
@@ -297,7 +297,7 @@ type ThroughputCalculator struct {
 	queueDepthMonitor *QueueDepthMonitor
 
 	// Historical data
-	throughputHistory *TimeSeries
+	throughputHistory *CircularBuffer
 	peakTracker       *PeakTracker
 
 	// Metrics
@@ -338,7 +338,7 @@ type ErrorRateCalculator struct {
 	burnRateCalculator *BurnRateCalculator
 
 	// Historical data
-	errorHistory *TimeSeries
+	errorHistory *CircularBuffer
 
 	// Metrics
 	metrics *ErrorRateMetrics
@@ -472,7 +472,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 			Dependencies: config.DependencyWeights,
 			Journeys:     config.JourneyWeights,
 		},
-		availabilityHistory: NewTimeSeries(config.MaxHistoryPoints),
+		availabilityHistory: NewCircularBuffer(config.MaxHistoryPoints),
 		downtimeTracker:     NewDowntimeTracker(),
 		metrics: &AvailabilityMetrics{
 			ComponentAvailability: prometheus.NewGaugeVec(prometheus.GaugeOpts{
@@ -532,7 +532,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 		requestCounter:    NewRateCounter(),
 		capacityTracker:   NewCapacityTracker(),
 		queueDepthMonitor: NewQueueDepthMonitor(),
-		throughputHistory: NewTimeSeries(config.MaxHistoryPoints),
+		throughputHistory: NewCircularBuffer(config.MaxHistoryPoints),
 		peakTracker:       NewPeakTracker(),
 		metrics: &ThroughputMetrics{
 			CurrentThroughput: prometheus.NewGauge(prometheus.GaugeOpts{
@@ -563,7 +563,7 @@ func NewCalculator(config *CalculatorConfig, logger *logging.StructuredLogger) (
 		errorCounter:       NewErrorCounter(),
 		budgetTracker:      NewErrorBudgetTracker(config.ErrorBudgetWindow, config.AvailabilityTarget),
 		burnRateCalculator: NewBurnRateCalculator(config.BurnRateThresholds),
-		errorHistory:       NewTimeSeries(config.MaxHistoryPoints),
+		errorHistory:       NewCircularBuffer(config.MaxHistoryPoints),
 		metrics: &ErrorRateMetrics{
 			ErrorRate: prometheus.NewGauge(prometheus.GaugeOpts{
 				Name: "sla_calculator_error_rate_percent",
@@ -766,7 +766,7 @@ func (c *Calculator) performCalculation() {
 	defer func() {
 		duration := time.Since(start)
 		c.metrics.CalculationLatency.WithLabelValues("full_cycle").Observe(duration.Seconds())
-		atomic.AddUint64(&c.calculationCount, 1)
+		c.calculationCount.Add(1)
 	}()
 
 	// Calculate each SLI dimension
@@ -796,7 +796,7 @@ func (c *Calculator) performCalculation() {
 	c.mu.Unlock()
 
 	// Add to history
-	c.stateHistory.Add(state.Timestamp, 0) // Simplified for circular buffer
+	c.stateHistory.Add(state)
 
 	// Update metrics
 	c.updateSLIMetrics(state)
@@ -1019,7 +1019,7 @@ func (c *Calculator) calculateSLOCompliance(state *SLIState) {
 		}
 	}
 	state.ViolationCount = violationCount
-	atomic.StoreUint64(&c.violationCount, uint64(violationCount))
+	c.violationCount.Store(uint64(violationCount))
 }
 
 // updateSLIMetrics updates Prometheus metrics with current SLI values
@@ -1241,7 +1241,6 @@ func NewDowntimeTracker() *DowntimeTracker { return &DowntimeTracker{} }
 type LatencyTimeSeries struct{}
 type LatencyViolationTracker struct{}
 type CapacityTracker struct{}
-type QueueDepthMonitor struct{}
 type PeakTracker struct{}
 type SLOComplianceTracker struct{}
 type DowntimeTracker struct{}

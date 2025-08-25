@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	logr "github.com/go-logr/logr"
 	"golang.org/x/crypto/ssh"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -55,6 +56,7 @@ type NetconfServerConfig struct {
 type NetconfSession struct {
 	ID            string
 	conn          net.Conn
+	sshChannel    ssh.Channel // SSH channel for NETCONF over SSH
 	sshSession    *ssh.Session
 	decoder       *xml.Decoder
 	encoder       *xml.Encoder
@@ -399,7 +401,7 @@ func (ns *NetconfServer) handleSSHChannel(ctx context.Context, channel ssh.Chann
 			sessionID := generateSessionID()
 			session := &NetconfSession{
 				ID:            sessionID,
-				conn:          channel,
+				sshChannel:    channel,
 				capabilities:  ns.capabilities,
 				authenticated: true,
 				locks:         make(map[string]string),
@@ -469,8 +471,20 @@ func (ns *NetconfServer) handleNetconfSession(ctx context.Context, session *Netc
 	defer session.cancel()
 
 	// Setup XML decoder/encoder
-	session.decoder = xml.NewDecoder(session.conn)
-	session.encoder = xml.NewEncoder(session.conn)
+	var reader io.Reader
+	var writer io.Writer
+	if session.conn != nil {
+		reader = session.conn
+		writer = session.conn
+	} else if session.sshChannel != nil {
+		reader = session.sshChannel
+		writer = session.sshChannel
+	} else {
+		logger.Error(nil, "no valid connection for session", "sessionID", session.ID)
+		return
+	}
+	session.decoder = xml.NewDecoder(reader)
+	session.encoder = xml.NewEncoder(writer)
 
 	// Send hello message
 	if err := ns.sendHello(session); err != nil {
@@ -494,8 +508,10 @@ func (ns *NetconfServer) handleNetconfSession(ctx context.Context, session *Netc
 		default:
 		}
 
-		// Set read timeout
-		session.conn.SetReadDeadline(time.Now().Add(ns.config.SessionTimeout))
+		// Set read timeout (only for net.Conn)
+		if session.conn != nil {
+			session.conn.SetReadDeadline(time.Now().Add(ns.config.SessionTimeout))
+		}
 
 		var rpc NetconfRPCRequest
 		if err := session.decoder.Decode(&rpc); err != nil {
@@ -529,17 +545,32 @@ func (ns *NetconfServer) sendHello(session *NetconfSession) error {
 	}
 
 	message := fmt.Sprintf("%s]]>]]>", string(xmlData))
-	_, err = session.conn.Write([]byte(message))
+	// Write to appropriate connection type
+	if session.conn != nil {
+		_, err = session.conn.Write([]byte(message))
+	} else if session.sshChannel != nil {
+		_, err = session.sshChannel.Write([]byte(message))
+	}
 	return err
 }
 
 // receiveHello receives and processes client hello message
 func (ns *NetconfServer) receiveHello(session *NetconfSession) error {
 	// Read hello with timeout
-	session.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
+	if session.conn != nil {
+		session.conn.SetReadDeadline(time.Now().Add(30 * time.Second))
+	}
 
 	buffer := make([]byte, 4096)
-	n, err := session.conn.Read(buffer)
+	var n int
+	var err error
+	if session.conn != nil {
+		n, err = session.conn.Read(buffer)
+	} else if session.sshChannel != nil {
+		n, err = session.sshChannel.Read(buffer)
+	} else {
+		return fmt.Errorf("no valid connection for reading hello")
+	}
 	if err != nil {
 		return fmt.Errorf("failed to read client hello: %w", err)
 	}
@@ -629,6 +660,80 @@ func (ns *NetconfServer) handleRPC(ctx context.Context, session *NetconfSession,
 	ns.sendResponse(session, response)
 }
 
+// NETCONF RPC operation handlers
+
+func (ns *NetconfServer) handleGet(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Basic get operation - returns operational data
+	response.Data = map[string]interface{}{
+		"message": "Get operation not fully implemented",
+	}
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleGetConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Get configuration data
+	response.Data = map[string]interface{}{
+		"message": "Get-config operation not fully implemented",
+	}
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleEditConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Edit configuration
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleCopyConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Copy configuration between datastores
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleDeleteConfig(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Delete configuration
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleLock(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Lock datastore
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleUnlock(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Unlock datastore
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleCloseSession(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Close session
+	response.OK = &struct{}{}
+	session.cancel() // Close the session
+}
+
+func (ns *NetconfServer) handleKillSession(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Kill another session
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleValidate(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Validate configuration
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleCommit(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Commit candidate configuration to running
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleDiscardChanges(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Discard candidate configuration changes
+	response.OK = &struct{}{}
+}
+
+func (ns *NetconfServer) handleCreateSubscription(ctx context.Context, session *NetconfSession, rpc *NetconfRPCRequest, response *NetconfRPCResponse) {
+	// Create notification subscription
+	response.OK = &struct{}{}
+}
+
 // sendResponse sends a NETCONF RPC response
 func (ns *NetconfServer) sendResponse(session *NetconfSession, response *NetconfRPCResponse) {
 	session.mutex.Lock()
@@ -641,7 +746,13 @@ func (ns *NetconfServer) sendResponse(session *NetconfSession, response *Netconf
 	}
 
 	message := fmt.Sprintf("%s]]>]]>", string(xmlData))
-	session.conn.Write([]byte(message))
+	
+	// Write to appropriate connection type
+	if session.conn != nil {
+		session.conn.Write([]byte(message))
+	} else if session.sshChannel != nil {
+		session.sshChannel.Write([]byte(message))
+	}
 }
 
 // parseOperation extracts the operation name from RPC content
@@ -724,6 +835,8 @@ func (ns *NetconfServer) Stop(ctx context.Context) error {
 	logger.Info("NETCONF server stopped")
 	return nil
 }
+
+// Helper functions are defined in other files to avoid duplication
 
 // GetSessions returns active session information
 func (ns *NetconfServer) GetSessions() map[string]interface{} {

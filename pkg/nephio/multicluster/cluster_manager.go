@@ -7,15 +7,22 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	// 	porchv1alpha1 "github.com/GoogleContainerTools/kpt/porch/api/porchapi/v1alpha1" // DISABLED: external dependency not available
-	// 	nephiov1alpha1 "github.com/nephio-project/nephio/api/v1alpha1" // DISABLED: external dependency not available
+	
+	// Porch types are now defined locally in types.go
 )
+
+// ClusterManagerInterface defines the interface for cluster management operations
+type ClusterManagerInterface interface {
+	RegisterCluster(ctx context.Context, clusterConfig *rest.Config, name types.NamespacedName) (*ClusterInfo, error)
+	SelectTargetClusters(ctx context.Context, candidates []types.NamespacedName, packageRevision *PackageRevision) ([]types.NamespacedName, error)
+	StartHealthMonitoring(ctx context.Context, interval time.Duration)
+	GetClusters() map[types.NamespacedName]*ClusterInfo
+	SetClusters(clusters map[types.NamespacedName]*ClusterInfo)
+}
 
 // ClusterManager manages cluster registration, discovery, and lifecycle
 type ClusterManager struct {
@@ -119,7 +126,7 @@ func (cm *ClusterManager) RegisterCluster(
 func (cm *ClusterManager) SelectTargetClusters(
 	ctx context.Context,
 	candidates []types.NamespacedName,
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 ) ([]types.NamespacedName, error) {
 	// 1. Validate input clusters
 	if len(candidates) == 0 {
@@ -284,7 +291,7 @@ func (cm *ClusterManager) collectResourceUtilization(
 }
 
 func (cm *ClusterManager) extractSelectionCriteria(
-	packageRevision *porchv1alpha1.PackageRevision,
+	packageRevision *PackageRevision,
 ) ClusterSelectionCriteria {
 	// Extract cluster selection criteria from package metadata
 	return ClusterSelectionCriteria{}
@@ -300,4 +307,24 @@ func NewClusterManager(
 		logger:   logger,
 		clusters: make(map[types.NamespacedName]*ClusterInfo),
 	}
+}
+
+// GetClusters returns the cluster information for testing purposes
+func (cm *ClusterManager) GetClusters() map[types.NamespacedName]*ClusterInfo {
+	cm.clusterLock.RLock()
+	defer cm.clusterLock.RUnlock()
+	
+	// Return a copy to avoid concurrent access issues
+	clusters := make(map[types.NamespacedName]*ClusterInfo)
+	for k, v := range cm.clusters {
+		clusters[k] = v
+	}
+	return clusters
+}
+
+// SetClusters sets the cluster information for testing purposes
+func (cm *ClusterManager) SetClusters(clusters map[types.NamespacedName]*ClusterInfo) {
+	cm.clusterLock.Lock()
+	defer cm.clusterLock.Unlock()
+	cm.clusters = clusters
 }

@@ -35,6 +35,13 @@ type DeploymentTemplate struct {
 	UpdatedAt  time.Time              `json:"updatedAt"`
 	CreatedBy  string                 `json:"createdBy,omitempty"`
 	UpdatedBy  string                 `json:"updatedBy,omitempty"`
+
+	// Legacy fields for backward compatibility (mapped to TemplateSpec)
+	Type         string                `json:"type,omitempty"`         // Maps to TemplateSpec.Type
+	Content      *runtime.RawExtension `json:"content,omitempty"`      // Maps to TemplateSpec.Content
+	Author       string                `json:"author,omitempty"`       // Maps to CreatedBy or Provider
+	InputSchema  *runtime.RawExtension `json:"inputSchema,omitempty"`  // Maps to TemplateSpec.InputSchema
+	OutputSchema *runtime.RawExtension `json:"outputSchema,omitempty"` // Maps to TemplateSpec.OutputSchema
 }
 
 // TemplateDependency represents a dependency of a deployment template

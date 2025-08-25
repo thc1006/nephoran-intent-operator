@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -59,7 +60,7 @@ type LinkerdMesh struct {
 	config        *rest.Config
 	meshConfig    *Config
 	certProvider  *LinkerdCertificateProvider
-	logger        log.Logger
+	logger        logr.Logger
 }
 
 // NewLinkerdMesh creates a new Linkerd mesh implementation

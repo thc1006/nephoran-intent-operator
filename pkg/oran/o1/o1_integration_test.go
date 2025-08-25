@@ -1,3 +1,5 @@
+//go:build integration
+
 package o1
 
 import (

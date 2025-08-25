@@ -115,18 +115,17 @@ func generateWindowsMockPorchScript(opts ScriptOptions) string {
 	sleepCmd := ""
 	if opts.Sleep > 0 {
 		// Use powershell Start-Sleep for more precise timing on Windows
-		// -NoProfile improves startup time and ensures consistent behavior
-		sleepCmd = fmt.Sprintf("powershell -NoProfile -Command \"Start-Sleep -Milliseconds %d\"\n", int(opts.Sleep.Milliseconds()))
+		sleepCmd = fmt.Sprintf("powershell -command \"Start-Sleep -Milliseconds %d\"", int(opts.Sleep.Milliseconds()))
 	}
 
 	stdoutCmd := ""
 	if opts.Stdout != "" {
-		stdoutCmd = fmt.Sprintf("echo %s\n", opts.Stdout)
+		stdoutCmd = fmt.Sprintf("echo %s", opts.Stdout)
 	}
 
 	stderrCmd := ""
 	if opts.Stderr != "" {
-		stderrCmd = fmt.Sprintf("echo %s >&2\n", opts.Stderr)
+		stderrCmd = fmt.Sprintf("echo %s >&2", opts.Stderr)
 	}
 
 	failOnPatternCmd := ""
@@ -266,17 +265,17 @@ exit %d`, failOnPatternCmd, sleepCmd, customCmds, stdoutCmd, stderrCmd, opts.Exi
 func generateWindowsGenericScript(opts ScriptOptions) string {
 	sleepCmd := ""
 	if opts.Sleep > 0 {
-		sleepCmd = fmt.Sprintf("timeout /t %d /nobreak >nul 2>nul\n", int(opts.Sleep.Seconds()))
+		sleepCmd = fmt.Sprintf("timeout /t %d /nobreak >nul 2>nul", int(opts.Sleep.Seconds()))
 	}
 
 	stdoutCmd := ""
 	if opts.Stdout != "" {
-		stdoutCmd = fmt.Sprintf("echo %s\n", opts.Stdout)
+		stdoutCmd = fmt.Sprintf("echo %s", opts.Stdout)
 	}
 
 	stderrCmd := ""
 	if opts.Stderr != "" {
-		stderrCmd = fmt.Sprintf("echo %s >&2\n", opts.Stderr)
+		stderrCmd = fmt.Sprintf("echo %s >&2", opts.Stderr)
 	}
 
 	customCmds := ""

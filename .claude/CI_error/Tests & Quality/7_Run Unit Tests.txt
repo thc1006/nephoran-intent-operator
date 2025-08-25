@@ -1,0 +1,695 @@
+﻿2025-08-19T13:09:21.8614641Z ##[group]Run timeout 300 go test -v -race -timeout=5m -coverprofile=coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop
+2025-08-19T13:09:21.8615755Z [36;1mtimeout 300 go test -v -race -timeout=5m -coverprofile=coverage.out -covermode=atomic ./cmd/conductor-loop ./internal/loop[0m
+2025-08-19T13:09:21.8616463Z [36;1mgo tool cover -html=coverage.out -o coverage.html[0m
+2025-08-19T13:09:21.8657691Z shell: /usr/bin/bash -e {0}
+2025-08-19T13:09:21.8657963Z env:
+2025-08-19T13:09:21.8658155Z   GO_VERSION: 1.24
+2025-08-19T13:09:21.8658379Z   REGISTRY: ghcr.io
+2025-08-19T13:09:21.8658628Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:21.8658929Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:21.8659187Z ##[endgroup]
+2025-08-19T13:09:53.8093777Z # github.com/thc1006/nephoran-intent-operator/internal/loop [github.com/thc1006/nephoran-intent-operator/internal/loop.test]
+2025-08-19T13:09:53.8133909Z ##[error]internal/loop/security_validation_test.go:419:2: MaxJSONDepth redeclared in this block
+2025-08-19T13:09:53.8145656Z ##[error]	internal/loop/watcher.go:193:2: other declaration of MaxJSONDepth
+2025-08-19T13:09:55.5031208Z === RUN   TestComprehensiveSecuritySuite
+2025-08-19T13:09:55.5031969Z === RUN   TestComprehensiveSecuritySuite/InputValidationSecurity
+2025-08-19T13:09:55.5032946Z === RUN   TestComprehensiveSecuritySuite/InputValidationSecurity/SQL_injection_attempt
+2025-08-19T13:09:55.5033851Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5035028Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5036269Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5037079Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5037545Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5038007Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5038583Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5039205Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5039793Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5040320Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5040665Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5040999Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5041378Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5041717Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5042004Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5042250Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5042632Z === RUN   TestComprehensiveSecuritySuite/InputValidationSecurity/XSS_attempt
+2025-08-19T13:09:55.5043309Z 2025/08/19 13:09:54 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5044494Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5045047Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5045747Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5046232Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5046625Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5046892Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5047151Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5047461Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5047813Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5048153Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5048980Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5049336Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5049680Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5050006Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5050274Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5050513Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5050922Z === RUN   TestComprehensiveSecuritySuite/InputValidationSecurity/Buffer_overflow_attempt
+2025-08-19T13:09:55.5051619Z 2025/08/19 13:09:54 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5052164Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5052699Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5053395Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5053881Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5054470Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5054749Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5055012Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5055423Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5055819Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5056171Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5056524Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5056872Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5057219Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5057537Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5057827Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5058070Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5058490Z === RUN   TestComprehensiveSecuritySuite/InputValidationSecurity/Control_character_injection
+2025-08-19T13:09:55.5059201Z 2025/08/19 13:09:54 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5059751Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5060299Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5061000Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5061455Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5061732Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5062001Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5062444Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5062754Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5063167Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5063512Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5063865Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5064545Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5064916Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5065233Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5065500Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5065736Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5066089Z === RUN   TestComprehensiveSecuritySuite/InputValidationSecurity/JSON_bomb
+2025-08-19T13:09:55.5066731Z 2025/08/19 13:09:54 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5067451Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5067979Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5068658Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5069242Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5069508Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5069772Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5070031Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5070335Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5070681Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5071015Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5071378Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5071721Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5072066Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5072396Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5072663Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5072904Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5073218Z === RUN   TestComprehensiveSecuritySuite/PathTraversalSecurity
+2025-08-19T13:09:55.5073686Z === RUN   TestComprehensiveSecuritySuite/PathTraversalSecurity/Unix_path_traversal
+2025-08-19T13:09:55.5074915Z 2025/08/19 13:09:54 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5075463Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5075987Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5076677Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5077137Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5077410Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5077674Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5077928Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5078239Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5078585Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5078914Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5079266Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5079618Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5102574Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5103460Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5103783Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5104268Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5104693Z === RUN   TestComprehensiveSecuritySuite/PathTraversalSecurity/Windows_path_traversal
+2025-08-19T13:09:55.5105404Z 2025/08/19 13:09:54 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5105973Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5106516Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5107226Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5107707Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5107995Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5108457Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5108725Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5109052Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5109413Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5109764Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5110125Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5110484Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5110832Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5111153Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5111424Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5111659Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5112073Z === RUN   TestComprehensiveSecuritySuite/PathTraversalSecurity/URL_encoded_path_traversal
+2025-08-19T13:09:55.5112787Z 2025/08/19 13:09:54 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5113335Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5113858Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5114782Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5115248Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5115526Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5115786Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5116056Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5116371Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5116723Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5117083Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5117434Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5117782Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5118124Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5118436Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5118702Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5118935Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5119356Z === RUN   TestComprehensiveSecuritySuite/PathTraversalSecurity/Double_encoded_path_traversal
+2025-08-19T13:09:55.5120079Z 2025/08/19 13:09:54 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5120634Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5121180Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5122031Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5122505Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5122778Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5123046Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5123311Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5123626Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5123971Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5124580Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5124934Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5125281Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5125781Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5126100Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5126366Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5126603Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5126922Z === RUN   TestComprehensiveSecuritySuite/CommandInjectionSecurity
+2025-08-19T13:09:55.5127412Z === RUN   TestComprehensiveSecuritySuite/CommandInjectionSecurity/Semicolon_injection
+2025-08-19T13:09:55.5128091Z 2025/08/19 13:09:54 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5128865Z 2025/08/19 13:09:54 Warning: Porch validation failed: porch validation failed: fork/exec porch; rm -rf /: no such file or directory
+2025-08-19T13:09:55.5129406Z 2025/08/19 13:09:54 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5129940Z 2025/08/19 13:09:54 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5130629Z 2025/08/19 13:09:54 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5131088Z 2025/08/19 13:09:54 Started 3 enhanced workers
+2025-08-19T13:09:55.5131373Z 2025/08/19 13:09:54 Enhanced worker 0 started
+2025-08-19T13:09:55.5131639Z 2025/08/19 13:09:54 Enhanced worker 2 started
+2025-08-19T13:09:55.5131901Z 2025/08/19 13:09:54 Enhanced worker 1 started
+2025-08-19T13:09:55.5132218Z 2025/08/19 13:09:54 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5132577Z 2025/08/19 13:09:54 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5132908Z 2025/08/19 13:09:54 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5133261Z 2025/08/19 13:09:54 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5133610Z 2025/08/19 13:09:54 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5133957Z 2025/08/19 13:09:54 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5134481Z 2025/08/19 13:09:54 All enhanced workers stopped
+2025-08-19T13:09:55.5134758Z 2025/08/19 13:09:54 Closing watcher...
+2025-08-19T13:09:55.5134999Z 2025/08/19 13:09:54 Watcher closed
+2025-08-19T13:09:55.5135369Z === RUN   TestComprehensiveSecuritySuite/CommandInjectionSecurity/Pipe_injection
+2025-08-19T13:09:55.5136026Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5136822Z 2025/08/19 13:09:55 Warning: Porch validation failed: porch validation failed: fork/exec porch | cat /etc/passwd: no such file or directory
+2025-08-19T13:09:55.5137390Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5137908Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5138613Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5139216Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5139483Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5139749Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5140045Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5140374Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5140724Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5141062Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5141403Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5141754Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5142098Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5142416Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5142683Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5143052Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5143443Z === RUN   TestComprehensiveSecuritySuite/CommandInjectionSecurity/Ampersand_injection
+2025-08-19T13:09:55.5144344Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5145162Z 2025/08/19 13:09:55 Warning: Porch validation failed: porch validation failed: exec: "porch && echo 'injected'": executable file not found in $PATH
+2025-08-19T13:09:55.5145728Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5146248Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5146938Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5147534Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5148020Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5148514Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5148981Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5149532Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5150139Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5150729Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5151343Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5151959Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5152568Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5153129Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5153593Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5153998Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5154894Z === RUN   TestComprehensiveSecuritySuite/CommandInjectionSecurity/Backtick_injection
+2025-08-19T13:09:55.5156108Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5157534Z 2025/08/19 13:09:55 Warning: Porch validation failed: porch validation failed: exec: "porch `whoami`": executable file not found in $PATH
+2025-08-19T13:09:55.5158495Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5159431Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5160647Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5161467Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5161937Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5162411Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5162878Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5163657Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5164471Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5165082Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5165705Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5166319Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5166943Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5167521Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5167984Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5168399Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5169068Z === RUN   TestComprehensiveSecuritySuite/CommandInjectionSecurity/Dollar_injection
+2025-08-19T13:09:55.5170245Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5171962Z 2025/08/19 13:09:55 Warning: Porch validation failed: porch validation failed: exec: "porch $(id)": executable file not found in $PATH
+2025-08-19T13:09:55.5172919Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5173849Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5175279Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5176107Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5176588Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5177051Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5177509Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5178057Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5178669Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5179273Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5179897Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5180522Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5181150Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5181702Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5182171Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5182581Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5183139Z === RUN   TestComprehensiveSecuritySuite/ResourceExhaustionSecurity
+2025-08-19T13:09:55.5183998Z === RUN   TestComprehensiveSecuritySuite/ResourceExhaustionSecurity/Many_small_files
+2025-08-19T13:09:55.5185364Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5186311Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5187272Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5188483Z 2025/08/19 13:09:55 Configuration: workers=5, debounce=10ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5189295Z 2025/08/19 13:09:55 Started 5 enhanced workers
+2025-08-19T13:09:55.5189770Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5190229Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5190690Z 2025/08/19 13:09:55 Enhanced worker 3 started
+2025-08-19T13:09:55.5191153Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5191603Z 2025/08/19 13:09:55 Enhanced worker 4 started
+2025-08-19T13:09:55.5192151Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5192759Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5193340Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5194585Z 2025/08/19 13:09:55 Enhanced worker 3: work queue closed, exiting
+2025-08-19T13:09:55.5195232Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5195859Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5196662Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5197315Z 2025/08/19 13:09:55 Enhanced worker 4: work queue closed, exiting
+2025-08-19T13:09:55.5197887Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5198363Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5198790Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5199446Z === RUN   TestComprehensiveSecuritySuite/ResourceExhaustionSecurity/Large_files
+2025-08-19T13:09:55.5200615Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5201562Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5202708Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5203930Z 2025/08/19 13:09:55 Configuration: workers=5, debounce=10ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5204921Z 2025/08/19 13:09:55 Started 5 enhanced workers
+2025-08-19T13:09:55.5205399Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5205865Z 2025/08/19 13:09:55 Enhanced worker 3 started
+2025-08-19T13:09:55.5206328Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5206780Z 2025/08/19 13:09:55 Enhanced worker 4 started
+2025-08-19T13:09:55.5207243Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5207795Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5208402Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5208994Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5209634Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5210264Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5210883Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5211502Z 2025/08/19 13:09:55 Enhanced worker 3: work queue closed, exiting
+2025-08-19T13:09:55.5212129Z 2025/08/19 13:09:55 Enhanced worker 4: work queue closed, exiting
+2025-08-19T13:09:55.5212683Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5213153Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5213572Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5214459Z === RUN   TestComprehensiveSecuritySuite/ResourceExhaustionSecurity/Rapid_file_creation
+2025-08-19T13:09:55.5215689Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5216650Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5217603Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5218807Z 2025/08/19 13:09:55 Configuration: workers=5, debounce=10ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5219617Z 2025/08/19 13:09:55 Started 5 enhanced workers
+2025-08-19T13:09:55.5220099Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5220564Z 2025/08/19 13:09:55 Enhanced worker 3 started
+2025-08-19T13:09:55.5221025Z 2025/08/19 13:09:55 Enhanced worker 4 started
+2025-08-19T13:09:55.5221484Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5221949Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5222490Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5223101Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5223703Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5224756Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5225395Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5226025Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5226652Z 2025/08/19 13:09:55 Enhanced worker 3: work queue closed, exiting
+2025-08-19T13:09:55.5227263Z 2025/08/19 13:09:55 Enhanced worker 4: work queue closed, exiting
+2025-08-19T13:09:55.5227824Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5228292Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5228704Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5229219Z === RUN   TestComprehensiveSecuritySuite/FileSystemSecurity
+2025-08-19T13:09:55.5230041Z === RUN   TestComprehensiveSecuritySuite/FileSystemSecurity/Symlink_to_sensitive_file
+2025-08-19T13:09:55.5231232Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5232440Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5233334Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5234750Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5235562Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5236037Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5236502Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5236963Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5237522Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5238128Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5238719Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5239363Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5239987Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5240606Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5241157Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5241621Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5242036Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5242603Z === RUN   TestComprehensiveSecuritySuite/FileSystemSecurity/FIFO_pipe
+2025-08-19T13:09:55.5243640Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5244725Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5245635Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5246874Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5247720Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5248201Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5248677Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5249127Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5249652Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5250236Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5250823Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5251446Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5252065Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5252693Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5253268Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5253958Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5254558Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5255222Z === RUN   TestComprehensiveSecuritySuite/FileSystemSecurity/Device_file_simulation
+2025-08-19T13:09:55.5256401Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5257337Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5258233Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5259429Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5260212Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5260699Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5261172Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5261634Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5262377Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5263002Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5263590Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5264388Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5265048Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5265666Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5266235Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5266699Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5267117Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5267616Z === RUN   TestComprehensiveSecuritySuite/ConcurrencySecurity
+2025-08-19T13:09:55.5268629Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5269625Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5270539Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5271769Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5273047Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5273960Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5274609Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5275080Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5275549Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5276101Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5276698Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5277286Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5277890Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5278501Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5279093Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5279649Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5280170Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5281094Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5282305Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5283579Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5284929Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5285415Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5285873Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5286340Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5286893Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5287479Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5288056Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5288649Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5289245Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5289831Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5290372Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5290874Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5291954Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5293250Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5294645Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5295437Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5295892Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5296383Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5296830Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5297352Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5297947Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5298519Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5299131Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5299732Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5300352Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5300915Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5301426Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5302349Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5303538Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5304837Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5305714Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5306519Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5306940Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5307319Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5307796Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5308326Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5308830Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5309340Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5309862Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5310374Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5310834Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5311273Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5312074Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5313365Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5314272Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5314745Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5315176Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5315549Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5316010Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5316533Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5317042Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5317554Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5318075Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5318584Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5319233Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5319624Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5319968Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5320298Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5320626Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5320949Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5321279Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5321597Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5321932Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5322259Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5322588Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5323049Z === RUN   TestComprehensiveSecuritySuite/StateManagementSecurity
+2025-08-19T13:09:55.5323705Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5324530Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5325100Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff
+2025-08-19T13:09:55.5325812Z 2025/08/19 13:09:55 Configuration: workers=3, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5326283Z 2025/08/19 13:09:55 Started 3 enhanced workers
+2025-08-19T13:09:55.5326562Z 2025/08/19 13:09:55 Enhanced worker 2 started
+2025-08-19T13:09:55.5326821Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5327079Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5327393Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5327740Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5328082Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5328449Z 2025/08/19 13:09:55 Enhanced worker 2: work queue closed, exiting
+2025-08-19T13:09:55.5328803Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5329160Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5329479Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5329872Z     integration_security_test.go:795: 
+2025-08-19T13:09:55.5330807Z         	Error Trace:	/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/integration_security_test.go:795
+2025-08-19T13:09:55.5332453Z         	            				/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/integration_security_test.go:602
+2025-08-19T13:09:55.5334147Z         	            				/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/integration_security_test.go:89
+2025-08-19T13:09:55.5335554Z         	Error:      	"{\"files\":{\"$(whoami)\":{\"status\":\"processed\",\"timestamp\":\"2025-08-15T12:00:00Z\"},\"../../../etc/passwd\":{\"status\":\"processed\",\"timestamp\":\"2025-08-19T13:09:55Z\"}}}" should not contain "/etc/passwd"
+2025-08-19T13:09:55.5336611Z         	Test:       	TestComprehensiveSecuritySuite/StateManagementSecurity
+2025-08-19T13:09:55.5337245Z         	Messages:   	State file should not contain dangerous pattern: /etc/passwd
+2025-08-19T13:09:55.5337662Z     integration_security_test.go:795: 
+2025-08-19T13:09:55.5338553Z         	Error Trace:	/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/integration_security_test.go:795
+2025-08-19T13:09:55.5340177Z         	            				/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/integration_security_test.go:602
+2025-08-19T13:09:55.5341776Z         	            				/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/integration_security_test.go:89
+2025-08-19T13:09:55.5343159Z         	Error:      	"{\"files\":{\"$(whoami)\":{\"status\":\"processed\",\"timestamp\":\"2025-08-15T12:00:00Z\"},\"../../../etc/passwd\":{\"status\":\"processed\",\"timestamp\":\"2025-08-19T13:09:55Z\"}}}" should not contain "$(whoami)"
+2025-08-19T13:09:55.5344283Z         	Test:       	TestComprehensiveSecuritySuite/StateManagementSecurity
+2025-08-19T13:09:55.5344863Z         	Messages:   	State file should not contain dangerous pattern: $(whoami)
+2025-08-19T13:09:55.5345205Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5345443Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5345761Z === RUN   TestComprehensiveSecuritySuite/ConfigurationSecurity
+2025-08-19T13:09:55.5346235Z === RUN   TestComprehensiveSecuritySuite/ConfigurationSecurity/Negative_worker_count
+2025-08-19T13:09:55.5346909Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5347456Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5347727Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5347964Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5348390Z === RUN   TestComprehensiveSecuritySuite/ConfigurationSecurity/Extremely_large_worker_count
+2025-08-19T13:09:55.5349050Z     integration_security_test.go:653: 
+2025-08-19T13:09:55.5350092Z         	Error Trace:	/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/integration_security_test.go:653
+2025-08-19T13:09:55.5350894Z         	Error:      	Received unexpected error:
+2025-08-19T13:09:55.5351815Z         	            	invalid configuration: max_workers 999999 exceeds safe limit of 16 (4x CPU cores)
+2025-08-19T13:09:55.5352727Z         	Test:       	TestComprehensiveSecuritySuite/ConfigurationSecurity/Extremely_large_worker_count
+2025-08-19T13:09:55.5353376Z         	Messages:   	Should handle configuration safely
+2025-08-19T13:09:55.5353986Z === RUN   TestComprehensiveSecuritySuite/ConfigurationSecurity/Negative_timeout
+2025-08-19T13:09:55.5354953Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5355675Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5356064Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5356338Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5356782Z === RUN   TestComprehensiveSecuritySuite/ConfigurationSecurity/Path_traversal_in_output_directory
+2025-08-19T13:09:55.5357507Z 2025/08/19 13:09:55 Loaded 0 file states from /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff/.conductor-state.json
+2025-08-19T13:09:55.5358054Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5358339Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5358572Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5358822Z === NAME  TestComprehensiveSecuritySuite
+2025-08-19T13:09:55.5359666Z     testing.go:1267: TempDir RemoveAll cleanup: unlinkat /tmp/TestComprehensiveSecuritySuite4205094976/001/handoff: directory not empty
+2025-08-19T13:09:55.5360637Z --- FAIL: TestComprehensiveSecuritySuite (0.23s)
+2025-08-19T13:09:55.5361328Z     --- PASS: TestComprehensiveSecuritySuite/InputValidationSecurity (0.04s)
+2025-08-19T13:09:55.5362205Z         --- PASS: TestComprehensiveSecuritySuite/InputValidationSecurity/SQL_injection_attempt (0.01s)
+2025-08-19T13:09:55.5363084Z         --- PASS: TestComprehensiveSecuritySuite/InputValidationSecurity/XSS_attempt (0.01s)
+2025-08-19T13:09:55.5363983Z         --- PASS: TestComprehensiveSecuritySuite/InputValidationSecurity/Buffer_overflow_attempt (0.00s)
+2025-08-19T13:09:55.5365259Z         --- PASS: TestComprehensiveSecuritySuite/InputValidationSecurity/Control_character_injection (0.02s)
+2025-08-19T13:09:55.5366147Z         --- PASS: TestComprehensiveSecuritySuite/InputValidationSecurity/JSON_bomb (0.01s)
+2025-08-19T13:09:55.5366791Z     --- PASS: TestComprehensiveSecuritySuite/PathTraversalSecurity (0.02s)
+2025-08-19T13:09:55.5367586Z         --- PASS: TestComprehensiveSecuritySuite/PathTraversalSecurity/Unix_path_traversal (0.00s)
+2025-08-19T13:09:55.5368781Z         --- PASS: TestComprehensiveSecuritySuite/PathTraversalSecurity/Windows_path_traversal (0.01s)
+2025-08-19T13:09:55.5369731Z         --- PASS: TestComprehensiveSecuritySuite/PathTraversalSecurity/URL_encoded_path_traversal (0.01s)
+2025-08-19T13:09:55.5370693Z         --- PASS: TestComprehensiveSecuritySuite/PathTraversalSecurity/Double_encoded_path_traversal (0.01s)
+2025-08-19T13:09:55.5371465Z     --- PASS: TestComprehensiveSecuritySuite/CommandInjectionSecurity (0.02s)
+2025-08-19T13:09:55.5372313Z         --- PASS: TestComprehensiveSecuritySuite/CommandInjectionSecurity/Semicolon_injection (0.00s)
+2025-08-19T13:09:55.5373208Z         --- PASS: TestComprehensiveSecuritySuite/CommandInjectionSecurity/Pipe_injection (0.00s)
+2025-08-19T13:09:55.5374324Z         --- PASS: TestComprehensiveSecuritySuite/CommandInjectionSecurity/Ampersand_injection (0.00s)
+2025-08-19T13:09:55.5375288Z         --- PASS: TestComprehensiveSecuritySuite/CommandInjectionSecurity/Backtick_injection (0.00s)
+2025-08-19T13:09:55.5376203Z         --- PASS: TestComprehensiveSecuritySuite/CommandInjectionSecurity/Dollar_injection (0.00s)
+2025-08-19T13:09:55.5376931Z     --- PASS: TestComprehensiveSecuritySuite/ResourceExhaustionSecurity (0.08s)
+2025-08-19T13:09:55.5377763Z         --- PASS: TestComprehensiveSecuritySuite/ResourceExhaustionSecurity/Many_small_files (0.02s)
+2025-08-19T13:09:55.5378652Z         --- PASS: TestComprehensiveSecuritySuite/ResourceExhaustionSecurity/Large_files (0.05s)
+2025-08-19T13:09:55.5379577Z         --- PASS: TestComprehensiveSecuritySuite/ResourceExhaustionSecurity/Rapid_file_creation (0.00s)
+2025-08-19T13:09:55.5380298Z     --- PASS: TestComprehensiveSecuritySuite/FileSystemSecurity (0.03s)
+2025-08-19T13:09:55.5381084Z         --- PASS: TestComprehensiveSecuritySuite/FileSystemSecurity/Symlink_to_sensitive_file (0.01s)
+2025-08-19T13:09:55.5381877Z         --- PASS: TestComprehensiveSecuritySuite/FileSystemSecurity/FIFO_pipe (0.01s)
+2025-08-19T13:09:55.5382751Z         --- PASS: TestComprehensiveSecuritySuite/FileSystemSecurity/Device_file_simulation (0.01s)
+2025-08-19T13:09:55.5383370Z     --- PASS: TestComprehensiveSecuritySuite/ConcurrencySecurity (0.02s)
+2025-08-19T13:09:55.5384005Z     --- FAIL: TestComprehensiveSecuritySuite/StateManagementSecurity (0.01s)
+2025-08-19T13:09:55.5384842Z     --- FAIL: TestComprehensiveSecuritySuite/ConfigurationSecurity (0.01s)
+2025-08-19T13:09:55.5385663Z         --- PASS: TestComprehensiveSecuritySuite/ConfigurationSecurity/Negative_worker_count (0.00s)
+2025-08-19T13:09:55.5386606Z         --- FAIL: TestComprehensiveSecuritySuite/ConfigurationSecurity/Extremely_large_worker_count (0.00s)
+2025-08-19T13:09:55.5387507Z         --- PASS: TestComprehensiveSecuritySuite/ConfigurationSecurity/Negative_timeout (0.00s)
+2025-08-19T13:09:55.5388571Z         --- PASS: TestComprehensiveSecuritySuite/ConfigurationSecurity/Path_traversal_in_output_directory (0.00s)
+2025-08-19T13:09:55.5389075Z === RUN   TestOnceMode_ExitCodes
+2025-08-19T13:09:55.5389718Z === RUN   TestOnceMode_ExitCodes/all_files_processed_successfully
+2025-08-19T13:09:55.5390691Z 2025/08/19 13:09:55 Warning: Porch validation failed: porch validation failed: fork/exec /tmp/TestOnceMode_ExitCodesall_files_processed_successfully1664794716/001/mock-porch.bat: exec format error
+2025-08-19T13:09:55.5391571Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5392285Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestOnceMode_ExitCodesall_files_processed_successfully1664794716/001/handoff
+2025-08-19T13:09:55.5393151Z 2025/08/19 13:09:55 Configuration: workers=2, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5393746Z 2025/08/19 13:09:55 Started 2 enhanced workers
+2025-08-19T13:09:55.5394132Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5394537Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5394868Z 2025/08/19 13:09:55 Queued 1 existing intent files for processing
+2025-08-19T13:09:55.5395526Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5395987Z 2025/08/19 13:09:55 LOOP:PROCESS - Worker 1 processing file: intent-test1.json (attempt 1)
+2025-08-19T13:09:55.5396522Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5396982Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5397667Z 2025/08/19 13:09:55 LOOP:ERROR - Worker 1: JSON validation failed for intent-test1.json: intent validation failed: missing required field: namespace
+2025-08-19T13:09:55.5399086Z 2025/08/19 13:09:55 Moved file /tmp/TestOnceMode_ExitCodesall_files_processed_successfully1664794716/001/handoff/intent-test1.json to /tmp/TestOnceMode_ExitCodesall_files_processed_successfully1664794716/001/handoff/failed/intent-test1.json
+2025-08-19T13:09:55.5400586Z 2025/08/19 13:09:55 Created error log: /tmp/TestOnceMode_ExitCodesall_files_processed_successfully1664794716/001/handoff/failed/intent-test1.json.error.log
+2025-08-19T13:09:55.5401585Z 2025/08/19 13:09:55 Created directory: /tmp/TestOnceMode_ExitCodesall_files_processed_successfully1664794716/001/handoff/status
+2025-08-19T13:09:55.5402717Z 2025/08/19 13:09:55 Status written atomically to: /tmp/TestOnceMode_ExitCodesall_files_processed_successfully1664794716/001/handoff/status/intent-test1.json-20250819-130955.status
+2025-08-19T13:09:55.5403507Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5403962Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5404552Z     main_once_test.go:111: 
+2025-08-19T13:09:55.5405497Z         	Error Trace:	/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/main_once_test.go:111
+2025-08-19T13:09:55.5406103Z         	Error:      	Not equal: 
+2025-08-19T13:09:55.5406429Z         	            	expected: 0
+2025-08-19T13:09:55.5406754Z         	            	actual  : 1
+2025-08-19T13:09:55.5407196Z         	Test:       	TestOnceMode_ExitCodes/all_files_processed_successfully
+2025-08-19T13:09:55.5408351Z         	Messages:   	Failed count mismatch. Failed files: [/tmp/TestOnceMode_ExitCodesall_files_processed_successfully1664794716/001/handoff/failed/intent-test1.json]
+2025-08-19T13:09:55.5409004Z     main_once_test.go:122: 
+2025-08-19T13:09:55.5409787Z         	Error Trace:	/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/main_once_test.go:122
+2025-08-19T13:09:55.5410378Z         	Error:      	Not equal: 
+2025-08-19T13:09:55.5410690Z         	            	expected: 0
+2025-08-19T13:09:55.5411002Z         	            	actual  : 8
+2025-08-19T13:09:55.5411575Z         	Test:       	TestOnceMode_ExitCodes/all_files_processed_successfully
+2025-08-19T13:09:55.5412171Z         	Messages:   	Exit code mismatch for test case: all_files_processed_successfully
+2025-08-19T13:09:55.5412537Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5412780Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5413044Z === RUN   TestOnceMode_ExitCodes/some_files_failed
+2025-08-19T13:09:55.5413948Z 2025/08/19 13:09:55 Warning: Porch validation failed: porch validation failed: fork/exec /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/mock-porch.bat: exec format error
+2025-08-19T13:09:55.5414806Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5415351Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff
+2025-08-19T13:09:55.5416058Z 2025/08/19 13:09:55 Configuration: workers=2, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5416522Z 2025/08/19 13:09:55 Started 2 enhanced workers
+2025-08-19T13:09:55.5416802Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5417070Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5417470Z 2025/08/19 13:09:55 LOOP:PROCESS - Worker 0 processing file: intent-invalid.json (attempt 1)
+2025-08-19T13:09:55.5417982Z 2025/08/19 13:09:55 LOOP:PROCESS - Worker 1 processing file: intent-valid.json (attempt 1)
+2025-08-19T13:09:55.5418744Z 2025/08/19 13:09:55 Queued 2 existing intent files for processing
+2025-08-19T13:09:55.5419334Z 2025/08/19 13:09:55 LOOP:ERROR - Worker 0: JSON validation failed for intent-invalid.json: JSON bomb detected: invalid character 'i'
+2025-08-19T13:09:55.5419881Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5420238Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5420850Z 2025/08/19 13:09:55 LOOP:ERROR - Worker 1: JSON validation failed for intent-valid.json: intent validation failed: missing required field: namespace
+2025-08-19T13:09:55.5421982Z 2025/08/19 13:09:55 Moved file /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/intent-invalid.json to /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/failed/intent-invalid.json
+2025-08-19T13:09:55.5423098Z 2025/08/19 13:09:55 Created error log: /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/failed/intent-invalid.json.error.log
+2025-08-19T13:09:55.5423879Z 2025/08/19 13:09:55 Created directory: /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/status
+2025-08-19T13:09:55.5424969Z 2025/08/19 13:09:55 Status written atomically to: /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/status/intent-invalid.json-20250819-130955.status
+2025-08-19T13:09:55.5425664Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5426525Z 2025/08/19 13:09:55 Moved file /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/intent-valid.json to /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/failed/intent-valid.json
+2025-08-19T13:09:55.5427612Z 2025/08/19 13:09:55 Created error log: /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/failed/intent-valid.json.error.log
+2025-08-19T13:09:55.5428539Z 2025/08/19 13:09:55 Status written atomically to: /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/status/intent-valid.json-20250819-130955.status
+2025-08-19T13:09:55.5429227Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5429556Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5429865Z     main_once_test.go:111: 
+2025-08-19T13:09:55.5430662Z         	Error Trace:	/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/main_once_test.go:111
+2025-08-19T13:09:55.5431263Z         	Error:      	Not equal: 
+2025-08-19T13:09:55.5431585Z         	            	expected: 1
+2025-08-19T13:09:55.5432052Z         	            	actual  : 2
+2025-08-19T13:09:55.5432441Z         	Test:       	TestOnceMode_ExitCodes/some_files_failed
+2025-08-19T13:09:55.5433855Z         	Messages:   	Failed count mismatch. Failed files: [/tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/failed/intent-invalid.json /tmp/TestOnceMode_ExitCodessome_files_failed3460368078/001/handoff/failed/intent-valid.json]
+2025-08-19T13:09:55.5435094Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5435344Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5435628Z === RUN   TestOnceMode_ExitCodes/no_files_to_process
+2025-08-19T13:09:55.5436371Z 2025/08/19 13:09:55 Warning: Porch validation failed: porch validation failed: fork/exec /tmp/TestOnceMode_ExitCodesno_files_to_process3581864632/001/mock-porch.bat: exec format error
+2025-08-19T13:09:55.5437125Z 2025/08/19 13:09:55 Metrics server disabled (port=0)
+2025-08-19T13:09:55.5437685Z 2025/08/19 13:09:55 LOOP:START - Starting watcher on directory: /tmp/TestOnceMode_ExitCodesno_files_to_process3581864632/001/handoff
+2025-08-19T13:09:55.5438402Z 2025/08/19 13:09:55 Configuration: workers=2, debounce=100ms, once=true, period=0s, metrics_port=0, processor=false
+2025-08-19T13:09:55.5438873Z 2025/08/19 13:09:55 Started 2 enhanced workers
+2025-08-19T13:09:55.5439151Z 2025/08/19 13:09:55 Enhanced worker 1 started
+2025-08-19T13:09:55.5439420Z 2025/08/19 13:09:55 Enhanced worker 0 started
+2025-08-19T13:09:55.5439895Z 2025/08/19 13:09:55 Queued 0 existing intent files for processing
+2025-08-19T13:09:55.5440246Z 2025/08/19 13:09:55 Signaling enhanced workers to stop...
+2025-08-19T13:09:55.5440588Z 2025/08/19 13:09:55 Waiting for enhanced workers to finish...
+2025-08-19T13:09:55.5440948Z 2025/08/19 13:09:55 Enhanced worker 0: work queue closed, exiting
+2025-08-19T13:09:55.5441298Z 2025/08/19 13:09:55 Enhanced worker 1: work queue closed, exiting
+2025-08-19T13:09:55.5441616Z 2025/08/19 13:09:55 All enhanced workers stopped
+2025-08-19T13:09:55.5441888Z 2025/08/19 13:09:55 Closing watcher...
+2025-08-19T13:09:55.5442127Z 2025/08/19 13:09:55 Watcher closed
+2025-08-19T13:09:55.5442373Z --- FAIL: TestOnceMode_ExitCodes (0.33s)
+2025-08-19T13:09:55.5442805Z     --- FAIL: TestOnceMode_ExitCodes/all_files_processed_successfully (0.11s)
+2025-08-19T13:09:55.5443275Z     --- FAIL: TestOnceMode_ExitCodes/some_files_failed (0.11s)
+2025-08-19T13:09:55.5443685Z     --- PASS: TestOnceMode_ExitCodes/no_files_to_process (0.11s)
+2025-08-19T13:09:55.5444180Z === RUN   TestMain_FlagParsing
+2025-08-19T13:09:55.5444496Z === RUN   TestMain_FlagParsing/default_flags
+2025-08-19T13:09:55.5444777Z === RUN   TestMain_FlagParsing/custom_flags
+2025-08-19T13:09:55.5445159Z /tmp/go-build1899286154/b001/conductor-loop.test flag redefined: handoff
+2025-08-19T13:09:55.5445537Z --- FAIL: TestMain_FlagParsing (0.00s)
+2025-08-19T13:09:55.5445873Z     --- PASS: TestMain_FlagParsing/default_flags (0.00s)
+2025-08-19T13:09:55.5446233Z     --- FAIL: TestMain_FlagParsing/custom_flags (0.00s)
+2025-08-19T13:09:55.5446700Z panic: /tmp/go-build1899286154/b001/conductor-loop.test flag redefined: handoff [recovered]
+2025-08-19T13:09:55.5447270Z 	panic: /tmp/go-build1899286154/b001/conductor-loop.test flag redefined: handoff
+2025-08-19T13:09:55.5447558Z 
+2025-08-19T13:09:55.5447651Z goroutine 338 [running]:
+2025-08-19T13:09:55.5447901Z testing.tRunner.func1.2({0xbc8620, 0xc00003b230})
+2025-08-19T13:09:55.5448326Z 	/opt/hostedtoolcache/go/1.24.6/x64/src/testing/testing.go:1734 +0x3eb
+2025-08-19T13:09:55.5448682Z testing.tRunner.func1()
+2025-08-19T13:09:55.5449012Z 	/opt/hostedtoolcache/go/1.24.6/x64/src/testing/testing.go:1737 +0x696
+2025-08-19T13:09:55.5449367Z panic({0xbc8620?, 0xc00003b230?})
+2025-08-19T13:09:55.5449720Z 	/opt/hostedtoolcache/go/1.24.6/x64/src/runtime/panic.go:792 +0x132
+2025-08-19T13:09:55.5450204Z flag.(*FlagSet).Var(0xc00013c000, {0xd8b308, 0xc00013ca80}, {0xc9d15b, 0x7}, {0xcb0b24, 0x23})
+2025-08-19T13:09:55.5450704Z 	/opt/hostedtoolcache/go/1.24.6/x64/src/flag/flag.go:1028 +0x54d
+2025-08-19T13:09:55.5451031Z flag.StringVar(...)
+2025-08-19T13:09:55.5451310Z 	/opt/hostedtoolcache/go/1.24.6/x64/src/flag/flag.go:885
+2025-08-19T13:09:55.5451743Z github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop.parseFlags()
+2025-08-19T13:09:55.5452412Z 	/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/main.go:226 +0x19f
+2025-08-19T13:09:55.5453144Z github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop.TestMain_FlagParsing.func3(0xc0000ff6c0)
+2025-08-19T13:09:55.5454293Z 	/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop/main_test.go:92 +0x353
+2025-08-19T13:09:55.5454835Z testing.tRunner(0xc0000ff6c0, 0xc0000fd800)
+2025-08-19T13:09:55.5455232Z 	/opt/hostedtoolcache/go/1.24.6/x64/src/testing/testing.go:1792 +0x226
+2025-08-19T13:09:55.5455610Z created by testing.(*T).Run in goroutine 336
+2025-08-19T13:09:55.5455989Z 	/opt/hostedtoolcache/go/1.24.6/x64/src/testing/testing.go:1851 +0x8f3
+2025-08-19T13:09:55.5456466Z FAIL	github.com/thc1006/nephoran-intent-operator/cmd/conductor-loop	0.601s
+2025-08-19T13:09:55.5456974Z FAIL	github.com/thc1006/nephoran-intent-operator/internal/loop [build failed]
+2025-08-19T13:09:55.5457335Z FAIL
+2025-08-19T13:09:55.6192622Z ##[error]Process completed with exit code 1.

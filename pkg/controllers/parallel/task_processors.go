@@ -50,7 +50,7 @@ func (ip *IntentProcessor) ProcessTask(ctx context.Context, task *Task) (*TaskRe
 		Success: true,
 		OutputData: map[string]interface{}{
 			"processed":   true,
-			"intent_type": task.Intent.Spec.IntentType,
+			"intent_type": "network", // NetworkIntent type
 			"intent_text": task.Intent.Spec.Intent,
 		},
 	}

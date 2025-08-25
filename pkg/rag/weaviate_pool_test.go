@@ -119,7 +119,7 @@ func TestWeaviateConnectionPool_ReturnConnection(t *testing.T) {
 	assert.Contains(t, err.Error(), "cannot return nil connection")
 
 	// Create a mock connection for testing
-	mockConn := &PooledConnection{
+	mockConn := &WeaviatePooledConnection{
 		id:        "test-conn-1",
 		createdAt: time.Now(),
 		lastUsed:  time.Now(),
@@ -133,7 +133,7 @@ func TestWeaviateConnectionPool_ReturnConnection(t *testing.T) {
 	assert.False(t, mockConn.inUse)
 }
 
-func TestPooledConnection_ShouldDestroy(t *testing.T) {
+func TestWeaviatePooledConnection_ShouldDestroy(t *testing.T) {
 	config := &PoolConfig{
 		MaxIdleTime: 5 * time.Minute,
 		MaxLifetime: 1 * time.Hour,
@@ -144,7 +144,7 @@ func TestPooledConnection_ShouldDestroy(t *testing.T) {
 	now := time.Now()
 
 	// Test connection within limits
-	conn := &PooledConnection{
+	conn := &WeaviatePooledConnection{
 		createdAt: now.Add(-30 * time.Minute),
 		lastUsed:  now.Add(-2 * time.Minute),
 		isHealthy: true,
@@ -198,7 +198,7 @@ func TestWeaviateConnectionPool_GetConnectionInfo(t *testing.T) {
 
 	// Add mock connections
 	now := time.Now()
-	conn1 := &PooledConnection{
+	conn1 := &WeaviatePooledConnection{
 		id:         "conn-1",
 		createdAt:  now.Add(-1 * time.Hour),
 		lastUsed:   now.Add(-5 * time.Minute),
@@ -206,7 +206,7 @@ func TestWeaviateConnectionPool_GetConnectionInfo(t *testing.T) {
 		isHealthy:  true,
 		inUse:      false,
 	}
-	conn2 := &PooledConnection{
+	conn2 := &WeaviatePooledConnection{
 		id:         "conn-2",
 		createdAt:  now.Add(-30 * time.Minute),
 		lastUsed:   now.Add(-1 * time.Minute),
@@ -303,13 +303,13 @@ func TestWeaviateConnectionPool_IsConnectionHealthy(t *testing.T) {
 	assert.False(t, pool.isConnectionHealthy(nil))
 
 	// Test healthy connection
-	healthyConn := &PooledConnection{
+	healthyConn := &WeaviatePooledConnection{
 		isHealthy: true,
 	}
 	assert.True(t, pool.isConnectionHealthy(healthyConn))
 
 	// Test unhealthy connection
-	unhealthyConn := &PooledConnection{
+	unhealthyConn := &WeaviatePooledConnection{
 		isHealthy: false,
 	}
 	assert.False(t, pool.isConnectionHealthy(unhealthyConn))
@@ -395,8 +395,8 @@ func TestWeaviateConnectionPool_EnsureMinimumConnections(t *testing.T) {
 	// For testing, we just verify the method doesn't panic
 }
 
-func TestPooledConnection_UsageTracking(t *testing.T) {
-	conn := &PooledConnection{
+func TestWeaviatePooledConnection_UsageTracking(t *testing.T) {
+	conn := &WeaviatePooledConnection{
 		id:        "test-conn",
 		createdAt: time.Now(),
 		lastUsed:  time.Now().Add(-5 * time.Minute),
@@ -449,7 +449,7 @@ func BenchmarkWeaviateConnectionPool_GetReturnConnection(b *testing.B) {
 
 	// Create mock connections for benchmarking
 	for i := 0; i < 5; i++ {
-		conn := &PooledConnection{
+		conn := &WeaviatePooledConnection{
 			id:        fmt.Sprintf("bench-conn-%d", i),
 			createdAt: time.Now(),
 			lastUsed:  time.Now(),
@@ -492,7 +492,7 @@ func BenchmarkWeaviateConnectionPool_GetConnectionInfo(b *testing.B) {
 
 	// Create mock connections
 	for i := 0; i < 10; i++ {
-		conn := &PooledConnection{
+		conn := &WeaviatePooledConnection{
 			id:         fmt.Sprintf("bench-conn-%d", i),
 			createdAt:  time.Now().Add(-time.Duration(i) * time.Minute),
 			lastUsed:   time.Now(),

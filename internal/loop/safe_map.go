@@ -19,6 +19,9 @@ func NewSafeSet() *SafeSet {
 func (s *SafeSet) Add(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.items == nil {
+		s.items = make(map[string]struct{})
+	}
 	s.items[key] = struct{}{}
 }
 
@@ -26,6 +29,9 @@ func (s *SafeSet) Add(key string) {
 func (s *SafeSet) Has(key string) bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	if s.items == nil {
+		return false
+	}
 	_, exists := s.items[key]
 	return exists
 }
@@ -34,6 +40,9 @@ func (s *SafeSet) Has(key string) bool {
 func (s *SafeSet) Delete(key string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.items == nil {
+		return
+	}
 	delete(s.items, key)
 }
 
@@ -41,6 +50,9 @@ func (s *SafeSet) Delete(key string) {
 func (s *SafeSet) LoadFromSlice(items []string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.items == nil {
+		s.items = make(map[string]struct{})
+	}
 	for _, item := range items {
 		s.items[item] = struct{}{}
 	}
@@ -50,6 +62,9 @@ func (s *SafeSet) LoadFromSlice(items []string) {
 func (s *SafeSet) ToSlice() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	if s.items == nil {
+		return []string{}
+	}
 	result := make([]string, 0, len(s.items))
 	for key := range s.items {
 		result = append(result, key)
@@ -61,5 +76,8 @@ func (s *SafeSet) ToSlice() []string {
 func (s *SafeSet) Size() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+	if s.items == nil {
+		return 0
+	}
 	return len(s.items)
 }

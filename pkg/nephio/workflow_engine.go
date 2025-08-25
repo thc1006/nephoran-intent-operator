@@ -46,10 +46,10 @@ type WorkflowEngineConfig struct {
 
 // WorkflowEngineMetrics provides workflow engine metrics
 type WorkflowEngineMetrics struct {
-	WorkflowRegistrations prometheus.CounterVec
-	WorkflowExecutions    prometheus.CounterVec
-	ExecutionDuration     prometheus.HistogramVec
-	WorkflowErrors        prometheus.CounterVec
+	WorkflowRegistrations *prometheus.CounterVec
+	WorkflowExecutions    *prometheus.CounterVec
+	ExecutionDuration     *prometheus.HistogramVec
+	WorkflowErrors        *prometheus.CounterVec
 	ActiveWorkflows       prometheus.Gauge
 }
 

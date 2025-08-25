@@ -626,8 +626,38 @@ func (am *AlertManager) GetActiveAlerts() []*ActiveAlert {
 
 	alerts := make([]*ActiveAlert, 0, len(am.activeAlerts))
 	for _, alert := range am.activeAlerts {
-		alertCopy := *alert
-		alerts = append(alerts, &alertCopy)
+		alert.mu.RLock()
+		
+		// Deep copy the alert without copying the mutex
+		alertCopy := &ActiveAlert{
+			ID:                alert.ID,
+			Rule:              alert.Rule,
+			Status:            alert.Status,
+			StartsAt:          alert.StartsAt,
+			EndsAt:            alert.EndsAt,
+			Value:             alert.Value,
+			Labels:            make(map[string]string),
+			Annotations:       make(map[string]string),
+			Fingerprint:       alert.Fingerprint,
+			EscalationLevel:   alert.EscalationLevel,
+			LastEscalated:     alert.LastEscalated,
+			NotificationsSent: make(map[string]time.Time),
+			SilencedUntil:     alert.SilencedUntil,
+		}
+		
+		// Copy maps
+		for k, v := range alert.Labels {
+			alertCopy.Labels[k] = v
+		}
+		for k, v := range alert.Annotations {
+			alertCopy.Annotations[k] = v
+		}
+		for k, v := range alert.NotificationsSent {
+			alertCopy.NotificationsSent[k] = v
+		}
+		
+		alert.mu.RUnlock()
+		alerts = append(alerts, alertCopy)
 	}
 
 	return alerts
@@ -736,7 +766,7 @@ func (am *AlertManager) runPredictionLoop(ctx context.Context) {
 
 // evaluateRule evaluates a single alert rule
 func (am *AlertManager) evaluateRule(rule *AlertRule, sliProvider SLIProvider) error {
-	start := time.Now()
+	_ = time.Now()
 	defer func() {
 		am.metrics.RuleEvaluations.WithLabelValues(rule.Name, "completed").Inc()
 	}()
@@ -844,7 +874,7 @@ func (am *AlertManager) handleAlertFiring(rule *AlertRule, value float64) {
 		am.sendNotification(alert)
 
 		// Update metrics
-		atomic.AddUint64(&am.alertsGenerated, 1)
+		am.alertsGenerated.Add(1)
 		am.metrics.AlertsGenerated.WithLabelValues(rule.Name, rule.Severity, rule.Metric).Inc()
 		am.metrics.ActiveAlertsGauge.WithLabelValues(rule.Severity, rule.Metric).Inc()
 
@@ -882,7 +912,7 @@ func (am *AlertManager) handleAlertResolution(ruleName string) {
 			delete(am.activeAlerts, fingerprint)
 
 			// Update metrics
-			atomic.AddUint64(&am.alertsResolved, 1)
+			am.alertsResolved.Add(1)
 			am.metrics.AlertsResolved.WithLabelValues(alert.Rule.Name, alert.Rule.Severity, "condition_resolved").Inc()
 			am.metrics.AlertDuration.WithLabelValues(alert.Rule.Name, alert.Rule.Severity).Observe(duration.Seconds())
 			am.metrics.ActiveAlertsGauge.WithLabelValues(alert.Rule.Severity, alert.Rule.Metric).Dec()

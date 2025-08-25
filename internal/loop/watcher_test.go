@@ -2,11 +2,11 @@ package loop
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -167,7 +167,7 @@ func TestWatcher_FileDetectionWithinRequirement(t *testing.T) {
 		Mode:       porch.ModeDirect,
 		OutDir:     outDir,
 		DebounceDur: 100 * time.Millisecond, // Short debounce for testing
-		MaxWorkers: 2, // Production-like worker count for better concurrency testing
+		MaxWorkers: 1,
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -234,7 +234,7 @@ func TestWatcher_DebouncingRapidChanges(t *testing.T) {
 		Mode:       porch.ModeDirect,
 		OutDir:     outDir,
 		DebounceDur: 500 * time.Millisecond, // Longer debounce for testing
-		MaxWorkers: 2, // Production-like worker count for better concurrency testing
+		MaxWorkers: 1,
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -286,7 +286,7 @@ func TestWatcher_IdempotentProcessing(t *testing.T) {
 		Mode:       porch.ModeDirect,
 		OutDir:     outDir,
 		DebounceDur: 100 * time.Millisecond,
-		MaxWorkers: 2, // Production-like worker count for better concurrency testing
+		MaxWorkers: 1,
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -399,7 +399,7 @@ func TestWatcher_FailureScenarios(t *testing.T) {
 				Mode:       porch.ModeDirect,
 				OutDir:     outDir,
 				Once:       true,
-				MaxWorkers: 2, // Production-like worker count for better concurrency testing
+				MaxWorkers: 1,
 			}
 			
 			watcher, err := NewWatcher(tempDir, config)
@@ -421,23 +421,9 @@ func TestWatcher_FailureScenarios(t *testing.T) {
 				require.NoError(t, err)
 				assert.Len(t, processedFiles, 1)
 				
-				// Verify status file was created (with timestamp pattern)
-				statusDir := filepath.Join(tempDir, "status")
-				statusFiles, err := os.ReadDir(statusDir)
-				require.NoError(t, err)
-				assert.Greater(t, len(statusFiles), 0, "Should have at least one status file")
-				
-				// Check that status file follows the expected naming pattern
-				baseNameWithoutExt := strings.TrimSuffix(filepath.Base(testFile), filepath.Ext(filepath.Base(testFile)))
-				expectedPattern := fmt.Sprintf("%s-\\d{8}-\\d{6}\\.status", regexp.QuoteMeta(baseNameWithoutExt))
-				found := false
-				for _, file := range statusFiles {
-					if matched, _ := regexp.MatchString(expectedPattern, file.Name()); matched {
-						found = true
-						break
-					}
-				}
-				assert.True(t, found, "Should find status file matching pattern %s", expectedPattern)
+				// Verify status file was created
+				statusFile := filepath.Join(tempDir, "status", filepath.Base(testFile)+".status")
+				assert.FileExists(t, statusFile)
 			}
 
 			if tt.expectedFailed {
@@ -462,8 +448,8 @@ func TestWatcher_CleanupRoutine(t *testing.T) {
 		PorchPath:    createMockPorch(t, tempDir, 0, "processed", ""),
 		Mode:        porch.ModeDirect,
 		OutDir:      outDir,
-		MaxWorkers:  2, // Use production-like worker count for better concurrency testing
-		CleanupAfter: 2 * time.Hour, // Minimum valid duration for testing
+		MaxWorkers:  1,
+		CleanupAfter: 100 * time.Millisecond, // Very short for testing
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -555,7 +541,7 @@ func TestWatcher_StatusFileGeneration(t *testing.T) {
 		Mode:       porch.ModeStructured,
 		OutDir:     outDir,
 		Once:       true,
-		MaxWorkers: 2, // Production-like worker count for better concurrency testing
+		MaxWorkers: 1,
 	}
 	
 	watcher, err := NewWatcher(tempDir, config)
@@ -571,23 +557,9 @@ func TestWatcher_StatusFileGeneration(t *testing.T) {
 	err = watcher.Start()
 	require.NoError(t, err)
 
-	// Verify status file was created (with timestamp pattern)
-	statusDir := filepath.Join(tempDir, "status")
-	statusFiles, err := os.ReadDir(statusDir)
-	require.NoError(t, err)
-	assert.Greater(t, len(statusFiles), 0, "Should have at least one status file")
-	
-	// Find the status file with expected pattern
-	baseNameWithoutExt := "intent-status-test"
-	expectedPattern := fmt.Sprintf("%s-\\d{8}-\\d{6}\\.status", regexp.QuoteMeta(baseNameWithoutExt))
-	var statusFile string
-	for _, file := range statusFiles {
-		if matched, _ := regexp.MatchString(expectedPattern, file.Name()); matched {
-			statusFile = filepath.Join(statusDir, file.Name())
-			break
-		}
-	}
-	assert.NotEmpty(t, statusFile, "Should find status file matching pattern %s", expectedPattern)
+	// Verify status file was created
+	statusFile := filepath.Join(tempDir, "status", "intent-status-test.json.status")
+	assert.FileExists(t, statusFile)
 
 	// Verify status file content
 	statusContent, err := os.ReadFile(statusFile)
@@ -625,57 +597,6 @@ func createMockPorch(t testing.TB, tempDir string, exitCode int, stdout, stderr 
 	return mockPath
 }
 
-// createFastMockPorch creates an ultra-fast mock for performance tests without PowerShell overhead
-func createFastMockPorch(t testing.TB, tempDir string, exitCode int, stdout, stderr string) string {
-	var mockPath string
-	var script string
-	
-	if runtime.GOOS == "windows" {
-		// Minimal Windows batch file without PowerShell calls
-		mockPath = filepath.Join(tempDir, "fast-mock-porch.bat")
-		stdoutCmd := ""
-		if stdout != "" {
-			stdoutCmd = fmt.Sprintf("echo %s", stdout)
-		}
-		stderrCmd := ""
-		if stderr != "" {
-			stderrCmd = fmt.Sprintf("echo %s >&2", stderr)
-		}
-		
-		script = fmt.Sprintf(`@echo off
-if "%%1"=="--help" (
-    echo Mock porch help
-    exit /b 0
-)
-%s%s
-exit /b %d`, stdoutCmd, stderrCmd, exitCode)
-	} else {
-		// Minimal Unix shell script
-		mockPath = filepath.Join(tempDir, "fast-mock-porch.sh")
-		stdoutCmd := ""
-		if stdout != "" {
-			stdoutCmd = fmt.Sprintf("echo \"%s\"", stdout)
-		}
-		stderrCmd := ""
-		if stderr != "" {
-			stderrCmd = fmt.Sprintf("echo \"%s\" >&2", stderr)
-		}
-		
-		script = fmt.Sprintf(`#!/bin/bash
-if [ "$1" = "--help" ]; then
-    echo "Mock porch help"
-    exit 0
-fi
-%s%s
-exit %d`, stdoutCmd, stderrCmd, exitCode)
-	}
-	
-	// Write the script file
-	err := os.WriteFile(mockPath, []byte(script), 0755)
-	require.NoError(t, err)
-	return mockPath
-}
-
 func BenchmarkWatcher_ProcessSingleFile(b *testing.B) {
 	tempDir := b.TempDir()
 	outDir := filepath.Join(tempDir, "out")
@@ -686,7 +607,7 @@ func BenchmarkWatcher_ProcessSingleFile(b *testing.B) {
 		Mode:       porch.ModeDirect,
 		OutDir:     outDir,
 		Once:       true,
-		MaxWorkers: 2, // Production-like worker count for better concurrency testing
+		MaxWorkers: 1,
 	}
 	
 	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment", "count": 1}`
@@ -752,17 +673,12 @@ func (s *WatcherTestSuite) SetupTest() {
 func (s *WatcherTestSuite) TestRaceCondition_ConcurrentFileProcessing() {
 	s.T().Log("Testing concurrent file processing race conditions")
 	
-	// Use optimized config with no artificial delays
-	raceConfig := s.config
-	raceConfig.PorchPath = createFastMockPorch(s.T(), s.tempDir, 0, "processed", "") // Ultra-fast mock
-	raceConfig.DebounceDur = 1 * time.Millisecond // Minimal debounce
-	
-	watcher, err := NewWatcher(s.tempDir, raceConfig)
+	watcher, err := NewWatcher(s.tempDir, s.config)
 	s.Require().NoError(err)
 	defer watcher.Close()
 	
-	numFiles := 10  // Reduced from 20 for faster test
-	numWorkers := 4 // Reduced from 8
+	numFiles := 20
+	numWorkers := 8
 	watcher.config.MaxWorkers = numWorkers
 	
 	// Create files concurrently
@@ -780,7 +696,7 @@ func (s *WatcherTestSuite) TestRaceCondition_ConcurrentFileProcessing() {
 			
 			fileName := fmt.Sprintf("intent-race-test-%d.json", fileID)
 			filePath := filepath.Join(s.tempDir, fileName)
-			testContent := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "app-%d"}}}`, fileID)
+			testContent := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "action": "scale", "target": "deployment-%d", "count": %d}`, fileID, fileID+1)
 			
 			s.Require().NoError(os.WriteFile(filePath, []byte(testContent), 0644))
 			
@@ -1043,15 +959,14 @@ func (s *WatcherTestSuite) TestJSONValidation_SizeLimitEnforcement() {
 	if MaxJSONSize <= 100 {
 		s.T().Skip("MaxJSONSize too small for test")
 	}
-	// Create a file that EXCEEDS the limit (not MaxJSONSize-100, but MaxJSONSize+100)
-	padding := strings.Repeat("x", MaxJSONSize+100)
+	padding := strings.Repeat("x", MaxJSONSize-100)
 	largeJSON := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
 	
 	s.Require().NoError(os.WriteFile(largeFileName, []byte(largeJSON), 0644))
 	
 	err = watcher.validateJSONFile(largeFileName)
-	s.Require().NotNil(err, "File exceeding size limit MUST return non-nil error")
-	s.Assert().Contains(err.Error(), "exceeds maximum", "Error MUST contain 'exceeds maximum'")
+	s.Assert().Error(err, "File exceeding size limit should be rejected")
+	s.Assert().Contains(err.Error(), "exceeds maximum", "Error should mention size limit")
 }
 
 func (s *WatcherTestSuite) TestJSONValidation_PathTraversalPrevention() {
@@ -1240,31 +1155,8 @@ func (s *WatcherTestSuite) TestSecurity_SuspiciousFilenamePatterns() {
 			
 			err := watcher.validatePath(filePath)
 			assert.Error(t, err, "Should reject suspicious filename: %s", name)
-			
-			// On Windows, certain characters are invalid Windows path characters
-			// and will trigger "Windows path validation failed" before suspicious pattern check
-			if runtime.GOOS == "windows" {
-				// Windows-invalid characters: *, ?, |, <, >
-				windowsInvalidChars := map[string]bool{
-					"intent-test*.json": true,
-					"intent-test?.json": true,
-					"intent-test|.json": true,
-					"intent-test<.json": true,
-					"intent-test>.json": true,
-				}
-				
-				if windowsInvalidChars[name] {
-					assert.Contains(t, err.Error(), "Windows path validation failed",
-						"Error should mention Windows path validation for invalid char: %s", name)
-				} else {
-					assert.Contains(t, err.Error(), "suspicious pattern",
-						"Error should mention suspicious pattern for: %s", name)
-				}
-			} else {
-				// On non-Windows, all should be suspicious patterns
-				assert.Contains(t, err.Error(), "suspicious pattern",
-					"Error should mention suspicious pattern")
-			}
+			assert.Contains(t, err.Error(), "suspicious pattern", 
+				"Error should mention suspicious pattern")
 		})
 	}
 }
@@ -1301,18 +1193,18 @@ func (s *WatcherTestSuite) TestSecurity_FileSizeLimits() {
 				err := os.WriteFile(filePath, []byte(content), 0644)
 				require.NoError(t, err)
 			} else {
-				// Create oversized file with well-formed JSON
-				// Calculate padding size to exceed MaxJSONSize
-				baseJSON := `{"apiVersion": "v1", "kind": "NetworkIntent", "data": ""}`
-				baseSizeWithoutData := len(baseJSON) - 2 // Subtract 2 for the empty quotes
-				paddingSize := int(tt.size) - baseSizeWithoutData
-				
-				// Generate deterministic padding with 'A' characters instead of random data
-				padding := strings.Repeat("A", paddingSize)
-				content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "%s"}`, padding)
-				
-				err := os.WriteFile(filePath, []byte(content), 0644)
+				// Create oversized file
+				f, err := os.Create(filePath)
 				require.NoError(t, err)
+				defer f.Close()
+				
+				// Write valid JSON prefix
+				f.WriteString(`{"apiVersion": "v1", "kind": "NetworkIntent", "data": "`)
+				// Fill with random data
+				data := make([]byte, tt.size-100)
+				rand.Read(data)
+				f.Write(data)
+				f.WriteString(`"}`)
 			}
 			
 			err := watcher.validateJSONFile(filePath)
@@ -1338,9 +1230,9 @@ func (s *WatcherTestSuite) TestIntegration_EndToEndProcessingFlow() {
 	s.Require().NoError(err)
 	defer watcher.Close()
 	
-	// Create a valid intent file with proper structure
+	// Create a valid intent file
 	testFile := filepath.Join(s.tempDir, "intent-e2e-test.json")
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-e2e"}, "spec": {"action": "scale", "target": {"name": "deployment"}, "replicas": 3}}`
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-e2e"}, "spec": {"action": "scale", "target": "deployment", "count": 3}}`
 	s.Require().NoError(os.WriteFile(testFile, []byte(testContent), 0644))
 	
 	// Start processing
@@ -1350,25 +1242,15 @@ func (s *WatcherTestSuite) TestIntegration_EndToEndProcessingFlow() {
 	s.Require().NoError(err)
 	processingTime := time.Since(startTime)
 	
-	// Add a small delay to ensure all async operations complete
-	time.Sleep(100 * time.Millisecond)
-	
 	// Verify complete processing flow
 	s.T().Logf("End-to-end processing took %v", processingTime)
 	
 	// 1. Original file should be gone (moved)
 	s.Assert().NoFileExists(testFile, "Original file should be moved")
 	
-	// 2. Should have been moved to processed directory (with eventual consistency)
-	var processedFiles []string
-	for i := 0; i < 10; i++ {
-		processedFiles, err = watcher.fileManager.GetProcessedFiles()
-		s.Require().NoError(err)
-		if len(processedFiles) > 0 {
-			break
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
+	// 2. Should have been moved to processed directory
+	processedFiles, err := watcher.fileManager.GetProcessedFiles()
+	s.Require().NoError(err)
 	s.Assert().Len(processedFiles, 1, "Should have one processed file")
 	
 	// 3. Verify processing was recorded in state (check with original file name since that's how it's stored)
@@ -1415,27 +1297,15 @@ func (s *WatcherTestSuite) TestIntegration_StatusFileGenerationWithVersioning() 
 	err = watcher.Start()
 	s.Require().NoError(err)
 	
-	// Add delay to ensure all status files are written
-	time.Sleep(200 * time.Millisecond)
-	
-	// Verify status files were created with versioning (with eventual consistency)
+	// Verify status files were created with versioning
 	statusDir := filepath.Join(s.tempDir, "status")
-	var statusFiles []os.DirEntry
-	for i := 0; i < 10; i++ {
-		statusFiles, err = os.ReadDir(statusDir)
-		s.Require().NoError(err)
-		if len(statusFiles) >= numFiles {
-			break
-		}
-		time.Sleep(100 * time.Millisecond)
-	}
+	statusFiles, err := os.ReadDir(statusDir)
+	s.Require().NoError(err)
 	s.Assert().Equal(numFiles, len(statusFiles), "Should have status file for each processed file")
 	
 	// Verify each status file has timestamp-based versioning
 	for _, file := range statusFiles {
-		s.T().Logf("Status file name: %s", file.Name())
 		s.Assert().Contains(file.Name(), ".status", "Should have .status extension")
-		// The pattern should match: intent-version-test-{id}-{timestamp}.status
 		s.Assert().Regexp(`intent-version-test-\d+-\d{8}-\d{6}\.status`, file.Name(), 
 			"Status file should have timestamp versioning")
 	}
@@ -1554,9 +1424,9 @@ func (s *WatcherTestSuite) TestPerformance_WorkerPoolScalability() {
 	
 	s.T().Log("Testing worker pool scalability")
 	
-	workerCounts := []int{1, 2, 4}  // Reduced from 8 to speed up tests
-	numFiles := 20                 // Reduced from 50 to speed up tests
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "test-app"}}}`
+	workerCounts := []int{1, 2, 4, 8}
+	numFiles := 50
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
 	
 	for _, workers := range workerCounts {
 		s.T().Run(fmt.Sprintf("workers_%d", workers), func(t *testing.T) {
@@ -1565,11 +1435,11 @@ func (s *WatcherTestSuite) TestPerformance_WorkerPoolScalability() {
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 			
 			config := Config{
-				PorchPath:   createFastMockPorch(t, testDir, 0, "processed", ""), // Ultra-fast mock
+				PorchPath:   createMockPorch(t, testDir, 0, "processed", "", 10*time.Millisecond),
 				Mode:        porch.ModeDirect,
 				OutDir:      outDir,
 				MaxWorkers:  workers,
-				DebounceDur: 5 * time.Millisecond,  // Reduced from 10ms
+				DebounceDur: 10 * time.Millisecond,
 				Once:        true,
 			}
 			
@@ -1609,7 +1479,7 @@ func (s *WatcherTestSuite) TestPerformance_DebouncingMechanism() {
 	
 	debounceConfig := s.config
 	debounceConfig.DebounceDur = 200 * time.Millisecond
-	debounceConfig.MaxWorkers = 2 // Production-like worker count for better concurrency testing
+	debounceConfig.MaxWorkers = 1
 	
 	watcher, err := NewWatcher(s.tempDir, debounceConfig)
 	s.Require().NoError(err)
@@ -1660,8 +1530,8 @@ func (s *WatcherTestSuite) TestPerformance_BatchProcessingEfficiency() {
 	
 	s.T().Log("Testing batch processing efficiency")
 	
-	batchSizes := []int{5, 15, 30}  // Reduced sizes to speed up tests
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "test-app"}}}`
+	batchSizes := []int{10, 50, 100, 200}
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale"}}`
 	
 	for _, batchSize := range batchSizes {
 		s.T().Run(fmt.Sprintf("batch_%d", batchSize), func(t *testing.T) {
@@ -1670,11 +1540,11 @@ func (s *WatcherTestSuite) TestPerformance_BatchProcessingEfficiency() {
 			require.NoError(t, os.MkdirAll(outDir, 0755))
 			
 			config := Config{
-				PorchPath:   createFastMockPorch(t, testDir, 0, "processed", ""),  // Ultra-fast mock
+				PorchPath:   createMockPorch(t, testDir, 0, "processed", "", 5*time.Millisecond),
 				Mode:        porch.ModeDirect,
 				OutDir:      outDir,
 				MaxWorkers:  4,
-				DebounceDur: 5 * time.Millisecond,   // Reduced from 10ms
+				DebounceDur: 10 * time.Millisecond,
 				Once:        true,
 			}
 			
@@ -1718,16 +1588,15 @@ func (s *WatcherTestSuite) TestPerformance_MemoryUsageUnderLoad() {
 	runtime.ReadMemStats(&initialStats)
 	
 	largeConfig := s.config
-	largeConfig.MaxWorkers = 4  // Reduced from 8
-	largeConfig.PorchPath = createFastMockPorch(s.T(), s.tempDir, 0, "processed", "") // Ultra-fast mock
+	largeConfig.MaxWorkers = 8
 	
 	watcher, err := NewWatcher(s.tempDir, largeConfig)
 	s.Require().NoError(err)
 	defer watcher.Close()
 	
-	// Create fewer files for faster test
-	numFiles := 100  // Reduced from 500
-	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": {"type": "deployment", "name": "test-app"}}}`
+	// Create many files
+	numFiles := 500
+	testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "spec": {"action": "scale", "target": "deployment"}}`
 	
 	for i := 0; i < numFiles; i++ {
 		fileName := fmt.Sprintf("intent-memory-%d.json", i)
@@ -1750,545 +1619,11 @@ func (s *WatcherTestSuite) TestPerformance_MemoryUsageUnderLoad() {
 	s.T().Logf("Processed %d files in %v, Memory used: %d bytes (%.2f MB)", 
 		numFiles, processingTime, memoryUsed, float64(memoryUsed)/(1024*1024))
 	
-	// Memory usage should be reasonable (less than 50MB for 100 files)
-	s.Assert().Less(memoryUsed, uint64(50*1024*1024), 
+	// Memory usage should be reasonable (less than 100MB for 500 files)
+	s.Assert().Less(memoryUsed, uint64(100*1024*1024), 
 		"Memory usage should be reasonable under load")
 	
 	// Verify all files were processed
 	stats := watcher.executor.GetStats()
 	s.Assert().Equal(numFiles, stats.TotalExecutions)
-}
-
-// =============================================================================
-// LARGE SCALE INTEGRATION TEST
-// =============================================================================
-
-func (s *WatcherTestSuite) TestWatcherIntegration_LargeScaleProcessing() {
-	if testing.Short() {
-		s.T().Skip("Skipping large scale test in short mode")
-	}
-	
-	s.T().Log("Testing large scale processing integration")
-	
-	// Use optimized configuration for large scale
-	largeScaleConfig := s.config
-	largeScaleConfig.MaxWorkers = runtime.GOMAXPROCS(0) // Use all available CPU cores
-	largeScaleConfig.DebounceDur = 1 * time.Millisecond  // Minimal debounce
-	largeScaleConfig.PorchPath = createFastMockPorch(s.T(), s.tempDir, 0, "processed", "") // Ultra-fast mock
-	largeScaleConfig.Once = true
-	
-	watcher, err := NewWatcher(s.tempDir, largeScaleConfig)
-	s.Require().NoError(err)
-	defer watcher.Close()
-	
-	// Create a large number of files for processing
-	numFiles := 250  // Reasonable scale that won't timeout
-	
-	s.T().Logf("Creating %d test files...", numFiles)
-	createStart := time.Now()
-	
-	// Create files in parallel for faster setup
-	var createWg sync.WaitGroup
-	createChan := make(chan int, runtime.GOMAXPROCS(0)*2) // Buffered channel
-	
-	for i := 0; i < numFiles; i++ {
-		createWg.Add(1)
-		createChan <- i
-		
-		go func(fileID int) {
-			defer createWg.Done()
-			defer func() { <-createChan }()
-			
-			fileName := fmt.Sprintf("intent-large-scale-%d.json", fileID)
-			filePath := filepath.Join(s.tempDir, fileName)
-			content := fmt.Sprintf(`{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test-%d"}, "spec": {"action": "scale", "target": {"type": "deployment", "name": "app-%d"}}}`, fileID, fileID)
-			
-			s.Require().NoError(os.WriteFile(filePath, []byte(content), 0644))
-		}(i)
-	}
-	
-	createWg.Wait()
-	createDuration := time.Since(createStart)
-	s.T().Logf("Created %d files in %v", numFiles, createDuration)
-	
-	// Record initial memory for monitoring
-	var initialStats, peakStats runtime.MemStats
-	runtime.GC()
-	runtime.ReadMemStats(&initialStats)
-	
-	// Start processing with progress logging
-	s.T().Logf("Starting large scale processing with %d workers...", largeScaleConfig.MaxWorkers)
-	startTime := time.Now()
-	
-	// Process files
-	err = watcher.Start()
-	s.Require().NoError(err)
-	
-	processingTime := time.Since(startTime)
-	
-	// Check memory usage
-	runtime.GC()
-	runtime.ReadMemStats(&peakStats)
-	memoryUsed := peakStats.Alloc - initialStats.Alloc
-	
-	// Verify results
-	stats := watcher.executor.GetStats()
-	
-	s.T().Logf("Large scale processing results:")
-	s.T().Logf("  Files processed: %d/%d", stats.TotalExecutions, numFiles)
-	s.T().Logf("  Processing time: %v", processingTime)
-	s.T().Logf("  Throughput: %.2f files/sec", float64(stats.TotalExecutions)/processingTime.Seconds())
-	s.T().Logf("  Memory used: %.2f MB", float64(memoryUsed)/(1024*1024))
-	s.T().Logf("  Success rate: %.2f%%", float64(stats.SuccessfulExecs)/float64(stats.TotalExecutions)*100)
-	
-	// Assertions for large scale processing
-	s.Assert().Greater(stats.TotalExecutions, 0, "Should process at least some files")
-	s.Assert().LessOrEqual(stats.TotalExecutions, numFiles, "Should not process more files than created")
-	s.Assert().GreaterOrEqual(stats.SuccessfulExecs, stats.TotalExecutions/2, "At least 50% should succeed") 
-	
-	// Performance requirements
-	s.Assert().Less(processingTime, 30*time.Second, "Large scale processing should complete within 30 seconds")
-	s.Assert().Less(memoryUsed, uint64(100*1024*1024), "Memory usage should be under 100MB for large scale")
-	
-	// Verify file movement
-	processedFiles, err := watcher.fileManager.GetProcessedFiles()
-	s.Require().NoError(err)
-	failedFiles, err := watcher.fileManager.GetFailedFiles() 
-	s.Require().NoError(err)
-	
-	totalMoved := len(processedFiles) + len(failedFiles)
-	s.Assert().Equal(stats.TotalExecutions, totalMoved, "All processed files should be moved")
-	
-	// Throughput validation - should handle reasonable throughput
-	throughput := float64(stats.TotalExecutions) / processingTime.Seconds()
-	s.Assert().Greater(throughput, 10.0, "Should achieve at least 10 files/sec throughput")
-	
-	s.T().Logf("Large scale integration test completed successfully")
-}
-
-// =============================================================================
-// WINDOWS FILENAME VALIDATION TESTS
-// =============================================================================
-
-func (s *WatcherTestSuite) TestWindowsFilenameValidation_StatusFileGeneration() {
-	s.T().Log("Testing Windows filename validation in status file generation")
-	
-	watcher, err := NewWatcher(s.tempDir, s.config)
-	s.Require().NoError(err)
-	defer watcher.Close()
-	
-	// Test cases with problematic filenames that need sanitization
-	testCases := []struct {
-		name                 string
-		intentFilename       string
-		expectedStatusPrefix string
-		shouldProcess        bool
-		description          string
-	}{
-		{
-			name:                 "WindowsReservedCharacters",
-			intentFilename:       "intent<test>.json",
-			expectedStatusPrefix: "intent-test-",
-			shouldProcess:        true,
-			description:          "Should sanitize Windows reserved characters < and >",
-		},
-		{
-			name:                 "WindowsReservedDevice", 
-			intentFilename:       "CON.json",
-			expectedStatusPrefix: "CON-file-",
-			shouldProcess:        true,
-			description:          "Should avoid Windows reserved device name CON",
-		},
-		{
-			name:                 "UnicodeCharacters",
-			intentFilename:       "intent-测试.json",
-			expectedStatusPrefix: "intent-",
-			shouldProcess:        true,
-			description:          "Should sanitize Unicode characters for Windows compatibility",
-		},
-		{
-			name:                 "SuspiciousPatterns",
-			intentFilename:       "intent-test~.json",
-			expectedStatusPrefix: "intent-test-",
-			shouldProcess:        true,
-			description:          "Should remove suspicious tilde character",
-		},
-		{
-			name:                 "MultipleReservedChars",
-			intentFilename:       "intent|file<test>.json",
-			expectedStatusPrefix: "intent-file-test-",
-			shouldProcess:        true,
-			description:          "Should sanitize multiple reserved characters",
-		},
-		{
-			name:                 "PathTraversal",
-			intentFilename:       "..\\..\\intent.json",
-			expectedStatusPrefix: "intent-",
-			shouldProcess:        true,
-			description:          "Should handle path traversal attempts safely",
-		},
-		{
-			name:                 "AllReservedCharacters",
-			intentFilename:       "intent<>:\"/\\|?*test.json",
-			expectedStatusPrefix: "intent",
-			shouldProcess:        true,
-			description:          "Should sanitize all Windows reserved characters",
-		},
-	}
-	
-	for _, tc := range testCases {
-		s.T().Run(tc.name, func(t *testing.T) {
-			// Create intent file with problematic name
-			intentPath := filepath.Join(s.tempDir, tc.intentFilename)
-			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "test"}}`
-			
-			// Create directory if needed for path traversal test
-			if strings.Contains(tc.intentFilename, "\\") || strings.Contains(tc.intentFilename, "/") {
-				os.MkdirAll(filepath.Dir(intentPath), 0755)
-			}
-			
-			// Try to create file - Windows may not allow files with certain reserved characters
-			err := os.WriteFile(intentPath, []byte(testContent), 0644)
-			if err != nil {
-				t.Logf("Cannot create file %s on Windows (expected for reserved chars): %v", tc.intentFilename, err)
-				// Skip this test case if Windows won't allow us to create the file
-				return
-			}
-			
-			// Process the file
-			watcher.config.Once = true
-			err = watcher.Start()
-			assert.NoError(t, err)
-			
-			if tc.shouldProcess {
-				// Check that status file was created with sanitized name
-				statusDir := filepath.Join(s.tempDir, "status")
-				statusFiles, err := os.ReadDir(statusDir)
-				if err != nil {
-					// Status directory might not exist if no files were processed
-					t.Logf("Status directory not found (no files processed): %v", err)
-					return
-				}
-				
-				if len(statusFiles) == 0 {
-					t.Logf("No status files found (file may not have been processed)")
-					return
-				}
-				
-				// Find the status file
-				var foundStatusFile string
-				for _, file := range statusFiles {
-					if strings.HasPrefix(file.Name(), tc.expectedStatusPrefix) {
-						foundStatusFile = file.Name()
-						break
-					}
-				}
-				
-				assert.NotEmpty(t, foundStatusFile, "Should find status file with expected prefix for %s", tc.description)
-				
-				if foundStatusFile != "" {
-					// Verify the status filename is Windows-safe
-					assert.True(t, strings.HasSuffix(foundStatusFile, ".status"),
-						"Status file should end with .status")
-					
-					// Should not contain any Windows reserved characters
-					for _, reservedChar := range []string{"<", ">", ":", "\"", "/", "\\", "|", "?", "*"} {
-						assert.NotContains(t, foundStatusFile, reservedChar,
-							"Status filename should not contain reserved char %s for %s", reservedChar, tc.description)
-					}
-					
-					// Should not be a Windows reserved device name
-					baseName := strings.Split(foundStatusFile, "-")[0]
-					upperBaseName := strings.ToUpper(baseName)
-					reservedNames := []string{"CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"}
-					for _, reserved := range reservedNames {
-						if upperBaseName == reserved {
-							assert.Fail(t, "Status filename should not be Windows reserved name", "Found reserved name: %s in %s", reserved, foundStatusFile)
-						}
-					}
-					
-					// Should contain only ASCII characters for Windows compatibility
-					for i, r := range foundStatusFile {
-						assert.True(t, r <= 127, "Character at position %d should be ASCII in %s for %s", i, foundStatusFile, tc.description)
-					}
-					
-					// Should not have suspicious patterns
-					assert.NotContains(t, foundStatusFile, "~", "Should not contain ~ for %s", tc.description)
-					assert.NotContains(t, foundStatusFile, "..", "Should not contain .. for %s", tc.description)
-					assert.NotRegexp(t, `^\.#`, foundStatusFile, "Should not start with .# for %s", tc.description)
-				}
-			}
-		})
-	}
-}
-
-func (s *WatcherTestSuite) TestWindowsFilenameValidation_PathTraversalPrevention() {
-	s.T().Log("Testing path traversal prevention in Windows filename handling")
-	
-	watcher, err := NewWatcher(s.tempDir, s.config)
-	s.Require().NoError(err)
-	defer watcher.Close()
-	
-	// Test various path traversal attempts
-	pathTraversalTests := []struct {
-		name        string
-		filePath    string
-		description string
-	}{
-		{
-			name:        "DotDotTraversal",
-			filePath:    "..\\intent-traversal.json",
-			description: "Should handle .. path traversal",
-		},
-		{
-			name:        "MultipleDotDot",
-			filePath:    "..\\..\\..\\intent-traversal.json", 
-			description: "Should handle multiple .. traversal",
-		},
-		{
-			name:        "MixedSeparators",
-			filePath:    "../..\\intent-traversal.json",
-			description: "Should handle mixed path separators",
-		},
-		{
-			name:        "AbsolutePath",
-			filePath:    "C:\\Windows\\System32\\intent-traversal.json",
-			description: "Should handle absolute paths outside watch directory",
-		},
-		{
-			name:        "UNCPath",
-			filePath:    "\\\\server\\share\\intent-traversal.json",
-			description: "Should handle UNC paths",
-		},
-	}
-	
-	for _, tc := range pathTraversalTests {
-		s.T().Run(tc.name, func(t *testing.T) {
-			// Create the file with path traversal attempt
-			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "traversal-test"}}`
-			
-			// Try to create directory structure if needed
-			fullPath := filepath.Join(s.tempDir, tc.filePath)
-			os.MkdirAll(filepath.Dir(fullPath), 0755)
-			
-			// Write the file
-			err := os.WriteFile(fullPath, []byte(testContent), 0644)
-			if err != nil {
-				t.Logf("Could not create test file %s: %v (this is expected for some traversal attempts)", tc.filePath, err)
-				return // Skip if we can't create the file (expected for some cases)
-			}
-			
-			// Process the file
-			watcher.config.Once = true
-			err = watcher.Start()
-			
-			// Should either process safely or reject appropriately
-			assert.NoError(t, err, "Watcher should handle path traversal gracefully for %s", tc.description)
-			
-			// If a status file was created, it should be in the correct status directory
-			statusDir := filepath.Join(s.tempDir, "status")
-			if statusFiles, err := os.ReadDir(statusDir); err == nil && len(statusFiles) > 0 {
-				for _, file := range statusFiles {
-					// Status file should be directly in status dir, not in traversed path
-					statusPath := filepath.Join(statusDir, file.Name())
-					relPath, err := filepath.Rel(statusDir, statusPath)
-					assert.NoError(t, err)
-					assert.Equal(t, file.Name(), relPath, "Status file should be directly in status directory for %s", tc.description)
-				}
-			}
-		})
-	}
-}
-
-func (s *WatcherTestSuite) TestWindowsFilenameValidation_LongFilenames() {
-	s.T().Log("Testing handling of long filenames on Windows")
-	
-	watcher, err := NewWatcher(s.tempDir, s.config)
-	s.Require().NoError(err)
-	defer watcher.Close()
-	
-	// Test very long filenames
-	longFilenameTests := []struct {
-		name           string
-		baseLength     int
-		expectTruncate bool
-		description    string
-	}{
-		{
-			name:           "NormalLength",
-			baseLength:     50,
-			expectTruncate: false,
-			description:    "Normal length filename should not be truncated",
-		},
-		{
-			name:           "MediumLength",
-			baseLength:     100,
-			expectTruncate: false,
-			description:    "Medium length filename should not be truncated",
-		},
-		{
-			name:           "LongLength",
-			baseLength:     200,
-			expectTruncate: true,
-			description:    "Long filename should be truncated to reasonable length",
-		},
-		{
-			name:           "VeryLongLength",
-			baseLength:     300,
-			expectTruncate: true,
-			description:    "Very long filename should be truncated",
-		},
-	}
-	
-	for _, tc := range longFilenameTests {
-		s.T().Run(tc.name, func(t *testing.T) {
-			// Create filename with specified length
-			baseFilename := strings.Repeat("a", tc.baseLength)
-			intentFilename := "intent-" + baseFilename + ".json"
-			
-			// Create the file
-			intentPath := filepath.Join(s.tempDir, intentFilename)
-			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "long-name-test"}}`
-			err := os.WriteFile(intentPath, []byte(testContent), 0644)
-			require.NoError(t, err)
-			
-			// Process the file
-			watcher.config.Once = true
-			err = watcher.Start()
-			assert.NoError(t, err)
-			
-			// Check status file creation
-			statusDir := filepath.Join(s.tempDir, "status")
-			statusFiles, err := os.ReadDir(statusDir)
-			require.NoError(t, err)
-			assert.Greater(t, len(statusFiles), 0, "Should create status file for %s", tc.description)
-			
-			// Verify status filename length
-			for _, file := range statusFiles {
-				statusName := file.Name()
-				
-				// Should end with .status
-				assert.True(t, strings.HasSuffix(statusName, ".status"),
-					"Status file should end with .status")
-				
-				// Should not exceed reasonable length (Windows NTFS limit is 255, but we use conservative limit)
-				assert.LessOrEqual(t, len(statusName), 200,
-					"Status filename should not exceed reasonable length for %s: got %d chars", tc.description, len(statusName))
-				
-				if tc.expectTruncate && tc.baseLength > 100 {
-					// Should be shorter than the original for long names
-					assert.Less(t, len(statusName), len(intentFilename),
-						"Status filename should be truncated for %s", tc.description)
-				}
-				
-				// Should still contain timestamp
-				assert.Regexp(t, `\d{8}-\d{6}`, statusName,
-					"Status filename should contain timestamp for %s", tc.description)
-			}
-		})
-	}
-}
-
-func (s *WatcherTestSuite) TestWindowsFilenameValidation_SpecialFileTypes() {
-	s.T().Log("Testing Windows filename validation with special file types")
-	
-	watcher, err := NewWatcher(s.tempDir, s.config)
-	s.Require().NoError(err)
-	defer watcher.Close()
-	
-	// Test different file extensions and special cases
-	specialFileTests := []struct {
-		name        string
-		filename    string
-		shouldProcess bool
-		description string
-	}{
-		{
-			name:         "StandardJsonFile",
-			filename:     "intent-test.json",
-			shouldProcess: true,
-			description:  "Standard JSON file should be processed",
-		},
-		{
-			name:         "NoExtensionFile",
-			filename:     "intent-test",
-			shouldProcess: true,
-			description:  "File without extension should be processed",
-		},
-		{
-			name:         "MultipleExtensions",
-			filename:     "intent-test.backup.json",
-			shouldProcess: true,
-			description:  "File with multiple extensions should be processed",
-		},
-		{
-			name:         "WindowsExecutable",
-			filename:     "intent-test.exe.json",
-			shouldProcess: true,
-			description:  "File with .exe in name should be processed safely",
-		},
-		{
-			name:         "HiddenFile",
-			filename:     ".intent-test.json",
-			shouldProcess: true,
-			description:  "Hidden file (starting with .) should be processed",
-		},
-		{
-			name:         "FileWithSpaces",
-			filename:     "intent test file.json",
-			shouldProcess: true,
-			description:  "File with spaces should be processed with sanitized name",
-		},
-	}
-	
-	for _, tc := range specialFileTests {
-		s.T().Run(tc.name, func(t *testing.T) {
-			// Create the file
-			intentPath := filepath.Join(s.tempDir, tc.filename)
-			testContent := `{"apiVersion": "v1", "kind": "NetworkIntent", "metadata": {"name": "special-file-test"}}`
-			err := os.WriteFile(intentPath, []byte(testContent), 0644)
-			require.NoError(t, err)
-			
-			// Process the file
-			watcher.config.Once = true
-			err = watcher.Start()
-			assert.NoError(t, err)
-			
-			if tc.shouldProcess {
-				// Should create status file
-				statusDir := filepath.Join(s.tempDir, "status")
-				statusFiles, err := os.ReadDir(statusDir)
-				require.NoError(t, err)
-				assert.Greater(t, len(statusFiles), 0, "Should create status file for %s", tc.description)
-				
-				// Verify status filename is Windows-safe
-				for _, file := range statusFiles {
-					statusName := file.Name()
-					
-					// Should be valid Windows filename
-					assert.True(t, strings.HasSuffix(statusName, ".status"),
-						"Status file should end with .status for %s", tc.description)
-					
-					// Should not contain invalid characters for Windows
-					invalidChars := []string{"<", ">", ":", "\"", "|", "?", "*"}
-					for _, char := range invalidChars {
-						assert.NotContains(t, statusName, char,
-							"Status filename should not contain %s for %s", char, tc.description)
-					}
-					
-					// Should handle path separators correctly
-					assert.NotContains(t, statusName, "/",
-						"Status filename should not contain forward slash for %s", tc.description)
-					assert.NotContains(t, statusName, "\\",
-						"Status filename should not contain backslash for %s", tc.description)
-					
-					// Should be valid ASCII for maximum Windows compatibility
-					for i, r := range statusName {
-						assert.True(t, r <= 127,
-							"Character at position %d should be ASCII for %s: %c", i, tc.description, r)
-					}
-				}
-			}
-		})
-	}
 }

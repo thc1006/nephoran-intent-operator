@@ -119,9 +119,7 @@ func (ai *AutomationIntegration) Start(ctx context.Context) error {
 
 	// Start CA Manager background processes
 	go func() {
-		if err := ai.caManager.runCertificateLifecycleManager(); err != nil {
-			ai.logger.Error("CA manager lifecycle error", "error", err)
-		}
+		ai.caManager.runCertificateLifecycleManager()
 	}()
 
 	// Start Automation Engine

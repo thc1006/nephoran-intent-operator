@@ -1,0 +1,15 @@
+﻿2025-08-19T13:08:41.9066087Z ##[group]Run actions/upload-artifact@v4
+2025-08-19T13:08:41.9066441Z with:
+2025-08-19T13:08:41.9066625Z   name: test-results-windows-latest
+2025-08-19T13:08:41.9066867Z   path: test-results/
+2025-08-19T13:08:41.9067051Z   retention-days: 3
+2025-08-19T13:08:41.9067217Z   if-no-files-found: warn
+2025-08-19T13:08:41.9067405Z   compression-level: 6
+2025-08-19T13:08:41.9067573Z   overwrite: false
+2025-08-19T13:08:41.9067748Z   include-hidden-files: false
+2025-08-19T13:08:41.9067930Z env:
+2025-08-19T13:08:41.9068072Z   REGISTRY: ghcr.io
+2025-08-19T13:08:41.9068248Z   IMAGE_NAME: conductor-loop
+2025-08-19T13:08:41.9068440Z   GO_VERSION: 1.24.x
+2025-08-19T13:08:41.9068602Z ##[endgroup]
+2025-08-19T13:08:42.2618208Z ##[warning]No files were found with the provided path: test-results/. No artifacts will be uploaded.

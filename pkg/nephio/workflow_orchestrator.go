@@ -89,13 +89,13 @@ type WorkflowOrchestratorConfig struct {
 
 // WorkflowMetrics provides comprehensive workflow metrics
 type WorkflowMetrics struct {
-	WorkflowExecutions   prometheus.CounterVec
-	WorkflowDuration     prometheus.HistogramVec
-	WorkflowPhases       prometheus.GaugeVec
-	PackageVariants      prometheus.CounterVec
-	ClusterDeployments   prometheus.CounterVec
-	ConfigSyncOperations prometheus.CounterVec
-	WorkflowErrors       prometheus.CounterVec
+	WorkflowExecutions   *prometheus.CounterVec
+	WorkflowDuration     *prometheus.HistogramVec
+	WorkflowPhases       *prometheus.GaugeVec
+	PackageVariants      *prometheus.CounterVec
+	ClusterDeployments   *prometheus.CounterVec
+	ConfigSyncOperations *prometheus.CounterVec
+	WorkflowErrors       *prometheus.CounterVec
 }
 
 // WorkflowExecution represents a Nephio workflow execution

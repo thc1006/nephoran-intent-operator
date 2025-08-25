@@ -14,6 +14,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -23,7 +24,7 @@ type ObservabilityIntegration struct {
 	metricsRegistry *prometheus.Registry
 	tracer          trace.Tracer
 	meter           metric.Meter
-	logger          log.Logger
+	logger          logr.Logger
 
 	// Metrics
 	mtlsConnections      metric.Int64Counter

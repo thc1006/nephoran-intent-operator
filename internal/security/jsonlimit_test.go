@@ -13,10 +13,10 @@ import (
 
 func TestValidateAndLimitJSON(t *testing.T) {
 	tests := []struct {
-		name        string
-		input       string
-		maxSize     int64
-		expectError bool
+		name          string
+		input         string
+		maxSize       int64
+		expectError   bool
 		errorContains string
 	}{
 		{
@@ -32,10 +32,10 @@ func TestValidateAndLimitJSON(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "exceeds limit by one byte",
-			input:       `{"test": "data"}`, // 16 bytes
-			maxSize:     15,
-			expectError: true,
+			name:          "exceeds limit by one byte",
+			input:         `{"test": "data"}`, // 16 bytes
+			maxSize:       15,
+			expectError:   true,
 			errorContains: "exceeds maximum JSON size limit",
 		},
 		{
@@ -51,10 +51,10 @@ func TestValidateAndLimitJSON(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "large JSON over limit",
-			input:       strings.Repeat("a", 1025), // 1025 bytes
-			maxSize:     1024,
-			expectError: true,
+			name:          "large JSON over limit",
+			input:         strings.Repeat("a", 1025), // 1025 bytes
+			maxSize:       1024,
+			expectError:   true,
 			errorContains: "exceeds maximum JSON size limit",
 		},
 	}
@@ -62,9 +62,9 @@ func TestValidateAndLimitJSON(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reader := strings.NewReader(tt.input)
-			
+
 			data, err := ValidateAndLimitJSON(reader, tt.maxSize)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorContains)
@@ -104,7 +104,7 @@ func TestValidateAndLimitJSON_FileHandles(t *testing.T) {
 		// Reset file position
 		_, err := tempFile.Seek(0, 0)
 		require.NoError(t, err)
-		
+
 		data, err := ValidateAndLimitJSON(tempFile, 10)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "exceeds maximum JSON size limit")
@@ -140,7 +140,7 @@ func TestValidateAndLimitJSON_StreamReader(t *testing.T) {
 	t.Run("stream under limit", func(t *testing.T) {
 		content := `{"test": "stream data"}`
 		reader := strings.NewReader(content)
-		
+
 		data, err := ValidateAndLimitJSON(reader, 100)
 		assert.NoError(t, err)
 		assert.Equal(t, content, string(data))
@@ -150,7 +150,7 @@ func TestValidateAndLimitJSON_StreamReader(t *testing.T) {
 		// Large content that exceeds limit
 		content := strings.Repeat("x", 1025)
 		reader := strings.NewReader(content)
-		
+
 		data, err := ValidateAndLimitJSON(reader, 1024)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "exceeds maximum JSON size limit")
@@ -163,7 +163,7 @@ func TestCountingReader(t *testing.T) {
 		content := "hello world"
 		reader := strings.NewReader(content)
 		counter := &countingReader{r: reader, max: 20}
-		
+
 		data, err := io.ReadAll(counter)
 		assert.NoError(t, err)
 		assert.Equal(t, content, string(data))
@@ -175,7 +175,7 @@ func TestCountingReader(t *testing.T) {
 		content := "hello"
 		reader := strings.NewReader(content)
 		counter := &countingReader{r: reader, max: 5}
-		
+
 		data, err := io.ReadAll(counter)
 		assert.NoError(t, err)
 		assert.Equal(t, content, string(data))
@@ -187,7 +187,7 @@ func TestCountingReader(t *testing.T) {
 		content := "hello world"
 		reader := strings.NewReader(content)
 		counter := &countingReader{r: reader, max: 5}
-		
+
 		data, err := io.ReadAll(counter)
 		assert.Error(t, err)
 		assert.Equal(t, ErrMaxSizeExceeded, err)
@@ -205,7 +205,7 @@ func TestMaxJSONBytesConstant(t *testing.T) {
 
 func BenchmarkValidateAndLimitJSON(b *testing.B) {
 	content := strings.Repeat(`{"key": "value"}`, 1000) // ~13KB
-	
+
 	b.Run("string_reader", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			reader := strings.NewReader(content)

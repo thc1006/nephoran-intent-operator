@@ -53,14 +53,14 @@ type PackageCatalogConfig struct {
 
 // PackageCatalogMetrics provides catalog metrics
 type PackageCatalogMetrics struct {
-	BlueprintQueries    prometheus.CounterVec
-	VariantCreations    prometheus.CounterVec
-	CatalogOperations   prometheus.CounterVec
+	BlueprintQueries    *prometheus.CounterVec
+	VariantCreations    *prometheus.CounterVec
+	CatalogOperations   *prometheus.CounterVec
 	CacheHitRate        prometheus.Counter
 	CacheMissRate       prometheus.Counter
-	BlueprintLoadTime   prometheus.HistogramVec
-	VariantCreationTime prometheus.HistogramVec
-	CatalogSize         prometheus.GaugeVec
+	BlueprintLoadTime   *prometheus.HistogramVec
+	VariantCreationTime *prometheus.HistogramVec
+	CatalogSize         *prometheus.GaugeVec
 }
 
 // PackageDependency represents a package dependency

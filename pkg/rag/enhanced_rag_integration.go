@@ -46,6 +46,12 @@ type EmbeddingProvider interface {
 	
 	// GetDimensions returns the embedding dimension size
 	GetDimensions() int
+	
+	// IsHealthy returns the health status of the provider (for health monitoring compatibility)
+	IsHealthy() bool
+	
+	// GetLatency returns the average latency of the provider (for health monitoring compatibility)
+	GetLatency() time.Duration
 }
 
 // VectorStore defines the interface for vector storage
@@ -478,13 +484,13 @@ func (pr *ProviderRouter) selectFailover() RAGProvider {
 
 // RAGCache provides caching for query results
 type RAGCache struct {
-	cache    map[string]*cacheEntry
+	cache    map[string]*enhancedCacheEntry
 	maxSize  int
 	ttl      time.Duration
 	mu       sync.RWMutex
 }
 
-type cacheEntry struct {
+type enhancedCacheEntry struct {
 	response  *QueryResponse
 	timestamp time.Time
 }
@@ -492,7 +498,7 @@ type cacheEntry struct {
 // NewRAGCache creates a new RAG cache
 func NewRAGCache(maxSize int, ttl time.Duration) *RAGCache {
 	cache := &RAGCache{
-		cache:   make(map[string]*cacheEntry),
+		cache:   make(map[string]*enhancedCacheEntry),
 		maxSize: maxSize,
 		ttl:     ttl,
 	}
@@ -530,7 +536,7 @@ func (rc *RAGCache) Set(query string, response *QueryResponse) {
 		rc.evictOldest()
 	}
 	
-	rc.cache[query] = &cacheEntry{
+	rc.cache[query] = &enhancedCacheEntry{
 		response:  response,
 		timestamp: time.Now(),
 	}

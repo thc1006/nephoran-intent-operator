@@ -309,11 +309,11 @@ type FunctionUpdate struct {
 // Registry metrics
 type RegistryMetrics struct {
 	RepositoryCount     prometheus.Gauge
-	FunctionCount       prometheus.GaugeVec
-	DiscoveryDuration   prometheus.HistogramVec
+	FunctionCount       *prometheus.GaugeVec
+	DiscoveryDuration   *prometheus.HistogramVec
 	CacheHitRate        prometheus.Counter
 	CacheMissRate       prometheus.Counter
-	HealthCheckFailures prometheus.CounterVec
+	HealthCheckFailures *prometheus.CounterVec
 }
 
 // CacheMetrics provides cache performance metrics

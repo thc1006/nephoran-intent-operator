@@ -50,6 +50,14 @@ type ResourceType struct {
 	Extensions       map[string]interface{} `json:"extensions,omitempty"`
 	Tags             map[string]string      `json:"tags,omitempty"`
 	Labels           map[string]string      `json:"labels,omitempty"`
+	
+	// Legacy fields for backward compatibility (mapped to current model)
+	// Specifications maps to Category, ResourceLimits, and other current fields
+	Specifications   *ResourceTypeSpec      `json:"specifications,omitempty"`
+	// SupportedActions maps to SupportedOperations
+	SupportedActions []string               `json:"supportedActions,omitempty"`
+	// Capabilities as map (legacy format) - use Capabilities field for current model
+	CapabilitiesMap  map[string]interface{} `json:"capabilities,omitempty"`
 
 	// Lifecycle information
 	Status    string    `json:"status"` // ACTIVE, DEPRECATED, OBSOLETE
@@ -467,6 +475,7 @@ type ResourceManagementInfo struct {
 type ResourceTypeFilter struct {
 	Names           []string          `json:"names,omitempty"`
 	Vendors         []string          `json:"vendors,omitempty"`
+	Models          []string          `json:"models,omitempty"` // Legacy field for backward compatibility
 	Versions        []string          `json:"versions,omitempty"`
 	Categories      []string          `json:"categories,omitempty"`
 	ResourceClasses []string          `json:"resourceClasses,omitempty"`
@@ -647,3 +656,25 @@ const (
 	RelationshipTypeHostedBy   = "HOSTED_BY"
 	RelationshipTypeManages    = "MANAGES"
 )
+
+// Legacy types for backward compatibility - these map to current model fields
+
+// ResourceTypeSpec represents legacy resource type specifications
+// Now mapped to current ResourceType fields: Category, ResourceLimits, etc.
+type ResourceTypeSpec struct {
+	Category         string            `json:"category"`
+	SubCategory      string            `json:"subCategory,omitempty"`
+	MinResources     map[string]string `json:"minResources,omitempty"`
+	MaxResources     map[string]string `json:"maxResources,omitempty"`
+	DefaultResources map[string]string `json:"defaultResources,omitempty"`
+	RequiredPorts    []PortSpec        `json:"requiredPorts,omitempty"`
+	OptionalPorts    []PortSpec        `json:"optionalPorts,omitempty"`
+	Properties       map[string]interface{} `json:"properties,omitempty"`
+}
+
+// PortSpec represents a port specification for network services
+type PortSpec struct {
+	Name     string `json:"name"`
+	Port     int32  `json:"port"`
+	Protocol string `json:"protocol"`
+}

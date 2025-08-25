@@ -1,0 +1,729 @@
+﻿2025-08-19T13:08:55.7225688Z Current runner version: '2.327.1'
+2025-08-19T13:08:55.7251181Z ##[group]Runner Image Provisioner
+2025-08-19T13:08:55.7252339Z Hosted Compute Agent
+2025-08-19T13:08:55.7252901Z Version: 20250818.377
+2025-08-19T13:08:55.7253499Z Commit: 3c593e9f75fe0b87e893bca80d6e12ba089c61fc
+2025-08-19T13:08:55.7254131Z Build Date: 2025-08-18T14:52:18Z
+2025-08-19T13:08:55.7254801Z ##[endgroup]
+2025-08-19T13:08:55.7255372Z ##[group]Operating System
+2025-08-19T13:08:55.7255890Z Ubuntu
+2025-08-19T13:08:55.7256436Z 24.04.2
+2025-08-19T13:08:55.7256863Z LTS
+2025-08-19T13:08:55.7257298Z ##[endgroup]
+2025-08-19T13:08:55.7257810Z ##[group]Runner Image
+2025-08-19T13:08:55.7258366Z Image: ubuntu-24.04
+2025-08-19T13:08:55.7258880Z Version: 20250810.1.0
+2025-08-19T13:08:55.7260319Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20250810.1/images/ubuntu/Ubuntu2404-Readme.md
+2025-08-19T13:08:55.7262177Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20250810.1
+2025-08-19T13:08:55.7263273Z ##[endgroup]
+2025-08-19T13:08:55.7264786Z ##[group]GITHUB_TOKEN Permissions
+2025-08-19T13:08:55.7267140Z Actions: read
+2025-08-19T13:08:55.7267656Z Checks: write
+2025-08-19T13:08:55.7268166Z Contents: read
+2025-08-19T13:08:55.7268645Z Metadata: read
+2025-08-19T13:08:55.7269151Z Packages: write
+2025-08-19T13:08:55.7269622Z PullRequests: write
+2025-08-19T13:08:55.7270232Z SecurityEvents: write
+2025-08-19T13:08:55.7270733Z ##[endgroup]
+2025-08-19T13:08:55.7273331Z Secret source: Actions
+2025-08-19T13:08:55.7274348Z Prepare workflow directory
+2025-08-19T13:08:55.7816817Z Prepare all required actions
+2025-08-19T13:08:55.7854834Z Getting action download info
+2025-08-19T13:08:56.1788325Z Download action repository 'step-security/harden-runner@v2' (SHA:ec9f2d5744a09debf3a187a3f4f675c53b671911)
+2025-08-19T13:08:56.6919230Z Download action repository 'actions/checkout@v4' (SHA:08eba0b27e820071cde6df949e0beb9ba4906955)
+2025-08-19T13:08:57.0222634Z Download action repository 'actions/setup-go@v5' (SHA:d35c59abb061a4a6fb18e82ac0862c26744d6ab5)
+2025-08-19T13:08:57.4512859Z Download action repository 'github/codeql-action@v3' (SHA:96f518a34f7a870018057716cc4d7a5c014bd61c)
+2025-08-19T13:09:02.7549631Z Download action repository 'semgrep/semgrep-action@v1' (SHA:713efdd345f3035192eaa63f56867b88e63e4e5d)
+2025-08-19T13:09:03.0640485Z Download action repository 'dependency-check/Dependency-Check_Action@main' (SHA:2ba636726705b0f74f126ebeaacaf2ad4600b967)
+2025-08-19T13:09:03.3627738Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2025-08-19T13:09:03.5498490Z Complete job name: Security Analysis (gosec)
+2025-08-19T13:09:03.5901077Z ##[group]Pull down action image 'returntocorp/semgrep-agent:v1'
+2025-08-19T13:09:03.6045557Z ##[command]/usr/bin/docker pull returntocorp/semgrep-agent:v1
+2025-08-19T13:09:04.1930875Z v1: Pulling from returntocorp/semgrep-agent
+2025-08-19T13:09:04.3051399Z 7264a8db6415: Pulling fs layer
+2025-08-19T13:09:04.3052161Z 66e1d5e70e42: Pulling fs layer
+2025-08-19T13:09:04.3052597Z 64dfa579cd50: Pulling fs layer
+2025-08-19T13:09:04.3052985Z afa58c10ee34: Pulling fs layer
+2025-08-19T13:09:04.3053361Z cd87b3fa61f8: Pulling fs layer
+2025-08-19T13:09:04.3053716Z a54df9278105: Pulling fs layer
+2025-08-19T13:09:04.3054068Z 22d9c0f131ae: Pulling fs layer
+2025-08-19T13:09:04.3054430Z bfa6cbe2a060: Pulling fs layer
+2025-08-19T13:09:04.3054793Z e6455d0c4d0a: Pulling fs layer
+2025-08-19T13:09:04.3055142Z 4e6528b8b44b: Pulling fs layer
+2025-08-19T13:09:04.3055525Z 77aae498c7b4: Pulling fs layer
+2025-08-19T13:09:04.3055899Z f6a963258091: Pulling fs layer
+2025-08-19T13:09:04.3056341Z e68b04e3dc22: Pulling fs layer
+2025-08-19T13:09:04.3056736Z e50eacad623d: Pulling fs layer
+2025-08-19T13:09:04.3057117Z 464938719a27: Pulling fs layer
+2025-08-19T13:09:04.3057489Z c09dc33c2ea4: Pulling fs layer
+2025-08-19T13:09:04.3057876Z db70a1bf97d5: Pulling fs layer
+2025-08-19T13:09:04.3058241Z 5667267dbf96: Pulling fs layer
+2025-08-19T13:09:04.3058630Z 55e5ab738d77: Pulling fs layer
+2025-08-19T13:09:04.3059429Z fbf9ea8fb0f3: Pulling fs layer
+2025-08-19T13:09:04.3059797Z 22d9c0f131ae: Waiting
+2025-08-19T13:09:04.3060126Z afa58c10ee34: Waiting
+2025-08-19T13:09:04.3060502Z cd87b3fa61f8: Waiting
+2025-08-19T13:09:04.3060701Z bfa6cbe2a060: Waiting
+2025-08-19T13:09:04.3060897Z a54df9278105: Waiting
+2025-08-19T13:09:04.3061085Z f6a963258091: Waiting
+2025-08-19T13:09:04.3061255Z e6455d0c4d0a: Waiting
+2025-08-19T13:09:04.3061436Z 4e6528b8b44b: Waiting
+2025-08-19T13:09:04.3061961Z 77aae498c7b4: Waiting
+2025-08-19T13:09:04.3062166Z e68b04e3dc22: Waiting
+2025-08-19T13:09:04.3062334Z 464938719a27: Waiting
+2025-08-19T13:09:04.3062518Z c09dc33c2ea4: Waiting
+2025-08-19T13:09:04.3062692Z e50eacad623d: Waiting
+2025-08-19T13:09:04.3063032Z db70a1bf97d5: Waiting
+2025-08-19T13:09:04.3063208Z 55e5ab738d77: Waiting
+2025-08-19T13:09:04.3063375Z fbf9ea8fb0f3: Waiting
+2025-08-19T13:09:04.4284912Z 66e1d5e70e42: Verifying Checksum
+2025-08-19T13:09:04.4285395Z 66e1d5e70e42: Download complete
+2025-08-19T13:09:04.5432693Z 7264a8db6415: Verifying Checksum
+2025-08-19T13:09:04.5433862Z 7264a8db6415: Download complete
+2025-08-19T13:09:04.5500944Z afa58c10ee34: Verifying Checksum
+2025-08-19T13:09:04.5502394Z afa58c10ee34: Download complete
+2025-08-19T13:09:04.5799847Z 64dfa579cd50: Verifying Checksum
+2025-08-19T13:09:04.5800613Z 64dfa579cd50: Download complete
+2025-08-19T13:09:04.6450773Z 7264a8db6415: Pull complete
+2025-08-19T13:09:04.6639212Z a54df9278105: Verifying Checksum
+2025-08-19T13:09:04.6639806Z a54df9278105: Download complete
+2025-08-19T13:09:04.6850111Z cd87b3fa61f8: Verifying Checksum
+2025-08-19T13:09:04.6857980Z cd87b3fa61f8: Download complete
+2025-08-19T13:09:04.7022722Z 22d9c0f131ae: Download complete
+2025-08-19T13:09:04.8792798Z bfa6cbe2a060: Verifying Checksum
+2025-08-19T13:09:04.8796070Z bfa6cbe2a060: Download complete
+2025-08-19T13:09:04.9199367Z e6455d0c4d0a: Verifying Checksum
+2025-08-19T13:09:04.9200329Z e6455d0c4d0a: Download complete
+2025-08-19T13:09:04.9795220Z 4e6528b8b44b: Verifying Checksum
+2025-08-19T13:09:04.9797021Z 4e6528b8b44b: Download complete
+2025-08-19T13:09:04.9980667Z 77aae498c7b4: Download complete
+2025-08-19T13:09:05.1206513Z e68b04e3dc22: Verifying Checksum
+2025-08-19T13:09:05.1207101Z e68b04e3dc22: Download complete
+2025-08-19T13:09:05.1336763Z 66e1d5e70e42: Pull complete
+2025-08-19T13:09:05.1557346Z e50eacad623d: Verifying Checksum
+2025-08-19T13:09:05.1560135Z e50eacad623d: Download complete
+2025-08-19T13:09:05.1832559Z f6a963258091: Verifying Checksum
+2025-08-19T13:09:05.1833387Z f6a963258091: Download complete
+2025-08-19T13:09:05.2383776Z 464938719a27: Verifying Checksum
+2025-08-19T13:09:05.2384732Z 464938719a27: Download complete
+2025-08-19T13:09:05.2764716Z c09dc33c2ea4: Verifying Checksum
+2025-08-19T13:09:05.2765201Z c09dc33c2ea4: Download complete
+2025-08-19T13:09:05.2943997Z db70a1bf97d5: Verifying Checksum
+2025-08-19T13:09:05.2947181Z db70a1bf97d5: Download complete
+2025-08-19T13:09:05.3478502Z 5667267dbf96: Verifying Checksum
+2025-08-19T13:09:05.3479004Z 5667267dbf96: Download complete
+2025-08-19T13:09:05.3990271Z 55e5ab738d77: Verifying Checksum
+2025-08-19T13:09:05.3990751Z 55e5ab738d77: Download complete
+2025-08-19T13:09:05.4168171Z fbf9ea8fb0f3: Verifying Checksum
+2025-08-19T13:09:05.6192576Z fbf9ea8fb0f3: Download complete
+2025-08-19T13:09:05.6192962Z 64dfa579cd50: Pull complete
+2025-08-19T13:09:05.6297841Z afa58c10ee34: Pull complete
+2025-08-19T13:09:05.8819459Z cd87b3fa61f8: Pull complete
+2025-08-19T13:09:05.8931129Z a54df9278105: Pull complete
+2025-08-19T13:09:05.9138843Z 22d9c0f131ae: Pull complete
+2025-08-19T13:09:06.1312893Z bfa6cbe2a060: Pull complete
+2025-08-19T13:09:06.8608612Z e6455d0c4d0a: Pull complete
+2025-08-19T13:09:07.9864051Z 4e6528b8b44b: Pull complete
+2025-08-19T13:09:07.9993955Z 77aae498c7b4: Pull complete
+2025-08-19T13:09:08.5461905Z f6a963258091: Pull complete
+2025-08-19T13:09:08.5556902Z e68b04e3dc22: Pull complete
+2025-08-19T13:09:08.5643262Z e50eacad623d: Pull complete
+2025-08-19T13:09:08.5758344Z 464938719a27: Pull complete
+2025-08-19T13:09:08.5845258Z c09dc33c2ea4: Pull complete
+2025-08-19T13:09:08.5935980Z db70a1bf97d5: Pull complete
+2025-08-19T13:09:08.6019215Z 5667267dbf96: Pull complete
+2025-08-19T13:09:08.6116147Z 55e5ab738d77: Pull complete
+2025-08-19T13:09:08.6322728Z fbf9ea8fb0f3: Pull complete
+2025-08-19T13:09:08.6365699Z Digest: sha256:2ed984f89000f77516016248700ad91681cb89bbe2adbdecd1d38dc84394adbb
+2025-08-19T13:09:08.6376717Z Status: Downloaded newer image for returntocorp/semgrep-agent:v1
+2025-08-19T13:09:08.6390469Z docker.io/returntocorp/semgrep-agent:v1
+2025-08-19T13:09:08.6416564Z ##[endgroup]
+2025-08-19T13:09:08.6454049Z ##[group]Build container for action use: '/home/runner/work/_actions/dependency-check/Dependency-Check_Action/main/Dockerfile'.
+2025-08-19T13:09:08.6460381Z ##[command]/usr/bin/docker build -t e26799:c1b48488c0be4ac5a95be0d62176ba71 -f "/home/runner/work/_actions/dependency-check/Dependency-Check_Action/main/Dockerfile" "/home/runner/work/_actions/dependency-check/Dependency-Check_Action/main"
+2025-08-19T13:09:11.8073722Z #0 building with "default" instance using docker driver
+2025-08-19T13:09:11.8074097Z 
+2025-08-19T13:09:11.8074263Z #1 [internal] load build definition from Dockerfile
+2025-08-19T13:09:11.8074633Z #1 transferring dockerfile: 631B done
+2025-08-19T13:09:11.8074932Z #1 DONE 0.0s
+2025-08-19T13:09:11.8075057Z 
+2025-08-19T13:09:11.8075312Z #2 [auth] owasp/dependency-check-action:pull token for registry-1.docker.io
+2025-08-19T13:09:11.8075766Z #2 DONE 0.0s
+2025-08-19T13:09:11.8075892Z 
+2025-08-19T13:09:11.8076216Z #3 [internal] load metadata for docker.io/owasp/dependency-check-action:latest
+2025-08-19T13:09:11.9896308Z #3 DONE 0.4s
+2025-08-19T13:09:12.1097362Z 
+2025-08-19T13:09:12.1097721Z #4 [internal] load .dockerignore
+2025-08-19T13:09:12.1098044Z #4 transferring context: 2B done
+2025-08-19T13:09:12.1098425Z #4 DONE 0.0s
+2025-08-19T13:09:12.1098589Z 
+2025-08-19T13:09:12.1098923Z #5 [internal] load build context
+2025-08-19T13:09:12.1099530Z #5 transferring context: 136B done
+2025-08-19T13:09:12.1099986Z #5 DONE 0.0s
+2025-08-19T13:09:12.1100128Z 
+2025-08-19T13:09:12.1100550Z #6 [1/3] FROM docker.io/owasp/dependency-check-action:latest@sha256:327342634059eaa597815b5ebd1c73fd5bef6157e277ccbc113b4e6efd7e0943
+2025-08-19T13:09:12.1102334Z #6 resolve docker.io/owasp/dependency-check-action:latest@sha256:327342634059eaa597815b5ebd1c73fd5bef6157e277ccbc113b4e6efd7e0943 done
+2025-08-19T13:09:12.1104175Z #6 sha256:a48106d553a8f37683d50fc82e00037d537de6a04d0f2beedb4ae586f9171a37 9.47kB / 9.47kB done
+2025-08-19T13:09:12.1104882Z #6 sha256:3e3762385f229926114f644db8c313a1b55517d678b5879ab9c39f2a9989abcd 0B / 1.24kB 0.1s
+2025-08-19T13:09:12.1106293Z #6 sha256:327342634059eaa597815b5ebd1c73fd5bef6157e277ccbc113b4e6efd7e0943 2.63kB / 2.63kB done
+2025-08-19T13:09:12.1107596Z #6 sha256:619be1103602d98e1963557998c954c892b3872986c27365e9f651f5bc27cab8 2.10MB / 3.40MB 0.1s
+2025-08-19T13:09:12.1108338Z #6 sha256:cceb4befa491c3767afaa6af498fc78e7a724c29c577317890987c2ad467b680 0B / 3.09MB 0.1s
+2025-08-19T13:09:12.2626828Z #6 sha256:3e3762385f229926114f644db8c313a1b55517d678b5879ab9c39f2a9989abcd 1.24kB / 1.24kB 0.1s done
+2025-08-19T13:09:12.2628031Z #6 sha256:619be1103602d98e1963557998c954c892b3872986c27365e9f651f5bc27cab8 3.40MB / 3.40MB 0.1s done
+2025-08-19T13:09:12.2629113Z #6 sha256:cceb4befa491c3767afaa6af498fc78e7a724c29c577317890987c2ad467b680 3.09MB / 3.09MB 0.1s done
+2025-08-19T13:09:12.2630127Z #6 extracting sha256:619be1103602d98e1963557998c954c892b3872986c27365e9f651f5bc27cab8 0.1s
+2025-08-19T13:09:12.2631154Z #6 sha256:86e65beaa5918cd0bdec672c0561e37cb894455cfda278de5c4c78e3335ad8f0 8.39MB / 32.25MB 0.2s
+2025-08-19T13:09:12.2632384Z #6 sha256:45ddd00e34dd292e9160aa703aff0bff2950fc06cb5272dea967325de2e941ae 1.05MB / 44.09MB 0.2s
+2025-08-19T13:09:12.4106915Z #6 extracting sha256:619be1103602d98e1963557998c954c892b3872986c27365e9f651f5bc27cab8 0.2s done
+2025-08-19T13:09:12.4108304Z #6 sha256:86e65beaa5918cd0bdec672c0561e37cb894455cfda278de5c4c78e3335ad8f0 22.02MB / 32.25MB 0.4s
+2025-08-19T13:09:12.4109368Z #6 sha256:45ddd00e34dd292e9160aa703aff0bff2950fc06cb5272dea967325de2e941ae 22.77MB / 44.09MB 0.4s
+2025-08-19T13:09:12.4110786Z #6 sha256:7bd0a72d0e6ae9a7bcf5f3131817f93f19914ccf94d1c052ee9903a452f72b47 9.86MB / 78.98MB 0.4s
+2025-08-19T13:09:12.4112034Z #6 extracting sha256:cceb4befa491c3767afaa6af498fc78e7a724c29c577317890987c2ad467b680 0.1s done
+2025-08-19T13:09:12.5094518Z #6 sha256:86e65beaa5918cd0bdec672c0561e37cb894455cfda278de5c4c78e3335ad8f0 26.21MB / 32.25MB 0.5s
+2025-08-19T13:09:12.5095942Z #6 sha256:45ddd00e34dd292e9160aa703aff0bff2950fc06cb5272dea967325de2e941ae 34.60MB / 44.09MB 0.5s
+2025-08-19T13:09:12.5097296Z #6 sha256:7bd0a72d0e6ae9a7bcf5f3131817f93f19914ccf94d1c052ee9903a452f72b47 23.07MB / 78.98MB 0.5s
+2025-08-19T13:09:12.5098323Z #6 extracting sha256:3e3762385f229926114f644db8c313a1b55517d678b5879ab9c39f2a9989abcd done
+2025-08-19T13:09:12.6104163Z #6 sha256:86e65beaa5918cd0bdec672c0561e37cb894455cfda278de5c4c78e3335ad8f0 31.46MB / 32.25MB 0.6s
+2025-08-19T13:09:12.6105272Z #6 sha256:45ddd00e34dd292e9160aa703aff0bff2950fc06cb5272dea967325de2e941ae 40.89MB / 44.09MB 0.6s
+2025-08-19T13:09:12.6105995Z #6 sha256:7bd0a72d0e6ae9a7bcf5f3131817f93f19914ccf94d1c052ee9903a452f72b47 41.94MB / 78.98MB 0.6s
+2025-08-19T13:09:12.7328501Z #6 sha256:86e65beaa5918cd0bdec672c0561e37cb894455cfda278de5c4c78e3335ad8f0 32.25MB / 32.25MB 0.6s done
+2025-08-19T13:09:12.7331709Z #6 sha256:45ddd00e34dd292e9160aa703aff0bff2950fc06cb5272dea967325de2e941ae 44.09MB / 44.09MB 0.7s done
+2025-08-19T13:09:12.7333117Z #6 sha256:7bd0a72d0e6ae9a7bcf5f3131817f93f19914ccf94d1c052ee9903a452f72b47 52.43MB / 78.98MB 0.7s
+2025-08-19T13:09:12.7334329Z #6 extracting sha256:86e65beaa5918cd0bdec672c0561e37cb894455cfda278de5c4c78e3335ad8f0 0.1s
+2025-08-19T13:09:12.7335464Z #6 sha256:43c57f8bbf131e1db9ee428171fdea2d8a55c342f9d1e229fc2c21c92fc50ebd 2.10MB / 37.05MB 0.7s
+2025-08-19T13:09:12.7336547Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 0B / 90.98MB 0.7s
+2025-08-19T13:09:12.8338005Z #6 sha256:43c57f8bbf131e1db9ee428171fdea2d8a55c342f9d1e229fc2c21c92fc50ebd 9.44MB / 37.05MB 0.8s
+2025-08-19T13:09:12.8339178Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 10.49MB / 90.98MB 0.8s
+2025-08-19T13:09:12.9353889Z #6 sha256:7bd0a72d0e6ae9a7bcf5f3131817f93f19914ccf94d1c052ee9903a452f72b47 63.96MB / 78.98MB 0.9s
+2025-08-19T13:09:12.9356099Z #6 sha256:43c57f8bbf131e1db9ee428171fdea2d8a55c342f9d1e229fc2c21c92fc50ebd 19.92MB / 37.05MB 0.9s
+2025-08-19T13:09:13.0357984Z #6 sha256:7bd0a72d0e6ae9a7bcf5f3131817f93f19914ccf94d1c052ee9903a452f72b47 75.06MB / 78.98MB 1.0s
+2025-08-19T13:09:13.0359218Z #6 sha256:43c57f8bbf131e1db9ee428171fdea2d8a55c342f9d1e229fc2c21c92fc50ebd 25.17MB / 37.05MB 1.0s
+2025-08-19T13:09:13.0360245Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 16.78MB / 90.98MB 1.0s
+2025-08-19T13:09:13.1847255Z #6 sha256:7bd0a72d0e6ae9a7bcf5f3131817f93f19914ccf94d1c052ee9903a452f72b47 78.98MB / 78.98MB 1.0s done
+2025-08-19T13:09:13.1850009Z #6 extracting sha256:86e65beaa5918cd0bdec672c0561e37cb894455cfda278de5c4c78e3335ad8f0 0.4s done
+2025-08-19T13:09:13.1851008Z #6 sha256:43c57f8bbf131e1db9ee428171fdea2d8a55c342f9d1e229fc2c21c92fc50ebd 27.26MB / 37.05MB 1.2s
+2025-08-19T13:09:13.1852116Z #6 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 0B / 32B 1.2s
+2025-08-19T13:09:13.3100521Z #6 sha256:43c57f8bbf131e1db9ee428171fdea2d8a55c342f9d1e229fc2c21c92fc50ebd 37.05MB / 37.05MB 1.2s done
+2025-08-19T13:09:13.3101693Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 30.41MB / 90.98MB 1.3s
+2025-08-19T13:09:13.3103324Z #6 sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 32B / 32B 1.2s done
+2025-08-19T13:09:13.3105155Z #6 sha256:5760c89e07714b82733d6a984449296731b17907fece9a3030b50d70252ca109 95B / 95B 1.2s done
+2025-08-19T13:09:13.3106781Z #6 extracting sha256:45ddd00e34dd292e9160aa703aff0bff2950fc06cb5272dea967325de2e941ae
+2025-08-19T13:09:13.3108573Z #6 sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 4.19MB / 115.67MB 1.3s
+2025-08-19T13:09:13.4392509Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 35.65MB / 90.98MB 1.4s
+2025-08-19T13:09:13.4394128Z #6 sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 19.37MB / 115.67MB 1.4s
+2025-08-19T13:09:13.5406123Z #6 sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 31.00MB / 115.67MB 1.5s
+2025-08-19T13:09:13.7092997Z #6 extracting sha256:45ddd00e34dd292e9160aa703aff0bff2950fc06cb5272dea967325de2e941ae 0.3s done
+2025-08-19T13:09:13.7094550Z #6 sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 66.06MB / 115.67MB 1.7s
+2025-08-19T13:09:13.7096169Z #6 extracting sha256:7bd0a72d0e6ae9a7bcf5f3131817f93f19914ccf94d1c052ee9903a452f72b47
+2025-08-19T13:09:13.8092863Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 42.99MB / 90.98MB 1.8s
+2025-08-19T13:09:13.8095612Z #6 sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 77.59MB / 115.67MB 1.8s
+2025-08-19T13:09:13.9366597Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 54.53MB / 90.98MB 1.9s
+2025-08-19T13:09:13.9369099Z #6 sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 86.67MB / 115.67MB 1.9s
+2025-08-19T13:09:14.0396471Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 61.87MB / 90.98MB 2.0s
+2025-08-19T13:09:14.0399404Z #6 sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 100.66MB / 115.67MB 2.0s
+2025-08-19T13:09:14.1459283Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 67.11MB / 90.98MB 2.1s
+2025-08-19T13:09:14.1461935Z #6 sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 111.15MB / 115.67MB 2.1s
+2025-08-19T13:09:14.2520517Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 83.89MB / 90.98MB 2.2s
+2025-08-19T13:09:14.3604409Z #6 sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 90.98MB / 90.98MB 2.3s done
+2025-08-19T13:09:14.3605647Z #6 sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 115.67MB / 115.67MB 2.2s done
+2025-08-19T13:09:17.9610779Z #6 extracting sha256:7bd0a72d0e6ae9a7bcf5f3131817f93f19914ccf94d1c052ee9903a452f72b47 4.3s done
+2025-08-19T13:09:18.6561654Z #6 extracting sha256:43c57f8bbf131e1db9ee428171fdea2d8a55c342f9d1e229fc2c21c92fc50ebd
+2025-08-19T13:09:18.8786674Z #6 extracting sha256:43c57f8bbf131e1db9ee428171fdea2d8a55c342f9d1e229fc2c21c92fc50ebd 0.1s done
+2025-08-19T13:09:18.8787803Z #6 extracting sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a
+2025-08-19T13:09:21.3155651Z #6 extracting sha256:6a01d4b2139c6ae8b6b93432a8b0297e818c2f8516dc418e9fc0dd35f101af0a 2.3s done
+2025-08-19T13:09:21.4412191Z #6 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1
+2025-08-19T13:09:21.5710072Z #6 extracting sha256:4f4fb700ef54461cfa02571ae0db9a0dc1e0cdb5577484a6d75e68dc38e8acc1 done
+2025-08-19T13:09:21.5711121Z #6 extracting sha256:5760c89e07714b82733d6a984449296731b17907fece9a3030b50d70252ca109 done
+2025-08-19T13:09:21.5712283Z #6 extracting sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 0.1s
+2025-08-19T13:09:22.7250678Z #6 extracting sha256:37f6d4265e844579cb629fcbd090415d48327f28732fd49fa221ec03ab5b7b12 1.1s done
+2025-08-19T13:09:22.9220862Z #6 DONE 10.9s
+2025-08-19T13:09:23.0710452Z 
+2025-08-19T13:09:23.0712368Z #7 [2/3] COPY entrypoint.sh /entrypoint.sh
+2025-08-19T13:09:23.0713075Z #7 DONE 0.0s
+2025-08-19T13:09:23.0713384Z 
+2025-08-19T13:09:23.0713554Z #8 [3/3] RUN chmod +x /entrypoint.sh
+2025-08-19T13:09:23.0713923Z #8 DONE 0.1s
+2025-08-19T13:09:23.2232381Z 
+2025-08-19T13:09:23.2233265Z #9 exporting to image
+2025-08-19T13:09:23.2233837Z #9 exporting layers
+2025-08-19T13:09:24.1234627Z #9 exporting layers 1.1s done
+2025-08-19T13:09:24.1453760Z #9 writing image sha256:32873ccc2b32e7673c8767f28de105001e3be21363956252f929b6dba1fea96c done
+2025-08-19T13:09:24.1454908Z #9 naming to docker.io/library/e26799:c1b48488c0be4ac5a95be0d62176ba71 done
+2025-08-19T13:09:24.1456050Z #9 DONE 1.1s
+2025-08-19T13:09:24.1505947Z ##[endgroup]
+2025-08-19T13:09:24.1705979Z ##[group]Run step-security/harden-runner@v2
+2025-08-19T13:09:24.1706576Z with:
+2025-08-19T13:09:24.1706760Z   egress-policy: audit
+2025-08-19T13:09:24.1707281Z   allowed-endpoints: api.github.com:443 github.com:443 golang.org:443 proxy.golang.org:443 sum.golang.org:443 objects.githubusercontent.com:443
+
+2025-08-19T13:09:24.1707975Z   token: ***
+2025-08-19T13:09:24.1708156Z   disable-telemetry: false
+2025-08-19T13:09:24.1708366Z   disable-sudo: false
+2025-08-19T13:09:24.1708572Z   disable-sudo-and-containers: false
+2025-08-19T13:09:24.1708822Z   disable-file-monitoring: false
+2025-08-19T13:09:24.1709241Z env:
+2025-08-19T13:09:24.1709400Z   GO_VERSION: 1.24
+2025-08-19T13:09:24.1709578Z   REGISTRY: ghcr.io
+2025-08-19T13:09:24.1709769Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:24.1710010Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:24.1710212Z ##[endgroup]
+2025-08-19T13:09:24.3428987Z [harden-runner] pre-step
+2025-08-19T13:09:24.3433129Z [!] Current Configuration: 
+2025-08-19T13:09:24.3437326Z {"repo":"thc1006/nephoran-intent-operator","run_id":"17070554235","correlation_id":"04213a56-b2da-4644-ba0d-855cd552f480","working_directory":"/home/runner/work/nephoran-intent-operator/nephoran-intent-operator","api_url":"https://agent.api.stepsecurity.io/v1","allowed_endpoints":"api.github.com:443 github.com:443 golang.org:443 proxy.golang.org:443 sum.golang.org:443 objects.githubusercontent.com:443","egress_policy":"audit","disable_telemetry":false,"disable_sudo":false,"disable_sudo_and_containers":false,"disable_file_monitoring":false,"private":false,"is_github_hosted":true,"is_debug":false,"one_time_key":""}
+2025-08-19T13:09:24.3439913Z 
+2025-08-19T13:09:24.3440342Z [32mView security insights and recommended policy at:[0m
+2025-08-19T13:09:24.3441063Z https://app.stepsecurity.io/github/thc1006/nephoran-intent-operator/actions/runs/17070554235
+2025-08-19T13:09:24.3441559Z RUNNER_NAME: GitHub Actions 1000010564
+2025-08-19T13:09:25.0497743Z Runner IP Address: 64.236.133.198
+2025-08-19T13:09:25.0498495Z Step Security Job Correlation ID: 04213a56-b2da-4644-ba0d-855cd552f480
+2025-08-19T13:09:25.0702752Z [!] Checking TLS_STATUS: thc1006
+2025-08-19T13:09:25.2717548Z [!] TLS_NOT_ENABLED: thc1006
+2025-08-19T13:09:25.4653009Z [command]/usr/bin/tar xz --warning=no-unknown-keyword --overwrite -C /home/runner/work/_temp/b50b7de4-4467-4701-8a5d-637680ecb5b7 -f /home/runner/work/_temp/9348c739-5e7e-453c-af19-fbc4ceb09fbd
+2025-08-19T13:09:28.4549023Z Initialized
+2025-08-19T13:09:28.4709635Z ##[group]Run step-security/harden-runner@v2
+2025-08-19T13:09:28.4710034Z with:
+2025-08-19T13:09:28.4710322Z   egress-policy: audit
+2025-08-19T13:09:28.4733127Z   allowed-endpoints: api.github.com:443 github.com:443 golang.org:443 proxy.golang.org:443 sum.golang.org:443 objects.githubusercontent.com:443
+
+2025-08-19T13:09:28.4733879Z   token: ***
+2025-08-19T13:09:28.4734062Z   disable-telemetry: false
+2025-08-19T13:09:28.4734280Z   disable-sudo: false
+2025-08-19T13:09:28.4734531Z   disable-sudo-and-containers: false
+2025-08-19T13:09:28.4734807Z   disable-file-monitoring: false
+2025-08-19T13:09:28.4735010Z env:
+2025-08-19T13:09:28.4735151Z   GO_VERSION: 1.24
+2025-08-19T13:09:28.4735311Z   REGISTRY: ghcr.io
+2025-08-19T13:09:28.4735496Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:28.4735726Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:28.4735933Z   STATE_disableSudo: false
+2025-08-19T13:09:28.4736140Z   STATE_disableSudoAndContainers: false
+2025-08-19T13:09:28.4736417Z   STATE_monitorStatusCode: 200
+2025-08-19T13:09:28.4736645Z   STATE_addSummary: false
+2025-08-19T13:09:28.4736899Z   STATE_correlation_id: 04213a56-b2da-4644-ba0d-855cd552f480
+2025-08-19T13:09:28.4737173Z   STATE_isTLS: false
+2025-08-19T13:09:28.4737342Z ##[endgroup]
+2025-08-19T13:09:28.5462908Z [harden-runner] main-step
+2025-08-19T13:09:28.5470166Z [32mView security insights and recommended policy at:[0m
+2025-08-19T13:09:28.5471153Z https://app.stepsecurity.io/github/thc1006/nephoran-intent-operator/actions/runs/17070554235
+2025-08-19T13:09:28.5598515Z ##[group]Run actions/checkout@v4
+2025-08-19T13:09:28.5598769Z with:
+2025-08-19T13:09:28.5598937Z   fetch-depth: 0
+2025-08-19T13:09:28.5599149Z   repository: thc1006/nephoran-intent-operator
+2025-08-19T13:09:28.5599514Z   token: ***
+2025-08-19T13:09:28.5599680Z   ssh-strict: true
+2025-08-19T13:09:28.5599856Z   ssh-user: git
+2025-08-19T13:09:28.5600035Z   persist-credentials: true
+2025-08-19T13:09:28.5600238Z   clean: true
+2025-08-19T13:09:28.5600417Z   sparse-checkout-cone-mode: true
+2025-08-19T13:09:28.5600643Z   fetch-tags: false
+2025-08-19T13:09:28.5600820Z   show-progress: true
+2025-08-19T13:09:28.5600995Z   lfs: false
+2025-08-19T13:09:28.5601155Z   submodules: false
+2025-08-19T13:09:28.5601331Z   set-safe-directory: true
+2025-08-19T13:09:28.5601524Z env:
+2025-08-19T13:09:28.5601674Z   GO_VERSION: 1.24
+2025-08-19T13:09:28.5602098Z   REGISTRY: ghcr.io
+2025-08-19T13:09:28.5602303Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:28.5602563Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:28.5602795Z ##[endgroup]
+2025-08-19T13:09:28.6615884Z Syncing repository: thc1006/nephoran-intent-operator
+2025-08-19T13:09:28.6617611Z ##[group]Getting Git version info
+2025-08-19T13:09:28.6618119Z Working directory is '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-19T13:09:28.6618881Z [command]/usr/bin/git version
+2025-08-19T13:09:28.6628019Z git version 2.50.1
+2025-08-19T13:09:28.6658514Z ##[endgroup]
+2025-08-19T13:09:28.6679707Z Temporarily overriding HOME='/home/runner/work/_temp/db023b84-871e-4db8-950a-c51c75564a7b' before making global git config changes
+2025-08-19T13:09:28.6680549Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-19T13:09:28.6685167Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T13:09:28.6723232Z Deleting the contents of '/home/runner/work/nephoran-intent-operator/nephoran-intent-operator'
+2025-08-19T13:09:28.6726856Z ##[group]Initializing the repository
+2025-08-19T13:09:28.6731210Z [command]/usr/bin/git init /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T13:09:28.6806470Z hint: Using 'master' as the name for the initial branch. This default branch name
+2025-08-19T13:09:28.6807513Z hint: is subject to change. To configure the initial branch name to use in all
+2025-08-19T13:09:28.6808680Z hint: of your new repositories, which will suppress this warning, call:
+2025-08-19T13:09:28.6809255Z hint:
+2025-08-19T13:09:28.6809641Z hint: 	git config --global init.defaultBranch <name>
+2025-08-19T13:09:28.6810097Z hint:
+2025-08-19T13:09:28.6810538Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2025-08-19T13:09:28.6811331Z hint: 'development'. The just-created branch can be renamed via this command:
+2025-08-19T13:09:28.6812149Z hint:
+2025-08-19T13:09:28.6812443Z hint: 	git branch -m <name>
+2025-08-19T13:09:28.6812833Z hint:
+2025-08-19T13:09:28.6813293Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2025-08-19T13:09:28.6813986Z Initialized empty Git repository in /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/
+2025-08-19T13:09:28.6822265Z [command]/usr/bin/git remote add origin https://github.com/thc1006/nephoran-intent-operator
+2025-08-19T13:09:28.6907230Z ##[endgroup]
+2025-08-19T13:09:28.6907639Z ##[group]Disabling automatic garbage collection
+2025-08-19T13:09:28.6911702Z [command]/usr/bin/git config --local gc.auto 0
+2025-08-19T13:09:28.6945769Z ##[endgroup]
+2025-08-19T13:09:28.6946137Z ##[group]Setting up auth
+2025-08-19T13:09:28.6952943Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-19T13:09:28.6988595Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-19T13:09:28.7291239Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-19T13:09:28.7325849Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-19T13:09:28.7586594Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2025-08-19T13:09:28.7630040Z ##[endgroup]
+2025-08-19T13:09:28.7630619Z ##[group]Fetching the repository
+2025-08-19T13:09:28.7642672Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+2025-08-19T13:09:36.6138807Z From https://github.com/thc1006/nephoran-intent-operator
+2025-08-19T13:09:36.6139713Z  * [new branch]        chore/claude-commands-and-hooks -> origin/chore/claude-commands-and-hooks
+2025-08-19T13:09:36.6142743Z  * [new branch]        chore/conductor-governance -> origin/chore/conductor-governance
+2025-08-19T13:09:36.6145242Z  * [new branch]        chore/conductor-setup  -> origin/chore/conductor-setup
+2025-08-19T13:09:36.6148312Z  * [new branch]        chore/repo-hygiene     -> origin/chore/repo-hygiene
+2025-08-19T13:09:36.6155751Z  * [new branch]        dependabot/github_actions/actions/configure-pages-5 -> origin/dependabot/github_actions/actions/configure-pages-5
+2025-08-19T13:09:36.6160655Z  * [new branch]        dependabot/github_actions/codecov/codecov-action-5 -> origin/dependabot/github_actions/codecov/codecov-action-5
+2025-08-19T13:09:36.6166940Z  * [new branch]        dependabot/github_actions/golangci/golangci-lint-action-8 -> origin/dependabot/github_actions/golangci/golangci-lint-action-8
+2025-08-19T13:09:36.6172459Z  * [new branch]        dependabot/github_actions/hashicorp/setup-terraform-3 -> origin/dependabot/github_actions/hashicorp/setup-terraform-3
+2025-08-19T13:09:36.6177046Z  * [new branch]        dependabot/github_actions/helm/kind-action-1.12.0 -> origin/dependabot/github_actions/helm/kind-action-1.12.0
+2025-08-19T13:09:36.6184197Z  * [new branch]        dependabot/go_modules/cloud.google.com/go/compute-1.43.0 -> origin/dependabot/go_modules/cloud.google.com/go/compute-1.43.0
+2025-08-19T13:09:36.6188458Z  * [new branch]        dependabot/go_modules/cloud.google.com/go/container-1.44.0 -> origin/dependabot/go_modules/cloud.google.com/go/container-1.44.0
+2025-08-19T13:09:36.6196616Z  * [new branch]        dependabot/go_modules/github.com/Azure/azure-sdk-for-go/sdk/azcore-1.18.2 -> origin/dependabot/go_modules/github.com/Azure/azure-sdk-for-go/sdk/azcore-1.18.2
+2025-08-19T13:09:36.6201458Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2-1.38.0 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2-1.38.0
+2025-08-19T13:09:36.6207709Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2/credentials-1.18.4 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2/credentials-1.18.4
+2025-08-19T13:09:36.6213151Z  * [new branch]        dependabot/go_modules/github.com/aws/aws-sdk-go-v2/service/sts-1.37.0 -> origin/dependabot/go_modules/github.com/aws/aws-sdk-go-v2/service/sts-1.37.0
+2025-08-19T13:09:36.6220250Z  * [new branch]        dependabot/go_modules/go.opentelemetry.io/otel/exporters/prometheus-0.59.1 -> origin/dependabot/go_modules/go.opentelemetry.io/otel/exporters/prometheus-0.59.1
+2025-08-19T13:09:36.6226215Z  * [new branch]        dependabot/go_modules/golang.org/x/net-0.43.0 -> origin/dependabot/go_modules/golang.org/x/net-0.43.0
+2025-08-19T13:09:36.6232850Z  * [new branch]        dependabot/go_modules/helm.sh/helm/v3-3.18.5 -> origin/dependabot/go_modules/helm.sh/helm/v3-3.18.5
+2025-08-19T13:09:36.6238185Z  * [new branch]        dependabot/go_modules/k8s.io/client-go-0.33.4 -> origin/dependabot/go_modules/k8s.io/client-go-0.33.4
+2025-08-19T13:09:36.6242728Z  * [new branch]        feat/a1-policy-sim     -> origin/feat/a1-policy-sim
+2025-08-19T13:09:36.6247668Z  * [new branch]        feat/admission-webhook -> origin/feat/admission-webhook
+2025-08-19T13:09:36.6250754Z  * [new branch]        feat/ci-guard          -> origin/feat/ci-guard
+2025-08-19T13:09:36.6255175Z  * [new branch]        feat/conductor-file-watcher -> origin/feat/conductor-file-watcher
+2025-08-19T13:09:36.6258890Z  * [new branch]        feat/conductor-loop    -> origin/feat/conductor-loop
+2025-08-19T13:09:36.6263491Z  * [new branch]        feat/e2-kpm-sim        -> origin/feat/e2-kpm-sim
+2025-08-19T13:09:36.6267579Z  * [new branch]        feat/e2e               -> origin/feat/e2e
+2025-08-19T13:09:36.6271341Z  * [new branch]        feat/examples-mvp      -> origin/feat/examples-mvp
+2025-08-19T13:09:36.6276741Z  * [new branch]        feat/ingest-llm        -> origin/feat/ingest-llm
+2025-08-19T13:09:36.6283943Z  * [new branch]        feat/ingest-tests-and-errors -> origin/feat/ingest-tests-and-errors
+2025-08-19T13:09:36.6284827Z  * [new branch]        feat/o1-ves-sim        -> origin/feat/o1-ves-sim
+2025-08-19T13:09:36.6291090Z  * [new branch]        feat/planner           -> origin/feat/planner
+2025-08-19T13:09:36.6300241Z  * [new branch]        feat/porch-direct      -> origin/feat/porch-direct
+2025-08-19T13:09:36.6301124Z  * [new branch]        feat/porch-publisher   -> origin/feat/porch-publisher
+2025-08-19T13:09:36.6312891Z  * [new branch]        feat/porch-structured-patch -> origin/feat/porch-structured-patch
+2025-08-19T13:09:36.6317504Z  * [new branch]        feat/sim-fcaps-to-intent -> origin/feat/sim-fcaps-to-intent
+2025-08-19T13:09:36.6318324Z  * [new branch]        feat/test-harness      -> origin/feat/test-harness
+2025-08-19T13:09:36.6324305Z  * [new branch]        integrate/mvp          -> origin/integrate/mvp
+2025-08-19T13:09:36.6328249Z  * [new branch]        main                   -> origin/main
+2025-08-19T13:09:36.6330934Z  * [new tag]           backup/pre-cleanup-20250813234213 -> backup/pre-cleanup-20250813234213
+2025-08-19T13:09:36.6331719Z  * [new tag]           v0.1.0-mvp             -> v0.1.0-mvp
+2025-08-19T13:09:36.6384038Z [command]/usr/bin/git branch --list --remote origin/feat/conductor-loop
+2025-08-19T13:09:36.6419614Z   origin/feat/conductor-loop
+2025-08-19T13:09:36.6429597Z [command]/usr/bin/git rev-parse refs/remotes/origin/feat/conductor-loop
+2025-08-19T13:09:36.6453610Z 466806fe950338ae4ffff485b592c7e933197d57
+2025-08-19T13:09:36.6460180Z ##[endgroup]
+2025-08-19T13:09:36.6460762Z ##[group]Determining the checkout info
+2025-08-19T13:09:36.6463001Z ##[endgroup]
+2025-08-19T13:09:36.6466514Z [command]/usr/bin/git sparse-checkout disable
+2025-08-19T13:09:36.6516910Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2025-08-19T13:09:36.6551298Z ##[group]Checking out the ref
+2025-08-19T13:09:36.6556377Z [command]/usr/bin/git checkout --progress --force -B feat/conductor-loop refs/remotes/origin/feat/conductor-loop
+2025-08-19T13:09:37.1249652Z Switched to a new branch 'feat/conductor-loop'
+2025-08-19T13:09:37.1253587Z branch 'feat/conductor-loop' set up to track 'origin/feat/conductor-loop'.
+2025-08-19T13:09:37.1289876Z ##[endgroup]
+2025-08-19T13:09:37.1335708Z [command]/usr/bin/git log -1 --format=%H
+2025-08-19T13:09:37.1362259Z 466806fe950338ae4ffff485b592c7e933197d57
+2025-08-19T13:09:37.1503202Z ##[group]Run actions/setup-go@v5
+2025-08-19T13:09:37.1503452Z with:
+2025-08-19T13:09:37.1503621Z   go-version: 1.24
+2025-08-19T13:09:37.1503803Z   cache: true
+2025-08-19T13:09:37.1503973Z   check-latest: false
+2025-08-19T13:09:37.1504269Z   token: ***
+2025-08-19T13:09:37.1504437Z env:
+2025-08-19T13:09:37.1504595Z   GO_VERSION: 1.24
+2025-08-19T13:09:37.1504767Z   REGISTRY: ghcr.io
+2025-08-19T13:09:37.1504968Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:37.1505211Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:37.1505418Z ##[endgroup]
+2025-08-19T13:09:37.3119435Z Setup go version spec 1.24
+2025-08-19T13:09:37.3232578Z Found in cache @ /opt/hostedtoolcache/go/1.24.6/x64
+2025-08-19T13:09:37.3238073Z Added go to the path
+2025-08-19T13:09:37.3242574Z Successfully set up Go version 1.24
+2025-08-19T13:09:37.3822481Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOMODCACHE
+2025-08-19T13:09:37.3855532Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOCACHE
+2025-08-19T13:09:37.3879077Z /home/runner/go/pkg/mod
+2025-08-19T13:09:37.3909191Z /home/runner/.cache/go-build
+2025-08-19T13:09:37.5370686Z Cache hit for: setup-go-Linux-x64-ubuntu24-go-1.24.6-583fed57d4cf4dd6f943285f723932abe219c2045356bcefc416fcf717aeff8b
+2025-08-19T13:09:38.7226182Z Received 134217728 of 528556000 (25.4%), 123.7 MBs/sec
+2025-08-19T13:09:39.7286581Z Received 264241152 of 528556000 (50.0%), 123.8 MBs/sec
+2025-08-19T13:09:40.7239937Z Received 398458880 of 528556000 (75.4%), 125.2 MBs/sec
+2025-08-19T13:09:41.7429686Z Received 528556000 of 528556000 (100.0%), 124.3 MBs/sec
+2025-08-19T13:09:41.7431281Z Cache Size: ~504 MB (528556000 B)
+2025-08-19T13:09:41.7550187Z [command]/usr/bin/tar -xf /home/runner/work/_temp/a067d1db-26ff-44d1-9ffa-1e54de11ab22/cache.tzst -P -C /home/runner/work/nephoran-intent-operator/nephoran-intent-operator --use-compress-program unzstd
+2025-08-19T13:09:47.7320750Z Cache restored successfully
+2025-08-19T13:09:47.8297228Z Cache restored from key: setup-go-Linux-x64-ubuntu24-go-1.24.6-583fed57d4cf4dd6f943285f723932abe219c2045356bcefc416fcf717aeff8b
+2025-08-19T13:09:47.8321485Z go version go1.24.6 linux/amd64
+2025-08-19T13:09:47.8322003Z 
+2025-08-19T13:09:47.8322420Z ##[group]go env
+2025-08-19T13:09:47.8454941Z AR='ar'
+2025-08-19T13:09:47.8455304Z CC='gcc'
+2025-08-19T13:09:47.8455599Z CGO_CFLAGS='-O2 -g'
+2025-08-19T13:09:47.8455930Z CGO_CPPFLAGS=''
+2025-08-19T13:09:47.8456239Z CGO_CXXFLAGS='-O2 -g'
+2025-08-19T13:09:47.8456561Z CGO_ENABLED='1'
+2025-08-19T13:09:47.8456871Z CGO_FFLAGS='-O2 -g'
+2025-08-19T13:09:47.8457170Z CGO_LDFLAGS='-O2 -g'
+2025-08-19T13:09:47.8457482Z CXX='g++'
+2025-08-19T13:09:47.8457773Z GCCGO='gccgo'
+2025-08-19T13:09:47.8458190Z GO111MODULE=''
+2025-08-19T13:09:47.8458498Z GOAMD64='v1'
+2025-08-19T13:09:47.8458814Z GOARCH='amd64'
+2025-08-19T13:09:47.8459155Z GOAUTH='netrc'
+2025-08-19T13:09:47.8459431Z GOBIN=''
+2025-08-19T13:09:47.8459772Z GOCACHE='/home/runner/.cache/go-build'
+2025-08-19T13:09:47.8460188Z GOCACHEPROG=''
+2025-08-19T13:09:47.8460465Z GODEBUG=''
+2025-08-19T13:09:47.8460779Z GOENV='/home/runner/.config/go/env'
+2025-08-19T13:09:47.8461155Z GOEXE=''
+2025-08-19T13:09:47.8461421Z GOEXPERIMENT=''
+2025-08-19T13:09:47.8461718Z GOFIPS140='off'
+2025-08-19T13:09:47.8462244Z GOFLAGS=''
+2025-08-19T13:09:47.8463207Z GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build2874828427=/tmp/go-build -gno-record-gcc-switches'
+2025-08-19T13:09:47.8464196Z GOHOSTARCH='amd64'
+2025-08-19T13:09:47.8464499Z GOHOSTOS='linux'
+2025-08-19T13:09:47.8464788Z GOINSECURE=''
+2025-08-19T13:09:47.8465379Z GOMOD='/home/runner/work/nephoran-intent-operator/nephoran-intent-operator/go.mod'
+2025-08-19T13:09:47.8466084Z GOMODCACHE='/home/runner/go/pkg/mod'
+2025-08-19T13:09:47.8466459Z GONOPROXY=''
+2025-08-19T13:09:47.8466753Z GONOSUMDB=''
+2025-08-19T13:09:47.8467028Z GOOS='linux'
+2025-08-19T13:09:47.8467319Z GOPATH='/home/runner/go'
+2025-08-19T13:09:47.8467639Z GOPRIVATE=''
+2025-08-19T13:09:47.8468035Z GOPROXY='https://proxy.golang.org,direct'
+2025-08-19T13:09:47.8468870Z GOROOT='/opt/hostedtoolcache/go/1.24.6/x64'
+2025-08-19T13:09:47.8469339Z GOSUMDB='sum.golang.org'
+2025-08-19T13:09:47.8469703Z GOTELEMETRY='local'
+2025-08-19T13:09:47.8470107Z GOTELEMETRYDIR='/home/runner/.config/go/telemetry'
+2025-08-19T13:09:47.8470556Z GOTMPDIR=''
+2025-08-19T13:09:47.8470835Z GOTOOLCHAIN='auto'
+2025-08-19T13:09:47.8471283Z GOTOOLDIR='/opt/hostedtoolcache/go/1.24.6/x64/pkg/tool/linux_amd64'
+2025-08-19T13:09:47.8471936Z GOVCS=''
+2025-08-19T13:09:47.8472225Z GOVERSION='go1.24.6'
+2025-08-19T13:09:47.8472531Z GOWORK=''
+2025-08-19T13:09:47.8472822Z PKG_CONFIG='pkg-config'
+2025-08-19T13:09:47.8473034Z 
+2025-08-19T13:09:47.8473467Z ##[endgroup]
+2025-08-19T13:09:47.8611065Z ##[group]Run go mod download
+2025-08-19T13:09:47.8611590Z [36;1mgo mod download[0m
+2025-08-19T13:09:47.8612076Z [36;1mgo mod verify[0m
+2025-08-19T13:09:47.8656608Z shell: /usr/bin/bash -e {0}
+2025-08-19T13:09:47.8656840Z env:
+2025-08-19T13:09:47.8657016Z   GO_VERSION: 1.24
+2025-08-19T13:09:47.8657203Z   REGISTRY: ghcr.io
+2025-08-19T13:09:47.8657408Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:47.8657668Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:47.8657883Z ##[endgroup]
+2025-08-19T13:09:52.5724975Z all modules verified
+2025-08-19T13:09:52.5773195Z ##[group]Run go install github.com/securego/gosec/v2/cmd/gosec@v2.18.2
+2025-08-19T13:09:52.5773697Z [36;1mgo install github.com/securego/gosec/v2/cmd/gosec@v2.18.2[0m
+2025-08-19T13:09:52.5774523Z [36;1mgosec -no-fail -exclude G104,G204 -severity medium -confidence medium -fmt sarif -out gosec-report.sarif ./cmd/conductor-loop ./internal/loop || echo "Gosec completed with warnings/errors"[0m
+2025-08-19T13:09:52.5775313Z [36;1m# Ensure SARIF file exists even if no issues found[0m
+2025-08-19T13:09:52.5775649Z [36;1mif [ ! -f gosec-report.sarif ]; then[0m
+2025-08-19T13:09:52.5776293Z [36;1m  echo '{"version":"2.1.0","$schema":"https://json.schemastore.org/sarif-2.1.0.json","runs":[{"tool":{"driver":{"name":"gosec","version":"2.18.2"}},"results":[]}]}' > gosec-report.sarif[0m
+2025-08-19T13:09:52.5776875Z [36;1mfi[0m
+2025-08-19T13:09:52.5816487Z shell: /usr/bin/bash -e {0}
+2025-08-19T13:09:52.5816707Z env:
+2025-08-19T13:09:52.5816871Z   GO_VERSION: 1.24
+2025-08-19T13:09:52.5817084Z   REGISTRY: ghcr.io
+2025-08-19T13:09:52.5817288Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:09:52.5817550Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:09:52.5817762Z ##[endgroup]
+2025-08-19T13:09:52.6372497Z go: downloading github.com/securego/gosec/v2 v2.18.2
+2025-08-19T13:09:52.9917559Z go: downloading github.com/ccojocar/zxcvbn-go v1.0.1
+2025-08-19T13:09:53.0360802Z go: downloading golang.org/x/tools v0.14.0
+2025-08-19T13:09:53.3275695Z go: downloading github.com/google/uuid v1.3.1
+2025-08-19T13:09:53.3565374Z go: downloading github.com/gookit/color v1.5.4
+2025-08-19T13:09:53.5049522Z go: downloading github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778
+2025-08-19T13:09:53.5338785Z go: downloading golang.org/x/sys v0.13.0
+2025-08-19T13:09:53.5473347Z go: downloading golang.org/x/mod v0.13.0
+2025-08-19T13:10:07.3443362Z [gosec] 2025/08/19 13:10:07 Including rules: default
+2025-08-19T13:10:07.3444019Z [gosec] 2025/08/19 13:10:07 Excluding rules: G104,G204
+2025-08-19T13:10:07.3448543Z [gosec] 2025/08/19 13:10:07 Import directory: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/internal/loop
+2025-08-19T13:10:07.3450058Z [gosec] 2025/08/19 13:10:07 Import directory: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/cmd/conductor-loop
+2025-08-19T13:10:17.7298584Z 2025/08/19 13:10:17 internal error: package "flag" without types was imported from "command-line-arguments"
+2025-08-19T13:10:17.7307460Z Gosec completed with warnings/errors
+2025-08-19T13:10:17.7932573Z ##[group]Run github/codeql-action/upload-sarif@v3
+2025-08-19T13:10:17.7932922Z with:
+2025-08-19T13:10:17.7933119Z   sarif_file: gosec-report.sarif
+2025-08-19T13:10:17.7933354Z   category: gosec
+2025-08-19T13:10:17.7933711Z   checkout_path: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T13:10:17.7934243Z   token: ***
+2025-08-19T13:10:17.7934450Z   matrix: {
+  "scan-type": "gosec"
+}
+2025-08-19T13:10:17.7934710Z   wait-for-processing: true
+2025-08-19T13:10:17.7934916Z env:
+2025-08-19T13:10:17.7935078Z   GO_VERSION: 1.24
+2025-08-19T13:10:17.7935260Z   REGISTRY: ghcr.io
+2025-08-19T13:10:17.7935458Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:10:17.7935709Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:10:17.7935923Z ##[endgroup]
+2025-08-19T13:10:18.6020216Z ##[group]Uploading code scanning results
+2025-08-19T13:10:18.6020775Z Processing sarif files: ["gosec-report.sarif"]
+2025-08-19T13:10:18.6022969Z Validating gosec-report.sarif
+2025-08-19T13:10:18.6213193Z Adding fingerprints to SARIF file. See https://docs.github.com/en/enterprise-cloud@latest/code-security/code-scanning/integrating-with-code-scanning/sarif-support-for-code-scanning#providing-data-to-track-code-scanning-alerts-across-runs for more information.
+2025-08-19T13:10:18.6302178Z Uploading results
+2025-08-19T13:10:19.1070789Z Successfully uploaded results
+2025-08-19T13:10:19.1072135Z ##[endgroup]
+2025-08-19T13:10:19.1077631Z ##[group]Waiting for processing to finish
+2025-08-19T13:10:19.2668030Z Analysis upload status is pending.
+2025-08-19T13:10:24.4688520Z Analysis upload status is complete.
+2025-08-19T13:10:24.4689388Z ##[endgroup]
+2025-08-19T13:10:24.6565303Z ##[group]Run actions/upload-artifact@v4
+2025-08-19T13:10:24.6565582Z with:
+2025-08-19T13:10:24.6565762Z   name: security-reports-gosec
+2025-08-19T13:10:24.6565999Z   path: *.json
+*.sarif
+*.xml
+
+2025-08-19T13:10:24.6566221Z   retention-days: 30
+2025-08-19T13:10:24.6566415Z   if-no-files-found: warn
+2025-08-19T13:10:24.6566627Z   compression-level: 6
+2025-08-19T13:10:24.6566834Z   overwrite: false
+2025-08-19T13:10:24.6567025Z   include-hidden-files: false
+2025-08-19T13:10:24.6567226Z env:
+2025-08-19T13:10:24.6567382Z   GO_VERSION: 1.24
+2025-08-19T13:10:24.6567552Z   REGISTRY: ghcr.io
+2025-08-19T13:10:24.6567750Z   IMAGE_NAME: nephoran/conductor-loop
+2025-08-19T13:10:24.6568004Z   SECURITY_SCAN_LEVEL: standard
+2025-08-19T13:10:24.6568252Z   CODEQL_ACTION_FEATURE_MULTI_LANGUAGE: false
+2025-08-19T13:10:24.6568516Z   CODEQL_ACTION_FEATURE_SANDWICH: false
+2025-08-19T13:10:24.6568772Z   CODEQL_ACTION_FEATURE_SARIF_COMBINE: true
+2025-08-19T13:10:24.6569069Z   CODEQL_ACTION_FEATURE_WILL_UPLOAD: true
+2025-08-19T13:10:24.6569314Z   CODEQL_ACTION_VERSION: 3.29.10
+2025-08-19T13:10:24.6569680Z   CODEQL_ACTION_ANALYSIS_KEY: .github/workflows/conductor-loop-cicd.yml:security-scan
+2025-08-19T13:10:24.6570100Z   CODEQL_WORKFLOW_STARTED_AT: 2025-08-19T13:10:18.076Z
+2025-08-19T13:10:24.6570451Z   CODEQL_UPLOAD_SARIF_GOSEC__GOSEC: CODEQL_UPLOAD_SARIF_GOSEC__GOSEC
+2025-08-19T13:10:24.6570771Z ##[endgroup]
+2025-08-19T13:10:24.8852934Z With the provided path, there will be 5 files uploaded
+2025-08-19T13:10:24.8860624Z Artifact name is valid!
+2025-08-19T13:10:24.8862496Z Root directory input is valid!
+2025-08-19T13:10:25.0185913Z Beginning upload of artifact content to blob storage
+2025-08-19T13:10:25.2355345Z Uploaded bytes 1468
+2025-08-19T13:10:25.2901272Z Finished uploading artifact content to blob storage!
+2025-08-19T13:10:25.2904519Z SHA256 digest of uploaded artifact zip is 02a9ff6bd506eda28a66e6cf7860bfef6b09bc1e2902f838764876379fb83f68
+2025-08-19T13:10:25.2906566Z Finalizing artifact upload
+2025-08-19T13:10:25.4242178Z Artifact security-reports-gosec.zip successfully finalized. Artifact ID 3798657895
+2025-08-19T13:10:25.4243777Z Artifact security-reports-gosec has been successfully uploaded! Final size is 1468 bytes. Artifact ID is 3798657895
+2025-08-19T13:10:25.4250963Z Artifact download URL: https://github.com/thc1006/nephoran-intent-operator/actions/runs/17070554235/artifacts/3798657895
+2025-08-19T13:10:25.4395423Z Post job cleanup.
+2025-08-19T13:10:25.8216675Z ##[group]Uploading combined SARIF debug artifact
+2025-08-19T13:10:25.8219049Z ##[endgroup]
+2025-08-19T13:10:25.8353349Z Post job cleanup.
+2025-08-19T13:10:25.9920092Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOMODCACHE
+2025-08-19T13:10:25.9960767Z [command]/opt/hostedtoolcache/go/1.24.6/x64/bin/go env GOCACHE
+2025-08-19T13:10:25.9987580Z /home/runner/go/pkg/mod
+2025-08-19T13:10:26.0018364Z /home/runner/.cache/go-build
+2025-08-19T13:10:26.0024135Z Cache hit occurred on the primary key setup-go-Linux-x64-ubuntu24-go-1.24.6-583fed57d4cf4dd6f943285f723932abe219c2045356bcefc416fcf717aeff8b, not saving cache.
+2025-08-19T13:10:26.0126095Z Post job cleanup.
+2025-08-19T13:10:26.1128620Z [command]/usr/bin/git version
+2025-08-19T13:10:26.1169671Z git version 2.50.1
+2025-08-19T13:10:26.1213625Z Temporarily overriding HOME='/home/runner/work/_temp/9509c6af-e668-4ea7-933f-3d8cdfd23a82' before making global git config changes
+2025-08-19T13:10:26.1214868Z Adding repository directory to the temporary git global config as a safe directory
+2025-08-19T13:10:26.1228375Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T13:10:26.1268910Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2025-08-19T13:10:26.1305035Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2025-08-19T13:10:26.1570407Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2025-08-19T13:10:26.1595101Z http.https://github.com/.extraheader
+2025-08-19T13:10:26.1608306Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2025-08-19T13:10:26.1643964Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2025-08-19T13:10:26.2018446Z Post job cleanup.
+2025-08-19T13:10:26.2750725Z [harden-runner] post-step
+2025-08-19T13:10:27.2775091Z log:
+2025-08-19T13:10:27.2776060Z Tue, 19 Aug 2025 13:09:26 GMT:[buildInfo] tag=v0.14.2 commit=a33c48b038c7b6ac98c789579037e76204e082d0 branch=HEAD 
+2025-08-19T13:10:27.2776587Z 
+2025-08-19T13:10:27.2776739Z Tue, 19 Aug 2025 13:09:26 GMT:read config 
+2025-08-19T13:10:27.2781033Z  &{Repo:thc1006/nephoran-intent-operator CorrelationId:04213a56-b2da-4644-ba0d-855cd552f480 RunId:17070554235 WorkingDirectory:/home/runner/work/nephoran-intent-operator/nephoran-intent-operator APIURL:https://agent.api.stepsecurity.io/v1 OneTimeKey: Endpoints:map[api.github.com.:[{domainName:api.github.com. port:443}] github.com.:[{domainName:github.com. port:443}] golang.org.:[{domainName:golang.org. port:443}] objects.githubusercontent.com.:[{domainName:objects.githubusercontent.com. port:443}] proxy.golang.org.:[{domainName:proxy.golang.org. port:443}] sum.golang.org.:[{domainName:sum.golang.org. port:443}]] EgressPolicy:audit DisableTelemetry:false DisableSudo:false DisableSudoAndContainers:false DisableFileMonitoring:false Private:false}
+2025-08-19T13:10:27.2784572Z 
+2025-08-19T13:10:27.2784843Z Tue, 19 Aug 2025 13:09:26 GMT:Step Security Job Correlation ID: 04213a56-b2da-4644-ba0d-855cd552f480
+2025-08-19T13:10:27.2785165Z 
+2025-08-19T13:10:27.2785399Z Tue, 19 Aug 2025 13:09:26 GMT:Global feature flags: {AgentType:agent-oss EnableArmour:true}
+2025-08-19T13:10:27.2785850Z Tue, 19 Aug 2025 13:09:26 GMT:initialized global feature flags
+2025-08-19T13:10:27.2786074Z 
+2025-08-19T13:10:27.2786205Z Tue, 19 Aug 2025 13:09:26 GMT:started process monitor
+2025-08-19T13:10:27.2786405Z 
+2025-08-19T13:10:27.2786532Z Tue, 19 Aug 2025 13:09:26 GMT:Monitor Processes called
+2025-08-19T13:10:27.2786856Z Tue, 19 Aug 2025 13:09:26 GMT:NewAuditClient created
+2025-08-19T13:10:27.2787157Z Tue, 19 Aug 2025 13:09:26 GMT:Status is enabled
+2025-08-19T13:10:27.2787448Z Tue, 19 Aug 2025 13:09:26 GMT:Rules deleted
+2025-08-19T13:10:27.2787961Z Tue, 19 Aug 2025 13:09:26 GMT:File monitor added for /home/runner/work/nephoran-intent-operator/nephoran-intent-operator
+2025-08-19T13:10:27.2788475Z Tue, 19 Aug 2025 13:09:26 GMT:Agent file monitor added
+2025-08-19T13:10:27.2788829Z Tue, 19 Aug 2025 13:09:26 GMT:Docker's daemon.json file monitor added
+2025-08-19T13:10:27.2789223Z Tue, 19 Aug 2025 13:09:26 GMT:Systemd's resolved.conf file monitor added
+2025-08-19T13:10:27.2789561Z Tue, 19 Aug 2025 13:09:26 GMT:Net monitor added
+2025-08-19T13:10:27.2789864Z Tue, 19 Aug 2025 13:09:26 GMT:Process monitor added
+2025-08-19T13:10:27.2790158Z Tue, 19 Aug 2025 13:09:26 GMT:receive called
+2025-08-19T13:10:27.2790335Z 
+2025-08-19T13:10:27.2790339Z 
+2025-08-19T13:10:27.2790450Z Tue, 19 Aug 2025 13:09:27 GMT:updated resolved
+2025-08-19T13:10:27.2790632Z 
+2025-08-19T13:10:27.2790739Z Tue, 19 Aug 2025 13:09:27 GMT:set docker config
+2025-08-19T13:10:27.2791297Z 
+2025-08-19T13:10:27.2791415Z Tue, 19 Aug 2025 13:09:27 GMT:before audit rules
+2025-08-19T13:10:27.2791711Z Tue, 19 Aug 2025 13:09:28 GMT:added audit rules
+2025-08-19T13:10:27.2792249Z Tue, 19 Aug 2025 13:09:28 GMT:Armour is enabled
+2025-08-19T13:10:27.2792531Z Tue, 19 Aug 2025 13:09:28 GMT:Armour attached
+2025-08-19T13:10:27.2792797Z Tue, 19 Aug 2025 13:09:28 GMT:done
+2025-08-19T13:10:27.2793878Z Tue, 19 Aug 2025 13:09:28 GMT:[Source code overwritten] file: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/config.lock syscall: openat by exe: /usr/bin/git [324c8e1c70df886c33f9de6baea3e69badf185588d7724d68da69d4be7933a74] Timestamp: 2025-08-19T13:09:28.688Z
+2025-08-19T13:10:27.2795704Z Tue, 19 Aug 2025 13:09:28 GMT:[Source code overwritten] file: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/config syscall: rename by exe: /usr/bin/git [324c8e1c70df886c33f9de6baea3e69badf185588d7724d68da69d4be7933a74] Timestamp: 2025-08-19T13:09:28.688Z
+2025-08-19T13:10:27.2797762Z Tue, 19 Aug 2025 13:09:28 GMT:[Source code overwritten] file: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/config.lock syscall: openat by exe: /usr/bin/git [324c8e1c70df886c33f9de6baea3e69badf185588d7724d68da69d4be7933a74] Timestamp: 2025-08-19T13:09:28.688Z
+2025-08-19T13:10:27.2799635Z Tue, 19 Aug 2025 13:09:28 GMT:domain resolved: github.com., ip address: 140.82.112.3, TTL: 60
+2025-08-19T13:10:27.2801455Z Tue, 19 Aug 2025 13:09:28 GMT:[Source code overwritten] file: /home/runner/work/nephoran-intent-operator/nephoran-intent-operator/.git/config syscall: openat by exe: /home/runner/actions-runner/cached/externals/node20/bin/node [2fef68bbc03f7bf68b3daa917d43ab198466080302b2a9d731cf43614a574d25] Timestamp: 2025-08-19T13:09:28.761Z
+2025-08-19T13:10:27.2803755Z Tue, 19 Aug 2025 13:09:29 GMT:endpoint called ip address:port 140.82.112.3:443, domain: github.com., pid: 2922, process: git-remote-http
+2025-08-19T13:10:27.2804702Z Tue, 19 Aug 2025 13:09:37 GMT:domain resolved: results-receiver.actions.githubusercontent.com., ip address: 140.82.113.21, TTL: 30
+2025-08-19T13:10:27.2805624Z Tue, 19 Aug 2025 13:09:37 GMT:domain resolved: productionresultssa4.blob.core.windows.net., ip address: 57.150.27.1, TTL: 60
+2025-08-19T13:10:27.2806770Z Tue, 19 Aug 2025 13:09:37 GMT:endpoint called ip address:port 140.82.113.21:443, domain: results-receiver.actions.githubusercontent.com., pid: 2940, process: node
+2025-08-19T13:10:27.2808015Z Tue, 19 Aug 2025 13:09:37 GMT:endpoint called ip address:port 57.150.27.1:443, domain: productionresultssa4.blob.core.windows.net., pid: 2940, process: node
+2025-08-19T13:10:27.2809040Z Tue, 19 Aug 2025 13:09:52 GMT:domain resolved: proxy.golang.org., ip address: 142.250.190.81, TTL: 170
+2025-08-19T13:10:27.2810009Z Tue, 19 Aug 2025 13:09:52 GMT:domain resolved: sum.golang.org., ip address: 142.250.190.17, TTL: 300
+2025-08-19T13:10:27.2811071Z Tue, 19 Aug 2025 13:09:52 GMT:endpoint called ip address:port 142.250.190.81:443, domain: proxy.golang.org., pid: 3015, process: go
+2025-08-19T13:10:27.2812018Z Tue, 19 Aug 2025 13:09:52 GMT:endpoint called ip address:port 142.250.190.17:443, domain: sum.golang.org., pid: 3015, process: go
+2025-08-19T13:10:27.2812641Z Tue, 19 Aug 2025 13:10:18 GMT:domain resolved: api.github.com., ip address: 140.82.114.6, TTL: 40
+2025-08-19T13:10:27.2813248Z Tue, 19 Aug 2025 13:10:18 GMT:endpoint called ip address:port 140.82.114.6:443, domain: api.github.com., pid: 5878, process: node
+2025-08-19T13:10:27.2813990Z Tue, 19 Aug 2025 13:10:24 GMT:domain resolved: results-receiver.actions.githubusercontent.com., ip address: 140.82.114.21, TTL: 41
+2025-08-19T13:10:27.2814766Z Tue, 19 Aug 2025 13:10:25 GMT:domain resolved: productionresultssa12.blob.core.windows.net., ip address: 20.209.227.33, TTL: 30
+2025-08-19T13:10:27.2815609Z Tue, 19 Aug 2025 13:10:25 GMT:endpoint called ip address:port 140.82.114.21:443, domain: results-receiver.actions.githubusercontent.com., pid: 5894, process: node
+2025-08-19T13:10:27.2816535Z Tue, 19 Aug 2025 13:10:25 GMT:endpoint called ip address:port 20.209.227.33:443, domain: productionresultssa12.blob.core.windows.net., pid: 5894, process: node
+2025-08-19T13:10:27.2817233Z 
+2025-08-19T13:10:27.2817359Z Tue, 19 Aug 2025 13:10:26 GMT:post_event called
+2025-08-19T13:10:27.2817548Z 
+2025-08-19T13:10:27.2817625Z status:
+2025-08-19T13:10:27.2817814Z Initialized
+2025-08-19T13:10:27.2940813Z agent.service log:
+2025-08-19T13:10:27.2942436Z Aug 19 13:09:26 pkrvmubgrv54qmi systemd[1]: /etc/systemd/system/agent.service:9: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+2025-08-19T13:10:27.2943961Z Aug 19 13:09:26 pkrvmubgrv54qmi systemd[1]: /etc/systemd/system/agent.service:10: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+2025-08-19T13:10:27.2944919Z Aug 19 13:09:26 pkrvmubgrv54qmi systemd[1]: Started agent.service - Agent.
+2025-08-19T13:10:27.2946023Z Aug 19 13:09:26 pkrvmubgrv54qmi sudo[2499]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl stop systemd-resolved
+2025-08-19T13:10:27.2946716Z Aug 19 13:09:26 pkrvmubgrv54qmi sudo[2499]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T13:10:27.2947321Z Aug 19 13:09:26 pkrvmubgrv54qmi sudo[2499]: pam_unix(sudo:session): session closed for user root
+2025-08-19T13:10:27.2947991Z Aug 19 13:09:26 pkrvmubgrv54qmi sudo[2505]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl restart systemd-resolved
+2025-08-19T13:10:27.2948639Z Aug 19 13:09:26 pkrvmubgrv54qmi sudo[2505]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T13:10:27.2949238Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2505]: pam_unix(sudo:session): session closed for user root
+2025-08-19T13:10:27.2949865Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2510]:     root : *** ; USER=root ; COMMAND=/usr/bin/resolvectl flush-caches
+2025-08-19T13:10:27.2950489Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2510]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T13:10:27.2951073Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2510]: pam_unix(sudo:session): session closed for user root
+2025-08-19T13:10:27.2951977Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2513]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl reload docker
+2025-08-19T13:10:27.2953067Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2513]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T13:10:27.2954121Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2513]: pam_unix(sudo:session): session closed for user root
+2025-08-19T13:10:27.2955458Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2524]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl daemon-reload
+2025-08-19T13:10:27.2956688Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2524]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T13:10:27.2958640Z Aug 19 13:09:27 pkrvmubgrv54qmi systemd[1]: /etc/systemd/system/agent.service:9: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+2025-08-19T13:10:27.2961368Z Aug 19 13:09:27 pkrvmubgrv54qmi systemd[1]: /etc/systemd/system/agent.service:10: Standard output type syslog is obsolete, automatically updating to journal. Please update your unit file, and consider removing the setting altogether.
+2025-08-19T13:10:27.2964179Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2524]: pam_unix(sudo:session): session closed for user root
+2025-08-19T13:10:27.2965424Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2591]:     root : *** ; USER=root ; COMMAND=/usr/bin/systemctl restart docker
+2025-08-19T13:10:27.2966099Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2591]: pam_unix(sudo:session): session opened for user root(uid=0) by (uid=0)
+2025-08-19T13:10:27.2966714Z Aug 19 13:09:27 pkrvmubgrv54qmi sudo[2591]: pam_unix(sudo:session): session closed for user root
+2025-08-19T13:10:27.2967298Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Config ENFORCE_READ_BLOCK=false
+2025-08-19T13:10:27.2968166Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Config ENFORCE_WRITE_BLOCK=false
+2025-08-19T13:10:27.2968768Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Config ENFORCE_KILL_BLOCK=false
+2025-08-19T13:10:27.2969346Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Config AGENT_PID=2482
+2025-08-19T13:10:27.2969914Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Map size protected_pids=1
+2025-08-19T13:10:27.2970503Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Map size protected_pid_inodes=1
+2025-08-19T13:10:27.2971093Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Map size protected_bpf_ids=9
+2025-08-19T13:10:27.2972450Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Map size protected_fs_inodes=6
+2025-08-19T13:10:27.2973731Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Map size protected_proc_fs_inodes=2
+2025-08-19T13:10:27.2974892Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO ProtectedPids err=<nil> pids=map[2782:2482]
+2025-08-19T13:10:27.2976063Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO ProtectedBPFIDs freezed ids="[10 4 8 11 9]"
+2025-08-19T13:10:27.2978117Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Write protected inodes="map[509:/etc/systemd/resolved.conf 976:/etc/resolv.conf 1643:/etc/sudoers.d/runner 20523:/proc/1982/mem 20524:/proc/1967/mem 3189531:/etc/docker/daemon.json]" freezeErr=<nil>
+2025-08-19T13:10:27.2979992Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Linking completed
+2025-08-19T13:10:27.2980936Z Aug 19 13:09:28 pkrvmubgrv54qmi agentservice[2482]: 2025/08/19 13:09:28 INFO Armour engaged
+2025-08-19T13:10:27.2981470Z 
+2025-08-19T13:10:27.3039631Z Cleaning up orphan processes

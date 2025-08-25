@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"runtime"
 	"testing"
 	"time"
@@ -404,74 +402,58 @@ func TestConfig_Validate(t *testing.T) {
 			wantErr: true,
 			errMsg:  `invalid mode "invalid", must be one of: watch, once, periodic`,
 		},
-
-		// OutDir validation tests
+		// GracePeriod validation tests
 		{
-			name: "OutDir empty (valid)",
+			name: "GracePeriod disabled (0)",
 			config: Config{
-				MaxWorkers: 2,
-				OutDir:     "",
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 0,
 			},
 			wantErr: false,
 		},
 		{
-			name: "OutDir deeply nested nonexistent",
+			name: "GracePeriod minimum valid (1s)",
 			config: Config{
-				MaxWorkers: 2,
-				OutDir:     "/this-path-definitely-does-not-exist-12345/deeply/nested/directory",
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 1 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GracePeriod maximum valid (30s)",
+			config: Config{
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 30 * time.Second,
+			},
+			wantErr: false,
+		},
+		{
+			name: "GracePeriod too low",
+			config: Config{
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 999 * time.Millisecond,
 			},
 			wantErr: true,
-			errMsg:  "output directory parent does not exist",
+			errMsg:  "grace_period must be at least 1 second",
 		},
 		{
-			name: "OutDir points to file not directory",
+			name: "GracePeriod too high",
 			config: Config{
-				MaxWorkers: 2,
-				OutDir:     "", // Will be set to a test file in the test
+				MaxWorkers:  2,
+				MetricsPort: 8080,
+				GracePeriod: 31 * time.Second,
 			},
 			wantErr: true,
-			errMsg:  "output path is not a directory",
-		},
-		{
-			name: "OutDir valid writable directory",
-			config: Config{
-				MaxWorkers: 2,
-				OutDir:     "", // Will be set to a temp directory in the test
-			},
-			wantErr: false,
-		},
-		{
-			name: "OutDir creatable in existing parent",
-			config: Config{
-				MaxWorkers: 2,
-				OutDir:     "", // Will be set to a subdirectory of temp directory in the test
-			},
-			wantErr: false,
+			errMsg:  "grace_period must not exceed 30 seconds",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Special setup for file-based tests
-			if tt.name == "OutDir points to file not directory" {
-				// Create a temporary file
-				tempFile, err := os.CreateTemp("", "test-file-*")
-				require.NoError(t, err)
-				defer os.Remove(tempFile.Name())
-				tempFile.Close()
-				
-				// Set OutDir to point to the file
-				tt.config.OutDir = tempFile.Name()
-			} else if tt.name == "OutDir valid writable directory" {
-				// Create a temporary directory
-				tempDir := t.TempDir()
-				tt.config.OutDir = tempDir
-			} else if tt.name == "OutDir creatable in existing parent" {
-				// Create a temporary directory and set OutDir to a subdirectory that doesn't exist yet
-				tempDir := t.TempDir()
-				tt.config.OutDir = filepath.Join(tempDir, "subdir")
-			}
-			
 			err := tt.config.Validate()
 			if tt.wantErr {
 				assert.Error(t, err)

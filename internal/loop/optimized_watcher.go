@@ -25,13 +25,13 @@ type OptimizedWatcher struct {
 	
 	// Performance counters (cache-aligned)
 	stats struct {
-		_pad1           [8]uint64  // Cache line padding
-		processedCount  uint64     // Atomic counter
-		_pad2           [7]uint64  // Cache line padding
-		throughputEMA   uint64     // Exponential moving average
-		_pad3           [7]uint64  // Cache line padding
-		latencyP99      uint64     // 99th percentile latency
-		_pad4           [7]uint64  // Cache line padding
+		_pad1           [8]uint64      // Cache line padding
+		processedCount  atomic.Uint64  // Atomic counter
+		_pad2           [7]uint64      // Cache line padding
+		throughputEMA   atomic.Uint64  // Exponential moving average
+		_pad3           [7]uint64      // Cache line padding
+		latencyP99      atomic.Uint64  // 99th percentile latency
+		_pad4           [7]uint64      // Cache line padding
 	}
 }
 
@@ -133,12 +133,12 @@ func NewOptimizedWatcher(dir string, config Config) (*OptimizedWatcher, error) {
 }
 
 // ProcessFileOptimized uses all optimization techniques
-func (ow *OptimizedWatcher) ProcessFileOptimized(filePath string, fileInfo OptimizedFileInfo) error {
+func (ow *OptimizedWatcher) ProcessFileOptimized(filePath string, fileInfo FileInfo) error {
 	startTime := time.Now()
 
 	// Fast path: Check if already processed using lock-free atomic
 	if ow.isAlreadyProcessedFast(filePath, fileInfo) {
-		atomic.AddUint64(&ow.stats.processedCount, 1)
+		ow.stats.processedCount.Add(1)
 		return nil
 	}
 
@@ -149,7 +149,7 @@ func (ow *OptimizedWatcher) ProcessFileOptimized(filePath string, fileInfo Optim
 	workItem := &AsyncWorkItem{
 		FilePath:  filePath,
 		FileSize:  fileInfo.Size,
-		ModTime:   fileInfo.ModTime,
+		ModTime:   fileInfo.Timestamp,
 		Priority:  ow.calculatePriority(fileInfo, aiCtx),
 		Deadline:  startTime.Add(aiCtx.ProcessingTimeEstimate * 2),
 		AIContext: aiCtx,
@@ -356,9 +356,9 @@ func (ow *OptimizedWatcher) recordLatencyFast(duration time.Duration) {
 	
 	// Update exponential moving average
 	for {
-		old := atomic.LoadUint64(&ow.stats.throughputEMA)
+		old := ow.stats.throughputEMA.Load()
 		new := (old*7 + nanos) / 8 // EMA with α=0.125
-		if atomic.CompareAndSwapUint64(&ow.stats.throughputEMA, old, new) {
+		if ow.stats.throughputEMA.CompareAndSwap(old, new) {
 			break
 		}
 	}
@@ -388,9 +388,9 @@ func (ow *OptimizedWatcher) startOptimizers() {
 // Helper functions for implementation
 
 // Placeholder implementations - would be fully implemented in production
-func (ow *OptimizedWatcher) isAlreadyProcessedFast(string, OptimizedFileInfo) bool { return false }
-func (ow *OptimizedWatcher) getAIContext(string, OptimizedFileInfo) *AIContext { return &AIContext{} }
-func (ow *OptimizedWatcher) calculatePriority(OptimizedFileInfo, *AIContext) uint8 { return 1 }
+func (ow *OptimizedWatcher) isAlreadyProcessedFast(string, FileInfo) bool { return false }
+func (ow *OptimizedWatcher) getAIContext(string, FileInfo) *AIContext { return &AIContext{} }
+func (ow *OptimizedWatcher) calculatePriority(FileInfo, *AIContext) uint8 { return 1 }
 func (ow *OptimizedWatcher) canBatch(*AsyncWorkItem) bool { return true }
 func (ow *OptimizedWatcher) addToBatch(*AsyncWorkItem) error { return nil }
 func (ow *OptimizedWatcher) processImmediately(*AsyncWorkItem) error { return nil }
@@ -416,11 +416,7 @@ func readFileFast(string) ([]byte, error) { return nil, nil }
 func (ow *OptimizedWatcher) validateSchemaFast([]byte) error { return nil }
 func enableFIPSMode() error { return nil }
 
-// Type definitions for AI/ML components
-type OptimizedFileInfo struct {
-	Size    int64
-	ModTime time.Time
-}
+// Note: FileInfo type is defined in bounded_stats.go
 
 type MLPredictor struct{}
 func NewMLPredictor() *MLPredictor { return &MLPredictor{} }

@@ -11,6 +11,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+// SecurityPolicy defines security policy configuration
+type SecurityPolicy struct {
+	PolicyID    string `json:"policy_id"`
+	PolicyType  string `json:"policy_type"`
+	Enforcement string `json:"enforcement"`
+	Rules       []SecurityRule `json:"rules"`
+}
+
 // parseAlarmData parses NETCONF XML alarm data into Alarm structs
 func (a *O1Adaptor) parseAlarmData(xmlData string, managedElementID string) ([]*Alarm, error) {
 	if xmlData == "" {
