@@ -549,16 +549,45 @@ jobs:
           
       - name: "Run Security Policy Checks"
         run: |
+          set -Eeuo pipefail
+          shopt -s nullglob
+          
           echo "=== Running Security Policy Validation ==="
           mkdir -p ${{ env.REPORTS_DIR }}/compliance
           
-          # Run OPA policies if they exist
-          if [ -d "${{ env.SECURITY_DIR }}/policies" ]; then
-            for policy in ${{ env.SECURITY_DIR }}/policies/*.rego; do
-              echo "Evaluating policy: $(basename $policy)"
-              opa eval -d $policy -i ${{ env.SECURITY_DIR }}/configs/security-config.json \
-                "data.security.allow" > ${{ env.REPORTS_DIR }}/compliance/$(basename $policy .rego)-result.json || true
-            done
+          POLICY_DIR="${{ env.SECURITY_DIR }}/policies"
+          CONFIG_FILE="${{ env.SECURITY_DIR }}/configs/security-config.json"
+          
+          # Check if policy directory exists and contains .rego files
+          if [ -d "$POLICY_DIR" ]; then
+            # Use compgen to safely check for .rego files
+            if compgen -G "$POLICY_DIR/*.rego" > /dev/null; then
+              echo "Found .rego policy files, proceeding with evaluation..."
+              
+              # Check if config file exists
+              if [ -f "$CONFIG_FILE" ]; then
+                echo "Using security config: $CONFIG_FILE"
+                for policy in "$POLICY_DIR"/*.rego; do
+                  if [ -f "$policy" ]; then
+                    echo "Evaluating policy: $(basename "$policy")"
+                    opa eval -d "$policy" -i "$CONFIG_FILE" \
+                      "data.security.allow" > "${{ env.REPORTS_DIR }}/compliance/$(basename "$policy" .rego)-result.json" || {
+                      echo "::warning::Policy evaluation failed for $(basename "$policy")"
+                      echo '{"result": false, "error": "evaluation_failed"}' > "${{ env.REPORTS_DIR }}/compliance/$(basename "$policy" .rego)-result.json"
+                    }
+                  fi
+                done
+              else
+                echo "::warning::Security config file not found: $CONFIG_FILE"
+                echo "Skipping policy evaluation due to missing configuration"
+              fi
+            else
+              echo "::warning::No .rego policy files found in $POLICY_DIR"
+              echo "Skipping OPA policy evaluation"
+            fi
+          else
+            echo "::warning::Policy directory not found: $POLICY_DIR"
+            echo "Skipping OPA policy evaluation"
           fi
           
       - name: "CIS Benchmark Validation"
@@ -590,11 +619,12 @@ jobs:
           EOF
           
       - name: "Upload Compliance Reports"
-        if: always() && hashFiles('${{ env.REPORTS_DIR }}/compliance/**/*') != ''
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compliance-reports
           path: ${{ env.REPORTS_DIR }}/compliance/
+          if-no-files-found: warn
           retention-days: 90
 
   # =============================================================================
