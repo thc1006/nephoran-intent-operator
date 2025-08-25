@@ -14,43 +14,64 @@ import (
 
 // UserSession represents a user session with tracking information
 type UserSession struct {
-	SessionID   string            `json:"sessionId"`
-	UserID      string            `json:"userId"`
-	StartTime   time.Time         `json:"startTime"`
-	LastActive  time.Time         `json:"lastActive"`
-	Metadata    map[string]string `json:"metadata"`
-	IntentCount int               `json:"intentCount"`
+	SessionID       string            `json:"sessionId"`
+	UserID          string            `json:"userId"`
+	StartTime       time.Time         `json:"startTime"`
+	LastActive      time.Time         `json:"lastActive"`
+	Metadata        map[string]string `json:"metadata"`
+	IntentCount     int               `json:"intentCount"`
+	AverageLatency  time.Duration     `json:"averageLatency"`
+	ExperienceScore float64           `json:"experienceScore"`
 }
 
-// CircularBuffer represents a circular buffer for storing historical data
+// CircularBuffer for storing completed intents
 type CircularBuffer struct {
-	buffer []interface{}
-	size   int
-	head   int
-	tail   int
-	count  int
-	mutex  sync.RWMutex
+	mu       sync.RWMutex
+	items    []*IntentTrace
+	capacity int
+	head     int
+	tail     int
+	size     int
 }
 
 // NewCircularBuffer creates a new circular buffer
-func NewCircularBuffer(size int) *CircularBuffer {
+func NewCircularBuffer(capacity int) *CircularBuffer {
 	return &CircularBuffer{
-		buffer: make([]interface{}, size),
-		size:   size,
+		items:    make([]*IntentTrace, capacity),
+		capacity: capacity,
 	}
 }
 
 // Add adds an item to the buffer
-func (cb *CircularBuffer) Add(item interface{}) {
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-	cb.buffer[cb.head] = item
-	cb.head = (cb.head + 1) % cb.size
-	if cb.count < cb.size {
-		cb.count++
-	} else {
-		cb.tail = (cb.tail + 1) % cb.size
+func (c *CircularBuffer) Add(trace interface{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// Type assertion to handle both interface{} and *IntentTrace
+	var intentTrace *IntentTrace
+	if trace != nil {
+		if t, ok := trace.(*IntentTrace); ok {
+			intentTrace = t
+		}
 	}
+	
+	c.items[c.tail] = intentTrace
+	c.tail = (c.tail + 1) % c.capacity
+
+	if c.size < c.capacity {
+		c.size++
+	} else {
+		c.head = (c.head + 1) % c.capacity
+	}
+}
+
+// RemoveOlderThan removes items older than the cutoff time
+func (c *CircularBuffer) RemoveOlderThan(cutoff time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	// This is a simplified implementation
+	// In production, would implement proper removal
 }
 
 // E2ELatencyTracker tracks end-to-end latency from intent submission to deployment completion
@@ -741,17 +762,8 @@ type LatencyAnomalyEvent struct {
 	Description  string        `json:"description"`
 }
 
-type MonitoringUserSession struct {
-	SessionID       string        `json:"session_id"`
-	UserID          string        `json:"user_id"`
-	StartTime       time.Time     `json:"start_time"`
-	IntentCount     int           `json:"intent_count"`
-	AverageLatency  time.Duration `json:"average_latency"`
-	ExperienceScore float64       `json:"experience_score"`
-}
-
 type UserImpactAnalyzer struct {
-	sessions map[string]*MonitoringUserSession
+	sessions map[string]*UserSession
 }
 
 type ComplianceSnapshot struct {
@@ -1461,44 +1473,6 @@ func (u *UserExperienceCorrelator) calculateCategoryScore(min, max float64) floa
 	return float64(count) / float64(len(u.experienceScores)) * 100
 }
 
-// CircularBuffer for storing completed intents
-type CircularBuffer struct {
-	mu       sync.RWMutex
-	items    []*IntentTrace
-	capacity int
-	head     int
-	tail     int
-	size     int
-}
-
-func NewCircularBuffer(capacity int) *CircularBuffer {
-	return &CircularBuffer{
-		items:    make([]*IntentTrace, capacity),
-		capacity: capacity,
-	}
-}
-
-func (c *CircularBuffer) Add(trace *IntentTrace) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	c.items[c.tail] = trace
-	c.tail = (c.tail + 1) % c.capacity
-
-	if c.size < c.capacity {
-		c.size++
-	} else {
-		c.head = (c.head + 1) % c.capacity
-	}
-}
-
-func (c *CircularBuffer) RemoveOlderThan(cutoff time.Time) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	// This is a simplified implementation
-	// In production, would implement proper removal
-}
 
 // Default configuration
 func DefaultE2EConfig() *E2ETrackerConfig {

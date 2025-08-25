@@ -288,28 +288,7 @@ type ResourceBottleneck struct {
 	Mitigation  string  `json:"mitigation"`  // Recommended action
 }
 
-// BusinessImpact provides business-focused performance analysis
-type BusinessImpact struct {
-	CostPerIntent        float64 `json:"costPerIntent"`        // dollars
-	RevenueImpact        float64 `json:"revenueImpact"`        // dollars per hour
-	CustomerSatisfaction float64 `json:"customerSatisfaction"` // 0-100 score
-	SLAViolationCost     float64 `json:"slaViolationCost"`     // dollars
-	PerformanceROI       float64 `json:"performanceROI"`       // percentage
-	CompetitivePosition  string  `json:"competitivePosition"`  // Leading, Competitive, Lagging
-}
 
-// Recommendation provides actionable performance improvement suggestions
-type Recommendation struct {
-	ID           string   `json:"id"`
-	Category     string   `json:"category"` // Performance, Cost, Reliability
-	Priority     string   `json:"priority"` // Critical, High, Medium, Low
-	Title        string   `json:"title"`
-	Description  string   `json:"description"`
-	Impact       string   `json:"impact"`   // Expected improvement
-	Effort       string   `json:"effort"`   // Implementation effort
-	Timeline     string   `json:"timeline"` // Implementation timeline
-	Dependencies []string `json:"dependencies"`
-}
 
 // AlertsSummary provides alert analysis
 type AlertsSummary struct {

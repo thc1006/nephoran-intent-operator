@@ -64,13 +64,6 @@ type SLAViolation struct {
 	Metadata       map[string]interface{} `json:"metadata"`
 }
 
-// BusinessImpact represents the business impact of an SLA violation
-type BusinessImpact struct {
-	RevenueImpact     float64 `json:"revenue_impact"`
-	CustomersAffected int64   `json:"customers_affected"`
-	TransactionsLost  int64   `json:"transactions_lost"`
-	ReputationScore   float64 `json:"reputation_score"`
-}
 
 // DataPoint represents a time-series data point
 type DataPoint struct {
@@ -120,15 +113,6 @@ type ReportTrends struct {
 	TrendConfidence   float64 `json:"trend_confidence"`
 }
 
-// Recommendation provides actionable insights
-type Recommendation struct {
-	Type        string `json:"type"`     // performance, capacity, reliability
-	Priority    string `json:"priority"` // high, medium, low
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Action      string `json:"action"`
-	Impact      string `json:"impact"`
-}
 
 // BusinessMetrics provides business context for SLA performance
 type BusinessMetrics struct {
