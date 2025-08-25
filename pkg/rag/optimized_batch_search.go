@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"golang.org/x/sync/errgroup"
 )
 
