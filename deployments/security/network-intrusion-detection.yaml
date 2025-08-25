@@ -1,0 +1,1103 @@
+---
+# Network Intrusion Detection System (NIDS) for Nephoran
+# Implements real-time network traffic analysis and threat detection
+# Integrated with Falco for runtime security monitoring
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephoran-network-ids
+  namespace: nephoran-security
+  labels:
+    app.kubernetes.io/name: network-ids
+    app.kubernetes.io/component: security
+    app.kubernetes.io/part-of: nephoran-security-suite
+    security.nephoran.io/category: network-monitoring
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-ids
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: network-ids
+        app.kubernetes.io/component: security
+        security.nephoran.io/monitor: "true"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: nephoran-network-ids
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: suricata
+        image: jasonish/suricata:7.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            add:
+            - NET_ADMIN
+            - NET_RAW
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        env:
+        - name: SURICATA_OPTIONS
+          value: "-c /etc/suricata/suricata.yaml -i any"
+        - name: NETWORK_INTERFACE
+          value: "any"
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2
+            memory: 4Gi
+        volumeMounts:
+        - name: suricata-config
+          mountPath: /etc/suricata
+          readOnly: true
+        - name: suricata-rules
+          mountPath: /var/lib/suricata/rules
+          readOnly: true
+        - name: suricata-logs
+          mountPath: /var/log/suricata
+        - name: tmp
+          mountPath: /tmp
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 5
+      - name: falco
+        image: falcosecurity/falco-no-driver:0.36.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        env:
+        - name: FALCO_GRPC_ENABLED
+          value: "true"
+        - name: FALCO_GRPC_BIND_ADDRESS
+          value: "0.0.0.0:5060"
+        - name: FALCO_HTTP_OUTPUT_ENABLED
+          value: "true"
+        - name: FALCO_HTTP_OUTPUT_URL
+          value: "http://localhost:2801/"
+        resources:
+          requests:
+            cpu: 100m
+            memory: 512Mi
+          limits:
+            cpu: 1
+            memory: 1Gi
+        volumeMounts:
+        - name: falco-config
+          mountPath: /etc/falco
+          readOnly: true
+        - name: falco-rules
+          mountPath: /etc/falco/rules.d
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        ports:
+        - containerPort: 5060
+          name: grpc
+          protocol: TCP
+        - containerPort: 8765
+          name: http
+          protocol: TCP
+        livenessProbe:
+          grpc:
+            port: 5060
+          initialDelaySeconds: 30
+          periodSeconds: 15
+        readinessProbe:
+          grpc:
+            port: 5060
+          initialDelaySeconds: 10
+          periodSeconds: 5
+      - name: ids-alerter
+        image: curlimages/curl:8.4.0
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        command:
+        - /bin/sh
+        - -c
+        - |
+          while true; do
+            # Monitor Suricata alerts and forward to alert manager
+            tail -F /var/log/suricata/eve.json 2>/dev/null | while read line; do
+              if echo "$line" | grep -q '"event_type":"alert"'; then
+                severity=$(echo "$line" | jq -r '.alert.severity // 3')
+                if [ "$severity" -le 2 ]; then
+                  echo "$line" | curl -X POST -H "Content-Type: application/json" \
+                    -d @- "http://alertmanager.monitoring.svc.cluster.local:9093/api/v1/alerts" || true
+                fi
+              fi
+            done
+            sleep 10
+          done
+        resources:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - name: suricata-logs
+          mountPath: /var/log/suricata
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: suricata-config
+        configMap:
+          name: suricata-config
+      - name: suricata-rules
+        configMap:
+          name: suricata-rules
+      - name: falco-config
+        configMap:
+          name: falco-config
+      - name: falco-rules
+        configMap:
+          name: falco-rules
+      - name: suricata-logs
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      tolerations:
+      - key: "node.kubernetes.io/unreachable"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      - key: "node.kubernetes.io/not-ready"
+        operator: "Exists"
+        effect: "NoExecute"
+        tolerationSeconds: 300
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                  - network-ids
+              topologyKey: kubernetes.io/hostname
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nephoran-network-ids
+  namespace: nephoran-security
+  labels:
+    app.kubernetes.io/name: network-ids
+    app.kubernetes.io/component: security
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: network-ids-service
+  namespace: nephoran-security
+  labels:
+    app.kubernetes.io/name: network-ids
+    app.kubernetes.io/component: security
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+spec:
+  selector:
+    app.kubernetes.io/name: network-ids
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: falco-grpc
+    port: 5060
+    targetPort: 5060
+    protocol: TCP
+  - name: falco-http
+    port: 8765
+    targetPort: 8765
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Suricata Configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: suricata-config
+  namespace: nephoran-security
+  labels:
+    app.kubernetes.io/name: network-ids
+data:
+  suricata.yaml: |
+    %YAML 1.1
+    ---
+    vars:
+      address-groups:
+        HOME_NET: "[10.0.0.0/8,192.168.0.0/16,172.16.0.0/12]"
+        EXTERNAL_NET: "!$HOME_NET"
+        HTTP_SERVERS: "$HOME_NET"
+        SMTP_SERVERS: "$HOME_NET"
+        SQL_SERVERS: "$HOME_NET"
+        DNS_SERVERS: "$HOME_NET"
+        TELNET_SERVERS: "$HOME_NET"
+        AIM_SERVERS: "$EXTERNAL_NET"
+        DC_SERVERS: "$HOME_NET"
+        DNP3_SERVER: "$HOME_NET"
+        DNP3_CLIENT: "$HOME_NET"
+        MODBUS_CLIENT: "$HOME_NET"
+        MODBUS_SERVER: "$HOME_NET"
+        ENIP_CLIENT: "$HOME_NET"
+        ENIP_SERVER: "$HOME_NET"
+      port-groups:
+        HTTP_PORTS: "80"
+        SHELLCODE_PORTS: "!80"
+        ORACLE_PORTS: 1521
+        SSH_PORTS: 22
+        DNP3_PORTS: 20000
+        MODBUS_PORTS: 502
+        FILE_DATA_PORTS: "[$HTTP_PORTS,110,143]"
+        FTP_PORTS: 21
+        GENEVE_PORTS: 6081
+        VXLAN_PORTS: 4789
+        TEREDO_PORTS: 3544
+
+    default-rule-path: /var/lib/suricata/rules
+    rule-files:
+      - suricata.rules
+      - nephoran-custom.rules
+
+    classification-file: /etc/suricata/classification.config
+    reference-config-file: /etc/suricata/reference.config
+    threshold-file: /etc/suricata/threshold.config
+
+    default-log-dir: /var/log/suricata/
+
+    stats:
+      enabled: yes
+      interval: 8
+
+    outputs:
+      - eve-log:
+          enabled: yes
+          filetype: regular
+          filename: eve.json
+          types:
+            - alert:
+                payload: yes
+                payload-buffer-size: 4kb
+                payload-printable: yes
+                packet: yes
+                metadata: yes
+                http-body: yes
+                http-body-printable: yes
+                tagged-packets: yes
+            - http:
+                extended: yes
+            - dns:
+                query: yes
+                answer: yes
+            - tls:
+                extended: yes
+            - files:
+                force-magic: no
+            - drop:
+                alerts: yes
+            - smtp:
+            - ftp
+            - rdp
+            - nfs
+            - smb
+            - tftp
+            - ikev2
+            - dcerpc
+            - krb5
+            - snmp
+            - sip
+            - dhcp:
+                enabled: yes
+                extended: yes
+            - ssh
+            - stats:
+                totals: yes
+                threads: no
+                deltas: no
+            - flow
+
+    logging:
+      default-log-level: notice
+      default-output-filter:
+      outputs:
+      - console:
+          enabled: yes
+      - file:
+          enabled: yes
+          level: info
+          filename: /var/log/suricata/suricata.log
+      - syslog:
+          enabled: no
+          facility: local5
+          format: "[%i] <%d> -- "
+
+    af-packet:
+      - interface: any
+        cluster-id: 99
+        cluster-type: cluster_flow
+        defrag: yes
+        use-mmap: yes
+        mmap-locked: yes
+        tpacket-v3: yes
+        ring-size: 18432
+        block-size: 32768
+        buffer-size: 32768
+        block-timeout: 10
+        threads: auto
+        use-emergency-flush: yes
+
+    app-layer:
+      protocols:
+        tls:
+          enabled: yes
+          detection-ports:
+            dp: 443
+        http:
+          enabled: yes
+          libhtp:
+            default-config:
+              personality: IDS
+              request-body-limit: 100kb
+              response-body-limit: 100kb
+              request-body-minimal-inspect-size: 32kb
+              request-body-inspect-window: 4kb
+              response-body-minimal-inspect-size: 40kb
+              response-body-inspect-window: 16kb
+              response-body-decompress-layer-limit: 2
+              http-body-inline: auto
+              swf-decompression:
+                enabled: yes
+                type: both
+                compress-depth: 100kb
+                decompress-depth: 100kb
+              double-decode-path: no
+              double-decode-query: no
+
+    asn1-max-frames: 256
+
+    coredump:
+      max-dump: unlimited
+
+    host-mode: auto
+
+    unix-command:
+      enabled: auto
+
+    legacy:
+      uricontent: enabled
+
+    engine-analysis:
+      rules-fast-pattern: yes
+      rules: yes
+
+    pcre:
+      match-limit: 3500
+      match-limit-recursion: 1500
+
+    host-os-policy:
+      windows: [0.0.0.0/0]
+      bsd: []
+      bsd-right: []
+      old-linux: []
+      linux: [10.0.0.0/8, 192.168.1.0/24, "::1"]
+      old-solaris: []
+      solaris: ["::1"]
+      hpux10: []
+      hpux11: []
+      irix: []
+      macos: []
+      vista: []
+      windows2k3: []
+
+    defrag:
+      memcap: 32mb
+      hash-size: 65536
+      trackers: 65536
+      max-frags: 65536
+      prealloc: yes
+      timeout: 60
+
+    flow:
+      memcap: 128mb
+      hash-size: 65536
+      prealloc: 10000
+      emergency-recovery: 30
+      managers: 1
+      recyclers: 1
+
+    flow-timeouts:
+      default:
+        new: 30
+        established: 300
+        closed: 0
+        bypassed: 100
+        emergency-new: 10
+        emergency-established: 100
+        emergency-closed: 0
+        emergency-bypassed: 50
+      tcp:
+        new: 60
+        established: 600
+        closed: 60
+        bypassed: 100
+        emergency-new: 5
+        emergency-established: 25
+        emergency-closed: 10
+        emergency-bypassed: 25
+      udp:
+        new: 30
+        established: 300
+        bypassed: 100
+        emergency-new: 10
+        emergency-established: 25
+        emergency-bypassed: 25
+      icmp:
+        new: 30
+        established: 300
+        bypassed: 100
+        emergency-new: 10
+        emergency-established: 25
+        emergency-bypassed: 25
+
+    stream:
+      memcap: 64mb
+      checksum-validation: yes
+      inline: auto
+      reassembly:
+        memcap: 256mb
+        depth: 1mb
+        toserver-chunk-size: 2560
+        toclient-chunk-size: 2560
+        randomize-chunk-size: yes
+
+    host:
+      hash-size: 4096
+      prealloc: 1000
+      memcap: 32mb
+
+    decoder:
+      teredo:
+        enabled: true
+        ports:
+          dp: $TEREDO_PORTS
+          sp: $TEREDO_PORTS
+      vxlan:
+        enabled: true
+        ports:
+          dp: $VXLAN_PORTS
+          sp: $VXLAN_PORTS
+      geneve:
+        enabled: true
+        ports:
+          dp: $GENEVE_PORTS
+          sp: $GENEVE_PORTS
+
+    detect:
+      profile: medium
+      custom-values:
+        toclient-groups: 3
+        toserver-groups: 25
+      sgh-mpm-context: auto
+      inspection-recursion-limit: 3000
+      prefilter:
+        default: mpm
+      grouping:
+      quirks:
+
+    mpm-algo: auto
+
+    spm-algo: auto
+
+    threading:
+      set-cpu-affinity: no
+      cpu-affinity:
+        - management-cpu-set:
+            cpu: [ 0 ]
+        - receive-cpu-set:
+            cpu: [ 0 ]
+        - worker-cpu-set:
+            cpu: [ "all" ]
+            mode: "exclusive"
+            prio:
+              low: [ 0 ]
+              medium: [ "1-2" ]
+              high: [ 3 ]
+              default: "medium"
+      detect-thread-ratio: 1.0
+
+    luajit:
+      states: 128
+
+    profiling:
+      rules:
+        enabled: yes
+        filename: rule_perf.log
+        append: yes
+        sort: avgticks
+        limit: 100
+        json: yes
+      keywords:
+        enabled: yes
+        filename: keyword_perf.log
+        append: yes
+      prefilter:
+        enabled: yes
+        filename: prefilter_perf.log
+        append: yes
+      rulegroups:
+        enabled: yes
+        filename: rule_group_perf.log
+        append: yes
+      packets:
+        enabled: yes
+        filename: packet_stats.log
+        append: yes
+        csv:
+          enabled: no
+          filename: packet_stats.csv
+      locks:
+        enabled: no
+        filename: lock_stats.log
+        append: yes
+      pcap-log:
+        enabled: no
+        filename: pcaplog_stats.log
+        append: yes
+
+    nfq:
+      mode: accept
+      repeat-mark: 1
+      repeat-mask: 1
+      bypass-mark: 1
+      bypass-mask: 1
+      route-queue: 2
+
+    nflog:
+      - group: 2
+        buffer-size: 18432
+      - group: default
+        qthreshold: 1
+        qtimeout: 100
+        max-size: 20000
+
+    capture:
+      disable-offloading: false
+
+    netmap:
+     - interface: eth2
+     - interface: eth3
+       threads: auto
+       copy-mode: ips
+       copy-iface: eth4
+     - interface: "netmap:eth2+"
+
+    pfring:
+      - interface: eth0
+        threads: auto
+        cluster-id: 99
+        cluster-type: cluster_flow
+      - interface: eth1
+        threads: 3
+        cluster-id: 93
+        cluster-type: cluster_flow
+
+    pcap:
+      - interface: eth0
+      - interface: any
+
+    pcap-file:
+      checksum-checks: auto
+
+    app-layer:
+      error-policy: drop-flow
+      protocols:
+        tls:
+          enabled: yes
+          detection-ports:
+            dp: 443
+          ja3-fingerprints: auto
+        http:
+          enabled: yes
+          memcap: 64mb
+        ftp:
+          enabled: yes
+          memcap: 64mb
+        smtp:
+          enabled: yes
+          memcap: 64mb
+        imap:
+          enabled: detection-only
+        smb:
+          enabled: yes
+          detection-ports:
+            dp: 139, 445
+        nfs:
+          enabled: yes
+        tftp:
+          enabled: yes
+        dns:
+          tcp:
+            enabled: yes
+            detection-ports:
+              dp: 53
+          udp:
+            enabled: yes
+            detection-ports:
+              dp: 53
+        http2:
+          enabled: yes
+          memcap: 32mb
+        modbus:
+          enabled: no
+          detection-ports:
+            dp: 502
+          stream-depth: 0
+        dnp3:
+          enabled: no
+          detection-ports:
+            dp: 20000
+        enip:
+          enabled: no
+          detection-ports:
+            dp: 44818
+            sp: 44818
+        ntp:
+          enabled: yes
+        dhcp:
+          enabled: yes
+        sip:
+          enabled: yes
+        rdp:
+          enabled: yes
+        snmp:
+          enabled: yes
+        ikev2:
+          enabled: yes
+        krb5:
+          enabled: yes
+        bittorrent-dht:
+          enabled: yes
+        rfb:
+          enabled: yes
+        mqtt:
+          enabled: yes
+        pgsql:
+          enabled: yes
+        telnet:
+          enabled: yes
+        cip:
+          enabled: yes
+
+    run-as:
+      user: suricata
+      group: suricata
+
+    include: /etc/suricata/suricata-debian.yaml
+
+---
+# Custom Nephoran IDS Rules
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: suricata-rules
+  namespace: nephoran-security
+data:
+  nephoran-custom.rules: |
+    # Nephoran Intent Operator Custom Security Rules
+    
+    # Detect potential LLM injection attacks
+    alert http any any -> any any (msg:"Potential LLM injection attempt"; flow:established,to_server; content:"POST"; http_method; content:"/v1/intent"; http_uri; content:"prompt"; http_client_body; pcre:"/(?i)(ignore|system|admin|root|execute|eval|import|require)/"; classtype:web-application-attack; sid:1000001; rev:1;)
+    
+    # Detect excessive API requests (potential DoS)
+    alert http any any -> any any (msg:"Excessive API requests detected"; flow:established,to_server; content:"POST"; http_method; content:"/v1/"; http_uri; threshold:type both,track by_src,count 100,seconds 60; classtype:attempted-dos; sid:1000002; rev:1;)
+    
+    # Detect unauthorized admin access attempts
+    alert http any any -> any any (msg:"Unauthorized admin access attempt"; flow:established,to_server; content:"/admin"; http_uri; content:!"x-admin-token"; http_header; classtype:web-application-attack; sid:1000003; rev:1;)
+    
+    # Detect potential data exfiltration
+    alert http any any -> any any (msg:"Large response size - potential data exfiltration"; flow:established,to_client; content:"200"; http_stat_code; byte_test:4,>,100000,0,relative; classtype:policy-violation; sid:1000004; rev:1;)
+    
+    # Detect O-RAN interface anomalies
+    alert tcp any any -> any 830 (msg:"Unusual NETCONF traffic pattern"; flow:established; detection_filter:track by_src,count 50,seconds 30; classtype:protocol-command-decode; sid:1000005; rev:1;)
+    
+    # Detect potential credential stuffing
+    alert http any any -> any any (msg:"Potential credential stuffing attack"; flow:established,to_server; content:"POST"; http_method; content:"login"; http_uri; threshold:type both,track by_src,count 20,seconds 300; classtype:attempted-user; sid:1000006; rev:1;)
+    
+    # Detect suspicious user agents
+    alert http any any -> any any (msg:"Suspicious user agent detected"; flow:established,to_server; content:"User-Agent:"; http_header; pcre:"/User-Agent:\s*(curl|wget|python|go-http)/i"; classtype:policy-violation; sid:1000007; rev:1;)
+    
+    # Detect Kubernetes API abuse
+    alert http any any -> any 443 (msg:"Excessive Kubernetes API calls"; flow:established,to_server; content:"GET"; http_method; content:"/api/v1/"; http_uri; threshold:type both,track by_src,count 200,seconds 60; classtype:attempted-dos; sid:1000008; rev:1;)
+    
+    # Detect TLS downgrade attempts
+    alert tls any any -> any any (msg:"TLS downgrade attempt detected"; tls.version:"<1.2"; classtype:protocol-command-decode; sid:1000009; rev:1;)
+    
+    # Detect vector database injection attempts
+    alert http any any -> any any (msg:"Vector database injection attempt"; flow:established,to_server; content:"POST"; http_method; content:"/v1/graphql"; http_uri; content:"mutation"; http_client_body; pcre:"/(?i)(delete|drop|truncate)/"; classtype:web-application-attack; sid:1000010; rev:1;)
+    
+    # Detect container escape attempts
+    alert tcp any any -> any any (msg:"Potential container escape attempt"; content:"/proc/self/"; classtype:system-call-detect; sid:1000011; rev:1;)
+    
+    # Detect DNS tunneling
+    alert dns any any -> any any (msg:"Potential DNS tunneling detected"; dns.query; content:".nephoran.io"; pcre:"/[a-zA-Z0-9]{50,}/"; classtype:policy-violation; sid:1000012; rev:1;)
+
+  suricata.rules: |
+    # Standard Suricata rules (minimal set for performance)
+    # Include essential rules from Emerging Threats
+    include $RULE_PATH/emerging-web_client.rules
+    include $RULE_PATH/emerging-web_server.rules
+    include $RULE_PATH/emerging-malware.rules
+    include $RULE_PATH/emerging-exploit.rules
+    include $RULE_PATH/emerging-trojan.rules
+    include $RULE_PATH/emerging-scan.rules
+    include $RULE_PATH/emerging-dos.rules
+
+---
+# Falco Configuration for Runtime Security
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-config
+  namespace: nephoran-security
+data:
+  falco.yaml: |
+    rules_file:
+      - /etc/falco/falco_rules.yaml
+      - /etc/falco/rules.d
+    
+    time_format_iso_8601: true
+    json_output: true
+    json_include_output_property: true
+    json_include_tags_property: true
+    
+    priority: debug
+    
+    buffered_outputs: true
+    
+    syscall_event_drops:
+      actions:
+        - log
+        - alert
+      rate: 0.03333
+      max_burst: 1000
+    
+    syscall_event_timeouts:
+      max_consecutives: 1000
+    
+    outputs:
+      rate: 1
+      max_burst: 1000
+    
+    syslog_output:
+      enabled: false
+    
+    file_output:
+      enabled: false
+    
+    stdout_output:
+      enabled: true
+    
+    webserver:
+      enabled: true
+      listen_port: 8765
+      k8s_healthz_endpoint: /healthz
+      ssl_enabled: false
+      ssl_certificate: /etc/ssl/falco/server.pem
+    
+    grpc:
+      enabled: true
+      bind_address: "0.0.0.0:5060"
+      threadiness: 8
+      private_key: "/etc/ssl/falco/server.key"
+      cert_chain: "/etc/ssl/falco/server.crt"
+      root_certs: "/etc/ssl/falco/ca.crt"
+    
+    grpc_output:
+      enabled: true
+    
+    http_output:
+      enabled: true
+      url: "http://localhost:2801/"
+      user_agent: "falco-http-client"
+    
+    program_output:
+      enabled: false
+      keep_alive: false
+      program: "jq '{text: .output}' | curl -d @- -X POST https://hooks.slack.com/services/XXX"
+    
+    load_plugins: []
+    
+    watch_config_files: true
+    
+    log_stderr: false
+    log_syslog: false
+    log_level: info
+    
+    libs_logger:
+      enabled: false
+      severity: debug
+    
+    plugins:
+      - name: k8saudit
+        library_path: libk8saudit.so
+        init_config:
+        open_params: 'http://:9765/k8s-audit'
+      - name: cloudtrail
+        library_path: libcloudtrail.so
+        open_params: ""
+    
+    base_syscalls:
+      custom_set: []
+      repair: false
+    
+    modern_bpf:
+      cpus_for_each_syscall_buffer: 2
+    
+    metadata_download:
+      max_mb: 100
+      chunk_wait_us: 1000
+      watch_freq_sec: 1
+
+---
+# Falco Custom Rules for Nephoran
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-rules
+  namespace: nephoran-security
+data:
+  nephoran_rules.yaml: |
+    - rule: Detect privilege escalation
+      desc: Detect attempts to escalate privileges in Nephoran containers
+      condition: >
+        spawned_process and container and
+        proc.name in (su, sudo, doas, setuid) and
+        k8s.ns.name = nephoran-system
+      output: >
+        Privilege escalation attempt detected in Nephoran container
+        (user=%user.name command=%proc.cmdline container_id=%container.id
+        container_name=%container.name image=%container.image.repository:%container.image.tag
+        k8s_pod=%k8s.pod.name k8s_namespace=%k8s.ns.name)
+      priority: CRITICAL
+      tags: [container, privilege_escalation, nephoran]
+    
+    - rule: Suspicious network activity in Nephoran
+      desc: Detect suspicious network connections from Nephoran containers
+      condition: >
+        outbound and container and
+        k8s.ns.name = nephoran-system and
+        ((fd.net and fd.port != 443 and fd.port != 80 and fd.port != 53 and
+          fd.port not in (8080, 8081, 8082, 8083, 5001, 5060, 6379, 2112)) or
+         (fd.net and fd.ip != "" and not fd.ip in (k8s_cluster_ips)))
+      output: >
+        Suspicious network connection from Nephoran container
+        (user=%user.name command=%proc.cmdline connection=%fd.name
+        container_id=%container.id container_name=%container.name
+        image=%container.image.repository:%container.image.tag
+        k8s_pod=%k8s.pod.name k8s_namespace=%k8s.ns.name)
+      priority: WARNING
+      tags: [container, network, nephoran]
+    
+    - rule: Unauthorized file access in Nephoran
+      desc: Detect unauthorized file system access in Nephoran containers
+      condition: >
+        open_read and container and
+        k8s.ns.name = nephoran-system and
+        (fd.filename startswith /etc/passwd or
+         fd.filename startswith /etc/shadow or
+         fd.filename startswith /etc/sudoers or
+         fd.filename startswith /root/ or
+         fd.filename startswith /var/run/secrets/kubernetes.io/serviceaccount/token)
+      output: >
+        Unauthorized file access detected in Nephoran container
+        (user=%user.name command=%proc.cmdline file=%fd.name
+        container_id=%container.id container_name=%container.name
+        image=%container.image.repository:%container.image.tag
+        k8s_pod=%k8s.pod.name k8s_namespace=%k8s.ns.name)
+      priority: CRITICAL
+      tags: [container, filesystem, nephoran]
+    
+    - rule: Container spawning unexpected child processes
+      desc: Detect containers spawning processes not expected in Nephoran workloads
+      condition: >
+        spawned_process and container and
+        k8s.ns.name = nephoran-system and
+        proc.name not in (python3, python, node, java, go, curl, wget, sh, bash, sleep, cat, grep, awk, sed, jq) and
+        proc.pname not in (python3, python, node, java, go)
+      output: >
+        Unexpected process spawned in Nephoran container
+        (user=%user.name parent=%proc.pname command=%proc.cmdline
+        container_id=%container.id container_name=%container.name
+        image=%container.image.repository:%container.image.tag
+        k8s_pod=%k8s.pod.name k8s_namespace=%k8s.ns.name)
+      priority: WARNING
+      tags: [container, process, nephoran]
+    
+    - rule: Kubernetes secrets access
+      desc: Detect unauthorized access to Kubernetes secrets
+      condition: >
+        ka_always and
+        ka.verb in (get, list, watch) and
+        ka.obj_name contains secret and
+        ka.obj_ns = nephoran-system and
+        not ka.user_name in (system:serviceaccount:nephoran-system:nephoran-operator,
+                             system:serviceaccount:nephoran-system:llm-processor,
+                             system:serviceaccount:nephoran-system:rag-api,
+                             system:serviceaccount:nephoran-system:nephio-bridge,
+                             system:serviceaccount:nephoran-system:oran-adaptor)
+      output: >
+        Unauthorized Kubernetes secrets access
+        (user=%ka.user_name verb=%ka.verb object=%ka.obj_name
+        namespace=%ka.obj_ns source_ips=%ka.source_ips)
+      priority: CRITICAL
+      tags: [k8s_audit, secrets, nephoran]
+    
+    - rule: Excessive CPU usage in Nephoran containers
+      desc: Detect containers with excessive CPU usage that might indicate crypto mining or DoS
+      condition: >
+        container and
+        k8s.ns.name = nephoran-system and
+        proc.cpu_usage > 90
+      output: >
+        High CPU usage detected in Nephoran container
+        (cpu_usage=%proc.cpu_usage command=%proc.cmdline
+        container_id=%container.id container_name=%container.name
+        k8s_pod=%k8s.pod.name k8s_namespace=%k8s.ns.name)
+      priority: WARNING
+      tags: [container, performance, nephoran]
+
+---
+# ServiceMonitor for Prometheus integration
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: network-ids-servicemonitor
+  namespace: nephoran-security
+  labels:
+    app.kubernetes.io/name: network-ids
+    app.kubernetes.io/component: security
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-ids
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+  - port: falco-http
+    interval: 30s
+    path: /metrics
+
+---
+# NetworkPolicy for IDS
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: network-ids-netpol
+  namespace: nephoran-security
+  labels:
+    app.kubernetes.io/name: network-ids
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: network-ids
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow metrics scraping from monitoring namespace
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8765
+    - protocol: TCP
+      port: 5060
+  # Allow access from security tools
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: nephoran-security
+    ports:
+    - protocol: TCP
+      port: 8080
+    - protocol: TCP
+      port: 8765
+    - protocol: TCP
+      port: 5060
+  egress:
+  # Allow DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Allow alert forwarding to monitoring
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+    ports:
+    - protocol: TCP
+      port: 9093
+  # Allow access to all pods for monitoring network traffic
+  - to: []
+    ports:
+    - protocol: TCP
+    - protocol: UDP

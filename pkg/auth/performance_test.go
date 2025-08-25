@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"context"
@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"runtime"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/auth/testutil"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth/providers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
+	testutil "github.com/thc1006/nephoran-intent-operator/pkg/testutil/auth"
 )
 
 // BenchmarkSuite provides comprehensive performance benchmarking

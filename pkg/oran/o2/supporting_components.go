@@ -4,7 +4,6 @@ package o2
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"

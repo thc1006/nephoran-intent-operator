@@ -474,7 +474,7 @@ jenkins_pipeline: |
                   }
                   stage('Security Scan') {
                       steps {
-                          sh 'go install github.com/securecodewarrior/gosec/cmd/gosec@latest'
+                          sh 'go install github.com/securego/gosec/v2/cmd/gosec@latest'
                           sh '$(go env GOPATH)/bin/gosec ./...'
                       }
                   }

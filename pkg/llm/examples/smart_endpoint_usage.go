@@ -2,7 +2,6 @@ package examples
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"time"
 

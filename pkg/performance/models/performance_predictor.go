@@ -3,7 +3,6 @@ package models
 import (
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/optimize"
-	"math"
 )
 
 // PerformancePredictor uses machine learning techniques for performance forecasting
@@ -70,7 +69,7 @@ func (pp *PerformancePredictor) Train() error {
 	}
 
 	// Perform optimization
-	result, err := optimize.Minimize(&problem, make([]float64, nFeatures+1), nil, nil)
+	result, err := optimize.Minimize(problem, make([]float64, nFeatures+1), nil, nil)
 	if err != nil {
 		return err
 	}

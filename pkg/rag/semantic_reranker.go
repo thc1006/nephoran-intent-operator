@@ -434,8 +434,8 @@ func (sr *SemanticReranker) calculateContextualRelevance(query string, result *E
 		}
 	}
 
-	// Recency boost
-	if !doc.Timestamp.IsZero() {
+	// Recency boost - use CreatedAt field instead of Timestamp
+	if !doc.CreatedAt.IsZero() {
 		age := float32(result.FreshnessScore)
 		score += age * 0.1
 	}

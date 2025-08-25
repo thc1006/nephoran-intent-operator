@@ -735,8 +735,8 @@ func (s *S3BackupStore) Upload(ctx context.Context, backup *Backup) error {
 
 	// Upload with automatic retry (configured in client)
 	_, err = s.client.PutObject(ctx, &s3.PutObjectInput{
-		Bucket: aws.String(s.config.Bucket),
-		Key:    aws.String(key),
+		Bucket: &s.config.Bucket,
+		Key:    &key,
 		Body:   strings.NewReader(string(data)),
 	})
 
@@ -905,8 +905,8 @@ func (s *S3BackupStore) Download(ctx context.Context, backupID string) (*Backup,
 
 	// Download with automatic retry (configured in client)
 	result, err := s.client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(s.config.Bucket),
-		Key:    aws.String(key),
+		Bucket: &s.config.Bucket,
+		Key:    &key,
 	})
 	if err != nil {
 		s.logger.Error("Failed to download backup from S3", "bucket", s.config.Bucket, "key", key, "error", err)
@@ -939,8 +939,8 @@ func (s *S3BackupStore) List(ctx context.Context) ([]*BackupMetadata, error) {
 
 	// List objects with automatic retry (configured in client)
 	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-		Bucket: aws.String(s.config.Bucket),
-		Prefix: aws.String(s.config.Path),
+		Bucket: &s.config.Bucket,
+		Prefix: &s.config.Path,
 	})
 	if err != nil {
 		s.logger.Error("Failed to list backups from S3", "bucket", s.config.Bucket, "prefix", s.config.Path, "error", err)
@@ -989,8 +989,8 @@ func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 	s.logger.Info("Deleting backup from S3", "bucket", s.config.Bucket, "prefix", prefix, "backupID", backupID)
 
 	result, err := s.client.ListObjectsV2(ctx, &s3.ListObjectsV2Input{
-		Bucket: aws.String(s.config.Bucket),
-		Prefix: aws.String(prefix),
+		Bucket: &s.config.Bucket,
+		Prefix: &prefix,
 	})
 	if err != nil {
 		s.logger.Error("Failed to list objects for deletion", "bucket", s.config.Bucket, "prefix", prefix, "error", err)
@@ -1001,8 +1001,8 @@ func (s *S3BackupStore) Delete(ctx context.Context, backupID string) error {
 	for _, object := range result.Contents {
 		key := aws.ToString(object.Key)
 		_, err := s.client.DeleteObject(ctx, &s3.DeleteObjectInput{
-			Bucket: aws.String(s.config.Bucket),
-			Key:    aws.String(key),
+			Bucket: &s.config.Bucket,
+			Key:    &key,
 		})
 		if err != nil {
 			s.logger.Error("Failed to delete object from S3", "bucket", s.config.Bucket, "key", key, "error", err)
@@ -1026,8 +1026,8 @@ func (s *S3BackupStore) Verify(ctx context.Context, backupID string) error {
 
 	// Check if object exists with automatic retry (configured in client)
 	_, err := s.client.HeadObject(ctx, &s3.HeadObjectInput{
-		Bucket: aws.String(s.config.Bucket),
-		Key:    aws.String(key),
+		Bucket: &s.config.Bucket,
+		Key:    &key,
 	})
 	if err != nil {
 		s.logger.Error("Failed to verify backup in S3", "bucket", s.config.Bucket, "key", key, "error", err)

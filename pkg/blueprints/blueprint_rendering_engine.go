@@ -24,13 +24,13 @@ import (
 	"time"
 
 	"bytes"
+	"text/template"
+
 	"github.com/Masterminds/sprig/v3"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"text/template"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // BlueprintRenderingEngine renders O-RAN compliant KRM resources from blueprint templates

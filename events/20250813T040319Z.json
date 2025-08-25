@@ -1,0 +1,22 @@
+{
+  "event": {
+    "commonEventHeader": {
+      "domain": "heartbeat",
+      "eventId": "20250813-040319-fb1a0915",
+      "eventName": "Heartbeat_O1-VES-Sim",
+      "eventType": "O-RAN",
+      "lastEpochMicrosec": 1755057799131308,
+      "priority": "Normal",
+      "reportingEntityName": "o1-ves-sim",
+      "sequence": 0,
+      "sourceName": "o1-ves-sim",
+      "startEpochMicrosec": 1755057799131308,
+      "version": "4.0.1",
+      "vesEventListenerVersion": "7.0.1"
+    },
+    "heartbeatFields": {
+      "heartbeatFieldsVersion": "3.0",
+      "heartbeatInterval": 60
+    }
+  }
+}

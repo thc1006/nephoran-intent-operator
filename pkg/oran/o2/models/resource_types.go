@@ -10,14 +10,20 @@ import (
 
 // ResourceType represents a type of infrastructure resource following O2 IMS specification
 type ResourceType struct {
-	ResourceTypeID string `json:"resourceTypeId"`
-	Name           string `json:"name"`
-	Description    string `json:"description,omitempty"`
-	Vendor         string `json:"vendor"`
-	Model          string `json:"model,omitempty"`
-	Version        string `json:"version"`
+	ResourceTypeID  string                 `json:"resourceTypeId"`
+	Name            string                 `json:"name"`
+	Description     string                 `json:"description,omitempty"`
+	Vendor          string                 `json:"vendor,omitempty"`
+	Model           string                 `json:"model,omitempty"`
+	Version         string                 `json:"version,omitempty"`
+	AlarmDictionary *AlarmDictionary       `json:"alarmDictionary,omitempty"`
+	Extensions      map[string]interface{} `json:"extensions,omitempty"`
 
-	// Resource type classification
+	// Resource specifications (compatible with both old and new formats)
+	Specifications   *ResourceTypeSpec `json:"specifications,omitempty"`
+	SupportedActions []string          `json:"supportedActions,omitempty"`
+
+	// Legacy fields for backward compatibility
 	Category      string `json:"category,omitempty"`      // COMPUTE, STORAGE, NETWORK, ACCELERATOR
 	ResourceClass string `json:"resourceClass,omitempty"` // PHYSICAL, VIRTUAL, LOGICAL
 	ResourceKind  string `json:"resourceKind,omitempty"`  // SERVER, SWITCH, STORAGE_ARRAY
@@ -47,7 +53,6 @@ type ResourceType struct {
 
 	// Extensions and metadata
 	VendorExtensions map[string]interface{} `json:"vendorExtensions,omitempty"`
-	Extensions       map[string]interface{} `json:"extensions,omitempty"`
 	Tags             map[string]string      `json:"tags,omitempty"`
 	Labels           map[string]string      `json:"labels,omitempty"`
 
@@ -57,6 +62,33 @@ type ResourceType struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	CreatedBy string    `json:"createdBy,omitempty"`
 	UpdatedBy string    `json:"updatedBy,omitempty"`
+}
+
+// ResourceTypeSpec defines the specifications for a resource type
+type ResourceTypeSpec struct {
+	Category         string                 `json:"category"` // COMPUTE, STORAGE, NETWORK, ACCELERATOR
+	MinResources     map[string]string      `json:"minResources,omitempty"`
+	MaxResources     map[string]string      `json:"maxResources,omitempty"`
+	DefaultResources map[string]string      `json:"defaultResources,omitempty"`
+	Properties       map[string]interface{} `json:"properties,omitempty"`
+	Constraints      []string               `json:"constraints,omitempty"`
+}
+
+// AlarmDictionary defines alarm information for a resource type
+type AlarmDictionary struct {
+	ID               string             `json:"id"`
+	Name             string             `json:"name"`
+	AlarmDefinitions []*AlarmDefinition `json:"alarmDefinitions"`
+}
+
+// AlarmDefinition defines a specific alarm type
+type AlarmDefinition struct {
+	AlarmDefinitionID     string            `json:"alarmDefinitionId"`
+	AlarmName             string            `json:"alarmName"`
+	AlarmDescription      string            `json:"alarmDescription,omitempty"`
+	ProposedRepairActions []string          `json:"proposedRepairActions,omitempty"`
+	AlarmAdditionalFields map[string]string `json:"alarmAdditionalFields,omitempty"`
+	AlarmLastChange       string            `json:"alarmLastChange,omitempty"`
 }
 
 // YANGModelReference represents a reference to a YANG model
@@ -291,6 +323,48 @@ type Resource struct {
 	UpdatedBy string    `json:"updatedBy,omitempty"`
 }
 
+// ResourceStatus represents the current status of a resource
+type ResourceStatus struct {
+	State               string                 `json:"state"`               // PENDING, ACTIVE, INACTIVE, FAILED, DELETING
+	OperationalState    string                 `json:"operationalState"`    // ENABLED, DISABLED
+	AdministrativeState string                 `json:"administrativeState"` // LOCKED, UNLOCKED, SHUTTINGDOWN
+	UsageState          string                 `json:"usageState"`          // IDLE, ACTIVE, BUSY
+	Health              string                 `json:"health"`              // HEALTHY, DEGRADED, UNHEALTHY, UNKNOWN
+	LastHealthCheck     time.Time              `json:"lastHealthCheck"`
+	ErrorMessage        string                 `json:"errorMessage,omitempty"`
+	Conditions          []ResourceCondition    `json:"conditions,omitempty"`
+	Metrics             map[string]interface{} `json:"metrics,omitempty"`
+}
+
+// ResourceCondition represents a condition of the resource
+type ResourceCondition struct {
+	Type               string    `json:"type"`
+	Status             string    `json:"status"` // True, False, Unknown
+	Reason             string    `json:"reason,omitempty"`
+	Message            string    `json:"message,omitempty"`
+	LastTransitionTime time.Time `json:"lastTransitionTime"`
+	LastUpdateTime     time.Time `json:"lastUpdateTime,omitempty"`
+}
+
+// ResourceCapacity represents resource capacity information
+type ResourceCapacity struct {
+	CPU             *ResourceMetric            `json:"cpu,omitempty"`
+	Memory          *ResourceMetric            `json:"memory,omitempty"`
+	Storage         *ResourceMetric            `json:"storage,omitempty"`
+	Network         *ResourceMetric            `json:"network,omitempty"`
+	Accelerators    *ResourceMetric            `json:"accelerators,omitempty"`
+	CustomResources map[string]*ResourceMetric `json:"customResources,omitempty"`
+}
+
+// ResourceMetric represents a resource metric with total, available, and used values
+type ResourceMetric struct {
+	Total       string  `json:"total"`
+	Available   string  `json:"available"`
+	Used        string  `json:"used"`
+	Unit        string  `json:"unit"`
+	Utilization float64 `json:"utilization"`
+}
+
 // ResourceRelationship represents a relationship between resources
 type ResourceRelationship struct {
 	RelationshipType string                 `json:"relationshipType"` // CONTAINS, USES, CONNECTS_TO, DEPENDS_ON
@@ -349,6 +423,25 @@ type ResourcePlacement struct {
 type NodeAffinity struct {
 	RequiredDuringSchedulingIgnoredDuringExecution  []*NodeSelectorTerm        `json:"requiredDuringSchedulingIgnoredDuringExecution,omitempty"`
 	PreferredDuringSchedulingIgnoredDuringExecution []*PreferredSchedulingTerm `json:"preferredDuringSchedulingIgnoredDuringExecution,omitempty"`
+}
+
+// NodeSelectorTerm represents a node selector term
+type NodeSelectorTerm struct {
+	MatchExpressions []*NodeSelectorRequirement `json:"matchExpressions,omitempty"`
+	MatchFields      []*NodeSelectorRequirement `json:"matchFields,omitempty"`
+}
+
+// NodeSelectorRequirement represents a node selector requirement
+type NodeSelectorRequirement struct {
+	Key      string   `json:"key"`
+	Operator string   `json:"operator"` // In, NotIn, Exists, DoesNotExist, Gt, Lt
+	Values   []string `json:"values,omitempty"`
+}
+
+// PreferredSchedulingTerm represents a preferred scheduling term
+type PreferredSchedulingTerm struct {
+	Weight     int32             `json:"weight"`
+	Preference *NodeSelectorTerm `json:"preference"`
 }
 
 // ResourceAffinity represents affinity rules based on resource properties
@@ -410,6 +503,19 @@ type TopologySpreadConstraint struct {
 	LabelSelector     *LabelSelector `json:"labelSelector,omitempty"`
 }
 
+// LabelSelector represents a label selector
+type LabelSelector struct {
+	MatchLabels      map[string]string           `json:"matchLabels,omitempty"`
+	MatchExpressions []*LabelSelectorRequirement `json:"matchExpressions,omitempty"`
+}
+
+// LabelSelectorRequirement represents a label selector requirement
+type LabelSelectorRequirement struct {
+	Key      string   `json:"key"`
+	Operator string   `json:"operator"` // In, NotIn, Exists, DoesNotExist
+	Values   []string `json:"values,omitempty"`
+}
+
 // ResourceHealthInfo represents health information for a resource
 type ResourceHealthInfo struct {
 	OverallHealth string                `json:"overallHealth"` // HEALTHY, DEGRADED, UNHEALTHY, UNKNOWN
@@ -467,6 +573,7 @@ type ResourceManagementInfo struct {
 type ResourceTypeFilter struct {
 	Names           []string          `json:"names,omitempty"`
 	Vendors         []string          `json:"vendors,omitempty"`
+	Models          []string          `json:"models,omitempty"`    // Added missing field
 	Versions        []string          `json:"versions,omitempty"`
 	Categories      []string          `json:"categories,omitempty"`
 	ResourceClasses []string          `json:"resourceClasses,omitempty"`

@@ -144,6 +144,7 @@ spec:
                           default: 2
                           description: BackoffFactor defines the multiplier for exponential
                             backoff
+                          type: number
                         initialDelay:
                           default: 1
                           description: InitialDelay defines the initial delay between

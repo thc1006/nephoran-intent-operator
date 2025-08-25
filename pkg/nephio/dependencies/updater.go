@@ -19,7 +19,6 @@ package dependencies
 import (
 	"context"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 

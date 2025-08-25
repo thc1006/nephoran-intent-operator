@@ -311,7 +311,7 @@ func (ers *EnhancedRetrievalService) SearchEnhanced(ctx context.Context, request
 		Limit:         ers.calculateInitialLimit(request),
 		Filters:       ers.buildEnhancedFilters(request),
 		HybridSearch:  true,
-		HybridAlpha:   ers.config.DefaultHybridAlpha,
+		HybridAlpha:   &ers.config.DefaultHybridAlpha,
 		UseReranker:   false, // We'll do our own reranking
 		MinConfidence: request.MinQualityScore,
 		ExpandQuery:   false, // Already done in enhancement step
@@ -515,13 +515,14 @@ func (ers *EnhancedRetrievalService) convertToEnhancedResults(basicResults []*Se
 
 	for i, result := range basicResults {
 		enhanced[i] = &EnhancedSearchResult{
-			SearchResult:       result,
 			RelevanceScore:     result.Score,
 			QualityScore:       ers.calculateQualityScore(result),
 			FreshnessScore:     ers.calculateFreshnessScore(result),
 			AuthorityScore:     ers.calculateAuthorityScore(result),
 			SemanticSimilarity: result.Score, // Initial value
 		}
+		// Set the embedded SearchResult field after construction
+		enhanced[i].SearchResult = result
 
 		// Calculate combined score
 		enhanced[i].CombinedScore = ers.calculateCombinedScore(enhanced[i])
@@ -853,9 +854,32 @@ func (ers *EnhancedRetrievalService) GetMetrics() *RetrievalMetrics {
 	ers.metrics.mutex.RLock()
 	defer ers.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *ers.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &RetrievalMetrics{
+		TotalQueries:           ers.metrics.TotalQueries,
+		SuccessfulQueries:      ers.metrics.SuccessfulQueries,
+		FailedQueries:          ers.metrics.FailedQueries,
+		AverageResponseTime:    ers.metrics.AverageResponseTime,
+		QueriesWithEnhancement: ers.metrics.QueriesWithEnhancement,
+		QueriesWithReranking:   ers.metrics.QueriesWithReranking,
+		AverageEnhancementTime: ers.metrics.AverageEnhancementTime,
+		AverageRerankingTime:   ers.metrics.AverageRerankingTime,
+		AverageRelevanceScore:  ers.metrics.AverageRelevanceScore,
+		AverageCoverageScore:   ers.metrics.AverageCoverageScore,
+		AverageDiversityScore:  ers.metrics.AverageDiversityScore,
+		IntentTypeMetrics:      make(map[string]IntentTypeMetrics),
+		CacheHitRate:           ers.metrics.CacheHitRate,
+		CacheHits:              ers.metrics.CacheHits,
+		CacheMisses:            ers.metrics.CacheMisses,
+		LastUpdated:            ers.metrics.LastUpdated,
+	}
+	
+	// Deep copy map
+	for k, v := range ers.metrics.IntentTypeMetrics {
+		metrics.IntentTypeMetrics[k] = v
+	}
+	
+	return metrics
 }
 
 // RetrievalHealthStatus represents the health status of the retrieval service

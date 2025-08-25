@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"strings"
 	"sync"
 	"time"
-	"unsafe"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
 // IntelligentCache provides advanced caching with intelligent invalidation strategies
@@ -64,7 +64,7 @@ type L1Cache struct {
 
 // CacheSegment provides lock-free cache operations for a subset of keys
 type CacheSegment struct {
-	entries     map[string]*CacheEntry
+	entries     map[string]*types.CacheEntry
 	accessOrder *AccessOrderManager
 	size        int64
 	lastAccess  time.Time
@@ -75,44 +75,7 @@ type CacheSegment struct {
 	writeBuffer   chan *CacheOperation
 }
 
-// CacheEntry represents a cached item with comprehensive metadata
-type CacheEntry struct {
-	// Data
-	Key           string
-	Value         []byte
-	OriginalValue interface{} // Keep reference to avoid re-serialization
-
-	// Metadata
-	CreatedAt    time.Time
-	LastAccessed time.Time
-	LastModified time.Time
-	ExpiresAt    time.Time
-
-	// Access patterns
-	AccessCount     int64
-	AccessFrequency float64
-	AccessPattern   AccessPattern
-
-	// Dependency tracking
-	Dependencies  []string
-	DependentKeys []string
-
-	// Semantic information
-	IntentType string
-	Parameters map[string]interface{}
-	Similarity float64
-
-	// Cache optimization
-	Size              int64
-	CompressionType   CompressionType
-	SerializationType SerializationType
-
-	// Quality metrics
-	HitProbability float64
-	CostBenefit    float64
-
-	mutex sync.RWMutex
-}
+// CacheEntry is now defined in pkg/shared/types/common_types.go
 
 // IntelligentCacheConfig holds configuration for the intelligent cache
 type IntelligentCacheConfig struct {
@@ -355,7 +318,7 @@ func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface
 	}
 
 	// Create cache entry with comprehensive metadata
-	entry := &CacheEntry{
+	entry := &types.CacheEntry{
 		Key:           key,
 		OriginalValue: value,
 		CreatedAt:     time.Now(),
@@ -386,7 +349,11 @@ func (ic *IntelligentCache) Set(ctx context.Context, key string, value interface
 		entry.Value = serializedValue
 	}
 
-	entry.Size = int64(len(entry.Value))
+	if valueBytes, ok := entry.Value.([]byte); ok {
+		entry.Size = int64(len(valueBytes))
+	} else {
+		entry.Size = int64(len(serializedValue))
+	}
 	entry.SerializationType = opts.Serialization
 
 	// Calculate TTL with adaptive policy
@@ -427,7 +394,7 @@ func (ic *IntelligentCache) getSemanticMatch(ctx context.Context, key string) (i
 	}
 
 	bestSimilarity := 0.0
-	var bestMatch *CacheEntry
+	var bestMatch *types.CacheEntry
 
 	// Compare with cached embeddings
 	ic.policies.SemanticSimilarity.embeddingsMutex.RLock()
@@ -622,19 +589,13 @@ func (ic *IntelligentCache) optimizationRoutine() {
 func NewL1Cache(config L1CacheConfig) (*L1Cache, error)                  { return nil, nil }
 func (l1 *L1Cache) Get(key string) (interface{}, bool)                   { return nil, false }
 func (l1 *L1Cache) Set(key string, value interface{}, ttl time.Duration) {}
-func (l1 *L1Cache) SetEntry(entry *CacheEntry)                           {}
-func (l1 *L1Cache) GetEntry(key string) (*CacheEntry, bool)              { return nil, false }
+func (l1 *L1Cache) SetEntry(entry *types.CacheEntry)                     {}
+func (l1 *L1Cache) GetEntry(key string) (*types.CacheEntry, bool)        { return nil, false }
 
 func NewDependencyGraph() *DependencyGraph                            { return &DependencyGraph{} }
 func (dg *DependencyGraph) AddDependencies(key string, deps []string) {}
 
 func NewPatternAnalyzer() *PatternAnalyzer { return &PatternAnalyzer{} }
-func NewCacheMetrics() *CacheMetrics       { return &CacheMetrics{} }
-
-func (cm *CacheMetrics) RecordOperation(op string, duration time.Duration) {}
-func (cm *CacheMetrics) RecordHit(level string)                            {}
-func (cm *CacheMetrics) RecordMiss()                                       {}
-func (cm *CacheMetrics) RecordSet()                                        {}
 
 func (ic *IntelligentCache) serializeJSON(v interface{}) ([]byte, error)    { return nil, nil }
 func (ic *IntelligentCache) serializeMsgPack(v interface{}) ([]byte, error) { return nil, nil }
@@ -726,8 +687,6 @@ type PatternAnalyzer struct{}
 type WarmingPredictor struct{}
 type WarmingScheduler struct{}
 type WarmingConfig struct{}
-
-type CacheMetrics struct{}
 
 type CacheOptions struct {
 	TTL           time.Duration

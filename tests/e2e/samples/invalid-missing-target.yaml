@@ -1,0 +1,10 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: invalid-missing-target
+  namespace: nephoran-system
+  labels:
+    test-scenario: validation-failure
+    test-type: e2e-negative
+spec:
+  intent: "Scale to 5 replicas with standard profile without specifying target deployment - should be rejected"

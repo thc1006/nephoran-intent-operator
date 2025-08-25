@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
 )
 
 // StateManager provides centralized state management for all controllers
@@ -234,7 +234,7 @@ func (sm *StateManager) UpdateIntentState(ctx context.Context, namespacedName ty
 }
 
 // TransitionPhase transitions an intent to a new phase
-func (sm *StateManager) TransitionPhase(ctx context.Context, namespacedName types.NamespacedName, newPhase interfaces.ProcessingPhase, metadata map[string]interface{}) error {
+func (sm *StateManager) TransitionPhase(ctx context.Context, namespacedName types.NamespacedName, newPhase contracts.ProcessingPhase, metadata map[string]interface{}) error {
 	return sm.UpdateIntentState(ctx, namespacedName, func(state *IntentState) error {
 		// Record phase transition
 		transition := PhaseTransition{
@@ -250,7 +250,7 @@ func (sm *StateManager) TransitionPhase(ctx context.Context, namespacedName type
 
 		// Update phase-specific data
 		if state.PhaseData == nil {
-			state.PhaseData = make(map[interfaces.ProcessingPhase]interface{})
+			state.PhaseData = make(map[contracts.ProcessingPhase]interface{})
 		}
 
 		if metadata != nil {
@@ -264,10 +264,10 @@ func (sm *StateManager) TransitionPhase(ctx context.Context, namespacedName type
 }
 
 // SetPhaseError sets an error for the current phase
-func (sm *StateManager) SetPhaseError(ctx context.Context, namespacedName types.NamespacedName, phase interfaces.ProcessingPhase, err error) error {
+func (sm *StateManager) SetPhaseError(ctx context.Context, namespacedName types.NamespacedName, phase contracts.ProcessingPhase, err error) error {
 	return sm.UpdateIntentState(ctx, namespacedName, func(state *IntentState) error {
 		if state.PhaseErrors == nil {
-			state.PhaseErrors = make(map[interfaces.ProcessingPhase][]string)
+			state.PhaseErrors = make(map[contracts.ProcessingPhase][]string)
 		}
 
 		state.PhaseErrors[phase] = append(state.PhaseErrors[phase], err.Error())
@@ -279,7 +279,7 @@ func (sm *StateManager) SetPhaseError(ctx context.Context, namespacedName types.
 }
 
 // GetPhaseData retrieves phase-specific data
-func (sm *StateManager) GetPhaseData(ctx context.Context, namespacedName types.NamespacedName, phase interfaces.ProcessingPhase) (interface{}, error) {
+func (sm *StateManager) GetPhaseData(ctx context.Context, namespacedName types.NamespacedName, phase contracts.ProcessingPhase) (interface{}, error) {
 	state, err := sm.GetIntentState(ctx, namespacedName)
 	if err != nil {
 		return nil, err
@@ -293,10 +293,10 @@ func (sm *StateManager) GetPhaseData(ctx context.Context, namespacedName types.N
 }
 
 // SetPhaseData sets phase-specific data
-func (sm *StateManager) SetPhaseData(ctx context.Context, namespacedName types.NamespacedName, phase interfaces.ProcessingPhase, data interface{}) error {
+func (sm *StateManager) SetPhaseData(ctx context.Context, namespacedName types.NamespacedName, phase contracts.ProcessingPhase, data interface{}) error {
 	return sm.UpdateIntentState(ctx, namespacedName, func(state *IntentState) error {
 		if state.PhaseData == nil {
-			state.PhaseData = make(map[interfaces.ProcessingPhase]interface{})
+			state.PhaseData = make(map[contracts.ProcessingPhase]interface{})
 		}
 
 		state.PhaseData[phase] = data
@@ -315,7 +315,7 @@ func (sm *StateManager) AddDependency(ctx context.Context, intentName, dependsOn
 
 		dependency := IntentDependency{
 			Intent:    dependsOnIntent.String(),
-			Phase:     interfaces.PhaseCompleted, // Default: wait for completion
+			Phase:     contracts.PhaseCompleted, // Default: wait for completion
 			Timestamp: time.Now(),
 		}
 
@@ -398,14 +398,14 @@ func (sm *StateManager) convertToIntentState(intent *nephoranv1.NetworkIntent) *
 			Namespace: intent.Namespace,
 			Name:      intent.Name,
 		},
-		CurrentPhase:     interfaces.ProcessingPhase(intent.Status.Phase),
+		CurrentPhase:     contracts.ProcessingPhase(intent.Status.Phase),
 		CreationTime:     intent.CreationTimestamp.Time,
 		LastModified:     time.Now(),
 		Version:          intent.ResourceVersion,
 		Conditions:       make([]StateCondition, 0),
 		PhaseTransitions: make([]PhaseTransition, 0),
-		PhaseData:        make(map[interfaces.ProcessingPhase]interface{}),
-		PhaseErrors:      make(map[interfaces.ProcessingPhase][]string),
+		PhaseData:        make(map[contracts.ProcessingPhase]interface{}),
+		PhaseErrors:      make(map[contracts.ProcessingPhase][]string),
 		Dependencies:     make([]IntentDependency, 0),
 		Metadata:         make(map[string]interface{}),
 	}
@@ -511,16 +511,16 @@ func (sm *StateManager) publishStateChangeEvent(ctx context.Context, namespacedN
 	}
 }
 
-func (sm *StateManager) isPhaseSatisfied(state *IntentState, requiredPhase interfaces.ProcessingPhase) bool {
+func (sm *StateManager) isPhaseSatisfied(state *IntentState, requiredPhase contracts.ProcessingPhase) bool {
 	// Check if the current phase satisfies the requirement
-	phaseOrder := []interfaces.ProcessingPhase{
-		interfaces.PhaseIntentReceived,
-		interfaces.PhaseLLMProcessing,
-		interfaces.PhaseResourcePlanning,
-		interfaces.PhaseManifestGeneration,
-		interfaces.PhaseGitOpsCommit,
-		interfaces.PhaseDeploymentVerification,
-		interfaces.PhaseCompleted,
+	phaseOrder := []contracts.ProcessingPhase{
+		contracts.PhaseIntentReceived,
+		contracts.PhaseLLMProcessing,
+		contracts.PhaseResourcePlanning,
+		contracts.PhaseManifestGeneration,
+		contracts.PhaseGitOpsCommit,
+		contracts.PhaseDeploymentVerification,
+		contracts.PhaseCompleted,
 	}
 
 	currentIndex := -1

@@ -37,8 +37,9 @@ services:
   llm-processor:
     build:
       context: .
-      dockerfile: cmd/llm-processor/Dockerfile
+      dockerfile: Dockerfile
       args:
+        SERVICE: llm-processor
         BUILD_DATE: ${BUILD_DATE:-2025-01-20T00:00:00Z}
         VCS_REF: ${VCS_REF:-dev}
         VERSION: ${VERSION:-v2.0.0}
@@ -46,13 +47,19 @@ services:
     container_name: nephoran-llm-processor
     restart: unless-stopped
     
-    # Security configuration
+    # Enhanced security configuration
     security_opt:
       - no-new-privileges:true
+      - seccomp:unconfined
+      - apparmor:docker-default
     read_only: true
     user: "65532:65532"
     cap_drop:
       - ALL
+    cap_add: []
+    privileged: false
+    pid: ""
+    userns_mode: "host"
     
     # Resource limits
     deploy:
@@ -143,18 +150,29 @@ services:
   rag-api:
     build:
       context: .
-      dockerfile: pkg/rag/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE_TYPE: python
+        BUILD_DATE: ${BUILD_DATE:-2025-01-20T00:00:00Z}
+        VCS_REF: ${VCS_REF:-dev}
+        VERSION: ${VERSION:-v2.0.0}
     image: nephoran-rag-api:${VERSION:-v2.0.0}
     container_name: nephoran-rag-api
     restart: unless-stopped
     
-    # Security configuration
+    # Enhanced security configuration
     security_opt:
       - no-new-privileges:true
+      - seccomp:unconfined
+      - apparmor:docker-default
     read_only: true
-    user: "1000:1000"
+    user: "65532:65532"
     cap_drop:
       - ALL
+    cap_add: []
+    privileged: false
+    pid: ""
+    userns_mode: "host"
     
     # Resource limits
     deploy:
@@ -213,18 +231,29 @@ services:
   nephio-bridge:
     build:
       context: .
-      dockerfile: cmd/nephio-bridge/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE: nephio-bridge
+        BUILD_DATE: ${BUILD_DATE:-2025-01-20T00:00:00Z}
+        VCS_REF: ${VCS_REF:-dev}
+        VERSION: ${VERSION:-v2.0.0}
     image: ghcr.io/thc1006/nephoran-intent-operator/nephio-bridge:${VERSION:-v2.0.0}
     container_name: nephoran-nephio-bridge
     restart: unless-stopped
     
-    # Security configuration
+    # Enhanced security configuration
     security_opt:
       - no-new-privileges:true
+      - seccomp:unconfined
+      - apparmor:docker-default
     read_only: true
     user: "65532:65532"
     cap_drop:
       - ALL
+    cap_add: []
+    privileged: false
+    pid: ""
+    userns_mode: "host"
     
     # Network configuration
     networks:
@@ -260,18 +289,29 @@ services:
   oran-adaptor:
     build:
       context: .
-      dockerfile: cmd/oran-adaptor/Dockerfile
+      dockerfile: Dockerfile
+      args:
+        SERVICE: oran-adaptor
+        BUILD_DATE: ${BUILD_DATE:-2025-01-20T00:00:00Z}
+        VCS_REF: ${VCS_REF:-dev}
+        VERSION: ${VERSION:-v2.0.0}
     image: ghcr.io/thc1006/nephoran-intent-operator/oran-adaptor:${VERSION:-v2.0.0}
     container_name: nephoran-oran-adaptor
     restart: unless-stopped
     
-    # Security configuration
+    # Enhanced security configuration
     security_opt:
       - no-new-privileges:true
+      - seccomp:unconfined
+      - apparmor:docker-default
     read_only: true
     user: "65532:65532"
     cap_drop:
       - ALL
+    cap_add: []
+    privileged: false
+    pid: ""
+    userns_mode: "host"
     
     # Network configuration
     networks:
@@ -298,14 +338,23 @@ services:
 
   # Monitoring Services
   prometheus:
-    image: prom/prometheus:v2.48.1
+    image: prom/prometheus:v2.54.1
     container_name: nephoran-prometheus
     restart: unless-stopped
     
-    # Security configuration
+    # Enhanced security configuration
     security_opt:
       - no-new-privileges:true
-    user: "nobody"
+      - seccomp:unconfined
+      - apparmor:docker-default
+    read_only: false  # Prometheus needs to write data
+    user: "65534:65534"
+    cap_drop:
+      - ALL
+    cap_add: []
+    privileged: false
+    pid: ""
+    userns_mode: "host"
     
     # Network configuration
     networks:
@@ -335,14 +384,23 @@ services:
       retries: 3
 
   grafana:
-    image: grafana/grafana:10.2.3
+    image: grafana/grafana:11.4.0
     container_name: nephoran-grafana
     restart: unless-stopped
     
-    # Security configuration
+    # Enhanced security configuration
     security_opt:
       - no-new-privileges:true
-    user: "472"
+      - seccomp:unconfined
+      - apparmor:docker-default
+    read_only: false  # Grafana needs to write data
+    user: "472:472"
+    cap_drop:
+      - ALL
+    cap_add: []
+    privileged: false
+    pid: ""
+    userns_mode: "host"
     
     # Network configuration
     networks:
@@ -368,13 +426,23 @@ services:
 
   # Distributed Tracing
   jaeger:
-    image: jaegertracing/all-in-one:1.51
+    image: jaegertracing/all-in-one:1.63
     container_name: nephoran-jaeger
     restart: unless-stopped
     
-    # Security configuration
+    # Enhanced security configuration
     security_opt:
       - no-new-privileges:true
+      - seccomp:unconfined
+      - apparmor:docker-default
+    read_only: false  # Jaeger needs to write data
+    user: "10001:10001"
+    cap_drop:
+      - ALL
+    cap_add: []
+    privileged: false
+    pid: ""
+    userns_mode: "host"
     
     # Network configuration
     networks:

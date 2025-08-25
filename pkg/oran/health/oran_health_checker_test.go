@@ -6,14 +6,10 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/a1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2"
 )
 
 func TestNewORANHealthChecker(t *testing.T) {

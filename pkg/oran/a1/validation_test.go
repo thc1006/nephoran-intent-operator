@@ -2,13 +2,11 @@
 package a1
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // Test fixtures for validation

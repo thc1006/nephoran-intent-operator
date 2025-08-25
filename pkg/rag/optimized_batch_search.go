@@ -10,29 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"golang.org/x/sync/errgroup"
 )
 
-// BatchSearchRequest represents a batch of search requests
-type BatchSearchRequest struct {
-	Queries           []*SearchQuery         `json:"queries"`
-	MaxConcurrency    int                    `json:"max_concurrency"`
-	EnableAggregation bool                   `json:"enable_aggregation"`
-	DeduplicationKey  string                 `json:"deduplication_key"`
-	Metadata          map[string]interface{} `json:"metadata"`
-}
-
-// BatchSearchResponse represents the response from batch search
-type BatchSearchResponse struct {
-	Results             []*SearchResponse      `json:"results"`
-	AggregatedResults   []*shared.SearchResult `json:"aggregated_results"`
-	TotalProcessingTime time.Duration          `json:"total_processing_time"`
-	ParallelQueries     int                    `json:"parallel_queries"`
-	CacheHits           int                    `json:"cache_hits"`
-	Metadata            map[string]interface{} `json:"metadata"`
-}
+// Use consolidated types from pkg/types
+type BatchSearchRequest = types.BatchSearchRequest
+type BatchSearchResponse = types.BatchSearchResponse
 
 // SearchBatch represents a batch of related queries
 type SearchBatch struct {
@@ -189,7 +173,7 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 	)
 
 	// Step 1: Deduplicate and optimize queries
-	optimizedQueries := c.optimizeQueries(request.Queries)
+	optimizedQueries := c.optimizeQueries(c.convertSharedSearchQueries(request.Queries))
 
 	// Step 2: Check cache for existing results
 	cachedResults, remainingQueries := c.checkCache(ctx, optimizedQueries)
@@ -204,13 +188,13 @@ func (c *OptimizedBatchSearchClient) BatchSearch(ctx context.Context, request *B
 	allResults := append(cachedResults, freshResults...)
 
 	// Step 5: Aggregate results if requested
-	var aggregatedResults []*shared.SearchResult
+	var aggregatedResults []*types.SearchResult
 	if request.EnableAggregation {
 		aggregatedResults = c.aggregateResults(allResults)
 	}
 
 	response := &BatchSearchResponse{
-		Results:             allResults,
+		Results:             c.convertToSharedSearchResponses(allResults),
 		AggregatedResults:   aggregatedResults,
 		TotalProcessingTime: time.Since(startTime),
 		ParallelQueries:     len(remainingQueries),
@@ -340,9 +324,9 @@ func (c *OptimizedBatchSearchClient) executeParallelSearch(ctx context.Context, 
 }
 
 // aggregateResults aggregates and deduplicates search results
-func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchResponse) []*shared.SearchResult {
-	seen := make(map[string]*shared.SearchResult)
-	var aggregated []*shared.SearchResult
+func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchResponse) []*types.SearchResult {
+	seen := make(map[string]*types.SearchResult)
+	var aggregated []*types.SearchResult
 
 	for _, response := range responses {
 		for _, result := range response.Results {
@@ -350,15 +334,23 @@ func (c *OptimizedBatchSearchClient) aggregateResults(responses []*SearchRespons
 				continue
 			}
 
+			// Convert to types.SearchResult
+			sharedResult := &types.SearchResult{
+				Document: result.Document,
+				Score:    result.Score,
+				Distance: 1.0 - result.Score, // Approximate distance from score
+				Metadata: result.Metadata,
+			}
+
 			key := result.Document.ID
 			if existing, exists := seen[key]; exists {
 				// Combine scores using max
-				if result.Score > existing.Score {
-					existing.Score = result.Score
+				if sharedResult.Score > existing.Score {
+					existing.Score = sharedResult.Score
 				}
 			} else {
-				seen[key] = result
-				aggregated = append(aggregated, result)
+				seen[key] = sharedResult
+				aggregated = append(aggregated, sharedResult)
 			}
 		}
 	}
@@ -433,7 +425,7 @@ func (c *OptimizedBatchSearchClient) StreamingBatchSearch(ctx context.Context, q
 func (c *OptimizedBatchSearchClient) createQueryKey(query *SearchQuery) string {
 	key := fmt.Sprintf("%s|%d|%t|%.2f|%t",
 		query.Query, query.Limit, query.HybridSearch,
-		query.HybridAlpha, query.UseReranker)
+		*query.HybridAlpha, query.UseReranker)
 
 	// Add filters to key
 	if len(query.Filters) > 0 {
@@ -523,8 +515,59 @@ func (c *OptimizedBatchSearchClient) GetMetrics() *BatchSearchMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 
-	metrics := *c.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &BatchSearchMetrics{
+		TotalBatches:         c.metrics.TotalBatches,
+		TotalQueries:         c.metrics.TotalQueries,
+		AverageLatency:       c.metrics.AverageLatency,
+		ThroughputQPS:        c.metrics.ThroughputQPS,
+		CacheHitRate:         c.metrics.CacheHitRate,
+		ParallelizationRatio: c.metrics.ParallelizationRatio,
+		DeduplicationSavings: c.metrics.DeduplicationSavings,
+	}
+	return metrics
+}
+
+// convertSharedSearchQueries converts types.SearchQuery to local SearchQuery
+func (c *OptimizedBatchSearchClient) convertSharedSearchQueries(sharedQueries []*types.SearchQuery) []*SearchQuery {
+	queries := make([]*SearchQuery, len(sharedQueries))
+	for i, sq := range sharedQueries {
+		queries[i] = &SearchQuery{
+			Query:         sq.Query,
+			Limit:         sq.Limit,
+			Filters:       sq.Filters,
+			HybridSearch:  sq.HybridSearch,
+			HybridAlpha:   &sq.HybridAlpha, // Convert to pointer
+			UseReranker:   sq.UseReranker,
+			MinConfidence: sq.MinConfidence,
+			ExpandQuery:   false, // Default value for missing field
+		}
+	}
+	return queries
+}
+
+// convertToSharedSearchResponses converts local SearchResponse to types.SearchResponse
+func (c *OptimizedBatchSearchClient) convertToSharedSearchResponses(responses []*SearchResponse) []*types.SearchResponse {
+	sharedResponses := make([]*types.SearchResponse, len(responses))
+	for i, resp := range responses {
+		// Convert SearchResult to types.SearchResult
+		sharedResults := make([]*types.SearchResult, len(resp.Results))
+		for j, result := range resp.Results {
+			sharedResults[j] = &types.SearchResult{
+				Document: result.Document,
+				Score:    result.Score,
+				Distance: 1.0 - result.Score, // Approximate distance from score
+				Metadata: result.Metadata,
+			}
+		}
+		
+		sharedResponses[i] = &types.SearchResponse{
+			Results: sharedResults,
+			Took:    int64(resp.Took.Nanoseconds()), // Convert duration to nanoseconds
+			Total:   resp.Total,
+		}
+	}
+	return sharedResponses
 }
 
 // Close cleans up resources

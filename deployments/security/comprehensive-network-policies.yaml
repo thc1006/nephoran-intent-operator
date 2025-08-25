@@ -1,0 +1,654 @@
+---
+# Comprehensive Network Security Policies for Nephoran Intent Operator
+# Implements Zero Trust Network Architecture with defense-in-depth
+# Following NIST SP 800-207 Zero Trust Architecture guidelines
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephoran-default-deny-all
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.com/policy-type: "deny-all"
+    security.nephoran.com/zero-trust: "true"
+  annotations:
+    security.nephoran.com/description: "Default deny-all policy for zero trust"
+    security.nephoran.com/compliance: "NIST-SP-800-207"
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+  # Empty ingress/egress rules = deny all
+
+---
+# Network Intent Controller Policies
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: network-intent-controller-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: network-intent-controller
+    security.nephoran.com/policy-type: "component-specific"
+spec:
+  podSelector:
+    matchLabels:
+      app: network-intent-controller
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Webhook traffic
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 9443
+  # Health check traffic
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+    ports:
+    - protocol: TCP
+      port: 8081
+  # Metrics traffic from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # Kubernetes API access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Communication with LLM processor
+  - to:
+    - podSelector:
+        matchLabels:
+          app: llm-processor
+    ports:
+    - protocol: TCP
+      port: 8080
+
+---
+# LLM Processor Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: llm-processor-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: llm-processor
+    security.nephoran.com/policy-type: "ai-workload"
+spec:
+  podSelector:
+    matchLabels:
+      app: llm-processor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Traffic from network intent controller
+  - from:
+    - podSelector:
+        matchLabels:
+          app: network-intent-controller
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Traffic from nephio bridge
+  - from:
+    - podSelector:
+        matchLabels:
+          app: nephio-bridge
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Health checks from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Metrics from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Communication with RAG API
+  - to:
+    - podSelector:
+        matchLabels:
+          app: rag-api
+    ports:
+    - protocol: TCP
+      port: 5001
+  # External LLM API access (secured)
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# RAG API Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: rag-api-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: rag-api
+    security.nephoran.com/policy-type: "data-processing"
+spec:
+  podSelector:
+    matchLabels:
+      app: rag-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Traffic from LLM processor
+  - from:
+    - podSelector:
+        matchLabels:
+          app: llm-processor
+    ports:
+    - protocol: TCP
+      port: 5001
+  # Health checks
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 5001
+  # Metrics from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 5001
+  egress:
+  # DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Communication with Weaviate vector DB
+  - to:
+    - podSelector:
+        matchLabels:
+          app: weaviate
+    ports:
+    - protocol: TCP
+      port: 8080
+  # External embedding API access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Nephio Bridge Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nephio-bridge-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: nephio-bridge
+    security.nephoran.com/policy-type: "orchestration"
+spec:
+  podSelector:
+    matchLabels:
+      app: nephio-bridge
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Traffic from network intent controller
+  - from:
+    - podSelector:
+        matchLabels:
+          app: network-intent-controller
+    ports:
+    - protocol: TCP
+      port: 8081
+  # Health checks
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8081
+  # Metrics from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 8081
+  egress:
+  # DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Communication with LLM processor
+  - to:
+    - podSelector:
+        matchLabels:
+          app: llm-processor
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Kubernetes API access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+  # Porch/Git repository access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 22  # Git SSH access
+
+---
+# ORAN Adaptor Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: oran-adaptor-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: oran-adaptor
+    security.nephoran.com/policy-type: "telecom-interface"
+spec:
+  podSelector:
+    matchLabels:
+      app: oran-adaptor
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Traffic from network intent controller
+  - from:
+    - podSelector:
+        matchLabels:
+          app: network-intent-controller
+    ports:
+    - protocol: TCP
+      port: 8082
+  # E2 interface traffic (from RIC)
+  - from: []
+    ports:
+    - protocol: SCTP
+      port: 36421  # E2AP
+    - protocol: TCP
+      port: 36422   # E2AP over TCP
+  # A1 interface traffic
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 8080    # A1 REST API
+  # O1 interface traffic (NETCONF)
+  - from: []
+    ports:
+    - protocol: TCP
+      port: 830     # NETCONF
+    - protocol: TCP
+      port: 6513    # NETCONF Call Home
+  # Health checks
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8082
+  egress:
+  # DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # Communication with external O-RAN components
+  - to: []
+    ports:
+    - protocol: SCTP
+      port: 36421  # E2AP
+    - protocol: TCP
+      port: 36422   # E2AP over TCP
+    - protocol: TCP
+      port: 8080    # A1 REST API
+    - protocol: TCP
+      port: 830     # NETCONF
+    - protocol: TCP
+      port: 6513    # NETCONF Call Home
+
+---
+# Weaviate Vector Database Network Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: weaviate-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    app.kubernetes.io/component: weaviate
+    security.nephoran.com/policy-type: "database"
+spec:
+  podSelector:
+    matchLabels:
+      app: weaviate
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Traffic from RAG API only
+  - from:
+    - podSelector:
+        matchLabels:
+          app: rag-api
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Health checks
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Metrics from monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080
+  egress:
+  # DNS resolution
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+  # External embedding model access
+  - to: []
+    ports:
+    - protocol: TCP
+      port: 443
+
+---
+# Monitoring and Observability Access Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: monitoring-access-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.com/policy-type: "monitoring"
+spec:
+  podSelector: {}  # Apply to all pods
+  policyTypes:
+  - Ingress
+  ingress:
+  # Prometheus scraping
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 8080    # Metrics port
+  # Jaeger tracing
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: jaeger-agent
+    ports:
+    - protocol: UDP
+      port: 6831    # Jaeger thrift compact
+    - protocol: UDP
+      port: 6832    # Jaeger thrift binary
+    - protocol: TCP
+      port: 14268   # Jaeger HTTP
+
+---
+# Security Scanning and Compliance Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: security-scanning-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.com/policy-type: "security-scanning"
+spec:
+  podSelector: {}  # Apply to all pods
+  policyTypes:
+  - Ingress
+  ingress:
+  # Trivy security scanner
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: security-scanning
+      podSelector:
+        matchLabels:
+          app: trivy-operator
+    ports:
+    - protocol: TCP
+      port: 8080
+  # Falco security monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: security-monitoring
+      podSelector:
+        matchLabels:
+          app: falco
+    ports:
+    - protocol: TCP
+      port: 8765
+
+---
+# Emergency Break Glass Policy
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: emergency-break-glass-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.com/policy-type: "emergency"
+    security.nephoran.com/emergency: "break-glass"
+  annotations:
+    security.nephoran.com/description: "Emergency policy to allow all traffic - use only for critical issues"
+    security.nephoran.com/auto-expire: "1h"
+    security.nephoran.com/approval-required: "true"
+spec:
+  podSelector:
+    matchLabels:
+      security.nephoran.com/emergency-access: "true"
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - {}  # Allow all ingress
+  egress:
+  - {}  # Allow all egress
+
+---
+# Calico Global Network Policy (if using Calico CNI)
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: nephoran-global-security-policy
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.com/policy-type: "global"
+spec:
+  tier: security
+  order: 100
+  selector: projectcalico.org/namespace == "nephoran-system"
+  types:
+  - Ingress
+  - Egress
+  # Deny by default, specific rules in namespace policies
+  ingress:
+  - action: Deny
+  egress:
+  - action: Deny
+
+---
+# Cilium Network Policy (if using Cilium CNI)
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: nephoran-l7-security-policy
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.com/policy-type: "l7-security"
+spec:
+  endpointSelector:
+    matchLabels:
+      app: llm-processor
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: network-intent-controller
+    toPorts:
+    - ports:
+      - port: "8080"
+        protocol: TCP
+      rules:
+        http:
+        - method: "POST"
+          path: "/api/v1/process"
+        - method: "GET"
+          path: "/healthz"
+        - method: "GET"
+          path: "/metrics"
+  egress:
+  - toFQDNs:
+    - matchName: "api.openai.com"
+    - matchName: "api.mistral.ai"
+    - matchPattern: "*.googleapis.com"
+    toPorts:
+    - ports:
+      - port: "443"
+        protocol: TCP
+      rules:
+        http:
+        - method: "POST"

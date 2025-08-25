@@ -3,7 +3,7 @@ package llm
 import (
 	"context"
 	"fmt"
-	"math"
+	"strings"
 	"testing"
 	"time"
 

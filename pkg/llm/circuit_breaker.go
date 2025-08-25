@@ -6,12 +6,14 @@ import (
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // CircuitBreaker implements the circuit breaker pattern for fault tolerance
 type CircuitBreaker struct {
 	name             string
-	config           *CircuitBreakerConfig
+	config           *shared.CircuitBreakerConfig
 	state            CircuitState
 	failureCount     int64
 	successCount     int64
@@ -26,30 +28,8 @@ type CircuitBreaker struct {
 	onStateChange    func(name string, from, to CircuitState)
 }
 
-// CircuitBreakerConfig holds configuration for circuit breaker
-type CircuitBreakerConfig struct {
-	// Failure threshold
-	FailureThreshold    int64   `json:"failure_threshold"`
-	FailureRate         float64 `json:"failure_rate"` // 0.0 to 1.0
-	MinimumRequestCount int64   `json:"minimum_request_count"`
-
-	// Timeout settings
-	Timeout         time.Duration `json:"timeout"`
-	HalfOpenTimeout time.Duration `json:"half_open_timeout"`
-
-	// Recovery settings
-	SuccessThreshold    int64 `json:"success_threshold"`
-	HalfOpenMaxRequests int64 `json:"half_open_max_requests"`
-
-	// Reset settings
-	ResetTimeout      time.Duration `json:"reset_timeout"`
-	SlidingWindowSize int           `json:"sliding_window_size"`
-
-	// Health check
-	EnableHealthCheck   bool          `json:"enable_health_check"`
-	HealthCheckInterval time.Duration `json:"health_check_interval"`
-	HealthCheckTimeout  time.Duration `json:"health_check_timeout"`
-}
+// Use consolidated CircuitBreakerConfig from pkg/shared
+type CircuitBreakerConfig = shared.CircuitBreakerConfig
 
 // CircuitState represents the state of the circuit breaker
 type CircuitState int
@@ -104,7 +84,7 @@ func (e *CircuitBreakerError) Error() string {
 type CircuitOperation func(context.Context) (interface{}, error)
 
 // NewCircuitBreaker creates a new circuit breaker
-func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreaker {
+func NewCircuitBreaker(name string, config *shared.CircuitBreakerConfig) *CircuitBreaker {
 	if config == nil {
 		config = getDefaultCircuitBreakerConfig()
 	}
@@ -131,8 +111,8 @@ func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreake
 }
 
 // getDefaultCircuitBreakerConfig returns default configuration
-func getDefaultCircuitBreakerConfig() *CircuitBreakerConfig {
-	return &CircuitBreakerConfig{
+func getDefaultCircuitBreakerConfig() *shared.CircuitBreakerConfig {
+	return &shared.CircuitBreakerConfig{
 		FailureThreshold:    5,
 		FailureRate:         0.5,
 		MinimumRequestCount: 10,
@@ -541,13 +521,13 @@ func (cb *CircuitBreaker) IsHalfOpen() bool {
 // CircuitBreakerManager manages multiple circuit breakers
 type CircuitBreakerManager struct {
 	circuitBreakers map[string]*CircuitBreaker
-	defaultConfig   *CircuitBreakerConfig
+	defaultConfig   *shared.CircuitBreakerConfig
 	logger          *slog.Logger
 	mutex           sync.RWMutex
 }
 
 // NewCircuitBreakerManager creates a new circuit breaker manager
-func NewCircuitBreakerManager(defaultConfig *CircuitBreakerConfig) *CircuitBreakerManager {
+func NewCircuitBreakerManager(defaultConfig *shared.CircuitBreakerConfig) *CircuitBreakerManager {
 	if defaultConfig == nil {
 		defaultConfig = getDefaultCircuitBreakerConfig()
 	}
@@ -560,7 +540,7 @@ func NewCircuitBreakerManager(defaultConfig *CircuitBreakerConfig) *CircuitBreak
 }
 
 // GetOrCreate gets an existing circuit breaker or creates a new one
-func (cbm *CircuitBreakerManager) GetOrCreate(name string, config *CircuitBreakerConfig) *CircuitBreaker {
+func (cbm *CircuitBreakerManager) GetOrCreate(name string, config *shared.CircuitBreakerConfig) *CircuitBreaker {
 	cbm.mutex.Lock()
 	defer cbm.mutex.Unlock()
 

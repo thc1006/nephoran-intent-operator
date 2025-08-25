@@ -24,6 +24,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 )
 
 // RateLimiter provides distributed rate limiting functionality

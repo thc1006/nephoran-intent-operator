@@ -258,13 +258,49 @@ generate-security-report: ## Generate comprehensive security report
 .PHONY: generate-compliance-report
 generate-compliance-report: ## Generate compliance report
 	@echo "$(YELLOW)Generating compliance report...$(NC)"
-	@$(SECURITY_DIR)/scripts/generate-compliance-report.sh $(REPORTS_DIR)
+	@python3 $(SECURITY_DIR)/scripts/compliance-validator.py --output $(REPORTS_DIR)/compliance-report.json
 	@echo "$(GREEN)Compliance report generated$(NC)"
+
+.PHONY: run-compliance-validation
+run-compliance-validation: ## Run comprehensive compliance validation
+	@echo "$(YELLOW)Running compliance validation...$(NC)"
+	@python3 $(SECURITY_DIR)/scripts/compliance-validator.py --framework all --verbose
+	@echo "$(GREEN)Compliance validation completed$(NC)"
+
+.PHONY: run-security-automation
+run-security-automation: ## Run automated security suite
+	@echo "$(YELLOW)Running security automation suite...$(NC)"
+	@python3 $(SECURITY_DIR)/automation/security-automation-suite.py
+	@echo "$(GREEN)Security automation completed$(NC)"
+
+.PHONY: run-remediation-engine
+run-remediation-engine: ## Run automated remediation engine
+	@echo "$(YELLOW)Running remediation engine...$(NC)"
+	@python3 $(SECURITY_DIR)/automation/remediation-workflows.py
+	@echo "$(GREEN)Remediation engine completed$(NC)"
 
 .PHONY: dashboard
 dashboard: ## Launch security dashboard
 	@echo "$(BLUE)Launching security dashboard...$(NC)"
 	@python3 $(SECURITY_DIR)/scripts/security-dashboard.py $(REPORTS_DIR)
+
+##@ Advanced Security Operations
+
+.PHONY: security-posture-assessment
+security-posture-assessment: ## Run comprehensive security posture assessment
+	@echo "$(BLUE)Running comprehensive security posture assessment...$(NC)"
+	@$(MAKE) security-scan
+	@$(MAKE) run-compliance-validation
+	@$(MAKE) run-security-automation
+	@$(MAKE) generate-security-report
+	@$(MAKE) generate-compliance-report
+	@echo "$(GREEN)✅ Security posture assessment completed$(NC)"
+
+.PHONY: security-metrics
+security-metrics: ## Generate security metrics and KPIs
+	@echo "$(YELLOW)Generating security metrics...$(NC)"
+	@python3 $(SECURITY_DIR)/automation/metrics-collector.py --output $(REPORTS_DIR)/security-metrics.json
+	@echo "$(GREEN)Security metrics generated$(NC)"
 
 ##@ Utilities
 

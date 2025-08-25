@@ -14,7 +14,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	metrics "github.com/prometheus/client_golang/api/prometheus/v1"
 	"golang.org/x/net/http2"
 	"golang.org/x/sync/singleflight"
 	"k8s.io/klog/v2"

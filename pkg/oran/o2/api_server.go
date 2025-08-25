@@ -12,12 +12,11 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/auth"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
@@ -70,7 +69,7 @@ type APIMetrics struct {
 type HealthChecker struct {
 	config         *HealthCheckConfig
 	healthChecks   map[string]ComponentHealthCheck
-	lastHealthData *HealthCheck
+	lastHealthData *common.HealthCheck
 	ticker         *time.Ticker
 	stopCh         chan struct{}
 }
@@ -511,9 +510,9 @@ func (s *O2APIServer) parseResourcePoolFilter(r *http.Request) *models.ResourceP
 }
 
 // Helper methods for service health checks
-func (s *O2APIServer) imsServiceHealthCheck(ctx context.Context) ComponentCheck {
+func (s *O2APIServer) imsServiceHealthCheck(ctx context.Context) common.ComponentCheck {
 	// Implement actual health check for IMS service
-	return ComponentCheck{
+	return common.ComponentCheck{
 		Name:      "ims-service",
 		Status:    "UP",
 		Message:   "IMS service is healthy",
@@ -521,9 +520,9 @@ func (s *O2APIServer) imsServiceHealthCheck(ctx context.Context) ComponentCheck 
 	}
 }
 
-func (s *O2APIServer) resourceManagerHealthCheck(ctx context.Context) ComponentCheck {
+func (s *O2APIServer) resourceManagerHealthCheck(ctx context.Context) common.ComponentCheck {
 	// Implement actual health check for resource manager
-	return ComponentCheck{
+	return common.ComponentCheck{
 		Name:      "resource-manager",
 		Status:    "UP",
 		Message:   "Resource manager is healthy",
@@ -531,9 +530,9 @@ func (s *O2APIServer) resourceManagerHealthCheck(ctx context.Context) ComponentC
 	}
 }
 
-func (s *O2APIServer) inventoryServiceHealthCheck(ctx context.Context) ComponentCheck {
+func (s *O2APIServer) inventoryServiceHealthCheck(ctx context.Context) common.ComponentCheck {
 	// Implement actual health check for inventory service
-	return ComponentCheck{
+	return common.ComponentCheck{
 		Name:      "inventory-service",
 		Status:    "UP",
 		Message:   "Inventory service is healthy",
@@ -541,9 +540,9 @@ func (s *O2APIServer) inventoryServiceHealthCheck(ctx context.Context) Component
 	}
 }
 
-func (s *O2APIServer) monitoringServiceHealthCheck(ctx context.Context) ComponentCheck {
+func (s *O2APIServer) monitoringServiceHealthCheck(ctx context.Context) common.ComponentCheck {
 	// Implement actual health check for monitoring service
-	return ComponentCheck{
+	return common.ComponentCheck{
 		Name:      "monitoring-service",
 		Status:    "UP",
 		Message:   "Monitoring service is healthy",

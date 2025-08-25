@@ -8,10 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"gonum.org/v1/gonum/stat"
-	"gonum.org/v1/gonum/stat/distuv"
 )
 
 // ValidationSuite provides comprehensive performance validation with statistical rigor
@@ -20,9 +17,9 @@ type ValidationSuite struct {
 	statisticalTests  *StatisticalValidator
 	evidenceCollector *EvidenceCollector
 	testRunner        *TestRunner
-	prometheusClient  v1.API
 	results           *ValidationResults
 	mu                sync.RWMutex
+	// prometheusClient  v1.API // TODO: Re-enable when Prometheus integration is needed
 }
 
 // ValidationConfig defines all validation parameters and statistical requirements
@@ -103,11 +100,6 @@ type EnvVariant struct {
 	Name        string                 `json:"name"`
 	Description string                 `json:"description"`
 	Config      map[string]interface{} `json:"config"`
-}
-
-// StatisticalValidator provides statistical validation methods
-type StatisticalValidator struct {
-	config *StatisticalConfig
 }
 
 // HypothesisTest represents a formal hypothesis test

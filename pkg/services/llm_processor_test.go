@@ -12,9 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
-	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 )
 
 // LLMProcessorServiceTestSuite provides comprehensive test coverage for LLMProcessorService

@@ -4,14 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
+	"sort"
 	"sync"
 	"time"
 
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
-	"gopkg.in/yaml.v2"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -29,7 +28,7 @@ type AdvancedConfigurationManager struct {
 	bulkOperations   *BulkConfigurationManager
 	netconfClients   map[string]*NetconfClient
 	clientsMux       sync.RWMutex
-	yangRegistry     *ExtendedYANGModelRegistry
+	yangRegistry     *YANGModelRegistry
 	metrics          *ConfigMetrics
 }
 
@@ -237,14 +236,14 @@ type DriftDetectionRule struct {
 type ConfigurationValidationEngine struct {
 	validators       map[string]ConfigurationValidator
 	validationRules  []*ValidationRule
-	yangRegistry     *ExtendedYANGModelRegistry
+	yangRegistry     *YANGModelRegistry
 	customValidators map[string]CustomValidator
 	mutex            sync.RWMutex
 }
 
 // ConfigurationValidator interface for configuration validation
 type ConfigurationValidator interface {
-	ValidateConfiguration(ctx context.Context, config map[string]interface{}, modelName string) *ValidationResult
+	ValidateConfiguration(ctx context.Context, config map[string]interface{}, modelName string) *ConfigValidationResult
 	GetValidatorName() string
 	GetSupportedModels() []string
 }
@@ -262,8 +261,8 @@ type ValidationRule struct {
 	Parameters map[string]interface{} `json:"parameters"`
 }
 
-// ValidationResult represents validation results
-type ValidationResult struct {
+// ConfigValidationResult represents configuration validation results
+type ConfigValidationResult struct {
 	Valid     bool               `json:"valid"`
 	Errors    []*ValidationError `json:"errors"`
 	Warnings  []*ValidationError `json:"warnings"`
@@ -353,7 +352,7 @@ type ConfigurationOperation struct {
 type OperationResult struct {
 	Success          bool                   `json:"success"`
 	Error            string                 `json:"error,omitempty"`
-	ValidationResult *ValidationResult      `json:"validation_result,omitempty"`
+	ValidationResult *ConfigValidationResult      `json:"validation_result,omitempty"`
 	AppliedAt        time.Time              `json:"applied_at"`
 	Metadata         map[string]interface{} `json:"metadata"`
 }
@@ -378,7 +377,7 @@ type ConfigMetrics struct {
 }
 
 // NewAdvancedConfigurationManager creates a new advanced configuration manager
-func NewAdvancedConfigurationManager(config *ConfigManagerConfig, yangRegistry *ExtendedYANGModelRegistry) *AdvancedConfigurationManager {
+func NewAdvancedConfigurationManager(config *ConfigManagerConfig, yangRegistry *YANGModelRegistry) *AdvancedConfigurationManager {
 	if config == nil {
 		config = &ConfigManagerConfig{
 			MaxVersions:          100,
@@ -581,7 +580,7 @@ func (acm *AdvancedConfigurationManager) ApplyConfigurationProfile(ctx context.C
 }
 
 // ValidateConfiguration validates a configuration without applying it
-func (acm *AdvancedConfigurationManager) ValidateConfiguration(ctx context.Context, elementID string, config map[string]interface{}) (*ValidationResult, error) {
+func (acm *AdvancedConfigurationManager) ValidateConfiguration(ctx context.Context, elementID string, config map[string]interface{}) (*ConfigValidationResult, error) {
 	return acm.validationEngine.ValidateConfiguration(ctx, config, elementID), nil
 }
 
@@ -920,7 +919,7 @@ func (cpm *ConfigurationProfileManager) ResolveProfileConfiguration(profile *Con
 	return profile.Configuration, nil
 }
 
-func NewConfigurationValidationEngine(yangRegistry *ExtendedYANGModelRegistry) *ConfigurationValidationEngine {
+func NewConfigurationValidationEngine(yangRegistry *YANGModelRegistry) *ConfigurationValidationEngine {
 	return &ConfigurationValidationEngine{
 		validators:       make(map[string]ConfigurationValidator),
 		validationRules:  make([]*ValidationRule, 0),
@@ -929,9 +928,9 @@ func NewConfigurationValidationEngine(yangRegistry *ExtendedYANGModelRegistry) *
 	}
 }
 
-func (cve *ConfigurationValidationEngine) ValidateConfiguration(ctx context.Context, config map[string]interface{}, modelName string) *ValidationResult {
+func (cve *ConfigurationValidationEngine) ValidateConfiguration(ctx context.Context, config map[string]interface{}, modelName string) *ConfigValidationResult {
 	// Placeholder - would implement comprehensive validation
-	return &ValidationResult{
+	return &ConfigValidationResult{
 		Valid:     true,
 		Errors:    make([]*ValidationError, 0),
 		Warnings:  make([]*ValidationError, 0),

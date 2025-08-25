@@ -64,22 +64,16 @@ func WaitForNetworkIntentPhase(ctx context.Context, k8sClient client.Client, nam
 	}, TestTimeout, TestInterval).Should(Equal(expectedPhase))
 }
 
-// WaitForNetworkIntentCondition waits for a NetworkIntent to have a specific condition
-func WaitForNetworkIntentCondition(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, conditionType string, status metav1.ConditionStatus) {
-	Eventually(func() metav1.ConditionStatus {
+// WaitForNetworkIntentMessage waits for a NetworkIntent to have a specific message
+func WaitForNetworkIntentMessage(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, expectedMessage string) {
+	Eventually(func() string {
 		ni := &nephoranv1.NetworkIntent{}
 		err := k8sClient.Get(ctx, namespacedName, ni)
 		if err != nil {
-			return metav1.ConditionUnknown
+			return ""
 		}
-
-		for _, condition := range ni.Status.Conditions {
-			if condition.Type == conditionType {
-				return condition.Status
-			}
-		}
-		return metav1.ConditionUnknown
-	}, TestTimeout, TestInterval).Should(Equal(status))
+		return ni.Status.LastMessage
+	}, TestTimeout, TestInterval).Should(ContainSubstring(expectedMessage))
 }
 
 // WaitForE2NodeSetReady waits for an E2NodeSet to have the expected number of ready replicas
@@ -173,20 +167,9 @@ func GenerateUniqueName(prefix string) string {
 	return fmt.Sprintf("%s-%d", prefix, time.Now().UnixNano())
 }
 
-// AssertNetworkIntentHasCondition asserts that a NetworkIntent has a specific condition
-func AssertNetworkIntentHasCondition(ni *nephoranv1.NetworkIntent, conditionType string, status metav1.ConditionStatus, reason string) {
-	found := false
-	for _, condition := range ni.Status.Conditions {
-		if condition.Type == conditionType {
-			found = true
-			Expect(condition.Status).To(Equal(status), "Condition %s should have status %s", conditionType, status)
-			if reason != "" {
-				Expect(condition.Reason).To(Equal(reason), "Condition %s should have reason %s", conditionType, reason)
-			}
-			break
-		}
-	}
-	Expect(found).To(BeTrue(), "NetworkIntent should have condition %s", conditionType)
+// AssertNetworkIntentHasMessage asserts that a NetworkIntent has a specific message
+func AssertNetworkIntentHasMessage(ni *nephoranv1.NetworkIntent, expectedMessage string) {
+	Expect(ni.Status.LastMessage).To(ContainSubstring(expectedMessage), "NetworkIntent should have message containing %s", expectedMessage)
 }
 
 // AssertE2NodeSetHasOwnerReference asserts that ConfigMaps have the correct owner reference
@@ -276,7 +259,7 @@ func WaitForMultipleNetworkIntentsProcessed(ctx context.Context, k8sClient clien
 			Name:      ni.Name,
 			Namespace: ni.Namespace,
 		}
-		WaitForNetworkIntentCondition(ctx, k8sClient, namespacedName, "Processed", metav1.ConditionTrue)
+		WaitForNetworkIntentPhase(ctx, k8sClient, namespacedName, "Processed")
 	}
 }
 
@@ -379,20 +362,14 @@ func CreateTestSecret(ctx context.Context, k8sClient client.Client, name, namesp
 	return secret
 }
 
-// WaitForConditionWithReason waits for a condition with a specific reason
-func WaitForConditionWithReason(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, conditionType, reason string) {
+// WaitForPhaseWithMessage waits for a phase and message combination
+func WaitForPhaseWithMessage(ctx context.Context, k8sClient client.Client, namespacedName types.NamespacedName, expectedPhase, expectedMessage string) {
 	Eventually(func() bool {
 		ni := &nephoranv1.NetworkIntent{}
 		if err := k8sClient.Get(ctx, namespacedName, ni); err != nil {
 			return false
 		}
-
-		for _, condition := range ni.Status.Conditions {
-			if condition.Type == conditionType && condition.Reason == reason {
-				return true
-			}
-		}
-		return false
+		return ni.Status.Phase == expectedPhase && ni.Status.LastMessage == expectedMessage
 	}, TestTimeout, TestInterval).Should(BeTrue())
 }
 

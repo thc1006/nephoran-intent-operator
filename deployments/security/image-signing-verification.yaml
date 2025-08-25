@@ -1,0 +1,466 @@
+# ==============================================================================
+# Container Image Signing and Verification Configuration
+# ==============================================================================
+# Implements Sigstore Cosign for container image signing and verification
+# Provides supply chain security and image integrity validation
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: image-signing-config
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: image-security
+    security.signing: "enabled"
+data:
+  cosign-policy.yaml: |
+    # Cosign verification policy for Nephoran images
+    apiVersion: v1alpha1
+    kind: ClusterImagePolicy
+    metadata:
+      name: nephoran-image-policy
+    spec:
+      images:
+      - glob: "ghcr.io/thc1006/nephoran-intent-operator/*"
+      - glob: "nephoran/*"
+      authorities:
+      - keyless:
+          url: https://fulcio.sigstore.dev
+          identities:
+          - issuer: https://accounts.google.com
+            subject: thc1006@gmail.com
+          - issuer: https://github.com/login/oauth
+            subjectRegExp: "https://github.com/thc1006/nephoran-intent-operator/.*"
+      - key:
+          data: |
+            -----BEGIN PUBLIC KEY-----
+            MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...
+            -----END PUBLIC KEY-----
+      - key:
+          secretRef:
+            name: nephoran-signing-key
+            key: cosign.pub
+      policy:
+        fetchConfigFile: false
+        requireRekorBundle: true
+        type: "cue"
+        data: |
+          package sigstore
+          
+          import "list"
+          
+          // Require signatures from our organization
+          authorizedSigners: [
+            "thc1006@gmail.com",
+            "https://github.com/thc1006/nephoran-intent-operator/.github/workflows/build.yml@refs/heads/main"
+          ]
+          
+          // Attestation requirements
+          attestations: [
+            {
+              predicateType: "https://slsa.dev/provenance/v0.2"
+              policy: {
+                type: "cue"
+                data: '''
+                  predicate: {
+                    buildType: "https://github.com/Attestations/GitHubActionsWorkflow@v1"
+                    builder: {
+                      id: =~"^https://github.com/"
+                    }
+                    invocation: {
+                      configSource: {
+                        repository: =~"^https://github.com/thc1006/nephoran-intent-operator"
+                        ref: =~"^refs/(heads|tags)/"
+                      }
+                    }
+                  }
+                '''
+              }
+            },
+            {
+              predicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"
+              policy: {
+                type: "cue"
+                data: '''
+                  predicate: {
+                    scanner: {
+                      name: "trivy"
+                      version: =~"^v?[0-9]"
+                    }
+                    metadata: {
+                      scanStartedOn: =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+                      scanFinishedOn: =~"^[0-9]{4}-[0-9]{2}-[0-9]{2}T"
+                    }
+                  }
+                '''
+              }
+            }
+          ]
+
+  gatekeeper-constraint.yaml: |
+    # OPA Gatekeeper constraint for image verification
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: requiredimagesignatures
+    spec:
+      crd:
+        spec:
+          names:
+            kind: RequiredImageSignatures
+          validation:
+            properties:
+              exemptImages:
+                type: array
+                items:
+                  type: string
+              repos:
+                type: array
+                items:
+                  type: string
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package requiredimagesignatures
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.containers[_]
+              image := container.image
+              not is_exempt_image(image)
+              not has_valid_signature(image)
+              msg := sprintf("Container image '%v' must be signed and verified", [image])
+            }
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.initContainers[_]
+              image := container.image
+              not is_exempt_image(image)
+              not has_valid_signature(image)
+              msg := sprintf("Init container image '%v' must be signed and verified", [image])
+            }
+            
+            is_exempt_image(image) {
+              input.parameters.exemptImages[_] == image
+            }
+            
+            is_exempt_image(image) {
+              exempt := input.parameters.exemptImages[_]
+              regex.match(exempt, image)
+            }
+            
+            has_valid_signature(image) {
+              # Check if image is from trusted repository
+              repo := input.parameters.repos[_]
+              startswith(image, repo)
+              
+              # This would integrate with external signature verification
+              # In practice, this would call cosign verify or use admission controller
+              true
+            }
+
+  sigstore-scaffold.yaml: |
+    # Sigstore deployment scaffold
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: sigstore-system
+      labels:
+        name: sigstore-system
+        security.sigstore: "enabled"
+    ---
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: policy-controller
+      namespace: sigstore-system
+      labels:
+        app: policy-controller
+        component: admission-controller
+    spec:
+      replicas: 2
+      selector:
+        matchLabels:
+          app: policy-controller
+      template:
+        metadata:
+          labels:
+            app: policy-controller
+        spec:
+          serviceAccountName: policy-controller
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65532
+            fsGroup: 65532
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: policy-controller
+            image: gcr.io/projectsigstore/policy-controller:v0.8.2
+            ports:
+            - containerPort: 8443
+              name: webhook
+            - containerPort: 9090
+              name: metrics
+            env:
+            - name: SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CONFIG_LOGGING_NAME
+              value: config-logging
+            - name: METRICS_DOMAIN
+              value: sigstore.dev/policy-controller
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+              runAsNonRoot: true
+              runAsUser: 65532
+              runAsGroup: 65532
+            resources:
+              limits:
+                cpu: 1000m
+                memory: 1Gi
+              requests:
+                cpu: 100m
+                memory: 256Mi
+            volumeMounts:
+            - name: config-logging
+              mountPath: /etc/config-logging
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: var-run
+              mountPath: /var/run
+          volumes:
+          - name: config-logging
+            configMap:
+              name: config-logging
+          - name: tmp
+            emptyDir:
+              sizeLimit: 100Mi
+          - name: var-run
+            emptyDir:
+              sizeLimit: 100Mi
+
+---
+# Image Signing Job Template
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sign-nephoran-images
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: image-signing
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: image-signer
+      containers:
+      - name: cosign-signer
+        image: gcr.io/projectsigstore/cosign:v2.2.2
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "Starting image signing process..."
+          
+          # Images to sign
+          IMAGES="
+          ghcr.io/thc1006/nephoran-intent-operator/llm-processor:${VERSION:-latest}
+          ghcr.io/thc1006/nephoran-intent-operator/nephio-bridge:${VERSION:-latest}
+          ghcr.io/thc1006/nephoran-intent-operator/oran-adaptor:${VERSION:-latest}
+          ghcr.io/thc1006/nephoran-intent-operator/manager:${VERSION:-latest}
+          nephoran/rag-api:${VERSION:-latest}
+          "
+          
+          # Sign each image
+          for image in $IMAGES; do
+            echo "Signing image: $image"
+            
+            # Keyless signing using OIDC identity
+            cosign sign --yes $image
+            
+            # Generate SLSA provenance attestation
+            cosign attest --yes \
+              --predicate /tmp/slsa-provenance.json \
+              --type slsaprovenance \
+              $image
+            
+            # Generate vulnerability attestation
+            if [ -f "/tmp/trivy-scan-${image##*/}.json" ]; then
+              cosign attest --yes \
+                --predicate /tmp/trivy-scan-${image##*/}.json \
+                --type vuln \
+                $image
+            fi
+            
+            # Verify the signature
+            cosign verify $image
+            
+            echo "Successfully signed and verified: $image"
+          done
+          
+          echo "All images signed successfully!"
+        
+        env:
+        - name: COSIGN_EXPERIMENTAL
+          value: "1"
+        - name: VERSION
+          value: "v2.0.0"
+        
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+        
+        resources:
+          limits:
+            cpu: 500m
+            memory: 1Gi
+            ephemeral-storage: 2Gi
+          requests:
+            cpu: 100m
+            memory: 256Mi
+            ephemeral-storage: 500Mi
+        
+        volumeMounts:
+        - name: slsa-provenance
+          mountPath: /tmp/slsa-provenance.json
+          subPath: slsa-provenance.json
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+      
+      volumes:
+      - name: slsa-provenance
+        configMap:
+          name: slsa-provenance-template
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+
+---
+# SLSA Provenance Template
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: slsa-provenance-template
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: slsa-provenance
+data:
+  slsa-provenance.json: |
+    {
+      "_type": "https://in-toto.io/Statement/v0.1",
+      "predicateType": "https://slsa.dev/provenance/v0.2",
+      "predicate": {
+        "builder": {
+          "id": "https://github.com/thc1006/nephoran-intent-operator/.github/workflows/build.yml@refs/heads/main"
+        },
+        "buildType": "https://github.com/Attestations/GitHubActionsWorkflow@v1",
+        "invocation": {
+          "configSource": {
+            "uri": "git+https://github.com/thc1006/nephoran-intent-operator@refs/heads/main",
+            "digest": {
+              "sha1": "${GITHUB_SHA}"
+            },
+            "entryPoint": ".github/workflows/build.yml"
+          },
+          "parameters": {
+            "version": "${VERSION}",
+            "build_date": "${BUILD_DATE}",
+            "vcs_ref": "${VCS_REF}"
+          },
+          "environment": {
+            "github_actor": "${GITHUB_ACTOR}",
+            "github_event_name": "push",
+            "github_ref": "${GITHUB_REF}",
+            "github_ref_type": "branch",
+            "github_repository": "thc1006/nephoran-intent-operator",
+            "github_run_id": "${GITHUB_RUN_ID}",
+            "github_run_number": "${GITHUB_RUN_NUMBER}",
+            "github_sha": "${GITHUB_SHA}"
+          }
+        },
+        "metadata": {
+          "buildInvocationId": "${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}",
+          "buildStartedOn": "${BUILD_STARTED}",
+          "buildFinishedOn": "${BUILD_FINISHED}",
+          "completeness": {
+            "parameters": true,
+            "environment": false,
+            "materials": false
+          },
+          "reproducible": false
+        },
+        "materials": [
+          {
+            "uri": "git+https://github.com/thc1006/nephoran-intent-operator@refs/heads/main",
+            "digest": {
+              "sha1": "${GITHUB_SHA}"
+            }
+          }
+        ]
+      }
+    }
+
+---
+# RBAC for Image Signer
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: image-signer
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: image-signing
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: nephoran-system
+  name: image-signer
+  labels:
+    app: nephoran
+    component: image-signing
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: image-signer
+  namespace: nephoran-system
+  labels:
+    app: nephoran
+    component: image-signing
+subjects:
+- kind: ServiceAccount
+  name: image-signer
+  namespace: nephoran-system
+roleRef:
+  kind: Role
+  name: image-signer
+  apiGroup: rbac.authorization.k8s.io

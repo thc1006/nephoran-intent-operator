@@ -24,9 +24,9 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -36,13 +36,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
@@ -517,8 +513,8 @@ func (rm *RestoreManager) downloadBackupMetadata(ctx context.Context, backupID s
 	rm.logger.Info("Downloading backup metadata", "key", key)
 
 	result, err := rm.s3Client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(rm.config.S3Config.Bucket),
-		Key:    aws.String(key),
+		Bucket: &rm.config.S3Config.Bucket,
+		Key:    &key,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to download backup metadata: %w", err)
@@ -932,8 +928,8 @@ func (rm *RestoreManager) downloadComponentFile(ctx context.Context, s3Path stri
 
 	// Download file
 	result, err := rm.s3Client.GetObject(ctx, &s3.GetObjectInput{
-		Bucket: aws.String(bucket),
-		Key:    aws.String(key),
+		Bucket: &bucket,
+		Key:    &key,
 	})
 	if err != nil {
 		os.Remove(tmpFile.Name())

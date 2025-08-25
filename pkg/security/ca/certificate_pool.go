@@ -2,7 +2,6 @@ package ca
 
 import (
 	"context"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"sort"

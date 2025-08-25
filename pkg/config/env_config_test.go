@@ -146,7 +146,7 @@ func TestConfigEnvironmentVariables(t *testing.T) {
 		{
 			name: "METRICS_ENABLED=true with METRICS_ALLOWED_IPS=*",
 			envVars: map[string]string{
-				"METRICS_ENABLED": "true",
+				"METRICS_ENABLED":     "true",
 				"METRICS_ALLOWED_IPS": "*",
 			},
 			checkFunc: func(cfg *Config, t *testing.T) {
@@ -173,7 +173,7 @@ func TestConfigEnvironmentVariables(t *testing.T) {
 			for key, value := range tt.envVars {
 				os.Setenv(key, value)
 			}
-			
+
 			// Set required OPENAI_API_KEY for validation
 			os.Setenv("OPENAI_API_KEY", "test-key")
 

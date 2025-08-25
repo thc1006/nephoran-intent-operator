@@ -6,8 +6,6 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/asn1"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -18,7 +16,6 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"golang.org/x/crypto/ocsp"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // EnhancedRevocationSystem provides comprehensive revocation checking with performance optimization
@@ -166,7 +163,7 @@ type RevocationCacheManager struct {
 	l1Cache      *L1RevocationCache
 	l2Cache      *L2RevocationCache
 	preloadCache *PreloadRevocationCache
-	stats        *CacheStatistics
+	stats        *RevocationCacheStatistics
 	mu           sync.RWMutex
 }
 
@@ -339,7 +336,7 @@ func NewEnhancedRevocationSystem(
 				maxSize: config.L1CacheSize,
 				ttl:     config.L1CacheTTL,
 			},
-			stats: &CacheStatistics{},
+			stats: &RevocationCacheStatistics{},
 		}
 
 		if config.L2CacheEnabled {
@@ -1338,7 +1335,7 @@ type ResultCollector struct {
 	mu      sync.RWMutex
 }
 
-type CacheStatistics struct {
+type RevocationCacheStatistics struct {
 	Hits      atomic.Uint64
 	Misses    atomic.Uint64
 	Evictions atomic.Uint64

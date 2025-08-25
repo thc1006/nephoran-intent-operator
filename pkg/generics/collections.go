@@ -467,8 +467,8 @@ func SortSlice[T Ordered](s *Slice[T]) *Slice[T] {
 }
 
 // SortBy sorts the slice using a custom comparison function.
-func SortBySlice[T any](s *Slice[T], less func(T, T) bool) *Slice[T] {
-	slices.SortFunc(s.items, less)
+func SortBySlice[T any](s *Slice[T], cmp func(T, T) int) *Slice[T] {
+	slices.SortFunc(s.items, cmp)
 	return s
 }
 

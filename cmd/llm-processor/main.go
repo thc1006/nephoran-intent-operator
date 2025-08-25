@@ -21,12 +21,12 @@ import (
 )
 
 var (
-	cfg              *config.LLMProcessorConfig
-	logger           *slog.Logger
-	service          *services.LLMProcessorService
-	handler          *handlers.LLMProcessorHandler
-	startTime        = time.Now()
-	postRateLimiter  *middleware.PostOnlyRateLimiter // Declare at package level for shutdown
+	cfg             *config.LLMProcessorConfig
+	logger          *slog.Logger
+	service         *services.LLMProcessorService
+	handler         *handlers.LLMProcessorHandler
+	startTime       = time.Now()
+	postRateLimiter *middleware.PostOnlyRateLimiter // Declare at package level for shutdown
 )
 
 func main() {
@@ -335,8 +335,8 @@ func setupHTTPServer() *http.Server {
 	// Enable HSTS only if TLS is enabled
 	securityHeadersConfig.EnableHSTS = cfg.TLSEnabled
 	// Enhanced security headers for API service
-	securityHeadersConfig.ContentTypeOptions = true // Always set nosniff
-	securityHeadersConfig.FrameOptions = "DENY"     // Prevent clickjacking
+	securityHeadersConfig.ContentTypeOptions = true                    // Always set nosniff
+	securityHeadersConfig.FrameOptions = "DENY"                        // Prevent clickjacking
 	securityHeadersConfig.ContentSecurityPolicy = "default-src 'none'" // Strict CSP for API
 
 	securityHeaders := middleware.NewSecurityHeaders(securityHeadersConfig, logger)
@@ -446,7 +446,7 @@ func createIPRestrictedHandler(handler http.HandlerFunc, allowedIPs []string, lo
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Extract client IP
 		clientIP := getClientIP(r)
-		
+
 		// Check if IP is in allowed list
 		allowed := false
 		for _, ip := range allowedIPs {
@@ -455,24 +455,24 @@ func createIPRestrictedHandler(handler http.HandlerFunc, allowedIPs []string, lo
 				break
 			}
 		}
-		
+
 		if !allowed {
 			logger.Warn("Metrics access denied - IP not in allowed list",
 				slog.String("client_ip", clientIP),
 				slog.String("remote_addr", r.RemoteAddr),
 				slog.String("path", r.URL.Path))
-			
+
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
 			fmt.Fprintf(w, `{"error":"Access forbidden","message":"Your IP address is not authorized to access this endpoint"}`)
 			return
 		}
-		
+
 		// Log successful access
 		logger.Debug("Metrics access granted",
 			slog.String("client_ip", clientIP),
 			slog.String("path", r.URL.Path))
-		
+
 		// Call the original handler
 		handler(w, r)
 	}
@@ -491,18 +491,18 @@ func getClientIP(r *http.Request) string {
 			}
 		}
 	}
-	
+
 	// Check X-Real-IP header (nginx)
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return xri
 	}
-	
+
 	// Fall back to RemoteAddr
 	// RemoteAddr might be in the format "IP:port", so we need to extract just the IP
 	if host, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		return host
 	}
-	
+
 	// If SplitHostPort fails, it might already be just an IP
 	return r.RemoteAddr
 }

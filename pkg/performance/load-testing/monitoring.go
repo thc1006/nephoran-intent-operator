@@ -437,7 +437,7 @@ func NewApplicationMetricsCollector(config *LoadTestConfig, logger *zap.Logger) 
 	return &ApplicationMetricsCollector{
 		config:   config,
 		logger:   logger,
-		registry: prometheus.DefaultRegistry,
+		registry: prometheus.NewRegistry(),
 	}
 }
 
@@ -674,7 +674,7 @@ func (a *TrendAnalyzer) Analyze(metrics map[string]float64) AnalysisResult {
 		return result // Not enough data for trend analysis
 	}
 
-	for metric, currentValue := range metrics {
+	for metric, _ := range metrics {
 		// Extract time series for this metric
 		timeSeries := make([]float64, 0, len(historical))
 		for _, snapshot := range historical {
@@ -798,7 +798,7 @@ func (a *PredictiveAnalyzer) predictTimeToExhaustion(metric string, threshold fl
 	}
 
 	// Calculate rate of change
-	slope, intercept := linearRegression(timeSeries)
+	slope, _ := linearRegression(timeSeries)
 
 	if slope <= 0 {
 		return time.Hour * 24 // No exhaustion predicted if decreasing

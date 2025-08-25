@@ -32,7 +32,6 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )

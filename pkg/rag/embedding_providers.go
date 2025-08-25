@@ -31,7 +31,7 @@ func NewBasicOpenAIProvider(config ProviderConfig, httpClient *http.Client) *Ope
 }
 
 // GenerateEmbeddings implements EmbeddingProvider
-func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
+func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, EmbeddingTokenUsage, error) {
 	requestBody := OpenAIEmbeddingRequest{
 		Input: texts,
 		Model: p.config.ModelName,
@@ -39,12 +39,12 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to marshal request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", p.config.APIEndpoint, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to create request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Set headers
@@ -83,25 +83,25 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 			backoffDelay := time.Duration(attempt+1) * 2 * time.Second
 			select {
 			case <-ctx.Done():
-				return nil, TokenUsage{}, ctx.Err()
+				return nil, EmbeddingTokenUsage{}, ctx.Err()
 			case <-time.After(backoffDelay):
 			}
 		}
 	}
 
 	if lastErr != nil {
-		return nil, TokenUsage{}, fmt.Errorf("OpenAI API request failed after %d attempts: %w", maxRetries+1, lastErr)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("OpenAI API request failed after %d attempts: %w", maxRetries+1, lastErr)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, TokenUsage{}, fmt.Errorf("OpenAI API returned status %d", resp.StatusCode)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("OpenAI API returned status %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 
 	var apiResponse OpenAIEmbeddingResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to decode OpenAI response: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to decode OpenAI response: %w", err)
 	}
 
 	// Extract embeddings
@@ -113,7 +113,7 @@ func (p *OpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 	// Calculate estimated cost
 	estimatedCost := float64(apiResponse.Usage.TotalTokens) * p.config.CostPerToken / 1000
 
-	usage := TokenUsage{
+	usage := EmbeddingTokenUsage{
 		PromptTokens:  apiResponse.Usage.PromptTokens,
 		TotalTokens:   apiResponse.Usage.TotalTokens,
 		EstimatedCost: estimatedCost,
@@ -182,7 +182,7 @@ func NewBasicAzureOpenAIProvider(config ProviderConfig, httpClient *http.Client)
 }
 
 // GenerateEmbeddings implements EmbeddingProvider for Azure OpenAI
-func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
+func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, EmbeddingTokenUsage, error) {
 	// Azure OpenAI uses a slightly different API format
 	requestBody := map[string]interface{}{
 		"input": texts,
@@ -190,12 +190,12 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to marshal Azure request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to marshal Azure request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", p.config.APIEndpoint, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to create Azure request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to create Azure request: %w", err)
 	}
 
 	// Set Azure-specific headers
@@ -234,25 +234,25 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 			backoffDelay := time.Duration(attempt+1) * 2 * time.Second
 			select {
 			case <-ctx.Done():
-				return nil, TokenUsage{}, ctx.Err()
+				return nil, EmbeddingTokenUsage{}, ctx.Err()
 			case <-time.After(backoffDelay):
 			}
 		}
 	}
 
 	if lastErr != nil {
-		return nil, TokenUsage{}, fmt.Errorf("Azure OpenAI API request failed after %d attempts: %w", maxRetries+1, lastErr)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("Azure OpenAI API request failed after %d attempts: %w", maxRetries+1, lastErr)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, TokenUsage{}, fmt.Errorf("Azure OpenAI API returned status %d", resp.StatusCode)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("Azure OpenAI API returned status %d", resp.StatusCode)
 	}
 
 	defer resp.Body.Close()
 
 	var apiResponse OpenAIEmbeddingResponse // Azure uses similar response format
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to decode Azure response: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to decode Azure response: %w", err)
 	}
 
 	// Extract embeddings
@@ -264,7 +264,7 @@ func (p *AzureOpenAIProvider) GenerateEmbeddings(ctx context.Context, texts []st
 	// Calculate estimated cost
 	estimatedCost := float64(apiResponse.Usage.TotalTokens) * p.config.CostPerToken / 1000
 
-	usage := TokenUsage{
+	usage := EmbeddingTokenUsage{
 		PromptTokens:  apiResponse.Usage.PromptTokens,
 		TotalTokens:   apiResponse.Usage.TotalTokens,
 		EstimatedCost: estimatedCost,
@@ -329,7 +329,7 @@ func NewLocalProvider(config ProviderConfig) *LocalProvider {
 }
 
 // GenerateEmbeddings implements EmbeddingProvider for local models
-func (p *LocalProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
+func (p *LocalProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, EmbeddingTokenUsage, error) {
 	// This is a placeholder for local embedding generation
 	// In a real implementation, this would interface with local models like:
 	// - sentence-transformers via Python subprocess
@@ -340,7 +340,7 @@ func (p *LocalProvider) GenerateEmbeddings(ctx context.Context, texts []string) 
 	p.logger.Warn("Local provider called but not implemented - would generate embeddings locally")
 
 	// For now, return an error indicating this is not yet implemented
-	return nil, TokenUsage{}, fmt.Errorf("local embedding provider not implemented yet - requires integration with local models")
+	return nil, EmbeddingTokenUsage{}, fmt.Errorf("local embedding provider not implemented yet - requires integration with local models")
 }
 
 // GetConfig implements EmbeddingProvider
@@ -399,7 +399,7 @@ func NewBasicHuggingFaceProvider(config ProviderConfig, httpClient *http.Client)
 }
 
 // GenerateEmbeddings implements EmbeddingProvider for Hugging Face
-func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
+func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, EmbeddingTokenUsage, error) {
 	// Hugging Face Inference API format
 	requestBody := map[string]interface{}{
 		"inputs": texts,
@@ -410,12 +410,12 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to marshal HuggingFace request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to marshal HuggingFace request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", p.config.APIEndpoint, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to create HuggingFace request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to create HuggingFace request: %w", err)
 	}
 
 	// Set Hugging Face headers
@@ -426,18 +426,18 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 	// Execute request
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("HuggingFace API request failed: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("HuggingFace API request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, TokenUsage{}, fmt.Errorf("HuggingFace API returned status %d", resp.StatusCode)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("HuggingFace API returned status %d", resp.StatusCode)
 	}
 
 	// HuggingFace returns embeddings directly as arrays
 	var embeddings [][]float32
 	if err := json.NewDecoder(resp.Body).Decode(&embeddings); err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to decode HuggingFace response: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to decode HuggingFace response: %w", err)
 	}
 
 	// Estimate token usage (HuggingFace doesn't provide this)
@@ -446,7 +446,7 @@ func (p *HuggingFaceProvider) GenerateEmbeddings(ctx context.Context, texts []st
 		totalTokens += len(text) / 4 // Rough estimation
 	}
 
-	usage := TokenUsage{
+	usage := EmbeddingTokenUsage{
 		PromptTokens:  totalTokens,
 		TotalTokens:   totalTokens,
 		EstimatedCost: p.GetCostEstimate(totalTokens),
@@ -513,7 +513,7 @@ func NewCohereProvider(config ProviderConfig, httpClient *http.Client) *CoherePr
 }
 
 // GenerateEmbeddings implements EmbeddingProvider for Cohere
-func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
+func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, EmbeddingTokenUsage, error) {
 	requestBody := map[string]interface{}{
 		"texts":      texts,
 		"model":      p.config.ModelName,
@@ -522,12 +522,12 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to marshal Cohere request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to marshal Cohere request: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, "POST", p.config.APIEndpoint, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to create Cohere request: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to create Cohere request: %w", err)
 	}
 
 	// Set Cohere headers
@@ -537,12 +537,12 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("Cohere API request failed: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("Cohere API request failed: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, TokenUsage{}, fmt.Errorf("Cohere API returned status %d", resp.StatusCode)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("Cohere API returned status %d", resp.StatusCode)
 	}
 
 	var apiResponse struct {
@@ -555,10 +555,10 @@ func (p *CohereProvider) GenerateEmbeddings(ctx context.Context, texts []string)
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&apiResponse); err != nil {
-		return nil, TokenUsage{}, fmt.Errorf("failed to decode Cohere response: %w", err)
+		return nil, EmbeddingTokenUsage{}, fmt.Errorf("failed to decode Cohere response: %w", err)
 	}
 
-	usage := TokenUsage{
+	usage := EmbeddingTokenUsage{
 		PromptTokens:  apiResponse.Meta.BilledUnits.InputTokens,
 		TotalTokens:   apiResponse.Meta.BilledUnits.InputTokens,
 		EstimatedCost: p.GetCostEstimate(apiResponse.Meta.BilledUnits.InputTokens),

@@ -24,7 +24,7 @@ func ExampleRateLimiterUsage() {
 	}
 
 	// Create rate limiter
-	rateLimiter := NewRateLimiter(config, logger)
+	rateLimiter := NewRateLimiter(&config, logger)
 	defer rateLimiter.Stop()
 
 	// Create HTTP handler

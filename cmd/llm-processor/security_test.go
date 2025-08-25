@@ -10,14 +10,14 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
+
+	"log/slog"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
-	"log/slog"
 )
 
 // TestRequestBodySizeLimit tests the 413 response for oversized request bodies
@@ -313,8 +313,8 @@ func TestMetricsIPRestriction(t *testing.T) {
 				if len(allowedIPs) > 0 {
 					allowed := false
 					for _, ip := range allowedIPs {
-						if strings.TrimSpace(ip) == clientIP || 
-						   strings.TrimSpace(ip) == tt.clientIP {
+						if strings.TrimSpace(ip) == clientIP ||
+							strings.TrimSpace(ip) == tt.clientIP {
 							allowed = true
 							break
 						}

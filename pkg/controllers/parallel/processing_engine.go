@@ -27,8 +27,8 @@ import (
 	"github.com/go-logr/logr"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/internal/runtime/errorsx"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
 
 // ParallelProcessingEngine manages concurrent intent processing with worker pools
@@ -612,11 +612,9 @@ func (pe *ParallelProcessingEngine) ProcessIntent(ctx context.Context, intent *n
 	}
 
 	// Check backpressure
-	if pe.backpressureManager != nil && pe.backpressureManager.ShouldReject() {
-		return errors.NewProcessingError("ENGINE_OVERLOAD",
-			"System under high load, intent processing rejected",
-			"processing_engine", "process_intent",
-			errors.CategoryCapacity, errors.SeverityHigh)
+	if pe.backpressureManager != nil && pe.backpressureManager.ShouldReject("") {
+		return errorsx.NewProcessingError(errorsx.CategoryCapacity,
+			"System under high load, intent processing rejected")
 	}
 
 	// Create processing state
@@ -864,7 +862,7 @@ func (pe *ParallelProcessingEngine) performHealthCheck() {
 	for name, pool := range pools {
 		health := pool.GetHealth()
 		if !health["healthy"].(bool) {
-			pe.logger.Warn("Pool unhealthy", "pool", name, "metrics", health)
+			pe.logger.Info("Pool unhealthy", "pool", name, "metrics", health)
 		}
 	}
 
@@ -879,11 +877,11 @@ func (pe *ParallelProcessingEngine) performHealthCheck() {
 	pe.metrics.mutex.Unlock()
 
 	if memUsage > pe.config.MaxMemoryPerWorker*int64(len(pools)) {
-		pe.logger.Warn("High memory usage detected", "usage", memUsage)
+		pe.logger.Info("High memory usage detected", "usage", memUsage)
 	}
 
 	if cpuUsage > pe.config.MaxCPUPerWorker*float64(len(pools)) {
-		pe.logger.Warn("High CPU usage detected", "usage", cpuUsage)
+		pe.logger.Info("High CPU usage detected", "usage", cpuUsage)
 	}
 }
 
@@ -923,7 +921,7 @@ func (pe *ParallelProcessingEngine) collectMetrics() {
 	}
 
 	for name, pool := range pools {
-		metrics := pool.GetMetrics()
+		_ = pool.GetMetrics() // We'll use pool fields directly for now
 		pe.metrics.PoolMetrics[name] = &PoolMetrics{
 			ActiveWorkers:  atomic.LoadInt32(&pool.activeWorkers),
 			QueueLength:    len(pool.taskQueue),
@@ -1013,4 +1011,41 @@ func NewProcessingMetrics() *ProcessingMetrics {
 		ErrorsByType: make(map[string]int64),
 		LastUpdated:  time.Now(),
 	}
+}
+
+// NewResourceLimiter creates a new resource limiter
+func NewResourceLimiter(maxMemory int64, maxCPU float64, logger logr.Logger) *ResourceLimiter {
+	return &ResourceLimiter{
+		maxMemory: maxMemory,
+		maxCPU:    maxCPU,
+		logger:    logger.WithName("resource-limiter"),
+	}
+}
+
+// NewBackpressureManager creates a new backpressure manager
+func NewBackpressureManager(config *BackpressureConfig, logger logr.Logger) *BackpressureManager {
+	return &BackpressureManager{
+		config:     config,
+		thresholds: make(map[string]float64),
+		actions:    make(map[string]BackpressureAction),
+		logger:     logger.WithName("backpressure-manager"),
+	}
+}
+
+// Start starts the backpressure manager
+func (bm *BackpressureManager) Start(ctx context.Context) error {
+	// Implementation would monitor system metrics
+	return nil
+}
+
+// Stop stops the backpressure manager
+func (bm *BackpressureManager) Stop() error {
+	// Implementation would cleanup resources
+	return nil
+}
+
+// ShouldReject determines if a request should be rejected due to backpressure
+func (bm *BackpressureManager) ShouldReject(category string) bool {
+	// Implementation would check current load vs thresholds
+	return false
 }

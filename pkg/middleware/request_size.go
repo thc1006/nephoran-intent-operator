@@ -7,17 +7,41 @@ import (
 	"strings"
 )
 
+// RequestSizeConfig defines configuration for request size limiting
+type RequestSizeConfig struct {
+	// MaxBodySize defines the maximum request body size in bytes
+	MaxBodySize int64
+	
+	// MaxHeaderSize defines the maximum header size in bytes
+	MaxHeaderSize int64
+	
+	// EnableLogging controls whether to log size limit violations
+	EnableLogging bool
+}
+
+// DefaultRequestSizeConfig returns default configuration
+func DefaultRequestSizeConfig() *RequestSizeConfig {
+	return &RequestSizeConfig{
+		MaxBodySize:   10 * 1024 * 1024, // 10MB
+		MaxHeaderSize: 8 * 1024,         // 8KB
+		EnableLogging: true,
+	}
+}
+
 // RequestSizeLimiter creates middleware to enforce request body size limits
 type RequestSizeLimiter struct {
-	maxSize int64
-	logger  *slog.Logger
+	config *RequestSizeConfig
+	logger *slog.Logger
 }
 
 // NewRequestSizeLimiter creates a new request size limiter middleware
-func NewRequestSizeLimiter(maxSize int64, logger *slog.Logger) *RequestSizeLimiter {
+func NewRequestSizeLimiter(config *RequestSizeConfig, logger *slog.Logger) *RequestSizeLimiter {
+	if config == nil {
+		config = DefaultRequestSizeConfig()
+	}
 	return &RequestSizeLimiter{
-		maxSize: maxSize,
-		logger:  logger,
+		config: config,
+		logger: logger,
 	}
 }
 
@@ -27,7 +51,7 @@ func (rsl *RequestSizeLimiter) Middleware(next http.Handler) http.Handler {
 		// Only apply size limits to requests with bodies (POST, PUT, PATCH)
 		if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" {
 			// Wrap the request body with MaxBytesReader
-			r.Body = http.MaxBytesReader(w, r.Body, rsl.maxSize)
+			r.Body = http.MaxBytesReader(w, r.Body, rsl.config.MaxBodySize)
 		}
 
 		// Continue to the next handler
@@ -42,13 +66,13 @@ func (rsl *RequestSizeLimiter) Handler(handler http.HandlerFunc) http.HandlerFun
 		if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" {
 			// Wrap the request body with MaxBytesReader
 			originalBody := r.Body
-			r.Body = http.MaxBytesReader(w, r.Body, rsl.maxSize)
+			r.Body = http.MaxBytesReader(w, r.Body, rsl.config.MaxBodySize)
 
 			// Log size limit enforcement
 			rsl.logger.Debug("Request size limit enforced",
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
-				slog.Int64("max_size_bytes", rsl.maxSize),
+				slog.Int64("max_size_bytes", rsl.config.MaxBodySize),
 			)
 
 			// Defer cleanup (though MaxBytesReader handles this)

@@ -37,7 +37,7 @@ func TestMetricsEndpointBasicFunctionality(t *testing.T) {
 
 		// Create test registry with sample metrics
 		registry := prometheus.NewRegistry()
-		
+
 		// Create sample LLM-like metrics
 		llmRequestsTotal := prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -46,16 +46,16 @@ func TestMetricsEndpointBasicFunctionality(t *testing.T) {
 			},
 			[]string{"model", "status"},
 		)
-		
+
 		llmProcessingDuration := prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name: "nephoran_llm_processing_duration_seconds", 
-				Help: "Duration of LLM processing requests by model and status",
+				Name:    "nephoran_llm_processing_duration_seconds",
+				Help:    "Duration of LLM processing requests by model and status",
 				Buckets: []float64{0.1, 0.5, 1.0, 2.0, 5.0, 10.0},
 			},
 			[]string{"model", "status"},
 		)
-		
+
 		// Create sample controller-like metrics
 		networkintentReconciles := prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -64,16 +64,16 @@ func TestMetricsEndpointBasicFunctionality(t *testing.T) {
 			},
 			[]string{"controller", "namespace", "name", "result"},
 		)
-		
+
 		networkintentProcessingDuration := prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name: "networkintent_processing_duration_seconds",
-				Help: "Duration of NetworkIntent processing phases",
+				Name:    "networkintent_processing_duration_seconds",
+				Help:    "Duration of NetworkIntent processing phases",
 				Buckets: prometheus.DefBuckets,
 			},
 			[]string{"controller", "namespace", "name", "phase"},
 		)
-		
+
 		// Register metrics
 		registry.MustRegister(
 			llmRequestsTotal,
@@ -81,12 +81,12 @@ func TestMetricsEndpointBasicFunctionality(t *testing.T) {
 			networkintentReconciles,
 			networkintentProcessingDuration,
 		)
-		
+
 		// Generate sample data
 		llmRequestsTotal.WithLabelValues("gpt-4o-mini", "success").Inc()
 		llmRequestsTotal.WithLabelValues("gpt-4o-mini", "error").Inc()
 		llmProcessingDuration.WithLabelValues("gpt-4o-mini", "success").Observe(1.5)
-		
+
 		networkintentReconciles.WithLabelValues("networkintent", "default", "test-intent", "success").Inc()
 		networkintentProcessingDuration.WithLabelValues("networkintent", "default", "test-intent", "llm_processing").Observe(2.3)
 
@@ -112,11 +112,11 @@ func TestMetricsEndpointBasicFunctionality(t *testing.T) {
 		// Verify expected LLM metrics
 		assert.Contains(t, metrics, "nephoran_llm_requests_total")
 		assert.Contains(t, metrics, "nephoran_llm_processing_duration_seconds")
-		
+
 		// Verify expected controller metrics
 		assert.Contains(t, metrics, "networkintent_reconciles_total")
 		assert.Contains(t, metrics, "networkintent_processing_duration_seconds")
-		
+
 		// Verify help text is present
 		assertMetricHasHelp(t, metrics, "nephoran_llm_requests_total", "Total number of LLM requests")
 		assertMetricHasHelp(t, metrics, "networkintent_reconciles_total", "Total number of NetworkIntent reconciliations")
@@ -158,7 +158,7 @@ func TestMetricsEndpointConditionalExposure(t *testing.T) {
 		},
 		{
 			name:           "METRICS_ENABLED=false disables endpoint",
-			metricsEnabled: "false", 
+			metricsEnabled: "false",
 			expectEndpoint: false,
 			expectedStatus: http.StatusNotFound,
 		},
@@ -196,7 +196,7 @@ func TestMetricsEndpointConditionalExposure(t *testing.T) {
 
 			// Create router conditionally with metrics
 			router := mux.NewRouter()
-			
+
 			// Simulate the real application's conditional metrics setup
 			if isMetricsEnabled() && tc.expectEndpoint {
 				registry := prometheus.NewRegistry()
@@ -206,10 +206,10 @@ func TestMetricsEndpointConditionalExposure(t *testing.T) {
 				})
 				registry.MustRegister(testCounter)
 				testCounter.Inc()
-				
+
 				router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{})).Methods("GET")
 			}
-			
+
 			server := httptest.NewServer(router)
 			defer server.Close()
 
@@ -219,7 +219,7 @@ func TestMetricsEndpointConditionalExposure(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
-			
+
 			if tc.expectEndpoint {
 				assert.Contains(t, resp.Header.Get("Content-Type"), "text/plain")
 			}
@@ -231,7 +231,7 @@ func TestMetricsEndpointConditionalExposure(t *testing.T) {
 func TestMetricsEndpointContentValidation(t *testing.T) {
 	// Setup metrics
 	registry := prometheus.NewRegistry()
-	
+
 	testCounter := prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nephoran_test_requests_total",
@@ -239,17 +239,17 @@ func TestMetricsEndpointContentValidation(t *testing.T) {
 		},
 		[]string{"method", "status"},
 	)
-	
+
 	testHistogram := prometheus.NewHistogram(
 		prometheus.HistogramOpts{
-			Name: "nephoran_test_duration_seconds",
-			Help: "Test request duration in seconds",
+			Name:    "nephoran_test_duration_seconds",
+			Help:    "Test request duration in seconds",
 			Buckets: []float64{0.1, 0.5, 1.0, 2.0},
 		},
 	)
-	
+
 	registry.MustRegister(testCounter, testHistogram)
-	
+
 	// Generate test data
 	testCounter.WithLabelValues("GET", "200").Add(5)
 	testCounter.WithLabelValues("POST", "201").Add(3)
@@ -297,7 +297,7 @@ func TestMetricsEndpointContentValidation(t *testing.T) {
 		assert.Contains(t, content, "nephoran_test_duration_seconds_sum")
 		assert.Contains(t, content, "nephoran_test_duration_seconds_count")
 	})
-	
+
 	t.Logf("Metrics content validation passed. Content length: %d characters", len(content))
 }
 
@@ -305,7 +305,7 @@ func TestMetricsEndpointContentValidation(t *testing.T) {
 func TestMetricsEndpointPerformance(t *testing.T) {
 	// Create registry with many metrics
 	registry := prometheus.NewRegistry()
-	
+
 	// Create multiple metrics to simulate real load
 	for i := 0; i < 10; i++ {
 		counter := prometheus.NewCounterVec(
@@ -316,7 +316,7 @@ func TestMetricsEndpointPerformance(t *testing.T) {
 			[]string{"label1", "label2", "label3"},
 		)
 		registry.MustRegister(counter)
-		
+
 		// Add data to each metric
 		for j := 0; j < 5; j++ {
 			counter.WithLabelValues(
@@ -326,25 +326,25 @@ func TestMetricsEndpointPerformance(t *testing.T) {
 			).Add(float64(j))
 		}
 	}
-	
+
 	// Setup server
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{})).Methods("GET")
 	server := httptest.NewServer(router)
 	defer server.Close()
-	
+
 	// Measure response time
 	start := time.Now()
 	resp, err := http.Get(server.URL + "/metrics")
 	duration := time.Since(start)
-	
+
 	require.NoError(t, err)
 	defer resp.Body.Close()
-	
+
 	// Validate performance
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	assert.Less(t, duration, 500*time.Millisecond, "Metrics endpoint should respond quickly")
-	
+
 	t.Logf("Metrics endpoint responded in %v", duration)
 }
 
@@ -352,7 +352,7 @@ func TestMetricsEndpointPerformance(t *testing.T) {
 func parseSimplePrometheusMetrics(resp *http.Response) (map[string]string, error) {
 	scanner := bufio.NewScanner(resp.Body)
 	metrics := make(map[string]string)
-	
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if strings.HasPrefix(line, "# HELP ") {
@@ -362,7 +362,7 @@ func parseSimplePrometheusMetrics(resp *http.Response) (map[string]string, error
 			}
 		}
 	}
-	
+
 	return metrics, scanner.Err()
 }
 

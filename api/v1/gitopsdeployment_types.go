@@ -258,8 +258,6 @@ type RetryBackoffConfig struct {
 	// Multiplier for exponential backoff
 	// +optional
 	// +kubebuilder:default=2.0
-	// +kubebuilder:validation:Minimum=1.0
-	// +kubebuilder:validation:Maximum=10.0
 	Multiplier *float64 `json:"multiplier,omitempty"`
 }
 
@@ -684,8 +682,6 @@ type HealthStatus struct {
 
 	// HealthScore represents overall health score (0.0-1.0)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	HealthScore *float64 `json:"healthScore,omitempty"`
 }
 

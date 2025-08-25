@@ -1,10 +1,7 @@
 package performance
 
 import (
-	"context"
 	"fmt"
-	"math"
-	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"runtime"
@@ -13,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -343,13 +341,13 @@ func BenchmarkWeaviate_HNSW_After(b *testing.B) {
 
 // BenchmarkWeaviate_Serialization_Before tests JSON serialization
 func BenchmarkWeaviate_Serialization_Before(b *testing.B) {
-	type Document struct {
+	type TestDocument struct {
 		ID         string                 `json:"id"`
 		Vector     []float32              `json:"vector"`
 		Properties map[string]interface{} `json:"properties"`
 	}
 
-	doc := Document{
+	doc := TestDocument{
 		ID:     "doc1",
 		Vector: make([]float32, 768),
 		Properties: map[string]interface{}{
@@ -371,13 +369,13 @@ func BenchmarkWeaviate_Serialization_Before(b *testing.B) {
 
 // BenchmarkWeaviate_Serialization_After tests gRPC/protobuf serialization
 func BenchmarkWeaviate_Serialization_After(b *testing.B) {
-	type Document struct {
+	type OptimizedTestDocument struct {
 		ID         string
 		Vector     []float32
 		Properties map[string][]byte // Pre-serialized properties
 	}
 
-	doc := Document{
+	doc := OptimizedTestDocument{
 		ID:     "doc1",
 		Vector: make([]float32, 768),
 		Properties: map[string][]byte{

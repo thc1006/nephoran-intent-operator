@@ -20,10 +20,8 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"strconv"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"

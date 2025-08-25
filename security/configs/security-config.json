@@ -1,0 +1,12 @@
+{
+  "environment": "production",
+  "security_level": "standard",
+  "policies": {
+    "enabled": true,
+    "enforcement": "warn"
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "description": "Minimal security configuration for OPA policy evaluation"
+  }
+}

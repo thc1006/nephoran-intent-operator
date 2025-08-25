@@ -1,0 +1,10 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: load-test-intent
+  namespace: nephoran-system
+  labels:
+    test-scenario: load-testing
+    test-type: e2e
+spec:
+  intent: "Scale load-test-deployment to 15 replicas with performance profile and enable metrics collection for 30-minute peak-traffic load testing"

@@ -1,30 +1,77 @@
 # Default values for nephoran-operator
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+#
+# The Nephoran Intent Operator enables natural language driven network orchestration
+# for O-RAN and cloud-native network functions. It translates high-level intents
+# into concrete network configurations using LLM processing and GitOps workflows.
 
-# Global configuration
+# ==============================================================================
+# Global Configuration
+# ==============================================================================
+# These settings apply across all components of the Nephoran operator
 global:
+  # Container image registry override
+  # Leave empty to use default registries specified in each component
+  # Example: "ghcr.io/nephoran" or "your-registry.io"
   imageRegistry: ""
+  
+  # List of image pull secrets for private registries
+  # Each secret should be created in the deployment namespace
+  # Example: [{name: "regcred"}]
   imagePullSecrets: []
 
-# Feature flags
+# ==============================================================================
+# Feature Flags
+# ==============================================================================
+# Control which optional features are enabled in the deployment
+
+# RAG (Retrieval-Augmented Generation) configuration
+# Enables semantic search and context-aware intent processing
 rag:
+  # Enable RAG functionality for enhanced intent understanding
+  # When enabled, deploys RAG API service and configures vector database
   enabled: false
+  
   # RAG endpoint compatibility configuration
   compat:
-    # When true, use legacy /process_intent endpoint; when false, use new /process endpoint
+    # API endpoint compatibility mode
+    # When true: use legacy /process_intent endpoint (for backward compatibility)
+    # When false: use new /process endpoint (recommended for new deployments)
     enableLegacyProcessIntent: true
 
+# Machine Learning features
+# Enables advanced ML-based optimization and prediction
 ml:
+  # Enable ML-powered features like predictive scaling and anomaly detection
   enabled: false
 
+# Git integration settings for GitOps workflows
 git:
+  # Name of the Kubernetes secret containing the Git token
+  # The secret should have a key named 'token' with the Git personal access token
+  # Required for pushing generated packages to Git repositories
   tokenSecret: ""
-  concurrentPushLimit: 4  # Maximum concurrent git push operations
+  
+  # Maximum number of concurrent Git push operations
+  # Prevents overwhelming Git servers and rate limiting
+  # Increase for high-throughput environments, decrease for rate-limited repos
+  concurrentPushLimit: 4
 
+# ==============================================================================
 # Nephoran Operator Controller (Main Controller)
+# ==============================================================================
+# The core controller that manages NetworkIntent CRDs and orchestrates
+# the intent processing pipeline
+
 nephoranOperator:
+  # Enable/disable the main operator controller
+  # Should always be true unless running components separately
   enabled: true
+  
+  # Number of controller replicas for high availability
+  # Set to 1 for development, 3+ for production
+  # Only one replica will be active (leader election enabled)
   replicaCount: 1
   
   image:
@@ -61,11 +108,22 @@ nephoranOperator:
   tolerations: []
   affinity: {}
   
-  # Leader election configuration
+  # Leader election configuration for high availability
+  # Ensures only one controller instance is active at a time
   leaderElection:
+    # Enable leader election for multi-replica deployments
+    # Must be true when replicaCount > 1
     enabled: false
+    
+    # Duration that non-leader candidates will wait after observing a leadership
+    # renewal until attempting to acquire leadership
     leaseDuration: "15s"
+    
+    # Duration that the acting leader will retry refreshing leadership
+    # before giving up leadership
     renewDeadline: "10s"
+    
+    # Duration the LeaderElector clients should wait between tries of actions
     retryPeriod: "2s"
   
   # TLS checksum (for automatic pod restarts on certificate rotation)
@@ -99,11 +157,19 @@ nephoranOperator:
       initialDelaySeconds: 10
       timeoutSeconds: 3
 
-# Note: LLM Processor configuration moved below to avoid duplication
+# ==============================================================================
+# RAG API Service
+# ==============================================================================
+# Provides semantic search and context retrieval for intent processing
+# Automatically deployed when rag.enabled is true
 
-# RAG API configuration (conditional deployment)
 ragApi:
+  # Deployment is controlled by the rag.enabled feature flag
+  # Do not modify this directly
   enabled: false  # Controlled by rag.enabled
+  
+  # Number of RAG API service replicas
+  # Increase for better availability and load distribution
   replicaCount: 1
   
   image:
@@ -145,14 +211,34 @@ ragApi:
     targetCPUUtilizationPercentage: 80
     targetMemoryUtilizationPercentage: 80
 
-# Service Account
+# ==============================================================================
+# Service Account Configuration
+# ==============================================================================
+# Kubernetes service account for RBAC and workload identity
+
 serviceAccount:
+  # Create a dedicated service account for the operator
+  # Set to false to use an existing service account
   create: true
+  
+  # Annotations to add to the service account
+  # Useful for workload identity binding (GKE, EKS IRSA, etc.)
+  # Example: {"iam.gke.io/gcp-service-account": "nephoran@project.iam.gserviceaccount.com"}
   annotations: {}
+  
+  # Override the service account name
+  # Leave empty to use the release name
   name: ""
 
-# RBAC
+# ==============================================================================
+# RBAC Configuration
+# ==============================================================================
+# Role-Based Access Control for Kubernetes API permissions
+
 rbac:
+  # Create RBAC resources (ClusterRole, ClusterRoleBinding)
+  # Required for the operator to manage CRDs and resources
+  # Set to false only if manually managing RBAC
   create: true
 
 # Ingress
@@ -167,16 +253,39 @@ ingress:
           pathType: Prefix
   tls: []
 
-# Monitoring
+# ==============================================================================
+# Monitoring Configuration
+# ==============================================================================
+# Prometheus monitoring and alerting configuration
+
 monitoring:
+  # Enable monitoring features (metrics endpoints)
   enabled: false
+  
+  # ServiceMonitor for Prometheus Operator
   serviceMonitor:
+    # Create ServiceMonitor resource for automatic discovery
     enabled: false
+    
+    # Scrape interval for metrics collection
+    # Lower values provide more granular data but increase load
     interval: 30s
+    
+    # Timeout for each scrape request
+    # Should be less than the interval
     scrapeTimeout: 10s
+    
+    # Additional labels for ServiceMonitor selection
+    # Must match Prometheus serviceMonitorSelector
     labels: {}
+  
+  # PrometheusRule for alerting
   prometheusRule:
+    # Create PrometheusRule resource for alerts
     enabled: false
+    
+    # Alert rules in Prometheus format
+    # Example: [{alert: "HighErrorRate", expr: "rate(errors[5m]) > 0.1"}]
     rules: []
 
 # Service Mesh configuration
@@ -193,10 +302,17 @@ networkPolicy:
   ingress: []
   egress: []
 
+# ==============================================================================
 # Security Configuration
+# ==============================================================================
+# Comprehensive security settings for hardened deployments
+
 security:
-  # Enable mTLS for service-to-service communication
+  # mTLS (Mutual TLS) configuration for service-to-service communication
+  # Provides encryption and mutual authentication between services
   mtls:
+    # Enable mTLS for all internal communications
+    # Requires certificate management (cert-manager or similar)
     enabled: false
   
   # Pod Security Standards
@@ -256,9 +372,19 @@ secrets:
     backend: "vault"  # vault, aws-secrets-manager, azure-keyvault, gcp-secret-manager
     refreshInterval: "1h"
 
-# LLM Processor Configuration
+# ==============================================================================
+# LLM Processor Service
+# ==============================================================================
+# Handles natural language processing and intent translation
+# This is the core AI component that interprets user intents
+
 llmProcessor:
+  # Enable the LLM processor service
+  # Required for intent processing functionality
   enabled: true
+  
+  # Number of LLM processor replicas
+  # Consider LLM API rate limits when scaling
   replicaCount: 1
   
   # Log level
@@ -373,9 +499,18 @@ llmProcessor:
     targetCPUUtilizationPercentage: 80
     targetMemoryUtilizationPercentage: 80
 
-# Nephio Bridge configuration
+# ==============================================================================
+# Nephio Bridge Service
+# ==============================================================================
+# Integrates with Nephio for package management and workload cluster operations
+# Enables multi-cluster orchestration and package lifecycle management
+
 nephioBridge:
+  # Enable Nephio integration bridge
+  # Required for Nephio-based deployments
   enabled: false
+  
+  # Number of bridge service replicas
   replicaCount: 1
   
   image:
@@ -416,9 +551,18 @@ nephioBridge:
     enabled: false
     minAvailable: 1
 
-# O-RAN Adaptor configuration
+# ==============================================================================
+# O-RAN Adaptor Service
+# ==============================================================================
+# Provides O-RAN specific interfaces (O1, O2, A1, E2) for RAN integration
+# Enables communication with O-RAN compliant network functions
+
 oranAdaptor:
+  # Enable O-RAN interfaces adaptor
+  # Required for O-RAN deployments
   enabled: false
+  
+  # Number of adaptor service replicas
   replicaCount: 1
   
   image:
@@ -459,11 +603,23 @@ oranAdaptor:
     enabled: false
     minAvailable: 1
 
+# ==============================================================================
 # Weaviate Vector Database
+# ==============================================================================
+# Vector database for semantic search and RAG functionality
+# Stores and retrieves context for enhanced intent processing
+
 weaviate:
+  # Enable Weaviate deployment
+  # Automatically enabled when rag.enabled is true
   enabled: false
+  
+  # Service configuration for Weaviate
   service:
+    # HTTP API port for REST operations
     port: 8080
+    
+    # gRPC port for high-performance operations
     grpcPort: 50051
   
   podDisruptionBudget:

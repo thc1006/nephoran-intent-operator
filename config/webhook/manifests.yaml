@@ -10,12 +10,12 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-nephoran-io-v1-networkintent
+      path: /validate-nephoran-com-v1-networkintent
   failurePolicy: Fail
   name: vnetworkintent.kb.io
   rules:
   - apiGroups:
-    - nephoran.io
+    - nephoran.com
     apiVersions:
     - v1
     operations:

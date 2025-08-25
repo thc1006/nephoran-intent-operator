@@ -109,7 +109,7 @@ func (r *ProviderRegistry) GetProviderByType(providerType string) (CloudProvider
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	for name, provider := range r.providers {
+	for _, provider := range r.providers {
 		info := provider.GetProviderInfo()
 		if info.Type == providerType {
 			return provider, nil

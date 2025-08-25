@@ -557,6 +557,7 @@ spec:
                       type: string
                     improvementPercent:
                       description: ImprovementPercent quantifies the improvement
+                      type: number
                     manifestName:
                       description: ManifestName identifies the optimized manifest
                       type: string
@@ -579,6 +580,9 @@ spec:
                 type: string
               qualityScore:
                 description: QualityScore represents the quality of generated manifests
+                maximum: 1
+                minimum: 0
+                type: number
               resourceReferences:
                 description: ResourceReferences contains references to generated resources
                 items:
@@ -636,6 +640,9 @@ spec:
                           type: boolean
                         score:
                           description: Score represents compliance score (0.0-1.0)
+                          maximum: 1
+                          minimum: 0
+                          type: number
                         standard:
                           description: Standard being checked (PCI-DSS, SOC2, etc.)
                           type: string
@@ -654,6 +661,9 @@ spec:
                     type: array
                   overallScore:
                     description: OverallScore is the overall security score (0.0-1.0)
+                    maximum: 1
+                    minimum: 0
+                    type: number
                   recommendations:
                     description: Recommendations provides security recommendations
                     items:
@@ -671,6 +681,7 @@ spec:
                           type: array
                         cvssScore:
                           description: CVSS score if applicable
+                          type: number
                         description:
                           description: Description of the issue
                           type: string

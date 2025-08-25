@@ -7,13 +7,13 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // ConcreteDependencies is a concrete implementation of the Dependencies interface
 type ConcreteDependencies struct {
 	gitClient     git.ClientInterface
-	llmClient     shared.ClientInterface
+	llmClient     types.ClientInterface
 	packageGen    *nephio.PackageGenerator
 	httpClient    *http.Client
 	eventRecorder record.EventRecorder
@@ -22,7 +22,7 @@ type ConcreteDependencies struct {
 // NewConcreteDependencies creates a new instance of ConcreteDependencies
 func NewConcreteDependencies(
 	gitClient git.ClientInterface,
-	llmClient shared.ClientInterface,
+	llmClient types.ClientInterface,
 	packageGen *nephio.PackageGenerator,
 	httpClient *http.Client,
 	eventRecorder record.EventRecorder,
@@ -42,7 +42,7 @@ func (d *ConcreteDependencies) GetGitClient() git.ClientInterface {
 }
 
 // GetLLMClient returns the LLM client
-func (d *ConcreteDependencies) GetLLMClient() shared.ClientInterface {
+func (d *ConcreteDependencies) GetLLMClient() types.ClientInterface {
 	return d.llmClient
 }
 

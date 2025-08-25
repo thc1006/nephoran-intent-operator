@@ -10,7 +10,6 @@ import (
 	"math"
 	"math/rand"
 	"net/http"
-	"os"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -19,7 +18,6 @@ import (
 	"github.com/montanaflynn/stats"
 	"github.com/onsi/ginkgo/v2"
 	vegeta "github.com/tsenart/vegeta/v12/lib"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"

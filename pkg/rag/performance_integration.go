@@ -6,11 +6,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"math"
-	"strings"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // PerformanceIntegration provides a unified interface for all performance optimizations
@@ -168,7 +166,7 @@ type CompliancePoint struct {
 }
 
 // NewPerformanceIntegration creates a comprehensive performance-optimized RAG system
-func NewPerformanceIntegration(config *PerformanceConfig, llmClient shared.ClientInterface) (*PerformanceIntegration, error) {
+func NewPerformanceIntegration(config *PerformanceConfig, llmClient types.ClientInterface) (*PerformanceIntegration, error) {
 	if config == nil {
 		config = getDefaultPerformanceConfig()
 	}

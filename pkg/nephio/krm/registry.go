@@ -18,14 +18,11 @@ package krm
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -37,10 +34,8 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/yaml"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // Registry manages KRM function discovery, caching, and metadata
@@ -316,14 +311,6 @@ type RegistryMetrics struct {
 	HealthCheckFailures prometheus.CounterVec
 }
 
-// CacheMetrics provides cache performance metrics
-type CacheMetrics struct {
-	Hits      prometheus.Counter
-	Misses    prometheus.Counter
-	Evictions prometheus.Counter
-	Size      prometheus.Gauge
-	ItemCount prometheus.Gauge
-}
 
 // Default registry configuration
 var DefaultRegistryConfig = &RegistryConfig{
@@ -419,7 +406,7 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_cache_size_bytes",
 			Help: "Current cache size in bytes",
 		}),
-		ItemCount: promauto.NewGauge(prometheus.GaugeOpts{
+		Entries: promauto.NewGauge(prometheus.GaugeOpts{
 			Name: "krm_registry_cache_items_total",
 			Help: "Current number of cached items",
 		}),

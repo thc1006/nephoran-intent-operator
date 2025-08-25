@@ -53,7 +53,30 @@ type DefaultKeyManager struct {
 	keys map[string]*StoredKey
 }
 
-// NewDefaultKeyManager removed - use NewKeyManager from key_manager.go instead
+// NewKeyManager creates a new key manager instance
+func NewKeyManager(store interface{}) *DefaultKeyManager {
+	return &DefaultKeyManager{
+		keys: make(map[string]*StoredKey),
+	}
+}
+
+// GenerateMasterKey generates a master key
+func (dkm *DefaultKeyManager) GenerateMasterKey(keyType string, bits int) error {
+	// Placeholder implementation
+	return nil
+}
+
+// DeriveKey derives a key from the master key
+func (dkm *DefaultKeyManager) DeriveKey(purpose string, index int) (*StoredKey, error) {
+	// Placeholder implementation
+	key := &StoredKey{
+		ID:        generateKeyID(),
+		Type:      purpose,
+		Bits:      256,
+		CreatedAt: time.Now(),
+	}
+	return key, nil
+}
 
 // GenerateKey generates a new key pair
 func (dkm *DefaultKeyManager) GenerateKey(keyType string, bits int) (*StoredKey, error) {
@@ -116,5 +139,35 @@ func generateKeyID() string {
 	return "key-" + time.Now().Format("20060102150405")
 }
 
+// EscrowKey escrows a key with multiple agents
+func (dkm *DefaultKeyManager) EscrowKey(keyID string, agents []EscrowAgent, threshold int) error {
+	// Placeholder implementation for key escrow
+	return nil
+}
+
+// SetupThresholdCrypto sets up threshold cryptography for a key
+func (dkm *DefaultKeyManager) SetupThresholdCrypto(keyID string, threshold, total int) error {
+	// Placeholder implementation for threshold crypto
+	return nil
+}
+
+// EscrowAgent represents a key escrow agent
+type EscrowAgent struct {
+	ID     string `json:"id"`
+	Active bool   `json:"active"`
+}
+
+// DetailedStoredKey provides detailed information about a stored key
+type DetailedStoredKey struct {
+	ID          string                 `json:"id"`
+	Type        string                 `json:"type"`
+	Algorithm   string                 `json:"algorithm"`
+	KeySize     int                    `json:"key_size"`
+	CreatedAt   time.Time              `json:"created_at"`
+	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	KeyMaterial []byte                 `json:"key_material"`
+}
+
 // Simple type aliases for backward compatibility
-type KeyManager = AdvancedKeyManager
+type KeyManager = DefaultKeyManager

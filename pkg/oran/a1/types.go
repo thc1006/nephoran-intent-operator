@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/common"
 )
 
 // A1Interface represents the three O-RAN A1 interface variants
@@ -375,25 +376,6 @@ type ResponseInfo struct {
 	Headers       map[string][]string `json:"headers,omitempty"`
 }
 
-// HealthCheck represents health status information
-type HealthCheck struct {
-	Status     string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
-	Timestamp  time.Time              `json:"timestamp"`
-	Version    string                 `json:"version,omitempty"`
-	Uptime     time.Duration          `json:"uptime,omitempty"`
-	Components map[string]interface{} `json:"components,omitempty"`
-	Checks     []ComponentCheck       `json:"checks,omitempty"`
-}
-
-// ComponentCheck represents individual component health status
-type ComponentCheck struct {
-	Name      string                 `json:"name" validate:"required"`
-	Status    string                 `json:"status" validate:"required,oneof=UP DOWN DEGRADED"`
-	Message   string                 `json:"message,omitempty"`
-	Timestamp time.Time              `json:"timestamp"`
-	Duration  time.Duration          `json:"duration,omitempty"`
-	Details   map[string]interface{} `json:"details,omitempty"`
-}
 
 // Common HTTP status codes used in A1 interface
 const (
@@ -550,12 +532,3 @@ func (s State) String() string {
 	}
 }
 
-// IsHealthy returns true if the health check status is UP
-func (hc *HealthCheck) IsHealthy() bool {
-	return hc.Status == "UP"
-}
-
-// IsDegraded returns true if the health check status is DEGRADED
-func (hc *HealthCheck) IsDegraded() bool {
-	return hc.Status == "DEGRADED"
-}

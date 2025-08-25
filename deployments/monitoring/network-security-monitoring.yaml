@@ -1,0 +1,888 @@
+---
+# Network Security Monitoring Stack for Nephoran Intent Operator
+# Comprehensive monitoring of network security metrics, threats, and compliance
+# Integration with Prometheus, Grafana, and security tools
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-security-prometheus-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-security-monitoring
+    app.kubernetes.io/component: prometheus-rules
+data:
+  network-security-rules.yml: |
+    groups:
+    - name: network.security.rules
+      interval: 15s
+      rules:
+      # Network Security Metrics
+      - record: nephoran:network:failed_connections_rate
+        expr: |
+          sum(rate(istio_tcp_connections_closed_total{source_app="unknown"}[5m]))
+        labels:
+          metric_type: security
+          category: network_anomaly
+      
+      - record: nephoran:network:unauthorized_access_attempts
+        expr: |
+          sum(rate(istio_requests_total{response_code=~"401|403"}[5m]))
+        labels:
+          metric_type: security
+          category: access_control
+      
+      - record: nephoran:network:tls_errors_rate
+        expr: |
+          sum(rate(istio_requests_total{response_flags=~".*TLS.*"}[5m]))
+        labels:
+          metric_type: security
+          category: encryption
+      
+      - record: nephoran:network:suspicious_traffic_volume
+        expr: |
+          sum(rate(istio_tcp_received_bytes_total[5m])) by (source_ip)
+        labels:
+          metric_type: security
+          category: traffic_anomaly
+      
+      # DDoS Detection Metrics
+      - record: nephoran:ddos:request_rate_by_ip
+        expr: |
+          sum(rate(istio_requests_total[1m])) by (source_ip)
+        labels:
+          metric_type: ddos
+          category: rate_limiting
+      
+      - record: nephoran:ddos:connection_rate_by_ip
+        expr: |
+          sum(rate(istio_tcp_connections_opened_total[1m])) by (source_ip)
+        labels:
+          metric_type: ddos
+          category: connection_flood
+      
+      - record: nephoran:ddos:error_rate_spike
+        expr: |
+          (
+            sum(rate(istio_requests_total{response_code=~"5.*"}[1m]))
+            /
+            sum(rate(istio_requests_total[1m]))
+          ) * 100
+        labels:
+          metric_type: ddos
+          category: service_degradation
+      
+      # Network Policy Violations
+      - record: nephoran:netpol:blocked_connections
+        expr: |
+          increase(networkpolicy_drop_count_total[5m])
+        labels:
+          metric_type: policy
+          category: network_policy
+      
+      - record: nephoran:netpol:allowed_connections
+        expr: |
+          increase(networkpolicy_allow_count_total[5m])
+        labels:
+          metric_type: policy
+          category: network_policy
+      
+      # Intrusion Detection Metrics
+      - record: nephoran:ids:alerts_by_severity
+        expr: |
+          sum(increase(suricata_alerts_total[5m])) by (severity, signature)
+        labels:
+          metric_type: ids
+          category: threat_detection
+      
+      - record: nephoran:ids:protocol_anomalies
+        expr: |
+          sum(increase(suricata_protocol_anomaly_total[5m])) by (protocol)
+        labels:
+          metric_type: ids
+          category: protocol_violation
+      
+      - record: nephoran:ids:malware_detections
+        expr: |
+          sum(increase(suricata_malware_total[5m])) by (malware_family)
+        labels:
+          metric_type: ids
+          category: malware
+      
+      # Certificate and TLS Monitoring
+      - record: nephoran:tls:certificate_expiry_days
+        expr: |
+          (cert_exporter_not_after - time()) / 86400
+        labels:
+          metric_type: tls
+          category: certificate_management
+      
+      - record: nephoran:tls:weak_cipher_usage
+        expr: |
+          sum(increase(istio_requests_total{tls_version="TLSv1.0"}[5m])) or
+          sum(increase(istio_requests_total{tls_version="TLSv1.1"}[5m]))
+        labels:
+          metric_type: tls
+          category: encryption_weakness
+      
+      # Service Mesh Security Metrics
+      - record: nephoran:mtls:connections_without_mtls
+        expr: |
+          sum(istio_tcp_connections_opened_total{security_policy!="mutual_tls"})
+        labels:
+          metric_type: service_mesh
+          category: mtls_compliance
+      
+      - record: nephoran:mtls:authentication_failures
+        expr: |
+          sum(rate(istio_requests_total{response_code="401"}[5m]))
+        labels:
+          metric_type: service_mesh
+          category: authentication
+      
+      - record: nephoran:authz:authorization_failures
+        expr: |
+          sum(rate(istio_requests_total{response_code="403"}[5m]))
+        labels:
+          metric_type: service_mesh
+          category: authorization
+      
+      # Network Performance Security Impact
+      - record: nephoran:perf:security_overhead_latency
+        expr: |
+          (
+            histogram_quantile(0.95, rate(istio_request_duration_milliseconds_bucket{security_policy="mutual_tls"}[5m]))
+            -
+            histogram_quantile(0.95, rate(istio_request_duration_milliseconds_bucket{security_policy!="mutual_tls"}[5m]))
+          )
+        labels:
+          metric_type: performance
+          category: security_overhead
+      
+      - record: nephoran:perf:rate_limiting_impact
+        expr: |
+          sum(rate(envoy_http_local_rate_limiter_rate_limited_total[5m]))
+        labels:
+          metric_type: performance
+          category: rate_limiting
+      
+      # Compliance Metrics
+      - record: nephoran:compliance:pod_security_violations
+        expr: |
+          sum(increase(pod_security_policy_violations_total[5m])) by (policy, violation_type)
+        labels:
+          metric_type: compliance
+          category: pod_security
+      
+      - record: nephoran:compliance:network_policy_coverage
+        expr: |
+          (
+            count(kube_pod_info{namespace="nephoran-system"})
+            /
+            count(kube_networkpolicy_info{namespace="nephoran-system"})
+          ) * 100
+        labels:
+          metric_type: compliance
+          category: policy_coverage
+      
+      # Security Alerting Rules
+      - alert: NetworkSecurityThreatDetected
+        expr: nephoran:ids:alerts_by_severity{severity="high"} > 5
+        for: 2m
+        labels:
+          severity: critical
+          component: network-security
+          category: threat-detection
+        annotations:
+          summary: "High severity network threats detected"
+          description: "{{ $value }} high severity network security alerts detected in the last 5 minutes"
+          runbook_url: "https://runbooks.nephoran.io/security/network-threats"
+      
+      - alert: DDoSAttackDetected
+        expr: nephoran:ddos:request_rate_by_ip > 1000
+        for: 1m
+        labels:
+          severity: critical
+          component: ddos-protection
+          category: availability
+        annotations:
+          summary: "Potential DDoS attack detected"
+          description: "Source IP {{ $labels.source_ip }} is generating {{ $value }} requests per second"
+          runbook_url: "https://runbooks.nephoran.io/security/ddos-response"
+      
+      - alert: UnauthorizedNetworkAccess
+        expr: nephoran:network:unauthorized_access_attempts > 50
+        for: 5m
+        labels:
+          severity: warning
+          component: access-control
+          category: security
+        annotations:
+          summary: "High rate of unauthorized access attempts"
+          description: "{{ $value }} unauthorized access attempts per second detected"
+          runbook_url: "https://runbooks.nephoran.io/security/access-violations"
+      
+      - alert: NetworkPolicyViolation
+        expr: increase(nephoran:netpol:blocked_connections[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+          component: network-policy
+          category: policy-violation
+        annotations:
+          summary: "High number of network policy violations"
+          description: "{{ $value }} network connections blocked by policy in the last 5 minutes"
+          runbook_url: "https://runbooks.nephoran.io/security/policy-violations"
+      
+      - alert: TLSCertificateExpiringSoon
+        expr: nephoran:tls:certificate_expiry_days < 30
+        for: 1h
+        labels:
+          severity: warning
+          component: certificate-management
+          category: tls
+        annotations:
+          summary: "TLS certificate expiring soon"
+          description: "Certificate {{ $labels.common_name }} expires in {{ $value }} days"
+          runbook_url: "https://runbooks.nephoran.io/security/certificate-renewal"
+      
+      - alert: mTLSComplianceViolation
+        expr: nephoran:mtls:connections_without_mtls > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: service-mesh
+          category: compliance
+        annotations:
+          summary: "Service mesh mTLS compliance violation"
+          description: "{{ $value }} connections detected without mutual TLS"
+          runbook_url: "https://runbooks.nephoran.io/security/mtls-compliance"
+      
+      - alert: WeakTLSCipherDetected
+        expr: nephoran:tls:weak_cipher_usage > 0
+        for: 1m
+        labels:
+          severity: high
+          component: encryption
+          category: compliance
+        annotations:
+          summary: "Weak TLS cipher suites detected"
+          description: "{{ $value }} connections using deprecated TLS versions detected"
+          runbook_url: "https://runbooks.nephoran.io/security/tls-hardening"
+      
+      - alert: SecurityPerformanceImpact
+        expr: nephoran:perf:security_overhead_latency > 500
+        for: 10m
+        labels:
+          severity: warning
+          component: performance
+          category: security-overhead
+        annotations:
+          summary: "High security overhead detected"
+          description: "Security features adding {{ $value }}ms average latency"
+          runbook_url: "https://runbooks.nephoran.io/performance/security-optimization"
+      
+      - alert: MalwareDetected
+        expr: nephoran:ids:malware_detections > 0
+        for: 0s  # Immediate alert
+        labels:
+          severity: critical
+          component: malware-detection
+          category: security-incident
+        annotations:
+          summary: "Malware detected in network traffic"
+          description: "Malware family {{ $labels.malware_family }} detected"
+          runbook_url: "https://runbooks.nephoran.io/security/malware-response"
+      
+      - alert: ProtocolAnomalyDetected
+        expr: nephoran:ids:protocol_anomalies > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: protocol-monitoring
+          category: anomaly-detection
+        annotations:
+          summary: "Network protocol anomalies detected"
+          description: "{{ $value }} protocol anomalies detected for {{ $labels.protocol }}"
+          runbook_url: "https://runbooks.nephoran.io/security/protocol-anomalies"
+
+---
+# Grafana Dashboard ConfigMap for Network Security
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-security-grafana-dashboard
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-security-monitoring
+    app.kubernetes.io/component: grafana-dashboard
+    grafana_dashboard: "1"
+data:
+  network-security-dashboard.json: |
+    {
+      "dashboard": {
+        "id": null,
+        "title": "Nephoran Network Security Monitoring",
+        "tags": ["nephoran", "network", "security"],
+        "timezone": "browser",
+        "panels": [
+          {
+            "id": 1,
+            "title": "Network Security Overview",
+            "type": "stat",
+            "targets": [
+              {
+                "expr": "sum(rate(istio_requests_total{response_code=~\"4.*|5.*\"}[5m]))",
+                "legendFormat": "Error Rate"
+              },
+              {
+                "expr": "nephoran:network:unauthorized_access_attempts",
+                "legendFormat": "Unauthorized Attempts"
+              },
+              {
+                "expr": "sum(nephoran:ids:alerts_by_severity)",
+                "legendFormat": "Security Alerts"
+              },
+              {
+                "expr": "nephoran:mtls:connections_without_mtls",
+                "legendFormat": "Non-mTLS Connections"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+          },
+          {
+            "id": 2,
+            "title": "DDoS Protection Status",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "topk(10, nephoran:ddos:request_rate_by_ip)",
+                "legendFormat": "Requests/sec - {{source_ip}}"
+              },
+              {
+                "expr": "nephoran:ddos:connection_rate_by_ip",
+                "legendFormat": "Connections/sec - {{source_ip}}"
+              },
+              {
+                "expr": "nephoran:ddos:error_rate_spike",
+                "legendFormat": "Error Rate %"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+          },
+          {
+            "id": 3,
+            "title": "Intrusion Detection Alerts",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "nephoran:ids:alerts_by_severity",
+                "legendFormat": "{{severity}} - {{signature}}",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+          },
+          {
+            "id": 4,
+            "title": "Network Policy Compliance",
+            "type": "piechart",
+            "targets": [
+              {
+                "expr": "nephoran:netpol:allowed_connections",
+                "legendFormat": "Allowed"
+              },
+              {
+                "expr": "nephoran:netpol:blocked_connections",
+                "legendFormat": "Blocked"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16}
+          },
+          {
+            "id": 5,
+            "title": "mTLS Compliance",
+            "type": "gauge",
+            "targets": [
+              {
+                "expr": "(sum(istio_tcp_connections_opened_total{security_policy=\"mutual_tls\"}) / sum(istio_tcp_connections_opened_total)) * 100",
+                "legendFormat": "mTLS Coverage %"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 80},
+                    {"color": "green", "value": 95}
+                  ]
+                }
+              }
+            },
+            "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16}
+          },
+          {
+            "id": 6,
+            "title": "Certificate Expiry Status",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "nephoran:tls:certificate_expiry_days",
+                "legendFormat": "{{common_name}}",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 8, "x": 16, "y": 16}
+          },
+          {
+            "id": 7,
+            "title": "Top Network Security Threats",
+            "type": "table",
+            "targets": [
+              {
+                "expr": "topk(20, sum by (signature) (increase(suricata_alerts_total[1h])))",
+                "legendFormat": "{{signature}}",
+                "format": "table",
+                "instant": true
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+          },
+          {
+            "id": 8,
+            "title": "Security Performance Impact",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nephoran:perf:security_overhead_latency",
+                "legendFormat": "mTLS Latency Overhead (ms)"
+              },
+              {
+                "expr": "nephoran:perf:rate_limiting_impact",
+                "legendFormat": "Rate Limited Requests/sec"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+          },
+          {
+            "id": 9,
+            "title": "Malware Detection Timeline",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nephoran:ids:malware_detections",
+                "legendFormat": "{{malware_family}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+          },
+          {
+            "id": 10,
+            "title": "Protocol Anomaly Detection",
+            "type": "graph",
+            "targets": [
+              {
+                "expr": "nephoran:ids:protocol_anomalies",
+                "legendFormat": "{{protocol}}"
+              }
+            ],
+            "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+          }
+        ],
+        "time": {
+          "from": "now-1h",
+          "to": "now"
+        },
+        "refresh": "30s"
+      }
+    }
+
+---
+# Network Security Metrics Exporter
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-security-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-security-exporter
+    app.kubernetes.io/component: metrics-exporter
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-security-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: network-security-exporter
+        app.kubernetes.io/component: metrics-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: network-security-exporter
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: exporter
+        image: prom/node-exporter:v1.6.1
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          readOnlyRootFilesystem: true
+        command:
+        - /bin/sh
+        - -c
+        - |
+          #!/bin/sh
+          set -e
+          
+          # Custom network security metrics collector
+          while true; do
+            echo "# HELP network_security_events_total Total network security events"
+            echo "# TYPE network_security_events_total counter"
+            
+            # Query iptables for dropped packets
+            iptables_drops=$(iptables -L -n -v 2>/dev/null | grep DROP | awk '{sum+=$1} END {print sum+0}')
+            echo "network_security_iptables_drops_total ${iptables_drops}"
+            
+            # Query conntrack for connection stats
+            if [ -f /proc/sys/net/netfilter/nf_conntrack_count ]; then
+              conntrack_count=$(cat /proc/sys/net/netfilter/nf_conntrack_count 2>/dev/null || echo 0)
+              echo "network_security_conntrack_entries ${conntrack_count}"
+            fi
+            
+            # Network interface statistics
+            for iface in $(ls /sys/class/net/ 2>/dev/null || echo); do
+              if [ -f "/sys/class/net/$iface/statistics/rx_dropped" ]; then
+                rx_dropped=$(cat "/sys/class/net/$iface/statistics/rx_dropped" 2>/dev/null || echo 0)
+                echo "network_security_interface_rx_dropped_total{interface=\"$iface\"} ${rx_dropped}"
+              fi
+              if [ -f "/sys/class/net/$iface/statistics/tx_dropped" ]; then
+                tx_dropped=$(cat "/sys/class/net/$iface/statistics/tx_dropped" 2>/dev/null || echo 0)
+                echo "network_security_interface_tx_dropped_total{interface=\"$iface\"} ${tx_dropped}"
+              fi
+            done
+            
+            # TCP connection states
+            if command -v ss >/dev/null 2>&1; then
+              tcp_established=$(ss -t -a | grep ESTAB | wc -l 2>/dev/null || echo 0)
+              tcp_listen=$(ss -t -l | grep LISTEN | wc -l 2>/dev/null || echo 0)
+              echo "network_security_tcp_connections{state=\"established\"} ${tcp_established}"
+              echo "network_security_tcp_connections{state=\"listen\"} ${tcp_listen}"
+            fi
+            
+            sleep 60
+          done > /tmp/metrics.prom &
+          
+          # HTTP server to expose metrics
+          while true; do
+            echo -e "HTTP/1.1 200 OK\n\nContent-Type: text/plain\n" | cat - /tmp/metrics.prom 2>/dev/null | nc -l -p 8080 -q 1 2>/dev/null || true
+          done
+        ports:
+        - containerPort: 8080
+          name: metrics
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - name: proc
+          mountPath: /host/proc
+          readOnly: true
+        - name: sys
+          mountPath: /host/sys
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        livenessProbe:
+          httpGet:
+            path: /metrics
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: sys
+        hostPath:
+          path: /sys
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      hostNetwork: true
+      hostPID: true
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/os
+                operator: In
+                values:
+                - linux
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: network-security-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-security-exporter
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: network-security-exporter
+rules:
+- apiGroups: [""]
+  resources:
+  - nodes
+  - nodes/metrics
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["networking.k8s.io"]
+  resources:
+  - networkpolicies
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["policy"]
+  resources:
+  - poddisruptionbudgets
+  verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: network-security-exporter
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: network-security-exporter
+subjects:
+- kind: ServiceAccount
+  name: network-security-exporter
+  namespace: monitoring
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: network-security-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-security-exporter
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+spec:
+  selector:
+    app.kubernetes.io/name: network-security-exporter
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: 8080
+  type: ClusterIP
+
+---
+# ServiceMonitor for Prometheus integration
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: network-security-monitoring
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-security-monitoring
+spec:
+  selector:
+    matchLabels:
+      prometheus.io/scrape: "true"
+  endpoints:
+  - port: metrics
+    interval: 30s
+    path: /metrics
+    honorLabels: true
+  namespaceSelector:
+    matchNames:
+    - monitoring
+    - nephoran-system
+    - nephoran-security
+    - nephoran-ddos-protection
+
+---
+# Alertmanager Configuration for Network Security
+apiVersion: v1
+kind: Secret
+metadata:
+  name: network-security-alertmanager-config
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-security-monitoring
+type: Opaque
+stringData:
+  alertmanager.yml: |
+    global:
+      smtp_smarthost: 'localhost:587'
+      smtp_from: 'alerts@nephoran.io'
+    
+    route:
+      group_by: ['alertname', 'cluster', 'service']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'web.hook'
+      routes:
+      - match:
+          category: security-incident
+        receiver: 'security-team'
+        group_wait: 10s
+        repeat_interval: 5m
+      - match:
+          severity: critical
+        receiver: 'critical-alerts'
+        group_wait: 10s
+        repeat_interval: 30m
+      - match:
+          component: ddos-protection
+        receiver: 'ddos-response-team'
+        group_wait: 5s
+        repeat_interval: 10m
+    
+    receivers:
+    - name: 'web.hook'
+      webhook_configs:
+      - url: 'http://webhook-receiver.monitoring.svc.cluster.local:9093/webhook'
+        send_resolved: true
+    
+    - name: 'security-team'
+      email_configs:
+      - to: 'security-team@nephoran.io'
+        subject: 'SECURITY INCIDENT: {{ .GroupLabels.alertname }}'
+        body: |
+          {{ range .Alerts }}
+          Alert: {{ .Annotations.summary }}
+          Description: {{ .Annotations.description }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}
+      slack_configs:
+      - api_url: 'https://hooks.slack.com/services/SECURITY_WEBHOOK_URL'
+        channel: '#security-alerts'
+        title: 'Security Incident Alert'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+    
+    - name: 'critical-alerts'
+      email_configs:
+      - to: 'on-call@nephoran.io'
+        subject: 'CRITICAL: {{ .GroupLabels.alertname }}'
+      pagerduty_configs:
+      - service_key: 'PAGERDUTY_SERVICE_KEY'
+        description: '{{ .GroupLabels.alertname }}'
+    
+    - name: 'ddos-response-team'
+      webhook_configs:
+      - url: 'http://ddos-mitigation.nephoran-ddos-protection.svc.cluster.local:8080/alert'
+        send_resolved: true
+      email_configs:
+      - to: 'network-ops@nephoran.io'
+        subject: 'DDoS Attack Alert'
+    
+    inhibit_rules:
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'cluster', 'service']
+
+---
+# Network Security Dashboard for Operations
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-security-ops-dashboard
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-security-monitoring
+    grafana_dashboard: "1"
+data:
+  network-security-ops.json: |
+    {
+      "dashboard": {
+        "title": "Network Security Operations Dashboard",
+        "tags": ["nephoran", "security", "operations"],
+        "panels": [
+          {
+            "title": "Security Incident Response Status",
+            "type": "stat",
+            "targets": [
+              {"expr": "sum(ALERTS{alertstate=\"firing\", category=\"security-incident\"})", "legendFormat": "Active Incidents"},
+              {"expr": "sum(increase(ALERTS_FOR_STATE{alertstate=\"firing\", category=\"security-incident\"}[24h]))", "legendFormat": "24h Incidents"}
+            ]
+          },
+          {
+            "title": "Network Security Posture Score",
+            "type": "gauge",
+            "targets": [
+              {"expr": "((sum(nephoran:mtls:connections_without_mtls == 0) + sum(nephoran:tls:weak_cipher_usage == 0) + sum(nephoran:compliance:network_policy_coverage > 90)) / 3) * 100"}
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "min": 0,
+                "max": 100,
+                "thresholds": {
+                  "steps": [
+                    {"color": "red", "value": 0},
+                    {"color": "yellow", "value": 70},
+                    {"color": "green", "value": 90}
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "title": "Real-time Threat Feed",
+            "type": "logs",
+            "targets": [
+              {"expr": "{job=\"suricata\"} |= \"alert\""}
+            ]
+          },
+          {
+            "title": "Network Flow Analysis",
+            "type": "graph",
+            "targets": [
+              {"expr": "sum by (source_ns, dest_ns) (rate(istio_tcp_opened_total[5m]))", "legendFormat": "{{source_ns}} -> {{dest_ns}}"}
+            ]
+          }
+        ]
+      }
+    }

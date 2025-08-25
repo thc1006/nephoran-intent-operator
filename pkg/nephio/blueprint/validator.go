@@ -18,28 +18,17 @@ package blueprint
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/ghodss/yaml"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/xeipuuv/gojsonschema"
 	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
-
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
-	istionetworkingv1beta1 "istio.io/api/networking/v1beta1"
-	istiosecurityv1beta1 "istio.io/api/security/v1beta1"
 )
 
 // Validator handles blueprint validation and O-RAN compliance checking

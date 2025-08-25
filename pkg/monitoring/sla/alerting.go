@@ -738,6 +738,7 @@ func (am *AlertManager) runPredictionLoop(ctx context.Context) {
 func (am *AlertManager) evaluateRule(rule *AlertRule, sliProvider SLIProvider) error {
 	start := time.Now()
 	defer func() {
+		am.metrics.EvaluationLatency.Observe(time.Since(start).Seconds())
 		am.metrics.RuleEvaluations.WithLabelValues(rule.Name, "completed").Inc()
 	}()
 

@@ -14,12 +14,12 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/suite"
-	"go.uber.org/zap"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	crzap "sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -122,7 +122,7 @@ func NewTestSuite(config *TestConfig) *TestSuite {
 
 // SetupSuite initializes the test environment
 func (ts *TestSuite) SetupSuite() {
-	logf.SetLogger(zap.New(zap.WriteTo(ginkgo.GinkgoWriter), zap.UseDevMode(true)))
+	logf.SetLogger(crzap.New(crzap.UseDevMode(true)))
 
 	ginkgo.By("Bootstrapping test environment")
 

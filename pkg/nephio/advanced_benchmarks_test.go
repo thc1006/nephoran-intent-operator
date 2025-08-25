@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"runtime"
 	"runtime/debug"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"

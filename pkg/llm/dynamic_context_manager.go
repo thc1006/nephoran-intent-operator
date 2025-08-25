@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -56,12 +55,12 @@ type NetworkState struct {
 	E2Nodes          []E2Node
 	Alarms           []Alarm
 	PerformanceKPIs  map[string]float64
-	Topology         *NetworkTopology
+	Topology         *PhysicalNetworkTopology
 	RecentEvents     []NetworkEvent
 }
 
-// NetworkTopology represents network topology information
-type NetworkTopology struct {
+// PhysicalNetworkTopology represents physical network topology information
+type PhysicalNetworkTopology struct {
 	Sites       []Site
 	Connections []Connection
 	Coverage    []CoverageArea
@@ -150,16 +149,6 @@ const (
 	LightCompression
 	ModerateCompression
 	HeavyCompression
-)
-
-// Priority represents request priority
-type Priority int
-
-const (
-	LowPriority Priority = iota
-	NormalPriority
-	HighPriority
-	CriticalPriority
 )
 
 // TokenEstimator provides token estimation for different models

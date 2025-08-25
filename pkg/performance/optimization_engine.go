@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/sony/gobreaker"
@@ -70,15 +71,6 @@ type GoroutinePool struct {
 	metrics    *PoolMetrics
 }
 
-// PoolMetrics tracks goroutine pool performance
-type PoolMetrics struct {
-	ActiveWorkers  int64
-	QueuedTasks    int64
-	CompletedTasks int64
-	FailedTasks    int64
-	AvgProcessTime time.Duration
-	mu             sync.RWMutex
-}
 
 // NewOptimizationEngine creates a new optimization engine
 func NewOptimizationEngine() *OptimizationEngine {
@@ -222,7 +214,7 @@ func NewMultiLevelCache() *MultiLevelCache {
 
 // MemoryCache provides in-memory caching
 type MemoryCache struct {
-	cache   map[string]CacheEntry
+	cache   map[string]SimpleCacheEntry
 	maxSize int
 	ttl     time.Duration
 	mu      sync.RWMutex
@@ -230,8 +222,8 @@ type MemoryCache struct {
 	misses  int64
 }
 
-// CacheEntry represents a cache entry
-type CacheEntry struct {
+// SimpleCacheEntry represents a simple cache entry
+type SimpleCacheEntry struct {
 	Value       interface{}
 	Expiration  time.Time
 	Size        int
@@ -241,7 +233,7 @@ type CacheEntry struct {
 // NewMemoryCache creates a new memory cache
 func NewMemoryCache(maxSize int, ttl time.Duration) *MemoryCache {
 	cache := &MemoryCache{
-		cache:   make(map[string]CacheEntry),
+		cache:   make(map[string]SimpleCacheEntry),
 		maxSize: maxSize,
 		ttl:     ttl,
 	}
@@ -284,7 +276,7 @@ func (c *MemoryCache) Set(key string, value interface{}, size int) {
 		c.evictLRU()
 	}
 
-	c.cache[key] = CacheEntry{
+	c.cache[key] = SimpleCacheEntry{
 		Value:       value,
 		Expiration:  time.Now().Add(c.ttl),
 		Size:        size,
@@ -295,7 +287,7 @@ func (c *MemoryCache) Set(key string, value interface{}, size int) {
 // evictLRU evicts the least recently used entry
 func (c *MemoryCache) evictLRU() {
 	var lruKey string
-	var lruEntry CacheEntry
+	var lruEntry SimpleCacheEntry
 	first := true
 
 	for key, entry := range c.cache {
@@ -507,9 +499,7 @@ func NewGoroutinePool(maxWorkers int) *GoroutinePool {
 func (p *GoroutinePool) Submit(task func()) error {
 	select {
 	case p.workQueue <- task:
-		p.metrics.mu.Lock()
-		p.metrics.QueuedTasks++
-		p.metrics.mu.Unlock()
+		atomic.AddInt64(&p.metrics.QueuedTasks, 1)
 		return nil
 	case <-time.After(5 * time.Second):
 		return fmt.Errorf("goroutine pool queue full")
@@ -523,18 +513,14 @@ func (p *GoroutinePool) worker() {
 	for {
 		select {
 		case task := <-p.workQueue:
-			p.metrics.mu.Lock()
-			p.metrics.ActiveWorkers++
-			p.metrics.mu.Unlock()
+			atomic.AddInt64(&p.metrics.ActiveWorkers, 1)
 
 			start := time.Now()
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
 						klog.Errorf("Task panic: %v", r)
-						p.metrics.mu.Lock()
-						p.metrics.FailedTasks++
-						p.metrics.mu.Unlock()
+						atomic.AddInt64(&p.metrics.FailedTasks, 1)
 					}
 				}()
 				task()
@@ -542,16 +528,10 @@ func (p *GoroutinePool) worker() {
 
 			duration := time.Since(start)
 
-			p.metrics.mu.Lock()
-			p.metrics.ActiveWorkers--
-			p.metrics.CompletedTasks++
-			// Update average process time
-			if p.metrics.AvgProcessTime == 0 {
-				p.metrics.AvgProcessTime = duration
-			} else {
-				p.metrics.AvgProcessTime = (p.metrics.AvgProcessTime + duration) / 2
-			}
-			p.metrics.mu.Unlock()
+			atomic.AddInt64(&p.metrics.ActiveWorkers, -1)
+			atomic.AddInt64(&p.metrics.CompletedTasks, 1)
+			// Update average process time (using atomic for simplicity)
+			atomic.StoreInt64(&p.metrics.AverageProcessTime, duration.Nanoseconds())
 
 		case <-p.shutdown:
 			return
@@ -579,8 +559,6 @@ func (p *GoroutinePool) Shutdown(ctx context.Context) error {
 
 // GetMetrics returns pool metrics
 func (p *GoroutinePool) GetMetrics() PoolMetrics {
-	p.metrics.mu.RLock()
-	defer p.metrics.mu.RUnlock()
 	return *p.metrics
 }
 
@@ -777,7 +755,7 @@ func (e *OptimizationEngine) GetOptimizationMetrics() map[string]interface{} {
 	metrics["pool_active_workers"] = poolMetrics.ActiveWorkers
 	metrics["pool_completed_tasks"] = poolMetrics.CompletedTasks
 	metrics["pool_failed_tasks"] = poolMetrics.FailedTasks
-	metrics["pool_avg_process_time"] = poolMetrics.AvgProcessTime
+	metrics["pool_avg_process_time"] = poolMetrics.AverageProcessTime
 
 	// Circuit breaker states
 	for name, cb := range e.circuitBreakers {

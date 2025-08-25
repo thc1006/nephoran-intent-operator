@@ -163,6 +163,7 @@ type WorkerPoolConfig struct {
 
 	// Queue configuration
 	TaskQueueSize      int              `json:"task_queue_size"`
+	QueueSize          int              `json:"queue_size"` // Alias for TaskQueueSize
 	ResultQueueSize    int              `json:"result_queue_size"`
 	PriorityQueueSizes map[Priority]int `json:"priority_queue_sizes"`
 
@@ -187,9 +188,10 @@ type WorkerPoolConfig struct {
 	CPULimitPerWorker    float64 `json:"cpu_limit_per_worker"`
 
 	// Monitoring
-	MetricsEnabled     bool `json:"metrics_enabled"`
-	TracingEnabled     bool `json:"tracing_enabled"`
-	HealthCheckEnabled bool `json:"health_check_enabled"`
+	MetricsEnabled      bool          `json:"metrics_enabled"`
+	TracingEnabled      bool          `json:"tracing_enabled"`
+	HealthCheckEnabled  bool          `json:"health_check_enabled"`
+	HealthCheckInterval time.Duration `json:"health_check_interval"`
 }
 
 // DynamicScaler handles automatic worker scaling based on load
@@ -309,7 +311,7 @@ func NewWorkerPool(config *WorkerPoolConfig) (*WorkerPool, error) {
 	pool.scaler.pool = pool
 
 	// Initialize priority queues
-	for _, priority := range []Priority{PriorityUrgent, PriorityHigh, PriorityNormal, PriorityLow} {
+	for _, priority := range []Priority{PriorityUrgent, HighPriority, NormalPriority, LowPriority} {
 		queueSize := config.PriorityQueueSizes[priority]
 		if queueSize == 0 {
 			queueSize = config.TaskQueueSize / 4 // Default split
@@ -346,6 +348,57 @@ func NewWorkerPool(config *WorkerPoolConfig) (*WorkerPool, error) {
 	)
 
 	return pool, nil
+}
+
+// Start starts the worker pool (explicit start method)
+func (wp *WorkerPool) Start(ctx context.Context) error {
+	if wp.getState() != WorkerPoolStateStarting && wp.getState() != WorkerPoolStateRunning {
+		return fmt.Errorf("worker pool is not in a startable state")
+	}
+
+	wp.setState(WorkerPoolStateRunning)
+	wp.logger.Info("Worker pool started")
+	return nil
+}
+
+// Shutdown gracefully shuts down the worker pool
+func (wp *WorkerPool) Shutdown(ctx context.Context) error {
+	wp.shutdownOnce.Do(func() {
+		wp.logger.Info("Shutting down worker pool")
+		wp.setState(WorkerPoolStateShutdown)
+
+		// Signal shutdown to all goroutines
+		close(wp.shutdownCh)
+
+		// Signal all workers to shutdown
+		wp.stateMutex.RLock()
+		for _, worker := range wp.workers {
+			select {
+			case worker.controlChan <- WorkerControlShutdown:
+			default:
+				// Channel might be full, worker will get shutdown signal from shutdownCh
+			}
+		}
+		wp.stateMutex.RUnlock()
+
+		// Wait for all workers to finish with timeout
+		done := make(chan struct{})
+		go func() {
+			wp.workerWG.Wait()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			wp.logger.Info("All workers shut down gracefully")
+		case <-ctx.Done():
+			wp.logger.Warn("Shutdown timeout exceeded, some workers may not have finished gracefully")
+		case <-time.After(30 * time.Second):
+			wp.logger.Warn("Shutdown timeout exceeded after 30s")
+		}
+	})
+
+	return nil
 }
 
 // Submit submits a task to the worker pool
@@ -419,7 +472,7 @@ func (wp *WorkerPool) taskDispatcher() {
 			var found bool
 
 			// Check priority queues in order
-			for _, priority := range []Priority{PriorityUrgent, PriorityHigh, PriorityNormal, PriorityLow} {
+			for _, priority := range []Priority{PriorityUrgent, HighPriority, NormalPriority, LowPriority} {
 				select {
 				case task = <-wp.priorityQueues[priority]:
 					found = true
@@ -772,6 +825,46 @@ func (wp *WorkerPool) getState() WorkerPoolState {
 
 func (ds *DynamicScaler) evaluateScaling() {}
 func (wp *WorkerPool) updateMetrics()      {}
+
+// GetMetrics returns current worker pool metrics
+func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
+	wp.metrics.mu.RLock()
+	defer wp.metrics.mu.RUnlock()
+	
+	// Return a copy of the metrics
+	return &WorkerPoolMetrics{
+		TotalTasks:        wp.metrics.TotalTasks,
+		CompletedTasks:    wp.metrics.CompletedTasks,
+		FailedTasks:       wp.metrics.FailedTasks,
+		ActiveWorkers:     wp.metrics.ActiveWorkers,
+		IdleWorkers:       wp.metrics.IdleWorkers,
+		QueueSize:         wp.metrics.QueueSize,
+		AverageWaitTime:   wp.metrics.AverageWaitTime,
+		AverageProcessTime: wp.metrics.AverageProcessTime,
+		TasksPerSecond:    wp.metrics.TasksPerSecond,
+		ErrorRate:         wp.metrics.ErrorRate,
+		Utilization:       wp.metrics.Utilization,
+		WorkerStates:      wp.metrics.WorkerStates,
+		TasksByType:       wp.metrics.TasksByType,
+		TasksByPriority:   wp.metrics.TasksByPriority,
+		LastUpdated:       wp.metrics.LastUpdated,
+	}
+}
+
+// GetStatus returns current worker pool status
+func (wp *WorkerPool) GetStatus() string {
+	state := wp.getState()
+	switch state {
+	case WorkerPoolStateRunning:
+		return "running"
+	case WorkerPoolStatePaused:
+		return "paused"
+	case WorkerPoolStateShutdown:
+		return "shutdown"
+	default:
+		return "starting"
+	}
+}
 func (w *Worker) processValidationTask(ctx context.Context, task *Task) (interface{}, error) {
 	return nil, nil
 }
@@ -801,9 +894,9 @@ func getDefaultWorkerPoolConfig() *WorkerPoolConfig {
 		HealthCheckEnabled: true,
 		PriorityQueueSizes: map[Priority]int{
 			PriorityUrgent: 100,
-			PriorityHigh:   250,
-			PriorityNormal: 500,
-			PriorityLow:    250,
+			HighPriority:   250,
+			NormalPriority: 500,
+			LowPriority:    250,
 		},
 	}
 }
@@ -823,7 +916,6 @@ func validateWorkerPoolConfig(config *WorkerPoolConfig) error {
 
 // Supporting type definitions
 
-type Priority int
 type TaskType string
 type WorkerType string
 type WorkerState int
@@ -841,14 +933,11 @@ type FastJSONParser struct{}
 type ResponsePool struct{}
 
 const (
-	PriorityUrgent Priority = iota
-	PriorityHigh
-	PriorityNormal
-	PriorityLow
-
-	TaskTypeLLMProcessing TaskType = "llm_processing"
-	TaskTypeValidation    TaskType = "validation"
-	TaskTypeCaching       TaskType = "caching"
+	TaskTypeLLMProcessing   TaskType = "llm_processing"
+	TaskTypeValidation      TaskType = "validation"
+	TaskTypeCaching         TaskType = "caching"
+	TaskTypeRAGProcessing   TaskType = "rag_processing"
+	TaskTypeBatchProcessing TaskType = "batch_processing"
 
 	WorkerTypeLLM     WorkerType = "llm"
 	WorkerTypeGeneral WorkerType = "general"

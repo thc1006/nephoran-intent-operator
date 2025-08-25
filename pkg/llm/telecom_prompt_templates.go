@@ -6,70 +6,17 @@ import (
 	"time"
 )
 
-// TelecomPromptTemplates provides specialized prompts for telecom domain
-type TelecomPromptTemplates struct {
+// TelecomPromptTemplatesExtended provides specialized prompts for telecom domain
+// This is an extended implementation with comprehensive templates
+type TelecomPromptTemplatesExtended struct {
 	systemPrompts map[string]string
 	userPrompts   map[string]string
 	examples      map[string][]PromptExample
 }
 
-// PromptExample represents an example for few-shot prompting
-type PromptExample struct {
-	Input       string
-	Output      string
-	Explanation string
-}
-
-// TelecomContext holds domain-specific context
-type TelecomContext struct {
-	NetworkFunctions []NetworkFunction
-	ActiveSlices     []NetworkSlice
-	E2Nodes          []E2Node
-	Alarms           []Alarm
-	PerformanceKPIs  map[string]float64
-}
-
-// NetworkFunction represents a 5G Core network function
-type NetworkFunction struct {
-	Name     string  `json:"name"`
-	Type     string  `json:"type"` // AMF, SMF, UPF, etc.
-	Status   string  `json:"status"`
-	Load     float64 `json:"load"`
-	Location string  `json:"location"`
-}
-
-// NetworkSlice represents a network slice configuration
-type NetworkSlice struct {
-	ID           string  `json:"id"`
-	Type         string  `json:"type"` // eMBB, URLLC, mMTC
-	Status       string  `json:"status"`
-	Throughput   float64 `json:"throughput"`
-	Latency      float64 `json:"latency"`
-	Reliability  float64 `json:"reliability"`
-	ConnectedUEs int     `json:"connected_ues"`
-}
-
-// E2Node represents an E2 interface node
-type E2Node struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"` // gNB, ng-eNB
-	Status   string `json:"status"`
-	RRCState string `json:"rrc_state"`
-	CellID   string `json:"cell_id"`
-}
-
-// Alarm represents a network alarm
-type Alarm struct {
-	ID          string    `json:"id"`
-	Severity    string    `json:"severity"`
-	Source      string    `json:"source"`
-	Description string    `json:"description"`
-	Timestamp   time.Time `json:"timestamp"`
-}
-
-// NewTelecomPromptTemplates creates a new instance with pre-configured templates
-func NewTelecomPromptTemplates() *TelecomPromptTemplates {
-	templates := &TelecomPromptTemplates{
+// NewTelecomPromptTemplatesExtended creates a new instance with pre-configured templates
+func NewTelecomPromptTemplatesExtended() *TelecomPromptTemplatesExtended {
+	templates := &TelecomPromptTemplatesExtended{
 		systemPrompts: make(map[string]string),
 		userPrompts:   make(map[string]string),
 		examples:      make(map[string][]PromptExample),
@@ -83,7 +30,7 @@ func NewTelecomPromptTemplates() *TelecomPromptTemplates {
 }
 
 // initializeSystemPrompts sets up system prompts for different intent types
-func (t *TelecomPromptTemplates) initializeSystemPrompts() {
+func (t *TelecomPromptTemplatesExtended) initializeSystemPrompts() {
 	// O-RAN Network Intent System Prompt
 	t.systemPrompts["oran_network_intent"] = `You are an expert O-RAN (Open Radio Access Network) architect with deep knowledge of:
 
@@ -233,7 +180,7 @@ Generate optimization strategies that:
 }
 
 // initializeUserPrompts sets up user prompt templates
-func (t *TelecomPromptTemplates) initializeUserPrompts() {
+func (t *TelecomPromptTemplatesExtended) initializeUserPrompts() {
 	t.userPrompts["network_intent_processing"] = `Process the following network intent and generate appropriate configurations:
 
 **Intent:** {{.Intent}}
@@ -334,7 +281,7 @@ Include detailed explanations of the technical rationale for each recommendation
 }
 
 // initializeExamples sets up few-shot learning examples
-func (t *TelecomPromptTemplates) initializeExamples() {
+func (t *TelecomPromptTemplatesExtended) initializeExamples() {
 	// O-RAN Network Intent Examples
 	t.examples["oran_network_intent"] = []PromptExample{
 		{
@@ -600,7 +547,7 @@ spec:
 }
 
 // GetSystemPrompt returns the system prompt for a given intent type
-func (t *TelecomPromptTemplates) GetSystemPrompt(intentType string) string {
+func (t *TelecomPromptTemplatesExtended) GetSystemPrompt(intentType string) string {
 	if prompt, exists := t.systemPrompts[intentType]; exists {
 		return prompt
 	}
@@ -608,7 +555,7 @@ func (t *TelecomPromptTemplates) GetSystemPrompt(intentType string) string {
 }
 
 // GetUserPrompt returns the user prompt template for a given intent type
-func (t *TelecomPromptTemplates) GetUserPrompt(intentType string) string {
+func (t *TelecomPromptTemplatesExtended) GetUserPrompt(intentType string) string {
 	if prompt, exists := t.userPrompts[intentType]; exists {
 		return prompt
 	}
@@ -616,7 +563,7 @@ func (t *TelecomPromptTemplates) GetUserPrompt(intentType string) string {
 }
 
 // GetExamples returns examples for few-shot prompting
-func (t *TelecomPromptTemplates) GetExamples(intentType string) []PromptExample {
+func (t *TelecomPromptTemplatesExtended) GetExamples(intentType string) []PromptExample {
 	if examples, exists := t.examples[intentType]; exists {
 		return examples
 	}
@@ -624,7 +571,7 @@ func (t *TelecomPromptTemplates) GetExamples(intentType string) []PromptExample 
 }
 
 // BuildPrompt constructs a complete prompt with system message, examples, and user input
-func (t *TelecomPromptTemplates) BuildPrompt(intentType string, context TelecomContext, userIntent string) string {
+func (t *TelecomPromptTemplatesExtended) BuildPrompt(intentType string, context TelecomContext, userIntent string) string {
 	var builder strings.Builder
 
 	// Add system prompt
@@ -670,7 +617,7 @@ func (t *TelecomPromptTemplates) BuildPrompt(intentType string, context TelecomC
 }
 
 // formatContext formats the telecom context into a readable string
-func (t *TelecomPromptTemplates) formatContext(context TelecomContext) string {
+func (t *TelecomPromptTemplatesExtended) formatContext(context TelecomContext) string {
 	var builder strings.Builder
 
 	// Network Functions
@@ -726,7 +673,7 @@ func (t *TelecomPromptTemplates) formatContext(context TelecomContext) string {
 }
 
 // ValidatePrompt validates a prompt for telecom domain compliance
-func (t *TelecomPromptTemplates) ValidatePrompt(prompt string) []string {
+func (t *TelecomPromptTemplatesExtended) ValidatePrompt(prompt string) []string {
 	var issues []string
 
 	// Check for required telecom keywords

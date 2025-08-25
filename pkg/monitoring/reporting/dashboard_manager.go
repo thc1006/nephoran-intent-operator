@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
 // DashboardConfig represents the configuration for dashboard management

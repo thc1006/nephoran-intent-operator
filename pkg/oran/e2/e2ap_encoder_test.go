@@ -1,6 +1,7 @@
 package e2
 
 import (
+	"fmt"
 	"testing"
 	"time"
 

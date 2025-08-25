@@ -245,7 +245,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 
 	// Submit tasks
 	for _, task := range tasks {
-		if err := pool.Submit(task); err != nil {
+		if err := pool.Submit(&task); err != nil {
 			t.Errorf("Failed to submit task %s: %v", task.ID, err)
 		}
 	}
@@ -260,7 +260,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 	}
 
 	status := pool.GetStatus()
-	if !status["running"].(bool) {
+	if status != "running" {
 		t.Error("Worker pool should be running")
 	}
 
@@ -275,7 +275,7 @@ func TestWorkerPoolIntegration(t *testing.T) {
 		}
 
 		// Non-blocking submit (queue might be full)
-		pool.Submit(task)
+		pool.Submit(&task)
 	}
 
 	// Wait for scaling

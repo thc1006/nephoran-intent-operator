@@ -11,35 +11,36 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
+
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
-// Client is a client for the LLM processor.
-type Client struct {
+// LegacyClient is a client for the LLM processor (legacy version).
+type LegacyClient struct {
 	httpClient   *http.Client
 	url          string
 	promptEngine *TelecomPromptEngine
-	retryConfig  RetryConfig
+	retryConfig  LegacyRetryConfig
 	validator    *ResponseValidator
 	apiKey       string
 	modelName    string
 	maxTokens    int
 	backendType  string
 	logger       *slog.Logger
-	metrics      *ClientMetrics
+	metrics      *LegacyClientMetrics
 	mutex        sync.RWMutex
-	cache        *ResponseCache
+	cache        *LegacyResponseCache
 	fallbackURLs []string
 	ragClient    rag.RAGClient // Optional RAG client for enhanced processing
 }
 
-// RetryConfig defines retry behavior
-type RetryConfig struct {
+// LegacyRetryConfig defines retry behavior for legacy client
+type LegacyRetryConfig struct {
 	MaxRetries    int
 	BaseDelay     time.Duration
 	MaxDelay      time.Duration
@@ -47,8 +48,8 @@ type RetryConfig struct {
 	BackoffFactor float64
 }
 
-// ClientMetrics tracks client performance metrics
-type ClientMetrics struct {
+// LegacyClientMetrics tracks client performance metrics for legacy client
+type LegacyClientMetrics struct {
 	RequestsTotal    int64
 	RequestsSuccess  int64
 	RequestsFailure  int64
@@ -61,8 +62,8 @@ type ClientMetrics struct {
 }
 
 // ResponseCache provides simple in-memory caching
-type ResponseCache struct {
-	entries  map[string]*CacheEntry
+type LegacyResponseCache struct {
+	entries  map[string]*types.CacheEntry
 	mutex    sync.RWMutex
 	ttl      time.Duration
 	maxSize  int
@@ -71,21 +72,16 @@ type ResponseCache struct {
 	stopped  bool
 }
 
-type CacheEntry struct {
-	Response   string
-	Timestamp  time.Time
-	LastAccess time.Time
-	HitCount   int64
-}
+// CacheEntry is now defined in pkg/shared/types/common_types.go
 
-// ValidationError represents a validation error with missing fields
-type ValidationError struct {
+// FieldValidationError represents a validation error with missing fields
+type FieldValidationError struct {
 	Message       string   `json:"message"`
 	MissingFields []string `json:"missing_fields"`
 }
 
 // Error implements the error interface
-func (ve *ValidationError) Error() string {
+func (ve *FieldValidationError) Error() string {
 	if len(ve.MissingFields) == 0 {
 		return ve.Message
 	}
@@ -98,8 +94,8 @@ type ResponseValidator struct {
 }
 
 // NewClient creates a new LLM client with enhanced capabilities.
-func NewClient(url string) *Client {
-	return NewClientWithConfig(url, ClientConfig{
+func NewLegacyClient(url string) *LegacyClient {
+	client, err := NewLegacyClientWithConfig(url, LegacyClientConfig{
 		APIKey:          "",
 		ModelName:       "gpt-4o-mini",
 		MaxTokens:       2048,
@@ -108,10 +104,16 @@ func NewClient(url string) *Client {
 		MaxRetries:      2,   // Default retry count
 		CacheMaxEntries: 512, // Default cache size
 	})
+	if err != nil {
+		// Log the error and return a minimal client or panic
+		// For now, we'll panic since this is a critical initialization error
+		panic(fmt.Sprintf("Failed to create LLM client: %v", err))
+	}
+	return client
 }
 
 // ClientConfig holds configuration for LLM client
-type ClientConfig struct {
+type LegacyClientConfig struct {
 	APIKey              string
 	ModelName           string
 	MaxTokens           int
@@ -124,7 +126,7 @@ type ClientConfig struct {
 
 // allowInsecureClient checks if insecure TLS is allowed via environment variable
 // This follows the principle of requiring explicit opt-in for insecure behavior
-func allowInsecureClient() bool {
+func legacyAllowInsecureClient() bool {
 	// Only allow insecure connections if explicitly enabled
 	// This requires setting ALLOW_INSECURE_CLIENT=true
 	envValue := os.Getenv("ALLOW_INSECURE_CLIENT")
@@ -132,7 +134,7 @@ func allowInsecureClient() bool {
 }
 
 // NewClientWithConfig creates a new LLM client with specific configuration
-func NewClientWithConfig(url string, config ClientConfig) *Client {
+func NewLegacyClientWithConfig(url string, config LegacyClientConfig) (*LegacyClient, error) {
 	// Initialize logger early for security logging
 	logger := slog.Default().With("component", "llm-client")
 
@@ -149,29 +151,23 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		PreferServerCipherSuites: true,
 	}
 
-	// Security check: Only allow skipping TLS verification when both conditions are met
+	// CRITICAL SECURITY FIX: Completely disable TLS verification bypass
 	if config.SkipTLSVerification {
-		if !allowInsecureClient() {
-			// Log security violation attempt
-			logger.Error("SECURITY VIOLATION: Attempted to skip TLS verification without proper authorization",
-				slog.String("url", url),
-				slog.Bool("skip_tls_requested", true),
-				slog.String("env_allow_insecure", os.Getenv("ALLOW_INSECURE_CLIENT")),
-			)
-			// Fail securely - do not create client with insecure settings
-			panic("Security violation: TLS verification cannot be disabled without explicit environment permission")
-		}
-
-		// Both conditions met - log security warning
-		logger.Warn("SECURITY WARNING: TLS verification disabled - THIS IS INSECURE",
+		// Log security violation and block creation of insecure client
+		logger.Error("SECURITY VIOLATION BLOCKED: TLS verification bypass is not permitted",
 			slog.String("url", url),
-			slog.String("reason", "both SkipTLSVerification=true and ALLOW_INSECURE_CLIENT=true"),
-			slog.String("recommendation", "Only use in development/testing environments"),
+			slog.String("violation", "attempted to disable TLS certificate verification"),
+			slog.String("compliance", "O-RAN WG11 security requirements mandate proper TLS verification"),
 		)
-
-		// Apply insecure settings
-		tlsConfig.InsecureSkipVerify = true
+		// Return error instead of creating insecure client
+		return nil, fmt.Errorf("SECURITY ERROR: TLS verification cannot be disabled - violates security policy")
 	}
+	
+	// Enforce additional TLS security measures
+	tlsConfig.MinVersion = tls.VersionTLS13  // Upgrade to TLS 1.3 minimum
+	tlsConfig.MaxVersion = tls.VersionTLS13  // Lock to TLS 1.3 only
+	tlsConfig.SessionTicketsDisabled = true  // Perfect forward secrecy
+	tlsConfig.Renegotiation = tls.RenegotiateNever
 
 	// Create HTTP client with enhanced configuration
 	transport := &http.Transport{
@@ -203,11 +199,11 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		cacheMaxEntries = 512 // Fallback default
 	}
 
-	client := &Client{
+	client := &LegacyClient{
 		httpClient:   httpClient,
 		url:          url,
 		promptEngine: NewTelecomPromptEngine(),
-		retryConfig: RetryConfig{
+		retryConfig: LegacyRetryConfig{
 			MaxRetries:    maxRetries, // Use config value passed in
 			BaseDelay:     time.Second,
 			MaxDelay:      30 * time.Second,
@@ -220,9 +216,9 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		maxTokens:    config.MaxTokens,
 		backendType:  config.BackendType,
 		logger:       logger,
-		metrics:      NewClientMetrics(),
-		cache:        NewResponseCache(5*time.Minute, cacheMaxEntries), // Use environment variable
-		fallbackURLs: []string{}, // Can be configured for redundancy
+		metrics:      NewLegacyClientMetrics(),
+		cache:        NewLegacyResponseCache(5*time.Minute, cacheMaxEntries), // Use environment variable
+		fallbackURLs: []string{},                                             // Can be configured for redundancy
 	}
 
 	// Initialize RAG client if backend type is "rag"
@@ -239,7 +235,7 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 			Temperature:      0.0,
 		}
 		client.ragClient = rag.NewRAGClient(ragConfig)
-		
+
 		// Initialize the RAG client
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -251,18 +247,18 @@ func NewClientWithConfig(url string, config ClientConfig) *Client {
 		}
 	}
 
-	return client
+	return client, nil
 }
 
 // NewClientMetrics creates a new metrics tracker
-func NewClientMetrics() *ClientMetrics {
-	return &ClientMetrics{}
+func NewLegacyClientMetrics() *LegacyClientMetrics {
+	return &LegacyClientMetrics{}
 }
 
 // NewResponseCache creates a new response cache
-func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
-	cache := &ResponseCache{
-		entries: make(map[string]*CacheEntry),
+func NewLegacyResponseCache(ttl time.Duration, maxSize int) *LegacyResponseCache {
+	cache := &LegacyResponseCache{
+		entries: make(map[string]*types.CacheEntry),
 		ttl:     ttl,
 		maxSize: maxSize,
 		stopCh:  make(chan struct{}),
@@ -275,126 +271,15 @@ func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 	return cache
 }
 
-// cleanup removes expired cache entries
-func (c *ResponseCache) cleanup() {
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-c.stopCh:
-			// Graceful shutdown signal received
-			return
-		case <-ticker.C:
-			// Check if we've been stopped during the cleanup operation
-			c.mutex.RLock()
-			if c.stopped {
-				c.mutex.RUnlock()
-				return
-			}
-			c.mutex.RUnlock()
-
-			// Perform cleanup
-			c.mutex.Lock()
-			now := time.Now()
-			for key, entry := range c.entries {
-				if now.Sub(entry.Timestamp) > c.ttl {
-					delete(c.entries, key)
-				}
-			}
-			c.mutex.Unlock()
-		}
-	}
-}
-
-// Get retrieves a cached response
-func (c *ResponseCache) Get(key string) (string, bool) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	// Return false if cache is stopped
-	if c.stopped {
-		return "", false
-	}
-
-	entry, exists := c.entries[key]
-	if !exists {
-		return "", false
-	}
-
-	if time.Since(entry.Timestamp) > c.ttl {
-		return "", false
-	}
-
-	entry.HitCount++
-	entry.LastAccess = time.Now() // Update access time for LRU
-	return entry.Response, true
-}
-
-// Set stores a response in cache with LRU eviction
-func (c *ResponseCache) Set(key, response string) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	// Don't set if cache is stopped
-	if c.stopped {
-		return
-	}
-
-	// LRU eviction when capacity is exceeded
-	for len(c.entries) >= c.maxSize {
-		// Find the least recently used entry (oldest LastAccess)
-		lruKey := ""
-		lruTime := time.Now()
-
-		for k, v := range c.entries {
-			// Use LastAccess if available, otherwise use Timestamp
-			accessTime := v.Timestamp
-			if !v.LastAccess.IsZero() {
-				accessTime = v.LastAccess
-			}
-
-			if accessTime.Before(lruTime) {
-				lruTime = accessTime
-				lruKey = k
-			}
-		}
-
-		if lruKey != "" {
-			delete(c.entries, lruKey)
-		}
-	}
-
-	now := time.Now()
-	c.entries[key] = &CacheEntry{
-		Response:   response,
-		Timestamp:  now,
-		LastAccess: now, // Initialize LastAccess
-		HitCount:   0,
-	}
-}
-
-// Stop gracefully shuts down the cache cleanup goroutine
-func (c *ResponseCache) Stop() {
-	c.stopOnce.Do(func() {
-		c.mutex.Lock()
-		c.stopped = true
-		c.mutex.Unlock()
-
-		// Signal the cleanup goroutine to stop
-		close(c.stopCh)
-	})
-}
-
 // GetMetrics returns current client metrics
-func (c *Client) GetMetrics() ClientMetrics {
+func (c *LegacyClient) GetMetrics() LegacyClientMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 	return *c.metrics
 }
 
 // updateMetrics updates client metrics
-func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
+func (c *LegacyClient) updateMetrics(success bool, latency time.Duration, cacheHit bool, retryCount int) {
 	c.metrics.mutex.Lock()
 	defer c.metrics.mutex.Unlock()
 
@@ -427,7 +312,7 @@ func NewResponseValidator() *ResponseValidator {
 	}
 }
 
-func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, error) {
+func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	start := time.Now()
 	var success bool
 	var cacheHit bool
@@ -467,7 +352,7 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 		c.logger.Debug("Cache hit for intent", slog.String("cache_key", cacheKey))
 		cacheHit = true
 		success = true
-		return cached, nil
+		return cached.Response, nil
 	}
 	cacheHit = false
 
@@ -537,7 +422,11 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 	}
 
 	// Cache successful response
-	c.cache.Set(cacheKey, result)
+	cacheEntry := &types.CacheEntry{
+		Response:  result,
+		Timestamp: time.Now(),
+	}
+	c.cache.Set(cacheKey, cacheEntry)
 	c.logger.Info("Response cached successfully")
 	c.logger.Debug("Response cached", slog.String("cache_key", cacheKey))
 
@@ -552,20 +441,20 @@ func (c *Client) ProcessIntent(ctx context.Context, intent string) (string, erro
 }
 
 // generateCacheKey creates a cache key for the given intent
-func (c *Client) generateCacheKey(intent string) string {
+func (c *LegacyClient) generateCacheKey(intent string) string {
 	// Simple hash-based cache key (in production, consider using a proper hash function)
 	return fmt.Sprintf("%s:%s:%s", c.backendType, c.modelName, intent)
 }
 
 // SetFallbackURLs configures fallback URLs for redundancy
-func (c *Client) SetFallbackURLs(urls []string) {
+func (c *LegacyClient) SetFallbackURLs(urls []string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	c.fallbackURLs = urls
 }
 
 // Shutdown gracefully shuts down the client and its resources
-func (c *Client) Shutdown() {
+func (c *LegacyClient) Shutdown() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -590,7 +479,7 @@ func (c *Client) Shutdown() {
 }
 
 // classifyIntent determines the type of network intent
-func (c *Client) classifyIntent(intent string) string {
+func (c *LegacyClient) classifyIntent(intent string) string {
 	lowerIntent := strings.ToLower(intent)
 
 	scaleIndicators := []string{"scale", "increase", "decrease", "replicas", "instances", "resize"}
@@ -612,7 +501,7 @@ func (c *Client) classifyIntent(intent string) string {
 }
 
 // processWithLLMBackend handles processing with different LLM backends
-func (c *Client) processWithLLMBackend(ctx context.Context, intent, intentType string, extractedParams map[string]interface{}) (string, error) {
+func (c *LegacyClient) processWithLLMBackend(ctx context.Context, intent, intentType string, extractedParams map[string]interface{}) (string, error) {
 	// Generate appropriate prompt based on intent type
 	systemPrompt := c.promptEngine.GeneratePrompt(intentType, intent)
 
@@ -629,7 +518,7 @@ func (c *Client) processWithLLMBackend(ctx context.Context, intent, intentType s
 }
 
 // processWithChatCompletion handles OpenAI/Mistral-style chat completions
-func (c *Client) processWithChatCompletion(ctx context.Context, systemPrompt, intent string) (string, error) {
+func (c *LegacyClient) processWithChatCompletion(ctx context.Context, systemPrompt, intent string) (string, error) {
 	requestBody := map[string]interface{}{
 		"model": c.modelName,
 		"messages": []map[string]string{
@@ -705,7 +594,7 @@ func (c *Client) processWithChatCompletion(ctx context.Context, systemPrompt, in
 }
 
 // processWithRAGAPI handles RAG API requests
-func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
+func (c *LegacyClient) processWithRAGAPI(ctx context.Context, intent string) (string, error) {
 	// Use the RAG client interface if available
 	if c.ragClient != nil {
 		// Use the new Retrieve method to get relevant documents
@@ -718,16 +607,16 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 			// Build context from retrieved documents
 			var contextBuilder strings.Builder
 			contextBuilder.WriteString("Based on the following context:\n\n")
-			
+
 			for i, doc := range docs {
-				contextBuilder.WriteString(fmt.Sprintf("Context %d (confidence: %.2f):\n%s\n\n", 
+				contextBuilder.WriteString(fmt.Sprintf("Context %d (confidence: %.2f):\n%s\n\n",
 					i+1, doc.Confidence, doc.Content))
 			}
-			
+
 			// Generate enhanced response using ChatCompletion with RAG context
 			systemPrompt := c.promptEngine.GeneratePrompt("NetworkFunctionDeployment", intent)
 			enhancedPrompt := fmt.Sprintf("%s\n\nAdditional Context:\n%s", systemPrompt, contextBuilder.String())
-			
+
 			return c.processWithChatCompletion(ctx, enhancedPrompt, intent)
 		}
 	}
@@ -789,7 +678,7 @@ func (c *Client) processWithRAGAPI(ctx context.Context, intent string) (string, 
 }
 
 // retryWithExponentialBackoff implements retry logic with exponential backoff and jitter
-func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func() error) error {
+func (c *LegacyClient) retryWithExponentialBackoff(ctx context.Context, operation func() error) error {
 	var lastErr error
 	delay := c.retryConfig.BaseDelay
 
@@ -848,7 +737,7 @@ func (c *Client) retryWithExponentialBackoff(ctx context.Context, operation func
 }
 
 // isRetryableError determines if an error warrants a retry
-func (c *Client) isRetryableError(err error) bool {
+func (c *LegacyClient) isRetryableError(err error) bool {
 	errorStr := strings.ToLower(err.Error())
 
 	// Network-related errors are typically retryable
@@ -888,7 +777,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 
 	// Return structured error if any fields are missing
 	if len(missingFields) > 0 {
-		return &ValidationError{
+		return &FieldValidationError{
 			Message:       "Response validation failed",
 			MissingFields: missingFields,
 		}
@@ -913,7 +802,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 
 	// Validate name field format (Kubernetes naming)
 	if name, ok := response["name"].(string); ok {
-		if !isValidKubernetesName(name) {
+		if !legacyIsValidKubernetesName(name) {
 			return fmt.Errorf("invalid Kubernetes name format: %s", name)
 		}
 	} else {
@@ -922,7 +811,7 @@ func (v *ResponseValidator) ValidateResponse(responseBody []byte) error {
 
 	// Validate namespace field format
 	if namespace, ok := response["namespace"].(string); ok {
-		if !isValidKubernetesName(namespace) {
+		if !legacyIsValidKubernetesName(namespace) {
 			return fmt.Errorf("invalid Kubernetes namespace format: %s", namespace)
 		}
 	} else {
@@ -1032,7 +921,7 @@ func (v *ResponseValidator) validateScaleSpec(spec map[string]interface{}) error
 }
 
 // Helper validation functions
-func isValidKubernetesName(name string) bool {
+func legacyIsValidKubernetesName(name string) bool {
 	if len(name) == 0 || len(name) > 253 {
 		return false
 	}
@@ -1100,4 +989,86 @@ func isValidMemoryFormat(memory string) bool {
 	}
 
 	return false
+}
+
+// cleanup starts a goroutine that periodically cleans expired cache entries
+func (c *LegacyResponseCache) cleanup() {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ticker.C:
+			c.mutex.Lock()
+			now := time.Now()
+			for key, entry := range c.entries {
+				if now.Sub(entry.Timestamp) > c.ttl {
+					delete(c.entries, key)
+				}
+			}
+			c.mutex.Unlock()
+		case <-c.stopCh:
+			return
+		}
+	}
+}
+
+// Get retrieves a cache entry
+func (c *LegacyResponseCache) Get(key string) (*types.CacheEntry, bool) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	
+	if c.stopped {
+		return nil, false
+	}
+	
+	entry, exists := c.entries[key]
+	if !exists {
+		return nil, false
+	}
+	
+	// Check if entry has expired
+	if time.Since(entry.Timestamp) > c.ttl {
+		delete(c.entries, key)
+		return nil, false
+	}
+	
+	return entry, true
+}
+
+// Set stores a cache entry
+func (c *LegacyResponseCache) Set(key string, entry *types.CacheEntry) {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	
+	if c.stopped {
+		return
+	}
+	
+	// If cache is full, remove oldest entry
+	if len(c.entries) >= c.maxSize {
+		var oldestKey string
+		var oldestTime time.Time
+		first := true
+		for k, e := range c.entries {
+			if first || e.Timestamp.Before(oldestTime) {
+				oldestKey = k
+				oldestTime = e.Timestamp
+				first = false
+			}
+		}
+		if oldestKey != "" {
+			delete(c.entries, oldestKey)
+		}
+	}
+	
+	c.entries[key] = entry
+}
+
+// Stop stops the cache cleanup routine
+func (c *LegacyResponseCache) Stop() {
+	c.stopOnce.Do(func() {
+		c.stopped = true
+		close(c.stopCh)
+	})
 }

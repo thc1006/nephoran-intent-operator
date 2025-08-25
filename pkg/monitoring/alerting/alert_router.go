@@ -880,14 +880,96 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 	}
 }
 
-// Load default configurations and helper methods would continue here...
-// Including implementations for:
-// - loadDefaultRoutingRules()
-// - loadDefaultNotificationChannels()
-// - loadDefaultImpactProfiles()
-// - Notification sending methods for each channel type
-// - Rule condition evaluation
-// - Priority and impact calculation
-// - Geographic routing logic
-// - Correlation engine implementation
-// - Background cleanup and maintenance loops
+// Missing method implementations - stubs for compilation
+
+func (ar *AlertRouter) loadDefaultRoutingRules() {
+	// TODO: Implement default routing rules loading
+	ar.logger.Debug("loading default routing rules")
+}
+
+func (ar *AlertRouter) loadDefaultNotificationChannels() {
+	// TODO: Implement default notification channels loading
+	ar.logger.Debug("loading default notification channels")
+}
+
+func (ar *AlertRouter) loadDefaultImpactProfiles() {
+	// TODO: Implement default impact profiles loading
+	ar.logger.Debug("loading default impact profiles")
+}
+
+func (ar *AlertRouter) deduplicationCleanupLoop(ctx context.Context) {
+	// TODO: Implement deduplication cleanup loop
+	ar.logger.Debug("starting deduplication cleanup loop")
+}
+
+func (ar *AlertRouter) metricsUpdateLoop(ctx context.Context) {
+	// TODO: Implement metrics update loop
+	ar.logger.Debug("starting metrics update loop")
+}
+
+func (ar *AlertRouter) correlateAlert(alert *Alert) *AlertGroup {
+	// TODO: Implement alert correlation
+	return &AlertGroup{
+		ID: alert.ID,
+		Alerts: []*Alert{alert},
+	}
+}
+
+func (ar *AlertRouter) getFallbackRouting(alert *Alert) *RoutingDecision {
+	// TODO: Implement fallback routing
+	return &RoutingDecision{
+		Alert:    alert,
+		Channels: []string{"default"},
+		Priority: "medium",
+	}
+}
+
+// Missing PriorityCalculator method
+func (pc *PriorityCalculator) CalculatePriority(alert *Alert) int {
+	// TODO: Implement priority calculation logic
+	return 5 // medium priority on 1-10 scale
+}
+
+// ImpactAnalysis represents the business impact of an alert
+type ImpactAnalysis struct {
+	BusinessImpact   string
+	AffectedServices []string
+	UserImpact      float64
+}
+
+// Missing ImpactAnalyzer method  
+func (ia *ImpactAnalyzer) AnalyzeImpact(alert *Alert) BusinessImpactScore {
+	// TODO: Implement impact analysis logic
+	return BusinessImpactScore{
+		OverallScore:  5.0,
+		UserImpact:    3.0,
+		RevenueImpact: 2.0,
+	}
+}
+
+// Missing AlertRouter method
+func (ar *AlertRouter) isMoreSevere(alert1, alert2 *Alert) bool {
+	// TODO: Implement severity comparison logic
+	return alert1.Severity > alert2.Severity
+}
+
+// Missing ContextEnricher method
+func (ce *ContextEnricher) FindRelatedIncidents(alert *Alert) []string {
+	// TODO: Implement related incidents finder
+	return []string{}
+}
+
+// Missing GeographicRouter method  
+func (gr *GeographicRouter) GetContextForAlert(alert *Alert) map[string]interface{} {
+	// TODO: Implement geographic context finder
+	return map[string]interface{}{
+		"region": "default",
+		"zone":   "default",
+	}
+}
+
+// Missing RunbookManager method
+func (rm *RunbookManager) GetActionsForAlert(alert *Alert) []string {
+	// TODO: Implement runbook actions finder
+	return []string{"investigate", "escalate"}
+}

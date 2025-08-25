@@ -11,6 +11,7 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // RelevanceScorer calculates multi-factor relevance scores for documents
@@ -89,22 +90,22 @@ type RelevanceScore struct {
 
 // RelevanceRequest represents a relevance scoring request
 type RelevanceRequest struct {
-	Query         string                  `json:"query"`
-	IntentType    string                  `json:"intent_type"`
-	Document      *shared.TelecomDocument `json:"document"`
-	Position      int                     `json:"position"`
-	OriginalScore float32                 `json:"original_score"`
-	Context       string                  `json:"context"`
-	UserProfile   map[string]interface{}  `json:"user_profile,omitempty"`
+	Query         string                 `json:"query"`
+	IntentType    string                 `json:"intent_type"`
+	Document      *types.TelecomDocument `json:"document"`
+	Position      int                    `json:"position"`
+	OriginalScore float32                `json:"original_score"`
+	Context       string                 `json:"context"`
+	UserProfile   map[string]interface{} `json:"user_profile,omitempty"`
 }
 
 // ScoredDocument represents a document with relevance scoring
 type ScoredDocument struct {
-	Document       *shared.TelecomDocument `json:"document"`
-	RelevanceScore *RelevanceScore         `json:"relevance_score"`
-	OriginalScore  float32                 `json:"original_score"`
-	Position       int                     `json:"position"`
-	TokenCount     int                     `json:"token_count"`
+	Document       *types.TelecomDocument `json:"document"`
+	RelevanceScore *RelevanceScore        `json:"relevance_score"`
+	OriginalScore  float32                `json:"original_score"`
+	Position       int                    `json:"position"`
+	TokenCount     int                    `json:"token_count"`
 }
 
 // EmbeddingServiceInterface defines the interface for semantic similarity calculations
@@ -538,7 +539,7 @@ func (rs *RelevanceScorer) calculateAuthorityScore(request *RelevanceRequest) fl
 }
 
 // isStandardsDocument checks if document is a standards document
-func (rs *RelevanceScorer) isStandardsDocument(doc *shared.TelecomDocument) bool {
+func (rs *RelevanceScorer) isStandardsDocument(doc *types.TelecomDocument) bool {
 	indicators := []string{"TS ", "TR ", "RFC ", "IEEE ", "O-RAN.WG", "specification", "standard"}
 
 	titleLower := strings.ToLower(doc.Title)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,6 +13,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sony/gobreaker"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -820,31 +821,31 @@ func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config
 }
 
 // recordHealthMetrics records metrics for dependency health
-func (dht *DependencyHealthTracker) recordHealthMetrics(health *DependencyHealth, config *DependencyConfig) {
-	labels := []string{health.Name, string(health.Type), string(config.Criticality)}
+func (dht *DependencyHealthTracker) recordHealthMetrics(depHealth *DependencyHealth, config *DependencyConfig) {
+	labels := []string{depHealth.Name, string(depHealth.Type), string(config.Criticality)}
 
 	// Health status metric
 	statusValue := 0.0
-	if health.Status == health.StatusHealthy {
+	if depHealth.Status == health.StatusHealthy {
 		statusValue = 1.0
-	} else if health.Status == health.StatusDegraded {
+	} else if depHealth.Status == health.StatusDegraded {
 		statusValue = 0.5
 	}
 	dht.metrics.HealthStatus.WithLabelValues(labels...).Set(statusValue)
 
 	// Response time metric
-	dht.metrics.ResponseTime.WithLabelValues(health.Name, string(health.Type)).Observe(health.ResponseTime.Seconds())
+	dht.metrics.ResponseTime.WithLabelValues(depHealth.Name, string(depHealth.Type)).Observe(depHealth.ResponseTime.Seconds())
 
 	// Availability rate metric
-	dht.metrics.AvailabilityRate.WithLabelValues(health.Name, string(health.Type)).Set(health.AvailabilityRate)
+	dht.metrics.AvailabilityRate.WithLabelValues(depHealth.Name, string(depHealth.Type)).Set(depHealth.AvailabilityRate)
 
 	// Error count if there was an error
-	if health.LastError != "" {
+	if depHealth.LastError != "" {
 		errorType := "unknown"
-		if health.Status == health.StatusUnhealthy {
+		if depHealth.Status == health.StatusUnhealthy {
 			errorType = "unhealthy"
 		}
-		dht.metrics.ErrorCount.WithLabelValues(health.Name, string(health.Type), errorType).Inc()
+		dht.metrics.ErrorCount.WithLabelValues(depHealth.Name, string(depHealth.Type), errorType).Inc()
 	}
 }
 
@@ -856,7 +857,7 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 		Type:          DepTypeLLMAPI,
 		Category:      CatCore,
 		Criticality:   CriticalityEssential,
-		Endpoint:      getEnv("LLM_PROCESSOR_URL", "http://llm-processor:8080"),
+		Endpoint:      shared.GetEnv("LLM_PROCESSOR_URL", "http://llm-processor:8080"),
 		Timeout:       15 * time.Second,
 		CheckInterval: 30 * time.Second,
 		HealthCheckConfig: HealthCheckConfig{
@@ -874,7 +875,7 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 	})
 
 	// RAG API - Smart endpoint detection
-	ragAPIURL := getEnv("RAG_API_URL", "http://rag-api:5001")
+	ragAPIURL := shared.GetEnv("RAG_API_URL", "http://rag-api:5001")
 	ragHealthPath := "/health" // Always use /health for health checks
 
 	// If the configured URL already has an endpoint path, extract the base for health checks
@@ -915,7 +916,7 @@ func (dht *DependencyHealthTracker) registerDefaultDependencies() {
 		Type:          DepTypeDatabase,
 		Category:      CatInfrastructure,
 		Criticality:   CriticalityImportant,
-		Endpoint:      getEnv("WEAVIATE_URL", "http://weaviate:8080"),
+		Endpoint:      shared.GetEnv("WEAVIATE_URL", "http://weaviate:8080"),
 		Timeout:       10 * time.Second,
 		CheckInterval: 30 * time.Second,
 		HealthCheckConfig: HealthCheckConfig{
@@ -1065,12 +1066,4 @@ func (rt *RecoveryTracker) calculateBackoff(state *RecoveryState) time.Duration 
 	default:
 		return time.Second
 	}
-}
-
-// getEnv gets environment variable with default value
-func getEnv(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

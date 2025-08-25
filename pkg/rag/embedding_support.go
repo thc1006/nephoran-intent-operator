@@ -4,16 +4,12 @@ package rag
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"log/slog"
 	"math"
-	"math/rand"
-	"sort"
 	"sync"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	"github.com/redis/go-redis/v9"
 )
 
 // LoadBalancer manages provider selection and load distribution
@@ -142,6 +138,13 @@ type CacheMetrics struct {
 	L1HitRate    float64
 	L2HitRate    float64
 	TotalHitRate float64
+	
+	// Added for compatibility with rag_service.go references
+	Hits         int64
+	Misses       int64
+	TotalItems   int64
+	Evictions    int64
+	mutex        sync.RWMutex
 }
 
 // LRUCache implements an LRU cache for embeddings
@@ -172,12 +175,7 @@ type ProviderHealthMonitor struct {
 	mutex         sync.RWMutex
 }
 
-// Document represents a document for processing
-type Document struct {
-	ID       string                 `json:"id"`
-	Content  string                 `json:"content"`
-	Metadata map[string]interface{} `json:"metadata,omitempty"`
-}
+// Document is now defined in pkg/shared/types/common_types.go
 
 func NewCostManager(limits CostLimits) *CostManager {
 	return &CostManager{

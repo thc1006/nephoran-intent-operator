@@ -78,10 +78,10 @@ func (ts *TestSuite) Setup() error {
 	}
 
 	if ts.Config.AttachControlPlaneOutput {
-		ts.TestEnv.ControlPlane.GetAPIServer().Out = os.Stdout
-		ts.TestEnv.ControlPlane.GetAPIServer().Err = os.Stderr
-		ts.TestEnv.ControlPlane.GetEtcd().Out = os.Stdout
-		ts.TestEnv.ControlPlane.GetEtcd().Err = os.Stderr
+		ts.TestEnv.ControlPlane.APIServer.Out = os.Stdout
+		ts.TestEnv.ControlPlane.APIServer.Err = os.Stderr
+		ts.TestEnv.ControlPlane.Etcd.Out = os.Stdout
+		ts.TestEnv.ControlPlane.Etcd.Err = os.Stderr
 	}
 
 	var err error

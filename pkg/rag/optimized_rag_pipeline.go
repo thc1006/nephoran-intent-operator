@@ -1,4 +1,4 @@
-//go:build !disable_rag && !test
+//go:build !test
 
 package rag
 
@@ -12,8 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"golang.org/x/sync/errgroup"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // OptimizedRAGPipeline provides a high-performance RAG processing pipeline
@@ -22,7 +21,7 @@ type OptimizedRAGPipeline struct {
 	semanticCache     *SemanticCache
 	queryPreprocessor *QueryPreprocessor
 	resultAggregator  *ResultAggregator
-	embeddingCache    *EmbeddingCache
+	embeddingCache    *OptimizedEmbeddingCache
 	weaviateClient    *WeaviateClient
 	batchSearchClient *OptimizedBatchSearchClient
 	connectionPool    *OptimizedConnectionPool
@@ -141,7 +140,7 @@ type ResultAggregatorMetrics struct {
 }
 
 // EmbeddingCache caches embedding vectors for reuse
-type EmbeddingCache struct {
+type OptimizedEmbeddingCache struct {
 	embeddings map[string]*CachedEmbedding
 	config     *RAGPipelineConfig
 	mutex      sync.RWMutex
@@ -235,7 +234,7 @@ func NewOptimizedRAGPipeline(
 	}
 
 	// Initialize embedding cache
-	embeddingCache := &EmbeddingCache{
+	embeddingCache := &OptimizedEmbeddingCache{
 		embeddings: make(map[string]*CachedEmbedding),
 		config:     config,
 		metrics:    &EmbeddingCacheMetrics{},
@@ -447,7 +446,7 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 	// Convert to RAG response
 	ragResponse := &RAGResponse{
 		Answer:          "", // Will be filled by LLM processing
-		SourceDocuments: make([]*shared.SearchResult, len(searchResponse.Results)),
+		SourceDocuments: make([]*types.SearchResult, len(searchResponse.Results)),
 		Confidence:      p.calculateAggregateConfidence(searchResponse.Results),
 		ProcessingTime:  searchResponse.Took,
 		RetrievalTime:   searchResponse.Took,
@@ -457,7 +456,7 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 
 	// Convert search results
 	for i, result := range searchResponse.Results {
-		ragResponse.SourceDocuments[i] = &shared.SearchResult{
+		ragResponse.SourceDocuments[i] = &types.SearchResult{
 			Document: result.Document,
 			Score:    result.Score,
 		}
@@ -469,9 +468,9 @@ func (p *OptimizedRAGPipeline) executeOptimizedSearch(ctx context.Context, reque
 // executeBatchSearch performs optimized batch search
 func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests []*RAGRequest) ([]*RAGResponse, error) {
 	// Convert to search queries
-	searchQueries := make([]*SearchQuery, len(requests))
+	searchQueries := make([]*types.SearchQuery, len(requests))
 	for i, request := range requests {
-		searchQueries[i] = &SearchQuery{
+		searchQueries[i] = &types.SearchQuery{
 			Query:         request.Query,
 			Limit:         request.MaxResults,
 			Filters:       request.SearchFilters,
@@ -496,19 +495,28 @@ func (p *OptimizedRAGPipeline) executeBatchSearch(ctx context.Context, requests 
 	// Convert to RAG responses
 	ragResponses := make([]*RAGResponse, len(batchResponse.Results))
 	for i, searchResponse := range batchResponse.Results {
+		// Convert types.SearchResult to local SearchResult for confidence calculation
+		localResults := make([]*SearchResult, len(searchResponse.Results))
+		for j, sharedResult := range searchResponse.Results {
+			localResults[j] = &SearchResult{
+				Score:    sharedResult.Score,
+				Document: sharedResult.Document,
+			}
+		}
+		
 		ragResponses[i] = &RAGResponse{
 			Answer:          "",
-			SourceDocuments: make([]*shared.SearchResult, len(searchResponse.Results)),
-			Confidence:      p.calculateAggregateConfidence(searchResponse.Results),
-			ProcessingTime:  searchResponse.Took,
-			RetrievalTime:   searchResponse.Took,
+			SourceDocuments: make([]*types.SearchResult, len(searchResponse.Results)),
+			Confidence:      p.calculateAggregateConfidence(localResults),
+			ProcessingTime:  time.Duration(searchResponse.Took) * time.Millisecond,
+			RetrievalTime:   time.Duration(searchResponse.Took) * time.Millisecond,
 			Query:           requests[i].Query,
 			ProcessedAt:     time.Now(),
 		}
 
 		// Convert search results
 		for j, result := range searchResponse.Results {
-			ragResponses[i].SourceDocuments[j] = &shared.SearchResult{
+			ragResponses[i].SourceDocuments[j] = &types.SearchResult{
 				Document: result.Document,
 				Score:    result.Score,
 			}
@@ -643,18 +651,7 @@ func (c *SemanticCache) calculateCosineSimilarity(vec1, vec2 []float32) float32 
 	return dotProduct / (float32(sqrt(float64(norm1))) * float32(sqrt(float64(norm2))))
 }
 
-func sqrt(x float64) float64 {
-	// Simple square root implementation
-	if x == 0 {
-		return 0
-	}
-	// Use Newton's method for square root approximation
-	z := x
-	for i := 0; i < 10; i++ {
-		z = (z + x/z) / 2
-	}
-	return z
-}
+// Use consolidated sqrt function from pkg/shared - using the one from embedding_service_interface.go
 
 func (c *SemanticCache) updateCacheHit(entry *SemanticCacheEntry, exact bool) {
 	entry.LastAccessed = time.Now()
@@ -880,9 +877,9 @@ func (r *ResultAggregator) AggregateResults(response *RAGResponse) *RAGResponse 
 	return response
 }
 
-func (r *ResultAggregator) deduplicateResults(results []*shared.SearchResult) []*shared.SearchResult {
-	seen := make(map[string]*shared.SearchResult)
-	var deduplicated []*shared.SearchResult
+func (r *ResultAggregator) deduplicateResults(results []*types.SearchResult) []*types.SearchResult {
+	seen := make(map[string]*types.SearchResult)
+	var deduplicated []*types.SearchResult
 
 	for _, result := range results {
 		if result.Document == nil {
@@ -904,7 +901,7 @@ func (r *ResultAggregator) deduplicateResults(results []*shared.SearchResult) []
 	return deduplicated
 }
 
-func (r *ResultAggregator) rankResults(results []*shared.SearchResult) []*shared.SearchResult {
+func (r *ResultAggregator) rankResults(results []*types.SearchResult) []*types.SearchResult {
 	// Sort by score in descending order
 	sort.Slice(results, func(i, j int) bool {
 		return results[i].Score > results[j].Score
@@ -1060,7 +1057,7 @@ func (c *SemanticCache) cleanupExpired() {
 	c.logger.Debug("Semantic cache cleanup completed", "evicted", len(keysToDelete))
 }
 
-func (c *EmbeddingCache) cleanupExpired() {
+func (c *OptimizedEmbeddingCache) cleanupExpired() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 

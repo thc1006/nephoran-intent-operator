@@ -3,9 +3,6 @@ package llm
 import (
 	"context"
 	"testing"
-	"time"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
 // MockEmbeddingService provides a mock implementation for testing

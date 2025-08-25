@@ -352,16 +352,16 @@ func TestFallbackURLs(t *testing.T) {
 func TestLoggingLevels(t *testing.T) {
 	// This test would typically use a custom logger to capture output
 	// For demonstration, we'll just verify the code path works
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		
+
 		// Create a very long response
 		longText := ""
 		for i := 0; i < 200; i++ {
 			longText += "This is a very long response text. "
 		}
-		
+
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"type":      "NetworkFunctionDeployment",
 			"name":      "test-nf",
@@ -387,7 +387,7 @@ func TestLoggingLevels(t *testing.T) {
 	if response == "" {
 		t.Error("Expected non-empty response")
 	}
-	
+
 	// Verify response is properly formatted JSON
 	var parsed map[string]interface{}
 	if err := json.Unmarshal([]byte(response), &parsed); err != nil {
@@ -397,7 +397,7 @@ func TestLoggingLevels(t *testing.T) {
 
 // Helper function
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && s[len(s)-len(substr):] == substr || 
-		   len(substr) > 0 && len(s) > 0 && s[:len(substr)] == substr ||
-		   fmt.Sprintf("%s", s) != s
+	return len(s) >= len(substr) && s[len(s)-len(substr):] == substr ||
+		len(substr) > 0 && len(s) > 0 && s[:len(substr)] == substr ||
+		fmt.Sprintf("%s", s) != s
 }

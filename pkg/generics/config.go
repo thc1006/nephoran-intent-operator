@@ -536,7 +536,6 @@ func NewConfigMerger[T any](mergeFunc func(T, T) Result[T, error]) *ConfigMerger
 // Merge merges multiple configurations.
 func (cm *ConfigMerger[T]) Merge(configs ...T) Result[T, error] {
 	if len(configs) == 0 {
-		var zero T
 		return Err[T, error](fmt.Errorf("no configurations to merge"))
 	}
 
@@ -564,13 +563,11 @@ func isZero[T any](v T) bool {
 func DeepCopy[T any](original T) Result[T, error] {
 	data, err := json.Marshal(original)
 	if err != nil {
-		var zero T
 		return Err[T, error](fmt.Errorf("failed to marshal for deep copy: %w", err))
 	}
 
 	var copy T
 	if err := json.Unmarshal(data, &copy); err != nil {
-		var zero T
 		return Err[T, error](fmt.Errorf("failed to unmarshal for deep copy: %w", err))
 	}
 

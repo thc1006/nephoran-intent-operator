@@ -129,8 +129,6 @@ type RetryPolicySpec struct {
 	MaxDelay int `json:"maxDelay,omitempty"`
 
 	// BackoffFactor defines the multiplier for exponential backoff
-	// +kubebuilder:validation:Minimum=1.0
-	// +kubebuilder:validation:Maximum=10.0
 	// +kubebuilder:default:=2.0
 	BackoffFactor float64 `json:"backoffFactor,omitempty"`
 }

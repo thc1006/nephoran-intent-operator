@@ -21,7 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
 )
 
 // IntentState represents the complete state of a network intent
@@ -33,13 +33,13 @@ type IntentState struct {
 	LastModified   time.Time            `json:"lastModified"`
 
 	// Processing state
-	CurrentPhase     interfaces.ProcessingPhase `json:"currentPhase"`
+	CurrentPhase     contracts.ProcessingPhase `json:"currentPhase"`
 	PhaseStartTime   time.Time                  `json:"phaseStartTime"`
 	PhaseTransitions []PhaseTransition          `json:"phaseTransitions"`
 
 	// Phase-specific data
-	PhaseData   map[interfaces.ProcessingPhase]interface{} `json:"phaseData"`
-	PhaseErrors map[interfaces.ProcessingPhase][]string    `json:"phaseErrors"`
+	PhaseData   map[contracts.ProcessingPhase]interface{} `json:"phaseData"`
+	PhaseErrors map[contracts.ProcessingPhase][]string    `json:"phaseErrors"`
 
 	// Status conditions
 	Conditions []StateCondition `json:"conditions"`
@@ -59,7 +59,7 @@ type IntentState struct {
 
 	// Processing metrics
 	ProcessingDuration time.Duration                               `json:"processingDuration"`
-	PhaseMetrics       map[interfaces.ProcessingPhase]PhaseMetrics `json:"phaseMetrics"`
+	PhaseMetrics       map[contracts.ProcessingPhase]PhaseMetrics `json:"phaseMetrics"`
 
 	// Metadata and annotations
 	Metadata map[string]interface{} `json:"metadata"`
@@ -68,8 +68,8 @@ type IntentState struct {
 
 // PhaseTransition represents a transition between processing phases
 type PhaseTransition struct {
-	FromPhase     interfaces.ProcessingPhase `json:"fromPhase"`
-	ToPhase       interfaces.ProcessingPhase `json:"toPhase"`
+	FromPhase     contracts.ProcessingPhase `json:"fromPhase"`
+	ToPhase       contracts.ProcessingPhase `json:"toPhase"`
 	Timestamp     time.Time                  `json:"timestamp"`
 	Duration      time.Duration              `json:"duration"`
 	TriggerReason string                     `json:"triggerReason,omitempty"`
@@ -91,7 +91,7 @@ type StateCondition struct {
 // IntentDependency represents a dependency on another intent
 type IntentDependency struct {
 	Intent    string                     `json:"intent"`
-	Phase     interfaces.ProcessingPhase `json:"phase"`
+	Phase     contracts.ProcessingPhase `json:"phase"`
 	Type      string                     `json:"type"` // "blocking", "soft", "notification"
 	Timestamp time.Time                  `json:"timestamp"`
 	Condition string                     `json:"condition,omitempty"`
@@ -138,8 +138,8 @@ type PhaseMetrics struct {
 type StateChangeEvent struct {
 	Type           string                     `json:"type"`
 	IntentName     types.NamespacedName       `json:"intentName"`
-	OldPhase       interfaces.ProcessingPhase `json:"oldPhase,omitempty"`
-	NewPhase       interfaces.ProcessingPhase `json:"newPhase"`
+	OldPhase       contracts.ProcessingPhase `json:"oldPhase,omitempty"`
+	NewPhase       contracts.ProcessingPhase `json:"newPhase"`
 	Version        string                     `json:"version"`
 	Timestamp      time.Time                  `json:"timestamp"`
 	ChangeReason   string                     `json:"changeReason,omitempty"`
@@ -262,8 +262,8 @@ type StateRecoveryInfo struct {
 type StateQuery struct {
 	Namespace       string                       `json:"namespace,omitempty"`
 	Name            string                       `json:"name,omitempty"`
-	Phase           interfaces.ProcessingPhase   `json:"phase,omitempty"`
-	Phases          []interfaces.ProcessingPhase `json:"phases,omitempty"`
+	Phase           contracts.ProcessingPhase   `json:"phase,omitempty"`
+	Phases          []contracts.ProcessingPhase `json:"phases,omitempty"`
 	Labels          map[string]string            `json:"labels,omitempty"`
 	Tags            []string                     `json:"tags,omitempty"`
 	CreatedAfter    *time.Time                   `json:"createdAfter,omitempty"`

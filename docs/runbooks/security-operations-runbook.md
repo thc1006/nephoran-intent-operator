@@ -1127,7 +1127,6 @@ EOF
 - [Master Operational Runbook](./operational-runbook-master.md) - Daily operations
 - [Disaster Recovery Runbook](./disaster-recovery-runbook.md) - DR procedures
 - [Security Hardening Guide](../security/hardening-guide.md) - Detailed hardening procedures
-- [Compliance Audit Guide](../compliance-audit-guide.md) - Compliance procedures
 
 ---
 

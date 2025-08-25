@@ -9,20 +9,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"sort"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/wait"
+	
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/types"
 )
 
 // SLATarget represents an SLA target and its configuration
@@ -60,17 +57,11 @@ type SLAViolation struct {
 	ImpactValue    float64                `json:"impact_value"`
 	RootCause      string                 `json:"root_cause"`
 	Resolution     string                 `json:"resolution"`
-	BusinessImpact BusinessImpact         `json:"business_impact"`
+	BusinessImpact types.BusinessImpact   `json:"business_impact"`
 	Metadata       map[string]interface{} `json:"metadata"`
 }
 
-// BusinessImpact represents the business impact of an SLA violation
-type BusinessImpact struct {
-	RevenueImpact     float64 `json:"revenue_impact"`
-	CustomersAffected int64   `json:"customers_affected"`
-	TransactionsLost  int64   `json:"transactions_lost"`
-	ReputationScore   float64 `json:"reputation_score"`
-}
+// Note: BusinessImpact is now defined in pkg/monitoring/types/common_types.go
 
 // DataPoint represents a time-series data point
 type DataPoint struct {

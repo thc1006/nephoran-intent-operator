@@ -293,18 +293,7 @@ type FunctionExecution struct {
 	Logs      []string                `json:"logs"`
 }
 
-// ExecutionStatus represents the status of execution
-type ExecutionStatus string
-
-const (
-	StatusPending    ExecutionStatus = "pending"
-	StatusRunning    ExecutionStatus = "running"
-	StatusSucceeded  ExecutionStatus = "succeeded"
-	StatusFailed     ExecutionStatus = "failed"
-	StatusCancelled  ExecutionStatus = "cancelled"
-	StatusRolledBack ExecutionStatus = "rolledback"
-	StatusPaused     ExecutionStatus = "paused"
-)
+// ExecutionStatus is defined in pipeline_orchestrator.go to avoid duplication
 
 // ExecutionError represents an execution error
 type ExecutionError struct {
@@ -317,15 +306,7 @@ type ExecutionError struct {
 	Details     string    `json:"details,omitempty"`
 }
 
-// ExecutionResult represents an execution result
-type ExecutionResult struct {
-	Stage     string                 `json:"stage"`
-	Function  string                 `json:"function,omitempty"`
-	Type      string                 `json:"type"`
-	Message   string                 `json:"message"`
-	Data      map[string]interface{} `json:"data,omitempty"`
-	Timestamp time.Time              `json:"timestamp"`
-}
+// ExecutionResult is defined in pipeline_orchestrator.go to avoid duplication
 
 // ExecutionCheckpoint represents a pipeline checkpoint
 type ExecutionCheckpoint struct {

@@ -4,16 +4,20 @@ package regression
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sort"
 	"sync"
 	"time"
 
 	"k8s.io/klog/v2"
 )
+
+// Stub type definitions for compilation
+type AlertRule struct{}
+type SuppressionRule struct{}
+type EscalationPolicy struct{}
+type LearningConfig struct{}
 
 // IntelligentAlertManager provides advanced alerting with correlation, suppression, and learning
 type IntelligentAlertManager struct {
@@ -956,5 +960,5 @@ type CorrelationFeedback struct{}
 type CorrelationMetrics struct{}
 type AlertRateLimiter struct{}
 type AlertMetrics struct{}
-type AlertLearningEngine struct{}
+// AlertLearningEngine is defined earlier in this file - removing duplicate
 type AlertHistory struct{}

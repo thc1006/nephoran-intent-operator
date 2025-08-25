@@ -12,12 +12,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-	"unsafe"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // BenchmarkComprehensiveSuite provides end-to-end performance testing using Go 1.24+ features
@@ -316,7 +310,7 @@ func benchmarkMemoryAllocations(b *testing.B, ctx context.Context, testEnv *Comp
 			runtime.ReadMemStats(&initialMemStats)
 			debug.ReadGCStats(&initialGCStats)
 
-			var allocations []interface{}
+			var allocations []any
 			var totalAllocated, totalFreed int64
 			var gcTriggers int64
 
@@ -329,7 +323,7 @@ func benchmarkMemoryAllocations(b *testing.B, ctx context.Context, testEnv *Comp
 			b.ReportAllocs()
 
 			for i := 0; i < b.N; i++ {
-				var allocated interface{}
+				var allocated any
 				var err error
 
 				switch scenario.allocationType {
@@ -982,7 +976,7 @@ func generateTestResources(controllerType string, count int) []TestResource {
 		resources[i] = TestResource{
 			Name:      fmt.Sprintf("test-%s-%d", controllerType, i),
 			Type:      controllerType,
-			Spec:      map[string]interface{}{"replicas": 3, "version": "v1.0.0"},
+			Spec:      map[string]any{"replicas": 3, "version": "v1.0.0"},
 			Namespace: "default",
 		}
 	}
@@ -1001,8 +995,8 @@ func setupComprehensiveTestEnvironment() *ComprehensiveTestEnvironment {
 
 type ComprehensiveTestEnvironment struct {
 	initialized    bool
-	dbConnections  map[string]interface{}
-	memoryPools    map[int][]interface{}
+	dbConnections  map[string]any
+	memoryPools    map[int][]any
 	networkClients map[string]interface{}
 	controllers    map[string]interface{}
 	mu             sync.RWMutex

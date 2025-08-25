@@ -108,6 +108,13 @@ gh workflow run ci.yaml --ref main
 - **Parallel Jobs**: 4 (after generation)
 - **Timeout Limits**: 10-30 minutes per job
 
+### 🚀 Performance Improvements
+
+1. **Path Filtering**: Jobs only run when relevant modules change
+2. **Parallel Execution**: Independent module tests run concurrently
+3. **Smart Caching**: Go module and build cache optimization
+4. **Artifact Reuse**: Generated CRDs shared between jobs
+
 ## Security Features
 - Pinned action versions for supply chain security
 - Go proxy and checksum database validation

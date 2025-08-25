@@ -21,18 +21,13 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
 
-	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // Template represents a blueprint template

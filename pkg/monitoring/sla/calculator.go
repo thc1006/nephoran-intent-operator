@@ -1262,3 +1262,96 @@ func (ec *ErrorCounter) GetErrorRate() float64 {
 }
 func (ebt *ErrorBudgetTracker) GetRemainingBudget() float64 { return 0 }
 func (brc *BurnRateCalculator) GetCurrentBurnRate() float64 { return 0 }
+
+// CircularBuffer implements a circular buffer for storing measurements
+type CircularBuffer struct {
+	data     []float64
+	capacity int
+	size     int
+	head     int
+	tail     int
+	mu       sync.RWMutex
+}
+
+// NewCircularBuffer creates a new circular buffer
+func NewCircularBuffer(capacity int) *CircularBuffer {
+	return &CircularBuffer{
+		data:     make([]float64, capacity),
+		capacity: capacity,
+		size:     0,
+		head:     0,
+		tail:     0,
+	}
+}
+
+// Add adds a value to the buffer
+func (cb *CircularBuffer) Add(value float64) {
+	cb.mu.Lock()
+	defer cb.mu.Unlock()
+	
+	cb.data[cb.tail] = value
+	cb.tail = (cb.tail + 1) % cb.capacity
+	
+	if cb.size < cb.capacity {
+		cb.size++
+	} else {
+		cb.head = (cb.head + 1) % cb.capacity
+	}
+}
+
+// GetAll returns all values in the buffer
+func (cb *CircularBuffer) GetAll() []float64 {
+	cb.mu.RLock()
+	defer cb.mu.RUnlock()
+	
+	result := make([]float64, cb.size)
+	for i := 0; i < cb.size; i++ {
+		idx := (cb.head + i) % cb.capacity
+		result[i] = cb.data[idx]
+	}
+	return result
+}
+
+// TimeSeries represents a time series data structure
+type TimeSeries struct {
+	points   []TimePoint
+	capacity int
+	mu       sync.RWMutex
+}
+
+// TimePoint represents a single point in time series
+type TimePoint struct {
+	Timestamp time.Time
+	Value     float64
+}
+
+// NewTimeSeries creates a new time series
+func NewTimeSeries(capacity int) *TimeSeries {
+	return &TimeSeries{
+		points:   make([]TimePoint, 0, capacity),
+		capacity: capacity,
+	}
+}
+
+// Add adds a point to the time series
+func (ts *TimeSeries) Add(timestamp time.Time, value float64) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	
+	point := TimePoint{Timestamp: timestamp, Value: value}
+	
+	if len(ts.points) >= ts.capacity {
+		ts.points = ts.points[1:]
+	}
+	ts.points = append(ts.points, point)
+}
+
+// GetPoints returns all points in the time series
+func (ts *TimeSeries) GetPoints() []TimePoint {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
+	
+	result := make([]TimePoint, len(ts.points))
+	copy(result, ts.points)
+	return result
+}

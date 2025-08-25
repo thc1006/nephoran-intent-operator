@@ -17,6 +17,8 @@ limitations under the License.
 package porch
 
 import (
+	"time"
+	
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -321,19 +323,12 @@ func (ws *WorkflowStatus) DeepCopyInto(out *WorkflowStatus) {
 			ws.Conditions[i].DeepCopyInto(&out.Conditions[i])
 		}
 	}
-	if ws.StartTime != nil {
-		out.StartTime = new(metav1.Time)
-		ws.StartTime.DeepCopyInto(out.StartTime)
-	}
+	// StartTime is a value type, not a pointer
+	out.StartTime = ws.StartTime
+	
 	if ws.EndTime != nil {
-		out.EndTime = new(metav1.Time)
-		ws.EndTime.DeepCopyInto(out.EndTime)
-	}
-	if ws.Results != nil {
-		out.Results = make([]WorkflowResult, len(ws.Results))
-		for i := range ws.Results {
-			ws.Results[i].DeepCopyInto(&out.Results[i])
-		}
+		out.EndTime = new(time.Time)
+		*out.EndTime = *ws.EndTime
 	}
 }
 
@@ -366,17 +361,15 @@ func (pm *PackageMetadata) DeepCopyInto(out *PackageMetadata) {
 		out.Keywords = make([]string, len(pm.Keywords))
 		copy(out.Keywords, pm.Keywords)
 	}
-	if pm.Labels != nil {
-		out.Labels = make(map[string]string, len(pm.Labels))
-		for k, v := range pm.Labels {
-			out.Labels[k] = v
+	if pm.Tags != nil {
+		out.Tags = make(map[string]string, len(pm.Tags))
+		for k, v := range pm.Tags {
+			out.Tags[k] = v
 		}
 	}
-	if pm.Annotations != nil {
-		out.Annotations = make(map[string]string, len(pm.Annotations))
-		for k, v := range pm.Annotations {
-			out.Annotations[k] = v
-		}
+	if pm.Emails != nil {
+		out.Emails = make([]string, len(pm.Emails))
+		copy(out.Emails, pm.Emails)
 	}
 }
 

@@ -4,17 +4,14 @@ package regression
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
-	"sort"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat"
 	"k8s.io/klog/v2"
 )
@@ -202,11 +199,7 @@ type ChangePointAlgorithm interface {
 	GetName() string
 }
 
-// CUSUMDetector implements CUSUM algorithm for change point detection
-type CUSUMDetector struct {
-	threshold   float64
-	driftFactor float64
-}
+// CUSUMDetector is defined in cusum_detector.go - import that package instead
 
 // BayesianChangePointDetector implements Bayesian change point detection
 type BayesianChangePointDetector struct {
@@ -280,50 +273,7 @@ type RiskIndicator struct {
 	Mitigation   []string  `json:"mitigation"`
 }
 
-// IntelligentAlertManager handles advanced alerting with correlation
-type IntelligentAlertManager struct {
-	config               *AlertManagerConfig
-	alertRules           []*AlertRule
-	suppressionRules     []*SuppressionRule
-	correlationEngine    *AlertCorrelationEngine
-	escalationPolicies   []*EscalationPolicy
-	notificationChannels map[string]NotificationChannel
-	alertHistory         *AlertHistory
-	rateLimiter          *AlertRateLimiter
-}
-
-// AlertRule defines conditions for triggering alerts
-type AlertRule struct {
-	ID               string            `json:"id"`
-	Name             string            `json:"name"`
-	Metric           string            `json:"metric"`
-	Condition        *AlertCondition   `json:"condition"`
-	Severity         string            `json:"severity"`
-	Labels           map[string]string `json:"labels"`
-	Annotations      map[string]string `json:"annotations"`
-	CooldownPeriod   time.Duration     `json:"cooldownPeriod"`
-	EscalationPolicy string            `json:"escalationPolicy"`
-	Enabled          bool              `json:"enabled"`
-}
-
-// AlertCondition defines the condition for triggering an alert
-type AlertCondition struct {
-	Operator         string        `json:"operator"` // "gt", "lt", "eq", "ne", "increase", "decrease"
-	Threshold        float64       `json:"threshold"`
-	Duration         time.Duration `json:"duration"`         // Condition must be true for this duration
-	ComparisonWindow time.Duration `json:"comparisonWindow"` // For trend-based conditions
-}
-
-// SuppressionRule defines when to suppress alerts
-type SuppressionRule struct {
-	ID        string            `json:"id"`
-	Name      string            `json:"name"`
-	Matcher   map[string]string `json:"matcher"`
-	StartTime time.Time         `json:"startTime"`
-	EndTime   time.Time         `json:"endTime"`
-	Reason    string            `json:"reason"`
-	CreatedBy string            `json:"createdBy"`
-}
+// Alert-related types moved to intelligent_alert_manager.go
 
 // ContinuousLearningSystem implements self-improving detection algorithms
 type ContinuousLearningSystem struct {
@@ -358,21 +308,7 @@ type FeedbackEntry struct {
 	Resolution   string    `json:"resolution"`
 }
 
-// NWDAFAnalyzer implements NWDAF patterns for telecom-specific analytics
-type NWDAFAnalyzer struct {
-	config               *NWDAFConfig
-	analyticsRepository  *AnalyticsRepository
-	networkSliceAnalyzer *NetworkSliceAnalyzer
-	serviceAnalyzer      *ServiceAnalyzer
-	mobilitycAnalyzer    *MobilityAnalyzer
-	qosAnalyzer          *QoSAnalyzer
-
-	// NWDAF Analytics Functions
-	loadAnalytics        *LoadAnalytics
-	performanceAnalytics *PerformanceAnalytics
-	capacityAnalytics    *CapacityAnalytics
-	anomalyAnalytics     *AnomalyAnalytics
-}
+// NWDAFAnalyzer is defined in nwdaf_analyzer.go - import that package instead
 
 // NetworkSliceAnalyzer provides slice-aware performance analysis
 type NetworkSliceAnalyzer struct {
@@ -945,19 +881,13 @@ func NewForecastingEngine(config *IntelligentRegressionConfig) *ForecastingEngin
 	}
 }
 
-func NewIntelligentAlertManager(config *IntelligentRegressionConfig) *IntelligentAlertManager {
-	return &IntelligentAlertManager{
-		notificationChannels: make(map[string]NotificationChannel),
-	}
-}
+// NewIntelligentAlertManager removed - defined in intelligent_alert_manager.go
 
 func NewContinuousLearningSystem(config *IntelligentRegressionConfig) *ContinuousLearningSystem {
 	return &ContinuousLearningSystem{}
 }
 
-func NewNWDAFAnalyzer(config *IntelligentRegressionConfig) *NWDAFAnalyzer {
-	return &NWDAFAnalyzer{}
-}
+// NewNWDAFAnalyzer removed - defined in nwdaf_analyzer.go
 
 func NewCorrelationEngine(config *IntelligentRegressionConfig) *CorrelationEngine {
 	return &CorrelationEngine{
@@ -1226,13 +1156,7 @@ type PredictionCache struct{}
 type AccuracyMetrics struct{}
 type AnomalyDetectionConfig struct{}
 type ChangePointConfig struct{}
-type AlertManagerConfig struct{}
-type LearningConfig struct{}
-type NWDAFConfig struct{}
-type AlertCorrelationEngine struct{}
-type EscalationPolicy struct{}
-type AlertHistory struct{}
-type AlertRateLimiter struct{}
+// Alert-related types removed - defined in intelligent_alert_manager.go
 type ModelRepository struct{}
 type TrainingScheduler struct{}
 type LearningPerformanceTracker struct{}
@@ -1269,7 +1193,7 @@ type CachedAggregateData struct{}
 type UserExperienceImpact struct{}
 type BusinessImpactAssessment struct{}
 type RollbackPlan struct{}
-type NWDAFInsights struct{}
+// NWDAFInsights removed - defined in nwdaf_analyzer.go
 type LearningFeedback struct{}
 type IsolationTree struct{}
 type TrendComponent struct{}

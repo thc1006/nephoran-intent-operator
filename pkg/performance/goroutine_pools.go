@@ -140,7 +140,7 @@ type PoolMetrics struct {
 	Throughput         float64 // tasks per second
 	CPUUtilization     float64
 	MemoryUsage        int64
-	GoroutineCount     int
+	GoroutineCount     int64
 	ScalingEvents      int64
 	PreemptionEvents   int64
 	AffinityViolations int64
@@ -798,7 +798,7 @@ func (pool *EnhancedGoroutinePool) GetMetrics() PoolMetrics {
 		Throughput:         pool.metrics.Throughput,
 		CPUUtilization:     pool.metrics.CPUUtilization,
 		MemoryUsage:        atomic.LoadInt64(&pool.metrics.MemoryUsage),
-		GoroutineCount:     int(atomic.LoadInt64(&pool.metrics.GoroutineCount)),
+		GoroutineCount:     atomic.LoadInt64(&pool.metrics.GoroutineCount),
 		ScalingEvents:      atomic.LoadInt64(&pool.metrics.ScalingEvents),
 		PreemptionEvents:   atomic.LoadInt64(&pool.metrics.PreemptionEvents),
 		AffinityViolations: atomic.LoadInt64(&pool.metrics.AffinityViolations),

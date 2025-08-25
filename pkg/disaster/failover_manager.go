@@ -663,12 +663,12 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 				{
 					Action: types.ChangeActionUpsert,
 					ResourceRecordSet: &types.ResourceRecordSet{
-						Name: aws.String(recordName),
+						Name: &recordName,
 						Type: types.RRTypeA,
-						TTL:  aws.Int64(int64(fm.config.DNSConfig.TTL)),
+						TTL:  func() *int64 { v := int64(fm.config.DNSConfig.TTL); return &v }(),
 						ResourceRecords: []types.ResourceRecord{
 							{
-								Value: aws.String(targetIP),
+								Value: &targetIP,
 							},
 						},
 					},
@@ -678,7 +678,7 @@ func (fm *FailoverManager) updateDNSRecords(ctx context.Context, targetRegion st
 
 		// Execute the DNS update
 		changeResult, err := fm.route53Client.ChangeResourceRecordSets(ctx, &route53.ChangeResourceRecordSetsInput{
-			HostedZoneId: aws.String(fm.config.DNSConfig.ZoneID),
+			HostedZoneId: &fm.config.DNSConfig.ZoneID,
 			ChangeBatch:  changeBatch,
 		})
 
@@ -719,7 +719,7 @@ func (fm *FailoverManager) waitForDNSChange(ctx context.Context, changeID string
 		}
 
 		result, err := fm.route53Client.GetChange(ctx, &route53.GetChangeInput{
-			Id: aws.String(changeID),
+			Id: &changeID,
 		})
 
 		if err != nil {

@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -243,7 +242,7 @@ func (ts *TestSuiteBase) SetupSuite() {
 	ts.Framework.startResourceMonitoring()
 
 	setupStart := time.Now()
-	ts.Suite.SetupSuite()
+	// Note: suite.Suite doesn't have SetupSuite method, this is handled by TestSuiteBase
 	ts.setupDuration = time.Since(setupStart)
 }
 
@@ -266,7 +265,7 @@ func (ts *TestSuiteBase) TearDownSuite() {
 		ts.releasePort(port)
 	}
 
-	ts.Suite.TearDownSuite()
+	// Note: suite.Suite doesn't have TearDownSuite method, this is handled by TestSuiteBase
 	ts.teardownDuration = time.Since(teardownStart)
 
 	// Generate test report
@@ -503,7 +502,12 @@ func (fw *Go124TestFramework) startResourceMonitoring() {
 			select {
 			case <-ticker.C:
 				fw.collectMetrics()
-			case <-fw.t.Deadline():
+			case <-func() <-chan time.Time {
+				if deadline, ok := fw.t.Deadline(); ok {
+					return time.After(time.Until(deadline))
+				}
+				return make(chan time.Time) // never fires if no deadline
+			}():
 				return
 			}
 		}

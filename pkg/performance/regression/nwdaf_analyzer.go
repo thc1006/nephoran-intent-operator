@@ -10,9 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"gonum.org/v1/gonum/stat"
 	"k8s.io/klog/v2"
 )
+
+// Stub type for compilation
+type KPIDatabase struct{}
 
 // NWDAFAnalyzer implements Network Data Analytics Function patterns for telecom-specific insights
 // This follows 3GPP TS 23.288 NWDAF specifications and O-RAN Alliance guidelines
@@ -914,7 +916,7 @@ type PredictiveAnalyticsInsights struct{}
 type CapacityAnalyticsInsights struct{}
 type PerformanceHotspot struct{}
 type OptimizationOpportunity struct{}
-type PerformanceForecast struct{}
+// PerformanceForecast removed - defined in regression_detector.go with actual implementation
 type AnomalyCorrelation struct{}
 type AnomalyImpactAssessment struct{}
 type SlicePerformanceSummary struct{}

@@ -1406,9 +1406,19 @@ func (dl *DocumentLoader) GetMetrics() *LoaderMetrics {
 	dl.metrics.mutex.RLock()
 	defer dl.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *dl.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &LoaderMetrics{
+		TotalDocuments:      dl.metrics.TotalDocuments,
+		SuccessfulLoads:     dl.metrics.SuccessfulLoads,
+		FailedLoads:         dl.metrics.FailedLoads,
+		CacheHits:           dl.metrics.CacheHits,
+		CacheMisses:         dl.metrics.CacheMisses,
+		AverageLoadTime:     dl.metrics.AverageLoadTime,
+		TotalProcessingTime: dl.metrics.TotalProcessingTime,
+		LastProcessedAt:     dl.metrics.LastProcessedAt,
+	}
+	
+	return metrics
 }
 
 // fileInfo implements os.FileInfo for remote files

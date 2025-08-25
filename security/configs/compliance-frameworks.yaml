@@ -1,0 +1,481 @@
+# Compliance Frameworks Configuration for Nephoran Intent Operator
+# This file defines security compliance requirements across multiple frameworks
+
+metadata:
+  name: "nephoran-compliance-frameworks"
+  version: "1.0.0"
+  description: "Multi-framework security compliance configuration"
+  updated: "2025-01-24T00:00:00Z"
+
+# NIST Cybersecurity Framework 2.0 Controls
+nist_csf_2:
+  govern:
+    GV.OC-01: # Organizational cybersecurity policy
+      control_id: "GV.OC-01"
+      description: "Organizational cybersecurity policy is established and communicated"
+      requirements:
+        - security_policy_documented: true
+        - policy_communication_method: "documentation and training"
+        - review_frequency: "annually"
+      implementation:
+        - path: "/docs/security/security-policy.md"
+        - validation: "policy_validator.py"
+      
+    GV.RM-01: # Risk management processes
+      control_id: "GV.RM-01"
+      description: "Risk management processes are established, managed, and agreed to by organizational stakeholders"
+      requirements:
+        - risk_assessment_documented: true
+        - stakeholder_approval: true
+        - process_review_frequency: "quarterly"
+      implementation:
+        - path: "/security/policies/risk-management.yaml"
+        - validation: "risk_assessment_validator.py"
+
+  identify:
+    ID.AM-01: # Physical devices and systems
+      control_id: "ID.AM-01"
+      description: "Physical devices and systems within the organization are inventoried"
+      requirements:
+        - asset_inventory_maintained: true
+        - inventory_update_frequency: "monthly"
+        - automated_discovery: true
+      implementation:
+        - tool: "kubernetes_cluster_scanner"
+        - config: "/security/configs/asset-discovery.yaml"
+        
+    ID.AM-02: # Software platforms and applications
+      control_id: "ID.AM-02"
+      description: "Software platforms and applications within the organization are inventoried"
+      requirements:
+        - sbom_generation: true
+        - container_inventory: true
+        - vulnerability_tracking: true
+      implementation:
+        - tool: "syft"
+        - tool: "trivy"
+        - config: "/security/configs/software-inventory.yaml"
+
+  protect:
+    PR.AC-01: # Identity and credential management
+      control_id: "PR.AC-01"
+      description: "Identities and credentials are issued, managed, verified, revoked, and audited"
+      requirements:
+        - rbac_implemented: true
+        - multi_factor_auth: true
+        - credential_rotation: true
+      implementation:
+        - tool: "kubernetes_rbac"
+        - config: "/deployments/security/comprehensive-rbac.yaml"
+        - validation: "rbac_validator.py"
+        
+    PR.AC-04: # Access permissions and authorizations
+      control_id: "PR.AC-04"
+      description: "Access permissions and authorizations are managed, incorporating the principles of least privilege and separation of duties"
+      requirements:
+        - least_privilege: true
+        - separation_of_duties: true
+        - access_review_frequency: "quarterly"
+      implementation:
+        - tool: "opa_policies"
+        - config: "/deployments/security/opa-policies/"
+        
+    PR.DS-01: # Data-at-rest protection
+      control_id: "PR.DS-01"
+      description: "Data-at-rest is protected"
+      requirements:
+        - encryption_at_rest: true
+        - key_management: true
+        - encryption_algorithm: "AES-256"
+      implementation:
+        - tool: "kubernetes_encryption"
+        - config: "/deployments/security/encryption-config.yaml"
+        
+    PR.DS-02: # Data-in-transit protection
+      control_id: "PR.DS-02"
+      description: "Data-in-transit is protected"
+      requirements:
+        - tls_minimum_version: "1.3"
+        - mutual_tls: true
+        - certificate_management: true
+      implementation:
+        - tool: "istio_service_mesh"
+        - config: "/deployments/security/mtls-certificates.yaml"
+
+  detect:
+    DE.AE-01: # Event baseline establishment
+      control_id: "DE.AE-01"
+      description: "A baseline of network operations and expected data flows is established and managed"
+      requirements:
+        - baseline_documented: true
+        - anomaly_detection: true
+        - baseline_update_frequency: "monthly"
+      implementation:
+        - tool: "prometheus"
+        - tool: "grafana"
+        - config: "/deployments/monitoring/security-monitoring.yaml"
+        
+    DE.CM-01: # Network monitoring
+      control_id: "DE.CM-01"
+      description: "The network is monitored to detect potential cybersecurity events"
+      requirements:
+        - network_monitoring: true
+        - intrusion_detection: true
+        - log_analysis: true
+      implementation:
+        - tool: "network_policies"
+        - config: "/deployments/security/comprehensive-network-policies.yaml"
+
+  respond:
+    RS.RP-01: # Response plan execution
+      control_id: "RS.RP-01"
+      description: "Response plans incorporate lessons learned from prior incidents"
+      requirements:
+        - incident_response_plan: true
+        - lessons_learned_process: true
+        - plan_testing: true
+      implementation:
+        - path: "/docs/runbooks/security-incident-response.md"
+        - validation: "incident_response_drill.py"
+
+  recover:
+    RC.RP-01: # Recovery plan execution
+      control_id: "RC.RP-01"
+      description: "Recovery plans incorporate lessons learned from prior incidents"
+      requirements:
+        - recovery_plan_documented: true
+        - backup_strategy: true
+        - recovery_testing: true
+      implementation:
+        - path: "/docs/runbooks/disaster-recovery.md"
+        - tool: "velero"
+        - config: "/deployments/velero/backup-schedule.yaml"
+
+# CIS Kubernetes Benchmark v1.8.0
+cis_kubernetes:
+  control_plane:
+    "1.1.1": # API server pod specification file permissions
+      control_id: "1.1.1"
+      description: "Ensure that the API server pod specification file permissions are set to 644 or more restrictive"
+      scoring: "Automated"
+      level: 1
+      requirements:
+        - file_permissions: "644"
+        - owner: "root:root"
+      implementation:
+        - validation: "file_permission_checker.py"
+        - path: "/etc/kubernetes/manifests/kube-apiserver.yaml"
+        
+    "1.2.1": # Anonymous auth
+      control_id: "1.2.1"
+      description: "Ensure that the --anonymous-auth argument is set to false"
+      scoring: "Automated"
+      level: 1
+      requirements:
+        - anonymous_auth: false
+      implementation:
+        - config_parameter: "--anonymous-auth=false"
+        - validation: "api_server_config_checker.py"
+
+  worker_nodes:
+    "4.1.1": # Kubelet service file permissions
+      control_id: "4.1.1"
+      description: "Ensure that the kubelet service file permissions are set to 644 or more restrictive"
+      scoring: "Automated"
+      level: 1
+      requirements:
+        - file_permissions: "644"
+        - owner: "root:root"
+      implementation:
+        - validation: "file_permission_checker.py"
+        - path: "/etc/systemd/system/kubelet.service"
+
+  policies:
+    "5.1.1": # RBAC minimization
+      control_id: "5.1.1"
+      description: "Ensure that the cluster-admin role is only used where required"
+      scoring: "Manual"
+      level: 1
+      requirements:
+        - cluster_admin_minimized: true
+        - regular_review: true
+      implementation:
+        - tool: "rbac_analyzer"
+        - validation: "cluster_admin_usage_checker.py"
+        
+    "5.3.2": # Pod Security Standards
+      control_id: "5.3.2"
+      description: "Minimize the admission of containers with allowPrivilegeEscalation"
+      scoring: "Automated"
+      level: 1
+      requirements:
+        - pod_security_standards: "restricted"
+        - privilege_escalation: false
+      implementation:
+        - config: "/deployments/security/pod-security-standards.yaml"
+        - validation: "pod_security_validator.py"
+
+# OWASP Top 10 for APIs (2023)
+owasp_api_top_10:
+  api01_broken_object_level_authorization:
+    control_id: "API01"
+    description: "Broken Object Level Authorization"
+    requirements:
+      - object_level_authorization: true
+      - access_control_checks: true
+      - authorization_validation: true
+    implementation:
+      - middleware: "authorization_middleware"
+      - config: "/pkg/auth/rbac.go"
+      - validation: "authorization_test.go"
+      
+  api02_broken_authentication:
+    control_id: "API02"
+    description: "Broken Authentication"
+    requirements:
+      - strong_authentication: true
+      - multi_factor_auth: true
+      - session_management: true
+    implementation:
+      - middleware: "authentication_middleware"
+      - config: "/pkg/auth/jwt_manager.go"
+      - validation: "authentication_test.go"
+      
+  api03_broken_object_property_level_authorization:
+    control_id: "API03"
+    description: "Broken Object Property Level Authorization"
+    requirements:
+      - property_level_access_control: true
+      - data_filtering: true
+      - field_level_permissions: true
+    implementation:
+      - middleware: "field_authorization_middleware"
+      - validation: "property_authorization_test.go"
+      
+  api04_unrestricted_resource_consumption:
+    control_id: "API04"
+    description: "Unrestricted Resource Consumption"
+    requirements:
+      - rate_limiting: true
+      - resource_quotas: true
+      - throttling: true
+    implementation:
+      - middleware: "rate_limiting_middleware"
+      - config: "/pkg/middleware/rate_limit.go"
+      - validation: "rate_limit_test.go"
+      
+  api05_broken_function_level_authorization:
+    control_id: "API05"
+    description: "Broken Function Level Authorization"
+    requirements:
+      - function_level_authorization: true
+      - endpoint_protection: true
+      - role_based_access: true
+    implementation:
+      - middleware: "function_authorization_middleware"
+      - validation: "function_authorization_test.go"
+
+# O-RAN Security (WG11) Requirements
+oran_wg11_security:
+  interface_security:
+    a1_interface:
+      control_id: "A1-SEC-01"
+      description: "A1 Interface Security Requirements"
+      requirements:
+        - mutual_tls: true
+        - certificate_validation: true
+        - message_integrity: true
+        - confidentiality: true
+      implementation:
+        - config: "/internal/a1sim/tls_config.go"
+        - certificates: "/deployments/security/mtls-certificates.yaml"
+        
+    o1_interface:
+      control_id: "O1-SEC-01"
+      description: "O1 Interface Security Requirements"
+      requirements:
+        - netconf_over_tls: true
+        - authentication: true
+        - authorization: true
+        - encryption: true
+      implementation:
+        - config: "/pkg/oran/o1_security_config.go"
+        - validation: "o1_security_test.go"
+        
+    e2_interface:
+      control_id: "E2-SEC-01"
+      description: "E2 Interface Security Requirements"
+      requirements:
+        - sctp_security: true
+        - message_authentication: true
+        - integrity_protection: true
+      implementation:
+        - config: "/internal/e2sim/security_config.go"
+        - validation: "e2_security_test.go"
+
+  component_security:
+    ric_security:
+      control_id: "RIC-SEC-01"
+      description: "RIC Component Security Requirements"
+      requirements:
+        - container_hardening: true
+        - runtime_security: true
+        - network_isolation: true
+        - vulnerability_scanning: true
+      implementation:
+        - config: "/deployments/security/ric-security-policy.yaml"
+        - validation: "ric_security_test.go"
+        
+    smo_security:
+      control_id: "SMO-SEC-01"
+      description: "SMO Component Security Requirements"
+      requirements:
+        - zero_trust_architecture: true
+        - micro_segmentation: true
+        - continuous_monitoring: true
+      implementation:
+        - config: "/deployments/security/zero-trust-network-policies.yaml"
+        - validation: "smo_security_test.go"
+
+# ISO 27001:2022 Controls
+iso_27001:
+  a_5_information_security_policies:
+    "5.1":
+      control_id: "A.5.1"
+      description: "Information security policy"
+      requirements:
+        - policy_documented: true
+        - management_approval: true
+        - communication_plan: true
+        - regular_review: true
+      implementation:
+        - path: "/docs/security/iso27001-policy.md"
+        - validation: "iso27001_policy_validator.py"
+
+  a_6_organization_of_information_security:
+    "6.1":
+      control_id: "A.6.1"
+      description: "Information security roles and responsibilities"
+      requirements:
+        - roles_defined: true
+        - responsibilities_documented: true
+        - segregation_of_duties: true
+      implementation:
+        - path: "/docs/security/roles-and-responsibilities.md"
+        - config: "/deployments/security/rbac-roles.yaml"
+
+# SOC 2 Type II Controls
+soc2_type2:
+  security:
+    cc6_1:
+      control_id: "CC6.1"
+      description: "Logical and physical access controls"
+      requirements:
+        - access_control_policy: true
+        - least_privilege: true
+        - regular_access_reviews: true
+      implementation:
+        - config: "/deployments/security/comprehensive-rbac.yaml"
+        - validation: "access_control_test.go"
+        
+    cc6_2:
+      control_id: "CC6.2"
+      description: "Authentication controls"
+      requirements:
+        - multi_factor_authentication: true
+        - password_complexity: true
+        - account_lockout: true
+      implementation:
+        - config: "/pkg/auth/enhanced_oauth2_manager.go"
+        - validation: "authentication_controls_test.go"
+
+  availability:
+    a1_1:
+      control_id: "A1.1"
+      description: "Availability controls"
+      requirements:
+        - backup_procedures: true
+        - disaster_recovery: true
+        - monitoring_alerting: true
+      implementation:
+        - config: "/deployments/velero/backup-schedule.yaml"
+        - monitoring: "/deployments/monitoring/availability-monitoring.yaml"
+
+# Validation and Assessment Configuration
+validation:
+  automated_checks:
+    frequency: "daily"
+    tools:
+      - "compliance_scanner.py"
+      - "control_validator.py"
+      - "evidence_collector.py"
+    
+  manual_reviews:
+    frequency: "quarterly"
+    reviewers:
+      - "security_team"
+      - "compliance_officer"
+      - "external_auditor"
+    
+  evidence_collection:
+    automated: true
+    retention_period: "7_years"
+    storage_location: "/security/evidence/"
+    
+  reporting:
+    formats:
+      - "html_dashboard"
+      - "pdf_executive_summary"
+      - "json_api_export"
+      - "csv_detailed_findings"
+    frequency: "monthly"
+
+# Continuous Monitoring
+continuous_monitoring:
+  metrics:
+    - control_compliance_percentage
+    - vulnerability_remediation_time
+    - security_incident_count
+    - compliance_gap_analysis
+    
+  alerting:
+    channels:
+      - slack
+      - email
+      - pagerduty
+    thresholds:
+      critical_control_failure: "immediate"
+      compliance_drift: "4_hours"
+      vulnerability_detected: "24_hours"
+
+# Integration Points
+integrations:
+  ci_cd:
+    tools:
+      - github_actions
+      - jenkins
+      - gitlab_ci
+    checks:
+      - pre_commit_compliance
+      - build_time_validation
+      - deployment_gates
+      
+  monitoring:
+    tools:
+      - prometheus
+      - grafana
+      - elasticsearch
+    dashboards:
+      - security_compliance_overview
+      - control_effectiveness_metrics
+      - audit_trail_analysis
+      
+  ticketing:
+    tools:
+      - jira
+      - servicenow
+      - github_issues
+    automation:
+      - auto_create_remediation_tickets
+      - compliance_gap_tracking
+      - audit_finding_management

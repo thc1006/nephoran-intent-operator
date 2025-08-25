@@ -819,8 +819,8 @@ func (c *AuthConfig) CreateOAuth2Providers() (map[string]*OAuth2Provider, error)
 }
 
 // CreateLDAPProviders creates LDAP provider instances from configuration with validation
-func (c *AuthConfig) CreateLDAPProviders() (map[string]*providers.LDAPProvider, error) {
-	ldapProviders := make(map[string]*providers.LDAPProvider)
+func (c *AuthConfig) CreateLDAPProviders() (map[string]providers.LDAPProvider, error) {
+	ldapProviders := make(map[string]providers.LDAPProvider)
 	var errors []error
 
 	// Create logger for LDAP providers

@@ -1,0 +1,438 @@
+---
+# Comprehensive Security Hardening Patch for Nephoran Intent Operator Deployments
+# This patch applies security best practices including:
+# - Pod Security Standards (Restricted)
+# - Comprehensive security contexts
+# - Resource constraints
+# - Security policies enforcement
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-intent-controller
+  annotations:
+    # Security compliance annotations
+    security.nephoran.com/hardened: "true"
+    security.nephoran.com/pss-level: "restricted"
+    security.nephoran.com/scanner: "trivy"
+    security.nephoran.com/last-scan: "2025-08-24"
+spec:
+  template:
+    metadata:
+      annotations:
+        # Security scanning annotations
+        container.apparmor.security.beta.kubernetes.io/controller: runtime/default
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        # Pod security standards
+        pod-security.kubernetes.io/enforce: restricted
+        pod-security.kubernetes.io/audit: restricted
+        pod-security.kubernetes.io/warn: restricted
+    spec:
+      # Enhanced pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+        supplementalGroups: []
+        sysctls: []
+      
+      # Security-related automount settings
+      automountServiceAccountToken: false
+      
+      containers:
+      - name: controller
+        securityContext:
+          # Comprehensive container security
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          privileged: false
+          procMount: Default
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+            # Only add specific capabilities if absolutely required
+            add: []
+          seLinuxOptions:
+            level: s0:c123,c456
+        
+        # Enhanced resource constraints for security
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+            ephemeral-storage: 512Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+        
+        # Security-focused environment variables
+        env:
+        - name: SECURITY_HARDENED
+          value: "true"
+        - name: READ_ONLY_ROOT_FS
+          value: "true"
+        - name: DROP_ALL_CAPABILITIES
+          value: "true"
+        - name: ENABLE_SECURITY_SCANNING
+          value: "true"
+        
+        # Enhanced volume mounts with security
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+          subPath: ""
+        - name: var-cache
+          mountPath: /var/cache
+          readOnly: false
+        - name: webhook-certs
+          mountPath: /tmp/k8s-webhook-server/serving-certs
+          readOnly: true
+        
+        # Security-enhanced health checks
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-liveness-probe/security-hardened"
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: health
+            scheme: HTTP
+            httpHeaders:
+            - name: User-Agent
+              value: "k8s-readiness-probe/security-hardened"
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+          successThreshold: 1
+      
+      # Security-enhanced volumes
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+          medium: Memory  # Use memory for better security
+      - name: var-cache
+        emptyDir:
+          sizeLimit: 100Mi
+          medium: Memory
+      - name: webhook-certs
+        secret:
+          secretName: network-intent-controller-webhook-certs
+          optional: true
+          defaultMode: 0400
+
+---
+# Security patch for LLM Processor
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-processor
+  annotations:
+    security.nephoran.com/hardened: "true"
+    security.nephoran.com/pss-level: "restricted"
+    security.nephoran.com/ai-workload: "true"
+spec:
+  template:
+    metadata:
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/llm-processor: runtime/default
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        pod-security.kubernetes.io/enforce: restricted
+        pod-security.kubernetes.io/audit: restricted
+        pod-security.kubernetes.io/warn: restricted
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      
+      automountServiceAccountToken: false
+      
+      containers:
+      - name: llm-processor
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          privileged: false
+          procMount: Default
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+        
+        # AI workload specific resource constraints
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+            ephemeral-storage: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+            ephemeral-storage: 4Gi
+        
+        env:
+        - name: SECURITY_HARDENED
+          value: "true"
+        - name: AI_WORKLOAD_SECURED
+          value: "true"
+        - name: DISABLE_DEBUG_ENDPOINTS
+          value: "true"
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        - name: var-run
+          mountPath: /var/run
+          readOnly: false
+        - name: secrets-cache
+          mountPath: /var/cache/secrets
+          readOnly: false
+        
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 1Gi
+          medium: Memory
+      - name: var-run
+        emptyDir:
+          sizeLimit: 100Mi
+          medium: Memory
+      - name: secrets-cache
+        emptyDir:
+          sizeLimit: 200Mi
+          medium: Memory
+
+---
+# Security patch for RAG API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rag-api
+  annotations:
+    security.nephoran.com/hardened: "true"
+    security.nephoran.com/pss-level: "restricted"
+    security.nephoran.com/python-workload: "true"
+spec:
+  template:
+    metadata:
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/rag-api: runtime/default
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        pod-security.kubernetes.io/enforce: restricted
+        pod-security.kubernetes.io/audit: restricted
+        pod-security.kubernetes.io/warn: restricted
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      
+      automountServiceAccountToken: false
+      
+      containers:
+      - name: rag-api
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          privileged: false
+          procMount: Default
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+        
+        env:
+        - name: SECURITY_HARDENED
+          value: "true"
+        - name: PYTHON_SECURITY_MODE
+          value: "strict"
+        - name: FLASK_DEBUG
+          value: "false"
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        - name: python-cache
+          mountPath: /home/nonroot/.cache
+          readOnly: false
+        
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 500Mi
+          medium: Memory
+      - name: python-cache
+        emptyDir:
+          sizeLimit: 200Mi
+          medium: Memory
+
+---
+# Security patch for Nephio Bridge
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nephio-bridge
+  annotations:
+    security.nephoran.com/hardened: "true"
+    security.nephoran.com/pss-level: "restricted"
+spec:
+  template:
+    metadata:
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/nephio-bridge: runtime/default
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        pod-security.kubernetes.io/enforce: restricted
+        pod-security.kubernetes.io/audit: restricted
+        pod-security.kubernetes.io/warn: restricted
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      
+      automountServiceAccountToken: false
+      
+      containers:
+      - name: nephio-bridge
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          privileged: false
+          procMount: Default
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+        
+        env:
+        - name: SECURITY_HARDENED
+          value: "true"
+        - name: BRIDGE_SECURE_MODE
+          value: "true"
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+          medium: Memory
+
+---
+# Security patch for ORAN Adaptor
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: oran-adaptor
+  annotations:
+    security.nephoran.com/hardened: "true"
+    security.nephoran.com/pss-level: "restricted"
+    security.nephoran.com/oran-workload: "true"
+spec:
+  template:
+    metadata:
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/oran-adaptor: runtime/default
+        seccomp.security.alpha.kubernetes.io/pod: runtime/default
+        pod-security.kubernetes.io/enforce: restricted
+        pod-security.kubernetes.io/audit: restricted
+        pod-security.kubernetes.io/warn: restricted
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      
+      automountServiceAccountToken: false
+      
+      containers:
+      - name: oran-adaptor
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 65532
+          runAsGroup: 65532
+          readOnlyRootFilesystem: true
+          allowPrivilegeEscalation: false
+          privileged: false
+          procMount: Default
+          seccompProfile:
+            type: RuntimeDefault
+          capabilities:
+            drop:
+            - ALL
+        
+        env:
+        - name: SECURITY_HARDENED
+          value: "true"
+        - name: ORAN_SECURE_MODE
+          value: "true"
+        - name: TELCO_SECURITY_COMPLIANCE
+          value: "3GPP-33.501"
+        
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+          readOnly: false
+        
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+          medium: Memory

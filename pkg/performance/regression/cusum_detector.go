@@ -5,6 +5,7 @@ package regression
 import (
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"gonum.org/v1/gonum/stat"

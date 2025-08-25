@@ -1,10 +1,8 @@
 package performance
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/pprof"
 	"os"
@@ -15,6 +13,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"k8s.io/klog/v2"
 )
 
@@ -26,7 +25,7 @@ type Profiler struct {
 	mutexProfile   *os.File
 	traceFile      *os.File
 	goroutineStats GoroutineStats
-	memoryStats    MemoryStats
+	memoryStats    LocalMemoryStats
 	profileDir     string
 	isActive       bool
 	httpServer     *http.Server
@@ -43,18 +42,16 @@ type GoroutineStats struct {
 	LastSnapshot time.Time
 }
 
-// MemoryStats tracks memory metrics
-type MemoryStats struct {
-	HeapAlloc    uint64
-	HeapSys      uint64
-	HeapInuse    uint64
-	HeapReleased uint64
+// LocalMemoryStats tracks memory metrics with specific fields for this profiler
+// (Extends the shared types.MemoryStats with profiler-specific fields)
+type LocalMemoryStats struct {
+	types.MemoryStats // Embed shared memory stats
+	MemoryLeaks       []MemoryLeak
+	LastSnapshot      time.Time
+	// Additional fields for profiler
+	GCCount      uint32
 	GCPauseTotal time.Duration
 	GCPauseAvg   time.Duration
-	GCCount      uint32
-	LastGC       time.Time
-	MemoryLeaks  []MemoryLeak
-	LastSnapshot time.Time
 }
 
 // MemoryLeak represents a detected memory leak
@@ -66,24 +63,26 @@ type MemoryLeak struct {
 	Description string
 }
 
-// ProfileReport contains comprehensive profiling results
-type ProfileReport struct {
-	StartTime      time.Time
-	EndTime        time.Time
-	Duration       time.Duration
-	CPUProfile     string
-	MemoryProfile  string
-	BlockProfile   string
-	MutexProfile   string
-	GoroutineStats GoroutineStats
-	MemoryStats    MemoryStats
-	HotSpots       []HotSpot
-	Contentions    []Contention
-	Allocations    []Allocation
+// ProfilerReport contains comprehensive profiling results with profiler-specific fields
+// This extends the shared version to add missing fields
+type ProfilerReport struct {
+	types.ProfileReport // Embed shared profile report
+	CPUProfile          string
+	MemoryProfile       string
+	BlockProfile        string
+	MutexProfile        string
+	GoroutineStats      GoroutineStats
+	LocalMemoryStats    LocalMemoryStats // Use local version
+	Contentions         []Contention
+	Allocations         []Allocation
+	// Additional fields that were missing
+	StartTime time.Time
+	EndTime   time.Time
+	HotSpots  []ProfilerHotSpot
 }
 
-// HotSpot represents a CPU hotspot
-type HotSpot struct {
+// ProfilerHotSpot represents a CPU hotspot with profiler-specific fields
+type ProfilerHotSpot struct {
 	Function   string
 	File       string
 	Line       int
@@ -115,7 +114,7 @@ func NewProfiler() *Profiler {
 		goroutineStats: GoroutineStats{
 			StackTraces: make(map[string]int),
 		},
-		memoryStats: MemoryStats{
+		memoryStats: LocalMemoryStats{
 			MemoryLeaks: make([]MemoryLeak, 0),
 		},
 	}
@@ -433,7 +432,7 @@ func (p *Profiler) updateGoroutineStats() {
 	n := runtime.Stack(buf, true)
 
 	// Parse stack traces (simplified)
-	stacks := string(buf[:n])
+	_ = string(buf[:n]) // stacks variable was unused
 	p.goroutineStats.StackTraces = make(map[string]int)
 	// In real implementation, parse stacks and count unique traces
 
@@ -451,7 +450,7 @@ func (p *Profiler) updateMemoryStats(memStats *runtime.MemStats) {
 	if memStats.NumGC > 0 {
 		p.memoryStats.GCPauseTotal = time.Duration(memStats.PauseTotalNs)
 		p.memoryStats.GCPauseAvg = time.Duration(memStats.PauseTotalNs / uint64(memStats.NumGC))
-		p.memoryStats.LastGC = time.Unix(0, int64(memStats.LastGC))
+		p.memoryStats.LastGC = memStats.LastGC // Keep as uint64
 	}
 
 	p.memoryStats.LastSnapshot = time.Now()
@@ -552,10 +551,10 @@ func (p *Profiler) GenerateFlameGraph(profilePath string) (string, error) {
 }
 
 // AnalyzeProfile analyzes a profile and returns hotspots
-func (p *Profiler) AnalyzeProfile(profilePath string) (*ProfileReport, error) {
-	report := &ProfileReport{
+func (p *Profiler) AnalyzeProfile(profilePath string) (*ProfilerReport, error) {
+	report := &ProfilerReport{
 		StartTime:   time.Now(),
-		HotSpots:    []HotSpot{},
+		HotSpots:    []ProfilerHotSpot{},
 		Contentions: []Contention{},
 		Allocations: []Allocation{},
 	}
@@ -564,7 +563,7 @@ func (p *Profiler) AnalyzeProfile(profilePath string) (*ProfileReport, error) {
 	// and identify hotspots, contentions, etc.
 
 	// Example hotspot
-	report.HotSpots = append(report.HotSpots, HotSpot{
+	report.HotSpots = append(report.HotSpots, ProfilerHotSpot{
 		Function:   "example.function",
 		File:       "example.go",
 		Line:       100,

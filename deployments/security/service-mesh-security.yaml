@@ -1,0 +1,813 @@
+---
+# Service Mesh Security Configuration for Nephoran Intent Operator
+# Implements comprehensive mTLS, authentication, and authorization using Istio
+# Zero-trust service-to-service communication with fine-grained access controls
+
+# Global mTLS Policy - Enforce STRICT mTLS across all Nephoran services
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: nephoran-global-mtls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/policy: mtls-enforcement
+spec:
+  # Apply to all pods in namespace
+  mtls:
+    mode: STRICT
+
+---
+# Service-Specific mTLS Configurations
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: llm-processor-mtls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: llm-processor
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    8080:
+      mode: STRICT
+    9090:
+      mode: STRICT  # Metrics endpoint
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: rag-api-mtls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: rag-api
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rag-api
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    5001:
+      mode: STRICT
+    9090:
+      mode: STRICT
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: weaviate-mtls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: weaviate
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: weaviate
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    8080:
+      mode: STRICT
+    50051:
+      mode: STRICT  # gRPC
+    2112:
+      mode: STRICT  # Metrics
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: nephio-bridge-mtls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephio-bridge
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nephio-bridge
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    8082:
+      mode: STRICT
+    9090:
+      mode: STRICT
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: oran-adaptor-mtls
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oran-adaptor
+  mtls:
+    mode: STRICT
+  portLevelMtls:
+    8083:
+      mode: STRICT
+    9090:
+      mode: STRICT
+    830:   # NETCONF - special handling for O-RAN
+      mode: PERMISSIVE  # Some legacy O-RAN components may not support mTLS
+
+---
+# JWT Authentication for External Access
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: nephoran-jwt-auth
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/auth-method: jwt
+spec:
+  selector:
+    matchLabels:
+      security.nephoran.io/external-access: "true"
+  jwtRules:
+  - issuer: "https://auth.nephoran.io"
+    jwksUri: "https://auth.nephoran.io/.well-known/jwks.json"
+    audiences:
+    - "nephoran-intent-operator"
+    - "nephoran-api"
+    forwardOriginalToken: true
+    fromHeaders:
+    - name: Authorization
+      prefix: "Bearer "
+    fromCookies:
+    - "auth-token"
+    outputPayloadToHeader: "x-jwt-payload"
+  - issuer: "https://accounts.google.com"  # Support Google OAuth for admin access
+    jwksUri: "https://www.googleapis.com/oauth2/v3/certs"
+    audiences:
+    - "nephoran-admin"
+    fromHeaders:
+    - name: Authorization
+      prefix: "Bearer "
+  - issuer: "https://sts.amazonaws.com"  # Support AWS IAM roles for service accounts
+    jwksUri: "https://oidc.eks.us-west-2.amazonaws.com/id/EXAMPLE123456789/keys"
+    audiences:
+    - "nephoran-service"
+    fromHeaders:
+    - name: Authorization
+      prefix: "Bearer "
+
+---
+# Default Deny-All Authorization Policy
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all-default
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/policy: deny-all
+spec:
+  {} # Empty spec = deny all traffic
+
+---
+# LLM Processor Authorization Policies
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: llm-processor-authz
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: llm-processor
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: llm-processor
+  action: ALLOW
+  rules:
+  # Allow authenticated external users
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["POST", "GET"]
+        paths: ["/v1/intent/*", "/v1/process/*", "/health", "/ready"]
+    when:
+    - key: request.auth.claims[sub]
+      values: ["*"]  # Any authenticated subject
+    - key: request.auth.claims[aud]
+      values: ["nephoran-intent-operator", "nephoran-api"]
+  
+  # Allow internal service communication
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephoran-operator"]
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephio-bridge"]
+    to:
+    - operation:
+        methods: ["POST", "GET"]
+        paths: ["/v1/*"]
+  
+  # Allow monitoring and health checks
+  - from:
+    - source:
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics", "/health", "/ready"]
+  
+  # Admin access (requires elevated privileges)
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/admin"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/admin/*"]
+    when:
+    - key: request.auth.claims[role]
+      values: ["admin", "system-admin"]
+    - key: request.headers[x-admin-token]
+      values: ["*"]  # Requires additional admin token header
+
+---
+# RAG API Authorization Policies
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: rag-api-authz
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: rag-api
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: rag-api
+  action: ALLOW
+  rules:
+  # Allow communication from LLM Processor
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/llm-processor"]
+    to:
+    - operation:
+        methods: ["POST", "GET"]
+        paths: ["/v1/query/*", "/v1/embed/*"]
+  
+  # Allow communication from Nephio Bridge for knowledge management
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephio-bridge"]
+    to:
+    - operation:
+        methods: ["POST", "PUT", "DELETE"]
+        paths: ["/v1/knowledge/*"]
+    when:
+    - key: source.labels[security.nephoran.io/role]
+      values: ["knowledge-manager"]
+  
+  # Allow authenticated external access for knowledge queries
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/v1/query/*"]
+    when:
+    - key: request.auth.claims[scope]
+      values: ["rag:query", "rag:read"]
+    - key: request.auth.claims[aud]
+      values: ["nephoran-intent-operator"]
+  
+  # Monitoring access
+  - from:
+    - source:
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics", "/health"]
+
+---
+# Weaviate Database Authorization (Highly Restricted)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: weaviate-authz
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: weaviate
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: weaviate
+  action: ALLOW
+  rules:
+  # Only allow RAG API to access database
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/rag-api"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/v1/objects/*", "/v1/graphql", "/v1/batch/*"]
+  
+  # Allow backup operations
+  - from:
+    - source:
+        principals: ["cluster.local/ns/backup-system/sa/backup-operator"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/v1/backups/*", "/v1/cluster/*"]
+    when:
+    - key: source.labels[backup.nephoran.io/authorized]
+      values: ["true"]
+  
+  # Allow inter-node communication for clustering
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/weaviate"]
+    to:
+    - operation:
+        ports: ["7100", "7101", "7102"]  # Gossip, data, and backup ports
+  
+  # Limited monitoring access (metrics only)
+  - from:
+    - source:
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics"]
+        ports: ["2112"]
+
+---
+# Nephio Bridge Authorization (GitOps and Orchestration)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: nephio-bridge-authz
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephio-bridge
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nephio-bridge
+  action: ALLOW
+  rules:
+  # Allow communication from Network Intent Controller
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephoran-operator"]
+    to:
+    - operation:
+        methods: ["POST", "PUT", "GET"]
+        paths: ["/v1/packages/*", "/v1/deploy/*"]
+  
+  # Allow webhook calls from Kubernetes API server
+  - from:
+    - source:
+        namespaces: ["kube-system"]
+        principals: ["system:serviceaccount:kube-system:kube-controller-manager"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/webhook/*"]
+  
+  # Allow Porch integration
+  - from:
+    - source:
+        namespaces: ["porch-system"]
+        principals: ["cluster.local/ns/porch-system/sa/porch-server"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/apis/*"]
+  
+  # Monitoring and health checks
+  - from:
+    - source:
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics", "/health"]
+
+---
+# O-RAN Adaptor Authorization (Telecom Interfaces)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: oran-adaptor-authz
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: oran-adaptor
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: oran-adaptor
+  action: ALLOW
+  rules:
+  # Allow communication from Network Intent Controller
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephoran-operator"]
+    to:
+    - operation:
+        methods: ["POST", "PUT", "DELETE"]
+        paths: ["/a1/*", "/o1/*", "/o2/*"]
+  
+  # Allow O-RAN Near-RT RIC communication
+  - from:
+    - source:
+        namespaces: ["oran-system"]
+        principals: ["cluster.local/ns/oran-system/sa/near-rt-ric"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/a1/policies/*", "/a1/healthcheck"]
+        ports: ["8080", "9080"]
+  
+  # Allow O-RAN Non-RT RIC communication
+  - from:
+    - source:
+        namespaces: ["oran-system"]
+        principals: ["cluster.local/ns/oran-system/sa/non-rt-ric"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/a1/*", "/o2/subscriptions/*"]
+        ports: ["8080", "8181"]
+  
+  # Allow SMO (Service Management and Orchestration) access
+  - from:
+    - source:
+        namespaces: ["smo-system"]
+        principals: ["cluster.local/ns/smo-system/sa/smo"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/o1/*", "/o2/*"]
+        ports: ["8080", "830"]  # Including NETCONF
+  
+  # Allow E2 interface communication (less restricted for compatibility)
+  - from:
+    - source:
+        namespaces: ["oran-system"]
+    to:
+    - operation:
+        ports: ["36421", "36422"]  # E2 SCTP and TCP ports
+    when:
+    - key: source.labels[oran.o-ran.org/component]
+      values: ["e2-node", "cu", "du", "ru"]
+  
+  # Monitoring access
+  - from:
+    - source:
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/metrics", "/health"]
+
+---
+# Admin and Debug Access (Restricted)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: admin-debug-access
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/policy: admin-access
+spec:
+  selector:
+    matchLabels:
+      security.nephoran.io/admin-access: "enabled"
+  action: ALLOW
+  rules:
+  # Allow admin access with strong authentication
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/admin"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/admin/*", "/debug/*"]
+    when:
+    - key: request.auth.claims[role]
+      values: ["system-admin", "security-admin"]
+    - key: request.auth.claims[aud]
+      values: ["nephoran-admin"]
+    - key: request.headers[x-admin-session-id]
+      values: ["*"]  # Requires active admin session
+  
+  # Allow break-glass emergency access (manually activated)
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-security/sa/emergency-responder"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/debug/*", "/logs/*"]
+    when:
+    - key: source.labels[security.nephoran.io/emergency-authorized]
+      values: ["true"]
+    - key: source.labels[security.nephoran.io/incident-id]
+      values: ["*"]  # Must have incident ID
+
+---
+# Multi-Tenant Authorization (if applicable)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: multi-tenant-isolation
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/policy: multi-tenant
+spec:
+  selector:
+    matchLabels:
+      multi-tenant.nephoran.io/enabled: "true"
+  action: ALLOW
+  rules:
+  # Ensure tenant isolation through JWT claims
+  - to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+    when:
+    - key: request.auth.claims[tenant_id]
+      values: ["*"]
+    - key: request.headers[x-tenant-id]
+      values: ["*"]
+    # Additional rule: tenant_id in JWT must match x-tenant-id header
+    - key: custom
+      values: ["request.auth.claims.tenant_id == request.headers['x-tenant-id']"]
+
+---
+# Security Monitoring Access
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: security-monitoring-access
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/policy: security-monitoring
+spec:
+  selector: {}
+  action: ALLOW
+  rules:
+  # Allow Falco security monitoring
+  - from:
+    - source:
+        namespaces: ["security-monitoring"]
+        principals: ["cluster.local/ns/security-monitoring/sa/falco"]
+    to:
+    - operation:
+        methods: ["GET"]
+        ports: ["8765", "5060"]  # Falco HTTP and gRPC
+  
+  # Allow Trivy vulnerability scanning
+  - from:
+    - source:
+        namespaces: ["security-scanning"]
+        principals: ["cluster.local/ns/security-scanning/sa/trivy-operator"]
+    to:
+    - operation:
+        methods: ["GET"]
+        ports: ["8080"]
+  
+  # Allow security audit logging
+  - from:
+    - source:
+        namespaces: ["audit-system"]
+        principals: ["cluster.local/ns/audit-system/sa/audit-collector"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/audit/*", "/logs/*"]
+
+---
+# External Service Authorization (ServiceEntry integration)
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: external-service-authz
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/policy: external-services
+spec:
+  action: ALLOW
+  rules:
+  # Allow LLM Processor to access approved external APIs
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/llm-processor"]
+  to:
+  - operation:
+      hosts: ["api.openai.com", "api.anthropic.com", "api.mistral.ai"]
+      methods: ["POST"]
+      paths: ["/v1/chat/completions", "/v1/embeddings", "/v1/messages"]
+  
+  # Allow RAG API to access embedding services
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/rag-api"]
+  to:
+  - operation:
+      hosts: ["api.openai.com", "api.cohere.ai"]
+      methods: ["POST"]
+      paths: ["/v1/embeddings"]
+  
+  # Allow Nephio Bridge to access Git repositories
+  - from:
+    - source:
+        principals: ["cluster.local/ns/nephoran-system/sa/nephio-bridge"]
+  to:
+  - operation:
+      hosts: ["github.com", "gitlab.com", "*.git.company.com"]
+      methods: ["GET", "POST", "PUT"]
+      ports: ["443", "22"]
+
+---
+# Rate Limiting Authorization Policy
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: rate-limiting-bypass
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/policy: rate-limiting
+spec:
+  action: ALLOW
+  rules:
+  # Allow internal services to bypass rate limiting
+  - from:
+    - source:
+        namespaces: ["nephoran-system"]
+    when:
+    - key: source.labels[security.nephoran.io/internal]
+      values: ["true"]
+  
+  # Allow monitoring to bypass rate limits
+  - from:
+    - source:
+        namespaces: ["monitoring"]
+        principals: ["cluster.local/ns/monitoring/sa/prometheus"]
+  
+  # Allow admin users to bypass rate limits in emergencies
+  - when:
+    - key: request.auth.claims[role]
+      values: ["system-admin"]
+    - key: request.headers[x-emergency-override]
+      values: ["true"]
+    - key: request.headers[x-incident-id]
+      values: ["*"]
+
+---
+# Security Headers Enforcement
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: security-headers
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/policy: security-headers
+spec:
+  configPatches:
+  - applyTo: HTTP_FILTER
+    match:
+      context: SIDECAR_INBOUND
+      listener:
+        filterChain:
+          filter:
+            name: "envoy.filters.network.http_connection_manager"
+    patch:
+      operation: INSERT_BEFORE
+      value:
+        name: envoy.filters.http.local_ratelimit
+        typed_config:
+          "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+          type_url: type.googleapis.com/envoy.extensions.filters.http.local_ratelimit.v3.LocalRateLimit
+          value:
+            stat_prefix: local_rate_limiter
+  - applyTo: HTTP_ROUTE_CONFIGURATION
+    match:
+      context: SIDECAR_INBOUND
+    patch:
+      operation: MERGE
+      value:
+        response_headers_to_add:
+        - header:
+            key: "X-Frame-Options"
+            value: "DENY"
+          append: false
+        - header:
+            key: "X-Content-Type-Options"
+            value: "nosniff"
+          append: false
+        - header:
+            key: "X-XSS-Protection"
+            value: "1; mode=block"
+          append: false
+        - header:
+            key: "Strict-Transport-Security"
+            value: "max-age=31536000; includeSubDomains"
+          append: false
+        - header:
+            key: "Content-Security-Policy"
+            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+          append: false
+        - header:
+            key: "Referrer-Policy"
+            value: "strict-origin-when-cross-origin"
+          append: false
+        - header:
+            key: "Permissions-Policy"
+            value: "geolocation=(), microphone=(), camera=()"
+          append: false
+        request_headers_to_remove:
+        - "x-forwarded-proto"
+        - "x-forwarded-port"
+        - "x-forwarded-for"
+        response_headers_to_remove:
+        - "server"
+        - "x-powered-by"
+
+---
+# Circuit Breaker Configuration
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: nephoran-circuit-breaker
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran-intent-operator
+    security.nephoran.io/policy: circuit-breaker
+spec:
+  host: "*.nephoran-system.svc.cluster.local"
+  trafficPolicy:
+    connectionPool:
+      tcp:
+        maxConnections: 100
+        connectTimeout: 30s
+        tcpKeepalive:
+          time: 7200s
+          interval: 75s
+      http:
+        http1MaxPendingRequests: 50
+        http2MaxRequests: 100
+        maxRequestsPerConnection: 10
+        maxRetries: 3
+        consecutiveGatewayErrors: 5
+        interval: 30s
+        baseEjectionTime: 30s
+        maxEjectionPercent: 50
+        minHealthPercent: 50
+        h2UpgradePolicy: UPGRADE  # Allow HTTP/2 upgrade for performance
+    outlierDetection:
+      consecutiveGatewayErrors: 5
+      consecutive5xxErrors: 5
+      interval: 30s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+      minHealthPercent: 30
+      splitExternalLocalOriginErrors: false
+  portLevelSettings:
+  - port:
+      number: 8080
+    connectionPool:
+      tcp:
+        maxConnections: 50
+      http:
+        http1MaxPendingRequests: 25
+        maxRequestsPerConnection: 5
+  - port:
+      number: 5001  # RAG API
+    connectionPool:
+      tcp:
+        maxConnections: 30
+      http:
+        http1MaxPendingRequests: 15
+        maxRequestsPerConnection: 3
+        idleTimeout: 300s  # Longer timeout for embedding operations

@@ -14,6 +14,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // PerformanceOptimizer provides comprehensive performance monitoring and optimization
@@ -77,17 +79,17 @@ type PerformanceMetrics struct {
 
 // PerformanceConfig holds configuration for performance optimization
 type PerformanceConfig struct {
-	LatencyBufferSize     int                  `json:"latency_buffer_size"`
-	OptimizationInterval  time.Duration        `json:"optimization_interval"`
-	CircuitBreakerConfig  CircuitBreakerConfig `json:"circuit_breaker"`
-	BatchProcessingConfig BatchConfig          `json:"batch_processing"`
-	MetricsExportInterval time.Duration        `json:"metrics_export_interval"`
-	EnableTracing         bool                 `json:"enable_tracing"`
-	TraceSamplingRatio    float64              `json:"trace_sampling_ratio"`
+	LatencyBufferSize     int                             `json:"latency_buffer_size"`
+	OptimizationInterval  time.Duration                   `json:"optimization_interval"`
+	CircuitBreakerConfig  PerformanceCircuitBreakerConfig `json:"circuit_breaker"`
+	BatchProcessingConfig BatchConfig                     `json:"batch_processing"`
+	MetricsExportInterval time.Duration                   `json:"metrics_export_interval"`
+	EnableTracing         bool                            `json:"enable_tracing"`
+	TraceSamplingRatio    float64                         `json:"trace_sampling_ratio"`
 }
 
-// CircuitBreakerConfig holds advanced circuit breaker configuration
-type CircuitBreakerConfig struct {
+// PerformanceCircuitBreakerConfig holds advanced circuit breaker configuration for performance optimizer
+type PerformanceCircuitBreakerConfig struct {
 	FailureThreshold      int           `json:"failure_threshold"`
 	SuccessThreshold      int           `json:"success_threshold"`
 	Timeout               time.Duration `json:"timeout"`
@@ -126,7 +128,14 @@ func NewPerformanceOptimizer(config *PerformanceConfig) *PerformanceOptimizer {
 	po.initializeMetrics()
 
 	// Initialize circuit breaker
-	po.circuitBreaker = NewAdvancedCircuitBreaker(config.CircuitBreakerConfig)
+	// Convert to regular CircuitBreakerConfig for the circuit breaker
+	cbConfig := &shared.CircuitBreakerConfig{
+		FailureThreshold:      int64(config.CircuitBreakerConfig.FailureThreshold),
+		SuccessThreshold:      int64(config.CircuitBreakerConfig.SuccessThreshold),
+		Timeout:               config.CircuitBreakerConfig.Timeout,
+		MaxConcurrentRequests: config.CircuitBreakerConfig.MaxConcurrentRequests,
+	}
+	po.circuitBreaker = NewAdvancedCircuitBreaker(*cbConfig)
 
 	// Initialize batch processor
 	po.batchProcessor = NewBatchProcessor(config.BatchProcessingConfig)
@@ -145,7 +154,7 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 		MetricsExportInterval: 30 * time.Second,
 		EnableTracing:         true,
 		TraceSamplingRatio:    0.1,
-		CircuitBreakerConfig: CircuitBreakerConfig{
+		CircuitBreakerConfig: PerformanceCircuitBreakerConfig{
 			FailureThreshold:      5,
 			SuccessThreshold:      3,
 			Timeout:               30 * time.Second,

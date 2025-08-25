@@ -7,10 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gorilla/mux"
 	"golang.org/x/time/rate"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
 )
 
 // loggingMiddleware logs HTTP requests and responses

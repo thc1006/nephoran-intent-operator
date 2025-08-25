@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/a1.policy.schema.json",
+  "title": "ScalingThresholdPolicy",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["policyTypeId", "scope", "rules"],
+  "properties": {
+    "policyTypeId": {
+      "type": "string",
+      "const": "oran.sim.scaling.v1"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["namespace", "target"],
+      "properties": {
+        "namespace": { "type": "string", "minLength": 1 },
+        "target": { "type": "string", "minLength": 1 }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "scale_out_threshold", "scale_in_threshold", "cooldown_seconds", "min_replicas", "max_replicas"],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "enum": ["kpm.p95_latency_ms", "kpm.prb_utilization", "kpm.ue_count"]
+        },
+        "scale_out_threshold": { "type": "number" },
+        "scale_in_threshold": { "type": "number" },
+        "cooldown_seconds": { "type": "integer", "minimum": 0 },
+        "min_replicas": { "type": "integer", "minimum": 1 },
+        "max_replicas": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "notes": { "type": "string" }
+  },
+  "$comment": "This schema models a minimal A1 policy instance body to be pushed via A1 NBI."
+}

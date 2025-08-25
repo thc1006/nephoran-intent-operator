@@ -321,7 +321,7 @@ func (w *Worker) processTask(ctx context.Context, task *Task) {
 	case w.resultQueue <- result:
 		// Result sent successfully
 	default:
-		w.logger.Warn("Result queue full, dropping result", "taskId", task.ID)
+		w.logger.Info("Result queue full, dropping result", "taskId", task.ID)
 	}
 
 	// Execute callbacks if provided

@@ -153,12 +153,11 @@ func TestMemoryLeakDetection(t *testing.T) {
 
 // TestGoroutineLeakDetection tests for goroutine leaks
 func TestGoroutineLeakDetection(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 	initialGoroutines := runtime.NumGoroutine()
 
 	// Run operations that spawn goroutines
 	var wg sync.WaitGroup
-	stopChan := make(chan struct{})
 
 	// Properly managed goroutines
 	for i := 0; i < 100; i++ {
@@ -166,7 +165,7 @@ func TestGoroutineLeakDetection(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			select {
-			case <-stopChan:
+			case <-ctx.Done():
 				return
 			case <-time.After(5 * time.Second):
 				// Simulate work
@@ -182,7 +181,7 @@ func TestGoroutineLeakDetection(t *testing.T) {
 	t.Logf("Goroutines - Initial: %d, Mid-test: %d", initialGoroutines, midGoroutines)
 
 	// Cleanup
-	close(stopChan)
+	cancel()
 	wg.Wait()
 
 	// Wait for goroutines to fully terminate

@@ -3,7 +3,6 @@ package availability
 import (
 	"context"
 	"fmt"
-	"math"
 	"net"
 	"net/http"
 	"sync"

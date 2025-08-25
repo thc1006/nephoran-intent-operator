@@ -43,7 +43,6 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime"

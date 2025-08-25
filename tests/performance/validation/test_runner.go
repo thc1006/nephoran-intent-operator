@@ -7,19 +7,16 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 )
 
 // TestRunner executes performance tests and collects measurements
 type TestRunner struct {
-	config           *TestConfiguration
-	prometheusClient v1.API
-	intentClient     IntentClient
-	ragClient        RAGClient
-	metrics          *TestMetrics
-	mu               sync.RWMutex
+	config       *TestConfiguration
+	intentClient IntentClient
+	ragClient    RAGClient
+	metrics      *TestMetrics
+	mu           sync.RWMutex
+	// prometheusClient v1.API // TODO: Re-enable when Prometheus integration is needed
 }
 
 // IntentClient defines the interface for intent processing operations

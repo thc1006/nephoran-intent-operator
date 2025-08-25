@@ -12,17 +12,15 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
 // Copy of the essential types from llm.go for testing
-type CacheEntry struct {
-	Response  string
-	Timestamp time.Time
-	HitCount  int64
-}
+// CacheEntry is now defined in pkg/shared/types/common_types.go
 
 type ResponseCache struct {
-	entries  map[string]*CacheEntry
+	entries  map[string]*types.CacheEntry
 	mutex    sync.RWMutex
 	ttl      time.Duration
 	maxSize  int
@@ -33,7 +31,7 @@ type ResponseCache struct {
 
 func NewResponseCacheTest(ttl time.Duration, maxSize int) *ResponseCache {
 	cache := &ResponseCache{
-		entries: make(map[string]*CacheEntry),
+		entries: make(map[string]*types.CacheEntry),
 		ttl:     ttl,
 		maxSize: maxSize,
 		stopCh:  make(chan struct{}),
@@ -120,7 +118,7 @@ func (c *ResponseCache) Set(key, response string) {
 		}
 	}
 
-	c.entries[key] = &CacheEntry{
+	c.entries[key] = &types.CacheEntry{
 		Response:  response,
 		Timestamp: time.Now(),
 		HitCount:  0,

@@ -1,15 +1,12 @@
 package security
 
 import (
-	"context"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
 
 func TestAuditLogger(t *testing.T) {
@@ -30,7 +27,7 @@ func TestAuditLogger(t *testing.T) {
 	auditLogger.LogUnauthorizedAccess("/admin", "user123", "192.168.1.1", "Mozilla/5.0", "insufficient privileges")
 
 	// Test security violation logging
-	auditLogger.LogSecurityViolation("path_traversal", "Attempted directory traversal", "user123", "192.168.1.1", AuditLevelWarn)
+	auditLogger.LogSecurityViolation("path_traversal", "Attempted directory traversal", "user123", "192.168.1.1", int(AuditLevelWarn))
 
 	// Verify log file was created and has content
 	info, err := os.Stat(tmpFile)

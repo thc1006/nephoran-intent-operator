@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,7 +34,7 @@ type ServiceMeshFactory struct {
 	dynamicClient client.Client
 	config        *rest.Config
 	detector      *ServiceMeshDetector
-	logger        log.Logger
+	logger        logr.Logger
 }
 
 // NewServiceMeshFactory creates a new service mesh factory

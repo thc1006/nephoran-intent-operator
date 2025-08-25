@@ -221,7 +221,6 @@ func TestSecurityHeaders(t *testing.T) {
 
 	for _, endpoint := range suite.endpoints {
 		t.Run(endpoint.Name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/api/v1/health", nil)
 			w := httptest.NewRecorder()
 
 			// Simulate security headers middleware
@@ -261,8 +260,6 @@ func TestSecurityHeaders(t *testing.T) {
 
 // TestTLSEnforcement tests TLS/HTTPS enforcement
 func TestTLSEnforcement(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
-
 	t.Run("TLS_Version_Check", func(t *testing.T) {
 		// Test minimum TLS version
 		tlsVersions := []struct {
@@ -365,8 +362,6 @@ func TestTLSEnforcement(t *testing.T) {
 
 // TestAPIVersioning tests API versioning security
 func TestAPIVersioning(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
-
 	t.Run("Version_In_URL", func(t *testing.T) {
 		versions := []struct {
 			version    string
@@ -381,7 +376,6 @@ func TestAPIVersioning(t *testing.T) {
 
 		for _, v := range versions {
 			t.Run(v.version, func(t *testing.T) {
-				req := httptest.NewRequest("GET", fmt.Sprintf("/api/%s/health", v.version), nil)
 				w := httptest.NewRecorder()
 
 				if !v.supported {
@@ -510,8 +504,6 @@ func TestErrorHandlingSecurity(t *testing.T) {
 
 // TestSessionSecurity tests session management security
 func TestSessionSecurity(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
-
 	t.Run("Session_Cookie_Security", func(t *testing.T) {
 		w := httptest.NewRecorder()
 
@@ -560,6 +552,8 @@ func TestSessionSecurity(t *testing.T) {
 		// Test concurrent session limits
 		userID := "user123"
 		maxSessions := 3
+		
+		t.Logf("Testing concurrent session limit for user: %s", userID)
 
 		sessions := make([]string, 0)
 		for i := 0; i < maxSessions+2; i++ {
@@ -575,8 +569,6 @@ func TestSessionSecurity(t *testing.T) {
 
 // TestCSRFProtection tests CSRF protection mechanisms
 func TestCSRFProtection(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
-
 	t.Run("CSRF_Token_Validation", func(t *testing.T) {
 		testCases := []struct {
 			name        string

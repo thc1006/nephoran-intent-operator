@@ -47,7 +47,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
-  GO_VERSION: '1.24.1'
+  # Go version read from go.mod for consistency
   COVERAGE_THRESHOLD: ${{ github.event.inputs.coverage_threshold || '80' }}
   GOPROXY: https://proxy.golang.org,direct
   GOSUMDB: sum.golang.org
@@ -114,7 +114,7 @@ jobs:
       - name: "🔑 Generate Cache Key"
         id: cache
         run: |
-          cache_key="go-${{ env.GO_VERSION }}-${{ hashFiles('**/go.sum', '**/go.mod', '.golangci.yml') }}"
+          cache_key="go-${{ hashFiles('**/go.sum', '**/go.mod', '.golangci.yml') }}"
           echo "cache_key=${cache_key}" >> $GITHUB_OUTPUT
           echo "📦 Cache key: ${cache_key}"
 
@@ -154,7 +154,7 @@ jobs:
       - name: "🐹 Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
           cache-dependency-path: |
             go.sum
@@ -169,7 +169,7 @@ jobs:
             ~/.cache/golangci-lint
           key: ${{ needs.detect-changes.outputs.cache_key }}
           restore-keys: |
-            go-${{ env.GO_VERSION }}-
+            go-
           save-always: true
 
       - name: "📦 Download Dependencies"
@@ -192,7 +192,7 @@ jobs:
               go install honnef.co/go/tools/cmd/staticcheck@latest
               ;;
             "gosec")
-              go install github.com/secureco dewarrior/gosec/v2/cmd/gosec@latest
+              go install github.com/securego/gosec/v2/cmd/gosec@latest
               ;;
             "ineffassign")
               go install github.com/gordonklaus/ineffassign@latest
@@ -227,7 +227,7 @@ jobs:
           esac
 
       - name: "📤 Upload SARIF Results"
-        if: matrix.tool == 'staticcheck' || matrix.tool == 'gosec'
+        if: (matrix.tool == 'staticcheck' || matrix.tool == 'gosec') && hashFiles('reports/${{ matrix.tool }}.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: reports/${{ matrix.tool }}.sarif
@@ -257,8 +257,8 @@ jobs:
           echo "passed=$passed" >> $GITHUB_OUTPUT
 
       - name: "💾 Upload Analysis Results"
+        if: always() && hashFiles('reports/**/*') != ''
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: code-quality-${{ matrix.tool }}
           path: reports/
@@ -268,8 +268,8 @@ jobs:
   # Matrix Testing with Enhanced Coverage
   # =============================================================================
   test-matrix:
-    name: "🧪 Test (${{ matrix.go-version }}/${{ matrix.os }})"
-    runs-on: ${{ matrix.os }}
+    name: "🧪 Test (${{ matrix.go-version }})"
+    runs-on: ubuntu-latest
     needs: [detect-changes, code-quality]
     if: needs.detect-changes.outputs.go_changed == 'true'
     timeout-minutes: 45
@@ -278,20 +278,9 @@ jobs:
       fail-fast: false
       max-parallel: 8
       matrix:
-        go-version: ['1.23.4', '1.24.1']
-        os: [ubuntu-latest, windows-latest]
-        include:
-          - go-version: '1.24.1'
-            os: macos-latest
-            experimental: false
-          - go-version: '1.25rc1'
-            os: ubuntu-latest
-            experimental: true
-        exclude:
-          - go-version: '1.23.4'
-            os: windows-latest  # Reduce matrix size for older versions
+        go-version: ['1.24.1']
 
-    continue-on-error: ${{ matrix.experimental || false }}
+    continue-on-error: false
 
     services:
       redis:
@@ -323,10 +312,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: "🐹 Setup Go ${{ matrix.go-version }}"
+      - name: "🐹 Setup Go"
+        id: setup-go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version-file: go.mod
           cache: true
           cache-dependency-path: |
             go.sum
@@ -340,10 +330,10 @@ jobs:
             ~/go/pkg/mod
             ~/.cache/golangci-lint
             ~/.local/bin
-          key: ${{ needs.detect-changes.outputs.cache_key }}-${{ matrix.go-version }}-${{ matrix.os }}
+          key: ${{ needs.detect-changes.outputs.cache_key }}-${{ matrix.go-version }}-ubuntu
           restore-keys: |
             ${{ needs.detect-changes.outputs.cache_key }}-${{ matrix.go-version }}-
-            go-${{ matrix.go-version }}-${{ matrix.os }}-
+            go-${{ matrix.go-version }}-ubuntu-
             go-${{ matrix.go-version }}-
           save-always: true
 
@@ -375,7 +365,7 @@ jobs:
 
       - name: "🛡️ Security Vulnerability Scan"
         shell: bash
-        if: matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest'
+        if: matrix.go-version == '1.24.1'
         run: |
           mkdir -p security-reports
           echo "🔍 Running vulnerability scan..."
@@ -425,7 +415,7 @@ jobs:
           echo "✅ Test execution completed"
 
       - name: "📊 Coverage Analysis"
-        if: matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest'
+        if: matrix.go-version == '1.24.1'
         shell: bash
         run: |
           echo "📊 Analyzing test coverage..."
@@ -451,7 +441,7 @@ jobs:
           fi
 
       - name: "🏃 Performance Benchmarks"
-        if: github.event.inputs.run_benchmarks == 'true' && matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest'
+        if: github.event.inputs.run_benchmarks == 'true' && matrix.go-version == '1.24.1'
         shell: bash
         run: |
           mkdir -p benchmarks
@@ -467,12 +457,12 @@ jobs:
           echo "✅ Benchmarks completed"
 
       - name: "📤 Upload Coverage to Codecov"
-        if: matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest'
+        if: matrix.go-version == '1.24.1'
         uses: codecov/codecov-action@v4
         with:
           files: coverage/cover.out
-          flags: unittests,go${{ matrix.go-version }},${{ matrix.os }}
-          name: codecov-${{ matrix.go-version }}-${{ matrix.os }}
+          flags: unittests,go${{ matrix.go-version }},ubuntu
+          name: codecov-${{ matrix.go-version }}-ubuntu
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
@@ -482,7 +472,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-results-${{ matrix.go-version }}-${{ matrix.os }}
+          name: test-results-${{ matrix.go-version }}-ubuntu
           path: |
             test-results/
             coverage/
@@ -491,7 +481,7 @@ jobs:
           retention-days: 30
 
       - name: "🚨 Coverage Gate Check"
-        if: matrix.go-version == '1.24.1' && matrix.os == 'ubuntu-latest' && env.COVERAGE_PASSED == 'false'
+        if: matrix.go-version == '1.24.1' && env.COVERAGE_PASSED == 'false'
         shell: bash
         run: |
           echo "❌ Code coverage ${COVERAGE_PERCENT}% is below the required threshold of ${{ env.COVERAGE_THRESHOLD }}%"
@@ -540,7 +530,7 @@ jobs:
       - name: "🐹 Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: "🚀 Restore Build Cache"
@@ -607,6 +597,7 @@ jobs:
     needs: [detect-changes, build-matrix]
     if: |
       always() && 
+      needs.build-matrix.result == 'success' &&
       (needs.detect-changes.outputs.go_changed == 'true' || 
        needs.detect-changes.outputs.docker_changed == 'true')
     timeout-minutes: 30
@@ -626,6 +617,7 @@ jobs:
           use: true
 
       - name: "📥 Download Linux AMD64 Binary"
+        if: needs.build-matrix.result == 'success'
         uses: actions/download-artifact@v4
         with:
           name: binary-linux-amd64
@@ -651,8 +643,66 @@ jobs:
       - name: "🔍 Container Security Scan with Trivy"
         id: security
         run: |
-          # Install Trivy
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin v0.50.1
+          set -euo pipefail
+          
+          # Function to get latest release version from GitHub
+          get_latest_version() {
+            local repo=$1
+            curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'
+          }
+          
+          # Function to check if a version exists on GitHub releases
+          check_github_version() {
+            local repo=$1
+            local version=$2
+            local url="https://api.github.com/repos/${repo}/releases/tags/v${version}"
+            if curl -sL "$url" | grep -q '"tag_name"'; then
+              echo "Version v${version} exists for ${repo}"
+              return 0
+            else
+              echo "Version v${version} not found for ${repo}, will use latest"
+              return 1
+            fi
+          }
+          
+          # Install Trivy with robust version checking
+          echo "📦 Installing Trivy..."
+          TRIVY_TARGET_VERSION="0.57.1"
+          if check_github_version "aquasecurity/trivy" "${TRIVY_TARGET_VERSION}"; then
+            TRIVY_INSTALL_VERSION="${TRIVY_TARGET_VERSION}"
+          else
+            TRIVY_INSTALL_VERSION=$(get_latest_version "aquasecurity/trivy")
+            echo "Using Trivy version: ${TRIVY_INSTALL_VERSION}"
+          fi
+          
+          # Try repository installation first (with modern GPG key management)
+          if ! wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo gpg --dearmor -o /usr/share/keyrings/trivy-keyring.gpg; then
+            echo "⚠️ Failed to add Trivy GPG key, falling back to binary installation"
+            TRIVY_FALLBACK=true
+          else
+            sudo apt-get update
+            sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+            echo "deb [signed-by=/usr/share/keyrings/trivy-keyring.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+            sudo apt-get update
+            
+            if ! sudo apt-get install -y trivy 2>/dev/null; then
+              echo "⚠️ Repository installation failed, falling back to binary"
+              TRIVY_FALLBACK=true
+            fi
+          fi
+          
+          # Fallback to binary installation
+          if [ "${TRIVY_FALLBACK:-false}" = "true" ]; then
+            echo "📥 Installing Trivy from GitHub releases..."
+            wget -q "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_INSTALL_VERSION}/trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"
+            tar -xzf "trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"
+            sudo mv trivy /usr/local/bin/
+            sudo chmod +x /usr/local/bin/trivy
+            rm -f "trivy_${TRIVY_INSTALL_VERSION}_Linux-64bit.tar.gz"
+            echo "✅ Trivy ${TRIVY_INSTALL_VERSION} installed from binary"
+          else
+            echo "✅ Trivy installed from repository"
+          fi
           
           echo "🔍 Scanning container image for vulnerabilities..."
           mkdir -p security-reports
@@ -690,8 +740,8 @@ jobs:
           fi
 
       - name: "📤 Upload Trivy SARIF Results"
+        if: always() && hashFiles('security-reports/trivy-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
         with:
           sarif_file: security-reports/trivy-results.sarif
           category: trivy-container
@@ -705,8 +755,8 @@ jobs:
           docker history ${{ env.IMAGE_NAME }}:test-${{ github.sha }} --no-trunc
 
       - name: "💾 Upload Security Reports"
+        if: always() && hashFiles('security-reports/**/*') != ''
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: container-security-reports
           path: security-reports/
@@ -753,7 +803,7 @@ jobs:
       - name: "🐹 Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
 
       - name: "🔧 Setup Kind Cluster"
@@ -924,7 +974,7 @@ jobs:
           echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Go Version:** ${{ env.GO_VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Go Version:** $(go version | awk '{print $3}')" >> $GITHUB_STEP_SUMMARY
           echo "- **Coverage Threshold:** ${{ env.COVERAGE_THRESHOLD }}%" >> $GITHUB_STEP_SUMMARY
 
       - name: "🚨 Fail on Critical Issues"

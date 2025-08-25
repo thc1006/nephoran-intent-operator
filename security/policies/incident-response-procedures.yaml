@@ -1,0 +1,749 @@
+# Incident Response Procedures for Nephoran Intent Operator
+# Comprehensive incident response playbooks and automated procedures
+
+metadata:
+  name: "nephoran-incident-response"
+  version: "2.0.0"
+  description: "Security incident response procedures and automation"
+  updated: "2025-01-24T00:00:00Z"
+  maintainer: "security-team@nephoran.io"
+  classification: "CONFIDENTIAL"
+
+# Incident Classification and Severity Levels
+incident_classification:
+  severity_levels:
+    P0_CRITICAL:
+      description: "Complete system compromise or data breach"
+      response_time: "15_minutes"
+      escalation: "immediate"
+      stakeholders:
+        - "ciso"
+        - "incident_commander"
+        - "legal_team"
+        - "communications_team"
+      examples:
+        - "Active data exfiltration"
+        - "Ransomware deployment"
+        - "Complete system compromise"
+        - "Customer data breach"
+        
+    P1_HIGH:
+      description: "Significant security impact with potential for damage"
+      response_time: "1_hour"
+      escalation: "4_hours"
+      stakeholders:
+        - "security_team_lead"
+        - "incident_response_team"
+        - "system_administrators"
+      examples:
+        - "Successful unauthorized access"
+        - "Malware detection in production"
+        - "Critical vulnerability exploitation"
+        - "Service disruption due to security incident"
+        
+    P2_MEDIUM:
+      description: "Moderate security impact requiring investigation"
+      response_time: "4_hours"
+      escalation: "24_hours"
+      stakeholders:
+        - "security_analyst"
+        - "system_administrator"
+      examples:
+        - "Suspicious network activity"
+        - "Failed intrusion attempts"
+        - "Policy violations"
+        - "Unauthorized access attempts"
+        
+    P3_LOW:
+      description: "Minor security concern for tracking and analysis"
+      response_time: "24_hours"
+      escalation: "weekly_review"
+      stakeholders:
+        - "security_analyst"
+      examples:
+        - "Security scan findings"
+        - "Low-risk vulnerabilities"
+        - "Configuration deviations"
+        - "User behavior anomalies"
+        
+  incident_types:
+    data_breach:
+      category: "data_security"
+      regulatory_requirements:
+        - "gdpr_72_hours"
+        - "ccpa_notification"
+        - "sox_compliance"
+      automated_actions:
+        - "isolate_affected_systems"
+        - "preserve_evidence"
+        - "notify_data_protection_officer"
+        
+    malware_infection:
+      category: "system_security"
+      automated_actions:
+        - "quarantine_infected_pods"
+        - "update_threat_intelligence"
+        - "scan_connected_systems"
+        
+    unauthorized_access:
+      category: "access_control"
+      automated_actions:
+        - "revoke_compromised_credentials"
+        - "lock_affected_accounts"
+        - "audit_access_logs"
+        
+    denial_of_service:
+      category: "availability"
+      automated_actions:
+        - "enable_rate_limiting"
+        - "block_attack_sources"
+        - "scale_defense_resources"
+
+# Incident Response Team (IRT) Structure
+incident_response_team:
+  roles:
+    incident_commander:
+      responsibilities:
+        - "Overall incident coordination"
+        - "Stakeholder communication"
+        - "Decision making authority"
+        - "Resource allocation"
+      contact_methods:
+        primary: "+1-555-0100"
+        secondary: "ic@nephoran.io"
+        backup: "backup-ic@nephoran.io"
+      escalation_path: "ciso"
+      
+    security_analyst:
+      responsibilities:
+        - "Initial triage and analysis"
+        - "Evidence collection"
+        - "Threat assessment"
+        - "Technical investigation"
+      tools:
+        - "splunk"
+        - "wireshark"
+        - "volatility"
+        - "autopsy"
+      contact_methods:
+        primary: "security-team@nephoran.io"
+        
+    system_administrator:
+      responsibilities:
+        - "System containment"
+        - "Service restoration"
+        - "Infrastructure changes"
+        - "Backup operations"
+      tools:
+        - "kubectl"
+        - "ansible"
+        - "terraform"
+        - "monitoring_tools"
+        
+    communications_lead:
+      responsibilities:
+        - "Internal communications"
+        - "External notifications"
+        - "Media relations"
+        - "Regulatory reporting"
+      templates:
+        - "internal_notification_template"
+        - "customer_notification_template"
+        - "regulatory_report_template"
+        
+    legal_counsel:
+      responsibilities:
+        - "Legal implications assessment"
+        - "Regulatory compliance"
+        - "Evidence preservation"
+        - "Litigation holds"
+      contact_methods:
+        primary: "legal@nephoran.io"
+        emergency: "+1-555-0199"
+
+# Incident Response Playbooks
+playbooks:
+  # Playbook 1: Data Breach Response
+  data_breach_response:
+    trigger_conditions:
+      - "unauthorized_data_access_detected"
+      - "data_exfiltration_indicators"
+      - "customer_data_compromise"
+    
+    immediate_response:
+      - step: "assess_scope"
+        timeout: "15_minutes"
+        automation:
+          script: "scripts/assess-data-breach-scope.sh"
+          parameters:
+            - "incident_id"
+            - "initial_indicators"
+        manual_actions:
+          - "Interview reporting party"
+          - "Gather initial evidence"
+          
+      - step: "contain_breach"
+        timeout: "30_minutes"
+        automation:
+          script: "scripts/contain-data-breach.sh"
+          parameters:
+            - "affected_systems"
+            - "breach_type"
+        manual_actions:
+          - "Isolate affected systems"
+          - "Preserve evidence"
+          - "Document containment actions"
+          
+      - step: "notify_stakeholders"
+        timeout: "1_hour"
+        automation:
+          script: "scripts/notify-breach-stakeholders.sh"
+          parameters:
+            - "severity_level"
+            - "affected_data_types"
+        manual_actions:
+          - "Brief incident commander"
+          - "Prepare initial assessment"
+          
+    investigation_phase:
+      - step: "forensic_analysis"
+        tools:
+          - "disk_imaging"
+          - "memory_analysis"
+          - "network_forensics"
+          - "log_analysis"
+        deliverables:
+          - "forensic_report"
+          - "timeline_of_events"
+          - "impact_assessment"
+          
+      - step: "regulatory_notification"
+        timeframes:
+          gdpr: "72_hours"
+          ccpa: "as_soon_as_possible"
+          breach_notification_laws: "varies_by_state"
+        templates:
+          - "gdpr_breach_notification"
+          - "ccpa_breach_report"
+          - "state_ag_notification"
+          
+    recovery_actions:
+      - step: "system_restoration"
+        validation:
+          - "security_controls_verified"
+          - "data_integrity_confirmed"
+          - "access_controls_tested"
+          
+      - step: "customer_notification"
+        channels:
+          - "email"
+          - "website_notice"
+          - "direct_mail"
+        content_review:
+          - "legal_approval"
+          - "communications_approval"
+          
+  # Playbook 2: Malware Infection Response
+  malware_response:
+    trigger_conditions:
+      - "antivirus_detection"
+      - "behavioral_analysis_alert"
+      - "network_anomaly_detection"
+      - "user_report"
+      
+    immediate_response:
+      - step: "isolate_infected_system"
+        timeout: "5_minutes"
+        automation:
+          script: "scripts/isolate-malware-system.sh"
+          parameters:
+            - "pod_name"
+            - "namespace"
+            - "isolation_method"
+        kubernetes_actions:
+          - name: "quarantine_pod"
+            action: |
+              kubectl label pod ${POD_NAME} -n ${NAMESPACE} quarantine=true
+              kubectl annotate pod ${POD_NAME} -n ${NAMESPACE} security.nephoran.io/quarantine-reason="malware_detection"
+              kubectl patch networkpolicy quarantine-policy -n ${NAMESPACE} --type='merge' -p='{"spec":{"podSelector":{"matchLabels":{"quarantine":"true"}}}}'
+              
+      - step: "collect_samples"
+        automation:
+          script: "scripts/collect-malware-samples.sh"
+        manual_actions:
+          - "Create memory dump"
+          - "Capture network traffic"
+          - "Extract suspicious files"
+          
+      - step: "threat_intelligence_lookup"
+        automation:
+          script: "scripts/query-threat-intelligence.sh"
+          apis:
+            - "virustotal"
+            - "hybrid_analysis"
+            - "threatgrid"
+            
+    analysis_phase:
+      - step: "malware_analysis"
+        tools:
+          - "cuckoo_sandbox"
+          - "remnux"
+          - "ida_pro"
+          - "ghidra"
+        deliverables:
+          - "malware_family_identification"
+          - "ioc_extraction"
+          - "behavioral_analysis_report"
+          
+      - step: "impact_assessment"
+        checks:
+          - "lateral_movement_detection"
+          - "data_access_audit"
+          - "credential_compromise_check"
+          - "persistence_mechanism_hunt"
+          
+    remediation_actions:
+      - step: "malware_removal"
+        methods:
+          - "pod_termination_and_rebuild"
+          - "image_replacement"
+          - "configuration_cleanup"
+        validation:
+          - "clean_image_verification"
+          - "configuration_audit"
+          - "behavior_monitoring"
+          
+  # Playbook 3: Unauthorized Access Response
+  unauthorized_access_response:
+    trigger_conditions:
+      - "failed_authentication_threshold"
+      - "privilege_escalation_detection"
+      - "suspicious_api_usage"
+      - "off_hours_access"
+      
+    immediate_response:
+      - step: "account_lockdown"
+        timeout: "immediate"
+        automation:
+          script: "scripts/emergency-account-lockdown.sh"
+          kubernetes_actions:
+            - name: "revoke_service_account_tokens"
+              action: |
+                kubectl delete secret $(kubectl get sa ${SERVICE_ACCOUNT} -n ${NAMESPACE} -o jsonpath='{.secrets[0].name}') -n ${NAMESPACE}
+                kubectl patch sa ${SERVICE_ACCOUNT} -n ${NAMESPACE} --type='merge' -p='{"automountServiceAccountToken":false}'
+                
+        manual_actions:
+          - "Disable user accounts"
+          - "Revoke API keys"
+          - "Invalidate sessions"
+          
+      - step: "access_audit"
+        automation:
+          script: "scripts/audit-unauthorized-access.sh"
+        manual_actions:
+          - "Review access logs"
+          - "Check privilege changes"
+          - "Analyze authentication patterns"
+          
+    investigation_phase:
+      - step: "forensic_investigation"
+        evidence_collection:
+          - "authentication_logs"
+          - "api_access_logs"
+          - "kubernetes_audit_logs"
+          - "application_logs"
+        analysis_tools:
+          - "log_analysis_platform"
+          - "user_behavior_analytics"
+          - "network_flow_analysis"
+          
+      - step: "compromise_assessment"
+        checks:
+          - "data_access_review"
+          - "configuration_changes"
+          - "lateral_movement_detection"
+          - "persistence_mechanisms"
+          
+    recovery_actions:
+      - step: "access_restoration"
+        requirements:
+          - "identity_verification"
+          - "security_training_completion"
+          - "mfa_enrollment"
+          - "password_reset"
+        validation:
+          - "access_testing"
+          - "privilege_verification"
+          - "monitoring_activation"
+
+# Automated Response Actions
+automated_response:
+  kubernetes_security_actions:
+    isolate_pod:
+      trigger: "malware_detection"
+      action: |
+        #!/bin/bash
+        POD_NAME=$1
+        NAMESPACE=$2
+        REASON=$3
+        
+        # Label pod for quarantine
+        kubectl label pod $POD_NAME -n $NAMESPACE quarantine=true
+        kubectl annotate pod $POD_NAME -n $NAMESPACE security.nephoran.io/quarantine-reason="$REASON"
+        
+        # Apply network isolation
+        kubectl apply -f - <<EOF
+        apiVersion: networking.k8s.io/v1
+        kind: NetworkPolicy
+        metadata:
+          name: quarantine-$POD_NAME
+          namespace: $NAMESPACE
+        spec:
+          podSelector:
+            matchLabels:
+              quarantine: "true"
+          policyTypes:
+          - Ingress
+          - Egress
+          egress:
+          - to: []
+            ports:
+            - protocol: UDP
+              port: 53
+        EOF
+        
+        # Create incident ticket
+        curl -X POST "$INCIDENT_API/incidents" \
+          -H "Authorization: Bearer $API_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"title\": \"Pod $POD_NAME quarantined due to $REASON\",
+            \"severity\": \"high\",
+            \"category\": \"security\",
+            \"pod_name\": \"$POD_NAME\",
+            \"namespace\": \"$NAMESPACE\"
+          }"
+          
+    revoke_compromised_credentials:
+      trigger: "credential_compromise"
+      action: |
+        #!/bin/bash
+        SERVICE_ACCOUNT=$1
+        NAMESPACE=$2
+        
+        # Rotate service account token
+        kubectl delete secret $(kubectl get sa $SERVICE_ACCOUNT -n $NAMESPACE -o jsonpath='{.secrets[0].name}') -n $NAMESPACE
+        
+        # Disable automount
+        kubectl patch sa $SERVICE_ACCOUNT -n $NAMESPACE --type='merge' -p='{"automountServiceAccountToken":false}'
+        
+        # Update all deployments using this SA
+        for deployment in $(kubectl get deployments -n $NAMESPACE -o jsonpath='{.items[?(@.spec.template.spec.serviceAccountName=="'$SERVICE_ACCOUNT'")].metadata.name}'); do
+          kubectl rollout restart deployment $deployment -n $NAMESPACE
+        done
+        
+    enable_enhanced_monitoring:
+      trigger: "security_incident"
+      action: |
+        #!/bin/bash
+        NAMESPACE=$1
+        INCIDENT_ID=$2
+        
+        # Enable debug logging
+        kubectl patch configmap logging-config -n $NAMESPACE --type='merge' -p='{"data":{"log_level":"debug"}}'
+        
+        # Deploy additional monitoring
+        kubectl apply -f - <<EOF
+        apiVersion: apps/v1
+        kind: DaemonSet
+        metadata:
+          name: security-monitor-$INCIDENT_ID
+          namespace: $NAMESPACE
+        spec:
+          selector:
+            matchLabels:
+              app: security-monitor
+          template:
+            metadata:
+              labels:
+                app: security-monitor
+            spec:
+              containers:
+              - name: security-monitor
+                image: nephoran/security-monitor:latest
+                env:
+                - name: INCIDENT_ID
+                  value: "$INCIDENT_ID"
+                - name: NAMESPACE
+                  value: "$NAMESPACE"
+        EOF
+        
+  notification_automation:
+    slack_notification:
+      webhook_url: "${SLACK_WEBHOOK_URL}"
+      channels:
+        critical: "#security-critical"
+        high: "#security-alerts"
+        medium: "#security-team"
+      message_template: |
+        {
+          "text": "Security Incident Alert",
+          "attachments": [
+            {
+              "color": "{{severity_color}}",
+              "fields": [
+                {
+                  "title": "Incident ID",
+                  "value": "{{incident_id}}",
+                  "short": true
+                },
+                {
+                  "title": "Severity",
+                  "value": "{{severity}}",
+                  "short": true
+                },
+                {
+                  "title": "Type",
+                  "value": "{{incident_type}}",
+                  "short": true
+                },
+                {
+                  "title": "Affected System",
+                  "value": "{{affected_system}}",
+                  "short": true
+                },
+                {
+                  "title": "Description",
+                  "value": "{{description}}",
+                  "short": false
+                }
+              ],
+              "actions": [
+                {
+                  "type": "button",
+                  "text": "View Incident",
+                  "url": "{{incident_url}}"
+                },
+                {
+                  "type": "button",
+                  "text": "Join War Room",
+                  "url": "{{war_room_url}}"
+                }
+              ]
+            }
+          ]
+        }
+        
+    email_notification:
+      smtp_server: "${SMTP_SERVER}"
+      sender: "security-noreply@nephoran.io"
+      templates:
+        executive_summary:
+          subject: "[SECURITY] {{severity}} Incident {{incident_id}}"
+          recipients:
+            - "ciso@nephoran.io"
+            - "cto@nephoran.io"
+          template: "templates/executive-incident-summary.html"
+        technical_details:
+          subject: "[SECURITY] Technical Details for Incident {{incident_id}}"
+          recipients:
+            - "security-team@nephoran.io"
+            - "devops-team@nephoran.io"
+          template: "templates/technical-incident-details.html"
+
+# Evidence Collection and Preservation
+evidence_collection:
+  automated_collection:
+    kubernetes_artifacts:
+      - "kubectl get events --all-namespaces -o yaml"
+      - "kubectl get pods --all-namespaces -o yaml"
+      - "kubectl describe nodes"
+      - "kubectl get networkpolicies --all-namespaces -o yaml"
+      - "kubectl get secrets --all-namespaces -o yaml"
+      
+    system_logs:
+      - "/var/log/audit/audit.log"
+      - "/var/log/syslog"
+      - "/var/log/auth.log"
+      - "journalctl -u kubelet --no-pager"
+      
+    application_logs:
+      - path: "/var/log/nephoran/*.log"
+        retention: "90_days"
+      - path: "/var/log/containers/nephoran-*.log"
+        retention: "30_days"
+        
+    network_evidence:
+      - "tcpdump -i any -w incident-{{incident_id}}.pcap"
+      - "netstat -tulpn"
+      - "ss -tulpn"
+      
+  chain_of_custody:
+    template: |
+      EVIDENCE COLLECTION LOG
+      Incident ID: {{incident_id}}
+      Collection Date: {{date}}
+      Collector: {{collector_name}}
+      
+      Evidence Items:
+      {{#evidence_items}}
+      - File: {{filename}}
+        Hash: {{hash}}
+        Size: {{size}}
+        Collection Time: {{collection_time}}
+        Storage Location: {{storage_location}}
+      {{/evidence_items}}
+      
+      Chain of Custody:
+      {{#custody_log}}
+      - {{timestamp}}: {{action}} by {{person}} ({{role}})
+      {{/custody_log}}
+      
+  preservation_requirements:
+    encryption: "AES-256"
+    integrity_checking: "SHA-256"
+    storage_location: "secure_evidence_vault"
+    retention_period: "7_years"
+    access_control: "need_to_know"
+
+# Communication Templates
+communication_templates:
+  internal_incident_notification:
+    subject: "[SECURITY INCIDENT] {{severity}} - {{incident_type}}"
+    template: |
+      Security Incident Alert
+      
+      Incident ID: {{incident_id}}
+      Severity: {{severity}}
+      Type: {{incident_type}}
+      Detected: {{detection_time}}
+      Status: {{current_status}}
+      
+      Summary:
+      {{incident_summary}}
+      
+      Affected Systems:
+      {{#affected_systems}}
+      - {{system_name}}: {{impact_description}}
+      {{/affected_systems}}
+      
+      Current Actions:
+      {{#current_actions}}
+      - {{action_description}} ({{responsible_party}})
+      {{/current_actions}}
+      
+      Next Steps:
+      {{next_steps}}
+      
+      War Room: {{war_room_link}}
+      Incident Dashboard: {{dashboard_link}}
+      
+      For questions, contact the Incident Commander: {{incident_commander_contact}}
+      
+  customer_notification:
+    subject: "Security Notice - {{company_name}}"
+    template: |
+      Dear {{customer_name}},
+      
+      We are writing to inform you of a security incident that may have affected your account.
+      
+      What Happened:
+      {{incident_description}}
+      
+      What Information Was Involved:
+      {{affected_data_types}}
+      
+      What We Are Doing:
+      {{remediation_actions}}
+      
+      What You Can Do:
+      {{customer_recommendations}}
+      
+      We sincerely apologize for this incident and any inconvenience it may cause.
+      
+      If you have questions, please contact us at security@nephoran.io or call {{support_phone}}.
+      
+      Sincerely,
+      {{company_name}} Security Team
+      
+  regulatory_notification:
+    gdpr_template: |
+      Data Protection Authority Notification
+      
+      Controller Details:
+      Organization: {{organization_name}}
+      Contact: {{dpo_contact}}
+      
+      Breach Details:
+      Date of Breach: {{breach_date}}
+      Discovery Date: {{discovery_date}}
+      Notification Date: {{notification_date}}
+      
+      Nature of Breach:
+      {{breach_description}}
+      
+      Data Categories Affected:
+      {{affected_data_categories}}
+      
+      Number of Data Subjects: {{data_subject_count}}
+      
+      Risk Assessment:
+      {{risk_assessment}}
+      
+      Measures Taken:
+      {{remediation_measures}}
+      
+      Measures to Address Adverse Effects:
+      {{protective_measures}}
+
+# Testing and Exercises
+incident_response_testing:
+  tabletop_exercises:
+    frequency: "quarterly"
+    scenarios:
+      - "ransomware_attack"
+      - "insider_threat"
+      - "supply_chain_compromise"
+      - "cloud_configuration_breach"
+      
+  simulated_incidents:
+    frequency: "monthly"
+    automated_tools:
+      - "chaos_monkey"
+      - "security_monkey"
+      - "attack_simulation_framework"
+      
+  red_team_exercises:
+    frequency: "annually"
+    scope:
+      - "external_penetration_testing"
+      - "social_engineering"
+      - "physical_security"
+      - "insider_threat_simulation"
+      
+# Metrics and Reporting
+incident_metrics:
+  response_time_metrics:
+    - "time_to_detection"
+    - "time_to_containment"
+    - "time_to_eradication"
+    - "time_to_recovery"
+    
+  effectiveness_metrics:
+    - "false_positive_rate"
+    - "incident_recurrence_rate"
+    - "stakeholder_satisfaction"
+    - "regulatory_compliance_score"
+    
+  cost_metrics:
+    - "incident_response_cost"
+    - "business_impact_cost"
+    - "regulatory_fine_cost"
+    - "reputation_damage_cost"
+    
+  reporting_schedule:
+    daily: "operational_dashboard"
+    weekly: "team_performance_report"
+    monthly: "executive_summary"
+    quarterly: "trend_analysis_report"
+    annually: "comprehensive_review"

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"sort"
 	"sync"
 	"time"
 
@@ -95,9 +94,9 @@ type PredictionModel struct {
 	featureScalers map[string]*FeatureScaler `json:"-"`
 
 	// Performance metrics
-	mae     float64 `json:"mae"`      // Mean Absolute Error
-	rmse    float64 `json:"rmse"`     // Root Mean Square Error
-	r2Score float64 `json:"r2_score"` // R-squared score
+	MAE     float64 `json:"mae"`      // Mean Absolute Error
+	RMSE    float64 `json:"rmse"`     // Root Mean Square Error
+	R2Score float64 `json:"r2_score"` // R-squared score
 }
 
 // ModelAlgorithm represents different ML algorithms for prediction
@@ -225,10 +224,10 @@ const (
 type WarningSeverity string
 
 const (
-	SeverityLow      WarningSeverity = "low"
-	SeverityMedium   WarningSeverity = "medium"
-	SeverityHigh     WarningSeverity = "high"
-	SeverityCritical WarningSeverity = "critical"
+	WarningSeverityLow      WarningSeverity = "low"
+	WarningSeverityMedium   WarningSeverity = "medium"
+	WarningSeverityHigh     WarningSeverity = "high"
+	WarningSeverityCritical WarningSeverity = "critical"
 )
 
 // WarningStatus defines the status of a warning
@@ -534,14 +533,14 @@ func defaultEarlyWarningConfig() *EarlyWarningConfig {
 			{
 				Level:                1,
 				Duration:             15 * time.Minute,
-				SeverityFilter:       []WarningSeverity{SeverityHigh, SeverityCritical},
+				SeverityFilter:       []WarningSeverity{WarningSeverityHigh, WarningSeverityCritical},
 				Actions:              []string{"notify_on_call"},
 				NotificationChannels: []string{"slack", "email"},
 			},
 			{
 				Level:                2,
 				Duration:             30 * time.Minute,
-				SeverityFilter:       []WarningSeverity{SeverityCritical},
+				SeverityFilter:       []WarningSeverity{WarningSeverityCritical},
 				Actions:              []string{"page_management", "create_incident"},
 				NotificationChannels: []string{"pagerduty", "phone"},
 			},
@@ -856,7 +855,7 @@ func (hp *HealthPredictor) trainLinearRegression(model *PredictionModel, trainin
 	model.weights[numFeatures] = biasSum / float64(numSamples) // bias term
 
 	// Calculate accuracy metrics
-	model.Accuracy, model.mae, model.rmse, model.r2Score = hp.calculateModelAccuracy(model, trainingData)
+	model.Accuracy, model.MAE, model.RMSE, model.R2Score = hp.calculateModelAccuracy(model, trainingData)
 
 	return nil
 }
@@ -872,7 +871,7 @@ func (hp *HealthPredictor) trainMovingAverage(model *PredictionModel, trainingDa
 	model.weights = []float64{float64(windowSize)}
 
 	// Calculate accuracy using moving average predictions
-	model.Accuracy, model.mae, model.rmse, model.r2Score = hp.calculateModelAccuracy(model, trainingData)
+	model.Accuracy, model.MAE, model.RMSE, model.R2Score = hp.calculateModelAccuracy(model, trainingData)
 
 	return nil
 }
@@ -888,7 +887,7 @@ func (hp *HealthPredictor) trainExponentialSmoothing(model *PredictionModel, tra
 	model.weights = []float64{alpha}
 
 	// Calculate accuracy
-	model.Accuracy, model.mae, model.rmse, model.r2Score = hp.calculateModelAccuracy(model, trainingData)
+	model.Accuracy, model.MAE, model.RMSE, model.R2Score = hp.calculateModelAccuracy(model, trainingData)
 
 	return nil
 }
@@ -1213,7 +1212,7 @@ func (hp *HealthPredictor) checkEarlyWarnings(component string, predictions []He
 				ID:              fmt.Sprintf("warning-%s-%d", component, time.Now().Unix()),
 				Component:       component,
 				Type:            WarningTypeHealthDegradation,
-				Severity:        SeverityCritical,
+				Severity:        WarningSeverityCritical,
 				Title:           fmt.Sprintf("Critical health degradation predicted for %s", component),
 				Description:     fmt.Sprintf("Health score predicted to drop to %.2f at %s", prediction.PredictedScore, prediction.PredictedTime.Format(time.RFC3339)),
 				PredictedTime:   prediction.PredictedTime,
@@ -1237,7 +1236,7 @@ func (hp *HealthPredictor) checkEarlyWarnings(component string, predictions []He
 				ID:              fmt.Sprintf("warning-%s-%d", component, time.Now().Unix()),
 				Component:       component,
 				Type:            WarningTypeHealthDegradation,
-				Severity:        SeverityHigh,
+				Severity:        WarningSeverityHigh,
 				Title:           fmt.Sprintf("Health degradation predicted for %s", component),
 				Description:     fmt.Sprintf("Health score predicted to drop to %.2f at %s", prediction.PredictedScore, prediction.PredictedTime.Format(time.RFC3339)),
 				PredictedTime:   prediction.PredictedTime,
@@ -1270,7 +1269,7 @@ func (hp *HealthPredictor) checkResourceExhaustion(component string) []ResourceE
 	defer hp.resourceMonitor.mu.RUnlock()
 
 	// Check each resource tracker for the component
-	for trackerKey, tracker := range hp.resourceMonitor.resourceTrackers {
+	for _, tracker := range hp.resourceMonitor.resourceTrackers {
 		if tracker.Component != component {
 			continue
 		}
@@ -1350,9 +1349,9 @@ func (hp *HealthPredictor) detectStatisticalOutliers(component string, trainingD
 
 		deviation := math.Abs(value - mean)
 		if deviation > threshold*stdDev {
-			severity := SeverityMedium
+			severity := WarningSeverityMedium
 			if deviation > 4*stdDev {
-				severity = SeverityHigh
+				severity = WarningSeverityHigh
 			}
 
 			anomaly := DetectedAnomaly{

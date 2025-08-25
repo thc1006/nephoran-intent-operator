@@ -22,15 +22,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -257,7 +254,7 @@ type BlueprintPackage struct {
 	Version        string                 `json:"version"`
 	Description    string                 `json:"description"`
 	Category       string                 `json:"category"`
-	IntentTypes    []v1.NetworkIntentType `json:"intentTypes"`
+	IntentTypes    []string `json:"intentTypes"`
 	Dependencies   []PackageDependency    `json:"dependencies"`
 	Parameters     []ParameterDefinition  `json:"parameters"`
 	Validations    []ValidationRule       `json:"validations"`
@@ -277,7 +274,7 @@ type PackageVariant struct {
 	Specialization    *SpecializationRequest `json:"specialization"`
 	Status            PackageVariantStatus   `json:"status"`
 	PackageRevision   *porch.PackageRevision `json:"packageRevision"`
-	DeploymentStatus  *DeploymentStatus      `json:"deploymentStatus,omitempty"`
+	DeploymentStatus  *porch.DeploymentStatus      `json:"deploymentStatus,omitempty"`
 	ValidationResults []*ValidationResult    `json:"validationResults,omitempty"`
 	Errors            []string               `json:"errors,omitempty"`
 	CreatedAt         time.Time              `json:"createdAt"`
@@ -321,7 +318,7 @@ type NephioWorkflowEngine struct {
 type WorkflowDefinition struct {
 	Name          string                 `json:"name"`
 	Description   string                 `json:"description"`
-	IntentTypes   []v1.NetworkIntentType `json:"intentTypes"`
+	IntentTypes   []string `json:"intentTypes"`
 	Phases        []WorkflowPhase        `json:"phases"`
 	Conditions    []WorkflowCondition    `json:"conditions"`
 	Rollback      *RollbackStrategy      `json:"rollback,omitempty"`
@@ -571,13 +568,13 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 	logger := log.FromContext(ctx).WithName("nephio-workflow").WithValues(
 		"intent", intent.Name,
 		"namespace", intent.Namespace,
-		"type", string(intent.Spec.IntentType),
+		"description", intent.Spec.Intent,
 	)
 
 	span.SetAttributes(
 		attribute.String("intent.name", intent.Name),
 		attribute.String("intent.namespace", intent.Namespace),
-		attribute.String("intent.type", string(intent.Spec.IntentType)),
+		attribute.String("intent.description", intent.Spec.Intent),
 	)
 
 	startTime := time.Now()
@@ -623,7 +620,7 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 
 			nwo.metrics.WorkflowExecutions.WithLabelValues(
 				workflow.Name,
-				string(intent.Spec.IntentType),
+				nwo.classifyIntentType(intent.Spec.Intent),
 				string(execution.Status),
 			).Inc()
 		}()
@@ -663,11 +660,12 @@ func (nwo *NephioWorkflowOrchestrator) selectWorkflow(ctx context.Context, inten
 
 	// Find workflow that matches intent type
 	var selectedWorkflow *WorkflowDefinition
+	intentType := nwo.classifyIntentType(intent.Spec.Intent)
 
 	nwo.workflowEngine.workflows.Range(func(key, value interface{}) bool {
 		if workflow, ok := value.(*WorkflowDefinition); ok {
-			for _, intentType := range workflow.IntentTypes {
-				if intentType == intent.Spec.IntentType {
+			for _, workflowIntentType := range workflow.IntentTypes {
+				if workflowIntentType == intentType {
 					selectedWorkflow = workflow
 					return false // Stop iteration
 				}
@@ -677,7 +675,7 @@ func (nwo *NephioWorkflowOrchestrator) selectWorkflow(ctx context.Context, inten
 	})
 
 	if selectedWorkflow == nil {
-		return nil, fmt.Errorf("no workflow found for intent type: %s", intent.Spec.IntentType)
+		return nil, fmt.Errorf("no workflow found for intent type: %s (derived from: %s)", intentType, intent.Spec.Intent)
 	}
 
 	span.SetAttributes(attribute.String("workflow.name", selectedWorkflow.Name))
@@ -1190,6 +1188,32 @@ func generateExecutionID() string {
 	return fmt.Sprintf("exec-%d", time.Now().UnixNano())
 }
 
+// classifyIntentType classifies the intent based on natural language keywords
+func (nwo *NephioWorkflowOrchestrator) classifyIntentType(intent string) string {
+	intentLower := strings.ToLower(intent)
+	
+	// Scaling intent patterns
+	if strings.Contains(intentLower, "scale") || strings.Contains(intentLower, "autoscal") || 
+		 strings.Contains(intentLower, "replicas") || strings.Contains(intentLower, "horizontal") {
+		return "scaling"
+	}
+	
+	// Configuration intent patterns  
+	if strings.Contains(intentLower, "configur") || strings.Contains(intentLower, "network slice") ||
+		 strings.Contains(intentLower, "policy") || strings.Contains(intentLower, "parameter") {
+		return "configuration"
+	}
+	
+	// Deployment intent patterns (default)
+	if strings.Contains(intentLower, "deploy") || strings.Contains(intentLower, "install") ||
+		 strings.Contains(intentLower, "create") || strings.Contains(intentLower, "setup") {
+		return "deployment"
+	}
+	
+	// Default to deployment if unclear
+	return "deployment"
+}
+
 func (nwo *NephioWorkflowOrchestrator) getTargetClusters(ctx context.Context, intent *v1.NetworkIntent) ([]*WorkloadCluster, error) {
 	// Extract target clusters from intent or use defaults
 	// This would integrate with cluster selection policies
@@ -1212,14 +1236,11 @@ func (nwo *NephioWorkflowOrchestrator) extractParametersFromIntent(intent *v1.Ne
 	// Extract configuration parameters from intent
 	params := make(map[string]interface{})
 
-	if intent.Spec.Configuration != nil {
-		for k, v := range intent.Spec.Configuration {
-			params[k] = v
-		}
-	}
-
-	params["intentType"] = string(intent.Spec.IntentType)
-	params["targetComponent"] = intent.Spec.TargetComponent
+	// Use the natural language intent as the primary parameter
+	params["intentType"] = nwo.classifyIntentType(intent.Spec.Intent)
+	params["intentDescription"] = intent.Spec.Intent
+	params["intentName"] = intent.Name
+	params["intentNamespace"] = intent.Namespace
 
 	return params
 }

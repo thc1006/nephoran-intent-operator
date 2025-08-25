@@ -3,7 +3,6 @@ package validation
 import (
 	"context"
 	"fmt"
-	"log"
 	"runtime"
 	"time"
 )

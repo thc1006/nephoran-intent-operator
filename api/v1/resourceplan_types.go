@@ -132,8 +132,6 @@ type OptimizationGoal struct {
 
 	// Weight specifies the relative weight
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	Weight *float64 `json:"weight,omitempty"`
 
 	// Target specifies the target value
@@ -220,8 +218,6 @@ type NetworkSliceSpec struct {
 type SLARequirements struct {
 	// AvailabilityTarget as percentage (e.g., 99.99)
 	// +optional
-	// +kubebuilder:validation:Minimum=90.0
-	// +kubebuilder:validation:Maximum=99.999
 	AvailabilityTarget *float64 `json:"availabilityTarget,omitempty"`
 
 	// MaxLatency in milliseconds
@@ -236,8 +232,6 @@ type SLARequirements struct {
 
 	// MaxPacketLoss as percentage
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	MaxPacketLoss *float64 `json:"maxPacketLoss,omitempty"`
 
 	// RecoveryTimeObjective in seconds
@@ -366,8 +360,6 @@ type ResourcePlanStatus struct {
 
 	// QualityScore represents the quality of the plan
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	QualityScore *float64 `json:"qualityScore,omitempty"`
 
 	// ObservedGeneration reflects the generation observed
@@ -481,8 +473,6 @@ type CostEstimate struct {
 
 	// Confidence level of the estimate (0.0-1.0)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	Confidence *float64 `json:"confidence,omitempty"`
 }
 
@@ -498,8 +488,6 @@ type PerformanceEstimate struct {
 
 	// ExpectedAvailability as percentage
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=100.0
 	ExpectedAvailability *float64 `json:"expectedAvailability,omitempty"`
 
 	// ResourceUtilization estimates
@@ -532,8 +520,6 @@ type ScalingRecommendation struct {
 
 	// Confidence in the recommendation (0.0-1.0)
 	// +optional
-	// +kubebuilder:validation:Minimum=0.0
-	// +kubebuilder:validation:Maximum=1.0
 	Confidence *float64 `json:"confidence,omitempty"`
 }
 

@@ -164,6 +164,29 @@ Describe any special deployment requirements.
 - [ ] Configuration validation is implemented
 - [ ] Environment-specific configurations considered
 
+## Governance Checklist
+
+**IMPORTANT: All PRs must comply with repository governance rules**
+
+### Contract Compliance
+- [ ] No modifications to `docs/contracts/` files (unless this is a contract update PR)
+- [ ] Code changes comply with existing contract definitions
+- [ ] If contract changes needed, separate PR opened to `integrate/mvp`
+
+### CI/CD Integrity
+- [ ] No modifications to `.github/workflows/ci.yml` (only Project Conductor role)
+- [ ] No creation of `.github/workflows/ci.yaml` (use ci.yml only)
+- [ ] CI pipeline passes all required checks
+
+### Module Boundaries
+- [ ] Changes stay within appropriate module boundaries
+- [ ] No cross-module rewrites without coordination
+- [ ] Interface contracts maintained
+
+### Build System
+- [ ] No unauthorized changes to Makefile targets
+- [ ] Make targets still function correctly
+
 ## Review Checklist
 
 Please confirm that you have:
@@ -175,6 +198,7 @@ Please confirm that you have:
 - [ ] Considered performance and security implications
 - [ ] Tested the changes locally
 - [ ] Ensured CI checks will pass
+- [ ] Verified governance checklist compliance
 
 ## Screenshots (if applicable)
 

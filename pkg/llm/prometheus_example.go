@@ -24,7 +24,7 @@ func ExamplePrometheusMetricsUsage() {
 
 	// Process some intents to generate metrics
 	ctx := context.Background()
-	
+
 	// Successful request
 	intent1 := "Deploy a 5G AMF with high availability"
 	response1, err1 := client.ProcessIntent(ctx, intent1)
@@ -67,7 +67,7 @@ func ExamplePrometheusMetricsWithoutEnvironment() {
 	// Process intent - metrics should not be recorded to Prometheus
 	ctx := context.Background()
 	intent := "Configure O-RAN DU with load balancing"
-	
+
 	_, err := client.ProcessIntent(ctx, intent)
 	if err != nil {
 		log.Printf("Request failed: %v", err)
@@ -98,18 +98,18 @@ func ExamplePrometheusMetricsTypes() {
 		BackendType: "openai",
 		Timeout:     30 * time.Second,
 	}
-	
+
 	client := NewClientWithConfig("https://api.openai.com/v1/chat/completions", config)
 
 	ctx := context.Background()
 
 	// Generate different types of metrics:
-	
+
 	// 1. Successful request (records: requests_total, processing_duration_seconds)
 	fmt.Println("Recording successful request metrics...")
 	_, _ = client.ProcessIntent(ctx, "Deploy AMF in production")
 
-	// 2. Cache operations (records: cache_hits_total, cache_misses_total)  
+	// 2. Cache operations (records: cache_hits_total, cache_misses_total)
 	fmt.Println("Recording cache metrics...")
 	_, _ = client.ProcessIntent(ctx, "Deploy AMF in production") // Should be cache hit
 
@@ -127,7 +127,7 @@ func ExamplePrometheusMetricsTypes() {
 		client.metricsIntegrator.RecordRetryAttempt("gpt-4o-mini")
 	}
 
-	// 5. Fallback attempts (records: fallback_attempts_total)  
+	// 5. Fallback attempts (records: fallback_attempts_total)
 	fmt.Println("Recording fallback metrics...")
 	if client.metricsIntegrator != nil {
 		client.metricsIntegrator.RecordFallbackAttempt("gpt-4o-mini", "gpt-3.5-turbo")

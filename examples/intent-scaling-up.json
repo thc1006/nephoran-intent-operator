@@ -1,0 +1,9 @@
+{
+  "intent_type": "scaling",
+  "target": "cnf-simulator",
+  "namespace": "default",
+  "replicas": 5,
+  "reason": "High load detected, scaling up to handle traffic",
+  "source": "planner",
+  "correlation_id": "req-12345"
+}

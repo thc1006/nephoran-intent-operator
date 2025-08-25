@@ -18,6 +18,11 @@ type LDAPClient struct {
 	logger *slog.Logger
 }
 
+// NewLDAPProvider creates a new LDAP provider (alias for compatibility)
+func NewLDAPProvider(config *LDAPConfig, logger *slog.Logger) LDAPProvider {
+	return NewEnhancedLDAPProvider(config, logger)
+}
+
 // LDAPConfig represents LDAP configuration
 type LDAPConfig struct {
 	// Connection settings

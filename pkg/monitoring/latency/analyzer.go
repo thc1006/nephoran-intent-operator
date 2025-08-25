@@ -794,18 +794,20 @@ func (t *TrendAnalyzer) AnalyzeTrend(component string, latency time.Duration) *T
 	expTrend := t.exponentialSmoothing.Analyze(component, latency)
 	maTrend := t.movingAverage.Analyze(component, latency)
 
-	// Combine results (simplified - in production, use ensemble methods)
-	if linearTrend > 0.1 {
+	// Combine results using ensemble method (weighted average of all three methods)
+	ensembleTrend := (linearTrend*0.5 + expTrend*0.3 + maTrend*0.2)
+	
+	if ensembleTrend > 0.1 {
 		trend.TrendDirection = "increasing"
-	} else if linearTrend < -0.1 {
+	} else if ensembleTrend < -0.1 {
 		trend.TrendDirection = "decreasing"
 	} else {
 		trend.TrendDirection = "stable"
 	}
 
-	trend.TrendStrength = math.Abs(linearTrend)
-	trend.ChangeRate = linearTrend
-	trend.ProjectedLatency = time.Duration(float64(latency) * (1 + linearTrend))
+	trend.TrendStrength = math.Abs(ensembleTrend)
+	trend.ChangeRate = ensembleTrend
+	trend.ProjectedLatency = time.Duration(float64(latency) * (1 + ensembleTrend))
 
 	// Calculate confidence interval
 	stdDev := time.Duration(float64(latency) * 0.1) // Simplified

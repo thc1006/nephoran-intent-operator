@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"testing"

@@ -9,14 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 // GRPCWeaviateClient provides high-performance gRPC-based Weaviate client
@@ -114,8 +111,8 @@ type GRPCRateLimiter struct {
 	mutex             sync.Mutex
 }
 
-// Batch request structures for gRPC batching
-type BatchSearchRequest struct {
+// Batch request structures for gRPC batching (renamed to avoid conflicts with shared.BatchSearchRequest)
+type GRPCBatchSearchRequest struct {
 	Requests []*VectorSearchRequest `json:"requests"`
 	Metadata map[string]string      `json:"metadata"`
 }
@@ -128,7 +125,7 @@ type VectorSearchRequest struct {
 	Metadata map[string]string      `json:"metadata"`
 }
 
-type BatchSearchResponse struct {
+type GRPCBatchSearchResponse struct {
 	Responses []*VectorSearchResponse `json:"responses"`
 	Metadata  map[string]string       `json:"metadata"`
 	Took      time.Duration           `json:"took"`
@@ -323,12 +320,12 @@ func newOptimizedCodec(config *GRPCClientConfig) *OptimizedCodec {
 
 	// Initialize encoder pool
 	codec.encoderPool.New = func() interface{} {
-		return &proto.Buffer{} // Protobuf encoder
+		return make([]byte, 0, 1024) // Buffer for encoding
 	}
 
 	// Initialize decoder pool
 	codec.decoderPool.New = func() interface{} {
-		return &proto.Buffer{} // Protobuf decoder
+		return make([]byte, 0, 1024) // Buffer for decoding
 	}
 
 	return codec
@@ -345,7 +342,7 @@ func (c *GRPCWeaviateClient) Search(ctx context.Context, query *SearchQuery) (*S
 		Filters: query.Filters,
 		Metadata: map[string]string{
 			"hybrid_search": fmt.Sprintf("%t", query.HybridSearch),
-			"hybrid_alpha":  fmt.Sprintf("%.2f", query.HybridAlpha),
+			"hybrid_alpha":  fmt.Sprintf("%.2f", *query.HybridAlpha),
 		},
 	}
 
@@ -380,7 +377,7 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 	startTime := time.Now()
 
 	// Convert to gRPC batch request
-	batchReq := &BatchSearchRequest{
+	batchReq := &GRPCBatchSearchRequest{
 		Requests: make([]*VectorSearchRequest, len(queries)),
 		Metadata: map[string]string{
 			"batch_size": fmt.Sprintf("%d", len(queries)),
@@ -421,7 +418,7 @@ func (c *GRPCWeaviateClient) BatchSearch(ctx context.Context, queries []*SearchQ
 // performGRPCSearch performs the actual gRPC search call
 func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorSearchRequest) (*VectorSearchResponse, error) {
 	// Get connection from pool
-	conn := c.connPool.GetConnection()
+	_ = c.connPool.GetConnection() // TODO: Use in actual gRPC implementation
 
 	// Add authentication metadata
 	ctx = c.addAuthenticationContext(ctx)
@@ -456,7 +453,7 @@ func (c *GRPCWeaviateClient) performGRPCSearch(ctx context.Context, req *VectorS
 }
 
 // performGRPCBatchSearch performs batch gRPC search
-func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *BatchSearchRequest) (*BatchSearchResponse, error) {
+func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *GRPCBatchSearchRequest) (*GRPCBatchSearchResponse, error) {
 	// Get connection from pool
 	conn := c.connPool.GetConnection()
 	_ = conn // Use the connection
@@ -488,7 +485,7 @@ func (c *GRPCWeaviateClient) performGRPCBatchSearch(ctx context.Context, req *Ba
 		}
 	}
 
-	return &BatchSearchResponse{
+	return &GRPCBatchSearchResponse{
 		Responses: responses,
 		Metadata: map[string]string{
 			"batch_size": fmt.Sprintf("%d", len(req.Requests)),
@@ -513,10 +510,10 @@ func (c *GRPCWeaviateClient) addAuthenticationContext(ctx context.Context) conte
 
 // convertToSearchResponse converts gRPC response to standard SearchResponse
 func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchResponse, query string) *SearchResponse {
-	results := make([]*shared.SearchResult, len(grpcResp.Results))
+	results := make([]*types.SearchResult, len(grpcResp.Results))
 
 	for i, result := range grpcResp.Results {
-		doc := &shared.TelecomDocument{
+		doc := &types.TelecomDocument{
 			ID: result.ID,
 		}
 
@@ -528,20 +525,41 @@ func (c *GRPCWeaviateClient) convertToSearchResponse(grpcResp *VectorSearchRespo
 			doc.Title = title
 		}
 
-		results[i] = &shared.SearchResult{
+		results[i] = &types.SearchResult{
 			Document: doc,
 			Score:    result.Score,
 		}
 	}
 
 	return &SearchResponse{
-		Results:     results,
-		Query:       query,
-		ProcessedAt: time.Now(),
-		Metadata: map[string]interface{}{
-			"grpc_metadata": grpcResp.Metadata,
-		},
+		Results:     convertSharedSearchResults(results),
+		Took:        0, // Timing should be calculated by the caller
+		Total:       int64(len(results)),
 	}
+}
+
+// convertSharedSearchResults converts shared.SearchResult to local SearchResult
+func convertSharedSearchResults(sharedResults []*types.SearchResult) []*SearchResult {
+	results := make([]*SearchResult, len(sharedResults))
+	for i, sharedResult := range sharedResults {
+		// Extract fields from the shared result
+		id := ""
+		content := ""
+		if sharedResult.Document != nil {
+			id = sharedResult.Document.ID
+			content = sharedResult.Document.Content
+		}
+		
+		results[i] = &SearchResult{
+			ID:         id,
+			Content:    content,
+			Confidence: float64(sharedResult.Score), // Convert score to confidence
+			Metadata:   sharedResult.Metadata,
+			Score:      sharedResult.Score,
+			Document:   sharedResult.Document,
+		}
+	}
+	return results
 }
 
 // updateMetrics updates gRPC client metrics
@@ -598,8 +616,22 @@ func (c *GRPCWeaviateClient) GetMetrics() *GRPCMetrics {
 	c.metrics.mutex.RLock()
 	defer c.metrics.mutex.RUnlock()
 
-	metrics := *c.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &GRPCMetrics{
+		TotalRequests:      c.metrics.TotalRequests,
+		SuccessfulRequests: c.metrics.SuccessfulRequests,
+		FailedRequests:     c.metrics.FailedRequests,
+		AverageLatency:     c.metrics.AverageLatency,
+		ConnectionsActive:  c.metrics.ConnectionsActive,
+		ConnectionsCreated: c.metrics.ConnectionsCreated,
+		ConnectionsFailed:  c.metrics.ConnectionsFailed,
+		BytesSent:          c.metrics.BytesSent,
+		BytesReceived:      c.metrics.BytesReceived,
+		CompressionSavings: c.metrics.CompressionSavings,
+		BatchedRequests:    c.metrics.BatchedRequests,
+		BatchEfficiency:    c.metrics.BatchEfficiency,
+	}
+	return metrics
 }
 
 // GetConnectionPoolStatus returns connection pool status

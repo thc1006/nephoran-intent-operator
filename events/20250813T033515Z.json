@@ -1,0 +1,17 @@
+{
+  "event": {
+    "commonEventHeader": {
+      "domain": "fault",
+      "eventId": "fault-1755056115",
+      "eventName": "fault_Event",
+      "lastEpochMicrosec": 1755056115145725,
+      "priority": "Normal",
+      "reportingEntityName": "cu-001",
+      "sequence": 1,
+      "sourceName": "cu-001",
+      "startEpochMicrosec": 1755056115145725,
+      "version": "4.0.1",
+      "vesEventListenerVersion": "7.0.1"
+    }
+  }
+}

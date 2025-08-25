@@ -3,6 +3,7 @@ package integration_test
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -14,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 var _ = Describe("End-to-End Workflow Integration Tests", func() {

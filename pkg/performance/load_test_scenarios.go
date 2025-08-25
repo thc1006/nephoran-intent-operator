@@ -85,12 +85,12 @@ type PerformanceAnalysis struct {
 	CPUUtilization  float64
 	MemoryUsage     float64
 	GoroutineCount  int
-	Bottlenecks     []Bottleneck
+	Bottlenecks     []LoadTestBottleneck
 	Recommendations []string
 }
 
-// Bottleneck represents a performance bottleneck
-type Bottleneck struct {
+// LoadTestBottleneck represents a performance bottleneck
+type LoadTestBottleneck struct {
 	Component   string
 	Type        string // "CPU", "Memory", "I/O", "Lock Contention"
 	Severity    string // "Critical", "High", "Medium", "Low"
@@ -532,7 +532,7 @@ func (r *LoadTestRunner) executeRequest(ctx context.Context, scenario LoadTestSc
 // analyzeResults analyzes the load test results
 func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAnalysis {
 	analysis := &PerformanceAnalysis{
-		Bottlenecks:     make([]Bottleneck, 0),
+		Bottlenecks:     make([]LoadTestBottleneck, 0),
 		Recommendations: make([]string, 0),
 	}
 
@@ -569,7 +569,7 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 
 	// Identify bottlenecks
 	if analysis.P99Latency > 30*time.Second {
-		analysis.Bottlenecks = append(analysis.Bottlenecks, Bottleneck{
+		analysis.Bottlenecks = append(analysis.Bottlenecks, LoadTestBottleneck{
 			Component:   "Intent Processing",
 			Type:        "Latency",
 			Severity:    "Critical",
@@ -580,7 +580,7 @@ func (r *LoadTestRunner) analyzeResults(metrics *LoadTestMetrics) *PerformanceAn
 	}
 
 	if analysis.ErrorRate > 5 {
-		analysis.Bottlenecks = append(analysis.Bottlenecks, Bottleneck{
+		analysis.Bottlenecks = append(analysis.Bottlenecks, LoadTestBottleneck{
 			Component:   "System Reliability",
 			Type:        "Errors",
 			Severity:    "High",

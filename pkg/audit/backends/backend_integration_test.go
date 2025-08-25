@@ -1,4 +1,4 @@
-package backends
+package backends_test
 
 import (
 	"context"
@@ -14,13 +14,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
+	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 )
 
 // TestBackendIntegrationSuite tests backend implementations with real connections
@@ -52,8 +52,8 @@ func (suite *TestBackendIntegrationSuite) TearDownSuite() {
 func (suite *TestBackendIntegrationSuite) TestFileBackend() {
 	logFile := filepath.Join(suite.tempDir, "audit_test.log")
 
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "test-file",
 		Settings: map[string]interface{}{
@@ -111,8 +111,8 @@ func (suite *TestBackendIntegrationSuite) TestFileBackend() {
 func (suite *TestBackendIntegrationSuite) TestFileBackendWithRotation() {
 	logFile := filepath.Join(suite.tempDir, "audit_rotation.log")
 
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "test-file-rotation",
 		Settings: map[string]interface{}{
@@ -145,8 +145,8 @@ func (suite *TestBackendIntegrationSuite) TestFileBackendWithRotation() {
 func (suite *TestBackendIntegrationSuite) TestFileBackendCompression() {
 	logFile := filepath.Join(suite.tempDir, "audit_compressed.log")
 
-	config := BackendConfig{
-		Type:        BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:        backends.BackendTypeFile,
 		Enabled:     true,
 		Name:        "test-compressed",
 		Compression: true,
@@ -233,8 +233,8 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchBackend() {
 	}))
 	defer server.Close()
 
-	config := BackendConfig{
-		Type:    BackendTypeElasticsearch,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeElasticsearch,
 		Enabled: true,
 		Name:    "test-elasticsearch",
 		Settings: map[string]interface{}{
@@ -314,8 +314,8 @@ func (suite *TestBackendIntegrationSuite) TestSplunkBackend() {
 	}))
 	defer server.Close()
 
-	config := BackendConfig{
-		Type:    BackendTypeSplunk,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeSplunk,
 		Enabled: true,
 		Name:    "test-splunk",
 		Settings: map[string]interface{}{
@@ -376,8 +376,8 @@ func (suite *TestBackendIntegrationSuite) TestWebhookBackend() {
 	}))
 	defer server.Close()
 
-	config := BackendConfig{
-		Type:    BackendTypeWebhook,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeWebhook,
 		Enabled: true,
 		Name:    "test-webhook",
 		Settings: map[string]interface{}{
@@ -415,8 +415,8 @@ func (suite *TestBackendIntegrationSuite) TestSyslogBackend() {
 	// For this test, we'll use a file-based syslog approach
 	syslogFile := filepath.Join(suite.tempDir, "syslog_test.log")
 
-	config := BackendConfig{
-		Type:    BackendTypeSyslog,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeSyslog,
 		Enabled: true,
 		Name:    "test-syslog",
 		Settings: map[string]interface{}{
@@ -474,8 +474,8 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchWithContainer() {
 
 	esURL := fmt.Sprintf("http://%s:%s", host, port.Port())
 
-	config := BackendConfig{
-		Type:    BackendTypeElasticsearch,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeElasticsearch,
 		Enabled: true,
 		Name:    "test-elasticsearch-container",
 		Settings: map[string]interface{}{
@@ -522,15 +522,15 @@ func (suite *TestBackendIntegrationSuite) TestElasticsearchWithContainer() {
 func (suite *TestBackendIntegrationSuite) TestBackendFactory() {
 	tests := []struct {
 		name        string
-		backendType BackendType
-		config      BackendConfig
+		backendType backends.BackendType
+		config      backends.BackendConfig
 		expectError bool
 	}{
 		{
 			name:        "file backend",
-			backendType: BackendTypeFile,
-			config: BackendConfig{
-				Type:    BackendTypeFile,
+			backendType: backends.BackendTypeFile,
+			config: backends.BackendConfig{
+				Type:    backends.BackendTypeFile,
 				Enabled: true,
 				Name:    "test-file",
 				Settings: map[string]interface{}{
@@ -541,9 +541,9 @@ func (suite *TestBackendIntegrationSuite) TestBackendFactory() {
 		},
 		{
 			name:        "disabled backend",
-			backendType: BackendTypeFile,
-			config: BackendConfig{
-				Type:    BackendTypeFile,
+			backendType: backends.BackendTypeFile,
+			config: backends.BackendConfig{
+				Type:    backends.BackendTypeFile,
 				Enabled: false,
 				Name:    "disabled-file",
 			},
@@ -563,7 +563,7 @@ func (suite *TestBackendIntegrationSuite) TestBackendFactory() {
 
 	for _, tt := range tests {
 		suite.Run(tt.name, func() {
-			backend, err := NewBackend(tt.config)
+			backend, err := backends.NewBackend(tt.config)
 
 			if tt.expectError {
 				suite.Error(err)
@@ -669,8 +669,8 @@ func (suite *TestBackendIntegrationSuite) TestRetryPolicy() {
 func (suite *TestBackendIntegrationSuite) TestBackendPerformance() {
 	logFile := filepath.Join(suite.tempDir, "performance_test.log")
 
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "performance-test",
 		Settings: map[string]interface{}{
@@ -765,8 +765,8 @@ func BenchmarkFileBackendWriteEvent(b *testing.B) {
 	defer os.RemoveAll(tempDir)
 
 	logFile := filepath.Join(tempDir, "benchmark.log")
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "benchmark",
 		Settings: map[string]interface{}{
@@ -795,8 +795,8 @@ func BenchmarkFileBackendWriteBatch(b *testing.B) {
 	defer os.RemoveAll(tempDir)
 
 	logFile := filepath.Join(tempDir, "benchmark_batch.log")
-	config := BackendConfig{
-		Type:    BackendTypeFile,
+	config := backends.BackendConfig{
+		Type:    backends.BackendTypeFile,
 		Enabled: true,
 		Name:    "benchmark-batch",
 		Settings: map[string]interface{}{

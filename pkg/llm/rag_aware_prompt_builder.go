@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // RAGAwarePromptBuilder builds telecom-specific prompts with RAG context integration
 type RAGAwarePromptBuilder struct {
-	tokenManager         *TokenManager
+	tokenManager         TokenManager
 	telecomQueryEnhancer *TelecomQueryEnhancer
 	promptTemplates      *TelecomPromptTemplates
 	config               *PromptBuilderConfig
@@ -127,7 +128,7 @@ type PromptRequest struct {
 	Query              string                 `json:"query"`
 	IntentType         string                 `json:"intent_type"`
 	ModelName          string                 `json:"model_name"`
-	RAGContext         []*shared.SearchResult `json:"rag_context"`
+	RAGContext         []*types.SearchResult  `json:"rag_context"`
 	Domain             string                 `json:"domain,omitempty"`
 	ExistingContext    string                 `json:"existing_context,omitempty"`
 	TemplateType       string                 `json:"template_type,omitempty"`
@@ -153,7 +154,7 @@ type PromptResponse struct {
 }
 
 // NewRAGAwarePromptBuilder creates a new RAG-aware prompt builder
-func NewRAGAwarePromptBuilder(tokenManager *TokenManager, config *PromptBuilderConfig) *RAGAwarePromptBuilder {
+func NewRAGAwarePromptBuilder(tokenManager TokenManager, config *PromptBuilderConfig) *RAGAwarePromptBuilder {
 	if config == nil {
 		config = getDefaultPromptBuilderConfig()
 	}
@@ -271,7 +272,7 @@ func (pb *RAGAwarePromptBuilder) BuildPrompt(ctx context.Context, request *Promp
 	}
 
 	// Calculate final token count
-	tokenCount := pb.tokenManager.EstimateTokensForModel(fullPrompt, request.ModelName)
+	tokenCount, _ := pb.tokenManager.EstimateTokensForModel(request.ModelName, fullPrompt)
 
 	// Create response
 	response := &PromptResponse{
@@ -393,10 +394,7 @@ func (pb *RAGAwarePromptBuilder) addContextualHints(query, intentType string) st
 // buildSystemPrompt builds the system prompt based on request parameters
 func (pb *RAGAwarePromptBuilder) buildSystemPrompt(request *PromptRequest, domain string) (string, error) {
 	templateType := pb.getTemplateType(request)
-	template, err := pb.promptTemplates.GetSystemPrompt(templateType)
-	if err != nil {
-		return "", fmt.Errorf("failed to get system prompt template: %w", err)
-	}
+	template := pb.promptTemplates.GetSystemPrompt(templateType)
 
 	// Replace template variables
 	systemPrompt := template
@@ -436,7 +434,7 @@ func (pb *RAGAwarePromptBuilder) getTemplateType(request *PromptRequest) string 
 }
 
 // processRAGContext processes RAG context and creates formatted context text
-func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchResult, modelName string) (string, []string, []string) {
+func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*types.SearchResult, modelName string) (string, []string, []string) {
 	if len(ragContext) == 0 {
 		return "", nil, nil
 	}
@@ -446,7 +444,7 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchRe
 	var sources []string
 
 	// Filter by relevance threshold
-	filteredContext := make([]*shared.SearchResult, 0)
+	filteredContext := make([]*types.SearchResult, 0)
 	for _, result := range ragContext {
 		if result.Score >= pb.config.ContextRelevanceThreshold {
 			filteredContext = append(filteredContext, result)
@@ -489,7 +487,7 @@ func (pb *RAGAwarePromptBuilder) processRAGContext(ragContext []*shared.SearchRe
 }
 
 // formatDocumentForContext formats a document for inclusion in context
-func (pb *RAGAwarePromptBuilder) formatDocumentForContext(result *shared.SearchResult, index int) string {
+func (pb *RAGAwarePromptBuilder) formatDocumentForContext(result *types.SearchResult, index int) string {
 	doc := result.Document
 
 	var parts []string
@@ -637,7 +635,7 @@ func (pb *RAGAwarePromptBuilder) combinePrompts(systemPrompt, userPrompt, modelN
 
 // optimizeForTokens optimizes the prompt to fit within token budget
 func (pb *RAGAwarePromptBuilder) optimizeForTokens(fullPrompt, systemPrompt, userPrompt string, maxTokens int, modelName string) (string, []string, error) {
-	currentTokens := pb.tokenManager.EstimateTokensForModel(fullPrompt, modelName)
+	currentTokens, _ := pb.tokenManager.EstimateTokensForModel(modelName, fullPrompt)
 	if currentTokens <= maxTokens {
 		return fullPrompt, nil, nil
 	}
@@ -646,11 +644,13 @@ func (pb *RAGAwarePromptBuilder) optimizeForTokens(fullPrompt, systemPrompt, use
 	optimizedPrompt := fullPrompt
 
 	// Reserve tokens for system prompt
-	availableTokens := maxTokens - pb.tokenManager.EstimateTokensForModel(systemPrompt, modelName)
+	systemTokens, _ := pb.tokenManager.EstimateTokensForModel(modelName, systemPrompt)
+	availableTokens := maxTokens - systemTokens
 
 	// Truncate user prompt if necessary
-	if pb.tokenManager.EstimateTokensForModel(userPrompt, modelName) > availableTokens {
-		truncatedUserPrompt := pb.tokenManager.TruncateToFit(userPrompt, availableTokens, modelName)
+	userTokens, _ := pb.tokenManager.EstimateTokensForModel(modelName, userPrompt)
+	if userTokens > availableTokens {
+		truncatedUserPrompt, _ := pb.tokenManager.TruncateToFit(userPrompt, availableTokens, modelName)
 		optimizedPrompt = pb.combinePrompts(systemPrompt, truncatedUserPrompt, modelName)
 		optimizations = append(optimizations, "user_prompt_truncation")
 	}
@@ -876,7 +876,7 @@ func NewTelecomPromptTemplates() *TelecomPromptTemplates {
 }
 
 // GetSystemPrompt gets a system prompt by type
-func (tpt *TelecomPromptTemplates) GetSystemPrompt(templateType string) (string, error) {
+func (tpt *TelecomPromptTemplates) GetSystemPrompt(templateType string) string {
 	tpt.mutex.RLock()
 	defer tpt.mutex.RUnlock()
 
@@ -884,12 +884,12 @@ func (tpt *TelecomPromptTemplates) GetSystemPrompt(templateType string) (string,
 	if !exists {
 		// Return default template
 		if defaultTemplate, hasDefault := tpt.systemPrompts["telecom_expert"]; hasDefault {
-			return defaultTemplate, nil
+			return defaultTemplate
 		}
-		return "", fmt.Errorf("template not found: %s", templateType)
+		return "You are an expert telecommunications engineer. Provide technical and accurate guidance based on the user's intent."
 	}
 
-	return template, nil
+	return template
 }
 
 // GetFewShotExamples gets few-shot examples for intent type and domain
@@ -913,6 +913,77 @@ func (tpt *TelecomPromptTemplates) GetFewShotExamples(intentType, domain string)
 	}
 
 	return nil
+}
+
+// GetExamples returns examples for few-shot prompting (compatibility method)
+func (tpt *TelecomPromptTemplates) GetExamples(intentType string) []PromptExample {
+	// Convert FewShotExample to PromptExample for compatibility
+	fewShotExamples := tpt.GetFewShotExamples(intentType, "general")
+	examples := make([]PromptExample, len(fewShotExamples))
+	for i, fse := range fewShotExamples {
+		examples[i] = PromptExample{
+			Input:       fse.Query,
+			Output:      fse.Response,
+			Explanation: fse.Context, // Use Context as explanation
+		}
+	}
+	return examples
+}
+
+// formatContext formats the telecom context into a readable string (compatibility method)
+func (tpt *TelecomPromptTemplates) formatContext(context TelecomContext) string {
+	var builder strings.Builder
+
+	// Network Functions
+	if len(context.NetworkFunctions) > 0 {
+		builder.WriteString("**Network Functions:**\n")
+		for _, nf := range context.NetworkFunctions {
+			builder.WriteString(fmt.Sprintf("- %s (%s): Status=%s, Load=%.1f%%, Location=%s\n",
+				nf.Name, nf.Type, nf.Status, nf.Load, nf.Location))
+		}
+		builder.WriteString("\n")
+	}
+
+	// Active Slices
+	if len(context.ActiveSlices) > 0 {
+		builder.WriteString("**Active Network Slices:**\n")
+		for _, slice := range context.ActiveSlices {
+			builder.WriteString(fmt.Sprintf("- Slice %s (%s): Throughput=%.1fMbps, Latency=%.1fms, Reliability=%.3f%%, UEs=%d\n",
+				slice.ID, slice.Type, slice.Throughput, slice.Latency, slice.Reliability, slice.ConnectedUEs))
+		}
+		builder.WriteString("\n")
+	}
+
+	// E2 Nodes
+	if len(context.E2Nodes) > 0 {
+		builder.WriteString("**E2 Nodes:**\n")
+		for _, node := range context.E2Nodes {
+			builder.WriteString(fmt.Sprintf("- %s (%s): Status=%s, RRC=%s, Cell=%s\n",
+				node.ID, node.Type, node.Status, node.RRCState, node.CellID))
+		}
+		builder.WriteString("\n")
+	}
+
+	// Alarms
+	if len(context.Alarms) > 0 {
+		builder.WriteString("**Active Alarms:**\n")
+		for _, alarm := range context.Alarms {
+			builder.WriteString(fmt.Sprintf("- [%s] %s: %s (%s)\n",
+				alarm.Severity, alarm.Source, alarm.Description, alarm.Timestamp.Format("2006-01-02 15:04:05")))
+		}
+		builder.WriteString("\n")
+	}
+
+	// Performance KPIs
+	if len(context.PerformanceKPIs) > 0 {
+		builder.WriteString("**Performance KPIs:**\n")
+		for kpi, value := range context.PerformanceKPIs {
+			builder.WriteString(fmt.Sprintf("- %s: %.3f\n", kpi, value))
+		}
+		builder.WriteString("\n")
+	}
+
+	return builder.String()
 }
 
 // Initialize system prompts

@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Client is the unified LLM client with all performance optimizations built-in
@@ -39,8 +41,8 @@ type Client struct {
 	retryConfig    RetryConfig
 
 	// Observability
-	logger           *slog.Logger
-	metrics          *ClientMetrics
+	logger            *slog.Logger
+	metrics           *ClientMetrics
 	metricsIntegrator *MetricsIntegrator
 
 	// Concurrency control
@@ -71,7 +73,7 @@ type ClientConfig struct {
 	CacheMaxSize int           `json:"cache_max_size"`
 
 	// Circuit breaker settings
-	CircuitBreakerConfig *CircuitBreakerConfig `json:"circuit_breaker_config"`
+	CircuitBreakerConfig *shared.CircuitBreakerConfig `json:"circuit_breaker_config"`
 }
 
 // RetryConfig defines retry behavior
@@ -83,115 +85,22 @@ type RetryConfig struct {
 	BackoffFactor float64       `json:"backoff_factor"`
 }
 
-// CircuitState represents the state of a circuit breaker
-type CircuitState int
+// CircuitState, CircuitBreaker and related types are defined in circuit_breaker.go
 
-const (
-	StateClosed CircuitState = iota
-	StateHalfOpen
-	StateOpen
-)
-
-// CircuitBreaker implements basic circuit breaker functionality
-type CircuitBreaker struct {
-	name            string
-	config          *CircuitBreakerConfig
-	state           CircuitState
-	failureCount    int64
-	requestCount    int64
-	lastFailureTime time.Time
-	stateChangeTime time.Time
-	mutex           sync.RWMutex
-}
-
-// NewCircuitBreaker creates a new circuit breaker
-func NewCircuitBreaker(name string, config *CircuitBreakerConfig) *CircuitBreaker {
-	if config == nil {
-		config = getDefaultCircuitBreakerConfig()
-	}
-
-	return &CircuitBreaker{
-		name:            name,
-		config:          config,
-		state:           StateClosed,
-		stateChangeTime: time.Now(),
-	}
-}
-
-// Execute executes an operation through the circuit breaker
-func (cb *CircuitBreaker) Execute(ctx context.Context, operation func(context.Context) (interface{}, error)) (interface{}, error) {
-	cb.mutex.RLock()
-	state := cb.state
-	cb.mutex.RUnlock()
-
-	if state == StateOpen {
-		return nil, fmt.Errorf("circuit breaker is open")
-	}
-
-	result, err := operation(ctx)
-
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-
-	cb.requestCount++
-
-	if err != nil {
-		cb.failureCount++
-		cb.lastFailureTime = time.Now()
-
-		if cb.shouldTrip() {
-			cb.state = StateOpen
-			cb.stateChangeTime = time.Now()
-		}
-		return nil, err
-	}
-
-	if cb.state == StateHalfOpen {
-		cb.state = StateClosed
-		cb.stateChangeTime = time.Now()
-		cb.failureCount = 0
-	}
-
-	return result, nil
-}
-
-// shouldTrip determines if the circuit breaker should trip to open state
-func (cb *CircuitBreaker) shouldTrip() bool {
-	if cb.requestCount < cb.config.MinimumRequestCount {
-		return false
-	}
-
-	failureRate := float64(cb.failureCount) / float64(cb.requestCount)
-	return cb.failureCount >= cb.config.FailureThreshold || failureRate >= cb.config.FailureRate
-}
-
-// Reset resets the circuit breaker
-func (cb *CircuitBreaker) Reset() {
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-
-	cb.state = StateClosed
-	cb.failureCount = 0
-	cb.requestCount = 0
-	cb.stateChangeTime = time.Now()
-}
-
-// ForceOpen forces the circuit breaker to open state
-func (cb *CircuitBreaker) ForceOpen() {
-	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
-
-	cb.state = StateOpen
-	cb.stateChangeTime = time.Now()
-}
+// CircuitBreaker methods are implemented in circuit_breaker.go
 
 // NewClientMetrics creates new client metrics
 func NewClientMetrics() *ClientMetrics {
 	return &ClientMetrics{}
 }
 
-// NewClient creates a new unified LLM client
+// NewClient creates a new LLM client with default configuration
 func NewClient(url string) *Client {
+	return NewUnifiedClient(url)
+}
+
+// NewUnifiedClient creates a new unified LLM client
+func NewUnifiedClient(url string) *Client {
 	return NewClientWithConfig(url, ClientConfig{
 		ModelName:   "gpt-4o-mini",
 		MaxTokens:   2048,
@@ -214,26 +123,34 @@ func NewClient(url string) *Client {
 func NewClientWithConfig(url string, config ClientConfig) *Client {
 	logger := slog.Default().With("component", "llm-client")
 
-	// Create optimized TLS configuration
+	// CRITICAL SECURITY FIX: Enterprise-grade TLS configuration with TLS 1.3 enforcement
 	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
+		// O-RAN WG11 Compliance: TLS 1.3 minimum required
+		MinVersion: tls.VersionTLS13,
+		MaxVersion: tls.VersionTLS13,
+		
+		// TLS 1.3 AEAD cipher suites (strongest available)
 		CipherSuites: []uint16{
-			tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-			tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+			tls.TLS_AES_256_GCM_SHA384,        // Primary choice - strongest AEAD
+			tls.TLS_CHACHA20_POLY1305_SHA256,  // Alternative for performance
 		},
+		
+		// Security hardening
 		PreferServerCipherSuites: true,
+		SessionTicketsDisabled:   true,  // Perfect forward secrecy
+		Renegotiation:           tls.RenegotiateNever,
+		NextProtos:              []string{"h2", "http/1.1"},
+		
+		// SECURITY: Never skip verification in production
+		InsecureSkipVerify: false,
 	}
 
-	// Security check for TLS verification
+	// SECURITY ENFORCEMENT: TLS verification cannot be disabled
 	if config.SkipTLSVerification {
-		if !allowInsecureClient() {
-			logger.Error("SECURITY VIOLATION: Attempted to skip TLS verification without proper authorization")
-			panic("Security violation: TLS verification cannot be disabled")
-		}
-		logger.Warn("SECURITY WARNING: TLS verification disabled")
-		tlsConfig.InsecureSkipVerify = true
+		logger.Error("SECURITY VIOLATION: Attempted to disable TLS verification - BLOCKED",
+			slog.String("url", url),
+			slog.String("caller", "llm.NewClientWithConfig"))
+		return nil // Return nil instead of creating insecure client
 	}
 
 	// Create optimized HTTP transport
@@ -605,7 +522,7 @@ func (c *Client) categorizeError(err error) string {
 	if err == nil {
 		return "none"
 	}
-	
+
 	errMsg := err.Error()
 	switch {
 	case strings.Contains(errMsg, "circuit breaker is open"):
@@ -664,19 +581,19 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 		if !success {
 			status = "error"
 		}
-		
+
 		// Get current token stats for this request
 		// Note: This gives cumulative stats, not per-request, but it's the best we can do
 		// with the current TokenTracker implementation
 		tokenStats := c.tokenTracker.GetStats()
 		totalTokens := int(tokenStats["total_tokens"].(int64))
-		
+
 		// Record LLM request metrics
 		c.metricsIntegrator.RecordLLMRequest(c.modelName, status, latency, totalTokens)
-		
+
 		// Record cache operation
 		c.metricsIntegrator.RecordCacheOperation(c.modelName, "get", cacheHit)
-		
+
 		// Record retry attempts if any occurred
 		for i := 0; i < retryCount; i++ {
 			c.metricsIntegrator.RecordRetryAttempt(c.modelName)

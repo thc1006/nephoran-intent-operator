@@ -3,6 +3,7 @@ package security
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"math"
 	"net/http"
@@ -19,7 +20,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/security/mtls"
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 // mTLSPerformanceTestSuite provides comprehensive performance testing for mTLS operations

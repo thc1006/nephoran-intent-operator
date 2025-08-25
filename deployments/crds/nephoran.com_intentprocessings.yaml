@@ -170,6 +170,7 @@ spec:
                         default: 0.7
                         description: RetrievalThreshold sets the minimum similarity
                           threshold
+                        type: number
                     type: object
                   systemPrompt:
                     description: SystemPrompt provides system-level instructions
@@ -177,6 +178,7 @@ spec:
                   temperature:
                     default: 0.1
                     description: Temperature controls randomness in generation
+                    type: number
                 type: object
               timeoutSeconds:
                 default: 120
@@ -382,12 +384,16 @@ spec:
                 type: string
               qualityScore:
                 description: QualityScore represents the quality of processing
+                maximum: 1
+                minimum: 0
+                type: number
               ragMetrics:
                 description: RAGMetrics contains retrieval-augmented generation metrics
                 properties:
                   averageRelevanceScore:
                     description: AverageRelevanceScore is the average relevance of
                       retrieved docs
+                    type: number
                   documentsRetrieved:
                     description: DocumentsRetrieved is the number of documents retrieved
                     format: int32
@@ -403,6 +409,7 @@ spec:
                     type: string
                   topRelevanceScore:
                     description: TopRelevanceScore is the highest relevance score
+                    type: number
                 required:
                 - averageRelevanceScore
                 - documentsRetrieved
@@ -428,6 +435,7 @@ spec:
                     type: integer
                   estimatedCost:
                     description: EstimatedCost in USD
+                    type: number
                   model:
                     description: Model used for processing
                     type: string

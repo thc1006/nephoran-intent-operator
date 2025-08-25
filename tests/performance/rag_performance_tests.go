@@ -2,11 +2,9 @@ package performance
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math"
-	"math/rand"
 	"sort"
 	"sync"
 	"testing"

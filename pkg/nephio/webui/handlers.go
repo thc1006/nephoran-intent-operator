@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -152,6 +153,7 @@ func (h *PackageHandlers) DeletePackage(w http.ResponseWriter, r *http.Request) 
 	packageID := vars["id"]
 
 	// TODO: Implement package deletion logic with Nephio Porch
+	h.logger.Info("Delete package requested", zap.String("packageID", packageID))
 
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -326,7 +328,7 @@ func (h *SystemHandlers) GetHealthStatus(w http.ResponseWriter, r *http.Request)
 	healthStatus := APIHealthStatus{
 		Status:  "Healthy",
 		Version: "1.0.0",
-		Uptime:  metav1.Now().Sub(metav1.Time{}),
+		Uptime:  time.Since(time.Time{}),
 		Components: map[string]string{
 			"database":   "Connected",
 			"cache":      "Operational",

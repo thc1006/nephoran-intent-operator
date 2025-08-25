@@ -2,12 +2,7 @@ package workload
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"math"
-	"sort"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -16,8 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/metrics/pkg/apis/metrics/v1beta1"
 	"k8s.io/metrics/pkg/client/clientset/versioned"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

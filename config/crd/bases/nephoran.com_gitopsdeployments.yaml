@@ -201,6 +201,7 @@ spec:
                       multiplier:
                         default: 2
                         description: Multiplier for exponential backoff
+                        type: number
                     type: object
                   timeoutSeconds:
                     default: 600
@@ -762,6 +763,7 @@ spec:
                     type: array
                   healthScore:
                     description: HealthScore represents overall health score (0.0-1.0)
+                    type: number
                   lastCheckTime:
                     description: LastCheckTime is the last health check time
                     format: date-time

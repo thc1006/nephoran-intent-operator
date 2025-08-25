@@ -4,11 +4,8 @@ package alerting
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
-	"math"
-	"sort"
 	"sync"
 	"time"
 

@@ -1,3 +1,5 @@
+//go:build ignore
+
 /*
 Copyright 2025.
 
@@ -22,7 +24,6 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 

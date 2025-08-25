@@ -1,3 +1,5 @@
+//go:build ignore
+
 /*
 Copyright 2025.
 
@@ -19,8 +21,6 @@ package porch
 import (
 	"context"
 	"fmt"
-	"sort"
-	"strings"
 	"sync"
 	"time"
 

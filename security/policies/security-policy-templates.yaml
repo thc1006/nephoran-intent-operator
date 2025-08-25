@@ -1,0 +1,736 @@
+# Security Policy Templates for Nephoran Intent Operator
+# Comprehensive security policy definitions using Open Policy Agent (OPA) and Kubernetes native policies
+
+metadata:
+  name: "nephoran-security-policies"
+  version: "1.1.0"
+  description: "Security policy templates for comprehensive protection"
+  updated: "2025-01-24T00:00:00Z"
+  maintainer: "security-team@nephoran.io"
+
+# Network Security Policies
+network_policies:
+  deny_all_default:
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: deny-all-default
+      namespace: nephoran-system
+    spec:
+      podSelector: {}
+      policyTypes:
+        - Ingress
+        - Egress
+        
+  allow_nephoran_internal:
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: allow-nephoran-internal
+      namespace: nephoran-system
+    spec:
+      podSelector:
+        matchLabels:
+          app.kubernetes.io/part-of: nephoran
+      policyTypes:
+        - Ingress
+        - Egress
+      ingress:
+        - from:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/part-of: nephoran
+          ports:
+            - protocol: TCP
+              port: 8080  # API server
+            - protocol: TCP
+              port: 9443  # Webhook server
+            - protocol: TCP
+              port: 8443  # Metrics server
+      egress:
+        - to:
+            - podSelector:
+                matchLabels:
+                  app.kubernetes.io/part-of: nephoran
+          ports:
+            - protocol: TCP
+              port: 8080
+            - protocol: TCP
+              port: 9443
+            - protocol: TCP
+              port: 8443
+        - to: []  # Allow DNS
+          ports:
+            - protocol: UDP
+              port: 53
+        - to: []  # Allow HTTPS for external APIs
+          ports:
+            - protocol: TCP
+              port: 443
+              
+  zero_trust_micro_segmentation:
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: zero-trust-micro-segmentation
+      namespace: nephoran-system
+    spec:
+      podSelector:
+        matchLabels:
+          security.nephoran.io/zone: restricted
+      policyTypes:
+        - Ingress
+        - Egress
+      ingress:
+        - from:
+            - podSelector:
+                matchLabels:
+                  security.nephoran.io/clearance-level: high
+            - namespaceSelector:
+                matchLabels:
+                  security.nephoran.io/trust-level: trusted
+          ports:
+            - protocol: TCP
+              port: 8080
+      egress:
+        - to:
+            - podSelector:
+                matchLabels:
+                  security.nephoran.io/clearance-level: high
+          ports:
+            - protocol: TCP
+              port: 443
+        - to: []
+          ports:
+            - protocol: UDP
+              port: 53
+
+# Pod Security Policies (PSPs) and Pod Security Standards
+pod_security:
+  restricted_psp:
+    apiVersion: policy/v1beta1
+    kind: PodSecurityPolicy
+    metadata:
+      name: nephoran-restricted
+    spec:
+      privileged: false
+      allowPrivilegeEscalation: false
+      requiredDropCapabilities:
+        - ALL
+      volumes:
+        - 'configMap'
+        - 'emptyDir'
+        - 'projected'
+        - 'secret'
+        - 'downwardAPI'
+        - 'persistentVolumeClaim'
+      runAsUser:
+        rule: 'MustRunAsNonRoot'
+      runAsGroup:
+        rule: 'RunAsAny'
+      seLinux:
+        rule: 'RunAsAny'
+      fsGroup:
+        rule: 'RunAsAny'
+      readOnlyRootFilesystem: true
+      seccompProfile:
+        type: RuntimeDefault
+      supplementalGroups:
+        rule: 'RunAsAny'
+        
+  pod_security_standards:
+    apiVersion: v1
+    kind: Namespace
+    metadata:
+      name: nephoran-system
+      labels:
+        pod-security.kubernetes.io/enforce: restricted
+        pod-security.kubernetes.io/audit: restricted
+        pod-security.kubernetes.io/warn: restricted
+        
+  security_context_constraints:
+    apiVersion: security.openshift.io/v1
+    kind: SecurityContextConstraints
+    metadata:
+      name: nephoran-scc
+    allowHostDirVolumePlugin: false
+    allowHostIPC: false
+    allowHostNetwork: false
+    allowHostPID: false
+    allowHostPorts: false
+    allowPrivilegedContainer: false
+    allowedCapabilities: []
+    defaultAddCapabilities: []
+    fsGroup:
+      type: MustRunAs
+      ranges:
+        - min: 1000
+          max: 65535
+    priority: 10
+    readOnlyRootFilesystem: true
+    requiredDropCapabilities:
+      - ALL
+    runAsUser:
+      type: MustRunAsNonRoot
+    seLinuxContext:
+      type: MustRunAs
+    users: []
+    groups:
+      - system:serviceaccounts:nephoran-system
+
+# OPA/Gatekeeper Policies
+opa_policies:
+  container_security_baseline:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-container-security
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranContainerSecurity
+          validation:
+            type: object
+            properties:
+              allowedImages:
+                type: array
+                items:
+                  type: string
+              requiredSecurityContext:
+                type: object
+                properties:
+                  runAsNonRoot:
+                    type: boolean
+                  readOnlyRootFilesystem:
+                    type: boolean
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.container.security
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.containers[_]
+              not starts_with(container.image, input.parameters.allowedImages[_])
+              msg := sprintf("Container image %s is not from approved registry", [container.image])
+            }
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.containers[_]
+              not container.securityContext.runAsNonRoot
+              msg := "Container must run as non-root user"
+            }
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.containers[_]
+              not container.securityContext.readOnlyRootFilesystem
+              msg := "Container must have read-only root filesystem"
+            }
+            
+  resource_limits_policy:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-resource-limits
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranResourceLimits
+          validation:
+            type: object
+            properties:
+              maxCPU:
+                type: string
+              maxMemory:
+                type: string
+              minCPU:
+                type: string
+              minMemory:
+                type: string
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.resources.limits
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.containers[_]
+              not container.resources.limits.cpu
+              msg := "Container must have CPU limits defined"
+            }
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.containers[_]
+              not container.resources.limits.memory
+              msg := "Container must have memory limits defined"
+            }
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.containers[_]
+              cpu_limit := container.resources.limits.cpu
+              cpu_limit_num := to_number(trim_suffix(cpu_limit, "m")) / 1000
+              max_cpu_num := to_number(trim_suffix(input.parameters.maxCPU, "m")) / 1000
+              cpu_limit_num > max_cpu_num
+              msg := sprintf("Container CPU limit %s exceeds maximum allowed %s", 
+                           [cpu_limit, input.parameters.maxCPU])
+            }
+            
+  network_policies_enforcement:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-network-policies
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranNetworkPolicies
+          validation:
+            type: object
+            properties:
+              requiredLabels:
+                type: array
+                items:
+                  type: string
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.network.policies
+            
+            violation[{"msg": msg}] {
+              input.review.object.kind == "Pod"
+              required_label := input.parameters.requiredLabels[_]
+              not input.review.object.metadata.labels[required_label]
+              msg := sprintf("Pod must have required network label: %s", [required_label])
+            }
+            
+            violation[{"msg": msg}] {
+              input.review.object.kind == "Service"
+              input.review.object.spec.type == "LoadBalancer"
+              not input.review.object.metadata.annotations["service.beta.kubernetes.io/load-balancer-source-ranges"]
+              msg := "LoadBalancer services must specify source IP ranges"
+            }
+
+# RBAC Security Policies
+rbac_policies:
+  principle_of_least_privilege:
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: nephoran-operator-minimal
+      namespace: nephoran-system
+    rules:
+      - apiGroups: [""]
+        resources: ["configmaps", "secrets", "events"]
+        verbs: ["get", "list", "watch", "create", "update", "patch"]
+      - apiGroups: ["apps"]
+        resources: ["deployments", "replicasets"]
+        verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+      - apiGroups: ["nephoran.io"]
+        resources: ["networkintents", "e2nodesets", "cnfdeployments"]
+        verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+        
+  cluster_admin_restrictions:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-cluster-admin-restrictions
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranClusterAdminRestrictions
+          validation:
+            type: object
+            properties:
+              allowedSubjects:
+                type: array
+                items:
+                  type: string
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.rbac.clusteradmin
+            
+            violation[{"msg": msg}] {
+              input.review.object.kind == "ClusterRoleBinding"
+              input.review.object.roleRef.name == "cluster-admin"
+              subject := input.review.object.subjects[_]
+              not subject.name in input.parameters.allowedSubjects
+              msg := sprintf("Cluster-admin binding not allowed for subject: %s", [subject.name])
+            }
+
+# Data Protection Policies
+data_protection:
+  encryption_at_rest:
+    apiVersion: v1
+    kind: EncryptionConfiguration
+    resources:
+      - resources:
+          - secrets
+          - configmaps
+          - nephoran.io/networkintents
+        providers:
+          - aescbc:
+              keys:
+                - name: key1
+                  secret: ${ENCRYPTION_KEY}
+          - identity: {}
+          
+  backup_policies:
+    apiVersion: velero.io/v1
+    kind: Schedule
+    metadata:
+      name: nephoran-backup-policy
+      namespace: velero
+    spec:
+      schedule: "0 2 * * *"  # Daily at 2 AM
+      template:
+        includedNamespaces:
+          - nephoran-system
+        includedResources:
+          - secrets
+          - configmaps
+          - persistentvolumes
+          - persistentvolumeclaims
+        excludedResources:
+          - events
+        ttl: "720h"  # 30 days retention
+        storageLocation: "secure-backup-location"
+        
+  data_classification:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-data-classification
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranDataClassification
+          validation:
+            type: object
+            properties:
+              sensitiveDataPatterns:
+                type: array
+                items:
+                  type: string
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.data.classification
+            
+            violation[{"msg": msg}] {
+              input.review.object.kind == "Secret"
+              data_value := input.review.object.data[_]
+              decoded_value := base64.decode(data_value)
+              pattern := input.parameters.sensitiveDataPatterns[_]
+              regex.match(pattern, decoded_value)
+              msg := sprintf("Secret contains sensitive data matching pattern: %s", [pattern])
+            }
+
+# Container Image Security Policies
+image_security:
+  image_vulnerability_scanning:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-image-vulnerability
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranImageVulnerability
+          validation:
+            type: object
+            properties:
+              maxCriticalVulns:
+                type: integer
+              maxHighVulns:
+                type: integer
+              scanRequired:
+                type: boolean
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.image.vulnerability
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.containers[_]
+              input.parameters.scanRequired
+              not container.image contains "@sha256:"
+              msg := "Container image must be referenced by digest for vulnerability tracking"
+            }
+            
+            violation[{"msg": msg}] {
+              container := input.review.object.spec.containers[_]
+              not container.image contains "nephoran.io/"
+              not container.image contains "gcr.io/"
+              not container.image contains "quay.io/"
+              msg := "Container image must come from approved registry"
+            }
+            
+  image_signing_verification:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-image-signing
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranImageSigning
+          validation:
+            type: object
+            properties:
+              requireSigned:
+                type: boolean
+              trustedSigners:
+                type: array
+                items:
+                  type: string
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.image.signing
+            
+            violation[{"msg": msg}] {
+              input.parameters.requireSigned
+              container := input.review.object.spec.containers[_]
+              not signed_by_trusted_signer(container.image)
+              msg := sprintf("Container image %s must be signed by trusted signer", [container.image])
+            }
+            
+            signed_by_trusted_signer(image) {
+              # This would integrate with cosign or similar tool
+              # For now, we check if the image has a signature annotation
+              input.review.object.metadata.annotations["cosign.sigstore.dev/signature"]
+              signer := input.review.object.metadata.annotations["cosign.sigstore.dev/signer"]
+              signer in input.parameters.trustedSigners
+            }
+
+# Supply Chain Security Policies
+supply_chain:
+  sbom_requirements:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-sbom-requirements
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranSBOMRequirements
+          validation:
+            type: object
+            properties:
+              requireSBOM:
+                type: boolean
+              sbomFormats:
+                type: array
+                items:
+                  type: string
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.supply.chain.sbom
+            
+            violation[{"msg": msg}] {
+              input.parameters.requireSBOM
+              container := input.review.object.spec.containers[_]
+              not has_sbom_annotation(container.image)
+              msg := sprintf("Container image %s must have SBOM metadata", [container.image])
+            }
+            
+            has_sbom_annotation(image) {
+              sbom_format := input.parameters.sbomFormats[_]
+              annotation_key := sprintf("sbom.%s", [sbom_format])
+              input.review.object.metadata.annotations[annotation_key]
+            }
+            
+  provenance_verification:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-provenance-verification
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranProvenanceVerification
+          validation:
+            type: object
+            properties:
+              requireProvenance:
+                type: boolean
+              trustedBuilders:
+                type: array
+                items:
+                  type: string
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.supply.chain.provenance
+            
+            violation[{"msg": msg}] {
+              input.parameters.requireProvenance
+              container := input.review.object.spec.containers[_]
+              not has_trusted_provenance(container.image)
+              msg := sprintf("Container image %s must have trusted build provenance", [container.image])
+            }
+            
+            has_trusted_provenance(image) {
+              builder := input.review.object.metadata.annotations["build.provenance.builder"]
+              builder in input.parameters.trustedBuilders
+            }
+
+# Monitoring and Compliance Policies
+monitoring:
+  security_event_logging:
+    apiVersion: logging.coreos.com/v1
+    kind: ClusterLogForwarder
+    metadata:
+      name: nephoran-security-logs
+      namespace: openshift-logging
+    spec:
+      outputs:
+        - name: security-logs
+          type: elasticsearch
+          url: https://security-logs.nephoran.io:9200
+          elasticsearch:
+            index: nephoran-security-{+yyyy.MM.dd}
+      pipelines:
+        - name: security-events
+          inputRefs:
+            - application
+            - infrastructure
+            - audit
+          filterRefs:
+            - security-filter
+          outputRefs:
+            - security-logs
+            
+  compliance_monitoring:
+    apiVersion: monitoring.coreos.com/v1
+    kind: PrometheusRule
+    metadata:
+      name: nephoran-compliance-monitoring
+      namespace: nephoran-system
+    spec:
+      groups:
+        - name: nephoran.compliance.rules
+          rules:
+            - alert: UnauthorizedPrivilegedContainer
+              expr: |
+                kube_pod_container_status_running{namespace="nephoran-system"} == 1
+                and on (pod, container) 
+                kube_pod_container_info{security_context_privileged="true"}
+              for: 0m
+              labels:
+                severity: critical
+                compliance_framework: "cis_kubernetes"
+                control_id: "5.2.5"
+              annotations:
+                summary: "Privileged container detected in Nephoran namespace"
+                description: "Pod {{ $labels.pod }} has privileged container {{ $labels.container }}"
+                
+            - alert: NonCompliantNetworkPolicy
+              expr: |
+                count(
+                  kube_networkpolicy_spec_ingress_rules{namespace="nephoran-system"}
+                ) == 0
+              for: 5m
+              labels:
+                severity: warning
+                compliance_framework: "nist_csf"
+                control_id: "PR.AC-04"
+              annotations:
+                summary: "No network policies found in Nephoran namespace"
+                description: "Namespace nephoran-system lacks proper network segmentation"
+
+# Policy Enforcement and Exceptions
+enforcement:
+  policy_exceptions:
+    apiVersion: config.gatekeeper.sh/v1alpha1
+    kind: Config
+    metadata:
+      name: config
+      namespace: gatekeeper-system
+    spec:
+      match:
+        - excludedNamespaces: ["kube-system", "gatekeeper-system"]
+          processes: ["*"]
+      validation:
+        traces:
+          - user:
+              kind:
+                group: "user"
+                version: "v1"
+                kind: "User"
+            kind:
+              group: "nephoran.io"
+              version: "v1"
+              kind: "NetworkIntent"
+              
+  emergency_bypass:
+    apiVersion: templates.gatekeeper.sh/v1beta1
+    kind: ConstraintTemplate
+    metadata:
+      name: nephoran-emergency-bypass
+    spec:
+      crd:
+        spec:
+          names:
+            kind: NephoranEmergencyBypass
+          validation:
+            type: object
+            properties:
+              emergencyLabel:
+                type: string
+              approvedBypassers:
+                type: array
+                items:
+                  type: string
+      targets:
+        - target: admission.k8s.gatekeeper.sh
+          rego: |
+            package nephoran.emergency.bypass
+            
+            violation[{"msg": msg}] {
+              has_emergency_label
+              not is_approved_bypasser
+              msg := "Emergency bypass requires approved bypasser"
+            }
+            
+            has_emergency_label {
+              input.review.object.metadata.labels[input.parameters.emergencyLabel]
+            }
+            
+            is_approved_bypasser {
+              input.review.userInfo.username in input.parameters.approvedBypassers
+            }
+
+# Testing and Validation
+testing:
+  policy_testing:
+    framework: "opa_test"
+    test_suites:
+      - name: "container_security_tests"
+        tests:
+          - name: "test_container_must_run_as_nonroot"
+            query: "data.nephoran.container.security.violation[_]"
+            input_document: "test_pod_privileged.yaml"
+            expected_violations: 1
+          - name: "test_approved_image_allowed"
+            query: "data.nephoran.container.security.violation[_]"
+            input_document: "test_pod_approved_image.yaml"
+            expected_violations: 0
+            
+  compliance_validation:
+    tools:
+      - name: "conftest"
+        policies: "security/policies/opa/"
+        test_data: "security/test-data/"
+      - name: "polaris"
+        config: "security/configs/polaris-config.yaml"
+        threshold: 90

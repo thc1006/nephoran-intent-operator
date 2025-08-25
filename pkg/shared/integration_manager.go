@@ -29,7 +29,35 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
+	"github.com/thc1006/nephoran-intent-operator/pkg/interfaces"
 )
+
+// ComponentStatus is now imported from contracts package
+type ComponentStatus = contracts.ComponentStatus
+
+// SystemHealth represents the overall health of the system
+type SystemHealth struct {
+	OverallStatus  string                      `json:"overallStatus"`
+	Healthy        bool                        `json:"healthy"`
+	Components     map[string]*contracts.ComponentStatus `json:"components"`
+	LastUpdate     time.Time                   `json:"lastUpdate"`
+	ActiveIntents  int                         `json:"activeIntents"`
+	ProcessingRate float64                     `json:"processingRate"`
+	ErrorRate      float64                     `json:"errorRate"`
+	ResourceUsage  ResourceUsage               `json:"resourceUsage"`
+}
+
+// ResourceUsage represents resource utilization
+type ResourceUsage struct {
+	CPUPercent        float64 `json:"cpuPercent"`
+	MemoryPercent     float64 `json:"memoryPercent"`
+	DiskPercent       float64 `json:"diskPercent"`
+	NetworkInMBps     float64 `json:"networkInMBps"`
+	NetworkOutMBps    float64 `json:"networkOutMBps"`
+	ActiveConnections int     `json:"activeConnections"`
+}
 
 // IntegrationManager orchestrates all shared components and controllers
 type IntegrationManager struct {
@@ -50,7 +78,7 @@ type IntegrationManager struct {
 	config *IntegrationConfig
 
 	// Component registry
-	controllers    map[ComponentType]ControllerInterface
+	controllers    map[contracts.ComponentType]interfaces.ControllerInterface
 	webhooks       map[string]WebhookInterface
 	healthCheckers map[string]HealthChecker
 
@@ -165,12 +193,12 @@ func NewIntegrationManager(mgr manager.Manager, config *IntegrationConfig) (*Int
 		scheme:         mgr.GetScheme(),
 		recorder:       mgr.GetEventRecorderFor("integration-manager"),
 		config:         config,
-		controllers:    make(map[ComponentType]ControllerInterface),
+		controllers:    make(map[interfaces.ComponentType]interfaces.ControllerInterface),
 		webhooks:       make(map[string]WebhookInterface),
 		healthCheckers: make(map[string]HealthChecker),
 		components:     make([]StartableComponent, 0),
 		systemHealth: &SystemHealth{
-			Components:    make(map[string]*ComponentStatus),
+			Components:    make(map[string]*contracts.ComponentStatus),
 			ResourceUsage: ResourceUsage{},
 		},
 		metricsCollector: &MetricsCollector{
@@ -520,8 +548,8 @@ func (im *IntegrationManager) updateSystemHealth(ctx context.Context) {
 			overallHealthy = false
 		}
 
-		status := &ComponentStatus{
-			Type:       ComponentTypeLLMProcessor, // This would be properly determined
+		status := &contracts.ComponentStatus{
+			Type:       contracts.ComponentTypeLLMProcessor, // This would be properly determined
 			Name:       name,
 			Status:     "running",
 			Healthy:    healthy,

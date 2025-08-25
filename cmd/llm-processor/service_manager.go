@@ -13,6 +13,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ServiceManager manages the overall service lifecycle and components
@@ -209,7 +210,7 @@ func (sm *ServiceManager) registerHealthChecks() {
 			// Check if any circuit breakers are open
 			var openBreakers []string
 			for name, state := range stats {
-				if cbStats, ok := state.(map[string]interface{}); ok {
+				if cbStats, ok := state.(map[string]any); ok {
 					if cbState, exists := cbStats["state"]; exists && cbState == "open" {
 						openBreakers = append(openBreakers, name)
 					}
@@ -237,7 +238,7 @@ func (sm *ServiceManager) registerHealthChecks() {
 			return &health.Check{
 				Status:  health.StatusHealthy,
 				Message: fmt.Sprintf("Token manager operational with %d supported models", len(models)),
-				Metadata: map[string]interface{}{
+				Metadata: map[string]any{
 					"supported_models": models,
 				},
 			}
@@ -270,10 +271,10 @@ func (sm *ServiceManager) loadSecureAPIKeys(ctx context.Context) (*config.APIKey
 	if sm.secretManager == nil {
 		// Fall back to environment variables
 		return &config.APIKeys{
-			OpenAI:    getEnv("OPENAI_API_KEY", ""),
-			Weaviate:  getEnv("WEAVIATE_API_KEY", ""),
-			Generic:   getEnv("API_KEY", ""),
-			JWTSecret: getEnv("JWT_SECRET_KEY", ""),
+			OpenAI:    shared.GetEnv("OPENAI_API_KEY", ""),
+			Weaviate:  shared.GetEnv("WEAVIATE_API_KEY", ""),
+			Generic:   shared.GetEnv("API_KEY", ""),
+			JWTSecret: shared.GetEnv("JWT_SECRET_KEY", ""),
 		}, nil
 	}
 
@@ -438,7 +439,7 @@ func (sm *ServiceManager) processIntentHandler(w http.ResponseWriter, r *http.Re
 
 // statusHandler provides service status information
 func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) {
-	status := map[string]interface{}{
+	status := map[string]any{
 		"service":        "llm-processor",
 		"version":        sm.config.ServiceVersion,
 		"uptime":         time.Since(startTime).String(),
@@ -457,7 +458,7 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 
 // metricsHandler provides comprehensive metrics
 func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request) {
-	metrics := map[string]interface{}{
+	metrics := map[string]any{
 		"service": "llm-processor",
 		"version": sm.config.ServiceVersion,
 		"uptime":  time.Since(startTime).String(),

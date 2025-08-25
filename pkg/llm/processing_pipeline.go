@@ -108,21 +108,6 @@ type EnrichmentContext struct {
 	Timestamp         time.Time          `json:"timestamp"`
 }
 
-type NetworkTopology struct {
-	Region           string            `json:"region"`
-	AvailabilityZone string            `json:"availability_zone"`
-	NetworkSlices    []NetworkSlice    `json:"network_slices"`
-	Constraints      map[string]string `json:"constraints"`
-}
-
-type NetworkSlice struct {
-	ID          string  `json:"id"`
-	Type        string  `json:"type"` // eMBB, URLLC, mMTC
-	Status      string  `json:"status"`
-	Capacity    int     `json:"capacity"`
-	Utilization float64 `json:"utilization"`
-}
-
 type DeploymentContext struct {
 	Environment       string            `json:"environment"` // dev, staging, prod
 	Cluster           string            `json:"cluster"`
@@ -190,18 +175,19 @@ type ValidationRule struct {
 	Severity     string // "error", "warning", "info"
 }
 
-type ValidationResult struct {
+type PipelineValidationResult struct {
 	Valid    bool              `json:"valid"`
 	Errors   []ValidationError `json:"errors,omitempty"`
 	Warnings []ValidationError `json:"warnings,omitempty"`
 	Score    float64           `json:"score"`
 }
 
-type ValidationError struct {
-	Field    string `json:"field"`
-	Message  string `json:"message"`
-	Code     string `json:"code"`
-	Severity string `json:"severity"`
+// PipelineValidationResult for internal pipeline processing (distinct from security_validator.ValidationResult)
+type PipelineInputValidationResult struct {
+	Valid    bool              `json:"valid"`
+	Score    float64           `json:"score"`
+	Errors   []ValidationError `json:"errors,omitempty"`
+	Warnings []ValidationError `json:"warnings,omitempty"`
 }
 
 // ResponseTransformer modifies and enhances LLM responses
@@ -225,7 +211,7 @@ type ProcessingContext struct {
 	Intent           string                 `json:"intent"`
 	Classification   ClassificationResult   `json:"classification"`
 	EnrichmentData   *EnrichmentContext     `json:"enrichment_data"`
-	ValidationResult *ValidationResult      `json:"validation_result"`
+	ValidationResult *PipelineInputValidationResult `json:"validation_result"`
 	ProcessingStart  time.Time              `json:"processing_start"`
 	Metadata         map[string]interface{} `json:"metadata"`
 }
@@ -330,7 +316,7 @@ func (pp *ProcessingPipeline) ProcessIntent(ctx context.Context, intent string, 
 	return result, nil
 }
 
-type ProcessingResult struct {
+type PipelineProcessingResult struct {
 	ProcessingContext *ProcessingContext `json:"processing_context"`
 	ProcessingTime    time.Duration      `json:"processing_time"`
 	Success           bool               `json:"success"`
@@ -684,8 +670,8 @@ func (iv *InputValidator) initializeRules() {
 }
 
 // Validate performs comprehensive input validation
-func (iv *InputValidator) Validate(intent string) ValidationResult {
-	result := ValidationResult{
+func (iv *InputValidator) Validate(intent string) PipelineInputValidationResult {
+	result := PipelineInputValidationResult{
 		Valid: true,
 		Score: 1.0,
 	}

@@ -468,6 +468,9 @@ func (ro *RecoveryOrchestrator) executeWaitStep(ctx context.Context, step Recove
 		return fmt.Errorf("condition parameter required for wait step")
 	}
 
+	// TODO: Implement condition checking logic
+	_ = condition // Suppress unused variable error for now
+
 	return wait.PollImmediate(1*time.Second, timeout, func() (bool, error) {
 		// Implement condition checking logic based on condition string
 		// This is a simplified placeholder

@@ -7,7 +7,6 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"k8s.io/client-go/kubernetes"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -17,11 +16,11 @@ type AutomationIntegration struct {
 	logger           *logging.StructuredLogger
 	caManager        *CAManager
 	automationEngine *AutomationEngine
-	config           *IntegrationConfig
+	config           *AutomationIntegrationConfig
 }
 
-// IntegrationConfig configures the automation integration
-type IntegrationConfig struct {
+// AutomationIntegrationConfig configures the automation integration
+type AutomationIntegrationConfig struct {
 	// CA Manager configuration
 	CAManagerConfig *Config `yaml:"ca_manager"`
 
@@ -48,7 +47,7 @@ type IntegrationConfig struct {
 func NewAutomationIntegration(
 	mgr manager.Manager,
 	logger *logging.StructuredLogger,
-	config *IntegrationConfig,
+	config *AutomationIntegrationConfig,
 ) (*AutomationIntegration, error) {
 	if config == nil {
 		return nil, fmt.Errorf("integration config is required")
@@ -402,8 +401,8 @@ func (ai *AutomationIntegration) triggerHealthAlert(status map[string]interface{
 }
 
 // Default configuration factory
-func NewDefaultIntegrationConfig() *IntegrationConfig {
-	return &IntegrationConfig{
+func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
+	return &AutomationIntegrationConfig{
 		CAManagerConfig: &Config{
 			DefaultBackend:          BackendSelfSigned,
 			BackendConfigs:          make(map[CABackendType]interface{}),

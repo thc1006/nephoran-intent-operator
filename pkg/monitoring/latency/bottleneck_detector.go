@@ -3,7 +3,6 @@ package latency
 import (
 	"context"
 	"fmt"
-	"math"
 	"sort"
 	"sync"
 	"sync/atomic"

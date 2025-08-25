@@ -3,21 +3,13 @@
 package rag
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"log/slog"
-	"math"
-	"net/http"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/go-redis/redis/v8"
 )
 
 // MultiProviderEmbeddingService provides intelligent embedding generation with multiple providers
@@ -742,14 +734,28 @@ func (mps *MultiProviderEmbeddingService) GetMetrics() *EmbeddingMetrics {
 	mps.metrics.mutex.RLock()
 	defer mps.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *mps.metrics
-	metrics.ModelStats = make(map[string]ModelUsageStats)
+	// Return a copy without the mutex
+	metrics := &EmbeddingMetrics{
+		TotalRequests:      mps.metrics.TotalRequests,
+		SuccessfulRequests: mps.metrics.SuccessfulRequests,
+		FailedRequests:     mps.metrics.FailedRequests,
+		TotalTexts:         mps.metrics.TotalTexts,
+		TotalTokens:        mps.metrics.TotalTokens,
+		TotalCost:          mps.metrics.TotalCost,
+		AverageLatency:     mps.metrics.AverageLatency,
+		AverageTextLength:  mps.metrics.AverageTextLength,
+		CacheStats:         mps.metrics.CacheStats,
+		RateLimitingStats:  mps.metrics.RateLimitingStats,
+		ModelStats:         make(map[string]ModelUsageStats),
+		LastUpdated:        mps.metrics.LastUpdated,
+	}
+	
+	// Deep copy map
 	for k, v := range mps.metrics.ModelStats {
 		metrics.ModelStats[k] = v
 	}
 
-	return &metrics
+	return metrics
 }
 
 // GetCostSummary returns cost tracking summary

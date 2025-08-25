@@ -7,6 +7,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
+	dto "github.com/prometheus/client_model/go"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
@@ -565,7 +566,7 @@ func (c *ORANMetricsCollector) Reset() {
 }
 
 // GetMetricsFamilies returns all registered metric families for debugging
-func (c *ORANMetricsCollector) GetMetricsFamilies() ([]*prometheus.MetricFamily, error) {
+func (c *ORANMetricsCollector) GetMetricsFamilies() ([]*dto.MetricFamily, error) {
 	return prometheus.DefaultGatherer.Gather()
 }
 

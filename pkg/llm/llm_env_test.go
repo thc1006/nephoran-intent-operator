@@ -102,7 +102,7 @@ func TestNewClientWithConfigEnvironmentVariables(t *testing.T) {
 		{
 			name: "Combined environment variables",
 			envVars: map[string]string{
-				"LLM_MAX_RETRIES":        "3",
+				"LLM_MAX_RETRIES":       "3",
 				"LLM_CACHE_MAX_ENTRIES": "256",
 			},
 			description: "Should handle multiple environment variables",

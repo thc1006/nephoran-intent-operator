@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 )
 
 // PredefinedExperiments provides a catalog of pre-configured chaos experiments
@@ -725,8 +724,6 @@ func (p *PredefinedExperiments) RunExperimentSuite(ctx context.Context, suite *E
 	p.logger.Info("Starting experiment suite",
 		zap.String("suite", suite.Name),
 		zap.Int("experiments", len(suite.Experiments)))
-
-	results := make([]*ExperimentResult, 0, len(suite.Experiments))
 
 	switch suite.RunSequence {
 	case RunSequenceSerial:

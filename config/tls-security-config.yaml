@@ -1,0 +1,330 @@
+# TLS Security Configuration for Nephoran Intent Operator
+# Compliant with O-RAN WG11 Security Specifications
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tls-security-config
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran
+    app.kubernetes.io/component: security
+    oran.security.version: "3.0"
+    oran.wg: "wg11"
+data:
+  # Global TLS Configuration
+  tls-config.yaml: |
+    # Minimum TLS version enforcement
+    minTLSVersion: "1.3"  # TLS 1.3 minimum for production
+    maxTLSVersion: "1.3"  # Restrict to TLS 1.3 only
+    
+    # Cipher suites configuration (TLS 1.3)
+    tls13CipherSuites:
+      - TLS_AES_256_GCM_SHA384        # Strongest cipher
+      - TLS_CHACHA20_POLY1305_SHA256  # Performance optimized
+      - TLS_AES_128_GCM_SHA256        # Compatibility fallback
+    
+    # Cipher suites configuration (TLS 1.2 - if needed for compatibility)
+    tls12CipherSuites:
+      - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+      - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+      - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+      - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+    
+    # Explicitly blocked weak ciphers
+    blockedCipherSuites:
+      - TLS_RSA_WITH_3DES_EDE_CBC_SHA
+      - TLS_RSA_WITH_AES_128_CBC_SHA
+      - TLS_RSA_WITH_AES_256_CBC_SHA
+      - TLS_RSA_WITH_RC4_128_SHA
+      - TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
+      - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
+      - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
+    
+    # Elliptic curve preferences
+    curvePreferences:
+      - X25519      # Modern, fast, secure
+      - P-384       # NIST P-384 for compliance
+      - P-256       # NIST P-256 for compatibility
+    
+    # Certificate requirements
+    certificateRequirements:
+      minRSAKeySize: 3072        # Minimum RSA key size in bits
+      minECDSAKeySize: 384       # Minimum ECDSA key size in bits
+      maxCertificateLifetime: 365 # Maximum certificate lifetime in days
+      requireExtendedKeyUsage: true
+      requiredEKUs:
+        - serverAuth
+        - clientAuth
+      requireSAN: true           # Subject Alternative Names required
+      allowWildcardCertificates: false
+    
+    # OCSP Configuration
+    ocspConfiguration:
+      enabled: true
+      staplingEnabled: true
+      staplingCacheSize: 1000
+      staplingCacheTTL: 3600     # seconds
+      mustStaple: true           # Require OCSP Must-Staple extension
+      softFail: false            # Strict OCSP validation
+      timeout: 10                # seconds
+      responderURLOverride: ""   # Optional override
+    
+    # Certificate Revocation List (CRL) Configuration
+    crlConfiguration:
+      enabled: true
+      refreshInterval: 3600      # seconds
+      cacheTTL: 86400           # seconds (24 hours)
+      failOpen: false           # Strict CRL validation
+      distributionPoints:
+        - "http://crl.example.com/root.crl"
+        - "http://crl.example.com/intermediate.crl"
+    
+    # Session Management
+    sessionManagement:
+      ticketsDisabled: true      # Disable session tickets for forward secrecy
+      cacheSize: 0               # No session caching
+      timeout: 3600              # seconds
+      renegotiationPolicy: "never"
+    
+    # mTLS Configuration
+    mtlsConfiguration:
+      enabled: true
+      requireClientCert: true
+      verifyClientCert: true
+      clientAuthType: "RequireAndVerifyClientCert"
+      allowedClientCNs:
+        - "*.oran.internal"
+        - "nephoran-client"
+      allowedClientSANs:
+        - "client.nephoran.io"
+        - "*.nephoran.local"
+    
+    # Rate Limiting (DoS Protection)
+    rateLimiting:
+      handshakeRateLimit: 100    # per second
+      connectionRateLimit: 1000  # per second
+      perIPRateLimit: 50         # per second per IP
+      maxConcurrentHandshakes: 100
+      handshakeTimeout: 30       # seconds
+    
+    # Security Headers
+    securityHeaders:
+      strictTransportSecurity: "max-age=63072000; includeSubDomains; preload"
+      contentSecurityPolicy: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'"
+      xFrameOptions: "DENY"
+      xContentTypeOptions: "nosniff"
+      referrerPolicy: "strict-origin-when-cross-origin"
+      permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+    
+    # Monitoring and Auditing
+    monitoring:
+      metricsEnabled: true
+      auditLogging: true
+      logLevel: "info"
+      logFailedHandshakes: true
+      logCertificateDetails: true
+      alertOnWeakCiphers: true
+      alertOnExpiredCerts: true
+      certExpiryWarningDays: 30
+
+  # O-RAN Interface Specific Configurations
+  oran-interfaces.yaml: |
+    # A1 Interface (Non-RT RIC to Near-RT RIC)
+    a1Interface:
+      securityProfile: "strict"
+      minTLSVersion: "1.3"
+      requireMTLS: true
+      requireOCSP: true
+      allowedCipherSuites:
+        - TLS_AES_256_GCM_SHA384
+      certificateValidation:
+        checkCN: true
+        checkSAN: true
+        allowedCNPattern: "^a1\\.(ric|ran)\\..*$"
+      rateLimit:
+        requestsPerSecond: 1000
+        burstSize: 100
+    
+    # E2 Interface (Near-RT RIC to E2 Nodes)
+    e2Interface:
+      securityProfile: "strict"
+      minTLSVersion: "1.3"
+      requireMTLS: true
+      requireOCSP: true
+      allowedCipherSuites:
+        - TLS_AES_256_GCM_SHA384
+        - TLS_CHACHA20_POLY1305_SHA256
+      certificateValidation:
+        checkCN: true
+        checkSAN: true
+        allowedCNPattern: "^e2\\.(node|ric)\\..*$"
+      messageEncryption:
+        algorithm: "AES-256-GCM"
+        keyRotationInterval: 86400  # seconds
+    
+    # O1 Interface (O-RAN Management)
+    o1Interface:
+      securityProfile: "enhanced"
+      minTLSVersion: "1.2"
+      requireMTLS: true
+      requireOCSP: false
+      allowedCipherSuites:
+        - TLS_AES_256_GCM_SHA384
+        - TLS_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+      certificateValidation:
+        checkCN: true
+        checkSAN: true
+        allowedCNPattern: "^o1\\.mgmt\\..*$"
+      netconfSecurity:
+        sshVersion: "2"
+        allowedMACs:
+          - "hmac-sha2-256"
+          - "hmac-sha2-512"
+    
+    # O2 Interface (O-Cloud to SMO)
+    o2Interface:
+      securityProfile: "strict"
+      minTLSVersion: "1.3"
+      requireMTLS: true
+      requireOCSP: true
+      allowedCipherSuites:
+        - TLS_AES_256_GCM_SHA384
+      certificateValidation:
+        checkCN: true
+        checkSAN: true
+        allowedCNPattern: "^o2\\.(cloud|smo)\\..*$"
+      apiSecurity:
+        requireOAuth2: true
+        requireJWT: true
+        jwtAlgorithm: "RS256"
+
+  # Certificate Automation Configuration
+  cert-automation.yaml: |
+    certManager:
+      enabled: true
+      issuerType: "ClusterIssuer"
+      issuerName: "nephoran-ca-issuer"
+      
+    certificateRotation:
+      enabled: true
+      checkInterval: 3600        # seconds
+      rotationThresholdDays: 30
+      autoRenew: true
+      backupEnabled: true
+      backupRetentionDays: 90
+      
+    certificateProfiles:
+      server:
+        keyAlgorithm: "ECDSA"
+        keySize: 384
+        duration: "8760h"        # 1 year
+        renewBefore: "720h"      # 30 days
+        usages:
+          - "digital signature"
+          - "key encipherment"
+          - "server auth"
+        dnsNames:
+          - "*.nephoran.local"
+          - "*.oran.internal"
+      
+      client:
+        keyAlgorithm: "ECDSA"
+        keySize: 384
+        duration: "2160h"        # 90 days
+        renewBefore: "360h"      # 15 days
+        usages:
+          - "digital signature"
+          - "key encipherment"
+          - "client auth"
+        emailAddresses:
+          - "admin@nephoran.io"
+    
+    secretManagement:
+      provider: "kubernetes"      # or "vault", "aws-secrets-manager"
+      encryptionKey: "AES256"
+      autoRotation: true
+      rotationInterval: 2592000   # 30 days in seconds
+
+  # Compliance Configuration
+  compliance.yaml: |
+    standards:
+      - name: "O-RAN WG11"
+        version: "3.0"
+        enabled: true
+        validationRules:
+          - id: "WG11-TLS-001"
+            description: "Minimum TLS 1.2 required"
+            severity: "critical"
+          - id: "WG11-TLS-002"
+            description: "mTLS required for inter-component communication"
+            severity: "critical"
+          - id: "WG11-CERT-001"
+            description: "Minimum 2048-bit RSA or 256-bit ECDSA keys"
+            severity: "high"
+          - id: "WG11-OCSP-001"
+            description: "OCSP validation required for A1/E2/O2 interfaces"
+            severity: "high"
+      
+      - name: "NIST SP 800-52"
+        version: "Rev 2"
+        enabled: true
+        validationRules:
+          - id: "NIST-TLS-001"
+            description: "TLS 1.3 preferred, TLS 1.2 minimum"
+            severity: "high"
+          - id: "NIST-CIPHER-001"
+            description: "Use only AEAD cipher suites"
+            severity: "critical"
+      
+      - name: "OWASP TLS"
+        version: "2024"
+        enabled: true
+        validationRules:
+          - id: "OWASP-TLS-001"
+            description: "Disable SSL 2.0, 3.0, TLS 1.0, 1.1"
+            severity: "critical"
+          - id: "OWASP-CERT-001"
+            description: "Validate certificate chains completely"
+            severity: "critical"
+    
+    auditSettings:
+      enabled: true
+      logLevel: "info"
+      logDestination: "stdout"    # or "file", "syslog", "elasticsearch"
+      retentionDays: 90
+      includeDetails:
+        - "certificate-subject"
+        - "cipher-suite"
+        - "tls-version"
+        - "handshake-duration"
+        - "validation-errors"
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: tls-security-secrets
+  namespace: nephoran-system
+  labels:
+    app.kubernetes.io/name: nephoran
+    app.kubernetes.io/component: security
+type: Opaque
+stringData:
+  # OCSP responder credentials (if private OCSP is used)
+  ocsp-username: "ocsp-client"
+  ocsp-password: "change-me-in-production"
+  
+  # Certificate pinning hashes (SHA256)
+  pinned-certs: |
+    *.oran.internal: "sha256//AbCdEfGhIjKlMnOpQrStUvWxYz1234567890ABCDEF="
+    nephoran-ca: "sha256//1234567890ABCDEFAbCdEfGhIjKlMnOpQrStUvWxYz="
+  
+  # JWT signing key for API authentication
+  jwt-signing-key: "change-me-use-proper-key-management"
+  
+  # Encryption key for sensitive data at rest
+  encryption-key: "base64-encoded-256-bit-key-here"

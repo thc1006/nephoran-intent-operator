@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/mock"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,9 +33,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/git"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
 )
 
 func TestCNFOrchestrator(t *testing.T) {

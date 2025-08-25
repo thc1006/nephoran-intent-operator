@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // MockLLMClient provides a mock implementation of the LLM client interface
@@ -177,14 +177,14 @@ func (m *MockLLMClient) generateScaleResponse(intent string) string {
 }
 
 // ProcessIntentStream implements the shared.ClientInterface
-func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
+func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *types.StreamingChunk) error {
 	// For testing, just send the full response as a single chunk
 	response, err := m.ProcessIntent(ctx, prompt)
 	if err != nil {
 		return err
 	}
 
-	chunk := &shared.StreamingChunk{
+	chunk := &types.StreamingChunk{
 		Content:   response,
 		IsLast:    true,
 		Metadata:  make(map[string]interface{}),
@@ -206,8 +206,8 @@ func (m *MockLLMClient) GetSupportedModels() []string {
 }
 
 // GetModelCapabilities implements the shared.ClientInterface
-func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-	return &shared.ModelCapabilities{
+func (m *MockLLMClient) GetModelCapabilities(modelName string) (*types.ModelCapabilities, error) {
+	return &types.ModelCapabilities{
 		MaxTokens:         4096,
 		SupportsChat:      true,
 		SupportsFunction:  true,
@@ -386,5 +386,5 @@ func (m *MockGitClient) Reset() {
 }
 
 // Ensure mock clients implement the expected interfaces
-var _ shared.ClientInterface = (*MockLLMClient)(nil)
+var _ types.ClientInterface = (*MockLLMClient)(nil)
 var _ git.ClientInterface = (*MockGitClient)(nil)

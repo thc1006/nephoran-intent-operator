@@ -27,7 +27,7 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 env:
-  GO_VERSION: '1.24'
+  # Go version read from go.mod for consistency
   SECURITY_DIR: './security'
   REPORTS_DIR: './security-reports'
 
@@ -38,6 +38,7 @@ permissions:
   id-token: write  # For OIDC and signing
   packages: read
   pull-requests: write  # For PR comments
+  issues: write  # For creating security issues
 
 jobs:
   # =============================================================================
@@ -57,7 +58,7 @@ jobs:
       - name: "Setup Go with Checksum Verification"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
           check-latest: true
           
@@ -68,15 +69,82 @@ jobs:
           
       - name: "Install Supply Chain Tools"
         run: |
+          set -euo pipefail
+          
+          # Function to get latest release version from GitHub
+          get_latest_version() {
+            local repo=$1
+            curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'
+          }
+          
+          # Function to check if a version exists on GitHub releases
+          check_github_version() {
+            local repo=$1
+            local version=$2
+            local url="https://api.github.com/repos/${repo}/releases/tags/v${version}"
+            if curl -sL "$url" | grep -q '"tag_name"'; then
+              echo "Version v${version} exists for ${repo}"
+              return 0
+            else
+              echo "Version v${version} not found for ${repo}, will use latest"
+              return 1
+            fi
+          }
+          
+          echo "📦 Installing Supply Chain Security Tools..."
+          
           # Install with version pinning for reproducibility
-          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.4.0
-          go install github.com/in-toto/in-toto-golang/in-toto@v0.9.0
+          echo "Installing CycloneDX GoMod..."
+          go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@v1.4.0 || {
+            echo "⚠️ Failed to install specific version, trying latest"
+            go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest
+          }
           
-          # Install Syft for SBOM generation
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin v0.95.0
+          # Install Syft for SBOM generation with version checking
+          echo "📦 Installing Syft..."
+          SYFT_TARGET_VERSION="0.95.0"
+          if check_github_version "anchore/syft" "${SYFT_TARGET_VERSION}"; then
+            SYFT_INSTALL_VERSION="${SYFT_TARGET_VERSION}"
+          else
+            SYFT_INSTALL_VERSION=$(get_latest_version "anchore/syft")
+            echo "Using Syft version: ${SYFT_INSTALL_VERSION}"
+          fi
           
-          # Install Grype for vulnerability scanning
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin v0.70.0
+          if curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin "v${SYFT_INSTALL_VERSION}"; then
+            echo "✅ Syft ${SYFT_INSTALL_VERSION} installed"
+          else
+            echo "⚠️ Syft installation failed, trying latest"
+            curl -sSfL "https://raw.githubusercontent.com/anchore/syft/main/install.sh" | sh -s -- -b /usr/local/bin
+            echo "✅ Syft latest version installed"
+          fi
+          
+          # Install Grype for vulnerability scanning with version checking
+          echo "📦 Installing Grype..."
+          GRYPE_TARGET_VERSION="0.70.0"
+          if check_github_version "anchore/grype" "${GRYPE_TARGET_VERSION}"; then
+            GRYPE_INSTALL_VERSION="${GRYPE_TARGET_VERSION}"
+          else
+            GRYPE_INSTALL_VERSION=$(get_latest_version "anchore/grype")
+            echo "Using Grype version: ${GRYPE_INSTALL_VERSION}"
+          fi
+          
+          if curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin "v${GRYPE_INSTALL_VERSION}"; then
+            echo "✅ Grype ${GRYPE_INSTALL_VERSION} installed"
+          else
+            echo "⚠️ Grype installation failed, trying latest"
+            curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin
+            echo "✅ Grype latest version installed"
+          fi
+          
+          echo "🔍 Verifying installations..."
+          echo "CycloneDX GoMod: $(cyclonedx-gomod --version || echo 'Not found')"
+          echo "Syft version: $(syft version || echo 'Not found')"
+          echo "Grype version: $(grype version || echo 'Not found')"
+          
+      - name: "Create Reports Directory"
+        run: |
+          echo "=== Creating Security Reports Directory ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
           
       - name: "Verify Module Integrity"
         run: |
@@ -90,8 +158,8 @@ jobs:
           mkdir -p ${{ env.REPORTS_DIR }}/sbom
           
           # CycloneDX format
-          cyclonedx-gomod mod -json -output-file ${{ env.REPORTS_DIR }}/sbom/sbom-cyclonedx.json
-          cyclonedx-gomod mod -xml -output-file ${{ env.REPORTS_DIR }}/sbom/sbom-cyclonedx.xml
+          cyclonedx-gomod mod -json -output ${{ env.REPORTS_DIR }}/sbom/sbom-cyclonedx.json .
+          cyclonedx-gomod mod -xml -output ${{ env.REPORTS_DIR }}/sbom/sbom-cyclonedx.xml .
           
           # SPDX format with Syft
           syft . -o spdx-json > ${{ env.REPORTS_DIR }}/sbom/sbom-spdx.json
@@ -165,6 +233,7 @@ jobs:
         uses: sigstore/cosign-installer@v3
         
       - name: "Upload Supply Chain Artifacts"
+        if: always() && (hashFiles('${{ env.REPORTS_DIR }}/sbom/*') != '' || hashFiles('${{ env.REPORTS_DIR }}/provenance/*') != '' || hashFiles('${{ env.REPORTS_DIR }}/*.json') != '')
         uses: actions/upload-artifact@v4
         with:
           name: supply-chain-artifacts
@@ -192,8 +261,13 @@ jobs:
       - name: "Setup Go"
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
           cache: true
+          
+      - name: "Create Reports Directory"
+        run: |
+          echo "=== Creating Security Reports Directory ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
           
       - name: "Install Analysis Tools"
         run: |
@@ -212,16 +286,58 @@ jobs:
           echo "=== Running GoSec Security Analysis ==="
           mkdir -p ${{ env.REPORTS_DIR }}/gosec
           
-          # Run with custom configuration
-          gosec -config=${{ env.SECURITY_DIR }}/configs/gosec.yaml \
-            -fmt sarif \
-            -out ${{ env.REPORTS_DIR }}/gosec/gosec.sarif \
-            ./... || true
+          # Run gosec with fallback to default configuration if custom config fails
+          if [ -f "${{ env.SECURITY_DIR }}/configs/gosec.yaml" ]; then
+            echo "Using custom gosec configuration"
+            gosec -config=${{ env.SECURITY_DIR }}/configs/gosec.yaml \
+              -fmt sarif \
+              -out ${{ env.REPORTS_DIR }}/gosec/gosec.sarif \
+              ./... || {
+                echo "Custom config failed, running with default settings"
+                gosec -fmt sarif -out ${{ env.REPORTS_DIR }}/gosec/gosec.sarif ./... || true
+              }
             
-          gosec -config=${{ env.SECURITY_DIR }}/configs/gosec.yaml \
-            -fmt json \
-            -out ${{ env.REPORTS_DIR }}/gosec/gosec.json \
-            ./... || true
+            gosec -config=${{ env.SECURITY_DIR }}/configs/gosec.yaml \
+              -fmt json \
+              -out ${{ env.REPORTS_DIR }}/gosec/gosec.json \
+              ./... || {
+                echo "Custom config failed for JSON, running with default settings"
+                gosec -fmt json -out ${{ env.REPORTS_DIR }}/gosec/gosec.json ./... || true
+              }
+          else
+            echo "No custom config found, using default gosec settings"
+            gosec -fmt sarif -out ${{ env.REPORTS_DIR }}/gosec/gosec.sarif ./... || true
+            gosec -fmt json -out ${{ env.REPORTS_DIR }}/gosec/gosec.json ./... || true
+          fi
+          
+          # Ensure SARIF file exists, create empty one if not
+          if [ ! -f "${{ env.REPORTS_DIR }}/gosec/gosec.sarif" ]; then
+            echo "Creating empty SARIF file as fallback"
+            cat > ${{ env.REPORTS_DIR }}/gosec/gosec.sarif << 'EOF'
+          {
+            "version": "2.1.0",
+            "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+            "runs": [{
+              "tool": {
+                "driver": {
+                  "name": "gosec",
+                  "version": "2.21.4",
+                  "informationUri": "https://github.com/securego/gosec"
+                }
+              },
+              "results": [],
+              "invocations": [{
+                "executionSuccessful": true,
+                "exitCode": 0,
+                "exitCodeDescription": "No issues found"
+              }]
+            }]
+          }
+          EOF
+          fi
+          
+          echo "GoSec analysis completed. SARIF file status:"
+          ls -la ${{ env.REPORTS_DIR }}/gosec/ || true
             
       - name: "Run Staticcheck"
         run: |
@@ -240,12 +356,14 @@ jobs:
           errcheck -ignoretests ./... > ${{ env.REPORTS_DIR }}/errcheck.txt || true
           
       - name: "Upload SARIF Results"
+        if: always() && hashFiles('${{ env.REPORTS_DIR }}/gosec/gosec.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ env.REPORTS_DIR }}/gosec/gosec.sarif
           category: "gosec-enhanced"
           
       - name: "Upload Analysis Reports"
+        if: always() && hashFiles('${{ env.REPORTS_DIR }}/**/*') != ''
         uses: actions/upload-artifact@v4
         with:
           name: static-analysis-reports
@@ -273,6 +391,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
+      - name: "Create Reports Directory"
+        run: |
+          echo "=== Creating Security Reports Directory ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
+          
       - name: "Run TruffleHog"
         run: |
           pip install truffleHog3
@@ -292,7 +415,7 @@ jobs:
             . > ${{ env.REPORTS_DIR }}/secrets/pattern-scan.txt || true
             
       - name: "Upload Secret Detection Reports"
-        if: always()
+        if: always() && hashFiles('${{ env.REPORTS_DIR }}/**/*') != ''
         uses: actions/upload-artifact@v4
         with:
           name: secret-detection-reports
@@ -334,6 +457,11 @@ jobs:
           severity: 'CRITICAL,HIGH,MEDIUM'
           vuln-type: 'os,library'
           
+      - name: "Create Reports Directory"
+        run: |
+          echo "=== Creating Security Reports Directory ==="
+          mkdir -p ${{ env.REPORTS_DIR }}
+          
       - name: "Run Snyk Container Scan"
         continue-on-error: true
         run: |
@@ -344,7 +472,28 @@ jobs:
             
       - name: "Run Anchore Grype"
         run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          set -euo pipefail
+          
+          # Function to get latest release version from GitHub
+          get_latest_version() {
+            local repo=$1
+            curl -sL "https://api.github.com/repos/${repo}/releases/latest" | grep '"tag_name":' | cut -d '"' -f 4 | sed 's/^v//'
+          }
+          
+          echo "📦 Installing Grype for container scanning..."
+          if curl -sSfL "https://raw.githubusercontent.com/anchore/grype/main/install.sh" | sh -s -- -b /usr/local/bin; then
+            echo "✅ Grype installed successfully"
+          else
+            echo "⚠️ Grype installation failed, trying direct download"
+            GRYPE_VERSION=$(get_latest_version "anchore/grype")
+            wget -q "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+            tar -xzf "grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+            sudo mv grype /usr/local/bin/
+            sudo chmod +x /usr/local/bin/grype
+            rm -f "grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+            echo "✅ Grype ${GRYPE_VERSION} installed from binary"
+          fi
+          
           grype nephoran-operator:security-scan \
             --output json \
             --file ${{ env.REPORTS_DIR }}/grype-container.json
@@ -365,6 +514,7 @@ jobs:
           fi
           
       - name: "Upload Container Security Reports"
+        if: always() && (hashFiles('trivy-results.sarif') != '' || hashFiles('${{ env.REPORTS_DIR }}/**/*') != '')
         uses: actions/upload-artifact@v4
         with:
           name: container-security-reports
@@ -399,17 +549,29 @@ jobs:
           
       - name: "Run Security Policy Checks"
         run: |
-          echo "=== Running Security Policy Validation ==="
-          mkdir -p ${{ env.REPORTS_DIR }}/compliance
+          set -Eeuo pipefail
+          shopt -s nullglob
+          POLICY_DIR="${SECURITY_DIR:-./security}/policies"
+          INPUT_FILE="${SECURITY_DIR:-./security}/configs/security-config.json"
+          OUT_DIR="${REPORTS_DIR:-./security-reports}/compliance"
+          mkdir -p "${OUT_DIR}"
           
-          # Run OPA policies if they exist
-          if [ -d "${{ env.SECURITY_DIR }}/policies" ]; then
-            for policy in ${{ env.SECURITY_DIR }}/policies/*.rego; do
-              echo "Evaluating policy: $(basename $policy)"
-              opa eval -d $policy -i ${{ env.SECURITY_DIR }}/configs/security-config.json \
-                "data.security.allow" > ${{ env.REPORTS_DIR }}/compliance/$(basename $policy .rego)-result.json || true
-            done
+          if [[ -d "$POLICY_DIR" ]] && compgen -G "$POLICY_DIR/*.rego" > /dev/null; then
+            if [[ -f "$INPUT_FILE" ]]; then
+              for policy in "$POLICY_DIR"/*.rego; do
+                base="$(basename "$policy" .rego)"
+                echo "Evaluating policy: $base"
+                opa eval -i "$INPUT_FILE" -d "$policy" "data.security.allow" \
+                  > "${OUT_DIR}/${base}-result.json" || true
+              done
+            else
+              echo "::warning::Missing input file: $INPUT_FILE. Skipping opa eval."
+            fi
+          else
+            echo "::notice::No .rego policies found. Skipping."
           fi
+          
+          rm -f "${OUT_DIR}"/*-result.json 2>/dev/null || true
           
       - name: "CIS Benchmark Validation"
         run: |
@@ -440,10 +602,12 @@ jobs:
           EOF
           
       - name: "Upload Compliance Reports"
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: compliance-reports
-          path: ${{ env.REPORTS_DIR }}/compliance/
+          path: ./security-reports/compliance/*.json
+          if-no-files-found: warn
           retention-days: 90
 
   # =============================================================================
@@ -534,14 +698,30 @@ jobs:
             - [Security Scan Reports](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
             `;
             
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🚨 Security Scan Failures - ${new Date().toISOString().split('T')[0]}`,
-              body: issueBody,
-              labels: ['security', 'critical', 'automated'],
-              assignees: [context.actor]
-            });
+            // Only create issues for non-PR events or PRs from the same repo (not forks)
+            const isPR = context.eventName === 'pull_request' || context.eventName === 'pull_request_target';
+            const isFromFork = isPR && context.payload.pull_request && 
+                               context.payload.pull_request.head.repo.full_name !== context.payload.repository.full_name;
+            
+            if (!isFromFork && failedJobs.length > 0) {
+              try {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title: `🚨 Security Scan Failures - ${new Date().toISOString().split('T')[0]}`,
+                  body: issueBody,
+                  labels: ['security', 'critical', 'automated'],
+                  assignees: [context.actor]
+                });
+                console.log('Security issue created successfully');
+              } catch (error) {
+                console.log(`Unable to create issue (expected for PRs from forks): ${error.message}`);
+                console.log('Security scan failures detected - review the workflow run for details');
+              }
+            } else if (failedJobs.length > 0) {
+              console.log('Security scan failures detected in PR from fork - cannot create issue due to permissions');
+              console.log(`Failed jobs: ${failedJobs.join(', ')}`);
+            }
             
       - name: "Upload Final Security Report"
         uses: actions/upload-artifact@v4

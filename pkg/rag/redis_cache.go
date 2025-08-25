@@ -16,7 +16,8 @@ import (
 	"time"
 
 	"bytes"
-	"github.com/go-redis/redis/v8"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // RedisCache provides Redis-based caching for RAG components
@@ -99,6 +100,9 @@ type RedisCacheMetrics struct {
 	LastCleanup time.Time `json:"last_cleanup"`
 
 	LastUpdated time.Time `json:"last_updated"`
+	
+	// Added for compatibility with prometheus_metrics.go
+	CategoryStats map[string]interface{} `json:"category_stats,omitempty"`
 	mutex       sync.RWMutex
 }
 
@@ -169,7 +173,7 @@ func NewRedisCache(config *RedisCacheConfig) (*RedisCache, error) {
 		DialTimeout:  config.DialTimeout,
 		ReadTimeout:  config.ReadTimeout,
 		WriteTimeout: config.WriteTimeout,
-		IdleTimeout:  config.IdleTimeout,
+		ConnMaxIdleTime:  config.IdleTimeout,
 	})
 
 	cache := &RedisCache{
@@ -707,9 +711,40 @@ func (rc *RedisCache) GetMetrics() *RedisCacheMetrics {
 	rc.metrics.mutex.RLock()
 	defer rc.metrics.mutex.RUnlock()
 
-	// Return a copy
-	metrics := *rc.metrics
-	return &metrics
+	// Return a copy without the mutex
+	metrics := &RedisCacheMetrics{
+		TotalRequests:     rc.metrics.TotalRequests,
+		Hits:              rc.metrics.Hits,
+		Misses:            rc.metrics.Misses,
+		Sets:              rc.metrics.Sets,
+		Deletes:           rc.metrics.Deletes,
+		Errors:            rc.metrics.Errors,
+		AverageGetTime:    rc.metrics.AverageGetTime,
+		AverageSetTime:    rc.metrics.AverageSetTime,
+		HitRate:           rc.metrics.HitRate,
+		EmbeddingHits:     rc.metrics.EmbeddingHits,
+		EmbeddingMisses:   rc.metrics.EmbeddingMisses,
+		DocumentHits:      rc.metrics.DocumentHits,
+		DocumentMisses:    rc.metrics.DocumentMisses,
+		QueryResultHits:   rc.metrics.QueryResultHits,
+		QueryResultMisses: rc.metrics.QueryResultMisses,
+		ContextHits:       rc.metrics.ContextHits,
+		ContextMisses:     rc.metrics.ContextMisses,
+		MemoryUsage:       rc.metrics.MemoryUsage,
+		KeyCount:          rc.metrics.KeyCount,
+		LastCleanup:       rc.metrics.LastCleanup,
+		LastUpdated:       rc.metrics.LastUpdated,
+		CategoryStats:     make(map[string]interface{}),
+	}
+	
+	// Deep copy map if not nil
+	if rc.metrics.CategoryStats != nil {
+		for k, v := range rc.metrics.CategoryStats {
+			metrics.CategoryStats[k] = v
+		}
+	}
+	
+	return metrics
 }
 
 // GetHealthStatus returns cache health status
@@ -985,7 +1020,7 @@ func (rc *RedisCache) SetEmbeddingsBatch(ctx context.Context, embeddings map[str
 	}
 
 	pipe := rc.client.Pipeline()
-	defer pipe.Close()
+	// Note: Redis pipeline doesn't need explicit close, it's handled by the client
 
 	for textHash, item := range embeddings {
 		key := rc.buildEmbeddingKey(item.Text, item.ModelName)

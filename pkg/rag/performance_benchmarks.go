@@ -4,16 +4,17 @@ package rag
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"golang.org/x/sync/errgroup"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // PerformanceBenchmarker provides comprehensive performance benchmarking
@@ -85,11 +86,11 @@ type TestSuiteResults struct {
 	FailedTests  int                    `json:"failed_tests"`
 	TestCoverage float64                `json:"test_coverage"`
 	OverallScore float64                `json:"overall_score"`
-	TestResults  map[string]*TestResult `json:"test_results"`
+	TestResults  map[string]*BenchmarkTestResult `json:"test_results"`
 }
 
 // TestResult represents individual test result
-type TestResult struct {
+type BenchmarkTestResult struct {
 	TestName string                 `json:"test_name"`
 	Passed   bool                   `json:"passed"`
 	Duration time.Duration          `json:"duration"`
@@ -243,7 +244,7 @@ type SystemInfo struct {
 type TestDataset struct {
 	Queries         []*TestQuery                      `json:"queries"`
 	ExpectedResults map[string]*ExpectedResult        `json:"expected_results"`
-	GroundTruth     map[string][]*shared.SearchResult `json:"ground_truth"`
+	GroundTruth     map[string][]*types.SearchResult `json:"ground_truth"`
 	QueryComplexity map[string]string                 `json:"query_complexity"`
 }
 
@@ -327,7 +328,7 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 	// Initialize results
 	pb.results = &BenchmarkResults{
-		TestSuite:         &TestSuiteResults{TestResults: make(map[string]*TestResult)},
+		TestSuite:         &TestSuiteResults{TestResults: make(map[string]*BenchmarkTestResult)},
 		TestTimestamp:     startTime,
 		TestConfiguration: pb.config,
 		SystemInfo:        pb.getSystemInfo(),
@@ -364,7 +365,7 @@ func (pb *PerformanceBenchmarker) RunComprehensiveBenchmark(ctx context.Context)
 
 		err := test.runner(ctx)
 
-		result := &TestResult{
+		result := &BenchmarkTestResult{
 			TestName: test.name,
 			Passed:   err == nil,
 			Duration: time.Since(testStart),
@@ -487,10 +488,10 @@ func (pb *PerformanceBenchmarker) measureBatchQueryLatency(ctx context.Context) 
 		}
 
 		// Create batch of queries
-		queries := make([]*SearchQuery, batchSize)
+		queries := make([]*types.SearchQuery, batchSize)
 		for i := 0; i < batchSize; i++ {
 			testQuery := pb.testData.Queries[i%len(pb.testData.Queries)]
-			queries[i] = &SearchQuery{
+			queries[i] = &types.SearchQuery{
 				Query: testQuery.Query,
 				Limit: 10,
 			}
@@ -713,10 +714,10 @@ func (pb *PerformanceBenchmarker) measureBatchThroughput(ctx context.Context, ba
 		}
 
 		// Create batch
-		queries := make([]*SearchQuery, endIndex-i)
+		queries := make([]*types.SearchQuery, endIndex-i)
 		for j := i; j < endIndex; j++ {
 			testQuery := pb.testData.Queries[j%len(pb.testData.Queries)]
-			queries[j-i] = &SearchQuery{
+			queries[j-i] = &types.SearchQuery{
 				Query: testQuery.Query,
 				Limit: 10,
 			}
@@ -1627,7 +1628,7 @@ func generateTestDataset() *TestDataset {
 	return &TestDataset{
 		Queries:         queries,
 		ExpectedResults: make(map[string]*ExpectedResult),
-		GroundTruth:     make(map[string][]*shared.SearchResult),
+		GroundTruth:     make(map[string][]*types.SearchResult),
 		QueryComplexity: make(map[string]string),
 	}
 }

@@ -74,7 +74,12 @@ func TestRequestSizeLimiter(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			limiter := NewRequestSizeLimiter(testMaxSize, logger)
+			config := &RequestSizeConfig{
+				MaxBodySize:   testMaxSize,
+				MaxHeaderSize: 8 * 1024,
+				EnableLogging: true,
+			}
+			limiter := NewRequestSizeLimiter(config, logger)
 			wrappedHandler := limiter.Handler(testHandler)
 
 			req, err := http.NewRequest(tt.method, "/test", strings.NewReader(tt.body))

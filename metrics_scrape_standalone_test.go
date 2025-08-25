@@ -35,7 +35,7 @@ func TestMetricsEndpointStandalone(t *testing.T) {
 
 		// Create test registry with expected metrics
 		registry := prometheus.NewRegistry()
-		
+
 		// Create LLM metrics as they would appear in the real system
 		llmRequestsTotal := prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -44,16 +44,16 @@ func TestMetricsEndpointStandalone(t *testing.T) {
 			},
 			[]string{"model", "status"},
 		)
-		
+
 		llmProcessingDuration := prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name: "nephoran_llm_processing_duration_seconds", 
-				Help: "Duration of LLM processing requests by model and status",
+				Name:    "nephoran_llm_processing_duration_seconds",
+				Help:    "Duration of LLM processing requests by model and status",
 				Buckets: []float64{0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0, 60.0, 120.0},
 			},
 			[]string{"model", "status"},
 		)
-		
+
 		// Create controller metrics as they would appear in the real system
 		networkintentReconciles := prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -62,16 +62,16 @@ func TestMetricsEndpointStandalone(t *testing.T) {
 			},
 			[]string{"controller", "namespace", "name", "result"},
 		)
-		
+
 		networkintentProcessingDuration := prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name: "networkintent_processing_duration_seconds",
-				Help: "Duration of NetworkIntent processing phases",
+				Name:    "networkintent_processing_duration_seconds",
+				Help:    "Duration of NetworkIntent processing phases",
 				Buckets: prometheus.DefBuckets,
 			},
 			[]string{"controller", "namespace", "name", "phase"},
 		)
-		
+
 		// Register metrics
 		registry.MustRegister(
 			llmRequestsTotal,
@@ -79,14 +79,14 @@ func TestMetricsEndpointStandalone(t *testing.T) {
 			networkintentReconciles,
 			networkintentProcessingDuration,
 		)
-		
+
 		// Generate realistic test data
 		llmRequestsTotal.WithLabelValues("gpt-4o-mini", "success").Add(25)
 		llmRequestsTotal.WithLabelValues("gpt-4o-mini", "error").Add(2)
 		llmRequestsTotal.WithLabelValues("mistral-8x22b", "success").Add(15)
 		llmProcessingDuration.WithLabelValues("gpt-4o-mini", "success").Observe(1.5)
 		llmProcessingDuration.WithLabelValues("gpt-4o-mini", "error").Observe(5.2)
-		
+
 		networkintentReconciles.WithLabelValues("networkintent", "default", "test-intent", "success").Add(10)
 		networkintentReconciles.WithLabelValues("networkintent", "production", "prod-intent", "error").Add(1)
 		networkintentProcessingDuration.WithLabelValues("networkintent", "default", "test-intent", "llm_processing").Observe(2.3)
@@ -110,11 +110,11 @@ func TestMetricsEndpointStandalone(t *testing.T) {
 		scanner := bufio.NewScanner(resp.Body)
 		var content strings.Builder
 		metrics := make(map[string]string) // metric name -> help text
-		
+
 		for scanner.Scan() {
 			line := scanner.Text()
 			content.WriteString(line + "\n")
-			
+
 			// Parse HELP lines
 			if strings.HasPrefix(line, "# HELP ") {
 				parts := strings.SplitN(line[7:], " ", 2)
@@ -130,28 +130,28 @@ func TestMetricsEndpointStandalone(t *testing.T) {
 		// Verify expected LLM metrics are present
 		assert.Contains(t, metrics, "nephoran_llm_requests_total")
 		assert.Contains(t, metrics, "nephoran_llm_processing_duration_seconds")
-		
+
 		// Verify expected controller metrics are present
-		assert.Contains(t, metrics, "networkintent_reconciles_total") 
+		assert.Contains(t, metrics, "networkintent_reconciles_total")
 		assert.Contains(t, metrics, "networkintent_processing_duration_seconds")
-		
+
 		// Verify help text content
 		assert.Contains(t, metrics["nephoran_llm_requests_total"], "Total number of LLM requests")
 		assert.Contains(t, metrics["nephoran_llm_processing_duration_seconds"], "Duration of LLM processing requests")
 		assert.Contains(t, metrics["networkintent_reconciles_total"], "Total number of NetworkIntent reconciliations")
 		assert.Contains(t, metrics["networkintent_processing_duration_seconds"], "Duration of NetworkIntent processing phases")
-		
+
 		// Verify metric types are declared
 		assert.Contains(t, fullContent, "# TYPE nephoran_llm_requests_total counter")
-		assert.Contains(t, fullContent, "# TYPE nephoran_llm_processing_duration_seconds histogram") 
+		assert.Contains(t, fullContent, "# TYPE nephoran_llm_processing_duration_seconds histogram")
 		assert.Contains(t, fullContent, "# TYPE networkintent_reconciles_total counter")
 		assert.Contains(t, fullContent, "# TYPE networkintent_processing_duration_seconds histogram")
-		
+
 		// Verify actual metric values with labels
 		assert.Contains(t, fullContent, `nephoran_llm_requests_total{model="gpt-4o-mini",status="success"} 25`)
 		assert.Contains(t, fullContent, `nephoran_llm_requests_total{model="gpt-4o-mini",status="error"} 2`)
 		assert.Contains(t, fullContent, `networkintent_reconciles_total{controller="networkintent",name="test-intent",namespace="default",result="success"} 10`)
-		
+
 		// Verify histogram metrics are present
 		assert.Contains(t, fullContent, "nephoran_llm_processing_duration_seconds_bucket")
 		assert.Contains(t, fullContent, "nephoran_llm_processing_duration_seconds_sum")
@@ -168,7 +168,7 @@ func TestMetricsEndpointStandalone(t *testing.T) {
 		// Create router without metrics endpoint (simulating disabled state)
 		router := mux.NewRouter()
 		// Don't register /metrics endpoint when disabled
-		
+
 		server := httptest.NewServer(router)
 		defer server.Close()
 
@@ -199,7 +199,7 @@ func TestMetricsEndpointConditionalBehavior(t *testing.T) {
 		},
 		{
 			name:           "METRICS_ENABLED=false",
-			metricsEnabled: "false", 
+			metricsEnabled: "false",
 			expectEndpoint: false,
 			expectedStatus: http.StatusNotFound,
 			description:    "Should return 404 when metrics disabled",
@@ -240,7 +240,7 @@ func TestMetricsEndpointConditionalBehavior(t *testing.T) {
 
 			// Create router with conditional metrics endpoint
 			router := mux.NewRouter()
-			
+
 			// Simulate the application's conditional metrics setup
 			if isMetricsEnabledForTest() && tc.expectEndpoint {
 				registry := prometheus.NewRegistry()
@@ -250,10 +250,10 @@ func TestMetricsEndpointConditionalBehavior(t *testing.T) {
 				})
 				registry.MustRegister(testMetric)
 				testMetric.Inc()
-				
+
 				router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{})).Methods("GET")
 			}
-			
+
 			server := httptest.NewServer(router)
 			defer server.Close()
 
@@ -263,12 +263,12 @@ func TestMetricsEndpointConditionalBehavior(t *testing.T) {
 			defer resp.Body.Close()
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode, tc.description)
-			
+
 			if tc.expectEndpoint {
 				assert.Contains(t, resp.Header.Get("Content-Type"), "text/plain")
 			}
-			
-			t.Logf("Test case '%s': Status %d (expected %d) - %s", 
+
+			t.Logf("Test case '%s': Status %d (expected %d) - %s",
 				tc.name, resp.StatusCode, tc.expectedStatus, tc.description)
 		})
 	}
@@ -278,7 +278,7 @@ func TestMetricsEndpointConditionalBehavior(t *testing.T) {
 func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 	// Create registry with substantial metrics to test performance
 	registry := prometheus.NewRegistry()
-	
+
 	// Create multiple metrics simulating a real system
 	for i := 0; i < 20; i++ {
 		counter := prometheus.NewCounterVec(
@@ -288,23 +288,23 @@ func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 			},
 			[]string{"service", "endpoint", "status"},
 		)
-		
+
 		histogram := prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
-				Name: fmt.Sprintf("nephoran_test_duration_%d_seconds", i),
-				Help: fmt.Sprintf("Test duration metric %d", i),
+				Name:    fmt.Sprintf("nephoran_test_duration_%d_seconds", i),
+				Help:    fmt.Sprintf("Test duration metric %d", i),
 				Buckets: prometheus.DefBuckets,
 			},
 			[]string{"service", "operation"},
 		)
-		
+
 		registry.MustRegister(counter, histogram)
-		
+
 		// Add realistic data
 		services := []string{"llm-processor", "controller", "rag-service"}
 		endpoints := []string{"/process", "/reconcile", "/search"}
 		statuses := []string{"200", "400", "500"}
-		
+
 		for _, service := range services {
 			for _, endpoint := range endpoints {
 				for _, status := range statuses {
@@ -314,27 +314,27 @@ func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 			histogram.WithLabelValues(service, "request").Observe(float64(i) * 0.1)
 		}
 	}
-	
+
 	// Setup server
 	router := mux.NewRouter()
 	router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{})).Methods("GET")
 	server := httptest.NewServer(router)
 	defer server.Close()
-	
+
 	t.Run("Response time performance", func(t *testing.T) {
 		start := time.Now()
 		resp, err := http.Get(server.URL + "/metrics")
 		duration := time.Since(start)
-		
+
 		require.NoError(t, err)
 		defer resp.Body.Close()
-		
+
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 		assert.Less(t, duration, 2*time.Second, "Metrics endpoint should respond within 2 seconds")
-		
+
 		t.Logf("Metrics endpoint responded in %v with substantial metric load", duration)
 	})
-	
+
 	t.Run("Concurrent access", func(t *testing.T) {
 		const concurrentRequests = 10
 		results := make(chan struct {
@@ -342,14 +342,14 @@ func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 			duration time.Duration
 			err      error
 		}, concurrentRequests)
-		
+
 		// Launch concurrent requests
 		for i := 0; i < concurrentRequests; i++ {
 			go func() {
 				start := time.Now()
 				resp, err := http.Get(server.URL + "/metrics")
 				duration := time.Since(start)
-				
+
 				if err != nil {
 					results <- struct {
 						status   int
@@ -358,7 +358,7 @@ func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 					}{0, duration, err}
 					return
 				}
-				
+
 				resp.Body.Close()
 				results <- struct {
 					status   int
@@ -367,7 +367,7 @@ func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 				}{resp.StatusCode, duration, nil}
 			}()
 		}
-		
+
 		// Collect results
 		successCount := 0
 		var totalDuration time.Duration
@@ -381,12 +381,12 @@ func TestMetricsEndpointPerformanceAndConcurrency(t *testing.T) {
 				totalDuration += result.duration
 			}
 		}
-		
+
 		assert.Equal(t, concurrentRequests, successCount, "All concurrent requests should succeed")
 		avgDuration := totalDuration / time.Duration(concurrentRequests)
 		assert.Less(t, avgDuration, 1*time.Second, "Average response time should be reasonable under concurrency")
-		
-		t.Logf("All %d concurrent requests succeeded with average duration %v", 
+
+		t.Logf("All %d concurrent requests succeeded with average duration %v",
 			concurrentRequests, avgDuration)
 	})
 }
@@ -408,7 +408,7 @@ func main() {
 			F:    TestMetricsEndpointStandalone,
 		},
 		{
-			Name: "TestMetricsEndpointConditionalBehavior", 
+			Name: "TestMetricsEndpointConditionalBehavior",
 			F:    TestMetricsEndpointConditionalBehavior,
 		},
 		{

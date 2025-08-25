@@ -90,37 +90,6 @@ type StreamContext struct {
 	Flusher   http.Flusher
 }
 
-// BatchRequest represents a request for batch processing
-type BatchRequest struct {
-	ID         string                 `json:"id"`
-	Intent     string                 `json:"intent"`
-	IntentType string                 `json:"intent_type"`
-	Parameters map[string]interface{} `json:"parameters"`
-	Priority   int                    `json:"priority"`
-	SubmitTime time.Time              `json:"submit_time"`
-	ResponseCh chan *ProcessingResult `json:"-"`
-	Context    context.Context        `json:"-"`
-}
-
-// ProcessingResult represents the result of processing
-type ProcessingResult struct {
-	Content        string                 `json:"content"`
-	TokensUsed     int                    `json:"tokens_used"`
-	ProcessingTime time.Duration          `json:"processing_time"`
-	CacheHit       bool                   `json:"cache_hit"`
-	Batched        bool                   `json:"batched"`
-	Metadata       map[string]interface{} `json:"metadata"`
-	Error          error                  `json:"error,omitempty"`
-}
-
-// StreamingRequest represents a streaming request payload
-type StreamingRequest struct {
-	Query     string `json:"query"`
-	ModelName string `json:"model_name,omitempty"`
-	MaxTokens int    `json:"max_tokens,omitempty"`
-	EnableRAG bool   `json:"enable_rag,omitempty"`
-}
-
 // batchProcessor handles batch processing internally
 type batchProcessor struct {
 	config          *ProcessingConfig

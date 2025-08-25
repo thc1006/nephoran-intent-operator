@@ -18,6 +18,7 @@ package porch
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"sync"
 	"testing"

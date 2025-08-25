@@ -36,11 +36,9 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -202,14 +200,14 @@ type FileSystemPolicy struct {
 
 // RuntimeMetrics provides comprehensive metrics for function execution
 type RuntimeMetrics struct {
-	FunctionExecutions  prometheus.CounterVec
-	ExecutionDuration   prometheus.HistogramVec
-	ResourceUtilization prometheus.GaugeVec
-	ErrorRate           prometheus.CounterVec
+	FunctionExecutions  *prometheus.CounterVec
+	ExecutionDuration   *prometheus.HistogramVec
+	ResourceUtilization *prometheus.GaugeVec
+	ErrorRate           *prometheus.CounterVec
 	QueueDepth          prometheus.Gauge
 	ActiveExecutors     prometheus.Gauge
 	CacheHitRate        prometheus.Counter
-	SecurityViolations  prometheus.CounterVec
+	SecurityViolations  *prometheus.CounterVec
 }
 
 // Default configuration
@@ -251,14 +249,14 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 
 	// Initialize metrics
 	metrics := &RuntimeMetrics{
-		FunctionExecutions: *promauto.NewCounterVec(
+		FunctionExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_function_executions_total",
 				Help: "Total number of KRM function executions",
 			},
 			[]string{"function", "status", "image"},
 		),
-		ExecutionDuration: *promauto.NewHistogramVec(
+		ExecutionDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_function_execution_duration_seconds",
 				Help:    "Duration of KRM function executions",
@@ -266,14 +264,14 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 			},
 			[]string{"function", "image"},
 		),
-		ResourceUtilization: *promauto.NewGaugeVec(
+		ResourceUtilization: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "krm_function_resource_utilization",
 				Help: "Resource utilization during function execution",
 			},
 			[]string{"resource_type", "function"},
 		),
-		ErrorRate: *promauto.NewCounterVec(
+		ErrorRate: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_function_errors_total",
 				Help: "Total number of KRM function execution errors",
@@ -298,7 +296,7 @@ func NewRuntime(config *RuntimeConfig) (*Runtime, error) {
 				Help: "Total number of function cache hits",
 			},
 		),
-		SecurityViolations: *promauto.NewCounterVec(
+		SecurityViolations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_function_security_violations_total",
 				Help: "Total number of security violations during function execution",

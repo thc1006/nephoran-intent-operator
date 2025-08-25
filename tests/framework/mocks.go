@@ -391,9 +391,9 @@ type MockWeaviateClient struct {
 	mock.Mock
 }
 
-func (m *MockWeaviateClient) Query() *graphql.GraphQL {
+func (m *MockWeaviateClient) Query() *graphql.Query {
 	args := m.Called()
-	return args.Get(0).(*graphql.GraphQL)
+	return args.Get(0).(*graphql.Query)
 }
 
 func (m *MockWeaviateClient) Reset() {

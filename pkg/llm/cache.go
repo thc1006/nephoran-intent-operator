@@ -7,17 +7,19 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 )
 
 // ResponseCache provides unified multi-level caching with intelligent features
 type ResponseCache struct {
 	// L1 Cache (in-memory, fastest)
-	l1Entries map[string]*CacheEntry
+	l1Entries map[string]*types.CacheEntry
 	l1MaxSize int
 	l1Mutex   sync.RWMutex
 
 	// L2 Cache (persistent, larger)
-	l2Entries map[string]*CacheEntry
+	l2Entries map[string]*types.CacheEntry
 	l2MaxSize int
 	l2Mutex   sync.RWMutex
 
@@ -49,18 +51,7 @@ type ResponseCache struct {
 	metrics *CacheMetrics
 }
 
-// CacheEntry represents a cached response with metadata
-type CacheEntry struct {
-	Response        string        `json:"response"`
-	Timestamp       time.Time     `json:"timestamp"`
-	HitCount        int64         `json:"hit_count"`
-	LastAccess      time.Time     `json:"last_access"`
-	TTL             time.Duration `json:"ttl"`
-	Size            int           `json:"size"`
-	Keywords        []string      `json:"keywords"`
-	SimilarityScore float64       `json:"similarity_score"`
-	Level           int           `json:"level"` // 1 for L1, 2 for L2
-}
+// CacheEntry is now defined in pkg/shared/types/common_types.go
 
 // AccessStats tracks access patterns for adaptive TTL
 type AccessStats struct {
@@ -81,7 +72,45 @@ type CacheMetrics struct {
 	L2HitRate              float64 `json:"l2_hit_rate"`
 	SemanticHits           int64   `json:"semantic_hits"`
 	AdaptiveTTLAdjustments int64   `json:"adaptive_ttl_adjustments"`
+	operations             map[string]time.Duration
 	mutex                  sync.RWMutex
+}
+
+// NewCacheMetrics creates a new CacheMetrics instance
+func NewCacheMetrics() *CacheMetrics {
+	return &CacheMetrics{
+		operations: make(map[string]time.Duration),
+	}
+}
+
+// RecordOperation records an operation duration
+func (cm *CacheMetrics) RecordOperation(op string, duration time.Duration) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	cm.operations[op] = duration
+}
+
+// RecordHit records a cache hit
+func (cm *CacheMetrics) RecordHit(level string) {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	if level == "L1" {
+		cm.L1Hits++
+	} else if level == "L2" {
+		cm.L2Hits++
+	}
+}
+
+// RecordMiss records a cache miss
+func (cm *CacheMetrics) RecordMiss() {
+	cm.mutex.Lock()
+	defer cm.mutex.Unlock()
+	cm.Misses++
+}
+
+// RecordSet records a cache set operation
+func (cm *CacheMetrics) RecordSet() {
+	// Implementation placeholder
 }
 
 // CacheConfig holds configuration for the cache system
@@ -114,8 +143,8 @@ func NewResponseCache(ttl time.Duration, maxSize int) *ResponseCache {
 // NewResponseCacheWithConfig creates a cache with specific configuration
 func NewResponseCacheWithConfig(config *CacheConfig) *ResponseCache {
 	cache := &ResponseCache{
-		l1Entries:           make(map[string]*CacheEntry),
-		l2Entries:           make(map[string]*CacheEntry),
+		l1Entries:           make(map[string]*types.CacheEntry),
+		l2Entries:           make(map[string]*types.CacheEntry),
 		l1MaxSize:           config.L1MaxSize,
 		l2MaxSize:           config.L2MaxSize,
 		ttl:                 config.TTL,
@@ -199,13 +228,13 @@ func (c *ResponseCache) Set(key, response string) {
 		ttl = c.calculateAdaptiveTTL(key)
 	}
 
-	entry := &CacheEntry{
+	entry := &types.CacheEntry{
 		Response:   response,
 		Timestamp:  time.Now(),
 		LastAccess: time.Now(),
 		HitCount:   0,
 		TTL:        ttl,
-		Size:       len(response),
+		Size:       int64(len(response)),
 		Keywords:   keywords,
 		Level:      1,
 	}
@@ -259,7 +288,7 @@ func (c *ResponseCache) getFromL2(key string) (string, bool) {
 }
 
 // setInL1 stores entry in L1 cache
-func (c *ResponseCache) setInL1(key string, entry *CacheEntry) {
+func (c *ResponseCache) setInL1(key string, entry *types.CacheEntry) {
 	c.l1Mutex.Lock()
 	defer c.l1Mutex.Unlock()
 
@@ -273,7 +302,7 @@ func (c *ResponseCache) setInL1(key string, entry *CacheEntry) {
 }
 
 // setInL2 stores entry in L2 cache
-func (c *ResponseCache) setInL2(key string, entry *CacheEntry) {
+func (c *ResponseCache) setInL2(key string, entry *types.CacheEntry) {
 	c.l2Mutex.Lock()
 	defer c.l2Mutex.Unlock()
 
@@ -684,8 +713,8 @@ func (c *ResponseCache) Clear() {
 	defer c.l2Mutex.Unlock()
 	defer c.l1Mutex.Unlock()
 
-	c.l1Entries = make(map[string]*CacheEntry)
-	c.l2Entries = make(map[string]*CacheEntry)
+	c.l1Entries = make(map[string]*types.CacheEntry)
+	c.l2Entries = make(map[string]*types.CacheEntry)
 	c.semanticIndex = make(map[string][]string)
 	c.accessFrequency = make(map[string]*AccessStats)
 

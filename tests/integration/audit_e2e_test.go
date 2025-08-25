@@ -13,8 +13,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,7 +24,6 @@ import (
 
 	nephv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
 )
 

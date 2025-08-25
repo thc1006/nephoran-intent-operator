@@ -18,7 +18,6 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 var _ = Describe("LLM RAG Integration Tests", func() {

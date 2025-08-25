@@ -1,0 +1,10 @@
+apiVersion: nephoran.com/v1
+kind: NetworkIntent
+metadata:
+  name: multi-target-intent
+  namespace: nephoran-system
+  labels:
+    test-scenario: multi-target
+    test-type: e2e
+spec:
+  intent: "Scale multiple RAN components simultaneously: du-deployment to 3 replicas with standard profile, cu-deployment to 5 replicas with high-performance profile, and ru-deployment to 2 replicas with low-power profile"

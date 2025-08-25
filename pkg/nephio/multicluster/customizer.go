@@ -3,7 +3,6 @@ package multicluster
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"

@@ -3,14 +3,8 @@
 package o2
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
-	"strconv"
 	"time"
-
-	"github.com/gorilla/mux"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
