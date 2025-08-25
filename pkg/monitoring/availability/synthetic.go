@@ -1,12 +1,9 @@
 package availability
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
-	"encoding/json"
 	"fmt"
-	"io"
 	"math/rand"
 	"net/http"
 	"sync"
@@ -17,7 +14,6 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/health"
 )
 
 // SyntheticCheckType represents the type of synthetic check
@@ -107,8 +103,6 @@ type ValidationRule struct {
 	Value    interface{} `json:"value"`
 }
 
-// Type alias to health.AlertThresholds for backward compatibility
-type AlertThresholds = health.AlertThresholds
 
 // SyntheticResult represents the result of a synthetic check execution
 type SyntheticResult struct {
@@ -693,7 +687,7 @@ func (sm *SyntheticMonitor) GetAvailabilityMetrics(checkID string, since time.Ti
 
 	// Determine health status
 	var status HealthStatus
-	if errorRate == 0 && avgResponseTime < check.AlertThresholds.ResponseTime {
+	if errorRate == 0 && avgResponseTime < time.Duration(check.AlertThresholds.ResponseTime*float64(time.Millisecond)) {
 		status = HealthHealthy
 	} else if errorRate < check.AlertThresholds.ErrorRate {
 		status = HealthDegraded

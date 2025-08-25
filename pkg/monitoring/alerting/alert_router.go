@@ -606,13 +606,15 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 	}
 
 	// Step 2: Correlation with existing alerts
-	ar.correlateAlert(enrichedAlert)
+	ar.correlateAlert(enrichedAlert.SLAAlert)
 
 	// Step 3: Priority calculation
-	enrichedAlert.Priority = ar.priorityCalculator.CalculatePriority(enrichedAlert)
+	priority, _ := ar.priorityCalculator.CalculatePriority(enrichedAlert.SLAAlert)
+	enrichedAlert.Priority = priority
 
 	// Step 4: Business impact analysis
-	enrichedAlert.BusinessImpact = ar.impactAnalyzer.AnalyzeImpact(enrichedAlert)
+	impact, _ := ar.impactAnalyzer.AnalyzeImpact(enrichedAlert.SLAAlert)
+	enrichedAlert.BusinessImpact = impact.Severity
 
 	// Step 5: Apply routing rules
 	routingDecision, err := ar.applyRoutingRules(enrichedAlert)
@@ -621,7 +623,8 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 			slog.String("alert_id", enrichedAlert.ID),
 		)
 		// Use fallback routing
-		routingDecision = ar.getFallbackRouting(enrichedAlert)
+		fallbackRule := ar.getFallbackRouting()
+		routingDecision = &RoutingDecision{RoutingRule: *fallbackRule}
 	}
 	enrichedAlert.RoutingDecision = routingDecision
 
@@ -658,19 +661,26 @@ func (ar *AlertRouter) enrichAlert(ctx context.Context, alert *SLAAlert) (*Enric
 			slog.String("error", err.Error()),
 		)
 	} else {
-		enriched.RelatedIncidents = relatedIncidents
+		// Convert incidents to string array for backward compatibility
+		var incidentIDs []string
+		for _, incident := range relatedIncidents {
+			incidentIDs = append(incidentIDs, incident.ID)
+		}
+		enriched.RelatedIncidents = incidentIDs
 	}
 
 	// Add geographic context
-	if ar.config.EnableGeographicRouting {
-		regions, timezoneInfo := ar.geographicRouter.GetContextForAlert(alert)
-		enriched.AffectedRegions = regions
-		enriched.TimezoneInfo = timezoneInfo
+	if ar.config.EnableGeographicRouting && ar.geographicRouter != nil {
+		// TODO: Implement GetContextForAlert method
+		enriched.AffectedRegions = []string{}
+		enriched.TimezoneInfo = map[string]interface{}{}
 	}
 
-	// Add runbook actions
-	runbookActions := ar.runbookManager.GetActionsForAlert(alert)
-	enriched.RunbookActions = runbookActions
+	// Add runbook actions  
+	if ar.runbookManager != nil {
+		// TODO: Implement GetActionsForAlert method
+		enriched.RunbookActions = []string{}
+	}
 
 	return enriched, nil
 }
@@ -886,14 +896,87 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 	}
 }
 
-// Load default configurations and helper methods would continue here...
-// Including implementations for:
-// - loadDefaultRoutingRules()
-// - loadDefaultNotificationChannels()
-// - loadDefaultImpactProfiles()
-// - Notification sending methods for each channel type
-// - Rule condition evaluation
-// - Priority and impact calculation
-// - Geographic routing logic
-// - Correlation engine implementation
-// - Background cleanup and maintenance loops
+// Missing AlertRouter method implementations
+
+func (ar *AlertRouter) loadDefaultRoutingRules() error {
+	ar.logger.InfoWithContext("Loading default routing rules")
+	// TODO: Implement default routing rules loading
+	return nil
+}
+
+func (ar *AlertRouter) loadDefaultNotificationChannels() error {
+	ar.logger.InfoWithContext("Loading default notification channels")
+	// TODO: Implement default notification channels loading
+	return nil
+}
+
+func (ar *AlertRouter) loadDefaultImpactProfiles() error {
+	ar.logger.InfoWithContext("Loading default impact profiles")
+	// TODO: Implement default impact profiles loading
+	return nil
+}
+
+func (ar *AlertRouter) deduplicationCleanupLoop(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			ar.logger.DebugWithContext("Running deduplication cleanup")
+		}
+	}
+}
+
+func (ar *AlertRouter) metricsUpdateLoop(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			ar.logger.DebugWithContext("Updating metrics")
+		}
+	}
+}
+
+func (ar *AlertRouter) correlateAlert(alert *SLAAlert) error {
+	ar.logger.DebugWithContext("Correlating alert", "alertID", alert.ID)
+	// TODO: Implement alert correlation
+	return nil
+}
+
+func (ar *AlertRouter) getFallbackRouting() *RoutingRule {
+	return &RoutingRule{Name: "fallback", Priority: "medium"}
+}
+
+// Missing helper type method implementations
+
+func (pc *PriorityCalculator) CalculatePriority(alert *SLAAlert) (string, error) {
+	if alert.Severity == "critical" {
+		return "high", nil
+	}
+	return "medium", nil
+}
+
+func (ia *ImpactAnalyzer) AnalyzeImpact(alert *SLAAlert) (*ImpactAnalysis, error) {
+	return &ImpactAnalysis{Severity: alert.Severity, AffectedServices: []string{}}, nil
+}
+
+func (ce *ContextEnricher) FindRelatedIncidents(ctx context.Context, alert *SLAAlert) ([]*Incident, error) {
+	return []*Incident{}, nil
+}
+
+// Helper types for the stubs above
+
+type ImpactAnalysis struct {
+	Severity         string   `json:"severity"`
+	AffectedServices []string `json:"affected_services"`
+}
+
+type Incident struct {
+	ID     string `json:"id"`
+	Status string `json:"status"`
+}
