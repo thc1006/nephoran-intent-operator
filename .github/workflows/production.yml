@@ -49,7 +49,7 @@ jobs:
       should_deploy: ${{ steps.quality-gate.outputs.should_deploy }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Full history for SonarCloud
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -161,7 +161,7 @@ jobs:
       test_results: ${{ steps.test-summary.outputs.results }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go ${{ matrix.go-version }}
         uses: actions/setup-go@v5
@@ -248,7 +248,7 @@ jobs:
       regression_detected: ${{ steps.regression-check.outputs.detected }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -391,7 +391,7 @@ jobs:
       critical_vulns: ${{ steps.vuln-check.outputs.critical_count }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -558,7 +558,7 @@ jobs:
       sbom_attestation: ${{ steps.attestation.outputs.sbom }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -677,7 +677,7 @@ jobs:
       smoke_test_results: ${{ steps.smoke-tests.outputs.results }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure Google Cloud authentication
         uses: google-github-actions/auth@v2
@@ -797,7 +797,7 @@ jobs:
       production_url: ${{ steps.deployment.outputs.url }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure Google Cloud authentication
         uses: google-github-actions/auth@v2
@@ -938,7 +938,7 @@ jobs:
       changelog_generated: ${{ steps.changelog.outputs.generated }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -1029,7 +1029,7 @@ jobs:
     if: needs.production-deployment.outputs.deployment_status == 'success'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure Google Cloud authentication
         uses: google-github-actions/auth@v2

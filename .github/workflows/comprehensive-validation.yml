@@ -55,7 +55,7 @@ jobs:
       target-score: ${{ steps.set-target.outputs.score }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -107,7 +107,7 @@ jobs:
     if: needs.pre-validation.outputs.should-run-full-suite == 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -172,7 +172,7 @@ jobs:
         ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -246,7 +246,7 @@ jobs:
             duration: "2m"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -309,7 +309,7 @@ jobs:
         ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -373,7 +373,7 @@ jobs:
         ]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go  
         uses: actions/setup-go@v5
@@ -436,7 +436,7 @@ jobs:
        needs.pre-validation.outputs.test-scope == 'production')
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Kubernetes cluster with Chaos Mesh
         run: |
@@ -474,7 +474,7 @@ jobs:
     if: always() && needs.pre-validation.outputs.should-run-full-suite == 'true'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Go
         uses: actions/setup-go@v5

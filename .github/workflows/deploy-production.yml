@@ -113,7 +113,7 @@ jobs:
     
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
@@ -292,7 +292,7 @@ jobs:
     
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         fetch-depth: 0
     
@@ -401,7 +401,7 @@ jobs:
     
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: Setup Cloud Authentication
       run: |
@@ -495,7 +495,7 @@ jobs:
     
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: Setup Kubernetes Tools
       run: |
@@ -644,7 +644,7 @@ jobs:
     
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: Setup Tools
       run: |
@@ -818,7 +818,7 @@ jobs:
     
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     
     - name: Setup Tools and Authentication
       run: |

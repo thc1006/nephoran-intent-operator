@@ -82,7 +82,7 @@ jobs:
       
     steps:
       - name: "📥 Checkout with Smart Fetch"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
           
@@ -246,7 +246,7 @@ jobs:
       
     steps:
       - name: "📥 Checkout Repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "🐹 Setup Go with Caching"
         uses: actions/setup-go@v5
@@ -335,7 +335,7 @@ jobs:
         
     steps:
       - name: "📥 Checkout Repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "🐹 Setup Go"
         uses: actions/setup-go@v5
@@ -445,7 +445,7 @@ jobs:
       
     steps:
       - name: "📥 Checkout Repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "🐹 Setup Go ${{ matrix.go-version }}"
         uses: actions/setup-go@v5
@@ -588,7 +588,7 @@ jobs:
             
     steps:
       - name: "📥 Checkout Repository"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: "🐹 Setup Go"
         uses: actions/setup-go@v5
