@@ -97,6 +97,21 @@ jobs:
       with:
         platforms: linux/amd64,linux/arm64
 
+    - name: Sanitize version for Docker tag
+      id: sanitize
+      run: |
+        # Sanitize ref_name to create valid Docker tag
+        RAW_VERSION="${{ github.ref_name }}-${{ github.sha }}"
+        # Replace any char not in [A-Za-z0-9._-] with '-'
+        SANITIZED=$(echo "$RAW_VERSION" | sed 's/[^A-Za-z0-9._-]/-/g')
+        # Remove leading/trailing dashes
+        SANITIZED=$(echo "$SANITIZED" | sed 's/^-*\|-*$//g')
+        # Limit to 127 characters (Docker tag limit)
+        SANITIZED=$(echo "$SANITIZED" | cut -c1-127)
+        echo "VERSION_SAFE=$SANITIZED" >> $GITHUB_OUTPUT
+        echo "Original: $RAW_VERSION"
+        echo "Sanitized: $SANITIZED"
+
     - name: Install security scanning tools
       run: |
         set -euo pipefail
@@ -229,7 +244,7 @@ jobs:
         SERVICE_TYPE: ${{ matrix.service_type }}
         BUILD_DATE: ${{ github.event.head_commit.timestamp }}
         VCS_REF: ${{ github.sha }}
-        VERSION: ${{ github.ref_name }}-${{ github.sha }}
+        VERSION: ${{ steps.sanitize.outputs.VERSION_SAFE }}
       run: |
         echo "Building $SERVICE image..."
         docker buildx build \
@@ -378,7 +393,7 @@ jobs:
         fi
 
     - name: Upload security scan results to GitHub Security
-      if: always()
+      if: ${{ always() && hashFiles('security-reports/trivy/${{ matrix.service }}-trivy.sarif') != '' }}
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: security-reports/trivy/${{ matrix.service }}-trivy.sarif
@@ -386,7 +401,7 @@ jobs:
       continue-on-error: true
 
     - name: Upload Grype results to GitHub Security
-      if: always()
+      if: ${{ always() && hashFiles('security-reports/grype/${{ matrix.service }}-grype.sarif') != '' }}
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: security-reports/grype/${{ matrix.service }}-grype.sarif
