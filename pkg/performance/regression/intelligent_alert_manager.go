@@ -956,5 +956,4 @@ type CorrelationFeedback struct{}
 type CorrelationMetrics struct{}
 type AlertRateLimiter struct{}
 type AlertMetrics struct{}
-type AlertLearningEngine struct{}
 type AlertHistory struct{}

@@ -13,7 +13,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sony/gobreaker"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
@@ -50,6 +49,10 @@ type Service struct {
 	lastStatsUpdate time.Time
 	processingRate  atomic.Uint64
 	errorRate       atomic.Uint64
+	
+	// Current metric values for retrieval
+	currentMemoryUsage atomic.Uint64
+	currentCPUUsage    atomic.Uint64
 
 	// Synchronization
 	mu      sync.RWMutex
@@ -549,12 +552,12 @@ func (s *Service) GetHealthStatus(ctx context.Context) *health.HealthResponse {
 // GetMetrics returns current service metrics
 func (s *Service) GetMetrics() ServiceStats {
 	return ServiceStats{
-		ActiveWorkers:   int(s.metrics.ActiveWorkers.Get()),
-		QueueDepth:      int(s.metrics.QueueDepth.Get()),
-		ProcessingRate:  s.metrics.ProcessingRate.Get(),
-		ErrorRate:       s.metrics.ErrorRate.Get(),
-		MemoryUsageMB:   s.metrics.MemoryUsage.Get(),
-		CPUUsagePercent: s.metrics.CPUUsage.Get(),
+		ActiveWorkers:   int(atomic.LoadInt32(&s.workerCount)),
+		QueueDepth:      len(s.taskQueue),
+		ProcessingRate:  float64(s.processingRate.Load()),
+		ErrorRate:       float64(s.errorRate.Load()),
+		MemoryUsageMB:   float64(s.currentMemoryUsage.Load()),
+		CPUUsagePercent: float64(s.currentCPUUsage.Load()),
 		Uptime:          time.Since(s.lastStatsUpdate),
 	}
 }
@@ -737,8 +740,8 @@ func (s *Service) updateMetrics(ctx context.Context) {
 			return
 		case <-ticker.C:
 			// Calculate rates
-			currentProcessed := atomic.LoadUint64(&s.processingRate)
-			currentErrors := atomic.LoadUint64(&s.errorRate)
+			currentProcessed := s.processingRate.Load()
+			currentErrors := s.errorRate.Load()
 
 			processingRate := float64(currentProcessed-lastProcessed) / 5.0
 			errorRate := float64(currentErrors-lastErrors) / 5.0
@@ -787,8 +790,8 @@ func (s *Service) performHealthChecks(ctx context.Context) {
 			return
 		case <-ticker.C:
 			// Check resource limits
-			memoryMB := s.metrics.MemoryUsage.Get()
-			cpuPercent := s.metrics.CPUUsage.Get()
+			memoryMB := float64(s.currentMemoryUsage.Load())
+			cpuPercent := float64(s.currentCPUUsage.Load())
 
 			healthy := true
 			if memoryMB > float64(s.config.MaxMemoryUsageMB) {

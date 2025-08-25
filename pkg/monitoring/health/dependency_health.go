@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -820,31 +821,31 @@ func (dht *DependencyHealthTracker) checkGenericHTTP(ctx context.Context, config
 }
 
 // recordHealthMetrics records metrics for dependency health
-func (dht *DependencyHealthTracker) recordHealthMetrics(health *DependencyHealth, config *DependencyConfig) {
-	labels := []string{health.Name, string(health.Type), string(config.Criticality)}
+func (dht *DependencyHealthTracker) recordHealthMetrics(healthResult *DependencyHealth, config *DependencyConfig) {
+	labels := []string{healthResult.Name, string(healthResult.Type), string(config.Criticality)}
 
 	// Health status metric
 	statusValue := 0.0
-	if health.Status == health.StatusHealthy {
+	if healthResult.Status == health.StatusHealthy {
 		statusValue = 1.0
-	} else if health.Status == health.StatusDegraded {
+	} else if healthResult.Status == health.StatusDegraded {
 		statusValue = 0.5
 	}
 	dht.metrics.HealthStatus.WithLabelValues(labels...).Set(statusValue)
 
 	// Response time metric
-	dht.metrics.ResponseTime.WithLabelValues(health.Name, string(health.Type)).Observe(health.ResponseTime.Seconds())
+	dht.metrics.ResponseTime.WithLabelValues(healthResult.Name, string(healthResult.Type)).Observe(healthResult.ResponseTime.Seconds())
 
 	// Availability rate metric
-	dht.metrics.AvailabilityRate.WithLabelValues(health.Name, string(health.Type)).Set(health.AvailabilityRate)
+	dht.metrics.AvailabilityRate.WithLabelValues(healthResult.Name, string(healthResult.Type)).Set(healthResult.AvailabilityRate)
 
 	// Error count if there was an error
-	if health.LastError != "" {
+	if healthResult.LastError != "" {
 		errorType := "unknown"
-		if health.Status == health.StatusUnhealthy {
+		if healthResult.Status == health.StatusUnhealthy {
 			errorType = "unhealthy"
 		}
-		dht.metrics.ErrorCount.WithLabelValues(health.Name, string(health.Type), errorType).Inc()
+		dht.metrics.ErrorCount.WithLabelValues(healthResult.Name, string(healthResult.Type), errorType).Inc()
 	}
 }
 

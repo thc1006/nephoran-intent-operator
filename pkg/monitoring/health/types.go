@@ -302,7 +302,7 @@ type HealthImpactAnalysis struct {
 	RootCauses         []RootCause         `json:"root_causes"`
 	RecommendedActions []RecommendedAction `json:"recommended_actions"`
 	EstimatedRecovery  time.Duration       `json:"estimated_recovery"`
-	BusinessImpact     BusinessImpact      `json:"business_impact"`
+	BusinessImpact     HealthBusinessImpact      `json:"business_impact"`
 }
 
 // ImpactLevel represents the level of impact from a health issue
@@ -337,14 +337,14 @@ type RecommendedAction struct {
 type ActionPriority string
 
 const (
-	PriorityImmediate ActionPriority = "immediate"
-	PriorityUrgent    ActionPriority = "urgent"
-	PriorityNormal    ActionPriority = "normal"
-	PriorityLow       ActionPriority = "low"
+	ActionPriorityImmediate ActionPriority = "immediate"
+	ActionPriorityUrgent    ActionPriority = "urgent"
+	ActionPriorityNormal    ActionPriority = "normal"
+	ActionPriorityLow       ActionPriority = "low"
 )
 
-// BusinessImpact represents the business impact of health issues
-type BusinessImpact struct {
+// HealthBusinessImpact represents the business impact of health issues
+type HealthBusinessImpact struct {
 	Level             ImpactLevel   `json:"level"`
 	Description       string        `json:"description"`
 	AffectedServices  []string      `json:"affected_services"`

@@ -3,8 +3,6 @@ package istio
 
 import (
 	"context"
-	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -13,13 +11,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -75,7 +73,7 @@ type IstioMesh struct {
 	meshConfig    *Config
 	certProvider  *IstioCertificateProvider
 	metrics       *IstioMetrics
-	logger        log.Logger
+	logger        logr.Logger
 }
 
 // NewIstioMesh creates a new Istio mesh implementation
@@ -147,10 +145,14 @@ func (m *IstioMesh) verifyIstioInstallation(ctx context.Context) error {
 	}
 
 	for _, crd := range crds {
-		_, err := m.kubeClient.RESTClient().
-			Get().
-			AbsPath("/apis/apiextensions.k8s.io/v1/customresourcedefinitions/" + crd).
-			DoRaw(ctx)
+		// Check CRD exists using dynamic client
+		dynamicClient := dynamic.NewForConfigOrDie(m.config)
+		crdGVR := schema.GroupVersionResource{
+			Group:    "apiextensions.k8s.io",
+			Version:  "v1",
+			Resource: "customresourcedefinitions",
+		}
+		_, err := dynamicClient.Resource(crdGVR).Get(ctx, crd, metav1.GetOptions{})
 		if err != nil {
 			return fmt.Errorf("CRD %s not found: %w", crd, err)
 		}
@@ -724,7 +726,7 @@ func (m *IstioMesh) GetServiceStatus(ctx context.Context, serviceName string, na
 	}
 
 	// Check if service exists
-	svc, err := m.kubeClient.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
+	_, err := m.kubeClient.CoreV1().Services(namespace).Get(ctx, serviceName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("service not found: %w", err)
 	}
@@ -833,7 +835,7 @@ func (m *IstioMesh) GetServiceDependencies(ctx context.Context, namespace string
 	dynamicClient := dynamic.NewForConfigOrDie(m.config)
 	virtualServices, err := dynamicClient.Resource(gvr).Namespace(namespace).List(ctx, metav1.ListOptions{})
 	if err == nil {
-		for _, vs := range virtualServices.Items {
+		for range virtualServices.Items {
 			// Parse virtual service to determine connections
 			// This is simplified - actual implementation would parse the spec
 		}

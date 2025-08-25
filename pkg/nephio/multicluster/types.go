@@ -136,6 +136,8 @@ type PackageRevisionSpec struct {
 	Repository     string                   `json:"repository,omitempty"`
 	WorkspaceName  string                   `json:"workspaceName,omitempty"`
 	Tasks          []Task                   `json:"tasks,omitempty"`
+	Resources      []interface{}            `json:"resources,omitempty"`
+	Functions      []interface{}            `json:"functions,omitempty"`
 }
 
 // PackageRevisionStatus defines the observed state of PackageRevision
@@ -143,7 +145,8 @@ type PackageRevisionStatus struct {
 	Conditions      []metav1.Condition `json:"conditions,omitempty"`
 	UpstreamLock    *UpstreamLock      `json:"upstreamLock,omitempty"`
 	PublishedBy     string             `json:"publishedBy,omitempty"`
-	PublishedAt     metav1.Time        `json:"publishedAt,omitempty"`
+	PublishedAt     *metav1.Time       `json:"publishedAt,omitempty"`
+	PublishTime     *metav1.Time       `json:"publishTime,omitempty"`
 	DeploymentReady bool               `json:"deploymentReady,omitempty"`
 }
 
@@ -175,4 +178,23 @@ type GitLock struct {
 	Directory string `json:"directory,omitempty"`
 	Ref       string `json:"ref,omitempty"`
 	Commit    string `json:"commit,omitempty"`
+}
+
+// SetCondition adds or updates a condition in the PackageRevision status
+func (pr *PackageRevision) SetCondition(condition metav1.Condition) {
+	if pr.Status.Conditions == nil {
+		pr.Status.Conditions = []metav1.Condition{}
+	}
+
+	// Look for existing condition with the same type
+	for i, existing := range pr.Status.Conditions {
+		if existing.Type == condition.Type {
+			// Update existing condition
+			pr.Status.Conditions[i] = condition
+			return
+		}
+	}
+
+	// Add new condition
+	pr.Status.Conditions = append(pr.Status.Conditions, condition)
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"sort"
 	"sync"
 	"time"
 
@@ -225,10 +224,10 @@ const (
 type WarningSeverity string
 
 const (
-	SeverityLow      WarningSeverity = "low"
-	SeverityMedium   WarningSeverity = "medium"
-	SeverityHigh     WarningSeverity = "high"
-	SeverityCritical WarningSeverity = "critical"
+	SeverityLow    WarningSeverity = "low"
+	SeverityMedium WarningSeverity = "medium"
+	SeverityHigh   WarningSeverity = "high"
+	SeverityAlert  WarningSeverity = "critical"
 )
 
 // WarningStatus defines the status of a warning
@@ -534,14 +533,14 @@ func defaultEarlyWarningConfig() *EarlyWarningConfig {
 			{
 				Level:                1,
 				Duration:             15 * time.Minute,
-				SeverityFilter:       []WarningSeverity{SeverityHigh, SeverityCritical},
+				SeverityFilter:       []WarningSeverity{SeverityHigh, SeverityAlert},
 				Actions:              []string{"notify_on_call"},
 				NotificationChannels: []string{"slack", "email"},
 			},
 			{
 				Level:                2,
 				Duration:             30 * time.Minute,
-				SeverityFilter:       []WarningSeverity{SeverityCritical},
+				SeverityFilter:       []WarningSeverity{SeverityAlert},
 				Actions:              []string{"page_management", "create_incident"},
 				NotificationChannels: []string{"pagerduty", "phone"},
 			},
@@ -1139,7 +1138,7 @@ func (hp *HealthPredictor) updateTrainingData(component string) (*ModelTrainingD
 				Values: []float64{
 					point.Score,
 					point.Duration.Seconds(),
-					float64(point.ConsecutiveFails),
+					0.0, // placeholder for error rate
 					float64(point.Timestamp.Unix()),
 				},
 				Names:     []string{"score", "latency", "error_rate", "timestamp"},
@@ -1213,7 +1212,7 @@ func (hp *HealthPredictor) checkEarlyWarnings(component string, predictions []He
 				ID:              fmt.Sprintf("warning-%s-%d", component, time.Now().Unix()),
 				Component:       component,
 				Type:            WarningTypeHealthDegradation,
-				Severity:        SeverityCritical,
+				Severity:        SeverityAlert,
 				Title:           fmt.Sprintf("Critical health degradation predicted for %s", component),
 				Description:     fmt.Sprintf("Health score predicted to drop to %.2f at %s", prediction.PredictedScore, prediction.PredictedTime.Format(time.RFC3339)),
 				PredictedTime:   prediction.PredictedTime,
@@ -1224,7 +1223,7 @@ func (hp *HealthPredictor) checkEarlyWarnings(component string, predictions []He
 				Recommendations: []RecommendedAction{
 					{
 						Action:      "investigate_degradation",
-						Priority:    PriorityImmediate,
+						Priority:    ActionPriorityImmediate,
 						Description: "Investigate potential causes of health degradation",
 						Automated:   false,
 						ETA:         15 * time.Minute,
@@ -1248,7 +1247,7 @@ func (hp *HealthPredictor) checkEarlyWarnings(component string, predictions []He
 				Recommendations: []RecommendedAction{
 					{
 						Action:      "monitor_closely",
-						Priority:    PriorityUrgent,
+						Priority:    ActionPriorityUrgent,
 						Description: "Monitor component health closely",
 						Automated:   true,
 						ETA:         5 * time.Minute,
@@ -1270,7 +1269,7 @@ func (hp *HealthPredictor) checkResourceExhaustion(component string) []ResourceE
 	defer hp.resourceMonitor.mu.RUnlock()
 
 	// Check each resource tracker for the component
-	for trackerKey, tracker := range hp.resourceMonitor.resourceTrackers {
+	for _, tracker := range hp.resourceMonitor.resourceTrackers {
 		if tracker.Component != component {
 			continue
 		}
@@ -1291,7 +1290,7 @@ func (hp *HealthPredictor) checkResourceExhaustion(component string) []ResourceE
 					RecommendedActions: []RecommendedAction{
 						{
 							Action:      fmt.Sprintf("scale_%s", tracker.ResourceType),
-							Priority:    PriorityUrgent,
+							Priority:    ActionPriorityUrgent,
 							Description: fmt.Sprintf("Scale %s resources before exhaustion", tracker.ResourceType),
 							Automated:   true,
 							ETA:         30 * time.Minute,

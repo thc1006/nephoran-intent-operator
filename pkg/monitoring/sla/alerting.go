@@ -626,8 +626,38 @@ func (am *AlertManager) GetActiveAlerts() []*ActiveAlert {
 
 	alerts := make([]*ActiveAlert, 0, len(am.activeAlerts))
 	for _, alert := range am.activeAlerts {
-		alertCopy := *alert
-		alerts = append(alerts, &alertCopy)
+		alert.mu.RLock()
+		
+		// Deep copy the alert without copying the mutex
+		alertCopy := &ActiveAlert{
+			ID:                alert.ID,
+			Rule:              alert.Rule,
+			Status:            alert.Status,
+			StartsAt:          alert.StartsAt,
+			EndsAt:            alert.EndsAt,
+			Value:             alert.Value,
+			Labels:            make(map[string]string),
+			Annotations:       make(map[string]string),
+			Fingerprint:       alert.Fingerprint,
+			EscalationLevel:   alert.EscalationLevel,
+			LastEscalated:     alert.LastEscalated,
+			NotificationsSent: make(map[string]time.Time),
+			SilencedUntil:     alert.SilencedUntil,
+		}
+		
+		// Copy maps
+		for k, v := range alert.Labels {
+			alertCopy.Labels[k] = v
+		}
+		for k, v := range alert.Annotations {
+			alertCopy.Annotations[k] = v
+		}
+		for k, v := range alert.NotificationsSent {
+			alertCopy.NotificationsSent[k] = v
+		}
+		
+		alert.mu.RUnlock()
+		alerts = append(alerts, alertCopy)
 	}
 
 	return alerts

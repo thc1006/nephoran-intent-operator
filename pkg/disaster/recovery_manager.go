@@ -21,14 +21,12 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/redis/go-redis/v9"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -46,16 +44,16 @@ var (
 		Help: "Total number of disaster recovery operations",
 	}, []string{"operation", "status"})
 
-	// RTO/RPO tracking
-	recoveryTimeObjective = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "disaster_recovery_rto_seconds",
-		Help: "Recovery Time Objective in seconds",
-	}, []string{"region"})
+	// RTO/RPO tracking - commented out unused metrics
+	// recoveryTimeObjective = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	//	Name: "disaster_recovery_rto_seconds",
+	//	Help: "Recovery Time Objective in seconds",
+	// }, []string{"region"})
 
-	recoveryPointObjective = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "disaster_recovery_rpo_seconds",
-		Help: "Recovery Point Objective in seconds",
-	}, []string{"region"})
+	// recoveryPointObjective = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	//	Name: "disaster_recovery_rpo_seconds",
+	//	Help: "Recovery Point Objective in seconds",
+	// }, []string{"region"})
 
 	// Service restart duration
 	serviceRestartDuration = promauto.NewHistogramVec(prometheus.HistogramOpts{

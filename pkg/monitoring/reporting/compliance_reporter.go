@@ -8,15 +8,12 @@ package reporting
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 // ComplianceFramework represents different compliance frameworks

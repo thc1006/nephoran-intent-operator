@@ -1690,7 +1690,14 @@ func (c *Client) getPackageContentsInternal(ctx context.Context, name string, re
 
 	// Extract contents from resources in the package revision spec
 	if pkg.Spec.Resources != nil {
-		for i, resource := range pkg.Spec.Resources {
+		for i, resourceInterface := range pkg.Spec.Resources {
+			// Convert interface{} to KRMResource
+			resource, err := convertToKRMResource(resourceInterface)
+			if err != nil {
+				c.logger.Error(err, "Failed to convert interface to KRMResource", "index", i)
+				continue
+			}
+			
 			// Convert KRMResource to YAML
 			yamlData, err := convertKRMResourceToYAML(resource)
 			if err != nil {
@@ -1752,7 +1759,11 @@ func (c *Client) updatePackageContentsInternal(ctx context.Context, name string,
 	}
 
 	// Update the package revision with new resources
-	pkg.Spec.Resources = resources
+	var interfaceResources []interface{}
+	for _, resource := range resources {
+		interfaceResources = append(interfaceResources, convertFromKRMResource(resource))
+	}
+	pkg.Spec.Resources = interfaceResources
 
 	// Update the package revision
 	_, err = c.updatePackageRevisionInternal(ctx, pkg)
@@ -1788,16 +1799,41 @@ func (c *Client) renderPackageInternal(ctx context.Context, name string, revisio
 
 	// If no functions defined, return resources as-is
 	if len(pkg.Spec.Functions) == 0 {
+		// Convert interface{} resources to KRMResource
+		var resources []KRMResource
+		for _, resourceInterface := range pkg.Spec.Resources {
+			resource, err := convertToKRMResource(resourceInterface)
+			if err != nil {
+				c.logger.Error(err, "Failed to convert interface to KRMResource")
+				continue
+			}
+			resources = append(resources, resource)
+		}
 		return &RenderResult{
-			Resources: pkg.Spec.Resources,
+			Resources: resources,
 		}, nil
 	}
 
 	// Execute each function in the pipeline
-	currentResources := pkg.Spec.Resources
+	// Convert interface{} resources to KRMResource
+	var currentResources []KRMResource
+	for _, resourceInterface := range pkg.Spec.Resources {
+		resource, err := convertToKRMResource(resourceInterface)
+		if err != nil {
+			c.logger.Error(err, "Failed to convert interface to KRMResource")
+			continue
+		}
+		currentResources = append(currentResources, resource)
+	}
 	var allResults []*FunctionResult
 
-	for _, functionConfig := range pkg.Spec.Functions {
+	for _, functionInterface := range pkg.Spec.Functions {
+		// Convert interface{} to FunctionConfig
+		functionConfig, err := convertToFunctionConfig(functionInterface)
+		if err != nil {
+			c.logger.Error(err, "Failed to convert interface to FunctionConfig")
+			continue
+		}
 		c.logger.V(1).Info("Executing function in pipeline", "image", functionConfig.Image)
 
 		// Create function request
@@ -1967,7 +2003,18 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 	}
 
 	// Validate resources
-	for i, resource := range pkg.Spec.Resources {
+	for i, resourceInterface := range pkg.Spec.Resources {
+		resource, err := convertToKRMResource(resourceInterface)
+		if err != nil {
+			errors = append(errors, ValidationError{
+				Path:     fmt.Sprintf("spec.resources[%d]", i),
+				Message:  fmt.Sprintf("Invalid resource format: %v", err),
+				Severity: "error",
+				Code:     "INVALID_RESOURCE_FORMAT",
+			})
+			continue
+		}
+		
 		if resource.APIVersion == "" {
 			errors = append(errors, ValidationError{
 				Path:     fmt.Sprintf("spec.resources[%d].apiVersion", i),
@@ -1998,7 +2045,18 @@ func (c *Client) validatePackageInternal(ctx context.Context, name string, revis
 	}
 
 	// Validate function configurations
-	for i, function := range pkg.Spec.Functions {
+	for i, functionInterface := range pkg.Spec.Functions {
+		function, err := convertToFunctionConfig(functionInterface)
+		if err != nil {
+			errors = append(errors, ValidationError{
+				Path:     fmt.Sprintf("spec.functions[%d]", i),
+				Message:  fmt.Sprintf("Invalid function format: %v", err),
+				Severity: "error",
+				Code:     "INVALID_FUNCTION_FORMAT",
+			})
+			continue
+		}
+		
 		if function.Image == "" {
 			errors = append(errors, ValidationError{
 				Path:     fmt.Sprintf("spec.functions[%d].image", i),
@@ -2470,6 +2528,94 @@ func convertFromUnstructured(obj interface{}, target interface{}) error {
 	}
 
 	return nil
+}
+
+// Type conversion helpers for interface{} fields in multicluster types
+
+// convertToKRMResource converts interface{} to KRMResource
+func convertToKRMResource(resource interface{}) (KRMResource, error) {
+	// Handle KRMResource type directly
+	if krmRes, ok := resource.(KRMResource); ok {
+		return krmRes, nil
+	}
+	
+	// Handle map conversion
+	if resourceMap, ok := resource.(map[string]interface{}); ok {
+		krmRes := KRMResource{
+			Metadata: make(map[string]interface{}),
+		}
+		
+		if apiVersion, ok := resourceMap["apiVersion"].(string); ok {
+			krmRes.APIVersion = apiVersion
+		}
+		if kind, ok := resourceMap["kind"].(string); ok {
+			krmRes.Kind = kind
+		}
+		if metadata, ok := resourceMap["metadata"].(map[string]interface{}); ok {
+			krmRes.Metadata = metadata
+		}
+		if spec, ok := resourceMap["spec"].(map[string]interface{}); ok {
+			krmRes.Spec = spec
+		}
+		if status, ok := resourceMap["status"].(map[string]interface{}); ok {
+			krmRes.Status = status
+		}
+		if data, ok := resourceMap["data"].(map[string]interface{}); ok {
+			krmRes.Data = data
+		}
+		
+		return krmRes, nil
+	}
+	
+	return KRMResource{}, fmt.Errorf("cannot convert %T to KRMResource", resource)
+}
+
+// convertToFunctionConfig converts interface{} to FunctionConfig
+func convertToFunctionConfig(function interface{}) (FunctionConfig, error) {
+	// Handle FunctionConfig type directly
+	if funcConfig, ok := function.(FunctionConfig); ok {
+		return funcConfig, nil
+	}
+	
+	// Handle map conversion
+	if functionMap, ok := function.(map[string]interface{}); ok {
+		funcConfig := FunctionConfig{}
+		
+		if image, ok := functionMap["image"].(string); ok {
+			funcConfig.Image = image
+		}
+		if configPath, ok := functionMap["configPath"].(string); ok {
+			funcConfig.ConfigPath = configPath
+		}
+		if configMap, ok := functionMap["configMap"].(map[string]interface{}); ok {
+			funcConfig.ConfigMap = configMap
+		}
+		
+		return funcConfig, nil
+	}
+	
+	return FunctionConfig{}, fmt.Errorf("cannot convert %T to FunctionConfig", function)
+}
+
+// convertFromKRMResource converts KRMResource to interface{} for storage in multicluster types
+func convertFromKRMResource(resource KRMResource) interface{} {
+	return map[string]interface{}{
+		"apiVersion": resource.APIVersion,
+		"kind":       resource.Kind,
+		"metadata":   resource.Metadata,
+		"spec":       resource.Spec,
+		"status":     resource.Status,
+		"data":       resource.Data,
+	}
+}
+
+// convertFromFunctionConfig converts FunctionConfig to interface{} for storage in multicluster types
+func convertFromFunctionConfig(function FunctionConfig) interface{} {
+	return map[string]interface{}{
+		"image":      function.Image,
+		"configPath": function.ConfigPath,
+		"configMap":  function.ConfigMap,
+	}
 }
 
 // Helper functions for package content operations

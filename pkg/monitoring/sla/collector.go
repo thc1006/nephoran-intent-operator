@@ -605,12 +605,12 @@ func (c *Collector) CollectBatch(ctx context.Context, samples []*MetricSample) e
 // GetStats returns current collector statistics
 func (c *Collector) GetStats() CollectorStats {
 	return CollectorStats{
-		MetricsCollected:  atomic.LoadUint64(&c.collectionCount),
-		ProcessingErrors:  atomic.LoadUint64(&c.processingErrors),
-		SampledMetrics:    atomic.LoadUint64(&c.sampledMetrics),
-		DroppedMetrics:    atomic.LoadUint64(&c.droppedMetrics),
+		MetricsCollected:  c.collectionCount.Load(),
+		ProcessingErrors:  c.processingErrors.Load(),
+		SampledMetrics:    c.sampledMetrics.Load(),
+		DroppedMetrics:    c.droppedMetrics.Load(),
 		BufferUtilization: float64(len(c.metricsBuffer)) / float64(cap(c.metricsBuffer)) * 100,
-		ProcessingRate:    atomic.LoadUint64(&c.processingRate),
+		ProcessingRate:    c.processingRate.Load(),
 		TotalCardinality:  c.cardinalityMgr.totalCardinality.Load(),
 	}
 }
@@ -638,7 +638,7 @@ func (c *Collector) runCollectionLoop(ctx context.Context) {
 			return
 		case sample := <-c.metricsBuffer:
 			// Distribute to workers using round-robin
-			workerIndex := int(atomic.LoadUint64(&c.collectionCount)) % c.workerCount
+			workerIndex := int(c.collectionCount.Load()) % c.workerCount
 			worker := c.workers[workerIndex]
 
 			select {
@@ -739,7 +739,7 @@ func (c *Collector) updateMetrics(ctx context.Context) {
 			duration := now.Sub(lastUpdate).Seconds()
 
 			// Calculate collection rate
-			currentCollected := atomic.LoadUint64(&c.collectionCount)
+			currentCollected := c.collectionCount.Load()
 			rate := float64(currentCollected-lastCollected) / duration
 			c.metrics.CollectionRate.Set(rate)
 
@@ -765,7 +765,7 @@ func (c *Collector) shouldSample() bool {
 		return true
 	}
 
-	currentRate := atomic.LoadUint64(&c.processingRate)
+	currentRate := c.processingRate.Load()
 	if currentRate < uint64(c.config.SamplingThreshold) {
 		return true
 	}
@@ -788,7 +788,7 @@ func (c *Collector) getCurrentSamplingRate() float64 {
 		return c.config.SamplingRate
 	}
 
-	currentRate := atomic.LoadUint64(&c.processingRate)
+	currentRate := c.processingRate.Load()
 	if currentRate < uint64(c.config.SamplingThreshold) {
 		return 1.0
 	}

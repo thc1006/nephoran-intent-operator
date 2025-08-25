@@ -21,11 +21,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
 // ExporterConfig contains configuration for metrics export
@@ -592,7 +590,7 @@ func (me *MetricsExporter) performAggregation(ctx context.Context, name string, 
 
 	// Perform aggregation for each group
 	aggregatedMetrics := make([]MetricPoint, 0)
-	for groupKey, points := range groups {
+	for _, points := range groups {
 		aggregated := me.aggregatePoints(points, aggregator.config.Function)
 		if aggregated != nil {
 			aggregated.Name = fmt.Sprintf("%s_%s", name, aggregator.config.Function)

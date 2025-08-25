@@ -3,6 +3,7 @@ package sla
 import (
 	"context"
 	"fmt"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -754,7 +755,7 @@ func (t *Tracker) CompleteStage(intentID, stageName string, success bool, errorM
 			// Record component latency
 			intent.ComponentLatencies[stageName] = stage.Duration
 			if !success {
-				intent.ComponentErrors[stageName] = fmt.Errorf(errorMsg)
+				intent.ComponentErrors[stageName] = fmt.Errorf("%s", errorMsg)
 			}
 
 			break
@@ -796,7 +797,7 @@ func (t *Tracker) RecordQueueMetrics(queueName string, depth int, latency time.D
 
 	queue.Depth.Store(int64(depth))
 	queue.Throughput.Add(1)
-	queue.Latency.Add(time.Now(), float64(latency.Milliseconds()))
+	queue.Latency.Add(float64(latency.Milliseconds()))
 
 	// Update Prometheus metrics
 	t.metrics.QueueDepth.WithLabelValues(queueName, "default").Set(float64(depth))
@@ -820,7 +821,45 @@ func (t *Tracker) GetActiveIntents() map[string]*IntentExecution {
 	// Return a copy to avoid race conditions
 	result := make(map[string]*IntentExecution, len(t.activeIntents))
 	for id, intent := range t.activeIntents {
-		intentCopy := *intent
+		intent.mu.RLock()
+		intentCopy := IntentExecution{
+			ID:                 intent.ID,
+			IntentType:         intent.IntentType,
+			UserID:             intent.UserID,
+			RequestID:          intent.RequestID,
+			StartTime:          intent.StartTime,
+			EndTime:            intent.EndTime,
+			TotalDuration:      intent.TotalDuration,
+			TraceID:            intent.TraceID,
+			SpanID:             intent.SpanID,
+			ComponentLatencies: make(map[string]time.Duration),
+			ComponentErrors:    make(map[string]error),
+			ComponentStatus:    make(map[string]ComponentStatus),
+			Stages:             make([]*ProcessingStage, len(intent.Stages)),
+			CurrentStage:       intent.CurrentStage,
+			Status:             intent.Status,
+			Success:            intent.Success,
+			ErrorDetails:       intent.ErrorDetails,
+			QueuedAt:           intent.QueuedAt,
+			QueueDepth:         intent.QueueDepth,
+			QueueLatency:       intent.QueueLatency,
+			BusinessImpact:     intent.BusinessImpact,
+			CriticalPath:       intent.CriticalPath,
+		}
+		
+		// Deep copy maps and slices
+		for k, v := range intent.ComponentLatencies {
+			intentCopy.ComponentLatencies[k] = v
+		}
+		for k, v := range intent.ComponentErrors {
+			intentCopy.ComponentErrors[k] = v
+		}
+		for k, v := range intent.ComponentStatus {
+			intentCopy.ComponentStatus[k] = v
+		}
+		copy(intentCopy.Stages, intent.Stages)
+		
+		intent.mu.RUnlock()
 		result[id] = &intentCopy
 	}
 
@@ -838,7 +877,46 @@ func (t *Tracker) GetIntentStatus(intentID string) (*IntentExecution, error) {
 	}
 
 	// Return a copy
-	intentCopy := *intent
+	intent.mu.RLock()
+	defer intent.mu.RUnlock()
+	
+	intentCopy := IntentExecution{
+		ID:                 intent.ID,
+		IntentType:         intent.IntentType,
+		UserID:             intent.UserID,
+		RequestID:          intent.RequestID,
+		StartTime:          intent.StartTime,
+		EndTime:            intent.EndTime,
+		TotalDuration:      intent.TotalDuration,
+		TraceID:            intent.TraceID,
+		SpanID:             intent.SpanID,
+		ComponentLatencies: make(map[string]time.Duration),
+		ComponentErrors:    make(map[string]error),
+		ComponentStatus:    make(map[string]ComponentStatus),
+		Stages:             make([]*ProcessingStage, len(intent.Stages)),
+		CurrentStage:       intent.CurrentStage,
+		Status:             intent.Status,
+		Success:            intent.Success,
+		ErrorDetails:       intent.ErrorDetails,
+		QueuedAt:           intent.QueuedAt,
+		QueueDepth:         intent.QueueDepth,
+		QueueLatency:       intent.QueueLatency,
+		BusinessImpact:     intent.BusinessImpact,
+		CriticalPath:       intent.CriticalPath,
+	}
+	
+	// Deep copy maps and slices
+	for k, v := range intent.ComponentLatencies {
+		intentCopy.ComponentLatencies[k] = v
+	}
+	for k, v := range intent.ComponentErrors {
+		intentCopy.ComponentErrors[k] = v
+	}
+	for k, v := range intent.ComponentStatus {
+		intentCopy.ComponentStatus[k] = v
+	}
+	copy(intentCopy.Stages, intent.Stages)
+	
 	return &intentCopy, nil
 }
 
@@ -850,10 +928,10 @@ func (t *Tracker) GetTrackerStats() TrackerStats {
 
 	return TrackerStats{
 		ActiveIntents:  activeCount,
-		TotalTracked:   atomic.LoadUint64(&t.trackingCount),
-		TotalCompleted: atomic.LoadUint64(&t.completionCount),
-		TotalErrors:    atomic.LoadUint64(&t.errorCount),
-		TotalTimeouts:  atomic.LoadUint64(&t.timeoutCount),
+		TotalTracked:   t.trackingCount.Load(),
+		TotalCompleted: t.completionCount.Load(),
+		TotalErrors:    t.errorCount.Load(),
+		TotalTimeouts:  t.timeoutCount.Load(),
 	}
 }
 
@@ -997,7 +1075,7 @@ func (t *Tracker) recordComponentLatency(component, intentType string, latency t
 	}
 
 	latencyMs := float64(latency.Milliseconds())
-	tracker.measurements.Add(time.Now(), latencyMs)
+	tracker.measurements.Add(latencyMs)
 	tracker.quantiles.AddObservation(latencyMs)
 
 	// Record Prometheus metrics

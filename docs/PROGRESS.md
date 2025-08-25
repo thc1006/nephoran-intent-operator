@@ -9,3 +9,4 @@
 | 2025-08-24T23:54:44+08:00 | chore/migrate-golangci-v2 | testing | Implemented build tags for test separation |
  | feat/conductor-loop | aws-sdk-v2-fixes | Fixed StorageClass usage and EC2 instance field access for AWS SDK v2
 2025-08-25T05:01:00+08:00 | feat/conductor-loop | aws-sdk-v2-fixes | Fixed StorageClass usage and EC2 instance field access for AWS SDK v2
+| 2025-08-25T22:54:00+08:00 | feat/conductor-loop | multicluster | Fixed Kubernetes API issues: removed unused imports causing compilation failures

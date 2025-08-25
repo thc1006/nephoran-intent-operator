@@ -1264,7 +1264,7 @@ func (dr *dependencyResolver) GetResolutionStatistics(ctx context.Context, timeR
 }
 
 func (dr *dependencyResolver) GetResolverHealth(ctx context.Context) (*ResolverHealth, error) {
-	return &ResolverHealth{Healthy: true}, nil
+	return &ResolverHealth{Status: "healthy"}, nil
 }
 
 func (dr *dependencyResolver) CleanupResolutionCache(ctx context.Context, olderThan time.Duration) (*CacheCleanupResult, error) {

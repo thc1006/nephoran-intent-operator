@@ -9,8 +9,10 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/restmapper"
 )
 
 // PackageDeploymentOrchestrator manages package deployments across multiple clusters
@@ -70,7 +72,7 @@ func (pdo *PackageDeploymentOrchestrator) PropagatePackage(
 			}()
 
 			deploymentStart := time.Now()
-			deploymentResult, err := pdo.deployToCluster(ctx, packageName, t, options)
+			_, err := pdo.deployToCluster(ctx, packageName, t, options)
 
 			mu.Lock()
 			defer mu.Unlock()
@@ -117,6 +119,19 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 		return false, fmt.Errorf("failed to create dynamic client: %w", err)
 	}
 
+	// Create discovery client for RESTMapper
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(target.Cluster.KubeConfig)
+	if err != nil {
+		return false, fmt.Errorf("failed to create discovery client: %w", err)
+	}
+
+	// Create RESTMapper to convert GVK to GVR
+	groupResources, err := restmapper.GetAPIGroupResources(discoveryClient)
+	if err != nil {
+		return false, fmt.Errorf("failed to get API group resources: %w", err)
+	}
+	mapper := restmapper.NewDiscoveryRESTMapper(groupResources)
+
 	// TODO: Implement package retrieval and parsing logic
 	// This would typically involve fetching the package from a package repository
 	// or using Nephio Porch API to get package details
@@ -137,8 +152,15 @@ func (pdo *PackageDeploymentOrchestrator) deployToCluster(
 			resource.SetNamespace("default")
 		}
 
+		// Convert GVK to GVR using RESTMapper
+		gvk := resource.GroupVersionKind()
+		mapping, err := mapper.RESTMapping(schema.GroupKind{Group: gvk.Group, Kind: gvk.Kind}, gvk.Version)
+		if err != nil {
+			return false, fmt.Errorf("failed to get REST mapping for %s: %w", gvk.String(), err)
+		}
+
 		// Create or update resource
-		_, err := dynamicClient.Resource(resource.GroupVersionKind()).Namespace(resource.GetNamespace()).Create(
+		_, err = dynamicClient.Resource(mapping.Resource).Namespace(resource.GetNamespace()).Create(
 			ctx,
 			resource,
 			metav1.CreateOptions{},
@@ -193,7 +215,7 @@ func (pdo *PackageDeploymentOrchestrator) rollbackFailedDeployments(
 	result *PropagationResult,
 ) {
 	for _, clusterID := range result.FailedDeployments {
-		cluster, err := pdo.clusterRegistry.GetCluster(clusterID)
+		_, err := pdo.clusterRegistry.GetCluster(clusterID)
 		if err != nil {
 			pdo.logger.Error("Failed to get cluster for rollback",
 				zap.String("clusterID", clusterID),
@@ -206,6 +228,92 @@ func (pdo *PackageDeploymentOrchestrator) rollbackFailedDeployments(
 		pdo.logger.Warn("Rollback initiated for cluster",
 			zap.String("packageName", packageName),
 			zap.String("clusterID", clusterID))
+	}
+}
+
+// selectDeploymentTargets selects clusters for package deployment based on options
+func (pdo *PackageDeploymentOrchestrator) selectDeploymentTargets(
+	ctx context.Context,
+	packageName string,
+	options *PropagationOptions,
+) ([]*DeploymentTarget, error) {
+	// Get all available clusters from registry
+	clusters := pdo.clusterRegistry.ListClusters()
+
+	var targets []*DeploymentTarget
+
+	// Filter clusters based on constraints
+	for _, cluster := range clusters {
+		// Check cluster health
+		if cluster.Status != ClusterStatusHealthy {
+			pdo.logger.Debug("Skipping unhealthy cluster",
+				zap.String("clusterID", cluster.ID),
+				zap.String("status", string(cluster.Status)))
+			continue
+		}
+
+		// Create deployment target
+		target := &DeploymentTarget{
+			Cluster:     cluster,
+			Constraints: options.Constraints,
+			Priority:    1, // Default priority
+			Fitness:     1.0,
+		}
+
+		// Evaluate constraints
+		constraintsMet := true
+		for _, constraint := range options.Constraints {
+			if !pdo.evaluateConstraint(cluster, constraint) {
+				if constraint.Requirement == ConstraintMust {
+					constraintsMet = false
+					break
+				}
+				// Reduce fitness for preferred constraints not met
+				if constraint.Requirement == ConstraintPreferred {
+					target.Fitness *= 0.8
+				}
+			}
+		}
+
+		if constraintsMet {
+			targets = append(targets, target)
+		}
+	}
+
+	if len(targets) == 0 {
+		return nil, fmt.Errorf("no suitable target clusters found for package %s", packageName)
+	}
+
+	return targets, nil
+}
+
+// evaluateConstraint checks if a cluster meets a specific constraint
+func (pdo *PackageDeploymentOrchestrator) evaluateConstraint(
+	cluster *WorkloadCluster,
+	constraint PlacementConstraint,
+) bool {
+	switch constraint.Type {
+	case "RequiredCapability":
+		for _, cap := range cluster.Capabilities {
+			if cap == constraint.Value {
+				return true
+			}
+		}
+		return false
+	case "Region":
+		return cluster.Region == constraint.Value
+	case "Zone":
+		return cluster.Zone == constraint.Value
+	case "Label":
+		if cluster.Labels != nil {
+			if val, exists := cluster.Labels[constraint.Value]; exists && val == "true" {
+				return true
+			}
+		}
+		return false
+	default:
+		// Unknown constraint type, consider it not met
+		return false
 	}
 }
 

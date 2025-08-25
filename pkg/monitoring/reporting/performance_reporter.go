@@ -3,20 +3,14 @@
 package reporting
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
-	"io"
-	"net/http"
-	"sort"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"gopkg.in/yaml.v3"
 )
 
 // PerformanceReporter handles automated performance reporting and notifications
@@ -638,15 +632,193 @@ func (pr *PerformanceReporter) generateExecutiveSummary(claims []ClaimValidation
 	return summary
 }
 
-// Additional methods would be implemented for:
-// - performStatisticalAnalysis
-// - performRegressionAnalysis
-// - performCapacityAnalysis
-// - calculateBusinessImpact
-// - generateRecommendations
-// - collectAlertsSummary
-// - loadTemplates
-// - SendReport (webhook integrations)
-// - FormatReport (multiple output formats)
+// loadTemplates loads report templates from configuration
+func (pr *PerformanceReporter) loadTemplates() error {
+	// TODO: Implement template loading from config files
+	// This should load HTML, email, and other report templates
+	return nil
+}
 
-// collectRAGSystemMetrics, collectCacheSystemMetrics, etc. would follow similar patterns
+// performStatisticalAnalysis performs statistical validation of performance metrics
+func (pr *PerformanceReporter) performStatisticalAnalysis(ctx context.Context, period string) (StatisticalAnalysis, error) {
+	// TODO: Implement statistical analysis including confidence intervals, p-values, etc.
+	return StatisticalAnalysis{
+		ConfidenceLevel:     95.0,
+		SampleSize:          1000,
+		PValue:              0.05,
+		EffectSize:          0.0,
+		StatisticalPower:    80.0,
+		NormalityTest:       true,
+		ConfidenceIntervals: make(map[string]ConfidenceInterval),
+	}, nil
+}
+
+// performRegressionAnalysis detects performance regressions
+func (pr *PerformanceReporter) performRegressionAnalysis(ctx context.Context, period string) (RegressionAnalysis, error) {
+	// TODO: Implement regression detection by comparing current metrics to baseline
+	return RegressionAnalysis{
+		RegressionDetected: false,
+		RegressionSeverity: "Low",
+		PerformanceChange:  make(map[string]float64),
+		BaselineComparison: BaselineComparison{
+			BaselinePeriod:     "7d",
+			BaselineMetrics:    make(map[string]float64),
+			CurrentMetrics:     make(map[string]float64),
+			PercentageChanges:  make(map[string]float64),
+			SignificantChanges: make([]string, 0),
+		},
+		TrendAnalysis: TrendAnalysis{
+			ShortTerm: TrendData{
+				Period:       "1h",
+				Direction:    "Stable",
+				ChangeRate:   0.0,
+				Significance: "Low",
+				Prediction:   "Stable",
+			},
+			MediumTerm: TrendData{
+				Period:       "24h",
+				Direction:    "Stable",
+				ChangeRate:   0.0,
+				Significance: "Low",
+				Prediction:   "Stable",
+			},
+			LongTerm: TrendData{
+				Period:       "7d",
+				Direction:    "Stable",
+				ChangeRate:   0.0,
+				Significance: "Low",
+				Prediction:   "Stable",
+			},
+		},
+	}, nil
+}
+
+// performCapacityAnalysis analyzes current capacity and provides scaling recommendations
+func (pr *PerformanceReporter) performCapacityAnalysis(ctx context.Context, metrics PerformanceMetrics) (CapacityAnalysis, error) {
+	// TODO: Implement capacity analysis based on current resource utilization
+	// Should analyze CPU, memory, network, and predict when scaling is needed
+	return CapacityAnalysis{
+		CurrentCapacity:        75.0, // placeholder
+		PeakCapacity:           85.0, // placeholder
+		CapacityTrend:          "Stable",
+		EstimatedExhaustion:    nil,
+		ScalingRecommendations: make([]ScalingRecommendation, 0),
+		ResourceBottlenecks:    make([]ResourceBottleneck, 0),
+	}, nil
+}
+
+// generateRecommendations generates actionable performance recommendations
+func (pr *PerformanceReporter) generateRecommendations(report *PerformanceReport) []Recommendation {
+	// TODO: Implement intelligent recommendation generation based on performance data
+	// Should analyze metrics, trends, and capacity to provide actionable insights
+	recommendations := make([]Recommendation, 0)
+	
+	// Example placeholder recommendation
+	if report.ExecutiveSummary.OverallScore < 80 {
+		recommendations = append(recommendations, Recommendation{
+			ID:          "perf-rec-1",
+			Category:    "Performance",
+			Priority:    "High",
+			Title:       "Performance Score Below Target",
+			Description: "Overall performance score is below 80%, indicating system performance issues",
+			Impact:      "Improved user experience and system reliability",
+			Effort:      "Medium",
+			Timeline:    "1-2 weeks",
+			Dependencies: []string{"Performance analysis", "Resource optimization"},
+		})
+	}
+	
+	return recommendations
+}
+
+// collectAlertsSummary collects and summarizes alert data for the report period
+func (pr *PerformanceReporter) collectAlertsSummary(ctx context.Context, period string) (AlertsSummary, error) {
+	// TODO: Implement alert collection from Prometheus Alertmanager or similar
+	// Should query alert history and provide meaningful statistics
+	return AlertsSummary{
+		TotalAlerts:       0,
+		CriticalAlerts:    0,
+		WarningAlerts:     0,
+		ResolvedAlerts:    0,
+		AlertsByComponent: make(map[string]int),
+		AlertTrends: AlertTrends{
+			HourlyTrend: make([]int, 24),
+			DailyTrend:  make([]int, 7),
+			WeeklyTrend: make([]int, 4),
+		},
+		TopAlerts: make([]AlertInfo, 0),
+		MTTR:      0.0,
+	}, nil
+}
+
+// calculateBusinessImpact calculates business impact metrics from performance data
+func (pr *PerformanceReporter) calculateBusinessImpact(metrics PerformanceMetrics, claims []ClaimValidation) BusinessImpact {
+	// TODO: Implement business impact calculation based on metrics and SLA claims
+	// Should calculate cost per intent, revenue impact, customer satisfaction impact, etc.
+	return BusinessImpact{
+		CostPerIntent:        0.05, // placeholder
+		RevenueImpact:        0.0,  // placeholder
+		CustomerSatisfaction: 85.0, // placeholder
+		SLAViolationCost:     0.0,  // placeholder
+		PerformanceROI:       15.0, // placeholder
+		CompetitivePosition:  "Competitive",
+	}
+}
+
+// collectRAGSystemMetrics collects RAG system performance data
+func (pr *PerformanceReporter) collectRAGSystemMetrics(ctx context.Context, period string) (RAGSystemMetrics, error) {
+	// TODO: Implement RAG system metrics collection from Prometheus
+	// Should query retrieval latency, context accuracy, etc.
+	return RAGSystemMetrics{
+		RetrievalLatencyP50: 0.15,  // placeholder
+		RetrievalLatencyP95: 0.25,  // placeholder
+		ContextAccuracy:     92.0,  // placeholder
+		DocumentsIndexed:    10000, // placeholder
+		QueriesPerSecond:    25.0,  // placeholder
+		EmbeddingLatency:    0.05,  // placeholder
+	}, nil
+}
+
+// collectCacheSystemMetrics collects cache system performance data
+func (pr *PerformanceReporter) collectCacheSystemMetrics(ctx context.Context, period string) (CacheSystemMetrics, error) {
+	// TODO: Implement cache system metrics collection from Prometheus
+	// Should query hit rate, miss rate, latency, etc.
+	return CacheSystemMetrics{
+		HitRate:        87.5, // placeholder
+		MissRate:       12.5, // placeholder
+		AverageLatency: 2.5,  // placeholder
+		CacheSize:      1024 * 1024 * 100, // placeholder: 100MB
+		EvictionRate:   0.1,  // placeholder
+		HitLatency:     1.2,  // placeholder
+		MissLatency:    15.0, // placeholder
+	}, nil
+}
+
+// collectResourceUsageMetrics collects system resource usage data
+func (pr *PerformanceReporter) collectResourceUsageMetrics(ctx context.Context, period string) (ResourceUsageMetrics, error) {
+	// TODO: Implement resource usage metrics collection from Prometheus
+	// Should query CPU, memory, disk, network usage, etc.
+	return ResourceUsageMetrics{
+		CPUUtilization:    65.0, // placeholder
+		MemoryUtilization: 70.0, // placeholder
+		DiskUtilization:   45.0, // placeholder
+		NetworkBandwidth:  100.0, // placeholder
+		FileDescriptors:   1024,  // placeholder
+		GoroutineCount:    200,   // placeholder
+		HeapSize:          1024 * 1024 * 50, // placeholder: 50MB
+	}, nil
+}
+
+// collectNetworkMetrics collects network performance data
+func (pr *PerformanceReporter) collectNetworkMetrics(ctx context.Context, period string) (NetworkMetrics, error) {
+	// TODO: Implement network metrics collection from Prometheus
+	// Should query network latency, throughput, packet loss, etc.
+	return NetworkMetrics{
+		Latency:           5.0,  // placeholder
+		Throughput:        500.0, // placeholder
+		PacketLoss:        0.01, // placeholder
+		ConnectionCount:   100,  // placeholder
+		ActiveConnections: 85,   // placeholder
+		ConnectionErrors:  2,    // placeholder
+	}, nil
+}

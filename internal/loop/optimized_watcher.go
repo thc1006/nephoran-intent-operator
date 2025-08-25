@@ -25,13 +25,13 @@ type OptimizedWatcher struct {
 	
 	// Performance counters (cache-aligned)
 	stats struct {
-		_pad1           [8]uint64  // Cache line padding
-		processedCount  uint64     // Atomic counter
-		_pad2           [7]uint64  // Cache line padding
-		throughputEMA   uint64     // Exponential moving average
-		_pad3           [7]uint64  // Cache line padding
-		latencyP99      uint64     // 99th percentile latency
-		_pad4           [7]uint64  // Cache line padding
+		_pad1           [8]uint64      // Cache line padding
+		processedCount  atomic.Uint64  // Atomic counter
+		_pad2           [7]uint64      // Cache line padding
+		throughputEMA   atomic.Uint64  // Exponential moving average
+		_pad3           [7]uint64      // Cache line padding
+		latencyP99      atomic.Uint64  // 99th percentile latency
+		_pad4           [7]uint64      // Cache line padding
 	}
 }
 
@@ -138,7 +138,7 @@ func (ow *OptimizedWatcher) ProcessFileOptimized(filePath string, fileInfo FileI
 
 	// Fast path: Check if already processed using lock-free atomic
 	if ow.isAlreadyProcessedFast(filePath, fileInfo) {
-		atomic.AddUint64(&ow.stats.processedCount, 1)
+		ow.stats.processedCount.Add(1)
 		return nil
 	}
 
@@ -356,9 +356,9 @@ func (ow *OptimizedWatcher) recordLatencyFast(duration time.Duration) {
 	
 	// Update exponential moving average
 	for {
-		old := atomic.LoadUint64(&ow.stats.throughputEMA)
+		old := ow.stats.throughputEMA.Load()
 		new := (old*7 + nanos) / 8 // EMA with α=0.125
-		if atomic.CompareAndSwapUint64(&ow.stats.throughputEMA, old, new) {
+		if ow.stats.throughputEMA.CompareAndSwap(old, new) {
 			break
 		}
 	}

@@ -339,7 +339,7 @@ func (rp *ResolverPool) worker() {
 	defer rp.wg.Done()
 	for {
 		select {
-		case task := <-rp.queue:
+		case _ = <-rp.queue:
 			// Process resolution task
 			// Implementation would handle the actual resolution
 		case <-rp.shutdown:

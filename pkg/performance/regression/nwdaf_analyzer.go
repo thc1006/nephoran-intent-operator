@@ -910,11 +910,15 @@ type RiskAssessment struct {
 	Reversibility      string `json:"reversibility"`
 }
 
+type KPIDatabase struct{}
+type LoadAnalytics struct{}
+type PerformanceAnalytics struct{}
+type CapacityAnalytics struct{}
+type AnomalyAnalytics struct{}
 type PredictiveAnalyticsInsights struct{}
 type CapacityAnalyticsInsights struct{}
 type PerformanceHotspot struct{}
 type OptimizationOpportunity struct{}
-type PerformanceForecast struct{}
 type AnomalyCorrelation struct{}
 type AnomalyImpactAssessment struct{}
 type SlicePerformanceSummary struct{}
