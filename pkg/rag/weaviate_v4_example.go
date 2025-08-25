@@ -32,7 +32,7 @@ func ExampleWeaviateV4Query() {
 	}
 
 	// Build hybrid search with v4 API
-	hybridArg := graphql.HybridArgumentBuilder{}.
+	hybridArg := (&graphql.HybridArgumentBuilder{}).
 		WithQuery(hybridQuery.Query).
 		WithAlpha(hybridQuery.HybridAlpha).
 		WithTargetVectors(hybridQuery.TargetVectors...)
@@ -46,19 +46,19 @@ func ExampleWeaviateV4Query() {
 	}
 
 	// Build near text search with v4 API
-	nearTextArg := graphql.NearTextArgumentBuilder{}.
+	nearTextArg := (&graphql.NearTextArgumentBuilder{}).
 		WithConcepts([]string{nearTextQuery.Query}).
 		WithCertainty(float32(nearTextQuery.MinConfidence)).
 		WithTargetVectors(nearTextQuery.TargetVectors...)
 
 	// Example 3: Multi-Target Vector Search with Manual Weights
-	multiTargetArg := graphql.MultiTargetArgumentBuilder{}.
+	multiTargetArg := (&graphql.MultiTargetArgumentBuilder{}).
 		ManualWeights(map[string]float32{
 			"title_vector":   0.3,
 			"content_vector": 0.7,
 		})
 
-	hybridWithMultiTarget := graphql.HybridArgumentBuilder{}.
+	hybridWithMultiTarget := (&graphql.HybridArgumentBuilder{}).
 		WithQuery("network function virtualization").
 		WithTargets(multiTargetArg)
 

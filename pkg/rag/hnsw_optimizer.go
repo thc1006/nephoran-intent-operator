@@ -4,7 +4,6 @@ package rag
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"

@@ -548,7 +548,7 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 	
 	if query.HybridSearch {
 		// Use hybrid search with v4 API patterns
-		hybridArg := graphql.HybridArgumentBuilder{}.
+		hybridArg := (&graphql.HybridArgumentBuilder{}).
 			WithQuery(query.Query).
 			WithAlpha(query.HybridAlpha)
 		
@@ -560,7 +560,7 @@ func (wc *WeaviateClient) Search(ctx context.Context, query *SearchQuery) (*Sear
 		getBuilder = getBuilder.WithHybrid(hybridArg)
 	} else {
 		// Use pure vector search with v4 API patterns
-		nearTextArg := graphql.NearTextArgumentBuilder{}.
+		nearTextArg := (&graphql.NearTextArgumentBuilder{}).
 			WithConcepts([]string{query.Query})
 		
 		// Add certainty if specified

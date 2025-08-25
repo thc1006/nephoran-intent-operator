@@ -11,12 +11,9 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/metadata"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/proto"
 )
 
 // GRPCWeaviateClient provides high-performance gRPC-based Weaviate client
