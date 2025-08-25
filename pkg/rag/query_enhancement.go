@@ -4,7 +4,6 @@ package rag
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"regexp"
 	"strings"

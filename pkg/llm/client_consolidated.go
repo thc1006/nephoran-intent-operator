@@ -16,6 +16,19 @@ import (
 	"time"
 )
 
+// ClientMetrics tracks client performance metrics
+type ClientMetrics struct {
+	RequestsTotal    int64         `json:"requests_total"`
+	RequestsSuccess  int64         `json:"requests_success"`
+	RequestsFailure  int64         `json:"requests_failure"`
+	TotalLatency     time.Duration `json:"total_latency"`
+	CacheHits        int64         `json:"cache_hits"`
+	CacheMisses      int64         `json:"cache_misses"`
+	RetryAttempts    int64         `json:"retry_attempts"`
+	FallbackAttempts int64         `json:"fallback_attempts"`
+	mutex            sync.RWMutex
+}
+
 // Client is the unified LLM client with all performance optimizations built-in
 type Client struct {
 	// HTTP client with optimization

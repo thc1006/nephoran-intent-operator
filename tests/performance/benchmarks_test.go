@@ -5,13 +5,18 @@ import (
 	"context"
 	"fmt"
 	"runtime"
+	"sort"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stretchr/testify/suite"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
@@ -263,7 +268,7 @@ func BenchmarkCircuitBreaker(b *testing.B) {
 	b.Run("SuccessfulRequests", func(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			for pb.Next() {
-				err := circuitBreaker.Execute(func() error {
+				err := circuitBreaker.Call(func() error {
 					// Simulate successful operation
 					time.Sleep(1 * time.Millisecond)
 					return nil
@@ -279,7 +284,7 @@ func BenchmarkCircuitBreaker(b *testing.B) {
 		b.RunParallel(func(pb *testing.PB) {
 			i := 0
 			for pb.Next() {
-				circuitBreaker.Execute(func() error {
+				circuitBreaker.Call(func() error {
 					if i%10 < 2 { // 20% failure rate
 						return fmt.Errorf("simulated failure")
 					}

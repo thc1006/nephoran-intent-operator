@@ -25,7 +25,7 @@ type FlameGraphGenerator struct {
 	outputDir    string
 	beforeData   map[string]*ProfileData
 	afterData    map[string]*ProfileData
-	comparisons  map[string]*ComparisonResult
+	comparisons  map[string]*FlameGraphComparisonResult
 	mu           sync.RWMutex
 	svgGenerator SVGGenerator
 }
@@ -52,8 +52,8 @@ type ProfileMetrics struct {
 	SampleRate     int
 }
 
-// ComparisonResult represents before/after comparison
-type ComparisonResult struct {
+// FlameGraphComparisonResult represents before/after comparison for flame graphs
+type FlameGraphComparisonResult struct {
 	Type           string
 	BeforeProfile  *ProfileData
 	AfterProfile   *ProfileData
@@ -90,7 +90,7 @@ func NewFlameGraphGenerator(profileDir, outputDir string) *FlameGraphGenerator {
 		outputDir:   outputDir,
 		beforeData:  make(map[string]*ProfileData),
 		afterData:   make(map[string]*ProfileData),
-		comparisons: make(map[string]*ComparisonResult),
+		comparisons: make(map[string]*FlameGraphComparisonResult),
 		svgGenerator: SVGGenerator{
 			width:      1200,
 			height:     800,
@@ -248,7 +248,7 @@ func (fg *FlameGraphGenerator) CaptureAfterProfile(ctx context.Context, profileT
 }
 
 // GenerateComparison generates before/after comparison
-func (fg *FlameGraphGenerator) GenerateComparison(profileType string) (*ComparisonResult, error) {
+func (fg *FlameGraphGenerator) GenerateComparison(profileType string) (*FlameGraphComparisonResult, error) {
 	fg.mu.RLock()
 	defer fg.mu.RUnlock()
 
@@ -259,7 +259,7 @@ func (fg *FlameGraphGenerator) GenerateComparison(profileType string) (*Comparis
 		return nil, fmt.Errorf("missing before/after data for %s", profileType)
 	}
 
-	comparison := &ComparisonResult{
+	comparison := &FlameGraphComparisonResult{
 		Type:          profileType,
 		BeforeProfile: before,
 		AfterProfile:  after,
@@ -689,7 +689,7 @@ func (fg *FlameGraphGenerator) analyzeHotSpotChanges(before, after *ProfileData)
 }
 
 // generateComparisonSummary generates a comparison summary
-func (fg *FlameGraphGenerator) generateComparisonSummary(comparison *ComparisonResult) string {
+func (fg *FlameGraphGenerator) generateComparisonSummary(comparison *FlameGraphComparisonResult) string {
 	var summary strings.Builder
 
 	summary.WriteString(fmt.Sprintf("=== %s Profile Comparison ===\n", comparison.Type))
@@ -933,7 +933,7 @@ func (fg *FlameGraphGenerator) GetComparisonReport() string {
 	var report strings.Builder
 	report.WriteString("=== PERFORMANCE OPTIMIZATION FLAMEGRAPH REPORT ===\n\n")
 
-	for profileType, comparison := range fg.comparisons {
+	for _, comparison := range fg.comparisons {
 		report.WriteString(comparison.Summary)
 		report.WriteString(fmt.Sprintf("\nFlameGraphs:\n"))
 		report.WriteString(fmt.Sprintf("  Before: %s\n", comparison.BeforeProfile.FlameGraph))

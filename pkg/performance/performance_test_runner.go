@@ -48,7 +48,7 @@ type PerformanceTestResults struct {
 	BenchmarkResults   []BenchmarkResult
 	LoadTestResults    map[string]*LoadTestResult
 	FlameGraphs        map[string]*ComparisonResult
-	ProfileAnalysis    map[string]*ProfileReport
+	ProfileAnalysis    map[string]*TestProfileReport
 	PerformanceTargets *TargetValidation
 	Summary            *PerformanceSummary
 }
@@ -114,7 +114,7 @@ func NewPerformanceTestRunner(config *PerformanceTestConfig) *PerformanceTestRun
 			Config:          config,
 			LoadTestResults: make(map[string]*LoadTestResult),
 			FlameGraphs:     make(map[string]*ComparisonResult),
-			ProfileAnalysis: make(map[string]*ProfileReport),
+			ProfileAnalysis: make(map[string]*TestProfileReport),
 		},
 	}
 }
@@ -208,9 +208,9 @@ func (ptr *PerformanceTestRunner) captureBeforeProfiles(ctx context.Context) err
 
 		ptr.mu.Lock()
 		if ptr.results.ProfileAnalysis == nil {
-			ptr.results.ProfileAnalysis = make(map[string]*ProfileReport)
+			ptr.results.ProfileAnalysis = make(map[string]*TestProfileReport)
 		}
-		ptr.results.ProfileAnalysis[profileType+"_before"] = &ProfileReport{
+		ptr.results.ProfileAnalysis[profileType+"_before"] = &TestProfileReport{
 			Type:      profileType,
 			Phase:     "before",
 			Profile:   profileData,
@@ -236,7 +236,7 @@ func (ptr *PerformanceTestRunner) captureAfterProfiles(ctx context.Context) erro
 		}
 
 		ptr.mu.Lock()
-		ptr.results.ProfileAnalysis[profileType+"_after"] = &ProfileReport{
+		ptr.results.ProfileAnalysis[profileType+"_after"] = &TestProfileReport{
 			Type:      profileType,
 			Phase:     "after",
 			Profile:   profileData,
@@ -804,8 +804,8 @@ func countEliminatedHotSpots(comparison *ComparisonResult) int {
 	return count
 }
 
-// ProfileReport represents a profile analysis report
-type ProfileReport struct {
+// TestProfileReport represents a profile analysis report for testing
+type TestProfileReport struct {
 	Type      string
 	Phase     string // "before" or "after"
 	Profile   *ProfileData

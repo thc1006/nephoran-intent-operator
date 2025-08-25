@@ -18,8 +18,9 @@ type LLMProcessor interface {
 
 // BatchProcessor handles batch processing of multiple intents
 type BatchProcessor interface {
-	ProcessBatch(ctx context.Context, requests []*BatchRequest) ([]*ProcessingResult, error)
-	GetMetrics() *ProcessingMetrics
+	ProcessRequest(ctx context.Context, intent, intentType, modelName string, priority Priority) (*BatchResult, error)
+	GetStats() BatchProcessorStats
+	Close() error
 }
 
 // StreamingProcessor handles streaming requests (concrete implementation for disable_rag builds)
@@ -44,86 +45,154 @@ type PromptGenerator interface {
 
 // ESSENTIAL TYPES ONLY - Consolidated from scattered definitions
 
-// StreamingRequest represents a streaming request (stub for disable_rag builds)
-type StreamingRequest struct {
-	Content   string `json:"content"`
-	Query     string `json:"query"`
-	ModelName string `json:"model_name"`
-	MaxTokens int    `json:"max_tokens"`
-	EnableRAG bool   `json:"enable_rag"`
+// Note: StreamingRequest and BatchRequest types are defined in their respective implementation files
+
+// Note: ProcessingResult, ProcessingMetrics, MetricsCollector, MetricsIntegrator types are defined in their respective files
+
+// Note: MetricsIntegrator methods are defined in prometheus_metrics.go
+
+// Missing type definitions for compilation
+type RequestContext struct {
+	ID        string
+	Intent    string
+	StartTime time.Time
+	Metadata  map[string]interface{}
 }
 
-// BatchRequest represents a batch processing request (stub for disable_rag builds)
-type BatchRequest struct {
-	Content string `json:"content"`
-}
-
-// ProcessingResult represents a processing result (stub for disable_rag builds)
-type ProcessingResult struct {
-	Result string `json:"result"`
-}
-
-// ProcessingMetrics tracks processing metrics (stub for disable_rag builds)
-type ProcessingMetrics struct {
-	ProcessedCount int64 `json:"processed_count"`
-}
-
-// MetricsCollector collects metrics (stub for disable_rag builds)
-type MetricsCollector struct {
+type HealthChecker struct {
 	// Stub implementation
 }
 
-// NewMetricsCollector creates a new metrics collector (stub for disable_rag builds)
-func NewMetricsCollector() *MetricsCollector {
-	return &MetricsCollector{}
-}
-
-// MetricsIntegrator integrates metrics (stub for disable_rag builds)
-type MetricsIntegrator struct {
+type EndpointPool struct {
 	// Stub implementation
-	prometheusMetrics *PrometheusMetricsStub
 }
 
-// PrometheusMetricsStub provides stub prometheus metrics (disable_rag builds)
-type PrometheusMetricsStub struct{}
+type BatchProcessorConfig struct {
+	// Stub implementation
+}
 
-func (pm *PrometheusMetricsStub) RecordError(errorType string, details string) {}
+type TokenManager struct {
+	// Stub implementation
+	maxTokens int
+}
 
-// NewMetricsIntegrator creates a new metrics integrator (stub for disable_rag builds)
-func NewMetricsIntegrator(collector *MetricsCollector) *MetricsIntegrator {
-	return &MetricsIntegrator{
-		prometheusMetrics: &PrometheusMetricsStub{},
+func NewTokenManager() *TokenManager {
+	return &TokenManager{maxTokens: 4096}
+}
+
+func (tm *TokenManager) GetSupportedModels() []string { return []string{"gpt-4o-mini"} }
+
+func (tm *TokenManager) CountTokens(text string) int {
+	// Simple estimation: ~4 characters per token
+	return len(text) / 4
+}
+
+func (tm *TokenManager) CalculateTokenBudget(ctx context.Context, model, systemPrompt, userPrompt, context string) (TokenBudget, error) {
+	systemTokens := tm.CountTokens(systemPrompt)
+	userTokens := tm.CountTokens(userPrompt)
+	contextTokens := tm.CountTokens(context)
+	totalInput := systemTokens + userTokens + contextTokens
+	availableOutput := tm.maxTokens - totalInput - 100 // Reserve 100 tokens
+	
+	if availableOutput < 0 {
+		availableOutput = 0
 	}
+	
+	return TokenBudget{
+		SystemTokens:    systemTokens,
+		UserTokens:      userTokens,
+		ContextTokens:   contextTokens,
+		TotalInput:      totalInput,
+		AvailableOutput: availableOutput,
+		MaxTokens:       tm.maxTokens,
+	}, nil
 }
 
-// Stub methods for MetricsIntegrator (disable_rag builds)
-func (mi *MetricsIntegrator) RecordCircuitBreakerEvent(event string, state string, info string) {}
-func (mi *MetricsIntegrator) RecordLLMRequest(backend string, model string, duration time.Duration, tokens int) {}
-func (mi *MetricsIntegrator) RecordCacheOperation(operation string, backend string, hit bool) {}
-func (mi *MetricsIntegrator) RecordRetryAttempt(model string) {}
-func (mi *MetricsIntegrator) GetComprehensiveMetrics() map[string]interface{} { return nil }
-
-// Additional stub types for disable_rag builds
-type TokenManager struct{}
-func (tm *TokenManager) GetSupportedModels() []string { return []string{} }
-
-type RelevanceScorer struct{}
-func (rs *RelevanceScorer) GetMetrics() map[string]interface{} { return map[string]interface{}{} }
-
-type RAGAwarePromptBuilder struct{}
-func (rpb *RAGAwarePromptBuilder) GetMetrics() map[string]interface{} { return map[string]interface{}{} }
-
-type RAGEnhancedProcessor struct{}
-func (rep *RAGEnhancedProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
-	return "", fmt.Errorf("RAG functionality disabled with disable_rag build tag")
+func (tm *TokenManager) OptimizeContext(contexts []string, maxTokens int, model string) []string {
+	var result []string
+	currentTokens := 0
+	
+	for _, ctx := range contexts {
+		tokens := tm.CountTokens(ctx)
+		if currentTokens+tokens <= maxTokens {
+			result = append(result, ctx)
+			currentTokens += tokens
+		} else {
+			break
+		}
+	}
+	
+	return result
 }
 
-// Constructor functions for disable_rag builds
-func NewTokenManager() *TokenManager { return &TokenManager{} }
-func NewRelevanceScorer() *RelevanceScorer { return &RelevanceScorer{} }
-func NewRAGAwarePromptBuilder() *RAGAwarePromptBuilder { return &RAGAwarePromptBuilder{} }
-func NewRAGEnhancedProcessor() *RAGEnhancedProcessor { return &RAGEnhancedProcessor{} }
-func NewStreamingProcessor() *StreamingProcessor { return &StreamingProcessor{} }
+type TokenBudget struct {
+	SystemTokens    int
+	UserTokens      int
+	ContextTokens   int
+	TotalInput      int
+	AvailableOutput int
+	MaxTokens       int
+}
+
+type StreamingContextManager struct {
+	// Stub implementation
+}
+
+type Document struct {
+	ID       string                 `json:"id"`
+	Title    string                 `json:"title"`
+	Content  string                 `json:"content"`
+	Source   string                 `json:"source"`
+	Metadata map[string]interface{} `json:"metadata"`
+}
+
+// ContextBuilder is defined in clean_stubs.go
+
+func (cb *ContextBuilder) BuildContext(ctx context.Context, query string, documents []Document) (string, error) {
+	scores, err := cb.CalculateRelevanceScores(ctx, query, documents)
+	if err != nil {
+		return "", err
+	}
+	
+	var context string
+	currentTokens := 0
+	
+	for i, doc := range documents {
+		if scores[i] >= float64(cb.config.MinConfidenceScore) {
+			docContent := doc.Title + "\n" + doc.Content
+			docTokens := cb.tokenManager.CountTokens(docContent)
+			
+			if currentTokens+docTokens <= cb.config.MaxContextLength {
+				if context != "" {
+					context += "\n---\n"
+				}
+				context += docContent
+				currentTokens += docTokens
+			} else {
+				break
+			}
+		}
+	}
+	
+	return context, nil
+}
+
+func (cb *ContextBuilder) CalculateRelevanceScores(ctx context.Context, query string, documents []Document) ([]float64, error) {
+	scores := make([]float64, len(documents))
+	
+	for i, doc := range documents {
+		// Simple scoring based on title and content matching
+		score := 0.0
+		if len(doc.Title) > 0 && len(query) > 0 {
+			score = 0.5 + float64(len(doc.Content)%100)/200.0 // Mock relevance score
+		}
+		scores[i] = score
+	}
+	
+	return scores, nil
+}
+
+// CircuitBreaker types are defined in circuit_breaker.go
 
 // Stub methods for StreamingProcessor (disable_rag builds)
 func (sp *StreamingProcessor) HandleStreamingRequest(w interface{}, r interface{}, req *StreamingRequest) error {
@@ -140,18 +209,7 @@ func (sp *StreamingProcessor) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-// ClientMetrics tracks client performance (consolidated from multiple files)
-type ClientMetrics struct {
-	RequestsTotal    int64         `json:"requests_total"`
-	RequestsSuccess  int64         `json:"requests_success"`
-	RequestsFailure  int64         `json:"requests_failure"`
-	TotalLatency     time.Duration `json:"total_latency"`
-	CacheHits        int64         `json:"cache_hits"`
-	CacheMisses      int64         `json:"cache_misses"`
-	RetryAttempts    int64         `json:"retry_attempts"`
-	FallbackAttempts int64         `json:"fallback_attempts"`
-	mutex            sync.RWMutex
-}
+// Note: ClientMetrics type is defined in llm.go
 
 
 // SimpleTokenTracker tracks token usage and costs
@@ -231,10 +289,27 @@ type IntentResponse struct {
 // These provide default implementations for components not yet fully implemented
 
 // ContextBuilder stub implementation (consolidated from stubs.go)
-type ContextBuilder struct{}
+type ContextBuilder struct{
+	config       *ContextBuilderConfig
+	tokenManager *TokenManager
+}
+
+// ContextBuilderConfig is defined in clean_stubs.go
 
 func NewContextBuilder() *ContextBuilder {
-	return &ContextBuilder{}
+	return &ContextBuilder{
+		config: &ContextBuilderConfig{
+			DefaultMaxDocs:        10,
+			MaxContextLength:      2000,
+			MinConfidenceScore:    0.5,
+			QueryTimeout:          30 * time.Second,
+			EnableHybridSearch:    false,
+			HybridAlpha:           0.5,
+			TelecomKeywords:       []string{"amf", "upf", "smf", "ric"},
+			QueryExpansionEnabled: false,
+		},
+		tokenManager: NewTokenManager(),
+	}
 }
 
 func (cb *ContextBuilder) GetMetrics() map[string]interface{} {

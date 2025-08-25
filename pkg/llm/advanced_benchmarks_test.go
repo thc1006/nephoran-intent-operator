@@ -630,18 +630,7 @@ func (p *EnhancedLLMProcessor) SetWorkerPool(pool *WorkerPool) {
 
 // Helper types and functions
 
-type LLMRequest struct {
-	Prompt    string
-	Model     string
-	MaxTokens int
-}
-
-type LLMResponse struct {
-	Content      string
-	TokensUsed   int
-	Model        string
-	FinishReason string
-}
+// LLMRequest and LLMResponse are defined in optimized_http_client.go
 
 type ProcessedIntent struct {
 	OriginalIntent   string
@@ -655,38 +644,17 @@ type LLMClient interface {
 	ProcessRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error)
 }
 
-// Placeholder interfaces for the enhanced components
-type IntelligentCache interface {
-	Get(key string) interface{}
-	Set(key string, value interface{})
-	Has(key string) bool
-	GenerateKey(intent string, params map[string]interface{}) string
-	Clear()
-	Configure(config BenchmarkCacheConfig)
-}
+// Enhanced components are defined in their respective files
+// IntelligentCache is in intelligent_cache.go
+// CircuitBreaker is in circuit_breaker.go  
+// TokenManager is in interface_consolidated.go
+// WorkerPool is in worker_pool.go
 
-type CircuitBreaker interface {
-	Execute(fn func() (interface{}, error)) (interface{}, error)
-	Configure(config CircuitBreakerConfig)
-	Reset()
-}
-
-type TokenManager interface {
-	ConsumeTokens(tokens int) error
-	UpdateActualUsage(tokens int)
-}
-
-type WorkerPool interface {
+type BenchmarkWorkerPool interface {
 	Shutdown()
 }
 
-type ProcessorMetrics interface {
-	RecordLatency(duration time.Duration)
-	RecordCacheHit()
-	RecordCacheMiss()
-	RecordError(err error)
-	RecordSuccess()
-}
+// ProcessorMetrics is defined in rag_enhanced_processor.go
 
 // Configuration types
 type BenchmarkCacheConfig struct {
@@ -709,11 +677,7 @@ type TokenManagerConfig struct {
 	ResetInterval      time.Duration
 }
 
-type WorkerPoolConfig struct {
-	Size      int
-	QueueSize int
-	Timeout   time.Duration
-}
+// WorkerPoolConfig is defined in worker_pool.go
 
 // Error checking helpers
 func IsCircuitBreakerOpenError(err error) bool {
@@ -728,12 +692,10 @@ func IsRateLimitError(err error) bool {
 	return err != nil && err.Error() == "rate limit exceeded"
 }
 
-// Placeholder implementations that would be properly implemented
-func NewIntelligentCache() *mockCache                             { return &mockCache{} }
-func NewCircuitBreaker() *mockCircuitBreaker                      { return &mockCircuitBreaker{} }
-func NewTokenManager(config TokenManagerConfig) *mockTokenManager { return &mockTokenManager{} }
-func NewWorkerPool(config WorkerPoolConfig) *mockWorkerPool       { return &mockWorkerPool{} }
-func NewProcessorMetrics() *mockMetrics                           { return &mockMetrics{} }
+// Note: NewIntelligentCache and NewCircuitBreaker are already defined in their respective files
+func NewBenchmarkTokenManager(config TokenManagerConfig) *mockTokenManager { return &mockTokenManager{} }
+func NewBenchmarkWorkerPool(size int) *mockWorkerPool { return &mockWorkerPool{} }
+func NewBenchmarkProcessorMetrics() *mockMetrics { return &mockMetrics{} }
 
 // Mock implementations
 type mockCache struct{}

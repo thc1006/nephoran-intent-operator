@@ -4,6 +4,7 @@ package performance
 
 import (
 	"runtime"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -14,7 +15,7 @@ import (
 
 // MemoryPoolManager provides advanced memory management with Go 1.24+ optimizations
 type MemoryPoolManager struct {
-	objectPools map[string]*ObjectPool
+	objectPools map[string]*ObjectPool[interface{}]
 	ringBuffers map[string]*RingBuffer
 	memStats    *MemoryStats
 	gcOptimizer *GCOptimizer
@@ -130,7 +131,7 @@ func NewMemoryPoolManager(config *MemoryConfig) *MemoryPoolManager {
 	}
 
 	mpm := &MemoryPoolManager{
-		objectPools: make(map[string]*ObjectPool),
+		objectPools: make(map[string]*ObjectPool[interface{}]),
 		ringBuffers: make(map[string]*RingBuffer),
 		memStats:    &MemoryStats{},
 		gcOptimizer: NewGCOptimizer(config.GCTargetPercent),
@@ -345,15 +346,15 @@ func (gco *GCOptimizer) ApplyOptimizations() {
 	switch gco.optimizationMode {
 	case OptimizationThroughput:
 		// Increase GC percent to reduce frequency, favoring throughput
-		runtime.SetGCPercent(gco.baseGCPercent + 50)
+		debug.SetGCPercent(gco.baseGCPercent + 50)
 	case OptimizationLatency:
 		// Decrease GC percent to reduce pause times
-		runtime.SetGCPercent(gco.baseGCPercent - 20)
+		debug.SetGCPercent(gco.baseGCPercent - 20)
 	case OptimizationMemory:
 		// Aggressive GC to minimize memory usage
-		runtime.SetGCPercent(gco.baseGCPercent - 50)
+		debug.SetGCPercent(gco.baseGCPercent - 50)
 	default: // OptimizationBalanced
-		runtime.SetGCPercent(gco.baseGCPercent)
+		debug.SetGCPercent(gco.baseGCPercent)
 	}
 }
 
@@ -375,9 +376,9 @@ func (gco *GCOptimizer) CollectMetrics() {
 
 	metric := GCMetrics{
 		Timestamp:     time.Now(),
-		PauseTime:     time.Duration(m.PauseTotalNs / m.NumGC),
+		PauseTime:     time.Duration(m.PauseTotalNs / uint64(m.NumGC)),
 		HeapSize:      m.HeapInuse,
-		GCPercent:     runtime.GOGC,
+		GCPercent:     gco.baseGCPercent, // Use stored value instead of runtime.GOGC
 		NumGoroutines: runtime.NumGoroutine(),
 	}
 

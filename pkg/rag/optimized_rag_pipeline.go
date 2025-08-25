@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"golang.org/x/sync/errgroup"
 )
 
 // OptimizedRAGPipeline provides a high-performance RAG processing pipeline

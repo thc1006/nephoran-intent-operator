@@ -674,7 +674,7 @@ func (a *TrendAnalyzer) Analyze(metrics map[string]float64) AnalysisResult {
 		return result // Not enough data for trend analysis
 	}
 
-	for metric, currentValue := range metrics {
+	for metric := range metrics {
 		// Extract time series for this metric
 		timeSeries := make([]float64, 0, len(historical))
 		for _, snapshot := range historical {

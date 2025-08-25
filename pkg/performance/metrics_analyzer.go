@@ -19,7 +19,7 @@ type MetricsAnalyzer struct {
 	throughput     map[string][]float64
 	resourceUsage  map[string][]ResourceSnapshot
 	anomalies      []Anomaly
-	bottlenecks    []Bottleneck
+	bottlenecks    []MetricsBottleneck
 	mu             sync.RWMutex
 	historyWindow  time.Duration
 	analysisConfig AnalysisConfig
@@ -47,8 +47,8 @@ type Anomaly struct {
 	Description string
 }
 
-// Bottleneck represents a detected performance bottleneck
-type Bottleneck struct {
+// MetricsBottleneck represents a detected performance bottleneck from metrics analysis
+type MetricsBottleneck struct {
 	Component   string
 	Type        string
 	Impact      float64
@@ -74,7 +74,7 @@ func NewMetricsAnalyzer() *MetricsAnalyzer {
 		throughput:    make(map[string][]float64),
 		resourceUsage: make(map[string][]ResourceSnapshot),
 		anomalies:     make([]Anomaly, 0),
-		bottlenecks:   make([]Bottleneck, 0),
+		bottlenecks:   make([]MetricsBottleneck, 0),
 		historyWindow: 10 * time.Minute,
 		analysisConfig: AnalysisConfig{
 			AnomalyThreshold:       3.0,  // 3 standard deviations
@@ -223,15 +223,15 @@ func (ma *MetricsAnalyzer) CalculateResourceEfficiency(cpu float64, memory float
 }
 
 // DetectBottlenecks analyzes metrics to identify performance bottlenecks
-func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []Bottleneck {
+func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []MetricsBottleneck {
 	ma.mu.Lock()
 	defer ma.mu.Unlock()
 
-	bottlenecks := []Bottleneck{}
+	bottlenecks := []MetricsBottleneck{}
 
 	// CPU bottleneck detection
 	if cpu, ok := metrics["cpu_percent"].(float64); ok && cpu > ma.analysisConfig.BottleneckThreshold {
-		bottlenecks = append(bottlenecks, Bottleneck{
+		bottlenecks = append(bottlenecks, MetricsBottleneck{
 			Component:   "CPU",
 			Type:        "Resource Saturation",
 			Impact:      cpu,
@@ -256,7 +256,7 @@ func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []B
 		memoryPercent := (memory / float64(memStats.Sys/1024/1024)) * 100
 
 		if memoryPercent > ma.analysisConfig.BottleneckThreshold {
-			bottlenecks = append(bottlenecks, Bottleneck{
+			bottlenecks = append(bottlenecks, MetricsBottleneck{
 				Component:   "Memory",
 				Type:        "Memory Pressure",
 				Impact:      memoryPercent,
@@ -278,7 +278,7 @@ func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []B
 
 	// Goroutine bottleneck detection
 	if goroutines, ok := metrics["goroutines"].(int); ok && goroutines > 1000 {
-		bottlenecks = append(bottlenecks, Bottleneck{
+		bottlenecks = append(bottlenecks, MetricsBottleneck{
 			Component:   "Goroutines",
 			Type:        "Concurrency Issue",
 			Impact:      float64(goroutines),
@@ -297,7 +297,7 @@ func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []B
 
 	// Latency bottleneck detection
 	if latencyP95, ok := metrics["latency_p95_ms"].(float64); ok && latencyP95 > 5000 {
-		bottlenecks = append(bottlenecks, Bottleneck{
+		bottlenecks = append(bottlenecks, MetricsBottleneck{
 			Component:   "Latency",
 			Type:        "High Response Time",
 			Impact:      latencyP95 / 1000, // Convert to seconds
@@ -317,7 +317,7 @@ func (ma *MetricsAnalyzer) DetectBottlenecks(metrics map[string]interface{}) []B
 
 	// Queue bottleneck detection
 	if queueSize, ok := metrics["queue_size"].(int); ok && queueSize > 100 {
-		bottlenecks = append(bottlenecks, Bottleneck{
+		bottlenecks = append(bottlenecks, MetricsBottleneck{
 			Component:   "Queue",
 			Type:        "Backpressure",
 			Impact:      float64(queueSize),

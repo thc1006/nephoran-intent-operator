@@ -236,7 +236,7 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 				if enhancedQuery, exists := doc["enhanced_query"]; exists {
 					if eq, ok := enhancedQuery.(string); ok {
 						// Check that abbreviations were expanded
-						if !contains(eq, "gNodeB") || !contains(eq, "New Radio") {
+						if !contextBuilderContains(eq, "gNodeB") || !contextBuilderContains(eq, "New Radio") {
 							t.Logf("Enhanced query: %s", eq)
 							// This is informational - abbreviation expansion may be implemented differently
 						}
@@ -460,7 +460,7 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 					t.Errorf("Expected error but got none")
 					return
 				}
-				if tt.errorContains != "" && !contains(err.Error(), tt.errorContains) {
+				if tt.errorContains != "" && !contextBuilderContains(err.Error(), tt.errorContains) {
 					t.Errorf("Expected error to contain %q, got %q", tt.errorContains, err.Error())
 				}
 				return
@@ -582,7 +582,7 @@ func TestContextBuilder_ConcurrentAccess(t *testing.T) {
 
 // Helper functions
 
-func contains(haystack, needle string) bool {
+func contextBuilderContains(haystack, needle string) bool {
 	return len(needle) == 0 || (len(haystack) > 0 && len(needle) <= len(haystack) && haystack[len(haystack)-len(needle):] == needle) ||
 		(len(haystack) >= len(needle) && haystack[:len(needle)] == needle) ||
 		(len(haystack) > len(needle) && strings.Contains(haystack, needle))
@@ -629,7 +629,7 @@ func generateLongIntent() string {
 }
 
 // NewContextBuilderWithPool creates a context builder with a custom connection pool for testing
-func NewContextBuilderWithPool(config *ContextBuilderConfig, pool interface{}) *ContextBuilder {
+func NewTestContextBuilderWithPool(config *ContextBuilderConfig, pool interface{}) *ContextBuilder {
 	if config == nil {
 		config = &ContextBuilderConfig{
 			WeaviateURL:           "http://localhost:8080",

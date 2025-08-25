@@ -19,6 +19,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -346,7 +347,7 @@ func (mov *MonitoringObservabilityValidator) validateComponentEndpoints(ctx cont
 // validateServiceMonitors checks for ServiceMonitor configurations
 func (mov *MonitoringObservabilityValidator) validateServiceMonitors(ctx context.Context) {
 	serviceMonitors := &metav1.PartialObjectMetadataList{}
-	serviceMonitors.SetGroupVersionKind(metav1.GroupVersionKind{
+	serviceMonitors.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "monitoring.coreos.com",
 		Version: "v1",
 		Kind:    "ServiceMonitorList",
@@ -428,7 +429,7 @@ func (mov *MonitoringObservabilityValidator) validateCustomMetrics(ctx context.C
 // validateAlertRules checks for Prometheus alert rules
 func (mov *MonitoringObservabilityValidator) validateAlertRules(ctx context.Context) {
 	prometheusRules := &metav1.PartialObjectMetadataList{}
-	prometheusRules.SetGroupVersionKind(metav1.GroupVersionKind{
+	prometheusRules.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "monitoring.coreos.com",
 		Version: "v1",
 		Kind:    "PrometheusRuleList",

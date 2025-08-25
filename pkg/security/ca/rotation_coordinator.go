@@ -18,19 +18,21 @@ import (
 
 // RenewalRequest represents a certificate renewal request
 type RenewalRequest struct {
-	ServiceName      string            `json:"service_name"`
-	Namespace        string            `json:"namespace"`
-	CertificateID    string            `json:"certificate_id"`
-	SerialNumber     string            `json:"serial_number"`
-	RenewalReason    string            `json:"renewal_reason"`
-	Priority         int               `json:"priority"`
-	RequestedBy      string            `json:"requested_by"`
-	ValidityDuration time.Duration     `json:"validity_duration"`
-	Coordinated      bool              `json:"coordinated"`
-	HealthChecks     bool              `json:"health_checks"`
-	RollbackEnabled  bool              `json:"rollback_enabled"`
-	Metadata         map[string]string `json:"metadata"`
-	CreatedAt        time.Time         `json:"created_at"`
+	ServiceName        string               `json:"service_name"`
+	Namespace          string               `json:"namespace"`
+	CertificateID      string               `json:"certificate_id"`
+	SerialNumber       string               `json:"serial_number"`
+	RenewalReason      string               `json:"renewal_reason"`
+	Priority           int                  `json:"priority"`
+	RequestedBy        string               `json:"requested_by"`
+	ValidityDuration   time.Duration        `json:"validity_duration"`
+	Coordinated        bool                 `json:"coordinated"`
+	HealthChecks       bool                 `json:"health_checks"`
+	RollbackEnabled    bool                 `json:"rollback_enabled"`
+	ZeroDowntime       bool                 `json:"zero_downtime"`
+	HealthCheckConfig  *HealthCheckConfig   `json:"health_check_config,omitempty"`
+	Metadata           map[string]string    `json:"metadata"`
+	CreatedAt          time.Time            `json:"created_at"`
 }
 // RotationCoordinator handles coordinated certificate rotation across clustered deployments
 type RotationCoordinator struct {

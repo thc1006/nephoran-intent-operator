@@ -166,8 +166,8 @@ type TokenEstimator struct {
 type contextMetrics struct {
 	requestsTotal      prometheus.Counter
 	tokensUsed         prometheus.Histogram
-	contextLevels      prometheus.CounterVec
-	compressionUsed    prometheus.CounterVec
+	contextLevels      *prometheus.CounterVec
+	compressionUsed    *prometheus.CounterVec
 	budgetExceeded     prometheus.Counter
 	processingDuration prometheus.Histogram
 }
@@ -587,10 +587,13 @@ func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest)
 	intentType := s.classifyIntentType(request.Intent)
 
 	// Get system prompt
-	systemPrompt := s.templates.GetSystemPrompt(intentType)
+	systemPrompt, err := s.templates.GetSystemPrompt(intentType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get system prompt: %w", err)
+	}
 
-	// Get examples
-	examples := s.templates.GetExamples(intentType)
+	// Get examples - using GetFewShotExamples instead of GetExamples
+	examples := s.templates.GetFewShotExamples(intentType, "general")
 
 	// Format network context
 	var networkContext string
@@ -602,7 +605,7 @@ func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest)
 			Alarms:           request.NetworkState.Alarms,
 			PerformanceKPIs:  request.NetworkState.PerformanceKPIs,
 		}
-		networkContext = s.templates.formatContext(telecomContext)
+		networkContext = s.formatTelecomContext(telecomContext)
 	}
 
 	// Calculate confidence based on available context
@@ -610,7 +613,7 @@ func (s *TelecomContextStrategy) SelectContext(request *ContextInjectionRequest)
 
 	return &SelectedContext{
 		SystemPrompt:    systemPrompt,
-		Examples:        examples,
+		Examples:        convertFewShotToPromptExamples(examples),
 		NetworkContext:  networkContext,
 		RelevantDocs:    []string{},
 		Metadata:        map[string]interface{}{"intent_type": intentType},
@@ -733,6 +736,65 @@ func (s *TelecomContextStrategy) heavyCompress(content string) string {
 	return strings.Join(compressed, "\n")
 }
 
+// formatTelecomContext formats TelecomContext into a readable string
+func (s *TelecomContextStrategy) formatTelecomContext(ctx TelecomContext) string {
+	var sb strings.Builder
+	
+	sb.WriteString("Network Context:\n")
+	
+	if len(ctx.NetworkFunctions) > 0 {
+		sb.WriteString("Active Network Functions:\n")
+		for _, nf := range ctx.NetworkFunctions {
+			sb.WriteString(fmt.Sprintf("- %s\n", nf))
+		}
+	}
+	
+	if len(ctx.ActiveSlices) > 0 {
+		sb.WriteString("Active Network Slices:\n")
+		for _, slice := range ctx.ActiveSlices {
+			sb.WriteString(fmt.Sprintf("- %s\n", slice))
+		}
+	}
+	
+	if len(ctx.E2Nodes) > 0 {
+		sb.WriteString("Connected E2 Nodes:\n")
+		for _, node := range ctx.E2Nodes {
+			sb.WriteString(fmt.Sprintf("- %s\n", node))
+		}
+	}
+	
+	if len(ctx.Alarms) > 0 {
+		sb.WriteString("Active Alarms:\n")
+		for _, alarm := range ctx.Alarms {
+			sb.WriteString(fmt.Sprintf("- %s\n", alarm))
+		}
+	}
+	
+	if len(ctx.PerformanceKPIs) > 0 {
+		sb.WriteString("Performance KPIs:\n")
+		for key, value := range ctx.PerformanceKPIs {
+			sb.WriteString(fmt.Sprintf("- %s: %v\n", key, value))
+		}
+	}
+	
+	return sb.String()
+}
+
+// convertFewShotToPromptExamples converts FewShotExample to PromptExample
+func convertFewShotToPromptExamples(fewShotExamples []FewShotExample) []PromptExample {
+	examples := make([]PromptExample, len(fewShotExamples))
+	for i, fse := range fewShotExamples {
+		examples[i] = PromptExample{
+			Intent:      fse.Query,
+			Response:    fse.Response,
+			Input:       fse.Query,
+			Output:      fse.Response,
+			Explanation: fmt.Sprintf("Domain: %s, Intent Type: %s", fse.Domain, fse.IntentType),
+		}
+	}
+	return examples
+}
+
 // TokenEstimator implementation
 func (te *TokenEstimator) EstimateTokens(content string, modelName string) int {
 	te.mu.RLock()
@@ -771,9 +833,12 @@ func (s *ORANContextStrategy) Compress(content string, level CompressionLevel) s
 
 func (s *ORANContextStrategy) selectORANContext(request *ContextInjectionRequest) (*SelectedContext, error) {
 	// Implementation would focus on O-RAN specific context selection
+	systemPrompt, _ := s.templates.GetSystemPrompt("oran_network_intent")
+	examples := s.templates.GetFewShotExamples("oran_network_intent", "o-ran")
+	
 	return &SelectedContext{
-		SystemPrompt:    s.templates.GetSystemPrompt("oran_network_intent"),
-		Examples:        s.templates.GetExamples("oran_network_intent"),
+		SystemPrompt:    systemPrompt,
+		Examples:        convertFewShotToPromptExamples(examples),
 		NetworkContext:  "",
 		RelevantDocs:    []string{},
 		Metadata:        map[string]interface{}{"domain": "o-ran"},
@@ -802,9 +867,12 @@ func (s *FiveGCoreContextStrategy) Compress(content string, level CompressionLev
 
 func (s *FiveGCoreContextStrategy) select5GCoreContext(request *ContextInjectionRequest) (*SelectedContext, error) {
 	// Implementation would focus on 5G Core specific context selection
+	systemPrompt, _ := s.templates.GetSystemPrompt("5gc_network_intent")
+	examples := s.templates.GetFewShotExamples("5gc_network_intent", "5g-core")
+	
 	return &SelectedContext{
-		SystemPrompt:    s.templates.GetSystemPrompt("5gc_network_intent"),
-		Examples:        s.templates.GetExamples("5gc_network_intent"),
+		SystemPrompt:    systemPrompt,
+		Examples:        convertFewShotToPromptExamples(examples),
 		NetworkContext:  "",
 		RelevantDocs:    []string{},
 		Metadata:        map[string]interface{}{"domain": "5gc"},

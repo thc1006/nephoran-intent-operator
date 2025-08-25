@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/tsenart/vegeta/v12/lib"
 	"golang.org/x/time/rate"
 	"k8s.io/klog/v2"
 )
@@ -1044,7 +1043,7 @@ func (tlt *TelecomLoadTester) collectCurrentStats() *CurrentStats {
 	// Collect stats from all workers
 	var totalReqs, totalErrors int64
 	var latencySum int64
-	var latencySamples []time.Duration
+	// var latencySamples []time.Duration // unused
 
 	for _, worker := range tlt.workers {
 		totalReqs += atomic.LoadInt64(&worker.Metrics.RequestsTotal)

@@ -457,7 +457,7 @@ func (csm *ConfigSyncManager) RemoveRepository(ctx context.Context, repoID strin
 	csm.mu.Lock()
 	defer csm.mu.Unlock()
 
-	repo, exists := csm.repositories[repoID]
+	_, exists := csm.repositories[repoID]
 	if !exists {
 		return fmt.Errorf("repository %s not found", repoID)
 	}

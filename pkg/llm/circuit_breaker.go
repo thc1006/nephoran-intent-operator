@@ -164,6 +164,12 @@ func (cb *CircuitBreaker) Call(fn func() error) error {
 	return err
 }
 
+// ExecuteSimple provides a simpler Execute interface for functions that return only an error
+// This is needed for compatibility with test frameworks that expect Execute(func() error) error
+func (cb *CircuitBreaker) ExecuteSimple(fn func() error) error {
+	return cb.Call(fn)
+}
+
 // Execute executes an operation through the circuit breaker
 func (cb *CircuitBreaker) Execute(ctx context.Context, operation CircuitOperation) (interface{}, error) {
 	startTime := time.Now()

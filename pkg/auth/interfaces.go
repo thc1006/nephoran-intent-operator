@@ -77,3 +77,18 @@ type UserSession struct {
 	CSRFToken     string `json:"csrf_token"`
 	SecureContext bool   `json:"secure_context"`
 }
+
+
+// AuthManagerInterface defines the interface for the main authentication manager
+type AuthManagerInterface interface {
+	GetMiddleware() interface{}
+	GetLDAPMiddleware() interface{}
+	GetOAuth2Manager() interface{}
+	GetSessionManager() SessionManagerInterface
+	GetJWTManager() JWTManagerInterface
+	GetRBACManager() RBACManagerInterface
+	ListProviders() map[string]interface{}
+	RefreshTokens(ctx context.Context, refreshToken string) (string, string, error)
+	ValidateSession(ctx context.Context, sessionID string) (*UserSession, error)
+	Shutdown(ctx context.Context) error
+}

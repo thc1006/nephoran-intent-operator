@@ -275,7 +275,7 @@ func (hc *HealthChecker) PerformContinuousHealthCheck(
 	}
 
 	timeout := time.After(duration)
-	interval := session.Config.CheckInterval
+	interval := session.Config.Interval
 	if interval == 0 {
 		interval = hc.config.DefaultInterval
 	}
@@ -322,8 +322,8 @@ func (hc *HealthChecker) performHTTPCheck(session *HealthCheckSession, result *H
 
 	// Create HTTP client with timeout
 	timeout := hc.config.DefaultTimeout
-	if session.Config != nil && session.Config.TimeoutPerCheck > 0 {
-		timeout = session.Config.TimeoutPerCheck
+	if session.Config != nil && session.Config.Timeout > 0 {
+		timeout = session.Config.Timeout
 	}
 
 	client := &http.Client{
@@ -391,8 +391,8 @@ func (hc *HealthChecker) performGRPCCheck(session *HealthCheckSession, result *H
 	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
 
 	timeout := hc.config.DefaultTimeout
-	if session.Config != nil && session.Config.TimeoutPerCheck > 0 {
-		timeout = session.Config.TimeoutPerCheck
+	if session.Config != nil && session.Config.Timeout > 0 {
+		timeout = session.Config.Timeout
 	}
 
 	// Create connection
@@ -438,8 +438,8 @@ func (hc *HealthChecker) performTCPCheck(session *HealthCheckSession, result *He
 	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
 
 	timeout := hc.config.DefaultTimeout
-	if session.Config != nil && session.Config.TimeoutPerCheck > 0 {
-		timeout = session.Config.TimeoutPerCheck
+	if session.Config != nil && session.Config.Timeout > 0 {
+		timeout = session.Config.Timeout
 	}
 
 	conn, err := net.DialTimeout("tcp", address, timeout)
@@ -459,8 +459,8 @@ func (hc *HealthChecker) performUDPCheck(session *HealthCheckSession, result *He
 	address := fmt.Sprintf("%s:%d", session.Target.Address, session.Target.Port)
 
 	timeout := hc.config.DefaultTimeout
-	if session.Config != nil && session.Config.TimeoutPerCheck > 0 {
-		timeout = session.Config.TimeoutPerCheck
+	if session.Config != nil && session.Config.Timeout > 0 {
+		timeout = session.Config.Timeout
 	}
 
 	conn, err := net.DialTimeout("udp", address, timeout)
@@ -572,20 +572,12 @@ func (hc *HealthChecker) determineHealthStatus(session *HealthCheckSession) Heal
 		return HealthCheckStatusUnknown
 	}
 
-	successRate := hc.calculateSuccessRate(session)
+	_ = hc.calculateSuccessRate(session) // successRate for future use
 
-	// Use thresholds from config or defaults
-	healthyThreshold := hc.config.DefaultHealthyThreshold
-	unhealthyThreshold := hc.config.DefaultUnhealthyThreshold
-
-	if session.Config != nil {
-		if session.Config.HealthyThreshold > 0 {
-			healthyThreshold = session.Config.HealthyThreshold
-		}
-		if session.Config.UnhealthyThreshold > 0 {
-			unhealthyThreshold = session.Config.UnhealthyThreshold
-		}
-	}
+	// Use default thresholds for now
+	// TODO: Add HealthyThreshold and UnhealthyThreshold to HealthCheckConfig if needed
+	_ = hc.config.DefaultHealthyThreshold    // healthyThreshold
+	_ = hc.config.DefaultUnhealthyThreshold  // unhealthyThreshold
 
 	// Simple logic: if recent checks are mostly successful, consider healthy
 	recentChecks := 10

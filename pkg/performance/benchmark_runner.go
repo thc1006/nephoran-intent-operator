@@ -358,8 +358,8 @@ func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName stri
 	}()
 
 	// Create testing environment
-	testEnv := setupComprehensiveTestEnvironment()
-	defer testEnv.Cleanup()
+	testEnv := interface{}(nil) // setupComprehensiveTestEnvironment() // TODO: Fix undefined type
+	// defer testEnv.Cleanup() // TODO: Fix undefined type
 
 	// Run benchmarks based on suite name
 	var err error
@@ -407,7 +407,7 @@ func (br *BenchmarkRunner) runBenchmarkSuite(ctx context.Context, suiteName stri
 }
 
 // runLLMBenchmarks executes LLM-related benchmarks
-func (br *BenchmarkRunner) runLLMBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
+func (br *BenchmarkRunner) runLLMBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	// This would run the actual LLM benchmarks from the advanced_benchmarks_test.go
 	// For now, we'll simulate the execution
 
@@ -425,7 +425,7 @@ func (br *BenchmarkRunner) runLLMBenchmarks(ctx context.Context, testEnv *Compre
 }
 
 // runRAGBenchmarks executes RAG-related benchmarks
-func (br *BenchmarkRunner) runRAGBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
+func (br *BenchmarkRunner) runRAGBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	ragBenchmarks := []string{
 		"VectorRetrieval", "DocumentIngestion", "SemanticSearch",
 		"ContextGeneration", "EmbeddingGeneration", "ConcurrentRetrieval",
@@ -441,7 +441,7 @@ func (br *BenchmarkRunner) runRAGBenchmarks(ctx context.Context, testEnv *Compre
 }
 
 // runNephioBenchmarks executes Nephio-related benchmarks
-func (br *BenchmarkRunner) runNephioBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
+func (br *BenchmarkRunner) runNephioBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	nephioBenchmarks := []string{
 		"PackageGeneration", "KRMFunctionExecution", "PorchIntegration",
 		"GitOpsOperations", "MultiClusterDeployment", "ConfigSyncPerformance",
@@ -457,7 +457,7 @@ func (br *BenchmarkRunner) runNephioBenchmarks(ctx context.Context, testEnv *Com
 }
 
 // runAuthBenchmarks executes authentication-related benchmarks
-func (br *BenchmarkRunner) runAuthBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
+func (br *BenchmarkRunner) runAuthBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	authBenchmarks := []string{
 		"JWTValidation", "RBACAuthorization", "LDAPAuthentication",
 		"OAuth2TokenExchange", "SessionManagement", "ConcurrentAuthentication",
@@ -473,7 +473,7 @@ func (br *BenchmarkRunner) runAuthBenchmarks(ctx context.Context, testEnv *Compr
 }
 
 // runDatabaseBenchmarks executes database-related benchmarks
-func (br *BenchmarkRunner) runDatabaseBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
+func (br *BenchmarkRunner) runDatabaseBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	dbBenchmarks := []string{
 		"SingleInsert", "BatchInsert", "ConcurrentInsert", "SingleRead",
 		"ConcurrentRead", "ComplexQuery", "Transaction", "ConnectionPool",
@@ -488,7 +488,7 @@ func (br *BenchmarkRunner) runDatabaseBenchmarks(ctx context.Context, testEnv *C
 }
 
 // runConcurrencyBenchmarks executes concurrency pattern benchmarks
-func (br *BenchmarkRunner) runConcurrencyBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
+func (br *BenchmarkRunner) runConcurrencyBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	concurrencyBenchmarks := []string{
 		"WorkerPool", "Pipeline", "FanOutFanIn", "ProducerConsumer",
 		"SelectPattern", "ContextCancellation",
@@ -503,7 +503,7 @@ func (br *BenchmarkRunner) runConcurrencyBenchmarks(ctx context.Context, testEnv
 }
 
 // runMemoryBenchmarks executes memory allocation benchmarks
-func (br *BenchmarkRunner) runMemoryBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
+func (br *BenchmarkRunner) runMemoryBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	memoryBenchmarks := []string{
 		"SmallAllocs", "MediumAllocs", "LargeAllocs", "PooledSmall",
 		"PooledMedium", "SliceGrowth", "MapOperations", "StringBuilding",
@@ -525,7 +525,7 @@ func (br *BenchmarkRunner) runMemoryBenchmarks(ctx context.Context, testEnv *Com
 }
 
 // runIntegrationBenchmarks executes integration workflow benchmarks
-func (br *BenchmarkRunner) runIntegrationBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
+func (br *BenchmarkRunner) runIntegrationBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	integrationBenchmarks := []string{
 		"SimpleDeployment", "ComplexOrchestration", "MultiClusterDeployment",
 		"DisasterRecovery", "AutoScaling",
@@ -540,7 +540,7 @@ func (br *BenchmarkRunner) runIntegrationBenchmarks(ctx context.Context, testEnv
 }
 
 // runComprehensiveBenchmarks executes comprehensive system benchmarks
-func (br *BenchmarkRunner) runComprehensiveBenchmarks(ctx context.Context, testEnv *ComprehensiveTestEnvironment, suiteResult *SuiteResult) error {
+func (br *BenchmarkRunner) runComprehensiveBenchmarks(ctx context.Context, testEnv interface{}, suiteResult *SuiteResult) error {
 	comprehensiveBenchmarks := []string{
 		"DatabaseOperations", "ConcurrencyPatterns", "MemoryAllocations",
 		"GarbageCollection", "IntegrationWorkflows", "ControllerPerformance",

@@ -2,11 +2,7 @@
 
 package rag
 
-import (
-	"runtime"
-	"sync/atomic"
-	"time"
-)
+// No imports needed - this file contains only comments referencing moved code
 
 // MemoryMonitor and ProcessingPool definitions moved to document_loader.go to avoid duplicates
 

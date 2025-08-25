@@ -95,7 +95,7 @@ require (
 
 	// gRPC for internal services
 	google.golang.org/grpc v1.75.0
-	google.golang.org/protobuf v1.36.6
+	google.golang.org/protobuf v1.36.6 // indirect
 
 	// Helm integration for package management
 	helm.sh/helm/v3 v3.18.6

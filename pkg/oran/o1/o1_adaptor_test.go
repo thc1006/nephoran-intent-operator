@@ -7,13 +7,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestNewO1Adaptor(t *testing.T) {
 	tests := []struct {
 		name   string
-		config *O1Config
+		config *oran.O1Config
 		want   *O1Adaptor
 	}{
 		{
@@ -28,12 +29,10 @@ func TestNewO1Adaptor(t *testing.T) {
 		},
 		{
 			name: "with custom config",
-			config: &O1Config{
-				DefaultPort:    830,
-				ConnectTimeout: 30 * time.Second,
-				RequestTimeout: 60 * time.Second,
-				MaxRetries:     5,
-				RetryInterval:  10 * time.Second,
+			config: &oran.O1Config{
+				Endpoint:      "localhost:830",
+				Timeout:       30 * time.Second,
+				RetryAttempts: 5,
 			},
 			want: &O1Adaptor{
 				clients:          make(map[string]*NetconfClient),
@@ -57,11 +56,9 @@ func TestNewO1Adaptor(t *testing.T) {
 				assert.Equal(t, tt.config, got.config)
 			} else {
 				// Check default config values
-				assert.Equal(t, 830, got.config.DefaultPort)
-				assert.Equal(t, 30*time.Second, got.config.ConnectTimeout)
-				assert.Equal(t, 60*time.Second, got.config.RequestTimeout)
-				assert.Equal(t, 3, got.config.MaxRetries)
-				assert.Equal(t, 5*time.Second, got.config.RetryInterval)
+				assert.Equal(t, "localhost:830", got.config.Endpoint)
+				assert.Equal(t, 30*time.Second, got.config.Timeout)
+				assert.Equal(t, 3, got.config.RetryAttempts)
 			}
 		})
 	}

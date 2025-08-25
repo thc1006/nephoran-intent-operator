@@ -133,6 +133,17 @@ type L2ValidationCache struct {
 	// Placeholder for distributed cache implementation
 }
 
+// Get retrieves a cached validation result from L2 cache
+func (c *L2ValidationCache) Get(key string) *CachedValidationResult {
+	// Placeholder implementation - would connect to Redis/Memcached
+	return nil
+}
+
+// Put stores a validation result in L2 cache
+func (c *L2ValidationCache) Put(key string, result *CachedValidationResult) {
+	// Placeholder implementation - would connect to Redis/Memcached
+}
+
 // PreloadCache represents pre-validated certificates cache
 type PreloadCache struct {
 	// Placeholder for preload cache implementation
@@ -546,10 +557,12 @@ func (e *RealtimeValidationEngine) performSyncValidation(ctx context.Context, ce
 func (e *RealtimeValidationEngine) validateChain(ctx context.Context, cert *x509.Certificate, connState *tls.ConnectionState) interface{} {
 	if connState != nil && len(connState.PeerCertificates) > 0 {
 		// Validate the full chain from the connection
-		return e.validator.ValidateCertificateChain(ctx, connState.PeerCertificates[0])
+		result, _ := e.validator.validateCertificateChain(ctx, connState.PeerCertificates[0])
+		return result
 	}
 	// Validate single certificate
-	return e.validator.ValidateCertificate(ctx, cert)
+	result, _ := e.validator.ValidateCertificate(ctx, cert)
+	return result
 }
 
 // checkRevocation performs revocation checking with optimization
@@ -561,7 +574,8 @@ func (e *RealtimeValidationEngine) checkRevocation(ctx context.Context, cert *x5
 		return e.checkRevocationWithPool(ctx, cert)
 	}
 
-	return e.revocationChecker.CheckRevocationDetailed(ctx, cert)
+	result, _ := e.revocationChecker.CheckRevocationDetailed(ctx, cert)
+	return result
 }
 
 // checkRevocationWithPool uses connection pooling for OCSP checks
@@ -596,7 +610,8 @@ func (e *RealtimeValidationEngine) validateCTLog(ctx context.Context, cert *x509
 		return e.validateSCTs(ctx, cert)
 	}
 
-	return e.validator.validateCTLog(ctx, cert)
+	result, _ := e.validator.validateCTLog(ctx, cert)
+	return result
 }
 
 // validatePolicy validates against security policies

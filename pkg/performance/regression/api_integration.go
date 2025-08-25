@@ -14,6 +14,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
 	"k8s.io/klog/v2"
 )
 
@@ -794,7 +795,7 @@ func parseWebhookEndpoints(endpoints []string) []*WebhookEndpoint {
 func convertPrometheusResult(result model.Value) *MetricsData {
 	// Convert Prometheus result to our MetricsData format
 	return &MetricsData{
-		ResultType: string(result.Type()),
+		ResultType: result.Type().String(),
 		Result:     []MetricValue{}, // Would be populated with actual conversion
 	}
 }

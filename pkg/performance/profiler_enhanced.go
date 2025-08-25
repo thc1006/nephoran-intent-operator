@@ -89,7 +89,7 @@ type ProfileAnalyzer struct {
 	config           *AnalyzerConfig
 	hotspotDetector  *HotspotDetector
 	leakDetector     *LeakDetector
-	trendAnalyzer    *TrendAnalyzer
+	// trendAnalyzer    *TrendAnalyzer // TODO: Fix import or define TrendAnalyzer
 	baselineProfiles map[string]*profile.Profile
 }
 
@@ -689,7 +689,7 @@ func (ep *EnhancedProfiler) StartHTTPProfiler() error {
 	// Custom endpoints
 	mux.HandleFunc("/debug/nephoran/profiles", ep.handleProfileList)
 	mux.HandleFunc("/debug/nephoran/analysis", ep.handleAnalysisResults)
-	mux.HandleFunc("/debug/nephoran/suggestions", ep.handleOptimizationSuggestions)
+	mux.HandleFunc("/debug/nephoran/suggestions", ep.handleOptimizationSuggestionsHTTP)
 	mux.HandleFunc("/debug/nephoran/metrics", ep.handleMetricsEndpoint)
 
 	ep.httpServer = &http.Server{
@@ -722,7 +722,7 @@ func (ep *EnhancedProfiler) handleAnalysisResults(w http.ResponseWriter, r *http
 	fmt.Fprintf(w, `{"status": "analysis results endpoint"}`)
 }
 
-func (ep *EnhancedProfiler) handleOptimizationSuggestions(w http.ResponseWriter, r *http.Request) {
+func (ep *EnhancedProfiler) handleOptimizationSuggestionsHTTP(w http.ResponseWriter, r *http.Request) {
 	suggestions := ep.optimizer.GetRecentSuggestions()
 
 	w.Header().Set("Content-Type", "application/json")
@@ -974,7 +974,7 @@ func (ld *LeakDetector) detectGoroutineLeaks(profilePath string) {
 func (pa *ProfileAnalyzer) AnalyzeProfile(profilePath string) (*ProfileAnalysisResult, error) {
 	return &ProfileAnalysisResult{
 		ProfilePath: profilePath,
-		HotSpots:    make([]HotSpot, 0),
+		HotSpots:    make([]EnhancedHotSpot, 0),
 		Leaks:       make([]Leak, 0),
 	}, nil
 }
@@ -1005,11 +1005,11 @@ func (ta *TraceAnalyzer) AnalyzeTrace(session *TraceSession) (*TraceAnalysisResu
 
 type ProfileAnalysisResult struct {
 	ProfilePath string
-	HotSpots    []HotSpot
+	HotSpots    []EnhancedHotSpot
 	Leaks       []Leak
 }
 
-type HotSpot struct {
+type EnhancedHotSpot struct {
 	Function string
 	CPUTime  float64
 }

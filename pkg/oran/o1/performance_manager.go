@@ -2,9 +2,7 @@ package o1
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"math"
 	"net/http"
 	"sort"
 	"sync"
@@ -12,10 +10,8 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
-	"github.com/prometheus/common/model"
 	"google.golang.org/grpc"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 

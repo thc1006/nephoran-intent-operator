@@ -3,7 +3,6 @@
 package rag
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"

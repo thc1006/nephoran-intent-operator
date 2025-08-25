@@ -698,7 +698,7 @@ func (lts *LoadTestSuite) collectFinalMetrics(ctx context.Context) {
 // collectResourceMetrics collects resource utilization metrics
 func (lts *LoadTestSuite) collectResourceMetrics(ctx context.Context) {
 	// Query Prometheus for resource metrics during test period
-	queries := map[string]string{
+	_ = map[string]string{
 		"cpu_avg":    `avg_over_time(rate(container_cpu_usage_seconds_total{namespace="nephoran-system"}[5m])[` + lts.config.Duration.String() + `:30s])`,
 		"memory_avg": `avg_over_time(container_memory_usage_bytes{namespace="nephoran-system"}[` + lts.config.Duration.String() + `:30s])`,
 	}

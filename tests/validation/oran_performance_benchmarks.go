@@ -22,7 +22,7 @@ type ORANPerformanceBenchmarker struct {
 	k8sClient     client.Client
 
 	// Performance metrics
-	benchmarkResults  map[string]*BenchmarkResult
+	benchmarkResults  map[string]*ORANBenchmarkResult
 	concurrencyLimits map[string]int
 
 	// Test configuration
@@ -31,20 +31,24 @@ type ORANPerformanceBenchmarker struct {
 	maxConcurrency int
 }
 
-// BenchmarkResult contains performance benchmark results for an interface
-type BenchmarkResult struct {
-	InterfaceName      string        `json:"interfaceName"`
-	TotalRequests      int64         `json:"totalRequests"`
-	SuccessfulRequests int64         `json:"successfulRequests"`
-	FailedRequests     int64         `json:"failedRequests"`
-	AverageLatency     time.Duration `json:"averageLatency"`
-	MedianLatency      time.Duration `json:"medianLatency"`
-	P95Latency         time.Duration `json:"p95Latency"`
-	P99Latency         time.Duration `json:"p99Latency"`
-	MinLatency         time.Duration `json:"minLatency"`
-	MaxLatency         time.Duration `json:"maxLatency"`
-	ThroughputRPS      float64       `json:"throughputRps"`
-	ErrorRate          float64       `json:"errorRate"`
+// ORANBenchmarkResult contains performance benchmark results for an O-RAN interface
+// This type is specific to O-RAN interface performance testing and extends the base BenchmarkResult
+type ORANBenchmarkResult struct {
+	*BenchmarkResult // Embed the base BenchmarkResult from comprehensive_validation_suite.go
+
+	// O-RAN specific fields
+	InterfaceName       string        `json:"interfaceName"`
+	TotalRequests       int64         `json:"totalRequests"`
+	SuccessfulRequests  int64         `json:"successfulRequests"`
+	FailedRequests      int64         `json:"failedRequests"`
+	AverageLatency      time.Duration `json:"averageLatency"`
+	MedianLatency       time.Duration `json:"medianLatency"`
+	P95Latency          time.Duration `json:"p95Latency"`
+	P99Latency          time.Duration `json:"p99Latency"`
+	MinLatency          time.Duration `json:"minLatency"`
+	MaxLatency          time.Duration `json:"maxLatency"`
+	ThroughputRPS       float64       `json:"throughputRps"`
+	ErrorRate           float64       `json:"errorRate"`
 
 	// Latency distribution
 	LatencyDistribution []time.Duration `json:"latencyDistribution"`
@@ -65,7 +69,7 @@ func NewORANPerformanceBenchmarker(validator *ORANInterfaceValidator, factory *O
 	return &ORANPerformanceBenchmarker{
 		oranValidator:    validator,
 		testFactory:      factory,
-		benchmarkResults: make(map[string]*BenchmarkResult),
+		benchmarkResults: make(map[string]*ORANBenchmarkResult),
 		concurrencyLimits: map[string]int{
 			"A1": 50,  // A1 interface can handle 50 concurrent operations
 			"E2": 100, // E2 interface can handle 100 concurrent operations
@@ -84,7 +88,7 @@ func (opb *ORANPerformanceBenchmarker) SetK8sClient(client client.Client) {
 }
 
 // RunComprehensivePerformanceBenchmarks runs benchmarks for all O-RAN interfaces
-func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx context.Context) map[string]*BenchmarkResult {
+func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx context.Context) map[string]*ORANBenchmarkResult {
 	ginkgo.By("Running Comprehensive O-RAN Performance Benchmarks")
 
 	// Run benchmarks for each interface
@@ -112,8 +116,8 @@ func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx
 }
 
 // runInterfaceBenchmark runs performance benchmark for a specific interface
-func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context, interfaceName string) *BenchmarkResult {
-	result := &BenchmarkResult{
+func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context, interfaceName string) *ORANBenchmarkResult {
+	result := &ORANBenchmarkResult{
 		InterfaceName:       interfaceName,
 		StartTime:           time.Now(),
 		ConcurrencyLevel:    opb.concurrencyLimits[interfaceName],

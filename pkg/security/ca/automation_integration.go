@@ -296,11 +296,6 @@ func (ai *AutomationIntegration) BulkRevokeCertificates(ctx context.Context, ser
 func (ai *AutomationIntegration) initializeCAManager() error {
 	ai.logger.Info("initializing CA manager")
 
-	kubeClient, err := kubernetes.NewForConfig(ai.manager.GetConfig())
-	if err != nil {
-		return fmt.Errorf("failed to create kubernetes client: %w", err)
-	}
-
 	caManager, err := NewCAManager(ai.config.CAManagerConfig, ai.logger, ai.manager.GetClient())
 	if err != nil {
 		return fmt.Errorf("failed to create CA manager: %w", err)
@@ -400,8 +395,8 @@ func (ai *AutomationIntegration) triggerHealthAlert(status map[string]interface{
 }
 
 // Default configuration factory
-func NewDefaultIntegrationConfig() *IntegrationConfig {
-	return &IntegrationConfig{
+func NewDefaultAutomationIntegrationConfig() *AutomationIntegrationConfig {
+	return &AutomationIntegrationConfig{
 		CAManagerConfig: &Config{
 			DefaultBackend:          BackendSelfSigned,
 			BackendConfigs:          make(map[CABackendType]interface{}),
@@ -431,69 +426,30 @@ func NewDefaultIntegrationConfig() *IntegrationConfig {
 			},
 		},
 		AutomationConfig: &AutomationConfig{
-			ProvisioningEnabled:     true,
-			AutoInjectCertificates:  true,
 			ServiceDiscoveryEnabled: true,
-			ProvisioningWorkers:     5,
-			ProvisioningTimeout:     5 * time.Minute,
+			DiscoveryInterval:      5 * time.Minute,
+			DiscoveryNamespaces:    []string{"default", "nephoran-system"},
+			DiscoverySelectors:     []string{"app.kubernetes.io/managed-by=nephoran"},
 
-			RenewalEnabled:         true,
-			RenewalThreshold:       30 * 24 * time.Hour, // 30 days
-			RenewalWorkers:         3,
-			RenewalWindow:          7 * 24 * time.Hour, // 7 days
-			GracefulRenewalEnabled: true,
+			AutoRenewalEnabled:    true,
+			RenewalThreshold:      30 * 24 * time.Hour, // 30 days
+			RenewalCheckInterval:  1 * time.Hour,
+			CertificateBackup:     true,
+			BackupRetention:       30,
 
-			ValidationEnabled:      true,
-			RealtimeValidation:     false,
-			ChainValidationEnabled: true,
-			CTLogValidationEnabled: false, // Disabled by default for performance
-			ValidationCacheSize:    1000,
-			ValidationCacheTTL:     1 * time.Hour,
+			HealthCheckEnabled:  true,
+			HealthCheckTimeout:  30 * time.Second,
+			HealthCheckRetries:  3,
+			HealthCheckInterval: 1 * time.Minute,
 
-			RevocationEnabled:   true,
-			CRLCheckEnabled:     true,
-			OCSPCheckEnabled:    true,
-			RevocationCacheSize: 500,
-			RevocationCacheTTL:  30 * time.Minute,
+			NotificationEnabled:   true,
+			NotificationEndpoints: []string{},
+			AlertThresholds:       make(map[string]int),
 
-			KubernetesIntegration: &K8sIntegrationConfig{
-				Enabled:          true,
-				Namespaces:       []string{"default", "nephoran-system"},
-				ServiceSelector:  "app.kubernetes.io/managed-by=nephoran",
-				PodSelector:      "nephoran.io/inject-certificate=true",
-				SecretPrefix:     "nephoran-cert",
-				AnnotationPrefix: "nephoran.io",
-				AdmissionWebhook: &AdmissionWebhookConfig{
-					Enabled:          true,
-					WebhookName:      "certificate-injector.nephoran.io",
-					ServiceName:      "nephoran-cert-webhook",
-					ServiceNamespace: "nephoran-system",
-					CertDir:          "/tmp/k8s-webhook-server/serving-certs",
-					Port:             9443,
-				},
-			},
-
-			MonitoringIntegration: &MonitoringIntegration{
-				PrometheusEnabled:    true,
-				JaegerEnabled:        true,
-				GrafanaEnabled:       true,
-				CustomMetricsEnabled: true,
-			},
-
-			AlertingConfig: &AutomationAlertingConfig{
-				Enabled:                  true,
-				ProvisioningFailureAlert: true,
-				RenewalFailureAlert:      true,
-				ValidationFailureAlert:   true,
-				RevocationAlert:          true,
-				AlertCooldown:            5 * time.Minute,
-			},
-
-			BatchSize:               10,
-			MaxConcurrentOperations: 50,
-			OperationTimeout:        5 * time.Minute,
-			RetryAttempts:           3,
-			RetryBackoff:            1 * time.Second,
+			MaxConcurrentOps:   50,
+			OperationTimeout:   5 * time.Minute,
+			BatchSize:          10,
+			ProcessingInterval: 30 * time.Second,
 		},
 
 		EnableKubernetesIntegration: true,

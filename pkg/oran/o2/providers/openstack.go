@@ -14,13 +14,9 @@ import (
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/flavors"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/images"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/gophercloud/gophercloud/openstack/identity/v3/projects"
-	"github.com/gophercloud/gophercloud/openstack/identity/v3/tokens"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/networks"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/ports"
 	"github.com/gophercloud/gophercloud/openstack/networking/v2/subnets"
 	"github.com/gophercloud/gophercloud/openstack/orchestration/v1/stacks"
-	"github.com/gophercloud/gophercloud/pagination"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -474,9 +470,23 @@ func (o *OpenStackProvider) Deploy(ctx context.Context, req *DeploymentRequest) 
 	}
 
 	// Create Heat stack from template
+	templateContent := req.Template
+	if templateContent == "" {
+		// Create a minimal Heat template if none provided
+		templateContent = `{
+			"heat_template_version": "2018-08-31",
+			"description": "Generated template from deployment request",
+			"resources": {}
+		}`
+	}
+
 	createOpts := stacks.CreateOpts{
-		Name:       req.Name,
-		Template:   req.Template,
+		Name: req.Name,
+		TemplateOpts: &stacks.Template{
+			TE: stacks.TE{
+				Bin: []byte(templateContent),
+			},
+		},
 		Parameters: req.Parameters,
 		Tags:       convertLabelsToTags(req.Labels),
 		Timeout:    int(req.Timeout.Minutes()),
@@ -506,7 +516,7 @@ func (o *OpenStackProvider) GetDeployment(ctx context.Context, deploymentID stri
 		return nil, fmt.Errorf("failed to get Heat stack: %w", err)
 	}
 
-	return o.convertStackToDeploymentResponse(stack), nil
+	return o.convertRetrievedStackToDeploymentResponse(stack), nil
 }
 
 // UpdateDeployment updates a Heat stack deployment
@@ -517,8 +527,23 @@ func (o *OpenStackProvider) UpdateDeployment(ctx context.Context, deploymentID s
 
 	stackName, stackID := parseStackIdentifier(deploymentID)
 
+	// Update template content
+	templateContent := req.Template
+	if templateContent == "" {
+		// Create a minimal Heat template if none provided
+		templateContent = `{
+			"heat_template_version": "2018-08-31",
+			"description": "Updated template from deployment request",
+			"resources": {}
+		}`
+	}
+
 	updateOpts := stacks.UpdateOpts{
-		Template:   req.Template,
+		TemplateOpts: &stacks.Template{
+			TE: stacks.TE{
+				Bin: []byte(templateContent),
+			},
+		},
 		Parameters: req.Parameters,
 		Tags:       convertLabelsToTags(req.Labels),
 		Timeout:    int(req.Timeout.Minutes()),
@@ -573,7 +598,7 @@ func (o *OpenStackProvider) ListDeployments(ctx context.Context, filter *Deploym
 
 	var deployments []*DeploymentResponse
 	for _, stack := range stackList {
-		deployments = append(deployments, o.convertStackToDeploymentResponse(&stack))
+		deployments = append(deployments, o.convertListedStackToDeploymentResponse(&stack))
 	}
 
 	return deployments, nil
@@ -776,11 +801,10 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 		}
 
 		metrics["status"] = server.Status
-		metrics["power_state"] = server.PowerState
-		metrics["vm_state"] = server.VmState
-		metrics["task_state"] = server.TaskState
 		metrics["created"] = server.Created
 		metrics["updated"] = server.Updated
+		// Note: PowerState, VmState, TaskState fields may not be available in all gophercloud versions
+		// These would require server details with extended attributes
 
 		// Get flavor details for resource allocation
 		if server.Flavor["id"] != nil {
@@ -815,10 +839,12 @@ func (o *OpenStackProvider) GetResourceMetrics(ctx context.Context, resourceID s
 		metrics["status"] = network.Status
 		metrics["admin_state_up"] = network.AdminStateUp
 		metrics["shared"] = network.Shared
-		metrics["external"] = network.External
-		metrics["port_security_enabled"] = network.PortSecurityEnabled
 		metrics["created_at"] = network.CreatedAt
 		metrics["updated_at"] = network.UpdatedAt
+		// Note: External and PortSecurityEnabled may be in different fields or extensions
+		if len(network.Tags) > 0 {
+			metrics["tags"] = network.Tags
+		}
 	}
 
 	metrics["timestamp"] = time.Now().Unix()
@@ -1235,12 +1261,38 @@ func (o *OpenStackProvider) convertStackToDeploymentResponse(stack *stacks.Creat
 	// Implementation would convert Heat stack to deployment response
 	return &DeploymentResponse{
 		ID:           stack.ID,
-		Name:         stack.Name,
+		Name:         stack.ID, // CreatedStack doesn't have Name field, use ID
 		Status:       "creating",
 		Phase:        "initializing",
 		TemplateType: "heat",
 		CreatedAt:    time.Now(),
 		UpdatedAt:    time.Now(),
+	}
+}
+
+func (o *OpenStackProvider) convertRetrievedStackToDeploymentResponse(stack *stacks.RetrievedStack) *DeploymentResponse {
+	// Convert RetrievedStack to deployment response
+	return &DeploymentResponse{
+		ID:           stack.ID,
+		Name:         stack.Name,
+		Status:       stack.Status,
+		Phase:        stack.Status,
+		TemplateType: "heat",
+		CreatedAt:    stack.CreationTime,
+		UpdatedAt:    stack.UpdatedTime,
+	}
+}
+
+func (o *OpenStackProvider) convertListedStackToDeploymentResponse(stack *stacks.ListedStack) *DeploymentResponse {
+	// Convert ListedStack to deployment response
+	return &DeploymentResponse{
+		ID:           stack.ID,
+		Name:         stack.Name,
+		Status:       stack.Status,
+		Phase:        stack.Status,
+		TemplateType: "heat",
+		CreatedAt:    stack.CreationTime,
+		UpdatedAt:    stack.UpdatedTime,
 	}
 }
 

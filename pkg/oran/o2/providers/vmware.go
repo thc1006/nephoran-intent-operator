@@ -10,11 +10,7 @@ import (
 	"github.com/vmware/govmomi"
 	"github.com/vmware/govmomi/find"
 	"github.com/vmware/govmomi/object"
-	"github.com/vmware/govmomi/property"
 	"github.com/vmware/govmomi/session"
-	"github.com/vmware/govmomi/view"
-	"github.com/vmware/govmomi/vim25"
-	"github.com/vmware/govmomi/vim25/methods"
 	"github.com/vmware/govmomi/vim25/mo"
 	"github.com/vmware/govmomi/vim25/soap"
 	"github.com/vmware/govmomi/vim25/types"
@@ -550,7 +546,7 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 	// Get host metrics
 	hosts, err := v.finder.HostSystemList(ctx, "*")
 	if err == nil {
-		totalCPU := int32(0)
+		totalCPU := int16(0)
 		totalMemory := int64(0)
 		usedCPU := int32(0)
 		usedMemory := int64(0)
@@ -569,7 +565,8 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 					totalCPU += h.Summary.Hardware.NumCpuCores
 					totalMemory += h.Summary.Hardware.MemorySize
 				}
-				if h.Summary.QuickStats != nil {
+				// QuickStats is not a pointer, check if it has valid data
+			if h.Summary.QuickStats.OverallCpuUsage >= 0 {
 					usedCPU += h.Summary.QuickStats.OverallCpuUsage
 					usedMemory += int64(h.Summary.QuickStats.OverallMemoryUsage) * 1024 * 1024
 				}
@@ -626,7 +623,8 @@ func (v *VMwareProvider) GetMetrics(ctx context.Context) (map[string]interface{}
 				continue
 			}
 
-			if dsObj.Summary != nil {
+			// Summary is not a pointer, check if it has valid data
+			if dsObj.Summary.Capacity > 0 {
 				totalCapacity += dsObj.Summary.Capacity
 				freeSpace += dsObj.Summary.FreeSpace
 			}
@@ -666,14 +664,25 @@ func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID stri
 
 		metrics["power_state"] = string(vmObj.Runtime.PowerState)
 		metrics["connection_state"] = string(vmObj.Runtime.ConnectionState)
-		if vmObj.Summary != nil {
-			if vmObj.Summary.QuickStats != nil {
+		// Summary is not a pointer, check if it has valid data
+		if vmObj.Summary.Config.NumCpu > 0 {
+			// QuickStats is not a pointer, check if it has valid data
+			if vmObj.Summary.QuickStats.OverallCpuUsage >= 0 {
 				metrics["cpu_mhz_used"] = vmObj.Summary.QuickStats.OverallCpuUsage
 				metrics["memory_mb_used"] = vmObj.Summary.QuickStats.GuestMemoryUsage
-				metrics["storage_bytes_committed"] = vmObj.Summary.QuickStats.CommittedStorage
-				metrics["storage_bytes_uncommitted"] = vmObj.Summary.QuickStats.UncommittedStorage
+				// CommittedStorage and UncommittedStorage may not be available in this version
+				// Use Storage summary if available
+				if vmObj.Summary.Storage != nil {
+					metrics["storage_bytes_committed"] = vmObj.Summary.Storage.Committed
+					metrics["storage_bytes_uncommitted"] = vmObj.Summary.Storage.Uncommitted
+				} else {
+					// Fallback to QuickStats fields if they exist
+					metrics["storage_bytes_committed"] = 0
+					metrics["storage_bytes_uncommitted"] = 0
+				}
 			}
-			if vmObj.Summary.Config != nil {
+			// Config is not a pointer, check if it has valid data
+			if vmObj.Summary.Config.NumCpu > 0 {
 				metrics["vcpus"] = vmObj.Summary.Config.NumCpu
 				metrics["memory_mb"] = vmObj.Summary.Config.MemorySizeMB
 			}
@@ -691,7 +700,8 @@ func (v *VMwareProvider) GetResourceMetrics(ctx context.Context, resourceID stri
 			return nil, fmt.Errorf("failed to get datastore properties: %w", err)
 		}
 
-		if dsObj.Summary != nil {
+		// Summary is not a pointer, check if it has valid data
+			if dsObj.Summary.Capacity > 0 {
 			metrics["capacity_bytes"] = dsObj.Summary.Capacity
 			metrics["free_bytes"] = dsObj.Summary.FreeSpace
 			metrics["uncommitted_bytes"] = dsObj.Summary.Uncommitted

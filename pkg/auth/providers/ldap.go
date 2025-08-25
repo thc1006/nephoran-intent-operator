@@ -100,6 +100,11 @@ type LDAPGroupInfo struct {
 	Type        string   `json:"type"`
 }
 
+// NewLDAPProvider creates a new LDAP provider (alias for NewLDAPClient)
+func NewLDAPProvider(config *LDAPConfig, logger *slog.Logger) LDAPProvider {
+	return NewLDAPClient(config, logger)
+}
+
 // NewLDAPClient creates a new LDAP client
 func NewLDAPClient(config *LDAPConfig, logger *slog.Logger) *LDAPClient {
 	// Set defaults

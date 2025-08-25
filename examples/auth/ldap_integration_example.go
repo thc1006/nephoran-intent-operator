@@ -101,16 +101,14 @@ func setupAuthRoutes(router *mux.Router, authManager *auth.AuthManager) {
 		router.HandleFunc("/auth/ldap/logout", ldapMiddleware.HandleLDAPLogout).Methods("POST")
 
 		// LDAP user info endpoint (for admin purposes)
-		router.HandleFunc("/auth/ldap/user/{username}",
-			authManager.GetMiddleware().RequirePermissionMiddleware("users:manage")(
-				http.HandlerFunc(handleLDAPUserInfo(ldapMiddleware))),
-		).Methods("GET")
+		protectedUserInfo := authManager.GetMiddleware().RequirePermissionMiddleware("users:manage")(
+			http.HandlerFunc(handleLDAPUserInfo(ldapMiddleware)))
+		router.Handle("/auth/ldap/user/{username}", protectedUserInfo).Methods("GET")
 
 		// LDAP test connection endpoint
-		router.HandleFunc("/auth/ldap/test",
-			authManager.GetMiddleware().RequireAdminMiddleware(
-				http.HandlerFunc(handleLDAPTest(ldapMiddleware))),
-		).Methods("GET")
+		protectedLDAPTest := authManager.GetMiddleware().RequireAdminMiddleware(
+			http.HandlerFunc(handleLDAPTest(ldapMiddleware)))
+		router.Handle("/auth/ldap/test", protectedLDAPTest).Methods("GET")
 	}
 
 	// OAuth2 endpoints (if OAuth2 is configured)
@@ -148,21 +146,18 @@ func setupProtectedRoutes(router *mux.Router, authManager *auth.AuthManager) {
 
 	// Example protected endpoints
 	protected.HandleFunc("/profile", handleUserProfile).Methods("GET")
-	protected.HandleFunc("/intents",
-		authManager.GetMiddleware().RequirePermissionMiddleware("intent:read")(
-			http.HandlerFunc(handleIntentsList)),
-	).Methods("GET")
+	protectedIntentsList := authManager.GetMiddleware().RequirePermissionMiddleware("intent:read")(
+		http.HandlerFunc(handleIntentsList))
+	protected.Handle("/intents", protectedIntentsList).Methods("GET")
 
-	protected.HandleFunc("/intents",
-		authManager.GetMiddleware().RequirePermissionMiddleware("intent:create")(
-			http.HandlerFunc(handleIntentCreate)),
-	).Methods("POST")
+	protectedIntentsCreate := authManager.GetMiddleware().RequirePermissionMiddleware("intent:create")(
+		http.HandlerFunc(handleIntentCreate))
+	protected.Handle("/intents", protectedIntentsCreate).Methods("POST")
 
 	// Admin-only endpoints
-	protected.HandleFunc("/admin/users",
-		authManager.GetMiddleware().RequireAdminMiddleware(
-			http.HandlerFunc(handleAdminUsers)),
-	).Methods("GET")
+	protectedAdminUsers := authManager.GetMiddleware().RequireAdminMiddleware(
+		http.HandlerFunc(handleAdminUsers))
+	protected.Handle("/admin/users", protectedAdminUsers).Methods("GET")
 }
 
 // HTTP Handlers
@@ -333,11 +328,11 @@ func handleSessionInfo(authManager *auth.AuthManager) http.HandlerFunc {
 		response := map[string]interface{}{
 			"session_id":   sessionInfo.ID,
 			"user_id":      sessionInfo.UserID,
-			"username":     sessionInfo.Username,
-			"email":        sessionInfo.Email,
-			"display_name": sessionInfo.DisplayName,
+			"username":     sessionInfo.UserInfo.Username,
+			"email":        sessionInfo.UserInfo.Email,
+			"display_name": sessionInfo.UserInfo.Name,
 			"provider":     sessionInfo.Provider,
-			"groups":       sessionInfo.Groups,
+			"groups":       sessionInfo.UserInfo.Groups,
 			"roles":        sessionInfo.Roles,
 			"created_at":   sessionInfo.CreatedAt,
 			"expires_at":   sessionInfo.ExpiresAt,

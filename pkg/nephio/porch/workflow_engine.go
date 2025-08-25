@@ -103,7 +103,7 @@ type workflowEngine struct {
 
 	// Workflow management
 	workflowRegistry *WorkflowRegistry
-	executionEngine  *ExecutionEngine
+	executionEngine  *WorkflowExecutionEngine
 	stateManager     *WorkflowStateManager
 
 	// Approval system
@@ -602,6 +602,37 @@ func (we *workflowEngine) StartWorkflow(ctx context.Context, workflowID string, 
 
 	we.logger.Info("Workflow execution started", "executionID", executionID, "workflowID", workflowID)
 	return execution, nil
+}
+
+// AbortWorkflow aborts a running workflow execution
+func (we *workflowEngine) AbortWorkflow(ctx context.Context, executionID string, reason string) error {
+	we.logger.Info("Aborting workflow", "executionID", executionID, "reason", reason)
+
+	// Get workflow execution
+	execution, err := we.stateManager.GetWorkflowExecution(ctx, executionID)
+	if err != nil {
+		return fmt.Errorf("failed to get workflow execution: %w", err)
+	}
+
+	if execution.Status == WorkflowStatusCompleted || execution.Status == WorkflowStatusFailed {
+		return fmt.Errorf("cannot abort workflow in status %s", execution.Status)
+	}
+
+	// Update execution status
+	execution.Status = WorkflowStatusAborted
+	execution.AbortReason = reason
+	execution.EndTime = &metav1.Time{Time: time.Now()}
+
+	// Save execution state
+	if err := we.stateManager.SaveWorkflowExecution(ctx, execution); err != nil {
+		return fmt.Errorf("failed to save workflow execution: %w", err)
+	}
+
+	// Audit log
+	we.auditLogger.LogWorkflowAborted(ctx, execution, reason)
+
+	we.logger.Info("Workflow execution aborted", "executionID", executionID)
+	return nil
 }
 
 // SubmitApproval submits an approval decision

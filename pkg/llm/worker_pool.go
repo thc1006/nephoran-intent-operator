@@ -166,6 +166,7 @@ type WorkerPoolConfig struct {
 
 	// Queue configuration
 	TaskQueueSize      int              `json:"task_queue_size"`
+	QueueSize          int              `json:"queue_size"` // Alias for compatibility
 	ResultQueueSize    int              `json:"result_queue_size"`
 	PriorityQueueSizes map[Priority]int `json:"priority_queue_sizes"`
 
@@ -190,9 +191,10 @@ type WorkerPoolConfig struct {
 	CPULimitPerWorker    float64 `json:"cpu_limit_per_worker"`
 
 	// Monitoring
-	MetricsEnabled     bool `json:"metrics_enabled"`
-	TracingEnabled     bool `json:"tracing_enabled"`
-	HealthCheckEnabled bool `json:"health_check_enabled"`
+	MetricsEnabled        bool          `json:"metrics_enabled"`
+	TracingEnabled        bool          `json:"tracing_enabled"`
+	HealthCheckEnabled    bool          `json:"health_check_enabled"`
+	HealthCheckInterval   time.Duration `json:"health_check_interval"`
 }
 
 // DynamicScaler handles automatic worker scaling based on load
@@ -642,6 +644,10 @@ func (w *Worker) processTask(task *Task) *TaskResult {
 	switch task.Type {
 	case TaskTypeLLMProcessing:
 		result.Result, err = w.processLLMTask(ctx, task)
+	case TaskTypeRAGProcessing:
+		result.Result, err = w.processRAGTask(ctx, task)
+	case TaskTypeBatchProcessing:
+		result.Result, err = w.processBatchTask(ctx, task)
 	case TaskTypeValidation:
 		result.Result, err = w.processValidationTask(ctx, task)
 	case TaskTypeCaching:
@@ -782,6 +788,38 @@ func (w *Worker) processCachingTask(ctx context.Context, task *Task) (interface{
 	return nil, nil
 }
 
+// processRAGTask processes RAG-specific tasks
+func (w *Worker) processRAGTask(ctx context.Context, task *Task) (interface{}, error) {
+	w.logger.Debug("Processing RAG task", "task_id", task.ID, "intent", task.Intent)
+	
+	// Simulate RAG processing (replace with actual implementation)
+	time.Sleep(time.Millisecond * 150) // Simulate processing time
+	
+	return map[string]interface{}{
+		"rag_processed_intent": task.Intent,
+		"parameters":           task.Parameters,
+		"timestamp":            time.Now(),
+		"worker_id":            w.id,
+		"type":                 "rag_result",
+	}, nil
+}
+
+// processBatchTask processes batch-specific tasks
+func (w *Worker) processBatchTask(ctx context.Context, task *Task) (interface{}, error) {
+	w.logger.Debug("Processing batch task", "task_id", task.ID, "intent", task.Intent)
+	
+	// Simulate batch processing (replace with actual implementation)
+	time.Sleep(time.Millisecond * 200) // Simulate processing time
+	
+	return map[string]interface{}{
+		"batch_processed_intent": task.Intent,
+		"parameters":             task.Parameters,
+		"timestamp":              time.Now(),
+		"worker_id":              w.id,
+		"type":                   "batch_result",
+	}, nil
+}
+
 func getDefaultWorkerPoolConfig() *WorkerPoolConfig {
 	return &WorkerPoolConfig{
 		MinWorkers:         int32(runtime.NumCPU()),
@@ -850,9 +888,11 @@ const (
 	// PriorityNormal - defined in batch_processor.go  
 	// PriorityLow - defined in batch_processor.go
 
-	TaskTypeLLMProcessing TaskType = "llm_processing"
-	TaskTypeValidation    TaskType = "validation"
-	TaskTypeCaching       TaskType = "caching"
+	TaskTypeLLMProcessing   TaskType = "llm_processing"
+	TaskTypeRAGProcessing   TaskType = "rag_processing"
+	TaskTypeBatchProcessing TaskType = "batch_processing"
+	TaskTypeValidation      TaskType = "validation"
+	TaskTypeCaching         TaskType = "caching"
 
 	WorkerTypeLLM     WorkerType = "llm"
 	WorkerTypeGeneral WorkerType = "general"
@@ -872,3 +912,73 @@ const (
 	WorkerControlPause
 	WorkerControlResume
 )
+
+// Start starts the worker pool (it's already started in NewWorkerPool, so this is a no-op)
+func (wp *WorkerPool) Start(ctx context.Context) error {
+	if wp.getState() == WorkerPoolStateRunning {
+		return nil // Already running
+	}
+	wp.setState(WorkerPoolStateRunning)
+	return nil
+}
+
+// Shutdown gracefully shuts down the worker pool
+func (wp *WorkerPool) Shutdown(ctx context.Context) error {
+	wp.shutdownOnce.Do(func() {
+		wp.setState(WorkerPoolStateShutdown)
+		close(wp.shutdownCh)
+		
+		// Send shutdown signal to all workers
+		wp.stateMutex.RLock()
+		for _, worker := range wp.workers {
+			select {
+			case worker.controlChan <- WorkerControlShutdown:
+			default:
+				// Worker might be busy, it will see shutdown channel
+			}
+		}
+		wp.stateMutex.RUnlock()
+		
+		// Wait for all workers to complete
+		wp.workerWG.Wait()
+		
+		// Close channels
+		close(wp.taskQueue)
+		for _, queue := range wp.priorityQueues {
+			close(queue)
+		}
+		close(wp.resultChannel)
+	})
+	return nil
+}
+
+// GetMetrics returns current worker pool metrics
+func (wp *WorkerPool) GetMetrics() *WorkerPoolMetrics {
+	wp.metrics.mutex.RLock()
+	defer wp.metrics.mutex.RUnlock()
+	
+	// Create a copy to avoid race conditions
+	metrics := &WorkerPoolMetrics{}
+	*metrics = *wp.metrics
+	
+	// Update real-time values
+	metrics.ActiveWorkers = atomic.LoadInt32(&wp.workerCount)
+	metrics.TotalWorkers = metrics.ActiveWorkers
+	metrics.QueueLength = int64(len(wp.taskQueue))
+	
+	return metrics
+}
+
+// GetStatus returns current worker pool status information
+func (wp *WorkerPool) GetStatus() map[string]interface{} {
+	return map[string]interface{}{
+		"running":        wp.getState() == WorkerPoolStateRunning,
+		"total_workers":  atomic.LoadInt32(&wp.workerCount),
+		"min_workers":    wp.minWorkers,
+		"max_workers":    wp.maxWorkers,
+		"queue_length":   len(wp.taskQueue),
+		"tasks_submitted": atomic.LoadInt64(&wp.metrics.TasksSubmitted),
+		"tasks_completed": atomic.LoadInt64(&wp.metrics.TasksCompleted),
+		"tasks_failed":   atomic.LoadInt64(&wp.metrics.TasksFailed),
+	}
+}

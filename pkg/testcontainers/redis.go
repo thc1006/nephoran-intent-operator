@@ -3,6 +3,7 @@ package testcontainers
 import (
 	"context"
 	"fmt"
+	"io"
 	"testing"
 	"time"
 
@@ -122,10 +123,10 @@ func (r *RedisContainer) ExecuteRedisCommand(t *testing.T, command ...string) st
 	require.NoError(t, err, "Failed to execute Redis command")
 	require.Equal(t, 0, exitCode, "Redis command failed with exit code %d", exitCode)
 	
-	output, err := testcontainers.ReadAllAsString(reader)
+	outputBytes, err := io.ReadAll(reader)
 	require.NoError(t, err, "Failed to read command output")
 	
-	return output
+	return string(outputBytes)
 }
 
 // FlushAll clears all data from Redis

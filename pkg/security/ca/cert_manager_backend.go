@@ -2,14 +2,19 @@ package ca
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
+	"encoding/pem"
 	"fmt"
 	"time"
 
 	certmanagerv1 "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
+	certmanagermetav1 "github.com/cert-manager/cert-manager/pkg/apis/meta/v1"
 	certmanagerclientset "github.com/cert-manager/cert-manager/pkg/client/clientset/versioned"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/watch"
@@ -239,11 +244,13 @@ func (b *CertManagerBackend) IssueCertificate(ctx context.Context, req *Certific
 			Subject: &certmanagerv1.X509Subject{
 				Organizations: []string{"Nephoran"},
 			},
-			KeySize:      req.KeySize,
-			KeyAlgorithm: certmanagerv1.RSAKeyAlgorithm,
-			KeyUsages:    b.convertKeyUsages(req.KeyUsage, req.ExtKeyUsage),
-			SecretName:   b.generateSecretName(req),
-			IssuerRef: certmanagerv1.ObjectReference{
+			PrivateKey: &certmanagerv1.CertificatePrivateKey{
+				Algorithm: certmanagerv1.RSAKeyAlgorithm,
+				Size:      req.KeySize,
+			},
+			Usages:    b.convertKeyUsages(req.KeyUsage, req.ExtKeyUsage),
+			SecretName: b.generateSecretName(req),
+			IssuerRef: certmanagermetav1.ObjectReference{
 				Name: b.config.IssuerName,
 				Kind: b.config.IssuerKind,
 			},
@@ -431,7 +438,7 @@ func (b *CertManagerBackend) verifyIssuer(ctx context.Context) error {
 		// Check if issuer is ready
 		for _, condition := range issuer.Status.Conditions {
 			if condition.Type == certmanagerv1.IssuerConditionReady {
-				if condition.Status != certmanagerv1.ConditionTrue {
+				if condition.Status != certmanagermetav1.ConditionTrue {
 					return fmt.Errorf("issuer not ready: %s", condition.Message)
 				}
 				return nil
@@ -450,7 +457,7 @@ func (b *CertManagerBackend) verifyIssuer(ctx context.Context) error {
 		// Check if cluster issuer is ready
 		for _, condition := range clusterIssuer.Status.Conditions {
 			if condition.Type == certmanagerv1.IssuerConditionReady {
-				if condition.Status != certmanagerv1.ConditionTrue {
+				if condition.Status != certmanagermetav1.ConditionTrue {
 					return fmt.Errorf("cluster issuer not ready: %s", condition.Message)
 				}
 				return nil
@@ -547,10 +554,10 @@ func (b *CertManagerBackend) waitForCertificateReady(ctx context.Context, certNa
 			// Check if certificate is ready
 			for _, condition := range cert.Status.Conditions {
 				if condition.Type == certmanagerv1.CertificateConditionReady {
-					if condition.Status == certmanagerv1.ConditionTrue {
+					if condition.Status == certmanagermetav1.ConditionTrue {
 						// Certificate is ready, fetch the secret
 						return b.buildCertificateResponse(ctx, cert, req)
-					} else if condition.Status == certmanagerv1.ConditionFalse {
+					} else if condition.Status == certmanagermetav1.ConditionFalse {
 						return nil, fmt.Errorf("certificate failed: %s", condition.Message)
 					}
 				}
@@ -561,10 +568,11 @@ func (b *CertManagerBackend) waitForCertificateReady(ctx context.Context, certNa
 
 func (b *CertManagerBackend) buildCertificateResponse(ctx context.Context, cert *certmanagerv1.Certificate, req *CertificateRequest) (*CertificateResponse, error) {
 	// Fetch the certificate secret
-	secret, err := b.client.Get(ctx, client.ObjectKey{
+	secret := &corev1.Secret{}
+	err := b.client.Get(ctx, client.ObjectKey{
 		Namespace: b.config.CertificateNamespace,
 		Name:      cert.Spec.SecretName,
-	}, &corev1.Secret{})
+	}, secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get certificate secret: %w", err)
 	}
@@ -585,6 +593,10 @@ func (b *CertManagerBackend) buildCertificateResponse(ctx context.Context, cert 
 		return nil, fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
+	// Calculate fingerprint separately to avoid slice of unaddressable value
+	hash := sha256.Sum256(parsedCert.Raw)
+	fingerprint := hex.EncodeToString(hash[:])
+
 	response := &CertificateResponse{
 		RequestID:        req.ID,
 		Certificate:      parsedCert,
@@ -592,7 +604,7 @@ func (b *CertManagerBackend) buildCertificateResponse(ctx context.Context, cert 
 		PrivateKeyPEM:    string(keyPEM),
 		CACertificatePEM: string(caPEM),
 		SerialNumber:     parsedCert.SerialNumber.String(),
-		Fingerprint:      fmt.Sprintf("%x", parsedCert.Fingerprint(crypto.SHA256)),
+		Fingerprint:      fingerprint,
 		ExpiresAt:        parsedCert.NotAfter,
 		IssuedBy:         string(BackendCertManager),
 		Status:           StatusIssued,

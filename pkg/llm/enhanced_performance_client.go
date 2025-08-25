@@ -25,7 +25,7 @@ type EnhancedPerformanceClient struct {
 	baseClient     *Client
 	performanceOpt *PerformanceOptimizer
 	retryEngine    *RetryEngine
-	batchProcessor *BatchProcessor
+	batchProcessor BatchProcessor
 	circuitBreaker *AdvancedCircuitBreaker
 
 	// Configuration
@@ -317,11 +317,9 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 			Help: "Current number of in-flight LLM requests",
 		}, []string{"model"}),
 
-		tokensUsed: *promauto.NewCounterVec(prometheus.CounterVec{
-			CounterOpts: prometheus.CounterOpts{
-				Name: "llm_tokens_used_total",
-				Help: "Total number of tokens used",
-			},
+		tokensUsed: *promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "llm_tokens_used_total",
+			Help: "Total number of tokens used",
 		}, []string{"model", "token_type", "intent_type"}),
 
 		tokenCosts: *promauto.NewCounterVec(prometheus.CounterOpts{
@@ -608,6 +606,7 @@ func (c *EnhancedPerformanceClient) createRequestContext(options *IntentProcessi
 	return ctx
 }
 
+
 func (c *EnhancedPerformanceClient) completeRequestContext(id string) {
 	c.requestsMutex.Lock()
 	delete(c.activeRequests, id)
@@ -740,7 +739,7 @@ func (c *EnhancedPerformanceClient) performHealthCheck() {
 	}
 }
 
-func (c *EnhancedPerformanceClient) onCircuitBreakerStateChange(oldState, newState int32, reason string) {
+func (c *EnhancedPerformanceClient) onCircuitBreakerStateChange(oldState, newState CircuitState, reason string) {
 	c.prometheusMetrics.circuitBreakerState.WithLabelValues(c.config.BaseConfig.BackendType).Set(float64(newState))
 	c.prometheusMetrics.circuitBreakerTrips.WithLabelValues(c.config.BaseConfig.BackendType, reason).Inc()
 

@@ -1441,8 +1441,6 @@ func (po *PlacementOptimizer) balancedStrategy(workload *WorkloadDeployment, clu
 	// Score each cluster based on multiple factors
 	scores := make(map[string]float64)
 	for _, cluster := range clusters {
-		score := 0.0
-
 		// Resource availability (40%)
 		resourceScore := (1 - cluster.Metadata.Resources.Utilization) * 0.4
 

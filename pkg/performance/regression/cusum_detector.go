@@ -5,6 +5,7 @@ package regression
 import (
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"gonum.org/v1/gonum/stat"
@@ -158,7 +159,7 @@ func (cd *CUSUMDetector) DetectChangePoints(data []float64, timestamps []time.Ti
 func (cd *CUSUMDetector) initializeFromData(data []float64) error {
 	if cd.referenceValue == 0 {
 		if cd.config.UseRobustStatistics {
-			cd.referenceValue = stat.Median(data)
+			cd.referenceValue = stat.Quantile(0.5, stat.Empirical, data, nil)
 		} else {
 			cd.referenceValue = stat.Mean(data, nil)
 		}
@@ -168,12 +169,12 @@ func (cd *CUSUMDetector) initializeFromData(data []float64) error {
 		var stdDev float64
 		if cd.config.UseRobustStatistics {
 			// Use Median Absolute Deviation (MAD)
-			median := stat.Median(data)
+			median := stat.Quantile(0.5, stat.Empirical, data, nil)
 			deviations := make([]float64, len(data))
 			for i, v := range data {
 				deviations[i] = math.Abs(v - median)
 			}
-			mad := stat.Median(deviations)
+			mad := stat.Quantile(0.5, stat.Empirical, deviations, nil)
 			stdDev = mad * 1.4826 // Convert MAD to approximate standard deviation
 		} else {
 			stdDev = stat.StdDev(data, nil)
@@ -186,12 +187,12 @@ func (cd *CUSUMDetector) initializeFromData(data []float64) error {
 		// Set drift factor as fraction of standard deviation
 		var stdDev float64
 		if cd.config.UseRobustStatistics {
-			median := stat.Median(data)
+			median := stat.Quantile(0.5, stat.Empirical, data, nil)
 			deviations := make([]float64, len(data))
 			for i, v := range data {
 				deviations[i] = math.Abs(v - median)
 			}
-			mad := stat.Median(deviations)
+			mad := stat.Quantile(0.5, stat.Empirical, deviations, nil)
 			stdDev = mad * 1.4826
 		} else {
 			stdDev = stat.StdDev(data, nil)
@@ -389,13 +390,15 @@ func (cd *CUSUMDetector) validateChangePoint(cp *CUSUMChangePoint, data []float6
 
 	tStat := math.Abs(afterMean-beforeMean) / pooledSE
 
-	// Degrees of freedom (Welch's formula)
-	df := math.Pow(beforeVar/n1+afterVar/n2, 2) /
+	// Degrees of freedom (Welch's formula) - calculated but not used in current implementation
+	_ = math.Pow(beforeVar/n1+afterVar/n2, 2) /
 		(math.Pow(beforeVar/n1, 2)/(n1-1) + math.Pow(afterVar/n2, 2)/(n2-1))
 
 	// Simplified p-value calculation (would use proper t-distribution in production)
 	// For now, use z-approximation
-	pValue := 2 * (1 - stat.CDF(tStat, 0, 1))
+	// Simplified p-value calculation using normal approximation
+	// In production, use proper t-distribution
+	pValue := 2 * (1 - normalCDF(tStat))
 
 	// Validation criteria
 	significanceLevel := 0.05
@@ -428,7 +431,7 @@ func (cd *CUSUMDetector) calculateStatistics(data []float64, start, end int) *De
 
 	stats := &DescriptiveStatistics{
 		Mean:   stat.Mean(slice, nil),
-		Median: stat.Median(slice),
+		Median: stat.Quantile(0.5, stat.Empirical, sorted, nil),
 		StdDev: stat.StdDev(slice, nil),
 		Min:    sorted[0],
 		Max:    sorted[len(sorted)-1],
@@ -451,7 +454,8 @@ func (cd *CUSUMDetector) calculateStatistics(data []float64, start, end int) *De
 	for i, v := range slice {
 		deviations[i] = math.Abs(v - stats.Median)
 	}
-	stats.MAD = stat.Median(deviations)
+	sort.Float64s(deviations)
+	stats.MAD = stat.Quantile(0.5, stat.Empirical, deviations, nil)
 
 	return stats
 }
@@ -557,12 +561,13 @@ func (cd *CUSUMDetector) AdaptThreshold(recentData []float64) {
 
 	var stdDev float64
 	if cd.config.UseRobustStatistics {
-		median := stat.Median(recentData)
+		median := stat.Quantile(0.5, stat.Empirical, recentData, nil)
 		deviations := make([]float64, len(recentData))
 		for i, v := range recentData {
 			deviations[i] = math.Abs(v - median)
 		}
-		mad := stat.Median(deviations)
+		sort.Float64s(deviations)
+		mad := stat.Quantile(0.5, stat.Empirical, deviations, nil)
 		stdDev = mad * 1.4826
 	} else {
 		stdDev = stat.StdDev(recentData, nil)
@@ -614,6 +619,34 @@ func (cd *CUSUMDetector) GetDetectionStatistics() map[string]interface{} {
 		"current_upper_cusum":  cd.upperCUSUM,
 		"current_lower_cusum":  cd.lowerCUSUM,
 	}
+}
+
+// normalCDF approximates the cumulative distribution function of standard normal distribution
+func normalCDF(x float64) float64 {
+	// Using approximation: https://en.wikipedia.org/wiki/Normal_distribution#Numerical_approximations
+	const (
+		a1 =  0.254829592
+		a2 = -0.284496736
+		a3 =  1.421413741
+		a4 = -1.453152027
+		a5 =  1.061405429
+		p  =  0.3275911
+	)
+
+	sign := 1.0
+	if x < 0 {
+		sign = -1.0
+	}
+	x = math.Abs(x) / math.Sqrt(2.0)
+
+	t := 1.0 / (1.0 + p*x)
+	t2 := t * t
+	t3 := t2 * t
+	t4 := t3 * t
+	t5 := t4 * t
+	y := 1.0 - (((((a5*t5+a4)*t4+a3)*t3+a2)*t2+a1)*t)*math.Exp(-x*x)
+
+	return 0.5 * (1.0 + sign*y)
 }
 
 // getDefaultCUSUMConfig returns default configuration for CUSUM detector

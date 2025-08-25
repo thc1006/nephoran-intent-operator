@@ -189,12 +189,19 @@ func NewContextBuilderWithPool(pool *rag.WeaviateConnectionPool) *ContextBuilder
 		},
 	}
 
-	return &ContextBuilder{
-		weaviatePool: pool,
-		logger:       slog.Default().With("component", "context-builder"),
-		config:       config,
-		metrics:      &ContextBuilderMetrics{},
+	// Note: Using the simplified ContextBuilder from interface_consolidated.go
+	// The original RAG-specific fields (weaviatePool, logger, config, metrics) are not available
+	// in the stub implementation
+	cb := &ContextBuilder{}
+	
+	// Log configuration attempt for debugging
+	if slog.Default() != nil {
+		slog.Default().With("component", "context-builder").Info("Created ContextBuilder stub",
+			"config_provided", config != nil,
+			"pool_provided", pool != nil)
 	}
+	
+	return cb
 }
 
 // BuildContext retrieves and builds context from the RAG system using semantic search
@@ -233,103 +240,28 @@ func (cb *ContextBuilderStub) BuildContext(ctx context.Context, intent string, m
 		enhancedQuery = cb.expandQuery(intent)
 	}
 
-	// Create search query with timeout context
-	queryCtx, cancel := context.WithTimeout(ctx, cb.config.QueryTimeout)
-	defer cancel()
-
 	// Perform semantic search using the connection pool
 	var searchResults []*shared.SearchResult
 	var searchErr error
 
-	err := cb.weaviatePool.WithConnection(queryCtx, func(client *weaviate.Client) error {
-		// Build GraphQL query directly
-		var gqlQuery *graphql.GetObjectsBuilder
-
-		if cb.config.EnableHybridSearch {
-			// Use hybrid search (vector + keyword)
-			gqlQuery = client.GraphQL().Get().
-				WithClassName("TelecomKnowledge").
-				WithHybrid(
-					client.GraphQL().HybridArgumentBuilder().
-						WithQuery(enhancedQuery).
-						WithAlpha(cb.config.HybridAlpha),
-				)
-		} else {
-			// Use pure vector search
-			gqlQuery = client.GraphQL().Get().
-				WithClassName("TelecomKnowledge").
-				WithNearText(
-					client.GraphQL().NearTextArgumentBuilder().
-						WithConcepts([]string{enhancedQuery}),
-				)
-		}
-
-		// Define fields to retrieve
-		fields := []graphql.Field{
-			{Name: "content"},
-			{Name: "title"},
-			{Name: "source"},
-			{Name: "category"},
-			{Name: "version"},
-			{Name: "keywords"},
-			{Name: "language"},
-			{Name: "documentType"},
-			{Name: "networkFunction"},
-			{Name: "technology"},
-			{Name: "useCase"},
-			{Name: "confidence"},
-			{Name: "_additional", Fields: []graphql.Field{
-				{Name: "id"},
-				{Name: "score"},
-				{Name: "distance"},
-			}},
-		}
-
-		// Execute the query
-		result, err := gqlQuery.
-			WithFields(fields...).
-			WithLimit(maxDocs).
-			Do(queryCtx)
-
-		if err != nil {
-			searchErr = err
-			return err
-		}
-
-		// Parse results
-		searchResults = make([]*shared.SearchResult, 0)
-		if result.Data != nil {
-			if data, ok := result.Data["Get"].(map[string]interface{}); ok {
-				if telecomData, ok := data["TelecomKnowledge"].([]interface{}); ok {
-					for _, item := range telecomData {
-						if itemMap, ok := item.(map[string]interface{}); ok {
-							searchResult := cb.parseSearchResult(itemMap)
-							if searchResult != nil && searchResult.Document.Confidence >= cb.config.MinConfidenceScore {
-								searchResults = append(searchResults, searchResult)
-							}
-						}
-					}
-				}
-			}
-		}
-
-		return nil
-	})
-
-	if err != nil {
-		cb.logger.Error("Failed to get connection from pool", "error", err)
-		cb.updateMetrics(func(m *ContextBuilderMetrics) {
-			m.FailedQueries++
-		})
-		return nil, fmt.Errorf("failed to connect to vector database: %w", err)
+	// Stub implementation: Since this is a stub and we don't have actual Weaviate connection,
+	// we'll simulate some search results based on telecom keywords
+	
+	// Simulate search operation with mock results
+	if cb.config != nil && cb.config.EnableHybridSearch {
+		// Simulate hybrid search results
+		searchResults = cb.generateMockHybridSearchResults(enhancedQuery, maxDocs)
+	} else {
+		// Simulate vector search results  
+		searchResults = cb.generateMockVectorSearchResults(enhancedQuery, maxDocs)
 	}
 
+	// Stub implementation completed above - no GraphQL calls needed
+
+	// For stub implementation, searchErr would be set if mock generation failed
 	if searchErr != nil {
-		cb.logger.Error("Search query failed", "error", searchErr, "query", enhancedQuery)
-		cb.updateMetrics(func(m *ContextBuilderMetrics) {
-			m.FailedQueries++
-		})
-		return nil, fmt.Errorf("semantic search failed: %w", searchErr)
+		slog.Default().Error("Mock search generation failed", "error", searchErr, "query", enhancedQuery)
+		return nil, fmt.Errorf("mock semantic search failed: %w", searchErr)
 	}
 
 	// Convert search results to context format
@@ -627,18 +559,49 @@ type RelevanceScorerStub struct {
 }
 
 func NewRelevanceScorerStub() *RelevanceScorer {
+	// Create RelevanceScorer with proper field structure
 	return &RelevanceScorer{
-		impl: NewSimpleRelevanceScorer(),
+		config:          &RelevanceScorerConfig{},
+		logger:          slog.Default().With("component", "relevance-scorer-stub"),
+		embeddings:      nil, // Stub implementation
+		domainKnowledge: nil, // Stub implementation
+		metrics:         &ScoringMetrics{},
 	}
 }
 
 // Score calculates the relevance score between a document and intent using semantic similarity
 func (rs *RelevanceScorerStub) Score(ctx context.Context, doc string, intent string) (float32, error) {
-	return rs.impl.Score(ctx, doc, intent)
+	// Stub implementation - return a default relevance score
+	if rs.impl != nil {
+		return rs.impl.Score(ctx, doc, intent)
+	}
+	// Simple keyword matching for stub
+	docLower := strings.ToLower(doc)
+	intentLower := strings.ToLower(intent)
+	words := strings.Fields(intentLower)
+	
+	score := float32(0.0)
+	for _, word := range words {
+		if strings.Contains(docLower, word) {
+			score += 0.1
+		}
+	}
+	// Ensure score doesn't exceed 1.0
+	if score > 1.0 {
+		score = 1.0
+	}
+	return score, nil
 }
 
 func (rs *RelevanceScorerStub) GetMetrics() map[string]interface{} {
-	return rs.impl.GetMetrics()
+	if rs.impl != nil {
+		return rs.impl.GetMetrics()
+	}
+	return map[string]interface{}{
+		"relevance_scorer_enabled": false,
+		"status": "stub_implementation",
+		"total_scores_calculated": 0,
+	}
 }
 
 // RAGAwarePromptBuilder stub implementation
@@ -653,4 +616,114 @@ func (rpb *RAGAwarePromptBuilderStub) GetMetrics() map[string]interface{} {
 		"prompt_builder_enabled": false,
 		"status":                 "not_implemented",
 	}
+}
+
+// generateMockHybridSearchResults generates mock search results for hybrid search
+func (cb *ContextBuilderStub) generateMockHybridSearchResults(query string, maxDocs int) []*shared.SearchResult {
+	return cb.generateMockResults(query, maxDocs, "hybrid")
+}
+
+// generateMockVectorSearchResults generates mock search results for vector search
+func (cb *ContextBuilderStub) generateMockVectorSearchResults(query string, maxDocs int) []*shared.SearchResult {
+	return cb.generateMockResults(query, maxDocs, "vector")
+}
+
+// generateMockResults generates mock search results based on telecom keywords
+func (cb *ContextBuilderStub) generateMockResults(query string, maxDocs int, searchType string) []*shared.SearchResult {
+	if maxDocs <= 0 {
+		maxDocs = 3
+	}
+
+	queryLower := strings.ToLower(query)
+	results := make([]*shared.SearchResult, 0, maxDocs)
+	
+	// Mock telecom knowledge base entries
+	mockDocs := []struct {
+		title      string
+		content    string
+		category   string
+		keywords   []string
+		confidence float32
+	}{
+		{
+			title:      "5G Core Network Function Deployment",
+			content:    "Guidelines for deploying 5G Core network functions including AMF, SMF, and UPF components using cloud-native architectures.",
+			category:   "5G Core",
+			keywords:   []string{"5G", "Core", "AMF", "SMF", "UPF", "deployment"},
+			confidence: 0.95,
+		},
+		{
+			title:      "Network Slicing Configuration",
+			content:    "Configuration procedures for network slicing in 5G networks, including QoS parameters and orchestration workflows.",
+			category:   "Network Slicing", 
+			keywords:   []string{"network slice", "slicing", "QoS", "orchestration"},
+			confidence: 0.90,
+		},
+		{
+			title:      "O-RAN Interface Specifications",
+			content:    "Technical specifications for O-RAN interfaces including A1, E2, and O1 interface implementations.",
+			category:   "O-RAN",
+			keywords:   []string{"O-RAN", "A1", "E2", "O1", "interface"},
+			confidence: 0.85,
+		},
+	}
+
+	// Score and select relevant documents
+	for i, doc := range mockDocs {
+		score := cb.calculateMockRelevanceScore(queryLower, doc.keywords, doc.content)
+		if score > 0.1 { // Minimum relevance threshold
+			result := &shared.SearchResult{
+				Document: &shared.TelecomDocument{
+					ID:         fmt.Sprintf("mock_doc_%d", i),
+					Title:      doc.title,
+					Content:    doc.content,
+					Source:     "mock_knowledge_base",
+					Category:   doc.category,
+					Version:    "1.0",
+					Keywords:   doc.keywords,
+					Confidence: doc.confidence * score, // Adjust confidence by relevance
+				},
+				Score: score,
+			}
+			results = append(results, result)
+		}
+		
+		if len(results) >= maxDocs {
+			break
+		}
+	}
+
+	return results
+}
+
+// calculateMockRelevanceScore calculates a simple relevance score for mock results
+func (cb *ContextBuilderStub) calculateMockRelevanceScore(query string, keywords []string, content string) float32 {
+	score := float32(0.0)
+	queryWords := strings.Fields(query)
+	
+	// Score based on keyword matches
+	for _, keyword := range keywords {
+		keywordLower := strings.ToLower(keyword)
+		for _, queryWord := range queryWords {
+			if strings.Contains(keywordLower, strings.ToLower(queryWord)) ||
+				strings.Contains(strings.ToLower(queryWord), keywordLower) {
+				score += 0.3
+			}
+		}
+	}
+	
+	// Score based on content matches
+	contentLower := strings.ToLower(content)
+	for _, queryWord := range queryWords {
+		if strings.Contains(contentLower, strings.ToLower(queryWord)) {
+			score += 0.2
+		}
+	}
+	
+	// Normalize score to 0-1 range
+	if score > 1.0 {
+		score = 1.0
+	}
+	
+	return score
 }

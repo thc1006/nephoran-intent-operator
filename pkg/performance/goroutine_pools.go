@@ -140,7 +140,7 @@ type PoolMetrics struct {
 	Throughput         float64 // tasks per second
 	CPUUtilization     float64
 	MemoryUsage        int64
-	GoroutineCount     int
+	GoroutineCount     int64
 	ScalingEvents      int64
 	PreemptionEvents   int64
 	AffinityViolations int64

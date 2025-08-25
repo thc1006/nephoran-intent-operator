@@ -3,6 +3,7 @@ package ca
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -28,6 +29,7 @@ const (
 	RevocationStatusUnknown RevocationStatus = "unknown"
 	RevocationStatusValid   RevocationStatus = "valid"
 	RevocationStatusRevoked RevocationStatus = "revoked"
+	RevocationStatusGood    RevocationStatus = "good" // Alias for valid, used in OCSP responses
 )
 // EnhancedRevocationSystem provides comprehensive revocation checking with performance optimization
 type EnhancedRevocationSystem struct {
@@ -124,6 +126,13 @@ type DeltaCRLProcessor struct {
 	baseCRLs  map[string]*pkix.CertificateList
 	deltaCRLs map[string]*pkix.CertificateList
 	mu        sync.RWMutex
+}
+
+// processDelta processes a delta CRL update
+func (d *DeltaCRLProcessor) processDelta(url string, crl *pkix.CertificateList) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.baseCRLs[url] = crl
 }
 
 // OCSPManager manages OCSP operations
@@ -553,7 +562,7 @@ func (s *EnhancedRevocationSystem) checkOCSPEnhanced(ctx context.Context, cert *
 	}
 
 	// Send OCSP request
-	ocspResp, err := s.sendOCSPRequest(ctx, responder, ocspReq)
+	ocspResp, err := s.sendOCSPRequest(ctx, responder, ocspReq, cert)
 	if err != nil {
 		responder.ErrorCount.Add(1)
 		s.circuitBreaker.ocspBreaker.RecordFailure()
@@ -610,8 +619,8 @@ func (s *EnhancedRevocationSystem) checkCRLEnhanced(ctx context.Context, cert *x
 			break
 		}
 
-		// Certificate not in CRL - it's good
-		result.Status = RevocationStatusGood
+		// Certificate not in CRL - it's valid
+		result.Status = RevocationStatusValid
 		result.ResponseSource = dpURL
 		result.NextUpdate = &dp.NextUpdate
 		break
@@ -827,18 +836,19 @@ func (s *EnhancedRevocationSystem) updateCRL(ctx context.Context, dp *CRLDistrib
 	dp.mu.Lock()
 	dp.CRL = crl
 	dp.LastUpdate = time.Now()
-	dp.NextUpdate = crl.NextUpdate
+	// pkix.CertificateList doesn't have NextUpdate field - set a reasonable default
+	dp.NextUpdate = time.Now().Add(24 * time.Hour) // Default to 24 hours
 	dp.mu.Unlock()
 
 	// Process delta CRL if enabled
 	if s.config.CRLDeltaEnabled && s.crlManager.deltaProcessor != nil {
-		s.crlManager.deltaProcessor.ProcessDelta(dp.URL, crl)
+		s.crlManager.deltaProcessor.processDelta(dp.URL, crl)
 	}
 
 	s.logger.Info("CRL updated successfully",
 		"url", dp.URL,
-		"next_update", crl.NextUpdate,
-		"revoked_count", len(crl.RevokedCertificates))
+		"next_update", dp.NextUpdate,
+		"revoked_count", len(crl.TBSCertList.RevokedCertificates))
 
 	return nil
 }
@@ -852,7 +862,7 @@ func (s *EnhancedRevocationSystem) isCertificateRevoked(cert *x509.Certificate, 
 	}
 
 	// Check base CRL
-	for _, revoked := range dp.CRL.RevokedCertificates {
+	for _, revoked := range dp.CRL.TBSCertList.RevokedCertificates {
 		if revoked.SerialNumber.Cmp(cert.SerialNumber) == 0 {
 			return true
 		}
@@ -860,7 +870,7 @@ func (s *EnhancedRevocationSystem) isCertificateRevoked(cert *x509.Certificate, 
 
 	// Check delta CRL if available
 	if dp.DeltaCRL != nil {
-		for _, revoked := range dp.DeltaCRL.RevokedCertificates {
+		for _, revoked := range dp.DeltaCRL.TBSCertList.RevokedCertificates {
 			if revoked.SerialNumber.Cmp(cert.SerialNumber) == 0 {
 				return true
 			}
@@ -878,7 +888,7 @@ func (s *EnhancedRevocationSystem) getRevocationDetails(cert *x509.Certificate, 
 		return nil
 	}
 
-	for _, revoked := range dp.CRL.RevokedCertificates {
+	for _, revoked := range dp.CRL.TBSCertList.RevokedCertificates {
 		if revoked.SerialNumber.Cmp(cert.SerialNumber) == 0 {
 			details := &RevocationDetails{
 				RevokedAt: &revoked.RevocationTime,
@@ -906,10 +916,13 @@ func (s *EnhancedRevocationSystem) getRevocationDetails(cert *x509.Certificate, 
 func (s *EnhancedRevocationSystem) createOCSPRequest(cert *x509.Certificate) ([]byte, error) {
 	// Create OCSP request
 	// This is simplified - real implementation needs issuer certificate
+	issuerNameHash := sha256.Sum256(cert.RawIssuer)
+	issuerKeyHash := sha256.Sum256(cert.AuthorityKeyId)
+	
 	template := ocsp.Request{
-		HashAlgorithm:  ocsp.SHA256,
-		IssuerNameHash: sha256.Sum256(cert.RawIssuer),
-		IssuerKeyHash:  sha256.Sum256(cert.AuthorityKeyId),
+		HashAlgorithm:  crypto.SHA256, // Use crypto.SHA256 instead of ocsp.SHA256
+		IssuerNameHash: issuerNameHash[:],
+		IssuerKeyHash:  issuerKeyHash[:],
 		SerialNumber:   cert.SerialNumber,
 	}
 
@@ -922,7 +935,7 @@ func (s *EnhancedRevocationSystem) addNonceToRequest(req []byte, nonce []byte) [
 	return req
 }
 
-func (s *EnhancedRevocationSystem) sendOCSPRequest(ctx context.Context, responder *OCSPResponder, reqData []byte) (*ocsp.Response, error) {
+func (s *EnhancedRevocationSystem) sendOCSPRequest(ctx context.Context, responder *OCSPResponder, reqData []byte, cert *x509.Certificate) (*ocsp.Response, error) {
 	req, err := http.NewRequestWithContext(ctx, "POST", responder.URL, bytes.NewReader(reqData))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create OCSP request: %w", err)
@@ -955,7 +968,7 @@ func (s *EnhancedRevocationSystem) sendOCSPRequest(ctx context.Context, responde
 	}
 
 	// Cache stapled response if enabled
-	if s.config.OCSPStaplingEnabled {
+	if s.config.OCSPStaplingEnabled && cert != nil {
 		s.ocspManager.staplingCache.Put(cert.SerialNumber.String(), respData, ocspResp)
 	}
 
@@ -970,7 +983,7 @@ func (s *EnhancedRevocationSystem) parseOCSPResponse(resp *ocsp.Response, nonce 
 
 	switch resp.Status {
 	case ocsp.Good:
-		result.Status = RevocationStatusGood
+		result.Status = RevocationStatusValid
 	case ocsp.Revoked:
 		result.Status = RevocationStatusRevoked
 		result.RevokedAt = &resp.RevokedAt

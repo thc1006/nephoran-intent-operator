@@ -4,18 +4,14 @@ package regression
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math"
-	"sort"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"gonum.org/v1/gonum/mat"
-	"gonum.org/v1/gonum/stat"
 	"k8s.io/klog/v2"
 )
 
@@ -554,7 +550,7 @@ func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Co
 	}
 
 	// 4. Perform baseline comparison
-	regressions := make([]*MetricRegression, 0)
+	regressions := make([]MetricRegression, 0)
 	for metricName, currentValue := range metrics {
 		baseline := ire.baselineManager.GetBaseline(metricName)
 		if baseline == nil {
@@ -568,7 +564,7 @@ func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Co
 		}
 
 		if regression.IsSignificant {
-			regressions = append(regressions, regression)
+			regressions = append(regressions, *regression)
 		}
 	}
 
@@ -590,7 +586,12 @@ func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Co
 	// 7. Generate NWDAF insights if enabled
 	var nwdafInsights *NWDAFInsights
 	if ire.config.NWDAFPatternsEnabled {
-		nwdafInsights, err = ire.nwdafAnalyzer.GenerateInsights(ctx, metrics, regressions)
+		// Convert to pointer slice for NWDAF analyzer
+		regressionPtrs := make([]*MetricRegression, len(regressions))
+		for i := range regressions {
+			regressionPtrs[i] = &regressions[i]
+		}
+		nwdafInsights, err = ire.nwdafAnalyzer.GenerateInsights(ctx, metrics, regressionPtrs)
 		if err != nil {
 			klog.Warningf("NWDAF analysis failed: %v", err)
 		}
@@ -702,7 +703,8 @@ func (ire *IntelligentRegressionEngine) analyzeMetricRegression(metricName strin
 
 	// Calculate p-value (simplified - would use proper statistical test in production)
 	zScore := effectSize
-	pValue := 2 * (1 - stat.CDF(math.Abs(zScore), 0, 1))
+	// For now, use a simplified p-value calculation
+	pValue := 2 * (1 - normalCDF(math.Abs(zScore)))
 
 	regression := &MetricRegression{
 		MetricName:        metricName,
@@ -787,7 +789,7 @@ func (ire *IntelligentRegressionEngine) determineSeverity(metricName string, rel
 }
 
 // calculateOverallConfidence calculates overall confidence in regression detection
-func (ire *IntelligentRegressionEngine) calculateOverallConfidence(regressions []*MetricRegression, anomalies []*AnomalyEvent, changePoints []*ChangePoint) float64 {
+func (ire *IntelligentRegressionEngine) calculateOverallConfidence(regressions []MetricRegression, anomalies []*AnomalyEvent, changePoints []*ChangePoint) float64 {
 	if len(regressions) == 0 {
 		return 0.0
 	}
@@ -1010,17 +1012,23 @@ func (ire *IntelligentRegressionEngine) determineRegressionType(metricName strin
 
 // assessImpactAndGenerateRecommendations evaluates impact and creates actionable recommendations
 func (ire *IntelligentRegressionEngine) assessImpactAndGenerateRecommendations(analysis *RegressionAnalysisResult) {
+	// Convert to pointer slice for functions that need pointers
+	regressionPtrs := make([]*MetricRegression, len(analysis.MetricRegressions))
+	for i := range analysis.MetricRegressions {
+		regressionPtrs[i] = &analysis.MetricRegressions[i]
+	}
+
 	// Assess service impact
-	analysis.ServiceImpact = ire.assessServiceImpact(analysis.MetricRegressions)
+	analysis.ServiceImpact = ire.assessServiceImpact(regressionPtrs)
 
 	// Generate automated remediation actions
-	analysis.AutomatedRemediation = ire.generateAutomatedActions(analysis.MetricRegressions)
+	analysis.AutomatedRemediation = ire.generateAutomatedActions(regressionPtrs)
 
 	// Generate manual remediation steps
-	analysis.ManualRemediation = ire.generateManualActions(analysis.MetricRegressions)
+	analysis.ManualRemediation = ire.generateManualActions(regressionPtrs)
 
 	// Generate preventive measures
-	analysis.PreventiveMeasures = ire.generatePreventiveMeasures(analysis.MetricRegressions)
+	analysis.PreventiveMeasures = ire.generatePreventiveMeasures(regressionPtrs)
 }
 
 // Placeholder methods for supporting functionality
@@ -1199,8 +1207,8 @@ func convertToAlertManagerConfig(config *IntelligentRegressionConfig) *AlertMana
 		DuplicateSuppressionTime:    15 * time.Minute,
 		MaintenanceWindowsEnabled:   true,
 		LearningEnabled:             config.LearningEnabled,
-		FeedbackProcessingEnabled:   config.FeedbackProcessingEnabled,
-		AdaptiveThresholdsEnabled:   config.AdaptiveThresholdsEnabled,
+		FeedbackProcessingEnabled:   false, // Not available in config
+		AdaptiveThresholdsEnabled:   false, // Not available in config,
 		DefaultNotificationChannels: []string{"console"},
 		EscalationEnabled:           true,
 		AcknowledgmentRequired:      false,
@@ -1321,3 +1329,6 @@ func (ire *IntelligentRegressionEngine) runLearningSystem(ctx context.Context) {
 func (ire *IntelligentRegressionEngine) runNWDAFAnalytics(ctx context.Context) {
 	// Placeholder implementation for NWDAF analytics
 }
+
+
+// normalCDF is already defined in cusum_detector.go

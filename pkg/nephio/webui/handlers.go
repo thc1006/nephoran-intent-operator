@@ -149,7 +149,7 @@ func (h *PackageHandlers) UpdatePackage(w http.ResponseWriter, r *http.Request) 
 // DeletePackage handles DELETE request to remove a package revision
 func (h *PackageHandlers) DeletePackage(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	packageID := vars["id"]
+	_ = vars["id"]
 
 	// TODO: Implement package deletion logic with Nephio Porch
 

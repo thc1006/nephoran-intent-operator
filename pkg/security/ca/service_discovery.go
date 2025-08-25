@@ -483,26 +483,27 @@ func (sd *ServiceDiscovery) provisionCertificateForService(discovered *Discovere
 	dnsNames := sd.generateDNSNames(discovered, template)
 
 	// Create provisioning request
-	req := &ProvisioningRequest{
-		ID:          fmt.Sprintf("discovery-%s-%s-%d", discovered.Namespace, discovered.Name, time.Now().Unix()),
-		ServiceName: discovered.Name,
-		Namespace:   discovered.Namespace,
-		Template:    discovered.Template,
-		DNSNames:    dnsNames,
-		Priority:    PriorityNormal,
-		Metadata: map[string]string{
+	req := &AutomationRequest{
+		Type:             RequestTypeProvisioning,
+		ServiceName:      discovered.Name,
+		ServiceNamespace: discovered.Namespace,
+		Priority:         PriorityNormal,
+		Metadata: map[string]interface{}{
 			"discovered_by":       "service-discovery",
 			"discovery_timestamp": discovered.DiscoveredAt.Format(time.RFC3339),
 			"template_used":       discovered.Template,
+			"dns_names":           strings.Join(dnsNames, ","),
+			"request_id":          fmt.Sprintf("discovery-%s-%s-%d", discovered.Namespace, discovered.Name, time.Now().Unix()),
 		},
 	}
 
 	// Submit provisioning request
-	if err := sd.automationEngine.RequestProvisioning(req); err != nil {
+	response := sd.automationEngine.ProcessManualRequest(req)
+	if response.Status != StatusCompleted {
 		sd.logger.Error("failed to request certificate provisioning",
 			"service", discovered.Name,
 			"namespace", discovered.Namespace,
-			"error", err)
+			"error", response.Error)
 		discovered.Status = StatusProvisionFailed
 		return
 	}
@@ -515,7 +516,7 @@ func (sd *ServiceDiscovery) provisionCertificateForService(discovered *Discovere
 	sd.logger.Info("certificate provisioning requested",
 		"service", discovered.Name,
 		"namespace", discovered.Namespace,
-		"request_id", req.ID)
+		"request_id", req.Metadata["request_id"])
 }
 
 // generateDNSNames generates DNS names for the certificate

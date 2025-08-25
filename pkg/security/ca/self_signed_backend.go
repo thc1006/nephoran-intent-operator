@@ -2,6 +2,7 @@ package ca
 
 import (
 	"context"
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -442,20 +443,27 @@ func (b *SelfSignedBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, 
 		template.RevokedCertificates = append(template.RevokedCertificates, pkix.RevokedCertificate{
 			SerialNumber:   serialNumber,
 			RevocationTime: revoked.RevokedAt,
-			ReasonCode:     revoked.Reason,
 		})
 	}
 
 	// Select issuer
 	var issuer *x509.Certificate
-	var issuerKey interface{}
+	var issuerKey crypto.Signer
 
 	if b.intermCA != nil {
 		issuer = b.intermCA
-		issuerKey = b.intermKey
+		if signer, ok := b.intermKey.(crypto.Signer); ok {
+			issuerKey = signer
+		} else {
+			return nil, fmt.Errorf("intermediate key is not a crypto.Signer")
+		}
 	} else {
 		issuer = b.rootCA
-		issuerKey = b.rootKey
+		if signer, ok := b.rootKey.(crypto.Signer); ok {
+			issuerKey = signer
+		} else {
+			return nil, fmt.Errorf("root key is not a crypto.Signer")
+		}
 	}
 
 	// Create CRL
@@ -559,7 +567,7 @@ func (b *SelfSignedBackend) initializeRootCA() error {
 		Subject:               *b.config.RootCA.Subject,
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(0, 0, b.config.RootCA.ValidityDays),
-		KeyUsage:              x509.KeyUsageKeyCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{},
 		BasicConstraintsValid: true,
 		IsCA:                  true,
@@ -616,7 +624,7 @@ func (b *SelfSignedBackend) initializeIntermediateCA() error {
 		Subject:               *b.config.IntermediateCA.Subject,
 		NotBefore:             time.Now(),
 		NotAfter:              time.Now().AddDate(0, 0, b.config.IntermediateCA.ValidityDays),
-		KeyUsage:              x509.KeyUsageKeyCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{},
 		BasicConstraintsValid: true,
 		IsCA:                  true,
@@ -666,7 +674,7 @@ func (b *SelfSignedBackend) convertKeyUsage(keyUsages []string) x509.KeyUsage {
 		case "data_encipherment":
 			usage |= x509.KeyUsageDataEncipherment
 		case "cert_sign":
-			usage |= x509.KeyUsageKeyCertSign
+			usage |= x509.KeyUsageCertSign
 		case "crl_sign":
 			usage |= x509.KeyUsageCRLSign
 		case "content_commitment":

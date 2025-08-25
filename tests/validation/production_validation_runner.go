@@ -340,24 +340,26 @@ var _ = ginkgo.Describe("Production Deployment Validation Suite", func() {
 // Entry point for standalone execution
 func RunProductionValidationSuite() {
 	// Configure Ginkgo for production validation
-	ginkgo.RunSpecs(&testing.T{}, "Nephoran Production Deployment Validation Suite")
+	// Create a dummy testing.T for Ginkgo - this is safe as Ginkgo doesn't actually use these methods in this context
+	dummyT := &DummyTestingT{}
+	ginkgo.RunSpecs(dummyT, "Nephoran Production Deployment Validation Suite")
 }
 
-// Helper for testing.T interface
-type testing struct {
+// DummyTestingT provides a minimal testing.T interface for Ginkgo
+type DummyTestingT struct {
 	failed bool
 }
 
-func (t *testing) Errorf(format string, args ...interface{}) {
+func (t *DummyTestingT) Errorf(format string, args ...interface{}) {
 	fmt.Printf("ERROR: "+format+"\n", args...)
 	t.failed = true
 }
 
-func (t *testing) FailNow() {
+func (t *DummyTestingT) FailNow() {
 	t.failed = true
 	panic("test failed")
 }
 
-func (t *testing) Failed() bool {
+func (t *DummyTestingT) Failed() bool {
 	return t.failed
 }

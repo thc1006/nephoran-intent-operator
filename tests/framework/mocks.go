@@ -14,7 +14,6 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/mock"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -391,9 +390,9 @@ type MockWeaviateClient struct {
 	mock.Mock
 }
 
-func (m *MockWeaviateClient) Query() *graphql.Query {
+func (m *MockWeaviateClient) Query() interface{} {
 	args := m.Called()
-	return args.Get(0).(*graphql.Query)
+	return args.Get(0)
 }
 
 func (m *MockWeaviateClient) Reset() {

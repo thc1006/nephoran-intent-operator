@@ -39,15 +39,15 @@ type SLAValidationTestSuite struct {
 	claimVerifier       *ClaimVerifier
 
 	// Test configuration
-	config *ValidationConfig
+	config *SLAValidationConfig
 
 	// Results and evidence
-	validationResults *ValidationResults
+	validationResults *SLAValidationResults
 	evidence          *ValidationEvidence
 }
 
-// ValidationConfig defines precise validation parameters
-type ValidationConfig struct {
+// SLAValidationConfig defines precise validation parameters for SLA testing
+type SLAValidationConfig struct {
 	// SLA Claims to validate
 	AvailabilityClaim float64       `yaml:"availability_claim"` // 99.95%
 	LatencyP95Claim   time.Duration `yaml:"latency_p95_claim"`  // Sub-2-second
@@ -77,7 +77,7 @@ type ValidationConfig struct {
 // SLAValidator performs comprehensive SLA validation
 type SLAValidator struct {
 	prometheus   v1.API
-	config       *ValidationConfig
+	config       *SLAValidationConfig
 	measurements map[string]*MeasurementSet
 	mutex        sync.RWMutex
 
@@ -132,7 +132,7 @@ type StatisticalAnalysis struct {
 	ConfidenceLevel    float64             `json:"confidence_level"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
 	HypothesisTest     *HypothesisTest     `json:"hypothesis_test"`
-	TrendAnalysis      *TrendAnalysis      `json:"trend_analysis"`
+	TrendAnalysis      *SLATrendAnalysis   `json:"trend_analysis"`
 	OutlierAnalysis    *OutlierAnalysis    `json:"outlier_analysis"`
 }
 
@@ -153,13 +153,15 @@ type HypothesisTest struct {
 	PowerAnalysis         float64 `json:"power_analysis"`
 }
 
-// TrendAnalysis contains trend analysis results
-type TrendAnalysis struct {
-	HasTrend     bool    `json:"has_trend"`
-	TrendSlope   float64 `json:"trend_slope"`
-	TrendR2      float64 `json:"trend_r2"`
-	Seasonality  bool    `json:"seasonality"`
-	Stationarity bool    `json:"stationarity"`
+// SLATrendAnalysis contains trend analysis results specific to SLA validation
+// This extends the base TrendAnalysis with SLA-specific fields
+type SLATrendAnalysis struct {
+	*TrendAnalysis // Embed the base TrendAnalysis from trend_analyzer.go
+	HasTrend       bool    `json:"has_trend"`
+	TrendSlope     float64 `json:"trend_slope"`
+	TrendR2        float64 `json:"trend_r2"`
+	Seasonality    bool    `json:"seasonality"`
+	Stationarity   bool    `json:"stationarity"`
 }
 
 // OutlierAnalysis contains outlier detection results
@@ -246,8 +248,8 @@ type ClaimVerification struct {
 	VerificationTime time.Time            `json:"verification_time"`
 }
 
-// ValidationResults contains comprehensive validation results
-type ValidationResults struct {
+// SLAValidationResults contains comprehensive SLA validation results
+type SLAValidationResults struct {
 	TestID    string        `json:"test_id"`
 	StartTime time.Time     `json:"start_time"`
 	EndTime   time.Time     `json:"end_time"`
@@ -259,20 +261,20 @@ type ValidationResults struct {
 	OverallConfidence   float64 `json:"overall_confidence"`
 
 	// Specific claim results
-	AvailabilityResults *AvailabilityValidationResult `json:"availability_results"`
-	LatencyResults      *LatencyValidationResult      `json:"latency_results"`
-	ThroughputResults   *ThroughputValidationResult   `json:"throughput_results"`
+	AvailabilityResults *SLAAvailabilityValidationResult `json:"availability_results"`
+	LatencyResults      *SLALatencyValidationResult      `json:"latency_results"`
+	ThroughputResults   *SLAThroughputValidationResult   `json:"throughput_results"`
 
 	// Statistical summaries
-	StatisticalSummary *StatisticalSummary `json:"statistical_summary"`
-	QualityAssessment  *QualityAssessment  `json:"quality_assessment"`
+	StatisticalSummary *SLAStatisticalSummary `json:"statistical_summary"`
+	QualityAssessment  *SLAQualityAssessment  `json:"quality_assessment"`
 
 	// Evidence and audit trail
-	EvidencePackage *EvidencePackage `json:"evidence_package"`
+	EvidencePackage *SLAEvidencePackage `json:"evidence_package"`
 }
 
-// AvailabilityValidationResult contains availability validation results
-type AvailabilityValidationResult struct {
+// SLAAvailabilityValidationResult contains availability validation results specific to SLA validation
+type SLAAvailabilityValidationResult struct {
 	ClaimedAvailability  float64             `json:"claimed_availability"`
 	MeasuredAvailability float64             `json:"measured_availability"`
 	ConfidenceInterval   *ConfidenceInterval `json:"confidence_interval"`
@@ -280,17 +282,17 @@ type AvailabilityValidationResult struct {
 	Discrepancy          float64             `json:"discrepancy"`
 
 	// Component breakdown
-	ComponentAvailability  map[string]float64 `json:"component_availability"`
-	DowntimeEvents         []DowntimeEvent    `json:"downtime_events"`
-	ErrorBudgetConsumption float64            `json:"error_budget_consumption"`
+	ComponentAvailability  map[string]float64    `json:"component_availability"`
+	DowntimeEvents         []SLADowntimeEvent    `json:"downtime_events"`
+	ErrorBudgetConsumption float64               `json:"error_budget_consumption"`
 
 	// Validation methods
-	CrossValidation         *CrossValidationResult   `json:"cross_validation"`
-	IndependentMeasurements []IndependentMeasurement `json:"independent_measurements"`
+	CrossValidation         *SLACrossValidationResult   `json:"cross_validation"`
+	IndependentMeasurements []SLAIndependentMeasurement `json:"independent_measurements"`
 }
 
-// LatencyValidationResult contains latency validation results
-type LatencyValidationResult struct {
+// SLALatencyValidationResult contains latency validation results specific to SLA validation
+type SLALatencyValidationResult struct {
 	ClaimedLatencyP95  float64             `json:"claimed_latency_p95"`
 	MeasuredLatencyP95 float64             `json:"measured_latency_p95"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
@@ -298,17 +300,17 @@ type LatencyValidationResult struct {
 	Discrepancy        float64             `json:"discrepancy"`
 
 	// Detailed latency analysis
-	LatencyDistribution *LatencyDistribution     `json:"latency_distribution"`
-	ComponentLatencies  map[string]*LatencyStats `json:"component_latencies"`
-	TailLatencyAnalysis *TailLatencyAnalysis     `json:"tail_latency_analysis"`
+	LatencyDistribution *SLALatencyDistribution     `json:"latency_distribution"`
+	ComponentLatencies  map[string]*SLALatencyStats `json:"component_latencies"`
+	TailLatencyAnalysis *SLATailLatencyAnalysis     `json:"tail_latency_analysis"`
 
 	// Temporal analysis
-	LatencyTrends     *LatencyTrends `json:"latency_trends"`
-	PeakLatencyEvents []LatencyEvent `json:"peak_latency_events"`
+	LatencyTrends     *SLALatencyTrends `json:"latency_trends"`
+	PeakLatencyEvents []SLALatencyEvent `json:"peak_latency_events"`
 }
 
-// ThroughputValidationResult contains throughput validation results
-type ThroughputValidationResult struct {
+// SLAThroughputValidationResult contains throughput validation results specific to SLA validation
+type SLAThroughputValidationResult struct {
 	ClaimedThroughput  float64             `json:"claimed_throughput"`
 	MeasuredThroughput float64             `json:"measured_throughput"`
 	ConfidenceInterval *ConfidenceInterval `json:"confidence_interval"`
@@ -321,9 +323,9 @@ type ThroughputValidationResult struct {
 	ThroughputVariability float64 `json:"throughput_variability"`
 
 	// Capacity analysis
-	CapacityUtilization float64             `json:"capacity_utilization"`
-	BottleneckAnalysis  *BottleneckAnalysis `json:"bottleneck_analysis"`
-	ScalabilityMetrics  *ScalabilityMetrics `json:"scalability_metrics"`
+	CapacityUtilization float64                  `json:"capacity_utilization"`
+	BottleneckAnalysis  *SLABottleneckAnalysis   `json:"bottleneck_analysis"`
+	ScalabilityMetrics  *SLAScalabilityMetrics   `json:"scalability_metrics"`
 }
 
 // ValidationEvidence contains evidence supporting validation results
@@ -360,7 +362,7 @@ func (s *SLAValidationTestSuite) SetupTest() {
 	s.ctx, s.cancel = context.WithTimeout(context.Background(), 2*time.Hour)
 
 	// Initialize validation configuration
-	s.config = &ValidationConfig{
+	s.config = &SLAValidationConfig{
 		// Claims to validate
 		AvailabilityClaim: 99.95,
 		LatencyP95Claim:   2 * time.Second,
@@ -884,6 +886,102 @@ func (s *SLAValidationTestSuite) calculateMeasurementStatistics(measurements *Me
 		}
 		measurements.Percentiles[p] = sortedValues[index]
 	}
+}
+
+// SLA-specific type definitions to avoid redeclaration conflicts
+
+// SLAStatisticalSummary contains statistical analysis summary for SLA validation
+type SLAStatisticalSummary struct {
+	SampleSize      int     `json:"sample_size"`
+	MeanValue       float64 `json:"mean_value"`
+	StandardError   float64 `json:"standard_error"`
+	ConfidenceLevel float64 `json:"confidence_level"`
+}
+
+// SLAQualityAssessment contains quality assessment for SLA validation
+type SLAQualityAssessment struct {
+	DataQuality      float64 `json:"data_quality"`
+	MeasurementError float64 `json:"measurement_error"`
+	ValidationScore  float64 `json:"validation_score"`
+}
+
+// SLAEvidencePackage contains evidence package for SLA validation
+type SLAEvidencePackage struct {
+	EvidenceCount int                 `json:"evidence_count"`
+	Evidence      []*ValidationEvidence `json:"evidence"`
+	Verified      bool                `json:"verified"`
+}
+
+// SLADowntimeEvent represents a downtime event in SLA validation
+type SLADowntimeEvent struct {
+	StartTime time.Time     `json:"start_time"`
+	EndTime   time.Time     `json:"end_time"`
+	Duration  time.Duration `json:"duration"`
+	Cause     string        `json:"cause"`
+}
+
+// SLACrossValidationResult contains cross validation results for SLA
+type SLACrossValidationResult struct {
+	Method     string  `json:"method"`
+	Result     float64 `json:"result"`
+	Confidence float64 `json:"confidence"`
+}
+
+// SLAIndependentMeasurement contains independent measurement for SLA validation
+type SLAIndependentMeasurement struct {
+	Source    string  `json:"source"`
+	Value     float64 `json:"value"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// SLALatencyDistribution contains latency distribution for SLA validation
+type SLALatencyDistribution struct {
+	Percentiles map[int]time.Duration `json:"percentiles"`
+	Mean        time.Duration        `json:"mean"`
+	StdDev      time.Duration        `json:"std_dev"`
+}
+
+// SLALatencyStats contains latency statistics for SLA validation
+type SLALatencyStats struct {
+	Mean   time.Duration `json:"mean"`
+	P95    time.Duration `json:"p95"`
+	P99    time.Duration `json:"p99"`
+	Count  int           `json:"count"`
+}
+
+// SLATailLatencyAnalysis contains tail latency analysis for SLA validation
+type SLATailLatencyAnalysis struct {
+	P99Latency  time.Duration `json:"p99_latency"`
+	P999Latency time.Duration `json:"p999_latency"`
+	MaxLatency  time.Duration `json:"max_latency"`
+}
+
+// SLALatencyTrends contains latency trends for SLA validation
+type SLALatencyTrends struct {
+	TrendDirection string  `json:"trend_direction"`
+	SlopeValue     float64 `json:"slope_value"`
+	RSquared       float64 `json:"r_squared"`
+}
+
+// SLALatencyEvent represents a latency event in SLA validation
+type SLALatencyEvent struct {
+	Timestamp time.Time     `json:"timestamp"`
+	Latency   time.Duration `json:"latency"`
+	Component string        `json:"component"`
+}
+
+// SLABottleneckAnalysis contains bottleneck analysis for SLA validation
+type SLABottleneckAnalysis struct {
+	BottleneckComponent string  `json:"bottleneck_component"`
+	UtilizationPercent  float64 `json:"utilization_percent"`
+	ImpactScore         float64 `json:"impact_score"`
+}
+
+// SLAScalabilityMetrics contains scalability metrics for SLA validation
+type SLAScalabilityMetrics struct {
+	ScalabilityFactor float64 `json:"scalability_factor"`
+	MaxCapacity       float64 `json:"max_capacity"`
+	CurrentUtilization float64 `json:"current_utilization"`
 }
 
 // TestSuite runner function

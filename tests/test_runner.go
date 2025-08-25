@@ -78,10 +78,12 @@ func (ts *TestSuite) Setup() error {
 	}
 
 	if ts.Config.AttachControlPlaneOutput {
-		ts.TestEnv.ControlPlane.GetAPIServer().Out = os.Stdout
-		ts.TestEnv.ControlPlane.GetAPIServer().Err = os.Stderr
-		ts.TestEnv.ControlPlane.GetEtcd().Out = os.Stdout
-		ts.TestEnv.ControlPlane.GetEtcd().Err = os.Stderr
+		// Attach control plane output to stdout/stderr if supported
+		// Note: GetEtcd method may not be available in all envtest versions
+		if apiServer := ts.TestEnv.ControlPlane.GetAPIServer(); apiServer != nil {
+			apiServer.Out = os.Stdout
+			apiServer.Err = os.Stderr
+		}
 	}
 
 	var err error

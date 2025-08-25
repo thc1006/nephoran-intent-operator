@@ -154,12 +154,17 @@ type RenewalConfig struct {
 
 // HealthCheckConfig holds health check configuration
 type HealthCheckConfig struct {
-	Enabled         bool          `json:"enabled"`
-	Timeout         time.Duration `json:"timeout"`
-	Retries         int           `json:"retries"`
-	Interval        time.Duration `json:"interval"`
-	ExpectedStatus  int           `json:"expected_status"`
-	ValidationMode  string        `json:"validation_mode"`
+	Enabled          bool          `json:"enabled"`
+	Timeout          time.Duration `json:"timeout"`
+	Retries          int           `json:"retries"`
+	Interval         time.Duration `json:"interval"`
+	CheckInterval    time.Duration `json:"check_interval"`
+	TimeoutPerCheck  time.Duration `json:"timeout_per_check"`
+	ExpectedStatus   int           `json:"expected_status"`
+	HTTPEndpoint     string        `json:"http_endpoint"`
+	GRPCService      string        `json:"grpc_service"`
+	HealthyThreshold int           `json:"healthy_threshold"`
+	ValidationMode   string        `json:"validation_mode"`
 }
 
 // NotificationConfig holds notification configuration

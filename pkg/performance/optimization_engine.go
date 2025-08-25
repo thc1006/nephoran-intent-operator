@@ -17,7 +17,7 @@ type OptimizationEngine struct {
 	httpPool        *HTTPConnectionPool
 	dbPool          *DatabaseConnectionPool
 	cache           *MultiLevelCache
-	batchProcessor  *BatchProcessor
+	batchProcessor  *OptimizationBatchProcessor
 	circuitBreakers map[string]*gobreaker.CircuitBreaker
 	goroutinePool   *GoroutinePool
 	rateLimiters    map[string]workqueue.RateLimiter
@@ -50,8 +50,8 @@ type MultiLevelCache struct {
 	mu       sync.RWMutex
 }
 
-// BatchProcessor handles batch operations
-type BatchProcessor struct {
+// OptimizationBatchProcessor handles batch operations for optimization engine
+type OptimizationBatchProcessor struct {
 	batchSize     int
 	flushInterval time.Duration
 	processor     func([]interface{}) error
@@ -67,11 +67,11 @@ type GoroutinePool struct {
 	workQueue  chan func()
 	workerWG   sync.WaitGroup
 	shutdown   chan struct{}
-	metrics    *PoolMetrics
+	metrics    *BasicPoolMetrics
 }
 
-// PoolMetrics tracks goroutine pool performance
-type PoolMetrics struct {
+// BasicPoolMetrics tracks basic goroutine pool performance for optimization engine
+type BasicPoolMetrics struct {
 	ActiveWorkers  int64
 	QueuedTasks    int64
 	CompletedTasks int64
@@ -86,7 +86,7 @@ func NewOptimizationEngine() *OptimizationEngine {
 		httpPool:        NewHTTPConnectionPool(100, 30*time.Second),
 		dbPool:          NewDatabaseConnectionPool(50, 10),
 		cache:           NewMultiLevelCache(),
-		batchProcessor:  NewBatchProcessor(100, 5*time.Second),
+		batchProcessor:  NewOptimizationBatchProcessor(100, 5*time.Second),
 		circuitBreakers: make(map[string]*gobreaker.CircuitBreaker),
 		goroutinePool:   NewGoroutinePool(200),
 		rateLimiters:    make(map[string]workqueue.RateLimiter),
@@ -222,7 +222,7 @@ func NewMultiLevelCache() *MultiLevelCache {
 
 // MemoryCache provides in-memory caching
 type MemoryCache struct {
-	cache   map[string]CacheEntry
+	cache   map[string]SimpleCacheEntry
 	maxSize int
 	ttl     time.Duration
 	mu      sync.RWMutex
@@ -230,8 +230,8 @@ type MemoryCache struct {
 	misses  int64
 }
 
-// CacheEntry represents a cache entry
-type CacheEntry struct {
+// SimpleCacheEntry represents a simple cache entry for optimization engine
+type SimpleCacheEntry struct {
 	Value       interface{}
 	Expiration  time.Time
 	Size        int
@@ -241,7 +241,7 @@ type CacheEntry struct {
 // NewMemoryCache creates a new memory cache
 func NewMemoryCache(maxSize int, ttl time.Duration) *MemoryCache {
 	cache := &MemoryCache{
-		cache:   make(map[string]CacheEntry),
+		cache:   make(map[string]SimpleCacheEntry),
 		maxSize: maxSize,
 		ttl:     ttl,
 	}
@@ -284,7 +284,7 @@ func (c *MemoryCache) Set(key string, value interface{}, size int) {
 		c.evictLRU()
 	}
 
-	c.cache[key] = CacheEntry{
+	c.cache[key] = SimpleCacheEntry{
 		Value:       value,
 		Expiration:  time.Now().Add(c.ttl),
 		Size:        size,
@@ -295,7 +295,7 @@ func (c *MemoryCache) Set(key string, value interface{}, size int) {
 // evictLRU evicts the least recently used entry
 func (c *MemoryCache) evictLRU() {
 	var lruKey string
-	var lruEntry CacheEntry
+	var lruEntry SimpleCacheEntry
 	first := true
 
 	for key, entry := range c.cache {
@@ -405,9 +405,9 @@ func (c *MultiLevelCache) updateHitRate(level string, hit bool) {
 	}
 }
 
-// NewBatchProcessor creates a new batch processor
-func NewBatchProcessor(batchSize int, flushInterval time.Duration) *BatchProcessor {
-	bp := &BatchProcessor{
+// NewOptimizationBatchProcessor creates a new optimization batch processor
+func NewOptimizationBatchProcessor(batchSize int, flushInterval time.Duration) *OptimizationBatchProcessor {
+	bp := &OptimizationBatchProcessor{
 		batchSize:     batchSize,
 		flushInterval: flushInterval,
 		buffer:        make([]interface{}, 0, batchSize),
@@ -422,7 +422,7 @@ func NewBatchProcessor(batchSize int, flushInterval time.Duration) *BatchProcess
 }
 
 // Add adds an item to the batch
-func (bp *BatchProcessor) Add(item interface{}) error {
+func (bp *OptimizationBatchProcessor) Add(item interface{}) error {
 	bp.mu.Lock()
 	defer bp.mu.Unlock()
 
@@ -437,12 +437,12 @@ func (bp *BatchProcessor) Add(item interface{}) error {
 }
 
 // SetProcessor sets the batch processing function
-func (bp *BatchProcessor) SetProcessor(processor func([]interface{}) error) {
+func (bp *OptimizationBatchProcessor) SetProcessor(processor func([]interface{}) error) {
 	bp.processor = processor
 }
 
 // flush processes the current batch
-func (bp *BatchProcessor) flush() error {
+func (bp *OptimizationBatchProcessor) flush() error {
 	if len(bp.buffer) == 0 || bp.processor == nil {
 		return nil
 	}
@@ -459,7 +459,7 @@ func (bp *BatchProcessor) flush() error {
 }
 
 // flushPeriodically flushes the batch at regular intervals
-func (bp *BatchProcessor) flushPeriodically() {
+func (bp *OptimizationBatchProcessor) flushPeriodically() {
 	for {
 		select {
 		case <-bp.ticker.C:
@@ -475,7 +475,7 @@ func (bp *BatchProcessor) flushPeriodically() {
 }
 
 // Stop stops the batch processor
-func (bp *BatchProcessor) Stop() {
+func (bp *OptimizationBatchProcessor) Stop() {
 	bp.ticker.Stop()
 	close(bp.done)
 
@@ -491,7 +491,7 @@ func NewGoroutinePool(maxWorkers int) *GoroutinePool {
 		maxWorkers: maxWorkers,
 		workQueue:  make(chan func(), maxWorkers*2),
 		shutdown:   make(chan struct{}),
-		metrics:    &PoolMetrics{},
+		metrics:    &BasicPoolMetrics{},
 	}
 
 	// Start workers
@@ -578,7 +578,7 @@ func (p *GoroutinePool) Shutdown(ctx context.Context) error {
 }
 
 // GetMetrics returns pool metrics
-func (p *GoroutinePool) GetMetrics() PoolMetrics {
+func (p *GoroutinePool) GetMetrics() BasicPoolMetrics {
 	p.metrics.mu.RLock()
 	defer p.metrics.mu.RUnlock()
 	return *p.metrics

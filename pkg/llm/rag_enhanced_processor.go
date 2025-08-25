@@ -481,5 +481,5 @@ func (rep *RAGEnhancedProcessor) Close() error {
 	return nil
 }
 
-// Ensure RAGEnhancedProcessor implements the Client interface
-var _ Client = (*RAGEnhancedProcessor)(nil)
+// Note: RAGEnhancedProcessor is a struct that works with Client, not implementing Client interface
+// Removing interface assertion since Client is a concrete type, not an interface

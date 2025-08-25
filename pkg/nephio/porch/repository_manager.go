@@ -269,7 +269,7 @@ func (rm *repositoryManager) UnregisterRepository(ctx context.Context, name stri
 
 	// Check if repository exists
 	rm.stateMutex.RLock()
-	state, exists := rm.repositories[name]
+	_, exists := rm.repositories[name]
 	rm.stateMutex.RUnlock()
 
 	if !exists {

@@ -560,3 +560,7 @@ func (bp *BatchProcessorImpl) Close() error {
 func generateBatchID() string {
 	return fmt.Sprintf("batch_%d", time.Now().UnixNano())
 }
+
+func generateRequestID() string {
+	return fmt.Sprintf("req_%d", time.Now().UnixNano())
+}

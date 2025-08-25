@@ -2,6 +2,8 @@ package ca
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -163,9 +165,16 @@ func (i *CAIntegration) RequestCertificate(ctx context.Context, req *Integration
 		"namespace", req.Namespace,
 		"common_name", req.CommonName)
 
+	// Generate a unique request ID
+	randBytes := make([]byte, 16)
+	if _, err := rand.Read(randBytes); err != nil {
+		return nil, fmt.Errorf("failed to generate request ID: %w", err)
+	}
+	requestID := hex.EncodeToString(randBytes)
+
 	// Convert integration request to CA manager request
 	caReq := &CertificateRequest{
-		ID:               generateRequestID(),
+		ID:               requestID,
 		TenantID:         req.TenantID,
 		CommonName:       req.CommonName,
 		DNSNames:         req.DNSNames,

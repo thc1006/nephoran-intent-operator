@@ -341,9 +341,13 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 	tenantID := cert.Metadata["tenant_id"]
 	if tenantID != "" {
 		if remove {
-			p.removeFromSlice(&p.indices.ByTenant[tenantID], cert)
-			if len(p.indices.ByTenant[tenantID]) == 0 {
+			// Get existing slice, modify it, and put it back
+			tenantCerts := p.indices.ByTenant[tenantID]
+			p.removeFromSlice(&tenantCerts, cert)
+			if len(tenantCerts) == 0 {
 				delete(p.indices.ByTenant, tenantID)
+			} else {
+				p.indices.ByTenant[tenantID] = tenantCerts
 			}
 		} else {
 			p.indices.ByTenant[tenantID] = append(p.indices.ByTenant[tenantID], cert)
@@ -352,9 +356,13 @@ func (p *CertificatePool) updateIndices(cert *CertificateResponse, remove bool) 
 
 	// Update status index
 	if remove {
-		p.removeFromSlice(&p.indices.ByStatus[cert.Status], cert)
-		if len(p.indices.ByStatus[cert.Status]) == 0 {
+		// Get existing slice, modify it, and put it back
+		statusCerts := p.indices.ByStatus[cert.Status]
+		p.removeFromSlice(&statusCerts, cert)
+		if len(statusCerts) == 0 {
 			delete(p.indices.ByStatus, cert.Status)
+		} else {
+			p.indices.ByStatus[cert.Status] = statusCerts
 		}
 	} else {
 		p.indices.ByStatus[cert.Status] = append(p.indices.ByStatus[cert.Status], cert)

@@ -98,6 +98,11 @@ type ValidationResult struct {
 	CTResult          *CTValidationResult        `json:"ct_result,omitempty"`
 	ValidationTime    time.Time                  `json:"validation_time"`
 	ValidationDuration time.Duration              `json:"validation_duration"`
+	
+	// Additional fields for compatibility
+	ChainValid       bool              `json:"chain_valid"`
+	RevocationStatus RevocationStatus  `json:"revocation_status"`
+	CTLogVerified    bool              `json:"ct_log_verified"`
 }
 // ChainValidationResult represents chain validation results
 type ChainValidationResult struct {
@@ -234,8 +239,11 @@ func (vf *ValidationFramework) ValidateCertificate(ctx context.Context, cert *x5
 
 	result := &ValidationResult{
 		SerialNumber:   cert.SerialNumber.String(),
+		Subject:        cert.Subject.String(),
+		Issuer:         cert.Issuer.String(),
+		ValidFrom:      cert.NotBefore,
+		ValidTo:        cert.NotAfter,
 		ValidationTime: start,
-		ExpiresAt:      cert.NotAfter,
 		Valid:          true,
 		Errors:         []string{},
 		Warnings:       []string{},
@@ -432,11 +440,11 @@ func (vf *ValidationFramework) validateCertificateChain(ctx context.Context, cer
 	// Build chain information
 	details := &ChainValidationDetails{
 		PathLength:      len(chain) - 1,
-		CertificateInfo: make([]CertificateInfo, len(chain)),
+		CertificateInfo: make([]ValidationCertificateInfo, len(chain)),
 	}
 
 	for i, chainCert := range chain {
-		info := CertificateInfo{
+		info := ValidationCertificateInfo{
 			Subject:      chainCert.Subject.String(),
 			Issuer:       chainCert.Issuer.String(),
 			SerialNumber: chainCert.SerialNumber.String(),

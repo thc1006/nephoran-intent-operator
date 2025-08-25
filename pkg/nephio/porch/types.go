@@ -926,8 +926,8 @@ func IsValidLifecycle(lifecycle PackageRevisionLifecycle) bool {
 	}
 }
 
-// CanTransitionTo checks if lifecycle transition is valid
-func (current PackageRevisionLifecycle) CanTransitionTo(target PackageRevisionLifecycle) bool {
+// CanPackageRevisionTransitionTo checks if lifecycle transition is valid
+func CanPackageRevisionTransitionTo(current PackageRevisionLifecycle, target PackageRevisionLifecycle) bool {
 	transitions := map[PackageRevisionLifecycle][]PackageRevisionLifecycle{
 		PackageRevisionLifecycleDraft: {
 			PackageRevisionLifecycleProposed,
@@ -977,16 +977,17 @@ func (r *Repository) SetCondition(condition metav1.Condition) {
 	r.Status.Conditions = append(r.Status.Conditions, condition)
 }
 
-func (pr *PackageRevision) GetCondition(conditionType string) *metav1.Condition {
+// Helper functions for PackageRevision conditions (since we can't define methods on type aliases)
+func GetPackageRevisionCondition(pr *PackageRevision, conditionType string) *metav1.Condition {
 	for _, condition := range pr.Status.Conditions {
-		if condition.Type == condition.Type {
+		if condition.Type == conditionType {
 			return &condition
 		}
 	}
 	return nil
 }
 
-func (pr *PackageRevision) SetCondition(condition metav1.Condition) {
+func SetPackageRevisionCondition(pr *PackageRevision, condition metav1.Condition) {
 	for i, existing := range pr.Status.Conditions {
 		if existing.Type == condition.Type {
 			pr.Status.Conditions[i] = condition
@@ -1005,13 +1006,7 @@ func (rl *RepositoryList) DeepCopyObject() runtime.Object {
 	return rl.DeepCopy()
 }
 
-func (pr *PackageRevision) DeepCopyObject() runtime.Object {
-	return pr.DeepCopy()
-}
-
-func (prl *PackageRevisionList) DeepCopyObject() runtime.Object {
-	return prl.DeepCopy()
-}
+// DeepCopyObject methods are implemented by the multicluster package types
 
 func (w *Workflow) DeepCopyObject() runtime.Object {
 	return w.DeepCopy()

@@ -652,9 +652,19 @@ func normalPDF(x, mu, sigma float64) float64 {
 }
 
 func chiSquareCDF(x float64, df float64) float64 {
-	// Simplified chi-square CDF calculation
-	// In production, use proper implementation
-	return stat.ChiSquareCDF(df, x)
+	// Simplified chi-square CDF calculation using gamma distribution
+	// Chi-square(df) is equivalent to Gamma(df/2, 2)
+	// Using approximation for simplicity
+	if x <= 0 {
+		return 0
+	}
+	
+	// Using Wilson-Hilferty approximation for chi-square CDF
+	z := math.Pow(x/df, 1.0/3.0) - (1.0 - 2.0/(9.0*df))
+	z = z / math.Sqrt(2.0 / (9.0 * df))
+	
+	// Standard normal CDF approximation
+	return 0.5 * (1.0 + math.Erf(z/math.Sqrt(2.0)))
 }
 
 func andersonDarlingPValue(aSquared float64) float64 {

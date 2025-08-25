@@ -13,7 +13,6 @@ import (
 
 	"github.com/weaviate/weaviate-go-client/v4/weaviate"
 	
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 

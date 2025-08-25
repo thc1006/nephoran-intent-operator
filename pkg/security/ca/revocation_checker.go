@@ -400,7 +400,7 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 		}
 
 		// Check if certificate is revoked
-		for _, revokedCert := range crlEntry.CRL.RevokedCertificates {
+		for _, revokedCert := range crlEntry.CRL.TBSCertList.RevokedCertificates {
 			if revokedCert.SerialNumber.Cmp(cert.SerialNumber) == 0 {
 				result.Status = RevocationStatusRevoked
 				result.RevokedAt = &revokedCert.RevocationTime
@@ -426,9 +426,9 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 					URL:          crlURL,
 					LastModified: crlEntry.LastModified,
 					NextUpdate:   crlEntry.NextUpdate,
-					EntryCount:   len(crlEntry.CRL.RevokedCertificates),
+					EntryCount:   len(crlEntry.CRL.TBSCertList.RevokedCertificates),
 					Size:         crlEntry.Size,
-					Version:      crlEntry.CRL.Version,
+					Version:      crlEntry.CRL.TBSCertList.Version,
 				}
 
 				return result
@@ -448,9 +448,9 @@ func (rc *RevocationChecker) checkCRL(ctx context.Context, cert *x509.Certificat
 			URL:          crlURL,
 			LastModified: crlEntry.LastModified,
 			NextUpdate:   crlEntry.NextUpdate,
-			EntryCount:   len(crlEntry.CRL.RevokedCertificates),
+			EntryCount:   len(crlEntry.CRL.TBSCertList.RevokedCertificates),
 			Size:         crlEntry.Size,
-			Version:      crlEntry.CRL.Version,
+			Version:      crlEntry.CRL.TBSCertList.Version,
 		}
 
 		break // Use first successful CRL
@@ -486,7 +486,7 @@ func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certifica
 			result.CacheHit = true
 			result.NextUpdate = &cached.NextUpdate
 
-			if cached.Status == int(RevocationStatusRevoked) && cached.Response != nil {
+			if cached.Status == ocsp.Revoked && cached.Response != nil {
 				result.RevokedAt = &cached.Response.RevokedAt
 				result.RevocationReason = &cached.Response.RevocationReason
 			}
@@ -517,10 +517,19 @@ func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certifica
 		result.ResponseSource = ocspURL
 		result.NextUpdate = &ocspResp.NextUpdate
 
-		// Cache the response
+		// Cache the response - map the status to OCSP int value
+		var statusInt int
+		switch result.Status {
+		case RevocationStatusValid, RevocationStatusGood:
+			statusInt = ocsp.Good
+		case RevocationStatusRevoked:
+			statusInt = ocsp.Revoked
+		default:
+			statusInt = ocsp.Unknown
+		}
 		rc.cacheOCSPResponse(cacheKey, &OCSPEntry{
 			SerialNumber: cert.SerialNumber.String(),
-			Status:       int(result.Status),
+			Status:       statusInt,
 			Response:     ocspResp,
 			NextUpdate:   ocspResp.NextUpdate,
 			CachedAt:     time.Now(),
@@ -596,10 +605,10 @@ func (rc *RevocationChecker) fetchCRL(ctx context.Context, crlURL string) (*CRLE
 		URL:          crlURL,
 		CRL:          crl,
 		LastModified: time.Now(), // Would use Last-Modified header if present
-		NextUpdate:   crl.NextUpdate,
+		NextUpdate:   crl.TBSCertList.NextUpdate,
 		CachedAt:     time.Now(),
 		Size:         int64(len(crlData)),
-		EntryCount:   len(crl.RevokedCertificates),
+		EntryCount:   len(crl.TBSCertList.RevokedCertificates),
 	}
 
 	// Cache the CRL

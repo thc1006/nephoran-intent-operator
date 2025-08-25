@@ -16,6 +16,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -402,7 +403,6 @@ func (dsv *DeploymentScenariosValidator) executeRollingUpdateScenario(ctx contex
 	}
 
 	// Monitor rolling update progress
-	downtimeStart := time.Now()
 	success, downtime := dsv.monitorRollingUpdate(ctx, deployment, strategy.HealthCheckConfig)
 
 	result.EndTime = time.Now()
@@ -543,7 +543,7 @@ func (dsv *DeploymentScenariosValidator) monitorRollingUpdate(ctx context.Contex
 				currentDeployment.Status.ReadyReplicas == *currentDeployment.Spec.Replicas &&
 				currentDeployment.Status.AvailableReplicas == *currentDeployment.Spec.Replicas {
 
-				totalTime := time.Since(startTime)
+				// Rolling update completed successfully
 				return true, downtime
 			}
 
@@ -646,7 +646,7 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 	// Check for Istio VirtualService
 	if routing.Istio != nil {
 		virtualServices := &metav1.PartialObjectMetadataList{}
-		virtualServices.SetGroupVersionKind(metav1.GroupVersionKind{
+		virtualServices.SetGroupVersionKind(schema.GroupVersionKind{
 			Group:   "networking.istio.io",
 			Version: "v1beta1",
 			Kind:    "VirtualServiceList",

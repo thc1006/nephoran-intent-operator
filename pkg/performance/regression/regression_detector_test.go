@@ -269,7 +269,7 @@ func testCUSUMChangePointDetection(t *testing.T) {
 
 		detector := NewCUSUMDetector(0, 0, 0, config) // Zero parameters should auto-initialize
 
-		changePoints, err := detector.DetectChangePoints(data, timestamps)
+		_, err := detector.DetectChangePoints(data, timestamps)
 		require.NoError(t, err)
 
 		params := detector.GetParameters()
@@ -610,7 +610,7 @@ func testEndToEndWorkflow(t *testing.T) {
 		require.NotNil(t, apiManager)
 
 		// 4. Simulate the complete workflow
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		_, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		// Start the engine (this would normally run continuously)

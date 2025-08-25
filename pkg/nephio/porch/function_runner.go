@@ -323,8 +323,8 @@ type CacheStats struct {
 // NewFunctionRunner creates a new function runner
 func NewFunctionRunner(client *Client) FunctionRunner {
 	maxConcurrent := 5
-	if client.config.Functions != nil && client.config.Functions.Execution != nil {
-		maxConcurrent = client.config.Functions.Execution.MaxConcurrent
+	if client.config.PorchConfig != nil && client.config.PorchConfig.FunctionExecution != nil {
+		maxConcurrent = client.config.PorchConfig.FunctionExecution.MaxConcurrency
 	}
 
 	return &functionRunner{
@@ -474,7 +474,7 @@ func (fr *functionRunner) ExecuteFunction(ctx context.Context, req *FunctionRequ
 		if compliance, err := fr.oranValidator.ValidateCompliance(ctx, result.Resources); err != nil {
 			fr.logger.Error(err, "O-RAN compliance validation failed", "executionID", executionID)
 		} else if !compliance.Compliant {
-			fr.logger.Warn("Function result is not O-RAN compliant", "executionID", executionID, "violations", len(compliance.Violations))
+			fr.logger.Info("Function result is not O-RAN compliant", "executionID", executionID, "violations", len(compliance.Violations))
 			if fr.metrics != nil {
 				fr.metrics.validationResults.WithLabelValues("oran_compliance", "failed").Inc()
 			}
@@ -513,6 +513,7 @@ func (fr *functionRunner) ExecutePipeline(ctx context.Context, req *PipelineRequ
 	defer func() {
 		if fr.metrics != nil {
 			fr.metrics.pipelineExecutions.WithLabelValues("completed").Inc()
+			fr.metrics.executionDuration.WithLabelValues("pipeline", "pipeline").Observe(time.Since(start).Seconds())
 		}
 	}()
 
@@ -686,24 +687,39 @@ func (fr *functionRunner) executeSequentialPipeline(ctx context.Context, req *Pi
 
 // getRuntime determines the runtime for function execution
 func (fr *functionRunner) getRuntime(req *FunctionRequest) string {
-	if fr.client.config.Functions != nil && fr.client.config.Functions.Execution != nil {
-		return fr.client.config.Functions.Execution.Runtime
+	if fr.client.config.PorchConfig != nil && fr.client.config.PorchConfig.FunctionExecution != nil {
+		// For now, always return docker as runtime - can be configured later
+		return "docker"
 	}
 	return "docker"
 }
 
 // getTimeout determines the timeout for function execution
 func (fr *functionRunner) getTimeout(req *FunctionRequest) time.Duration {
-	if fr.client.config.Functions != nil && fr.client.config.Functions.Execution != nil {
-		return fr.client.config.Functions.Execution.DefaultTimeout
+	if fr.client.config.PorchConfig != nil && fr.client.config.PorchConfig.FunctionExecution != nil {
+		return fr.client.config.PorchConfig.FunctionExecution.DefaultTimeout
 	}
 	return 5 * time.Minute
 }
 
 // getResourceLimits determines resource limits for function execution
 func (fr *functionRunner) getResourceLimits(req *FunctionRequest) *FunctionResourceLimits {
-	if fr.client.config.Functions != nil && fr.client.config.Functions.Execution != nil {
-		return fr.client.config.Functions.Execution.ResourceLimits
+	if fr.client.config.PorchConfig != nil && fr.client.config.PorchConfig.FunctionExecution != nil {
+		// Convert from map[string]string to FunctionResourceLimits
+		limits := &FunctionResourceLimits{
+			Timeout: 5 * time.Minute,
+		}
+		if cpu, exists := fr.client.config.PorchConfig.FunctionExecution.ResourceLimits["cpu"]; exists {
+			limits.CPU = cpu
+		} else {
+			limits.CPU = "1000m"
+		}
+		if memory, exists := fr.client.config.PorchConfig.FunctionExecution.ResourceLimits["memory"]; exists {
+			limits.Memory = memory
+		} else {
+			limits.Memory = "1Gi"
+		}
+		return limits
 	}
 	return &FunctionResourceLimits{
 		CPU:     "1000m",
@@ -716,11 +732,8 @@ func (fr *functionRunner) getResourceLimits(req *FunctionRequest) *FunctionResou
 func (fr *functionRunner) getEnvironment(req *FunctionRequest) map[string]string {
 	env := make(map[string]string)
 
-	if fr.client.config.Functions != nil && fr.client.config.Functions.Execution != nil {
-		for k, v := range fr.client.config.Functions.Execution.EnvironmentVars {
-			env[k] = v
-		}
-	}
+	// Note: ClientFunctionExecutionConfig doesn't have EnvironmentVars field
+	// This can be extended later if needed
 
 	// Add context-specific environment variables
 	if req.Context != nil && req.Context.Environment != nil {

@@ -26,7 +26,7 @@ type Profiler struct {
 	mutexProfile   *os.File
 	traceFile      *os.File
 	goroutineStats GoroutineStats
-	memoryStats    MemoryStats
+	memoryStats    ProfilerMemoryStats
 	profileDir     string
 	isActive       bool
 	httpServer     *http.Server
@@ -43,8 +43,8 @@ type GoroutineStats struct {
 	LastSnapshot time.Time
 }
 
-// MemoryStats tracks memory metrics
-type MemoryStats struct {
+// ProfilerMemoryStats tracks memory metrics for profiling
+type ProfilerMemoryStats struct {
 	HeapAlloc    uint64
 	HeapSys      uint64
 	HeapInuse    uint64
@@ -76,7 +76,7 @@ type ProfileReport struct {
 	BlockProfile   string
 	MutexProfile   string
 	GoroutineStats GoroutineStats
-	MemoryStats    MemoryStats
+	MemoryStats    ProfilerMemoryStats
 	HotSpots       []HotSpot
 	Contentions    []Contention
 	Allocations    []Allocation
@@ -115,7 +115,7 @@ func NewProfiler() *Profiler {
 		goroutineStats: GoroutineStats{
 			StackTraces: make(map[string]int),
 		},
-		memoryStats: MemoryStats{
+		memoryStats: ProfilerMemoryStats{
 			MemoryLeaks: make([]MemoryLeak, 0),
 		},
 	}

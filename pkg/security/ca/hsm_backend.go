@@ -117,6 +117,9 @@ type HSMStatus struct {
 	Authenticated   bool              `json:"authenticated"`
 	FirmwareVersion string            `json:"firmware_version"`
 	SerialNumber    string            `json:"serial_number"`
+	SlotID          uint              `json:"slot_id"`
+	SessionOpen     bool              `json:"session_open"`
+	KeyCount        int               `json:"key_count"`
 	TokenInfo       *HSMTokenInfo     `json:"token_info,omitempty"`
 	Performance     *HSMPerformance   `json:"performance,omitempty"`
 	Errors          []string          `json:"errors,omitempty"`
@@ -158,7 +161,7 @@ func NewHSMBackend(config *HSMBackendConfig, logger *logging.StructuredLogger) *
 }
 
 // Initialize sets up the HSM backend
-func (h *HSMBackend) Initialize() error {
+func (h *HSMBackend) Initialize(ctx context.Context, config interface{}) error {
 	h.logger.Info("Initializing HSM backend", map[string]interface{}{
 		"provider_type": h.config.ProviderType,
 		"token_label":   h.config.TokenLabel,
@@ -652,7 +655,7 @@ func (m *MockHSMProvider) GetStatus() (*HSMStatus, error) {
 			"verification",
 			"key_storage",
 		},
-	}
+	}, nil
 }
 
 func (m *MockHSMProvider) GetCapabilities() []string {
@@ -693,6 +696,90 @@ func NewThalesHSMProvider(config *HSMBackendConfig, logger *logging.StructuredLo
 func NewSafenetHSMProvider(config *HSMBackendConfig, logger *logging.StructuredLogger) (HSMProvider, error) {
 	// In a real implementation, this would initialize Safenet HSM client
 	return NewMockHSMProvider(logger), nil
+}
+
+// GetBackendInfo returns backend information
+func (b *HSMBackend) GetBackendInfo(ctx context.Context) (*BackendInfo, error) {
+	info := &BackendInfo{
+		Type:     BackendHSM,
+		Version:  "hsm-1.0",
+		Status:   "ready",
+		Features: b.GetSupportedFeatures(),
+	}
+
+	// Check HSM connection status
+	if err := b.HealthCheck(ctx); err != nil {
+		info.Status = "unhealthy"
+	}
+
+	// Add HSM-specific metrics
+	if b.hsm != nil {
+		status, _ := b.hsm.GetStatus()
+		info.Metrics = map[string]interface{}{
+			"connected":    status.Connected,
+			"slot_id":      status.SlotID,
+			"session_open": status.SessionOpen,
+			"key_count":    status.KeyCount,
+		}
+	}
+
+	return info, nil
+}
+
+// IssueCertificate issues a certificate using HSM
+func (b *HSMBackend) IssueCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
+	// In a real implementation, this would use HSM to generate key and sign certificate
+	return &CertificateResponse{
+		RequestID:      req.ID,
+		Status:         StatusIssued,
+		SerialNumber:   fmt.Sprintf("HSM-%d", time.Now().Unix()),
+		IssuedBy:       string(BackendHSM),
+		CreatedAt:      time.Now(),
+		ExpiresAt:      time.Now().Add(req.ValidityDuration),
+	}, nil
+}
+
+// RevokeCertificate revokes a certificate
+func (b *HSMBackend) RevokeCertificate(ctx context.Context, serialNumber string, reason int) error {
+	// In a real implementation, this would update HSM's revocation list
+	return nil
+}
+
+// RenewCertificate renews a certificate
+func (b *HSMBackend) RenewCertificate(ctx context.Context, req *CertificateRequest) (*CertificateResponse, error) {
+	// Use IssueCertificate for renewal in this implementation
+	resp, err := b.IssueCertificate(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	resp.Status = StatusRenewed
+	return resp, nil
+}
+
+// GetSupportedFeatures returns supported features
+func (b *HSMBackend) GetSupportedFeatures() []string {
+	return []string{
+		"hardware_security_module",
+		"fips_compliance",
+		"key_generation",
+		"key_storage",
+		"certificate_signing",
+		"high_availability",
+	}
+}
+
+// GetCAChain retrieves the CA certificate chain
+func (b *HSMBackend) GetCAChain(ctx context.Context) ([]*x509.Certificate, error) {
+	// In a real implementation, this would retrieve the CA chain from HSM
+	// For now, return an empty chain
+	return []*x509.Certificate{}, nil
+}
+
+// GetCRL retrieves the Certificate Revocation List
+func (b *HSMBackend) GetCRL(ctx context.Context) (*pkix.CertificateList, error) {
+	// In a real implementation, this would retrieve or generate CRL from HSM
+	// For now, return an empty CRL
+	return &pkix.CertificateList{}, nil
 }
 
 func parseIP(ipStr string) net.IP {

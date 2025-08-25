@@ -9,7 +9,6 @@ import (
 	"cloud.google.com/go/compute/apiv1"
 	"cloud.google.com/go/compute/apiv1/computepb"
 	"cloud.google.com/go/container/apiv1"
-	"cloud.google.com/go/container/apiv1/containerpb"
 	"cloud.google.com/go/monitoring/apiv3/v2"
 	"cloud.google.com/go/storage"
 	"google.golang.org/api/option"

@@ -4,11 +4,9 @@ package regression
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sort"
 	"sync"
 	"time"
 
@@ -459,7 +457,7 @@ func (iam *IntelligentAlertManager) generateAlertsFromAnalysis(analysis *Regress
 					regression.MetricName, regression.RelativeChangePct, regression.CurrentValue, regression.BaselineValue),
 				AffectedMetrics: []string{regression.MetricName},
 				Analysis:        analysis.RegressionAnalysis,
-				Actions:         iam.generateMetricSpecificActions(regression),
+				Actions:         iam.generateMetricSpecificActions(&regression),
 			}
 			alerts = append(alerts, metricAlert)
 		}
@@ -542,7 +540,7 @@ func (iam *IntelligentAlertManager) sendNotifications(alert *EnrichedAlert) erro
 
 // Slack notification implementation
 func (snc *SlackNotificationChannel) SendAlert(alert *EnrichedAlert) error {
-	payload := iam.buildSlackPayload(alert)
+	payload := snc.buildSlackPayload(alert)
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {
@@ -589,6 +587,65 @@ func (snc *SlackNotificationChannel) GetName() string {
 
 func (snc *SlackNotificationChannel) GetReliabilityScore() float64 {
 	return 0.95 // Slack is generally reliable
+}
+
+// buildSlackPayload creates Slack payload for alert
+func (snc *SlackNotificationChannel) buildSlackPayload(alert *EnrichedAlert) map[string]interface{} {
+	// Build rich Slack message with attachments
+	attachment := map[string]interface{}{
+		"color": snc.getSeverityColor(alert.Severity),
+		"title": alert.Title,
+		"text":  alert.Description,
+		"fields": []map[string]interface{}{
+			{
+				"title": "Severity",
+				"value": alert.Severity,
+				"short": true,
+			},
+			{
+				"title": "Affected Metrics",
+				"value": fmt.Sprintf("%v", alert.AffectedMetrics),
+				"short": true,
+			},
+			{
+				"title": "Confidence",
+				"value": fmt.Sprintf("%.1f%%", alert.Analysis.ConfidenceScore*100),
+				"short": true,
+			},
+		},
+		"timestamp": alert.Timestamp.Unix(),
+	}
+
+	// Add business impact if available
+	if alert.BusinessImpact != nil {
+		attachment["fields"] = append(attachment["fields"].([]map[string]interface{}),
+			map[string]interface{}{
+				"title": "Estimated User Impact",
+				"value": fmt.Sprintf("%d users", alert.BusinessImpact.EstimatedUserImpact),
+				"short": true,
+			},
+		)
+	}
+
+	return map[string]interface{}{
+		"username":    "Nephoran Alert Manager",
+		"icon_emoji":  ":warning:",
+		"attachments": []interface{}{attachment},
+	}
+}
+
+func (snc *SlackNotificationChannel) getSeverityColor(severity string) string {
+	colors := map[string]string{
+		"Critical": "danger",
+		"High":     "warning", 
+		"Medium":   "#ffeb3b",
+		"Low":      "good",
+	}
+
+	if color, exists := colors[severity]; exists {
+		return color
+	}
+	return "#9e9e9e"
 }
 
 // Supporting helper methods

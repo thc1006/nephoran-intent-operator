@@ -16,11 +16,13 @@ import (
 	policyv1 "k8s.io/api/policy/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/chaos"
+	// Chaos engineering interfaces for testing resilience
+	// "github.com/thc1006/nephoran-intent-operator/pkg/chaos"
 )
 
 // ProductionDeploymentValidator implements comprehensive production deployment validation
@@ -29,7 +31,8 @@ type ProductionDeploymentValidator struct {
 	client      client.Client
 	clientset   *kubernetes.Clientset
 	config      *ValidationConfig
-	chaosEngine *chaos.Engine
+	// chaosEngine for resilience testing - placeholder for future chaos engineering integration
+	chaosEngineEnabled bool
 
 	// Test metrics
 	metrics *ProductionMetrics
@@ -565,7 +568,7 @@ func (pdv *ProductionDeploymentValidator) validateMonitoringObservability(ctx co
 func (pdv *ProductionDeploymentValidator) validatePrometheusMetrics(ctx context.Context) bool {
 	// Check for ServiceMonitor resources
 	serviceMonitors := &metav1.PartialObjectMetadataList{}
-	serviceMonitors.SetGroupVersionKind(metav1.GroupVersionKind{
+	serviceMonitors.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "monitoring.coreos.com",
 		Version: "v1",
 		Kind:    "ServiceMonitorList",
@@ -732,7 +735,7 @@ func (pdv *ProductionDeploymentValidator) validateBackupRestore(ctx context.Cont
 
 	// Check for backup CronJobs
 	cronJobs := &metav1.PartialObjectMetadataList{}
-	cronJobs.SetGroupVersionKind(metav1.GroupVersionKind{
+	cronJobs.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "batch",
 		Version: "v1",
 		Kind:    "CronJobList",
@@ -868,7 +871,7 @@ func (pdv *ProductionDeploymentValidator) validateBlueGreenSetup(ctx context.Con
 func (pdv *ProductionDeploymentValidator) validateCanarySetup(ctx context.Context) bool {
 	// Check for Istio VirtualService or similar traffic management
 	virtualServices := &metav1.PartialObjectMetadataList{}
-	virtualServices.SetGroupVersionKind(metav1.GroupVersionKind{
+	virtualServices.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "networking.istio.io",
 		Version: "v1beta1",
 		Kind:    "VirtualServiceList",
@@ -982,7 +985,7 @@ func (pdv *ProductionDeploymentValidator) validateRBACConfiguration(ctx context.
 
 	// Check for Roles and RoleBindings
 	roles := &metav1.PartialObjectMetadataList{}
-	roles.SetGroupVersionKind(metav1.GroupVersionKind{
+	roles.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "rbac.authorization.k8s.io",
 		Version: "v1",
 		Kind:    "RoleList",
