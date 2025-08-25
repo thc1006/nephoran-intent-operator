@@ -16,11 +16,6 @@ run:
   # Allow multiple runners on CI to reduce flakiness.
   allow-parallel-runners: true
   allow-serial-runners: true
-  # Skip directories during build/lint
-  skip-dirs:
-    - _examples
-    - tools
-    - testdata
 
 linters:
   # Start minimal: enable a few safe linters.
@@ -57,6 +52,14 @@ issues:
   max-issues-per-linter: 0
   max-same-issues: 0
   uniq-by-line: true
+
+  # Use default exclude patterns (vendor, third_party, etc.)
+  exclude-dirs-use-default: true
+  # Additional directories to exclude from linting
+  exclude-dirs:
+    - _examples
+    - tools
+    - testdata
 
   # Use exclude-rules instead of deprecated exclusions
   exclude-rules:

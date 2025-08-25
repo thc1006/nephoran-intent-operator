@@ -343,10 +343,17 @@ jobs:
         env:
           GOTOOLCHAIN: local
 
+      - name: Discover Go caches
+        id: goenv-lint
+        shell: bash
+        run: |
+          echo "GOMODCACHE=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+          echo "GOCACHE=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+
       - name: Restore Go modules cache
         uses: actions/cache/restore@v4
         with:
-          path: $(go env GOMODCACHE)
+          path: ${{ steps.goenv-lint.outputs.GOMODCACHE }}
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-mod-
@@ -354,7 +361,7 @@ jobs:
       - name: Restore Go build cache
         uses: actions/cache/restore@v4
         with:
-          path: $(go env GOCACHE)
+          path: ${{ steps.goenv-lint.outputs.GOCACHE }}
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
           restore-keys: |
             ${{ runner.os }}-go-build-
@@ -381,14 +388,14 @@ jobs:
         uses: actions/cache/save@v4
         if: always()
         with:
-          path: $(go env GOMODCACHE)
+          path: ${{ steps.goenv-lint.outputs.GOMODCACHE }}
           key: ${{ runner.os }}-go-mod-${{ hashFiles('**/go.sum') }}
 
       - name: Save Go build cache
         uses: actions/cache/save@v4
         if: always()
         with:
-          path: $(go env GOCACHE)
+          path: ${{ steps.goenv-lint.outputs.GOCACHE }}
           key: ${{ runner.os }}-go-build-${{ hashFiles('**/*.go') }}
 
 
