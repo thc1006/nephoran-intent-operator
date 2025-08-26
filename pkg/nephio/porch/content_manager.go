@@ -18,12 +18,7 @@ package porch
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/json"
 	"fmt"
-	"io"
-	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"text/template"
@@ -31,8 +26,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
-	"gopkg.in/yaml.v2"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 

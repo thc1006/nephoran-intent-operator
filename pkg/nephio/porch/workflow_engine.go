@@ -1432,6 +1432,7 @@ type AuditExportOptions struct{}
 type AuditExport struct{}
 type StageCondition struct{}
 type FailurePolicy struct{}
-type CleanupResult struct{}
-type TimeRange struct{}
-type ComplianceViolation struct{}
+// Note: These types are defined elsewhere. Using imports instead of redeclaring.
+// CleanupResult is defined in lifecycle_manager.go
+// TimeRange is defined in dependency_types.go  
+// ComplianceViolation is defined in function_runner.go

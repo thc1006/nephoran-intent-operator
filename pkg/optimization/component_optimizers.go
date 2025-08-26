@@ -26,6 +26,123 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
+// Forward declarations for types from other files in the package
+
+// RecommendationStrategy defines a strategy for optimizing a specific aspect
+type RecommendationStrategy struct {
+	Name                string                `json:"name"`
+	Category            OptimizationCategory  `json:"category"`
+	TargetComponent     shared.ComponentType  `json:"targetComponent"`
+	ApplicableScenarios []ScenarioCondition   `json:"applicableScenarios"`
+	ExpectedBenefits    *ExpectedBenefits     `json:"expectedBenefits"`
+	ImplementationSteps []ImplementationStep  `json:"implementationSteps"`
+	Prerequisites       []string              `json:"prerequisites"`
+	RiskFactors         []RecommendationRiskFactor `json:"riskFactors"`
+	ValidationCriteria  []ValidationCriterion `json:"validationCriteria"`
+}
+
+// OptimizationCategory represents different categories of optimizations
+type OptimizationCategory string
+
+const (
+	CategoryPerformance        OptimizationCategory = "performance"
+	CategoryResource           OptimizationCategory = "resource"
+	CategoryCost               OptimizationCategory = "cost"
+	CategoryReliability        OptimizationCategory = "reliability"
+	CategorySecurity           OptimizationCategory = "security"
+	CategoryCompliance         OptimizationCategory = "compliance"
+	CategoryMaintenance        OptimizationCategory = "maintenance"
+	CategoryTelecommunications OptimizationCategory = "telecommunications"
+)
+
+// ScenarioCondition defines when a strategy is applicable
+type ScenarioCondition struct {
+	MetricName    string                  `json:"metricName"`
+	Operator      ComparisonOperator      `json:"operator"`
+	Threshold     float64                 `json:"threshold"`
+	ComponentType shared.ComponentType    `json:"componentType"`
+	TimeWindow    time.Duration           `json:"timeWindow"`
+}
+
+// ComparisonOperator defines comparison operators for conditions
+type ComparisonOperator string
+
+const (
+	OperatorGreaterThan  ComparisonOperator = "gt"
+	OperatorLessThan     ComparisonOperator = "lt"
+	OperatorEqual        ComparisonOperator = "eq"
+	OperatorGreaterEqual ComparisonOperator = "gte"
+	OperatorLessEqual    ComparisonOperator = "lte"
+	OperatorBetween      ComparisonOperator = "between"
+)
+
+// ExpectedBenefits defines the expected benefits of implementing a strategy
+type ExpectedBenefits struct {
+	LatencyReduction   float64 `json:"latencyReduction"`
+	ThroughputIncrease float64 `json:"throughputIncrease"`
+	ResourceSavings    float64 `json:"resourceSavings"`
+	CostSavings        float64 `json:"costSavings"`
+	EfficiencyGain     float64 `json:"efficiencyGain"`
+	ErrorRateReduction float64 `json:"errorRateReduction"`
+}
+
+// ExpectedImpact represents the expected impact of optimization changes
+type ExpectedImpact struct {
+	LatencyReduction   float64 `json:"latencyReduction"`
+	ThroughputIncrease float64 `json:"throughputIncrease"`
+	ResourceSavings    float64 `json:"resourceSavings"`
+	CostSavings        float64 `json:"costSavings"`
+	EfficiencyGain     float64 `json:"efficiencyGain"`
+}
+
+// ImplementationStep represents a single implementation step
+type ImplementationStep struct {
+	Order           int             `json:"order"`
+	Name            string          `json:"name"`
+	Description     string          `json:"description"`
+	EstimatedTime   time.Duration   `json:"estimatedTime"`
+	AutomationLevel AutomationLevel `json:"automationLevel"`
+}
+
+// AutomationLevel defines levels of automation for implementation steps
+type AutomationLevel string
+
+const (
+	AutomationFull    AutomationLevel = "full"
+	AutomationPartial AutomationLevel = "partial"
+	AutomationManual  AutomationLevel = "manual"
+)
+
+// ComponentAnalysis represents analysis data for a component
+type ComponentAnalysis struct {
+	ComponentType shared.ComponentType    `json:"componentType"`
+	Metrics       map[string]float64      `json:"metrics"`
+	Timestamp     time.Time               `json:"timestamp"`
+	Issues        []PerformanceIssue      `json:"issues"`
+}
+
+// PerformanceIssue represents a performance issue
+type PerformanceIssue struct {
+	Type        string  `json:"type"`
+	Severity    string  `json:"severity"`
+	Description string  `json:"description"`
+	Impact      float64 `json:"impact"`
+}
+
+// RecommendationRiskFactor represents risk factors for a recommendation
+type RecommendationRiskFactor struct {
+	Type        string  `json:"type"`
+	Level       string  `json:"level"`
+	Description string  `json:"description"`
+}
+
+// ValidationCriterion represents validation criteria
+type ValidationCriterion struct {
+	Name      string  `json:"name"`
+	Type      string  `json:"type"`
+	Threshold float64 `json:"threshold"`
+}
+
 // ComponentOptimizerRegistry manages component-specific optimizers
 type ComponentOptimizerRegistry struct {
 	logger     logr.Logger
@@ -34,7 +151,7 @@ type ComponentOptimizerRegistry struct {
 
 // ComponentOptimizer defines the interface for component-specific optimizers
 type ComponentOptimizer interface {
-	GetOptimizationStrategies() []OptimizationStrategy
+	GetOptimizationStrategies() []RecommendationStrategy
 	OptimizeConfiguration(ctx context.Context, analysis *ComponentAnalysis) (*OptimizationResult, error)
 	ValidateOptimization(ctx context.Context, result *OptimizationResult) error
 	RollbackOptimization(ctx context.Context, result *OptimizationResult) error
@@ -155,9 +272,9 @@ func NewLLMProcessorOptimizer(config *LLMOptimizerConfig, logger logr.Logger) *L
 }
 
 // GetOptimizationStrategies returns LLM-specific optimization strategies
-func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStrategy {
-	return []OptimizationStrategy{
-		{
+func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []RecommendationStrategy {
+	return []RecommendationStrategy{
+		RecommendationStrategy{
 			Name:            "token_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -198,7 +315,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStra
 				},
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "model_selection_optimization",
 			Category:        CategoryCost,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -215,7 +332,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStra
 				LatencyReduction: 10.0,
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "intelligent_caching",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -233,7 +350,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStra
 				ThroughputIncrease: 40.0,
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "connection_pooling_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -250,7 +367,7 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStra
 				ResourceSavings:  15.0,
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "batch_processing_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeLLMProcessor,
@@ -419,9 +536,9 @@ func NewRAGSystemOptimizer(config *RAGOptimizerConfig, logger logr.Logger) *RAGS
 }
 
 // GetOptimizationStrategies returns RAG-specific optimization strategies
-func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []OptimizationStrategy {
-	return []OptimizationStrategy{
-		{
+func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []RecommendationStrategy {
+	return []RecommendationStrategy{
+		RecommendationStrategy{
 			Name:            "vector_database_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeRAGSystem,
@@ -430,7 +547,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []OptimizationStrateg
 				ThroughputIncrease: 30.0,
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "embedding_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeRAGSystem,
@@ -439,7 +556,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []OptimizationStrateg
 				CostSavings:      20.0,
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "retrieval_strategy_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeRAGSystem,
@@ -448,7 +565,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []OptimizationStrateg
 				ResourceSavings:  15.0,
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "query_preprocessing_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeRAGSystem,
@@ -597,9 +714,9 @@ func NewKubernetesOptimizer(config *K8sOptimizerConfig, logger logr.Logger) *Kub
 }
 
 // GetOptimizationStrategies returns Kubernetes-specific optimization strategies
-func (opt *KubernetesOptimizer) GetOptimizationStrategies() []OptimizationStrategy {
-	return []OptimizationStrategy{
-		{
+func (opt *KubernetesOptimizer) GetOptimizationStrategies() []RecommendationStrategy {
+	return []RecommendationStrategy{
+		RecommendationStrategy{
 			Name:            "resource_optimization",
 			Category:        CategoryResource,
 			TargetComponent: shared.ComponentTypeKubernetes,
@@ -608,7 +725,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []OptimizationStrate
 				CostSavings:     25.0,
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "scheduling_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeKubernetes,
@@ -617,7 +734,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []OptimizationStrate
 				ResourceSavings:  15.0,
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "networking_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeKubernetes,
@@ -626,7 +743,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []OptimizationStrate
 				ThroughputIncrease: 40.0,
 			},
 		},
-		{
+		RecommendationStrategy{
 			Name:            "storage_optimization",
 			Category:        CategoryPerformance,
 			TargetComponent: shared.ComponentTypeKubernetes,
@@ -811,5 +928,13 @@ func (opt *RAGSystemOptimizer) ValidateOptimization(ctx context.Context, result 
 	return nil
 }
 func (opt *RAGSystemOptimizer) RollbackOptimization(ctx context.Context, result *OptimizationResult) error {
+	return nil
+}
+
+func (opt *KubernetesOptimizer) ValidateOptimization(ctx context.Context, result *OptimizationResult) error {
+	return nil
+}
+
+func (opt *KubernetesOptimizer) RollbackOptimization(ctx context.Context, result *OptimizationResult) error {
 	return nil
 }

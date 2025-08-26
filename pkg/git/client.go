@@ -79,8 +79,54 @@ type PullRequestInfo struct {
 	SourceBranch string
 	TargetBranch string
 	Author      string
+	URL         string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+// TagInfo represents information about a Git tag
+type TagInfo struct {
+	Name      string
+	Hash      string
+	Message   string
+	Author    string
+	Email     string
+	Timestamp time.Time
+}
+
+// RemoteInfo represents information about a Git remote
+type RemoteInfo struct {
+	Name string
+	URL  string
+	Type string // fetch, push
+}
+
+// LogOptions contains options for getting Git log
+type LogOptions struct {
+	Limit       int
+	Since       *time.Time
+	Until       *time.Time
+	Author      string
+	Grep        string
+	OneLine     bool
+	Graph       bool
+	Path        string
+}
+
+// DiffOptions contains options for Git diff operations
+type DiffOptions struct {
+	Cached      bool
+	NameOnly    bool
+	Stat        bool
+	Source      string
+	Target      string
+	Path        string
+}
+
+// ResetOptions contains options for Git reset operations  
+type ResetOptions struct {
+	Mode   string // soft, mixed, hard
+	Target string // commit hash, branch, tag
 }
 
 // ClientInterface defines the interface for a Git client.
@@ -644,11 +690,6 @@ func (c *Client) CreateBranch(name string) error {
 		return fmt.Errorf("failed to open repo: %w", err)
 	}
 
-	w, err := r.Worktree()
-	if err != nil {
-		return fmt.Errorf("failed to get worktree: %w", err)
-	}
-
 	// Get HEAD reference
 	headRef, err := r.Head()
 	if err != nil {
@@ -774,4 +815,149 @@ func (c *Client) GetFileContent(path string) ([]byte, error) {
 	}
 
 	return content, nil
+}
+
+// DeleteBranch deletes a branch
+func (c *Client) DeleteBranch(name string) error {
+	return fmt.Errorf("DeleteBranch not implemented: would delete branch %s", name)
+}
+
+// MergeBranch merges sourceBranch into targetBranch
+func (c *Client) MergeBranch(sourceBranch, targetBranch string) error {
+	return fmt.Errorf("MergeBranch not implemented: would merge %s into %s", sourceBranch, targetBranch)
+}
+
+// RebaseBranch rebases sourceBranch onto targetBranch
+func (c *Client) RebaseBranch(sourceBranch, targetBranch string) error {
+	return fmt.Errorf("RebaseBranch not implemented: would rebase %s onto %s", sourceBranch, targetBranch)
+}
+
+// CherryPick cherry-picks a commit
+func (c *Client) CherryPick(commitHash string) error {
+	return fmt.Errorf("CherryPick not implemented: would cherry-pick %s", commitHash)
+}
+
+// Reset resets the repository state
+func (c *Client) Reset(options ResetOptions) error {
+	return fmt.Errorf("Reset not implemented: would reset to %s with mode %s", options.Target, options.Mode)
+}
+
+// Clean removes untracked files
+func (c *Client) Clean(force bool) error {
+	return fmt.Errorf("Clean not implemented: would clean with force=%t", force)
+}
+
+// GetCommitHistory returns commit history based on options
+func (c *Client) GetCommitHistory(options LogOptions) ([]CommitInfo, error) {
+	return nil, fmt.Errorf("GetCommitHistory not implemented")
+}
+
+// CreateTag creates a new tag
+func (c *Client) CreateTag(name, message string) error {
+	return fmt.Errorf("CreateTag not implemented: would create tag %s with message %s", name, message)
+}
+
+// ListTags returns all tags
+func (c *Client) ListTags() ([]TagInfo, error) {
+	return nil, fmt.Errorf("ListTags not implemented")
+}
+
+// GetTagInfo returns information about a specific tag
+func (c *Client) GetTagInfo(name string) (TagInfo, error) {
+	return TagInfo{}, fmt.Errorf("GetTagInfo not implemented for tag %s", name)
+}
+
+// CreatePullRequest creates a new pull request
+func (c *Client) CreatePullRequest(options PullRequestOptions) (PullRequestInfo, error) {
+	return PullRequestInfo{}, fmt.Errorf("CreatePullRequest not implemented")
+}
+
+// GetPullRequestStatus returns the status of a pull request
+func (c *Client) GetPullRequestStatus(id int) (string, error) {
+	return "", fmt.Errorf("GetPullRequestStatus not implemented for PR %d", id)
+}
+
+// ApprovePullRequest approves a pull request
+func (c *Client) ApprovePullRequest(id int) error {
+	return fmt.Errorf("ApprovePullRequest not implemented for PR %d", id)
+}
+
+// MergePullRequest merges a pull request
+func (c *Client) MergePullRequest(id int) error {
+	return fmt.Errorf("MergePullRequest not implemented for PR %d", id)
+}
+
+// GetDiff returns diff based on options
+func (c *Client) GetDiff(options DiffOptions) (string, error) {
+	return "", fmt.Errorf("GetDiff not implemented")
+}
+
+// GetStatus returns the status of the working directory
+func (c *Client) GetStatus() ([]StatusInfo, error) {
+	return nil, fmt.Errorf("GetStatus not implemented")
+}
+
+// Add stages a file for commit
+func (c *Client) Add(path string) error {
+	return fmt.Errorf("Add not implemented: would stage %s", path)
+}
+
+// Remove removes a file from the index
+func (c *Client) Remove(path string) error {
+	return fmt.Errorf("Remove not implemented: would remove %s", path)
+}
+
+// Move renames/moves a file
+func (c *Client) Move(oldPath, newPath string) error {
+	return fmt.Errorf("Move not implemented: would move %s to %s", oldPath, newPath)
+}
+
+// Restore restores a file
+func (c *Client) Restore(path string) error {
+	return fmt.Errorf("Restore not implemented: would restore %s", path)
+}
+
+// ApplyPatch applies a patch to the repository
+func (c *Client) ApplyPatch(patch string) error {
+	return fmt.Errorf("ApplyPatch not implemented")
+}
+
+// CreatePatch creates a patch based on options
+func (c *Client) CreatePatch(options DiffOptions) (string, error) {
+	return "", fmt.Errorf("CreatePatch not implemented")
+}
+
+// GetRemotes returns all remotes
+func (c *Client) GetRemotes() ([]RemoteInfo, error) {
+	return nil, fmt.Errorf("GetRemotes not implemented")
+}
+
+// AddRemote adds a new remote
+func (c *Client) AddRemote(name, url string) error {
+	return fmt.Errorf("AddRemote not implemented: would add remote %s with URL %s", name, url)
+}
+
+// RemoveRemote removes a remote
+func (c *Client) RemoveRemote(name string) error {
+	return fmt.Errorf("RemoveRemote not implemented: would remove remote %s", name)
+}
+
+// Fetch fetches changes from a remote
+func (c *Client) Fetch(remote string) error {
+	return fmt.Errorf("Fetch not implemented: would fetch from %s", remote)
+}
+
+// Pull pulls changes from a remote
+func (c *Client) Pull(remote string) error {
+	return fmt.Errorf("Pull not implemented: would pull from %s", remote)
+}
+
+// Push pushes changes to a remote
+func (c *Client) Push(remote string) error {
+	return fmt.Errorf("Push not implemented: would push to %s", remote)
+}
+
+// GetLog returns commit log based on options
+func (c *Client) GetLog(options LogOptions) ([]CommitInfo, error) {
+	return nil, fmt.Errorf("GetLog not implemented")
 }

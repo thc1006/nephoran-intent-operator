@@ -19,9 +19,7 @@ package optimization
 import (
 	"context"
 	"fmt"
-	"math"
 	"math/rand"
-	"sort"
 	"sync"
 	"time"
 
@@ -335,6 +333,13 @@ type PerformanceMetrics struct {
 	ConfidenceInterval *ConfidenceInterval `json:"confidenceInterval"`
 }
 
+// ConfidenceInterval represents a confidence interval for measurements
+type ConfidenceInterval struct {
+	LowerBound float64 `json:"lowerBound"`
+	UpperBound float64 `json:"upperBound"`
+	ConfidenceLevel float64 `json:"confidenceLevel"`
+}
+
 // ResourceUsage represents resource utilization metrics
 type ResourceUsage struct {
 	CPUUsage    float64 `json:"cpuUsage"`
@@ -580,7 +585,7 @@ func (tuner *AIConfigurationTuner) tuningLoop(ctx context.Context) {
 
 		// Validate configuration against safety constraints
 		if !tuner.safetyConstraints.ValidateConfiguration(candidateConfig) {
-			tuner.logger.Warn("Configuration rejected by safety constraints", "iteration", iteration)
+			tuner.logger.Info("Configuration rejected by safety constraints", "iteration", iteration)
 			continue
 		}
 
@@ -693,7 +698,7 @@ func (tuner *AIConfigurationTuner) safetyMonitoringLoop(ctx context.Context) {
 
 				// Trigger rollback if necessary
 				if tuner.shouldTriggerRollback() {
-					tuner.logger.Warn("Triggering emergency rollback")
+					tuner.logger.Info("Triggering emergency rollback")
 					if err := tuner.rollbackManager.EmergencyRollback(ctx); err != nil {
 						tuner.logger.Error(err, "Emergency rollback failed")
 					}

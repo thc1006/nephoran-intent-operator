@@ -18,19 +18,35 @@ type Client struct {
 	ShouldFailCommitAndPushChanges bool
 	// ShouldFailWithPushError controls whether to simulate a Git push failure
 	ShouldFailWithPushError bool
+	
+	// New failure flags for the missing methods
+	ShouldFailCommitFiles      bool
+	ShouldFailCreateBranch     bool
+	ShouldFailSwitchBranch     bool
+	ShouldFailGetCurrentBranch bool
+	ShouldFailListBranches     bool
+	ShouldFailGetFileContent   bool
 
 	// CallHistory tracks method calls for verification in tests
 	CallHistory []string
 
 	// CommitHash is the hash that will be returned by CommitAndPush
 	CommitHash string
+	
+	// Mock data for testing
+	CurrentBranch string
+	Branches      []string
+	FileContents  map[string][]byte // path -> content mapping
 }
 
 // NewClient creates a new fake Git client
 func NewClient() *Client {
 	return &Client{
-		CallHistory: make([]string, 0),
-		CommitHash:  "fake-commit-hash-12345678",
+		CallHistory:   make([]string, 0),
+		CommitHash:    "fake-commit-hash-12345678",
+		CurrentBranch: "main",
+		Branches:      []string{"main", "dev", "feature-branch"},
+		FileContents:  make(map[string][]byte),
 	}
 }
 
@@ -85,6 +101,12 @@ func (c *Client) Reset() {
 	c.ShouldFailRemoveDirectory = false
 	c.ShouldFailCommitAndPushChanges = false
 	c.ShouldFailWithPushError = false
+	c.ShouldFailCommitFiles = false
+	c.ShouldFailCreateBranch = false
+	c.ShouldFailSwitchBranch = false
+	c.ShouldFailGetCurrentBranch = false
+	c.ShouldFailListBranches = false
+	c.ShouldFailGetFileContent = false
 }
 
 // SetCommitHash sets the commit hash returned by CommitAndPush
@@ -95,4 +117,105 @@ func (c *Client) SetCommitHash(hash string) {
 // GetCallHistory returns the history of method calls
 func (c *Client) GetCallHistory() []string {
 	return c.CallHistory
+}
+
+// CommitFiles fake implementation
+func (c *Client) CommitFiles(files []string, msg string) error {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("CommitFiles(files=%v, msg=%s)", files, msg))
+	if c.ShouldFailCommitFiles {
+		return fmt.Errorf("fake CommitFiles error")
+	}
+	return nil
+}
+
+// CreateBranch fake implementation
+func (c *Client) CreateBranch(name string) error {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("CreateBranch(name=%s)", name))
+	if c.ShouldFailCreateBranch {
+		return fmt.Errorf("fake CreateBranch error")
+	}
+	// Add the branch to our mock branches list if not already present
+	for _, branch := range c.Branches {
+		if branch == name {
+			return nil // Branch already exists
+		}
+	}
+	c.Branches = append(c.Branches, name)
+	return nil
+}
+
+// SwitchBranch fake implementation
+func (c *Client) SwitchBranch(name string) error {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("SwitchBranch(name=%s)", name))
+	if c.ShouldFailSwitchBranch {
+		return fmt.Errorf("fake SwitchBranch error")
+	}
+	// Check if branch exists
+	branchExists := false
+	for _, branch := range c.Branches {
+		if branch == name {
+			branchExists = true
+			break
+		}
+	}
+	if !branchExists {
+		return fmt.Errorf("branch %s does not exist", name)
+	}
+	c.CurrentBranch = name
+	return nil
+}
+
+// GetCurrentBranch fake implementation
+func (c *Client) GetCurrentBranch() (string, error) {
+	c.CallHistory = append(c.CallHistory, "GetCurrentBranch()")
+	if c.ShouldFailGetCurrentBranch {
+		return "", fmt.Errorf("fake GetCurrentBranch error")
+	}
+	return c.CurrentBranch, nil
+}
+
+// ListBranches fake implementation
+func (c *Client) ListBranches() ([]string, error) {
+	c.CallHistory = append(c.CallHistory, "ListBranches()")
+	if c.ShouldFailListBranches {
+		return nil, fmt.Errorf("fake ListBranches error")
+	}
+	// Return a copy to prevent external modifications
+	branches := make([]string, len(c.Branches))
+	copy(branches, c.Branches)
+	return branches, nil
+}
+
+// GetFileContent fake implementation
+func (c *Client) GetFileContent(path string) ([]byte, error) {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("GetFileContent(path=%s)", path))
+	if c.ShouldFailGetFileContent {
+		return nil, fmt.Errorf("fake GetFileContent error")
+	}
+	content, exists := c.FileContents[path]
+	if !exists {
+		return nil, fmt.Errorf("file %s not found", path)
+	}
+	// Return a copy to prevent external modifications
+	result := make([]byte, len(content))
+	copy(result, content)
+	return result, nil
+}
+
+// SetFileContent sets the content for a file (for testing purposes)
+func (c *Client) SetFileContent(path string, content []byte) {
+	if c.FileContents == nil {
+		c.FileContents = make(map[string][]byte)
+	}
+	c.FileContents[path] = content
+}
+
+// SetCurrentBranch sets the current branch (for testing purposes)
+func (c *Client) SetCurrentBranch(branch string) {
+	c.CurrentBranch = branch
+}
+
+// SetBranches sets the list of branches (for testing purposes)
+func (c *Client) SetBranches(branches []string) {
+	c.Branches = branches
 }

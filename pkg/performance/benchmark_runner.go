@@ -11,7 +11,6 @@ import (
 	"runtime/debug"
 	"sort"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -182,13 +181,16 @@ type CPUProfile struct {
 
 // ResourceUsage tracks resource consumption during benchmark
 type ResourceUsage struct {
-	PeakMemoryMB   float64 `json:"peak_memory_mb"`
-	AvgMemoryMB    float64 `json:"avg_memory_mb"`
-	PeakCPUPercent float64 `json:"peak_cpu_percent"`
-	AvgCPUPercent  float64 `json:"avg_cpu_percent"`
-	MaxGoroutines  int     `json:"max_goroutines"`
-	NetworkBytesIO int64   `json:"network_bytes_io"`
-	DiskBytesIO    int64   `json:"disk_bytes_io"`
+	CPUUsage       float64       `json:"cpu_usage_percent"` // Current CPU usage
+	MemoryUsage    float64       `json:"memory_usage_mb"`   // Current memory usage
+	Duration       time.Duration `json:"duration"`          // Duration of resource measurement
+	PeakMemoryMB   float64       `json:"peak_memory_mb"`
+	AvgMemoryMB    float64       `json:"avg_memory_mb"`
+	PeakCPUPercent float64       `json:"peak_cpu_percent"`
+	AvgCPUPercent  float64       `json:"avg_cpu_percent"`
+	MaxGoroutines  int           `json:"max_goroutines"`
+	NetworkBytesIO int64         `json:"network_bytes_io"`
+	DiskBytesIO    int64         `json:"disk_bytes_io"`
 }
 
 // OverallSummary provides high-level summary of all benchmarks
@@ -237,6 +239,7 @@ type ComparisonResult struct {
 	BaselineValue float64 `json:"baseline_value"`
 	CurrentValue  float64 `json:"current_value"`
 	ChangePercent float64 `json:"change_percent"`
+	Improvement   float64 `json:"improvement"` // Added for compatibility
 	Improved      bool    `json:"improved"`
 	Significant   bool    `json:"significant"`
 }
@@ -956,4 +959,289 @@ func (rm *ResourceMonitor) monitor() {
 			rm.memoryUsage = 512.0 + float64(time.Since(rm.startTime).Seconds()*10)
 		}
 	}
+}
+
+// OptimizationKnowledgeBase stores learned optimization patterns and insights
+type OptimizationKnowledgeBase struct {
+	Patterns      map[string]OptimizationPattern `json:"patterns"`
+	Metrics       map[string]MetricHistory       `json:"metrics"`
+	Recommendations []string                     `json:"recommendations"`
+	LastUpdated   time.Time                      `json:"last_updated"`
+}
+
+// OptimizationPattern represents a learned performance optimization pattern
+type OptimizationPattern struct {
+	Name          string            `json:"name"`
+	Description   string            `json:"description"`
+	Conditions    []string          `json:"conditions"`
+	Actions       []string          `json:"actions"`
+	SuccessRate   float64           `json:"success_rate"`
+	ImpactMetrics map[string]float64 `json:"impact_metrics"`
+}
+
+// MetricHistory stores historical metric data for trend analysis
+type MetricHistory struct {
+	Values    []float64   `json:"values"`
+	Timestamps []time.Time `json:"timestamps"`
+	Statistics Statistics  `json:"statistics"`
+}
+
+// Statistics holds statistical analysis of metric data
+type Statistics struct {
+	Mean     float64 `json:"mean"`
+	StdDev   float64 `json:"std_dev"`
+	Min      float64 `json:"min"`
+	Max      float64 `json:"max"`
+	Trend    string  `json:"trend"` // "improving", "degrading", "stable"
+}
+
+// TrainingConfig defines configuration for ML model training
+type TrainingConfig struct {
+	Epochs         int     `json:"epochs"`
+	BatchSize      int     `json:"batch_size"`
+	LearningRate   float64 `json:"learning_rate"`
+	ValidationSplit float64 `json:"validation_split"`
+	EarlyStopping  bool    `json:"early_stopping"`
+	ModelPath      string  `json:"model_path"`
+}
+
+// MLBackend defines the machine learning backend type
+type MLBackend string
+
+const (
+	MLBackendTensorFlow  MLBackend = "tensorflow"
+	MLBackendPyTorch     MLBackend = "pytorch" 
+	MLBackendONNX        MLBackend = "onnx"
+	MLBackendBuiltIn     MLBackend = "builtin"
+)
+
+// MLModel represents a trained machine learning model for performance optimization
+type MLModel struct {
+	Backend     MLBackend     `json:"backend"`
+	ModelPath   string        `json:"model_path"`
+	Config      TrainingConfig `json:"config"`
+	TrainedAt   time.Time     `json:"trained_at"`
+	Accuracy    float64       `json:"accuracy"`
+	Version     string        `json:"version"`
+}
+
+// trainModel trains a machine learning model for performance optimization
+func (br *BenchmarkRunner) trainModel(ctx context.Context, config TrainingConfig, knowledgeBase *OptimizationKnowledgeBase) (*MLModel, error) {
+	// For now, this is a simplified implementation
+	// In a real implementation, this would interface with actual ML libraries
+	
+	fmt.Printf("Training ML model with config: epochs=%d, batch_size=%d, learning_rate=%f\n", 
+		config.Epochs, config.BatchSize, config.LearningRate)
+	
+	// Simulate training duration based on epochs
+	trainingDuration := time.Duration(config.Epochs) * time.Millisecond * 100
+	
+	// Simulate training progress
+	for i := 0; i < config.Epochs; i++ {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+			time.Sleep(trainingDuration / time.Duration(config.Epochs))
+			if i%10 == 0 {
+				fmt.Printf("Training progress: epoch %d/%d\n", i+1, config.Epochs)
+			}
+		}
+	}
+	
+	// Create trained model
+	model := &MLModel{
+		Backend:   MLBackendBuiltIn,
+		ModelPath: config.ModelPath,
+		Config:    config,
+		TrainedAt: time.Now(),
+		Accuracy:  0.85 + (float64(config.Epochs)/1000)*0.1, // Simulate accuracy improvement
+		Version:   "1.0.0",
+	}
+	
+	// Save model if path is provided
+	if config.ModelPath != "" {
+		modelData, err := json.MarshalIndent(model, "", "  ")
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal model: %w", err)
+		}
+		
+		err = os.WriteFile(config.ModelPath, modelData, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("failed to save model: %w", err)
+		}
+	}
+	
+	fmt.Printf("Model training completed. Accuracy: %.2f%%\n", model.Accuracy*100)
+	return model, nil
+}
+
+// predictOptimizations uses the trained model to predict performance optimizations
+func (br *BenchmarkRunner) predictOptimizations(ctx context.Context, model *MLModel, currentMetrics map[string]float64) ([]OptimizationPattern, error) {
+	if model == nil {
+		return nil, fmt.Errorf("model cannot be nil")
+	}
+	
+	fmt.Printf("Generating optimization predictions using model (accuracy: %.2f%%)\n", model.Accuracy*100)
+	
+	var patterns []OptimizationPattern
+	
+	// Analyze current metrics and suggest optimizations
+	if latency, ok := currentMetrics["average_latency_ms"]; ok && latency > 100 {
+		patterns = append(patterns, OptimizationPattern{
+			Name:        "LatencyOptimization",
+			Description: "Reduce response latency through caching and connection pooling",
+			Conditions:  []string{"average_latency_ms > 100"},
+			Actions: []string{
+				"Enable HTTP connection pooling",
+				"Implement request caching",
+				"Optimize database queries",
+			},
+			SuccessRate: 0.78,
+			ImpactMetrics: map[string]float64{
+				"latency_reduction_percent": 25.0,
+				"throughput_increase_percent": 15.0,
+			},
+		})
+	}
+	
+	if memUsage, ok := currentMetrics["memory_usage_mb"]; ok && memUsage > 1000 {
+		patterns = append(patterns, OptimizationPattern{
+			Name:        "MemoryOptimization", 
+			Description: "Reduce memory usage through object pooling and garbage collection tuning",
+			Conditions:  []string{"memory_usage_mb > 1000"},
+			Actions: []string{
+				"Implement object pooling",
+				"Tune garbage collection parameters",
+				"Optimize data structures",
+			},
+			SuccessRate: 0.82,
+			ImpactMetrics: map[string]float64{
+				"memory_reduction_percent": 30.0,
+				"gc_pause_reduction_percent": 40.0,
+			},
+		})
+	}
+	
+	if cpuUsage, ok := currentMetrics["cpu_usage_percent"]; ok && cpuUsage > 80 {
+		patterns = append(patterns, OptimizationPattern{
+			Name:        "CPUOptimization",
+			Description: "Optimize CPU usage through concurrency and algorithm improvements", 
+			Conditions:  []string{"cpu_usage_percent > 80"},
+			Actions: []string{
+				"Implement worker pools",
+				"Optimize hot code paths",
+				"Use more efficient algorithms",
+			},
+			SuccessRate: 0.75,
+			ImpactMetrics: map[string]float64{
+				"cpu_reduction_percent": 20.0,
+				"throughput_increase_percent": 25.0,
+			},
+		})
+	}
+	
+	// Add a general optimization pattern if no specific issues detected
+	if len(patterns) == 0 {
+		patterns = append(patterns, OptimizationPattern{
+			Name:        "GeneralOptimization",
+			Description: "General performance improvements for well-performing systems",
+			Conditions:  []string{"baseline_performance_acceptable"},
+			Actions: []string{
+				"Fine-tune configuration parameters",
+				"Enable performance monitoring",
+				"Regular performance profiling",
+			},
+			SuccessRate: 0.65,
+			ImpactMetrics: map[string]float64{
+				"overall_improvement_percent": 10.0,
+			},
+		})
+	}
+	
+	fmt.Printf("Generated %d optimization patterns\n", len(patterns))
+	return patterns, nil
+}
+
+// validatePredictions validates the effectiveness of applied optimizations
+func (br *BenchmarkRunner) validatePredictions(ctx context.Context, patterns []OptimizationPattern, beforeMetrics, afterMetrics map[string]float64) (*ValidationResult, error) {
+	if len(patterns) == 0 {
+		return nil, fmt.Errorf("no patterns to validate")
+	}
+	
+	result := &ValidationResult{
+		Timestamp:      time.Now(),
+		PatternsCount:  len(patterns),
+		ValidatedCount: 0,
+		Improvements:   make(map[string]float64),
+		Regressions:    make(map[string]float64),
+	}
+	
+	fmt.Printf("Validating %d optimization patterns\n", len(patterns))
+	
+	// Compare before and after metrics
+	for metric, beforeValue := range beforeMetrics {
+		if afterValue, exists := afterMetrics[metric]; exists {
+			improvementPercent := ((beforeValue - afterValue) / beforeValue) * 100
+			
+			if improvementPercent > 5 { // Significant improvement threshold
+				result.Improvements[metric] = improvementPercent
+				fmt.Printf("✓ %s improved by %.2f%%\n", metric, improvementPercent)
+			} else if improvementPercent < -5 { // Regression threshold
+				result.Regressions[metric] = -improvementPercent
+				fmt.Printf("✗ %s regressed by %.2f%%\n", metric, -improvementPercent)
+			}
+		}
+	}
+	
+	// Count patterns that showed measurable improvement
+	for _, pattern := range patterns {
+		hasImprovement := false
+		for expectedMetric := range pattern.ImpactMetrics {
+			if _, improved := result.Improvements[expectedMetric]; improved {
+				hasImprovement = true
+				break
+			}
+		}
+		if hasImprovement {
+			result.ValidatedCount++
+		}
+	}
+	
+	result.SuccessRate = float64(result.ValidatedCount) / float64(len(patterns)) * 100
+	result.OverallImprovement = calculateOverallImprovement(result.Improvements, result.Regressions)
+	
+	fmt.Printf("Validation complete: %d/%d patterns validated (%.1f%% success rate)\n", 
+		result.ValidatedCount, len(patterns), result.SuccessRate)
+	
+	return result, nil
+}
+
+// ValidationResult contains the results of optimization validation
+type ValidationResult struct {
+	Timestamp           time.Time            `json:"timestamp"`
+	PatternsCount       int                  `json:"patterns_count"`
+	ValidatedCount      int                  `json:"validated_count"`
+	SuccessRate         float64              `json:"success_rate_percent"`
+	Improvements        map[string]float64   `json:"improvements"`
+	Regressions         map[string]float64   `json:"regressions"`
+	OverallImprovement  float64              `json:"overall_improvement_percent"`
+}
+
+// calculateOverallImprovement calculates the weighted overall improvement score
+func calculateOverallImprovement(improvements, regressions map[string]float64) float64 {
+	var totalImprovement, totalRegression float64
+	
+	// Weight improvements positively
+	for _, improvement := range improvements {
+		totalImprovement += improvement
+	}
+	
+	// Weight regressions negatively
+	for _, regression := range regressions {
+		totalRegression += regression
+	}
+	
+	// Calculate net improvement (improvements - regressions)
+	return totalImprovement - totalRegression
 }

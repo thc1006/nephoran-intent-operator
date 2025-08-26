@@ -18,6 +18,9 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
+// ResourceUsageMetrics is an alias for ResourceUsageStats for compatibility
+type ResourceUsageMetrics = ResourceUsageStats
+
 // AutomatedBenchmarkSuite provides comprehensive automated performance benchmarking
 type AutomatedBenchmarkSuite struct {
 	config           *AutoBenchConfig

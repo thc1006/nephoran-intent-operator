@@ -3,13 +3,11 @@
 package performance
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"runtime"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"k8s.io/klog/v2"
@@ -534,7 +532,7 @@ func (pa *PerformanceAnalyzer) checkTargetAchievement() map[string]bool {
 
 // PrintPerformanceReport prints a detailed performance report
 func (pr *PerformanceReport) PrintPerformanceReport() {
-	fmt.Println("\n" + "="*80)
+	fmt.Println("\n" + strings.Repeat("=", 80))
 	fmt.Println("NEPHORAN INTENT OPERATOR - GO 1.24+ PERFORMANCE OPTIMIZATION REPORT")
 	fmt.Println("================================================================================")
 	fmt.Printf("Report Generated: %s\n", pr.Timestamp.Format(time.RFC3339))
@@ -654,7 +652,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 
 	// Summary
 	fmt.Println("PERFORMANCE OPTIMIZATION SUMMARY")
-	fmt.Println("=" * 40)
+	fmt.Println(strings.Repeat("=", 40))
 	achievedCount := 0
 	for _, achieved := range pr.AchievedTargets {
 		if achieved {
@@ -673,7 +671,7 @@ func (pr *PerformanceReport) PrintPerformanceReport() {
 			pr.Overall.PerformanceGain*100, pr.Targets.OverallImprovement*100)
 	}
 
-	fmt.Println("\n" + "="*80)
+	fmt.Println("\n" + strings.Repeat("=", 80))
 }
 
 // max returns the maximum of two values

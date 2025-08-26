@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"hash/fnv"
 	"io"
 	"log/slog"
 	"net/http"
@@ -19,8 +18,6 @@ import (
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate"
-	"github.com/weaviate/weaviate-go-client/v4/weaviate/graphql"
 )
 
 // StreamingProcessorStub handles streaming requests with server-sent events
@@ -31,13 +28,7 @@ type StreamingProcessorStub struct {
 	mutex      sync.RWMutex
 }
 
-// StreamingRequest represents a streaming request payload
-type StreamingRequest struct {
-	Query     string `json:"query"`
-	ModelName string `json:"model_name,omitempty"`
-	MaxTokens int    `json:"max_tokens,omitempty"`
-	EnableRAG bool   `json:"enable_rag,omitempty"`
-}
+// Note: StreamingRequest is defined in streaming_processor.go
 
 func NewStreamingProcessor() *StreamingProcessorStub {
 	return &StreamingProcessorStub{

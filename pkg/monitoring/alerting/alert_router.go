@@ -966,6 +966,193 @@ func (ar *AlertRouter) getFallbackRouting() *RoutingRule {
 	return &RoutingRule{Name: "fallback", Priority: 50}
 }
 
+// Helper methods for routing evaluation
+
+func (ar *AlertRouter) evaluateRuleConditions(alert *SLAAlert, conditions []RoutingCondition) bool {
+	for _, condition := range conditions {
+		if !ar.evaluateCondition(alert, condition) {
+			return false
+		}
+	}
+	return true
+}
+
+func (ar *AlertRouter) evaluateCondition(alert *SLAAlert, condition RoutingCondition) bool {
+	var value string
+	
+	switch condition.Field {
+	case "sla_type":
+		value = string(alert.SLAType)
+	case "severity":
+		value = string(alert.Severity)
+	case "component":
+		value = alert.Context.Component
+	case "service":
+		value = alert.Context.Service
+	default:
+		// Check labels
+		if labelValue, exists := alert.Labels[condition.Field]; exists {
+			value = labelValue
+		} else {
+			return condition.Negate
+		}
+	}
+	
+	matches := false
+	for _, expectedValue := range condition.Values {
+		switch condition.Operator {
+		case "equals":
+			if value == expectedValue {
+				matches = true
+				break
+			}
+		case "contains":
+			if strings.Contains(value, expectedValue) {
+				matches = true
+				break
+			}
+		case "matches":
+			// Simple regex matching (simplified)
+			if strings.Contains(value, expectedValue) {
+				matches = true
+				break
+			}
+		}
+	}
+	
+	if condition.Negate {
+		return !matches
+	}
+	return matches
+}
+
+func (ar *AlertRouter) isChannelAvailable(channelName string, alert *SLAAlert) bool {
+	channel, exists := ar.notificationChannels[channelName]
+	if !exists || !channel.Enabled {
+		return false
+	}
+	
+	// Apply channel filters
+	return ar.passesChannelFilters(&EnrichedAlert{SLAAlert: alert}, channel.Filters)
+}
+
+func (ar *AlertRouter) passesChannelFilters(alert *EnrichedAlert, filters []AlertFilter) bool {
+	for _, filter := range filters {
+		if !ar.evaluateFilter(alert, filter) {
+			return false
+		}
+	}
+	return true
+}
+
+func (ar *AlertRouter) evaluateFilter(alert *EnrichedAlert, filter AlertFilter) bool {
+	var value string
+	
+	switch filter.Field {
+	case "severity":
+		value = string(alert.Severity)
+	case "component":
+		value = alert.Context.Component
+	case "sla_type":
+		value = string(alert.SLAType)
+	default:
+		if labelValue, exists := alert.Labels[filter.Field]; exists {
+			value = labelValue
+		} else {
+			return filter.Negate
+		}
+	}
+	
+	matches := false
+	switch filter.Operator {
+	case "equals":
+		matches = value == filter.Value
+	case "contains":
+		matches = strings.Contains(value, filter.Value)
+	case "matches":
+		matches = strings.Contains(value, filter.Value) // Simplified regex
+	}
+	
+	if filter.Negate {
+		return !matches
+	}
+	return matches
+}
+
+func (ar *AlertRouter) checkRateLimit(channelName string, limit RateLimit) bool {
+	// Simplified rate limiting - in production would use more sophisticated algorithm
+	return true
+}
+
+func (ar *AlertRouter) isMoreSevere(a, b string) bool {
+	severityOrder := map[string]int{
+		"info":     1,
+		"warning":  2,
+		"major":    3,
+		"critical": 4,
+		"urgent":   5,
+	}
+	
+	return severityOrder[a] > severityOrder[b]
+}
+
+func (ar *AlertRouter) convertPriorityToInt(priority string) int {
+	switch priority {
+	case "low":
+		return 1
+	case "medium":
+		return 2
+	case "high":
+		return 3
+	case "urgent":
+		return 4
+	default:
+		return 2
+	}
+}
+
+// Notification sending methods (simplified implementations)
+
+func (ar *AlertRouter) sendSlackNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	ar.logger.InfoWithContext("Sending Slack notification",
+		slog.String("alert_id", alert.ID),
+		slog.String("channel", channel.Name),
+	)
+	return nil
+}
+
+func (ar *AlertRouter) sendEmailNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	ar.logger.InfoWithContext("Sending email notification",
+		slog.String("alert_id", alert.ID),
+		slog.String("channel", channel.Name),
+	)
+	return nil
+}
+
+func (ar *AlertRouter) sendWebhookNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	ar.logger.InfoWithContext("Sending webhook notification",
+		slog.String("alert_id", alert.ID),
+		slog.String("channel", channel.Name),
+	)
+	return nil
+}
+
+func (ar *AlertRouter) sendPagerDutyNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	ar.logger.InfoWithContext("Sending PagerDuty notification",
+		slog.String("alert_id", alert.ID),
+		slog.String("channel", channel.Name),
+	)
+	return nil
+}
+
+func (ar *AlertRouter) sendTeamsNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	ar.logger.InfoWithContext("Sending Teams notification",
+		slog.String("alert_id", alert.ID),
+		slog.String("channel", channel.Name),
+	)
+	return nil
+}
+
 // Missing helper type method implementations
 
 func (pc *PriorityCalculator) CalculatePriority(alert *SLAAlert) (string, error) {

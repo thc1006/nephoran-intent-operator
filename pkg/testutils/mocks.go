@@ -80,8 +80,8 @@ func (m *MockLLMClient) GetLastIntent() string {
 	return m.lastIntent
 }
 
-// Reset clears all mock state
-func (m *MockLLMClient) Reset() {
+// ResetMock clears all mock state
+func (m *MockLLMClient) ResetMock() {
 	m.responses = make(map[string]string)
 	m.errors = make(map[string]error)
 	m.callCount = 0
@@ -361,8 +361,58 @@ func (m *MockGitClient) GetCommitCount() int {
 	return m.commitCount
 }
 
-// GetFileContent returns the content of a file in the mock repository
-func (m *MockGitClient) GetFileContent(filePath string) string {
+// CommitFiles implements the Git client interface (new method)
+func (m *MockGitClient) CommitFiles(files []string, msg string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("CommitFiles(%v, %s)", files, msg))
+	m.commitCount++
+
+	if m.commitPushError != nil {
+		return m.commitPushError
+	}
+
+	// Mock committing files
+	for _, file := range files {
+		m.files[file] = "mock-content"
+	}
+
+	return nil
+}
+
+// CreateBranch implements the Git client interface (new method)
+func (m *MockGitClient) CreateBranch(name string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("CreateBranch(%s)", name))
+	return nil
+}
+
+// SwitchBranch implements the Git client interface (new method)
+func (m *MockGitClient) SwitchBranch(name string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("SwitchBranch(%s)", name))
+	return nil
+}
+
+// GetCurrentBranch implements the Git client interface (new method)
+func (m *MockGitClient) GetCurrentBranch() (string, error) {
+	m.callLog = append(m.callLog, "GetCurrentBranch()")
+	return "main", nil
+}
+
+// ListBranches implements the Git client interface (new method)
+func (m *MockGitClient) ListBranches() ([]string, error) {
+	m.callLog = append(m.callLog, "ListBranches()")
+	return []string{"main", "dev", "feature-branch"}, nil
+}
+
+// GetFileContent implements the Git client interface (new method - updated signature)
+func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("GetFileContent(%s)", path))
+	if content, exists := m.files[path]; exists {
+		return []byte(content), nil
+	}
+	return nil, fmt.Errorf("file not found: %s", path)
+}
+
+// GetFileContentString returns the content of a file in the mock repository as string (for backwards compatibility)
+func (m *MockGitClient) GetFileContentString(filePath string) string {
 	if content, exists := m.files[filePath]; exists {
 		return content
 	}
@@ -374,8 +424,8 @@ func (m *MockGitClient) GetCommits() []string {
 	return m.commits
 }
 
-// Reset clears all mock state
-func (m *MockGitClient) Reset() {
+// ResetMock clears all mock state
+func (m *MockGitClient) ResetMock() {
 	m.files = make(map[string]string)
 	m.commits = make([]string, 0)
 	m.callLog = make([]string, 0)
@@ -383,6 +433,222 @@ func (m *MockGitClient) Reset() {
 	m.initError = nil
 	m.commitPushError = nil
 	m.lastCommitHash = "initial-commit-hash"
+}
+
+// File operations
+func (m *MockGitClient) Add(path string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Add(%s)", path))
+	return nil
+}
+
+func (m *MockGitClient) Remove(path string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Remove(%s)", path))
+	delete(m.files, path)
+	return nil
+}
+
+func (m *MockGitClient) Move(oldPath, newPath string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Move(%s, %s)", oldPath, newPath))
+	if content, exists := m.files[oldPath]; exists {
+		m.files[newPath] = content
+		delete(m.files, oldPath)
+	}
+	return nil
+}
+
+func (m *MockGitClient) Restore(path string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Restore(%s)", path))
+	return nil
+}
+
+// Branch operations
+func (m *MockGitClient) DeleteBranch(name string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("DeleteBranch(%s)", name))
+	return nil
+}
+
+func (m *MockGitClient) MergeBranch(sourceBranch, targetBranch string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("MergeBranch(%s, %s)", sourceBranch, targetBranch))
+	return nil
+}
+
+func (m *MockGitClient) RebaseBranch(sourceBranch, targetBranch string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("RebaseBranch(%s, %s)", sourceBranch, targetBranch))
+	return nil
+}
+
+// Commit operations
+func (m *MockGitClient) CherryPick(commitHash string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("CherryPick(%s)", commitHash))
+	return nil
+}
+
+func (m *MockGitClient) Reset(options git.ResetOptions) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Reset(%s, %s)", options.Mode, options.Target))
+	return nil
+}
+
+func (m *MockGitClient) Clean(force bool) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Clean(%t)", force))
+	return nil
+}
+
+func (m *MockGitClient) GetCommitHistory(options git.LogOptions) ([]git.CommitInfo, error) {
+	m.callLog = append(m.callLog, "GetCommitHistory()")
+	return []git.CommitInfo{
+		{
+			Hash:      "abc123",
+			Message:   "Test commit",
+			Author:    "Test Author",
+			Email:     "test@example.com",
+			Timestamp: time.Now(),
+		},
+	}, nil
+}
+
+// Tag operations
+func (m *MockGitClient) CreateTag(name, message string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("CreateTag(%s, %s)", name, message))
+	return nil
+}
+
+func (m *MockGitClient) ListTags() ([]git.TagInfo, error) {
+	m.callLog = append(m.callLog, "ListTags()")
+	return []git.TagInfo{
+		{
+			Name:      "v1.0.0",
+			Hash:      "def456",
+			Message:   "Release v1.0.0",
+			Author:    "Test Author",
+			Email:     "test@example.com",
+			Timestamp: time.Now(),
+		},
+	}, nil
+}
+
+func (m *MockGitClient) GetTagInfo(name string) (git.TagInfo, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("GetTagInfo(%s)", name))
+	return git.TagInfo{
+		Name:      name,
+		Hash:      "ghi789",
+		Message:   fmt.Sprintf("Tag %s", name),
+		Author:    "Test Author",
+		Email:     "test@example.com",
+		Timestamp: time.Now(),
+	}, nil
+}
+
+// Pull request operations
+func (m *MockGitClient) CreatePullRequest(options git.PullRequestOptions) (git.PullRequestInfo, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("CreatePullRequest(%s)", options.Title))
+	return git.PullRequestInfo{
+		ID:          1,
+		Number:      1,
+		Title:       options.Title,
+		Description: options.Description,
+		State:       "open",
+		SourceBranch: options.SourceBranch,
+		TargetBranch: options.TargetBranch,
+		Author:      "Test Author",
+		URL:         "https://github.com/test/repo/pull/1",
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}, nil
+}
+
+func (m *MockGitClient) GetPullRequestStatus(id int) (string, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("GetPullRequestStatus(%d)", id))
+	return "open", nil
+}
+
+func (m *MockGitClient) ApprovePullRequest(id int) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("ApprovePullRequest(%d)", id))
+	return nil
+}
+
+func (m *MockGitClient) MergePullRequest(id int) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("MergePullRequest(%d)", id))
+	return nil
+}
+
+// Status and diff operations
+func (m *MockGitClient) GetDiff(options git.DiffOptions) (string, error) {
+	m.callLog = append(m.callLog, "GetDiff()")
+	return "diff --git a/test.txt b/test.txt\nindex 123..456 789\n--- a/test.txt\n+++ b/test.txt\n@@ -1 +1 @@\n-old content\n+new content", nil
+}
+
+func (m *MockGitClient) GetStatus() ([]git.StatusInfo, error) {
+	m.callLog = append(m.callLog, "GetStatus()")
+	return []git.StatusInfo{
+		{
+			Path:     "test.txt",
+			Status:   "modified",
+			Staging:  "M",
+			Worktree: " ",
+		},
+	}, nil
+}
+
+// Patch operations
+func (m *MockGitClient) ApplyPatch(patch string) error {
+	m.callLog = append(m.callLog, "ApplyPatch()")
+	return nil
+}
+
+func (m *MockGitClient) CreatePatch(options git.DiffOptions) (string, error) {
+	m.callLog = append(m.callLog, "CreatePatch()")
+	return "patch content", nil
+}
+
+// Remote operations
+func (m *MockGitClient) GetRemotes() ([]git.RemoteInfo, error) {
+	m.callLog = append(m.callLog, "GetRemotes()")
+	return []git.RemoteInfo{
+		{
+			Name: "origin",
+			URL:  "https://github.com/test/repo.git",
+			Type: "fetch",
+		},
+	}, nil
+}
+
+func (m *MockGitClient) AddRemote(name, url string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("AddRemote(%s, %s)", name, url))
+	return nil
+}
+
+func (m *MockGitClient) RemoveRemote(name string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("RemoveRemote(%s)", name))
+	return nil
+}
+
+func (m *MockGitClient) Fetch(remote string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Fetch(%s)", remote))
+	return nil
+}
+
+func (m *MockGitClient) Pull(remote string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Pull(%s)", remote))
+	return nil
+}
+
+func (m *MockGitClient) Push(remote string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Push(%s)", remote))
+	return nil
+}
+
+// Log operations
+func (m *MockGitClient) GetLog(options git.LogOptions) ([]git.CommitInfo, error) {
+	m.callLog = append(m.callLog, "GetLog()")
+	return []git.CommitInfo{
+		{
+			Hash:      "abc123",
+			Message:   "Test commit",
+			Author:    "Test Author", 
+			Email:     "test@example.com",
+			Timestamp: time.Now(),
+		},
+	}, nil
 }
 
 // Ensure mock clients implement the expected interfaces

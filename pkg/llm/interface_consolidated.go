@@ -162,6 +162,13 @@ func (tm *TokenManager) TruncateToFit(text string, maxTokens int, modelName stri
 	return text
 }
 
+// SupportsStreaming checks if the model supports streaming
+func (tm *TokenManager) SupportsStreaming(modelName string) bool {
+	// Most modern models support streaming
+	// Could be enhanced with a model-specific capability map
+	return true
+}
+
 type TokenBudget struct {
 	SystemTokens    int
 	UserTokens      int
@@ -172,7 +179,21 @@ type TokenBudget struct {
 }
 
 type StreamingContextManager struct {
-	// Stub implementation
+	tokenManager *TokenManager
+	overhead     time.Duration
+}
+
+// NewStreamingContextManager creates a new streaming context manager
+func NewStreamingContextManager(tokenManager *TokenManager, overhead time.Duration) *StreamingContextManager {
+	return &StreamingContextManager{
+		tokenManager: tokenManager,
+		overhead:     overhead,
+	}
+}
+
+// Close shuts down the streaming context manager
+func (scm *StreamingContextManager) Close() {
+	// No resources to clean up in stub implementation
 }
 
 type Document struct {

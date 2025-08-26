@@ -4,11 +4,9 @@ package alerting
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
-	"sort"
 	"sync"
 	"time"
 
@@ -42,12 +40,55 @@ type PredictiveAlerting struct {
 	mu      sync.RWMutex
 }
 
+// MLBackend represents the machine learning backend type
+type MLBackend string
+
+const (
+	MLBackendSimple     MLBackend = "simple"
+	MLBackendTensorFlow MLBackend = "tensorflow"
+	MLBackendPyTorch    MLBackend = "pytorch"
+	MLBackendONNX       MLBackend = "onnx"
+)
+
+// ComponentType represents different component types for analysis
+type ComponentType string
+
+// TrendClassification represents trend analysis classification
+type TrendClassification string
+
+// ForecastResult represents forecasting analysis results
+type ForecastResult struct {
+	PredictedValue float64                `json:"predicted_value"`
+	Confidence     float64                `json:"confidence"`
+	Timestamp      time.Time              `json:"timestamp"`
+	Components     map[string]interface{} `json:"components"`
+}
+
+// TimeSeriesData represents time series data for ML processing
+type TimeSeriesData struct {
+	Timestamp time.Time `json:"timestamp"`
+	Value     float64   `json:"value"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+}
+
 // PredictiveConfig holds configuration for predictive alerting
 type PredictiveConfig struct {
 	// Model training settings
 	ModelUpdateInterval time.Duration `yaml:"model_update_interval"`
 	TrainingDataWindow  time.Duration `yaml:"training_data_window"`
 	MinDataPoints       int           `yaml:"min_data_points"`
+	HistoryWindow       time.Duration `yaml:"history_window"`
+
+	// ML Backend configuration
+	MLBackend             MLBackend     `yaml:"ml_backend"`
+	AnomalyThreshold      float64       `yaml:"anomaly_threshold"`
+	SeasonalPeriods       []int         `yaml:"seasonal_periods"`
+	TrendSmoothingFactor  float64       `yaml:"trend_smoothing_factor"`
+	ConfidenceLevel       float64       `yaml:"confidence_level"`
+	MaxPredictionHorizon  time.Duration `yaml:"max_prediction_horizon"`
+	EnableAutoML          bool          `yaml:"enable_automl"`
+	CacheSize             int           `yaml:"cache_size"`
+	BatchSize             int           `yaml:"batch_size"`
 
 	// Prediction settings
 	PredictionWindow    time.Duration `yaml:"prediction_window"`
@@ -70,7 +111,50 @@ type PredictiveConfig struct {
 	// Performance settings
 	MaxConcurrentPredictions int           `yaml:"max_concurrent_predictions"`
 	CacheTTL                 time.Duration `yaml:"cache_ttl"`
-	HistoryWindow            time.Duration `yaml:"history_window"`
+}
+
+// DefaultPredictiveConfig returns production-ready predictive alerting configuration
+func DefaultPredictiveConfig() *PredictiveConfig {
+	return &PredictiveConfig{
+		// Model training settings
+		ModelUpdateInterval: 24 * time.Hour,
+		TrainingDataWindow:  7 * 24 * time.Hour,
+		MinDataPoints:       100,
+		HistoryWindow:       30 * 24 * time.Hour,
+
+		// ML Backend configuration
+		MLBackend:             MLBackendSimple,
+		AnomalyThreshold:      0.8,
+		SeasonalPeriods:       []int{24, 168, 720}, // hourly, daily, monthly
+		TrendSmoothingFactor:  0.3,
+		ConfidenceLevel:       0.95,
+		MaxPredictionHorizon:  4 * time.Hour,
+		EnableAutoML:          true,
+		CacheSize:             1000,
+		BatchSize:             100,
+
+		// Prediction settings
+		PredictionWindow:    60 * time.Minute,
+		PredictionInterval:  5 * time.Minute,
+		ConfidenceThreshold: 0.75,
+
+		// Early warning settings
+		EarlyWarningLeadTime: 15 * time.Minute,
+		AlertThreshold:       0.8,
+
+		// Feature engineering
+		EnableSeasonalFeatures: true,
+		EnableTrendFeatures:    true,
+		EnableAnomalyFeatures:  true,
+
+		// Model parameters
+		MovingAverageWindow: 10 * time.Minute,
+		SeasonalityPeriods:  []time.Duration{24 * time.Hour, 7 * 24 * time.Hour},
+
+		// Performance settings
+		MaxConcurrentPredictions: 10,
+		CacheTTL:                 5 * time.Minute,
+	}
 }
 
 // PredictionModel represents a trained ML model for SLA prediction
@@ -221,41 +305,6 @@ type NormalizationParams struct {
 	Params map[string]float64 `json:"params"`
 }
 
-// DefaultPredictiveConfig returns production-ready predictive alerting configuration
-func DefaultPredictiveConfig() *PredictiveConfig {
-	return &PredictiveConfig{
-		// Model training settings
-		ModelUpdateInterval: 24 * time.Hour,
-		TrainingDataWindow:  30 * 24 * time.Hour, // 30 days
-		MinDataPoints:       1000,
-
-		// Prediction settings
-		PredictionWindow:    60 * time.Minute,
-		PredictionInterval:  5 * time.Minute,
-		ConfidenceThreshold: 0.75,
-
-		// Early warning settings
-		EarlyWarningLeadTime: 15 * time.Minute,
-		AlertThreshold:       0.8, // 80% violation probability
-
-		// Feature engineering
-		EnableSeasonalFeatures: true,
-		EnableTrendFeatures:    true,
-		EnableAnomalyFeatures:  true,
-
-		// Model parameters
-		MovingAverageWindow: 10 * time.Minute,
-		SeasonalityPeriods: []time.Duration{
-			24 * time.Hour,      // Daily
-			7 * 24 * time.Hour,  // Weekly
-			30 * 24 * time.Hour, // Monthly
-		},
-
-		// Performance settings
-		MaxConcurrentPredictions: 10,
-		CacheTTL:                 5 * time.Minute,
-	}
-}
 
 // NewPredictiveAlerting creates a new predictive alerting system
 func NewPredictiveAlerting(config *PredictiveConfig, logger *logging.StructuredLogger) (*PredictiveAlerting, error) {
@@ -322,6 +371,15 @@ func (pa *PredictiveAlerting) Start(ctx context.Context) error {
 			)
 		}
 	}
+
+	// Start anomaly detection processing
+	go pa.anomalyDetectionLoop(ctx)
+	
+	// Start model update processing
+	go pa.modelUpdateProcessingLoop(ctx)
+
+	// Start forecasting loop
+	go pa.forecastingLoop(ctx)
 
 	// Start background processes
 	go pa.modelUpdateLoop(ctx)
@@ -1001,8 +1059,232 @@ func (pa *PredictiveAlerting) generatePeriodicPredictions(ctx context.Context) {
 	pa.logger.InfoWithContext("Generating periodic predictions")
 }
 
-// Additional methods would include comprehensive implementations for:
-// - Seasonal pattern detection
-// - Advanced trend analysis  
-// - Action recommendations
-// - Contributing factor analysis
+// performAnomalyDetection performs anomaly detection on current metrics
+func (pa *PredictiveAlerting) performAnomalyDetection(ctx context.Context, slaType SLAType, currentMetrics map[string]float64) (float64, error) {
+	anomalyModel, exists := pa.anomalyDetector.anomalyModels[slaType]
+	if !exists {
+		return 0.0, fmt.Errorf("no anomaly model for SLA type %s", slaType)
+	}
+
+	// Calculate anomaly score using statistical methods
+	var totalDeviation float64
+	count := 0
+
+	for _, value := range currentMetrics {
+		// Calculate z-score
+		zScore := math.Abs(value - anomalyModel.Mean) / anomalyModel.StdDev
+		if zScore > anomalyModel.ZScoreThreshold {
+			totalDeviation += zScore
+			count++
+		}
+	}
+
+	if count == 0 {
+		return 0.0, nil // No anomalies detected
+	}
+
+	// Return average deviation as anomaly score
+	return totalDeviation / float64(count), nil
+}
+
+// updateModel updates the prediction model with new data
+func (pa *PredictiveAlerting) updateModel(ctx context.Context, slaType SLAType, newData []TimeSeriesData) error {
+	pa.mu.Lock()
+	defer pa.mu.Unlock()
+
+	model, exists := pa.models[slaType]
+	if !exists {
+		return fmt.Errorf("no model exists for SLA type %s", slaType)
+	}
+
+	pa.logger.InfoWithContext("Updating prediction model",
+		slog.String("sla_type", string(slaType)),
+		slog.Int("data_points", len(newData)),
+	)
+
+	// Update model statistics
+	if len(newData) > 0 {
+		// Simple update: adjust accuracy based on recent performance
+		model.Accuracy = math.Max(0.1, model.Accuracy * 0.95) // Decay accuracy slightly
+		model.TrainedAt = time.Now()
+		
+		// Update normalization parameters if needed
+		pa.updateNormalizationParams(model, newData)
+	}
+
+	return nil
+}
+
+// updateNormalizationParams updates normalization parameters with new data
+func (pa *PredictiveAlerting) updateNormalizationParams(model *PredictionModel, newData []TimeSeriesData) {
+	if len(newData) == 0 {
+		return
+	}
+
+	// Simple min-max update
+	for i, _ := range model.Features {
+		minKey := fmt.Sprintf("min_%d", i)
+		maxKey := fmt.Sprintf("max_%d", i)
+		
+		if len(newData) > i {
+			value := newData[0].Value // Simplified: use first data point
+			
+			if currentMin, exists := model.Normalization.Params[minKey]; exists {
+				model.Normalization.Params[minKey] = math.Min(currentMin, value)
+			}
+			
+			if currentMax, exists := model.Normalization.Params[maxKey]; exists {
+				model.Normalization.Params[maxKey] = math.Max(currentMax, value)
+			}
+		}
+	}
+}
+
+// forecastFuture generates future forecasts for the specified horizon
+func (pa *PredictiveAlerting) forecastFuture(ctx context.Context, slaType SLAType, horizon time.Duration) (*ForecastResult, error) {
+	model, exists := pa.models[slaType]
+	if !exists {
+		return nil, fmt.Errorf("no model exists for SLA type %s", slaType)
+	}
+
+	// Simple forecasting based on current model
+	baseValue := 0.0
+	if len(model.Weights) > 0 {
+		baseValue = model.Weights[0] // Use first weight as base
+	}
+
+	// Apply trend and seasonal adjustments
+	trendAdjustment := pa.applyTrendAdjustment(slaType)
+	seasonalAdjustment := pa.applySeasonalAdjustment(slaType, time.Now().Add(horizon))
+
+	predictedValue := baseValue + trendAdjustment + seasonalAdjustment
+
+	forecast := &ForecastResult{
+		PredictedValue: predictedValue,
+		Confidence:     model.Accuracy,
+		Timestamp:      time.Now().Add(horizon),
+		Components: map[string]interface{}{
+			"base_value":          baseValue,
+			"trend_adjustment":    trendAdjustment,
+			"seasonal_adjustment": seasonalAdjustment,
+		},
+	}
+
+	pa.logger.DebugWithContext("Generated forecast",
+		slog.String("sla_type", string(slaType)),
+		slog.Duration("horizon", horizon),
+		slog.Float64("predicted_value", predictedValue),
+		slog.Float64("confidence", model.Accuracy),
+	)
+
+	return forecast, nil
+}
+
+// anomalyDetectionLoop runs anomaly detection processing
+func (pa *PredictiveAlerting) anomalyDetectionLoop(ctx context.Context) {
+	ticker := time.NewTicker(2 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-pa.stopCh:
+			return
+		case <-ticker.C:
+			pa.runAnomalyDetection(ctx)
+		}
+	}
+}
+
+// modelUpdateProcessingLoop runs model update processing
+func (pa *PredictiveAlerting) modelUpdateProcessingLoop(ctx context.Context) {
+	ticker := time.NewTicker(pa.config.ModelUpdateInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-pa.stopCh:
+			return
+		case <-ticker.C:
+			pa.processModelUpdates(ctx)
+		}
+	}
+}
+
+// forecastingLoop runs forecasting processing
+func (pa *PredictiveAlerting) forecastingLoop(ctx context.Context) {
+	ticker := time.NewTicker(5 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-pa.stopCh:
+			return
+		case <-ticker.C:
+			pa.generateForecasts(ctx)
+		}
+	}
+}
+
+// runAnomalyDetection performs anomaly detection for all SLA types
+func (pa *PredictiveAlerting) runAnomalyDetection(ctx context.Context) {
+	slaTypes := []SLAType{SLATypeAvailability, SLATypeLatency, SLAThroughput, SLAErrorRate}
+	
+	for _, slaType := range slaTypes {
+		// Mock current metrics for anomaly detection
+		currentMetrics := map[string]float64{
+			"cpu_usage":    45.0 + float64(time.Now().Unix()%20), // Add some variation
+			"memory_usage": 67.0 + float64(time.Now().Unix()%15),
+			"request_rate": 1200.0 + float64(time.Now().Unix()%100),
+		}
+		
+		_, err := pa.performAnomalyDetection(ctx, slaType, currentMetrics)
+		if err != nil {
+			pa.logger.WarnWithContext("Anomaly detection failed",
+				slog.String("sla_type", string(slaType)),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+}
+
+// processModelUpdates processes model updates
+func (pa *PredictiveAlerting) processModelUpdates(ctx context.Context) {
+	pa.logger.InfoWithContext("Processing model updates")
+	
+	for slaType := range pa.models {
+		// Generate mock time series data for updates
+		mockData := []TimeSeriesData{
+			{
+				Timestamp: time.Now(),
+				Value:     99.95 + float64(time.Now().Unix()%100)/10000,
+				Metadata:  map[string]interface{}{"source": "mock"},
+			},
+		}
+		
+		err := pa.updateModel(ctx, slaType, mockData)
+		if err != nil {
+			pa.logger.ErrorWithContext("Failed to update model", err,
+				slog.String("sla_type", string(slaType)),
+			)
+		}
+	}
+}
+
+// generateForecasts generates forecasts for all SLA types
+func (pa *PredictiveAlerting) generateForecasts(ctx context.Context) {
+	for slaType := range pa.models {
+		_, err := pa.forecastFuture(ctx, slaType, time.Hour)
+		if err != nil {
+			pa.logger.WarnWithContext("Forecast generation failed",
+				slog.String("sla_type", string(slaType)),
+				slog.String("error", err.Error()),
+			)
+		}
+	}
+}

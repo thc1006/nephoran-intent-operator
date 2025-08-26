@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -86,7 +86,7 @@ func (h *PackageHandlers) CreatePackage(w http.ResponseWriter, r *http.Request) 
 	newPackage := PackageRevision{
 		ID:        uuid.New(),
 		Spec:      packageSpec,
-		CreatedAt: metav1.Now().Time,
+		CreatedAt: time.Now(),
 		Status: PackageRevisionStatus{
 			Phase: "Creating",
 		},
@@ -136,7 +136,7 @@ func (h *PackageHandlers) UpdatePackage(w http.ResponseWriter, r *http.Request) 
 	updatedPackage := PackageRevision{
 		ID:        uuid.MustParse(packageID),
 		Spec:      updateSpec,
-		UpdatedAt: metav1.Now().Time,
+		UpdatedAt: time.Now(),
 		Status: PackageRevisionStatus{
 			Phase: "Updating",
 		},
@@ -326,7 +326,7 @@ func (h *SystemHandlers) GetHealthStatus(w http.ResponseWriter, r *http.Request)
 	healthStatus := APIHealthStatus{
 		Status:  "Healthy",
 		Version: "1.0.0",
-		Uptime:  metav1.Now().Sub(metav1.Time{}),
+		Uptime:  time.Since(time.Time{}),
 		Components: map[string]string{
 			"database":   "Connected",
 			"cache":      "Operational",

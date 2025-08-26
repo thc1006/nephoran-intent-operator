@@ -119,17 +119,7 @@ type OptimizerConfig struct {
 	PrioritizeByCPUUsage bool    // Prioritize by CPU usage impact
 }
 
-// OptimizationPattern represents a known performance optimization pattern
-type OptimizationPattern struct {
-	ID          string
-	Name        string
-	Description string
-	Pattern     string  // Regular expression or signature to match
-	Impact      float64 // Expected performance impact (0-100%)
-	Difficulty  string  // "Easy", "Medium", "Hard"
-	Category    string  // "CPU", "Memory", "I/O", "Concurrency"
-	CodeExample string
-}
+// OptimizationPattern is defined in benchmark_runner.go
 
 // OptimizationSuggestion represents a specific optimization recommendation
 type OptimizationSuggestion struct {
@@ -661,7 +651,7 @@ func (ep *EnhancedProfiler) handleOptimizationSuggestions(suggestions []Optimiza
 		// Update metrics
 		if ep.metricsCollector != nil {
 			ep.metricsCollector.optimizationCount.WithLabelValues(
-				suggestion.PatternMatched.Category, suggestion.Priority).Inc()
+				suggestion.PatternMatched.Name, suggestion.Priority).Inc()
 		}
 	}
 }
@@ -929,22 +919,26 @@ func getDefaultTraceConfig() *TraceConfig {
 func getOptimizationPatterns() []OptimizationPattern {
 	return []OptimizationPattern{
 		{
-			ID:          "inefficient-loops",
 			Name:        "Inefficient Loop Patterns",
 			Description: "Loops with unnecessary allocations or computations",
-			Impact:      25.0,
-			Difficulty:  "Easy",
-			Category:    "CPU",
-			CodeExample: "// Move invariant calculations outside loop",
+			Conditions:  []string{"loop_allocations > 10", "cpu_usage > 80%"},
+			Actions:     []string{"Move invariant calculations outside loop", "Pre-allocate slices"},
+			SuccessRate: 0.85,
+			ImpactMetrics: map[string]float64{
+				"cpu_reduction_percent": 25.0,
+				"performance_improvement_percent": 20.0,
+			},
 		},
 		{
-			ID:          "excessive-allocations",
 			Name:        "Excessive Memory Allocations",
 			Description: "High frequency allocations causing GC pressure",
-			Impact:      40.0,
-			Difficulty:  "Medium",
-			Category:    "Memory",
-			CodeExample: "// Use object pools or pre-allocated slices",
+			Conditions:  []string{"allocation_rate > 1000/sec", "gc_frequency > 10/min"},
+			Actions:     []string{"Use object pools", "Pre-allocate slices", "Reduce string concatenation"},
+			SuccessRate: 0.75,
+			ImpactMetrics: map[string]float64{
+				"memory_reduction_percent": 40.0,
+				"gc_pause_reduction_percent": 50.0,
+			},
 		},
 	}
 }

@@ -13,7 +13,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-	"unsafe"
 
 	"github.com/bytedance/sonic"
 	"github.com/valyala/fastjson"

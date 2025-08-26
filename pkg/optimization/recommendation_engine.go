@@ -214,6 +214,7 @@ type OptimizationRecommendation struct {
 	// Implementation details
 	Strategy           *OptimizationStrategy `json:"strategy"`
 	ImplementationPlan *ImplementationPlan   `json:"implementationPlan"`
+	ImplementationSteps []string             `json:"implementationSteps"`
 
 	// Scoring and ranking
 	OverallScore     float64 `json:"overallScore"`

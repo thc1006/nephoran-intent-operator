@@ -4,11 +4,9 @@
 package llm
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -108,7 +106,7 @@ const (
 )
 
 // StreamingRequest represents a request for streaming processing
-type StreamingRequestImpl struct {
+type StreamingRequest struct {
 	Query       string                 `json:"query"`
 	IntentType  string                 `json:"intent_type"`
 	ModelName   string                 `json:"model_name"`
@@ -399,12 +397,9 @@ func (sp *StreamingProcessorImpl) processStreamingRequest(session *StreamingSess
 	// Note: This is a simplified implementation
 	// In production, you would need to implement actual streaming for each backend
 
-	if streamingClient, ok := sp.baseClient.(StreamingClient); ok {
-		return sp.handleClientStreaming(session, request, streamingClient, ragContext)
-	} else {
-		// Fallback: simulate streaming by chunking non-streaming response
-		return sp.simulateStreaming(session, request, ragContext)
-	}
+	// For now, always use simulated streaming as base client is a concrete struct type
+	// In the future, this could check for streaming capability interface
+	return sp.simulateStreaming(session, request, ragContext)
 }
 
 // StreamingClient interface for clients that support streaming
@@ -679,9 +674,9 @@ func (sp *StreamingProcessorImpl) performMaintenanceTasks(ctx context.Context) {
 	sp.mutex.RUnlock()
 
 	if activeCount > 0 {
-		sp.logger.V(1).Info("Maintenance check",
-			"active_streams", activeCount,
-			"max_concurrent", sp.config.MaxConcurrentStreams)
+		sp.logger.Debug("Maintenance check",
+			slog.Int("active_streams", activeCount),
+			slog.Int("max_concurrent", sp.config.MaxConcurrentStreams))
 	}
 }
 

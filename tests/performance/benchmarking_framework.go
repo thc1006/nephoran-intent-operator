@@ -390,10 +390,9 @@ func (bf *BenchmarkFramework) benchmarkWorker(ctx context.Context, requests <-ch
 	for query := range requests {
 		start := time.Now()
 
-		response, err := bf.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+		response, err := bf.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 			Query:      query.Query,
 			IntentType: query.IntentType,
-			Context:    query.Context,
 		})
 
 		latency := time.Since(start)

@@ -1,22 +1,29 @@
 package performance
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/pprof"
 	"os"
 	"runtime"
 	rpprof "runtime/pprof"
 	"runtime/trace"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"k8s.io/klog/v2"
 )
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
 
 // Profiler provides comprehensive profiling capabilities
 type Profiler struct {
@@ -435,7 +442,12 @@ func (p *Profiler) updateGoroutineStats() {
 	// Parse stack traces (simplified)
 	stacks := string(buf[:n])
 	p.goroutineStats.StackTraces = make(map[string]int)
-	// In real implementation, parse stacks and count unique traces
+	// Count unique stack traces by splitting on goroutine boundaries
+	for _, trace := range strings.Split(stacks, "\n\ngoroutine ") {
+		if len(trace) > 0 {
+			p.goroutineStats.StackTraces[trace[:min(50, len(trace))]]++
+		}
+	}
 
 	p.goroutineStats.LastSnapshot = time.Now()
 }

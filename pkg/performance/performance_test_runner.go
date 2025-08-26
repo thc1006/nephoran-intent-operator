@@ -47,7 +47,7 @@ type PerformanceTestResults struct {
 	Config             *PerformanceTestConfig
 	BenchmarkResults   []BenchmarkResult
 	LoadTestResults    map[string]*LoadTestResult
-	FlameGraphs        map[string]*ComparisonResult
+	FlameGraphs        map[string]*FlameGraphComparisonResult
 	ProfileAnalysis    map[string]*TestProfileReport
 	PerformanceTargets *TargetValidation
 	Summary            *PerformanceSummary
@@ -113,7 +113,7 @@ func NewPerformanceTestRunner(config *PerformanceTestConfig) *PerformanceTestRun
 			Timestamp:       time.Now(),
 			Config:          config,
 			LoadTestResults: make(map[string]*LoadTestResult),
-			FlameGraphs:     make(map[string]*ComparisonResult),
+			FlameGraphs:     make(map[string]*FlameGraphComparisonResult),
 			ProfileAnalysis: make(map[string]*TestProfileReport),
 		},
 	}
@@ -794,7 +794,7 @@ func getTargetStatus(met bool) string {
 	return "✗ NOT MET"
 }
 
-func countEliminatedHotSpots(comparison *ComparisonResult) int {
+func countEliminatedHotSpots(comparison *FlameGraphComparisonResult) int {
 	count := 0
 	for _, change := range comparison.HotSpotChanges {
 		if change.Status == "eliminated" {
