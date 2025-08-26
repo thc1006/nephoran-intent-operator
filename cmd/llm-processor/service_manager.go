@@ -121,13 +121,15 @@ type ServiceManager struct {
 	contextBuilder     *llm.ContextBuilder
 	relevanceScorer    *llm.RelevanceScorer
 	promptBuilder      *llm.RAGAwarePromptBuilder
+	startTime          time.Time
 }
 
 // NewServiceManager creates a new service manager
 func NewServiceManager(config *Config, logger *slog.Logger) *ServiceManager {
 	return &ServiceManager{
-		config: config,
-		logger: logger,
+		config:    config,
+		logger:    logger,
+		startTime: time.Now(),
 	}
 }
 
@@ -552,7 +554,7 @@ func (sm *ServiceManager) statusHandler(w http.ResponseWriter, r *http.Request) 
 	status := map[string]any{
 		"service":        "llm-processor",
 		"version":        sm.config.ServiceVersion,
-		"uptime":         time.Since(startTime).String(),
+		"uptime":         time.Since(sm.startTime).String(),
 		"healthy":        sm.healthChecker.IsHealthy(),
 		"ready":          sm.healthChecker.IsReady(),
 		"backend_type":   sm.config.LLMBackendType,
@@ -571,7 +573,7 @@ func (sm *ServiceManager) metricsHandler(w http.ResponseWriter, r *http.Request)
 	metrics := map[string]any{
 		"service": "llm-processor",
 		"version": sm.config.ServiceVersion,
-		"uptime":  time.Since(startTime).String(),
+		"uptime":  time.Since(sm.startTime).String(),
 	}
 
 	// Add token manager metrics

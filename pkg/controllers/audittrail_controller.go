@@ -1,497 +1,394 @@
+/*
+Copyright 2025.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package controllers
 
 import (
 	"context"
 	"fmt"
-	"reflect"
+	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/tools/record"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	nephv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit"
-	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
 )
 
-const (
-	// AuditTrailFinalizer is the finalizer used for AuditTrail resources
-	AuditTrailFinalizer = "audittrail.nephoran.io/finalizer"
-
-	// ConditionTypes for AuditTrail status
-	ConditionTypeReady          = "Ready"
-	ConditionTypeProgressing    = "Progressing"
-	ConditionTypeBackendsReady  = "BackendsReady"
-	ConditionTypeIntegrityReady = "IntegrityReady"
-
-	// Event reasons
-	EventReasonCreated         = "Created"
-	EventReasonUpdated         = "Updated"
-	EventReasonStarted         = "Started"
-	EventReasonStopped         = "Stopped"
-	EventReasonBackendFailed   = "BackendFailed"
-	EventReasonIntegrityFailed = "IntegrityFailed"
-	EventReasonConfigChanged   = "ConfigChanged"
-)
-
-// AuditTrailController reconciles a AuditTrail object
+// AuditTrailController reconciles AuditTrail objects
 type AuditTrailController struct {
 	client.Client
-	Log      logr.Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Scheme *runtime.Scheme
 
-	// Audit system instances managed by this controller
+	// Track active audit systems
 	auditSystems map[string]*audit.AuditSystem
+	mutex        sync.RWMutex
 }
 
 // NewAuditTrailController creates a new AuditTrailController
-func NewAuditTrailController(client client.Client, log logr.Logger, scheme *runtime.Scheme, recorder record.EventRecorder) *AuditTrailController {
+func NewAuditTrailController(client client.Client, scheme *runtime.Scheme) *AuditTrailController {
 	return &AuditTrailController{
 		Client:       client,
-		Log:          log,
 		Scheme:       scheme,
-		Recorder:     recorder,
 		auditSystems: make(map[string]*audit.AuditSystem),
 	}
 }
 
-// +kubebuilder:rbac:groups=nephoran.io,resources=audittrails,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=nephoran.io,resources=audittrails/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=nephoran.io,resources=audittrails/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
-// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch
-// +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
+//+kubebuilder:rbac:groups=nephoran.nephio.org,resources=audittrails,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=nephoran.nephio.org,resources=audittrails/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=nephoran.nephio.org,resources=audittrails/finalizers,verbs=update
 
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
+// Reconcile manages the lifecycle of AuditTrail resources
 func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.Log.WithValues("audittrail", req.NamespacedName)
+	logger := log.FromContext(ctx).WithValues("audittrail", req.NamespacedName)
 
 	// Fetch the AuditTrail instance
-	auditTrail := &nephv1.AuditTrail{}
-	if err := r.Get(ctx, req.NamespacedName, auditTrail); err != nil {
-		if apierrors.IsNotFound(err) {
-			// Object not found, could have been deleted
-			log.Info("AuditTrail resource not found, cleaning up")
-			return r.cleanupAuditSystem(req.NamespacedName.String())
+	var auditTrail nephv1.AuditTrail
+	if err := r.Get(ctx, req.NamespacedName, &auditTrail); err != nil {
+		if errors.IsNotFound(err) {
+			// Remove audit system if it exists
+			r.removeAuditSystem(req.NamespacedName.String())
+			return ctrl.Result{}, nil
 		}
-		log.Error(err, "Unable to fetch AuditTrail")
+		logger.Error(err, "Failed to get AuditTrail")
 		return ctrl.Result{}, err
 	}
 
 	// Handle deletion
-	if !auditTrail.DeletionTimestamp.IsZero() {
-		return r.handleDeletion(ctx, auditTrail, log)
+	if !auditTrail.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.handleDeletion(ctx, &auditTrail)
 	}
 
-	// Add finalizer if not present
-	if !controllerutil.ContainsFinalizer(auditTrail, AuditTrailFinalizer) {
-		log.Info("Adding finalizer to AuditTrail")
-		controllerutil.AddFinalizer(auditTrail, AuditTrailFinalizer)
-		return ctrl.Result{}, r.Update(ctx, auditTrail)
+	// Ensure audit system exists
+	if err := r.ensureAuditSystem(ctx, &auditTrail); err != nil {
+		logger.Error(err, "Failed to ensure audit system")
+		return ctrl.Result{RequeueAfter: time.Minute}, err
 	}
 
-	// Initialize or update the audit system
-	result, err := r.reconcileAuditSystem(ctx, auditTrail, log)
-	if err != nil {
-		return result, r.updateStatusError(ctx, auditTrail, err, log)
+	// Update status
+	if err := r.updateStatus(ctx, &auditTrail); err != nil {
+		logger.Error(err, "Failed to update status")
+		return ctrl.Result{RequeueAfter: time.Minute * 5}, err
 	}
 
-	// Update status with current state
-	return result, r.updateStatus(ctx, auditTrail, log)
+	logger.Info("Successfully reconciled AuditTrail")
+	return ctrl.Result{RequeueAfter: time.Minute * 10}, nil
 }
 
-// handleDeletion handles the deletion of an AuditTrail resource
-func (r *AuditTrailController) handleDeletion(ctx context.Context, auditTrail *nephv1.AuditTrail, log logr.Logger) (ctrl.Result, error) {
-	if controllerutil.ContainsFinalizer(auditTrail, AuditTrailFinalizer) {
-		log.Info("Finalizing AuditTrail")
+// handleDeletion handles the cleanup when an AuditTrail is being deleted
+func (r *AuditTrailController) handleDeletion(ctx context.Context, auditTrail *nephv1.AuditTrail) (ctrl.Result, error) {
+	logger := log.FromContext(ctx).WithValues("audittrail", auditTrail.Name)
 
-		// Stop and cleanup the audit system
-		key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
-		if auditSystem, exists := r.auditSystems[key]; exists {
-			log.Info("Stopping audit system")
-			if err := auditSystem.Stop(); err != nil {
-				log.Error(err, "Failed to stop audit system")
-				r.Recorder.Event(auditTrail, corev1.EventTypeWarning, EventReasonStopped,
-					fmt.Sprintf("Failed to stop audit system: %v", err))
-			} else {
-				r.Recorder.Event(auditTrail, corev1.EventTypeNormal, EventReasonStopped,
-					"Audit system stopped successfully")
-			}
-			delete(r.auditSystems, key)
-		}
+	// Remove from our tracking
+	key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
+	r.removeAuditSystem(key)
 
-		// Remove finalizer
-		controllerutil.RemoveFinalizer(auditTrail, AuditTrailFinalizer)
-		return ctrl.Result{}, r.Update(ctx, auditTrail)
+	// Remove finalizer if present
+	controllerutil.RemoveFinalizer(auditTrail, "audittrail.nephoran.nephio.org/finalizer")
+	if err := r.Update(ctx, auditTrail); err != nil {
+		logger.Error(err, "Failed to remove finalizer")
+		return ctrl.Result{}, err
 	}
 
+	logger.Info("Successfully cleaned up AuditTrail")
 	return ctrl.Result{}, nil
 }
 
-// reconcileAuditSystem creates or updates the audit system based on the AuditTrail spec
-func (r *AuditTrailController) reconcileAuditSystem(ctx context.Context, auditTrail *nephv1.AuditTrail, log logr.Logger) (ctrl.Result, error) {
+// ensureAuditSystem ensures that an audit system exists for the given AuditTrail
+func (r *AuditTrailController) ensureAuditSystem(ctx context.Context, auditTrail *nephv1.AuditTrail) error {
 	key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
 
-	// Check if audit system exists and if configuration has changed
-	existingSystem, exists := r.auditSystems[key]
-	needsRecreation := false
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
-	if exists {
-		// Compare current configuration with desired configuration
-		// This is a simplified check - in practice, you'd compare more thoroughly
-		if r.hasConfigurationChanged(auditTrail) {
-			log.Info("Configuration changed, recreating audit system")
-			needsRecreation = true
-		}
+	// Check if audit system already exists
+	if _, exists := r.auditSystems[key]; exists {
+		return nil
 	}
 
-	if needsRecreation {
-		// Stop existing system
-		if err := existingSystem.Stop(); err != nil {
-			log.Error(err, "Failed to stop existing audit system")
-		}
-		delete(r.auditSystems, key)
-		exists = false
+	// Create new audit system
+	config := &audit.AuditConfig{
+		EnabledSources: auditTrail.Spec.Sources,
+		RetentionDays:  auditTrail.Spec.RetentionDays,
+		Storage: audit.StorageConfig{
+			Type: auditTrail.Spec.Storage.Type,
+		},
 	}
 
-	if !exists || needsRecreation {
-		// Create new audit system
-		log.Info("Creating new audit system")
-
-		// Convert AuditTrail spec to audit system configuration
-		config, err := r.buildAuditSystemConfig(ctx, auditTrail, log)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to build audit system config: %w", err)
-		}
-
-		// Create audit system
-		auditSystem, err := audit.NewAuditSystem(config)
-		if err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to create audit system: %w", err)
-		}
-
-		// Start audit system if enabled
-		if auditTrail.Spec.Enabled {
-			if err := auditSystem.Start(); err != nil {
-				return ctrl.Result{}, fmt.Errorf("failed to start audit system: %w", err)
+	// Set storage configuration based on type
+	switch auditTrail.Spec.Storage.Type {
+	case "elasticsearch":
+		if auditTrail.Spec.Storage.Elasticsearch != nil {
+			config.Storage.Elasticsearch = &audit.ElasticsearchConfig{
+				URL:      auditTrail.Spec.Storage.Elasticsearch.URL,
+				Index:    auditTrail.Spec.Storage.Elasticsearch.Index,
+				Username: auditTrail.Spec.Storage.Elasticsearch.Username,
+				Password: auditTrail.Spec.Storage.Elasticsearch.Password,
 			}
-			r.Recorder.Event(auditTrail, corev1.EventTypeNormal, EventReasonStarted,
-				"Audit system started successfully")
 		}
-
-		r.auditSystems[key] = auditSystem
-		r.Recorder.Event(auditTrail, corev1.EventTypeNormal, EventReasonCreated,
-			"Audit system created successfully")
-	} else {
-		// Handle enable/disable changes
-		if auditTrail.Spec.Enabled {
-			// Ensure system is started
-			stats := existingSystem.GetStats()
-			if stats.EventsReceived == 0 && stats.EventsDropped == 0 {
-				// System might not be started
-				if err := existingSystem.Start(); err != nil {
-					log.Error(err, "Failed to start existing audit system")
-				}
-			}
-		} else {
-			// Stop system if it's running
-			if err := existingSystem.Stop(); err != nil {
-				log.Error(err, "Failed to stop audit system")
+	case "s3":
+		if auditTrail.Spec.Storage.S3 != nil {
+			config.Storage.S3 = &audit.S3Config{
+				Bucket:          auditTrail.Spec.Storage.S3.Bucket,
+				Region:          auditTrail.Spec.Storage.S3.Region,
+				AccessKeyID:     auditTrail.Spec.Storage.S3.AccessKeyID,
+				SecretAccessKey: auditTrail.Spec.Storage.S3.SecretAccessKey,
 			}
 		}
 	}
 
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	// Create audit system
+	auditSystem, err := audit.NewAuditSystem(config)
+	if err != nil {
+		return fmt.Errorf("failed to create audit system: %w", err)
+	}
+
+	// Start the audit system
+	if err := auditSystem.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start audit system: %w", err)
+	}
+
+	// Store in our tracking map
+	r.auditSystems[key] = auditSystem
+
+	return nil
 }
 
-// buildAuditSystemConfig converts AuditTrail spec to audit system configuration
-func (r *AuditTrailController) buildAuditSystemConfig(ctx context.Context, auditTrail *nephv1.AuditTrail, log logr.Logger) (*audit.AuditSystemConfig, error) {
-	config := &audit.AuditSystemConfig{
-		Enabled:         auditTrail.Spec.Enabled,
-		LogLevel:        r.convertLogLevel(auditTrail.Spec.LogLevel),
-		BatchSize:       auditTrail.Spec.BatchSize,
-		FlushInterval:   time.Duration(auditTrail.Spec.FlushInterval) * time.Second,
-		MaxQueueSize:    auditTrail.Spec.MaxQueueSize,
-		EnableIntegrity: auditTrail.Spec.EnableIntegrity,
-		ComplianceMode:  r.convertComplianceMode(auditTrail.Spec.ComplianceMode),
-	}
-
-	// Set defaults if not specified
-	if config.BatchSize == 0 {
-		config.BatchSize = 100
-	}
-	if config.FlushInterval == 0 {
-		config.FlushInterval = 10 * time.Second
-	}
-	if config.MaxQueueSize == 0 {
-		config.MaxQueueSize = 10000
-	}
-
-	// Build backend configurations
-	backendConfigs := make([]backends.BackendConfig, 0, len(auditTrail.Spec.Backends))
-	for _, backend := range auditTrail.Spec.Backends {
-		backendConfig, err := r.buildBackendConfig(ctx, auditTrail, backend, log)
-		if err != nil {
-			return nil, fmt.Errorf("failed to build backend config for %s: %w", backend.Name, err)
-		}
-		backendConfigs = append(backendConfigs, *backendConfig)
-	}
-	config.Backends = backendConfigs
-
-	return config, nil
-}
-
-// buildBackendConfig converts AuditBackendConfig to backend configuration
-func (r *AuditTrailController) buildBackendConfig(ctx context.Context, auditTrail *nephv1.AuditTrail, spec nephv1.AuditBackendConfig, log logr.Logger) (*backends.BackendConfig, error) {
-	config := &backends.BackendConfig{
-		Type:        backends.BackendType(spec.Type),
-		Enabled:     spec.Enabled,
-		Name:        spec.Name,
-		Format:      spec.Format,
-		Compression: spec.Compression,
-		BufferSize:  spec.BufferSize,
-		Timeout:     time.Duration(spec.Timeout) * time.Second,
-	}
-
-	// Set defaults
-	if config.BufferSize == 0 {
-		config.BufferSize = 1000
-	}
-	if config.Timeout == 0 {
-		config.Timeout = 30 * time.Second
-	}
-	if config.Format == "" {
-		config.Format = "json"
-	}
-
-	// Convert settings from RawExtension
-	if spec.Settings.Raw != nil {
-		settings := make(map[string]interface{})
-		// In a real implementation, you'd unmarshal the RawExtension properly
-		// For now, we'll create a basic settings map
-		settings["raw_config"] = string(spec.Settings.Raw)
-		config.Settings = settings
-	}
-
-	// Convert retry policy
-	if spec.RetryPolicy != nil {
-		config.RetryPolicy = backends.RetryPolicy{
-			MaxRetries:    spec.RetryPolicy.MaxRetries,
-			InitialDelay:  time.Duration(spec.RetryPolicy.InitialDelay) * time.Second,
-			MaxDelay:      time.Duration(spec.RetryPolicy.MaxDelay) * time.Second,
-			BackoffFactor: spec.RetryPolicy.BackoffFactor,
-		}
-	} else {
-		config.RetryPolicy = backends.DefaultRetryPolicy()
-	}
-
-	// Convert TLS config
-	if spec.TLS != nil {
-		config.TLS = backends.TLSConfig{
-			Enabled:            spec.TLS.Enabled,
-			CertFile:           spec.TLS.CertFile,
-			KeyFile:            spec.TLS.KeyFile,
-			CAFile:             spec.TLS.CAFile,
-			ServerName:         spec.TLS.ServerName,
-			InsecureSkipVerify: spec.TLS.InsecureSkipVerify,
-		}
-	}
-
-	// Convert filter config
-	if spec.Filter != nil {
-		config.Filter = backends.FilterConfig{
-			MinSeverity:   r.convertLogLevel(spec.Filter.MinSeverity),
-			EventTypes:    r.convertEventTypes(spec.Filter.EventTypes),
-			Components:    spec.Filter.Components,
-			ExcludeTypes:  r.convertEventTypes(spec.Filter.ExcludeTypes),
-			IncludeFields: spec.Filter.IncludeFields,
-			ExcludeFields: spec.Filter.ExcludeFields,
-		}
-	} else {
-		config.Filter = backends.DefaultFilterConfig()
-	}
-
-	return config, nil
-}
-
-// updateStatus updates the AuditTrail status with current information
-func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nephv1.AuditTrail, log logr.Logger) error {
-	key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
-
-	// Get current status from audit system
-	var stats audit.AuditStats
-	var phase string = "Pending"
+// removeAuditSystem removes an audit system from tracking and stops it
+func (r *AuditTrailController) removeAuditSystem(key string) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
 	if auditSystem, exists := r.auditSystems[key]; exists {
-		stats = auditSystem.GetStats()
-		if auditTrail.Spec.Enabled {
-			phase = "Running"
-		} else {
-			phase = "Stopped"
-		}
-	} else {
-		phase = "Initializing"
+		auditSystem.Stop()
+		delete(r.auditSystems, key)
 	}
+}
 
-	// Build status
-	now := metav1.Now()
-	status := nephv1.AuditTrailStatus{
-		Phase:      phase,
-		LastUpdate: &now,
-		Stats: &nephv1.AuditTrailStats{
-			EventsReceived:  stats.EventsReceived,
-			EventsProcessed: stats.EventsReceived - stats.EventsDropped,
-			EventsDropped:   stats.EventsDropped,
-			QueueSize:       stats.QueueSize,
-			BackendCount:    stats.BackendCount,
-		},
-	}
+// updateStatus updates the status of the AuditTrail resource
+func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nephv1.AuditTrail) error {
+	key := fmt.Sprintf("%s/%s", auditTrail.Namespace, auditTrail.Name)
 
-	// Build conditions
-	conditions := []metav1.Condition{
-		{
-			Type:               ConditionTypeReady,
-			Status:             metav1.ConditionTrue,
-			Reason:             "SystemOperational",
-			Message:            "Audit system is operational",
-			LastTransitionTime: now,
-		},
-	}
+	r.mutex.RLock()
+	auditSystem, exists := r.auditSystems[key]
+	r.mutex.RUnlock()
 
-	if phase != "Running" {
-		conditions[0].Status = metav1.ConditionFalse
-		conditions[0].Reason = "SystemNotRunning"
-		conditions[0].Message = fmt.Sprintf("Audit system is in phase: %s", phase)
-	}
-
-	status.Conditions = conditions
-
-	// Update status if changed
-	if !reflect.DeepEqual(auditTrail.Status, status) {
-		auditTrail.Status = status
+	if !exists {
+		auditTrail.Status.Phase = "Failed"
+		auditTrail.Status.Message = "Audit system not found"
 		return r.Status().Update(ctx, auditTrail)
+	}
+
+	// Get metrics from audit system
+	metrics := auditSystem.GetMetrics()
+	
+	// Update status based on audit system state
+	if auditSystem.IsHealthy() {
+		auditTrail.Status.Phase = "Active"
+		auditTrail.Status.Message = "Audit system is running"
+		auditTrail.Status.EventsCollected = int64(metrics.EventsProcessed)
+		auditTrail.Status.LastEventTime = &metav1.Time{Time: metrics.LastEventTime}
+	} else {
+		auditTrail.Status.Phase = "Degraded"
+		auditTrail.Status.Message = "Audit system is experiencing issues"
+	}
+
+	// Update storage status
+	auditTrail.Status.StorageStatus = &nephv1.StorageStatus{
+		Available:   true,
+		UsedBytes:   metrics.StorageUsed,
+		TotalEvents: int64(metrics.TotalEvents),
+	}
+
+	return r.Status().Update(ctx, auditTrail)
+}
+
+// validateAuditTrail validates the AuditTrail specification
+func (r *AuditTrailController) validateAuditTrail(auditTrail *nephv1.AuditTrail) error {
+	// Validate sources
+	if len(auditTrail.Spec.Sources) == 0 {
+		return fmt.Errorf("at least one audit source must be specified")
+	}
+
+	validSources := map[string]bool{
+		"kubernetes": true,
+		"oran":       true,
+		"nephio":     true,
+		"custom":     true,
+	}
+
+	for _, source := range auditTrail.Spec.Sources {
+		if !validSources[source] {
+			return fmt.Errorf("invalid audit source: %s", source)
+		}
+	}
+
+	// Validate retention
+	if auditTrail.Spec.RetentionDays <= 0 {
+		return fmt.Errorf("retention days must be positive")
+	}
+
+	// Validate storage
+	switch auditTrail.Spec.Storage.Type {
+	case "elasticsearch":
+		if auditTrail.Spec.Storage.Elasticsearch == nil {
+			return fmt.Errorf("elasticsearch configuration is required for elasticsearch storage")
+		}
+		if auditTrail.Spec.Storage.Elasticsearch.URL == "" {
+			return fmt.Errorf("elasticsearch URL is required")
+		}
+	case "s3":
+		if auditTrail.Spec.Storage.S3 == nil {
+			return fmt.Errorf("s3 configuration is required for s3 storage")
+		}
+		if auditTrail.Spec.Storage.S3.Bucket == "" {
+			return fmt.Errorf("s3 bucket is required")
+		}
+	case "local":
+		// Local storage is always valid
+	default:
+		return fmt.Errorf("unsupported storage type: %s", auditTrail.Spec.Storage.Type)
 	}
 
 	return nil
 }
 
-// updateStatusError updates the status with error information
-func (r *AuditTrailController) updateStatusError(ctx context.Context, auditTrail *nephv1.AuditTrail, err error, log logr.Logger) error {
-	now := metav1.Now()
-	auditTrail.Status.Phase = "Failed"
-	auditTrail.Status.LastUpdate = &now
-	auditTrail.Status.Conditions = []metav1.Condition{
-		{
-			Type:               ConditionTypeReady,
-			Status:             metav1.ConditionFalse,
-			Reason:             "Error",
-			Message:            err.Error(),
-			LastTransitionTime: now,
-		},
-	}
+// handleAuditEvent processes incoming audit events
+func (r *AuditTrailController) handleAuditEvent(ctx context.Context, event *audit.Event) error {
+	logger := log.FromContext(ctx).WithValues("event", event.ID)
 
-	r.Recorder.Event(auditTrail, corev1.EventTypeWarning, "ReconcileError",
-		fmt.Sprintf("Failed to reconcile: %v", err))
+	// Find appropriate audit systems based on event source
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
 
-	if updateErr := r.Status().Update(ctx, auditTrail); updateErr != nil {
-		log.Error(updateErr, "Failed to update status")
-		return updateErr
-	}
-
-	return err
-}
-
-// cleanupAuditSystem cleans up an audit system when the resource is deleted
-func (r *AuditTrailController) cleanupAuditSystem(key string) (ctrl.Result, error) {
-	if auditSystem, exists := r.auditSystems[key]; exists {
-		if err := auditSystem.Stop(); err != nil {
-			r.Log.Error(err, "Failed to stop audit system during cleanup", "key", key)
-		}
-		delete(r.auditSystems, key)
-	}
-	return ctrl.Result{}, nil
-}
-
-// hasConfigurationChanged checks if the configuration has changed
-func (r *AuditTrailController) hasConfigurationChanged(auditTrail *nephv1.AuditTrail) bool {
-	// This is a simplified implementation
-	// In practice, you'd store the last known configuration and compare
-	return false
-}
-
-// Helper functions for conversion
-
-func (r *AuditTrailController) convertLogLevel(level string) audit.Severity {
-	switch level {
-	case "emergency":
-		return audit.SeverityEmergency
-	case "alert":
-		return audit.SeverityAlert
-	case "critical":
-		return audit.SeverityCritical
-	case "error":
-		return audit.SeverityError
-	case "warning":
-		return audit.SeverityWarning
-	case "notice":
-		return audit.SeverityNotice
-	case "info":
-		return audit.SeverityInfo
-	case "debug":
-		return audit.SeverityDebug
-	default:
-		return audit.SeverityInfo
-	}
-}
-
-func (r *AuditTrailController) convertComplianceMode(modes []string) []audit.ComplianceStandard {
-	standards := make([]audit.ComplianceStandard, 0, len(modes))
-	for _, mode := range modes {
-		switch mode {
-		case "soc2":
-			standards = append(standards, audit.ComplianceSOC2)
-		case "iso27001":
-			standards = append(standards, audit.ComplianceISO27001)
-		case "pci_dss":
-			standards = append(standards, audit.CompliancePCIDSS)
-		case "hipaa":
-			standards = append(standards, audit.ComplianceHIPAA)
-		case "gdpr":
-			standards = append(standards, audit.ComplianceGDPR)
-		case "ccpa":
-			standards = append(standards, audit.ComplianceCCPA)
-		case "fisma":
-			standards = append(standards, audit.ComplianceFISMA)
-		case "nist_csf":
-			standards = append(standards, audit.ComplianceNIST)
+	for key, auditSystem := range r.auditSystems {
+		// Check if this audit system should handle this event
+		if auditSystem.ShouldProcessEvent(event) {
+			if err := auditSystem.ProcessEvent(ctx, event); err != nil {
+				logger.Error(err, "Failed to process audit event", "auditSystem", key)
+				// Continue processing with other audit systems
+			}
 		}
 	}
-	return standards
+
+	return nil
 }
 
-func (r *AuditTrailController) convertEventTypes(types []string) []audit.EventType {
-	eventTypes := make([]audit.EventType, 0, len(types))
-	for _, t := range types {
-		eventTypes = append(eventTypes, audit.EventType(t))
+// GetAuditTrails returns all active audit trails
+func (r *AuditTrailController) GetAuditTrails(ctx context.Context, namespace string) (*nephv1.AuditTrailList, error) {
+	var auditTrails nephv1.AuditTrailList
+	
+	listOpts := []client.ListOption{}
+	if namespace != "" {
+		listOpts = append(listOpts, client.InNamespace(namespace))
 	}
-	return eventTypes
+
+	if err := r.List(ctx, &auditTrails, listOpts...); err != nil {
+		return nil, fmt.Errorf("failed to list audit trails: %w", err)
+	}
+
+	return &auditTrails, nil
+}
+
+// ExportAuditLogs exports audit logs for a specific trail
+func (r *AuditTrailController) ExportAuditLogs(ctx context.Context, trailName, namespace string, startTime, endTime time.Time) ([]byte, error) {
+	key := fmt.Sprintf("%s/%s", namespace, trailName)
+
+	r.mutex.RLock()
+	auditSystem, exists := r.auditSystems[key]
+	r.mutex.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("audit trail not found: %s", key)
+	}
+
+	return auditSystem.ExportLogs(ctx, startTime, endTime)
+}
+
+// GetAuditMetrics returns metrics for a specific audit trail
+func (r *AuditTrailController) GetAuditMetrics(trailName, namespace string) (*audit.Metrics, error) {
+	key := fmt.Sprintf("%s/%s", namespace, trailName)
+
+	r.mutex.RLock()
+	auditSystem, exists := r.auditSystems[key]
+	r.mutex.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("audit trail not found: %s", key)
+	}
+
+	metrics := auditSystem.GetMetrics()
+	return &metrics, nil
+}
+
+// SearchAuditEvents searches for audit events based on criteria
+func (r *AuditTrailController) SearchAuditEvents(ctx context.Context, trailName, namespace string, criteria *audit.SearchCriteria) ([]*audit.Event, error) {
+	key := fmt.Sprintf("%s/%s", namespace, trailName)
+
+	r.mutex.RLock()
+	auditSystem, exists := r.auditSystems[key]
+	r.mutex.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("audit trail not found: %s", key)
+	}
+
+	return auditSystem.SearchEvents(ctx, criteria)
+}
+
+// HealthCheck performs a health check on all audit systems
+func (r *AuditTrailController) HealthCheck(ctx context.Context) error {
+	r.mutex.RLock()
+	defer r.mutex.RUnlock()
+
+	var unhealthy []string
+	for key, auditSystem := range r.auditSystems {
+		if !auditSystem.IsHealthy() {
+			unhealthy = append(unhealthy, key)
+		}
+	}
+
+	if len(unhealthy) > 0 {
+		return fmt.Errorf("unhealthy audit systems: %v", unhealthy)
+	}
+
+	return nil
+}
+
+// SetupWebhooks sets up webhooks for the controller
+func (r *AuditTrailController) SetupWebhooks(mgr ctrl.Manager) error {
+	return ctrl.NewWebhookManagedBy(mgr).
+		For(&nephv1.AuditTrail{}).
+		Complete()
 }
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *AuditTrailController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephv1.AuditTrail{}).
-		WithOptions(ctrl.Options{
+		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 1, // Ensure sequential processing
 		}).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).
@@ -502,4 +399,15 @@ func (r *AuditTrailController) SetupWithManager(mgr ctrl.Manager) error {
 func (r *AuditTrailController) GetAuditSystem(namespace, name string) *audit.AuditSystem {
 	key := fmt.Sprintf("%s/%s", namespace, name)
 	return r.auditSystems[key]
+}
+
+// Cleanup stops all audit systems when the controller shuts down
+func (r *AuditTrailController) Cleanup() {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	for key, auditSystem := range r.auditSystems {
+		auditSystem.Stop()
+		delete(r.auditSystems, key)
+	}
 }

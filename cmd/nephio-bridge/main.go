@@ -85,6 +85,11 @@ func (a *llmClientAdapter) GetMaxTokens(modelName string) int {
 	return 8192
 }
 
+func (a *llmClientAdapter) GetEndpoint() string {
+	// Return a default endpoint - in real implementation this would be configurable
+	return "http://localhost:8080"
+}
+
 func (a *llmClientAdapter) Close() error {
 	a.client.Shutdown()
 	return nil

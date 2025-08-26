@@ -490,8 +490,6 @@ const (
 	PhaseFailed            = "Failed"
 )
 
-// NetResourceConstraints aliases for NetworkResourceConstraints (for compatibility, to avoid conflict with disaster recovery)
-type NetResourceConstraints = NetworkResourceConstraints
 
 func init() {
 	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})

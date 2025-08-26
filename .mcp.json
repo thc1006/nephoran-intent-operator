@@ -8,13 +8,10 @@
       }
     },
     "filesystem": {
-      "command": "cmd",
+      "command": "node",
       "args": [
-        "/c",
-        "npx",
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-ingest-tests"
+        "C:\\nvm4w\\nodejs\\node_modules\\@modelcontextprotocol\\server-filesystem\\dist\\index.js",
+        "C:\\Users\\tingy\\dev\\_worktrees\\nephoran\\feat-e2e"
       ]
     },
     "kubernetes": {

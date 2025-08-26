@@ -3,10 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"math"
-	"math/rand"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -142,63 +139,7 @@ type NetworkIntentReconciler struct {
 	metrics           *ControllerMetrics
 }
 
-// Exponential backoff helper functions
-
-// calculateExponentialBackoff calculates the exponential backoff delay with jitter
-// retryCount: current retry attempt (0-based)
-// baseDelay: base delay duration (uses configured default if zero)
-// maxDelay: maximum delay duration (uses configured default if zero)
-// constants: configuration constants for backoff parameters
-func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Duration, constants *configPkg.Constants) time.Duration {
-	if baseDelay <= 0 {
-		baseDelay = constants.BaseBackoffDelay
-	}
-	if maxDelay <= 0 {
-		maxDelay = constants.MaxBackoffDelay
-	}
-
-	// Calculate exponential backoff: baseDelay * (multiplier^retryCount)
-	backoffDelay := float64(baseDelay) * math.Pow(constants.BackoffMultiplier, float64(retryCount))
-
-	// Cap at maximum delay
-	if backoffDelay > float64(maxDelay) {
-		backoffDelay = float64(maxDelay)
-	}
-
-	// Add jitter to prevent thundering herd
-	jitterRange := backoffDelay * constants.JitterFactor
-	jitter := (rand.Float64() - 0.5) * 2 * jitterRange
-	finalDelay := backoffDelay + jitter
-
-	// Ensure minimum delay
-	if finalDelay < float64(baseDelay) {
-		finalDelay = float64(baseDelay)
-	}
-
-	return time.Duration(finalDelay)
-}
-
-// calculateExponentialBackoffForOperation calculates backoff for specific operations
-func calculateExponentialBackoffForOperation(retryCount int, operation string, constants *configPkg.Constants) time.Duration {
-	var baseDelay, maxDelay time.Duration
-
-	switch operation {
-	case "llm-processing":
-		baseDelay = constants.LLMProcessingBaseDelay
-		maxDelay = constants.LLMProcessingMaxDelay
-	case "git-operations":
-		baseDelay = constants.GitOperationsBaseDelay
-		maxDelay = constants.GitOperationsMaxDelay
-	case "resource-planning":
-		baseDelay = constants.ResourcePlanningBaseDelay
-		maxDelay = constants.ResourcePlanningMaxDelay
-	default:
-		baseDelay = constants.BaseBackoffDelay
-		maxDelay = constants.MaxBackoffDelay
-	}
-
-	return calculateExponentialBackoff(retryCount, baseDelay, maxDelay, constants)
-}
+// Exponential backoff helper functions - using shared utilities
 
 func (r *NetworkIntentReconciler) setReadyCondition(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, status metav1.ConditionStatus, reason, message string) error {
 	condition := metav1.Condition{
@@ -208,7 +149,7 @@ func (r *NetworkIntentReconciler) setReadyCondition(ctx context.Context, network
 		Message:            message,
 		LastTransitionTime: metav1.Now(),
 	}
-	updateCondition(&networkIntent.Status.Conditions, condition)
+	UpdateCondition(&networkIntent.Status.Conditions, condition)
 	return r.safeStatusUpdate(ctx, networkIntent)
 }
 
@@ -426,51 +367,7 @@ func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
 	return false
 }
 
-func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Condition) {
-	if conditions == nil {
-		*conditions = []metav1.Condition{newCondition}
-		return
-	}
-
-	for i, condition := range *conditions {
-		if condition.Type == newCondition.Type {
-			(*conditions)[i] = newCondition
-			return
-		}
-	}
-	*conditions = append(*conditions, newCondition)
-}
-
-// Retry count management functions
-func getRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) int {
-	if networkIntent.Annotations == nil {
-		return 0
-	}
-
-	key := fmt.Sprintf("nephoran.com/retry-count-%s", operation)
-	if countStr, exists := networkIntent.Annotations[key]; exists {
-		if count, err := strconv.Atoi(countStr); err == nil {
-			return count
-		}
-	}
-	return 0
-}
-
-func setRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string, count int) {
-	if networkIntent.Annotations == nil {
-		networkIntent.Annotations = make(map[string]string)
-	}
-	key := fmt.Sprintf("nephoran.com/retry-count-%s", operation)
-	networkIntent.Annotations[key] = strconv.Itoa(count)
-}
-
-func clearRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) {
-	if networkIntent.Annotations == nil {
-		return
-	}
-	key := fmt.Sprintf("nephoran.com/retry-count-%s", operation)
-	delete(networkIntent.Annotations, key)
-}
+// Retry count management functions - using shared utilities
 
 // Deletion handling functions
 func (r *NetworkIntentReconciler) handleDeletion(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) (ctrl.Result, error) {

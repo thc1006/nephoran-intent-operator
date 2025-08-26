@@ -94,6 +94,12 @@ const (
 	CNFDeploymentStrategyOperator CNFDeploymentStrategy = "Operator"
 	CNFDeploymentStrategyDirect   CNFDeploymentStrategy = "Direct"
 	CNFDeploymentStrategyGitOps   CNFDeploymentStrategy = "GitOps"
+
+	// Aliases for backward compatibility with controller references
+	DeploymentStrategyHelm     = CNFDeploymentStrategyHelm
+	DeploymentStrategyOperator = CNFDeploymentStrategyOperator
+	DeploymentStrategyDirect   = CNFDeploymentStrategyDirect
+	DeploymentStrategyGitOps   = CNFDeploymentStrategyGitOps
 )
 
 // CNFResources defines resource requirements for CNF
@@ -489,7 +495,7 @@ type CNFDeploymentStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
-// CNFHealthStatus defines the health status
+// CNFHealthStatus defines the health status specific to CNF deployments
 type CNFHealthStatus struct {
 	// Overall health status
 	// +kubebuilder:validation:Enum=Healthy;Degraded;Unhealthy;Unknown

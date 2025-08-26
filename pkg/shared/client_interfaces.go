@@ -10,11 +10,11 @@ type ClientInterface interface {
 	// Basic operations
 	ProcessRequest(ctx context.Context, request *LLMRequest) (*LLMResponse, error)
 	ProcessStreamingRequest(ctx context.Context, request *LLMRequest) (<-chan *StreamingChunk, error)
-	
+
 	// Health and status
 	HealthCheck(ctx context.Context) error
 	GetStatus() ClientStatus
-	
+
 	// Configuration
 	GetModelCapabilities() ModelCapabilities
 	GetEndpoint() string
@@ -33,26 +33,28 @@ type LLMRequest struct {
 
 // LLMResponse represents a response from an LLM service
 type LLMResponse struct {
-	ID      string      `json:"id"`
-	Content string      `json:"content"`
-	Model   string      `json:"model"`
-	Usage   TokenUsage  `json:"usage"`
-	Created time.Time   `json:"created"`
-	Error   *LLMError   `json:"error,omitempty"`
+	ID      string     `json:"id"`
+	Content string     `json:"content"`
+	Model   string     `json:"model"`
+	Usage   TokenUsage `json:"usage"`
+	Created time.Time  `json:"created"`
+	Error   *LLMError  `json:"error,omitempty"`
 }
 
 // StreamingChunk represents a chunk of streamed response
 type StreamingChunk struct {
-	ID      string    `json:"id"`
-	Content string    `json:"content"`
-	Delta   string    `json:"delta"`
-	Done    bool      `json:"done"`
-	Error   *LLMError `json:"error,omitempty"`
+	ID        string    `json:"id"`
+	Content   string    `json:"content"`
+	Delta     string    `json:"delta"`
+	Done      bool      `json:"done"`
+	IsLast    bool      `json:"is_last"`
+	Timestamp time.Time `json:"timestamp"`
+	Error     *LLMError `json:"error,omitempty"`
 }
 
 // ChatMessage represents a chat message
 type ChatMessage struct {
-	Role    string `json:"role"`    // system, user, assistant
+	Role    string `json:"role"` // system, user, assistant
 	Content string `json:"content"`
 }
 
@@ -82,10 +84,14 @@ const (
 
 // ModelCapabilities represents model capabilities
 type ModelCapabilities struct {
-	SupportsStreaming   bool     `json:"supports_streaming"`
-	SupportsSystemPrompt bool    `json:"supports_system_prompt"`
-	SupportsChatFormat  bool     `json:"supports_chat_format"`
-	MaxTokens          int      `json:"max_tokens"`
-	SupportedMimeTypes []string `json:"supported_mime_types"`
-	ModelVersion       string   `json:"model_version"`
+	SupportsStreaming    bool                   `json:"supports_streaming"`
+	SupportsSystemPrompt bool                   `json:"supports_system_prompt"`
+	SupportsChatFormat   bool                   `json:"supports_chat_format"`
+	SupportsChat         bool                   `json:"supports_chat"`
+	SupportsFunction     bool                   `json:"supports_function"`
+	MaxTokens            int                    `json:"max_tokens"`
+	CostPerToken         float64                `json:"cost_per_token"`
+	SupportedMimeTypes   []string               `json:"supported_mime_types"`
+	ModelVersion         string                 `json:"model_version"`
+	Features             map[string]interface{} `json:"features"`
 }
