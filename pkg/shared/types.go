@@ -88,11 +88,21 @@ type SearchResponse struct {
 type ComponentType string
 
 const (
+	// Core processing components
 	ComponentTypeLLMProcessor       ComponentType = "llm-processor"
 	ComponentTypeResourcePlanner    ComponentType = "resource-planner"
 	ComponentTypeManifestGenerator  ComponentType = "manifest-generator"
 	ComponentTypeGitOpsController   ComponentType = "gitops-controller"
 	ComponentTypeDeploymentVerifier ComponentType = "deployment-verifier"
+	
+	// Optimization and analysis components  
+	ComponentTypeRAGSystem         ComponentType = "rag-system"
+	ComponentTypeNephioIntegration ComponentType = "nephio-integration"
+	ComponentTypeAuthentication    ComponentType = "authentication"
+	ComponentTypeDatabase          ComponentType = "database"
+	ComponentTypeCache             ComponentType = "cache"
+	ComponentTypeKubernetes        ComponentType = "kubernetes"
+	ComponentTypeNetworking        ComponentType = "networking"
 )
 
 // ComponentStatus represents the status of a component

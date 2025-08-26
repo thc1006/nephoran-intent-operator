@@ -329,7 +329,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestEndToEndRAGPipeline() {
 		suite.Run(fmt.Sprintf("Query_%s", testQuery.IntentType), func() {
 			// Execute RAG query
 			startTime := time.Now()
-			response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.QueryRequest{
+			response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.RAGRequest{
 				Query:      testQuery.Query,
 				IntentType: testQuery.IntentType,
 				Context:    testQuery.Context,
@@ -485,7 +485,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestCachePerformance() {
 
 	// First query (cache miss)
 	start1 := time.Now()
-	response1, err := suite.ragService.ProcessQuery(suite.ctx, &rag.QueryRequest{
+	response1, err := suite.ragService.ProcessQuery(suite.ctx, &rag.RAGRequest{
 		Query:      testQuery,
 		IntentType: "test_query",
 	})
@@ -496,7 +496,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestCachePerformance() {
 
 	// Second query (cache hit)
 	start2 := time.Now()
-	response2, err := suite.ragService.ProcessQuery(suite.ctx, &rag.QueryRequest{
+	response2, err := suite.ragService.ProcessQuery(suite.ctx, &rag.RAGRequest{
 		Query:      testQuery,
 		IntentType: "test_query",
 	})
@@ -517,7 +517,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestCachePerformance() {
 func (suite *RAGPipelineIntegrationTestSuite) TestErrorHandling() {
 	// Test with invalid query
 	suite.Run("InvalidQuery", func() {
-		response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.QueryRequest{
+		response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.RAGRequest{
 			Query:      "",
 			IntentType: "invalid",
 		})
@@ -531,7 +531,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestErrorHandling() {
 		// Simulate service failure
 		suite.mockWeaviate.SetError("service unavailable")
 
-		response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.QueryRequest{
+		response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.RAGRequest{
 			Query:      "test query",
 			IntentType: "test",
 		})
@@ -562,7 +562,7 @@ func (suite *RAGPipelineIntegrationTestSuite) TestScalabilityAndPerformance() {
 			for j := 0; j < queriesPerRoutine; j++ {
 				start := time.Now()
 
-				response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.QueryRequest{
+				response, err := suite.ragService.ProcessQuery(suite.ctx, &rag.RAGRequest{
 					Query:      fmt.Sprintf("test query %d-%d", routineID, j),
 					IntentType: "load_test",
 				})
@@ -693,7 +693,7 @@ func BenchmarkRAGQuery(b *testing.B) {
 	suite.SetupSuite()
 	defer suite.TearDownSuite()
 
-	query := &rag.QueryRequest{
+	query := &rag.RAGRequest{
 		Query:      "What is network slicing in 5G?",
 		IntentType: "knowledge_request",
 	}

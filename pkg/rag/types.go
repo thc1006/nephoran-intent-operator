@@ -59,3 +59,17 @@ func NewRAGClient(config *RAGClientConfig) RAGClient {
 	// - noop/client.go (no build tag)
 	return newRAGClientImpl(config)
 }
+
+// QueryRequest represents a request for RAG system query processing
+type QueryRequest struct {
+	Query      string                 `json:"query"`                // The user's query text
+	IntentType string                 `json:"intentType,omitempty"` // Type of intent (e.g., "knowledge_request", "deployment_request")
+	Context    map[string]interface{} `json:"context,omitempty"`    // Additional context for the query
+	UserID     string                 `json:"userID,omitempty"`     // User identifier for personalization
+	SessionID  string                 `json:"sessionID,omitempty"`  // Session identifier for conversation context
+	MaxResults int                    `json:"maxResults,omitempty"` // Maximum number of results to return
+	MinScore   float64                `json:"minScore,omitempty"`   // Minimum relevance score for results
+	Filters    map[string]interface{} `json:"filters,omitempty"`    // Additional filters for retrieval
+}
+
+// Note: QueryResponse and RAGService are defined in other RAG files

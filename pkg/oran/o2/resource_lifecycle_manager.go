@@ -206,10 +206,7 @@ func NewResourceLifecycleManager(config *O2IMSConfig, storage O2IMSStorage, prov
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger(
-			logging.WithService("o2-resource-lifecycle"),
-			logging.WithVersion("1.0.0"),
-		)
+		logger = logging.NewStructuredLogger(logging.DefaultConfig("o2-resource-lifecycle", "1.0.0", "production"))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

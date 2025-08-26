@@ -224,14 +224,15 @@ func (s *SLAMonitoringIntegrationTestSuite) SetupTest() {
 	}
 
 	// Initialize logger
-	var err error
-	s.logger, err = logging.NewStructuredLogger(&logging.Config{
-		Level:      "info",
-		Format:     "json",
-		Component:  "sla-integration-test",
-		TraceLevel: "debug",
+	s.logger = logging.NewStructuredLogger(logging.Config{
+		Level:       logging.LevelInfo,
+		Format:      "json",
+		ServiceName: "sla-integration-test",
+		Version:     "1.0.0",
+		Environment: "test",
+		Component:   "sla-integration-test",
+		AddSource:   true,
 	})
-	s.Require().NoError(err, "Failed to initialize logger")
 
 	// Initialize Prometheus client
 	client, err := api.NewClient(api.Config{

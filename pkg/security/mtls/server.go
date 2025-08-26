@@ -101,7 +101,7 @@ func NewServer(config *ServerConfig, logger *logging.StructuredLogger) (*Server,
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger()
+		logger = logging.NewStructuredLogger(logging.DefaultConfig("mtls-server", "1.0.0", "production"))
 	}
 
 	// Set defaults

@@ -671,14 +671,6 @@ func getDefaultOptimizedControllerConfig() *OptimizedControllerConfig {
 
 // Supporting type definitions
 
-type OptimizedLLMResponse struct {
-	Content        string        `json:"content"`
-	ProcessingTime time.Duration `json:"processing_time"`
-	FromCache      bool          `json:"from_cache"`
-	FromBatch      bool          `json:"from_batch"`
-	TokensUsed     int           `json:"tokens_used"`
-	Optimizations  []string      `json:"optimizations"`
-}
 
 type ControllerState int
 type CPUOptLevel int

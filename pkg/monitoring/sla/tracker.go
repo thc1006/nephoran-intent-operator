@@ -29,6 +29,7 @@ func NewCircularBuffer(size int) *CircularBuffer {
 	return &CircularBuffer{
 		buffer: make([]interface{}, size),
 		size:   size,
+		mutex:  sync.RWMutex{},
 	}
 }
 

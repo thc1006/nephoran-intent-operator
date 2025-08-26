@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"sort"
 	"sync"
 	"time"
 
@@ -410,7 +411,7 @@ func (brc *BurnRateCalculator) executeSingleQuery(ctx context.Context, query str
 			return 0, fmt.Errorf("no data returned from query: %s", query)
 		}
 		return float64(v[0].Value), nil
-	case model.Scalar:
+	case *model.Scalar:
 		return float64(v.Value), nil
 	default:
 		return 0, fmt.Errorf("unexpected result type: %T", result)
@@ -443,7 +444,7 @@ func (brc *BurnRateCalculator) calculateAvailabilityBurnRate(shortValue, longVal
 	allowedErrorRate := 1.0 - targetAvailability
 
 	shortErrorRate := 1.0 - shortValue
-	longErrorRate := 1.0 - longValue
+	_ = 1.0 - longValue // longErrorRate unused but calculated for potential future use
 
 	// Calculate burn rate as multiple of allowed error rate
 	if allowedErrorRate > 0 {
@@ -543,13 +544,13 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 
 	// Find the most severe violation
 	var severity AlertSeverity
-	var isViolating bool
+	_ = false // isViolating initialized but unused in current implementation  
 	var overallBurnRate float64
 
 	for _, window := range windows {
 		windowResult := result.Windows[window]
 		if windowResult.IsViolating {
-			isViolating = true
+			// isViolating = true  // Commented out as variable is unused
 			overallBurnRate = math.Max(overallBurnRate, windowResult.BurnRate)
 
 			// Determine severity based on window and burn rate
@@ -562,7 +563,7 @@ func (brc *BurnRateCalculator) analyzeBurnRateResults(result *BurnRateResult,
 
 	// Calculate budget information
 	budgetRemaining := brc.calculateBudgetRemaining(result, target)
-	timeToExhaustion := brc.calculateTimeToExhaustion(overallBurnRate, budgetRemaining, target)
+	_ = brc.calculateTimeToExhaustion(overallBurnRate, budgetRemaining, target) // timeToExhaustion unused in current implementation
 
 	// Create BurnRateInfo with window-specific details
 	var shortWindow, mediumWindow, longWindow BurnRateWindow

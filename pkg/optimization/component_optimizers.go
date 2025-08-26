@@ -23,12 +23,13 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/resource"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ComponentOptimizerRegistry manages component-specific optimizers
 type ComponentOptimizerRegistry struct {
 	logger     logr.Logger
-	optimizers map[ComponentType]ComponentOptimizer
+	optimizers map[shared.ComponentType]ComponentOptimizer
 }
 
 // ComponentOptimizer defines the interface for component-specific optimizers
@@ -41,7 +42,7 @@ type ComponentOptimizer interface {
 
 // OptimizationResult contains the results of applying optimizations
 type OptimizationResult struct {
-	ComponentType     ComponentType          `json:"componentType"`
+	ComponentType     shared.ComponentType   `json:"componentType"`
 	AppliedStrategies []string               `json:"appliedStrategies"`
 	ConfigChanges     map[string]interface{} `json:"configChanges"`
 	ExpectedImpact    *ExpectedImpact        `json:"expectedImpact"`
@@ -159,13 +160,13 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStra
 		{
 			Name:            "token_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeLLMProcessor,
+			TargetComponent: shared.ComponentTypeLLMProcessor,
 			ApplicableScenarios: []ScenarioCondition{
 				{
 					MetricName:    "token_usage_efficiency",
 					Operator:      OperatorLessThan,
 					Threshold:     0.7,
-					ComponentType: ComponentTypeLLMProcessor,
+					ComponentType: shared.ComponentTypeLLMProcessor,
 				},
 			},
 			ExpectedBenefits: &ExpectedBenefits{
@@ -200,13 +201,13 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStra
 		{
 			Name:            "model_selection_optimization",
 			Category:        CategoryCost,
-			TargetComponent: ComponentTypeLLMProcessor,
+			TargetComponent: shared.ComponentTypeLLMProcessor,
 			ApplicableScenarios: []ScenarioCondition{
 				{
 					MetricName:    "cost_per_request",
 					Operator:      OperatorGreaterThan,
 					Threshold:     0.05,
-					ComponentType: ComponentTypeLLMProcessor,
+					ComponentType: shared.ComponentTypeLLMProcessor,
 				},
 			},
 			ExpectedBenefits: &ExpectedBenefits{
@@ -217,13 +218,13 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStra
 		{
 			Name:            "intelligent_caching",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeLLMProcessor,
+			TargetComponent: shared.ComponentTypeLLMProcessor,
 			ApplicableScenarios: []ScenarioCondition{
 				{
 					MetricName:    "cache_hit_rate",
 					Operator:      OperatorLessThan,
 					Threshold:     0.6,
-					ComponentType: ComponentTypeLLMProcessor,
+					ComponentType: shared.ComponentTypeLLMProcessor,
 				},
 			},
 			ExpectedBenefits: &ExpectedBenefits{
@@ -235,13 +236,13 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStra
 		{
 			Name:            "connection_pooling_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeLLMProcessor,
+			TargetComponent: shared.ComponentTypeLLMProcessor,
 			ApplicableScenarios: []ScenarioCondition{
 				{
 					MetricName:    "connection_reuse_rate",
 					Operator:      OperatorLessThan,
 					Threshold:     0.8,
-					ComponentType: ComponentTypeLLMProcessor,
+					ComponentType: shared.ComponentTypeLLMProcessor,
 				},
 			},
 			ExpectedBenefits: &ExpectedBenefits{
@@ -252,13 +253,13 @@ func (opt *LLMProcessorOptimizer) GetOptimizationStrategies() []OptimizationStra
 		{
 			Name:            "batch_processing_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeLLMProcessor,
+			TargetComponent: shared.ComponentTypeLLMProcessor,
 			ApplicableScenarios: []ScenarioCondition{
 				{
 					MetricName:    "batch_efficiency",
 					Operator:      OperatorLessThan,
 					Threshold:     0.7,
-					ComponentType: ComponentTypeLLMProcessor,
+					ComponentType: shared.ComponentTypeLLMProcessor,
 				},
 			},
 			ExpectedBenefits: &ExpectedBenefits{
@@ -274,7 +275,7 @@ func (opt *LLMProcessorOptimizer) OptimizeConfiguration(ctx context.Context, ana
 	opt.logger.Info("Optimizing LLM processor configuration")
 
 	result := &OptimizationResult{
-		ComponentType: ComponentTypeLLMProcessor,
+		ComponentType: shared.ComponentTypeLLMProcessor,
 		ConfigChanges: make(map[string]interface{}),
 		RollbackData:  make(map[string]interface{}),
 		Timestamp:     time.Now(),
@@ -423,7 +424,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []OptimizationStrateg
 		{
 			Name:            "vector_database_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeRAGSystem,
+			TargetComponent: shared.ComponentTypeRAGSystem,
 			ExpectedBenefits: &ExpectedBenefits{
 				LatencyReduction:   40.0,
 				ThroughputIncrease: 30.0,
@@ -432,7 +433,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []OptimizationStrateg
 		{
 			Name:            "embedding_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeRAGSystem,
+			TargetComponent: shared.ComponentTypeRAGSystem,
 			ExpectedBenefits: &ExpectedBenefits{
 				LatencyReduction: 25.0,
 				CostSavings:      20.0,
@@ -441,7 +442,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []OptimizationStrateg
 		{
 			Name:            "retrieval_strategy_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeRAGSystem,
+			TargetComponent: shared.ComponentTypeRAGSystem,
 			ExpectedBenefits: &ExpectedBenefits{
 				LatencyReduction: 30.0,
 				ResourceSavings:  15.0,
@@ -450,7 +451,7 @@ func (opt *RAGSystemOptimizer) GetOptimizationStrategies() []OptimizationStrateg
 		{
 			Name:            "query_preprocessing_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeRAGSystem,
+			TargetComponent: shared.ComponentTypeRAGSystem,
 			ExpectedBenefits: &ExpectedBenefits{
 				LatencyReduction:   20.0,
 				ThroughputIncrease: 25.0,
@@ -464,7 +465,7 @@ func (opt *RAGSystemOptimizer) OptimizeConfiguration(ctx context.Context, analys
 	opt.logger.Info("Optimizing RAG system configuration")
 
 	result := &OptimizationResult{
-		ComponentType: ComponentTypeRAGSystem,
+		ComponentType: shared.ComponentTypeRAGSystem,
 		ConfigChanges: make(map[string]interface{}),
 		RollbackData:  make(map[string]interface{}),
 		Timestamp:     time.Now(),
@@ -601,7 +602,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []OptimizationStrate
 		{
 			Name:            "resource_optimization",
 			Category:        CategoryResource,
-			TargetComponent: ComponentTypeKubernetes,
+			TargetComponent: shared.ComponentTypeKubernetes,
 			ExpectedBenefits: &ExpectedBenefits{
 				ResourceSavings: 30.0,
 				CostSavings:     25.0,
@@ -610,7 +611,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []OptimizationStrate
 		{
 			Name:            "scheduling_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeKubernetes,
+			TargetComponent: shared.ComponentTypeKubernetes,
 			ExpectedBenefits: &ExpectedBenefits{
 				LatencyReduction: 20.0,
 				ResourceSavings:  15.0,
@@ -619,7 +620,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []OptimizationStrate
 		{
 			Name:            "networking_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeKubernetes,
+			TargetComponent: shared.ComponentTypeKubernetes,
 			ExpectedBenefits: &ExpectedBenefits{
 				LatencyReduction:   35.0,
 				ThroughputIncrease: 40.0,
@@ -628,7 +629,7 @@ func (opt *KubernetesOptimizer) GetOptimizationStrategies() []OptimizationStrate
 		{
 			Name:            "storage_optimization",
 			Category:        CategoryPerformance,
-			TargetComponent: ComponentTypeKubernetes,
+			TargetComponent: shared.ComponentTypeKubernetes,
 			ExpectedBenefits: &ExpectedBenefits{
 				LatencyReduction: 25.0,
 				CostSavings:      20.0,
@@ -642,7 +643,7 @@ func (opt *KubernetesOptimizer) OptimizeConfiguration(ctx context.Context, analy
 	opt.logger.Info("Optimizing Kubernetes configuration")
 
 	result := &OptimizationResult{
-		ComponentType: ComponentTypeKubernetes,
+		ComponentType: shared.ComponentTypeKubernetes,
 		ConfigChanges: make(map[string]interface{}),
 		RollbackData:  make(map[string]interface{}),
 		Timestamp:     time.Now(),
@@ -657,19 +658,19 @@ func (opt *KubernetesOptimizer) OptimizeConfiguration(ctx context.Context, analy
 func NewComponentOptimizerRegistry(logger logr.Logger) *ComponentOptimizerRegistry {
 	registry := &ComponentOptimizerRegistry{
 		logger:     logger.WithName("component-optimizer-registry"),
-		optimizers: make(map[ComponentType]ComponentOptimizer),
+		optimizers: make(map[shared.ComponentType]ComponentOptimizer),
 	}
 
 	// Register component optimizers with default configurations
-	registry.optimizers[ComponentTypeLLMProcessor] = NewLLMProcessorOptimizer(getDefaultLLMConfig(), logger)
-	registry.optimizers[ComponentTypeRAGSystem] = NewRAGSystemOptimizer(getDefaultRAGConfig(), logger)
-	registry.optimizers[ComponentTypeKubernetes] = NewKubernetesOptimizer(getDefaultK8sConfig(), logger)
+	registry.optimizers[shared.ComponentTypeLLMProcessor] = NewLLMProcessorOptimizer(getDefaultLLMConfig(), logger)
+	registry.optimizers[shared.ComponentTypeRAGSystem] = NewRAGSystemOptimizer(getDefaultRAGConfig(), logger)
+	registry.optimizers[shared.ComponentTypeKubernetes] = NewKubernetesOptimizer(getDefaultK8sConfig(), logger)
 
 	return registry
 }
 
 // GetOptimizer returns the optimizer for a specific component type
-func (registry *ComponentOptimizerRegistry) GetOptimizer(componentType ComponentType) (ComponentOptimizer, error) {
+func (registry *ComponentOptimizerRegistry) GetOptimizer(componentType shared.ComponentType) (ComponentOptimizer, error) {
 	optimizer, exists := registry.optimizers[componentType]
 	if !exists {
 		return nil, fmt.Errorf("no optimizer found for component type: %s", componentType)

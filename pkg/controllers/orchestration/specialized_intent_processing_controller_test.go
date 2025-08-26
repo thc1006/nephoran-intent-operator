@@ -40,6 +40,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Mock implementations for testing
@@ -166,7 +167,7 @@ func NewMockRAGService() *MockRAGService {
 	}
 }
 
-func (m *MockRAGService) Query(ctx context.Context, req *rag.QueryRequest) (*rag.QueryResponse, error) {
+func (m *MockRAGService) ProcessQuery(ctx context.Context, req *rag.RAGRequest) (*rag.RAGResponse, error) {
 	if m.shouldReturnError {
 		return nil, fmt.Errorf("mock RAG error")
 	}
@@ -180,7 +181,7 @@ func (m *MockRAGService) Query(ctx context.Context, req *rag.QueryRequest) (*rag
 	avgSimilarity := 0.0
 
 	for _, doc := range m.documents {
-		if similarity, ok := doc["similarity"].(float64); ok && similarity >= req.MinSimilarity {
+		if similarity, ok := doc["similarity"].(float64); ok && similarity >= float64(req.MinConfidence) {
 			filteredDocs = append(filteredDocs, doc)
 			avgSimilarity += similarity
 		}
@@ -195,14 +196,34 @@ func (m *MockRAGService) Query(ctx context.Context, req *rag.QueryRequest) (*rag
 		filteredDocs = filteredDocs[:req.MaxResults]
 	}
 
-	return &rag.QueryResponse{
-		Documents:     filteredDocs,
-		MaxSimilarity: m.maxSimilarity,
-		AvgSimilarity: avgSimilarity,
+	// Convert filteredDocs to SearchResult format
+	var searchResults []*shared.SearchResult
+	for _, doc := range filteredDocs {
+		// Create a basic SearchResult for the mock
+		searchResult := &shared.SearchResult{
+			Document: nil, // Could be nil for mock
+			Score:    float32(m.maxSimilarity),
+			Distance: 0.0,
+			Metadata: doc,
+		}
+		searchResults = append(searchResults, searchResult)
+	}
+
+	return &rag.RAGResponse{
+		Answer:          "Mock RAG Answer",
+		SourceDocuments: searchResults,
+		Confidence:      float32(avgSimilarity),
+		ProcessingTime:  m.queryDelay,
+		RetrievalTime:   m.queryDelay / 2,
+		GenerationTime:  m.queryDelay / 2,
+		UsedCache:       false,
+		Query:           req.Query,
+		IntentType:      req.IntentType,
 		Metadata: map[string]interface{}{
 			"queryTime": m.queryDelay,
 			"totalDocs": len(m.documents),
 		},
+		ProcessedAt: time.Now(),
 	}, nil
 }
 

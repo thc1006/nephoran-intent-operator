@@ -2,6 +2,8 @@ package mtls
 
 import (
 	"context"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"time"
 
@@ -38,7 +40,7 @@ type IntegrationConfig struct {
 // NewIntegrationManager creates a comprehensive mTLS integration manager
 func NewIntegrationManager(config *IntegrationConfig) (*IntegrationManager, error) {
 	if config.Logger == nil {
-		config.Logger = logging.NewStructuredLogger()
+		config.Logger = logging.NewStructuredLogger(logging.DefaultConfig("mtls-integration", "1.0.0", "production"))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -124,12 +126,20 @@ func (m *IntegrationManager) initializeMonitor() error {
 	if m.identityManager != nil {
 		identities := m.identityManager.ListServiceIdentities()
 		for _, identity := range identities {
-			if identity.Certificate != nil {
+			cert, err := loadCertificateFromPath(identity.CertPath)
+			if err != nil {
+				m.logger.Warn("failed to load certificate for monitoring",
+					"service_name", identity.ServiceName,
+					"cert_path", identity.CertPath,
+					"error", err)
+				continue
+			}
+			if cert != nil {
 				m.monitor.TrackCertificate(
 					identity.ServiceName,
 					identity.Role,
 					identity.CertPath,
-					identity.Certificate,
+					cert,
 				)
 			}
 		}
@@ -505,6 +515,33 @@ func (m *IntegrationManager) ValidateConfiguration() error {
 	return nil
 }
 
+// loadCertificateFromPath loads an X.509 certificate from a PEM file
+func loadCertificateFromPath(certPath string) (*x509.Certificate, error) {
+	if certPath == "" {
+		return nil, fmt.Errorf("certificate path is empty")
+	}
+
+	// Load certificate data from file
+	certData, err := loadCertificateFile(certPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load certificate file: %w", err)
+	}
+
+	// Decode PEM block
+	block, _ := pem.Decode(certData)
+	if block == nil || block.Type != "CERTIFICATE" {
+		return nil, fmt.Errorf("failed to decode PEM certificate block")
+	}
+
+	// Parse X.509 certificate
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse X.509 certificate: %w", err)
+	}
+
+	return cert, nil
+}
+
 // ExampleUsage demonstrates how to use the integration manager
 func ExampleUsage() {
 	// This is an example of how to integrate mTLS into your application
@@ -516,7 +553,7 @@ func ExampleUsage() {
 	}
 
 	// 2. Create logger
-	logger := logging.NewStructuredLogger()
+	logger := logging.NewStructuredLogger(logging.DefaultConfig("mtls-example", "1.0.0", "development"))
 
 	// 3. Initialize CA manager (assuming you have one)
 	var caManager *ca.CAManager

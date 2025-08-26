@@ -610,8 +610,7 @@ func (ar *AlertRouter) processAlert(ctx context.Context, enrichedAlert *Enriched
 
 	// Step 3: Priority calculation
 	priority, _ := ar.priorityCalculator.CalculatePriority(enrichedAlert.SLAAlert)
-	priorityInt := ar.convertPriorityToInt(priority)
-	enrichedAlert.Priority = prioritityInt
+	enrichedAlert.Priority = ar.convertPriorityToInt(priority)
 
 	// Step 4: Business impact analysis
 	impact, _ := ar.impactAnalyzer.AnalyzeImpact(enrichedAlert.SLAAlert)
@@ -801,7 +800,7 @@ func (ar *AlertRouter) applyRoutingRules(alert *EnrichedAlert) (*RoutingDecision
 			for _, action := range rule.Actions {
 				switch action.Type {
 				case "notify":
-					if ar.isChannelAvailable(action.Target, alert) {
+					if ar.isChannelAvailable(action.Target, alert.SLAAlert) {
 						decision.SelectedChannels = append(decision.SelectedChannels, action.Target)
 					}
 				case "escalate":
@@ -866,7 +865,7 @@ func (ar *AlertRouter) sendNotificationToChannel(ctx context.Context, alert *Enr
 	}
 
 	// Check rate limits
-	if channel.RateLimit != nil && !ar.checkRateLimit(channel.Name, channel.RateLimit) {
+	if channel.RateLimit != nil && !ar.checkRateLimit(channel.Name, *channel.RateLimit) {
 		ar.logger.WarnWithContext("Channel rate limit exceeded",
 			slog.String("channel", channel.Name),
 			slog.String("alert_id", alert.ID),
@@ -964,7 +963,7 @@ func (ar *AlertRouter) correlateAlert(alert *SLAAlert) error {
 }
 
 func (ar *AlertRouter) getFallbackRouting() *RoutingRule {
-	return &RoutingRule{Name: "fallback", Priority: "medium"}
+	return &RoutingRule{Name: "fallback", Priority: 50}
 }
 
 // Missing helper type method implementations
@@ -977,7 +976,7 @@ func (pc *PriorityCalculator) CalculatePriority(alert *SLAAlert) (string, error)
 }
 
 func (ia *ImpactAnalyzer) AnalyzeImpact(alert *SLAAlert) (*ImpactAnalysis, error) {
-	return &ImpactAnalysis{Severity: alert.Severity, AffectedServices: []string{}}, nil
+	return &ImpactAnalysis{Severity: string(alert.Severity), AffectedServices: []string{}}, nil
 }
 
 func (ce *ContextEnricher) FindRelatedIncidents(ctx context.Context, alert *SLAAlert) ([]*Incident, error) {
@@ -995,3 +994,4 @@ type Incident struct {
 	ID     string `json:"id"`
 	Status string `json:"status"`
 }
+

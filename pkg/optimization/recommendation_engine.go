@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // OptimizationRecommendationEngine generates intelligent optimization recommendations
@@ -33,7 +34,7 @@ type OptimizationRecommendationEngine struct {
 	analysisEngine *PerformanceAnalysisEngine
 
 	// Recommendation strategies
-	strategies map[ComponentType][]OptimizationStrategy
+	strategies map[shared.ComponentType][]RecommendationStrategy
 
 	// Machine learning models
 	impactPredictor *ImpactPredictor
@@ -74,16 +75,16 @@ type RecommendationConfig struct {
 	LatencyCriticalityWeight float64 `json:"latencyCriticalityWeight"`
 }
 
-// OptimizationStrategy defines a strategy for optimizing a specific aspect
-type OptimizationStrategy struct {
+// RecommendationStrategy defines a strategy for optimizing a specific aspect
+type RecommendationStrategy struct {
 	Name                string                `json:"name"`
 	Category            OptimizationCategory  `json:"category"`
-	TargetComponent     ComponentType         `json:"targetComponent"`
+	TargetComponent     shared.ComponentType  `json:"targetComponent"`
 	ApplicableScenarios []ScenarioCondition   `json:"applicableScenarios"`
 	ExpectedBenefits    *ExpectedBenefits     `json:"expectedBenefits"`
 	ImplementationSteps []ImplementationStep  `json:"implementationSteps"`
 	Prerequisites       []string              `json:"prerequisites"`
-	RiskFactors         []RiskFactor          `json:"riskFactors"`
+	RiskFactors         []RecommendationRiskFactor `json:"riskFactors"`
 	ValidationCriteria  []ValidationCriterion `json:"validationCriteria"`
 }
 
@@ -160,7 +161,7 @@ const (
 )
 
 // RiskFactor identifies potential risks of implementing an optimization
-type RiskFactor struct {
+type RecommendationRiskFactor struct {
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
 	Probability float64      `json:"probability"`
@@ -277,15 +278,15 @@ const (
 )
 
 // RiskAssessment contains comprehensive risk analysis
-type RiskAssessment struct {
+type RecommendationRiskAssessment struct {
 	OverallRiskLevel     RiskLevel            `json:"overallRiskLevel"`
 	ImplementationRisk   float64              `json:"implementationRisk"`
 	PerformanceRisk      float64              `json:"performanceRisk"`
 	AvailabilityRisk     float64              `json:"availabilityRisk"`
 	SecurityRisk         float64              `json:"securityRisk"`
 	ComplianceRisk       float64              `json:"complianceRisk"`
-	IdentifiedRisks      []RiskFactor         `json:"identifiedRisks"`
-	MitigationStrategies []MitigationStrategy `json:"mitigationStrategies"`
+	IdentifiedRisks      []RecommendationRiskFactor         `json:"identifiedRisks"`
+	MitigationStrategies []RecommendationMitigationStrategy `json:"mitigationStrategies"`
 	RiskScoreBreakdown   map[string]float64   `json:"riskScoreBreakdown"`
 }
 
@@ -301,7 +302,7 @@ const (
 )
 
 // MitigationStrategy defines a strategy to mitigate risks
-type MitigationStrategy struct {
+type RecommendationMitigationStrategy struct {
 	Name            string        `json:"name"`
 	Description     string        `json:"description"`
 	Effectiveness   float64       `json:"effectiveness"`

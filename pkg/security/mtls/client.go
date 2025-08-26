@@ -69,7 +69,7 @@ func NewClient(config *ClientConfig, logger *logging.StructuredLogger) (*Client,
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger()
+		logger = logging.NewStructuredLogger(logging.DefaultConfig("mtls-client", "1.0.0", "production"))
 	}
 
 	client := &Client{

@@ -30,6 +30,7 @@ import (
 	"github.com/prometheus/common/model"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // PerformanceAnalysisEngine provides intelligent analysis of system performance data
@@ -87,7 +88,7 @@ type AnalysisConfig struct {
 // ComponentAnalysisConfig defines component-specific analysis parameters
 type ComponentAnalysisConfig struct {
 	Name                   string               `json:"name"`
-	Type                   ComponentType        `json:"type"`
+	Type                   shared.ComponentType `json:"type"`
 	Metrics                []MetricConfig       `json:"metrics"`
 	Thresholds             map[string]float64   `json:"thresholds"`
 	OptimizationStrategies []string             `json:"optimizationStrategies"`
@@ -103,19 +104,6 @@ type MetricConfig struct {
 	Target          float64      `json:"target"`
 }
 
-// ComponentType represents different system components
-type ComponentType string
-
-const (
-	ComponentTypeLLMProcessor      ComponentType = "llm_processor"
-	ComponentTypeRAGSystem         ComponentType = "rag_system"
-	ComponentTypeNephioIntegration ComponentType = "nephio_integration"
-	ComponentTypeAuthentication    ComponentType = "authentication"
-	ComponentTypeDatabase          ComponentType = "database"
-	ComponentTypeCache             ComponentType = "cache"
-	ComponentTypeKubernetes        ComponentType = "kubernetes"
-	ComponentTypeNetworking        ComponentType = "networking"
-)
 
 // AnalysisType defines different types of metric analysis
 type AnalysisType string
@@ -148,7 +136,7 @@ type PerformanceAnalysisResult struct {
 	OverallScore float64            `json:"overallScore"`
 
 	// Component analysis
-	ComponentAnalyses map[ComponentType]*ComponentAnalysis `json:"componentAnalyses"`
+	ComponentAnalyses map[shared.ComponentType]*ComponentAnalysis `json:"componentAnalyses"`
 
 	// Bottleneck detection
 	IdentifiedBottlenecks []*PerformanceBottleneck `json:"identifiedBottlenecks"`
@@ -188,7 +176,7 @@ const (
 
 // ComponentAnalysis contains analysis results for a specific component
 type ComponentAnalysis struct {
-	ComponentType    ComponentType      `json:"componentType"`
+	ComponentType    shared.ComponentType      `json:"componentType"`
 	HealthStatus     SystemHealthStatus `json:"healthStatus"`
 	PerformanceScore float64            `json:"performanceScore"`
 
@@ -296,7 +284,7 @@ type ConfidenceInterval struct {
 
 // PredictedBottleneck represents a bottleneck predicted to occur in the future
 type PredictedBottleneck struct {
-	ComponentType       ComponentType `json:"componentType"`
+	ComponentType       shared.ComponentType `json:"componentType"`
 	MetricName          string        `json:"metricName"`
 	PredictedOccurrence time.Time     `json:"predictedOccurrence"`
 	Confidence          float64       `json:"confidence"`
@@ -308,7 +296,7 @@ type PredictedBottleneck struct {
 type PerformancePattern struct {
 	PatternType         PatternType     `json:"patternType"`
 	Description         string          `json:"description"`
-	AffectedComponents  []ComponentType `json:"affectedComponents"`
+	AffectedComponents  []shared.ComponentType `json:"affectedComponents"`
 	DetectionConfidence float64         `json:"detectionConfidence"`
 	Frequency           time.Duration   `json:"frequency"`
 	Impact              ImpactLevel     `json:"impact"`
@@ -330,7 +318,7 @@ const (
 // MetricAnomaly represents detected metric anomalies
 type MetricAnomaly struct {
 	MetricName    string        `json:"metricName"`
-	ComponentType ComponentType `json:"componentType"`
+	ComponentType shared.ComponentType `json:"componentType"`
 	AnomalyType   AnomalyType   `json:"anomalyType"`
 	DetectedAt    time.Time     `json:"detectedAt"`
 	Severity      SeverityLevel `json:"severity"`
@@ -352,7 +340,7 @@ const (
 // CapacityPrediction contains capacity planning predictions
 type CapacityPrediction struct {
 	ResourceType         string        `json:"resourceType"`
-	ComponentType        ComponentType `json:"componentType"`
+	ComponentType        shared.ComponentType `json:"componentType"`
 	CurrentUtilization   float64       `json:"currentUtilization"`
 	PredictedUtilization float64       `json:"predictedUtilization"`
 	TimeToCapacity       time.Duration `json:"timeToCapacity"`
@@ -363,7 +351,7 @@ type CapacityPrediction struct {
 // ResourceEfficiencyAnalysis contains resource efficiency analysis
 type ResourceEfficiencyAnalysis struct {
 	OverallEfficiency     float64                   `json:"overallEfficiency"`
-	ComponentEfficiencies map[ComponentType]float64 `json:"componentEfficiencies"`
+	ComponentEfficiencies map[shared.ComponentType]float64 `json:"componentEfficiencies"`
 	InefficientResources  []InefficientResource     `json:"inefficientResources"`
 	OptimizationPotential float64                   `json:"optimizationPotential"`
 }
@@ -371,7 +359,7 @@ type ResourceEfficiencyAnalysis struct {
 // InefficientResource represents an inefficiently used resource
 type InefficientResource struct {
 	ResourceName       string        `json:"resourceName"`
-	ComponentType      ComponentType `json:"componentType"`
+	ComponentType      shared.ComponentType `json:"componentType"`
 	CurrentUtilization float64       `json:"currentUtilization"`
 	OptimalUtilization float64       `json:"optimalUtilization"`
 	WastedCapacity     float64       `json:"wastedCapacity"`
@@ -492,7 +480,7 @@ func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context)
 	result := &PerformanceAnalysisResult{
 		Timestamp:         start,
 		AnalysisID:        analysisID,
-		ComponentAnalyses: make(map[ComponentType]*ComponentAnalysis),
+		ComponentAnalyses: make(map[shared.ComponentType]*ComponentAnalysis),
 	}
 
 	// Collect current metrics
@@ -607,7 +595,7 @@ func (engine *PerformanceAnalysisEngine) analyzeComponent(ctx context.Context, c
 }
 
 // Metric analysis implementation
-func (engine *PerformanceAnalysisEngine) analyzeMetric(ctx context.Context, metricConfig MetricConfig, componentType ComponentType) (*MetricAnalysis, error) {
+func (engine *PerformanceAnalysisEngine) analyzeMetric(ctx context.Context, metricConfig MetricConfig, componentType shared.ComponentType) (*MetricAnalysis, error) {
 	// Query current metric value from Prometheus
 	query := metricConfig.PrometheusQuery
 	result, _, err := engine.prometheusClient.Query(ctx, query, time.Now())
@@ -704,7 +692,7 @@ func (engine *PerformanceAnalysisEngine) calculateComponentHealth(metricAnalyses
 	return healthStatus, avgScore
 }
 
-func (engine *PerformanceAnalysisEngine) calculateOverallHealth(componentAnalyses map[ComponentType]*ComponentAnalysis) (SystemHealthStatus, float64) {
+func (engine *PerformanceAnalysisEngine) calculateOverallHealth(componentAnalyses map[shared.ComponentType]*ComponentAnalysis) (SystemHealthStatus, float64) {
 	if len(componentAnalyses) == 0 {
 		return HealthStatusUnknown, 0.0
 	}
@@ -771,7 +759,7 @@ func GetDefaultAnalysisConfig() *AnalysisConfig {
 		Components: []ComponentAnalysisConfig{
 			{
 				Name: "llm-processor",
-				Type: ComponentTypeLLMProcessor,
+				Type: shared.ComponentTypeLLMProcessor,
 				Metrics: []MetricConfig{
 					{
 						Name:            "request_duration",

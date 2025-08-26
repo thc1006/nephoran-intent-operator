@@ -81,10 +81,11 @@ func benchmarkVectorRetrieval(b *testing.B, ctx context.Context, ragSystem *Enha
 	for _, scenario := range retrievalScenarios {
 		b.Run(scenario.name, func(b *testing.B) {
 			config := RetrievalConfig{
-				TopK:            scenario.topK,
-				MinSimilarity:   scenario.minScore,
-				IncludeMetadata: true,
-				EnableReranking: true,
+				DefaultLimit:               scenario.topK,
+				MinConfidenceThreshold:     float32(scenario.minScore),
+				EnableSemanticReranking:    true,
+				RerankingTopK:              scenario.topK,
+				MaxContextLength:           4096,
 			}
 
 			var totalLatency int64
@@ -253,7 +254,7 @@ func benchmarkSemanticSearch(b *testing.B, ctx context.Context, ragSystem *Enhan
 
 					// Collect relevance scores for quality analysis
 					for _, result := range results {
-						relevanceScores = append(relevanceScores, result.Similarity)
+						relevanceScores = append(relevanceScores, float64(result.Score))
 					}
 				}
 
@@ -441,8 +442,8 @@ func benchmarkConcurrentRetrieval(b *testing.B, ctx context.Context, ragSystem *
 					start := time.Now()
 
 					config := RetrievalConfig{
-						TopK:          10,
-						MinSimilarity: 0.6,
+						DefaultLimit:          10,
+						MinConfidenceThreshold: 0.6,
 					}
 
 					results, err := ragSystem.RetrieveDocuments(ctx, query, config)
@@ -564,7 +565,7 @@ func benchmarkMemoryUsageUnderLoad(b *testing.B, ctx context.Context, ragSystem 
 						query := fmt.Sprintf("test query %d for %s load",
 							atomic.AddInt64(&requestCount, 1), scenario.complexity)
 
-						config := RetrievalConfig{TopK: 5, MinSimilarity: 0.5}
+						config := RetrievalConfig{DefaultLimit: 5, MinConfidenceThreshold: 0.5}
 						ragSystem.RetrieveDocuments(ctx, query, config)
 					}()
 				}

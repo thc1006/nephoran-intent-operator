@@ -342,14 +342,15 @@ func (s *SLAPerformanceTestSuite) SetupTest() {
 	}
 
 	// Initialize logger
-	var err error
-	s.logger, err = logging.NewStructuredLogger(&logging.Config{
-		Level:      "info",
-		Format:     "json",
-		Component:  "sla-performance-test",
-		TraceLevel: "debug",
+	s.logger = logging.NewStructuredLogger(logging.Config{
+		Level:       logging.LevelInfo,
+		Format:      "json",
+		ServiceName: "sla-performance-test",
+		Version:     "1.0.0",
+		Environment: "test",
+		Component:   "sla-performance-test",
+		AddSource:   true,
 	})
-	s.Require().NoError(err, "Failed to initialize logger")
 
 	// Initialize Prometheus client
 	client, err := api.NewClient(api.Config{

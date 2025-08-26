@@ -359,10 +359,7 @@ func NewCNFManagementService(
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger(
-			logging.WithService("cnf-management"),
-			logging.WithVersion("1.0.0"),
-		)
+		logger = logging.NewStructuredLogger(logging.DefaultConfig("cnf-management", "1.0.0", "production"))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

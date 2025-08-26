@@ -437,14 +437,15 @@ func (s *SLAComplianceTestSuite) SetupTest() {
 	}
 
 	// Initialize logger
-	var err error
-	s.logger, err = logging.NewStructuredLogger(&logging.Config{
-		Level:      "info",
-		Format:     "json",
-		Component:  "sla-compliance-test",
-		TraceLevel: "debug",
+	s.logger = logging.NewStructuredLogger(logging.Config{
+		Level:       logging.LevelInfo,
+		Format:      "json",
+		ServiceName: "sla-compliance-test",
+		Version:     "1.0.0",
+		Environment: "test",
+		Component:   "sla-compliance-test",
+		AddSource:   true,
 	})
-	s.Require().NoError(err, "Failed to initialize logger")
 
 	// Initialize Prometheus client
 	client, err := api.NewClient(api.Config{

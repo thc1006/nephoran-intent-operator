@@ -396,10 +396,11 @@ func (rep *RAGEnhancedProcessor) GetHealth() map[string]interface{} {
 		"metrics":     rep.GetMetrics(),
 	}
 
-	// Add base client health if available
-	if healthChecker, ok := rep.baseClient.(interface{ GetHealth() map[string]interface{} }); ok {
-		health["base_client"] = healthChecker.GetHealth()
-	}
+	// Add base client health if available - disabled for now
+	// TODO: Add GetHealth method to Client or use interface
+	// if healthChecker, ok := rep.baseClient.(interface{ GetHealth() map[string]interface{} }); ok {
+	//	health["base_client"] = healthChecker.GetHealth()
+	// }
 
 	// Add RAG service health
 	if rep.ragService != nil {
@@ -471,12 +472,13 @@ func (rep *RAGEnhancedProcessor) Close() error {
 		}
 	}
 
-	// Close base client if it supports closing
-	if closer, ok := rep.baseClient.(interface{ Close() error }); ok {
-		if err := closer.Close(); err != nil {
-			rep.logger.Error("Failed to close base client", "error", err)
-		}
-	}
+	// Close base client if it supports closing - disabled for now
+	// TODO: Add Close method to Client or use interface
+	// if closer, ok := rep.baseClient.(interface{ Close() error }); ok {
+	//	if err := closer.Close(); err != nil {
+	//		rep.logger.Error("Failed to close base client", "error", err)
+	//	}
+	// }
 
 	return nil
 }

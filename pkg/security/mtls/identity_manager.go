@@ -101,7 +101,7 @@ func NewIdentityManager(config *IdentityManagerConfig, logger *logging.Structure
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger()
+		logger = logging.NewStructuredLogger(logging.DefaultConfig("mtls-identity", "1.0.0", "production"))
 	}
 
 	// Set defaults
@@ -323,9 +323,6 @@ func (im *IdentityManager) RotateServiceIdentity(serviceName string, role Servic
 		"service_name", serviceName,
 		"role", role,
 		"current_serial_number", identity.SerialNumber)
-
-	// Create new certificate request
-	req := im.createCertificateRequest(serviceName, role, tenantID)
 
 	// Renew certificate
 	resp, err := im.caManager.RenewCertificate(context.Background(), identity.SerialNumber)

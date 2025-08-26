@@ -125,6 +125,43 @@ func (tm *TokenManager) OptimizeContext(contexts []string, maxTokens int, model 
 	return result
 }
 
+// EstimateTokensForModel estimates tokens for a specific model
+func (tm *TokenManager) EstimateTokensForModel(text, modelName string) int {
+	// For now, use the same estimation regardless of model
+	// This could be enhanced to have model-specific token counting
+	return tm.CountTokens(text)
+}
+
+// SupportsSystemPrompt checks if the model supports system prompts
+func (tm *TokenManager) SupportsSystemPrompt(modelName string) bool {
+	// Most modern models support system prompts
+	// Could be enhanced with a model-specific capability map
+	return true
+}
+
+// SupportsChatFormat checks if the model supports chat format
+func (tm *TokenManager) SupportsChatFormat(modelName string) bool {
+	// Most modern models support chat format
+	return true
+}
+
+// TruncateToFit truncates text to fit within token limits
+func (tm *TokenManager) TruncateToFit(text string, maxTokens int, modelName string) string {
+	currentTokens := tm.EstimateTokensForModel(text, modelName)
+	if currentTokens <= maxTokens {
+		return text
+	}
+	
+	// Rough approximation: truncate proportionally
+	ratio := float64(maxTokens) / float64(currentTokens)
+	newLength := int(float64(len(text)) * ratio)
+	
+	if newLength < len(text) {
+		return text[:newLength]
+	}
+	return text
+}
+
 type TokenBudget struct {
 	SystemTokens    int
 	UserTokens      int

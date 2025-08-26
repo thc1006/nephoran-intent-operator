@@ -376,14 +376,15 @@ func (s *SLAChaosTestSuite) SetupTest() {
 	}
 
 	// Initialize logger
-	var err error
-	s.logger, err = logging.NewStructuredLogger(&logging.Config{
-		Level:      "info",
-		Format:     "json",
-		Component:  "sla-chaos-test",
-		TraceLevel: "debug",
+	s.logger = logging.NewStructuredLogger(logging.Config{
+		Level:       logging.LevelInfo,
+		Format:      "json",
+		ServiceName: "sla-chaos-test",
+		Version:     "1.0.0",
+		Environment: "test",
+		Component:   "sla-chaos-test",
+		AddSource:   true,
 	})
-	s.Require().NoError(err, "Failed to initialize logger")
 
 	// Initialize Prometheus client
 	client, err := api.NewClient(api.Config{

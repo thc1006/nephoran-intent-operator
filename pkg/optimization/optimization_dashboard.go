@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"github.com/prometheus/client_golang/prometheus"
@@ -120,7 +121,7 @@ type DashboardData struct {
 	OptimizationStatus *OptimizationStatusData `json:"optimizationStatus"`
 
 	// Component health
-	ComponentHealth map[ComponentType]*ComponentHealth `json:"componentHealth"`
+	ComponentHealth map[shared.ComponentType]*ComponentHealth `json:"componentHealth"`
 
 	// Real-time charts data
 	ChartsData *ChartsData `json:"chartsData"`
@@ -229,7 +230,7 @@ type ErrorMetrics struct {
 	TotalErrors       int                   `json:"totalErrors"`
 	ErrorRate         float64               `json:"errorRate"`
 	ErrorsByType      map[string]int        `json:"errorsByType"`
-	ErrorsByComponent map[ComponentType]int `json:"errorsByComponent"`
+	ErrorsByComponent map[shared.ComponentType]int `json:"errorsByComponent"`
 	CriticalErrors    int                   `json:"criticalErrors"`
 }
 
@@ -1132,9 +1133,9 @@ func (dashboard *OptimizationDashboard) generateOptimizationStatus(ctx context.C
 	}
 }
 
-func (dashboard *OptimizationDashboard) generateComponentHealth(ctx context.Context) map[ComponentType]*ComponentHealth {
-	return map[ComponentType]*ComponentHealth{
-		ComponentTypeLLMProcessor: {
+func (dashboard *OptimizationDashboard) generateComponentHealth(ctx context.Context) map[shared.ComponentType]*ComponentHealth {
+	return map[shared.ComponentType]*ComponentHealth{
+		shared.ComponentTypeLLMProcessor: {
 			Name:        "LLM Processor",
 			Status:      "Healthy",
 			HealthScore: 92.0,

@@ -215,10 +215,7 @@ func NewMonitoringIntegrations(
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger(
-			logging.WithService("monitoring-integrations"),
-			logging.WithVersion("1.0.0"),
-		)
+		logger = logging.NewStructuredLogger(logging.DefaultConfig("monitoring-integrations", "1.0.0", "production"))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
