@@ -299,13 +299,39 @@ type A1Handler interface {
 	HandleGetEIJobStatus(w http.ResponseWriter, r *http.Request)
 }
 
+// ValidationResult represents the result of a validation operation
+type ValidationResult struct {
+	Valid    bool                `json:"valid"`
+	Errors   []ValidationError   `json:"errors,omitempty"`
+	Warnings []ValidationWarning `json:"warnings,omitempty"`
+}
+
+// ValidationError represents a validation error with detailed information
+type ValidationError struct {
+	Field      string      `json:"field"`
+	Value      interface{} `json:"value,omitempty"`
+	Tag        string      `json:"tag"`
+	Message    string      `json:"message"`
+	Param      string      `json:"param,omitempty"`
+	StructName string      `json:"struct_name,omitempty"`
+	FieldPath  string      `json:"field_path,omitempty"`
+}
+
+// ValidationWarning represents a validation warning
+type ValidationWarning struct {
+	Field     string      `json:"field"`
+	Value     interface{} `json:"value,omitempty"`
+	Message   string      `json:"message"`
+	FieldPath string      `json:"field_path,omitempty"`
+}
+
 // A1Validator defines the validation interface for A1 requests
 type A1Validator interface {
-	ValidatePolicyType(policyType *PolicyType) error
-	ValidatePolicyInstance(policyTypeID int, instance *PolicyInstance) error
-	ValidateConsumerInfo(info *ConsumerInfo) error
-	ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) error
-	ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) error
+	ValidatePolicyType(policyType *PolicyType) *ValidationResult
+	ValidatePolicyInstance(policyTypeID int, instance *PolicyInstance) *ValidationResult
+	ValidateConsumerInfo(info *ConsumerInfo) *ValidationResult
+	ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *ValidationResult
+	ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *ValidationResult
 }
 
 // A1Storage defines the storage interface for A1 data persistence

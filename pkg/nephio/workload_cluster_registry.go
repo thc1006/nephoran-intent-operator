@@ -148,6 +148,8 @@ type WorkloadDeployment struct {
 	LastRetry      *time.Time       `json:"lastRetry,omitempty"`
 }
 
+// DefaultWorkloadClusterConfig provides default configuration values
+var DefaultWorkloadClusterConfig = &WorkloadClusterConfig{
 	HealthCheckInterval:     1 * time.Minute,
 	AutoClusterRegistration: true,
 	RegistrationTimeout:     5 * time.Minute,

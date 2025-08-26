@@ -70,7 +70,7 @@ func (m *MockA1Service) GetPolicyStatus(ctx context.Context, policyTypeID int, p
 	return args.Get(0).(*PolicyStatus), args.Error(1)
 }
 
-// MockA1Validator provides a mock implementation of A1Validator for testing
+// MockA1Validator provides a mock implementation of A1TestValidator for testing
 type MockA1Validator struct {
 	mock.Mock
 }
@@ -940,7 +940,7 @@ type A1Service interface {
 	GetPolicyStatus(ctx context.Context, policyTypeID int, policyID string) (*PolicyStatus, error)
 }
 
-type A1Validator interface {
+type A1TestValidator interface {
 	ValidatePolicyType(policyType *PolicyType) error
 	ValidatePolicyInstance(policyType *PolicyType, instance *PolicyInstance) error
 	ValidateEIType(eiType *EnrichmentInfoType) error
@@ -972,14 +972,14 @@ type A1Metrics interface {
 
 type A1Handlers struct {
 	service   A1Service
-	validator A1Validator
+	validator A1TestValidator
 	storage   A1Storage
 	metrics   A1Metrics
 	logger    *logging.StructuredLogger
 	config    *A1ServerConfig
 }
 
-func NewA1Handlers(service A1Service, validator A1Validator, storage A1Storage, metrics A1Metrics, logger *logging.StructuredLogger, config *A1ServerConfig) *A1Handlers {
+func NewA1Handlers(service A1Service, validator A1TestValidator, storage A1Storage, metrics A1Metrics, logger *logging.StructuredLogger, config *A1ServerConfig) *A1Handlers {
 	return &A1Handlers{
 		service:   service,
 		validator: validator,

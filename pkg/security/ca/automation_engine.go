@@ -228,11 +228,10 @@ func (e *AutomationEngine) Start(ctx context.Context) error {
 		return fmt.Errorf("automation engine already running")
 	}
 
-	e.logger.Info("Starting automation engine", map[string]interface{}{
-		"service_discovery_enabled": e.config.ServiceDiscoveryEnabled,
-		"auto_renewal_enabled":      e.config.AutoRenewalEnabled,
-		"health_check_enabled":      e.config.HealthCheckEnabled,
-	})
+	e.logger.Info("Starting automation engine",
+		"service_discovery_enabled", e.config.ServiceDiscoveryEnabled,
+		"auto_renewal_enabled", e.config.AutoRenewalEnabled,
+		"health_check_enabled", e.config.HealthCheckEnabled)
 
 	// Start service discovery if enabled
 	if e.config.ServiceDiscoveryEnabled {
@@ -291,10 +290,9 @@ func (e *AutomationEngine) Stop() error {
 
 // startServiceDiscovery starts service discovery
 func (e *AutomationEngine) startServiceDiscovery(ctx context.Context) error {
-	e.logger.Info("Starting service discovery", map[string]interface{}{
-		"namespaces": e.config.DiscoveryNamespaces,
-		"selectors":  e.config.DiscoverySelectors,
-	})
+	e.logger.Info("Starting service discovery",
+		"namespaces", e.config.DiscoveryNamespaces,
+		"selectors", e.config.DiscoverySelectors)
 
 	// Start watchers for each namespace
 	for _, namespace := range e.config.DiscoveryNamespaces {
@@ -357,9 +355,8 @@ func (e *AutomationEngine) startNamespaceWatcher(namespace string) error {
 		return fmt.Errorf("failed to sync cache for namespace %s", namespace)
 	}
 
-	e.logger.Info("Started namespace watcher", map[string]interface{}{
-		"namespace": namespace,
-	})
+	e.logger.Info("Started namespace watcher",
+		"namespace", namespace)
 
 	return nil
 }
@@ -372,10 +369,9 @@ func (e *AutomationEngine) onServiceAdded(obj interface{}) {
 		return
 	}
 
-	e.logger.Debug("Service added", map[string]interface{}{
-		"name":      service.Name,
-		"namespace": service.Namespace,
-	})
+	e.logger.Debug("Service added",
+		"name", service.Name,
+		"namespace", service.Namespace)
 
 	// Process service for certificate provisioning
 	go e.processServiceForProvisioning(service)
@@ -393,10 +389,9 @@ func (e *AutomationEngine) onServiceUpdated(oldObj, newObj interface{}) {
 		return
 	}
 
-	e.logger.Debug("Service updated", map[string]interface{}{
-		"name":      newService.Name,
-		"namespace": newService.Namespace,
-	})
+	e.logger.Debug("Service updated",
+		"name", newService.Name,
+		"namespace", newService.Namespace)
 
 	// Check if service configuration changed
 	if e.serviceConfigChanged(oldService, newService) {
@@ -411,10 +406,9 @@ func (e *AutomationEngine) onServiceDeleted(obj interface{}) {
 		return
 	}
 
-	e.logger.Debug("Service deleted", map[string]interface{}{
-		"name":      service.Name,
-		"namespace": service.Namespace,
-	})
+	e.logger.Debug("Service deleted",
+		"name", service.Name,
+		"namespace", service.Namespace)
 
 	// Process service for certificate revocation
 	go e.processServiceForRevocation(service)
@@ -454,10 +448,9 @@ func (e *AutomationEngine) processServiceForProvisioning(service *v1.Service) {
 		return
 	}
 
-	e.logger.Info("Processing service for certificate provisioning", map[string]interface{}{
-		"name":      service.Name,
-		"namespace": service.Namespace,
-	})
+	e.logger.Info("Processing service for certificate provisioning",
+		"name", service.Name,
+		"namespace", service.Namespace)
 
 	// Create automation request
 	req := &AutomationRequest{
@@ -494,10 +487,9 @@ func (e *AutomationEngine) processServiceForRevocation(service *v1.Service) {
 		return
 	}
 
-	e.logger.Info("Processing service for certificate revocation", map[string]interface{}{
-		"name":      service.Name,
-		"namespace": service.Namespace,
-	})
+	e.logger.Info("Processing service for certificate revocation",
+		"name", service.Name,
+		"namespace", service.Namespace)
 
 	// Create automation request
 	req := &AutomationRequest{
@@ -570,9 +562,8 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 	// Get all managed certificates
 	certificates, err := e.manager.ListCertificates(nil)
 	if err != nil {
-		e.logger.Error("Failed to list certificates for renewal check", map[string]interface{}{
-			"error": err.Error(),
-		})
+		e.logger.Error("Failed to list certificates for renewal check",
+			"error", err.Error())
 		return
 	}
 
@@ -581,12 +572,11 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 		// Check if certificate is close to expiration
 		timeUntilExpiry := time.Until(cert.ExpiresAt)
 		if timeUntilExpiry <= e.config.RenewalThreshold {
-			e.logger.Info("Certificate needs renewal", map[string]interface{}{
-				"serial":           cert.SerialNumber,
-				"subject":          cert.Certificate.Subject.String(),
-				"expires":          cert.ExpiresAt,
-				"time_until_expiry": timeUntilExpiry,
-			})
+			e.logger.Info("Certificate needs renewal",
+				"serial", cert.SerialNumber,
+				"subject", cert.Certificate.Subject.String(),
+				"expires", cert.ExpiresAt,
+				"time_until_expiry", timeUntilExpiry)
 
 			// Create renewal request
 			req := &AutomationRequest{
@@ -606,9 +596,8 @@ func (e *AutomationEngine) checkForRenewals(ctx context.Context) {
 	}
 
 	if renewalCount > 0 {
-		e.logger.Info("Initiated certificate renewals", map[string]interface{}{
-			"renewal_count": renewalCount,
-		})
+		e.logger.Info("Initiated certificate renewals",
+			"renewal_count", renewalCount)
 	}
 }
 
@@ -636,9 +625,8 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 	// Get all discovered services
 	services, err := e.discoverServices(ctx)
 	if err != nil {
-		e.logger.Error("Failed to discover services for health checks", map[string]interface{}{
-			"error": err.Error(),
-		})
+		e.logger.Error("Failed to discover services for health checks",
+			"error", err.Error())
 		return
 	}
 
@@ -663,10 +651,9 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 
 		session, err := e.healthChecker.StartHealthCheck(target, config)
 			if err != nil {
-				e.logger.Warn("Failed to start health check", map[string]interface{}{
-					"service": service.Name,
-					"error":   err.Error(),
-				})
+				e.logger.Warn("Failed to start health check",
+					"service", service.Name,
+					"error", err.Error())
 				unhealthyCount++
 				continue
 			}
@@ -674,9 +661,9 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 			result, err := e.healthChecker.PerformHealthCheck(session)
 			if err != nil || !result.Success {
 				unhealthyCount++
-				e.logger.Warn("Service health check failed", map[string]interface{}{
-					"service": service.Name,
-					"error": func() string {
+				e.logger.Warn("Service health check failed",
+					"service", service.Name,
+					"error", func() string {
 						if err != nil {
 							return err.Error()
 						}
@@ -684,18 +671,16 @@ func (e *AutomationEngine) performHealthChecks(ctx context.Context) {
 							return result.ErrorMessage
 						}
 						return "unknown error"
-					}(),
-				})
+					}())
 			} else {
 				healthyCount++
 			}
 		}
 	}
 
-	e.logger.Debug("Health checks completed", map[string]interface{}{
-		"healthy_services":   healthyCount,
-		"unhealthy_services": unhealthyCount,
-	})
+	e.logger.Debug("Health checks completed",
+		"healthy_services", healthyCount,
+		"unhealthy_services", unhealthyCount)
 }
 
 // runRequestProcessor runs the automation request processor
@@ -721,12 +706,11 @@ func (e *AutomationEngine) runRequestProcessor(ctx context.Context) {
 func (e *AutomationEngine) processAutomationRequest(req *AutomationRequest) {
 	startTime := time.Now()
 
-	e.logger.Info("Processing automation request", map[string]interface{}{
-		"type":              req.Type,
-		"service_name":      req.ServiceName,
-		"service_namespace": req.ServiceNamespace,
-		"priority":          req.Priority,
-	})
+	e.logger.Info("Processing automation request",
+		"type", req.Type,
+		"service_name", req.ServiceName,
+		"service_namespace", req.ServiceNamespace,
+		"priority", req.Priority)
 
 	var response *AutomationResponse
 
@@ -750,12 +734,11 @@ func (e *AutomationEngine) processAutomationRequest(req *AutomationRequest) {
 		}
 	}
 
-	e.logger.Info("Automation request processed", map[string]interface{}{
-		"type":     req.Type,
-		"status":   response.Status,
-		"duration": response.Duration,
-		"message":  response.Message,
-	})
+	e.logger.Info("Automation request processed",
+		"type", req.Type,
+		"status", response.Status,
+		"duration", response.Duration,
+		"message", response.Message)
 
 	// Send notifications if configured
 	if e.config.NotificationEnabled && req.NotificationConfig != nil && req.NotificationConfig.Enabled {
@@ -921,10 +904,9 @@ func (e *AutomationEngine) processRevocationRequest(req *AutomationRequest) *Aut
 	revokedCount := 0
 	for _, cert := range certs {
 		if err := e.manager.RevokeCertificate(context.Background(), cert.SerialNumber.String(), 1, "service_deleted"); err != nil {
-			e.logger.Warn("Failed to revoke certificate", map[string]interface{}{
-				"serial": cert.SerialNumber.String(),
-				"error":  err.Error(),
-			})
+			e.logger.Warn("Failed to revoke certificate",
+				"serial", cert.SerialNumber.String(),
+				"error", err.Error())
 		} else {
 			revokedCount++
 		}
@@ -1084,11 +1066,10 @@ func (e *AutomationEngine) storeServiceCertificate(serviceName, namespace string
 	// This would implement certificate storage logic
 	// For now, it's a placeholder
 
-	e.logger.Debug("Storing service certificate", map[string]interface{}{
-		"service":   serviceName,
-		"namespace": namespace,
-		"serial":    cert.SerialNumber.String(),
-	})
+	e.logger.Debug("Storing service certificate",
+		"service", serviceName,
+		"namespace", namespace,
+		"serial", cert.SerialNumber.String())
 
 	return nil
 }
@@ -1118,11 +1099,10 @@ func (e *AutomationEngine) parsePort(endpoint string) int {
 
 // sendNotification sends a notification for an automation request
 func (e *AutomationEngine) sendNotification(req *AutomationRequest, resp *AutomationResponse) {
-	e.logger.Debug("Sending notification", map[string]interface{}{
-		"request_type": req.Type,
-		"status":       resp.Status,
-		"channels":     req.NotificationConfig.Channels,
-	})
+	e.logger.Debug("Sending notification",
+		"request_type", req.Type,
+		"status", resp.Status,
+		"channels", req.NotificationConfig.Channels)
 
 	// This would implement notification sending logic
 	// For now, it's a placeholder

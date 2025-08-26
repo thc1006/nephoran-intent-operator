@@ -136,10 +136,7 @@ func NewA1Server(config *A1ServerConfig, service A1Service, validator A1Validato
 		ErrorLog:       nil, // We'll handle errors through structured logging
 	}
 
-	// Enable HTTP/2
-	if err := http.ConfigureTransport(server.httpServer); err != nil {
-		logger.WarnWithContext("Failed to configure HTTP/2 transport", "error", err)
-	}
+	// Enable HTTP/2 is automatically enabled in Go 1.6+ for HTTPS servers
 
 	return server, nil
 }
@@ -753,7 +750,7 @@ func (cb *CircuitBreaker) currentState(now time.Time) (State, uint64) {
 			cb.setState(StateHalfOpen, now)
 		}
 	}
-	return cb.state, cb.counts.Requests
+	return cb.state, uint64(cb.counts.Requests)
 }
 
 // onSuccess handles successful request

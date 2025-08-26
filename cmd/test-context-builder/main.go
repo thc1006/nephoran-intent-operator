@@ -18,13 +18,13 @@ func main() {
 	// Test BuildContext with no pool (should return empty context)
 	ctx := context.Background()
 	intent := "Deploy a 5G AMF function with high availability"
-	maxDocs := 5
+	documents := []llm.Document{} // Empty documents for test
 
-	contextDocs, err := cb.BuildContext(ctx, intent, maxDocs)
+	contextStr, err := cb.BuildContext(ctx, intent, documents)
 	if err != nil {
 		log.Printf("Error building context: %v", err)
 	} else {
-		log.Printf("Successfully built context with %d documents", len(contextDocs))
+		log.Printf("Successfully built context: %s", contextStr)
 	}
 
 	// Test metrics

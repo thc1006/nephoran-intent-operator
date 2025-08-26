@@ -12,23 +12,7 @@ import (
 // A1-C (Consumer) Interface Implementation
 // This implements the O-RAN A1-C specification for Non-RT RIC to Near-RT RIC communication
 
-// A1ConsumerInterface defines the A1-C interface operations
-type A1ConsumerInterface interface {
-	// Policy Type Operations (Non-RT RIC -> Near-RT RIC)
-	RegisterPolicyType(ctx context.Context, policyType *A1PolicyTypeRegistration) error
-	DeregisterPolicyType(ctx context.Context, policyTypeID int) error
-	GetPolicyTypeStatus(ctx context.Context, policyTypeID int) (*PolicyTypeStatus, error)
-
-	// Capability Discovery
-	GetNearRTRICCapabilities(ctx context.Context) (*NearRTRICCapabilities, error)
-
-	// Health and Status
-	GetNearRTRICHealth(ctx context.Context) (*NearRTRICHealth, error)
-
-	// Subscription Management
-	SubscribeToPolicyEvents(ctx context.Context, subscription *PolicyEventSubscription) error
-	UnsubscribeFromPolicyEvents(ctx context.Context, subscriptionID string) error
-}
+// A1ConsumerInterface is defined in types.go
 
 // A1PolicyTypeRegistration represents a policy type registration from Non-RT RIC
 type A1PolicyTypeRegistration struct {

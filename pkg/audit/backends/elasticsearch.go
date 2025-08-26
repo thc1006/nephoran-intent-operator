@@ -620,7 +620,7 @@ func (eb *ElasticsearchBackend) parseSearchResponse(resp *SearchResponse) *Query
 func (eb *ElasticsearchBackend) processBulkErrors(items []BulkItem) {
 	for _, item := range items {
 		if item.Index.Error != nil {
-			eb.logger.Error(fmt.Errorf(item.Index.Error.Reason), "Bulk index error",
+			eb.logger.Error(fmt.Errorf("%s", item.Index.Error.Reason), "Bulk index error",
 				"type", item.Index.Error.Type,
 				"id", item.Index.ID)
 			atomic.AddInt64(&eb.eventsFailed, 1)

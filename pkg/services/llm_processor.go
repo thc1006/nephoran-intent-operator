@@ -16,7 +16,7 @@ type LLMProcessorService struct {
 	config             *config.LLMProcessorConfig
 	secretManager      *config.SecretManager
 	processor          *handlers.IntentProcessor
-	streamingProcessor *llm.StreamingProcessor
+	streamingProcessor *llm.StreamingProcessorStub
 	circuitBreakerMgr  *llm.CircuitBreakerManager
 	tokenManager       *llm.TokenManager
 	contextBuilder     *llm.ContextBuilder
@@ -116,7 +116,7 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 	}
 
 	// Initialize relevance scorer
-	s.relevanceScorer = llm.NewRelevanceScorer()
+	s.relevanceScorer = llm.NewRelevanceScorer(nil, nil)
 
 	// Initialize context builder if enabled
 	if s.config.EnableContextBuilder {
@@ -124,12 +124,12 @@ func (s *LLMProcessorService) initializeLLMComponents(ctx context.Context) error
 	}
 
 	// Initialize prompt builder
-	s.promptBuilder = llm.NewRAGAwarePromptBuilder()
+	s.promptBuilder = llm.NewRAGAwarePromptBuilder(s.tokenManager, nil)
 
 	// Initialize RAG-enhanced processor if enabled
 	var ragEnhanced *llm.RAGEnhancedProcessor
 	if s.config.RAGEnabled {
-		ragEnhanced = llm.NewRAGEnhancedProcessor()
+		ragEnhanced = llm.NewRAGEnhancedProcessor(*llmClient, nil, nil, nil)
 	}
 
 	// Initialize streaming processor if enabled
@@ -284,7 +284,7 @@ func (s *LLMProcessorService) registerHealthChecks() {
 // GetComponents returns the initialized components
 func (s *LLMProcessorService) GetComponents() (
 	*handlers.IntentProcessor,
-	*llm.StreamingProcessor,
+	*llm.StreamingProcessorStub,
 	*llm.CircuitBreakerManager,
 	*llm.TokenManager,
 	*llm.ContextBuilder,

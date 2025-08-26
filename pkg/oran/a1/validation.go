@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"reflect"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,39 +16,15 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// A1Validator implements comprehensive validation for A1 entities
-type A1Validator struct {
+// A1ValidatorImpl implements comprehensive validation for A1 entities
+type A1ValidatorImpl struct {
 	validator      *validator.Validate
 	logger         *logging.StructuredLogger
 	config         *ValidationConfig
 	schemaRegistry map[string]interface{} // Cache for JSON schemas
 }
 
-// ValidationResult represents the result of a validation operation
-type ValidationResult struct {
-	Valid    bool                `json:"valid"`
-	Errors   []ValidationError   `json:"errors,omitempty"`
-	Warnings []ValidationWarning `json:"warnings,omitempty"`
-}
-
-// ValidationError represents a validation error with detailed information
-type ValidationError struct {
-	Field      string      `json:"field"`
-	Value      interface{} `json:"value,omitempty"`
-	Tag        string      `json:"tag"`
-	Message    string      `json:"message"`
-	Param      string      `json:"param,omitempty"`
-	StructName string      `json:"struct_name,omitempty"`
-	FieldPath  string      `json:"field_path,omitempty"`
-}
-
-// ValidationWarning represents a validation warning
-type ValidationWarning struct {
-	Field     string      `json:"field"`
-	Value     interface{} `json:"value,omitempty"`
-	Message   string      `json:"message"`
-	FieldPath string      `json:"field_path,omitempty"`
-}
+// ValidationResult, ValidationError, and ValidationWarning are defined in types.go
 
 // JSONSchemaValidator provides JSON schema validation capabilities
 type JSONSchemaValidator struct {
@@ -94,7 +69,7 @@ type JSONSchemaValidator struct {
 }
 
 // NewA1Validator creates a new A1 validator with the given configuration
-func NewA1Validator(config *ValidationConfig, logger *logging.StructuredLogger) *A1Validator {
+func NewA1Validator(config *ValidationConfig, logger *logging.StructuredLogger) *A1ValidatorImpl {
 	if config == nil {
 		config = &ValidationConfig{
 			EnableSchemaValidation:   true,
@@ -128,7 +103,7 @@ func NewA1Validator(config *ValidationConfig, logger *logging.StructuredLogger) 
 		return name
 	})
 
-	return &A1Validator{
+	return &A1ValidatorImpl{
 		validator:      v,
 		logger:         logger.WithComponent("a1-validator"),
 		config:         config,
@@ -137,7 +112,7 @@ func NewA1Validator(config *ValidationConfig, logger *logging.StructuredLogger) 
 }
 
 // ValidatePolicyType validates an A1 policy type according to O-RAN specifications
-func (av *A1Validator) ValidatePolicyType(policyType *PolicyType) *ValidationResult {
+func (av *A1ValidatorImpl) ValidatePolicyType(policyType *PolicyType) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	if policyType == nil {
@@ -175,7 +150,7 @@ func (av *A1Validator) ValidatePolicyType(policyType *PolicyType) *ValidationRes
 }
 
 // ValidatePolicyInstance validates an A1 policy instance
-func (av *A1Validator) ValidatePolicyInstance(policyTypeID int, instance *PolicyInstance) *ValidationResult {
+func (av *A1ValidatorImpl) ValidatePolicyInstance(policyTypeID int, instance *PolicyInstance) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	if instance == nil {
@@ -231,7 +206,7 @@ func (av *A1Validator) ValidatePolicyInstance(policyTypeID int, instance *Policy
 }
 
 // ValidateConsumerInfo validates A1-C consumer information
-func (av *A1Validator) ValidateConsumerInfo(info *ConsumerInfo) *ValidationResult {
+func (av *A1ValidatorImpl) ValidateConsumerInfo(info *ConsumerInfo) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	if info == nil {
@@ -266,7 +241,7 @@ func (av *A1Validator) ValidateConsumerInfo(info *ConsumerInfo) *ValidationResul
 }
 
 // ValidateEnrichmentInfoType validates A1-EI type information
-func (av *A1Validator) ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *ValidationResult {
+func (av *A1ValidatorImpl) ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	if eiType == nil {
@@ -306,7 +281,7 @@ func (av *A1Validator) ValidateEnrichmentInfoType(eiType *EnrichmentInfoType) *V
 }
 
 // ValidateEnrichmentInfoJob validates A1-EI job information
-func (av *A1Validator) ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *ValidationResult {
+func (av *A1ValidatorImpl) ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	if job == nil {
@@ -357,7 +332,7 @@ func (av *A1Validator) ValidateEnrichmentInfoJob(job *EnrichmentInfoJob) *Valida
 }
 
 // RegisterSchema registers a JSON schema in the validator's schema registry
-func (av *A1Validator) RegisterSchema(schemaID string, schema interface{}) error {
+func (av *A1ValidatorImpl) RegisterSchema(schemaID string, schema interface{}) error {
 	if schemaID == "" {
 		return fmt.Errorf("schema ID cannot be empty")
 	}
@@ -378,13 +353,13 @@ func (av *A1Validator) RegisterSchema(schemaID string, schema interface{}) error
 }
 
 // GetRegisteredSchema retrieves a schema from the registry
-func (av *A1Validator) GetRegisteredSchema(schemaID string) (interface{}, bool) {
+func (av *A1ValidatorImpl) GetRegisteredSchema(schemaID string) (interface{}, bool) {
 	schema, exists := av.schemaRegistry[schemaID]
 	return schema, exists
 }
 
 // ListRegisteredSchemas returns all registered schema IDs
-func (av *A1Validator) ListRegisteredSchemas() []string {
+func (av *A1ValidatorImpl) ListRegisteredSchemas() []string {
 	var schemaIDs []string
 	for id := range av.schemaRegistry {
 		schemaIDs = append(schemaIDs, id)
@@ -395,7 +370,7 @@ func (av *A1Validator) ListRegisteredSchemas() []string {
 // Private validation methods
 
 // convertValidationErrors converts validator.ValidationErrors to ValidationError slice
-func (av *A1Validator) convertValidationErrors(err error) []ValidationError {
+func (av *A1ValidatorImpl) convertValidationErrors(err error) []ValidationError {
 	var validationErrors []ValidationError
 
 	if validatorErrs, ok := err.(validator.ValidationErrors); ok {
@@ -416,7 +391,7 @@ func (av *A1Validator) convertValidationErrors(err error) []ValidationError {
 }
 
 // getValidationMessage returns a human-readable message for validation errors
-func (av *A1Validator) getValidationMessage(err validator.FieldError) string {
+func (av *A1ValidatorImpl) getValidationMessage(err validator.FieldError) string {
 	switch err.Tag() {
 	case "required":
 		return fmt.Sprintf("Field '%s' is required", err.Field())
@@ -452,7 +427,7 @@ func (av *A1Validator) getValidationMessage(err validator.FieldError) string {
 }
 
 // validatePolicyTypeBusinessRules validates business-specific rules for policy types
-func (av *A1Validator) validatePolicyTypeBusinessRules(policyType *PolicyType) *ValidationResult {
+func (av *A1ValidatorImpl) validatePolicyTypeBusinessRules(policyType *PolicyType) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	// Policy type ID range validation (O-RAN recommends 1-100000)
@@ -478,7 +453,7 @@ func (av *A1Validator) validatePolicyTypeBusinessRules(policyType *PolicyType) *
 }
 
 // validatePolicyInstanceBusinessRules validates business-specific rules for policy instances
-func (av *A1Validator) validatePolicyInstanceBusinessRules(instance *PolicyInstance) *ValidationResult {
+func (av *A1ValidatorImpl) validatePolicyInstanceBusinessRules(instance *PolicyInstance) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	// Policy ID format validation (should be alphanumeric with hyphens/underscores)
@@ -505,7 +480,7 @@ func (av *A1Validator) validatePolicyInstanceBusinessRules(instance *PolicyInsta
 }
 
 // validateConsumerBusinessRules validates business-specific rules for consumers
-func (av *A1Validator) validateConsumerBusinessRules(info *ConsumerInfo) *ValidationResult {
+func (av *A1ValidatorImpl) validateConsumerBusinessRules(info *ConsumerInfo) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	// Consumer ID format validation
@@ -541,7 +516,7 @@ func (av *A1Validator) validateConsumerBusinessRules(info *ConsumerInfo) *Valida
 }
 
 // validateEIJobBusinessRules validates business-specific rules for EI jobs
-func (av *A1Validator) validateEIJobBusinessRules(job *EnrichmentInfoJob) *ValidationResult {
+func (av *A1ValidatorImpl) validateEIJobBusinessRules(job *EnrichmentInfoJob) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	// EI job ID format validation
@@ -567,7 +542,7 @@ func (av *A1Validator) validateEIJobBusinessRules(job *EnrichmentInfoJob) *Valid
 }
 
 // validateJSONSchemaStructure validates that a given object is a valid JSON schema
-func (av *A1Validator) validateJSONSchemaStructure(schema interface{}, fieldPath string) *ValidationResult {
+func (av *A1ValidatorImpl) validateJSONSchemaStructure(schema interface{}, fieldPath string) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	// Convert to map for inspection
@@ -623,7 +598,7 @@ func (av *A1Validator) validateJSONSchemaStructure(schema interface{}, fieldPath
 }
 
 // validateDataAgainstSchema validates data against a JSON schema
-func (av *A1Validator) validateDataAgainstSchema(data interface{}, schema interface{}, fieldPath string) *ValidationResult {
+func (av *A1ValidatorImpl) validateDataAgainstSchema(data interface{}, schema interface{}, fieldPath string) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	// This is a simplified schema validation implementation
@@ -680,7 +655,7 @@ func (av *A1Validator) validateDataAgainstSchema(data interface{}, schema interf
 }
 
 // validateDataType checks if data matches the expected JSON schema type
-func (av *A1Validator) validateDataType(data interface{}, expectedType string) bool {
+func (av *A1ValidatorImpl) validateDataType(data interface{}, expectedType string) bool {
 	switch expectedType {
 	case "string":
 		_, ok := data.(string)
@@ -714,7 +689,7 @@ func (av *A1Validator) validateDataType(data interface{}, expectedType string) b
 }
 
 // calculateSchemaComplexity calculates a complexity score for a JSON schema
-func (av *A1Validator) calculateSchemaComplexity(schema interface{}) int {
+func (av *A1ValidatorImpl) calculateSchemaComplexity(schema interface{}) int {
 	complexity := 0
 
 	if schemaMap, ok := schema.(map[string]interface{}); ok {
@@ -763,7 +738,7 @@ func (av *A1Validator) calculateSchemaComplexity(schema interface{}) int {
 }
 
 // validateCallbackURL validates a callback URL for consumers
-func (av *A1Validator) validateCallbackURL(callbackURL string) *ValidationResult {
+func (av *A1ValidatorImpl) validateCallbackURL(callbackURL string) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	// Parse URL
@@ -811,7 +786,7 @@ func (av *A1Validator) validateCallbackURL(callbackURL string) *ValidationResult
 }
 
 // validateTargetURI validates a target URI for EI jobs
-func (av *A1Validator) validateTargetURI(targetURI string) *ValidationResult {
+func (av *A1ValidatorImpl) validateTargetURI(targetURI string) *ValidationResult {
 	result := &ValidationResult{Valid: true}
 
 	// Parse URI
@@ -938,7 +913,7 @@ func validateISO8601DateTime(fl validator.FieldLevel) bool {
 }
 
 // ValidateWithContext validates any A1 entity with request context
-func (av *A1Validator) ValidateWithContext(ctx context.Context, entity interface{}) *ValidationResult {
+func (av *A1ValidatorImpl) ValidateWithContext(ctx context.Context, entity interface{}) *ValidationResult {
 	switch e := entity.(type) {
 	case *PolicyType:
 		return av.ValidatePolicyType(e)
