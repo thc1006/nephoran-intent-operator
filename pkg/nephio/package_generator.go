@@ -310,10 +310,15 @@ func (pg *PackageGenerator) generateKptfile(intent *v1.NetworkIntent) (string, e
 func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Parse structured parameters from RawExtension
+	// Parse structured parameters from ProcessedParameters
 	var params map[string]interface{}
-	if intent.Spec.Parameters.Raw != nil {
-		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+	if intent.Spec.ProcessedParameters != nil {
+		// Convert ProcessedParameters to map for template processing
+		paramsJSON, err := json.Marshal(intent.Spec.ProcessedParameters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal processed parameters: %w", err)
+		}
+		if err := json.Unmarshal(paramsJSON, &params); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 	}
@@ -359,10 +364,15 @@ func (pg *PackageGenerator) generateDeploymentResources(intent *v1.NetworkIntent
 func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Parse structured parameters from RawExtension
+	// Parse structured parameters from ProcessedParameters
 	var params map[string]interface{}
-	if intent.Spec.Parameters.Raw != nil {
-		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+	if intent.Spec.ProcessedParameters != nil {
+		// Convert ProcessedParameters to map for template processing
+		paramsJSON, err := json.Marshal(intent.Spec.ProcessedParameters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal processed parameters: %w", err)
+		}
+		if err := json.Unmarshal(paramsJSON, &params); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 	}
@@ -385,10 +395,15 @@ func (pg *PackageGenerator) generateScalingResources(intent *v1.NetworkIntent) (
 func (pg *PackageGenerator) generatePolicyResources(intent *v1.NetworkIntent) (map[string]string, error) {
 	resources := make(map[string]string)
 
-	// Parse structured parameters from RawExtension
+	// Parse structured parameters from ProcessedParameters
 	var params map[string]interface{}
-	if intent.Spec.Parameters.Raw != nil {
-		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+	if intent.Spec.ProcessedParameters != nil {
+		// Convert ProcessedParameters to map for template processing
+		paramsJSON, err := json.Marshal(intent.Spec.ProcessedParameters)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal processed parameters: %w", err)
+		}
+		if err := json.Unmarshal(paramsJSON, &params); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 	}
@@ -420,8 +435,8 @@ func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, er
 		"GeneratedAt":         time.Now().Format("2006-01-02 15:04:05 UTC"),
 		"Description":         fmt.Sprintf("This package was automatically generated from the NetworkIntent '%s'", intent.Name),
 		"Contents":            "- Kubernetes manifests\n- O-RAN configuration\n- Network slice parameters\n- Setters for customization",
-		"ORANDetails":         pg.extractORANDetailsFromRaw(intent.Spec.Parameters),
-		"NetworkSliceDetails": pg.extractNetworkSliceDetailsFromRaw(intent.Spec.Parameters),
+		"ORANDetails":         pg.extractORANDetailsFromProcessed(intent.Spec.ProcessedParameters),
+		"NetworkSliceDetails": pg.extractNetworkSliceDetailsFromProcessed(intent.Spec.ProcessedParameters),
 	}
 
 	var buf bytes.Buffer
@@ -432,22 +447,28 @@ func (pg *PackageGenerator) generateReadme(intent *v1.NetworkIntent) (string, er
 	return strings.TrimSpace(buf.String()), nil
 }
 
-// extractORANDetailsFromRaw extracts O-RAN details from RawExtension
-func (pg *PackageGenerator) extractORANDetailsFromRaw(rawExt runtime.RawExtension) string {
+// extractORANDetailsFromProcessed extracts O-RAN details from ProcessedParameters
+func (pg *PackageGenerator) extractORANDetailsFromProcessed(processedParams *v1.ProcessedParameters) string {
+	if processedParams == nil {
+		return "No processed parameters available"
+	}
 	var params map[string]interface{}
-	if rawExt.Raw != nil {
-		if err := json.Unmarshal(rawExt.Raw, &params); err != nil {
+	if paramsJSON, err := json.Marshal(processedParams); err == nil {
+		if err := json.Unmarshal(paramsJSON, &params); err != nil {
 			return "Unable to parse parameters"
 		}
 	}
 	return extractORANDetails(params)
 }
 
-// extractNetworkSliceDetailsFromRaw extracts network slice details from RawExtension
-func (pg *PackageGenerator) extractNetworkSliceDetailsFromRaw(rawExt runtime.RawExtension) string {
+// extractNetworkSliceDetailsFromProcessed extracts network slice details from ProcessedParameters
+func (pg *PackageGenerator) extractNetworkSliceDetailsFromProcessed(processedParams *v1.ProcessedParameters) string {
+	if processedParams == nil {
+		return "No processed parameters available"
+	}
 	var params map[string]interface{}
-	if rawExt.Raw != nil {
-		if err := json.Unmarshal(rawExt.Raw, &params); err != nil {
+	if paramsJSON, err := json.Marshal(processedParams); err == nil {
+		if err := json.Unmarshal(paramsJSON, &params); err != nil {
 			return "Unable to parse parameters"
 		}
 	}
@@ -672,10 +693,15 @@ func (pg *PackageGenerator) GeneratePatchAndPublishToPorch(ctx context.Context, 
 		return fmt.Errorf("porch client not configured")
 	}
 
-	// Parse structured parameters from RawExtension
+	// Parse structured parameters from ProcessedParameters
 	var params map[string]interface{}
-	if intent.Spec.Parameters.Raw != nil {
-		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &params); err != nil {
+	if intent.Spec.ProcessedParameters != nil {
+		// Convert ProcessedParameters to map for template processing
+		paramsJSON, err := json.Marshal(intent.Spec.ProcessedParameters)
+		if err != nil {
+			return fmt.Errorf("failed to marshal processed parameters: %w", err)
+		}
+		if err := json.Unmarshal(paramsJSON, &params); err != nil {
 			return fmt.Errorf("failed to unmarshal parameters: %w", err)
 		}
 	}

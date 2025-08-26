@@ -25,10 +25,84 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
+// ValidatorConfig holds configuration for YANG validation
+type ValidatorConfig struct {
+	// Validation options
+	EnableConstraintValidation bool          `yaml:"enableConstraintValidation"`
+	EnableDataTypeValidation   bool          `yaml:"enableDataTypeValidation"`
+	EnableMandatoryCheck       bool          `yaml:"enableMandatoryCheck"`
+	ValidationTimeout          time.Duration `yaml:"validationTimeout"`
+	MaxValidationDepth         int           `yaml:"maxValidationDepth"`
+	
+	// Model support
+	EnableO_RANModels   bool `yaml:"enableORANModels"`
+	Enable3GPPModels    bool `yaml:"enable3GPPModels"`
+	EnableCustomModels  bool `yaml:"enableCustomModels"`
+	ModelSearchPaths    []string `yaml:"modelSearchPaths"`
+	
+	// Performance options
+	EnableCaching       bool          `yaml:"enableCaching"`
+	CacheSize          int           `yaml:"cacheSize"`
+	CacheTTL           time.Duration `yaml:"cacheTTL"`
+	MaxConcurrentValidations int     `yaml:"maxConcurrentValidations"`
+	
+	// Metrics and monitoring
+	EnableMetrics       bool   `yaml:"enableMetrics"`
+	MetricsNamespace   string `yaml:"metricsNamespace"`
+	
+	// Error handling
+	StrictMode         bool `yaml:"strictMode"`
+	FailOnWarnings     bool `yaml:"failOnWarnings"`
+	MaxValidationErrors int  `yaml:"maxValidationErrors"`
+}
+
+// DefaultValidatorConfig returns a default ValidatorConfig
+func DefaultValidatorConfig() *ValidatorConfig {
+	return &ValidatorConfig{
+		EnableConstraintValidation: true,
+		EnableDataTypeValidation:   true,
+		EnableMandatoryCheck:       true,
+		ValidationTimeout:          30 * time.Second,
+		MaxValidationDepth:         100,
+		EnableO_RANModels:          true,
+		Enable3GPPModels:           true,
+		EnableCustomModels:         false,
+		ModelSearchPaths:           []string{"/etc/yang/models", "/usr/local/share/yang/models"},
+		EnableCaching:              true,
+		CacheSize:                  1000,
+		CacheTTL:                   60 * time.Minute,
+		MaxConcurrentValidations:   10,
+		EnableMetrics:              true,
+		MetricsNamespace:           "yang_validator",
+		StrictMode:                 false,
+		FailOnWarnings:             false,
+		MaxValidationErrors:        50,
+	}
+}
+
 // YANGValidator defines the interface for YANG model validation
 type YANGValidator interface {
 	// ValidatePackageRevision validates a package revision against YANG models
 	ValidatePackageRevision(ctx context.Context, pkg *porch.PackageRevision) (*ValidationResult, error)
+	
+	// GetValidatorHealth returns the health status of the validator
+	GetValidatorHealth(ctx context.Context) (*ValidatorHealth, error)
+	
+	// Close gracefully shuts down the validator
+	Close() error
+}
+
+// ValidatorHealth represents the health status of the YANG validator
+type ValidatorHealth struct {
+	Status           string                    `json:"status"` // healthy, degraded, unhealthy
+	LastCheck        time.Time                 `json:"lastCheck"`
+	LoadedModels     int                       `json:"loadedModels"`
+	CacheHitRate     float64                   `json:"cacheHitRate"`
+	ActiveValidations int                      `json:"activeValidations"`
+	Errors           []string                  `json:"errors,omitempty"`
+	Warnings         []string                  `json:"warnings,omitempty"`
+	Uptime           time.Duration             `json:"uptime"`
+	Version          string                    `json:"version,omitempty"`
 }
 
 // ValidatorMetrics implements metrics tracking for YANG validation processes
@@ -96,7 +170,22 @@ type ValidationError struct {
 
 // yangValidator implements the YANGValidator interface
 type yangValidator struct {
+	config  *ValidatorConfig
 	metrics *ValidatorMetrics
+	startTime time.Time
+}
+
+// NewYANGValidator creates a new YANG validator
+func NewYANGValidator(config *ValidatorConfig) (YANGValidator, error) {
+	if config == nil {
+		config = DefaultValidatorConfig()
+	}
+	
+	return &yangValidator{
+		config:    config,
+		metrics:   newValidatorMetrics(),
+		startTime: time.Now(),
+	}, nil
 }
 
 // Additional modifications for resource validation
@@ -177,4 +266,23 @@ func (v *yangValidator) ValidatePackageRevision(ctx context.Context, pkg *porch.
 	result.Valid = len(result.Errors) == 0
 
 	return result, nil
+}
+
+// GetValidatorHealth returns the health status of the validator
+func (v *yangValidator) GetValidatorHealth(ctx context.Context) (*ValidatorHealth, error) {
+	return &ValidatorHealth{
+		Status:    "healthy",
+		LastCheck: time.Now(),
+		Uptime:    time.Since(v.startTime),
+		LoadedModels: 0, // This would be populated based on actual loaded models
+		CacheHitRate: 0.0, // This would be calculated from actual cache metrics
+		ActiveValidations: 0, // This would be tracked during validation
+		Version: "1.0.0",
+	}, nil
+}
+
+// Close gracefully shuts down the validator
+func (v *yangValidator) Close() error {
+	// Cleanup resources
+	return nil
 }

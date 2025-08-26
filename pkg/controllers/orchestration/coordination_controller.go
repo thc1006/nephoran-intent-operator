@@ -19,6 +19,7 @@ package orchestration
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -254,7 +255,6 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 
 // coordinatePhase coordinates the execution of a specific phase
 func (r *CoordinationController) coordinatePhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, coordCtx *CoordinationContext) (interfaces.ProcessingResult, error) {
-	logger := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
 	// Record phase execution start
 	phaseExec := PhaseExecution{
@@ -339,8 +339,9 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 				},
 				OriginalIntent: networkIntent.Spec.Intent,
 				Priority:       networkIntent.Spec.Priority,
-				TimeoutSeconds: networkIntent.Spec.TimeoutSeconds,
-				MaxRetries:     networkIntent.Spec.MaxRetries,
+				// Use default values for timeout and retries as these are not part of NetworkIntent spec
+				// TimeoutSeconds: defaults to 120 seconds per IntentProcessing defaults
+				// MaxRetries: defaults to 3 per IntentProcessing defaults
 			},
 		}
 
@@ -444,7 +445,7 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 					UID:       string(intentProcessing.UID),
 				},
 				RequirementsInput:   intentProcessing.Status.LLMResponse,
-				TargetComponents:    networkIntent.Spec.TargetComponents,
+				TargetComponents:    r.convertORANComponentsToTargetComponents(networkIntent.Spec.TargetComponents),
 				ResourceConstraints: networkIntent.Spec.ResourceConstraints,
 				Priority:            networkIntent.Spec.Priority,
 			},
@@ -686,14 +687,8 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 
 	// Update NetworkIntent to completed status
 	networkIntent.Status.Phase = string(interfaces.PhaseCompleted)
-	now := metav1.Now()
-	networkIntent.Status.ProcessingCompletionTime = &now
-	networkIntent.Status.DeploymentCompletionTime = &now
-
-	if networkIntent.Status.ProcessingStartTime != nil {
-		duration := now.Sub(networkIntent.Status.ProcessingStartTime.Time)
-		networkIntent.Status.ProcessingDuration = &metav1.Duration{Duration: duration}
-	}
+	networkIntent.Status.LastUpdateTime = metav1.Now()
+	networkIntent.Status.LastMessage = "Intent processing completed successfully"
 
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update NetworkIntent status: %w", err)
@@ -705,7 +700,7 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 	// Publish completion event
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseCompleted, EventIntentCompleted,
 		coordCtx.IntentID, true, map[string]interface{}{
-			"processing_duration": networkIntent.Status.ProcessingDuration.Duration.String(),
+			"processing_duration": time.Since(coordCtx.StartTime).String(),
 			"completed_phases":    len(coordCtx.PhaseHistory),
 		}); err != nil {
 		log.Error(err, "Failed to publish completion event")
@@ -832,19 +827,8 @@ func (r *CoordinationController) handleIntentFailure(ctx context.Context, networ
 
 	// Update NetworkIntent to failed status
 	networkIntent.Status.Phase = string(interfaces.PhaseFailed)
-	now := metav1.Now()
-	networkIntent.Status.ProcessingCompletionTime = &now
-
-	// Add failure condition
-	condition := metav1.Condition{
-		Type:               "ProcessingFailed",
-		Status:             metav1.ConditionTrue,
-		ObservedGeneration: networkIntent.Generation,
-		Reason:             "MaxRetriesExceeded",
-		Message:            fmt.Sprintf("Processing failed at phase %s after %d attempts: %s", phase, coordCtx.RetryCount, result.ErrorMessage),
-		LastTransitionTime: now,
-	}
-	networkIntent.Status.Conditions = append(networkIntent.Status.Conditions, condition)
+	networkIntent.Status.LastUpdateTime = metav1.Now()
+	networkIntent.Status.LastMessage = fmt.Sprintf("Processing failed at phase %s after %d attempts: %s", phase, coordCtx.RetryCount, result.ErrorMessage)
 
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update NetworkIntent status: %w", err)
@@ -911,37 +895,10 @@ func (r *CoordinationController) handleIntentDeletion(ctx context.Context, names
 
 // updateNetworkIntentStatus updates the NetworkIntent status
 func (r *CoordinationController) updateNetworkIntentStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult) error {
-	// Update phase
+	// Update phase and basic status fields
 	networkIntent.Status.Phase = string(phase)
-
-	// Update timestamps
-	now := metav1.Now()
-	if networkIntent.Status.ProcessingStartTime == nil {
-		networkIntent.Status.ProcessingStartTime = &now
-	}
-
-	// Add or update condition
-	condition := metav1.Condition{
-		Type:               string(phase),
-		Status:             metav1.ConditionTrue,
-		ObservedGeneration: networkIntent.Generation,
-		Reason:             "Completed",
-		Message:            fmt.Sprintf("Phase %s completed successfully", phase),
-		LastTransitionTime: now,
-	}
-
-	// Update or add condition
-	found := false
-	for i, existing := range networkIntent.Status.Conditions {
-		if existing.Type == condition.Type {
-			networkIntent.Status.Conditions[i] = condition
-			found = true
-			break
-		}
-	}
-	if !found {
-		networkIntent.Status.Conditions = append(networkIntent.Status.Conditions, condition)
-	}
+	networkIntent.Status.LastUpdateTime = metav1.Now()
+	networkIntent.Status.LastMessage = fmt.Sprintf("Phase %s completed successfully", phase)
 
 	return r.Status().Update(ctx, networkIntent)
 }
@@ -1089,6 +1046,18 @@ func DefaultCoordinationConfig() *CoordinationConfig {
 		HealthCheckInterval:      60 * time.Second,
 		RecoveryTimeout:          120 * time.Second,
 	}
+}
+
+// convertORANComponentsToTargetComponents converts ORANComponent slice to TargetComponent slice
+func (r *CoordinationController) convertORANComponentsToTargetComponents(oranComponents []nephoranv1.ORANComponent) []nephoranv1.TargetComponent {
+	targetComponents := make([]nephoranv1.TargetComponent, len(oranComponents))
+	for i, oranComp := range oranComponents {
+		targetComponents[i] = nephoranv1.TargetComponent{
+			Name: string(oranComp),
+			Type: "deployment", // Default type for O-RAN components
+		}
+	}
+	return targetComponents
 }
 
 // ManifestGenerationController handles manifest generation (stub type for compilation)

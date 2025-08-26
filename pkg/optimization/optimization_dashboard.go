@@ -20,13 +20,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"net/http"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
-
 	"github.com/go-logr/logr"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/gorilla/mux"

@@ -20,10 +20,8 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"strconv"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
@@ -208,7 +206,7 @@ func (o *NetworkSliceOptimizer) Execute(ctx context.Context, input *ResourceList
 	})
 
 	// Optimize each network slice
-	for i, slice := range networkSlices {
+	for _, slice := range networkSlices {
 		sliceIndex := o.findResourceIndex(output.Items, &slice)
 		if sliceIndex >= 0 {
 			results := o.optimizeNetworkSlice(ctx, &output.Items[sliceIndex])
@@ -296,7 +294,7 @@ func (n *MultiVendorNormalizer) Execute(ctx context.Context, input *ResourceList
 	copy(output.Items, input.Items)
 
 	// Normalize each resource
-	for i, resource := range output.Items {
+	for i := range output.Items {
 		results := n.normalizeResource(ctx, &output.Items[i], config)
 		output.Results = append(output.Results, results...)
 	}
@@ -721,6 +719,18 @@ func (o *NetworkSliceOptimizer) optimizeMTCSlice(ctx context.Context, slice *por
 	))
 
 	return results
+}
+
+func (o *NetworkSliceOptimizer) findResourceIndex(resources []porch.KRMResource, target *porch.KRMResource) int {
+	targetName, _ := GetResourceName(target)
+	for i, resource := range resources {
+		if resource.Kind == target.Kind && resource.APIVersion == target.APIVersion {
+			if name, _ := GetResourceName(&resource); name == targetName {
+				return i
+			}
+		}
+	}
+	return -1
 }
 
 // Multi-vendor normalization methods

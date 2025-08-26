@@ -287,7 +287,7 @@ func waitForAPIServerReadyEnhanced(cfg *rest.Config, timeout time.Duration) erro
 }
 
 // createTestScheme creates a test runtime scheme
-func createTestScheme(schemeBuilders []func(*runtime.Scheme) error) *runtime.Scheme {
+func createTestScheme(schemeBuilders []func(*goruntime.Scheme) error) *goruntime.Scheme {
 	// This would implement scheme creation logic
 	// For now, returning nil to indicate we need the original function
 	return nil

@@ -25,7 +25,6 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Forward declarations for types from other files in the package

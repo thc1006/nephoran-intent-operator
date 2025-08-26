@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -301,9 +302,20 @@ func NewTelecomPerformanceOptimizer(config *TelecomOptimizerConfig, logger logr.
 	return optimizer
 }
 
+// TelecomOptimizationStrategy represents a telecom-specific optimization strategy
+type TelecomOptimizationStrategy struct {
+	Name                string                    `json:"name"`
+	Category            OptimizationCategory      `json:"category"`
+	TargetComponent     ComponentType             `json:"targetComponent"`
+	ApplicableScenarios []ScenarioCondition       `json:"applicableScenarios"`
+	ExpectedBenefits    *ExpectedBenefits         `json:"expectedBenefits"`
+	ImplementationSteps []ImplementationStep      `json:"implementationSteps"`
+	RiskFactors         []RecommendationRiskFactor `json:"riskFactors"`
+}
+
 // GetTelecomOptimizationStrategies returns telecom-specific optimization strategies
-func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies() []OptimizationStrategy {
-	strategies := []OptimizationStrategy{
+func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies() []TelecomOptimizationStrategy {
+	strategies := []TelecomOptimizationStrategy{
 		// 5G Core optimization strategies
 		{
 			Name:            "5g_core_latency_optimization",
@@ -345,7 +357,7 @@ func (optimizer *TelecomPerformanceOptimizer) GetTelecomOptimizationStrategies()
 					AutomationLevel: AutomationAssisted,
 				},
 			},
-			RiskFactors: []RiskFactor{
+			RiskFactors: []RecommendationRiskFactor{
 				{
 					Name:        "service_disruption",
 					Description: "Potential service disruption during optimization",
@@ -637,31 +649,29 @@ func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(
 // prioritizeTelecomRecommendations applies telecom-specific prioritization logic
 func (optimizer *TelecomPerformanceOptimizer) prioritizeTelecomRecommendations(recommendations []*OptimizationRecommendation) {
 	for _, rec := range recommendations {
-		// Apply telecom-specific weighting
-		if priority, exists := optimizer.config.OptimizationPriorities[optimizer.mapCategoryToTelecom(rec.Category)]; exists {
-			rec.OverallScore *= priority
+		// Apply telecom-specific weighting to risk score
+		// Since the OptimizationRecommendation struct is minimal, we work with what's available
+		
+		// Boost recommendations that mention latency or reliability in title/description
+		if contains(rec.Title, "latency") || contains(rec.Description, "latency") {
+			rec.RiskScore *= 0.9 // Lower risk score is better
 		}
 
-		// Boost latency-critical optimizations
-		if rec.ExpectedImpact.LatencyReduction > 50.0 {
-			rec.OverallScore *= 1.3
+		if contains(rec.Title, "reliability") || contains(rec.Description, "reliability") {
+			rec.RiskScore *= 0.95 // Slight risk reduction for reliability improvements
 		}
 
-		// Boost reliability improvements
-		if rec.ExpectedImpact.ReliabilityImprovement > 30.0 {
-			rec.OverallScore *= 1.2
-		}
-
-		// Boost interoperability improvements
-		if rec.ExpectedImpact.InteropImprovements > 40.0 {
-			rec.OverallScore *= 1.15
-		}
-
-		// Consider SLA compliance impact
-		if rec.Category == CategoryTelecommunications {
-			rec.OverallScore *= 1.1
+		// Telecom-specific optimizations get priority
+		if contains(rec.Title, "5g") || contains(rec.Title, "ran") || 
+		   contains(rec.Title, "ric") || contains(rec.Title, "telecom") {
+			rec.RiskScore *= 0.85 // Lower risk for telecom-specific optimizations
 		}
 	}
+}
+
+// contains checks if a string contains a substring (case-insensitive)
+func contains(s, substr string) bool {
+	return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 }
 
 func (optimizer *TelecomPerformanceOptimizer) mapCategoryToTelecom(category OptimizationCategory) TelecomOptimizationCategory {

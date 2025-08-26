@@ -17,15 +17,7 @@ limitations under the License.
 package optimization
 
 import (
-	"context"
-	"fmt"
-	"math"
-	"sort"
 	"time"
-
-	"github.com/go-logr/logr"
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/reporting"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // Additional types to fix compilation issues
