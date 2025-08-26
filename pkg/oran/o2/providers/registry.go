@@ -148,6 +148,18 @@ func (r *ProviderRegistry) ListProvidersByType(providerType string) []string {
 	return names
 }
 
+// GetSupportedProviders returns a list of supported provider types
+func (r *ProviderRegistry) GetSupportedProviders() []string {
+	return []string{
+		ProviderTypeKubernetes,
+		ProviderTypeOpenStack,
+		ProviderTypeVMware,
+		ProviderTypeAWS,
+		ProviderTypeAzure,
+		ProviderTypeGCP,
+	}
+}
+
 // GetProviderInfo returns information about a provider
 func (r *ProviderRegistry) GetProviderInfo(name string) (*ProviderInfo, error) {
 	r.mu.RLock()

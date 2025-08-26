@@ -14,6 +14,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+	
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // ClientMetrics tracks client performance metrics
@@ -607,4 +609,111 @@ func (c *Client) updateMetrics(success bool, latency time.Duration, cacheHit boo
 			c.metricsIntegrator.RecordRetryAttempt(c.modelName)
 		}
 	}
+}
+
+// Missing interface methods for shared.ClientInterface
+
+// ProcessIntentStream processes intent with streaming
+func (c *Client) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
+	// For now, simulate streaming by processing normally and chunking the response
+	response, err := c.ProcessIntent(ctx, prompt)
+	if err != nil {
+		return err
+	}
+
+	// Split response into chunks and send
+	words := strings.Fields(response)
+	chunkSize := 10 // words per chunk
+	
+	for i := 0; i < len(words); i += chunkSize {
+		end := i + chunkSize
+		if end > len(words) {
+			end = len(words)
+		}
+		
+		chunk := &shared.StreamingChunk{
+			Content:   strings.Join(words[i:end], " "),
+			IsLast:    end >= len(words),
+			Timestamp: time.Now(),
+		}
+		
+		select {
+		case chunks <- chunk:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+		
+		// Add small delay to simulate streaming
+		time.Sleep(50 * time.Millisecond)
+	}
+	
+	close(chunks)
+	return nil
+}
+
+// GetSupportedModels returns supported models
+func (c *Client) GetSupportedModels() []string {
+	return []string{c.modelName, "gpt-4o-mini", "gpt-3.5-turbo"}
+}
+
+// GetModelCapabilities returns model capabilities
+func (c *Client) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+	switch modelName {
+	case "gpt-4o-mini":
+		return &shared.ModelCapabilities{
+			MaxTokens:         128000,
+			SupportsChat:      true,
+			SupportsFunction:  true,
+			SupportsStreaming: true,
+			CostPerToken:      0.00015,
+		}, nil
+	case "gpt-3.5-turbo":
+		return &shared.ModelCapabilities{
+			MaxTokens:         4096,
+			SupportsChat:      true,
+			SupportsFunction:  false,
+			SupportsStreaming: true,
+			CostPerToken:      0.0015,
+		}, nil
+	default:
+		return &shared.ModelCapabilities{
+			MaxTokens:         c.maxTokens,
+			SupportsChat:      true,
+			SupportsFunction:  false,
+			SupportsStreaming: false,
+			CostPerToken:      0.001,
+		}, nil
+	}
+}
+
+// ValidateModel validates if model is supported
+func (c *Client) ValidateModel(modelName string) error {
+	supported := c.GetSupportedModels()
+	for _, m := range supported {
+		if m == modelName {
+			return nil
+		}
+	}
+	return fmt.Errorf("model %s not supported", modelName)
+}
+
+// EstimateTokens estimates token count for text
+func (c *Client) EstimateTokens(text string) int {
+	// Simple estimation: ~4 characters per token
+	return len(text) / 4
+}
+
+// GetMaxTokens returns maximum tokens for model
+func (c *Client) GetMaxTokens(modelName string) int {
+	caps, err := c.GetModelCapabilities(modelName)
+	if err != nil {
+		return c.maxTokens
+	}
+	return caps.MaxTokens
+}
+
+// Close closes the client and cleans up resources
+func (c *Client) Close() error {
+	c.Shutdown()
+	return nil
 }

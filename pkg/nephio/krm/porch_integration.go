@@ -31,12 +31,10 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -301,12 +299,21 @@ func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, in
 		UpdatedAt: time.Now(),
 	}
 
-	// Extract O-RAN compliance and network slice from intent extensions
-	if intent.Spec.Extensions != nil {
-		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
-			task.Context.ORANCompliance = extensions.ORANCompliance
-			task.Context.NetworkSlice = extensions.NetworkSlice
-			task.Context.TargetClusters = extensions.ClusterTargets
+	// Extract network slice from intent spec
+	if intent.Spec.NetworkSlice != "" {
+		// For now, create basic network slice spec from string identifier
+		task.Context.NetworkSlice = &porch.NetworkSliceSpec{
+			SliceID: intent.Spec.NetworkSlice,
+		}
+	}
+	
+	// Extract target clusters from intent spec
+	if intent.Spec.TargetCluster != "" {
+		task.Context.TargetClusters = []*porch.ClusterTarget{
+			{
+				Name:      intent.Spec.TargetCluster,
+				Namespace: intent.Spec.TargetNamespace,
+			},
 		}
 	}
 
@@ -408,8 +415,18 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 			task.Results = &FunctionEvalResults{}
 		}
 		task.Results.PipelineResults = pipelineExecution
-		task.Results.GeneratedResources = pipelineExecution.FinalResources
-		task.Results.AppliedFunctions = pipelineExecution.ExecutedStages
+		// Convert output resources to slice of resources
+		generatedResources := make([]porch.KRMResource, 0, len(pipelineExecution.OutputResources))
+		for _, resource := range pipelineExecution.OutputResources {
+			generatedResources = append(generatedResources, *resource)
+		}
+		task.Results.GeneratedResources = generatedResources
+		// Extract executed stages from stages map
+		executedStages := make([]string, 0, len(pipelineExecution.Stages))
+		for stageName := range pipelineExecution.Stages {
+			executedStages = append(executedStages, stageName)
+		}
+		task.Results.AppliedFunctions = executedStages
 
 		// Update package revision with pipeline results
 		packageRevision, err = pim.updatePackageWithResults(ctx, packageRevision, pipelineExecution)
@@ -489,13 +506,6 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 
 	// Determine repository
 	repository := pim.config.DefaultRepository
-	if intent.Spec.Extensions != nil {
-		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
-			if extensions.PackageSpec != nil && extensions.PackageSpec.Repository != "" {
-				repository = extensions.PackageSpec.Repository
-			}
-		}
-	}
 
 	// Create labels and annotations
 	labels := map[string]string{
@@ -503,7 +513,12 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 		porch.LabelRepository:      repository,
 		porch.LabelPackageName:     packageName,
 		porch.LabelIntentType:      string(intent.Spec.IntentType),
-		porch.LabelTargetComponent: intent.Spec.TargetComponent,
+		porch.LabelTargetComponent: func() string {
+			if len(intent.Spec.TargetComponents) > 0 {
+				return string(intent.Spec.TargetComponents[0])
+			}
+			return ""
+		}(),
 	}
 
 	annotations := map[string]string{
@@ -514,21 +529,8 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 	}
 
 	// Add network slice information if available
-	if intent.Spec.Extensions != nil {
-		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
-			if extensions.NetworkSlice != nil {
-				labels[porch.LabelNetworkSlice] = extensions.NetworkSlice.SliceID
-			}
-			if extensions.ORANCompliance != nil {
-				annotations[porch.AnnotationORANCompliance] = "enabled"
-				// Add O-RAN interface labels
-				for _, iface := range extensions.ORANCompliance.Interfaces {
-					if iface.Enabled {
-						labels[fmt.Sprintf("%s/%s", porch.LabelORANInterface, iface.Name)] = iface.Type
-					}
-				}
-			}
-		}
+	if intent.Spec.NetworkSlice != "" {
+		labels[porch.LabelNetworkSlice] = intent.Spec.NetworkSlice
 	}
 
 	packageSpec := &porch.PackageSpec{
@@ -570,8 +572,8 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 			Repository:  spec.Repository,
 			Revision:    spec.Revision,
 			Lifecycle:   spec.Lifecycle,
-			Resources:   []porch.KRMResource{},    // Will be populated by functions
-			Functions:   []porch.FunctionConfig{}, // Will be populated by pipeline
+			Resources:   []interface{}{},    // Will be populated by functions
+			Functions:   []interface{}{}, // Will be populated by pipeline
 		},
 	}
 
@@ -582,7 +584,7 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 		pim.metrics.PackageRevisions.WithLabelValues(
 			spec.Repository, spec.PackageName, string(spec.Lifecycle), "failed",
 		).Inc()
-		return nil, fmt.Errorf( "failed to create package revision in Porch")
+		return nil, fmt.Errorf("failed to create package revision in Porch: %w", err)
 	}
 
 	pim.metrics.PackageRevisions.WithLabelValues(
@@ -606,122 +608,103 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 		Name:        fmt.Sprintf("%s-pipeline", packageRevision.Spec.PackageName),
 		Description: fmt.Sprintf("Function pipeline for %s intent", intent.Spec.IntentType),
 		Stages:      make([]*PipelineStage, 0),
-		Execution:   PipelineExecutionModeDAG,
+		ExecutionMode: "dag",
 	}
 
-	// Stage 1: O-RAN Compliance Validation (if required)
-	if intent.Spec.Extensions != nil {
-		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
-			if extensions.ORANCompliance != nil {
-				oranStage := PipelineStage{
-					Name:        "oran-compliance-validation",
-					Description: "Validate O-RAN compliance requirements",
-					Functions: []PipelineFunctionDefinition{
-						{
-							Name:     "oran-compliance-validator",
-							Function: "oran-compliance-validator", // References our O-RAN validator function
-							Config: map[string]interface{}{
-								"interfaces":     extensions.ORANCompliance.Interfaces,
-								"validations":    extensions.ORANCompliance.Validations,
-								"certifications": extensions.ORANCompliance.Certifications,
-								"standards":      extensions.ORANCompliance.Standards,
-							},
-							Required: true,
-						},
-					},
-					Dependencies: []string{}, // First stage
-					Parallel:     false,
-					Timeout:      5 * time.Minute,
-				}
-				pipeline.Stages = append(pipeline.Stages, oranStage)
-			}
-		}
+	// Stage 1: Basic validation stage for all intents
+	validationStage := &PipelineStage{
+		Name:        "basic-validation",
+		Description: "Basic validation for intent requirements",
+		Type:        "function",
+		Functions: []*StageFunction{
+			{
+				Name:     "basic-validator",
+				Image: "5g-core-validator", // Use existing validator function
+				Config: map[string]interface{}{
+					"intentType":  string(intent.Spec.IntentType),
+					"components": intent.Spec.TargetComponents,
+				},
+			},
+		},
+		DependsOn: []string{}, // First stage
+		Timeout:      &[]time.Duration{5 * time.Minute}[0],
 	}
+	pipeline.Stages = append(pipeline.Stages, validationStage)
 
 	// Stage 2: Intent Type Specific Processing
 	intentStage := pim.buildIntentSpecificStage(ctx, intent)
 	if intentStage != nil {
-		pipeline.Stages = append(pipeline.Stages, *intentStage)
+		pipeline.Stages = append(pipeline.Stages, intentStage)
 	}
 
 	// Stage 3: Network Slice Optimization (if applicable)
-	if intent.Spec.Extensions != nil {
-		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
-			if extensions.NetworkSlice != nil {
-				sliceStage := PipelineStage{
-					Name:        "network-slice-optimization",
-					Description: "Optimize network slice configuration",
-					Functions: []PipelineFunctionDefinition{
-						{
-							Name:     "network-slice-optimizer",
-							Function: "network-slice-optimizer",
-							Config: map[string]interface{}{
-								"sliceId":   extensions.NetworkSlice.SliceID,
-								"sliceType": extensions.NetworkSlice.SliceType,
-								"sla":       extensions.NetworkSlice.SLA,
-								"qos":       extensions.NetworkSlice.QoS,
-								"resources": extensions.NetworkSlice.Resources,
-							},
-							Required: true,
-						},
+	if intent.Spec.NetworkSlice != "" {
+		sliceStage := &PipelineStage{
+			Name:        "network-slice-optimization",
+			Description: "Optimize network slice configuration",
+			Type:        "function",
+			Functions: []*StageFunction{
+				{
+					Name:     "network-slice-optimizer",
+					Image: "network-slice-optimizer",
+					Config: map[string]interface{}{
+						"sliceId": intent.Spec.NetworkSlice,
 					},
-					Dependencies: []string{"oran-compliance-validation"},
-					Parallel:     false,
-					Timeout:      10 * time.Minute,
-				}
-				pipeline.Stages = append(pipeline.Stages, sliceStage)
-			}
+					},
+			},
+			DependsOn: []string{"basic-validation"},
+				Timeout:      &[]time.Duration{10 * time.Minute}[0],
 		}
+		pipeline.Stages = append(pipeline.Stages, sliceStage)
 	}
 
 	// Stage 4: Multi-Vendor Configuration Normalization
-	normalizationStage := PipelineStage{
+	normalizationStage := &PipelineStage{
 		Name:        "multi-vendor-normalization",
 		Description: "Normalize configurations for multi-vendor compatibility",
-		Functions: []PipelineFunctionDefinition{
+		Type:        "function",
+		Functions: []*StageFunction{
 			{
 				Name:     "multi-vendor-normalizer",
-				Function: "multi-vendor-normalizer",
+				Image: "multi-vendor-normalizer",
 				Config: map[string]interface{}{
-					"intentType":      string(intent.Spec.IntentType),
-					"targetComponent": intent.Spec.TargetComponent,
+					"intentType": string(intent.Spec.IntentType),
+					"targetComponents": intent.Spec.TargetComponents,
 				},
-				Required: false, // Optional optimization
+				// Optional optimization
 			},
 		},
-		Dependencies: []string{"network-slice-optimization"},
-		Parallel:     false,
-		Timeout:      5 * time.Minute,
+		DependsOn: []string{"basic-validation"},
+		Timeout:      &[]time.Duration{5 * time.Minute}[0],
 	}
 	pipeline.Stages = append(pipeline.Stages, normalizationStage)
 
 	// Final Stage: 5G Core Validation
 	if pim.is5GCoreIntent(intent) {
-		coreStage := PipelineStage{
+		coreStage := &PipelineStage{
 			Name:        "5g-core-validation",
 			Description: "Validate 5G Core network function configurations",
-			Functions: []PipelineFunctionDefinition{
+			Type:        "function",
+			Functions: []*StageFunction{
 				{
 					Name:     "5g-core-validator",
-					Function: "5g-core-validator",
+					Image: "5g-core-validator",
 					Config: map[string]interface{}{
-						"intentType":      string(intent.Spec.IntentType),
-						"targetComponent": intent.Spec.TargetComponent,
-						"strictMode":      true,
+						"intentType": string(intent.Spec.IntentType),
+						"targetComponents": intent.Spec.TargetComponents,
+						"strictMode": true,
 					},
-					Required: true,
-				},
+					},
 			},
-			Dependencies: []string{"multi-vendor-normalization"},
-			Parallel:     false,
-			Timeout:      5 * time.Minute,
+			DependsOn: []string{"basic-validation"},
+				Timeout:      &[]time.Duration{5 * time.Minute}[0],
 		}
 		pipeline.Stages = append(pipeline.Stages, coreStage)
 	}
 
 	span.SetAttributes(
 		attribute.Int("pipeline.stages", len(pipeline.Stages)),
-		attribute.String("pipeline.execution", string(pipeline.Execution)),
+		attribute.String("pipeline.execution", pipeline.ExecutionMode),
 	)
 
 	return pipeline, nil
@@ -734,64 +717,55 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 		return &PipelineStage{
 			Name:        "deployment-configuration",
 			Description: "Configure deployment-specific parameters",
-			Functions: []PipelineFunctionDefinition{
+			Functions: []*StageFunction{
 				{
 					Name:     "deployment-config-generator",
-					Function: "5g-core-optimizer", // Use 5G optimizer for deployments
+					Image: "5g-core-optimizer", // Use 5G optimizer for deployments
 					Config: map[string]interface{}{
-						"deploymentType":  "production",
-						"scalingPolicy":   "auto",
-						"resourceLimits":  intent.Spec.Configuration,
-						"targetComponent": intent.Spec.TargetComponent,
+						"deploymentType": "production",
+						"scalingPolicy": "auto",
+						"targetComponents": intent.Spec.TargetComponents,
 					},
-					Required: true,
-				},
+					},
 			},
-			Dependencies: []string{"oran-compliance-validation"},
-			Parallel:     false,
-			Timeout:      10 * time.Minute,
+			DependsOn: []string{"basic-validation"},
+				Timeout:      &[]time.Duration{10 * time.Minute}[0],
 		}
 
 	case v1.IntentTypeOptimization:
 		return &PipelineStage{
 			Name:        "configuration-validation",
 			Description: "Validate and optimize configuration parameters",
-			Functions: []PipelineFunctionDefinition{
+			Functions: []*StageFunction{
 				{
 					Name:     "config-validator",
-					Function: "5g-core-validator", // Use 5G validator for configuration
+					Image: "5g-core-validator", // Use 5G validator for configuration
 					Config: map[string]interface{}{
-						"configType":      "network-function",
-						"targetComponent": intent.Spec.TargetComponent,
-						"parameters":      intent.Spec.Configuration,
+						"configType": "network-function",
+						"targetComponents": intent.Spec.TargetComponents,
 					},
-					Required: true,
-				},
+					},
 			},
-			Dependencies: []string{"oran-compliance-validation"},
-			Parallel:     false,
-			Timeout:      5 * time.Minute,
+			DependsOn: []string{"basic-validation"},
+				Timeout:      &[]time.Duration{5 * time.Minute}[0],
 		}
 
 	case v1.IntentTypeScaling:
 		return &PipelineStage{
 			Name:        "scaling-optimization",
 			Description: "Optimize scaling configuration and resource allocation",
-			Functions: []PipelineFunctionDefinition{
+			Functions: []*StageFunction{
 				{
 					Name:     "scaling-optimizer",
-					Function: "5g-core-optimizer", // Use 5G optimizer for scaling
+					Image: "5g-core-optimizer", // Use 5G optimizer for scaling
 					Config: map[string]interface{}{
-						"scalingType":     "horizontal",
-						"targetComponent": intent.Spec.TargetComponent,
-						"metrics":         intent.Spec.Configuration,
+						"scalingType": "horizontal",
+						"targetComponents": intent.Spec.TargetComponents,
 					},
-					Required: true,
-				},
+					},
 			},
-			Dependencies: []string{"oran-compliance-validation"},
-			Parallel:     false,
-			Timeout:      10 * time.Minute,
+			DependsOn: []string{"basic-validation"},
+				Timeout:      &[]time.Duration{10 * time.Minute}[0],
 		}
 
 	default:
@@ -799,21 +773,18 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 		return &PipelineStage{
 			Name:        "generic-configuration",
 			Description: "Generic configuration processing",
-			Functions: []PipelineFunctionDefinition{
+			Functions: []*StageFunction{
 				{
 					Name:     "generic-processor",
-					Function: "5g-core-validator", // Use validator as default
+					Image: "5g-core-validator", // Use validator as default
 					Config: map[string]interface{}{
-						"intentType":      string(intent.Spec.IntentType),
-						"targetComponent": intent.Spec.TargetComponent,
-						"configuration":   intent.Spec.Configuration,
+						"intentType": string(intent.Spec.IntentType),
+						"targetComponents": intent.Spec.TargetComponents,
 					},
-					Required: false,
-				},
+					},
 			},
-			Dependencies: []string{"oran-compliance-validation"},
-			Parallel:     false,
-			Timeout:      5 * time.Minute,
+			DependsOn: []string{"basic-validation"},
+				Timeout:      &[]time.Duration{5 * time.Minute}[0],
 		}
 	}
 }
@@ -828,7 +799,9 @@ func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context,
 	// Convert Porch resources to KRM resources for pipeline execution
 	resources := make([]*porch.KRMResource, 0)
 	for _, resource := range packageRevision.Spec.Resources {
-		resources = append(resources, &resource)
+		if krmRes, ok := resource.(porch.KRMResource); ok {
+			resources = append(resources, &krmRes)
+		}
 	}
 
 	// Execute pipeline
@@ -844,9 +817,9 @@ func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context,
 	}
 
 	// Record metrics for each function execution
-	for _, stage := range execution.ExecutedStages {
+	for stageName := range execution.Stages {
 		pim.metrics.FunctionExecutions.WithLabelValues(
-			stage, packageRevision.Spec.PackageName, "success",
+			stageName, packageRevision.Spec.PackageName, "success",
 		).Inc()
 	}
 
@@ -857,14 +830,14 @@ func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context,
 	).Inc()
 
 	logger.Info("Pipeline execution completed",
-		"stages", len(execution.ExecutedStages),
-		"resources", len(execution.FinalResources),
+		"stages", len(execution.Stages),
+		"resources", len(execution.OutputResources),
 		"duration", execution.Duration,
 	)
 
 	span.SetAttributes(
-		attribute.Int("pipeline.stages", len(execution.ExecutedStages)),
-		attribute.Int("pipeline.resources", len(execution.FinalResources)),
+		attribute.Int("pipeline.stages", len(execution.Stages)),
+		attribute.Int("pipeline.resources", len(execution.OutputResources)),
 		attribute.String("pipeline.status", string(execution.Status)),
 	)
 
@@ -877,19 +850,19 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 	defer span.End()
 
 	// Convert pipeline resources back to package resources
-	updatedResources := make([]porch.KRMResource, 0)
-	for _, resource := range execution.FinalResources {
-		updatedResources = append(updatedResources, *resource)
+	updatedResources := make([]interface{}, 0)
+	for _, resource := range execution.OutputResources {
+		updatedResources = append(updatedResources, resource)
 	}
 
 	// Update package revision spec
 	packageRevision.Spec.Resources = updatedResources
 
 	// Add function configurations from pipeline
-	for _, stage := range execution.ExecutedStages {
-		functionConfig := porch.FunctionConfig{
-			Image: fmt.Sprintf("krm/%s:latest", stage), // Assuming standard naming
-			ConfigMap: map[string]interface{}{
+	for stageName := range execution.Stages {
+		functionConfig := map[string]interface{}{
+			"image": fmt.Sprintf("krm/%s:latest", stageName), // Assuming standard naming
+			"config": map[string]interface{}{
 				"executedAt": time.Now().Format(time.RFC3339),
 				"status":     "completed",
 			},
@@ -901,7 +874,7 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 	updatedPackage, err := pim.porchClient.UpdatePackageRevision(ctx, packageRevision)
 	if err != nil {
 		span.RecordError(err)
-		return nil, fmt.Errorf( "failed to update package revision")
+		return nil, fmt.Errorf("failed to update package revision: %w", err)
 	}
 
 	// Record package size metric
@@ -922,7 +895,7 @@ func (pim *PorchIntegrationManager) validatePackage(ctx context.Context, package
 	result, err := pim.porchClient.ValidatePackage(ctx, packageRevision.Spec.PackageName, packageRevision.Spec.Revision)
 	if err != nil {
 		span.RecordError(err)
-		return nil, fmt.Errorf( "package validation failed")
+		return nil, fmt.Errorf("package validation failed: %w", err)
 	}
 
 	// Convert single result to slice for consistency
@@ -945,7 +918,7 @@ func (pim *PorchIntegrationManager) renderPackage(ctx context.Context, packageRe
 	result, err := pim.porchClient.RenderPackage(ctx, packageRevision.Spec.PackageName, packageRevision.Spec.Revision)
 	if err != nil {
 		span.RecordError(err)
-		return nil, fmt.Errorf( "package rendering failed")
+		return nil, fmt.Errorf("package rendering failed: %w", err)
 	}
 
 	span.SetAttributes(
@@ -965,43 +938,21 @@ func (pim *PorchIntegrationManager) updateIntentStatus(ctx context.Context, inte
 	intent.Status.Phase = v1.NetworkIntentPhaseProcessing
 
 	if task.Results != nil && task.Results.PackageRevision != nil {
-		// Set package reference in status
-		intent.Status.PackageRevision = &v1.PackageRevisionReference{
-			Repository:  task.Results.PackageRevision.Spec.Repository,
-			PackageName: task.Results.PackageRevision.Spec.PackageName,
-			Revision:    task.Results.PackageRevision.Spec.Revision,
-		}
-
-		// Update deployment status
-		if task.Results.DeploymentTargets != nil {
-			intent.Status.DeploymentStatus = &v1.DeploymentStatus{
-				Phase:   "Pending",
-				Targets: make([]v1.DeploymentTargetStatus, 0, len(task.Results.DeploymentTargets)),
-			}
-
-			for _, target := range task.Results.DeploymentTargets {
-				intent.Status.DeploymentStatus.Targets = append(intent.Status.DeploymentStatus.Targets, v1.DeploymentTargetStatus{
-					Cluster:   target.Cluster,
-					Namespace: target.Namespace,
-					Status:    target.Status,
-				})
-			}
-		}
-
 		// Set completion status
 		if task.Status == FunctionEvalTaskStatusCompleted {
 			intent.Status.Phase = v1.NetworkIntentPhaseReady
 		} else if task.Status == FunctionEvalTaskStatusFailed {
 			intent.Status.Phase = v1.NetworkIntentPhaseFailed
-			if len(task.Results.Errors) > 0 {
-				intent.Status.Message = task.Results.Errors[0] // First error as message
-			}
+			// TODO: Add error message support to NetworkIntentStatus
+			// if len(task.Results.Errors) > 0 {
+			//     intent.Status.Message = task.Results.Errors[0]
+			// }
 		}
 	}
 
-	// Update last processed timestamp
-	now := metav1.NewTime(time.Now())
-	intent.Status.LastProcessed = &now
+	// TODO: Add LastProcessed field support to NetworkIntentStatus
+	// now := metav1.NewTime(time.Now())
+	// intent.Status.LastProcessed = &now
 
 	// Update intent in cluster
 	if err := pim.client.Status().Update(ctx, intent); err != nil {
@@ -1102,8 +1053,10 @@ func (pim *PorchIntegrationManager) is5GCoreIntent(intent *v1.NetworkIntent) boo
 	// Check if intent targets 5G Core components
 	coreComponents := []string{"amf", "smf", "upf", "nssf", "nrf", "udm", "ausf", "pcf"}
 	for _, component := range coreComponents {
-		if intent.Spec.TargetComponent == component {
-			return true
+		for _, targetComp := range intent.Spec.TargetComponents {
+			if string(targetComp) == component {
+				return true
+			}
 		}
 	}
 	return false

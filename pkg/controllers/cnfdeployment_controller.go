@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -367,13 +368,13 @@ func (r *CNFDeploymentReconciler) updateCNFDeploymentStatus(ctx context.Context,
 func (r *CNFDeploymentReconciler) checkDeploymentReadiness(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) (bool, error) {
 	// Check deployment readiness based on deployment strategy
 	switch cnfDeployment.Spec.DeploymentStrategy {
-	case nephoranv1.DeploymentStrategyHelm:
+	case nephoranv1.CNFDeploymentStrategyHelm:
 		return r.checkHelmDeploymentReadiness(ctx, cnfDeployment)
-	case nephoranv1.DeploymentStrategyOperator:
+	case nephoranv1.CNFDeploymentStrategyOperator:
 		return r.checkOperatorDeploymentReadiness(ctx, cnfDeployment)
-	case nephoranv1.DeploymentStrategyDirect:
+	case nephoranv1.CNFDeploymentStrategyDirect:
 		return r.checkDirectDeploymentReadiness(ctx, cnfDeployment)
-	case nephoranv1.DeploymentStrategyGitOps:
+	case nephoranv1.CNFDeploymentStrategyGitOps:
 		return r.checkGitOpsDeploymentReadiness(ctx, cnfDeployment)
 	default:
 		return false, fmt.Errorf("unsupported deployment strategy: %s", cnfDeployment.Spec.DeploymentStrategy)
@@ -517,7 +518,7 @@ func (r *CNFDeploymentReconciler) performHealthChecks(ctx context.Context, cnfDe
 
 	// Update health status
 	if cnfDeployment.Status.Health == nil {
-		cnfDeployment.Status.Health = &nephoranv1.HealthStatus{}
+		cnfDeployment.Status.Health = &nephoranv1.CNFHealthStatus{}
 	}
 
 	cnfDeployment.Status.Health.Status = "Healthy"
@@ -624,10 +625,10 @@ func (r *CNFDeploymentReconciler) cleanupCNFResources(ctx context.Context, cnfDe
 
 	// Additional cleanup based on deployment strategy
 	switch cnfDeployment.Spec.DeploymentStrategy {
-	case nephoranv1.DeploymentStrategyHelm:
+	case nephoranv1.CNFDeploymentStrategyHelm:
 		// Helm cleanup would be handled by the orchestrator
 		break
-	case nephoranv1.DeploymentStrategyDirect:
+	case nephoranv1.CNFDeploymentStrategyDirect:
 		// Clean up directly created resources
 		if err := r.cleanupDirectResources(ctx, cnfDeployment); err != nil {
 			return err
@@ -691,7 +692,7 @@ func (r *CNFDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Owns(&appsv1.Deployment{}).
 		Owns(&corev1.Service{}).
 		Owns(&autoscalingv2.HorizontalPodAutoscaler{}).
-		WithOptions(ctrl.Options{
+		WithOptions(controller.Options{
 			MaxConcurrentReconciles: r.Config.MaxConcurrentReconciles,
 		}).
 		WithEventFilter(predicate.GenerationChangedPredicate{}).

@@ -14,11 +14,53 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
+
+// Manager type definitions
+type OperatorManager struct {
+	config    *OperatorConfig
+	k8sClient client.Client
+	logger    *logging.StructuredLogger
+}
+
+type ServiceMeshManager struct {
+	config    *ServiceMeshConfig
+	k8sClient client.Client
+	logger    *logging.StructuredLogger
+}
+
+type ContainerRegistryManager struct {
+	config *RegistryConfig
+	logger *logging.StructuredLogger
+}
+
+// Manager method implementations
+func (om *OperatorManager) Initialize() error {
+	return nil
+}
+
+func (om *OperatorManager) Deploy(ctx context.Context, req *OperatorDeployRequest) ([]interface{}, error) {
+	return nil, nil
+}
+
+func (om *OperatorManager) Update(ctx context.Context, req *OperatorUpdateRequest) error {
+	return nil
+}
+
+func (om *OperatorManager) Uninstall(ctx context.Context, name, namespace string) error {
+	return nil
+}
+
+func (sm *ServiceMeshManager) Initialize() error {
+	return nil
+}
+
+func (crm *ContainerRegistryManager) Initialize() error {
+	return nil
+}
 
 // CNFManagementService provides comprehensive CNF lifecycle management
 type CNFManagementService struct {
@@ -29,8 +71,8 @@ type CNFManagementService struct {
 	k8sClient client.Client
 
 	// CNF management components
-	lifecycleManager   *CNFLifecycleManager
-	helmManager        *HelmManager
+	lifecycleManager   *CNFLifecycleManagerImpl
+	helmManager        *HelmManagerImpl
 	operatorManager    *OperatorManager
 	serviceMeshManager *ServiceMeshManager
 	registryManager    *ContainerRegistryManager

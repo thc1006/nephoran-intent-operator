@@ -540,7 +540,7 @@ func (s *O2APIServer) handleCreateDeployment(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	s.metrics.RecordResourceOperation("create", "deployment", req.Provider, "success")
+	s.metrics.RecordResourceOperation("create", "deployment", "unknown", "success")
 	s.writeJSONResponse(w, r, StatusCreated, deployment)
 }
 
@@ -683,7 +683,8 @@ func (s *O2APIServer) handleRegisterCloudProvider(w http.ResponseWriter, r *http
 		return
 	}
 
-	if err := s.imsService.RegisterCloudProvider(r.Context(), &provider); err != nil {
+	_, err := s.imsService.RegisterCloudProvider(r.Context(), &provider)
+	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to register cloud provider", err)
 		return
 	}
@@ -733,7 +734,8 @@ func (s *O2APIServer) handleUpdateCloudProvider(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	if err := s.imsService.UpdateCloudProvider(r.Context(), providerID, &provider); err != nil {
+	_, err := s.imsService.UpdateCloudProvider(r.Context(), providerID, &provider)
+	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to update cloud provider", err)
 		return
 	}

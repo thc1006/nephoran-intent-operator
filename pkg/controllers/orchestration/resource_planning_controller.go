@@ -30,7 +30,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -73,6 +72,24 @@ type ResourcePlanningConfig struct {
 	CostOptimizationEnabled        bool          `json:"costOptimizationEnabled"`
 	PerformanceOptimizationEnabled bool          `json:"performanceOptimizationEnabled"`
 	ComplianceValidationEnabled    bool          `json:"complianceValidationEnabled"`
+	
+	// Cache configuration
+	CacheEnabled    bool          `json:"cacheEnabled"`
+	CacheTTL        time.Duration `json:"cacheTTL"`
+	MaxCacheEntries int           `json:"maxCacheEntries"`
+	
+	// Optimization configuration
+	OptimizationEnabled    bool    `json:"optimizationEnabled"`
+	CPUOvercommitRatio     float64 `json:"cpuOvercommitRatio"`
+	MemoryOvercommitRatio  float64 `json:"memoryOvercommitRatio"`
+	
+	// Default resource requests
+	DefaultCPURequest     string `json:"defaultCpuRequest"`
+	DefaultMemoryRequest  string `json:"defaultMemoryRequest"`
+	DefaultStorageRequest string `json:"defaultStorageRequest"`
+	
+	// Constraint checking
+	ConstraintCheckEnabled bool `json:"constraintCheckEnabled"`
 }
 
 // ResourcePlanningService handles resource planning logic
@@ -1033,6 +1050,24 @@ func DefaultResourcePlanningConfig() *ResourcePlanningConfig {
 		CostOptimizationEnabled:        true,
 		PerformanceOptimizationEnabled: true,
 		ComplianceValidationEnabled:    true,
+		
+		// Cache configuration
+		CacheEnabled:    true,
+		CacheTTL:        5 * time.Minute,
+		MaxCacheEntries: 1000,
+		
+		// Optimization configuration
+		OptimizationEnabled:   true,
+		CPUOvercommitRatio:    1.5,
+		MemoryOvercommitRatio: 1.2,
+		
+		// Default resource requests
+		DefaultCPURequest:     "100m",
+		DefaultMemoryRequest:  "128Mi",
+		DefaultStorageRequest: "1Gi",
+		
+		// Constraint checking
+		ConstraintCheckEnabled: true,
 	}
 }
 

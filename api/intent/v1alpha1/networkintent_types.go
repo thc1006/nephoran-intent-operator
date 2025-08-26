@@ -43,6 +43,9 @@ type NetworkIntentStatus struct {
 	ObservedReplicas *int32 `json:"observedReplicas,omitempty"`
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// LLMResponse contains the raw LLM response data
+	// +optional
+	LLMResponse interface{} `json:"llmResponse,omitempty"`
 }
 
 // +kubebuilder:object:root=true

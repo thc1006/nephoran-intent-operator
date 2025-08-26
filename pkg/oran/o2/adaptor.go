@@ -370,6 +370,15 @@ func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient 
 			continue
 		}
 
+		// Convert ProviderConfig to ProviderConfiguration
+		providerConfig := &providers.ProviderConfiguration{
+			Name:        name,
+			Type:        config.Type,
+			Region:      config.Region,
+			Credentials: config.Credentials,
+			Enabled:     config.Enabled,
+		}
+
 		var provider providers.CloudProvider
 		var err error
 
@@ -377,11 +386,11 @@ func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient 
 		case "kubernetes":
 			provider, err = providers.NewKubernetesProvider(kubeClient, clientset, config.Config)
 		case "aws":
-			provider, err = providers.NewAWSProvider(config.Region, config.Credentials)
+			provider, err = providers.NewAWSProvider(providerConfig)
 		case "azure":
-			provider, err = providers.NewAzureProvider(config.Region, config.Credentials)
+			provider, err = providers.NewAzureProvider(providerConfig)
 		case "gcp":
-			provider, err = providers.NewGCPProvider(config.Region, config.Credentials)
+			provider, err = providers.NewGCPProvider(providerConfig)
 		default:
 			return nil, fmt.Errorf("unsupported provider type: %s", config.Type)
 		}

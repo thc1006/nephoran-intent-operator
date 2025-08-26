@@ -33,7 +33,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -113,14 +112,16 @@ type PipelineStage struct {
 
 // StageFunction represents a function within a stage
 type StageFunction struct {
-	Name          string                 `json:"name" yaml:"name"`
-	Image         string                 `json:"image,omitempty" yaml:"image,omitempty"`
-	Config        map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
-	Selectors     []ResourceSelector     `json:"selectors,omitempty" yaml:"selectors,omitempty"`
-	InputMapping  map[string]string      `json:"inputMapping,omitempty" yaml:"inputMapping,omitempty"`
-	OutputMapping map[string]string      `json:"outputMapping,omitempty" yaml:"outputMapping,omitempty"`
-	Conditions    []*Condition           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-	Optional      bool                   `json:"optional,omitempty" yaml:"optional,omitempty"`
+	Name           string                 `json:"name" yaml:"name"`
+	Image          string                 `json:"image,omitempty" yaml:"image,omitempty"`
+	Config         map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
+	Selectors      []ResourceSelector     `json:"selectors,omitempty" yaml:"selectors,omitempty"`
+	InputMapping   map[string]string      `json:"inputMapping,omitempty" yaml:"inputMapping,omitempty"`
+	OutputMapping  map[string]string      `json:"outputMapping,omitempty" yaml:"outputMapping,omitempty"`
+	Conditions     []*Condition           `json:"conditions,omitempty" yaml:"conditions,omitempty"`
+	Optional       bool                   `json:"optional,omitempty" yaml:"optional,omitempty"`
+	ResourceFilter *ResourceFilter        `json:"resourceFilter,omitempty" yaml:"resourceFilter,omitempty"`
+	Timeout        time.Duration          `json:"timeout,omitempty" yaml:"timeout,omitempty"`
 }
 
 // ResourceSelector defines criteria for resource selection
@@ -131,6 +132,12 @@ type ResourceSelector struct {
 	Namespace  string            `json:"namespace,omitempty" yaml:"namespace,omitempty"`
 	Labels     map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
 	Fields     map[string]string `json:"fields,omitempty" yaml:"fields,omitempty"`
+}
+
+// ResourceFilter defines resource filtering criteria
+type ResourceFilter struct {
+	Include []*ResourceSelector `json:"include,omitempty" yaml:"include,omitempty"`
+	Exclude []*ResourceSelector `json:"exclude,omitempty" yaml:"exclude,omitempty"`
 }
 
 // Variable represents a pipeline variable
@@ -230,9 +237,10 @@ type PipelineExecution struct {
 	CurrentStage string                     `json:"currentStage,omitempty"`
 
 	// Results
-	Resources []porch.KRMResource `json:"resources"`
-	Results   []*ExecutionResult  `json:"results"`
-	Errors    []ExecutionError    `json:"errors"`
+	Resources       []porch.KRMResource   `json:"resources"`
+	OutputResources []*porch.KRMResource  `json:"outputResources"`
+	Results         []*ExecutionResult    `json:"results"`
+	Errors          []ExecutionError      `json:"errors"`
 
 	// State management
 	Variables   map[string]interface{} `json:"variables"`
@@ -245,31 +253,46 @@ type PipelineExecution struct {
 
 // StageExecution represents execution of a pipeline stage
 type StageExecution struct {
-	Name      string                        `json:"name"`
-	Status    ExecutionStatus               `json:"status"`
-	StartTime time.Time                     `json:"startTime"`
-	EndTime   *time.Time                    `json:"endTime,omitempty"`
-	Duration  time.Duration                 `json:"duration"`
-	Functions map[string]*FunctionExecution `json:"functions"`
-	Error     *ExecutionError               `json:"error,omitempty"`
-	Retries   int                           `json:"retries"`
-	Output    map[string]interface{}        `json:"output"`
+	Name         string                        `json:"name"`
+	Status       ExecutionStatus               `json:"status"`
+	StartTime    time.Time                     `json:"startTime"`
+	EndTime      *time.Time                    `json:"endTime,omitempty"`
+	Duration     time.Duration                 `json:"duration"`
+	Functions    map[string]*FunctionExecution `json:"functions"`
+	Dependencies []*DependencyStatus           `json:"dependencies"`
+	Error        *ExecutionError               `json:"error,omitempty"`
+	Retries      int                           `json:"retries"`
+	Output       map[string]interface{}        `json:"output"`
 }
 
 // FunctionExecution represents execution of a function within a stage
 type FunctionExecution struct {
-	Name      string                  `json:"name"`
-	Image     string                  `json:"image"`
-	Status    ExecutionStatus         `json:"status"`
-	StartTime time.Time               `json:"startTime"`
-	EndTime   *time.Time              `json:"endTime,omitempty"`
-	Duration  time.Duration           `json:"duration"`
-	Input     []porch.KRMResource     `json:"input"`
-	Output    []porch.KRMResource     `json:"output"`
-	Results   []*porch.FunctionResult `json:"results"`
-	Error     *ExecutionError         `json:"error,omitempty"`
-	Retries   int                     `json:"retries"`
-	Logs      []string                `json:"logs"`
+	Name        string                  `json:"name"`
+	Image       string                  `json:"image"`
+	Status      ExecutionStatus         `json:"status"`
+	StartTime   time.Time               `json:"startTime"`
+	EndTime     *time.Time              `json:"endTime,omitempty"`
+	Duration    time.Duration           `json:"duration"`
+	Input       []porch.KRMResource     `json:"input"`
+	InputCount  int                     `json:"inputCount"`
+	Output      []porch.KRMResource     `json:"output"`
+	OutputCount int                     `json:"outputCount"`
+	Results     []*porch.FunctionResult `json:"results"`
+	CacheHit    bool                    `json:"cacheHit"`
+	Error       *ExecutionError         `json:"error,omitempty"`
+	Retries     int                     `json:"retries"`
+	Logs        []string                `json:"logs"`
+	Context     map[string]interface{}  `json:"context"`
+}
+
+// DependencyStatus represents dependency status
+type DependencyStatus struct {
+	From      string    `json:"from"`
+	To        string    `json:"to"`
+	Type      string    `json:"type"`
+	Status    string    `json:"status"`
+	Satisfied bool      `json:"satisfied"`
+	CheckedAt time.Time `json:"checkedAt"`
 }
 
 // ExecutionStatus represents the status of execution

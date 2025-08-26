@@ -32,7 +32,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/krm/functions"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
@@ -205,12 +204,14 @@ type SecurityCapabilities struct {
 
 // FunctionCache provides caching for function execution results
 type FunctionCache struct {
-	cache   map[string]*CacheEntry
-	size    int64
-	maxSize int64
-	ttl     time.Duration
-	mu      sync.RWMutex
-	metrics *CacheMetrics
+	cache    map[string]*CacheEntry
+	size     int64
+	maxSize  int64
+	ttl      time.Duration
+	mu       sync.RWMutex
+	metrics  *CacheMetrics
+	cacheDir string
+	items    map[string]*CacheItem
 }
 
 // CacheEntry represents a cache entry
@@ -231,6 +232,7 @@ type CacheMetrics struct {
 	Evictions prometheus.Counter
 	Size      prometheus.Gauge
 	Entries   prometheus.Gauge
+	ItemCount prometheus.Gauge
 }
 
 // FunctionManagerMetrics provides comprehensive metrics

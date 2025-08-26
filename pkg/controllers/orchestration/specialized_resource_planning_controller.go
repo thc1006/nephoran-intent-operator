@@ -19,8 +19,6 @@ package orchestration
 import (
 	"context"
 	"fmt"
-	"math"
-	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -533,7 +531,7 @@ func (c *SpecializedResourcePlanningController) parseNetworkFunctions(llmRespons
 		for i, nfInterface := range nfs {
 			nf, err := c.parseNetworkFunction(nfInterface, i)
 			if err != nil {
-				c.Logger.Warn("Failed to parse network function", "index", i, "error", err)
+				c.Logger.Info("Failed to parse network function", "index", i, "error", err)
 				continue
 			}
 			networkFunctions = append(networkFunctions, *nf)
@@ -1346,7 +1344,7 @@ func (c *SpecializedResourcePlanningController) Reconcile(ctx context.Context, r
 	}
 
 	// Check if this intent should be processed by this controller
-	if intent.Status.ProcessingPhase != interfaces.PhaseResourcePlanning {
+	if intent.Status.ProcessingPhase != string(interfaces.PhaseResourcePlanning) {
 		return ctrl.Result{}, nil
 	}
 
@@ -1359,11 +1357,11 @@ func (c *SpecializedResourcePlanningController) Reconcile(ctx context.Context, r
 
 	// Update intent status based on result
 	if result.Success {
-		intent.Status.ProcessingPhase = result.NextPhase
+		intent.Status.ProcessingPhase = string(result.NextPhase)
 		intent.Status.ResourcePlan = result.Data
 		intent.Status.LastUpdated = metav1.Now()
 	} else {
-		intent.Status.ProcessingPhase = interfaces.PhaseFailed
+		intent.Status.ProcessingPhase = string(interfaces.PhaseFailed)
 		intent.Status.ErrorMessage = result.ErrorMessage
 		intent.Status.LastUpdated = metav1.Now()
 	}
@@ -1614,7 +1612,7 @@ func (s *ResourceConstraintSolver) ValidateConstraints(ctx context.Context, plan
 	}
 
 	if len(violations) > 0 {
-		s.logger.Warn("Soft constraints violated", "violations", violations)
+		s.logger.Info("Soft constraints violated", "violations", violations)
 	}
 
 	return nil

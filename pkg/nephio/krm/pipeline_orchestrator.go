@@ -30,7 +30,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -170,12 +169,6 @@ type StageResources struct {
 	Requests map[string]string `json:"requests,omitempty" yaml:"requests,omitempty"`
 }
 
-// ResourceFilter defines resource filtering criteria
-type ResourceFilter struct {
-	Include []*ResourceSelector `json:"include,omitempty" yaml:"include,omitempty"`
-	Exclude []*ResourceSelector `json:"exclude,omitempty" yaml:"exclude,omitempty"`
-}
-
 // ResourceSelector is defined in pipeline.go
 
 // TelecomPipelineProfile defines telecom-specific pipeline characteristics
@@ -192,16 +185,6 @@ type TelecomPipelineProfile struct {
 // StageExecution is defined in pipeline.go
 
 // FunctionExecution is defined in pipeline.go
-
-// DependencyStatus represents dependency status
-type DependencyStatus struct {
-	From      string    `json:"from"`
-	To        string    `json:"to"`
-	Type      string    `json:"type"`
-	Status    string    `json:"status"`
-	Satisfied bool      `json:"satisfied"`
-	CheckedAt time.Time `json:"checkedAt"`
-}
 
 // ExecutionCheckpoint is defined in pipeline.go
 
@@ -299,6 +282,7 @@ type ScheduledStage struct {
 	Priority    int
 	ScheduledAt time.Time
 	ResultChan  chan *StageExecutionResult
+	Context     context.Context
 }
 
 // StageExecutionResult represents stage execution result

@@ -27,7 +27,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -76,13 +75,23 @@ type IntentProcessingConfig struct {
 	
 	// RAG Configuration
 	RAGEndpoint             string        `json:"ragEndpoint"`
+	WeaviateEndpoint        string        `json:"weaviateEndpoint"`
 	MaxContextChunks        int           `json:"maxContextChunks"`
+	MaxReturnItems          int           `json:"maxReturnItems"`
 	SimilarityThreshold     float64       `json:"similarityThreshold"`
+	MinSimilarity           float64       `json:"minSimilarity"`
 	
 	// Circuit Breaker Configuration
 	CircuitBreakerEnabled   bool          `json:"circuitBreakerEnabled"`
 	FailureThreshold        int           `json:"failureThreshold"`
 	RecoveryTimeout         time.Duration `json:"recoveryTimeout"`
+	
+	// Cache Configuration
+	CacheEnabled            bool          `json:"cacheEnabled"`
+	CacheTTL                time.Duration `json:"cacheTTL"`
+	
+	// Streaming Configuration
+	StreamingEnabled        bool          `json:"streamingEnabled"`
 }
 
 // NewIntentProcessingController creates a new IntentProcessingController

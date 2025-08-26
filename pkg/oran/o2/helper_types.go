@@ -8,6 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 )
 
 // Additional types referenced by ResourcePoolManager and other components
@@ -290,14 +291,14 @@ type MetricsFilter struct {
 
 // InfrastructureDiscovery represents discovered infrastructure
 type InfrastructureDiscovery struct {
-	Provider      CloudProvider          `json:"provider"`
-	Region        string                 `json:"region,omitempty"`
-	DiscoveryID   string                 `json:"discoveryId"`
-	Timestamp     time.Time              `json:"timestamp"`
-	ResourcePools []*models.ResourcePool `json:"resourcePools,omitempty"`
-	Resources     []*models.Resource     `json:"resources,omitempty"`
-	Capabilities  []string               `json:"capabilities,omitempty"`
-	Metadata      map[string]interface{} `json:"metadata,omitempty"`
+	Provider      providers.CloudProvider `json:"provider"`
+	Region        string                  `json:"region,omitempty"`
+	DiscoveryID   string                  `json:"discoveryId"`
+	Timestamp     time.Time               `json:"timestamp"`
+	ResourcePools []*models.ResourcePool  `json:"resourcePools,omitempty"`
+	Resources     []*models.Resource      `json:"resources,omitempty"`
+	Capabilities  []string                `json:"capabilities,omitempty"`
+	Metadata      map[string]interface{}  `json:"metadata,omitempty"`
 }
 
 // InventoryUpdate represents an update to the infrastructure inventory
@@ -331,6 +332,7 @@ type ProvisionResourceRequest struct {
 	Name           string                 `json:"name"`
 	ResourceType   string                 `json:"resourceType"`
 	ResourcePoolID string                 `json:"resourcePoolId"`
+	Provider       string                 `json:"provider"`
 	Configuration  *runtime.RawExtension  `json:"configuration"`
 	Requirements   *ResourceRequirements  `json:"requirements,omitempty"`
 	Tags           map[string]string      `json:"tags,omitempty"`
@@ -339,16 +341,19 @@ type ProvisionResourceRequest struct {
 
 // ScaleResourceRequest represents a request to scale a resource
 type ScaleResourceRequest struct {
-	ScaleType  string                 `json:"scaleType"` // UP, DOWN, OUT, IN
-	TargetSize int                    `json:"targetSize,omitempty"`
-	Percentage int                    `json:"percentage,omitempty"`
-	Resources  *ResourceRequirements  `json:"resources,omitempty"`
+	ScaleType       string                 `json:"scaleType"` // UP, DOWN, OUT, IN
+	TargetSize      int                    `json:"targetSize,omitempty"`
+	TargetReplicas  int                    `json:"targetReplicas,omitempty"`
+	Percentage      int                    `json:"percentage,omitempty"`
+	Resources       *ResourceRequirements  `json:"resources,omitempty"`
 	Options    map[string]interface{} `json:"options,omitempty"`
 }
 
 // MigrateResourceRequest represents a request to migrate a resource
 type MigrateResourceRequest struct {
 	TargetPoolID        string                 `json:"targetPoolId"`
+	SourceProvider      string                 `json:"sourceProvider"`
+	TargetProvider      string                 `json:"targetProvider"`
 	MigrationType       string                 `json:"migrationType"` // LIVE, COLD, HOT
 	PreservePersistence bool                   `json:"preservePersistence"`
 	Options             map[string]interface{} `json:"options,omitempty"`

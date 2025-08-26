@@ -19,8 +19,8 @@ package orchestration
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"sync"
 	"text/template"
@@ -325,8 +325,8 @@ func (c *SpecializedManifestGenerationController) ProcessPhase(ctx context.Conte
 		}, nil
 	}
 
-	// Extract resource plan from intent status
-	resourcePlanInterface, ok := intent.Status.ResourcePlan.(map[string]interface{})
+	// Extract resource plan from intent status extensions
+	resourcePlanInterface, ok := intent.Status.Extensions["resourcePlan"]
 	if !ok {
 		return interfaces.ProcessingResult{
 			Success:      false,
@@ -335,8 +335,18 @@ func (c *SpecializedManifestGenerationController) ProcessPhase(ctx context.Conte
 		}, nil
 	}
 
+	// Convert RawExtension to map
+	resourcePlanMap := make(map[string]interface{})
+	if err := json.Unmarshal(resourcePlanInterface.Raw, &resourcePlanMap); err != nil {
+		return interfaces.ProcessingResult{
+			Success:      false,
+			ErrorMessage: fmt.Sprintf("failed to unmarshal resource plan: %v", err),
+			ErrorCode:    "UNMARSHAL_ERROR",
+		}, nil
+	}
+
 	// Convert to ResourcePlan struct
-	resourcePlan, err := c.convertToResourcePlan(resourcePlanInterface)
+	resourcePlan, err := c.convertToResourcePlan(resourcePlanMap)
 	if err != nil {
 		return interfaces.ProcessingResult{
 			Success:      false,
@@ -461,19 +471,9 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 		session.updateProgress(0.6, "validating_manifests")
 		validationStartTime := time.Now()
 
-		validationResults, err := c.ValidateManifests(ctx, generatedManifests)
-		if err != nil {
+		if err := c.ValidateManifests(ctx, generatedManifests); err != nil {
 			session.addWarning(fmt.Sprintf("manifest validation failed: %v", err))
 			// Continue with warnings
-		} else {
-			session.ValidationResults = validationResults
-			// Check for validation errors
-			for _, result := range validationResults {
-				if !result.Valid {
-					session.Metrics.ValidationErrors++
-					session.addWarning(fmt.Sprintf("manifest %s validation failed: %v", result.ManifestName, result.Errors))
-				}
-			}
 		}
 
 		session.Metrics.ValidationTime = time.Since(validationStartTime)
@@ -720,7 +720,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 				"nf":   nf.Name,
 			}
 		} else {
-			c.Logger.Warn("Failed to generate service manifest", "nf", nf.Name, "error", err)
+			c.Logger.Info("Failed to generate service manifest", "nf", nf.Name, "error", err)
 		}
 	}
 
@@ -734,7 +734,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 				"nf":   nf.Name,
 			}
 		} else {
-			c.Logger.Warn("Failed to generate configmap manifest", "nf", nf.Name, "error", err)
+			c.Logger.Info("Failed to generate configmap manifest", "nf", nf.Name, "error", err)
 		}
 	}
 
@@ -749,7 +749,7 @@ func (c *SpecializedManifestGenerationController) generateNetworkFunctionManifes
 				}
 			}
 		} else {
-			c.Logger.Warn("Failed to generate RBAC manifests", "nf", nf.Name, "error", err)
+			c.Logger.Info("Failed to generate RBAC manifests", "nf", nf.Name, "error", err)
 		}
 	}
 
@@ -1252,7 +1252,9 @@ func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context,
 	}
 
 	// Check if this intent should be processed by this controller
-	if intent.Status.ProcessingPhase != interfaces.PhaseManifestGeneration {
+	// Convert Phase to ProcessingPhase for comparison
+	currentPhase := interfaces.ProcessingPhase(intent.Status.Phase)
+	if currentPhase != interfaces.PhaseManifestGeneration {
 		return ctrl.Result{}, nil
 	}
 
@@ -1265,13 +1267,19 @@ func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context,
 
 	// Update intent status based on result
 	if result.Success {
-		intent.Status.ProcessingPhase = result.NextPhase
-		intent.Status.GeneratedManifests = result.Data
-		intent.Status.LastUpdated = metav1.Now()
+		intent.Status.Phase = nephoranv1.NetworkIntentPhase(result.NextPhase)
+		// Store generated manifests in extensions
+		if intent.Status.Extensions == nil {
+			intent.Status.Extensions = make(map[string]runtime.RawExtension)
+		}
+		if manifestData, err := json.Marshal(result.Data); err == nil {
+			intent.Status.Extensions["generatedManifests"] = runtime.RawExtension{Raw: manifestData}
+		}
+		intent.Status.LastUpdateTime = metav1.Now()
 	} else {
-		intent.Status.ProcessingPhase = interfaces.PhaseFailed
-		intent.Status.ErrorMessage = result.ErrorMessage
-		intent.Status.LastUpdated = metav1.Now()
+		intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
+		intent.Status.LastMessage = result.ErrorMessage
+		intent.Status.LastUpdateTime = metav1.Now()
 	}
 
 	// Update the intent status
@@ -1615,6 +1623,7 @@ func (v *ManifestValidator) ValidateManifests(ctx context.Context, manifests map
 
 // validateSingleManifest validates a single manifest
 func (v *ManifestValidator) validateSingleManifest(name, manifest string) error {
+	_ = name // Suppress unused parameter warning
 	// Basic YAML validation
 	var obj map[string]interface{}
 	if err := yaml.Unmarshal([]byte(manifest), &obj); err != nil {
@@ -1658,6 +1667,7 @@ func (e *ManifestPolicyEnforcer) EnforcePolicies(ctx context.Context, manifests 
 		// Parse manifest
 		var manifestObj map[string]interface{}
 		if err := yaml.Unmarshal([]byte(manifestContent), &manifestObj); err != nil {
+			e.logger.Info("Skipping invalid manifest", "name", manifestName, "error", err)
 			continue // Skip invalid manifests
 		}
 

@@ -182,6 +182,38 @@ type NetworkIntentStatus struct {
 	// +optional
 	ProcessingResults *ProcessingResult `json:"processingResults,omitempty"`
 
+	// LLMResponse contains the raw LLM response data
+	// +optional
+	LLMResponse interface{} `json:"llmResponse,omitempty"`
+
+	// ResourcePlan contains the resource planning data
+	// +optional
+	ResourcePlan map[string]interface{} `json:"resourcePlan,omitempty"`
+
+	// ProcessingPhase indicates the current processing phase
+	// +optional
+	ProcessingPhase string `json:"processingPhase,omitempty"`
+
+	// ErrorMessage contains any error messages
+	// +optional
+	ErrorMessage string `json:"errorMessage,omitempty"`
+
+	// LastUpdated indicates when the status was last updated
+	// +optional
+	LastUpdated metav1.Time `json:"lastUpdated,omitempty"`
+
+	// ValidationErrors contains validation errors encountered during processing
+	// +optional
+	ValidationErrors []string `json:"validationErrors,omitempty"`
+
+	// DeployedComponents contains the list of deployed components
+	// +optional
+	DeployedComponents []TargetComponent `json:"deployedComponents,omitempty"`
+
+	// ProcessingDuration contains the duration of the processing
+	// +optional
+	ProcessingDuration *metav1.Duration `json:"processingDuration,omitempty"`
+
 	// Extensions contains additional status information as raw extensions
 	// +optional
 	Extensions map[string]runtime.RawExtension `json:"extensions,omitempty"`

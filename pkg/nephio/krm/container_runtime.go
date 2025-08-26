@@ -17,16 +17,13 @@ limitations under the License.
 package krm
 
 import (
-	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -40,8 +37,6 @@ import (
 	"go.opentelemetry.io/otel/trace"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // ContainerRuntime provides secure container-based KRM function execution
@@ -284,14 +279,19 @@ type SecurityManager struct {
 
 // SecurityPolicy defines security constraints
 type SecurityPolicy struct {
-	Name                string
-	AllowPrivileged     bool
-	AllowedCapabilities []string
-	DroppedCapabilities []string
-	ReadOnlyRootFS      bool
-	NoNewPrivileges     bool
-	UserNamespaces      bool
-	NetworkPolicies     []*NetworkSecurityPolicy
+	Name                 string
+	AllowPrivileged      bool
+	AllowedCapabilities  []string
+	DroppedCapabilities  []string
+	ReadOnlyRootFS       bool
+	NoNewPrivileges      bool
+	UserNamespaces       bool
+	NetworkPolicies      []*NetworkSecurityPolicy
+	allowedImages        map[string]bool
+	blockedCapabilities  map[string]bool
+	maxResourceLimits    ResourceLimits
+	networkPolicy        *NetworkPolicy
+	fileSystemPolicy     *FileSystemPolicy
 }
 
 // NetworkSecurityPolicy defines network security constraints

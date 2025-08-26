@@ -37,10 +37,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -121,7 +119,18 @@ type SecurityContext struct {
 	FileSystemIsolation bool
 }
 
-// ExecutionResult is defined in pipeline.go
+// RuntimeExecutionResult represents the result of function execution in the runtime
+type RuntimeExecutionResult struct {
+	Resources    []porch.KRMResource      `json:"resources"`
+	Results      []*porch.FunctionResult  `json:"results"`
+	Error        *porch.FunctionError     `json:"error,omitempty"`
+	Err          error                    `json:"-"`
+	Duration     time.Duration            `json:"duration"`
+	Logs         string                   `json:"logs"`
+	ExitCode     int                      `json:"exitCode"`
+	MemoryUsage  int64                    `json:"memoryUsage"`
+	CPUUsage     float64                  `json:"cpuUsage"`
+}
 
 // ResourcePool manages computational resources for function execution
 type ResourcePool struct {
@@ -732,7 +741,7 @@ func (ep *ExecutorPool) releaseExecutor(executor *Executor) {
 
 // Executor methods
 
-func (e *Executor) executeFunction(ctx context.Context, execCtx *ExecutionContext) (*ExecutionResult, error) {
+func (e *Executor) executeFunction(ctx context.Context, execCtx *ExecutionContext) (*RuntimeExecutionResult, error) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
@@ -824,7 +833,7 @@ func (e *Executor) createCommand(ctx context.Context, execCtx *ExecutionContext)
 	return cmd, nil
 }
 
-func (e *Executor) runCommand(ctx context.Context, cmd *exec.Cmd, execCtx *ExecutionContext) (*ExecutionResult, error) {
+func (e *Executor) runCommand(ctx context.Context, cmd *exec.Cmd, execCtx *ExecutionContext) (*RuntimeExecutionResult, error) {
 	// Set up pipes
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -841,7 +850,7 @@ func (e *Executor) runCommand(ctx context.Context, cmd *exec.Cmd, execCtx *Execu
 	}
 
 	// Create result
-	result := &ExecutionResult{
+	result := &RuntimeExecutionResult{
 		Resources: []porch.KRMResource{},
 		Results:   []*porch.FunctionResult{},
 		Logs:      "", // String instead of slice

@@ -2,7 +2,6 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // CertificateAutomationSpec defines the desired state of CertificateAutomation
@@ -55,8 +54,17 @@ type CertificateAutomationStatus struct {
 	// ExpirationTime contains the certificate expiration time
 	ExpirationTime *metav1.Time `json:"expirationTime,omitempty"`
 
+	// ExpiresAt contains the certificate expiration time (alternative name)
+	ExpiresAt *metav1.Time `json:"expiresAt,omitempty"`
+
 	// LastRenewalTime contains the last renewal timestamp
 	LastRenewalTime *metav1.Time `json:"lastRenewalTime,omitempty"`
+
+	// NextRenewalTime contains the next scheduled renewal time
+	NextRenewalTime *metav1.Time `json:"nextRenewalTime,omitempty"`
+
+	// ValidationStatus contains the certificate validation status
+	ValidationStatus string `json:"validationStatus,omitempty"`
 
 	// SecretName contains the name of the secret storing the certificate
 	SecretName string `json:"secretName,omitempty"`
@@ -144,15 +152,6 @@ type CertificateAutomation struct {
 	Status CertificateAutomationStatus `json:"status,omitempty"`
 }
 
-// DeepCopyObject implements runtime.Object interface
-func (c *CertificateAutomation) DeepCopyObject() runtime.Object {
-	if c == nil {
-		return nil
-	}
-	out := new(CertificateAutomation)
-	c.DeepCopyInto(out)
-	return out
-}
 
 //+kubebuilder:object:root=true
 
@@ -163,15 +162,6 @@ type CertificateAutomationList struct {
 	Items           []CertificateAutomation `json:"items"`
 }
 
-// DeepCopyObject implements runtime.Object interface
-func (c *CertificateAutomationList) DeepCopyObject() runtime.Object {
-	if c == nil {
-		return nil
-	}
-	out := new(CertificateAutomationList)
-	c.DeepCopyInto(out)
-	return out
-}
 
 func init() {
 	SchemeBuilder.Register(&CertificateAutomation{}, &CertificateAutomationList{})

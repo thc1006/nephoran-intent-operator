@@ -2,9 +2,12 @@
 package o2
 
 import (
+	"context"
 	"net/http"
 
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/models"
 )
 
 // Resource Lifecycle Operation Handlers
@@ -47,7 +50,9 @@ func (s *O2APIServer) handleConfigureResource(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	if err := s.resourceManager.ConfigureResource(r.Context(), resourceID, &config); err != nil {
+	result, err := s.resourceManager.ConfigureResource(r.Context(), resourceID, &config)
+	_ = result // Ignore the returned result for now
+	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to configure resource", err)
 		return
 	}
@@ -73,7 +78,9 @@ func (s *O2APIServer) handleScaleResource(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := s.resourceManager.ScaleResource(r.Context(), resourceID, &req); err != nil {
+	result, err := s.resourceManager.ScaleResource(r.Context(), resourceID, &req)
+	_ = result // Ignore the returned result for now
+	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to scale resource", err)
 		return
 	}
@@ -101,7 +108,9 @@ func (s *O2APIServer) handleMigrateResource(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := s.resourceManager.MigrateResource(r.Context(), resourceID, &req); err != nil {
+	result, err := s.resourceManager.MigrateResource(r.Context(), resourceID, &req)
+	_ = result // Ignore the returned result for now
+	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to migrate resource", err)
 		return
 	}
@@ -153,7 +162,13 @@ func (s *O2APIServer) handleRestoreResource(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := s.resourceManager.RestoreResource(r.Context(), resourceID, backupID); err != nil {
+	// Create a restore request with backupID
+	restoreReq := map[string]interface{}{
+		"backupId": backupID,
+	}
+	result, err := s.resourceManager.RestoreResource(r.Context(), resourceID, restoreReq)
+	_ = result // Ignore the returned result for now
+	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to restore resource", err)
 		return
 	}
@@ -196,29 +211,16 @@ func (s *O2APIServer) handleDiscoverInfrastructure(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Convert providerID to CloudProvider type
-	var provider CloudProvider
+	// Validate supported provider types
 	switch providerID {
-	case "kubernetes":
-		provider = CloudProviderKubernetes
-	case "openstack":
-		provider = CloudProviderOpenStack
-	case "aws":
-		provider = CloudProviderAWS
-	case "azure":
-		provider = CloudProviderAzure
-	case "gcp":
-		provider = CloudProviderGCP
-	case "vmware":
-		provider = CloudProviderVMware
-	case "edge":
-		provider = CloudProviderEdge
+	case CloudProviderKubernetes, CloudProviderOpenStack, CloudProviderAWS, CloudProviderAzure, CloudProviderGCP, CloudProviderVMware, CloudProviderEdge:
+		// Valid provider
 	default:
 		s.writeErrorResponse(w, r, StatusBadRequest, "Unsupported provider type", nil)
 		return
 	}
 
-	discovery, err := s.inventoryService.DiscoverInfrastructure(r.Context(), provider)
+	discovery, err := s.inventoryService.DiscoverInfrastructure(r.Context(), providerID)
 	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to discover infrastructure", err)
 		return
@@ -236,7 +238,8 @@ func (s *O2APIServer) handleSyncInventory(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err := s.inventoryService.UpdateInventory(r.Context(), updates); err != nil {
+	_, err := s.inventoryService.UpdateInventory(r.Context(), updates)
+	if err != nil {
 		s.writeErrorResponse(w, r, StatusInternalServerError, "Failed to sync inventory", err)
 		return
 	}
@@ -258,11 +261,11 @@ func (s *O2APIServer) handleGetAssets(w http.ResponseWriter, r *http.Request) {
 
 	// Build filter based on query parameters
 	filter := &AssetFilter{
-		Type:     assetType,
-		Provider: provider,
-		Status:   status,
-		Limit:    limit,
-		Offset:   offset,
+		Types:     []string{assetType},
+		Providers: []string{provider},
+		Status:    []string{status},
+		Limit:     limit,
+		Offset:    offset,
 	}
 
 	assets, err := s.getAssets(r.Context(), filter)
@@ -346,34 +349,48 @@ func (s *O2APIServer) parseResourceFilter(r *http.Request) *models.ResourceFilte
 	}
 
 	if statuses := r.URL.Query().Get("statuses"); statuses != "" {
-		filter.Statuses = []string{statuses}
+		filter.LifecycleStates = []string{statuses}
 	}
 
 	return filter
 }
 
 // parseAlarmFilter parses alarm filter from query parameters
-func (s *O2APIServer) parseAlarmFilter(r *http.Request) *AlarmFilter {
-	return &AlarmFilter{
-		Severity:  s.getQueryParam(r, "severity"),
-		Status:    s.getQueryParam(r, "status"),
-		StartTime: s.getQueryParam(r, "startTime"),
-		EndTime:   s.getQueryParam(r, "endTime"),
-		Limit:     s.getQueryParamInt(r, "limit", 100),
-		Offset:    s.getQueryParamInt(r, "offset", 0),
+func (s *O2APIServer) parseAlarmFilter(r *http.Request) *models.AlarmFilter {
+	return &models.AlarmFilter{
+		PerceivedSeverity: []string{s.getQueryParam(r, "severity")},
+		AlarmState:        []string{s.getQueryParam(r, "status")},
+		ResourceID:        s.getQueryParam(r, "resourceId"),
+		ResourceType:      s.getQueryParam(r, "resourceType"),
 	}
 }
 
 // parseMetricsFilter parses metrics filter from query parameters
 func (s *O2APIServer) parseMetricsFilter(r *http.Request) *MetricsFilter {
-	return &MetricsFilter{
+	filter := &MetricsFilter{
 		MetricNames: s.parseQueryParamArray(r, "metricNames"),
-		StartTime:   s.getQueryParam(r, "startTime"),
-		EndTime:     s.getQueryParam(r, "endTime"),
-		Granularity: s.getQueryParam(r, "granularity"),
 		Limit:       s.getQueryParamInt(r, "limit", 1000),
-		Offset:      s.getQueryParamInt(r, "offset", 0),
 	}
+	
+	// Parse StartTime if provided
+	if startTimeStr := s.getQueryParam(r, "startTime"); startTimeStr != "" {
+		if startTime, err := s.parseTimeParam(r, "startTime"); err == nil && startTime != nil {
+			filter.StartTime = startTime
+		}
+	}
+	
+	// Parse EndTime if provided  
+	if endTimeStr := s.getQueryParam(r, "endTime"); endTimeStr != "" {
+		if endTime, err := s.parseTimeParam(r, "endTime"); err == nil && endTime != nil {
+			filter.EndTime = endTime
+		}
+	}
+	
+	// Parse other string fields
+	filter.Interval = s.getQueryParam(r, "interval")
+	filter.Aggregation = s.getQueryParam(r, "aggregation")
+	
+	return filter
 }
 
 // parseDeploymentTemplateFilter parses deployment template filter from query parameters
@@ -392,22 +409,28 @@ func (s *O2APIServer) parseDeploymentTemplateFilter(r *http.Request) *Deployment
 // parseDeploymentFilter parses deployment filter from query parameters
 func (s *O2APIServer) parseDeploymentFilter(r *http.Request) *DeploymentFilter {
 	return &DeploymentFilter{
-		Names:       s.parseQueryParamArray(r, "names"),
-		Statuses:    s.parseQueryParamArray(r, "statuses"),
-		TemplateIDs: s.parseQueryParamArray(r, "templateIds"),
-		Providers:   s.parseQueryParamArray(r, "providers"),
-		Limit:       s.getQueryParamInt(r, "limit", 100),
-		Offset:      s.getQueryParamInt(r, "offset", 0),
+		Names:           s.parseQueryParamArray(r, "names"),
+		States:          s.parseQueryParamArray(r, "states"),
+		Phases:          s.parseQueryParamArray(r, "phases"),
+		TemplateIDs:     s.parseQueryParamArray(r, "templateIds"),
+		ResourcePoolIDs: s.parseQueryParamArray(r, "resourcePoolIds"),
+		CreatedBy:       s.parseQueryParamArray(r, "createdBy"),
+		Limit:           s.getQueryParamInt(r, "limit", 100),
+		Offset:          s.getQueryParamInt(r, "offset", 0),
 	}
 }
 
 // parseSubscriptionFilter parses subscription filter from query parameters
 func (s *O2APIServer) parseSubscriptionFilter(r *http.Request) *SubscriptionFilter {
 	return &SubscriptionFilter{
-		EventTypes: s.parseQueryParamArray(r, "eventTypes"),
-		Status:     s.getQueryParam(r, "status"),
-		Limit:      s.getQueryParamInt(r, "limit", 100),
-		Offset:     s.getQueryParamInt(r, "offset", 0),
+		Names:           s.parseQueryParamArray(r, "names"),
+		EventTypes:      s.parseQueryParamArray(r, "eventTypes"),
+		States:          s.parseQueryParamArray(r, "states"),
+		ResourceTypes:   s.parseQueryParamArray(r, "resourceTypes"),
+		ResourcePoolIDs: s.parseQueryParamArray(r, "resourcePoolIds"),
+		CreatedBy:       s.parseQueryParamArray(r, "createdBy"),
+		Limit:           s.getQueryParamInt(r, "limit", 100),
+		Offset:          s.getQueryParamInt(r, "offset", 0),
 	}
 }
 

@@ -18,14 +18,11 @@ package krm
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -37,10 +34,6 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/yaml"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
 // Registry manages KRM function discovery, caching, and metadata

@@ -219,60 +219,21 @@ func (c *AnalysisConfig) Validate() error {
 	return nil
 }
 
-// DefaultAnalyzerConfig returns a default configuration
-func DefaultAnalyzerConfig() *AnalysisConfig {
-	return &AnalysisConfig{
-		Version:              "1.0.0",
-		Currency:            "USD",
-		EnableMLAnalysis:    false,
-		EnableMLOptimization: false,
-		EnableCaching:       true,
-		EnableConcurrency:   true,
-		EnableTrendAnalysis: true,
-		EnableCostProjection: true,
-		WorkerCount:         4,
-		QueueSize:          100,
-	}
-}
 
 // Metrics and analysis component types (simplified definitions)
-type AnalyzerMetrics struct{}
 type UsageAnalyzer struct{}
 type CostAnalyzer struct{}
 type HealthAnalyzer struct{}
 type RiskAnalyzer struct{}
 type PerformanceAnalyzer struct{}
-type OptimizationEngine struct{}
-type MLOptimizer struct{}
-type UsageDataCollector struct{}
-type MetricsCollector struct{}
-type EventProcessor struct{}
-type PredictionModel struct{}
-type RecommendationModel struct{}
-type AnomalyDetector struct{}
-type AnalysisCache struct{}
-type AnalysisDataStore struct{}
 type CostProvider interface{}
-type AnalysisWorkerPool struct{}
 
 // Constructor functions (placeholder implementations)
-func NewAnalyzerMetrics() *AnalyzerMetrics { return &AnalyzerMetrics{} }
 func NewUsageAnalyzer(config *UsageAnalyzerConfig) (*UsageAnalyzer, error) { return &UsageAnalyzer{}, nil }
 func NewCostAnalyzer(config *CostAnalyzerConfig) (*CostAnalyzer, error) { return &CostAnalyzer{}, nil }
 func NewHealthAnalyzer(config *HealthAnalyzerConfig) (*HealthAnalyzer, error) { return &HealthAnalyzer{}, nil }
 func NewRiskAnalyzer(config *RiskAnalyzerConfig) (*RiskAnalyzer, error) { return &RiskAnalyzer{}, nil }
 func NewPerformanceAnalyzer(config *PerformanceAnalyzerConfig) (*PerformanceAnalyzer, error) { return &PerformanceAnalyzer{}, nil }
-func NewOptimizationEngine(config *OptimizationEngineConfig) (*OptimizationEngine, error) { return &OptimizationEngine{}, nil }
-func NewMLOptimizer(config *MLOptimizerConfig) (*MLOptimizer, error) { return &MLOptimizer{}, nil }
-func NewUsageDataCollector(config *UsageCollectorConfig) *UsageDataCollector { return &UsageDataCollector{} }
-func NewMetricsCollector(config *MetricsCollectorConfig) *MetricsCollector { return &MetricsCollector{} }
-func NewEventProcessor(config *EventProcessorConfig) *EventProcessor { return &EventProcessor{} }
-func NewPredictionModel(config *PredictionModelConfig) (*PredictionModel, error) { return &PredictionModel{}, nil }
-func NewRecommendationModel(config *RecommendationModelConfig) (*RecommendationModel, error) { return &RecommendationModel{}, nil }
-func NewAnomalyDetector(config *AnomalyDetectorConfig) (*AnomalyDetector, error) { return &AnomalyDetector{}, nil }
-func NewAnalysisCache(config *AnalysisCacheConfig) *AnalysisCache { return &AnalysisCache{} }
-func NewAnalysisDataStore(config *DataStoreConfig) (*AnalysisDataStore, error) { return &AnalysisDataStore{}, nil }
-func NewAnalysisWorkerPool(workerCount, queueSize int) *AnalysisWorkerPool { return &AnalysisWorkerPool{} }
 
 // Additional analysis result types that are referenced
 
@@ -561,13 +522,6 @@ type ResourceMetrics struct {
 	Network float64 `json:"network"`
 }
 
-// HealthSnapshot represents a health snapshot at a point in time
-type HealthSnapshot struct {
-	Timestamp    time.Time `json:"timestamp"`
-	HealthScore  float64   `json:"healthScore"`
-	Grade        string    `json:"grade"`
-	IssuesCount  int       `json:"issuesCount"`
-}
 
 // CriticalIssue represents a critical issue
 type CriticalIssue struct {
@@ -1516,6 +1470,10 @@ type HealthTrendAnalysis struct {
 	TrendStrength float64             `json:"trendStrength"`
 	Trends        []*PackageHealthTrend `json:"trends"`
 	Predictions   []*HealthPrediction `json:"predictions,omitempty"`
+	TrendConfidence  float64                   `json:"trendConfidence"`
+	TrendPredictions []*HealthTrendPrediction  `json:"trendPredictions,omitempty"`
+	HealthSnapshots  []*HealthSnapshot         `json:"healthSnapshots,omitempty"`
+	Recommendations  []*HealthRecommendation   `json:"recommendations,omitempty"`
 	AnalyzedAt    time.Time           `json:"analyzedAt"`
 }
 
@@ -1537,6 +1495,28 @@ type HealthPrediction struct {
 	TimeHorizon     time.Duration     `json:"timeHorizon"`
 	Confidence      float64           `json:"confidence"`
 	RiskFactors     []string          `json:"riskFactors,omitempty"`
+}
+// HealthSnapshot represents a snapshot of package health at a point in time
+type HealthSnapshot struct {
+	PackageName       string    `json:"packageName"`
+	Timestamp         time.Time `json:"timestamp"`
+	OverallScore      float64   `json:"overallScore"`
+	SecurityHealth    float64   `json:"securityHealth"`
+	PerformanceHealth float64   `json:"performanceHealth"`
+	MaintenanceHealth float64   `json:"maintenanceHealth"`
+	QualityHealth     float64   `json:"qualityHealth"`
+	Grade             HealthGrade `json:"grade"`
+}
+
+// HealthTrendPrediction represents a prediction about health trends
+type HealthTrendPrediction struct {
+	PackageName      string        `json:"packageName"`
+	PredictedTrend   HealthTrend   `json:"predictedTrend"`
+	PredictedScore   float64       `json:"predictedScore"`
+	TimeHorizon      time.Duration `json:"timeHorizon"`
+	Confidence       float64       `json:"confidence"`
+	Factors          []string      `json:"factors,omitempty"`
+	RiskIndicators   []string      `json:"riskIndicators,omitempty"`
 }
 
 // Additional missing types from validator.go
