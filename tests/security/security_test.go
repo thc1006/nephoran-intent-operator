@@ -161,7 +161,7 @@ func TestNetworkPolicyEnforcement(t *testing.T) {
 						{
 							Ports: []networkingv1.NetworkPolicyPort{
 								{
-									Protocol: &corev1.Protocol("TCP"),
+									Protocol: func() *corev1.Protocol { p := corev1.ProtocolTCP; return &p }(),
 									Port:     &intstr.IntOrString{IntVal: 80},
 								},
 							},
@@ -201,7 +201,7 @@ func TestNetworkPolicyEnforcement(t *testing.T) {
 							},
 							Ports: []networkingv1.NetworkPolicyPort{
 								{
-									Protocol: &corev1.Protocol("TCP"),
+									Protocol: func() *corev1.Protocol { p := corev1.ProtocolTCP; return &p }(),
 									Port:     &intstr.IntOrString{IntVal: 443},
 								},
 							},
@@ -619,7 +619,7 @@ func TestAPISecurityValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateAPISecurityt(tt.request)
+			err := validateAPISecurity(tt.request)
 			if tt.wantError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)

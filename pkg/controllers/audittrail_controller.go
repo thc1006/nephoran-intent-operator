@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -81,6 +80,12 @@ func (r *AuditTrailController) Reconcile(ctx context.Context, req ctrl.Request) 
 		return r.handleDeletion(ctx, &auditTrail)
 	}
 
+	// Validate audit trail configuration
+	if err := r.validateAuditTrail(&auditTrail); err != nil {
+		logger.Error(err, "Invalid audit trail configuration")
+		return ctrl.Result{RequeueAfter: time.Minute}, err
+	}
+
 	// Ensure audit system exists
 	if err := r.ensureAuditSystem(ctx, &auditTrail); err != nil {
 		logger.Error(err, "Failed to ensure audit system")
@@ -130,33 +135,28 @@ func (r *AuditTrailController) ensureAuditSystem(ctx context.Context, auditTrail
 
 	// Create new audit system
 	config := &audit.AuditConfig{
-		EnabledSources: auditTrail.Spec.Sources,
-		RetentionDays:  auditTrail.Spec.RetentionDays,
+		Enabled:         auditTrail.Spec.Enabled,
+		EnabledSources:  auditTrail.Spec.ComplianceMode,
+		RetentionDays:   365, // Default retention
 		Storage: audit.StorageConfig{
-			Type: auditTrail.Spec.Storage.Type,
+			Type: "local", // Default to local storage
 		},
+		BatchSize:       auditTrail.Spec.BatchSize,
+		MaxQueueSize:    auditTrail.Spec.MaxQueueSize,
+		EnableIntegrity: auditTrail.Spec.EnableIntegrity,
+		ComplianceMode:  convertComplianceMode(auditTrail.Spec.ComplianceMode),
 	}
 
-	// Set storage configuration based on type
-	switch auditTrail.Spec.Storage.Type {
-	case "elasticsearch":
-		if auditTrail.Spec.Storage.Elasticsearch != nil {
-			config.Storage.Elasticsearch = &audit.ElasticsearchConfig{
-				URL:      auditTrail.Spec.Storage.Elasticsearch.URL,
-				Index:    auditTrail.Spec.Storage.Elasticsearch.Index,
-				Username: auditTrail.Spec.Storage.Elasticsearch.Username,
-				Password: auditTrail.Spec.Storage.Elasticsearch.Password,
-			}
-		}
-	case "s3":
-		if auditTrail.Spec.Storage.S3 != nil {
-			config.Storage.S3 = &audit.S3Config{
-				Bucket:          auditTrail.Spec.Storage.S3.Bucket,
-				Region:          auditTrail.Spec.Storage.S3.Region,
-				AccessKeyID:     auditTrail.Spec.Storage.S3.AccessKeyID,
-				SecretAccessKey: auditTrail.Spec.Storage.S3.SecretAccessKey,
-			}
-		}
+	// Set retention policy if available
+	if auditTrail.Spec.RetentionPolicy != nil {
+		config.RetentionDays = auditTrail.Spec.RetentionPolicy.DefaultRetention
+	}
+
+	// Configure backends from the spec
+	for _, backend := range auditTrail.Spec.Backends {
+		// TODO: Convert AuditBackendConfig to backends.BackendConfig
+		// For now, use default local storage
+		_ = backend // Avoid unused variable error
 	}
 
 	// Create audit system
@@ -197,7 +197,15 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 
 	if !exists {
 		auditTrail.Status.Phase = "Failed"
-		auditTrail.Status.Message = "Audit system not found"
+		// Add condition instead of message
+		condition := metav1.Condition{
+			Type:   "Ready",
+			Status: metav1.ConditionFalse,
+			Reason: "AuditSystemNotFound",
+			Message: "Audit system not found",
+			LastTransitionTime: metav1.Now(),
+		}
+		auditTrail.Status.Conditions = []metav1.Condition{condition}
 		return r.Status().Update(ctx, auditTrail)
 	}
 
@@ -206,70 +214,80 @@ func (r *AuditTrailController) updateStatus(ctx context.Context, auditTrail *nep
 	
 	// Update status based on audit system state
 	if auditSystem.IsHealthy() {
-		auditTrail.Status.Phase = "Active"
-		auditTrail.Status.Message = "Audit system is running"
-		auditTrail.Status.EventsCollected = int64(metrics.EventsProcessed)
-		auditTrail.Status.LastEventTime = &metav1.Time{Time: metrics.LastEventTime}
+		auditTrail.Status.Phase = "Running"
+		// Set ready condition
+		condition := metav1.Condition{
+			Type:   "Ready",
+			Status: metav1.ConditionTrue,
+			Reason: "AuditSystemRunning",
+			Message: "Audit system is running",
+			LastTransitionTime: metav1.Now(),
+		}
+		auditTrail.Status.Conditions = []metav1.Condition{condition}
 	} else {
-		auditTrail.Status.Phase = "Degraded"
-		auditTrail.Status.Message = "Audit system is experiencing issues"
+		auditTrail.Status.Phase = "Failed"
+		condition := metav1.Condition{
+			Type:   "Ready",
+			Status: metav1.ConditionFalse,
+			Reason: "AuditSystemDegraded",
+			Message: "Audit system is experiencing issues",
+			LastTransitionTime: metav1.Now(),
+		}
+		auditTrail.Status.Conditions = []metav1.Condition{condition}
 	}
 
-	// Update storage status
-	auditTrail.Status.StorageStatus = &nephv1.StorageStatus{
-		Available:   true,
-		UsedBytes:   metrics.StorageUsed,
-		TotalEvents: int64(metrics.TotalEvents),
+	// Update stats
+	if auditTrail.Status.Stats == nil {
+		auditTrail.Status.Stats = &nephv1.AuditTrailStats{}
 	}
+	auditTrail.Status.Stats.EventsReceived = metrics.TotalEvents
+	auditTrail.Status.Stats.EventsProcessed = metrics.EventsProcessed
+	auditTrail.Status.Stats.EventsDropped = metrics.EventsDropped
+	auditTrail.Status.Stats.QueueSize = metrics.QueueSize
+	auditTrail.Status.Stats.BackendCount = metrics.BackendsTotal
+	if !metrics.LastEventTime.IsZero() {
+		auditTrail.Status.Stats.LastEventTime = &metav1.Time{Time: metrics.LastEventTime}
+	}
+	auditTrail.Status.LastUpdate = &metav1.Time{Time: time.Now()}
 
 	return r.Status().Update(ctx, auditTrail)
 }
 
 // validateAuditTrail validates the AuditTrail specification
 func (r *AuditTrailController) validateAuditTrail(auditTrail *nephv1.AuditTrail) error {
-	// Validate sources
-	if len(auditTrail.Spec.Sources) == 0 {
-		return fmt.Errorf("at least one audit source must be specified")
+	// Validate compliance modes (audit sources)
+	validCompliance := map[string]bool{
+		"soc2":      true,
+		"iso27001":  true,
+		"pci_dss":   true,
+		"hipaa":     true,
+		"gdpr":      true,
+		"ccpa":      true,
+		"fisma":     true,
+		"nist_csf":  true,
 	}
 
-	validSources := map[string]bool{
-		"kubernetes": true,
-		"oran":       true,
-		"nephio":     true,
-		"custom":     true,
-	}
-
-	for _, source := range auditTrail.Spec.Sources {
-		if !validSources[source] {
-			return fmt.Errorf("invalid audit source: %s", source)
+	for _, compliance := range auditTrail.Spec.ComplianceMode {
+		if !validCompliance[compliance] {
+			return fmt.Errorf("invalid compliance mode: %s", compliance)
 		}
 	}
 
-	// Validate retention
-	if auditTrail.Spec.RetentionDays <= 0 {
-		return fmt.Errorf("retention days must be positive")
+	// Validate retention policy if provided
+	if auditTrail.Spec.RetentionPolicy != nil {
+		if auditTrail.Spec.RetentionPolicy.DefaultRetention <= 0 {
+			return fmt.Errorf("retention days must be positive")
+		}
 	}
 
-	// Validate storage
-	switch auditTrail.Spec.Storage.Type {
-	case "elasticsearch":
-		if auditTrail.Spec.Storage.Elasticsearch == nil {
-			return fmt.Errorf("elasticsearch configuration is required for elasticsearch storage")
+	// Validate backends
+	for _, backend := range auditTrail.Spec.Backends {
+		if backend.Type == "" {
+			return fmt.Errorf("backend type is required")
 		}
-		if auditTrail.Spec.Storage.Elasticsearch.URL == "" {
-			return fmt.Errorf("elasticsearch URL is required")
+		if backend.Name == "" {
+			return fmt.Errorf("backend name is required")
 		}
-	case "s3":
-		if auditTrail.Spec.Storage.S3 == nil {
-			return fmt.Errorf("s3 configuration is required for s3 storage")
-		}
-		if auditTrail.Spec.Storage.S3.Bucket == "" {
-			return fmt.Errorf("s3 bucket is required")
-		}
-	case "local":
-		// Local storage is always valid
-	default:
-		return fmt.Errorf("unsupported storage type: %s", auditTrail.Spec.Storage.Type)
 	}
 
 	return nil
@@ -399,6 +417,32 @@ func (r *AuditTrailController) SetupWithManager(mgr ctrl.Manager) error {
 func (r *AuditTrailController) GetAuditSystem(namespace, name string) *audit.AuditSystem {
 	key := fmt.Sprintf("%s/%s", namespace, name)
 	return r.auditSystems[key]
+}
+
+// convertComplianceMode converts string compliance modes to audit package types
+func convertComplianceMode(modes []string) []audit.ComplianceStandard {
+	var result []audit.ComplianceStandard
+	for _, mode := range modes {
+		switch mode {
+		case "soc2":
+			result = append(result, audit.ComplianceSOC2)
+		case "iso27001":
+			result = append(result, audit.ComplianceISO27001)
+		case "pci_dss":
+			result = append(result, audit.CompliancePCIDSS)
+		case "hipaa":
+			result = append(result, audit.ComplianceHIPAA)
+		case "gdpr":
+			result = append(result, audit.ComplianceGDPR)
+		case "ccpa":
+			result = append(result, audit.ComplianceCCPA)
+		case "fisma":
+			result = append(result, audit.ComplianceFISMA)
+		case "nist_csf":
+			result = append(result, audit.ComplianceNIST)
+		}
+	}
+	return result
 }
 
 // Cleanup stops all audit systems when the controller shuts down

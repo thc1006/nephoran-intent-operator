@@ -30,6 +30,8 @@ const (
 	AuditFormatVersion = "1.0"
 )
 
+// Type aliases are defined in events.go for backward compatibility
+
 var (
 	// Metrics for audit system monitoring
 	auditEventsTotal = promauto.NewCounterVec(prometheus.CounterOpts{
@@ -59,6 +61,15 @@ type AuditSystemConfig struct {
 	// Enabled controls whether audit logging is active
 	Enabled bool `json:"enabled" yaml:"enabled"`
 
+	// EnabledSources defines which sources to audit
+	EnabledSources []string `json:"enabled_sources" yaml:"enabled_sources"`
+	
+	// RetentionDays defines how long to keep audit events
+	RetentionDays int `json:"retention_days" yaml:"retention_days"`
+	
+	// Storage defines storage backend configuration
+	Storage StorageConfig `json:"storage" yaml:"storage"`
+
 	// LogLevel controls the minimum severity level for audit events
 	LogLevel Severity `json:"log_level" yaml:"log_level"`
 
@@ -85,6 +96,14 @@ type AuditSystemConfig struct {
 func DefaultAuditConfig() *AuditSystemConfig {
 	return &AuditSystemConfig{
 		Enabled:         true,
+		EnabledSources:  []string{"kubernetes", "oran", "nephio"},
+		RetentionDays:   365,
+		Storage: StorageConfig{
+			Type: "local",
+			Local: &LocalStorageConfig{
+				Path: "/var/log/audit",
+			},
+		},
 		LogLevel:        SeverityInfo,
 		BatchSize:       DefaultBatchSize,
 		FlushInterval:   DefaultFlushInterval,
@@ -177,7 +196,15 @@ func NewAuditSystem(config *AuditSystemConfig) (*AuditSystem, error) {
 }
 
 // Start begins processing audit events
-func (as *AuditSystem) Start() error {
+func (as *AuditSystem) Start(ctx context.Context) error {
+	if ctx != nil {
+		as.ctx, as.cancel = context.WithCancel(ctx)
+	}
+	return as.startInternal()
+}
+
+// startInternal is the internal start method
+func (as *AuditSystem) startInternal() error {
 	if !as.config.Enabled {
 		as.logger.Info("Audit system is disabled")
 		return nil
@@ -556,4 +583,81 @@ func getProcessID() int {
 func getGoroutineID() int {
 	// Implementation would get goroutine ID
 	return 1
+}
+
+// ProcessEvent processes a single audit event
+func (as *AuditSystem) ProcessEvent(ctx context.Context, event *types.AuditEvent) error {
+	return as.LogEvent(event)
+}
+
+// ShouldProcessEvent checks if the audit system should process the given event
+func (as *AuditSystem) ShouldProcessEvent(event *types.AuditEvent) bool {
+	if !as.config.Enabled || !as.running.Load() {
+		return false
+	}
+
+	// Check if event severity meets minimum threshold
+	if event.Severity < as.config.LogLevel {
+		return false
+	}
+
+	// Check if event source is enabled
+	if len(as.config.EnabledSources) > 0 {
+		sourceEnabled := false
+		for _, source := range as.config.EnabledSources {
+			if event.Component == source {
+				sourceEnabled = true
+				break
+			}
+		}
+		if !sourceEnabled {
+			return false
+		}
+	}
+
+	return true
+}
+
+// GetMetrics returns current audit system metrics
+func (as *AuditSystem) GetMetrics() Metrics {
+	stats := as.GetStats()
+	return Metrics{
+		EventsProcessed:   stats.EventsReceived - stats.EventsDropped,
+		EventsDropped:     stats.EventsDropped,
+		LastEventTime:     stats.LastFlushTime,
+		StorageUsed:       0, // TODO: implement storage size tracking
+		TotalEvents:       stats.EventsReceived,
+		ErrorCount:        0, // TODO: implement error tracking
+		BackendsHealthy:   stats.BackendCount, // TODO: implement health checking
+		BackendsTotal:     stats.BackendCount,
+		QueueSize:         stats.QueueSize,
+		ProcessingLatency: 0, // TODO: implement latency tracking
+	}
+}
+
+// IsHealthy returns whether the audit system is healthy
+func (as *AuditSystem) IsHealthy() bool {
+	if !as.config.Enabled || !as.running.Load() {
+		return false
+	}
+
+	// Check if queue is not overflowing
+	if len(as.eventQueue) >= as.config.MaxQueueSize {
+		return false
+	}
+
+	// Check if we have at least one healthy backend
+	return len(as.backends) > 0
+}
+
+// ExportLogs exports audit logs for a given time range
+func (as *AuditSystem) ExportLogs(ctx context.Context, startTime, endTime time.Time) ([]byte, error) {
+	// TODO: implement log export functionality
+	return nil, fmt.Errorf("export functionality not yet implemented")
+}
+
+// SearchEvents searches for audit events based on criteria
+func (as *AuditSystem) SearchEvents(ctx context.Context, criteria *SearchCriteria) ([]*types.AuditEvent, error) {
+	// TODO: implement search functionality
+	return nil, fmt.Errorf("search functionality not yet implemented")
 }

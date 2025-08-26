@@ -127,6 +127,8 @@ type ActorContext struct {
 	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
+// Types defined in config.go to avoid duplication
+
 // NewComplianceLogger creates a new compliance logger
 func NewComplianceLogger(config *ComplianceLoggerConfig) (ComplianceLogger, error) {
 	// Implementation needed

@@ -112,7 +112,7 @@ type ServiceManager struct {
 	config             *Config
 	logger             *slog.Logger
 	healthChecker      *health.HealthChecker
-	secretManager      config.SecretManager
+	secretManager      *config.KubernetesSecretManager
 	oauth2Manager      *auth.OAuth2Manager
 	processor          *IntentProcessor
 	streamingProcessor *llm.StreamingProcessor

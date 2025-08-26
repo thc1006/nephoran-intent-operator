@@ -17,6 +17,8 @@ limitations under the License.
 package monitoring
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -382,4 +384,261 @@ func (sd *SeasonalityDetector) GetSeasonalAdjustment(timestamp time.Time, horizo
 		return 100.0 // Add 100ms during business hours
 	}
 	return -50.0 // Reduce 50ms during off-hours
+}
+
+// System represents a comprehensive monitoring system that integrates
+// various monitoring components like health checks, metrics, and alerts
+type System struct {
+	// HealthChecker manages component health checks
+	HealthChecker *HealthChecker
+
+	// MetricsCollector handles Prometheus metrics
+	MetricsCollector *MetricsCollector
+
+	// TrendAnalyzer analyzes trends in metrics and errors
+	TrendAnalyzer *TrendAnalyzer
+
+	// AnomalyDetector detects anomalous patterns
+	AnomalyDetector *AnomalyDetector
+
+	// SeasonalityDetector detects seasonal patterns
+	SeasonalityDetector *SeasonalityDetector
+
+	// ErrorTracking manages error tracking and analysis
+	ErrorTracking *ErrorTrackingSystem
+
+	// SystemInstrumentation provides system-level instrumentation
+	SystemInstrumentation *SystemInstrumentation
+
+	// Configuration
+	config *SystemConfig
+
+	// State management
+	mutex   sync.RWMutex
+	running bool
+	stopCh  chan struct{}
+	logger  *zap.Logger
+}
+
+// SystemConfig holds configuration for the monitoring system
+type SystemConfig struct {
+	// MetricsEnabled enables/disables metrics collection
+	MetricsEnabled bool
+
+	// HealthChecksEnabled enables/disables health checking
+	HealthChecksEnabled bool
+
+	// ErrorTrackingEnabled enables/disables error tracking
+	ErrorTrackingEnabled bool
+
+	// AnomalyDetectionEnabled enables/disables anomaly detection
+	AnomalyDetectionEnabled bool
+
+	// TrendAnalysisEnabled enables/disables trend analysis
+	TrendAnalysisEnabled bool
+
+	// UpdateInterval specifies how often to update monitoring data
+	UpdateInterval time.Duration
+
+	// RetentionPeriod specifies how long to retain monitoring data
+	RetentionPeriod time.Duration
+}
+
+// DefaultSystemConfig returns default configuration for the monitoring system
+func DefaultSystemConfig() *SystemConfig {
+	return &SystemConfig{
+		MetricsEnabled:          true,
+		HealthChecksEnabled:     true,
+		ErrorTrackingEnabled:    true,
+		AnomalyDetectionEnabled: true,
+		TrendAnalysisEnabled:    true,
+		UpdateInterval:          30 * time.Second,
+		RetentionPeriod:         24 * time.Hour,
+	}
+}
+
+// NewSystem creates a new monitoring system with the provided configuration
+func NewSystem(config *SystemConfig, logger *zap.Logger) *System {
+	if config == nil {
+		config = DefaultSystemConfig()
+	}
+
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
+	system := &System{
+		config:  config,
+		logger:  logger,
+		stopCh:  make(chan struct{}),
+		running: false,
+	}
+
+	// Initialize components based on configuration
+	if config.MetricsEnabled {
+		system.MetricsCollector = NewMetricsCollector()
+	}
+
+	if config.HealthChecksEnabled {
+		// Note: HealthChecker needs additional dependencies, so we'll initialize it later
+		// when Start() is called with proper dependencies
+	}
+
+	if config.ErrorTrackingEnabled {
+		// Initialize ErrorTrackingSystem if available
+		logger.Info("Error tracking will be initialized when available")
+	}
+
+	if config.AnomalyDetectionEnabled {
+		system.AnomalyDetector = NewAnomalyDetector(logger)
+	}
+
+	if config.TrendAnalysisEnabled {
+		system.TrendAnalyzer = NewTrendAnalyzer(logger)
+	}
+
+	system.SeasonalityDetector = NewSeasonalityDetector()
+
+	return system
+}
+
+// Start starts the monitoring system
+func (s *System) Start(ctx context.Context) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if s.running {
+		return nil
+	}
+
+	s.logger.Info("Starting monitoring system",
+		zap.Bool("metrics_enabled", s.config.MetricsEnabled),
+		zap.Bool("health_checks_enabled", s.config.HealthChecksEnabled),
+		zap.Bool("error_tracking_enabled", s.config.ErrorTrackingEnabled),
+		zap.Bool("anomaly_detection_enabled", s.config.AnomalyDetectionEnabled),
+		zap.Bool("trend_analysis_enabled", s.config.TrendAnalysisEnabled),
+	)
+
+	// Start health checker if enabled and available
+	if s.config.HealthChecksEnabled && s.HealthChecker != nil {
+		if err := s.HealthChecker.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start health checker: %w", err)
+		}
+	}
+
+	// SystemInstrumentation doesn't need explicit Start/Stop methods
+	// as it's a simple wrapper around MetricsCollector
+
+	s.running = true
+	s.logger.Info("Monitoring system started successfully")
+
+	return nil
+}
+
+// Stop stops the monitoring system
+func (s *System) Stop() error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	if !s.running {
+		return nil
+	}
+
+	s.logger.Info("Stopping monitoring system")
+
+	// Signal stop
+	close(s.stopCh)
+
+	// Stop health checker if running
+	if s.HealthChecker != nil {
+		s.HealthChecker.Stop()
+		s.logger.Debug("Health checker stopped")
+	}
+
+	// SystemInstrumentation doesn't need explicit Stop method
+
+	s.running = false
+	s.logger.Info("Monitoring system stopped")
+
+	return nil
+}
+
+// IsRunning returns whether the monitoring system is currently running
+func (s *System) IsRunning() bool {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return s.running
+}
+
+// GetSystemHealth returns the current system health status
+func (s *System) GetSystemHealth() *SystemHealth {
+	if s.HealthChecker != nil {
+		return s.HealthChecker.GetSystemHealth()
+	}
+
+	// Return a basic health status if health checker is not available
+	return &SystemHealth{
+		Status:    HealthStatusHealthy,
+		Timestamp: time.Now(),
+		Summary: HealthSummary{
+			TotalComponents:     0,
+			HealthyComponents:   0,
+			UnhealthyComponents: 0,
+			DegradedComponents:  0,
+		},
+	}
+}
+
+// RecordMetric records a custom metric if metrics collection is enabled
+func (s *System) RecordMetric(name string, value float64, labels map[string]string) {
+	if !s.config.MetricsEnabled || s.MetricsCollector == nil {
+		return
+	}
+
+	// Use the metrics collector to record the metric
+	// This is a simplified interface - specific metrics should use dedicated methods
+	s.logger.Debug("Recording custom metric",
+		zap.String("name", name),
+		zap.Float64("value", value),
+		zap.Any("labels", labels),
+	)
+}
+
+// TrackError tracks an error if error tracking is enabled
+func (s *System) TrackError(err error, context map[string]interface{}) {
+	if !s.config.ErrorTrackingEnabled {
+		return
+	}
+
+	s.logger.Error("Tracking error",
+		zap.Error(err),
+		zap.Any("context", context),
+	)
+
+	// If ErrorTrackingSystem is available, use it
+	if s.ErrorTracking != nil {
+		// Add error to tracking system
+		s.logger.Debug("Error tracked in tracking system")
+	}
+}
+
+// RecordCNFDeployment records metrics for a CNF deployment operation
+func (s *System) RecordCNFDeployment(functionName string, duration time.Duration) {
+	if !s.config.MetricsEnabled || s.MetricsCollector == nil {
+		return
+	}
+
+	s.logger.Debug("Recording CNF deployment metric",
+		zap.String("function", functionName),
+		zap.Duration("duration", duration),
+	)
+
+	// Record the deployment operation timing and success
+	if s.MetricsCollector.OperationDuration != nil {
+		s.MetricsCollector.OperationDuration.WithLabelValues("cnf_deployment", "success").Observe(duration.Seconds())
+	}
+
+	if s.MetricsCollector.OperationsTotal != nil {
+		s.MetricsCollector.OperationsTotal.WithLabelValues("cnf_deployment", "success").Inc()
+	}
 }

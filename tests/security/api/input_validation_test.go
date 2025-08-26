@@ -162,7 +162,7 @@ func TestSQLInjectionPrevention(t *testing.T) {
 
 					for _, ctx := range contexts {
 						t.Run(ctx.name, func(t *testing.T) {
-							req := ctx.testFunc(injection.payload)
+							_ = ctx.testFunc(injection.payload)
 							w := httptest.NewRecorder()
 
 							// Simulate validation
@@ -553,7 +553,7 @@ func TestPathTraversal(t *testing.T) {
 
 					for _, ctx := range contexts {
 						t.Run(ctx.name, func(t *testing.T) {
-							req := httptest.NewRequest("GET", fmt.Sprintf("%s?file=%s", ctx.endpoint, url.QueryEscape(traversal.payload)), nil)
+							_ = httptest.NewRequest("GET", fmt.Sprintf("%s?file=%s", ctx.endpoint, url.QueryEscape(traversal.payload)), nil)
 							w := httptest.NewRecorder()
 
 							isPathTraversal := suite.detectPathTraversal(traversal.payload)
@@ -664,7 +664,7 @@ func TestXXEInjection(t *testing.T) {
 
 // TestJSONSchemaValidation tests JSON schema validation
 func TestJSONSchemaValidation(t *testing.T) {
-	suite := NewInputValidationTestSuite(t)
+	_ = NewInputValidationTestSuite(t)
 
 	// Define schema for intent processing
 	intentSchema := `{

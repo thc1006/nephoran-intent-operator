@@ -12,8 +12,8 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
+	"github.com/thc1006/nephoran-intent-operator/pkg/types"
 )
 
 // MockDependencies implements the Dependencies interface for testing
@@ -54,7 +54,7 @@ func (m *MockDependencies) GetGitClient() git.ClientInterface {
 	return m.gitClient
 }
 
-func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
+func (m *MockDependencies) GetLLMClient() types.ClientInterface {
 	m.incrementCallCount("GetLLMClient")
 	return m.llmClient
 }
@@ -146,13 +146,13 @@ func NewMockGitClient() *MockGitClient {
 	}
 }
 
-func (m *MockGitClient) Clone(ctx context.Context, url, branch, path string) error {
+func (m *MockGitClient) InitRepo() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.pushResults["Clone"]
+	return m.pushResults["InitRepo"]
 }
 
-func (m *MockGitClient) CommitAndPush(ctx context.Context, repoPath, message string, files map[string]string) (string, error) {
+func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -169,67 +169,111 @@ func (m *MockGitClient) CommitAndPush(ctx context.Context, repoPath, message str
 	return commitHash, nil
 }
 
-func (m *MockGitClient) Pull(ctx context.Context, repoPath string) error {
+func (m *MockGitClient) CommitAndPushChanges(message string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	return m.pullResults["Pull"]
+	return m.pushResults["CommitAndPushChanges"]
 }
 
-// MockLLMClient implements shared.ClientInterface for testing
+func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pushResults["RemoveDirectory"]
+}
+
+// MockLLMClient implements types.ClientInterface for testing
 type MockLLMClient struct {
-	responses map[string]*shared.LLMResponse
+	responses map[string]string
 	errors    map[string]error
 	mu        sync.RWMutex
 }
 
 func NewMockLLMClient() *MockLLMClient {
 	return &MockLLMClient{
-		responses: make(map[string]*shared.LLMResponse),
+		responses: make(map[string]string),
 		errors:    make(map[string]error),
 	}
 }
 
-func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string, metadata map[string]interface{}) (*shared.LLMResponse, error) {
+func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	if err := m.errors["ProcessIntent"]; err != nil {
-		return nil, err
+		return "", err
 	}
 
-	if response := m.responses["ProcessIntent"]; response != nil {
+	if response := m.responses["ProcessIntent"]; response != "" {
 		return response, nil
 	}
 
 	// Default response for successful processing
-	return &shared.LLMResponse{
-		IntentType: "5G-Core-AMF",
-		Confidence: 0.95,
-		Parameters: map[string]interface{}{
-			"replicas":       3,
-			"scaling":        true,
-			"cpu_request":    "500m",
-			"memory_request": "1Gi",
-		},
-		Manifests: map[string]interface{}{
-			"deployment": map[string]interface{}{
-				"apiVersion": "apps/v1",
-				"kind":       "Deployment",
-				"metadata": map[string]interface{}{
-					"name": "amf-deployment",
-				},
-				"spec": map[string]interface{}{
-					"replicas": 3,
-				},
-			},
-		},
-		ProcessingTime: 1500,
-		TokensUsed:     250,
-		Model:          "gpt-4o-mini",
+	return "Mock LLM response for intent processing", nil
+}
+
+func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *types.StreamingChunk) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if err := m.errors["ProcessIntentStream"]; err != nil {
+		return err
+	}
+
+	// Send a mock streaming chunk
+	select {
+	case chunks <- &types.StreamingChunk{
+		Content:   "Mock streaming response",
+		IsLast:    true,
+		Timestamp: time.Now(),
+	}:
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+
+	return nil
+}
+
+func (m *MockLLMClient) GetSupportedModels() []string {
+	return []string{"mock-model-1", "mock-model-2"}
+}
+
+func (m *MockLLMClient) GetModelCapabilities(modelName string) (*types.ModelCapabilities, error) {
+	return &types.ModelCapabilities{
+		MaxTokens:         4096,
+		SupportsChat:      true,
+		SupportsFunction:  false,
+		SupportsStreaming: true,
+		CostPerToken:      0.001,
+		Features:          make(map[string]interface{}),
 	}, nil
 }
 
-func (m *MockLLMClient) SetResponse(operation string, response *shared.LLMResponse) {
+func (m *MockLLMClient) ValidateModel(modelName string) error {
+	if modelName == "invalid-model" {
+		return fmt.Errorf("model %s not supported", modelName)
+	}
+	return nil
+}
+
+func (m *MockLLMClient) EstimateTokens(text string) int {
+	// Simple estimation: roughly 4 characters per token
+	return len(text) / 4
+}
+
+func (m *MockLLMClient) GetMaxTokens(modelName string) int {
+	return 4096
+}
+
+func (m *MockLLMClient) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// Clear state on close
+	m.responses = make(map[string]string)
+	m.errors = make(map[string]error)
+	return nil
+}
+
+func (m *MockLLMClient) SetResponse(operation string, response string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.responses[operation] = response
@@ -348,29 +392,8 @@ func NewMockHTTPClient() *MockHTTPClient {
 }
 
 // Helper functions for creating mock responses
-func CreateMockLLMResponse(intentType string, confidence float64) *shared.LLMResponse {
-	return &shared.LLMResponse{
-		IntentType: intentType,
-		Confidence: confidence,
-		Parameters: map[string]interface{}{
-			"replicas":       3,
-			"scaling":        true,
-			"cpu_request":    "500m",
-			"memory_request": "1Gi",
-		},
-		Manifests: map[string]interface{}{
-			"deployment": map[string]interface{}{
-				"apiVersion": "apps/v1",
-				"kind":       "Deployment",
-				"metadata": map[string]interface{}{
-					"name": intentType + "-deployment",
-				},
-			},
-		},
-		ProcessingTime: 1500,
-		TokensUsed:     250,
-		Model:          "gpt-4o-mini",
-	}
+func CreateMockLLMResponse(intentType string, confidence float64) string {
+	return fmt.Sprintf("Mock LLM response for intent type: %s with confidence: %.2f", intentType, confidence)
 }
 
 // Performance testing utilities

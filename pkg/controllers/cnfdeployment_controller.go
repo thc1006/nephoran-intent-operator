@@ -28,6 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -179,6 +180,11 @@ func (r *CNFDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Record metrics
 	if r.MetricsCollector != nil {
 		r.MetricsCollector.RecordCNFDeployment(cnfDeployment.Spec.Function, result.Duration)
+	}
+
+	// Record metrics in monitoring system if available
+	if r.MonitoringSystem != nil {
+		r.MonitoringSystem.RecordCNFDeployment(string(cnfDeployment.Spec.Function), result.Duration)
 	}
 
 	return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil
