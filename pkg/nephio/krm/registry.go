@@ -260,15 +260,7 @@ type SecurityVulnerability struct {
 	DiscoveredAt time.Time `json:"discoveredAt" yaml:"discoveredAt"`
 }
 
-// FunctionCache manages function metadata and artifact caching
-type FunctionCache struct {
-	cacheDir string
-	ttl      time.Duration
-	maxSize  int64
-	mu       sync.RWMutex
-	items    map[string]*CacheItem
-	metrics  *CacheMetrics
-}
+// FunctionCache is defined in function_manager.go
 
 // CacheItem represents a cached function
 type CacheItem struct {
@@ -316,14 +308,7 @@ type RegistryMetrics struct {
 	HealthCheckFailures *prometheus.CounterVec
 }
 
-// CacheMetrics provides cache performance metrics
-type CacheMetrics struct {
-	Hits      prometheus.Counter
-	Misses    prometheus.Counter
-	Evictions prometheus.Counter
-	Size      prometheus.Gauge
-	ItemCount prometheus.Gauge
-}
+// CacheMetrics is defined in function_manager.go
 
 // Default registry configuration
 var DefaultRegistryConfig = &RegistryConfig{
@@ -370,7 +355,7 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 
 	// Validate configuration
 	if err := validateRegistryConfig(config); err != nil {
-		return nil, errors.WithContext(err, "invalid registry configuration")
+		return nil, fmt.Errorf("invalid registry configuration: %w", err)
 	}
 
 	// Initialize metrics
@@ -464,7 +449,7 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 
 	// Initialize cache directory
 	if err := os.MkdirAll(config.CacheDir, 0755); err != nil {
-		return nil, errors.WithContext(err, "failed to create cache directory")
+		return nil, fmt.Errorf("failed to create cache directory: %w", err)
 	}
 
 	// Initialize default repositories
@@ -641,7 +626,7 @@ func (r *Registry) AddRepository(ctx context.Context, config RepositoryConfig) e
 	if err := r.validateRepositoryConfig(&config); err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "invalid repository config")
-		return errors.WithContext(err, "invalid repository configuration")
+		return fmt.Errorf("invalid repository configuration: %w", err)
 	}
 
 	r.mu.Lock()

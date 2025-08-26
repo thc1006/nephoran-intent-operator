@@ -165,11 +165,15 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	llmClient := llm.NewClient(config.LLMEndpoint)
 
 	// Initialize RAG service
-	ragService, err := rag.NewOptimizedRAGService(&rag.Config{
-		WeaviateEndpoint: config.RAGEndpoint,
-		MaxReturnItems:   config.MaxContextChunks,
-		MinSimilarity:    config.SimilarityThreshold,
-	})
+	ragService, err := rag.NewOptimizedRAGService(
+		nil, // WeaviateConnectionPool - will be initialized internally
+		llmClient, // LLM client
+		&rag.OptimizedRAGConfig{
+			WeaviateEndpoint: config.RAGEndpoint,
+			MaxReturnItems:   config.MaxContextChunks,
+			MinSimilarity:    config.SimilarityThreshold,
+		},
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize RAG service: %w", err)
 	}
@@ -181,7 +185,13 @@ func NewSpecializedIntentProcessingController(mgr ctrl.Manager, config IntentPro
 	streamingProcessor := llm.NewStreamingProcessor()
 
 	// Initialize performance optimizer
-	performanceOptimizer := llm.NewPerformanceOptimizer()
+	performanceOptimizer := llm.NewPerformanceOptimizer(&llm.PerformanceConfig{
+		LatencyBufferSize:     1000,
+		OptimizationInterval:  time.Minute * 5,
+		MetricsExportInterval: time.Second * 30,
+		EnableTracing:         true,
+		TraceSamplingRatio:    0.1,
+	})
 
 	// Initialize circuit breaker
 	var circuitBreaker *llm.CircuitBreaker

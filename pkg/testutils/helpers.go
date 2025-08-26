@@ -60,7 +60,7 @@ func WaitForNetworkIntentPhase(ctx context.Context, k8sClient client.Client, nam
 		if err != nil {
 			return ""
 		}
-		return ni.Status.Phase
+		return string(ni.Status.Phase)
 	}, TestTimeout, TestInterval).Should(Equal(expectedPhase))
 }
 

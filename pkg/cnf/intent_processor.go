@@ -25,20 +25,19 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // CNFIntentProcessor processes natural language intents for CNF deployment
 type CNFIntentProcessor struct {
 	Client           client.Client
-	LLMProcessor     *llm.Processor
+	LLMProcessor     llm.Processor
 	RAGService       *rag.Service
 	KnowledgeBase    *CNFKnowledgeBase
 	TemplateRegistry *CNFTemplateRegistry
@@ -160,7 +159,7 @@ type CNFIntentContext struct {
 }
 
 // NewCNFIntentProcessor creates a new CNF intent processor
-func NewCNFIntentProcessor(client client.Client, llmProcessor *llm.Processor, ragService *rag.Service) *CNFIntentProcessor {
+func NewCNFIntentProcessor(client client.Client, llmProcessor llm.Processor, ragService *rag.Service) *CNFIntentProcessor {
 	processor := &CNFIntentProcessor{
 		Client:       client,
 		LLMProcessor: llmProcessor,
@@ -285,11 +284,17 @@ func (p *CNFIntentProcessor) enrichContextWithRAG(ctx context.Context, intentCon
 	ragContext := make(map[string]interface{})
 
 	for _, query := range ragQueries {
-		response, err := p.RAGService.Query(ctx, query)
+		request := &rag.RAGRequest{
+			Query:           query,
+			MaxResults:      10,
+			MinConfidence:   0.5,
+			UseHybridSearch: true,
+		}
+		response, err := p.RAGService.ProcessQuery(ctx, request)
 		if err != nil {
 			continue // Skip failed queries
 		}
-		ragContext[query] = response
+		ragContext[query] = response.Answer
 	}
 
 	intentContext.RAGContext = ragContext
@@ -411,7 +416,7 @@ func (p *CNFIntentProcessor) extractCNFDeploymentSpecs(ctx context.Context, inte
 	result := &nephoranv1.CNFIntentProcessingResult{
 		DetectedFunctions:  []nephoranv1.CNFFunction{},
 		CNFDeployments:     []nephoranv1.CNFDeploymentIntent{},
-		EstimatedResources: make(map[string]interface{}),
+		EstimatedResources: runtime.RawExtension{},
 		Warnings:           []string{},
 		Errors:             []string{},
 	}
@@ -459,7 +464,7 @@ func (p *CNFIntentProcessor) extractUsingPatterns(intent string) *nephoranv1.CNF
 	result := &nephoranv1.CNFIntentProcessingResult{
 		DetectedFunctions:   []nephoranv1.CNFFunction{},
 		CNFDeployments:      []nephoranv1.CNFDeploymentIntent{},
-		EstimatedResources:  make(map[string]interface{}),
+		EstimatedResources:  runtime.RawExtension{},
 		RecommendedStrategy: p.Config.DefaultStrategy,
 		ConfidenceScore:     0.5, // Lower confidence for pattern matching
 	}
@@ -791,11 +796,13 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 		}
 	}
 
-	result.EstimatedResources = map[string]interface{}{
+	resourceData := map[string]interface{}{
 		"total_cpu":              totalCPU,
 		"total_memory":           totalMemory,
 		"estimated_monthly_cost": totalCost,
 	}
+	resourceDataBytes, _ := json.Marshal(resourceData)
+	result.EstimatedResources = runtime.RawExtension{Raw: resourceDataBytes}
 	result.EstimatedCost = totalCost
 }
 

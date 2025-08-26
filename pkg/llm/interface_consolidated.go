@@ -11,10 +11,13 @@ import (
 
 // LLMProcessor is the main interface for LLM processing
 type LLMProcessor interface {
-	ProcessIntent(ctx context.Context, intent string) (string, error)
+	ProcessIntent(ctx context.Context, request *ProcessingRequest) (*ProcessingResponse, error)
 	GetMetrics() ClientMetrics
 	Shutdown()
 }
+
+// Processor is an alias for backward compatibility
+type Processor = LLMProcessor
 
 // BatchProcessor handles batch processing of multiple intents
 type BatchProcessor interface {
@@ -316,17 +319,22 @@ func (tt *SimpleTokenTracker) GetStats() map[string]interface{} {
 
 // ProcessingRequest represents a request for LLM processing
 type ProcessingRequest struct {
-	Intent      string                 `json:"intent"`
-	Prompt      string                 `json:"prompt,omitempty"`
-	Context     map[string]interface{} `json:"context,omitempty"`
-	MaxTokens   int                    `json:"maxTokens,omitempty"`
-	Temperature float64                `json:"temperature,omitempty"`
-	Model       string                 `json:"model,omitempty"`
+	Intent            string                 `json:"intent"`
+	Prompt            string                 `json:"prompt,omitempty"`
+	SystemPrompt      string                 `json:"systemPrompt,omitempty"`
+	UserPrompt        string                 `json:"userPrompt,omitempty"`
+	Context           map[string]interface{} `json:"context,omitempty"`
+	MaxTokens         int                    `json:"maxTokens,omitempty"`
+	Temperature       float64                `json:"temperature,omitempty"`
+	Model             string                 `json:"model,omitempty"`
+	RequestID         string                 `json:"requestId,omitempty"`
+	ProcessingTimeout time.Duration          `json:"processingTimeout,omitempty"`
 }
 
 // ProcessingResponse represents the response from LLM processing
 type ProcessingResponse struct {
 	ProcessedIntent      string                 `json:"processedIntent"`
+	ProcessedParameters  string                 `json:"processedParameters,omitempty"` // JSON string of processed parameters
 	StructuredParameters map[string]interface{} `json:"structuredParameters,omitempty"`
 	ExtractedEntities    map[string]interface{} `json:"extractedEntities,omitempty"`
 	Confidence           float64                `json:"confidence"`

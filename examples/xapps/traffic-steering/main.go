@@ -143,7 +143,18 @@ func main() {
 // NewTrafficSteeringXApp creates a new traffic steering xApp instance
 func NewTrafficSteeringXApp(config *e2.XAppConfig) (*TrafficSteeringXApp, error) {
 	// Create E2Manager
-	e2Manager := e2.NewE2Manager(config.NearRTRICURL)
+	e2Manager, err := e2.NewE2Manager(&e2.E2ManagerConfig{
+		DefaultRICURL:       config.NearRTRICURL,
+		DefaultAPIVersion:   "v1",
+		DefaultTimeout:      30 * time.Second,
+		HeartbeatInterval:   30 * time.Second,
+		MaxRetries:          3,
+		SimulationMode:      false,
+		SimulateRICCalls:    false,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create E2Manager: %w", err)
+	}
 
 	// Create xApp SDK
 	sdk, err := e2.NewXAppSDK(config, e2Manager)
@@ -251,7 +262,7 @@ func (x *TrafficSteeringXApp) initializeCellTopology(ctx context.Context) error 
 			"DRB.PdcpSduVolumeUL",
 		}
 
-		subscription, err := x.kmpModel.CreateKMPSubscription(x.sdk.GetConfig().E2NodeID, cellID, measurements)
+		subscription, err := x.kmpModel.CreateKPMSubscription(x.sdk.GetConfig().E2NodeID, cellID, measurements)
 		if err != nil {
 			return fmt.Errorf("failed to create KMP subscription for cell %s: %w", cellID, err)
 		}
@@ -548,13 +559,19 @@ func (x *TrafficSteeringXApp) selectUEsForSteering(sourceCell, targetCell *CellL
 // executeTrafficSteering sends RC control message to steer traffic
 func (x *TrafficSteeringXApp) executeTrafficSteering(ctx context.Context, decision *SteeringDecision) error {
 	// Create traffic steering control request using RC service model
-	controlReq, err := x.rcModel.CreateTrafficSteeringControl(decision.UEID, decision.TargetCellID)
+	e2ControlReq, err := x.rcModel.CreateTrafficSteeringControl(decision.UEID, decision.TargetCellID)
 	if err != nil {
 		return fmt.Errorf("failed to create control request: %w", err)
 	}
 
+	// Convert E2ControlRequest to RICControlRequest for SDK
+	ricControlReq, err := x.convertE2ToRICControlRequest(e2ControlReq)
+	if err != nil {
+		return fmt.Errorf("failed to convert control request: %w", err)
+	}
+
 	// Send control message through SDK to the configured E2 node
-	ack, err := x.sdk.SendControlMessage(ctx, x.sdk.GetConfig().E2NodeID, controlReq)
+	ack, err := x.sdk.SendControlMessage(ctx, x.sdk.GetConfig().E2NodeID, ricControlReq)
 	if err != nil {
 		return fmt.Errorf("failed to send control message: %w", err)
 	}
@@ -659,6 +676,61 @@ func (x *TrafficSteeringXApp) handleInfo(w http.ResponseWriter, r *http.Request)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(info)
+}
+
+// convertE2ToRICControlRequest converts E2ControlRequest to RICControlRequest
+func (x *TrafficSteeringXApp) convertE2ToRICControlRequest(e2Req *e2.E2ControlRequest) (*e2.RICControlRequest, error) {
+	// Extract header bytes
+	var headerBytes []byte
+	if headerData, ok := e2Req.ControlHeader["data"]; ok {
+		if bytes, ok := headerData.([]byte); ok {
+			headerBytes = bytes
+		} else {
+			return nil, fmt.Errorf("control header data is not []byte")
+		}
+	}
+
+	// Extract message bytes
+	var messageBytes []byte
+	if messageData, ok := e2Req.ControlMessage["data"]; ok {
+		if bytes, ok := messageData.([]byte); ok {
+			messageBytes = bytes
+		} else {
+			return nil, fmt.Errorf("control message data is not []byte")
+		}
+	}
+
+	// Parse request ID to get requestor and instance IDs
+	requestorID := uint32(1000) // Default for xApp
+	instanceID := uint32(1)     // Default instance
+	
+	// Convert call process ID
+	var callProcessID *e2.RICCallProcessID
+	if e2Req.CallProcessID != "" {
+		cpID := e2.RICCallProcessID(e2Req.CallProcessID)
+		callProcessID = &cpID
+	}
+
+	// Convert ACK request
+	var ackRequest *e2.RICControlAckRequest
+	if e2Req.ControlAckRequest {
+		ack := e2.RICControlAckRequest(1) // TRUE
+		ackRequest = &ack
+	}
+
+	ricReq := &e2.RICControlRequest{
+		RICRequestID: e2.RICRequestID{
+			RICRequestorID: e2.RICRequestorID(requestorID),
+			RICInstanceID:  e2.RICInstanceID(instanceID),
+		},
+		RANFunctionID:        e2.RANFunctionID(e2Req.RanFunctionID),
+		RICCallProcessID:     callProcessID,
+		RICControlHeader:     headerBytes,
+		RICControlMessage:    messageBytes,
+		RICControlAckRequest: ackRequest,
+	}
+
+	return ricReq, nil
 }
 
 // Note: Helper functions have been moved to pkg/config/env_helpers.go

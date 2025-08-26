@@ -18,6 +18,7 @@ package packagerevision
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -561,7 +562,12 @@ func (r *NetworkIntentPackageReconciler) getExtendedStatus(intent *nephoranv1.Ne
 	}
 
 	var status NetworkIntentPackageStatus
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(statusRaw.Object, &status); err != nil {
+	// Convert runtime.RawExtension to unstructured map
+	statusMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&statusRaw)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert RawExtension to unstructured: %w", err)
+	}
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(statusMap, &status); err != nil {
 		return nil, fmt.Errorf("failed to decode extended status: %w", err)
 	}
 
@@ -579,8 +585,13 @@ func (r *NetworkIntentPackageReconciler) updateExtendedStatus(ctx context.Contex
 		return fmt.Errorf("failed to encode extended status: %w", err)
 	}
 
+	// Convert unstructured map to RawExtension
+	statusBytes, err := json.Marshal(statusUnstructured)
+	if err != nil {
+		return fmt.Errorf("failed to marshal extended status: %w", err)
+	}
 	intent.Status.Extensions["packageRevisionStatus"] = runtime.RawExtension{
-		Object: statusUnstructured,
+		Raw: statusBytes,
 	}
 
 	return nil
@@ -609,14 +620,14 @@ func (r *NetworkIntentPackageReconciler) performYANGValidation(ctx context.Conte
 	summary := &ValidationSummary{
 		Valid:        validationResult.Valid,
 		ErrorCount:   len(validationResult.Errors),
-		WarningCount: len(validationResult.Warnings),
+		WarningCount: 0, // YANG validator doesn't expose warnings
 		ValidatedAt:  metav1.Time{Time: time.Now()},
 	}
 
-	if len(validationResult.ModelNames) > 0 {
-		summary.ModelCount = len(validationResult.ModelNames)
-	} else if validationResult.ModelName != "" {
+	if validationResult.ModelName != "" {
 		summary.ModelCount = 1
+	} else {
+		summary.ModelCount = 0
 	}
 
 	r.Logger.Info("YANG validation completed",
@@ -696,13 +707,14 @@ func (r *NetworkIntentPackageReconciler) checkDeploymentStatus(ctx context.Conte
 		return "", err
 	}
 
-	if pkg.Status.DeploymentStatus != nil {
-		return pkg.Status.DeploymentStatus.Phase, nil
+	// Use DeploymentReady field instead of DeploymentStatus
+	if pkg.Status.DeploymentReady {
+		return "deployed", nil
 	}
 
-	// If no deployment status, assume deployed for published packages
+	// If published but not deployment ready, consider it deploying
 	if pkg.Spec.Lifecycle == porch.PackageRevisionLifecyclePublished {
-		return "deployed", nil
+		return "deploying", nil
 	}
 
 	return "pending", nil

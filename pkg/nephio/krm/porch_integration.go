@@ -362,14 +362,14 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	packageSpec, err := pim.convertIntentToPackageSpec(ctx, intent)
 	if err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to convert intent to package spec")
+		return fmt.Errorf("failed to convert intent to package spec: %w", err)
 	}
 
 	// Step 2: Create initial package revision
 	packageRevision, err := pim.createPackageRevision(ctx, packageSpec)
 	if err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to create package revision")
+		return fmt.Errorf("failed to create package revision: %w", err)
 	}
 
 	task.PackageRef = &porch.PackageReference{
@@ -388,7 +388,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	pipeline, err := pim.buildFunctionPipeline(ctx, intent, packageRevision)
 	if err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to build function pipeline")
+		return fmt.Errorf("failed to build function pipeline: %w", err)
 	}
 
 	task.FunctionPipeline = pipeline
@@ -401,7 +401,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 		pipelineExecution, err := pim.executeFunctionPipeline(pipelineCtx, task, packageRevision)
 		if err != nil {
 			span.RecordError(err)
-			return errors.WithContext(err, "failed to execute function pipeline")
+			return fmt.Errorf("failed to execute function pipeline: %w", err)
 		}
 
 		if task.Results == nil {
@@ -415,7 +415,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 		packageRevision, err = pim.updatePackageWithResults(ctx, packageRevision, pipelineExecution)
 		if err != nil {
 			span.RecordError(err)
-			return errors.WithContext(err, "failed to update package with pipeline results")
+			return fmt.Errorf("failed to update package with pipeline results: %w", err)
 		}
 	}
 
@@ -430,7 +430,7 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 	renderResults, err := pim.renderPackage(ctx, packageRevision)
 	if err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to render package")
+		return fmt.Errorf("failed to render package: %w", err)
 	}
 
 	// Step 7: Update task results
@@ -582,7 +582,7 @@ func (pim *PorchIntegrationManager) createPackageRevision(ctx context.Context, s
 		pim.metrics.PackageRevisions.WithLabelValues(
 			spec.Repository, spec.PackageName, string(spec.Lifecycle), "failed",
 		).Inc()
-		return nil, errors.WithContext(err, "failed to create package revision in Porch")
+		return nil, fmt.Errorf( "failed to create package revision in Porch")
 	}
 
 	pim.metrics.PackageRevisions.WithLabelValues(
@@ -605,7 +605,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	pipeline := &PipelineDefinition{
 		Name:        fmt.Sprintf("%s-pipeline", packageRevision.Spec.PackageName),
 		Description: fmt.Sprintf("Function pipeline for %s intent", intent.Spec.IntentType),
-		Stages:      make([]PipelineStageDefinition, 0),
+		Stages:      make([]*PipelineStage, 0),
 		Execution:   PipelineExecutionModeDAG,
 	}
 
@@ -613,7 +613,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	if intent.Spec.Extensions != nil {
 		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
 			if extensions.ORANCompliance != nil {
-				oranStage := PipelineStageDefinition{
+				oranStage := PipelineStage{
 					Name:        "oran-compliance-validation",
 					Description: "Validate O-RAN compliance requirements",
 					Functions: []PipelineFunctionDefinition{
@@ -648,7 +648,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	if intent.Spec.Extensions != nil {
 		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
 			if extensions.NetworkSlice != nil {
-				sliceStage := PipelineStageDefinition{
+				sliceStage := PipelineStage{
 					Name:        "network-slice-optimization",
 					Description: "Optimize network slice configuration",
 					Functions: []PipelineFunctionDefinition{
@@ -675,7 +675,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 	}
 
 	// Stage 4: Multi-Vendor Configuration Normalization
-	normalizationStage := PipelineStageDefinition{
+	normalizationStage := PipelineStage{
 		Name:        "multi-vendor-normalization",
 		Description: "Normalize configurations for multi-vendor compatibility",
 		Functions: []PipelineFunctionDefinition{
@@ -697,7 +697,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 
 	// Final Stage: 5G Core Validation
 	if pim.is5GCoreIntent(intent) {
-		coreStage := PipelineStageDefinition{
+		coreStage := PipelineStage{
 			Name:        "5g-core-validation",
 			Description: "Validate 5G Core network function configurations",
 			Functions: []PipelineFunctionDefinition{
@@ -728,10 +728,10 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 }
 
 // buildIntentSpecificStage builds a pipeline stage specific to the intent type
-func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context, intent *v1.NetworkIntent) *PipelineStageDefinition {
+func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context, intent *v1.NetworkIntent) *PipelineStage {
 	switch intent.Spec.IntentType {
 	case v1.IntentTypeDeployment:
-		return &PipelineStageDefinition{
+		return &PipelineStage{
 			Name:        "deployment-configuration",
 			Description: "Configure deployment-specific parameters",
 			Functions: []PipelineFunctionDefinition{
@@ -753,7 +753,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 		}
 
 	case v1.IntentTypeOptimization:
-		return &PipelineStageDefinition{
+		return &PipelineStage{
 			Name:        "configuration-validation",
 			Description: "Validate and optimize configuration parameters",
 			Functions: []PipelineFunctionDefinition{
@@ -774,7 +774,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 		}
 
 	case v1.IntentTypeScaling:
-		return &PipelineStageDefinition{
+		return &PipelineStage{
 			Name:        "scaling-optimization",
 			Description: "Optimize scaling configuration and resource allocation",
 			Functions: []PipelineFunctionDefinition{
@@ -796,7 +796,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 
 	default:
 		// Generic configuration stage for unknown intent types
-		return &PipelineStageDefinition{
+		return &PipelineStage{
 			Name:        "generic-configuration",
 			Description: "Generic configuration processing",
 			Functions: []PipelineFunctionDefinition{
@@ -840,7 +840,7 @@ func (pim *PorchIntegrationManager) executeFunctionPipeline(ctx context.Context,
 			packageRevision.Spec.PackageName,
 			"failed",
 		).Inc()
-		return nil, errors.WithContext(err, "pipeline execution failed")
+		return nil, fmt.Errorf("pipeline execution failed: %w", err)
 	}
 
 	// Record metrics for each function execution
@@ -901,7 +901,7 @@ func (pim *PorchIntegrationManager) updatePackageWithResults(ctx context.Context
 	updatedPackage, err := pim.porchClient.UpdatePackageRevision(ctx, packageRevision)
 	if err != nil {
 		span.RecordError(err)
-		return nil, errors.WithContext(err, "failed to update package revision")
+		return nil, fmt.Errorf( "failed to update package revision")
 	}
 
 	// Record package size metric
@@ -922,7 +922,7 @@ func (pim *PorchIntegrationManager) validatePackage(ctx context.Context, package
 	result, err := pim.porchClient.ValidatePackage(ctx, packageRevision.Spec.PackageName, packageRevision.Spec.Revision)
 	if err != nil {
 		span.RecordError(err)
-		return nil, errors.WithContext(err, "package validation failed")
+		return nil, fmt.Errorf( "package validation failed")
 	}
 
 	// Convert single result to slice for consistency
@@ -945,7 +945,7 @@ func (pim *PorchIntegrationManager) renderPackage(ctx context.Context, packageRe
 	result, err := pim.porchClient.RenderPackage(ctx, packageRevision.Spec.PackageName, packageRevision.Spec.Revision)
 	if err != nil {
 		span.RecordError(err)
-		return nil, errors.WithContext(err, "package rendering failed")
+		return nil, fmt.Errorf( "package rendering failed")
 	}
 
 	span.SetAttributes(
@@ -1006,7 +1006,7 @@ func (pim *PorchIntegrationManager) updateIntentStatus(ctx context.Context, inte
 	// Update intent in cluster
 	if err := pim.client.Status().Update(ctx, intent); err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to update intent status")
+		return fmt.Errorf("failed to update intent status: %w", err)
 	}
 
 	return nil

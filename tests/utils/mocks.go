@@ -2,14 +2,12 @@ package testutils
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
 	"k8s.io/client-go/tools/record"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
@@ -154,7 +152,7 @@ func (m *MockGitClient) Clone(ctx context.Context, url, branch, path string) err
 	return m.pushResults["Clone"]
 }
 
-func (m *MockGitClient) CommitAndPush(ctx context.Context, repoPath, message string, files map[string]string) (string, error) {
+func (m *MockGitClient) CommitAndPush(files map[string]string, message string) (string, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -177,61 +175,198 @@ func (m *MockGitClient) Pull(ctx context.Context, repoPath string) error {
 	return m.pullResults["Pull"]
 }
 
+func (m *MockGitClient) CommitAndPushChanges(message string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	commitHash := fmt.Sprintf("commit-%d", len(m.commits))
+	m.commits = append(m.commits, commitHash)
+
+	if err := m.pushResults["CommitAndPushChanges"]; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *MockGitClient) InitRepo() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pushResults["InitRepo"]
+}
+
+func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pushResults["RemoveDirectory"]
+}
+
+func (m *MockGitClient) CommitFiles(files []string, msg string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	commitHash := fmt.Sprintf("commit-%d", len(m.commits))
+	m.commits = append(m.commits, commitHash)
+
+	if err := m.pushResults["CommitFiles"]; err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *MockGitClient) CreateBranch(name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pushResults["CreateBranch"]
+}
+
+func (m *MockGitClient) SwitchBranch(name string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pushResults["SwitchBranch"]
+}
+
+func (m *MockGitClient) GetCurrentBranch() (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["GetCurrentBranch"]; err != nil {
+		return "", err
+	}
+	return "main", nil
+}
+
+func (m *MockGitClient) ListBranches() ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["ListBranches"]; err != nil {
+		return nil, err
+	}
+	return []string{"main", "dev"}, nil
+}
+
+func (m *MockGitClient) GetFileContent(path string) ([]byte, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["GetFileContent"]; err != nil {
+		return nil, err
+	}
+	if content, exists := m.files[path]; exists {
+		return []byte(content), nil
+	}
+	return []byte("mock content"), nil
+}
+
+// LLMResponse represents a response from the LLM processor
+type LLMResponse struct {
+	IntentType     string                 `json:"intent_type"`
+	Confidence     float64                `json:"confidence"`
+	Parameters     map[string]interface{} `json:"parameters"`
+	Manifests      map[string]interface{} `json:"manifests"`
+	ProcessingTime int64                  `json:"processing_time"`
+	TokensUsed     int                    `json:"tokens_used"`
+	Model          string                 `json:"model"`
+}
+
 // MockLLMClient implements shared.ClientInterface for testing
 type MockLLMClient struct {
-	responses map[string]*shared.LLMResponse
+	responses map[string]*LLMResponse
 	errors    map[string]error
 	mu        sync.RWMutex
 }
 
 func NewMockLLMClient() *MockLLMClient {
 	return &MockLLMClient{
-		responses: make(map[string]*shared.LLMResponse),
+		responses: make(map[string]*LLMResponse),
 		errors:    make(map[string]error),
 	}
 }
 
-func (m *MockLLMClient) ProcessIntent(ctx context.Context, intent string, metadata map[string]interface{}) (*shared.LLMResponse, error) {
+func (m *MockLLMClient) ProcessIntent(ctx context.Context, prompt string) (string, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
 	if err := m.errors["ProcessIntent"]; err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if response := m.responses["ProcessIntent"]; response != nil {
-		return response, nil
+		return fmt.Sprintf("Intent: %s, Confidence: %.2f", response.IntentType, response.Confidence), nil
 	}
 
 	// Default response for successful processing
-	return &shared.LLMResponse{
-		IntentType: "5G-Core-AMF",
-		Confidence: 0.95,
-		Parameters: map[string]interface{}{
-			"replicas":       3,
-			"scaling":        true,
-			"cpu_request":    "500m",
-			"memory_request": "1Gi",
-		},
-		Manifests: map[string]interface{}{
-			"deployment": map[string]interface{}{
-				"apiVersion": "apps/v1",
-				"kind":       "Deployment",
-				"metadata": map[string]interface{}{
-					"name": "amf-deployment",
-				},
-				"spec": map[string]interface{}{
-					"replicas": 3,
-				},
-			},
-		},
-		ProcessingTime: 1500,
-		TokensUsed:     250,
-		Model:          "gpt-4o-mini",
+	return "Intent processed successfully: 5G-Core-AMF with 95% confidence", nil
+}
+
+func (m *MockLLMClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	if err := m.errors["ProcessIntentStream"]; err != nil {
+		return err
+	}
+
+	// Send mock streaming chunks
+	go func() {
+		defer close(chunks)
+		chunks <- &shared.StreamingChunk{Content: "Processing intent...", IsLast: false}
+		chunks <- &shared.StreamingChunk{Content: "Intent processed successfully", IsLast: true}
+	}()
+
+	return nil
+}
+
+func (m *MockLLMClient) GetSupportedModels() []string {
+	return []string{"gpt-4o-mini", "gpt-4o", "claude-3-haiku"}
+}
+
+func (m *MockLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+	return &shared.ModelCapabilities{
+		MaxTokens:         4096,
+		SupportsChat:      true,
+		SupportsFunction:  true,
+		SupportsStreaming: true,
+		CostPerToken:      0.0001,
+		Features:          make(map[string]interface{}),
 	}, nil
 }
 
-func (m *MockLLMClient) SetResponse(operation string, response *shared.LLMResponse) {
+func (m *MockLLMClient) ValidateModel(modelName string) error {
+	supportedModels := m.GetSupportedModels()
+	for _, model := range supportedModels {
+		if model == modelName {
+			return nil
+		}
+	}
+	return fmt.Errorf("unsupported model: %s", modelName)
+}
+
+func (m *MockLLMClient) EstimateTokens(text string) int {
+	// Simple estimation: roughly 4 characters per token
+	return len(text) / 4
+}
+
+func (m *MockLLMClient) GetMaxTokens(modelName string) int {
+	switch modelName {
+	case "gpt-4o-mini":
+		return 128000
+	case "gpt-4o":
+		return 128000
+	case "claude-3-haiku":
+		return 200000
+	default:
+		return 4096
+	}
+}
+
+func (m *MockLLMClient) Close() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	// Clean up resources
+	m.responses = make(map[string]*LLMResponse)
+	m.errors = make(map[string]error)
+	return nil
+}
+
+func (m *MockLLMClient) SetResponse(operation string, response *LLMResponse) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.responses[operation] = response
@@ -350,8 +485,8 @@ func NewMockHTTPClient() *MockHTTPClient {
 }
 
 // Helper functions for creating mock responses
-func CreateMockLLMResponse(intentType string, confidence float64) *shared.LLMResponse {
-	return &shared.LLMResponse{
+func CreateMockLLMResponse(intentType string, confidence float64) *LLMResponse {
+	return &LLMResponse{
 		IntentType: intentType,
 		Confidence: confidence,
 		Parameters: map[string]interface{}{

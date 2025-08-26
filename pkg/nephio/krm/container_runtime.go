@@ -659,36 +659,47 @@ func (cr *ContainerRuntime) allocateResources(ctx context.Context, req *Containe
 
 	// Parse resource requirements
 	var cpuLimit, memoryLimit, diskLimit *resource.Quantity
-	var err error
 
 	if req.CPULimit != "" {
-		if cpuLimit, err = resource.ParseQuantity(req.CPULimit); err != nil {
+		quantity, err := resource.ParseQuantity(req.CPULimit)
+		if err != nil {
 			return fmt.Errorf("invalid CPU limit: %w", err)
 		}
+		cpuLimit = &quantity
 	} else {
-		if cpuLimit, err = resource.ParseQuantity(cr.config.DefaultCPULimit); err != nil {
+		quantity, err := resource.ParseQuantity(cr.config.DefaultCPULimit)
+		if err != nil {
 			return fmt.Errorf("invalid default CPU limit: %w", err)
 		}
+		cpuLimit = &quantity
 	}
 
 	if req.MemoryLimit != "" {
-		if memoryLimit, err = resource.ParseQuantity(req.MemoryLimit); err != nil {
+		quantity, err := resource.ParseQuantity(req.MemoryLimit)
+		if err != nil {
 			return fmt.Errorf("invalid memory limit: %w", err)
 		}
+		memoryLimit = &quantity
 	} else {
-		if memoryLimit, err = resource.ParseQuantity(cr.config.DefaultMemoryLimit); err != nil {
+		quantity, err := resource.ParseQuantity(cr.config.DefaultMemoryLimit)
+		if err != nil {
 			return fmt.Errorf("invalid default memory limit: %w", err)
 		}
+		memoryLimit = &quantity
 	}
 
 	if req.DiskLimit != "" {
-		if diskLimit, err = resource.ParseQuantity(req.DiskLimit); err != nil {
+		quantity, err := resource.ParseQuantity(req.DiskLimit)
+		if err != nil {
 			return fmt.Errorf("invalid disk limit: %w", err)
 		}
+		diskLimit = &quantity
 	} else {
-		if diskLimit, err = resource.ParseQuantity(cr.config.DefaultDiskLimit); err != nil {
+		quantity, err := resource.ParseQuantity(cr.config.DefaultDiskLimit)
+		if err != nil {
 			return fmt.Errorf("invalid default disk limit: %w", err)
 		}
+		diskLimit = &quantity
 	}
 
 	// Check against quotas

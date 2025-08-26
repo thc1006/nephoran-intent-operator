@@ -269,7 +269,7 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 
 	// Validate configuration
 	if err := validateFunctionManagerConfig(config); err != nil {
-		return nil, errors.WithContext(err, "invalid function manager configuration")
+		return nil, fmt.Errorf("invalid function manager configuration: %w", err)
 	}
 
 	// Initialize metrics
@@ -373,7 +373,7 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 
 	// Register built-in native functions
 	if err := manager.registerBuiltinFunctions(); err != nil {
-		return nil, errors.WithContext(err, "failed to register builtin functions")
+		return nil, fmt.Errorf("failed to register builtin functions: %w", err)
 	}
 
 	return manager, nil

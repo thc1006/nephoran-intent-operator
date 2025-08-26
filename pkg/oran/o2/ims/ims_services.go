@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -92,35 +93,24 @@ type ServiceHealth struct {
 	Version    string            `json:"version"`
 }
 
-// CatalogService manages resource catalogs and templates
-type CatalogService struct {
-	startTime time.Time
-}
-
-// NewCatalogService creates a new catalog service
-func NewCatalogService() *CatalogService {
-	return &CatalogService{
-		startTime: time.Now(),
-	}
-}
 
 // GetResourceTypes returns available resource types
 func (s *CatalogService) GetResourceTypes(ctx context.Context, filter *models.ResourceTypeFilter) ([]*models.ResourceType, error) {
 	// Implementation would query available resource types
 	return []*models.ResourceType{
 		{
-			TypeID:      "compute.vm",
-			Name:        "Virtual Machine",
-			Category:    "compute",
-			Description: "Virtual compute resource",
-			Version:     "1.0.0",
+			ResourceTypeID: "compute.vm",
+			Name:           "Virtual Machine",
+			Category:       "compute",
+			Description:    "Virtual compute resource",
+			Version:        "1.0.0",
 		},
 		{
-			TypeID:      "storage.volume",
-			Name:        "Storage Volume",
-			Category:    "storage", 
-			Description: "Persistent storage resource",
-			Version:     "1.0.0",
+			ResourceTypeID: "storage.volume",
+			Name:           "Storage Volume",
+			Category:       "storage",
+			Description:    "Persistent storage resource",
+			Version:        "1.0.0",
 		},
 	}, nil
 }
@@ -146,7 +136,7 @@ func (s *InventoryService) GetNodes(ctx context.Context, filter *models.NodeFilt
 	logger := log.FromContext(ctx)
 	
 	// Implementation would query Kubernetes nodes and transform to O2 format
-	nodes, err := s.clientset.CoreV1().Nodes().List(ctx, nil)
+	nodes, err := s.clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
 	if err != nil {
 		logger.Error(err, "Failed to list Kubernetes nodes")
 		return nil, err
@@ -155,35 +145,43 @@ func (s *InventoryService) GetNodes(ctx context.Context, filter *models.NodeFilt
 	var o2Nodes []*models.Node
 	for _, node := range nodes.Items {
 		o2Node := &models.Node{
-			NodeID:      string(node.UID),
-			Name:        node.Name,
-			Description: "Kubernetes node",
-			Type:        "kubernetes.node",
-			Status:      "ready", // Simplified status mapping
-			Properties: map[string]interface{}{
-				"arch":              node.Status.NodeInfo.Architecture,
-				"os":                node.Status.NodeInfo.OperatingSystem,
-				"containerRuntime":  node.Status.NodeInfo.ContainerRuntimeVersion,
-				"kubeletVersion":    node.Status.NodeInfo.KubeletVersion,
+			NodeID:         string(node.UID),
+			Name:           node.Name,
+			Description:    "Kubernetes node",
+			ResourcePoolID: "default-pool",
+			NodeType:       "VIRTUAL",
+			Status: &models.NodeStatus{
+				State:         "READY",
+				Phase:         "ACTIVE",
+				Health:        "HEALTHY",
+				LastHeartbeat: time.Now(),
+			},
+			Architecture: node.Status.NodeInfo.Architecture,
+			Extensions: map[string]interface{}{
+				"os":               node.Status.NodeInfo.OperatingSystem,
+				"containerRuntime": node.Status.NodeInfo.ContainerRuntimeVersion,
+				"kubeletVersion":   node.Status.NodeInfo.KubeletVersion,
 			},
 			CreatedAt: node.CreationTimestamp.Time,
 			UpdatedAt: time.Now(),
 		}
 
-		// Add resource information
+		// Add resource capacity information
 		if node.Status.Capacity != nil {
-			o2Node.Resources = []*models.NodeResource{
-				{
-					ResourceType: "cpu",
-					Capacity: map[string]interface{}{
-						"cores": node.Status.Capacity.Cpu().String(),
-					},
+			o2Node.Capacity = &models.ResourceCapacity{
+				CPU: &models.ResourceMetric{
+					Total:       node.Status.Capacity.Cpu().String(),
+					Available:   node.Status.Allocatable.Cpu().String(),
+					Used:        "0",
+					Unit:        "cores",
+					Utilization: 0.0,
 				},
-				{
-					ResourceType: "memory",
-					Capacity: map[string]interface{}{
-						"bytes": node.Status.Capacity.Memory().String(),
-					},
+				Memory: &models.ResourceMetric{
+					Total:       node.Status.Capacity.Memory().String(),
+					Available:   node.Status.Allocatable.Memory().String(),
+					Used:        "0",
+					Unit:        "bytes",
+					Utilization: 0.0,
 				},
 			}
 		}
@@ -208,18 +206,24 @@ func NewLifecycleService() *LifecycleService {
 
 // CreateDeployment creates a new deployment
 func (s *LifecycleService) CreateDeployment(ctx context.Context, req *models.CreateDeploymentRequest) (*models.Deployment, error) {
+	// Convert metadata to interface{} map if needed
+	metadata := make(map[string]interface{})
+	for k, v := range req.Metadata {
+		metadata[k] = v
+	}
+
 	deployment := &models.Deployment{
-		DeploymentID: generateDeploymentID(),
-		Name:         req.Name,
-		Description:  req.Description,
-		TemplateID:   req.TemplateID,
-		Parameters:   req.Parameters,
-		PoolID:       req.PoolID,
-		Environment:  req.Environment,
-		Status:       "creating",
-		CreatedAt:    time.Now(),
-		UpdatedAt:    time.Now(),
-		Metadata:     req.Metadata,
+		DeploymentID:    generateDeploymentID(),
+		Name:            req.Name,
+		Description:     req.Description,
+		TemplateID:      req.TemplateID,
+		TemplateVersion: req.TemplateVersion,
+		Parameters:      metadata, // Using converted metadata as parameters
+		PoolID:          req.ResourcePoolID,
+		Status:          "creating",
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+		Extensions:      req.Extensions,
 	}
 
 	// Implementation would create actual deployment resources
@@ -246,15 +250,19 @@ func NewSubscriptionService() *SubscriptionService {
 func (s *SubscriptionService) CreateSubscription(ctx context.Context, req *models.CreateSubscriptionRequest) (*models.Subscription, error) {
 	subscription := &models.Subscription{
 		SubscriptionID:         generateSubscriptionID(),
-		ConsumerSubscriptionID: req.ConsumerSubscriptionID,
-		Filter:                 req.Filter,
-		Callback:               req.Callback,
-		ConsumerInfo:           req.ConsumerInfo,
+		Name:                   "Subscription-" + generateRandomID(),
+		Description:            "Event subscription",
+		CallbackUri:            req.Callback,
+		ConsumerSubscriptionId: req.ConsumerSubscriptionID,
 		EventTypes:             req.EventTypes,
-		Status:                 "active",
-		CreatedAt:              time.Now(),
-		UpdatedAt:              time.Now(),
-		Metadata:               req.Metadata,
+		Status: &models.SubscriptionStatus{
+			State:           "ACTIVE",
+			Health:          "HEALTHY",
+			LastHealthCheck: time.Now(),
+		},
+		Extensions: req.Metadata,
+		CreatedAt:  time.Now(),
+		UpdatedAt:  time.Now(),
 	}
 
 	s.subscriptions[subscription.SubscriptionID] = subscription
@@ -291,20 +299,20 @@ func (s *SubscriptionService) UpdateSubscription(ctx context.Context, subscripti
 	}
 
 	// Update fields if provided
-	if req.Filter != "" {
-		sub.Filter = req.Filter
-	}
 	if req.Callback != "" {
-		sub.Callback = req.Callback
+		sub.CallbackUri = req.Callback
 	}
 	if req.EventTypes != nil {
 		sub.EventTypes = req.EventTypes
 	}
 	if req.Status != "" {
-		sub.Status = req.Status
+		if sub.Status == nil {
+			sub.Status = &models.SubscriptionStatus{}
+		}
+		sub.Status.State = req.Status
 	}
 	if req.Metadata != nil {
-		sub.Metadata = req.Metadata
+		sub.Extensions = req.Metadata
 	}
 
 	sub.UpdatedAt = time.Now()
@@ -327,33 +335,14 @@ func (s *SubscriptionService) matchesFilter(sub *models.Subscription, filter *mo
 		return true
 	}
 
-	if filter.SubscriptionID != "" && sub.SubscriptionID != filter.SubscriptionID {
-		return false
-	}
-	if filter.ConsumerSubscriptionID != "" && sub.ConsumerSubscriptionID != filter.ConsumerSubscriptionID {
-		return false
-	}
-	if filter.Status != "" && sub.Status != filter.Status {
-		return false
-	}
-	if filter.ConsumerID != "" && (sub.ConsumerInfo == nil || sub.ConsumerInfo.ConsumerID != filter.ConsumerID) {
-		return false
-	}
-
-	// Time-based filtering
-	if filter.CreatedAfter != nil && sub.CreatedAt.Before(*filter.CreatedAfter) {
-		return false
-	}
-	if filter.CreatedBefore != nil && sub.CreatedAt.After(*filter.CreatedBefore) {
-		return false
-	}
-
+	// The current SubscriptionFilter model is focused on event filtering
+	// For basic subscription listing, we'll implement a simple match
 	// Event type filtering
-	if len(filter.EventTypes) > 0 {
+	if len(sub.EventTypes) > 0 && len(filter.EventSources) > 0 {
 		hasMatchingEventType := false
-		for _, filterEventType := range filter.EventTypes {
+		for _, filterSource := range filter.EventSources {
 			for _, subEventType := range sub.EventTypes {
-				if filterEventType == subEventType {
+				if filterSource == subEventType {
 					hasMatchingEventType = true
 					break
 				}

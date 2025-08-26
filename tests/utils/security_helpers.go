@@ -18,7 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	k8sClient  client.Client
+	k8sClient  ctrlclient.Client
 	clientset  *kubernetes.Clientset
 	restConfig *rest.Config
 	testEnv    *envtest.Environment
@@ -36,7 +36,7 @@ var (
 )
 
 // GetK8sClient returns the Kubernetes client for testing
-func GetK8sClient() client.Client {
+func GetK8sClient() ctrlclient.Client {
 	if k8sClient == nil {
 		panic("Kubernetes client not initialized. Call SetupTestEnvironment first.")
 	}
@@ -107,7 +107,7 @@ func SetupTestEnvironment() error {
 	}
 
 	// Create client
-	k8sClient, err = client.New(restConfig, client.Options{Scheme: scheme})
+	k8sClient, err = ctrlclient.New(restConfig, ctrlclient.Options{Scheme: scheme})
 	if err != nil {
 		return fmt.Errorf("failed to create client: %v", err)
 	}
@@ -138,9 +138,9 @@ func TeardownTestEnvironment() error {
 }
 
 // GetAllDeployments returns all deployments in the given namespace
-func GetAllDeployments(ctx context.Context, client client.Client, namespace string) ([]appsv1.Deployment, error) {
+func GetAllDeployments(ctx context.Context, client ctrlclient.Client, namespace string) ([]appsv1.Deployment, error) {
 	var deployments appsv1.DeploymentList
-	err := client.List(ctx, &deployments, client.InNamespace(namespace))
+	err := client.List(ctx, &deployments, ctrlclient.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -148,9 +148,9 @@ func GetAllDeployments(ctx context.Context, client client.Client, namespace stri
 }
 
 // GetAllPods returns all pods in the given namespace
-func GetAllPods(ctx context.Context, client client.Client, namespace string) ([]corev1.Pod, error) {
+func GetAllPods(ctx context.Context, client ctrlclient.Client, namespace string) ([]corev1.Pod, error) {
 	var pods corev1.PodList
-	err := client.List(ctx, &pods, client.InNamespace(namespace))
+	err := client.List(ctx, &pods, ctrlclient.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -158,9 +158,9 @@ func GetAllPods(ctx context.Context, client client.Client, namespace string) ([]
 }
 
 // GetAllSecrets returns all secrets in the given namespace
-func GetAllSecrets(ctx context.Context, client client.Client, namespace string) ([]corev1.Secret, error) {
+func GetAllSecrets(ctx context.Context, client ctrlclient.Client, namespace string) ([]corev1.Secret, error) {
 	var secrets corev1.SecretList
-	err := client.List(ctx, &secrets, client.InNamespace(namespace))
+	err := client.List(ctx, &secrets, ctrlclient.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -168,9 +168,9 @@ func GetAllSecrets(ctx context.Context, client client.Client, namespace string) 
 }
 
 // GetAllServices returns all services in the given namespace
-func GetAllServices(ctx context.Context, client client.Client, namespace string) ([]corev1.Service, error) {
+func GetAllServices(ctx context.Context, client ctrlclient.Client, namespace string) ([]corev1.Service, error) {
 	var services corev1.ServiceList
-	err := client.List(ctx, &services, client.InNamespace(namespace))
+	err := client.List(ctx, &services, ctrlclient.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -178,9 +178,9 @@ func GetAllServices(ctx context.Context, client client.Client, namespace string)
 }
 
 // GetAllConfigMaps returns all config maps in the given namespace
-func GetAllConfigMaps(ctx context.Context, client client.Client, namespace string) ([]corev1.ConfigMap, error) {
+func GetAllConfigMaps(ctx context.Context, client ctrlclient.Client, namespace string) ([]corev1.ConfigMap, error) {
 	var configMaps corev1.ConfigMapList
-	err := client.List(ctx, &configMaps, client.InNamespace(namespace))
+	err := client.List(ctx, &configMaps, ctrlclient.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func GetAllConfigMaps(ctx context.Context, client client.Client, namespace strin
 }
 
 // CreateTestNamespace creates a namespace for testing
-func CreateTestNamespace(ctx context.Context, client client.Client, namespace string) error {
+func CreateTestNamespace(ctx context.Context, client ctrlclient.Client, namespace string) error {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -210,7 +210,7 @@ func CreateTestNamespace(ctx context.Context, client client.Client, namespace st
 }
 
 // DeleteTestNamespace deletes a test namespace
-func DeleteTestNamespace(ctx context.Context, client client.Client, namespace string) error {
+func DeleteTestNamespace(ctx context.Context, client ctrlclient.Client, namespace string) error {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: namespace,
@@ -226,7 +226,7 @@ func DeleteTestNamespace(ctx context.Context, client client.Client, namespace st
 }
 
 // WaitForDeploymentReady waits for a deployment to be ready
-func WaitForDeploymentReady(ctx context.Context, client client.Client, namespace, name string, timeout time.Duration) error {
+func WaitForDeploymentReady(ctx context.Context, client ctrlclient.Client, namespace, name string, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
@@ -246,13 +246,13 @@ func WaitForDeploymentReady(ctx context.Context, client client.Client, namespace
 
 // SecurityTestHelper provides common security testing utilities
 type SecurityTestHelper struct {
-	client    client.Client
+	client    ctrlclient.Client
 	clientset *kubernetes.Clientset
 	namespace string
 }
 
 // NewSecurityTestHelper creates a new security test helper
-func NewSecurityTestHelper(client client.Client, clientset *kubernetes.Clientset, namespace string) *SecurityTestHelper {
+func NewSecurityTestHelper(client ctrlclient.Client, clientset *kubernetes.Clientset, namespace string) *SecurityTestHelper {
 	return &SecurityTestHelper{
 		client:    client,
 		clientset: clientset,

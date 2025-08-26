@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"time"
 
@@ -80,7 +81,7 @@ type CertificateAutomationSpec struct {
 // CertificateAutomationStatus defines the observed state of CertificateAutomation
 type CertificateAutomationStatus struct {
 	// Phase represents the current phase of certificate automation
-	Phase CertificateAutomationPhase `json:"phase,omitempty"`
+	Phase nephv1alpha1.CertificateAutomationPhase `json:"phase,omitempty"`
 
 	// Conditions represents the current conditions
 	Conditions []CertificateAutomationCondition `json:"conditions,omitempty"`
@@ -110,31 +111,7 @@ type CertificateAutomationStatus struct {
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
-// CertificateAutomationPhase represents the phase of certificate automation
-type CertificateAutomationPhase string
-
-const (
-	// CertificateAutomationPhasePending indicates the request is pending
-	CertificateAutomationPhasePending CertificateAutomationPhase = "Pending"
-
-	// CertificateAutomationPhaseProvisioning indicates certificate is being provisioned
-	CertificateAutomationPhaseProvisioning CertificateAutomationPhase = "Provisioning"
-
-	// CertificateAutomationPhaseReady indicates certificate is ready
-	CertificateAutomationPhaseReady CertificateAutomationPhase = "Ready"
-
-	// CertificateAutomationPhaseRenewing indicates certificate is being renewed
-	CertificateAutomationPhaseRenewing CertificateAutomationPhase = "Renewing"
-
-	// CertificateAutomationPhaseExpired indicates certificate has expired
-	CertificateAutomationPhaseExpired CertificateAutomationPhase = "Expired"
-
-	// CertificateAutomationPhaseRevoked indicates certificate has been revoked
-	CertificateAutomationPhaseRevoked CertificateAutomationPhase = "Revoked"
-
-	// CertificateAutomationPhaseFailed indicates an error occurred
-	CertificateAutomationPhaseFailed CertificateAutomationPhase = "Failed"
-)
+// CertificateAutomationPhase and constants are now used from api/v1 package
 
 // CertificateAutomationCondition describes the state of certificate automation
 type CertificateAutomationCondition struct {
@@ -235,21 +212,21 @@ func (r *CertificateAutomationReconciler) Reconcile(ctx context.Context, req ctr
 
 	// Reconcile based on current phase
 	switch certAutomation.Status.Phase {
-	case "", CertificateAutomationPhasePending:
+	case "", nephv1alpha1.CertificateAutomationPhasePending:
 		return r.reconcileProvisioning(ctx, &certAutomation)
-	case CertificateAutomationPhaseProvisioning:
+	case nephv1alpha1.CertificateAutomationPhaseProvisioning:
 		return r.reconcileProvisioningStatus(ctx, &certAutomation)
-	case CertificateAutomationPhaseReady:
+	case nephv1alpha1.CertificateAutomationPhaseReady:
 		return r.reconcileReady(ctx, &certAutomation)
-	case CertificateAutomationPhaseRenewing:
+	case nephv1alpha1.CertificateAutomationPhaseRenewing:
 		return r.reconcileRenewalStatus(ctx, &certAutomation)
-	case CertificateAutomationPhaseExpired:
+	case nephv1alpha1.CertificateAutomationPhaseExpired:
 		return r.reconcileExpired(ctx, &certAutomation)
-	case CertificateAutomationPhaseFailed:
+	case nephv1alpha1.CertificateAutomationPhaseFailed:
 		return r.reconcileFailed(ctx, &certAutomation)
 	default:
 		log.Info("Unknown phase, resetting to pending", "phase", certAutomation.Status.Phase)
-		return r.updateStatus(ctx, &certAutomation, CertificateAutomationPhasePending, "Unknown phase, resetting")
+		return r.updateStatus(ctx, &certAutomation, nephv1alpha1.CertificateAutomationPhasePending, "Unknown phase, resetting")
 	}
 }
 
@@ -322,11 +299,11 @@ func (r *CertificateAutomationReconciler) reconcileProvisioning(ctx context.Cont
 	// Submit provisioning request
 	if err := r.AutomationEngine.RequestProvisioning(req); err != nil {
 		log.Error(err, "Failed to request certificate provisioning")
-		return r.updateStatus(ctx, certAutomation, CertificateAutomationPhaseFailed, fmt.Sprintf("Provisioning request failed: %v", err))
+		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseFailed, fmt.Sprintf("Provisioning request failed: %v", err))
 	}
 
 	log.Info("Certificate provisioning requested")
-	return r.updateStatus(ctx, certAutomation, CertificateAutomationPhaseProvisioning, "Certificate provisioning in progress")
+	return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseProvisioning, "Certificate provisioning in progress")
 }
 
 // reconcileProvisioningStatus checks provisioning status
@@ -360,14 +337,14 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 	certPEM, exists := secret.Data["tls.crt"]
 	if !exists {
 		log.Error(nil, "Certificate data not found in secret")
-		return r.updateStatus(ctx, certAutomation, CertificateAutomationPhaseFailed, "Certificate data not found in secret")
+		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseFailed, "Certificate data not found in secret")
 	}
 
 	// Parse certificate to get details
 	cert, err := r.parseCertificateFromPEM(certPEM)
 	if err != nil {
 		log.Error(err, "Failed to parse certificate")
-		return r.updateStatus(ctx, certAutomation, CertificateAutomationPhaseFailed, fmt.Sprintf("Failed to parse certificate: %v", err))
+		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseFailed, fmt.Sprintf("Failed to parse certificate: %v", err))
 	}
 
 	// Update status with certificate information
@@ -411,7 +388,7 @@ func (r *CertificateAutomationReconciler) reconcileProvisioningStatus(ctx contex
 		"serial_number", certAutomation.Status.CertificateSerialNumber,
 		"expires_at", certAutomation.Status.ExpiresAt.Time)
 
-	return r.updateStatus(ctx, certAutomation, CertificateAutomationPhaseReady, "Certificate ready")
+	return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseReady, "Certificate ready")
 }
 
 // reconcileReady handles ready state monitoring
@@ -423,7 +400,7 @@ func (r *CertificateAutomationReconciler) reconcileReady(ctx context.Context, ce
 	// Check if certificate has expired
 	if certAutomation.Status.ExpiresAt != nil && certAutomation.Status.ExpiresAt.Time.Before(now) {
 		log.Info("Certificate has expired")
-		return r.updateStatus(ctx, certAutomation, CertificateAutomationPhaseExpired, "Certificate expired")
+		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseExpired, "Certificate expired")
 	}
 
 	// Check if renewal is needed
@@ -486,7 +463,7 @@ func (r *CertificateAutomationReconciler) initiateRenewal(ctx context.Context, c
 	log := r.Log.WithValues("certificateautomation", certAutomation.Name, "namespace", certAutomation.Namespace)
 
 	if certAutomation.Status.CertificateSerialNumber == "" {
-		return r.updateStatus(ctx, certAutomation, CertificateAutomationPhaseFailed, "Cannot renew: no certificate serial number")
+		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseFailed, "Cannot renew: no certificate serial number")
 	}
 
 	// Create renewal request
@@ -505,11 +482,11 @@ func (r *CertificateAutomationReconciler) initiateRenewal(ctx context.Context, c
 
 	if err := r.AutomationEngine.RequestRenewal(req); err != nil {
 		log.Error(err, "Failed to request certificate renewal")
-		return r.updateStatus(ctx, certAutomation, CertificateAutomationPhaseFailed, fmt.Sprintf("Renewal request failed: %v", err))
+		return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseFailed, fmt.Sprintf("Renewal request failed: %v", err))
 	}
 
 	log.Info("Certificate renewal requested")
-	return r.updateStatus(ctx, certAutomation, CertificateAutomationPhaseRenewing, "Certificate renewal in progress")
+	return r.updateStatus(ctx, certAutomation, nephv1alpha1.CertificateAutomationPhaseRenewing, "Certificate renewal in progress")
 }
 
 // performPeriodicValidation performs background certificate validation
@@ -519,7 +496,7 @@ func (r *CertificateAutomationReconciler) performPeriodicValidation(ctx context.
 }
 
 // updateStatus updates the CertificateAutomation status
-func (r *CertificateAutomationReconciler) updateStatus(ctx context.Context, certAutomation *nephv1alpha1.CertificateAutomation, phase CertificateAutomationPhase, message string) (ctrl.Result, error) {
+func (r *CertificateAutomationReconciler) updateStatus(ctx context.Context, certAutomation *nephv1alpha1.CertificateAutomation, phase nephv1alpha1.CertificateAutomationPhase, message string) (ctrl.Result, error) {
 	certAutomation.Status.Phase = phase
 	certAutomation.Status.ObservedGeneration = certAutomation.Generation
 
@@ -532,7 +509,7 @@ func (r *CertificateAutomationReconciler) updateStatus(ctx context.Context, cert
 		Message:            message,
 	}
 
-	if phase == CertificateAutomationPhaseReady {
+	if phase == nephv1alpha1.CertificateAutomationPhaseReady {
 		condition.Status = metav1.ConditionTrue
 	}
 

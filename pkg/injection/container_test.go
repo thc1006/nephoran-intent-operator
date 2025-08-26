@@ -88,9 +88,11 @@ func TestContainerDependencyInterfaces(t *testing.T) {
 
 	gitClient := deps.GetGitClient()
 	// Git client may be nil if no config provided, which is OK
+	_ = gitClient
 
 	llmClient := deps.GetLLMClient()
 	// LLM client may be nil if no URL provided, which is OK
+	_ = llmClient
 
 	packageGen := deps.GetPackageGenerator()
 	if packageGen == nil {

@@ -407,7 +407,7 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 
 	// Validate configuration
 	if err := validatePipelineConfig(config); err != nil {
-		return nil, errors.WithContext(err, "invalid pipeline configuration")
+		return nil, fmt.Errorf("invalid pipeline configuration: %w", err)
 	}
 
 	// Initialize metrics
@@ -545,7 +545,7 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 		Resources:   resources,
 		Results:     []*ExecutionResult{},
 		Errors:      []ExecutionError{},
-		Variables:   p.initializeVariables(definition.Variables),
+		Variables:   p.convertAndInitializeVariables(definition.Variables),
 		Checkpoints: []*ExecutionCheckpoint{},
 		Context:     make(map[string]interface{}),
 		Metadata:    make(map[string]string),
@@ -603,9 +603,9 @@ func (p *Pipeline) Execute(ctx context.Context, definition *PipelineDefinition, 
 	}()
 
 	// Execute stages based on execution mode
-	if definition.Execution != nil && definition.Execution.Mode == "parallel" {
+	if definition.ExecutionMode == "parallel" {
 		execErr = p.executeStagesParallel(execCtx, execution)
-	} else if definition.Execution != nil && definition.Execution.Mode == "dag" {
+	} else if definition.ExecutionMode == "dag" {
 		execErr = p.executeStagesDAG(execCtx, execution)
 	} else {
 		execErr = p.executeStagesSequential(execCtx, execution)
@@ -960,7 +960,7 @@ func (p *Pipeline) executeFunction(ctx context.Context, execution *PipelineExecu
 }
 
 func (p *Pipeline) rollbackExecution(ctx context.Context, execution *PipelineExecution) error {
-	if execution.Pipeline.Rollback == nil || !execution.Pipeline.Rollback.Enabled {
+	if execution.Pipeline.FailurePolicy == nil || execution.Pipeline.FailurePolicy.Mode != "rollback" {
 		return nil
 	}
 
@@ -1183,6 +1183,18 @@ func (sm *StateManager) LoadCheckpoint(ctx context.Context, id string) (*Executi
 }
 
 // Helper functions
+
+func (p *Pipeline) convertAndInitializeVariables(vars map[string]*Variable) map[string]interface{} {
+	result := make(map[string]interface{})
+	for name, variable := range vars {
+		if variable.Value != nil {
+			result[name] = variable.Value
+		} else if variable.Default != nil {
+			result[name] = variable.Default
+		}
+	}
+	return result
+}
 
 func (p *Pipeline) initializeVariables(vars map[string]Variable) map[string]interface{} {
 	result := make(map[string]interface{})

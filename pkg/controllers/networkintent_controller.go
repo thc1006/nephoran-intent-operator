@@ -144,63 +144,7 @@ type NetworkIntentReconciler struct {
 	metrics           *ControllerMetrics
 }
 
-// Exponential backoff helper functions
-
-// calculateExponentialBackoff calculates the exponential backoff delay with jitter
-// retryCount: current retry attempt (0-based)
-// baseDelay: base delay duration (uses configured default if zero)
-// maxDelay: maximum delay duration (uses configured default if zero)
-// constants: configuration constants for backoff parameters
-func calculateExponentialBackoff(retryCount int, baseDelay, maxDelay time.Duration, constants *configPkg.Constants) time.Duration {
-	if baseDelay <= 0 {
-		baseDelay = constants.BaseBackoffDelay
-	}
-	if maxDelay <= 0 {
-		maxDelay = constants.MaxBackoffDelay
-	}
-
-	// Calculate exponential backoff: baseDelay * (multiplier^retryCount)
-	backoffDelay := float64(baseDelay) * math.Pow(constants.BackoffMultiplier, float64(retryCount))
-
-	// Cap at maximum delay
-	if backoffDelay > float64(maxDelay) {
-		backoffDelay = float64(maxDelay)
-	}
-
-	// Add jitter to prevent thundering herd
-	jitterRange := backoffDelay * constants.JitterFactor
-	jitter := (rand.Float64() - 0.5) * 2 * jitterRange
-	finalDelay := backoffDelay + jitter
-
-	// Ensure minimum delay
-	if finalDelay < float64(baseDelay) {
-		finalDelay = float64(baseDelay)
-	}
-
-	return time.Duration(finalDelay)
-}
-
-// calculateExponentialBackoffForOperation calculates backoff for specific operations
-func calculateExponentialBackoffForOperation(retryCount int, operation string, constants *configPkg.Constants) time.Duration {
-	var baseDelay, maxDelay time.Duration
-
-	switch operation {
-	case "llm-processing":
-		baseDelay = constants.LLMProcessingBaseDelay
-		maxDelay = constants.LLMProcessingMaxDelay
-	case "git-operations":
-		baseDelay = constants.GitOperationsBaseDelay
-		maxDelay = constants.GitOperationsMaxDelay
-	case "resource-planning":
-		baseDelay = constants.ResourcePlanningBaseDelay
-		maxDelay = constants.ResourcePlanningMaxDelay
-	default:
-		baseDelay = constants.BaseBackoffDelay
-		maxDelay = constants.MaxBackoffDelay
-	}
-
-	return calculateExponentialBackoff(retryCount, baseDelay, maxDelay, constants)
-}
+// Note: Exponential backoff helper functions are defined in e2nodeset_controller.go to avoid duplication
 
 func (r *NetworkIntentReconciler) setReadyCondition(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, status metav1.ConditionStatus, reason, message string) error {
 	condition := metav1.Condition{
@@ -443,8 +387,8 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 	*conditions = append(*conditions, newCondition)
 }
 
-// Retry count management functions
-func getRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) int {
+// getNetworkIntentRetryCount gets the retry count for a specific operation from NetworkIntent annotations
+func getNetworkIntentRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) int {
 	if networkIntent.Annotations == nil {
 		return 0
 	}
@@ -458,7 +402,8 @@ func getRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) in
 	return 0
 }
 
-func setRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string, count int) {
+// setNetworkIntentRetryCount sets the retry count for a specific operation in NetworkIntent annotations
+func setNetworkIntentRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string, count int) {
 	if networkIntent.Annotations == nil {
 		networkIntent.Annotations = make(map[string]string)
 	}
@@ -466,7 +411,8 @@ func setRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string, co
 	networkIntent.Annotations[key] = strconv.Itoa(count)
 }
 
-func clearRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) {
+// clearNetworkIntentRetryCount clears the retry count for a specific operation from NetworkIntent annotations
+func clearNetworkIntentRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) {
 	if networkIntent.Annotations == nil {
 		return
 	}

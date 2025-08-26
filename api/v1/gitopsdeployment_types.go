@@ -71,6 +71,14 @@ const (
 	DeploymentStrategyCanary DeploymentStrategy = "Canary"
 	// DeploymentStrategyBlueGreen performs blue-green deployments
 	DeploymentStrategyBlueGreen DeploymentStrategy = "BlueGreen"
+	// DeploymentStrategyHelm uses Helm for deployment
+	DeploymentStrategyHelm DeploymentStrategy = "Helm"
+	// DeploymentStrategyOperator uses Kubernetes operators for deployment
+	DeploymentStrategyOperator DeploymentStrategy = "Operator"
+	// DeploymentStrategyDirect uses direct Kubernetes manifests
+	DeploymentStrategyDirect DeploymentStrategy = "Direct"
+	// DeploymentStrategyGitOps uses GitOps workflow for deployment
+	DeploymentStrategyGitOps DeploymentStrategy = "GitOps"
 )
 
 // GitOpsDeploymentSpec defines the desired state of GitOpsDeployment

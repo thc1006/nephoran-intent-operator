@@ -121,20 +121,7 @@ type SecurityContext struct {
 	FileSystemIsolation bool
 }
 
-// ExecutionResult contains the result of function execution
-type ExecutionResult struct {
-	Resources   []porch.KRMResource     `json:"resources"`
-	Results     []*porch.FunctionResult `json:"results,omitempty"`
-	Logs        string                  `json:"logs,omitempty"` // Changed from []string to string for compatibility
-	Err         error                   `json:"error,omitempty"` // Changed from Error to Err to match expected interface
-	Duration    time.Duration           `json:"duration"`
-	MemoryUsage int64                   `json:"memoryUsage"`
-	CPUUsage    float64                 `json:"cpuUsage"`
-	ExitCode    int                     `json:"exitCode"`
-	
-	// Legacy compatibility - keep Error field but mark as deprecated
-	Error       *porch.FunctionError    `json:"-"` // Hidden from JSON serialization
-}
+// ExecutionResult is defined in pipeline.go
 
 // ResourcePool manages computational resources for function execution
 type ResourcePool struct {
@@ -167,14 +154,7 @@ type Executor struct {
 	mu          sync.Mutex
 }
 
-// SecurityPolicy enforces security constraints
-type SecurityPolicy struct {
-	allowedImages       map[string]bool
-	blockedCapabilities map[string]bool
-	maxResourceLimits   ResourceLimits
-	networkPolicy       *NetworkPolicy
-	fileSystemPolicy    *FileSystemPolicy
-}
+// SecurityPolicy is defined in container_runtime.go
 
 // ResourceLimits defines resource constraints
 type ResourceLimits struct {

@@ -72,4 +72,7 @@ type QueryRequest struct {
 	Filters    map[string]interface{} `json:"filters,omitempty"`    // Additional filters for retrieval
 }
 
+// Service is an alias for RAGService for backward compatibility
+type Service = RAGService
+
 // Note: QueryResponse and RAGService are defined in other RAG files

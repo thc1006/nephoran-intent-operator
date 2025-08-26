@@ -561,3 +561,11 @@ func (mc *MetricsCollector) GetCounter(name string) prometheus.Counter {
 		Help: "Circuit breaker counter",
 	})
 }
+
+// RecordCNFDeployment records a CNF deployment event
+func (mc *MetricsCollector) RecordCNFDeployment(cnfFunction interface{}, duration time.Duration) {
+	// Create a counter if one doesn't exist
+	if mc.E2NodeSetTotal != nil {
+		mc.E2NodeSetTotal.Inc()
+	}
+}

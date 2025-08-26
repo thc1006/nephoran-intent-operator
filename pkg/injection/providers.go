@@ -123,7 +123,7 @@ func GitClientProvider(c *Container) (interface{}, error) {
 		gitConfig.RepoPath = "/tmp/nephoran-git"
 	}
 
-	client := git.NewGitClient(gitConfig)
+	client := git.NewClientFromConfig(gitConfig)
 	return client, nil
 }
 
@@ -136,10 +136,7 @@ func LLMClientProvider(c *Container) (interface{}, error) {
 	}
 
 	// Get HTTP client dependency
-	httpClient, err := c.GetHTTPClient()
-	if err != nil {
-		return nil, err
-	}
+	httpClient := c.GetHTTPClient()
 
 	// Create a simple HTTP client that implements the shared.ClientInterface
 	client := &SimpleHTTPClient{
@@ -152,19 +149,12 @@ func LLMClientProvider(c *Container) (interface{}, error) {
 
 // PackageGeneratorProvider creates a Nephio package generator instance
 func PackageGeneratorProvider(c *Container) (interface{}, error) {
-	config := c.GetConfig()
-
-	nephioConfig := &nephio.Config{
-		PorchURL: os.Getenv("PORCH_URL"),
-		Timeout:  config.KubernetesTimeout,
+	// NewPackageGenerator doesn't require configuration parameters
+	generator, err := nephio.NewPackageGenerator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create package generator: %w", err)
 	}
 
-	// Set default if not configured
-	if nephioConfig.PorchURL == "" {
-		nephioConfig.PorchURL = "https://porch.nephio.io"
-	}
-
-	generator := nephio.NewPackageGenerator(nephioConfig)
 	return generator, nil
 }
 
@@ -255,14 +245,12 @@ func ConfiguredGitClientProvider(c *Container) (interface{}, error) {
 		return nil, ErrMissingGitConfig{Field: "GIT_REPO_URL"}
 	}
 
-	client := git.NewGitClient(gitConfig)
+	client := git.NewClientFromConfig(gitConfig)
 	return client, nil
 }
 
 // ProductionLLMClientProvider creates an LLM client with production settings
 func ProductionLLMClientProvider(c *Container) (interface{}, error) {
-	config := c.GetConfig()
-
 	llmURL := os.Getenv("LLM_PROCESSOR_URL")
 	if llmURL == "" {
 		return nil, ErrMissingLLMConfig{Field: "LLM_PROCESSOR_URL"}
@@ -272,10 +260,7 @@ func ProductionLLMClientProvider(c *Container) (interface{}, error) {
 	httpClient, err := c.Get("circuit_breaker_http_client")
 	if err != nil {
 		// Fallback to regular HTTP client
-		httpClient, err = c.GetHTTPClient()
-		if err != nil {
-			return nil, err
-		}
+		httpClient = c.GetHTTPClient()
 	}
 
 	// Create a simple HTTP client with production configuration

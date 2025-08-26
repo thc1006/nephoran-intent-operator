@@ -437,15 +437,7 @@ const (
 	RolloutStatusRolledBack RolloutStatus = "rolled_back"
 )
 
-// ApprovalStatus defines approval status
-type ApprovalStatus string
-
-const (
-	ApprovalStatusPending  ApprovalStatus = "pending"
-	ApprovalStatusApproved ApprovalStatus = "approved"
-	ApprovalStatusRejected ApprovalStatus = "rejected"
-	ApprovalStatusExpired  ApprovalStatus = "expired"
-)
+// Note: ApprovalStatus is defined in types.go to avoid duplication
 
 // ApprovalDecision defines approval decisions
 type ApprovalDecision string

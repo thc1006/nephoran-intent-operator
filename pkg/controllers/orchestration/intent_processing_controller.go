@@ -70,6 +70,19 @@ type IntentProcessingConfig struct {
 	QualityThreshold        float64       `json:"qualityThreshold"`
 	EnableRAG               bool          `json:"enableRAG"`
 	ValidationEnabled       bool          `json:"validationEnabled"`
+	
+	// LLM Configuration
+	LLMEndpoint             string        `json:"llmEndpoint"`
+	
+	// RAG Configuration
+	RAGEndpoint             string        `json:"ragEndpoint"`
+	MaxContextChunks        int           `json:"maxContextChunks"`
+	SimilarityThreshold     float64       `json:"similarityThreshold"`
+	
+	// Circuit Breaker Configuration
+	CircuitBreakerEnabled   bool          `json:"circuitBreakerEnabled"`
+	FailureThreshold        int           `json:"failureThreshold"`
+	RecoveryTimeout         time.Duration `json:"recoveryTimeout"`
 }
 
 // NewIntentProcessingController creates a new IntentProcessingController
@@ -222,21 +235,16 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 	}
 
 	// Execute LLM processing
-	provider := "default"
-	if providerVal, ok := request.Context["provider"]; ok {
-		if providerStr, ok := providerVal.(string); ok {
-			provider = providerStr
-		}
-	}
-	log.Info("Executing LLM processing", "provider", provider, "model", request.Model)
-	response, err := r.LLMService.ProcessIntent(ctx, provider, request.Intent)
+	log.Info("Executing LLM processing", "model", request.Model)
+	response, err := r.LLMService.ProcessIntent(ctx, request.Intent)
 	if err != nil {
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
 	}
 
 	// Convert string response to ProcessingResponse for validation
 	processingResp := &llm.ProcessingResponse{
-		Content: response,
+		ProcessedIntent: response,
+		Confidence:      0.9, // Default confidence for now
 	}
 	// Validate response quality
 	qualityScore, validationErrors := r.validateResponse(processingResp)
@@ -249,12 +257,12 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 		Response:         processingResp,
 		QualityScore:     qualityScore,
 		ValidationErrors: validationErrors,
-		TokenUsage:       0, // No token usage info from string response
+		TokenUsage:       nil, // No token usage info from string response
 		RAGMetrics:       extractRAGMetricsFromContext(request.Context),
 	}
 
 	// Extract structured parameters
-	processedParams, err := r.extractProcessedParameters(response)
+	processedParams, err := r.extractProcessedParameters(processingResp)
 	if err != nil {
 		log.Error(err, "Failed to extract processed parameters")
 		// Continue with raw response
@@ -263,7 +271,7 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 	}
 
 	// Extract telecommunications entities
-	entities, err := r.extractTelecomEntities(response)
+	entities, err := r.extractTelecomEntities(processingResp)
 	if err != nil {
 		log.Error(err, "Failed to extract telecom entities")
 	} else {
@@ -276,7 +284,7 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 // enhanceWithRAG enhances the intent with RAG context
 func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent string, config *nephoranv1.LLMProcessingConfig) (map[string]interface{}, *nephoranv1.RAGMetrics, error) {
 	// Prepare RAG request
-	request := &rag.RetrievalRequest{
+	request := &rag.RAGRequest{
 		Query: intent,
 	}
 
@@ -284,17 +292,15 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 	if config != nil && config.RAGConfiguration != nil {
 		ragConfig := config.RAGConfiguration
 		if ragConfig.MaxDocuments != nil {
-			request.MaxDocuments = int(*ragConfig.MaxDocuments)
+			request.MaxResults = int(*ragConfig.MaxDocuments)
 		}
 		if ragConfig.RetrievalThreshold != nil {
-			request.RetrievalThreshold = *ragConfig.RetrievalThreshold
+			request.MinConfidence = float32(*ragConfig.RetrievalThreshold)
 		}
-		request.KnowledgeBase = ragConfig.KnowledgeBase
-		request.EmbeddingModel = ragConfig.EmbeddingModel
 	}
 
 	// Execute RAG retrieval
-	response, err := r.RAGService.RetrieveContext(ctx, request)
+	response, err := r.RAGService.ProcessQuery(ctx, request)
 	if err != nil {
 		return nil, nil, fmt.Errorf("RAG retrieval failed: %w", err)
 	}
@@ -302,19 +308,17 @@ func (r *IntentProcessingController) enhanceWithRAG(ctx context.Context, intent 
 	// Create enhanced context
 	enhancedContext := map[string]interface{}{
 		"original_intent":     intent,
-		"retrieved_documents": response.Documents,
-		"knowledge_base":      request.KnowledgeBase,
+		"retrieved_documents": response.SourceDocuments,
 		"retrieval_metadata":  response.Metadata,
 	}
 
 	// Create RAG metrics
 	ragMetrics := &nephoranv1.RAGMetrics{
-		DocumentsRetrieved:    int32(len(response.Documents)),
-		RetrievalDuration:     metav1.Duration{Duration: response.Duration},
-		AverageRelevanceScore: response.AverageRelevanceScore,
-		TopRelevanceScore:     response.TopRelevanceScore,
-		KnowledgeBase:         request.KnowledgeBase,
-		QueryEnhancement:      response.QueryWasEnhanced,
+		DocumentsRetrieved:    int32(len(response.SourceDocuments)),
+		RetrievalDuration:     metav1.Duration{Duration: response.RetrievalTime},
+		AverageRelevanceScore: float64(response.Confidence),
+		TopRelevanceScore:     float64(response.Confidence),
+		QueryEnhancement:      false, // Default to false
 	}
 
 	return enhancedContext, ragMetrics, nil
@@ -335,8 +339,8 @@ func (r *IntentProcessingController) validateResponse(response *llm.ProcessingRe
 		qualityScore -= 0.3
 	}
 
-	// Check if response contains network function information
-	if response.NetworkFunctions == nil || len(response.NetworkFunctions) == 0 {
+	// Check if response contains structured parameters (indicates network function information)
+	if response.StructuredParameters == nil || len(response.StructuredParameters) == 0 {
 		validationErrors = append(validationErrors, "response lacks network function information")
 		qualityScore -= 0.2
 	}
@@ -394,31 +398,24 @@ func (r *IntentProcessingController) extractProcessedParameters(response *llm.Pr
 		params.NetworkFunction = nf
 	}
 
-	// Extract deployment config
-	if deployConfig, ok := response.StructuredParameters["deployment_config"]; ok {
-		if configBytes, err := json.Marshal(deployConfig); err == nil {
-			params.DeploymentConfig = runtime.RawExtension{Raw: configBytes}
-		}
+	// Extract region
+	if region, ok := response.StructuredParameters["region"].(string); ok {
+		params.Region = region
 	}
 
-	// Extract performance requirements
-	if perfReq, ok := response.StructuredParameters["performance_requirements"]; ok {
-		if perfBytes, err := json.Marshal(perfReq); err == nil {
-			params.PerformanceRequirements = runtime.RawExtension{Raw: perfBytes}
-		}
-	}
-
-	// Extract scaling policy
-	if scalingPolicy, ok := response.StructuredParameters["scaling_policy"]; ok {
-		if scalingBytes, err := json.Marshal(scalingPolicy); err == nil {
-			params.ScalingPolicy = runtime.RawExtension{Raw: scalingBytes}
-		}
-	}
-
-	// Extract security policy
-	if secPolicy, ok := response.StructuredParameters["security_policy"]; ok {
-		if secBytes, err := json.Marshal(secPolicy); err == nil {
-			params.SecurityPolicy = runtime.RawExtension{Raw: secBytes}
+	// Extract scale parameters
+	if scaleParams, ok := response.StructuredParameters["scale_parameters"]; ok {
+		// This would need proper conversion based on ScaleParameters type
+		// For now, just extract basic parameters
+		if scaleMap, ok := scaleParams.(map[string]interface{}); ok {
+			scaleParams := &nephoranv1.ScaleParameters{}
+			if replicas, ok := scaleMap["replicas"].(int); ok {
+				minReplicas := int32(replicas)
+				maxReplicas := int32(replicas * 3) // Default scaling range
+				scaleParams.MinReplicas = &minReplicas
+				scaleParams.MaxReplicas = &maxReplicas
+			}
+			params.ScaleParameters = scaleParams
 		}
 	}
 
@@ -479,9 +476,9 @@ func (r *IntentProcessingController) handleProcessingSuccess(ctx context.Context
 	// Set RAG metrics
 	intentProcessing.Status.RAGMetrics = result.RAGMetrics
 
-	// Set telecom context
-	if result.Response.TelecomContext != nil {
-		if contextBytes, err := json.Marshal(result.Response.TelecomContext); err == nil {
+	// Set telecom context (if available in metadata)
+	if result.Response.Metadata != nil {
+		if contextBytes, err := json.Marshal(result.Response.Metadata); err == nil {
 			intentProcessing.Status.TelecomContext = runtime.RawExtension{Raw: contextBytes}
 		}
 	}

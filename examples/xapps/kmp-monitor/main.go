@@ -93,7 +93,18 @@ func main() {
 // NewKMPMonitorXApp creates a new KMP monitoring xApp instance
 func NewKMPMonitorXApp(config *e2.XAppConfig) (*KMPMonitorXApp, error) {
 	// Create E2Manager
-	e2Manager := e2.NewE2Manager(config.NearRTRICURL)
+	e2Manager, err := e2.NewE2Manager(&e2.E2ManagerConfig{
+		DefaultRICURL:       config.NearRTRICURL,
+		DefaultAPIVersion:   "v1",
+		DefaultTimeout:      30 * time.Second,
+		HeartbeatInterval:   30 * time.Second,
+		MaxRetries:          3,
+		SimulationMode:      false,
+		SimulateRICCalls:    false,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create E2Manager: %w", err)
+	}
 
 	// Create xApp SDK
 	sdk, err := e2.NewXAppSDK(config, e2Manager)
@@ -174,7 +185,7 @@ func (x *KMPMonitorXApp) createKMPSubscriptions(ctx context.Context, cells []str
 
 	for _, cellID := range cells {
 		// Create subscription using KMP service model
-		subscription, err := x.kmpModel.CreateKMPSubscription(x.sdk.GetConfig().E2NodeID, cellID, measurements)
+		subscription, err := x.kmpModel.CreateKPMSubscription(x.sdk.GetConfig().E2NodeID, cellID, measurements)
 		if err != nil {
 			return fmt.Errorf("failed to create KMP subscription for cell %s: %w", cellID, err)
 		}

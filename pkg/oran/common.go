@@ -1,6 +1,7 @@
 package oran
 
 import (
+	"net/http"
 	"time"
 )
 
@@ -73,4 +74,24 @@ type EmailTemplate struct {
 	Body     string            `json:"body"`
 	Headers  map[string]string `json:"headers,omitempty"`
 	MimeType string            `json:"mimeType,omitempty"`
+}
+
+// Client provides a generic O-RAN client interface
+type Client struct {
+	baseURL    string
+	httpClient *http.Client
+	auth       *AuthConfig
+	headers    map[string]string
+}
+
+// NewClient creates a new O-RAN client
+func NewClient(baseURL string, auth *AuthConfig) *Client {
+	return &Client{
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: 30 * time.Second,
+		},
+		auth:    auth,
+		headers: make(map[string]string),
+	}
 }
