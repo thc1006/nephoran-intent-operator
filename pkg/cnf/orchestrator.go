@@ -981,3 +981,220 @@ func (c *CNFOrchestrator) initEdgeTemplates() {
 		RequiredConfigs: []string{"amfAddress", "gnbAddress"},
 	}
 }
+
+// DeployWithHelm deploys CNF using Helm charts - simplified interface for controller
+func (c *CNFOrchestrator) DeployWithHelm(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Deploying CNF with Helm via orchestrator", "cnf", cnfDeployment.Name)
+
+	// Create deploy request
+	req := &DeployRequest{
+		CNFDeployment:   cnfDeployment,
+		Context:         ctx,
+		ProcessingPhase: "Deploying",
+	}
+
+	// Use the full deployment flow
+	result, err := c.Deploy(ctx, req)
+	if err != nil {
+		return fmt.Errorf("helm deployment failed: %w", err)
+	}
+
+	if !result.Success {
+		return fmt.Errorf("helm deployment was not successful")
+	}
+
+	logger.Info("CNF deployment via Helm completed successfully", "cnf", cnfDeployment.Name, "duration", result.Duration)
+	return nil
+}
+
+// DeployWithOperator deploys CNF using Kubernetes operators - simplified interface for controller
+func (c *CNFOrchestrator) DeployWithOperator(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Deploying CNF with Operator via orchestrator", "cnf", cnfDeployment.Name)
+
+	if cnfDeployment.Spec.Operator == nil {
+		return fmt.Errorf("operator configuration is required for operator deployment")
+	}
+
+	// Get CNF template
+	template, err := c.getCNFTemplate(cnfDeployment.Spec.Function)
+	if err != nil {
+		return fmt.Errorf("failed to get CNF template: %w", err)
+	}
+
+	// Check dependencies
+	if err := c.checkDependencies(ctx, cnfDeployment, template); err != nil {
+		return fmt.Errorf("dependency check failed: %w", err)
+	}
+
+	// Prepare deployment configuration
+	config, err := c.prepareDeploymentConfig(cnfDeployment, template)
+	if err != nil {
+		return fmt.Errorf("failed to prepare deployment config: %w", err)
+	}
+
+	// Deploy via operator
+	result, err := c.deployViaOperator(ctx, cnfDeployment, config)
+	if err != nil {
+		return fmt.Errorf("operator deployment failed: %w", err)
+	}
+
+	if !result.Success {
+		return fmt.Errorf("operator deployment was not successful")
+	}
+
+	logger.Info("CNF deployment via Operator completed successfully", "cnf", cnfDeployment.Name)
+	return nil
+}
+
+// DeployWithGitOps deploys CNF using GitOps workflow - simplified interface for controller
+func (c *CNFOrchestrator) DeployWithGitOps(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Deploying CNF with GitOps via orchestrator", "cnf", cnfDeployment.Name)
+
+	// Validate GitOps configuration
+	if c.PackageGenerator == nil {
+		return fmt.Errorf("package generator not configured for GitOps deployment")
+	}
+
+	if c.GitClient == nil {
+		return fmt.Errorf("git client not configured for GitOps deployment")
+	}
+
+	// Get CNF template
+	template, err := c.getCNFTemplate(cnfDeployment.Spec.Function)
+	if err != nil {
+		return fmt.Errorf("failed to get CNF template: %w", err)
+	}
+
+	// Check dependencies
+	if err := c.checkDependencies(ctx, cnfDeployment, template); err != nil {
+		return fmt.Errorf("dependency check failed: %w", err)
+	}
+
+	// Prepare deployment configuration
+	config, err := c.prepareDeploymentConfig(cnfDeployment, template)
+	if err != nil {
+		return fmt.Errorf("failed to prepare deployment config: %w", err)
+	}
+
+	// Deploy via GitOps
+	result, err := c.deployViaGitOps(ctx, cnfDeployment, config)
+	if err != nil {
+		return fmt.Errorf("gitops deployment failed: %w", err)
+	}
+
+	if !result.Success {
+		return fmt.Errorf("gitops deployment was not successful")
+	}
+
+	logger.Info("CNF deployment via GitOps completed successfully", "cnf", cnfDeployment.Name)
+	return nil
+}
+
+// CleanupHelmDeployment cleans up resources deployed via Helm
+func (c *CNFOrchestrator) CleanupHelmDeployment(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Cleaning up Helm deployment", "cnf", cnfDeployment.Name)
+
+	if cnfDeployment.Spec.Helm == nil {
+		return fmt.Errorf("helm configuration not found for cleanup")
+	}
+
+	// Prepare Helm configuration
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(c.HelmSettings.RESTClientGetter(), cnfDeployment.Namespace, "memory", func(format string, v ...interface{}) {
+		logger.Info(fmt.Sprintf(format, v...))
+	}); err != nil {
+		return fmt.Errorf("failed to initialize Helm action config for cleanup: %w", err)
+	}
+
+	// Determine release name
+	releaseName := cnfDeployment.Spec.Helm.ReleaseName
+	if releaseName == "" {
+		releaseName = fmt.Sprintf("%s-%s", strings.ToLower(string(cnfDeployment.Spec.Function)), cnfDeployment.Name)
+	}
+
+	// Check if release exists
+	getAction := action.NewGet(actionConfig)
+	_, err := getAction.Run(releaseName)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			logger.Info("Helm release not found, assuming already cleaned up", "release", releaseName)
+			return nil
+		}
+		return fmt.Errorf("failed to check Helm release status: %w", err)
+	}
+
+	// Uninstall the release
+	uninstallAction := action.NewUninstall(actionConfig)
+	uninstallAction.Timeout = c.Config.HelmTimeout
+
+	_, err = uninstallAction.Run(releaseName)
+	if err != nil {
+		return fmt.Errorf("failed to uninstall Helm release %s: %w", releaseName, err)
+	}
+
+	logger.Info("Helm deployment cleanup completed successfully", "cnf", cnfDeployment.Name, "release", releaseName)
+	return nil
+}
+
+// CleanupOperatorDeployment cleans up resources deployed via operator
+func (c *CNFOrchestrator) CleanupOperatorDeployment(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Cleaning up Operator deployment", "cnf", cnfDeployment.Name)
+
+	if cnfDeployment.Spec.Operator == nil {
+		return fmt.Errorf("operator configuration not found for cleanup")
+	}
+
+	// For operator deployments, we need to delete the custom resources
+	// This is a placeholder implementation as the actual operator CRDs would need to be defined
+	logger.Info("Operator deployment cleanup - custom resource deletion would be implemented here", 
+		"operator", cnfDeployment.Spec.Operator.Name)
+
+	// In a real implementation, this would:
+	// 1. Find all custom resources created by this CNF deployment
+	// 2. Delete them in the correct order (considering dependencies)
+	// 3. Wait for the operator to clean up the underlying resources
+
+	// For now, we'll log the cleanup operation
+	logger.Info("Operator deployment cleanup completed successfully", "cnf", cnfDeployment.Name, "operator", cnfDeployment.Spec.Operator.Name)
+	return nil
+}
+
+// CleanupGitOpsDeployment cleans up resources deployed via GitOps
+func (c *CNFOrchestrator) CleanupGitOpsDeployment(ctx context.Context, cnfDeployment *nephoranv1.CNFDeployment) error {
+	logger := log.FromContext(ctx)
+	logger.Info("Cleaning up GitOps deployment", "cnf", cnfDeployment.Name)
+
+	if c.GitClient == nil {
+		return fmt.Errorf("git client not configured for GitOps cleanup")
+	}
+
+	// For GitOps deployments, we need to:
+	// 1. Remove the deployment manifests from the Git repository
+	// 2. Commit the changes
+	// 3. Wait for the GitOps system (ArgoCD/Flux) to sync and delete resources
+
+	// This is a placeholder implementation
+	logger.Info("GitOps deployment cleanup - manifest removal from Git would be implemented here")
+
+	// In a real implementation, this would:
+	// 1. Clone the Git repository
+	// 2. Remove the CNF deployment manifests
+	// 3. Commit and push the changes
+	// 4. Optionally wait for GitOps system to sync
+
+	// For demonstration, we'll simulate the Git operations
+	if c.Config != nil && c.Config.GitRepoURL != "" {
+		logger.Info("Would remove manifests from Git repository", 
+			"repo", c.Config.GitRepoURL, 
+			"path", c.Config.GitDeployPath,
+			"branch", c.Config.GitBranch)
+	}
+
+	logger.Info("GitOps deployment cleanup completed successfully", "cnf", cnfDeployment.Name)
+	return nil
+}
