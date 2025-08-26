@@ -19,20 +19,38 @@ package resilience
 import (
 	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/go-logr/logr"
 )
 
+// TimeoutOperation represents a timeout operation
+type TimeoutOperation struct {
+	ID        string
+	StartTime time.Time
+	Timeout   time.Duration
+	Context   context.Context
+	Cancel    context.CancelFunc
+}
+
+// TimeoutManager manages timeout operations and configurations
+type TimeoutManager struct {
+	configs    map[string]*TimeoutConfig
+	operations map[string]*TimeoutOperation
+	metrics    *TimeoutMetrics
+	logger     logr.Logger
+	mu         sync.RWMutex
+}
+
 // NewTimeoutManager creates a new timeout manager
 func NewTimeoutManager(configs map[string]*TimeoutConfig, logger logr.Logger) *TimeoutManager {
 	tm := &TimeoutManager{
-		configs: make(map[string]*TimeoutConfig),
-		metrics: &TimeoutMetrics{
-			OperationsByTimeout: make(map[time.Duration]int64),
-		},
-		logger: logger.WithName("timeout-manager"),
+		configs:    make(map[string]*TimeoutConfig),
+		operations: make(map[string]*TimeoutOperation),
+		metrics:    &TimeoutMetrics{},
+		logger:     logger.WithName("timeout-manager"),
 	}
 
 	// Copy configurations

@@ -1,0 +1,239 @@
+# Lightning-Fast PR Validation Pipeline
+# Optimized for rapid feedback on pull requests
+
+name: Fast PR Validation
+
+on:
+  pull_request:
+    branches: [ main, integrate/mvp ]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+env:
+  # Ultra-fast settings for PR validation
+  GOMAXPROCS: 8
+  DOCKER_BUILDKIT: 1
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+  CGO_ENABLED: 0
+  GOCACHE_VERSION: v4
+  # Skip slow operations for PR validation
+  SKIP_SLOW_TESTS: true
+  SKIP_E2E_TESTS: true
+  SKIP_BENCHMARKS: true
+
+jobs:
+  # =============================================================================
+  # Ultra-Fast Change Detection
+  # =============================================================================
+  quick-check:
+    name: "⚡ Quick PR Check"
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      go_changed: ${{ steps.changes.outputs.go }}
+      critical_changed: ${{ steps.changes.outputs.critical }}
+      tests_needed: ${{ steps.logic.outputs.tests_needed }}
+      build_needed: ${{ steps.logic.outputs.build_needed }}
+      
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: "🔍 Lightning Change Detection"
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+            critical:
+              - 'api/**/*.go'
+              - 'cmd/**/*.go'
+              - 'controllers/**/*.go'
+              - 'pkg/llm/**/*.go'
+              - 'pkg/nephio/**/*.go'
+            docs:
+              - '**/*.md'
+              - 'docs/**'
+
+      - name: "🧠 Smart Skip Logic"
+        id: logic
+        run: |
+          tests_needed="true"
+          build_needed="true"
+          
+          # Skip tests for docs-only changes
+          if [[ "${{ steps.changes.outputs.docs }}" == "true" && "${{ steps.changes.outputs.go }}" != "true" ]]; then
+            tests_needed="false"
+            build_needed="false"
+            echo "⏭️ Docs-only PR - skipping tests and builds"
+          fi
+          
+          echo "tests_needed=${tests_needed}" >> $GITHUB_OUTPUT
+          echo "build_needed=${build_needed}" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # Super-Fast Lint Check
+  # =============================================================================
+  lightning-lint:
+    name: "⚡ Lightning Lint"
+    runs-on: ubuntu-latest
+    needs: quick-check
+    if: needs.quick-check.outputs.go_changed == 'true'
+    timeout-minutes: 6
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: "🚀 Turbo Lint"
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.3
+          args: --timeout=5m --concurrency=8 --fast
+          skip-cache: false
+          skip-pkg-cache: false
+          skip-build-cache: false
+
+  # =============================================================================
+  # Rapid Unit Testing
+  # =============================================================================
+  rapid-test:
+    name: "🧪 Rapid Tests"
+    runs-on: ubuntu-latest
+    needs: quick-check
+    if: needs.quick-check.outputs.tests_needed == 'true'
+    timeout-minutes: 10
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: "🏃 Ultra-Fast Unit Tests"
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          # Run only fast unit tests
+          go test ./... -short -race -parallel=8 -timeout=8m \
+            -coverprofile=coverage.out -covermode=atomic
+
+      - name: "📊 Quick Coverage Check"
+        run: |
+          coverage=$(go tool cover -func=coverage.out | grep total: | awk '{print $3}' | sed 's/%//')
+          echo "Coverage: ${coverage}%"
+          if (( $(echo "${coverage} < 60" | bc -l) )); then
+            echo "::warning::Coverage ${coverage}% is below 60% - consider adding more tests"
+          fi
+
+  # =============================================================================
+  # Fast Build Check
+  # =============================================================================
+  quick-build:
+    name: "🔨 Quick Build"
+    runs-on: ubuntu-latest
+    needs: quick-check
+    if: needs.quick-check.outputs.build_needed == 'true'
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: "⚡ Lightning Build"
+        run: |
+          # Build main services only
+          mkdir -p bin
+          
+          # Parallel builds
+          {
+            go build -o bin/manager ./cmd/main.go &
+            go build -o bin/llm-processor ./cmd/llm-processor/main.go &
+            go build -o bin/nephio-bridge ./cmd/nephio-bridge/main.go &
+            wait
+          }
+          
+          echo "Built binaries:"
+          ls -la bin/
+
+  # =============================================================================
+  # PR Status Summary
+  # =============================================================================
+  pr-status:
+    name: "📊 PR Status"
+    runs-on: ubuntu-latest
+    needs: [quick-check, lightning-lint, rapid-test, quick-build]
+    if: always()
+    timeout-minutes: 2
+
+    steps:
+      - name: "📊 Generate PR Summary"
+        run: |
+          echo "## ⚡ Fast PR Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine overall status
+          overall_status="✅ PASSED"
+          if [[ "${{ needs.lightning-lint.result }}" == "failure" || "${{ needs.rapid-test.result }}" == "failure" || "${{ needs.quick-build.result }}" == "failure" ]]; then
+            overall_status="❌ FAILED"
+          fi
+          
+          echo "**Overall Status:** $overall_status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "| Check | Result | Duration |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 Change Detection | ${{ needs.quick-check.result == 'success' && '✅ Success' || '❌ Failed' }} | ~30s |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⚡ Lightning Lint | ${{ (needs.lightning-lint.result == 'success' && '✅ Success') || (needs.lightning-lint.result == 'skipped' && '⏭️ Skipped') || '❌ Failed' }} | ~5m |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Rapid Tests | ${{ (needs.rapid-test.result == 'success' && '✅ Success') || (needs.rapid-test.result == 'skipped' && '⏭️ Skipped') || '❌ Failed' }} | ~8m |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔨 Quick Build | ${{ (needs.quick-build.result == 'success' && '✅ Success') || (needs.quick-build.result == 'skipped' && '⏭️ Skipped') || '❌ Failed' }} | ~6m |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### 🚀 Optimization Features" >> $GITHUB_STEP_SUMMARY
+          echo "- **Smart Skipping**: Docs-only changes bypass tests" >> $GITHUB_STEP_SUMMARY
+          echo "- **Parallel Execution**: 8+ concurrent processes" >> $GITHUB_STEP_SUMMARY
+          echo "- **Advanced Caching**: Go modules & build cache" >> $GITHUB_STEP_SUMMARY
+          echo "- **Fast Tests Only**: Skip slow integration tests" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lightning Builds**: Parallel compilation" >> $GITHUB_STEP_SUMMARY
+
+      - name: "🚨 Fail on Critical Issues"
+        if: |
+          needs.lightning-lint.result == 'failure' || 
+          needs.rapid-test.result == 'failure' || 
+          needs.quick-build.result == 'failure'
+        run: |
+          echo "❌ PR validation failed - please fix the issues above"
+          exit 1
+
+      - name: "🎉 PR Ready"
+        if: |
+          needs.lightning-lint.result != 'failure' && 
+          needs.rapid-test.result != 'failure' && 
+          needs.quick-build.result != 'failure'
+        run: |
+          echo "🎉 PR validation passed - ready for review!"

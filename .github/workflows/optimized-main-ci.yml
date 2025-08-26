@@ -636,8 +636,11 @@ jobs:
           cache-to: type=gha,mode=max
           load: true
           build-args: |
+            SERVICE=manager
             VERSION=${{ github.sha }}
             BUILD_TIME=${{ github.run_started_at }}
+            BUILD_DATE=${{ github.run_started_at }}
+            VCS_REF=${{ github.sha }}
             CGO_ENABLED=0
 
       - name: "🔍 Container Security Scan with Trivy"

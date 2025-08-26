@@ -818,3 +818,146 @@ func GetDefaultRecommendationConfig() *RecommendationConfig {
 		LatencyCriticalityWeight:       0.4,
 	}
 }
+
+// Additional helper methods (placeholder implementations)
+
+func (engine *OptimizationRecommendationEngine) loadOptimizationStrategies() {
+	// Initialize strategies map with some basic strategies
+	engine.strategies[ComponentTypeLLMProcessor] = []OptimizationStrategy{
+		{
+			Name:            "llm_batch_optimization",
+			Category:        CategoryPerformance,
+			TargetComponent: ComponentTypeLLMProcessor,
+			ApplicableScenarios: []ScenarioCondition{
+				{
+					MetricName:    "throughput",
+					Operator:      OperatorLessThan,
+					Threshold:     50.0,
+					ComponentType: ComponentTypeLLMProcessor,
+				},
+			},
+			ExpectedBenefits: &ExpectedBenefits{
+				LatencyReduction:   30.0,
+				ThroughputIncrease: 50.0,
+				ResourceSavings:    20.0,
+			},
+			ImplementationSteps: []ImplementationStep{
+				{
+					Order:           1,
+					Name:            "configure_batching",
+					Description:     "Configure request batching parameters",
+					EstimatedTime:   15 * time.Minute,
+					AutomationLevel: AutomationFull,
+				},
+			},
+		},
+	}
+}
+
+func (engine *OptimizationRecommendationEngine) generateSystemWideRecommendations(ctx context.Context, analysisResult *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
+	// Placeholder implementation
+	return []*OptimizationRecommendation{}, nil
+}
+
+func (engine *OptimizationRecommendationEngine) generateTelecomRecommendations(ctx context.Context, analysisResult *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
+	// Placeholder implementation
+	return []*OptimizationRecommendation{}, nil
+}
+
+func (engine *OptimizationRecommendationEngine) generateIssueSpecificRecommendations(ctx context.Context, issue *PerformanceIssue, analysis *ComponentAnalysis, overallResult *PerformanceAnalysisResult) []*OptimizationRecommendation {
+	// Placeholder implementation
+	return []*OptimizationRecommendation{}
+}
+
+func (engine *OptimizationRecommendationEngine) generateOpportunityRecommendations(ctx context.Context, opportunity *OptimizationOpportunity, analysis *ComponentAnalysis, overallResult *PerformanceAnalysisResult) []*OptimizationRecommendation {
+	// Placeholder implementation
+	return []*OptimizationRecommendation{}
+}
+
+func (engine *OptimizationRecommendationEngine) analyzeRecommendationInteractions(recommendations []*OptimizationRecommendation) {
+	// Placeholder implementation for conflict detection
+}
+
+func (engine *OptimizationRecommendationEngine) createImplementationPlan(strategy *OptimizationStrategy, analysis *ComponentAnalysis) *ImplementationPlan {
+	// Create a basic implementation plan
+	return &ImplementationPlan{
+		Phases: []ImplementationPhase{
+			{
+				Name:        "Planning",
+				Order:       1,
+				Duration:    30 * time.Minute,
+				Description: "Plan the optimization implementation",
+				Steps:       strategy.ImplementationSteps[:1], // First step only
+			},
+		},
+		TotalDuration:     engine.estimateDuration(strategy.ImplementationSteps),
+		RequiredResources: []RequiredResource{},
+		Dependencies:      []string{},
+		ValidationPoints:  []ValidationPoint{},
+	}
+}
+
+func (engine *OptimizationRecommendationEngine) estimateDuration(steps []ImplementationStep) time.Duration {
+	total := time.Duration(0)
+	for _, step := range steps {
+		total += step.EstimatedTime
+	}
+	return total
+}
+
+func (engine *OptimizationRecommendationEngine) estimateEffort(steps []ImplementationStep) EffortLevel {
+	if len(steps) <= 2 {
+		return EffortLow
+	} else if len(steps) <= 5 {
+		return EffortMedium
+	} else {
+		return EffortHigh
+	}
+}
+
+func (engine *OptimizationRecommendationEngine) determinePriority(impact *ExpectedImpact, risk *RiskAssessment, analysis *ComponentAnalysis) OptimizationPriority {
+	// Simple priority determination based on impact and risk
+	totalImpact := impact.LatencyReduction + impact.ThroughputIncrease + impact.EfficiencyGain
+	
+	if totalImpact > 80 && risk.OverallRiskLevel <= RiskLevelMedium {
+		return PriorityCritical
+	} else if totalImpact > 50 && risk.OverallRiskLevel <= RiskLevelMedium {
+		return PriorityHigh
+	} else if totalImpact > 25 {
+		return PriorityMedium
+	} else {
+		return PriorityLow
+	}
+}
+
+func (engine *OptimizationRecommendationEngine) determineUrgency(analysis *ComponentAnalysis, overallResult *PerformanceAnalysisResult) UrgencyLevel {
+	// Simple urgency determination
+	if analysis.HealthStatus == HealthStatusCritical {
+		return UrgencyImmediate
+	} else if analysis.HealthStatus == HealthStatusUnhealthy {
+		return UrgencyHigh
+	} else if analysis.PerformanceScore < 60 {
+		return UrgencyMedium
+	} else {
+		return UrgencyLow
+	}
+}
+
+func (engine *OptimizationRecommendationEngine) calculateConfidenceLevel(recommendation *OptimizationRecommendation, analysisResult *PerformanceAnalysisResult) float64 {
+	// Simple confidence calculation based on data quality and risk
+	baseConfidence := 0.8
+	
+	if analysisResult.DataQuality == DataQualityExcellent {
+		baseConfidence += 0.1
+	} else if analysisResult.DataQuality == DataQualityPoor {
+		baseConfidence -= 0.2
+	}
+	
+	if recommendation.RiskAssessment.OverallRiskLevel == RiskLevelLow {
+		baseConfidence += 0.05
+	} else if recommendation.RiskAssessment.OverallRiskLevel == RiskLevelHigh {
+		baseConfidence -= 0.1
+	}
+	
+	return math.Max(0.1, math.Min(1.0, baseConfidence))
+}

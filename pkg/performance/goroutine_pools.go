@@ -18,7 +18,7 @@ import (
 // EnhancedGoroutinePool provides advanced goroutine management with Go 1.24+ optimizations
 type EnhancedGoroutinePool struct {
 	workStealingQueues []*WorkStealingQueue
-	workers            []*Worker
+	workers            []*PoolWorker
 	scheduler          *Scheduler
 	affinityManager    *CPUAffinityManager
 	metrics            *PoolMetrics
@@ -55,8 +55,8 @@ type WorkStealingQueue struct {
 	mu      sync.Mutex // Only for resize operations
 }
 
-// Worker represents a worker goroutine with CPU affinity
-type Worker struct {
+// PoolWorker represents a worker goroutine with CPU affinity
+type PoolWorker struct {
 	id             int
 	queue          *WorkStealingQueue
 	localTasks     int64
@@ -159,7 +159,7 @@ func NewEnhancedGoroutinePool(config *PoolConfig) *EnhancedGoroutinePool {
 
 	pool := &EnhancedGoroutinePool{
 		workStealingQueues: make([]*WorkStealingQueue, config.MaxWorkers),
-		workers:            make([]*Worker, 0, config.MaxWorkers),
+		workers:            make([]*PoolWorker, 0, config.MaxWorkers),
 		scheduler:          NewScheduler(),
 		metrics:            &PoolMetrics{},
 		config:             config,

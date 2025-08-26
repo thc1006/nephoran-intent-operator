@@ -1,0 +1,363 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "O-RAN L Release SLA Monitoring",
+    "uid": "oran-sla-dashboard",
+    "version": 1,
+    "schemaVersion": 30,
+    "tags": ["o-ran", "sla", "kpi"],
+    "timezone": "browser",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "refresh": "30s",
+    "panels": [
+      {
+        "id": 1,
+        "title": "O-RAN Network Overview",
+        "type": "stat",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(up{job=~\".*oran.*\"})",
+            "legendFormat": "Active O-RAN Components",
+            "refId": "A"
+          },
+          {
+            "expr": "ric:e2_connections",
+            "legendFormat": "E2 Connections",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(ric:xapp_status)",
+            "legendFormat": "Active xApps",
+            "refId": "C"
+          },
+          {
+            "expr": "count(count by (slice_id) (nwdaf_slice_latency_ms))",
+            "legendFormat": "Network Slices",
+            "refId": "D"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "green", "value": 3}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 2,
+        "title": "PRB Utilization (DL/UL)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "oran:prb_usage_dl",
+            "legendFormat": "DL - Cell {{cell_id}}",
+            "refId": "A"
+          },
+          {
+            "expr": "oran:prb_usage_ul",
+            "legendFormat": "UL - Cell {{cell_id}}",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "custom": {
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "drawStyle": "line",
+              "fillOpacity": 10,
+              "gradientMode": "none",
+              "hideFrom": {"legend": false, "tooltip": false, "vis": false},
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {"type": "linear"},
+              "showPoints": "never",
+              "spanNulls": false,
+              "stacking": {"group": "A", "mode": "none"},
+              "thresholdsStyle": {"mode": "off"}
+            },
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 70},
+                {"color": "red", "value": 80}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Network Throughput",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "oran:throughput_dl_mbps",
+            "legendFormat": "DL - Cell {{cell_id}}",
+            "refId": "A"
+          },
+          {
+            "expr": "oran:throughput_ul_mbps",
+            "legendFormat": "UL - Cell {{cell_id}}",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "Mbits",
+            "min": 0
+          }
+        }
+      },
+      {
+        "id": 4,
+        "title": "Latency SLA Compliance",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "avg(oran:rtt_ms)",
+            "legendFormat": "Average RTT",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 10}
+              ]
+            },
+            "unit": "ms",
+            "min": 0,
+            "max": 20
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Energy Efficiency",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 16},
+        "targets": [
+          {
+            "expr": "oran:energy_efficiency",
+            "legendFormat": "DU {{du_id}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "short",
+            "custom": {"displayMode": "basic"}
+          }
+        }
+      },
+      {
+        "id": 6,
+        "title": "Active Users",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 8, "x": 16, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(oran:active_users)",
+            "legendFormat": "Total Active Users",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 10},
+                {"color": "green", "value": 100}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Network Slice SLA Compliance",
+        "type": "table",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "nwdaf:slice_sla_compliance",
+            "legendFormat": "{{slice_id}}",
+            "refId": "A",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 95},
+                {"color": "green", "value": 99}
+              ]
+            },
+            "unit": "percent",
+            "custom": {"displayMode": "color-background"}
+          }
+        }
+      },
+      {
+        "id": 8,
+        "title": "A1 Policy Compliance",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "ric:a1_policy_compliance",
+            "legendFormat": "{{policy_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "VES Event Processing Rate",
+        "type": "timeseries",
+        "gridPos": {"h": 6, "w": 12, "x": 0, "y": 32},
+        "targets": [
+          {
+            "expr": "rate(ves_events_processed_total[5m])",
+            "legendFormat": "Events/sec - {{event_type}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "palette-classic"},
+            "unit": "ops"
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Alert Summary",
+        "type": "table",
+        "gridPos": {"h": 6, "w": 12, "x": 12, "y": 32},
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}",
+            "legendFormat": "",
+            "refId": "A",
+            "format": "table"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 11,
+        "title": "Kubernetes Cluster Health",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 24, "x": 0, "y": 38},
+        "targets": [
+          {
+            "expr": "sum(kube_node_status_condition{condition=\"Ready\",status=\"true\"})",
+            "legendFormat": "Ready Nodes",
+            "refId": "A"
+          },
+          {
+            "expr": "sum(kube_pod_status_phase{phase=\"Running\"})",
+            "legendFormat": "Running Pods",
+            "refId": "B"
+          },
+          {
+            "expr": "sum(rate(kube_pod_container_status_restarts_total[5m]))",
+            "legendFormat": "Pod Restarts/min",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "green", "value": 3}
+              ]
+            },
+            "unit": "short"
+          }
+        }
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "namespace",
+          "type": "query",
+          "query": "label_values(kube_pod_info, namespace)",
+          "refresh": 1
+        },
+        {
+          "name": "cell_id",
+          "type": "query",
+          "query": "label_values(oran_du_prb_used_dl_total, cell_id)",
+          "refresh": 1
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "expr": "resets(prometheus_config_last_reload_success_timestamp_seconds[1h]) > 0",
+          "titleFormat": "Config Reload",
+          "textFormat": "Prometheus configuration reloaded"
+        }
+      ]
+    }
+  },
+  "overwrite": true
+}

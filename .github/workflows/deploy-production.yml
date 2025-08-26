@@ -367,19 +367,37 @@ jobs:
           --tag "nephoran/intent-operator:${{ github.sha }}" \
           --tag "nephoran/intent-operator:latest" \
           --file Dockerfile \
+          --build-arg SERVICE=manager \
+          --build-arg VERSION=${{ github.sha }} \
+          --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+          --build-arg VCS_REF=${{ github.sha }} \
           --push .
         
-        # Build component images
-        for component in llm-processor rag-api nephio-bridge oran-adaptor; do
-          if [[ -f "Dockerfile.${component}" ]]; then
-            docker buildx build \
-              --platform linux/amd64,linux/arm64 \
-              --tag "nephoran/${component}:${{ github.sha }}" \
-              --tag "nephoran/${component}:latest" \
-              --file "Dockerfile.${component}" \
-              --push .
-          fi
+        # Build component images using main Dockerfile with SERVICE argument
+        for component in llm-processor nephio-bridge oran-adaptor; do
+          echo "Building $component..."
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --tag "nephoran/${component}:${{ github.sha }}" \
+            --tag "nephoran/${component}:latest" \
+            --file Dockerfile \
+            --build-arg SERVICE=$component \
+            --build-arg VERSION=${{ github.sha }} \
+            --build-arg BUILD_DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
+            --build-arg VCS_REF=${{ github.sha }} \
+            --push .
         done
+        
+        # Build RAG API separately if it has its own Dockerfile
+        if [[ -f "rag-python/Dockerfile" ]]; then
+          echo "Building rag-api..."
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --tag "nephoran/rag-api:${{ github.sha }}" \
+            --tag "nephoran/rag-api:latest" \
+            --file "rag-python/Dockerfile" \
+            --push ./rag-python
+        fi
     
     - name: Security Scan Images
       run: |

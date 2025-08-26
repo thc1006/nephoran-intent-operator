@@ -35,7 +35,6 @@ func SmartEndpointUsageExample() error {
 	processingConfig := &llm.ProcessingConfig{
 		EnableRAG:       true,
 		RAGAPIURL:       "http://rag-api:5001", // Base URL - will auto-detect to /process
-		RAGTimeout:      30 * time.Second,
 		QueryTimeout:    30 * time.Second,
 		FallbackToBase:  true,
 		EnableStreaming: true,

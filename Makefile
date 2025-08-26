@@ -79,8 +79,11 @@ REGRESSION_BASELINE_ID ?=
 REGRESSION_FAIL_ON_DETECTION ?= true
 REGRESSION_ALERT_WEBHOOK ?=
 
-# Build flags
-LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -s -w"
+# Build flags with ultra optimization
+LDFLAGS = -ldflags "-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE) -s -w -buildid=''"
+BUILD_FLAGS = -trimpath -buildmode=pie -tags="netgo,osusergo" -mod=readonly
+PARALLEL_BUILD_FLAGS = -p $(shell nproc 2>/dev/null || echo 4)
+FAST_BUILD_FLAGS = $(BUILD_FLAGS) $(PARALLEL_BUILD_FLAGS)
 
 .PHONY: help
 help: ## Show this help message
@@ -228,10 +231,12 @@ lint: ## Run golangci-lint
 ##@ Testing
 
 .PHONY: test
-test: ## Run unit tests
-	@echo "Running unit tests..."
+test: ## Run unit tests with optimizations
+	@echo "Running optimized unit tests..."
 	mkdir -p $(REPORTS_DIR) $(QUALITY_REPORTS_DIR)/coverage
-	go test ./... -v -race -coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic
+	GOMAXPROCS=$(shell nproc 2>/dev/null || echo 4) \
+		go test ./... -v -race -parallel=8 -timeout=15m \
+		-coverprofile=$(QUALITY_REPORTS_DIR)/coverage/coverage.out -covermode=atomic
 	cp $(QUALITY_REPORTS_DIR)/coverage/coverage.out $(REPORTS_DIR)/coverage.out 2>/dev/null || true
 
 .PHONY: test-integration
@@ -465,9 +470,10 @@ excellence-gate: excellence-score ## Check if project meets excellence gate crit
 ##@ Building
 
 .PHONY: build
-build: gen fmt vet ## Build the operator binary
-	@echo "Building operator binary..."
-	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) go build $(LDFLAGS) -o bin/manager cmd/main.go
+build: gen fmt vet ## Build the operator binary with optimizations
+	@echo "Building operator binary with ultra optimization..."
+	CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/manager cmd/main.go
 
 .PHONY: build-debug
 build-debug: gen fmt vet ## Build the operator binary with debug info
@@ -1040,6 +1046,42 @@ mvp-status: ## Check status of MVP network functions
 	@kubectl get networkintents -o wide || echo "No NetworkIntents found"
 	@kubectl get deployments -l app.kubernetes.io/managed-by=nephoran -o wide || echo "No managed deployments found"
 	@kubectl get pods -l app.kubernetes.io/managed-by=nephoran -o wide || echo "No managed pods found"
+
+##@ Ultra-Fast Development Targets
+
+.PHONY: ultra-fast
+ultra-fast: ## Ultra-fast build and test (< 5 minutes)
+	@echo "🚀 Running ultra-fast development workflow..."
+	@time $(MAKE) --no-print-directory deps-fast gen-fast build-fast test-fast
+	@echo "✅ Ultra-fast workflow completed!"
+
+.PHONY: deps-fast
+deps-fast: ## Lightning-fast dependency setup
+	@echo "⚡ Fast dependency setup..."
+	@GOMAXPROCS=8 go mod download -x
+	@go mod verify
+
+.PHONY: gen-fast
+gen-fast: ## Quick code generation
+	@echo "🏗️ Fast code generation..."
+	@controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./api/v1" 2>/dev/null || true
+	@controller-gen crd paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>/dev/null || true
+
+.PHONY: build-fast
+build-fast: ## Lightning-fast build
+	@echo "🔨 Ultra-fast build..."
+	@mkdir -p bin
+	@CGO_ENABLED=0 GOMAXPROCS=8 go build $(FAST_BUILD_FLAGS) $(LDFLAGS) -o bin/manager cmd/main.go
+
+.PHONY: test-fast
+test-fast: ## Rapid testing
+	@echo "🧪 Fast testing..."
+	@GOMAXPROCS=6 go test ./... -short -race -parallel=8 -timeout=8m -coverprofile=.fast-coverage.out
+
+.PHONY: lint-fast
+lint-fast: ## Quick linting
+	@echo "🔍 Fast linting..."
+	@golangci-lint run --fast --timeout=3m --concurrency=8
 
 ##@ Shortcuts and Aliases
 

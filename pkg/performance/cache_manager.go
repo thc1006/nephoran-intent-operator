@@ -332,7 +332,7 @@ type Serializer interface {
 // TTLManager manages time-to-live for cache entries
 type TTLManager struct {
 	entries        map[string]*TTLEntry
-	expiryQueue    *PriorityQueue
+	expiryQueue    *TTLPriorityQueue
 	cleanupTicker  *time.Ticker
 	refreshAhead   bool
 	refreshThreshold time.Duration
@@ -347,8 +347,8 @@ type TTLEntry struct {
 	Callback  func(string)
 }
 
-// PriorityQueue for TTL management
-type PriorityQueue struct {
+// TTLPriorityQueue for TTL management
+type TTLPriorityQueue struct {
 	items []*TTLEntry
 	mu    sync.Mutex
 }

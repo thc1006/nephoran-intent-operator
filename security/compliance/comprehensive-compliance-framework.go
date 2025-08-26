@@ -133,6 +133,27 @@ type APIServerCISChecks struct {
 // NIST function types (stub implementations - detailed versions follow)
 // Note: Detailed versions are defined below
 
+// NIST Framework Functions
+type NISTIdentifyFunction struct {
+	Categories map[string]bool `json:"categories"`
+}
+
+type NISTProtectFunction struct {
+	Categories map[string]bool `json:"categories"`
+}
+
+type NISTDetectFunction struct {
+	Categories map[string]bool `json:"categories"`
+}
+
+type NISTRespondFunction struct {
+	Categories map[string]bool `json:"categories"`
+}
+
+type NISTRecoverFunction struct {
+	Categories map[string]bool `json:"categories"`
+}
+
 type NISTCybersecurityFramework struct {
 	identifyFunction *NISTIdentifyFunction
 	protectFunction  *NISTProtectFunction

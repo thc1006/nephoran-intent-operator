@@ -123,7 +123,7 @@ func NewLLMProcessorHandlerWithMetrics(
 	}
 }
 
-// ProcessIntentHandler handles intent processing requests
+// ProcessIntentHandler handles intent processing requests with optimized concurrent processing
 func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *http.Request) {
 	// Start timing for metrics
 	handlerStartTime := time.Now()
@@ -139,6 +139,15 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 			duration,
 		)
 	}()
+
+	// Early context cancellation check
+	select {
+	case <-r.Context().Done():
+		statusCode = http.StatusRequestTimeout
+		h.writeErrorResponse(w, "Request cancelled", statusCode, "")
+		return
+	default:
+	}
 
 	if r.Method != http.MethodPost {
 		statusCode = http.StatusMethodNotAllowed
@@ -166,42 +175,77 @@ func (h *LLMProcessorHandler) ProcessIntentHandler(w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Process intent with context cancellation support
+	// Process intent with context cancellation support and buffered channels
 	ctx, cancel := context.WithTimeout(r.Context(), h.config.RequestTimeout)
 	defer cancel()
 
-	result, err := h.processor.ProcessIntent(ctx, req.Intent)
-	if err != nil {
-		h.logger.Error("Failed to process intent",
-			slog.String("error", err.Error()),
-			slog.String("intent", req.Intent),
+	// Use buffered channel for concurrent processing
+	resultCh := make(chan struct {
+		result string
+		err    error
+	}, 1)
+
+	go func() {
+		defer close(resultCh)
+		
+		result, err := h.processor.ProcessIntent(ctx, req.Intent)
+		
+		select {
+		case resultCh <- struct {
+			result string
+			err    error
+		}{result: result, err: err}:
+		case <-ctx.Done():
+			// Context cancelled, don't send result
+		}
+	}()
+
+	// Wait for result or context cancellation
+	select {
+	case res := <-resultCh:
+		if res.err != nil {
+			h.logger.Error("Failed to process intent",
+				slog.String("error", res.err.Error()),
+				slog.String("intent", req.Intent),
+			)
+			statusCode = http.StatusInternalServerError
+			response := ProcessIntentResponse{
+				Status:         "error",
+				Error:          res.err.Error(),
+				RequestID:      reqID,
+				ServiceVersion: h.config.ServiceVersion,
+				ProcessingTime: time.Since(startTime).String(),
+			}
+			h.writeJSONResponse(w, response, statusCode)
+			return
+		}
+
+		response := ProcessIntentResponse{
+			Result:         res.result,
+			Status:         "success",
+			ProcessingTime: time.Since(startTime).String(),
+			RequestID:      reqID,
+			ServiceVersion: h.config.ServiceVersion,
+		}
+
+		h.writeJSONResponse(w, response, http.StatusOK)
+
+		h.logger.Info("Intent processed successfully",
+			slog.String("request_id", reqID),
+			slog.Duration("processing_time", time.Since(startTime)),
 		)
-		statusCode = http.StatusInternalServerError
+	case <-ctx.Done():
+		statusCode = http.StatusRequestTimeout
 		response := ProcessIntentResponse{
 			Status:         "error",
-			Error:          err.Error(),
+			Error:          "Request timeout",
 			RequestID:      reqID,
 			ServiceVersion: h.config.ServiceVersion,
 			ProcessingTime: time.Since(startTime).String(),
 		}
 		h.writeJSONResponse(w, response, statusCode)
-		return
+		h.logger.Warn("Intent processing timed out", slog.String("request_id", reqID))
 	}
-
-	response := ProcessIntentResponse{
-		Result:         result,
-		Status:         "success",
-		ProcessingTime: time.Since(startTime).String(),
-		RequestID:      reqID,
-		ServiceVersion: h.config.ServiceVersion,
-	}
-
-	h.writeJSONResponse(w, response, http.StatusOK)
-
-	h.logger.Info("Intent processed successfully",
-		slog.String("request_id", reqID),
-		slog.Duration("processing_time", time.Since(startTime)),
-	)
 }
 
 // StatusHandler returns service status information
@@ -441,25 +485,63 @@ func (h *LLMProcessorHandler) CircuitBreakerStatusHandler(w http.ResponseWriter,
 	h.writeJSONResponse(w, stats, http.StatusOK)
 }
 
-// ProcessIntent processes an intent using the configured processor
+// ProcessIntent processes an intent using the configured processor with performance optimizations
 func (p *IntentProcessor) ProcessIntent(ctx context.Context, intent string) (string, error) {
 	p.Logger.Debug("Processing intent with enhanced client", slog.String("intent", intent))
 
-	// Use circuit breaker for fault tolerance
-	operation := func(ctx context.Context) (interface{}, error) {
-		// Try RAG-enhanced processing first if available
-		if p.RAGEnhancedClient != nil {
-			// RAG-enhanced processing would go here if implemented
-			p.Logger.Info("RAG-enhanced processing not yet implemented, using base client")
-		}
+	// Check for context cancellation early
+	select {
+	case <-ctx.Done():
+		return "", fmt.Errorf("intent processing cancelled: %w", ctx.Err())
+	default:
+	}
 
-		// Fallback to base LLM client
-		return p.LLMClient.ProcessIntent(ctx, intent)
+	// Use circuit breaker for fault tolerance with optimized operation
+	operation := func(ctx context.Context) (interface{}, error) {
+		// Create a channel for concurrent processing results
+		resultCh := make(chan struct {
+			result string
+			err    error
+		}, 1)
+
+		// Start processing in a goroutine to enable cancellation
+		go func() {
+			defer close(resultCh)
+			
+			// Try RAG-enhanced processing first if available
+			if p.RAGEnhancedClient != nil {
+				// RAG-enhanced processing would go here if implemented
+				p.Logger.Info("RAG-enhanced processing not yet implemented, using base client")
+			}
+
+			// Process with base LLM client
+			result, err := p.LLMClient.ProcessIntent(ctx, intent)
+			
+			select {
+			case resultCh <- struct {
+				result string
+				err    error
+			}{result: result, err: err}:
+			case <-ctx.Done():
+				// Context cancelled, don't send result
+			}
+		}()
+
+		// Wait for result or context cancellation
+		select {
+		case res := <-resultCh:
+			if res.err != nil {
+				return "", fmt.Errorf("LLM processing failed: %w", res.err)
+			}
+			return res.result, nil
+		case <-ctx.Done():
+			return "", fmt.Errorf("LLM processing cancelled: %w", ctx.Err())
+		}
 	}
 
 	result, err := p.CircuitBreaker.Execute(ctx, operation)
 	if err != nil {
-		return "", fmt.Errorf("LLM processing failed: %w", err)
+		return "", err
 	}
 
 	return result.(string), nil

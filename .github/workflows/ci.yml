@@ -9,7 +9,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/integrate/mvp' }}
 
 permissions:
   contents: read
@@ -18,6 +18,12 @@ env:
   # Go version now read from go.mod in all jobs for consistency
   REGISTRY: ghcr.io
   IMAGE_NAME: nephoran-intent-operator
+  # Advanced caching and performance
+  DOCKER_BUILDKIT: 1
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+  GOPRIVATE: github.com/thc1006/*
+  # Multi-stage build optimization
+  GO_BUILD_CACHE_KEY_SUFFIX: v2
 
 jobs:
   # Pre-validation checks with path filters

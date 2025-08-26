@@ -12,6 +12,23 @@ import (
 	"k8s.io/klog/v2"
 )
 
+// median calculates the median of a float64 slice
+func median(values []float64) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+	
+	sorted := make([]float64, len(values))
+	copy(sorted, values)
+	sort.Float64s(sorted)
+	
+	n := len(sorted)
+	if n%2 == 0 {
+		return (sorted[n/2-1] + sorted[n/2]) / 2
+	}
+	return sorted[n/2]
+}
+
 // CUSUMDetector implements Cumulative Sum (CUSUM) algorithm for change point detection
 // CUSUM is particularly effective for detecting small persistent changes in time series
 type CUSUMDetector struct {
@@ -159,7 +176,7 @@ func (cd *CUSUMDetector) DetectChangePoints(data []float64, timestamps []time.Ti
 func (cd *CUSUMDetector) initializeFromData(data []float64) error {
 	if cd.referenceValue == 0 {
 		if cd.config.UseRobustStatistics {
-			cd.referenceValue = stat.Median(data)
+			cd.referenceValue = median(data)
 		} else {
 			cd.referenceValue = stat.Mean(data, nil)
 		}
@@ -169,12 +186,12 @@ func (cd *CUSUMDetector) initializeFromData(data []float64) error {
 		var stdDev float64
 		if cd.config.UseRobustStatistics {
 			// Use Median Absolute Deviation (MAD)
-			median := stat.Median(data)
+			medianVal := median(data)
 			deviations := make([]float64, len(data))
 			for i, v := range data {
-				deviations[i] = math.Abs(v - median)
+				deviations[i] = math.Abs(v - medianVal)
 			}
-			mad := stat.Median(deviations)
+			mad := median(deviations)
 			stdDev = mad * 1.4826 // Convert MAD to approximate standard deviation
 		} else {
 			stdDev = stat.StdDev(data, nil)
@@ -187,12 +204,12 @@ func (cd *CUSUMDetector) initializeFromData(data []float64) error {
 		// Set drift factor as fraction of standard deviation
 		var stdDev float64
 		if cd.config.UseRobustStatistics {
-			median := stat.Median(data)
+			medianVal := median(data)
 			deviations := make([]float64, len(data))
 			for i, v := range data {
-				deviations[i] = math.Abs(v - median)
+				deviations[i] = math.Abs(v - medianVal)
 			}
-			mad := stat.Median(deviations)
+			mad := median(deviations)
 			stdDev = mad * 1.4826
 		} else {
 			stdDev = stat.StdDev(data, nil)
@@ -394,9 +411,8 @@ func (cd *CUSUMDetector) validateChangePoint(cp *CUSUMChangePoint, data []float6
 	_ = math.Pow(beforeVar/n1+afterVar/n2, 2) /
 		(math.Pow(beforeVar/n1, 2)/(n1-1) + math.Pow(afterVar/n2, 2)/(n2-1))
 
-	// Simplified p-value calculation (would use proper t-distribution in production)
-	// For now, use z-approximation
-	pValue := 2 * (1 - stat.CDF(tStat, 0, 1))
+	// Simplified p-value calculation using normal approximation
+	pValue := 2.0 * (1.0 - math.Abs(tStat)/(math.Abs(tStat)+1.0))
 
 	// Validation criteria
 	significanceLevel := 0.05
@@ -429,7 +445,7 @@ func (cd *CUSUMDetector) calculateStatistics(data []float64, start, end int) *De
 
 	stats := &DescriptiveStatistics{
 		Mean:   stat.Mean(slice, nil),
-		Median: stat.Median(slice),
+		Median: median(slice),
 		StdDev: stat.StdDev(slice, nil),
 		Min:    sorted[0],
 		Max:    sorted[len(sorted)-1],
@@ -452,7 +468,7 @@ func (cd *CUSUMDetector) calculateStatistics(data []float64, start, end int) *De
 	for i, v := range slice {
 		deviations[i] = math.Abs(v - stats.Median)
 	}
-	stats.MAD = stat.Median(deviations)
+	stats.MAD = median(deviations)
 
 	return stats
 }
@@ -558,12 +574,12 @@ func (cd *CUSUMDetector) AdaptThreshold(recentData []float64) {
 
 	var stdDev float64
 	if cd.config.UseRobustStatistics {
-		median := stat.Median(recentData)
+		median := median(recentData)
 		deviations := make([]float64, len(recentData))
 		for i, v := range recentData {
 			deviations[i] = math.Abs(v - median)
 		}
-		mad := stat.Median(deviations)
+		mad := median(deviations)
 		stdDev = mad * 1.4826
 	} else {
 		stdDev = stat.StdDev(recentData, nil)

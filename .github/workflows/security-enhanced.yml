@@ -546,6 +546,11 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           load: true
+          build-args: |
+            SERVICE=manager
+            VERSION=v2.0.0-security-scan
+            BUILD_DATE=${{ github.event.head_commit.timestamp || github.run_id }}
+            VCS_REF=${{ github.sha }}
           
       - name: "Run Trivy Scanner"
         uses: aquasecurity/trivy-action@master

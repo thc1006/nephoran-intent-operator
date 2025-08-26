@@ -10,14 +10,13 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 	"github.com/open-policy-agent/opa/storage"
 	"github.com/open-policy-agent/opa/storage/inmem"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 // OPACompliancePolicyEngine implements comprehensive policy enforcement for all compliance frameworks
 type OPACompliancePolicyEngine struct {
 	opaStore         storage.Store
-	regoPolicies     map[string]*rego.PreparedEvalQuery
+	regoPolicies     map[string]*rego.PreparedQuery
 	admissionWebhook *AdmissionWebhookController
 	networkPolicies  *NetworkPolicyEnforcer
 	rbacPolicies     *RBACPolicyEnforcer

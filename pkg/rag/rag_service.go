@@ -245,7 +245,7 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		rs.logger.Debug("Cache miss for RAG query", "cache_key", cacheKey)
 	}
 
-	// Step 1: Retrieve relevant documents
+	// Step 1: Retrieve relevant documents with concurrent processing
 	retrievalStart := time.Now()
 	searchQuery := &SearchQuery{
 		Query:         request.Query,
@@ -258,37 +258,131 @@ func (rs *RAGService) ProcessQuery(ctx context.Context, request *RAGRequest) (*R
 		ExpandQuery:   rs.config.EnableQueryExpansion,
 	}
 
-	searchResponse, err := rs.weaviateClient.Search(ctx, searchQuery)
-	if err != nil {
+	// Use buffered channel for concurrent search processing
+	searchResultCh := make(chan struct {
+		response *SearchResponse
+		err      error
+	}, 1)
+
+	go func() {
+		defer close(searchResultCh)
+		
+		searchResponse, err := rs.weaviateClient.Search(ctx, searchQuery)
+		
+		select {
+		case searchResultCh <- struct {
+			response *SearchResponse
+			err      error
+		}{response: searchResponse, err: err}:
+		case <-ctx.Done():
+			// Context cancelled, don't send result
+		}
+	}()
+
+	// Wait for search result or cancellation
+	var searchResponse *SearchResponse
+	select {
+	case result := <-searchResultCh:
+		if result.err != nil {
+			rs.updateMetrics(func(m *RAGMetrics) {
+				m.FailedQueries++
+			})
+			return nil, eb.ExternalServiceError("weaviate", result.err).
+				WithMetadata("search_query", request.Query).
+				WithMetadata("max_results", request.MaxResults)
+		}
+		searchResponse = result.response
+	case <-ctx.Done():
 		rs.updateMetrics(func(m *RAGMetrics) {
 			m.FailedQueries++
 		})
-
-		// Check if context was cancelled during search
-		select {
-		case <-ctx.Done():
-			return nil, eb.ContextCancelledError(ctx)
-		default:
-		}
-
-		return nil, eb.ExternalServiceError("weaviate", err).
-			WithMetadata("search_query", request.Query).
-			WithMetadata("max_results", request.MaxResults)
+		return nil, eb.ContextCancelledError(ctx)
 	}
 	retrievalTime := time.Since(retrievalStart)
 
-	// Step 2: Convert local results to shared results and prepare context
-	sharedResults := make([]*types.SearchResult, len(searchResponse.Results))
-	for i, result := range searchResponse.Results {
-		sharedResults[i] = &types.SearchResult{
-			Document: &types.TelecomDocument{
-				ID:      result.Document.ID,
-				Content: result.Document.Content,
-				Source:  result.Document.Source,
-			},
-			Score: result.Score,
+	// Step 2: Convert local results to shared results with concurrent processing
+	resultCount := len(searchResponse.Results)
+	sharedResults := make([]*types.SearchResult, resultCount)
+	
+	// Use worker pool for concurrent document conversion if we have multiple results
+	if resultCount > 1 {
+		// Create buffered channel to limit concurrent workers
+		const maxWorkers = 5
+		workerCount := resultCount
+		if workerCount > maxWorkers {
+			workerCount = maxWorkers
+		}
+		
+		workCh := make(chan int, resultCount)
+		resultCh := make(chan struct {
+			index  int
+			result *types.SearchResult
+		}, resultCount)
+		
+		// Start workers
+		for w := 0; w < workerCount; w++ {
+			go func() {
+				for i := range workCh {
+					result := searchResponse.Results[i]
+					sharedResult := &types.SearchResult{
+						Document: &types.TelecomDocument{
+							ID:      result.Document.ID,
+							Content: result.Document.Content,
+							Source:  result.Document.Source,
+						},
+						Score: result.Score,
+					}
+					
+					select {
+					case resultCh <- struct {
+						index  int
+						result *types.SearchResult
+					}{index: i, result: sharedResult}:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}()
+		}
+		
+		// Send work
+		go func() {
+			defer close(workCh)
+			for i := range searchResponse.Results {
+				select {
+				case workCh <- i:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}()
+		
+		// Collect results
+		for i := 0; i < resultCount; i++ {
+			select {
+			case result := <-resultCh:
+				sharedResults[result.index] = result.result
+			case <-ctx.Done():
+				rs.updateMetrics(func(m *RAGMetrics) {
+					m.FailedQueries++
+				})
+				return nil, eb.ContextCancelledError(ctx)
+			}
+		}
+	} else {
+		// Single result - process directly
+		for i, result := range searchResponse.Results {
+			sharedResults[i] = &types.SearchResult{
+				Document: &types.TelecomDocument{
+					ID:      result.Document.ID,
+					Content: result.Document.Content,
+					Source:  result.Document.Source,
+				},
+				Score: result.Score,
+			}
 		}
 	}
+	
 	context, contextMetadata := rs.prepareContext(sharedResults, request)
 
 	// Step 3: Generate response using LLM

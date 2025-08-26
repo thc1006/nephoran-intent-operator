@@ -434,49 +434,6 @@ type StreamMessage struct {
 	Source    string      `json:"source"`
 }
 
-// BenchmarkRunner runs performance benchmarks
-type BenchmarkRunner struct {
-	config     *BenchmarkConfig
-	benchmarks map[string]*Benchmark
-	results    *BenchmarkResults
-	mu         sync.RWMutex
-}
-
-// BenchmarkConfig contains benchmark configuration
-type BenchmarkConfig struct {
-	Enabled          bool
-	RunInterval      time.Duration
-	ConcurrentTests  int
-	TestDuration     time.Duration
-	WarmupDuration   time.Duration
-	CooldownDuration time.Duration
-}
-
-// Benchmark represents a performance benchmark
-type Benchmark struct {
-	Name         string
-	Description  string
-	Category     string
-	TestFunc     func() BenchmarkResult
-	Enabled      bool
-	LastRun      time.Time
-	RunCount     int64
-	BestResult   BenchmarkResult
-	WorstResult  BenchmarkResult
-	AverageResult BenchmarkResult
-}
-
-// BenchmarkResult contains benchmark results
-type BenchmarkResult struct {
-	Duration     time.Duration
-	TPS          float64 // Transactions per second
-	Latency      LatencyMetrics
-	Memory       MemoryMetrics
-	CPU          CPUMetrics
-	Errors       int64
-	Success      bool
-	Timestamp    time.Time
-}
 
 // LatencyMetrics contains latency measurements
 type LatencyMetrics struct {
@@ -510,23 +467,6 @@ type CPUMetrics struct {
 	NumGoroutines int
 }
 
-// BenchmarkResults stores benchmark results
-type BenchmarkResults struct {
-	Results    map[string][]BenchmarkResult
-	Summary    BenchmarkSummary
-	GeneratedAt time.Time
-	mu         sync.RWMutex
-}
-
-// BenchmarkSummary contains summary statistics
-type BenchmarkSummary struct {
-	TotalTests   int
-	PassedTests  int
-	FailedTests  int
-	AverageScore float64
-	Grade        string
-	Trends       map[string]string // "improving", "stable", "degrading"
-}
 
 // NewPerformanceMonitor creates a new performance monitor
 func NewPerformanceMonitor(config *MonitoringConfig) (*PerformanceMonitor, error) {
@@ -1476,9 +1416,6 @@ func NewRealTimeStreamer(config *MonitoringConfig) *RealTimeStreamer {
 	return &RealTimeStreamer{config: config, connections: make(map[string]*StreamConnection)}
 }
 
-func NewBenchmarkRunner(config *BenchmarkConfig) *BenchmarkRunner {
-	return &BenchmarkRunner{config: config, benchmarks: make(map[string]*Benchmark)}
-}
 
 // Placeholder methods for component interfaces
 func (dm *DashboardManager) GetMainDashboard() *Dashboard { return &Dashboard{Name: "main"} }

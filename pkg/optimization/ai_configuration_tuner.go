@@ -447,18 +447,18 @@ type Observation struct {
 
 // AcquisitionOptimizer optimizes the acquisition function
 type AcquisitionOptimizer struct {
-	strategy  OptimizationStrategy
+	strategy  AcquisitionOptimizationStrategy
 	maxEvals  int
 	tolerance float64
 }
 
-// OptimizationStrategy defines strategies for acquisition optimization
-type OptimizationStrategy string
+// AcquisitionOptimizationStrategy defines strategies for acquisition optimization
+type AcquisitionOptimizationStrategy string
 
 const (
-	OptimizationStrategyLBFGS                 OptimizationStrategy = "lbfgs"
-	OptimizationStrategyDifferentialEvolution OptimizationStrategy = "differential_evolution"
-	OptimizationStrategyDirectSearch          OptimizationStrategy = "direct_search"
+	AcquisitionOptimizationStrategyLBFGS                 AcquisitionOptimizationStrategy = "lbfgs"
+	AcquisitionOptimizationStrategyDifferentialEvolution AcquisitionOptimizationStrategy = "differential_evolution"
+	AcquisitionOptimizationStrategyDirectSearch          AcquisitionOptimizationStrategy = "direct_search"
 )
 
 // NewAIConfigurationTuner creates a new AI configuration tuner
@@ -578,7 +578,7 @@ func (tuner *AIConfigurationTuner) tuningLoop(ctx context.Context) {
 
 		// Validate configuration against safety constraints
 		if !tuner.safetyConstraints.ValidateConfiguration(candidateConfig) {
-			tuner.logger.Warn("Configuration rejected by safety constraints", "iteration", iteration)
+			tuner.logger.Info("Configuration rejected by safety constraints", "iteration", iteration)
 			continue
 		}
 
@@ -691,7 +691,7 @@ func (tuner *AIConfigurationTuner) safetyMonitoringLoop(ctx context.Context) {
 
 				// Trigger rollback if necessary
 				if tuner.shouldTriggerRollback() {
-					tuner.logger.Warn("Triggering emergency rollback")
+					tuner.logger.Info("Triggering emergency rollback")
 					if err := tuner.rollbackManager.EmergencyRollback(ctx); err != nil {
 						tuner.logger.Error(err, "Emergency rollback failed")
 					}

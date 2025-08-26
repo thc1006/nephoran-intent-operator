@@ -6,7 +6,16 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	nephv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
+)
+
+// CNFFunction represents a CNF function type for performance tracking
+type CNFFunction string
+
+const (
+	CNFFunctionCUCP CNFFunction = "cu-cp"
+	CNFFunctionCUUP CNFFunction = "cu-up"
+	CNFFunctionDU   CNFFunction = "du"
+	CNFFunctionRIC  CNFFunction = "ric"
 )
 
 // MetricsCollector collects and manages performance metrics
@@ -85,7 +94,7 @@ func (mc *MetricsCollector) calculateCPUUsage() float64 {
 }
 
 // RecordCNFDeployment records a CNF deployment metric
-func (mc *MetricsCollector) RecordCNFDeployment(function nephv1.CNFFunction, duration time.Duration) {
+func (mc *MetricsCollector) RecordCNFDeployment(function CNFFunction, duration time.Duration) {
 	mc.cnfMutex.Lock()
 	defer mc.cnfMutex.Unlock()
 	

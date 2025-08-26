@@ -28,7 +28,7 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"k8s.io/apimachinery/pkg/api/resource"
+	resourcepkg "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -789,7 +789,7 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 							}
 							if resourceConfig.CPU != "" {
 								// Set limits to 2x requests for CPU
-								if cpu, err := resource.ParseQuantity(resourceConfig.CPU); err == nil {
+								if cpu, err := resourcepkg.ParseQuantity(resourceConfig.CPU); err == nil {
 									cpu.Add(cpu) // Double it
 									limits["cpu"] = cpu.String()
 								} else {
@@ -798,8 +798,8 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 							}
 							if resourceConfig.Memory != "" {
 								// Set limits to 1.5x requests for memory
-								if mem, err := resource.ParseQuantity(resourceConfig.Memory); err == nil {
-									mem.Add(resource.Quantity(mem.Value() / 2)) // 1.5x
+								if mem, err := resourcepkg.ParseQuantity(resourceConfig.Memory); err == nil {
+									mem.Add(*resourcepkg.NewQuantity(mem.Value()/2, resourcepkg.DecimalSI)) // 1.5x
 									limits["memory"] = mem.String()
 								} else {
 									limits["memory"] = resourceConfig.Memory
@@ -1022,14 +1022,4 @@ func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *Network
 			},
 		},
 	}
-}
-
-// ParseQuantity parses a resource quantity string
-func (r *porch.KRMResource) ParseQuantity(s string) (resource.Quantity, error) {
-	return resource.ParseQuantity(s)
-}
-
-// Quantity creates a resource quantity
-func (r *porch.KRMResource) Quantity(value int64) resource.Quantity {
-	return *resource.NewQuantity(value, resource.DecimalSI)
 }

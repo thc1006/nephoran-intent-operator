@@ -773,7 +773,7 @@ func (bre *BlueprintRenderingEngine) applyCriticalPriorityOptimizations(rendered
 func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered *RenderedBlueprint) error {
 	// Generate KRM resource files
 	for i, resource := range rendered.KRMResources {
-		filename := fmt.Sprintf("%s-%s.yaml", strings.ToLower(resource.Kind), i)
+		filename := fmt.Sprintf("%s-%d.yaml", strings.ToLower(resource.Kind), i)
 		content, err := yaml.Marshal(resource)
 		if err != nil {
 			return fmt.Errorf("failed to marshal KRM resource to YAML: %w", err)

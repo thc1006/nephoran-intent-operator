@@ -448,6 +448,7 @@ type KRMResource struct {
 	Spec       map[string]interface{} `json:"spec,omitempty"`
 	Status     map[string]interface{} `json:"status,omitempty"`
 	Data       map[string]interface{} `json:"data,omitempty"`
+	Type       string                 `json:"type,omitempty"` // For resources like Secret, ConfigMap
 }
 
 // ResourceSelector defines resource selection criteria
@@ -466,6 +467,34 @@ type ValidationResult struct {
 	Valid    bool              `json:"valid"`
 	Errors   []ValidationError `json:"errors,omitempty"`
 	Warnings []ValidationError `json:"warnings,omitempty"`
+}
+
+// TransformationRequest contains resource transformation request
+type TransformationRequest struct {
+	Resources []KRMResource              `json:"resources"`
+	Config    map[string]interface{}     `json:"config,omitempty"`
+	Metadata  map[string]interface{}     `json:"metadata,omitempty"`
+}
+
+// TransformationResponse contains resource transformation response
+type TransformationResponse struct {
+	Resources []KRMResource              `json:"resources"`
+	Results   []FunctionResult           `json:"results,omitempty"`
+	Metadata  map[string]interface{}     `json:"metadata,omitempty"`
+}
+
+// ORANValidationRequest contains O-RAN compliance validation request
+type ORANValidationRequest struct {
+	Resources []KRMResource              `json:"resources"`
+	Config    map[string]interface{}     `json:"config,omitempty"`
+	Metadata  map[string]interface{}     `json:"metadata,omitempty"`
+}
+
+// ORANValidationResponse contains O-RAN compliance validation response
+type ORANValidationResponse struct {
+	Valid     bool                       `json:"valid"`
+	Results   []ValidationResult         `json:"results,omitempty"`
+	Metadata  map[string]interface{}     `json:"metadata,omitempty"`
 }
 
 // ValidationError represents a validation error

@@ -379,27 +379,7 @@ type RAGMetrics struct {
 	QueryEnhancement bool `json:"queryEnhancement"`
 }
 
-// ObjectReference represents a reference to a Kubernetes object
-type ObjectReference struct {
-	// APIVersion of the referent
-	// +optional
-	APIVersion string `json:"apiVersion,omitempty"`
-	// Kind of the referent
-	// +kubebuilder:validation:Required
-	Kind string `json:"kind"`
-	// Name of the referent
-	// +kubebuilder:validation:Required
-	Name string `json:"name"`
-	// Namespace of the referent
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-	// UID of the referent
-	// +optional
-	UID string `json:"uid,omitempty"`
-	// ResourceVersion of the referent
-	// +optional
-	ResourceVersion string `json:"resourceVersion,omitempty"`
-}
+// Note: ObjectReference is defined in common_types.go
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

@@ -22,20 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// Priority defines the priority level for disaster recovery operations
-// +kubebuilder:validation:Enum=low;medium;high;critical
-type Priority string
-
-const (
-	// PriorityLow indicates low priority operations
-	PriorityLow Priority = "low"
-	// PriorityMedium indicates medium priority operations
-	PriorityMedium Priority = "medium"
-	// PriorityHigh indicates high priority operations
-	PriorityHigh Priority = "high"
-	// PriorityCritical indicates critical priority operations
-	PriorityCritical Priority = "critical"
-)
+// Note: Priority types are defined in common_types.go
 
 // TargetComponent defines a component targeted for disaster recovery
 type TargetComponent struct {

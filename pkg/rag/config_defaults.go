@@ -229,27 +229,27 @@ func getDefaultRedisCacheConfig() *RedisCacheConfig {
 		Address:            "localhost:6379",
 		Password:           "",
 		Database:           0,
-		PoolSize:           10,
-		MinIdleConns:       2,
-		MaxRetries:         3,
-		DialTimeout:        5 * time.Second,
-		ReadTimeout:        3 * time.Second,
-		WriteTimeout:       3 * time.Second,
-		IdleTimeout:        5 * time.Minute,
+		PoolSize:           20,               // Doubled for higher concurrency
+		MinIdleConns:       5,                // More idle connections
+		MaxRetries:         5,                // More retries for reliability
+		DialTimeout:        3 * time.Second,  // Faster connection setup
+		ReadTimeout:        1 * time.Second,  // Faster reads
+		WriteTimeout:       1 * time.Second,  // Faster writes
+		IdleTimeout:        10 * time.Minute, // Longer idle timeout
 		DefaultTTL:         24 * time.Hour,
 		MaxKeyLength:       250,
 		EnableMetrics:      true,
 		KeyPrefix:          "nephoran:rag:",
-		EmbeddingTTL:       24 * time.Hour,
+		EmbeddingTTL:       48 * time.Hour,     // Longer for expensive embeddings
 		DocumentTTL:        7 * 24 * time.Hour, // 7 days
-		QueryResultTTL:     1 * time.Hour,
-		ContextTTL:         30 * time.Minute,
+		QueryResultTTL:     2 * time.Hour,      // Longer cache for query results
+		ContextTTL:         1 * time.Hour,      // Longer context cache
 		EnableCompression:  true,
-		CompressionLevel:   6,                // Good balance of speed vs compression
-		MaxValueSize:       10 * 1024 * 1024, // 10MB
+		CompressionLevel:   4,                  // Faster compression
+		MaxValueSize:       20 * 1024 * 1024,   // 20MB for large documents
 		EnableCleanup:      true,
-		CleanupInterval:    1 * time.Hour,
-		MaxMemoryThreshold: 0.8, // 80% memory threshold
+		CleanupInterval:    30 * time.Minute,   // More frequent cleanup
+		MaxMemoryThreshold: 0.75,               // Lower threshold for proactive cleanup
 	}
 }
 

@@ -142,7 +142,7 @@ type WorkerPool struct {
 	name            string
 	config          *AsyncConfig
 	workers         []*Worker
-	taskChannel     chan Task
+	taskChannel     chan AsyncTask
 	resultChannel   chan TaskResult
 	activeWorkers   int64
 	idleWorkers     int64
@@ -156,7 +156,7 @@ type WorkerPool struct {
 type Worker struct {
 	id              int
 	pool            *WorkerPool
-	taskChannel     chan Task
+	taskChannel     chan AsyncTask
 	resultChannel   chan TaskResult
 	active          bool
 	startTime       time.Time
@@ -201,7 +201,7 @@ type WorkerAffinity struct {
 }
 
 // Task represents a unit of work
-type Task struct {
+type AsyncTask struct {
 	ID              string
 	Type            string
 	Priority        int
@@ -246,7 +246,7 @@ type BatchProcessor struct {
 // Batch represents a collection of tasks processed together
 type Batch struct {
 	ID              string
-	Tasks           []Task
+	Tasks           []AsyncTask
 	CreatedAt       time.Time
 	ProcessedAt     time.Time
 	CompletedAt     time.Time

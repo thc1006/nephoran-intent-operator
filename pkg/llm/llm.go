@@ -20,6 +20,43 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/rag"
 )
 
+// Global pools for memory optimization
+var (
+	stringBuilderPool = sync.Pool{
+		New: func() interface{} {
+			return &strings.Builder{}
+		},
+	}
+	
+	bufferPool = sync.Pool{
+		New: func() interface{} {
+			return bytes.NewBuffer(make([]byte, 0, 1024))
+		},
+	}
+)
+
+// GetStringBuilder gets a string builder from the pool
+func GetStringBuilder() *strings.Builder {
+	return stringBuilderPool.Get().(*strings.Builder)
+}
+
+// PutStringBuilder returns a string builder to the pool
+func PutStringBuilder(sb *strings.Builder) {
+	sb.Reset()
+	stringBuilderPool.Put(sb)
+}
+
+// GetBuffer gets a buffer from the pool
+func GetBuffer() *bytes.Buffer {
+	return bufferPool.Get().(*bytes.Buffer)
+}
+
+// PutBuffer returns a buffer to the pool
+func PutBuffer(buf *bytes.Buffer) {
+	buf.Reset()
+	bufferPool.Put(buf)
+}
+
 // LegacyClient is a client for the LLM processor (legacy version).
 type LegacyClient struct {
 	httpClient   *http.Client
@@ -322,6 +359,13 @@ func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string
 		c.updateMetrics(success, time.Since(start), cacheHit, retryCount)
 	}()
 
+	// Early context cancellation check
+	select {
+	case <-ctx.Done():
+		return "", fmt.Errorf("processing cancelled: %w", ctx.Err())
+	default:
+	}
+
 	// Use timeout from client configuration (already parsed from environment)
 	timeout := c.httpClient.Timeout
 	if timeout <= 0 {
@@ -330,14 +374,17 @@ func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	// Truncate intent for logging if needed
-	truncatedIntent := intent
+	// Pre-allocate string builder for better memory efficiency
+	var truncatedIntent string
 	if c.logger.Enabled(ctx, slog.LevelDebug) && len(intent) > 1000 {
 		truncatedIntent = intent[:1000] + "..."
 	}
 
+	// Classify intent type early (once) and reuse
+	intentType := c.classifyIntent(intent)
+
 	c.logger.Info("Processing intent",
-		slog.String("intent_type", c.classifyIntent(intent)),
+		slog.String("intent_type", intentType),
 		slog.String("backend", c.backendType),
 	)
 	c.logger.Debug("Processing intent with full details",
@@ -345,8 +392,8 @@ func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string
 		slog.String("backend", c.backendType),
 	)
 
-	// Check cache first
-	cacheKey := c.generateCacheKey(intent)
+	// Check cache first - optimized cache key generation
+	cacheKey := c.generateCacheKeyOptimized(intent, intentType)
 	if cached, found := c.cache.Get(cacheKey); found {
 		c.logger.Info("Cache hit for intent")
 		c.logger.Debug("Cache hit for intent", slog.String("cache_key", cacheKey))
@@ -357,8 +404,7 @@ func (c *LegacyClient) ProcessIntent(ctx context.Context, intent string) (string
 	cacheHit = false
 
 	// Process with enhanced logic
-	// Classify intent to determine processing approach
-	intentType := c.classifyIntent(intent)
+	// intentType already classified above - reuse it
 
 	// Pre-process intent with parameter extraction
 	extractedParams := c.promptEngine.ExtractParameters(intent)
@@ -446,6 +492,29 @@ func (c *LegacyClient) generateCacheKey(intent string) string {
 	return fmt.Sprintf("%s:%s:%s", c.backendType, c.modelName, intent)
 }
 
+// generateCacheKeyOptimized creates an optimized cache key using pre-calculated values and sync.Pool
+func (c *LegacyClient) generateCacheKeyOptimized(intent, intentType string) string {
+	// Get string builder from pool
+	keyBuilder := stringBuilderPool.Get().(*strings.Builder)
+	defer func() {
+		keyBuilder.Reset()
+		stringBuilderPool.Put(keyBuilder)
+	}()
+
+	// Pre-calculate total size for efficient allocation
+	totalSize := len(c.backendType) + len(c.modelName) + len(intentType) + len(intent) + 6 // 6 for separators
+	keyBuilder.Grow(totalSize)
+	
+	keyBuilder.WriteString(c.backendType)
+	keyBuilder.WriteByte(':')
+	keyBuilder.WriteString(c.modelName)
+	keyBuilder.WriteByte(':')
+	keyBuilder.WriteString(intentType)
+	keyBuilder.WriteByte(':')
+	keyBuilder.WriteString(intent)
+	return keyBuilder.String()
+}
+
 // SetFallbackURLs configures fallback URLs for redundancy
 func (c *LegacyClient) SetFallbackURLs(urls []string) {
 	c.mutex.Lock()
@@ -530,12 +599,19 @@ func (c *LegacyClient) processWithChatCompletion(ctx context.Context, systemProm
 		"response_format": map[string]string{"type": "json_object"},
 	}
 
-	reqBody, err := json.Marshal(requestBody)
-	if err != nil {
+	// Use buffer pool for JSON marshaling
+	buffer := bufferPool.Get().(*bytes.Buffer)
+	defer func() {
+		buffer.Reset()
+		bufferPool.Put(buffer)
+	}()
+
+	encoder := json.NewEncoder(buffer)
+	if err := encoder.Encode(requestBody); err != nil {
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.url, bytes.NewBuffer(reqBody))
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.url, bytes.NewReader(buffer.Bytes()))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}
@@ -628,12 +704,19 @@ func (c *LegacyClient) processWithRAGAPI(ctx context.Context, intent string) (st
 		},
 	}
 
-	reqBody, err := json.Marshal(req)
-	if err != nil {
+	// Use buffer pool for JSON marshaling
+	buffer := bufferPool.Get().(*bytes.Buffer)
+	defer func() {
+		buffer.Reset()
+		bufferPool.Put(buffer)
+	}()
+
+	encoder := json.NewEncoder(buffer)
+	if err := encoder.Encode(req); err != nil {
 		return "", fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.url+"/process", bytes.NewBuffer(reqBody))
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.url+"/process", bytes.NewReader(buffer.Bytes()))
 	if err != nil {
 		return "", fmt.Errorf("failed to create request: %w", err)
 	}

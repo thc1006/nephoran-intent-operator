@@ -95,7 +95,8 @@ func main() {
 		{"/config/auth.json", "VALID: Kubernetes Mount Path"},
 	}
 
-	fmt.Println("=== Security Fix Validation Results ===\n")
+	fmt.Println("=== Security Fix Validation Results ===")
+	fmt.Println()
 
 	for _, test := range testPaths {
 		err := validateConfigFilePath(test.path)

@@ -1,637 +1,1329 @@
+//go:build go1.24
+
 package performance
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/pprof"
 	"os"
 	"runtime"
-	rpprof "runtime/pprof"
+	"runtime/debug"
 	"runtime/trace"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/thc1006/nephoran-intent-operator/pkg/shared/types"
 	"k8s.io/klog/v2"
 )
 
-// Profiler provides comprehensive profiling capabilities
-type Profiler struct {
-	cpuProfile     *os.File
-	memProfile     *os.File
-	blockProfile   *os.File
-	mutexProfile   *os.File
-	traceFile      *os.File
-	goroutineStats GoroutineStats
-	memoryStats    LocalMemoryStats
-	profileDir     string
-	isActive       bool
-	httpServer     *http.Server
+// ProfilerManager manages CPU profiling, memory optimization, and goroutine leak detection
+type ProfilerManager struct {
+	config              *ProfilerConfig
+	metrics             *ProfilerMetrics
+	goroutineMonitor    *GoroutineMonitor
+	memoryOptimizer     *MemoryOptimizer
+	cpuProfiler         *CPUProfiler
+	traceCollector      *TraceCollector
+	performanceAnalyzer *PerformanceAnalyzer
+	httpServer          *http.Server
+	shutdown            chan struct{}
+	wg                  sync.WaitGroup
+	mu                  sync.RWMutex
+}
+
+// ProfilerConfig contains configuration for the profiler
+type ProfilerConfig struct {
+	EnableCPUProfiling        bool
+	EnableMemoryProfiling     bool
+	EnableGoroutineMonitoring bool
+	EnableTracing             bool
+	ProfilePort               int
+	ProfileDuration           time.Duration
+	GoroutineThreshold        int
+	MemoryThreshold           int64 // bytes
+	SampleInterval            time.Duration
+	MetricsInterval           time.Duration
+	ExportProfiles            bool
+	ProfileDir                string
+	MaxProfileFiles           int
+	EnableFlameGraphs         bool
+	EnableAutoGC              bool
+	GCTargetPercent           int
+	MaxHeapSize               int64
+	EnableMemoryOptimization  bool
+}
+
+// ProfilerMetrics contains performance metrics
+type ProfilerMetrics struct {
+	StartTime           time.Time
+	CPUUsagePercent     float64
+	MemoryUsageMB       float64
+	HeapSizeMB          float64
+	GoroutineCount      int64
+	GCCount             int64
+	GCPauseNs           int64
+	AllocBytes          int64
+	TotalAllocBytes     int64
+	SysBytes            int64
+	NumGC               uint32
+	PauseTotalNs        uint64
+	ProfilesGenerated   int64
+	LeakDetections      int64
+	MemoryOptimizations int64
+	CGOCalls            int64
+}
+
+// GoroutineMonitor monitors goroutine leaks and lifecycle
+type GoroutineMonitor struct {
+	config                *ProfilerConfig
+	goroutineHistory      []GoroutineSnapshot
+	leakDetectionEnabled  bool
+	suspiciousGoroutines  map[uint64]*SuspiciousGoroutine
+	baselineCount         int64
+	maxAllowedGoroutines  int64
+	alertCallback         func(leak *GoroutineLeak)
+	mu                    sync.RWMutex
+}
+
+// GoroutineSnapshot represents a snapshot of goroutine information
+type GoroutineSnapshot struct {
+	Timestamp    time.Time
+	Count        int64
+	Stacks       []GoroutineStack
+	Categories   map[string]int64
+	TrendAnalysis TrendAnalysis
+}
+
+// GoroutineStack contains stack trace information
+type GoroutineStack struct {
+	ID          uint64
+	State       string
+	Function    string
+	File        string
+	Line        int
+	Duration    time.Duration
+	Created     time.Time
+	LastSeen    time.Time
+	Category    string
+	Suspicious  bool
+}
+
+// SuspiciousGoroutine tracks potentially leaked goroutines
+type SuspiciousGoroutine struct {
+	ID           uint64
+	FirstSeen    time.Time
+	LastSeen     time.Time
+	Count        int64
+	Stack        string
+	Category     string
+	Confidence   float64
+	IsLeak       bool
+}
+
+// GoroutineLeak represents a detected goroutine leak
+type GoroutineLeak struct {
+	DetectedAt   time.Time
+	Goroutines   []SuspiciousGoroutine
+	LeakType     string
+	Severity     string
+	Suggestion   string
+	StackTrace   string
+}
+
+// TrendAnalysis contains trend analysis data
+type TrendAnalysis struct {
+	Trend      string // "increasing", "decreasing", "stable"
+	Rate       float64
+	Confidence float64
+}
+
+// MemoryOptimizer provides advanced memory optimization
+type MemoryOptimizer struct {
+	config               *ProfilerConfig
+	memoryProfile        *MemoryProfile
+	allocationTracker    *AllocationTracker
+	gcOptimizer          *GCOptimizer
+	memoryLeakDetector   *MemoryLeakDetector
+	compressionEnabled   bool
+	poolManager          *PoolManager
+	lastOptimization     time.Time
+	optimizationCount    int64
+	mu                   sync.RWMutex
+}
+
+// MemoryProfile tracks memory usage patterns
+type MemoryProfile struct {
+	HeapInUse     int64
+	HeapAlloc     int64
+	HeapSys       int64
+	HeapReleased  int64
+	StackInUse    int64
+	StackSys      int64
+	MSpanInUse    int64
+	MSpanSys      int64
+	MCacheInUse   int64
+	MCacheSys     int64
+	BuckHashSys   int64
+	GCSys         int64
+	OtherSys      int64
+	NextGC        int64
+	LastGC        time.Time
+	NumGC         uint32
+	PauseNs       []uint64
+	Trend         TrendAnalysis
+	Alerts        []MemoryAlert
+}
+
+// MemoryAlert represents a memory-related alert
+type MemoryAlert struct {
+	Type      string
+	Severity  string
+	Message   string
+	Value     int64
+	Threshold int64
+	Timestamp time.Time
+}
+
+// AllocationTracker tracks memory allocations
+type AllocationTracker struct {
+	allocations  map[string]*AllocationStats
+	hotPaths     []HotAllocationPath
+	leakSources  []string
+	enabled      bool
+	mu           sync.RWMutex
+}
+
+// AllocationStats contains allocation statistics
+type AllocationStats struct {
+	Count       int64
+	TotalBytes  int64
+	AvgBytes    float64
+	MaxBytes    int64
+	LastAlloc   time.Time
+	Stack       []string
+	Category    string
+}
+
+// HotAllocationPath represents frequently allocating code paths
+type HotAllocationPath struct {
+	Function     string
+	File         string
+	Line         int
+	Count        int64
+	TotalBytes   int64
+	AvgSize      float64
+	LastSeen     time.Time
+	Optimization string
+}
+
+// GCOptimizer optimizes garbage collection
+type GCOptimizer struct {
+	enabled         bool
+	targetPercent   int
+	lastOptimization time.Time
+	gcStats          GCStats
+	adaptiveEnabled bool
+	mu              sync.RWMutex
+}
+
+// GCStats contains GC optimization statistics
+type GCStats struct {
+	NumGC        uint32
+	PauseTotal   time.Duration
+	PauseAvg     time.Duration
+	PauseMax     time.Duration
+	TargetHeap   int64
+	NextGC       int64
+	LastGC       time.Time
+	Efficiency   float64
+	Optimizations int64
+}
+
+// MemoryLeakDetector detects memory leaks
+type MemoryLeakDetector struct {
+	enabled         bool
+	baselineMemory  int64
+	thresholdBytes  int64
+	checkInterval   time.Duration
+	leakCandidates  map[string]*LeakCandidate
+	confirmedLeaks  []MemoryLeak
+	lastCheck       time.Time
+	mu              sync.RWMutex
+}
+
+// LeakCandidate represents a potential memory leak
+type LeakCandidate struct {
+	Component     string
+	InitialMemory int64
+	CurrentMemory int64
+	GrowthRate    float64
+	FirstDetected time.Time
+	LastUpdated   time.Time
+	Confidence    float64
+}
+
+// MemoryLeak represents a confirmed memory leak
+type MemoryLeak struct {
+	Component     string
+	LeakedBytes   int64
+	DetectedAt    time.Time
+	GrowthRate    float64
+	StackTrace    string
+	Severity      string
+	Mitigation    string
+}
+
+// PoolManager manages object pools for memory optimization
+type PoolManager struct {
+	pools    map[string]*sync.Pool
+	stats    map[string]*PoolStats
+	enabled  bool
+	mu       sync.RWMutex
+}
+
+// PoolStats contains pool usage statistics
+type PoolStats struct {
+	Gets      int64
+	Puts      int64
+	HitRate   float64
+	Creates   int64
+	Reuses    int64
+	LastUsed  time.Time
+}
+
+// CPUProfiler provides advanced CPU profiling
+type CPUProfiler struct {
+	enabled        bool
+	profileFile    string
+	duration       time.Duration
+	sampleRate     int
+	profiling      bool
+	profiles       []*CPUProfile
+	hotspots       []CPUHotspot
+	lastProfile    time.Time
 	mu             sync.RWMutex
 }
 
-// GoroutineStats tracks goroutine metrics
-type GoroutineStats struct {
-	Current      int
-	Peak         int
-	Created      int64
-	Leaked       int
-	StackTraces  map[string]int
-	LastSnapshot time.Time
+// CPUProfile represents a CPU profile
+type CPUProfile struct {
+	StartTime    time.Time
+	EndTime      time.Time
+	Duration     time.Duration
+	Samples      int64
+	SampleRate   int
+	ProfileData  []byte
+	Hotspots     []CPUHotspot
+	FlameGraph   string
+	Optimization []string
 }
 
-// LocalMemoryStats tracks memory metrics with specific fields for this profiler
-// (Extends the shared types.MemoryStats with profiler-specific fields)
-type LocalMemoryStats struct {
-	types.MemoryStats // Embed shared memory stats
-	MemoryLeaks       []MemoryLeak
-	LastSnapshot      time.Time
-	// Additional fields for profiler
-	GCCount      uint32
-	GCPauseTotal time.Duration
-	GCPauseAvg   time.Duration
+// CPUHotspot represents a CPU hotspot
+type CPUHotspot struct {
+	Function      string
+	File          string
+	Line          int
+	SampleCount   int64
+	Percentage    float64
+	CumulativeP   float64
+	FlatTime      time.Duration
+	CumTime       time.Duration
+	Optimization  string
 }
 
-// MemoryLeak represents a detected memory leak
-type MemoryLeak struct {
-	Location    string
-	AllocBytes  uint64
-	AllocCount  uint64
-	DetectedAt  time.Time
+// TraceCollector collects execution traces
+type TraceCollector struct {
+	enabled     bool
+	traceFile   string
+	collecting  bool
+	traces      []*ExecutionTrace
+	mu          sync.RWMutex
+}
+
+// ExecutionTrace represents an execution trace
+type ExecutionTrace struct {
+	StartTime    time.Time
+	EndTime      time.Time
+	Duration     time.Duration
+	Events       int64
+	Goroutines   int64
+	TraceData    []byte
+	Analysis     TraceAnalysis
+}
+
+// TraceAnalysis contains trace analysis results
+type TraceAnalysis struct {
+	GoroutineEvents    int64
+	NetworkEvents      int64
+	SyscallEvents      int64
+	GCEvents           int64
+	SchedulerEvents    int64
+	BlockingOperations []BlockingOperation
+	Performance        TracePerformanceMetrics
+}
+
+// BlockingOperation represents a blocking operation in traces
+type BlockingOperation struct {
+	Type       string
+	Duration   time.Duration
+	Function   string
+	Goroutine  int64
+	Timestamp  time.Time
+	Impact     string
+}
+
+// TracePerformanceMetrics contains performance metrics from traces
+type TracePerformanceMetrics struct {
+	AvgGoroutineLatency time.Duration
+	MaxGoroutineLatency time.Duration
+	NetworkLatency      time.Duration
+	GCImpact           time.Duration
+	SchedulerOverhead  time.Duration
+}
+
+// PerformanceAnalyzer analyzes overall performance
+type PerformanceAnalyzer struct {
+	enabled           bool
+	analysisInterval  time.Duration
+	reports           []*PerformanceReport
+	recommendations   []PerformanceRecommendation
+	trends            PerformanceTrends
+	alertManager      *PerformanceAlertManager
+	mu                sync.RWMutex
+}
+
+// PerformanceReport contains comprehensive performance analysis
+type PerformanceReport struct {
+	GeneratedAt      time.Time
+	Duration         time.Duration
+	CPUAnalysis      CPUAnalysisResult
+	MemoryAnalysis   MemoryAnalysisResult
+	GoroutineAnalysis GoroutineAnalysisResult
+	IOAnalysis       IOAnalysisResult
+	NetworkAnalysis  NetworkAnalysisResult
+	BottleneckAnalysis []Bottleneck
+	Recommendations  []PerformanceRecommendation
+	Score           PerformanceScore
+}
+
+// CPUAnalysisResult contains CPU analysis results
+type CPUAnalysisResult struct {
+	AvgUsage     float64
+	PeakUsage    float64
+	Efficiency   float64
+	Hotspots     []CPUHotspot
+	Optimization []string
+	Trend        TrendAnalysis
+}
+
+// MemoryAnalysisResult contains memory analysis results
+type MemoryAnalysisResult struct {
+	AvgUsage       float64
+	PeakUsage      float64
+	GCEfficiency   float64
+	LeakDetection  []MemoryLeak
+	Fragmentation  float64
+	Optimization   []string
+	Trend          TrendAnalysis
+}
+
+// GoroutineAnalysisResult contains goroutine analysis results
+type GoroutineAnalysisResult struct {
+	AvgCount      int64
+	PeakCount     int64
+	LeakDetection []GoroutineLeak
+	Efficiency    float64
+	Patterns      []GoroutinePattern
+	Optimization  []string
+}
+
+// GoroutinePattern represents goroutine usage patterns
+type GoroutinePattern struct {
+	Type        string
+	Count       int64
+	AvgDuration time.Duration
+	MaxDuration time.Duration
+	Efficiency  float64
+	Category    string
+}
+
+// IOAnalysisResult contains I/O analysis results
+type IOAnalysisResult struct {
+	DiskReadMB   float64
+	DiskWriteMB  float64
+	NetworkInMB  float64
+	NetworkOutMB float64
+	Latency      IOLatencyMetrics
+	Efficiency   float64
+	Bottlenecks  []IOBottleneck
+}
+
+// IOLatencyMetrics contains I/O latency metrics
+type IOLatencyMetrics struct {
+	DiskReadLatency  time.Duration
+	DiskWriteLatency time.Duration
+	NetworkLatency   time.Duration
+	AvgLatency       time.Duration
+	MaxLatency       time.Duration
+}
+
+// IOBottleneck represents an I/O bottleneck
+type IOBottleneck struct {
+	Type        string
+	Component   string
+	Latency     time.Duration
+	Throughput  float64
+	Impact      string
+	Mitigation  string
+}
+
+// NetworkAnalysisResult contains network analysis results
+type NetworkAnalysisResult struct {
+	ConnectionCount    int64
+	ActiveConnections  int64
+	IdleConnections    int64
+	Throughput         float64
+	Latency           time.Duration
+	ErrorRate         float64
+	ConnectionPooling PoolingAnalysis
+	Optimization      []string
+}
+
+// PoolingAnalysis contains connection pooling analysis
+type PoolingAnalysis struct {
+	PoolUtilization float64
+	AvgWaitTime     time.Duration
+	MaxWaitTime     time.Duration
+	TimeoutRate     float64
+	Efficiency      float64
+}
+
+// Bottleneck represents a performance bottleneck
+type Bottleneck struct {
+	Type        string
+	Component   string
+	Impact      string
+	Severity    int
 	Description string
+	Mitigation  string
+	Priority    int
 }
 
-// ProfilerReport contains comprehensive profiling results with profiler-specific fields
-// This extends the shared version to add missing fields
-type ProfilerReport struct {
-	types.ProfileReport // Embed shared profile report
-	CPUProfile          string
-	MemoryProfile       string
-	BlockProfile        string
-	MutexProfile        string
-	GoroutineStats      GoroutineStats
-	LocalMemoryStats    LocalMemoryStats // Use local version
-	Contentions         []Contention
-	Allocations         []Allocation
-	// Additional fields that were missing
-	StartTime time.Time
-	EndTime   time.Time
-	HotSpots  []ProfilerHotSpot
+// PerformanceRecommendation represents optimization recommendations
+type PerformanceRecommendation struct {
+	Type        string
+	Priority    int
+	Impact      string
+	Description string
+	Action      string
+	EstimatedImprovement float64
+	ImplementationCost   int
 }
 
-// ProfilerHotSpot represents a CPU hotspot with profiler-specific fields
-type ProfilerHotSpot struct {
-	Function   string
-	File       string
-	Line       int
-	Samples    int
-	Percentage float64
+// PerformanceTrends tracks performance trends over time
+type PerformanceTrends struct {
+	CPU       TrendAnalysis
+	Memory    TrendAnalysis
+	Goroutines TrendAnalysis
+	IO        TrendAnalysis
+	Network   TrendAnalysis
+	Overall   TrendAnalysis
 }
 
-// Contention represents lock contention
-type Contention struct {
-	Mutex    string
-	WaitTime time.Duration
-	Waiters  int
-	Location string
+// PerformanceScore represents overall performance scoring
+type PerformanceScore struct {
+	Overall    float64
+	CPU        float64
+	Memory     float64
+	Goroutines float64
+	IO         float64
+	Network    float64
+	Grade      string
+	Benchmark  string
 }
 
-// Allocation represents memory allocation pattern
-type Allocation struct {
-	Function   string
-	AllocBytes uint64
-	AllocCount uint64
-	InUseBytes uint64
-	InUseCount uint64
+// PerformanceAlertManager manages performance alerts
+type PerformanceAlertManager struct {
+	alerts         []*PerformanceAlert
+	thresholds     map[string]float64
+	callbacks      map[string]func(*PerformanceAlert)
+	enabled        bool
+	mu             sync.RWMutex
 }
 
-// NewProfiler creates a new profiler
-func NewProfiler() *Profiler {
-	return &Profiler{
-		profileDir: "/tmp/nephoran-profiles",
-		goroutineStats: GoroutineStats{
-			StackTraces: make(map[string]int),
-		},
-		memoryStats: LocalMemoryStats{
-			MemoryLeaks: make([]MemoryLeak, 0),
-		},
+// PerformanceAlert represents a performance alert
+type PerformanceAlert struct {
+	ID          string
+	Type        string
+	Severity    string
+	Message     string
+	Value       float64
+	Threshold   float64
+	Component   string
+	Timestamp   time.Time
+	Acknowledged bool
+	Actions     []string
+}
+
+// NewProfilerManager creates a new profiler manager with optimizations
+func NewProfilerManager(config *ProfilerConfig) *ProfilerManager {
+	if config == nil {
+		config = DefaultProfilerConfig()
+	}
+
+	pm := &ProfilerManager{
+		config:   config,
+		metrics:  &ProfilerMetrics{StartTime: time.Now()},
+		shutdown: make(chan struct{}),
+	}
+
+	// Initialize components
+	if config.EnableGoroutineMonitoring {
+		pm.goroutineMonitor = NewGoroutineMonitor(config)
+	}
+
+	if config.EnableMemoryOptimization {
+		pm.memoryOptimizer = NewMemoryOptimizer(config)
+	}
+
+	if config.EnableCPUProfiling {
+		pm.cpuProfiler = NewCPUProfiler(config)
+	}
+
+	if config.EnableTracing {
+		pm.traceCollector = NewTraceCollector(config)
+	}
+
+	pm.performanceAnalyzer = NewPerformanceAnalyzer(config)
+
+	// Start HTTP server for profiling endpoints
+	if config.ProfilePort > 0 {
+		pm.startProfilingServer()
+	}
+
+	// Start background monitoring
+	pm.startBackgroundMonitoring()
+
+	return pm
+}
+
+// DefaultProfilerConfig returns default profiler configuration
+func DefaultProfilerConfig() *ProfilerConfig {
+	return &ProfilerConfig{
+		EnableCPUProfiling:        true,
+		EnableMemoryProfiling:     true,
+		EnableGoroutineMonitoring: true,
+		EnableTracing:             true,
+		ProfilePort:               6060,
+		ProfileDuration:           30 * time.Second,
+		GoroutineThreshold:        1000,
+		MemoryThreshold:           500 * 1024 * 1024, // 500MB
+		SampleInterval:            5 * time.Second,
+		MetricsInterval:           30 * time.Second,
+		ExportProfiles:            true,
+		ProfileDir:                "/tmp/profiles",
+		MaxProfileFiles:           50,
+		EnableFlameGraphs:         true,
+		EnableAutoGC:              true,
+		GCTargetPercent:           100,
+		MaxHeapSize:               1024 * 1024 * 1024, // 1GB
+		EnableMemoryOptimization:  true,
 	}
 }
 
-// StartCPUProfile starts CPU profiling
-func (p *Profiler) StartCPUProfile() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.cpuProfile != nil {
-		return fmt.Errorf("CPU profiling already active")
-	}
-
-	// Create profile directory if not exists
-	if err := os.MkdirAll(p.profileDir, 0755); err != nil {
-		return fmt.Errorf("failed to create profile directory: %w", err)
-	}
-
-	// Create CPU profile file
-	filename := fmt.Sprintf("%s/cpu_%d.prof", p.profileDir, time.Now().Unix())
-	file, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("failed to create CPU profile file: %w", err)
-	}
-
-	// Start CPU profiling
-	if err := rpprof.StartCPUProfile(file); err != nil {
-		file.Close()
-		return fmt.Errorf("failed to start CPU profiling: %w", err)
-	}
-
-	p.cpuProfile = file
-	p.isActive = true
-	klog.Infof("CPU profiling started, writing to %s", filename)
-
-	return nil
-}
-
-// StopCPUProfile stops CPU profiling
-func (p *Profiler) StopCPUProfile() (string, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.cpuProfile == nil {
-		return "", fmt.Errorf("CPU profiling not active")
-	}
-
-	rpprof.StopCPUProfile()
-	filename := p.cpuProfile.Name()
-	p.cpuProfile.Close()
-	p.cpuProfile = nil
-
-	klog.Infof("CPU profiling stopped, profile saved to %s", filename)
-	return filename, nil
-}
-
-// CaptureMemoryProfile captures a memory profile
-func (p *Profiler) CaptureMemoryProfile() (string, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	// Force garbage collection for accurate profile
-	runtime.GC()
-
-	filename := fmt.Sprintf("%s/mem_%d.prof", p.profileDir, time.Now().Unix())
-	file, err := os.Create(filename)
-	if err != nil {
-		return "", fmt.Errorf("failed to create memory profile file: %w", err)
-	}
-	defer file.Close()
-
-	// Write heap profile
-	if err := rpprof.WriteHeapProfile(file); err != nil {
-		return "", fmt.Errorf("failed to write memory profile: %w", err)
-	}
-
-	// Update memory statistics
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-	p.updateMemoryStats(&memStats)
-
-	klog.Infof("Memory profile captured to %s", filename)
-	return filename, nil
-}
-
-// CaptureGoroutineProfile captures goroutine profile
-func (p *Profiler) CaptureGoroutineProfile() (string, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	filename := fmt.Sprintf("%s/goroutine_%d.prof", p.profileDir, time.Now().Unix())
-	file, err := os.Create(filename)
-	if err != nil {
-		return "", fmt.Errorf("failed to create goroutine profile file: %w", err)
-	}
-	defer file.Close()
-
-	// Write goroutine profile
-	profile := rpprof.Lookup("goroutine")
-	if err := profile.WriteTo(file, 2); err != nil {
-		return "", fmt.Errorf("failed to write goroutine profile: %w", err)
-	}
-
-	// Update goroutine statistics
-	p.updateGoroutineStats()
-
-	klog.Infof("Goroutine profile captured to %s", filename)
-	return filename, nil
-}
-
-// StartBlockProfile starts block profiling
-func (p *Profiler) StartBlockProfile(rate int) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.blockProfile != nil {
-		return fmt.Errorf("block profiling already active")
-	}
-
-	// Set block profile rate (1 = profile everything)
-	runtime.SetBlockProfileRate(rate)
-
-	p.blockProfile = &os.File{} // Placeholder
-	klog.Infof("Block profiling started with rate %d", rate)
-
-	return nil
-}
-
-// StopBlockProfile stops block profiling and saves the profile
-func (p *Profiler) StopBlockProfile() (string, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.blockProfile == nil {
-		return "", fmt.Errorf("block profiling not active")
-	}
-
-	// Reset block profile rate
-	runtime.SetBlockProfileRate(0)
-
-	filename := fmt.Sprintf("%s/block_%d.prof", p.profileDir, time.Now().Unix())
-	file, err := os.Create(filename)
-	if err != nil {
-		return "", fmt.Errorf("failed to create block profile file: %w", err)
-	}
-	defer file.Close()
-
-	// Write block profile
-	profile := rpprof.Lookup("block")
-	if err := profile.WriteTo(file, 0); err != nil {
-		return "", fmt.Errorf("failed to write block profile: %w", err)
-	}
-
-	p.blockProfile = nil
-	klog.Infof("Block profile saved to %s", filename)
-
-	return filename, nil
-}
-
-// StartMutexProfile starts mutex profiling
-func (p *Profiler) StartMutexProfile(fraction int) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.mutexProfile != nil {
-		return fmt.Errorf("mutex profiling already active")
-	}
-
-	// Set mutex profile fraction
-	runtime.SetMutexProfileFraction(fraction)
-
-	p.mutexProfile = &os.File{} // Placeholder
-	klog.Infof("Mutex profiling started with fraction %d", fraction)
-
-	return nil
-}
-
-// StopMutexProfile stops mutex profiling
-func (p *Profiler) StopMutexProfile() (string, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.mutexProfile == nil {
-		return "", fmt.Errorf("mutex profiling not active")
-	}
-
-	// Reset mutex profile fraction
-	runtime.SetMutexProfileFraction(0)
-
-	filename := fmt.Sprintf("%s/mutex_%d.prof", p.profileDir, time.Now().Unix())
-	file, err := os.Create(filename)
-	if err != nil {
-		return "", fmt.Errorf("failed to create mutex profile file: %w", err)
-	}
-	defer file.Close()
-
-	// Write mutex profile
-	profile := rpprof.Lookup("mutex")
-	if err := profile.WriteTo(file, 0); err != nil {
-		return "", fmt.Errorf("failed to write mutex profile: %w", err)
-	}
-
-	p.mutexProfile = nil
-	klog.Infof("Mutex profile saved to %s", filename)
-
-	return filename, nil
-}
-
-// StartTracing starts execution tracing
-func (p *Profiler) StartTracing() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.traceFile != nil {
-		return fmt.Errorf("tracing already active")
-	}
-
-	filename := fmt.Sprintf("%s/trace_%d.out", p.profileDir, time.Now().Unix())
-	file, err := os.Create(filename)
-	if err != nil {
-		return fmt.Errorf("failed to create trace file: %w", err)
-	}
-
-	// Start tracing
-	if err := trace.Start(file); err != nil {
-		file.Close()
-		return fmt.Errorf("failed to start tracing: %w", err)
-	}
-
-	p.traceFile = file
-	klog.Infof("Execution tracing started, writing to %s", filename)
-
-	return nil
-}
-
-// StopTracing stops execution tracing
-func (p *Profiler) StopTracing() (string, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.traceFile == nil {
-		return "", fmt.Errorf("tracing not active")
-	}
-
-	trace.Stop()
-	filename := p.traceFile.Name()
-	p.traceFile.Close()
-	p.traceFile = nil
-
-	klog.Infof("Execution tracing stopped, trace saved to %s", filename)
-	return filename, nil
-}
-
-// DetectGoroutineLeaks detects potential goroutine leaks
-func (p *Profiler) DetectGoroutineLeaks(threshold int) []string {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	p.updateGoroutineStats()
-
-	leaks := []string{}
-	for stack, count := range p.goroutineStats.StackTraces {
-		if count > threshold {
-			leaks = append(leaks, fmt.Sprintf("Potential leak: %d goroutines at %s", count, stack))
-		}
-	}
-
-	p.goroutineStats.Leaked = len(leaks)
-	return leaks
-}
-
-// DetectMemoryLeaks detects potential memory leaks
-func (p *Profiler) DetectMemoryLeaks() []MemoryLeak {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	var memStats runtime.MemStats
-	runtime.ReadMemStats(&memStats)
-
-	leaks := []MemoryLeak{}
-
-	// Simple leak detection based on heap growth
-	if p.memoryStats.HeapAlloc > 0 {
-		growth := float64(memStats.HeapAlloc-p.memoryStats.HeapAlloc) / float64(p.memoryStats.HeapAlloc) * 100
-		if growth > 20 { // 20% growth threshold
-			leak := MemoryLeak{
-				Location:    "Heap",
-				AllocBytes:  memStats.HeapAlloc - p.memoryStats.HeapAlloc,
-				AllocCount:  memStats.Mallocs - memStats.Frees,
-				DetectedAt:  time.Now(),
-				Description: fmt.Sprintf("Heap grew by %.2f%%", growth),
-			}
-			leaks = append(leaks, leak)
-		}
-	}
-
-	p.updateMemoryStats(&memStats)
-	p.memoryStats.MemoryLeaks = append(p.memoryStats.MemoryLeaks, leaks...)
-
-	return leaks
-}
-
-// updateGoroutineStats updates goroutine statistics
-func (p *Profiler) updateGoroutineStats() {
-	current := runtime.NumGoroutine()
-	p.goroutineStats.Current = current
-
-	if current > p.goroutineStats.Peak {
-		p.goroutineStats.Peak = current
-	}
-
-	// Capture stack traces
-	buf := make([]byte, 1<<20) // 1MB buffer
-	n := runtime.Stack(buf, true)
-
-	// Parse stack traces (simplified)
-	_ = string(buf[:n]) // stacks variable was unused
-	p.goroutineStats.StackTraces = make(map[string]int)
-	// In real implementation, parse stacks and count unique traces
-
-	p.goroutineStats.LastSnapshot = time.Now()
-}
-
-// updateMemoryStats updates memory statistics
-func (p *Profiler) updateMemoryStats(memStats *runtime.MemStats) {
-	p.memoryStats.HeapAlloc = memStats.HeapAlloc
-	p.memoryStats.HeapSys = memStats.HeapSys
-	p.memoryStats.HeapInuse = memStats.HeapInuse
-	p.memoryStats.HeapReleased = memStats.HeapReleased
-	p.memoryStats.GCCount = memStats.NumGC
-
-	if memStats.NumGC > 0 {
-		p.memoryStats.GCPauseTotal = time.Duration(memStats.PauseTotalNs)
-		p.memoryStats.GCPauseAvg = time.Duration(memStats.PauseTotalNs / uint64(memStats.NumGC))
-		p.memoryStats.LastGC = memStats.LastGC // Keep as uint64
-	}
-
-	p.memoryStats.LastSnapshot = time.Now()
-}
-
-// StartHTTPProfiler starts HTTP profiling endpoints
-func (p *Profiler) StartHTTPProfiler(addr string) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if p.httpServer != nil {
-		return fmt.Errorf("HTTP profiler already running")
-	}
-
+// startProfilingServer starts the profiling HTTP server
+func (pm *ProfilerManager) startProfilingServer() {
 	mux := http.NewServeMux()
 
-	// Register pprof handlers
+	// Standard pprof endpoints
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
 
-	// Custom endpoints
-	mux.HandleFunc("/debug/stats", p.handleStats)
-	mux.HandleFunc("/debug/leaks", p.handleLeaks)
+	// Custom performance endpoints
+	mux.HandleFunc("/debug/performance/metrics", pm.handleMetrics)
+	mux.HandleFunc("/debug/performance/goroutines", pm.handleGoroutines)
+	mux.HandleFunc("/debug/performance/memory", pm.handleMemory)
+	mux.HandleFunc("/debug/performance/cpu", pm.handleCPU)
+	mux.HandleFunc("/debug/performance/report", pm.handlePerformanceReport)
+	mux.HandleFunc("/debug/performance/recommendations", pm.handleRecommendations)
+	mux.HandleFunc("/debug/performance/alerts", pm.handleAlerts)
+	mux.HandleFunc("/debug/performance/flamegraph", pm.handleFlameGraph)
 
-	p.httpServer = &http.Server{
-		Addr:    addr,
+	pm.httpServer = &http.Server{
+		Addr:    fmt.Sprintf(":%d", pm.config.ProfilePort),
 		Handler: mux,
 	}
 
+	pm.wg.Add(1)
 	go func() {
-		klog.Infof("HTTP profiler listening on %s", addr)
-		if err := p.httpServer.ListenAndServe(); err != http.ErrServerClosed {
-			klog.Errorf("HTTP profiler error: %v", err)
+		defer pm.wg.Done()
+		klog.Infof("Starting profiling server on port %d", pm.config.ProfilePort)
+		if err := pm.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			klog.Errorf("Profiling server error: %v", err)
 		}
+	}()
+}
+
+// startBackgroundMonitoring starts background monitoring tasks
+func (pm *ProfilerManager) startBackgroundMonitoring() {
+	// Metrics collection
+	pm.wg.Add(1)
+	go func() {
+		defer pm.wg.Done()
+		ticker := time.NewTicker(pm.config.MetricsInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ticker.C:
+				pm.collectMetrics()
+			case <-pm.shutdown:
+				return
+			}
+		}
+	}()
+
+	// Goroutine monitoring
+	if pm.goroutineMonitor != nil {
+		pm.wg.Add(1)
+		go func() {
+			defer pm.wg.Done()
+			pm.goroutineMonitor.StartMonitoring(pm.shutdown)
+		}()
+	}
+
+	// Memory optimization
+	if pm.memoryOptimizer != nil {
+		pm.wg.Add(1)
+		go func() {
+			defer pm.wg.Done()
+			pm.memoryOptimizer.StartOptimization(pm.shutdown)
+		}()
+	}
+
+	// Performance analysis
+	pm.wg.Add(1)
+	go func() {
+		defer pm.wg.Done()
+		pm.performanceAnalyzer.StartAnalysis(pm.shutdown)
+	}()
+
+	// Automatic profiling
+	if pm.config.EnableCPUProfiling {
+		pm.wg.Add(1)
+		go func() {
+			defer pm.wg.Done()
+			ticker := time.NewTicker(5 * time.Minute)
+			defer ticker.Stop()
+
+			for {
+				select {
+				case <-ticker.C:
+					if err := pm.GenerateCPUProfile(); err != nil {
+						klog.Errorf("Failed to generate CPU profile: %v", err)
+					}
+				case <-pm.shutdown:
+					return
+				}
+			}
+		}()
+	}
+}
+
+// collectMetrics collects current performance metrics
+func (pm *ProfilerManager) collectMetrics() {
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+
+	pm.mu.Lock()
+	defer pm.mu.Unlock()
+
+	// Update metrics
+	pm.metrics.CPUUsagePercent = getCPUUsage()
+	pm.metrics.MemoryUsageMB = float64(m.Alloc) / 1024 / 1024
+	pm.metrics.HeapSizeMB = float64(m.HeapInuse) / 1024 / 1024
+	pm.metrics.GoroutineCount = int64(runtime.NumGoroutine())
+	pm.metrics.GCCount = int64(m.NumGC)
+	pm.metrics.GCPauseNs = int64(m.PauseNs[(m.NumGC+255)%256])
+	pm.metrics.AllocBytes = int64(m.Alloc)
+	pm.metrics.TotalAllocBytes = int64(m.TotalAlloc)
+	pm.metrics.SysBytes = int64(m.Sys)
+	pm.metrics.NumGC = m.NumGC
+	pm.metrics.PauseTotalNs = m.PauseTotalNs
+	pm.metrics.CGOCalls = int64(runtime.NumCgoCall())
+
+	// Check thresholds and generate alerts
+	pm.checkThresholds()
+}
+
+// checkThresholds checks performance thresholds and generates alerts
+func (pm *ProfilerManager) checkThresholds() {
+	// Memory threshold check
+	if pm.metrics.MemoryUsageMB > float64(pm.config.MemoryThreshold)/(1024*1024) {
+		klog.Warningf("Memory usage threshold exceeded: %.2f MB", pm.metrics.MemoryUsageMB)
+		if pm.memoryOptimizer != nil {
+			go pm.memoryOptimizer.OptimizeMemory()
+		}
+	}
+
+	// Goroutine threshold check
+	if pm.metrics.GoroutineCount > int64(pm.config.GoroutineThreshold) {
+		klog.Warningf("Goroutine count threshold exceeded: %d", pm.metrics.GoroutineCount)
+		if pm.goroutineMonitor != nil {
+			go pm.goroutineMonitor.DetectLeaks()
+		}
+	}
+
+	// CPU usage threshold check
+	if pm.metrics.CPUUsagePercent > 80.0 {
+		klog.Warningf("High CPU usage detected: %.2f%%", pm.metrics.CPUUsagePercent)
+		if pm.cpuProfiler != nil && !pm.cpuProfiler.profiling {
+			go pm.GenerateCPUProfile()
+		}
+	}
+}
+
+// GenerateCPUProfile generates a CPU profile
+func (pm *ProfilerManager) GenerateCPUProfile() error {
+	if pm.cpuProfiler == nil {
+		return fmt.Errorf("CPU profiler not initialized")
+	}
+
+	return pm.cpuProfiler.GenerateProfile(pm.config.ProfileDuration)
+}
+
+// GenerateMemoryProfile generates a memory profile
+func (pm *ProfilerManager) GenerateMemoryProfile() error {
+	if !pm.config.EnableMemoryProfiling {
+		return fmt.Errorf("memory profiling not enabled")
+	}
+
+	filename := fmt.Sprintf("%s/mem-profile-%d.prof", pm.config.ProfileDir, time.Now().Unix())
+	f, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("failed to create memory profile file: %w", err)
+	}
+	defer f.Close()
+
+	runtime.GC()
+	if err := debug.WriteHeapProfile(f); err != nil {
+		return fmt.Errorf("failed to write memory profile: %w", err)
+	}
+
+	atomic.AddInt64(&pm.metrics.ProfilesGenerated, 1)
+	klog.Infof("Memory profile generated: %s", filename)
+	return nil
+}
+
+// StartTrace starts execution tracing
+func (pm *ProfilerManager) StartTrace() error {
+	if pm.traceCollector == nil {
+		return fmt.Errorf("trace collector not initialized")
+	}
+
+	return pm.traceCollector.StartTrace()
+}
+
+// StopTrace stops execution tracing
+func (pm *ProfilerManager) StopTrace() error {
+	if pm.traceCollector == nil {
+		return fmt.Errorf("trace collector not initialized")
+	}
+
+	return pm.traceCollector.StopTrace()
+}
+
+// GetMetrics returns current performance metrics
+func (pm *ProfilerManager) GetMetrics() ProfilerMetrics {
+	pm.mu.RLock()
+	defer pm.mu.RUnlock()
+	
+	metrics := *pm.metrics
+	metrics.CPUUsagePercent = getCPUUsage()
+	return metrics
+}
+
+// GetPerformanceReport generates a comprehensive performance report
+func (pm *ProfilerManager) GetPerformanceReport() *PerformanceReport {
+	if pm.performanceAnalyzer == nil {
+		return nil
+	}
+	return pm.performanceAnalyzer.GenerateReport()
+}
+
+// OptimizePerformance performs comprehensive performance optimization
+func (pm *ProfilerManager) OptimizePerformance() error {
+	klog.Info("Starting comprehensive performance optimization")
+
+	// Memory optimization
+	if pm.memoryOptimizer != nil {
+		if err := pm.memoryOptimizer.OptimizeMemory(); err != nil {
+			klog.Errorf("Memory optimization failed: %v", err)
+		}
+	}
+
+	// Goroutine cleanup
+	if pm.goroutineMonitor != nil {
+		pm.goroutineMonitor.DetectLeaks()
+	}
+
+	// Force GC
+	if pm.config.EnableAutoGC {
+		runtime.GC()
+		runtime.GC() // Run twice for better cleanup
+	}
+
+	// Generate profiles for analysis
+	if err := pm.GenerateMemoryProfile(); err != nil {
+		klog.Errorf("Failed to generate memory profile: %v", err)
+	}
+
+	klog.Info("Performance optimization completed")
+	return nil
+}
+
+// HTTP handlers for performance endpoints
+
+func (pm *ProfilerManager) handleMetrics(w http.ResponseWriter, r *http.Request) {
+	metrics := pm.GetMetrics()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(metrics)
+}
+
+func (pm *ProfilerManager) handleGoroutines(w http.ResponseWriter, r *http.Request) {
+	if pm.goroutineMonitor == nil {
+		http.Error(w, "Goroutine monitoring not enabled", http.StatusNotFound)
+		return
+	}
+
+	snapshot := pm.goroutineMonitor.GetSnapshot()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(snapshot)
+}
+
+func (pm *ProfilerManager) handleMemory(w http.ResponseWriter, r *http.Request) {
+	if pm.memoryOptimizer == nil {
+		http.Error(w, "Memory optimizer not enabled", http.StatusNotFound)
+		return
+	}
+
+	profile := pm.memoryOptimizer.GetMemoryProfile()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(profile)
+}
+
+func (pm *ProfilerManager) handleCPU(w http.ResponseWriter, r *http.Request) {
+	if pm.cpuProfiler == nil {
+		http.Error(w, "CPU profiler not enabled", http.StatusNotFound)
+		return
+	}
+
+	profiles := pm.cpuProfiler.GetProfiles()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(profiles)
+}
+
+func (pm *ProfilerManager) handlePerformanceReport(w http.ResponseWriter, r *http.Request) {
+	report := pm.GetPerformanceReport()
+	if report == nil {
+		http.Error(w, "Performance analyzer not available", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(report)
+}
+
+func (pm *ProfilerManager) handleRecommendations(w http.ResponseWriter, r *http.Request) {
+	if pm.performanceAnalyzer == nil {
+		http.Error(w, "Performance analyzer not enabled", http.StatusNotFound)
+		return
+	}
+
+	recommendations := pm.performanceAnalyzer.GetRecommendations()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(recommendations)
+}
+
+func (pm *ProfilerManager) handleAlerts(w http.ResponseWriter, r *http.Request) {
+	if pm.performanceAnalyzer == nil || pm.performanceAnalyzer.alertManager == nil {
+		http.Error(w, "Performance alert manager not enabled", http.StatusNotFound)
+		return
+	}
+
+	alerts := pm.performanceAnalyzer.alertManager.GetAlerts()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(alerts)
+}
+
+func (pm *ProfilerManager) handleFlameGraph(w http.ResponseWriter, r *http.Request) {
+	if pm.cpuProfiler == nil {
+		http.Error(w, "CPU profiler not enabled", http.StatusNotFound)
+		return
+	}
+
+	// Generate flame graph (simplified implementation)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Write([]byte("Flame graph functionality would be implemented here"))
+}
+
+// Shutdown gracefully shuts down the profiler manager
+func (pm *ProfilerManager) Shutdown(ctx context.Context) error {
+	klog.Info("Shutting down profiler manager")
+
+	close(pm.shutdown)
+
+	// Shutdown HTTP server
+	if pm.httpServer != nil {
+		if err := pm.httpServer.Shutdown(ctx); err != nil {
+			klog.Errorf("Failed to shutdown profiling server: %v", err)
+		}
+	}
+
+	// Wait for background goroutines
+	done := make(chan struct{})
+	go func() {
+		pm.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		klog.Info("Profiler manager shutdown completed")
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// getCPUUsage returns current CPU usage percentage (simplified implementation)
+func getCPUUsage() float64 {
+	// This would typically use system calls to get actual CPU usage
+	// For now, return a placeholder value
+	return float64(runtime.NumGoroutine()) / 100.0
+}
+
+// Placeholder implementations for component constructors
+// These would be implemented with full functionality
+
+func NewGoroutineMonitor(config *ProfilerConfig) *GoroutineMonitor {
+	return &GoroutineMonitor{
+		config:                config,
+		leakDetectionEnabled:  config.EnableGoroutineMonitoring,
+		suspiciousGoroutines:  make(map[uint64]*SuspiciousGoroutine),
+		baselineCount:         int64(runtime.NumGoroutine()),
+		maxAllowedGoroutines:  int64(config.GoroutineThreshold),
+	}
+}
+
+func NewMemoryOptimizer(config *ProfilerConfig) *MemoryOptimizer {
+	return &MemoryOptimizer{
+		config:            config,
+		memoryProfile:     &MemoryProfile{},
+		allocationTracker: &AllocationTracker{
+			allocations: make(map[string]*AllocationStats),
+			enabled:     true,
+		},
+		gcOptimizer: &GCOptimizer{
+			enabled:       config.EnableAutoGC,
+			targetPercent: config.GCTargetPercent,
+		},
+		memoryLeakDetector: &MemoryLeakDetector{
+			enabled:        true,
+			thresholdBytes: config.MemoryThreshold,
+			checkInterval:  5 * time.Minute,
+			leakCandidates: make(map[string]*LeakCandidate),
+		},
+		poolManager: &PoolManager{
+			pools:   make(map[string]*sync.Pool),
+			stats:   make(map[string]*PoolStats),
+			enabled: true,
+		},
+	}
+}
+
+func NewCPUProfiler(config *ProfilerConfig) *CPUProfiler {
+	return &CPUProfiler{
+		enabled:    config.EnableCPUProfiling,
+		duration:   config.ProfileDuration,
+		sampleRate: 100, // Hz
+		profiles:   make([]*CPUProfile, 0),
+	}
+}
+
+func NewTraceCollector(config *ProfilerConfig) *TraceCollector {
+	return &TraceCollector{
+		enabled: config.EnableTracing,
+		traces:  make([]*ExecutionTrace, 0),
+	}
+}
+
+func NewPerformanceAnalyzer(config *ProfilerConfig) *PerformanceAnalyzer {
+	return &PerformanceAnalyzer{
+		enabled:          true,
+		analysisInterval: config.MetricsInterval,
+		reports:          make([]*PerformanceReport, 0),
+		alertManager: &PerformanceAlertManager{
+			thresholds: map[string]float64{
+				"cpu_usage":       80.0,
+				"memory_usage":    80.0,
+				"goroutine_count": float64(config.GoroutineThreshold),
+			},
+			enabled: true,
+		},
+	}
+}
+
+// Method implementations for components (simplified)
+
+func (gm *GoroutineMonitor) StartMonitoring(shutdown chan struct{}) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			gm.takeSnapshot()
+			gm.DetectLeaks()
+		case <-shutdown:
+			return
+		}
+	}
+}
+
+func (gm *GoroutineMonitor) takeSnapshot() {
+	count := int64(runtime.NumGoroutine())
+	snapshot := GoroutineSnapshot{
+		Timestamp:  time.Now(),
+		Count:      count,
+		Categories: make(map[string]int64),
+	}
+
+	gm.mu.Lock()
+	gm.goroutineHistory = append(gm.goroutineHistory, snapshot)
+	if len(gm.goroutineHistory) > 100 {
+		gm.goroutineHistory = gm.goroutineHistory[1:]
+	}
+	gm.mu.Unlock()
+}
+
+func (gm *GoroutineMonitor) DetectLeaks() {
+	current := int64(runtime.NumGoroutine())
+	if current > gm.maxAllowedGoroutines {
+		klog.Warningf("Potential goroutine leak detected: %d goroutines (threshold: %d)", 
+			current, gm.maxAllowedGoroutines)
+	}
+}
+
+func (gm *GoroutineMonitor) GetSnapshot() *GoroutineSnapshot {
+	gm.mu.RLock()
+	defer gm.mu.RUnlock()
+	if len(gm.goroutineHistory) > 0 {
+		return &gm.goroutineHistory[len(gm.goroutineHistory)-1]
+	}
+	return nil
+}
+
+func (mo *MemoryOptimizer) StartOptimization(shutdown chan struct{}) {
+	ticker := time.NewTicker(2 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			mo.OptimizeMemory()
+		case <-shutdown:
+			return
+		}
+	}
+}
+
+func (mo *MemoryOptimizer) OptimizeMemory() error {
+	mo.mu.Lock()
+	defer mo.mu.Unlock()
+
+	// Force garbage collection
+	if mo.gcOptimizer.enabled {
+		runtime.GC()
+		runtime.GC()
+		atomic.AddInt64(&mo.optimizationCount, 1)
+	}
+
+	mo.lastOptimization = time.Now()
+	return nil
+}
+
+func (mo *MemoryOptimizer) GetMemoryProfile() *MemoryProfile {
+	mo.mu.RLock()
+	defer mo.mu.RUnlock()
+	return mo.memoryProfile
+}
+
+func (cp *CPUProfiler) GenerateProfile(duration time.Duration) error {
+	cp.mu.Lock()
+	defer cp.mu.Unlock()
+
+	if cp.profiling {
+		return fmt.Errorf("profiling already in progress")
+	}
+
+	cp.profiling = true
+	defer func() { cp.profiling = false }()
+
+	filename := fmt.Sprintf("/tmp/cpu-profile-%d.prof", time.Now().Unix())
+	f, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("failed to create CPU profile file: %w", err)
+	}
+	defer f.Close()
+
+	if err := runtime.StartCPUProfile(f); err != nil {
+		return fmt.Errorf("failed to start CPU profile: %w", err)
+	}
+
+	time.Sleep(duration)
+	runtime.StopCPUProfile()
+
+	profile := &CPUProfile{
+		StartTime: time.Now().Add(-duration),
+		EndTime:   time.Now(),
+		Duration:  duration,
+	}
+
+	cp.profiles = append(cp.profiles, profile)
+	cp.lastProfile = time.Now()
+
+	klog.Infof("CPU profile generated: %s", filename)
+	return nil
+}
+
+func (cp *CPUProfiler) GetProfiles() []*CPUProfile {
+	cp.mu.RLock()
+	defer cp.mu.RUnlock()
+	return cp.profiles
+}
+
+func (tc *TraceCollector) StartTrace() error {
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+
+	if tc.collecting {
+		return fmt.Errorf("trace collection already in progress")
+	}
+
+	filename := fmt.Sprintf("/tmp/trace-%d.trace", time.Now().Unix())
+	f, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("failed to create trace file: %w", err)
+	}
+
+	if err := trace.Start(f); err != nil {
+		f.Close()
+		return fmt.Errorf("failed to start trace: %w", err)
+	}
+
+	tc.collecting = true
+	tc.traceFile = filename
+	
+	// Auto-stop after 30 seconds
+	go func() {
+		time.Sleep(30 * time.Second)
+		tc.StopTrace()
 	}()
 
 	return nil
 }
 
-// StopHTTPProfiler stops the HTTP profiling server
-func (p *Profiler) StopHTTPProfiler(ctx context.Context) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
+func (tc *TraceCollector) StopTrace() error {
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
 
-	if p.httpServer == nil {
-		return fmt.Errorf("HTTP profiler not running")
+	if !tc.collecting {
+		return fmt.Errorf("trace collection not in progress")
 	}
 
-	err := p.httpServer.Shutdown(ctx)
-	p.httpServer = nil
-	return err
-}
+	trace.Stop()
+	tc.collecting = false
 
-// handleStats handles statistics endpoint
-func (p *Profiler) handleStats(w http.ResponseWriter, r *http.Request) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	stats := map[string]interface{}{
-		"goroutines": p.goroutineStats,
-		"memory":     p.memoryStats,
+	execTrace := &ExecutionTrace{
+		EndTime:  time.Now(),
+		Duration: time.Since(time.Now().Add(-30 * time.Second)), // Approximate
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	// In real implementation, encode stats as JSON
-	fmt.Fprintf(w, "%+v", stats)
+	tc.traces = append(tc.traces, execTrace)
+	klog.Infof("Trace collection stopped: %s", tc.traceFile)
+	
+	return nil
 }
 
-// handleLeaks handles leak detection endpoint
-func (p *Profiler) handleLeaks(w http.ResponseWriter, r *http.Request) {
-	goroutineLeaks := p.DetectGoroutineLeaks(10)
-	memoryLeaks := p.DetectMemoryLeaks()
+func (pa *PerformanceAnalyzer) StartAnalysis(shutdown chan struct{}) {
+	ticker := time.NewTicker(pa.analysisInterval)
+	defer ticker.Stop()
 
-	leaks := map[string]interface{}{
-		"goroutine_leaks": goroutineLeaks,
-		"memory_leaks":    memoryLeaks,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	// In real implementation, encode leaks as JSON
-	fmt.Fprintf(w, "%+v", leaks)
-}
-
-// GenerateFlameGraph generates a flame graph from CPU profile
-func (p *Profiler) GenerateFlameGraph(profilePath string) (string, error) {
-	// In real implementation, use go-torch or similar tool
-	// to generate flame graphs from profile data
-
-	outputPath := fmt.Sprintf("%s.svg", profilePath)
-
-	// Simulated flame graph generation
-	klog.Infof("Flame graph would be generated at %s", outputPath)
-
-	return outputPath, nil
-}
-
-// AnalyzeProfile analyzes a profile and returns hotspots
-func (p *Profiler) AnalyzeProfile(profilePath string) (*ProfilerReport, error) {
-	report := &ProfilerReport{
-		StartTime:   time.Now(),
-		HotSpots:    []ProfilerHotSpot{},
-		Contentions: []Contention{},
-		Allocations: []Allocation{},
-	}
-
-	// In real implementation, parse profile data
-	// and identify hotspots, contentions, etc.
-
-	// Example hotspot
-	report.HotSpots = append(report.HotSpots, ProfilerHotSpot{
-		Function:   "example.function",
-		File:       "example.go",
-		Line:       100,
-		Samples:    1000,
-		Percentage: 25.5,
-	})
-
-	report.EndTime = time.Now()
-	report.Duration = report.EndTime.Sub(report.StartTime)
-
-	return report, nil
-}
-
-// GetProfilerMetrics returns profiler metrics
-func (p *Profiler) GetProfilerMetrics() map[string]interface{} {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
-
-	return map[string]interface{}{
-		"goroutines_current": p.goroutineStats.Current,
-		"goroutines_peak":    p.goroutineStats.Peak,
-		"goroutines_leaked":  p.goroutineStats.Leaked,
-		"heap_alloc_mb":      float64(p.memoryStats.HeapAlloc) / (1024 * 1024),
-		"heap_sys_mb":        float64(p.memoryStats.HeapSys) / (1024 * 1024),
-		"gc_count":           p.memoryStats.GCCount,
-		"gc_pause_avg_ms":    p.memoryStats.GCPauseAvg.Milliseconds(),
-		"memory_leaks":       len(p.memoryStats.MemoryLeaks),
-		"is_active":          p.isActive,
+	for {
+		select {
+		case <-ticker.C:
+			report := pa.GenerateReport()
+			if report != nil {
+				pa.mu.Lock()
+				pa.reports = append(pa.reports, report)
+				if len(pa.reports) > 24 { // Keep last 24 reports
+					pa.reports = pa.reports[1:]
+				}
+				pa.mu.Unlock()
+			}
+		case <-shutdown:
+			return
+		}
 	}
 }
 
-// ExportMetrics exports profiler metrics to Prometheus
-func (p *Profiler) ExportMetrics(registry *prometheus.Registry) {
-	p.mu.RLock()
-	defer p.mu.RUnlock()
+func (pa *PerformanceAnalyzer) GenerateReport() *PerformanceReport {
+	report := &PerformanceReport{
+		GeneratedAt: time.Now(),
+		Duration:    pa.analysisInterval,
+		Score: PerformanceScore{
+			Overall: 85.0, // Placeholder
+			Grade:   "B+",
+		},
+	}
 
-	// Goroutine metrics
-	goroutineGauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "profiler_goroutines",
-		Help: "Goroutine statistics",
-	}, []string{"type"})
+	// Analyze CPU
+	report.CPUAnalysis = CPUAnalysisResult{
+		AvgUsage:   getCPUUsage(),
+		Efficiency: 85.0,
+	}
 
-	goroutineGauge.WithLabelValues("current").Set(float64(p.goroutineStats.Current))
-	goroutineGauge.WithLabelValues("peak").Set(float64(p.goroutineStats.Peak))
-	goroutineGauge.WithLabelValues("leaked").Set(float64(p.goroutineStats.Leaked))
+	// Analyze Memory
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	report.MemoryAnalysis = MemoryAnalysisResult{
+		AvgUsage:     float64(m.Alloc) / 1024 / 1024,
+		GCEfficiency: 90.0,
+	}
 
-	registry.MustRegister(goroutineGauge)
+	// Analyze Goroutines
+	report.GoroutineAnalysis = GoroutineAnalysisResult{
+		AvgCount:   int64(runtime.NumGoroutine()),
+		Efficiency: 80.0,
+	}
 
-	// Memory metrics
-	memoryGauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "profiler_memory_mb",
-		Help: "Memory statistics in MB",
-	}, []string{"type"})
+	return report
+}
 
-	memoryGauge.WithLabelValues("heap_alloc").Set(float64(p.memoryStats.HeapAlloc) / (1024 * 1024))
-	memoryGauge.WithLabelValues("heap_sys").Set(float64(p.memoryStats.HeapSys) / (1024 * 1024))
-	memoryGauge.WithLabelValues("heap_inuse").Set(float64(p.memoryStats.HeapInuse) / (1024 * 1024))
+func (pa *PerformanceAnalyzer) GetRecommendations() []PerformanceRecommendation {
+	pa.mu.RLock()
+	defer pa.mu.RUnlock()
+	return pa.recommendations
+}
 
-	registry.MustRegister(memoryGauge)
-
-	// GC metrics
-	gcGauge := prometheus.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "profiler_gc",
-		Help: "Garbage collection statistics",
-	}, []string{"type"})
-
-	gcGauge.WithLabelValues("count").Set(float64(p.memoryStats.GCCount))
-	gcGauge.WithLabelValues("pause_ms").Set(float64(p.memoryStats.GCPauseAvg.Milliseconds()))
-
-	registry.MustRegister(gcGauge)
+func (pam *PerformanceAlertManager) GetAlerts() []*PerformanceAlert {
+	pam.mu.RLock()
+	defer pam.mu.RUnlock()
+	return pam.alerts
 }

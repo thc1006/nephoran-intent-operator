@@ -31,7 +31,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/prometheus/client_golang/prometheus"
@@ -337,10 +336,8 @@ func NewRestoreManager(drConfig *DisasterRecoveryConfig, k8sClient kubernetes.In
 	}
 
 	// Create dynamic client for CRD operations
-	restConfig, err := k8sClient.CoreV1().RESTClient().Get().URL().Parse()
-	if err != nil {
-		logger.Error("Failed to get REST config", "error", err)
-	}
+	// REST client is available for advanced operations if needed
+	_ = k8sClient.CoreV1().RESTClient()
 
 	var dynamicClient dynamic.Interface
 	// In a real implementation, you would create the dynamic client here

@@ -699,13 +699,13 @@ func (pipeline *AutomatedOptimizationPipeline) executeOptimization(ctx context.C
 
 func (pipeline *AutomatedOptimizationPipeline) needsOptimization(analysisResult *PerformanceAnalysisResult) bool {
 	// Determine if optimization is needed based on analysis results
-	if analysisResult.SystemHealth == HealthStatusCritical {
+	if analysisResult.SystemHealth == SystemHealthCritical {
 		return true
 	}
-	if analysisResult.SystemHealth == HealthStatusWarning && analysisResult.OverallScore < 70.0 {
+	if analysisResult.SystemHealth == SystemHealthPoor && analysisResult.OverallScore < 70.0 {
 		return true
 	}
-	if len(analysisResult.IdentifiedBottlenecks) > 0 {
+	if len(analysisResult.Bottlenecks) > 0 {
 		return true
 	}
 	return false
@@ -957,3 +957,4 @@ func GetDefaultPipelineConfig() *PipelineConfig {
 		ComponentConfigs:            make(map[ComponentType]interface{}),
 	}
 }
+

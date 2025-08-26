@@ -1,0 +1,220 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: oran-kpis
+  namespace: monitoring
+  labels:
+    prometheus: kube-prometheus
+    role: alert-rules
+spec:
+  groups:
+  - name: oran_l_release_kpis
+    interval: 30s
+    rules:
+    # O-RAN L Release KPIs
+    - record: oran:prb_usage_dl
+      expr: |
+        avg by (cell_id, du_id) (
+          rate(oran_du_prb_used_dl_total[5m]) /
+          rate(oran_du_prb_available_dl_total[5m]) * 100
+        )
+    
+    - record: oran:prb_usage_ul
+      expr: |
+        avg by (cell_id, du_id) (
+          rate(oran_du_prb_used_ul_total[5m]) /
+          rate(oran_du_prb_available_ul_total[5m]) * 100
+        )
+    
+    - record: oran:throughput_dl_mbps
+      expr: |
+        sum by (cell_id) (
+          rate(oran_du_mac_volume_dl_bytes[5m]) * 8 / 1000000
+        )
+    
+    - record: oran:throughput_ul_mbps
+      expr: |
+        sum by (cell_id) (
+          rate(oran_du_mac_volume_ul_bytes[5m]) * 8 / 1000000
+        )
+    
+    - record: oran:rtt_ms
+      expr: |
+        histogram_quantile(0.95,
+          rate(oran_du_rtt_histogram_bucket[5m])
+        )
+    
+    - record: oran:active_users
+      expr: |
+        sum by (cell_id) (
+          oran_du_ue_context_setup_success_total -
+          oran_du_ue_context_release_total
+        )
+    
+    - record: oran:energy_efficiency
+      expr: |
+        sum by (du_id) (
+          (oran:throughput_dl_mbps + oran:throughput_ul_mbps) /
+          oran_du_power_consumption_watts
+        )
+    
+    # RIC KPIs
+    - record: ric:e2_connections
+      expr: |
+        sum(up{job="ric-e2term"})
+    
+    - record: ric:xapp_status
+      expr: |
+        sum by (xapp_name) (up{job=~".*xapp.*"})
+    
+    - record: ric:a1_policy_compliance
+      expr: |
+        sum by (policy_type) (
+          ric_a1_policy_instances_active / ric_a1_policy_instances_total * 100
+        )
+    
+    # NWDAF Analytics KPIs
+    - record: nwdaf:slice_sla_compliance
+      expr: |
+        avg by (slice_id) (
+          nwdaf_slice_latency_ms <= bool nwdaf_slice_sla_latency_threshold_ms
+        ) * 100
+    
+    - record: nwdaf:anomaly_detection_rate
+      expr: |
+        rate(nwdaf_anomalies_detected_total[5m])
+
+  - name: oran_alerts
+    rules:
+    - alert: HighPRBUtilization
+      expr: oran:prb_usage_dl > 80 or oran:prb_usage_ul > 80
+      for: 5m
+      labels:
+        severity: warning
+        component: ran
+        sla_impact: "medium"
+      annotations:
+        summary: "High PRB utilization in cell {{ $labels.cell_id }}"
+        description: "PRB usage is {{ $value }}% (threshold: 80%)"
+        runbook_url: "https://wiki.oran.org/runbooks/high-prb-utilization"
+    
+    - alert: LowThroughput
+      expr: oran:throughput_dl_mbps < 50 or oran:throughput_ul_mbps < 20
+      for: 10m
+      labels:
+        severity: warning
+        component: ran
+        sla_impact: "high"
+      annotations:
+        summary: "Low throughput in cell {{ $labels.cell_id }}"
+        description: "Throughput is {{ $value }} Mbps"
+    
+    - alert: HighLatency
+      expr: oran:rtt_ms > 10
+      for: 5m
+      labels:
+        severity: critical
+        component: ran
+        sla_impact: "critical"
+      annotations:
+        summary: "High latency in cell {{ $labels.cell_id }}"
+        description: "RTT is {{ $value }}ms (threshold: 10ms)"
+    
+    - alert: LowEnergyEfficiency
+      expr: oran:energy_efficiency < 10
+      for: 10m
+      labels:
+        severity: warning
+        component: ran
+        sla_impact: "low"
+      annotations:
+        summary: "Low energy efficiency for DU {{ $labels.du_id }}"
+        description: "Efficiency is {{ $value }} Mbps/W (threshold: 10)"
+    
+    - alert: E2ConnectionLost
+      expr: ric:e2_connections < 1
+      for: 2m
+      labels:
+        severity: critical
+        component: ric
+        sla_impact: "critical"
+      annotations:
+        summary: "E2 connection lost"
+        description: "RIC E2Term has no active E2 connections"
+    
+    - alert: XAppDown
+      expr: ric:xapp_status == 0
+      for: 3m
+      labels:
+        severity: critical
+        component: ric
+        sla_impact: "high"
+      annotations:
+        summary: "xApp {{ $labels.xapp_name }} is down"
+        description: "xApp has been unreachable for 3 minutes"
+    
+    - alert: A1PolicyNonCompliance
+      expr: ric:a1_policy_compliance < 95
+      for: 5m
+      labels:
+        severity: warning
+        component: ric
+        sla_impact: "medium"
+      annotations:
+        summary: "A1 policy compliance below threshold"
+        description: "Policy compliance is {{ $value }}% for {{ $labels.policy_type }}"
+    
+    - alert: SliceSLAViolation
+      expr: nwdaf:slice_sla_compliance < 99
+      for: 2m
+      labels:
+        severity: critical
+        component: nwdaf
+        sla_impact: "critical"
+      annotations:
+        summary: "Network slice SLA violation"
+        description: "Slice {{ $labels.slice_id }} compliance is {{ $value }}%"
+    
+    - alert: HighAnomalyRate
+      expr: nwdaf:anomaly_detection_rate > 0.1
+      for: 5m
+      labels:
+        severity: warning
+        component: nwdaf
+        sla_impact: "medium"
+      annotations:
+        summary: "High anomaly detection rate"
+        description: "{{ $value }} anomalies per second detected"
+    
+    - alert: VESCollectorDown
+      expr: up{job="ves-collector"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: ves
+        sla_impact: "critical"
+      annotations:
+        summary: "VES collector is down"
+        description: "VES event collection has stopped"
+    
+    - alert: KubernetesPodCrashLooping
+      expr: rate(kube_pod_container_status_restarts_total[15m]) > 0
+      for: 5m
+      labels:
+        severity: warning
+        component: infrastructure
+        sla_impact: "medium"
+      annotations:
+        summary: "Pod {{ $labels.pod }} is crash looping"
+        description: "Pod has restarted {{ $value }} times in the last 15 minutes"
+    
+    - alert: KubernetesNodeNotReady
+      expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+      for: 2m
+      labels:
+        severity: critical
+        component: infrastructure
+        sla_impact: "critical"
+      annotations:
+        summary: "Node {{ $labels.node }} is not ready"
+        description: "Node has been unready for more than 2 minutes"

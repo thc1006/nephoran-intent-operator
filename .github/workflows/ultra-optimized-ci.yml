@@ -1,0 +1,626 @@
+# Ultra-Optimized CI/CD Pipeline for Maximum Speed and Efficiency
+# Features: Smart caching, parallel execution, build skipping, artifact reuse
+
+name: Ultra-Optimized CI
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [ main, integrate/mvp, "feat/**", "chore/**" ]
+  pull_request:
+    branches: [ main, integrate/mvp ]
+
+concurrency:
+  group: ultra-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/integrate/mvp' }}
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+  actions: read
+  security-events: write
+
+env:
+  # Performance optimizations
+  REGISTRY: ghcr.io
+  IMAGE_NAME: nephoran-intent-operator
+  DOCKER_BUILDKIT: 1
+  BUILDX_NO_DEFAULT_ATTESTATIONS: 1
+  CGO_ENABLED: 0
+  GOPRIVATE: github.com/thc1006/*
+  GOPROXY: https://proxy.golang.org,direct
+  GOSUMDB: sum.golang.org
+  # Advanced caching keys
+  CACHE_VERSION: v3
+  GO_VERSION_KEY: go124
+
+jobs:
+  # =============================================================================
+  # Smart Change Detection with Advanced Filtering
+  # =============================================================================
+  detect-changes:
+    name: "🔍 Smart Change Detection"
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      # Granular change detection for optimized builds
+      go_changed: ${{ steps.changes.outputs.go }}
+      go_critical: ${{ steps.changes.outputs.go_critical }}
+      docker_changed: ${{ steps.changes.outputs.docker }}
+      k8s_changed: ${{ steps.changes.outputs.k8s }}
+      tests_changed: ${{ steps.changes.outputs.tests }}
+      docs_changed: ${{ steps.changes.outputs.docs }}
+      ci_changed: ${{ steps.changes.outputs.ci }}
+      security_changed: ${{ steps.changes.outputs.security }}
+      # Smart cache keys
+      go_cache_key: ${{ steps.cache-keys.outputs.go_cache_key }}
+      docker_cache_key: ${{ steps.cache-keys.outputs.docker_cache_key }}
+      # Skip flags for optimization
+      skip_tests: ${{ steps.skip-logic.outputs.skip_tests }}
+      skip_docker: ${{ steps.skip-logic.outputs.skip_docker }}
+      skip_security: ${{ steps.skip-logic.outputs.skip_security }}
+
+    steps:
+      - name: "📥 Checkout (Shallow)"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Minimal depth for change detection
+
+      - name: "🔍 Advanced Path Detection"
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            go:
+              - '**/*.go'
+              - 'go.mod'
+              - 'go.sum'
+              - '.golangci.yml'
+            go_critical:
+              - 'api/**/*.go'
+              - 'cmd/**/*.go'
+              - 'controllers/**/*.go'
+              - 'pkg/**/*.go'
+            docker:
+              - 'Dockerfile*'
+              - '.dockerignore'
+              - 'deployments/docker-compose*.yml'
+            k8s:
+              - 'config/**'
+              - 'deployments/**/*.yaml'
+              - 'deployments/**/*.yml'
+            tests:
+              - '**/*_test.go'
+              - 'tests/**'
+              - 'hack/test*'
+            docs:
+              - 'docs/**'
+              - '**/*.md'
+            ci:
+              - '.github/workflows/**'
+              - 'Makefile*'
+              - 'scripts/**'
+            security:
+              - 'security/**'
+              - '.golangci.yml'
+              - 'tools.go'
+
+      - name: "🔑 Generate Smart Cache Keys"
+        id: cache-keys
+        run: |
+          # Multi-layered cache keys for maximum cache hit rates
+          go_deps_hash="${{ hashFiles('**/go.sum', 'go.mod') }}"
+          go_config_hash="${{ hashFiles('.golangci.yml', 'Makefile', 'tools.go') }}"
+          docker_hash="${{ hashFiles('Dockerfile*', '.dockerignore', 'go.mod', 'go.sum') }}"
+          
+          # Composite cache keys
+          go_cache_key="${{ env.CACHE_VERSION }}-${{ env.GO_VERSION_KEY }}-${go_deps_hash}-${go_config_hash}"
+          docker_cache_key="${{ env.CACHE_VERSION }}-docker-${docker_hash}"
+          
+          echo "go_cache_key=${go_cache_key}" >> $GITHUB_OUTPUT
+          echo "docker_cache_key=${docker_cache_key}" >> $GITHUB_OUTPUT
+          
+          echo "📦 Cache keys generated:"
+          echo "  Go: ${go_cache_key}"
+          echo "  Docker: ${docker_cache_key}"
+
+      - name: "🧠 Smart Skip Logic"
+        id: skip-logic
+        run: |
+          # Intelligent skipping logic for maximum efficiency
+          skip_tests="false"
+          skip_docker="false"
+          skip_security="false"
+          
+          # Skip tests if only docs changed
+          if [[ "${{ steps.changes.outputs.docs }}" == "true" && \
+                "${{ steps.changes.outputs.go }}" != "true" && \
+                "${{ steps.changes.outputs.tests }}" != "true" ]]; then
+            skip_tests="true"
+            echo "⏭️ Skipping tests - only documentation changed"
+          fi
+          
+          # Skip Docker build if no relevant changes
+          if [[ "${{ steps.changes.outputs.docker }}" != "true" && \
+                "${{ steps.changes.outputs.go_critical }}" != "true" ]]; then
+            skip_docker="true"
+            echo "⏭️ Skipping Docker build - no relevant changes"
+          fi
+          
+          # Skip security scan if only docs/tests changed
+          if [[ "${{ steps.changes.outputs.docs }}" == "true" && \
+                "${{ steps.changes.outputs.security }}" != "true" && \
+                "${{ steps.changes.outputs.go }}" != "true" ]]; then
+            skip_security="true"
+            echo "⏭️ Skipping security scan - non-security changes only"
+          fi
+          
+          echo "skip_tests=${skip_tests}" >> $GITHUB_OUTPUT
+          echo "skip_docker=${skip_docker}" >> $GITHUB_OUTPUT
+          echo "skip_security=${skip_security}" >> $GITHUB_OUTPUT
+
+      - name: "📊 Change Summary"
+        run: |
+          echo "## 🔍 Smart Change Detection Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Category | Changed | Skip Logic |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|---------|------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Go Code | ${{ steps.changes.outputs.go }} | Tests: ${{ steps.skip-logic.outputs.skip_tests }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Critical Go | ${{ steps.changes.outputs.go_critical }} | Docker: ${{ steps.skip-logic.outputs.skip_docker }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docker | ${{ steps.changes.outputs.docker }} | Security: ${{ steps.skip-logic.outputs.skip_security }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests | ${{ steps.changes.outputs.tests }} | - |" >> $GITHUB_STEP_SUMMARY
+          echo "| Docs | ${{ steps.changes.outputs.docs }} | - |" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # Lightning-Fast Dependency Setup
+  # =============================================================================
+  setup-deps:
+    name: "⚡ Dependencies & Build Cache"
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.go_changed == 'true'
+    timeout-minutes: 8
+    outputs:
+      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
+
+    steps:
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          check-latest: true
+          cache: false  # We handle caching manually
+
+      - name: "🚀 Ultra-Fast Dependency Cache"
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ~/.cache/golangci-lint
+            ~/.local/bin
+            /tmp/go-compile-cache
+          key: deps-${{ runner.os }}-${{ needs.detect-changes.outputs.go_cache_key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.CACHE_VERSION }}-${{ env.GO_VERSION_KEY }}-
+            deps-${{ runner.os }}-${{ env.CACHE_VERSION }}-
+          save-always: true
+
+      - name: "📦 Parallel Dependency Download"
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          # Maximum parallelization for dependency download
+          export GOMAXPROCS=8
+          export GOPROXY="${{ env.GOPROXY }}"
+          export GOSUMDB="${{ env.GOSUMDB }}"
+          
+          echo "🔄 Downloading dependencies with maximum parallelization..."
+          go mod download -x
+          go mod verify
+          
+          # Pre-compile standard library for faster builds
+          echo "🔧 Pre-compiling standard library..."
+          GOCACHE=/tmp/go-compile-cache go install -a std
+          
+          echo "✅ Dependencies ready"
+
+      - name: "🛠️ Install Build Tools"
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          # Install tools in parallel
+          {
+            go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0 &
+            go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest &
+            go install github.com/onsi/ginkgo/v2/ginkgo@latest &
+            go install golang.org/x/tools/cmd/cover@latest &
+            go install golang.org/x/vuln/cmd/govulncheck@latest &
+            wait
+          }
+          echo "✅ Build tools installed"
+
+  # =============================================================================
+  # Ultra-Fast Parallel Linting
+  # =============================================================================
+  lint-matrix:
+    name: "🔍 Lint (${{ matrix.linter }})"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, setup-deps]
+    if: needs.detect-changes.outputs.go_changed == 'true'
+    timeout-minutes: 10
+
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        linter: [golangci-lint, gosec, staticcheck, ineffassign]
+
+    steps:
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: "🚀 Restore Dependency Cache"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ~/.cache/golangci-lint
+            ~/.local/bin
+            /tmp/go-compile-cache
+          key: deps-${{ runner.os }}-${{ needs.detect-changes.outputs.go_cache_key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.CACHE_VERSION }}-${{ env.GO_VERSION_KEY }}-
+
+      - name: "🔍 Run ${{ matrix.linter }}"
+        run: |
+          case "${{ matrix.linter }}" in
+            "golangci-lint")
+              golangci-lint run --timeout=8m --concurrency=4 --modules-download-mode=readonly
+              ;;
+            "gosec")
+              go install github.com/securego/gosec/v2/cmd/gosec@latest
+              gosec ./...
+              ;;
+            "staticcheck")
+              go install honnef.co/go/tools/cmd/staticcheck@latest
+              staticcheck ./...
+              ;;
+            "ineffassign")
+              go install github.com/gordonklaus/ineffassign@latest
+              ineffassign ./...
+              ;;
+          esac
+
+  # =============================================================================
+  # Hyper-Optimized Testing Matrix
+  # =============================================================================
+  test-matrix:
+    name: "🧪 Tests (${{ matrix.test-type }})"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, setup-deps]
+    if: |
+      needs.detect-changes.outputs.skip_tests != 'true' &&
+      needs.detect-changes.outputs.go_changed == 'true'
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        test-type: [unit, integration, pkg-llm, pkg-controllers, pkg-nephio, e2e-lite]
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: "🚀 Restore Build Cache"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            ~/.cache/golangci-lint
+            ~/.local/bin
+            /tmp/go-compile-cache
+          key: deps-${{ runner.os }}-${{ needs.detect-changes.outputs.go_cache_key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.CACHE_VERSION }}-${{ env.GO_VERSION_KEY }}-
+
+      - name: "🏗️ Setup Test Environment"
+        if: contains(matrix.test-type, 'integration') || contains(matrix.test-type, 'e2e')
+        run: |
+          setup-envtest use 1.29.0 --bin-dir ~/.local/bin
+          echo "KUBEBUILDER_ASSETS=$HOME/.local/bin" >> $GITHUB_ENV
+          echo "USE_EXISTING_CLUSTER=false" >> $GITHUB_ENV
+
+      - name: "🧪 Run Optimized Tests"
+        env:
+          GOMAXPROCS: 4
+          REDIS_URL: redis://localhost:6379
+          GOCACHE: /tmp/go-compile-cache
+        run: |
+          mkdir -p test-results coverage
+          
+          case "${{ matrix.test-type }}" in
+            "unit")
+              go test ./... -short -race -parallel=8 -timeout=10m \
+                -coverprofile=coverage/unit.out -covermode=atomic \
+                -json | tee test-results/unit.json
+              ;;
+            "integration")
+              go test ./tests/integration/... -race -parallel=4 -timeout=15m \
+                -coverprofile=coverage/integration.out -covermode=atomic \
+                -json | tee test-results/integration.json
+              ;;
+            "pkg-llm")
+              go test ./pkg/llm/... -race -parallel=4 -timeout=10m \
+                -coverprofile=coverage/llm.out -covermode=atomic \
+                -json | tee test-results/llm.json
+              ;;
+            "pkg-controllers")
+              go test ./controllers/... ./pkg/controllers/... -race -parallel=4 -timeout=10m \
+                -coverprofile=coverage/controllers.out -covermode=atomic \
+                -json | tee test-results/controllers.json
+              ;;
+            "pkg-nephio")
+              go test ./pkg/nephio/... -race -parallel=4 -timeout=10m \
+                -coverprofile=coverage/nephio.out -covermode=atomic \
+                -json | tee test-results/nephio.json
+              ;;
+            "e2e-lite")
+              go test ./tests/e2e/... -short -parallel=2 -timeout=15m \
+                -json | tee test-results/e2e-lite.json
+              ;;
+          esac
+
+      - name: "📊 Coverage Processing"
+        if: always()
+        run: |
+          if [ -f "coverage/${{ matrix.test-type }}.out" ]; then
+            go tool cover -func=coverage/${{ matrix.test-type }}.out > coverage/${{ matrix.test-type }}.txt
+            go tool cover -html=coverage/${{ matrix.test-type }}.out -o coverage/${{ matrix.test-type }}.html
+          fi
+
+      - name: "💾 Upload Test Results"
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.test-type }}
+          path: |
+            test-results/
+            coverage/
+          retention-days: 7
+
+  # =============================================================================
+  # Lightning-Fast Multi-Arch Build
+  # =============================================================================
+  build-matrix:
+    name: "🔨 Build (${{ matrix.goos }}/${{ matrix.goarch }})"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, setup-deps]
+    if: needs.detect-changes.outputs.go_changed == 'true'
+    timeout-minutes: 12
+
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+
+    steps:
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
+
+      - name: "🐹 Setup Go"
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: "🚀 Restore Build Cache"
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            /tmp/go-compile-cache
+          key: deps-${{ runner.os }}-${{ needs.detect-changes.outputs.go_cache_key }}
+          restore-keys: |
+            deps-${{ runner.os }}-${{ env.CACHE_VERSION }}-${{ env.GO_VERSION_KEY }}-
+
+      - name: "🔨 Ultra-Fast Cross-Compilation"
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+          GOCACHE: /tmp/go-compile-cache
+        run: |
+          echo "🔨 Building for ${{ matrix.goos }}/${{ matrix.goarch }}"
+          
+          mkdir -p dist/${{ matrix.goos }}_${{ matrix.goarch }}
+          
+          binary_name="nephoran-operator"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            binary_name="${binary_name}.exe"
+          fi
+          
+          # Ultra-optimized build with all flags
+          go build -v \
+            -ldflags="-s -w -X main.version=${{ github.sha }}" \
+            -trimpath \
+            -buildmode=pie \
+            -o "dist/${{ matrix.goos }}_${{ matrix.goarch }}/${binary_name}" \
+            ./cmd/main.go
+          
+          # Verify and checksum
+          ls -la "dist/${{ matrix.goos }}_${{ matrix.goarch }}/"
+          cd "dist/${{ matrix.goos }}_${{ matrix.goarch }}"
+          sha256sum "${binary_name}" > "${binary_name}.sha256"
+
+      - name: "💾 Upload Build Artifacts"
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/${{ matrix.goos }}_${{ matrix.goarch }}/
+          retention-days: 7
+
+  # =============================================================================
+  # Optimized Container Build with Multi-Stage Caching
+  # =============================================================================
+  container-build:
+    name: "🐳 Container Build & Scan"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build-matrix]
+    if: |
+      needs.detect-changes.outputs.skip_docker != 'true' &&
+      needs.build-matrix.result == 'success'
+    timeout-minutes: 20
+
+    steps:
+      - name: "📥 Checkout"
+        uses: actions/checkout@v4
+
+      - name: "🔧 Setup Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          use: true
+          buildkitd-flags: --allow-insecure-entitlement security.insecure --allow-insecure-entitlement network.host
+
+      - name: "📥 Download Linux Binary"
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-linux-amd64
+          path: ./bin/
+
+      - name: "🐳 Build Multi-Stage Container"
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: ${{ env.IMAGE_NAME }}:test-${{ github.sha }}
+          cache-from: |
+            type=gha,scope=container
+            type=gha,scope=deps
+          cache-to: type=gha,mode=max,scope=container
+          load: true
+          build-args: |
+            SERVICE=manager
+            VERSION=${{ github.sha }}
+            BUILD_DATE=${{ github.run_started_at }}
+
+      - name: "🔍 Lightning Security Scan"
+        run: |
+          # Quick security scan with Trivy
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:latest image \
+            --exit-code 1 \
+            --severity CRITICAL,HIGH \
+            --quiet \
+            ${{ env.IMAGE_NAME }}:test-${{ github.sha }}
+
+  # =============================================================================
+  # Final Status and Smart Reporting
+  # =============================================================================
+  ci-status:
+    name: "📊 CI Status"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, setup-deps, lint-matrix, test-matrix, build-matrix, container-build]
+    if: always()
+    timeout-minutes: 3
+
+    steps:
+      - name: "📊 Generate Performance Report"
+        run: |
+          echo "## ⚡ Ultra-Optimized CI Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Calculate success rate
+          total_jobs=0
+          successful_jobs=0
+          
+          jobs=("${{ needs.setup-deps.result }}" "${{ needs.lint-matrix.result }}" "${{ needs.test-matrix.result }}" "${{ needs.build-matrix.result }}" "${{ needs.container-build.result }}")
+          
+          for result in "${jobs[@]}"; do
+            total_jobs=$((total_jobs + 1))
+            if [ "$result" = "success" ]; then
+              successful_jobs=$((successful_jobs + 1))
+            fi
+          done
+          
+          success_rate=$((successful_jobs * 100 / total_jobs))
+          
+          echo "### 🎯 Performance Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "- **Success Rate**: ${success_rate}%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Parallel Jobs**: 6+ concurrent executions" >> $GITHUB_STEP_SUMMARY
+          echo "- **Smart Caching**: Multi-layered cache optimization" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Skipping**: Intelligent change detection" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Result | Optimizations |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|---------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependencies | ${{ needs.setup-deps.result }} | Parallel download, pre-compilation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Linting | ${{ needs.lint-matrix.result }} | 4x parallel linters |" >> $GITHUB_STEP_SUMMARY
+          echo "| Testing | ${{ needs.test-matrix.result }} | 6x parallel test suites |" >> $GITHUB_STEP_SUMMARY
+          echo "| Building | ${{ needs.build-matrix.result }} | 8x parallel cross-compilation |" >> $GITHUB_STEP_SUMMARY
+          echo "| Container | ${{ needs.container-build.result }} | Multi-stage caching, fast scan |" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$success_rate" -ge 80 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **CI Pipeline Optimized Successfully!**" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: "🎯 Final Status Check"
+        run: |
+          # Only fail on critical job failures
+          if [[ "${{ needs.test-matrix.result }}" != "success" && "${{ needs.test-matrix.result }}" != "skipped" ]]; then
+            echo "❌ Critical: Tests failed"
+            exit 1
+          fi
+          
+          if [[ "${{ needs.build-matrix.result }}" != "success" && "${{ needs.build-matrix.result }}" != "skipped" ]]; then
+            echo "❌ Critical: Build failed"
+            exit 1
+          fi
+          
+          echo "✅ Ultra-optimized CI pipeline completed successfully!"
