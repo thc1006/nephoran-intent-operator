@@ -254,7 +254,7 @@ func (r *CoordinationController) coordinateIntent(ctx context.Context, networkIn
 
 // coordinatePhase coordinates the execution of a specific phase
 func (r *CoordinationController) coordinatePhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, coordCtx *CoordinationContext) (interfaces.ProcessingResult, error) {
-	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
+	logger := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
 	// Record phase execution start
 	phaseExec := PhaseExecution{
@@ -540,7 +540,7 @@ func (r *CoordinationController) detectConflicts(ctx context.Context, networkInt
 	// Check for resource conflicts with other active intents
 	r.activeIntents.Range(func(key, value interface{}) bool {
 		otherIntentID := key.(string)
-		otherCoordCtx := value.(*CoordinationContext)
+		_ = value.(*CoordinationContext) // otherCoordCtx not used in this stub
 
 		if otherIntentID == coordCtx.IntentID {
 			return true // Skip self
@@ -615,7 +615,7 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 				log.Error(err, "Failed to publish conflict resolution event")
 			}
 		} else {
-			log.Warn("Conflict could not be resolved automatically", "conflictId", conflict.ID)
+			r.Logger.Info("Conflict could not be resolved automatically", "conflictId", conflict.ID)
 			// Manual intervention required
 			r.Recorder.Event(networkIntent, "Warning", "ConflictDetected",
 				fmt.Sprintf("Conflict detected and requires manual intervention: %s", conflict.Description))
@@ -1089,4 +1089,16 @@ func DefaultCoordinationConfig() *CoordinationConfig {
 		HealthCheckInterval:      60 * time.Second,
 		RecoveryTimeout:          120 * time.Second,
 	}
+}
+
+// ManifestGenerationController handles manifest generation (stub type for compilation)
+type ManifestGenerationController struct {
+	client.Client
+	Logger logr.Logger
+}
+
+// GitOpsDeploymentController handles GitOps deployments (stub type for compilation)
+type GitOpsDeploymentController struct {
+	client.Client
+	Logger logr.Logger
 }

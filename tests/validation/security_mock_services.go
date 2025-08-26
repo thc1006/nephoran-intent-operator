@@ -2,7 +2,6 @@
 package validation
 
 import (
-	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/tls"

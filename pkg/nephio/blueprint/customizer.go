@@ -18,24 +18,16 @@ package blueprint
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
-	"text/template"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // Customizer handles blueprint customization and parameterization based on NetworkIntent context
@@ -65,7 +57,7 @@ type CustomizationRule struct {
 	Priority    int    `json:"priority" yaml:"priority"`
 
 	// Targeting criteria
-	Components   []v1.TargetComponent `json:"components,omitempty" yaml:"components,omitempty"`
+	Components   []v1.ORANComponent `json:"components,omitempty" yaml:"components,omitempty"`
 	IntentTypes  []v1.IntentType      `json:"intentTypes,omitempty" yaml:"intentTypes,omitempty"`
 	Environments []string             `json:"environments,omitempty" yaml:"environments,omitempty"`
 
@@ -287,7 +279,7 @@ type PolicyAction struct {
 
 type PolicyScope struct {
 	Namespaces []string             `json:"namespaces,omitempty" yaml:"namespaces,omitempty"`
-	Components []v1.TargetComponent `json:"components,omitempty" yaml:"components,omitempty"`
+	Components []v1.ORANComponent `json:"components,omitempty" yaml:"components,omitempty"`
 	Labels     map[string]string    `json:"labels,omitempty" yaml:"labels,omitempty"`
 }
 
@@ -483,23 +475,23 @@ func (c *Customizer) applyEnvironmentCustomizations(ctx context.Context, customC
 func (c *Customizer) applyComponentCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
 	for _, component := range customCtx.Intent.Spec.TargetComponents {
 		switch component {
-		case v1.TargetComponentAMF:
+		case v1.ORANComponentAMF:
 			if err := c.customizeAMF(customCtx); err != nil {
 				return fmt.Errorf("AMF customization failed: %w", err)
 			}
-		case v1.TargetComponentSMF:
+		case v1.ORANComponentSMF:
 			if err := c.customizeSMF(customCtx); err != nil {
 				return fmt.Errorf("SMF customization failed: %w", err)
 			}
-		case v1.TargetComponentUPF:
+		case v1.ORANComponentUPF:
 			if err := c.customizeUPF(customCtx); err != nil {
 				return fmt.Errorf("UPF customization failed: %w", err)
 			}
-		case v1.TargetComponentNearRTRIC:
+		case v1.ORANComponentNearRTRIC:
 			if err := c.customizeNearRTRIC(customCtx); err != nil {
 				return fmt.Errorf("Near-RT RIC customization failed: %w", err)
 			}
-		case v1.TargetComponentXApp:
+		case v1.ORANComponentXApp:
 			if err := c.customizeXApp(customCtx); err != nil {
 				return fmt.Errorf("xApp customization failed: %w", err)
 			}
@@ -586,7 +578,9 @@ func (c *Customizer) customizeAMFContainer(container map[interface{}]interface{}
 	// Customize resource requirements
 	if ctx.Environment != nil {
 		if resources, ok := container["resources"].(map[interface{}]interface{}); ok {
-			c.applyResourceCustomizations(resources, &ctx.Environment.ResourceLimits)
+			if err := c.applyContainerResourceLimits(resources, &ctx.Environment.ResourceLimits); err != nil {
+				c.logger.Warn("Failed to apply container resource limits", zap.Error(err))
+			}
 		}
 	}
 }
@@ -781,19 +775,19 @@ func (c *Customizer) applyReplicaCountToDeployment(content string, replicaCounts
 func (c *Customizer) extractParameters(intent *v1.NetworkIntent) map[string]interface{} {
 	params := make(map[string]interface{})
 
-	// Extract from raw parameters
-	if intent.Spec.Parameters.Raw != nil {
-		var rawParams map[string]interface{}
-		if err := json.Unmarshal(intent.Spec.Parameters.Raw, &rawParams); err == nil {
-			for k, v := range rawParams {
+	// Extract from processed parameters if available
+	if intent.Spec.ProcessedParameters != nil {
+		if intent.Spec.ProcessedParameters.NetworkFunction != "" {
+			params["networkFunction"] = intent.Spec.ProcessedParameters.NetworkFunction
+		}
+		if intent.Spec.ProcessedParameters.Region != "" {
+			params["region"] = intent.Spec.ProcessedParameters.Region
+		}
+		if intent.Spec.ProcessedParameters.CustomParameters != nil {
+			for k, v := range intent.Spec.ProcessedParameters.CustomParameters {
 				params[k] = v
 			}
 		}
-	}
-
-	// Extract from parameters map
-	for k, v := range intent.Spec.ParametersMap {
-		params[k] = v
 	}
 
 	// Add intent metadata
@@ -988,3 +982,110 @@ func (c *Customizer) HealthCheck(ctx context.Context) bool {
 // - NewPolicyEngine and related policy methods
 
 // These would follow similar patterns to the methods shown above
+
+// NewPolicyEngine creates a new policy engine
+func NewPolicyEngine() *PolicyEngine {
+	return &PolicyEngine{
+		policies:  make(map[string]*CustomizationPolicy),
+		evaluator: &PolicyEvaluator{},
+	}
+}
+
+// applyResourceCustomizations applies resource-related customizations
+func (c *Customizer) applyResourceCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying resource customizations (stub)")
+	// Stub implementation - would apply CPU, memory, storage customizations
+	return nil
+}
+
+// applySecurityCustomizations applies security-related customizations
+func (c *Customizer) applySecurityCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying security customizations (stub)")
+	// Stub implementation - would apply RBAC, network policies, security contexts
+	return nil
+}
+
+// applyNetworkSliceCustomizations applies network slice customizations
+func (c *Customizer) applyNetworkSliceCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying network slice customizations (stub)")
+	// Stub implementation - would configure network slicing
+	return nil
+}
+
+// applyPolicyCustomizations applies policy-based customizations
+func (c *Customizer) applyPolicyCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying policy customizations (stub)")
+	// Stub implementation - would apply various policies
+	return nil
+}
+
+// applyRuleBasedCustomizations applies rule-based customizations
+func (c *Customizer) applyRuleBasedCustomizations(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Applying rule-based customizations (stub)")
+	// Stub implementation - would apply custom rules
+	return nil
+}
+
+// validateCustomizedBlueprint validates the customized blueprint
+func (c *Customizer) validateCustomizedBlueprint(ctx context.Context, customCtx *CustomizationContext) error {
+	c.logger.Debug("Validating customized blueprint (stub)")
+	// Stub implementation - would validate the final result
+	return nil
+}
+
+// applySchedulingConstraints applies scheduling constraints
+func (c *Customizer) applySchedulingConstraints(customCtx *CustomizationContext, env *EnvironmentProfile) error {
+	c.logger.Debug("Applying scheduling constraints (stub)")
+	// Stub implementation - would apply node affinity, anti-affinity, etc.
+	return nil
+}
+
+// applyNetworkPolicies applies network policies
+func (c *Customizer) applyNetworkPolicies(customCtx *CustomizationContext, policies []NetworkPolicyTemplate) error {
+	c.logger.Debug("Applying network policies (stub)")
+	// Stub implementation - would apply network policies
+	return nil
+}
+
+// applyServiceMeshConfiguration applies service mesh configuration
+func (c *Customizer) applyServiceMeshConfiguration(customCtx *CustomizationContext, meshProfile *ServiceMeshProfile) error {
+	c.logger.Debug("Applying service mesh configuration (stub)")
+	// Stub implementation - would configure Istio, Linkerd, etc.
+	return nil
+}
+
+// applyMonitoringConfiguration applies monitoring configuration
+func (c *Customizer) applyMonitoringConfiguration(customCtx *CustomizationContext, monitoring *MonitoringProfile) error {
+	c.logger.Debug("Applying monitoring configuration (stub)")
+	// Stub implementation - would configure Prometheus, Grafana, etc.
+	return nil
+}
+
+// applyContainerResourceLimits applies resource limits to a specific container resource section
+func (c *Customizer) applyContainerResourceLimits(resources map[interface{}]interface{}, limits *ResourceConfiguration) error {
+	// Apply resource limits
+	requests := make(map[interface{}]interface{})
+	limitsMap := make(map[interface{}]interface{})
+
+	if limits.CPU != "" {
+		requests["cpu"] = limits.CPU
+	}
+	if limits.Memory != "" {
+		requests["memory"] = limits.Memory
+	}
+	if limits.MaxCPU != "" {
+		limitsMap["cpu"] = limits.MaxCPU
+	}
+	if limits.MaxMemory != "" {
+		limitsMap["memory"] = limits.MaxMemory
+	}
+
+	if len(requests) > 0 {
+		resources["requests"] = requests
+	}
+	if len(limitsMap) > 0 {
+		resources["limits"] = limitsMap
+	}
+
+	return nil
+}

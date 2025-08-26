@@ -305,18 +305,15 @@ func (tm *TimeoutManager) recordSuccess(operationType OperationType, duration ti
 		return
 	}
 
-	labels := map[string]string{
-		"operation_type": string(operationType),
-		"result":         "success",
-	}
+	_ = operationType // avoid unused variable
 
 	// Record operation duration
-	if histogram := tm.metricsCollector.GetHistogram("operation_duration_seconds", labels); histogram != nil {
+	if histogram := tm.metricsCollector.GetHistogram("operation_duration_seconds"); histogram != nil {
 		histogram.Observe(duration.Seconds())
 	}
 
 	// Increment success counter
-	if counter := tm.metricsCollector.GetCounter("operations_total", labels); counter != nil {
+	if counter := tm.metricsCollector.GetCounter("operations_total"); counter != nil {
 		counter.Inc()
 	}
 }
@@ -327,18 +324,15 @@ func (tm *TimeoutManager) recordError(operationType OperationType, duration time
 		return
 	}
 
-	labels := map[string]string{
-		"operation_type": string(operationType),
-		"result":         "error",
-	}
+	_ = operationType // avoid unused variable
 
 	// Record operation duration
-	if histogram := tm.metricsCollector.GetHistogram("operation_duration_seconds", labels); histogram != nil {
+	if histogram := tm.metricsCollector.GetHistogram("operation_duration_seconds"); histogram != nil {
 		histogram.Observe(duration.Seconds())
 	}
 
 	// Increment error counter
-	if counter := tm.metricsCollector.GetCounter("operations_total", labels); counter != nil {
+	if counter := tm.metricsCollector.GetCounter("operations_total"); counter != nil {
 		counter.Inc()
 	}
 }
@@ -349,18 +343,15 @@ func (tm *TimeoutManager) recordTimeout(operationType OperationType, duration ti
 		return
 	}
 
-	labels := map[string]string{
-		"operation_type": string(operationType),
-		"result":         "timeout",
-	}
+	_ = operationType // avoid unused variable
 
 	// Record operation duration
-	if histogram := tm.metricsCollector.GetHistogram("operation_duration_seconds", labels); histogram != nil {
+	if histogram := tm.metricsCollector.GetHistogram("operation_duration_seconds"); histogram != nil {
 		histogram.Observe(duration.Seconds())
 	}
 
 	// Increment timeout counter
-	if counter := tm.metricsCollector.GetCounter("operations_total", labels); counter != nil {
+	if counter := tm.metricsCollector.GetCounter("operations_total"); counter != nil {
 		counter.Inc()
 	}
 }

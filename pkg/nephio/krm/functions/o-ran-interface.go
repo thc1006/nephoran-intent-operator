@@ -27,10 +27,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -930,7 +928,7 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "config parsing failed")
-		return nil, nil, errors.WithContext(err, "failed to parse O-RAN interface configuration")
+		return nil, nil, fmt.Errorf("failed to parse O-RAN interface configuration: %w", err)
 	}
 
 	span.SetAttributes(
@@ -947,7 +945,7 @@ func (f *ORANInterfaceConfigFunction) Execute(ctx context.Context, resources []p
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "resource processing failed")
-		return nil, results, errors.WithContext(err, "failed to process O-RAN interface resources")
+		return nil, results, fmt.Errorf("failed to process O-RAN interface resources: %w", err)
 	}
 
 	// Generate additional resources for O-RAN interfaces
@@ -1535,7 +1533,6 @@ func (f *ORANInterfaceConfigFunction) generateO2Resources(iface *ORANInterface) 
 						"nephoran.com/interface-name": iface.Name,
 					},
 				},
-				Type: "Opaque",
 				Data: make(map[string]interface{}),
 			}
 

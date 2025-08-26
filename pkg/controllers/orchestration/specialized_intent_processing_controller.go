@@ -73,32 +73,7 @@ type SpecializedIntentProcessingController struct {
 	mutex        sync.RWMutex
 }
 
-// IntentProcessingConfig holds configuration for intent processing
-type IntentProcessingConfig struct {
-	// LLM Configuration
-	LLMEndpoint string  `json:"llmEndpoint"`
-	LLMAPIKey   string  `json:"llmApiKey"`
-	LLMModel    string  `json:"llmModel"`
-	MaxTokens   int     `json:"maxTokens"`
-	Temperature float64 `json:"temperature"`
-
-	// RAG Configuration
-	RAGEndpoint         string  `json:"ragEndpoint"`
-	MaxContextChunks    int     `json:"maxContextChunks"`
-	SimilarityThreshold float64 `json:"similarityThreshold"`
-
-	// Processing Configuration
-	StreamingEnabled bool          `json:"streamingEnabled"`
-	CacheEnabled     bool          `json:"cacheEnabled"`
-	CacheTTL         time.Duration `json:"cacheTtl"`
-	MaxRetries       int           `json:"maxRetries"`
-	Timeout          time.Duration `json:"timeout"`
-
-	// Circuit Breaker Configuration
-	CircuitBreakerEnabled bool          `json:"circuitBreakerEnabled"`
-	FailureThreshold      int           `json:"failureThreshold"`
-	RecoveryTimeout       time.Duration `json:"recoveryTimeout"`
-}
+// Note: IntentProcessingConfig is defined in intent_processing_controller.go to avoid duplication
 
 // ProcessingSession tracks an active intent processing session
 type ProcessingSession struct {

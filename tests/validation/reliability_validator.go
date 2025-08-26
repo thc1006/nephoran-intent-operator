@@ -848,3 +848,47 @@ func (rv *ReliabilityValidator) testStateReconstruction(ctx context.Context) boo
 	ginkgo.By("State reconstruction capability verified through CRD access")
 	return true
 }
+
+// ExecuteProductionTests executes production readiness tests and returns score
+func (rv *ReliabilityValidator) ExecuteProductionTests(ctx context.Context) (int, error) {
+	ginkgo.By("Executing Production Readiness Tests")
+
+	score := 0
+
+	// Test 1: High Availability (3 points)
+	ginkgo.By("Testing High Availability")
+	availabilityMetrics := rv.ValidateHighAvailability(ctx)
+	if availabilityMetrics.Availability >= rv.config.AvailabilityTarget {
+		score += 3
+		ginkgo.By(fmt.Sprintf("✓ High Availability: 3/3 points (%.2f%%)", availabilityMetrics.Availability))
+	} else {
+		ginkgo.By(fmt.Sprintf("✗ High Availability: 0/3 points (%.2f%% < %.2f%%)",
+			availabilityMetrics.Availability, rv.config.AvailabilityTarget))
+	}
+
+	// Test 2: Fault Tolerance (3 points)
+	ginkgo.By("Testing Fault Tolerance")
+	if rv.ValidateFaultTolerance(ctx) {
+		score += 3
+		ginkgo.By("✓ Fault Tolerance: 3/3 points")
+	} else {
+		ginkgo.By("✗ Fault Tolerance: 0/3 points")
+	}
+
+	// Test 3: Monitoring & Observability (2 points)
+	ginkgo.By("Testing Monitoring & Observability")
+	monitoringScore := rv.ValidateMonitoringObservability(ctx)
+	score += monitoringScore
+	ginkgo.By(fmt.Sprintf("Monitoring & Observability: %d/2 points", monitoringScore))
+
+	// Test 4: Disaster Recovery (2 points)
+	ginkgo.By("Testing Disaster Recovery")
+	if rv.ValidateDisasterRecovery(ctx) {
+		score += 2
+		ginkgo.By("✓ Disaster Recovery: 2/2 points")
+	} else {
+		ginkgo.By("✗ Disaster Recovery: 0/2 points")
+	}
+
+	return score, nil
+}

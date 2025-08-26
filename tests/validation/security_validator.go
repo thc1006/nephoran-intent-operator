@@ -1177,3 +1177,36 @@ func (sv *SecurityValidator) GenerateSecurityReport() string {
 	report += "=== END SECURITY REPORT ===\n"
 	return report
 }
+
+// ExecuteSecurityTests executes security tests and returns score
+func (sv *SecurityValidator) ExecuteSecurityTests(ctx context.Context) (int, error) {
+	ginkgo.By("Executing Security Compliance Tests")
+
+	score := 0
+
+	// Test 1: Authentication & Authorization (5 points)
+	ginkgo.By("Testing Authentication & Authorization")
+	authScore := sv.ValidateAuthentication(ctx)
+	score += authScore
+	ginkgo.By(fmt.Sprintf("Authentication & Authorization: %d/5 points", authScore))
+
+	// Test 2: Data Encryption (4 points)
+	ginkgo.By("Testing Data Encryption")
+	encryptionScore := sv.ValidateEncryption(ctx)
+	score += encryptionScore
+	ginkgo.By(fmt.Sprintf("Data Encryption: %d/4 points", encryptionScore))
+
+	// Test 3: Network Security (3 points)
+	ginkgo.By("Testing Network Security")
+	networkScore := sv.ValidateNetworkSecurity(ctx)
+	score += networkScore
+	ginkgo.By(fmt.Sprintf("Network Security: %d/3 points", networkScore))
+
+	// Test 4: Vulnerability Scanning (3 points)
+	ginkgo.By("Testing Vulnerability Scanning")
+	vulnScore := sv.ValidateVulnerabilityScanning(ctx)
+	score += vulnScore
+	ginkgo.By(fmt.Sprintf("Vulnerability Scanning: %d/3 points", vulnScore))
+
+	return score, nil
+}

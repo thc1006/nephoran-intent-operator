@@ -27,7 +27,6 @@ import (
 	"github.com/Masterminds/sprig/v3"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"text/template"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -108,7 +107,7 @@ type BlueprintMetadata struct {
 	Description    string             `json:"description" yaml:"description"`
 	Labels         map[string]string  `json:"labels" yaml:"labels"`
 	Annotations    map[string]string  `json:"annotations" yaml:"annotations"`
-	ComponentType  v1.TargetComponent `json:"componentType" yaml:"componentType"`
+	ComponentType  TargetComponent `json:"componentType" yaml:"componentType"`
 	IntentType     v1.IntentType      `json:"intentType" yaml:"intentType"`
 	ORANCompliant  bool               `json:"oranCompliant" yaml:"oranCompliant"`
 	InterfaceTypes []string           `json:"interfaceTypes" yaml:"interfaceTypes"`
@@ -771,7 +770,7 @@ func (bre *BlueprintRenderingEngine) applyCriticalPriorityOptimizations(rendered
 func (bre *BlueprintRenderingEngine) generateFiles(ctx context.Context, rendered *RenderedBlueprint) error {
 	// Generate KRM resource files
 	for i, resource := range rendered.KRMResources {
-		filename := fmt.Sprintf("%s-%s.yaml", strings.ToLower(resource.Kind), i)
+		filename := fmt.Sprintf("%s-%d.yaml", strings.ToLower(resource.Kind), i)
 		content, err := yaml.Marshal(resource)
 		if err != nil {
 			return fmt.Errorf("failed to marshal KRM resource to YAML: %w", err)
@@ -859,7 +858,7 @@ func (bre *BlueprintRenderingEngine) buildResourceLabels(context map[string]inte
 		labels["nephoran.com/intent"] = intentName
 	}
 
-	if componentType, ok := context["ComponentType"].(v1.TargetComponent); ok {
+	if componentType, ok := context["ComponentType"].(TargetComponent); ok {
 		labels["nephoran.com/component"] = string(componentType)
 	}
 

@@ -12,7 +12,6 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	nephranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
 
 // ORANPerformanceBenchmarker provides comprehensive performance testing for O-RAN interfaces

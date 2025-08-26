@@ -394,21 +394,21 @@ func NewNephioPackageCatalog(
 
 	// Initialize metrics
 	metrics := &PackageCatalogMetrics{
-		BlueprintQueries: *promauto.NewCounterVec(
+		BlueprintQueries: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_catalog_blueprint_queries_total",
 				Help: "Total number of blueprint queries",
 			},
 			[]string{"intent_type", "status"},
 		),
-		VariantCreations: *promauto.NewCounterVec(
+		VariantCreations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_catalog_variant_creations_total",
 				Help: "Total number of package variant creations",
 			},
 			[]string{"blueprint", "cluster", "status"},
 		),
-		CatalogOperations: *promauto.NewCounterVec(
+		CatalogOperations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_catalog_operations_total",
 				Help: "Total number of catalog operations",
@@ -427,7 +427,7 @@ func NewNephioPackageCatalog(
 				Help: "Total number of cache misses",
 			},
 		),
-		BlueprintLoadTime: *promauto.NewHistogramVec(
+		BlueprintLoadTime: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "nephio_catalog_blueprint_load_duration_seconds",
 				Help:    "Time taken to load blueprints",
@@ -435,7 +435,7 @@ func NewNephioPackageCatalog(
 			},
 			[]string{"blueprint", "repository"},
 		),
-		VariantCreationTime: *promauto.NewHistogramVec(
+		VariantCreationTime: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "nephio_catalog_variant_creation_duration_seconds",
 				Help:    "Time taken to create package variants",
@@ -443,7 +443,7 @@ func NewNephioPackageCatalog(
 			},
 			[]string{"blueprint", "cluster"},
 		),
-		CatalogSize: *promauto.NewGaugeVec(
+		CatalogSize: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "nephio_catalog_items",
 				Help: "Number of items in catalog",
@@ -474,7 +474,7 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 
 	logger := log.FromContext(ctx).WithName("package-catalog").WithValues(
 		"intentType", string(intent.Spec.IntentType),
-		"targetComponent", intent.Spec.TargetComponent,
+		"targetComponents", intent.Spec.TargetComponents,
 	)
 
 	startTime := time.Now()
@@ -485,7 +485,7 @@ func (npc *NephioPackageCatalog) FindBlueprintForIntent(ctx context.Context, int
 	}()
 
 	// Check cache first
-	cacheKey := fmt.Sprintf("blueprint:%s:%s", intent.Spec.IntentType, intent.Spec.TargetComponent)
+	cacheKey := fmt.Sprintf("blueprint:%s:%v", intent.Spec.IntentType, intent.Spec.TargetComponents)
 	if cached, found := npc.blueprints.Load(cacheKey); found {
 		npc.metrics.CacheHitRate.Inc()
 		if blueprint, ok := cached.(*BlueprintPackage); ok {
@@ -588,7 +588,7 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 		npc.metrics.VariantCreations.WithLabelValues(
 			blueprint.Name, specialization.ClusterContext.Name, "failed",
 		).Inc()
-		return nil, errors.WithContext(err, "failed to find target cluster")
+		return nil, fmt.Errorf("failed to find target cluster: %w", err)
 	}
 	variant.TargetCluster = cluster
 
@@ -599,7 +599,7 @@ func (npc *NephioPackageCatalog) CreatePackageVariant(ctx context.Context, bluep
 		npc.metrics.VariantCreations.WithLabelValues(
 			blueprint.Name, specialization.ClusterContext.Name, "failed",
 		).Inc()
-		return nil, errors.WithContext(err, "failed to create specialized package revision")
+		return nil, fmt.Errorf("failed to create specialized package revision: %w", err)
 	}
 
 	variant.PackageRevision = packageRevision
@@ -669,19 +669,22 @@ func (npc *NephioPackageCatalog) createSpecializedPackageRevision(ctx context.Co
 			Repository:  packageSpec.Repository,
 			Revision:    packageSpec.Revision,
 			Lifecycle:   packageSpec.Lifecycle,
-			Resources:   npc.generateSpecializedResources(ctx, variant),
-			Functions:   npc.generateSpecializedFunctions(ctx, variant),
+			Resources:   npc.convertResourcesForSpec(npc.generateSpecializedResources(ctx, variant)),
+			Functions:   npc.convertFunctionsForSpec(npc.generateSpecializedFunctions(ctx, variant)),
 		},
 	}
 
 	// Create the package revision in Porch (simulated)
 	// In a real implementation, this would use the Porch client
-	createdPackage := packageRevision.DeepCopy()
-	createdPackage.Status = porch.PackageRevisionStatus{
-		Phase:        "Draft",
-		UpstreamLock: nil,
-		PublishedBy:  "nephoran-intent-operator",
-		PublishedAt:  metav1.NewTime(time.Now()),
+	createdPackage := &porch.PackageRevision{
+		TypeMeta:   packageRevision.TypeMeta,
+		ObjectMeta: packageRevision.ObjectMeta,
+		Spec:       packageRevision.Spec,
+		Status: porch.PackageRevisionStatus{
+			UpstreamLock: nil,
+			PublishedBy:  "nephoran-intent-operator",
+			PublishedAt:  &metav1.Time{Time: time.Now()},
+		},
 	}
 
 	span.SetAttributes(
@@ -704,10 +707,12 @@ func (npc *NephioPackageCatalog) generateSpecializedResources(ctx context.Contex
 		specializedResource := npc.applySpecialization(template, variant.Specialization)
 
 		resource := porch.KRMResource{
-			Name:       template.Name,
-			Kind:       template.Kind,
 			APIVersion: template.APIVersion,
-			Content:    specializedResource,
+			Kind:       template.Kind,
+			Metadata: map[string]interface{}{
+				"name": template.Name,
+			},
+			Spec: specializedResource,
 		}
 
 		resources = append(resources, resource)
@@ -798,20 +803,15 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 	// Namespace resource
 	namespaceResource := porch.KRMResource{
-		Name:       "namespace",
 		Kind:       "Namespace",
 		APIVersion: "v1",
-		Content: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "Namespace",
-			"metadata": map[string]interface{}{
-				"name": fmt.Sprintf("%s-ns", variant.Name),
-				"labels": map[string]interface{}{
-					"cluster":    cluster.Name,
-					"region":     cluster.Region,
-					"zone":       cluster.Zone,
-					"managed-by": "nephoran-intent-operator",
-				},
+		Metadata: map[string]interface{}{
+			"name": fmt.Sprintf("%s-ns", variant.Name),
+			"labels": map[string]interface{}{
+				"cluster":    cluster.Name,
+				"region":     cluster.Region,
+				"zone":       cluster.Zone,
+				"managed-by": "nephoran-intent-operator",
 			},
 		},
 	}
@@ -819,22 +819,17 @@ func (npc *NephioPackageCatalog) generateClusterSpecificResources(ctx context.Co
 
 	// ConfigMap with cluster info
 	configMapResource := porch.KRMResource{
-		Name:       "cluster-info",
 		Kind:       "ConfigMap",
 		APIVersion: "v1",
-		Content: map[string]interface{}{
-			"apiVersion": "v1",
-			"kind":       "ConfigMap",
-			"metadata": map[string]interface{}{
-				"name":      fmt.Sprintf("%s-cluster-info", variant.Name),
-				"namespace": fmt.Sprintf("%s-ns", variant.Name),
-			},
-			"data": map[string]interface{}{
-				"cluster.name":   cluster.Name,
-				"cluster.region": cluster.Region,
-				"cluster.zone":   cluster.Zone,
-				"variant.name":   variant.Name,
-			},
+		Metadata: map[string]interface{}{
+			"name":      fmt.Sprintf("%s-cluster-info", variant.Name),
+			"namespace": fmt.Sprintf("%s-ns", variant.Name),
+		},
+		Data: map[string]interface{}{
+			"cluster.name":   cluster.Name,
+			"cluster.region": cluster.Region,
+			"cluster.zone":   cluster.Zone,
+			"variant.name":   variant.Name,
 		},
 	}
 	resources = append(resources, configMapResource)
@@ -1079,4 +1074,22 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 	}
 
 	return nil
+}
+
+// convertResourcesForSpec converts []porch.KRMResource to []interface{} for PackageRevisionSpec
+func (npc *NephioPackageCatalog) convertResourcesForSpec(resources []porch.KRMResource) []interface{} {
+	result := make([]interface{}, len(resources))
+	for i, resource := range resources {
+		result[i] = resource
+	}
+	return result
+}
+
+// convertFunctionsForSpec converts []porch.FunctionConfig to []interface{} for PackageRevisionSpec
+func (npc *NephioPackageCatalog) convertFunctionsForSpec(functions []porch.FunctionConfig) []interface{} {
+	result := make([]interface{}, len(functions))
+	for i, function := range functions {
+		result[i] = function
+	}
+	return result
 }

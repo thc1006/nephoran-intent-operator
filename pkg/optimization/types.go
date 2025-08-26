@@ -26,6 +26,7 @@ import (
 // and cleaner imports within the optimization package
 type ComponentType = shared.ComponentType
 
+
 // OptimizationCategory represents different categories of optimizations
 type OptimizationCategory string
 
@@ -60,6 +61,8 @@ const (
 	SeverityLow      SeverityLevel = "low"
 	SeverityInfo     SeverityLevel = "info"
 )
+
+
 
 // AutomationLevel defines levels of automation for implementation steps
 type AutomationLevel string

@@ -640,7 +640,7 @@ func (ra *RiskAssessor) updateRiskMetrics(riskLevel string) {
 	// Update average risk score (simplified)
 	total := ra.metrics.HighRiskCount + ra.metrics.MediumRiskCount + ra.metrics.LowRiskCount
 	if total > 0 {
-		weightedSum := ra.metrics.HighRiskCount*0.8 + ra.metrics.MediumRiskCount*0.5 + ra.metrics.LowRiskCount*0.2
+		weightedSum := float64(ra.metrics.HighRiskCount)*0.8 + float64(ra.metrics.MediumRiskCount)*0.5 + float64(ra.metrics.LowRiskCount)*0.2
 		ra.metrics.AverageRiskScore = float64(weightedSum) / float64(total)
 	}
 }

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
-	"github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -587,4 +586,48 @@ func (pb *PerformanceBenchmarker) calculatePercentile(durations []time.Duration,
 	}
 
 	return durations[index]
+}
+
+// ExecutePerformanceTests executes performance tests and returns score
+func (pb *PerformanceBenchmarker) ExecutePerformanceTests(ctx context.Context) (int, error) {
+	ginkgo.By("Executing Performance Benchmarking Tests")
+
+	score := 0
+
+	// Test 1: Latency Performance (8 points)
+	ginkgo.By("Testing Latency Performance")
+	latencyResult := pb.BenchmarkLatency(ctx)
+	if latencyResult.P95Latency <= pb.config.LatencyThreshold {
+		score += 8
+		ginkgo.By(fmt.Sprintf("✓ Latency Performance: 8/8 points (P95: %v)", latencyResult.P95Latency))
+	} else {
+		ginkgo.By(fmt.Sprintf("✗ Latency Performance: 0/8 points (P95: %v > %v)",
+			latencyResult.P95Latency, pb.config.LatencyThreshold))
+	}
+
+	// Test 2: Throughput Performance (8 points)
+	ginkgo.By("Testing Throughput Performance")
+	throughputResult := pb.BenchmarkThroughput(ctx)
+	if throughputResult.ThroughputAchieved >= pb.config.ThroughputThreshold {
+		score += 8
+		ginkgo.By(fmt.Sprintf("✓ Throughput Performance: 8/8 points (%.1f intents/min)",
+			throughputResult.ThroughputAchieved))
+	} else {
+		ginkgo.By(fmt.Sprintf("✗ Throughput Performance: 0/8 points (%.1f < %.1f intents/min)",
+			throughputResult.ThroughputAchieved, pb.config.ThroughputThreshold))
+	}
+
+	// Test 3: Scalability Testing (5 points)
+	ginkgo.By("Testing Scalability")
+	scalabilityScore := pb.BenchmarkScalability(ctx)
+	score += scalabilityScore
+	ginkgo.By(fmt.Sprintf("Scalability Performance: %d/5 points", scalabilityScore))
+
+	// Test 4: Resource Efficiency (4 points)
+	ginkgo.By("Testing Resource Efficiency")
+	resourceScore := pb.BenchmarkResourceEfficiency(ctx)
+	score += resourceScore
+	ginkgo.By(fmt.Sprintf("Resource Efficiency: %d/4 points", resourceScore))
+
+	return score, nil
 }

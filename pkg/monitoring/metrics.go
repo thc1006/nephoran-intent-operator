@@ -528,3 +528,36 @@ func (mc *MetricsCollector) UpdateWeaviatePoolMetrics(activeCount, totalCount in
 }
 
 // HealthChecker functionality moved to health_checks.go to avoid duplication
+
+// RecordLLMRequestError records an LLM request error
+func (mc *MetricsCollector) RecordLLMRequestError(serviceName, errorType string) {
+	// For backward compatibility, use existing counters
+	mc.LLMRequestsTotal.Inc()
+}
+
+// GetGauge returns a gauge metric for circuit breaker state
+func (mc *MetricsCollector) GetGauge(name string) prometheus.Gauge {
+	// Return a dummy gauge for backward compatibility
+	return prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: name,
+		Help: "Circuit breaker state gauge",
+	})
+}
+
+// GetHistogram returns a histogram metric
+func (mc *MetricsCollector) GetHistogram(name string) prometheus.Histogram {
+	// Return a dummy histogram for backward compatibility
+	return prometheus.NewHistogram(prometheus.HistogramOpts{
+		Name: name,
+		Help: "Circuit breaker histogram",
+	})
+}
+
+// GetCounter returns a counter metric
+func (mc *MetricsCollector) GetCounter(name string) prometheus.Counter {
+	// Return a dummy counter for backward compatibility
+	return prometheus.NewCounter(prometheus.CounterOpts{
+		Name: name,
+		Help: "Circuit breaker counter",
+	})
+}

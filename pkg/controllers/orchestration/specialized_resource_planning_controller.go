@@ -70,31 +70,7 @@ type SpecializedResourcePlanningController struct {
 	mutex        sync.RWMutex
 }
 
-// ResourcePlanningConfig holds configuration for resource planning
-type ResourcePlanningConfig struct {
-	// Planning parameters
-	DefaultCPURequest     string  `json:"defaultCpuRequest"`
-	DefaultMemoryRequest  string  `json:"defaultMemoryRequest"`
-	DefaultStorageRequest string  `json:"defaultStorageRequest"`
-	CPUOvercommitRatio    float64 `json:"cpuOvercommitRatio"`
-	MemoryOvercommitRatio float64 `json:"memoryOvercommitRatio"`
-
-	// Optimization settings
-	OptimizationEnabled    bool    `json:"optimizationEnabled"`
-	CostOptimizationWeight float64 `json:"costOptimizationWeight"`
-	PerformanceWeight      float64 `json:"performanceWeight"`
-	ReliabilityWeight      float64 `json:"reliabilityWeight"`
-
-	// Constraint checking
-	ConstraintCheckEnabled bool          `json:"constraintCheckEnabled"`
-	MaxPlanningTime        time.Duration `json:"maxPlanningTime"`
-	ParallelPlanning       bool          `json:"parallelPlanning"`
-
-	// Cache configuration
-	CacheEnabled    bool          `json:"cacheEnabled"`
-	CacheTTL        time.Duration `json:"cacheTtl"`
-	MaxCacheEntries int           `json:"maxCacheEntries"`
-}
+// Note: ResourcePlanningConfig is defined in resource_planning_controller.go to avoid duplication
 
 // TelecomResourceCalculator calculates resource requirements for telecom NFs
 type TelecomResourceCalculator struct {

@@ -193,17 +193,6 @@ type MetricData struct {
 	Labels map[string]string `json:"labels,omitempty"`
 }
 
-// AlertRule represents a monitoring alert rule
-type AlertRule struct {
-	Name        string            `json:"name"`
-	Expression  string            `json:"expression"`
-	Duration    time.Duration     `json:"duration"`
-	Severity    string            `json:"severity"`
-	Summary     string            `json:"summary"`
-	Description string            `json:"description"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty"`
-}
 
 // NewMonitoringIntegrations creates a new monitoring integrations service
 func NewMonitoringIntegrations(

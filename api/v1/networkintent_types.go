@@ -62,6 +62,30 @@ type NetworkIntentSpec struct {
 	// TargetComponents specifies the target components for the intent
 	// +optional
 	TargetComponents []ORANComponent `json:"targetComponents,omitempty"`
+
+	// TargetNamespace specifies the target namespace for deployment
+	// +optional
+	TargetNamespace string `json:"targetNamespace,omitempty"`
+
+	// TargetCluster specifies the target cluster for deployment
+	// +optional
+	TargetCluster string `json:"targetCluster,omitempty"`
+
+	// NetworkSlice specifies the network slice identifier
+	// +optional
+	NetworkSlice string `json:"networkSlice,omitempty"`
+
+	// Region specifies the deployment region
+	// +optional
+	Region string `json:"region,omitempty"`
+
+	// ResourceConstraints specifies resource constraints for the intent
+	// +optional
+	ResourceConstraints *ResourceConstraints `json:"resourceConstraints,omitempty"`
+
+	// ProcessedParameters contains structured parameters from processing
+	// +optional
+	ProcessedParameters *ProcessedParameters `json:"processedParameters,omitempty"`
 }
 
 // ProcessingResult contains the results of intent processing

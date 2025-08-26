@@ -217,7 +217,7 @@ func (c *ASN1Codec) encodeRICSubscriptionRequest(req *RICSubscriptionRequest) ([
 	buf := &bytes.Buffer{}
 
 	// Encode RIC Request ID
-	if err := c.encodeRICRequestID(buf, req.RequestID); err != nil {
+	if err := c.encodeRICRequestID(buf, req.RICRequestID); err != nil {
 		return nil, err
 	}
 
@@ -227,12 +227,12 @@ func (c *ASN1Codec) encodeRICSubscriptionRequest(req *RICSubscriptionRequest) ([
 	}
 
 	// Encode Event Trigger Definition
-	if err := c.encodeOctetString(buf, req.EventTriggerDefinition); err != nil {
+	if err := c.encodeOctetString(buf, req.RICSubscriptionDetails.RICEventTriggerDefinition); err != nil {
 		return nil, err
 	}
 
 	// Encode Actions to be setup list
-	if err := c.encodeRICActionsList(buf, req.ActionsToBeSetupList); err != nil {
+	if err := c.encodeRICActionsList(buf, req.RICSubscriptionDetails.RICActionToBeSetupList); err != nil {
 		return nil, err
 	}
 
@@ -249,28 +249,28 @@ func (c *ASN1Codec) decodeRICSubscriptionRequest(data []byte) (*RICSubscriptionR
 	if err != nil {
 		return nil, err
 	}
-	req.RequestID = requestID
+	req.RICRequestID = requestID
 
 	// Decode RAN Function ID
 	var ranFunctionID uint16
 	if err := binary.Read(buf, binary.BigEndian, &ranFunctionID); err != nil {
 		return nil, err
 	}
-	req.RANFunctionID = int(ranFunctionID)
+	req.RANFunctionID = RANFunctionID(ranFunctionID)
 
 	// Decode Event Trigger Definition
 	eventTrigger, err := c.decodeOctetString(buf)
 	if err != nil {
 		return nil, err
 	}
-	req.EventTriggerDefinition = eventTrigger
+	req.RICSubscriptionDetails.RICEventTriggerDefinition = eventTrigger
 
 	// Decode Actions to be setup list
 	actions, err := c.decodeRICActionsList(buf)
 	if err != nil {
 		return nil, err
 	}
-	req.ActionsToBeSetupList = actions
+	req.RICSubscriptionDetails.RICActionToBeSetupList = actions
 
 	return req, nil
 }
@@ -280,7 +280,7 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 	buf := &bytes.Buffer{}
 
 	// Encode RIC Request ID
-	if err := c.encodeRICRequestID(buf, ind.RequestID); err != nil {
+	if err := c.encodeRICRequestID(buf, ind.RICRequestID); err != nil {
 		return nil, err
 	}
 
@@ -290,35 +290,35 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 	}
 
 	// Encode Action ID
-	if err := binary.Write(buf, binary.BigEndian, uint16(ind.ActionID)); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, uint16(ind.RICActionID)); err != nil {
 		return nil, err
 	}
 
 	// Encode Indication SN (optional)
-	if ind.IndicationSN > 0 {
-		if err := binary.Write(buf, binary.BigEndian, uint32(ind.IndicationSN)); err != nil {
+	if ind.RICIndicationSN != nil && *ind.RICIndicationSN > 0 {
+		if err := binary.Write(buf, binary.BigEndian, uint32(*ind.RICIndicationSN)); err != nil {
 			return nil, err
 		}
 	}
 
 	// Encode Indication Type
-	if err := c.encodeIndicationType(buf, ind.IndicationType); err != nil {
+	if err := c.encodeIndicationType(buf, ind.RICIndicationType); err != nil {
 		return nil, err
 	}
 
 	// Encode Indication Header
-	if err := c.encodeOctetString(buf, ind.IndicationHeader); err != nil {
+	if err := c.encodeOctetString(buf, ind.RICIndicationHeader); err != nil {
 		return nil, err
 	}
 
 	// Encode Indication Message
-	if err := c.encodeOctetString(buf, ind.IndicationMessage); err != nil {
+	if err := c.encodeOctetString(buf, ind.RICIndicationMessage); err != nil {
 		return nil, err
 	}
 
 	// Encode Call Process ID (optional)
-	if len(ind.CallProcessID) > 0 {
-		if err := c.encodeOctetString(buf, ind.CallProcessID); err != nil {
+	if ind.RICCallProcessID != nil && len(*ind.RICCallProcessID) > 0 {
+		if err := c.encodeOctetString(buf, *ind.RICCallProcessID); err != nil {
 			return nil, err
 		}
 	}
@@ -336,27 +336,28 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 	if err != nil {
 		return nil, err
 	}
-	ind.RequestID = requestID
+	ind.RICRequestID = requestID
 
 	// Decode RAN Function ID
 	var ranFunctionID uint16
 	if err := binary.Read(buf, binary.BigEndian, &ranFunctionID); err != nil {
 		return nil, err
 	}
-	ind.RANFunctionID = int(ranFunctionID)
+	ind.RANFunctionID = RANFunctionID(ranFunctionID)
 
 	// Decode Action ID
 	var actionID uint16
 	if err := binary.Read(buf, binary.BigEndian, &actionID); err != nil {
 		return nil, err
 	}
-	ind.ActionID = int(actionID)
+	ind.RICActionID = RICActionID(actionID)
 
 	// Check for optional Indication SN
 	if buf.Len() > 0 {
 		var indicationSN uint32
 		if err := binary.Read(buf, binary.BigEndian, &indicationSN); err == nil {
-			ind.IndicationSN = int(indicationSN)
+			sn := RICIndicationSN(indicationSN)
+			ind.RICIndicationSN = &sn
 		}
 	}
 
@@ -365,27 +366,28 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 	if err != nil {
 		return nil, err
 	}
-	ind.IndicationType = indicationType
+	ind.RICIndicationType = indicationType
 
 	// Decode Indication Header
 	header, err := c.decodeOctetString(buf)
 	if err != nil {
 		return nil, err
 	}
-	ind.IndicationHeader = header
+	ind.RICIndicationHeader = header
 
 	// Decode Indication Message
 	message, err := c.decodeOctetString(buf)
 	if err != nil {
 		return nil, err
 	}
-	ind.IndicationMessage = message
+	ind.RICIndicationMessage = message
 
 	// Check for optional Call Process ID
 	if buf.Len() > 0 {
 		callProcessID, err := c.decodeOctetString(buf)
 		if err == nil {
-			ind.CallProcessID = callProcessID
+			callProcID := RICCallProcessID(callProcessID)
+			ind.RICCallProcessID = &callProcID
 		}
 	}
 
@@ -1079,7 +1081,7 @@ func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, err
 	buf := &bytes.Buffer{}
 
 	// Encode RIC Request ID
-	if err := c.encodeRICRequestID(buf, req.RequestID); err != nil {
+	if err := c.encodeRICRequestID(buf, req.RICRequestID); err != nil {
 		return nil, err
 	}
 
@@ -1126,7 +1128,7 @@ func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, er
 	if err != nil {
 		return nil, err
 	}
-	req.RequestID = requestID
+	req.RICRequestID = requestID
 
 	// Decode RAN Function ID
 	var ranFunctionID uint16

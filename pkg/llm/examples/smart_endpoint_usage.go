@@ -33,33 +33,24 @@ func SmartEndpointUsageExample() error {
 
 	// Example 4: ProcessingEngine with smart endpoint configuration
 	processingConfig := &llm.ProcessingConfig{
-		EnableRAG:       true,
-		RAGAPIURL:       "http://rag-api:5001", // Base URL - will auto-detect to /process
-		RAGTimeout:      30 * time.Second,
-		QueryTimeout:    30 * time.Second,
-		FallbackToBase:  true,
-		EnableStreaming: true,
-		StreamTimeout:   5 * time.Minute,
-		EnableBatching:  true,
+		EnableRAG:              true,
+		RAGAPIURL:              "http://rag-api:5001", // Base URL - will auto-detect to /process
+		RAGConfidenceThreshold: 0.7,
+		QueryTimeout:           30 * time.Second,
+		FallbackToBase:         true,
+		EnableStreaming:        true,
+		StreamTimeout:          5 * time.Minute,
+		EnableBatching:         true,
 	}
 
 	processingEngine := llm.NewProcessingEngine(autoDetectClient, processingConfig)
 	defer processingEngine.Shutdown(context.Background())
 
 	// Example 5: StreamingProcessor with endpoint configuration
-	streamingConfig := &llm.StreamingConfig{
-		StreamTimeout:        5 * time.Minute,
-		MaxConcurrentStreams: 10,
-		HeartbeatInterval:    30 * time.Second,
-		BufferSize:           4096,
-	}
-
-	tokenManager := llm.NewTokenManager()
-	streamingProcessor := llm.NewStreamingProcessor(autoDetectClient, tokenManager, streamingConfig)
-
-	// Configure RAG endpoints for streaming
-	streamingProcessor.SetRAGEndpoints("http://rag-api:5001")
-	defer streamingProcessor.Close()
+	// Note: The current implementation uses a StreamingProcessorStub
+	// that doesn't require client, token manager, or config parameters
+	streamingProcessor := llm.NewStreamingProcessor()
+	defer streamingProcessor.Shutdown(context.Background())
 
 	ctx := context.Background()
 
@@ -112,12 +103,11 @@ func SmartEndpointUsageExample() error {
 		)
 	}
 
-	// Verify endpoint configuration
-	process, stream, health := streamingProcessor.GetConfiguredEndpoints()
-	logger.Info("StreamingProcessor endpoints configured",
-		slog.String("process", process),
-		slog.String("stream", stream),
-		slog.String("health", health),
+	// Get streaming processor metrics instead of endpoints
+	// The stub implementation provides metrics instead of configured endpoints
+	streamingMetrics := streamingProcessor.GetMetrics()
+	logger.Info("StreamingProcessor status",
+		slog.Any("metrics", streamingMetrics),
 	)
 
 	return nil

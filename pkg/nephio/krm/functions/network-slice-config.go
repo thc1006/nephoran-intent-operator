@@ -28,12 +28,10 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
-	"k8s.io/apimachinery/pkg/api/resource"
+	k8sresource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
-	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -457,7 +455,7 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "config parsing failed")
-		return nil, nil, errors.WithContext(err, "failed to parse network slice configuration")
+		return nil, nil, fmt.Errorf("failed to parse network slice configuration: %w", err)
 	}
 
 	span.SetAttributes(
@@ -476,7 +474,7 @@ func (f *NetworkSliceConfigFunction) Execute(ctx context.Context, resources []po
 	if err != nil {
 		span.RecordError(err)
 		span.SetStatus(codes.Error, "resource processing failed")
-		return nil, results, errors.WithContext(err, "failed to process network slice resources")
+		return nil, results, fmt.Errorf("failed to process network slice resources: %w", err)
 	}
 
 	// Generate additional resources if needed
@@ -790,18 +788,21 @@ func (f *NetworkSliceConfigFunction) applyResourceRequirements(resource *porch.K
 							}
 							if resourceConfig.CPU != "" {
 								// Set limits to 2x requests for CPU
-								if cpu, err := resource.ParseQuantity(resourceConfig.CPU); err == nil {
-									cpu.Add(cpu) // Double it
-									limits["cpu"] = cpu.String()
+								if cpu, err := k8sresource.ParseQuantity(resourceConfig.CPU); err == nil {
+									cpuDouble := cpu.DeepCopy()
+									cpuDouble.Add(cpu) // Double it
+									limits["cpu"] = cpuDouble.String()
 								} else {
 									limits["cpu"] = resourceConfig.CPU
 								}
 							}
 							if resourceConfig.Memory != "" {
 								// Set limits to 1.5x requests for memory
-								if mem, err := resource.ParseQuantity(resourceConfig.Memory); err == nil {
-									mem.Add(resource.Quantity(mem.Value() / 2)) // 1.5x
-									limits["memory"] = mem.String()
+								if mem, err := k8sresource.ParseQuantity(resourceConfig.Memory); err == nil {
+									memCopy := mem.DeepCopy()
+									half := *k8sresource.NewQuantity(mem.Value()/2, k8sresource.DecimalSI)
+									memCopy.Add(half) // 1.5x
+									limits["memory"] = memCopy.String()
 								} else {
 									limits["memory"] = resourceConfig.Memory
 								}
@@ -1025,12 +1026,3 @@ func (f *NetworkSliceConfigFunction) generatePodDisruptionBudget(config *Network
 	}
 }
 
-// ParseQuantity parses a resource quantity string
-func (r *porch.KRMResource) ParseQuantity(s string) (resource.Quantity, error) {
-	return resource.ParseQuantity(s)
-}
-
-// Quantity creates a resource quantity
-func (r *porch.KRMResource) Quantity(value int64) resource.Quantity {
-	return *resource.NewQuantity(value, resource.DecimalSI)
-}

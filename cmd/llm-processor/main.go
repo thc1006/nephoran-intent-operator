@@ -75,11 +75,11 @@ func main() {
 	}
 
 	// Get initialized components
-	processor, streamingProcessor, circuitBreakerMgr, tokenManager, contextBuilder, relevanceScorer, promptBuilder, healthChecker := service.GetComponents()
+	processor, _, circuitBreakerMgr, tokenManager, contextBuilder, relevanceScorer, promptBuilder, healthChecker := service.GetComponents()
 
 	// Create handler with initialized components
 	handler = handlers.NewLLMProcessorHandler(
-		cfg, processor, streamingProcessor, circuitBreakerMgr,
+		cfg, processor, nil, circuitBreakerMgr,
 		tokenManager, contextBuilder, relevanceScorer, promptBuilder,
 		logger, healthChecker, startTime,
 	)

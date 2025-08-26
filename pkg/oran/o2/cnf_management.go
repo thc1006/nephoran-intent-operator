@@ -238,13 +238,6 @@ type NetworkPolicies struct {
 	EgressRules  []NetworkPolicyRule `json:"egressRules,omitempty"`
 }
 
-// NetworkPolicyRule represents a network policy rule
-type NetworkPolicyRule struct {
-	Name  string   `json:"name"`
-	Ports []string `json:"ports,omitempty"`
-	From  []string `json:"from,omitempty"`
-	To    []string `json:"to,omitempty"`
-}
 
 // CNFInstance represents a CNF instance
 type CNFInstance struct {

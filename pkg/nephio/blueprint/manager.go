@@ -25,15 +25,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/multicluster"
 )
 
 const (
@@ -252,13 +249,13 @@ type BlueprintResult struct {
 	Error             error
 	PackageRevision   *PackageRevision
 	GeneratedFiles    map[string]string
-	ValidationResults *ValidationResult
+	ValidationResults *SimpleValidationResult
 	Metrics           map[string]interface{}
 	Duration          time.Duration
 }
 
-// ValidationResult represents validation results (simplified)
-type ValidationResult struct {
+// SimpleValidationResult represents validation results (simplified)
+type SimpleValidationResult struct {
 	IsValid bool     `json:"isValid"`
 	Errors  []string `json:"errors,omitempty"`
 }
@@ -473,10 +470,18 @@ func (m *Manager) processOperationSync(operation *BlueprintOperation) *Blueprint
 			result.Error = fmt.Errorf("blueprint validation failed: %w", err)
 			return result
 		}
-		result.ValidationResults = validationResult
+		// Convert ValidationResult to SimpleValidationResult
+		errorStrings := make([]string, len(validationResult.Errors))
+		for i, err := range validationResult.Errors {
+			errorStrings[i] = err.Message
+		}
+		result.ValidationResults = &SimpleValidationResult{
+			IsValid: validationResult.IsValid,
+			Errors:  errorStrings,
+		}
 
 		if !validationResult.IsValid {
-			result.Error = fmt.Errorf("blueprint validation failed: %v", validationResult.Errors)
+			result.Error = fmt.Errorf("blueprint validation failed: %v", errorStrings)
 			return result
 		}
 	}

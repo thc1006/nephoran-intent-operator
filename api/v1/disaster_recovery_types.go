@@ -71,6 +71,14 @@ type ResourceConstraints struct {
 	// +optional
 	Memory *resource.Quantity `json:"memory,omitempty"`
 
+	// MaxCPU limits
+	// +optional
+	MaxCPU *resource.Quantity `json:"maxCpu,omitempty"`
+
+	// MaxMemory limits
+	// +optional
+	MaxMemory *resource.Quantity `json:"maxMemory,omitempty"`
+
 	// Storage limits
 	// +optional
 	Storage *resource.Quantity `json:"storage,omitempty"`

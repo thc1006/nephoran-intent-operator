@@ -4,6 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log/slog"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -249,7 +252,7 @@ func (sm *SecurityMiddleware) authenticationMiddleware(next http.Handler) http.H
 			sm.logger.Error("authentication failed",
 				slog.String("request_id", reqCtx.RequestID),
 				slog.String("path", r.URL.Path),
-				slog.Error(err))
+				slog.String("error", err.Error()))
 
 			// Log authentication failure
 			if sm.auditLogger != nil {
@@ -307,7 +310,7 @@ func (sm *SecurityMiddleware) authorizationMiddleware(next http.Handler) http.Ha
 				slog.String("user_id", user.ID),
 				slog.String("resource", resource),
 				slog.String("action", action),
-				slog.Error(err))
+				slog.String("error", err.Error()))
 
 			sm.sendErrorResponse(w, http.StatusInternalServerError, "Authorization check failed")
 			return
@@ -344,7 +347,7 @@ func (sm *SecurityMiddleware) rateLimitMiddleware(next http.Handler) http.Handle
 		if err != nil {
 			sm.logger.Error("rate limit check failed",
 				slog.String("request_id", reqCtx.RequestID),
-				slog.Error(err))
+				slog.String("error", err.Error()))
 
 			sm.sendErrorResponse(w, http.StatusInternalServerError, "Rate limit check failed")
 			return
@@ -387,7 +390,7 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 				sm.logger.Error("failed to parse request body",
 					slog.String("request_id", reqCtx.RequestID),
-					slog.Error(err))
+					slog.String("error", err.Error()))
 
 				sm.sendErrorResponse(w, http.StatusBadRequest, "Invalid request body")
 				return
@@ -398,7 +401,7 @@ func (sm *SecurityMiddleware) sanitizationMiddleware(next http.Handler) http.Han
 			if err != nil {
 				sm.logger.Error("input sanitization failed",
 					slog.String("request_id", reqCtx.RequestID),
-					slog.Error(err))
+					slog.String("error", err.Error()))
 
 				// Log security violation if malicious patterns detected
 				if sm.auditLogger != nil && len(result.Violations) > 0 {

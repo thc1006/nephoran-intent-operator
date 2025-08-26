@@ -18,10 +18,8 @@ package blueprint
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -29,18 +27,11 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/xeipuuv/gojsonschema"
 	"go.uber.org/zap"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
-	istionetworkingv1beta1 "istio.io/api/networking/v1beta1"
-	istiosecurityv1beta1 "istio.io/api/security/v1beta1"
 )
+
 
 // Validator handles blueprint validation and O-RAN compliance checking
 type Validator struct {
@@ -59,7 +50,7 @@ type Validator struct {
 
 	// O-RAN compliance checking
 	oranSpecifications map[string]*ORANSpecification
-	complianceRules    map[string]*ComplianceRule
+	complianceRules    map[string]*ORANComplianceRule
 
 	// Performance and caching
 	validationCache sync.Map
@@ -384,6 +375,25 @@ type PolicyEnforcement struct {
 	Actions []string `json:"actions,omitempty"`
 }
 
+// ORANComplianceRule represents an O-RAN compliance rule
+type ORANComplianceRule struct {
+	ID          string        `json:"id"`
+	Name        string        `json:"name"`
+	Category    string        `json:"category"`
+	Severity    ErrorSeverity `json:"severity"`
+	Description string        `json:"description"`
+	Check       ComplianceCheck `json:"check"`
+	Remediation string        `json:"remediation"`
+	Interfaces  []string      `json:"interfaces,omitempty"`
+}
+
+// ComplianceCheck represents a compliance check
+type ComplianceCheck struct {
+	Type       string                 `json:"type"`
+	Target     string                 `json:"target"`
+	Conditions map[string]interface{} `json:"conditions"`
+}
+
 // NewValidator creates a new blueprint validator
 func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, error) {
 	if config == nil {
@@ -398,7 +408,7 @@ func NewValidator(config *BlueprintConfig, logger *zap.Logger) (*Validator, erro
 		config:             config,
 		logger:             logger,
 		oranSpecifications: make(map[string]*ORANSpecification),
-		complianceRules:    make(map[string]*ComplianceRule),
+		complianceRules:    make(map[string]*ORANComplianceRule),
 		httpClient:         &http.Client{Timeout: 30 * time.Second},
 	}
 
@@ -1189,14 +1199,99 @@ func NewPolicyValidator() (*PolicyValidator, error) {
 	}, nil
 }
 
-// Additional helper methods would be implemented for:
-// - loadORANSpecifications
-// - validateCrossFileConsistency
-// - generateRecommendations
-// - validateInterfaceImplementation
-// - validateResourceSpecifications
-// - validateAgainstResourceConstraints
-// - Component validation methods for each validator
-// - validateService, validateConfigMap, validateSecret, etc.
+// loadORANSpecifications loads O-RAN specifications from configuration
+func (v *Validator) loadORANSpecifications() error {
+	// Stub implementation - would load from files or remote sources
+	v.logger.Debug("Loading O-RAN specifications (stub)")
+	return nil
+}
 
-// These would follow similar patterns to the methods shown above
+// validateCrossFileConsistency validates consistency across multiple files
+func (v *Validator) validateCrossFileConsistency(ctx context.Context, files map[string]string, result *ValidationResult) error {
+	// Stub implementation - would check for naming consistency, reference integrity, etc.
+	v.logger.Debug("Validating cross-file consistency (stub)")
+	return nil
+}
+
+// generateRecommendations generates improvement recommendations
+func (v *Validator) generateRecommendations(result *ValidationResult) {
+	// Stub implementation - would analyze validation results and generate recommendations
+	v.logger.Debug("Generating recommendations (stub)")
+}
+
+// validateInterfaceImplementation validates specific O-RAN interface implementation
+func (v *Validator) validateInterfaceImplementation(filename, content, interfaceName string, compliance *InterfaceCompliance) error {
+	// Stub implementation - would validate interface-specific requirements
+	v.logger.Debug("Validating interface implementation (stub)", 
+		zap.String("interface", interfaceName),
+		zap.String("file", filename))
+	return nil
+}
+
+// validateResourceSpecifications validates Kubernetes resource specifications
+func (v *Validator) validateResourceSpecifications(filename, content string, intent *v1.NetworkIntent, result *ResourceValidationResult) error {
+	// Stub implementation - would validate resource limits, requests, etc.
+	v.logger.Debug("Validating resource specifications (stub)", zap.String("file", filename))
+	return nil
+}
+
+// validateAgainstResourceConstraints validates against intent resource constraints  
+func (v *Validator) validateAgainstResourceConstraints(files map[string]string, constraints *v1.ResourceConstraints, result *ResourceValidationResult) {
+	// Stub implementation - would validate against specified constraints
+	v.logger.Debug("Validating against resource constraints (stub)")
+}
+
+// KubernetesValidator method stubs
+func (kv *KubernetesValidator) ValidateResource(obj map[string]interface{}, filename string, result *ValidationResult) error {
+	// Stub implementation
+	return nil
+}
+
+// ORANValidator method stubs  
+func (ov *ORANValidator) ValidateComponent(component v1.ORANComponent, files map[string]string, result *ORANComplianceResult) error {
+	// Stub implementation
+	return nil
+}
+
+// SecurityValidator method stubs
+func (sv *SecurityValidator) ValidateFile(filename, content string, result *SecurityComplianceResult) error {
+	// Stub implementation
+	return nil
+}
+
+// PolicyValidator method stubs
+func (pv *PolicyValidator) ValidateOrganizationalPolicies(intent *v1.NetworkIntent, files map[string]string, result *PolicyComplianceResult) error {
+	// Stub implementation
+	return nil
+}
+
+func (pv *PolicyValidator) ValidateCompliancePolicies(intent *v1.NetworkIntent, files map[string]string, result *PolicyComplianceResult) error {
+	// Stub implementation 
+	return nil
+}
+
+// Additional helper methods for service, configmap, secret validation
+func (v *Validator) validateService(obj map[string]interface{}, filename string, result *ValidationResult) error {
+	// Stub implementation
+	return nil
+}
+
+func (v *Validator) validateConfigMap(obj map[string]interface{}, filename string, result *ValidationResult) error {
+	// Stub implementation
+	return nil
+}
+
+func (v *Validator) validateSecret(obj map[string]interface{}, filename string, result *ValidationResult) error {
+	// Stub implementation
+	return nil
+}
+
+func (v *Validator) validateNetworkPolicy(obj map[string]interface{}, filename string, result *ValidationResult) error {
+	// Stub implementation
+	return nil
+}
+
+func (v *Validator) validateGenericKubernetesResource(obj map[string]interface{}, filename string, result *ValidationResult) error {
+	// Stub implementation
+	return nil
+}

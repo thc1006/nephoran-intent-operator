@@ -6,8 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"log/slog"
 	"net/url"
-	"reflect"
 	"regexp"
 	"strings"
 	"sync"
@@ -159,10 +159,10 @@ type Violation struct {
 type ViolationSeverity string
 
 const (
-	SeverityInfo     ViolationSeverity = "info"
-	SeverityWarning  ViolationSeverity = "warning"
-	SeverityError    ViolationSeverity = "error"
-	SeverityCritical ViolationSeverity = "critical"
+	ViolationSeverityInfo     ViolationSeverity = "info"
+	ViolationSeverityWarning  ViolationSeverity = "warning"
+	ViolationSeverityError    ViolationSeverity = "error"
+	ViolationSeverityCritical ViolationSeverity = "critical"
 )
 
 // Common malicious patterns
@@ -268,7 +268,7 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 			Field:    "_root",
 			Rule:     "max_size",
 			Message:  err.Error(),
-			Severity: SeverityError,
+			Severity: ViolationSeverityError,
 		})
 		if sm.config.RejectOnViolation {
 			return result, err
@@ -281,7 +281,7 @@ func (sm *SanitizationManager) SanitizePolicyInput(ctx context.Context, input ma
 			Field:    "_root",
 			Rule:     "max_fields",
 			Message:  fmt.Sprintf("too many fields: %d > %d", len(input), sm.config.MaxFieldCount),
-			Severity: SeverityWarning,
+			Severity: ViolationSeverityWarning,
 		})
 		if sm.config.RejectOnViolation {
 			return result, errors.New("field count exceeded")
@@ -377,7 +377,7 @@ func (sm *SanitizationManager) sanitizeField(ctx context.Context, field string, 
 			Field:    field,
 			Rule:     "type",
 			Message:  fmt.Sprintf("invalid type: expected %s", rule.Type),
-			Severity: SeverityError,
+			Severity: ViolationSeverityError,
 		})
 		return sm.coerceType(value, rule.Type), violations
 	}
@@ -423,7 +423,7 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 			Field:    rule.Field,
 			Rule:     "min_length",
 			Message:  fmt.Sprintf("string too short: %d < %d", len(sanitized), rule.MinLength),
-			Severity: SeverityWarning,
+			Severity: ViolationSeverityWarning,
 		})
 	}
 
@@ -433,7 +433,7 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 			Field:    rule.Field,
 			Rule:     "max_length",
 			Message:  "string truncated to max length",
-			Severity: SeverityInfo,
+			Severity: ViolationSeverityInfo,
 		})
 	}
 
@@ -470,7 +470,7 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 				Field:    rule.Field,
 				Rule:     "pattern",
 				Message:  "string does not match required pattern",
-				Severity: SeverityError,
+				Severity: ViolationSeverityError,
 			})
 		}
 	}
@@ -482,7 +482,7 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 			Field:    rule.Field,
 			Rule:     "control_chars",
 			Message:  "control characters removed",
-			Severity: SeverityInfo,
+			Severity: ViolationSeverityInfo,
 		})
 	}
 
@@ -493,7 +493,7 @@ func (sm *SanitizationManager) sanitizeString(value string, rule *SanitizationRu
 			Field:    rule.Field,
 			Rule:     "utf8",
 			Message:  "invalid UTF-8 characters removed",
-			Severity: SeverityWarning,
+			Severity: ViolationSeverityWarning,
 		})
 	}
 
@@ -543,7 +543,7 @@ func (sm *SanitizationManager) sanitizeEmail(value string, rule *SanitizationRul
 			Field:    rule.Field,
 			Rule:     "email_format",
 			Message:  "invalid email format",
-			Severity: SeverityError,
+			Severity: ViolationSeverityError,
 		})
 	}
 
@@ -566,7 +566,7 @@ func (sm *SanitizationManager) sanitizeURL(value string, rule *SanitizationRule)
 			Field:    rule.Field,
 			Rule:     "url_format",
 			Message:  "invalid URL format",
-			Severity: SeverityError,
+			Severity: ViolationSeverityError,
 		})
 		return "", violations
 	}
@@ -586,7 +586,7 @@ func (sm *SanitizationManager) sanitizeURL(value string, rule *SanitizationRule)
 			Field:    rule.Field,
 			Rule:     "url_scheme",
 			Message:  fmt.Sprintf("disallowed URL scheme: %s", u.Scheme),
-			Severity: SeverityError,
+			Severity: ViolationSeverityError,
 		})
 		u.Scheme = "https" // Default to HTTPS
 	}
@@ -614,7 +614,7 @@ func (sm *SanitizationManager) sanitizeArray(ctx context.Context, value interfac
 			Field:    rule.Field,
 			Rule:     "max_array_length",
 			Message:  "array truncated to max length",
-			Severity: SeverityWarning,
+			Severity: ViolationSeverityWarning,
 		})
 	}
 
@@ -645,7 +645,7 @@ func (sm *SanitizationManager) sanitizeObject(ctx context.Context, value interfa
 			Field:    rule.Field,
 			Rule:     "max_nesting",
 			Message:  fmt.Sprintf("object nesting too deep: %d > %d", depth, sm.config.MaxNestingDepth),
-			Severity: SeverityError,
+			Severity: ViolationSeverityError,
 		})
 		return map[string]interface{}{}, violations
 	}
@@ -673,7 +673,7 @@ func (sm *SanitizationManager) sanitizeJSON(value interface{}, rule *Sanitizatio
 			Field:    rule.Field,
 			Rule:     "json_format",
 			Message:  "invalid JSON format",
-			Severity: SeverityError,
+			Severity: ViolationSeverityError,
 		})
 		return "{}", violations
 	}
@@ -685,7 +685,7 @@ func (sm *SanitizationManager) sanitizeJSON(value interface{}, rule *Sanitizatio
 			Field:    rule.Field,
 			Rule:     "json_parse",
 			Message:  "JSON parsing failed",
-			Severity: SeverityError,
+			Severity: ViolationSeverityError,
 		})
 		return "{}", violations
 	}
@@ -706,7 +706,7 @@ func (sm *SanitizationManager) detectMaliciousPatterns(data interface{}) []Viola
 				Field:    "_content",
 				Rule:     "malicious_pattern",
 				Message:  fmt.Sprintf("potentially malicious pattern detected: %s", pattern.String()),
-				Severity: SeverityCritical,
+				Severity: ViolationSeverityCritical,
 			})
 		}
 	}

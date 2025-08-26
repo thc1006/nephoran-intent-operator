@@ -11,7 +11,6 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/framework"
 )
 
 // ProductionValidationRunner orchestrates comprehensive production validation testing

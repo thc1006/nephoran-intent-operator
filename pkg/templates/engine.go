@@ -18,7 +18,6 @@ package templates
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"sync"
@@ -26,7 +25,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"gopkg.in/yaml.v3"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -111,7 +109,7 @@ type BlueprintTemplate struct {
 	// Template classification
 	Category        TemplateCategory           `json:"category" yaml:"category"`
 	Type            TemplateType               `json:"type" yaml:"type"`
-	TargetComponent nephoranv1.TargetComponent `json:"targetComponent" yaml:"targetComponent"`
+	TargetComponent nephoranv1.ORANComponent `json:"targetComponent" yaml:"targetComponent"`
 	Vendor          string                     `json:"vendor" yaml:"vendor"`
 	Standard        string                     `json:"standard" yaml:"standard"` // O-RAN, 3GPP, etc.
 
@@ -443,7 +441,7 @@ type FiveGTemplateConfig struct {
 
 // NetworkFunction defines 5G Core network function configuration
 type NetworkFunction struct {
-	Type             nephoranv1.TargetComponent `json:"type" yaml:"type"`
+	Type             nephoranv1.ORANComponent `json:"type" yaml:"type"`
 	Version          string                     `json:"version" yaml:"version"`
 	Configuration    map[string]interface{}     `json:"configuration" yaml:"configuration"`
 	Interfaces       []*NFInterface             `json:"interfaces" yaml:"interfaces"`
@@ -785,7 +783,7 @@ type TemplateCatalog struct {
 
 // TemplateIndex provides efficient template lookups
 type TemplateIndex struct {
-	ByComponent map[nephoranv1.TargetComponent][]*BlueprintTemplate `json:"byComponent" yaml:"byComponent"`
+	ByComponent map[nephoranv1.ORANComponent][]*BlueprintTemplate `json:"byComponent" yaml:"byComponent"`
 	ByVendor    map[string][]*BlueprintTemplate                     `json:"byVendor" yaml:"byVendor"`
 	ByStandard  map[string][]*BlueprintTemplate                     `json:"byStandard" yaml:"byStandard"`
 	ByMaturity  map[MaturityLevel][]*BlueprintTemplate              `json:"byMaturity" yaml:"byMaturity"`
@@ -875,7 +873,7 @@ type TestCase struct {
 type TemplateFilter struct {
 	Category      *TemplateCategory           `json:"category,omitempty"`
 	Type          *TemplateType               `json:"type,omitempty"`
-	Component     *nephoranv1.TargetComponent `json:"component,omitempty"`
+	Component     *nephoranv1.ORANComponent `json:"component,omitempty"`
 	Vendor        string                      `json:"vendor,omitempty"`
 	Standard      string                      `json:"standard,omitempty"`
 	MaturityLevel *MaturityLevel              `json:"maturityLevel,omitempty"`
@@ -1003,7 +1001,7 @@ type CatalogInfo struct {
 	LastUpdate           time.Time                          `json:"lastUpdate"`
 	TotalTemplates       int                                `json:"totalTemplates"`
 	TemplatesByCategory  map[TemplateCategory]int           `json:"templatesByCategory"`
-	TemplatesByComponent map[nephoranv1.TargetComponent]int `json:"templatesByComponent"`
+	TemplatesByComponent map[nephoranv1.ORANComponent]int `json:"templatesByComponent"`
 	TemplatesByVendor    map[string]int                     `json:"templatesByVendor"`
 	TemplatesByMaturity  map[MaturityLevel]int              `json:"templatesByMaturity"`
 }
@@ -1036,7 +1034,7 @@ func NewTemplateEngine(yangValidator yang.YANGValidator, config *EngineConfig) (
 			Templates:  make(map[string]*BlueprintTemplate),
 			Categories: make(map[TemplateCategory][]*BlueprintTemplate),
 			Index: &TemplateIndex{
-				ByComponent: make(map[nephoranv1.TargetComponent][]*BlueprintTemplate),
+				ByComponent: make(map[nephoranv1.ORANComponent][]*BlueprintTemplate),
 				ByVendor:    make(map[string][]*BlueprintTemplate),
 				ByStandard:  make(map[string][]*BlueprintTemplate),
 				ByMaturity:  make(map[MaturityLevel][]*BlueprintTemplate),
@@ -1648,7 +1646,7 @@ func (e *templateEngine) GetCatalogInfo(ctx context.Context) (*CatalogInfo, erro
 		LastUpdate:           e.templateCatalog.LastUpdate,
 		TotalTemplates:       len(e.templates),
 		TemplatesByCategory:  make(map[TemplateCategory]int),
-		TemplatesByComponent: make(map[nephoranv1.TargetComponent]int),
+		TemplatesByComponent: make(map[nephoranv1.ORANComponent]int),
 		TemplatesByVendor:    make(map[string]int),
 		TemplatesByMaturity:  make(map[MaturityLevel]int),
 	}
@@ -1777,7 +1775,7 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 		UpdatedAt:       time.Now(),
 		Category:        TemplateCategoryNetworkFunction,
 		Type:            TemplateTypeDeployment,
-		TargetComponent: nephoranv1.TargetComponentAMF,
+		TargetComponent: nephoranv1.ORANComponentAMF,
 		Vendor:          "open-source",
 		Standard:        "O-RAN",
 		MaturityLevel:   MaturityLevelStable,
@@ -1850,7 +1848,7 @@ func (e *templateEngine) getBuiltInTemplates() []*BlueprintTemplate {
 		FiveGConfig: &FiveGTemplateConfig{
 			NetworkFunctions: []*NetworkFunction{
 				{
-					Type:    nephoranv1.TargetComponentAMF,
+					Type:    nephoranv1.ORANComponentAMF,
 					Version: "rel-16",
 					Configuration: map[string]interface{}{
 						"servedGuamiList": []interface{}{

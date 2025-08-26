@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
+	"log/slog"
 	"runtime"
-	"strings"
 	"sync"
 	"time"
 
@@ -80,18 +80,7 @@ const (
 	FormatSyslog AuditFormat = "syslog"
 )
 
-// ComplianceStandard represents compliance standards
-type ComplianceStandard string
-
-const (
-	ComplianceNone     ComplianceStandard = "none"
-	ComplianceSOC2     ComplianceStandard = "soc2"
-	ComplianceISO27001 ComplianceStandard = "iso27001"
-	CompliancePCIDSS   ComplianceStandard = "pci-dss"
-	ComplianceHIPAA    ComplianceStandard = "hipaa"
-	ComplianceGDPR     ComplianceStandard = "gdpr"
-	ComplianceNIST     ComplianceStandard = "nist"
-)
+// ComplianceStandard, SecurityLevel, ThreatLevel, and ViolationType are defined in constants.go
 
 // AlertThresholds defines thresholds for security alerts
 type AlertThresholds struct {
@@ -396,7 +385,7 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 	if al.config.SignEvents && al.signer != nil {
 		signature, err := al.signer.Sign(event)
 		if err != nil {
-			al.logger.Error("failed to sign audit event", slog.Error(err))
+			al.logger.Error("failed to sign audit event", "error", err)
 		} else {
 			event.Signature = signature
 		}
@@ -406,7 +395,7 @@ func (al *AuditLogger) LogEvent(ctx context.Context, event *AuditEvent) {
 	if al.config.EncryptEvents && al.encryptor != nil {
 		encryptedEvent, err := al.encryptor.Encrypt(event)
 		if err != nil {
-			al.logger.Error("failed to encrypt audit event", slog.Error(err))
+			al.logger.Error("failed to encrypt audit event", "error", err)
 		} else {
 			event = encryptedEvent
 		}
@@ -582,8 +571,8 @@ func (al *AuditLogger) writeBatch(events []*AuditEvent) {
 	for _, dest := range al.destinations {
 		if err := dest.Write(ctx, events); err != nil {
 			al.logger.Error("failed to write audit events",
-				slog.Error(err),
-				slog.Int("event_count", len(events)))
+				"error", err,
+				"event_count", len(events))
 			al.stats.mu.Lock()
 			al.stats.FailedWrites++
 			al.stats.mu.Unlock()
@@ -700,7 +689,7 @@ func (al *AuditLogger) Close() error {
 	// Close all destinations
 	for _, dest := range al.destinations {
 		if err := dest.Close(); err != nil {
-			al.logger.Error("failed to close audit destination", slog.Error(err))
+			al.logger.Error("failed to close audit destination", "error", err)
 		}
 	}
 

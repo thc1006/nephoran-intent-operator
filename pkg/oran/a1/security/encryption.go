@@ -4,23 +4,19 @@ import (
 	"context"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/hmac"
 	"crypto/rand"
-	"crypto/rsa"
 	"crypto/sha256"
-	"crypto/sha512"
 	"encoding/base64"
-	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"strings"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 	"golang.org/x/crypto/argon2"
-	"golang.org/x/crypto/chacha20poly1305"
 	"golang.org/x/crypto/hkdf"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
@@ -35,7 +31,7 @@ type EncryptionConfig struct {
 	TransitEncryption *TransitEncryptionConfig `json:"transit_encryption"`
 	StorageEncryption *StorageEncryptionConfig `json:"storage_encryption"`
 	HSMConfig         *HSMConfig               `json:"hsm_config,omitempty"`
-	ComplianceMode    ComplianceMode           `json:"compliance_mode"`
+	ComplianceMode    ComplianceStandard       `json:"compliance_mode"`
 }
 
 // EncryptionAlgorithm represents the encryption algorithm
@@ -46,17 +42,6 @@ const (
 	AlgorithmChaCha20Poly  EncryptionAlgorithm = "chacha20-poly1305"
 	AlgorithmXChaCha20Poly EncryptionAlgorithm = "xchacha20-poly1305"
 	AlgorithmAES256CBC     EncryptionAlgorithm = "aes-256-cbc"
-)
-
-// ComplianceMode represents regulatory compliance requirements
-type ComplianceMode string
-
-const (
-	ComplianceFIPS140 ComplianceMode = "fips-140-2"
-	ComplianceHIPAA   ComplianceMode = "hipaa"
-	CompliancePCIDSS  ComplianceMode = "pci-dss"
-	ComplianceGDPR    ComplianceMode = "gdpr"
-	ComplianceCustom  ComplianceMode = "custom"
 )
 
 // KeyManagementConfig holds key management configuration
@@ -493,7 +478,7 @@ func (em *EncryptionManager) RotateKeys(ctx context.Context) error {
 		if err := em.keyManager.RotateKey(ctx, keyID); err != nil {
 			em.logger.Error("failed to rotate key",
 				slog.String("key_id", keyID),
-				slog.Error(err))
+				slog.String("error", err.Error()))
 			continue
 		}
 
@@ -526,7 +511,7 @@ func (em *EncryptionManager) startKeyRotation() {
 	for range ticker.C {
 		ctx := context.Background()
 		if err := em.RotateKeys(ctx); err != nil {
-			em.logger.Error("automatic key rotation failed", slog.Error(err))
+			em.logger.Error("automatic key rotation failed", slog.String("error", err.Error()))
 		}
 	}
 }

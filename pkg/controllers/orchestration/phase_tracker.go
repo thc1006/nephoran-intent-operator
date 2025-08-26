@@ -28,34 +28,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
-// Conflict represents a resource conflict between intents
-type Conflict struct {
-	ID          string                 `json:"id"`
-	Type        string                 `json:"type"`
-	IntentID1   string                 `json:"intentId1"`
-	IntentID2   string                 `json:"intentId2"`
-	Resource    string                 `json:"resource"`
-	Description string                 `json:"description"`
-	Severity    string                 `json:"severity"`
-	Data        map[string]interface{} `json:"data,omitempty"`
-	Timestamp   time.Time              `json:"timestamp"`
-}
-
-// CoordinationContext holds coordination state for an intent
-type CoordinationContext struct {
-	IntentID        string
-	CurrentPhase    interfaces.ProcessingPhase
-	CompletedPhases []interfaces.ProcessingPhase
-	FailedPhases    []interfaces.ProcessingPhase
-	Locks           []string
-	Dependencies    []string
-	Conflicts       []Conflict
-	ErrorHistory    []string
-	RetryCount      int
-	StartTime       time.Time
-	LastUpdateTime  time.Time
-	Metadata        map[string]interface{}
-}
+// Note: Conflict and CoordinationContext types are defined in coordination_controller.go to avoid duplication
 
 // PhaseTracker tracks the status of phases across intents
 type PhaseTracker struct {

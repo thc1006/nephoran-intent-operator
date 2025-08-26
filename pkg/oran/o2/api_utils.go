@@ -341,71 +341,7 @@ type UserContext struct {
 
 // Supporting types for API utilities
 
-// AssetFilter represents a filter for asset queries
-type AssetFilter struct {
-	Type     string `json:"type,omitempty"`
-	Provider string `json:"provider,omitempty"`
-	Status   string `json:"status,omitempty"`
-	Limit    int    `json:"limit,omitempty"`
-	Offset   int    `json:"offset,omitempty"`
-}
 
-// Asset represents an inventory asset
-type Asset struct {
-	AssetID    string                 `json:"asset_id"`
-	Type       string                 `json:"type"`
-	Provider   string                 `json:"provider"`
-	Status     string                 `json:"status"`
-	Properties map[string]interface{} `json:"properties"`
-	CreatedAt  time.Time              `json:"created_at"`
-	UpdatedAt  time.Time              `json:"updated_at"`
-}
 
-// AlarmFilter represents a filter for alarm queries
-type AlarmFilter struct {
-	Severity  string `json:"severity,omitempty"`
-	Status    string `json:"status,omitempty"`
-	StartTime string `json:"start_time,omitempty"`
-	EndTime   string `json:"end_time,omitempty"`
-	Limit     int    `json:"limit,omitempty"`
-	Offset    int    `json:"offset,omitempty"`
-}
 
-// MetricsFilter represents a filter for metrics queries
-type MetricsFilter struct {
-	MetricNames []string `json:"metric_names,omitempty"`
-	StartTime   string   `json:"start_time,omitempty"`
-	EndTime     string   `json:"end_time,omitempty"`
-	Granularity string   `json:"granularity,omitempty"`
-	Limit       int      `json:"limit,omitempty"`
-	Offset      int      `json:"offset,omitempty"`
-}
 
-// DeploymentTemplateFilter represents a filter for deployment template queries
-type DeploymentTemplateFilter struct {
-	Names      []string `json:"names,omitempty"`
-	Categories []string `json:"categories,omitempty"`
-	Types      []string `json:"types,omitempty"`
-	Versions   []string `json:"versions,omitempty"`
-	Authors    []string `json:"authors,omitempty"`
-	Limit      int      `json:"limit,omitempty"`
-	Offset     int      `json:"offset,omitempty"`
-}
-
-// DeploymentFilter represents a filter for deployment queries
-type DeploymentFilter struct {
-	Names       []string `json:"names,omitempty"`
-	Statuses    []string `json:"statuses,omitempty"`
-	TemplateIDs []string `json:"template_ids,omitempty"`
-	Providers   []string `json:"providers,omitempty"`
-	Limit       int      `json:"limit,omitempty"`
-	Offset      int      `json:"offset,omitempty"`
-}
-
-// SubscriptionFilter represents a filter for subscription queries
-type SubscriptionFilter struct {
-	EventTypes []string `json:"event_types,omitempty"`
-	Status     string   `json:"status,omitempty"`
-	Limit      int      `json:"limit,omitempty"`
-	Offset     int      `json:"offset,omitempty"`
-}

@@ -231,16 +231,6 @@ type HealthCheckResult struct {
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
-// Alert represents an alert or alarm
-type Alert struct {
-	ID         string     `json:"id"`
-	Severity   string     `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING, INFO
-	Message    string     `json:"message"`
-	Source     string     `json:"source"`
-	Timestamp  time.Time  `json:"timestamp"`
-	Resolved   bool       `json:"resolved"`
-	ResolvedAt *time.Time `json:"resolvedAt,omitempty"`
-}
 
 // Alarm represents an alarm in the system
 type Alarm struct {
@@ -321,20 +311,6 @@ type InventoryUpdate struct {
 	Source       string                 `json:"source,omitempty"`
 }
 
-// Asset represents a tracked infrastructure asset
-type Asset struct {
-	AssetID      string                 `json:"assetId"`
-	Name         string                 `json:"name"`
-	Type         string                 `json:"type"`
-	Category     string                 `json:"category,omitempty"`
-	Owner        string                 `json:"owner,omitempty"`
-	Location     string                 `json:"location,omitempty"`
-	Status       string                 `json:"status"`
-	Attributes   map[string]interface{} `json:"attributes,omitempty"`
-	Dependencies []string               `json:"dependencies,omitempty"`
-	CreatedAt    time.Time              `json:"createdAt"`
-	UpdatedAt    time.Time              `json:"updatedAt"`
-}
 
 // CapacityPrediction represents predicted capacity requirements
 type CapacityPrediction struct {
@@ -717,16 +693,6 @@ type ScalePolicy struct {
 	StabilizationWindow int    `json:"stabilizationWindow"`
 }
 
-// MonitoringConfig defines monitoring configuration
-type MonitoringConfig struct {
-	Enabled         bool         `json:"enabled"`
-	MetricsEndpoint string       `json:"metricsEndpoint,omitempty"`
-	HealthEndpoint  string       `json:"healthEndpoint,omitempty"`
-	LogsEnabled     bool         `json:"logsEnabled"`
-	TracingEnabled  bool         `json:"tracingEnabled"`
-	Dashboards      []string     `json:"dashboards,omitempty"`
-	Alerts          []*AlertRule `json:"alerts,omitempty"`
-}
 
 // AlertRule defines an alert rule
 type AlertRule struct {
@@ -755,12 +721,6 @@ type NetworkPolicy struct {
 	Egress      []*NetworkPolicyRule `json:"egress,omitempty"`
 }
 
-// NetworkPolicyRule defines network policy rules
-type NetworkPolicyRule struct {
-	From  []*NetworkPolicyPeer `json:"from,omitempty"`
-	To    []*NetworkPolicyPeer `json:"to,omitempty"`
-	Ports []*NetworkPolicyPort `json:"ports,omitempty"`
-}
 
 // NetworkPolicyPeer defines network policy peer
 type NetworkPolicyPeer struct {

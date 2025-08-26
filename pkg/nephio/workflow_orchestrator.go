@@ -149,6 +149,18 @@ type WorkflowExecutionResults struct {
 	ComplianceResults *ComplianceResults        `json:"complianceResults"`
 }
 
+// ConfigSyncResult represents the result of a ConfigSync operation
+type ConfigSyncResult struct {
+	ClusterName     string        `json:"clusterName"`
+	ResourcesSynced int           `json:"resourcesSynced"`
+	ReconcileTime   time.Duration `json:"reconcileTime"`
+	ApplyTime       time.Duration `json:"applyTime"`
+	Status          string        `json:"status"`
+	Error           string        `json:"error,omitempty"`
+	Timestamp       time.Time     `json:"timestamp"`
+}
+
+
 // WorkloadClusterRegistry manages workload cluster lifecycle
 type WorkloadClusterRegistry struct {
 	client        client.Client

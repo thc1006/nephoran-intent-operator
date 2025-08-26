@@ -8,7 +8,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -471,4 +470,55 @@ func (sv *SystemValidator) validateO2Interface(ctx context.Context) bool {
 	}, 1*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
 	return true
+}
+
+// ExecuteFunctionalTests executes functional tests and returns score
+func (sv *SystemValidator) ExecuteFunctionalTests(ctx context.Context) (int, error) {
+	ginkgo.By("Executing Functional Completeness Tests")
+
+	score := 0
+
+	// Test 1: Intent Processing Pipeline (15 points)
+	ginkgo.By("Testing Intent Processing Pipeline")
+	if sv.ValidateIntentProcessingPipeline(ctx) {
+		score += 15
+		ginkgo.By("✓ Intent Processing Pipeline: 15/15 points")
+	} else {
+		ginkgo.By("✗ Intent Processing Pipeline: 0/15 points")
+	}
+
+	// Test 2: LLM/RAG Integration (10 points)
+	ginkgo.By("Testing LLM/RAG Integration")
+	if sv.ValidateLLMRAGIntegration(ctx) {
+		score += 10
+		ginkgo.By("✓ LLM/RAG Integration: 10/10 points")
+	} else {
+		ginkgo.By("✗ LLM/RAG Integration: 0/10 points")
+	}
+
+	// Test 3: Porch Package Management (10 points)
+	ginkgo.By("Testing Porch Package Management")
+	if sv.ValidatePorchIntegration(ctx) {
+		score += 10
+		ginkgo.By("✓ Porch Integration: 10/10 points")
+	} else {
+		ginkgo.By("✗ Porch Integration: 0/10 points")
+	}
+
+	// Test 4: Multi-cluster Deployment (8 points)
+	ginkgo.By("Testing Multi-cluster Deployment")
+	if sv.ValidateMultiClusterDeployment(ctx) {
+		score += 8
+		ginkgo.By("✓ Multi-cluster Deployment: 8/8 points")
+	} else {
+		ginkgo.By("✗ Multi-cluster Deployment: 0/8 points")
+	}
+
+	// Test 5: O-RAN Interface Compliance (7 points)
+	ginkgo.By("Testing O-RAN Interface Compliance")
+	oranScore := sv.ValidateORANInterfaces(ctx)
+	score += oranScore
+	ginkgo.By(fmt.Sprintf("O-RAN Interfaces: %d/7 points", oranScore))
+
+	return score, nil
 }

@@ -211,15 +211,12 @@ func (cb *LLMCircuitBreaker) updateMetrics(failed bool, latency time.Duration) {
 	}
 
 	// Update Prometheus metrics
-	labels := map[string]string{
-		"service": cb.name,
-		"state":   string(cb.GetState()),
-	}
+	_ = cb.name // avoid unused variable
 
 	if failed {
 		cb.metricsCollector.RecordLLMRequestError(cb.name, "circuit_breaker_failure")
 	} else {
-		cb.metricsCollector.RecordLLMRequest(cb.name, latency)
+		cb.metricsCollector.RecordLLMRequest(cb.name, "success", latency, 0)
 	}
 
 	// Record circuit breaker state
@@ -234,7 +231,7 @@ func (cb *LLMCircuitBreaker) updateMetrics(failed bool, latency time.Duration) {
 	}
 
 	// Use a gauge metric for circuit breaker state
-	if gauge := cb.metricsCollector.GetGauge("circuit_breaker_state", labels); gauge != nil {
+	if gauge := cb.metricsCollector.GetGauge("circuit_breaker_state"); gauge != nil {
 		gauge.Set(stateValue)
 	}
 }

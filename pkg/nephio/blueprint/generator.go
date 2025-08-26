@@ -27,7 +27,6 @@ import (
 
 	"github.com/Masterminds/sprig/v3"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v2"
 	"text/template"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
@@ -61,7 +60,7 @@ type GenerationContext struct {
 	TargetCluster   string
 	TargetNamespace string
 	NetworkSlice    string
-	ComponentType   v1.TargetComponent
+	ComponentType   v1.ORANComponent
 	DeploymentMode  string
 	SecurityProfile string
 	ResourceProfile string
@@ -78,13 +77,7 @@ func NewGenerator(config *BlueprintConfig, logger *zap.Logger) (*Generator, erro
 	}
 
 	// Initialize LLM client
-	llmClient, err := llm.NewClient(&llm.Config{
-		Endpoint: config.LLMEndpoint,
-		Timeout:  30 * time.Second,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to create LLM client: %w", err)
-	}
+	llmClient := llm.NewClient(config.LLMEndpoint)
 
 	generator := &Generator{
 		config:               config,
@@ -190,20 +183,14 @@ func (g *Generator) GenerateFromNetworkIntent(ctx context.Context, intent *v1.Ne
 func (g *Generator) processIntentWithLLM(ctx context.Context, intent *v1.NetworkIntent) (map[string]interface{}, error) {
 	prompt := g.buildLLMPrompt(intent)
 
-	response, err := g.llmClient.ProcessIntent(ctx, &llm.IntentRequest{
-		Intent:      intent.Spec.Intent,
-		Prompt:      prompt,
-		Context:     g.buildLLMContext(intent),
-		MaxTokens:   2000,
-		Temperature: 0.2,
-	})
+	response, err := g.llmClient.ProcessIntent(ctx, prompt)
 	if err != nil {
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
 	}
 
 	// Parse LLM response as JSON
 	var llmOutput map[string]interface{}
-	if err := json.Unmarshal([]byte(response.Response), &llmOutput); err != nil {
+	if err := json.Unmarshal([]byte(response), &llmOutput); err != nil {
 		return nil, fmt.Errorf("failed to parse LLM response as JSON: %w", err)
 	}
 
@@ -282,21 +269,21 @@ func (g *Generator) buildLLMContext(intent *v1.NetworkIntent) map[string]interfa
 // generateCoreStructure generates the core blueprint structure files
 func (g *Generator) generateCoreStructure(ctx context.Context, genCtx *GenerationContext, files map[string]string) error {
 	// Generate Kptfile
-	kptfile, err := g.generateKptfile(genCtx)
+	kptfile, err := g.generateKptFile(genCtx)
 	if err != nil {
 		return fmt.Errorf("failed to generate Kptfile: %w", err)
 	}
 	files["Kptfile"] = kptfile
 
 	// Generate README
-	readme, err := g.generateREADME(genCtx)
+	readme, err := g.generateReadme(genCtx)
 	if err != nil {
 		return fmt.Errorf("failed to generate README: %w", err)
 	}
 	files["README.md"] = readme
 
 	// Generate package metadata
-	metadata, err := g.generatePackageMetadata(genCtx)
+	metadata, err := g.generateMetadata(genCtx)
 	if err != nil {
 		return fmt.Errorf("failed to generate package metadata: %w", err)
 	}
@@ -313,35 +300,23 @@ func (g *Generator) generateCoreStructure(ctx context.Context, genCtx *Generatio
 }
 
 // generateComponentBlueprint generates blueprint for specific O-RAN/5GC component
-func (g *Generator) generateComponentBlueprint(ctx context.Context, genCtx *GenerationContext, component v1.TargetComponent, files map[string]string) error {
+func (g *Generator) generateComponentBlueprint(ctx context.Context, genCtx *GenerationContext, component v1.ORANComponent, files map[string]string) error {
 	switch component {
 	// 5G Core Components
-	case v1.TargetComponentAMF:
+	case v1.ORANComponentAMF:
 		return g.generateAMFBlueprint(genCtx, files)
-	case v1.TargetComponentSMF:
+	case v1.ORANComponentSMF:
 		return g.generateSMFBlueprint(genCtx, files)
-	case v1.TargetComponentUPF:
+	case v1.ORANComponentUPF:
 		return g.generateUPFBlueprint(genCtx, files)
-	case v1.TargetComponentNSSF:
-		return g.generateNSSFBlueprint(genCtx, files)
 
 	// O-RAN Components
-	case v1.TargetComponentODU:
-		return g.generateODUBlueprint(genCtx, files)
-	case v1.TargetComponentOCUCP:
-		return g.generateOCUCPBlueprint(genCtx, files)
-	case v1.TargetComponentOCUUP:
-		return g.generateOCUUPBlueprint(genCtx, files)
-	case v1.TargetComponentNearRTRIC:
+	case v1.ORANComponentNearRTRIC:
 		return g.generateNearRTRICBlueprint(genCtx, files)
-	case v1.TargetComponentNonRTRIC:
-		return g.generateNonRTRICBlueprint(genCtx, files)
-
-	// RIC Applications
-	case v1.TargetComponentXApp:
+	case v1.ORANComponentXApp:
 		return g.generateXAppBlueprint(genCtx, files)
-	case v1.TargetComponentRApp:
-		return g.generateRAppBlueprint(genCtx, files)
+	case v1.ORANComponentGNodeB:
+		return g.generateGenericBlueprint(genCtx, component, files)
 
 	default:
 		return g.generateGenericBlueprint(genCtx, component, files)
@@ -638,7 +613,7 @@ func (g *Generator) extractDeploymentMode(llmOutput map[string]interface{}) stri
 }
 
 // Utility functions
-func (g *Generator) targetComponentsToStrings(components []v1.TargetComponent) []string {
+func (g *Generator) targetComponentsToStrings(components []v1.ORANComponent) []string {
 	result := make([]string, len(components))
 	for i, component := range components {
 		result[i] = string(component)

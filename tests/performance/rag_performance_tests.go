@@ -307,16 +307,7 @@ type TestDocument struct {
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
-// BottleneckInfo represents a performance bottleneck
-type BottleneckInfo struct {
-	Component       string   `json:"component"`
-	Metric          string   `json:"metric"`
-	Severity        string   `json:"severity"`
-	Value           float64  `json:"value"`
-	Threshold       float64  `json:"threshold"`
-	Description     string   `json:"description"`
-	Recommendations []string `json:"recommendations"`
-}
+// BottleneckInfo is defined in load_testing_suite.go
 
 // Performance metrics types for RAG testing
 type RAGLatencyMetrics struct {

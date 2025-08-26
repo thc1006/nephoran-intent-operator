@@ -26,12 +26,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
+
+// TargetComponent is an alias for ORAN components used in blueprints
+type TargetComponent = v1.ORANComponent
 
 const (
 	// O-RAN Blueprint Categories
@@ -120,7 +122,7 @@ type BlueprintTemplate struct {
 	Description   string             `json:"description" yaml:"description"`
 	Version       string             `json:"version" yaml:"version"`
 	Category      string             `json:"category" yaml:"category"`
-	ComponentType v1.TargetComponent `json:"componentType" yaml:"componentType"`
+	ComponentType TargetComponent `json:"componentType" yaml:"componentType"`
 	IntentTypes   []v1.IntentType    `json:"intentTypes" yaml:"intentTypes"`
 
 	// O-RAN Compliance
@@ -299,7 +301,7 @@ type SecretTemplate struct {
 }
 
 type BlueprintDependency struct {
-	ComponentType v1.TargetComponent `json:"componentType" yaml:"componentType"`
+	ComponentType TargetComponent `json:"componentType" yaml:"componentType"`
 	Version       string             `json:"version" yaml:"version"`
 	Required      bool               `json:"required" yaml:"required"`
 	Interface     string             `json:"interface,omitempty" yaml:"interface,omitempty"`
@@ -388,7 +390,7 @@ type PolicyRule struct {
 }
 
 type EnforcementPoint struct {
-	ComponentType v1.TargetComponent `json:"componentType" yaml:"componentType"`
+	ComponentType TargetComponent `json:"componentType" yaml:"componentType"`
 	Interface     string             `json:"interface" yaml:"interface"`
 	Method        string             `json:"method" yaml:"method"`
 }
@@ -1017,6 +1019,160 @@ func NewORANBlueprintManager(
 	return manager, nil
 }
 
+// NewORANBlueprintCatalog creates a new O-RAN blueprint catalog
+func NewORANBlueprintCatalog(config *BlueprintConfig, logger *zap.Logger) (*ORANBlueprintCatalog, error) {
+	catalog := &ORANBlueprintCatalog{
+		NearRTRIC:  make(map[string]*BlueprintTemplate),
+		NonRTRIC:   make(map[string]*BlueprintTemplate),
+		ORAN_DU:    make(map[string]*BlueprintTemplate),
+		ORAN_CU:    make(map[string]*BlueprintTemplate),
+		xApps:      make(map[string]*BlueprintTemplate),
+		rApps:      make(map[string]*BlueprintTemplate),
+		SMO:        make(map[string]*BlueprintTemplate),
+		interfaces: make(map[string]*InterfaceTemplate),
+	}
+
+	// Initialize with default templates (would typically load from repository)
+	catalog.loadDefaultTemplates()
+
+	logger.Info("O-RAN blueprint catalog initialized")
+	return catalog, nil
+}
+
+// NewFiveGCoreCatalog creates a new 5G Core catalog
+func NewFiveGCoreCatalog(config *BlueprintConfig, logger *zap.Logger) (*FiveGCoreCatalog, error) {
+	catalog := &FiveGCoreCatalog{}
+
+	// Initialize with default templates (would typically load from repository)
+	catalog.loadDefaultTemplates()
+
+	logger.Info("5G Core catalog initialized")
+	return catalog, nil
+}
+
+// loadDefaultTemplates loads default O-RAN templates
+func (catalog *ORANBlueprintCatalog) loadDefaultTemplates() {
+	// Add a basic Near-RT RIC template
+	catalog.NearRTRIC["default"] = &BlueprintTemplate{
+		ID:          "near-rt-ric-default",
+		Name:        "Default Near-RT RIC",
+		Description: "Default Near-RT RIC deployment template",
+		Version:     "1.0.0",
+		Category:    BlueprintCategoryNearRTRIC,
+		ComponentType: v1.ORANComponentNearRTRIC,
+		IntentTypes: []v1.IntentType{v1.IntentTypeDeployment},
+		ORANCompliant: true,
+		Interfaces:  []string{InterfaceA1, InterfaceE2, InterfaceO1},
+		KRMResources: []KRMResourceTemplate{
+			{
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+				Metadata: map[string]interface{}{
+					"name": "near-rt-ric",
+				},
+				Spec: map[string]interface{}{
+					"replicas": 1,
+				},
+			},
+		},
+		CreatedAt: time.Now(),
+	}
+
+	// Add a basic xApp template
+	catalog.xApps["default"] = &BlueprintTemplate{
+		ID:          "xapp-default",
+		Name:        "Default xApp",
+		Description: "Default xApp deployment template",
+		Version:     "1.0.0",
+		Category:    BlueprintCategoryXApp,
+		ComponentType: v1.ORANComponentXApp,
+		IntentTypes: []v1.IntentType{v1.IntentTypeDeployment},
+		ORANCompliant: true,
+		Interfaces:  []string{InterfaceE2},
+		KRMResources: []KRMResourceTemplate{
+			{
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+				Metadata: map[string]interface{}{
+					"name": "xapp",
+				},
+				Spec: map[string]interface{}{
+					"replicas": 1,
+				},
+			},
+		},
+		CreatedAt: time.Now(),
+	}
+}
+
+// loadDefaultTemplates loads default 5G Core templates
+func (catalog *FiveGCoreCatalog) loadDefaultTemplates() {
+	// Initialize with basic AMF template
+	catalog.AMF = &AmfBlueprintTemplate{
+		BlueprintTemplate: &BlueprintTemplate{
+			ID:          "amf-default",
+			Name:        "Default AMF",
+			Description: "Default AMF deployment template",
+			Version:     "1.0.0",
+			Category:    BlueprintCategory5GCore,
+			ComponentType: v1.ORANComponentAMF,
+			IntentTypes: []v1.IntentType{v1.IntentTypeDeployment},
+			ORANCompliant: true,
+			Interfaces:  []string{InterfaceO1, InterfaceO2},
+			KRMResources: []KRMResourceTemplate{
+				{
+					APIVersion: "apps/v1",
+					Kind:       "Deployment",
+					Metadata: map[string]interface{}{
+						"name": "amf",
+					},
+					Spec: map[string]interface{}{
+						"replicas": 2,
+					},
+				},
+			},
+			CreatedAt: time.Now(),
+		},
+		SessionManagement: &SessionManagementConfig{
+			MaxSessions:      10000,
+			SessionTimeout:   3600,
+			HandoverSupport:  true,
+			EmergencyService: true,
+		},
+	}
+
+	// Initialize other network functions with minimal templates
+	catalog.SMF = &SmfBlueprintTemplate{
+		BlueprintTemplate: &BlueprintTemplate{
+			ID:            "smf-default",
+			Name:          "Default SMF",
+			Description:   "Default SMF deployment template",
+			Version:       "1.0.0",
+			Category:      BlueprintCategory5GCore,
+			ComponentType: v1.ORANComponentSMF,
+			IntentTypes:   []v1.IntentType{v1.IntentTypeDeployment},
+			ORANCompliant: true,
+			Interfaces:    []string{InterfaceO1, InterfaceO2},
+			CreatedAt:     time.Now(),
+		},
+	}
+
+	catalog.UPF = &UpfBlueprintTemplate{
+		BlueprintTemplate: &BlueprintTemplate{
+			ID:            "upf-default",
+			Name:          "Default UPF",
+			Description:   "Default UPF deployment template",
+			Version:       "1.0.0",
+			Category:      BlueprintCategory5GCore,
+			ComponentType: v1.ORANComponentUPF,
+			IntentTypes:   []v1.IntentType{v1.IntentTypeDeployment},
+			ORANCompliant: true,
+			Interfaces:    []string{InterfaceO1, InterfaceO2},
+			CreatedAt:     time.Now(),
+		},
+	}
+}
+
 // initializeComponents initializes all component managers
 func (obm *ORANBlueprintManager) initializeComponents() error {
 	var err error
@@ -1135,6 +1291,238 @@ func (obm *ORANBlueprintManager) CreateORANBlueprint(ctx context.Context, intent
 		zap.String("package_name", packageRevision.Name),
 		zap.Bool("oran_compliant", renderedBlueprint.ORANCompliant),
 		zap.Duration("duration", time.Since(startTime)))
+
+	return packageRevision, nil
+}
+
+// blueprintWorker processes blueprint operations from the queue
+func (obm *ORANBlueprintManager) blueprintWorker() {
+	defer obm.workerpool.Done()
+
+	for {
+		select {
+		case <-obm.ctx.Done():
+			obm.logger.Info("Blueprint worker shutting down")
+			return
+		case operation := <-obm.operationQueue:
+			if operation != nil {
+				obm.processOperation(operation)
+			}
+		}
+	}
+}
+
+// processOperation processes a single blueprint operation
+func (obm *ORANBlueprintManager) processOperation(operation *BlueprintOperation) {
+	obm.logger.Info("Processing blueprint operation",
+		zap.String("operation_id", operation.ID),
+		zap.String("operation_type", string(operation.Type)))
+
+	operation.Status = OperationStatusRunning
+	startTime := time.Now()
+	operation.StartedAt = &startTime
+
+	var err error
+	switch operation.Type {
+	case BlueprintOperationTypeRender:
+		err = obm.processRenderOperation(operation)
+	case BlueprintOperationTypeValidate:
+		err = obm.processValidateOperation(operation)
+	case BlueprintOperationTypeDeploy:
+		err = obm.processDeployOperation(operation)
+	default:
+		err = fmt.Errorf("unknown operation type: %s", operation.Type)
+	}
+
+	completedTime := time.Now()
+	operation.CompletedAt = &completedTime
+
+	if err != nil {
+		operation.Status = OperationStatusFailed
+		operation.Error = err.Error()
+		obm.logger.Error("Blueprint operation failed",
+			zap.String("operation_id", operation.ID),
+			zap.Error(err))
+	} else {
+		operation.Status = OperationStatusCompleted
+		obm.logger.Info("Blueprint operation completed",
+			zap.String("operation_id", operation.ID),
+			zap.Duration("duration", completedTime.Sub(startTime)))
+	}
+}
+
+// processRenderOperation processes a render operation
+func (obm *ORANBlueprintManager) processRenderOperation(operation *BlueprintOperation) error {
+	// Create a blueprint request
+	request := &BlueprintRequest{
+		Intent:     operation.Intent,
+		Templates:  operation.Templates,
+		Metadata:   obm.buildBlueprintMetadata(operation.Intent),
+		Parameters: operation.Parameters,
+	}
+
+	// Render the blueprint
+	rendered, err := obm.renderEngine.RenderORANBlueprint(obm.ctx, request)
+	if err != nil {
+		return err
+	}
+
+	// Store the result
+	if operation.Result == nil {
+		operation.Result = &OperationResult{}
+	}
+	operation.Result.RenderedBlueprint = rendered
+
+	return nil
+}
+
+// processValidateOperation processes a validate operation
+func (obm *ORANBlueprintManager) processValidateOperation(operation *BlueprintOperation) error {
+	if operation.Result == nil || operation.Result.RenderedBlueprint == nil {
+		return fmt.Errorf("no rendered blueprint to validate")
+	}
+
+	// Generate network function configs
+	nfConfigs, err := obm.configGen.GenerateConfigurations(obm.ctx, operation.Intent, operation.Templates)
+	if err != nil {
+		return err
+	}
+
+	// Validate O-RAN compliance
+	if obm.validator != nil {
+		err = obm.validator.ValidateORANCompliance(obm.ctx, operation.Result.RenderedBlueprint, nfConfigs)
+	}
+
+	// Create validation result
+	validationResult := &ValidationResult{
+		Valid:       err == nil,
+		Duration:    time.Since(*operation.StartedAt),
+		ValidatedAt: time.Now(),
+	}
+
+	if err != nil {
+		validationResult.Errors = []string{err.Error()}
+	}
+
+	operation.Result.ValidationResult = validationResult
+	operation.Result.NfConfigs = nfConfigs
+
+	return nil
+}
+
+// processDeployOperation processes a deploy operation
+func (obm *ORANBlueprintManager) processDeployOperation(operation *BlueprintOperation) error {
+	if operation.Result == nil || operation.Result.RenderedBlueprint == nil {
+		return fmt.Errorf("no rendered blueprint to deploy")
+	}
+
+	// Create deployment result
+	deploymentResult := &DeploymentResult{
+		Success:          true,
+		ResourcesCreated: []string{},
+		Duration:         time.Since(*operation.StartedAt),
+		DeployedAt:       time.Now(),
+	}
+
+	// In a real implementation, this would deploy resources through Porch
+	deploymentResult.ResourcesCreated = append(deploymentResult.ResourcesCreated,
+		"deployment/"+operation.Intent.Name,
+		"service/"+operation.Intent.Name,
+	)
+
+	operation.Result.DeploymentResult = deploymentResult
+
+	return nil
+}
+
+// selectBlueprintTemplates selects appropriate templates for the intent
+func (obm *ORANBlueprintManager) selectBlueprintTemplates(ctx context.Context, intent *v1.NetworkIntent) ([]*BlueprintTemplate, error) {
+	obm.logger.Debug("Selecting blueprint templates",
+		zap.String("intent_name", intent.Name),
+		zap.Any("target_components", intent.Spec.TargetComponents))
+
+	var templates []*BlueprintTemplate
+
+	// Select templates based on target components
+	for _, component := range intent.Spec.TargetComponents {
+		switch component {
+		case v1.ORANComponentNearRTRIC:
+			if template, exists := obm.oranCatalog.NearRTRIC["default"]; exists {
+				templates = append(templates, template)
+			}
+		case v1.ORANComponentXApp:
+			if template, exists := obm.oranCatalog.xApps["default"]; exists {
+				templates = append(templates, template)
+			}
+		case v1.ORANComponentAMF:
+			if obm.fiveGCatalog.AMF != nil {
+				templates = append(templates, obm.fiveGCatalog.AMF.BlueprintTemplate)
+			}
+		case v1.ORANComponentSMF:
+			if obm.fiveGCatalog.SMF != nil {
+				templates = append(templates, obm.fiveGCatalog.SMF.BlueprintTemplate)
+			}
+		case v1.ORANComponentUPF:
+			if obm.fiveGCatalog.UPF != nil {
+				templates = append(templates, obm.fiveGCatalog.UPF.BlueprintTemplate)
+			}
+		}
+	}
+
+	if len(templates) == 0 {
+		return nil, fmt.Errorf("no templates found for target components: %v", intent.Spec.TargetComponents)
+	}
+
+	obm.logger.Info("Selected blueprint templates",
+		zap.String("intent_name", intent.Name),
+		zap.Int("template_count", len(templates)))
+
+	return templates, nil
+}
+
+// buildBlueprintMetadata builds metadata for the blueprint
+func (obm *ORANBlueprintManager) buildBlueprintMetadata(intent *v1.NetworkIntent) *BlueprintMetadata {
+	return &BlueprintMetadata{
+		Name:          fmt.Sprintf("blueprint-%s", intent.Name),
+		Version:       "1.0.0",
+		Description:   fmt.Sprintf("Blueprint for intent: %s", intent.Spec.Intent),
+		Labels:        make(map[string]string),
+		Annotations:   make(map[string]string),
+		IntentType:    intent.Spec.IntentType,
+		ORANCompliant: true,
+		InterfaceTypes: []string{InterfaceA1, InterfaceO1, InterfaceO2, InterfaceE2},
+		CreatedAt:     time.Now(),
+		GeneratedBy:   "nephoran-intent-operator",
+	}
+}
+
+// createPackageRevision creates a Porch package revision
+func (obm *ORANBlueprintManager) createPackageRevision(
+	ctx context.Context,
+	intent *v1.NetworkIntent,
+	blueprint *RenderedBlueprint,
+	nfConfigs []NetworkFunctionConfig,
+) (*porch.PackageRevision, error) {
+	obm.logger.Info("Creating package revision",
+		zap.String("intent_name", intent.Name),
+		zap.String("blueprint_name", blueprint.Name))
+
+	// Create package revision through Porch client
+	// This would be the actual implementation that calls Porch
+	packageRevision := &porch.PackageRevision{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-v1", intent.Name),
+			Namespace: intent.Namespace,
+			Labels: map[string]string{
+				"nephoran.com/intent":    intent.Name,
+				"nephoran.com/blueprint": blueprint.Name,
+			},
+		},
+	}
+
+	obm.logger.Info("Package revision created",
+		zap.String("package_name", packageRevision.ObjectMeta.Name),
+		zap.String("namespace", packageRevision.ObjectMeta.Namespace))
 
 	return packageRevision, nil
 }

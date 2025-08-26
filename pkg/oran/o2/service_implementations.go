@@ -909,22 +909,5 @@ func (ms *MonitoringServiceImpl) ProcessEvent(ctx context.Context, event *Infras
 
 // Supporting types
 
-// HealthCallback is called when health status changes
-type HealthCallback func(resourceID string, health *ResourceHealth)
 
-// MetricsCollectionConfig configures metrics collection
-type MetricsCollectionConfig struct {
-	Interval    time.Duration `json:"interval"`
-	MetricNames []string      `json:"metric_names"`
-	BatchSize   int           `json:"batch_size"`
-}
 
-// InfrastructureEvent represents an infrastructure event
-type InfrastructureEvent struct {
-	EventID   string                 `json:"event_id"`
-	EventType string                 `json:"event_type"`
-	Source    string                 `json:"source"`
-	Target    string                 `json:"target"`
-	Data      map[string]interface{} `json:"data"`
-	Timestamp time.Time              `json:"timestamp"`
-}

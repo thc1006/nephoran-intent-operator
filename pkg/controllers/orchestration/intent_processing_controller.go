@@ -48,8 +48,8 @@ type IntentProcessingController struct {
 	Logger   logr.Logger
 
 	// Services
-	LLMService *llm.Service
-	RAGService *rag.Service
+	LLMService *llm.Client
+	RAGService *rag.RAGService
 
 	// Configuration
 	Config *IntentProcessingConfig
@@ -77,8 +77,8 @@ func NewIntentProcessingController(
 	client client.Client,
 	scheme *runtime.Scheme,
 	recorder record.EventRecorder,
-	llmService *llm.Service,
-	ragService *rag.Service,
+	llmService *llm.Client,
+	ragService *rag.RAGService,
 	eventBus *EventBus,
 	config *IntentProcessingConfig,
 ) *IntentProcessingController {

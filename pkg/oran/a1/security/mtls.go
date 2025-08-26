@@ -6,10 +6,10 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"log/slog"
 	"net/http"
 	"strings"
 	"sync"
@@ -344,7 +344,7 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 			}
 			m.logger.Warn("certificate pinning failed (report only)",
 				slog.String("subject", cert.Subject.String()),
-				slog.Error(err))
+				slog.String("error", err.Error()))
 		}
 	}
 
@@ -356,7 +356,7 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 			}
 			m.logger.Warn("OCSP check failed (fail open)",
 				slog.String("subject", cert.Subject.String()),
-				slog.Error(err))
+				slog.String("error", err.Error()))
 		}
 	}
 
@@ -368,7 +368,7 @@ func (m *MTLSManager) verifyPeerCertificate(rawCerts [][]byte, verifiedChains []
 			}
 			m.logger.Warn("CRL check failed (fail open)",
 				slog.String("subject", cert.Subject.String()),
-				slog.Error(err))
+				slog.String("error", err.Error()))
 		}
 	}
 
@@ -495,7 +495,7 @@ func (m *MTLSManager) checkCRL(cert *x509.Certificate) error {
 		if err != nil {
 			m.logger.Warn("failed to fetch CRL",
 				slog.String("url", crlURL),
-				slog.Error(err))
+				slog.String("error", err.Error()))
 			continue
 		}
 
@@ -711,4 +711,40 @@ func (m *MTLSManager) refreshCRLs() {
 
 func (m *MTLSManager) startCertificateWatcher() {
 	// Start watching certificate files for changes
+}
+
+// Start begins the certificate rotation process
+func (crm *CertRotationManager) Start() {
+	if crm.config == nil || !crm.config.Enabled {
+		return
+	}
+	
+	// Create a ticker for certificate rotation
+	ticker := time.NewTicker(crm.config.CheckInterval)
+	defer ticker.Stop()
+	
+	for {
+		select {
+		case <-ticker.C:
+			ctx := context.Background()
+			if err := crm.rotateCertificate(ctx); err != nil {
+				crm.logger.Error("certificate rotation failed",
+					slog.String("error", err.Error()))
+			}
+		}
+	}
+}
+
+// rotateCertificate performs the actual certificate rotation
+func (crm *CertRotationManager) rotateCertificate(ctx context.Context) error {
+	// Certificate rotation implementation
+	crm.logger.Info("performing certificate rotation")
+	
+	// This would normally:
+	// 1. Generate new certificate
+	// 2. Validate the new certificate
+	// 3. Replace the current certificate
+	// 4. Clean up old certificates
+	
+	return nil
 }

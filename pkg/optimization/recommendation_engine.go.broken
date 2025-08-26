@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring/reporting"
 	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
@@ -46,8 +47,8 @@ type OptimizationRecommendationEngine struct {
 
 	// Knowledge base
 	knowledgeBase *OptimizationKnowledgeBase
-}
 
+}
 // RecommendationConfig defines configuration for the recommendation engine
 type RecommendationConfig struct {
 	// Scoring weights
@@ -73,9 +74,9 @@ type RecommendationConfig struct {
 	SLAComplianceWeight      float64 `json:"slaComplianceWeight"`
 	InteroperabilityWeight   float64 `json:"interoperabilityWeight"`
 	LatencyCriticalityWeight float64 `json:"latencyCriticalityWeight"`
-}
 
 // RecommendationStrategy defines a strategy for optimizing a specific aspect
+}
 type RecommendationStrategy struct {
 	Name                string                `json:"name"`
 	Category            OptimizationCategory  `json:"category"`
@@ -84,13 +85,11 @@ type RecommendationStrategy struct {
 	ExpectedBenefits    *ExpectedBenefits     `json:"expectedBenefits"`
 	ImplementationSteps []ImplementationStep  `json:"implementationSteps"`
 	Prerequisites       []string              `json:"prerequisites"`
-	RiskFactors         []RecommendationRiskFactor `json:"riskFactors"`
+	RiskFactors         []RecommendationRiskFactor          `json:"riskFactors"`
 	ValidationCriteria  []ValidationCriterion `json:"validationCriteria"`
+
+// RecommendationRiskFactor identifies potential risks of implementing an optimization
 }
-
-
-
-// RiskFactor identifies potential risks of implementing an optimization
 type RecommendationRiskFactor struct {
 	Name        string       `json:"name"`
 	Description string       `json:"description"`
@@ -98,8 +97,8 @@ type RecommendationRiskFactor struct {
 	Impact      ImpactLevel  `json:"impact"`
 	Mitigation  string       `json:"mitigation"`
 	Category    RiskCategory `json:"category"`
-}
 
+}
 // RiskCategory represents different categories of risk
 type RiskCategory string
 
@@ -120,10 +119,9 @@ type ValidationCriterion struct {
 	Tolerance       float64       `json:"tolerance"`
 	ValidationDelay time.Duration `json:"validationDelay"`
 	CriticalFailure bool          `json:"criticalFailure"`
-}
-
 // OptimizationRecommendation represents a specific recommendation
 type OptimizationRecommendation struct {
+}
 	ID          string `json:"id"`
 	Title       string `json:"title"`
 	Description string `json:"description"`
@@ -134,17 +132,17 @@ type OptimizationRecommendation struct {
 	Urgency  UrgencyLevel         `json:"urgency"`
 
 	// Target information
-	TargetComponent   ComponentType `json:"targetComponent"`
-	AffectedResources []string      `json:"affectedResources"`
+	TargetComponent   shared.ComponentType `json:"targetComponent"`
+	AffectedResources []string             `json:"affectedResources"`
 
 	// Impact analysis
 	ExpectedImpact *ExpectedImpact `json:"expectedImpact"`
-	RiskAssessment *RiskAssessment `json:"riskAssessment"`
+	RiskAssessment *OptimizationRiskAssessment `json:"riskAssessment"`
 
 	// Implementation details
-	Strategy           *OptimizationStrategy `json:"strategy"`
-	ImplementationPlan *ImplementationPlan   `json:"implementationPlan"`
-	ImplementationSteps []string             `json:"implementationSteps"`
+	Strategy            *RecommendationStrategy `json:"strategy"`
+	ImplementationPlan  *ImplementationPlan   `json:"implementationPlan"`
+	ImplementationSteps []string              `json:"implementationSteps"`
 
 	// Scoring and ranking
 	OverallScore     float64 `json:"overallScore"`
@@ -173,11 +171,10 @@ type OptimizationRecommendation struct {
 	ValidUntil      time.Time        `json:"validUntil"`
 	ConfidenceLevel float64          `json:"confidenceLevel"`
 	DataQuality     DataQualityLevel `json:"dataQuality"`
-}
-
 // UrgencyLevel represents the urgency of implementing a recommendation
 type UrgencyLevel string
 
+}
 const (
 	UrgencyImmediate UrgencyLevel = "immediate"
 	UrgencyHigh      UrgencyLevel = "high"
@@ -197,8 +194,8 @@ const (
 	ImpactMinimal  ImpactLevel = "minimal"
 )
 
-// RiskAssessment contains comprehensive risk analysis
-type RecommendationRiskAssessment struct {
+// OptimizationRiskAssessment contains comprehensive risk analysis for optimizations
+type OptimizationRiskAssessment struct {
 	OverallRiskLevel     RiskLevel            `json:"overallRiskLevel"`
 	ImplementationRisk   float64              `json:"implementationRisk"`
 	PerformanceRisk      float64              `json:"performanceRisk"`
@@ -207,12 +204,11 @@ type RecommendationRiskAssessment struct {
 	ComplianceRisk       float64              `json:"complianceRisk"`
 	IdentifiedRisks      []RecommendationRiskFactor         `json:"identifiedRisks"`
 	MitigationStrategies []RecommendationMitigationStrategy `json:"mitigationStrategies"`
-	RiskScoreBreakdown   map[string]float64   `json:"riskScoreBreakdown"`
-}
 
 // RiskLevel represents overall risk level
 type RiskLevel string
 
+}
 const (
 	RiskLevelVeryLow  RiskLevel = "very_low"
 	RiskLevelLow      RiskLevel = "low"
@@ -226,47 +222,33 @@ type RecommendationMitigationStrategy struct {
 	Name            string        `json:"name"`
 	Description     string        `json:"description"`
 	Effectiveness   float64       `json:"effectiveness"`
-	Cost            float64       `json:"cost"`
 	TimeToImplement time.Duration `json:"timeToImplement"`
-}
 
 // ImplementationPlan defines the plan for implementing a recommendation
 type ImplementationPlan struct {
 	Phases            []ImplementationPhase `json:"phases"`
+}
 	TotalDuration     time.Duration         `json:"totalDuration"`
 	RequiredResources []RequiredResource    `json:"requiredResources"`
 	Dependencies      []string              `json:"dependencies"`
 	ValidationPoints  []ValidationPoint     `json:"validationPoints"`
-	RollbackPlanning  *RollbackPlan         `json:"rollbackPlanning"`
 	CommunicationPlan *CommunicationPlan    `json:"communicationPlan"`
-}
 
 // ImplementationPhase represents a phase in the implementation plan
 type ImplementationPhase struct {
 	Name             string               `json:"name"`
+}
 	Order            int                  `json:"order"`
 	Duration         time.Duration        `json:"duration"`
 	Description      string               `json:"description"`
 	Steps            []ImplementationStep `json:"steps"`
 	SuccessCriteria  []string             `json:"successCriteria"`
-	GateRequirements []string             `json:"gateRequirements"`
 	ParallelPhases   []string             `json:"parallelPhases"`
-}
-
-// RequiredResource defines resources needed for implementation
-type RequiredResource struct {
-	Type         ResourceType     `json:"type"`
-	Name         string           `json:"name"`
-	Quantity     float64          `json:"quantity"`
-	Duration     time.Duration    `json:"duration"`
-	Cost         float64          `json:"cost"`
-	Criticality  CriticalityLevel `json:"criticality"`
-	Alternatives []string         `json:"alternatives"`
-}
 
 // ResourceType represents different types of resources
 type ResourceType string
 
+}
 const (
 	ResourceTypeHuman    ResourceType = "human"
 	ResourceTypeCompute  ResourceType = "compute"
@@ -276,11 +258,20 @@ const (
 	ResourceTypeHardware ResourceType = "hardware"
 	ResourceTypeLicense  ResourceType = "license"
 )
+// RequiredResource defines resources needed for implementation
+type RequiredResource struct {
+	Type         ResourceType     `json:"type"`
+	Name         string           `json:"name"`
+	Quantity     float64          `json:"quantity"`
+	Cost         float64          `json:"cost"`
+	Criticality  CriticalityLevel `json:"criticality"`
+	Alternatives []string         `json:"alternatives"`
 
 // CriticalityLevel represents the criticality of a resource
 type CriticalityLevel string
 
 const (
+}
 	CriticalityEssential CriticalityLevel = "essential"
 	CriticalityImportant CriticalityLevel = "important"
 	CriticalityUseful    CriticalityLevel = "useful"
@@ -290,44 +281,40 @@ const (
 // ValidationPoint defines a point where validation should occur
 type ValidationPoint struct {
 	Name            string                `json:"name"`
-	Phase           string                `json:"phase"`
 	Criteria        []ValidationCriterion `json:"criteria"`
 	AutomatedChecks []string              `json:"automatedChecks"`
 	ManualChecks    []string              `json:"manualChecks"`
 	FailureActions  []string              `json:"failureActions"`
-}
 
 // RollbackPlan defines the plan for rolling back changes if needed
 type RollbackPlan struct {
 	TriggerConditions     []string             `json:"triggerConditions"`
-	RollbackSteps         []ImplementationStep `json:"rollbackSteps"`
+}
 	DataBackupStrategy    string               `json:"dataBackupStrategy"`
 	EstimatedRollbackTime time.Duration        `json:"estimatedRollbackTime"`
-	RiskFactors           []RiskFactor         `json:"riskFactors"`
-}
+	RiskFactors           []RecommendationRiskFactor         `json:"riskFactors"`
 
 // CommunicationPlan defines communication strategy for implementation
 type CommunicationPlan struct {
 	Stakeholders          []Stakeholder `json:"stakeholders"`
-	CommunicationChannels []string      `json:"communicationChannels"`
+}
 	UpdateFrequency       time.Duration `json:"updateFrequency"`
 	EscalationProcedure   string        `json:"escalationProcedure"`
 	StatusReportTemplate  string        `json:"statusReportTemplate"`
-}
 
 // Stakeholder defines a stakeholder in the implementation
 type Stakeholder struct {
 	Name              string         `json:"name"`
-	Role              string         `json:"role"`
+}
 	Interest          InterestLevel  `json:"interest"`
 	Influence         InfluenceLevel `json:"influence"`
 	CommunicationPref string         `json:"communicationPref"`
-}
 
 // InterestLevel represents stakeholder interest level
 type InterestLevel string
 
 const (
+}
 	InterestHigh   InterestLevel = "high"
 	InterestMedium InterestLevel = "medium"
 	InterestLow    InterestLevel = "low"
@@ -375,8 +362,16 @@ func NewOptimizationRecommendationEngine(
 		logger:         logger.WithName("recommendation-engine"),
 		analysisEngine: analysisEngine,
 		config:         config,
-		strategies:     make(map[ComponentType][]OptimizationStrategy),
-		knowledgeBase:  NewOptimizationKnowledgeBase(),
+		strategies:     make(map[shared.ComponentType][]RecommendationStrategy),
+		knowledgeBase: &OptimizationKnowledgeBase{
+			BestPractices:          make(map[shared.ComponentType][]*OptimizationBestPractice),
+			OptimizationHistory:    []*OptimizationHistoryEntry{},
+			KnownBottlenecks:       make(map[string]*BottleneckSolution),
+			TelecomRules:           []*TelecomOptimizationRule{},
+			ModelMetadata:          make(map[string]*MLModelMetadata),
+			ComplianceRequirements: []*ComplianceRequirement{},
+			LastUpdated:            time.Now(),
+		},
 	}
 
 	// Initialize ML models
@@ -385,10 +380,9 @@ func NewOptimizationRecommendationEngine(
 	engine.riskAssessor = NewRiskAssessor(logger)
 
 	// Load optimization strategies
-	engine.loadOptimizationStrategies()
+	engine.loadDefaultStrategies()
 
 	return engine
-}
 
 // GenerateRecommendations generates comprehensive optimization recommendations
 func (engine *OptimizationRecommendationEngine) GenerateRecommendations(
@@ -416,20 +410,12 @@ func (engine *OptimizationRecommendationEngine) GenerateRecommendations(
 	}
 
 	// Generate system-wide recommendations
-	systemRecommendations, err := engine.generateSystemWideRecommendations(ctx, analysisResult)
-	if err != nil {
-		engine.logger.Error(err, "Failed to generate system-wide recommendations")
-	} else {
-		allRecommendations = append(allRecommendations, systemRecommendations...)
-	}
+	systemRecommendations := engine.generateSystemRecommendations(ctx, analysisResult)
+	allRecommendations = append(allRecommendations, systemRecommendations...)
 
 	// Generate telecom-specific recommendations
-	telecomRecommendations, err := engine.generateTelecomRecommendations(ctx, analysisResult)
-	if err != nil {
-		engine.logger.Error(err, "Failed to generate telecom-specific recommendations")
-	} else {
-		allRecommendations = append(allRecommendations, telecomRecommendations...)
-	}
+	telecomRecommendations := engine.generateTelecomOptimizations(ctx, analysisResult)
+	allRecommendations = append(allRecommendations, telecomRecommendations...)
 
 	// Score and rank all recommendations
 	engine.scoreRecommendations(ctx, allRecommendations, analysisResult)
@@ -438,7 +424,7 @@ func (engine *OptimizationRecommendationEngine) GenerateRecommendations(
 	filteredRecommendations := engine.filterRecommendations(allRecommendations)
 
 	// Detect conflicts and dependencies
-	engine.analyzeRecommendationInteractions(filteredRecommendations)
+	engine.analyzeInteractions(filteredRecommendations)
 
 	// Sort by priority and score
 	sort.Slice(filteredRecommendations, func(i, j int) bool {
@@ -458,12 +444,11 @@ func (engine *OptimizationRecommendationEngine) GenerateRecommendations(
 	)
 
 	return filteredRecommendations, nil
-}
 
 // Generate component-specific recommendations
 func (engine *OptimizationRecommendationEngine) generateComponentRecommendations(
 	ctx context.Context,
-	componentType ComponentType,
+	componentType shared.ComponentType,
 	analysis *ComponentAnalysis,
 	overallResult *PerformanceAnalysisResult,
 ) ([]*OptimizationRecommendation, error) {
@@ -502,13 +487,12 @@ func (engine *OptimizationRecommendationEngine) generateComponentRecommendations
 	}
 
 	return recommendations, nil
-}
 
 // Implementation helper methods
 
 func (engine *OptimizationRecommendationEngine) isStrategyApplicable(
 	ctx context.Context,
-	strategy *OptimizationStrategy,
+	strategy *RecommendationStrategy,
 	analysis *ComponentAnalysis,
 	overallResult *PerformanceAnalysisResult,
 ) bool {
@@ -519,7 +503,6 @@ func (engine *OptimizationRecommendationEngine) isStrategyApplicable(
 		}
 	}
 	return true
-}
 
 func (engine *OptimizationRecommendationEngine) evaluateCondition(
 	condition ScenarioCondition,
@@ -533,7 +516,7 @@ func (engine *OptimizationRecommendationEngine) evaluateCondition(
 		return false
 	}
 
-	currentValue := metricAnalysis.CurrentValue
+	currentValue := metricAnalysis.Current
 	threshold := condition.Threshold
 
 	// Evaluate condition based on operator
@@ -551,11 +534,10 @@ func (engine *OptimizationRecommendationEngine) evaluateCondition(
 	default:
 		return false
 	}
-}
 
 func (engine *OptimizationRecommendationEngine) createRecommendationFromStrategy(
 	ctx context.Context,
-	strategy *OptimizationStrategy,
+	strategy *RecommendationStrategy,
 	analysis *ComponentAnalysis,
 	overallResult *PerformanceAnalysisResult,
 ) *OptimizationRecommendation {
@@ -574,14 +556,68 @@ func (engine *OptimizationRecommendationEngine) createRecommendationFromStrategy
 		Prerequisites:   strategy.Prerequisites,
 	}
 
-	// Predict expected impact
-	recommendation.ExpectedImpact = engine.impactPredictor.PredictImpact(strategy, analysis, overallResult)
+	// Predict expected impact using the predictor with proper context
+	impact, err := engine.impactPredictor.PredictImpact(
+		ctx,
+		strategy.TargetComponent,
+		strategy.Name,
+		reporting.ResourceUsageMetrics{
+			CPUUtilization:    analysis.ResourceUtilization.CPUUtilization.Current,
+			MemoryUtilization: analysis.ResourceUtilization.MemoryUtilization.Current,
+		},
+	)
+	if err != nil {
+		engine.logger.Error(err, "Failed to predict impact")
+		// Use default impact
+		recommendation.ExpectedImpact = &ExpectedImpact{
+			LatencyReduction:   10,
+			ThroughputIncrease: 10,
+			ResourceSavings:    10,
+			CostSavings:        10,
+			EfficiencyGain:     10,
+		}
+	} else {
+		recommendation.ExpectedImpact = &ExpectedImpact{
+			LatencyReduction:   impact.PredictedImprovement,
+			ThroughputIncrease: impact.PredictedImprovement,
+			ResourceSavings:    impact.PredictedImprovement / 2,
+			CostSavings:        impact.PredictedImprovement / 2,
+			EfficiencyGain:     impact.PredictedImprovement,
+		}
+	}
 
 	// Assess risks
-	recommendation.RiskAssessment = engine.riskAssessor.AssessRisk(strategy, analysis, overallResult)
+	riskAssessment, err := engine.riskAssessor.AssessRisk(ctx, strategy.TargetComponent, strategy.Name, impact)
+	if err != nil {
+		engine.logger.Error(err, "Failed to assess risk")
+		// Use default risk assessment
+		recommendation.RiskAssessment = &OptimizationRiskAssessment{
+			OverallRiskLevel:   RiskLevelMedium,
+			ImplementationRisk: 0.3,
+			PerformanceRisk:    0.2,
+			AvailabilityRisk:   0.2,
+			SecurityRisk:       0.1,
+			ComplianceRisk:     0.1,
+		}
+	} else {
+		recommendation.RiskAssessment = &OptimizationRiskAssessment{
+			OverallRiskLevel:   engine.scoreToRiskLevel(riskAssessment.OverallRiskScore),
+			ImplementationRisk: riskAssessment.OverallRiskScore,
+			PerformanceRisk:    riskAssessment.OverallRiskScore * 0.7,
+			AvailabilityRisk:   riskAssessment.OverallRiskScore * 0.6,
+			SecurityRisk:       riskAssessment.OverallRiskScore * 0.3,
+			ComplianceRisk:     riskAssessment.OverallRiskScore * 0.3,
+		}
+	}
 
 	// Calculate ROI
-	recommendation.ROI = engine.roiCalculator.CalculateROI(strategy, recommendation.ExpectedImpact, recommendation.RiskAssessment)
+	roiCalc, err := engine.roiCalculator.CalculateROI(ctx, strategy.TargetComponent, strategy.Name, impact)
+	if err != nil {
+		engine.logger.Error(err, "Failed to calculate ROI")
+		recommendation.ROI = 0.5 // Default ROI
+	} else {
+		recommendation.ROI = roiCalc.ROIPercentage
+	}
 
 	// Create implementation plan
 	recommendation.ImplementationPlan = engine.createImplementationPlan(strategy, analysis)
@@ -595,7 +631,6 @@ func (engine *OptimizationRecommendationEngine) createRecommendationFromStrategy
 	recommendation.Urgency = engine.determineUrgency(analysis, overallResult)
 
 	return recommendation
-}
 
 func (engine *OptimizationRecommendationEngine) scoreRecommendations(
 	ctx context.Context,
@@ -627,7 +662,6 @@ func (engine *OptimizationRecommendationEngine) scoreRecommendations(
 		// Set confidence level based on data quality and model accuracy
 		rec.ConfidenceLevel = engine.calculateConfidenceLevel(rec, analysisResult)
 	}
-}
 
 func (engine *OptimizationRecommendationEngine) filterRecommendations(
 	recommendations []*OptimizationRecommendation,
@@ -656,7 +690,6 @@ func (engine *OptimizationRecommendationEngine) filterRecommendations(
 	}
 
 	return filtered
-}
 
 // Helper methods for scoring and prioritization
 
@@ -671,7 +704,6 @@ func (engine *OptimizationRecommendationEngine) calculatePerformanceScore(impact
 	efficiencyScore := math.Min(impact.EfficiencyGain*1.2, 100)
 
 	return latencyScore*latencyWeight + throughputScore*throughputWeight + efficiencyScore*efficiencyWeight
-}
 
 func (engine *OptimizationRecommendationEngine) calculateCostBenefitScore(impact *ExpectedImpact, roi float64) float64 {
 	// Combine resource savings and ROI
@@ -679,9 +711,8 @@ func (engine *OptimizationRecommendationEngine) calculateCostBenefitScore(impact
 	roiScore := math.Min(roi*10, 100) // Scale ROI to 0-100 range
 
 	return (resourceScore + roiScore) / 2
-}
 
-func (engine *OptimizationRecommendationEngine) calculateRiskScore(riskAssessment *RiskAssessment) float64 {
+func (engine *OptimizationRecommendationEngine) calculateRiskScore(riskAssessment *OptimizationRiskAssessment) float64 {
 	// Calculate risk score from 0-100 (higher is riskier)
 	riskLevelScore := map[RiskLevel]float64{
 		RiskLevelVeryLow:  10,
@@ -692,7 +723,6 @@ func (engine *OptimizationRecommendationEngine) calculateRiskScore(riskAssessmen
 	}
 
 	return riskLevelScore[riskAssessment.OverallRiskLevel]
-}
 
 func (engine *OptimizationRecommendationEngine) getPriorityValue(priority OptimizationPriority) int {
 	priorities := map[OptimizationPriority]int{
@@ -702,7 +732,6 @@ func (engine *OptimizationRecommendationEngine) getPriorityValue(priority Optimi
 		PriorityLow:      1,
 	}
 	return priorities[priority]
-}
 
 func (engine *OptimizationRecommendationEngine) countRecommendationsByPriority(
 	recommendations []*OptimizationRecommendation,
@@ -715,10 +744,179 @@ func (engine *OptimizationRecommendationEngine) countRecommendationsByPriority(
 		}
 	}
 	return count
-}
 
-// Additional helper methods would be implemented here...
-// Including strategy loading, implementation plan creation, etc.
+// Additional helper methods
+
+func (engine *OptimizationRecommendationEngine) loadDefaultStrategies() {
+	// Load default strategies for each component type
+	engine.strategies[shared.ComponentTypeLLMProcessor] = []RecommendationStrategy{
+		{
+			Name:            "batch_processing",
+			Category:        CategoryPerformance,
+			TargetComponent: shared.ComponentTypeLLMProcessor,
+			ApplicableScenarios: []ScenarioCondition{
+				{
+					MetricName: "latency",
+					Operator:   OperatorGreaterThan,
+					Threshold:  500,
+				},
+			},
+			ExpectedBenefits: &ExpectedBenefits{
+				LatencyReduction:   30,
+				ThroughputIncrease: 50,
+				ResourceSavings:    20,
+			},
+		},
+	}
+	// Add more strategies for other components
+
+func (engine *OptimizationRecommendationEngine) generateSystemRecommendations(
+	ctx context.Context,
+	analysisResult *PerformanceAnalysisResult,
+) []*OptimizationRecommendation {
+	// Implementation for system-wide recommendations
+	return []*OptimizationRecommendation{}
+
+func (engine *OptimizationRecommendationEngine) generateTelecomOptimizations(
+	ctx context.Context,
+	analysisResult *PerformanceAnalysisResult,
+) []*OptimizationRecommendation {
+	// Implementation for telecom-specific recommendations
+	return []*OptimizationRecommendation{}
+
+func (engine *OptimizationRecommendationEngine) generateIssueSpecificRecommendations(
+	ctx context.Context,
+	issue *PerformanceIssue,
+	analysis *ComponentAnalysis,
+	overallResult *PerformanceAnalysisResult,
+) []*OptimizationRecommendation {
+	// Implementation for issue-specific recommendations
+	return []*OptimizationRecommendation{}
+
+func (engine *OptimizationRecommendationEngine) generateOpportunityRecommendations(
+	ctx context.Context,
+	opportunity *OptimizationOpportunity,
+	analysis *ComponentAnalysis,
+	overallResult *PerformanceAnalysisResult,
+) []*OptimizationRecommendation {
+	// Implementation for opportunity-specific recommendations
+	return []*OptimizationRecommendation{}
+
+func (engine *OptimizationRecommendationEngine) analyzeInteractions(
+	recommendations []*OptimizationRecommendation,
+) {
+	// Analyze dependencies and conflicts between recommendations
+	for i, rec1 := range recommendations {
+		for j, rec2 := range recommendations {
+			if i == j {
+				continue
+			}
+			// Check for conflicts
+			if engine.hasConflict(rec1, rec2) {
+				rec1.ConflictsWith = append(rec1.ConflictsWith, rec2.ID)
+			}
+			// Check for dependencies
+			if engine.hasDependency(rec1, rec2) {
+				rec1.Dependencies = append(rec1.Dependencies, rec2.ID)
+			}
+			// Check for complementary recommendations
+			if engine.isComplementary(rec1, rec2) {
+				rec1.ComplementaryWith = append(rec1.ComplementaryWith, rec2.ID)
+			}
+		}
+	}
+
+func (engine *OptimizationRecommendationEngine) hasConflict(rec1, rec2 *OptimizationRecommendation) bool {
+	// Check if two recommendations conflict
+	return rec1.TargetComponent == rec2.TargetComponent && rec1.Category == rec2.Category
+
+func (engine *OptimizationRecommendationEngine) hasDependency(rec1, rec2 *OptimizationRecommendation) bool {
+	// Check if rec1 depends on rec2
+	for _, prereq := range rec1.Prerequisites {
+		if prereq == rec2.ID {
+			return true
+		}
+	}
+	return false
+
+func (engine *OptimizationRecommendationEngine) isComplementary(rec1, rec2 *OptimizationRecommendation) bool {
+	// Check if recommendations complement each other
+	return rec1.Category != rec2.Category && rec1.TargetComponent == rec2.TargetComponent
+
+func (engine *OptimizationRecommendationEngine) createImplementationPlan(
+	strategy *RecommendationStrategy,
+	analysis *ComponentAnalysis,
+) *ImplementationPlan {
+	// Create implementation plan from strategy
+	return &ImplementationPlan{
+		Phases: []ImplementationPhase{
+			{
+				Name:        "Preparation",
+				Order:       1,
+				Duration:    time.Hour,
+				Description: "Prepare for implementation",
+				Steps:       strategy.ImplementationSteps,
+			},
+		},
+		TotalDuration: time.Hour * 2,
+		Dependencies:  strategy.Prerequisites,
+	}
+
+func (engine *OptimizationRecommendationEngine) estimateDuration(steps []ImplementationStep) time.Duration {
+	var total time.Duration
+	for _, step := range steps {
+		total += step.EstimatedTime
+	}
+	return total
+
+func (engine *OptimizationRecommendationEngine) estimateEffort(steps []ImplementationStep) EffortLevel {
+	// Estimate overall effort based on steps
+	if len(steps) < 3 {
+		return EffortLow
+	} else if len(steps) < 10 {
+		return EffortMedium
+	}
+	return EffortHigh
+
+func (engine *OptimizationRecommendationEngine) determinePriority(
+	impact *ExpectedImpact,
+	risk *OptimizationRiskAssessment,
+	analysis *ComponentAnalysis,
+) OptimizationPriority {
+	// Determine priority based on impact and risk
+	if impact.EfficiencyGain > 50 && risk.OverallRiskLevel == RiskLevelLow {
+		return PriorityCritical
+	} else if impact.EfficiencyGain > 30 {
+		return PriorityHigh
+	} else if impact.EfficiencyGain > 10 {
+		return PriorityMedium
+	}
+	return PriorityLow
+
+func (engine *OptimizationRecommendationEngine) determineUrgency(
+	analysis *ComponentAnalysis,
+	overallResult *PerformanceAnalysisResult,
+) UrgencyLevel {
+	// Determine urgency based on system state
+	if analysis.HealthStatus == "critical" {
+		return UrgencyImmediate
+	} else if analysis.HealthStatus == "degraded" {
+		return UrgencyHigh
+	}
+	return UrgencyMedium
+
+func (engine *OptimizationRecommendationEngine) calculateConfidenceLevel(
+	rec *OptimizationRecommendation,
+	analysisResult *PerformanceAnalysisResult,
+) float64 {
+	// Calculate confidence based on data quality and model accuracy
+	baseConfidence := 0.7
+	if rec.DataQuality == DataQualityExcellent {
+		baseConfidence += 0.2
+	} else if rec.DataQuality == DataQualityGood {
+		baseConfidence += 0.1
+	}
+	return math.Min(baseConfidence, 1.0)
 
 // GetDefaultRecommendationConfig returns default configuration
 func GetDefaultRecommendationConfig() *RecommendationConfig {
@@ -738,4 +936,14 @@ func GetDefaultRecommendationConfig() *RecommendationConfig {
 		InteroperabilityWeight:         0.3,
 		LatencyCriticalityWeight:       0.4,
 	}
-}
+func (engine *OptimizationRecommendationEngine) scoreToRiskLevel(score float64) RiskLevel {
+	if score < 0.2 {
+		return RiskLevelVeryLow
+	} else if score < 0.4 {
+		return RiskLevelLow
+	} else if score < 0.6 {
+		return RiskLevelMedium
+	} else if score < 0.8 {
+		return RiskLevelHigh
+	}
+	return RiskLevelVeryHigh
