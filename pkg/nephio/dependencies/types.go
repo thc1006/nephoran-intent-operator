@@ -550,6 +550,8 @@ type HealthRecommendation struct {
 	Priority     string  `json:"priority"`
 	Description  string  `json:"description"`
 	ActionItems  []string `json:"actionItems"`
+	Benefits     []string `json:"benefits,omitempty"`
+	Actions      []string `json:"actions,omitempty"`
 	EstimatedImpact float64 `json:"estimatedImpact"`
 }
 
@@ -678,8 +680,10 @@ func (ar *AnalysisReport) String() string {
 type TrendAnalysis struct {
 	AnalysisID    string                 `json:"analysisId"`
 	TimeRange     *TimeRange             `json:"timeRange"`
+	Packages      []string               `json:"packages,omitempty"`
+	Period        string                 `json:"period,omitempty"`
 	Trends        []*Trend               `json:"trends"`
-	OverallTrend  TrendDirection         `json:"overallTrend"`
+	OverallTrend  TrendDirection         `json:"overallTrend"` 
 	Confidence    float64                `json:"confidence"`
 	Predictions   []*TrendPrediction     `json:"predictions,omitempty"`
 	Anomalies     []*TrendAnomaly        `json:"anomalies,omitempty"`
@@ -1251,14 +1255,26 @@ type EvolutionPrediction struct {
 // AnalyzerHealth represents analyzer health status
 type AnalyzerHealth struct {
 	Status          string            `json:"status"`
+	Uptime          time.Duration     `json:"uptime"`
+	ComponentsHealthy int             `json:"componentsHealthy"`
+	ComponentsTotal   int             `json:"componentsTotal"`
 	Components      map[string]string `json:"components"`
 	LastHealthCheck time.Time         `json:"lastHealthCheck"`
-	Issues          []string          `json:"issues,omitempty"`
+	Issues          []HealthIssue     `json:"issues,omitempty"`
 	Metrics         map[string]float64 `json:"metrics,omitempty"`
+}
+
+// HealthIssue represents a health issue
+type HealthIssue struct {
+	Severity    string `json:"severity"`
+	Component   string `json:"component"`
+	Description string `json:"description"`
+	Timestamp   time.Time `json:"timestamp"`
 }
 
 // AnalysisModels contains machine learning models for analysis
 type AnalysisModels struct {
+	Version             string     `json:"version"`
 	PredictionModel     *ModelInfo `json:"predictionModel,omitempty"`
 	RecommendationModel *ModelInfo `json:"recommendationModel,omitempty"`
 	AnomalyModel        *ModelInfo `json:"anomalyModel,omitempty"`

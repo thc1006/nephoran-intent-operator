@@ -43,7 +43,7 @@ type ControllerMetrics struct {
 // NewControllerMetrics creates a new ControllerMetrics instance
 func NewControllerMetrics() *ControllerMetrics {
 	cm := &ControllerMetrics{
-		ReconcileDuration: *prometheus.NewHistogramVec(
+		ReconcileDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "controller_reconcile_duration_seconds",
 				Help:    "Time spent in controller reconcile loops",
@@ -52,7 +52,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "namespace", "name", "phase"},
 		),
 
-		ReconcileTotal: *prometheus.NewCounterVec(
+		ReconcileTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_reconcile_total",
 				Help: "Total number of controller reconciliations",
@@ -60,7 +60,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "result"},
 		),
 
-		ReconcileErrors: *prometheus.NewCounterVec(
+		ReconcileErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_reconcile_errors_total",
 				Help: "Total number of controller reconcile errors",
@@ -68,7 +68,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "error_type", "error_category"},
 		),
 
-		ReconcileRequeue: *prometheus.NewCounterVec(
+		ReconcileRequeue: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_reconcile_requeue_total",
 				Help: "Total number of controller requeues",
@@ -76,7 +76,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "requeue_type", "backoff_strategy"},
 		),
 
-		BackoffDelay: *prometheus.NewHistogramVec(
+		BackoffDelay: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "controller_backoff_delay_seconds",
 				Help:    "Backoff delay duration in seconds",
@@ -85,7 +85,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "error_type", "strategy"},
 		),
 
-		BackoffRetries: *prometheus.NewHistogramVec(
+		BackoffRetries: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "controller_backoff_retries",
 				Help:    "Number of retries before success or giving up",
@@ -94,7 +94,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "error_type", "outcome"},
 		),
 
-		BackoffResets: *prometheus.NewCounterVec(
+		BackoffResets: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_backoff_resets_total",
 				Help: "Total number of successful backoff resets",
@@ -102,7 +102,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "resource_type"},
 		),
 
-		StatusBatchSize: *prometheus.NewHistogramVec(
+		StatusBatchSize: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "controller_status_batch_size",
 				Help:    "Size of status update batches",
@@ -111,7 +111,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "priority"},
 		),
 
-		StatusBatchDuration: *prometheus.NewHistogramVec(
+		StatusBatchDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "controller_status_batch_duration_seconds",
 				Help:    "Duration of status batch processing",
@@ -120,7 +120,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller"},
 		),
 
-		StatusUpdatesQueued: *prometheus.NewCounterVec(
+		StatusUpdatesQueued: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_status_updates_queued_total",
 				Help: "Total number of status updates queued",
@@ -128,7 +128,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "priority", "resource_type"},
 		),
 
-		StatusUpdatesDropped: *prometheus.NewCounterVec(
+		StatusUpdatesDropped: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_status_updates_dropped_total",
 				Help: "Total number of status updates dropped due to queue full",
@@ -136,7 +136,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "resource_type"},
 		),
 
-		StatusUpdatesFailed: *prometheus.NewCounterVec(
+		StatusUpdatesFailed: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_status_updates_failed_total",
 				Help: "Total number of failed status updates",
@@ -144,7 +144,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "error_type", "resource_type"},
 		),
 
-		StatusQueueSize: *prometheus.NewGaugeVec(
+		StatusQueueSize: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "controller_status_queue_size",
 				Help: "Current size of status update queue",
@@ -152,7 +152,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller"},
 		),
 
-		ApiCallDuration: *prometheus.NewHistogramVec(
+		ApiCallDuration: prometheus.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "controller_api_call_duration_seconds",
 				Help:    "Duration of Kubernetes API calls",
@@ -161,7 +161,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "operation", "resource_type"},
 		),
 
-		ApiCallTotal: *prometheus.NewCounterVec(
+		ApiCallTotal: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_api_call_total",
 				Help: "Total number of Kubernetes API calls",
@@ -169,7 +169,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "operation", "result"},
 		),
 
-		ApiCallErrors: *prometheus.NewCounterVec(
+		ApiCallErrors: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "controller_api_call_errors_total",
 				Help: "Total number of Kubernetes API call errors",
@@ -177,7 +177,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "operation", "error_type"},
 		),
 
-		ActiveReconcilers: *prometheus.NewGaugeVec(
+		ActiveReconcilers: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "controller_active_reconcilers",
 				Help: "Number of active reconciler goroutines",
@@ -185,7 +185,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller"},
 		),
 
-		MemoryUsage: *prometheus.NewGaugeVec(
+		MemoryUsage: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "controller_memory_usage_bytes",
 				Help: "Memory usage of the controller process",
@@ -193,7 +193,7 @@ func NewControllerMetrics() *ControllerMetrics {
 			[]string{"controller", "type"},
 		),
 
-		GoroutineCount: *prometheus.NewGaugeVec(
+		GoroutineCount: prometheus.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "controller_goroutines",
 				Help: "Number of goroutines in the controller process",

@@ -51,6 +51,9 @@ type AnalyzerMetrics struct {
 	// Cache metrics
 	AnalysisCacheHits   prometheus.Counter
 	AnalysisCacheMisses prometheus.Counter
+	
+	// System metrics
+	Uptime              prometheus.Gauge
 
 	// Analysis metrics
 	UsageAnalysisTotal    prometheus.Counter

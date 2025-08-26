@@ -531,7 +531,7 @@ func (r *OptimizedE2NodeSetReconciler) createE2NodeOptimized(ctx context.Context
 				"ricEndpoint": "%s",
 				"e2InterfaceVersion": "v3.0",
 				"createdAt": "%s"
-			}`, nodeIndex, e2nodeSet.Spec.RICEndpoint, time.Now().Format(time.RFC3339)),
+			}`, nodeIndex, e2nodeSet.Spec.RicEndpoint, time.Now().Format(time.RFC3339)),
 		},
 	}
 
@@ -724,10 +724,7 @@ func (r *OptimizedE2NodeSetReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 3, // Moderate concurrency for E2NodeSet
 		}).
-		Watches(
-			&source.Kind{Type: &nephoranv1.E2NodeSet{}},
-			&handler.EnqueueRequestForObject{},
-		).
+		// Removed Watches - redundant with For() in controller-runtime v0.18+
 		Complete(r)
 }
 

@@ -184,11 +184,11 @@ type NetworkIntentStatus struct {
 
 	// LLMResponse contains the raw LLM response data
 	// +optional
-	LLMResponse interface{} `json:"llmResponse,omitempty"`
+	LLMResponse runtime.RawExtension `json:"llmResponse,omitempty"`
 
 	// ResourcePlan contains the resource planning data
 	// +optional
-	ResourcePlan map[string]interface{} `json:"resourcePlan,omitempty"`
+	ResourcePlan runtime.RawExtension `json:"resourcePlan,omitempty"`
 
 	// ProcessingPhase indicates the current processing phase
 	// +optional

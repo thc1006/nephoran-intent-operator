@@ -47,7 +47,7 @@ import (
 // NephoranAPIServer provides comprehensive Web UI integration for the Nephoran Intent Operator
 type NephoranAPIServer struct {
 	// Core dependencies
-	intentManager  *controllers.IntentManager
+	intentReconciler  *controllers.NetworkIntentReconciler
 	packageManager *packagerevision.PackageRevisionManager
 	clusterManager *multicluster.ClusterPropagationManager
 	llmProcessor   *services.LLMProcessor
@@ -222,7 +222,7 @@ type FilterParams struct {
 
 // NewNephoranAPIServer creates a new API server instance
 func NewNephoranAPIServer(
-	intentManager *controllers.IntentManager,
+	intentReconciler *controllers.NetworkIntentReconciler,
 	packageManager *packagerevision.PackageRevisionManager,
 	clusterManager *multicluster.ClusterPropagationManager,
 	llmProcessor *services.LLMProcessor,

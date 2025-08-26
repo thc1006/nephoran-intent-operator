@@ -19,6 +19,8 @@ import (
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
+	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio"
@@ -117,6 +119,16 @@ func (d *dependencyImpl) GetHTTPClient() *http.Client {
 
 func (d *dependencyImpl) GetEventRecorder() record.EventRecorder {
 	return d.eventRecorder
+}
+
+// GetMetricsCollector returns the metrics collector (placeholder implementation)
+func (d *dependencyImpl) GetMetricsCollector() *monitoring.MetricsCollector {
+	return nil // TODO: Implement metrics collector
+}
+
+// GetTelecomKnowledgeBase returns the telecom knowledge base (placeholder implementation)
+func (d *dependencyImpl) GetTelecomKnowledgeBase() *telecom.TelecomKnowledgeBase {
+	return nil // TODO: Implement telecom knowledge base
 }
 
 func init() {
@@ -241,9 +253,9 @@ func main() {
 
 	// Setup E2NodeSet controller
 	if err = (&controllers.E2NodeSetReconciler{
-		Client:    mgr.GetClient(),
-		Scheme:    mgr.GetScheme(),
-		GitClient: gitClient,
+		Client:   mgr.GetClient(),
+		Scheme:   mgr.GetScheme(),
+		Recorder: mgr.GetEventRecorderFor("e2nodeset-controller"),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "E2NodeSet")
 		os.Exit(1)

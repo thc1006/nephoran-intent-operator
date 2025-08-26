@@ -17,6 +17,7 @@ limitations under the License.
 package webui
 
 import (
+	"net/http"
 	"strings"
 	"sync"
 	"time"

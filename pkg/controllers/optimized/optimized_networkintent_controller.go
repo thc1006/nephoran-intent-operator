@@ -632,10 +632,7 @@ func (r *OptimizedNetworkIntentReconciler) SetupWithManager(mgr ctrl.Manager) er
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: 5, // Increased concurrency
 		}).
-		Watches(
-			&source.Kind{Type: &nephoranv1.NetworkIntent{}},
-			&handler.EnqueueRequestForObject{},
-		).
+		// Removed Watches - redundant with For() in controller-runtime v0.18+
 		Complete(r)
 }
 
