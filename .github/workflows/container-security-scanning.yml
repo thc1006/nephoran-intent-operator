@@ -67,7 +67,7 @@ jobs:
         - llm-processor
         - nephio-bridge
         - oran-adaptor
-        - network-intent-controller
+        - manager
         - rag-api
         include:
         - service: llm-processor
@@ -79,7 +79,7 @@ jobs:
         - service: oran-adaptor
           service_type: go
           port: 8082
-        - service: network-intent-controller
+        - service: manager
           service_type: go
           port: 8080
         - service: rag-api

@@ -120,8 +120,12 @@ venv.bak/
 pip-log.txt
 pip-delete-this-directory.txt
 .pytest_cache/
-requirements*.txt
+requirements-dev.txt
+requirements-docs.txt
 *.egg-info/
+
+# Keep production requirements file
+!requirements-rag.txt
 
 # Go specific exclusions
 vendor/

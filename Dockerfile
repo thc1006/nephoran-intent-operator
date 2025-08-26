@@ -36,11 +36,11 @@ FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-alpine AS go-deps
 RUN set -eux; \
     apk update && apk upgrade --no-cache; \
     apk add --no-cache --virtual .build-deps \
-        git=~2.45 \
-        ca-certificates=~20241010 \
-        tzdata=~2024 \
-        curl=~8.11 \
-        gnupg=~2.4 \
+        git \
+        ca-certificates \
+        tzdata \
+        curl \
+        gnupg \
     && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/* \
     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
@@ -71,12 +71,12 @@ ARG VCS_REF
 RUN set -eux; \
     apk update && apk upgrade --no-cache; \
     apk add --no-cache --virtual .build-deps \
-        git=~2.45 \
-        ca-certificates=~20241010 \
-        tzdata=~2024 \
-        binutils=~2.42 \
-        curl=~8.11 \
-        gnupg=~2.4 \
+        git \
+        ca-certificates \
+        tzdata \
+        binutils \
+        curl \
+        gnupg \
     && rm -rf /var/cache/apk/* /var/lib/apk/lists/* /tmp/* /var/tmp/* \
     && find / -xdev -type f -perm +6000 -delete 2>/dev/null || true
 
