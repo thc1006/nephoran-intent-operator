@@ -70,6 +70,7 @@ type PredictiveConfig struct {
 	// Performance settings
 	MaxConcurrentPredictions int           `yaml:"max_concurrent_predictions"`
 	CacheTTL                 time.Duration `yaml:"cache_ttl"`
+	HistoryWindow            time.Duration `yaml:"history_window"`
 }
 
 // PredictionModel represents a trained ML model for SLA prediction

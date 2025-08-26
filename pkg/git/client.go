@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/prometheus/client_golang/prometheus"
@@ -40,12 +42,61 @@ func InitMetrics(registerer prometheus.Registerer) {
 	})
 }
 
+// CommitInfo represents information about a Git commit
+type CommitInfo struct {
+	Hash      string
+	Message   string
+	Author    string
+	Email     string
+	Timestamp time.Time
+}
+
+// StatusInfo represents the status of a file in the Git repository
+type StatusInfo struct {
+	Path     string
+	Status   string // Modified, Added, Deleted, Untracked, etc.
+	Staging  string // Status in staging area
+	Worktree string // Status in working tree
+}
+
+// PullRequestOptions contains options for creating a pull request
+type PullRequestOptions struct {
+	Title       string
+	Description string
+	SourceBranch string
+	TargetBranch string
+	Labels      []string
+	Assignees   []string
+}
+
+// PullRequestInfo represents information about a pull request
+type PullRequestInfo struct {
+	ID          int
+	Number      int
+	Title       string
+	Description string
+	State       string // open, closed, merged
+	SourceBranch string
+	TargetBranch string
+	Author      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
 // ClientInterface defines the interface for a Git client.
 type ClientInterface interface {
 	CommitAndPush(files map[string]string, message string) (string, error)
 	CommitAndPushChanges(message string) error
 	InitRepo() error
 	RemoveDirectory(path string, commitMessage string) error
+	
+	// New methods
+	CommitFiles(files []string, msg string) error
+	CreateBranch(name string) error
+	SwitchBranch(name string) error
+	GetCurrentBranch() (string, error)
+	ListBranches() ([]string, error)
+	GetFileContent(path string) ([]byte, error)
 }
 
 // ClientConfig holds configuration for creating a Git client.
@@ -544,4 +595,183 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	}
 
 	return nil
+}
+
+// CommitFiles commits specified files with a message without pushing
+func (c *Client) CommitFiles(files []string, msg string) error {
+	c.acquireSemaphore("CommitFiles")
+	defer c.releaseSemaphore("CommitFiles")
+
+	r, err := git.PlainOpen(c.RepoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repo: %w", err)
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Stage specified files
+	for _, file := range files {
+		if _, err := w.Add(file); err != nil {
+			return fmt.Errorf("failed to add file %s: %w", file, err)
+		}
+	}
+
+	// Commit the changes
+	_, err = w.Commit(msg, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Nephio Bridge",
+			Email: "nephio-bridge@example.com",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to commit: %w", err)
+	}
+
+	return nil
+}
+
+// CreateBranch creates a new branch from the current HEAD
+func (c *Client) CreateBranch(name string) error {
+	c.acquireSemaphore("CreateBranch")
+	defer c.releaseSemaphore("CreateBranch")
+
+	r, err := git.PlainOpen(c.RepoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repo: %w", err)
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Get HEAD reference
+	headRef, err := r.Head()
+	if err != nil {
+		return fmt.Errorf("failed to get HEAD: %w", err)
+	}
+
+	// Create new branch reference
+	branchRef := plumbing.NewBranchReferenceName(name)
+	ref := plumbing.NewHashReference(branchRef, headRef.Hash())
+	
+	err = r.Storer.SetReference(ref)
+	if err != nil {
+		return fmt.Errorf("failed to create branch %s: %w", name, err)
+	}
+
+	return nil
+}
+
+// SwitchBranch switches to the specified branch
+func (c *Client) SwitchBranch(name string) error {
+	c.acquireSemaphore("SwitchBranch")
+	defer c.releaseSemaphore("SwitchBranch")
+
+	r, err := git.PlainOpen(c.RepoPath)
+	if err != nil {
+		return fmt.Errorf("failed to open repo: %w", err)
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Checkout the branch
+	err = w.Checkout(&git.CheckoutOptions{
+		Branch: plumbing.NewBranchReferenceName(name),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to switch to branch %s: %w", name, err)
+	}
+
+	// Update the client's branch field
+	c.Branch = name
+
+	return nil
+}
+
+// GetCurrentBranch returns the name of the current branch
+func (c *Client) GetCurrentBranch() (string, error) {
+	c.acquireSemaphore("GetCurrentBranch")
+	defer c.releaseSemaphore("GetCurrentBranch")
+
+	r, err := git.PlainOpen(c.RepoPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open repo: %w", err)
+	}
+
+	headRef, err := r.Head()
+	if err != nil {
+		return "", fmt.Errorf("failed to get HEAD: %w", err)
+	}
+
+	// Extract branch name from reference
+	if headRef.Name().IsBranch() {
+		return headRef.Name().Short(), nil
+	}
+
+	// If we're in detached HEAD state, return the hash
+	return headRef.Hash().String()[:7], nil
+}
+
+// ListBranches returns a list of all local branches
+func (c *Client) ListBranches() ([]string, error) {
+	c.acquireSemaphore("ListBranches")
+	defer c.releaseSemaphore("ListBranches")
+
+	r, err := git.PlainOpen(c.RepoPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open repo: %w", err)
+	}
+
+	refs, err := r.References()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get references: %w", err)
+	}
+
+	var branches []string
+	err = refs.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Name().IsBranch() {
+			branches = append(branches, ref.Name().Short())
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to iterate references: %w", err)
+	}
+
+	return branches, nil
+}
+
+// GetFileContent reads and returns the content of a file from the repository
+func (c *Client) GetFileContent(path string) ([]byte, error) {
+	c.acquireSemaphore("GetFileContent")
+	defer c.releaseSemaphore("GetFileContent")
+
+	fullPath := filepath.Join(c.RepoPath, path)
+	
+	// Check if file exists
+	if _, err := os.Stat(fullPath); err != nil {
+		if os.IsNotExist(err) {
+			return nil, &fs.PathError{
+				Op:   "open",
+				Path: path,
+				Err:  fs.ErrNotExist,
+			}
+		}
+		return nil, fmt.Errorf("failed to stat file %s: %w", path, err)
+	}
+
+	content, err := os.ReadFile(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file %s: %w", path, err)
+	}
+
+	return content, nil
 }

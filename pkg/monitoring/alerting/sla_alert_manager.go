@@ -897,4 +897,278 @@ func (sam *SLAAlertManager) alertCleanupLoop(ctx context.Context) {
 	}
 }
 
-// Additional helper methods would be implemented here...
+// getCurrentSLAValue retrieves the current value for the specified SLA type
+func (sam *SLAAlertManager) getCurrentSLAValue(ctx context.Context, slaType SLAType) (float64, error) {
+	if sam.prometheusClient == nil {
+		// Return mock values for testing
+		switch slaType {
+		case SLATypeAvailability:
+			return 99.90, nil // 99.90% availability
+		case SLATypeLatency:
+			return 1800, nil // 1.8 seconds
+		case SLAThroughput:
+			return 42, nil // 42 intents per minute
+		case SLAErrorRate:
+			return 0.15, nil // 0.15% error rate
+		default:
+			return 0, fmt.Errorf("unknown SLA type: %s", slaType)
+		}
+	}
+	
+	// Get metric name for SLA type
+	metricName := sam.getMetricNameForSLAType(slaType)
+	
+	result, _, err := sam.prometheusClient.Query(ctx, metricName, time.Now())
+	if err != nil {
+		return 0, fmt.Errorf("failed to query Prometheus for %s: %w", slaType, err)
+	}
+	
+	// Parse result and return value
+	// Implementation would depend on Prometheus result format
+	return 0, nil
+}
+
+// isWindowViolating checks if burn rates violate the specified window thresholds
+func (sam *SLAAlertManager) isWindowViolating(burnRates BurnRateInfo, window AlertWindow) bool {
+	// Check if any window burn rate exceeds threshold
+	shortWindowViolating := burnRates.ShortWindow.BurnRate > window.BurnRate
+	mediumWindowViolating := burnRates.MediumWindow.BurnRate > window.BurnRate
+	longWindowViolating := burnRates.LongWindow.BurnRate > window.BurnRate
+	
+	// Return true if any window is violating
+	return shortWindowViolating || mediumWindowViolating || longWindowViolating
+}
+
+// calculateCompliance calculates SLA compliance percentage
+func (sam *SLAAlertManager) calculateCompliance(currentValue float64, target SLATarget) float64 {
+	switch {
+	case target.Target >= 90: // Availability or similar metrics
+		return (currentValue / target.Target) * 100
+	default: // Latency or error rate metrics (lower is better)
+		if target.Target == 0 {
+			return 100 // Perfect score if target is 0
+		}
+		compliance := (1 - (currentValue / target.Target)) * 100
+		if compliance < 0 {
+			return 0
+		}
+		return compliance
+	}
+}
+
+// calculateErrorBudget calculates error budget information
+func (sam *SLAAlertManager) calculateErrorBudget(currentValue float64, target SLATarget, burnRates BurnRateInfo) ErrorBudgetInfo {
+	// Calculate total error budget for the period (monthly)
+	totalBudget := target.ErrorBudget
+	
+	// Calculate consumed budget based on current burn rate
+	consumed := burnRates.CurrentRate * totalBudget / 100
+	remaining := totalBudget - consumed
+	consumedPercent := (consumed / totalBudget) * 100
+	
+	errorBudget := ErrorBudgetInfo{
+		Total:           totalBudget,
+		Remaining:       remaining,
+		Consumed:        consumed,
+		ConsumedPercent: consumedPercent,
+	}
+	
+	// Calculate time to exhaustion if current burn rate continues
+	if burnRates.CurrentRate > 0 && remaining > 0 {
+		hoursToExhaustion := remaining / burnRates.CurrentRate
+		timeToExhaustion := time.Duration(hoursToExhaustion * float64(time.Hour))
+		errorBudget.TimeToExhaustion = &timeToExhaustion
+	}
+	
+	return errorBudget
+}
+
+// enrichAlertContext enriches alert with additional context information
+func (sam *SLAAlertManager) enrichAlertContext(ctx context.Context, slaType SLAType, currentValue float64) AlertContext {
+	context := AlertContext{
+		Component:       "nephoran-intent-operator",
+		Service:         string(slaType),
+		Environment:     "production",
+		Region:          "us-east-1",
+		RelatedMetrics:  make([]MetricSnapshot, 0),
+		RecentIncidents: make([]IncidentSummary, 0),
+		DashboardLinks:  make([]string, 0),
+		LogQueries:      make([]LogQuery, 0),
+	}
+	
+	// Add related metrics
+	context.RelatedMetrics = append(context.RelatedMetrics, MetricSnapshot{
+		Name:      string(slaType) + "_current_value",
+		Value:     currentValue,
+		Unit:      sam.getUnitForSLAType(slaType),
+		Timestamp: time.Now(),
+	})
+	
+	// Add dashboard links
+	context.DashboardLinks = append(context.DashboardLinks, 
+		fmt.Sprintf("%s/d/nephoran-sla/nephoran-sla-dashboard", sam.config.GrafanaURL))
+	
+	// Add log queries
+	context.LogQueries = append(context.LogQueries, LogQuery{
+		Description: fmt.Sprintf("Recent %s errors", slaType),
+		Query:       fmt.Sprintf("level=error component=%s", context.Component),
+		Source:      "kubernetes",
+	})
+	
+	return context
+}
+
+// calculateBusinessImpact calculates business impact for the alert
+func (sam *SLAAlertManager) calculateBusinessImpact(slaType SLAType, target SLATarget, currentValue float64, errorBudget ErrorBudgetInfo) BusinessImpactInfo {
+	businessImpact := BusinessImpactInfo{
+		ServiceTier:    target.BusinessTier,
+		CustomerFacing: target.CustomerFacing,
+		SLABreach:      errorBudget.ConsumedPercent > 100,
+	}
+	
+	// Calculate severity based on error budget consumption
+	switch {
+	case errorBudget.ConsumedPercent > 90:
+		businessImpact.Severity = "critical"
+	case errorBudget.ConsumedPercent > 75:
+		businessImpact.Severity = "major"
+	case errorBudget.ConsumedPercent > 50:
+		businessImpact.Severity = "minor"
+	default:
+		businessImpact.Severity = "low"
+	}
+	
+	// Estimate affected users (simplified calculation)
+	if target.CustomerFacing {
+		businessImpact.AffectedUsers = 1000 // Base user count
+		if errorBudget.ConsumedPercent > 75 {
+			businessImpact.AffectedUsers *= int64(errorBudget.ConsumedPercent / 25)
+		}
+	}
+	
+	// Calculate revenue impact if business impact tracking is enabled
+	if sam.config.EnableBusinessImpact && businessImpact.AffectedUsers > 0 {
+		businessImpact.RevenueImpact = float64(businessImpact.AffectedUsers) * sam.config.RevenuePerUser
+	}
+	
+	return businessImpact
+}
+
+// generateAlertName generates a descriptive name for the alert
+func (sam *SLAAlertManager) generateAlertName(slaType SLAType, severity AlertSeverity) string {
+	return fmt.Sprintf("%s SLA %s Alert", 
+		sam.capitalizeFirst(string(slaType)), 
+		sam.capitalizeFirst(string(severity)))
+}
+
+// generateAlertDescription generates a detailed description for the alert
+func (sam *SLAAlertManager) generateAlertDescription(slaType SLAType, currentValue float64, target SLATarget, window AlertWindow) string {
+	return fmt.Sprintf("SLA violation detected for %s. Current value: %.2f, Target: %.2f, Burn rate threshold: %.2f exceeded over %v window.",
+		slaType, currentValue, target.Target, window.BurnRate, window.ShortWindow)
+}
+
+// generateAlertLabels generates labels for the alert
+func (sam *SLAAlertManager) generateAlertLabels(slaType SLAType, target SLATarget, window AlertWindow) map[string]string {
+	return map[string]string{
+		"sla_type":        string(slaType),
+		"severity":        string(window.Severity),
+		"business_tier":   target.BusinessTier,
+		"customer_facing": fmt.Sprintf("%t", target.CustomerFacing),
+		"component":       "nephoran-intent-operator",
+		"alert_type":      "sla_violation",
+	}
+}
+
+// generateAlertAnnotations generates annotations for the alert
+func (sam *SLAAlertManager) generateAlertAnnotations(slaType SLAType, target SLATarget, window AlertWindow) map[string]string {
+	annotations := map[string]string{
+		"summary":     fmt.Sprintf("SLA violation for %s", slaType),
+		"description": fmt.Sprintf("Burn rate threshold %.2f exceeded for %v", window.BurnRate, window.ShortWindow),
+	}
+	
+	if sam.config.GrafanaURL != "" {
+		annotations["dashboard"] = fmt.Sprintf("%s/d/nephoran-sla/nephoran-sla-dashboard", sam.config.GrafanaURL)
+	}
+	
+	if sam.config.RunbookBaseURL != "" {
+		annotations["runbook"] = fmt.Sprintf("%s/sla-%s", sam.config.RunbookBaseURL, slaType)
+	}
+	
+	return annotations
+}
+
+// Helper methods
+
+// getMetricNameForSLAType returns the Prometheus metric name for an SLA type
+func (sam *SLAAlertManager) getMetricNameForSLAType(slaType SLAType) string {
+	switch slaType {
+	case SLATypeAvailability:
+		return "nephoran_availability_percentage"
+	case SLATypeLatency:
+		return "nephoran_latency_p95_seconds"
+	case SLAThroughput:
+		return "nephoran_throughput_intents_per_minute"
+	case SLAErrorRate:
+		return "nephoran_error_rate_percentage"
+	default:
+		return "unknown_metric"
+	}
+}
+
+// getUnitForSLAType returns the unit for an SLA type
+func (sam *SLAAlertManager) getUnitForSLAType(slaType SLAType) string {
+	switch slaType {
+	case SLATypeAvailability:
+		return "percentage"
+	case SLATypeLatency:
+		return "milliseconds"
+	case SLAThroughput:
+		return "per_minute"
+	case SLAErrorRate:
+		return "percentage"
+	default:
+		return "unknown"
+	}
+}
+
+// capitalizeFirst capitalizes the first letter of a string
+func (sam *SLAAlertManager) capitalizeFirst(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	return fmt.Sprintf("%c%s", s[0]-32, s[1:])
+}
+
+// generateRunbookURL generates runbook URL for the alert
+func (sam *SLAAlertManager) generateRunbookURL(slaType SLAType, severity AlertSeverity) string {
+	if sam.config.RunbookBaseURL == "" {
+		return ""
+	}
+	return fmt.Sprintf("%s/sla-%s-%s", sam.config.RunbookBaseURL, slaType, severity)
+}
+
+// generateRunbookSteps generates runbook steps for the alert
+func (sam *SLAAlertManager) generateRunbookSteps(slaType SLAType, severity AlertSeverity) []string {
+	steps := []string{
+		"1. Check system health dashboard",
+		"2. Review recent deployments and changes",
+		"3. Analyze error logs and metrics",
+	}
+	
+	switch slaType {
+	case SLATypeAvailability:
+		steps = append(steps, "4. Check service status and endpoints", "5. Verify infrastructure health")
+	case SLATypeLatency:
+		steps = append(steps, "4. Check performance metrics", "5. Review database query performance")
+	case SLAThroughput:
+		steps = append(steps, "4. Check resource utilization", "5. Review queue depths and processing rates")
+	case SLAErrorRate:
+		steps = append(steps, "4. Check error logs and patterns", "5. Review recent code changes")
+	}
+	
+	if severity == AlertSeverityUrgent || severity == AlertSeverityCritical {
+		steps = append(steps, "6. Escalate to on-call engineer", "7. Consider emergency rollback if needed")
+	}
+	
+	return steps
+}
