@@ -38,7 +38,15 @@ type IntegrationConfig struct {
 // NewIntegrationManager creates a comprehensive mTLS integration manager
 func NewIntegrationManager(config *IntegrationConfig) (*IntegrationManager, error) {
 	if config.Logger == nil {
-		config.Logger = logging.NewStructuredLogger()
+		config.Logger = logging.NewStructuredLogger(logging.Config{
+			Level:       logging.LevelInfo,
+			Format:      "json",
+			ServiceName: "mtls-integration-manager",
+			Version:     "1.0.0",
+			Environment: "production",
+			Component:   "security",
+			AddSource:   true,
+		})
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -124,13 +132,21 @@ func (m *IntegrationManager) initializeMonitor() error {
 	if m.identityManager != nil {
 		identities := m.identityManager.ListServiceIdentities()
 		for _, identity := range identities {
-			if identity.Certificate != nil {
-				m.monitor.TrackCertificate(
-					identity.ServiceName,
-					identity.Role,
-					identity.CertPath,
-					identity.Certificate,
-				)
+			if identity.CertPath != "" {
+				// Load certificate from file path for monitoring
+				if cert, err := loadCertificateFromPath(identity.CertPath); err == nil && cert != nil {
+					m.monitor.TrackCertificate(
+						identity.ServiceName,
+						identity.Role,
+						identity.CertPath,
+						cert,
+					)
+				} else if err != nil {
+					m.logger.Warn("failed to load certificate for monitoring",
+						"service_name", identity.ServiceName,
+						"cert_path", identity.CertPath,
+						"error", err)
+				}
 			}
 		}
 	}
@@ -516,7 +532,15 @@ func ExampleUsage() {
 	}
 
 	// 2. Create logger
-	logger := logging.NewStructuredLogger()
+	logger := logging.NewStructuredLogger(logging.Config{
+		Level:       logging.LevelInfo,
+		Format:      "json",
+		ServiceName: "nephoran-intent-operator",
+		Version:     "1.0.0",
+		Environment: "production",
+		Component:   "main",
+		AddSource:   true,
+	})
 
 	// 3. Initialize CA manager (assuming you have one)
 	var caManager *ca.CAManager

@@ -46,6 +46,7 @@ type ClientInterface interface {
 	CommitAndPushChanges(message string) error
 	InitRepo() error
 	RemoveDirectory(path string, commitMessage string) error
+	RemoveAndPush(path string, commitMessage string) (string, error)
 }
 
 // ClientConfig holds configuration for creating a Git client.
@@ -544,4 +545,113 @@ func (c *Client) RemoveDirectory(path string, commitMessage string) error {
 	}
 
 	return nil
+}
+
+// RemoveAndPush removes a directory from the repository and commits and pushes the change
+// Returns the commit hash of the created commit.
+func (c *Client) RemoveAndPush(path string, commitMessage string) (string, error) {
+	c.acquireSemaphore("RemoveAndPush")
+	defer c.releaseSemaphore("RemoveAndPush")
+
+	// Test hook - before push operations
+	if c.beforePushHook != nil {
+		c.beforePushHook()
+	}
+	// Test hook - cleanup after push
+	if c.afterPushHook != nil {
+		defer c.afterPushHook()
+	}
+
+	r, err := git.PlainOpen(c.RepoPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to open repo: %w", err)
+	}
+
+	w, err := r.Worktree()
+	if err != nil {
+		return "", fmt.Errorf("failed to get worktree: %w", err)
+	}
+
+	// Check if directory exists before attempting removal
+	fullPath := filepath.Join(c.RepoPath, path)
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		// Directory doesn't exist, nothing to remove - this is not an error
+		return "", nil
+	}
+
+	// Remove directory from filesystem
+	if err := os.RemoveAll(fullPath); err != nil {
+		return "", fmt.Errorf("failed to remove directory %s: %w", fullPath, err)
+	}
+
+	// Get status to find all files that were deleted
+	status, err := w.Status()
+	if err != nil {
+		return "", fmt.Errorf("failed to get worktree status: %w", err)
+	}
+
+	// Stage all deletions within the removed directory
+	filesStaged := 0
+	for file := range status {
+		fileStatus := status[file]
+		// Stage files that are deleted and within the target path
+		if fileStatus.Worktree == git.Deleted && strings.HasPrefix(file, path) {
+			if _, err := w.Add(file); err != nil {
+				return "", fmt.Errorf("failed to stage deletion of %s: %w", file, err)
+			}
+			filesStaged++
+		}
+	}
+
+	// If no files were staged for deletion, the directory was already empty or didn't contain tracked files
+	if filesStaged == 0 {
+		// No changes to commit, which is fine
+		return "", nil
+	}
+
+	// Commit the changes
+	commit, err := w.Commit(commitMessage, &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Nephio Bridge",
+			Email: "nephio-bridge@example.com",
+			When:  time.Now(),
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to commit directory removal: %w", err)
+	}
+
+	// Get commit object for hash
+	commitObj, err := r.CommitObject(commit)
+	if err != nil {
+		return "", fmt.Errorf("failed to get commit object: %w", err)
+	}
+
+	// Push the changes
+	auth, err := ssh.NewPublicKeys("git", []byte(c.SshKey), "")
+	if err != nil {
+		return "", fmt.Errorf("failed to create ssh auth: %w", err)
+	}
+
+	err = r.Push(&git.PushOptions{
+		RemoteName: "origin",
+		Auth:       auth,
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to push directory removal: %w", err)
+	}
+
+	return commitObj.Hash.String(), nil
+}
+
+// NewGitClient creates a new Git client instance with the provided configuration
+// This function provides backward compatibility for existing code
+func NewGitClient(config *ClientConfig) *Client {
+	if config == nil {
+		return &Client{
+			logger:  slog.Default().With("component", "git-client"),
+			pushSem: make(chan struct{}, 4),
+		}
+	}
+	return NewClientFromConfig(config)
 }

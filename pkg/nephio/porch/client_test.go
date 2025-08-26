@@ -31,7 +31,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -270,7 +270,7 @@ func createTestPackageRevision() *PackageRevision {
 }
 
 func createTestClient() *Client {
-	scheme := runtime.NewScheme()
+	scheme := k8sruntime.NewScheme()
 	corev1.AddToScheme(scheme)
 
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()

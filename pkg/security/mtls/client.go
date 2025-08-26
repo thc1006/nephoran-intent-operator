@@ -69,7 +69,15 @@ func NewClient(config *ClientConfig, logger *logging.StructuredLogger) (*Client,
 	}
 
 	if logger == nil {
-		logger = logging.NewStructuredLogger()
+		logger = logging.NewStructuredLogger(logging.Config{
+			Level:       logging.LevelInfo,
+			Format:      "json",
+			ServiceName: "mtls-client",
+			Version:     "1.0.0",
+			Environment: "production",
+			Component:   "security",
+			AddSource:   true,
+		})
 	}
 
 	client := &Client{

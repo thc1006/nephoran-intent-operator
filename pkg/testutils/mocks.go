@@ -341,6 +341,29 @@ func (m *MockGitClient) RemoveDirectory(path string, commitMessage string) error
 	return nil
 }
 
+// RemoveAndPush implements the Git client interface
+func (m *MockGitClient) RemoveAndPush(path string, commitMessage string) (string, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("RemoveAndPush(%s, %s)", path, commitMessage))
+	m.commitCount++
+
+	if m.commitPushError != nil {
+		return "", m.commitPushError
+	}
+
+	// Remove files that start with the path
+	for filePath := range m.files {
+		if strings.HasPrefix(filePath, path) {
+			delete(m.files, filePath)
+		}
+	}
+
+	// Store commit message and generate a new commit hash
+	m.commits = append(m.commits, commitMessage)
+	m.lastCommitHash = fmt.Sprintf("remove-commit-%d", m.commitCount)
+
+	return m.lastCommitHash, nil
+}
+
 // SetInitError sets an error to be returned by InitRepo operations
 func (m *MockGitClient) SetInitError(err error) {
 	m.initError = err

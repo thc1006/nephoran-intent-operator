@@ -14,6 +14,7 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/resilience"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 	"github.com/thc1006/nephoran-intent-operator/pkg/telecom"
 )
 
@@ -119,12 +120,22 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		func(ctx context.Context) (interface{}, error) {
 			return p.timeoutManager.ExecuteWithTimeout(ctx, resilience.OperationTypeLLM,
 				func(timeoutCtx context.Context) (interface{}, error) {
-					return llmClient.ProcessIntent(timeoutCtx, securePrompt)
+					request := &shared.LLMRequest{
+					Model:       "default", // Use default model
+					Messages:    []shared.ChatMessage{{Role: "user", Content: securePrompt}},
+					MaxTokens:   1000,
+					Temperature: 0.1,
+				}
+				response, err := llmClient.ProcessRequest(timeoutCtx, request)
+				if err != nil {
+					return nil, err
+				}
+				return response.Content, nil
 				})
 		},
 		// Fallback operation when circuit is open
 		func(ctx context.Context, circuitErr error) (interface{}, error) {
-			logger.Warn("LLM circuit breaker is open, using fallback response", "error", circuitErr)
+			logger.Info("LLM circuit breaker is open, using fallback response", "error", circuitErr)
 
 			// Provide a basic fallback response for simple intents
 			fallbackResponse := p.generateFallbackResponse(sanitizedIntent)
@@ -181,7 +192,7 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		p.recordFailureEvent(networkIntent, "LLMProcessingRetry", fmt.Sprintf("attempt %d/%d failed: %v", retryCount+1, p.config.MaxRetries, err))
 
 		// Use exponential backoff with jitter for LLM operations
-		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "llm-processing", p.constants)
+		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "llm-processing")
 		logger.V(1).Info("Scheduling LLM processing retry with exponential backoff",
 			"delay", backoffDelay,
 			"attempt", retryCount+1,
@@ -226,7 +237,7 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		p.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMResponseParsingFailed", fmt.Sprintf("Failed to parse LLM response as JSON: %v", err))
 
 		// Use exponential backoff for parsing failures too
-		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "llm-processing", p.constants)
+		backoffDelay := calculateExponentialBackoffForOperation(retryCount, "llm-processing")
 		return ctrl.Result{RequeueAfter: backoffDelay}, nil
 	}
 
@@ -239,7 +250,7 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 		return ctrl.Result{RequeueAfter: p.config.RetryDelay}, fmt.Errorf("failed to marshal parameters: %w", err)
 	}
 
-	networkIntent.Spec.Parameters = runtime.RawExtension{Raw: parametersRaw}
+	networkIntent.Spec.Parameters = &runtime.RawExtension{Raw: parametersRaw}
 	if err := p.safeUpdate(ctx, networkIntent); err != nil {
 		return ctrl.Result{RequeueAfter: time.Second * 10}, fmt.Errorf("failed to update NetworkIntent with parameters: %w", err)
 	}
@@ -281,7 +292,7 @@ func (p *LLMProcessor) ProcessLLMPhase(ctx context.Context, networkIntent *nepho
 
 // buildTelecomEnhancedPrompt builds a telecom-enhanced prompt with 3GPP context and O-RAN knowledge
 func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent string, processingCtx *ProcessingContext) (string, error) {
-	logger := log.FromContext(ctx).WithValues("function", "buildTelecomEnhancedPrompt")
+	// logger := log.FromContext(ctx).WithValues("function", "buildTelecomEnhancedPrompt")
 
 	// Get telecom knowledge base
 	kb := p.deps.GetTelecomKnowledgeBase()
@@ -340,8 +351,10 @@ func (p *LLMProcessor) buildTelecomEnhancedPrompt(ctx context.Context, intent st
 			promptBuilder.WriteString(fmt.Sprintf("- Description: %s\n", dp.Description))
 			promptBuilder.WriteString(fmt.Sprintf("- Use Case: %s\n", dp.UseCase))
 			promptBuilder.WriteString("- Required Network Functions:\n")
-			for _, nf := range dp.RequiredNetworkFunctions {
-				promptBuilder.WriteString(fmt.Sprintf("  - %s (replicas: %d-%d)\n", nf.Type, nf.MinReplicas, nf.MaxReplicas))
+			// Get network functions by type for this deployment pattern
+			nfs := kb.GetNetworkFunctionsByType("core") // Get core network functions as example
+			for _, nf := range nfs {
+				promptBuilder.WriteString(fmt.Sprintf("  - %s: %s\n", nf.Name, nf.Description))
 			}
 			promptBuilder.WriteString("\n")
 		}
@@ -374,7 +387,11 @@ func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomK
 
 	// Detect network functions
 	var detectedNFs []string
-	networkFunctions := kb.GetAllNetworkFunctions()
+	// Get all network functions from the knowledge base
+	var networkFunctions []*telecom.NetworkFunctionSpec
+	for _, nf := range kb.NetworkFunctions {
+		networkFunctions = append(networkFunctions, nf)
+	}
 	for _, nf := range networkFunctions {
 		nfNameLower := strings.ToLower(nf.Name)
 		nfTypeLower := strings.ToLower(nf.Type)
@@ -385,7 +402,11 @@ func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomK
 	context["detected_network_functions"] = detectedNFs
 
 	// Detect slice types
-	sliceTypes := kb.GetAllSliceTypes()
+	// Get slice types from the knowledge base
+	var sliceTypes []*telecom.SliceTypeSpec
+	for _, st := range kb.SliceTypes {
+		sliceTypes = append(sliceTypes, st)
+	}
 	for _, slice := range sliceTypes {
 		sliceNameLower := strings.ToLower(slice.Description)
 		if strings.Contains(intentLower, sliceNameLower) ||
@@ -397,10 +418,14 @@ func (p *LLMProcessor) extractTelecomContext(intent string, kb *telecom.TelecomK
 	}
 
 	// Detect deployment patterns
-	deploymentPatterns := kb.GetAllDeploymentPatterns()
+	// Get deployment patterns from the knowledge base
+	var deploymentPatterns []*telecom.DeploymentPattern
+	for _, dp := range kb.DeploymentTypes {
+		deploymentPatterns = append(deploymentPatterns, dp)
+	}
 	for _, pattern := range deploymentPatterns {
 		patternNameLower := strings.ToLower(pattern.Name)
-		patternUseCaseLower := strings.ToLower(pattern.UseCase)
+		patternUseCaseLower := strings.ToLower(strings.Join(pattern.UseCase, " "))
 		if strings.Contains(intentLower, patternNameLower) ||
 			strings.Contains(intentLower, patternUseCaseLower) {
 			context["detected_deployment_pattern"] = pattern.Name

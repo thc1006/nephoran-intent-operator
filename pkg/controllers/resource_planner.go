@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -165,16 +166,16 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 					interfaceConfig := InterfaceConfiguration{
 						Name:      ifaceSpec.Name,
 						Type:      ifaceSpec.Type,
-						Protocol:  ifaceSpec.Protocol,
+						Protocol:  strings.Join(ifaceSpec.Protocol, ","),
 						Endpoints: []EndpointSpec{},
 						Security: SecuritySpec{
 							Authentication: ifaceSpec.SecurityModel.Authentication,
-							Encryption:     ifaceSpec.SecurityModel.Encryption,
+							Encryption:     strings.Join(ifaceSpec.SecurityModel.Encryption, ","),
 						},
 						QoS: QoSSpec{
 							Bandwidth:  ifaceSpec.QosRequirements.Bandwidth,
-							Latency:    ifaceSpec.QosRequirements.Latency,
-							Jitter:     ifaceSpec.QosRequirements.Jitter,
+							Latency:    fmt.Sprintf("%.2fms", ifaceSpec.QosRequirements.Latency),
+							Jitter:     fmt.Sprintf("%.2fms", ifaceSpec.QosRequirements.Jitter),
 							PacketLoss: ifaceSpec.QosRequirements.PacketLoss,
 						},
 					}
@@ -245,8 +246,20 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 		return ctrl.Result{RequeueAfter: p.config.RetryDelay}, fmt.Errorf("failed to marshal resource plan: %w", err)
 	}
 
-	// Store resource plan in status
-	networkIntent.Status.ResourcePlan = string(planData)
+	// Create and store resource plan in status
+	networkResourcePlan := &nephoranv1.NetworkResourcePlan{
+		Resources: []nephoranv1.NetworkPlannedResource{
+			{
+				Name:          fmt.Sprintf("%s-resources", networkIntent.Name),
+				Type:          "NetworkFunction",
+				TargetCluster: networkIntent.Spec.TargetCluster,
+				Configuration: &runtime.RawExtension{Raw: planData},
+				Status:        "planned",
+			},
+		},
+		Dependencies: []nephoranv1.NetworkResourceDependency{},
+	}
+	networkIntent.Status.ResourcePlan = networkResourcePlan
 
 	condition := metav1.Condition{
 		Type:               "ResourcesPlanned",

@@ -180,6 +180,12 @@ type NetworkIntentStatus struct {
 	// ProcessingStartTime indicates when processing started
 	ProcessingStartTime *metav1.Time `json:"processingStartTime,omitempty"`
 	
+	// DeploymentCompletionTime indicates when deployment completed
+	DeploymentCompletionTime *metav1.Time `json:"deploymentCompletionTime,omitempty"`
+	
+	// GitCommitHash contains the hash of the commit created in GitOps repository
+	GitCommitHash string `json:"gitCommitHash,omitempty"` 
+	
 	// CompletionTime indicates when the intent was completed
 	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
 	

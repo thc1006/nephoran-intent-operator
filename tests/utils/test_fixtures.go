@@ -49,21 +49,21 @@ func (nif *NetworkIntentFixtures) CreateBasicNetworkIntent(name, namespace strin
 		},
 		Spec: nephoranv1.NetworkIntentSpec{
 			Intent:     "Deploy a high-performance 5G AMF instance with auto-scaling enabled",
-			Priority:   nephoranv1.PriorityHigh,
-			MaxRetries: 3,
-			Timeout:    metav1.Duration{Duration: 5 * time.Minute},
-			Config: map[string]string{
+			Priority:   nephoranv1.NetworkPriorityHigh,
+			MaxRetries: &[]int32{3}[0],
+			TimeoutSeconds: &[]int32{300}[0], // 5 minutes
+			Constraints: map[string]string{
 				"deployment.replicas": "3",
 				"scaling.enabled":     "true",
 			},
 		},
 		Status: nephoranv1.NetworkIntentStatus{
-			Phase:   nephoranv1.NetworkIntentPhasePending,
-			Message: "Intent created",
-			Conditions: []nephoranv1.NetworkIntentCondition{
+			Phase:       nephoranv1.NetworkIntentPhasePending,
+			LastMessage: "Intent created",
+			Conditions: []metav1.Condition{
 				{
-					Type:   nephoranv1.NetworkIntentConditionReady,
-					Status: corev1.ConditionFalse,
+					Type:   "Ready",
+					Status: metav1.ConditionFalse,
 					Reason: "Pending",
 				},
 			},
@@ -75,21 +75,19 @@ func (nif *NetworkIntentFixtures) CreateBasicNetworkIntent(name, namespace strin
 func (nif *NetworkIntentFixtures) CreateProcessingNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
 	intent := nif.CreateBasicNetworkIntent(name, namespace)
 	intent.Status.Phase = nephoranv1.NetworkIntentPhaseProcessing
-	intent.Status.Message = "Intent processing started"
-	intent.Status.ProcessingPhase = "LLMProcessing"
+	intent.Status.LastMessage = "Intent processing started"
 	return intent
 }
 
 // CreateDeployedNetworkIntent creates a NetworkIntent in Deployed phase
 func (nif *NetworkIntentFixtures) CreateDeployedNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
 	intent := nif.CreateBasicNetworkIntent(name, namespace)
-	intent.Status.Phase = nephoranv1.NetworkIntentPhaseDeployed
-	intent.Status.Message = "Intent successfully deployed"
-	intent.Status.ProcessingPhase = "DeploymentVerification"
-	intent.Status.Conditions = []nephoranv1.NetworkIntentCondition{
+	intent.Status.Phase = nephoranv1.NetworkIntentPhaseReady
+	intent.Status.LastMessage = "Intent successfully deployed"
+	intent.Status.Conditions = []metav1.Condition{
 		{
-			Type:   nephoranv1.NetworkIntentConditionReady,
-			Status: corev1.ConditionTrue,
+			Type:   "Ready",
+			Status: metav1.ConditionTrue,
 			Reason: "Deployed",
 		},
 	}
@@ -114,12 +112,12 @@ func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, repli
 			Replicas:           replicas,
 			E2InterfaceVersion: "v3.0",
 			RICEndpoint:        "http://ric-service:8080",
-			HeartbeatInterval:  metav1.Duration{Duration: 30 * time.Second},
-			SimulationConfig: nephoranv1.SimulationConfig{
+			HeartbeatInterval: "30s",
+			SimulationConfig: &nephoranv1.SimulationConfig{
 				UECount:           100,
 				TrafficGeneration: true,
-				TrafficProfile:    "EMBB",
-				MetricsInterval:   metav1.Duration{Duration: 30 * time.Second},
+				TrafficProfile:    nephoranv1.TrafficProfileHigh, // EMBB mapped to High
+				MetricsInterval:   "30s",
 			},
 			RANFunctions: []nephoranv1.RANFunction{
 				{
@@ -131,9 +129,11 @@ func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, repli
 			},
 		},
 		Status: nephoranv1.E2NodeSetStatus{
-			Phase:        nephoranv1.E2NodeSetPhasePending,
-			ReadyNodes:   0,
-			CurrentNodes: 0,
+			Phase:           "Pending",
+			ReadyNodes:      0,
+			CurrentNodes:    0,
+			ReadyReplicas:   0,
+			CurrentReplicas: 0,
 		},
 	}
 }
@@ -141,13 +141,13 @@ func (enf *E2NodeSetFixtures) CreateBasicE2NodeSet(name, namespace string, repli
 // CreateReadyE2NodeSet creates an E2NodeSet in Ready phase
 func (enf *E2NodeSetFixtures) CreateReadyE2NodeSet(name, namespace string, replicas int32) *nephoranv1.E2NodeSet {
 	nodeSet := enf.CreateBasicE2NodeSet(name, namespace, replicas)
-	nodeSet.Status.Phase = nephoranv1.E2NodeSetPhaseReady
+	nodeSet.Status.Phase = "Ready"
 	nodeSet.Status.ReadyNodes = replicas
 	nodeSet.Status.CurrentNodes = replicas
 	nodeSet.Status.Conditions = []nephoranv1.E2NodeSetCondition{
 		{
-			Type:   nephoranv1.E2NodeSetConditionReady,
-			Status: corev1.ConditionTrue,
+			Type:   nephoranv1.E2NodeSetConditionAvailable,
+			Status: metav1.ConditionTrue,
 			Reason: "AllNodesReady",
 		},
 	}
@@ -157,13 +157,13 @@ func (enf *E2NodeSetFixtures) CreateReadyE2NodeSet(name, namespace string, repli
 // CreateScalingE2NodeSet creates an E2NodeSet in Scaling phase
 func (enf *E2NodeSetFixtures) CreateScalingE2NodeSet(name, namespace string, replicas int32, currentNodes int32) *nephoranv1.E2NodeSet {
 	nodeSet := enf.CreateBasicE2NodeSet(name, namespace, replicas)
-	nodeSet.Status.Phase = nephoranv1.E2NodeSetPhaseScaling
+	nodeSet.Status.Phase = "Scaling"
 	nodeSet.Status.ReadyNodes = currentNodes
 	nodeSet.Status.CurrentNodes = currentNodes
 	nodeSet.Status.Conditions = []nephoranv1.E2NodeSetCondition{
 		{
-			Type:   nephoranv1.E2NodeSetConditionReady,
-			Status: corev1.ConditionFalse,
+			Type:   nephoranv1.E2NodeSetConditionProgressing,
+			Status: metav1.ConditionTrue,
 			Reason: "Scaling",
 		},
 	}

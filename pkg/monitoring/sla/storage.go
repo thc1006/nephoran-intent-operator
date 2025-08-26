@@ -15,6 +15,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
+	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
 
 // StorageManager provides efficient time series data storage with compression and retention
@@ -117,14 +118,6 @@ type DataPoint struct {
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// TimeSeries represents a time series with metadata
-type TimeSeries struct {
-	Name        string            `json:"name"`
-	Labels      map[string]string `json:"labels"`
-	Points      []*DataPoint      `json:"points"`
-	Retention   time.Duration     `json:"retention"`
-	LastUpdated time.Time         `json:"last_updated"`
-}
 
 // StorageMetrics contains Prometheus metrics for the storage manager
 type StorageMetrics struct {
@@ -160,7 +153,7 @@ type StorageMetrics struct {
 
 // MemoryStore provides in-memory time series storage
 type MemoryStore struct {
-	series  map[string]*TimeSeries
+	series  map[string]*monitoring.TimeSeries
 	maxSize int
 	mu      sync.RWMutex
 }
@@ -407,7 +400,7 @@ func NewStorageManager(config *StorageConfig, logger *logging.StructuredLogger) 
 
 	// Initialize storage components
 	memoryStore := &MemoryStore{
-		series:  make(map[string]*TimeSeries),
+		series:  make(map[string]*monitoring.TimeSeries),
 		maxSize: 10000, // Store up to 10k series in memory
 	}
 
@@ -868,7 +861,7 @@ func (sm *StorageManager) writeToMemory(seriesName string, points []*DataPoint) 
 
 	series, exists := sm.memoryStore.series[seriesName]
 	if !exists {
-		series = &TimeSeries{
+		series = &monitoring.TimeSeries{
 			Name:        seriesName,
 			Points:      make([]*DataPoint, 0),
 			LastUpdated: time.Now(),
@@ -967,7 +960,7 @@ func (sm *StorageManager) generateSeriesName(labels map[string]string) string {
 	return name
 }
 
-func (sm *StorageManager) trimSeriesPoints(series *TimeSeries) {
+func (sm *StorageManager) trimSeriesPoints(series *monitoring.TimeSeries) {
 	// Trim old points to maintain memory efficiency
 	maxPoints := 1000 // Keep last 1000 points in memory
 	if len(series.Points) > maxPoints {

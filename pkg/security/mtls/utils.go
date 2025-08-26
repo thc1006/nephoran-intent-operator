@@ -2,6 +2,8 @@ package mtls
 
 import (
 	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -33,6 +35,29 @@ func loadCertificateFile(certPath string) ([]byte, error) {
 	}
 
 	return certData, nil
+}
+
+// loadCertificateFromPath loads and parses an X.509 certificate from a file path
+func loadCertificateFromPath(certPath string) (*x509.Certificate, error) {
+	// Load certificate file contents
+	certData, err := loadCertificateFile(certPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load certificate file: %w", err)
+	}
+
+	// Decode PEM block
+	block, _ := pem.Decode(certData)
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode PEM block from certificate file: %s", certPath)
+	}
+
+	// Parse X.509 certificate
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse X.509 certificate: %w", err)
+	}
+
+	return cert, nil
 }
 
 // generateRequestID generates a unique request ID for certificate requests

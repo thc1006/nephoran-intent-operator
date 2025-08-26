@@ -253,7 +253,7 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 // VerifyDeploymentAdvanced provides more comprehensive deployment verification
 // This method would be used in production to actually check the deployed resources
 func (g *GitOpsHandler) VerifyDeploymentAdvanced(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error) {
-	logger := log.FromContext(ctx).WithValues("phase", "deployment-verification-advanced")
+	// logger := log.FromContext(ctx).WithValues("phase", "deployment-verification-advanced")
 
 	// TODO: Implement actual resource verification
 	// This would include:

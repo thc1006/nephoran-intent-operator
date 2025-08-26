@@ -161,7 +161,15 @@ type Alert struct {
 // NewMTLSMonitor creates a new mTLS monitor
 func NewMTLSMonitor(logger *logging.StructuredLogger) *MTLSMonitor {
 	if logger == nil {
-		logger = logging.NewStructuredLogger()
+		logger = logging.NewStructuredLogger(logging.Config{
+			Level:       logging.LevelInfo,
+			Format:      "json",
+			ServiceName: "mtls-monitor",
+			Version:     "1.0.0",
+			Environment: "production",
+			Component:   "security",
+			AddSource:   true,
+		})
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -469,7 +477,7 @@ func (m *MTLSMonitor) performHealthChecks() {
 	m.certMu.Lock()
 	defer m.certMu.Unlock()
 
-	for key, cert := range m.certificates {
+	for _, cert := range m.certificates {
 		oldHealth := cert.HealthStatus
 		cert.HealthStatus = m.calculateCertificateHealth(cert.Certificate)
 		cert.LastChecked = time.Now()

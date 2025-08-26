@@ -347,16 +347,6 @@ type BusinessHours struct {
 	Holidays     []time.Time `json:"holidays"`
 }
 
-// MaintenanceWindow represents planned maintenance windows
-type MaintenanceWindow struct {
-	ID               string    `json:"id"`
-	Name             string    `json:"name"`
-	StartTime        time.Time `json:"start_time"`
-	EndTime          time.Time `json:"end_time"`
-	Services         []string  `json:"services"`
-	Recurring        bool      `json:"recurring"`
-	RecurringPattern string    `json:"recurring_pattern"` // daily, weekly, monthly
-}
 
 // AlertThresholds represents alerting thresholds for availability
 type AlertThresholds struct {

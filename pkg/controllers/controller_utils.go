@@ -230,3 +230,56 @@ func UpdateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 	// Add new condition
 	*conditions = append(*conditions, newCondition)
 }
+
+// Helper functions for GitOps handler - these provide convenience wrappers
+// around the existing NetworkIntent retry count functions
+
+// getRetryCount retrieves the retry count for a NetworkIntent operation
+func getRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) int {
+	return GetNetworkIntentRetryCount(networkIntent, operation)
+}
+
+// setRetryCount sets the retry count for a NetworkIntent operation
+func setRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string, count int) {
+	SetNetworkIntentRetryCount(networkIntent, operation, count)
+}
+
+// clearRetryCount removes the retry count for a NetworkIntent operation
+func clearRetryCount(networkIntent *nephoranv1.NetworkIntent, operation string) {
+	ClearNetworkIntentRetryCount(networkIntent, operation)
+}
+
+// updateCondition updates or adds a condition to a NetworkIntent's condition slice
+func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Condition) {
+	UpdateCondition(conditions, newCondition)
+}
+
+// calculateExponentialBackoffForOperation calculates exponential backoff for operations
+// Used by GitOps handler for consistent backoff behavior
+func calculateExponentialBackoffForOperation(retryCount int, operation string) time.Duration {
+	// Use default constants if not provided
+	constants := &configPkg.Constants{
+		BaseBackoffDelay:           1 * time.Second,
+		MaxBackoffDelay:            5 * time.Minute,
+		BackoffMultiplier:          2.0,
+		JitterFactor:               0.1,
+		LLMProcessingBaseDelay:     2 * time.Second,
+		LLMProcessingMaxDelay:      3 * time.Minute,
+		GitOperationsBaseDelay:     1 * time.Second,
+		GitOperationsMaxDelay:      2 * time.Minute,
+		ResourcePlanningBaseDelay:  3 * time.Second,
+		ResourcePlanningMaxDelay:   4 * time.Minute,
+	}
+
+	return CalculateExponentialBackoffForNetworkIntentOperation(retryCount, operation, constants)
+}
+
+// isConditionTrue checks if a condition is present and true
+func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
+	for _, condition := range conditions {
+		if condition.Type == conditionType {
+			return condition.Status == metav1.ConditionTrue
+		}
+	}
+	return false
+}

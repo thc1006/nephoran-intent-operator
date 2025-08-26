@@ -138,9 +138,9 @@ func TeardownTestEnvironment() error {
 }
 
 // GetAllDeployments returns all deployments in the given namespace
-func GetAllDeployments(ctx context.Context, client client.Client, namespace string) ([]appsv1.Deployment, error) {
+func GetAllDeployments(ctx context.Context, clientObj client.Client, namespace string) ([]appsv1.Deployment, error) {
 	var deployments appsv1.DeploymentList
-	err := client.List(ctx, &deployments, client.InNamespace(namespace))
+	err := clientObj.List(ctx, &deployments, client.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -148,9 +148,9 @@ func GetAllDeployments(ctx context.Context, client client.Client, namespace stri
 }
 
 // GetAllPods returns all pods in the given namespace
-func GetAllPods(ctx context.Context, client client.Client, namespace string) ([]corev1.Pod, error) {
+func GetAllPods(ctx context.Context, clientObj client.Client, namespace string) ([]corev1.Pod, error) {
 	var pods corev1.PodList
-	err := client.List(ctx, &pods, client.InNamespace(namespace))
+	err := clientObj.List(ctx, &pods, client.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -158,9 +158,9 @@ func GetAllPods(ctx context.Context, client client.Client, namespace string) ([]
 }
 
 // GetAllSecrets returns all secrets in the given namespace
-func GetAllSecrets(ctx context.Context, client client.Client, namespace string) ([]corev1.Secret, error) {
+func GetAllSecrets(ctx context.Context, clientObj client.Client, namespace string) ([]corev1.Secret, error) {
 	var secrets corev1.SecretList
-	err := client.List(ctx, &secrets, client.InNamespace(namespace))
+	err := clientObj.List(ctx, &secrets, client.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -168,9 +168,9 @@ func GetAllSecrets(ctx context.Context, client client.Client, namespace string) 
 }
 
 // GetAllServices returns all services in the given namespace
-func GetAllServices(ctx context.Context, client client.Client, namespace string) ([]corev1.Service, error) {
+func GetAllServices(ctx context.Context, clientObj client.Client, namespace string) ([]corev1.Service, error) {
 	var services corev1.ServiceList
-	err := client.List(ctx, &services, client.InNamespace(namespace))
+	err := clientObj.List(ctx, &services, client.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}
@@ -178,9 +178,9 @@ func GetAllServices(ctx context.Context, client client.Client, namespace string)
 }
 
 // GetAllConfigMaps returns all config maps in the given namespace
-func GetAllConfigMaps(ctx context.Context, client client.Client, namespace string) ([]corev1.ConfigMap, error) {
+func GetAllConfigMaps(ctx context.Context, clientObj client.Client, namespace string) ([]corev1.ConfigMap, error) {
 	var configMaps corev1.ConfigMapList
-	err := client.List(ctx, &configMaps, client.InNamespace(namespace))
+	err := clientObj.List(ctx, &configMaps, client.InNamespace(namespace))
 	if err != nil {
 		return nil, err
 	}

@@ -358,14 +358,6 @@ func contains(slice []string, item string) bool {
 }
 
 // Condition and status helper functions
-func isConditionTrue(conditions []metav1.Condition, conditionType string) bool {
-	for _, condition := range conditions {
-		if condition.Type == conditionType && condition.Status == metav1.ConditionTrue {
-			return true
-		}
-	}
-	return false
-}
 
 // Retry count management functions - using shared utilities
 

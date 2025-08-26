@@ -103,13 +103,6 @@ type ValidationRule struct {
 	Value    interface{} `json:"value"`
 }
 
-// AlertThresholds defines thresholds for alerting
-type AlertThresholds struct {
-	ResponseTime     time.Duration `json:"response_time"`     // Alert if response time exceeds this
-	ErrorRate        float64       `json:"error_rate"`        // Alert if error rate exceeds this (0-1)
-	Availability     float64       `json:"availability"`      // Alert if availability drops below this (0-1)
-	ConsecutiveFails int           `json:"consecutive_fails"` // Alert after this many consecutive failures
-}
 
 // SyntheticResult represents the result of a synthetic check execution
 type SyntheticResult struct {
