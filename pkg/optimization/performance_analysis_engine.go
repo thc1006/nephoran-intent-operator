@@ -116,16 +116,6 @@ const (
 	AnalysisTypePredictive  AnalysisType = "predictive"
 )
 
-// OptimizationPriority defines optimization priority levels
-type OptimizationPriority string
-
-const (
-	PriorityCritical OptimizationPriority = "critical"
-	PriorityHigh     OptimizationPriority = "high"
-	PriorityMedium   OptimizationPriority = "medium"
-	PriorityLow      OptimizationPriority = "low"
-)
-
 // PerformanceAnalysisResult contains comprehensive performance analysis results
 type PerformanceAnalysisResult struct {
 	Timestamp  time.Time `json:"timestamp"`
@@ -274,14 +264,6 @@ type ForecastPoint struct {
 	PredictedValue float64   `json:"predictedValue"`
 }
 
-// ConfidenceInterval represents confidence bounds for predictions
-type ConfidenceInterval struct {
-	Timestamp       time.Time `json:"timestamp"`
-	LowerBound      float64   `json:"lowerBound"`
-	UpperBound      float64   `json:"upperBound"`
-	ConfidenceLevel float64   `json:"confidenceLevel"`
-}
-
 // PredictedBottleneck represents a bottleneck predicted to occur in the future
 type PredictedBottleneck struct {
 	ComponentType       shared.ComponentType `json:"componentType"`
@@ -427,15 +409,6 @@ type RecommendationsSummary struct {
 	ImplementationComplexity    ComplexityLevel `json:"implementationComplexity"`
 	EstimatedImplementationTime time.Duration   `json:"estimatedImplementationTime"`
 	RecommendationsByCategory   map[string]int  `json:"recommendationsByCategory"`
-}
-
-// ExpectedImpact represents the expected impact of implementing recommendations
-type ExpectedImpact struct {
-	LatencyReduction   float64 `json:"latencyReduction"`
-	ThroughputIncrease float64 `json:"throughputIncrease"`
-	ResourceSavings    float64 `json:"resourceSavings"`
-	CostSavings        float64 `json:"costSavings"`
-	EfficiencyGain     float64 `json:"efficiencyGain"`
 }
 
 // ComplexityLevel represents implementation complexity

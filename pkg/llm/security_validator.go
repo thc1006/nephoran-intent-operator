@@ -4,7 +4,6 @@
 package llm
 
 import (
-	"context"
 	"crypto/subtle"
 	"fmt"
 	"log/slog"

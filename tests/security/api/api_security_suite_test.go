@@ -221,7 +221,6 @@ func TestSecurityHeaders(t *testing.T) {
 
 	for _, endpoint := range suite.endpoints {
 		t.Run(endpoint.Name, func(t *testing.T) {
-			req := httptest.NewRequest("GET", "/api/v1/health", nil)
 			w := httptest.NewRecorder()
 
 			// Simulate security headers middleware
@@ -261,7 +260,7 @@ func TestSecurityHeaders(t *testing.T) {
 
 // TestTLSEnforcement tests TLS/HTTPS enforcement
 func TestTLSEnforcement(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t)
 
 	t.Run("TLS_Version_Check", func(t *testing.T) {
 		// Test minimum TLS version
@@ -365,7 +364,7 @@ func TestTLSEnforcement(t *testing.T) {
 
 // TestAPIVersioning tests API versioning security
 func TestAPIVersioning(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t)
 
 	t.Run("Version_In_URL", func(t *testing.T) {
 		versions := []struct {
@@ -381,7 +380,6 @@ func TestAPIVersioning(t *testing.T) {
 
 		for _, v := range versions {
 			t.Run(v.version, func(t *testing.T) {
-				req := httptest.NewRequest("GET", fmt.Sprintf("/api/%s/health", v.version), nil)
 				w := httptest.NewRecorder()
 
 				if !v.supported {
@@ -510,7 +508,7 @@ func TestErrorHandlingSecurity(t *testing.T) {
 
 // TestSessionSecurity tests session management security
 func TestSessionSecurity(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t)
 
 	t.Run("Session_Cookie_Security", func(t *testing.T) {
 		w := httptest.NewRecorder()
@@ -558,7 +556,6 @@ func TestSessionSecurity(t *testing.T) {
 
 	t.Run("Concurrent_Session_Limit", func(t *testing.T) {
 		// Test concurrent session limits
-		userID := "user123"
 		maxSessions := 3
 
 		sessions := make([]string, 0)
@@ -575,7 +572,7 @@ func TestSessionSecurity(t *testing.T) {
 
 // TestCSRFProtection tests CSRF protection mechanisms
 func TestCSRFProtection(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t)
 
 	t.Run("CSRF_Token_Validation", func(t *testing.T) {
 		testCases := []struct {
@@ -677,7 +674,7 @@ func TestCSRFProtection(t *testing.T) {
 
 // TestAPIThrottling tests API throttling and abuse prevention
 func TestAPIThrottling(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t)
 
 	t.Run("Expensive_Operation_Throttling", func(t *testing.T) {
 		// Test throttling for expensive operations
@@ -693,7 +690,6 @@ func TestAPIThrottling(t *testing.T) {
 				blockedCount := 0
 
 				for i := 0; i < limit*2; i++ {
-					req := httptest.NewRequest("POST", endpoint, nil)
 					w := httptest.NewRecorder()
 
 					if requestCount < limit {
@@ -740,7 +736,7 @@ func TestAPIThrottling(t *testing.T) {
 
 // TestContentTypeValidation tests content type security
 func TestContentTypeValidation(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t)
 
 	testCases := []struct {
 		name         string
@@ -915,7 +911,7 @@ func generateRequestID() string {
 
 // TestTelecommunicationsSpecificSecurity tests telecom-specific security requirements
 func TestTelecommunicationsSpecificSecurity(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t)
 
 	t.Run("ORAN_A1_Policy_Security", func(t *testing.T) {
 		// Test O-RAN A1 policy security
@@ -1076,7 +1072,7 @@ func TestTelecommunicationsSpecificSecurity(t *testing.T) {
 
 // TestComplianceRequirements tests regulatory compliance requirements
 func TestComplianceRequirements(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t)
 
 	t.Run("GDPR_Compliance", func(t *testing.T) {
 		// Test GDPR compliance features

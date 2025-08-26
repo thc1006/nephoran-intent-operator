@@ -257,7 +257,7 @@ type BlueprintPackage struct {
 	Version        string                 `json:"version"`
 	Description    string                 `json:"description"`
 	Category       string                 `json:"category"`
-	IntentTypes    []v1.NetworkIntentType `json:"intentTypes"`
+	IntentTypes    []v1.IntentType `json:"intentTypes"`
 	Dependencies   []PackageDependency    `json:"dependencies"`
 	Parameters     []ParameterDefinition  `json:"parameters"`
 	Validations    []ValidationRule       `json:"validations"`
@@ -277,7 +277,7 @@ type PackageVariant struct {
 	Specialization    *SpecializationRequest `json:"specialization"`
 	Status            PackageVariantStatus   `json:"status"`
 	PackageRevision   *porch.PackageRevision `json:"packageRevision"`
-	DeploymentStatus  *DeploymentStatus      `json:"deploymentStatus,omitempty"`
+	DeploymentStatus  *porch.DeploymentStatus      `json:"deploymentStatus,omitempty"`
 	ValidationResults []*ValidationResult    `json:"validationResults,omitempty"`
 	Errors            []string               `json:"errors,omitempty"`
 	CreatedAt         time.Time              `json:"createdAt"`
@@ -321,7 +321,7 @@ type NephioWorkflowEngine struct {
 type WorkflowDefinition struct {
 	Name          string                 `json:"name"`
 	Description   string                 `json:"description"`
-	IntentTypes   []v1.NetworkIntentType `json:"intentTypes"`
+	IntentTypes   []v1.IntentType `json:"intentTypes"`
 	Phases        []WorkflowPhase        `json:"phases"`
 	Conditions    []WorkflowCondition    `json:"conditions"`
 	Rollback      *RollbackStrategy      `json:"rollback,omitempty"`
@@ -444,14 +444,14 @@ func NewNephioWorkflowOrchestrator(
 
 	// Initialize metrics
 	metrics := &WorkflowMetrics{
-		WorkflowExecutions: *promauto.NewCounterVec(
+		WorkflowExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_workflow_executions_total",
 				Help: "Total number of Nephio workflow executions",
 			},
 			[]string{"workflow", "intent_type", "status"},
 		),
-		WorkflowDuration: *promauto.NewHistogramVec(
+		WorkflowDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "nephio_workflow_duration_seconds",
 				Help:    "Duration of Nephio workflow executions",
@@ -459,35 +459,35 @@ func NewNephioWorkflowOrchestrator(
 			},
 			[]string{"workflow", "phase"},
 		),
-		WorkflowPhases: *promauto.NewGaugeVec(
+		WorkflowPhases: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "nephio_workflow_phases",
 				Help: "Current workflow phases in progress",
 			},
 			[]string{"workflow", "phase", "status"},
 		),
-		PackageVariants: *promauto.NewCounterVec(
+		PackageVariants: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_package_variants_total",
 				Help: "Total number of package variants created",
 			},
 			[]string{"blueprint", "cluster", "status"},
 		),
-		ClusterDeployments: *promauto.NewCounterVec(
+		ClusterDeployments: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_cluster_deployments_total",
 				Help: "Total number of cluster deployments",
 			},
 			[]string{"cluster", "package", "status"},
 		),
-		ConfigSyncOperations: *promauto.NewCounterVec(
+		ConfigSyncOperations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_configsync_operations_total",
 				Help: "Total number of Config Sync operations",
 			},
 			[]string{"operation", "cluster", "status"},
 		),
-		WorkflowErrors: *promauto.NewCounterVec(
+		WorkflowErrors: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_workflow_errors_total",
 				Help: "Total number of workflow errors",

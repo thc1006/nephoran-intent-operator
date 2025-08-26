@@ -194,14 +194,14 @@ type ClusterDir struct {
 
 // Default Config Sync configuration
 var DefaultConfigSyncMetrics = &ConfigSyncMetrics{
-	SyncOperations: *promauto.NewCounterVec(
+	SyncOperations: promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nephio_configsync_operations_total",
 			Help: "Total number of Config Sync operations",
 		},
 		[]string{"operation", "cluster", "repository", "status"},
 	),
-	SyncDuration: *promauto.NewHistogramVec(
+	SyncDuration: promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "nephio_configsync_duration_seconds",
 			Help:    "Duration of Config Sync operations",
@@ -209,28 +209,28 @@ var DefaultConfigSyncMetrics = &ConfigSyncMetrics{
 		},
 		[]string{"operation", "cluster"},
 	),
-	SyncErrors: *promauto.NewCounterVec(
+	SyncErrors: promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nephio_configsync_errors_total",
 			Help: "Total number of Config Sync errors",
 		},
 		[]string{"cluster", "error_type"},
 	),
-	GitOperations: *promauto.NewCounterVec(
+	GitOperations: promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nephio_configsync_git_operations_total",
 			Help: "Total number of Git operations",
 		},
 		[]string{"operation", "repository", "status"},
 	),
-	RepositoryHealth: *promauto.NewGaugeVec(
+	RepositoryHealth: promauto.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "nephio_configsync_repository_health",
 			Help: "Health status of Config Sync repositories",
 		},
 		[]string{"repository", "branch"},
 	),
-	PackageDeployments: *promauto.NewCounterVec(
+	PackageDeployments: promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "nephio_configsync_package_deployments_total",
 			Help: "Total number of package deployments via Config Sync",
@@ -268,14 +268,14 @@ func NewConfigSyncClient(
 		config: gitConfig,
 		tracer: otel.Tracer("nephio-git-client"),
 		metrics: &GitClientMetrics{
-			GitCommands: *promauto.NewCounterVec(
+			GitCommands: promauto.NewCounterVec(
 				prometheus.CounterOpts{
 					Name: "nephio_git_commands_total",
 					Help: "Total number of Git commands executed",
 				},
 				[]string{"command", "repository", "status"},
 			),
-			CommandDuration: *promauto.NewHistogramVec(
+			CommandDuration: promauto.NewHistogramVec(
 				prometheus.HistogramOpts{
 					Name:    "nephio_git_command_duration_seconds",
 					Help:    "Duration of Git commands",
@@ -283,7 +283,7 @@ func NewConfigSyncClient(
 				},
 				[]string{"command", "repository"},
 			),
-			GitErrors: *promauto.NewCounterVec(
+			GitErrors: promauto.NewCounterVec(
 				prometheus.CounterOpts{
 					Name: "nephio_git_errors_total",
 					Help: "Total number of Git errors",

@@ -23,9 +23,7 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
@@ -33,13 +31,24 @@ import (
 // TestConfig creates a test configuration for porch clients
 func NewTestConfig() *porch.Config {
 	return &porch.Config{
-		Server: "http://localhost:8080",
-		Auth: porch.AuthConfig{
-			Type: "none",
+		PorchConfig: &porch.PorchServiceConfig{
+			Endpoint: "http://localhost:8080",
+			Auth: &porch.AuthenticationConfig{
+				Type: "none",
+			},
+			Timeout: 30 * time.Second,
+			Retry: &porch.RetryConfig{
+				MaxRetries:   3,
+				InitialDelay: 1 * time.Second,
+			},
 		},
-		Timeout:    30 * time.Second,
-		MaxRetries: 3,
-		Logger:     zap.New(zap.UseDevMode(true)),
+		Observability: &porch.ObservabilityConfig{
+			Logging: &porch.LoggingConfig{
+				Level:  "debug",
+				Format: "text",
+				Output: []string{"stdout"},
+			},
+		},
 	}
 }
 
@@ -120,13 +129,11 @@ func NewTestRepository(name string) *porch.Repository {
 			Namespace: "default",
 		},
 		Spec: porch.RepositorySpec{
-			Type: "git",
-			Git: &porch.GitRepository{
-				Repo:      "https://github.com/test/repo.git",
-				Branch:    "main",
-				Directory: "/",
-			},
-			Description: "Test repository for " + name,
+			Type:      "git",
+			URL:       "https://github.com/test/repo.git",
+			Branch:    "main",
+			Directory: "/",
+			Capabilities: []string{"upstream"},
 		},
 	}
 }
@@ -148,16 +155,13 @@ func NewTestPackageRevision(name, repository string) *porch.PackageRevision {
 	}
 }
 
-// TestFunction creates a test function
-func NewTestFunction(name string) *porch.Function {
-	return &porch.Function{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: "default",
-		},
-		Spec: porch.FunctionSpec{
-			Image:       "gcr.io/kpt-fn/test-function:v1.0.0",
-			Description: "Test function for " + name,
+// TestFunctionConfig creates a test function configuration
+func NewTestFunctionConfig(name string) porch.FunctionConfig {
+	return porch.FunctionConfig{
+		Image: "gcr.io/kpt-fn/test-function:v1.0.0",
+		ConfigMap: map[string]interface{}{
+			"name": name,
+			"description": "Test function for " + name,
 		},
 	}
 }

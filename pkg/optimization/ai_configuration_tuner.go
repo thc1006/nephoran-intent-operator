@@ -333,13 +333,6 @@ type PerformanceMetrics struct {
 	ConfidenceInterval *ConfidenceInterval `json:"confidenceInterval"`
 }
 
-// ConfidenceInterval represents a confidence interval for measurements
-type ConfidenceInterval struct {
-	LowerBound float64 `json:"lowerBound"`
-	UpperBound float64 `json:"upperBound"`
-	ConfidenceLevel float64 `json:"confidenceLevel"`
-}
-
 // ResourceUsage represents resource utilization metrics
 type ResourceUsage struct {
 	CPUUsage    float64 `json:"cpuUsage"`

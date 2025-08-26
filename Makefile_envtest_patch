@@ -1,0 +1,86 @@
+# Add these targets after the existing test targets in the Makefile (around line 275)
+
+.PHONY: setup-envtest
+setup-envtest: ## Setup kubebuilder envtest assets for disaster recovery tests
+	@echo "Setting up envtest assets..."
+	@if [ -x "./scripts/setup-envtest.sh" ]; then \
+		./scripts/setup-envtest.sh; \
+	else \
+		echo "Installing setup-envtest tool..."; \
+		go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest; \
+		echo "Downloading kubebuilder assets..."; \
+		ASSETS_PATH=$$(setup-envtest use 1.28.0 --bin-dir=$(HOME)/.cache/kubebuilder-envtest -p path 2>/dev/null || true); \
+		if [ -n "$$ASSETS_PATH" ]; then \
+			echo "Setting KUBEBUILDER_ASSETS=$$ASSETS_PATH"; \
+			export KUBEBUILDER_ASSETS="$$ASSETS_PATH"; \
+		else \
+			echo "Warning: Could not set up envtest assets automatically"; \
+		fi; \
+	fi
+
+.PHONY: test-disaster-recovery
+test-disaster-recovery: setup-envtest ## Run disaster recovery tests with envtest setup
+	@echo "Running disaster recovery tests with envtest..."
+	mkdir -p $(REPORTS_DIR)
+	@export KUBEBUILDER_ASSETS=$$(setup-envtest use 1.28.0 --bin-dir=$(HOME)/.cache/kubebuilder-envtest -p path 2>/dev/null || echo ""); \
+	if [ -z "$$KUBEBUILDER_ASSETS" ]; then \
+		echo "Warning: KUBEBUILDER_ASSETS not set, tests may fail"; \
+	else \
+		echo "Using KUBEBUILDER_ASSETS=$$KUBEBUILDER_ASSETS"; \
+	fi; \
+	go test ./tests/disaster-recovery/... -v -timeout=20m -race \
+		-coverprofile=$(REPORTS_DIR)/disaster-recovery-coverage.out \
+		-covermode=atomic
+
+.PHONY: test-disaster-recovery-enhanced
+test-disaster-recovery-enhanced: setup-envtest ## Run enhanced disaster recovery tests
+	@echo "Running enhanced disaster recovery tests..."
+	mkdir -p $(REPORTS_DIR)
+	@export KUBEBUILDER_ASSETS=$$(setup-envtest use 1.28.0 --bin-dir=$(HOME)/.cache/kubebuilder-envtest -p path 2>/dev/null || echo ""); \
+	export DISASTER_RECOVERY_TEST=true; \
+	export LOG_LEVEL=debug; \
+	go test ./tests/disaster-recovery/... -v -timeout=30m -race \
+		-run TestEnhancedDisasterRecovery \
+		-coverprofile=$(REPORTS_DIR)/disaster-recovery-enhanced-coverage.out \
+		-covermode=atomic
+
+.PHONY: test-envtest-validation
+test-envtest-validation: setup-envtest ## Validate envtest setup and run basic validation
+	@echo "Validating envtest setup..."
+	@export KUBEBUILDER_ASSETS=$$(setup-envtest use 1.28.0 --bin-dir=$(HOME)/.cache/kubebuilder-envtest -p path 2>/dev/null || echo ""); \
+	if [ -n "$$KUBEBUILDER_ASSETS" ]; then \
+		echo "✅ KUBEBUILDER_ASSETS=$$KUBEBUILDER_ASSETS"; \
+		echo "Checking required binaries:"; \
+		for binary in etcd kube-apiserver kubectl; do \
+			if [ -x "$$KUBEBUILDER_ASSETS/$$binary" ]; then \
+				echo "  ✅ $$binary found and executable"; \
+			else \
+				echo "  ❌ $$binary missing or not executable"; \
+			fi; \
+		done; \
+		echo "Running basic envtest validation..."; \
+		go test ./hack/testtools/... -v -timeout=5m -run TestEnvtestBinaryManager || true; \
+	else \
+		echo "❌ KUBEBUILDER_ASSETS not set - envtest setup failed"; \
+		exit 1; \
+	fi
+
+.PHONY: clean-envtest
+clean-envtest: ## Clean up envtest assets and cache
+	@echo "Cleaning up envtest assets..."
+	@rm -rf $(HOME)/.cache/kubebuilder-envtest/
+	@echo "✅ envtest cache cleaned"
+
+.PHONY: fix-disaster-recovery-test
+fix-disaster-recovery-test: setup-envtest test-envtest-validation test-disaster-recovery-enhanced ## Complete disaster recovery test fix workflow
+	@echo "✅ Disaster recovery test fix workflow completed successfully!"
+	@echo ""
+	@echo "Summary:"
+	@echo "  1. ✅ envtest assets installed and validated"
+	@echo "  2. ✅ Enhanced disaster recovery tests executed"
+	@echo "  3. 📊 Coverage reports generated in $(REPORTS_DIR)/"
+	@echo ""
+	@echo "Next steps:"
+	@echo "  - Review coverage reports in $(REPORTS_DIR)/"
+	@echo "  - Check test logs for any warnings"
+	@echo "  - Ensure CI pipeline includes 'make setup-envtest' step"

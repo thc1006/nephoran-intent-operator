@@ -26,7 +26,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -88,23 +87,24 @@ func NewTestFixture(ctx context.Context) *TestFixture {
 // NewTestConfig creates a test configuration for Porch
 func NewTestConfig() *porch.Config {
 	return &porch.Config{
-		PorchConfig: &porch.PorchConfiguration{
+		PorchConfig: &porch.PorchServiceConfig{
 			Endpoint: "http://localhost:9080",
-			Auth: &porch.AuthConfiguration{
+			Auth: &porch.AuthenticationConfig{
 				Type: "none",
 			},
-			Timeout: &metav1.Duration{Duration: 30 * time.Second},
-			Retry: &porch.RetryConfiguration{
-				MaxRetries:   3,
-				BackoffDelay: &metav1.Duration{Duration: 1 * time.Second},
+			Timeout: 30 * time.Second,
+			Retry: &porch.RetryConfig{
+				MaxRetries:    3,
+				InitialDelay:  1 * time.Second,
+				BackoffFactor: 2.0,
 			},
-			CircuitBreaker: &porch.CircuitBreakerConfiguration{
+			CircuitBreaker: &porch.CircuitBreakerConfig{
 				Enabled:          true,
 				FailureThreshold: 5,
-				Timeout:          &metav1.Duration{Duration: 60 * time.Second},
+				Timeout:          60 * time.Second,
 				HalfOpenMaxCalls: 3,
 			},
-			RateLimit: &porch.RateLimitConfiguration{
+			RateLimit: &porch.RateLimitConfig{
 				Enabled:           true,
 				RequestsPerSecond: 100,
 				Burst:             10,
@@ -230,15 +230,15 @@ func (f *TestFixture) CreateTestPackageRevision(name, revision string, opts ...P
 			Repository:  DefaultTestRepository,
 			Revision:    revision,
 			Lifecycle:   porch.PackageRevisionLifecycleDraft,
-			Resources: []porch.KRMResource{
-				{
-					APIVersion: "v1",
-					Kind:       "ConfigMap",
-					Metadata: map[string]interface{}{
+			Resources: []interface{}{
+				map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
 						"name":      "test-config",
 						"namespace": f.Namespace,
 					},
-					Data: map[string]interface{}{
+					"data": map[string]interface{}{
 						"key": "value",
 					},
 				},
@@ -283,14 +283,14 @@ func WithPackageLifecycle(lifecycle porch.PackageRevisionLifecycle) PackageOptio
 }
 
 // WithPackageResource adds a resource to the package
-func WithPackageResource(resource porch.KRMResource) PackageOption {
+func WithPackageResource(resource interface{}) PackageOption {
 	return func(pkg *porch.PackageRevision) {
 		pkg.Spec.Resources = append(pkg.Spec.Resources, resource)
 	}
 }
 
 // WithPackageFunction adds a function to the package
-func WithPackageFunction(function porch.FunctionConfig) PackageOption {
+func WithPackageFunction(function interface{}) PackageOption {
 	return func(pkg *porch.PackageRevision) {
 		pkg.Spec.Functions = append(pkg.Spec.Functions, function)
 	}
@@ -410,25 +410,17 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 			},
 		},
 		Spec: v1.NetworkIntentSpec{
+			Intent:     "Deploy 3 AMF instances in us-east-1 region",
 			IntentType: v1.IntentTypeDeployment,
 			Priority:   v1.PriorityMedium,
-			TargetComponents: []v1.ComponentType{
-				v1.ComponentTypeAMF,
-			},
-			Parameters: map[string]string{
-				"replicas": "3",
-				"region":   "us-east-1",
+			TargetComponents: []v1.ORANComponent{
+				v1.ORANComponentAMF,
 			},
 		},
 		Status: v1.NetworkIntentStatus{
-			Phase: v1.PhaseProcessing,
-			Conditions: []metav1.Condition{
-				{
-					Type:   "Ready",
-					Status: metav1.ConditionFalse,
-					Reason: "Processing",
-				},
-			},
+			Phase:       "processing",
+			LastMessage: "Processing deployment intent",
+			LastUpdateTime: metav1.Now(),
 		},
 	}
 
@@ -458,24 +450,21 @@ func WithIntentPriority(priority v1.Priority) NetworkIntentOption {
 }
 
 // WithTargetComponent adds a target component
-func WithTargetComponent(component v1.ComponentType) NetworkIntentOption {
+func WithTargetComponent(component v1.ORANComponent) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Spec.TargetComponents = append(intent.Spec.TargetComponents, component)
 	}
 }
 
-// WithIntentParameter adds a parameter to the intent
-func WithIntentParameter(key, value string) NetworkIntentOption {
+// WithIntent sets the intent text
+func WithIntent(intentText string) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
-		if intent.Spec.Parameters == nil {
-			intent.Spec.Parameters = make(map[string]string)
-		}
-		intent.Spec.Parameters[key] = value
+		intent.Spec.Intent = intentText
 	}
 }
 
 // WithIntentPhase sets the intent phase
-func WithIntentPhase(phase v1.Phase) NetworkIntentOption {
+func WithIntentPhase(phase string) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Status.Phase = phase
 	}

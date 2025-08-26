@@ -30,106 +30,18 @@ import (
 
 // Forward declarations for types from other files in the package
 
-// ComponentType represents different types of components
-type ComponentType = shared.ComponentType
 
-// OptimizationPriority represents the priority of optimization requests
-type OptimizationPriority string
 
-const (
-	PriorityCritical OptimizationPriority = "critical"
-	PriorityHigh     OptimizationPriority = "high"
-	PriorityMedium   OptimizationPriority = "medium"
-	PriorityLow      OptimizationPriority = "low"
-)
 
-// SeverityLevel represents severity levels
-type SeverityLevel string
 
-const (
-	SeverityCritical SeverityLevel = "critical"
-	SeverityHigh     SeverityLevel = "high"
-	SeverityMedium   SeverityLevel = "medium"
-	SeverityLow      SeverityLevel = "low"
-)
-
-// OptimizationRecommendation represents a recommendation for optimization
-type OptimizationRecommendation struct {
-	ID                  string                   `json:"id"`
-	Name                string                   `json:"name"`
-	Description         string                   `json:"description"`
-	TargetComponent     shared.ComponentType     `json:"targetComponent"`
-	Category            OptimizationCategory     `json:"category"`
-	Priority            OptimizationPriority     `json:"priority"`
-	RiskScore           float64                  `json:"riskScore"`
-	ExpectedBenefits    *ExpectedBenefits        `json:"expectedBenefits"`
-	ImplementationSteps []ImplementationStep     `json:"implementationSteps"`
-	EstimatedDuration   time.Duration            `json:"estimatedDuration"`
-	Prerequisites       []string                 `json:"prerequisites"`
-}
-
-// OptimizationCategory represents different categories of optimizations
-type OptimizationCategory string
-
-const (
-	CategoryPerformance        OptimizationCategory = "performance"
-	CategoryResource           OptimizationCategory = "resource"
-	CategoryCost               OptimizationCategory = "cost"
-	CategoryReliability        OptimizationCategory = "reliability"
-	CategorySecurity           OptimizationCategory = "security"
-	CategoryCompliance         OptimizationCategory = "compliance"
-	CategoryMaintenance        OptimizationCategory = "maintenance"
-	CategoryTelecommunications OptimizationCategory = "telecommunications"
-)
-
-// ExpectedBenefits defines the expected benefits of implementing a strategy
-type ExpectedBenefits struct {
-	LatencyReduction   float64 `json:"latencyReduction"`
-	ThroughputIncrease float64 `json:"throughputIncrease"`
-	ResourceSavings    float64 `json:"resourceSavings"`
-	CostSavings        float64 `json:"costSavings"`
-	EfficiencyGain     float64 `json:"efficiencyGain"`
-	ErrorRateReduction float64 `json:"errorRateReduction"`
-}
-
-// ImplementationStep represents a single implementation step
-type ImplementationStep struct {
-	Order           int             `json:"order"`
-	Name            string          `json:"name"`
-	Description     string          `json:"description"`
-	EstimatedTime   time.Duration   `json:"estimatedTime"`
-	AutomationLevel AutomationLevel `json:"automationLevel"`
-}
-
-// AutomationLevel defines levels of automation for implementation steps
-type AutomationLevel string
-
-const (
-	AutomationFull    AutomationLevel = "full"
-	AutomationPartial AutomationLevel = "partial"
-	AutomationManual  AutomationLevel = "manual"
-)
 
 // Placeholder types for components that would be defined elsewhere
-type PerformanceAnalysisEngine struct{}
-type OptimizationRecommendationEngine struct{}
-type ComponentOptimizerRegistry struct{}
-type AIConfigurationTuner struct{}
-type TelecomPerformanceOptimizer struct{}
-type PerformanceAnalysisResult struct {
-	SystemHealth          HealthStatus `json:"systemHealth"`
-	OverallScore          float64      `json:"overallScore"`
-	IdentifiedBottlenecks []string     `json:"identifiedBottlenecks"`
-}
-
-// HealthStatus represents the health status of a system
-type HealthStatus string
-
-const (
-	HealthStatusHealthy  HealthStatus = "healthy"
-	HealthStatusWarning  HealthStatus = "warning"
-	HealthStatusCritical HealthStatus = "critical"
-)
+// Note: Real implementations are in their respective files:
+// - PerformanceAnalysisEngine in performance_analysis_engine.go
+// - OptimizationRecommendationEngine in recommendation_engine.go  
+// - ComponentOptimizerRegistry in component_optimizers.go
+// - AIConfigurationTuner in ai_configuration_tuner.go
+// - TelecomPerformanceOptimizer in telecom_optimizer.go
 
 // AutomatedOptimizationPipeline orchestrates the complete optimization process
 // from analysis through implementation with CI/CD integration
@@ -1062,19 +974,3 @@ func GetDefaultPipelineConfig() *PipelineConfig {
 	}
 }
 
-// Placeholder methods for undefined types
-func (engine *PerformanceAnalysisEngine) AnalyzePerformance(ctx context.Context) (*PerformanceAnalysisResult, error) {
-	return &PerformanceAnalysisResult{
-		SystemHealth:          HealthStatusHealthy,
-		OverallScore:          85.0,
-		IdentifiedBottlenecks: []string{},
-	}, nil
-}
-
-func (engine *OptimizationRecommendationEngine) GenerateRecommendations(ctx context.Context, result *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-	return []*OptimizationRecommendation{}, nil
-}
-
-func (optimizer *TelecomPerformanceOptimizer) OptimizeTelecomPerformance(ctx context.Context, result *PerformanceAnalysisResult) ([]*OptimizationRecommendation, error) {
-	return []*OptimizationRecommendation{}, nil
-}

@@ -26,6 +26,118 @@ import (
 // and cleaner imports within the optimization package
 type ComponentType = shared.ComponentType
 
+// OptimizationCategory represents different categories of optimizations
+type OptimizationCategory string
+
+const (
+	CategoryPerformance        OptimizationCategory = "performance"
+	CategoryResource           OptimizationCategory = "resource"
+	CategoryCost               OptimizationCategory = "cost"
+	CategoryReliability        OptimizationCategory = "reliability"
+	CategorySecurity           OptimizationCategory = "security"
+	CategoryCompliance         OptimizationCategory = "compliance"
+	CategoryMaintenance        OptimizationCategory = "maintenance"
+	CategoryTelecommunications OptimizationCategory = "telecommunications"
+)
+
+// OptimizationPriority represents priority levels for optimizations
+type OptimizationPriority string
+
+const (
+	PriorityCritical OptimizationPriority = "critical"
+	PriorityHigh     OptimizationPriority = "high"
+	PriorityMedium   OptimizationPriority = "medium"
+	PriorityLow      OptimizationPriority = "low"
+)
+
+// SeverityLevel represents severity levels
+type SeverityLevel string
+
+const (
+	SeverityCritical SeverityLevel = "critical"
+	SeverityHigh     SeverityLevel = "high"
+	SeverityMedium   SeverityLevel = "medium"
+	SeverityLow      SeverityLevel = "low"
+	SeverityInfo     SeverityLevel = "info"
+)
+
+// AutomationLevel defines levels of automation for implementation steps
+type AutomationLevel string
+
+const (
+	AutomationFull     AutomationLevel = "full"
+	AutomationPartial  AutomationLevel = "partial"
+	AutomationManual   AutomationLevel = "manual"
+	AutomationAssisted AutomationLevel = "assisted"
+)
+
+// ExpectedBenefits represents expected benefits from optimization
+type ExpectedBenefits struct {
+	LatencyReduction       float64 `json:"latencyReduction"`
+	ThroughputIncrease     float64 `json:"throughputIncrease"`
+	ResourceSavings        float64 `json:"resourceSavings"`
+	CostSavings            float64 `json:"costSavings"`
+	EfficiencyGain         float64 `json:"efficiencyGain,omitempty"`
+	ErrorRateReduction     float64 `json:"errorRateReduction,omitempty"`
+	ReliabilityImprovement float64 `json:"reliabilityImprovement"`
+	EnergyEfficiencyGain   float64 `json:"energyEfficiencyGain"`
+
+	// Telecom-specific benefits
+	SignalingEfficiencyGain float64 `json:"signalingEfficiencyGain"`
+	SpectrumEfficiencyGain  float64 `json:"spectrumEfficiencyGain"`
+	InteropImprovements     float64 `json:"interopImprovements"`
+}
+
+// ImplementationStep represents a single implementation step
+type ImplementationStep struct {
+	Order           int             `json:"order"`
+	Name            string          `json:"name"`
+	Description     string          `json:"description"`
+	EstimatedTime   time.Duration   `json:"estimatedTime"`
+	AutomationLevel AutomationLevel `json:"automationLevel"`
+	RequiredSkills  []string        `json:"requiredSkills,omitempty"`
+	ValidationPoint bool            `json:"validationPoint,omitempty"`
+	RollbackAction  string          `json:"rollbackAction,omitempty"`
+}
+
+// ConfidenceInterval represents a confidence interval for statistical data
+type ConfidenceInterval struct {
+	Timestamp       time.Time `json:"timestamp,omitempty"`
+	LowerBound      float64   `json:"lowerBound"`
+	UpperBound      float64   `json:"upperBound"`
+	ConfidenceLevel float64   `json:"confidenceLevel"`
+}
+
+// ExpectedImpact represents the expected impact of optimization changes
+type ExpectedImpact struct {
+	LatencyReduction   float64 `json:"latencyReduction"`
+	ThroughputIncrease float64 `json:"throughputIncrease"`
+	ResourceSavings    float64 `json:"resourceSavings"`
+	CostSavings        float64 `json:"costSavings"`
+	EfficiencyGain     float64 `json:"efficiencyGain"`
+}
+
+// ComparisonOperator defines comparison operators for conditions
+type ComparisonOperator string
+
+const (
+	OperatorGreaterThan  ComparisonOperator = "gt"
+	OperatorLessThan     ComparisonOperator = "lt"
+	OperatorEqual        ComparisonOperator = "eq"
+	OperatorGreaterEqual ComparisonOperator = "gte"
+	OperatorLessEqual    ComparisonOperator = "lte"
+	OperatorBetween      ComparisonOperator = "between"
+)
+
+// ScenarioCondition defines when a strategy is applicable
+type ScenarioCondition struct {
+	MetricName    string             `json:"metricName"`
+	Operator      ComparisonOperator `json:"operator"`
+	Threshold     float64            `json:"threshold"`
+	ComponentType ComponentType      `json:"componentType"`
+	TimeWindow    time.Duration      `json:"timeWindow"`
+}
+
 // OptimizationKnowledgeBase contains optimization knowledge and best practices
 type OptimizationKnowledgeBase struct {
 	// Best practices indexed by component type

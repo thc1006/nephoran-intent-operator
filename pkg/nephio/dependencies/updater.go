@@ -970,9 +970,7 @@ func generatePropagationID() string {
 	return fmt.Sprintf("propagation-%d", time.Now().UnixNano())
 }
 
-func generateAnalysisID() string {
-	return fmt.Sprintf("analysis-%d", time.Now().UnixNano())
-}
+func generateUpdateAnalysisID() string {	return fmt.Sprintf("update-analysis-%d", time.Now().UnixNano())}
 
 func generateUpdateItemID() string {
 	return fmt.Sprintf("item-%d", time.Now().UnixNano())

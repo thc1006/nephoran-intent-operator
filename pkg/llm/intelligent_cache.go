@@ -10,10 +10,8 @@ import (
 	"fmt"
 	"log/slog"
 	"sort"
-	"strings"
 	"sync"
 	"time"
-	"unsafe"
 )
 
 // IntelligentCache provides advanced caching with intelligent invalidation strategies

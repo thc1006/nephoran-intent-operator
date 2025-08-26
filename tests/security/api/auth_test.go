@@ -1,15 +1,14 @@
 package api
 
 import (
-	"bytes"
-	"context"
-	"crypto/rand"
+	cryptorand "crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,7 +18,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/oauth2"
 )
 
 // API endpoints for each service
@@ -49,7 +47,7 @@ type AuthTestSuite struct {
 // NewAuthTestSuite creates a new authentication test suite
 func NewAuthTestSuite(t *testing.T) *AuthTestSuite {
 	// Generate RSA key for testing
-	rsaKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	rsaKey, err := rsa.GenerateKey(cryptorand.Reader, 2048)
 	require.NoError(t, err)
 
 	return &AuthTestSuite{
@@ -758,7 +756,7 @@ func (s *AuthTestSuite) simulateAPIKeyAuth(w http.ResponseWriter, r *http.Reques
 // OAuth2 helper methods
 func (s *AuthTestSuite) generateSecureState() string {
 	b := make([]byte, 32)
-	rand.Read(b)
+	cryptorand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }
 
@@ -785,7 +783,7 @@ func (s *AuthTestSuite) generateAuthorizationURL(provider, state string) string 
 
 func (s *AuthTestSuite) generateCodeVerifier() string {
 	b := make([]byte, 32)
-	rand.Read(b)
+	cryptorand.Read(b)
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
@@ -888,7 +886,7 @@ func (s *AuthTestSuite) createRevocationRequest(token string) *RevocationRequest
 // MFA helper methods
 func (s *AuthTestSuite) generateTOTPSecret() string {
 	b := make([]byte, 20)
-	rand.Read(b)
+	cryptorand.Read(b)
 	return base32.StdEncoding.EncodeToString(b)
 }
 
@@ -920,14 +918,14 @@ func (s *AuthTestSuite) canRequestNewOTP(phone string) bool {
 
 func (s *AuthTestSuite) generateWebAuthnChallenge() string {
 	b := make([]byte, 32)
-	rand.Read(b)
+	cryptorand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }
 
 func (s *AuthTestSuite) simulateWebAuthnRegistration(challenge string) string {
 	// Simulate credential ID generation
 	b := make([]byte, 16)
-	rand.Read(b)
+	cryptorand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }
 
@@ -944,7 +942,7 @@ func (s *AuthTestSuite) generateBackupCodes(count int) []string {
 	codes := make([]string, count)
 	for i := 0; i < count; i++ {
 		b := make([]byte, 8)
-		rand.Read(b)
+		cryptorand.Read(b)
 		codes[i] = fmt.Sprintf("%X", b)
 	}
 	return codes
@@ -1036,6 +1034,6 @@ func (s *AuthTestSuite) simulateTokenRefresh(refreshToken string) (string, strin
 
 func (s *AuthTestSuite) generateRefreshToken() string {
 	b := make([]byte, 32)
-	rand.Read(b)
+	cryptorand.Read(b)
 	return base64.URLEncoding.EncodeToString(b)
 }

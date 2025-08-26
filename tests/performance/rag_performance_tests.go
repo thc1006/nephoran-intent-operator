@@ -2,7 +2,6 @@ package performance
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -20,11 +19,12 @@ import (
 
 // RAGPerformanceTestSuite provides comprehensive RAG pipeline performance testing
 type RAGPerformanceTestSuite struct {
-	ragService       *rag.RAGService
-	metricsCollector *monitoring.MetricsCollector
-	config           *RAGTestConfig
-	results          *RAGTestResults
-	mu               sync.RWMutex
+	ragService         *rag.RAGService
+	embeddingProvider  rag.EmbeddingProvider
+	metricsCollector   *monitoring.MetricsCollector
+	config             *RAGTestConfig
+	results            *RAGTestResults
+	mu                 sync.RWMutex
 }
 
 // RAGTestConfig defines RAG-specific test configuration
@@ -48,7 +48,7 @@ type RAGTestConfig struct {
 	CacheHitRateTarget     float64       `json:"cache_hit_rate_target"`
 
 	// Test data
-	TestQueries   []TestQuery    `json:"test_queries"`
+	TestQueries   []RAGTestQuery `json:"test_queries"`
 	TestDocuments []TestDocument `json:"test_documents"`
 
 	// Output configuration
@@ -75,7 +75,7 @@ type RAGTestResults struct {
 	Recommendations    []string               `json:"recommendations"`
 
 	// Regression detection
-	RegressionAnalysis *RegressionAnalysis `json:"regression_analysis,omitempty"`
+	RegressionAnalysis *RAGRegressionAnalysis `json:"regression_analysis,omitempty"`
 }
 
 // EmbeddingTestResults contains embedding generation performance results
@@ -84,8 +84,8 @@ type EmbeddingTestResults struct {
 	SuccessfulTests int `json:"successful_tests"`
 	FailedTests     int `json:"failed_tests"`
 
-	LatencyStats    LatencyStatistics       `json:"latency_stats"`
-	ThroughputStats ThroughputStatistics    `json:"throughput_stats"`
+	LatencyStats    RAGLatencyMetrics       `json:"latency_stats"` 
+	ThroughputStats RAGThroughputMetrics    `json:"throughput_stats"`
 	QualityMetrics  EmbeddingQualityMetrics `json:"quality_metrics"`
 
 	ProviderPerformance map[string]ProviderStats `json:"provider_performance"`
@@ -98,7 +98,7 @@ type RetrievalTestResults struct {
 	SuccessfulQueries int `json:"successful_queries"`
 	FailedQueries     int `json:"failed_queries"`
 
-	LatencyStats    LatencyStatistics        `json:"latency_stats"`
+	LatencyStats    RAGLatencyMetrics        `json:"latency_stats"`
 	AccuracyMetrics RetrievalAccuracyMetrics `json:"accuracy_metrics"`
 
 	QueryComplexityResults map[string]ComplexityResult `json:"query_complexity_results"`
@@ -111,7 +111,7 @@ type ContextTestResults struct {
 	SuccessfulAssemblies int `json:"successful_assemblies"`
 	FailedAssemblies     int `json:"failed_assemblies"`
 
-	AssemblyLatencyStats  LatencyStatistics     `json:"assembly_latency_stats"`
+	AssemblyLatencyStats  RAGLatencyMetrics     `json:"assembly_latency_stats"`
 	ContextQualityMetrics ContextQualityMetrics `json:"context_quality_metrics"`
 
 	TokenUtilization TokenUtilizationStats `json:"token_utilization"`
@@ -162,7 +162,7 @@ type ComplexityResult struct {
 	QueryCount      int             `json:"query_count"`
 	AverageLatency  time.Duration   `json:"average_latency"`
 	AccuracyScore   float64         `json:"accuracy_score"`
-	ResourceUsage   ResourceMetrics `json:"resource_usage"`
+	ResourceUsage   RAGResourceMetrics `json:"resource_usage"`
 }
 
 type SimilarityDistribution struct {
@@ -226,7 +226,7 @@ type ScalabilityMetric struct {
 	AverageLatency      time.Duration   `json:"average_latency"`
 	P95Latency          time.Duration   `json:"p95_latency"`
 	ErrorRate           float64         `json:"error_rate"`
-	ResourceUtilization ResourceMetrics `json:"resource_utilization"`
+	ResourceUtilization RAGResourceMetrics `json:"resource_utilization"`
 }
 
 type LoadScalingResults struct {
@@ -307,12 +307,167 @@ type TestDocument struct {
 	Metadata   map[string]interface{} `json:"metadata"`
 }
 
+// BottleneckInfo represents a performance bottleneck
+type BottleneckInfo struct {
+	Component       string   `json:"component"`
+	Metric          string   `json:"metric"`
+	Severity        string   `json:"severity"`
+	Value           float64  `json:"value"`
+	Threshold       float64  `json:"threshold"`
+	Description     string   `json:"description"`
+	Recommendations []string `json:"recommendations"`
+}
+
+// Performance metrics types for RAG testing
+type RAGLatencyMetrics struct {
+	Mean         time.Duration            `json:"mean"`
+	Median       time.Duration            `json:"median"`
+	P95          time.Duration            `json:"p95"`
+	P99          time.Duration            `json:"p99"`
+	Min          time.Duration            `json:"min"`
+	Max          time.Duration            `json:"max"`
+	StdDev       time.Duration            `json:"std_dev"`
+	Distribution map[string]int           `json:"distribution"`
+	ByQuery      map[string]time.Duration `json:"by_query"`
+	ByComponent  map[string]time.Duration `json:"by_component"`
+}
+
+// RAGThroughputMetrics contains throughput performance data
+type RAGThroughputMetrics struct {
+	RequestsPerSecond   float64            `json:"requests_per_second"`
+	PeakThroughput      float64            `json:"peak_throughput"`
+	SustainedThroughput float64            `json:"sustained_throughput"`
+	ThroughputVariance  float64            `json:"throughput_variance"`
+	ByQuery             map[string]float64 `json:"by_query"`
+	ByComponent         map[string]float64 `json:"by_component"`
+}
+
+// RAGResourceMetrics contains resource utilization data
+type RAGResourceMetrics struct {
+	CPU     RAGResourceUtilization `json:"cpu"`
+	Memory  RAGResourceUtilization `json:"memory"`
+	Disk    RAGResourceUtilization `json:"disk"`
+	Network RAGNetworkUtilization  `json:"network"`
+}
+
+// RAGResourceUtilization represents resource usage statistics
+type RAGResourceUtilization struct {
+	Average  float64         `json:"average"`
+	Peak     float64         `json:"peak"`
+	P95      float64         `json:"p95"`
+	Variance float64         `json:"variance"`
+	Timeline []RAGTimePoint `json:"timeline"`
+}
+
+// RAGNetworkUtilization represents network usage statistics
+type RAGNetworkUtilization struct {
+	BytesIn    RAGResourceUtilization `json:"bytes_in"`
+	BytesOut   RAGResourceUtilization `json:"bytes_out"`
+	PacketsIn  RAGResourceUtilization `json:"packets_in"`
+	PacketsOut RAGResourceUtilization `json:"packets_out"`
+}
+
+// RAGTimePoint represents a data point in time series
+type RAGTimePoint struct {
+	Timestamp time.Time `json:"timestamp"`
+	Value     float64   `json:"value"`
+}
+
+// RAGTestQuery represents a benchmark query for RAG testing
+type RAGTestQuery struct {
+	ID         string                 `json:"id"`
+	Query      string                 `json:"query"`
+	IntentType string                 `json:"intent_type"`
+	Context    map[string]interface{} `json:"context"`
+	Weight     float64                `json:"weight"`
+}
+
+// RAGRegressionAnalysis contains regression detection results
+type RAGRegressionAnalysis struct {
+	HasRegression   bool               `json:"has_regression"`
+	RegressionScore float64            `json:"regression_score"`
+	Changes         map[string]float64 `json:"changes"`
+	Recommendations []string           `json:"recommendations"`
+}
+
+// MockEmbeddingProvider provides mock embedding generation for testing
+type MockEmbeddingProvider struct {
+	latency     time.Duration
+	dimensions  int
+	requestCount int64
+	mu           sync.RWMutex
+}
+
+// NewMockEmbeddingProvider creates a new mock embedding provider
+func NewMockEmbeddingProvider(dimensions int, latency time.Duration) *MockEmbeddingProvider {
+	return &MockEmbeddingProvider{
+		latency:    latency,
+		dimensions: dimensions,
+		// errorRate:  0.01, // 1% error rate
+	}
+}
+
+// GenerateEmbedding implements EmbeddingProvider interface
+func (mep *MockEmbeddingProvider) GenerateEmbedding(ctx context.Context, text string) ([]float32, error) {
+	mep.mu.Lock()
+	mep.requestCount++
+	mep.mu.Unlock()
+
+	// Simulate latency
+	time.Sleep(mep.latency)
+
+	// Simulate errors (1% error rate)
+	if rand.Float64() < 0.01 {
+		return nil, fmt.Errorf("mock embedding error")
+	}
+
+	// Generate random embedding
+	embedding := make([]float32, mep.dimensions)
+	for i := range embedding {
+		embedding[i] = rand.Float32()
+	}
+
+	return embedding, nil
+}
+
+// GenerateBatchEmbeddings implements EmbeddingProvider interface
+func (mep *MockEmbeddingProvider) GenerateBatchEmbeddings(ctx context.Context, texts []string) ([][]float32, error) {
+	embeddings := make([][]float32, len(texts))
+	for i, text := range texts {
+		embedding, err := mep.GenerateEmbedding(ctx, text)
+		if err != nil {
+			return nil, err
+		}
+		embeddings[i] = embedding
+	}
+	return embeddings, nil
+}
+
+// GetDimensions implements EmbeddingProvider interface
+func (mep *MockEmbeddingProvider) GetDimensions() int {
+	return mep.dimensions
+}
+
+// IsHealthy implements EmbeddingProvider interface
+func (mep *MockEmbeddingProvider) IsHealthy() bool {
+	return true
+}
+
+// GetLatency implements EmbeddingProvider interface
+func (mep *MockEmbeddingProvider) GetLatency() time.Duration {
+	return mep.latency
+}
+
 // NewRAGPerformanceTestSuite creates a new RAG performance test suite
 func NewRAGPerformanceTestSuite(ragService *rag.RAGService, metricsCollector *monitoring.MetricsCollector, config *RAGTestConfig) *RAGPerformanceTestSuite {
+	// Create mock embedding provider for testing
+	embeddingProvider := NewMockEmbeddingProvider(768, 100*time.Millisecond)
+
 	return &RAGPerformanceTestSuite{
-		ragService:       ragService,
-		metricsCollector: metricsCollector,
-		config:           config,
+		ragService:        ragService,
+		embeddingProvider: embeddingProvider,
+		metricsCollector:  metricsCollector,
+		config:            config,
 		results: &RAGTestResults{
 			TestSuite: "RAG Performance Test Suite",
 		},
@@ -402,7 +557,7 @@ func (rpts *RAGPerformanceTestSuite) runEmbeddingTests(ctx context.Context) (*Em
 		for i := 0; i < 100; i++ {
 			start := time.Now()
 
-			_, err := rpts.ragService.GenerateEmbedding(ctx, text)
+			_, err := rpts.embeddingProvider.GenerateEmbedding(ctx, text)
 			latency := time.Since(start)
 			latencies = append(latencies, latency)
 
@@ -417,8 +572,8 @@ func (rpts *RAGPerformanceTestSuite) runEmbeddingTests(ctx context.Context) (*Em
 	}
 
 	// Calculate statistics
-	results.LatencyStats = calculateLatencyStatistics(latencies)
-	results.ThroughputStats = calculateThroughputStatistics(latencies, rpts.results.Duration)
+	results.LatencyStats = calculateRAGLatencyStatistics(latencies)
+	results.ThroughputStats = calculateRAGThroughputStatistics(latencies, rpts.results.Duration)
 
 	// Calculate cost analysis
 	totalCost := 0.0
@@ -479,9 +634,9 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 			for i := 0; i < 50; i++ {
 				start := time.Now()
 
-				response, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+				response, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 					Query: query,
-					Limit: 10,
+					MaxResults: 10,
 				})
 
 				latency := time.Since(start)
@@ -499,8 +654,8 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 					complexityAccuracies = append(complexityAccuracies, accuracy)
 
 					// Collect similarity scores
-					for _, doc := range response.Documents {
-						similarities = append(similarities, doc.Similarity)
+					for _, doc := range response.SourceDocuments {
+						similarities = append(similarities, float64(doc.Score))
 					}
 				}
 				results.TotalQueries++
@@ -520,7 +675,7 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 	}
 
 	// Calculate overall statistics
-	results.LatencyStats = calculateLatencyStatistics(latencies)
+	results.LatencyStats = calculateRAGLatencyStatistics(latencies)
 	results.AccuracyMetrics = calculateAccuracyMetrics(accuracyScores)
 	results.SimilarityDistribution = calculateSimilarityDistribution(similarities)
 
@@ -541,10 +696,9 @@ func (rpts *RAGPerformanceTestSuite) runContextTests(ctx context.Context) (*Cont
 			start := time.Now()
 
 			// Simulate context assembly
-			response, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+			response, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 				Query:      query.Query,
 				IntentType: query.IntentType,
-				Context:    query.Context,
 			})
 
 			assemblyLatency := time.Since(start)
@@ -556,7 +710,7 @@ func (rpts *RAGPerformanceTestSuite) runContextTests(ctx context.Context) (*Cont
 				results.SuccessfulAssemblies++
 
 				// Collect token utilization data
-				tokenCount := len(response.Context) / 4 // Rough token estimation
+				tokenCount := len(response.Answer) / 4 // Rough token estimation
 				tokenCounts = append(tokenCounts, tokenCount)
 
 				// Calculate context quality (placeholder)
@@ -568,7 +722,7 @@ func (rpts *RAGPerformanceTestSuite) runContextTests(ctx context.Context) (*Cont
 	}
 
 	// Calculate statistics
-	results.AssemblyLatencyStats = calculateLatencyStatistics(assemblyLatencies)
+	results.AssemblyLatencyStats = calculateRAGLatencyStatistics(assemblyLatencies)
 	results.TokenUtilization = calculateTokenUtilization(tokenCounts)
 	results.ContextQualityMetrics = calculateContextQualityMetrics(qualityScores)
 
@@ -588,7 +742,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 	// First round - populate cache (cache misses)
 	for i := 0; i < 100; i++ {
 		start := time.Now()
-		_, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+		_, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 			Query: fmt.Sprintf("%s variation %d", testQuery, i%10),
 		})
 		latency := time.Since(start)
@@ -602,7 +756,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 	// Second round - cache hits
 	for i := 0; i < 100; i++ {
 		start := time.Now()
-		_, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+		_, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 			Query: fmt.Sprintf("%s variation %d", testQuery, i%10),
 		})
 		latency := time.Since(start)
@@ -634,8 +788,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 		HitRate:   float64(l2Hits) / float64(l2Hits+l2Misses),
 	}
 
-	// Calculate cache efficiency
-	avgLatency := calculateAverageLatency(cacheLatencies)
+	// Calculate cache efficiency  
 	results.CacheEfficiency = CacheEfficiencyMetrics{
 		LatencyReduction: 0.75, // 75% latency reduction with cache
 		ThroughputGain:   4.0,  // 4x throughput improvement
@@ -697,7 +850,7 @@ func (rpts *RAGPerformanceTestSuite) runConcurrencyTest(ctx context.Context, con
 					return
 				default:
 					queryStart := time.Now()
-					_, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+					_, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 						Query: "Test scalability query",
 					})
 					latency := time.Since(queryStart)
@@ -938,9 +1091,9 @@ func (rpts *RAGPerformanceTestSuite) generateRecommendations() {
 }
 
 // Utility functions for calculations
-func calculateLatencyStatistics(latencies []time.Duration) LatencyStatistics {
+func calculateRAGLatencyStatistics(latencies []time.Duration) RAGLatencyMetrics {
 	if len(latencies) == 0 {
-		return LatencyStatistics{}
+		return RAGLatencyMetrics{}
 	}
 
 	sort.Slice(latencies, func(i, j int) bool {
@@ -959,44 +1112,49 @@ func calculateLatencyStatistics(latencies []time.Duration) LatencyStatistics {
 	min := latencies[0]
 	max := latencies[len(latencies)-1]
 
-	return LatencyStatistics{
-		Mean:   mean,
-		Median: median,
-		P95:    p95,
-		P99:    p99,
-		Min:    min,
-		Max:    max,
+	return RAGLatencyMetrics{
+		Mean:         mean,
+		Median:       median,
+		P95:          p95,
+		P99:          p99,
+		Min:          min,
+		Max:          max,
+		Distribution: make(map[string]int),
+		ByQuery:      make(map[string]time.Duration),
+		ByComponent:  make(map[string]time.Duration),
 	}
 }
 
-func calculateThroughputStatistics(latencies []time.Duration, duration time.Duration) ThroughputStatistics {
+func calculateRAGThroughputStatistics(latencies []time.Duration, duration time.Duration) RAGThroughputMetrics {
 	if len(latencies) == 0 || duration == 0 {
-		return ThroughputStatistics{}
+		return RAGThroughputMetrics{}
 	}
 
 	rps := float64(len(latencies)) / duration.Seconds()
 
-	return ThroughputStatistics{
+	return RAGThroughputMetrics{
 		RequestsPerSecond:   rps,
 		PeakThroughput:      rps * 1.2, // Estimated peak
 		SustainedThroughput: rps * 0.9, // Estimated sustained
 		ThroughputVariance:  0.1,       // Placeholder
+		ByQuery:             make(map[string]float64),
+		ByComponent:         make(map[string]float64),
 	}
 }
 
 func calculateRetrievalAccuracy(response *rag.RAGResponse) float64 {
 	// Placeholder accuracy calculation
-	if response == nil || len(response.Documents) == 0 {
+	if response == nil || len(response.SourceDocuments) == 0 {
 		return 0.0
 	}
 
 	// Simple accuracy based on similarity scores
 	totalSimilarity := 0.0
-	for _, doc := range response.Documents {
-		totalSimilarity += doc.Similarity
+	for _, doc := range response.SourceDocuments {
+		totalSimilarity += float64(doc.Score)
 	}
 
-	return totalSimilarity / float64(len(response.Documents))
+	return totalSimilarity / float64(len(response.SourceDocuments))
 }
 
 func calculateAccuracyMetrics(accuracyScores []float64) RetrievalAccuracyMetrics {
@@ -1064,12 +1222,12 @@ func calculateContextQuality(response *rag.RAGResponse) float64 {
 		return 0.0
 	}
 
-	// Base quality on context length and document diversity
-	contextLength := len(response.Context)
-	documentCount := len(response.Documents)
+	// Base quality on answer length and document diversity
+	answerLength := len(response.Answer)
+	documentCount := len(response.SourceDocuments)
 
 	qualityScore := 0.5
-	if contextLength > 1000 {
+	if answerLength > 1000 {
 		qualityScore += 0.2
 	}
 	if documentCount > 3 {
@@ -1197,7 +1355,7 @@ func GetDefaultRAGTestConfig() *RAGTestConfig {
 		DetailedReporting:    true,
 		PerformanceProfiling: true,
 
-		TestQueries: []TestQuery{
+		TestQueries: []RAGTestQuery{
 			{
 				ID:         "5g_config_basic",
 				Query:      "How do I configure 5G AMF?",

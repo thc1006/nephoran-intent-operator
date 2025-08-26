@@ -88,77 +88,7 @@ type RecommendationStrategy struct {
 	ValidationCriteria  []ValidationCriterion `json:"validationCriteria"`
 }
 
-// OptimizationCategory represents different categories of optimizations
-type OptimizationCategory string
 
-const (
-	CategoryPerformance        OptimizationCategory = "performance"
-	CategoryResource           OptimizationCategory = "resource"
-	CategoryCost               OptimizationCategory = "cost"
-	CategoryReliability        OptimizationCategory = "reliability"
-	CategorySecurity           OptimizationCategory = "security"
-	CategoryCompliance         OptimizationCategory = "compliance"
-	CategoryMaintenance        OptimizationCategory = "maintenance"
-	CategoryTelecommunications OptimizationCategory = "telecommunications"
-)
-
-// ScenarioCondition defines when a strategy is applicable
-type ScenarioCondition struct {
-	MetricName    string             `json:"metricName"`
-	Operator      ComparisonOperator `json:"operator"`
-	Threshold     float64            `json:"threshold"`
-	ComponentType ComponentType      `json:"componentType"`
-	TimeWindow    time.Duration      `json:"timeWindow"`
-}
-
-// ComparisonOperator defines comparison operators for conditions
-type ComparisonOperator string
-
-const (
-	OperatorGreaterThan  ComparisonOperator = "gt"
-	OperatorLessThan     ComparisonOperator = "lt"
-	OperatorEqual        ComparisonOperator = "eq"
-	OperatorGreaterEqual ComparisonOperator = "gte"
-	OperatorLessEqual    ComparisonOperator = "lte"
-	OperatorBetween      ComparisonOperator = "between"
-)
-
-// ExpectedBenefits defines the expected benefits of implementing a strategy
-type ExpectedBenefits struct {
-	LatencyReduction       float64 `json:"latencyReduction"`
-	ThroughputIncrease     float64 `json:"throughputIncrease"`
-	ResourceSavings        float64 `json:"resourceSavings"`
-	CostSavings            float64 `json:"costSavings"`
-	ReliabilityImprovement float64 `json:"reliabilityImprovement"`
-	EnergyEfficiencyGain   float64 `json:"energyEfficiencyGain"`
-
-	// Telecom-specific benefits
-	SignalingEfficiencyGain float64 `json:"signalingEfficiencyGain"`
-	SpectrumEfficiencyGain  float64 `json:"spectrumEfficiencyGain"`
-	InteropImprovements     float64 `json:"interopImprovements"`
-}
-
-// ImplementationStep defines a step in implementing an optimization
-type ImplementationStep struct {
-	Order           int             `json:"order"`
-	Name            string          `json:"name"`
-	Description     string          `json:"description"`
-	EstimatedTime   time.Duration   `json:"estimatedTime"`
-	RequiredSkills  []string        `json:"requiredSkills"`
-	AutomationLevel AutomationLevel `json:"automationLevel"`
-	ValidationPoint bool            `json:"validationPoint"`
-	RollbackAction  string          `json:"rollbackAction"`
-}
-
-// AutomationLevel defines the level of automation for implementation steps
-type AutomationLevel string
-
-const (
-	AutomationFull     AutomationLevel = "full"
-	AutomationPartial  AutomationLevel = "partial"
-	AutomationManual   AutomationLevel = "manual"
-	AutomationAssisted AutomationLevel = "assisted"
-)
 
 // RiskFactor identifies potential risks of implementing an optimization
 type RecommendationRiskFactor struct {
@@ -254,17 +184,6 @@ const (
 	UrgencyMedium    UrgencyLevel = "medium"
 	UrgencyLow       UrgencyLevel = "low"
 	UrgencyPlanned   UrgencyLevel = "planned"
-)
-
-// SeverityLevel represents severity of issues or impact
-type SeverityLevel string
-
-const (
-	SeverityCritical SeverityLevel = "critical"
-	SeverityHigh     SeverityLevel = "high"
-	SeverityMedium   SeverityLevel = "medium"
-	SeverityLow      SeverityLevel = "low"
-	SeverityInfo     SeverityLevel = "info"
 )
 
 // ImpactLevel represents the level of impact
