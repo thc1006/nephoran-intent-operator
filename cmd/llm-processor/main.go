@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net"
@@ -17,16 +18,18 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/config"
 	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/middleware"
+	"github.com/thc1006/nephoran-intent-operator/pkg/performance"
 	"github.com/thc1006/nephoran-intent-operator/pkg/services"
 )
 
 var (
-	cfg             *config.LLMProcessorConfig
-	logger          *slog.Logger
-	service         *services.LLMProcessorService
-	handler         *handlers.LLMProcessorHandler
-	startTime       = time.Now()
-	postRateLimiter *middleware.PostOnlyRateLimiter // Declare at package level for shutdown
+	cfg                    *config.LLMProcessorConfig
+	logger                 *slog.Logger
+	service                *services.LLMProcessorService
+	handler                *handlers.LLMProcessorHandler
+	performanceIntegrator  *performance.PerformanceIntegrator
+	startTime              = time.Now()
+	postRateLimiter        *middleware.PostOnlyRateLimiter // Declare at package level for shutdown
 )
 
 func main() {
@@ -52,7 +55,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.Info("Starting LLM Processor service",
+	// Initialize performance optimization
+	performanceConfig := performance.DefaultIntegrationConfig()
+	performanceConfig.EnableProfiler = true
+	performanceConfig.EnableCache = true
+	performanceConfig.EnableAsync = true
+	performanceConfig.EnableMonitoring = true
+	performanceConfig.TargetResponseTime = 100 * time.Millisecond
+	performanceConfig.TargetThroughput = 1000.0
+	
+	var err error
+	performanceIntegrator, err = performance.NewPerformanceIntegrator(performanceConfig)
+	if err != nil {
+		logger.Error("Failed to initialize performance integrator", slog.String("error", err.Error()))
+		os.Exit(1)
+	}
+	
+	logger.Info("Starting LLM Processor service with performance optimization",
 		slog.String("version", cfg.ServiceVersion),
 		slog.String("port", cfg.Port),
 		slog.String("backend_type", cfg.LLMBackendType),
@@ -63,15 +82,24 @@ func main() {
 		slog.Bool("rate_limit_enabled", cfg.RateLimitEnabled),
 		slog.Int("rate_limit_qps", cfg.RateLimitQPS),
 		slog.Int("rate_limit_burst", cfg.RateLimitBurstTokens),
+		slog.Bool("performance_optimization", true),
 	)
 
-	// Initialize service components
+	// Initialize service components with performance integration
 	service = services.NewLLMProcessorService(cfg, logger)
 
 	ctx := context.Background()
 	if err := service.Initialize(ctx); err != nil {
 		logger.Error("Failed to initialize service", slog.String("error", err.Error()))
 		os.Exit(1)
+	}
+	
+	// Connect performance components to service
+	if cacheManager := performanceIntegrator.GetCacheManager(); cacheManager != nil {
+		service.SetCacheManager(cacheManager)
+	}
+	if asyncProcessor := performanceIntegrator.GetAsyncProcessor(); asyncProcessor != nil {
+		service.SetAsyncProcessor(asyncProcessor)
 	}
 
 	// Get initialized components
@@ -128,6 +156,14 @@ func main() {
 	if postRateLimiter != nil {
 		logger.Info("Stopping rate limiter...")
 		postRateLimiter.Stop()
+	}
+
+	// Shutdown performance integrator
+	if performanceIntegrator != nil {
+		logger.Info("Shutting down performance integrator...")
+		if err := performanceIntegrator.Shutdown(shutdownCtx); err != nil {
+			logger.Error("Performance integrator shutdown failed", slog.String("error", err.Error()))
+		}
 	}
 
 	// Shutdown service components
@@ -375,21 +411,30 @@ func setupHTTPServer() *http.Server {
 	}
 
 	// Apply middlewares in the correct order:
-	// 1. Request Size Limiter (first, to prevent oversized bodies early)
+	// 1. Performance Middleware (first, for comprehensive monitoring)
+	if performanceIntegrator != nil {
+		router.Use(performanceIntegrator.GetHTTPMiddleware())
+		logger.Info("Performance middleware enabled",
+			slog.Bool("profiling", true),
+			slog.Bool("caching", true),
+			slog.Bool("async_processing", true))
+	}
+
+	// 2. Request Size Limiter (early, to prevent oversized bodies)
 	router.Use(requestSizeLimiter.Middleware)
 
-	// 2. Redact Logger (to log all requests)
+	// 3. Redact Logger (to log all requests)
 	router.Use(redactLogger.Middleware)
 
-	// 3. Security Headers (early, to set headers on all responses)
+	// 4. Security Headers (early, to set headers on all responses)
 	router.Use(securityHeaders.Middleware)
 
-	// 4. CORS (after security headers)
+	// 5. CORS (after security headers)
 	if corsMiddleware != nil {
 		router.Use(corsMiddleware.Middleware)
 	}
 
-	// 5. Rate Limiter (for POST endpoints only, before authentication)
+	// 6. Rate Limiter (for POST endpoints only, before authentication)
 	if postRateLimiter != nil {
 		router.Use(postRateLimiter.Middleware)
 	}
@@ -429,6 +474,35 @@ func setupHTTPServer() *http.Server {
 		Status:               handler.StatusHandler,
 		CircuitBreakerStatus: handler.CircuitBreakerStatusHandler,
 		StreamingHandler:     handler.StreamingHandler,
+	}
+
+	// Add performance monitoring routes (public access for monitoring)
+	if performanceIntegrator != nil {
+		if monitor := performanceIntegrator.GetMonitor(); monitor != nil {
+			// Performance dashboard and API routes are handled by the monitor
+			logger.Info("Performance monitoring endpoints available",
+				slog.String("performance_dashboard", "http://localhost:8090/dashboard"),
+				slog.String("performance_metrics", "http://localhost:8090/metrics"),
+				slog.String("performance_health", "http://localhost:8090/health"),
+				slog.String("performance_profiling", "http://localhost:8090/debug/pprof/"))
+		}
+		
+		// Add performance report endpoint to main service
+		router.HandleFunc("/performance/report", func(w http.ResponseWriter, r *http.Request) {
+			report := performanceIntegrator.GetPerformanceReport()
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(report)
+		}).Methods("GET")
+		
+		// Add performance optimization trigger endpoint
+		router.HandleFunc("/performance/optimize", func(w http.ResponseWriter, r *http.Request) {
+			if err := performanceIntegrator.OptimizePerformance(); err != nil {
+				http.Error(w, fmt.Sprintf("Optimization failed: %v", err), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			fmt.Fprintf(w, `{"status":"optimization_triggered","message":"Performance optimization completed successfully"}`)
+		}).Methods("POST")
 	}
 
 	// Configure ALL routes through the centralized OAuth2Manager
