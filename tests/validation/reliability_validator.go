@@ -544,10 +544,9 @@ func (rv *ReliabilityValidator) testControllerRestartTolerance(ctx context.Conte
 			}
 
 			// If processing progresses, restart tolerance is good
-			if testIntent.Status.Phase == nephranv1.PhaseProcessing ||
-				testIntent.Status.Phase == nephranv1.PhaseResourcePlanning ||
-				testIntent.Status.Phase == nephranv1.PhaseManifestGeneration ||
-				testIntent.Status.Phase == nephranv1.PhaseDeployed {
+			if testIntent.Status.Phase == nephranv1.NetworkIntentPhaseProcessing ||
+				testIntent.Status.Phase == nephranv1.NetworkIntentPhaseReady ||
+				testIntent.Status.Phase == nephranv1.NetworkIntentPhaseCompleted {
 				return true
 			}
 		}

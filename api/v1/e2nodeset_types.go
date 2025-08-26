@@ -253,6 +253,9 @@ type E2NodeSetCondition struct {
 
 // E2NodeSetStatus defines the observed state of E2NodeSet
 type E2NodeSetStatus struct {
+	// Replicas is the current number of replicas (for scale subresource)
+	Replicas int32 `json:"replicas,omitempty"`
+	
 	// ReadyReplicas is the number of E2 Nodes that are ready and connected
 	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
 

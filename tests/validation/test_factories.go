@@ -77,7 +77,7 @@ func (nif *NetworkIntentFactory) CreateBasicNetworkIntent(name, intent string) *
 			Intent: intent,
 		},
 		Status: nephranv1.NetworkIntentStatus{
-			Phase: nephranv1.PhasePending,
+			Phase: nephranv1.NetworkIntentPhasePending,
 		},
 	}
 }
@@ -86,7 +86,7 @@ func (nif *NetworkIntentFactory) CreateBasicNetworkIntent(name, intent string) *
 func (nif *NetworkIntentFactory) CreateProcessingNetworkIntent(name, intent string) *nephranv1.NetworkIntent {
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["test-type"] = "processing"
-	ni.Status.Phase = nephranv1.PhaseProcessing
+	ni.Status.Phase = nephranv1.NetworkIntentPhaseProcessing
 	ni.Status.ProcessingStartTime = &metav1.Time{Time: time.Now().Add(-30 * time.Second)}
 
 	return ni
@@ -96,7 +96,7 @@ func (nif *NetworkIntentFactory) CreateProcessingNetworkIntent(name, intent stri
 func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string) *nephranv1.NetworkIntent {
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["test-type"] = "deployed"
-	ni.Status.Phase = nephranv1.PhaseDeployed
+	ni.Status.Phase = nephranv1.NetworkIntentPhaseCompleted
 	now := metav1.Now()
 	ni.Status.ProcessingStartTime = &metav1.Time{Time: now.Add(-2 * time.Minute)}
 	ni.Status.CompletionTime = &now
@@ -119,7 +119,7 @@ func (nif *NetworkIntentFactory) CreateDeployedNetworkIntent(name, intent string
 func (nif *NetworkIntentFactory) CreateFailedNetworkIntent(name, intent string, errorMsg string) *nephranv1.NetworkIntent {
 	ni := nif.CreateBasicNetworkIntent(name, intent)
 	ni.Labels["test-type"] = "failed"
-	ni.Status.Phase = nephranv1.PhaseFailed
+	ni.Status.Phase = nephranv1.NetworkIntentPhaseFailed
 	now := metav1.Now()
 	ni.Status.ProcessingStartTime = &metav1.Time{Time: now.Add(-1 * time.Minute)}
 	ni.Status.CompletionTime = &now

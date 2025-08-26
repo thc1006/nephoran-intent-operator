@@ -66,14 +66,14 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 	}, 30*time.Second, 1*time.Second).Should(gomega.BeTrue())
 
 	// Verify all processing phases occur
-	expectedPhases := []nephranv1.IntentPhase{
-		nephranv1.PhasePending,
-		nephranv1.PhaseProcessing,
-		nephranv1.PhaseResourcePlanning,
-		nephranv1.PhaseManifestGeneration,
+	expectedPhases := []nephranv1.NetworkIntentPhase{
+		nephranv1.NetworkIntentPhasePending,
+		nephranv1.NetworkIntentPhaseProcessing,
+		nephranv1.NetworkIntentPhaseReady,
+		nephranv1.NetworkIntentPhaseCompleted,
 	}
 
-	phasesObserved := make(map[nephranv1.IntentPhase]bool)
+	phasesObserved := make(map[nephranv1.NetworkIntentPhase]bool)
 
 	// Monitor phase transitions
 	ginkgo.By("Monitoring phase transitions")

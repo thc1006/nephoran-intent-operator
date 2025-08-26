@@ -176,6 +176,15 @@ type NetworkIntentStatus struct {
 	// ProcessingCompletionTime indicates when processing completed
 	ProcessingCompletionTime *metav1.Time `json:"processingCompletionTime,omitempty"`
 	
+	// ProcessingStartTime indicates when processing started
+	ProcessingStartTime *metav1.Time `json:"processingStartTime,omitempty"`
+	
+	// CompletionTime indicates when the intent was completed
+	CompletionTime *metav1.Time `json:"completionTime,omitempty"`
+	
+	// ErrorMessage contains error details if the intent failed
+	ErrorMessage string `json:"errorMessage,omitempty"`
+	
 	// ResourcePlan contains the generated resource deployment plan
 	ResourcePlan *NetworkResourcePlan `json:"resourcePlan,omitempty"`
 	
@@ -189,7 +198,7 @@ type NetworkIntentStatus struct {
 	PackageRevision *PackageRevisionReference `json:"packageRevision,omitempty"`
 	
 	// ProcessingResults contains structured processing results
-	ProcessingResults *runtime.RawExtension `json:"processingResults,omitempty"`
+	ProcessingResults *ProcessingResult `json:"processingResults,omitempty"`
 }
 
 //+kubebuilder:object:root=true
@@ -321,6 +330,24 @@ type ResourceCost struct {
 	
 	// Total estimated cost per hour
 	TotalCostPerHour float64 `json:"totalCostPerHour,omitempty"`
+}
+
+// ProcessingResult contains the results from processing a NetworkIntent
+type ProcessingResult struct {
+	// LLMResponse contains the response from the LLM processing
+	LLMResponse string `json:"llmResponse,omitempty"`
+	
+	// NetworkFunctionType identifies the detected network function type
+	NetworkFunctionType string `json:"networkFunctionType,omitempty"`
+	
+	// DeploymentParameters contains extracted deployment parameters
+	DeploymentParameters map[string]string `json:"deploymentParameters,omitempty"`
+	
+	// ConfidenceScore indicates the confidence level of the processing (0-1)
+	ConfidenceScore float64 `json:"confidenceScore,omitempty"`
+	
+	// ProcessingTime indicates how long the processing took
+	ProcessingTime metav1.Duration `json:"processingTime,omitempty"`
 }
 
 // String returns the string representation of IntentType

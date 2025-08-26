@@ -79,14 +79,14 @@ var _ = Describe("CNF Deployment Integration Tests", func() {
 				Spec: nephoranv1.NetworkIntentSpec{
 					Intent:     "Deploy an AMF function with high availability and auto-scaling for production use",
 					IntentType: nephoranv1.IntentTypeDeployment,
-					Priority:   nephoranv1.PriorityHigh,
-					TargetComponents: []nephoranv1.TargetComponent{
-						nephoranv1.TargetComponentAMF,
+					Priority:   nephoranv1.NetworkPriorityHigh,
+					TargetComponents: []nephoranv1.NetworkTargetComponent{
+						nephoranv1.NetworkTargetComponentAMF,
 					},
-					ResourceConstraints: &nephoranv1.ResourceConstraints{
-						CPU:     mustParseQuantity("1000m"),
-						Memory:  mustParseQuantity("2Gi"),
-						Storage: mustParseQuantity("10Gi"),
+					ResourceConstraints: &nephoranv1.NetworkResourceConstraints{
+						MaxCPU:     "1000m",
+						MaxMemory:  "2Gi",
+						MaxStorage: "10Gi",
 					},
 					TargetNamespace: namespace,
 				},
