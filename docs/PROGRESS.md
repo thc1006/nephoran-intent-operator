@@ -114,3 +114,7 @@ Updates are tracked here in append-only format.
 | 2025-08-26T09:30:57 | feat/e2e | api/v1 | Fixed type errors and compilation issues |
  | feat/e2e | cmd/llm-processor | Fixed LLM interface architecture issues, service buildable
 2025-08-26T10:46:17+08:00 | feat/e2e | cmd/llm-processor | Fixed LLM interface architecture issues, service buildable
+| 2025-08-27T02:49:24.2628366+08:00 | feat/e2e | pkg/services | fix: resolved undefined config symbols in LLM processor service |
+|  | feat/e2e | porch/krm | Fixed Porch/KRM integration compilation errors |
+| 2025-08-27T02:58:33+08:00 | feat/e2e | porch/krm | Fixed Porch/KRM integration compilation errors |
+|  | feat/e2e | llm | AI acceleration components implemented: GPU inference, model caching, vector search |
