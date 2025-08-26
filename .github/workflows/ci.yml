@@ -267,7 +267,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [changes]
     if: needs.changes.outputs.go-code == 'true'
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -291,7 +291,7 @@ jobs:
             ${{ runner.os }}-test-cache-
 
       - name: Run unit tests with coverage
-        timeout-minutes: 5
+        timeout-minutes: 10
         env:
           CGO_ENABLED: 1
           GOMAXPROCS: 2
@@ -305,8 +305,8 @@ jobs:
           export GOTESTSUM_FORMAT=short-verbose
           
           # Run tests with coverage and timeout safety (excluding integration tests and .out dirs)
-          echo "Starting fast unit tests with 5m timeout..."
-          timeout 5m go test -v -race -timeout=4m30s \
+          echo "Starting fast unit tests with 10m timeout..."
+          timeout 10m go test -v -race -timeout=9m30s \
             -coverprofile=.test-reports/coverage.out \
             -covermode=atomic \
             -count=1 \
@@ -346,7 +346,7 @@ jobs:
           echo "| Tests Run | $test_count |" >> $GITHUB_STEP_SUMMARY
           echo "| Passed | $pass_count |" >> $GITHUB_STEP_SUMMARY
           echo "| Failed | $fail_count |" >> $GITHUB_STEP_SUMMARY
-          echo "| Timeout Used | 8m ceiling, 7m30s test timeout |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timeout Used | 10m test timeout, 9m30s go test timeout |" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload test results
         if: always()

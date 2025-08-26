@@ -1369,7 +1369,7 @@ func TestLoadAuthConfigWithCustomPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup test environment
-			customFile, envFile, cleanup := tt.setupEnvironment(t)
+			customFile, _, cleanup := tt.setupEnvironment(t)
 			defer cleanup()
 
 			// Use the actual file paths created by the setup
@@ -1661,5 +1661,27 @@ func TestValidateJWTSecret_WeakSecrets(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// setMultipleEnvVars sets multiple environment variables and returns a cleanup function
+func setMultipleEnvVars(envVars map[string]string) func() {
+	var original = make(map[string]string)
+	
+	// Save original values and set new ones
+	for key, value := range envVars {
+		original[key] = os.Getenv(key)
+		os.Setenv(key, value)
+	}
+	
+	// Return cleanup function
+	return func() {
+		for key, value := range original {
+			if value == "" {
+				os.Unsetenv(key)
+			} else {
+				os.Setenv(key, value)
+			}
+		}
 	}
 }

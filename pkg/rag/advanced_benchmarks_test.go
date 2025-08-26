@@ -148,7 +148,7 @@ func benchmarkDocumentIngestion(b *testing.B, ctx context.Context, ragSystem *En
 	for _, docSize := range documentSizes {
 		b.Run(docSize.name, func(b *testing.B) {
 			// Enhanced memory tracking for ingestion
-			var startMemStats, peakMemStats runtime.MemStats
+			var startMemStats runtime.MemStats
 			runtime.GC()
 			runtime.ReadMemStats(&startMemStats)
 			peakMemory := int64(startMemStats.Alloc)
@@ -185,7 +185,6 @@ func benchmarkDocumentIngestion(b *testing.B, ctx context.Context, ragSystem *En
 				currentAlloc := int64(currentMemStats.Alloc)
 				if currentAlloc > peakMemory {
 					peakMemory = currentAlloc
-					peakMemStats = currentMemStats
 				}
 			}
 
@@ -493,7 +492,7 @@ func benchmarkConcurrentRetrieval(b *testing.B, ctx context.Context, ragSystem *
 // benchmarkMemoryUsageUnderLoad tests memory behavior during sustained load
 func benchmarkMemoryUsageUnderLoad(b *testing.B, ctx context.Context, ragSystem *EnhancedRAGSystem) {
 	// Enhanced memory profiling using Go 1.24+ runtime features
-	var initialMemStats, peakMemStats, finalMemStats runtime.MemStats
+	var initialMemStats, finalMemStats runtime.MemStats
 	var initialGCStats, finalGCStats debug.GCStats
 
 	runtime.GC()
@@ -538,7 +537,6 @@ func benchmarkMemoryUsageUnderLoad(b *testing.B, ctx context.Context, ragSystem 
 
 						if currentAlloc > peakMemory {
 							peakMemory = currentAlloc
-							peakMemStats = memStats
 						}
 					}
 				}
@@ -621,9 +619,8 @@ func benchmarkChunkingEfficiency(b *testing.B, ctx context.Context, ragSystem *E
 	for _, strategy := range chunkingStrategies {
 		b.Run(strategy.name, func(b *testing.B) {
 			chunkConfig := ChunkingConfig{
-				Strategy:  strategy.strategy,
-				ChunkSize: strategy.chunkSize,
-				Overlap:   strategy.overlap,
+				ChunkSize:    strategy.chunkSize,
+				ChunkOverlap: strategy.overlap,
 			}
 
 			var totalChunks, totalTokens int64
@@ -648,7 +645,7 @@ func benchmarkChunkingEfficiency(b *testing.B, ctx context.Context, ragSystem *E
 
 					for _, chunk := range chunks {
 						chunkingSizes = append(chunkingSizes, len(chunk.Content))
-						atomic.AddInt64(&totalTokens, int64(chunk.TokenCount))
+						atomic.AddInt64(&totalTokens, int64(chunk.WordCount))
 					}
 				}
 			}
@@ -877,16 +874,16 @@ func setupBenchmarkRAGSystem() *EnhancedRAGSystem {
 			Index:      "telecom-benchmark",
 			Dimensions: 1536,
 		},
-		Embedding: EmbeddingConfig{
+		Embedding: EmbeddingConfigTest{
 			Provider: "openai",
 			Model:    "text-embedding-3-small",
 		},
-		Cache: CacheConfig{
+		Cache: CacheConfigTest{
 			Enabled: true,
 			MaxSize: 1000,
 			TTL:     time.Minute * 10,
 		},
-		ConnectionPool: ConnectionPoolConfig{
+		ConnectionPool: ConnectionPoolConfigTest{
 			MaxConnections: 50,
 			MaxIdle:        10,
 			IdleTimeout:    time.Minute * 5,
@@ -971,14 +968,14 @@ func NewEnhancedRAGSystem(config RAGSystemConfig) *EnhancedRAGSystem {
 
 func (r *EnhancedRAGSystem) Cleanup() {}
 func (r *EnhancedRAGSystem) RetrieveDocuments(ctx context.Context, query string, config RetrievalConfig) ([]SearchResult, error) {
-	return []SearchResult{{Similarity: 0.8}}, nil
+	return []SearchResult{{Score: 0.8}}, nil
 }
 func (r *EnhancedRAGSystem) IsFromCache(query string) bool { return false }
 func (r *EnhancedRAGSystem) IngestDocument(ctx context.Context, doc Document) (*IngestionResult, error) {
 	return &IngestionResult{ChunksCreated: 5, TokensProcessed: 1000}, nil
 }
 func (r *EnhancedRAGSystem) AdvancedSearch(ctx context.Context, query string, config SearchConfig) ([]SearchResult, error) {
-	return []SearchResult{{Similarity: 0.8}}, nil
+	return []SearchResult{{Score: 0.8}}, nil
 }
 func (r *EnhancedRAGSystem) RerankResults(results []SearchResult, query string) {}
 func (r *EnhancedRAGSystem) GenerateContext(ctx context.Context, query string, config ContextConfig) (*GeneratedContext, error) {
@@ -993,7 +990,7 @@ func (r *EnhancedRAGSystem) GenerateEmbeddings(ctx context.Context, texts []stri
 }
 func (r *EnhancedRAGSystem) UsedConnectionPool() bool { return true }
 func (r *EnhancedRAGSystem) ChunkDocument(doc Document, config ChunkingConfig) ([]DocumentChunk, error) {
-	return []DocumentChunk{{Content: "chunk", TokenCount: 100}}, nil
+	return []DocumentChunk{{Content: "chunk", WordCount: 100}}, nil
 }
 
 // SearchResult type is already defined in enhanced_rag_integration.go

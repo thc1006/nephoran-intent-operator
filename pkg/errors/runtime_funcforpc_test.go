@@ -138,13 +138,18 @@ func TestStackTraceSafety(t *testing.T) {
 
 	// Ensure all stack entries are properly formatted and don't contain panic indicators
 	for i, entry := range stack {
-		if entry == "" {
-			t.Errorf("Stack entry %d should not be empty", i)
+		if entry.File == "" || entry.Function == "" {
+			t.Errorf("Stack entry %d should not have empty file or function", i)
 		}
 
-		// Should contain file:line format
-		if len(entry) < 3 || !containsColon(entry) {
-			t.Errorf("Stack entry %d should be properly formatted: %s", i, entry)
+		if entry.Line <= 0 {
+			t.Errorf("Stack entry %d should have valid line number: %d", i, entry.Line)
+		}
+
+		// Check that the string representation contains file:line format
+		entryStr := entry.String()
+		if len(entryStr) < 3 || !containsColon(entryStr) {
+			t.Errorf("Stack entry %d should be properly formatted: %s", i, entryStr)
 		}
 	}
 }

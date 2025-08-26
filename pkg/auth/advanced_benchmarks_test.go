@@ -402,9 +402,9 @@ func benchmarkSessionManagement(b *testing.B, ctx context.Context, authSystem *E
 		b.Run(scenario.name, func(b *testing.B) {
 			// Configure session management
 			sessionConfig := SessionConfig{
-				TTL:             scenario.sessionTTL,
-				StorageBackend:  scenario.storageBackend,
-				CleanupInterval: time.Minute * 5,
+				SessionTimeout:   scenario.sessionTTL,
+				RefreshThreshold: time.Minute * 5,
+				MaxSessions:      1000,
 			}
 
 			authSystem.ConfigureSessionManagement(sessionConfig)
@@ -507,7 +507,7 @@ func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSy
 			var successCount, errorCount int64
 
 			// Enhanced memory tracking for concurrent operations
-			var startMemStats, peakMemStats runtime.MemStats
+			var startMemStats runtime.MemStats
 			runtime.GC()
 			runtime.ReadMemStats(&startMemStats)
 			peakMemory := int64(startMemStats.Alloc)
@@ -540,8 +540,8 @@ func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSy
 							Provider:    "github",
 						}
 						_, err = authSystem.ExchangeOAuth2Token(ctx, oauth2Token, OAuth2Config{
-							Provider: "github",
-							ClientID: "test-client",
+							DefaultScopes: []string{"read:user"},
+							TokenTTL:      time.Hour,
 						})
 						atomic.AddInt64(&oauth2Exchanges, 1)
 					}
@@ -561,7 +561,6 @@ func benchmarkConcurrentAuthentication(b *testing.B, ctx context.Context, authSy
 					currentAlloc := int64(currentMemStats.Alloc)
 					if currentAlloc > peakMemory {
 						peakMemory = currentAlloc
-						peakMemStats = currentMemStats
 					}
 
 					localIterations++
@@ -812,10 +811,11 @@ func generateJWTTokens(algorithm string, keySize int, claimsCount int, expiry ti
 
 func setupRBACConfiguration(roleCount, permissionCount, resourceTypes, userGroups, hierarchyDepth int) RBACConfig {
 	return RBACConfig{
-		Roles:          generateRoles(roleCount, permissionCount),
-		Permissions:    generatePermissions(permissionCount, resourceTypes),
-		UserGroups:     generateUserGroups(userGroups),
-		HierarchyDepth: hierarchyDepth,
+		Enabled:       true,
+		DefaultRole:   "user",
+		Permissions:   make(map[string][]string),
+		RoleMapping:   make(map[string][]string),
+		GroupMapping:  make(map[string][]string),
 	}
 }
 
@@ -1038,21 +1038,20 @@ func min(a, b int) int {
 
 func setupBenchmarkAuthSystem() *EnhancedAuthSystem {
 	config := AuthSystemConfig{
-		JWTConfig: JWTConfig{
+		JWTConfig: BenchmarkJWTConfig{
 			SigningMethod: "RS256",
 			KeySize:       2048,
 		},
-		LDAPConfig: providers.LDAPConfig{
+		LDAPConfig: BenchmarkLDAPConfig{
 			Host:   "localhost:389",
 			BaseDN: "dc=example,dc=com",
 		},
-		OAuth2Providers: []OAuth2Config{
-			{DefaultScopes: []string{"read:user"}, TokenTTL: time.Hour},
-			{DefaultScopes: []string{"openid", "profile"}, TokenTTL: time.Hour},
+		OAuth2Providers: []BenchmarkOAuth2Config{
+			{Scopes: []string{"read:user"}},
+			{Scopes: []string{"openid", "profile"}},
 		},
-		SessionConfig: SessionConfig{
-			SessionTimeout: time.Hour,
-			MaxSessions:    1000,
+		SessionConfig: BenchmarkSessionConfig{
+			TTL:        time.Hour,
 		},
 	}
 
@@ -1279,7 +1278,7 @@ func (a *EnhancedAuthSystem) ExchangeOAuth2Token(ctx context.Context, token OAut
 	return &OAuth2ExchangeResult{
 		Success:         true,
 		ValidationTime:  10 * time.Millisecond,
-		ScopesValidated: len(config.Scopes),
+		ScopesValidated: len(config.DefaultScopes),
 	}, nil
 }
 

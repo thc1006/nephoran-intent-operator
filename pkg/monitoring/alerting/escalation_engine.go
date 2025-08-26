@@ -871,6 +871,117 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 // - Policy management methods
 // - Statistics and metrics calculation
 
+// escalationMonitor monitors active escalations for progression
+func (ee *EscalationEngine) escalationMonitor(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			// Check for escalations that need progression
+			ee.checkEscalationProgression(ctx)
+		}
+	}
+}
+
+// autoResolutionMonitor checks for automatic resolution conditions
+func (ee *EscalationEngine) autoResolutionMonitor(ctx context.Context) {
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			// Check for auto-resolution conditions
+			ee.checkAutoResolution(ctx)
+		}
+	}
+}
+
+// metricsUpdateLoop periodically updates escalation metrics
+func (ee *EscalationEngine) metricsUpdateLoop(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			// Update escalation metrics
+			ee.updateEscalationMetrics(ctx)
+		}
+	}
+}
+
+// executeEscalationAction executes specific escalation actions
+func (ee *EscalationEngine) executeEscalationAction(ctx context.Context, escalation *ActiveEscalation, action EscalationAction, level int) error {
+	ee.logger.InfoWithContext(fmt.Sprintf("Executing escalation action %s for alert %s at level %d", 
+		action.Type, escalation.AlertID, level))
+	
+	switch action.Type {
+	case "notification":
+		return ee.sendNotification(ctx, escalation, action.Parameters)
+	case "ticket":
+		return ee.createTicket(ctx, escalation, action.Parameters)
+	case "webhook":
+		return ee.callWebhook(ctx, escalation, action.Parameters)
+	default:
+		return fmt.Errorf("unknown escalation action type: %s", action.Type)
+	}
+}
+
+// notifyStakeholder sends notifications to stakeholders
+func (ee *EscalationEngine) notifyStakeholder(ctx context.Context, escalation *ActiveEscalation, stakeholder StakeholderReference, level int) error {
+	ee.logger.InfoWithContext(fmt.Sprintf("Notifying stakeholder %s for alert %s at level %d", 
+		stakeholder.Identifier, escalation.AlertID, level))
+	
+	// Implementation would send notifications via email, SMS, etc.
+	return nil
+}
+
+// scheduleNextEscalation schedules the next escalation level
+func (ee *EscalationEngine) scheduleNextEscalation(ctx context.Context, escalation *ActiveEscalation, levelConfig EscalationLevel) {
+	nextTime := time.Now().Add(levelConfig.Delay)
+	ee.logger.InfoWithContext(fmt.Sprintf("Scheduling next escalation for alert %s at %v", 
+		escalation.AlertID, nextTime))
+	
+	// Implementation would schedule the next escalation
+}
+
+// Helper methods for escalation monitoring
+func (ee *EscalationEngine) checkEscalationProgression(ctx context.Context) {
+	// Check active escalations and progress them as needed
+}
+
+func (ee *EscalationEngine) checkAutoResolution(ctx context.Context) {
+	// Check if any active escalations can be auto-resolved
+}
+
+func (ee *EscalationEngine) updateEscalationMetrics(ctx context.Context) {
+	// Update metrics for escalation monitoring
+}
+
+func (ee *EscalationEngine) sendNotification(ctx context.Context, escalation *ActiveEscalation, parameters map[string]string) error {
+	// Send notification implementation
+	return nil
+}
+
+func (ee *EscalationEngine) createTicket(ctx context.Context, escalation *ActiveEscalation, parameters map[string]string) error {
+	// Create ticket implementation
+	return nil
+}
+
+func (ee *EscalationEngine) callWebhook(ctx context.Context, escalation *ActiveEscalation, parameters map[string]string) error {
+	// Call webhook implementation
+	return nil
+}
+
 // Helper methods for configuration loading and management
 func (ee *EscalationEngine) loadDefaultEscalationPolicies() {
 	// Load default escalation policies for different SLA types and severities
