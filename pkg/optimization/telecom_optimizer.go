@@ -18,8 +18,6 @@ package optimization
 
 import (
 	"context"
-	"fmt"
-	"math"
 	"strings"
 	"time"
 

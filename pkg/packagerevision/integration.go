@@ -259,7 +259,7 @@ func (r *NetworkIntentPackageReconciler) initializeIntent(ctx context.Context, i
 
 	// Update status to pending
 	intent.Status.Phase = nephoranv1.NetworkIntentPhasePending
-	intent.Status.Message = "Initializing intent processing"
+	intent.Status.LastMessage = "Initializing intent processing"
 
 	return ctrl.Result{RequeueAfter: time.Second}, nil
 }
@@ -272,7 +272,7 @@ func (r *NetworkIntentPackageReconciler) handlePendingIntent(ctx context.Context
 	if status.PackageReference != nil {
 		// PackageRevision exists, move to processing
 		intent.Status.Phase = nephoranv1.NetworkIntentPhaseProcessing
-		intent.Status.Message = "PackageRevision exists, processing intent"
+		intent.Status.LastMessage = "PackageRevision exists, processing intent"
 		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
@@ -280,7 +280,7 @@ func (r *NetworkIntentPackageReconciler) handlePendingIntent(ctx context.Context
 	packageRevision, err := r.PackageManager.CreateFromIntent(ctx, intent)
 	if err != nil {
 		intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
-		intent.Status.Message = fmt.Sprintf("Failed to create PackageRevision: %v", err)
+		intent.Status.LastMessage = fmt.Sprintf("Failed to create PackageRevision: %v", err)
 		return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, err
 	}
 
@@ -304,7 +304,7 @@ func (r *NetworkIntentPackageReconciler) handlePendingIntent(ctx context.Context
 
 	// Move to processing phase
 	intent.Status.Phase = nephoranv1.NetworkIntentPhaseProcessing
-	intent.Status.Message = fmt.Sprintf("PackageRevision created: %s", status.PackageReference.GetPackageKey())
+	intent.Status.LastMessage = fmt.Sprintf("PackageRevision created: %s", status.PackageReference.GetPackageKey())
 
 	r.Logger.Info("PackageRevision created successfully",
 		"intent", intent.Name,
@@ -328,7 +328,7 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 		if err != nil {
 			if !r.Config.ContinueOnValidationError {
 				intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
-				intent.Status.Message = fmt.Sprintf("YANG validation failed: %v", err)
+				intent.Status.LastMessage = fmt.Sprintf("YANG validation failed: %v", err)
 				return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, err
 			}
 			r.Logger.Error(err, "YANG validation failed but continuing", "intent", intent.Name)
@@ -341,7 +341,7 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 		transitionResult, err := r.promotePackage(ctx, intent, status, porch.PackageRevisionLifecycleProposed)
 		if err != nil {
 			intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
-			intent.Status.Message = fmt.Sprintf("Failed to promote to Proposed: %v", err)
+			intent.Status.LastMessage = fmt.Sprintf("Failed to promote to Proposed: %v", err)
 			return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, err
 		}
 
@@ -358,14 +358,14 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 		if status.ApprovalStatus == nil || status.ApprovalStatus.Status == "pending" {
 			// Approval workflow is pending
 			intent.Status.Phase = nephoranv1.NetworkIntentPhaseProcessing
-			intent.Status.Message = fmt.Sprintf("Waiting for approvals (%d/%d required)",
+			intent.Status.LastMessage = fmt.Sprintf("Waiting for approvals (%d/%d required)",
 				r.getReceivedApprovals(status), r.Config.RequiredApprovals)
 			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 		}
 
 		if status.ApprovalStatus.Status == "rejected" {
 			intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
-			intent.Status.Message = "Intent rejected during approval workflow"
+			intent.Status.LastMessage = "Intent rejected during approval workflow"
 			return ctrl.Result{}, nil
 		}
 	}
@@ -378,7 +378,7 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 		transitionResult, err := r.promotePackage(ctx, intent, status, porch.PackageRevisionLifecyclePublished)
 		if err != nil {
 			intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
-			intent.Status.Message = fmt.Sprintf("Failed to promote to Published: %v", err)
+			intent.Status.LastMessage = fmt.Sprintf("Failed to promote to Published: %v", err)
 			return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, err
 		}
 
@@ -387,7 +387,7 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 
 		// Move to deploying phase
 		intent.Status.Phase = nephoranv1.NetworkIntentPhaseDeploying
-		intent.Status.Message = "Package published, starting deployment"
+		intent.Status.LastMessage = "Package published, starting deployment"
 
 		r.Logger.Info("Package promoted to Published",
 			"intent", intent.Name,
@@ -399,7 +399,7 @@ func (r *NetworkIntentPackageReconciler) handleProcessingIntent(ctx context.Cont
 	// If package is published but we're still in processing, move to deploying
 	if status.PackageLifecycle == porch.PackageRevisionLifecyclePublished {
 		intent.Status.Phase = nephoranv1.NetworkIntentPhaseDeploying
-		intent.Status.Message = "Package published, starting deployment"
+		intent.Status.LastMessage = "Package published, starting deployment"
 		return ctrl.Result{RequeueAfter: time.Second}, nil
 	}
 
@@ -425,7 +425,7 @@ func (r *NetworkIntentPackageReconciler) handleDeployingIntent(ctx context.Conte
 	switch deploymentStatus {
 	case "deployed":
 		intent.Status.Phase = nephoranv1.NetworkIntentPhaseActive
-		intent.Status.Message = "Intent successfully deployed"
+		intent.Status.LastMessage = "Intent successfully deployed"
 		r.Logger.Info("NetworkIntent deployment completed",
 			"intent", intent.Name,
 			"package", status.PackageReference.GetPackageKey())
@@ -433,15 +433,15 @@ func (r *NetworkIntentPackageReconciler) handleDeployingIntent(ctx context.Conte
 
 	case "failed":
 		intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
-		intent.Status.Message = "Deployment failed"
+		intent.Status.LastMessage = "Deployment failed"
 		return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, nil
 
 	case "pending", "deploying":
-		intent.Status.Message = "Deployment in progress"
+		intent.Status.LastMessage = "Deployment in progress"
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 
 	default:
-		intent.Status.Message = fmt.Sprintf("Unknown deployment status: %s", deploymentStatus)
+		intent.Status.LastMessage = fmt.Sprintf("Unknown deployment status: %s", deploymentStatus)
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 }
@@ -456,7 +456,7 @@ func (r *NetworkIntentPackageReconciler) handleActiveIntent(ctx context.Context,
 		if err != nil {
 			r.Logger.Error(err, "Failed to detect configuration drift", "intent", intent.Name)
 		} else if driftResult.HasDrift {
-			intent.Status.Message = fmt.Sprintf("Configuration drift detected (severity: %s)", driftResult.Severity)
+			intent.Status.LastMessage = fmt.Sprintf("Configuration drift detected (severity: %s)", driftResult.Severity)
 			r.Logger.Info("Configuration drift detected",
 				"intent", intent.Name,
 				"severity", driftResult.Severity,
@@ -467,7 +467,7 @@ func (r *NetworkIntentPackageReconciler) handleActiveIntent(ctx context.Context,
 				if err := r.PackageManager.CorrectConfigurationDrift(ctx, status.PackageReference, driftResult); err != nil {
 					r.Logger.Error(err, "Failed to correct configuration drift", "intent", intent.Name)
 				} else {
-					intent.Status.Message = "Configuration drift auto-corrected"
+					intent.Status.LastMessage = "Configuration drift auto-corrected"
 					r.Logger.Info("Configuration drift auto-corrected", "intent", intent.Name)
 				}
 			}
@@ -491,14 +491,14 @@ func (r *NetworkIntentPackageReconciler) handleFailedIntent(ctx context.Context,
 
 		// Reset to pending for retry
 		intent.Status.Phase = nephoranv1.NetworkIntentPhasePending
-		intent.Status.Message = fmt.Sprintf("Retrying intent processing (attempt %d/%d)",
+		intent.Status.LastMessage = fmt.Sprintf("Retrying intent processing (attempt %d/%d)",
 			status.ErrorCount+1, r.Config.FailureRetryCount)
 
 		return ctrl.Result{RequeueAfter: r.Config.FailureRetryInterval}, nil
 	}
 
 	// Max retries exceeded, keep in failed state
-	intent.Status.Message = fmt.Sprintf("Intent failed after %d attempts. Last error: %s",
+	intent.Status.LastMessage = fmt.Sprintf("Intent failed after %d attempts. Last error: %s",
 		r.Config.FailureRetryCount, status.LastError)
 
 	return ctrl.Result{RequeueAfter: 5 * time.Minute}, nil

@@ -80,27 +80,6 @@ type PipelineConfig struct {
 	DetailedLogging bool `json:"detailedLogging" yaml:"detailedLogging"`
 }
 
-// PipelineDefinition defines the structure of a KRM function pipeline
-type PipelineDefinition struct {
-	// Metadata
-	Name        string            `json:"name" yaml:"name"`
-	Version     string            `json:"version" yaml:"version"`
-	Description string            `json:"description,omitempty" yaml:"description,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	Annotations map[string]string `json:"annotations,omitempty" yaml:"annotations,omitempty"`
-
-	// Pipeline structure
-	Stages     []*PipelineStage    `json:"stages" yaml:"stages"`
-	Variables  map[string]Variable `json:"variables,omitempty" yaml:"variables,omitempty"`
-	Conditions []*Condition        `json:"conditions,omitempty" yaml:"conditions,omitempty"`
-
-	// Execution settings
-	Execution *ExecutionSettings `json:"execution,omitempty" yaml:"execution,omitempty"`
-	Rollback  *RollbackSettings  `json:"rollback,omitempty" yaml:"rollback,omitempty"`
-
-	// O-RAN and telecom specific
-	TelecomProfile *TelecomProfile `json:"telecomProfile,omitempty" yaml:"telecomProfile,omitempty"`
-}
 
 // PipelineStage represents a stage in the pipeline
 type PipelineStage struct {
@@ -433,14 +412,14 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 
 	// Initialize metrics
 	metrics := &PipelineMetrics{
-		PipelineExecutions: *promauto.NewCounterVec(
+		PipelineExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_pipeline_executions_total",
 				Help: "Total number of pipeline executions",
 			},
 			[]string{"pipeline", "status"},
 		),
-		ExecutionDuration: *promauto.NewHistogramVec(
+		ExecutionDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_pipeline_execution_duration_seconds",
 				Help:    "Duration of pipeline executions",
@@ -448,14 +427,14 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 			},
 			[]string{"pipeline"},
 		),
-		StageExecutions: *promauto.NewCounterVec(
+		StageExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_pipeline_stage_executions_total",
 				Help: "Total number of stage executions",
 			},
 			[]string{"pipeline", "stage", "status"},
 		),
-		StageDuration: *promauto.NewHistogramVec(
+		StageDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_pipeline_stage_duration_seconds",
 				Help:    "Duration of stage executions",
@@ -463,14 +442,14 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 			},
 			[]string{"pipeline", "stage"},
 		),
-		FunctionExecutions: *promauto.NewCounterVec(
+		FunctionExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_pipeline_function_executions_total",
 				Help: "Total number of function executions in pipelines",
 			},
 			[]string{"pipeline", "stage", "function", "status"},
 		),
-		FunctionDuration: *promauto.NewHistogramVec(
+		FunctionDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_pipeline_function_duration_seconds",
 				Help:    "Duration of function executions in pipelines",
@@ -478,14 +457,14 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 			},
 			[]string{"pipeline", "stage", "function"},
 		),
-		ErrorRate: *promauto.NewCounterVec(
+		ErrorRate: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_pipeline_errors_total",
 				Help: "Total number of pipeline execution errors",
 			},
 			[]string{"pipeline", "stage", "error_type"},
 		),
-		RetryCount: *promauto.NewCounterVec(
+		RetryCount: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_pipeline_retries_total",
 				Help: "Total number of execution retries",
@@ -504,7 +483,7 @@ func NewPipeline(config *PipelineConfig, runtime *Runtime, registry *Registry) (
 				Help: "Number of active pipeline executions",
 			},
 		),
-		CheckpointOperations: *promauto.NewCounterVec(
+		CheckpointOperations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_pipeline_checkpoint_operations_total",
 				Help: "Total number of checkpoint operations",
@@ -1337,6 +1316,3 @@ func validatePipelineConfig(config *PipelineConfig) error {
 	return nil
 }
 
-func generateExecutionID() string {
-	return fmt.Sprintf("exec-%d", time.Now().UnixNano())
-}

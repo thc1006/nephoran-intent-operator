@@ -447,7 +447,7 @@ func (sm *StateManager) updateKubernetesState(ctx context.Context, namespacedNam
 	}
 
 	// Update intent status based on state
-	intent.Status.Phase = string(state.CurrentPhase)
+	intent.Status.Phase = ProcessingPhaseToNetworkIntentPhase(state.CurrentPhase)
 
 	// Update last message from conditions if available
 	if len(state.Conditions) > 0 {

@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	goruntime "runtime"
 	"time"
+
+	"k8s.io/apimachinery/pkg/runtime"
 
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/client-go/discovery"
@@ -287,10 +288,18 @@ func waitForAPIServerReadyEnhanced(cfg *rest.Config, timeout time.Duration) erro
 }
 
 // createTestScheme creates a test runtime scheme
-func createTestScheme(schemeBuilders []func(*goruntime.Scheme) error) *goruntime.Scheme {
-	// This would implement scheme creation logic
-	// For now, returning nil to indicate we need the original function
-	return nil
+func createTestScheme(schemeBuilders []func(*runtime.Scheme) error) *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	
+	// Apply all scheme builders
+	for _, builder := range schemeBuilders {
+		if err := builder(scheme); err != nil {
+			// Log error but continue
+			fmt.Printf("Warning: Failed to add to scheme: %v\n", err)
+		}
+	}
+	
+	return scheme
 }
 
 // EnhancedTestEnvironmentOptions returns options optimized for environments with potential binary issues

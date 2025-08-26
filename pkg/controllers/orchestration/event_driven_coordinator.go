@@ -318,10 +318,10 @@ func (edc *EventDrivenCoordinator) handleConflictDetected(ctx context.Context, e
 	edc.mutex.Lock()
 	if coordCtx, exists := edc.coordinationContexts[event.IntentID]; exists {
 		conflict := Conflict{
-			ID:        conflictID,
-			Type:      event.Data["type"].(string),
-			IntentID1: event.IntentID,
-			Timestamp: time.Now(),
+			ID:              conflictID,
+			Type:            event.Data["type"].(string),
+			InvolvedIntents: []string{event.IntentID},
+			DetectedAt:      time.Now(),
 		}
 		coordCtx.Conflicts = append(coordCtx.Conflicts, conflict)
 	}

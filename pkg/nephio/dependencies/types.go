@@ -65,39 +65,7 @@ type CyclicDependency struct {
 	Resolution  string        `json:"resolution,omitempty"`
 }
 
-// GraphMetrics contains graph-level metrics
-type GraphMetrics struct {
-	Density             float64 `json:"density"`
-	AveragePathLength   float64 `json:"averagePathLength"`
-	ClusteringCoefficient float64 `json:"clusteringCoefficient"`
-	Centrality          map[string]float64 `json:"centrality,omitempty"`
-}
 
-// GraphNode represents a node in the dependency graph
-type GraphNode struct {
-	ID           string                 `json:"id"`
-	Name         string                 `json:"name"`
-	Version      string                 `json:"version,omitempty"`
-	Type         string                 `json:"type"`
-	Dependencies []string               `json:"dependencies,omitempty"`
-	Dependents   []string               `json:"dependents,omitempty"`
-	Metadata     map[string]interface{} `json:"metadata,omitempty"`
-	Properties   *NodeProperties        `json:"properties,omitempty"`
-}
-
-// NodeProperties contains node-specific properties
-type NodeProperties struct {
-	Size        int64     `json:"size,omitempty"`
-	LastUpdated time.Time `json:"lastUpdated,omitempty"`
-	License     string    `json:"license,omitempty"`
-	Homepage    string    `json:"homepage,omitempty"`
-	Description string    `json:"description,omitempty"`
-	Maintainers []string  `json:"maintainers,omitempty"`
-	Tags        []string  `json:"tags,omitempty"`
-	Critical    bool      `json:"critical,omitempty"`
-	Deprecated  bool      `json:"deprecated,omitempty"`
-	Security    *SecurityInfo `json:"security,omitempty"`
-}
 
 // SecurityInfo contains security-related information
 type SecurityInfo struct {
@@ -360,13 +328,6 @@ type CostBreakdown struct {
 	CustomBreakdown map[string]float64 `json:"customBreakdown,omitempty"`
 }
 
-// CostTrend represents cost trend over time
-type CostTrend struct {
-	Period      *TimePeriod `json:"period"`
-	Cost        float64     `json:"cost"`
-	GrowthRate  float64     `json:"growthRate"`
-	Factors     []string    `json:"factors,omitempty"`
-}
 
 // CostOptimization represents a cost optimization opportunity
 type CostOptimization struct {
@@ -397,6 +358,352 @@ type CostScenario struct {
 	Cost        float64 `json:"cost"`
 	Probability float64 `json:"probability"`
 	Factors     []string `json:"factors,omitempty"`
+}
+
+// Usage analysis types
+
+// UsagePattern represents usage patterns for packages
+type UsagePattern struct {
+	Pattern     string    `json:"pattern"`
+	Frequency   int64     `json:"frequency"`
+	TimeRange   *TimePeriod `json:"timeRange"`
+	Description string    `json:"description,omitempty"`
+}
+
+// PeakUsageTime represents peak usage time periods
+type PeakUsageTime struct {
+	StartTime   time.Time `json:"startTime"`
+	EndTime     time.Time `json:"endTime"`
+	Usage       int64     `json:"usage"`
+	Description string    `json:"description,omitempty"`
+}
+
+// SeasonalPattern represents seasonal usage patterns
+type SeasonalPattern struct {
+	Season      string    `json:"season"`
+	Multiplier  float64   `json:"multiplier"`
+	StartDate   time.Time `json:"startDate"`
+	EndDate     time.Time `json:"endDate"`
+	Description string    `json:"description,omitempty"`
+}
+
+// UsageRanking represents package usage rankings
+type UsageRanking struct {
+	PackageName string  `json:"packageName"`
+	UsageCount  int64   `json:"usageCount"`
+	Rank        int     `json:"rank"`
+	Score       float64 `json:"score,omitempty"`
+}
+
+// TrendingPackage represents trending packages
+type TrendingPackage struct {
+	PackageName string  `json:"packageName"`
+	GrowthRate  float64 `json:"growthRate"`
+	UsageCount  int64   `json:"usageCount"`
+	TrendScore  float64 `json:"trendScore"`
+	Period      *TimePeriod `json:"period"`
+}
+
+// UnusedPackage represents packages that are not being used
+type UnusedPackage struct {
+	PackageName     string    `json:"packageName"`
+	LastUsed        time.Time `json:"lastUsed"`
+	DaysUnused      int       `json:"daysUnused"`
+	RecommendAction string    `json:"recommendAction,omitempty"`
+}
+
+// UnderutilizedPackage represents packages with low utilization
+type UnderutilizedPackage struct {
+	PackageName        string  `json:"packageName"`
+	UtilizationRate    float64 `json:"utilizationRate"`
+	ExpectedUtilization float64 `json:"expectedUtilization"`
+	RecommendAction    string  `json:"recommendAction,omitempty"`
+}
+
+// Additional analysis types
+
+// UsageOptimization represents a usage optimization recommendation
+type UsageOptimization struct {
+	ID             string  `json:"id"`
+	Type           string  `json:"type"`
+	Description    string  `json:"description"`
+	Priority       string  `json:"priority"` // high, medium, low
+	PotentialSavings float64 `json:"potentialSavings,omitempty"`
+}
+
+// Cost represents monetary cost
+type Cost struct {
+	Amount   float64 `json:"amount"`
+	Currency string  `json:"currency"`
+	Period   string  `json:"period,omitempty"` // monthly, yearly, etc.
+}
+
+// PackageCost represents cost associated with a specific package
+type PackageCost struct {
+	PackageName string  `json:"packageName"`
+	Cost        *Cost   `json:"cost"`
+	UsageCount  int64   `json:"usageCount"`
+	CostPerUse  float64 `json:"costPerUse,omitempty"`
+}
+
+// CostOptimizationOpportunity represents a cost optimization opportunity
+type CostOptimizationOpportunity struct {
+	ID               string  `json:"id"`
+	Type             string  `json:"type"`
+	Description      string  `json:"description"`
+	PotentialSavings *Cost   `json:"potentialSavings"`
+	ImplementationEffort string `json:"implementationEffort"` // low, medium, high
+	Priority         string  `json:"priority"`
+}
+
+// CostBenchmarkComparison represents comparison against benchmarks
+type CostBenchmarkComparison struct {
+	BenchmarkType string  `json:"benchmarkType"`
+	YourCost      *Cost   `json:"yourCost"`
+	BenchmarkCost *Cost   `json:"benchmarkCost"`
+	Variance      float64 `json:"variance"` // percentage difference
+	Rating        string  `json:"rating"`   // excellent, good, average, poor
+}
+
+// Health analysis types
+
+// SecurityHealth represents security health metrics
+type SecurityHealth struct {
+	Score                float64                `json:"score"`
+	VulnerabilityCount   int                    `json:"vulnerabilityCount"`
+	CriticalVulnerabilities int                 `json:"criticalVulnerabilities"`
+	LastSecurityScan     time.Time              `json:"lastSecurityScan"`
+	SecurityIssues       []*SecurityIssue       `json:"securityIssues,omitempty"`
+}
+
+// MaintenanceHealth represents maintenance health metrics
+type MaintenanceHealth struct {
+	Score               float64   `json:"score"`
+	OutdatedPackages    int       `json:"outdatedPackages"`
+	DeprecatedPackages  int       `json:"deprecatedPackages"`
+	LastMaintenance     time.Time `json:"lastMaintenance"`
+	MaintenanceIssues   []string  `json:"maintenanceIssues,omitempty"`
+}
+
+// QualityHealth represents code quality health metrics
+type QualityHealth struct {
+	Score           float64  `json:"score"`
+	CodeCoverage    float64  `json:"codeCoverage"`
+	TestsCount      int      `json:"testsCount"`
+	LintingIssues   int      `json:"lintingIssues"`
+	QualityIssues   []string `json:"qualityIssues,omitempty"`
+}
+
+// PerformanceHealth represents performance health metrics
+type PerformanceHealth struct {
+	Score              float64  `json:"score"`
+	ResponseTime       float64  `json:"responseTime"`
+	ThroughputScore    float64  `json:"throughputScore"`
+	ResourceUsage      float64  `json:"resourceUsage"`
+	PerformanceIssues  []string `json:"performanceIssues,omitempty"`
+}
+
+// SecurityIssue represents a security issue
+type SecurityIssue struct {
+	ID          string    `json:"id"`
+	Severity    string    `json:"severity"`
+	Description string    `json:"description"`
+	Package     string    `json:"package"`
+	FixAvailable bool     `json:"fixAvailable"`
+	DetectedAt  time.Time `json:"detectedAt"`
+}
+
+// Additional analysis result types
+
+// RiskAnalysis represents risk analysis results
+type RiskAnalysis struct {
+	AnalysisID      string         `json:"analysisId"`
+	OverallRiskScore float64       `json:"overallRiskScore"`
+	RiskGrade       string         `json:"riskGrade"`
+	RiskFactors     []RiskFactor   `json:"riskFactors"`
+	Recommendations []string       `json:"recommendations,omitempty"`
+}
+
+// RiskFactor represents an individual risk factor
+type RiskFactor struct {
+	Type        string  `json:"type"`
+	Severity    string  `json:"severity"`
+	Score       float64 `json:"score"`
+	Description string  `json:"description"`
+}
+
+// PerformanceAnalysis represents performance analysis results
+type PerformanceAnalysis struct {
+	AnalysisID       string              `json:"analysisId"`
+	OverallScore     float64             `json:"overallScore"`
+	ResponseTime     *PerformanceMetric  `json:"responseTime,omitempty"`
+	Throughput       *PerformanceMetric  `json:"throughput,omitempty"`
+	ResourceUsage    *ResourceMetrics    `json:"resourceUsage,omitempty"`
+	Bottlenecks      []string            `json:"bottlenecks,omitempty"`
+}
+
+// PerformanceMetric represents a performance metric
+type PerformanceMetric struct {
+	Current   float64 `json:"current"`
+	Target    float64 `json:"target"`
+	Unit      string  `json:"unit"`
+	Status    string  `json:"status"` // good, warning, critical
+}
+
+// ResourceMetrics represents resource usage metrics
+type ResourceMetrics struct {
+	CPU    float64 `json:"cpu"`
+	Memory float64 `json:"memory"`
+	Disk   float64 `json:"disk"`
+	Network float64 `json:"network"`
+}
+
+// HealthSnapshot represents a health snapshot at a point in time
+type HealthSnapshot struct {
+	Timestamp    time.Time `json:"timestamp"`
+	HealthScore  float64   `json:"healthScore"`
+	Grade        string    `json:"grade"`
+	IssuesCount  int       `json:"issuesCount"`
+}
+
+// CriticalIssue represents a critical issue
+type CriticalIssue struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	Severity    string    `json:"severity"`
+	Description string    `json:"description"`
+	Impact      string    `json:"impact"`
+	DetectedAt  time.Time `json:"detectedAt"`
+	Resolution  string    `json:"resolution,omitempty"`
+}
+
+// HealthWarning represents a health warning
+type HealthWarning struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	Message     string    `json:"message"`
+	Severity    string    `json:"severity"`
+	DetectedAt  time.Time `json:"detectedAt"`
+}
+
+// HealthRecommendation represents a health improvement recommendation
+type HealthRecommendation struct {
+	ID           string  `json:"id"`
+	Type         string  `json:"type"`
+	Priority     string  `json:"priority"`
+	Description  string  `json:"description"`
+	ActionItems  []string `json:"actionItems"`
+	EstimatedImpact float64 `json:"estimatedImpact"`
+}
+
+// VersionOptimization represents a version optimization recommendation
+type VersionOptimization struct {
+	PackageName     string `json:"packageName"`
+	CurrentVersion  string `json:"currentVersion"`
+	RecommendedVersion string `json:"recommendedVersion"`
+	Reason          string `json:"reason"`
+	Priority        string `json:"priority"`
+	Impact          string `json:"impact,omitempty"`
+}
+
+// DependencyOptimization represents a dependency optimization recommendation
+type DependencyOptimization struct {
+	Type            string   `json:"type"` // remove, replace, upgrade
+	Description     string   `json:"description"`
+	AffectedPackages []string `json:"affectedPackages"`
+	Benefit         string   `json:"benefit"`
+	Effort          string   `json:"effort"`
+}
+
+// DistributionStats represents statistical distribution
+type DistributionStats struct {
+	Mean       float64 `json:"mean"`
+	Median     float64 `json:"median"`
+	Mode       float64 `json:"mode"`
+	StdDev     float64 `json:"stdDev"`
+	Min        float64 `json:"min"`
+	Max        float64 `json:"max"`
+	Percentiles map[string]float64 `json:"percentiles,omitempty"`
+}
+
+// More analysis types
+
+// UpgradeRecommendation represents an upgrade recommendation
+type UpgradeRecommendation struct {
+	PackageName     string `json:"packageName"`
+	CurrentVersion  string `json:"currentVersion"`
+	RecommendedVersion string `json:"recommendedVersion"`
+	Reason          string `json:"reason"`
+	Priority        string `json:"priority"`
+	Benefits        []string `json:"benefits,omitempty"`
+	Risks           []string `json:"risks,omitempty"`
+}
+
+// ReplacementSuggestion represents a package replacement suggestion
+type ReplacementSuggestion struct {
+	OriginalPackage string `json:"originalPackage"`
+	SuggestedPackage string `json:"suggestedPackage"`
+	Reason          string `json:"reason"`
+	Benefits        []string `json:"benefits,omitempty"`
+	MigrationEffort string `json:"migrationEffort"`
+}
+
+// IssuePrediction represents predicted issues
+type IssuePrediction struct {
+	Type            string    `json:"type"`
+	Probability     float64   `json:"probability"`
+	Severity        string    `json:"severity"`
+	Description     string    `json:"description"`
+	PredictedDate   time.Time `json:"predictedDate,omitempty"`
+	PreventionSteps []string  `json:"preventionSteps,omitempty"`
+}
+
+// SecurityOptimization represents security optimization recommendations
+type SecurityOptimization struct {
+	Type            string   `json:"type"`
+	Description     string   `json:"description"`
+	AffectedPackages []string `json:"affectedPackages"`
+	Severity        string   `json:"severity"`
+	Action          string   `json:"action"`
+	Priority        string   `json:"priority"`
+}
+
+// PerformanceOptimization represents performance optimization recommendations
+type PerformanceOptimization struct {
+	Type            string   `json:"type"`
+	Description     string   `json:"description"`
+	AffectedPackages []string `json:"affectedPackages"`
+	ExpectedImprovement string `json:"expectedImprovement"`
+	ImplementationEffort string `json:"implementationEffort"`
+}
+
+// OptimizationAction represents an optimization action
+type OptimizationAction struct {
+	ID          string    `json:"id"`
+	Type        string    `json:"type"`
+	Description string    `json:"description"`
+	Priority    string    `json:"priority"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"createdAt"`
+	DueDate     time.Time `json:"dueDate,omitempty"`
+}
+
+// OptimizationBenefits represents expected benefits from optimizations
+type OptimizationBenefits struct {
+	CostSavings       *Cost   `json:"costSavings,omitempty"`
+	PerformanceGains  float64 `json:"performanceGains,omitempty"`
+	SecurityImprovements []string `json:"securityImprovements,omitempty"`
+	MaintenanceReduction string `json:"maintenanceReduction,omitempty"`
+}
+
+// MLRecommendation represents ML-driven recommendations
+type MLRecommendation struct {
+	ID          string  `json:"id"`
+	Type        string  `json:"type"`
+	Description string  `json:"description"`
+	Confidence  float64 `json:"confidence"`
+	ModelVersion string `json:"modelVersion"`
+	Evidence    []string `json:"evidence,omitempty"`
 }
 
 // String methods for debugging

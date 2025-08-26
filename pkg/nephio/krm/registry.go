@@ -379,11 +379,11 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_repositories_total",
 			Help: "Total number of configured repositories",
 		}),
-		FunctionCount: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		FunctionCount: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "krm_registry_functions_total",
 			Help: "Total number of functions by repository",
 		}, []string{"repository"}),
-		DiscoveryDuration: *promauto.NewHistogramVec(prometheus.HistogramOpts{
+		DiscoveryDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name: "krm_registry_discovery_duration_seconds",
 			Help: "Duration of function discovery operations",
 		}, []string{"repository"}),
@@ -395,7 +395,7 @@ func NewRegistry(config *RegistryConfig) (*Registry, error) {
 			Name: "krm_registry_cache_misses_total",
 			Help: "Total number of cache misses",
 		}),
-		HealthCheckFailures: *promauto.NewCounterVec(prometheus.CounterOpts{
+		HealthCheckFailures: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "krm_registry_health_check_failures_total",
 			Help: "Total number of health check failures",
 		}, []string{"repository", "reason"}),

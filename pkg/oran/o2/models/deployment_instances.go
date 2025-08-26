@@ -39,7 +39,7 @@ type Deployment struct {
 	Health           *DeploymentHealth      `json:"health,omitempty"`
 	
 	// Resources and scaling
-	ResourceStatus   *ResourceStatus        `json:"resourceStatus,omitempty"`
+	ResourceUtilization *ResourceUtilization `json:"resourceUtilization,omitempty"`
 	ScalingPolicy    *ScalingPolicy         `json:"scalingPolicy,omitempty"`
 	
 	// Lifecycle metadata
@@ -108,8 +108,8 @@ type ProbeStatus struct {
 	FailureReason string    `json:"failureReason,omitempty"`
 }
 
-// ResourceStatus represents the resource utilization status
-type ResourceStatus struct {
+// ResourceUtilization represents the resource utilization status
+type ResourceUtilization struct {
 	// Resource allocation
 	AllocatedCPU     string                 `json:"allocatedCpu,omitempty"`
 	AllocatedMemory  string                 `json:"allocatedMemory,omitempty"`
@@ -135,37 +135,6 @@ type ResourceStatus struct {
 	CustomMetrics    map[string]interface{} `json:"customMetrics,omitempty"`
 }
 
-// ScalingPolicy defines auto-scaling policies for the deployment
-type ScalingPolicy struct {
-	Enabled          bool                   `json:"enabled"`
-	MinInstances     int                    `json:"minInstances"`
-	MaxInstances     int                    `json:"maxInstances"`
-	
-	// Scaling triggers
-	CPUThreshold     *float64               `json:"cpuThreshold,omitempty"`
-	MemoryThreshold  *float64               `json:"memoryThreshold,omitempty"`
-	RequestsPerSecond *float64              `json:"requestsPerSecond,omitempty"`
-	
-	// Scaling behavior
-	ScaleUpCooldown  *time.Duration         `json:"scaleUpCooldown,omitempty"`
-	ScaleDownCooldown *time.Duration        `json:"scaleDownCooldown,omitempty"`
-	ScaleUpPolicy    string                 `json:"scaleUpPolicy,omitempty"`
-	ScaleDownPolicy  string                 `json:"scaleDownPolicy,omitempty"`
-	
-	// Custom scaling metrics
-	CustomTriggers   []ScalingTrigger       `json:"customTriggers,omitempty"`
-}
-
-// ScalingTrigger represents a custom scaling trigger
-type ScalingTrigger struct {
-	Name         string      `json:"name"`
-	Type         string      `json:"type"` // metric, queue, custom
-	Threshold    float64     `json:"threshold"`
-	Operator     string      `json:"operator"` // gt, lt, eq, gte, lte
-	MetricPath   string      `json:"metricPath,omitempty"`
-	Query        string      `json:"query,omitempty"`
-	Enabled      bool        `json:"enabled"`
-}
 
 // DeploymentEndpoint represents a network endpoint exposed by the deployment
 type DeploymentEndpoint struct {
@@ -252,13 +221,6 @@ type SecurityCapabilities struct {
 	Drop   []string `json:"drop,omitempty"`
 }
 
-// SELinuxOptions represents SELinux options
-type SELinuxOptions struct {
-	User  string `json:"user,omitempty"`
-	Role  string `json:"role,omitempty"`
-	Type  string `json:"type,omitempty"`
-	Level string `json:"level,omitempty"`
-}
 
 // ComplianceStatus represents compliance and audit information
 type ComplianceStatus struct {

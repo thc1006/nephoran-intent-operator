@@ -345,12 +345,12 @@ type IPAMSubnet struct {
 
 // ContainerRuntimeMetrics provides comprehensive metrics
 type ContainerRuntimeMetrics struct {
-	ContainersStarted   prometheus.CounterVec
-	ContainerExecutions prometheus.HistogramVec
-	ResourceUtilization prometheus.GaugeVec
-	SecurityViolations  prometheus.CounterVec
-	NetworkIOBytes      prometheus.CounterVec
-	ErrorRate           prometheus.CounterVec
+	ContainersStarted   *prometheus.CounterVec
+	ContainerExecutions *prometheus.HistogramVec
+	ResourceUtilization *prometheus.GaugeVec
+	SecurityViolations  *prometheus.CounterVec
+	NetworkIOBytes      *prometheus.CounterVec
+	ErrorRate           *prometheus.CounterVec
 	CacheHitRate        prometheus.Counter
 	ActiveContainers    prometheus.Gauge
 }
@@ -399,14 +399,14 @@ func NewContainerRuntime(config *ContainerRuntimeConfig) (*ContainerRuntime, err
 
 	// Initialize metrics
 	metrics := &ContainerRuntimeMetrics{
-		ContainersStarted: *promauto.NewCounterVec(
+		ContainersStarted: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_container_starts_total",
 				Help: "Total number of container starts",
 			},
 			[]string{"image", "function", "status"},
 		),
-		ContainerExecutions: *promauto.NewHistogramVec(
+		ContainerExecutions: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_container_execution_duration_seconds",
 				Help:    "Duration of container executions",
@@ -414,28 +414,28 @@ func NewContainerRuntime(config *ContainerRuntimeConfig) (*ContainerRuntime, err
 			},
 			[]string{"image", "function"},
 		),
-		ResourceUtilization: *promauto.NewGaugeVec(
+		ResourceUtilization: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "krm_container_resource_utilization",
 				Help: "Container resource utilization",
 			},
 			[]string{"resource_type", "container_id"},
 		),
-		SecurityViolations: *promauto.NewCounterVec(
+		SecurityViolations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_container_security_violations_total",
 				Help: "Total number of security violations",
 			},
 			[]string{"violation_type", "severity"},
 		),
-		NetworkIOBytes: *promauto.NewCounterVec(
+		NetworkIOBytes: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_container_network_io_bytes_total",
 				Help: "Total container network I/O bytes",
 			},
 			[]string{"direction", "container_id"},
 		),
-		ErrorRate: *promauto.NewCounterVec(
+		ErrorRate: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_container_errors_total",
 				Help: "Total number of container execution errors",

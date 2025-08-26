@@ -31,6 +31,7 @@ type ProcessingPhase string
 
 const (
 	PhaseIntentReceived         ProcessingPhase = "IntentReceived"
+	PhaseReceived               ProcessingPhase = "Received" // Alias for PhaseIntentReceived
 	PhaseLLMProcessing          ProcessingPhase = "LLMProcessing"
 	PhaseResourcePlanning       ProcessingPhase = "ResourcePlanning"
 	PhaseManifestGeneration     ProcessingPhase = "ManifestGeneration"

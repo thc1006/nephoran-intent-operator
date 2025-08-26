@@ -180,6 +180,7 @@ type GlobalE2NodeID struct {
 	PLMNIdentity PLMNIdentity `json:"plmn_identity"`
 	NodeType     E2NodeType   `json:"node_type"`
 	NodeID       string       `json:"node_id"`
+	E2NodeID     E2NodeID     `json:"e2_node_id"`
 }
 
 // GlobalRICID represents the global RIC identifier

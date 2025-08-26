@@ -387,7 +387,11 @@ func (f *systemFactory) CreateCompleteSystem(ctx context.Context, systemConfig *
 func (f *systemFactory) CreatePorchClient(ctx context.Context, config *porch.ClientConfig) (porch.PorchClient, error) {
 	f.logger.Info("Creating Porch client", "endpoint", config.Endpoint)
 
-	client, err := porch.NewClient(config)
+	opts := porch.ClientOptions{
+		Config: config,
+		Logger: f.logger,
+	}
+	client, err := porch.NewClient(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Porch client: %w", err)
 	}
@@ -406,7 +410,13 @@ func (f *systemFactory) CreatePorchClient(ctx context.Context, config *porch.Cli
 func (f *systemFactory) CreateLifecycleManager(ctx context.Context, client porch.PorchClient, config *porch.LifecycleManagerConfig) (porch.LifecycleManager, error) {
 	f.logger.Info("Creating lifecycle manager")
 
-	lifecycleManager, err := porch.NewLifecycleManager(client, config)
+	// Type assert PorchClient to *Client for NewLifecycleManager
+	clientImpl, ok := client.(*porch.Client)
+	if !ok {
+		return nil, fmt.Errorf("client must be *porch.Client, got %T", client)
+	}
+
+	lifecycleManager, err := porch.NewLifecycleManager(clientImpl, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create lifecycle manager: %w", err)
 	}
@@ -613,7 +623,7 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 	}
 
 	// Check Porch client health
-	if porchHealth, err := system.Components.PorchClient.Health(ctx); err != nil {
+	if _, err := system.Components.PorchClient.Health(ctx); err != nil {
 		health.Status = "degraded"
 		health.Components["porch-client"] = ComponentHealth{
 			Status:    "unhealthy",
@@ -624,7 +634,7 @@ func (f *systemFactory) performSystemHealthCheck(ctx context.Context, system *Pa
 		health.Components["porch-client"] = ComponentHealth{
 			Status:    "healthy",
 			LastCheck: time.Now(),
-			Version:   porchHealth.Version,
+			// Note: HealthStatus doesn't have Version field
 		}
 	}
 
@@ -810,7 +820,7 @@ func GetDefaultSystemConfig() *SystemConfig {
 		GracefulShutdownTimeout: 30 * time.Second,
 		PorchConfig: &porch.ClientConfig{
 			Endpoint: "http://porch-server:8080",
-			Timeout:  30 * time.Second,
+			// Note: ClientConfig doesn't have Timeout field
 		},
 		Features: &FeatureFlags{
 			EnableORANCompliance:     true,

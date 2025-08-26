@@ -466,7 +466,7 @@ func WithIntent(intentText string) NetworkIntentOption {
 // WithIntentPhase sets the intent phase
 func WithIntentPhase(phase string) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
-		intent.Status.Phase = phase
+		intent.Status.Phase = v1.NetworkIntentPhase(phase)
 	}
 }
 

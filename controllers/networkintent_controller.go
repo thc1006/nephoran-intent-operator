@@ -163,7 +163,7 @@ func (r *NetworkIntentReconciler) updateStatus(ctx context.Context, networkInten
 	log := log.FromContext(ctx)
 
 	// Update the status fields
-	networkIntent.Status.Phase = phase
+	networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
 	networkIntent.Status.LastMessage = message
 	networkIntent.Status.ObservedGeneration = generation
 	networkIntent.Status.LastUpdateTime = metav1.Now()

@@ -114,47 +114,9 @@ type PipelineDefinition struct {
 	TelecomProfile *TelecomPipelineProfile `json:"telecomProfile,omitempty" yaml:"telecomProfile,omitempty"`
 }
 
-// PipelineStage represents a stage in the pipeline
-type PipelineStage struct {
-	// Basic properties
-	Name        string `json:"name" yaml:"name"`
-	Description string `json:"description,omitempty" yaml:"description,omitempty"`
-	Type        string `json:"type" yaml:"type"` // function, parallel-group, conditional
+// PipelineStage is defined in pipeline.go
 
-	// Function configuration
-	Functions []*StageFunction `json:"functions,omitempty" yaml:"functions,omitempty"`
-
-	// Control flow
-	DependsOn []string        `json:"dependsOn,omitempty" yaml:"dependsOn,omitempty"`
-	Condition *StageCondition `json:"condition,omitempty" yaml:"condition,omitempty"`
-
-	// Execution settings
-	Timeout     time.Duration `json:"timeout,omitempty" yaml:"timeout,omitempty"`
-	Concurrency int           `json:"concurrency,omitempty" yaml:"concurrency,omitempty"`
-	Priority    int           `json:"priority,omitempty" yaml:"priority,omitempty"`
-
-	// Error handling
-	OnFailure *FailureAction `json:"onFailure,omitempty" yaml:"onFailure,omitempty"`
-	OnSuccess *SuccessAction `json:"onSuccess,omitempty" yaml:"onSuccess,omitempty"`
-
-	// Resource requirements
-	Resources *StageResources `json:"resources,omitempty" yaml:"resources,omitempty"`
-
-	// Variables and outputs
-	InputMapping  map[string]string `json:"inputMapping,omitempty" yaml:"inputMapping,omitempty"`
-	OutputMapping map[string]string `json:"outputMapping,omitempty" yaml:"outputMapping,omitempty"`
-}
-
-// StageFunction represents a function within a stage
-type StageFunction struct {
-	Name           string                 `json:"name" yaml:"name"`
-	Image          string                 `json:"image,omitempty" yaml:"image,omitempty"`
-	Config         map[string]interface{} `json:"config,omitempty" yaml:"config,omitempty"`
-	ResourceFilter *ResourceFilter        `json:"resourceFilter,omitempty" yaml:"resourceFilter,omitempty"`
-	Timeout        time.Duration          `json:"timeout,omitempty" yaml:"timeout,omitempty"`
-	RetryPolicy    *RetryPolicy           `json:"retryPolicy,omitempty" yaml:"retryPolicy,omitempty"`
-	Optional       bool                   `json:"optional,omitempty" yaml:"optional,omitempty"`
-}
+// StageFunction is defined in pipeline.go
 
 // StageDependency defines dependencies between stages
 type StageDependency struct {
@@ -195,14 +157,7 @@ type FailurePolicy struct {
 	Conditions []*StageCondition `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 }
 
-// RetryPolicy defines retry behavior
-type RetryPolicy struct {
-	MaxAttempts   int           `json:"maxAttempts" yaml:"maxAttempts"`
-	InitialDelay  time.Duration `json:"initialDelay" yaml:"initialDelay"`
-	MaxDelay      time.Duration `json:"maxDelay" yaml:"maxDelay"`
-	BackoffFactor float64       `json:"backoffFactor" yaml:"backoffFactor"`
-	RetryOn       []string      `json:"retryOn,omitempty" yaml:"retryOn,omitempty"`
-}
+// RetryPolicy is defined in pipeline.go
 
 // FailureAction defines what to do on stage failure
 type FailureAction struct {
@@ -231,15 +186,7 @@ type ResourceFilter struct {
 	Exclude []*ResourceSelector `json:"exclude,omitempty" yaml:"exclude,omitempty"`
 }
 
-// ResourceSelector defines resource selection criteria
-type ResourceSelector struct {
-	APIVersion string            `json:"apiVersion,omitempty" yaml:"apiVersion,omitempty"`
-	Kind       string            `json:"kind,omitempty" yaml:"kind,omitempty"`
-	Name       string            `json:"name,omitempty" yaml:"name,omitempty"`
-	Namespace  string            `json:"namespace,omitempty" yaml:"namespace,omitempty"`
-	Labels     map[string]string `json:"labels,omitempty" yaml:"labels,omitempty"`
-	Fields     map[string]string `json:"fields,omitempty" yaml:"fields,omitempty"`
-}
+// ResourceSelector is defined in pipeline.go
 
 // TelecomPipelineProfile defines telecom-specific pipeline characteristics
 type TelecomPipelineProfile struct {
@@ -250,47 +197,7 @@ type TelecomPipelineProfile struct {
 	Optimization string   `json:"optimization" yaml:"optimization"` // performance, cost, compliance
 }
 
-// PipelineExecution represents a pipeline execution instance
-type PipelineExecution struct {
-	// Metadata
-	ID       string              `json:"id"`
-	Name     string              `json:"name"`
-	Pipeline *PipelineDefinition `json:"pipeline"`
-
-	// Execution state
-	Status    PipelineStatus `json:"status"`
-	Phase     PipelinePhase  `json:"phase"`
-	StartTime time.Time      `json:"startTime"`
-	EndTime   *time.Time     `json:"endTime,omitempty"`
-	Duration  time.Duration  `json:"duration"`
-
-	// Stage execution tracking
-	Stages       map[string]*StageExecution `json:"stages"`
-	CurrentStage string                     `json:"currentStage,omitempty"`
-
-	// Input/Output
-	InputResources  []*porch.KRMResource `json:"inputResources"`
-	OutputResources []*porch.KRMResource `json:"outputResources"`
-
-	// Results and errors
-	Results []*ExecutionResult `json:"results"`
-	Errors  []*ExecutionError  `json:"errors"`
-
-	// State management
-	Variables   map[string]interface{} `json:"variables"`
-	Checkpoints []*ExecutionCheckpoint `json:"checkpoints"`
-
-	// Performance metrics
-	ResourceUsage *PipelineResourceUsage `json:"resourceUsage,omitempty"`
-
-	// Audit and tracing
-	AuditLogs []string `json:"auditLogs"`
-	TraceID   string   `json:"traceId,omitempty"`
-	SpanID    string   `json:"spanId,omitempty"`
-
-	// Context
-	Context map[string]interface{} `json:"context"`
-}
+// PipelineExecution is defined in pipeline.go
 
 // StageExecution represents execution of a pipeline stage
 type StageExecution struct {
@@ -543,14 +450,14 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 
 	// Initialize metrics
 	metrics := &PipelineOrchestratorMetrics{
-		PipelineExecutions: *promauto.NewCounterVec(
+		PipelineExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_pipeline_orchestrator_executions_total",
 				Help: "Total number of pipeline executions",
 			},
 			[]string{"pipeline", "status"},
 		),
-		ExecutionDuration: *promauto.NewHistogramVec(
+		ExecutionDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_pipeline_orchestrator_execution_duration_seconds",
 				Help:    "Duration of pipeline executions",
@@ -558,14 +465,14 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 			},
 			[]string{"pipeline"},
 		),
-		StageExecutions: *promauto.NewCounterVec(
+		StageExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_pipeline_orchestrator_stage_executions_total",
 				Help: "Total number of stage executions",
 			},
 			[]string{"pipeline", "stage", "status"},
 		),
-		StageDuration: *promauto.NewHistogramVec(
+		StageDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_pipeline_orchestrator_stage_duration_seconds",
 				Help:    "Duration of stage executions",
@@ -573,7 +480,7 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 			},
 			[]string{"pipeline", "stage"},
 		),
-		DependencyResolution: *promauto.NewHistogramVec(
+		DependencyResolution: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_pipeline_orchestrator_dependency_resolution_seconds",
 				Help:    "Duration of dependency resolution",
@@ -581,14 +488,14 @@ func NewPipelineOrchestrator(config *PipelineOrchestratorConfig, functionManager
 			},
 			[]string{"pipeline"},
 		),
-		ErrorRate: *promauto.NewCounterVec(
+		ErrorRate: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_pipeline_orchestrator_errors_total",
 				Help: "Total number of execution errors",
 			},
 			[]string{"pipeline", "stage", "error_type"},
 		),
-		ResourceUtilization: *promauto.NewGaugeVec(
+		ResourceUtilization: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "krm_pipeline_orchestrator_resource_utilization",
 				Help: "Resource utilization during pipeline execution",

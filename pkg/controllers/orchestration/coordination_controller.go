@@ -36,6 +36,7 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // CoordinationController coordinates the overall intent processing pipeline
@@ -91,11 +92,17 @@ type CoordinationContext struct {
 	StartTime     time.Time
 	CurrentPhase  interfaces.ProcessingPhase
 	PhaseHistory  []PhaseExecution
-	Locks         []ResourceLock
+	Locks         []string // Changed to []string for compatibility with event_driven_coordinator
 	Conflicts     []Conflict
 	RetryCount    int
 	LastActivity  time.Time
 	mutex         sync.RWMutex
+
+	// Additional fields for event-driven coordinator compatibility
+	LastUpdateTime   time.Time                  `json:"lastUpdateTime"`
+	Metadata         map[string]interface{}     `json:"metadata"`
+	CompletedPhases  []interfaces.ProcessingPhase `json:"completedPhases"`
+	ErrorHistory     []string                   `json:"errorHistory"`
 }
 
 // PhaseExecution tracks the execution of a phase
@@ -686,7 +693,7 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 	log.Info("Intent processing completed successfully")
 
 	// Update NetworkIntent to completed status
-	networkIntent.Status.Phase = string(interfaces.PhaseCompleted)
+	networkIntent.Status.Phase = shared.ProcessingPhaseToNetworkIntentPhase(interfaces.PhaseCompleted)
 	networkIntent.Status.LastUpdateTime = metav1.Now()
 	networkIntent.Status.LastMessage = "Intent processing completed successfully"
 
@@ -810,7 +817,7 @@ func (r *CoordinationController) attemptRecovery(ctx context.Context, networkInt
 func (r *CoordinationController) handleRecoveryFailure(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult, coordCtx *CoordinationContext) (ctrl.Result, error) {
 	log := r.Logger.WithValues("intent", networkIntent.Name, "phase", phase)
 
-	log.Warn("Recovery failed, falling back to normal retry logic")
+	log.V(1).Info("Recovery failed, falling back to normal retry logic")
 	r.Recorder.Event(networkIntent, "Warning", "RecoveryFailed",
 		fmt.Sprintf("Failed to recover from %s failure, falling back to retry", phase))
 
@@ -826,7 +833,7 @@ func (r *CoordinationController) handleIntentFailure(ctx context.Context, networ
 	log.Error(fmt.Errorf(result.ErrorMessage), "Intent processing failed permanently")
 
 	// Update NetworkIntent to failed status
-	networkIntent.Status.Phase = string(interfaces.PhaseFailed)
+	networkIntent.Status.Phase = shared.ProcessingPhaseToNetworkIntentPhase(interfaces.PhaseFailed)
 	networkIntent.Status.LastUpdateTime = metav1.Now()
 	networkIntent.Status.LastMessage = fmt.Sprintf("Processing failed at phase %s after %d attempts: %s", phase, coordCtx.RetryCount, result.ErrorMessage)
 
@@ -882,7 +889,7 @@ func (r *CoordinationController) handleIntentDeletion(ctx context.Context, names
 	// Clean up coordination contexts
 	r.activeIntents.Range(func(key, value interface{}) bool {
 		intentID := key.(string)
-		coordCtx := value.(*CoordinationContext)
+		_ = value.(*CoordinationContext)
 
 		// This is a simplified matching - in practice you'd match by namespace/name
 		r.activeIntents.Delete(intentID)
@@ -896,7 +903,7 @@ func (r *CoordinationController) handleIntentDeletion(ctx context.Context, names
 // updateNetworkIntentStatus updates the NetworkIntent status
 func (r *CoordinationController) updateNetworkIntentStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult) error {
 	// Update phase and basic status fields
-	networkIntent.Status.Phase = string(phase)
+	networkIntent.Status.Phase = shared.ProcessingPhaseToNetworkIntentPhase(phase)
 	networkIntent.Status.LastUpdateTime = metav1.Now()
 	networkIntent.Status.LastMessage = fmt.Sprintf("Phase %s completed successfully", phase)
 
@@ -912,15 +919,19 @@ func (r *CoordinationController) getOrCreateCoordinationContext(networkIntent *n
 	}
 
 	coordCtx := &CoordinationContext{
-		IntentID:      intentID,
-		CorrelationID: fmt.Sprintf("coord-%s-%d", networkIntent.Name, time.Now().Unix()),
-		StartTime:     time.Now(),
-		CurrentPhase:  interfaces.PhaseIntentReceived,
-		PhaseHistory:  make([]PhaseExecution, 0),
-		Locks:         make([]ResourceLock, 0),
-		Conflicts:     make([]Conflict, 0),
-		RetryCount:    0,
-		LastActivity:  time.Now(),
+		IntentID:         intentID,
+		CorrelationID:    fmt.Sprintf("coord-%s-%d", networkIntent.Name, time.Now().Unix()),
+		StartTime:        time.Now(),
+		CurrentPhase:     interfaces.PhaseIntentReceived,
+		PhaseHistory:     make([]PhaseExecution, 0),
+		Locks:            make([]string, 0),
+		Conflicts:        make([]Conflict, 0),
+		RetryCount:       0,
+		LastActivity:     time.Now(),
+		LastUpdateTime:   time.Now(),
+		Metadata:         make(map[string]interface{}),
+		CompletedPhases:  make([]interfaces.ProcessingPhase, 0),
+		ErrorHistory:     make([]string, 0),
 	}
 
 	r.activeIntents.Store(intentID, coordCtx)
@@ -945,9 +956,6 @@ func (r *CoordinationController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Named("coordination").
-		WithOptions(ctrl.Options{
-			MaxConcurrentReconciles: r.Config.MaxConcurrentIntents,
-		}).
 		Complete(r)
 }
 
@@ -993,7 +1001,7 @@ func (r *CoordinationController) performHealthChecks(ctx context.Context) {
 
 		// Check for stale intents (no activity for too long)
 		if time.Since(lastActivity) > r.Config.PhaseTimeout*2 {
-			r.Logger.Warn("Detected stale intent", "intentId", intentID, "lastActivity", lastActivity, "currentPhase", currentPhase)
+			r.Logger.V(1).Info("Detected stale intent", "intentId", intentID, "lastActivity", lastActivity, "currentPhase", currentPhase)
 			// In a production system, you might want to trigger recovery or cleanup
 		}
 

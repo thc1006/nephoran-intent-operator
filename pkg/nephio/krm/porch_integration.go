@@ -191,35 +191,35 @@ func NewPorchIntegrationManager(
 
 	// Initialize metrics
 	metrics := &PorchIntegrationMetrics{
-		PackageCreations: *promauto.NewCounterVec(
+		PackageCreations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_porch_package_creations_total",
 				Help: "Total number of package creations",
 			},
 			[]string{"repository", "intent_type", "status"},
 		),
-		PackageRevisions: *promauto.NewCounterVec(
+		PackageRevisions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_porch_package_revisions_total",
 				Help: "Total number of package revisions created",
 			},
 			[]string{"repository", "package", "lifecycle", "status"},
 		),
-		FunctionExecutions: *promauto.NewCounterVec(
+		FunctionExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_porch_function_executions_total",
 				Help: "Total number of KRM function executions in Porch context",
 			},
 			[]string{"function", "package", "status"},
 		),
-		PipelineExecutions: *promauto.NewCounterVec(
+		PipelineExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_porch_pipeline_executions_total",
 				Help: "Total number of KRM pipeline executions",
 			},
 			[]string{"pipeline", "package", "status"},
 		),
-		ExecutionDuration: *promauto.NewHistogramVec(
+		ExecutionDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_porch_execution_duration_seconds",
 				Help:    "Duration of Porch integration operations",
@@ -227,7 +227,7 @@ func NewPorchIntegrationManager(
 			},
 			[]string{"operation", "intent_type"},
 		),
-		PackageSize: *promauto.NewHistogramVec(
+		PackageSize: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_porch_package_size_bytes",
 				Help:    "Size of generated packages in bytes",
@@ -247,7 +247,7 @@ func NewPorchIntegrationManager(
 				Help: "Total number of cache misses",
 			},
 		),
-		ErrorRate: *promauto.NewCounterVec(
+		ErrorRate: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_porch_errors_total",
 				Help: "Total number of errors in Porch integration",

@@ -61,11 +61,7 @@ func CreateTestNetworkIntent(name, namespace string) *nephoranv1.NetworkIntent {
 		},
 		Spec: nephoranv1.NetworkIntentSpec{
 			Intent:     "Configure QoS with 100Mbps bandwidth and 10ms latency",
-			IntentType: "qos",
-			ParametersMap: map[string]string{
-				"bandwidth": "100Mbps",
-				"latency":   "10ms",
-			},
+			IntentType: nephoranv1.IntentTypeOptimization,
 		},
 	}
 }

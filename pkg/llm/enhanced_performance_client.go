@@ -117,27 +117,27 @@ type TokenConfig struct {
 // EnhancedPrometheusMetrics holds all Prometheus metrics
 type EnhancedPrometheusMetrics struct {
 	// Request metrics
-	requestDuration  prometheus.HistogramVec
-	requestsTotal    prometheus.CounterVec
-	requestsInFlight prometheus.GaugeVec
+	requestDuration  *prometheus.HistogramVec
+	requestsTotal    *prometheus.CounterVec
+	requestsInFlight *prometheus.GaugeVec
 
 	// Token and cost metrics
-	tokensUsed        prometheus.CounterVec
-	tokenCosts        prometheus.CounterVec
-	budgetUtilization prometheus.GaugeVec
+	tokensUsed        *prometheus.CounterVec
+	tokenCosts        *prometheus.CounterVec
+	budgetUtilization *prometheus.GaugeVec
 
 	// Performance metrics
-	cacheHitRate    prometheus.GaugeVec
-	batchEfficiency prometheus.HistogramVec
-	retryRate       prometheus.GaugeVec
+	cacheHitRate    *prometheus.GaugeVec
+	batchEfficiency *prometheus.HistogramVec
+	retryRate       *prometheus.GaugeVec
 
 	// Circuit breaker metrics
-	circuitBreakerState prometheus.GaugeVec
-	circuitBreakerTrips prometheus.CounterVec
+	circuitBreakerState *prometheus.GaugeVec
+	circuitBreakerTrips *prometheus.CounterVec
 
 	// Error metrics
-	errorRate    prometheus.GaugeVec
-	errorsByType prometheus.CounterVec
+	errorRate    *prometheus.GaugeVec
+	errorsByType *prometheus.CounterVec
 }
 
 // EnhancedOTelMetrics holds all OpenTelemetry metrics
@@ -301,69 +301,69 @@ func (c *EnhancedPerformanceClient) initializeMetrics() error {
 
 	// Initialize Prometheus metrics
 	c.prometheusMetrics = &EnhancedPrometheusMetrics{
-		requestDuration: *promauto.NewHistogramVec(prometheus.HistogramOpts{
+		requestDuration: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "llm_request_duration_seconds",
 			Help:    "Duration of LLM requests",
 			Buckets: c.config.MetricsConfig.HistogramBuckets,
 		}, []string{"model", "intent_type", "success", "cache_hit", "batch"}),
 
-		requestsTotal: *promauto.NewCounterVec(prometheus.CounterOpts{
+		requestsTotal: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_requests_total",
 			Help: "Total number of LLM requests",
 		}, []string{"model", "intent_type", "status"}),
 
-		requestsInFlight: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		requestsInFlight: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "llm_requests_in_flight",
 			Help: "Current number of in-flight LLM requests",
 		}, []string{"model"}),
 
-		tokensUsed: *promauto.NewCounterVec(prometheus.CounterOpts{
+		tokensUsed: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_tokens_used_total",
 			Help: "Total number of tokens used",
 		}, []string{"model", "token_type", "intent_type"}),
 
-		tokenCosts: *promauto.NewCounterVec(prometheus.CounterOpts{
+		tokenCosts: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_token_costs_usd_total",
 			Help: "Total cost of token usage in USD",
 		}, []string{"model", "intent_type"}),
 
-		budgetUtilization: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		budgetUtilization: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "llm_budget_utilization_percent",
 			Help: "Current budget utilization percentage",
 		}, []string{}),
 
-		cacheHitRate: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		cacheHitRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "llm_cache_hit_rate_percent",
 			Help: "Cache hit rate percentage",
 		}, []string{"cache_type"}),
 
-		batchEfficiency: *promauto.NewHistogramVec(prometheus.HistogramOpts{
+		batchEfficiency: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "llm_batch_efficiency_ratio",
 			Help:    "Batch processing efficiency ratio",
 			Buckets: []float64{0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0},
 		}, []string{"batch_size_range"}),
 
-		retryRate: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		retryRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "llm_retry_rate_percent",
 			Help: "Retry rate percentage",
 		}, []string{"strategy"}),
 
-		circuitBreakerState: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		circuitBreakerState: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "llm_circuit_breaker_state",
 			Help: "Circuit breaker state (0=closed, 1=open, 2=half-open)",
 		}, []string{"backend"}),
 
-		circuitBreakerTrips: *promauto.NewCounterVec(prometheus.CounterOpts{
+		circuitBreakerTrips: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_circuit_breaker_trips_total",
 			Help: "Total number of circuit breaker trips",
 		}, []string{"backend", "reason"}),
 
-		errorRate: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		errorRate: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "llm_error_rate_percent",
 			Help: "Error rate percentage",
 		}, []string{"model", "error_class"}),
 
-		errorsByType: *promauto.NewCounterVec(prometheus.CounterOpts{
+		errorsByType: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_errors_by_type_total",
 			Help: "Total errors by type",
 		}, []string{"error_type", "model"}),

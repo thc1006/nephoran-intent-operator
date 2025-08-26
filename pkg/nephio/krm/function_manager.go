@@ -274,14 +274,14 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 
 	// Initialize metrics
 	metrics := &FunctionManagerMetrics{
-		FunctionExecutions: *promauto.NewCounterVec(
+		FunctionExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_function_manager_executions_total",
 				Help: "Total number of function executions",
 			},
 			[]string{"function", "mode", "status"},
 		),
-		ExecutionDuration: *promauto.NewHistogramVec(
+		ExecutionDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_function_manager_execution_duration_seconds",
 				Help:    "Duration of function executions",
@@ -295,14 +295,14 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 				Help: "Total number of registered functions",
 			},
 		),
-		ExecutionErrors: *promauto.NewCounterVec(
+		ExecutionErrors: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_function_manager_errors_total",
 				Help: "Total number of execution errors",
 			},
 			[]string{"function", "error_type"},
 		),
-		CachePerformance: *promauto.NewHistogramVec(
+		CachePerformance: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_function_manager_cache_operation_duration_seconds",
 				Help:    "Duration of cache operations",
@@ -310,14 +310,14 @@ func NewFunctionManager(config *FunctionManagerConfig, runtime *Runtime, contain
 			},
 			[]string{"operation", "result"},
 		),
-		SecurityViolations: *promauto.NewCounterVec(
+		SecurityViolations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_function_manager_security_violations_total",
 				Help: "Total number of security violations",
 			},
 			[]string{"violation_type", "severity"},
 		),
-		ResourceUtilization: *promauto.NewGaugeVec(
+		ResourceUtilization: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "krm_function_manager_resource_utilization",
 				Help: "Resource utilization during function execution",
@@ -968,9 +968,6 @@ func validateFunctionManagerConfig(config *FunctionManagerConfig) error {
 	return nil
 }
 
-func generateExecutionID() string {
-	return fmt.Sprintf("exec-%d", time.Now().UnixNano())
-}
 
 func convertToKRMResources(resources []*porch.KRMResource) []porch.KRMResource {
 	result := make([]porch.KRMResource, len(resources))

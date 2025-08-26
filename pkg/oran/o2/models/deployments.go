@@ -127,6 +127,18 @@ type ScalingPolicy struct {
 	ScaleDownPolicy   *ScalePolicy     `json:"scaleDownPolicy,omitempty"`
 	Metrics           []ScalingMetric  `json:"metrics,omitempty"`
 	Behavior          *ScalingBehavior `json:"behavior,omitempty"`
+	CustomTriggers    []ScalingTrigger `json:"customTriggers,omitempty"`
+}
+
+// ScalingTrigger represents a custom scaling trigger
+type ScalingTrigger struct {
+	Name         string      `json:"name"`
+	Type         string      `json:"type"` // metric, queue, custom
+	Threshold    float64     `json:"threshold"`
+	Operator     string      `json:"operator"` // gt, lt, eq, gte, lte
+	MetricPath   string      `json:"metricPath,omitempty"`
+	Query        string      `json:"query,omitempty"`
+	Enabled      bool        `json:"enabled"`
 }
 
 // ScalePolicy defines scale up/down policies
@@ -404,13 +416,13 @@ type MTLSConfig struct {
 
 // TrafficPolicyConfig defines traffic policy configuration
 type TrafficPolicyConfig struct {
-	LoadBalancer     *LoadBalancerConfig     `json:"loadBalancer,omitempty"`
-	CircuitBreaker   *CircuitBreakerConfig   `json:"circuitBreaker,omitempty"`
-	OutlierDetection *OutlierDetectionConfig `json:"outlierDetection,omitempty"`
+	LoadBalancer     *TrafficLoadBalancerConfig `json:"loadBalancer,omitempty"`
+	CircuitBreaker   *CircuitBreakerConfig      `json:"circuitBreaker,omitempty"`
+	OutlierDetection *OutlierDetectionConfig    `json:"outlierDetection,omitempty"`
 }
 
-// LoadBalancerConfig defines load balancer configuration
-type LoadBalancerConfig struct {
+// TrafficLoadBalancerConfig defines load balancer configuration for traffic policies
+type TrafficLoadBalancerConfig struct {
 	Simple string `json:"simple,omitempty"` // ROUND_ROBIN, LEAST_CONN, RANDOM, PASSTHROUGH
 }
 
@@ -648,8 +660,8 @@ type LabelSelectorRequirement struct {
 	Values   []string `json:"values,omitempty"`
 }
 
-// Deployment represents a deployment instance created from a template
-type Deployment struct {
+// DeploymentInstance represents a deployment instance created from a template
+type DeploymentInstance struct {
 	DeploymentManagerID string                 `json:"deploymentManagerId"`
 	Name                string                 `json:"name"`
 	Description         string                 `json:"description,omitempty"`
@@ -933,19 +945,6 @@ type UpdateStrategy struct {
 	MaxSurge        string        `json:"maxSurge,omitempty"`
 	Timeout         time.Duration `json:"timeout,omitempty"`
 	PauseConditions []string      `json:"pauseConditions,omitempty"`
-}
-
-// System Information Model
-
-// SystemInfo represents O2 IMS system information
-type SystemInfo struct {
-	Name                   string                 `json:"name"`
-	Description            string                 `json:"description"`
-	Version                string                 `json:"version"`
-	APIVersions            []string               `json:"apiVersions"`
-	SupportedResourceTypes []string               `json:"supportedResourceTypes"`
-	Extensions             map[string]interface{} `json:"extensions"`
-	Timestamp              time.Time              `json:"timestamp"`
 }
 
 // Additional helper types for deployments

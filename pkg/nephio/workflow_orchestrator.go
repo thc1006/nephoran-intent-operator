@@ -22,20 +22,17 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	v1 "github.com/thc1006/nephoran-intent-operator/api/v1"
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 	"github.com/thc1006/nephoran-intent-operator/pkg/nephio/porch"
 )
 
@@ -142,7 +139,7 @@ type WorkflowPhaseExecution struct {
 type WorkflowExecutionResults struct {
 	PackageRevisions  []*porch.PackageRevision  `json:"packageRevisions"`
 	DeploymentResults []*DeploymentResult       `json:"deploymentResults"`
-	ValidationResults []*ValidationResult       `json:"validationResults"`
+	ValidationResults []*porch.ValidationResult `json:"validationResults"`
 	ConfigSyncResults []*ConfigSyncResult       `json:"configSyncResults"`
 	ClusterHealth     map[string]*ClusterHealth `json:"clusterHealth"`
 	ResourceUsage     *ResourceUsageSummary     `json:"resourceUsage"`
@@ -159,7 +156,6 @@ type ConfigSyncResult struct {
 	Error           string        `json:"error,omitempty"`
 	Timestamp       time.Time     `json:"timestamp"`
 }
-
 
 // WorkloadClusterRegistry manages workload cluster lifecycle
 type WorkloadClusterRegistry struct {
@@ -224,36 +220,36 @@ type NephioPackageCatalog struct {
 
 // BlueprintPackage represents a blueprint package in the catalog
 type BlueprintPackage struct {
-	Name           string                 `json:"name"`
-	Repository     string                 `json:"repository"`
-	Version        string                 `json:"version"`
-	Description    string                 `json:"description"`
-	Category       string                 `json:"category"`
-	IntentTypes    []v1.IntentType `json:"intentTypes"`
-	Dependencies   []PackageDependency    `json:"dependencies"`
-	Parameters     []ParameterDefinition  `json:"parameters"`
-	Validations    []ValidationRule       `json:"validations"`
-	Resources      []ResourceTemplate     `json:"resources"`
-	Functions      []FunctionDefinition   `json:"functions"`
-	Specialization *SpecializationSpec    `json:"specialization,omitempty"`
-	Metadata       map[string]string      `json:"metadata"`
-	CreatedAt      time.Time              `json:"createdAt"`
-	UpdatedAt      time.Time              `json:"updatedAt"`
+	Name           string                `json:"name"`
+	Repository     string                `json:"repository"`
+	Version        string                `json:"version"`
+	Description    string                `json:"description"`
+	Category       string                `json:"category"`
+	IntentTypes    []v1.IntentType       `json:"intentTypes"`
+	Dependencies   []PackageDependency   `json:"dependencies"`
+	Parameters     []ParameterDefinition `json:"parameters"`
+	Validations    []ValidationRule      `json:"validations"`
+	Resources      []ResourceTemplate    `json:"resources"`
+	Functions      []FunctionDefinition  `json:"functions"`
+	Specialization *SpecializationSpec   `json:"specialization,omitempty"`
+	Metadata       map[string]string     `json:"metadata"`
+	CreatedAt      time.Time             `json:"createdAt"`
+	UpdatedAt      time.Time             `json:"updatedAt"`
 }
 
 // PackageVariant represents a specialized package for a target cluster
 type PackageVariant struct {
-	Name              string                 `json:"name"`
-	Blueprint         *BlueprintPackage      `json:"blueprint"`
-	TargetCluster     *WorkloadCluster       `json:"targetCluster"`
-	Specialization    *SpecializationRequest `json:"specialization"`
-	Status            PackageVariantStatus   `json:"status"`
-	PackageRevision   *porch.PackageRevision `json:"packageRevision"`
-	DeploymentStatus  *porch.DeploymentStatus      `json:"deploymentStatus,omitempty"`
-	ValidationResults []*ValidationResult    `json:"validationResults,omitempty"`
-	Errors            []string               `json:"errors,omitempty"`
-	CreatedAt         time.Time              `json:"createdAt"`
-	UpdatedAt         time.Time              `json:"updatedAt"`
+	Name              string                    `json:"name"`
+	Blueprint         *BlueprintPackage         `json:"blueprint"`
+	TargetCluster     *WorkloadCluster          `json:"targetCluster"`
+	Specialization    *SpecializationRequest    `json:"specialization"`
+	Status            PackageVariantStatus      `json:"status"`
+	PackageRevision   *porch.PackageRevision    `json:"packageRevision"`
+	DeploymentStatus  *porch.DeploymentStatus   `json:"deploymentStatus,omitempty"`
+	ValidationResults []*porch.ValidationResult `json:"validationResults,omitempty"`
+	Errors            []string                  `json:"errors,omitempty"`
+	CreatedAt         time.Time                 `json:"createdAt"`
+	UpdatedAt         time.Time                 `json:"updatedAt"`
 }
 
 // SpecializationRequest defines how to specialize a blueprint
@@ -291,18 +287,18 @@ type NephioWorkflowEngine struct {
 
 // WorkflowDefinition defines a Nephio workflow
 type WorkflowDefinition struct {
-	Name          string                 `json:"name"`
-	Description   string                 `json:"description"`
-	IntentTypes   []v1.IntentType `json:"intentTypes"`
-	Phases        []WorkflowPhase        `json:"phases"`
-	Conditions    []WorkflowCondition    `json:"conditions"`
-	Rollback      *RollbackStrategy      `json:"rollback,omitempty"`
-	Approvals     *ApprovalStrategy      `json:"approvals,omitempty"`
-	Notifications *NotificationStrategy  `json:"notifications,omitempty"`
-	Timeouts      *TimeoutStrategy       `json:"timeouts,omitempty"`
-	Metadata      map[string]string      `json:"metadata"`
-	CreatedAt     time.Time              `json:"createdAt"`
-	UpdatedAt     time.Time              `json:"updatedAt"`
+	Name          string                `json:"name"`
+	Description   string                `json:"description"`
+	IntentTypes   []v1.IntentType       `json:"intentTypes"`
+	Phases        []WorkflowPhase       `json:"phases"`
+	Conditions    []WorkflowCondition   `json:"conditions"`
+	Rollback      *RollbackStrategy     `json:"rollback,omitempty"`
+	Approvals     *ApprovalStrategy     `json:"approvals,omitempty"`
+	Notifications *NotificationStrategy `json:"notifications,omitempty"`
+	Timeouts      *TimeoutStrategy      `json:"timeouts,omitempty"`
+	Metadata      map[string]string     `json:"metadata"`
+	CreatedAt     time.Time             `json:"createdAt"`
+	UpdatedAt     time.Time             `json:"updatedAt"`
 }
 
 // WorkflowPhase represents a phase in the workflow
@@ -324,6 +320,7 @@ type WorkflowPhaseType string
 const (
 	WorkflowPhaseTypeBlueprintSelection    WorkflowPhaseType = "BlueprintSelection"
 	WorkflowPhaseTypePackageSpecialization WorkflowPhaseType = "PackageSpecialization"
+	WorkflowPhaseTypeConfiguration         WorkflowPhaseType = "Configuration"
 	WorkflowPhaseTypeValidation            WorkflowPhaseType = "Validation"
 	WorkflowPhaseTypeApproval              WorkflowPhaseType = "Approval"
 	WorkflowPhaseTypeDeployment            WorkflowPhaseType = "Deployment"
@@ -469,18 +466,8 @@ func NewNephioWorkflowOrchestrator(
 	}
 
 	// Initialize Config Sync client
-	configSyncConfig := &ConfigSyncConfig{
-		Repository: config.DownstreamRepository,
-		Branch:     config.GitBranch,
-		Directory:  "clusters",
-		SyncPeriod: 30 * time.Second,
-		PolicyDir:  "system",
-		Namespaces: []string{config.DefaultNamespace},
-	}
-
 	configSync := &ConfigSyncClient{
 		client: client,
-		config: configSyncConfig,
 		tracer: otel.Tracer("nephio-configsync"),
 	}
 
@@ -870,7 +857,7 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 
 	logger := log.FromContext(ctx).WithName("validation")
 
-	validationResults := make([]*ValidationResult, 0)
+	validationResults := make([]*porch.ValidationResult, 0)
 	validationErrors := make([]string, 0)
 
 	// Validate each package variant
@@ -888,22 +875,20 @@ func (nwo *NephioWorkflowOrchestrator) executeValidationPhase(ctx context.Contex
 			continue
 		}
 
-		validationResults = append(validationResults, &ValidationResult{
-			PackageName: variant.PackageRevision.Spec.PackageName,
-			Valid:       result.Valid,
-			Errors:      result.Errors,
-			Warnings:    result.Warnings,
+		validationResults = append(validationResults, &porch.ValidationResult{
+			Valid:    result.Valid,
+			Errors:   result.Errors,
+			Warnings: result.Warnings,
 		})
 
 		if !result.Valid {
 			validationErrors = append(validationErrors, fmt.Sprintf("package %s failed validation", variant.Name))
 		}
 
-		variant.ValidationResults = []*ValidationResult{{
-			PackageName: variant.PackageRevision.Spec.PackageName,
-			Valid:       result.Valid,
-			Errors:      result.Errors,
-			Warnings:    result.Warnings,
+		variant.ValidationResults = []*porch.ValidationResult{{
+			Valid:    result.Valid,
+			Errors:   result.Errors,
+			Warnings: result.Warnings,
 		}}
 	}
 
@@ -1184,14 +1169,25 @@ func (nwo *NephioWorkflowOrchestrator) extractParametersFromIntent(intent *v1.Ne
 	// Extract configuration parameters from intent
 	params := make(map[string]interface{})
 
-	if intent.Spec.Configuration != nil {
-		for k, v := range intent.Spec.Configuration {
-			params[k] = v
+	if intent.Spec.ProcessedParameters != nil {
+		if intent.Spec.ProcessedParameters.NetworkFunction != "" {
+			params["networkFunction"] = intent.Spec.ProcessedParameters.NetworkFunction
+		}
+		if intent.Spec.ProcessedParameters.Region != "" {
+			params["region"] = intent.Spec.ProcessedParameters.Region
+		}
+		if intent.Spec.ProcessedParameters.CustomParameters != nil {
+			for k, v := range intent.Spec.ProcessedParameters.CustomParameters {
+				params[k] = v
+			}
 		}
 	}
 
 	params["intentType"] = string(intent.Spec.IntentType)
-	params["targetComponent"] = intent.Spec.TargetComponent
+	if len(intent.Spec.TargetComponents) > 0 {
+		params["targetComponents"] = intent.Spec.TargetComponents
+		params["targetComponent"] = string(intent.Spec.TargetComponents[0]) // Use first component for backward compatibility
+	}
 
 	return params
 }
@@ -1222,35 +1218,53 @@ func (nwo *NephioWorkflowOrchestrator) updateIntentWithWorkflowStatus(ctx contex
 		intent.Status.Phase = v1.NetworkIntentPhaseFailed
 	}
 
-	// Update with package information
-	if len(execution.PackageVariants) > 0 && execution.PackageVariants[0].PackageRevision != nil {
-		pr := execution.PackageVariants[0].PackageRevision
-		intent.Status.PackageRevision = &v1.PackageRevisionReference{
-			Repository:  pr.Spec.Repository,
-			PackageName: pr.Spec.PackageName,
-			Revision:    pr.Spec.Revision,
-		}
+	// Update last message with execution summary
+	if len(execution.PackageVariants) > 0 {
+		intent.Status.LastMessage = fmt.Sprintf("Workflow execution %s: %d package variants created", execution.Status, len(execution.PackageVariants))
+	} else {
+		intent.Status.LastMessage = fmt.Sprintf("Workflow execution %s", execution.Status)
 	}
 
-	// Update deployment status
+	// Store execution details in extensions
+	if intent.Status.Extensions == nil {
+		intent.Status.Extensions = make(map[string]runtime.RawExtension)
+	}
+
+	// Store package revision information in extensions
+	if len(execution.PackageVariants) > 0 && execution.PackageVariants[0].PackageRevision != nil {
+		pr := execution.PackageVariants[0].PackageRevision
+		_ = map[string]interface{}{
+			"repository":  pr.Spec.Repository,
+			"packageName": pr.Spec.PackageName,
+			"revision":    pr.Spec.Revision,
+		}
+		packageInfoJSON := fmt.Sprintf(`{"repository":"%s","packageName":"%s","revision":"%s"}`, pr.Spec.Repository, pr.Spec.PackageName, pr.Spec.Revision)
+		intent.Status.Extensions["packageRevision"] = runtime.RawExtension{Raw: []byte(packageInfoJSON)}
+	}
+
+	// Store deployment status in extensions
 	if len(execution.Deployments) > 0 {
-		intent.Status.DeploymentStatus = &v1.DeploymentStatus{
-			Phase:   "Deployed",
-			Targets: make([]v1.DeploymentTargetStatus, 0, len(execution.Deployments)),
+		deploymentInfo := map[string]interface{}{
+			"phase":   "Deployed",
+			"targets": make([]map[string]interface{}, 0, len(execution.Deployments)),
 		}
 
 		for _, deployment := range execution.Deployments {
-			intent.Status.DeploymentStatus.Targets = append(intent.Status.DeploymentStatus.Targets, v1.DeploymentTargetStatus{
-				Cluster:   deployment.TargetCluster.Name,
-				Namespace: nwo.config.DefaultNamespace,
-				Status:    deployment.Status,
-			})
+			target := map[string]interface{}{
+				"cluster":   deployment.TargetCluster.Name,
+				"namespace": nwo.config.DefaultNamespace,
+				"status":    deployment.Status,
+			}
+			deploymentInfo["targets"] = append(deploymentInfo["targets"].([]map[string]interface{}), target)
 		}
+
+		deploymentInfoJSON := fmt.Sprintf(`{"phase":"Deployed","targetCount":%d}`, len(execution.Deployments))
+		intent.Status.Extensions["deploymentStatus"] = runtime.RawExtension{Raw: []byte(deploymentInfoJSON)}
 	}
 
 	// Update timestamp
 	now := metav1.NewTime(time.Now())
-	intent.Status.LastProcessed = &now
+	intent.Status.LastUpdateTime = now
 
 	return nwo.client.Status().Update(ctx, intent)
 }

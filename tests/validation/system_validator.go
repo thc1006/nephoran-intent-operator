@@ -83,24 +83,24 @@ func (sv *SystemValidator) ValidateIntentProcessingPipeline(ctx context.Context)
 			return false
 		}
 
-		phasesObserved[testIntent.Status.Phase] = true
+		phasesObserved[string(testIntent.Status.Phase)] = true
 
 		// Check if we've seen all expected phases or reached a terminal state
 		for _, phase := range expectedPhases {
 			if !phasesObserved[phase] &&
-				testIntent.Status.Phase != "Deployed" &&
-				testIntent.Status.Phase != "Failed" {
+				string(testIntent.Status.Phase) != "Deployed" &&
+				string(testIntent.Status.Phase) != "Failed" {
 				return false
 			}
 		}
 
-		return testIntent.Status.Phase == "Deployed" ||
+		return string(testIntent.Status.Phase) == "Deployed" ||
 			len(phasesObserved) >= len(expectedPhases)-1
 	}, 5*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
 	// Verify final state is not failed
 	finalErr := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
-	if finalErr != nil || testIntent.Status.Phase == "Failed" {
+	if finalErr != nil || string(testIntent.Status.Phase) == "Failed" {
 		ginkgo.By(fmt.Sprintf("Intent processing failed: phase=%s", testIntent.Status.Phase))
 		return false
 	}
@@ -157,9 +157,9 @@ func (sv *SystemValidator) ValidateLLMRAGIntegration(ctx context.Context) bool {
 		gomega.Eventually(func() bool {
 			err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
 			return err == nil &&
-				(testIntent.Status.Phase == "ResourcePlanning" ||
-					testIntent.Status.Phase == "ManifestGeneration" ||
-					testIntent.Status.Phase == "Deployed")
+				(string(testIntent.Status.Phase) == "ResourcePlanning" ||
+					string(testIntent.Status.Phase) == "ManifestGeneration" ||
+					string(testIntent.Status.Phase) == "Deployed")
 		}, 2*time.Minute, 2*time.Second).Should(gomega.BeTrue())
 
 		// Verify the LLM correctly identified the network function type
@@ -218,8 +218,8 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 	gomega.Eventually(func() bool {
 		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
 		return err == nil &&
-			(testIntent.Status.Phase == "ManifestGeneration" ||
-				testIntent.Status.Phase == "Deployed")
+			(string(testIntent.Status.Phase) == "ManifestGeneration" ||
+				string(testIntent.Status.Phase) == "Deployed")
 	}, 3*time.Minute, 5*time.Second).Should(gomega.BeTrue())
 
 	// Verify package-related status information
@@ -236,8 +236,8 @@ func (sv *SystemValidator) ValidatePorchIntegration(ctx context.Context) bool {
 	}
 
 	// Verify packages were created (check status or annotations)
-	packageCreated := testIntent.Status.Phase == "ManifestGeneration" ||
-		testIntent.Status.Phase == "Deployed"
+	packageCreated := string(testIntent.Status.Phase) == "ManifestGeneration" ||
+		string(testIntent.Status.Phase) == "Deployed"
 
 	if packageCreated {
 		ginkgo.By("✓ Porch package integration verified")
@@ -279,7 +279,7 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 	ginkgo.By("Waiting for multi-cluster deployment")
 	gomega.Eventually(func() bool {
 		err := sv.k8sClient.Get(ctx, client.ObjectKeyFromObject(testIntent), testIntent)
-		return err == nil && testIntent.Status.Phase == "Deployed"
+		return err == nil && string(testIntent.Status.Phase) == "Deployed"
 	}, 5*time.Minute, 10*time.Second).Should(gomega.BeTrue())
 
 	// Verify deployment succeeded
@@ -288,7 +288,7 @@ func (sv *SystemValidator) ValidateMultiClusterDeployment(ctx context.Context) b
 		return false
 	}
 
-	deployed := testIntent.Status.Phase == "Deployed"
+	deployed := string(testIntent.Status.Phase) == "Deployed"
 	if deployed {
 		ginkgo.By("✓ Multi-cluster deployment validated")
 	} else {

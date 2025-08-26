@@ -181,19 +181,27 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 
 	// Prepare LLM request
 	request := &llm.ProcessingRequest{
-		Intent:     intentProcessing.Spec.OriginalIntent,
-		IntentType: string(intentProcessing.Spec.ParentIntentRef.Kind),
-		Priority:   string(intentProcessing.Spec.Priority),
+		Intent: intentProcessing.Spec.OriginalIntent,
 	}
 
 	// Configure LLM parameters
 	if intentProcessing.Spec.ProcessingConfiguration != nil {
 		config := intentProcessing.Spec.ProcessingConfiguration
-		request.Provider = string(config.Provider)
+		// Add provider info to context instead of direct field
+		if request.Context == nil {
+			request.Context = make(map[string]interface{})
+		}
+		request.Context["provider"] = string(config.Provider)
+		request.Context["intentType"] = string(intentProcessing.Spec.ParentIntentRef.Kind)
+		request.Context["priority"] = string(intentProcessing.Spec.Priority)
 		request.Model = config.Model
-		request.Temperature = config.Temperature
-		request.MaxTokens = config.MaxTokens
-		request.SystemPrompt = config.SystemPrompt
+		if config.Temperature != nil {
+			request.Temperature = *config.Temperature
+		}
+		if config.MaxTokens != nil {
+			request.MaxTokens = int(*config.MaxTokens)
+		}
+		// SystemPrompt field doesn't exist in ProcessingRequest
 	}
 
 	// Enhance with RAG if enabled
@@ -205,31 +213,44 @@ func (r *IntentProcessingController) executeLLMProcessing(ctx context.Context, i
 			// Continue without RAG enhancement rather than failing
 		} else {
 			request.Context = enhancedContext
-			// Store RAG metrics for status update
-			request.RAGMetrics = ragMetrics
+			// Store RAG metrics in context for status update
+			if request.Context == nil {
+				request.Context = make(map[string]interface{})
+			}
+			request.Context["ragMetrics"] = ragMetrics
 		}
 	}
 
 	// Execute LLM processing
-	log.Info("Executing LLM processing", "provider", request.Provider, "model", request.Model)
-	response, err := r.LLMService.ProcessIntent(ctx, request)
+	provider := "default"
+	if providerVal, ok := request.Context["provider"]; ok {
+		if providerStr, ok := providerVal.(string); ok {
+			provider = providerStr
+		}
+	}
+	log.Info("Executing LLM processing", "provider", provider, "model", request.Model)
+	response, err := r.LLMService.ProcessIntent(ctx, provider, request.Intent)
 	if err != nil {
 		return nil, fmt.Errorf("LLM processing failed: %w", err)
 	}
 
+	// Convert string response to ProcessingResponse for validation
+	processingResp := &llm.ProcessingResponse{
+		Content: response,
+	}
 	// Validate response quality
-	qualityScore, validationErrors := r.validateResponse(response)
+	qualityScore, validationErrors := r.validateResponse(processingResp)
 	if qualityScore < r.Config.QualityThreshold {
 		return nil, fmt.Errorf("response quality score %.2f below threshold %.2f", qualityScore, r.Config.QualityThreshold)
 	}
 
 	// Create processing result
 	result := &LLMProcessingResult{
-		Response:         response,
+		Response:         processingResp,
 		QualityScore:     qualityScore,
 		ValidationErrors: validationErrors,
-		TokenUsage:       response.TokenUsage,
-		RAGMetrics:       request.RAGMetrics,
+		TokenUsage:       0, // No token usage info from string response
+		RAGMetrics:       extractRAGMetricsFromContext(request.Context),
 	}
 
 	// Extract structured parameters
@@ -613,9 +634,6 @@ func (r *IntentProcessingController) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.IntentProcessing{}).
 		Named("intentprocessing").
-		WithOptions(ctrl.Options{
-			MaxConcurrentReconciles: r.Config.MaxConcurrentProcessing,
-		}).
 		Complete(r)
 }
 
@@ -628,6 +646,20 @@ type LLMProcessingResult struct {
 	ValidationErrors    []string
 	TokenUsage          *nephoranv1.TokenUsageInfo
 	RAGMetrics          *nephoranv1.RAGMetrics
+}
+
+// extractRAGMetricsFromContext extracts RAG metrics from request context
+func extractRAGMetricsFromContext(context map[string]interface{}) *nephoranv1.RAGMetrics {
+	if context == nil {
+		return nil
+	}
+	
+	if ragMetricsVal, ok := context["ragMetrics"]; ok {
+		if ragMetrics, ok := ragMetricsVal.(*nephoranv1.RAGMetrics); ok {
+			return ragMetrics
+		}
+	}
+	return nil
 }
 
 // Default configuration values

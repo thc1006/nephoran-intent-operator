@@ -461,14 +461,14 @@ type CachedValidationResult struct {
 
 // ValidatorMetrics provides comprehensive metrics
 type ValidatorMetrics struct {
-	ValidationsTotal     prometheus.CounterVec
-	ValidationDuration   prometheus.HistogramVec
-	SecurityScansTotal   prometheus.CounterVec
-	ComplianceChecks     prometheus.CounterVec
-	PerformanceTests     prometheus.CounterVec
+	ValidationsTotal     *prometheus.CounterVec
+	ValidationDuration   *prometheus.HistogramVec
+	SecurityScansTotal   *prometheus.CounterVec
+	ComplianceChecks     *prometheus.CounterVec
+	PerformanceTests     *prometheus.CounterVec
 	CacheHits            prometheus.Counter
 	CacheMisses          prometheus.Counter
-	CertificationsIssued prometheus.CounterVec
+	CertificationsIssued *prometheus.CounterVec
 }
 
 // Default validator configuration
@@ -511,14 +511,14 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 
 	// Initialize metrics
 	metrics := &ValidatorMetrics{
-		ValidationsTotal: *promauto.NewCounterVec(
+		ValidationsTotal: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_validator_validations_total",
 				Help: "Total number of validations performed",
 			},
 			[]string{"type", "result"},
 		),
-		ValidationDuration: *promauto.NewHistogramVec(
+		ValidationDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "krm_validator_validation_duration_seconds",
 				Help:    "Duration of validations",
@@ -526,21 +526,21 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 			},
 			[]string{"type"},
 		),
-		SecurityScansTotal: *promauto.NewCounterVec(
+		SecurityScansTotal: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_validator_security_scans_total",
 				Help: "Total number of security scans performed",
 			},
 			[]string{"scanner", "result"},
 		),
-		ComplianceChecks: *promauto.NewCounterVec(
+		ComplianceChecks: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_validator_compliance_checks_total",
 				Help: "Total number of compliance checks performed",
 			},
 			[]string{"standard", "result"},
 		),
-		PerformanceTests: *promauto.NewCounterVec(
+		PerformanceTests: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_validator_performance_tests_total",
 				Help: "Total number of performance tests performed",
@@ -559,7 +559,7 @@ func NewValidator(config *ValidatorConfig) (*Validator, error) {
 				Help: "Total number of validation cache misses",
 			},
 		),
-		CertificationsIssued: *promauto.NewCounterVec(
+		CertificationsIssued: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "krm_validator_certifications_issued_total",
 				Help: "Total number of certifications issued",

@@ -22,19 +22,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-
-	"github.com/thc1006/nephoran-intent-operator/pkg/errors"
 )
 
 // WorkloadClusterConfig defines configuration for workload cluster management
@@ -170,21 +164,21 @@ func NewWorkloadClusterRegistry(
 
 	// Initialize metrics
 	metrics := &ClusterRegistryMetrics{
-		ClusterRegistrations: *promauto.NewCounterVec(
+		ClusterRegistrations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_cluster_registrations_total",
 				Help: "Total number of workload cluster registrations",
 			},
 			[]string{"cluster", "region", "status"},
 		),
-		ClusterHealth: *promauto.NewGaugeVec(
+		ClusterHealth: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "nephio_cluster_health",
 				Help: "Health status of workload clusters",
 			},
 			[]string{"cluster", "region", "component"},
 		),
-		HealthCheckDuration: *promauto.NewHistogramVec(
+		HealthCheckDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "nephio_cluster_health_check_duration_seconds",
 				Help:    "Duration of cluster health checks",
@@ -192,21 +186,21 @@ func NewWorkloadClusterRegistry(
 			},
 			[]string{"cluster", "region"},
 		),
-		ClusterCapabilities: *promauto.NewGaugeVec(
+		ClusterCapabilities: promauto.NewGaugeVec(
 			prometheus.GaugeOpts{
 				Name: "nephio_cluster_capabilities",
 				Help: "Number of capabilities per cluster",
 			},
 			[]string{"cluster", "region", "capability"},
 		),
-		RegistrationErrors: *promauto.NewCounterVec(
+		RegistrationErrors: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_cluster_registration_errors_total",
 				Help: "Total number of cluster registration errors",
 			},
 			[]string{"cluster", "error_type"},
 		),
-		ClusterEvents: *promauto.NewCounterVec(
+		ClusterEvents: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_cluster_events_total",
 				Help: "Total number of cluster events",
@@ -270,7 +264,7 @@ func (wcr *WorkloadClusterRegistry) RegisterWorkloadCluster(ctx context.Context,
 		wcr.metrics.RegistrationErrors.WithLabelValues(
 			cluster.Name, "validation_failed",
 		).Inc()
-		return errors.WithContext(err, "cluster validation failed")
+		return fmt.Errorf("cluster validation failed: %w", err)
 	}
 
 	// Check if cluster already exists

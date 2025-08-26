@@ -36,6 +36,7 @@ import (
 
 	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
+	"github.com/thc1006/nephoran-intent-operator/pkg/shared"
 )
 
 // IntentOrchestrator manages the overall processing pipeline for NetworkIntents
@@ -489,17 +490,14 @@ func (o *IntentOrchestrator) validatePhaseResult(phase interfaces.ProcessingPhas
 
 func (o *IntentOrchestrator) updateIntentStatus(ctx context.Context, intent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult) error {
 	// Update phase in status
-	intent.Status.Phase = string(phase)
+	intent.Status.Phase = shared.ProcessingPhaseToNetworkIntentPhase(phase)
 
 	// Update timestamps
 	now := metav1.Now()
-	if intent.Status.ProcessingStartTime == nil {
-		intent.Status.ProcessingStartTime = &now
-	}
+	intent.Status.LastUpdateTime = now
 
-	if phase == interfaces.PhaseCompleted {
-		intent.Status.ProcessingCompletionTime = &now
-	}
+	// Update completion time in extension if needed
+	// intent.Status.ProcessingCompletionTime field doesn't exist in v1 API
 
 	// Update conditions
 	condition := metav1.Condition{
@@ -561,9 +559,9 @@ func (o *IntentOrchestrator) handleIntentCompletion(ctx context.Context, intent 
 	o.MetricsCollector.RecordIntentCompletion(processingCtx.IntentID, true, time.Since(processingCtx.StartTime))
 
 	// Update final status
-	intent.Status.Phase = string(interfaces.PhaseCompleted)
+	intent.Status.Phase = shared.ProcessingPhaseToNetworkIntentPhase(interfaces.PhaseCompleted)
 	now := metav1.Now()
-	intent.Status.ProcessingCompletionTime = &now
+	intent.Status.LastUpdateTime = now
 
 	return ctrl.Result{}, o.Status().Update(ctx, intent)
 }
@@ -578,7 +576,7 @@ func (o *IntentOrchestrator) handleIntentFailure(ctx context.Context, intent *ne
 	o.MetricsCollector.RecordIntentCompletion(processingCtx.IntentID, false, time.Since(processingCtx.StartTime))
 
 	// Update status
-	intent.Status.Phase = string(interfaces.PhaseFailed)
+	intent.Status.Phase = shared.ProcessingPhaseToNetworkIntentPhase(interfaces.PhaseFailed)
 
 	// Record failure event
 	o.Recorder.Event(intent, "Warning", "ProcessingFailed", err.Error())
@@ -595,6 +593,7 @@ func (o *IntentOrchestrator) handleIntentDeletion(ctx context.Context, namespace
 		if processingCtx, ok := value.(*interfaces.ProcessingContext); ok {
 			// Check if this context belongs to the deleted intent
 			// This would need more sophisticated matching in practice
+			_ = processingCtx // Mark as used to avoid compiler warning
 			o.ProcessingContexts.Delete(key)
 		}
 		return true
@@ -636,9 +635,6 @@ func (o *IntentOrchestrator) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nephoranv1.NetworkIntent{}).
 		Named("intent-orchestrator").
-		WithOptions(ctrl.Options{
-			MaxConcurrentReconciles: o.Config.MaxConcurrentIntents,
-		}).
 		Complete(o)
 }
 

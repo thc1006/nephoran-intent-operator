@@ -62,14 +62,14 @@ type LatencyDataPoint struct {
 // PerformanceMetrics holds all performance-related metrics
 type PerformanceMetrics struct {
 	// Prometheus metrics
-	requestLatencyHistogram  prometheus.HistogramVec
-	tokenUsageCounter        prometheus.CounterVec
-	tokenCostGauge           prometheus.GaugeVec
-	circuitBreakerStateGauge prometheus.GaugeVec
-	batchProcessingHistogram prometheus.HistogramVec
-	requestThroughputCounter prometheus.CounterVec
-	errorRateCounter         prometheus.CounterVec
-	cacheHitRateGauge        prometheus.GaugeVec
+	requestLatencyHistogram  *prometheus.HistogramVec
+	tokenUsageCounter        *prometheus.CounterVec
+	tokenCostGauge           *prometheus.GaugeVec
+	circuitBreakerStateGauge *prometheus.GaugeVec
+	batchProcessingHistogram *prometheus.HistogramVec
+	requestThroughputCounter *prometheus.CounterVec
+	errorRateCounter         *prometheus.CounterVec
+	cacheHitRateGauge        *prometheus.GaugeVec
 
 	// OpenTelemetry metrics
 	requestLatencyHistogramOTel metric.Float64Histogram
@@ -184,44 +184,44 @@ func getDefaultPerformanceConfig() *PerformanceConfig {
 func (po *PerformanceOptimizer) initializeMetrics() {
 	// Prometheus metrics
 	po.metrics = &PerformanceMetrics{
-		requestLatencyHistogram: *promauto.NewHistogramVec(prometheus.HistogramOpts{
+		requestLatencyHistogram: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "llm_request_duration_seconds",
 			Help:    "Duration of LLM requests in seconds",
 			Buckets: []float64{0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10},
 		}, []string{"intent_type", "model_name", "success", "cache_hit"}),
 
-		tokenUsageCounter: *promauto.NewCounterVec(prometheus.CounterOpts{
+		tokenUsageCounter: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_tokens_total",
 			Help: "Total number of tokens processed",
 		}, []string{"model_name", "token_type", "intent_type"}),
 
-		tokenCostGauge: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		tokenCostGauge: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "llm_token_cost_usd",
 			Help: "Cost of token usage in USD",
 		}, []string{"model_name", "token_type"}),
 
-		circuitBreakerStateGauge: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		circuitBreakerStateGauge: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "llm_circuit_breaker_state",
 			Help: "Circuit breaker state (0=closed, 1=open, 2=half-open)",
 		}, []string{"backend"}),
 
-		batchProcessingHistogram: *promauto.NewHistogramVec(prometheus.HistogramOpts{
+		batchProcessingHistogram: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "llm_batch_processing_duration_seconds",
 			Help:    "Duration of batch processing operations",
 			Buckets: []float64{0.01, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5},
 		}, []string{"batch_size_range"}),
 
-		requestThroughputCounter: *promauto.NewCounterVec(prometheus.CounterOpts{
+		requestThroughputCounter: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_requests_per_second_total",
 			Help: "Request throughput per second",
 		}, []string{"intent_type", "model_name"}),
 
-		errorRateCounter: *promauto.NewCounterVec(prometheus.CounterOpts{
+		errorRateCounter: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "llm_errors_total",
 			Help: "Total number of LLM request errors",
 		}, []string{"error_type", "model_name"}),
 
-		cacheHitRateGauge: *promauto.NewGaugeVec(prometheus.GaugeOpts{
+		cacheHitRateGauge: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Name: "llm_cache_hit_rate",
 			Help: "Cache hit rate percentage",
 		}, []string{"cache_type"}),

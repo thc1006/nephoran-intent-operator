@@ -18,6 +18,7 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 // NetworkIntentSpec defines the desired state of NetworkIntent
@@ -143,13 +144,33 @@ const (
 	ORANComponentUPF ORANComponent = "upf"
 )
 
+// NetworkIntentPhase represents the phase of NetworkIntent processing
+type NetworkIntentPhase string
+
+const (
+	// NetworkIntentPhasePending represents pending phase
+	NetworkIntentPhasePending NetworkIntentPhase = "Pending"
+	// NetworkIntentPhaseProcessing represents processing phase
+	NetworkIntentPhaseProcessing NetworkIntentPhase = "Processing"
+	// NetworkIntentPhaseDeploying represents deploying phase
+	NetworkIntentPhaseDeploying NetworkIntentPhase = "Deploying"
+	// NetworkIntentPhaseActive represents active phase
+	NetworkIntentPhaseActive NetworkIntentPhase = "Active"
+	// NetworkIntentPhaseReady represents ready phase
+	NetworkIntentPhaseReady NetworkIntentPhase = "Ready"
+	// NetworkIntentPhaseDeployed represents deployed phase
+	NetworkIntentPhaseDeployed NetworkIntentPhase = "Deployed"
+	// NetworkIntentPhaseFailed represents failed phase
+	NetworkIntentPhaseFailed NetworkIntentPhase = "Failed"
+)
+
 // NetworkIntentStatus defines the observed state of NetworkIntent
 type NetworkIntentStatus struct {
 	// ObservedGeneration reflects the generation of the most recently observed NetworkIntent
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
 	// Phase represents the current phase of the NetworkIntent processing
-	Phase string `json:"phase,omitempty"`
+	Phase NetworkIntentPhase `json:"phase,omitempty"`
 
 	// LastMessage contains the last status message
 	LastMessage string `json:"lastMessage,omitempty"`
@@ -160,6 +181,16 @@ type NetworkIntentStatus struct {
 	// ProcessingResults contains the results of intent processing
 	// +optional
 	ProcessingResults *ProcessingResult `json:"processingResults,omitempty"`
+
+	// Extensions contains additional status information as raw extensions
+	// +optional
+	Extensions map[string]runtime.RawExtension `json:"extensions,omitempty"`
+
+	// Conditions contains the conditions for the NetworkIntent
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 //+kubebuilder:object:root=true

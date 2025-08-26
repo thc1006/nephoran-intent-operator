@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.opentelemetry.io/otel"
@@ -337,21 +336,21 @@ func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngin
 
 	// Initialize metrics
 	metrics := &WorkflowEngineMetrics{
-		WorkflowRegistrations: *promauto.NewCounterVec(
+		WorkflowRegistrations: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_workflow_registrations_total",
 				Help: "Total number of workflow registrations",
 			},
 			[]string{"workflow", "intent_type", "status"},
 		),
-		WorkflowExecutions: *promauto.NewCounterVec(
+		WorkflowExecutions: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_workflow_engine_executions_total",
 				Help: "Total number of workflow executions by the engine",
 			},
 			[]string{"workflow", "phase", "status"},
 		),
-		ExecutionDuration: *promauto.NewHistogramVec(
+		ExecutionDuration: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    "nephio_workflow_engine_execution_duration_seconds",
 				Help:    "Duration of workflow executions",
@@ -359,7 +358,7 @@ func NewNephioWorkflowEngine(config *WorkflowEngineConfig) (*NephioWorkflowEngin
 			},
 			[]string{"workflow", "phase"},
 		),
-		WorkflowErrors: *promauto.NewCounterVec(
+		WorkflowErrors: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: "nephio_workflow_engine_errors_total",
 				Help: "Total number of workflow engine errors",
