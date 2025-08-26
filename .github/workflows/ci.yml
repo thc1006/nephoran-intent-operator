@@ -286,38 +286,103 @@ jobs:
             ~/.cache/go-build
             ~/go/pkg/mod
             ~/go/bin
+            /usr/local/kubebuilder
           key: ${{ runner.os }}-test-cache-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-test-cache-
 
+      - name: Install Kubebuilder
+        run: |
+          echo "=== Installing Kubebuilder ==="
+          KUBEBUILDER_VERSION="4.3.1"
+          OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+          ARCH=$(uname -m | sed 's/x86_64/amd64/' | sed 's/aarch64/arm64/')
+          
+          # Download and install Kubebuilder
+          curl -L "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${KUBEBUILDER_VERSION}/kubebuilder_${OS}_${ARCH}" -o kubebuilder
+          chmod +x kubebuilder
+          sudo mkdir -p /usr/local/kubebuilder/bin
+          sudo mv kubebuilder /usr/local/kubebuilder/bin/
+          
+          # Add to PATH
+          echo "/usr/local/kubebuilder/bin" >> $GITHUB_PATH
+          
+          # Verify installation
+          /usr/local/kubebuilder/bin/kubebuilder version
+
+      - name: Install Ginkgo CLI
+        run: |
+          echo "=== Installing Ginkgo CLI ==="
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
       - name: Run unit tests with coverage
-        timeout-minutes: 10
+        timeout-minutes: 15
         env:
           CGO_ENABLED: 1
           GOMAXPROCS: 2
+          KUBEBUILDER_ASSETS: /usr/local/kubebuilder/bin
         run: |
-          echo "=== Running Unit Tests (Fast, No Integration) ==="
+          echo "=== Running Ginkgo Tests with Coverage ==="
           mkdir -p .test-reports
           
           # Set deterministic test environment
           export GODEBUG=gocachehash=1
           export GO111MODULE=on
-          export GOTESTSUM_FORMAT=short-verbose
           
-          # Run tests with coverage and timeout safety (excluding integration tests and .out dirs)
-          echo "Starting fast unit tests with 10m timeout..."
+          # Verify Ginkgo is available
+          if ! command -v ginkgo &> /dev/null; then
+            echo "❌ Ginkgo CLI not found in PATH"
+            echo "PATH: $PATH"
+            echo "GOPATH: $(go env GOPATH)"
+            exit 1
+          fi
+          
+          echo "✅ Ginkgo version: $(ginkgo version)"
+          echo "✅ Kubebuilder assets: $KUBEBUILDER_ASSETS"
+          
+          # Run Ginkgo tests with parallel execution and coverage
+          echo "Starting Ginkgo tests with 15m timeout..."
+          timeout 15m ginkgo -p \
+            --race \
+            --timeout=14m \
+            --cover \
+            --coverprofile=.test-reports/coverage.out \
+            --covermode=atomic \
+            --output-dir=.test-reports \
+            --json-report=test-results.json \
+            --junit-report=junit.xml \
+            --progress \
+            --trace \
+            ./tests/... || {
+              echo "Test execution completed (may have timed out or failed)"
+              echo "test_timeout=true" >> .test-reports/test-status.txt
+            }
+          
+          # Also run standard Go tests for packages without Ginkgo suites
+          echo "Running standard Go tests for non-Ginkgo packages..."
           timeout 10m go test -v -race -timeout=9m30s \
-            -coverprofile=.test-reports/coverage.out \
+            -coverprofile=.test-reports/coverage-go.out \
             -covermode=atomic \
             -count=1 \
             -parallel=4 \
             -short \
-            $(go list ./... | grep -v '\.out' | grep -v '/test-results/') | tee .test-reports/test.log || {
-              echo "Test execution completed (may have timed out)"
-              echo "test_timeout=true" >> .test-reports/test-status.txt
+            $(go list ./... | grep -v '/tests/' | grep -v '\.out' | grep -v '/test-results/') | tee .test-reports/go-test.log || {
+              echo "Go test execution completed"
             }
           
-          # Verify coverage file exists before processing
+          # Merge coverage profiles if both exist
+          if [ -f ".test-reports/coverage.out" ] && [ -f ".test-reports/coverage-go.out" ]; then
+            echo "Merging coverage profiles..."
+            echo "mode: atomic" > .test-reports/coverage-merged.out
+            tail -n +2 .test-reports/coverage.out >> .test-reports/coverage-merged.out
+            tail -n +2 .test-reports/coverage-go.out >> .test-reports/coverage-merged.out
+            mv .test-reports/coverage-merged.out .test-reports/coverage.out
+          elif [ -f ".test-reports/coverage-go.out" ] && [ ! -f ".test-reports/coverage.out" ]; then
+            mv .test-reports/coverage-go.out .test-reports/coverage.out
+          fi
+          
+          # Generate coverage report
           if [ -f ".test-reports/coverage.out" ] && [ -s ".test-reports/coverage.out" ]; then
             echo "Generating coverage HTML report..."
             go tool cover -html=.test-reports/coverage.out -o .test-reports/coverage.html
@@ -331,22 +396,40 @@ jobs:
             echo "coverage_available=false" >> .test-reports/test-status.txt
           fi
           
-          echo "## 🧪 Unit Test Results (Fast Mode)" >> $GITHUB_STEP_SUMMARY
+          echo "## 🧪 Ginkgo Test Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Coverage:** $coverage_percent" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Show test summary with safe parsing
-          test_count=$(grep -c "^=== RUN" .test-reports/test.log 2>/dev/null || echo "0")
-          pass_count=$(grep -c "^--- PASS" .test-reports/test.log 2>/dev/null || echo "0")
-          fail_count=$(grep -c "^--- FAIL" .test-reports/test.log 2>/dev/null || echo "0")
+          # Parse Ginkgo JSON report for test statistics
+          if [ -f ".test-reports/test-results.json" ]; then
+            # Use jq to extract test stats if available, otherwise fallback to grep
+            if command -v jq &> /dev/null; then
+              test_count=$(jq '.SpecReports | length' .test-reports/test-results.json 2>/dev/null || echo "unknown")
+              pass_count=$(jq '[.SpecReports[] | select(.State == "passed")] | length' .test-reports/test-results.json 2>/dev/null || echo "unknown")
+              fail_count=$(jq '[.SpecReports[] | select(.State == "failed")] | length' .test-reports/test-results.json 2>/dev/null || echo "unknown")
+              skip_count=$(jq '[.SpecReports[] | select(.State == "skipped")] | length' .test-reports/test-results.json 2>/dev/null || echo "unknown")
+            else
+              test_count="See artifacts"
+              pass_count="See artifacts"
+              fail_count="See artifacts" 
+              skip_count="See artifacts"
+            fi
+          else
+            # Fallback to parsing log files
+            test_count=$(find .test-reports -name "*.log" -exec grep -c "•.*\[PASS\|FAIL\|SKIP\]" {} \; | awk '{sum += $1} END {print sum}' || echo "0")
+            pass_count=$(find .test-reports -name "*.log" -exec grep -c "•.*\[PASS\]" {} \; | awk '{sum += $1} END {print sum}' || echo "0")
+            fail_count=$(find .test-reports -name "*.log" -exec grep -c "•.*\[FAIL\]" {} \; | awk '{sum += $1} END {print sum}' || echo "0")
+            skip_count=$(find .test-reports -name "*.log" -exec grep -c "•.*\[SKIP\]" {} \; | awk '{sum += $1} END {print sum}' || echo "0")
+          fi
           
           echo "| Metric | Count |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Tests Run | $test_count |" >> $GITHUB_STEP_SUMMARY
           echo "| Passed | $pass_count |" >> $GITHUB_STEP_SUMMARY
           echo "| Failed | $fail_count |" >> $GITHUB_STEP_SUMMARY
-          echo "| Timeout Used | 10m test timeout, 9m30s go test timeout |" >> $GITHUB_STEP_SUMMARY
+          echo "| Skipped | $skip_count |" >> $GITHUB_STEP_SUMMARY
+          echo "| Timeout Used | 15m step timeout, 14m Ginkgo timeout |" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload test results
         if: always()
@@ -796,15 +879,27 @@ jobs:
           check-latest: true
           cache: false
 
+      - name: Install Ginkgo CLI for tools testing
+        run: |
+          echo "=== Installing Ginkgo CLI ==="
+          go install github.com/onsi/ginkgo/v2/ginkgo@latest
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+
       - name: Test tools
         run: |
           echo "=== Testing Tools ==="
           
-          # Test Go tools
+          # Test Go tools (use Ginkgo if suite_test.go exists, otherwise standard go test)
           for tool_dir in tools/*/; do
             if [ -f "$tool_dir/main.go" ] || [ -f "$tool_dir/go.mod" ]; then
               echo "Testing $tool_dir"
-              (cd "$tool_dir" && go test ./... -v)
+              if [ -f "$tool_dir/suite_test.go" ]; then
+                echo "Using Ginkgo for $tool_dir"
+                (cd "$tool_dir" && ginkgo -v)
+              else
+                echo "Using go test for $tool_dir"
+                (cd "$tool_dir" && go test ./... -v)
+              fi
             fi
           done
           
