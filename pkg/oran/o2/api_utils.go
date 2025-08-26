@@ -381,31 +381,8 @@ type MetricsFilter struct {
 	Offset      int      `json:"offset,omitempty"`
 }
 
-// DeploymentTemplateFilter represents a filter for deployment template queries
-type DeploymentTemplateFilter struct {
-	Names      []string `json:"names,omitempty"`
-	Categories []string `json:"categories,omitempty"`
-	Types      []string `json:"types,omitempty"`
-	Versions   []string `json:"versions,omitempty"`
-	Authors    []string `json:"authors,omitempty"`
-	Limit      int      `json:"limit,omitempty"`
-	Offset     int      `json:"offset,omitempty"`
-}
+// DeploymentTemplateFilter is now defined in models/deployments.go
 
-// DeploymentFilter represents a filter for deployment queries
-type DeploymentFilter struct {
-	Names       []string `json:"names,omitempty"`
-	Statuses    []string `json:"statuses,omitempty"`
-	TemplateIDs []string `json:"template_ids,omitempty"`
-	Providers   []string `json:"providers,omitempty"`
-	Limit       int      `json:"limit,omitempty"`
-	Offset      int      `json:"offset,omitempty"`
-}
+// DeploymentFilter is now defined in models/deployments.go
 
-// SubscriptionFilter represents a filter for subscription queries
-type SubscriptionFilter struct {
-	EventTypes []string `json:"event_types,omitempty"`
-	Status     string   `json:"status,omitempty"`
-	Limit      int      `json:"limit,omitempty"`
-	Offset     int      `json:"offset,omitempty"`
-}
+// SubscriptionFilter is now defined in models/subscriptions.go

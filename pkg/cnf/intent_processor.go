@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -36,8 +37,8 @@ import (
 // CNFIntentProcessor processes natural language intents for CNF deployment
 type CNFIntentProcessor struct {
 	Client           client.Client
-	LLMProcessor     *llm.Processor
-	RAGService       *rag.Service
+	LLMProcessor     llm.Processor
+	RAGService       rag.Service
 	KnowledgeBase    *CNFKnowledgeBase
 	TemplateRegistry *CNFTemplateRegistry
 	Config           *CNFIntentProcessorConfig
@@ -150,7 +151,7 @@ type CNFIntentContext struct {
 	UserID              string
 	Namespace           string
 	TargetCluster       string
-	Priority            nephoranv1.Priority
+	Priority            nephoranv1.NetworkPriority
 	ProcessingStartTime time.Time
 	RAGContext          map[string]interface{}
 	LLMResponse         *llm.ProcessingResponse
@@ -158,7 +159,7 @@ type CNFIntentContext struct {
 }
 
 // NewCNFIntentProcessor creates a new CNF intent processor
-func NewCNFIntentProcessor(client client.Client, llmProcessor *llm.Processor, ragService *rag.Service) *CNFIntentProcessor {
+func NewCNFIntentProcessor(client client.Client, llmProcessor llm.Processor, ragService rag.Service) *CNFIntentProcessor {
 	processor := &CNFIntentProcessor{
 		Client:       client,
 		LLMProcessor: llmProcessor,
@@ -169,7 +170,7 @@ func NewCNFIntentProcessor(client client.Client, llmProcessor *llm.Processor, ra
 			EnableContextEnrichment:  true,
 			EnableCostEstimation:     true,
 			EnableTimelineEstimation: true,
-			DefaultStrategy:          nephoranv1.DeploymentStrategyHelm,
+			DefaultStrategy:          "Helm",
 			EnableValidation:         true,
 			MaxRetries:               3,
 		},
@@ -409,7 +410,6 @@ func (p *CNFIntentProcessor) extractCNFDeploymentSpecs(ctx context.Context, inte
 	result := &nephoranv1.CNFIntentProcessingResult{
 		DetectedFunctions:  []nephoranv1.CNFFunction{},
 		CNFDeployments:     []nephoranv1.CNFDeploymentIntent{},
-		EstimatedResources: make(map[string]interface{}),
 		Warnings:           []string{},
 		Errors:             []string{},
 	}
@@ -457,7 +457,6 @@ func (p *CNFIntentProcessor) extractUsingPatterns(intent string) *nephoranv1.CNF
 	result := &nephoranv1.CNFIntentProcessingResult{
 		DetectedFunctions:   []nephoranv1.CNFFunction{},
 		CNFDeployments:      []nephoranv1.CNFDeploymentIntent{},
-		EstimatedResources:  make(map[string]interface{}),
 		RecommendedStrategy: p.Config.DefaultStrategy,
 		ConfidenceScore:     0.5, // Lower confidence for pattern matching
 	}
@@ -529,10 +528,10 @@ func (p *CNFIntentProcessor) mapToCNFFunction(funcStr string) nephoranv1.CNFFunc
 // mapToDeploymentStrategy maps string to deployment strategy enum
 func (p *CNFIntentProcessor) mapToDeploymentStrategy(strategy string) nephoranv1.DeploymentStrategy {
 	mappings := map[string]nephoranv1.DeploymentStrategy{
-		"helm":     nephoranv1.DeploymentStrategyHelm,
-		"operator": nephoranv1.DeploymentStrategyOperator,
-		"direct":   nephoranv1.DeploymentStrategyDirect,
-		"gitops":   nephoranv1.DeploymentStrategyGitOps,
+		"helm":     "Helm",
+		"operator": "Operator", 
+		"direct":   "Direct",
+		"gitops":   "GitOps",
 	}
 
 	if strategy, exists := mappings[strings.ToLower(strategy)]; exists {
@@ -789,11 +788,13 @@ func (p *CNFIntentProcessor) estimateResourcesAndCosts(result *nephoranv1.CNFInt
 		}
 	}
 
-	result.EstimatedResources = map[string]interface{}{
+	// Convert map to RawExtension
+	resourcesBytes, _ := json.Marshal(map[string]interface{}{
 		"total_cpu":              totalCPU,
 		"total_memory":           totalMemory,
 		"estimated_monthly_cost": totalCost,
-	}
+	})
+	result.EstimatedResources = runtime.RawExtension{Raw: resourcesBytes}
 	result.EstimatedCost = totalCost
 }
 

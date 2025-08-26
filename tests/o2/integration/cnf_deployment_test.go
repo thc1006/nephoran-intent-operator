@@ -867,6 +867,13 @@ func (suite *CNFDeploymentTestSuite) TestCNFHealthMonitoring() {
 	})
 }
 
+func (suite *CNFDeploymentTestSuite) TearDownSuite() {
+	// Clean up test resources
+	if suite.o2Manager != nil {
+		// Graceful shutdown if needed
+	}
+}
+
 func TestCNFDeployment(t *testing.T) {
 	suite.Run(t, new(CNFDeploymentTestSuite))
 }

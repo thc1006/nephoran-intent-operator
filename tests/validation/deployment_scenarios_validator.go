@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -643,7 +644,7 @@ func (dsv *DeploymentScenariosValidator) validateTrafficSplitting(ctx context.Co
 	// Check for Istio VirtualService
 	if routing.Istio != nil {
 		virtualServices := &metav1.PartialObjectMetadataList{}
-		virtualServices.SetGroupVersionKind(metav1.GroupVersionKind{
+		virtualServices.SetGroupVersionKind(schema.GroupVersionKind{
 			Group:   "networking.istio.io",
 			Version: "v1beta1",
 			Kind:    "VirtualServiceList",

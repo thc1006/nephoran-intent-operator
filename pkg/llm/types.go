@@ -216,6 +216,33 @@ type ProcessingResult struct {
 // ProcessingContext, ClassificationResult, EnrichmentContext, ValidationResult
 // are defined in processing_pipeline.go and security_validator.go
 
+// ProcessingRequest represents a request for LLM processing
+type ProcessingRequest struct {
+	Intent            string                 `json:"intent"`
+	SystemPrompt      string                 `json:"system_prompt"`
+	UserPrompt        string                 `json:"user_prompt"`
+	Context           map[string]interface{} `json:"context"`
+	MaxTokens         int                    `json:"max_tokens"`
+	Temperature       float64                `json:"temperature"`
+	RequestID         string                 `json:"request_id"`
+	ProcessingTimeout time.Duration          `json:"processing_timeout"`
+}
+
+// ProcessingResponse represents the response from LLM processing
+type ProcessingResponse struct {
+	ProcessedParameters string                 `json:"processed_parameters"`
+	ConfidenceScore     float64                `json:"confidence_score"`
+	TokensUsed          int                    `json:"tokens_used"`
+	ProcessingTime      time.Duration          `json:"processing_time"`
+	Metadata            map[string]interface{} `json:"metadata"`
+	Error               error                  `json:"error,omitempty"`
+}
+
+// Processor interface for LLM processing
+type Processor interface {
+	ProcessIntent(ctx context.Context, request *ProcessingRequest) (*ProcessingResponse, error)
+}
+
 // generateRequestID generates a unique request identifier
 func generateRequestID() string {
 	bytes := make([]byte, 8)

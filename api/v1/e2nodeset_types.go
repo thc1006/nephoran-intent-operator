@@ -170,7 +170,7 @@ type E2NodeSetSpec struct {
 	// RICEndpoint specifies the RIC endpoint URL (alternative naming)
 	// +kubebuilder:validation:Pattern=`^https?://[a-zA-Z0-9.-]+:[0-9]+$`
 	// +optional
-	RICEndpoint string `json:"ricEndpoint,omitempty"`
+	RICEndpoint string `json:"ricEndpointAlt,omitempty"`
 	
 	// HeartbeatInterval specifies the interval for heartbeat messages
 	// +kubebuilder:validation:Pattern=`^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`

@@ -118,7 +118,7 @@ type BlueprintTemplate struct {
 	Description   string             `json:"description" yaml:"description"`
 	Version       string             `json:"version" yaml:"version"`
 	Category      string             `json:"category" yaml:"category"`
-	ComponentType v1.TargetComponent `json:"componentType" yaml:"componentType"`
+	ComponentType v1.NetworkTargetComponent `json:"componentType" yaml:"componentType"`
 	IntentTypes   []v1.IntentType    `json:"intentTypes" yaml:"intentTypes"`
 
 	// O-RAN Compliance
@@ -297,7 +297,7 @@ type SecretTemplate struct {
 }
 
 type BlueprintDependency struct {
-	ComponentType v1.TargetComponent `json:"componentType" yaml:"componentType"`
+	ComponentType v1.NetworkTargetComponent `json:"componentType" yaml:"componentType"`
 	Version       string             `json:"version" yaml:"version"`
 	Required      bool               `json:"required" yaml:"required"`
 	Interface     string             `json:"interface,omitempty" yaml:"interface,omitempty"`
@@ -386,7 +386,7 @@ type PolicyRule struct {
 }
 
 type EnforcementPoint struct {
-	ComponentType v1.TargetComponent `json:"componentType" yaml:"componentType"`
+	ComponentType v1.NetworkTargetComponent `json:"componentType" yaml:"componentType"`
 	Interface     string             `json:"interface" yaml:"interface"`
 	Method        string             `json:"method" yaml:"method"`
 }

@@ -29,6 +29,14 @@ type RAGClient interface {
 
 	// Shutdown gracefully shuts down the RAG client and releases resources
 	Shutdown(ctx context.Context) error
+
+	// Query performs a query against the RAG system
+	Query(ctx context.Context, query string) (interface{}, error)
+}
+
+// Service interface for compatibility with CNF package
+type Service interface {
+	Query(ctx context.Context, query string) (interface{}, error)
 }
 
 // SearchResult represents a search result from the RAG system

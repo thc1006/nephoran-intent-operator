@@ -15,6 +15,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -423,7 +424,7 @@ func (drv *DisasterRecoveryValidator) hasBackupLabels(labels map[string]string) 
 func (drv *DisasterRecoveryValidator) validateAutomatedBackups(ctx context.Context) {
 	// Check for Velero BackupStorageLocation
 	backupStorageLocations := &metav1.PartialObjectMetadataList{}
-	backupStorageLocations.SetGroupVersionKind(metav1.GroupVersionKind{
+	backupStorageLocations.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "velero.io",
 		Version: "v1",
 		Kind:    "BackupStorageLocationList",
@@ -437,7 +438,7 @@ func (drv *DisasterRecoveryValidator) validateAutomatedBackups(ctx context.Conte
 	// Also check for backup schedules
 	if !automatedBackups {
 		schedules := &metav1.PartialObjectMetadataList{}
-		schedules.SetGroupVersionKind(metav1.GroupVersionKind{
+		schedules.SetGroupVersionKind(schema.GroupVersionKind{
 			Group:   "velero.io",
 			Version: "v1",
 			Kind:    "ScheduleList",
@@ -476,7 +477,7 @@ func (drv *DisasterRecoveryValidator) validateBackupSchedules(ctx context.Contex
 
 	// Check Velero Schedules
 	veleroSchedules := &metav1.PartialObjectMetadataList{}
-	veleroSchedules.SetGroupVersionKind(metav1.GroupVersionKind{
+	veleroSchedules.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "velero.io",
 		Version: "v1",
 		Kind:    "ScheduleList",
@@ -588,7 +589,7 @@ func (drv *DisasterRecoveryValidator) validateRestoreProcedures(ctx context.Cont
 
 	// Check for Velero Restore CRDs
 	veleroRestores := &metav1.PartialObjectMetadataList{}
-	veleroRestores.SetGroupVersionKind(metav1.GroupVersionKind{
+	veleroRestores.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "velero.io",
 		Version: "v1",
 		Kind:    "RestoreList",
@@ -623,7 +624,7 @@ func (drv *DisasterRecoveryValidator) validateRestoreProcedures(ctx context.Cont
 func (drv *DisasterRecoveryValidator) validatePointInTimeRecovery(ctx context.Context) {
 	// Check for volume snapshots or incremental backup capabilities
 	volumeSnapshots := &metav1.PartialObjectMetadataList{}
-	volumeSnapshots.SetGroupVersionKind(metav1.GroupVersionKind{
+	volumeSnapshots.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "snapshot.storage.k8s.io",
 		Version: "v1",
 		Kind:    "VolumeSnapshotList",
@@ -655,7 +656,7 @@ func (drv *DisasterRecoveryValidator) validatePointInTimeRecovery(ctx context.Co
 func (drv *DisasterRecoveryValidator) validateRestoreTesting(ctx context.Context) {
 	// Check for completed Velero Restores
 	veleroRestores := &metav1.PartialObjectMetadataList{}
-	veleroRestores.SetGroupVersionKind(metav1.GroupVersionKind{
+	veleroRestores.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "velero.io",
 		Version: "v1",
 		Kind:    "RestoreList",

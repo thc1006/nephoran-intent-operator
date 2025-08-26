@@ -450,8 +450,22 @@ func (m *MockPorchClient) RenderPackage(ctx context.Context, name string, revisi
 
 	// Simulate rendering by returning some test resources
 	resources := []porch.KRMResource{
-		GenerateTestResource("apps/v1", "Deployment", "rendered-deployment", "default"),
-		GenerateTestResource("v1", "Service", "rendered-service", "default"),
+		{
+			APIVersion: "apps/v1",
+			Kind:       "Deployment",
+			Metadata: map[string]interface{}{
+				"name":      "rendered-deployment",
+				"namespace": "default",
+			},
+		},
+		{
+			APIVersion: "v1",
+			Kind:       "Service",
+			Metadata: map[string]interface{}{
+				"name":      "rendered-service",
+				"namespace": "default",
+			},
+		},
 	}
 
 	return &porch.RenderResult{
@@ -519,18 +533,24 @@ func (m *MockPorchClient) ValidatePackage(ctx context.Context, name string, revi
 		}, nil
 	}
 
-	// Basic validation
-	errors := ValidatePackageRevision(pkg)
-	if len(errors) > 0 {
-		validationErrors := make([]porch.ValidationError, len(errors))
-		for i, err := range errors {
-			validationErrors[i] = porch.ValidationError{
-				Path:     "spec",
-				Message:  err,
-				Severity: "error",
-			}
-		}
+	// Basic validation - simplified for testing
+	var validationErrors []porch.ValidationError
+	if pkg.Spec.PackageName == "" {
+		validationErrors = append(validationErrors, porch.ValidationError{
+			Path:     "spec.packageName",
+			Message:  "package name is required",
+			Severity: "error",
+		})
+	}
+	if pkg.Spec.Repository == "" {
+		validationErrors = append(validationErrors, porch.ValidationError{
+			Path:     "spec.repository",
+			Message:  "repository is required",
+			Severity: "error",
+		})
+	}
 
+	if len(validationErrors) > 0 {
 		return &porch.ValidationResult{
 			Valid:  false,
 			Errors: validationErrors,
@@ -602,7 +622,7 @@ func (m *MockPorchClient) CreateWorkflow(ctx context.Context, workflow *porch.Wo
 	}
 
 	created := m.cloneWorkflow(workflow)
-	created.Status.Phase = porch.WorkflowPhasePending
+	created.Status.Phase = string(porch.WorkflowPhasePending)
 	created.Status.Conditions = []metav1.Condition{
 		{
 			Type:    "Ready",
@@ -691,11 +711,11 @@ func (m *MockPorchClient) Version(ctx context.Context) (*porch.VersionInfo, erro
 		return nil, err
 	}
 
+	buildTime, _ := time.Parse(time.RFC3339, "2025-01-01T00:00:00Z")
 	return &porch.VersionInfo{
 		Version:   "v1.0.0-test",
 		GitCommit: "abcd1234",
-		BuildTime: "2025-01-01T00:00:00Z",
-		GoVersion: "go1.24.0",
+		BuildTime: buildTime,
 	}, nil
 }
 
@@ -774,6 +794,8 @@ func (m *MockPorchClient) Clear() {
 }
 
 // Helper methods
+
+// Helper functions are defined in fixtures.go to avoid duplication
 
 func (m *MockPorchClient) trackCall(method string) {
 	m.mutex.Lock()

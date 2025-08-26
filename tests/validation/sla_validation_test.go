@@ -884,6 +884,63 @@ func (s *SLAValidationTestSuite) calculateMeasurementStatistics(measurements *Me
 	}
 }
 
+// SetupSuite initializes the test suite
+func (s *SLAValidationTestSuite) SetupSuite() {
+	s.ctx, s.cancel = context.WithCancel(context.Background())
+	
+	// Initialize logger
+	s.logger = logging.NewStructuredLogger("sla-validation-test", "info")
+	
+	// Initialize configuration with default values
+	s.config = &ValidationConfig{
+		AvailabilityClaim:    99.95,
+		LatencyP95Claim:      2 * time.Second,
+		ThroughputClaim:      45.0,
+		ConfidenceLevel:      99.95,
+		SampleSize:           10000,
+		MeasurementPrecision: 0.01,
+		ValidationDuration:   1 * time.Hour,
+		SamplingInterval:     1 * time.Second,
+		BatchSize:            100,
+		AvailabilityAccuracy: 0.01,
+		LatencyAccuracy:      10 * time.Millisecond,
+		ThroughputAccuracy:   1.0,
+		IndependentMethods:   3,
+		ValidationRounds:     5,
+		TimeWindows:          []time.Duration{5 * time.Minute, 15 * time.Minute, 1 * time.Hour},
+	}
+	
+	// Initialize validator components
+	s.validator = &SLAValidator{
+		config:       s.config,
+		measurements: make(map[string]*MeasurementSet),
+	}
+	
+	s.statisticalAnalyzer = &StatisticalAnalyzer{}
+	s.metricCollector = &PrecisionMetricCollector{
+		config: s.config,
+	}
+	s.claimVerifier = &ClaimVerifier{
+		config: s.config,
+	}
+	
+	// Initialize results containers
+	s.validationResults = &ValidationResults{}
+	s.evidence = &ValidationEvidence{}
+}
+
+// TearDownSuite cleans up after the test suite
+func (s *SLAValidationTestSuite) TearDownSuite() {
+	if s.cancel != nil {
+		s.cancel()
+	}
+	
+	// Clean up any resources or connections
+	if s.prometheusClient != nil {
+		// Close prometheus client if needed
+	}
+}
+
 // TestSuite runner function
 func TestSLAValidationTestSuite(t *testing.T) {
 	suite.Run(t, new(SLAValidationTestSuite))

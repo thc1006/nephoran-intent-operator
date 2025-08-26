@@ -18,6 +18,7 @@ package v1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -241,14 +242,20 @@ type ResourceRequirements struct {
 
 // NetworkResourceConstraints defines resource constraints for network operations (to avoid conflict with disaster recovery)
 type NetworkResourceConstraints struct {
-	// Maximum CPU allocation
-	MaxCPU string `json:"maxCpu,omitempty"`
+	// Maximum CPU allocation (string form for backward compatibility)
+	MaxCpu string `json:"maxCpu,omitempty"`
 	
-	// Maximum memory allocation
-	MaxMemory string `json:"maxMemory,omitempty"`
+	// Maximum memory allocation (string form for backward compatibility)
+	MaxMem string `json:"maxMem,omitempty"`
 	
-	// Maximum storage allocation
+	// Maximum storage allocation (string form for backward compatibility)
 	MaxStorage string `json:"maxStorage,omitempty"`
+	
+	// Maximum CPU allocation as resource.Quantity (for blueprint engine compatibility)
+	MaxCPU *resource.Quantity `json:"maxCPU,omitempty"`
+	
+	// Maximum memory allocation as resource.Quantity (for blueprint engine compatibility)
+	MaxMemory *resource.Quantity `json:"maxMemory,omitempty"`
 	
 	// Minimum resource requirements
 	MinResources *corev1.ResourceRequirements `json:"minResources,omitempty"`
@@ -430,6 +437,61 @@ func NetworkTargetComponentsToStrings(components []NetworkTargetComponent) []str
 	return result
 }
 
+
+// Alias types for backward compatibility with existing code
+// These provide shorter names that match the existing usage patterns
+
+const (
+	// O-RAN Core Network Functions - Aliases for compatibility using raw string values
+	TargetComponentAMF    = "AMF"
+	TargetComponentSMF    = "SMF"
+	TargetComponentUPF    = "UPF"
+	TargetComponentNRF    = "NRF"
+	TargetComponentUDM    = "UDM"
+	TargetComponentUDR    = "UDR"
+	TargetComponentPCF    = "PCF"
+	TargetComponentAUSF   = "AUSF"
+	TargetComponentNSSF   = "NSSF"
+	
+	// O-RAN RAN Functions - Aliases for compatibility using raw string values
+	TargetComponentCUCP   = "CU-CP"
+	TargetComponentCUUP   = "CU-UP"
+	TargetComponentDU     = "DU"
+	TargetComponentNEF    = "NEF"
+	TargetComponentNWDAF  = "NWDAF"
+	TargetComponentAF     = "AF"
+	
+	// Additional O-RAN components referenced in the codebase
+	TargetComponentSMO         = "SMO"         // Service Management and Orchestration
+	TargetComponentNearRTRIC   = "Near-RT-RIC" // Near Real-Time RAN Intelligent Controller
+	TargetComponentNonRTRIC    = "Non-RT-RIC"  // Non Real-Time RAN Intelligent Controller
+	TargetComponentXApp        = "xApp"        // RIC xApplication
+	TargetComponentRApp        = "rApp"        // RIC rApplication
+	TargetComponentGNodeB      = "gNodeB"      // 5G Base Station
+	TargetComponentENodeB      = "eNodeB"      // 4G Base Station
+	TargetComponentODU         = "O-DU"        // O-RAN Distributed Unit
+	TargetComponentOCUCP       = "O-CU-CP"     // O-RAN Centralized Unit Control Plane
+	TargetComponentOCUUP       = "O-CU-UP"     // O-RAN Centralized Unit User Plane
+)
+
+const (
+	// Priority constants for general use (raw string values to avoid conflicts)
+	PriorityNormalNet   = "normal"  // Additional priority level for network intents
+)
+
+// NetworkIntent processing phases - additional phase constants for general use
+const (
+	// Phase constants for general use (shorter names)
+	PhasePending            = "Pending"
+	PhaseProcessing         = "Processing"
+	PhaseResourcePlanning   = "ResourcePlanning"
+	PhaseManifestGeneration = "ManifestGeneration"
+	PhaseDeployed          = "Deployed"
+	PhaseFailed            = "Failed"
+)
+
+// NetResourceConstraints aliases for NetworkResourceConstraints (for compatibility, to avoid conflict with disaster recovery)
+type NetResourceConstraints = NetworkResourceConstraints
 
 func init() {
 	SchemeBuilder.Register(&NetworkIntent{}, &NetworkIntentList{})

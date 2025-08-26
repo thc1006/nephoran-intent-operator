@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -119,7 +120,7 @@ type PolicyEnforcementConfig struct {
 // AdmissionEventInfo captures information about an admission request
 type AdmissionEventInfo struct {
 	UID           string                      `json:"uid"`
-	Kind          metav1.GroupVersionKind     `json:"kind"`
+	Kind          schema.GroupVersionKind     `json:"kind"`
 	Resource      metav1.GroupVersionResource `json:"resource"`
 	SubResource   string                      `json:"sub_resource,omitempty"`
 	Name          string                      `json:"name,omitempty"`
@@ -550,7 +551,7 @@ func (w *AdmissionAuditWebhook) generateSecurityPatches(req *admissionv1.Admissi
 func (w *AdmissionAuditWebhook) createAdmissionEventInfo(req *admissionv1.AdmissionRequest, webhookType string) *AdmissionEventInfo {
 	return &AdmissionEventInfo{
 		UID:         string(req.UID),
-		Kind:        req.Kind,
+		Kind:        schema.GroupVersionKind{Group: req.Kind.Group, Version: req.Kind.Version, Kind: req.Kind.Kind},
 		Resource:    req.Resource,
 		SubResource: req.SubResource,
 		Name:        req.Name,

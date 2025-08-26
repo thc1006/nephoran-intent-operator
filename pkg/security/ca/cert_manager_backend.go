@@ -2,7 +2,6 @@ package ca
 
 import (
 	"context"
-	"crypto"
 	"crypto/sha256"
 	"crypto/x509"
 	"crypto/x509/pkix"

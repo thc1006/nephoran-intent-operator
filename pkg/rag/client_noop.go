@@ -34,3 +34,9 @@ func (c *noOpRAGClient) Shutdown(ctx context.Context) error {
 	// No-op client requires no shutdown
 	return nil
 }
+
+// Query returns empty results for no-op implementation
+func (c *noOpRAGClient) Query(ctx context.Context, query string) (interface{}, error) {
+	// Return empty result - no error, just no content
+	return nil, nil
+}

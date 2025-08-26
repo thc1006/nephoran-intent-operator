@@ -323,7 +323,7 @@ func TestLoadFromEnv_InvalidConfiguration(t *testing.T) {
 }
 
 func TestLoadFromEnv_InvalidDurationValues(t *testing.T) {
-	envGuard := testutil.NewEnvironmentGuard(t)
+	_ = testutil.NewEnvironmentGuard(t) // Guard environment variables for this test
 	testutil.CleanupCommonEnvVars(t)
 
 	tests := []struct {

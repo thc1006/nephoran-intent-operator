@@ -703,28 +703,30 @@ func (bre *BlueprintRenderingEngine) applyResourceConstraints(resource *KRMResou
 }
 
 // setContainerResources sets container resource constraints
-func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]interface{}, constraints *v1.ResourceConstraints) {
+func (bre *BlueprintRenderingEngine) setContainerResources(container map[string]interface{}, constraints *v1.NetworkResourceConstraints) {
 	resourcesMap := make(map[string]interface{})
 
-	// Set requests
-	if requests, exists := resourcesMap["requests"]; exists {
-		if requestsMap, ok := requests.(map[string]interface{}); ok {
-			if constraints.CPU != nil {
-				requestsMap["cpu"] = constraints.CPU.String()
+	// Set requests (NetworkResourceConstraints uses MinResources for requests)
+	if constraints.MinResources != nil {
+		if requests, exists := resourcesMap["requests"]; exists {
+			if requestsMap, ok := requests.(map[string]interface{}); ok {
+				if constraints.MinResources.Requests.Cpu() != nil {
+					requestsMap["cpu"] = constraints.MinResources.Requests.Cpu().String()
+				}
+				if constraints.MinResources.Requests.Memory() != nil {
+					requestsMap["memory"] = constraints.MinResources.Requests.Memory().String()
+				}
 			}
-			if constraints.Memory != nil {
-				requestsMap["memory"] = constraints.Memory.String()
+		} else {
+			requestsMap := make(map[string]interface{})
+			if constraints.MinResources.Requests.Cpu() != nil {
+				requestsMap["cpu"] = constraints.MinResources.Requests.Cpu().String()
 			}
+			if constraints.MinResources.Requests.Memory() != nil {
+				requestsMap["memory"] = constraints.MinResources.Requests.Memory().String()
+			}
+			resourcesMap["requests"] = requestsMap
 		}
-	} else {
-		requestsMap := make(map[string]interface{})
-		if constraints.CPU != nil {
-			requestsMap["cpu"] = constraints.CPU.String()
-		}
-		if constraints.Memory != nil {
-			requestsMap["memory"] = constraints.Memory.String()
-		}
-		resourcesMap["requests"] = requestsMap
 	}
 
 	// Set limits

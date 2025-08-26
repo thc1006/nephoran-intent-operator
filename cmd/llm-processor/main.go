@@ -262,7 +262,12 @@ func setupHTTPServer() *http.Server {
 	router := mux.NewRouter()
 
 	// Initialize request size limiter middleware (uses HTTP_MAX_BODY env var via config)
-	requestSizeLimiter := middleware.NewRequestSizeLimiter(cfg.MaxRequestSize, logger)
+	requestSizeConfig := &middleware.RequestSizeConfig{
+		MaxBodySize:   cfg.MaxRequestSize,
+		MaxHeaderSize: 8 * 1024, // 8KB
+		EnableLogging: true,
+	}
+	requestSizeLimiter := middleware.NewRequestSizeLimiter(requestSizeConfig, logger)
 	logger.Info("Request size limiting enabled",
 		slog.Int64("max_request_size_bytes", cfg.MaxRequestSize),
 		slog.String("max_request_size_human", fmt.Sprintf("%.2f MB", float64(cfg.MaxRequestSize)/(1024*1024))))

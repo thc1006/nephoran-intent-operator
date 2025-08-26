@@ -12,22 +12,7 @@ import (
 
 // Additional types referenced by ResourcePoolManager and other components
 
-// DeploymentTemplateFilter defines filters for deployment template queries
-type DeploymentTemplateFilter struct {
-	Names         []string          `json:"names,omitempty"`
-	Categories    []string          `json:"categories,omitempty"`
-	Types         []string          `json:"types,omitempty"`
-	Versions      []string          `json:"versions,omitempty"`
-	Authors       []string          `json:"authors,omitempty"`
-	Keywords      []string          `json:"keywords,omitempty"`
-	Labels        map[string]string `json:"labels,omitempty"`
-	CreatedAfter  *time.Time        `json:"createdAfter,omitempty"`
-	CreatedBefore *time.Time        `json:"createdBefore,omitempty"`
-	Limit         int               `json:"limit,omitempty"`
-	Offset        int               `json:"offset,omitempty"`
-	SortBy        string            `json:"sortBy,omitempty"`
-	SortOrder     string            `json:"sortOrder,omitempty"`
-}
+// DeploymentTemplateFilter is now defined in models/deployments.go to avoid duplication
 
 // DeploymentTemplate represents a deployment template following O2 IMS specification
 type DeploymentTemplate struct {
@@ -134,24 +119,7 @@ type Deployment struct {
 	UpdatedBy string    `json:"updatedBy,omitempty"`
 }
 
-// DeploymentFilter defines filters for deployment queries
-type DeploymentFilter struct {
-	Names               []string          `json:"names,omitempty"`
-	TemplateIDs         []string          `json:"templateIds,omitempty"`
-	ResourcePoolIDs     []string          `json:"resourcePoolIds,omitempty"`
-	States              []string          `json:"states,omitempty"`
-	Phases              []string          `json:"phases,omitempty"`
-	HealthStates        []string          `json:"healthStates,omitempty"`
-	ParentDeploymentIDs []string          `json:"parentDeploymentIds,omitempty"`
-	CreatedBy           []string          `json:"createdBy,omitempty"`
-	Labels              map[string]string `json:"labels,omitempty"`
-	CreatedAfter        *time.Time        `json:"createdAfter,omitempty"`
-	CreatedBefore       *time.Time        `json:"createdBefore,omitempty"`
-	Limit               int               `json:"limit,omitempty"`
-	Offset              int               `json:"offset,omitempty"`
-	SortBy              string            `json:"sortBy,omitempty"`
-	SortOrder           string            `json:"sortOrder,omitempty"`
-}
+// DeploymentFilter is now defined in models/deployments.go to avoid duplication
 
 // CreateDeploymentRequest represents a request to create a deployment
 type CreateDeploymentRequest struct {
@@ -189,21 +157,8 @@ type UpdateDeploymentRequest struct {
 type Subscription = models.Subscription
 
 // SubscriptionFilter defines filters for subscription queries
-type SubscriptionFilter struct {
-	Names           []string          `json:"names,omitempty"`
-	EventTypes      []string          `json:"eventTypes,omitempty"`
-	States          []string          `json:"states,omitempty"`
-	ResourceTypes   []string          `json:"resourceTypes,omitempty"`
-	ResourcePoolIDs []string          `json:"resourcePoolIds,omitempty"`
-	CreatedBy       []string          `json:"createdBy,omitempty"`
-	Labels          map[string]string `json:"labels,omitempty"`
-	CreatedAfter    *time.Time        `json:"createdAfter,omitempty"`
-	CreatedBefore   *time.Time        `json:"createdBefore,omitempty"`
-	Limit           int               `json:"limit,omitempty"`
-	Offset          int               `json:"offset,omitempty"`
-	SortBy          string            `json:"sortBy,omitempty"`
-	SortOrder       string            `json:"sortOrder,omitempty"`
-}
+// SubscriptionFilter is now defined in models/subscriptions.go to avoid duplication
+type SubscriptionFilter = models.SubscriptionFilter
 
 // InfrastructureEvent represents an infrastructure event
 type InfrastructureEvent = models.InfrastructureEvent
@@ -231,16 +186,7 @@ type HealthCheckResult struct {
 	Details   map[string]interface{} `json:"details,omitempty"`
 }
 
-// Alert represents an alert or alarm
-type Alert struct {
-	ID         string     `json:"id"`
-	Severity   string     `json:"severity"` // CRITICAL, MAJOR, MINOR, WARNING, INFO
-	Message    string     `json:"message"`
-	Source     string     `json:"source"`
-	Timestamp  time.Time  `json:"timestamp"`
-	Resolved   bool       `json:"resolved"`
-	ResolvedAt *time.Time `json:"resolvedAt,omitempty"`
-}
+// Alert is now defined in infrastructure_monitoring.go to avoid duplication
 
 // Alarm represents an alarm in the system
 type Alarm struct {
@@ -260,21 +206,7 @@ type Alarm struct {
 }
 
 // AlarmFilter defines filters for alarm queries
-type AlarmFilter struct {
-	ResourceIDs   []string   `json:"resourceIds,omitempty"`
-	AlarmTypes    []string   `json:"alarmTypes,omitempty"`
-	Severities    []string   `json:"severities,omitempty"`
-	Status        []string   `json:"status,omitempty"`
-	Sources       []string   `json:"sources,omitempty"`
-	RaisedAfter   *time.Time `json:"raisedAfter,omitempty"`
-	RaisedBefore  *time.Time `json:"raisedBefore,omitempty"`
-	ClearedAfter  *time.Time `json:"clearedAfter,omitempty"`
-	ClearedBefore *time.Time `json:"clearedBefore,omitempty"`
-	Limit         int        `json:"limit,omitempty"`
-	Offset        int        `json:"offset,omitempty"`
-	SortBy        string     `json:"sortBy,omitempty"`
-	SortOrder     string     `json:"sortOrder,omitempty"`
-}
+// AlarmFilter is now defined in api_utils.go to avoid duplication
 
 // MetricsData represents collected metrics
 type MetricsData struct {
@@ -286,15 +218,7 @@ type MetricsData struct {
 }
 
 // MetricsFilter defines filters for metrics queries
-type MetricsFilter struct {
-	MetricNames []string          `json:"metricNames,omitempty"`
-	StartTime   *time.Time        `json:"startTime,omitempty"`
-	EndTime     *time.Time        `json:"endTime,omitempty"`
-	Interval    string            `json:"interval,omitempty"`
-	Aggregation string            `json:"aggregation,omitempty"` // avg, min, max, sum, count
-	Labels      map[string]string `json:"labels,omitempty"`
-	Limit       int               `json:"limit,omitempty"`
-}
+// MetricsFilter is now defined in api_utils.go to avoid duplication
 
 // Infrastructure discovery and inventory types
 
@@ -321,20 +245,7 @@ type InventoryUpdate struct {
 	Source       string                 `json:"source,omitempty"`
 }
 
-// Asset represents a tracked infrastructure asset
-type Asset struct {
-	AssetID      string                 `json:"assetId"`
-	Name         string                 `json:"name"`
-	Type         string                 `json:"type"`
-	Category     string                 `json:"category,omitempty"`
-	Owner        string                 `json:"owner,omitempty"`
-	Location     string                 `json:"location,omitempty"`
-	Status       string                 `json:"status"`
-	Attributes   map[string]interface{} `json:"attributes,omitempty"`
-	Dependencies []string               `json:"dependencies,omitempty"`
-	CreatedAt    time.Time              `json:"createdAt"`
-	UpdatedAt    time.Time              `json:"updatedAt"`
-}
+// Asset is now defined in inventory_management.go to avoid duplication
 
 // CapacityPrediction represents predicted capacity requirements
 type CapacityPrediction struct {
@@ -717,16 +628,7 @@ type ScalePolicy struct {
 	StabilizationWindow int    `json:"stabilizationWindow"`
 }
 
-// MonitoringConfig defines monitoring configuration
-type MonitoringConfig struct {
-	Enabled         bool         `json:"enabled"`
-	MetricsEndpoint string       `json:"metricsEndpoint,omitempty"`
-	HealthEndpoint  string       `json:"healthEndpoint,omitempty"`
-	LogsEnabled     bool         `json:"logsEnabled"`
-	TracingEnabled  bool         `json:"tracingEnabled"`
-	Dashboards      []string     `json:"dashboards,omitempty"`
-	Alerts          []*AlertRule `json:"alerts,omitempty"`
-}
+// MonitoringConfig is now defined in adaptor.go to avoid duplication
 
 // AlertRule defines an alert rule
 type AlertRule struct {
@@ -755,12 +657,7 @@ type NetworkPolicy struct {
 	Egress      []*NetworkPolicyRule `json:"egress,omitempty"`
 }
 
-// NetworkPolicyRule defines network policy rules
-type NetworkPolicyRule struct {
-	From  []*NetworkPolicyPeer `json:"from,omitempty"`
-	To    []*NetworkPolicyPeer `json:"to,omitempty"`
-	Ports []*NetworkPolicyPort `json:"ports,omitempty"`
-}
+// NetworkPolicyRule is now defined in cnf_management.go to avoid duplication
 
 // NetworkPolicyPeer defines network policy peer
 type NetworkPolicyPeer struct {

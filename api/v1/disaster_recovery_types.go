@@ -79,6 +79,12 @@ type ResourceConstraints struct {
 	// +optional
 	NetworkBandwidth *resource.Quantity `json:"networkBandwidth,omitempty"`
 
+	// Maximum CPU allocation (for blueprint engine compatibility)
+	// +optional
+	MaxCPU *resource.Quantity `json:"maxCPU,omitempty"`
+	// Maximum memory allocation (for blueprint engine compatibility)
+	// +optional
+	MaxMemory *resource.Quantity `json:"maxMemory,omitempty"`
 	// Maximum concurrent operations
 	// +optional
 	// +kubebuilder:validation:Minimum=1

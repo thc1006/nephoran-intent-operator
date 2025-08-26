@@ -565,6 +565,19 @@ func (suite *MultiCloudTestSuite) TestProviderSpecificFeatures() {
 	})
 }
 
+func (suite *MultiCloudTestSuite) TearDownSuite() {
+	// Clean up any persistent resources or connections
+	if suite.awsProvider != nil {
+		suite.awsProvider.AssertExpectations(suite.T())
+	}
+	if suite.azureProvider != nil {
+		suite.azureProvider.AssertExpectations(suite.T())
+	}
+	if suite.gcpProvider != nil {
+		suite.gcpProvider.AssertExpectations(suite.T())
+	}
+}
+
 func TestMultiCloudIntegration(t *testing.T) {
 	suite.Run(t, new(MultiCloudTestSuite))
 }

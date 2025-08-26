@@ -669,7 +669,7 @@ func TestCSRFProtection(t *testing.T) {
 
 // TestAPIThrottling tests API throttling and abuse prevention
 func TestAPIThrottling(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t) // Initialize security suite for throttling tests
 
 	t.Run("Expensive_Operation_Throttling", func(t *testing.T) {
 		// Test throttling for expensive operations
@@ -685,7 +685,8 @@ func TestAPIThrottling(t *testing.T) {
 				blockedCount := 0
 
 				for i := 0; i < limit*2; i++ {
-					req := httptest.NewRequest("POST", endpoint, nil)
+					// Create and process request for rate limiting test
+					_ = httptest.NewRequest("POST", endpoint, nil)
 					w := httptest.NewRecorder()
 
 					if requestCount < limit {
@@ -732,7 +733,7 @@ func TestAPIThrottling(t *testing.T) {
 
 // TestContentTypeValidation tests content type security
 func TestContentTypeValidation(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t) // Initialize security suite for content type tests
 
 	testCases := []struct {
 		name         string
@@ -907,7 +908,7 @@ func generateRequestID() string {
 
 // TestTelecommunicationsSpecificSecurity tests telecom-specific security requirements
 func TestTelecommunicationsSpecificSecurity(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t) // Initialize security suite for telecom security tests
 
 	t.Run("ORAN_A1_Policy_Security", func(t *testing.T) {
 		// Test O-RAN A1 policy security
@@ -1068,7 +1069,7 @@ func TestTelecommunicationsSpecificSecurity(t *testing.T) {
 
 // TestComplianceRequirements tests regulatory compliance requirements
 func TestComplianceRequirements(t *testing.T) {
-	suite := NewAPISecuritySuite(t)
+	_ = NewAPISecuritySuite(t) // Initialize security suite for compliance tests
 
 	t.Run("GDPR_Compliance", func(t *testing.T) {
 		// Test GDPR compliance features

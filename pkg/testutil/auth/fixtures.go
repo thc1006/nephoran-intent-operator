@@ -358,7 +358,7 @@ func NewOAuthResponseFactory() *OAuthResponseFactory {
 
 // CreateTokenResponse creates a standard OAuth2 token response
 func (f *OAuthResponseFactory) CreateTokenResponse() *TokenResponse {
-	return &providers.TokenResponse{
+	return &TokenResponse{
 		AccessToken:  "test-access-token-" + fmt.Sprintf("%d", rand.Int63()),
 		RefreshToken: "test-refresh-token-" + fmt.Sprintf("%d", rand.Int63()),
 		TokenType:    "Bearer",
@@ -405,7 +405,7 @@ func (f *PKCEFactory) CreatePKCEChallenge() *PKCEChallenge {
 
 // CreateInvalidPKCEChallenge creates an invalid PKCE challenge
 func (f *PKCEFactory) CreateInvalidPKCEChallenge() *PKCEChallenge {
-	return &providers.PKCEChallenge{
+	return &PKCEChallenge{
 		CodeVerifier:  "invalid-verifier",
 		CodeChallenge: "invalid-challenge",
 		Method:        "S256",
@@ -421,7 +421,7 @@ func NewConfigFactory() *ConfigFactory {
 
 // CreateJWTConfig creates a JWT configuration for testing
 func (f *ConfigFactory) CreateJWTConfig() *JWTConfig {
-	return &auth.JWTConfig{
+	return &JWTConfig{
 		Issuer:               "test-issuer",
 		DefaultTTL:           time.Hour,
 		RefreshTTL:           24 * time.Hour,
@@ -435,7 +435,7 @@ func (f *ConfigFactory) CreateJWTConfig() *JWTConfig {
 
 // CreateRBACConfig creates an RBAC configuration for testing
 func (f *ConfigFactory) CreateRBACConfig() *RBACConfig {
-	return &auth.RBACConfig{
+	return &RBACConfig{
 		CacheTTL:           5 * time.Minute,
 		EnableHierarchical: true,
 		DefaultRole:        "viewer",
@@ -445,7 +445,7 @@ func (f *ConfigFactory) CreateRBACConfig() *RBACConfig {
 
 // CreateSessionConfig creates a session configuration for testing
 func (f *ConfigFactory) CreateSessionConfig() *SessionConfig {
-	return &auth.SessionConfig{
+	return &SessionConfig{
 		SessionTTL:    time.Hour,
 		CleanupPeriod: time.Minute,
 		CookieName:    "test-session",
@@ -468,7 +468,7 @@ func (f *ConfigFactory) CreateProviderConfig(providerName string) *ProviderConfi
 		baseURL = "https://login.microsoftonline.com/common"
 	}
 
-	return &providers.ProviderConfig{
+	return &ProviderConfig{
 		Name:         providerName,
 		Type:         "oauth2",
 		ClientID:     fmt.Sprintf("test-%s-client-id", providerName),
@@ -504,7 +504,7 @@ func NewRoleFactory() *RoleFactory {
 // CreateBasicRole creates a basic role
 func (f *RoleFactory) CreateBasicRole() *Role {
 	f.counter++
-	return &auth.Role{
+	return &Role{
 		ID:          fmt.Sprintf("role-%d", f.counter),
 		Name:        fmt.Sprintf("test-role-%d", f.counter),
 		Description: fmt.Sprintf("Test role %d", f.counter),
@@ -552,7 +552,7 @@ func NewPermissionFactory() *PermissionFactory {
 // CreateBasicPermission creates a basic permission
 func (f *PermissionFactory) CreateBasicPermission() *Permission {
 	f.counter++
-	return &auth.Permission{
+	return &Permission{
 		ID:          fmt.Sprintf("perm-%d", f.counter),
 		Name:        fmt.Sprintf("test:permission:%d", f.counter),
 		Description: fmt.Sprintf("Test permission %d", f.counter),
@@ -569,7 +569,7 @@ func (f *PermissionFactory) CreateResourcePermissions(resource string, actions [
 	var permissions []*Permission
 	for _, action := range actions {
 		f.counter++
-		perm := &auth.Permission{
+		perm := &Permission{
 			ID:          fmt.Sprintf("perm-%d", f.counter),
 			Name:        fmt.Sprintf("%s:%s", resource, action),
 			Description: fmt.Sprintf("%s permission on %s", action, resource),
@@ -587,7 +587,7 @@ func (f *PermissionFactory) CreateResourcePermissions(resource string, actions [
 // CreateDenyPermission creates a deny permission
 func (f *PermissionFactory) CreateDenyPermission(resource, action string) *Permission {
 	f.counter++
-	return &auth.Permission{
+	return &Permission{
 		ID:          fmt.Sprintf("deny-perm-%d", f.counter),
 		Name:        fmt.Sprintf("deny:%s:%s", resource, action),
 		Description: fmt.Sprintf("Deny %s permission on %s", action, resource),
@@ -611,7 +611,7 @@ func NewSessionFactory() *SessionFactory {
 // CreateBasicSession creates a basic session
 func (f *SessionFactory) CreateBasicSession(userID string) *Session {
 	f.counter++
-	return &auth.Session{
+	return &Session{
 		ID:        fmt.Sprintf("session-%d", f.counter),
 		UserID:    userID,
 		CreatedAt: time.Now(),

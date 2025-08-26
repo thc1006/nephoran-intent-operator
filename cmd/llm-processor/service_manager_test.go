@@ -118,13 +118,13 @@ type StreamingRequest struct {
 
 // TestServiceManager represents a minimal service manager for testing
 type TestServiceManager struct {
-	config             *Config
+	config             *TestConfig
 	logger             *slog.Logger
 	streamingProcessor StreamingProcessorInterface
 }
 
-// Config represents the minimal configuration needed for testing
-type Config struct {
+// TestConfig represents the minimal configuration needed for testing
+type TestConfig struct {
 	ServiceVersion   string
 	LLMModelName     string
 	LLMMaxTokens     int

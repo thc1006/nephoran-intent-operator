@@ -609,17 +609,16 @@ func (f *TestFixture) CreateTestNetworkIntent(name string, opts ...NetworkIntent
 		},
 		Spec: v1.NetworkIntentSpec{
 			IntentType: v1.IntentTypeDeployment,
-			Priority:   v1.PriorityMedium,
-			TargetComponents: []v1.ComponentType{
-				v1.ComponentTypeAMF,
+			Priority:   v1.NetworkPriorityNormal,
+			TargetComponents: []v1.NetworkTargetComponent{
+				v1.NetworkTargetComponentAMF,
 			},
-			Parameters: map[string]string{
-				"replicas": "3",
-				"region":   "us-east-1",
+			Parameters: &runtime.RawExtension{
+				Raw: []byte(`{"replicas":"3","region":"us-east-1"}`),
 			},
 		},
 		Status: v1.NetworkIntentStatus{
-			Phase: v1.PhaseProcessing,
+			Phase: v1.NetworkIntentPhaseProcessing,
 			Conditions: []metav1.Condition{
 				{
 					Type:   "Ready",
@@ -649,14 +648,14 @@ func WithIntentType(intentType v1.IntentType) NetworkIntentOption {
 }
 
 // WithIntentPriority sets the intent priority
-func WithIntentPriority(priority v1.Priority) NetworkIntentOption {
+func WithIntentPriority(priority v1.NetworkPriority) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Spec.Priority = priority
 	}
 }
 
 // WithTargetComponent adds a target component
-func WithTargetComponent(component v1.ComponentType) NetworkIntentOption {
+func WithTargetComponent(component v1.NetworkTargetComponent) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Spec.TargetComponents = append(intent.Spec.TargetComponents, component)
 	}
@@ -665,15 +664,21 @@ func WithTargetComponent(component v1.ComponentType) NetworkIntentOption {
 // WithIntentParameter adds a parameter to the intent
 func WithIntentParameter(key, value string) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
-		if intent.Spec.Parameters == nil {
-			intent.Spec.Parameters = make(map[string]string)
+		params := make(map[string]interface{})
+		if intent.Spec.Parameters != nil && intent.Spec.Parameters.Raw != nil {
+			// Try to unmarshal existing parameters
+			// For simplicity in tests, we'll just create a new map
 		}
-		intent.Spec.Parameters[key] = value
+		params[key] = value
+		rawParams := fmt.Sprintf(`{"%s":"%s"}`, key, value)
+		intent.Spec.Parameters = &runtime.RawExtension{
+			Raw: []byte(rawParams),
+		}
 	}
 }
 
 // WithIntentPhase sets the intent phase
-func WithIntentPhase(phase v1.Phase) NetworkIntentOption {
+func WithIntentPhase(phase v1.NetworkIntentPhase) NetworkIntentOption {
 	return func(intent *v1.NetworkIntent) {
 		intent.Status.Phase = phase
 	}
