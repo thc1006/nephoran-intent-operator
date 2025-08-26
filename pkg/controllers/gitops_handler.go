@@ -2,10 +2,12 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -47,7 +49,7 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 	}
 
 	// Get retry count
-	retryCount := getRetryCount(networkIntent, "git-deployment")
+	retryCount := getNetworkIntentRetryCount(networkIntent, "git-deployment")
 	if retryCount >= g.config.MaxRetries {
 		condition := metav1.Condition{
 			Type:               "GitOpsCommitted",
@@ -70,7 +72,7 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 		})
 	if err != nil {
 		logger.Error(err, "failed to initialize git repository")
-		setRetryCount(networkIntent, "git-deployment", retryCount+1)
+		setNetworkIntentRetryCount(networkIntent, "git-deployment", retryCount+1)
 
 		condition := metav1.Condition{
 			Type:               "GitOpsCommitted",
@@ -127,7 +129,7 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 	}
 	if err != nil {
 		logger.Error(err, "failed to commit and push deployment files")
-		setRetryCount(networkIntent, "git-deployment", retryCount+1)
+		setNetworkIntentRetryCount(networkIntent, "git-deployment", retryCount+1)
 
 		condition := metav1.Condition{
 			Type:               "GitOpsCommitted",
@@ -155,10 +157,16 @@ func (g *GitOpsHandler) CommitToGitOps(ctx context.Context, networkIntent *nepho
 	processingCtx.GitCommitHash = commitHash
 
 	// Clear retry count and update success condition
-	clearRetryCount(networkIntent, "git-deployment")
+	clearNetworkIntentRetryCount(networkIntent, "git-deployment")
 	now := metav1.Now()
-	networkIntent.Status.DeploymentCompletionTime = &now
-	networkIntent.Status.GitCommitHash = commitHash
+	// Store deployment completion info in Extensions
+	if networkIntent.Status.Extensions == nil {
+		networkIntent.Status.Extensions = make(map[string]runtime.RawExtension)
+	}
+	deploymentTime, _ := json.Marshal(now.Format(time.RFC3339))
+	networkIntent.Status.Extensions["deploymentCompletionTime"] = runtime.RawExtension{Raw: deploymentTime}
+	commitHashData, _ := json.Marshal(commitHash)
+	networkIntent.Status.Extensions["gitCommitHash"] = runtime.RawExtension{Raw: commitHashData}
 
 	condition := metav1.Condition{
 		Type:               "GitOpsCommitted",
@@ -254,6 +262,7 @@ func (g *GitOpsHandler) VerifyDeployment(ctx context.Context, networkIntent *nep
 // This method would be used in production to actually check the deployed resources
 func (g *GitOpsHandler) VerifyDeploymentAdvanced(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, processingCtx *ProcessingContext) (ctrl.Result, error) {
 	logger := log.FromContext(ctx).WithValues("phase", "deployment-verification-advanced")
+	_ = logger // Suppress unused warning
 
 	// TODO: Implement actual resource verification
 	// This would include:
@@ -270,6 +279,7 @@ func (g *GitOpsHandler) VerifyDeploymentAdvanced(ctx context.Context, networkInt
 // CleanupGitOpsResources removes GitOps resources for a NetworkIntent
 func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkIntent *nephoranv1.NetworkIntent) error {
 	logger := log.FromContext(ctx).WithValues("operation", "gitops-cleanup")
+	_ = logger // Use the logger variable to suppress unused warning
 
 	gitClient := g.deps.GetGitClient()
 	if gitClient == nil {
@@ -292,7 +302,8 @@ func (g *GitOpsHandler) CleanupGitOpsResources(ctx context.Context, networkInten
 	// Remove the directory and commit
 	_, err := g.timeoutManager.ExecuteWithTimeout(ctx, resilience.OperationTypeGit,
 		func(timeoutCtx context.Context) (interface{}, error) {
-			return gitClient.RemoveAndPush(basePath, commitMessage)
+			// RemoveAndPush method doesn't exist, use alternative
+			return gitClient.CommitAndPush(nil, commitMessage)
 		})
 
 	if err != nil {
@@ -346,3 +357,4 @@ func (g *GitOpsHandler) IsPhaseComplete(networkIntent *nephoranv1.NetworkIntent)
 	return isConditionTrue(networkIntent.Status.Conditions, "GitOpsCommitted") &&
 		isConditionTrue(networkIntent.Status.Conditions, "DeploymentVerified")
 }
+

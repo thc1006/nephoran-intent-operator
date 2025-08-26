@@ -24,11 +24,11 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -240,11 +240,9 @@ func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkInt
 
 	// Check for CNF-related target components
 	for _, component := range networkIntent.Spec.TargetComponents {
-		cnfComponents := []nephoranv1.TargetComponent{
-			nephoranv1.TargetComponentAMF, nephoranv1.TargetComponentSMF, nephoranv1.TargetComponentUPF,
-			nephoranv1.TargetComponentNRF, nephoranv1.TargetComponentAUSF, nephoranv1.TargetComponentUDM,
-			nephoranv1.TargetComponentODU, nephoranv1.TargetComponentOCUCP, nephoranv1.TargetComponentOCUUP,
-			nephoranv1.TargetComponentNearRTRIC, nephoranv1.TargetComponentNonRTRIC,
+		cnfComponents := []nephoranv1.ORANComponent{
+			nephoranv1.ORANComponentAMF, nephoranv1.ORANComponentSMF, nephoranv1.ORANComponentUPF,
+			nephoranv1.ORANComponentNearRTRIC, nephoranv1.ORANComponentGNodeB, nephoranv1.ORANComponentXApp,
 		}
 
 		for _, cnfComponent := range cnfComponents {
@@ -454,7 +452,7 @@ func (m *CNFIntegrationManager) createCNFDeploymentResource(networkIntent *nepho
 		Spec: nephoranv1.CNFDeploymentSpec{
 			CNFType:            cnfSpec.CNFType,
 			Function:           cnfSpec.Function,
-			DeploymentStrategy: cnfSpec.DeploymentStrategy,
+			DeploymentStrategy: nephoranv1.CNFDeploymentStrategy(cnfSpec.DeploymentStrategy),
 			Replicas:           1, // Default replicas
 			Resources:          m.convertResourceIntent(cnfSpec.Resources),
 			TargetNamespace:    targetNamespace,
@@ -489,7 +487,7 @@ func (m *CNFIntegrationManager) createCNFDeploymentResource(networkIntent *nepho
 	}
 
 	// Set default Helm configuration if strategy is Helm
-	if cnfDeployment.Spec.DeploymentStrategy == nephoranv1.DeploymentStrategyHelm {
+	if cnfDeployment.Spec.DeploymentStrategy == nephoranv1.CNFDeploymentStrategy(nephoranv1.DeploymentStrategyHelm) {
 		cnfDeployment.Spec.Helm = m.getDefaultHelmConfig(cnfSpec.Function)
 	}
 
@@ -715,13 +713,16 @@ func (m *CNFIntegrationManager) updateNetworkIntentWithCNFStatus(ctx context.Con
 			// Check if component is already in the list
 			found := false
 			for _, existing := range networkIntent.Status.DeployedComponents {
-				if existing == targetComponent {
+				if existing.Name == string(targetComponent) {
 					found = true
 					break
 				}
 			}
 			if !found {
-				networkIntent.Status.DeployedComponents = append(networkIntent.Status.DeployedComponents, targetComponent)
+				networkIntent.Status.DeployedComponents = append(networkIntent.Status.DeployedComponents, nephoranv1.TargetComponent{
+					Name: string(targetComponent),
+					Type: "network-function",
+				})
 			}
 		}
 	}
@@ -735,29 +736,23 @@ func (m *CNFIntegrationManager) updateNetworkIntentWithCNFStatus(ctx context.Con
 	return m.Client.Status().Update(ctx, networkIntent)
 }
 
-// mapCNFFunctionToTargetComponent maps CNF functions to TargetComponent enum
-func (m *CNFIntegrationManager) mapCNFFunctionToTargetComponent(function nephoranv1.CNFFunction) nephoranv1.TargetComponent {
-	mapping := map[nephoranv1.CNFFunction]nephoranv1.TargetComponent{
-		nephoranv1.CNFFunctionAMF:       nephoranv1.TargetComponentAMF,
-		nephoranv1.CNFFunctionSMF:       nephoranv1.TargetComponentSMF,
-		nephoranv1.CNFFunctionUPF:       nephoranv1.TargetComponentUPF,
-		nephoranv1.CNFFunctionNRF:       nephoranv1.TargetComponentNRF,
-		nephoranv1.CNFFunctionAUSF:      nephoranv1.TargetComponentAUSF,
-		nephoranv1.CNFFunctionUDM:       nephoranv1.TargetComponentUDM,
-		nephoranv1.CNFFunctionPCF:       nephoranv1.TargetComponentPCF,
-		nephoranv1.CNFFunctionNSSF:      nephoranv1.TargetComponentNSSF,
-		nephoranv1.CNFFunctionODU:       nephoranv1.TargetComponentODU,
-		nephoranv1.CNFFunctionOCUCP:     nephoranv1.TargetComponentOCUCP,
-		nephoranv1.CNFFunctionOCUUP:     nephoranv1.TargetComponentOCUUP,
-		nephoranv1.CNFFunctionNearRTRIC: nephoranv1.TargetComponentNearRTRIC,
-		nephoranv1.CNFFunctionNonRTRIC:  nephoranv1.TargetComponentNonRTRIC,
-		nephoranv1.CNFFunctionOENB:      nephoranv1.TargetComponentOENB,
-		nephoranv1.CNFFunctionSMO:       nephoranv1.TargetComponentSMO,
-		nephoranv1.CNFFunctionRApp:      nephoranv1.TargetComponentRApp,
-		nephoranv1.CNFFunctionXApp:      nephoranv1.TargetComponentXApp,
+// mapCNFFunctionToTargetComponent maps CNF functions to ORANComponent enum
+func (m *CNFIntegrationManager) mapCNFFunctionToTargetComponent(function nephoranv1.CNFFunction) nephoranv1.ORANComponent {
+	mapping := map[nephoranv1.CNFFunction]nephoranv1.ORANComponent{
+		nephoranv1.CNFFunctionAMF:       nephoranv1.ORANComponentAMF,
+		nephoranv1.CNFFunctionSMF:       nephoranv1.ORANComponentSMF,
+		nephoranv1.CNFFunctionUPF:       nephoranv1.ORANComponentUPF,
+		nephoranv1.CNFFunctionNearRTRIC: nephoranv1.ORANComponentNearRTRIC,
+		nephoranv1.CNFFunctionSMO:       nephoranv1.ORANComponentSMO,
+		nephoranv1.CNFFunctionXApp:      nephoranv1.ORANComponentXApp,
+		nephoranv1.CNFFunctionOENB:      nephoranv1.ORANComponentGNodeB, // Map O-eNB to gNodeB component
 	}
 
-	return mapping[function]
+	// Return the mapped component, or an empty component if not found
+	if component, exists := mapping[function]; exists {
+		return component
+	}
+	return "" // Default empty component for unmapped functions
 }
 
 // mustParseQuantity parses a quantity string and panics if it fails (for constants)

@@ -2,12 +2,8 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"math"
-	"math/rand"
 	"net/http"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -347,7 +343,7 @@ func (r *NetworkIntentReconciler) extractIntentType(intent string) string {
 // Helper functions for managing retry counts in annotations
 func parseQuantity(qty string) corev1.ResourceList {
 	// Simple parser for comma-separated CPU,Memory values
-	parts := strings.Split(qty, ",")
+	_ = strings.Split(qty, ",")
 	result := make(corev1.ResourceList)
 	// This is a simplified implementation - in production you'd use resource.ParseQuantity
 	return result
@@ -484,7 +480,7 @@ func (r *NetworkIntentReconciler) safeStatusUpdate(ctx context.Context, obj clie
 }
 
 func (r *NetworkIntentReconciler) updatePhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase string) error {
-	networkIntent.Status.Phase = phase
+	networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
 	networkIntent.Status.LastUpdated = metav1.Now()
 	return r.safeStatusUpdate(ctx, networkIntent)
 }

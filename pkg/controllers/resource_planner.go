@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -105,8 +106,8 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 
 	// Parse extracted parameters from LLM phase
 	var llmParams map[string]interface{}
-	if len(networkIntent.Spec.Parameters.Raw) > 0 {
-		if err := json.Unmarshal(networkIntent.Spec.Parameters.Raw, &llmParams); err != nil {
+	if networkIntent.Status.Extensions != nil && len(networkIntent.Status.Extensions["parameters"].Raw) > 0 {
+		if err := json.Unmarshal(networkIntent.Status.Extensions["parameters"].Raw, &llmParams); err != nil {
 			logger.Error(err, "failed to parse LLM parameters")
 			// Set Ready condition to indicate parameter parsing issue
 			p.setReadyCondition(ctx, networkIntent, metav1.ConditionFalse, "LLMParametersParsingFailed", fmt.Sprintf("Failed to parse LLM parameters: %v", err))
@@ -165,16 +166,16 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 					interfaceConfig := InterfaceConfiguration{
 						Name:      ifaceSpec.Name,
 						Type:      ifaceSpec.Type,
-						Protocol:  ifaceSpec.Protocol,
+						Protocol:  strings.Join(ifaceSpec.Protocol, ","),
 						Endpoints: []EndpointSpec{},
 						Security: SecuritySpec{
 							Authentication: ifaceSpec.SecurityModel.Authentication,
-							Encryption:     ifaceSpec.SecurityModel.Encryption,
+							Encryption:     strings.Join(ifaceSpec.SecurityModel.Encryption, ","),
 						},
 						QoS: QoSSpec{
 							Bandwidth:  ifaceSpec.QosRequirements.Bandwidth,
-							Latency:    ifaceSpec.QosRequirements.Latency,
-							Jitter:     ifaceSpec.QosRequirements.Jitter,
+							Latency:    fmt.Sprintf("%.2fms", ifaceSpec.QosRequirements.Latency),
+							Jitter:     fmt.Sprintf("%.2fms", ifaceSpec.QosRequirements.Jitter),
 							PacketLoss: ifaceSpec.QosRequirements.PacketLoss,
 						},
 					}
@@ -246,7 +247,11 @@ func (p *ResourcePlanner) PlanResources(ctx context.Context, networkIntent *neph
 	}
 
 	// Store resource plan in status
-	networkIntent.Status.ResourcePlan = string(planData)
+	// Store the plan as JSON in Extensions
+	if networkIntent.Status.Extensions == nil {
+		networkIntent.Status.Extensions = make(map[string]runtime.RawExtension)
+	}
+	networkIntent.Status.Extensions["resourcePlan"] = runtime.RawExtension{Raw: planData}
 
 	condition := metav1.Condition{
 		Type:               "ResourcesPlanned",
@@ -326,8 +331,8 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 			Type:     hc.Type,
 			Path:     hc.Path,
 			Port:     hc.Port,
-			Interval: hc.Interval,
-			Timeout:  hc.Timeout,
+			Interval: fmt.Sprintf("%ds", hc.Interval),
+			Timeout:  fmt.Sprintf("%ds", hc.Timeout),
 			Retries:  hc.Retries,
 		})
 	}
