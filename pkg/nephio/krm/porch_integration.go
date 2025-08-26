@@ -730,7 +730,7 @@ func (pim *PorchIntegrationManager) buildFunctionPipeline(ctx context.Context, i
 // buildIntentSpecificStage builds a pipeline stage specific to the intent type
 func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context, intent *v1.NetworkIntent) *PipelineStageDefinition {
 	switch intent.Spec.IntentType {
-	case v1.NetworkIntentTypeDeployment:
+	case v1.IntentTypeDeployment:
 		return &PipelineStageDefinition{
 			Name:        "deployment-configuration",
 			Description: "Configure deployment-specific parameters",
@@ -752,7 +752,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 			Timeout:      10 * time.Minute,
 		}
 
-	case v1.NetworkIntentTypeConfiguration:
+	case v1.IntentTypeOptimization:
 		return &PipelineStageDefinition{
 			Name:        "configuration-validation",
 			Description: "Validate and optimize configuration parameters",
@@ -773,7 +773,7 @@ func (pim *PorchIntegrationManager) buildIntentSpecificStage(ctx context.Context
 			Timeout:      5 * time.Minute,
 		}
 
-	case v1.NetworkIntentTypeScaling:
+	case v1.IntentTypeScaling:
 		return &PipelineStageDefinition{
 			Name:        "scaling-optimization",
 			Description: "Optimize scaling configuration and resource allocation",

@@ -149,46 +149,6 @@ type WorkflowExecutionResults struct {
 	ComplianceResults *ComplianceResults        `json:"complianceResults"`
 }
 
-// ConfigSyncClient manages Config Sync operations
-type ConfigSyncClient struct {
-	client      client.Client
-	gitClient   GitClientInterface
-	syncService *SyncService
-	config      *ConfigSyncConfig
-	tracer      trace.Tracer
-	metrics     *ConfigSyncMetrics
-}
-
-// ConfigSyncConfig defines Config Sync configuration
-type ConfigSyncConfig struct {
-	Repository  string          `json:"repository" yaml:"repository"`
-	Branch      string          `json:"branch" yaml:"branch"`
-	Directory   string          `json:"directory" yaml:"directory"`
-	SyncPeriod  time.Duration   `json:"syncPeriod" yaml:"syncPeriod"`
-	Credentials *GitCredentials `json:"credentials" yaml:"credentials"`
-	PolicyDir   string          `json:"policyDir" yaml:"policyDir"`
-	Namespaces  []string        `json:"namespaces" yaml:"namespaces"`
-}
-
-// GitClientInterface defines Git operations for Config Sync
-type GitClientInterface interface {
-	Clone(ctx context.Context, repo string, branch string, dir string) error
-	Commit(ctx context.Context, message string, files []string) error
-	Push(ctx context.Context) error
-	Pull(ctx context.Context) error
-	CreateBranch(ctx context.Context, branch string) error
-	MergeBranch(ctx context.Context, source string, target string) error
-	GetCommitHash(ctx context.Context) (string, error)
-}
-
-// SyncService manages package synchronization
-type SyncService struct {
-	client       client.Client
-	configSync   *ConfigSyncConfig
-	tracer       trace.Tracer
-	pollInterval time.Duration
-}
-
 // WorkloadClusterRegistry manages workload cluster lifecycle
 type WorkloadClusterRegistry struct {
 	client        client.Client
@@ -586,7 +546,7 @@ func (nwo *NephioWorkflowOrchestrator) ExecuteNephioWorkflow(ctx context.Context
 	workflow, err := nwo.selectWorkflow(ctx, intent)
 	if err != nil {
 		span.RecordError(err)
-		return nil, errors.WithContext(err, "failed to select workflow")
+		return nil, fmt.Errorf("%s: %w", "failed to select workflow", err)
 	}
 
 	// Step 2: Create workflow execution
@@ -708,7 +668,7 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhases(ctx context.Context
 
 			if !phaseDefinition.ContinueOnError {
 				execution.Status = WorkflowExecutionStatusFailed
-				return errors.WithContext(err, fmt.Sprintf("phase %s failed", phaseExecution.Name))
+				return fmt.Errorf("%s: %w", fmt.Sprintf("phase %s failed", phaseExecution.Name, err))
 			}
 		} else {
 			phaseExecution.Status = WorkflowExecutionStatusCompleted
@@ -796,7 +756,7 @@ func (nwo *NephioWorkflowOrchestrator) executeBlueprintSelectionPhase(ctx contex
 	blueprint, err := nwo.packageCatalog.FindBlueprintForIntent(ctx, execution.Intent)
 	if err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to find blueprint for intent")
+		return fmt.Errorf("%s: %w", "failed to find blueprint for intent", err)
 	}
 
 	if blueprint == nil {
@@ -842,7 +802,7 @@ func (nwo *NephioWorkflowOrchestrator) executePackageSpecializationPhase(ctx con
 	clusters, err := nwo.getTargetClusters(ctx, execution.Intent)
 	if err != nil {
 		span.RecordError(err)
-		return errors.WithContext(err, "failed to get target clusters")
+		return fmt.Errorf("%s: %w", "failed to get target clusters", err)
 	}
 
 	execution.PackageVariants = make([]*PackageVariant, 0, len(clusters))
@@ -1037,7 +997,7 @@ func (nwo *NephioWorkflowOrchestrator) executeDeploymentPhase(ctx context.Contex
 		execution.Deployments = append(execution.Deployments, deployment)
 
 		// Deploy via Config Sync
-		syncResult, err := nwo.configSync.SyncPackageToCluster(ctx, variant.PackageRevision, variant.TargetCluster)
+		syncResult, err := nwo.configSync.DeployPackage(ctx, variant.PackageRevision, variant.TargetCluster)
 		if err != nil {
 			logger.Error(err, "Failed to deploy package",
 				"variant", variant.Name,

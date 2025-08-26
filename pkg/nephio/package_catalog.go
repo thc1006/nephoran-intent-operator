@@ -963,10 +963,10 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			Version:     "1.0.0",
 			Description: "5G Access and Mobility Management Function",
 			Category:    "5g-core",
-			IntentTypes: []v1.NetworkIntentType{
-				v1.NetworkIntentTypeDeployment,
-				v1.NetworkIntentTypeConfiguration,
-				v1.NetworkIntentTypeScaling,
+			IntentTypes: []v1.IntentType{
+				v1.IntentTypeDeployment,
+				v1.IntentTypeOptimization,
+				v1.IntentTypeScaling,
 			},
 			Dependencies: []PackageDependency{
 				{
@@ -1008,10 +1008,10 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			Version:     "1.0.0",
 			Description: "5G User Plane Function",
 			Category:    "5g-core",
-			IntentTypes: []v1.NetworkIntentType{
-				v1.NetworkIntentTypeDeployment,
-				v1.NetworkIntentTypeConfiguration,
-				v1.NetworkIntentTypeScaling,
+			IntentTypes: []v1.IntentType{
+				v1.IntentTypeDeployment,
+				v1.IntentTypeOptimization,
+				v1.IntentTypeScaling,
 			},
 			Dependencies: []PackageDependency{
 				{
@@ -1046,9 +1046,9 @@ func (npc *NephioPackageCatalog) initializeStandardBlueprints() error {
 			Version:     "1.0.0",
 			Description: "O-RAN RIC Platform",
 			Category:    "oran",
-			IntentTypes: []v1.NetworkIntentType{
-				v1.NetworkIntentTypeDeployment,
-				v1.NetworkIntentTypeConfiguration,
+			IntentTypes: []v1.IntentType{
+				v1.IntentTypeDeployment,
+				v1.IntentTypeOptimization,
 			},
 			Dependencies: []PackageDependency{
 				{

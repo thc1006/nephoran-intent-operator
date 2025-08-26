@@ -69,6 +69,14 @@ type CycleBreakingOption struct {
 	Benefits    []string    `json:"benefits,omitempty"`
 }
 
+// ResourceLimits represents resource usage limits
+type ResourceLimits struct {
+	MaxMemoryMB int     `json:"maxMemoryMB,omitempty"`
+	MaxCPU      float64 `json:"maxCPU,omitempty"`
+	MaxStorage  int     `json:"maxStorage,omitempty"`
+	MaxNetwork  int     `json:"maxNetwork,omitempty"`
+}
+
 // PlatformConstraints represents platform-specific constraints
 type PlatformConstraints struct {
 	OperatingSystems  []string          `json:"operatingSystems,omitempty"`
@@ -99,6 +107,56 @@ type PolicyConstraints struct {
 	ReviewRequired         bool              `json:"reviewRequired,omitempty"`
 }
 
+// TransitiveOptions represents options for transitive dependency resolution
+type TransitiveOptions struct {
+	IncludeTransitive   bool              `json:"includeTransitive"`
+	MaxDepth           int               `json:"maxDepth,omitempty"`
+	ExcludeScopes      []DependencyScope `json:"excludeScopes,omitempty"`
+	FollowOptional     bool              `json:"followOptional,omitempty"`
+	ResolutionStrategy string            `json:"resolutionStrategy,omitempty"`
+}
+
+// DependencyTree represents a tree structure of dependencies
+type DependencyTree struct {
+	Root         *PackageReference `json:"root"`
+	Dependencies []*DependencyNode `json:"dependencies"`
+	Depth        int               `json:"depth"`
+	TotalNodes   int               `json:"totalNodes"`
+	BuildTime    time.Duration     `json:"buildTime"`
+}
+
+// DependencyNode represents a node in the dependency tree
+type DependencyNode struct {
+	Package      *PackageReference `json:"package"`
+	Dependencies []*DependencyNode `json:"dependencies,omitempty"`
+	Depth        int               `json:"depth"`
+	Optional     bool              `json:"optional,omitempty"`
+	Scope        DependencyScope   `json:"scope,omitempty"`
+}
+
+// ResolutionWarning represents warnings during dependency resolution
+type ResolutionWarning struct {
+	Code        string                 `json:"code"`
+	Type        string                 `json:"type"`
+	Message     string                 `json:"message"`
+	Package     *PackageReference      `json:"package,omitempty"`
+	Severity    string                 `json:"severity"`
+	Context     map[string]interface{} `json:"context,omitempty"`
+	Suggestion  string                 `json:"suggestion,omitempty"`
+}
+
+// ResolutionStatistics represents statistics about dependency resolution
+type ResolutionStatistics struct {
+	TotalPackages       int           `json:"totalPackages"`
+	ResolvedPackages    int           `json:"resolvedPackages"`
+	FailedPackages      int           `json:"failedPackages"`
+	ConflictsResolved   int           `json:"conflictsResolved"`
+	CacheHits           int           `json:"cacheHits"`
+	ResolutionTime      time.Duration `json:"resolutionTime"`
+	NetworkRequests     int           `json:"networkRequests,omitempty"`
+	BytesDownloaded     int64         `json:"bytesDownloaded,omitempty"`
+}
+
 // ResolvedDependency represents a resolved dependency with metadata
 type ResolvedDependency struct {
 	Package           *PackageReference `json:"package"`
@@ -122,14 +180,53 @@ type SecurityInfo struct {
 	ThreatLevel       string            `json:"threatLevel"`
 }
 
-// SecurityGap represents a security gap or concern
-type SecurityGap struct {
-	ID          string    `json:"id"`
-	Type        string    `json:"type"`
-	Severity    string    `json:"severity"`
-	Description string    `json:"description"`
-	Package     string    `json:"package,omitempty"`
-	Impact      string    `json:"impact"`
-	Remediation string    `json:"remediation,omitempty"`
-	DetectedAt  time.Time `json:"detectedAt"`
+// PerformanceInfo represents performance information for a package
+type PerformanceInfo struct {
+	PerformanceScore float64                `json:"performanceScore"`
+	Benchmarks       map[string]float64     `json:"benchmarks,omitempty"`
+	ResourceUsage    *ResourceUsageStats    `json:"resourceUsage,omitempty"`
+	LoadTime         time.Duration          `json:"loadTime,omitempty"`
+	PerformanceGrade string                 `json:"performanceGrade"`
+}
+
+// ResourceUsageStats represents resource usage statistics
+type ResourceUsageStats struct {
+	MemoryUsageMB    float64 `json:"memoryUsageMB"`
+	CPUUsagePercent  float64 `json:"cpuUsagePercent"`
+	DiskUsageMB      float64 `json:"diskUsageMB"`
+	NetworkUsageKB   float64 `json:"networkUsageKB"`
+	StartupTimeMS    float64 `json:"startupTimeMS"`
+}
+
+// ComplianceInfo represents compliance information for a package
+type ComplianceInfo struct {
+	ComplianceScore   float64                 `json:"complianceScore"`
+	ComplianceChecks  map[string]bool         `json:"complianceChecks"`
+	Violations        []*ComplianceViolation  `json:"violations,omitempty"`
+	CertificationLevel string                 `json:"certificationLevel,omitempty"`
+	ComplianceGrade   string                  `json:"complianceGrade"`
+	LastAudit         time.Time               `json:"lastAudit"`
+}
+
+// ConflictImpact represents the impact of a dependency conflict
+type ConflictImpact string
+
+const (
+	ConflictImpactLow      ConflictImpact = "low"
+	ConflictImpactMedium   ConflictImpact = "medium" 
+	ConflictImpactHigh     ConflictImpact = "high"
+	ConflictImpactCritical ConflictImpact = "critical"
+)
+
+// ConflictResolutionStrategy represents a strategy for resolving conflicts
+type ConflictResolutionStrategy struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Type        string   `json:"type"` // "automatic", "manual", "interactive"
+	Effort      string   `json:"effort"`
+	Risk        string   `json:"risk"`
+	Steps       []string `json:"steps"`
+	Applicable  bool     `json:"applicable"`
+	Priority    int      `json:"priority"`
 }

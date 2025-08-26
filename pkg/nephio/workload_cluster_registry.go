@@ -148,36 +148,6 @@ type WorkloadDeployment struct {
 	LastRetry      *time.Time       `json:"lastRetry,omitempty"`
 }
 
-// SyncResult represents the result of a Config Sync operation
-type SyncResult struct {
-	Status    string           `json:"status"`
-	Message   string           `json:"message"`
-	Commit    string           `json:"commit"`
-	Resources []SyncedResource `json:"resources"`
-	Errors    []SyncError      `json:"errors,omitempty"`
-	Warnings  []string         `json:"warnings,omitempty"`
-	Duration  time.Duration    `json:"duration"`
-	Timestamp time.Time        `json:"timestamp"`
-}
-
-// SyncedResource represents a synced resource
-type SyncedResource struct {
-	Name      string `json:"name"`
-	Kind      string `json:"kind"`
-	Namespace string `json:"namespace"`
-	Status    string `json:"status"`
-	Message   string `json:"message,omitempty"`
-}
-
-// SyncError represents a sync error
-type SyncError struct {
-	Resource string `json:"resource"`
-	Error    string `json:"error"`
-	Severity string `json:"severity"`
-}
-
-// Default configuration
-var DefaultWorkloadClusterConfig = &WorkloadClusterConfig{
 	HealthCheckInterval:     1 * time.Minute,
 	AutoClusterRegistration: true,
 	RegistrationTimeout:     5 * time.Minute,

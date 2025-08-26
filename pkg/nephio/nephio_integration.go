@@ -226,13 +226,13 @@ func (ni *NephioIntegration) ProcessNetworkIntent(ctx context.Context, intent *v
 
 	// Validate intent for Nephio processing
 	if err := ni.validateIntentForNephio(ctx, intent); err != nil {
-		return nil, errors.WithContext(err, "intent validation failed for Nephio processing")
+		return nil, fmt.Errorf("%s: %w", "intent validation failed for Nephio processing", err)
 	}
 
 	// Execute Nephio workflow
 	execution, err := ni.workflowOrchestrator.ExecuteNephioWorkflow(ctx, intent)
 	if err != nil {
-		return nil, errors.WithContext(err, "failed to execute Nephio workflow")
+		return nil, fmt.Errorf("%s: %w", "failed to execute Nephio workflow", err)
 	}
 
 	logger.Info("Nephio workflow execution initiated",
@@ -446,7 +446,7 @@ func (ni *NephioIntegration) DeployPackageToCluster(ctx context.Context, pkg *po
 	if ni.configSync == nil {
 		return nil, fmt.Errorf("Config Sync not enabled")
 	}
-	return ni.configSync.SyncPackageToCluster(ctx, pkg, cluster)
+	return ni.configSync.DeployPackage(ctx, pkg, cluster)
 }
 
 // GetClusterHealth checks the health of a specific cluster
