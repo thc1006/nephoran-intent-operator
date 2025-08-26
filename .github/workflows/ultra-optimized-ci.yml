@@ -286,6 +286,11 @@ jobs:
         run: |
           case "${{ matrix.linter }}" in
             "golangci-lint")
+              # Install golangci-lint if not cached
+              if ! command -v golangci-lint &> /dev/null; then
+                echo "Installing golangci-lint..."
+                go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.57.2
+              fi
               golangci-lint run --timeout=8m --concurrency=4 --modules-download-mode=readonly
               ;;
             "gosec")
@@ -357,6 +362,10 @@ jobs:
       - name: "🏗️ Setup Test Environment"
         if: contains(matrix.test-type, 'integration') || contains(matrix.test-type, 'e2e')
         run: |
+          # Install setup-envtest if not available
+          if ! command -v setup-envtest &> /dev/null; then
+            go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          fi
           setup-envtest use 1.29.0 --bin-dir ~/.local/bin
           echo "KUBEBUILDER_ASSETS=$HOME/.local/bin" >> $GITHUB_ENV
           echo "USE_EXISTING_CLUSTER=false" >> $GITHUB_ENV

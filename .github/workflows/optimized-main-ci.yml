@@ -351,6 +351,10 @@ jobs:
       - name: "🏗️ Setup Test Environment"
         shell: bash
         run: |
+          # Install setup-envtest if not available
+          if ! command -v setup-envtest &> /dev/null; then
+            go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+          fi
           setup-envtest use 1.29.0 --bin-dir ~/.local/bin
           echo "KUBEBUILDER_ASSETS=$HOME/.local/bin" >> $GITHUB_ENV
           echo "USE_EXISTING_CLUSTER=false" >> $GITHUB_ENV
