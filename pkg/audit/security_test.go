@@ -16,8 +16,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/audit/backends"
@@ -110,7 +108,7 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 			},
 		}
 
-		backend, err := backends.NewWebhookBackend(config)
+		backend, err := backends.NewBackend(config)
 		suite.NoError(err)
 		suite.NotNil(backend)
 
@@ -136,7 +134,7 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 			},
 		}
 
-		backend, err := backends.NewWebhookBackend(config)
+		backend, err := backends.NewBackend(config)
 		suite.NoError(err)
 
 		// This should fail due to missing authentication
@@ -167,7 +165,7 @@ func (suite *SecurityTestSuite) TestAuthenticationSecurity() {
 			},
 		}
 
-		backend, err := backends.NewWebhookBackend(config)
+		backend, err := backends.NewBackend(config)
 		suite.NoError(err)
 
 		// Use original token
@@ -207,7 +205,7 @@ func (suite *SecurityTestSuite) TestTLSSecurity() {
 			},
 		}
 
-		backend, err := backends.NewWebhookBackend(config)
+		backend, err := backends.NewBackend(config)
 		suite.NoError(err)
 
 		// This might fail due to self-signed cert, but TLS should be enforced
@@ -243,7 +241,7 @@ func (suite *SecurityTestSuite) TestTLSSecurity() {
 			},
 		}
 
-		backend, err := backends.NewFileBackend(config)
+		backend, err := backends.NewBackend(config)
 		suite.NoError(err)
 
 		// Write encrypted event
@@ -395,7 +393,7 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 			},
 		}
 
-		backend, err := backends.NewFileBackend(config)
+		backend, err := backends.NewBackend(config)
 		suite.NoError(err)
 
 		event := createSecurityTestEvent("access-control-test")
@@ -428,7 +426,7 @@ func (suite *SecurityTestSuite) TestAccessControl() {
 			},
 		}
 
-		backend, err := backends.NewFileBackend(config)
+		backend, err := backends.NewBackend(config)
 		suite.NoError(err)
 
 		event := createSecurityTestEvent("protection-test")
@@ -456,7 +454,7 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 			},
 		}
 
-		backend, err := backends.NewFileBackend(config)
+		backend, err := backends.NewBackend(config)
 		suite.NoError(err)
 
 		// Write original events
@@ -499,7 +497,7 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 			},
 		}
 
-		backend, err := backends.NewFileBackend(config)
+		backend, err := backends.NewBackend(config)
 		suite.NoError(err)
 
 		// Write events (should succeed)
@@ -538,15 +536,17 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 		}
 
 		// Verify chain integrity
-		isValid := integrityChain.VerifyChain(events)
-		suite.True(isValid)
+		report, err := integrityChain.VerifyChain()
+		suite.NoError(err)
+		suite.True(report.Valid)
 
 		// Tamper with an event
 		events[1].Action = "tampered-action"
 
 		// Chain should be invalid
-		isValid = integrityChain.VerifyChain(events)
-		suite.False(isValid)
+		report, err = integrityChain.VerifyChain()
+		suite.NoError(err)
+		suite.False(report.Valid)
 	})
 }
 
@@ -981,7 +981,7 @@ func (suite *SecurityTestSuite) TestSecurityRegression() {
 			}
 
 			// Backend creation should either fail or sanitize the path
-			backend, err := backends.NewFileBackend(config)
+			backend, err := backends.NewBackend(config)
 			if err == nil {
 				// If backend creation succeeds, ensure it doesn't write to dangerous locations
 				err = backend.WriteEvent(context.Background(), createSecurityTestEvent("traversal-test"))

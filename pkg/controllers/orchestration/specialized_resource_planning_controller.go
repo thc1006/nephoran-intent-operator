@@ -18,6 +18,7 @@ package orchestration
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -290,8 +291,16 @@ func (c *SpecializedResourcePlanningController) ProcessPhase(ctx context.Context
 	}
 
 	// Extract LLM response from intent status
-	llmResponse, ok := intent.Status.LLMResponse.(map[string]interface{})
-	if !ok {
+	var llmResponse map[string]interface{}
+	if len(intent.Status.LLMResponse.Raw) > 0 {
+		if err := json.Unmarshal(intent.Status.LLMResponse.Raw, &llmResponse); err != nil {
+			return interfaces.ProcessingResult{
+				Success:      false,
+				ErrorMessage: fmt.Sprintf("failed to unmarshal LLM response: %v", err),
+				ErrorCode:    "INVALID_INPUT",
+			}, nil
+		}
+	} else {
 		return interfaces.ProcessingResult{
 			Success:      false,
 			ErrorMessage: "invalid or missing LLM response data",
@@ -1358,7 +1367,15 @@ func (c *SpecializedResourcePlanningController) Reconcile(ctx context.Context, r
 	// Update intent status based on result
 	if result.Success {
 		intent.Status.ProcessingPhase = string(result.NextPhase)
-		intent.Status.ResourcePlan = result.Data
+
+		// Marshal result.Data to JSON and create RawExtension
+		if resultBytes, err := json.Marshal(result.Data); err != nil {
+			logger.Error(err, "Failed to marshal result data")
+			return ctrl.Result{}, err
+		} else {
+			intent.Status.ResourcePlan = runtime.RawExtension{Raw: resultBytes}
+		}
+
 		intent.Status.LastUpdated = metav1.Now()
 	} else {
 		intent.Status.ProcessingPhase = string(interfaces.PhaseFailed)

@@ -1627,6 +1627,17 @@ const (
 	PatternTypeIsolated    PatternType = "isolated"
 )
 
+// PatternAnalysis represents the result of pattern detection analysis
+type PatternAnalysis struct {
+	AnalysisID         string         `json:"analysisId"`
+	PatternsDetected   []*GraphPattern `json:"patternsDetected"`
+	TotalPatterns      int            `json:"totalPatterns"`
+	PatternsByType     map[PatternType]int `json:"patternsByType"`
+	AnalyzedAt         time.Time      `json:"analyzedAt"`
+	AnalysisTime       time.Duration  `json:"analysisTime"`
+	Recommendations    []string       `json:"recommendations,omitempty"`
+}
+
 // PatternImpact defines impact levels of patterns
 type PatternImpact string
 
@@ -2002,6 +2013,40 @@ type GraphManagerMetrics struct {
 	CacheHitRate        float64       `json:"cacheHitRate"`
 	ErrorRate           float64       `json:"errorRate"`
 	LastUpdated         time.Time     `json:"lastUpdated"`
+	
+	// Analysis metrics - these need to have Observe() method for compatibility
+	CycleDetectionTime     MetricObserver `json:"-"`
+	CyclesDetected         MetricCounter  `json:"-"`
+	TopologicalSortTime    MetricObserver `json:"-"`
+	MetricsCalculationTime MetricObserver `json:"-"`
+}
+
+// MetricObserver interface for metrics that observe values
+type MetricObserver interface {
+	Observe(value float64)
+}
+
+// MetricCounter interface for metrics that count events
+type MetricCounter interface {
+	Add(value float64)
+}
+
+// Simple stub implementations for metrics
+type stubMetricObserver struct{}
+func (s *stubMetricObserver) Observe(value float64) {}
+
+type stubMetricCounter struct{}
+func (s *stubMetricCounter) Add(value float64) {}
+
+// DependencyInfo represents information about a dependency relationship
+type DependencyInfo struct {
+	Package     *PackageReference `json:"package"`
+	Version     string            `json:"version,omitempty"`
+	Scope       DependencyScope   `json:"scope"`
+	Optional    bool              `json:"optional,omitempty"`
+	Transitive  bool              `json:"transitive,omitempty"`
+	Source      string            `json:"source,omitempty"`
+	Reason      string            `json:"reason,omitempty"`
 }
 
 // GraphStorage interface for graph persistence

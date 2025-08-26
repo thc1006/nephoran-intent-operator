@@ -2,7 +2,6 @@
 package o2
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,6 +15,8 @@ var (
 	// Global validator instance
 	validate = validator.New()
 )
+
+// ProblemDetail is defined in api_handlers.go to avoid duplication
 
 // writeJSONResponse writes a JSON response with proper headers
 func (s *O2APIServer) writeJSONResponse(w http.ResponseWriter, r *http.Request, statusCode int, data interface{}) {

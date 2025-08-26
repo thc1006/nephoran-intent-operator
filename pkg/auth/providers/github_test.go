@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -545,8 +544,6 @@ func TestGitHubProvider_GetOrganizations(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
-
 	tests := []struct {
 		name         string
 		token        string
@@ -577,24 +574,21 @@ func TestGitHubProvider_GetOrganizations(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+			provider := NewGitHubProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
-			// Check if provider implements EnterpriseProvider
-			if ep, ok := provider.(EnterpriseProvider); ok {
-				orgs, err := ep.GetOrganizations(ctx, tt.token)
+			// Call GetOrganizations method directly
+			orgs, err := provider.GetOrganizations(ctx, tt.token)
 
-				if tt.wantError {
-					assert.Error(t, err)
-					return
-				}
+			if tt.wantError {
+				assert.Error(t, err)
+				return
+			}
 
-				assert.NoError(t, err)
-				assert.Len(t, orgs, tt.wantOrgCount)
+			assert.NoError(t, err)
+			assert.Len(t, orgs, tt.wantOrgCount)
 
-				if tt.wantOrgCount > 0 {
-					assert.Equal(t, tt.wantFirstOrg, orgs[0].Name)
-				}
-			} else {
-				t.Skip("GitHubProvider does not implement EnterpriseProvider")
+			if tt.wantOrgCount > 0 {
+				assert.Equal(t, tt.wantFirstOrg, orgs[0].Name)
 			}
 		})
 	}

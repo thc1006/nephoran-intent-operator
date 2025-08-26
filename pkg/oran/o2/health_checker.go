@@ -9,9 +9,9 @@ import (
 )
 
 // newHealthChecker creates a new health checker instance
-func newHealthChecker(config *HealthCheckConfig, logger *logging.StructuredLogger) (*HealthChecker, error) {
+func newHealthChecker(config *APIHealthCheckerConfig, logger *logging.StructuredLogger) (*HealthChecker, error) {
 	if config == nil {
-		config = &HealthCheckConfig{
+		config = &APIHealthCheckerConfig{
 			Enabled:          true,
 			CheckInterval:    30 * time.Second,
 			Timeout:          10 * time.Second,
@@ -168,12 +168,12 @@ func (h *HealthChecker) buildComponentsMap(checks []ComponentCheck) map[string]i
 }
 
 // getServiceStatuses returns the status of external service dependencies
-func (h *HealthChecker) getServiceStatuses() []ServiceStatus {
+func (h *HealthChecker) getServiceStatuses() []HealthServiceStatus {
 	// This would typically check external dependencies like databases, message queues, etc.
-	var services []ServiceStatus
+	var services []HealthServiceStatus
 
 	// Example service status check
-	services = append(services, ServiceStatus{
+	services = append(services, HealthServiceStatus{
 		ServiceName: "database",
 		Status:      "UP",
 		Endpoint:    "postgresql://localhost:5432",

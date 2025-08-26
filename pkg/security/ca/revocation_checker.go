@@ -480,7 +480,15 @@ func (rc *RevocationChecker) checkOCSP(ctx context.Context, cert *x509.Certifica
 		// Check cache first
 		cacheKey := fmt.Sprintf("%s-%x", cert.SerialNumber.String(), cert.AuthorityKeyId)
 		if cached := rc.getOCSPCache(cacheKey); cached != nil {
-			result.Status = RevocationStatus(cached.Status)
+			// Convert integer OCSP status to RevocationStatus
+			switch cached.Status {
+			case ocsp.Good:
+				result.Status = RevocationStatusGood
+			case ocsp.Revoked:
+				result.Status = RevocationStatusRevoked
+			default:
+				result.Status = RevocationStatusUnknown
+			}
 			result.ResponseSource = ocspURL
 			result.CacheHit = true
 			result.NextUpdate = &cached.NextUpdate

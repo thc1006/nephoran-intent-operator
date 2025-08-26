@@ -1,7 +1,6 @@
 package providers
 
 import (
-	"context"
 	"log/slog"
 	"os"
 	"testing"
@@ -56,8 +55,8 @@ func TestNewLDAPProvider(t *testing.T) {
 			provider := NewLDAPProvider(tt.config, logger)
 
 			assert.NotNil(t, provider)
-			assert.Equal(t, tt.config, provider.config)
-			assert.Equal(t, logger, provider.logger)
+			assert.Equal(t, tt.config, provider.GetConfig())
+			assert.Equal(t, logger, provider.GetLogger())
 
 			if tt.expectDefaults {
 				// Check that defaults were applied
@@ -235,7 +234,7 @@ func TestLDAPProvider_MapGroupsToRoles(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			roles := provider.mapGroupsToRoles(tt.groups)
+			roles := provider.MapGroupsToRoles(tt.groups)
 
 			// Sort both slices for comparison
 			assert.ElementsMatch(t, tt.expectedRoles, roles)
@@ -286,7 +285,7 @@ func TestLDAPProvider_ExtractGroupNameFromDN(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.extractGroupNameFromDN(tt.dn)
+			result := provider.ExtractGroupNameFromDN(tt.dn)
 			assert.Equal(t, tt.expectedName, result)
 		})
 	}
@@ -335,7 +334,7 @@ func TestLDAPProvider_ContainsString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := provider.containsString(tt.slice, tt.item)
+			result := provider.ContainsString(tt.slice, tt.item)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -395,8 +394,9 @@ func TestLDAPProvider_ConfigValidation(t *testing.T) {
 			assert.NotNil(t, provider)
 
 			// Configuration should be preserved
-			assert.Equal(t, tt.config.Host, provider.config.Host)
-			assert.Equal(t, tt.config.BaseDN, provider.config.BaseDN)
+			config := provider.GetConfig()
+			assert.Equal(t, tt.config.Host, config.Host)
+			assert.Equal(t, tt.config.BaseDN, config.BaseDN)
 		})
 	}
 }
@@ -459,9 +459,10 @@ func TestLDAPProvider_ConnectionConfiguration(t *testing.T) {
 			logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
 			provider := NewLDAPProvider(tt.config, logger)
 
-			assert.Equal(t, tt.expectedPort, provider.config.Port)
-			assert.Equal(t, tt.expectedSSL, provider.config.UseSSL)
-			assert.Equal(t, tt.expectedTLS, provider.config.UseTLS)
+			config := provider.GetConfig()
+			assert.Equal(t, tt.expectedPort, config.Port)
+			assert.Equal(t, tt.expectedSSL, config.UseSSL)
+			assert.Equal(t, tt.expectedTLS, config.UseTLS)
 		})
 	}
 }
@@ -489,7 +490,7 @@ func BenchmarkLDAPProvider_MapGroupsToRoles(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = provider.mapGroupsToRoles(groups)
+		_ = provider.MapGroupsToRoles(groups)
 	}
 }
 
@@ -506,7 +507,7 @@ func BenchmarkLDAPProvider_ExtractGroupNameFromDN(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = provider.extractGroupNameFromDN(dn)
+		_ = provider.ExtractGroupNameFromDN(dn)
 	}
 }
 
@@ -515,7 +516,7 @@ func TestLDAPProvider_ComprehensiveConfiguration(t *testing.T) {
 	testCases := []struct {
 		name       string
 		config     *LDAPConfig
-		assertions func(t *testing.T, provider *LDAPProvider)
+		assertions func(t *testing.T, provider LDAPProvider)
 	}{
 		{
 			name: "enterprise_active_directory",
@@ -540,16 +541,17 @@ func TestLDAPProvider_ComprehensiveConfiguration(t *testing.T) {
 				Timeout:        60 * time.Second,
 				MaxConnections: 20,
 			},
-			assertions: func(t *testing.T, provider *LDAPProvider) {
+			assertions: func(t *testing.T, provider LDAPProvider) {
 				// Validate Active Directory specific settings
-				assert.True(t, provider.config.IsActiveDirectory)
-				assert.Equal(t, "enterprise.com", provider.config.Domain)
-				assert.Equal(t, "sAMAccountName", provider.config.UserAttributes.Username)
-				assert.Contains(t, provider.config.UserFilter, "objectClass=user")
-				assert.Contains(t, provider.config.GroupFilter, "objectClass=group")
+				config := provider.GetConfig()
+				assert.True(t, config.IsActiveDirectory)
+				assert.Equal(t, "enterprise.com", config.Domain)
+				assert.Equal(t, "sAMAccountName", config.UserAttributes.Username)
+				assert.Contains(t, config.UserFilter, "objectClass=user")
+				assert.Contains(t, config.GroupFilter, "objectClass=group")
 
 				// Validate role mappings work correctly
-				roles := provider.mapGroupsToRoles([]string{"Enterprise Admins"})
+				roles := provider.MapGroupsToRoles([]string{"Enterprise Admins"})
 				assert.Contains(t, roles, "system-admin")
 				assert.Contains(t, roles, "admin")
 				assert.Contains(t, roles, "user") // default role
@@ -575,15 +577,16 @@ func TestLDAPProvider_ComprehensiveConfiguration(t *testing.T) {
 				Timeout:        30 * time.Second,
 				MaxConnections: 10,
 			},
-			assertions: func(t *testing.T, provider *LDAPProvider) {
+			assertions: func(t *testing.T, provider LDAPProvider) {
 				// Validate OpenLDAP specific settings
-				assert.False(t, provider.config.IsActiveDirectory)
-				assert.Equal(t, "uid", provider.config.UserAttributes.Username)
-				assert.Contains(t, provider.config.UserFilter, "objectClass=inetOrgPerson")
-				assert.Contains(t, provider.config.GroupFilter, "objectClass=groupOfNames")
+				config := provider.GetConfig()
+				assert.False(t, config.IsActiveDirectory)
+				assert.Equal(t, "uid", config.UserAttributes.Username)
+				assert.Contains(t, config.UserFilter, "objectClass=inetOrgPerson")
+				assert.Contains(t, config.GroupFilter, "objectClass=groupOfNames")
 
 				// Validate role mappings
-				roles := provider.mapGroupsToRoles([]string{"developers", "ops"})
+				roles := provider.MapGroupsToRoles([]string{"developers", "ops"})
 				assert.Contains(t, roles, "developer")
 				assert.Contains(t, roles, "operator")
 				assert.Contains(t, roles, "user") // default role

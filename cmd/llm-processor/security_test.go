@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,7 +11,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
@@ -163,7 +163,7 @@ func TestSecurityHeaders(t *testing.T) {
 			// Create test request
 			req := httptest.NewRequest("GET", "/test", nil)
 			if tt.tlsEnabled {
-				req.TLS = &struct{}{}
+				req.TLS = &tls.ConnectionState{}
 			}
 
 			// Create response recorder
@@ -452,6 +452,7 @@ func TestEnvironmentVariableDefaults(t *testing.T) {
 
 	// Load config with defaults
 	cfg := &config.LLMProcessorConfig{}
+	_ = cfg // Suppress unused variable error
 
 	// Test HTTP_MAX_BODY default
 	maxBody := os.Getenv("HTTP_MAX_BODY")

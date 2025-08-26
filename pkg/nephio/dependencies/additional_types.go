@@ -58,8 +58,8 @@ func (a *dependencyAnalyzer) AnalyzeDependencyTrends(ctx context.Context, packag
 	analysis := &TrendAnalysis{
 		AnalysisID:    fmt.Sprintf("trend-analysis-%d", time.Now().UnixNano()),
 		TimeRange:     timeRange,
-		Packages:      packages,
-		Period:        period,
+		Packages:      convertPackagesToStrings(packages),
+		Period:        period.String(),
 		Trends:        make([]*Trend, 0),
 		OverallTrend:  TrendDirectionStable,
 		Confidence:    0.7,
@@ -363,6 +363,15 @@ func generateBenchmarkID() string {
 
 func generateResourceUsageAnalysisID() string {
 	return fmt.Sprintf("resource-usage-%d", time.Now().UnixNano())
+}
+
+// convertPackagesToStrings converts PackageReference slice to string slice
+func convertPackagesToStrings(packages []*PackageReference) []string {
+	result := make([]string, len(packages))
+	for i, pkg := range packages {
+		result[i] = pkg.Name
+	}
+	return result
 }
 
 // DetectHealthTrends detects health trends for packages

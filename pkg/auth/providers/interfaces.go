@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"time"
 )
 
@@ -101,6 +102,13 @@ type LDAPProvider interface {
 
 	// Close closes LDAP connection
 	Close() error
+
+	// Testing helpers
+	GetConfig() *LDAPConfig
+	GetLogger() *slog.Logger
+	MapGroupsToRoles(groups []string) []string
+	ExtractGroupNameFromDN(dn string) string
+	ContainsString(slice []string, item string) bool
 }
 
 // TokenResponse represents OAuth2/OIDC token response

@@ -50,7 +50,7 @@ type NephoranAPIServer struct {
 	intentReconciler  *controllers.NetworkIntentReconciler
 	packageManager *packagerevision.PackageRevisionManager
 	clusterManager *multicluster.ClusterPropagationManager
-	llmProcessor   *services.LLMProcessor
+	llmProcessor   *services.LLMProcessorService
 	kubeClient     kubernetes.Interface
 
 	// Authentication and authorization
@@ -225,7 +225,7 @@ func NewNephoranAPIServer(
 	intentReconciler *controllers.NetworkIntentReconciler,
 	packageManager *packagerevision.PackageRevisionManager,
 	clusterManager *multicluster.ClusterPropagationManager,
-	llmProcessor *services.LLMProcessor,
+	llmProcessor *services.LLMProcessorService,
 	kubeClient kubernetes.Interface,
 	config *ServerConfig,
 ) (*NephoranAPIServer, error) {
@@ -490,22 +490,6 @@ func (s *NephoranAPIServer) metricsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func (s *NephoranAPIServer) rateLimitMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := auth.GetUserID(r.Context())
-		if userID == "" {
-			userID = getClientIP(r)
-		}
-
-		if !s.rateLimiter.Allow(userID) {
-			s.metrics.RateLimitExceeded.Inc()
-			s.writeErrorResponse(w, http.StatusTooManyRequests, "rate_limit_exceeded", "Rate limit exceeded")
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
 
 // Background workers
 

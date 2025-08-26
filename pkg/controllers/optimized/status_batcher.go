@@ -7,7 +7,6 @@ import (
 	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -155,7 +154,7 @@ func (sb *StatusBatcher) QueueNetworkIntentUpdate(namespacedName types.Namespace
 
 		// Update phase if provided
 		if phase != "" {
-			networkIntent.Status.Phase = phase
+			networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
 		}
 
 		return nil
@@ -174,11 +173,11 @@ func (sb *StatusBatcher) QueueE2NodeSetUpdate(namespacedName types.NamespacedNam
 
 		// Update replica status
 		e2nodeSet.Status.ReadyReplicas = readyReplicas
-		e2nodeSet.Status.Replicas = totalReplicas
+		e2nodeSet.Status.CurrentReplicas = totalReplicas
 
 		// Apply condition updates
 		for _, condition := range conditions {
-			updateCondition(&e2nodeSet.Status.Conditions, condition)
+			updateE2NodeSetCondition(&e2nodeSet.Status.Conditions, condition)
 		}
 
 		return nil
@@ -408,4 +407,33 @@ func updateCondition(conditions *[]metav1.Condition, newCondition metav1.Conditi
 
 	// Add new condition
 	*conditions = append(*conditions, newCondition)
+}
+
+// updateE2NodeSetCondition updates a condition in an E2NodeSet condition slice
+// This converts metav1.Condition to E2NodeSetCondition
+func updateE2NodeSetCondition(conditions *[]nephoranv1.E2NodeSetCondition, newCondition metav1.Condition) {
+	if conditions == nil {
+		*conditions = []nephoranv1.E2NodeSetCondition{}
+	}
+
+	// Convert metav1.Condition to E2NodeSetCondition
+	e2Condition := nephoranv1.E2NodeSetCondition{
+		Type:               nephoranv1.E2NodeSetConditionType(newCondition.Type),
+		Status:             newCondition.Status,
+		LastTransitionTime: newCondition.LastTransitionTime,
+		Reason:             newCondition.Reason,
+		Message:            newCondition.Message,
+	}
+
+	// Find existing condition
+	for i, condition := range *conditions {
+		if condition.Type == e2Condition.Type {
+			// Update existing condition
+			(*conditions)[i] = e2Condition
+			return
+		}
+	}
+
+	// Add new condition
+	*conditions = append(*conditions, e2Condition)
 }

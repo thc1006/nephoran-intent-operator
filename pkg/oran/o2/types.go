@@ -1,9 +1,10 @@
 package o2
 
 import (
-	"time"
 	"context"
 	"net/http"
+	"net/url"
+	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/o2/providers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
@@ -186,9 +187,13 @@ type MonitoringService interface {
 type HealthCheck struct {
 	Status      string                 `json:"status"`
 	Timestamp   time.Time             `json:"timestamp"`
-	Checks      map[string]CheckResult `json:"checks"`
+	Checks      []ComponentCheck       `json:"checks"`
 	Version     string                 `json:"version"`
 	Environment string                 `json:"environment"`
+	Uptime      time.Duration         `json:"uptime"`
+	Components  map[string]interface{} `json:"components"`
+	Services    []HealthServiceStatus `json:"services"`
+	Resources   *ResourceHealthSummary `json:"resources"`
 }
 
 // CheckResult represents the result of a health check
@@ -507,14 +512,42 @@ type JaegerClient struct{}
 type AlertProcessor struct{}
 type DashboardManager struct{}
 type CloudProviderConfig struct{}
-type RequestContext struct{}
-type ResourceHealthSummary struct{}
+
+// CNF and Helm related stub types are defined in cnf_management.go
+type RequestContext struct {
+	RequestID   string              `json:"requestId"`
+	Method      string              `json:"method"`
+	Path        string              `json:"path"`
+	RemoteAddr  string              `json:"remoteAddr"`
+	UserAgent   string              `json:"userAgent"`
+	Headers     http.Header         `json:"headers"`
+	QueryParams url.Values         `json:"queryParams"`
+	StartTime   time.Time           `json:"startTime"`
+}
+type ResourceHealthSummary struct {
+	TotalResources     int `json:"totalResources"`
+	HealthyResources   int `json:"healthyResources"`
+	DegradedResources  int `json:"degradedResources"`
+	UnhealthyResources int `json:"unhealthyResources"`
+	UnknownResources   int `json:"unknownResources"`
+}
+
 type ResourceState struct{}
 type ResourceLifecycleEvent struct{}
 type ResourceEventBus struct{}
 type EventSubscriber struct{}
 type ResourceLifecycleMetrics struct{}
 type ResourcePolicies struct{}
+
+// HealthServiceStatus represents the status of an external service dependency
+type HealthServiceStatus struct {
+	ServiceName string        `json:"serviceName"`
+	Status      string        `json:"status"`
+	Endpoint    string        `json:"endpoint"`
+	LastCheck   time.Time     `json:"lastCheck"`
+	Latency     time.Duration `json:"latency"`
+}
+
 
 
 // Status constants
@@ -599,9 +632,20 @@ type APIHealthCheckConfig struct {
 
 // MetricsConfig defines metrics configuration
 type MetricsConfig struct {
-	Enabled bool   `json:"enabled"`
-	Path    string `json:"path"`
-	Port    int    `json:"port"`
+	Enabled            bool          `json:"enabled"`
+	Path               string        `json:"path"`
+	Port               int           `json:"port"`
+	CollectionInterval time.Duration `json:"collectionInterval"`
+}
+
+// APIHealthCheckerConfig defines health check configuration for the API server health checker
+type APIHealthCheckerConfig struct {
+	Enabled          bool          `json:"enabled"`
+	CheckInterval    time.Duration `json:"checkInterval"`
+	Timeout          time.Duration `json:"timeout"`
+	FailureThreshold int           `json:"failureThreshold"`
+	SuccessThreshold int           `json:"successThreshold"`
+	DeepHealthCheck  bool          `json:"deepHealthCheck"`
 }
 
 // DefaultO2IMSConfig returns a default configuration for O2 IMS
@@ -649,9 +693,10 @@ func DefaultO2IMSConfig() *O2IMSConfig {
 			Interval: 30 * time.Second,
 		},
 		MetricsConfig: &MetricsConfig{
-			Enabled: true,
-			Path:    "/metrics",
-			Port:    9090,
+			Enabled:            true,
+			Path:               "/metrics",
+			Port:               9090,
+			CollectionInterval: 30 * time.Second,
 		},
 		CertFile: "",
 		KeyFile:  "",

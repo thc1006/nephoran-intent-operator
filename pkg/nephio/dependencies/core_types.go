@@ -498,14 +498,16 @@ func NewPackageRegistry(config *PackageRegistryConfig) (PackageRegistry, error) 
 
 func NewUpdaterMetrics() *UpdaterMetrics {
 	return &UpdaterMetrics{
-		UpdatesTotal: prometheus.NewCounter(prometheus.CounterOpts{
-			Name: "updater_updates_total",
-			Help: "Total number of updates performed",
-		}),
-		UpdateDuration: prometheus.NewHistogram(prometheus.HistogramOpts{
-			Name: "updater_update_duration_seconds",
-			Help: "Duration of update operations",
-		}),
+		TotalUpdates:       0,
+		SuccessfulUpdates:  0,
+		FailedUpdates:      0,
+		SkippedUpdates:     0,
+		AverageUpdateTime:  0,
+		UpdatesPerHour:     0.0,
+		QueueSize:         0,
+		ActiveWorkers:      0,
+		ThroughputPPS:      0.0,
+		ErrorRate:          0.0,
 		// Additional metrics would be initialized here
 	}
 }

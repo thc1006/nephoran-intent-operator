@@ -590,8 +590,6 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 	}))
 	defer server.Close()
 
-	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
-
 	tests := []struct {
 		name           string
 		token          string
@@ -622,24 +620,21 @@ func TestAzureADProvider_GetGroups(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := context.Background()
+			provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
 
-			// Check if provider implements EnterpriseProvider
-			if ep, ok := provider.(EnterpriseProvider); ok {
-				groups, err := ep.GetGroups(ctx, tt.token)
+			// Call GetGroups method directly
+			groups, err := provider.GetGroups(ctx, tt.token)
 
-				if tt.wantError {
-					assert.Error(t, err)
-					return
-				}
+			if tt.wantError {
+				assert.Error(t, err)
+				return
+			}
 
-				assert.NoError(t, err)
-				assert.Len(t, groups, tt.wantGroupCount)
+			assert.NoError(t, err)
+			assert.Len(t, groups, tt.wantGroupCount)
 
-				if tt.wantGroupCount > 0 {
-					assert.Equal(t, tt.wantFirstGroup, groups[0])
-				}
-			} else {
-				t.Skip("AzureADProvider does not implement EnterpriseProvider")
+			if tt.wantGroupCount > 0 {
+				assert.Equal(t, tt.wantFirstGroup, groups[0])
 			}
 		})
 	}
@@ -805,21 +800,17 @@ func TestAzureADProvider_DiscoverConfiguration(t *testing.T) {
 
 	provider := NewAzureADProvider("test-id", "test-secret", "http://localhost:8080/callback", "test-tenant")
 
-	// Check if provider implements OIDCProvider
-	if oidcProvider, ok := provider.(OIDCProvider); ok {
-		ctx := context.Background()
-		config, err := oidcProvider.DiscoverConfiguration(ctx)
+	// Call DiscoverConfiguration method directly
+	ctx := context.Background()
+	config, err := provider.DiscoverConfiguration(ctx)
 
-		assert.NoError(t, err)
-		assert.NotNil(t, config)
-		assert.Equal(t, "https://login.microsoftonline.com/test-tenant/v2.0", config.Issuer)
-		assert.Contains(t, config.ScopesSupported, "openid")
-		assert.Contains(t, config.ScopesSupported, "email")
-		assert.Contains(t, config.ScopesSupported, "profile")
-		assert.Contains(t, config.CodeChallengeMethodsSupported, "S256")
-	} else {
-		t.Skip("AzureADProvider does not implement OIDCProvider")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "https://login.microsoftonline.com/test-tenant/v2.0", config.Issuer)
+	assert.Contains(t, config.ScopesSupported, "openid")
+	assert.Contains(t, config.ScopesSupported, "email")
+	assert.Contains(t, config.ScopesSupported, "profile")
+	assert.Contains(t, config.CodeChallengeMethodsSupported, "S256")
 }
 
 func TestAzureADProvider_GetConfiguration(t *testing.T) {

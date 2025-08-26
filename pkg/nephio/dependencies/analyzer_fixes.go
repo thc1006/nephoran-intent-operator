@@ -33,8 +33,8 @@ func DefaultAnalyzerConfig() *AnalyzerConfig {
 		EnableMLOptimization:   false,
 		EnableCaching:          true,
 		EnableConcurrency:      true,
-		EnableBenchmarking:     false,
-		EnableResourceAnalysis: false,
+		// EnableBenchmarking:     false, // Field does not exist
+		// EnableResourceAnalysis: false, // Field does not exist
 		EnableTrendAnalysis:    true,
 		WorkerCount:           4,
 		QueueSize:             100,
@@ -133,13 +133,13 @@ func (a *dependencyAnalyzer) analyzePackageComplianceRisks(ctx context.Context, 
 
 	// Check for known compliance issues (stub implementation)
 	issue := &ComplianceIssue{
-		ID:          fmt.Sprintf("compliance-issue-%s-%s", pkg.Name, pkg.Version),
-		Standard:    "SOC2",
-		Severity:    "low",
-		Description: "Package license compliance verified",
-		Package:     pkg.Name,
-		Status:      "resolved",
-		DetectedAt:  time.Now(),
+		ID:             fmt.Sprintf("compliance-issue-%s-%s", pkg.Name, pkg.Version),
+		Type:           "license",
+		Severity:       "low",
+		Description:    "Package license compliance verified",
+		Package:        pkg,
+		Regulation:     "SOC2",
+		RequiredAction: "no action required",
 	}
 	issues = append(issues, issue)
 
@@ -173,13 +173,15 @@ func (a *dependencyAnalyzer) generateComplianceActions(issues []*ComplianceIssue
 	actions := make([]*ComplianceAction, 0)
 
 	for _, issue := range issues {
-		if issue.Status == "open" {
+		// Since ComplianceIssue doesn't have Status field, check severity instead
+		if issue.Severity == "high" || issue.Severity == "critical" {
 			action := &ComplianceAction{
 				ID:          fmt.Sprintf("action-%s", issue.ID),
 				Type:        "remediation",
 				Description: fmt.Sprintf("Address compliance issue: %s", issue.Description),
 				Priority:    issue.Severity,
-				DueDate:     time.Now().Add(30 * 24 * time.Hour), // 30 days
+				// DueDate field doesn't exist in ComplianceAction
+				// DueDate:     time.Now().Add(30 * 24 * time.Hour), // 30 days
 				Status:      "pending",
 			}
 			actions = append(actions, action)

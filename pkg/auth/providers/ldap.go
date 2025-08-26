@@ -743,3 +743,28 @@ func (p *LDAPClient) TestConnection(ctx context.Context) error {
 	p.logger.Info("LDAP connection test successful")
 	return nil
 }
+
+// GetConfig returns the LDAP configuration (for testing)
+func (p *LDAPClient) GetConfig() *LDAPConfig {
+	return p.config
+}
+
+// GetLogger returns the logger (for testing)
+func (p *LDAPClient) GetLogger() *slog.Logger {
+	return p.logger
+}
+
+// MapGroupsToRoles maps LDAP groups to roles (exported for testing)
+func (p *LDAPClient) MapGroupsToRoles(groups []string) []string {
+	return p.mapGroupsToRoles(groups)
+}
+
+// ExtractGroupNameFromDN extracts group name from DN (exported for testing)
+func (p *LDAPClient) ExtractGroupNameFromDN(dn string) string {
+	return p.extractGroupNameFromDN(dn)
+}
+
+// ContainsString checks if slice contains string (exported for testing)
+func (p *LDAPClient) ContainsString(slice []string, item string) bool {
+	return p.containsString(slice, item)
+}

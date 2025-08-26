@@ -218,7 +218,7 @@ type ResourceHealth struct {
 	LastCheck    time.Time              `json:"lastCheck"`
 	Checks       []*HealthCheckResult   `json:"checks,omitempty"`
 	Metrics      map[string]interface{} `json:"metrics,omitempty"`
-	Alerts       []*Alert               `json:"alerts,omitempty"`
+	Alerts       []interface{}          `json:"alerts,omitempty"`
 	OverallScore float64                `json:"overallScore,omitempty"`
 }
 

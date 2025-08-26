@@ -124,6 +124,11 @@ func NewGoogleProvider(clientID, clientSecret, redirectURL string, hostedDomain 
 	}
 }
 
+// NewGoogleProviderWithDomain creates a new Google OAuth2/OIDC provider with hosted domain restriction
+func NewGoogleProviderWithDomain(clientID, clientSecret, redirectURL, hostedDomain string) *GoogleProvider {
+	return NewGoogleProvider(clientID, clientSecret, redirectURL, hostedDomain)
+}
+
 // GetProviderName returns the provider name
 func (p *GoogleProvider) GetProviderName() string {
 	return p.config.Name

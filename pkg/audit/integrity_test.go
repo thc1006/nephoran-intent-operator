@@ -1,17 +1,13 @@
 package audit
 
 import (
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -56,8 +52,9 @@ func (suite *IntegrityTestSuite) TestHashChainGeneration() {
 		chain := suite.integrityChain
 
 		suite.NotNil(chain)
-		suite.NotEmpty(chain.GetCurrentHash())
-		suite.Equal(int64(0), chain.GetSequenceNumber())
+		info := chain.GetChainInfo()
+		suite.NotEmpty(info["last_hash"])
+		suite.Equal(uint64(0), info["sequence_number"])
 	})
 
 	suite.Run("single event hash chain", func() {
@@ -74,8 +71,9 @@ func (suite *IntegrityTestSuite) TestHashChainGeneration() {
 		suite.Contains(event.IntegrityFields, "event_type")
 
 		// Chain should be updated
-		suite.Equal(int64(1), suite.integrityChain.GetSequenceNumber())
-		suite.Equal(event.Hash, suite.integrityChain.GetCurrentHash())
+		info := suite.integrityChain.GetChainInfo()
+		suite.Equal(uint64(1), info["sequence_number"])
+		suite.Equal(event.Hash, info["last_hash"])
 	})
 
 	suite.Run("multiple events hash chain", func() {
@@ -102,7 +100,9 @@ func (suite *IntegrityTestSuite) TestHashChainGeneration() {
 		}
 
 		// Verify chain integrity
-		suite.True(suite.integrityChain.VerifyChain(events))
+		report, err := suite.integrityChain.VerifyChain()
+		suite.NoError(err)
+		suite.True(report.Valid)
 	})
 
 	suite.Run("hash consistency", func() {
@@ -110,14 +110,14 @@ func (suite *IntegrityTestSuite) TestHashChainGeneration() {
 		event2 := createIntegrityTestEvent("consistent-test")
 
 		// Same event data should produce same hash
-		hash1 := suite.integrityChain.calculateEventHash(event1)
-		hash2 := suite.integrityChain.calculateEventHash(event2)
+		hash1, _ := suite.integrityChain.calculateEventHash(event1)
+		hash2, _ := suite.integrityChain.calculateEventHash(event2)
 
 		suite.Equal(hash1, hash2)
 
 		// Different data should produce different hash
 		event2.Action = "different-action"
-		hash3 := suite.integrityChain.calculateEventHash(event2)
+		hash3, _ := suite.integrityChain.calculateEventHash(event2)
 		suite.NotEqual(hash1, hash3)
 	})
 }
@@ -593,91 +593,6 @@ func createIntegrityTestEvent(action string) *AuditEvent {
 
 // Mock implementations for testing (would be replaced with real implementations)
 
-type IntegrityChain struct {
-	currentHash    string
-	sequenceNumber int64
-	previousHash   string
-}
-
-func NewIntegrityChain() (*IntegrityChain, error) {
-	// Initialize with genesis hash
-	genesisHash := sha256.Sum256([]byte("genesis"))
-
-	return &IntegrityChain{
-		currentHash:    hex.EncodeToString(genesisHash[:]),
-		sequenceNumber: 0,
-		previousHash:   "",
-	}, nil
-}
-
-func (ic *IntegrityChain) ProcessEvent(event *AuditEvent) error {
-	// Set previous hash
-	event.PreviousHash = ic.currentHash
-
-	// Calculate current event hash
-	event.Hash = ic.calculateEventHash(event)
-
-	// Set integrity fields
-	event.IntegrityFields = []string{"id", "timestamp", "event_type", "component", "action", "severity", "result"}
-
-	// Update chain state
-	ic.previousHash = ic.currentHash
-	ic.currentHash = event.Hash
-	ic.sequenceNumber++
-
-	return nil
-}
-
-func (ic *IntegrityChain) calculateEventHash(event *AuditEvent) string {
-	// Create deterministic hash input
-	hashInput := fmt.Sprintf("%s|%s|%s|%s|%s|%d|%s|%s",
-		event.ID,
-		event.Timestamp.Format(time.RFC3339Nano),
-		string(event.EventType),
-		event.Component,
-		event.Action,
-		event.Severity,
-		string(event.Result),
-		event.PreviousHash,
-	)
-
-	// Include data fields in hash
-	if event.Data != nil {
-		dataBytes, _ := json.Marshal(event.Data)
-		hashInput += "|" + string(dataBytes)
-	}
-
-	hash := sha256.Sum256([]byte(hashInput))
-	return hex.EncodeToString(hash[:])
-}
-
-func (ic *IntegrityChain) GetCurrentHash() string {
-	return ic.currentHash
-}
-
-func (ic *IntegrityChain) GetSequenceNumber() int64 {
-	return ic.sequenceNumber
-}
-
-func (ic *IntegrityChain) VerifyChain(events []*AuditEvent) bool {
-	for i, event := range events {
-		// Recalculate hash
-		expectedHash := ic.calculateEventHash(event)
-		if event.Hash != expectedHash {
-			return false
-		}
-
-		// Check chain linkage
-		if i > 0 {
-			if event.PreviousHash != events[i-1].Hash {
-				return false
-			}
-		}
-	}
-
-	return true
-}
-
 type EventSigner struct {
 	config *SignerConfig
 }
@@ -881,8 +796,8 @@ func (cr *ChainRecoverer) RecoverChain(events []*AuditEvent) (*RecoveryResult, e
 	// Copy events for repair
 	copy(result.RepairedEvents, events)
 
-	// Simple recovery: recalculate hashes
-	chain := &IntegrityChain{currentHash: "genesis", sequenceNumber: 0}
+	// Simple recovery: create new chain for repair
+	chain, _ := NewIntegrityChain()
 
 	for i, event := range result.RepairedEvents {
 		// Check if event has critical missing data

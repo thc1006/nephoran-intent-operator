@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"fmt"
+	"log/slog"
 	"math/big"
 	"net"
 	"time"
@@ -161,10 +162,10 @@ func NewHSMBackend(config *HSMBackendConfig, logger *logging.StructuredLogger) *
 
 // Initialize sets up the HSM backend
 func (h *HSMBackend) Initialize(ctx context.Context, config interface{}) error {
-	h.logger.Info("Initializing HSM backend", map[string]interface{}{
+	h.logger.Info("Initializing HSM backend", slog.Any("config", map[string]interface{}{
 		"provider_type": h.config.ProviderType,
 		"token_label":   h.config.TokenLabel,
-	})
+	}))
 
 	// Create HSM provider based on configuration
 	provider, err := h.createHSMProvider()
@@ -210,10 +211,9 @@ func (h *HSMBackend) createHSMProvider() (HSMProvider, error) {
 
 // GenerateKeyPair generates a key pair in the HSM
 func (h *HSMBackend) GenerateKeyPair(ctx context.Context, keyID string) (crypto.PublicKey, crypto.PrivateKey, error) {
-	h.logger.Info("Generating key pair in HSM", map[string]interface{}{
-		"key_id":   keyID,
-		"key_size": h.config.KeySize,
-	})
+	h.logger.Info("Generating key pair in HSM", 
+		slog.String("key_id", keyID),
+		slog.Int("key_size", h.config.KeySize))
 
 	publicKey, err := h.hsm.GenerateKey(keyID, h.config.KeySize)
 	if err != nil {
@@ -225,19 +225,16 @@ func (h *HSMBackend) GenerateKeyPair(ctx context.Context, keyID string) (crypto.
 		return nil, nil, fmt.Errorf("failed to get private key: %w", err)
 	}
 
-	h.logger.Info("Key pair generated successfully", map[string]interface{}{
-		"key_id": keyID,
-	})
+	h.logger.Info("Key pair generated successfully", slog.String("key_id", keyID))
 
 	return publicKey, privateKey, nil
 }
 
 // GenerateCACertificate generates a CA certificate using HSM
 func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, subject pkix.Name) (*x509.Certificate, error) {
-	h.logger.Info("Generating CA certificate in HSM", map[string]interface{}{
-		"key_id": keyID,
-		"subject": subject.String(),
-	})
+	h.logger.Info("Generating CA certificate in HSM", 
+		slog.String("key_id", keyID),
+		slog.String("subject", subject.String()))
 
 	// Generate key pair
 	publicKey, privateKey, err := h.GenerateKeyPair(ctx, keyID)
@@ -269,21 +266,19 @@ func (h *HSMBackend) GenerateCACertificate(ctx context.Context, keyID string, su
 		return nil, fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
-	h.logger.Info("CA certificate generated successfully", map[string]interface{}{
-		"key_id": keyID,
-		"serial_number": cert.SerialNumber.String(),
-		"subject": cert.Subject.String(),
-	})
+	h.logger.Info("CA certificate generated successfully", 
+		slog.String("key_id", keyID),
+		slog.String("serial_number", cert.SerialNumber.String()),
+		slog.String("subject", cert.Subject.String()))
 
 	return cert, nil
 }
 
 // SignCertificate signs a certificate using HSM-stored CA key
 func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, template *x509.Certificate, publicKey crypto.PublicKey, caCert *x509.Certificate) (*x509.Certificate, error) {
-	h.logger.Info("Signing certificate with HSM", map[string]interface{}{
-		"ca_key_id": caKeyID,
-		"subject": template.Subject.String(),
-	})
+	h.logger.Info("Signing certificate with HSM", 
+		slog.String("ca_key_id", caKeyID),
+		slog.String("subject", template.Subject.String()))
 
 	// Get CA private key from HSM
 	caPrivateKey, err := h.hsm.GetKey(caKeyID)
@@ -303,21 +298,19 @@ func (h *HSMBackend) SignCertificate(ctx context.Context, caKeyID string, templa
 		return nil, fmt.Errorf("failed to parse certificate: %w", err)
 	}
 
-	h.logger.Info("Certificate signed successfully", map[string]interface{}{
-		"ca_key_id": caKeyID,
-		"serial_number": cert.SerialNumber.String(),
-		"subject": cert.Subject.String(),
-	})
+	h.logger.Info("Certificate signed successfully", 
+		slog.String("ca_key_id", caKeyID),
+		slog.String("serial_number", cert.SerialNumber.String()),
+		slog.String("subject", cert.Subject.String()))
 
 	return cert, nil
 }
 
 // SignData signs data using HSM-stored key
 func (h *HSMBackend) SignData(ctx context.Context, keyID string, data []byte) ([]byte, error) {
-	h.logger.Debug("Signing data with HSM", map[string]interface{}{
-		"key_id": keyID,
-		"data_size": len(data),
-	})
+	h.logger.Debug("Signing data with HSM", 
+		slog.String("key_id", keyID),
+		slog.Int("data_size", len(data)))
 
 	// Get private key from HSM
 	privateKey, err := h.hsm.GetKey(keyID)
@@ -331,21 +324,19 @@ func (h *HSMBackend) SignData(ctx context.Context, keyID string, data []byte) ([
 		return nil, fmt.Errorf("failed to sign data: %w", err)
 	}
 
-	h.logger.Debug("Data signed successfully", map[string]interface{}{
-		"key_id": keyID,
-		"signature_size": len(signature),
-	})
+	h.logger.Debug("Data signed successfully", 
+		slog.String("key_id", keyID),
+		slog.Int("signature_size", len(signature)))
 
 	return signature, nil
 }
 
 // VerifyData verifies data signature using HSM
 func (h *HSMBackend) VerifyData(ctx context.Context, keyID string, data []byte, signature []byte) error {
-	h.logger.Debug("Verifying data signature with HSM", map[string]interface{}{
-		"key_id": keyID,
-		"data_size": len(data),
-		"signature_size": len(signature),
-	})
+	h.logger.Debug("Verifying data signature with HSM", 
+		slog.String("key_id", keyID),
+		slog.Int("data_size", len(data)),
+		slog.Int("signature_size", len(signature)))
 
 	// Get key from HSM (need public key for verification)
 	privateKey, err := h.hsm.GetKey(keyID)
@@ -367,9 +358,7 @@ func (h *HSMBackend) VerifyData(ctx context.Context, keyID string, data []byte, 
 		return fmt.Errorf("signature verification failed: %w", err)
 	}
 
-	h.logger.Debug("Data signature verified successfully", map[string]interface{}{
-		"key_id": keyID,
-	})
+	h.logger.Debug("Data signature verified successfully", slog.String("key_id", keyID))
 
 	return nil
 }
@@ -383,26 +372,20 @@ func (h *HSMBackend) GetKeyList(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("failed to list keys: %w", err)
 	}
 
-	h.logger.Debug("Retrieved key list from HSM", map[string]interface{}{
-		"key_count": len(keys),
-	})
+	h.logger.Debug("Retrieved key list from HSM", slog.Int("key_count", len(keys)))
 
 	return keys, nil
 }
 
 // DeleteKey deletes a key from HSM
 func (h *HSMBackend) DeleteKey(ctx context.Context, keyID string) error {
-	h.logger.Info("Deleting key from HSM", map[string]interface{}{
-		"key_id": keyID,
-	})
+	h.logger.Info("Deleting key from HSM", slog.String("key_id", keyID))
 
 	if err := h.hsm.DeleteKey(keyID); err != nil {
 		return fmt.Errorf("failed to delete key: %w", err)
 	}
 
-	h.logger.Info("Key deleted successfully from HSM", map[string]interface{}{
-		"key_id": keyID,
-	})
+	h.logger.Info("Key deleted successfully from HSM", slog.String("key_id", keyID))
 
 	return nil
 }
@@ -416,10 +399,9 @@ func (h *HSMBackend) GetStatus(ctx context.Context) (*HSMStatus, error) {
 		return nil, fmt.Errorf("failed to get HSM status: %w", err)
 	}
 
-	h.logger.Debug("Retrieved HSM status", map[string]interface{}{
-		"connected": status.Connected,
-		"authenticated": status.Authenticated,
-	})
+	h.logger.Debug("Retrieved HSM status", 
+		slog.Bool("connected", status.Connected),
+		slog.Bool("authenticated", status.Authenticated))
 
 	return status, nil
 }
@@ -455,15 +437,11 @@ func (h *HSMBackend) Close() error {
 
 	if h.hsm != nil {
 		if err := h.hsm.Logout(); err != nil {
-			h.logger.Warn("Failed to logout from HSM", map[string]interface{}{
-				"error": err.Error(),
-			})
+			h.logger.Warn("Failed to logout from HSM", slog.String("error", err.Error()))
 		}
 
 		if err := h.hsm.Close(); err != nil {
-			h.logger.Warn("Failed to close HSM connection", map[string]interface{}{
-				"error": err.Error(),
-			})
+			h.logger.Warn("Failed to close HSM connection", slog.String("error", err.Error()))
 		}
 	}
 
@@ -473,32 +451,24 @@ func (h *HSMBackend) Close() error {
 
 // Backup creates a backup of HSM keys and certificates
 func (h *HSMBackend) Backup(ctx context.Context, backupPath string) error {
-	h.logger.Info("Creating HSM backup", map[string]interface{}{
-		"backup_path": backupPath,
-	})
+	h.logger.Info("Creating HSM backup", slog.String("backup_path", backupPath))
 
 	// Implementation would depend on HSM provider capabilities
 	// This is a placeholder for the backup functionality
 	
-	h.logger.Info("HSM backup completed", map[string]interface{}{
-		"backup_path": backupPath,
-	})
+	h.logger.Info("HSM backup completed", slog.String("backup_path", backupPath))
 
 	return nil
 }
 
 // Restore restores HSM keys and certificates from backup
 func (h *HSMBackend) Restore(ctx context.Context, backupPath string) error {
-	h.logger.Info("Restoring HSM from backup", map[string]interface{}{
-		"backup_path": backupPath,
-	})
+	h.logger.Info("Restoring HSM from backup", slog.String("backup_path", backupPath))
 
 	// Implementation would depend on HSM provider capabilities
 	// This is a placeholder for the restore functionality
 	
-	h.logger.Info("HSM restore completed", map[string]interface{}{
-		"backup_path": backupPath,
-	})
+	h.logger.Info("HSM restore completed", slog.String("backup_path", backupPath))
 
 	return nil
 }
@@ -513,9 +483,7 @@ func (h *HSMBackend) GetCapabilities(ctx context.Context) ([]string, error) {
 
 	capabilities := h.hsm.GetCapabilities()
 
-	h.logger.Debug("Retrieved HSM capabilities", map[string]interface{}{
-		"capabilities": capabilities,
-	})
+	h.logger.Debug("Retrieved HSM capabilities", slog.Any("capabilities", capabilities))
 
 	return capabilities, nil
 }

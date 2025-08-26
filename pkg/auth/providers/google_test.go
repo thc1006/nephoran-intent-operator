@@ -3,7 +3,6 @@ package providers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -701,21 +700,17 @@ func TestGoogleProvider_DiscoverConfiguration(t *testing.T) {
 
 	provider := NewGoogleProvider("test-id", "test-secret", "http://localhost:8080/callback")
 
-	// Check if provider implements OIDCProvider
-	if oidcProvider, ok := provider.(OIDCProvider); ok {
-		ctx := context.Background()
-		config, err := oidcProvider.DiscoverConfiguration(ctx)
+	// Call DiscoverConfiguration method directly
+	ctx := context.Background()
+	config, err := provider.DiscoverConfiguration(ctx)
 
-		assert.NoError(t, err)
-		assert.NotNil(t, config)
-		assert.Equal(t, "https://accounts.google.com", config.Issuer)
-		assert.Contains(t, config.ScopesSupported, "openid")
-		assert.Contains(t, config.ScopesSupported, "email")
-		assert.Contains(t, config.ScopesSupported, "profile")
-		assert.Contains(t, config.CodeChallengeMethodsSupported, "S256")
-	} else {
-		t.Skip("GoogleProvider does not implement OIDCProvider")
-	}
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
+	assert.Equal(t, "https://accounts.google.com", config.Issuer)
+	assert.Contains(t, config.ScopesSupported, "openid")
+	assert.Contains(t, config.ScopesSupported, "email")
+	assert.Contains(t, config.ScopesSupported, "profile")
+	assert.Contains(t, config.CodeChallengeMethodsSupported, "S256")
 }
 
 func TestGoogleProvider_GetConfiguration(t *testing.T) {

@@ -69,27 +69,21 @@ func (a *dependencyAnalyzer) categorizeCosts(packageCosts []*PackageCost) map[st
 }
 
 // analyzeCostTrend analyzes cost trends over time
-func (a *dependencyAnalyzer) analyzeCostTrend(ctx context.Context, packages []*PackageReference) (*CostTrend, error) {
-	// Stub implementation
-	trend := &CostTrend{
-		Direction:      "stable",
-		GrowthRate:     0.02, // 2% growth
-		Confidence:     0.8,
-		PredictionDays: 30,
-		HistoricalData: make([]*CostDataPoint, 0),
-	}
+func (a *dependencyAnalyzer) analyzeCostTrend(ctx context.Context, packages []*PackageReference) (*TrendDirection, error) {
+	// Stub implementation - return TrendDirectionStable
+	direction := TrendDirectionStable
 	
-	return trend, nil
+	return &direction, nil
 }
 
 // projectCosts projects future costs
 func (a *dependencyAnalyzer) projectCosts(analysis *CostAnalysis) *CostProjection {
 	projection := &CostProjection{
-		PeriodMonths:    12, // 12 months
-		ProjectedAmount: analysis.TotalCost.Amount * 1.1, // 10% increase
-		GrowthRate:      0.1,
-		Confidence:      0.7,
-		Assumptions:     []string{"Current usage patterns continue", "No major infrastructure changes"},
+		ProjectionPeriod: &TimePeriod{Start: time.Now(), End: time.Now().Add(365 * 24 * time.Hour), Label: "12 months"},
+		BaselineCost:     analysis.TotalCost.Amount,
+		ProjectedCost:    analysis.TotalCost.Amount * 1.1, // 10% increase
+		ConfidenceLevel:  0.7,
+		Assumptions:      []string{"Current usage patterns continue", "No major infrastructure changes"},
 	}
 	
 	return projection
@@ -125,12 +119,12 @@ func (a *dependencyAnalyzer) findCostOptimizationOpportunities(analysis *CostAna
 	// Add a sample optimization opportunity
 	if len(analysis.CostByPackage) > 0 {
 		opportunity := &CostOptimizationOpportunity{
-			Type:            "rightsizing",
-			Description:     "Right-size over-provisioned resources",
-			PotentialSaving: analysis.TotalCost.Amount * 0.15, // 15% saving
+			ID:               fmt.Sprintf("cost-opt-%d", time.Now().UnixNano()),
+			Type:             "rightsizing",
+			Description:      "Right-size over-provisioned resources",
+			PotentialSavings: &Cost{Amount: analysis.TotalCost.Amount * 0.15, Currency: a.config.Currency},
 			ImplementationEffort: "medium",
-			RiskLevel:      "low",
-			Packages:       []string{analysis.CostByPackage[0].PackageName},
+			Priority:         "high",
 		}
 		opportunities = append(opportunities, opportunity)
 	}
@@ -143,7 +137,9 @@ func (a *dependencyAnalyzer) calculatePotentialSavings(opportunities []*CostOpti
 	totalSavings := 0.0
 	
 	for _, opp := range opportunities {
-		totalSavings += opp.PotentialSaving
+		if opp.PotentialSavings != nil {
+			totalSavings += opp.PotentialSavings.Amount
+		}
 	}
 	
 	return &Cost{
@@ -160,18 +156,18 @@ func (a *dependencyAnalyzer) DetectUnusedDependencies(ctx context.Context, packa
 	}
 
 	report := &UnusedDependencyReport{
-		ReportID:           fmt.Sprintf("unused-deps-%d", time.Now().UnixNano()),
-		TotalPackages:      len(packages),
-		UnusedCount:        0,
-		UnusedPackages:     make([]*UnusedDependencyInfo, 0),
-		Recommendations:    make([]*UnusedDependencyRecommendation, 0),
-		PotentialSavings:   &Cost{Amount: 0, Currency: "USD", Period: "monthly"},
-		AnalyzedAt:         time.Now(),
+		ReportID:            fmt.Sprintf("unused-deps-%d", time.Now().UnixNano()),
+		AnalyzedPackages:    packages,
+		UnusedDependencies:  make([]*UnusedDependency, 0),
+		RemovalRecommendations: make([]*RemovalRecommendation, 0),
+		PotentialSavings:    &Cost{Amount: 0, Currency: "USD", Period: "monthly"},
+		AnalysisTime:        0,
+		GeneratedAt:         time.Now(),
 	}
 
 	// Simple stub - in a real implementation this would analyze actual usage
 	// For now, assume no unused dependencies
-	report.UnusedCount = 0
+	// report.UnusedCount = len(report.UnusedDependencies) // Field doesn't exist
 
 	return report, nil
 }
@@ -186,13 +182,15 @@ func (c *CostAnalyzer) CalculatePackageCost(ctx context.Context, pkg *PackageRef
 			Currency: "USD",
 			Period:   "monthly",
 		},
-		CostBreakdown: make(map[string]*Cost),
+		// CostBreakdown field doesn't exist in PackageCost
+		UsageCount: 1,
+		CostPerUse: 10.0,
 	}
 	
-	// Add some sample cost breakdown
-	cost.CostBreakdown["compute"] = &Cost{Amount: 6.0, Currency: "USD", Period: "monthly"}
-	cost.CostBreakdown["storage"] = &Cost{Amount: 2.0, Currency: "USD", Period: "monthly"}
-	cost.CostBreakdown["network"] = &Cost{Amount: 2.0, Currency: "USD", Period: "monthly"}
+	// Add some sample cost breakdown - not available in this struct
+	// cost.CostBreakdown["compute"] = &Cost{Amount: 6.0, Currency: "USD", Period: "monthly"}
+	// cost.CostBreakdown["storage"] = &Cost{Amount: 2.0, Currency: "USD", Period: "monthly"}
+	// cost.CostBreakdown["network"] = &Cost{Amount: 2.0, Currency: "USD", Period: "monthly"}
 	
 	return cost, nil
 }
