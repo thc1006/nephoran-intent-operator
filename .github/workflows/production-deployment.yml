@@ -143,7 +143,7 @@ jobs:
               go build -ldflags="-s -w" -o bin/simulator ./sim/cmd/
               ;;
             "ves-collector")
-              go build -ldflags="-s -w" -o bin/ves-collector ./tools/vescollector/
+              go build -ldflags="-s -w" -o bin/ves-collector ./tools/vessend/cmd/vessend/
               ;;
             "optimization-engine")
               go build -ldflags="-s -w" -o bin/optimizer ./pkg/optimization/
@@ -165,7 +165,7 @@ jobs:
               go test -parallel 4 -timeout 180s ./sim/...
               ;;
             "ves-collector")
-              go test -parallel 4 -timeout 180s ./tools/vescollector/...
+              go test -parallel 4 -timeout 180s ./tools/vessend/...
               ;;
             "optimization-engine")
               go test -parallel 4 -timeout 180s ./pkg/optimization/...
