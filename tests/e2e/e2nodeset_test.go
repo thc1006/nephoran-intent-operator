@@ -23,14 +23,19 @@ var _ = Describe("E2NodeSet Controller", func() {
 					Namespace: "default",
 				},
 				Spec: nephoran.E2NodeSetSpec{
-					E2NodeConfig: nephoran.E2NodeConfig{
-						E2NodeID: "test-e2node-001",
-						RICConfig: nephoran.RICConfig{
-							RICID:      "ric-001",
-							RICAddress: "http://ric.nephoran.local:8080",
+					Replicas: 3,
+					Template: nephoran.E2NodeTemplate{
+						Spec: nephoran.E2NodeSpec{
+							NodeID: "test-e2node-001",
+							E2InterfaceVersion: "v2.0",
+							SupportedRANFunctions: []nephoran.RANFunction{
+								{FunctionID: 1, Revision: 1},
+							},
 						},
 					},
-					Replicas: 3,
+					RICConfiguration: &nephoran.RICConfiguration{
+						RICEndpoint: "http://ric.nephoran.local:8080",
+					},
 				},
 			}
 
@@ -47,7 +52,7 @@ var _ = Describe("E2NodeSet Controller", func() {
 			}, 10*time.Second, 1*time.Second).Should(BeTrue())
 
 			By("Verifying the E2NodeSet spec")
-			Expect(createdE2NodeSet.Spec.E2NodeConfig.E2NodeID).Should(Equal("test-e2node-001"))
+			Expect(createdE2NodeSet.Spec.Template.Spec.NodeID).Should(Equal("test-e2node-001"))
 			Expect(createdE2NodeSet.Spec.Replicas).Should(Equal(int32(3)))
 
 			By("Checking that the controller updates the status")
@@ -72,14 +77,19 @@ var _ = Describe("E2NodeSet Controller", func() {
 					Namespace: "default",
 				},
 				Spec: nephoran.E2NodeSetSpec{
-					E2NodeConfig: nephoran.E2NodeConfig{
-						E2NodeID: "scalable-e2node-001",
-						RICConfig: nephoran.RICConfig{
-							RICID:      "ric-scalable-001",
-							RICAddress: "http://ric-scalable.nephoran.local:8080",
+					Replicas: 1,
+					Template: nephoran.E2NodeTemplate{
+						Spec: nephoran.E2NodeSpec{
+							NodeID: "scalable-e2node-001",
+							E2InterfaceVersion: "v2.0",
+							SupportedRANFunctions: []nephoran.RANFunction{
+								{FunctionID: 1, Revision: 1},
+							},
 						},
 					},
-					Replicas: 1,
+					RICConfiguration: &nephoran.RICConfiguration{
+						RICEndpoint: "http://ric-scalable.nephoran.local:8080",
+					},
 				},
 			}
 
@@ -160,14 +170,19 @@ var _ = Describe("E2NodeSet Controller", func() {
 						Namespace: "default",
 					},
 					Spec: nephoran.E2NodeSetSpec{
-						E2NodeConfig: nephoran.E2NodeConfig{
-							E2NodeID: config.name + "-e2node",
-							RICConfig: nephoran.RICConfig{
-								RICID:      config.ricID,
-								RICAddress: config.ricAddress,
+						Replicas: 1,
+						Template: nephoran.E2NodeTemplate{
+							Spec: nephoran.E2NodeSpec{
+								NodeID: config.name + "-e2node",
+								E2InterfaceVersion: "v2.0",
+								SupportedRANFunctions: []nephoran.RANFunction{
+									{FunctionID: 1, Revision: 1},
+								},
 							},
 						},
-						Replicas: 1,
+						RICConfiguration: &nephoran.RICConfiguration{
+							RICEndpoint: config.ricAddress,
+						},
 					},
 				}
 
@@ -211,14 +226,19 @@ var _ = Describe("E2NodeSet Controller", func() {
 					Namespace: "default",
 				},
 				Spec: nephoran.E2NodeSetSpec{
-					E2NodeConfig: nephoran.E2NodeConfig{
-						E2NodeID: "", // Invalid empty E2NodeID
-						RICConfig: nephoran.RICConfig{
-							RICID:      "",
-							RICAddress: "invalid-url", // Invalid URL format
+					Replicas: 1,
+					Template: nephoran.E2NodeTemplate{
+						Spec: nephoran.E2NodeSpec{
+							NodeID: "", // Invalid empty NodeID
+							E2InterfaceVersion: "v2.0",
+							SupportedRANFunctions: []nephoran.RANFunction{
+								{FunctionID: 1, Revision: 1},
+							},
 						},
 					},
-					Replicas: 1,
+					RICConfiguration: &nephoran.RICConfiguration{
+						RICEndpoint: "invalid-url", // Invalid URL format
+					},
 				},
 			}
 
@@ -258,14 +278,19 @@ var _ = Describe("E2NodeSet Controller", func() {
 					Namespace: "default",
 				},
 				Spec: nephoran.E2NodeSetSpec{
-					E2NodeConfig: nephoran.E2NodeConfig{
-						E2NodeID: "deletable-e2node",
-						RICConfig: nephoran.RICConfig{
-							RICID:      "deletable-ric",
-							RICAddress: "http://deletable-ric.nephoran.local:8080",
+					Replicas: 2,
+					Template: nephoran.E2NodeTemplate{
+						Spec: nephoran.E2NodeSpec{
+							NodeID: "deletable-e2node",
+							E2InterfaceVersion: "v2.0",
+							SupportedRANFunctions: []nephoran.RANFunction{
+								{FunctionID: 1, Revision: 1},
+							},
 						},
 					},
-					Replicas: 2,
+					RICConfiguration: &nephoran.RICConfiguration{
+						RICEndpoint: "http://deletable-ric.nephoran.local:8080",
+					},
 				},
 			}
 

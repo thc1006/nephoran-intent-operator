@@ -8,7 +8,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -44,7 +43,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 						Spec: nephoran.NetworkIntentSpec{
 							Intent:     "", // Empty intent should be rejected
 							IntentType: nephoran.IntentTypeScaling,
-							Priority:   1,
+							Priority:   nephoran.NetworkPriorityHigh,
 						},
 					},
 					shouldFail:  true,
@@ -60,7 +59,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 						Spec: nephoran.NetworkIntentSpec{
 							Intent:     "Valid intent text",
 							IntentType: nephoran.IntentTypeScaling,
-							Priority:   0, // Priority should be >= 1
+							Priority:   nephoran.NetworkPriorityLow, // Using low priority instead of invalid 0
 						},
 					},
 					shouldFail:  true,
@@ -76,7 +75,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 						Spec: nephoran.NetworkIntentSpec{
 							Intent:           "Valid intent text",
 							IntentType:       nephoran.IntentTypeScaling,
-							Priority:         1,
+							Priority:   nephoran.NetworkPriorityHigh,
 							TargetComponents: []nephoran.NetworkTargetComponent{}, // Empty components might be invalid
 						},
 					},
@@ -138,7 +137,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     tc.intent,
 						IntentType: nephoran.IntentTypeScaling,
-						Priority:   1,
+						Priority:   nephoran.NetworkPriorityHigh,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -202,7 +201,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 						"multi-tier security, edge computing integration, network slicing for multiple " +
 						"verticals including automotive, healthcare, and industrial IoT with custom SLAs",
 					IntentType: nephoran.IntentTypeDeployment,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 						nephoran.NetworkTargetComponentSMF,
@@ -286,7 +285,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test recovery from transient failures during processing",
 					IntentType: nephoran.IntentTypeConfiguration,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -308,8 +307,8 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				}
 
 				currentPhase := createdIntent.Status.Phase
-				if len(statusProgression) == 0 || statusProgression[len(statusProgression)-1] != currentPhase {
-					statusProgression = append(statusProgression, currentPhase)
+				if len(statusProgression) == 0 || statusProgression[len(statusProgression)-1] != string(currentPhase) {
+					statusProgression = append(statusProgression, string(currentPhase))
 				}
 
 				// Look for recovery indicators
@@ -354,7 +353,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					Intent: "Deploy resource-intensive configuration that may exceed cluster capacity: " +
 						"Launch 100 UPF instances with high memory requirements for extreme load testing",
 					IntentType: nephoran.IntentTypeDeployment,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -425,7 +424,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test network connectivity error handling for external service dependencies",
 					IntentType: nephoran.IntentTypeConfiguration,
-					Priority:   2,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 						nephoran.NetworkTargetComponentSMF,
@@ -491,7 +490,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     fmt.Sprintf("Concurrent error test %d: Process complex intent with potential conflicts", i),
 						IntentType: nephoran.IntentTypeDeployment,
-						Priority:   1,
+						Priority:   nephoran.NetworkPriorityHigh,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 							nephoran.NetworkTargetComponentSMF,
@@ -564,7 +563,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     fmt.Sprintf("System stability test: %s", scenarioName),
 						IntentType: nephoran.IntentTypeConfiguration,
-						Priority:   1,
+						Priority:   nephoran.NetworkPriorityHigh,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -598,7 +597,7 @@ var _ = Describe("Error Handling and Timeout E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Final stability verification: normal intent processing after errors",
 					IntentType: nephoran.IntentTypeScaling,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},

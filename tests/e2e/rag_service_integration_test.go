@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -16,13 +15,11 @@ import (
 
 var _ = Describe("RAG Service Integration Tests", func() {
 	var (
-		ctx           context.Context
 		ragServiceURL string
 		httpClient    *http.Client
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
 		// RAG service typically runs on Python with different port
 		ragServiceURL = "http://localhost:8001" // Default RAG service port
 		httpClient = &http.Client{

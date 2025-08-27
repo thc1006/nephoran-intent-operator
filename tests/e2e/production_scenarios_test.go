@@ -81,7 +81,7 @@ var _ = Describe("Production Scenarios E2E Tests", Ordered, func() {
 				if err != nil {
 					return ""
 				}
-				return updatedIntent.Status.Phase
+				return string(updatedIntent.Status.Phase)
 			}, 10*time.Minute, 30*time.Second).Should(Or(
 				Equal("Ready"),
 				Equal("Deploying"),
@@ -162,7 +162,7 @@ var _ = Describe("Production Scenarios E2E Tests", Ordered, func() {
 					return false
 				}
 
-				return updatedIntent.Status.Phase != "Pending" &&
+				return string(updatedIntent.Status.Phase) != "Pending" &&
 					updatedE2NodeSet.Status.CurrentReplicas >= 0
 			}, 10*time.Minute, 30*time.Second).Should(BeTrue())
 
@@ -296,7 +296,7 @@ var _ = Describe("Production Scenarios E2E Tests", Ordered, func() {
 				if err != nil {
 					return ""
 				}
-				return updatedIntent.Status.Phase
+				return string(updatedIntent.Status.Phase)
 			}, 5*time.Minute, 15*time.Second).Should(Not(Equal("Pending")))
 		})
 	})
@@ -399,7 +399,7 @@ var _ = Describe("Production Scenarios E2E Tests", Ordered, func() {
 				if err != nil {
 					return ""
 				}
-				return updatedIntent.Status.Phase
+				return string(updatedIntent.Status.Phase)
 			}, 10*time.Minute, 30*time.Second).Should(Not(Equal("Pending")))
 
 			By("Checking security configurations")

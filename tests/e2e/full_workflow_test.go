@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	nephoran "github.com/thc1006/nephoran-intent-operator/api/v1"
 )
@@ -54,7 +53,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Scale UPF instances from 3 to 6 replicas to handle increased traffic during peak hours",
 					IntentType: nephoran.IntentTypeScaling,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -72,7 +71,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				if err != nil {
 					return false
 				}
-				return createdIntent.Status.Phase == "Processing"
+				return string(createdIntent.Status.Phase) == "Processing"
 			}, 30*time.Second, 2*time.Second).Should(BeTrue())
 
 			By("Step 3: Verifying LLM processing is triggered (if service available)")
@@ -173,7 +172,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				}
 
 				// Also check if processing reached advanced stage
-				return createdIntent.Status.Phase != "Processing" ||
+				return string(createdIntent.Status.Phase) != "Processing" ||
 					len(createdIntent.Status.Conditions) >= 2
 			}, 90*time.Second, 5*time.Second).Should(BeTrue())
 
@@ -183,7 +182,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				if err != nil {
 					return ""
 				}
-				return createdIntent.Status.Phase
+				return string(createdIntent.Status.Phase)
 			}, 120*time.Second, 10*time.Second).Should(BeElementOf([]string{"Completed", "Processing", "Error"}))
 
 			By("Step 8: Validating workflow completion artifacts")
@@ -221,7 +220,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Deploy a new AMF instance with high availability configuration for critical applications",
 					IntentType: nephoran.IntentTypeDeployment,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 					},
@@ -239,7 +238,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				if err != nil {
 					return false
 				}
-				return createdIntent.Status.Phase == "Processing"
+				return string(createdIntent.Status.Phase) == "Processing"
 			}, 30*time.Second, 2*time.Second).Should(BeTrue())
 
 			By("Step 3: Verifying deployment-specific processing")
@@ -285,7 +284,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Optimize SMF performance by tuning session management parameters and resource allocation",
 					IntentType: nephoran.IntentTypeOptimization,
-					Priority:   2,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentSMF,
 					},
@@ -303,7 +302,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				if err != nil {
 					return ""
 				}
-				return createdIntent.Status.Phase
+				return string(createdIntent.Status.Phase)
 			}, 45*time.Second, 3*time.Second).Should(Equal("Processing"))
 
 			By("Step 3: Verifying optimization-specific processing")
@@ -348,7 +347,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Deploy and configure a complete 5G standalone core including AMF, SMF, UPF, and NRF with optimized interconnections",
 					IntentType: nephoran.IntentTypeDeployment,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 						nephoran.NetworkTargetComponentSMF,
@@ -369,7 +368,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				if err != nil {
 					return false
 				}
-				return createdIntent.Status.Phase == "Processing" && len(createdIntent.Status.Conditions) > 0
+				return string(createdIntent.Status.Phase) == "Processing" && len(createdIntent.Status.Conditions) > 0
 			}, 45*time.Second, 3*time.Second).Should(BeTrue())
 
 			By("Verifying all target components are preserved and processed")
@@ -394,7 +393,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				}
 
 				// Or reach completion/error state
-				return createdIntent.Status.Phase != "Processing"
+				return string(createdIntent.Status.Phase) != "Processing"
 			}, 120*time.Second, 5*time.Second).Should(BeTrue())
 
 			By("Cleaning up multi-component workflow test intent")
@@ -417,7 +416,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test workflow state management and consistency during processing",
 					IntentType: nephoran.IntentTypeConfiguration,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -430,7 +429,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 			createdIntent := &nephoran.NetworkIntent{}
 
 			By("Monitoring state transitions")
-			var previousConditions []nephoran.Condition
+			var previousConditions []metav1.Condition
 
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, lookupKey, createdIntent)
@@ -474,7 +473,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test workflow interruption and recovery mechanisms",
 					IntentType: nephoran.IntentTypeMaintenance,
-					Priority:   3,
+					Priority:   nephoran.NetworkPriorityCritical,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentSMF,
 					},
@@ -492,7 +491,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 				if err != nil {
 					return false
 				}
-				return createdIntent.Status.Phase == "Processing"
+				return string(createdIntent.Status.Phase) == "Processing"
 			}, 30*time.Second, 2*time.Second).Should(BeTrue())
 
 			By("Simulating interruption by updating the intent")
@@ -538,7 +537,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     fmt.Sprintf("Concurrent workflow test %d: Scale network function instances", i),
 						IntentType: nephoran.IntentTypeScaling,
-						Priority:   1,
+						Priority:   nephoran.NetworkPriorityHigh,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -599,7 +598,7 @@ var _ = Describe("Full Workflow E2E Tests (Intent → LLM → Nephio → Scale)"
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     fmt.Sprintf("Critical priority workflow %d: Emergency network scaling", i),
 						IntentType: nephoran.IntentTypeScaling,
-						Priority:   1, // Highest priority
+						Priority:   nephoran.NetworkPriorityHigh, // Highest priority
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentAMF,
 							nephoran.NetworkTargetComponentUPF,

@@ -56,7 +56,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 						Spec: nephoran.NetworkIntentSpec{
 							Intent:     fmt.Sprintf("Concurrent creation test %d: Scale UPF instances", index),
 							IntentType: nephoran.IntentTypeScaling,
-							Priority:   1,
+							Priority:   nephoran.NetworkPriorityHigh,
 							TargetComponents: []nephoran.NetworkTargetComponent{
 								nephoran.NetworkTargetComponentUPF,
 							},
@@ -140,7 +140,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Base intent for concurrent update testing",
 					IntentType: nephoran.IntentTypeScaling,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -242,7 +242,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     fmt.Sprintf("Concurrent deletion test %d", i),
 						IntentType: nephoran.IntentTypeScaling,
-						Priority:   1,
+						Priority:   nephoran.NetworkPriorityNormal,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -331,7 +331,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test resource cleanup when intent is deleted",
 					IntentType: nephoran.IntentTypeDeployment,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 						nephoran.NetworkTargetComponentSMF,
@@ -414,7 +414,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     fmt.Sprintf("Rapid cleanup cycle %d test", cycle),
 						IntentType: nephoran.IntentTypeScaling,
-						Priority:   1,
+						Priority:   nephoran.NetworkPriorityNormal,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -447,7 +447,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Post rapid cleanup stability test",
 					IntentType: nephoran.IntentTypeScaling,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -487,7 +487,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test resource leak prevention during error scenarios",
 					IntentType: nephoran.IntentTypeDeployment,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 						nephoran.NetworkTargetComponentSMF,
@@ -564,7 +564,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 						Spec: nephoran.NetworkIntentSpec{
 							Intent:     fmt.Sprintf("High volume test %d: Load testing intent processing", index),
 							IntentType: nephoran.IntentTypeScaling,
-							Priority:   1,
+							Priority:   nephoran.NetworkPriorityHigh,
 							TargetComponents: []nephoran.NetworkTargetComponent{
 								nephoran.NetworkTargetComponentUPF,
 							},
@@ -704,7 +704,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 						Spec: nephoran.NetworkIntentSpec{
 							Intent:     fmt.Sprintf("Sustained load test operation %d", currentOp),
 							IntentType: nephoran.IntentTypeScaling,
-							Priority:   1,
+							Priority:   nephoran.NetworkPriorityHigh,
 							TargetComponents: []nephoran.NetworkTargetComponent{
 								nephoran.NetworkTargetComponentUPF,
 							},
@@ -757,7 +757,7 @@ var _ = Describe("Concurrency and Resource Cleanup E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Post sustained load stability verification",
 					IntentType: nephoran.IntentTypeScaling,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},

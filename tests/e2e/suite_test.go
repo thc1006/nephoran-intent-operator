@@ -23,11 +23,13 @@ import (
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
-var cfg *rest.Config
-var k8sClient client.Client
-var testEnv *envtest.Environment
-var ctx context.Context
-var cancel context.CancelFunc
+var (
+	suiteCfg      *rest.Config
+	suiteClient   client.Client
+	testEnv       *envtest.Environment
+	suiteCtx      context.Context
+	suiteCancel   context.CancelFunc
+)
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -38,7 +40,7 @@ func TestControllers(t *testing.T) {
 var _ = BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.WriteTo(GinkgoWriter), zap.UseDevMode(true)))
 
-	ctx, cancel = context.WithCancel(context.TODO())
+	suiteCtx, suiteCancel = context.WithCancel(context.TODO())
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
@@ -49,22 +51,22 @@ var _ = BeforeSuite(func() {
 	}
 
 	var err error
-	// cfg is defined in this file globally.
-	cfg, err = testEnv.Start()
+	// suiteCfg is defined in this file globally.
+	suiteCfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	Expect(suiteCfg).NotTo(BeNil())
 
 	err = nephoran.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
 
-	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	suiteClient, err = client.New(suiteCfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
-	Expect(k8sClient).NotTo(BeNil())
+	Expect(suiteClient).NotTo(BeNil())
 
 	// Start the controller manager
-	k8sManager, err := ctrl.NewManager(cfg, ctrl.Options{
+	k8sManager, err := ctrl.NewManager(suiteCfg, ctrl.Options{
 		Scheme: scheme.Scheme,
 	})
 	Expect(err).ToNot(HaveOccurred())
@@ -83,18 +85,18 @@ var _ = BeforeSuite(func() {
 
 	go func() {
 		defer GinkgoRecover()
-		err = k8sManager.Start(ctx)
+		err = k8sManager.Start(suiteCtx)
 		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
 
 	// Wait for the manager to be ready
-	Eventually(func() error {
-		return k8sManager.GetCache().WaitForCacheSync(ctx)
-	}, 30*time.Second, 1*time.Second).Should(Succeed())
+	Eventually(func() bool {
+		return k8sManager.GetCache().WaitForCacheSync(suiteCtx)
+	}, 30*time.Second, 1*time.Second).Should(BeTrue())
 })
 
 var _ = AfterSuite(func() {
-	cancel()
+	suiteCancel()
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())

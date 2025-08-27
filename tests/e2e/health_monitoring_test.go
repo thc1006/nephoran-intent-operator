@@ -10,7 +10,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,7 +44,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Health monitoring test for controller",
 					IntentType: nephoran.IntentTypeScaling,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -63,7 +62,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				if err != nil {
 					return ""
 				}
-				return createdIntent.Status.Phase
+				return string(createdIntent.Status.Phase)
 			}, 30*time.Second, 2*time.Second).Should(Equal("Processing"))
 
 			By("Verifying controller health through status conditions")
@@ -94,7 +93,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "This intent is designed to test error handling and should trigger error conditions",
 					IntentType: nephoran.IntentTypeConfiguration,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 						nephoran.NetworkTargetComponentSMF,
@@ -226,7 +225,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     fmt.Sprintf("Resource monitoring test intent: %s", name),
 						IntentType: nephoran.IntentTypeScaling,
-						Priority:   1,
+						Priority:   nephoran.NetworkPriorityHigh,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -246,7 +245,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 					if err != nil {
 						return ""
 					}
-					return retrievedIntent.Status.Phase
+					return string(retrievedIntent.Status.Phase)
 				}, 30*time.Second, 2*time.Second).Should(Equal("Processing"))
 			}
 
@@ -280,7 +279,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 					Spec: nephoran.NetworkIntentSpec{
 						Intent:     fmt.Sprintf("Cleanup test intent %d", i),
 						IntentType: nephoran.IntentTypeScaling,
-						Priority:   1,
+						Priority:   nephoran.NetworkPriorityHigh,
 						TargetComponents: []nephoran.NetworkTargetComponent{
 							nephoran.NetworkTargetComponentUPF,
 						},
@@ -320,7 +319,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "End-to-end health validation: Deploy and scale 5G core network with monitoring",
 					IntentType: nephoran.IntentTypeDeployment,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 						nephoran.NetworkTargetComponentSMF,
@@ -341,7 +340,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				if err != nil {
 					return false
 				}
-				return createdIntent.Status.Phase == "Processing"
+				return string(createdIntent.Status.Phase) == "Processing"
 			}, 45*time.Second, 3*time.Second).Should(BeTrue())
 
 			By("Verifying comprehensive status reporting")
@@ -387,7 +386,7 @@ var _ = Describe("Health Monitoring E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test recovery mechanisms and error handling resilience",
 					IntentType: nephoran.IntentTypeOptimization,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},

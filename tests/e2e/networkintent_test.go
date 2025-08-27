@@ -48,7 +48,7 @@ var _ = Describe("NetworkIntent Controller", func() {
 				if err != nil {
 					return ""
 				}
-				return createdIntent.Status.Phase
+				return string(createdIntent.Status.Phase)
 			}, 30*time.Second, 2*time.Second).Should(Not(BeEmpty()))
 
 			By("Cleaning up the NetworkIntent")
@@ -86,7 +86,7 @@ var _ = Describe("NetworkIntent Controller", func() {
 				if err != nil {
 					return ""
 				}
-				return createdIntent.Status.Phase
+				return string(createdIntent.Status.Phase)
 			}, 30*time.Second, 2*time.Second).Should(Not(BeEmpty()))
 
 			By("Cleaning up the URLLC NetworkIntent")
@@ -124,7 +124,7 @@ var _ = Describe("NetworkIntent Controller", func() {
 				if err != nil {
 					return ""
 				}
-				return createdIntent.Status.Phase
+				return string(createdIntent.Status.Phase)
 			}, 30*time.Second, 2*time.Second).Should(Not(BeEmpty()))
 
 			By("Cleaning up the IoT NetworkIntent")
@@ -169,7 +169,7 @@ var _ = Describe("NetworkIntent Controller", func() {
 					if err != nil {
 						return ""
 					}
-					return createdIntent.Status.Phase
+					return string(createdIntent.Status.Phase)
 				}, 30*time.Second, 2*time.Second).Should(Not(BeEmpty()))
 			}
 

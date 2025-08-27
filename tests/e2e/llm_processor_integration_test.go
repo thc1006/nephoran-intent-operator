@@ -87,7 +87,7 @@ var _ = Describe("LLM Processor Integration Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Scale up UPF instances to handle 10x increased traffic during peak hours",
 					IntentType: nephoran.IntentTypeScaling,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},

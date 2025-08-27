@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -38,7 +37,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Scale up UPF instances to handle increased traffic",
 					IntentType: nephoran.IntentTypeScaling,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
@@ -69,7 +68,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 				if err != nil {
 					return ""
 				}
-				return createdIntent.Status.Phase
+				return string(createdIntent.Status.Phase)
 			}, 30*time.Second, 2*time.Second).Should(Equal("Processing"))
 
 			// Update
@@ -108,11 +107,11 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 			intents := []struct {
 				name     string
 				intent   string
-				priority int
+				priority nephoran.NetworkPriority
 			}{
-				{"high-priority-intent", "Emergency scaling for critical UPF failure", 1},
-				{"medium-priority-intent", "Optimize AMF performance for better latency", 2},
-				{"low-priority-intent", "Routine maintenance for NRF components", 3},
+				{"high-priority-intent", "Emergency scaling for critical UPF failure", nephoran.NetworkPriorityHigh},
+				{"medium-priority-intent", "Optimize AMF performance for better latency", nephoran.NetworkPriorityNormal},
+				{"low-priority-intent", "Routine maintenance for NRF components", nephoran.NetworkPriorityLow},
 			}
 
 			By("Creating multiple NetworkIntents with different priorities")
@@ -201,7 +200,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Test status progression for scaling AMF",
 					IntentType: nephoran.IntentTypeScaling,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 					},
@@ -220,7 +219,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 				if err != nil {
 					return ""
 				}
-				return createdIntent.Status.Phase
+				return string(createdIntent.Status.Phase)
 			}, 30*time.Second, 2*time.Second).Should(Equal("Processing"))
 
 			By("Verifying conditions are set")
@@ -252,7 +251,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Deploy a complete 5G standalone core with all components",
 					IntentType: nephoran.IntentTypeDeployment,
-					Priority:   1,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentAMF,
 						nephoran.NetworkTargetComponentSMF,
@@ -288,7 +287,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 				if err != nil {
 					return ""
 				}
-				return createdIntent.Status.Phase
+				return string(createdIntent.Status.Phase)
 			}, 30*time.Second, 2*time.Second).Should(Equal("Processing"))
 
 			By("Cleaning up")
@@ -306,7 +305,7 @@ var _ = Describe("NetworkIntent Lifecycle E2E Tests", func() {
 				Spec: nephoran.NetworkIntentSpec{
 					Intent:     "Optimize UPF throughput for high-bandwidth applications",
 					IntentType: nephoran.IntentTypeOptimization,
-					Priority:   2,
+					Priority:   nephoran.NetworkPriorityHigh,
 					TargetComponents: []nephoran.NetworkTargetComponent{
 						nephoran.NetworkTargetComponentUPF,
 					},
