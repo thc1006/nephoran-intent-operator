@@ -1,3 +1,6 @@
+//go:build db_check
+// +build db_check
+
 package main
 
 import (

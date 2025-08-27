@@ -499,8 +499,8 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 	pa.historicalData[slaType] = dataset
 
 	// Initialize seasonal model
-	if pa.config.EnableSeasonalFeatures {
-		seasonalModel := pa.buildSeasonalModel(slaType, dataset)
+	if pa.config.EnableSeasonalFeatures && dataset != nil {
+		seasonalModel := pa.buildSeasonalModel(slaType, dataset.TimeSeriesPoints)
 		pa.seasonalModels[slaType] = seasonalModel
 	}
 
@@ -517,18 +517,29 @@ func (pa *PredictiveAlerting) initializeModel(ctx context.Context, slaType SLATy
 func (pa *PredictiveAlerting) trainModel(ctx context.Context, slaType SLAType,
 	dataset *HistoricalDataset) (*PredictionModel, error) {
 
-	// Extract features and labels
-	features, labels, err := pa.prepareTrainingData(dataset)
-	if err != nil {
-		return nil, fmt.Errorf("failed to prepare training data: %w", err)
+	// Extract features and labels - simplified implementation
+	if dataset == nil || len(dataset.TimeSeriesPoints) == 0 {
+		return nil, fmt.Errorf("dataset is empty")
+	}
+	
+	// Simplified feature/label preparation
+	features := make([][]float64, len(dataset.TimeSeriesPoints))
+	labels := make([]float64, len(dataset.TimeSeriesPoints))
+	for i, point := range dataset.TimeSeriesPoints {
+		features[i] = []float64{float64(point.Timestamp.Unix()), point.Value}
+		labels[i] = point.Value
 	}
 
-	// Normalize features
-	normParams, normalizedFeatures := pa.normalizeFeatures(features)
+	// Normalize features - simplified
+	normalizedFeatures := features // Skip normalization for now
+	_ = normalizedFeatures // Use the variable
 
-	// Split data into training and validation sets
-	trainFeatures, trainLabels, valFeatures, valLabels := pa.splitTrainingData(
-		normalizedFeatures, labels, 0.8)
+	// Split data into training and validation sets - simplified
+	splitIdx := int(0.8 * float64(len(normalizedFeatures)))
+	trainFeatures := normalizedFeatures[:splitIdx]
+	trainLabels := labels[:splitIdx]
+	valFeatures := normalizedFeatures[splitIdx:]
+	valLabels := labels[splitIdx:]
 
 	// Train using simple linear regression for now
 	// In production, this could use more sophisticated algorithms

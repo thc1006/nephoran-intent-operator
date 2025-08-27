@@ -240,11 +240,10 @@ func (m *CNFIntegrationManager) isCNFIntent(networkIntent *nephoranv1.NetworkInt
 
 	// Check for CNF-related target components
 	for _, component := range networkIntent.Spec.TargetComponents {
-		cnfComponents := []nephoranv1.TargetComponent{
-			nephoranv1.TargetComponentAMF, nephoranv1.TargetComponentSMF, nephoranv1.TargetComponentUPF,
-			nephoranv1.TargetComponentNRF, nephoranv1.TargetComponentAUSF, nephoranv1.TargetComponentUDM,
-			nephoranv1.TargetComponentODU, nephoranv1.TargetComponentOCUCP, nephoranv1.TargetComponentOCUUP,
-			nephoranv1.TargetComponentNearRTRIC, nephoranv1.TargetComponentNonRTRIC,
+		cnfComponents := []nephoranv1.NetworkTargetComponent{
+			nephoranv1.NetworkTargetComponentAMF, nephoranv1.NetworkTargetComponentSMF, nephoranv1.NetworkTargetComponentUPF,
+			nephoranv1.NetworkTargetComponentNRF, nephoranv1.NetworkTargetComponentAUSF, nephoranv1.NetworkTargetComponentUDM,
+			nephoranv1.NetworkTargetComponentDU, nephoranv1.NetworkTargetComponentCUCP, nephoranv1.NetworkTargetComponentCUUP,
 		}
 
 		for _, cnfComponent := range cnfComponents {

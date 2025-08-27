@@ -73,6 +73,8 @@ type ResourcePlanningConfig struct {
 	CostOptimizationEnabled        bool          `json:"costOptimizationEnabled"`
 	PerformanceOptimizationEnabled bool          `json:"performanceOptimizationEnabled"`
 	ComplianceValidationEnabled    bool          `json:"complianceValidationEnabled"`
+	CacheEnabled                   bool          `json:"cacheEnabled"`
+	CacheTTL                       time.Duration `json:"cacheTTL"`
 }
 
 // ResourcePlanningService handles resource planning logic

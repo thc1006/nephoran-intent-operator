@@ -268,7 +268,7 @@ jobs:
       - name: Generate CRDs and code
         run: |
           mkdir -p deployments/crds
-          controller-gen crd paths="./..." output:crd:artifacts:config=deployments/crds 2>&1 || {
+          controller-gen crd:allowDangerousTypes=true paths="./api/v1" output:crd:artifacts:config=deployments/crds 2>&1 || {
             echo "Warning: CRD generation failed, but continuing pipeline"
             exit 0
           }

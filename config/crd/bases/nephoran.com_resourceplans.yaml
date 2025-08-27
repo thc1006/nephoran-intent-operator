@@ -117,6 +117,9 @@ spec:
                   apiVersion:
                     description: APIVersion of the referent
                     type: string
+                  fieldPath:
+                    description: FieldPath refers to a field within the object
+                    type: string
                   kind:
                     description: Kind of the referent
                     type: string
@@ -124,7 +127,8 @@ spec:
                     description: Name of the referent
                     type: string
                   namespace:
-                    description: Namespace of the referent
+                    description: Namespace of the referent; only applicable for namespaced
+                      resources
                     type: string
                   resourceVersion:
                     description: ResourceVersion of the referent
@@ -133,6 +137,7 @@ spec:
                     description: UID of the referent
                     type: string
                 required:
+                - apiVersion
                 - kind
                 - name
                 type: object
@@ -289,6 +294,9 @@ spec:
                   apiVersion:
                     description: APIVersion of the referent
                     type: string
+                  fieldPath:
+                    description: FieldPath refers to a field within the object
+                    type: string
                   kind:
                     description: Kind of the referent
                     type: string
@@ -296,7 +304,8 @@ spec:
                     description: Name of the referent
                     type: string
                   namespace:
-                    description: Namespace of the referent
+                    description: Namespace of the referent; only applicable for namespaced
+                      resources
                     type: string
                   resourceVersion:
                     description: ResourceVersion of the referent
@@ -305,6 +314,7 @@ spec:
                     description: UID of the referent
                     type: string
                 required:
+                - apiVersion
                 - kind
                 - name
                 type: object
@@ -313,6 +323,7 @@ spec:
                 description: Priority defines planning priority
                 enum:
                 - low
+                - normal
                 - medium
                 - high
                 - critical
@@ -333,12 +344,26 @@ spec:
                     description: CPU limits
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
+                  maxCPU:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Maximum CPU allocation (for blueprint engine compatibility)
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                   maxConcurrency:
                     default: 10
                     description: Maximum concurrent operations
                     format: int32
                     minimum: 1
                     type: integer
+                  maxMemory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: Maximum memory allocation (for blueprint engine compatibility)
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
                   memory:
                     anyOf:
                     - type: integer
@@ -406,12 +431,28 @@ spec:
                           description: CPU limits
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
+                        maxCPU:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Maximum CPU allocation (for blueprint engine
+                            compatibility)
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
                         maxConcurrency:
                           default: 10
                           description: Maximum concurrent operations
                           format: int32
                           minimum: 1
                           type: integer
+                        maxMemory:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          description: Maximum memory allocation (for blueprint engine
+                            compatibility)
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
                         memory:
                           anyOf:
                           - type: integer

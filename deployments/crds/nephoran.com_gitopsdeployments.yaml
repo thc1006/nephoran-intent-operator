@@ -335,6 +335,9 @@ spec:
                   apiVersion:
                     description: APIVersion of the referent
                     type: string
+                  fieldPath:
+                    description: FieldPath refers to a field within the object
+                    type: string
                   kind:
                     description: Kind of the referent
                     type: string
@@ -342,7 +345,8 @@ spec:
                     description: Name of the referent
                     type: string
                   namespace:
-                    description: Namespace of the referent
+                    description: Namespace of the referent; only applicable for namespaced
+                      resources
                     type: string
                   resourceVersion:
                     description: ResourceVersion of the referent
@@ -351,6 +355,7 @@ spec:
                     description: UID of the referent
                     type: string
                 required:
+                - apiVersion
                 - kind
                 - name
                 type: object
@@ -365,6 +370,9 @@ spec:
                   apiVersion:
                     description: APIVersion of the referent
                     type: string
+                  fieldPath:
+                    description: FieldPath refers to a field within the object
+                    type: string
                   kind:
                     description: Kind of the referent
                     type: string
@@ -372,7 +380,8 @@ spec:
                     description: Name of the referent
                     type: string
                   namespace:
-                    description: Namespace of the referent
+                    description: Namespace of the referent; only applicable for namespaced
+                      resources
                     type: string
                   resourceVersion:
                     description: ResourceVersion of the referent
@@ -381,6 +390,7 @@ spec:
                     description: UID of the referent
                     type: string
                 required:
+                - apiVersion
                 - kind
                 - name
                 type: object
@@ -389,6 +399,7 @@ spec:
                 description: Priority defines deployment priority
                 enum:
                 - low
+                - normal
                 - medium
                 - high
                 - critical

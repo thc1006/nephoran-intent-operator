@@ -1,3 +1,6 @@
+//go:build perf_comparison
+// +build perf_comparison
+
 // Performance comparison script for Go 1.24+ migration validation
 package main
 

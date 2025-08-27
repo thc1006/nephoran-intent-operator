@@ -40,117 +40,192 @@ spec:
             description: ManagedElementSpec defines the desired state of ManagedElement
             properties:
               a1Policy:
+                description: A1Policy contains A1 policy configuration for the managed
+                  element
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
+              configuration:
+                additionalProperties:
+                  type: string
+                description: Configuration holds network element specific configuration
+                type: object
               credentials:
-                description: |-
-                  ManagedElementCredentials defines authentication credentials for a managed element
-                  Credentials should be stored in Kubernetes Secrets and referenced here
+                description: Credentials contains authentication information for the
+                  network element
                 properties:
+                  caCertificateRef:
+                    description: CA certificate reference
+                    properties:
+                      key:
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
+                        type: string
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
                   clientCertificateRef:
-                    description: ClientCertificateRef references a secret containing
-                      the client certificate
+                    description: Client certificate reference for mTLS
                     properties:
                       key:
-                        description: Key within the secret
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
                         type: string
                       name:
-                        description: Name of the secret
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
-                      namespace:
-                        description: Namespace of the secret (optional, defaults to
-                          same namespace as AuditTrail)
-                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
                     required:
-                    - name
+                    - key
                     type: object
+                    x-kubernetes-map-type: atomic
                   clientKeyRef:
-                    description: ClientKeyRef references a secret containing the client
-                      key
+                    description: Client key reference for mTLS
                     properties:
                       key:
-                        description: Key within the secret
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
                         type: string
                       name:
-                        description: Name of the secret
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
-                      namespace:
-                        description: Namespace of the secret (optional, defaults to
-                          same namespace as AuditTrail)
-                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
                     required:
-                    - name
+                    - key
                     type: object
+                    x-kubernetes-map-type: atomic
                   passwordRef:
-                    description: PasswordRef references a secret containing the password
+                    description: Password reference
                     properties:
                       key:
-                        description: Key within the secret
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
                         type: string
                       name:
-                        description: Name of the secret
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
-                      namespace:
-                        description: Namespace of the secret (optional, defaults to
-                          same namespace as AuditTrail)
-                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
                     required:
-                    - name
+                    - key
                     type: object
+                    x-kubernetes-map-type: atomic
                   privateKeyRef:
-                    description: PrivateKeyRef references a secret containing the
-                      private key
+                    description: SSH private key reference
                     properties:
                       key:
-                        description: Key within the secret
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
                         type: string
                       name:
-                        description: Name of the secret
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
-                      namespace:
-                        description: Namespace of the secret (optional, defaults to
-                          same namespace as AuditTrail)
-                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
                     required:
-                    - name
+                    - key
                     type: object
+                    x-kubernetes-map-type: atomic
                   usernameRef:
-                    description: UsernameRef references a secret containing the username
+                    description: Username reference
                     properties:
                       key:
-                        description: Key within the secret
+                        description: The key of the secret to select from.  Must be
+                          a valid secret key.
                         type: string
                       name:
-                        description: Name of the secret
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
-                      namespace:
-                        description: Namespace of the secret (optional, defaults to
-                          same namespace as AuditTrail)
-                        type: string
+                      optional:
+                        description: Specify whether the Secret or its key must be
+                          defined
+                        type: boolean
                     required:
-                    - name
+                    - key
                     type: object
+                    x-kubernetes-map-type: atomic
                 type: object
-              deploymentName:
-                type: string
               e2Configuration:
+                additionalProperties:
+                  type: string
+                description: E2Configuration contains E2 interface configuration for
+                  the managed element
                 type: object
-                x-kubernetes-preserve-unknown-fields: true
-              host:
+              endpoint:
+                description: Endpoint is the management endpoint URL for the network
+                  element
                 type: string
-              o1Config:
+              networkElementType:
+                description: NetworkElementType specifies the type of network element
+                  (e.g., "DU", "CU", "RU")
                 type: string
-              port:
-                type: integer
+              version:
+                description: Version specifies the software version of the network
+                  element
+                type: string
             required:
-            - credentials
-            - deploymentName
-            - host
+            - endpoint
+            - networkElementType
             type: object
           status:
             description: ManagedElementStatus defines the observed state of ManagedElement
             properties:
               conditions:
+                description: Conditions represent the latest available observations
+                  of the element's state
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -206,6 +281,27 @@ spec:
                   - type
                   type: object
                 type: array
+              configurationStatus:
+                description: ConfigurationStatus indicates if configuration is applied
+                  successfully
+                type: string
+              connectionStatus:
+                description: ConnectionStatus indicates whether the element is reachable
+                type: string
+              lastSeen:
+                description: LastSeen timestamp of the last successful communication
+                format: date-time
+                type: string
+              message:
+                description: Message provides human-readable status information
+                type: string
+              operationalStatus:
+                description: OperationalStatus indicates if the element is operational
+                type: string
+              phase:
+                description: Phase represents the current lifecycle phase of the managed
+                  element
+                type: string
             type: object
         type: object
     served: true

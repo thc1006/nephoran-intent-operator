@@ -59,7 +59,7 @@ type CNFDeploymentReconciler struct {
 	LLMProcessor     *llm.Processor
 	RAGService       *rag.Service
 	MetricsCollector *performance.MetricsCollector
-	MonitoringSystem *monitoring.System
+	MonitoringSystem *monitoring.SystemInstrumentation
 	Config           *CNFControllerConfig
 }
 
@@ -179,7 +179,7 @@ func (r *CNFDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Record metrics
 	if r.MetricsCollector != nil {
-		r.MetricsCollector.RecordCNFDeployment(cnfDeployment.Spec.Function, result.Duration)
+		r.MetricsCollector.RecordCNFDeployment(string(cnfDeployment.Spec.Function), result.Duration)
 	}
 
 	// Record metrics in monitoring system if available

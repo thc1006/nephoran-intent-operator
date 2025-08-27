@@ -1,3 +1,6 @@
+//go:build tech_debt
+// +build tech_debt
+
 package main
 
 import (

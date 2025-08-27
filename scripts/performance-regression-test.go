@@ -1,3 +1,6 @@
+//go:build perf_regression
+// +build perf_regression
+
 package main
 
 import (

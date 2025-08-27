@@ -1,3 +1,6 @@
+//go:build quality_metrics
+// +build quality_metrics
+
 package main
 
 import (

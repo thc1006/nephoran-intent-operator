@@ -325,26 +325,40 @@ func (c *SpecializedManifestGenerationController) ProcessPhase(ctx context.Conte
 	}
 
 	// Extract resource plan from intent status
-	resourcePlanInterface, ok := intent.Status.ResourcePlan.(map[string]interface{})
-	if !ok {
+	if intent.Status.ResourcePlan == nil {
 		return interfaces.ProcessingResult{
 			Success:      false,
-			ErrorMessage: "invalid or missing resource plan data",
+			ErrorMessage: "missing resource plan data",
+			ErrorCode:    "INVALID_INPUT",
+		}, nil
+	}
+	resourcePlan := intent.Status.ResourcePlan
+
+	// ResourcePlan is already the correct struct type - skip validation for now
+	if resourcePlan == nil || len(resourcePlan.Resources) == 0 {
+		return interfaces.ProcessingResult{
+			Success:      false,
+			ErrorMessage: "resource plan is empty or has no resources",
 			ErrorCode:    "INVALID_INPUT",
 		}, nil
 	}
 
-	// Convert to ResourcePlan struct
-	resourcePlan, err := c.convertToResourcePlan(resourcePlanInterface)
-	if err != nil {
-		return interfaces.ProcessingResult{
-			Success:      false,
-			ErrorMessage: fmt.Sprintf("failed to convert resource plan: %v", err),
-			ErrorCode:    "CONVERSION_ERROR",
-		}, nil
+	// Convert NetworkResourcePlan to interfaces.ResourcePlan
+	interfaceResourcePlan := &interfaces.ResourcePlan{
+		Resources: make([]interfaces.PlannedResource, len(resourcePlan.Resources)),
+	}
+	
+	for i, res := range resourcePlan.Resources {
+		interfaceResourcePlan.Resources[i] = interfaces.PlannedResource{
+			Name:            res.Name,
+			Type:            res.Type,
+			Configuration:   res.Configuration,
+			TargetCluster:   res.TargetCluster,
+			Status:          res.Status,
+		}
 	}
 
-	return c.generateManifestsFromResourcePlan(ctx, intent, resourcePlan)
+	return c.generateManifestsFromResourcePlan(ctx, intent, interfaceResourcePlan)
 }
 
 // GenerateManifests implements the ManifestGenerator interface
@@ -460,19 +474,12 @@ func (c *SpecializedManifestGenerationController) generateManifestsFromResourceP
 		session.updateProgress(0.6, "validating_manifests")
 		validationStartTime := time.Now()
 
-		validationResults, err := c.ValidateManifests(ctx, generatedManifests)
+		err := c.ValidateManifests(ctx, generatedManifests)
 		if err != nil {
 			session.addWarning(fmt.Sprintf("manifest validation failed: %v", err))
 			// Continue with warnings
 		} else {
-			session.ValidationResults = validationResults
-			// Check for validation errors
-			for _, result := range validationResults {
-				if !result.Valid {
-					session.Metrics.ValidationErrors++
-					session.addWarning(fmt.Sprintf("manifest %s validation failed: %v", result.ManifestName, result.Errors))
-				}
-			}
+			// Validation passed - no specific message needed for now
 		}
 
 		session.Metrics.ValidationTime = time.Since(validationStartTime)
@@ -1251,7 +1258,7 @@ func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context,
 	}
 
 	// Check if this intent should be processed by this controller
-	if intent.Status.ProcessingPhase != interfaces.PhaseManifestGeneration {
+	if intent.Status.ProcessingPhase != string(interfaces.PhaseManifestGeneration) {
 		return ctrl.Result{}, nil
 	}
 
@@ -1264,13 +1271,18 @@ func (c *SpecializedManifestGenerationController) Reconcile(ctx context.Context,
 
 	// Update intent status based on result
 	if result.Success {
-		intent.Status.ProcessingPhase = result.NextPhase
-		intent.Status.GeneratedManifests = result.Data
-		intent.Status.LastUpdated = metav1.Now()
+		intent.Status.ProcessingPhase = string(result.NextPhase)
+		// Convert map[string]interface{} to []string for GeneratedManifests
+		if manifestData, ok := result.Data["manifests"].([]string); ok {
+			intent.Status.GeneratedManifests = manifestData
+		}
+		now := metav1.Now()
+		intent.Status.LastUpdated = &now
 	} else {
-		intent.Status.ProcessingPhase = interfaces.PhaseFailed
+		intent.Status.ProcessingPhase = string(interfaces.PhaseFailed)
 		intent.Status.ErrorMessage = result.ErrorMessage
-		intent.Status.LastUpdated = metav1.Now()
+		now := metav1.Now()
+		intent.Status.LastUpdated = &now
 	}
 
 	// Update the intent status

@@ -71,11 +71,13 @@ const (
 type NetworkIntentPhase string
 
 const (
-	NetworkIntentPhasePending    NetworkIntentPhase = "Pending"
-	NetworkIntentPhaseProcessing NetworkIntentPhase = "Processing"
-	NetworkIntentPhaseReady      NetworkIntentPhase = "Ready"
-	NetworkIntentPhaseFailed     NetworkIntentPhase = "Failed"
-	NetworkIntentPhaseCompleted  NetworkIntentPhase = "Completed"
+	NetworkIntentPhasePending     NetworkIntentPhase = "Pending"
+	NetworkIntentPhaseProcessing  NetworkIntentPhase = "Processing"
+	NetworkIntentPhaseDeploying   NetworkIntentPhase = "Deploying"
+	NetworkIntentPhaseActive      NetworkIntentPhase = "Active"
+	NetworkIntentPhaseReady       NetworkIntentPhase = "Ready"
+	NetworkIntentPhaseFailed      NetworkIntentPhase = "Failed"
+	NetworkIntentPhaseCompleted   NetworkIntentPhase = "Completed"
 )
 
 // NetworkIntentSpec defines the desired state of NetworkIntent
@@ -165,11 +167,20 @@ type NetworkIntentStatus struct {
 	// Phase represents the current phase of the NetworkIntent processing
 	Phase NetworkIntentPhase `json:"phase,omitempty"`
 
+	// ProcessingPhase represents the current processing phase (used by controllers)
+	ProcessingPhase string `json:"processingPhase,omitempty"`
+
 	// LastMessage contains the last status message
 	LastMessage string `json:"lastMessage,omitempty"`
 
+	// Message contains the current status message (alias for LastMessage for controller compatibility)
+	Message string `json:"message,omitempty"`
+
 	// LastUpdateTime indicates when the status was last updated
 	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+
+	// LastUpdated indicates when the status was last updated (alias for controller compatibility)
+	LastUpdated *metav1.Time `json:"lastUpdated,omitempty"`
 
 	// LastProcessed indicates when the intent was last processed
 	LastProcessed *metav1.Time `json:"lastProcessed,omitempty"`
@@ -198,8 +209,20 @@ type NetworkIntentStatus struct {
 	// ResourcePlan contains the generated resource deployment plan
 	ResourcePlan *NetworkResourcePlan `json:"resourcePlan,omitempty"`
 
+	// GeneratedManifests contains list of generated manifest files
+	GeneratedManifests []string `json:"generatedManifests,omitempty"`
+
 	// ValidationErrors contains any validation errors
 	ValidationErrors []string `json:"validationErrors,omitempty"`
+
+	// DeployedComponents contains the list of deployed target components
+	DeployedComponents []NetworkTargetComponent `json:"deployedComponents,omitempty"`
+
+	// Extensions contains custom extension data as raw JSON
+	Extensions *runtime.RawExtension `json:"extensions,omitempty"`
+
+	// LLMResponse contains the response from the LLM processing
+	LLMResponse string `json:"llmResponse,omitempty"`
 
 	// DeploymentStatus contains detailed deployment status information
 	DeploymentStatus *DeploymentStatus `json:"deploymentStatus,omitempty"`
@@ -448,6 +471,10 @@ func NetworkTargetComponentsToStrings(components []NetworkTargetComponent) []str
 
 // Alias types for backward compatibility with existing code
 // These provide shorter names that match the existing usage patterns
+
+// NetworkTargetComponentAlias is an alias for NetworkTargetComponent for backward compatibility
+// Note: Cannot use TargetComponent name as it conflicts with disaster recovery types
+type NetworkTargetComponentAlias = NetworkTargetComponent
 
 const (
 	// O-RAN Core Network Functions - Aliases for compatibility using raw string values
