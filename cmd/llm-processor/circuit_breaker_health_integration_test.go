@@ -153,8 +153,7 @@ func testEndToEndHealthCheckBehavior(t *testing.T, logger *slog.Logger) {
 
 			// Parse response
 			var healthResp health.HealthResponse
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&healthResp)
+			err = json.NewDecoder(resp.Body).Decode(&healthResp)
 			require.NoError(t, err)
 
 			// Validate overall response structure
@@ -570,8 +569,7 @@ func testRegressionTests(t *testing.T, logger *slog.Logger) {
 			assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 
 			var healthResp health.HealthResponse
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&healthResp)
+			err = json.NewDecoder(resp.Body).Decode(&healthResp)
 			require.NoError(t, err)
 
 			// Find circuit breaker check in response

@@ -1,6 +1,7 @@
 package e2
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -313,7 +314,7 @@ func TestE2APEncoder_MessageHeaderFormat(t *testing.T) {
 	message := &E2APMessage{
 		MessageType:   E2APMessageTypeSetupRequest,
 		TransactionID: 0x12345678,
-		ProcedureCode: 0x87654321,
+		ProcedureCode: 0x7FFFFFFF,
 		Criticality:   CriticalityReject,
 		Payload:       req,
 		Timestamp:     time.Now(),

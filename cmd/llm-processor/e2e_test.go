@@ -81,9 +81,11 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 		// Create mock LLM server
 		mockLLM = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			var requestBody map[string]interface{}
-			// FIXME: Adding error check per errcheck linter
-
-			_ = json.NewDecoder(r.Body).Decode(&requestBody)
+			err := json.NewDecoder(r.Body).Decode(&requestBody)
+			if err != nil {
+				http.Error(w, "Invalid JSON", http.StatusBadRequest)
+				return
+			}
 
 			// Extract intent from messages
 			messages := requestBody["messages"].([]interface{})
@@ -104,14 +106,9 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			// FIXME: Adding error check for json encoder per errcheck linter
-
 			if err := json.NewEncoder(w).Encode(llmResponse); err != nil {
-
 				log.Printf("Error encoding JSON: %v", err)
-
 				return
-
 			}
 		}))
 
@@ -197,8 +194,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 			var healthResp HealthResponse
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&healthResp)
+			err = json.NewDecoder(resp.Body).Decode(&healthResp)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(healthResp.Status).To(Equal("ok"))
 			Expect(healthResp.Version).To(Equal("test-v1.0.0"))
@@ -278,8 +274,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 			var response NetworkIntentResponse
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&response)
+			err = json.NewDecoder(resp.Body).Decode(&response)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(response.Type).To(Equal("NetworkFunctionDeployment"))
@@ -309,8 +304,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 			var response NetworkIntentResponse
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&response)
+			err = json.NewDecoder(resp.Body).Decode(&response)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(response.Type).To(Equal("NetworkFunctionScale"))
@@ -336,8 +330,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 			var response NetworkIntentResponse
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&response)
+			err = json.NewDecoder(resp.Body).Decode(&response)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(response.Type).To(Equal("NetworkFunctionDeployment"))
@@ -356,8 +349,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusBadRequest))
 
 			var errorResp ErrorResponse
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&errorResp)
+			err = json.NewDecoder(resp.Body).Decode(&errorResp)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(errorResp.ErrorCode).To(Equal("INVALID_REQUEST"))
 		})
@@ -411,8 +403,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 			Expect(resp.StatusCode).To(Equal(http.StatusInternalServerError))
 
 			var errorResp ErrorResponse
-			err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&errorResp)
+			err = json.NewDecoder(resp.Body).Decode(&errorResp)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(errorResp.ErrorCode).To(Equal("PROCESSING_FAILED"))
 		})
@@ -619,8 +610,7 @@ var _ = Describe("End-to-End LLM Processor Tests", func() {
 				Expect(resp.StatusCode).To(Equal(http.StatusOK))
 
 				var response NetworkIntentResponse
-				err = // FIXME: Adding error check per errcheck linter
- _ = json.NewDecoder(resp.Body).Decode(&response)
+				err = json.NewDecoder(resp.Body).Decode(&response)
 				Expect(err).ToNot(HaveOccurred())
 
 				spec, ok := response.Spec.(map[string]interface{})

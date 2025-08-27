@@ -15,9 +15,6 @@ import (
 	"github.com/montanaflynn/stats"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	"github.com/prometheus/common/model"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -29,7 +26,6 @@ type ComprehensivePerformanceTester struct {
 	*PerformanceBenchmarker
 	config           *ValidationConfig
 	k8sClient        client.Client
-	prometheusAPI    v1.API
 	metricsCollector *PerformanceMetricsCollector
 }
 

@@ -925,8 +925,18 @@ func (ir *IncidentResponse) GetMetrics() *IncidentMetrics {
 	ir.metrics.mutex.RLock()
 	defer ir.metrics.mutex.RUnlock()
 
-	metrics := *ir.metrics
-	return &metrics
+	return &IncidentMetrics{
+		TotalIncidents:      ir.metrics.TotalIncidents,
+		OpenIncidents:       ir.metrics.OpenIncidents,
+		ResolvedIncidents:   ir.metrics.ResolvedIncidents,
+		IncidentsBySeverity: copyStringInt64Map(ir.metrics.IncidentsBySeverity),
+		IncidentsByCategory: copyStringInt64Map(ir.metrics.IncidentsByCategory),
+		MTTR:                ir.metrics.MTTR,
+		MTTA:                ir.metrics.MTTA,
+		AutomatedActions:    ir.metrics.AutomatedActions,
+		EscalatedIncidents:  ir.metrics.EscalatedIncidents,
+		LastIncidentTime:    ir.metrics.LastIncidentTime,
+	}
 }
 
 // Close shuts down the incident response system
@@ -1207,4 +1217,16 @@ func getMapKeys(data map[string]interface{}) []string {
 		keys = append(keys, key)
 	}
 	return keys
+}
+
+// copyStringInt64Map creates a deep copy of a map[string]int64
+func copyStringInt64Map(original map[string]int64) map[string]int64 {
+	if original == nil {
+		return nil
+	}
+	result := make(map[string]int64, len(original))
+	for k, v := range original {
+		result[k] = v
+	}
+	return result
 }

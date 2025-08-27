@@ -1,3 +1,4 @@
+// Package monitoring provides metrics collection and observability for the Nephoran Intent Operator.
 package monitoring
 
 import (

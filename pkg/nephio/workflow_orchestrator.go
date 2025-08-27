@@ -667,7 +667,7 @@ func (nwo *NephioWorkflowOrchestrator) executeWorkflowPhases(ctx context.Context
 
 			if !phaseDefinition.ContinueOnError {
 				execution.Status = WorkflowExecutionStatusFailed
-				return fmt.Errorf("%s: %w", fmt.Sprintf("phase %s failed", phaseExecution.Name, err))
+				return fmt.Errorf("phase %s failed: %w", phaseExecution.Name, err)
 			}
 		} else {
 			phaseExecution.Status = WorkflowExecutionStatusCompleted

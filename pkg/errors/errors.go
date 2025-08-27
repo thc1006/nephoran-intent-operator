@@ -1,3 +1,4 @@
+// Package errors provides structured error handling and classification for the Nephoran Intent Operator.
 package errors
 
 import (

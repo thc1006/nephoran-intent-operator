@@ -1,3 +1,4 @@
+// Package nephio provides Nephio/Porch integration and package generation for the Nephoran Intent Operator.
 package nephio
 
 import (

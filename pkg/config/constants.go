@@ -1,3 +1,4 @@
+// Package config provides configuration management and constants for the Nephoran Intent Operator.
 package config
 
 import (

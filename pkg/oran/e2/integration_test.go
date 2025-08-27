@@ -105,7 +105,15 @@ func (m *MockNearRTRIC) SendControlMessage(req *RICControlRequest) (*RICControlA
 func (m *MockNearRTRIC) SendIndication(indication *RICIndication) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
-	m.messages = append(m.messages, indication)
+	message := E2APMessage{
+		MessageType:   E2APMessageTypeErrorIndication,
+		TransactionID: 0,
+		ProcedureCode: 5, // RIC indication procedure code
+		Criticality:   CriticalityIgnore,
+		Payload:       indication,
+		Timestamp:     time.Now(),
+	}
+	m.messages = append(m.messages, message)
 }
 
 func (m *MockNearRTRIC) GetSubscriptions() map[string]*E2SubscriptionRequest {
@@ -140,10 +148,9 @@ func TestE2ManagerIntegration(t *testing.T) {
 	// Create E2Manager configuration
 	config := &E2ManagerConfig{
 		MaxConnections:      10,
-		ConnectionTimeout:   30 * time.Second,
-		SubscriptionTimeout: 10 * time.Second,
+		DefaultTimeout:      30 * time.Second,
 		MaxRetries:          3,
-		RetryInterval:       5 * time.Second,
+		HeartbeatInterval:   5 * time.Second,
 		HealthCheckInterval: 30 * time.Second,
 	}
 
@@ -180,7 +187,7 @@ func TestE2ManagerIntegration(t *testing.T) {
 			EventTriggers: []E2EventTrigger{
 				{
 					TriggerType: "periodic",
-					Parameters: map[string]interface{}{
+					Conditions: map[string]interface{}{
 						"measurement_types":  []string{"DRB.UEThpDl", "DRB.UEThpUl"},
 						"granularity_period": "1000ms",
 					},
@@ -197,8 +204,9 @@ func TestE2ManagerIntegration(t *testing.T) {
 		}
 
 		// Test subscription
-		err := manager.SubscribeE2(ctx, subReq)
+		sub, err := manager.SubscribeE2(subReq)
 		assert.NoError(t, err)
+		assert.NotNil(t, sub)
 
 		// Verify subscription was created
 		subscriptions := mockRIC.GetSubscriptions()
@@ -211,9 +219,9 @@ func TestE2ManagerIntegration(t *testing.T) {
 	t.Run("TestControlMessage", func(t *testing.T) {
 		// Create control request
 		controlReq := &RICControlRequest{
-			RICRequestID:      &RICRequestID{RequestorID: 1, InstanceID: 1},
+			RICRequestID:      RICRequestID{RICRequestorID: 1, RICInstanceID: 1},
 			RANFunctionID:     2, // RC service model
-			RICCallProcessID:  []byte("test-process-001"),
+			RICCallProcessID:  RICCallProcessID("test-process-001"),
 			RICControlHeader:  []byte(`{"action_type":"qos_flow_mapping","priority":1}`),
 			RICControlMessage: []byte(`{"qos_class":"guaranteed_bitrate","bitrate_adjustment":0.1}`),
 		}

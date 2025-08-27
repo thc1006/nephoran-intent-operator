@@ -107,7 +107,7 @@ func TestE2SetupResponseCodec(t *testing.T) {
 	resp := &E2SetupResponse{
 		GlobalRICID: GlobalRICID{
 			PLMNIdentity: PLMNIdentity{MCC: "001", MNC: "01"},
-			RICID:        RICID{RICID: "12345"},
+			RICID:        RICID(12345),
 		},
 		RANFunctionsAccepted: []RANFunctionIDItem{
 			{RANFunctionID: 1, RANFunctionRevision: 1},

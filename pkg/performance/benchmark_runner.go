@@ -74,9 +74,9 @@ type PerformanceTargets struct {
 	AuthenticationThroughput    float64 `json:"authentication_throughput_auths"`
 
 	// Resource targets
-	MaxMemoryUsage     float64 `json:"max_memory_usage_mb"` // For backwards compatibility
+	MaxMemoryUsage     float64 `json:"max_memory_usage_legacy,omitempty"` // For backwards compatibility
 	MaxMemoryUsageMB   float64 `json:"max_memory_usage_mb"`
-	MaxCPUUsage        float64 `json:"max_cpu_usage_percent"` // For backwards compatibility  
+	MaxCPUUsage        float64 `json:"max_cpu_usage_legacy,omitempty"` // For backwards compatibility  
 	MaxCPUUsagePercent float64 `json:"max_cpu_usage_percent"`
 	MaxGoroutineCount  int     `json:"max_goroutine_count"`
 
