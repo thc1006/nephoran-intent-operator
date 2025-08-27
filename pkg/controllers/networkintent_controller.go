@@ -425,8 +425,9 @@ func (r *NetworkIntentReconciler) safeStatusUpdate(ctx context.Context, obj clie
 }
 
 func (r *NetworkIntentReconciler) updatePhase(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase string) error {
-	networkIntent.Status.Phase = phase
-	networkIntent.Status.LastUpdated = metav1.Now()
+	networkIntent.Status.Phase = nephoranv1.NetworkIntentPhase(phase)
+	now := metav1.Now()
+	networkIntent.Status.LastUpdated = &now
 	return r.safeStatusUpdate(ctx, networkIntent)
 }
 

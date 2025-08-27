@@ -300,14 +300,13 @@ func (pim *PorchIntegrationManager) ProcessNetworkIntent(ctx context.Context, in
 		UpdatedAt: time.Now(),
 	}
 
-	// Extract O-RAN compliance and network slice from intent extensions
-	if intent.Spec.Extensions != nil {
-		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
-			task.Context.ORANCompliance = extensions.ORANCompliance
-			task.Context.NetworkSlice = extensions.NetworkSlice
-			task.Context.TargetClusters = extensions.ClusterTargets
+	// Use basic network slice from spec (Extensions field doesn't exist in NetworkIntentSpec)
+	if intent.Spec.NetworkSlice != "" {
+		task.Context.NetworkSlice = &porch.NetworkSliceSpec{
+			Name: intent.Spec.NetworkSlice,
 		}
 	}
+	// TODO: Add O-RAN compliance and cluster targets if needed
 
 	// Store in cache
 	pim.intentCache.Store(task.ID, task)
@@ -407,8 +406,8 @@ func (pim *PorchIntegrationManager) processIntentTask(ctx context.Context, task 
 			task.Results = &FunctionEvalResults{}
 		}
 		task.Results.PipelineResults = pipelineExecution
-		task.Results.GeneratedResources = pipelineExecution.FinalResources
-		task.Results.AppliedFunctions = pipelineExecution.ExecutedStages
+		task.Results.GeneratedResources = pipelineExecution.Resources
+		task.Results.AppliedFunctions = getExecutedStageNames(pipelineExecution.Stages)
 
 		// Update package revision with pipeline results
 		packageRevision, err = pim.updatePackageWithResults(ctx, packageRevision, pipelineExecution)
@@ -486,15 +485,8 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 		packageName = packageName[:63] // Kubernetes name limit
 	}
 
-	// Determine repository
+	// Use default repository (Extensions field doesn't exist in NetworkIntentSpec)
 	repository := pim.config.DefaultRepository
-	if intent.Spec.Extensions != nil {
-		if extensions, ok := intent.Spec.Extensions.(*porch.NetworkIntentExtensions); ok {
-			if extensions.PackageSpec != nil && extensions.PackageSpec.Repository != "" {
-				repository = extensions.PackageSpec.Repository
-			}
-		}
-	}
 
 	// Create labels and annotations
 	labels := map[string]string{
@@ -502,7 +494,7 @@ func (pim *PorchIntegrationManager) convertIntentToPackageSpec(ctx context.Conte
 		porch.LabelRepository:      repository,
 		porch.LabelPackageName:     packageName,
 		porch.LabelIntentType:      string(intent.Spec.IntentType),
-		porch.LabelTargetComponent: intent.Spec.TargetComponent,
+		porch.LabelTargetComponent: getFirstTargetComponent(intent.Spec.TargetComponents),
 	}
 
 	annotations := map[string]string{
@@ -1116,4 +1108,21 @@ func (pim *PorchIntegrationManager) calculatePackageSize(packageRevision *porch.
 		size += int64(len(resourceJSON))
 	}
 	return size
+}
+
+// getFirstTargetComponent returns the first target component or empty string if none
+func getFirstTargetComponent(components []v1.NetworkTargetComponent) string {
+	if len(components) > 0 {
+		return string(components[0])
+	}
+	return ""
+}
+
+// getExecutedStageNames returns the names of executed stages
+func getExecutedStageNames(stages map[string]*StageExecution) []string {
+	names := make([]string, 0, len(stages))
+	for name := range stages {
+		names = append(names, name)
+	}
+	return names
 }

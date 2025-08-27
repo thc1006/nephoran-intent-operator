@@ -168,7 +168,7 @@ type Catalog struct {
 	templates            sync.Map // map[string]*Template
 	templatesByType      map[TemplateType][]*Template
 	templatesByCategory  map[TemplateCategory][]*Template
-	templatesByComponent map[v1.TargetComponent][]*Template
+	templatesByComponent map[string][]*Template  // Use string instead of v1.TargetComponent struct
 
 	// Repository management
 	repositories []TemplateRepository
@@ -205,7 +205,7 @@ type TemplateRepository struct {
 type SearchIndex struct {
 	nameIndex      map[string][]*Template
 	tagIndex       map[string][]*Template
-	componentIndex map[v1.TargetComponent][]*Template
+	componentIndex map[string][]*Template  // Use string instead of v1.TargetComponent struct
 	typeIndex      map[v1.IntentType][]*Template
 	textIndex      map[string][]*Template
 	mutex          sync.RWMutex
@@ -237,7 +237,7 @@ func NewCatalog(config *BlueprintConfig, logger *zap.Logger) (*Catalog, error) {
 		logger:               logger,
 		templatesByType:      make(map[TemplateType][]*Template),
 		templatesByCategory:  make(map[TemplateCategory][]*Template),
-		templatesByComponent: make(map[v1.TargetComponent][]*Template),
+		templatesByComponent: make(map[string][]*Template),
 		repositories:         []TemplateRepository{},
 		searchIndex:          NewSearchIndex(),
 		dependencyGraph:      NewDependencyGraph(),
@@ -372,7 +372,7 @@ func (c *Catalog) GetTemplate(ctx context.Context, templateID string) (*Template
 }
 
 // GetTemplatesByComponent returns templates for specific components
-func (c *Catalog) GetTemplatesByComponent(ctx context.Context, components []v1.TargetComponent) ([]*Template, error) {
+func (c *Catalog) GetTemplatesByComponent(ctx context.Context, components []string) ([]*Template, error) {
 	var results []*Template
 
 	for _, component := range components {
@@ -858,7 +858,7 @@ func NewSearchIndex() *SearchIndex {
 	return &SearchIndex{
 		nameIndex:      make(map[string][]*Template),
 		tagIndex:       make(map[string][]*Template),
-		componentIndex: make(map[v1.TargetComponent][]*Template),
+		componentIndex: make(map[string][]*Template),
 		typeIndex:      make(map[v1.IntentType][]*Template),
 		textIndex:      make(map[string][]*Template),
 	}

@@ -18,6 +18,7 @@ package orchestration
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -112,7 +113,7 @@ func (m *SharedMockRAGService) Query(ctx context.Context, req *rag.QueryRequest)
 
 	// Return error if configured
 	if m.shouldReturnError {
-		return nil, mock.AnythingOfType("error")
+		return nil, fmt.Errorf("mock RAG service error")
 	}
 
 	// Filter documents based on query
@@ -131,13 +132,14 @@ func (m *SharedMockRAGService) Query(ctx context.Context, req *rag.QueryRequest)
 	}
 
 	return &rag.QueryResponse{
-		Documents:     filteredDocs,
-		MaxSimilarity: m.maxSimilarity,
-		AvgSimilarity: avgSimilarity,
-		Metadata: map[string]interface{}{
-			"queryTime": m.queryDelay,
-			"totalDocs": len(m.documents),
-		},
+		// TODO: Fix struct fields - these fields don't exist in rag.QueryResponse
+		// Documents:     filteredDocs,
+		// MaxSimilarity: m.maxSimilarity,
+		// AvgSimilarity: avgSimilarity,
+		// Metadata: map[string]interface{}{
+		// 	"queryTime": m.queryDelay,
+		// 	"totalDocs": len(m.documents),
+		// },
 	}, nil
 }
 

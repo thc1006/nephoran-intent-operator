@@ -18,40 +18,15 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// SLAType represents different SLA metrics we monitor
-type SLAType string
-
+// Additional AlertState values not in escalation_engine.go
 const (
-	SLATypeAvailability SLAType = "availability"
-	SLATypeLatency      SLAType = "latency"
-	SLAThroughput       SLAType = "throughput"
-	SLAErrorRate        SLAType = "error_rate"
-)
-
-// AlertSeverity represents alert severity levels aligned with SRE practices
-type AlertSeverity string
-
-const (
-	AlertSeverityInfo     AlertSeverity = "info"
-	AlertSeverityWarning  AlertSeverity = "warning"
-	AlertSeverityMajor    AlertSeverity = "major"
-	AlertSeverityCritical AlertSeverity = "critical"
-	AlertSeverityUrgent   AlertSeverity = "urgent"
-)
-
-// AlertState represents the lifecycle state of an alert
-type AlertState string
-
-const (
-	AlertStateFiring       AlertState = "firing"
-	AlertStatePending      AlertState = "pending"
-	AlertStateResolved     AlertState = "resolved"
 	AlertStateSuppressed   AlertState = "suppressed"
 	AlertStateAcknowledged AlertState = "acknowledged"
 )
 
-// SLAAlert represents an SLA violation alert with enriched context
-type SLAAlert struct {
+// SLAAlertExtended extends the base SLAAlert with additional context
+// (Using composition to avoid redeclaration)
+type SLAAlertExtended struct {
 	ID          string        `json:"id"`
 	SLAType     SLAType       `json:"sla_type"`
 	Name        string        `json:"name"`
@@ -243,12 +218,10 @@ type AlertWindow struct {
 	Severity    AlertSeverity `yaml:"severity"`
 }
 
-// MaintenanceWindow defines a period during which alerts should be suppressed
-type MaintenanceWindow struct {
-	ID         string            `json:"id"`
-	Name       string            `json:"name"`
-	StartTime  time.Time         `json:"start_time"`
-	EndTime    time.Time         `json:"end_time"`
+// MaintenanceWindowExtended extends base MaintenanceWindow with additional fields
+// (MaintenanceWindow is already defined in escalation_engine.go)
+type MaintenanceWindowExtended struct {
+	MaintenanceWindow
 	Services   []string          `json:"services"`
 	Components []string          `json:"components"`
 	Labels     map[string]string `json:"labels"`

@@ -339,8 +339,8 @@ func (p *ResourcePlanner) planNetworkFunction(nfSpec *telecom.NetworkFunctionSpe
 			Type:     hc.Type,
 			Path:     hc.Path,
 			Port:     hc.Port,
-			Interval: hc.Interval,
-			Timeout:  hc.Timeout,
+			Interval: fmt.Sprintf("%ds", hc.Interval),
+			Timeout:  fmt.Sprintf("%ds", hc.Timeout),
 			Retries:  hc.Retries,
 		})
 	}

@@ -179,12 +179,13 @@ func (r *CNFDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Record metrics
 	if r.MetricsCollector != nil {
-		r.MetricsCollector.RecordCNFDeployment(string(cnfDeployment.Spec.Function), result.Duration)
+		r.MetricsCollector.RecordCNFDeployment(performance.CNFFunction(cnfDeployment.Spec.Function), result.Duration)
 	}
 
 	// Record metrics in monitoring system if available
 	if r.MonitoringSystem != nil {
-		r.MonitoringSystem.RecordCNFDeployment(string(cnfDeployment.Spec.Function), result.Duration)
+		// TODO: Add RecordCNFDeployment method to MonitoringSystem interface
+		// r.MonitoringSystem.RecordCNFDeployment(string(cnfDeployment.Spec.Function), result.Duration)
 	}
 
 	return ctrl.Result{RequeueAfter: CNFReconcileInterval}, nil

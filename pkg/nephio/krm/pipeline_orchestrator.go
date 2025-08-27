@@ -697,21 +697,15 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 
 	// Create pipeline execution
 	execution := &PipelineExecution{
-		ID:              executionID,
-		Name:            definition.Name,
-		Pipeline:        definition,
-		Status:          PipelineStatusPending,
-		Phase:           PipelinePhaseInitialization,
-		StartTime:       time.Now(),
-		Stages:          make(map[string]*StageExecution),
-		InputResources:  resources,
-		OutputResources: resources,
-		Results:         []*ExecutionResult{},
-		Errors:          []*ExecutionError{},
-		Variables:       po.initializeVariables(definition.Variables),
-		Checkpoints:     []*ExecutionCheckpoint{},
-		AuditLogs:       []string{},
-		Context:         make(map[string]interface{}),
+		ID:           executionID,
+		Name:         definition.Name,
+		Pipeline:     definition,
+		Status:       ExecutionStatusPending,
+		StartTime:    time.Now(),
+		Stages:       make(map[string]*StageExecution),
+		Resources:    convertResources(resources),
+		Results:      []*ExecutionResult{},
+		Errors:       []ExecutionError{},
 	}
 
 	// Store execution
@@ -733,30 +727,19 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 	po.metrics.DependencyResolution.WithLabelValues(definition.Name).Observe(time.Since(startTime).Seconds())
 
 	// Update phase
-	execution.Phase = PipelinePhaseExecution
-	execution.Status = PipelineStatusRunning
+	execution.Status = ExecutionStatusRunning
 
-	// Execute pipeline based on execution mode
-	switch definition.ExecutionMode {
-	case "sequential":
-		err = po.executeSequential(ctx, execution, dependencyGraph)
-	case "parallel":
-		err = po.executeParallel(ctx, execution, dependencyGraph)
-	case "dag":
-		err = po.executeDAG(ctx, execution, dependencyGraph)
-	default:
-		err = po.executeDAG(ctx, execution, dependencyGraph) // Default to DAG
-	}
+	// Execute pipeline based on execution mode (default to DAG since PipelineDefinition doesn't have ExecutionMode)
+	err = po.executeDAG(ctx, execution, dependencyGraph)
 
 	// Finalize execution
-	execution.Phase = PipelinePhaseFinalization
-	execution.EndTime = &time.Time{}
-	*execution.EndTime = time.Now()
+	endTime := time.Now()
+	execution.EndTime = &endTime
 	execution.Duration = execution.EndTime.Sub(execution.StartTime)
 
 	if err != nil {
-		execution.Status = PipelineStatusFailed
-		execution.Errors = append(execution.Errors, &ExecutionError{
+		execution.Status = ExecutionStatusFailed
+		execution.Errors = append(execution.Errors, ExecutionError{
 			Code:        "PIPELINE_EXECUTION_FAILED",
 			Message:     err.Error(),
 			Timestamp:   time.Now(),
@@ -770,7 +753,7 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 
 		logger.Error(err, "Pipeline execution failed", "duration", execution.Duration)
 	} else {
-		execution.Status = PipelineStatusSucceeded
+		execution.Status = ExecutionStatusSucceeded
 		po.metrics.PipelineExecutions.WithLabelValues(definition.Name, "succeeded").Inc()
 
 		logger.Info("Pipeline execution completed successfully", "duration", execution.Duration)
@@ -778,8 +761,7 @@ func (po *PipelineOrchestrator) ExecutePipeline(ctx context.Context, definition 
 
 	po.metrics.ExecutionDuration.WithLabelValues(definition.Name).Observe(execution.Duration.Seconds())
 
-	// Cleanup
-	execution.Phase = PipelinePhaseCleanup
+	// Cleanup phase is implicit since PipelineExecution doesn't have Phase field
 
 	span.SetStatus(codes.Ok, "pipeline execution completed")
 	return execution, err
@@ -821,10 +803,10 @@ func (po *PipelineOrchestrator) CancelExecution(ctx context.Context, executionID
 		return fmt.Errorf("execution %s not found", executionID)
 	}
 
-	if execution.Status == PipelineStatusRunning {
-		execution.Status = PipelineStatusCancelled
-		execution.EndTime = &time.Time{}
-		*execution.EndTime = time.Now()
+	if execution.Status == ExecutionStatusRunning {
+		execution.Status = ExecutionStatusCancelled
+		endTime := time.Now()
+		execution.EndTime = &endTime
 		execution.Duration = execution.EndTime.Sub(execution.StartTime)
 
 		// Cancel running stages
@@ -860,49 +842,26 @@ func (po *PipelineOrchestrator) buildDependencyGraph(definition *PipelineDefinit
 		graph.nodes[stage.Name] = node
 	}
 
-	// Create edges from explicit dependencies
-	for _, dependency := range definition.Dependencies {
-		fromNode, fromExists := graph.nodes[dependency.From]
-		toNode, toExists := graph.nodes[dependency.To]
-
-		if !fromExists {
-			return nil, fmt.Errorf("dependency from stage %s not found", dependency.From)
-		}
-		if !toExists {
-			return nil, fmt.Errorf("dependency to stage %s not found", dependency.To)
-		}
-
-		edge := &DependencyEdge{
-			From:      fromNode,
-			To:        toNode,
-			Type:      dependency.Type,
-			Condition: dependency.Condition,
-		}
-
-		fromNode.Dependents = append(fromNode.Dependents, edge)
-		toNode.Dependencies = append(toNode.Dependencies, edge)
-		graph.edges[dependency.From] = append(graph.edges[dependency.From], edge)
-	}
-
-	// Create edges from stage dependsOn declarations
+	// Create edges from stage dependencies (PipelineDefinition doesn't have explicit Dependencies field)
 	for _, stage := range definition.Stages {
-		toNode := graph.nodes[stage.Name]
+		if stage.DependsOn != nil {
+			toNode := graph.nodes[stage.Name]
+			for _, depName := range stage.DependsOn {
+				fromNode, fromExists := graph.nodes[depName]
+				if !fromExists {
+					return nil, fmt.Errorf("dependency stage %s not found for stage %s", depName, stage.Name)
+				}
 
-		for _, dependencyName := range stage.DependsOn {
-			fromNode, exists := graph.nodes[dependencyName]
-			if !exists {
-				return nil, fmt.Errorf("stage dependency %s not found for stage %s", dependencyName, stage.Name)
+				edge := &DependencyEdge{
+					From: fromNode,
+					To:   toNode,
+					Type: "control", // default dependency type
+				}
+
+				fromNode.Dependents = append(fromNode.Dependents, edge)
+				toNode.Dependencies = append(toNode.Dependencies, edge)
+				graph.edges[depName] = append(graph.edges[depName], edge)
 			}
-
-			edge := &DependencyEdge{
-				From: fromNode,
-				To:   toNode,
-				Type: "control",
-			}
-
-			fromNode.Dependents = append(fromNode.Dependents, edge)
-			toNode.Dependencies = append(toNode.Dependencies, edge)
-			graph.edges[dependencyName] = append(graph.edges[dependencyName], edge)
 		}
 	}
 
@@ -1111,12 +1070,11 @@ func (po *PipelineOrchestrator) evaluateDependencyCondition(condition *Dependenc
 
 func (po *PipelineOrchestrator) executeStage(ctx context.Context, execution *PipelineExecution, stage *PipelineStage) (*StageExecution, error) {
 	stageExec := &StageExecution{
-		Name:         stage.Name,
-		Status:       ExecutionStatusRunning,
-		StartTime:    time.Now(),
-		Functions:    make(map[string]*FunctionExecution),
-		Dependencies: []*DependencyStatus{},
-		Output:       make(map[string]interface{}),
+		Name:      stage.Name,
+		Status:    ExecutionStatusRunning,
+		StartTime: time.Now(),
+		Functions: make(map[string]*FunctionExecution),
+		Output:    make(map[string]interface{}),
 	}
 
 	logger := log.FromContext(ctx).WithValues("stage", stage.Name)
@@ -1162,7 +1120,7 @@ func (po *PipelineOrchestrator) executeStage(ctx context.Context, execution *Pip
 }
 
 func (po *PipelineOrchestrator) executeStageFunctionsSequential(ctx context.Context, execution *PipelineExecution, stage *PipelineStage, stageExec *StageExecution) error {
-	currentResources := execution.OutputResources
+	currentResources := convertResourcesToPointers(execution.Resources)
 
 	for _, function := range stage.Functions {
 		funcExec, err := po.executeStageFunction(ctx, execution, stage, function, currentResources)
@@ -1194,7 +1152,7 @@ func (po *PipelineOrchestrator) executeStageFunctionsParallel(ctx context.Contex
 		go func(f *StageFunction) {
 			defer wg.Done()
 
-			funcExec, err := po.executeStageFunction(ctx, execution, stage, f, execution.OutputResources)
+			funcExec, err := po.executeStageFunction(ctx, execution, stage, f, convertResourcesToPointers(execution.Resources))
 
 			mu.Lock()
 			stageExec.Functions[f.Name] = funcExec
@@ -1216,18 +1174,14 @@ func (po *PipelineOrchestrator) executeStageFunctionsParallel(ctx context.Contex
 
 func (po *PipelineOrchestrator) executeStageFunction(ctx context.Context, execution *PipelineExecution, stage *PipelineStage, function *StageFunction, resources []*porch.KRMResource) (*FunctionExecution, error) {
 	funcExec := &FunctionExecution{
-		Name:       function.Name,
-		Status:     ExecutionStatusRunning,
-		StartTime:  time.Now(),
-		InputCount: len(resources),
-		Results:    []*porch.FunctionResult{},
+		Name:      function.Name,
+		Status:    ExecutionStatusRunning,
+		StartTime: time.Now(),
+		Results:   []*porch.FunctionResult{},
 	}
 
-	// Filter resources if filter is specified
+	// Use resources as-is (ResourceFilter field doesn't exist on StageFunction)
 	filteredResources := resources
-	if function.ResourceFilter != nil {
-		filteredResources = po.filterResources(resources, function.ResourceFilter)
-	}
 
 	// Create function execution request
 	funcName := function.Name
@@ -1240,7 +1194,7 @@ func (po *PipelineOrchestrator) executeStageFunction(ctx context.Context, execut
 		FunctionImage:  function.Image,
 		FunctionConfig: function.Config,
 		Resources:      filteredResources,
-		Timeout:        function.Timeout,
+		Timeout:        po.config.DefaultTimeout, // Use default timeout since StageFunction doesn't have Timeout field
 		RequestID:      fmt.Sprintf("%s-%s-%s", execution.ID, stage.Name, function.Name),
 		EnableCaching:  po.config.EnableCaching,
 	}
@@ -1266,9 +1220,8 @@ func (po *PipelineOrchestrator) executeStageFunction(ctx context.Context, execut
 	}
 
 	funcExec.Status = ExecutionStatusSucceeded
-	funcExec.OutputCount = len(response.Resources)
 	funcExec.Results = response.Results
-	funcExec.CacheHit = response.CacheHit
+	// OutputCount and CacheHit fields don't exist on FunctionExecution
 
 	return funcExec, nil
 }
@@ -1385,7 +1338,8 @@ func (sw *SchedulerWorker) executeScheduledStage(scheduled *ScheduledStage) {
 
 	select {
 	case scheduled.ResultChan <- result:
-	case <-scheduled.Context.Done():
+	case <-time.After(5 * time.Second): // timeout instead of context
+		// timeout sending result
 	}
 }
 
@@ -1397,7 +1351,7 @@ func (po *PipelineOrchestrator) Health() *PipelineOrchestratorHealth {
 	po.stateManager.mu.RLock()
 	activeExecutions := 0
 	for _, execution := range po.stateManager.executions {
-		if execution.Status == PipelineStatusRunning {
+		if execution.Status == ExecutionStatusRunning {
 			activeExecutions++
 		}
 	}
@@ -1517,4 +1471,24 @@ func (s *OrchestrationMemoryStateStorage) List(ctx context.Context, prefix strin
 
 	sort.Strings(keys)
 	return keys, nil
+}
+
+// convertResources converts []*porch.KRMResource to []porch.KRMResource
+func convertResources(resources []*porch.KRMResource) []porch.KRMResource {
+	result := make([]porch.KRMResource, len(resources))
+	for i, resource := range resources {
+		if resource != nil {
+			result[i] = *resource
+		}
+	}
+	return result
+}
+
+// convertResourcesToPointers converts []porch.KRMResource to []*porch.KRMResource
+func convertResourcesToPointers(resources []porch.KRMResource) []*porch.KRMResource {
+	result := make([]*porch.KRMResource, len(resources))
+	for i := range resources {
+		result[i] = &resources[i]
+	}
+	return result
 }

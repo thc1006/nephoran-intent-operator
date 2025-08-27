@@ -48,9 +48,11 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// O2 Logic: Check the status of the associated Deployment
 	deployment := &appsv1.Deployment{}
-	err := r.Get(ctx, types.NamespacedName{Name: me.Spec.DeploymentName, Namespace: me.Namespace}, deployment)
+	// Use the ManagedElement name as deployment name if no specific field exists
+	deploymentName := me.Name + "-deployment"
+	err := r.Get(ctx, types.NamespacedName{Name: deploymentName, Namespace: me.Namespace}, deployment)
 	if err != nil {
-		logger.Error(err, "Failed to get associated Deployment", "DeploymentName", me.Spec.DeploymentName)
+		logger.Error(err, "Failed to get associated Deployment", "DeploymentName", deploymentName)
 		meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: typeReadyManagedElement, Status: metav1.ConditionFalse, Reason: "DeploymentNotFound", Message: err.Error()})
 		return r.updateStatus(ctx, me)
 	}
@@ -63,7 +65,8 @@ func (r *OranAdaptorReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: typeReadyManagedElement, Status: metav1.ConditionTrue, Reason: "Ready", Message: "Deployment is fully available."})
 
 	// O1 Logic: If ready, apply intent-driven O1 configuration
-	if me.Spec.O1Config != "" {
+	// Check if there's O1 configuration in the general configuration map
+	if o1Config, exists := me.Spec.Configuration["o1Config"]; exists && o1Config != "" {
 		if err := r.O1Adaptor.ApplyConfiguration(ctx, me); err != nil {
 			logger.Error(err, "O1 configuration failed")
 			meta.SetStatusCondition(&me.Status.Conditions, metav1.Condition{Type: O1ConfiguredCondition, Status: metav1.ConditionFalse, Reason: "Failed", Message: err.Error()})

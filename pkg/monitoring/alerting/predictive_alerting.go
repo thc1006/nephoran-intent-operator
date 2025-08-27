@@ -13,27 +13,6 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
-// SLAType represents different types of SLA metrics
-type SLAType string
-
-const (
-	SLATypeAvailability SLAType = "availability"
-	SLATypeLatency     SLAType = "latency"
-	SLAThroughput      SLAType = "throughput"
-	SLAErrorRate       SLAType = "error_rate"
-)
-
-// AlertSeverity represents the severity of an alert
-type AlertSeverity string
-
-const (
-	AlertSeverityInfo     AlertSeverity = "info"
-	AlertSeverityWarning  AlertSeverity = "warning"
-	AlertSeverityMajor    AlertSeverity = "major"
-	AlertSeverityCritical AlertSeverity = "critical"
-	AlertSeverityUrgent   AlertSeverity = "urgent"
-)
-
 // TimeSeriesPoint represents a single data point in a time series
 type TimeSeriesPoint struct {
 	Timestamp time.Time `json:"timestamp"`

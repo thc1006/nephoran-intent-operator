@@ -24,14 +24,6 @@ type MaintenanceWindow struct {
 	Recurrence  string    `json:"recurrence,omitempty"`
 }
 
-// BusinessImpactScore represents business impact metrics
-type BusinessImpactScore struct {
-	OverallScore        float64 `json:"overall_score"`
-	CustomerFacing      bool    `json:"customer_facing"`
-	RevenueImpact       float64 `json:"revenue_impact"`
-	ServiceDependencies int     `json:"service_dependencies"`
-}
-
 // SLAAlert represents an SLA violation alert
 type SLAAlert struct {
 	ID             string              `json:"id"`
@@ -41,9 +33,23 @@ type SLAAlert struct {
 	SLAType        SLAType             `json:"sla_type"`
 	State          AlertState          `json:"state"`
 	BusinessImpact BusinessImpactScore `json:"business_impact"`
+	Context        AlertContext        `json:"context"`
+	Labels         map[string]string   `json:"labels"`
 	CreatedAt      time.Time           `json:"created_at"`
 	UpdatedAt      time.Time           `json:"updated_at"`
 	Metadata       map[string]string   `json:"metadata,omitempty"`
+}
+
+// AlertContext provides context information about an alert
+type AlertContext struct {
+	Component     string            `json:"component"`
+	Service       string            `json:"service"`
+	Environment   string            `json:"environment"`
+	Region        string            `json:"region,omitempty"`
+	Cluster       string            `json:"cluster,omitempty"`
+	Namespace     string            `json:"namespace,omitempty"`
+	ResourceType  string            `json:"resource_type,omitempty"`
+	ResourceName  string            `json:"resource_name,omitempty"`
 }
 
 // AlertState represents the current state of an alert
