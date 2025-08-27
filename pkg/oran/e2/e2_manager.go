@@ -166,6 +166,15 @@ type E2ServiceModelRegistry struct {
 	enablePlugins bool
 }
 
+// NewE2ServiceModelRegistry creates a new E2ServiceModelRegistry
+func NewE2ServiceModelRegistry() *E2ServiceModelRegistry {
+	return &E2ServiceModelRegistry{
+		serviceModels: make(map[string]*RegisteredServiceModel),
+		plugins:       make(map[string]ServiceModelPlugin),
+		enablePlugins: true,
+	}
+}
+
 // RegisteredServiceModel extends E2ServiceModel with registry information
 type RegisteredServiceModel struct {
 	E2ServiceModel

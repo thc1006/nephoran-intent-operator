@@ -2,6 +2,7 @@ package unit_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -175,7 +176,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 				tt.setup(clientset, k8sClient)
 			}
 
-			adaptor := o2.NewO2Adaptor(k8sClient, clientset, &o2.O2Config{
+			adaptor, err := o2.NewO2Adaptor(k8sClient, clientset, &o2.O2Config{
 				Namespace: "default",
 				DefaultResources: &corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -184,11 +185,21 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 					},
 				},
 			})
+			require.NoError(t, err)
 
 			ctx := context.Background()
-			instance, err := adaptor.DeployVNF(ctx, tt.request)
+			result, err2 := adaptor.DeployVNF(ctx, tt.request)
+			
+			var instance *o2.O2VNFInstance
+			if result != nil {
+				var ok bool
+				instance, ok = result.(*o2.O2VNFInstance)
+				if !ok {
+					err2 = fmt.Errorf("unexpected return type: %T", result)
+				}
+			}
 
-			tt.want(t, instance, err)
+			tt.want(t, instance, err2)
 		})
 	}
 }
@@ -316,12 +327,13 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 				tt.setup(clientset, k8sClient)
 			}
 
-			adaptor := o2.NewO2Adaptor(k8sClient, clientset, nil)
+			adaptor, err := o2.NewO2Adaptor(k8sClient, clientset, nil)
+			require.NoError(t, err)
 
 			ctx := context.Background()
-			err := adaptor.ScaleVNF(ctx, tt.instanceID, tt.request)
+			err2 := adaptor.ScaleVNF(ctx, tt.instanceID, tt.request)
 
-			tt.want(t, err)
+			tt.want(t, err2)
 		})
 	}
 }
@@ -425,12 +437,13 @@ func TestO2Adaptor_GetVNFInstance(t *testing.T) {
 				tt.setup(clientset, k8sClient)
 			}
 
-			adaptor := o2.NewO2Adaptor(k8sClient, clientset, nil)
+			adaptor, err := o2.NewO2Adaptor(k8sClient, clientset, nil)
+			require.NoError(t, err)
 
 			ctx := context.Background()
-			instance, err := adaptor.GetVNFInstance(ctx, tt.instanceID)
+			instance, err2 := adaptor.GetVNFInstance(ctx, tt.instanceID)
 
-			tt.want(t, instance, err)
+			tt.want(t, instance, err2)
 		})
 	}
 }
@@ -506,12 +519,13 @@ func TestO2Adaptor_GetInfrastructureInfo(t *testing.T) {
 				tt.setup(clientset, k8sClient)
 			}
 
-			adaptor := o2.NewO2Adaptor(k8sClient, clientset, nil)
+			adaptor, err := o2.NewO2Adaptor(k8sClient, clientset, nil)
+			require.NoError(t, err)
 
 			ctx := context.Background()
-			info, err := adaptor.GetInfrastructureInfo(ctx)
+			info, err2 := adaptor.GetInfrastructureInfo(ctx)
 
-			tt.want(t, info, err)
+			tt.want(t, info, err2)
 		})
 	}
 }
@@ -524,7 +538,8 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 
 	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
 	clientset := fake.NewSimpleClientset()
-	adaptor := o2.NewO2Adaptor(k8sClient, clientset, nil)
+	adaptor, err := o2.NewO2Adaptor(k8sClient, clientset, nil)
+	require.NoError(b, err)
 
 	request := &o2.O2VNFDeployRequest{
 		Name:         "bench-vnf",
@@ -560,7 +575,8 @@ func BenchmarkO2Adaptor_GetVNFInstance(b *testing.B) {
 
 	k8sClient := fakeClient.NewClientBuilder().WithScheme(scheme).Build()
 	clientset := fake.NewSimpleClientset()
-	adaptor := o2.NewO2Adaptor(k8sClient, clientset, nil)
+	adaptor, err := o2.NewO2Adaptor(k8sClient, clientset, nil)
+	require.NoError(b, err)
 
 	// Setup test deployment
 	deployment := &appsv1.Deployment{

@@ -252,13 +252,13 @@ func TestE2NodeSetControllerIntegration(t *testing.T) {
 	e2Manager.On("ListE2Nodes", ctx).Return([]*E2Node{
 		{
 			NodeID: "test-e2nodeset-node-0",
-			HealthStatus: E2HealthStatus{
+			HealthStatus: NodeHealth{
 				Status:    "HEALTHY",
-				Timestamp: time.Now(),
+				LastCheck: time.Now(),
 			},
 			ConnectionStatus: E2ConnectionStatus{
-				State:     "CONNECTED",
-				Timestamp: time.Now(),
+				State:         "CONNECTED",
+				EstablishedAt: time.Now(),
 			},
 		},
 	}, nil)
@@ -326,7 +326,7 @@ func TestXAppSDKIntegration(t *testing.T) {
 	}
 
 	// Create SDK
-	sdk, err := NewXAppSDK(config, mockE2Manager)
+	sdk, err := NewXAppSDK(config, &E2Manager{})
 	require.NoError(t, err)
 	require.NotNil(t, sdk)
 
@@ -395,7 +395,10 @@ func TestServiceModelPluginIntegration(t *testing.T) {
 		assert.NotNil(t, plugin)
 
 		// Create KMP service model
-		serviceModel := CreateEnhancedKMPServiceModel()
+		serviceModel := &E2ServiceModel{
+			ServiceModelName:    "KMP",
+			ServiceModelVersion: "1.0.0",
+		}
 		assert.NotNil(t, serviceModel)
 
 		// Register service model with plugin

@@ -91,21 +91,9 @@ type O2DeploymentStatus struct {
 	Message  string `json:"message,omitempty"`
 }
 
-// O2TestVNFDeployRequest represents a request to deploy a VNF (test-specific)
-type O2TestVNFDeployRequest struct {
-	Name         string                       `json:"name"`
-	Namespace    string                       `json:"namespace"`
-	VNFPackageID string                       `json:"vnfPackageId"`
-	FlavorID     string                       `json:"flavorId,omitempty"`
-	Image        string                       `json:"image"`
-	Replicas     int32                        `json:"replicas"`
-	Resources    *corev1.ResourceRequirements `json:"resources,omitempty"`
-	Environment  []corev1.EnvVar              `json:"environment,omitempty"`
-	Metadata     map[string]string            `json:"metadata,omitempty"`
-}
 
-// O2VNFInstance represents a VNF instance
-type O2VNFInstance struct {
+// O2TestVNFInstance represents a VNF instance (test-specific)
+type O2TestVNFInstance struct {
 	ID           string       `json:"id"`
 	Name         string       `json:"name"`
 	Namespace    string       `json:"namespace"`
@@ -119,11 +107,6 @@ type O2VNFStatus struct {
 	DetailedState string `json:"detailedState"`
 }
 
-// O2VNFScaleRequest represents a request to scale a VNF
-type O2VNFScaleRequest struct {
-	ScaleType     string `json:"scaleType"`
-	NumberOfSteps int    `json:"numberOfSteps"`
-}
 
 // O2Manager represents the O2 manager interface
 type O2Manager struct {
@@ -326,126 +309,6 @@ func (m *O2Manager) DeployVNF(ctx context.Context, vnfSpec *O2VNFDescriptor) (*O
 	return status, nil
 }
 
-// DeployVNF method for O2Adaptor
-func (a *O2Adaptor) DeployVNF(ctx context.Context, request *O2TestVNFDeployRequest) (*O2VNFInstance, error) {
-	// Create VNF instance
-	instance := &O2VNFInstance{
-		ID:           fmt.Sprintf("%s-%s", request.Namespace, request.Name),
-		Name:         request.Name,
-		Namespace:    request.Namespace,
-		VNFPackageID: request.VNFPackageID,
-		Status: &O2VNFStatus{
-			State:         "INSTANTIATED",
-			DetailedState: "CREATING",
-		},
-	}
-
-	// Create deployment
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      request.Name,
-			Namespace: request.Namespace,
-			Labels:    request.Metadata,
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &request.Replicas,
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": request.Name,
-				},
-			},
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": request.Name,
-					},
-				},
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{
-						{
-							Name:  request.Name,
-							Image: request.Image,
-							Env:   request.Environment,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if request.Resources != nil {
-		deployment.Spec.Template.Spec.Containers[0].Resources = *request.Resources
-	}
-
-	// Create deployment in cluster
-	err := a.kubeClient.Create(ctx, deployment)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create deployment: %w", err)
-	}
-
-	return instance, nil
-}
-
-// ScaleVNF method for O2Adaptor
-func (a *O2Adaptor) ScaleVNF(ctx context.Context, instanceID string, scaleRequest *O2VNFScaleRequest) error {
-	// Parse instance ID (namespace-name format like "test-ns-test-vnf")
-	// We need to map this back to the actual namespace and deployment name
-	// For this test case, "test-ns-test-vnf" should map to namespace="test-ns", name="test-vnf"
-
-	var namespace, name string
-
-	// Handle the specific case from the test
-	if instanceID == "test-ns-test-vnf" {
-		namespace = "test-ns"
-		name = "test-vnf"
-	} else {
-		// Generic parsing - this is a simplified approach
-		// In a real implementation, you would maintain a mapping of instance IDs to actual resources
-		parts := strings.Split(instanceID, "-")
-		if len(parts) < 2 {
-			return fmt.Errorf("invalid instance ID format: %s", instanceID)
-		}
-
-		// Assume the first part is namespace and rest is name (simplified)
-		namespace = parts[0]
-		name = strings.Join(parts[1:], "-")
-	}
-
-	// Get deployment
-	deployment := &appsv1.Deployment{}
-	err := a.kubeClient.Get(ctx, client.ObjectKey{
-		Namespace: namespace,
-		Name:      name,
-	}, deployment)
-	if err != nil {
-		return fmt.Errorf("failed to get deployment %s/%s: %w", namespace, name, err)
-	}
-
-	// Calculate new replica count based on scale request
-	currentReplicas := *deployment.Spec.Replicas
-	var newReplicas int32
-
-	switch scaleRequest.ScaleType {
-	case "SCALE_OUT":
-		newReplicas = currentReplicas + int32(scaleRequest.NumberOfSteps)
-	case "SCALE_IN":
-		newReplicas = currentReplicas - int32(scaleRequest.NumberOfSteps)
-		if newReplicas < 0 {
-			newReplicas = 0
-		}
-	default:
-		return fmt.Errorf("unsupported scale type: %s", scaleRequest.ScaleType)
-	}
-
-	// Update deployment
-	deployment.Spec.Replicas = &newReplicas
-	err = a.kubeClient.Update(ctx, deployment)
-	if err != nil {
-		return fmt.Errorf("failed to update deployment: %w", err)
-	}
-
-	return nil
-}
 
 func TestO2Manager_DiscoverResources(t *testing.T) {
 	tests := []struct {
@@ -942,13 +805,13 @@ func TestO2Manager_DeployVNF(t *testing.T) {
 func TestO2Adaptor_DeployVNF(t *testing.T) {
 	tests := []struct {
 		name          string
-		deployRequest *O2TestVNFDeployRequest
+		deployRequest *VNFDeployRequest
 		expectedError bool
-		validateFunc  func(*testing.T, *O2VNFInstance)
+		validateFunc  func(*testing.T, *O2TestVNFInstance)
 	}{
 		{
 			name: "basic VNF deployment",
-			deployRequest: &O2TestVNFDeployRequest{
+			deployRequest: &VNFDeployRequest{
 				Name:         "test-vnf",
 				Namespace:    "test-ns",
 				VNFPackageID: "vnf-package-1",
@@ -969,7 +832,7 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 				},
 			},
 			expectedError: false,
-			validateFunc: func(t *testing.T, instance *O2VNFInstance) {
+			validateFunc: func(t *testing.T, instance *O2TestVNFInstance) {
 				assert.Equal(t, "test-vnf", instance.Name)
 				assert.Equal(t, "test-ns", instance.Namespace)
 				assert.Equal(t, "vnf-package-1", instance.VNFPackageID)
@@ -1004,7 +867,23 @@ func TestO2Adaptor_DeployVNF(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				require.NotNil(t, instance)
-				tt.validateFunc(t, instance)
+				// Type assert the interface{} to the expected type
+				if vnfInstance, ok := instance.(*O2VNFInstance); ok {
+					// Convert to test type for validation
+					testInstance := &O2TestVNFInstance{
+						ID:           vnfInstance.ID,
+						Name:         vnfInstance.Name,
+						Namespace:    vnfInstance.Namespace,
+						VNFPackageID: vnfInstance.VNFPackageID,
+						Status: &O2VNFStatus{
+							State:         vnfInstance.Status.State,
+							DetailedState: vnfInstance.Status.DetailedState,
+						},
+					}
+					tt.validateFunc(t, testInstance)
+				} else {
+					t.Fatalf("unexpected return type: %T", instance)
+				}
 			}
 		})
 	}
@@ -1047,14 +926,14 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 	tests := []struct {
 		name             string
 		instanceID       string
-		scaleRequest     *O2VNFScaleRequest
+		scaleRequest     *VNFScaleRequest
 		expectedError    bool
 		expectedReplicas int32
 	}{
 		{
 			name:       "scale out",
 			instanceID: "test-ns-test-vnf",
-			scaleRequest: &O2VNFScaleRequest{
+			scaleRequest: &VNFScaleRequest{
 				ScaleType:     "SCALE_OUT",
 				NumberOfSteps: 2,
 			},
@@ -1064,7 +943,7 @@ func TestO2Adaptor_ScaleVNF(t *testing.T) {
 		{
 			name:       "scale in",
 			instanceID: "test-ns-test-vnf",
-			scaleRequest: &O2VNFScaleRequest{
+			scaleRequest: &VNFScaleRequest{
 				ScaleType:     "SCALE_IN",
 				NumberOfSteps: 1,
 			},
@@ -1233,7 +1112,7 @@ func BenchmarkO2Adaptor_DeployVNF(b *testing.B) {
 	}
 	ctx := context.Background()
 
-	deployRequest := &O2TestVNFDeployRequest{
+	deployRequest := &VNFDeployRequest{
 		Name:         "bench-vnf",
 		Namespace:    "bench-ns",
 		VNFPackageID: "bench-package",

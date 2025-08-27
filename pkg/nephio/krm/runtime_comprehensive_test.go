@@ -109,22 +109,22 @@ type FunctionContext struct {
 	Environment map[string]string `json:"environment,omitempty"`
 }
 
-// Pipeline defines a sequence of KRM functions
-type Pipeline struct {
+// TestPipeline defines a sequence of KRM functions for testing
+type TestPipeline struct {
 	Name      string                 `json:"name"`
 	Functions []FunctionConfig       `json:"functions"`
 	Metadata  map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// PipelineRequest represents a pipeline execution request
-type PipelineRequest struct {
-	Pipeline  Pipeline         `json:"pipeline"`
+// TestPipelineRequest represents a pipeline execution request for testing
+type TestPipelineRequest struct {
+	Pipeline  TestPipeline     `json:"pipeline"`
 	Resources []KRMResource    `json:"resources"`
 	Context   *FunctionContext `json:"context,omitempty"`
 }
 
-// PipelineResponse represents a pipeline execution response
-type PipelineResponse struct {
+// TestPipelineResponse represents a pipeline execution response for testing
+type TestPipelineResponse struct {
 	Resources []KRMResource     `json:"resources"`
 	Results   []*FunctionResult `json:"results,omitempty"`
 	Error     *FunctionError    `json:"error,omitempty"`
@@ -163,22 +163,6 @@ type FunctionSchema struct {
 	Required   []string                  `json:"required,omitempty"`
 }
 
-// SchemaProperty defines a schema property
-type SchemaProperty struct {
-	Type        string        `json:"type"`
-	Description string        `json:"description,omitempty"`
-	Default     interface{}   `json:"default,omitempty"`
-	Examples    []interface{} `json:"examples,omitempty"`
-}
-
-// FunctionExample contains function usage examples
-type FunctionExample struct {
-	Name        string          `json:"name"`
-	Description string          `json:"description,omitempty"`
-	Config      *FunctionConfig `json:"config"`
-	Input       []KRMResource   `json:"input"`
-	Output      []KRMResource   `json:"output"`
-}
 
 // ExecutionEvent records function execution history
 type ExecutionEvent struct {
@@ -236,19 +220,19 @@ func (r *MockKRMRuntime) registerStandardFunctions() {
 			{
 				Name:        "basic-labels",
 				Description: "Set basic labels on resources",
-				Config: &FunctionConfig{
-					Image: "gcr.io/kpt-fn/set-labels:v0.2.0",
-					ConfigMap: map[string]interface{}{
+				Config: map[string]interface{}{
+					"image": "gcr.io/kpt-fn/set-labels:v0.2.0",
+					"configMap": map[string]interface{}{
 						"labels": map[string]string{
 							"app": "my-app",
 							"env": "production",
 						},
 					},
 				},
-				Input: []KRMResource{
+				Input: []interface{}{
 					generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 				},
-				Output: []KRMResource{
+				Output: []interface{}{
 					generateTestResourceWithLabels("apps/v1", "Deployment", "test-deployment", "default", map[string]string{
 						"app": "my-app",
 						"env": "production",
@@ -402,7 +386,7 @@ func (r *MockKRMRuntime) ExecuteFunction(ctx context.Context, req *FunctionReque
 }
 
 // ExecutePipeline executes a pipeline of KRM functions
-func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineRequest) (*PipelineResponse, error) {
+func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *TestPipelineRequest) (*TestPipelineResponse, error) {
 	resources := req.Resources
 	var allResults []*FunctionResult
 
@@ -420,7 +404,7 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 
 		funcResp, err := r.ExecuteFunction(ctx, funcReq)
 		if err != nil {
-			return &PipelineResponse{
+			return &TestPipelineResponse{
 				Resources: resources,
 				Results:   allResults,
 				Error: &FunctionError{
@@ -441,7 +425,7 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 
 		// Check for function errors
 		if funcResp.Error != nil {
-			return &PipelineResponse{
+			return &TestPipelineResponse{
 				Resources: resources,
 				Results:   allResults,
 				Error:     funcResp.Error,
@@ -449,7 +433,7 @@ func (r *MockKRMRuntime) ExecutePipeline(ctx context.Context, req *PipelineReque
 		}
 	}
 
-	return &PipelineResponse{
+	return &TestPipelineResponse{
 		Resources: resources,
 		Results:   allResults,
 	}, nil
@@ -1070,7 +1054,7 @@ func TestPipelineExecution(t *testing.T) {
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
-	pipeline := Pipeline{
+	pipeline := TestPipeline{
 		Name: "standard-pipeline",
 		Functions: []FunctionConfig{
 			{
@@ -1091,7 +1075,7 @@ func TestPipelineExecution(t *testing.T) {
 		},
 	}
 
-	req := &PipelineRequest{
+	req := &TestPipelineRequest{
 		Pipeline:  pipeline,
 		Resources: resources,
 		Context: &FunctionContext{
@@ -1143,7 +1127,7 @@ func TestPipelineExecutionFailure(t *testing.T) {
 		generateTestResource("apps/v1", "Deployment", "test-deployment", "default"),
 	}
 
-	pipeline := Pipeline{
+	pipeline := TestPipeline{
 		Name: "failing-pipeline",
 		Functions: []FunctionConfig{
 			{
@@ -1158,7 +1142,7 @@ func TestPipelineExecutionFailure(t *testing.T) {
 		},
 	}
 
-	req := &PipelineRequest{
+	req := &TestPipelineRequest{
 		Pipeline:  pipeline,
 		Resources: resources,
 	}
@@ -1207,7 +1191,7 @@ func TestFunctionValidation(t *testing.T) {
 			},
 		}
 
-		resp, err := runtime.ExecuteFunction(ctx, req)
+		_, err := runtime.ExecuteFunction(ctx, req)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "required field 'labels' is missing")
 	})
@@ -1491,7 +1475,7 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		generateTestResource("v1", "Service", "test-service", "default"),
 	}
 
-	pipeline := Pipeline{
+	pipeline := TestPipeline{
 		Name: "benchmark-pipeline",
 		Functions: []FunctionConfig{
 			{
@@ -1512,7 +1496,7 @@ func BenchmarkPipelineExecution(b *testing.B) {
 		},
 	}
 
-	req := &PipelineRequest{
+	req := &TestPipelineRequest{
 		Pipeline:  pipeline,
 		Resources: resources,
 	}

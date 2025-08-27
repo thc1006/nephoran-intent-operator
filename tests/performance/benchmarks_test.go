@@ -45,7 +45,10 @@ func TestBenchmarks(t *testing.T) {
 // BenchmarkIntentProcessing benchmarks intent processing performance
 func BenchmarkIntentProcessing(b *testing.B) {
 	testSuite := &BenchmarkTestSuite{
-		TestSuite: framework.NewTestSuite(),
+		TestSuite: framework.NewTestSuite(&framework.TestConfig{
+			LoadTestEnabled:  false, // Keep benchmarks lightweight
+			MockExternalAPIs: true,
+		}),
 	}
 	testSuite.SetupSuite()
 	defer testSuite.TearDownSuite()
@@ -66,8 +69,8 @@ func BenchmarkIntentProcessing(b *testing.B) {
 				},
 			},
 			Spec: nephranv1.NetworkIntentSpec{
-				Description: fmt.Sprintf("Benchmark intent %d for AMF deployment with 3 replicas", i),
-				Priority:    "medium",
+				Intent:   fmt.Sprintf("Benchmark intent %d for AMF deployment with 3 replicas", i),
+				Priority: nephranv1.PriorityMedium,
 			},
 		}
 	}
@@ -174,12 +177,7 @@ func BenchmarkLLMTokenManagement(b *testing.B) {
 
 // BenchmarkContextBuilding benchmarks context building performance
 func BenchmarkContextBuilding(b *testing.B) {
-	config := &llm.ContextBuilderConfig{
-		MaxContextTokens:   4000,
-		DiversityThreshold: 0.7,
-		QualityThreshold:   0.8,
-	}
-	contextBuilder := llm.NewContextBuilder(config)
+	contextBuilder := llm.NewContextBuilder()
 
 	// Create test documents
 	documents := make([]llm.Document, 1000)
@@ -302,7 +300,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 	ginkgo.Describe("Load Testing", func() {
 		ginkgo.Context("Intent Processing Load", func() {
 			ginkgo.It("should handle 1000 concurrent intents", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 
@@ -322,8 +320,8 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 							Namespace: "default",
 						},
 						Spec: nephranv1.NetworkIntentSpec{
-							Description: fmt.Sprintf("Load test intent %d for performance testing", intentNum),
-							Priority:    "medium",
+							Intent:   fmt.Sprintf("Load test intent %d for performance testing", intentNum),
+							Priority: nephranv1.PriorityMedium,
 						},
 					}
 
@@ -348,7 +346,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 				gomega.Expect(err).NotTo(gomega.HaveOccurred())
 
 				// Verify load test results
-				loadResults := suite.GetMetrics().loadTestResults
+				loadResults := suite.GetMetrics().GetLoadTestResults()
 				gomega.Expect(len(loadResults)).To(gomega.BeNumerically(">", 0))
 
 				for _, result := range loadResults {
@@ -372,7 +370,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 
 		ginkgo.Context("Memory Pressure Testing", func() {
 			ginkgo.It("should handle memory pressure gracefully", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 
@@ -386,9 +384,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 					largeContexts[i] = generateLargeContext(10000) // 10KB each
 				}
 
-				contextBuilder := llm.NewContextBuilder(&llm.ContextBuilderConfig{
-					MaxContextTokens: 8000,
-				})
+				contextBuilder := llm.NewContextBuilder()
 
 				documents := make([]llm.Document, 100)
 				for i := range documents {
@@ -428,7 +424,7 @@ func (suite *BenchmarkTestSuite) TestLoadTesting() {
 
 		ginkgo.Context("Concurrent Processing", func() {
 			ginkgo.It("should maintain performance under high concurrency", func() {
-				if !suite.GetConfig().LoadTestEnabled {
+				if !suite.GetTestConfig().LoadTestEnabled {
 					ginkgo.Skip("Load testing disabled")
 				}
 

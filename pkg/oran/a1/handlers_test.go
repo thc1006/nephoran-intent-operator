@@ -1067,8 +1067,8 @@ func (m *MockA1Service) RegisterConsumer(ctx context.Context, consumer *Consumer
 	return args.Error(0)
 }
 
-func (m *MockA1Service) CreateEIJob(ctx context.Context, job *EnrichmentInfoJob) error {
-	args := m.Called(ctx, job)
+func (m *MockA1Service) CreateEIJob(ctx context.Context, eiJobID string, job *EnrichmentInfoJob) error {
+	args := m.Called(ctx, eiJobID, job)
 	return args.Error(0)
 }
 

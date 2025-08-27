@@ -116,10 +116,13 @@ var _ = Describe("ChunkingService", func() {
 				document := &LoadedDocument{
 					Content: "Short text.",
 					Title:   "Short Document",
-					Source:  "test",
+					Metadata: &DocumentMetadata{
+						Source:       "test",
+						DocumentType: "txt",
+					},
 				}
 
-				chunks, err := service.ChunkDocument(document)
+				chunks, err := service.ChunkDocument(context.Background(), document)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(chunks)).To(Equal(1))
@@ -132,10 +135,13 @@ var _ = Describe("ChunkingService", func() {
 				document := &LoadedDocument{
 					Content: "The gNB (next generation Node B) is a key component in 5G networks. It handles radio resource management for the New Radio (NR) interface. The gNB connects to the 5G Core (5GC) through the N2 and N3 interfaces.",
 					Title:   "5G Architecture",
-					Source:  "3GPP TS 38.300",
+					Metadata: &DocumentMetadata{
+						Source:       "3GPP TS 38.300",
+						DocumentType: "TS",
+					},
 				}
 
-				chunks, err := service.ChunkDocument(document)
+				chunks, err := service.ChunkDocument(context.Background(), document)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(chunks)).To(BeNumerically(">", 0))
@@ -168,10 +174,13 @@ The RAN includes:
 - DU (Distributed Unit)
 `,
 					Title:  "5G Architecture Guide",
-					Source: "O-RAN Alliance",
+					Metadata: &DocumentMetadata{
+						Source:       "O-RAN Alliance",
+						DocumentType: "spec",
+					},
 				}
 
-				chunks, err := service.ChunkDocument(document)
+				chunks, err := service.ChunkDocument(context.Background(), document)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(chunks)).To(BeNumerically(">", 0))
@@ -190,7 +199,7 @@ The RAN includes:
 
 		Context("when handling different separator types", func() {
 			BeforeEach(func() {
-				config.SeparatorType = "paragraph"
+				// Remove separator type configuration as it's not supported
 				service = NewChunkingService(config)
 			})
 
@@ -198,10 +207,13 @@ The RAN includes:
 				document := &LoadedDocument{
 					Content: "First paragraph with multiple sentences. This continues the first paragraph.\n\nSecond paragraph starts here. It also has multiple sentences.\n\nThird paragraph is the final one.",
 					Title:   "Multi-paragraph Document",
-					Source:  "test",
+					Metadata: &DocumentMetadata{
+						Source:       "test",
+						DocumentType: "txt",
+					},
 				}
 
-				chunks, err := service.ChunkDocument(document)
+				chunks, err := service.ChunkDocument(context.Background(), document)
 
 				Expect(err).ToNot(HaveOccurred())
 				Expect(len(chunks)).To(BeNumerically(">", 0))
@@ -209,90 +221,24 @@ The RAN includes:
 		})
 	})
 
-	Describe("EstimateTokens", func() {
-		It("should provide reasonable token estimates", func() {
-			texts := []string{
-				"Short text",
-				"This is a longer piece of text with more words",
-				"Very long text with many technical terms like gNB, AMF, SMF, UPF, and other 5G terminology that should be counted appropriately",
-			}
+	// Remove EstimateTokens tests as the method doesn't exist in ChunkingService
 
-			for _, text := range texts {
-				tokens := service.EstimateTokens(text)
-				words := len(splitWords(text))
-
-				// Token count should be reasonable compared to word count
-				Expect(tokens).To(BeNumerically(">", 0))
-				Expect(tokens).To(BeNumerically(">=", words/2)) // At least half the word count
-				Expect(tokens).To(BeNumerically("<=", words*2)) // At most double the word count
-			}
-		})
-
-		It("should handle empty text", func() {
-			tokens := service.EstimateTokens("")
-			Expect(tokens).To(Equal(0))
-		})
-	})
-
-	Describe("OptimizeChunks", func() {
-		It("should merge small adjacent chunks", func() {
-			chunks := []*DocumentChunk{
-				{
-					Content:    "Small chunk 1.",
-					ChunkStart: 0,
-					ChunkEnd:   14,
-				},
-				{
-					Content:    "Small chunk 2.",
-					ChunkStart: 10,
-					ChunkEnd:   24,
-				},
-				{
-					Content:    "This is a much larger chunk that should not be merged with the small ones because it exceeds the merging threshold.",
-					ChunkStart: 20,
-					ChunkEnd:   135,
-				},
-			}
-
-			optimized := service.OptimizeChunks(chunks)
-
-			Expect(len(optimized)).To(BeNumerically("<=", len(chunks)))
-		})
-
-		It("should not merge chunks that are already optimal", func() {
-			chunks := []*DocumentChunk{
-				{
-					Content:    generateText(400), // Optimal size
-					ChunkStart: 0,
-					ChunkEnd:   400,
-				},
-				{
-					Content:    generateText(450), // Optimal size
-					ChunkStart: 350,
-					ChunkEnd:   800,
-				},
-			}
-
-			optimized := service.OptimizeChunks(chunks)
-
-			Expect(len(optimized)).To(Equal(len(chunks)))
-		})
-	})
+	// Remove OptimizeChunks tests as the method doesn't exist in ChunkingService
 
 	Describe("Configuration Validation", func() {
 		It("should handle invalid chunk sizes", func() {
 			invalidConfig := &ChunkingConfig{
-				ChunkSize:    0,    // Invalid
-				OverlapSize:  -1,   // Invalid
-				MinChunkSize: 1000, // Invalid (larger than chunk size)
-				MaxChunkSize: 100,  // Invalid (smaller than chunk size)
+				ChunkSize:     0,    // Invalid
+				ChunkOverlap:  -1,   // Invalid
+				MinChunkSize:  1000, // Invalid (larger than chunk size)
+				MaxChunkSize:  100,  // Invalid (smaller than chunk size)
 			}
 
 			service := NewChunkingService(invalidConfig)
 
 			// Service should correct invalid values
 			Expect(service.config.ChunkSize).To(BeNumerically(">", 0))
-			Expect(service.config.OverlapSize).To(BeNumerically(">=", 0))
+			Expect(service.config.ChunkOverlap).To(BeNumerically(">=", 0))
 			Expect(service.config.MinChunkSize).To(BeNumerically("<=", service.config.ChunkSize))
 			Expect(service.config.MaxChunkSize).To(BeNumerically(">=", service.config.ChunkSize))
 		})
@@ -301,7 +247,7 @@ The RAN includes:
 	Describe("Error Handling", func() {
 		Context("when document is nil", func() {
 			It("should return error", func() {
-				chunks, err := service.ChunkDocument(nil)
+				chunks, err := service.ChunkDocument(context.Background(), nil)
 
 				Expect(err).To(HaveOccurred())
 				Expect(chunks).To(BeNil())
@@ -313,10 +259,13 @@ The RAN includes:
 				document := &LoadedDocument{
 					Content: string([]byte{0, 1, 2, 3, 4, 5}), // Binary content
 					Title:   "Binary Document",
-					Source:  "test",
+					Metadata: &DocumentMetadata{
+						Source:       "test",
+						DocumentType: "txt",
+					},
 				}
 
-				chunks, err := service.ChunkDocument(document)
+				chunks, err := service.ChunkDocument(context.Background(), document)
 
 				// Should either succeed or fail gracefully
 				if err != nil {

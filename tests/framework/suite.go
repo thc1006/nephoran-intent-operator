@@ -208,6 +208,11 @@ func (ts *TestSuite) GetConfig() *rest.Config {
 	return ts.cfg
 }
 
+// GetTestConfig returns the test configuration
+func (ts *TestSuite) GetTestConfig() *TestConfig {
+	return ts.config
+}
+
 // GetContext returns the test context
 func (ts *TestSuite) GetContext() context.Context {
 	return ts.ctx

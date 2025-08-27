@@ -97,6 +97,19 @@ type CoverageData struct {
 	FileCoverage    map[string]float64
 }
 
+// GetLoadTestResults returns the load test results
+func (tm *TestMetrics) GetLoadTestResults() map[string]*LoadTestResult {
+	tm.mu.RLock()
+	defer tm.mu.RUnlock()
+	
+	// Create a copy to avoid race conditions
+	results := make(map[string]*LoadTestResult)
+	for k, v := range tm.loadTestResults {
+		results[k] = v
+	}
+	return results
+}
+
 // BenchmarkResult contains benchmark execution results
 type BenchmarkResult struct {
 	Name           string

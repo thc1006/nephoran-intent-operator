@@ -19,8 +19,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	
+	"github.com/randonresearch/nephoran-intent-operator/pkg/testutils"
 )
 
 var _ = Describe("TLS/mTLS Security Tests", func() {
@@ -34,9 +34,9 @@ var _ = Describe("TLS/mTLS Security Tests", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		k8sClient = utils.GetK8sClient()
-		clientset = utils.GetClientset()
-		namespace = utils.GetTestNamespace()
+		k8sClient = testutils.GetK8sClient()
+		clientset = testutils.GetClientset()
+		namespace = testutils.GetTestNamespace()
 		timeout = 30 * time.Second
 	})
 

@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
+	testutils "github.com/thc1006/nephoran-intent-operator/tests/utils"
 )
 
 // TestSecuritySuite runs the complete security test suite
@@ -20,7 +20,7 @@ var _ = BeforeSuite(func() {
 	By("Setting up test environment")
 
 	// Setup test environment
-	err := utils.SetupTestEnvironment()
+	err := testutils.SetupTestEnvironment()
 	Expect(err).NotTo(HaveOccurred())
 
 	// Wait for environment to be ready
@@ -32,7 +32,7 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 	By("Tearing down test environment")
 
-	err := utils.TeardownTestEnvironment()
+	err := testutils.TeardownTestEnvironment()
 	Expect(err).NotTo(HaveOccurred())
 
 	By("Test environment cleanup completed")

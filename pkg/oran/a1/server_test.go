@@ -43,6 +43,11 @@ func (m *MockA1Service) DeletePolicyType(ctx context.Context, policyTypeID int) 
 	return args.Error(0)
 }
 
+func (m *MockA1Service) CreateEIType(ctx context.Context, eiTypeID string, eiType *EnrichmentInfoType) error {
+	args := m.Called(ctx, eiTypeID, eiType)
+	return args.Error(0)
+}
+
 func (m *MockA1Service) CreatePolicyInstance(ctx context.Context, instance *PolicyInstance) error {
 	args := m.Called(ctx, instance)
 	return args.Error(0)
@@ -66,6 +71,49 @@ func (m *MockA1Service) DeletePolicyInstance(ctx context.Context, policyTypeID i
 func (m *MockA1Service) GetPolicyStatus(ctx context.Context, policyTypeID int, policyID string) (*PolicyStatus, error) {
 	args := m.Called(ctx, policyTypeID, policyID)
 	return args.Get(0).(*PolicyStatus), args.Error(1)
+}
+
+// EI-related methods
+func (m *MockA1Service) DeleteEIType(ctx context.Context, eiTypeID string) error {
+	args := m.Called(ctx, eiTypeID)
+	return args.Error(0)
+}
+
+func (m *MockA1Service) GetEIJobs(ctx context.Context, eiTypeID string) ([]string, error) {
+	args := m.Called(ctx, eiTypeID)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+func (m *MockA1Service) GetEIJob(ctx context.Context, eiJobID string) (*EnrichmentInfoJob, error) {
+	args := m.Called(ctx, eiJobID)
+	return args.Get(0).(*EnrichmentInfoJob), args.Error(1)
+}
+
+
+func (m *MockA1Service) UpdateEIJob(ctx context.Context, eiJobID string, job *EnrichmentInfoJob) error {
+	args := m.Called(ctx, eiJobID, job)
+	return args.Error(0)
+}
+
+func (m *MockA1Service) DeleteEIJob(ctx context.Context, eiJobID string) error {
+	args := m.Called(ctx, eiJobID)
+	return args.Error(0)
+}
+
+func (m *MockA1Service) GetEIJobStatus(ctx context.Context, eiJobID string) (*EnrichmentInfoJobStatus, error) {
+	args := m.Called(ctx, eiJobID)
+	return args.Get(0).(*EnrichmentInfoJobStatus), args.Error(1)
+}
+
+// Consumer-related methods
+func (m *MockA1Service) RegisterConsumer(ctx context.Context, consumerID string, info *ConsumerInfo) error {
+	args := m.Called(ctx, consumerID, info)
+	return args.Error(0)
+}
+
+func (m *MockA1Service) UnregisterConsumer(ctx context.Context, consumerID string) error {
+	args := m.Called(ctx, consumerID)
+	return args.Error(0)
 }
 
 // MockA1Validator provides a mock implementation of A1TestValidator for testing

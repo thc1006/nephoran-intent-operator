@@ -161,7 +161,7 @@ func TestNetworkPolicyEnforcement(t *testing.T) {
 						{
 							Ports: []networkingv1.NetworkPolicyPort{
 								{
-									Protocol: &corev1.Protocol("TCP"),
+									Protocol: func() *corev1.Protocol { p := corev1.Protocol("TCP"); return &p }(),
 									Port:     &intstr.IntOrString{IntVal: 80},
 								},
 							},
@@ -201,7 +201,7 @@ func TestNetworkPolicyEnforcement(t *testing.T) {
 							},
 							Ports: []networkingv1.NetworkPolicyPort{
 								{
-									Protocol: &corev1.Protocol("TCP"),
+									Protocol: func() *corev1.Protocol { p := corev1.Protocol("TCP"); return &p }(),
 									Port:     &intstr.IntOrString{IntVal: 443},
 								},
 							},

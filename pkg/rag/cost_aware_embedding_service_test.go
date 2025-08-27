@@ -11,6 +11,20 @@ import (
 	"time"
 )
 
+// TokenUsage represents token usage information for embedding generation
+type TokenUsage struct {
+	PromptTokens  int     `json:"prompt_tokens"`
+	TotalTokens   int     `json:"total_tokens"`
+	EstimatedCost float64 `json:"estimated_cost"`
+}
+
+// ProviderConfig represents configuration for an embedding provider
+type ProviderConfig struct {
+	Name         string  `json:"name"`
+	CostPerToken float64 `json:"cost_per_token"`
+	Enabled      bool    `json:"enabled"`
+}
+
 // MockProvider implements EmbeddingProvider for testing
 type MockProvider struct {
 	name         string
@@ -30,9 +44,6 @@ func NewMockProvider(name string, costPerToken float64, latency time.Duration) *
 			Name:         name,
 			CostPerToken: costPerToken,
 			Enabled:      true,
-			Healthy:      true,
-			Priority:     5,
-			RateLimit:    1000,
 		},
 		costPerToken: costPerToken,
 		latency:      latency,
@@ -40,7 +51,7 @@ func NewMockProvider(name string, costPerToken float64, latency time.Duration) *
 	}
 }
 
-func (m *MockProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, TokenUsage, error) {
+func (m *MockProvider) GenerateEmbeddings(ctx context.Context, texts []string) ([][]float32, *TokenUsage, error) {
 	m.mu.Lock()
 	m.callCount++
 	callNum := m.callCount
@@ -50,12 +61,12 @@ func (m *MockProvider) GenerateEmbeddings(ctx context.Context, texts []string) (
 	select {
 	case <-time.After(m.latency):
 	case <-ctx.Done():
-		return nil, TokenUsage{}, ctx.Err()
+		return nil, &TokenUsage{}, ctx.Err()
 	}
 
 	// Simulate failures
 	if m.failureRate > 0 && float64(callNum%100)/100.0 < m.failureRate {
-		return nil, TokenUsage{}, fmt.Errorf("provider %s failed", m.name)
+		return nil, &TokenUsage{}, fmt.Errorf("provider %s failed", m.name)
 	}
 
 	// Generate mock embeddings
@@ -70,7 +81,7 @@ func (m *MockProvider) GenerateEmbeddings(ctx context.Context, texts []string) (
 		totalTokens += len(text) / 4 // Rough estimation
 	}
 
-	usage := TokenUsage{
+	usage := &TokenUsage{
 		PromptTokens:  totalTokens,
 		TotalTokens:   totalTokens,
 		EstimatedCost: float64(totalTokens) * m.costPerToken / 1000,
@@ -93,8 +104,7 @@ func (m *MockProvider) HealthCheck(ctx context.Context) error {
 		return fmt.Errorf("provider %s is unhealthy", m.name)
 	}
 
-	m.config.Healthy = true
-	m.config.LastCheck = time.Now()
+	// Update health status (no config fields to update)
 	return nil
 }
 
@@ -143,7 +153,7 @@ func TestCostAwareEmbeddingService_ProviderSelection(t *testing.T) {
 	baseService := &EmbeddingService{
 		config:      baseConfig,
 		logger:      slog.Default(),
-		providers:   make(map[string]EmbeddingProvider),
+		providers:   make(map[string]BasicEmbeddingProvider),
 		cache:       NewInMemoryCache(100),
 		redisCache:  &NoOpRedisCache{},
 		rateLimiter: NewRateLimiter(1000, 10000),
@@ -163,16 +173,7 @@ func TestCostAwareEmbeddingService_ProviderSelection(t *testing.T) {
 
 	// Create cost-aware service
 	costConfig := &CostOptimizerConfig{
-		OptimizationStrategy:    "balanced",
-		CostWeight:              0.4,
-		PerformanceWeight:       0.3,
-		QualityWeight:           0.3,
-		DailyBudget:             10.0,
-		EnableBudgetTracking:    true,
-		MinProviderScore:        0.1,
-		ProviderTimeout:         1 * time.Second,
-		CircuitBreakerThreshold: 3,
-		CircuitBreakerTimeout:   5 * time.Second,
+		MaxCostPerRequest: 10.0,
 	}
 
 	costAwareService := NewCostAwareEmbeddingService(baseService, costConfig)
@@ -247,7 +248,7 @@ func TestCostAwareEmbeddingService_Fallback(t *testing.T) {
 			FallbackEnabled: true,
 		},
 		logger:      slog.Default(),
-		providers:   make(map[string]EmbeddingProvider),
+		providers:   make(map[string]BasicEmbeddingProvider),
 		cache:       NewInMemoryCache(100),
 		redisCache:  &NoOpRedisCache{},
 		rateLimiter: NewRateLimiter(1000, 10000),
@@ -308,7 +309,7 @@ func TestCostAwareEmbeddingService_BudgetConstraints(t *testing.T) {
 	baseService := &EmbeddingService{
 		config:      &EmbeddingConfig{},
 		logger:      slog.Default(),
-		providers:   make(map[string]EmbeddingProvider),
+		providers:   make(map[string]BasicEmbeddingProvider),
 		cache:       NewInMemoryCache(100),
 		redisCache:  &NoOpRedisCache{},
 		rateLimiter: NewRateLimiter(1000, 10000),
@@ -354,7 +355,7 @@ func TestCostAwareEmbeddingService_CircuitBreaker(t *testing.T) {
 	baseService := &EmbeddingService{
 		config:      &EmbeddingConfig{},
 		logger:      slog.Default(),
-		providers:   make(map[string]EmbeddingProvider),
+		providers:   make(map[string]BasicEmbeddingProvider),
 		cache:       NewInMemoryCache(100),
 		redisCache:  &NoOpRedisCache{},
 		rateLimiter: NewRateLimiter(1000, 10000),
@@ -419,7 +420,7 @@ func TestCostAwareEmbeddingService_ConcurrentRequests(t *testing.T) {
 	baseService := &EmbeddingService{
 		config:      &EmbeddingConfig{},
 		logger:      slog.Default(),
-		providers:   make(map[string]EmbeddingProvider),
+		providers:   make(map[string]BasicEmbeddingProvider),
 		cache:       NewInMemoryCache(100),
 		redisCache:  &NoOpRedisCache{},
 		rateLimiter: NewRateLimiter(1000, 10000),
@@ -595,7 +596,7 @@ func BenchmarkCostAwareEmbeddingService(b *testing.B) {
 	baseService := &EmbeddingService{
 		config:      &EmbeddingConfig{},
 		logger:      slog.Default(),
-		providers:   make(map[string]EmbeddingProvider),
+		providers:   make(map[string]BasicEmbeddingProvider),
 		cache:       NewInMemoryCache(1000),
 		redisCache:  &NoOpRedisCache{},
 		rateLimiter: NewRateLimiter(10000, 100000),
