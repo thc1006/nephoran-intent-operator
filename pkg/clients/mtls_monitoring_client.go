@@ -348,6 +348,11 @@ func (c *MTLSMonitoringClient) GetHealth() (*HealthStatus, error) {
 	return &health, nil
 }
 
+// GetEndpoint returns the endpoint URL
+func (c *MTLSMonitoringClient) GetEndpoint() string {
+	return "monitoring-service" // Default endpoint name
+}
+
 // Close closes the monitoring client and cleans up resources
 func (c *MTLSMonitoringClient) Close() error {
 	c.logger.Debug("closing mTLS monitoring client")

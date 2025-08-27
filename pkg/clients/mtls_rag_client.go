@@ -82,7 +82,7 @@ type RAGStatsResponse struct {
 }
 
 // SearchDocuments searches for documents using the RAG service with mTLS
-func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.SearchQuery) (*shared.SearchResponse, error) {
+func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.SearchQuery) (*shared.RAGResponse, error) {
 	if query == nil || query.Query == "" {
 		return nil, fmt.Errorf("search query cannot be empty")
 	}
@@ -90,7 +90,6 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 	c.logger.Debug("searching documents via mTLS RAG client",
 		"query", query.Query,
 		"limit", query.Limit,
-		"hybrid_search", query.HybridSearch,
 		"base_url", c.baseURL)
 
 	// Convert shared.SearchQuery to internal request format
@@ -98,11 +97,11 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 		Query:         query.Query,
 		Limit:         query.Limit,
 		Filters:       query.Filters,
-		HybridSearch:  query.HybridSearch,
-		HybridAlpha:   query.HybridAlpha,
-		UseReranker:   query.UseReranker,
-		MinConfidence: query.MinConfidence,
-		ExpandQuery:   query.ExpandQuery,
+		HybridSearch:  false, // Default value
+		HybridAlpha:   0.5,   // Default value
+		UseReranker:   false, // Default value
+		MinConfidence: query.Threshold, // Use threshold instead
+		ExpandQuery:   false, // Default value
 		Metadata: map[string]interface{}{
 			"request_type": "document_search",
 			"timestamp":    time.Now(),
@@ -131,11 +130,19 @@ func (c *MTLSRAGClient) SearchDocuments(ctx context.Context, query *shared.Searc
 		"total_results", response.Total,
 		"processing_time", response.Took)
 
-	// Convert to shared.SearchResponse
-	return &shared.SearchResponse{
-		Results: response.Results,
-		Took:    response.Took,
-		Total:   response.Total,
+	// Convert to shared.RAGResponse
+	// Convert slice of pointers to slice of values
+	results := make([]shared.SearchResult, len(response.Results))
+	for i, result := range response.Results {
+		if result != nil {
+			results[i] = *result
+		}
+	}
+	
+	return &shared.RAGResponse{
+		Query:     response.Query,
+		Results:   results,
+		TotalTime: time.Duration(response.Took) * time.Millisecond,
 	}, nil
 }
 
@@ -415,6 +422,11 @@ func (c *MTLSRAGClient) makeDocumentRequest(ctx context.Context, endpoint string
 	}
 
 	return &response, nil
+}
+
+// GetEndpoint returns the endpoint URL
+func (c *MTLSRAGClient) GetEndpoint() string {
+	return c.baseURL
 }
 
 // Close closes the RAG client and cleans up resources

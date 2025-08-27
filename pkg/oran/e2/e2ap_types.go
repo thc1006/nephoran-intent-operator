@@ -1,21 +1,12 @@
 package e2
 
 import (
-	"sync"
 	"time"
 )
 
 // E2AP Additional Type Definitions following O-RAN.WG3.E2AP-v03.01
 
-// E2NodeType represents the type of E2 node
-type E2NodeType int
-
-const (
-	E2NodeTypegNB E2NodeType = iota
-	E2NodeTypeeNB
-	E2NodeTypeNgENB
-	E2NodeTypeEnGNB
-)
+// E2NodeType and constants are now defined in e2ap_messages.go to avoid duplication
 
 // RANFunctionItem is now defined in e2ap_messages.go to avoid duplication
 

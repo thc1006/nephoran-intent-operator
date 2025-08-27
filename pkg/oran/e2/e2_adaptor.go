@@ -835,14 +835,14 @@ func (e *E2Adaptor) ConfigureE2Interface(ctx context.Context, me *nephoranv1.Man
 	logger := log.FromContext(ctx)
 	logger.Info("configuring E2 interface", "managedElement", me.ObjectMeta.Name)
 
-	if me.Spec.E2Configuration.Raw == nil {
+	if me.Spec.E2Configuration == nil {
 		logger.Info("no E2 configuration to apply", "managedElement", me.ObjectMeta.Name)
 		return nil
 	}
 
 	// Parse E2 configuration
 	var e2Config map[string]interface{}
-	if err := json.Unmarshal(me.Spec.E2Configuration.Raw, &e2Config); err != nil {
+	if err := json.Unmarshal([]byte(fmt.Sprintf("%v", me.Spec.E2Configuration)), &e2Config); err != nil {
 		return fmt.Errorf("failed to unmarshal E2 configuration: %w", err)
 	}
 
@@ -968,14 +968,14 @@ func (e *E2Adaptor) RemoveE2Interface(ctx context.Context, me *nephoranv1.Manage
 	logger := log.FromContext(ctx)
 	logger.Info("removing E2 interface", "managedElement", me.ObjectMeta.Name)
 
-	if me.Spec.E2Configuration.Raw == nil {
+	if me.Spec.E2Configuration == nil {
 		logger.Info("no E2 configuration to remove", "managedElement", me.ObjectMeta.Name)
 		return nil
 	}
 
 	// Parse E2 configuration to get node ID
 	var e2Config map[string]interface{}
-	if err := json.Unmarshal(me.Spec.E2Configuration.Raw, &e2Config); err != nil {
+	if err := json.Unmarshal([]byte(fmt.Sprintf("%v", me.Spec.E2Configuration)), &e2Config); err != nil {
 		return fmt.Errorf("failed to unmarshal E2 configuration: %w", err)
 	}
 

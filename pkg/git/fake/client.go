@@ -1,7 +1,9 @@
 package fake
 
 import (
+	"context"
 	"fmt"
+	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/git"
 )
@@ -38,6 +40,97 @@ func NewClient() *Client {
 
 // Ensure Client implements the GitClientInterface
 var _ git.ClientInterface = (*Client)(nil)
+
+// CommitFiles fake implementation
+func (c *Client) CommitFiles(ctx context.Context, files map[string]string, message string) (string, error) {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("CommitFiles(files=%d, message=%s)", len(files), message))
+	if c.ShouldFailCommitAndPush {
+		return "", fmt.Errorf("fake CommitFiles error")
+	}
+	return c.CommitHash, nil
+}
+
+// CreateBranch fake implementation
+func (c *Client) CreateBranch(ctx context.Context, branchName, baseBranch string) error {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("CreateBranch(%s, %s)", branchName, baseBranch))
+	return nil
+}
+
+// SwitchBranch fake implementation
+func (c *Client) SwitchBranch(ctx context.Context, branchName string) error {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("SwitchBranch(%s)", branchName))
+	return nil
+}
+
+// GetCurrentBranch fake implementation
+func (c *Client) GetCurrentBranch(ctx context.Context) (string, error) {
+	c.CallHistory = append(c.CallHistory, "GetCurrentBranch")
+	return "main", nil
+}
+
+// ListBranches fake implementation
+func (c *Client) ListBranches(ctx context.Context) ([]string, error) {
+	c.CallHistory = append(c.CallHistory, "ListBranches")
+	return []string{"main", "develop"}, nil
+}
+
+// GetFileContent fake implementation
+func (c *Client) GetFileContent(ctx context.Context, filePath string) (string, error) {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("GetFileContent(%s)", filePath))
+	return "fake file content", nil
+}
+
+// DeleteFile fake implementation
+func (c *Client) DeleteFile(ctx context.Context, filePath, message string) (string, error) {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("DeleteFile(%s, %s)", filePath, message))
+	return c.CommitHash, nil
+}
+
+// Push fake implementation
+func (c *Client) Push(ctx context.Context, branch string) error {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("Push(%s)", branch))
+	return nil
+}
+
+// Pull fake implementation
+func (c *Client) Pull(ctx context.Context, branch string) error {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("Pull(%s)", branch))
+	return nil
+}
+
+// GetStatus fake implementation
+func (c *Client) GetStatus(ctx context.Context) (*git.StatusInfo, error) {
+	c.CallHistory = append(c.CallHistory, "GetStatus")
+	return &git.StatusInfo{
+		Clean: true,
+		CurrentBranch: "main",
+	}, nil
+}
+
+// GetCommitHistory fake implementation
+func (c *Client) GetCommitHistory(ctx context.Context, limit int) ([]git.CommitInfo, error) {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("GetCommitHistory(%d)", limit))
+	return []git.CommitInfo{
+		{
+			Hash: c.CommitHash,
+			Message: "fake commit",
+			Author: "fake author",
+			Timestamp: time.Now(),
+		},
+	}, nil
+}
+
+// CreatePullRequest fake implementation
+func (c *Client) CreatePullRequest(ctx context.Context, options *git.PullRequestOptions) (*git.PullRequestInfo, error) {
+	c.CallHistory = append(c.CallHistory, fmt.Sprintf("CreatePullRequest(%s)", options.Title))
+	return &git.PullRequestInfo{
+		Number: 1,
+		URL: "https://github.com/fake/repo/pull/1",
+		Title: options.Title,
+		State: "open",
+		CreatedAt: time.Now(),
+	}, nil
+}
 
 // InitRepo fake implementation
 func (c *Client) InitRepo() error {

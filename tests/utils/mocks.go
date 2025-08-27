@@ -194,6 +194,120 @@ func (m *MockGitClient) RemoveAndPush(path string, commitMessage string) (string
 	return commitHash, nil
 }
 
+func (m *MockGitClient) CommitFiles(ctx context.Context, files map[string]string, message string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	commitHash := fmt.Sprintf("commit-%d", len(m.commits))
+	m.commits = append(m.commits, commitHash)
+
+	for path, content := range files {
+		m.files[path] = content
+	}
+
+	if err := m.pushResults["CommitFiles"]; err != nil {
+		return "", err
+	}
+	return commitHash, nil
+}
+
+// Branch operations
+func (m *MockGitClient) CreateBranch(ctx context.Context, branchName, baseBranch string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pushResults["CreateBranch"]
+}
+
+func (m *MockGitClient) SwitchBranch(ctx context.Context, branchName string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pushResults["SwitchBranch"]
+}
+
+func (m *MockGitClient) GetCurrentBranch(ctx context.Context) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["GetCurrentBranch"]; err != nil {
+		return "", err
+	}
+	return "main", nil
+}
+
+func (m *MockGitClient) ListBranches(ctx context.Context) ([]string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["ListBranches"]; err != nil {
+		return nil, err
+	}
+	return []string{"main", "develop"}, nil
+}
+
+// File operations
+func (m *MockGitClient) GetFileContent(ctx context.Context, filePath string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["GetFileContent"]; err != nil {
+		return "", err
+	}
+	if content, exists := m.files[filePath]; exists {
+		return content, nil
+	}
+	return "", fmt.Errorf("file not found: %s", filePath)
+}
+
+func (m *MockGitClient) DeleteFile(ctx context.Context, filePath, message string) (string, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["DeleteFile"]; err != nil {
+		return "", err
+	}
+	delete(m.files, filePath)
+	commitHash := fmt.Sprintf("commit-%d", len(m.commits))
+	m.commits = append(m.commits, commitHash)
+	return commitHash, nil
+}
+
+// Repository operations
+func (m *MockGitClient) Push(ctx context.Context, branch string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pushResults["Push"]
+}
+
+func (m *MockGitClient) Pull(ctx context.Context, branch string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.pullResults[branch]
+}
+
+func (m *MockGitClient) GetStatus(ctx context.Context) (*git.StatusInfo, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["GetStatus"]; err != nil {
+		return nil, err
+	}
+	return &git.StatusInfo{Clean: true}, nil
+}
+
+func (m *MockGitClient) GetCommitHistory(ctx context.Context, limit int) ([]git.CommitInfo, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["GetCommitHistory"]; err != nil {
+		return nil, err
+	}
+	return []git.CommitInfo{}, nil
+}
+
+// Pull request operations
+func (m *MockGitClient) CreatePullRequest(ctx context.Context, options *git.PullRequestOptions) (*git.PullRequestInfo, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if err := m.pushResults["CreatePullRequest"]; err != nil {
+		return nil, err
+	}
+	return &git.PullRequestInfo{Number: 1, URL: "https://github.com/test/repo/pull/1"}, nil
+}
+
 // MockLLMClient implements types.ClientInterface for testing
 type MockLLMClient struct {
 	responses map[string]string

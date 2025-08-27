@@ -177,3 +177,20 @@ func NewRAGClient(config *RAGClientConfig) RAGClient {
 // newRAGClientImpl is implemented in:
 // - client_noop.go (for !rag build tag)
 // - weaviate_client_complex.go (for rag build tag)
+
+// QueryRequest represents a query request to the RAG system
+type QueryRequest struct {
+	Query       string                 `json:"query"`
+	Limit       int                    `json:"limit"`
+	Filters     map[string]interface{} `json:"filters"`
+	Context     map[string]interface{} `json:"context"`
+	IntentType  string                 `json:"intent_type"`
+	SessionID   string                 `json:"session_id"`
+	ClientID    string                 `json:"client_id"`
+	Metadata    map[string]interface{} `json:"metadata"`
+	Timeout     time.Duration          `json:"timeout"`
+}
+
+// Document represents a document in the RAG system (alias to Doc for compatibility)
+type Document = Doc
+

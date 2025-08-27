@@ -478,9 +478,9 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 			for i := 0; i < 50; i++ {
 				start := time.Now()
 
-				response, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+				response, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 					Query: query,
-					Limit: 10,
+					MaxResults: 10,
 				})
 
 				latency := time.Since(start)
@@ -499,7 +499,7 @@ func (rpts *RAGPerformanceTestSuite) runRetrievalTests(ctx context.Context) (*Re
 
 					// Collect similarity scores
 					for _, doc := range response.Documents {
-						similarities = append(similarities, doc.Similarity)
+						similarities = append(similarities, float64(doc.Score))
 					}
 				}
 				results.TotalQueries++
@@ -540,10 +540,10 @@ func (rpts *RAGPerformanceTestSuite) runContextTests(ctx context.Context) (*Cont
 			start := time.Now()
 
 			// Simulate context assembly
-			response, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+			response, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 				Query:      query.Query,
 				IntentType: query.IntentType,
-				Context:    query.Context,
+				// Context not supported in RAGRequest
 			})
 
 			assemblyLatency := time.Since(start)
@@ -587,7 +587,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 	// First round - populate cache (cache misses)
 	for i := 0; i < 100; i++ {
 		start := time.Now()
-		_, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+		_, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 			Query: fmt.Sprintf("%s variation %d", testQuery, i%10),
 		})
 		latency := time.Since(start)
@@ -601,7 +601,7 @@ func (rpts *RAGPerformanceTestSuite) runCachingTests(ctx context.Context) (*Cach
 	// Second round - cache hits
 	for i := 0; i < 100; i++ {
 		start := time.Now()
-		_, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+		_, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 			Query: fmt.Sprintf("%s variation %d", testQuery, i%10),
 		})
 		latency := time.Since(start)
@@ -697,7 +697,7 @@ func (rpts *RAGPerformanceTestSuite) runConcurrencyTest(ctx context.Context, con
 					return
 				default:
 					queryStart := time.Now()
-					_, err := rpts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+					_, err := rpts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 						Query: "Test scalability query",
 					})
 					latency := time.Since(queryStart)
@@ -993,7 +993,7 @@ func calculateRetrievalAccuracy(response *rag.RAGResponse) float64 {
 	// Simple accuracy based on similarity scores
 	totalSimilarity := 0.0
 	for _, doc := range response.Documents {
-		totalSimilarity += doc.Similarity
+		totalSimilarity += float64(doc.Score)
 	}
 
 	return totalSimilarity / float64(len(response.Documents))

@@ -54,21 +54,21 @@ func (m *MockLLMService) ProcessRequest(ctx context.Context, request *llm.Proces
 	}
 
 	// Check for configured errors
-	if err, exists := m.errors[request.IntentType]; exists {
+	if err, exists := m.errors[request.Intent]; exists {
 		return nil, err
 	}
 
 	// Generate response
-	responseText, exists := m.responses[request.IntentType]
+	responseText, exists := m.responses[request.Intent]
 	if !exists {
-		responseText = fmt.Sprintf("Generated response for: %s", request.Query)
+		responseText = fmt.Sprintf("Generated response for: %s", request.Intent)
 	}
 
 	return &llm.ProcessingResponse{
-		GeneratedText:   responseText,
-		ConfidenceScore: 0.8 + rand.Float64()*0.2, // 0.8-1.0
-		TokensUsed:      50 + rand.Intn(200),      // 50-250 tokens
-		ProcessingTime:  m.latencySimulation,
+		ProcessedParameters: responseText,
+		ConfidenceScore:     0.8 + rand.Float64()*0.2, // 0.8-1.0
+		TokensUsed:          50 + rand.Intn(200),      // 50-250 tokens
+		ProcessingTime:      m.latencySimulation,
 		Metadata: map[string]interface{}{
 			"mock_call_count": m.callCount,
 			"model_name":      "mock-llm-model",
@@ -114,9 +114,9 @@ func (m *MockLLMService) GetCallCount() int {
 // MockWeaviateService simulates Weaviate vector database
 type MockWeaviateService struct {
 	mu            sync.RWMutex
-	documents     map[string]rag.Document
+	documents     map[string]rag.Doc
 	vectors       map[string][]float32
-	searchResults map[string][]rag.RetrievedDocument
+	searchResults map[string][]rag.Doc
 	errors        map[string]error
 	latency       time.Duration
 	queryCount    int
@@ -126,9 +126,9 @@ type MockWeaviateService struct {
 // NewMockWeaviateService creates a new mock Weaviate service
 func NewMockWeaviateService() *MockWeaviateService {
 	return &MockWeaviateService{
-		documents:     make(map[string]rag.Document),
+		documents:     make(map[string]rag.Doc),
 		vectors:       make(map[string][]float32),
-		searchResults: make(map[string][]rag.RetrievedDocument),
+		searchResults: make(map[string][]rag.Doc),
 		errors:        make(map[string]error),
 		latency:       50 * time.Millisecond,
 		failureRate:   0.0,
@@ -136,7 +136,7 @@ func NewMockWeaviateService() *MockWeaviateService {
 }
 
 // StoreDocument simulates document storage
-func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc rag.Document) error {
+func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc rag.Doc) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -167,7 +167,7 @@ func (m *MockWeaviateService) StoreDocument(ctx context.Context, doc rag.Documen
 }
 
 // GetDocument simulates document retrieval
-func (m *MockWeaviateService) GetDocument(ctx context.Context, docID string) (*rag.Document, error) {
+func (m *MockWeaviateService) GetDocument(ctx context.Context, docID string) (*rag.Doc, error) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 
@@ -188,7 +188,7 @@ func (m *MockWeaviateService) GetDocument(ctx context.Context, docID string) (*r
 }
 
 // SearchSimilar simulates vector similarity search
-func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, limit int) ([]rag.RetrievedDocument, error) {
+func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, limit int) ([]rag.Doc, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -213,7 +213,7 @@ func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, l
 	}
 
 	// Generate mock search results
-	var results []rag.RetrievedDocument
+	var results []rag.Doc
 
 	// Return a subset of stored documents with random scores
 	count := 0
@@ -226,23 +226,20 @@ func (m *MockWeaviateService) SearchSimilar(ctx context.Context, query string, l
 		score := m.calculateSimilarityScore(query, doc.Content)
 
 		if score > 0.3 { // Minimum relevance threshold
-			results = append(results, rag.RetrievedDocument{
-				DocumentID:     doc.ID,
-				Title:          doc.Title,
-				Content:        doc.Content,
-				Score:          score,
-				RelevanceScore: score,
-				Source:         doc.Source,
-				Metadata:       doc.Metadata,
+			results = append(results, rag.Doc{
+				ID:         doc.ID,
+				Content:    doc.Content,
+				Confidence: score,
+				Metadata:   doc.Metadata,
 			})
 			count++
 		}
 	}
 
-	// Sort by score (descending)
+	// Sort by confidence (descending)
 	for i := 0; i < len(results)-1; i++ {
 		for j := i + 1; j < len(results); j++ {
-			if results[i].Score < results[j].Score {
+			if results[i].Confidence < results[j].Confidence {
 				results[i], results[j] = results[j], results[i]
 			}
 		}
@@ -278,7 +275,7 @@ func (m *MockWeaviateService) calculateSimilarityScore(query, content string) fl
 }
 
 // SetSearchResults configures search results for a specific query
-func (m *MockWeaviateService) SetSearchResults(query string, results []rag.RetrievedDocument) {
+func (m *MockWeaviateService) SetSearchResults(query string, results []rag.Doc) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.searchResults[query] = results

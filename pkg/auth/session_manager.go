@@ -93,12 +93,16 @@ type SessionData struct {
 // SessionConfig represents session configuration
 type SessionConfig struct {
 	SessionTimeout   time.Duration `json:"session_timeout"`
+	SessionTTL       time.Duration `json:"session_ttl"` // Alias for SessionTimeout for compatibility
 	RefreshThreshold time.Duration `json:"refresh_threshold"`
+	CleanupPeriod    time.Duration `json:"cleanup_period"` // How often to run cleanup
 	MaxSessions      int           `json:"max_sessions"`
 	SecureCookies    bool          `json:"secure_cookies"`
 	SameSiteCookies  string        `json:"same_site_cookies"`
 	CookieDomain     string        `json:"cookie_domain"`
 	CookiePath       string        `json:"cookie_path"`
+	CookieName       string        `json:"cookie_name"` // Name of session cookie
+	HTTPOnly         bool          `json:"http_only"`    // HTTPOnly flag for cookies
 
 	// SSO settings
 	EnableSSO      bool   `json:"enable_sso"`

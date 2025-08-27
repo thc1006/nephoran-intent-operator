@@ -5,6 +5,7 @@ package performance
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -111,12 +112,16 @@ type OptimizedDBManager struct {
 
 // DBMetrics tracks database performance metrics
 type DBMetrics struct {
-	QueryCount        int64
-	BatchCount        int64
-	ErrorCount        int64
-	AvgQueryTime      time.Duration
-	ActiveConnections int64
-	IdleConnections   int64
+	QueryCount         int64
+	BatchCount         int64
+	ErrorCount         int64
+	AvgQueryTime       time.Duration
+	ActiveConnections  int64
+	IdleConnections    int64
+	AverageQueryTime   float64
+	PreparedStmtHits   int64
+	PreparedStmtMisses int64
+	TransactionCount   int64
 }
 
 // NewOptimizedDBManager creates a new database manager
@@ -465,9 +470,11 @@ type BatchOperation struct {
 
 // CacheMetrics_Stub represents cache metrics
 type CacheMetrics_Stub struct {
-	Size      int64
-	HitRatio  float64
-	Evictions int64
+	Size              int64
+	HitRatio          float64
+	Evictions         int64
+	AverageAccessTime float64
+	ShardDistribution map[string]int64
 }
 
 // CacheStats represents cache statistics
@@ -475,3 +482,7 @@ type CacheStats struct {
 	MemoryEfficiency float64
 	AverageEntrySize int
 }
+
+
+
+

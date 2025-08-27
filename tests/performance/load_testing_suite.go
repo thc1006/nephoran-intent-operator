@@ -521,10 +521,9 @@ func (lts *LoadTestSuite) loadTestWorker(ctx context.Context, requests <-chan Lo
 func (lts *LoadTestSuite) executeRequest(ctx context.Context, request LoadTestRequest) LoadTestResult {
 	start := time.Now()
 
-	response, err := lts.ragService.ProcessQuery(ctx, &rag.QueryRequest{
+	response, err := lts.ragService.ProcessQuery(ctx, &rag.RAGRequest{
 		Query:      request.Query,
 		IntentType: request.IntentType,
-		Context:    request.Context,
 	})
 
 	latency := time.Since(start)

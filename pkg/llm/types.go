@@ -236,6 +236,15 @@ type ProcessingRequest struct {
 
 // ProcessingResponse represents the response from LLM processing
 type ProcessingResponse struct {
+	// Core fields
+	ProcessedIntent      string                 `json:"processed_intent"`
+	StructuredParameters map[string]interface{} `json:"structured_parameters,omitempty"`
+	NetworkFunctions     []interface{}          `json:"network_functions,omitempty"`
+	ExtractedEntities    map[string]interface{} `json:"extracted_entities,omitempty"`
+	TelecomContext       map[string]interface{} `json:"telecom_context,omitempty"`
+	TokenUsage           *TokenUsageInfo        `json:"token_usage,omitempty"`
+	
+	// Legacy fields for compatibility
 	ProcessedParameters string                 `json:"processed_parameters"`
 	ConfidenceScore     float64                `json:"confidence_score"`
 	TokensUsed          int                    `json:"tokens_used"`
@@ -247,6 +256,45 @@ type ProcessingResponse struct {
 // Processor interface for LLM processing
 type Processor interface {
 	ProcessIntent(ctx context.Context, request *ProcessingRequest) (*ProcessingResponse, error)
+}
+
+// Service provides the main LLM service interface
+type Service struct {
+	client LLMClient
+}
+
+// NewService creates a new LLM service
+func NewService(client LLMClient) *Service {
+	return &Service{client: client}
+}
+
+// ProcessIntent processes a natural language intent
+func (s *Service) ProcessIntent(ctx context.Context, request *ProcessingRequest) (*ProcessingResponse, error) {
+	if s.client == nil {
+		return nil, fmt.Errorf("LLM client not initialized")
+	}
+
+	// Process the intent using the underlying client
+	result, err := s.client.ProcessIntent(ctx, request.Intent)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process intent: %w", err)
+	}
+
+	return &ProcessingResponse{
+		ProcessedParameters: result,
+		ConfidenceScore:     0.95, // Default confidence
+		TokensUsed:         request.MaxTokens / 2, // Estimated
+		ProcessingTime:     time.Second,
+		Metadata:           make(map[string]interface{}),
+	}, nil
+}
+
+
+// TokenUsageInfo provides token usage statistics
+type TokenUsageInfo struct {
+	PromptTokens     int `json:"prompt_tokens"`
+	CompletionTokens int `json:"completion_tokens"`
+	TotalTokens      int `json:"total_tokens"`
 }
 
 // generateRequestID generates a unique request identifier

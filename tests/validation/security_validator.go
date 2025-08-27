@@ -15,6 +15,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -614,7 +615,7 @@ func (sv *SecurityValidator) validateContainerImageSecurityAndRuntime(ctx contex
 
 	// Check for admission controllers or policy engines
 	webhooks := &metav1.PartialObjectMetadataList{}
-	webhooks.SetGroupVersionKind(client.GroupVersionKind{
+	webhooks.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "admissionregistration.k8s.io",
 		Version: "v1",
 		Kind:    "ValidatingAdmissionWebhook",
@@ -1129,7 +1130,7 @@ func (sv *SecurityValidator) checkSecurityContextsSet(ctx context.Context) bool 
 
 func (sv *SecurityValidator) checkAdmissionControllersExist(ctx context.Context) bool {
 	webhooks := &metav1.PartialObjectMetadataList{}
-	webhooks.SetGroupVersionKind(client.GroupVersionKind{
+	webhooks.SetGroupVersionKind(schema.GroupVersionKind{
 		Group:   "admissionregistration.k8s.io",
 		Version: "v1",
 		Kind:    "ValidatingAdmissionWebhook",

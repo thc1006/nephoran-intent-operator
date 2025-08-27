@@ -112,10 +112,11 @@ type E2SetupFailure struct {
 // RICSubscriptionRequest represents RIC Subscription Request message
 type RICSubscriptionRequest struct {
 	RICRequestID           RICRequestID           `json:"ric_request_id"`
-	RequestID              RICRequestID           `json:"request_id"`                // Missing field added
+	RequestID              RICRequestID           `json:"request_id"`                // Added for codec compatibility
 	RANFunctionID          RANFunctionID          `json:"ran_function_id"`
 	RICSubscriptionDetails RICSubscriptionDetails `json:"ric_subscription_details"`
-	EventTriggerDefinition []byte                 `json:"event_trigger_definition"` // Missing field added
+	EventTriggerDefinition []byte                 `json:"event_trigger_definition"` // Added for codec compatibility
+	ActionsToBeSetupList   []RICActionToBeSetupItem `json:"actions_to_be_setup_list"` // Added for codec compatibility
 }
 
 // RICSubscriptionResponse represents RIC Subscription Response message
@@ -166,6 +167,7 @@ type RICControlFailure struct {
 // RICIndication represents RIC Indication message
 type RICIndication struct {
 	RICRequestID         RICRequestID      `json:"ric_request_id"`
+	RequestID            RICRequestID      `json:"request_id"` // Added for codec compatibility
 	RANFunctionID        RANFunctionID     `json:"ran_function_id"`
 	RICActionID          RICActionID       `json:"ric_action_id"`
 	RICIndicationSN      *RICIndicationSN  `json:"ric_indication_sn,omitempty"`
@@ -177,11 +179,22 @@ type RICIndication struct {
 
 // Common E2AP data types
 
+// E2NodeType represents the type of E2 node
+type E2NodeType int
+
+const (
+	E2NodeTypegNB E2NodeType = iota
+	E2NodeTypeeNB
+	E2NodeTypeNgENB
+	E2NodeTypeEnGNB
+)
+
 // GlobalE2NodeID represents the global E2 node identifier
 type GlobalE2NodeID struct {
 	PLMNIdentity PLMNIdentity `json:"plmn_identity"`
 	NodeType     E2NodeType   `json:"node_type"`
 	NodeID       string       `json:"node_id"`
+	E2NodeID     E2NodeID     `json:"e2_node_id"`
 }
 
 // GlobalRICID represents the global RIC identifier
@@ -422,6 +435,35 @@ type RANFunctionIDItem struct {
 type RANFunctionIDCause struct {
 	RANFunctionID RANFunctionID `json:"ran_function_id"`
 	Cause         E2APCause     `json:"cause"`
+}
+
+// RANFunctionIDCauseItem represents RAN function ID with cause (codec compatibility)
+type RANFunctionIDCauseItem struct {
+	RANFunctionID int     `json:"ran_function_id"`
+	Cause         E2Cause `json:"cause"`
+}
+
+// E2Cause represents simplified E2 cause for codec compatibility
+type E2Cause struct {
+	CauseType  E2CauseType `json:"cause_type"`
+	CauseValue int         `json:"cause_value"`
+}
+
+// E2CauseType represents E2 cause type enumeration
+type E2CauseType int
+
+const (
+	E2CauseTypeRIC E2CauseType = iota
+	E2CauseTypeRICService
+	E2CauseTypeE2Node
+	E2CauseTypeTransport
+	E2CauseTypeProtocol
+	E2CauseTypeMisc
+)
+
+// RICActionAdmittedItem represents a RIC action that was admitted
+type RICActionAdmittedItem struct {
+	ActionID int `json:"action_id"`
 }
 
 // RICSubscriptionDetails represents RIC subscription details

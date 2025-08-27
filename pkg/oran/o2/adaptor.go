@@ -82,11 +82,11 @@ type O2Adaptor struct {
 	config     *O2Config
 
 	// Service components
-	imsService          *ims.IMSService
+	imsService          *IMSService
 	catalogService      *ims.CatalogService
-	inventoryService    *ims.InventoryService
-	lifecycleService    *ims.LifecycleService
-	subscriptionService *ims.SubscriptionService
+	inventoryService    *InventoryService
+	lifecycleService    *LifecycleService
+	subscriptionService *SubscriptionService
 
 	// Multi-cloud providers
 	providers map[string]providers.CloudProvider
@@ -229,11 +229,11 @@ func NewO2Adaptor(kubeClient client.Client, clientset kubernetes.Interface, conf
 
 	// Initialize core services
 	catalogService := ims.NewCatalogService()
-	inventoryService := ims.NewInventoryService(kubeClient, clientset)
-	lifecycleService := ims.NewLifecycleService()
-	subscriptionService := ims.NewSubscriptionService()
+	inventoryService := NewInventoryService(kubeClient, clientset)
+	lifecycleService := NewLifecycleService()
+	subscriptionService := NewSubscriptionService()
 
-	imsService := ims.NewIMSService(catalogService, inventoryService, lifecycleService, subscriptionService)
+	imsService := NewIMSService(catalogService, inventoryService, lifecycleService, subscriptionService)
 
 	// Initialize cloud providers
 	providerManager, err := initializeProviders(config.Providers, kubeClient, clientset)
@@ -377,9 +377,17 @@ func initializeProviders(providerConfigs map[string]*ProviderConfig, kubeClient 
 		case "kubernetes":
 			provider, err = providers.NewKubernetesProvider(kubeClient, clientset, config.Config)
 		case "aws":
-			provider, err = providers.NewAWSProvider(config.Region, config.Credentials)
+			providerConfig := &providers.ProviderConfiguration{
+				Region:      config.Region,
+				Credentials: config.Credentials,
+			}
+			provider, err = providers.NewAWSProvider(providerConfig)
 		case "azure":
-			provider, err = providers.NewAzureProvider(config.Region, config.Credentials)
+			providerConfig := &providers.ProviderConfiguration{
+				Region:      config.Region,
+				Credentials: config.Credentials,
+			}
+			provider, err = providers.NewAzureProvider(providerConfig)
 		case "gcp":
 			provider, err = providers.NewGCPProvider(config.Region, config.Credentials)
 		default:

@@ -1,8 +1,10 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,6 +17,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
 
 var (
@@ -40,16 +43,91 @@ func InitMetrics(registerer prometheus.Registerer) {
 	})
 }
 
-// ClientInterface defines the interface for a Git client.
-type ClientInterface interface {
-	CommitAndPush(files map[string]string, message string) (string, error)
-	CommitAndPushChanges(message string) error
-	InitRepo() error
-	RemoveDirectory(path string, commitMessage string) error
-	RemoveAndPush(path string, commitMessage string) (string, error)
+// StatusInfo holds git repository status information
+type StatusInfo struct {
+	Clean         bool              `json:"clean"`
+	Modified      []string          `json:"modified"`
+	Added         []string          `json:"added"`
+	Deleted       []string          `json:"deleted"`
+	Untracked     []string          `json:"untracked"`
+	CurrentBranch string            `json:"current_branch"`
+	Details       map[string]string `json:"details"`
 }
 
-// ClientConfig holds configuration for creating a Git client.
+// CommitInfo holds information about a git commit
+type CommitInfo struct {
+	Hash      string    `json:"hash"`
+	Message   string    `json:"message"`
+	Author    string    `json:"author"`
+	Email     string    `json:"email"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+// PullRequestOptions holds options for creating a pull request
+type PullRequestOptions struct {
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	SourceBranch string `json:"source_branch"`
+	TargetBranch string `json:"target_branch"`
+	Assignees    []string `json:"assignees,omitempty"`
+	Reviewers    []string `json:"reviewers,omitempty"`
+	Labels       []string `json:"labels,omitempty"`
+}
+
+// PullRequestInfo holds information about a created pull request
+type PullRequestInfo struct {
+	Number    int    `json:"number"`
+	URL       string `json:"url"`
+	Title     string `json:"title"`
+	State     string `json:"state"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// ClientInterface defines the interface for a Git client.
+type ClientInterface interface {
+	// File and commit operations
+	CommitFiles(ctx context.Context, files map[string]string, message string) (string, error)
+	CommitAndPush(files map[string]string, message string) (string, error)
+	CommitAndPushChanges(message string) error
+	
+	// Branch operations
+	CreateBranch(ctx context.Context, branchName, baseBranch string) error
+	SwitchBranch(ctx context.Context, branchName string) error
+	GetCurrentBranch(ctx context.Context) (string, error)
+	ListBranches(ctx context.Context) ([]string, error)
+	
+	// File operations
+	GetFileContent(ctx context.Context, filePath string) (string, error)
+	DeleteFile(ctx context.Context, filePath, message string) (string, error)
+	
+	// Repository operations
+	InitRepo() error
+	Push(ctx context.Context, branch string) error
+	Pull(ctx context.Context, branch string) error
+	GetStatus(ctx context.Context) (*StatusInfo, error)
+	GetCommitHistory(ctx context.Context, limit int) ([]CommitInfo, error)
+	
+	// Directory operations
+	RemoveDirectory(path string, commitMessage string) error
+	RemoveAndPush(path string, commitMessage string) (string, error)
+	
+	// Pull request operations
+	CreatePullRequest(ctx context.Context, options *PullRequestOptions) (*PullRequestInfo, error)
+}
+
+// Config holds configuration for creating a Git client.
+type Config struct {
+	RepoURL             string
+	Branch              string
+	Token               string // Token loaded from file or environment
+	TokenPath           string // Optional path to token file
+	RepoPath            string
+	HTTPClient          *http.Client // Optional HTTP client for API calls
+	Timeout             time.Duration // Timeout for operations
+	ConcurrentPushLimit int // Maximum concurrent git operations (default 4 if <= 0)
+}
+
+// ClientConfig holds configuration for creating a Git client (for backward compatibility).
 type ClientConfig struct {
 	RepoURL             string
 	Branch              string
@@ -654,4 +732,93 @@ func NewGitClient(config *ClientConfig) *Client {
 		}
 	}
 	return NewClientFromConfig(config)
+}
+
+// NewClientWithConfig creates a new Git client from configuration
+func NewClientWithConfig(config *Config, logger *logging.StructuredLogger) (ClientInterface, error) {
+	if config == nil {
+		return nil, fmt.Errorf("config is required")
+	}
+
+	if logger == nil {
+		logger = logging.NewStructuredLogger(logging.DefaultConfig("git-client", "1.0.0", "production"))
+	}
+
+	// Use configured limit or default to 4
+	limit := config.ConcurrentPushLimit
+	if limit <= 0 {
+		limit = 4
+	}
+
+	return &Client{
+		RepoURL:  config.RepoURL,
+		Branch:   config.Branch,
+		SshKey:   config.Token,
+		RepoPath: config.RepoPath,
+		logger:   logger.Logger, // Extract the underlying slog.Logger
+		pushSem:  make(chan struct{}, limit),
+	}, nil
+}
+
+// CommitFiles commits files to the repository (implements ClientInterface)
+func (c *Client) CommitFiles(ctx context.Context, files map[string]string, message string) (string, error) {
+	return c.CommitAndPush(files, message)
+}
+
+// CreateBranch creates a new branch (stub implementation)
+func (c *Client) CreateBranch(ctx context.Context, branchName, baseBranch string) error {
+	return fmt.Errorf("CreateBranch not implemented in basic git client")
+}
+
+// SwitchBranch switches to a branch (stub implementation) 
+func (c *Client) SwitchBranch(ctx context.Context, branchName string) error {
+	return fmt.Errorf("SwitchBranch not implemented in basic git client")
+}
+
+// GetCurrentBranch gets current branch (stub implementation)
+func (c *Client) GetCurrentBranch(ctx context.Context) (string, error) {
+	return c.Branch, nil
+}
+
+// ListBranches lists branches (stub implementation)
+func (c *Client) ListBranches(ctx context.Context) ([]string, error) {
+	return []string{c.Branch}, nil
+}
+
+// GetFileContent gets file content (stub implementation)
+func (c *Client) GetFileContent(ctx context.Context, filePath string) (string, error) {
+	return "", fmt.Errorf("GetFileContent not implemented in basic git client")
+}
+
+// DeleteFile deletes a file (stub implementation)
+func (c *Client) DeleteFile(ctx context.Context, filePath, message string) (string, error) {
+	return "", fmt.Errorf("DeleteFile not implemented in basic git client")
+}
+
+// Push pushes to remote (stub implementation)
+func (c *Client) Push(ctx context.Context, branch string) error {
+	return fmt.Errorf("Push not implemented in basic git client")
+}
+
+// Pull pulls from remote (stub implementation)
+func (c *Client) Pull(ctx context.Context, branch string) error {
+	return fmt.Errorf("Pull not implemented in basic git client")
+}
+
+// GetStatus gets repository status (stub implementation)
+func (c *Client) GetStatus(ctx context.Context) (*StatusInfo, error) {
+	return &StatusInfo{
+		Clean:         true,
+		CurrentBranch: c.Branch,
+	}, nil
+}
+
+// GetCommitHistory gets commit history (stub implementation)
+func (c *Client) GetCommitHistory(ctx context.Context, limit int) ([]CommitInfo, error) {
+	return []CommitInfo{}, nil
+}
+
+// CreatePullRequest creates a pull request (stub implementation)
+func (c *Client) CreatePullRequest(ctx context.Context, options *PullRequestOptions) (*PullRequestInfo, error) {
+	return nil, fmt.Errorf("CreatePullRequest not implemented in basic git client")
 }

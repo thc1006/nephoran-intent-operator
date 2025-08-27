@@ -243,6 +243,48 @@ type BatchProcessor struct {
 	processor  BatchProcessorFunc
 	metrics    *BatchMetrics
 	mu         sync.RWMutex
+	stopChan   chan struct{}
+}
+
+// Stop gracefully stops the batch processor
+func (bp *BatchProcessor) Stop() {
+	bp.mu.Lock()
+	defer bp.mu.Unlock()
+	
+	if bp.stopChan != nil {
+		close(bp.stopChan)
+		bp.stopChan = nil
+	}
+	
+	if bp.flushTimer != nil {
+		bp.flushTimer.Stop()
+	}
+	
+	// Process remaining batches
+	for len(bp.batchQueue) > 0 {
+		select {
+		case batch := <-bp.batchQueue:
+			if batch != nil {
+				// Process final batch
+				bp.processBatch(batch)
+			}
+		default:
+			return
+		}
+	}
+}
+
+// processBatch processes a single batch (stub implementation)
+func (bp *BatchProcessor) processBatch(batch *Batch) {
+	if bp.processor != nil && batch != nil {
+		// Call the processor function if available
+		if results, err := bp.processor(context.Background(), batch); err == nil {
+			batch.Results = results
+			batch.Status = BatchCompleted
+		} else {
+			batch.Status = BatchFailed
+		}
+	}
 }
 
 // Batch represents a collection of tasks processed together

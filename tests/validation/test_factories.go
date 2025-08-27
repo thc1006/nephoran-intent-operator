@@ -255,9 +255,9 @@ func (enf *E2NodeSetFactory) CreateReadyE2NodeSet(name string, replicas int32) *
 	e2ns.Status.ReadyReplicas = replicas
 
 	// Add conditions
-	e2ns.Status.Conditions = []metav1.Condition{
+	e2ns.Status.Conditions = []nephranv1.E2NodeSetCondition{
 		{
-			Type:               "Ready",
+			Type:               nephranv1.E2NodeSetConditionAvailable,
 			Status:             metav1.ConditionTrue,
 			LastTransitionTime: metav1.Now(),
 			Reason:             "AllReplicasReady",
@@ -275,9 +275,9 @@ func (enf *E2NodeSetFactory) CreateScalingE2NodeSet(name string, currentReplicas
 	e2ns.Status.ReadyReplicas = currentReplicas
 
 	// Add scaling condition
-	e2ns.Status.Conditions = []metav1.Condition{
+	e2ns.Status.Conditions = []nephranv1.E2NodeSetCondition{
 		{
-			Type:               "Scaling",
+			Type:               nephranv1.E2NodeSetConditionProgressing,
 			Status:             metav1.ConditionTrue,
 			LastTransitionTime: metav1.Now(),
 			Reason:             "ScalingInProgress",

@@ -297,7 +297,7 @@ func (c *MTLSGitClient) ensureGitClient() error {
 
 	// Create Git client
 	var err error
-	c.gitClient, err = git.NewClient(gitConfig, c.logger)
+	c.gitClient, err = git.NewClientWithConfig(gitConfig, c.logger)
 	if err != nil {
 		return fmt.Errorf("failed to create Git client: %w", err)
 	}
@@ -330,6 +330,14 @@ func (c *MTLSGitClient) Close() error {
 	}
 
 	return nil
+}
+
+// GetEndpoint returns the endpoint URL
+func (c *MTLSGitClient) GetEndpoint() string {
+	if c.config != nil {
+		return c.config.GitRepoURL
+	}
+	return "git-repository"
 }
 
 // GetHealth returns the health status of the Git service

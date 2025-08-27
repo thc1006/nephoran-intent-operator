@@ -61,7 +61,7 @@ func NewMTLSClientFactory(config *ClientFactoryConfig) (*MTLSClientFactory, erro
 	}
 
 	if config.Logger == nil {
-		config.Logger = logging.NewStructuredLogger()
+		config.Logger = logging.NewStructuredLogger(logging.DefaultConfig("mtls-client-factory", "1.0.0", "production"))
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

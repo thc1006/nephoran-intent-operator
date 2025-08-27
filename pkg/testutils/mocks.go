@@ -364,6 +364,117 @@ func (m *MockGitClient) RemoveAndPush(path string, commitMessage string) (string
 	return m.lastCommitHash, nil
 }
 
+func (m *MockGitClient) CommitFiles(ctx context.Context, files map[string]string, message string) (string, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("CommitFiles(%d files, %s)", len(files), message))
+	m.commitCount++
+
+	if m.commitPushError != nil {
+		return "", m.commitPushError
+	}
+
+	// Store files
+	for path, content := range files {
+		m.files[path] = content
+	}
+
+	// Store commit message
+	m.commits = append(m.commits, message)
+
+	// Generate commit hash
+	commitHash := fmt.Sprintf("commit-hash-%d", m.commitCount)
+	m.lastCommitHash = commitHash
+
+	return commitHash, nil
+}
+
+// Branch operations
+func (m *MockGitClient) CreateBranch(ctx context.Context, branchName, baseBranch string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("CreateBranch(%s, %s)", branchName, baseBranch))
+	return m.commitPushError
+}
+
+func (m *MockGitClient) SwitchBranch(ctx context.Context, branchName string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("SwitchBranch(%s)", branchName))
+	return m.commitPushError
+}
+
+func (m *MockGitClient) GetCurrentBranch(ctx context.Context) (string, error) {
+	m.callLog = append(m.callLog, "GetCurrentBranch()")
+	if m.commitPushError != nil {
+		return "", m.commitPushError
+	}
+	return "main", nil
+}
+
+func (m *MockGitClient) ListBranches(ctx context.Context) ([]string, error) {
+	m.callLog = append(m.callLog, "ListBranches()")
+	if m.commitPushError != nil {
+		return nil, m.commitPushError
+	}
+	return []string{"main", "develop"}, nil
+}
+
+// File operations  
+func (m *MockGitClient) GetFileContent(ctx context.Context, filePath string) (string, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("GetFileContent(%s)", filePath))
+	if m.commitPushError != nil {
+		return "", m.commitPushError
+	}
+	if content, exists := m.files[filePath]; exists {
+		return content, nil
+	}
+	return "", fmt.Errorf("file not found: %s", filePath)
+}
+
+func (m *MockGitClient) DeleteFile(ctx context.Context, filePath, message string) (string, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("DeleteFile(%s, %s)", filePath, message))
+	m.commitCount++
+	if m.commitPushError != nil {
+		return "", m.commitPushError
+	}
+	delete(m.files, filePath)
+	commitHash := fmt.Sprintf("commit-hash-%d", m.commitCount)
+	m.lastCommitHash = commitHash
+	m.commits = append(m.commits, message)
+	return commitHash, nil
+}
+
+// Repository operations
+func (m *MockGitClient) Push(ctx context.Context, branch string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Push(%s)", branch))
+	return m.commitPushError
+}
+
+func (m *MockGitClient) Pull(ctx context.Context, branch string) error {
+	m.callLog = append(m.callLog, fmt.Sprintf("Pull(%s)", branch))
+	return m.commitPushError
+}
+
+func (m *MockGitClient) GetStatus(ctx context.Context) (*git.StatusInfo, error) {
+	m.callLog = append(m.callLog, "GetStatus()")
+	if m.commitPushError != nil {
+		return nil, m.commitPushError
+	}
+	return &git.StatusInfo{Clean: true}, nil
+}
+
+func (m *MockGitClient) GetCommitHistory(ctx context.Context, limit int) ([]git.CommitInfo, error) {
+	m.callLog = append(m.callLog, fmt.Sprintf("GetCommitHistory(%d)", limit))
+	if m.commitPushError != nil {
+		return nil, m.commitPushError
+	}
+	return []git.CommitInfo{}, nil
+}
+
+// Pull request operations
+func (m *MockGitClient) CreatePullRequest(ctx context.Context, options *git.PullRequestOptions) (*git.PullRequestInfo, error) {
+	m.callLog = append(m.callLog, "CreatePullRequest()")
+	if m.commitPushError != nil {
+		return nil, m.commitPushError
+	}
+	return &git.PullRequestInfo{Number: 1, URL: "https://github.com/test/repo/pull/1"}, nil
+}
+
 // SetInitError sets an error to be returned by InitRepo operations
 func (m *MockGitClient) SetInitError(err error) {
 	m.initError = err
@@ -384,8 +495,8 @@ func (m *MockGitClient) GetCommitCount() int {
 	return m.commitCount
 }
 
-// GetFileContent returns the content of a file in the mock repository
-func (m *MockGitClient) GetFileContent(filePath string) string {
+// GetFileContentString returns the content of a file in the mock repository (legacy method)
+func (m *MockGitClient) GetFileContentString(filePath string) string {
 	if content, exists := m.files[filePath]; exists {
 		return content
 	}

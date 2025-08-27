@@ -159,6 +159,23 @@ type MemoryCache struct {
 	mu          sync.RWMutex
 }
 
+// GetHitRate returns the cache hit rate
+func (mc *MemoryCache) GetHitRate() float64 {
+	mc.mu.RLock()
+	defer mc.mu.RUnlock()
+	
+	if mc.stats == nil {
+		return 0.0
+	}
+	
+	totalRequests := mc.stats.HitCount + mc.stats.MissCount
+	if totalRequests == 0 {
+		return 0.0
+	}
+	
+	return float64(mc.stats.HitCount) / float64(totalRequests)
+}
+
 // CacheItem represents a cached item
 type CacheItem struct {
 	Key           string

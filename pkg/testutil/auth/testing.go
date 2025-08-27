@@ -93,17 +93,20 @@ func (tc *TestContext) SetupJWTManager() *auth.JWTManager {
 		CookiePath:           "/",
 	}
 
-	jwtManager := auth.NewJWTManager(config, tc.Logger)
-
-	// Set test keys
-	err := jwtManager.SetSigningKey(tc.PrivateKey, tc.KeyID)
+	// Create mock dependencies for JWT manager
+	tokenStore := NewMockTokenStore()
+	blacklist := NewMockTokenBlacklist()
+	
+	jwtManager, err := auth.NewJWTManager(config, tokenStore, blacklist, tc.Logger)
 	require.NoError(tc.T, err)
 
+	// Note: JWTManager initializes keys internally based on config
+	// Test keys are handled through the config's SigningKey field
+
 	tc.JWTManager = jwtManager
+	// Note: JWTManager doesn't have a Close method
 	tc.AddCleanup(func() {
-		if tc.JWTManager != nil {
-			tc.JWTManager.Close()
-		}
+		// Cleanup will be handled by garbage collector
 	})
 
 	return jwtManager
@@ -115,10 +118,10 @@ func (tc *TestContext) SetupRBACManager() *auth.RBACManager {
 		return tc.RBACManager
 	}
 
-	config := &auth.RBACConfig{
-		CacheTTL:           5 * time.Minute,
-		EnableHierarchical: true,
-		DefaultRole:        "viewer",
+	config := &auth.RBACManagerConfig{
+		CacheTTL:        5 * time.Minute,
+		EnableHierarchy: true,
+		DefaultDenyAll:  false,
 	}
 
 	tc.RBACManager = auth.NewRBACManager(config, tc.Logger)
@@ -132,21 +135,21 @@ func (tc *TestContext) SetupSessionManager() *auth.SessionManager {
 	}
 
 	config := &auth.SessionConfig{
-		SessionTTL:    time.Hour,
-		CleanupPeriod: time.Minute,
-		CookieName:    "test-session",
-		CookiePath:    "/",
-		CookieDomain:  "localhost",
-		SecureCookies: false,
-		HTTPOnly:      true,
-		SameSite:      http.SameSiteStrictMode,
+		SessionTTL:       time.Hour,
+		SessionTimeout:   time.Hour, // Also set the primary field
+		CleanupPeriod:    time.Minute,
+		CleanupInterval:  time.Minute, // Map to existing field
+		CookieName:       "test-session",
+		CookiePath:       "/",
+		CookieDomain:     "localhost",
+		SecureCookies:    false,
+		HTTPOnly:         true,
+		SameSiteCookies:  "Strict", // Use string instead of constant
 	}
 
-	tc.SessionManager = auth.NewSessionManager(config, tc.Logger)
+	tc.SessionManager = auth.NewSessionManager(config, tc.JWTManager, tc.RBACManager, tc.Logger)
 	tc.AddCleanup(func() {
-		if tc.SessionManager != nil {
-			tc.SessionManager.Close()
-		}
+		// No cleanup needed for SessionManager
 	})
 
 	return tc.SessionManager
@@ -491,4 +494,165 @@ func PublicKeyToPEM(key *rsa.PublicKey) (string, error) {
 		Bytes: keyBytes,
 	}
 	return string(pem.EncodeToMemory(keyBlock)), nil
+}
+
+// Mock implementations for JWT manager dependencies
+
+// MockTokenStore provides a mock token store implementation
+type MockTokenStore struct {
+	tokens map[string]interface{}
+	mutex  sync.RWMutex
+}
+
+func NewMockTokenStore() *MockTokenStore {
+	return &MockTokenStore{
+		tokens: make(map[string]interface{}),
+	}
+}
+
+func (m *MockTokenStore) StoreToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.tokens[tokenID] = token
+	return nil
+}
+
+func (m *MockTokenStore) GetToken(ctx context.Context, tokenID string) (*auth.TokenInfo, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	if value, exists := m.tokens[tokenID]; exists {
+		if token, ok := value.(*auth.TokenInfo); ok {
+			return token, nil
+		}
+	}
+	return nil, fmt.Errorf("token not found")
+}
+
+func (m *MockTokenStore) UpdateToken(ctx context.Context, tokenID string, token *auth.TokenInfo) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.tokens[tokenID] = token
+	return nil
+}
+
+func (m *MockTokenStore) DeleteToken(ctx context.Context, tokenID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	delete(m.tokens, tokenID)
+	return nil
+}
+
+func (m *MockTokenStore) ListUserTokens(ctx context.Context, userID string) ([]*auth.TokenInfo, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	var tokens []*auth.TokenInfo
+	for _, value := range m.tokens {
+		if token, ok := value.(*auth.TokenInfo); ok && token.UserID == userID {
+			tokens = append(tokens, token)
+		}
+	}
+	return tokens, nil
+}
+
+func (m *MockTokenStore) DeleteUserData(ctx context.Context, userID string) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	for tokenID, value := range m.tokens {
+		if token, ok := value.(*auth.TokenInfo); ok && token.UserID == userID {
+			delete(m.tokens, tokenID)
+		}
+	}
+	return nil
+}
+
+func (m *MockTokenStore) ExportUserData(ctx context.Context, userID string) (map[string]interface{}, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	data := make(map[string]interface{})
+	for tokenID, value := range m.tokens {
+		if token, ok := value.(*auth.TokenInfo); ok && token.UserID == userID {
+			data[tokenID] = token
+		}
+	}
+	return data, nil
+}
+
+func (m *MockTokenStore) ApplyDataRetention(ctx context.Context, retentionDays int) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	cutoff := time.Now().AddDate(0, 0, -retentionDays)
+	for tokenID, value := range m.tokens {
+		if token, ok := value.(*auth.TokenInfo); ok && token.IssuedAt.Before(cutoff) {
+			delete(m.tokens, tokenID)
+		}
+	}
+	return nil
+}
+
+func (m *MockTokenStore) CleanupExpired(ctx context.Context) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	now := time.Now()
+	for tokenID, value := range m.tokens {
+		if token, ok := value.(*auth.TokenInfo); ok && now.After(token.ExpiresAt) {
+			delete(m.tokens, tokenID)
+		}
+	}
+	return nil
+}
+
+func (m *MockTokenStore) Close() error {
+	return nil
+}
+
+// MockTokenBlacklist provides a mock token blacklist implementation
+type MockTokenBlacklist struct {
+	blacklist map[string]time.Time
+	mutex     sync.RWMutex
+}
+
+func NewMockTokenBlacklist() *MockTokenBlacklist {
+	return &MockTokenBlacklist{
+		blacklist: make(map[string]time.Time),
+	}
+}
+
+func (m *MockTokenBlacklist) BlacklistToken(ctx context.Context, tokenID string, expiresAt time.Time) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.blacklist[tokenID] = expiresAt
+	return nil
+}
+
+func (m *MockTokenBlacklist) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	m.mutex.RLock()
+	defer m.mutex.RUnlock()
+	expiry, exists := m.blacklist[tokenID]
+	return exists && time.Now().Before(expiry), nil
+}
+
+func (m *MockTokenBlacklist) CleanupExpired(ctx context.Context) error {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	now := time.Now()
+	for tokenID, expiry := range m.blacklist {
+		if now.After(expiry) {
+			delete(m.blacklist, tokenID)
+		}
+	}
+	return nil
+}
+
+func (m *MockTokenBlacklist) BlacklistUserTokens(ctx context.Context, userID string, reason string) error {
+	// For mock, we'll just record this operation
+	return nil
+}
+
+func (m *MockTokenBlacklist) GetBlacklistAuditTrail(ctx context.Context, tokenID string) ([]auth.AuditEvent, error) {
+	// Return empty audit trail for mock
+	return []auth.AuditEvent{}, nil
+}
+
+func (m *MockTokenBlacklist) Close() error {
+	return nil
 }

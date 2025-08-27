@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/open-policy-agent/opa/rego"
+	"github.com/open-policy-agent/opa/v1/rego"
 	"github.com/open-policy-agent/opa/storage"
 	"github.com/open-policy-agent/opa/storage/inmem"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -16,7 +16,7 @@ import (
 // OPACompliancePolicyEngine implements comprehensive policy enforcement for all compliance frameworks
 type OPACompliancePolicyEngine struct {
 	opaStore           storage.Store
-	regoPolicies       map[string]*rego.PreparedQuery
+	regoPolicies       map[string]rego.PreparedEvalQuery
 	admissionWebhook   *AdmissionWebhookController
 	networkPolicies    *NetworkPolicyEnforcer
 	rbacPolicies       *RBACPolicyEnforcer
@@ -876,7 +876,7 @@ func NewOPACompliancePolicyEngine(logger *slog.Logger) (*OPACompliancePolicyEngi
 
 	engine := &OPACompliancePolicyEngine{
 		opaStore:       store,
-		regoPolicies:   make(map[string]*rego.PreparedQuery),
+		regoPolicies:   make(map[string]rego.PreparedEvalQuery),
 		logger:         logger,
 		policyCache:    NewPolicyCache(),
 		violationStore: NewViolationStore(),
@@ -1028,7 +1028,7 @@ func (ope *OPACompliancePolicyEngine) LoadPolicy(policy PolicyDefinition) error 
 		return fmt.Errorf("failed to prepare policy %s: %w", policy.ID, err)
 	}
 
-	ope.regoPolicies[policy.ID] = &preparedQuery
+	ope.regoPolicies[policy.ID] = preparedQuery
 	ope.policyCache.Set(policy.ID, policy)
 
 	ope.logger.Info("Policy loaded successfully",

@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/thc1006/nephoran-intent-operator/api/v1"
+	"github.com/thc1006/nephoran-intent-operator/pkg/contracts"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
 )
@@ -203,7 +204,7 @@ type TaskResult struct {
 
 	// Output data
 	OutputData       map[string]interface{}
-	ProcessingResult *interfaces.ProcessingResult
+	ProcessingResult *contracts.ProcessingResult
 }
 
 // ProcessingMetrics contains metrics about parallel processing performance
@@ -340,7 +341,7 @@ type PriorityQueue struct {
 	tasks       []*Task
 	maxSize     int
 	currentSize int
-	mutex       sync.Mutex
+	mutex       sync.RWMutex
 	notEmpty    *sync.Cond
 }
 
@@ -612,7 +613,7 @@ func (e *ParallelProcessingEngine) SubmitTask(task *Task) error {
 	select {
 	case e.taskQueue <- task:
 		task.Status = TaskStatusPending
-		e.logger.Debug("Task submitted", "taskID", task.ID, "type", task.Type)
+		e.logger.V(1).Info("Task submitted", "taskID", task.ID, "type", task.Type)
 		return nil
 	default:
 		return fmt.Errorf("task queue is full")
@@ -727,7 +728,7 @@ func (e *ParallelProcessingEngine) dispatchTasks(taskType TaskType, workers []*W
 
 				select {
 				case worker.Queue <- task:
-					e.logger.Debug("Task dispatched to worker",
+					e.logger.V(1).Info("Task dispatched to worker",
 						"taskID", task.ID,
 						"workerType", taskType,
 						"workerID", worker.ID)
@@ -788,7 +789,7 @@ func (e *ParallelProcessingEngine) handleTaskResult(task *Task) {
 				})
 		}
 	} else {
-		e.logger.Debug("Task completed successfully",
+		e.logger.V(1).Info("Task completed successfully",
 			"taskID", task.ID,
 			"type", task.Type,
 			"duration", task.CompletedAt.Sub(*task.StartedAt))
@@ -909,7 +910,7 @@ func (e *ParallelProcessingEngine) createWorkflowTasks(ctx context.Context, inte
 		ID:       fmt.Sprintf("%s-intent-parsing", workflowID),
 		IntentID: intent.Name,
 		Type:     TaskTypeIntentParsing,
-		Priority: int(intent.Spec.Priority.ToInt()),
+		Priority: priorityToInt(intent.Spec.Priority),
 		Status:   TaskStatusPending,
 		InputData: map[string]interface{}{
 			"intent": intent,
@@ -929,7 +930,7 @@ func (e *ParallelProcessingEngine) createWorkflowTasks(ctx context.Context, inte
 		ID:           fmt.Sprintf("%s-llm-processing", workflowID),
 		IntentID:     intent.Name,
 		Type:         TaskTypeLLMProcessing,
-		Priority:     int(intent.Spec.Priority.ToInt()),
+		Priority:     priorityToInt(intent.Spec.Priority),
 		Status:       TaskStatusPending,
 		Dependencies: []string{intentTask.ID},
 		InputData: map[string]interface{}{
@@ -1004,7 +1005,7 @@ func (w *Worker) processTask(task *Task) {
 	task.StartedAt = &startTime
 	task.Status = TaskStatusRunning
 
-	w.Engine.logger.Debug("Worker processing task",
+	w.Engine.logger.V(1).Info("Worker processing task",
 		"workerID", w.ID,
 		"taskID", task.ID,
 		"type", task.Type)
@@ -1146,5 +1147,21 @@ func (w *Worker) processDeployment(ctx context.Context, task *Task) error {
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
+	}
+}
+
+// priorityToInt converts NetworkPriority to integer value
+func priorityToInt(priority v1.NetworkPriority) int {
+	switch priority {
+	case v1.NetworkPriorityLow:
+		return 1
+	case v1.NetworkPriorityNormal:
+		return 2
+	case v1.NetworkPriorityHigh:
+		return 3
+	case v1.NetworkPriorityCritical:
+		return 4
+	default:
+		return 2 // Default to normal priority
 	}
 }

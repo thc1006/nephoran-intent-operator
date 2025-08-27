@@ -340,7 +340,7 @@ func (r *CoordinationController) coordinateLLMProcessing(ctx context.Context, ne
 					UID:       string(networkIntent.UID),
 				},
 				OriginalIntent: networkIntent.Spec.Intent,
-				Priority:       networkIntent.Spec.Priority,
+				Priority:       convertNetworkPriorityToPriority(networkIntent.Spec.Priority),
 				TimeoutSeconds: networkIntent.Spec.TimeoutSeconds,
 				MaxRetries:     networkIntent.Spec.MaxRetries,
 			},
@@ -446,9 +446,9 @@ func (r *CoordinationController) coordinateResourcePlanning(ctx context.Context,
 					UID:       string(intentProcessing.UID),
 				},
 				RequirementsInput:   intentProcessing.Status.LLMResponse,
-				TargetComponents:    networkIntent.Spec.TargetComponents,
-				ResourceConstraints: networkIntent.Spec.ResourceConstraints,
-				Priority:            networkIntent.Spec.Priority,
+				TargetComponents:    convertNetworkTargetComponentsToTargetComponents(networkIntent.Spec.TargetComponents),
+				ResourceConstraints: convertNetworkResourceConstraints(networkIntent.Spec.ResourceConstraints),
+				Priority:            convertNetworkPriorityToPriority(networkIntent.Spec.Priority),
 			},
 		}
 
@@ -595,7 +595,8 @@ func (r *CoordinationController) handleConflicts(ctx context.Context, networkInt
 
 	// Attempt to resolve conflicts
 	for _, conflict := range conflicts {
-		resolved, err := r.conflictResolver.ResolveConflict(ctx, conflict)
+		phaseTrackerConflict := convertConflictToPhaseTrackerConflict(conflict)
+		resolved, err := r.conflictResolver.ResolveConflict(ctx, phaseTrackerConflict)
 		if err != nil {
 			log.Error(err, "Failed to resolve conflict", "conflictId", conflict.ID)
 			continue
@@ -687,15 +688,13 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 	log.Info("Intent processing completed successfully")
 
 	// Update NetworkIntent to completed status
-	networkIntent.Status.Phase = string(interfaces.PhaseCompleted)
+	networkIntent.Status.Phase = nephoranv1.NetworkIntentPhaseCompleted
 	now := metav1.Now()
 	networkIntent.Status.ProcessingCompletionTime = &now
 	networkIntent.Status.DeploymentCompletionTime = &now
 
-	if networkIntent.Status.ProcessingStartTime != nil {
-		duration := now.Sub(networkIntent.Status.ProcessingStartTime.Time)
-		networkIntent.Status.ProcessingDuration = &metav1.Duration{Duration: duration}
-	}
+	// Processing duration would be calculated here if the field existed
+	// Duration calculation: time.Since(processingStartTime)
 
 	if err := r.Status().Update(ctx, networkIntent); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to update NetworkIntent status: %w", err)
@@ -707,7 +706,7 @@ func (r *CoordinationController) handleIntentCompletion(ctx context.Context, net
 	// Publish completion event
 	if err := r.EventBus.PublishPhaseEvent(ctx, interfaces.PhaseCompleted, EventIntentCompleted,
 		coordCtx.IntentID, true, map[string]interface{}{
-			"processing_duration": networkIntent.Status.ProcessingDuration.Duration.String(),
+			"processing_duration": time.Since(coordCtx.StartTime).String(),
 			"completed_phases":    len(coordCtx.PhaseHistory),
 		}); err != nil {
 		log.Error(err, "Failed to publish completion event")
@@ -833,7 +832,7 @@ func (r *CoordinationController) handleIntentFailure(ctx context.Context, networ
 	log.Error(fmt.Errorf(result.ErrorMessage), "Intent processing failed permanently")
 
 	// Update NetworkIntent to failed status
-	networkIntent.Status.Phase = string(interfaces.PhaseFailed)
+	networkIntent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
 	now := metav1.Now()
 	networkIntent.Status.ProcessingCompletionTime = &now
 
@@ -914,7 +913,7 @@ func (r *CoordinationController) handleIntentDeletion(ctx context.Context, names
 // updateNetworkIntentStatus updates the NetworkIntent status
 func (r *CoordinationController) updateNetworkIntentStatus(ctx context.Context, networkIntent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult) error {
 	// Update phase
-	networkIntent.Status.Phase = string(phase)
+	networkIntent.Status.Phase = convertPhaseToNetworkIntentPhase(phase)
 
 	// Update timestamps
 	now := metav1.Now()
@@ -1092,3 +1091,103 @@ func DefaultCoordinationConfig() *CoordinationConfig {
 		RecoveryTimeout:          120 * time.Second,
 	}
 }
+
+// Missing controller types and supporting infrastructure
+
+// ManifestGenerationController handles manifest generation phase
+type ManifestGenerationController struct {
+	client.Client
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
+	Logger   logr.Logger
+}
+
+// GitOpsDeploymentController handles GitOps deployment phase
+type GitOpsDeploymentController struct {
+	client.Client
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
+	Logger   logr.Logger
+}
+
+// convertNetworkTargetComponents converts NetworkTargetComponent slice to strings
+func convertNetworkTargetComponents(components []nephoranv1.NetworkTargetComponent) []string {
+	result := make([]string, len(components))
+	for i, component := range components {
+		result[i] = string(component)
+	}
+	return result
+}
+
+// convertNetworkTargetComponentsToTargetComponents converts NetworkTargetComponent slice to TargetComponent slice
+func convertNetworkTargetComponentsToTargetComponents(components []nephoranv1.NetworkTargetComponent) []nephoranv1.TargetComponent {
+	result := make([]nephoranv1.TargetComponent, len(components))
+	for i, component := range components {
+		result[i] = nephoranv1.TargetComponent{
+			Name: string(component),
+			Type: "deployment", // Default type
+		}
+	}
+	return result
+}
+
+// convertNetworkPriorityToPriority converts NetworkPriority to Priority
+func convertNetworkPriorityToPriority(priority nephoranv1.NetworkPriority) nephoranv1.Priority {
+	switch priority {
+	case nephoranv1.NetworkPriorityLow:
+		return nephoranv1.PriorityLow
+	case nephoranv1.NetworkPriorityNormal:
+		return nephoranv1.PriorityNormal
+	case nephoranv1.NetworkPriorityHigh:
+		return nephoranv1.PriorityHigh
+	case nephoranv1.NetworkPriorityCritical:
+		return nephoranv1.PriorityCritical
+	default:
+		return nephoranv1.PriorityNormal
+	}
+}
+
+// convertNetworkResourceConstraints converts NetworkResourceConstraints to ResourceConstraints
+func convertNetworkResourceConstraints(constraints *nephoranv1.NetworkResourceConstraints) *nephoranv1.ResourceConstraints {
+	if constraints == nil {
+		return nil
+	}
+	return &nephoranv1.ResourceConstraints{
+		CPU:     constraints.MaxCPU,
+		Memory:  constraints.MaxMemory,
+		MaxCPU:  constraints.MaxCPU,
+		MaxMemory: constraints.MaxMemory,
+	}
+}
+
+// convertPhaseToNetworkIntentPhase converts ProcessingPhase to NetworkIntentPhase
+func convertPhaseToNetworkIntentPhase(phase interfaces.ProcessingPhase) nephoranv1.NetworkIntentPhase {
+	switch phase {
+	case interfaces.PhaseIntentReceived:
+		return nephoranv1.NetworkIntentPhasePending
+	case interfaces.PhaseLLMProcessing, interfaces.PhaseResourcePlanning, interfaces.PhaseManifestGeneration:
+		return nephoranv1.NetworkIntentPhaseProcessing
+	case interfaces.PhaseGitOpsCommit, interfaces.PhaseDeploymentVerification:
+		return nephoranv1.NetworkIntentPhaseReady
+	case interfaces.PhaseCompleted:
+		return nephoranv1.NetworkIntentPhaseCompleted
+	case interfaces.PhaseFailed:
+		return nephoranv1.NetworkIntentPhaseFailed
+	default:
+		return nephoranv1.NetworkIntentPhasePending
+	}
+}
+
+// convertConflictToPhaseTrackerConflict converts Conflict to Conflict_PhaseTracker
+func convertConflictToPhaseTrackerConflict(conflict Conflict) Conflict_PhaseTracker {
+	return Conflict_PhaseTracker{
+		ID:          conflict.ID,
+		Type:        conflict.Type,
+		Resource:    "network-intent",
+		Description: conflict.Description,
+		Severity:    conflict.Severity,
+		Timestamp:   conflict.DetectedAt,
+		Data:        make(map[string]interface{}),
+	}
+}
+

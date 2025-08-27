@@ -31,7 +31,7 @@ env:
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
   KUBECONFIG_PATH: /tmp/kubeconfig
-  HELM_VERSION: '3.14.0'
+  HELM_VERSION: '3.18.5'
   KUBECTL_VERSION: '1.29.0'
   GOPRIVATE: github.com/securecodewarrior/*
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -137,19 +137,22 @@ jobs:
           # Build with optimizations
           case "${{ matrix.target }}" in
             "nephio-controller")
-              go build -ldflags="-s -w -X main.version=${{ github.sha }}" -o bin/controller ./cmd/controller
+              go build -ldflags="-s -w -X main.version=${{ github.sha }}" -o bin/controller ./cmd/
               ;;
             "oran-simulator")
-              go build -ldflags="-s -w" -o bin/simulator ./sim/cmd/
+              go build -ldflags="-s -w" -o bin/a1-sim ./cmd/a1-sim/
+              go build -ldflags="-s -w" -o bin/e2-sim ./cmd/e2-kpm-sim/
               ;;
             "ves-collector")
               go build -ldflags="-s -w" -o bin/ves-collector ./tools/vessend/cmd/vessend/
               ;;
             "optimization-engine")
-              go build -ldflags="-s -w" -o bin/optimizer ./pkg/optimization/
+              # Optimization is a package, not a main program - skip build
+              echo "Optimization package will be tested only"
               ;;
             "security-agent")
-              go build -ldflags="-s -w" -o bin/security ./pkg/security/
+              # Security is a package, not a main program - skip build
+              echo "Security package will be tested only"
               ;;
           esac
           
@@ -159,10 +162,10 @@ jobs:
           
           case "${{ matrix.target }}" in
             "nephio-controller")
-              go test -parallel 8 -timeout 300s ./cmd/controller/... ./pkg/controllers/...
+              go test -parallel 8 -timeout 300s ./cmd/... ./pkg/controllers/...
               ;;
             "oran-simulator")
-              go test -parallel 4 -timeout 180s ./sim/...
+              go test -parallel 4 -timeout 180s ./cmd/a1-sim/... ./cmd/e2-kpm-sim/...
               ;;
             "ves-collector")
               go test -parallel 4 -timeout 180s ./tools/vessend/...

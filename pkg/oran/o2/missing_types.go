@@ -44,76 +44,11 @@ type AlarmClearRequest struct {
 	Extensions map[string]interface{} `json:"extensions,omitempty"`
 }
 
-// Alert represents an alert in the monitoring system
-type Alert struct {
-	ID          string                 `json:"id"`
-	Name        string                 `json:"name"`
-	ResourceID  string                 `json:"resourceId"`
-	Type        string                 `json:"type"`
-	Severity    string                 `json:"severity"`
-	Status      string                 `json:"status"`
-	Message     string                 `json:"message"`
-	Description string                 `json:"description,omitempty"`
-	Source      string                 `json:"source"`
-	RaisedAt    time.Time              `json:"raisedAt"`
-	ResolvedAt  *time.Time             `json:"resolvedAt,omitempty"`
-	Details     map[string]interface{} `json:"details,omitempty"`
-}
 
-// CloudProvider represents a cloud infrastructure provider
-type CloudProvider = providers.CloudProvider
 
-// NetworkPolicyRule defines network policy rules (from models but duplicated for compatibility)
-type NetworkPolicyRule struct {
-	From  []*models.NetworkPolicyPeer `json:"from,omitempty"`
-	To    []*models.NetworkPolicyPeer `json:"to,omitempty"`
-	Ports []*models.NetworkPolicyPort `json:"ports,omitempty"`
-}
 
-// Asset represents an infrastructure asset (placeholder implementation)
-type Asset struct {
-	ID            string                 `json:"id"`
-	Name          string                 `json:"name"`
-	Type          string                 `json:"type"`
-	Category      string                 `json:"category"`
-	Status        string                 `json:"status"`
-	Location      string                 `json:"location,omitempty"`
-	Owner         string                 `json:"owner,omitempty"`
-	Configuration map[string]interface{} `json:"configuration,omitempty"`
-	Metadata      map[string]string      `json:"metadata,omitempty"`
-	CreatedAt     time.Time              `json:"createdAt"`
-	UpdatedAt     time.Time              `json:"updatedAt"`
-}
 
-// AlarmFilter defines filters for querying alarms
-type AlarmFilter struct {
-	AlarmIDs     []string          `json:"alarmIds,omitempty"`
-	ResourceIDs  []string          `json:"resourceIds,omitempty"`
-	AlarmTypes   []string          `json:"alarmTypes,omitempty"`
-	Severities   []string          `json:"severities,omitempty"`
-	Statuses     []string          `json:"statuses,omitempty"`
-	Sources      []string          `json:"sources,omitempty"`
-	RaisedAfter  *time.Time        `json:"raisedAfter,omitempty"`
-	RaisedBefore *time.Time        `json:"raisedBefore,omitempty"`
-	Labels       map[string]string `json:"labels,omitempty"`
-	Limit        int               `json:"limit,omitempty"`
-	Offset       int               `json:"offset,omitempty"`
-	SortBy       string            `json:"sortBy,omitempty"`
-	SortOrder    string            `json:"sortOrder,omitempty"`
-}
 
-// MetricsFilter defines filters for querying metrics
-type MetricsFilter struct {
-	ResourceIDs []string          `json:"resourceIds,omitempty"`
-	MetricNames []string          `json:"metricNames,omitempty"`
-	StartTime   *time.Time        `json:"startTime,omitempty"`
-	EndTime     *time.Time        `json:"endTime,omitempty"`
-	Labels      map[string]string `json:"labels,omitempty"`
-	Aggregation string            `json:"aggregation,omitempty"`
-	Interval    string            `json:"interval,omitempty"`
-	Limit       int               `json:"limit,omitempty"`
-	Offset      int               `json:"offset,omitempty"`
-}
 
 // Stub IMS service implementations for missing services
 

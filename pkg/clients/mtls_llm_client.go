@@ -159,7 +159,6 @@ func (c *MTLSLLMClient) ProcessIntentStream(ctx context.Context, prompt string, 
 		chunk := &shared.StreamingChunk{
 			Content:   streamResp.Content,
 			IsLast:    streamResp.IsLast,
-			Metadata:  streamResp.Metadata,
 			Timestamp: streamResp.Timestamp,
 		}
 
@@ -213,8 +212,8 @@ func (c *MTLSLLMClient) GetSupportedModels() []string {
 	return models
 }
 
-// GetModelCapabilities returns capabilities for a specific model
-func (c *MTLSLLMClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
+// getModelCapabilitiesInternal returns capabilities for a specific model (internal method)
+func (c *MTLSLLMClient) getModelCapabilitiesInternal(modelName string) (*shared.ModelCapabilities, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
@@ -266,7 +265,7 @@ func (c *MTLSLLMClient) EstimateTokens(text string) int {
 
 // GetMaxTokens returns the maximum tokens for a model
 func (c *MTLSLLMClient) GetMaxTokens(modelName string) int {
-	capabilities, err := c.GetModelCapabilities(modelName)
+	capabilities, err := c.getModelCapabilitiesInternal(modelName)
 	if err != nil {
 		c.logger.Warn("failed to get model capabilities, using default max tokens",
 			"model", modelName,
@@ -379,4 +378,100 @@ type HealthStatus struct {
 	Message   string                 `json:"message,omitempty"`
 	Timestamp time.Time              `json:"timestamp"`
 	Details   map[string]interface{} `json:"details,omitempty"`
+}
+
+// ProcessRequest implements shared.ClientInterface
+func (c *MTLSLLMClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
+	// Convert shared.LLMRequest to internal LLMRequest
+	internal := &LLMRequest{
+		Prompt:      request.Messages[0].Content, // Use first message content as prompt
+		Model:       request.Model,
+		MaxTokens:   request.MaxTokens,
+		Temperature: float64(request.Temperature),
+		Metadata:    request.Metadata,
+	}
+
+	// Make request
+	response, err := c.makeRequest(ctx, "/api/v1/process", internal)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert response to shared format
+	return &shared.LLMResponse{
+		Content: response.Content,
+		Model:   response.Model,
+		Usage: shared.TokenUsage{
+			TotalTokens: response.TokensUsed,
+		},
+		Created: time.Now(),
+	}, nil
+}
+
+// ProcessStreamingRequest implements shared.ClientInterface
+func (c *MTLSLLMClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	chunks := make(chan *shared.StreamingChunk, 10)
+	
+	go func() {
+		prompt := request.Messages[0].Content
+		err := c.ProcessIntentStream(ctx, prompt, chunks)
+		if err != nil {
+			c.logger.Error("streaming request failed", "error", err)
+			chunks <- &shared.StreamingChunk{
+				Error: &shared.LLMError{
+					Message: err.Error(),
+				},
+			}
+		}
+	}()
+	
+	return chunks, nil
+}
+
+// HealthCheck implements shared.ClientInterface
+func (c *MTLSLLMClient) HealthCheck(ctx context.Context) error {
+	health, err := c.GetHealth()
+	if err != nil {
+		return err
+	}
+	
+	if health.Status != "healthy" {
+		return fmt.Errorf("service unhealthy: %s", health.Message)
+	}
+	
+	return nil
+}
+
+// GetStatus implements shared.ClientInterface
+func (c *MTLSLLMClient) GetStatus() shared.ClientStatus {
+	health, err := c.GetHealth()
+	if err != nil {
+		return shared.ClientStatusUnavailable
+	}
+	
+	switch health.Status {
+	case "healthy":
+		return shared.ClientStatusHealthy
+	case "unhealthy":
+		return shared.ClientStatusUnhealthy
+	default:
+		return shared.ClientStatusUnavailable
+	}
+}
+
+// GetModelCapabilities implements shared.ClientInterface (wrapper)
+func (c *MTLSLLMClient) GetModelCapabilities() shared.ModelCapabilities {
+	caps, err := c.getModelCapabilitiesInternal("default")
+	if err != nil {
+		return shared.ModelCapabilities{
+			MaxTokens: 4096,
+			SupportsStreaming: true,
+		}
+	}
+	return *caps
+}
+
+// GetEndpoint implements shared.ClientInterface
+func (c *MTLSLLMClient) GetEndpoint() string {
+	return c.baseURL
 }

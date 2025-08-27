@@ -255,7 +255,7 @@ func (c *ASN1Codec) decodeRICSubscriptionRequest(data []byte) (*RICSubscriptionR
 	if err := binary.Read(buf, binary.BigEndian, &ranFunctionID); err != nil {
 		return nil, err
 	}
-	req.RANFunctionID = int(ranFunctionID)
+	req.RANFunctionID = RANFunctionID(ranFunctionID)
 
 	// Decode Event Trigger Definition
 	eventTrigger, err := c.decodeOctetString(buf)
@@ -289,35 +289,35 @@ func (c *ASN1Codec) encodeRICIndication(ind *RICIndication) ([]byte, error) {
 	}
 
 	// Encode Action ID
-	if err := binary.Write(buf, binary.BigEndian, uint16(ind.ActionID)); err != nil {
+	if err := binary.Write(buf, binary.BigEndian, uint16(ind.RICActionID)); err != nil {
 		return nil, err
 	}
 
 	// Encode Indication SN (optional)
-	if ind.IndicationSN > 0 {
-		if err := binary.Write(buf, binary.BigEndian, uint32(ind.IndicationSN)); err != nil {
+	if ind.RICIndicationSN != nil && *ind.RICIndicationSN > 0 {
+		if err := binary.Write(buf, binary.BigEndian, uint32(*ind.RICIndicationSN)); err != nil {
 			return nil, err
 		}
 	}
 
 	// Encode Indication Type
-	if err := c.encodeIndicationType(buf, ind.IndicationType); err != nil {
+	if err := c.encodeIndicationType(buf, ind.RICIndicationType); err != nil {
 		return nil, err
 	}
 
 	// Encode Indication Header
-	if err := c.encodeOctetString(buf, ind.IndicationHeader); err != nil {
+	if err := c.encodeOctetString(buf, ind.RICIndicationHeader); err != nil {
 		return nil, err
 	}
 
 	// Encode Indication Message
-	if err := c.encodeOctetString(buf, ind.IndicationMessage); err != nil {
+	if err := c.encodeOctetString(buf, ind.RICIndicationMessage); err != nil {
 		return nil, err
 	}
 
 	// Encode Call Process ID (optional)
-	if len(ind.CallProcessID) > 0 {
-		if err := c.encodeOctetString(buf, ind.CallProcessID); err != nil {
+	if ind.RICCallProcessID != nil && len(*ind.RICCallProcessID) > 0 {
+		if err := c.encodeOctetString(buf, *ind.RICCallProcessID); err != nil {
 			return nil, err
 		}
 	}
@@ -342,20 +342,21 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 	if err := binary.Read(buf, binary.BigEndian, &ranFunctionID); err != nil {
 		return nil, err
 	}
-	ind.RANFunctionID = int(ranFunctionID)
+	ind.RANFunctionID = RANFunctionID(ranFunctionID)
 
 	// Decode Action ID
 	var actionID uint16
 	if err := binary.Read(buf, binary.BigEndian, &actionID); err != nil {
 		return nil, err
 	}
-	ind.ActionID = int(actionID)
+	ind.RICActionID = RICActionID(actionID)
 
 	// Check for optional Indication SN
 	if buf.Len() > 0 {
 		var indicationSN uint32
 		if err := binary.Read(buf, binary.BigEndian, &indicationSN); err == nil {
-			ind.IndicationSN = int(indicationSN)
+			sn := RICIndicationSN(indicationSN)
+			ind.RICIndicationSN = &sn
 		}
 	}
 
@@ -364,27 +365,28 @@ func (c *ASN1Codec) decodeRICIndication(data []byte) (*RICIndication, error) {
 	if err != nil {
 		return nil, err
 	}
-	ind.IndicationType = indicationType
+	ind.RICIndicationType = indicationType
 
 	// Decode Indication Header
 	header, err := c.decodeOctetString(buf)
 	if err != nil {
 		return nil, err
 	}
-	ind.IndicationHeader = header
+	ind.RICIndicationHeader = header
 
 	// Decode Indication Message
 	message, err := c.decodeOctetString(buf)
 	if err != nil {
 		return nil, err
 	}
-	ind.IndicationMessage = message
+	ind.RICIndicationMessage = message
 
 	// Check for optional Call Process ID
 	if buf.Len() > 0 {
 		callProcessID, err := c.decodeOctetString(buf)
 		if err == nil {
-			ind.CallProcessID = callProcessID
+			cpid := RICCallProcessID(callProcessID)
+			ind.RICCallProcessID = &cpid
 		}
 	}
 
@@ -731,7 +733,7 @@ func (c *ASN1Codec) encodeRANFunction(w io.Writer, fn RANFunctionItem) error {
 	}
 
 	// Encode RAN Function Definition
-	if err := c.encodeOctetString(w, []byte(fn.RANFunctionDefinition)); err != nil {
+	if err := c.encodeOctetString(w, fn.RANFunctionDefinition); err != nil {
 		return err
 	}
 
@@ -741,7 +743,11 @@ func (c *ASN1Codec) encodeRANFunction(w io.Writer, fn RANFunctionItem) error {
 	}
 
 	// Encode RAN Function OID
-	if err := c.encodeOctetString(w, []byte(fn.RANFunctionOID)); err != nil {
+	var oidBytes []byte
+	if fn.RANFunctionOID != nil {
+		oidBytes = []byte(*fn.RANFunctionOID)
+	}
+	if err := c.encodeOctetString(w, oidBytes); err != nil {
 		return err
 	}
 
@@ -756,28 +762,29 @@ func (c *ASN1Codec) decodeRANFunction(r io.Reader) (RANFunctionItem, error) {
 	if err := binary.Read(r, binary.BigEndian, &functionID); err != nil {
 		return fn, err
 	}
-	fn.RANFunctionID = int(functionID)
+	fn.RANFunctionID = RANFunctionID(functionID)
 
 	// Decode RAN Function Definition
 	definition, err := c.decodeOctetString(r)
 	if err != nil {
 		return fn, err
 	}
-	fn.RANFunctionDefinition = string(definition)
+	fn.RANFunctionDefinition = definition
 
 	// Decode RAN Function Revision
 	var revision uint16
 	if err := binary.Read(r, binary.BigEndian, &revision); err != nil {
 		return fn, err
 	}
-	fn.RANFunctionRevision = int(revision)
+	fn.RANFunctionRevision = RANFunctionRevision(revision)
 
 	// Decode RAN Function OID
 	oid, err := c.decodeOctetString(r)
 	if err != nil {
 		return fn, err
 	}
-	fn.RANFunctionOID = string(oid)
+	oidStr := string(oid)
+	fn.RANFunctionOID = &oidStr
 
 	return fn, nil
 }
@@ -824,13 +831,15 @@ func (c *ASN1Codec) encodeE2NodeComponentConfig(w io.Writer, config E2NodeCompon
 		return err
 	}
 
-	// Encode component ID
-	if err := c.encodeOctetString(w, []byte(config.E2NodeComponentID)); err != nil {
+	// Encode component ID (simplified serialization)
+	idBytes := c.serializeE2NodeComponentID(config.E2NodeComponentID)
+	if err := c.encodeOctetString(w, idBytes); err != nil {
 		return err
 	}
 
-	// Encode component configuration
-	if err := c.encodeOctetString(w, []byte(config.E2NodeComponentConfiguration)); err != nil {
+	// Encode component configuration (simplified serialization)
+	configBytes := c.serializeE2NodeComponentConfiguration(config.E2NodeComponentConfiguration)
+	if err := c.encodeOctetString(w, configBytes); err != nil {
 		return err
 	}
 
@@ -852,14 +861,14 @@ func (c *ASN1Codec) decodeE2NodeComponentConfig(r io.Reader) (E2NodeComponentCon
 	if err != nil {
 		return config, err
 	}
-	config.E2NodeComponentID = string(id)
+	config.E2NodeComponentID = c.deserializeE2NodeComponentID(id)
 
 	// Decode component configuration
 	configuration, err := c.decodeOctetString(r)
 	if err != nil {
 		return config, err
 	}
-	config.E2NodeComponentConfiguration = string(configuration)
+	config.E2NodeComponentConfiguration = c.deserializeE2NodeComponentConfiguration(configuration)
 
 	return config, nil
 }
@@ -883,7 +892,18 @@ func (c *ASN1Codec) encodeE2SetupResponse(resp *E2SetupResponse) ([]byte, error)
 
 	// Encode RAN Functions Rejected (optional)
 	if len(resp.RANFunctionsRejected) > 0 {
-		if err := c.encodeRANFunctionIDCauseList(buf, resp.RANFunctionsRejected); err != nil {
+		// Convert RANFunctionIDCause to RANFunctionIDCauseItem
+		rejectedItems := make([]RANFunctionIDCauseItem, len(resp.RANFunctionsRejected))
+		for i, item := range resp.RANFunctionsRejected {
+			rejectedItems[i] = RANFunctionIDCauseItem{
+				RANFunctionID: int(item.RANFunctionID),
+				Cause: E2Cause{
+					CauseType:  E2CauseTypeRIC, // Simplified conversion
+					CauseValue: 1,              // Default value
+				},
+			}
+		}
+		if err := c.encodeRANFunctionIDCauseList(buf, rejectedItems); err != nil {
 			return nil, err
 		}
 	}
@@ -914,7 +934,20 @@ func (c *ASN1Codec) decodeE2SetupResponse(data []byte) (*E2SetupResponse, error)
 	if buf.Len() > 0 {
 		rejected, err := c.decodeRANFunctionIDCauseList(buf)
 		if err == nil {
-			resp.RANFunctionsRejected = rejected
+			// Convert RANFunctionIDCauseItem to RANFunctionIDCause
+			rejectedCauses := make([]RANFunctionIDCause, len(rejected))
+			for i, item := range rejected {
+				rejectedCauses[i] = RANFunctionIDCause{
+					RANFunctionID: RANFunctionID(item.RANFunctionID),
+					Cause: E2APCause{
+						RICCause: func() *RICCause {
+							cause := RICCauseUnspecified
+							return &cause
+						}(),
+					},
+				}
+			}
+			resp.RANFunctionsRejected = rejectedCauses
 		}
 	}
 
@@ -947,7 +980,7 @@ func (c *ASN1Codec) decodeGlobalRICID(r io.Reader) (GlobalRICID, error) {
 	if err := binary.Read(r, binary.BigEndian, &ricID); err != nil {
 		return id, err
 	}
-	id.RICID = int(ricID)
+	id.RICID = RICID(ricID)
 
 	return id, nil
 }
@@ -988,8 +1021,8 @@ func (c *ASN1Codec) decodeRANFunctionIDList(r io.Reader) ([]RANFunctionIDItem, e
 			return nil, err
 		}
 		functions[i] = RANFunctionIDItem{
-			RANFunctionID:       int(functionID),
-			RANFunctionRevision: int(revision),
+			RANFunctionID:       RANFunctionID(functionID),
+			RANFunctionRevision: RANFunctionRevision(revision),
 		}
 	}
 
@@ -1078,7 +1111,7 @@ func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, err
 	buf := &bytes.Buffer{}
 
 	// Encode RIC Request ID
-	if err := c.encodeRICRequestID(buf, req.RequestID); err != nil {
+	if err := c.encodeRICRequestID(buf, req.RICRequestID); err != nil {
 		return nil, err
 	}
 
@@ -1088,25 +1121,25 @@ func (c *ASN1Codec) encodeRICControlRequest(req *RICControlRequest) ([]byte, err
 	}
 
 	// Encode Call Process ID (optional)
-	if len(req.CallProcessID) > 0 {
-		if err := c.encodeOctetString(buf, req.CallProcessID); err != nil {
+	if req.RICCallProcessID != nil && len(*req.RICCallProcessID) > 0 {
+		if err := c.encodeOctetString(buf, *req.RICCallProcessID); err != nil {
 			return nil, err
 		}
 	}
 
 	// Encode Control Header
-	if err := c.encodeOctetString(buf, req.ControlHeader); err != nil {
+	if err := c.encodeOctetString(buf, req.RICControlHeader); err != nil {
 		return nil, err
 	}
 
 	// Encode Control Message
-	if err := c.encodeOctetString(buf, req.ControlMessage); err != nil {
+	if err := c.encodeOctetString(buf, req.RICControlMessage); err != nil {
 		return nil, err
 	}
 
 	// Encode Control Ack Request (1 bit)
 	ackByte := uint8(0)
-	if req.ControlAckRequest {
+	if req.RICControlAckRequest != nil && *req.RICControlAckRequest == RICControlAckRequestAck {
 		ackByte = 1
 	}
 	if err := binary.Write(buf, binary.BigEndian, ackByte); err != nil {
@@ -1125,20 +1158,21 @@ func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, er
 	if err != nil {
 		return nil, err
 	}
-	req.RequestID = requestID
+	req.RICRequestID = requestID
 
 	// Decode RAN Function ID
 	var ranFunctionID uint16
 	if err := binary.Read(buf, binary.BigEndian, &ranFunctionID); err != nil {
 		return nil, err
 	}
-	req.RANFunctionID = int(ranFunctionID)
+	req.RANFunctionID = RANFunctionID(ranFunctionID)
 
 	// Try to decode optional Call Process ID
 	// This needs proper optional field handling in real ASN.1
 	callProcessID, err := c.decodeOctetString(buf)
 	if err == nil && len(callProcessID) > 0 {
-		req.CallProcessID = callProcessID
+		cpid := RICCallProcessID(callProcessID)
+		req.RICCallProcessID = &cpid
 	}
 
 	// Decode Control Header
@@ -1146,21 +1180,25 @@ func (c *ASN1Codec) decodeRICControlRequest(data []byte) (*RICControlRequest, er
 	if err != nil {
 		return nil, err
 	}
-	req.ControlHeader = header
+	req.RICControlHeader = header
 
 	// Decode Control Message
 	message, err := c.decodeOctetString(buf)
 	if err != nil {
 		return nil, err
 	}
-	req.ControlMessage = message
+	req.RICControlMessage = message
 
 	// Decode Control Ack Request
 	var ackByte uint8
 	if err := binary.Read(buf, binary.BigEndian, &ackByte); err != nil {
 		return nil, err
 	}
-	req.ControlAckRequest = ackByte != 0
+	ackReq := RICControlAckRequestNoAck
+	if ackByte != 0 {
+		ackReq = RICControlAckRequestAck
+	}
+	req.RICControlAckRequest = &ackReq
 
 	return req, nil
 }
@@ -1170,7 +1208,7 @@ func (c *ASN1Codec) encodeRICControlAcknowledge(ack *RICControlAcknowledge) ([]b
 	buf := &bytes.Buffer{}
 
 	// Encode RIC Request ID
-	if err := c.encodeRICRequestID(buf, ack.RequestID); err != nil {
+	if err := c.encodeRICRequestID(buf, ack.RICRequestID); err != nil {
 		return nil, err
 	}
 
@@ -1180,15 +1218,15 @@ func (c *ASN1Codec) encodeRICControlAcknowledge(ack *RICControlAcknowledge) ([]b
 	}
 
 	// Encode Call Process ID (optional)
-	if len(ack.CallProcessID) > 0 {
-		if err := c.encodeOctetString(buf, ack.CallProcessID); err != nil {
+	if ack.RICCallProcessID != nil && len(*ack.RICCallProcessID) > 0 {
+		if err := c.encodeOctetString(buf, *ack.RICCallProcessID); err != nil {
 			return nil, err
 		}
 	}
 
 	// Encode Control Outcome (optional)
-	if len(ack.ControlOutcome) > 0 {
-		if err := c.encodeOctetString(buf, ack.ControlOutcome); err != nil {
+	if len(ack.RICControlOutcome) > 0 {
+		if err := c.encodeOctetString(buf, ack.RICControlOutcome); err != nil {
 			return nil, err
 		}
 	}
@@ -1205,20 +1243,21 @@ func (c *ASN1Codec) decodeRICControlAcknowledge(data []byte) (*RICControlAcknowl
 	if err != nil {
 		return nil, err
 	}
-	ack.RequestID = requestID
+	ack.RICRequestID = requestID
 
 	// Decode RAN Function ID
 	var ranFunctionID uint16
 	if err := binary.Read(buf, binary.BigEndian, &ranFunctionID); err != nil {
 		return nil, err
 	}
-	ack.RANFunctionID = int(ranFunctionID)
+	ack.RANFunctionID = RANFunctionID(ranFunctionID)
 
 	// Check for optional Call Process ID
 	if buf.Len() > 0 {
 		callProcessID, err := c.decodeOctetString(buf)
 		if err == nil {
-			ack.CallProcessID = callProcessID
+			cpid := RICCallProcessID(callProcessID)
+			ack.RICCallProcessID = &cpid
 		}
 	}
 
@@ -1226,7 +1265,7 @@ func (c *ASN1Codec) decodeRICControlAcknowledge(data []byte) (*RICControlAcknowl
 	if buf.Len() > 0 {
 		outcome, err := c.decodeOctetString(buf)
 		if err == nil {
-			ack.ControlOutcome = outcome
+			ack.RICControlOutcome = outcome
 		}
 	}
 
@@ -1238,7 +1277,7 @@ func (c *ASN1Codec) encodeRICSubscriptionResponse(resp *RICSubscriptionResponse)
 	buf := &bytes.Buffer{}
 
 	// Encode RIC Request ID
-	if err := c.encodeRICRequestID(buf, resp.RequestID); err != nil {
+	if err := c.encodeRICRequestID(buf, resp.RICRequestID); err != nil {
 		return nil, err
 	}
 
@@ -1247,14 +1286,18 @@ func (c *ASN1Codec) encodeRICSubscriptionResponse(resp *RICSubscriptionResponse)
 		return nil, err
 	}
 
-	// Encode Actions Admitted List
-	if err := c.encodeRICActionAdmittedList(buf, resp.ActionsAdmittedList); err != nil {
+	// Encode Actions Admitted List - convert RICActionID to RICActionAdmittedItem
+	admittedItems := make([]RICActionAdmittedItem, len(resp.RICActionAdmittedList))
+	for i, actionID := range resp.RICActionAdmittedList {
+		admittedItems[i] = RICActionAdmittedItem{ActionID: int(actionID)}
+	}
+	if err := c.encodeRICActionAdmittedList(buf, admittedItems); err != nil {
 		return nil, err
 	}
 
 	// Encode Actions Not Admitted List (optional)
-	if len(resp.ActionsNotAdmittedList) > 0 {
-		if err := c.encodeRICActionNotAdmittedList(buf, resp.ActionsNotAdmittedList); err != nil {
+	if len(resp.RICActionNotAdmittedList) > 0 {
+		if err := c.encodeRICActionNotAdmittedList(buf, resp.RICActionNotAdmittedList); err != nil {
 			return nil, err
 		}
 	}
@@ -1271,27 +1314,31 @@ func (c *ASN1Codec) decodeRICSubscriptionResponse(data []byte) (*RICSubscription
 	if err != nil {
 		return nil, err
 	}
-	resp.RequestID = requestID
+	resp.RICRequestID = requestID
 
 	// Decode RAN Function ID
 	var ranFunctionID uint16
 	if err := binary.Read(buf, binary.BigEndian, &ranFunctionID); err != nil {
 		return nil, err
 	}
-	resp.RANFunctionID = int(ranFunctionID)
+	resp.RANFunctionID = RANFunctionID(ranFunctionID)
 
-	// Decode Actions Admitted List
-	admitted, err := c.decodeRICActionAdmittedList(buf)
+	// Decode Actions Admitted List - convert RICActionAdmittedItem to RICActionID
+	admittedItems, err := c.decodeRICActionAdmittedList(buf)
 	if err != nil {
 		return nil, err
 	}
-	resp.ActionsAdmittedList = admitted
+	admitted := make([]RICActionID, len(admittedItems))
+	for i, item := range admittedItems {
+		admitted[i] = RICActionID(item.ActionID)
+	}
+	resp.RICActionAdmittedList = admitted
 
 	// Check for optional Actions Not Admitted List
 	if buf.Len() > 0 {
 		notAdmitted, err := c.decodeRICActionNotAdmittedList(buf)
 		if err == nil {
-			resp.ActionsNotAdmittedList = notAdmitted
+			resp.RICActionNotAdmittedList = notAdmitted
 		}
 	}
 
@@ -1301,12 +1348,12 @@ func (c *ASN1Codec) decodeRICSubscriptionResponse(data []byte) (*RICSubscription
 // Helper methods for RIC Request ID
 func (c *ASN1Codec) encodeRICRequestID(w io.Writer, id RICRequestID) error {
 	// Encode Requestor ID (16 bits)
-	if err := binary.Write(w, binary.BigEndian, uint16(id.RequestorID)); err != nil {
+	if err := binary.Write(w, binary.BigEndian, uint16(id.RICRequestorID)); err != nil {
 		return err
 	}
 
 	// Encode Instance ID (16 bits)
-	return binary.Write(w, binary.BigEndian, uint16(id.InstanceID))
+	return binary.Write(w, binary.BigEndian, uint16(id.RICInstanceID))
 }
 
 func (c *ASN1Codec) decodeRICRequestID(r io.Reader) (RICRequestID, error) {
@@ -1317,14 +1364,14 @@ func (c *ASN1Codec) decodeRICRequestID(r io.Reader) (RICRequestID, error) {
 	if err := binary.Read(r, binary.BigEndian, &requestorID); err != nil {
 		return id, err
 	}
-	id.RequestorID = int(requestorID)
+	id.RICRequestorID = RICRequestorID(requestorID)
 
 	// Decode Instance ID
 	var instanceID uint16
 	if err := binary.Read(r, binary.BigEndian, &instanceID); err != nil {
 		return id, err
 	}
-	id.InstanceID = int(instanceID)
+	id.RICInstanceID = RICInstanceID(instanceID)
 
 	return id, nil
 }
@@ -1367,25 +1414,25 @@ func (c *ASN1Codec) decodeRICActionsList(r io.Reader) ([]RICActionToBeSetupItem,
 
 func (c *ASN1Codec) encodeRICAction(w io.Writer, action RICActionToBeSetupItem) error {
 	// Encode Action ID
-	if err := binary.Write(w, binary.BigEndian, uint16(action.ActionID)); err != nil {
+	if err := binary.Write(w, binary.BigEndian, uint16(action.RICActionID)); err != nil {
 		return err
 	}
 
 	// Encode Action Type
-	if err := binary.Write(w, binary.BigEndian, uint8(action.ActionType)); err != nil {
+	if err := binary.Write(w, binary.BigEndian, uint8(action.RICActionType)); err != nil {
 		return err
 	}
 
 	// Encode Action Definition (optional)
-	if len(action.ActionDefinition) > 0 {
-		if err := c.encodeOctetString(w, action.ActionDefinition); err != nil {
+	if len(action.RICActionDefinition) > 0 {
+		if err := c.encodeOctetString(w, action.RICActionDefinition); err != nil {
 			return err
 		}
 	}
 
 	// Encode Subsequent Action (optional)
-	if action.SubsequentAction != nil {
-		if err := c.encodeSubsequentAction(w, *action.SubsequentAction); err != nil {
+	if action.RICSubsequentAction != nil {
+		if err := c.encodeSubsequentAction(w, *action.RICSubsequentAction); err != nil {
 			return err
 		}
 	}
@@ -1401,20 +1448,20 @@ func (c *ASN1Codec) decodeRICAction(r io.Reader) (RICActionToBeSetupItem, error)
 	if err := binary.Read(r, binary.BigEndian, &actionID); err != nil {
 		return action, err
 	}
-	action.ActionID = int(actionID)
+	action.RICActionID = RICActionID(actionID)
 
 	// Decode Action Type
 	var actionType uint8
 	if err := binary.Read(r, binary.BigEndian, &actionType); err != nil {
 		return action, err
 	}
-	action.ActionType = RICActionType(actionType)
+	action.RICActionType = RICActionType(actionType)
 
 	// Check for optional Action Definition
 	// This needs proper optional field handling
 	definition, err := c.decodeOctetString(r)
 	if err == nil && len(definition) > 0 {
-		action.ActionDefinition = definition
+		action.RICActionDefinition = definition
 	}
 
 	// Check for optional Subsequent Action
@@ -1425,12 +1472,16 @@ func (c *ASN1Codec) decodeRICAction(r io.Reader) (RICActionToBeSetupItem, error)
 
 func (c *ASN1Codec) encodeSubsequentAction(w io.Writer, action RICSubsequentAction) error {
 	// Encode Subsequent Action Type
-	if err := binary.Write(w, binary.BigEndian, uint8(action.SubsequentActionType)); err != nil {
+	if err := binary.Write(w, binary.BigEndian, uint8(action.RICSubsequentActionType)); err != nil {
 		return err
 	}
 
 	// Encode Time to Wait
-	return binary.Write(w, binary.BigEndian, uint8(action.TimeToWait))
+	timeToWait := uint8(0)
+	if action.RICTimeToWait != nil {
+		timeToWait = uint8(*action.RICTimeToWait)
+	}
+	return binary.Write(w, binary.BigEndian, timeToWait)
 }
 
 func (c *ASN1Codec) encodeRICActionAdmittedList(w io.Writer, actions []RICActionAdmittedItem) error {
@@ -1476,10 +1527,15 @@ func (c *ASN1Codec) encodeRICActionNotAdmittedList(w io.Writer, actions []RICAct
 
 	// Encode each not admitted action
 	for _, action := range actions {
-		if err := binary.Write(w, binary.BigEndian, uint16(action.ActionID)); err != nil {
+		if err := binary.Write(w, binary.BigEndian, uint16(action.RICActionID)); err != nil {
 			return err
 		}
-		if err := c.encodeCause(w, action.Cause); err != nil {
+		// Convert E2APCause to E2Cause for simplified codec
+		simpleCause := E2Cause{
+			CauseType:  E2CauseTypeRIC,
+			CauseValue: 1, // Default value
+		}
+		if err := c.encodeCause(w, simpleCause); err != nil {
 			return err
 		}
 	}
@@ -1501,14 +1557,21 @@ func (c *ASN1Codec) decodeRICActionNotAdmittedList(r io.Reader) ([]RICActionNotA
 			return nil, err
 		}
 
-		cause, err := c.decodeCause(r)
+		_, err := c.decodeCause(r)
 		if err != nil {
 			return nil, err
 		}
 
+		// Convert E2Cause back to E2APCause
+		e2apCause := E2APCause{
+			RICCause: func() *RICCause {
+				c := RICCauseUnspecified
+				return &c
+			}(),
+		}
 		actions[i] = RICActionNotAdmittedItem{
-			ActionID: int(actionID),
-			Cause:    cause,
+			RICActionID: RICActionID(actionID),
+			Cause:       e2apCause,
 		}
 	}
 
@@ -1526,4 +1589,36 @@ func (c *ASN1Codec) decodeIndicationType(r io.Reader) (RICIndicationType, error)
 		return 0, err
 	}
 	return RICIndicationType(indType), nil
+}
+
+// Helper methods for E2NodeComponent serialization (simplified)
+func (c *ASN1Codec) serializeE2NodeComponentID(id E2NodeComponentID) []byte {
+	// Simplified serialization - in production, use proper ASN.1
+	return []byte("component-id")
+}
+
+func (c *ASN1Codec) deserializeE2NodeComponentID(data []byte) E2NodeComponentID {
+	// Simplified deserialization - in production, use proper ASN.1
+	return E2NodeComponentID{}
+}
+
+func (c *ASN1Codec) serializeE2NodeComponentConfiguration(config E2NodeComponentConfiguration) []byte {
+	// Simplified serialization - combine request and response parts
+	result := append(config.E2NodeComponentRequestPart, config.E2NodeComponentResponsePart...)
+	return result
+}
+
+func (c *ASN1Codec) deserializeE2NodeComponentConfiguration(data []byte) E2NodeComponentConfiguration {
+	// Simplified deserialization - split data in half
+	mid := len(data) / 2
+	if mid == 0 {
+		return E2NodeComponentConfiguration{
+			E2NodeComponentRequestPart:  []byte{},
+			E2NodeComponentResponsePart: []byte{},
+		}
+	}
+	return E2NodeComponentConfiguration{
+		E2NodeComponentRequestPart:  data[:mid],
+		E2NodeComponentResponsePart: data[mid:],
+	}
 }
