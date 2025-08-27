@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -194,10 +195,15 @@ type NetworkSlice struct {
 
 // ValidationError represents a validation error with field-level detail
 type ValidationError struct {
-	Field    string `json:"field"`
-	Message  string `json:"message"`
-	Code     string `json:"code"`
-	Severity string `json:"severity"`
+	Field         string   `json:"field"`
+	Message       string   `json:"message"`
+	Code          string   `json:"code"`
+	Severity      string   `json:"severity"`
+	MissingFields []string `json:"missing_fields,omitempty"` // For compatibility with tests
+}
+
+func (v *ValidationError) Error() string {
+	return fmt.Sprintf("validation error in field '%s': %s", v.Field, v.Message)
 }
 
 // ProcessingResult represents the result of LLM processing

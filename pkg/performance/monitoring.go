@@ -594,12 +594,10 @@ func (pm *PerformanceMonitor) initializeComponents() error {
 	// Initialize benchmark runner
 	if pm.config.EnableBenchmarking {
 		pm.benchmarkRunner = NewBenchmarkRunner(&BenchmarkConfig{
-			Enabled:          true,
-			RunInterval:      10 * time.Minute,
-			ConcurrentTests:  runtime.NumCPU(),
-			TestDuration:     30 * time.Second,
-			WarmupDuration:   5 * time.Second,
-			CooldownDuration: 5 * time.Second,
+			Iterations:    100,
+			Timeout:       30 * time.Second,
+			Concurrency:   runtime.NumCPU(),
+			EnabledSuites: []string{"default"},
 		})
 		pm.registerBenchmarks()
 	}
@@ -967,10 +965,11 @@ func (pm *PerformanceMonitor) registerBenchmarks() {
 			duration := time.Since(start)
 
 			return BenchmarkResult{
-				Duration:  duration,
-				TPS:       1000000.0 / duration.Seconds(),
-				Success:   true,
-				Timestamp: time.Now(),
+				Name:         "cpu_performance",
+				Duration:     duration,
+				Throughput:   1000000.0 / duration.Seconds(),
+				SuccessCount: 1,
+				StartTime:    time.Now(),
 			}
 		},
 		Enabled: true,
@@ -997,13 +996,12 @@ func (pm *PerformanceMonitor) registerBenchmarks() {
 			duration := time.Since(start)
 
 			return BenchmarkResult{
-				Duration: duration,
-				Memory: MemoryMetrics{
-					HeapAlloc:  m2.HeapAlloc - m1.HeapAlloc,
-					TotalAlloc: m2.TotalAlloc - m1.TotalAlloc,
-				},
-				Success:   true,
-				Timestamp: time.Now(),
+				Name:         "memory_allocation",
+				Duration:     duration,
+				AvgMemoryMB:  float64(m2.HeapAlloc-m1.HeapAlloc) / 1024 / 1024,
+				PeakMemoryMB: float64(m2.TotalAlloc-m1.TotalAlloc) / 1024 / 1024,
+				SuccessCount: 1,
+				StartTime:    time.Now(),
 			}
 		},
 		Enabled: true,

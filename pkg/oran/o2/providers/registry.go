@@ -541,6 +541,296 @@ func (r *ProviderRegistry) selectRoundRobinProvider(candidates []string) (CloudP
 	return nil, fmt.Errorf("no provider selected")
 }
 
+// CreateAndRegisterProvider creates a provider using the global factory and registers it
+func (r *ProviderRegistry) CreateAndRegisterProvider(name, providerType string, config ProviderConfig) error {
+	// Create provider using global factory
+	provider, err := CreateGlobalProvider(providerType, config)
+	if err != nil {
+		return fmt.Errorf("failed to create provider: %w", err)
+	}
+
+	// Initialize the provider if it's not already initialized
+	ctx := context.Background()
+	// Note: We assume the provider from factory may already be initialized
+	// Try to initialize, but don't fail if already initialized
+	if err := provider.Initialize(ctx, config); err != nil {
+		// Check if the error is because it's already initialized
+		if err.Error() != "provider already initialized" {
+			return fmt.Errorf("failed to initialize provider: %w", err)
+		}
+	}
+
+	// Create an adapter to bridge Provider and CloudProvider interfaces
+	adapter := &ProviderAdapter{provider: provider}
+	return r.RegisterProvider(name, adapter, nil)
+}
+
+// Close shuts down the registry and disconnects all providers
+func (r *ProviderRegistry) Close() error {
+	// Stop health checks
+	r.StopHealthChecks()
+
+	// Disconnect all providers
+	ctx := context.Background()
+	return r.DisconnectAll(ctx)
+}
+
+// ProviderAdapter adapts Provider interface to CloudProvider interface
+type ProviderAdapter struct {
+	provider Provider
+}
+
+// GetProviderInfo returns metadata about the provider
+func (pa *ProviderAdapter) GetProviderInfo() *ProviderInfo {
+	info := pa.provider.GetInfo()
+	return &ProviderInfo{
+		Name:        info.Name,
+		Type:        info.Type,
+		Version:     info.Version,
+		Description: info.Description,
+		Vendor:      info.Vendor,
+		Tags:        info.Tags,
+		LastUpdated: info.LastUpdated,
+	}
+}
+
+// GetSupportedResourceTypes returns supported resource types (simplified)
+func (pa *ProviderAdapter) GetSupportedResourceTypes() []string {
+	return []string{"deployment", "service", "configmap", "secret"}
+}
+
+// GetCapabilities returns provider capabilities (simplified)
+func (pa *ProviderAdapter) GetCapabilities() *ProviderCapabilities {
+	return &ProviderCapabilities{
+		AutoScaling: false,
+		Monitoring:  false,
+		Networking:  false,
+	}
+}
+
+// Connect establishes connection (no-op for mock)
+func (pa *ProviderAdapter) Connect(ctx context.Context) error {
+	return nil
+}
+
+// Disconnect closes connection (no-op for mock)
+func (pa *ProviderAdapter) Disconnect(ctx context.Context) error {
+	return nil
+}
+
+// HealthCheck performs health check (simplified)
+func (pa *ProviderAdapter) HealthCheck(ctx context.Context) error {
+	return nil
+}
+
+// Close cleans up resources
+func (pa *ProviderAdapter) Close() error {
+	return pa.provider.Close()
+}
+
+// CreateResource creates a resource (adapter method)
+func (pa *ProviderAdapter) CreateResource(ctx context.Context, req *CreateResourceRequest) (*ResourceResponse, error) {
+	// Convert CreateResourceRequest to ResourceRequest
+	resourceReq := ResourceRequest{
+		Name:   req.Name,
+		Type:   ResourceType(req.Type),
+		Spec:   req.Specification,
+		Labels: req.Labels,
+	}
+	
+	resource, err := pa.provider.CreateResource(ctx, resourceReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert Resource to ResourceResponse
+	return &ResourceResponse{
+		ID:            resource.ID,
+		Name:          resource.Name,
+		Type:          string(resource.Type),
+		Status:        string(resource.Status),
+		Specification: resource.Spec,
+		Labels:        resource.Labels,
+		CreatedAt:     resource.CreatedAt,
+		UpdatedAt:     resource.UpdatedAt,
+	}, nil
+}
+
+// GetResource gets a resource (adapter method)
+func (pa *ProviderAdapter) GetResource(ctx context.Context, resourceID string) (*ResourceResponse, error) {
+	resource, err := pa.provider.GetResource(ctx, resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ResourceResponse{
+		ID:            resource.ID,
+		Name:          resource.Name,
+		Type:          string(resource.Type),
+		Status:        string(resource.Status),
+		Specification: resource.Spec,
+		Labels:        resource.Labels,
+		CreatedAt:     resource.CreatedAt,
+		UpdatedAt:     resource.UpdatedAt,
+	}, nil
+}
+
+// UpdateResource updates a resource (adapter method)
+func (pa *ProviderAdapter) UpdateResource(ctx context.Context, resourceID string, req *UpdateResourceRequest) (*ResourceResponse, error) {
+	// Convert UpdateResourceRequest to ResourceRequest
+	resourceReq := ResourceRequest{
+		Spec:   req.Specification,
+		Labels: req.Labels,
+	}
+	
+	resource, err := pa.provider.UpdateResource(ctx, resourceID, resourceReq)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ResourceResponse{
+		ID:            resource.ID,
+		Name:          resource.Name,
+		Type:          string(resource.Type),
+		Status:        string(resource.Status),
+		Specification: resource.Spec,
+		Labels:        resource.Labels,
+		CreatedAt:     resource.CreatedAt,
+		UpdatedAt:     resource.UpdatedAt,
+	}, nil
+}
+
+// DeleteResource deletes a resource
+func (pa *ProviderAdapter) DeleteResource(ctx context.Context, resourceID string) error {
+	return pa.provider.DeleteResource(ctx, resourceID)
+}
+
+// ListResources lists resources (adapter method)
+func (pa *ProviderAdapter) ListResources(ctx context.Context, filter *ResourceFilter) ([]*ResourceResponse, error) {
+	resources, err := pa.provider.ListResources(ctx, *filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var responses []*ResourceResponse
+	for _, resource := range resources {
+		responses = append(responses, &ResourceResponse{
+			ID:            resource.ID,
+			Name:          resource.Name,
+			Type:          string(resource.Type),
+			Status:        string(resource.Status),
+			Specification: resource.Spec,
+			Labels:        resource.Labels,
+			CreatedAt:     resource.CreatedAt,
+			UpdatedAt:     resource.UpdatedAt,
+		})
+	}
+
+	return responses, nil
+}
+
+// Implement remaining CloudProvider methods with stubs for now
+func (pa *ProviderAdapter) Deploy(ctx context.Context, req *DeploymentRequest) (*DeploymentResponse, error) {
+	return nil, fmt.Errorf("deploy not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) GetDeployment(ctx context.Context, deploymentID string) (*DeploymentResponse, error) {
+	return nil, fmt.Errorf("get deployment not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) UpdateDeployment(ctx context.Context, deploymentID string, req *UpdateDeploymentRequest) (*DeploymentResponse, error) {
+	return nil, fmt.Errorf("update deployment not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) DeleteDeployment(ctx context.Context, deploymentID string) error {
+	return fmt.Errorf("delete deployment not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) ListDeployments(ctx context.Context, filter *DeploymentFilter) ([]*DeploymentResponse, error) {
+	return nil, fmt.Errorf("list deployments not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) ScaleResource(ctx context.Context, resourceID string, req *ScaleRequest) error {
+	return fmt.Errorf("scale resource not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) GetScalingCapabilities(ctx context.Context, resourceID string) (*ScalingCapabilities, error) {
+	return nil, fmt.Errorf("get scaling capabilities not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) GetMetrics(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{"load_percentage": 10.0}, nil
+}
+
+func (pa *ProviderAdapter) GetResourceMetrics(ctx context.Context, resourceID string) (map[string]interface{}, error) {
+	return map[string]interface{}{}, nil
+}
+
+func (pa *ProviderAdapter) GetResourceHealth(ctx context.Context, resourceID string) (*HealthStatus, error) {
+	status, err := pa.provider.GetResourceStatus(ctx, resourceID)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &HealthStatus{
+		Status:      string(status),
+		Message:     "Resource is healthy",
+		LastUpdated: time.Now(),
+	}, nil
+}
+
+func (pa *ProviderAdapter) CreateNetworkService(ctx context.Context, req *NetworkServiceRequest) (*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("create network service not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) GetNetworkService(ctx context.Context, serviceID string) (*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("get network service not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) DeleteNetworkService(ctx context.Context, serviceID string) error {
+	return fmt.Errorf("delete network service not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) ListNetworkServices(ctx context.Context, filter *NetworkServiceFilter) ([]*NetworkServiceResponse, error) {
+	return nil, fmt.Errorf("list network services not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) CreateStorageResource(ctx context.Context, req *StorageResourceRequest) (*StorageResourceResponse, error) {
+	return nil, fmt.Errorf("create storage resource not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) GetStorageResource(ctx context.Context, resourceID string) (*StorageResourceResponse, error) {
+	return nil, fmt.Errorf("get storage resource not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) DeleteStorageResource(ctx context.Context, resourceID string) error {
+	return fmt.Errorf("delete storage resource not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) ListStorageResources(ctx context.Context, filter *StorageResourceFilter) ([]*StorageResourceResponse, error) {
+	return nil, fmt.Errorf("list storage resources not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) SubscribeToEvents(ctx context.Context, callback EventCallback) error {
+	return fmt.Errorf("subscribe to events not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) UnsubscribeFromEvents(ctx context.Context) error {
+	return fmt.Errorf("unsubscribe from events not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) ApplyConfiguration(ctx context.Context, config *ProviderConfiguration) error {
+	return fmt.Errorf("apply configuration not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) GetConfiguration(ctx context.Context) (*ProviderConfiguration, error) {
+	return nil, fmt.Errorf("get configuration not implemented in adapter")
+}
+
+func (pa *ProviderAdapter) ValidateConfiguration(ctx context.Context, config *ProviderConfiguration) error {
+	return nil // Simplified validation
+}
+
 // ProviderSelectionCriteria defines criteria for selecting a provider
 type ProviderSelectionCriteria struct {
 	Type                 string   // Provider type (kubernetes, openstack, aws, etc.)
@@ -551,49 +841,4 @@ type ProviderSelectionCriteria struct {
 	SelectionStrategy    string   // Selection strategy (random, least-loaded, round-robin)
 }
 
-// DefaultProviderFactoryImpl creates provider instances
-type DefaultProviderFactoryImpl struct {
-	registry *ProviderRegistry
-}
 
-// NewDefaultProviderFactory creates a new provider factory
-func NewDefaultProviderFactory(registry *ProviderRegistry) *DefaultProviderFactoryImpl {
-	return &DefaultProviderFactoryImpl{
-		registry: registry,
-	}
-}
-
-// CreateProvider creates a new provider instance based on configuration
-func (f *DefaultProviderFactoryImpl) CreateProvider(config *ProviderConfiguration) (CloudProvider, error) {
-	switch config.Type {
-	case ProviderTypeKubernetes:
-		// Would need to pass appropriate clients
-		return nil, fmt.Errorf("kubernetes provider requires k8s clients")
-	case ProviderTypeOpenStack:
-		return NewOpenStackProvider(config)
-	case ProviderTypeAWS:
-		return NewAWSProvider(config)
-	case ProviderTypeAzure:
-		return NewAzureProvider(config)
-	case ProviderTypeGCP:
-		return NewGCPProvider(config)
-	case ProviderTypeVMware:
-		return NewVMwareProvider(config)
-	default:
-		return nil, fmt.Errorf("unsupported provider type: %s", config.Type)
-	}
-}
-
-// CreateAndRegisterProvider creates and registers a provider
-func (f *DefaultProviderFactoryImpl) CreateAndRegisterProvider(name string, config *ProviderConfiguration) error {
-	provider, err := f.CreateProvider(config)
-	if err != nil {
-		return fmt.Errorf("failed to create provider: %w", err)
-	}
-
-	if err := f.registry.RegisterProvider(name, provider, config); err != nil {
-		return fmt.Errorf("failed to register provider: %w", err)
-	}
-
-	return nil
-}

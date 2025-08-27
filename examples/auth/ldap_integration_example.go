@@ -34,8 +34,48 @@ func main() {
 		log.Fatalf("Failed to load auth config: %v", err)
 	}
 
+	// Convert AuthConfig to AuthManagerConfig
+	authManagerConfig := &auth.AuthManagerConfig{
+		JWTConfig: &auth.JWTConfig{
+			Issuer:        "nephoran-intent-operator",
+			SigningKey:    authConfig.JWTSecretKey,
+			DefaultTTL:    authConfig.TokenTTL,
+			RefreshTTL:    authConfig.RefreshTTL,
+			CookieDomain:  "",
+			CookiePath:    "/",
+		},
+		SessionConfig: &auth.SessionConfig{
+			SessionTimeout:   24 * time.Hour,
+			RefreshThreshold: 15 * time.Minute,
+			MaxSessions:      10,
+			SecureCookies:    true,
+			SameSiteCookies:  "Lax",
+		},
+		RBACConfig: &auth.RBACManagerConfig{
+			CacheTTL:           15 * time.Minute,
+			EnableHierarchy:    true,
+			DefaultDenyAll:     true,
+			PolicyEvaluation:   "deny-overrides",
+			MaxPolicyDepth:     10,
+			EnableAuditLogging: true,
+		},
+		OAuth2Config: &auth.OAuth2ManagerConfig{
+			Enabled: len(authConfig.Providers) > 0,
+		},
+		SecurityConfig: &auth.SecurityManagerConfig{
+			CSRFSecret: []byte("csrf-secret-key-change-in-production"),
+			PKCE: auth.PKCEConfig{
+				TTL: 10 * time.Minute,
+			},
+			CSRF: auth.CSRFConfig{
+				Secret: []byte("csrf-secret-key-change-in-production"),
+				TTL:    1 * time.Hour,
+			},
+		},
+	}
+
 	// Create authentication manager
-	authManager, err := auth.NewAuthManager(authConfig, logger)
+	authManager, err := auth.NewAuthManager(authManagerConfig, logger)
 	if err != nil {
 		log.Fatalf("Failed to create auth manager: %v", err)
 	}
@@ -80,7 +120,7 @@ func main() {
 	}
 
 	// Shutdown auth manager
-	if err := authManager.Shutdown(ctx); err != nil {
+	if err := authManager.Close(); err != nil {
 		logger.Error("Error shutting down auth manager", "error", err)
 	}
 
@@ -101,13 +141,13 @@ func setupAuthRoutes(router *mux.Router, authManager *auth.AuthManager) {
 		router.HandleFunc("/auth/ldap/logout", ldapMiddleware.HandleLDAPLogout).Methods("POST")
 
 		// LDAP user info endpoint (for admin purposes)
-		router.HandleFunc("/auth/ldap/user/{username}",
+		router.Handle("/auth/ldap/user/{username}",
 			authManager.GetMiddleware().RequirePermissionMiddleware("users:manage")(
 				http.HandlerFunc(handleLDAPUserInfo(ldapMiddleware))),
 		).Methods("GET")
 
 		// LDAP test connection endpoint
-		router.HandleFunc("/auth/ldap/test",
+		router.Handle("/auth/ldap/test",
 			authManager.GetMiddleware().RequireAdminMiddleware(
 				http.HandlerFunc(handleLDAPTest(ldapMiddleware))),
 		).Methods("GET")
@@ -148,18 +188,18 @@ func setupProtectedRoutes(router *mux.Router, authManager *auth.AuthManager) {
 
 	// Example protected endpoints
 	protected.HandleFunc("/profile", handleUserProfile).Methods("GET")
-	protected.HandleFunc("/intents",
+	protected.Handle("/intents",
 		authManager.GetMiddleware().RequirePermissionMiddleware("intent:read")(
 			http.HandlerFunc(handleIntentsList)),
 	).Methods("GET")
 
-	protected.HandleFunc("/intents",
+	protected.Handle("/intents",
 		authManager.GetMiddleware().RequirePermissionMiddleware("intent:create")(
 			http.HandlerFunc(handleIntentCreate)),
 	).Methods("POST")
 
 	// Admin-only endpoints
-	protected.HandleFunc("/admin/users",
+	protected.Handle("/admin/users",
 		authManager.GetMiddleware().RequireAdminMiddleware(
 			http.HandlerFunc(handleAdminUsers)),
 	).Methods("GET")
@@ -331,16 +371,16 @@ func handleSessionInfo(authManager *auth.AuthManager) http.HandlerFunc {
 		}
 
 		response := map[string]interface{}{
-			"session_id":   sessionInfo.ID,
-			"user_id":      sessionInfo.UserID,
-			"username":     sessionInfo.Username,
-			"email":        sessionInfo.Email,
-			"display_name": sessionInfo.DisplayName,
-			"provider":     sessionInfo.Provider,
-			"groups":       sessionInfo.Groups,
-			"roles":        sessionInfo.Roles,
-			"created_at":   sessionInfo.CreatedAt,
-			"expires_at":   sessionInfo.ExpiresAt,
+			"session_id":     sessionInfo.ID,
+			"user_id":        sessionInfo.UserID,
+			"provider":       sessionInfo.Provider,
+			"roles":          sessionInfo.Roles,
+			"created_at":     sessionInfo.CreatedAt,
+			"last_activity":  sessionInfo.LastActivity,
+			"expires_at":     sessionInfo.ExpiresAt,
+			"ip_address":     sessionInfo.IPAddress,
+			"user_agent":     sessionInfo.UserAgent,
+			"sso_enabled":    sessionInfo.SSOEnabled,
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -537,7 +577,7 @@ func ExampleLDAPIntegrationTest() {
 
 	// Test connection
 	ctx := context.Background()
-	if err := ldapProvider.TestConnection(ctx); err != nil {
+	if err := ldapProvider.Connect(ctx); err != nil {
 		fmt.Printf("LDAP connection failed: %v\n", err)
 		return
 	}

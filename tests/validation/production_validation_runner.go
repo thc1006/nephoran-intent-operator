@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"testing"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -342,20 +343,20 @@ func RunProductionValidationSuite() {
 }
 
 // Helper for testing.T interface
-type testing struct {
+type mockTesting struct {
 	failed bool
 }
 
-func (t *testing) Errorf(format string, args ...interface{}) {
+func (t *mockTesting) Errorf(format string, args ...interface{}) {
 	fmt.Printf("ERROR: "+format+"\n", args...)
 	t.failed = true
 }
 
-func (t *testing) FailNow() {
+func (t *mockTesting) FailNow() {
 	t.failed = true
 	panic("test failed")
 }
 
-func (t *testing) Failed() bool {
+func (t *mockTesting) Failed() bool {
 	return t.failed
 }

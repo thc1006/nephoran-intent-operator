@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"k8s.io/klog/v2"
 )
@@ -180,10 +181,12 @@ func (os *OptimizedSystem) demonstrateMemoryOptimizations() error {
 
 		// Use ring buffer
 		data := fmt.Sprintf("ring_data_%d", i)
-		ringBuffer.Push(data)
+		dataPtr := unsafe.Pointer(&data)
+		ringBuffer.Push(dataPtr)
 		if ptr, ok := ringBuffer.Pop(); ok {
-			if str, ok := ptr.(string); ok {
-				_ = str
+			if ptr != nil {
+				str := (*string)(ptr)
+				_ = *str
 			}
 		}
 	}

@@ -435,7 +435,7 @@ var _ = Describe("SecurityScanner", func() {
 			It("should weight critical vulnerabilities higher", func() {
 				criticalOnly := &SecurityScanner{
 					results: &ScanResults{
-						Vulnerabilities: []Vulnerability{
+						Vulnerabilities: []ScannerVulnerability{
 							{Severity: "Critical"},
 						},
 					},
@@ -443,7 +443,7 @@ var _ = Describe("SecurityScanner", func() {
 
 				lowOnly := &SecurityScanner{
 					results: &ScanResults{
-						Vulnerabilities: []Vulnerability{
+						Vulnerabilities: []ScannerVulnerability{
 							{Severity: "Low"},
 						},
 					},
@@ -461,7 +461,7 @@ var _ = Describe("SecurityScanner", func() {
 		Context("when generating reports", func() {
 			BeforeEach(func() {
 				// Populate some test data
-				scanner.results.Vulnerabilities = []Vulnerability{
+				scanner.results.Vulnerabilities = []ScannerVulnerability{
 					{
 						ID:          "TEST-001",
 						Title:       "Test Vulnerability",

@@ -3,7 +3,6 @@
 package providers
 
 import (
-	"context"
 	"time"
 )
 
@@ -71,22 +70,7 @@ type ResourceRequest struct {
 	Labels map[string]string      `json:"labels,omitempty"`
 }
 
-// ResourceFilter represents filtering criteria for resource queries
-type ResourceFilter struct {
-	Type       *ResourceType     `json:"type,omitempty"`
-	Status     *ResourceStatus   `json:"status,omitempty"`
-	Labels     map[string]string `json:"labels,omitempty"`
-	NamePrefix string            `json:"namePrefix,omitempty"`
-}
 
-// ProviderInfo contains metadata about a provider implementation
-type ProviderInfo struct {
-	Name        string            `json:"name"`
-	Version     string            `json:"version"`
-	Description string            `json:"description"`
-	Supported   []ResourceType    `json:"supported"`
-	Metadata    map[string]string `json:"metadata,omitempty"`
-}
 
 // ProviderConfig represents configuration for a provider
 type ProviderConfig struct {

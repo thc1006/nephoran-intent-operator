@@ -77,22 +77,18 @@ func TestContextBuilder_BuildContext(t *testing.T) {
 			maxDocs: 3,
 			mockSearchResults: []*shared.SearchResult{
 				{
-					Document: &shared.TelecomDocument{
-						ID:              "doc1",
-						Title:           "5G AMF Deployment Guide",
-						Content:         "This document describes how to deploy Access and Mobility Management Function in 5G core network",
-						Source:          "3GPP TS 23.501",
-						Category:        "deployment",
-						Version:         "v17.0.0",
-						Keywords:        []string{"AMF", "5G", "deployment"},
-						NetworkFunction: []string{"AMF"},
-						Technology:      []string{"5G"},
-						Confidence:      0.9,
-						CreatedAt:       time.Now().Add(-30 * 24 * time.Hour),
-						UpdatedAt:       time.Now().Add(-1 * 24 * time.Hour),
+					ID:        "doc1",
+					Title:     "5G AMF Deployment Guide", 
+					Content:   "This document describes how to deploy Access and Mobility Management Function in 5G core network",
+					Source:    "3GPP TS 23.501",
+					Score:     0.95,
+					CreatedAt: time.Now().Add(-30 * 24 * time.Hour),
+					UpdatedAt: time.Now().Add(-1 * 24 * time.Hour),
+					Metadata: map[string]interface{}{
+						"category": "deployment",
+						"version":  "v17.0.0",
+						"keywords": []string{"AMF", "5G", "deployment"},
 					},
-					Score:    0.95,
-					Distance: 0.05,
 				},
 				{
 					Document: &shared.TelecomDocument{
@@ -641,9 +637,8 @@ func generateLongIntent() string {
 func NewTestContextBuilderWithPool(config *ContextBuilderConfig, pool interface{}) *ContextBuilder {
 	if config == nil {
 		config = &ContextBuilderConfig{
-			WeaviateURL:           "http://localhost:8080",
-			MaxConcurrentRequests: 10,
-			DefaultLimit:          20,
+			DefaultMaxDocs:        20,
+			MaxContextLength:      4000,
 			MinConfidenceScore:    0.3,
 			QueryTimeout:          5 * time.Second,
 			EnableHybridSearch:    true,

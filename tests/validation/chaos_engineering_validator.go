@@ -12,6 +12,7 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -531,10 +532,10 @@ func (cev *ChaosEngineeringValidator) createStressPod(namespace, nodeName string
 					},
 					Resources: corev1.ResourceRequirements{
 						Requests: corev1.ResourceList{
-							corev1.ResourceCPU: intstr.FromString("100m"),
+							corev1.ResourceCPU: resource.MustParse("100m"),
 						},
 						Limits: corev1.ResourceList{
-							corev1.ResourceCPU: intstr.FromString("1000m"),
+							corev1.ResourceCPU: resource.MustParse("1000m"),
 						},
 					},
 				},

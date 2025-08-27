@@ -209,6 +209,7 @@ func TestCircuitBreakerHealthCheckLogic(t *testing.T) {
 
 	t.Run("health_message_formatting", func(t *testing.T) {
 		cbMgr := NewCircuitBreakerManager(nil)
+		_ = cbMgr // Prevent unused variable warning
 
 		// Test different scenarios for message formatting
 		scenarios := []struct {

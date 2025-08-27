@@ -375,11 +375,10 @@ func TestCircuitBreaker_GetMetrics(t *testing.T) {
 
 	metrics := cb.GetMetrics()
 
-	assert.Equal(t, "test-service", metrics.Name)
-	assert.Equal(t, StateClosed, metrics.State)
+	assert.Equal(t, "Closed", metrics.CurrentState)
 	assert.Equal(t, int64(2), metrics.TotalRequests)
-	assert.Equal(t, int64(1), metrics.FailureCount)
-	assert.Equal(t, int64(1), metrics.SuccessCount)
+	assert.Equal(t, int64(1), metrics.FailedRequests)
+	assert.Equal(t, int64(1), metrics.SuccessfulRequests)
 	assert.Equal(t, 0.5, metrics.FailureRate)
 	assert.True(t, metrics.LastStateChange.Before(time.Now()))
 }
@@ -428,22 +427,22 @@ func TestCircuitBreakerManager(t *testing.T) {
 	mgr := NewCircuitBreakerManager(nil)
 
 	// Get or create circuit breaker
-	cb1 := mgr.GetCircuitBreaker("service1")
+	cb1 := mgr.GetOrCreate("service1", nil)
 	assert.NotNil(t, cb1)
 	assert.Equal(t, "service1", cb1.name)
 
 	// Get same circuit breaker again
-	cb2 := mgr.GetCircuitBreaker("service1")
+	cb2 := mgr.GetOrCreate("service1", nil)
 	assert.Equal(t, cb1, cb2) // Should be same instance
 
 	// Get different circuit breaker
-	cb3 := mgr.GetCircuitBreaker("service2")
+	cb3 := mgr.GetOrCreate("service2", nil)
 	assert.NotNil(t, cb3)
 	assert.NotEqual(t, cb1, cb3)
 	assert.Equal(t, "service2", cb3.name)
 
 	// Test status retrieval
-	status := mgr.GetStatus()
+	status := mgr.GetAllStats()
 	assert.Len(t, status, 2)
 	assert.Contains(t, status, "service1")
 	assert.Contains(t, status, "service2")

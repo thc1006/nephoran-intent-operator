@@ -230,11 +230,13 @@ type AlertAction struct {
 
 // HealthStatus represents the health status of a resource
 type HealthStatus struct {
-	ResourceID string            `json:"resourceId"`
-	Status     string            `json:"status"` // healthy, warning, critical, unknown
-	Checks     []HealthCheck     `json:"checks"`
-	Timestamp  time.Time         `json:"timestamp"`
-	Metadata   map[string]string `json:"metadata,omitempty"`
+	ResourceID  string            `json:"resourceId"`
+	Status      string            `json:"status"` // healthy, warning, critical, unknown
+	Message     string            `json:"message,omitempty"`
+	Checks      []HealthCheck     `json:"checks"`
+	Timestamp   time.Time         `json:"timestamp"`
+	LastUpdated time.Time         `json:"lastUpdated"`
+	Metadata    map[string]string `json:"metadata,omitempty"`
 }
 
 // HealthCheck represents a single health check result

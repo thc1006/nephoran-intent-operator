@@ -574,10 +574,10 @@ func (cd *CUSUMDetector) AdaptThreshold(recentData []float64) {
 
 	var stdDev float64
 	if cd.config.UseRobustStatistics {
-		median := median(recentData)
+		medianValue := median(recentData)
 		deviations := make([]float64, len(recentData))
 		for i, v := range recentData {
-			deviations[i] = math.Abs(v - median)
+			deviations[i] = math.Abs(v - medianValue)
 		}
 		mad := median(deviations)
 		stdDev = mad * 1.4826

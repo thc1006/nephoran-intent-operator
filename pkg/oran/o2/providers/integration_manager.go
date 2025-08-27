@@ -14,7 +14,7 @@ import (
 // IntegrationManager manages the integration between O2 IMS and cloud providers
 type IntegrationManager struct {
 	registry          *ProviderRegistry
-	factory           *ProviderFactory
+	factory           ProviderFactory
 	kubeClient        client.Client
 	clientset         kubernetes.Interface
 	defaultProvider   string
@@ -30,7 +30,7 @@ func NewIntegrationManager(kubeClient client.Client, clientset kubernetes.Interf
 
 	return &IntegrationManager{
 		registry:          registry,
-		factory:           NewProviderFactory(registry),
+		factory:           GetGlobalFactory(),
 		kubeClient:        kubeClient,
 		clientset:         clientset,
 		metricsAggregator: NewMetricsAggregator(),
@@ -542,7 +542,7 @@ func (ma *MetricsAggregator) RecordScaling(provider, resourceID, direction strin
 
 // EventProcessor processes events from providers
 type EventProcessor struct {
-	handlers []EventHandlerFuncFunc
+	handlers []EventHandlerFunc
 	mu       sync.RWMutex
 	stopCh   chan struct{}
 	eventCh  chan *ProviderEvent
@@ -552,7 +552,7 @@ type EventHandlerFunc func(event *ProviderEvent)
 
 func NewEventProcessor() *EventProcessor {
 	return &EventProcessor{
-		handlers: make([]EventHandlerFuncFunc, 0),
+		handlers: make([]EventHandlerFunc, 0),
 		stopCh:   make(chan struct{}),
 		eventCh:  make(chan *ProviderEvent, 100),
 	}
@@ -583,7 +583,7 @@ func (ep *EventProcessor) HandleProviderEvent(event *ProviderEvent) {
 	}
 }
 
-func (ep *EventProcessor) RegisterHandler(handler EventHandler) {
+func (ep *EventProcessor) RegisterHandler(handler EventHandlerFunc) {
 	ep.mu.Lock()
 	defer ep.mu.Unlock()
 	ep.handlers = append(ep.handlers, handler)

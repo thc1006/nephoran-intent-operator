@@ -470,7 +470,7 @@ func (pool *EnhancedGoroutinePool) addWorker() bool {
 	workerID := len(pool.workers)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	worker := &Worker{
+	worker := &PoolWorker{
 		id:       workerID,
 		queue:    pool.workStealingQueues[workerID],
 		context:  ctx,
@@ -540,7 +540,7 @@ func (pool *EnhancedGoroutinePool) findMostIdleWorker() int {
 }
 
 // workerLoop is the main loop for a worker goroutine
-func (pool *EnhancedGoroutinePool) workerLoop(worker *Worker) {
+func (pool *EnhancedGoroutinePool) workerLoop(worker *PoolWorker) {
 	defer pool.wg.Done()
 	defer func() {
 		atomic.AddInt64(&pool.scheduler.activeWorkers, -1)
@@ -627,7 +627,7 @@ func (pool *EnhancedGoroutinePool) stealTask(workerID int) *Task {
 }
 
 // processTask processes a single task
-func (pool *EnhancedGoroutinePool) processTask(worker *Worker, task *Task) {
+func (pool *EnhancedGoroutinePool) processTask(worker *PoolWorker, task *Task) {
 	start := time.Now()
 	task.StartedAt = start
 	atomic.AddInt64(&pool.scheduler.pendingTasks, -1)

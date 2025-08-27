@@ -23,21 +23,14 @@ func NewMockProvider(name string) *MockProvider {
 	return &MockProvider{
 		info: ProviderInfo{
 			Name:        name,
+			Type:        "mock",
 			Version:     "1.0.0",
 			Description: "Mock provider for testing",
-			Supported: []ResourceType{
-				ResourceTypeCluster,
-				ResourceTypeNode,
-				ResourceTypeNetwork,
-				ResourceTypeStorage,
-				ResourceTypeDeployment,
-				ResourceTypeService,
-				ResourceTypeConfigMap,
-				ResourceTypeSecret,
-			},
-			Metadata: map[string]string{
+			Vendor:      "Nephoran",
+			Tags: map[string]string{
 				"type": "mock",
 			},
+			LastUpdated: time.Now(),
 		},
 		resources: make(map[string]*Resource),
 	}
@@ -254,19 +247,46 @@ func (m *MockProvider) Close() error {
 
 // matchesFilter checks if a resource matches the given filter
 func (m *MockProvider) matchesFilter(resource *Resource, filter ResourceFilter) bool {
+	// Name filter
+	if len(filter.Names) > 0 {
+		found := false
+		for _, name := range filter.Names {
+			if resource.Name == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+
 	// Type filter
-	if filter.Type != nil && *filter.Type != resource.Type {
-		return false
+	if len(filter.Types) > 0 {
+		found := false
+		for _, filterType := range filter.Types {
+			if string(resource.Type) == filterType {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
 	}
 
 	// Status filter
-	if filter.Status != nil && *filter.Status != resource.Status {
-		return false
-	}
-
-	// Name prefix filter
-	if filter.NamePrefix != "" && !startsWith(resource.Name, filter.NamePrefix) {
-		return false
+	if len(filter.Statuses) > 0 {
+		found := false
+		for _, filterStatus := range filter.Statuses {
+			if string(resource.Status) == filterStatus {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
 	}
 
 	// Labels filter

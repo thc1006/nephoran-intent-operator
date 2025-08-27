@@ -976,9 +976,11 @@ func (cm *CacheManager) GetStats() *CacheMetrics {
 	// Add Redis connection stats
 	if cm.redisClient != nil {
 		poolStats := cm.redisClient.PoolStats()
-		stats.ActiveConnections = int64(poolStats.HitRate)
+		stats.ActiveConnections = int64(poolStats.TotalConns - poolStats.IdleConns)
 		stats.IdleConnections = int64(poolStats.IdleConns)
-		stats.ConnectionPoolHitRate = float64(poolStats.Hits) / float64(poolStats.Hits+poolStats.Misses) * 100
+		if poolStats.Hits+poolStats.Misses > 0 {
+			stats.ConnectionPoolHitRate = float64(poolStats.Hits) / float64(poolStats.Hits+poolStats.Misses) * 100
+		}
 	}
 
 	return &stats
@@ -1084,7 +1086,7 @@ func (cm *CacheManager) collectMetrics() {
 	// Update connection metrics
 	if cm.redisClient != nil {
 		poolStats := cm.redisClient.PoolStats()
-		atomic.StoreInt64(&cm.cacheMetrics.ActiveConnections, int64(poolStats.ActiveConns))
+		atomic.StoreInt64(&cm.cacheMetrics.ActiveConnections, int64(poolStats.TotalConns-poolStats.IdleConns))
 		atomic.StoreInt64(&cm.cacheMetrics.IdleConnections, int64(poolStats.IdleConns))
 	}
 

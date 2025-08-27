@@ -189,9 +189,8 @@ func TestResourceOperations(t *testing.T) {
 	}
 
 	// Test ListResources with type filter
-	deploymentType := ResourceTypeDeployment
 	resources, err = provider.ListResources(ctx, ResourceFilter{
-		Type: &deploymentType,
+		Types: []string{string(ResourceTypeDeployment)},
 	})
 	if err != nil {
 		t.Fatalf("Failed to list resources with filter: %v", err)
@@ -233,7 +232,7 @@ func TestResourceOperations(t *testing.T) {
 
 func TestProviderRegistry(t *testing.T) {
 	factory := NewDefaultProviderFactory()
-	registry := NewProviderRegistry(factory)
+	registry := NewProviderRegistry()
 
 	// Register mock provider type
 	err := factory.RegisterProvider("mock", MockProviderConstructor, GetMockProviderSchema())

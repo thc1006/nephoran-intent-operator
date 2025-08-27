@@ -20,7 +20,7 @@ type ORANPerformanceBenchmarker struct {
 	k8sClient     client.Client
 
 	// Performance metrics
-	benchmarkResults  map[string]*BenchmarkResult
+	benchmarkResults  map[string]*ORANBenchmarkResult
 	concurrencyLimits map[string]int
 
 	// Test configuration
@@ -29,8 +29,8 @@ type ORANPerformanceBenchmarker struct {
 	maxConcurrency int
 }
 
-// BenchmarkResult contains performance benchmark results for an interface
-type BenchmarkResult struct {
+// ORANBenchmarkResult contains performance benchmark results for an O-RAN interface
+type ORANBenchmarkResult struct {
 	InterfaceName      string        `json:"interfaceName"`
 	TotalRequests      int64         `json:"totalRequests"`
 	SuccessfulRequests int64         `json:"successfulRequests"`
@@ -63,7 +63,7 @@ func NewORANPerformanceBenchmarker(validator *ORANInterfaceValidator, factory *O
 	return &ORANPerformanceBenchmarker{
 		oranValidator:    validator,
 		testFactory:      factory,
-		benchmarkResults: make(map[string]*BenchmarkResult),
+		benchmarkResults: make(map[string]*ORANBenchmarkResult),
 		concurrencyLimits: map[string]int{
 			"A1": 50,  // A1 interface can handle 50 concurrent operations
 			"E2": 100, // E2 interface can handle 100 concurrent operations
@@ -82,7 +82,7 @@ func (opb *ORANPerformanceBenchmarker) SetK8sClient(client client.Client) {
 }
 
 // RunComprehensivePerformanceBenchmarks runs benchmarks for all O-RAN interfaces
-func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx context.Context) map[string]*BenchmarkResult {
+func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx context.Context) map[string]*ORANBenchmarkResult {
 	ginkgo.By("Running Comprehensive O-RAN Performance Benchmarks")
 
 	// Run benchmarks for each interface
@@ -110,8 +110,8 @@ func (opb *ORANPerformanceBenchmarker) RunComprehensivePerformanceBenchmarks(ctx
 }
 
 // runInterfaceBenchmark runs performance benchmark for a specific interface
-func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context, interfaceName string) *BenchmarkResult {
-	result := &BenchmarkResult{
+func (opb *ORANPerformanceBenchmarker) runInterfaceBenchmark(ctx context.Context, interfaceName string) *ORANBenchmarkResult {
+	result := &ORANBenchmarkResult{
 		InterfaceName:       interfaceName,
 		StartTime:           time.Now(),
 		ConcurrencyLevel:    opb.concurrencyLimits[interfaceName],
@@ -572,12 +572,12 @@ func (opb *ORANPerformanceBenchmarker) validatePerformanceTargets() {
 	}
 }
 
-// GetBenchmarkResults returns all benchmark results
-func (opb *ORANPerformanceBenchmarker) GetBenchmarkResults() map[string]*BenchmarkResult {
+// GetORANBenchmarkResults returns all benchmark results
+func (opb *ORANPerformanceBenchmarker) GetORANBenchmarkResults() map[string]*ORANBenchmarkResult {
 	return opb.benchmarkResults
 }
 
 // GetInterfaceBenchmark returns benchmark result for a specific interface
-func (opb *ORANPerformanceBenchmarker) GetInterfaceBenchmark(interfaceName string) *BenchmarkResult {
+func (opb *ORANPerformanceBenchmarker) GetInterfaceBenchmark(interfaceName string) *ORANBenchmarkResult {
 	return opb.benchmarkResults[interfaceName]
 }

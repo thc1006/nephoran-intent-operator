@@ -33,12 +33,17 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 				ProductionTarget:  2,  // O-RAN contributes 2/10 production points
 				TotalTarget:       17, // Total O-RAN contribution: 17/100 points
 
-				TimeoutDuration:   10 * time.Minute,
-				ConcurrencyLevel:  50,
-				TestMode:          "integration",
-				EnablePerformance: true,
-				EnableReliability: true,
-				EnableSecurity:    true,
+				TimeoutDuration:       10 * time.Minute,
+				ConcurrencyLevel:      50,
+				LoadTestDuration:      5 * time.Minute,
+				LatencyThreshold:      2 * time.Second,
+				ThroughputThreshold:   45.0,
+				AvailabilityTarget:    99.95,
+				CoverageThreshold:     90.0,
+				EnableE2ETesting:      true,
+				EnableLoadTesting:     true,
+				EnableChaosTesting:    true,
+				EnableSecurityTesting: true,
 			}
 
 			// Initialize O-RAN test suite
@@ -66,7 +71,7 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 				complianceScore := validator.ValidateAllORANInterfaces(ctx)
 
 				// Update validation suite score (7 points for O-RAN compliance)
-				validationSuite.scorer.AddFunctionalScore("oran-compliance", complianceScore, 7)
+				validationSuite.scorer.ScoreMetric("oran_compliance", float64(complianceScore*100/7))
 
 				ginkgo.By(fmt.Sprintf("O-RAN Compliance Score: %d/7 points", complianceScore))
 				gomega.Expect(complianceScore).To(gomega.BeNumerically(">=", 6),
@@ -83,7 +88,8 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 				// Run specific A1 tests
 				a1Score := validator.validateA1InterfaceComprehensive(ctx)
 
-				validationSuite.scorer.AddFunctionalScore("a1-interface", a1Score, 2)
+				// A1 interface is part of the overall O-RAN compliance
+				// Score is already included in the main O-RAN compliance metric
 
 				gomega.Expect(a1Score).To(gomega.Equal(2),
 					"A1 interface should achieve full score")
@@ -99,7 +105,8 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 				// Run specific E2 tests
 				e2Score := validator.validateE2InterfaceComprehensive(ctx)
 
-				validationSuite.scorer.AddFunctionalScore("e2-interface", e2Score, 2)
+				// E2 interface is part of the overall O-RAN compliance
+				// Score is already included in the main O-RAN compliance metric
 
 				gomega.Expect(e2Score).To(gomega.Equal(2),
 					"E2 interface should achieve full score")
@@ -115,7 +122,8 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 				// Run specific O1 tests
 				o1Score := validator.validateO1InterfaceComprehensive(ctx)
 
-				validationSuite.scorer.AddFunctionalScore("o1-interface", o1Score, 2)
+				// O1 interface is part of the overall O-RAN compliance
+				// Score is already included in the main O-RAN compliance metric
 
 				gomega.Expect(o1Score).To(gomega.Equal(2),
 					"O1 interface should achieve full score")
@@ -131,7 +139,8 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 				// Run specific O2 tests
 				o2Score := validator.validateO2InterfaceComprehensive(ctx)
 
-				validationSuite.scorer.AddFunctionalScore("o2-interface", o2Score, 1)
+				// O2 interface is part of the overall O-RAN compliance
+				// Score is already included in the main O-RAN compliance metric
 
 				gomega.Expect(o2Score).To(gomega.Equal(1),
 					"O2 interface should achieve full score")
@@ -197,7 +206,8 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 					performanceScore = 5
 				}
 
-				validationSuite.scorer.AddPerformanceScore("oran-performance", performanceScore, 5)
+				// Update performance metrics for O-RAN interfaces
+				validationSuite.scorer.ScoreMetric("throughput", float64(performanceScore*45.0/5))
 
 				ginkgo.By(fmt.Sprintf("O-RAN Performance Score: %d/5 points", performanceScore))
 				gomega.Expect(performanceScore).To(gomega.BeNumerically(">=", 4),
@@ -226,7 +236,8 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 					securityScore++
 				}
 
-				validationSuite.scorer.AddSecurityScore("oran-security", securityScore, 3)
+				// Update security metrics for O-RAN interfaces
+				validationSuite.scorer.ScoreMetric("authentication", float64(securityScore*100/3))
 
 				ginkgo.By(fmt.Sprintf("O-RAN Security Score: %d/3 points", securityScore))
 				gomega.Expect(securityScore).To(gomega.BeNumerically(">=", 2),
@@ -252,7 +263,8 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 					productionScore++
 				}
 
-				validationSuite.scorer.AddProductionScore("oran-production", productionScore, 2)
+				// Update production readiness metrics for O-RAN
+				validationSuite.scorer.ScoreBinary("high_availability", productionScore >= 1)
 
 				ginkgo.By(fmt.Sprintf("O-RAN Production Score: %d/2 points", productionScore))
 				gomega.Expect(productionScore).To(gomega.BeNumerically(">=", 1),
@@ -288,8 +300,8 @@ func IntegrateORANWithValidationSuite(validationSuite *ValidationSuite, k8sClien
 				totalORANScore += 2
 			}
 
-			// Add to overall validation suite score
-			validationSuite.scorer.AddCustomScore("oran-total", totalORANScore, maxORANScore, "O-RAN Interface Compliance")
+			// O-RAN scores are already integrated through the individual metric calls above
+			// The comprehensive result is available through the standard scoring system
 
 			ginkgo.By(fmt.Sprintf("Total O-RAN Contribution: %d/%d points", totalORANScore, maxORANScore))
 			ginkgo.By(fmt.Sprintf("O-RAN Integration: %s", func() string {

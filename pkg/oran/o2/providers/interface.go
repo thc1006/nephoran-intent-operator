@@ -469,7 +469,6 @@ const (
 	ResourceTypeStorage     = "storage"
 	ResourceTypeNetwork     = "network"
 	ResourceTypeAccelerator = "accelerator"
-	ResourceTypeService     = "service"
 
 	// Resource Statuses
 	ResourceStatusPending     = "pending"

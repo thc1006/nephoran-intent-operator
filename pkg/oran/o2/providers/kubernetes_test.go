@@ -3,9 +3,9 @@ package providers
 import (
 	"context"
 	"testing"
-	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -317,12 +317,12 @@ func TestKubernetesProviderScaling(t *testing.T) {
 	// Add a reaction to handle the GetScale call
 	fakeClient.PrependReactor("get", "deployments", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
 		if action.GetSubresource() == "scale" {
-			scale := &appsv1.Scale{
+			scale := &autoscalingv1.Scale{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-deployment",
 					Namespace: "default",
 				},
-				Spec: appsv1.ScaleSpec{
+				Spec: autoscalingv1.ScaleSpec{
 					Replicas: 3,
 				},
 			}

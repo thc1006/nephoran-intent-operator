@@ -8,6 +8,19 @@ import (
 	"time"
 )
 
+// DBConfig represents database configuration
+type DBConfig struct {
+	Driver              string
+	DSN                 string
+	MaxOpenConns        int
+	MaxIdleConns        int
+	ConnMaxLifetime     time.Duration
+	EnableQueryCache    bool
+	EnableHealthCheck   bool
+	QueryTimeout        time.Duration
+	EnableTransactions  bool
+}
+
 // Profiler provides profiling capabilities (minimal interface)
 type Profiler struct {
 	active bool
@@ -92,20 +105,24 @@ func (c *OptimizedCache[K, V]) Shutdown(ctx context.Context) error {
 
 // OptimizedDBManager provides optimized database operations
 type OptimizedDBManager struct {
+	config  *DBConfig
 	metrics *DBMetrics
 }
 
 // DBMetrics tracks database performance metrics
 type DBMetrics struct {
-	QueryCount   int64
-	BatchCount   int64
-	ErrorCount   int64
-	AvgQueryTime time.Duration
+	QueryCount        int64
+	BatchCount        int64
+	ErrorCount        int64
+	AvgQueryTime      time.Duration
+	ActiveConnections int64
+	IdleConnections   int64
 }
 
 // NewOptimizedDBManager creates a new database manager
-func NewOptimizedDBManager(config interface{}) (*OptimizedDBManager, error) {
+func NewOptimizedDBManager(config *DBConfig) (*OptimizedDBManager, error) {
 	return &OptimizedDBManager{
+		config:  config,
 		metrics: &DBMetrics{},
 	}, nil
 }
@@ -126,21 +143,48 @@ func (db *OptimizedDBManager) updateAverageQueryTime(duration time.Duration) {
 	db.metrics.AvgQueryTime = duration
 }
 
+// GetConnectionUtilization returns connection utilization metrics
+func (db *OptimizedDBManager) GetConnectionUtilization() float64 {
+	return 0.5 // 50% utilization as stub
+}
+
 // Shutdown gracefully shuts down the database manager
 func (db *OptimizedDBManager) Shutdown(ctx context.Context) error {
 	return nil
 }
 
+
 // Benchmark represents a performance benchmark
 type Benchmark struct {
 	Name        string
+	Description string
+	Category    string
+	TestFunc    func() BenchmarkResult
 	Function    func() error
 	Iterations  int
 	Duration    time.Duration
+	Enabled     bool
 }
 
 // Additional missing types
 
+
+// MemoryCache_Stub provides stub methods for MemoryCache  
+type MemoryCache_Stub struct{}
+
+func (mc *MemoryCache_Stub) GetHitRate() float64 { return 0.8 }
+
+// BatchProcessor_Stub provides stub methods for BatchProcessor
+type BatchProcessor_Stub struct{}
+
+func (bp *BatchProcessor_Stub) Stop() {}
+
+// CacheMetrics_Stub additional fields
+type CacheMetrics_Stub2 struct {
+	CacheMetrics_Stub
+	AverageAccessTime  float64
+	ShardDistribution  map[string]float64
+}
 
 // MemoryStats_Stub stub
 type MemoryStats_Stub struct {
@@ -302,11 +346,16 @@ func DefaultCacheConfig_Stub() interface{} {
 }
 
 // DefaultDBConfig returns default DB config
-func DefaultDBConfig() interface{} {
-	return map[string]interface{}{
-		"driver":         "postgres",
-		"max_conns":      25,
-		"query_timeout":  30,
+func DefaultDBConfig() *DBConfig {
+	return &DBConfig{
+		Driver:              "postgres",
+		MaxOpenConns:        25,
+		MaxIdleConns:        10,
+		ConnMaxLifetime:     time.Hour,
+		EnableQueryCache:    false,
+		EnableHealthCheck:   false,
+		QueryTimeout:        30 * time.Second,
+		EnableTransactions:  true,
 	}
 }
 

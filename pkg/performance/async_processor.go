@@ -5,11 +5,13 @@ package performance
 import (
 	"context"
 	"fmt"
+	"math"
 	"math/rand"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
+	"unsafe"
 
 	"k8s.io/klog/v2"
 )
@@ -937,7 +939,10 @@ func (ap *AsyncProcessor) collectMetrics() {
 	// Update throughput metrics (simplified calculation)
 	timeDiff := ap.config.MetricsInterval.Seconds()
 	if timeDiff > 0 {
-		atomic.StoreInt64((*int64)(&ap.metrics.TasksPerSecond), int64(float64(static.TasksCompleted)/timeDiff))
+		tasksPerSec := float64(static.TasksCompleted) / timeDiff
+		// Store the float64 value using atomic operation on the bits
+		bits := math.Float64bits(tasksPerSec)
+		atomic.StoreUint64((*uint64)(unsafe.Pointer(&ap.metrics.TasksPerSecond)), bits)
 	}
 
 	// Log metrics periodically

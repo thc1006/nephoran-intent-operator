@@ -463,7 +463,7 @@ func (iam *IntelligentAlertManager) generateAlertsFromAnalysis(analysis *Regress
 					regression.MetricName, regression.RelativeChangePct, regression.CurrentValue, regression.BaselineValue),
 				AffectedMetrics: []string{regression.MetricName},
 				Analysis:        analysis.RegressionAnalysis,
-				Actions:         iam.generateMetricSpecificActions(regression),
+				Actions:         iam.generateMetricSpecificActions(&regression),
 			}
 			alerts = append(alerts, metricAlert)
 		}
@@ -546,7 +546,13 @@ func (iam *IntelligentAlertManager) sendNotifications(alert *EnrichedAlert) erro
 
 // Slack notification implementation
 func (snc *SlackNotificationChannel) SendAlert(alert *EnrichedAlert) error {
-	payload := iam.buildSlackPayload(alert)
+	// Build simple Slack payload
+	payload := map[string]interface{}{
+		"channel":    snc.channel,
+		"username":   snc.username,
+		"icon_emoji": snc.iconEmoji,
+		"text":       fmt.Sprintf("Alert: %s - %s", alert.Title, alert.Description),
+	}
 
 	jsonPayload, err := json.Marshal(payload)
 	if err != nil {

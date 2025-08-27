@@ -6,6 +6,7 @@ package validation
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -22,7 +23,7 @@ type ORANInterfaceTestSuite struct {
 	// Test results
 	complianceScore    int
 	targetScore        int
-	performanceResults map[string]*BenchmarkResult
+	performanceResults map[string]*ORANBenchmarkResult
 
 	// Integration with existing framework
 	systemValidator *SystemValidator
@@ -68,7 +69,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 	report.CompliancePassed = oits.complianceScore >= (oits.targetScore - 1) // Allow 1 point tolerance
 
 	// Phase 2: Performance Benchmarking
-	if oits.config.EnablePerformance {
+	if oits.config.EnableLoadTesting {
 		ginkgo.By("⚡ Phase 2: O-RAN Interface Performance Benchmarking")
 		oits.performanceResults = oits.runPerformanceBenchmarks(ctx)
 		report.PerformanceResults = oits.performanceResults
@@ -76,7 +77,7 @@ func (oits *ORANInterfaceTestSuite) RunComprehensiveORANValidation(ctx context.C
 	}
 
 	// Phase 3: Reliability and Stress Testing
-	if oits.config.EnableReliability {
+	if oits.config.EnableChaosTesting {
 		ginkgo.By("🔒 Phase 3: O-RAN Interface Reliability Testing")
 		reliabilityScore := oits.runReliabilityTests(ctx)
 		report.ReliabilityScore = reliabilityScore
@@ -127,7 +128,7 @@ func (oits *ORANInterfaceTestSuite) runFunctionalComplianceTests(ctx context.Con
 }
 
 // runPerformanceBenchmarks runs comprehensive performance benchmarks
-func (oits *ORANInterfaceTestSuite) runPerformanceBenchmarks(ctx context.Context) map[string]*BenchmarkResult {
+func (oits *ORANInterfaceTestSuite) runPerformanceBenchmarks(ctx context.Context) map[string]*ORANBenchmarkResult {
 	ginkgo.By("Running Comprehensive Performance Benchmarks")
 
 	results := oits.benchmarker.RunComprehensivePerformanceBenchmarks(ctx)
@@ -576,9 +577,9 @@ func (oits *ORANInterfaceTestSuite) calculateOverallResult(report *ORANValidatio
 // generateComprehensiveReport generates a comprehensive test report
 func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANValidationReport) {
 	ginkgo.By("📊 Generating Comprehensive O-RAN Validation Report")
-	ginkgo.By("=" * 80)
+	ginkgo.By(strings.Repeat("=", 80))
 	ginkgo.By("           O-RAN INTERFACE COMPREHENSIVE VALIDATION REPORT")
-	ginkgo.By("=" * 80)
+	ginkgo.By(strings.Repeat("=", 80))
 	ginkgo.By(fmt.Sprintf("Test Suite Version: %s", report.TestSuiteVersion))
 	ginkgo.By(fmt.Sprintf("Test Duration: %v", report.TotalDuration))
 	ginkgo.By(fmt.Sprintf("Test Date: %s", report.StartTime.Format("2006-01-02 15:04:05")))
@@ -623,7 +624,7 @@ func (oits *ORANInterfaceTestSuite) generateComprehensiveReport(report *ORANVali
 		ginkgo.By("⚠️  Please review failed test categories and retry.")
 	}
 
-	ginkgo.By("=" * 80)
+	ginkgo.By(strings.Repeat("=", 80))
 }
 
 // ORANValidationReport contains the comprehensive validation results
@@ -640,7 +641,7 @@ type ORANValidationReport struct {
 	CompliancePassed bool `json:"compliancePassed"`
 
 	// Performance results
-	PerformanceResults map[string]*BenchmarkResult `json:"performanceResults"`
+	PerformanceResults map[string]*ORANBenchmarkResult `json:"performanceResults"`
 	PerformancePassed  bool                        `json:"performancePassed"`
 
 	// Reliability results

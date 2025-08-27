@@ -12,7 +12,6 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"gonum.org/v1/gonum/stat"
 	"k8s.io/klog/v2"
 )
 
@@ -443,9 +442,9 @@ func NewIntelligentRegressionEngine(config *IntelligentRegressionConfig) (*Intel
 		anomalyDetector:     NewAnomalyDetector(config),
 		changePointDetector: NewChangePointDetector(config),
 		forecastingEngine:   NewForecastingEngine(config),
-		alertManager:        NewIntelligentAlertManager(config),
+		alertManager:        NewIntelligentAlertManager(extractAlertManagerConfig(config)),
 		learningSystem:      NewContinuousLearningSystem(config),
-		nwdafAnalyzer:       NewNWDAFAnalyzer(config),
+		nwdafAnalyzer:       NewNWDAFAnalyzer(extractNWDAFConfig(config)),
 		metricStore:         NewMetricStore(config),
 		correlationEngine:   NewCorrelationEngine(config),
 
@@ -563,13 +562,21 @@ func (ire *IntelligentRegressionEngine) performRegressionAnalysis(ctx context.Co
 		}
 	}
 
+	// Convert []*MetricRegression to []MetricRegression
+	metricRegressions := make([]MetricRegression, len(regressions))
+	for i, r := range regressions {
+		if r != nil {
+			metricRegressions[i] = *r
+		}
+	}
+
 	// 8. Create comprehensive analysis result
 	analysis := &RegressionAnalysisResult{
 		RegressionAnalysis: &RegressionAnalysis{
 			AnalysisID:        fmt.Sprintf("intelligent-regression-%d", time.Now().Unix()),
 			Timestamp:         time.Now(),
 			HasRegression:     len(regressions) > 0,
-			MetricRegressions: regressions,
+			MetricRegressions: metricRegressions,
 			ConfidenceScore:   ire.calculateOverallConfidence(regressions, anomalies, changePoints),
 		},
 		AnomalyEvents:       anomalies,
@@ -667,9 +674,10 @@ func (ire *IntelligentRegressionEngine) analyzeMetricRegression(metricName strin
 	// Determine severity based on metric type and thresholds
 	severity := ire.determineSeverity(metricName, relativeChange, currentValue)
 
-	// Calculate p-value (simplified - would use proper statistical test in production)
+	// Calculate p-value (simplified normal approximation)
 	zScore := effectSize
-	pValue := 2 * (1 - stat.CDF(math.Abs(zScore), 0, 1))
+	// Use complementary error function for normal CDF approximation
+	pValue := 2 * (1 - 0.5*(1+math.Erf(math.Abs(zScore)/math.Sqrt2)))
 
 	regression := &MetricRegression{
 		MetricName:        metricName,
@@ -979,17 +987,23 @@ func (ire *IntelligentRegressionEngine) determineRegressionType(metricName strin
 
 // assessImpactAndGenerateRecommendations evaluates impact and creates actionable recommendations
 func (ire *IntelligentRegressionEngine) assessImpactAndGenerateRecommendations(analysis *RegressionAnalysisResult) {
+	// Convert []MetricRegression to []*MetricRegression for assessment
+	regressions := make([]*MetricRegression, len(analysis.MetricRegressions))
+	for i := range analysis.MetricRegressions {
+		regressions[i] = &analysis.MetricRegressions[i]
+	}
+	
 	// Assess service impact
-	analysis.ServiceImpact = ire.assessServiceImpact(analysis.MetricRegressions)
+	analysis.ServiceImpact = ire.assessServiceImpact(regressions)
 
 	// Generate automated remediation actions
-	analysis.AutomatedRemediation = ire.generateAutomatedActions(analysis.MetricRegressions)
+	analysis.AutomatedRemediation = ire.generateAutomatedActions(regressions)
 
 	// Generate manual remediation steps
-	analysis.ManualRemediation = ire.generateManualActions(analysis.MetricRegressions)
+	analysis.ManualRemediation = ire.generateManualActions(regressions)
 
 	// Generate preventive measures
-	analysis.PreventiveMeasures = ire.generatePreventiveMeasures(analysis.MetricRegressions)
+	analysis.PreventiveMeasures = ire.generatePreventiveMeasures(regressions)
 }
 
 // Placeholder methods for supporting functionality
@@ -1226,19 +1240,11 @@ func (ce *CorrelationEngine) AnalyzeCorrelations(metrics map[string]float64) (*C
 	return &CorrelationAnalysis{}, nil
 }
 
-func (nwdaf *NWDAFAnalyzer) GenerateInsights(ctx context.Context, metrics map[string]float64, regressions []*MetricRegression) (*NWDAFInsights, error) {
-	// Placeholder implementation
-	return &NWDAFInsights{}, nil
-}
 
 func (cls *ContinuousLearningSystem) ProcessAnalysis(analysis *RegressionAnalysisResult) {
 	// Placeholder implementation
 }
 
-func (iam *IntelligentAlertManager) ProcessRegressionAnalysis(analysis *RegressionAnalysisResult) error {
-	// Placeholder implementation
-	return nil
-}
 
 func (bm *BaselineManager) GetBaseline(metricName string) *DynamicBaseline {
 	bm.mutex.RLock()
@@ -1256,4 +1262,37 @@ func (ire *IntelligentRegressionEngine) runLearningSystem(ctx context.Context) {
 
 func (ire *IntelligentRegressionEngine) runNWDAFAnalytics(ctx context.Context) {
 	// Placeholder implementation for NWDAF analytics
+}
+
+// extractAlertManagerConfig converts IntelligentRegressionConfig to AlertManagerConfig
+func extractAlertManagerConfig(config *IntelligentRegressionConfig) *AlertManagerConfig {
+	return &AlertManagerConfig{
+		MaxConcurrentWorkers:   4,
+		AlertProcessingTimeout: config.DetectionInterval,
+		AlertRetentionPeriod:   24 * time.Hour,
+		CorrelationEnabled:     true,
+		CorrelationWindow:      5 * time.Minute,
+		MaxCorrelatedAlerts:    10,
+		MinCorrelationScore:    0.7,
+		RateLimitingEnabled:    true,
+		MaxAlertsPerMinute:     60,
+		MaxAlertsPerHour:       3600,
+		BurstAllowance:         10,
+	}
+}
+
+// extractNWDAFConfig converts IntelligentRegressionConfig to NWDAFConfig
+func extractNWDAFConfig(config *IntelligentRegressionConfig) *NWDAFConfig {
+	return &NWDAFConfig{
+		EnableLoadAnalytics:        config.NWDAFPatternsEnabled,
+		EnablePerformanceAnalytics: config.TelecomKPIAnalysisEnabled,
+		EnableSliceAnalytics:       config.NetworkSliceAwareAnalysis,
+		AnalyticsInterval:          config.DetectionInterval,
+		HistoricalDataRetention:    24 * time.Hour,
+		PredictionHorizon:          time.Hour,
+		MinDataPointsForAnalysis:   10,
+		EnableAnomalyAnalytics:     true,
+		EnableCapacityAnalytics:    true,
+		EnableQoEAnalytics:         true,
+	}
 }

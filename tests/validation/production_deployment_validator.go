@@ -28,7 +28,7 @@ type ProductionDeploymentValidator struct {
 	client      client.Client
 	clientset   *kubernetes.Clientset
 	config      *ValidationConfig
-	chaosEngine *chaos.Engine
+	// chaosEngine *chaos.Engine // TODO: Implement chaos engineering integration
 
 	// Test metrics
 	metrics *ProductionMetrics
@@ -88,7 +88,7 @@ func NewProductionDeploymentValidator(client client.Client, clientset *kubernete
 		client:      client,
 		clientset:   clientset,
 		config:      config,
-		chaosEngine: chaos.NewEngine(client),
+		// chaosEngine: chaos.NewEngine(client), // TODO: Implement chaos engineering integration
 		metrics:     &ProductionMetrics{},
 	}
 }

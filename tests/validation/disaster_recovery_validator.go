@@ -635,9 +635,14 @@ func (drv *DisasterRecoveryValidator) validatePointInTimeRecovery(ctx context.Co
 		pitRecoveryEnabled = len(volumeSnapshots.Items) > 0
 	}
 
-	// Also check for VolumeSnapshotClass
+	// Also check for VolumeSnapshotClass using metadata approach
 	if !pitRecoveryEnabled {
-		volumeSnapshotClasses := &storagev1.VolumeSnapshotClassList{}
+		volumeSnapshotClasses := &metav1.PartialObjectMetadataList{}
+		volumeSnapshotClasses.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "snapshot.storage.k8s.io",
+			Version: "v1",
+			Kind:    "VolumeSnapshotClassList",
+		})
 		if err := drv.client.List(ctx, volumeSnapshotClasses); err == nil {
 			pitRecoveryEnabled = len(volumeSnapshotClasses.Items) > 0
 		}

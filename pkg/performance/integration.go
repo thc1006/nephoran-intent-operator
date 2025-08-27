@@ -107,11 +107,7 @@ func (pi *PerformanceIntegrator) initializeComponents() error {
 		profilerConfig.EnableMemoryProfiling = true
 		profilerConfig.EnableGoroutineMonitoring = true
 
-		var err error
-		pi.profiler, err = NewProfilerManager(profilerConfig)
-		if err != nil {
-			return fmt.Errorf("failed to initialize profiler: %w", err)
-		}
+		pi.profiler = NewProfilerManager(profilerConfig)
 		klog.Info("Performance profiler initialized")
 	}
 
@@ -420,7 +416,7 @@ func (pi *PerformanceIntegrator) calculatePerformanceScore(report *IntegratedPer
 	// Database score (Query time, Connection utilization)
 	if dbData, ok := report.Components["database"].(DBMetrics); ok {
 		score := 100.0
-		avgQueryTimeMs := float64(dbData.AverageQueryTime) / 1e6
+		avgQueryTimeMs := float64(dbData.AvgQueryTime) / 1e6
 		if avgQueryTimeMs > 100 { // 100ms threshold
 			score -= (avgQueryTimeMs - 100) / 10
 		}
@@ -509,7 +505,7 @@ func (pi *PerformanceIntegrator) generateRecommendations(report *IntegratedPerfo
 
 	// Database recommendations
 	if dbData, ok := report.Components["database"].(DBMetrics); ok {
-		avgQueryTimeMs := float64(dbData.AverageQueryTime) / 1e6
+		avgQueryTimeMs := float64(dbData.AvgQueryTime) / 1e6
 		if avgQueryTimeMs > 100 {
 			recommendations = append(recommendations, PerformanceRecommendation{
 				Type:                 "database",
@@ -587,7 +583,7 @@ func (pm *PerformanceMiddleware) Middleware(next http.Handler) http.Handler {
 		// Submit async tasks for expensive operations
 		if pm.asyncEnabled && shouldProcessAsync(r) {
 			if asyncProcessor := pm.integrator.GetAsyncProcessor(); asyncProcessor != nil {
-				task := Task{
+				task := AsyncTask{
 					Type: "request_analytics",
 					Data: RequestAnalytics{
 						Method:   r.Method,

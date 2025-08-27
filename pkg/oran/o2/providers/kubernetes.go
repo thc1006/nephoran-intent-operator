@@ -1047,7 +1047,7 @@ func (k *KubernetesProvider) createDeployment(ctx context.Context, req *CreateRe
 
 func (k *KubernetesProvider) convertDeploymentToResourceResponse(deployment *appsv1.Deployment) *ResourceResponse {
 	var status string
-	var health HealthStatusType
+	var health string
 
 	if deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
 		status = "ready"
@@ -1924,7 +1924,7 @@ func (k *KubernetesProvider) getServiceHealth(ctx context.Context, namespace, na
 		Status:      status,
 		Message:     message,
 		LastUpdated: time.Now(),
-		Metadata: map[string]interface{}{
+		Metadata: map[string]string{
 			"clusterIP": service.Spec.ClusterIP,
 			"type":      string(service.Spec.Type),
 		},
@@ -1942,7 +1942,7 @@ func (k *KubernetesProvider) getPodHealth(ctx context.Context, namespace, name s
 		}, nil
 	}
 
-	var status HealthStatusType
+	var status string
 	message := string(pod.Status.Phase)
 
 	switch pod.Status.Phase {
