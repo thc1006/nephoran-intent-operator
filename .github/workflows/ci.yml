@@ -44,6 +44,7 @@ jobs:
       internal: ${{ steps.filter.outputs.internal }}
       planner: ${{ steps.filter.outputs.planner }}
       docs: ${{ steps.filter.outputs.docs }}
+      contracts: ${{ steps.filter.outputs.contracts }}
       ci: ${{ steps.filter.outputs.ci }}
       scripts: ${{ steps.filter.outputs.scripts }}
     steps:
@@ -88,6 +89,8 @@ jobs:
             docs:
               - 'docs/**'
               - '*.md'
+            contracts:
+              - 'docs/contracts/**'
             ci:
               - '.github/workflows/**'
               - 'Makefile'
@@ -95,6 +98,111 @@ jobs:
               - 'go.sum'
             scripts:
               - 'scripts/**'
+
+  # Validate JSON schemas in docs/contracts/
+  schema-validation:
+    name: Validate JSON Schemas
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.contracts == 'true' || needs.changes.outputs.ci == 'true'
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Create package.json for ajv-cli
+        run: |
+          cat > package.json << 'EOF'
+          {
+            "name": "schema-validation",
+            "version": "1.0.0",
+            "description": "JSON Schema validation for docs/contracts",
+            "devDependencies": {
+              "ajv-cli": "^5.0.0",
+              "ajv-formats": "^2.1.1"
+            }
+          }
+          EOF
+
+      - name: Install ajv-cli
+        run: npm install
+
+      - name: Validate intent.schema.json
+        run: |
+          echo "🔍 Validating intent.schema.json..."
+          npx ajv compile --spec=draft7 --strict=true --all-errors \
+            -s docs/contracts/intent.schema.json
+
+      - name: Validate a1.policy.schema.json
+        run: |
+          echo "🔍 Validating a1.policy.schema.json..."
+          npx ajv compile --spec=draft2020 --strict=true --all-errors \
+            -s docs/contracts/a1.policy.schema.json
+
+      - name: Validate fcaps.ves.examples.json structure
+        run: |
+          echo "🔍 Validating fcaps.ves.examples.json structure..."
+          # Create temporary validation script
+          cat > validate-ves.js << 'SCRIPT_EOF'
+          const fs = require('fs');
+          const examples = JSON.parse(fs.readFileSync('docs/contracts/fcaps.ves.examples.json', 'utf8'));
+          
+          // Check required example types exist
+          const requiredExamples = ['fault_example', 'measurement_example', 'heartbeat_example'];
+          const missing = requiredExamples.filter(key => !examples[key]);
+          
+          if (missing.length > 0) {
+            console.error('❌ Missing required examples:', missing);
+            process.exit(1);
+          }
+          
+          // Validate each example has proper VES structure
+          for (const [name, example] of Object.entries(examples)) {
+            if (!example.event || !example.event.commonEventHeader) {
+              console.error(`❌ Example '${name}' missing required VES structure`);
+              process.exit(1);
+            }
+            
+            const header = example.event.commonEventHeader;
+            const required = ['version', 'domain', 'eventName', 'eventId'];
+            const headerMissing = required.filter(field => !header[field]);
+            
+            if (headerMissing.length > 0) {
+              console.error(`❌ Example '${name}' missing required header fields:`, headerMissing);
+              process.exit(1);
+            }
+          }
+          
+          console.log('✅ fcaps.ves.examples.json structure is valid');
+          SCRIPT_EOF
+          
+          # Run validation
+          node validate-ves.js
+          
+          # Clean up
+          rm validate-ves.js
+
+      - name: Schema validation summary
+        if: always()
+        run: |
+          echo "## JSON Schema Validation Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ ${{ job.status }} == 'success' ]]; then
+            echo "✅ All schemas are valid and properly structured" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Schema validation failed - see job logs for details" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Validated schemas:**" >> $GITHUB_STEP_SUMMARY
+          echo "- docs/contracts/intent.schema.json (JSON Schema Draft 7)" >> $GITHUB_STEP_SUMMARY
+          echo "- docs/contracts/a1.policy.schema.json (JSON Schema Draft 2020-12)" >> $GITHUB_STEP_SUMMARY
+          echo "- docs/contracts/fcaps.ves.examples.json (VES event structure)" >> $GITHUB_STEP_SUMMARY
 
   # Generate CRDs and code
   generate:
@@ -182,8 +290,8 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    needs: [generate]
-    if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped')
+    needs: [generate, schema-validation]
+    if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped') && (needs.schema-validation.result == 'success' || needs.schema-validation.result == 'skipped')
     timeout-minutes: 15
     steps:
       - name: Checkout
@@ -243,8 +351,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
-    needs: [generate]
-    if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped')
+    needs: [generate, schema-validation]
+    if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped') && (needs.schema-validation.result == 'success' || needs.schema-validation.result == 'skipped')
     timeout-minutes: 30
     services:
       redis:
@@ -325,8 +433,8 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    needs: [generate]
-    if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped')
+    needs: [generate, schema-validation]
+    if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped') && (needs.schema-validation.result == 'success' || needs.schema-validation.result == 'skipped')
     timeout-minutes: 15
     steps:
       - name: Checkout code
@@ -409,8 +517,8 @@ jobs:
   security:
     name: Security Scan
     runs-on: ubuntu-latest
-    needs: [generate]
-    if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped')
+    needs: [generate, schema-validation]
+    if: always() && (needs.generate.result == 'success' || needs.generate.result == 'skipped') && (needs.schema-validation.result == 'success' || needs.schema-validation.result == 'skipped')
     timeout-minutes: 15
     steps:
       - name: Checkout code
@@ -554,7 +662,7 @@ jobs:
   quality-metrics:
     name: Quality Metrics Calculation
     runs-on: ubuntu-latest
-    needs: [generate, build, test, lint, security]
+    needs: [generate, build, test, lint, security, schema-validation]
     if: always() && (needs.test.result == 'success' || needs.test.result == 'skipped')
     timeout-minutes: 10
     continue-on-error: ${{ github.event_name == 'pull_request' }}
@@ -623,7 +731,7 @@ jobs:
   ci-status:
     name: CI Status Check
     runs-on: ubuntu-latest
-    needs: [generate, build, test, lint, security, quality-metrics]
+    needs: [generate, build, test, lint, security, quality-metrics, schema-validation]
     if: always()
     timeout-minutes: 5
     steps:
@@ -637,6 +745,7 @@ jobs:
           echo "Lint:     ${{ needs.lint.result }}"
           echo "Security: ${{ needs.security.result }}"
           echo "Quality:  ${{ needs.quality-metrics.result }}"
+          echo "Schemas:  ${{ needs.schema-validation.result }}"
           echo ""
 
           # Allow skipped jobs due to path filtering
@@ -652,6 +761,9 @@ jobs:
           fi
           if [[ "${{ needs.security.result }}" != "success" && "${{ needs.security.result }}" != "skipped" ]]; then
             failed_jobs="$failed_jobs Security"
+          fi
+          if [[ "${{ needs.schema-validation.result }}" != "success" && "${{ needs.schema-validation.result }}" != "skipped" ]]; then
+            failed_jobs="$failed_jobs Schema-Validation"
           fi
           # Quality metrics job failure only blocks on push to main (continue-on-error handles PR case)
           if [[ "${{ needs.quality-metrics.result }}" != "success" && "${{ needs.quality-metrics.result }}" != "skipped" && "${{ github.event_name }}" != "pull_request" ]]; then
@@ -677,6 +789,7 @@ jobs:
           echo "| Test | ${{ (needs.test.result == 'success' && 'PASSED') || (needs.test.result == 'skipped' && 'SKIPPED') || 'FAILED' }} | Unit tests with envtest |" >> $GITHUB_STEP_SUMMARY
           echo "| Lint | ${{ (needs.lint.result == 'success' && 'PASSED') || (needs.lint.result == 'skipped' && 'SKIPPED') || 'FAILED' }} | Code linting with golangci-lint |" >> $GITHUB_STEP_SUMMARY
           echo "| Security | ${{ (needs.security.result == 'success' && 'PASSED') || (needs.security.result == 'skipped' && 'SKIPPED') || 'FAILED' }} | Vulnerability and security scanning |" >> $GITHUB_STEP_SUMMARY
+          echo "| Schema Validation | ${{ (needs.schema-validation.result == 'success' && 'PASSED') || (needs.schema-validation.result == 'skipped' && 'SKIPPED') || 'FAILED' }} | JSON schema validation for contracts |" >> $GITHUB_STEP_SUMMARY
           echo "| Quality | ${{ (needs.quality-metrics.result == 'success' && 'PASSED') || (needs.quality-metrics.result == 'skipped' && 'SKIPPED') || (github.event_name == 'pull_request' && 'WARNING') || 'FAILED' }} | Quality metrics calculation |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
