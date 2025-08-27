@@ -119,3 +119,5 @@ Updates are tracked here in append-only format.
 | 2025-08-27T02:58:33+08:00 | feat/e2e | porch/krm | Fixed Porch/KRM integration compilation errors |
 | 2025-08-27T05:41:08.3003624+08:00 | feat/e2e | llm | AI acceleration components implemented: GPU inference, model caching, vector search |
 | 2025-08-27T05:41:08.3003624+08:00 | feat/e2e | pkg/oran/o2 | Fixed all ineffectual assignments in resource lifecycle and Kubernetes provider |
+|  | feat/e2e | ci | Added JSON schema validation job for docs/contracts/ with ajv-cli |
+| 2025-08-27T13:32:56+08:00 | feat/e2e | ci | Added JSON schema validation job for docs/contracts/ with ajv-cli |
