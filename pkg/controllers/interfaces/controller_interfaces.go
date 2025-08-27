@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package interfaces defines common interfaces and contracts for Nephoran controller implementations.
 package interfaces
 
 import (
@@ -30,6 +31,7 @@ import (
 type ProcessingPhase string
 
 const (
+	// PhaseIntentReceived indicates that an intent has been received and is ready for processing.
 	PhaseIntentReceived         ProcessingPhase = "IntentReceived"
 	PhaseReceived               ProcessingPhase = "Received" // Alias for PhaseIntentReceived
 	PhaseLLMProcessing          ProcessingPhase = "LLMProcessing"
@@ -206,6 +208,7 @@ type DeploymentVerifier interface {
 
 // Supporting data structures
 
+// ResourcePlan defines the comprehensive resource planning structure for network function deployment.
 type ResourcePlan struct {
 	NetworkFunctions     []PlannedNetworkFunction `json:"networkFunctions"`
 	ResourceRequirements ResourceRequirements     `json:"resourceRequirements"`
@@ -215,6 +218,7 @@ type ResourcePlan struct {
 	Dependencies         []Dependency             `json:"dependencies,omitempty"`
 }
 
+// PlannedNetworkFunction represents a network function that has been planned for deployment.
 type PlannedNetworkFunction struct {
 	Name          string                 `json:"name"`
 	Type          string                 `json:"type"`
@@ -227,6 +231,7 @@ type PlannedNetworkFunction struct {
 	Environment   []EnvVar               `json:"environment,omitempty"`
 }
 
+// ResourceRequirements specifies the CPU, memory, and storage requirements for a resource.
 type ResourceRequirements struct {
 	CPU              string `json:"cpu"`
 	Memory           string `json:"memory"`
@@ -234,11 +239,13 @@ type ResourceRequirements struct {
 	NetworkBandwidth string `json:"networkBandwidth,omitempty"`
 }
 
+// ResourceSpec defines both resource requests and limits for a workload.
 type ResourceSpec struct {
 	Requests ResourceRequirements `json:"requests"`
 	Limits   ResourceRequirements `json:"limits"`
 }
 
+// OptimizedPlan contains both the original and optimized resource plans with optimization details.
 type OptimizedPlan struct {
 	OriginalPlan  *ResourcePlan   `json:"originalPlan"`
 	OptimizedPlan *ResourcePlan   `json:"optimizedPlan"`
@@ -246,6 +253,7 @@ type OptimizedPlan struct {
 	CostSavings   *CostComparison `json:"costSavings,omitempty"`
 }
 
+// CostEstimate provides detailed cost estimation for resource deployment.
 type CostEstimate struct {
 	TotalCost      float64            `json:"totalCost"`
 	Currency       string             `json:"currency"`
@@ -254,6 +262,7 @@ type CostEstimate struct {
 	EstimationDate time.Time          `json:"estimationDate"`
 }
 
+// GitCommitResult contains information about a Git commit operation.
 type GitCommitResult struct {
 	CommitHash    string                 `json:"commitHash"`
 	CommitMessage string                 `json:"commitMessage"`
@@ -263,6 +272,7 @@ type GitCommitResult struct {
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
+// NephioPackage represents a Nephio package with its manifests and dependencies.
 type NephioPackage struct {
 	Name         string                 `json:"name"`
 	Version      string                 `json:"version"`
@@ -271,6 +281,7 @@ type NephioPackage struct {
 	Metadata     map[string]interface{} `json:"metadata"`
 }
 
+// DeploymentProgress tracks the progress of a network function deployment.
 type DeploymentProgress struct {
 	Status            string              `json:"status"`
 	Progress          float64             `json:"progress"` // 0-100
@@ -280,6 +291,7 @@ type DeploymentProgress struct {
 	LastUpdate        time.Time           `json:"lastUpdate"`
 }
 
+// DeploymentReference provides reference information for a deployment.
 type DeploymentReference struct {
 	Name       string            `json:"name"`
 	Namespace  string            `json:"namespace"`
@@ -287,6 +299,7 @@ type DeploymentReference struct {
 	CommitHash string            `json:"commitHash"`
 }
 
+// VerificationResult contains the results of deployment verification and health checks.
 type VerificationResult struct {
 	Success            bool                `json:"success"`
 	HealthyResources   []ResourceReference `json:"healthyResources"`
@@ -297,6 +310,7 @@ type VerificationResult struct {
 	Timestamp          time.Time           `json:"timestamp"`
 }
 
+// SLARequirements defines service level agreement targets for network functions.
 type SLARequirements struct {
 	AvailabilityTarget float64            `json:"availabilityTarget"`
 	ResponseTimeTarget time.Duration      `json:"responseTimeTarget"`
@@ -305,6 +319,7 @@ type SLARequirements struct {
 	CustomMetrics      map[string]float64 `json:"customMetrics,omitempty"`
 }
 
+// ComplianceResult contains the evaluation results against SLA requirements.
 type ComplianceResult struct {
 	Overall      string                 `json:"overall"` // Compliant, NonCompliant, Unknown
 	Availability float64                `json:"availability"`
@@ -315,6 +330,7 @@ type ComplianceResult struct {
 	Violations   []ComplianceViolation  `json:"violations,omitempty"`
 }
 
+// ComplianceReport provides a comprehensive compliance assessment report.
 type ComplianceReport struct {
 	ReportID         string            `json:"reportId"`
 	GeneratedAt      time.Time         `json:"generatedAt"`
@@ -327,6 +343,7 @@ type ComplianceReport struct {
 
 // Additional supporting types
 
+// ResourceConstraint defines a constraint that must be satisfied during resource planning.
 type ResourceConstraint struct {
 	Type     string      `json:"type"`
 	Resource string      `json:"resource"`
@@ -335,6 +352,7 @@ type ResourceConstraint struct {
 	Message  string      `json:"message,omitempty"`
 }
 
+// Dependency represents a dependency requirement for a network function.
 type Dependency struct {
 	Name     string            `json:"name"`
 	Type     string            `json:"type"`
@@ -343,6 +361,7 @@ type Dependency struct {
 	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
+// PortSpec defines a network port configuration for a service.
 type PortSpec struct {
 	Name        string `json:"name"`
 	Port        int32  `json:"port"`
@@ -351,32 +370,38 @@ type PortSpec struct {
 	ServiceType string `json:"serviceType,omitempty"`
 }
 
+// EnvVar represents an environment variable for a container.
 type EnvVar struct {
 	Name      string        `json:"name"`
 	Value     string        `json:"value,omitempty"`
 	ValueFrom *EnvVarSource `json:"valueFrom,omitempty"`
 }
 
+// EnvVarSource defines sources for environment variable values.
 type EnvVarSource struct {
 	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty"`
 	SecretKeyRef    *SecretKeySelector    `json:"secretKeyRef,omitempty"`
 	FieldRef        *FieldSelector        `json:"fieldRef,omitempty"`
 }
 
+// ConfigMapKeySelector selects a key from a ConfigMap.
 type ConfigMapKeySelector struct {
 	Name string `json:"name"`
 	Key  string `json:"key"`
 }
 
+// SecretKeySelector selects a key from a Secret.
 type SecretKeySelector struct {
 	Name string `json:"name"`
 	Key  string `json:"key"`
 }
 
+// FieldSelector selects a field from the pod spec.
 type FieldSelector struct {
 	FieldPath string `json:"fieldPath"`
 }
 
+// Optimization describes a performance or cost optimization that was applied.
 type Optimization struct {
 	Type        string                 `json:"type"`
 	Description string                 `json:"description"`
@@ -384,6 +409,7 @@ type Optimization struct {
 	Savings     map[string]interface{} `json:"savings,omitempty"`
 }
 
+// CostComparison provides a comparison between original and optimized costs.
 type CostComparison struct {
 	OriginalCost   float64 `json:"originalCost"`
 	OptimizedCost  float64 `json:"optimizedCost"`
@@ -391,6 +417,7 @@ type CostComparison struct {
 	SavingsPercent float64 `json:"savingsPercent"`
 }
 
+// GitConflict represents a Git merge conflict that occurred during operations.
 type GitConflict struct {
 	File          string `json:"file"`
 	ConflictType  string `json:"conflictType"`
@@ -399,6 +426,7 @@ type GitConflict struct {
 	Resolution    string `json:"resolution,omitempty"`
 }
 
+// ComplianceViolation represents a specific compliance rule violation.
 type ComplianceViolation struct {
 	Type        string      `json:"type"`
 	Severity    string      `json:"severity"`

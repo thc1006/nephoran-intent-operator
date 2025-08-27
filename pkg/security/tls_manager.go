@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -164,7 +163,7 @@ func (tm *TLSManager) loadCertificates() error {
 	defer tm.mu.Unlock()
 
 	// Load CA certificate pool
-	caCert, err := ioutil.ReadFile(tm.config.CAFile)
+	caCert, err := os.ReadFile(tm.config.CAFile)
 	if err != nil {
 		return fmt.Errorf("failed to read CA certificate: %w", err)
 	}

@@ -1,3 +1,4 @@
+// Package main provides a utility for building test contexts and environments for Nephoran testing.
 package main
 
 import (

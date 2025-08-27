@@ -472,7 +472,7 @@ func RunSecurityTestSuite(t *testing.T, suite TestSuite, helper *SecurityTestHel
 	})
 }
 
-// Benchmark utilities
+// BenchmarkResult represents the results of a security benchmark test.
 type BenchmarkResult struct {
 	Name     string
 	Duration time.Duration

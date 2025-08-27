@@ -84,5 +84,6 @@ func (ah *AuthenticatedLLMProcessorHandler) writeAuthError(w http.ResponseWriter
 		"status":    "error",
 	}
 
-	json.NewEncoder(w).Encode(response)
+	// Ignore JSON encoding error - error would be written to response writer anyway
+	_ = json.NewEncoder(w).Encode(response)
 }

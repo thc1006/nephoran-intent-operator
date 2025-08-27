@@ -1,3 +1,4 @@
+// Package generator provides utilities for sanitizing and validating patch generation inputs.
 package generator
 
 import (

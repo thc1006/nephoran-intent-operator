@@ -63,7 +63,8 @@ func TestRequestBodySizeLimit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variable
 			_ = os.Setenv("HTTP_MAX_BODY", fmt.Sprintf("%d", tt.maxBodySize))
-			defer os.Unsetenv("HTTP_MAX_BODY")
+			// Ignore unsetenv error in test cleanup
+			defer func() { _ = os.Unsetenv("HTTP_MAX_BODY") }()
 
 			// Create logger
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
@@ -221,7 +222,8 @@ func TestMetricsEndpointControl(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Set environment variable
 			_ = os.Setenv("METRICS_ENABLED", fmt.Sprintf("%t", tt.metricsEnabled))
-			defer os.Unsetenv("METRICS_ENABLED")
+			// Ignore unsetenv error in test cleanup
+			defer func() { _ = os.Unsetenv("METRICS_ENABLED") }()
 
 			// Create router
 			router := mux.NewRouter()
@@ -295,8 +297,10 @@ func TestMetricsIPRestriction(t *testing.T) {
 			// Set environment variables
 			_ = os.Setenv("METRICS_ENABLED", "true")
 			_ = os.Setenv("METRICS_ALLOWED_IPS", tt.allowedIPs)
-			defer os.Unsetenv("METRICS_ENABLED")
-			defer os.Unsetenv("METRICS_ALLOWED_IPS")
+			// Ignore unsetenv error in test cleanup
+			defer func() { _ = os.Unsetenv("METRICS_ENABLED") }()
+			// Ignore unsetenv error in test cleanup
+			defer func() { _ = os.Unsetenv("METRICS_ALLOWED_IPS") }()
 
 			// Create IP restriction middleware
 			var allowedIPs []string
@@ -364,7 +368,8 @@ func TestMetricsIPRestriction(t *testing.T) {
 
 			if tt.expectedStatus == http.StatusForbidden {
 				var response map[string]string
-				json.NewDecoder(rr.Body).Decode(&response)
+				// Ignore decode error in test
+				_ = json.NewDecoder(rr.Body).Decode(&response)
 				assert.Equal(t, "Access denied", response["error"])
 			}
 		})
@@ -378,9 +383,10 @@ func TestIntegrationSecurityStack(t *testing.T) {
 	_ = os.Setenv("METRICS_ENABLED", "true")
 	_ = os.Setenv("METRICS_ALLOWED_IPS", "127.0.0.1")
 	defer func() {
-		os.Unsetenv("HTTP_MAX_BODY")
-		os.Unsetenv("METRICS_ENABLED")
-		os.Unsetenv("METRICS_ALLOWED_IPS")
+		// Ignore unsetenv errors in test cleanup
+		_ = os.Unsetenv("HTTP_MAX_BODY")
+		_ = os.Unsetenv("METRICS_ENABLED")
+		_ = os.Unsetenv("METRICS_ALLOWED_IPS")
 	}()
 
 	// Create logger
@@ -465,10 +471,10 @@ func TestIntegrationSecurityStack(t *testing.T) {
 
 // TestEnvironmentVariableDefaults tests default values for security environment variables
 func TestEnvironmentVariableDefaults(t *testing.T) {
-	// Clear all environment variables
-	os.Unsetenv("HTTP_MAX_BODY")
-	os.Unsetenv("METRICS_ENABLED")
-	os.Unsetenv("METRICS_ALLOWED_IPS")
+	// Clear all environment variables - ignore errors
+	_ = os.Unsetenv("HTTP_MAX_BODY")
+	_ = os.Unsetenv("METRICS_ENABLED")
+	_ = os.Unsetenv("METRICS_ALLOWED_IPS")
 
 	// Load config with defaults
 	cfg := &config.LLMProcessorConfig{}

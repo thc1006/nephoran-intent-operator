@@ -18,8 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-// ObservabilityIntegration manages observability for service mesh
-type ObservabilityIntegration struct {
+// Integration manages observability for service mesh
+type Integration struct {
 	mesh            abstraction.ServiceMeshInterface
 	metricsRegistry *prometheus.Registry
 	tracer          trace.Tracer
@@ -35,12 +35,12 @@ type ObservabilityIntegration struct {
 	errorRate            metric.Float64ObservableGauge
 }
 
-// NewObservabilityIntegration creates new observability integration
-func NewObservabilityIntegration(mesh abstraction.ServiceMeshInterface) (*ObservabilityIntegration, error) {
+// NewIntegration creates new observability integration
+func NewIntegration(mesh abstraction.ServiceMeshInterface) (*Integration, error) {
 	tracer := otel.Tracer("service-mesh")
 	meter := otel.Meter("service-mesh")
 
-	integration := &ObservabilityIntegration{
+	integration := &Integration{
 		mesh:            mesh,
 		metricsRegistry: prometheus.NewRegistry(),
 		tracer:          tracer,
@@ -62,7 +62,7 @@ func NewObservabilityIntegration(mesh abstraction.ServiceMeshInterface) (*Observ
 }
 
 // initializeMetrics initializes OpenTelemetry metrics
-func (o *ObservabilityIntegration) initializeMetrics() error {
+func (o *Integration) initializeMetrics() error {
 	var err error
 
 	// mTLS connections counter
@@ -138,7 +138,7 @@ func (o *ObservabilityIntegration) initializeMetrics() error {
 }
 
 // observeMetrics is the callback for observable metrics
-func (o *ObservabilityIntegration) observeMetrics(ctx context.Context, observer metric.Observer) error {
+func (o *Integration) observeMetrics(ctx context.Context, observer metric.Observer) error {
 	// Get mesh health status
 	if err := o.mesh.IsHealthy(ctx); err == nil {
 		observer.ObserveFloat64(o.meshHealthGauge, 100.0)
@@ -153,7 +153,7 @@ func (o *ObservabilityIntegration) observeMetrics(ctx context.Context, observer 
 }
 
 // RecordMTLSConnection records an mTLS connection
-func (o *ObservabilityIntegration) RecordMTLSConnection(ctx context.Context, source, destination string) {
+func (o *Integration) RecordMTLSConnection(ctx context.Context, source, destination string) {
 	_, span := o.tracer.Start(ctx, "mtls_connection",
 		trace.WithAttributes(
 			attribute.String("source", source),
@@ -171,7 +171,7 @@ func (o *ObservabilityIntegration) RecordMTLSConnection(ctx context.Context, sou
 }
 
 // RecordCertificateRotation records a certificate rotation
-func (o *ObservabilityIntegration) RecordCertificateRotation(ctx context.Context, service, namespace string) {
+func (o *Integration) RecordCertificateRotation(ctx context.Context, service, namespace string) {
 	_, span := o.tracer.Start(ctx, "certificate_rotation",
 		trace.WithAttributes(
 			attribute.String("service", service),
@@ -189,7 +189,7 @@ func (o *ObservabilityIntegration) RecordCertificateRotation(ctx context.Context
 }
 
 // RecordPolicyApplication records a policy application
-func (o *ObservabilityIntegration) RecordPolicyApplication(ctx context.Context, policyType, policyName string, success bool) {
+func (o *Integration) RecordPolicyApplication(ctx context.Context, policyType, policyName string, success bool) {
 	_, span := o.tracer.Start(ctx, "policy_application",
 		trace.WithAttributes(
 			attribute.String("policy_type", policyType),
@@ -208,7 +208,7 @@ func (o *ObservabilityIntegration) RecordPolicyApplication(ctx context.Context, 
 }
 
 // RecordServiceLatency records service-to-service latency
-func (o *ObservabilityIntegration) RecordServiceLatency(ctx context.Context, source, destination string, latencyMs float64) {
+func (o *Integration) RecordServiceLatency(ctx context.Context, source, destination string, latencyMs float64) {
 	_, span := o.tracer.Start(ctx, "service_communication",
 		trace.WithAttributes(
 			attribute.String("source", source),
@@ -227,7 +227,7 @@ func (o *ObservabilityIntegration) RecordServiceLatency(ctx context.Context, sou
 }
 
 // GenerateMTLSReport generates a comprehensive mTLS status report
-func (o *ObservabilityIntegration) GenerateMTLSReport(ctx context.Context) (*MTLSReport, error) {
+func (o *Integration) GenerateMTLSReport(ctx context.Context) (*MTLSReport, error) {
 	ctx, span := o.tracer.Start(ctx, "generate_mtls_report")
 	defer span.End()
 
@@ -277,7 +277,7 @@ func (o *ObservabilityIntegration) GenerateMTLSReport(ctx context.Context) (*MTL
 }
 
 // calculateHealthScore calculates the overall health score
-func (o *ObservabilityIntegration) calculateHealthScore(status *abstraction.MTLSStatusReport) float64 {
+func (o *Integration) calculateHealthScore(status *abstraction.MTLSStatusReport) float64 {
 	score := 0.0
 	weights := 0.0
 
@@ -318,7 +318,7 @@ func (o *ObservabilityIntegration) calculateHealthScore(status *abstraction.MTLS
 }
 
 // generateRecommendations generates recommendations based on status
-func (o *ObservabilityIntegration) generateRecommendations(status *abstraction.MTLSStatusReport) []string {
+func (o *Integration) generateRecommendations(status *abstraction.MTLSStatusReport) []string {
 	recommendations := []string{}
 
 	// Check mTLS coverage
@@ -363,7 +363,7 @@ func (o *ObservabilityIntegration) generateRecommendations(status *abstraction.M
 }
 
 // GenerateServiceDependencyMap generates a service dependency visualization
-func (o *ObservabilityIntegration) GenerateServiceDependencyMap(ctx context.Context, namespace string) (*DependencyVisualization, error) {
+func (o *Integration) GenerateServiceDependencyMap(ctx context.Context, namespace string) (*DependencyVisualization, error) {
 	ctx, span := o.tracer.Start(ctx, "generate_dependency_map")
 	defer span.End()
 
@@ -429,7 +429,7 @@ func (o *ObservabilityIntegration) GenerateServiceDependencyMap(ctx context.Cont
 }
 
 // ExportMetrics exports metrics in Prometheus format
-func (o *ObservabilityIntegration) ExportMetrics() ([]byte, error) {
+func (o *Integration) ExportMetrics() ([]byte, error) {
 	// Use Prometheus registry to gather metrics
 	metricFamilies, err := o.metricsRegistry.Gather()
 	if err != nil {
@@ -448,7 +448,7 @@ func (o *ObservabilityIntegration) ExportMetrics() ([]byte, error) {
 }
 
 // StartContinuousMonitoring starts continuous monitoring
-func (o *ObservabilityIntegration) StartContinuousMonitoring(ctx context.Context, interval time.Duration) {
+func (o *Integration) StartContinuousMonitoring(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
@@ -464,7 +464,7 @@ func (o *ObservabilityIntegration) StartContinuousMonitoring(ctx context.Context
 }
 
 // performHealthCheck performs a health check
-func (o *ObservabilityIntegration) performHealthCheck(ctx context.Context) {
+func (o *Integration) performHealthCheck(ctx context.Context) {
 	ctx, span := o.tracer.Start(ctx, "health_check")
 	defer span.End()
 
@@ -502,7 +502,7 @@ func (o *ObservabilityIntegration) performHealthCheck(ctx context.Context) {
 }
 
 // recordHealthMetric records health metric
-func (o *ObservabilityIntegration) recordHealthMetric(ctx context.Context, healthy bool) {
+func (o *Integration) recordHealthMetric(ctx context.Context, healthy bool) {
 	healthValue := 0.0
 	if healthy {
 		healthValue = 1.0

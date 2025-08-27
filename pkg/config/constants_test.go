@@ -34,10 +34,14 @@ func TestLoadConstants(t *testing.T) {
 
 func TestLoadConstantsWithEnvironment(t *testing.T) {
 	// Set environment variables
-	os.Setenv("NEPHORAN_MAX_RETRIES", "5")
-	os.Setenv("NEPHORAN_RETRY_DELAY", "45s")
-	os.Setenv("NEPHORAN_MAX_INPUT_LENGTH", "15000")
-	os.Setenv("NEPHORAN_LLM_TIMEOUT", "60s")
+	// Ignore setenv error in test
+	_ = os.Setenv("NEPHORAN_MAX_RETRIES", "5")
+	// Ignore setenv error in test
+	_ = os.Setenv("NEPHORAN_RETRY_DELAY", "45s")
+	// Ignore setenv error in test
+	_ = os.Setenv("NEPHORAN_MAX_INPUT_LENGTH", "15000")
+	// Ignore setenv error in test
+	_ = os.Setenv("NEPHORAN_LLM_TIMEOUT", "60s")
 
 	defer func() {
 		// Clean up environment variables
@@ -155,7 +159,8 @@ func TestEnvironmentVariableParsing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			os.Setenv(tt.envVar, tt.envValue)
+			// Ignore setenv error in test
+	_ = os.Setenv(tt.envVar, tt.envValue)
 			defer os.Unsetenv(tt.envVar)
 
 			result := tt.getter()
@@ -196,7 +201,8 @@ func TestDefaultsVersusOverrides(t *testing.T) {
 	defaultMaxRetries := constants.MaxRetries
 
 	// Set an override
-	os.Setenv("NEPHORAN_MAX_RETRIES", "10")
+	// Ignore setenv error in test
+	_ = os.Setenv("NEPHORAN_MAX_RETRIES", "10")
 	defer os.Unsetenv("NEPHORAN_MAX_RETRIES")
 
 	constants = LoadConstants()

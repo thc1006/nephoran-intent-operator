@@ -1,5 +1,4 @@
-// FIXME: Adding package comment per revive linter
-// Package patchgen provides Kubernetes resource patch generation for Nephio package operations
+// Package patchgen provides Kubernetes resource patch generation for Nephio package operations.
 package patchgen
 
 import (

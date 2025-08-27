@@ -1,3 +1,4 @@
+// Package testutils provides mock implementations and test utilities for the Nephoran operator.
 package testutils
 
 import (
@@ -48,17 +49,19 @@ func NewMockDependencies() *MockDependencies {
 	}
 }
 
-// Implement Dependencies interface
+// GetGitClient returns the mock Git client interface.
 func (m *MockDependencies) GetGitClient() git.ClientInterface {
 	m.incrementCallCount("GetGitClient")
 	return m.gitClient
 }
 
+// GetLLMClient returns the mock LLM client interface.
 func (m *MockDependencies) GetLLMClient() shared.ClientInterface {
 	m.incrementCallCount("GetLLMClient")
 	return m.llmClient
 }
 
+// GetPackageGenerator returns a mock Nephio package generator.
 func (m *MockDependencies) GetPackageGenerator() *nephio.PackageGenerator {
 	m.incrementCallCount("GetPackageGenerator")
 	return &nephio.PackageGenerator{} // Return a real instance for simplicity

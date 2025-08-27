@@ -530,7 +530,8 @@ func (h *LLMProcessorHandler) NLToIntentHandler(w http.ResponseWriter, r *http.R
 		h.writeErrorResponse(w, "Failed to read request body", statusCode, "")
 		return
 	}
-	defer r.Body.Close()
+	// Ignore body close error - defer handles cleanup
+	defer func() { _ = r.Body.Close() }()
 
 	text := string(body)
 	if text == "" {

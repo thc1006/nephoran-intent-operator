@@ -1,3 +1,4 @@
+// Package planner implements rule-based closed-loop planning for O-RAN network optimization.
 package planner
 
 import (
@@ -24,6 +25,7 @@ var httpClient = &http.Client{
 	Timeout: 30 * time.Second,
 }
 
+// PostIntent sends a scaling intent to the specified URL endpoint.
 func PostIntent(url string, in Intent) error {
 	b, err := json.Marshal(in)
 	if err != nil {

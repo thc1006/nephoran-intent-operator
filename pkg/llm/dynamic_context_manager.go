@@ -743,14 +743,14 @@ func (s *TelecomContextStrategy) formatTelecomContext(ctx TelecomContext) string
 	if len(ctx.NetworkFunctions) > 0 {
 		sb.WriteString("Active Network Functions:\n")
 		for _, nf := range ctx.NetworkFunctions {
-			sb.WriteString(fmt.Sprintf("- %s\n", nf))
+			sb.WriteString(fmt.Sprintf("- %v\n", nf))
 		}
 	}
 
 	if len(ctx.ActiveSlices) > 0 {
 		sb.WriteString("Active Network Slices:\n")
 		for _, slice := range ctx.ActiveSlices {
-			sb.WriteString(fmt.Sprintf("- %s\n", slice))
+			sb.WriteString(fmt.Sprintf("- %v\n", slice))
 		}
 	}
 

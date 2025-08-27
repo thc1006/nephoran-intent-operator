@@ -30,7 +30,8 @@ func setEnvVars(t *testing.T, vars map[string]string) func() {
 	return func() {
 		for key := range vars {
 			if origVal, exists := original[key]; exists {
-				os.Setenv(key, origVal)
+				// Ignore setenv error in test
+	_ = os.Setenv(key, origVal)
 			} else {
 				os.Unsetenv(key)
 			}
@@ -895,7 +896,8 @@ func TestValidateDurationRange(t *testing.T) {
 
 // Benchmark tests for performance validation
 func BenchmarkGetEnvOrDefault(b *testing.B) {
-	os.Setenv("BENCH_KEY", "benchmark_value")
+	// Ignore setenv error in test
+	_ = os.Setenv("BENCH_KEY", "benchmark_value")
 	defer os.Unsetenv("BENCH_KEY")
 
 	for i := 0; i < b.N; i++ {
@@ -904,7 +906,8 @@ func BenchmarkGetEnvOrDefault(b *testing.B) {
 }
 
 func BenchmarkGetBoolEnv(b *testing.B) {
-	os.Setenv("BENCH_BOOL", "true")
+	// Ignore setenv error in test
+	_ = os.Setenv("BENCH_BOOL", "true")
 	defer os.Unsetenv("BENCH_BOOL")
 
 	for i := 0; i < b.N; i++ {
@@ -913,7 +916,8 @@ func BenchmarkGetBoolEnv(b *testing.B) {
 }
 
 func BenchmarkGetStringSliceEnv(b *testing.B) {
-	os.Setenv("BENCH_SLICE", "item1,item2,item3,item4,item5")
+	// Ignore setenv error in test
+	_ = os.Setenv("BENCH_SLICE", "item1,item2,item3,item4,item5")
 	defer os.Unsetenv("BENCH_SLICE")
 
 	for i := 0; i < b.N; i++ {

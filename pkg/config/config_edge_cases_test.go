@@ -546,8 +546,10 @@ func TestLoadFromEnv_EdgeCasesAndErrorHandling(t *testing.T) {
 			name: "git feature partially configured via env",
 			setupEnv: func() {
 				cleanupEnv(t)
-				os.Setenv("OPENAI_API_KEY", "sk-test-key")
-				os.Setenv("GIT_TOKEN", "github_token_123")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("GIT_TOKEN", "github_token_123")
 				// Don't set GIT_REPO_URL - this should trigger validation error
 			},
 			description: "Git token without repo URL should fail validation",
@@ -558,8 +560,10 @@ func TestLoadFromEnv_EdgeCasesAndErrorHandling(t *testing.T) {
 			name: "RAG feature configured via env with defaults",
 			setupEnv: func() {
 				cleanupEnv(t)
-				os.Setenv("OPENAI_API_KEY", "sk-test-key")
-				os.Setenv("WEAVIATE_URL", "http://weaviate:8080")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("WEAVIATE_URL", "http://weaviate:8080")
 				// Don't set RAG_API_URL - should use default and succeed
 			},
 			description: "Weaviate URL with default RAG API URL should succeed",
@@ -570,9 +574,11 @@ func TestLoadFromEnv_EdgeCasesAndErrorHandling(t *testing.T) {
 			setupEnv: func() {
 				cleanupEnv(t)
 				// Missing OPENAI_API_KEY
-				os.Setenv("GIT_TOKEN", "github_token_123")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("GIT_TOKEN", "github_token_123")
 				// Missing GIT_REPO_URL
-				os.Setenv("WEAVIATE_URL", "http://weaviate:8080")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("WEAVIATE_URL", "http://weaviate:8080")
 				// Missing RAG_API_URL
 			},
 			description: "Multiple configuration errors should be reported",
@@ -583,7 +589,8 @@ func TestLoadFromEnv_EdgeCasesAndErrorHandling(t *testing.T) {
 			name: "valid minimal configuration via env",
 			setupEnv: func() {
 				cleanupEnv(t)
-				os.Setenv("OPENAI_API_KEY", "sk-test-key")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
 			},
 			description: "Minimal valid configuration should succeed",
 			wantErr:     false,
@@ -592,12 +599,18 @@ func TestLoadFromEnv_EdgeCasesAndErrorHandling(t *testing.T) {
 			name: "valid full configuration via env",
 			setupEnv: func() {
 				cleanupEnv(t)
-				os.Setenv("OPENAI_API_KEY", "sk-test-key")
-				os.Setenv("GIT_REPO_URL", "https://github.com/test/repo.git")
-				os.Setenv("GIT_TOKEN", "github_token_123")
-				os.Setenv("LLM_PROCESSOR_URL", "http://llm-processor:8080")
-				os.Setenv("RAG_API_URL", "http://rag-api:5001")
-				os.Setenv("WEAVIATE_URL", "http://weaviate:8080")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("OPENAI_API_KEY", "sk-test-key")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("GIT_REPO_URL", "https://github.com/test/repo.git")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("GIT_TOKEN", "github_token_123")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("LLM_PROCESSOR_URL", "http://llm-processor:8080")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("RAG_API_URL", "http://rag-api:5001")
+				// Ignore setenv error in test setup
+				_ = os.Setenv("WEAVIATE_URL", "http://weaviate:8080")
 			},
 			description: "Full valid configuration should succeed",
 			wantErr:     false,

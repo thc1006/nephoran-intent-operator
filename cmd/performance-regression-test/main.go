@@ -1,3 +1,4 @@
+// Package main provides performance regression testing utilities for the Nephoran operator.
 package main
 
 import (
@@ -22,6 +23,7 @@ type PerformanceTestSuite struct {
 	Thresholds      PerformanceThresholds      `json:"thresholds"`
 }
 
+// BenchmarkResult represents the results of a single benchmark test execution.
 type BenchmarkResult struct {
 	Name         string        `json:"name"`
 	Iterations   int           `json:"iterations"`
@@ -35,6 +37,7 @@ type BenchmarkResult struct {
 	TestFunction string        `json:"test_function"`
 }
 
+// RegressionTest represents a performance regression analysis for a specific benchmark.
 type RegressionTest struct {
 	Name             string  `json:"name"`
 	CurrentValue     float64 `json:"current_value"`
@@ -45,6 +48,7 @@ type RegressionTest struct {
 	Threshold        float64 `json:"threshold"`
 }
 
+// PerformanceSummary provides an overall summary of performance test results.
 type PerformanceSummary struct {
 	TotalTests      int     `json:"total_tests"`
 	PassedTests     int     `json:"passed_tests"`
@@ -53,6 +57,7 @@ type PerformanceSummary struct {
 	Status          string  `json:"status"`
 }
 
+// TestEnvironment captures the runtime environment details for reproducible testing.
 type TestEnvironment struct {
 	GoVersion    string `json:"go_version"`
 	GOOS         string `json:"goos"`
@@ -63,6 +68,7 @@ type TestEnvironment struct {
 	CompilerOpts string `json:"compiler_opts"`
 }
 
+// PerformanceThresholds defines acceptable performance degradation limits.
 type PerformanceThresholds struct {
 	MaxRegressionPercent  float64 `json:"max_regression_percent"`
 	MaxMemoryIncrease     float64 `json:"max_memory_increase"`

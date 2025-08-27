@@ -600,7 +600,7 @@ func (e *A1TestError) Error() string {
 
 // Error constructors
 
-func NewTestA1Error(errorType A1ErrorType, message string, statusCode int, cause error) *A1Error {
+func NewTestA1Error(errorType A1ErrorType, message string, statusCode int, cause error) *A1TestError {
 	return &A1TestError{
 		Type:       errorType,
 		Title:      message,
@@ -612,7 +612,7 @@ func NewTestA1Error(errorType A1ErrorType, message string, statusCode int, cause
 	}
 }
 
-func NewPolicyValidationError(message string, validationErrors []ValidationDetail) *A1Error {
+func NewPolicyValidationError(message string, validationErrors []ValidationDetail) *A1TestError {
 	err := &A1TestError{
 		Type:      ErrorTypePolicyValidationFailed,
 		Title:     "Policy Validation Failed",
@@ -628,8 +628,8 @@ func NewPolicyValidationError(message string, validationErrors []ValidationDetai
 
 // Error conversion functions
 
-func ConvertToA1Error(err error, context string) *A1Error {
-	if a1Err, ok := err.(*A1Error); ok {
+func ConvertToA1Error(err error, context string) *A1TestError {
+	if a1Err, ok := err.(*A1TestError); ok {
 		return a1Err
 	}
 
@@ -646,7 +646,7 @@ func ConvertToA1Error(err error, context string) *A1Error {
 	}
 }
 
-func ConvertValidationError(err error, field string) *A1Error {
+func ConvertValidationError(err error, field string) *A1TestError {
 	return &A1TestError{
 		Type:      ErrorTypePolicyValidationFailed,
 		Title:     "Policy Validation Failed",
@@ -661,7 +661,7 @@ func ConvertValidationError(err error, field string) *A1Error {
 	}
 }
 
-func ConvertHTTPStatusToA1Error(statusCode int, message string) *A1Error {
+func ConvertHTTPStatusToA1Error(statusCode int, message string) *A1TestError {
 	var errorType A1ErrorType
 	var title string
 
@@ -707,7 +707,7 @@ func ConvertHTTPStatusToA1Error(statusCode int, message string) *A1Error {
 	}
 }
 
-func RecoverToA1Error(r interface{}, context string) *A1Error {
+func RecoverToA1Error(r interface{}, context string) *A1TestError {
 	var detail string
 	if err, ok := r.(error); ok {
 		detail = fmt.Sprintf("%s: %s", context, err.Error())
@@ -733,14 +733,14 @@ func RecoverToA1Error(r interface{}, context string) *A1Error {
 // Additional helper functions for error handling
 
 func GetA1ErrorType(err error) A1ErrorType {
-	if a1Err, ok := err.(*A1Error); ok {
+	if a1Err, ok := err.(*A1TestError); ok {
 		return a1Err.Type
 	}
 	return ErrorTypeInternalServerError
 }
 
 func GetA1ErrorStatus(err error) int {
-	if a1Err, ok := err.(*A1Error); ok {
+	if a1Err, ok := err.(*A1TestError); ok {
 		return a1Err.Status
 	}
 	return http.StatusInternalServerError

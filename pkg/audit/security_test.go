@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -36,7 +35,7 @@ func TestSecurityTestSuite(t *testing.T) {
 
 func (suite *SecurityTestSuite) SetupSuite() {
 	var err error
-	suite.tempDir, err = ioutil.TempDir("", "security_test")
+	suite.tempDir, err = os.MkdirTemp("", "security_test")
 	suite.Require().NoError(err)
 
 	// Setup TLS test server
@@ -469,12 +468,12 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 		}
 
 		// Read original content
-		originalContent, err := ioutil.ReadFile(logFile)
+		originalContent, err := os.ReadFile(logFile)
 		suite.NoError(err)
 
 		// Simulate tampering
 		tamperedContent := strings.Replace(string(originalContent), "tamper-test-1", "tampered-event", 1)
-		err = ioutil.WriteFile(logFile, []byte(tamperedContent), 0644)
+		err = os.WriteFile(logFile, []byte(tamperedContent), 0644)
 		suite.NoError(err)
 
 		// Verify tampering is detected (would require integrity validation implementation)
@@ -508,7 +507,7 @@ func (suite *SecurityTestSuite) TestTamperPrevention() {
 		}
 
 		// Verify file exists and has content
-		content, err := ioutil.ReadFile(immutableLogFile)
+		content, err := os.ReadFile(immutableLogFile)
 		suite.NoError(err)
 		suite.NotEmpty(content)
 

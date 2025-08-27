@@ -1,3 +1,4 @@
+// Package main provides technical debt monitoring and analysis for the Nephoran project.
 package main
 
 import (

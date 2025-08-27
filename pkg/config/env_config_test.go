@@ -171,11 +171,13 @@ func TestConfigEnvironmentVariables(t *testing.T) {
 
 			// Set test environment variables
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				// Ignore setenv error in test
+	_ = os.Setenv(key, value)
 			}
 
 			// Set required OPENAI_API_KEY for validation
-			os.Setenv("OPENAI_API_KEY", "test-key")
+			// Ignore setenv error in test
+	_ = os.Setenv("OPENAI_API_KEY", "test-key")
 
 			// Clean up after test
 			defer func() {
@@ -183,7 +185,8 @@ func TestConfigEnvironmentVariables(t *testing.T) {
 					if originalValue == "" {
 						os.Unsetenv(key)
 					} else {
-						os.Setenv(key, originalValue)
+						// Ignore setenv error in test
+	_ = os.Setenv(key, originalValue)
 					}
 				}
 				os.Unsetenv("OPENAI_API_KEY") // Clean up test API key
@@ -227,7 +230,8 @@ func TestConfigDefaults(t *testing.T) {
 			if originalValue == "" {
 				os.Unsetenv(key)
 			} else {
-				os.Setenv(key, originalValue)
+				// Ignore setenv error in test
+	_ = os.Setenv(key, originalValue)
 			}
 		}
 	}()

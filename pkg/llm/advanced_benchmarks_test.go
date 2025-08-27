@@ -118,7 +118,6 @@ func benchmarkConcurrentRequests(b *testing.B, ctx context.Context, processor *E
 			var totalLatency int64
 
 			b.RunParallel(func(pb *testing.PB) {
-				localRequests := 0
 				for pb.Next() {
 					start := time.Now()
 
@@ -136,8 +135,6 @@ func benchmarkConcurrentRequests(b *testing.B, ctx context.Context, processor *E
 					} else {
 						atomic.AddInt64(&successCount, 1)
 					}
-
-					localRequests++
 				}
 			})
 
@@ -300,16 +297,7 @@ func benchmarkCachePerformance(b *testing.B, ctx context.Context, processor *Enh
 		"max_tokens": 1024,
 	}
 
-	_ = []struct {
-		name          string
-		cacheHitRate  float64 // Expected cache hit rate
-		uniqueIntents int     // Number of unique intents to cycle through
-	}{
-		{"HighCacheHit", 0.8, 10},
-		{"MediumCacheHit", 0.5, 50},
-		{"LowCacheHit", 0.2, 200},
-		{"NoCacheHit", 0.0, 1000},
-	}
+	// Cache scenarios removed - using simplified fixed scenario
 
 	// Simplified benchmark without cache scenarios
 	b.Run("CachePerformance", func(b *testing.B) {

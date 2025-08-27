@@ -149,13 +149,16 @@ func TestLLMProcessorConfigEnvironmentVariables(t *testing.T) {
 
 			// Set test environment variables
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				// Ignore setenv error in test
+	_ = os.Setenv(key, value)
 			}
 
 			// Set required environment variables for tests that don't want errors
 			if !tt.wantError {
-				os.Setenv("AUTH_ENABLED", "false") // Disable auth to skip JWT requirement
-				os.Setenv("CORS_ENABLED", "false") // Disable CORS to skip origins requirement
+				// Ignore setenv error in test
+	_ = os.Setenv("AUTH_ENABLED", "false") // Disable auth to skip JWT requirement
+				// Ignore setenv error in test
+	_ = os.Setenv("CORS_ENABLED", "false") // Disable CORS to skip origins requirement
 			}
 
 			// Clean up after test
@@ -164,7 +167,8 @@ func TestLLMProcessorConfigEnvironmentVariables(t *testing.T) {
 					if originalValue == "" {
 						os.Unsetenv(key)
 					} else {
-						os.Setenv(key, originalValue)
+						// Ignore setenv error in test
+	_ = os.Setenv(key, originalValue)
 					}
 				}
 				// Clean up test-specific environment variables
@@ -219,7 +223,8 @@ func TestLLMProcessorConfigDefaults(t *testing.T) {
 			if originalValue == "" {
 				os.Unsetenv(key)
 			} else {
-				os.Setenv(key, originalValue)
+				// Ignore setenv error in test
+	_ = os.Setenv(key, originalValue)
 			}
 		}
 	}()

@@ -8,7 +8,6 @@ import (
 	"net/http/httptest"
 	"sync"
 	"sync/atomic"
-	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"

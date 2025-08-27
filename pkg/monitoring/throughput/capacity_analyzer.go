@@ -1,3 +1,4 @@
+// Package throughput provides throughput monitoring and capacity analysis for network operations.
 package throughput
 
 import (

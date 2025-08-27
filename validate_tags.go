@@ -1,3 +1,4 @@
+// Package main validates struct tags in Go source code for compliance with project standards.
 package main
 
 import (

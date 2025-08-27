@@ -3,8 +3,8 @@ package config
 import (
 	"crypto/subtle"
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -657,16 +657,45 @@ func NewSecretLoader(basePath string, options map[string]interface{}) (*SecretLo
 		return nil, fmt.Errorf("base path cannot be empty")
 	}
 
+	// Clean and validate the base path to prevent directory traversal
+	cleanBase := filepath.Clean(basePath)
+	if strings.Contains(cleanBase, "..") {
+		return nil, fmt.Errorf("invalid base path: contains directory traversal")
+	}
+
+	// Convert to absolute path for security
+	absPath, err := filepath.Abs(cleanBase)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absolute path: %w", err)
+	}
+
 	return &SecretLoader{
-		basePath: basePath,
+		basePath: absPath,
 	}, nil
 }
 
 // LoadSecret loads a secret from the configured source
 func (sl *SecretLoader) LoadSecret(secretName string) (string, error) {
-	secretPath := filepath.Join(sl.basePath, secretName)
+	// Validate secretName to prevent path traversal attacks
+	if strings.ContainsAny(secretName, "/\\") || strings.Contains(secretName, "..") {
+		return "", fmt.Errorf("invalid secret name: contains path separators or traversal")
+	}
 
-	content, err := ioutil.ReadFile(secretPath)
+	// Validate secretName is not empty and reasonable length
+	if secretName == "" || len(secretName) > 255 {
+		return "", fmt.Errorf("invalid secret name: must be non-empty and less than 256 characters")
+	}
+
+	secretPath := filepath.Join(sl.basePath, secretName)
+	cleanPath := filepath.Clean(secretPath)
+
+	// Ensure the clean path is still within basePath (defense in depth)
+	if !strings.HasPrefix(cleanPath, sl.basePath) {
+		return "", fmt.Errorf("path traversal attempt detected")
+	}
+
+	// Use os.ReadFile instead of deprecated ioutil.ReadFile
+	content, err := os.ReadFile(cleanPath)
 	if err != nil {
 		return "", fmt.Errorf("failed to read secret %s: %w", secretName, err)
 	}

@@ -1,3 +1,4 @@
+// Package main provides an HTTP server for ingesting network intents and converting them to structured NetworkIntent CRDs.
 package main
 
 import (
