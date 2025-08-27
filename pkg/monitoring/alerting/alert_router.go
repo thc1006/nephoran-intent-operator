@@ -907,27 +907,36 @@ func (ar *AlertRouter) metricsUpdateLoop(ctx context.Context) {
 	ar.logger.Debug("starting metrics update loop")
 }
 
-func (ar *AlertRouter) correlateAlert(alert *Alert) *AlertGroup {
+func (ar *AlertRouter) correlateAlert(alert *EnrichedAlert) {
 	// TODO: Implement alert correlation
-	return &AlertGroup{
-		ID:     alert.ID,
-		Alerts: []*Alert{alert},
-	}
+	ar.logger.Debug("correlating alert", slog.String("alert_id", alert.ID))
 }
 
-func (ar *AlertRouter) getFallbackRouting(alert *Alert) *RoutingDecision {
+func (ar *AlertRouter) getFallbackRouting(alert *EnrichedAlert) *RoutingDecision {
 	// TODO: Implement fallback routing
 	return &RoutingDecision{
-		Alert:    alert,
-		Channels: []string{"default"},
-		Priority: "medium",
+		SelectedChannels: []string{"default"},
+		Suppressed:       false,
 	}
 }
 
 // Missing PriorityCalculator method
-func (pc *PriorityCalculator) CalculatePriority(alert *Alert) int {
-	// TODO: Implement priority calculation logic
-	return 5 // medium priority on 1-10 scale
+func (pc *PriorityCalculator) CalculatePriority(alert *EnrichedAlert) int {
+	// TODO: Implement priority calculation logic based on severity, business impact, etc.
+	switch alert.Severity {
+	case AlertSeverityUrgent:
+		return 10
+	case AlertSeverityCritical:
+		return 8
+	case AlertSeverityMajor:
+		return 6
+	case AlertSeverityWarning:
+		return 4
+	case AlertSeverityInfo:
+		return 2
+	default:
+		return 5 // medium priority on 1-10 scale
+	}
 }
 
 // ImpactAnalysis represents the business impact of an alert
@@ -938,38 +947,280 @@ type ImpactAnalysis struct {
 }
 
 // Missing ImpactAnalyzer method
-func (ia *ImpactAnalyzer) AnalyzeImpact(alert *Alert) BusinessImpactScore {
-	// TODO: Implement impact analysis logic
+func (ia *ImpactAnalyzer) AnalyzeImpact(alert *EnrichedAlert) BusinessImpactScore {
+	// TODO: Implement impact analysis logic based on component, service tier, etc.
+	ia.mu.RLock()
+	profile, exists := ia.impactDatabase[alert.Context.Component]
+	ia.mu.RUnlock()
+
+	if !exists {
+		// Default impact scoring
+		return BusinessImpactScore{
+			OverallScore:     5.0,
+			UserImpact:       3.0,
+			RevenueImpact:    2.0,
+			ReputationImpact: 2.0,
+			ServiceTier:      "standard",
+		}
+	}
+
+	// Calculate impact based on profile
 	return BusinessImpactScore{
-		OverallScore:  5.0,
-		UserImpact:    3.0,
-		RevenueImpact: 2.0,
+		OverallScore:     profile.UserImpactFactor * 3.0,
+		UserImpact:       profile.UserImpactFactor,
+		RevenueImpact:    profile.RevenueImpactFactor,
+		ReputationImpact: profile.UserImpactFactor * 0.5,
+		ServiceTier:      profile.ServiceTier,
 	}
 }
 
-// Missing AlertRouter method
-func (ar *AlertRouter) isMoreSevere(alert1, alert2 *Alert) bool {
-	// TODO: Implement severity comparison logic
-	return alert1.Severity > alert2.Severity
+// Missing AlertRouter method  
+func (ar *AlertRouter) isMoreSevere(severity1, severity2 AlertSeverity) bool {
+	// Define severity order (higher values = more severe)
+	severityOrder := map[AlertSeverity]int{
+		AlertSeverityInfo:     1,
+		AlertSeverityWarning:  2, 
+		AlertSeverityMajor:    3,
+		AlertSeverityCritical: 4,
+		AlertSeverityUrgent:   5,
+	}
+
+	order1, exists1 := severityOrder[severity1]
+	order2, exists2 := severityOrder[severity2]
+
+	if !exists1 || !exists2 {
+		return false
+	}
+
+	return order1 > order2
 }
 
 // Missing ContextEnricher method
-func (ce *ContextEnricher) FindRelatedIncidents(alert *Alert) []string {
+func (ce *ContextEnricher) FindRelatedIncidents(ctx context.Context, alert *SLAAlert) ([]string, error) {
 	// TODO: Implement related incidents finder
-	return []string{}
+	// This would typically query incident management systems or databases
+	ce.logger.Debug("finding related incidents", slog.String("alert_id", alert.ID))
+	return []string{}, nil
 }
 
 // Missing GeographicRouter method
-func (gr *GeographicRouter) GetContextForAlert(alert *Alert) map[string]interface{} {
-	// TODO: Implement geographic context finder
-	return map[string]interface{}{
-		"region": "default",
-		"zone":   "default",
+func (gr *GeographicRouter) GetContextForAlert(alert *SLAAlert) ([]string, TimezoneInfo) {
+	// TODO: Implement geographic context finder based on alert labels/context
+	gr.logger.Debug("getting geographic context", slog.String("alert_id", alert.ID))
+	
+	regions := []string{"default"}
+	timezoneInfo := TimezoneInfo{
+		Timezone:      "UTC",
+		LocalTime:     time.Now().UTC(),
+		BusinessHours: true,
+		OnCallTeam:    "default-oncall",
 	}
+
+	return regions, timezoneInfo
 }
 
 // Missing RunbookManager method
-func (rm *RunbookManager) GetActionsForAlert(alert *Alert) []string {
-	// TODO: Implement runbook actions finder
-	return []string{"investigate", "escalate"}
+func (rm *RunbookManager) GetActionsForAlert(alert *SLAAlert) []RunbookAction {
+	// TODO: Implement runbook actions finder based on alert type and component
+	rm.logger.Debug("getting runbook actions", slog.String("alert_id", alert.ID))
+	
+	// Return default actions for now
+	return []RunbookAction{
+		{
+			ID:          "investigate",
+			Type:        "manual",
+			Name:        "Initial Investigation",
+			Description: "Review alert details and investigate root cause",
+			Timeout:     5 * time.Minute,
+		},
+		{
+			ID:          "escalate",
+			Type:        "manual",
+			Name:        "Escalate to On-Call",
+			Description: "If unable to resolve, escalate to the on-call engineer",
+			Timeout:     1 * time.Minute,
+		},
+	}
+}
+
+// Missing AlertRouter methods for notification and routing
+
+// evaluateRuleConditions evaluates if an alert matches the routing rule conditions
+func (ar *AlertRouter) evaluateRuleConditions(alert *EnrichedAlert, conditions []RoutingCondition) bool {
+	for _, condition := range conditions {
+		matches := ar.evaluateCondition(alert, condition)
+		if condition.Negate {
+			matches = !matches
+		}
+		if !matches {
+			return false
+		}
+	}
+	return true
+}
+
+// evaluateCondition evaluates a single routing condition
+func (ar *AlertRouter) evaluateCondition(alert *EnrichedAlert, condition RoutingCondition) bool {
+	var fieldValue string
+	
+	switch condition.Field {
+	case "sla_type":
+		fieldValue = string(alert.SLAType)
+	case "severity":
+		fieldValue = string(alert.Severity)
+	case "component":
+		fieldValue = alert.Context.Component
+	case "service":
+		fieldValue = alert.Context.Service
+	default:
+		// Check labels
+		if value, exists := alert.Labels[condition.Field]; exists {
+			fieldValue = value
+		} else {
+			return false
+		}
+	}
+
+	for _, value := range condition.Values {
+		switch condition.Operator {
+		case "equals":
+			if fieldValue == value {
+				return true
+			}
+		case "contains":
+			if strings.Contains(fieldValue, value) {
+				return true
+			}
+		case "matches":
+			// Simple wildcard matching
+			if strings.Contains(fieldValue, strings.Replace(value, "*", "", -1)) {
+				return true
+			}
+		}
+	}
+	
+	return false
+}
+
+// isChannelAvailable checks if a notification channel is available for routing
+func (ar *AlertRouter) isChannelAvailable(channelName string, alert *EnrichedAlert) bool {
+	ar.mu.RLock()
+	channel, exists := ar.notificationChannels[channelName]
+	ar.mu.RUnlock()
+	
+	if !exists || !channel.Enabled {
+		return false
+	}
+	
+	// Check filters
+	return ar.passesChannelFilters(alert, channel.Filters)
+}
+
+// passesChannelFilters checks if an alert passes channel-specific filters
+func (ar *AlertRouter) passesChannelFilters(alert *EnrichedAlert, filters []AlertFilter) bool {
+	for _, filter := range filters {
+		if !ar.matchAlertFilter(alert, filter) {
+			return false
+		}
+	}
+	return true
+}
+
+// matchAlertFilter checks if an alert matches a specific filter
+func (ar *AlertRouter) matchAlertFilter(alert *EnrichedAlert, filter AlertFilter) bool {
+	var value string
+
+	switch filter.Field {
+	case "severity":
+		value = string(alert.Severity)
+	case "sla_type":
+		value = string(alert.SLAType)
+	case "component":
+		value = alert.Context.Component
+	case "service":
+		value = alert.Context.Service
+	default:
+		if labelValue, exists := alert.Labels[filter.Field]; exists {
+			value = labelValue
+		} else {
+			return false
+		}
+	}
+
+	matches := false
+	switch filter.Operator {
+	case "equals":
+		matches = value == filter.Value
+	case "contains":
+		matches = strings.Contains(value, filter.Value)
+	case "matches":
+		// Simple wildcard matching
+		matches = strings.Contains(value, strings.Replace(filter.Value, "*", "", -1))
+	}
+
+	if filter.Negate {
+		matches = !matches
+	}
+
+	return matches
+}
+
+// checkRateLimit checks if a channel has exceeded its rate limit
+func (ar *AlertRouter) checkRateLimit(channelName string, rateLimit *RateLimit) bool {
+	// TODO: Implement proper rate limiting with time windows
+	// For now, always allow notifications
+	ar.logger.Debug("checking rate limit", slog.String("channel", channelName))
+	return true
+}
+
+// Notification sending methods
+
+// sendSlackNotification sends a notification to Slack
+func (ar *AlertRouter) sendSlackNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	// TODO: Implement Slack notification sending
+	ar.logger.Info("sending slack notification",
+		slog.String("channel", channel.Name),
+		slog.String("alert_id", alert.ID),
+	)
+	return nil
+}
+
+// sendEmailNotification sends an email notification
+func (ar *AlertRouter) sendEmailNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	// TODO: Implement email notification sending
+	ar.logger.Info("sending email notification",
+		slog.String("channel", channel.Name),
+		slog.String("alert_id", alert.ID),
+	)
+	return nil
+}
+
+// sendWebhookNotification sends a webhook notification
+func (ar *AlertRouter) sendWebhookNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	// TODO: Implement webhook notification sending
+	ar.logger.Info("sending webhook notification",
+		slog.String("channel", channel.Name),
+		slog.String("alert_id", alert.ID),
+	)
+	return nil
+}
+
+// sendPagerDutyNotification sends a PagerDuty notification
+func (ar *AlertRouter) sendPagerDutyNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	// TODO: Implement PagerDuty notification sending
+	ar.logger.Info("sending pagerduty notification",
+		slog.String("channel", channel.Name),
+		slog.String("alert_id", alert.ID),
+	)
+	return nil
+}
+
+// sendTeamsNotification sends a Microsoft Teams notification
+func (ar *AlertRouter) sendTeamsNotification(ctx context.Context, alert *EnrichedAlert, channel NotificationChannel) error {
+	// TODO: Implement Teams notification sending
+	ar.logger.Info("sending teams notification",
+		slog.String("channel", channel.Name),
+		slog.String("alert_id", alert.ID),
+	)
+	return nil
 }

@@ -31,6 +31,7 @@ import (
 	"go.uber.org/zap"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	nephoranv1 "github.com/thc1006/nephoran-intent-operator/api/v1"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/resilience"
 	"github.com/thc1006/nephoran-intent-operator/pkg/monitoring"
@@ -49,7 +50,7 @@ type ParallelProcessingIntegrationTestSuite struct {
 
 func (suite *ParallelProcessingIntegrationTestSuite) SetupSuite() {
 	zapLogger, _ := zap.NewDevelopment()
-	suite.logger = zapr.New(zapLogger)
+	suite.logger = zapr.NewLogger(zapLogger)
 
 	suite.ctx, suite.cancel = context.WithCancel(context.Background())
 
@@ -133,12 +134,12 @@ func (suite *ParallelProcessingIntegrationTestSuite) TearDownSuite() {
 // TestCompleteIntentProcessingWorkflow tests the full intent processing pipeline
 func (suite *ParallelProcessingIntegrationTestSuite) TestCompleteIntentProcessingWorkflow() {
 	// Create a realistic NetworkIntent
-	intent := &v1alpha1.NetworkIntent{
+	intent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-5g-deployment",
 			Namespace: "telecom-operator",
 		},
-		Spec: v1alpha1.NetworkIntentSpec{
+		Spec: nephoranv1.NetworkIntentSpec{
 			IntentType: "5g_core_deployment",
 			Intent:     "Deploy high-availability 5G Core network with AMF, SMF, and UPF for production environment",
 			Priority:   "high",
@@ -205,12 +206,12 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestConcurrentIntentProcess
 		go func(intentNum int) {
 			defer wg.Done()
 
-			intent := &v1alpha1.NetworkIntent{
+			intent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("concurrent-intent-%d", intentNum),
 					Namespace: "telecom-operator",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: nephoranv1.NetworkIntentSpec{
 					IntentType: "edge_deployment",
 					Intent:     fmt.Sprintf("Deploy edge computing infrastructure for region %d", intentNum),
 					Priority:   "medium",
@@ -261,12 +262,12 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestConcurrentIntentProcess
 // TestErrorRecoveryInWorkflow tests error handling and recovery in complete workflows
 func (suite *ParallelProcessingIntegrationTestSuite) TestErrorRecoveryInWorkflow() {
 	// Create an intent that might cause some processing errors
-	intent := &v1alpha1.NetworkIntent{
+	intent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "error-recovery-intent",
 			Namespace: "telecom-operator",
 		},
-		Spec: v1alpha1.NetworkIntentSpec{
+		Spec: nephoranv1.NetworkIntentSpec{
 			IntentType: "complex_deployment",
 			Intent:     "Deploy complex network topology with multiple interdependent components and strict SLA requirements",
 			Priority:   "critical",
@@ -298,12 +299,12 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestErrorRecoveryInWorkflow
 	}
 
 	// Test that the system can continue processing new intents
-	followUpIntent := &v1alpha1.NetworkIntent{
+	followUpIntent := &nephoranv1.NetworkIntent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "post-recovery-intent",
 			Namespace: "telecom-operator",
 		},
-		Spec: v1alpha1.NetworkIntentSpec{
+		Spec: nephoranv1.NetworkIntentSpec{
 			IntentType: "simple_deployment",
 			Intent:     "Deploy simple network service after error recovery",
 			Priority:   "low",
@@ -323,10 +324,10 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestErrorRecoveryInWorkflow
 // TestResourceOptimization tests resource utilization and optimization
 func (suite *ParallelProcessingIntegrationTestSuite) TestResourceOptimization() {
 	// Create intents with different resource requirements
-	intents := []*v1alpha1.NetworkIntent{
+	intents := []*nephoranv1.NetworkIntent{
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "light-intent", Namespace: "telecom-operator"},
-			Spec: v1alpha1.NetworkIntentSpec{
+			Spec: nephoranv1.NetworkIntentSpec{
 				IntentType: "edge_service",
 				Intent:     "Deploy lightweight edge service",
 				Priority:   "low",
@@ -334,7 +335,7 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestResourceOptimization() 
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "medium-intent", Namespace: "telecom-operator"},
-			Spec: v1alpha1.NetworkIntentSpec{
+			Spec: nephoranv1.NetworkIntentSpec{
 				IntentType: "core_service",
 				Intent:     "Deploy core network service with moderate requirements",
 				Priority:   "medium",
@@ -342,7 +343,7 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestResourceOptimization() 
 		},
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "heavy-intent", Namespace: "telecom-operator"},
-			Spec: v1alpha1.NetworkIntentSpec{
+			Spec: nephoranv1.NetworkIntentSpec{
 				IntentType: "full_stack_deployment",
 				Intent:     "Deploy complete 5G network stack with all components",
 				Priority:   "high",
@@ -356,7 +357,7 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestResourceOptimization() 
 	// Process all intents and measure resource utilization
 	for i, intent := range intents {
 		wg.Add(1)
-		go func(intentNum int, intent *v1alpha1.NetworkIntent) {
+		go func(intentNum int, intent *nephoranv1.NetworkIntent) {
 			defer wg.Done()
 
 			result, err := suite.engine.ProcessIntentWorkflow(suite.ctx, intent)
@@ -410,12 +411,12 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestSystemLimitsAndScaling(
 		go func(intentNum int) {
 			defer wg.Done()
 
-			intent := &v1alpha1.NetworkIntent{
+			intent := &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      fmt.Sprintf("scaling-test-intent-%d", intentNum),
 					Namespace: "telecom-operator",
 				},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: nephoranv1.NetworkIntentSpec{
 					IntentType: "scaling_test",
 					Intent:     fmt.Sprintf("Scaling test intent %d", intentNum),
 					Priority:   "medium",
@@ -464,13 +465,13 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestSystemLimitsAndScaling(
 func (suite *ParallelProcessingIntegrationTestSuite) TestRealWorldScenarios() {
 	scenarios := []struct {
 		name   string
-		intent *v1alpha1.NetworkIntent
+		intent *nephoranv1.NetworkIntent
 	}{
 		{
 			name: "5G Core Deployment",
-			intent: &v1alpha1.NetworkIntent{
+			intent: &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{Name: "5g-core-prod", Namespace: "telecom-operator"},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: nephoranv1.NetworkIntentSpec{
 					IntentType: "5g_core_deployment",
 					Intent:     "Deploy production 5G Core network with AMF, SMF, UPF, NRF, and UDM for 10,000 concurrent users",
 					Priority:   "critical",
@@ -479,9 +480,9 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestRealWorldScenarios() {
 		},
 		{
 			name: "Network Slicing",
-			intent: &v1alpha1.NetworkIntent{
+			intent: &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{Name: "network-slicing", Namespace: "telecom-operator"},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: nephoranv1.NetworkIntentSpec{
 					IntentType: "network_slicing",
 					Intent:     "Create network slices for eMBB, URLLC, and mMTC with isolated resources and QoS policies",
 					Priority:   "high",
@@ -490,9 +491,9 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestRealWorldScenarios() {
 		},
 		{
 			name: "Edge Computing",
-			intent: &v1alpha1.NetworkIntent{
+			intent: &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{Name: "edge-deployment", Namespace: "telecom-operator"},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: nephoranv1.NetworkIntentSpec{
 					IntentType: "edge_computing",
 					Intent:     "Deploy edge computing infrastructure with MEC platforms across 5 geographic regions",
 					Priority:   "high",
@@ -501,9 +502,9 @@ func (suite *ParallelProcessingIntegrationTestSuite) TestRealWorldScenarios() {
 		},
 		{
 			name: "O-RAN Deployment",
-			intent: &v1alpha1.NetworkIntent{
+			intent: &nephoranv1.NetworkIntent{
 				ObjectMeta: metav1.ObjectMeta{Name: "oran-deployment", Namespace: "telecom-operator"},
-				Spec: v1alpha1.NetworkIntentSpec{
+				Spec: nephoranv1.NetworkIntentSpec{
 					IntentType: "oran_deployment",
 					Intent:     "Deploy O-RAN compliant RAN with Near-RT RIC, O-DU, O-CU, and xApps for intelligent optimization",
 					Priority:   "high",

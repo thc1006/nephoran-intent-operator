@@ -17,6 +17,7 @@ limitations under the License.
 package security
 
 import (
+	"context"
 	"crypto/rsa"
 	"errors"
 	"time"
@@ -167,6 +168,86 @@ type DetailedStoredKey struct {
 	ExpiresAt   *time.Time             `json:"expires_at,omitempty"`
 	Metadata    map[string]interface{} `json:"metadata"`
 	KeyMaterial []byte                 `json:"key_material"`
+}
+
+// SecretsBackend defines the interface for secret storage backends
+type SecretsBackend interface {
+	Store(ctx context.Context, key string, value *EncryptedSecret) error
+	Retrieve(ctx context.Context, key string) (*EncryptedSecret, error)
+	Delete(ctx context.Context, key string) error
+	List(ctx context.Context, prefix string) ([]string, error)
+	Backup(ctx context.Context) ([]byte, error)
+	Restore(ctx context.Context, data []byte) error
+	Health(ctx context.Context) error
+	Close() error
+}
+
+// EncryptedSecret represents an encrypted secret
+type EncryptedSecret struct {
+	Name         string            `json:"name"`
+	Version      int               `json:"version"`
+	Type         string            `json:"type"`
+	Algorithm    string            `json:"algorithm"`
+	KeyVersion   int               `json:"key_version"`
+	Ciphertext   []byte            `json:"ciphertext"`
+	Nonce        []byte            `json:"nonce"`
+	Salt         []byte            `json:"salt"`
+	Metadata     map[string]string `json:"metadata"`
+	CreatedAt    time.Time         `json:"created_at"`
+	UpdatedAt    time.Time         `json:"updated_at"`
+	ExpiresAt    *time.Time        `json:"expires_at,omitempty"`
+	AccessCount  int64             `json:"access_count"`
+	LastAccessed time.Time         `json:"last_accessed"`
+}
+
+// SecretMetadata contains metadata about a secret
+type SecretMetadata struct {
+	Name        string            `json:"name"`
+	Type        string            `json:"type"`
+	Version     int               `json:"version"`
+	CreatedAt   time.Time         `json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
+	ExpiresAt   *time.Time        `json:"expires_at,omitempty"`
+	Tags        []string          `json:"tags"`
+	Description string            `json:"description"`
+	Owner       string            `json:"owner"`
+	Metadata    map[string]string `json:"metadata"`
+}
+
+// KeyVersion represents a key version for encryption
+type KeyVersion struct {
+	Version   int       `json:"version"`
+	Key       []byte    `json:"key"`
+	Algorithm string    `json:"algorithm"`
+	CreatedAt time.Time `json:"created_at"`
+	Active    bool      `json:"active"`
+}
+
+// VaultAuditEntry represents an audit log entry (renamed to avoid conflict with compliance_manager.AuditEntry)
+type VaultAuditEntry struct {
+	Timestamp  time.Time         `json:"timestamp"`
+	Operation  string            `json:"operation"`
+	SecretName string            `json:"secret_name"`
+	User       string            `json:"user"`
+	Success    bool              `json:"success"`
+	Error      string            `json:"error,omitempty"`
+	RemoteAddr string            `json:"remote_addr,omitempty"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
+}
+
+// VaultStats tracks vault statistics
+type VaultStats struct {
+	TotalSecrets    int64     `json:"total_secrets"`
+	ActiveSecrets   int64     `json:"active_secrets"`
+	ExpiredSecrets  int64     `json:"expired_secrets"`
+	TotalOperations int64     `json:"total_operations"`
+	SuccessfulOps   int64     `json:"successful_ops"`
+	FailedOps       int64     `json:"failed_ops"`
+	KeyRotations    int64     `json:"key_rotations"`
+	BackupsCreated  int64     `json:"backups_created"`
+	LastRotation    time.Time `json:"last_rotation"`
+	LastBackup      time.Time `json:"last_backup"`
+	VaultHealthy    bool      `json:"vault_healthy"`
 }
 
 // Simple type aliases for backward compatibility

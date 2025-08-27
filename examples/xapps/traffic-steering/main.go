@@ -142,8 +142,16 @@ func main() {
 
 // NewTrafficSteeringXApp creates a new traffic steering xApp instance
 func NewTrafficSteeringXApp(config *e2.XAppConfig) (*TrafficSteeringXApp, error) {
-	// Create E2Manager
-	e2Manager := e2.NewE2Manager(config.NearRTRICURL)
+	// Create E2Manager with proper configuration
+	e2Config := &e2.E2ManagerConfig{
+		DefaultRICURL:     config.NearRTRICURL,
+		SimulationMode:    true, // Enable simulation mode for examples
+		SimulateRICCalls:  true,
+	}
+	e2Manager, err := e2.NewE2Manager(e2Config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create E2Manager: %w", err)
+	}
 
 	// Create xApp SDK
 	sdk, err := e2.NewXAppSDK(config, e2Manager)
@@ -251,7 +259,7 @@ func (x *TrafficSteeringXApp) initializeCellTopology(ctx context.Context) error 
 			"DRB.PdcpSduVolumeUL",
 		}
 
-		subscription, err := x.kmpModel.CreateKMPSubscription(x.sdk.GetConfig().E2NodeID, cellID, measurements)
+		subscription, err := x.kmpModel.CreateKPMSubscription(x.sdk.GetConfig().E2NodeID, cellID, measurements)
 		if err != nil {
 			return fmt.Errorf("failed to create KMP subscription for cell %s: %w", cellID, err)
 		}

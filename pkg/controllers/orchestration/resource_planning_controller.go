@@ -364,25 +364,25 @@ func (r *ResourcePlanningController) applyCostOptimization(ctx context.Context, 
 	totalSavings := 0.0
 
 	for i := range resources {
-		resource := &resources[i]
+		res := &resources[i]
 
 		// Optimize CPU requests (reduce by 10% if over-provisioned)
-		if resource.ResourceRequirements.Requests.CPU != nil {
-			currentCPU := resource.ResourceRequirements.Requests.CPU.MilliValue()
+		if res.ResourceRequirements.Requests.CPU != nil {
+			currentCPU := res.ResourceRequirements.Requests.CPU.MilliValue()
 			if currentCPU > 500 { // Only optimize if > 500m
 				newCPU := int64(float64(currentCPU) * 0.9)
-				resource.ResourceRequirements.Requests.CPU = resource.NewQuantity(newCPU, resource.Milli)
+				*res.ResourceRequirements.Requests.CPU = *resource.NewMilliQuantity(newCPU, resource.DecimalSI)
 				optimizedCount++
 				totalSavings += float64(currentCPU-newCPU) * 0.01 // Estimate $0.01 per mCPU/hour
 			}
 		}
 
 		// Optimize memory requests (reduce by 5% if over-provisioned)
-		if resource.ResourceRequirements.Requests.Memory != nil {
-			currentMemory := resource.ResourceRequirements.Requests.Memory.Value()
+		if res.ResourceRequirements.Requests.Memory != nil {
+			currentMemory := res.ResourceRequirements.Requests.Memory.Value()
 			if currentMemory > 1073741824 { // Only optimize if > 1Gi
 				newMemory := int64(float64(currentMemory) * 0.95)
-				resource.ResourceRequirements.Requests.Memory = resource.NewQuantity(newMemory, resource.BinarySI)
+				*res.ResourceRequirements.Requests.Memory = *resource.NewQuantity(newMemory, resource.BinarySI)
 				optimizedCount++
 				totalSavings += float64(currentMemory-newMemory) / 1073741824 * 0.005 // Estimate $0.005 per Gi/hour
 			}
@@ -417,24 +417,24 @@ func (r *ResourcePlanningController) applyPerformanceOptimization(ctx context.Co
 	optimizedCount := 0
 
 	for i := range resources {
-		resource := &resources[i]
+		res := &resources[i]
 
 		// Increase CPU limits for performance-critical components
-		if r.isPerformanceCritical(resource.Component) {
-			if resource.ResourceRequirements.Limits.CPU != nil {
-				currentCPU := resource.ResourceRequirements.Limits.CPU.MilliValue()
+		if r.isPerformanceCritical(res.Component) {
+			if res.ResourceRequirements.Limits.CPU != nil {
+				currentCPU := res.ResourceRequirements.Limits.CPU.MilliValue()
 				newCPU := int64(float64(currentCPU) * 1.2) // Increase by 20%
-				resource.ResourceRequirements.Limits.CPU = resource.NewQuantity(newCPU, resource.Milli)
+				*res.ResourceRequirements.Limits.CPU = *resource.NewMilliQuantity(newCPU, resource.DecimalSI)
 				optimizedCount++
 			}
 		}
 
 		// Add memory buffer for memory-intensive components
-		if r.isMemoryIntensive(resource.Component) {
-			if resource.ResourceRequirements.Requests.Memory != nil {
-				currentMemory := resource.ResourceRequirements.Requests.Memory.Value()
+		if r.isMemoryIntensive(res.Component) {
+			if res.ResourceRequirements.Requests.Memory != nil {
+				currentMemory := res.ResourceRequirements.Requests.Memory.Value()
 				newMemory := int64(float64(currentMemory) * 1.1) // Increase by 10%
-				resource.ResourceRequirements.Requests.Memory = resource.NewQuantity(newMemory, resource.BinarySI)
+				*res.ResourceRequirements.Requests.Memory = *resource.NewQuantity(newMemory, resource.BinarySI)
 				optimizedCount++
 			}
 		}
@@ -541,25 +541,25 @@ func (r *ResourcePlanningController) areResourceProfilesSimilar(r1, r2 nephoranv
 
 // isPerformanceCritical checks if a component is performance-critical
 func (r *ResourcePlanningController) isPerformanceCritical(component nephoranv1.TargetComponent) bool {
-	performanceCritical := map[nephoranv1.TargetComponent]bool{
-		nephoranv1.TargetComponentUPF:       true,
-		nephoranv1.TargetComponentGNodeB:    true,
-		nephoranv1.TargetComponentNearRTRIC: true,
-		nephoranv1.TargetComponentODU:       true,
-		nephoranv1.TargetComponentOCUUP:     true,
+	performanceCritical := map[string]bool{
+		"UPF":         true,
+		"gNodeB":      true,
+		"Near-RT-RIC": true,
+		"O-DU":        true,
+		"O-CU-UP":     true,
 	}
-	return performanceCritical[component]
+	return performanceCritical[component.Name]
 }
 
 // isMemoryIntensive checks if a component is memory-intensive
 func (r *ResourcePlanningController) isMemoryIntensive(component nephoranv1.TargetComponent) bool {
-	memoryIntensive := map[nephoranv1.TargetComponent]bool{
-		nephoranv1.TargetComponentUDR:   true,
-		nephoranv1.TargetComponentUDM:   true,
-		nephoranv1.TargetComponentNWDAF: true,
-		nephoranv1.TargetComponentSMO:   true,
+	memoryIntensive := map[string]bool{
+		"UDR":   true,
+		"UDM":   true,
+		"NWDAF": true,
+		"SMO":   true,
 	}
-	return memoryIntensive[component]
+	return memoryIntensive[component.Name]
 }
 
 // estimatePerformance estimates performance characteristics
@@ -620,8 +620,8 @@ func (r *ResourcePlanningController) estimatePerformance(ctx context.Context, re
 }
 
 // validateCompliance validates compliance requirements
-func (r *ResourcePlanningController) validateCompliance(ctx context.Context, resourcePlan *nephoranv1.ResourcePlan, resources []nephoranv1.PlannedResource) ([]nephoranv1.ComplianceStatus, []nephoranv1.ValidationResult, error) {
-	var complianceResults []nephoranv1.ComplianceStatus
+func (r *ResourcePlanningController) validateCompliance(ctx context.Context, resourcePlan *nephoranv1.ResourcePlan, resources []nephoranv1.PlannedResource) ([]nephoranv1.ResourceComplianceStatus, []nephoranv1.ValidationResult, error) {
+	var complianceResults []nephoranv1.ResourceComplianceStatus
 	var validationResults []nephoranv1.ValidationResult
 
 	if !r.Config.ComplianceValidationEnabled {
@@ -702,7 +702,7 @@ func (r *ResourcePlanningController) performGeneralValidation(resources []nephor
 }
 
 // calculateQualityScore calculates an overall quality score for the plan
-func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv1.PlannedResource, costEstimate *nephoranv1.CostEstimate, performanceEstimate *nephoranv1.PerformanceEstimate, complianceResults []nephoranv1.ComplianceStatus) float64 {
+func (r *ResourcePlanningController) calculateQualityScore(resources []nephoranv1.PlannedResource, costEstimate *nephoranv1.CostEstimate, performanceEstimate *nephoranv1.PerformanceEstimate, complianceResults []nephoranv1.ResourceComplianceStatus) float64 {
 	score := 1.0
 
 	// Factor in resource optimization (30% weight)
@@ -969,7 +969,7 @@ type ResourcePlanningResult struct {
 	PlannedResources    []nephoranv1.PlannedResource
 	CostEstimate        *nephoranv1.CostEstimate
 	PerformanceEstimate *nephoranv1.PerformanceEstimate
-	ComplianceResults   []nephoranv1.ComplianceStatus
+	ComplianceResults   []nephoranv1.ResourceComplianceStatus
 	OptimizationResults []nephoranv1.OptimizationResult
 	ValidationResults   []nephoranv1.ValidationResult
 	QualityScore        float64
@@ -1106,7 +1106,7 @@ func (rps *ResourcePlanningService) planComponentResource(component nephoranv1.T
 	replicas := rps.getReplicas(requirements.DeploymentPattern)
 
 	return nephoranv1.PlannedResource{
-		Name:      strings.ToLower(string(component)),
+		Name:      strings.ToLower(component.Name),
 		Type:      "NetworkFunction",
 		Component: component,
 		ResourceRequirements: nephoranv1.ResourceSpec{
@@ -1121,9 +1121,9 @@ func (rps *ResourcePlanningService) planComponentResource(component nephoranv1.T
 		},
 		Replicas: &replicas,
 		Labels: map[string]string{
-			"app.kubernetes.io/name":      strings.ToLower(string(component)),
+			"app.kubernetes.io/name":      strings.ToLower(component.Name),
 			"app.kubernetes.io/component": "network-function",
-			"nephoran.com/component":      string(component),
+			"nephoran.com/component":      component.Name,
 		},
 	}
 }
@@ -1132,7 +1132,7 @@ func (rps *ResourcePlanningService) planComponentResource(component nephoranv1.T
 func (rps *ResourcePlanningService) getBaseResourceRequirements(component nephoranv1.TargetComponent) nephoranv1.ResourceSpec {
 	// Apply component-specific multipliers
 	multiplier := 1.0
-	if m, exists := rps.Config.ResourceMultipliers[string(component)]; exists {
+	if m, exists := rps.Config.ResourceMultipliers[component.Name]; exists {
 		multiplier = m
 	}
 
@@ -1236,12 +1236,11 @@ func (ces *CostEstimationService) EstimateCosts(ctx context.Context, resources [
 }
 
 // ValidateRequirement validates a compliance requirement
-func (cvs *ComplianceValidationService) ValidateRequirement(requirement nephoranv1.ComplianceRequirement, plan *nephoranv1.ResourcePlan, resources []nephoranv1.PlannedResource) (nephoranv1.ComplianceStatus, []nephoranv1.ComplianceViolation) {
-	status := nephoranv1.ComplianceStatus{
+func (cvs *ComplianceValidationService) ValidateRequirement(requirement nephoranv1.ComplianceRequirement, plan *nephoranv1.ResourcePlan, resources []nephoranv1.PlannedResource) (nephoranv1.ResourceComplianceStatus, []nephoranv1.ComplianceViolation) {
+	status := nephoranv1.ResourceComplianceStatus{
 		Standard:    requirement.Standard,
 		Version:     requirement.Version,
 		Status:      "Unknown",
-		ValidatedAt: metav1.Now(),
 	}
 
 	var violations []nephoranv1.ComplianceViolation

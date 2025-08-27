@@ -329,7 +329,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				Type:          EventIntentReceived,
 				Source:        "test",
 				IntentID:      intentID,
-				Phase:         interfaces.PhaseReceived,
+				Phase:         interfaces.PhaseIntentReceived,
 				Success:       true,
 				Data:          make(map[string]interface{}),
 				Timestamp:     time.Now(),
@@ -367,7 +367,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					Type:          EventIntentReceived,
 					Source:        "test",
 					IntentID:      intentID,
-					Phase:         interfaces.PhaseReceived,
+					Phase:         interfaces.PhaseIntentReceived,
 					Success:       true,
 					Timestamp:     time.Now(),
 					CorrelationID: "correlation-1",
@@ -402,7 +402,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 				case EventIntentReceived:
 					intentReceivedFound = true
 					Expect(event.IntentID).To(Equal(intentID))
-					Expect(event.Phase).To(Equal(interfaces.PhaseReceived))
+					Expect(event.Phase).To(Equal(interfaces.PhaseIntentReceived))
 				case EventLLMProcessingStarted:
 					llmStartedFound = true
 					Expect(event.IntentID).To(Equal(intentID))
@@ -430,7 +430,7 @@ var _ = Describe("EventDrivenCoordinator", func() {
 					Type:          EventIntentReceived,
 					Source:        "test",
 					IntentID:      intentID,
-					Phase:         interfaces.PhaseReceived,
+					Phase:         interfaces.PhaseIntentReceived,
 					Success:       true,
 					Timestamp:     time.Now(),
 					CorrelationID: "replay-correlation-1",

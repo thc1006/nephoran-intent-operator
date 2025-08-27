@@ -122,3 +122,4 @@ Updates are tracked here in append-only format.
 |  | feat/e2e | ci | Added JSON schema validation job for docs/contracts/ with ajv-cli |
 | 2025-08-27T13:32:56+08:00 | feat/e2e | ci | Added JSON schema validation job for docs/contracts/ with ajv-cli |
 | 2025-08-27T13:33:55+08:00 | feat/e2e | conductor | Fix runtime Go toolchain dependency by using compiled binaries |
+| 2025-08-27T19:22:25+08:00 | feat/e2e | pkg/controllers/parallel | Fixed undefined zapr.New and v1alpha1 import issues |

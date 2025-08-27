@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thc1006/nephoran-intent-operator/tests/security/penetration"
 	"github.com/thc1006/nephoran-intent-operator/tests/utils"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -24,7 +24,7 @@ type ComprehensiveSecurityTestSuite struct {
 	k8sClient          kubernetes.Interface
 	config             *rest.Config
 	namespace          string
-	penetrationTester  *PenetrationTestSuite
+	penetrationTester  *penetration.PenetrationTestSuite
 	securityValidator  *AutomatedSecurityValidator
 	continuousMonitor  *ContinuousSecurityMonitor
 	regressionPipeline *SecurityRegressionPipeline
@@ -67,7 +67,7 @@ type CategoryResult struct {
 
 // DetailedSecurityResults contains detailed results from each component
 type DetailedSecurityResults struct {
-	PenetrationTestResults    *TestResults               `json:"penetration_test_results"`
+	PenetrationTestResults    *penetration.TestResults   `json:"penetration_test_results"`
 	SecurityValidationResults *SecurityValidationResults `json:"security_validation_results"`
 	ContinuousMonitoringData  *MonitoringData            `json:"continuous_monitoring_data"`
 	RegressionPipelineResults *PipelineExecutionResults  `json:"regression_pipeline_results"`
@@ -121,7 +121,7 @@ func NewComprehensiveSecurityTestSuite(client client.Client, k8sClient kubernete
 	}
 
 	// Initialize component test suites
-	suite.penetrationTester = NewPenetrationTestSuite(client, k8sClient, config, namespace, "https://localhost:8080")
+	suite.penetrationTester = penetration.NewPenetrationTestSuite(client, k8sClient, config, namespace, "https://localhost:8080")
 	suite.securityValidator = NewAutomatedSecurityValidator(client, k8sClient, config, namespace)
 	suite.continuousMonitor = NewContinuousSecurityMonitor(client, k8sClient, config, namespace)
 	suite.regressionPipeline = NewSecurityRegressionPipeline(client, k8sClient, config, namespace)
@@ -238,7 +238,7 @@ func (suite *ComprehensiveSecurityTestSuite) executePenetrationTesting(ctx conte
 	result.TestsRun = len(penetrationResults.PenetrationResults)
 	result.TestsPassed = 0
 	result.TestsFailed = 0
-	result.Vulnerabilities = penetrationResults.VulnerabilityCount
+	result.Findings = penetrationResults.VulnerabilityCount
 
 	for _, penResult := range penetrationResults.PenetrationResults {
 		if penResult.Status == "passed" {
@@ -256,7 +256,7 @@ func (suite *ComprehensiveSecurityTestSuite) executePenetrationTesting(ctx conte
 	result.Score = penetrationResults.SecurityScore
 	result.Duration = time.Since(start)
 
-	if result.TestsFailed == 0 && result.Vulnerabilities == 0 {
+	if result.TestsFailed == 0 && result.Findings == 0 {
 		result.Status = "passed"
 	} else {
 		result.Status = "failed"
@@ -391,11 +391,11 @@ func (suite *ComprehensiveSecurityTestSuite) executeRegressionTesting(ctx contex
 
 // Component Test Runners
 
-func (suite *ComprehensiveSecurityTestSuite) runPenetrationTests(ctx context.Context) *TestResults {
+func (suite *ComprehensiveSecurityTestSuite) runPenetrationTests(ctx context.Context) *penetration.TestResults {
 	// Simulate comprehensive penetration testing
 	// In real implementation, this would run the full penetration testing suite
 
-	return &TestResults{
+	return &penetration.TestResults{
 		TestID:             fmt.Sprintf("pen-test-%d", time.Now().Unix()),
 		Timestamp:          time.Now(),
 		Duration:           2 * time.Minute,
@@ -404,20 +404,20 @@ func (suite *ComprehensiveSecurityTestSuite) runPenetrationTests(ctx context.Con
 		FailedTests:        2,
 		SecurityScore:      87.5,
 		VulnerabilityCount: 2,
-		PenetrationResults: []PenetrationResult{
-			{
+		PenetrationResults: []penetration.PenetrationResult{
+			penetration.PenetrationResult{
 				TestName:      "API Security Testing",
 				TestCategory:  "API",
 				Status:        "passed",
 				ExecutionTime: 30 * time.Second,
 			},
-			{
+			penetration.PenetrationResult{
 				TestName:      "Container Security Testing",
 				TestCategory:  "Container",
 				Status:        "failed",
 				ExecutionTime: 45 * time.Second,
-				Vulnerabilities: []SecurityIssue{
-					{
+				Vulnerabilities: []penetration.SecurityIssue{
+					penetration.SecurityIssue{
 						ID:          "CONT-001",
 						Severity:    "MEDIUM",
 						Title:       "Container running as root",
@@ -427,7 +427,7 @@ func (suite *ComprehensiveSecurityTestSuite) runPenetrationTests(ctx context.Con
 				},
 			},
 		},
-		CriticalIssues: []SecurityIssue{},
+		CriticalIssues: []penetration.SecurityIssue{},
 	}
 }
 
@@ -669,12 +669,7 @@ func (suite *ComprehensiveSecurityTestSuite) generateSecurityRecommendations() {
 
 func (suite *ComprehensiveSecurityTestSuite) setupTestEnvironment(ctx context.Context) {
 	// Create test namespace if it doesn't exist
-	namespace := &corev1.Namespace{
-		ObjectMeta: corev1.ObjectMeta{
-			Name: suite.namespace,
-		},
-	}
-	utils.CreateNamespace(suite.k8sClient, namespace)
+	testutils.CreateTestNamespace(ctx, suite.client, suite.namespace)
 }
 
 func (suite *ComprehensiveSecurityTestSuite) getKubernetesVersion(ctx context.Context) string {
@@ -691,9 +686,9 @@ func (suite *ComprehensiveSecurityTestSuite) addCategoryResult(category string, 
 	suite.testResults.TestCategories[category] = result
 }
 
-func (suite *ComprehensiveSecurityTestSuite) getPenetrationResults() *TestResults {
+func (suite *ComprehensiveSecurityTestSuite) getPenetrationResults() *penetration.TestResults {
 	// Return aggregated penetration test results
-	return suite.penetrationTester.testResults
+	return suite.penetrationTester.GetTestResults()
 }
 
 func (suite *ComprehensiveSecurityTestSuite) getValidationResults() *SecurityValidationResults {

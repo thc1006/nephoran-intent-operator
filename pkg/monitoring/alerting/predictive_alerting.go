@@ -6,11 +6,19 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"sync"
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/logging"
 )
+
+// TimeSeriesPoint represents a single data point in a time series
+type TimeSeriesPoint struct {
+	Timestamp time.Time `json:"timestamp"`
+	Value     float64   `json:"value"`
+	Labels    map[string]string `json:"labels,omitempty"`
+}
 
 // PredictiveAlerting implements ML-based SLA violation prediction using
 // historical data, seasonal patterns, and anomaly detection
@@ -370,7 +378,7 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 	}
 
 	// Generate baseline prediction
-	baselinePrediction := pa.generateBaselinePrediction(model, features)
+	baselinePrediction := pa.generateBaselinePrediction(model, currentMetrics)
 
 	// Apply seasonal adjustments
 	var seasonalAdjustment float64
@@ -384,14 +392,15 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 		trendAdjustment = pa.applyTrendAdjustment(slaType)
 	}
 
+	// Combine predictions
+	finalPrediction := baselinePrediction + seasonalAdjustment + trendAdjustment
+
 	// Calculate anomaly score
 	var anomalyScore float64
 	if pa.config.EnableAnomalyFeatures {
-		anomalyScore = pa.calculateAnomalyScore(slaType, currentMetrics)
+		// Use baseline prediction as baseline, final prediction as actual, features for context
+		anomalyScore = pa.calculateAnomalyScore(baselinePrediction, finalPrediction, features)
 	}
-
-	// Combine predictions
-	finalPrediction := baselinePrediction + seasonalAdjustment + trendAdjustment
 
 	// Calculate violation probability
 	violationProbability := pa.calculateViolationProbability(slaType, finalPrediction, anomalyScore)
@@ -402,15 +411,32 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 	// Estimate time to violation if probability is high
 	var timeToViolation *time.Duration
 	if violationProbability > pa.config.AlertThreshold {
-		ttv := pa.estimateTimeToViolation(slaType, finalPrediction, violationProbability)
-		timeToViolation = &ttv
+		ttv := pa.estimateTimeToViolation(violationProbability, trendAdjustment)
+		timeToViolation = ttv
 	}
 
 	// Generate recommended actions
-	recommendedActions := pa.generateRecommendedActions(slaType, violationProbability, features)
+	recommendedActions := pa.generateRecommendedActions(slaType, finalPrediction, confidence)
 
 	// Identify contributing factors
-	contributingFactors := pa.identifyContributingFactors(model, features)
+	contributingFactors := pa.identifyContributingFactors(features, finalPrediction)
+
+	// Convert features slice to map for result
+	featuresMap := make(map[string]float64)
+	for i, value := range features {
+		featuresMap[fmt.Sprintf("feature_%d", i)] = value
+	}
+
+	// Convert contributing factors to the expected type
+	contributingFactorsTyped := make([]ContributingFactor, 0, len(contributingFactors))
+	for _, factor := range contributingFactors {
+		contributingFactorsTyped = append(contributingFactorsTyped, ContributingFactor{
+			Feature:     factor,
+			Importance:  0.5, // Default importance
+			Direction:   "positive",
+			Description: fmt.Sprintf("Contributing factor: %s", factor),
+		})
+	}
 
 	result := &PredictionResult{
 		SLAType:              slaType,
@@ -425,8 +451,8 @@ func (pa *PredictiveAlerting) Predict(ctx context.Context, slaType SLAType,
 		AnomalyScore:         anomalyScore,
 		TimeToViolation:      timeToViolation,
 		RecommendedActions:   recommendedActions,
-		Features:             features,
-		ContributingFactors:  contributingFactors,
+		Features:             featuresMap,
+		ContributingFactors:  contributingFactorsTyped,
 		ModelVersion:         fmt.Sprintf("%s-v%d", model.ModelType, model.TrainedAt.Unix()),
 		ModelAccuracy:        model.Accuracy,
 	}
@@ -697,6 +723,302 @@ func (pa *PredictiveAlerting) validateModel(weights []float64, bias float64,
 	features [][]float64, labels []float64) (accuracy, precision, recall, f1Score float64) {
 	// Simplified validation - in production would calculate proper metrics
 	return 0.85, 0.82, 0.88, 0.85
+}
+
+// Missing PredictiveAlerting methods
+
+// ExtractFeatures extracts features from current metrics
+func (fe *FeatureExtractor) ExtractFeatures(ctx context.Context, slaType SLAType, metrics map[string]float64) ([]float64, error) {
+	// TODO: Implement comprehensive feature extraction
+	// For now, return basic features from metrics
+	features := make([]float64, 0)
+	
+	// Extract basic statistical features
+	for _, value := range metrics {
+		features = append(features, value)
+	}
+	
+	// Add temporal features (hour of day, day of week, etc.)
+	now := time.Now()
+	features = append(features, float64(now.Hour()))
+	features = append(features, float64(now.Weekday()))
+	
+	// Ensure we have at least some features
+	if len(features) == 0 {
+		features = []float64{0.0, 0.0, 0.0}
+	}
+	
+	return features, nil
+}
+
+// applySeasonalAdjustment applies seasonal adjustments to predictions
+func (pa *PredictiveAlerting) applySeasonalAdjustment(slaType SLAType, timestamp time.Time) float64 {
+	// TODO: Implement sophisticated seasonal adjustment logic
+	// For now, return simple hourly adjustment
+	hour := timestamp.Hour()
+	
+	// Business hours typically see higher load
+	if hour >= 9 && hour <= 17 {
+		return 0.2 // 20% increase during business hours
+	}
+	
+	// Night hours typically see lower load
+	if hour >= 22 || hour <= 6 {
+		return -0.1 // 10% decrease during night hours
+	}
+	
+	return 0.0 // No adjustment for other hours
+}
+
+// applyTrendAdjustment applies trend adjustments to predictions
+func (pa *PredictiveAlerting) applyTrendAdjustment(slaType SLAType) float64 {
+	// TODO: Implement trend analysis based on historical data
+	// For now, return a simple adjustment based on SLA type
+	switch slaType {
+	case SLATypeAvailability:
+		return 0.05 // Slight upward trend in availability issues
+	case SLATypeLatency:
+		return 0.08 // Moderate upward trend in latency issues
+	case SLAThroughput:
+		return -0.02 // Slight improvement in throughput
+	case SLAErrorRate:
+		return 0.03 // Small upward trend in error rates
+	default:
+		return 0.0
+	}
+}
+
+// calculateAnomalyScore calculates an anomaly score for the prediction
+func (pa *PredictiveAlerting) calculateAnomalyScore(prediction, baseline float64, features []float64) float64 {
+	// TODO: Implement sophisticated anomaly detection algorithm
+	// For now, calculate simple deviation from baseline
+	deviation := math.Abs(prediction - baseline)
+	normalizedDeviation := deviation / (baseline + 0.001) // Avoid division by zero
+	
+	// Scale the score to 0-1 range
+	anomalyScore := math.Min(normalizedDeviation, 1.0)
+	
+	// Apply feature-based adjustments
+	if len(features) > 0 {
+		// Add variability based on feature variance
+		variance := pa.calculateVariance(features)
+		anomalyScore += variance * 0.1
+	}
+	
+	return math.Min(anomalyScore, 1.0)
+}
+
+// calculateVariance calculates variance of feature values
+func (pa *PredictiveAlerting) calculateVariance(values []float64) float64 {
+	if len(values) <= 1 {
+		return 0.0
+	}
+	
+	// Calculate mean
+	var sum float64
+	for _, v := range values {
+		sum += v
+	}
+	mean := sum / float64(len(values))
+	
+	// Calculate variance
+	var varianceSum float64
+	for _, v := range values {
+		diff := v - mean
+		varianceSum += diff * diff
+	}
+	
+	return varianceSum / float64(len(values)-1)
+}
+
+// calculateViolationProbability calculates the probability of SLA violation
+func (pa *PredictiveAlerting) calculateViolationProbability(slaType SLAType, prediction, anomalyScore float64) float64 {
+	// TODO: Implement sophisticated violation probability calculation
+	// This would typically use statistical models and historical data
+	
+	// Base probability from prediction value
+	baseProbability := math.Min(prediction, 1.0)
+	
+	// Adjust based on SLA type characteristics
+	switch slaType {
+	case SLATypeAvailability:
+		// Availability violations are often binary
+		if prediction > 0.95 {
+			baseProbability = 0.9
+		} else if prediction > 0.8 {
+			baseProbability = 0.6
+		} else {
+			baseProbability = 0.2
+		}
+	case SLATypeLatency:
+		// Latency violations show gradual degradation
+		baseProbability = prediction * 0.8
+	case SLAThroughput:
+		// Throughput violations can be gradual or sudden
+		baseProbability = prediction * 0.75
+	case SLAErrorRate:
+		// Error rate violations can escalate quickly
+		baseProbability = prediction * 0.85
+	}
+	
+	// Apply anomaly score boost
+	anomalyBoost := anomalyScore * 0.3
+	violationProbability := math.Min(baseProbability + anomalyBoost, 1.0)
+	
+	return violationProbability
+}
+
+// calculateConfidence calculates confidence in the prediction
+func (pa *PredictiveAlerting) calculateConfidence(model *PredictionModel, features []float64, anomalyScore float64) float64 {
+	// TODO: Implement comprehensive confidence calculation
+	// This would consider model accuracy, data quality, feature relevance, etc.
+	
+	// Base confidence from model accuracy
+	baseConfidence := model.Accuracy
+	
+	// Reduce confidence based on anomaly score (unusual patterns are harder to predict)
+	anomalyPenalty := anomalyScore * 0.2
+	confidence := baseConfidence - anomalyPenalty
+	
+	// Adjust based on feature quality
+	if len(features) > 5 {
+		// More features generally improve confidence
+		confidence += 0.05
+	} else if len(features) < 3 {
+		// Few features reduce confidence
+		confidence -= 0.1
+	}
+	
+	// Ensure confidence stays in valid range
+	return math.Max(0.1, math.Min(confidence, 0.95))
+}
+
+// estimateTimeToViolation estimates when a violation might occur
+func (pa *PredictiveAlerting) estimateTimeToViolation(prediction float64, trend float64) *time.Duration {
+	// TODO: Implement sophisticated time-to-violation estimation
+	// This would consider current trajectory, historical patterns, etc.
+	
+	if prediction < 0.3 {
+		// Low risk - no immediate violation expected
+		return nil
+	}
+	
+	// Simple estimation based on prediction severity and trend
+	baseMinutes := 60.0 // Base estimate: 1 hour
+	
+	// Adjust based on prediction severity
+	if prediction > 0.8 {
+		baseMinutes = 15.0 // Very high risk - 15 minutes
+	} else if prediction > 0.6 {
+		baseMinutes = 30.0 // High risk - 30 minutes
+	} else if prediction > 0.4 {
+		baseMinutes = 45.0 // Medium risk - 45 minutes
+	}
+	
+	// Adjust based on trend (positive trend = faster violation)
+	if trend > 0 {
+		baseMinutes *= (1.0 - trend*0.5) // Reduce time if trending upward
+	}
+	
+	duration := time.Duration(baseMinutes * float64(time.Minute))
+	return &duration
+}
+
+// generateRecommendedActions generates recommended actions based on prediction
+func (pa *PredictiveAlerting) generateRecommendedActions(slaType SLAType, prediction float64, confidence float64) []string {
+	// TODO: Implement sophisticated action recommendation engine
+	actions := make([]string, 0)
+	
+	if prediction > 0.7 {
+		// High risk actions
+		actions = append(actions, "Alert on-call engineer")
+		actions = append(actions, "Scale up infrastructure")
+		actions = append(actions, "Review recent deployments")
+	} else if prediction > 0.5 {
+		// Medium risk actions
+		actions = append(actions, "Monitor closely")
+		actions = append(actions, "Prepare scaling plan")
+	} else {
+		// Low risk actions
+		actions = append(actions, "Continue monitoring")
+	}
+	
+	// Add SLA-specific actions
+	switch slaType {
+	case SLATypeLatency:
+		actions = append(actions, "Check cache performance")
+		actions = append(actions, "Review database queries")
+	case SLATypeAvailability:
+		actions = append(actions, "Check service health")
+		actions = append(actions, "Verify load balancer status")
+	case SLAThroughput:
+		actions = append(actions, "Monitor queue depths")
+		actions = append(actions, "Check worker pool utilization")
+	case SLAErrorRate:
+		actions = append(actions, "Review error logs")
+		actions = append(actions, "Check upstream dependencies")
+	}
+	
+	return actions
+}
+
+// identifyContributingFactors identifies factors contributing to the prediction
+func (pa *PredictiveAlerting) identifyContributingFactors(features []float64, prediction float64) []string {
+	// TODO: Implement feature importance analysis
+	// This would use techniques like SHAP values or feature correlation analysis
+	factors := make([]string, 0)
+	
+	if len(features) == 0 {
+		return factors
+	}
+	
+	// Simple heuristic-based factor identification
+	if prediction > 0.5 {
+		factors = append(factors, "High current metric values")
+		
+		// Check if we have temporal features (added in ExtractFeatures)
+		if len(features) >= 2 {
+			hour := int(features[len(features)-2])
+			day := int(features[len(features)-1])
+			
+			if hour >= 9 && hour <= 17 {
+				factors = append(factors, "Business hours load pattern")
+			}
+			
+			if day == 1 || day == 5 { // Monday or Friday
+				factors = append(factors, "Week boundary effects")
+			}
+		}
+		
+		// Analyze metric variance
+		variance := pa.calculateVariance(features)
+		if variance > 0.1 {
+			factors = append(factors, "High metric variability")
+		}
+	}
+	
+	return factors
+}
+
+// buildSeasonalModel builds a seasonal pattern model (placeholder)
+func (pa *PredictiveAlerting) buildSeasonalModel(slaType SLAType, historicalData []TimeSeriesPoint) *SeasonalModel {
+	// TODO: Implement proper seasonal model building
+	// This would use techniques like STL decomposition, Fourier analysis, etc.
+	
+	pa.logger.Debug("Building seasonal model",
+		slog.String("sla_type", string(slaType)),
+		slog.Int("data_points", len(historicalData)),
+	)
+	
+	// Return a simple mock model
+	return &SeasonalModel{
+		SLAType:            slaType,
+		SeasonalityPeriods: make(map[time.Duration]float64),
+		WeeklyPattern:      [7]float64{1.0, 1.1, 1.2, 1.2, 1.3, 0.8, 0.7},
+		DailyPattern:       [24]float64{0.5, 0.4, 0.3, 0.3, 0.4, 0.6, 0.8, 1.0, 1.2, 1.3, 1.4, 1.4, 1.3, 1.3, 1.2, 1.1, 1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.5, 0.5},
+		MonthlyPattern:     [12]float64{1.0, 1.0, 1.1, 1.1, 1.0, 0.9, 0.8, 0.8, 1.0, 1.1, 1.2, 1.3},
+		LastUpdated:        time.Now(),
+	}
 }
 
 // Additional methods would include comprehensive implementations for:

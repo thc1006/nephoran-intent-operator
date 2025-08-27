@@ -236,7 +236,12 @@ data:
   {{- end }}
 `
 
-	tmpl, err = template.New("configmap").Parse(configMapTmpl)
+	tmpl, err = template.New("configmap").Funcs(template.FuncMap{
+		"indent": func(n int, s string) string {
+			pad := strings.Repeat(" ", n)
+			return pad + strings.ReplaceAll(s, "\n", "\n"+pad)
+		},
+	}).Parse(configMapTmpl)
 	if err != nil {
 		return fmt.Errorf("failed to parse configmap template: %w", err)
 	}

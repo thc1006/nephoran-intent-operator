@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/tests/security"
-	"github.com/thc1006/nephoran-intent-operator/tests/utils"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"

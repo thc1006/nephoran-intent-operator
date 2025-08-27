@@ -127,7 +127,7 @@ func (o *IntentOrchestrator) RegisterController(phase interfaces.ProcessingPhase
 	o.Logger.Info("Registered phase controller", "phase", phase)
 
 	// Subscribe to phase completion events
-	return o.EventBus.Subscribe(string(phase), o.handlePhaseEvent)
+	return o.EventBus.Subscribe(EventType(string(phase)), o.handlePhaseEvent)
 }
 
 // Reconcile handles NetworkIntent resources
@@ -259,7 +259,7 @@ func (o *IntentOrchestrator) handlePhaseResult(ctx context.Context, intent *neph
 
 	// Publish phase completion event
 	event := ProcessingEvent{
-		Type:          fmt.Sprintf("phase.%s.completed", currentPhase),
+		Type:          EventType(fmt.Sprintf("phase.%s.completed", currentPhase)),
 		IntentID:      processingCtx.IntentID,
 		Phase:         currentPhase,
 		Success:       result.Success,
@@ -488,8 +488,21 @@ func (o *IntentOrchestrator) validatePhaseResult(phase interfaces.ProcessingPhas
 }
 
 func (o *IntentOrchestrator) updateIntentStatus(ctx context.Context, intent *nephoranv1.NetworkIntent, phase interfaces.ProcessingPhase, result interfaces.ProcessingResult) error {
-	// Update phase in status
-	intent.Status.Phase = string(phase)
+	// Update phase in status - convert ProcessingPhase to NetworkIntentPhase
+	switch phase {
+	case interfaces.PhaseIntentReceived:
+		intent.Status.Phase = nephoranv1.NetworkIntentPhasePending
+	case interfaces.PhaseLLMProcessing, interfaces.PhaseResourcePlanning, interfaces.PhaseManifestGeneration, interfaces.PhaseGitOpsCommit:
+		intent.Status.Phase = nephoranv1.NetworkIntentPhaseProcessing
+	case interfaces.PhaseDeploymentVerification:
+		intent.Status.Phase = nephoranv1.NetworkIntentPhaseReady
+	case interfaces.PhaseCompleted:
+		intent.Status.Phase = nephoranv1.NetworkIntentPhaseCompleted
+	case interfaces.PhaseFailed:
+		intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
+	default:
+		intent.Status.Phase = nephoranv1.NetworkIntentPhaseProcessing
+	}
 
 	// Update timestamps
 	now := metav1.Now()
@@ -499,6 +512,7 @@ func (o *IntentOrchestrator) updateIntentStatus(ctx context.Context, intent *nep
 
 	if phase == interfaces.PhaseCompleted {
 		intent.Status.ProcessingCompletionTime = &now
+		intent.Status.CompletionTime = &now
 	}
 
 	// Update conditions
@@ -561,7 +575,7 @@ func (o *IntentOrchestrator) handleIntentCompletion(ctx context.Context, intent 
 	o.MetricsCollector.RecordIntentCompletion(processingCtx.IntentID, true, time.Since(processingCtx.StartTime))
 
 	// Update final status
-	intent.Status.Phase = string(interfaces.PhaseCompleted)
+	intent.Status.Phase = nephoranv1.NetworkIntentPhaseCompleted
 	now := metav1.Now()
 	intent.Status.ProcessingCompletionTime = &now
 
@@ -578,7 +592,7 @@ func (o *IntentOrchestrator) handleIntentFailure(ctx context.Context, intent *ne
 	o.MetricsCollector.RecordIntentCompletion(processingCtx.IntentID, false, time.Since(processingCtx.StartTime))
 
 	// Update status
-	intent.Status.Phase = string(interfaces.PhaseFailed)
+	intent.Status.Phase = nephoranv1.NetworkIntentPhaseFailed
 
 	// Record failure event
 	o.Recorder.Event(intent, "Warning", "ProcessingFailed", err.Error())

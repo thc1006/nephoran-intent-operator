@@ -51,7 +51,7 @@ type ChaosTestSuite struct {
 
 func (suite *ChaosTestSuite) SetupSuite() {
 	zapLogger, _ := zap.NewDevelopment()
-	suite.logger = zapr.New(zapLogger)
+	suite.logger = zapr.NewLogger(zapLogger)
 	suite.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	suite.ctx, suite.cancel = context.WithCancel(context.Background())

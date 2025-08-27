@@ -3,7 +3,6 @@ package service_models
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/thc1006/nephoran-intent-operator/pkg/oran/e2"
 )
@@ -252,7 +251,7 @@ func (rc *RCServiceModel) ValidateControlMessage(message []byte) error {
 // Traffic Steering Control Implementation
 
 // CreateTrafficSteeringControl creates a traffic steering control request
-func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID string, targetCellID string) (*e2.E2ControlRequest, error) {
+func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID string, targetCellID string) (*e2.RICControlRequest, error) {
 	// Create control header
 	headerParams := &E2SMRCControlHeaderFormat1{
 		UEID:         ueID,
@@ -290,13 +289,18 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID string, targetCellID
 	}
 
 	// Build control request
-	request := &e2.E2ControlRequest{
-		RequestID:         fmt.Sprintf("rc-traffic-%s-%d", ueID, time.Now().Unix()),
-		RanFunctionID:     2,  // RC function ID
-		CallProcessID:     "", // Empty string instead of nil
-		ControlHeader:     map[string]interface{}{"data": header},
-		ControlMessage:    map[string]interface{}{"data": message},
-		ControlAckRequest: true,
+	request := &e2.RICControlRequest{
+		RICRequestID: e2.RICRequestID{
+			RICRequestorID: e2.RICRequestorID(1000), // xApp requestor ID range
+			RICInstanceID:  e2.RICInstanceID(1),
+		},
+		RANFunctionID:     e2.RANFunctionID(2), // RC function ID
+		RICCallProcessID:  nil,
+		RICControlHeader:  header,
+		RICControlMessage: message,
+		RICControlAckRequest: func() *e2.RICControlAckRequest { 
+			ack := e2.RICControlAckRequest(1); return &ack 
+		}(),
 	}
 
 	return request, nil
@@ -305,7 +309,7 @@ func (rc *RCServiceModel) CreateTrafficSteeringControl(ueID string, targetCellID
 // QoS Control Implementation
 
 // CreateQoSControl creates a QoS modification control request
-func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams map[string]interface{}) (*e2.E2ControlRequest, error) {
+func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams map[string]interface{}) (*e2.RICControlRequest, error) {
 	// Create control header
 	headerParams := &E2SMRCControlHeaderFormat1{
 		UEID:         ueID,
@@ -363,13 +367,18 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 	}
 
 	// Build control request
-	request := &e2.E2ControlRequest{
-		RequestID:         fmt.Sprintf("rc-qos-%s-%d", ueID, time.Now().Unix()),
-		RanFunctionID:     2,  // RC function ID
-		CallProcessID:     "", // Empty string instead of nil
-		ControlHeader:     map[string]interface{}{"data": header},
-		ControlMessage:    map[string]interface{}{"data": message},
-		ControlAckRequest: true,
+	request := &e2.RICControlRequest{
+		RICRequestID: e2.RICRequestID{
+			RICRequestorID: e2.RICRequestorID(1000), // xApp requestor ID range
+			RICInstanceID:  e2.RICInstanceID(2),
+		},
+		RANFunctionID:     e2.RANFunctionID(2), // RC function ID
+		RICCallProcessID:  nil,
+		RICControlHeader:  header,
+		RICControlMessage: message,
+		RICControlAckRequest: func() *e2.RICControlAckRequest { 
+			ack := e2.RICControlAckRequest(1); return &ack 
+		}(),
 	}
 
 	return request, nil
@@ -378,7 +387,7 @@ func (rc *RCServiceModel) CreateQoSControl(ueID string, bearerID int, qosParams 
 // Handover Control Implementation
 
 // CreateHandoverControl creates a handover control request
-func (rc *RCServiceModel) CreateHandoverControl(ueID string, targetCellID string, handoverType string) (*e2.E2ControlRequest, error) {
+func (rc *RCServiceModel) CreateHandoverControl(ueID string, targetCellID string, handoverType string) (*e2.RICControlRequest, error) {
 	// Create control header
 	headerParams := &E2SMRCControlHeaderFormat1{
 		UEID:         ueID,
@@ -421,13 +430,18 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID string, targetCellID string
 	}
 
 	// Build control request
-	request := &e2.E2ControlRequest{
-		RequestID:         fmt.Sprintf("rc-handover-%s-%d", ueID, time.Now().Unix()),
-		RanFunctionID:     2,  // RC function ID
-		CallProcessID:     "", // Empty string instead of nil
-		ControlHeader:     map[string]interface{}{"data": header},
-		ControlMessage:    map[string]interface{}{"data": message},
-		ControlAckRequest: true,
+	request := &e2.RICControlRequest{
+		RICRequestID: e2.RICRequestID{
+			RICRequestorID: e2.RICRequestorID(1000), // xApp requestor ID range
+			RICInstanceID:  e2.RICInstanceID(3),
+		},
+		RANFunctionID:     e2.RANFunctionID(2), // RC function ID
+		RICCallProcessID:  nil,
+		RICControlHeader:  header,
+		RICControlMessage: message,
+		RICControlAckRequest: func() *e2.RICControlAckRequest { 
+			ack := e2.RICControlAckRequest(1); return &ack 
+		}(),
 	}
 
 	return request, nil
@@ -436,7 +450,7 @@ func (rc *RCServiceModel) CreateHandoverControl(ueID string, targetCellID string
 // Dual Connectivity Control Implementation
 
 // CreateDualConnectivityControl creates a dual connectivity control request
-func (rc *RCServiceModel) CreateDualConnectivityControl(ueID string, operation string, secondaryCellID string) (*e2.E2ControlRequest, error) {
+func (rc *RCServiceModel) CreateDualConnectivityControl(ueID string, operation string, secondaryCellID string) (*e2.RICControlRequest, error) {
 	// Create control header
 	headerParams := &E2SMRCControlHeaderFormat1{
 		UEID:         ueID,
@@ -479,13 +493,18 @@ func (rc *RCServiceModel) CreateDualConnectivityControl(ueID string, operation s
 	}
 
 	// Build control request
-	request := &e2.E2ControlRequest{
-		RequestID:         fmt.Sprintf("rc-dc-%s-%d", ueID, time.Now().Unix()),
-		RanFunctionID:     2,  // RC function ID
-		CallProcessID:     "", // Empty string instead of nil
-		ControlHeader:     map[string]interface{}{"data": header},
-		ControlMessage:    map[string]interface{}{"data": message},
-		ControlAckRequest: true,
+	request := &e2.RICControlRequest{
+		RICRequestID: e2.RICRequestID{
+			RICRequestorID: e2.RICRequestorID(1000), // xApp requestor ID range
+			RICInstanceID:  e2.RICInstanceID(4),
+		},
+		RANFunctionID:     e2.RANFunctionID(2), // RC function ID
+		RICCallProcessID:  nil,
+		RICControlHeader:  header,
+		RICControlMessage: message,
+		RICControlAckRequest: func() *e2.RICControlAckRequest { 
+			ack := e2.RICControlAckRequest(1); return &ack 
+		}(),
 	}
 
 	return request, nil

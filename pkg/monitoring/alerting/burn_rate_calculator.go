@@ -410,7 +410,7 @@ func (brc *BurnRateCalculator) executeSingleQuery(ctx context.Context, query str
 			return 0, fmt.Errorf("no data returned from query: %s", query)
 		}
 		return float64(v[0].Value), nil
-	case model.Scalar:
+	case *model.Scalar:
 		return float64(v.Value), nil
 	default:
 		return 0, fmt.Errorf("unexpected result type: %T", result)

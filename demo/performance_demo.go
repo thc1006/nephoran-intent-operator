@@ -90,10 +90,12 @@ func main() {
 
 		// Submit test tasks
 		for i := 0; i < 5; i++ {
-			task := performance.Task{
+			task := performance.AsyncTask{
+				ID:       fmt.Sprintf("demo_task_%d", i+1),
 				Type:     "demo_task",
 				Priority: 1,
 				Data:     fmt.Sprintf("Task data %d", i+1),
+				Context:  context.Background(),
 				Timeout:  30 * time.Second,
 			}
 

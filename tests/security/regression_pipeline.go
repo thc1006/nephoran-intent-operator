@@ -9,12 +9,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/thc1006/nephoran-intent-operator/tests/security/penetration"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -530,7 +530,7 @@ func (p *SecurityRegressionPipeline) executePenetrationTestStage(ctx context.Con
 	}
 
 	// Execute penetration testing suite
-	testSuite := NewPenetrationTestSuite(p.client, p.k8sClient, p.config, p.namespace, "https://localhost:8080")
+	testSuite := penetration.NewPenetrationTestSuite(p.client, p.k8sClient, p.config, p.namespace, "https://localhost:8080")
 
 	// Run different categories of penetration tests
 	categories := []string{"api-security", "container-security", "network-security", "rbac-security"}
@@ -926,7 +926,7 @@ func (p *SecurityRegressionPipeline) countFindingsBySeverity(findings []Security
 	return count
 }
 
-func (p *SecurityRegressionPipeline) runPenetrationTestCategory(ctx context.Context, testSuite *PenetrationTestSuite, category string) []TestResult {
+func (p *SecurityRegressionPipeline) runPenetrationTestCategory(ctx context.Context, testSuite *penetration.PenetrationTestSuite, category string) []TestResult {
 	// This would execute specific penetration test categories
 	return []TestResult{
 		{

@@ -87,16 +87,20 @@ type CoordinationConfig struct {
 
 // CoordinationContext tracks the context for an intent's coordination
 type CoordinationContext struct {
-	IntentID      string
-	CorrelationID string
-	StartTime     time.Time
-	CurrentPhase  interfaces.ProcessingPhase
-	PhaseHistory  []PhaseExecution
-	Locks         []ResourceLock
-	Conflicts     []Conflict
-	RetryCount    int
-	LastActivity  time.Time
-	mutex         sync.RWMutex
+	IntentID         string
+	CorrelationID    string
+	StartTime        time.Time
+	CurrentPhase     interfaces.ProcessingPhase
+	CompletedPhases  []interfaces.ProcessingPhase
+	PhaseHistory     []PhaseExecution
+	Locks            []ResourceLock
+	Conflicts        []Conflict
+	RetryCount       int
+	LastActivity     time.Time
+	LastUpdateTime   time.Time
+	ErrorHistory     []string
+	Metadata         map[string]interface{}
+	mutex            sync.RWMutex
 }
 
 // PhaseExecution tracks the execution of a phase
@@ -125,8 +129,11 @@ type Conflict struct {
 	Type            string // ResourceConflict, DependencyConflict, etc.
 	Description     string
 	InvolvedIntents []string
+	IntentID1       string
+	IntentID2       string
 	Severity        string // Low, Medium, High, Critical
 	DetectedAt      time.Time
+	Timestamp       time.Time
 	ResolvedAt      *time.Time
 	Resolution      string
 }

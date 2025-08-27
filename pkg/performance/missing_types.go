@@ -4,22 +4,20 @@ package performance
 
 import (
 	"context"
-	"fmt"
-	"sync"
 	"time"
 )
 
 // DBConfig represents database configuration
 type DBConfig struct {
-	Driver              string
-	DSN                 string
-	MaxOpenConns        int
-	MaxIdleConns        int
-	ConnMaxLifetime     time.Duration
-	EnableQueryCache    bool
-	EnableHealthCheck   bool
-	QueryTimeout        time.Duration
-	EnableTransactions  bool
+	Driver             string
+	DSN                string
+	MaxOpenConns       int
+	MaxIdleConns       int
+	ConnMaxLifetime    time.Duration
+	EnableQueryCache   bool
+	EnableHealthCheck  bool
+	QueryTimeout       time.Duration
+	EnableTransactions bool
 }
 
 // Profiler provides profiling capabilities (minimal interface)
@@ -158,7 +156,6 @@ func (db *OptimizedDBManager) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-
 // Benchmark represents a performance benchmark
 type Benchmark struct {
 	Name        string
@@ -173,8 +170,7 @@ type Benchmark struct {
 
 // Additional missing types
 
-
-// MemoryCache_Stub provides stub methods for MemoryCache  
+// MemoryCache_Stub provides stub methods for MemoryCache
 type MemoryCache_Stub struct{}
 
 func (mc *MemoryCache_Stub) GetHitRate() float64 { return 0.8 }
@@ -187,8 +183,8 @@ func (bp *BatchProcessor_Stub) Stop() {}
 // CacheMetrics_Stub additional fields
 type CacheMetrics_Stub2 struct {
 	CacheMetrics_Stub
-	AverageAccessTime  float64
-	ShardDistribution  map[string]float64
+	AverageAccessTime float64
+	ShardDistribution map[string]float64
 }
 
 // MemoryStats_Stub stub
@@ -216,14 +212,12 @@ type EnhancedGoroutinePool_Stub struct {
 
 // GoroutinePoolMetrics stub
 type GoroutinePoolMetrics struct {
-	CompletedTasks  int64
-	ActiveWorkers   int32
-	StolenTasks     int64
+	CompletedTasks int64
+	ActiveWorkers  int32
+	StolenTasks    int64
 }
 
-
 // Constructor functions
-
 
 // NewOptimizedJSONProcessor_Stub creates a stub JSON processor
 func NewOptimizedJSONProcessor_Stub(config interface{}) *OptimizedJSONProcessor_Stub {
@@ -239,11 +233,7 @@ func NewEnhancedGoroutinePool_Stub(config interface{}) *EnhancedGoroutinePool_St
 	}
 }
 
-
 // Method stubs
-
-
-
 
 // HTTPResponse represents HTTP response
 type HTTPResponse struct {
@@ -257,8 +247,6 @@ type HTTPResponseBody struct{}
 func (b HTTPResponseBody) Close() error {
 	return nil
 }
-
-
 
 // MarshalOptimized marshals data
 func (j *OptimizedJSONProcessor_Stub) MarshalOptimized(ctx context.Context, v interface{}) ([]byte, error) {
@@ -307,7 +295,6 @@ func (g *EnhancedGoroutinePool_Stub) Shutdown(ctx context.Context) error {
 	return nil
 }
 
-
 // Default config functions
 
 // DefaultHTTPConfig_Stub returns default HTTP config
@@ -353,14 +340,14 @@ func DefaultCacheConfig_Stub() interface{} {
 // DefaultDBConfig returns default DB config
 func DefaultDBConfig() *DBConfig {
 	return &DBConfig{
-		Driver:              "postgres",
-		MaxOpenConns:        25,
-		MaxIdleConns:        10,
-		ConnMaxLifetime:     time.Hour,
-		EnableQueryCache:    false,
-		EnableHealthCheck:   false,
-		QueryTimeout:        30 * time.Second,
-		EnableTransactions:  true,
+		Driver:             "postgres",
+		MaxOpenConns:       25,
+		MaxIdleConns:       10,
+		ConnMaxLifetime:    time.Hour,
+		EnableQueryCache:   false,
+		EnableHealthCheck:  false,
+		QueryTimeout:       30 * time.Second,
+		EnableTransactions: true,
 	}
 }
 
@@ -482,7 +469,3 @@ type CacheStats struct {
 	MemoryEfficiency float64
 	AverageEntrySize int
 }
-
-
-
-

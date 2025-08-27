@@ -38,47 +38,56 @@ type SimpleHTTPClient struct {
 	Client  *http.Client
 }
 
-func (c *SimpleHTTPClient) ProcessIntent(ctx context.Context, prompt string) (string, error) {
+// Implement the new ClientInterface methods
+func (c *SimpleHTTPClient) ProcessRequest(ctx context.Context, request *shared.LLMRequest) (*shared.LLMResponse, error) {
 	// Basic implementation - this should be replaced with actual LLM client
-	return "Processed intent: " + prompt, nil
+	return &shared.LLMResponse{
+		ID:      "simple-response-id",
+		Content: "Processed request: " + request.Messages[0].Content,
+		Model:   request.Model,
+		Usage: shared.TokenUsage{
+			PromptTokens:     10,
+			CompletionTokens: 20,
+			TotalTokens:      30,
+		},
+		Created: time.Now(),
+	}, nil
 }
 
-func (c *SimpleHTTPClient) ProcessIntentStream(ctx context.Context, prompt string, chunks chan<- *shared.StreamingChunk) error {
-	// Basic implementation - this should be replaced with actual streaming client
-	chunk := &shared.StreamingChunk{
-		Content:   "Streamed response for: " + prompt,
-		IsLast:    true,
-		Timestamp: time.Now(),
-	}
-	chunks <- chunk
-	close(chunks)
+func (c *SimpleHTTPClient) ProcessStreamingRequest(ctx context.Context, request *shared.LLMRequest) (<-chan *shared.StreamingChunk, error) {
+	chunks := make(chan *shared.StreamingChunk, 1)
+	go func() {
+		defer close(chunks)
+		chunk := &shared.StreamingChunk{
+			Content:   "Streamed response for: " + request.Messages[0].Content,
+			IsLast:    true,
+			Timestamp: time.Now(),
+		}
+		chunks <- chunk
+	}()
+	return chunks, nil
+}
+
+func (c *SimpleHTTPClient) HealthCheck(ctx context.Context) error {
 	return nil
 }
 
-func (c *SimpleHTTPClient) GetSupportedModels() []string {
-	return []string{"gpt-4o-mini", "claude-3-haiku"}
+func (c *SimpleHTTPClient) GetStatus() shared.ClientStatus {
+	return shared.ClientStatusHealthy
 }
 
-func (c *SimpleHTTPClient) GetModelCapabilities(modelName string) (*shared.ModelCapabilities, error) {
-	return &shared.ModelCapabilities{
+func (c *SimpleHTTPClient) GetModelCapabilities() shared.ModelCapabilities {
+	return shared.ModelCapabilities{
 		MaxTokens:         4096,
 		SupportsChat:      true,
 		SupportsFunction:  false,
 		SupportsStreaming: true,
 		CostPerToken:      0.0001,
-	}, nil
+	}
 }
 
-func (c *SimpleHTTPClient) ValidateModel(modelName string) error {
-	return nil
-}
-
-func (c *SimpleHTTPClient) EstimateTokens(text string) int {
-	return len(text) / 4 // Rough estimate
-}
-
-func (c *SimpleHTTPClient) GetMaxTokens(modelName string) int {
-	return 4096
+func (c *SimpleHTTPClient) GetEndpoint() string {
+	return c.BaseURL
 }
 
 func (c *SimpleHTTPClient) Close() error {
@@ -136,10 +145,7 @@ func LLMClientProvider(c *Container) (interface{}, error) {
 	}
 
 	// Get HTTP client dependency
-	httpClient, err := c.GetHTTPClient()
-	if err != nil {
-		return nil, err
-	}
+	httpClient := c.GetHTTPClient()
 
 	// Create a simple HTTP client that implements the shared.ClientInterface
 	client := &SimpleHTTPClient{
@@ -152,19 +158,12 @@ func LLMClientProvider(c *Container) (interface{}, error) {
 
 // PackageGeneratorProvider creates a Nephio package generator instance
 func PackageGeneratorProvider(c *Container) (interface{}, error) {
-	config := c.GetConfig()
-
-	nephioConfig := &nephio.Config{
-		PorchURL: os.Getenv("PORCH_URL"),
-		Timeout:  config.KubernetesTimeout,
+	// Create package generator (no config needed based on the actual implementation)
+	generator, err := nephio.NewPackageGenerator()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create package generator: %w", err)
 	}
 
-	// Set default if not configured
-	if nephioConfig.PorchURL == "" {
-		nephioConfig.PorchURL = "https://porch.nephio.io"
-	}
-
-	generator := nephio.NewPackageGenerator(nephioConfig)
 	return generator, nil
 }
 
@@ -272,10 +271,7 @@ func ProductionLLMClientProvider(c *Container) (interface{}, error) {
 	httpClient, err := c.Get("circuit_breaker_http_client")
 	if err != nil {
 		// Fallback to regular HTTP client
-		httpClient, err = c.GetHTTPClient()
-		if err != nil {
-			return nil, err
-		}
+		httpClient = c.GetHTTPClient()
 	}
 
 	// Create a simple HTTP client with production configuration

@@ -174,58 +174,7 @@ func (m *MockLLMService) SetResponse(intent string, response *llm.ProcessingResp
 	m.responses[intent] = response
 }
 
-type MockRAGService struct {
-	mock.Mock
-	responses map[string]*rag.RetrievalResponse
-	mutex     sync.RWMutex
-}
-
-func (m *MockRAGService) RetrieveContext(ctx context.Context, request *rag.RetrievalRequest) (*rag.RetrievalResponse, error) {
-	args := m.Called(ctx, request)
-
-	// Return predefined response if available
-	m.mutex.RLock()
-	if response, exists := m.responses[request.Query]; exists {
-		m.mutex.RUnlock()
-		return response, nil
-	}
-	m.mutex.RUnlock()
-
-	// Default mock response
-	response := &rag.RetrievalResponse{
-		Documents: []map[string]interface{}{
-			{
-				"id":      "doc1",
-				"content": "5G Core network architecture documentation",
-				"score":   0.95,
-			},
-			{
-				"id":      "doc2",
-				"content": "AMF deployment best practices",
-				"score":   0.87,
-			},
-		},
-		Duration:              150 * time.Millisecond,
-		AverageRelevanceScore: 0.91,
-		TopRelevanceScore:     0.95,
-		QueryWasEnhanced:      true,
-		Metadata: map[string]interface{}{
-			"knowledge_base":   "3gpp_specs",
-			"retrieval_method": "vector_similarity",
-		},
-	}
-
-	return response, args.Error(1)
-}
-
-func (m *MockRAGService) SetResponse(query string, response *rag.RetrievalResponse) {
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
-	if m.responses == nil {
-		m.responses = make(map[string]*rag.RetrievalResponse)
-	}
-	m.responses[query] = response
-}
+// MockRAGService is now defined in test_mocks.go
 
 var _ = Describe("Regression Backward Compatibility Tests", func() {
 	var (

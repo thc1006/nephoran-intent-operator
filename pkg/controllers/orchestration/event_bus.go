@@ -29,9 +29,12 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/controllers/interfaces"
 )
 
+// EventType represents the type of processing event
+type EventType string
+
 // ProcessingEvent represents an event during intent processing
 type ProcessingEvent struct {
-	Type          string                     `json:"type"`
+	Type          EventType                  `json:"type"`
 	Source        string                     `json:"source"`
 	IntentID      string                     `json:"intentId"`
 	Phase         interfaces.ProcessingPhase `json:"phase"`
@@ -52,7 +55,7 @@ type EventBus struct {
 	logger   logr.Logger
 
 	// Event handling
-	subscribers map[string][]EventHandler
+	subscribers map[EventType][]EventHandler
 	mutex       sync.RWMutex
 
 	// Event persistence
@@ -71,33 +74,45 @@ type EventBus struct {
 
 // Event types for phase transitions
 const (
-	EventIntentReceived                  = "intent.received"
-	EventLLMProcessingStarted            = "llm.processing.started"
-	EventLLMProcessingCompleted          = "llm.processing.completed"
-	EventLLMProcessingFailed             = "llm.processing.failed"
-	EventResourcePlanningStarted         = "resource.planning.started"
-	EventResourcePlanningCompleted       = "resource.planning.completed"
-	EventResourcePlanningFailed          = "resource.planning.failed"
-	EventManifestGenerationStarted       = "manifest.generation.started"
-	EventManifestGenerationCompleted     = "manifest.generation.completed"
-	EventManifestGenerationFailed        = "manifest.generation.failed"
-	EventGitOpsCommitStarted             = "gitops.commit.started"
-	EventGitOpsCommitCompleted           = "gitops.commit.completed"
-	EventGitOpsCommitFailed              = "gitops.commit.failed"
-	EventDeploymentVerificationStarted   = "deployment.verification.started"
-	EventDeploymentVerificationCompleted = "deployment.verification.completed"
-	EventDeploymentVerificationFailed    = "deployment.verification.failed"
-	EventProcessingFailed                = "processing.failed"
-	EventRetryRequired                   = "retry.required"
-	EventIntentCompleted                 = "intent.completed"
-	EventIntentFailed                    = "intent.failed"
+	EventIntentReceived                  EventType = "intent.received"
+	EventLLMProcessingStarted            EventType = "llm.processing.started"
+	EventLLMProcessingCompleted          EventType = "llm.processing.completed"
+	EventLLMProcessingFailed             EventType = "llm.processing.failed"
+	EventResourcePlanningStarted         EventType = "resource.planning.started"
+	EventResourcePlanningCompleted       EventType = "resource.planning.completed"
+	EventResourcePlanningFailed          EventType = "resource.planning.failed"
+	EventManifestGenerationStarted       EventType = "manifest.generation.started"
+	EventManifestGenerationCompleted     EventType = "manifest.generation.completed"
+	EventManifestGenerationFailed        EventType = "manifest.generation.failed"
+	EventGitOpsCommitStarted             EventType = "gitops.commit.started"
+	EventGitOpsCommitCompleted           EventType = "gitops.commit.completed"
+	EventGitOpsCommitFailed              EventType = "gitops.commit.failed"
+	EventDeploymentVerificationStarted   EventType = "deployment.verification.started"
+	EventDeploymentVerificationCompleted EventType = "deployment.verification.completed"
+	EventDeploymentVerificationFailed    EventType = "deployment.verification.failed"
+	EventProcessingFailed                EventType = "processing.failed"
+	EventRetryRequired                   EventType = "retry.required"
+	EventIntentCompleted                 EventType = "intent.completed"
+	EventIntentFailed                    EventType = "intent.failed"
 
 	// Cross-phase coordination events
-	EventDependencyMet       = "dependency.met"
-	EventResourceAllocated   = "resource.allocated"
-	EventResourceDeallocated = "resource.deallocated"
-	EventErrorRecovery       = "error.recovery"
-	EventParallelPhaseSync   = "parallel.phase.sync"
+	EventDependencyMet       EventType = "dependency.met"
+	EventResourceAllocated   EventType = "resource.allocated"
+	EventResourceDeallocated EventType = "resource.deallocated"
+	EventErrorRecovery       EventType = "error.recovery"
+	EventParallelPhaseSync      EventType = "parallel.phase.sync"
+	EventPhaseTransition        EventType = "coordination.phase.transition"
+	EventRecoveryInitiated      EventType = "coordination.recovery.initiated"
+	EventDependencyResolved     EventType = "coordination.dependency.resolved"
+	EventConflictDetected       EventType = "coordination.conflict.detected"
+	EventConflictResolved       EventType = "coordination.conflict.resolved"
+	EventResourceLockAcquired   EventType = "coordination.resource.lock.acquired"
+	EventResourceLockReleased   EventType = "coordination.resource.lock.released"
+	EventRecoveryCompleted      EventType = "coordination.recovery.completed"
+	EventParallelPhaseStarted   EventType = "coordination.parallel.phase.started"
+	EventParallelPhaseCompleted EventType = "coordination.parallel.phase.completed"
+	EventReplayInitiated        EventType = "coordination.replay.initiated"
+	EventReplayCompleted        EventType = "coordination.replay.completed"
 )
 
 // NewEventBus creates a new EventBus
@@ -105,7 +120,7 @@ func NewEventBus(client client.Client, logger logr.Logger) *EventBus {
 	return &EventBus{
 		client:       client,
 		logger:       logger.WithName("event-bus"),
-		subscribers:  make(map[string][]EventHandler),
+		subscribers:  make(map[EventType][]EventHandler),
 		eventStore:   NewEventStore(),
 		bufferSize:   1000,
 		maxRetries:   3,
@@ -116,7 +131,7 @@ func NewEventBus(client client.Client, logger logr.Logger) *EventBus {
 }
 
 // Subscribe registers an event handler for a specific event type
-func (e *EventBus) Subscribe(eventType string, handler EventHandler) error {
+func (e *EventBus) Subscribe(eventType EventType, handler EventHandler) error {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
@@ -131,7 +146,7 @@ func (e *EventBus) Subscribe(eventType string, handler EventHandler) error {
 }
 
 // Unsubscribe removes an event handler (note: removes all handlers for the event type)
-func (e *EventBus) Unsubscribe(eventType string) {
+func (e *EventBus) Unsubscribe(eventType EventType) {
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
 
@@ -166,7 +181,7 @@ func (e *EventBus) Publish(ctx context.Context, event ProcessingEvent) error {
 }
 
 // PublishPhaseEvent publishes a phase-specific event
-func (e *EventBus) PublishPhaseEvent(ctx context.Context, phase interfaces.ProcessingPhase, eventType string, intentID string, success bool, data map[string]interface{}) error {
+func (e *EventBus) PublishPhaseEvent(ctx context.Context, phase interfaces.ProcessingPhase, eventType EventType, intentID string, success bool, data map[string]interface{}) error {
 	event := ProcessingEvent{
 		Type:          eventType,
 		Source:        string(phase),
@@ -246,8 +261,8 @@ func (e *EventBus) handleEvent(ctx context.Context, event ProcessingEvent) {
 	e.mutex.RLock()
 	handlers := e.subscribers[event.Type]
 
-	// Also get wildcard subscribers (if any)
-	wildcardHandlers := e.subscribers["*"]
+	// Also get wildcard subscribers (if any)  
+	wildcardHandlers := e.subscribers[EventType("*")]
 	allHandlers := append(handlers, wildcardHandlers...)
 	e.mutex.RUnlock()
 
@@ -315,7 +330,7 @@ func (e *EventBus) GetEventHistory(ctx context.Context, intentID string) ([]Proc
 }
 
 // GetEventsByType retrieves events by type
-func (e *EventBus) GetEventsByType(ctx context.Context, eventType string, limit int) ([]ProcessingEvent, error) {
+func (e *EventBus) GetEventsByType(ctx context.Context, eventType EventType, limit int) ([]ProcessingEvent, error) {
 	return e.eventStore.GetEventsByType(eventType, limit)
 }
 
@@ -381,7 +396,7 @@ func (es *EventStore) GetEventsByIntentID(intentID string) ([]ProcessingEvent, e
 }
 
 // GetEventsByType retrieves events by type
-func (es *EventStore) GetEventsByType(eventType string, limit int) ([]ProcessingEvent, error) {
+func (es *EventStore) GetEventsByType(eventType EventType, limit int) ([]ProcessingEvent, error) {
 	es.mutex.RLock()
 	defer es.mutex.RUnlock()
 
@@ -419,12 +434,12 @@ func NewEventBusMetrics() *EventBusMetrics {
 }
 
 // RecordEventPublished records an event publication
-func (m *EventBusMetrics) RecordEventPublished(eventType string) {
+func (m *EventBusMetrics) RecordEventPublished(eventType EventType) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	m.TotalEventsPublished++
-	m.EventsPerType[eventType]++
+	m.EventsPerType[string(eventType)]++
 }
 
 // RecordEventProcessed records event processing completion

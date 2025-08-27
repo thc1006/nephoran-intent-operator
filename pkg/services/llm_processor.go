@@ -9,6 +9,7 @@ import (
 	"github.com/thc1006/nephoran-intent-operator/pkg/handlers"
 	"github.com/thc1006/nephoran-intent-operator/pkg/health"
 	"github.com/thc1006/nephoran-intent-operator/pkg/llm"
+	"github.com/thc1006/nephoran-intent-operator/pkg/performance"
 )
 
 // LLMProcessorService manages the lifecycle of LLM processor components
@@ -24,6 +25,9 @@ type LLMProcessorService struct {
 	promptBuilder      *llm.RAGAwarePromptBuilder
 	logger             *slog.Logger
 	healthChecker      *health.HealthChecker
+	// Performance integration components
+	cacheManager   *performance.CacheManager
+	asyncProcessor *performance.AsyncProcessor
 }
 
 // NewLLMProcessorService creates a new service instance
@@ -294,6 +298,28 @@ func (s *LLMProcessorService) GetComponents() (
 		s.contextBuilder, s.relevanceScorer, s.promptBuilder, s.healthChecker
 }
 
+// SetCacheManager sets the cache manager for the service
+func (s *LLMProcessorService) SetCacheManager(cacheManager *performance.CacheManager) {
+	s.cacheManager = cacheManager
+	s.logger.Info("Cache manager integrated into LLM processor service")
+}
+
+// SetAsyncProcessor sets the async processor for the service  
+func (s *LLMProcessorService) SetAsyncProcessor(asyncProcessor *performance.AsyncProcessor) {
+	s.asyncProcessor = asyncProcessor
+	s.logger.Info("Async processor integrated into LLM processor service")
+}
+
+// GetCacheManager returns the current cache manager
+func (s *LLMProcessorService) GetCacheManager() *performance.CacheManager {
+	return s.cacheManager
+}
+
+// GetAsyncProcessor returns the current async processor
+func (s *LLMProcessorService) GetAsyncProcessor() *performance.AsyncProcessor {
+	return s.asyncProcessor
+}
+
 // Shutdown gracefully shuts down the service
 func (s *LLMProcessorService) Shutdown(ctx context.Context) error {
 	s.logger.Info("Shutting down LLM Processor service")
@@ -313,6 +339,19 @@ func (s *LLMProcessorService) Shutdown(ctx context.Context) error {
 	// Close circuit breakers
 	if s.circuitBreakerMgr != nil {
 		s.circuitBreakerMgr.Shutdown()
+	}
+
+	// Shutdown performance components
+	if s.asyncProcessor != nil {
+		if err := s.asyncProcessor.Shutdown(ctx); err != nil {
+			s.logger.Error("Failed to shutdown async processor", slog.String("error", err.Error()))
+		}
+	}
+
+	if s.cacheManager != nil {
+		if err := s.cacheManager.Shutdown(ctx); err != nil {
+			s.logger.Error("Failed to shutdown cache manager", slog.String("error", err.Error()))
+		}
 	}
 
 	s.logger.Info("LLM Processor service shutdown completed")

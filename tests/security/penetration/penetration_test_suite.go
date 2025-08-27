@@ -776,6 +776,13 @@ func (s *PenetrationTestSuite) generateRecommendedActions() {
 	s.testResults.RecommendedActions = recommendations
 }
 
+// GetTestResults returns the current test results
+func (s *PenetrationTestSuite) GetTestResults() *TestResults {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return s.testResults
+}
+
 // generateHTMLReport generates HTML formatted penetration test report
 func (s *PenetrationTestSuite) generateHTMLReport() {
 	htmlTemplate := `<!DOCTYPE html>

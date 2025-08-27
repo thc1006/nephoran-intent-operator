@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -163,16 +162,16 @@ type MemoryCache struct {
 func (mc *MemoryCache) GetHitRate() float64 {
 	mc.mu.RLock()
 	defer mc.mu.RUnlock()
-	
+
 	if mc.stats == nil {
 		return 0.0
 	}
-	
+
 	totalRequests := mc.stats.HitCount + mc.stats.MissCount
 	if totalRequests == 0 {
 		return 0.0
 	}
-	
+
 	return float64(mc.stats.HitCount) / float64(totalRequests)
 }
 

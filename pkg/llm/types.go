@@ -225,6 +225,10 @@ type ProcessingResult struct {
 // ProcessingRequest represents a request for LLM processing
 type ProcessingRequest struct {
 	Intent            string                 `json:"intent"`
+	IntentType        string                 `json:"intent_type,omitempty"`
+	Priority          string                 `json:"priority,omitempty"`
+	Provider          string                 `json:"provider,omitempty"`
+	Model             string                 `json:"model,omitempty"`
 	SystemPrompt      string                 `json:"system_prompt"`
 	UserPrompt        string                 `json:"user_prompt"`
 	Context           map[string]interface{} `json:"context"`
@@ -232,6 +236,7 @@ type ProcessingRequest struct {
 	Temperature       float64                `json:"temperature"`
 	RequestID         string                 `json:"request_id"`
 	ProcessingTimeout time.Duration          `json:"processing_timeout"`
+	RAGMetrics        map[string]interface{} `json:"rag_metrics,omitempty"`
 }
 
 // ProcessingResponse represents the response from LLM processing

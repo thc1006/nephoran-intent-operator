@@ -10,7 +10,6 @@ import (
 	"net/http/pprof"
 	"os"
 	"runtime"
-	"runtime/debug"
 	runtimepprof "runtime/pprof"
 	"runtime/trace"
 	"sync"
@@ -57,27 +56,27 @@ type ProfilerConfig struct {
 	EnableMemoryOptimization  bool
 
 	// Enhanced profiler fields
-	PrometheusIntegration     bool
-	HTTPEnabled               bool
-	OutputDirectory           string
-	ProfilePrefix             string
-	CompressionEnabled        bool
-	RetentionDays             int
-	CPUProfileRate            int
-	MemProfileRate            int
-	BlockProfileRate          int
-	MutexProfileRate          int
-	ContinuousInterval        time.Duration
-	AutoAnalysisEnabled       bool
-	OptimizationHints         bool
-	ExecutionTracing          bool
-	GCProfileEnabled          bool
-	AllocProfileEnabled       bool
-	ThreadCreationProfile     bool
-	HTTPAddress               string
-	HTTPAuth                  bool
-	AlertingEnabled           bool
-	SlackIntegration          bool
+	PrometheusIntegration bool
+	HTTPEnabled           bool
+	OutputDirectory       string
+	ProfilePrefix         string
+	CompressionEnabled    bool
+	RetentionDays         int
+	CPUProfileRate        int
+	MemProfileRate        int
+	BlockProfileRate      int
+	MutexProfileRate      int
+	ContinuousInterval    time.Duration
+	AutoAnalysisEnabled   bool
+	OptimizationHints     bool
+	ExecutionTracing      bool
+	GCProfileEnabled      bool
+	AllocProfileEnabled   bool
+	ThreadCreationProfile bool
+	HTTPAddress           string
+	HTTPAuth              bool
+	AlertingEnabled       bool
+	SlackIntegration      bool
 }
 
 // ProfilerMetrics contains performance metrics
@@ -1085,10 +1084,10 @@ func (cp *CPUProfiler) GenerateProfile(duration time.Duration) error {
 	runtimepprof.StopCPUProfile()
 
 	profile := &CPUProfile{
-		UserTime:   duration / 2,    // Approximate user time
-		SystemTime: duration / 4,    // Approximate system time  
-		IdleTime:   duration / 4,    // Approximate idle time
-		CPUUsage:   75.0,           // Approximate CPU usage percentage
+		UserTime:   duration / 2, // Approximate user time
+		SystemTime: duration / 4, // Approximate system time
+		IdleTime:   duration / 4, // Approximate idle time
+		CPUUsage:   75.0,         // Approximate CPU usage percentage
 	}
 
 	cp.profiles = append(cp.profiles, profile)

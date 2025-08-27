@@ -223,7 +223,7 @@ func (s *IntegrationTestSuite) initializeTestData() {
 			},
 		},
 		Status: nephoranv1.NetworkIntentStatus{
-			ProcessingPhase: interfaces.PhaseReceived,
+			ProcessingPhase: interfaces.PhaseIntentReceived,
 		},
 	}
 }
@@ -842,7 +842,7 @@ var _ = Describe("Controller Integration and Coordination", func() {
 					Type:          EventIntentReceived,
 					Source:        "test",
 					IntentID:      intentID,
-					Phase:         interfaces.PhaseReceived,
+					Phase:         interfaces.PhaseIntentReceived,
 					Success:       true,
 					Timestamp:     time.Now(),
 					CorrelationID: "replay-test-1",

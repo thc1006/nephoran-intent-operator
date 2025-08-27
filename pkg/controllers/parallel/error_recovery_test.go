@@ -48,7 +48,7 @@ type ErrorRecoveryTestSuite struct {
 // SetupSuite initializes the test suite
 func (suite *ErrorRecoveryTestSuite) SetupSuite() {
 	zapLogger, _ := zap.NewDevelopment()
-	suite.logger = zapr.New(zapLogger)
+	suite.logger = zapr.NewLogger(zapLogger)
 
 	suite.ctx, suite.cancel = context.WithCancel(context.Background())
 

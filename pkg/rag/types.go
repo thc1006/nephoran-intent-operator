@@ -194,3 +194,27 @@ type QueryRequest struct {
 // Document represents a document in the RAG system (alias to Doc for compatibility)
 type Document = Doc
 
+// RetrievalRequest represents a request for document retrieval
+type RetrievalRequest struct {
+	Query       string                 `json:"query"`
+	Limit       int                    `json:"limit,omitempty"`
+	Filters     map[string]interface{} `json:"filters,omitempty"`
+	Context     map[string]interface{} `json:"context,omitempty"`
+	IntentType  string                 `json:"intent_type,omitempty"`
+	SessionID   string                 `json:"session_id,omitempty"`
+	ClientID    string                 `json:"client_id,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Timeout     time.Duration          `json:"timeout,omitempty"`
+}
+
+// RetrievalResponse represents a response from document retrieval
+type RetrievalResponse struct {
+	Documents   []Doc                  `json:"documents"`
+	Query       string                 `json:"query"`
+	TotalFound  int                    `json:"total_found"`
+	ProcessTime time.Duration          `json:"process_time"`
+	Context     map[string]interface{} `json:"context,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	Error       string                 `json:"error,omitempty"`
+}
+

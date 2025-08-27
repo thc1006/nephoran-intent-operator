@@ -777,3 +777,33 @@ const (
 	EndpointTypeUDP   = "UDP"
 	EndpointTypeGRPC  = "GRPC"
 )
+
+
+// Additional types that may be missing from other files
+
+// DeploymentManager represents a deployment manager
+type DeploymentManager struct {
+	DeploymentManagerID string                 `json:"deploymentManagerId"`
+	Name                string                 `json:"name"`
+	Description         string                 `json:"description,omitempty"`
+	Type                string                 `json:"type"`
+	Endpoint            string                 `json:"endpoint"`
+	Status              string                 `json:"status"`
+	Capabilities        []string               `json:"capabilities,omitempty"`
+	SupportedTypes      []string               `json:"supportedTypes,omitempty"`
+	Configuration       map[string]interface{} `json:"configuration,omitempty"`
+	Credentials         map[string]string      `json:"credentials,omitempty"`
+	CreatedAt           time.Time              `json:"createdAt"`
+	UpdatedAt           time.Time              `json:"updatedAt"`
+}
+
+// DeploymentManagerFilter defines filters for querying deployment managers
+type DeploymentManagerFilter struct {
+	Names       []string `json:"names,omitempty"`
+	Types       []string `json:"types,omitempty"`
+	Statuses    []string `json:"statuses,omitempty"`
+	Providers   []string `json:"providers,omitempty"`
+	Locations   []string `json:"locations,omitempty"`
+	Limit       int      `json:"limit,omitempty"`
+	Offset      int      `json:"offset,omitempty"`
+}

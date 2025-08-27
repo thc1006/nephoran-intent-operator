@@ -107,6 +107,9 @@ func (c *Container) getGitClient() (git.ClientInterface, error) {
 	if err != nil {
 		return nil, err
 	}
+	if dep == nil {
+		return nil, nil
+	}
 	return dep.(git.ClientInterface), nil
 }
 
@@ -114,6 +117,9 @@ func (c *Container) getLLMClient() (shared.ClientInterface, error) {
 	dep, err := c.Get("llm_client")
 	if err != nil {
 		return nil, err
+	}
+	if dep == nil {
+		return nil, nil
 	}
 	return dep.(shared.ClientInterface), nil
 }

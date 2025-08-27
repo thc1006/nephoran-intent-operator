@@ -841,18 +841,32 @@ func (ee *EscalationEngine) executeEscalationLevel(ctx context.Context, escalati
 		time.Sleep(levelConfig.Delay)
 	}
 
+	// Get the alert for this escalation
+	alert := ee.getAlertForEscalation(escalation)
+	if alert == nil {
+		ee.logger.ErrorWithContext("Alert not found for escalation", nil, "escalation_id", escalation.ID, "alert_id", escalation.AlertID)
+		return
+	}
+
+	// Get the policy for this escalation
+	policy := ee.getPolicyForEscalation(escalation)
+	if policy == nil {
+		ee.logger.ErrorWithContext("Policy not found for escalation", nil, "escalation_id", escalation.ID, "policy_id", escalation.PolicyID)
+		return
+	}
+
 	// Execute level actions
 	for _, action := range levelConfig.Actions {
-		ee.executeEscalationAction(ctx, escalation, action, level)
+		ee.executeEscalationAction(ctx, alert, action)
 	}
 
 	// Notify stakeholders
 	for _, stakeholder := range levelConfig.Stakeholders {
-		ee.notifyStakeholder(ctx, escalation, stakeholder, level)
+		ee.notifyStakeholder(ctx, alert, stakeholder.Identifier)
 	}
 
 	// Schedule next escalation level if conditions are met
-	ee.scheduleNextEscalation(ctx, escalation, levelConfig)
+	ee.scheduleNextEscalation(alert, policy)
 
 	// Update escalation statistics
 	ee.escalationStats.EscalationsByLevel[level]++
@@ -976,5 +990,177 @@ func (ee *EscalationEngine) recordEscalationEvent(event *EscalationEvent) {
 	// Keep only recent history to prevent memory bloat
 	if len(ee.escalationHistory) > 10000 {
 		ee.escalationHistory = ee.escalationHistory[1000:]
+	}
+}
+
+// Missing EscalationEngine methods
+
+// escalationMonitor monitors escalation status and triggers next steps
+func (ee *EscalationEngine) escalationMonitor(ctx context.Context) {
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ee.stopCh:
+			return
+		case <-ticker.C:
+			ee.checkPendingEscalations(ctx)
+		}
+	}
+}
+
+// autoResolutionMonitor monitors for automatic alert resolution
+func (ee *EscalationEngine) autoResolutionMonitor(ctx context.Context) {
+	ticker := time.NewTicker(2 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ee.stopCh:
+			return
+		case <-ticker.C:
+			ee.checkAutoResolution(ctx)
+		}
+	}
+}
+
+// metricsUpdateLoop updates escalation metrics
+func (ee *EscalationEngine) metricsUpdateLoop(ctx context.Context) {
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ee.stopCh:
+			return
+		case <-ticker.C:
+			ee.updateMetrics()
+		}
+	}
+}
+
+// executeEscalationAction executes a specific escalation action
+func (ee *EscalationEngine) executeEscalationAction(ctx context.Context, alert *SLAAlert, action EscalationAction) error {
+	ee.logger.InfoWithContext("Executing escalation action",
+		"alert_id", alert.ID,
+		"action_type", action.Type,
+		"action_name", action.Name,
+	)
+
+	switch action.Type {
+	case "notify":
+		if target, exists := action.Parameters["target"]; exists {
+			return ee.notifyStakeholder(ctx, alert, target)
+		}
+		return fmt.Errorf("notify action missing target parameter")
+	case "page":
+		if target, exists := action.Parameters["target"]; exists {
+			return ee.sendPage(ctx, alert, target)
+		}
+		return fmt.Errorf("page action missing target parameter")
+	case "ticket":
+		return ee.createTicket(ctx, alert, action)
+	default:
+		return fmt.Errorf("unknown escalation action type: %s", action.Type)
+	}
+}
+
+// notifyStakeholder sends a notification to a stakeholder
+func (ee *EscalationEngine) notifyStakeholder(ctx context.Context, alert *SLAAlert, target string) error {
+	// TODO: Implement stakeholder notification logic
+	ee.logger.InfoWithContext("Notifying stakeholder",
+		"alert_id", alert.ID,
+		"target", target,
+	)
+	return nil
+}
+
+// scheduleNextEscalation schedules the next escalation step
+func (ee *EscalationEngine) scheduleNextEscalation(alert *SLAAlert, policy *EscalationPolicy) {
+	// TODO: Implement escalation scheduling logic
+	ee.logger.InfoWithContext("Scheduling next escalation",
+		"alert_id", alert.ID,
+		"policy_id", policy.ID,
+	)
+}
+
+// Helper methods for monitor functions
+
+func (ee *EscalationEngine) checkPendingEscalations(ctx context.Context) {
+	// TODO: Check for escalations that need to be triggered
+	ee.logger.Debug("Checking pending escalations")
+}
+
+func (ee *EscalationEngine) checkAutoResolution(ctx context.Context) {
+	// TODO: Check for alerts that can be auto-resolved
+	ee.logger.Debug("Checking auto-resolution candidates")
+}
+
+func (ee *EscalationEngine) updateMetrics() {
+	// TODO: Update Prometheus metrics
+	ee.logger.Debug("Updating escalation metrics")
+}
+
+func (ee *EscalationEngine) sendPage(ctx context.Context, alert *SLAAlert, target string) error {
+	// TODO: Send page notification
+	ee.logger.InfoWithContext("Sending page",
+		"alert_id", alert.ID,
+		"target", target,
+	)
+	return nil
+}
+
+func (ee *EscalationEngine) createTicket(ctx context.Context, alert *SLAAlert, action EscalationAction) error {
+	// TODO: Create support ticket
+	ee.logger.InfoWithContext("Creating ticket",
+		"alert_id", alert.ID,
+		"action", action.Type,
+	)
+	return nil
+}
+
+// Helper methods for escalation management
+
+// getAlertForEscalation retrieves the alert associated with an escalation
+func (ee *EscalationEngine) getAlertForEscalation(escalation *ActiveEscalation) *SLAAlert {
+	// TODO: Implement alert lookup by ID
+	// This would typically query a database or cache
+	ee.logger.Debug("Looking up alert for escalation",
+		"escalation_id", escalation.ID,
+		"alert_id", escalation.AlertID,
+	)
+	
+	// For now, return a mock alert - in production this would be a proper lookup
+	return &SLAAlert{
+		ID:          escalation.AlertID,
+		Name:        "Mock Alert",
+		Description: "Mock alert for escalation testing",
+		Severity:    AlertSeverityCritical,
+		State:       AlertStateFiring,
+	}
+}
+
+// getPolicyForEscalation retrieves the escalation policy for an escalation
+func (ee *EscalationEngine) getPolicyForEscalation(escalation *ActiveEscalation) *EscalationPolicy {
+	// TODO: Implement policy lookup by ID
+	// This would typically query a database or cache
+	ee.logger.Debug("Looking up policy for escalation",
+		"escalation_id", escalation.ID,
+		"policy_id", escalation.PolicyID,
+	)
+	
+	// For now, return a mock policy - in production this would be a proper lookup
+	return &EscalationPolicy{
+		ID:          escalation.PolicyID,
+		Name:        "Mock Policy",
+		Description: "Mock escalation policy for testing",
+		Enabled:     true,
 	}
 }

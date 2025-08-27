@@ -95,21 +95,7 @@ type CoordinationEventData struct {
 	ParallelContext string                     `json:"parallelContext,omitempty"`
 }
 
-// Enhanced event types for coordination
-const (
-	EventPhaseTransition        = "coordination.phase.transition"
-	EventDependencyResolved     = "coordination.dependency.resolved"
-	EventConflictDetected       = "coordination.conflict.detected"
-	EventConflictResolved       = "coordination.conflict.resolved"
-	EventResourceLockAcquired   = "coordination.resource.lock.acquired"
-	EventResourceLockReleased   = "coordination.resource.lock.released"
-	EventRecoveryInitiated      = "coordination.recovery.initiated"
-	EventRecoveryCompleted      = "coordination.recovery.completed"
-	EventParallelPhaseStarted   = "coordination.parallel.phase.started"
-	EventParallelPhaseCompleted = "coordination.parallel.phase.completed"
-	EventReplayInitiated        = "coordination.replay.initiated"
-	EventReplayCompleted        = "coordination.replay.completed"
-)
+// Enhanced event types are now defined in event_bus.go
 
 // NewEventDrivenCoordinator creates a new event-driven coordinator
 func NewEventDrivenCoordinator(client client.Client, logger logr.Logger) *EventDrivenCoordinator {
@@ -210,7 +196,7 @@ func (edc *EventDrivenCoordinator) CoordinateIntentWithEvents(ctx context.Contex
 	// Create coordination context
 	coordCtx := &CoordinationContext{
 		IntentID:       intentID,
-		CurrentPhase:   interfaces.PhaseReceived,
+		CurrentPhase:   interfaces.PhaseIntentReceived,
 		StartTime:      time.Now(),
 		LastUpdateTime: time.Now(),
 		Metadata:       make(map[string]interface{}),
@@ -222,7 +208,7 @@ func (edc *EventDrivenCoordinator) CoordinateIntentWithEvents(ctx context.Contex
 	edc.mutex.Unlock()
 
 	// Publish intent received event
-	if err := edc.publishCoordinationEvent(ctx, EventIntentReceived, intentID, interfaces.PhaseReceived, CoordinationEventData{}); err != nil {
+	if err := edc.publishCoordinationEvent(ctx, EventIntentReceived, intentID, interfaces.PhaseIntentReceived, CoordinationEventData{}); err != nil {
 		return fmt.Errorf("failed to publish intent received event: %w", err)
 	}
 
@@ -264,7 +250,7 @@ func (edc *EventDrivenCoordinator) transitionToPhase(ctx context.Context, coordC
 }
 
 // publishCoordinationEvent publishes a coordination-specific event
-func (edc *EventDrivenCoordinator) publishCoordinationEvent(ctx context.Context, eventType string, intentID string, phase interfaces.ProcessingPhase, coordData CoordinationEventData) error {
+func (edc *EventDrivenCoordinator) publishCoordinationEvent(ctx context.Context, eventType EventType, intentID string, phase interfaces.ProcessingPhase, coordData CoordinationEventData) error {
 	event := CoordinationEvent{
 		ProcessingEvent: ProcessingEvent{
 			Type:          eventType,
@@ -293,7 +279,7 @@ func (edc *EventDrivenCoordinator) handlePhaseTransition(ctx context.Context, ev
 	if coordCtx, exists := edc.coordinationContexts[event.IntentID]; exists {
 		coordCtx.LastUpdateTime = time.Now()
 		// Add to completed phases when transitioning from it
-		if coordCtx.CurrentPhase != interfaces.PhaseReceived {
+		if coordCtx.CurrentPhase != interfaces.PhaseIntentReceived {
 			coordCtx.CompletedPhases = append(coordCtx.CompletedPhases, coordCtx.CurrentPhase)
 		}
 		coordCtx.CurrentPhase = event.Phase
@@ -354,12 +340,20 @@ func (edc *EventDrivenCoordinator) handleConflictResolved(ctx context.Context, e
 func (edc *EventDrivenCoordinator) handleResourceLockAcquired(ctx context.Context, event ProcessingEvent) error {
 	edc.logger.Info("Handling resource lock acquired", "intentId", event.IntentID)
 
-	lockID, _ := event.Data["lockId"].(string)
+	resourceID, _ := event.Data["resourceId"].(string)
+	resourceType, _ := event.Data["resourceType"].(string)
 
 	// Add lock to coordination context
 	edc.mutex.Lock()
 	if coordCtx, exists := edc.coordinationContexts[event.IntentID]; exists {
-		coordCtx.Locks = append(coordCtx.Locks, lockID)
+		lock := ResourceLock{
+			ResourceID:   resourceID,
+			ResourceType: resourceType,
+			LockType:     "Exclusive", // Default to exclusive
+			AcquiredAt:   time.Now(),
+			Owner:        event.IntentID,
+		}
+		coordCtx.Locks = append(coordCtx.Locks, lock)
 	}
 	edc.mutex.Unlock()
 
@@ -370,13 +364,13 @@ func (edc *EventDrivenCoordinator) handleResourceLockAcquired(ctx context.Contex
 func (edc *EventDrivenCoordinator) handleResourceLockReleased(ctx context.Context, event ProcessingEvent) error {
 	edc.logger.Info("Handling resource lock released", "intentId", event.IntentID)
 
-	lockID, _ := event.Data["lockId"].(string)
+	resourceID, _ := event.Data["resourceId"].(string)
 
 	// Remove lock from coordination context
 	edc.mutex.Lock()
 	if coordCtx, exists := edc.coordinationContexts[event.IntentID]; exists {
 		for i, lock := range coordCtx.Locks {
-			if lock == lockID {
+			if lock.ResourceID == resourceID {
 				coordCtx.Locks = append(coordCtx.Locks[:i], coordCtx.Locks[i+1:]...)
 				break
 			}
